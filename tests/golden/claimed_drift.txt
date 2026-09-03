@@ -50,9 +50,34 @@
 #
 
 #
-# Tests-plus-sysid branch: the estimator and its gates change no
-# solver path and no golden capture; the inherited low-energy-seed
-# list below was the baseline's own diff -- emptied per rule 2.
+# D8-01 remainder (#282): the five coordinator captures gain SIX key paths
+# each and lose nothing. Measured on this branch with
+# `tests/env_drift.py --fixtures` before and after re-recording: 61 lines
+# added across the five files, 0 removed, and not one pre-existing leaf
+# moves in value -- the coord_* set carries no value-level diff against the
+# committed files on this box either, which is what makes re-recording them
+# here honest.
+#
+# The direction, per fixture and identical in all five:
+#   + data.outdoor_forecast_temperature          the horizon's first outdoor
+#                                                step (-5.0 where
+#                                                outdoor_temperature is the
+#                                                5.0 constructor default)
+#   + data.reading_ok.outdoor_temperature        false: these scenarios
+#                                                configure no thermometer
+#   + data.battery.components[].measured         false on every store, for
+#                                                the same reason
+#   + data.battery.measured_components           []
+#   + data.battery.modelled_components(+[])      every store, named
+#
+# No published FIGURE changes: dropping a store would have rescaled the SOC
+# denominator for every partly-probed install, so the components are
+# labelled rather than removed.
+coord_minimal    # + outdoor_forecast_temperature, reading_ok.outdoor_temperature, battery measured/modelled labels
+coord_dhw        # + outdoor_forecast_temperature, reading_ok.outdoor_temperature, battery measured/modelled labels
+coord_two_zone   # + outdoor_forecast_temperature, reading_ok.outdoor_temperature, battery measured/modelled labels
+coord_grid_fee   # + outdoor_forecast_temperature, reading_ok.outdoor_temperature, battery measured/modelled labels
+coord_all_features  # + outdoor_forecast_temperature, reading_ok.outdoor_temperature, battery measured/modelled labels
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum

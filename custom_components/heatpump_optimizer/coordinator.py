@@ -455,6 +455,72 @@ def _as_float(value: Any, default: float) -> float:
 #: forecast series is resampled to.
 FORECAST_STEP_MINUTES = 15
 
+
+def _comparable_ts(raw: Any, reference: datetime) -> datetime | None:
+    """Parse an entry timestamp so it can be ordered against the step grid.
+
+    A naive timestamp against an aware grid is taken as UTC, matching
+    ``_get_current_price``; an aware one against a naive grid keeps its own
+    wall clock.
+
+    Module level, not a coordinator method: it reads nothing off ``self``
+    and never did, and the class it sat in is the one the decomposition
+    programme is trying to empty.
+    """
+    try:
+        ts = datetime.fromisoformat(str(raw))
+    except (TypeError, ValueError):
+        return None
+    if ts.tzinfo is None and reference.tzinfo is not None:
+        return ts.replace(tzinfo=timezone.utc)
+    if ts.tzinfo is not None and reference.tzinfo is None:
+        return dt_util.as_local(ts).replace(tzinfo=None)
+    return ts
+
+
+def forecast_outdoor_now(forecast: list[dict], now: datetime) -> float | None:
+    """The outdoor temperature the solve horizon starts on, °C.
+
+    The plan is solved on the forecast, not on the outdoor thermometer, and
+    without a thermometer `ThermalState.outdoor_temperature` is never
+    overwritten at all -- `_update_current_state` writes it only under
+    ``if outdoor.ok``. So the published "outdoor" 5.0 °C was a dataclass
+    default standing beside a plan made at −5 °C, and the modelled COP that
+    reads it followed (#282). This is the number the plan is actually
+    acting on.
+
+    Matched to ``now`` by the entry's own timestamp, on ``_weather_series``'
+    rule -- each entry holds until the next one begins, and before the first
+    entry the first is the best information there is. Assuming entry 0 is
+    the current hour is what that method's docstring warns about: a stale
+    forecast, or one starting at the next hour, then reads hours out of
+    phase.
+
+    ``None`` with no forecast -- the one branch where the constructor
+    default really is what the horizon gets, and `_weather_series` falls
+    back to the same state.
+    """
+    if not forecast:
+        return None
+    timed = sorted(
+        (
+            (ts, entry)
+            for entry in forecast
+            if (ts := _comparable_ts(entry.get("datetime"), now)) is not None
+        ),
+        key=lambda item: item[0],
+    )
+    if timed:
+        index = max(0, bisect_right([ts for ts, _ in timed], now) - 1)
+        entry = timed[index][1]
+    else:
+        # No timestamps anywhere: the same positional assumption
+        # `_weather_series` falls back to, which starts the series at now.
+        entry = forecast[0]
+    temperature = entry.get("temperature")
+    return None if temperature is None else _as_float(temperature, 5.0)
+
+
 # A failed solve keeps the last good plan published — deliberately, a solver
 # hiccup must not blank the entities — but a plan that keeps failing to
 # refresh eventually describes yesterday's prices and weather, not today's.
@@ -466,6 +532,34 @@ FORECAST_STEP_MINUTES = 15
 PLAN_STALE_INTERVALS = 3
 PLAN_STALE_FLOOR_MINUTES = 90.0
 SOLVE_FAILURE_ISSUE_COUNT = 3
+
+#: Which configured entity backs each published temperature -- the table
+#: `_thermal_view` builds its ``reading_ok`` map from. ``ThermalState`` has
+#: constructor defaults (55.0 tank, 40.0 buffer, 22.0 slab, 21.0 either
+#: floor, 5.0 outdoor) and a field is overwritten only when its entity read
+#: OK, so without this map nothing downstream can tell a measurement from a
+#: default that has never moved (#282).
+READING_SOURCES: dict[str, str] = {
+    # The indoor thermometer is the upper zone, by the two-zone convention
+    # `_update_current_state` states and applies.
+    "upper_floor_temperature": CONF_INDOOR_TEMP_ENTITY,
+    # Only a real lower-floor thermometer; the room-temperature fallback is
+    # a modelling stand-in, not a second measurement.
+    "lower_floor_temperature": CONF_LOWER_FLOOR_TEMP_ENTITY,
+    "floor_return_temperature": CONF_FLOOR_RETURN_TEMP_ENTITY,
+    # The slab is never sensed. It is integrated from the floor return, so
+    # it is a live estimate exactly while that sensor reads and a one-off
+    # `room + 1.0` seed otherwise.
+    "slab_temperature": CONF_FLOOR_RETURN_TEMP_ENTITY,
+    "buffer_tank_temperature": CONF_BUFFER_TANK_TEMP_ENTITY,
+    # Published by `_dhw_view`; the freshness of every temperature this
+    # integration publishes belongs in one map.
+    "dhw_temperature": CONF_DHW_TEMP_ENTITY,
+    # The one this map was missing. Without an outdoor thermometer the 5.0
+    # default is what the Outdoor sensor, the climate attribute and the
+    # modelled COP all read, every cycle, forever -- and nothing said so.
+    "outdoor_temperature": CONF_OUTDOOR_TEMP_ENTITY,
+}
 
 # Age limits for the optional sensors read outside InputReader. Humidity
 # drives the mold floor — a frozen sensor would hold a raised floor
@@ -5843,31 +5937,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             prices = prices + self._fee_series(step_starts)
         return prices, price_known, price_sigma
 
-    @staticmethod
-    def _comparable_ts(raw: Any, reference: datetime) -> datetime | None:
-        """Parse an entry timestamp so it can be ordered against the step grid.
-
-        A naive timestamp against an aware grid is taken as UTC, matching
-        ``_get_current_price``; an aware one against a naive grid keeps its
-        own wall clock.
-        """
-        try:
-            ts = datetime.fromisoformat(str(raw))
-        except (TypeError, ValueError):
-            return None
-        if ts.tzinfo is None and reference.tzinfo is not None:
-            return ts.replace(tzinfo=timezone.utc)
-        if ts.tzinfo is not None and reference.tzinfo is None:
-            return dt_util.as_local(ts).replace(tzinfo=None)
-        return ts
-
     def _known_prices_for(self, step_starts: list[datetime]) -> list[float]:
         """Published prices covering a leading run of the step grid."""
         if not step_starts:
             return []
         entries: list[tuple[datetime, float]] = []
         for entry in self._prices:
-            ts = self._comparable_ts(entry.get("starts_at"), step_starts[0])
+            ts = _comparable_ts(entry.get("starts_at"), step_starts[0])
             if ts is not None:
                 entries.append((ts, _as_float(entry.get("total"), 0.0)))
         if not entries:
@@ -5957,7 +6033,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             irradiance = max(0.0, irradiance)
 
             ts = (
-                self._comparable_ts(entry.get("datetime"), step_starts[0])
+                _comparable_ts(entry.get("datetime"), step_starts[0])
                 if step_starts
                 else None
             )
@@ -6721,13 +6797,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     def _thermal_view(self) -> dict[str, Any]:
         """Measured and modelled temperatures, and the solar input."""
         state = self._current_state
-        # Which of the temperatures below are standing on a reading that
-        # actually came in this cycle. ``ThermalState`` has constructor
-        # defaults -- 55.0 for the tank, 40.0 for the buffer, 22.0 for the
-        # slab, 21.0 for either floor -- and a field is overwritten only when
-        # its entity read OK, so without this map the entities cannot tell a
-        # measurement from a default that has never moved.
-        floor_return_ok = self._reading_ok(CONF_FLOOR_RETURN_TEMP_ENTITY)
         # Conditional keys, not null keys: installs without the two-tank
         # topology publish exactly the attributes they published before
         # (issue #40's conditional-key pattern).
@@ -6746,28 +6815,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             "lower_floor_temperature": state.lower_floor_temperature,
             "buffer_tank_temperature": state.buffer_tank_temperature,
             "floor_return_temperature": self._floor_return_temp,
+            # Which of the temperatures above stand on a reading that
+            # actually came in this cycle; see READING_SOURCES.
             "reading_ok": {
-                # The indoor thermometer is the upper zone, by the two-zone
-                # convention `_update_current_state` states and applies.
-                "upper_floor_temperature": self._reading_ok(
-                    CONF_INDOOR_TEMP_ENTITY
-                ),
-                # Only a real lower-floor thermometer; the room-temperature
-                # fallback is a modelling stand-in, not a second measurement.
-                "lower_floor_temperature": self._reading_ok(
-                    CONF_LOWER_FLOOR_TEMP_ENTITY
-                ),
-                "floor_return_temperature": floor_return_ok,
-                # The slab is never sensed. It is integrated from the floor
-                # return, so it is a live estimate exactly while that sensor
-                # reads and a one-off `room + 1.0` seed otherwise.
-                "slab_temperature": floor_return_ok,
-                "buffer_tank_temperature": self._reading_ok(
-                    CONF_BUFFER_TANK_TEMP_ENTITY
-                ),
-                # Published by `_dhw_view`; the freshness of every temperature
-                # this integration publishes belongs in one map.
-                "dhw_temperature": self._reading_ok(CONF_DHW_TEMP_ENTITY),
+                field: self._reading_ok(entity)
+                for field, entity in READING_SOURCES.items()
             },
             "solar_radiation": self._solar_radiation,
             "solar_heat_gain": self._thermal_model.compute_solar_gain(
@@ -6946,10 +6998,18 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     def _grid_view(self) -> dict[str, Any]:
         """Prices, the capacity tariff and PV, i.e. what a kWh actually costs."""
         tariff = self._capacity_tariff()
+        forecast = self._weather_forecast
         return {
             "current_price": self._get_current_price(),
             "prices_available": len(self._prices),
-            "weather_forecast_available": len(self._weather_forecast),
+            "weather_forecast_available": len(forecast),
+            # The outdoor temperature the horizon starts on, beside the
+            # count of the forecast it comes from: what the plan is priced
+            # against, where `outdoor_temperature` without a thermometer is
+            # the constructor default (#282).
+            "outdoor_forecast_temperature": forecast_outdoor_now(
+                forecast, dt_util.now()
+            ),
             "price_known_steps": self._price_known_steps,
             "price_prior": self._price_model.summary(),
             # T1: what the same metered month would have cost under each
@@ -7108,7 +7168,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if self._energy_totals_since is None:
             self._energy_totals_since = dt_util.now().date().isoformat()
         data["energy_totals_counting_since"] = self._energy_totals_since
-        data["battery"] = self._battery_view()
+        # Which of the battery's stores stand on a thermometer. Labelled
+        # here rather than inside the view because this is where the
+        # reading map is already assembled (#282).
+        data["battery"] = battery_view.label_measured(
+            self._battery_view(), data.get("reading_ok") or {}
+        )
         # T6: narrative, scores, starts, receipts, tiles and the last
         # diagnosis — one additive block, present even while everything in
         # it is gated off (it reads as empty/inert).
@@ -9235,7 +9300,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             raw = entry.get("humidity")
             if raw is None:
                 continue
-            ts = self._comparable_ts(entry.get("datetime"), now)
+            ts = _comparable_ts(entry.get("datetime"), now)
             distance = (
                 abs((ts - now).total_seconds())
                 if ts is not None

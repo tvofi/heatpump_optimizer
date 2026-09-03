@@ -369,9 +369,9 @@ configured).
 | Current Electricity Price | CUR/kWh | The price the plan is being made against right now | |
 | Optimal Setpoint | °C | The setpoint the current plan step asks for | |
 | Recommended Power | kW | The electrical power the current plan step asks for | |
-| Estimated COP | — | Modelled COP at the current outdoor temperature | |
+| Estimated COP | — | Modelled COP at the current outdoor temperature | Follows the Outdoor Temperature sensor below, forecast fallback included |
 | Indoor Temperature (Optimizer) | °C | Indoor temperature as the optimizer sees it | |
-| Outdoor Temperature (Optimizer) | °C | Outdoor temperature as the optimizer sees it | |
+| Outdoor Temperature (Optimizer) | °C | Outdoor temperature as the optimizer sees it | Falls back to the forecast step the plan is solved on when no outdoor thermometer is configured; the `source` attribute says which |
 | Solar Irradiance | W/m² | The irradiance the plan uses, with the forecast horizon in attributes | Absorbed the former Solar Radiation sensor in v5.0.0 |
 | Slab Temperature (Estimated) | °C | Modelled slab temperature | |
 | Next Optimization | — | When the next run is due | Diagnostic; timestamp |
@@ -402,8 +402,8 @@ configured).
 | Prediction Accuracy | °C | Mean indoor-temperature error, with the signed bias and the last diagnosis in attributes | Diagnostic; unavailable until an interval has been scored |
 | Monthly Peak Power | kW | The peak the capacity tariff is billed on, and the headroom left | Unavailable unless the capacity tariff is enabled |
 | Solar Surplus Forecast | kWh | Forecast PV surplus the heat pump could absorb | Unavailable unless PV is enabled |
-| Thermal Battery Charge | % | State of charge of house and tanks against the comfort band | |
-| Thermal Battery Energy | kWh | Stored energy available above the comfort floor | |
+| Thermal Battery Charge | % | State of charge of house and tanks against the comfort band | Unavailable when no store is sensed at all; `components[].measured` and `modelled_components` say which stores are estimated |
+| Thermal Battery Energy | kWh | Stored energy available above the comfort floor | Unavailable when no store is sensed at all; `modelled_components` says which are estimated |
 | Comfort Weight | — | The comfort weight in force, learned or configured | Diagnostic |
 | Contract Comparison | CUR/kWh | How far below the month's flat-consumer average the shifting landed; the three settled totals — hourly spot, monthly-average spot, fixed price — ride in attributes | Diagnostic; disabled by default; needs a configured contract comparison |
 | Power Headroom | kW | What the house can draw right now without new cost — a number an EV charger's dynamic limit can follow | Unavailable until it can be computed |
