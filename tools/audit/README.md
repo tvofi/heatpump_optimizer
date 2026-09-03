@@ -122,8 +122,16 @@ Run the gate the way CI runs it, against the merge base:
 BASE=$(git merge-base origin/main HEAD)
 mkdir /tmp/hpo-gate.lock && GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$BASE \
   OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 \
-  ./tests/run.sh; rmdir /tmp/hpo-gate.lock
+  ./tests/run.sh; rm -rf /tmp/hpo-gate.lock
 ```
+
+`rm -rf`, not `rmdir`, and this is not a stylistic preference: **once you write
+the owner file the section below asks for, `rmdir` cannot remove the lock** --
+it only removes empty directories, so it fails with `Directory not empty` and
+the lock survives your run. Take-with-owner and release-with-`rmdir` are
+individually reasonable and jointly unsatisfiable, which is how a session that
+followed both left a lock standing behind a green gate and blocked two others.
+
 
 A full run takes about three minutes on the M1 (CI: 40–90 minutes), so a
 full local gate is never the bottleneck; the shared box is.
@@ -161,6 +169,12 @@ Take the lock with an owner file, and it becomes decidable:
 
     mkdir /tmp/hpo-gate.lock && printf '%s pid=%s at=%s\n' \
       "$AGENT_NAME" "$$" "$(date -u +%FT%TZ)" > /tmp/hpo-gate.lock/owner
+    # ... run the gate ...
+    rm -rf /tmp/hpo-gate.lock          # NOT rmdir: the owner file makes it non-empty
+
+Releasing your own lock is `rm -rf` for that reason, and it is the same command
+as reclaiming someone else's -- the difference is entirely in what you must
+prove first, not in what you type.
 
 **`$$` is the SHELL's pid, and that is not always the work's.** A run started
 with `nohup ... &` outlives the shell that launched it, so the owner file then
