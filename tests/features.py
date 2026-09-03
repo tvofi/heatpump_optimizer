@@ -2013,13 +2013,82 @@ def _grad_parity(two_zone, wood=False, valve=None, extra_cfg=None, label="",
     g_scipy = approx_derivative(
         space_obj, x0, method="2-point", abs_step=1e-4, f0=f0,
         bounds=(lb, ubv))
+    # A fixed variable (lb == ub) is the ONE place the batched jac departs
+    # from scipy's estimate on purpose (D9-01): there the one-sided step is
+    # zero and scipy's own divided difference is 0/0 = NaN. The batch returns
+    # an exact 0.0 -- the derivative of a variable that cannot move -- and
+    # keeps every free variable bit-for-bit. Parity is asserted on the free
+    # variables; the fixed ones get their own, stricter assertion below.
+    fixed = lb >= ubv
+    free = ~fixed
     R.check(
-        f"batched jac == scipy 2-point FD bit-for-bit: {label}",
-        np.array_equal(g_batch, g_scipy, equal_nan=True)
-        and np.array_equal(np.isnan(g_batch), np.isnan(g_scipy)),
-        f"gradient differs from scipy's estimate "
-        f"(maxabs={float(np.nanmax(np.abs(g_batch - g_scipy))):.2e})",
+        f"batched jac == scipy 2-point FD bit-for-bit on free variables: {label}",
+        np.array_equal(g_batch[free], g_scipy[free], equal_nan=True)
+        and np.array_equal(np.isnan(g_batch[free]), np.isnan(g_scipy[free])),
+        f"gradient differs from scipy's estimate on the {int(free.sum())} "
+        f"free variables (maxabs="
+        f"{float(np.nanmax(np.abs(g_batch[free] - g_scipy[free]))):.2e})",
     )
+    R.check(
+        f"batched jac is finite, and exactly 0.0 at the {int(fixed.sum())} "
+        f"fixed variables: {label}",
+        bool(np.all(np.isfinite(g_batch)))
+        and bool(np.all(g_batch[fixed] == 0.0)),
+        f"fixed-variable entries came back as {g_batch[fixed][:4]}; scipy's "
+        f"own estimate there is {g_scipy[fixed][:4]}, which is exactly why "
+        f"the batch must not simply divide 0 by 0",
+    )
+
+    # The end of the finding (D9-01): one fixed variable must not cost the
+    # WHOLE solve its batched jac. Run the real multi-start against these
+    # bounds and let scipy's own counters name the path -- with a supplied
+    # jac L-BFGS-B calls fun and jac once each per iterate (nfev == njev);
+    # when it has to estimate the gradient itself it spends n+1 function
+    # evaluations per gradient. Only worth paying for on the pinned shape.
+    if bounds_over == "dhw_pinned":
+        R.check(
+            f"a zero-range bound does not disqualify the batch: {label}",
+            _grad_optmod._bounds_supported_by_batch(bounds),
+            f"{int(fixed.sum())} of {n} bounds are (lo == hi); the gate must "
+            f"still serve the solve",
+        )
+        _bfd_calls = [0]
+        _real_bfd = _grad_optmod._batch_fd_gradient
+
+        def _counted_bfd(*a, **k):
+            _bfd_calls[0] += 1
+            return _real_bfd(*a, **k)
+
+        _grad_optmod._batch_fd_gradient = _counted_bfd
+        try:
+            res = _grad_optmod._multi_start_minimize(
+                space_obj, [x0, np.minimum(x0 * 0.4, ubv)], bounds,
+                maxiter=25, batch_objective=space_obj_batch, fd_eps=1e-4,
+            )
+        finally:
+            _grad_optmod._batch_fd_gradient = _real_bfd
+        R.check(
+            f"the pinned solve runs on the batched jac, not scipy's scalar "
+            f"finite differences: {label}",
+            _bfd_calls[0] > 0 and int(res.nfev) == int(res.njev),
+            f"batched gradients={_bfd_calls[0]}, nfev={int(res.nfev)}, "
+            f"njev={int(res.njev)}; the scalar path spends n+1={n + 1} "
+            f"function evaluations per gradient",
+        )
+        R.check(
+            f"the pinned solve gets a finite point on its pins, not a dead "
+            f"line search: {label}",
+            bool(np.all(np.isfinite(res.x)))
+            and int(res.status) != 2
+            and int(res.nit) > 0
+            and bool(np.all(res.x[fixed] == lb[fixed])),
+            f"status={int(res.status)} nit={int(res.nit)} "
+            f"finite={bool(np.all(np.isfinite(res.x)))} "
+            f"off-pin={float(np.max(np.abs(res.x[fixed] - lb[fixed]))):.3e}; "
+            f"a NaN in a SUPPLIED jac is status 2 at nit 0 -- L-BFGS-B dies "
+            f"in the first line search, which is the whole reason the fixed "
+            f"entry has to be an exact 0.0 rather than scipy's 0/0",
+        )
 
 
 import heatpump_optimizer.optimizer as _grad_optmod
@@ -2096,15 +2165,20 @@ _grad_parity(True, valve="manual", label="two-zone capped bounds summer-cool",
 # let np.where's both-arms division poison states with 0/0 NaN -- each
 # divergence appeared here as a step-37 room mismatch within seconds.
 
-# The gate itself (D9-01): which bound shapes the batched jac may serve. The
-# zero-range rejection is not style -- at a pinned variable the one-sided FD
-# step is zero, the divided difference is 0/0 = NaN, and L-BFGS-B's iterate
-# stream then differs between the jac-estimated and jac-supplied paths
-# (executed on the fuse-guard shape: scipy's own path iterates to 67.19,
-# the supplied-jac path dies in the first line search at 78.66). Deleting
-# the `lo >= hi` rejection below re-routes those solves onto the batch and
-# the fuse-guard cap checks in this file fail -- that is the mutation proof
-# this assertion exists to survive.
+# The gate itself (D9-01): which bound shapes the batched jac may serve. A
+# zero-range entry (lo == hi) used to disqualify the WHOLE solve, because at
+# such a variable the one-sided FD step is zero and the divided difference is
+# 0/0 = NaN -- and a NaN in a supplied jac kills L-BFGS-B in its first line
+# search (status 2, nit 0) where scipy's own estimator survives on a one-ULP
+# accident. The fix removes the NaN instead of the fast path: a fixed
+# variable's gradient entry is an exact 0.0, which is its true derivative,
+# and the batch keeps serving the free ones. One such bound is reachable
+# through four shipped default-config routes (a single-phase 16 A fuse guard,
+# fuse minus house load, the monthly fuse-advisor shadow solve, a one-slot
+# manual plan), and it cost 9,220 simulate-step equivalents per gradient
+# against 293 batched -- 31.5x. Restoring the `lo >= hi` rejection here, or
+# dropping the fixed-variable zeroing in `_batch_fd_gradient`, fails the
+# checks below and the pinned-solve checks in _grad_parity above.
 _gate = _grad_optmod._bounds_supported_by_batch
 R.section("Which bounds the batched jac may serve (D9-01)")
 R.check(
@@ -2118,15 +2192,55 @@ R.check(
     "non-uniform-but-nonzero bounds are the shapes D9-01 widened the gate for",
 )
 R.check(
-    "a zero-range bound (full DHW block or manual pin) is refused",
-    not _gate([(0.0, 6.0)] * 3 + [(0.0, 0.0)]),
-    "at lb == ub the FD step is zero, the gradient is 0/0 NaN, and the "
-    "supplied-jac iterate stream provably diverges from scipy's own",
+    "a zero-range bound (full DHW block or manual pin) is served, "
+    "not refused",
+    _gate([(0.0, 6.0)] * 3 + [(0.0, 0.0)])
+    and _gate([(0.0, 0.0)] * 4),
+    "one pinned step must not put the other 95 on scipy's scalar finite "
+    "differences; a fixed variable is fixed, and its gradient entry is 0.0",
 )
 R.check(
-    "degenerate classes are refused: empty, inverted, non-finite",
+    "degenerate classes are still refused: empty, inverted, non-finite",
     not _gate([]) and not _gate([(2.0, 1.0)]) and not _gate([(0.0, np.inf)]),
     "L-BFGS-B could not solve these on any path",
+)
+# The fixed-variable entry is exactly 0.0 and nothing else -- asserted on the
+# production symbol directly, against an objective whose true gradient at the
+# pinned coordinate is large and non-zero, so a stale/copied entry cannot pass.
+_gate_x0 = np.array([1.0, 2.0, 0.0])
+_gate_bounds = [(0.0, 6.0), (0.0, 6.0), (0.0, 0.0)]
+
+
+def _gate_obj_batch(mat, *_a):
+    m = np.atleast_2d(np.asarray(mat, dtype=float))
+    return np.sum((m - np.array([3.0, 1.0, 5.0])) ** 2, axis=1)
+
+
+_gate_f0 = float(_gate_obj_batch(_gate_x0[None, :])[0])
+_gate_grad = _grad_optmod._batch_fd_gradient(
+    _gate_obj_batch, (), _gate_x0, _gate_f0, 1e-4, _gate_bounds,
+)
+R.check(
+    "the batched jac's fixed-variable entry is an exact 0.0, not a NaN",
+    bool(np.all(np.isfinite(_gate_grad))) and _gate_grad[2] == 0.0,
+    f"gradient came back as {_gate_grad}; the pinned coordinate sits 5.0 "
+    f"below its objective's minimum, so an unguarded 0/0 shows up here as "
+    f"NaN and nowhere else",
+)
+
+from scipy.optimize._numdiff import approx_derivative as _gate_approx
+
+R.check(
+    "the free entries of that jac still match scipy's own 2-point estimate",
+    np.array_equal(
+        _gate_grad[:2],
+        _gate_approx(
+            lambda x: float(_gate_obj_batch(np.asarray(x)[None, :])[0]),
+            _gate_x0, method="2-point", abs_step=1e-4, f0=_gate_f0,
+            bounds=(np.array([0.0, 0.0, 0.0]), np.array([6.0, 6.0, 0.0])),
+        )[:2],
+    ),
+    "zeroing the fixed entry must not perturb any free one",
 )
 
 
