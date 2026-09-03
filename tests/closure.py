@@ -31,9 +31,12 @@ Commands
 --------
   record <script> --out-dir DIR   run one script instrumented, write its record
   merge  --in-dir DIR             fold records into tests/closures.json
-  check  --in-dir DIR             fail if the committed closures under-approximate
+  check  --in-dir DIR [--partial] fail if the committed closures under-approximate
   select --files ... | --diff REF decide which scripts a change needs
                  [--workdir DIR]  ...and write the plan where run.sh reads it
+  affected --files ... | --diff REF | --files-from FILE
+                 [--workdir DIR]  decide whether THIS check must run for a change,
+                                  and which closures it has to re-derive
   show                            print the committed closures
 
 Nothing here imports the integration; recording does, by running the tests.
@@ -699,12 +702,19 @@ def no_copies() -> int:
     return 0
 
 
-def check(in_dir: Path) -> int:
+def check(in_dir: Path, partial: bool = False) -> int:
     """Fail if the committed closures MISS anything a fresh run touched.
 
     Under-approximation is the dangerous direction: it is what makes the gate
     skip a script it should have run. Over-approximation only costs time, so
     it is reported and tolerated.
+
+    ``partial`` is the scoped path of the closures job (see ``affected``):
+    only the scripts a diff can reach were re-derived, so the roster check
+    below -- "a selectable script with no recording at all" -- would fail by
+    construction. It is dropped there and only there, and `affected` returns
+    FULL whenever a selectable script has no committed closure, so the scoped
+    path cannot run on the tree where that roster check would have fired.
     """
     if not CLOSURES.exists():
         print("closure: tests/closures.json is missing", file=sys.stderr)
@@ -725,7 +735,8 @@ def check(in_dir: Path) -> int:
     # reverting to full mode while CI stayed green. Failing here, on main,
     # does not block the PR that added the script but does not let the
     # omission survive either.
-    unmeasured = [s for s in selectable_scripts() if s not in records]
+    unmeasured = [] if partial else [
+        s for s in selectable_scripts() if s not in records]
     if unmeasured:
         print("closure: selectable script(s) with NO recording this run:")
         for s in unmeasured:
@@ -923,6 +934,178 @@ def write_plan(plan: dict, workdir: Path) -> None:
     (workdir / "scope.txt").write_text(buf.getvalue())
 
 
+# ---------------------------------------------------------------------------
+# the closures check's own scope
+#
+# `select` above decides which TESTS a change needs. This decides whether the
+# `closures` job -- the thing that checks the table `select` trusts -- needs to
+# run at all, and if so how much of it.
+#
+# It exists because that job was scoped by the wrong question. It ran on a pull
+# request only when the diff ADDED a file under custom_components/ (#332), so a
+# change to what a test READS was checked only after it merged: the pull
+# request was green, main went red, and a second pull request repaired it.
+# That happened five times -- #214, #320, #332, #340, #349 -- and the sharpest
+# case is #353, a pull request that exists solely to fix a closure error and
+# whose own `closures` check says `skipping`.
+#
+# Three cases:
+#
+#   full    a changed file is a GATE_FILE (every closure is suspect at once),
+#           is a script this gate cannot re-derive on its own, or -- the case
+#           that matters -- is in NO recorded closure and not INERT. Nothing
+#           can be inferred about a file the table has never measured.
+#   scoped  some recorded closure contains a changed file: re-derive exactly
+#           those scripts, then run the same `check`. One entry is ~40 s
+#           against 12-22 minutes for the full table.
+#   skip    no recorded closure contains any changed file. Nothing the gate
+#           runs reads them, so no recording can move. A docs-only pull request
+#           must still cost nothing, or the scoping this replaces was pointless.
+#
+# The order matters, and the skip is LAST on purpose. The first draft asked
+# "is every changed file INERT?" first, and that is a different question: a
+# file can be on INERT and in a recorded closure at the same time --
+# quality_scale.yaml is both on main today, listed as inert and inside
+# env_drift's rule-widened closure. Asking the hand list first would have
+# skipped a change to a file the table says a test reads. The table decides
+# the skip; INERT only licenses a file's ABSENCE from the table.
+#
+# The `full` rule carries no path prefix on purpose. The first draft said "a
+# changed file under custom_components/ that is in no closure", and the
+# argument for it -- an unmeasured file is not a safe skip -- has nothing to do
+# with that directory: a file under tests/ in no closure is equally unmeasured.
+# An inclusion list of one directory fails OPEN when someone adds a file type
+# nobody thought about, which is the failure this whole predicate is here to
+# stop; the exclusion list (INERT) fails closed. Today the widened rule costs
+# nothing measurable -- `orphan_files()` returns 0, so every non-inert tracked
+# file is already in some closure -- and the gap it closes is hard to reach on
+# purpose: a new file becomes a dependency only when something reads it, and
+# that something is itself in a closure, so the `scoped` rule fires anyway.
+# It is defensive, not a live hole. (tvofi-claude-09's objection to the
+# narrower draft.)
+
+
+def affected(files: list[str]) -> dict:
+    """Decide whether the closures check must run, and on what. Returns a plan."""
+    scripts = selectable_scripts()
+
+    def _full(reason: str) -> dict:
+        return {"case": "full", "reason": reason, "rederive": [], "why": {},
+                "changed": files}
+
+    # The same preconditions `select` applies, for the same reason: a table
+    # that does not describe this tree cannot scope anything, in either
+    # direction. They also underwrite `check --partial` -- the scoped path
+    # never runs on a tree where a selectable script has no closure, so
+    # skipping that check's roster test there cannot hide an unrecorded script.
+    if not CLOSURES.exists():
+        return _full("tests/closures.json is missing")
+    closures = json.loads(CLOSURES.read_text())["closures"]
+    unknown = sorted(k for k in closures if k not in scripts)
+    if unknown:
+        return _full("closures.json describes scripts that no longer exist: "
+                     + ", ".join(unknown))
+    uncovered = [s for s in scripts if s not in closures]
+    if uncovered:
+        return _full("no closure recorded for " + ", ".join(uncovered))
+    if not files:
+        return _full("no changed files could be determined")
+
+    gate = [f for f in files if is_gate_file(f)]
+    if gate:
+        return _full(f"{gate[0]} changes the gate itself, so every closure "
+                     f"is suspect")
+
+    # A script another script drives in a SUBPROCESS reaches the table only
+    # through its driver's fold, and `--single` cannot record it (dst_checks.py
+    # needs HASTUB_TZ set, which only the lane sets). Re-deriving the driver
+    # alone would not see the child's new reads, so a change here is not
+    # something the scoped path can check.
+    driven = [f for f in files if Path(f).name in DRIVEN_BY_OTHERS]
+    if driven:
+        return _full(f"{driven[0]} is driven in a subprocess by "
+                     f"{DRIVEN_BY_OTHERS[Path(driven[0]).name]}; only a full "
+                     f"re-derivation folds its reads in")
+
+    known = {f for files_ in closures.values() for f in files_}
+    unmapped = [f for f in files if f not in known and not is_inert(f)]
+    if unmapped:
+        return _full("no recorded closure mentions "
+                     + ", ".join(unmapped[:6])
+                     + (" ..." if len(unmapped) > 6 else "")
+                     + " -- nothing can be inferred about a file the table "
+                       "has never measured")
+
+    why: dict[str, dict] = {}
+    for s in scripts:
+        hits = sorted(set(files) & set(closures[s]))
+        if hits:
+            why[s] = {"changed": hits, "via": "closure"}
+    # A recording is a real run: card.mjs reads the payload plan_view.py
+    # writes, so re-deriving the consumer without its producer records a run
+    # that found no payload -- and a failed run records only what it reached.
+    for consumer, producers in PRODUCERS.items():
+        if consumer in why:
+            for prod in producers:
+                if prod not in why:
+                    why[prod] = {"changed": [], "via": f"producer of {consumer}"}
+    # Suite order, so the recordings run in the order run.sh would.
+    rederive = [s for s in scripts if s in why]
+    if not rederive:
+        # Everything that changed is absent from every closure, and `unmapped`
+        # above already proved each such file is INERT. Nothing a recording
+        # could touch has moved.
+        return {"case": "skip",
+                "reason": "no recorded closure contains any changed file, and "
+                          "every one of them is INERT",
+                "rederive": [], "why": {}, "changed": files}
+    return {"case": "scoped",
+            "reason": f"{len(rederive)} closure(s) intersect the diff",
+            "rederive": rederive, "why": why, "changed": files}
+
+
+def print_affected(plan: dict, stream=sys.stdout) -> None:
+    """The decision, written so a human scanning the log cannot misread it."""
+    w = stream.write
+    w("########## closures check ##########\n")
+    w(f"  CASE: {plan['case'].upper()} -- {plan['reason']}\n")
+    w(f"  changed files ({len(plan['changed'])}):\n")
+    for f in plan["changed"][:60]:
+        w(f"      {f}\n")
+    if len(plan["changed"]) > 60:
+        w(f"      ... and {len(plan['changed']) - 60} more\n")
+    if plan["case"] == "skip":
+        w("  Nothing to re-derive: this check does not run for this change.\n")
+        return
+    if plan["case"] == "full":
+        w("  Every closure is re-derived, exactly as on a push to main.\n")
+        return
+    w("\n")
+    for s in plan["rederive"]:
+        info = plan["why"][s]
+        pulled = ", ".join(info["changed"][:4]) or info["via"]
+        more = f" (+{len(info['changed']) - 4} more)" if len(info["changed"]) > 4 else ""
+        w(f"      REDERIVE  {s}  <- {pulled}{more}\n")
+    w("\n")
+    w("  Every other closure is left alone: no changed file is in it, so a\n")
+    w("  fresh recording could not disagree with the committed one. The FULL\n")
+    w("  unscoped re-derivation on every push to main re-checks that claim.\n")
+
+
+def write_affected(plan: dict, workdir: Path) -> None:
+    """Emit the decision as files a workflow can read without parsing JSON."""
+    workdir.mkdir(parents=True, exist_ok=True)
+    (workdir / "affected.json").write_text(json.dumps(plan, indent=1))
+    (workdir / "affected.case").write_text(plan["case"] + "\n")
+    (workdir / "affected.scripts").write_text(
+        "".join(f"{s}\n" for s in plan["rederive"]))
+    import io
+
+    buf = io.StringIO()
+    print_affected(plan, buf)
+    (workdir / "affected.txt").write_text(buf.getvalue())
+
+
 def main() -> int:
     if len(sys.argv) > 1 and sys.argv[1] == "--exec-record":
         return _exec_record(sys.argv[2], sys.argv[3], sys.argv[4:])
@@ -938,10 +1121,19 @@ def main() -> int:
     m.add_argument("--allow-failures", action="store_true")
     m.add_argument("--partial", action="store_true")
     c = sub.add_parser("check"); c.add_argument("--in-dir", required=True)
+    c.add_argument("--partial", action="store_true")
     s = sub.add_parser("select")
     s.add_argument("--files", nargs="*"); s.add_argument("--diff")
     s.add_argument("--json", action="store_true")
     s.add_argument("--workdir")
+    f = sub.add_parser("affected")
+    f.add_argument("--files", nargs="*"); f.add_argument("--diff")
+    # A git-produced list, read from a file rather than the command line: a
+    # workflow passing `--files $(cat ...)` splits paths on whitespace and
+    # loses a long diff to ARG_MAX.
+    f.add_argument("--files-from")
+    f.add_argument("--json", action="store_true")
+    f.add_argument("--workdir")
     sub.add_parser("show")
     sub.add_parser("no-copies")
     a = ap.parse_args()
@@ -951,11 +1143,28 @@ def main() -> int:
         return merge(Path(a.in_dir), Path(a.out), a.allow_failures,
                       partial=a.partial)
     if a.cmd == "check":
-        return check(Path(a.in_dir))
+        return check(Path(a.in_dir), a.partial)
     if a.cmd == "no-copies":
         return no_copies()
     if a.cmd == "show":
         print(CLOSURES.read_text())
+        return 0
+    if a.cmd == "affected":
+        files = list(a.files or [])
+        if a.files_from:
+            files += [l.strip() for l in
+                      Path(a.files_from).read_text().splitlines() if l.strip()]
+        if a.diff:
+            files += changed_files(a.diff)
+        plan = affected(sorted(set(files)))
+        if a.workdir:
+            write_affected(plan, Path(a.workdir))
+        if a.json:
+            print(json.dumps(plan, indent=1))
+        else:
+            print_affected(plan)
+        # "nothing affected" is an answer, not an error: the workflow reads the
+        # decision, and a non-zero exit here would read as a broken check.
         return 0
     files = list(a.files or [])
     if a.diff:
