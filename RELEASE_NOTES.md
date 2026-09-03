@@ -1,5 +1,129 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.3.8
+
+### The card is legible and operable on a phone
+
+Three judge-verified findings from the audit's card dimension (#333, closing
+#256, #257 and #259), fixed in the order the panel required.
+
+The 8 px font floor on chart labels **never held in either mount order**
+(D4-01). It divided by the host's width, 26 px wider than the svg inside it,
+so even a floored render landed at 7.42 px; nothing re-rendered when the width
+changed, so a Lovelace mount -- which paints before the card is placed -- kept
+its widthless **3.70 px** until the plan sensor next updated, up to half an
+hour later; and the expanded dialog was exempt from the floor altogether, at
+5.60 px on a phone. The floor now measures the chart's own box, both charts
+share it, and a width change is a render.
+
+The compact schedule tile was an editor nobody could operate (D4-02): 5.55 px
+lanes and 2.70 px slots carrying `tabindex=0`, with Enter opening the slot
+menu. The tile is now a picture of the schedule -- tapping it opens the
+dialog, which is where editing happens -- and in the dialog a lane is floored
+in real pixels (24, or **44 under a coarse pointer**) and each slot's target
+is a rect of its own, floored the same way, which may claim the empty lane
+beside it but never a neighbour's ink. Where the pixel floor would take more
+than a third of the plot, the lane strip moves below the axis into viewBox
+height added for it, so the chart keeps its shape.
+
+And a long entity id in the empty state no longer paints outside the card box
+(D4-04): 48 overflowing rows go to zero.
+
+### The one device declares itself a service
+
+The coordinator's single `DeviceInfo` -- the only device declaration, with all
+five platforms forwarding to it -- now carries `entry_type=SERVICE` (#335,
+closing #305). A cloud API plus the user's own entities is a service, and the
+quality scale's Gold "devices" rule asks for exactly this.
+
+The other half of that finding is a recorded verdict rather than a change: the
+two kWh sensors keep a bare `MEASUREMENT` state class with no device class,
+because no honest one exists. `ENERGY` is documented for consumption meters
+and Home Assistant admits it only with `TOTAL`/`TOTAL_INCREASING`, while a
+rolling PV-surplus forecast and a learned p90 day-demand are recomputed
+estimates, not meters -- the `MEASUREMENT` pair would be rejected on every
+state write.
+
+### Documentation that matches the code
+
+Four more judge-verified findings, all documentation, no production file and
+no fixture touched (#323, closing #272, #273, #275 and #276): nine README
+sensor rows regain the "(lifetime)" and "(next 24 h)" qualifiers that
+`strings.json` already carried; `services.yaml`'s `wind_sensitivity_factor`
+example moves off the retired 0.15 to the shipping default; and a
+"6.7 -> 0 degree-hours" figure quoted in the README and how-it-works.md --
+which came from a test comment and does not reproduce -- is replaced by the
+property it was standing in for (learning strictly reduces the comfort
+breach), because that number is machine and BLAS dependent and re-recording it
+would only rebuild the same trap for the next machine.
+
+### Internal: two corrections to the audit's own conventions, and a conceded ratchet
+
+`tools/audit/README.md` gains what a week of use disproved (#336, #337): the
+stress harness must hold the box lock even when run alone, since the whole
+point of running it last and alone is a quiet box; the lock registers intent
+and enforces nothing, so exclusivity is confirmed by process rather than by
+ownership; a ratio metric cancels box load while an absolute does not; the
+recorded lock owner is the shell pid, which a `nohup` run outlives; and a
+harness that resolves its repo root from `__file__` measures the tag it lives
+in rather than the tree under review.
+
+`tests/structure_budgets.json` is re-recorded at 10409 (#343). This **concedes
+nine lines** of growth in the class the decomposition program exists to
+shrink: the budget was recorded at 10401, a later merge whose base predated
+the ratchet added nine lines, and the gate caught it on main rather than in
+that pull request. Re-recording unblocked the queue; recovering the lines
+remains open.
+
+
+### Internal: ten dead symbols leave the coordinator
+
+Ten top-level symbols with zero production references are deleted, each
+verified individually before removal (#338, for #226): `set_configured`, the
+`optimization_result` and `current_state` properties,
+`_prepare_forecast_data`, `DrawStats.ready_energy`, `pv.piecewise_cost`,
+`tariff.peak_penalty`, `topology.match_layout` with its `_edge_name` helper,
+`narrative.LANGUAGES` and `pump_mode.MODE_KEYS`, with their test-only
+references going too. Four `CONF` keys that a scan had flagged **stay**: a
+runtime sentinel proves a dynamic `getattr` reads them. Two more flagged
+symbols were false positives -- `max_abs_component` and `min_component` are
+live coordinator imports. The dead-symbol count falls from 11 to 6, and the
+six that remain are each verified alive.
+
+### A zero the form offered and the call refused
+
+`services.yaml` declared a minimum of 0 for `inter_zone_heat_transfer` and
+`window_area`, but the service schema binds both through a positive check with
+a floor of 0.01 -- so the Developer Tools form offered a value the call then
+refused (#324, closing #274, D6-03). The panel found the reported scope
+incomplete: the config flow admitted 0 at **four** more sites for the same two
+keys (the setup wizard's zones step, twice, and the options flow's
+`thermal_model` and `building_preset` steps), and `ThermalParameters.clamp()`
+never floored either field at all -- so a value stored before any validation
+ran, from a restored snapshot or an old config, could sit at 0 forever with
+none of the three surfaces catching it.
+
+The floor is now widened once rather than patched per surface: a new
+`POSITIVE_PARAM_FLOOR` backs the service schema, all four config-flow
+minimums, and a new floor in `clamp()`.
+
+### The peak-hours field's one grammar is pinned, not assumed
+
+A report (#327) held that `peak_tariff_hours` was validated with the grid-fee
+rules grammar while the coordinator parsed it as a time window, leaving every
+non-empty value either unsavable or silently ignored. Driven end to end and
+re-measured at two commits, **it did not reproduce in either direction**: the
+options page binds `is_valid_spec` from the window module, which is the same
+predicate the coordinator applies. The likely misread is a `grid_fee` import
+sitting three lines above the real one.
+
+What the false report did expose is that the agreement was **unguarded** --
+repointing the validator at the fee-rules grammar left the flow driver, the
+entity suite and the validator all green. A check now drives the documented
+`"07:00-19:00"` through the real options page and asserts the mask the
+coordinator returns, and that mutation is committed to the file's self-check
+(#344).
+
 ## v6.3.7
 
 ### A pinned step no longer costs the solver its fast gradient path
