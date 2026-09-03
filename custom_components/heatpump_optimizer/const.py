@@ -537,6 +537,17 @@ TWO_ZONE_MODE_ON: Final = "on"
 TWO_ZONE_MODE_OFF: Final = "off"
 TWO_ZONE_MODES: Final = (TWO_ZONE_MODE_AUTO, TWO_ZONE_MODE_ON, TWO_ZONE_MODE_OFF)
 DEFAULT_TWO_ZONE_MODE: Final = TWO_ZONE_MODE_AUTO
+# The shared non-zero floor for fields where 0 is physically nonsensical but
+# was, on some surfaces, still selectable (D6-03, #274): __init__.py's
+# ``_positive()`` schema guard, config_flow.py's NumberSelector minimums, and
+# ThermalParameters.clamp()'s stored-value floor all read this one constant,
+# so a UI form, a service call and a value already stored in the config
+# entry agree on what "not zero" means for the same field instead of
+# drifting the way
+# inter_zone_heat_transfer and window_area once did: services.yaml and the
+# config-flow forms let the Developer Tools form and the setup wizard admit
+# 0 while the service schema already rejected it.
+POSITIVE_PARAM_FLOOR: Final = 0.01
 CONF_UPPER_FLOOR_THERMAL_MASS: Final = "upper_floor_thermal_mass"  # kWh/°C
 CONF_LOWER_FLOOR_THERMAL_MASS: Final = "lower_floor_thermal_mass"  # kWh/°C
 CONF_UPPER_FLOOR_HEAT_LOSS: Final = "upper_floor_heat_loss"  # kW/°C

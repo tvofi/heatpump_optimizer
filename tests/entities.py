@@ -5318,6 +5318,81 @@ R.check(
     "; ".join(_bad_examples)[:300],
 )
 
+# D6-03 (#274): inter_zone_heat_transfer and window_area admitted 0 on three
+# surfaces the set_thermal_parameters schema's own ``_positive()`` already
+# rejected -- the services.yaml selectors, the two config-flow forms that
+# ask for these fields (initial setup and options/preset), and a value
+# stored before any validation ran. Widening every surface to the same
+# ``const.POSITIVE_PARAM_FLOOR`` closes all three; this pins all three so
+# a regression on any one of them fails here, not only in the field.
+_stp_schema = _svc_hass.services._schemas[
+    (const.DOMAIN, const.SERVICE_SET_THERMAL_PARAMS)
+]
+_zero_ok, _ = _example_passes(
+    _stp_schema, {"inter_zone_heat_transfer": 0, "window_area": 0}
+)
+R.check(
+    "the set_thermal_parameters schema still rejects 0 for both fields",
+    not _zero_ok,
+    "0 was accepted -- _positive()'s floor moved",
+)
+
+_yaml_selectors = {
+    f: services["set_thermal_parameters"]["fields"][f]["selector"]["number"]["min"]
+    for f in ("inter_zone_heat_transfer", "window_area")
+}
+R.check(
+    "services.yaml's selectors floor both fields at POSITIVE_PARAM_FLOOR, not 0",
+    all(v == const.POSITIVE_PARAM_FLOOR for v in _yaml_selectors.values()),
+    f"{_yaml_selectors}",
+)
+
+_zones_form = asyncio.run(_fresh_flow().async_step_zones(None))["data_schema"]
+_preset_entry = FakeEntry(
+    data={const.CONF_TIBBER_TOKEN: "t", const.CONF_WEATHER_ENTITY: "weather.home"}
+)
+_thermal_flow = options(_preset_entry)
+_thermal_flow.hass = FakeHass()
+_thermal_form = asyncio.run(_thermal_flow.async_step_thermal_model(None))["data_schema"]
+_preset_flow = options(_preset_entry)
+_preset_flow.hass = FakeHass()
+_preset_form2 = asyncio.run(_preset_flow.async_step_building_preset(None))[
+    "data_schema"
+]
+
+
+def _selector_min(schema, conf_key: str) -> float:
+    for key, validator in schema.schema.items():
+        if str(getattr(key, "schema", key)) == conf_key:
+            return validator.config["min"]
+    raise KeyError(conf_key)
+
+
+_config_flow_minimums = {
+    "zones/inter_zone_heat_transfer": _selector_min(
+        _zones_form, const.CONF_INTER_ZONE_TRANSFER
+    ),
+    "zones/window_area": _selector_min(_zones_form, const.CONF_WINDOW_AREA),
+    "thermal_model/inter_zone_heat_transfer": _selector_min(
+        _thermal_form, const.CONF_INTER_ZONE_TRANSFER
+    ),
+    "building_preset/window_area": _selector_min(_preset_form2, const.CONF_WINDOW_AREA),
+}
+R.check(
+    "all four config-flow forms floor the same two fields at POSITIVE_PARAM_FLOOR, not 0",
+    all(v == const.POSITIVE_PARAM_FLOOR for v in _config_flow_minimums.values()),
+    f"{_config_flow_minimums}",
+)
+
+_zeroed_params = ThermalParameters(inter_zone_transfer=0.0, window_area=0.0)
+R.check(
+    "a ThermalParameters constructed with 0 for either field is clamped off it",
+    _zeroed_params.inter_zone_transfer >= const.POSITIVE_PARAM_FLOOR
+    and _zeroed_params.window_area >= const.POSITIVE_PARAM_FLOOR,
+    f"inter_zone_transfer={_zeroed_params.inter_zone_transfer} "
+    f"window_area={_zeroed_params.window_area}",
+)
+
 # Several entries (runtime-data, action-setup): the handlers resolve their
 # targets at call time from the entries Home Assistant holds, and act on
 # every LOADED one -- or on the one ``entry_id`` names, which must exist and

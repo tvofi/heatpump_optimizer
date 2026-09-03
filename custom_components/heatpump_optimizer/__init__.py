@@ -59,6 +59,7 @@ from .const import (
     OPERATION_MODES,
     MODE_OFF,
     MODE_BOOST,
+    POSITIVE_PARAM_FLOOR,
     topology_layout_valid,
 )
 from . import comfort_band
@@ -253,9 +254,12 @@ SERVICE_SCHEMA_DIAGNOSE_INTERVAL = vol.Schema(
 # Ranges guard the physics, not just the UI: services.yaml selectors only
 # constrain the Developer Tools form, and an automation calling with a zero
 # thermal mass or a power fraction above 1 would otherwise flow straight into
-# the model as a division by zero or a heat flow with the wrong sign.
+# the model as a division by zero or a heat flow with the wrong sign. The
+# floor is POSITIVE_PARAM_FLOOR (D6-03, #274), shared with config_flow.py's
+# NumberSelector minimums and ThermalParameters.clamp() so the same "not
+# zero" line holds on every path a value can arrive by.
 def _positive(upper: float) -> vol.All:
-    return vol.All(vol.Coerce(float), vol.Range(min=0.01, max=upper))
+    return vol.All(vol.Coerce(float), vol.Range(min=POSITIVE_PARAM_FLOOR, max=upper))
 
 
 SERVICE_SCHEMA_SET_THERMAL_PARAMS = vol.Schema(

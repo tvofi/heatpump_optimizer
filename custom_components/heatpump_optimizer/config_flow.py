@@ -83,6 +83,7 @@ from .const import (
     CONF_UPPER_FLOOR_AREA_RATIO,
     CONF_BUFFER_TANK_VOLUME,
     CONF_WINDOW_AREA,
+    POSITIVE_PARAM_FLOOR,
     CONF_SOLAR_ORIENTATION_FACTOR,
     CONF_SOLAR_HEAT_GAIN_COEFF,
     CONF_DHW_TANK_VOLUME,
@@ -1351,7 +1352,7 @@ class HeatPumpOptimizerConfigFlow(
                     vol.Optional(
                         CONF_INTER_ZONE_TRANSFER,
                         default=DEFAULT_INTER_ZONE_TRANSFER,
-                    ): _number(0.0, 3.0, 0.1, "kW/°C"),
+                    ): _number(POSITIVE_PARAM_FLOOR, 3.0, 0.1, "kW/°C"),
                     vol.Optional(
                         CONF_RADIATOR_POWER_FRACTION,
                         default=DEFAULT_RADIATOR_POWER_FRACTION,
@@ -1366,7 +1367,7 @@ class HeatPumpOptimizerConfigFlow(
                     ): _number(10, 1500, 5, "L"),
                     vol.Optional(
                         CONF_WINDOW_AREA, default=DEFAULT_WINDOW_AREA
-                    ): _number(0, 50, 0.5, "m²"),
+                    ): _number(POSITIVE_PARAM_FLOOR, 50, 0.5, "m²"),
                     vol.Optional(
                         CONF_SOLAR_ORIENTATION_FACTOR,
                         default=DEFAULT_SOLAR_ORIENTATION_FACTOR,
@@ -2394,7 +2395,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
                         *RANGE_ZONE_HEAT_LOSS, 0.01, "kW/°C"
                     ),
                     _numeric(CONF_INTER_ZONE_TRANSFER): _number(
-                        0.0, 3.0, 0.1, "kW/°C"
+                        POSITIVE_PARAM_FLOOR, 3.0, 0.1, "kW/°C"
                     ),
                     _numeric(CONF_RADIATOR_POWER_FRACTION): _number(
                         0.0, 1.0, 0.05, slider=True
@@ -2610,7 +2611,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
                     vol.Optional(
                         CONF_WINDOW_AREA,
                         default=current.get(CONF_WINDOW_AREA, DEFAULT_WINDOW_AREA),
-                    ): _number(0, 50, 0.5, "m²"),
+                    ): _number(POSITIVE_PARAM_FLOOR, 50, 0.5, "m²"),
                     vol.Optional(
                         CONF_SOLAR_HEAT_GAIN_COEFF,
                         default=current.get(

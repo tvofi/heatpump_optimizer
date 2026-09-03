@@ -58,6 +58,7 @@ from .const import (
     DEFAULT_LOWER_FLOOR_HEAT_LOSS,
     DEFAULT_LOWER_FLOOR_LOSS_RATIO,
     DEFAULT_INTER_ZONE_TRANSFER,
+    POSITIVE_PARAM_FLOOR,
     DEFAULT_RADIATOR_POWER_FRACTION,
     DEFAULT_UPPER_FLOOR_AREA_RATIO,
     DEFAULT_BUFFER_TANK_VOLUME,
@@ -212,6 +213,23 @@ class ThermalParameters:
                 value = THERMAL_MASS_FLOOR
             if not np.isfinite(value) or value < THERMAL_MASS_FLOOR:
                 value = THERMAL_MASS_FLOOR
+            setattr(self, name, value)
+
+        # Neither of these is a divisor -- 0 does not produce inf/NaN, it
+        # produces a house with no windows or two zones with no coupling,
+        # which is not a real building. The service schema has rejected 0
+        # here since _positive() existed; this closes the gap for the two
+        # paths that never go through it: a value stored before validation
+        # existed, and one carried forward across a restart (D6-03, #274).
+        # NOT a restored snapshot -- snapshots.py stores learner payloads,
+        # never these fields, so saying so would name the wrong mechanism.
+        for name in ("inter_zone_transfer", "window_area"):
+            try:
+                value = float(getattr(self, name))
+            except (TypeError, ValueError):
+                value = POSITIVE_PARAM_FLOOR
+            if not np.isfinite(value) or value < POSITIVE_PARAM_FLOOR:
+                value = POSITIVE_PARAM_FLOOR
             setattr(self, name, value)
 
     @property
