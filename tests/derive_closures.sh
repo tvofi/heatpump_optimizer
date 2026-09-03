@@ -7,6 +7,8 @@
 #   ./tests/derive_closures.sh --out-dir D     # keep the raw records in D
 #   ./tests/derive_closures.sh --record-only   # record, do not rewrite the file
 #   ./tests/derive_closures.sh --single S      # record just S, merge it in
+#   ./tests/derive_closures.sh --single S --record-only --out-dir D
+#                                              # record just S into D, merge nothing
 #
 # This runs the whole suite once, under instrumentation (see tests/closure.py):
 # the closures are what the runs actually opened and imported, not what
@@ -77,8 +79,18 @@ rec() {
 if [ -n "$SINGLE" ]; then
   rec "$SINGLE" "$@"
   echo
-  $PYTHON tests/closure.py merge --in-dir "$OUTDIR" --partial
-  exit $?
+  # --record-only applies here too. The scoped path of the `closures` job
+  # records one script at a time into a shared out-dir and then CHECKS the
+  # committed file against those records; merging first would overwrite the
+  # committed closure with what this run just measured, and the check would
+  # compare the file against itself -- the same trap the full path documents
+  # above. Before this, --single ignored --record-only and always merged.
+  if [ "$MERGE" -eq 1 ]; then
+    $PYTHON tests/closure.py merge --in-dir "$OUTDIR" --partial
+    exit $?
+  fi
+  echo "recorded into $OUTDIR; tests/closures.json left untouched (--record-only)"
+  exit 0
 fi
 
 # Lane 1: the single longest script, alone.

@@ -5850,6 +5850,151 @@ R.check(
     "the lanes decide how every recording is taken; that invalidates them all",
 )
 
+# --- when the closures CHECK itself runs (#354) -----------------------------
+#
+# `select` above decides which tests a change needs. `affected` decides
+# whether the job that checks the table `select` trusts needs to run at all.
+# It ran on a pull request only when the diff ADDED a file under
+# custom_components/, so a change to what a test READS was checked one merge
+# too late -- five times (#214, #320, #332, #340, #349), each a green pull
+# request, a red main, and a second pull request to repair it.
+_A_DOCS = _closure.affected(["docs/audit-2026-09.md", "LICENSE", "tests/README.md"])
+R.check(
+    "a docs-only change still costs the closures check nothing",
+    _A_DOCS["case"] == "skip",
+    f"case is {_A_DOCS['case']}: {_A_DOCS['reason']} -- if a docs pull "
+    "request pays 12-22 minutes the scoping this replaces was pointless",
+)
+# The skip is decided by the TABLE, not by the hand-written INERT list, and
+# the order is why. quality_scale.yaml is on INERT and inside env_drift's
+# rule-widened closure at the same time; asking "is every changed file inert?"
+# first would skip a change to a file the table says a test reads.
+_QS = "custom_components/heatpump_optimizer/quality_scale.yaml"
+_A_QS = _closure.affected([_QS])
+R.check(
+    "a file that is both INERT and inside a recorded closure is not skipped",
+    _closure.is_inert(_QS) and _A_QS["case"] == "scoped",
+    f"{_QS} is inert={_closure.is_inert(_QS)} and case={_A_QS['case']}: the "
+    "hand list may license a file's ABSENCE from the table, never override it",
+)
+R.check(
+    "a gate file re-derives everything, as it does for selection",
+    _closure.affected(["tests/run.sh"])["case"] == "full"
+    and _closure.affected([".github/workflows/tests.yml"])["case"] == "full",
+    "changing the gate invalidates every closure at once",
+)
+# The rule that catches the five incidents, and it carries no path prefix: an
+# unmeasured file is unmeasured wherever it lives. The draft said "under
+# custom_components/", which fails OPEN for a file type nobody thought about.
+R.check(
+    "a file in no recorded closure re-derives everything, wherever it lives",
+    _closure.affected(["custom_components/heatpump_optimizer/nonesuch.py"])["case"]
+    == "full"
+    and _closure.affected(["tests/nonesuch_helper.py"])["case"] == "full",
+    "nothing can be inferred about a file the table has never measured",
+)
+R.check(
+    "an empty diff re-derives everything rather than nothing",
+    _closure.affected([])["case"] == "full",
+    "'no changed files could be determined' must fail closed",
+)
+# A script another script drives in a subprocess reaches the table only
+# through its driver's fold, and --single cannot record it.
+R.check(
+    "a change to a subprocess-driven script re-derives everything",
+    _closure.affected(["tests/dst_checks.py"])["case"] == "full",
+    "re-deriving features.py alone would not see dst_checks.py's new reads",
+)
+# The cost claim: one script's closure touched re-derives ONE entry.
+_A_ONE = _closure.affected(["tests/open_meteo.py"])
+R.check(
+    "a diff inside one closure re-derives one entry, not eighteen",
+    _A_ONE["case"] == "scoped" and _A_ONE["rederive"] == ["tests/open_meteo.py"],
+    f"case={_A_ONE['case']} rederive={_A_ONE['rederive']}",
+)
+# A recording is a real run: card.mjs reads the payload plan_view.py writes,
+# so re-deriving the consumer alone records a run that found no payload.
+_A_CARD = _closure.affected([_CARD_ASSET])
+R.check(
+    "a scoped re-derive pulls in the producer of anything it selects",
+    "tests/card.mjs" in _A_CARD["rederive"]
+    and "tests/plan_view.py" in _A_CARD["rederive"]
+    and _A_CARD["why"]["tests/plan_view.py"]["via"] == "producer of tests/card.mjs",
+    f"rederive={_A_CARD['rederive']}",
+)
+# The workflow reads these two files and nothing else. If they stop agreeing
+# with the plan the job runs the wrong scripts and says so nowhere.
+with _tempfile.TemporaryDirectory() as _td:
+    _closure.write_affected(_A_ONE, Path(_td))
+    _case_f = (Path(_td) / "affected.case").read_text().strip()
+    _scripts_f = (Path(_td) / "affected.scripts").read_text().split()
+    R.check(
+        "the files the workflow reads carry the plan the predicate made",
+        _case_f == _A_ONE["case"] and _scripts_f == _A_ONE["rederive"],
+        f"affected.case={_case_f!r} affected.scripts={_scripts_f}",
+    )
+
+# --- the scoped path's check is the same check ------------------------------
+#
+# `check --partial` drops one test and one only: "a selectable script with no
+# recording at all", which a scoped re-derive fails by construction. The
+# under-approximation comparison -- the thing the job exists for -- is
+# identical on both paths, and this proves it by feeding a record that lies.
+import contextlib as _contextlib
+import io as _io
+
+_committed = json.loads(_closure.CLOSURES.read_text())["closures"]
+
+
+def _check_with(files: list[str], partial: bool) -> int:
+    with _tempfile.TemporaryDirectory() as td:
+        (Path(td) / "open_meteo.py.json").write_text(json.dumps({
+            "script": "tests/open_meteo.py", "rc": 0, "seconds": 1.0,
+            "files": files, "spawned": [], "how": "test",
+        }))
+        with _contextlib.redirect_stdout(_io.StringIO()), \
+                _contextlib.redirect_stderr(_io.StringIO()):
+            return _closure.check(Path(td), partial=partial)
+
+
+_honest = list(_committed["tests/open_meteo.py"])
+R.check(
+    "a one-script re-derive is refused unless it says it is partial",
+    _check_with(_honest, partial=False) == 1,
+    "the roster check must still fire on the full path, where it means "
+    "'a selectable script was never recorded' (#90)",
+)
+R.check(
+    "and is accepted when it does",
+    _check_with(_honest, partial=True) == 0,
+    "the scoped path records only what the diff can reach",
+)
+R.check(
+    "but a partial check still fails on a closure that under-approximates",
+    _check_with(_honest + ["tests/nonesuch_dependency.py"], partial=True) == 1,
+    "--partial must drop the roster test and nothing else, or the scoped "
+    "path is a gate that cannot fail",
+)
+# The precondition that makes dropping the roster test safe: `affected` never
+# returns `scoped` on a tree where a selectable script has no closure, so the
+# scoped path cannot run where that test would have fired.
+with _tempfile.TemporaryDirectory() as _td:
+    _short = Path(_td) / "closures.json"
+    _short.write_text(json.dumps({"closures": {
+        k: v for k, v in _committed.items() if k != "tests/open_meteo.py"}}))
+    _real = _closure.CLOSURES
+    try:
+        _closure.CLOSURES = _short
+        _A_SHORT = _closure.affected(["custom_components/heatpump_optimizer/optimizer.py"])
+    finally:
+        _closure.CLOSURES = _real
+R.check(
+    "a selectable script with no closure forces the full re-derivation",
+    _A_SHORT["case"] == "full" and "open_meteo" in _A_SHORT["reason"],
+    f"case={_A_SHORT['case']} reason={_A_SHORT['reason']!r} -- this is what "
+    "lets the scoped path drop the roster check safely",
+)
+
 
 _version = Path("VERSION").read_text().strip()
 R.check(

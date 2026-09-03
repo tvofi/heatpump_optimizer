@@ -39,12 +39,21 @@ name: Tests
 #   red within one merge instead of never. Every scoped-out script is
 #   printed with its reason in the run log, twice.
 #
-# * closures — push to main, and nightly. Re-records every closure by
-#   running the whole suite under instrumentation and fails if
-#   tests/closures.json misses anything a real run touched. It runs
-#   beside `fast`, so it costs a runner and no wall clock. This is what
-#   stops the closures rotting the way a hand-written dependency table
-#   would.
+# * closures — push to main, nightly, and on any pull request that can
+#   move a closure. Re-records closures by running the suite under
+#   instrumentation and fails if tests/closures.json misses anything a
+#   real run touched. It runs beside `fast`, so it costs a runner and no
+#   wall clock. This is what stops the closures rotting the way a
+#   hand-written dependency table would.
+#
+#   On a push, nightly or dispatch it re-records EVERYTHING. On a pull
+#   request `closure-scope` decides, from the diff and the same table:
+#   skip when every changed file is INERT, full when a gate file or a
+#   file in no recorded closure is touched, and otherwise re-derive only
+#   the closures the diff intersects. Before that the job ran on a pull
+#   request only when one ADDED a file under custom_components/, so a
+#   change to what a test reads was checked one merge too late -- five
+#   times (#354).
 #
 # * slow — nightly and on demand. Same suite plus SLOW=1, which adds
 #   tests/rolling.py (the closed-loop learner simulation, ~15 minutes).
@@ -311,50 +320,67 @@ jobs:
   # gate skip a script it should have run -- and it fails here. A closure
   # that lists more than a run touched only costs time, and is reported.
   #
-  # This never runs on a pull request: it is the check on main, deliberately
-  # outside the thing it checks.
-  # Does a pull request add a file under custom_components/? Then its closures
-  # cannot already be recorded, and merging it reddens main one gate later.
-  # That happened four times in a week -- diagnostics.py, icons.json,
-  # quality_scale.yaml, entity.py -- each time discovered on main, after the
-  # merge, by whoever pushed next. The job below is what catches it, but it
-  # only ran on main, so it could only ever report the fire after it started.
-  new-integration-file:
+  # WHEN it runs on a pull request is decided here, by the same table it
+  # checks. The first version of this job asked "does the pull request ADD a
+  # file under custom_components/?" (#332), which is a different question from
+  # the one that matters: a change to what a test READS was checked only after
+  # it merged. Five incidents -- #214, #320, #332, #340, #349 -- each one a
+  # green pull request, a red main, and a second pull request to repair it.
+  # #353 is the sharpest: it exists solely to fix a closure error, and its own
+  # `closures` check says `skipping`.
+  #
+  # `closure.py affected` answers the right question instead, in three cases:
+  # skip (every changed file is INERT), full (a gate file, or a file in no
+  # recorded closure), scoped (re-derive only the closures the diff
+  # intersects, ~40 s an entry against 12-22 minutes for the table).
+  closure-scope:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
-      added: ${{ steps.check.outputs.added }}
+      case: ${{ steps.decide.outputs.case }}
+      scripts: ${{ steps.decide.outputs.scripts }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - id: check
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - id: decide
         run: |
           BASE="${{ github.event.pull_request.base.sha }}"
           HEAD="${{ github.event.pull_request.head.sha }}"
-          ADDED=$(git diff --diff-filter=A --name-only "$BASE" "$HEAD" \
-                    -- 'custom_components/**' | wc -l | tr -d ' ')
-          echo "added=$ADDED" >> "$GITHUB_OUTPUT"
-          if [ "$ADDED" != "0" ]; then
-            echo "This pull request adds $ADDED file(s) under custom_components/:"
-            git diff --diff-filter=A --name-only "$BASE" "$HEAD" -- 'custom_components/**'
-            echo "Running the closures job, because a file no closure lists is"
-            echo "exactly what turns main red one merge after it lands."
-          fi
+          # --files-from, not `--files $(...)`: a path list off the command
+          # line is split on whitespace and capped by ARG_MAX.
+          git diff --name-only "$BASE" "$HEAD" > "$RUNNER_TEMP/changed.txt"
+          python tests/closure.py affected \
+            --files-from "$RUNNER_TEMP/changed.txt" \
+            --workdir "$RUNNER_TEMP/affected"
+          {
+            echo "case=$(cat "$RUNNER_TEMP/affected/affected.case")"
+            echo "scripts<<CLOSURE_SCRIPTS_EOF"
+            cat "$RUNNER_TEMP/affected/affected.scripts"
+            echo "CLOSURE_SCRIPTS_EOF"
+          } >> "$GITHUB_OUTPUT"
 
   closures:
-    needs: [new-integration-file]
-    # `always()` is load-bearing, not decoration. `new-integration-file` only
-    # runs on a pull request, so on a push to main it is SKIPPED -- and a job
-    # whose `needs` was skipped is skipped too, whatever its own `if` says.
-    # Without `always()` this line would silently switch off the closures
-    # check on main, which is the one place it has always run: a far worse
-    # bug than the one it is here to prevent.
+    needs: [closure-scope]
+    # `always()` is load-bearing, not decoration. `closure-scope` only runs on
+    # a pull request, so on a push to main it is SKIPPED -- and a job whose
+    # `needs` was skipped is skipped too, whatever its own `if` says. Without
+    # `always()` this line would silently switch off the closures check on
+    # main, which is the one place it has always run: a far worse bug than the
+    # one it is here to prevent.
+    #
+    # `!= 'skip'` rather than `== 'full' || == 'scoped'` for the same reason:
+    # if `closure-scope` fails outright its outputs are empty, and an empty
+    # case must run the check, not silence it. This condition fails closed in
+    # every direction except the one case that was measured to be safe.
     if: >-
       always() && (
         github.event_name == 'push' || github.event_name == 'schedule'
-        || needs.new-integration-file.outputs.added != '0'
+        || needs.closure-scope.outputs.case != 'skip'
       )
     runs-on: ubuntu-latest
     timeout-minutes: 100
@@ -379,23 +405,49 @@ jobs:
         # its opens instead.
         run: sudo apt-get update && sudo apt-get install -y strace
 
-      - name: Re-record every closure
+      - name: Re-record the closures
         env:
           OMP_NUM_THREADS: "1"
           OPENBLAS_NUM_THREADS: "1"
           MKL_NUM_THREADS: "1"
+          # Through the environment, not string-interpolated into the script:
+          # the value is a job output, and `${{ }}` inside `run:` is textual
+          # substitution.
+          SCOPE_CASE: ${{ needs.closure-scope.outputs.case }}
+          SCOPE_SCRIPTS: ${{ needs.closure-scope.outputs.scripts }}
         run: |
           REF=$(git rev-parse --verify --quiet 'HEAD^1^{commit}') || REF=HEAD
-          # --record-only: merging here would overwrite the committed
-          # tests/closures.json with what this run just measured, and the
-          # check below would then compare the file against itself.
-          GOLDEN_REF="$REF" ./tests/derive_closures.sh \
-            --out-dir "$RUNNER_TEMP/closures" --record-only
+          # --record-only, on both paths: merging here would overwrite the
+          # committed tests/closures.json with what this run just measured, and
+          # the check below would then compare the file against itself.
+          if [ "$SCOPE_CASE" = "scoped" ]; then
+            printf '%s\n' "$SCOPE_SCRIPTS" > "$RUNNER_TEMP/rederive.txt"
+            echo "Scoped re-derive; every other closure is left as committed:"
+            cat "$RUNNER_TEMP/rederive.txt"
+            while read -r s; do
+              [ -n "$s" ] || continue
+              GOLDEN_REF="$REF" ./tests/derive_closures.sh \
+                --single "$s" --out-dir "$RUNNER_TEMP/closures" --record-only
+            done < "$RUNNER_TEMP/rederive.txt"
+          else
+            GOLDEN_REF="$REF" ./tests/derive_closures.sh \
+              --out-dir "$RUNNER_TEMP/closures" --record-only
+          fi
 
       - name: Fail if tests/closures.json under-approximates
         env:
           PYTHONPATH: tests/hastub
-        run: python tests/closure.py check --in-dir "$RUNNER_TEMP/closures"
+          SCOPE_CASE: ${{ needs.closure-scope.outputs.case }}
+        run: |
+          # --partial drops one check and one only: "a selectable script with
+          # no recording at all", which a scoped re-derive fails by
+          # construction. The under-approximation comparison -- the thing this
+          # job exists for -- is identical on both paths.
+          if [ "$SCOPE_CASE" = "scoped" ]; then
+            python tests/closure.py check --in-dir "$RUNNER_TEMP/closures" --partial
+          else
+            python tests/closure.py check --in-dir "$RUNNER_TEMP/closures"
+          fi
 
       - name: Fail if a test file re-implements a production symbol
         # The rule tests/README.md states, enforced (issue #91): a test
