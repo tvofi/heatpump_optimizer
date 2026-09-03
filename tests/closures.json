@@ -22,7 +22,7 @@
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 5.9,
+   "seconds": 2.2,
    "rc": 0
   },
   "tests/env_drift.py": {
@@ -389,6 +389,7 @@
    "custom_components/heatpump_optimizer/pump_signals.py",
    "custom_components/heatpump_optimizer/pv.py",
    "custom_components/heatpump_optimizer/sensor.py",
+   "custom_components/heatpump_optimizer/services.py",
    "custom_components/heatpump_optimizer/services.yaml",
    "custom_components/heatpump_optimizer/snapshots.py",
    "custom_components/heatpump_optimizer/strings.json",
@@ -405,6 +406,8 @@
    "tests/entities.py",
    "tests/env_drift.py",
    "tests/golden/claimed_drift.txt",
+   "tests/golden/config_flow.json",
+   "tests/golden/winter_single_dhw.json",
    "tests/harness.py",
    "tests/hastub/homeassistant/__init__.py",
    "tests/hastub/homeassistant/components/__init__.py",
@@ -434,8 +437,7 @@
    "tests/hastub/homeassistant/helpers/update_coordinator.py",
    "tests/hastub/homeassistant/loader.py",
    "tests/hastub/homeassistant/util/__init__.py",
-   "tests/hastub/homeassistant/util/dt.py",
-   "custom_components/heatpump_optimizer/services.py"
+   "tests/hastub/homeassistant/util/dt.py"
   ],
   "tests/env_drift.py": [
    "custom_components/heatpump_optimizer/__init__.py",
