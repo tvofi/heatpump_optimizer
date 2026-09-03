@@ -21,9 +21,7 @@ from homeassistant.components.climate import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
     MODE_AUTO,
@@ -37,6 +35,7 @@ from .const import (
     DEFAULT_MAX_TEMP,
 )
 from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
+from .entity import HeatPumpOptimizerEntity
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -72,10 +71,9 @@ async def async_setup_entry(
     async_add_entities([HeatPumpOptimizerClimate(coordinator, entry)])
 
 
-class HeatPumpOptimizerClimate(CoordinatorEntity, ClimateEntity):
+class HeatPumpOptimizerClimate(HeatPumpOptimizerEntity, ClimateEntity):
     """Climate entity for the Heat Pump Optimizer."""
 
-    _attr_has_entity_name = True
     # The device's main feature: a device-named entity (name None) takes the
     # device's own name, which is what the old literal "Heat Pump Optimizer"
     # resolved to after registry deduplication — same display, idiomatically.
@@ -119,11 +117,6 @@ class HeatPumpOptimizerClimate(CoordinatorEntity, ClimateEntity):
         # change, and the options page is where that is done.
         self._attr_min_temp = self._config.get(CONF_MIN_TEMP, DEFAULT_MIN_TEMP)
         self._attr_max_temp = self._config.get(CONF_MAX_TEMP, DEFAULT_MAX_TEMP)
-
-    @property
-    def device_info(self) -> DeviceInfo:
-        """Return device info."""
-        return self.coordinator.device_info
 
     @property
     def current_temperature(self) -> float | None:

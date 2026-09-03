@@ -6311,4 +6311,104 @@ R.check(
     "none of the four learner summaries appeared",
 )
 
+# --- D10-08: the shared entity base lives in entity.py ----------------------
+#
+# The audit found five CoordinatorEntity base classes, one per platform file,
+# each re-declaring the same two members: ``_attr_has_entity_name = True`` and
+# the ``device_info`` property that delegates to the coordinator. The
+# common-modules rule (Bronze) wants that shared base in ``entity.py``, where
+# a reader of a Home Assistant integration looks for it. These checks are
+# deliberately structural -- reading the production sources the way the audit
+# harness does -- because the rule itself is about structure; the behavioural
+# pins below it keep the move honest.
+R.section("Entity base classes (D10-08)")
+
+try:
+    from heatpump_optimizer import entity as _entity_mod  # noqa: E402
+except ImportError:  # the pre-#298 tree
+    _entity_mod = None
+
+_shared_base = getattr(_entity_mod, "HeatPumpOptimizerEntity", None)
+R.check(
+    "entity.py exists and defines HeatPumpOptimizerEntity",
+    _entity_mod is not None and isinstance(_shared_base, type),
+    "custom_components/heatpump_optimizer/entity.py is missing or holds no "
+    "HeatPumpOptimizerEntity",
+)
+from homeassistant.helpers.update_coordinator import (  # noqa: E402
+    CoordinatorEntity as _CoordinatorEntity,
+)
+
+_plumbing = (
+    sorted(k for k in vars(_shared_base) if not k.startswith("__"))
+    if isinstance(_shared_base, type)
+    else []
+)
+R.check(
+    "the shared base is a CoordinatorEntity declaring the plumbing exactly once",
+    (
+        isinstance(_shared_base, type)
+        and issubclass(_shared_base, _CoordinatorEntity)
+        and _shared_base.__dict__.get("_attr_has_entity_name") is True
+        and "device_info" in _shared_base.__dict__
+    ),
+    f" HeatPumpOptimizerEntity holds {_plumbing}",
+)
+
+for _pf in ("sensor.py", "binary_sensor.py", "button.py", "climate.py", "switch.py"):
+    R.check(
+        f"the {_pf[:-3]} platform imports the shared base from .entity",
+        "from .entity import HeatPumpOptimizerEntity" in (ROOT / _pf).read_text(),
+        f"{_pf} does not import HeatPumpOptimizerEntity from .entity",
+    )
+
+# The audit's own metric (entity_base_classes_outside_entity_py): platform
+# files must no longer declare CoordinatorEntity base classes of their own.
+_bases_left = [
+    _pf
+    for _pf in ("sensor.py", "binary_sensor.py", "button.py", "climate.py", "switch.py")
+    if re.search(
+        r"^class \w+\(CoordinatorEntity, \w+Entity\)", (ROOT / _pf).read_text(), re.M
+    )
+]
+R.check(
+    "no CoordinatorEntity base classes remain in the platform files",
+    not _bases_left,
+    f"still declared in: {_bases_left}",
+)
+
+# Every root the tests and Home Assistant reach by name stays where it was
+# and now builds on the shared base instead of re-declaring its plumbing.
+for _module, _root in (
+    (sensor, "HeatPumpOptimizerSensorBase"),
+    (binary_sensor, "_OptimizerBinarySensorBase"),
+    (button, "_OptimizerButtonBase"),
+    (_climate_platform, "HeatPumpOptimizerClimate"),
+    (_switch_platform, "OptimizerEnableSwitch"),
+):
+    _cls = getattr(_module, _root, None)
+    R.check(
+        f"{_module.__name__.rsplit('.', 1)[-1]}.{_root} still exists and builds "
+        f"on the shared base",
+        (
+            isinstance(_cls, type)
+            and isinstance(_shared_base, type)
+            and issubclass(_cls, _shared_base)
+        ),
+        "the platform root is gone or no longer subclasses "
+        "HeatPumpOptimizerEntity",
+    )
+
+# Behaviour is unchanged: an entity from each platform still resolves
+# has_entity_name and still lands on the coordinator's device.
+for _module in (sensor, binary_sensor, _climate_platform, _switch_platform, button):
+    _one = collect(_module)[0]
+    R.check(
+        f"an entity from {_module.__name__.rsplit('.', 1)[-1]} keeps "
+        f"has_entity_name and the coordinator's device_info",
+        _one._attr_has_entity_name is True
+        and _one.device_info == _one.coordinator.device_info,
+        "an entity stopped resolving the shared plumbing",
+    )
+
 sys.exit(R.close("ENTITY CHECKS"))
