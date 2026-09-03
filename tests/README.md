@@ -222,7 +222,7 @@ python tests/entities.py     # entities, platforms, options pages, translations
 python tests/manual_plan.py  # manual plan pinning: parsing, solver interaction, safety release
 python tests/open_meteo.py   # the irradiance client
 python tests/solar_alignment.py  # irradiance lands on the right optimizer steps
-python tests/golden.py       # exact behaviour, pinned (--record to re-record)
+python tests/golden.py       # behaviour, pinned; reads GOLDEN_MODE (default drift)
 python tests/validate.py     # 22 seasonal scenarios, asserts invariants
 python tests/edge.py         # degenerate inputs and boundary conditions
 python tests/backtest.py     # replay against alternative strategies
@@ -296,6 +296,21 @@ a constraint in a rare branch, and this will not. Every capture also passes a
 physical-invariant layer (finite values, power within the compressor maximum,
 trajectories inside -40..120 °C, savings ≤ 100 %) on both record and check, so
 `--record` cannot bake an impossible plan into a fixture.
+
+`golden.py` reads `GOLDEN_MODE` and `GOLDEN_REF` itself, not only through
+`run.sh` (#341). Left to itself it used to *always* make the exact comparison,
+against fixtures recorded on another machine — and on a clean checkout of main
+that reports `34 of 55 GOLDEN SCENARIOS CHANGED` here, every time. A gate that
+always fires is not one: the thirty-fifth scenario, the one your diff moved, is
+indistinguishable from the thirty-four that always move, and `config_flow` —
+the fixture that went stale for two releases in #326 — is one of the
+thirty-four. So an unset `GOLDEN_MODE` now means `drift`, the comparison CI
+makes, and `golden.py` hands it straight to `env_drift.py --all`. Ask for the
+exact comparison by name — `GOLDEN_MODE=strict python tests/golden.py` — or by
+naming fixtures, since `--record` and `--only` read the committed files and so
+select strict on their own. `run.sh` *exports* both variables, so when the
+suite picks a mode the child sees the same one; its own default is still
+`strict`, which is the only place the committed fixtures are compared at all.
 
 Five fixtures (`valve_storage_smart_write`, `wood_two_tank`,
 `wood_two_tank_smart_write`, `wood_coil`, `valve_upper_direct_slab`) are the

@@ -18619,4 +18619,123 @@ R.check(
     "deleting one crashes from_config at import of any config entry",
 )
 
+
+
+# --- #341: golden.py reads GOLDEN_MODE and GOLDEN_REF itself -----------------
+#
+# The defect: tests/run.sh read both variables; tests/golden.py read neither.
+# Run directly it therefore always made the strict, bit-exact comparison
+# against fixtures recorded on another machine, and reported a FIXED 34 of 55
+# scenarios changed on a clean checkout of main -- measured on this box at
+# a5b5fc2, and again in a separate clean worktree of the same commit, with the
+# identical scenario list both times. A noise floor that big is where a real
+# diff hides; `config_flow` (the stale fixture of #326) is one of the 34.
+#
+# These pin the resolution itself, not the comparison: resolve_mode is pure,
+# so the whole decision table is checkable without capturing a single tree.
+from golden import (  # noqa: E402
+    DEFAULT_MODE as _GDEF_MODE,
+    DEFAULT_REF as _GDEF_REF,
+    drift_command as _g_drift_cmd,
+    resolve_mode as _g_resolve,
+)
+
+_g_unset = _g_resolve({})
+R.check(
+    "an unset GOLDEN_MODE gets the drift comparison, not the strict one",
+    _g_unset.mode == "drift" and not _g_unset.error,
+    f"golden.py run with no environment chose {_g_unset.mode!r}; strict on a "
+    "machine whose BLAS differs reports 34 of 55 changed on a clean tree, so "
+    "an accidental strict run is a gate that always fires",
+)
+R.check(
+    "and compares against the fork point when no ref was named",
+    _g_unset.ref == _GDEF_REF == "origin/main",
+    f"defaulted to {_g_unset.ref!r}",
+)
+R.check(
+    "the default is stated in one place both this file and golden.py read",
+    _GDEF_MODE == "drift",
+    f"golden.DEFAULT_MODE is {_GDEF_MODE!r}",
+)
+
+# The half that guards the gate rather than the developer. tests/run.sh's
+# strict lane is the ONLY place the committed fixtures are compared at all --
+# CI sets GOLDEN_MODE=drift, where run.sh skips golden.py entirely -- so if a
+# GOLDEN_MODE the suite set as strict arrived here as drift, that comparison
+# would vanish from the project.
+_g_strict = _g_resolve({"GOLDEN_MODE": "strict"})
+R.check(
+    "GOLDEN_MODE=strict still gets the strict comparison, ref or no ref",
+    _g_strict.mode == "strict" and not _g_strict.error,
+    f"run.sh's strict lane would have got {_g_strict.mode!r}",
+)
+# run.sh branches on an exact `= "drift"` and treats everything else as
+# strict. golden.py has to agree, or `GOLDEN_MODE=stict ./tests/run.sh` runs
+# the strict LANE around a drift comparison and reports neither.
+R.check(
+    "a misspelt mode falls to strict here exactly as it does in run.sh",
+    _g_resolve({"GOLDEN_MODE": "stict"}).mode == "strict"
+    and _g_resolve({"GOLDEN_MODE": "Drift"}).mode == "strict",
+    "an unrecognised GOLDEN_MODE must land on the stricter comparison, and on "
+    "the same one run.sh's `[ \"$GOLDEN_MODE\" = drift ]` lands on",
+)
+
+_g_drift = _g_resolve({"GOLDEN_MODE": "drift", "GOLDEN_REF": "deadbee"})
+R.check(
+    "GOLDEN_MODE=drift takes the named ref verbatim",
+    _g_drift.mode == "drift" and _g_drift.ref == "deadbee",
+    f"got mode={_g_drift.mode!r} ref={_g_drift.ref!r}",
+)
+R.check(
+    "and delegates to the same script and arguments run.sh's drift lane uses",
+    _g_drift_cmd("deadbee")[1:] == ["tests/env_drift.py", "--all", "deadbee"],
+    f"drift_command built {_g_drift_cmd('deadbee')[1:]}; run.sh's drift lane "
+    "runs `$PYTHON tests/env_drift.py --all $GOLDEN_REF`, and a direct run "
+    "that ran anything else would answer a different question",
+)
+
+# --record and --only name committed fixtures, which only strict reads. By
+# default they select strict -- this is the path tests/derive_closures.sh
+# records golden.py on (`--only __no_such_scenario__`), and if that turned
+# into a drift capture the closures job would record the wrong closure and
+# spend an hour doing it.
+R.check(
+    "--only with no GOLDEN_MODE set selects strict, as derive_closures needs",
+    _g_resolve({}, only="__no_such_scenario__").mode == "strict"
+    and not _g_resolve({}, only="__no_such_scenario__").error,
+    "tests/derive_closures.sh records golden.py with --only and sets no "
+    "GOLDEN_MODE; a drift default there would re-record the wrong closure",
+)
+R.check(
+    "--record with no GOLDEN_MODE set selects strict too",
+    _g_resolve({}, record=True).mode == "strict"
+    and not _g_resolve({}, record=True).error,
+    "re-recording fixtures is a strict-mode act; drift never writes one",
+)
+# Asked for explicitly, the same combination is a contradiction. Saying so is
+# the point: silently dropping --only would re-record 55 fixtures when one was
+# asked for.
+_g_conflict = _g_resolve({"GOLDEN_MODE": "drift"}, record=True)
+R.check(
+    "--record against an explicit GOLDEN_MODE=drift is refused, not guessed",
+    bool(_g_conflict.error) and "--record" in _g_conflict.error,
+    f"error was {_g_conflict.error!r}",
+)
+
+# The other half of #341, in tests/run.sh: the suite resolves both defaults
+# into shell variables, and golden.py is a child process. Unexported, a plain
+# `./tests/run.sh` would choose strict here and hand golden.py an environment
+# in which nobody chose anything -- and golden.py's own default is drift.
+import re as _g341_re  # noqa: E402
+
+_g_runsh = _Path("tests/run.sh").read_text()
+R.check(
+    "tests/run.sh exports GOLDEN_MODE and GOLDEN_REF to the scripts it runs",
+    _g341_re.search(r"^export .*\bGOLDEN_MODE\b", _g_runsh, _g341_re.M) is not None
+    and _g341_re.search(r"^export .*\bGOLDEN_REF\b", _g_runsh, _g341_re.M) is not None,
+    "both are resolved with `${VAR:-default}` and read by tests/golden.py in "
+    "a child process; without the export the suite's decision never arrives",
+)
+
 sys.exit(R.close("FEATURE CHECKS"))
