@@ -353,7 +353,16 @@ jobs:
           HEAD="${{ github.event.pull_request.head.sha }}"
           # --files-from, not `--files $(...)`: a path list off the command
           # line is split on whitespace and capped by ARG_MAX.
-          git diff --name-only "$BASE" "$HEAD" > "$RUNNER_TEMP/changed.txt"
+          # Three dots, not two. base.sha is the base BRANCH TIP at the time
+          # the event fired, not the merge base, so a two-dot diff charges this
+          # pull request with every file anyone else merged while it was open.
+          # Measured on this PR: base.sha was the v6.3.9 stamp, and the two-dot
+          # form attributed VERSION, manifest.json, RELEASE_NOTES.md and both
+          # claim files to it -- 11 files against the real 6. That only ever
+          # over-scopes, so it is safe, but it defeats the `skip` case this job
+          # exists to keep cheap, and main moved four times today while a single
+          # PR was open. fetch-depth: 0 above is what makes ... resolvable.
+          git diff --name-only "$BASE"..."$HEAD" > "$RUNNER_TEMP/changed.txt"
           python tests/closure.py affected \
             --files-from "$RUNNER_TEMP/changed.txt" \
             --workdir "$RUNNER_TEMP/affected"
