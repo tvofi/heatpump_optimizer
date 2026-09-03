@@ -43,9 +43,9 @@
 # does not expire with the stamp and is not part of the inherited-claims
 # comparison.
 #
-# claims-for: 6.3.9
+# claims-for: 6.3.10
 #
-# v6.3.9: Hot water no longer appears on days you never scheduled. The stamp empties the list; the
+# v6.3.10: the dead-symbol floor, the D8-01 remainder, and a release tool that can check its own gate. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 
@@ -73,11 +73,6 @@
 # No published FIGURE changes: dropping a store would have rescaled the SOC
 # denominator for every partly-probed install, so the components are
 # labelled rather than removed.
-coord_minimal    # + outdoor_forecast_temperature, reading_ok.outdoor_temperature, battery measured/modelled labels
-coord_dhw        # + outdoor_forecast_temperature, reading_ok.outdoor_temperature, battery measured/modelled labels
-coord_two_zone   # + outdoor_forecast_temperature, reading_ok.outdoor_temperature, battery measured/modelled labels
-coord_grid_fee   # + outdoor_forecast_temperature, reading_ok.outdoor_temperature, battery measured/modelled labels
-coord_all_features  # + outdoor_forecast_temperature, reading_ok.outdoor_temperature, battery measured/modelled labels
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum

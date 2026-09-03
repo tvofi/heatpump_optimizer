@@ -19,8 +19,8 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 6.3.9
+# claims-for: 6.3.10
 #
-# v6.3.9: Hot water no longer appears on days you never scheduled. The stamp empties the list; the
+# v6.3.10: the dead-symbol floor, the D8-01 remainder, and a release tool that can check its own gate. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #

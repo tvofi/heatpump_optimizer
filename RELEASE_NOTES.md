@@ -1,5 +1,252 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.3.10
+
+### Temperatures you never measured no longer look like readings
+
+With no thermometer configured, the thermal model's constructor defaults —
+55/40/22/21/5 °C — reached users as **available** states and attributes, even
+though the matching temperature sensors correctly went unavailable. #221
+shipped the Mixed Hot Water slice; this is the remainder (#368, closing #282):
+the climate entity's attributes, the thermal battery, and the Outdoor /
+Estimated COP path.
+
+On the install this happens on — the default one, driven through the real
+config flow, hot water on and nothing measuring it — the number of visible
+publications that move when those seven defaults are rebound falls from **44
+to 9** on the first cycle, and from 40 to 5 within the entity set this covers.
+The first cycle is the one that matters: the integration awaits its first
+refresh before it sets up entities, so the first value a user ever sees is
+already the default.
+
+What changed, and what deliberately did not:
+
+* **Climate attributes** report `None` where nothing read the field, gated on
+  the same reading flags the sensors use — on the *flag*, not the value, since
+  a thermometer that died in January keeps publishing 27.5 all spring. `None`
+  rather than a dropped key, so templates keep working.
+* **Outdoor and Estimated COP** fall back to the forecast step covering *now*,
+  matched by the entry's own timestamp rather than positionally, and publish a
+  `source` attribute saying which they used. They stay available: an outdoor
+  temperature the integration is planning against is a real answer.
+* **The thermal battery** says per store whether it stands on a thermometer,
+  and its two entities go unavailable only when **none** of them does — so an
+  install with just an indoor thermometer keeps the entity with every figure
+  unchanged. The figures are labelled, not dropped: dropping a component would
+  silently rescale a state-of-charge series that has long-term statistics
+  behind it.
+* **Indoor Temperature stays ungated**, per the recorded decision in the suite.
+  Reported in passing, not acted on: that decision's stated mitigation covers a
+  *stale* thermometer, not an *absent* one, because the input-health check
+  filters on entity id and an unconfigured input is structurally invisible to it.
+
+Pinned by 17 mutations with 17 deaths, and by a null control that passes at
+both ends — with all six thermometers wired, the same 14 live readings publish
+before and after. The coordinator came out **smaller** paying for the addition
+(10394 → 10365 lines, 379 → 372 internal call edges): no budget was loosened.
+
+### The dead-symbol floor was noise, and is now zero
+
+`dead_top_level_symbols` stood at 6, and **all six were live production code**
+(#367, closing #364). Two causes, both fixed:
+
+An aliased import recorded only the alias — `note_reference(alias.asname or
+alias.name…)` threw the real name away — so `grid_fee.max_abs_component` and
+`min_component`, both imported aliased into the coordinator and called on every
+planning cycle of a grid-fee install, read as dead. The same hole had already
+been found and corrected in an audit harness, about this same symbol, and
+nobody checked whether the production gate shared it. It did.
+
+The other four are `const.CONF_*` values reached through
+`getattr(const, f"CONF_{conf}")` off a table of bare suffix strings. No token
+census can see them. #338 had already proved them alive with a runtime sentinel
+and kept them, while the standing gate went on calling them dead; a
+`DYNAMIC_REFERENCES` allowlist is that reconciliation. It is not a bare list —
+every run re-checks each entry four ways (the symbol still exists, it is still
+statically unreferenced, the literal is still in the proof module, and that
+module still assembles names with `getattr`), so an entry that has stopped
+doing work fails the run and names itself. That re-check was exercised for real
+on this branch: #360 rewrote the very table the four entries point at, and all
+four still held.
+
+The count now decomposes cleanly — 6 = 2 aliases + 4 dynamic — and the true
+value is **0**, so real deadness can be driven out instead of hiding under six
+false positives. Seven null-control arms confirm the scan is not simply blind,
+including a *fifth* dynamic constant that is correctly reported dead because
+nobody wrote it down.
+
+### The release tool can reach its own gate again
+
+Rule 2 of `stamp.py` — a release never publishes ahead of the unscoped Tests
+gate — called `gh run list` unconditionally, before `--allow-red` was ever
+consulted. Where `gh` is not installed the rule did not refuse; it **crashed**,
+from inside `subprocess`, and no flag could get past it (#376).
+
+The query now moves behind a source choice: `gh` when it is on `PATH`, and
+otherwise the GitHub REST API over `urllib`, whose payload is reduced to
+exactly the shape `gh --json` returns so a single verdict function cannot tell
+the two paths apart. Same rule number, same sentence, same override, whichever
+source answered. One deliberate widening: a source that cannot answer **at
+all** — no `gh`, no route, `gh` erroring — is now a not-green verdict carrying
+its reason rather than an exception, so `--allow-red` governs "the gate is red"
+and "the gate is unreadable" alike. Fifteen new `--self-test` checks cover the
+URL, the headers, the payload reduction and the branch choice; they landed red
+first, and three mutants confirm they bite. #372 stays open — `--self-test`
+still runs in no lane.
+
+### A budget above the tree is an absent gate
+
+Nine structure metrics had headroom on main, and `dead_top_level_symbols` sat
+at 11 against a tree measuring 6 — five dead symbols could have been
+reintroduced and the gate would have said nothing (#352, closing #342). All
+nine are re-recorded to what main already measured; nothing in the tree
+changed, the diff is the argument.
+
+`cross_seam_fraction` is deliberately **not** re-recorded. It is a fraction
+metric with a ±0.005 tolerance, so recording its drift moves the tolerance
+window along with it — a metric whose window follows its own drift can walk
+0.005 looser per re-record without ever failing once.
+
+The advisory this replaces had never worked: replaying the ratchet at each of
+the last 18 commits on main, six commits — including a full release stamp — ran
+with five metrics of slack while printing "the next PR may re-record to lock it
+in". None did.
+
+### recorded_at names a commit a reader can resolve
+
+`structure.py --record` stamped `recorded_at` from `git rev-parse HEAD`. A
+re-record only ever happens on a branch, and a branch commit is rewritten by
+the next `--amend` and deleted by the squash-merge that lands it — so the field
+named a SHA that resolves to nothing afterwards (#363, closing #361). It now
+stamps `git merge-base HEAD origin/main`: the commit whose tree the measurement
+describes, which exists on main and survives both.
+
+There is no broken artefact to point at, and that is the point — the two
+observed cases were corrected by hand, and nothing in the repository records
+that anyone had to. Pinned by AST rather than at runtime, so the checks do not
+need a branch, an upstream and real history to be meaningful.
+
+### Stale golden fixtures can no longer merge
+
+No CI job had ever bit-compared a committed golden fixture, and the reason
+fixtures rot was not the missing comparison but that **claiming drift never
+re-records** (#355, closing #347 and #326). Both lanes ran the golden step in
+drift mode, drift skipped `golden.py`, and the drift comparison is computed
+against computed across two trees — so neither side of the only comparison CI
+ran was the committed file. Six fixtures were already stale, and are
+re-recorded here.
+
+The check rides in `env_drift.py`, the one script both lanes run in both modes,
+at three levels: **exact** for fixtures with no float on either side
+(determined by scanning the payload, never a hand-kept list), **structural**
+for all 55 — key paths and JSON type class, lists collapsed — and **values**,
+counted and printed but never failed, since CI is the only environment that
+could honestly re-record a float-bearing fixture. The first two gate.
+
+Container lengths are deliberately *not* gated, and that correction changed the
+implementation: three fixtures move a list length purely because the solver
+lands in a different basin, so gating on lengths would have made main
+permanently red. The machine-independence proof is committed rather than
+asserted — perturbing every float, int and bool of a real fixture leaves the
+structural diff empty while the value level counts more than a thousand moves.
+On the runner, level 3 reported 14 685 leaves against 14 209 on the author's
+box; levels 1 and 2 reported the same thing on both: nothing.
+
+### The closures check runs before the merge, not one merge later
+
+The `closures` job ran on a pull request only when the diff **added** a file
+under `custom_components/`, so a change to what a test *reads* was checked
+after it merged: PR green, main red, a second PR to repair it — five times
+(#356, closing #354). The sharpest case was a PR that existed only to fix a
+closure error and whose own `closures` check said `skipping`.
+
+A measured predicate now decides from the diff and the same table the gate
+already trusts: `full` for a gate file, a subprocess-driven script, or a file
+in no recorded closure; `scoped` when some recorded closure contains a changed
+file; `skip` when none does. Ten historical diffs replay through it —
+`run_today=5 missed_today=5` against `run_with_change=10 missed_with_change=0`
+— and the workflow's own `if:` is executed by a small expression evaluator
+rather than read, including the implicit `success()` the `always()` exists to
+defeat.
+
+Two corrections to the first draft, both measured: the skip is decided **last**
+and by the table, because a file can be on the inert list *and* inside a
+recorded closure at once; and the unmeasured-file rule carries **no path
+prefix**, since an inclusion list of one directory fails open for exactly the
+file type nobody thought about. Stated honestly: all ten incidents land in
+`full`, so the correctness fix is entirely *running the job at all* — `scoped`
+is a cost optimisation for what comes next (43 s for one entry against ~10 min
+for the table).
+
+### A directory is not a dependency
+
+The scoped re-derive #356 introduced rested on an assumption nobody had written
+down: that `--single` and the full run produce the same closure for the same
+script. They did not (#366, closing #365). The audit hook sees `open` on
+directories too, and the recorder had no file test, so bare directory names —
+`golden`, `tests` — were recorded as dependencies. Every pull request whose
+scoped set included `tests/entities.py` then failed `closures` regardless of
+what it changed, blaming two things that are not files.
+
+It failed *closed*, so nothing unsafe merged, but it blocked work — #360 was
+the first casualty and does not touch `entities.py` at all. Main stayed green
+because main runs the full re-derive, and #356's own CI ran full because it
+edits a gate file: the gate that checks the gate could not see it. The recorder
+now drops anything that is not a regular file, and `check` **refuses** a fresh
+recording containing a non-file, so the equivalence the scoped path assumes is
+asserted rather than hoped for.
+
+### The closure table catches up with what the suite reads
+
+Main went red at `b41a08d` — `tests/entities.py` really read two files the
+committed closure did not list (#359). Both reads are real and wanted: #355's
+staleness checks load committed fixtures directly, and a staleness check has to
+read the committed file or it is not checking staleness. So the closure was
+corrected, not the checks.
+
+This was the second instance in one day, and the fix for the window was blocked
+behind it: #356, the PR that makes `closures` run before merge, was waiting on
+exactly the red main its own change prevents.
+
+### The anti-legionella stage leaves the 625-line builder
+
+`_build_dhw_requirements` falls **625 → 416 lines** (#358, part of #224). The
+anti-legionella cycle moves out in two halves behind a small orchestrator: is
+the cycle due and on which step, and the ceilings and run-up floor it needs.
+The moved blocks are byte-identical — not byte-identical-after-dedent — which
+matters here because the 47 plan goldens compare at six decimals.
+
+The two halves exist because the tightened budgets from #352 refused the one.
+Lifting the whole cycle into a single 268-line helper breached three budgets at
+once, and that is the ratchet being right: trading one 625-line method for a
+416 and a 268 is not a decomposition. It also caught a real defect — a missing
+`return` left the orchestrator returning `None` and the plan dataclass
+unreferenced, which surfaced as a dead-symbol count on a tree that still parsed
+and still imported.
+
+### The table half of from_config becomes a table
+
+`ThermalParameters.from_config` falls **268 → 140 lines**, with the
+field/key/default table and the comprehension over it moving to `_tabled_values`
+(#360, part of #225). The 128 moved lines are byte-identical. The seam is a real
+distinction rather than a line count: what stays behind is the half a table
+cannot express — fields validated against a set of legal values, derived from
+another field, or defaulting on absence rather than on value — which is why the
+two halves cross exactly one variable.
+
+This is not the split the issue proposed, and the reason is measured: both
+named targets cross 25 and 30 live variables at their worst boundary and sit
+inside the batched objective the gradient solver evaluates, where indirection
+is what the stress ceiling exists to catch. `from_config` crosses 4 and is
+called only from setup paths. Three budgets tighten and are re-recorded in the
+PR that earns them.
+
+Worth recording for anyone else doing AST-driven extraction here: the first
+attempt silently moved `@classmethod` onto the new helper, because
+`FunctionDef.lineno` points at `def` and not at the decorator — and **the
+ratchet passed and reported all three improvements on that broken tree.** Five
+behavioural suites caught it immediately. A green ratchet is not a green tree.
+
 ## v6.3.9
 
 ### Hot water no longer appears on days you never scheduled
