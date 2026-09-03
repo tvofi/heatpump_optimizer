@@ -13,13 +13,14 @@ committed ``tests/stress_budgets.json``:
                                 evals > recorded_evals * SCENARIO_WORK_FACTOR,
                                 applied only where same_basin() holds
 
-The three runs are: PLAIN; INJECTED, with HeatPumpOptimizer.optimize made to
+The four runs are: PLAIN; INJECTED, with HeatPumpOptimizer.optimize made to
 do its work twice for ONE scenario (the h7 injection, scoped -- an exact 2x
-on that scenario and nothing else); and BASIN, with that scenario's
-multi-start initial guesses perturbed through the production symbol
-_price_guess_weights so the solver starts elsewhere, does more work and
-lands in another local minimum. BASIN is the null control: it is what CI
-did to shoulder/tariff+cycle at 2.28x, and the gate must NOT fail on it.
+on that scenario and nothing else); BASIN, with that scenario's multi-start
+initial guesses perturbed through the production symbol
+_price_guess_weights so the solver starts elsewhere and lands in another
+local minimum; and BASIN_2X, both at once -- another basin AND twice the
+work, which is the null control proper. That is what CI did to
+shoulder/tariff+cycle at 2.28x, and the gate must NOT fail on it.
 
 Command (from the repository root, on an idle box, holding /tmp/hpo-gate.lock):
     PYTHONPATH=tests/hastub python3 tools/audit/round2/D9/h8_single_scenario.py
@@ -72,7 +73,30 @@ def concurrent() -> int:
 
 
 TABLE = stress.load_budget_table()
-COMBOS = stress.sweep_combinations()
+def combinations() -> list:
+    """The sweep's list, from either shape of tests/stress.py.
+
+    The head exposes ``sweep_combinations()``; at the merge base the same
+    list only exists inside the file's ``__main__`` block, so it is executed
+    out of the source. Identical code runs in both trees, which is the point.
+    """
+    if hasattr(stress, "sweep_combinations"):
+        return stress.sweep_combinations()
+    path = os.path.join(ROOT, "tests", "stress.py")
+    with open(path) as fh:
+        source = fh.read()
+    start = source.index("    combinations = []")
+    end = source.index("    failures = 0", start)
+    block = "\n".join(
+        line[4:] if line.startswith("    ") else line
+        for line in source[start:end].split("\n")
+    )
+    namespace = dict(vars(stress))
+    exec(compile(block, path, "exec"), namespace)  # noqa: S102
+    return namespace["combinations"]
+
+
+COMBOS = combinations()
 HAS_WORK = hasattr(stress, "recorded_evals") and hasattr(stress, "same_basin")
 result("head_has_work_rule", int(HAS_WORK), "bool")
 result("scenarios", len(COMBOS), "count")
@@ -104,8 +128,10 @@ def sweep(label_tag: str, mode: str):
         hot = name == VICTIM and mode != "plain"
         if hot and mode == "inject":
             opt_mod.HeatPumpOptimizer.optimize = _twice
-        if hot and mode == "basin":
+        if hot and mode in ("basin", "basin2x"):
             opt_mod._price_guess_weights = _elsewhere
+        if hot and mode == "basin2x":
+            opt_mod.HeatPumpOptimizer.optimize = _twice
         try:
             run = stress.build_case(**combo)
         finally:
@@ -175,6 +201,7 @@ def sweep(label_tag: str, mode: str):
 plain, tf = sweep("plain", "plain")
 inj, _ = sweep("injected_2x_one_scenario", "inject")
 bas, _ = sweep("basin_flip_one_scenario", "basin")
+b2x, _ = sweep("basin_flip_and_2x_one_scenario", "basin2x")
 
 result("injected_over_plain_cpu",
        inj[VICTIM]["ratio"] / plain[VICTIM]["ratio"], "ratio")
@@ -185,6 +212,14 @@ if plain[VICTIM]["evals"]:
            inj[VICTIM]["evals"] / plain[VICTIM]["evals"], "ratio")
     result("basin_over_plain_evals",
            bas[VICTIM]["evals"] / plain[VICTIM]["evals"], "ratio")
+result("basin2x_over_plain_cpu",
+       b2x[VICTIM]["ratio"] / plain[VICTIM]["ratio"], "ratio")
+if plain[VICTIM]["evals"]:
+    result("basin2x_over_plain_evals",
+           b2x[VICTIM]["evals"] / plain[VICTIM]["evals"], "ratio")
+result("basin2x_objective_rel_move",
+       abs(b2x[VICTIM]["obj"] - plain[VICTIM]["obj"]) / abs(plain[VICTIM]["obj"]),
+       "relative")
 result("basin_objective_rel_move",
        abs(bas[VICTIM]["obj"] - plain[VICTIM]["obj"]) / abs(plain[VICTIM]["obj"]),
        "relative")

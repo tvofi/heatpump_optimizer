@@ -325,18 +325,32 @@ SCENARIO_WORK_FACTOR = float(os.environ.get("STRESS_WORK_FACTOR", "1.5"))
 #: How far this run's objective value may sit from the recorded one and
 #: still count as the same basin, relative.
 #:
-#: This is the hinge, so it is worth saying what it separates. A performance
-#: regression does not move the plan -- if it did the golden gate would fail
-#: first, and that is a different failure with a different owner. A
-#: multi-start basin flip moves it by PERCENT: a different local minimum is
-#: the whole reason _multi_start_minimize exists. Between those lies the
-#: last-decimal drift of the same basin re-evaluated on another platform.
-#: 1e-4 sits two orders above that drift and two below a basin, so it is a
-#: knife-edge in neither direction, and deliberately not 1e-9: a tolerance
-#: tight enough to call float noise a basin flip would quietly empty this
-#: check on the first CI runner it met.
+#: This is the hinge, so it is worth saying what it separates, and the
+#: separation was measured rather than assumed. A performance regression
+#: does not move the plan -- if it did the golden gate would fail first, and
+#: that is a different failure with a different owner. A multi-start basin
+#: flip does move it, because a different local minimum is the whole reason
+#: _multi_start_minimize exists. Below both sits the last-decimal drift of
+#: the SAME basin re-evaluated on another platform, which tests/README.md
+#: records as why strict golden mode does not reproduce off the recording
+#: machine.
+#:
+#: Fifteen genuine basin changes were executed on shoulder/cycle to size
+#: this, by perturbing the multi-start guess through the production symbol
+#: _price_guess_weights (reversed, flat, alternating, ramped, rolled, and
+#: six random starts). Every one landed in a different minimum, and the
+#: objective moved by 4.41e-5 to 2.24e-3 relative -- the SMALLEST of them,
+#: a random start that also did 1.28x the work, is the number that sets
+#: this constant.
+#:
+#: 1e-6 sits 44x under that smallest measured flip and three or more orders
+#: over same-basin float drift. 1e-4, the first value tried here, would have
+#: read that 4.41e-5 flip as the same basin and judged its 1.28x as a
+#: regression; 1e-9 would read float drift as a flip and quietly empty the
+#: check on the first CI runner it met, which is what
+#: SCENARIO_BASIN_MAX_FLIPPED then refuses to let happen silently.
 SCENARIO_BASIN_TOLERANCE = float(
-    os.environ.get("STRESS_BASIN_TOLERANCE", "1e-4")
+    os.environ.get("STRESS_BASIN_TOLERANCE", "1e-6")
 )
 #: ...and how many scenarios may drop out of the work check as flipped
 #: before it is reported BLIND instead of passing on whatever is left. A
@@ -1391,12 +1405,17 @@ if __name__ == "__main__":
 
     # The tolerance has to separate those two populations with room on both
     # sides, or it is a knife-edge wearing a constant's clothes.
+    # Both anchors are measured, not chosen: 1e-9 is same-basin float drift
+    # between platforms, and 4.41e-5 is the SMALLEST of fifteen executed
+    # basin changes on shoulder/cycle (see SCENARIO_BASIN_TOLERANCE).
     R.check(
-        "the basin tolerance sits between float drift and a real flip",
+        "the basin tolerance sits between float drift and the smallest "
+        "measured flip",
         same_basin(1234.5, 1234.5 * (1.0 + 1e-9))
+        and not same_basin(1234.5, 1234.5 * (1.0 + 4.41e-5))
         and not same_basin(1234.5, 1234.5 * 1.01),
         f"tolerance {SCENARIO_BASIN_TOLERANCE:g} does not separate a 1e-9 "
-        "last-decimal difference from a 1 % basin move",
+        "last-decimal difference from the 4.41e-5 flip that was executed",
     )
     R.check(
         "a missing or non-finite fingerprint is 'cannot tell', never 'agrees'",
