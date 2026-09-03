@@ -1234,8 +1234,10 @@ house genuinely cannot coast through the cold nights:
 - the learned correction moves toward the true loss;
 - it **never overshoots more than 0.15 past the true error**;
 - it converges rather than oscillating (last-quarter spread under 0.05);
-- it **cuts the comfort breach it exists to fix** — in the reference run, from
-  6.7 degree-hours to zero;
+- it **cuts the comfort breach it exists to fix** — the test asserts strictly
+  less breach with learning than without, not a specific figure: the exact
+  degree-hours are solver/BLAS-dependent and do not reproduce bit-for-bit
+  across machines;
 - and a model that is **already correct is left alone** (drift under 0.12 over
   two days).
 

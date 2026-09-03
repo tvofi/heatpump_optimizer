@@ -449,9 +449,13 @@ R.section("Self-learning in the loop")
 # breach by exactly zero. That property used to hold by accident -- the old
 # 0.15/m/s wind default inflated the loss until the 6 kW pump bound -- so it
 # is now set explicitly: at 4.25 kW the mis-modelled house genuinely cannot
-# coast through the cold nights (measured: 6.7 degree-hours of breach
-# uncorrected, 0.0 with learning), and knowing the true loss — pre-heating
-# the slab through the milder, cheaper hours — is worth real comfort.
+# coast through the cold nights, so the uncorrected arm breaches by a
+# nonzero amount and the learner-corrected arm clears it (D6-04, #275: the
+# exact degree-hours are solver/BLAS-dependent and do not reproduce
+# bit-for-bit across machines -- the check below asserts the property, not
+# a number, on purpose; do not put a specific figure back in this comment),
+# and knowing the true loss — pre-heating the slab through the milder,
+# cheaper hours — is worth real comfort.
 TRUE_ERROR = 1.35
 _BOUND_PUMP = {"heat_pump_max_power": 4.25}
 learned = run_rolling(

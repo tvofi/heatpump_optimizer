@@ -385,20 +385,20 @@ configured).
 | Buffer Tank Temperature (Model) | °C | Modelled buffer tank temperature | |
 | DHW Temperature | °C | Tank temperature, with the demand-window state and the learned cooling rate in attributes | |
 | DHW Heating Schedule | — | The planned hot-water heating periods | Not recorded |
-| DHW Heating Cost | CUR | Estimated cost of the planned hot water | |
+| DHW Heating Cost (next 24 h) | CUR | Estimated cost of the planned hot water | |
 | Predictive Optimization Insight | — | What the forecast is making the plan do | Diagnostic |
 | ECL110 Displace | °C | The parallel shift commanded to an ECL110 heat curve | Diagnostic; disabled by default; ECL110 hardware |
 | ECL110 Effective Displace | °C | The shift the controller has actually reached, after its own lag | Diagnostic; disabled by default; ECL110 hardware |
-| Space Heating Plan | — | Planned space-heating slots plus the full-horizon forecast | Backs the card; forecast not recorded |
-| DHW Heating Plan | — | Planned hot-water slots plus the full-horizon forecast | Backs the card; forecast not recorded |
+| Space Heating Plan (next 24 h) | — | Planned space-heating slots plus the full-horizon forecast | Backs the card; forecast not recorded |
+| DHW Heating Plan (next 24 h) | — | Planned hot-water slots plus the full-horizon forecast | Backs the card; forecast not recorded |
 | Measured Power | kW | Real electrical draw, with the commanded power alongside | Unavailable until a power or energy entity is configured |
 | Observed COP | — | Efficiency from measurement rather than the nameplate curve | Needs measured power |
-| Space Heating Energy | kWh | Accumulating, for the Energy dashboard | |
-| DHW Energy | kWh | Accumulating, for the Energy dashboard | Renamed from Hot Water Energy by #174; existing installs keep their entity id |
-| Total Energy | kWh | Accumulating, for the Energy dashboard | |
-| Space Heating Cost | CUR | Accumulating cost | |
-| DHW Cost | CUR | Accumulating cost | Renamed from Hot Water Cost by #174; existing installs keep their entity id |
-| Total Heating Cost | CUR | Accumulating cost | |
+| Space Heating Energy (lifetime) | kWh | Accumulating, for the Energy dashboard | |
+| DHW Energy (lifetime) | kWh | Accumulating, for the Energy dashboard | Renamed from Hot Water Energy by #174; existing installs keep their entity id |
+| Total Energy (lifetime) | kWh | Accumulating, for the Energy dashboard | |
+| Space Heating Cost (lifetime) | CUR | Accumulating cost | |
+| DHW Cost (lifetime) | CUR | Accumulating cost | Renamed from Hot Water Cost by #174; existing installs keep their entity id |
+| Total Heating Cost (lifetime) | CUR | Accumulating cost | |
 | Prediction Accuracy | °C | Mean indoor-temperature error, with the signed bias and the last diagnosis in attributes | Diagnostic; unavailable until an interval has been scored |
 | Monthly Peak Power | kW | The peak the capacity tariff is billed on, and the headroom left | Unavailable unless the capacity tariff is enabled |
 | Solar Surplus Forecast | kWh | Forecast PV surplus the heat pump could absorb | Unavailable unless PV is enabled |
@@ -578,10 +578,11 @@ and the learners are nudged.
 
 The self-learning is bounded on purpose. In a closed-loop test where the house
 loses 35 % more heat than configured, the learned correction converges toward the
-true loss over three simulated days without oscillating or overshooting, and cuts
-the comfort breach it exists to fix — in the reference run recorded in the test,
-from 6.7 degree-hours to zero. A model that is already correct is left alone
-(within ±12 %).
+true loss over three simulated days without oscillating or overshooting, and
+strictly cuts the comfort breach it exists to fix — the test asserts less
+breach with learning than without, not a specific figure, since the exact
+degree-hours are solver/BLAS-dependent and differ across machines. A model
+that is already correct is left alone (within ±12 %).
 
 Full theory, with every mechanism and its defaults:
 [docs/how-it-works.md](docs/how-it-works.md).
