@@ -43,9 +43,9 @@
 # does not expire with the stamp and is not part of the inherited-claims
 # comparison.
 #
-# claims-for: 6.3.7
+# claims-for: 6.3.8
 #
-# v6.3.5: the Mixed Hot Water gate and a gate that scopes. The stamp empties the list; the
+# v6.3.8: The card is legible and operable on a phone. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 
@@ -60,4 +60,3 @@
 # may-drift: wood_coil -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: valve_upper_direct_slab -- machine-sensitive; the DHW plan can reach it, per local optimum
 
-config_flow # D6-03 (#274): four NumberSelector minimums move from 0/0.0 to POSITIVE_PARAM_FLOOR (0.01) -- _initial.zones.inter_zone_heat_transfer.config.min, _initial.zones.window_area.config.min, building_preset.window_area.config.min and thermal_model.inter_zone_heat_transfer.config.min (the options flow's Thermal model page; capture_config_flow() never renders the reconfigure flow, so an earlier wording calling this one the reconfigure flow's was wrong) -- closing the gap with SERVICE_SCHEMA_SET_THERMAL_PARAMS's existing _positive() floor, which already rejected 0 for both fields
