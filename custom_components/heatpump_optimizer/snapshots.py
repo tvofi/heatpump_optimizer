@@ -167,8 +167,9 @@ class SnapshotRing:
 
         A malformed snapshot (e.g. a corrupt "accuracy" field from a
         partial write or a hand-edited store) is skipped with a warning
-        rather than crashing the caller -- both the manual restore_snapshot
-        service and the automatic drift rollback depend on this never
+        rather than crashing the caller -- both the manual
+        restore_learned_snapshot service and the automatic drift rollback
+        depend on this never
         raising (#D1-05).
         """
         for snap in reversed(self.snapshots):

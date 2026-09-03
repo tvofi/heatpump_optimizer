@@ -188,7 +188,7 @@ class ThermalParameters:
     def __post_init__(self) -> None:
         # Every construction path — ``from_config``, snapshots, tests — runs
         # through here, so the divisor floor holds from birth. Attribute
-        # writes after construction (the set_thermal_params service) call
+        # writes after construction (the set_thermal_parameters service) call
         # ``clamp`` again at their own chokepoint.
         self.clamp()
 
@@ -1827,7 +1827,8 @@ class ThermalModel:
             p.lower_floor_heat_loss_learned, wind_speed * 0.5, precipitation * 0.5
         )
 
-        # Solar gains per zone
+        # kW, split by solar_upper_fraction -- a different split from the
+        # area-ratio one used for internal gains just below.
         q_solar_upper, q_solar_lower = self.solar_gain_per_zone(solar_radiation)
 
         # Internal gains split proportional to area ratio

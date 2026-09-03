@@ -64,8 +64,10 @@ _VARIABLE_HUMIDITY = "relative_humidity_2m"
 _VARIABLE_SNOWFALL = "snowfall"
 
 # Physical ceiling used to reject nonsense rather than feed it to the model.
-# The solar constant is ~1361 W/m^2; surface GHI cannot exceed it, and values
-# above ~1200 only occur with cloud-edge focusing.
+# The solar constant is ~1361 W/m^2, so surface GHI ordinarily sits at or
+# below it; cloud-edge focusing can spike a reading above that without it
+# being nonsense, so this ceiling sits ~39 W/m^2 above the constant rather
+# than at it.
 _MAX_PLAUSIBLE_GHI = 1400.0
 
 

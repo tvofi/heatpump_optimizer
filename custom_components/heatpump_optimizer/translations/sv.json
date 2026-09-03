@@ -549,7 +549,7 @@
           "after_save": "Efter sparande"
         },
         "data_description": {
-          "ecl110_displace_set_topic": "MQTT-topic dit parallellförskjutningen av värmekurvan publiceras. Lämna tomt om du inte har en Danfoss ECL110.",
+          "ecl110_displace_set_topic": "MQTT-topic dit parallellförskjutningen av värmekurvan publiceras. Levereras ifylld: rensa detta fält och den äldre kommandotopicen nedan om du inte har en Danfoss ECL110, annars försöker varje cykel publicera och loggar felet.",
           "ecl110_command_topic": "Behövs bara för äldre installationer som förväntar sig JSON i stället.",
           "ecl110_state_topic": "MQTT-topic där regulatorn rapporterar sitt tillstånd.",
           "ecl110_mqtt_qos": "0 räcker för de allra flesta.",

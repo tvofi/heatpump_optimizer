@@ -67,7 +67,10 @@ reported as a connection problem rather than as a bad token.
 
 The Danfoss ECL110 MQTT fields were asked here until v4.1.0. Eight questions
 only ECL110 owners can answer do not belong on everyone's first screen, so they
-now live on their own options page and default sensibly when absent.
+now live on their own options page — where both MQTT topics ship non-empty and
+must be cleared by hand if you do not have an ECL110 (see
+[ecl110.md](ecl110.md)); left at their defaults, every cycle attempts a
+publish and logs the failure.
 
 ### 2 · Temperatures
 
@@ -344,7 +347,10 @@ compressor-frequency path.
 
 Everything between the heat sources and the emitters. Leave the valve at *No
 mixing valve* if you do not have one — the model is already correct for that
-case.
+case. A **throttling valve** is any mode other than *No mixing valve* — Set by
+hand, Read from a sensor or Commanded by the optimizer — where a real valve
+exists and limits delivery to the emitters, which is what the hydronic layout
+catalog below keys off.
 
 | Setting | Default | Range | What it means |
 |---|---|---|---|
@@ -454,8 +460,10 @@ planned, and the descriptions say which.
 
 ### Heat curve control (ECL110)
 
-For Danfoss ECL110 controllers driven over MQTT. Leave blank if you do not have
-one; see [ecl110.md](ecl110.md) for the full picture.
+For Danfoss ECL110 controllers driven over MQTT. Both topics below ship
+non-empty; if you do not have one, clear the offset command topic and the
+legacy command topic — otherwise every cycle attempts an MQTT publish and
+logs the failure. See [ecl110.md](ecl110.md) for the full picture.
 
 | Setting | Default | Range | What it means |
 |---|---|---|---|

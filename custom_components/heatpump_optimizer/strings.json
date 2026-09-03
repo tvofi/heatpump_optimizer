@@ -549,7 +549,7 @@
           "after_save": "After saving"
         },
         "data_description": {
-          "ecl110_displace_set_topic": "MQTT topic the parallel heat-curve offset is published to. Leave blank if you do not have a Danfoss ECL110.",
+          "ecl110_displace_set_topic": "MQTT topic the parallel heat-curve offset is published to. Ships non-empty: clear this and the legacy command topic below if you do not have a Danfoss ECL110, or every cycle attempts a publish and logs the failure.",
           "ecl110_command_topic": "Only needed for older setups that expect a JSON payload instead.",
           "ecl110_state_topic": "MQTT topic the controller reports its current state on.",
           "ecl110_mqtt_qos": "0 is fine for almost everyone.",
