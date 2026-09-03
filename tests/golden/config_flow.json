@@ -258,8 +258,8 @@
    },
    "day_end_hour": {
     "config": {
-     "max": "23",
-     "min": "18",
+     "max": "24",
+     "min": "1",
      "mode": "'slider'",
      "step": "1"
     },
@@ -269,7 +269,7 @@
    },
    "day_start_hour": {
     "config": {
-     "max": "12",
+     "max": "23",
      "min": "0",
      "mode": "'slider'",
      "step": "1"
@@ -610,7 +610,7 @@
    "inter_zone_heat_transfer": {
     "config": {
      "max": "3.0",
-     "min": "0.0",
+     "min": "0.01",
      "mode": "'box'",
      "step": "0.1",
      "unit_of_measurement": "'kW/\u00b0C'"
@@ -714,7 +714,7 @@
    "window_area": {
     "config": {
      "max": "50",
-     "min": "0",
+     "min": "0.01",
      "mode": "'box'",
      "step": "0.5",
      "unit_of_measurement": "'m\u00b2'"
@@ -788,6 +788,16 @@
   ]
  },
  "away": {
+  "after_save": {
+   "config": {
+    "mode": "'dropdown'",
+    "options": "['menu', 'close']",
+    "translation_key": "'after_save'"
+   },
+   "default": "'menu'",
+   "required": "Optional",
+   "selector": "SelectSelector"
+  },
   "away_dhw_min_temperature": {
    "config": {
     "max": "55",
@@ -836,6 +846,16 @@
   }
  },
  "building": {
+  "after_save": {
+   "config": {
+    "mode": "'dropdown'",
+    "options": "['menu', 'close']",
+    "translation_key": "'after_save'"
+   },
+   "default": "'menu'",
+   "required": "Optional",
+   "selector": "SelectSelector"
+  },
   "buffer_max_temperature": {
    "config": {
     "max": "90",
@@ -942,6 +962,16 @@
   }
  },
  "building_preset": {
+  "after_save": {
+   "config": {
+    "mode": "'dropdown'",
+    "options": "['menu', 'close']",
+    "translation_key": "'after_save'"
+   },
+   "default": "'menu'",
+   "required": "Optional",
+   "selector": "SelectSelector"
+  },
   "building_era": {
    "config": {
     "mode": "'dropdown'",
@@ -1046,7 +1076,7 @@
   "window_area": {
    "config": {
     "max": "50",
-    "min": "0",
+    "min": "0.01",
     "mode": "'box'",
     "step": "0.5",
     "unit_of_measurement": "'m\u00b2'"
@@ -1057,6 +1087,16 @@
   }
  },
  "comfort": {
+  "after_save": {
+   "config": {
+    "mode": "'dropdown'",
+    "options": "['menu', 'close']",
+    "translation_key": "'after_save'"
+   },
+   "default": "'menu'",
+   "required": "Optional",
+   "selector": "SelectSelector"
+  },
   "comfort_temp_day": {
    "config": {
     "max": "26",
@@ -1083,8 +1123,8 @@
   },
   "day_end_hour": {
    "config": {
-    "max": "23",
-    "min": "18",
+    "max": "24",
+    "min": "1",
     "mode": "'slider'",
     "step": "1"
    },
@@ -1094,7 +1134,7 @@
   },
   "day_start_hour": {
    "config": {
-    "max": "12",
+    "max": "23",
     "min": "0",
     "mode": "'slider'",
     "step": "1"
@@ -1166,6 +1206,16 @@
   }
  },
  "entities": {
+  "after_save": {
+   "config": {
+    "mode": "'dropdown'",
+    "options": "['menu', 'close']",
+    "translation_key": "'after_save'"
+   },
+   "default": "'menu'",
+   "required": "Optional",
+   "selector": "SelectSelector"
+  },
   "buffer_tank_temp_entity": {
    "config": {
     "filter": "[{'domain': ['sensor'], 'device_class': ['temperature']}]"
@@ -1348,12 +1398,23 @@
   }
  },
  "grid": {
+  "after_save": {
+   "config": {
+    "mode": "'dropdown'",
+    "options": "['menu', 'close']",
+    "translation_key": "'after_save'"
+   },
+   "default": "'menu'",
+   "required": "Optional",
+   "selector": "SelectSelector"
+  },
   "contract_fixed_price": {
    "config": {
     "max": "10",
     "min": "0",
     "mode": "'box'",
-    "step": "0.01"
+    "step": "0.01",
+    "unit_of_measurement": "'SEK/kWh'"
    },
    "default": "0.0",
    "required": "Optional",
@@ -1378,7 +1439,8 @@
     "max": "5",
     "min": "0",
     "mode": "'box'",
-    "step": "0.01"
+    "step": "0.01",
+    "unit_of_measurement": "'SEK/kWh'"
    },
    "default": "0.0",
    "required": "Optional",
@@ -1517,6 +1579,16 @@
   }
  },
  "heat_curve": {
+  "after_save": {
+   "config": {
+    "mode": "'dropdown'",
+    "options": "['menu', 'close']",
+    "translation_key": "'after_save'"
+   },
+   "default": "'menu'",
+   "required": "Optional",
+   "selector": "SelectSelector"
+  },
   "ecl110_command_topic": {
    "config": null,
    "default": "'ecl110/command'",
@@ -1590,6 +1662,16 @@
   }
  },
  "hot_water": {
+  "after_save": {
+   "config": {
+    "mode": "'dropdown'",
+    "options": "['menu', 'close']",
+    "translation_key": "'after_save'"
+   },
+   "default": "'menu'",
+   "required": "Optional",
+   "selector": "SelectSelector"
+  },
   "dhw_cooling_rate": {
    "config": {
     "max": "3.0",
@@ -1821,6 +1903,16 @@
   }
  },
  "learning": {
+  "after_save": {
+   "config": {
+    "mode": "'dropdown'",
+    "options": "['menu', 'close']",
+    "translation_key": "'after_save'"
+   },
+   "default": "'menu'",
+   "required": "Optional",
+   "selector": "SelectSelector"
+  },
   "capacity_curve_enabled": {
    "config": null,
    "default": "False",
@@ -1951,6 +2043,16 @@
  },
  "setup_overview": {},
  "solar_pv": {
+  "after_save": {
+   "config": {
+    "mode": "'dropdown'",
+    "options": "['menu', 'close']",
+    "translation_key": "'after_save'"
+   },
+   "default": "'menu'",
+   "required": "Optional",
+   "selector": "SelectSelector"
+  },
   "pv_enabled": {
    "config": null,
    "default": "False",
@@ -2009,6 +2111,16 @@
   }
  },
  "thermal_model": {
+  "after_save": {
+   "config": {
+    "mode": "'dropdown'",
+    "options": "['menu', 'close']",
+    "translation_key": "'after_save'"
+   },
+   "default": "'menu'",
+   "required": "Optional",
+   "selector": "SelectSelector"
+  },
   "heat_pump_cop_nominal": {
    "config": {
     "max": "6.0",
@@ -2071,7 +2183,7 @@
   "inter_zone_heat_transfer": {
    "config": {
     "max": "3.0",
-    "min": "0.0",
+    "min": "0.01",
     "mode": "'box'",
     "step": "0.1",
     "unit_of_measurement": "'kW/\u00b0C'"
@@ -2197,6 +2309,16 @@
   }
  },
  "tuning": {
+  "after_save": {
+   "config": {
+    "mode": "'dropdown'",
+    "options": "['menu', 'close']",
+    "translation_key": "'after_save'"
+   },
+   "default": "'menu'",
+   "required": "Optional",
+   "selector": "SelectSelector"
+  },
   "comfort_weight": {
    "config": {
     "max": "20",
@@ -2235,7 +2357,8 @@
     "max": "100000",
     "min": "0",
     "mode": "'box'",
-    "step": "100"
+    "step": "100",
+    "unit_of_measurement": "'SEK'"
    },
    "default": "0.0",
    "required": "Optional",

@@ -230,6 +230,7 @@ python tests/stress.py       # 48 combinations, 17 edge cases, economics
 python tests/rolling.py      # days of re-planning against a mismatched house
 python tests/optimality.py   # solution-quality floor against cheap challengers
 python tests/env_drift.py    # sensitive fixtures vs origin/main, same machine
+python tests/env_drift.py --fixtures  # are the COMMITTED fixtures still current?
 python tests/plan_view.py    # plan sensor payloads, writes HPO_PLANDATA (default /tmp/plandata-<hash>.json)
 node   tests/card.mjs        # renders the dashboard card against that payload
 node   tests/setup_qa_render.mjs  # setup-page SVGs off the same payload, for designer review
@@ -345,6 +346,41 @@ real baseline — `GOLDEN_REF=HEAD^1 ./tests/run.sh` — rather than the default
 Without `--all` only the five sensitive fixtures are captured, so claims
 naming any other scenario are reported there as *not evaluated* rather than
 stale; judging those is `--all`'s job, which is what CI runs.
+
+**Are the committed fixtures still current?** Everything above compares
+computed against computed, so neither side of it is the committed file — and
+because `run.sh` skips `golden.py` in drift mode, and drift is what both CI
+lanes set, until #347 no CI job compared a committed fixture at all. The
+fixtures were guarded against *changing* and not at all against *being wrong*.
+Worse, claiming drift never re-records: a claim excuses a diff between two
+trees and says nothing about the artefact, so every claimed change widened the
+gap for good. `config_flow.json` went two releases that way (#326).
+
+So `env_drift.py` now also judges its own branch capture against the committed
+files, in three levels. **Exact**, for fixtures with no float on either side —
+read off the payload, never a hand-kept list, because a list would rot the way
+the fixtures did; today that is `config_flow` alone. **Structural**, for all
+55: the set of key paths and the JSON type class at each. Both *fail* the
+gate, in the normal lane, because neither depends on the machine. **Values**
+are counted and printed and never failed — those are the runner's own numbers,
+and only the environment that records them all can honestly re-record one.
+The nightly sets `DRIFT_VALUE_REPORT=1` and gets them per fixture.
+
+The structural projection deliberately ignores scalar values *and container
+lengths*, and the second one is measured rather than assumed: at `2ab9b84`
+this machine's capture differs from the committed files in 34 fixtures, and
+key-paths-plus-type-class fires on exactly the six that are genuinely stale.
+Adding list lengths fires on nine — `narrow_band`'s planned DHW hours 18 → 17,
+`wood_coil`'s 13 → 18, `valve_storage_smart_write`'s valve target schedule
+96 → 0 — all of them the solver choosing another plan. List elements collapse
+onto one `[]` path for the same reason, and an empty array on either side
+takes its subtree out of the comparison rather than reading as "the types
+vanished".
+
+`python tests/env_drift.py --fixtures` runs those three levels alone, with no
+reference tree and no baseline capture: what to run before and after
+`golden.py --record`. Given a capture file written earlier by `--capture` it
+re-reads that instead of solving again.
 
 The baseline half of the comparison is the slowest step in the whole suite,
 and it is byte-identical for every branch forked from the same commit, so it

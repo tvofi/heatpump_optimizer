@@ -572,6 +572,308 @@ def _diff_leaves(a, b, path, out) -> None:
         out.append(f"{path}: {a!r} vs {b!r}")
 
 
+# ===========================================================================
+# The committed fixtures' own staleness gate (#347, #326)
+# ===========================================================================
+#
+# Everything above compares COMPUTED against COMPUTED: this tree's capture
+# against the reference tree's, in one environment, so solver noise cancels.
+# Neither side of that comparison is the committed file. The fixtures are
+# therefore guarded against CHANGING and not guarded at all against BEING
+# WRONG -- and no CI lane closed the gap, because tests/run.sh skips
+# tests/golden.py entirely in drift mode, which is the mode both lanes set.
+#
+# The root cause is not the missing comparison. It is that claiming drift
+# never re-records: a claim in tests/golden/claimed_drift.txt excuses a diff
+# between two trees and says nothing about the artefact, and nothing anywhere
+# runs `golden.py --record`. So every claimed change widened the gap for
+# good. tests/golden/config_flow.json was last re-recorded on 2026-08-28 for
+# v5.3.0; PR #324 claimed config_flow drift on 2026-09-03 and left the file
+# untouched. #326 was not an accident, it was the workflow working.
+#
+# What is checked here, and why it can sit in the blocking gate rather than
+# in a nightly nobody reads. Measured at 2ab9b84, a full 55-scenario capture
+# against the committed fixtures on a machine whose solver disagrees with the
+# recording machine's: 34 fixtures differ, 14461 leaves in all.
+#
+#   LEVEL 1, exact. Only for fixtures with no float on either side -- read
+#   off the payload by carries_floats(), never a hand-kept list, because a
+#   list would rot exactly the way the fixtures did. Today that is
+#   config_flow alone, and it is where #326 lives: ten string-valued leaves,
+#   including the window_area minimum '0' -> '0.01' that PR #324 shipped and
+#   never recorded. Fails the gate.
+#
+#   LEVEL 2, structural. Every fixture: the set of key paths and the JSON
+#   type class at each. Fails the gate.
+#
+#   LEVEL 3, values. Every fixture, counted and reported, never failed --
+#   these are the 121 length-preserving value moves that ARE the machine
+#   (compressor_starts 3 -> 4, heat_pump_on_schedule True -> False,
+#   optimal_setpoints 22.6 -> 20.4). Only CI can honestly re-record them; a
+#   dev box would poison them, which is why claims exist instead of records.
+#
+# The projection in level 2 was cut to fit the measurement, one signal at a
+# time, and the cuts are the whole reason it is not red on main:
+#
+#   key paths + type class    fires on exactly 6 of the 34: config_flow and
+#                             the five coord_* -- every one of them a key the
+#                             code produces and the fixture has never seen
+#   + container lengths       fires on 9. narrow_band's planned DHW hours
+#                             18 -> 17, wood_coil's 13 -> 18, and
+#                             valve_storage_smart_write's valve target
+#                             schedule 96 -> 0 are all the solver choosing a
+#                             different plan, not a stale fixture
+#
+# So list LENGTHS are machine-sensitive in this payload set and are reported
+# at level 3 rather than gated, and list elements collapse onto a single
+# `[]` path for the same reason: comparing element 17 of a list whose length
+# is the plan's business compares two different things. An empty array on
+# either side carries no element types at all, so its subtree is dropped
+# from the comparison rather than read as "the types vanished".
+#
+# The residual gap, said out loud: a deliberate structural change to a list's
+# length is not caught here. It is caught by the tree-vs-tree comparison
+# above, which is what that comparison is good at.
+
+FIXTURE_DIR = os.path.join("tests", "golden")
+#: Print level 3 in full rather than as a count. The nightly sets it: it is
+#: the one run that can afford the wall of numbers, and it is the run whose
+#: reader is deciding what to re-record.
+VALUE_REPORT_ENV = "DRIFT_VALUE_REPORT"
+
+
+def carries_floats(node) -> bool:
+    """Does any leaf of this payload carry a float?
+
+    The one question that decides whether an exact comparison against a
+    committed file is honest on a machine that is not the recording one.
+    """
+    if isinstance(node, dict):
+        return any(carries_floats(v) for v in node.values())
+    if isinstance(node, list):
+        return any(carries_floats(v) for v in node)
+    return isinstance(node, float)
+
+
+def _type_class(node) -> str:
+    """The JSON type, with int and float as one class.
+
+    They are one class on purpose: `compressor_starts: 3 -> 4` is the solver
+    landing in another basin, and an int that flips is not a fixture that
+    went stale.
+    """
+    if node is None:
+        return "null"
+    if isinstance(node, bool):
+        return "bool"
+    if isinstance(node, (int, float)):
+        return "number"
+    if isinstance(node, str):
+        return "string"
+    if isinstance(node, list):
+        return "array"
+    return "object"
+
+
+def _collect_shape(node, path: str, shape: dict, empty: set) -> None:
+    """Every path in a payload and the type class(es) found there.
+
+    List elements all collapse onto one `[]` path and their classes are
+    unioned, so nothing here depends on a list's length or on which element
+    landed at which index -- both of which are the plan's business.
+    """
+    kind = _type_class(node)
+    shape.setdefault(path, set()).add(kind)
+    if kind == "object":
+        for key in sorted(node):
+            _collect_shape(node[key], f"{path}.{key}", shape, empty)
+    elif kind == "array":
+        if not node:
+            empty.add(path)
+        for item in node:
+            _collect_shape(item, f"{path}[]", shape, empty)
+
+
+def shape_diff(committed, computed, name: str = "") -> list[str]:
+    """Level 2: what differs between two payloads apart from scalar values."""
+    left: dict[str, set] = {}
+    right: dict[str, set] = {}
+    left_empty: set[str] = set()
+    right_empty: set[str] = set()
+    _collect_shape(committed, name, left, left_empty)
+    _collect_shape(computed, name, right, right_empty)
+    # An array that is empty on either side says nothing about its element
+    # types, and reading that silence as "the types vanished" is exactly the
+    # valve_storage_smart_write false positive (96 targets there, 0 here).
+    blind = tuple(root + "[]" for root in sorted(left_empty | right_empty))
+    out: list[str] = []
+    for path in sorted(set(left) | set(right)):
+        if blind and path.startswith(blind):
+            continue
+        label = path or "<payload>"
+        if path not in left or path not in right:
+            side = "the code produces it" if path in right else "the fixture has it"
+            out.append(f"{label}: present on one side only ({side})")
+        elif left[path] != right[path]:
+            out.append(
+                f"{label}: {'|'.join(sorted(left[path]))}"
+                f" -> {'|'.join(sorted(right[path]))}"
+            )
+    return out
+
+
+def exact_diff(committed, computed, name: str = "") -> list[str]:
+    """Level 1: every differing leaf, for payloads with no float to travel."""
+    out: list[str] = []
+    _diff_leaves(committed, computed, name, out)
+    return out
+
+
+class StalenessReport:
+    """What one capture says about the fixtures committed beside it."""
+
+    def __init__(self) -> None:
+        self.exact: dict[str, list[str]] = {}
+        self.structural: dict[str, list[str]] = {}
+        self.values: dict[str, int] = {}
+        self.missing: list[str] = []
+        self.checked = 0
+        self.exact_checked = 0
+
+    @property
+    def failed(self) -> int:
+        """Fixtures the gate fails on. Level 3 is reported, never counted."""
+        return len(set(self.exact) | set(self.structural)) + len(self.missing)
+
+
+def fixture_staleness(fixture_dir: str, captured: dict) -> StalenessReport:
+    """Run all three levels of a capture against the committed fixtures."""
+    report = StalenessReport()
+    for name in sorted(captured):
+        path = os.path.join(fixture_dir, f"{name}.json")
+        if not os.path.exists(path):
+            report.missing.append(name)
+            continue
+        with open(path) as handle:
+            committed = json.load(handle)
+        computed = captured[name]
+        report.checked += 1
+
+        structural = shape_diff(committed, computed, name)
+        if structural:
+            report.structural[name] = structural
+
+        # Exact only where both sides are float-free. Both, not just the
+        # committed one: a fixture that has GAINED a float is a level 2
+        # failure, and comparing its floats exactly on top of that would
+        # only bury the type change in noise.
+        if not carries_floats(committed) and not carries_floats(computed):
+            report.exact_checked += 1
+            exact = exact_diff(committed, computed, name)
+            if exact:
+                report.exact[name] = exact
+
+        leaves: list[str] = []
+        _diff_leaves(committed, computed, name, leaves)
+        if leaves:
+            report.values[name] = len(leaves)
+    return report
+
+
+def print_staleness(report: StalenessReport, verbose: bool = False) -> None:
+    """Say what the three levels found, and what they deliberately did not."""
+    print()
+    print("########## committed fixtures: staleness (#347) ##########")
+    print(f"  {report.checked} fixture(s) compared against this tree's capture; "
+          f"{report.exact_checked} of them float-free and compared exactly.")
+
+    for name in sorted(report.exact):
+        lines = report.exact[name]
+        print(f"  STALE {name}: {len(lines)} leaf/leaves differ from the "
+              f"committed file (exact, float-free)")
+        for line in lines[:6]:
+            print(f"         {line}")
+        if len(lines) > 6:
+            print(f"         ... and {len(lines) - 6} more")
+    for name in sorted(report.structural):
+        lines = report.structural[name]
+        print(f"  STALE {name}: {len(lines)} path(s) differ in STRUCTURE from "
+              f"the committed file")
+        for line in lines[: (20 if verbose else 5)]:
+            print(f"         {line}")
+        if len(lines) > (20 if verbose else 5):
+            print(f"         ... and {len(lines) - (20 if verbose else 5)} more")
+    for name in report.missing:
+        print(f"  STALE {name}: captured, but tests/golden/{name}.json does "
+              f"not exist -- the scenario was never recorded")
+
+    # Level 3. Reported in every mode and failed in none: these are the
+    # machine's own numbers, and only a canonical environment can honestly
+    # re-record them.
+    movers = {n: c for n, c in report.values.items()
+              if n not in report.exact and n not in report.structural}
+    if movers:
+        total = sum(movers.values())
+        print(f"\n  values (reported, never failed): {len(movers)} fixture(s), "
+              f"{total} leaf/leaves differ from the committed files in value "
+              f"alone.")
+        print("  A float-bearing fixture can only be re-recorded honestly in "
+              "the environment")
+        print("  that records them all; a dev box would poison it. Nothing "
+              "here is failed on.")
+        if verbose:
+            for name in sorted(movers, key=lambda n: -movers[n]):
+                print(f"    {movers[name]:6d}  {name}")
+
+    if report.failed:
+        print(f"\n{report.failed} COMMITTED FIXTURE(S) ARE STALE")
+        print("The committed file no longer matches what this code produces,")
+        print("and the difference is not a float. Re-record it on purpose:")
+        print("  PYTHONPATH=tests/hastub python3 tests/golden.py --record "
+              "--only <name>")
+        print("A float-free fixture (config_flow) can be recorded on any")
+        print("machine. For anything else, check first that no pre-existing")
+        print("leaf moves -- `--fixtures` prints the count -- or record it")
+        print("where the whole set was recorded.")
+    else:
+        print("  no committed fixture is stale")
+
+
+def check_fixtures(repo: str, capture_path: str | None = None) -> int:
+    """`--fixtures`: the three levels alone, with no reference tree at all.
+
+    The gate runs these levels inside the drift comparison, which needs a
+    baseline worktree and captures twice. This entry point captures once and
+    compares against the committed files only -- which is what the nightly
+    wants for level 3, and what a human wants when re-recording. Given a
+    capture written earlier by `--capture`, it re-reads that instead of
+    solving again.
+    """
+    if capture_path:
+        with open(capture_path) as handle:
+            captured = json.load(handle)
+        print(f"read {len(captured)} scenario(s) from {capture_path}")
+    else:
+        tmp = tempfile.mkdtemp(prefix="env_drift_fixtures_")
+        try:
+            out_path = os.path.join(tmp, "branch.json")
+            env = dict(os.environ)
+            env["PYTHONPATH"] = os.path.join(repo, "tests", "hastub")
+            subprocess.run(
+                [sys.executable, os.path.abspath(__file__),
+                 "--capture", repo, out_path, "--all"],
+                check=True, env=env,
+            )
+            with open(out_path) as handle:
+                captured = json.load(handle)
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+        print(f"captured {len(captured)} scenario(s) from {repo}")
+    report = fixture_staleness(os.path.join(repo, FIXTURE_DIR), captured)
+    print_staleness(report, verbose=True)
+    return 1 if report.failed else 0
+
+
 def _repo_version(repo: str) -> str:
     """The release this tree is, per the repo-root VERSION file."""
     path = os.path.join(repo, VERSION_FILE)
@@ -877,6 +1179,15 @@ def main() -> int:
         capture_tree(sys.argv[2], sys.argv[3], everything)
         return 0
 
+    if len(sys.argv) >= 2 and sys.argv[1] == "--fixtures":
+        # Levels 1-3 against the committed fixtures and nothing else: no
+        # reference tree, no baseline capture, no claim file. What the
+        # nightly runs for its level 3 report, and what a human runs before
+        # and after `golden.py --record`.
+        repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        rest = sys.argv[2:]
+        return check_fixtures(repo, rest[0] if rest else None)
+
     if len(sys.argv) >= 2 and sys.argv[1] == "--cache-key":
         # Print the key a run with these arguments would look up, and
         # nothing else. CI uses it to key actions/cache; a human uses it to
@@ -1043,6 +1354,17 @@ def main() -> int:
                     print(f"  NOT WARMED: {err.__class__.__name__}: {err}")
 
         branch, baseline = outputs["branch"], outputs["baseline"]
+
+        # The branch capture is a fresh computation of every scenario, so
+        # the committed files can be judged against it for free -- and this
+        # is the only comparison in the gate where one side is the artefact
+        # rather than another computation. It runs before the drift
+        # comparison because a stale fixture explains nothing about drift
+        # and drift explains nothing about staleness: they are independent
+        # verdicts and each is reported under its own heading.
+        rot = fixture_staleness(os.path.join(repo, FIXTURE_DIR), branch)
+        print_staleness(rot, verbose=bool(os.environ.get(VALUE_REPORT_ENV)))
+
         drifted = 0
         claimed_hits = []
         may_drift_hits: list[str] = []
@@ -1145,10 +1467,12 @@ def main() -> int:
             print("A claim nothing uses would silently excuse the next")
             print("accidental drift, so it fails. Delete these lines; the")
             print("behaviour they describe is already gone or never came.")
-        if drifted or stale:
+        if drifted or stale or rot.failed:
             return 1
         n = len(set(branch) | set(baseline))
         print(f"\nNO UNCLAIMED DRIFT: {n} scenario(s) checked against {ref}")
+        print(f"NO STALE FIXTURE: {rot.checked} committed fixture(s) still "
+              f"match what this tree computes")
         return 0
     finally:
         subprocess.run(

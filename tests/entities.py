@@ -6138,6 +6138,237 @@ R.check(
     _env_drift.may_drift_error(_md_entries, _md_claims) is None,
 )
 
+# --- the committed fixtures' own staleness gate (#347, #326) ----------------
+#
+# env_drift compares COMPUTED against COMPUTED across two trees, so neither
+# side is the committed file, and no CI lane ever ran the one comparison that
+# is: run.sh skips golden.py entirely in drift mode. A fixture that no longer
+# matches what the code produces was invisible by construction, and the claim
+# mechanism guaranteed it -- claiming drift excuses a diff between trees and
+# never re-records the artefact, so every claimed change widened the gap for
+# good. tests/golden/config_flow.json went two releases and 85 divergent
+# paths that way (#326).
+#
+# The projection below is what makes an exact-ish comparison against the
+# committed file survivable in the normal gate. Measured at 2ab9b84 with a
+# full 55-scenario capture against the committed fixtures: 34 fixtures differ
+# on this machine, of which only SIX differ in structure. The other 28 are
+# the solver landing in another basin, and the three signals that separate
+# them were measured one at a time, not argued:
+#
+#   key paths + JSON type class     fires on exactly the 6      KEPT
+#   + container lengths             fires on 9 -- narrow_band 18 -> 17 and
+#                                   wood_coil 13 -> 18 planned DHW hours,
+#                                   valve_storage_smart_write's valve target
+#                                   schedule 96 -> 0                DROPPED
+#
+# So list lengths are machine-sensitive here and are reported, never gated;
+# list elements collapse onto one path for the same reason. That correction
+# is what these checks pin, one measured false positive at a time.
+import contextlib as _contextlib
+import io as _io
+
+R.section("Committed-fixture staleness (#347)")
+
+R.check(
+    "a key the committed fixture lacks is structural staleness",
+    any(
+        "reading_ok" in line
+        for line in _env_drift.shape_diff({"data": {}}, {"data": {"reading_ok": {}}})
+    ),
+    "the #326 class -- a key the code produces and the fixture has never seen",
+)
+R.check(
+    "and so is a key the fixture has that the code no longer produces",
+    _env_drift.shape_diff({"a": 1, "b": 2}, {"a": 1}) != [],
+)
+R.check(
+    "and so is a leaf whose JSON type changed",
+    _env_drift.shape_diff({"min": 0}, {"min": "0"}) != []
+    and _env_drift.shape_diff({"t": None}, {"t": 1.5}) != [],
+    "a number that became a string is a capture change, not a basin",
+)
+
+# The four measured false positives, each a real cross-machine difference in
+# the committed fixtures at 2ab9b84. Every one of these must stay silent or
+# the gate is red on main forever.
+R.check(
+    "a float that moved with the solver basin is not staleness",
+    _env_drift.shape_diff(
+        {"optimal_setpoints": [22.6, 21.0]}, {"optimal_setpoints": [20.4, 21.0]}
+    ) == [],
+)
+R.check(
+    "nor is an integer that flipped with it",
+    _env_drift.shape_diff({"compressor_starts": 3}, {"compressor_starts": 4}) == [],
+    "compressor_starts 3 -> 4 is the basin, and an int is still a number",
+)
+R.check(
+    "nor is a boolean schedule that flipped",
+    _env_drift.shape_diff(
+        {"heat_pump_on_schedule": [True, False]},
+        {"heat_pump_on_schedule": [False, True]},
+    ) == [],
+)
+R.check(
+    "nor is a plan-derived list whose LENGTH moved",
+    _env_drift.shape_diff(
+        {"dhw_planned_heating_hours": [0.0, 3.75, 4.0]},
+        {"dhw_planned_heating_hours": [0.0, 4.25]},
+    ) == [],
+    "narrow_band 18 -> 17 and wood_coil 13 -> 18 planned hours are the basin; "
+    "gating on length puts three machine-sensitive fixtures in the gate",
+)
+R.check(
+    "nor is a schedule this basin never populated at all",
+    _env_drift.shape_diff(
+        {"valve_target_schedule": [23.0, 23.0]}, {"valve_target_schedule": []}
+    ) == []
+    and _env_drift.shape_diff(
+        {"valve_target_schedule": []}, {"valve_target_schedule": [23.0, 23.0]}
+    ) == [],
+    "valve_storage_smart_write writes 96 targets on one machine and 0 here; "
+    "an empty list carries no element types to compare",
+)
+
+# Level 1. Exact comparison is honest only where there is no float to travel,
+# and which fixtures those are is read off the payload rather than listed by
+# hand -- a list would rot the same way the fixtures did.
+R.check(
+    "a payload with a float anywhere is not exact-comparable",
+    _env_drift.carries_floats({"a": 1.0})
+    and _env_drift.carries_floats({"a": [{"b": 2.5}]})
+    and not _env_drift.carries_floats({"a": 1, "b": "0.01", "c": [True, None]}),
+)
+R.check(
+    "the config-flow fixture is float-free, so the exact level covers it",
+    not _env_drift.carries_floats(
+        json.loads(Path("tests/golden/config_flow.json").read_text())
+    ),
+    "if this ever gains a float the exact level silently stops covering it",
+)
+R.check(
+    "and a solver fixture is not, so the exact level leaves it alone",
+    _env_drift.carries_floats(
+        json.loads(Path("tests/golden/winter_single_dhw.json").read_text())
+    ),
+)
+
+# The machine-independence proof, on real data rather than a toy payload:
+# a committed solver fixture with every float in it moved. That is what
+# another machine's solver does -- 1202 floats in this one -- and level 2
+# must stay silent through all of it or the gate cannot sit in the normal
+# lane at all.
+def _perturb(node):
+    if isinstance(node, dict):
+        return {k: _perturb(v) for k, v in node.items()}
+    if isinstance(node, list):
+        return [_perturb(v) for v in node]
+    if isinstance(node, bool):
+        return not node
+    if isinstance(node, float):
+        return round(node * 1.37 + 0.5, 6)
+    if isinstance(node, int):
+        return node + 1
+    return node
+
+
+_real = json.loads(Path("tests/golden/winter_single_dhw.json").read_text())
+_moved = _perturb(_real)
+R.check(
+    "a real fixture with every float, int and bool moved is not stale",
+    _env_drift.shape_diff(_real, _moved, "winter_single_dhw") == [],
+    f"{len(_env_drift.shape_diff(_real, _moved, 'winter_single_dhw'))} "
+    f"structural path(s) fired on a payload whose structure did not change",
+)
+R.check(
+    "and every one of those moves is still counted for the nightly",
+    _env_drift.fixture_staleness(
+        "tests/golden", {"winter_single_dhw": _moved}
+    ).values.get("winter_single_dhw", 0) > 1000,
+    "level 3 must see what level 2 deliberately ignores",
+)
+R.check(
+    "while the same payload with one key added IS stale",
+    _env_drift.shape_diff(
+        _real, dict(_moved, reading_ok={"dhw_temperature": True}),
+        "winter_single_dhw",
+    ) != [],
+    "the projection must not be blind, only float-blind",
+)
+R.check(
+    "the exact level catches a string-valued move the structure cannot see",
+    any(
+        "0.01" in line
+        for line in _env_drift.exact_diff({"min": "0"}, {"min": "0.01"})
+    ),
+    "window_area.config.min '0' -> '0.01' is #324's own fix, still missing "
+    "from the committed fixture two releases later",
+)
+
+# The gate function itself, over a fixture directory built for the purpose.
+with _tempfile.TemporaryDirectory(prefix="staleness_") as _st_root:
+    _st_dir = Path(_st_root)
+    (_st_dir / "float_free.json").write_text(json.dumps({"min": "0"}))
+    (_st_dir / "solver.json").write_text(json.dumps({"setpoints": [21.0, 22.0]}))
+    (_st_dir / "grew.json").write_text(json.dumps({"data": {}, "kwh": 1.5}))
+    _st = _env_drift.fixture_staleness(
+        str(_st_dir),
+        {
+            "float_free": {"min": "0.01"},
+            "solver": {"setpoints": [20.4, 22.0]},
+            "grew": {"data": {"reading_ok": True}, "kwh": 1.5},
+            "never_recorded": {"x": 1},
+        },
+    )
+    R.check(
+        "the gate fails on the float-free fixture's string move",
+        "float_free" in _st.exact,
+    )
+    R.check(
+        "and on the fixture that grew a key",
+        "grew" in _st.structural,
+    )
+    R.check(
+        "and on a captured scenario with no committed fixture at all",
+        _st.missing == ["never_recorded"],
+        f"missing {_st.missing}",
+    )
+    R.check(
+        "but NOT on the solver fixture whose floats merely moved",
+        "solver" not in _st.exact and "solver" not in _st.structural,
+        "this is the whole reason the gate can sit in the normal lane",
+    )
+    R.check(
+        "which is still reported, because a nightly can act on it",
+        _st.values.get("solver", 0) == 1,
+        f"value report {_st.values}",
+    )
+    R.check(
+        "and the gate's verdict counts only what it fails on",
+        _st.failed == 3,
+        f"failed {_st.failed}",
+    )
+    _st_out = _io.StringIO()
+    with _contextlib.redirect_stdout(_st_out):
+        _env_drift.print_staleness(_st)
+    _st_text = _st_out.getvalue()
+    R.check(
+        "and the verdict NAMES every stale fixture",
+        all(f"STALE {n}" in _st_text
+            for n in ("float_free", "grew", "never_recorded")),
+        "#347 asks for a check that turns rc 1 naming the fixture; a count "
+        "with no name sends the reader back to a 55-scenario diff",
+    )
+    R.check(
+        "and says how many, how to re-record, and which need care",
+        "3 COMMITTED FIXTURE(S) ARE STALE" in _st_text
+        and "golden.py --record" in _st_text
+        and "poison" in _st_text,
+        "a gate that fails without saying what to do gets claimed instead "
+        "of fixed -- which is the mechanism that produced #326",
+    )
+
 # --- D10-08: the reauthentication flow -------------------------------------
 R.section("Reauthentication (D10-08)")
 

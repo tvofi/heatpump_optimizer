@@ -156,6 +156,7 @@
   "ecl110_effective_displace": 0.0,
   "ecl110_last_payload": {},
   "ecl110_state_topic": "ecl110/flow_temp_control/displace",
+  "energy_totals_counting_since": "2026-01-15",
   "external_heat": {
    "active": false,
    "buffer_rise_c_per_h": null,
@@ -381,6 +382,14 @@
   "pv": {},
   "pv_enabled": false,
   "pv_self_consumed_kwh": 0.0,
+  "reading_ok": {
+   "buffer_tank_temperature": false,
+   "dhw_temperature": false,
+   "floor_return_temperature": false,
+   "lower_floor_temperature": false,
+   "slab_temperature": false,
+   "upper_floor_temperature": false
+  },
   "savings_percentage": null,
   "schedule": [],
   "slab_temperature": 22.0,
@@ -423,7 +432,8 @@
   "upper_floor_temperature": 21.0,
   "ventilation_active": false,
   "ventilation_evidence": [],
-  "weather_forecast_available": 48
+  "weather_forecast_available": 48,
+  "weather_forecast_stale_hours": null
  },
  "forecast_outdoor": [
   -5.0,
