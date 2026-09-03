@@ -146,11 +146,11 @@ followed by the two-zone and solar page:
 | Lower floor thermal mass | 8.0 kWh/°C | 0.25–60 | Heat stored in the lower zone. |
 | Upper floor heat loss | 0.08 kW/°C | 0.001–1.0 | The upper zone's own loss coefficient. |
 | Lower floor heat loss | 0.07 kW/°C | 0.001–1.0 | The lower zone's own loss coefficient. |
-| Inter-zone heat transfer | 0.5 kW/°C | 0.0–3.0 | How much heat drifts between floors. Higher suits an open stairwell. |
+| Inter-zone heat transfer | 0.5 kW/°C | 0.01–3.0 | How much heat drifts between floors. Higher suits an open stairwell. |
 | Share of heat going to radiators | 0.4 | 0.0–1.0, 0.05 steps | 0 sends everything to the slab, 1 everything to the radiators. |
 | Upper floor area ratio | 0.5 | 0.1–0.9 | The share of floor area upstairs. 0.5 means two equal floors. |
 | Buffer tank size | 35 L | 10–1500, 5 steps | The tank between the pump and the heating circuits. Below 100 L it is modelled but not planned around as a store. |
-| Window area facing the sun | 10 m² | 0–50, 0.5 steps | Glazing that gets direct sun, used to predict free solar heat. |
+| Window area facing the sun | 10 m² | 0.01–50, 0.5 steps | Glazing that gets direct sun, used to predict free solar heat. |
 | Solar orientation factor | 0.7 | 0.0–1.0 | How well the glazing faces the sun over a day. 1.0 suits mostly south-facing windows. |
 | How much sunlight the windows let through | 0.7 | 0.1–1.0 | The glazing's solar heat gain coefficient. About 0.6 for modern triple glazing. |
 
@@ -376,7 +376,7 @@ turning the preset on.
 |---|---|---|---|
 | Derive thermal values from the building type | off | on/off | While this is on, **every save of this page** recalculates the ten derived values on *Thermal model (expert)* from your answers below and overwrites whatever is there. It never runs at any other time. Changing one of those values to a different number on the expert page switches this back off, so your own number stays; re-saving the expert page unchanged does not. |
 | The six questionnaire fields | as setup | see setup step 3 | Identical questions and choices; one field list serves both flows. |
-| Window area facing the sun | 10 m² | 0–50, 0.5 steps | Glazing that gets direct sun. Not derived by the preset. |
+| Window area facing the sun | 10 m² | 0.01–50, 0.5 steps | Glazing that gets direct sun. Not derived by the preset. |
 | How much sunlight the windows let through | 0.7 | 0.1–1.0 | The glazing's solar heat gain coefficient. |
 | Wind sensitivity | 0.03 | 0.0–0.5 | As setup step 5. |
 | Rain sensitivity | 1.15 | 1.0–1.5 | As setup step 5. |
