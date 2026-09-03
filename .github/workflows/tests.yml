@@ -313,8 +313,49 @@ jobs:
   #
   # This never runs on a pull request: it is the check on main, deliberately
   # outside the thing it checks.
+  # Does a pull request add a file under custom_components/? Then its closures
+  # cannot already be recorded, and merging it reddens main one gate later.
+  # That happened four times in a week -- diagnostics.py, icons.json,
+  # quality_scale.yaml, entity.py -- each time discovered on main, after the
+  # merge, by whoever pushed next. The job below is what catches it, but it
+  # only ran on main, so it could only ever report the fire after it started.
+  new-integration-file:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      added: ${{ steps.check.outputs.added }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: check
+        run: |
+          BASE="${{ github.event.pull_request.base.sha }}"
+          HEAD="${{ github.event.pull_request.head.sha }}"
+          ADDED=$(git diff --diff-filter=A --name-only "$BASE" "$HEAD" \
+                    -- 'custom_components/**' | wc -l | tr -d ' ')
+          echo "added=$ADDED" >> "$GITHUB_OUTPUT"
+          if [ "$ADDED" != "0" ]; then
+            echo "This pull request adds $ADDED file(s) under custom_components/:"
+            git diff --diff-filter=A --name-only "$BASE" "$HEAD" -- 'custom_components/**'
+            echo "Running the closures job, because a file no closure lists is"
+            echo "exactly what turns main red one merge after it lands."
+          fi
+
   closures:
-    if: github.event_name == 'push' || github.event_name == 'schedule'
+    needs: [new-integration-file]
+    # `always()` is load-bearing, not decoration. `new-integration-file` only
+    # runs on a pull request, so on a push to main it is SKIPPED -- and a job
+    # whose `needs` was skipped is skipped too, whatever its own `if` says.
+    # Without `always()` this line would silently switch off the closures
+    # check on main, which is the one place it has always run: a far worse
+    # bug than the one it is here to prevent.
+    if: >-
+      always() && (
+        github.event_name == 'push' || github.event_name == 'schedule'
+        || needs.new-integration-file.outputs.added != '0'
+      )
     runs-on: ubuntu-latest
     timeout-minutes: 100
     steps:
