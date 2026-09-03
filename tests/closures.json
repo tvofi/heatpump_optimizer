@@ -30,7 +30,7 @@
    "rc": 0
   },
   "tests/features.py": {
-   "seconds": 48.4,
+   "seconds": 43.1,
    "rc": 0
   },
   "tests/frontend.py": {
@@ -633,7 +633,8 @@
    "tests/hastub/homeassistant/loader.py",
    "tests/hastub/homeassistant/util/__init__.py",
    "tests/hastub/homeassistant/util/dt.py",
-   "tests/profiles.py"
+   "tests/profiles.py",
+   "tests/run.sh"
   ],
   "tests/frontend.py": [
    "custom_components/heatpump_optimizer/const.py",
