@@ -49,7 +49,12 @@ Metrics (definitions, one line each; the code is the authority):
                               integration (dunder, HA entry points, HA
                               convention constants and ConfigFlow/OptionsFlow
                               subclasses excluded -- Home Assistant finds
-                              those by convention, not by import)
+                              those by convention, not by import). A reference
+                              is a name load, an attribute name, or BOTH halves
+                              of an aliased import (``module_references``); the
+                              four constants a runtime ``getattr`` assembles
+                              are exempted by name, with their proof re-checked
+                              on every run (``DYNAMIC_REFERENCES``)
   internal_call_edges         ``self.m(...)`` call occurrences inside the
                               coordinator where ``m`` is one of its own methods
   cross_seam_fraction         the fraction of those edges whose endpoints sit
@@ -160,6 +165,39 @@ HA_CONVENTION_NAMES = {
     "PLATFORMS",
 }
 
+# Symbols no static scan can see, because the name is assembled at runtime.
+# An EXPLICIT, RE-CHECKED allowlist -- not a widening of what "referenced"
+# means (``dynamic_reference_audit`` says why that trade is refused).
+#
+# ``thermal_model.py`` reads config keys off a table of bare suffix strings
+# and resolves each with ``getattr(const, f"CONF_{conf}")``, so the ``CONF_``
+# prefix never appears as a token and no census over names can find these
+# four. #338 -- "Ten dead symbols go, four dynamic-lookup constants stay
+# proven alive" -- proved them alive with a runtime sentinel and deliberately
+# kept them, and the gate went on reporting them dead: a merged PR's evidence
+# and the standing gate disagreeing, with nothing reconciling them (#364).
+# This table is that reconciliation, and every run re-checks the proof.
+#
+#   (module, symbol) -> (proof module, the bare string, the getattr prefix, why)
+DYNAMIC_REFERENCES: dict[tuple[str, str], tuple[str, str, str, str]] = {
+    ("const.py", "CONF_BUFFER_TANK_LOSS"): (
+        "thermal_model.py", "BUFFER_TANK_LOSS", "CONF_",
+        "#338: _tabled_values row buffer_tank_heat_loss, sentinel-proven alive",
+    ),
+    ("const.py", "CONF_SOLAR_UPPER_FRACTION"): (
+        "thermal_model.py", "SOLAR_UPPER_FRACTION", "CONF_",
+        "#338: _tabled_values row solar_upper_fraction, sentinel-proven alive",
+    ),
+    ("const.py", "CONF_HOUSE_HEAT_LOSS_SCALE"): (
+        "thermal_model.py", "HOUSE_HEAT_LOSS_SCALE", "CONF_",
+        "#338: _tabled_values row house_heat_loss_scale, sentinel-proven alive",
+    ),
+    ("const.py", "CONF_LOWER_FLOOR_LOSS_RATIO"): (
+        "thermal_model.py", "LOWER_FLOOR_LOSS_RATIO", "CONF_",
+        "#338: _tabled_values row lower_floor_loss_ratio, sentinel-proven alive",
+    ),
+}
+
 # Metrics that are fractions, not counts: they compare with a tolerance
 # instead of "must not exceed", because a one-method change moves them by
 # less than the noise of rounding. Everything else must be <= its budget.
@@ -206,6 +244,155 @@ def nested_spans(fn: ast.FunctionDef | ast.AsyncFunctionDef) -> list[tuple[int, 
             starts = [d.lineno for d in getattr(child, "decorator_list", [])]
             spans.append((min(starts + [child.lineno]), child.end_lineno))
     return spans
+
+
+def module_references(tree: ast.Module) -> set[str]:
+    """Every name this module references, for the dead-symbol screen.
+
+    Every name anyone reads, plus every name any import binds: an import is a
+    reference even when the name is then used only as an attribute of the
+    module. Attribute names count too -- coarse, but this is a screen for
+    accidental deadness, not a linker. A load of name N from inside the body of
+    a top-level function also called N is recursion, not a reference from
+    elsewhere, so it does not count.
+
+    **Both halves of an aliased import count** (#364). ``import x as y`` binds
+    ``y``, but it also *names* ``x``, and ``x`` is the definition that would go
+    if this screen were believed. Recording only ``asname`` made every aliased
+    import in the tree invisible to the census -- the hole #281's panel had
+    already corrected in the D7 audit harness, about this same symbol, without
+    anyone checking the production gate for it. ``grid_fee.max_abs_component``
+    is imported at ``coordinator.py:353`` as ``grid_fee_max_abs_component`` and
+    called on every planning cycle of a grid-fee install; the gate called it
+    dead.
+
+    A symbol reached only through a runtime lookup is NOT handled here -- see
+    ``DYNAMIC_REFERENCES``. Widening what "referenced" means for every symbol
+    in the tree, so that four constants come out right, is the trade this
+    function deliberately does not make.
+    """
+    own_fn_ranges: dict[str, tuple[int, int]] = {}
+    for node in tree.body:
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            own_fn_ranges[node.name] = (node.lineno, node.end_lineno)
+
+    referenced: set[str] = set()
+
+    def note_reference(name: str, lineno: int) -> None:
+        span = own_fn_ranges.get(name)
+        if span and span[0] <= lineno <= span[1]:
+            return  # the symbol's own body: recursion, not a reference
+        referenced.add(name)
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load):
+            note_reference(node.id, node.lineno)
+        elif isinstance(node, ast.Attribute):
+            note_reference(node.attr, node.lineno)
+        elif isinstance(node, (ast.Import, ast.ImportFrom)):
+            for alias in node.names:
+                note_reference(alias.name.split(".")[-1], node.lineno)
+                if alias.asname:
+                    note_reference(alias.asname, node.lineno)
+
+    return referenced
+
+
+def dynamic_reference_audit(
+    trees: list[tuple[Path, ast.Module]],
+    top_level_defs: dict[tuple[str, str], int],
+    referenced_names: set[str],
+    entries: dict[tuple[str, str], tuple[str, str, str, str]] | None = None,
+) -> tuple[set[tuple[str, str]], list[str]]:
+    """Check every ``DYNAMIC_REFERENCES`` entry, and say which still hold.
+
+    Returns ``(exempt, problems)``: the ``(rel, name)`` keys whose proof holds
+    and which the dead-symbol screen should therefore skip, and one message per
+    entry whose proof does not hold. A non-empty ``problems`` fails the run --
+    an allowlist nobody re-checks is how a genuinely dead symbol gets kept
+    alive in silence, which would be strictly worse than the false positives
+    this list exists to remove.
+
+    Four things are checked per entry, and each one is a way for the list to
+    rot:
+
+    1. the symbol still exists at top level in the module named;
+    2. it is still statically unreferenced -- an entry that is no longer doing
+       any work must go, so the list never grows a member it does not need;
+    3. the bare string that names it is still a string literal in the module
+       named as the proof site;
+    4. that same module still assembles the name, ``getattr(x, f"PREFIX{..}")``
+       with this entry's prefix.
+
+    3 and 4 are the pair #338 proved with a runtime sentinel. They are checked
+    at four hand-written ``(symbol, proof site, literal, prefix)`` addresses
+    and nowhere else: this does not make a bare string count as a reference
+    anywhere in the tree. That census is the tempting generalisation and it is
+    the wrong one -- it would redefine "referenced" for every top-level symbol
+    in the tree and buy its generality with false NEGATIVES: a genuinely dead
+    symbol kept alive because its name turns up in some unrelated string. This
+    metric exists to catch deadness; under-reporting is the failure it must
+    not have, and over-reporting is only annoying. (``tvofi-claude-09``, #364.)
+
+    A FIFTH dynamic constant needs no help from this function to be caught: it
+    is not in the list, so it is reported dead and the ratchet fails at the
+    count. The list can only ever absorb an entry a human writes down.
+    """
+    by_module = {p.relative_to(PACKAGE_DIR).as_posix(): t for p, t in trees}
+    problems: list[str] = []
+    exempt: set[tuple[str, str]] = set()
+
+    for (module, name), (proof_module, literal, prefix, why) in sorted(
+        (DYNAMIC_REFERENCES if entries is None else entries).items()
+    ):
+        rel = str((PACKAGE_DIR / module).relative_to(REPO_ROOT))
+        where = f"DYNAMIC_REFERENCES[{module}:{name}]"
+        if (rel, name) not in top_level_defs:
+            problems.append(
+                f"{where}: {name} is no longer a top-level symbol in {module};"
+                " delete the entry")
+            continue
+        if name in referenced_names:
+            problems.append(
+                f"{where}: {name} is statically referenced now, so the entry"
+                " does nothing; delete it")
+            continue
+        proof_tree = by_module.get(proof_module)
+        if proof_tree is None:
+            problems.append(
+                f"{where}: the proof module {proof_module} is gone; re-prove"
+                f" {name} or delete it ({why})")
+            continue
+        has_literal = any(
+            isinstance(n, ast.Constant) and n.value == literal
+            for n in ast.walk(proof_tree)
+        )
+        has_lookup = any(
+            isinstance(n, ast.Call)
+            and isinstance(n.func, ast.Name)
+            and n.func.id == "getattr"
+            and len(n.args) >= 2
+            and isinstance(n.args[1], ast.JoinedStr)
+            and n.args[1].values
+            and isinstance(n.args[1].values[0], ast.Constant)
+            and n.args[1].values[0].value == prefix
+            for n in ast.walk(proof_tree)
+        )
+        if not has_literal:
+            problems.append(
+                f"{where}: {proof_module} no longer contains the literal"
+                f" {literal!r}, so nothing reaches {name}; it is dead now"
+                f" ({why})")
+            continue
+        if not has_lookup:
+            problems.append(
+                f"{where}: {proof_module} no longer assembles names with"
+                f" getattr(x, f\"{prefix}{{..}}\"), so nothing reaches {name};"
+                f" it is dead now ({why})")
+            continue
+        exempt.add((rel, name))
+
+    return exempt, problems
 
 
 def cyclomatic_complexity(fn: ast.FunctionDef | ast.AsyncFunctionDef) -> int:
@@ -274,31 +461,7 @@ def measure() -> dict:
                 if not node.target.id.startswith("__"):
                     top_level_defs[(rel, node.target.id)] = node.lineno
 
-        # Every name anyone reads, plus every name any import binds: an
-        # import is a reference even when the name is then used only as an
-        # attribute of the module. Attribute names count too -- coarse, but
-        # this is a screen for accidental deadness, not a linker. A load of
-        # name N from inside the body of a top-level function also called N
-        # is recursion, not a reference from elsewhere, so it does not count.
-        own_fn_ranges: dict[str, tuple[int, int]] = {}
-        for node in tree.body:
-            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                own_fn_ranges[node.name] = (node.lineno, node.end_lineno)
-
-        def note_reference(name: str, lineno: int) -> None:
-            span = own_fn_ranges.get(name)
-            if span and span[0] <= lineno <= span[1]:
-                return  # the symbol's own body: recursion, not a reference
-            referenced_names.add(name)
-
-        for node in ast.walk(tree):
-            if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load):
-                note_reference(node.id, node.lineno)
-            elif isinstance(node, ast.Attribute):
-                note_reference(node.attr, node.lineno)
-            elif isinstance(node, (ast.Import, ast.ImportFrom)):
-                for alias in node.names:
-                    note_reference(alias.asname or alias.name.split(".")[-1], node.lineno)
+        referenced_names |= module_references(tree)
 
         for cls in [n for n in ast.walk(tree) if isinstance(n, ast.ClassDef)]:
             methods = [
@@ -409,10 +572,15 @@ def measure() -> dict:
                 duplication.append((fid[0], fid[1], fid[2], f"norm {a}-{b - 1}", b - a))
 
     # -- dead top-level symbols --------------------------------------------
+    dynamic_exempt, dynamic_problems = dynamic_reference_audit(
+        trees, top_level_defs, referenced_names
+    )
     for (rel, name), lineno in sorted(top_level_defs.items()):
         if name in HA_CONVENTION_NAMES:
             continue
         if name in referenced_names:
+            continue
+        if (rel, name) in dynamic_exempt:
             continue
         dead_symbols.append((rel, lineno, name))
 
@@ -533,6 +701,8 @@ def measure() -> dict:
         "const_fanout": dict(sorted(const_fanout.items(), key=lambda kv: -kv[1])),
         "local_imports": sorted(local_imports),
         "dead_symbols": dead_symbols,
+        "dynamic_exempt": sorted(dynamic_exempt),
+        "dynamic_problems": dynamic_problems,
         "duplication": sorted(duplication),
         "seam_rows": seam_rows,
         "cross_edges": cross_edges,
@@ -590,6 +760,18 @@ def print_report(result: dict) -> None:
     print("########## dead top-level symbols ##########")
     for rel, line, name in tables["dead_symbols"]:
         print(f"  {rel}:{line}  {name}")
+
+    print()
+    print("########## dynamic-reference allowlist (not counted above) ##########")
+    for rel, name in tables["dynamic_exempt"]:
+        module = (REPO_ROOT / rel).relative_to(PACKAGE_DIR).as_posix()
+        proof_module, literal, prefix, why = DYNAMIC_REFERENCES[(module, name)]
+        print(f"  ok   {rel}  {name}")
+        print(f"         reached by {proof_module}: getattr(x,"
+              f" f\"{prefix}{{..}}\") off the literal {literal!r}")
+        print(f"         {why}")
+    for message in tables["dynamic_problems"]:
+        print(f"  FAIL {message}")
 
     print()
     print("########## duplication (>= %d normalized lines, across functions) ##########"
@@ -707,6 +889,120 @@ def ratchet(result: dict) -> int:
     return 0
 
 
+SELF_CHECK_SOURCE = '''
+from .grid_fee import max_abs_component as gf_max, min_component
+import package.submodule as sub
+
+TABLE = {"row": "WANTED"}
+
+
+def recurse(n):
+    return recurse(n - 1)
+
+
+def read(config, const):
+    return config.get(getattr(const, f"CONF_{TABLE['row']}"))
+'''
+
+
+AUDIT_SELF_CHECK_CONST = 'CONF_PROVEN: Final = "proven"\n'
+AUDIT_SELF_CHECK_PROOF = (
+    'TABLE = {"row": "PROVEN"}\n'
+    'def read(config, const):\n'
+    '    return config.get(getattr(const, f"CONF_{TABLE[\'row\']}"))\n'
+)
+AUDIT_SELF_CHECK_ENTRY = {
+    ("const.py", "CONF_PROVEN"): ("thermal_model.py", "PROVEN", "CONF_", "self-check"),
+}
+
+
+def audit_self_check() -> tuple[tuple[str, bool], ...]:
+    """Pin every way a ``DYNAMIC_REFERENCES`` entry is allowed to rot (#364).
+
+    An allowlist is only as honest as the re-check behind it, and a check has
+    nothing else to catch it when it goes: drop the "is the bare string still
+    there" clause and the four constants stay exempt for ever, silently, which
+    is the failure mode the list must not have. So the audit is driven here
+    against a two-module tree of our own, once per rot mode, and each
+    assertion is one of the clauses.
+    """
+    const_rel = str((PACKAGE_DIR / "const.py").relative_to(REPO_ROOT))
+
+    def audit(const_src: str | None, proof_src: str, referenced: set[str]):
+        trees = [(PACKAGE_DIR / "thermal_model.py", ast.parse(proof_src))]
+        defs: dict[tuple[str, str], int] = {}
+        if const_src is not None:
+            trees.insert(0, (PACKAGE_DIR / "const.py", ast.parse(const_src)))
+            defs[(const_rel, "CONF_PROVEN")] = 1
+        return dynamic_reference_audit(
+            trees, defs, referenced, entries=AUDIT_SELF_CHECK_ENTRY
+        )
+
+    healthy = audit(AUDIT_SELF_CHECK_CONST, AUDIT_SELF_CHECK_PROOF, set())
+    no_literal = audit(AUDIT_SELF_CHECK_CONST, AUDIT_SELF_CHECK_PROOF.replace(
+        '"PROVEN"', '"SOMETHING_ELSE"'), set())
+    no_lookup = audit(AUDIT_SELF_CHECK_CONST, AUDIT_SELF_CHECK_PROOF.replace(
+        'getattr(const, f"CONF_{TABLE[\'row\']}")', "const.CONF_OTHER"), set())
+    no_symbol = audit(None, AUDIT_SELF_CHECK_PROOF, set())
+    now_static = audit(AUDIT_SELF_CHECK_CONST, AUDIT_SELF_CHECK_PROOF, {"CONF_PROVEN"})
+
+    return (
+        ("a proven dynamic reference exempts its symbol, with no complaint",
+         healthy == ({(const_rel, "CONF_PROVEN")}, [])),
+        ("the bare string going away is caught, and the symbol counts again",
+         not no_literal[0] and len(no_literal[1]) == 1),
+        ("the getattr lookup going away is caught",
+         not no_lookup[0] and len(no_lookup[1]) == 1),
+        ("an entry whose symbol no longer exists is caught",
+         not no_symbol[0] and len(no_symbol[1]) == 1),
+        ("an entry the tree no longer needs is caught",
+         not now_static[0] and len(now_static[1]) == 1),
+    )
+
+
+def self_check() -> int:
+    """Pin ``module_references``'s rules on a source of our own (#364).
+
+    The tree's own aliased imports are what the alias rule was written for, but
+    the tree moves: delete the last aliased import from the integration and
+    that rule would be exercised by nothing, free to regress silently until the
+    next symbol it hides. These assertions are the rules themselves,
+    independent of what ``custom_components/`` happens to contain today.
+
+    The last one is the boundary this fix is careful about: a name a
+    ``getattr`` assembles at runtime is NOT a static reference and must not
+    become one here. Reaching those four constants is
+    ``DYNAMIC_REFERENCES``'s job, at four written-down addresses, so that no
+    other symbol's liveness is redefined on their account.
+    """
+    refs = module_references(ast.parse(SELF_CHECK_SOURCE))
+    failures = [
+        message
+        for message, ok in (
+            ("an aliased import records the ORIGINAL name", "max_abs_component" in refs),
+            ("an aliased import also records the alias", "gf_max" in refs),
+            ("an unaliased import still records its name", "min_component" in refs),
+            ("a dotted aliased import records both halves",
+             "submodule" in refs and "sub" in refs),
+            ("a function calling itself is recursion, not a reference",
+             "recurse" not in refs),
+            ('a getattr(x, f"CONF_{..}") name is NOT a static reference',
+             "CONF_WANTED" not in refs),
+            *audit_self_check(),
+        )
+        if not ok
+    ]
+    print("########## reference-rule self-check ##########")
+    for message in failures:
+        print(f"FAIL  {message}")
+    if failures:
+        print(f"{len(failures)} REFERENCE RULE(S) BROKEN -- "
+              "dead_top_level_symbols cannot be trusted")
+        return 1
+    print("  ok   11 reference rules hold")
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument(
@@ -716,8 +1012,19 @@ def main() -> int:
     )
     args = parser.parse_args()
 
+    if self_check():
+        return 1
+
     result = measure()
     print_report(result)
+    problems = result["tables"]["dynamic_problems"]
+    if problems:
+        print()
+        print(f"{len(problems)} DYNAMIC-REFERENCE ALLOWLIST ENTR(IES) NO LONGER HOLD")
+        print("Each line above says what changed. An entry whose proof is gone")
+        print("means the symbol is dead now -- delete the symbol and the entry,")
+        print("never the check. (#364)")
+        return 1
     if args.record:
         return record_budgets(result)
     return ratchet(result)
