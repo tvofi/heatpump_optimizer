@@ -85,6 +85,15 @@ export PYTHONPATH="$PWD/tests/hastub:${PYTHONPATH:-}"
 
 GOLDEN_MODE="${GOLDEN_MODE:-strict}"
 GOLDEN_REF="${GOLDEN_REF:-origin/main}"
+# EXPORTED, not merely set (#341). tests/golden.py now reads both variables
+# itself, and defaults to drift when nobody has decided -- because run
+# directly it used to always strict-compare and report a fixed 34 of 55
+# changed on a clean tree. Left unexported, the defaults resolved on the two
+# lines above would stay inside this shell: a plain `./tests/run.sh` would
+# choose strict here and hand golden.py an environment in which nobody had
+# chosen anything, and the strict lane would silently run a drift comparison.
+# The export is what makes the suite's decision the one that arrives.
+export GOLDEN_MODE GOLDEN_REF
 
 JOBS="${GATE_JOBS:-}"
 if [ -z "$JOBS" ]; then

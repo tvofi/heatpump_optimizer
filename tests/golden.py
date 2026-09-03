@@ -1,7 +1,12 @@
 """Characterization harness: pin current optimizer behaviour as golden fixtures.
 
-    PYTHONPATH=tests/hastub python tests/golden.py            # check
-    PYTHONPATH=tests/hastub python tests/golden.py --record   # re-record
+    PYTHONPATH=tests/hastub python tests/golden.py                  # check
+    GOLDEN_MODE=strict PYTHONPATH=tests/hastub python tests/golden.py
+    PYTHONPATH=tests/hastub python tests/golden.py --record         # re-record
+
+WHICH COMPARISON YOU GET. `GOLDEN_MODE` and `GOLDEN_REF` are read here, by
+this file, and not only by `tests/run.sh` (#341) — see `resolve_mode` below
+for why the default is `drift` and what asks for `strict`.
 
 The rest of the suite asserts on *outcomes* — savings percentages, comfort
 bounds, solver status. That catches a change that makes the optimizer obviously
@@ -26,9 +31,12 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
+import subprocess
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import NamedTuple
 
 sys.path.insert(0, "tests")
 sys.path.insert(0, "custom_components")
@@ -47,11 +55,114 @@ from heatpump_optimizer.thermal_model import (
 GOLDEN_DIR = Path("tests/golden")
 START = datetime(2026, 1, 15, 0, 0)
 
+# --- which comparison this invocation makes (#341) --------------------------
+#
+# `tests/run.sh` has read GOLDEN_MODE and GOLDEN_REF since drift mode existed.
+# This file never did, so run on its own it always performed the strict,
+# bit-exact comparison against fixtures recorded on some other machine — the
+# one `tests/env_drift.py`'s own header says does not reproduce, and which on
+# a clean checkout of main reports `34 of 55 GOLDEN SCENARIOS CHANGED` here.
+# A noise floor that high is not a gate: the thirty-fifth scenario, the one a
+# diff actually moved, is indistinguishable from the thirty-four that always
+# move. `config_flow` — the stale fixture of #326, which survived two
+# releases — is one of the thirty-four.
+#
+# So the default is `drift`: the comparison CI runs, and the only one that
+# reproduces on an arbitrary machine. Strict is still here and still bites; it
+# is asked for by name. `tests/run.sh` EXPORTS both variables, so when the
+# suite decides the mode that decision reaches this process and the gate's own
+# behaviour does not move.
+MODE_ENV = "GOLDEN_MODE"
+REF_ENV = "GOLDEN_REF"
+DEFAULT_MODE = "drift"
+DEFAULT_REF = "origin/main"
+DRIFT_SCRIPT = "tests/env_drift.py"
+
 # Values are rounded before storage and compared exactly against that rounding.
 # Six decimals is far finer than any behavioural change worth making — a
 # one-interval shift or a dropped constraint moves things by whole kilowatts —
 # while tolerating last-bit floating point noise that carries no meaning.
 PRECISION = 6
+
+
+class Resolved(NamedTuple):
+    """What `resolve_mode` decided, and why, in a form a test can assert on."""
+
+    mode: str      # "strict" or "drift"
+    ref: str       # the comparison ref drift mode captures against
+    note: str      # printed on every run: what was decided and who decided it
+    error: str     # non-empty when the request cannot be honoured at all
+
+
+def resolve_mode(env, record: bool = False, only: str | None = None) -> Resolved:
+    """Pick the comparison from the environment. Pure: no I/O, no globals.
+
+    Three rules, and the second is the one that keeps the gate honest:
+
+    * Unset means `drift` — the CI comparison — because an accidental strict
+      run on a machine whose BLAS differs reports a fixed thirty-four
+      scenarios changed, and a review signal that always fires is not one.
+    * Anything that is set and is not exactly `drift` means `strict`. That
+      mirrors `tests/run.sh`, which branches on `= "drift"` and treats every
+      other value as strict. Mirroring matters more than validating: if the
+      two disagreed about a typo, `GOLDEN_MODE=stict ./tests/run.sh` would
+      run the strict lane in the suite and a drift comparison inside it.
+      Erring towards strict also errs towards the *stricter* of the two.
+    * `--record` and `--only` name committed fixtures, and only the strict
+      comparison reads those. Given by default they select strict and say so
+      (this is the path `tests/derive_closures.sh` records golden.py on, with
+      `--only __no_such_scenario__`). Given against an explicit
+      `GOLDEN_MODE=drift` they are a contradiction, not a preference, and
+      `error` says so rather than quietly dropping the argument.
+    """
+    raw = (env.get(MODE_ENV) or "").strip()
+    ref_raw = (env.get(REF_ENV) or "").strip()
+    ref = ref_raw or DEFAULT_REF
+    asked = bool(raw)
+    mode = "drift" if raw == "drift" else ("strict" if asked else DEFAULT_MODE)
+    where = "set" if asked else f"unset, defaulting to {DEFAULT_MODE}"
+    ref_where = "set" if ref_raw else "unset, defaulting to the fork point"
+    note = (
+        f"  {MODE_ENV}={mode} ({where})"
+        f"   {REF_ENV}={ref} ({ref_where})"
+    )
+
+    flag = "--record" if record else ("--only" if only is not None else "")
+    if mode == "drift" and flag:
+        if asked:
+            return Resolved(mode, ref, note, (
+                f"{flag} names committed fixtures, which only the strict\n"
+                f"comparison reads; {MODE_ENV}=drift compares two captures of\n"
+                f"this machine and has no per-fixture form. Drop {flag}, or\n"
+                f"ask for {MODE_ENV}=strict."
+            ))
+        return Resolved("strict", ref, (
+            f"  {MODE_ENV}=strict ({flag} names committed fixtures, and only\n"
+            f"  the strict comparison reads those; {MODE_ENV} is unset)"
+            f"\n  {REF_ENV}={ref} ({ref_where}; unused in strict mode)"
+        ), "")
+    return Resolved(mode, ref, note, "")
+
+
+def drift_command(ref: str) -> list[str]:
+    """The drift comparison, as `tests/run.sh` spells it in its drift lane.
+
+    Named separately from the call so a test can pin the argv without
+    spending twenty-five minutes capturing two trees to find out.
+    """
+    return [sys.executable, DRIFT_SCRIPT, "--all", ref]
+
+
+def run_drift(ref: str) -> int:
+    """Hand the whole comparison to tests/env_drift.py --all, as the gate does.
+
+    Not a reimplementation: the same script, the same arguments, the same exit
+    status, so a direct run and the gate lane answer the same question.
+    """
+    repo = Path(__file__).resolve().parent.parent
+    cmd = drift_command(ref)
+    print("  " + " ".join(cmd) + "\n", flush=True)
+    return subprocess.run(cmd, cwd=repo).returncode
 
 
 def _walk_finite(node, path, problems) -> None:
@@ -1125,6 +1236,13 @@ def main() -> int:
     args = parser.parse_args()
 
     print("=== Golden characterization ===\n")
+    resolved = resolve_mode(os.environ, record=args.record, only=args.only)
+    print(resolved.note + "\n")
+    if resolved.error:
+        print(resolved.error, file=sys.stderr)
+        return 2
+    if resolved.mode == "drift":
+        return run_drift(resolved.ref)
     if args.record:
         record_all(args.only)
         return 0
