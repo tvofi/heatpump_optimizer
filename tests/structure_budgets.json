@@ -3,7 +3,7 @@
  "classes_over_300": 9,
  "const_modules_over_50": 3,
  "coordinator_attrs": 176,
- "coordinator_loc": 10401,
+ "coordinator_loc": 10409,
  "coordinator_methods": 258,
  "coordinator_multiassigned_attrs": 134,
  "cross_seam_fraction": 0.4289,
@@ -18,7 +18,7 @@
  "functions_cc_over_25": 12,
  "internal_call_edges": 380,
  "local_imports": 8,
- "max_class_loc": 10401,
+ "max_class_loc": 10409,
  "methods_over_150": 25,
  "methods_over_200": 16,
  "recorded_at": "9ab836e26c27c4799ee632da11e0d15254bb2c9c"
