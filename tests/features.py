@@ -11578,6 +11578,64 @@ _svc_check(
     "set_thermal_params_invalid_dhw_windows",
 )
 
+# #321 (the PR #319 review's window-spec battery): the pre-check above gated
+# a weekly spec on the weekly parser alone, but the write path it guards
+# (async_update_thermal_params) parses the FLAT view first and drops the
+# whole write when either parser raises. "Sa,Su 08:00-09:30" passes the
+# weekly parser, whose chunker reassembles the selector comma, while the flat
+# parser splits on that comma and chokes on the bare "Sa" chunk -- so the
+# call was acknowledged and the write silently dropped with a WARNING. Driven
+# on a fresh entry so the drop half can be asserted too.
+_svc_corner_hass = FakeHass()
+_svc_corner_entry = FakeEntry(data=_LC_DATA, entry_id="corner_windows")
+_asyncio.run(_ha_setup_entry(_integ, _svc_corner_hass, _svc_corner_entry))
+_svc_corner_coord = _svc_corner_entry.runtime_data
+_svc_corner_before = (
+    _svc_corner_coord._thermal_params.dhw_windows,
+    _svc_corner_coord._thermal_params.dhw_weekly_windows,
+)
+_svc_check(
+    "set_thermal_parameters with a comma-split day selector refuses the call "
+    "(#321: the weekly parser accepted what the write path drops)",
+    _svc_call(
+        _svc_corner_hass,
+        "set_thermal_parameters",
+        {"dhw_windows": "Sa,Su 08:00-09:30"},
+    ),
+    "set_thermal_params_invalid_dhw_windows",
+)
+R.check(
+    "and the refused call left both window structures untouched",
+    (
+        _svc_corner_coord._thermal_params.dhw_windows,
+        _svc_corner_coord._thermal_params.dhw_weekly_windows,
+    )
+    == _svc_corner_before,
+    "a refused call must not apply or half-apply anything",
+)
+# Null control: the tightened pre-check refuses the selector comma, not the
+# weekly grammar -- a single-day spec still parses, the call still returns,
+# and the write reaches BOTH structures the write path builds.
+_svc_single_out = _svc_call(
+    _svc_corner_hass, "set_thermal_parameters", {"dhw_windows": "Sa 08:00-09:30"}
+)
+R.check(
+    "set_thermal_parameters with a single-day weekly spec still succeeds",
+    _svc_single_out[0] == "returned",
+    f"{_svc_single_out}",
+)
+R.check(
+    "and the single-day spec reached both window structures",
+    _svc_corner_coord._thermal_params.dhw_windows == [(8.0, 9.5)]
+    and [
+        len(day)
+        for day in _svc_corner_coord._thermal_params.dhw_weekly_windows or []
+    ]
+    == [0, 0, 0, 0, 0, 1, 0],
+    f"flat={_svc_corner_coord._thermal_params.dhw_windows} "
+    f"weekly={[len(d) for d in _svc_corner_coord._thermal_params.dhw_weekly_windows or []]}",
+)
+
 # The sub-paths behind the first two cases. A solve that raises inside
 # async_run_optimization is swallowed by its own except-Exception fence (the
 # repair-issue path), so the handler has to hear about it through the
