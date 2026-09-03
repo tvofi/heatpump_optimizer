@@ -18738,4 +18738,89 @@ R.check(
     "a child process; without the export the suite's decision never arrives",
 )
 
+
+# The two lines above that no pure check can see: main() must ACT on what
+# resolve_mode decided, and run_drift must actually run what drift_command
+# names. Both matter more than usual here, because CI never executes this
+# script's entry point at all -- `fast` and `slow` set GOLDEN_MODE=drift and
+# run.sh skips golden.py outright in that mode -- so no CI lane would notice
+# either line rotting. Pinned by substitution rather than by spending two
+# minutes capturing two trees.
+import contextlib as _g341ctx  # noqa: E402
+import golden as _g341mod  # noqa: E402
+import io as _g341io  # noqa: E402
+
+# Both calls below print the banner and the command they would run. That is
+# right when a human runs golden.py and noise in the middle of a check list,
+# so it goes to a buffer -- the checks assert on what was CALLED, not on what
+# was said about it.
+_g341_quiet = _g341io.StringIO()
+
+_g341_dispatched = []
+_g341_real_run_drift = _g341mod.run_drift
+_g341_saved_argv = sys.argv
+_g341_saved_env = {k: _os.environ.get(k) for k in ("GOLDEN_MODE", "GOLDEN_REF")}
+try:
+    _g341mod.run_drift = lambda ref: _g341_dispatched.append(ref) or 0
+    sys.argv = ["tests/golden.py"]
+    _os.environ["GOLDEN_MODE"] = "drift"
+    _os.environ["GOLDEN_REF"] = "deadbee"
+    with _g341ctx.redirect_stdout(_g341_quiet):
+        _g341_main_rc = _g341mod.main()
+finally:
+    _g341mod.run_drift = _g341_real_run_drift
+    sys.argv = _g341_saved_argv
+    for _k, _v in _g341_saved_env.items():
+        if _v is None:
+            _os.environ.pop(_k, None)
+        else:
+            _os.environ[_k] = _v
+
+R.check(
+    "golden.py's entry point hands a drift run to the drift comparison",
+    _g341_dispatched == ["deadbee"] and _g341_main_rc == 0,
+    f"main() dispatched {_g341_dispatched} and returned {_g341_main_rc}; a "
+    "main() that resolves the mode and then checks fixtures anyway is the "
+    "#341 bug with an extra print in front of it",
+)
+
+
+class _G341Completed:
+    """Stands in for subprocess.CompletedProcess with a status nobody guesses."""
+
+    returncode = 7
+
+
+_g341_ran = {}
+
+
+def _g341_fake_run(cmd, cwd=None, **kwargs):
+    _g341_ran["cmd"] = list(cmd)
+    _g341_ran["cwd"] = str(cwd)
+    return _G341Completed()
+
+
+_g341_saved_run = _g341mod.subprocess.run
+try:
+    _g341mod.subprocess.run = _g341_fake_run
+    with _g341ctx.redirect_stdout(_g341_quiet):
+        _g341_drift_rc = _g341_real_run_drift("deadbee")
+finally:
+    _g341mod.subprocess.run = _g341_saved_run
+
+R.check(
+    "run_drift runs exactly the command drift_command names, from the repo root",
+    _g341_ran.get("cmd") == _g341mod.drift_command("deadbee")
+    and _g341_ran.get("cwd") == str(_Path(_g341mod.__file__).resolve().parent.parent),
+    f"ran {_g341_ran.get('cmd')} in {_g341_ran.get('cwd')}; golden.py resolves "
+    "relative paths against the repo root, so a drift run started anywhere "
+    "else finds neither tests/env_drift.py nor the fixtures",
+)
+R.check(
+    "and reports the comparison's own exit status, not its own opinion of it",
+    _g341_drift_rc == 7,
+    f"run_drift returned {_g341_drift_rc} for a child that exited 7 -- a drift "
+    "run that swallows the status is a gate that cannot fail",
+)
+
 sys.exit(R.close("FEATURE CHECKS"))
