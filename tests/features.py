@@ -13022,6 +13022,122 @@ R.check(
     f"{_clean_res.confidence:.3f}",
 )
 
+# --- D2-07: a drifting sensor is neither trusted nor believed (#310) ------
+R.section("sysid vs a drifting room sensor, and a bound-blind gate (D2-07)")
+
+_DRIFT_UA, _DRIFT_CAP, _DRIFT_G = 0.28, 12.0, 0.3
+
+
+def _drifting_sid_samples(drift_c_per_h, cadence_min=30):
+    """The 0.10 °C harness's plant, noise-free, with a LINEAR sensor drift.
+
+    Euler-integrated so the discrete regression's model is exact: with no
+    drift the fit must recover UA, C and G to machine precision, which makes
+    this the unbiasedness null control. A drifting sensor adds ``d·t`` to the
+    room reading only — the contaminant a second-difference noise estimate is
+    structurally blind to, because a straight line has no second difference.
+    """
+    ua, cap, gains = _DRIFT_UA, _DRIFT_CAP, _DRIFT_G
+    p_step, t_out = 10.8, -3.0
+    temp = 20.5
+    when = datetime(2026, 2, 12, 23, 30, tzinfo=UTC)
+    dt_h = cadence_min / 60.0
+    out = []
+    t = 0.0
+    while t < 5.0:
+        phase = (
+            _PH_STEP if 1.0 <= t < 3.0
+            else (_PH_RELAX if 3.0 <= t < 5.0 else "settle")
+        )
+        power = p_step if phase == _PH_STEP else 0.0
+        if phase in (_PH_STEP, _PH_RELAX):
+            out.append(_SidSample(
+                when, temp + drift_c_per_h * t, t_out, power, phase,
+            ))
+        temp += (power + gains - ua * (temp - t_out)) / cap * dt_h
+        when += timedelta(minutes=cadence_min)
+        t += dt_h
+    return out
+
+
+def _sid_on(samples, **cfg):
+    _s = SystemIdentification(SysIdConfig(enabled=True, **cfg))
+    _s.samples = samples
+    return _s.identify()
+
+
+_D_CLEAN = _sid_on(_drifting_sid_samples(0.0))
+R.check(
+    "the unbiasedness null: a noise-free window recovers UA exactly",
+    _D_CLEAN.completed
+    and abs(_D_CLEAN.heat_loss_kw_per_c / _DRIFT_UA - 1.0) < 5e-4,
+    f"UA {_D_CLEAN.heat_loss_kw_per_c} vs truth {_DRIFT_UA} "
+    f"({_D_CLEAN.reason})",
+)
+R.check(
+    "a clean sensor is still adopted (the gate stays open at the low end)",
+    _D_CLEAN.completed and _D_CLEAN.confidence >= 0.3,
+    f"confidence {_D_CLEAN.confidence:.3f} ({_D_CLEAN.reason})",
+)
+_D_DRIFT = _sid_on(_drifting_sid_samples(0.10))
+# The comparator: the same rows through a plain three-column OLS, the fit
+# this section's mechanism has to survive.
+_dr_rows, _dr_targets = [], []
+_D_DRIFT_S = _drifting_sid_samples(0.10)
+for _prv, _cur in zip(_D_DRIFT_S, _D_DRIFT_S[1:]):
+    _dth = (_cur.when - _prv.when).total_seconds() / 3600.0
+    _dr_rows.append([-(_prv.room_temp - _prv.outdoor_temp), _prv.power_kw, 1.0])
+    _dr_targets.append((_cur.room_temp - _prv.room_temp) / _dth)
+_dr_ols, *_ = np.linalg.lstsq(
+    np.asarray(_dr_rows), np.asarray(_dr_targets), rcond=None
+)
+_dr_ols_ua = float(_dr_ols[0]) / float(_dr_ols[1])
+R.check(
+    "the comparator: a plain fit on the drifting rows IS biased",
+    abs(_dr_ols_ua / _DRIFT_UA - 1.0) > 0.05,
+    f"plain OLS UA {_dr_ols_ua:.4f} vs truth {_DRIFT_UA} "
+    f"({(_dr_ols_ua / _DRIFT_UA - 1.0) * 100:+.1f} %)",
+)
+R.check(
+    "a 0.10 °C/h drifting sensor no longer biases the identified UA",
+    _D_DRIFT.completed
+    and abs(_D_DRIFT.heat_loss_kw_per_c / _DRIFT_UA - 1.0) < 0.02,
+    f"UA {_D_DRIFT.heat_loss_kw_per_c} vs truth {_DRIFT_UA} "
+    f"({_D_DRIFT.reason})",
+)
+R.check(
+    "the drift is identified as such, not absorbed into the house",
+    _D_DRIFT.completed
+    and getattr(_D_DRIFT, "sensor_drift_c_per_h", None) is not None
+    and abs(_D_DRIFT.sensor_drift_c_per_h - 0.10) < 0.01,
+    f"fitted drift {getattr(_D_DRIFT, 'sensor_drift_c_per_h', 'ABSENT')} "
+    f"°C/h vs 0.10",
+)
+R.check(
+    "drift buys no confidence: the excursion it fakes is not identifiability",
+    _D_DRIFT.confidence <= _D_CLEAN.confidence + 1e-3,
+    f"drift {_D_DRIFT.confidence:.3f} vs clean {_D_CLEAN.confidence:.3f}",
+)
+# D7-01's positive control, as a property: the same experiment scored under
+# a WIDER comfort bound gathered no less information, so it cannot earn
+# less confidence. Normalising the achieved excursion by the CONFIGURED
+# bound inverted exactly this, and collapsed the D7 harness's own control.
+_D_TIGHT = _sid_on(_drifting_sid_samples(0.0), max_excursion_c=0.8)
+_D_WIDE = _sid_on(_drifting_sid_samples(0.0), max_excursion_c=8.0)
+R.check(
+    "widening the comfort bound cannot lower a finished experiment's "
+    "confidence",
+    _D_WIDE.completed and _D_TIGHT.completed
+    and _D_WIDE.confidence >= _D_TIGHT.confidence - 1e-12,
+    f"bound 8.0 -> {_D_WIDE.confidence:.3f}, bound 0.8 -> "
+    f"{_D_TIGHT.confidence:.3f}",
+)
+R.check(
+    "an experiment run under a lifted bound is still adoptable",
+    _D_WIDE.completed and _D_WIDE.confidence >= 0.3,
+    f"confidence {_D_WIDE.confidence:.3f} ({_D_WIDE.reason})",
+)
+
 # --- D7-05: detected free heat skips the accuracy sample, like a freeze ---
 R.section("Free heat skips the accuracy sample (D7-05)")
 
