@@ -11460,6 +11460,284 @@ R.check(
     and "async_get_clientsession" in _net_flow_src,
 )
 
+# D10-04 (#294, Silver `action-exceptions`): a service action that fails to
+# do its job raises HomeAssistantError rather than returning as if it had.
+# The issue's three driven cases -- run_optimization returning None after a
+# WARNING when no usable prices exist, restore_learned_snapshot answering
+# {restored: []}, simulate_plan reporting its failure only inside the
+# response dict -- plus the fourth the all-handler sweep found:
+# set_thermal_parameters dropping an unparseable dhw_windows write with a
+# WARNING while reporting success. Every case is driven through the real
+# registry (ha_setup_component + ha_setup_entry + hass.services.async_call)
+# on a coordinator with no prices, plan or snapshot: exactly the state the
+# verifier drove. What is asserted is the raise's shape (class, domain, key,
+# placeholders), never its wording, and each raise must carry translation
+# kwargs like the 13 validation sites (#217).
+R.section("service operational failures raise (D10-04, #294)")
+
+from homeassistant.exceptions import (  # noqa: E402
+    HomeAssistantError as _svc_hae,
+    ServiceValidationError as _svc_sve,
+)
+
+#: translation_key -> the placeholder names the raise must pass. The class
+#: column: "hae" (an operational failure) or "sve" (bad input).
+_SVC_KEYS = {
+    "run_optimization_no_prices": ({"entry_ids"}, "hae"),
+    "run_optimization_solve_failed": ({"entry_ids"}, "hae"),
+    "simulate_plan_no_plan": ({"entry_ids"}, "hae"),
+    "simulate_plan_no_prices": ({"entry_ids"}, "hae"),
+    "simulate_plan_invalid_windows": ({"windows", "error"}, "sve"),
+    "simulate_plan_failed": ({"entry_ids", "error"}, "hae"),
+    "restore_learned_snapshot_no_snapshot": ({"entry_ids"}, "hae"),
+    "set_thermal_params_invalid_dhw_windows": ({"windows", "error"}, "sve"),
+}
+
+
+def _svc_call(hass, service, data):
+    """Drive one service call; return ("returned", value) or ("raised", err)."""
+    try:
+        return "returned", _asyncio.run(
+            hass.services.async_call(_DOMAIN, service, data)
+        )
+    except _svc_hae as err:
+        return "raised", err
+
+
+def _svc_why(outcome, key):
+    """Why `outcome` is not a translated raise of `key` ("" when it is one)."""
+    kind, err = outcome
+    want_ph, want_cls = _SVC_KEYS[key]
+    if kind != "raised":
+        return f"returned {err!r} instead of raising"
+    if want_cls == "sve" and not isinstance(err, _svc_sve):
+        return f"raised {type(err).__name__}, not ServiceValidationError"
+    if want_cls == "hae" and isinstance(err, _svc_sve):
+        return f"raised ServiceValidationError for an operational failure: {err}"
+    problems = []
+    if getattr(err, "translation_domain", None) != _DOMAIN:
+        problems.append(
+            f"translation_domain={getattr(err, 'translation_domain', None)!r}"
+        )
+    if getattr(err, "translation_key", None) != key:
+        problems.append(
+            f"translation_key={getattr(err, 'translation_key', None)!r} "
+            f"want {key!r}"
+        )
+    ph = getattr(err, "translation_placeholders", None) or {}
+    if set(ph) != want_ph:
+        problems.append(f"placeholders={sorted(ph)} want={sorted(want_ph)}")
+    elif any(not isinstance(v, str) or not v for v in ph.values()):
+        problems.append(f"placeholder values not non-empty strings: {ph!r}")
+    if not str(err):
+        problems.append("the English message is empty (str(err) must inform)")
+    return "; ".join(problems)
+
+
+def _svc_check(name, outcome, key):
+    R.check(name, not _svc_why(outcome, key), _svc_why(outcome, key) or "ok")
+
+
+# The driven state: one loaded entry, its coordinator holding no prices, no
+# plan and no snapshot -- what a fresh install (or a dead price feed) looks
+# like from a service call.
+_svc_hass = FakeHass()
+_svc_entry = FakeEntry(data=_LC_DATA)
+_asyncio.run(_ha_setup_component(_integ, _svc_hass))
+_asyncio.run(_ha_setup_entry(_integ, _svc_hass, _svc_entry))
+_svc_coord = _svc_entry.runtime_data
+R.check(
+    "the driven coordinator really has no prices, plan or snapshot",
+    not _svc_coord._prices and _svc_coord._optimization_result is None,
+    f"prices={len(_svc_coord._prices)} "
+    f"plan={_svc_coord._optimization_result is not None}",
+)
+
+_svc_check(
+    "run_optimization with no usable prices raises a translated operational error",
+    _svc_call(_svc_hass, "run_optimization", {}),
+    "run_optimization_no_prices",
+)
+_svc_check(
+    "simulate_plan with no plan raises a translated operational error",
+    _svc_call(_svc_hass, "simulate_plan", {"target_temp": 21.0}),
+    "simulate_plan_no_plan",
+)
+_svc_check(
+    "restore_learned_snapshot with no qualifying snapshot raises a translated "
+    "operational error",
+    _svc_call(_svc_hass, "restore_learned_snapshot", {}),
+    "restore_learned_snapshot_no_snapshot",
+)
+_svc_check(
+    "set_thermal_parameters with unparseable windows refuses the call "
+    "(sweep finding: the write used to be dropped with a WARNING)",
+    _svc_call(
+        _svc_hass, "set_thermal_parameters", {"dhw_windows": "25-99"}
+    ),
+    "set_thermal_params_invalid_dhw_windows",
+)
+
+# The sub-paths behind the first two cases. A solve that raises inside
+# async_run_optimization is swallowed by its own except-Exception fence (the
+# repair-issue path), so the handler has to hear about it through the
+# coordinator's status rather than an exception; and simulate_plan's
+# no_prices / invalid_windows arms are separate returns inside async_simulate.
+_svc_crash_hass = FakeHass()
+_svc_crash_entry = FakeEntry(data=_LC_DATA, entry_id="crash_pump")
+_asyncio.run(_ha_setup_entry(_integ, _svc_crash_hass, _svc_crash_entry))
+_svc_crash_coord = _svc_crash_entry.runtime_data
+_svc_crash_coord._prices = [
+    {"total": 0.8, "starts_at": "2026-01-15T00:00:00+00:00", "level": "NORMAL"}
+] * 24
+
+
+def _tariff_boom():
+    raise RuntimeError("tariff exploded")
+
+
+_svc_crash_coord._capacity_tariff = _tariff_boom
+_svc_check(
+    "run_optimization when the solve raises raises a translated operational error",
+    _svc_call(_svc_crash_hass, "run_optimization", {}),
+    "run_optimization_solve_failed",
+)
+R.check(
+    "the coordinator reports the solve crash as a reason, not an exception",
+    _asyncio.run(_svc_crash_coord.async_run_optimization()) == "solve_failed",
+    "async_run_optimization did not report solve_failed",
+)
+
+_svc_sim_hass = FakeHass()
+_svc_sim_entry = FakeEntry(data=_LC_DATA, entry_id="sim_pump")
+_asyncio.run(_ha_setup_entry(_integ, _svc_sim_hass, _svc_sim_entry))
+_svc_sim_coord = _svc_sim_entry.runtime_data
+_svc_sim_coord._optimization_result = object()  # non-None: "a plan exists"
+_svc_check(
+    "simulate_plan with a plan but no prices raises the no-prices error",
+    _svc_call(_svc_sim_hass, "simulate_plan", {"target_temp": 21.0}),
+    "simulate_plan_no_prices",
+)
+_svc_sim_coord._prices = [
+    {"total": 0.8, "starts_at": "2026-01-15T00:00:00+00:00", "level": "NORMAL"}
+] * 24
+_svc_check(
+    "simulate_plan with unparseable windows refuses the call",
+    _svc_call(_svc_sim_hass, "simulate_plan", {"dhw_windows": "25-99"}),
+    "simulate_plan_invalid_windows",
+)
+
+# Controls: a handler that did its job still returns. The coordinators are
+# patched per instance -- what is asserted is the handler's contract (a
+# success must not raise), not the solve itself.
+async def _svc_ok_run():
+    return None
+
+
+async def _svc_ok_simulate(overrides):
+    return {"status": "ok"}
+
+
+async def _svc_ok_restore():
+    return True
+
+
+_svc_coord.async_run_optimization = _svc_ok_run
+_svc_out = _svc_call(_svc_hass, "run_optimization", {})
+R.check(
+    "run_optimization returns normally when the solve ran",
+    _svc_out[0] == "returned",
+    f"{_svc_out[0]}: {_svc_out[1]}",
+)
+_svc_coord.async_simulate = _svc_ok_simulate
+_svc_out = _svc_call(_svc_hass, "simulate_plan", {"target_temp": 21.0})
+R.check(
+    "simulate_plan returns its response when the what-if ran",
+    _svc_out[0] == "returned"
+    and _svc_out[1] == {"results": {_svc_entry.entry_id: {"status": "ok"}}},
+    f"{_svc_out}",
+)
+_svc_coord.async_restore_learned_snapshot = _svc_ok_restore
+_svc_out = _svc_call(_svc_hass, "restore_learned_snapshot", {})
+R.check(
+    "restore_learned_snapshot returns {restored: [...]} when a snapshot applied",
+    _svc_out == ("returned", {"restored": [_svc_entry.entry_id]}),
+    f"{_svc_out}",
+)
+_svc_valid_hass = FakeHass()
+_svc_valid_entry = FakeEntry(data=_LC_DATA, entry_id="valid_windows")
+_asyncio.run(_ha_setup_entry(_integ, _svc_valid_hass, _svc_valid_entry))
+_svc_out = _svc_call(
+    _svc_valid_hass, "set_thermal_parameters", {"dhw_windows": "06-07"}
+)
+R.check(
+    "set_thermal_parameters with parseable windows still succeeds",
+    _svc_out[0] == "returned",
+    f"{_svc_out}",
+)
+R.check(
+    "and the valid windows reached the coordinator",
+    [(6, 7)] == _svc_valid_entry.runtime_data._thermal_params.dhw_windows,
+    f"{_svc_valid_entry.runtime_data._thermal_params.dhw_windows}",
+)
+
+# The translations: every new key in all three files, each message naming
+# exactly the placeholders its raise passes, strings.json parity with
+# en.json (hassfest), and no single-quoted placeholder anywhere (hassfest).
+import json as _svc_json  # noqa: E402
+import re as _svc_re  # noqa: E402
+
+_SVC_FILES = {}
+for _svc_label, _svc_path in (
+    ("strings", "custom_components/heatpump_optimizer/strings.json"),
+    ("en", "custom_components/heatpump_optimizer/translations/en.json"),
+    ("sv", "custom_components/heatpump_optimizer/translations/sv.json"),
+):
+    with open(_svc_path, encoding="utf-8") as _svc_fh:
+        _SVC_FILES[_svc_label] = _svc_json.load(_svc_fh).get("exceptions", {})
+
+_svc_missing = {
+    f"{label}:{key}"
+    for label, block in _SVC_FILES.items()
+    for key in _SVC_KEYS
+    if key not in block
+}
+R.check(
+    "every operational-failure key exists in strings.json, en.json and sv.json",
+    not _svc_missing,
+    f"missing: {sorted(_svc_missing)}",
+)
+
+
+def _svc_names(message):
+    return set(_svc_re.findall(r"\{([a-z_]+)\}", message))
+
+
+_svc_bad = []
+for _svc_key, (_svc_want, _svc_cls) in _SVC_KEYS.items():
+    for _svc_label in ("strings", "en", "sv"):
+        _svc_msg = _SVC_FILES[_svc_label].get(_svc_key, {}).get("message", "")
+        if _svc_names(_svc_msg) != _svc_want:
+            _svc_bad.append(
+                f"{_svc_label}:{_svc_key} names {sorted(_svc_names(_svc_msg))} "
+                f"want={sorted(_svc_want)}"
+            )
+        if _svc_re.search(r"'\{[a-z_]+\}'", _svc_msg):
+            _svc_bad.append(f"{_svc_label}:{_svc_key} single-quotes a placeholder")
+R.check(
+    "each operational-failure message names exactly its placeholders, unquoted",
+    not _svc_bad,
+    "; ".join(_svc_bad),
+)
+R.check(
+    "the new keys keep strings.json and en.json parity",
+    all(
+        _SVC_FILES["strings"].get(k) == _SVC_FILES["en"].get(k)
+        for k in _SVC_KEYS
+    ),
+    "hassfest requires the two files to match",
+)
+
 R.section("v4.0.3 — stale-plan guards, billed peaks, boundary clamps")
 
 from heatpump_optimizer.config_flow import validate_tibber_token as _g_tibber
@@ -17808,6 +18086,14 @@ _ET_KEYS = {
     "apply_schedule_dhw_min_no_deadband": {"minimum", "setpoint", "ceiling"},
     "manual_plan_invalid_expires_at": {"expires_at"},
     "manual_plan_invalid_slots": {"error"},
+    "run_optimization_no_prices": {"entry_ids"},
+    "run_optimization_solve_failed": {"entry_ids"},
+    "simulate_plan_no_plan": {"entry_ids"},
+    "simulate_plan_no_prices": {"entry_ids"},
+    "simulate_plan_invalid_windows": {"error", "windows"},
+    "simulate_plan_failed": {"error", "entry_ids"},
+    "restore_learned_snapshot_no_snapshot": {"entry_ids"},
+    "set_thermal_params_invalid_dhw_windows": {"error", "windows"},
     "set_temperature_comfort_band_violation": {"violations"},
 }
 

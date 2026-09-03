@@ -4544,13 +4544,24 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         config = copy.deepcopy(self._opt_config)
         return state, HeatPumpOptimizer(ThermalModel(params), config)
 
-    async def async_run_optimization(self) -> None:
-        """Run the MPC optimization."""
+    async def async_run_optimization(self) -> str | None:
+        """Run the MPC optimization.
+
+        Returns ``None`` when a solve ran to completion — or one was already
+        in flight, which is the same outcome for whoever asked — and a short
+        reason code (``"no_prices"``, ``"solve_failed"``) when it could not.
+        The scheduled cycle ignores the answer, but the service handler
+        cannot: its own body is fenced by the ``except Exception`` below, so
+        an exception raised in here never reaches the caller. The status is
+        the one channel through which the handler can learn the run did not
+        happen and raise ``HomeAssistantError`` instead of reporting success
+        (#294, action-exceptions).
+        """
         _LOGGER.info("Running heat pump optimization (predictive MPC)")
 
         if self._optimization_running:
             _LOGGER.debug("An optimization is already in flight; skipping")
-            return
+            return None
 
         self._optimization_running = True
         # Announce the flip: the Optimize Now button disables itself off this
@@ -4574,7 +4585,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     "Not enough price data for optimization (got %d steps)",
                     len(prices),
                 )
-                return
+                return "no_prices"
 
             _LOGGER.debug(
                 "Forecast data: %d steps (%d from published prices), wind "
@@ -4856,6 +4867,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 result.compressor_starts,
                 result.projected_peak_kw,
             )
+            return None
 
         except Exception as err:
             _LOGGER.error("Optimization failed: %s", err, exc_info=True)
@@ -4885,6 +4897,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                         ),
                     },
                 )
+            return "solve_failed"
         finally:
             if away_original is not None:
                 self._restore_away_setback(away_original)
