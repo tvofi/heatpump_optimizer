@@ -6,13 +6,13 @@
  "coordinator_loc": 10394,
  "coordinator_methods": 255,
  "coordinator_multiassigned_attrs": 134,
- "cross_seam_fraction": 0.4289,
+ "cross_seam_fraction": 0.4301,
  "cut_dhw": 195,
  "cut_fetch": 134,
  "cut_grid": 236,
  "cut_learning": 350,
  "cut_views": 124,
- "dead_top_level_symbols": 6,
+ "dead_top_level_symbols": 0,
  "duplication_blocks": 0,
  "functions_cc_over_15": 39,
  "functions_cc_over_25": 11,
@@ -21,5 +21,5 @@
  "max_class_loc": 10394,
  "methods_over_150": 23,
  "methods_over_200": 14,
- "recorded_at": "c8f65de8548367cdd4b344ecbcd7a09d5a781d74"
+ "recorded_at": "4b6e076517431bd8658530c5ac751f2b7ddb7ef6"
 }
