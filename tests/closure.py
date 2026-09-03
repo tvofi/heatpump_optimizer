@@ -270,6 +270,21 @@ def _rel(path: str) -> str | None:
     # The instrument is not a dependency of what it measures.
     if s in ("tests/closure.py", "tests/closures.json"):
         return None
+    # A DIRECTORY is not a dependency. The audit hook sees `open` on directories
+    # too -- os.scandir, os.listdir and anything that enumerates the tree -- and
+    # a directory carries no content a closure can be stale against. Recording
+    # them made the two recording paths disagree: #356's per-script `--single`
+    # run picked up bare `golden` and `tests` entries for tests/entities.py that
+    # the full re-derive does not produce, so `check` reported an
+    # under-approximation naming files that do not exist, and every pull request
+    # whose scoped set included that script failed `closures` (#365). Anything
+    # that is not a regular file goes the same way: a path opened and unlinked
+    # within the run is not a dependency either.
+    try:
+        if not p.is_file():
+            return None
+    except OSError:
+        return None
     return s
 
 
@@ -726,6 +741,25 @@ def check(in_dir: Path, partial: bool = False) -> int:
         records[rec["script"]] = rec
     if not records:
         print("closure: no fresh recordings to check against", file=sys.stderr)
+        return 1
+    # A recorded entry must be a regular FILE. The scoped and full re-derives
+    # silently assume they produce the same closure for the same script, and
+    # that assumption is what `--single` rests on; directory entries are how it
+    # broke (#365). Checked on the fresh recordings rather than on the committed
+    # table, so a recorder that starts emitting them again is caught at the run
+    # that emits them, not a merge later.
+    non_files = sorted(
+        (script, name)
+        for script, rec in records.items()
+        for name in rec.get("files", ())
+        if not (ROOT / name).is_file()
+    )
+    if non_files:
+        print("NOT A FILE: a closure recorded something that is not a regular file;")
+        print("  a directory carries no content a closure can be stale against,")
+        print("  and recording one makes the scoped and full re-derives disagree (#365).")
+        for script, name in non_files:
+            print(f"    {script}: {name}")
         return 1
     # LOUD, before anything else: a selectable script with no recording at
     # all is the silent-degradation case (issue #90). The lanes in
