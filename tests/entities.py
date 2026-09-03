@@ -1472,6 +1472,89 @@ R.check(
     "HA validates the pair only when a state class is set; it never demands one",
 )
 
+# The two kWh sensors round 2's D10 audit flagged (#305), pinned for the
+# same reason as the deltas above but with the opposite evidence: no device
+# class is honest for either. Home Assistant's own table (sensor/const.py
+# DEVICE_CLASS_STATE_CLASSES, mirrored above) admits ENERGY only with
+# TOTAL/TOTAL_INCREASING -- consumption meters -- and rejects the
+# MEASUREMENT pair on every state write. ENERGY_STORAGE, which Thermal
+# Battery Energy earns by genuinely measuring stored energy, is documented
+# in the floor's own source as "stored energy ... currently stored in a
+# battery or the capacity of a battery"; a rolling PV-surplus forecast and
+# a learned p90 day-demand are estimates recomputed every cycle, not energy
+# sitting anywhere. The Gold rule asks for device classes "where possible"
+# -- for these two it is not.
+R.check(
+    "Solar Surplus Forecast stays bare: a forecast is not a consumption meter",
+    getattr(by_name["Solar Surplus Forecast"], "_attr_device_class", None) is None
+    and by_name["Solar Surplus Forecast"]._attr_state_class
+    == SensorStateClass.MEASUREMENT
+    and by_name["Solar Surplus Forecast"]._attr_native_unit_of_measurement == "kWh",
+    "ENERGY demands TOTAL/TOTAL_INCREASING; ENERGY_STORAGE would claim stored energy",
+)
+R.check(
+    "DHW Heavy Day Demand stays bare: a learned p90 quantile is not a meter either",
+    getattr(by_name["DHW Heavy Day Demand"], "_attr_device_class", None) is None
+    and by_name["DHW Heavy Day Demand"]._attr_state_class
+    == SensorStateClass.MEASUREMENT
+    and by_name["DHW Heavy Day Demand"]._attr_native_unit_of_measurement == "kWh",
+    "no kWh device class admits an estimate that is not a total or a storage",
+)
+
+
+# ===========================================================================
+# The shared device
+# ===========================================================================
+R.section("The one device is a service device")
+
+from homeassistant.helpers.device_registry import DeviceEntryType
+
+# Every platform forwards ``device_info`` to the coordinator's single
+# DeviceInfo, so the device is described in exactly one place (#305). This
+# integration is a cloud API (Tibber) plus the user's own entities -- there
+# is no physical device -- and Home Assistant's device registry has a
+# dedicated kind for that: the Gold "devices" rule asks for
+# entry_type=DeviceEntryType.SERVICE, which the hacs.json floor (2024.6.0)
+# ships in homeassistant.helpers.device_registry (a StrEnum with the single
+# member SERVICE; DeviceInfo has no config_entry field at the floor).
+_dev_coord = HeatPumpOptimizerCoordinator(
+    FakeHass(),
+    FakeEntry(
+        data={
+            const.CONF_INDOOR_TEMP_ENTITY: "sensor.indoor",
+            const.CONF_OUTDOOR_TEMP_ENTITY: "sensor.outdoor",
+        },
+        entry_id="device_info_probe",
+    ),
+)
+R.check(
+    "the shared device declares itself a service device",
+    _dev_coord.device_info.get("entry_type") == DeviceEntryType.SERVICE,
+    repr(_dev_coord.device_info),
+)
+R.check(
+    "and it is identified by the config entry, not by anything physical",
+    _dev_coord.device_info.get("identifiers")
+    == {(const.DOMAIN, "device_info_probe")},
+    repr(_dev_coord.device_info.get("identifiers")),
+)
+
+# The forwarding half of the same claim: driving each platform's real
+# async_setup_entry with a real coordinator, the way HA would, every entity
+# the roster adds must land on that service device.
+for _platform in (sensor, binary_sensor, button, _switch_platform, _climate_platform):
+    _platform_entities = collect(_platform, coordinator=_blind_coord)
+    _not_service = [
+        type(e).__name__
+        for e in _platform_entities
+        if e.device_info.get("entry_type") != DeviceEntryType.SERVICE
+    ]
+    R.check(
+        f"every {_platform.__name__.rsplit('.', 1)[-1]} entity sits on the service device",
+        bool(_platform_entities) and not _not_service,
+        "; ".join(_not_service),
+    )
+
 
 # ===========================================================================
 # Binary sensors
@@ -5233,6 +5316,81 @@ R.check(
     "every documented service example passes the schema its service registered",
     not _bad_examples,
     "; ".join(_bad_examples)[:300],
+)
+
+# D6-03 (#274): inter_zone_heat_transfer and window_area admitted 0 on three
+# surfaces the set_thermal_parameters schema's own ``_positive()`` already
+# rejected -- the services.yaml selectors, the two config-flow forms that
+# ask for these fields (initial setup and options/preset), and a value
+# stored before any validation ran. Widening every surface to the same
+# ``const.POSITIVE_PARAM_FLOOR`` closes all three; this pins all three so
+# a regression on any one of them fails here, not only in the field.
+_stp_schema = _svc_hass.services._schemas[
+    (const.DOMAIN, const.SERVICE_SET_THERMAL_PARAMS)
+]
+_zero_ok, _ = _example_passes(
+    _stp_schema, {"inter_zone_heat_transfer": 0, "window_area": 0}
+)
+R.check(
+    "the set_thermal_parameters schema still rejects 0 for both fields",
+    not _zero_ok,
+    "0 was accepted -- _positive()'s floor moved",
+)
+
+_yaml_selectors = {
+    f: services["set_thermal_parameters"]["fields"][f]["selector"]["number"]["min"]
+    for f in ("inter_zone_heat_transfer", "window_area")
+}
+R.check(
+    "services.yaml's selectors floor both fields at POSITIVE_PARAM_FLOOR, not 0",
+    all(v == const.POSITIVE_PARAM_FLOOR for v in _yaml_selectors.values()),
+    f"{_yaml_selectors}",
+)
+
+_zones_form = asyncio.run(_fresh_flow().async_step_zones(None))["data_schema"]
+_preset_entry = FakeEntry(
+    data={const.CONF_TIBBER_TOKEN: "t", const.CONF_WEATHER_ENTITY: "weather.home"}
+)
+_thermal_flow = options(_preset_entry)
+_thermal_flow.hass = FakeHass()
+_thermal_form = asyncio.run(_thermal_flow.async_step_thermal_model(None))["data_schema"]
+_preset_flow = options(_preset_entry)
+_preset_flow.hass = FakeHass()
+_preset_form2 = asyncio.run(_preset_flow.async_step_building_preset(None))[
+    "data_schema"
+]
+
+
+def _selector_min(schema, conf_key: str) -> float:
+    for key, validator in schema.schema.items():
+        if str(getattr(key, "schema", key)) == conf_key:
+            return validator.config["min"]
+    raise KeyError(conf_key)
+
+
+_config_flow_minimums = {
+    "zones/inter_zone_heat_transfer": _selector_min(
+        _zones_form, const.CONF_INTER_ZONE_TRANSFER
+    ),
+    "zones/window_area": _selector_min(_zones_form, const.CONF_WINDOW_AREA),
+    "thermal_model/inter_zone_heat_transfer": _selector_min(
+        _thermal_form, const.CONF_INTER_ZONE_TRANSFER
+    ),
+    "building_preset/window_area": _selector_min(_preset_form2, const.CONF_WINDOW_AREA),
+}
+R.check(
+    "all four config-flow forms floor the same two fields at POSITIVE_PARAM_FLOOR, not 0",
+    all(v == const.POSITIVE_PARAM_FLOOR for v in _config_flow_minimums.values()),
+    f"{_config_flow_minimums}",
+)
+
+_zeroed_params = ThermalParameters(inter_zone_transfer=0.0, window_area=0.0)
+R.check(
+    "a ThermalParameters constructed with 0 for either field is clamped off it",
+    _zeroed_params.inter_zone_transfer >= const.POSITIVE_PARAM_FLOOR
+    and _zeroed_params.window_area >= const.POSITIVE_PARAM_FLOOR,
+    f"inter_zone_transfer={_zeroed_params.inter_zone_transfer} "
+    f"window_area={_zeroed_params.window_area}",
 )
 
 # Several entries (runtime-data, action-setup): the handlers resolve their

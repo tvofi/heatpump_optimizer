@@ -29,6 +29,7 @@ from homeassistant.const import UnitOfSpeed
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.device_registry import DeviceEntryType
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -1255,11 +1256,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         return self._mode
 
     @property
-    def optimization_result(self) -> OptimizationResult | None:
-        """Return the latest optimization result."""
-        return self._optimization_result
-
-    @property
     def last_optimization(self) -> datetime | None:
         return self._last_optimization
 
@@ -1324,6 +1320,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         All three platforms previously declared their own model and version,
         which disagreed with each other and with the manifest; whichever
         entity registered last silently won.
+
+        This integration is a service (a cloud API plus the user's own
+        entities), not a physical device, so the registry entry says so:
+        ``entry_type=DeviceEntryType.SERVICE`` is what the Gold "devices"
+        rule asks for and what makes HA present the entry as a service
+        (#305). It lives in ``helpers.device_registry`` at the 2024.6 floor;
+        ``DeviceInfo`` has no ``config_entry`` field there.
         """
         return DeviceInfo(
             identifiers={(DOMAIN, self.entry.entry_id)},
@@ -1331,6 +1334,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             manufacturer="Custom",
             model="MPC Optimizer",
             sw_version=self.integration_version,
+            entry_type=DeviceEntryType.SERVICE,
         )
 
     @property
@@ -1380,10 +1384,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self.entry,
             options={**self.entry.options, CONF_TARGET_TEMP: temperature},
         )
-
-    @property
-    def current_state(self) -> ThermalState:
-        return self._current_state
 
     @property
     def prices(self) -> list[dict]:
@@ -5790,12 +5790,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 )
             return 1.0
         return scale
-
-    def _prepare_forecast_data(
-        self,
-    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-        """The five weather/price series, for callers predating the rest."""
-        return self._forecast_arrays()[:5]
 
     def _price_series(
         self, n_steps: int, midnight: datetime, step_offset: int

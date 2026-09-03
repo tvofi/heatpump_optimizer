@@ -142,7 +142,7 @@ set_thermal_parameters:
       example: 0.5
       selector:
         number:
-          min: 0.0
+          min: 0.01
           max: 3.0
           step: 0.1
           unit_of_measurement: "kW/°C"
@@ -166,7 +166,7 @@ set_thermal_parameters:
       example: 10.0
       selector:
         number:
-          min: 0
+          min: 0.01
           max: 50
           step: 0.5
           unit_of_measurement: "m²"
@@ -331,7 +331,7 @@ set_thermal_parameters:
         How much wind increases heat loss. 0.15 means 15% more heat
         loss per m/s of wind speed. Adjusts convective heat transfer.
       required: false
-      example: 0.15
+      example: 0.03
       selector:
         number:
           min: 0.0

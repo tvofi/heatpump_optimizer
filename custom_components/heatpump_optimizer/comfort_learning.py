@@ -177,13 +177,6 @@ class ComfortLearner:
         self.overrides = 0
         self.history = []
 
-    def set_configured(self, weight: float) -> None:
-        """A new configured value supersedes anything learned against the old."""
-        if abs(weight - self.configured_weight) < 1e-9:
-            return
-        self.configured_weight = float(weight)
-        self.reset()
-
     # -- reporting / persistence -------------------------------------------
 
     @property

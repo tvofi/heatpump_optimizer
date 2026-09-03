@@ -69,9 +69,10 @@ integration reports is the output of a model, computed against forecast prices
 and forecast weather. Real savings depend on your building, your tariff, your
 heat pump, your habits and the weather actually occurring. Nothing here is a
 guarantee or a financial projection, and the baseline it compares against is a
-simulated always-on thermostat rather than a measurement of what you would
-otherwise have spent. Treat the numbers as a guide to relative decisions, not
-as an accounting record.
+simulated conventional thermostat following the same comfort schedule —
+only the hot-water half of the baseline is always-on — rather than a
+measurement of what you would otherwise have spent. Treat the numbers as a
+guide to relative decisions, not as an accounting record.
 
 **The model learns, and can be wrong.** Several parameters are estimated from
 your own house over time. A faulty or mis-configured sensor can push those

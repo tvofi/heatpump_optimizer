@@ -43,47 +43,16 @@
 # does not expire with the stamp and is not part of the inherited-claims
 # comparison.
 #
-# claims-for: 6.3.7
+# claims-for: 6.3.8
 #
-# v6.3.7: the batched jacobian at a pinned step. The stamp empties the list; the
+# v6.3.8: The card is legible and operable on a phone. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 
 #
-# D9-01 (#286): a zero-range bound no longer forfeits the batched jac, and
-# `fuse_guard` is the ONLY one of the 55 scenarios that carries one
-# (`scenarios_with_zero_range_bounds=1`), so it is the only fixture that may
-# move. Its solve leaves scipy's scalar finite differences for the batched
-# jac -- fev_per_jev 94.0 -> 1.00, 1,797,024 simulate_step -> 39,456 -- and
-# the batched jac's fixed-variable entry is an exact 0.0 where scipy's own
-# estimate was 0/0 = NaN.
-#
-# HOW MUCH it moves is machine- and baseline-dependent, so the claim is
-# about the direction, not a number: last-decimal float movement spread
-# across the schedule and the trajectories, with no change of plan shape.
-# Three measurements of the same fix:
-#
-#   * the audit box (Apple M1, OpenBLAS) against merge base 72a03f8:
-#     ONE leaf, `power_schedule[58]`, 1.0e-06;
-#   * CI (Linux runner) against main 0e3b242: 181 leaves, the largest
-#     being `deferred_energy_cost` 33.983328 -> 33.983334 and a scatter of
-#     1e-06 steps through `lower_temp_trajectory`;
-#   * CI again, same branch code, against main 244ee90 twenty minutes
-#     later: 126 leaves;
-#   * the round-2 panel against baseline c398fc8: 177 fields, max 4.5e-05.
-#
-# Consistent in kind, two orders of magnitude apart in count. The same
-# code against two different mains on the same runner gives 181 and 126,
-# so the count is not a property of this change at all: a different BLAS,
-# or a different starting tree, reaches the same optimum along a different
-# iterate path. Only the direction is assertable, which is why it is what
-# this claim asserts.
-# njev is unchanged (199 on the audit box), `status` stays `optimal`, and
-# the `power_cap_breach_c` report does not move. This is drift, not a
-# no-op, and it is claimed here rather than discovered at gate time.
-#
-# Any OTHER fixture moving here means the change is broader than the
-# finding, and this claim does not cover it.
+# Tests-plus-sysid branch: the estimator and its gates change no
+# solver path and no golden capture; the inherited low-energy-seed
+# list below was the baseline's own diff -- emptied per rule 2.
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum

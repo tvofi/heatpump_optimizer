@@ -221,7 +221,9 @@ LAYOUTS: dict[str, Layout] = {
     )
 }
 
-#: Human names for the places edges connect, for rejection explanations.
+#: Human names for the places edges connect. The ``assign_place`` service
+#: validator accepts exactly these keys (the layout editor's rejection
+#: explanations live in the card, in its own mirrored copy).
 PLACE_LABELS: dict[str, str] = {
     "heat_pump": "Heat pump",
     "buffer_tank": "Buffer tank",
@@ -311,69 +313,6 @@ def layout_edges(
     if dhw:
         edges.append(("heat_pump", "dhw_tank"))
     return edges
-
-
-def _edge_name(edge: tuple[str, str]) -> str:
-    a, b = edge
-    return (
-        f"{PLACE_LABELS.get(a, a)} → {PLACE_LABELS.get(b, b)}"
-    )
-
-
-def match_layout(
-    edges: list[tuple[str, str]] | list[list[str]],
-    *,
-    two_zone: bool,
-    wood: bool,
-    dhw_coil: bool = False,
-    dhw: bool = False,
-) -> tuple[str | None, str]:
-    """Snap a drawn edge set to a catalog key, or explain why it fits none.
-
-    Returns ``(key, "")`` on an exact match against a layout's composed
-    edge set, or ``(None, explanation)`` naming the nearest layout and the
-    exact edges that differ — the editor shows the explanation verbatim, so
-    it is written for a person, not a parser. Matching is exact on purpose:
-    a nearly-right graph is a graph the model would nearly honor, which is
-    the polite name for wrong physics.
-    """
-    target = {tuple(e) for e in edges}
-    nearest: str | None = None
-    nearest_diff: int | None = None
-    for key in LAYOUTS:
-        expected = set(
-            layout_edges(
-                key, two_zone=two_zone, wood=wood, dhw_coil=dhw_coil, dhw=dhw
-            )
-        )
-        if expected == target and LAYOUTS[key].selectable:
-            return key, ""
-        diff = len(expected ^ target)
-        if nearest_diff is None or diff < nearest_diff:
-            nearest, nearest_diff = key, diff
-    assert nearest is not None
-    expected = set(
-        layout_edges(
-            nearest, two_zone=two_zone, wood=wood, dhw_coil=dhw_coil, dhw=dhw
-        )
-    )
-    missing = sorted(expected - target)
-    extra = sorted(target - expected)
-    parts = [f"Closest supported layout: {LAYOUTS[nearest].label}."]
-    if not LAYOUTS[nearest].selectable:
-        parts.append(
-            "That layout is known but not modelled yet, so it cannot be "
-            "selected."
-        )
-    if missing:
-        parts.append(
-            "Missing: " + "; ".join(_edge_name(e) for e in missing) + "."
-        )
-    if extra:
-        parts.append(
-            "Not in it: " + "; ".join(_edge_name(e) for e in extra) + "."
-        )
-    return None, " ".join(parts)
 
 
 def describe_setup(config: dict[str, Any]) -> dict[str, Any]:
