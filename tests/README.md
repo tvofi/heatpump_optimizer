@@ -435,6 +435,45 @@ model. Drift, oscillation and learner divergence only appear there.
   CPU budget is blind to a regression that makes the solver block rather than
   compute — a lock, an I/O stall, a retry loop, a solve that never returns.
   `STRESS_SOLVE_BUDGET_MS` is retired; a run that sets it says so.
+
+  Every budget here is checked from **both** sides. "Is the run slower than its
+  budget" is only half the question; the other half is "could this budget ever
+  notice", and for two releases the answer was no — the two global ratios were
+  sized when the dearest scenario cost 655× the reference, the batched jacobian
+  then made every combination 10–20× cheaper, and nobody brought the budgets
+  back down. An injected exact 2× regression tripped neither of them (#287). So
+  a run now also fails when no budget is within `STRESS_DETECTION_TARGET`
+  (default 2) of the cost it was **recorded** against, so widening a budget to
+  make a red run pass turns the run red somewhere else.
+
+  Recorded, not observed, and that was executed rather than reasoned: the first
+  version compared budgets to the run's own figures and false-failed on CI,
+  because the ratio does not travel. The same scenario costs 1.08× more on a
+  GitHub runner than on the M1 while the tiny reference solve costs 1.85× more,
+  so every ratio compresses by up to 1.7× there. A budget is a property of the
+  recording; an observation is a property of the machine. Both headrooms are
+  printed every run.
+
+  The **sweep** budget is what carries that 2× requirement, and the
+  per-scenario factor deliberately does not. CI ran `shoulder/tariff+cycle` at
+  352.7× its reference against a recorded 154.4× — 2.28× the *work*, on a
+  runner whose own reference solve was steady to a millisecond — so the
+  multi-start solver had landed in another basin. Some scenarios' cost is
+  bimodal across platforms, no per-scenario budget under about 2.3× is portable,
+  and totals average that away where a single scenario cannot.
+
+  The sweep also samples the **zero-range-bound** path (#286): three scenarios
+  pass a `power_caps_extra` fuse cap or a forced-off `space_pins` step, which is
+  what a fuse guard and a manual plan pass in production. Before those three,
+  nothing in `stress.py` or `optimality.py` had ever passed either argument, so
+  a whole class of regression was not under-budgeted but unsampled — measured
+  across #317, which fixed it, the same three scenarios cost 68.0×/34.5×/54.1×
+  their reference before and 7.4×/5.5×/4.3× after. They are what would notice
+  if that fix were ever reverted. `optimality.py` carries the quality half: a
+  plan built with a fixed variable in it must still meet the comfort floor,
+  honour its pin, and not be routed by a trivial challenger — a gradient that
+  returns NaN at a fixed variable makes the solver give up at iteration zero,
+  which is *faster*, so cost alone would never see it.
 - **rolling.py** drives the real re-planning cycle for several simulated days
   against a plant deliberately mismatched from the optimizer's model, and is
   the only test that exercises the self-learning heat-loss correction against a
