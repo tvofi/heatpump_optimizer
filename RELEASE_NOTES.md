@@ -1,5 +1,79 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.3.9
+
+### Hot water no longer appears on days you never scheduled
+
+A weekly hot-water schedule was written back in a form its own loader could not
+read (#345, closing #329). The renderer preferred comma-list day selectors —
+`Mo,Tu 06:00-07:00` — for 90 of the 127 possible day sets, while the first
+parser the integration runs on load split every spec on commas before it looked
+for a day selector, and refused them. A canonicalised schedule reloaded as a
+warning and a fall back to **always-available hot water**: the schedule silently
+stopped applying.
+
+A second fault in the same code was worse and is also fixed. Within a day's
+group, the second and later time ranges were written **without** their day
+selector, and a bare range in a weekly spec means all seven days. So a
+Monday-only schedule of two windows —
+
+    intended   Mo 06:00-08:30 and 17:00-22:00, Monday only
+    written    "Mo 06:00-08:30, 17:00-22:00"
+    reloaded   Monday plus **five hours on every other day of the week**
+
+Both parsers now share one segmenter, so the two accept the same strings by
+construction rather than by agreement. The fix is pinned by a property
+enumerated over all 127 day sets rather than by examples, and measured against
+the old behaviour across 10,056 comparisons: **no spec that was accepted before
+is refused now, and none parses differently**; 416 are newly accepted, all of
+them the day-selector forms the help text has always documented.
+
+### The service handlers become a module
+
+`services.py` — 982 lines, the twelve service handlers and their two entry
+resolvers — moves out of `__init__.py`, which falls from 1,215 lines to 280
+(#340, closing #222). The bodies are byte-identical to the block they came
+from, verified against `main` at merge time rather than against the text they
+were cut from. First of the coordinator decomposition program (#193).
+
+### Internal: four instruments that were reporting rather than measuring
+
+This release is mostly repairs to the project's own tooling, after a day in
+which each of these was found by someone chasing something else.
+
+**The stress gate could not see the regression it exists to catch** (#339,
+closing #287). Its detection floor for a uniform slowdown was 2.53x; it is now
+**1.40x**, it samples the degenerate-bound path that #317 fixed, and it costs
+**2.5x less CPU** — 787 s down to 313 s, reproduced independently. The residue
+is recorded in #346: a 2x confined to a single scenario is still caught for only
+2 of 51, because a per-scenario ruler tight enough to catch it fails its own
+null control on a solver that legitimately lands in different basins.
+
+**`golden.py` answered a different question when run directly than when run by
+the gate** (#349, closing #341). It read neither `GOLDEN_MODE` nor `GOLDEN_REF`
+— only `run.sh` did — so a direct run always performed the strict comparison
+this repository's own README says does not reproduce on a developer machine,
+reporting 34 of 55 scenarios changed on an unmodified tree. A real change hid
+in that noise: with a genuine semantic edit to the config-flow schema injected,
+the headline stayed **byte-identical at 34 of 55**.
+
+**A closure was checked only after the merge that broke it** (#353). The
+dependency was real — checks added by #349 read `tests/run.sh` itself to verify
+what the gate does — so the recorded closure was corrected, not the test. That
+this was discovered by `main` turning red rather than by the pull request is
+tracked as #354.
+
+**The gate lock could not be released by the session holding it** (#351).
+`tools/audit/README.md` asked for an owner file inside the lock directory and
+for release with `rmdir`, which removes only empty directories. Both halves
+correct, jointly unsatisfiable.
+
+Documentation of the audit's frozen evidence catches up with what actually runs
+there (#348): the one command `main` offered for re-executing a harness was
+itself broken, and three classes of rot are now recorded with their failure
+modes kept apart — because only two of the three fail loudly, and the third
+returns a plausible number for a tree that no longer exists.
+
 ## v6.3.8
 
 ### The card is legible and operable on a phone

@@ -43,9 +43,9 @@
 # does not expire with the stamp and is not part of the inherited-claims
 # comparison.
 #
-# claims-for: 6.3.8
+# claims-for: 6.3.9
 #
-# v6.3.8: The card is legible and operable on a phone. The stamp empties the list; the
+# v6.3.9: Hot water no longer appears on days you never scheduled. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 
