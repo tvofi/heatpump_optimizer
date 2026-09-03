@@ -167,6 +167,52 @@ class VirtualBattery:
         }
 
 
+#: Which entry of the coordinator's ``reading_ok`` map backs each store's
+#: temperature. The slab is integrated from the floor return rather than
+#: sensed, so it is measured exactly while that sensor reads -- the same rule
+#: the Slab Temperature sensor is gated on. The wood tank has no entry: it is
+#: in the view at all only when a wood-tank temperature was sensed (issue
+#: #40), so its presence already is its measurement.
+COMPONENT_READINGS: dict[str, str] = {
+    "house": "upper_floor_temperature",
+    "upper_floor": "upper_floor_temperature",
+    "lower_floor": "lower_floor_temperature",
+    "slab": "slab_temperature",
+    "dhw_tank": "dhw_temperature",
+    "buffer_tank": "buffer_tank_temperature",
+}
+
+
+def label_measured(view: dict[str, Any], reading_ok: Any) -> dict[str, Any]:
+    """Say which of the battery's stores stand on a thermometer.
+
+    Every component temperature comes out of ``ThermalState``, and a field
+    there is overwritten only when its entity read OK -- so on an install
+    with no probes the whole view is assembled from constructor defaults
+    (55/40/22/21 °C) and published as a ``BATTERY`` percentage and an
+    ``ENERGY_STORAGE`` kWh, both ``MEASUREMENT``, which is a long-term
+    statistics series of a number nothing measured (#282).
+
+    The figures themselves are left exactly as they were. The view is a
+    model and the model is the point; dropping a component would change the
+    state-of-charge denominator for every partly-probed install, silently
+    rescaling a recorded series, which is a worse defect than the one being
+    fixed. What is added is the disclosure the numbers never carried: per
+    component, and as two lists an entity can gate on.
+    """
+    flags = reading_ok or {}
+    modelled: list[str] = []
+    measured: list[str] = []
+    for component in view.get("components") or []:
+        key = COMPONENT_READINGS.get(component.get("name"))
+        ok = bool(flags.get(key)) if key else True
+        component["measured"] = ok
+        (measured if ok else modelled).append(component.get("name"))
+    view["measured_components"] = measured
+    view["modelled_components"] = modelled
+    return view
+
+
 def build(
     params: Any,
     state: Any,
