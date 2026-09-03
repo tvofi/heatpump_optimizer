@@ -58,14 +58,23 @@
 # the batched jac's fixed-variable entry is an exact 0.0 where scipy's own
 # estimate was 0/0 = NaN.
 #
-# Measured on this branch, both sides captured on one box: ONE field moves,
-# `power_schedule[58]`, by 1.0e-06 at PRECISION=6. njev is identical at 199,
-# status stays `optimal`, `predicted_cost` (30.949929), `predicted_savings`
-# (58.264501) and the `power_cap_breach_c` report are unchanged. The panel
-# measured 177 fields at max 4.5e-05 against the round-2 baseline c398fc8;
-# the tree has moved a long way since, and the direction is what carried
-# over -- this is drift, not a no-op, and it is claimed rather than
-# discovered at gate time.
+# HOW MUCH it moves is machine- and baseline-dependent, so the claim is
+# about the direction, not a number: last-decimal float movement spread
+# across the schedule and the trajectories, with no change of plan shape.
+# Three measurements of the same fix:
+#
+#   * the audit box (Apple M1, OpenBLAS) against merge base 72a03f8:
+#     ONE leaf, `power_schedule[58]`, 1.0e-06;
+#   * CI (Linux runner) against main 0e3b242: 181 leaves, the largest
+#     being `deferred_energy_cost` 33.983328 -> 33.983334 and a scatter of
+#     1e-06 steps through `lower_temp_trajectory`;
+#   * the round-2 panel against baseline c398fc8: 177 fields, max 4.5e-05.
+#
+# Consistent in kind, an order of magnitude apart in count, because a
+# different BLAS reaches the same optimum along a different iterate path.
+# njev is unchanged (199 on the audit box), `status` stays `optimal`, and
+# the `power_cap_breach_c` report does not move. This is drift, not a
+# no-op, and it is claimed here rather than discovered at gate time.
 #
 # Any OTHER fixture moving here means the change is broader than the
 # finding, and this claim does not cover it.
@@ -76,4 +85,4 @@
 # may-drift: wood_coil -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: valve_upper_direct_slab -- machine-sensitive; the DHW plan can reach it, per local optimum
 
-fuse_guard  # D9-01 (#286): off scipy's scalar finite differences onto the batched jac; power_schedule[58] moves 1.0e-06, nothing else, plan shape and cost unchanged
+fuse_guard  # D9-01 (#286): off scipy's scalar finite differences onto the batched jac; last-decimal float movement, no change of plan shape, count is BLAS-dependent (1 leaf on the audit box, 181 on CI) -- see the note above
