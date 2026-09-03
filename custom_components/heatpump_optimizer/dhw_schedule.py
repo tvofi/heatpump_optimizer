@@ -28,6 +28,20 @@ spec ``06:00-08:30`` and ``daily 06:00-08:30`` mean the same thing, and an
 existing configuration loads unchanged. Later segments for the same day
 accumulate (``Mo 06:00-07:00, Mo 18:00-19:00`` is Monday with two windows),
 mirroring how the flat grammar treats ``06:00-07:00, 18:00-19:00``.
+
+**One grammar, and it is this one.** The segment separator and the day-list
+separator are the same comma, so a spec can only be split by a reader that
+knows about day selectors. ``_segments`` is that reader and BOTH parsers use
+it, so ``parse_windows`` (the every-day view) and ``parse_weekly_windows``
+(the per-day view) accept exactly the same strings and differ only in what
+they return. ``format_weekly_windows`` writes in that grammar and nothing
+else -- one selector per range, never a bare range trailing a selectored one,
+because a bare range means all seven days. Together those give the invariant
+this module is expected to hold: anything the renderer emits is read back to
+the same schedule by every loader production runs on a stored spec
+(``parse_windows``, ``parse_weekly_windows``, ``is_valid_spec``,
+``spec_problem``). ``tests/features.py`` enumerates it over all 127 non-empty
+day-sets rather than by example (#329, #321).
 """
 from __future__ import annotations
 
@@ -145,16 +159,13 @@ def parse_windows(spec: str | list | tuple | None) -> list[Window]:
     return _normalize(_raw_windows(spec))
 
 
-def _raw_windows(spec: str | list | tuple | None) -> list[Window]:
-    """The windows exactly as written, one per range, before normalisation.
+def _spec_text(spec: str | list | tuple) -> str:
+    """A spec of any accepted shape as one normalised string.
 
-    ``spec_problem`` judges each range on its own: normalisation merges an
-    overlapping one-minute range into its neighbour, and a range that has
-    been merged away can no longer be refused.
+    Lists and tuples are joined with the same comma the string form uses, and
+    the alternative separators (``;``, newline) become that comma too. Shared
+    by both parsers so neither can be looking at a different string.
     """
-    if spec is None:
-        return []
-
     if isinstance(spec, (list, tuple)):
         parts: list[str] = []
         for item in spec:
@@ -165,16 +176,66 @@ def _raw_windows(spec: str | list | tuple | None) -> list[Window]:
         raw = ",".join(parts)
     else:
         raw = str(spec)
+    return raw.replace(";", ",").replace("\n", ",").strip()
 
-    raw = raw.replace(";", ",").replace("\n", ",").strip()
-    if not raw:
-        return []
 
-    windows: list[Window] = []
+def _segments(raw: str) -> list[str]:
+    """The spec's segments: commas split them, except inside a day selector.
+
+    The comma is both the segment separator and, inside a day selector
+    (``Sa,Su 08:00-09:30``), the day-list separator. A chunk with no digits
+    that parses as day names is therefore a CONTINUATION of the next chunk's
+    selector, not a segment of its own: reassemble before parsing.
+
+    THE one segmenter, for both parsers (#329/#321). It used to live only in
+    ``parse_weekly_windows`` while ``_raw_windows`` split on every comma, so
+    the two grammars disagreed on exactly the comma-list selectors
+    ``_format_day_selector`` prefers -- 90 of the 127 non-empty day-sets. The
+    renderer emitted what its own first loader rejected, and a canonicalised
+    weekly schedule came back as a WARNING and no schedule at all.
+    """
+    segments: list[str] = []
+    pending_selector = ""
     for chunk in raw.split(","):
         chunk = chunk.strip()
         if not chunk:
             continue
+        if not re.search(r"\d", chunk) and _parse_day_selector(chunk):
+            pending_selector = (
+                f"{pending_selector},{chunk}" if pending_selector else chunk
+            )
+            continue
+        if pending_selector:
+            chunk = f"{pending_selector},{chunk}"
+            pending_selector = ""
+        segments.append(chunk)
+    if pending_selector:
+        # A selector with no range after it: "weekdays" alone names days
+        # and gives them no times, which is almost certainly a truncated
+        # edit rather than intent. Refuse it with the text the user typed.
+        raise DHWWindowError(
+            f"Day selector '{pending_selector}' has no time window "
+            f"(expected e.g. 'weekdays 06:00-08:30')"
+        )
+    return segments
+
+
+def _raw_windows(spec: str | list | tuple | None) -> list[Window]:
+    """The windows exactly as written, one per range, before normalisation.
+
+    ``spec_problem`` judges each range on its own: normalisation merges an
+    overlapping one-minute range into its neighbour, and a range that has
+    been merged away can no longer be refused.
+    """
+    if spec is None:
+        return []
+
+    raw = _spec_text(spec)
+    if not raw:
+        return []
+
+    windows: list[Window] = []
+    for chunk in _segments(raw):
         windows.extend(_parse_one_range(chunk))
     return windows
 
@@ -230,51 +291,12 @@ def parse_weekly_windows(
     """
     if spec is None:
         return None
-    if isinstance(spec, (list, tuple)):
-        parts: list[str] = []
-        for item in spec:
-            if isinstance(item, (list, tuple)) and len(item) == 2:
-                parts.append(f"{item[0]}-{item[1]}")
-            else:
-                parts.append(str(item))
-        raw = ",".join(parts)
-    else:
-        raw = str(spec)
-
-    raw = raw.replace(";", ",").replace("\n", ",").strip()
+    raw = _spec_text(spec)
     if not raw:
         return None
 
-    # The comma is both the segment separator and, inside a day selector
-    # ("Sa,Su 08:00-09:30"), the day-list separator. A chunk with no digits
-    # that parses as day names is therefore a CONTINUATION of the next
-    # chunk's selector, not a segment of its own: reassemble before parsing.
-    chunks: list[str] = []
-    pending_selector = ""
-    for chunk in raw.split(","):
-        chunk = chunk.strip()
-        if not chunk:
-            continue
-        if not re.search(r"\d", chunk) and _parse_day_selector(chunk):
-            pending_selector = (
-                f"{pending_selector},{chunk}" if pending_selector else chunk
-            )
-            continue
-        if pending_selector:
-            chunk = f"{pending_selector},{chunk}"
-            pending_selector = ""
-        chunks.append(chunk)
-    if pending_selector:
-        # A selector with no range after it: "weekdays" alone names days
-        # and gives them no times, which is almost certainly a truncated
-        # edit rather than intent. Refuse it with the text the user typed.
-        raise DHWWindowError(
-            f"Day selector '{pending_selector}' has no time window "
-            f"(expected e.g. 'weekdays 06:00-08:30')"
-        )
-
     weekly: list[list[Window]] | None = None
-    for chunk in chunks:
+    for chunk in _segments(raw):
         chunk = chunk.replace("\u2013", "-").replace("\u2014", "-")
         days = list(range(7))
         m = re.match(r"^([A-Za-z][A-Za-z,\s-]*?)\s+(?=\d)", chunk)
@@ -320,9 +342,18 @@ def format_weekly_windows(weekly: list[list[Window]]) -> str:
     ):
         if not wins:
             continue
-        text = format_windows(list(wins))
         selector = _format_day_selector(days)
-        segments.append(text if selector == "daily" else f"{selector} {text}")
+        if selector == "daily":
+            segments.append(format_windows(list(wins)))
+            continue
+        # One selector per RANGE, not one per group. The grammar reads a
+        # range with no selector as applying to all seven days, so a group's
+        # second and later ranges must not be left bare: "Mo 06:00-08:30,
+        # 17:00-22:00" handed every other day Monday's evening window on the
+        # way back in (#329). Repeating the selector is exactly equivalent --
+        # later segments for the same day accumulate -- and it is the only
+        # form of a multi-range group that survives its own parser.
+        segments.extend(f"{selector} {format_windows([w])}" for w in wins)
     return ", ".join(segments)
 
 
