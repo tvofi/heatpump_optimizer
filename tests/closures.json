@@ -2,7 +2,7 @@
  "_comment": "MEASURED, not written by hand. Regenerate with tests/derive_closures.sh; the post-merge gate on main re-records these and fails if this file misses anything a real run touched.",
  "recorded": {
   "tests/backtest.py": {
-   "seconds": 210.2,
+   "seconds": 29.2,
    "rc": 0
   },
   "tests/card.mjs": {
@@ -18,11 +18,11 @@
    "rc": 0
   },
   "tests/edge.py": {
-   "seconds": 297.1,
+   "seconds": 26.5,
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 3.3,
+   "seconds": 2.8,
    "rc": 0
   },
   "tests/env_drift.py": {
@@ -30,11 +30,11 @@
    "rc": 0
   },
   "tests/features.py": {
-   "seconds": 509.8,
+   "seconds": 56.9,
    "rc": 0
   },
   "tests/frontend.py": {
-   "seconds": 0.0,
+   "seconds": 0.1,
    "rc": 0
   },
   "tests/golden.py": {
@@ -42,7 +42,7 @@
    "rc": 0
   },
   "tests/manual_plan.py": {
-   "seconds": 26.4,
+   "seconds": 6.2,
    "rc": 0
   },
   "tests/open_meteo.py": {
@@ -50,23 +50,23 @@
    "rc": 0
   },
   "tests/optimality.py": {
-   "seconds": 20.8,
+   "seconds": 51.6,
    "rc": 0
   },
   "tests/plan_view.py": {
-   "seconds": 1.9,
+   "seconds": 0.9,
    "rc": 0
   },
   "tests/solar_alignment.py": {
-   "seconds": 1.0,
+   "seconds": 0.7,
    "rc": 0
   },
   "tests/stress.py": {
-   "seconds": 440.8,
+   "seconds": 804.0,
    "rc": 0
   },
   "tests/validate.py": {
-   "seconds": 223.3,
+   "seconds": 29.9,
    "rc": 0
   }
  },
@@ -353,6 +353,7 @@
    "custom_components/heatpump_optimizer/diagnosis.py",
    "custom_components/heatpump_optimizer/diagnostics.py",
    "custom_components/heatpump_optimizer/drift.py",
+   "custom_components/heatpump_optimizer/entity.py",
    "custom_components/heatpump_optimizer/external_heat.py",
    "custom_components/heatpump_optimizer/freq_control.py",
    "custom_components/heatpump_optimizer/frontend.py",
