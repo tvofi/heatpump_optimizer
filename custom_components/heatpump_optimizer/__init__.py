@@ -577,12 +577,18 @@ def _async_register_services(hass: HomeAssistant) -> None:
         # spec while the call reported success — the same swallow class as
         # #294, found by the handler sweep — and apply_schedule already
         # refuses the identical input, so this service now does too.
+        # Both parsers, flat one first: that is exactly the pair, in that
+        # order, the write path (async_update_thermal_params) runs, and it
+        # drops the whole write when either raises. Gating a weekly spec on
+        # the weekly parser alone let "Sa,Su 08:00-09:30" through — the
+        # weekly chunker reassembles a selector's comma, the flat parser
+        # splits on it — so the call was acknowledged and the write dropped
+        # with a WARNING (#321).
         if params.get(CONF_DHW_WINDOWS) is not None:
             raw_windows = params[CONF_DHW_WINDOWS]
             try:
-                weekly = parse_weekly_windows(raw_windows)
-                if weekly is None:
-                    parse_windows(raw_windows)
+                parse_windows(raw_windows)
+                parse_weekly_windows(raw_windows)
             except DHWWindowError as err:
                 raise ServiceValidationError(
                     f"Invalid hot water windows {raw_windows!r}: {err}",
