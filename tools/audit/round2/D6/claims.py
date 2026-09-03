@@ -18,6 +18,28 @@ claims_true=258, claims_false=1, claims_stale=4, claims_unverifiable=10 (exact;
 the table is deterministic apart from the link checks, which flip to
 unverifiable offline, and C293, which reads rolling_learning.out).
 
+"From the export root" is load-bearing: tools/audit/round2 does not
+exist at c398fc84 -- this file was committed 35 commits later, with the
+register (#230) -- so `git checkout c398fc84` alone can never run it.
+The expectation above was measured by running the harness from outside
+against that tree, and it reproduces exactly when you do the same:
+
+    git worktree add --detach /tmp/base c398fc84
+    cp -r tools/audit/round2/D6 /tmp/base/tools/audit/round2/
+    cd /tmp/base && PYTHONPATH=tests/hastub python3 tools/audit/round2/D6/claims.py
+
+Verified: 273 extracted, 1 false (C092), 4 stale, and true/unverifiable
+of 258/10 with the link checks on, 250/18 with D6_OFFLINE=1 -- the eight
+link rows are the whole of the difference. The service section is guarded
+so this still works there, where the services are registered by
+async_setup_entry and no domain async_setup exists yet.
+
+Run instead at the tag that carries this file, audit-round2-evidence, and
+claims_extracted is still 273 and the one false row is still C092, but six
+further rows read false: documentation that moved between the baseline and
+the tag (C002, C156, C182, and the three architecture.md counts
+C280/C281/C283, which the diagnostics module changed).
+
 Instrumented symbols: the entity rosters through the real platform
 ``async_setup_entry`` of sensor/binary_sensor/button/switch/climate driven by
 tests/harness.py:FakeCoordinator over the DATA payload of tests/entities.py;
@@ -173,7 +195,12 @@ def collect(module, data=None, coordinator=None):
         coordinator = FakeCoordinator(DATA if data is None else data)
         coordinator._month_totals = {"dhw": (41.5, 62.25), "space": (120.0, 180.0)}
     hass = FakeHass()
+    # The platforms read ``entry.runtime_data`` (runtime-data, Bronze); the
+    # ``hass.data`` slot is what they read before audit B5 (3da0e27) moved
+    # the coordinator onto the entry. Both are set so the roster is built
+    # the way ``tests/harness.py:ha_setup_entry`` builds it.
     hass.data[const.DOMAIN] = {ENTRY.entry_id: coordinator}
+    ENTRY.runtime_data = coordinator
     asyncio.run(module.async_setup_entry(hass, ENTRY, add_entities))
     return added
 
@@ -239,11 +266,24 @@ _svc_hass = FakeHass()
 _svc_hass.services = RecordingServices()
 _svc_entry = FakeEntry(data={const.CONF_TIBBER_TOKEN: "x", const.CONF_WEATHER_ENTITY: "weather.home"})
 _svc_hass.config_entries.entries.append(_svc_entry)
+# The domain's ``async_setup`` first, as Home Assistant does before the
+# domain's first entry: that is where audit B5 (3da0e27) moved the service
+# registration (action-setup). Without it nothing is registered at all.
+# Guarded the way ``tests/harness.py:ha_setup_component`` guards it, so this
+# harness still runs against the pre-B5 baseline it documents, where the
+# services are registered by ``async_setup_entry`` and there is no
+# ``async_setup`` to call.
+_domain_setup = getattr(integration, "async_setup", None)
+if _domain_setup is not None:
+    asyncio.run(_domain_setup(_svc_hass, {}))
 asyncio.run(integration.async_setup_entry(_svc_hass, _svc_entry))
 REGISTERED = dict(_svc_hass.services.async_services().get(const.DOMAIN, {}))
 SCHEMAS = {name: _svc_hass.services._schemas[(const.DOMAIN, name)] for name in REGISTERED}
 RESPONSES = {name: str(_svc_hass.services.kwargs[name].get("supports_response", "none")) for name in REGISTERED}
-LIVE_COORD = _svc_hass.data[const.DOMAIN][_svc_entry.entry_id]
+# Post-B5 the coordinator is on the entry; before it, in the hass.data slot.
+LIVE_COORD = getattr(_svc_entry, "runtime_data", None)
+if LIVE_COORD is None:
+    LIVE_COORD = _svc_hass.data[const.DOMAIN][_svc_entry.entry_id]
 
 
 def schema_keys(schema) -> dict:

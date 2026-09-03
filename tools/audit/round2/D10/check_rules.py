@@ -118,6 +118,7 @@ def ast_of(name):
 
 # --------------------------------------------------------------------------- stub drive
 from harness import FakeEntry, FakeHass  # noqa: E402  (tests/harness.py: FakeHass, FakeEntry, FakeServiceCall)
+from homeassistant.config_entries import ConfigEntryState  # noqa: E402
 import heatpump_optimizer  # noqa: E402
 from heatpump_optimizer import config_flow as cf  # noqa: E402
 from heatpump_optimizer import const  # noqa: E402
@@ -167,7 +168,10 @@ def with_payload(coord):
 def roster(coord, hass, entry):
     """Every entity through the real platform async_setup_entry (tests/entities.py:collect idea)."""
     out = []
+    # The platforms read ``entry.runtime_data`` since audit B5 (3da0e27);
+    # the ``hass.data`` slot is what they read before it. Both are set.
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coord
+    entry.runtime_data = coord
     for p in PLATFORMS:
         mod = importlib.import_module(f"heatpump_optimizer.{p}")
         added = []
@@ -271,9 +275,14 @@ def lifecycle():
     hass = FakeHass()
     entry = FakeEntry(data=BASE_CFG)
     hass.config_entries.entries.append(entry)
+    # The domain's ``async_setup`` first, as Home Assistant does before the
+    # domain's first entry: audit B5 (3da0e27) moved service registration
+    # there (action-setup). Without it nothing is registered at all.
+    asyncio.run(heatpump_optimizer.async_setup(hass, {}))
     ok = asyncio.run(heatpump_optimizer.async_setup_entry(hass, entry))
+    entry.state = ConfigEntryState.LOADED if ok else ConfigEntryState.SETUP_ERROR
     services_after_setup = sorted(hass.services.async_services().get(DOMAIN, {}))
-    coord = hass.data[DOMAIN][entry.entry_id]
+    coord = entry.runtime_data
     outcomes = {}
     for svc, data in (("run_optimization", {}), ("simulate_plan", {"target_temp": 21.0}),
                       ("restore_learned_snapshot", {})):

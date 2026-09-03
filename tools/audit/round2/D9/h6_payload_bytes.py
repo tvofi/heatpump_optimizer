@@ -88,7 +88,10 @@ def make(horizon: float | None):
     coord._fetch_tibber_prices = noop
     coord._fetch_weather_forecast = noop
     coord._fetch_solar_forecast = noop
+    # The platforms read ``entry.runtime_data`` since audit B5 (3da0e27);
+    # the ``hass.data`` slot is what they read before it. Both are set.
     hass.data[const.DOMAIN] = {entry.entry_id: coord}
+    entry.runtime_data = coord
     return hass, entry, coord
 
 

@@ -343,7 +343,10 @@ class RealConfigEntries:
         return list(self.entries)
 
     async def async_forward_entry_setups(self, entry, platforms):
-        coordinator = self.hass.data[DOMAIN][entry.entry_id]
+        # Since audit B5 (3da0e27) the coordinator is on the entry, set by
+        # ``async_setup_entry`` just before it forwards; it used to be in
+        # ``hass.data[DOMAIN][entry_id]``.
+        coordinator = entry.runtime_data
         unsubs = []
         for platform in platforms:
             unsubs.append(coordinator.async_add_listener(lambda: None, context=platform))
@@ -812,7 +815,7 @@ async def scenario_notready(eager, guards=True, retries=5):
     SOLVE_GATE["hold"] = False
     ok = await entry_setup(hass, entry)
     assert ok and entry.state == RealEntry.LOADED
-    live = hass.data[DOMAIN][entry.entry_id]
+    live = entry.runtime_data
     await settle(hass, 60)
     gc.collect()
     zombies = [r() for r in CREATED if r() is not None and r() is not live]
@@ -850,7 +853,7 @@ async def scenario_reload_midsolve(eager):
     solve_started.clear(); solve_release.clear(); SOLVE_GATE["hold"] = True
     ok = await entry_setup(hass, entry)
     assert ok, "setup failed"
-    old = hass.data[DOMAIN][entry.entry_id]
+    old = entry.runtime_data
     old_ref = weakref.ref(old)
     assert await wait_solve_started(), "first solve never reached the executor"
     out["light_refresh_published"] = int(old.data is not None)
@@ -862,7 +865,7 @@ async def scenario_reload_midsolve(eager):
     await asyncio.sleep(0.2)
     solve_release.set()
     await reload_task
-    new = hass.data[DOMAIN][entry.entry_id]
+    new = entry.runtime_data
     assert new is not old
     out["reload_ok"] = int(entry.state == RealEntry.LOADED)
     # the new instance's own first solve: wait for it (gate is now open,
@@ -908,7 +911,7 @@ async def scenario_reload_midsolve(eager):
     shutdown_before_release = id(new) in SHUTDOWN_DONE
     solve_release.set()
     await reload_task
-    newest = hass.data[DOMAIN][entry.entry_id]
+    newest = entry.runtime_data
     await settle(hass, 90)
     out["sched_shutdown_returned_before_release"] = int(shutdown_before_release)
     out["sched_zombie_actuations"] = sum(1 for i, _ in POST_SHUTDOWN_ACTUATIONS if i == id(new))
@@ -945,7 +948,7 @@ async def scenario_reload_midsolve(eager):
     out["unload_midsolve_tasks_alive"] = len([t for t in hass.tasks if not t.done()])
     SOLVE_GATE["hold"] = False
     ok = await entry_setup(hass, entry)
-    final = hass.data[DOMAIN][entry.entry_id]
+    final = entry.runtime_data
     await settle(hass, 90)
     out["resetup_first_cycle_ok"] = int(ok and final.data is not None and final._optimization_result is not None)
     out["handover_republished"] = int(final.data is not None)

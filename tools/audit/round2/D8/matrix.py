@@ -489,8 +489,12 @@ def collect(coord, config) -> list:
     added = []
     for _platform, module in PLATFORMS:
         hass = FakeHass()
+        entry = FakeEntry(data=config)
+        # The platforms read ``entry.runtime_data`` since audit B5 (3da0e27);
+        # the ``hass.data`` slot is what they read before it. Both are set.
         hass.data[const.DOMAIN] = {"test_entry": coord}
-        asyncio.run(module.async_setup_entry(hass, FakeEntry(data=config), added.extend))
+        entry.runtime_data = coord
+        asyncio.run(module.async_setup_entry(hass, entry, added.extend))
     return added
 
 
