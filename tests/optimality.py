@@ -194,4 +194,50 @@ for _tz in (False, True):
         "DHW schedules differ -- the batched jac diverges from scipy's FD "
         "on non-uniform (DHW-pinned) bounds")
 
+# Challenger 6: the ZERO-RANGE-BOUND path (#286/#287). Every solve above
+# leaves each variable a strictly positive range. One forced-off manual pin
+# is one (0, 0) bound out of 96, and until this section neither this file nor
+# stress.py had ever passed a pin or a power cap -- so no check anywhere in
+# the gate had seen a plan produced with a fixed variable in it.
+#
+# #317 has since made that path CHEAP (a fixed variable is treated as fixed
+# rather than as a reason to abandon the batched jacobian; stress.py measures
+# the 6-12x it removed). Cheap is not the same as checked. What #317 changed
+# is precisely the gradient the solver descends on these bounds, and the way
+# that fails is silent: a jac that returns NaN at a fixed variable kills
+# L-BFGS-B at status 2 with nit 0 and hands back the starting vector as a
+# plan, without raising anything. Cost alone would not notice -- a solve that
+# gives up immediately is FASTER. The three checks below are what notices:
+# comfort, the pin's own contract, and a trivial challenger that must not
+# rout the plan.
+R.section("solution quality on a zero-range bound (D9-01)")
+_zopt, _zm, _zpr, _zot, _zwi, _zra, _zso, _zst, _zstart = setup(False)
+_pins = np.full(N, float("nan"))
+_pins[90] = 0.0                       # 22:30, one step forced off
+_zr = _zopt.optimize(_zst, _zpr, _zot, _zwi, _zra, _zso, _zstart,
+                     space_pins=_pins)
+_zbase = np.asarray(_zr.power_schedule)
+_zc0, _zv0, _zmn, _zmx = evaluate(_zm, _zbase, _zst, _zot, _zwi, _zra, _zso, _zpr)
+print(f" pinned    : cost {_zc0:7.2f}  room {_zmn:.2f}-{_zmx:.2f}  viol {_zv0:.3f}")
+R.check("a pinned plan still meets the comfort floor", _zv0 <= 1e-6,
+        f"degree-steps below floor: {_zv0:.4f}")
+R.check("the forced-off pin is honoured, or reported as safety-released",
+        (90 in _zr.manual_released_space) or _zbase[90] <= 1e-6,
+        f"step 90 planned {_zbase[90]:.3f} kW and was not released")
+_ztotal = _zbase.sum()
+_zpmax = _zm.params.max_electrical_power
+_zgreedy = np.zeros(N); _zleft = _ztotal
+for _i in np.argsort(_zpr):
+    _take = min(_zpmax, _zleft)
+    if 90 not in _zr.manual_released_space and _i == 90:
+        _take = 0.0                   # the challenger has to respect the pin too
+    _zgreedy[_i] = _take; _zleft -= _take
+    if _zleft <= 0:
+        break
+_zc1, _zv1, _, _ = evaluate(_zm, _zgreedy, _zst, _zot, _zwi, _zra, _zso, _zpr)
+print(f" greedy    : cost {_zc1:7.2f}  viol {_zv1:.3f}")
+if _zv1 <= _zv0 + 1e-6:
+    R.check("greedy does not rout the plan built with a fixed variable",
+            _zc1 >= _zc0 * 0.95, f"greedy {_zc1:.2f} vs optimizer {_zc0:.2f}")
+
 sys.exit(R.close("OPTIMALITY CHECKS"))

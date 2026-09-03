@@ -28,6 +28,8 @@ Three families of check:
 """
 from __future__ import annotations
 
+import copy
+import inspect
 import itertools
 import json
 import os
@@ -165,58 +167,137 @@ from heatpump_optimizer import pv as pv_model
 # still doing something.
 
 #: A scenario may cost this many times the reference solve's CPU.
-#: Measured, not guessed, and measured with threads pinned as this file
-#: now pins them: the two dearest scenarios came out at 655x and 662x --
-#: 49.6 s and 49.8 s of solver CPU against a ~75 ms reference. (Unpinned
-#: the same scenarios read 150x and 168x, because an unpinned reference
-#: burns 3.3x its own work in spinning BLAS threads while a real solve
-#: burns only 1.27x. That mismatch is why the numbers had to be taken
-#: again and why the parallelism check below exists.) The budget leaves
-#: the worst of those a factor of ~2.1, because this check exists to catch ONE scenario going
-#: pathological and its budget has to clear the dearest scenario in the
-#: sweep -- the cheap ones therefore sit far under it. The sweep-wide check
-#: below is the tight one. The observed spread is printed at the end of the
-#: section, so the headroom is visible rather than assumed.
-SOLVE_BUDGET_RATIO = float(os.environ.get("STRESS_SOLVE_RATIO", "1400"))
+#:
+#: DERIVED, not chosen. Every budget in this file now sits at the GEOMETRIC
+#: MIDPOINT between what the sweep costs today and the smallest regression
+#: the gate is required to see (DETECTION_TARGET, below): a budget of
+#: sqrt(DETECTION_TARGET) x the measured cost leaves the same ratio-margin
+#: against a false failure as against missing that regression. At
+#: DETECTION_TARGET = 2 the multiplier is 1.41421.
+#:
+#: The measurement, five consecutive runs of the sweep on one Apple M1
+#: 8-core with the box verified exclusive by process count (no other
+#: tests/*.py running), load1 1.56-2.60, thread factor 1.000 on every run:
+#: the worst scenario is shoulder/tariff+pv+cycle at a mean 553.04x its
+#: reference, sd 4.40, cv 0.80 %. 1.41421 x 553.04 = 782.11. The budget
+#: therefore stands 52 standard deviations above a clean run and 37 below a
+#: doubled one, and the smallest uniform regression it can see is 1.414x.
+#:
+#: It replaces 1400, which was sized when the two dearest scenarios cost
+#: 655x and 662x. The batched jacobian then made every combination 10-20x
+#: cheaper and nobody re-derived the ceiling, so by v6.3.x it stood at 2.8x
+#: the worst observed cost and an injected exact 2x regression passed it
+#: untouched (#287). The detection check at the end of the sweep exists so
+#: that cannot happen quietly again.
+SOLVE_BUDGET_RATIO = float(os.environ.get("STRESS_SOLVE_RATIO", "782.11"))
 
 #: The whole sweep may cost this many times the reference work timed
 #: alongside it. Totals average the per-scenario spread away -- and average
-#: the ruler's own noise away with it, over fifty-odd samples -- so this
-#: margin is far tighter than the per-scenario one, and it is what catches
-#: a change that made everything moderately slower: a uniform 50 % would
-#: sail under any per-scenario budget wide enough for the dearest scenario
-#: and lands here instead. Expected around 250 with threads pinned, from
-#: the per-scenario measurements above and the sweep's cost distribution;
-#: the run prints the figure it actually saw, and the budget leaves that
-#: estimate a factor of ~1.8. That margin is deliberately generous for
-#: a first release of this check -- there is one run's worth of evidence
-#: behind it. Tighten it once a few runs' aggregate ratios are on record;
-#: the run prints its own so they accumulate in gate output.
-SWEEP_BUDGET_RATIO = float(os.environ.get("STRESS_SWEEP_RATIO", "450"))
+#: the ruler's own noise away with it, over fifty-odd samples -- so this is
+#: the steadiest number the run produces: cv 0.61 % over the same five runs
+#: (0.12 % against the trailing median rather than the raw samples). It is what catches a change
+#: that made everything moderately slower, which is the shape a solver
+#: regression usually has.
+#:
+#: Same derivation: 1.41421 x the measured mean of 94.9804 = 134.32, which
+#: is 67 standard deviations above a clean run. The 450 it replaces came
+#: with its own instruction -- "deliberately generous for a first release of
+#: this check ... tighten it once a few runs' aggregate ratios are on
+#: record". Five runs are now on record and this is that tightening.
+#:
+#: One thing this figure is NOT: a verdict on #291. This sweep ratio is
+#: 94.98 against 52.67 at the round-2 baseline, and the difference is the
+#: two-zone DHW solve getting 2.33x slower. Sizing the budget on today's
+#: cost is correct -- today's cost is what the gate has to watch for change
+#: -- but it does bake that regression into the baseline, which is why #291
+#: is tracked separately and must be judged on its own evidence, not on
+#: this file's silence.
+SWEEP_BUDGET_RATIO = float(os.environ.get("STRESS_SWEEP_RATIO", "134.32"))
 
 #: Backstop only: a solve this slow is pathological whatever the machine is
 #: doing -- a non-converging objective, not a busy box.
 SOLVE_CEILING_MS = float(os.environ.get("STRESS_SOLVE_CEILING_MS", "600000"))
 
+#: The size of regression this gate is REQUIRED to be able to see, and the
+#: reason every budget below is a measured figure rather than a comfortable
+#: one. Each budget is checked against this run's own observed cost at the
+#: end of the sweep (see the detection check): a budget more than this many
+#: times what the run actually cost cannot detect a regression of this size,
+#: and fails the run. That is the half of the question every check here used
+#: to leave out -- "is it slower than the budget" was asked, "could the
+#: budget ever notice" was not, and the answer was no: at 1400x/450x against
+#: an observed 553x/95x the two global checks could see 2.53x at best, and
+#: with #145's x3 per-scenario table the whole gate could see 2.09x. An
+#: injected exact 2x tripped none of the three (#287). Together with the budget checks themselves this pins every
+#: observed figure into (budget / DETECTION_TARGET, budget]; widening a
+#: budget to make a red run pass now turns the run red here instead.
+DETECTION_TARGET = float(os.environ.get("STRESS_DETECTION_TARGET", "2.0"))
+
 #: Per-scenario budgets (D9-03). The single SOLVE_BUDGET_RATIO above has to
-#: clear the dearest scenario in the sweep (measured ~662x its reference),
-#: which means the cheapest one -- a few multiples -- could regress by three
+#: clear the dearest scenario in the sweep (553.04x its reference on this
+#: box today, against 3.05x for the cheapest -- a 181-fold spread), which
+#: means the cheapest one -- a few multiples -- could regress by three
 #: orders of magnitude and still pass: exactly the hole the old absolute
 #: budget had, rebuilt one level up. Each scenario therefore carries its OWN
 #: budget, recorded in tests/stress_budgets.json as a clean run's ratio
 #: against the reference solve (a pure work ratio: the reference is timed on
 #: the same machine, in the same run, so the number travels). A scenario may
 #: cost this many times its own recorded ratio.
+#:
+#: STAYS AT 3.0, and the attempt to tighten it is the useful part of the
+#: record. On one machine this number could be 1.4142 -- the same sqrt(2)
+#: derivation as the two budgets above, and over five clean consecutive
+#: sweeps it would have been comfortable: the median scenario's ratio has a
+#: cv of 0.44 %, the 90th percentile 0.73 %, the noisiest single scenario
+#: (winter/1z/dhw) 6.04 %, and the largest deviation of any scenario from
+#: its own five-run mean was +10.8 %.
+#:
+#: It does not survive a second machine, and the reason is not noise. CI
+#: ran shoulder/tariff+cycle at 352.7x its reference against a recorded
+#: 154.4x -- 2.28x the work, on a runner whose own reference solve was
+#: steady at 51.4 / 52.1 / 59.3 ms over 58 samples with a thread factor of
+#: 1.000 on both sides. A steady ruler and 2.3x the work means the SOLVE
+#: was different: the multi-start method landed in another basin and did
+#: more iterations, which floating-point differences between platforms can
+#: decide. The same family swings the other way too -- against a table
+#: recorded elsewhere, winter/tariff measured 1.435x its record here and
+#: shoulder/tariff+cycle 0.865x.
+#:
+#: So a per-scenario budget cannot be both portable and under 2x: some
+#: scenarios' cost is bimodal across platforms. 3.0 covers the measured
+#: 2.28x with 31 % to spare. What carries the 2x detection instead is the
+#: SWEEP budget, which averages the basin flips away -- 94.98x here, 77.96x
+#: and 84.02x on two CI runners, all far under its 134.32 -- and that is
+#: what makes the gate's smallest detectable UNIFORM regression 1.42x
+#: rather than the 2.09x it was. A single scenario doubling on its own is
+#: caught at 3.0x, and honestly recorded as such.
 SCENARIO_BUDGET_FACTOR = float(os.environ.get("STRESS_SCENARIO_FACTOR", "3.0"))
 #: ...and a scenario that has become CHEAPER than its record by more than
 #: this factor makes the table stale-high: a later regression back to the
 #: old cost would pass unnoticed. Like the golden-claims file, the table is
 #: re-recorded deliberately (`--record-budgets`), not inherited.
 SCENARIO_STALE_FACTOR = float(os.environ.get("STRESS_STALE_FACTOR", "3.0"))
-#: A floor under the per-scenario budget, so a scenario recorded at 2x is
-#: not failed for normal solver jitter at 2.5x.
+#: A floor under the per-scenario budget, for a machine whose cheap
+#: scenarios are noisy enough that the factor above cannot hold them.
+#:
+#: RETIRED to 0.0, on measurement. It was 10.0, sized against "a scenario
+#: recorded at 2x is not failed for normal solver jitter at 2.5x" -- a
+#: plausible worry, and false here. At 10.0 with the factor at 1.4142 the
+#: floor, not the factor, would be the budget for every scenario recorded
+#: below 7.07x: TEN of the fifty-one, the cheapest of them recorded at
+#: 3.05x and therefore free to cost 3.3x its record before failing. That is
+#: the D9-03 hole -- a budget wide enough for the dearest scenario applied
+#: to the cheapest -- rebuilt at the bottom of the table. And the jitter it
+#: guards against is not there: the five-run cv of those ten scenarios is
+#: 0.44-5.16 %, no worse than the sweep's median, so the factor clears them
+#: by eight to ninety standard deviations on its own. Cheap does not mean
+#: noisy on this box; summer/1z/space, the cheapest at 3.05x, has a cv of
+#: 0.45 %.
+#: The knob stays, at zero, for a machine that measures otherwise -- but it
+#: has to be set from a measured spread, and the detection check refuses a
+#: floor that would blind a scenario to a DETECTION_TARGET-fold regression.
 SCENARIO_BUDGET_FLOOR_RATIO = float(
-    os.environ.get("STRESS_SCENARIO_FLOOR", "10.0")
+    os.environ.get("STRESS_SCENARIO_FLOOR", "0.0")
 )
 
 #: Memory instrumentation (D9-04). tracemalloc slows allocation-heavy code,
@@ -225,9 +306,12 @@ SCENARIO_BUDGET_FLOOR_RATIO = float(
 #: allocation peak and the process's RSS watermark growth. Peaks are
 #: budgeted against the same recorded table, at this factor.
 MEMORY_BUDGET_FACTOR = float(os.environ.get("STRESS_MEMORY_FACTOR", "1.5"))
-#: How many of the dearest scenarios (by recorded cost) the memory pass
-#: covers. The dear ones allocate the biggest trajectories; a leak or an
-#: unbounded retention shows up there first.
+#: How many scenarios the memory pass covers, split evenly between the two
+#: recorded axes: the biggest traced allocation peaks and the biggest RSS
+#: watermarks. Selected by RECORDED MEMORY, not by recorded CPU -- they are
+#: nearly uncorrelated in this suite's own table, and the CPU ordering
+#: happened to pick six samples of one profile while missing both extremes
+#: (see the memory section for the numbers).
 MEMORY_TOP_N = int(os.environ.get("STRESS_MEMORY_TOP_N", "6"))
 
 #: The committed per-scenario budget table, read from the repo root (the
@@ -455,8 +539,22 @@ def build_case(
     hours: int = 24,
     state: dict | None = None,
     config: dict | None = None,
+    power_cap_kw: float | None = None,
+    pin_off_steps: tuple[int, ...] | None = None,
 ):
-    """One fully specified run of the optimizer."""
+    """One fully specified run of the optimizer.
+
+    ``power_cap_kw`` supplies a flat per-step ``power_caps_extra`` -- the fuse
+    guard's channel, a ceiling on space *plus* hot water -- and
+    ``pin_off_steps`` supplies a manual-plan ``space_pins`` array with those
+    steps forced off. Both exist so the sweep samples the ZERO-RANGE BOUND
+    path (#286): the moment one variable's bound has ``lo == hi`` the batched
+    jacobian is refused and scipy estimates every gradient with n scalar
+    objective calls instead of three batched ones. Nothing in ``stress.py``
+    or ``optimality.py`` passed either argument before, so a regression
+    confined to that path was invisible to the whole gate (#287) -- not
+    under-budgeted, UNSAMPLED.
+    """
     price_key, weather_key = SEASONS[season]
     cfg = house(two_zone=two_zone, dhw=dhw)
     if building:
@@ -518,6 +616,22 @@ def build_case(
     for key, value in (state or {}).items():
         setattr(initial, key, value)
 
+    # The zero-range-bound channels (#286/#287). Both are shipped inputs:
+    # power_caps_extra is what the fuse guard and the monthly fuse advisor
+    # pass, space_pins is what a manual plan passes. A flat cap below the
+    # DHW run power (0.8 x p_max = 4.8 kW on the default 6 kW pump -- a 16 A
+    # single-phase supply is 3.68 kW) leaves IDENTICALLY ZERO space headroom
+    # at every planned DHW step, and one forced-off pin is one (0, 0) bound.
+    # Either is enough to take the whole solve off the batched jacobian.
+    caps_extra = None
+    if power_cap_kw is not None:
+        caps_extra = np.full(n, float(power_cap_kw))
+    space_pins = None
+    if pin_off_steps:
+        space_pins = np.full(n, float("nan"))
+        for _step in pin_off_steps:
+            space_pins[int(_step)] = 0.0
+
     model = ThermalModel(params)
     optimizer = HeatPumpOptimizer(model, opt_cfg)
     # CPU time, measured here rather than taken from result.solve_time_ms,
@@ -528,7 +642,8 @@ def build_case(
     _cpu_before = time.process_time()
     _thread_before = time.thread_time()
     result = optimizer.optimize(
-        initial, price_series, outdoor, wind, rain, solar, START, None, surplus
+        initial, price_series, outdoor, wind, rain, solar, START, None, surplus,
+        space_pins=space_pins, power_caps_extra=caps_extra,
     )
     solve_cpu_ms = (time.process_time() - _cpu_before) * 1000.0
     solve_thread_ms = (time.thread_time() - _thread_before) * 1000.0
@@ -549,7 +664,48 @@ def build_case(
         "optimizer": optimizer,
         "surplus": surplus,
         "n": n,
+        "power_caps_extra": caps_extra,
+        "space_pins": space_pins,
     }
+
+
+# ---------------------------------------------------------------------------
+# Build each distinct scenario once
+# ---------------------------------------------------------------------------
+# ``build_case`` is a pure function of its arguments -- same season, same
+# seeded profiles, same deterministic solve -- so asking for the same
+# scenario twice buys nothing but CPU. This file asked a lot: the plain
+# winter one-zone space case was built NINE times (the thermostat loop, the
+# price-spread loop, four times inside the comfort-weight loop and twice
+# inside the solver-noise loop, where each iteration then threw its solve
+# away and re-optimized, plus `standard`), and three of the economics cases
+# repeat a sweep combination exactly. None of those repeats asserted
+# anything the first did not, so collapsing them gives up no coverage:
+# measured, the Economics section falls from 28 solves and 13.9 s of CPU to
+# 15 solves and 7.3 s.
+#
+# The key is the FULLY DEFAULTED argument tuple, so
+# ``build_case(season="winter", two_zone=True, dhw=True, tariff=True)`` and
+# the sweep's ``dict(..., tariff=True, pv=False, cycling=0.0)`` are
+# recognised as the same scenario rather than missing each other over a
+# default nobody wrote down.
+_CASE_SIGNATURE = inspect.signature(build_case)
+_case_cache: dict[tuple, dict] = {}
+
+
+def case_key(spec: dict) -> tuple:
+    bound = _CASE_SIGNATURE.bind(**spec)
+    bound.apply_defaults()
+    return tuple(sorted((k, repr(v)) for k, v in bound.arguments.items()))
+
+
+def case(**spec) -> dict:
+    """``build_case``, memoised on the fully defaulted arguments."""
+    key = case_key(spec)
+    run = _case_cache.get(key)
+    if run is None:
+        run = _case_cache[key] = build_case(**spec)
+    return run
 
 
 # ===========================================================================
@@ -603,6 +759,39 @@ def check_invariants(label: str, run: dict) -> list[str]:
                 f"{name} trajectory left physical reality "
                 f"({arr.min():.1f}..{arr.max():.1f} °C)"
             )
+
+    # --- the zero-range-bound channels (#286/#287) ------------------------
+    # Only meaningful when the scenario supplied them, and worth asserting
+    # for their own sake: a fuse cap that the plan quietly exceeds would burn
+    # the fuse, and a forced-off pin the plan quietly ignores would be the
+    # optimizer overriding a manual plan without saying so. The optimizer
+    # MAY release a pin to keep the house above its floor -- it says which
+    # steps in manual_released_space -- so the invariant is over the steps it
+    # did NOT release.
+    caps_extra = run.get("power_caps_extra")
+    if caps_extra is not None:
+        over = float(np.max(combined - np.asarray(caps_extra)[: combined.size]))
+        if over > 1e-3:
+            problems.append(
+                f"combined power exceeds the {float(caps_extra[0]):.2f} kW "
+                f"external cap by {over:.3f} kW"
+            )
+    pins = run.get("space_pins")
+    if pins is not None:
+        released = set(result.manual_released_space)
+        honoured = [
+            i
+            for i in range(min(len(pins), space.size))
+            if float(pins[i]) == 0.0 and i not in released
+        ]
+        breached = [i for i in honoured if space[i] > 1e-6]
+        if breached:
+            problems.append(
+                f"{len(breached)} forced-off space pins were neither honoured "
+                f"nor reported as released (steps {breached[:4]})"
+            )
+        if not result.manual_pins_active:
+            problems.append("manual pins were supplied but not reported active")
 
     if result.dhw_temp_trajectory:
         peak = float(np.max(result.dhw_temp_trajectory))
@@ -761,11 +950,12 @@ def print_budget_table(table: dict) -> None:
 def scenario_budget(label: str, table: dict) -> float | None:
     """This scenario's allowed work ratio, or None when unrecorded.
 
-    The floor keeps normal solver jitter on a cheap scenario (recorded at
-    2x, say) from failing a budget that a 3x factor would turn into 6x --
-    but never below what the dearest cheap scenario actually needs, so the
-    floor is a fraction of the historical global budget, not of this
-    scenario's own record.
+    The floor is a per-machine escape hatch for a box whose cheap scenarios
+    are noisier than the factor tolerates; it is 0.0 here because this one's
+    are not (see SCENARIO_BUDGET_FLOOR_RATIO). Whenever it is non-zero it,
+    not the factor, is the budget for every scenario recorded below
+    floor / factor -- which is why the detection check refuses a floor that
+    would let any recorded scenario reach DETECTION_TARGET times its cost.
     """
     entry = table.get(label)
     if not isinstance(entry, dict):
@@ -856,6 +1046,55 @@ if __name__ == "__main__":
                  label=f"{building}/{season}")
         )
 
+    # Zero-range bounds (#286/#287). Every scenario above leaves every
+    # variable a strictly positive range, so until these three were added
+    # EVERY solve in this file and in optimality.py did -- and a bound with
+    # lo == hi takes a different path through the gradient.
+    #
+    # How much that mattered, measured here across #317 (D9-01's fix, which
+    # treats a fixed variable as fixed instead of abandoning the batched
+    # jacobian for scipy's scalar finite differences): the same three
+    # scenarios cost 68.0x / 34.5x / 54.1x their reference at 890ecbd and
+    # 7.4x / 5.5x / 4.3x at 0026f22 -- 9.0x, 6.2x and 12.4x. That is the
+    # size of the thing this file could not see, and these three are still
+    # the only samples of that path anywhere in the gate: if #317 is ever
+    # reverted or broken they go back to costing six to twelve times their
+    # recorded budget, and now something says so. Before them the class was
+    # not merely under-budgeted by a global ratio, it was UNSAMPLED, and no
+    # re-sizing of a global constant could have found it.
+    #
+    # Three scenarios, because there are three distinct producers:
+    #
+    #   * a flat external power cap below the DHW run power (0.8 x 6.0 kW =
+    #     4.8 kW here) -- what the fuse guard and the monthly fuse advisor
+    #     pass for a 16 A single-phase supply. The DHW run power is clamped
+    #     to the cap and solve_space subtracts it from the same cap, so the
+    #     space headroom is identically zero at every planned DHW step;
+    #   * a forced-off manual pin on a two-zone DHW solve -- the production
+    #     topology, one (0, 0) bound out of 96;
+    #   * the same pin on a space-only solve, which reaches the (0, 0) bound
+    #     through _apply_pins_to_bounds rather than through the DHW stage.
+    #
+    # They are deliberately the CHEAPEST members of their class (summer, one
+    # zone where the shape allows): the per-scenario budget judges each
+    # against its own recorded cost, so a cheap sample detects a regression
+    # exactly as well as a dear one. They cost the sweep 17.2 reference
+    # units -- 0.3 s of CPU -- against the ~150 the winter two-zone members
+    # of the same class would, and against the 157 the same three cost
+    # before #317.
+    _FUSE_CAP_KW = 3.68          # 16 A x 230 V, a shipped single-phase supply
+    _PIN_STEP = 90               # 22:30 on a 24 h/15 min horizon
+    combinations.extend(
+        [
+            dict(season="summer", two_zone=False, dhw=True,
+                 power_cap_kw=_FUSE_CAP_KW, label="summer/1z/dhw/fuse-cap"),
+            dict(season="summer", two_zone=True, dhw=True,
+                 pin_off_steps=(_PIN_STEP,), label="summer/2z/dhw/pin-off"),
+            dict(season="winter", two_zone=False, dhw=False,
+                 pin_off_steps=(_PIN_STEP,), label="winter/1z/space/pin-off"),
+        ]
+    )
+
     failures = 0
     comfort_failures: list[str] = []
     worst_dhw = 0.0
@@ -910,6 +1149,15 @@ if __name__ == "__main__":
         for c in combinations
     }
 
+    # Three sweep combinations are re-solved verbatim by the economics
+    # section below. The sweep's own run is kept for them -- three
+    # dictionaries against the 245 reference units the three solves cost --
+    # and `case()` hands it back when economics asks. Every other run is
+    # dropped as before, so the sweep's memory profile is unchanged.
+    # The sweep must NOT go through `case()` wholesale: it would retain all
+    # fifty-one runs to save nothing, since no sweep combination repeats.
+    REUSED_BY_ECONOMICS = ("winter/2z/dhw", "winter/tariff", "winter/1z/dhw")
+
     for combo in combinations:
         label = combo.pop("label")
         # Time the reference immediately before the solve it will judge, so the
@@ -918,6 +1166,8 @@ if __name__ == "__main__":
         unit_ms = max(calibration.unit_ms, 1e-6)
         budget_ms = SOLVE_BUDGET_RATIO * unit_ms
         run = build_case(**combo)
+        if label in REUSED_BY_ECONOMICS:
+            _case_cache[case_key(combo)] = run
         solve_ms = float(run["solve_cpu_ms"])          # CPU: the load-free clock
         wall_ms = float(run["result"].solve_time_ms)   # wall: for the ceiling only
         ratio = solve_ms / unit_ms
@@ -1077,20 +1327,63 @@ if __name__ == "__main__":
     # differs by tens of MiB across platforms, and this check exists to
     # catch retained-growth regressions, not interpreter noise.
     R.section("Memory (D9-04)")
-    # Check mode probes the MEMORY_TOP_N dearest scenarios; record mode
-    # probes ALL of them -- which scenarios land in a machine's top-N
-    # depends on the machine, and a peak recorded only for this
-    # machine's own top six failed CI on a runner whose dearest set
-    # differed (unrecorded: shoulder/tariff, shoulder/cycle).
-    _by_cost = sorted(
-        ((r[1], r[0]) for r in ratios), key=lambda kv: -kv[1]
-    )
-    mem_labels = [
-        label
-        for label, _ in (
-            _by_cost if record_mode else _by_cost[:MEMORY_TOP_N]
-        )
-    ]
+    # Record mode probes ALL of them. Check mode probes the scenarios whose
+    # RECORDED peaks are the largest -- half by traced allocation, half by
+    # RSS watermark -- and this is a correction, not a refinement (#287).
+    #
+    # It used to probe the MEMORY_TOP_N dearest scenarios by CPU, on the
+    # assumption that "the dear ones allocate the biggest trajectories".
+    # The recorded table says otherwise, in this repository's own numbers:
+    # the six dearest by CPU cost 2050 reference units between them and all
+    # traced the same middling 1.83 MiB, while the actual leaders -- 3.47
+    # MiB traced and 98.1 MiB of RSS -- cost 588. So the old selection
+    # probed six samples of ONE memory profile, missed both extremes, and
+    # paid tracemalloc's 3.5x more solver CPU for it: measured end to end on
+    # a box with no competing test process and load1 1.74-2.10, the memory
+    # pass falls from 667.7 s of child CPU to 207.0 s, which is 60 % of this
+    # whole script's cost. It is also the tighter test: the traced budget is
+    # recorded x1.5 + 2 MiB, which is 2.08x on a 3.47 MiB record and 2.59x
+    # on an 1.83 MiB one.
+    #
+    # Selecting from the COMMITTED table rather than from this run's
+    # measurements also makes the probe set machine-independent, which fixes
+    # at the root the CI failure the old comment described: a peak recorded
+    # only for this machine's own dearest six left a runner with a different
+    # ordering with unrecorded scenarios (shoulder/tariff, shoulder/cycle).
+    _by_cost = sorted(((r[1], r[0]) for r in ratios), key=lambda kv: -kv[1])
+
+    def _memory_probe_labels() -> list[str]:
+        """The recorded memory leaders, half on each axis, in a stable order."""
+        half = max(1, MEMORY_TOP_N // 2)
+        chosen: list[str] = []
+        for key in ("traced_peak_mb", "rss_peak_mb"):
+            ranked = sorted(
+                (-float(entry[key]), label)
+                for label, entry in budget_table.items()
+                if isinstance(entry, dict) and float(entry.get(key, 0.0)) > 0.0
+            )
+            taken = 0
+            for _peak, label in ranked:
+                if taken >= half:
+                    break
+                if label in chosen:
+                    continue
+                chosen.append(label)
+                taken += 1
+        return chosen
+
+    if record_mode:
+        mem_labels = [label for label, _ in _by_cost]
+    else:
+        mem_labels = [
+            label
+            for label in _memory_probe_labels()
+            if label in combos_by_label
+        ]
+        if not mem_labels:
+            # No memory recorded yet (a first run, or a fresh table): fall
+            # back to the cost ordering so the pass still says something.
+            mem_labels = [label for label, _ in _by_cost[:MEMORY_TOP_N]]
     rss_before_mb = rss_mb()
     mem_over: list[str] = []
     mem_unrecorded: list[str] = []
@@ -1163,8 +1456,31 @@ if __name__ == "__main__":
         f"here means the pass itself retained memory)"
     )
     if not record_mode:
+        # The pass is only worth its CPU if it probes the scenarios that
+        # actually allocate. It used to probe six samples of one middling
+        # profile and miss both extremes, so this states the requirement
+        # rather than trusting the selection rule to keep meeting it.
+        _mem_missed: list[str] = []
+        for _axis in ("traced_peak_mb", "rss_peak_mb"):
+            _ranked = sorted(
+                (-float(entry[_axis]), name)
+                for name, entry in budget_table.items()
+                if isinstance(entry, dict) and float(entry.get(_axis, 0.0)) > 0.0
+            )
+            if _ranked and _ranked[0][1] not in mem_labels:
+                _mem_missed.append(
+                    f"{_axis}: the recorded maximum is {_ranked[0][1]} at "
+                    f"{-_ranked[0][0]:.2f} and it was not probed"
+                )
         R.check(
-            "the dearest scenarios' memory peaks stay within their "
+            "the memory pass probes the recorded peak on each axis",
+            not _mem_missed,
+            "; ".join(_mem_missed)
+            + "; the pass exists to watch the biggest allocators, so it has "
+            "to include them",
+        )
+        R.check(
+            "the probed scenarios' memory peaks stay within their "
             "recorded budgets",
             not mem_over,
             "; ".join(mem_over),
@@ -1202,6 +1518,115 @@ if __name__ == "__main__":
         f"{sweep_reference_ms / 1000.0:.1f} s of reference CPU = {_sweep_ratio:.2f}x, "
         f"over the {SWEEP_BUDGET_RATIO:.2f}x budget",
     )
+
+    # -- can the budgets SEE a regression? (#287) -------------------------
+    # The other half of every check above. They ask whether the run exceeded
+    # its budget; this one asks whether the budget sits close enough to the
+    # observed cost to be capable of noticing. A budget nobody re-derives
+    # drifts away from the code it guards -- the two global ones were sized
+    # when the dearest scenario cost 655x, the batched jacobian made every
+    # combination 10-20x cheaper, and nothing brought them back down -- and a
+    # gate that cannot fail is not a gate.
+    # It is judged against the RECORDED table, not against this run's own
+    # observation, and that distinction was executed rather than reasoned.
+    # The first version of this check compared the budgets to the run's own
+    # figures; it passed here and FAILED on CI, because the ratio itself
+    # does not travel. On the M1 the reference solve is 18.1 ms and the
+    # dearest scenario 10056 ms -- a ratio of 553x. On a GitHub runner the
+    # same scenario costs 10846 ms (1.08x more) against a 33.5 ms reference
+    # (1.85x more), a ratio of 324x. The runner is disproportionately slow
+    # at the tiny 96-element reference, so every ratio COMPRESSES by up to
+    # 1.7x there. A budget is a property of the recording; an observation is
+    # a property of the machine, and judging the first by the second is
+    # exactly the false failure this file's whole design exists to avoid.
+    # Both figures are printed below so a reader sees the machine's own
+    # headroom too -- and note what that compression costs: where the table
+    # detects a 1.41x regression on the machine it was recorded on, it
+    # detects 1.5-2.4x on a runner whose ratios compress. Re-record there if
+    # that matters.
+    _recorded = [
+        float(entry["ratio"])
+        for entry in budget_table.values()
+        if isinstance(entry, dict) and float(entry.get("ratio", 0.0)) > 0.0
+    ]
+    _rec_worst = max(_recorded) if _recorded else _worst[0]
+    _rec_sweep = sum(_recorded) / len(_recorded) if _recorded else _sweep_ratio
+    _blind: list[str] = []
+    if SOLVE_BUDGET_RATIO >= DETECTION_TARGET * _rec_worst:
+        _blind.append(
+            f"the per-scenario ceiling is {SOLVE_BUDGET_RATIO:.0f}x against a "
+            f"dearest recorded {_rec_worst:.1f}x: it cannot see a "
+            f"{SOLVE_BUDGET_RATIO / max(_rec_worst, 1e-9):.2f}x regression, "
+            f"let alone a {DETECTION_TARGET:.0f}x one"
+        )
+    if SWEEP_BUDGET_RATIO >= DETECTION_TARGET * _rec_sweep:
+        _blind.append(
+            f"the sweep budget is {SWEEP_BUDGET_RATIO:.0f}x against a recorded "
+            f"mean of {_rec_sweep:.2f}x: it cannot see a "
+            f"{SWEEP_BUDGET_RATIO / max(_rec_sweep, 1e-9):.2f}x regression"
+        )
+    # The per-scenario factor is NOT held to DETECTION_TARGET, and that is a
+    # measured concession rather than a comfortable one: some scenarios' cost
+    # is bimodal across platforms (see SCENARIO_BUDGET_FACTOR), so a factor
+    # under 2 false-fails on a runner where the solver picks another basin.
+    # What must see a DETECTION_TARGET-fold UNIFORM regression is the gate as
+    # a whole -- in practice the sweep budget, which averages basin flips
+    # away. The floor, though, may never be looser than the factor: that
+    # would rebuild D9-03's hole at the bottom of the table, where a budget
+    # sized for the dearest scenario gets applied to the cheapest.
+    _floor_blind = [
+        (label, float(entry["ratio"]))
+        for label, entry in budget_table.items()
+        if isinstance(entry, dict)
+        and float(entry.get("ratio", 0.0)) > 0.0
+        and SCENARIO_BUDGET_FLOOR_RATIO
+        > SCENARIO_BUDGET_FACTOR * float(entry["ratio"])
+    ]
+    if _floor_blind:
+        _worst_floored = min(_floor_blind, key=lambda kv: kv[1])
+        _blind.append(
+            f"the per-scenario floor is {SCENARIO_BUDGET_FLOOR_RATIO:.2f}x and "
+            f"is looser than the {SCENARIO_BUDGET_FACTOR:.2f}x factor for "
+            f"{len(_floor_blind)} scenario(s) -- {_worst_floored[0]} is "
+            f"recorded at {_worst_floored[1]:.2f}x and could reach "
+            f"{SCENARIO_BUDGET_FLOOR_RATIO / _worst_floored[1]:.1f}x its cost "
+            f"before failing, against the "
+            f"{SCENARIO_BUDGET_FACTOR:.1f}x every other scenario gets"
+        )
+    print(
+        f"  detection against the RECORDED costs: per-scenario ceiling "
+        f"{SOLVE_BUDGET_RATIO / max(_rec_worst, 1e-9):.2f}x, sweep budget "
+        f"{SWEEP_BUDGET_RATIO / max(_rec_sweep, 1e-9):.2f}x, per-scenario "
+        f"table {SCENARIO_BUDGET_FACTOR:.2f}x -- the smallest of those is the "
+        f"smallest regression this gate can see where it was recorded"
+    )
+    print(
+        f"  detection on THIS machine: per-scenario ceiling "
+        f"{SOLVE_BUDGET_RATIO / max(_worst[0], 1e-9):.2f}x, sweep budget "
+        f"{SWEEP_BUDGET_RATIO / max(_sweep_ratio, 1e-9):.2f}x -- these move "
+        f"with the machine because the reference solve does not scale with "
+        f"the real ones (measured 1.7x of ratio compression between an M1 "
+        f"and a CI runner); re-record here to get the figures above"
+    )
+    _smallest = min(
+        SOLVE_BUDGET_RATIO / max(_rec_worst, 1e-9),
+        SWEEP_BUDGET_RATIO / max(_rec_sweep, 1e-9),
+        SCENARIO_BUDGET_FACTOR,
+    )
+    if _smallest >= DETECTION_TARGET:
+        _blind.append(
+            f"the smallest uniform regression any budget could see is "
+            f"{_smallest:.2f}x, against a required {DETECTION_TARGET:.0f}x"
+        )
+    R.check(
+        f"the budgets are tight enough to see a {DETECTION_TARGET:.0f}x "
+        "uniform regression",
+        not _blind,
+        "; ".join(_blind)
+        + "; re-derive the budgets from a measured quiet run "
+        "(tests/stress.py prints its own figures) rather than widening them",
+    )
+
     # The thread factor has to cancel, or the budgets do not travel.
     #
     # time.process_time() sums CPU over every thread in the process. A numpy
@@ -1269,7 +1694,7 @@ if __name__ == "__main__":
 
 
     for season in ("winter", "winter_extreme", "shoulder"):
-        run = build_case(season=season, two_zone=False, dhw=False)
+        run = case(season=season, two_zone=False, dhw=False)
         result = run["result"]
         baseline = thermostat_cost(run)
         R.check(
@@ -1281,7 +1706,7 @@ if __name__ == "__main__":
     # With a flat price curve there is nothing to arbitrage, so the optimizer
     # should not be *worse* than a thermostat -- but neither should it claim a
     # large saving, which would mean it is simply running colder.
-    flat = build_case(season="flat", two_zone=False, dhw=False)
+    flat = case(season="flat", two_zone=False, dhw=False)
     R.check(
         "a flat price curve produces no fictitious saving",
         flat["result"].savings_percentage < 35.0,
@@ -1297,7 +1722,7 @@ if __name__ == "__main__":
     # actually responding to price.
     spread_savings = {}
     for season in ("flat", "winter", "winter_extreme"):
-        run = build_case(season=season, two_zone=False, dhw=False)
+        run = case(season=season, two_zone=False, dhw=False)
         prices_arr = np.asarray(run["result"].prices)
         spread = float(prices_arr.max() - prices_arr.min())
         spread_savings[season] = (spread, run["result"].savings_percentage)
@@ -1315,11 +1740,19 @@ if __name__ == "__main__":
     # a table of what it buys. That table is the contract, so it is what gets
     # checked -- over the documented range, where the signal is far larger than the
     # solver noise discussed below.
+    # One case, four re-optimizations. It used to build the case inside the
+    # loop, which solved it a fifth, sixth, seventh and eighth time and read
+    # none of those four results -- the loop wants the case's model, config
+    # and inputs, never its plan. The config is COPIED rather than mutated
+    # in place: it is now shared with every other user of this scenario, and
+    # leaving comfort_weight at 40 behind would silently change them.
     comfort_curve = []
+    _comfort_base = case(season="winter", two_zone=False, dhw=False)
     for weight in (5.0, 10.0, 20.0, 40.0):
-        run = build_case(season="winter", two_zone=False, dhw=False)
-        run["config"].comfort_weight = weight
-        optimizer = HeatPumpOptimizer(run["model"], run["config"])
+        run = _comfort_base
+        weighted = copy.copy(run["config"])
+        weighted.comfort_weight = weight
+        optimizer = HeatPumpOptimizer(run["model"], weighted)
         result = optimizer.optimize(
             run["initial"], run["prices"], run["outdoor"], run["wind"],
             run["rain"], run["solar"], START,
@@ -1366,7 +1799,11 @@ if __name__ == "__main__":
     # could ever see, so whatever it moves is pure solver instability.
     adjacent = []
     for scale in (0.0, 1.0):
-        run = build_case(season="winter", two_zone=False, dhw=False)
+        # Same case both times, by construction: the wobble is the only
+        # thing that differs, which is the whole point of the measurement.
+        # Rebuilding it inside the loop also re-solved it twice over,
+        # unread.
+        run = case(season="winter", two_zone=False, dhw=False)
         optimizer = HeatPumpOptimizer(run["model"], run["config"])
         wobble = np.where(np.arange(run["n"]) % 2 == 0, 1e-6, -1e-6) * scale
         result = optimizer.optimize(
@@ -1381,8 +1818,8 @@ if __name__ == "__main__":
     )
 
     # The capacity tariff must actually flatten the peak it is priced against.
-    plain = build_case(season="winter", two_zone=True, dhw=True)
-    tariffed = build_case(season="winter", two_zone=True, dhw=True, tariff=True)
+    plain = case(season="winter", two_zone=True, dhw=True)
+    tariffed = case(season="winter", two_zone=True, dhw=True, tariff=True)
     plain_peak = plain["result"].projected_peak_kw
     tariff_peak = tariffed["result"].projected_peak_kw
     R.check(
@@ -1397,8 +1834,8 @@ if __name__ == "__main__":
     )
 
     # A cycling cost must reduce cycling.
-    smooth = build_case(season="winter", two_zone=False, dhw=True, cycling=3.0)
-    rough = build_case(season="winter", two_zone=False, dhw=True, cycling=0.0)
+    smooth = case(season="winter", two_zone=False, dhw=True, cycling=3.0)
+    rough = case(season="winter", two_zone=False, dhw=True, cycling=0.0)
     R.check(
         "a cycling cost reduces compressor starts",
         smooth["result"].compressor_starts <= rough["result"].compressor_starts,
@@ -1406,7 +1843,7 @@ if __name__ == "__main__":
     )
 
     # PV surplus must pull consumption into the surplus hours.
-    sunny = build_case(season="shoulder", two_zone=False, dhw=True, pv=True)
+    sunny = case(season="shoulder", two_zone=False, dhw=True, pv=True)
     R.check(
         "PV surplus is self-consumed",
         sunny["result"].pv_self_consumed_kwh > 0.0,
@@ -1428,8 +1865,8 @@ if __name__ == "__main__":
     #
     # So the honest invariant is dominance: never worse on either axis, and
     # strictly better on at least one.
-    efficient = build_case(season="winter", two_zone=False, dhw=False, cop_scale=1.4)
-    standard = build_case(season="winter", two_zone=False, dhw=False, cop_scale=1.0)
+    efficient = case(season="winter", two_zone=False, dhw=False, cop_scale=1.4)
+    standard = case(season="winter", two_zone=False, dhw=False, cop_scale=1.0)
 
 
     def _warmth(run):
@@ -1456,8 +1893,8 @@ if __name__ == "__main__":
     )
 
     # A leakier house must cost more than a tight one, all else equal.
-    tight = build_case(season="winter", building="light_new", dhw=False)
-    leaky = build_case(season="winter", building="heavy_old", dhw=False)
+    tight = case(season="winter", building="light_new", dhw=False)
+    leaky = case(season="winter", building="heavy_old", dhw=False)
     R.check(
         "a leakier, larger house costs more to heat",
         leaky["result"].predicted_cost > tight["result"].predicted_cost,
@@ -1508,7 +1945,7 @@ if __name__ == "__main__":
     edge_failures = 0
     for label, spec in edges.items():
         try:
-            run = build_case(**spec)
+            run = case(**spec)
         except Exception as err:  # noqa: BLE001 - a crash is the finding
             edge_failures += 1
             print(f"  FAIL {label}: raised {type(err).__name__}: {err}")
@@ -1528,7 +1965,7 @@ if __name__ == "__main__":
 
     # A pump that physically cannot keep up must still produce its best effort
     # rather than an infeasible or nonsensical plan.
-    tiny = build_case(season="winter", config={"heat_pump_max_power": 0.5}, dhw=False)
+    tiny = case(season="winter", config={"heat_pump_max_power": 0.5}, dhw=False)
     R.check(
         "an undersized pump runs flat out rather than giving up",
         float(np.mean(tiny["result"].power_schedule)) > 0.3,
@@ -1536,7 +1973,7 @@ if __name__ == "__main__":
     )
 
     # Negative prices mean being paid to consume; the plan should take some.
-    negative = build_case(season="summer_negative", dhw=True)
+    negative = case(season="summer_negative", dhw=True)
     cheapest = float(np.min(negative["result"].prices))
     if cheapest < 0:
         total = np.asarray(negative["result"].power_schedule) + np.asarray(
@@ -1573,10 +2010,10 @@ if __name__ == "__main__":
     # first two hours and the suppression check measures nothing — which is
     # precisely what the guard caught.
     _fire_spec = dict(season="winter")
-    with_fire = build_case(
+    with_fire = case(
         **_fire_spec, state={"external_heat_active": True, "dhw_temperature": 52.0}
     )
-    without_fire = build_case(**_fire_spec, state={"dhw_temperature": 52.0})
+    without_fire = case(**_fire_spec, state={"dhw_temperature": 52.0})
     _horizon_steps = int(round(2.0 / DT))
     _fire_early = float(np.sum(with_fire["result"].dhw_power_schedule[:_horizon_steps]))
     _base_early = float(
