@@ -812,6 +812,62 @@ def head_sha() -> str:
         return "unknown"
 
 
+def recorded_at_sha() -> str:
+    """The commit whose tree these numbers describe, as a reader can check it.
+
+    ``HEAD`` is the wrong answer and was the old one (#361). A re-record only
+    ever happens on a branch, and a branch commit is rewritten by the next
+    ``--amend`` and deleted by the squash-merge that lands it -- so the field
+    named a SHA that resolves to nothing, and the value in the committed table
+    was right only when somebody noticed and fixed it by hand.
+
+    The merge base against the upstream default branch is the commit the
+    measurement actually describes: it exists on ``main``, and it survives both
+    the amend and the squash. ``HEAD`` remains the fallback for a run with no
+    upstream configured, where it is the only thing there is.
+    """
+    for ref in ("origin/main", "main"):
+        base = subprocess.run(
+            ["git", "merge-base", "HEAD", ref], cwd=REPO_ROOT,
+            capture_output=True, text=True,
+        )
+        if base.returncode == 0 and base.stdout.strip():
+            return base.stdout.strip()
+    return head_sha()
+
+
+def recorded_at_unreachable(recorded: str) -> str | None:
+    """Why ``recorded`` is not a commit a reader can resolve, or None if it is.
+
+    Reported as a FAILURE, not a note, wherever the comparison can be made at
+    all: ``recorded_at_sha`` returns ``git merge-base HEAD <upstream>``, which
+    is an ancestor of that upstream by construction, so a value that is *not*
+    an ancestor can only have come from the pre-#361 code (a branch SHA the
+    squash deleted) or from a hand edit. There is no legitimate workflow that
+    produces one, so refusing is safe.
+
+    Returns None -- checks nothing -- when no upstream ref exists, which is the
+    fresh-clone case ``recorded_at_sha``'s own HEAD fallback exists to serve.
+    Failing there would break the case the fallback is for.
+    """
+    if not recorded or recorded == "unknown":
+        return "recorded_at is missing"
+    for ref in ("origin/main", "main"):
+        if subprocess.run(
+            ["git", "rev-parse", "--verify", "--quiet", ref], cwd=REPO_ROOT,
+            capture_output=True, text=True,
+        ).returncode != 0:
+            continue
+        ok = subprocess.run(
+            ["git", "merge-base", "--is-ancestor", recorded, ref], cwd=REPO_ROOT,
+            capture_output=True, text=True,
+        ).returncode == 0
+        if ok:
+            return None
+        return f"recorded_at {recorded[:12]} is not an ancestor of {ref}"
+    return None  # no upstream to compare against; nothing to assert
+
+
 def record_budgets(result: dict) -> int:
     # Only the integration matters: a budget table describes its structure,
     # and this script itself being untracked is exactly the first-record
@@ -824,7 +880,7 @@ def record_budgets(result: dict) -> int:
         print("WARNING: the tree is dirty under custom_components/; the numbers")
         print("below describe the working tree, not commit %s." % head_sha()[:12])
     payload = dict(result["metrics"])
-    payload["recorded_at"] = head_sha()
+    payload["recorded_at"] = recorded_at_sha()
     BUDGET_FILE.write_text(json.dumps(payload, indent=1, sort_keys=True) + "\n")
     print()
     print("########## budget table written to %s ##########" % BUDGET_FILE)
@@ -849,6 +905,13 @@ def ratchet(result: dict) -> int:
     print()
     print("########## ratchet vs %s (recorded_at %s) ##########"
           % (BUDGET_FILE.name, budgets.get("recorded_at", "?")[:12]))
+    why = recorded_at_unreachable(budgets.get("recorded_at", ""))
+    if why is not None:
+        print(f"FAIL {why};")
+        print("  the numbers cannot be traced to a tree anyone can check out.")
+        print("  Re-record with tests/structure.py --record, which stamps the")
+        print("  merge base -- a branch SHA does not survive the squash (#361).")
+        failures += 1
     budget_keys = {k: v for k, v in budgets.items() if k != "recorded_at"}
     for key in sorted(set(budget_keys) | set(metrics)):
         if key not in budget_keys:

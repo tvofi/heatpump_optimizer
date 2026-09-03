@@ -12333,6 +12333,83 @@ R.check(
     f"services.py: {_hpo_reg_sites} registration site(s)",
 )
 
+# #361: the budget table's recorded_at must name a commit a reader can resolve.
+# A re-record only ever happens on a branch, and a branch commit is rewritten
+# by the next --amend and deleted by the squash-merge that lands it -- so
+# stamping HEAD wrote a SHA that resolves to nothing, and the committed value
+# was correct only when somebody noticed and fixed it by hand. Pinned by AST
+# rather than by running git, so the check cannot flake on a shallow clone.
+_hpo_struct_tree = _hpo_ast.parse(_Path("tests/structure.py").read_text())
+_hpo_recorded_at_src = [
+    _hpo_ast.dump(_hpo_n.value)
+    for _hpo_n in _hpo_ast.walk(_hpo_struct_tree)
+    if isinstance(_hpo_n, _hpo_ast.Assign)
+    and any(
+        isinstance(_hpo_t, _hpo_ast.Subscript)
+        and isinstance(_hpo_t.slice, _hpo_ast.Constant)
+        and _hpo_t.slice.value == "recorded_at"
+        for _hpo_t in _hpo_n.targets
+    )
+]
+R.check(
+    "structure.py stamps recorded_at from the merge base, never from HEAD (#361)",
+    len(_hpo_recorded_at_src) == 1
+    and "recorded_at_sha" in _hpo_recorded_at_src[0]
+    and "head_sha" not in _hpo_recorded_at_src[0],
+    f"assignments to recorded_at: {_hpo_recorded_at_src or 'none found'}",
+)
+# The distinction that matters: the branch must COUNT the failure, not print a
+# note. A note is what let this defect survive two instances.
+_hpo_ratchet_fn = next(
+    (
+        _hpo_n
+        for _hpo_n in _hpo_ast.walk(_hpo_struct_tree)
+        if isinstance(_hpo_n, _hpo_ast.FunctionDef) and _hpo_n.name == "ratchet"
+    ),
+    None,
+)
+_hpo_unreach_vars = {
+    _hpo_t.id
+    for _hpo_a in _hpo_ast.walk(_hpo_ratchet_fn or _hpo_ast.Module(body=[], type_ignores=[]))
+    if isinstance(_hpo_a, _hpo_ast.Assign)
+    and "recorded_at_unreachable" in _hpo_ast.dump(_hpo_a.value)
+    for _hpo_t in _hpo_a.targets
+    if isinstance(_hpo_t, _hpo_ast.Name)
+}
+_hpo_counts_it = any(
+    isinstance(_hpo_i, _hpo_ast.If)
+    and (_hpo_unreach_vars & {
+        _hpo_x.id
+        for _hpo_x in _hpo_ast.walk(_hpo_i.test)
+        if isinstance(_hpo_x, _hpo_ast.Name)
+    })
+    and any(
+        isinstance(_hpo_g, _hpo_ast.AugAssign)
+        and isinstance(_hpo_g.target, _hpo_ast.Name)
+        and _hpo_g.target.id == "failures"
+        for _hpo_stmt in _hpo_i.body
+        for _hpo_g in _hpo_ast.walk(_hpo_stmt)
+    )
+    for _hpo_i in _hpo_ast.walk(_hpo_ratchet_fn or _hpo_ast.Module(body=[], type_ignores=[]))
+)
+R.check(
+    "an unresolvable recorded_at FAILS the ratchet, it is not merely noted (#361)",
+    bool(_hpo_unreach_vars) and _hpo_counts_it,
+    f"ratchet() must branch on recorded_at_unreachable and increment failures "
+    f"inside that branch (vars={sorted(_hpo_unreach_vars)}, counts={_hpo_counts_it})",
+)
+R.check(
+    "recorded_at_sha prefers the upstream merge base and falls back to HEAD (#361)",
+    any(
+        isinstance(_hpo_n, _hpo_ast.FunctionDef)
+        and _hpo_n.name == "recorded_at_sha"
+        and "merge-base" in _hpo_ast.dump(_hpo_n)
+        and "head_sha" in _hpo_ast.dump(_hpo_n)
+        for _hpo_n in _hpo_ast.walk(_hpo_struct_tree)
+    ),
+    "recorded_at_sha must call git merge-base and keep head_sha as the fallback",
+)
+
 R.section("v4.0.3 — stale-plan guards, billed peaks, boundary clamps")
 
 from heatpump_optimizer.config_flow import validate_tibber_token as _g_tibber
