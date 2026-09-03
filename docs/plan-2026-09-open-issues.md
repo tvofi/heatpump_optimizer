@@ -134,6 +134,20 @@ in a 4-core cloud container with no `gh` and no way to install it, so:
   fork pays a full baseline capture — hence one fork per wave;
 - at most two agents run at once, and anything needing a quiet box (the
   stress ruler, the timing judges) runs alone;
+- **the gate lock is scoped to the runs that need it.** `fixer.md` step 5
+  mandates it for every local gate; that was written for a dedicated
+  eight-core machine, and on a shared container it serialises every agent.
+  The lock exists for one script — `tests/stress.py`, whose solve-time guard
+  measures the machine while it solves — so the rule now asks
+  `closure.py select` what the diff actually runs and takes the lock only
+  when the answer includes `stress.py`, reports `MODE: FULL`, or fails.
+  Measured on this tree: a test file selects one script, the card five, and
+  none of them `stress.py`; `optimizer.py` and `coordinator.py` select
+  sixteen and do. The trap the rule is written around is that a gate file or
+  an unmapped file prints **zero** selected scripts while meaning *run
+  everything* — so it keys on the mode line, never on the count. What is run
+  locally regardless is the evidence CI cannot produce: the mutation proof,
+  the failing test at the merge base, and the finder's harness;
 - `tests/card_browser.mjs` runs locally against the pre-installed Chromium
   (`PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers`) but CI's `browser` job is the
   authority, because the local Playwright is not CI's pinned version.

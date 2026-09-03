@@ -19,19 +19,52 @@ get_files, get_diff), merge_pull_request (squash), actions_list
 const GATE = `Gate rules on this 4-core box. The shell's working directory
 resets between calls: pin cd in every command. PYTHONPATH=tests/hastub for
 direct script runs; python3 tests/structure.py before every push; the five
-BLAS thread variables pinned to 1. One gate at a time: mkdir
-/tmp/hpo-gate.lock and write an owner file (your label, pid, UTC); if it
-exists, read it and check the pid, then wait and retry -- never remove a lock
-you did not create. Under the lock: GATE_SCOPE=auto GOLDEN_MODE=drift
-GOLDEN_REF=$(git merge-base origin/main HEAD) ./tests/run.sh; release with
-rm -rf (not rmdir: the owner file makes it non-empty). tests/stress.py only
-under the lock, with the concurrent-process count beside every timing RESULT.
+BLAS thread variables pinned to 1.
+
+THE LOCK IS FOR tests/stress.py, SO ASK WHETHER YOUR CHANGE RUNS IT.
+/tmp/hpo-gate.lock exists because stress.py's solve-time guard measures this
+machine while it solves, and three concurrent stress runs at load 6.5 once
+destroyed the very budget table they were recording. Nothing else in the
+suite is timing-sensitive, so a change that does not select stress.py does
+not need the lock -- and taking it anyway serialises every other agent for
+no measurement reason. Decide it, do not assume it:
+
+    D=$(mktemp -d) && python3 tests/closure.py select \
+      --diff $(git merge-base origin/main HEAD) --workdir "$D"
+
+  * that command FAILS, or "$D/scope.txt" contains "MODE: FULL", or you are
+    deliberately running GATE_SCOPE=full  ->  TAKE THE LOCK. MODE: FULL is
+    how the gate reports a change it cannot reason about -- a gate file, or
+    a file in no recorded closure -- and it then runs every script including
+    stress.py. It prints ZERO selected scripts while meaning the opposite of
+    zero, so key on the mode line, never on the count.
+  * "$D/scope.run" names tests/stress.py  ->  TAKE THE LOCK.
+  * otherwise  ->  NO LOCK. Run the scripts scope.run names, directly.
+
+Taking the lock: mkdir /tmp/hpo-gate.lock and write an owner file (your
+label, the work's pid, UTC). If it exists, read it and check the pid, then
+wait and retry -- NEVER remove a lock you did not create. Under it run
+GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main
+HEAD) ./tests/run.sh, and release with rm -rf, not rmdir: the owner file
+makes the directory non-empty, and rmdir leaves the lock standing behind a
+green gate, which has blocked two sessions before. Print the concurrent
+process count beside every timing RESULT.
+
+CI IS THE AUTHORITY EITHER WAY. Its fast, closures and browser jobs run the
+same run.sh in the same drift mode against the same merge base, on a runner
+that is not competing with you -- so wait for them with actions_list and let
+them be the verdict. What you run locally is the evidence CI structurally
+CANNOT produce, and that is the reason to run it: the mutation proof (delete
+the production line, run the closure, paste the failing check names,
+restore), the failing test at the merge base before the fix exists, and the
+finder's harness before and after. CI only ever runs the committed tree, and
+tools/ is INERT so no CI job runs a harness at all.
+
 Browser lane: NODE_PATH=/opt/node22/lib/node_modules
 PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers node tests/card_browser.mjs
-(indicative only; CI's browser job decides). CI fast + closures + browser on
-the PR are the authority; wait for them with actions_list. Value-bearing
-golden fixtures are never re-recorded on this box: value drift is claimed;
-golden.py --record --only is for new key paths, and the body says so.`
+(indicative only; CI's browser job decides). Value-bearing golden fixtures
+are never re-recorded on this box: value drift is claimed; golden.py
+--record --only is for new key paths, and the body says so.`
 
 const DOC = (session) => `Documentation you must leave, in this order: before
 cutting the branch, label every issue owner:${session} (issue_write update,
