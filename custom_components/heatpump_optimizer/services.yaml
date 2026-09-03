@@ -331,7 +331,7 @@ set_thermal_parameters:
         How much wind increases heat loss. 0.15 means 15% more heat
         loss per m/s of wind speed. Adjusts convective heat transfer.
       required: false
-      example: 0.15
+      example: 0.03
       selector:
         number:
           min: 0.0
