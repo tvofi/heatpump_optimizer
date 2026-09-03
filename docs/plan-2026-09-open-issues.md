@@ -46,14 +46,42 @@ Where this table and a wave body disagree, this table is the truth.
 
 | Wave | Scope | Issues | Release | Status |
 |---|---|---|---|---|
-| 0 | stamp REST fallback; #367, #368 | #364, #282 | v6.3.10 | in progress |
-| triage | close or re-scope on a measured number | #281 #195 #197 #199 #244 #233 #325 #291 #232 #242 #304 #303 #225 #224 #193 #334 #258 | — | pending |
+| 0 | stamp REST fallback (#376); then #367, #368 | #364, #282 | v6.3.10 | fallback **merged** (`0820122`); the two PRs in review |
+| triage A | closed or re-scoped on a measured number | #197 #233 closed; #195 #244 #325 #334 re-scoped | — | **done** |
+| triage B | the rest, against the stamped tree | #281 #304 #303 #258 #242 #225 #224 #193; #291 #232 alone | — | pending |
 | 1a | the stress ruler, alone on an idle box | #346 | v6.3.11 | pending |
-| 1b | gate instruments, suite gaps, card, stores | #370 #369 #350 #374 #372 #357 #373 #246 #251 #247 #248 #249 #250 #252 #288 #238 #260 #261 #263 #266 #262 #265 #254 #245 #334 | v6.3.11 | pending |
-| 2 | coordinator lifecycle, learners, options grouping | #236 #237 #240 #239 #243 #283 #284 #279 #278 #277 #280 #198 | v6.3.12 | pending |
-| 3 | solver, DHW planner, GIL process route | #232 #233 #234 #289 #290 #199 #242 | v6.3.13 | pending |
-| 4 | the #193 decomposition program, S0–S13 | #193 #223 #224 #225 | one per stage | pending |
-| 5 | typing lane | #303 | per tranche | pending |
+| 1b | gate instruments, suite gaps, card, stores | 26 issues in 14 groups | v6.3.11 | prepared |
+| 2 | coordinator lifecycle, learners, options grouping | #236 #237 #240 #239 #243 #283 #284 #279 #278 #277 #244 #325 #280 #198 | v6.3.12 | pending |
+| 3 | solver, DHW planner, GIL process route | #232 #234 #289 #290 #199 #242 | v6.3.13 | pending |
+| 4 | the #193 decomposition programme, S0–S13 | #193 #223 #224 #225 | one per stage | pending |
+| 5 | typing lane, and the coverage deficit #195 raised | #303 #304 #195 | per tranche | pending |
+
+### What triage changed, 2026-09-03
+
+The judges overturned this plan three times, which is what they are for. Recorded here
+because the corrected version is what the waves now execute; the full numbers are in the
+judge comments on each issue and summarised on #201.
+
+- **#195 was not superseded and is now fix work.** #304's judge comment is aggregates, not
+  the per-module table #195 asked for, and the only committed table on main is the stale
+  88.4 % artefact. Re-measured: **89.7 %, 23 of 48 modules under the 95 % bar, and
+  `coordinator.py` alone is 789 of the 1,338 missed statements** — 59 % of the deficit, so
+  its half sequences behind the #193 seams. The leave-one-out is the planning fact:
+  `validate`, `edge`, `backtest`, `optimality` and `plan_view` each move the total **0.0
+  points**, so coverage cannot be bought with end-to-end scripts.
+- **#325 is not an accepted limit.** The settle hour buys the identifiability — discrimination
+  0.036 (below its own null floor) to **0.288** — but only if the settle hour's real delivered
+  power is recorded. `sysid.step()` hard-codes 0 kW, and admitting those rows unchanged makes
+  it *worse*: 0.012, with a −0.064 UA bias on an honest install. Record the power first,
+  widen the filter second.
+- **#334's residue was inverted.** `D6/claims.py` is repaired; **`D9/d9lib.py` is the one still
+  dead**, in ten files. The README has contradicted `HARNESSES.md` since #348, and no file on
+  main names the SHAs the tag moved between.
+- **#277, #244 and #325 are one group**, three views of one lead in `sysid.py`'s
+  `step()`/`identify()`; splitting them would lose #325's ordering constraint.
+- **#197 and #233 closed**, each with a sharper reason than the plan's: 160 mypy errors was a
+  *different ruler* (non-strict) rather than a stale count, and #233's restart gap fails its
+  own flat-price null at both 24 and 48 hours.
 
 ## Standing rules
 
