@@ -1,10 +1,10 @@
-"""The initial config flow, walked end to end with real validation (#194).
+"""The config flows, walked end to end with real validation (#194).
 
     PYTHONPATH=tests/hastub python tests/config_flow_steps.py
     PYTHONPATH=tests/hastub python tests/config_flow_steps.py --self-check
 
-What this catches that nothing else in the suite does (issue #194, tranche
-1): the nine-step initial flow had its screens fingerprinted by
+    What this catches that nothing else in the suite does (issue #194, tranche
+    1): the nine-step initial flow had its screens fingerprinted by
 ``tests/golden.py`` and its first three steps probed one at a time by
 ``tests/entities.py`` (user, temperature, building_describe -- the token
 verdict stubbed to "ok" wherever it mattered), but no test ever submitted
@@ -33,19 +33,42 @@ session seam the round-2 D10-B harness used: the REAL
 ``validate_tibber_token`` runs to its verdict against scripted HTTP
 responses, so the branches pinned are the production ones, not a stub's.
 
+Tranche 2 (this file's second half) drives the other two flows:
+
+* the fifteen-step OPTIONS flow (``init``/``advanced`` menus,
+  ``setup_overview``, ``entities``, ``comfort``, ``hot_water``,
+  ``building``, ``thermal_model``, ``tuning``, ``heat_curve``,
+  ``building_preset``, ``grid``, ``solar_pv``, ``away``, ``learning``):
+  every page submitted through the handler that really runs, its save
+  persisted through ``async_update_entry`` (``AFTER_SAVE_MENU``, the
+  stay-in-the-dialog default) or merged into one ``create_entry``
+  (``AFTER_SAVE_CLOSE``), the after-save return routed to the menu the
+  page came from, every per-page validation error, and the
+  clearing-an-entity-selector-None write-backs -- including that the
+  entities page nulls only its own roster (the PV/away/external-heat
+  wipe this handler once shipped).
+* the RECONFIGURE flow end to end through the real
+  ``validate_tibber_token``: ``tests/entities.py`` drives it with the
+  verdict stubbed to accept-anything, so the refused-token and
+  unreachable branches, and the whole round trip against scripted HTTP,
+  had never run.
+
 ``--self-check`` is the mutation-proof mode (tests/README.md): it breaks
-the duplicate guard and the token probe in-memory, one at a time, and
-fails unless the checks that are supposed to catch each breakage really
-fail.  Normal mode must pass on an unmodified tree; the self-check must
-fail on the broken one.
+the duplicate guard, the token probe, the options grid validation and
+the reconfigure guard's own-identity exemption in-memory, one at a time,
+and fails unless the checks that are supposed to catch each breakage
+really fail.  Normal mode must pass on an unmodified tree; the
+self-check must fail on the broken one.
 
 Expected (tolerance 0): every RESULT line reads full coverage --
 ``flow_checks_covered=<checks>`` with no failures, every step
-``happy=P/P error_branches=P/P``, ``reauth_round_trips=1``,
+``happy=P/P error_branches=P/P``, ``options_steps_covered=15/15``,
+``reauth_round_trips=1``, ``reconfigure_round_trips=1``,
 ``duplicate_aborts=1``.  Baseline measured: 87645f8, re-verified
-identical at 6d83f0b (the merge base; ``config_flow.py`` is byte-identical
-between the two), MacBookAir10,1; every number here is a count, immune to
-box load.
+identical at 6d83f0b (tranche 1; ``config_flow.py`` byte-identical
+between the two), extended at 9ab836e (tranche 2, the merge base, whose
+``config_flow.py`` carries the #307 reconfigure flow), MacBookAir10,1;
+every number here is a count, immune to box load.
 """
 from __future__ import annotations
 
@@ -166,6 +189,105 @@ WEATHER_ANSWERS = {
     const.CONF_RAIN_HEAT_LOSS_MULTIPLIER: 1.15,
 }
 
+# Valid answers for the fifteen options pages, at the shape each handler
+# reads. One dict per page: a page probe overrides one field and submits
+# an otherwise-valid page, the same discipline as the initial-flow walks.
+COMFORT_PAGE_ANSWERS = {
+    **TEMPERATURE_ANSWERS,
+    const.CONF_MOLD_GUARD_ENABLED: True,
+    const.CONF_THERMAL_BRIDGE_FRSI: 0.7,
+    const.CONF_INDOOR_HUMIDITY_ENTITY: "sensor.living_humidity",
+}
+TUNING_ANSWERS = {
+    const.CONF_PRICE_WEIGHT: 2.0,
+    const.CONF_COMFORT_WEIGHT: 8.0,
+    const.CONF_OPTIMIZATION_INTERVAL: 45,
+    const.CONF_CYCLING_COST: 0.35,
+    const.CONF_PRICE_RISK_LAMBDA: 0.4,
+    const.CONF_CONFIDENCE_MARGINS_ENABLED: True,
+    const.CONF_COMPRESSOR_REPLACEMENT_COST: 25000,
+    const.CONF_COMPRESSOR_RATED_STARTS: 300000,
+    const.CONF_WEAR_AUTOTUNE_ENABLED: True,
+    const.CONF_PRICE_TILES_ENABLED: True,
+}
+# The peak-hours field is documented as "07:00-19:00" and consumed by the
+# coordinator in the DHW window grammar, but the options-flow check on it
+# runs the grid-fee RULES grammar (config_flow.py:2658) -- the two accept
+# only the empty string in common. That mismatch is a finding to report,
+# not a behaviour to pin: the happy page carries the default empty spec,
+# and the error probe below uses "garbage", which no grammar accepts, so
+# both checks survive the validator being pointed at the right grammar.
+GRID_ANSWERS = {
+    const.CONF_PEAK_TARIFF_ENABLED: True,
+    const.CONF_PEAK_TARIFF_PRICE: 60.0,
+    const.CONF_PEAK_TARIFF_COUNT: 3,
+    const.CONF_PEAK_TARIFF_WINDOW: "60",
+    const.CONF_PEAK_TARIFF_MONTHS: "nov-feb",
+    const.CONF_PEAK_TARIFF_HOURS: "",
+    const.CONF_PEAK_TARIFF_WEEKDAYS_ONLY: False,
+    const.CONF_PEAK_TARIFF_OFFPEAK_FACTOR: 0.5,
+    const.CONF_MAIN_FUSE_A: 16,
+    const.CONF_MAIN_FUSE_PHASES: 3,
+    const.CONF_FUSE_GUARD_ENABLED: True,
+    const.CONF_PEAK_GUARD_ENABLED: True,
+    const.CONF_PEAK_GUARD_MARGIN_KW: 1.0,
+    const.CONF_GRID_FEE_MODE: config_flow.grid_fee.MODE_RULES,
+    const.CONF_GRID_FEE_FIXED: 0.15,
+    const.CONF_GRID_FEE_RULES: "06:00-08:00 = 0.5",
+    const.CONF_CONTRACT_FIXED_PRICE: 0.9,
+}
+BUILDING_PAGE_ANSWERS = {
+    const.CONF_MIXING_VALVE_MODE: config_flow.mixing_valve.MODE_NONE,
+    const.CONF_MIXING_VALVE_TARGET: 0.0,
+    const.CONF_BUFFER_TANK_VOLUME: 250.0,
+    const.CONF_BUFFER_MAX_TEMP: 70.0,
+    const.CONF_WOOD_TANK_VOLUME: 600.0,
+    const.CONF_DHW_WOOD_COIL_ENABLED: True,
+}
+SOLAR_ANSWERS = {
+    const.CONF_PV_ENABLED: True,
+    const.CONF_PV_PEAK_KW: 8.5,
+    const.CONF_PV_EFFICIENCY: 0.9,
+    const.CONF_PV_EXPORT_PRICE: 0.45,
+    const.CONF_PV_EXPORT_PRICE_ENTITY: "sensor.export_price",
+}
+AWAY_ANSWERS = {
+    const.CONF_AWAY_ENABLED: True,
+    const.CONF_AWAY_PRESENCE_ENTITY: "person.home",
+    const.CONF_AWAY_TEMPERATURE: 17.0,
+    const.CONF_AWAY_DHW_MIN_TEMP: 45.0,
+}
+LEARNING_ANSWERS = {
+    const.CONF_STALENESS_ENABLED: True,
+    const.CONF_STALENESS_SCALE: 2.0,
+    const.CONF_EXTERNAL_HEAT_ENABLED: True,
+    const.CONF_EXTERNAL_HEAT_ENTITY: "binary_sensor.stove",
+    const.CONF_EXTERNAL_HEAT_MIN_RISE: 0.6,
+    const.CONF_EXTERNAL_HEAT_DECAY_MINUTES: 45,
+    const.CONF_COMFORT_LEARNING_ENABLED: True,
+    const.CONF_SYSID_ENABLED: True,
+    const.CONF_PRICE_PRIOR_ENABLED: True,
+    const.CONF_OUTAGE_RECOVERY_ENABLED: True,
+    const.CONF_OPEN_WINDOW_RELAX_ENABLED: True,
+    const.CONF_IMMERSION_FEEDBACK_ENABLED: True,
+    const.CONF_PRECIP_TYPE_ENABLED: True,
+    const.CONF_SNOW_ROOF_FACTOR_ENABLED: True,
+    const.CONF_CAPACITY_CURVE_ENABLED: True,
+    const.CONF_SOLAR_APERTURE_LEARNING_ENABLED: True,
+    const.CONF_INTERNAL_GAINS_LEARNING_ENABLED: True,
+    const.CONF_CURVE_LEARNING_ENABLED: True,
+}
+HEAT_CURVE_ANSWERS = {
+    const.CONF_ECL110_DISPLACE_SET_TOPIC: "ecl/set",
+    const.CONF_ECL110_COMMAND_TOPIC: "ecl/cmd",
+    const.CONF_ECL110_STATE_TOPIC: "ecl/state",
+    const.CONF_ECL110_QOS: 1,
+    const.CONF_ECL110_RETAIN: True,
+    const.CONF_ECL110_DISPLACE_MIN: -10.0,
+    const.CONF_ECL110_DISPLACE_MAX: 10.0,
+    const.CONF_ECL110_PID_TIME_CONSTANT: 1.5,
+}
+
 
 # ---------------------------------------------------------------------------
 # The Tibber session seam: the real validate_tibber_token, scripted HTTP.
@@ -279,7 +401,43 @@ class Ledger:
             happy = f"{row['happy_ok']}/{len(row['happy'])}"
             errors = f"{row['error_ok']}/{len(row['error'])}"
             print(f"RESULT step_{step} happy={happy} error_branches={errors}")
+        # Tranche 2 (#194): the fifteen options-flow steps. Each row is one
+        # of HeatPumpOptimizerOptionsFlow's step methods; the opt_ prefix
+        # keeps them apart from the initial-flow steps of the same name.
+        options_steps = (
+            "opt_init",
+            "opt_advanced",
+            "opt_setup_overview",
+            "opt_entities",
+            "opt_comfort",
+            "opt_hot_water",
+            "opt_building",
+            "opt_thermal_model",
+            "opt_tuning",
+            "opt_heat_curve",
+            "opt_building_preset",
+            "opt_grid",
+            "opt_solar_pv",
+            "opt_away",
+            "opt_learning",
+        )
+        covered = 0
+        for step in options_steps:
+            row = self.rows.get(step, {"happy": [], "error": [], "happy_ok": 0, "error_ok": 0})
+            happy = f"{row['happy_ok']}/{len(row['happy'])}"
+            errors = f"{row['error_ok']}/{len(row['error'])}"
+            print(f"RESULT step_{step} happy={happy} error_branches={errors}")
+            if row["happy"]:
+                covered += 1
+        print(f"RESULT options_steps_covered={covered}/15 pages")
+        row = self.rows.get("reconfigure", {"happy": [], "error": [], "happy_ok": 0, "error_ok": 0})
+        print(
+            f"RESULT step_reconfigure happy={row['happy_ok']}/{len(row['happy'])} "
+            f"error_branches={row['error_ok']}/{len(row['error'])}"
+        )
         print(f"RESULT reauth_round_trips={self.rows.get('_reauth', 0)}")
+        print(f"RESULT reconfigure_round_trips={self.rows.get('_reconfigure', 0)}")
+        print(f"RESULT options_close_round_trips={self.rows.get('_options_close', 0)}")
         print(f"RESULT duplicate_aborts={self.rows.get('_dup', 0)}")
 
 
@@ -297,6 +455,11 @@ def shows(result, step_id):
     if result.get("type") == "menu":
         return step_id == "building"
     return result.get("type") == "form" and result.get("step_id") == step_id
+
+
+def shows_menu(result, step_id):
+    """The result is an options-flow menu for this step."""
+    return result.get("type") == "menu" and result.get("step_id") == step_id
 
 
 # ---------------------------------------------------------------------------
@@ -877,12 +1040,836 @@ async def reauth_round_trip():
 
 
 # ---------------------------------------------------------------------------
+# Tranche 2 (#194): the options flow. Its entry is a real one -- walked
+# through the questionnaire path above, then handed to
+# ``async_get_options_flow`` the way the flow manager does. Every page is
+# submitted through the handler that really runs, and every save is
+# asserted against the entry's options afterwards.
+# ---------------------------------------------------------------------------
+BASE_ENTRY_DATA: dict = {}
+BASE_UNIQUE_ID: str | None = None
+
+
+async def seed_base_entry():
+    """Walk the initial flow once and keep its entry (idempotent)."""
+    global BASE_ENTRY_DATA, BASE_UNIQUE_ID
+    if not BASE_ENTRY_DATA:
+        BASE_ENTRY_DATA, BASE_UNIQUE_ID = await options_entry_data()
+
+
+async def options_entry_data():
+    """The entry data of an existing install, from a real walk (not a fixture)."""
+    real = install_session(config_flow, FakeSession([TIBBER_VIEWER_OK]))
+    try:
+        flow = fresh_flow()
+        await submit(
+            flow,
+            "user",
+            {**FIRST_SCREEN, const.CONF_INDOOR_TEMP_ENTITY: "sensor.indoor_a"},
+        )
+        await submit(flow, "temperature", TEMPERATURE_ANSWERS)
+        await submit(flow, "building_describe", QUESTIONNAIRE_ANSWERS)
+        await submit(flow, "building_extras", EXTRAS_ANSWERS)
+        await submit(flow, "dhw", DHW_ANSWERS)
+        result = await submit(flow, "weather_sensitivity", WEATHER_ANSWERS)
+    finally:
+        config_flow.async_get_clientsession = real
+    assert result.get("type") == "create_entry", str(result)[:200]
+    return dict(result["data"]), flow.unique_id
+
+
+def fresh_options(pre_options=None, entry_id="opts-1"):
+    """A fresh options flow over a fresh entry seeded as the walk left it."""
+    hass = FakeHass()
+    entry = FakeEntry(
+        data=dict(BASE_ENTRY_DATA),
+        options=dict(pre_options or {}),
+        entry_id=entry_id,
+        unique_id=BASE_UNIQUE_ID,
+    )
+    hass.config_entries.entries.append(entry)
+    flow = config_flow.HeatPumpOptimizerConfigFlow.async_get_options_flow(entry)
+    flow.hass = hass
+    return flow, entry, hass
+
+
+async def options_menus():
+    R.section("options: the two menus")
+    flow, entry, _ = fresh_options()
+    top = await flow.async_step_init(None)
+    check(
+        "opt_init",
+        "happy",
+        "the top menu offers the revisited pages plus Advanced, in order",
+        shows_menu(top, "init")
+        and list(top.get("menu_options", {}))
+        == ["setup_overview", "comfort", "hot_water", "tuning", "grid", "away", "advanced"],
+        str(list(top.get("menu_options", {}))),
+    )
+    advanced = await flow.async_step_advanced(None)
+    check(
+        "opt_advanced",
+        "happy",
+        "the advanced menu lists the set-once pages, in order",
+        shows_menu(advanced, "advanced")
+        and list(advanced.get("menu_options", {}))
+        == [
+            "entities",
+            "building",
+            "building_preset",
+            "thermal_model",
+            "solar_pv",
+            "learning",
+            "heat_curve",
+        ],
+        str(list(advanced.get("menu_options", {}))),
+    )
+
+
+async def options_walk():
+    """One dialog, six top pages: show each form, submit it, stay in the dialog."""
+    R.section("options walk: six top pages, every save through async_update_entry")
+    flow, entry, hass = fresh_options()
+
+    # setup_overview is read-only: a picture of the system, saving nothing.
+    form = await flow.async_step_setup_overview(None)
+    check(
+        "opt_setup_overview",
+        "happy",
+        "the setup overview renders the configured system as text",
+        shows(form, "setup_overview")
+        and bool(form.get("description_placeholders", {}).get("setup_summary")),
+        str(form.get("description_placeholders", {}))[:120],
+    )
+    result = await submit(flow, "setup_overview", {})
+    check(
+        "opt_setup_overview",
+        "happy",
+        "leaving the overview returns to the menu and saves nothing",
+        shows_menu(result, "init") and not entry.options and not hass.config_entries.updated,
+        f"options={sorted(entry.options)} updated={hass.config_entries.updated}",
+    )
+
+    # comfort: a valid band, a humidity sensor, then the menu again.
+    await flow.async_step_comfort(None)
+    result = await submit(flow, "comfort", COMFORT_PAGE_ANSWERS)
+    check(
+        "opt_comfort",
+        "happy",
+        "a valid comfort page saves and returns to the top menu",
+        shows_menu(result, "init")
+        and entry.options.get(const.CONF_TARGET_TEMP) == 21.0
+        and entry.options.get(const.CONF_INDOOR_HUMIDITY_ENTITY) == "sensor.living_humidity"
+        and hass.config_entries.updated == ["opts-1"],
+        f"{result.get('type')}/{result.get('step_id')} "
+        f"options={sorted(entry.options)[:6]}",
+    )
+
+    # hot_water: the same page the initial flow has, with its warning.
+    warnings: list[str] = []
+
+    class Capture(logging.Handler):
+        def emit(self, record):
+            warnings.append(record.getMessage().lower())
+
+    logger = logging.getLogger("heatpump_optimizer.config_flow")
+    logger.addHandler(Capture())
+    try:
+        await flow.async_step_hot_water(None)
+        result = await submit(flow, "hot_water", DHW_ANSWERS)
+    finally:
+        logger.removeHandler(Capture())
+    check(
+        "opt_hot_water",
+        "happy",
+        "a valid hot-water page saves and warns about the legionella pair",
+        shows_menu(result, "init")
+        and entry.options.get(const.CONF_DHW_SETPOINT) == 52.0
+        and any("legionella" in w for w in warnings),
+        f"{result.get('type')}/{result.get('step_id')} warned={warnings[:1]}",
+    )
+    check(
+        "opt_hot_water",
+        "happy",
+        "this page's cleared entity slots are written back as None",
+        entry.options.get(const.CONF_DHW_INLET_ENTITY) is None
+        and entry.options.get(const.CONF_VVC_PUMP_ENTITY) is None
+        and entry.options.get(const.CONF_SPACE_PUMP_ENTITY) is None,
+        str(
+            {
+                k: entry.options.get(k)
+                for k in (
+                    const.CONF_DHW_INLET_ENTITY,
+                    const.CONF_VVC_PUMP_ENTITY,
+                    const.CONF_SPACE_PUMP_ENTITY,
+                )
+            }
+        ),
+    )
+
+    # tuning: the objective weights.
+    await flow.async_step_tuning(None)
+    result = await submit(flow, "tuning", TUNING_ANSWERS)
+    check(
+        "opt_tuning",
+        "happy",
+        "the tuning page saves and returns to the top menu",
+        shows_menu(result, "init") and entry.options.get(const.CONF_PRICE_WEIGHT) == 2.0,
+        f"{result.get('type')}/{result.get('step_id')} "
+        f"price_weight={entry.options.get(const.CONF_PRICE_WEIGHT)}",
+    )
+
+    # grid: the fee and tariff page, with its string->int window conversion.
+    await flow.async_step_grid(None)
+    result = await submit(flow, "grid", GRID_ANSWERS)
+    check(
+        "opt_grid",
+        "happy",
+        "the grid page saves, converting the window dropdown to minutes",
+        shows_menu(result, "init")
+        and entry.options.get(const.CONF_PEAK_TARIFF_WINDOW) == 60
+        and entry.options.get(const.CONF_PEAK_TARIFF_MONTHS) == "nov-feb"
+        and entry.options.get(const.CONF_GRID_FEE_ENTITY) is None,
+        f"window={entry.options.get(const.CONF_PEAK_TARIFF_WINDOW)!r} "
+        f"months={entry.options.get(const.CONF_PEAK_TARIFF_MONTHS)!r}",
+    )
+
+    # away: the last top page.
+    await flow.async_step_away(None)
+    result = await submit(flow, "away", AWAY_ANSWERS)
+    check(
+        "opt_away",
+        "happy",
+        "the away page saves, clearing its own empty entity slots",
+        shows_menu(result, "init")
+        and entry.options.get(const.CONF_AWAY_TEMPERATURE) == 17.0
+        and entry.options.get(const.CONF_AWAY_RETURN_ENTITY) is None,
+        f"{result.get('type')}/{result.get('step_id')} "
+        f"return={entry.options.get(const.CONF_AWAY_RETURN_ENTITY)!r}",
+    )
+
+    # Six pages in, one entry: the saves must have accumulated, not replaced.
+    from_every_page = [
+        key
+        for key in (
+            const.CONF_TARGET_TEMP,
+            const.CONF_DHW_SETPOINT,
+            const.CONF_PRICE_WEIGHT,
+            const.CONF_PEAK_TARIFF_WINDOW,
+            const.CONF_AWAY_TEMPERATURE,
+        )
+        if key not in entry.options
+    ]
+    check(
+        "opt_init",
+        "happy",
+        "five saved pages accumulate on the entry, not replace each other",
+        not from_every_page and len(hass.config_entries.updated) == 5,
+        f"missing {from_every_page} updated={len(hass.config_entries.updated)}",
+    )
+
+    # The other after-save choice: close the dialog. One create_entry whose
+    # data is this page merged into everything saved before it, and the
+    # after-save choice itself never persists.
+    result = await submit(
+        flow,
+        "tuning",
+        {**TUNING_ANSWERS, const.CONF_PRICE_WEIGHT: 3.0, const.CONF_AFTER_SAVE: const.AFTER_SAVE_CLOSE},
+    )
+    close_data = result.get("data", {})
+    round_trip_done = (
+        result.get("type") == "create_entry"
+        and close_data.get(const.CONF_PRICE_WEIGHT) == 3.0
+        and close_data.get(const.CONF_TARGET_TEMP) == 21.0
+        and close_data.get(const.CONF_AWAY_TEMPERATURE) == 17.0
+        and close_data.get(const.CONF_PEAK_TARIFF_WINDOW) == 60
+        and const.CONF_AFTER_SAVE not in close_data
+    )
+    check(
+        "opt_tuning",
+        "happy",
+        "'close' merges this page into every page saved before it",
+        round_trip_done,
+        f"{result.get('type')} keys={len(close_data)} "
+        f"after_save_persisted={const.CONF_AFTER_SAVE in close_data}",
+    )
+    LEDGER.rows["_options_close"] = int(round_trip_done)
+
+
+async def options_advanced_pages():
+    """The seven advanced pages, each on its own entry (they seed their own)."""
+    R.section("options: the advanced pages")
+
+    # entities: the token verdicts, the clearing, and the roster scope.
+    real = install_session(config_flow, FakeSession([TIBBER_VIEWER_OK]))
+    refused = fresh_options()
+    config_flow.async_get_clientsession = lambda hass, verify_ssl=True: FakeSession([(401, None)])
+    result = await submit(
+        refused[0],
+        "entities",
+        {const.CONF_TIBBER_TOKEN: "tok-wrong", const.CONF_WEATHER_ENTITY: "weather.home"},
+    )
+    check(
+        "opt_entities",
+        "error",
+        "a changed but refused token re-shows the entities page as invalid_tibber_token",
+        shows(result, "entities")
+        and result.get("errors", {}).get(const.CONF_TIBBER_TOKEN) == "invalid_tibber_token"
+        and not refused[1].options,
+        str(result.get("errors")),
+    )
+    unreachable = fresh_options()
+    config_flow.async_get_clientsession = lambda hass, verify_ssl=True: FakeSession(
+        [OSError("router rebooting")]
+    )
+    result = await submit(
+        unreachable[0],
+        "entities",
+        {const.CONF_TIBBER_TOKEN: "tok-wrong", const.CONF_WEATHER_ENTITY: "weather.home"},
+    )
+    check(
+        "opt_entities",
+        "error",
+        "an unreachable Tibber is cannot_connect on the entities page too",
+        shows(result, "entities")
+        and result.get("errors", {}).get(const.CONF_TIBBER_TOKEN) == "cannot_connect"
+        and not unreachable[1].options,
+        str(result.get("errors")),
+    )
+
+    # An UNCHANGED token skips the probe entirely (the session counts zero
+    # POSTs); cleared slots stick as None; and the entities this page does
+    # not render -- the PV, away and external-heat slots -- survive the save.
+    quiet_session = FakeSession([TIBBER_VIEWER_OK])
+    config_flow.async_get_clientsession = lambda hass, verify_ssl=True: quiet_session
+    flow, entry, _ = fresh_options(
+        pre_options={
+            const.CONF_PV_PRODUCTION_ENTITY: "sensor.pv",
+            const.CONF_AWAY_PRESENCE_ENTITY: "person.home",
+            const.CONF_EXTERNAL_HEAT_ENTITY: "binary_sensor.stove",
+        }
+    )
+    await flow.async_step_entities(None)
+    result = await submit(
+        flow,
+        "entities",
+        {
+            const.CONF_TIBBER_TOKEN: BASE_ENTRY_DATA[const.CONF_TIBBER_TOKEN],
+            const.CONF_WEATHER_ENTITY: "weather.home",
+        },
+    )
+    check(
+        "opt_entities",
+        "happy",
+        "an unchanged token skips the probe and cleared slots stick as None",
+        shows_menu(result, "advanced")
+        and entry.options.get(const.CONF_INDOOR_TEMP_ENTITY) is None
+        and entry.options.get(const.CONF_HEAT_PUMP_SWITCH_ENTITY) is None
+        and quiet_session.posts == 0,
+        f"indoor={entry.options.get(const.CONF_INDOOR_TEMP_ENTITY)!r} "
+        f"posts={quiet_session.posts}",
+    )
+    check(
+        "opt_entities",
+        "happy",
+        "other pages' entities survive an entities-page save",
+        entry.options.get(const.CONF_PV_PRODUCTION_ENTITY) == "sensor.pv"
+        and entry.options.get(const.CONF_AWAY_PRESENCE_ENTITY) == "person.home"
+        and entry.options.get(const.CONF_EXTERNAL_HEAT_ENTITY) == "binary_sensor.stove",
+        str(
+            {
+                k: entry.options.get(k)
+                for k in (
+                    const.CONF_PV_PRODUCTION_ENTITY,
+                    const.CONF_AWAY_PRESENCE_ENTITY,
+                    const.CONF_EXTERNAL_HEAT_ENTITY,
+                )
+            }
+        ),
+    )
+
+    # A changed token that validates saves through.
+    rotated_session = FakeSession([TIBBER_VIEWER_OK])
+    config_flow.async_get_clientsession = lambda hass, verify_ssl=True: rotated_session
+    flow, entry, _ = fresh_options()
+    await flow.async_step_entities(None)
+    result = await submit(
+        flow,
+        "entities",
+        {const.CONF_TIBBER_TOKEN: "tok-rotated", const.CONF_WEATHER_ENTITY: "weather.home"},
+    )
+    check(
+        "opt_entities",
+        "happy",
+        "a changed token that validates is written to the options",
+        shows_menu(result, "advanced")
+        and entry.options.get(const.CONF_TIBBER_TOKEN) == "tok-rotated"
+        and rotated_session.posts == 1,
+        f"token={entry.options.get(const.CONF_TIBBER_TOKEN)!r} "
+        f"posts={rotated_session.posts}",
+    )
+    config_flow.async_get_clientsession = real
+
+    # building: the plumbing page, no validation, clearable entities.
+    flow, entry, _ = fresh_options()
+    await flow.async_step_building(None)
+    result = await submit(flow, "building", BUILDING_PAGE_ANSWERS)
+    check(
+        "opt_building",
+        "happy",
+        "the building page saves to the advanced menu, clearing its entity slots",
+        shows_menu(result, "advanced")
+        and entry.options.get(const.CONF_BUFFER_TANK_VOLUME) == 250.0
+        and entry.options.get(const.CONF_MIXING_VALVE_TARGET_ENTITY) is None
+        and entry.options.get(const.CONF_WOOD_TANK_TOP_ENTITY) is None
+        and entry.options.get(const.CONF_VALVE_OUTLET_TEMP_ENTITY) is None,
+        f"valve={entry.options.get(const.CONF_MIXING_VALVE_TARGET_ENTITY)!r} "
+        f"wood_top={entry.options.get(const.CONF_WOOD_TANK_TOP_ENTITY)!r}",
+    )
+
+    # thermal_model: the presence-hazard page. A no-op save keeps the
+    # questionnaire armed; editing a derived number disarms it.
+    stored_mass = BASE_ENTRY_DATA[const.CONF_HOUSE_THERMAL_MASS]
+    flow, entry, _ = fresh_options()
+    await flow.async_step_thermal_model(None)
+    result = await submit(
+        flow,
+        "thermal_model",
+        {
+            const.CONF_HOUSE_THERMAL_MASS: stored_mass,
+            const.CONF_HEAT_PUMP_MAX_POWER: 5.0,
+            const.CONF_HEAT_PUMP_MIN_POWER: 1.0,
+        },
+    )
+    check(
+        "opt_thermal_model",
+        "happy",
+        "re-submitting the derived values as they are keeps the preset armed",
+        shows_menu(result, "advanced")
+        and const.CONF_BUILDING_PRESET_ENABLED not in entry.options,
+        f"preset={entry.options.get(const.CONF_BUILDING_PRESET_ENABLED)!r}",
+    )
+    flow, entry, _ = fresh_options()
+    await flow.async_step_thermal_model(None)
+    result = await submit(
+        flow, "thermal_model", {const.CONF_HOUSE_THERMAL_MASS: stored_mass + 2.0}
+    )
+    check(
+        "opt_thermal_model",
+        "happy",
+        "editing a derived number disarms the questionnaire",
+        shows_menu(result, "advanced")
+        and entry.options.get(const.CONF_BUILDING_PRESET_ENABLED) is False
+        and entry.options.get(const.CONF_HOUSE_THERMAL_MASS) == stored_mass + 2.0,
+        f"preset={entry.options.get(const.CONF_BUILDING_PRESET_ENABLED)!r}",
+    )
+
+    # building_preset: the questionnaire, options-side. Enabling it derives
+    # physics from the answers; disabling it leaves the numbers alone.
+    flow, entry, _ = fresh_options()
+    await flow.async_step_building_preset(None)
+    result = await submit(
+        flow,
+        "building_preset",
+        {
+            **QUESTIONNAIRE_ANSWERS,
+            const.CONF_HEATED_AREA: 160.0,
+            const.CONF_WINDOW_AREA: 12.0,
+            const.CONF_BUILDING_PRESET_ENABLED: True,
+        },
+    )
+    check(
+        "opt_building_preset",
+        "happy",
+        "enabling the preset derives physics from the answers",
+        shows_menu(result, "advanced")
+        and entry.options.get(const.CONF_BUILDING_PRESET_ENABLED) is True
+        and const.CONF_HOUSE_THERMAL_MASS in entry.options
+        and entry.options[const.CONF_HOUSE_THERMAL_MASS] != stored_mass,
+        f"derived={entry.options.get(const.CONF_HOUSE_THERMAL_MASS)!r} "
+        f"stored={stored_mass!r}",
+    )
+    flow, entry, _ = fresh_options()
+    await flow.async_step_building_preset(None)
+    result = await submit(
+        flow,
+        "building_preset",
+        {**QUESTIONNAIRE_ANSWERS, const.CONF_BUILDING_PRESET_ENABLED: False},
+    )
+    check(
+        "opt_building_preset",
+        "happy",
+        "a disabled preset saves the answers without deriving physics",
+        shows_menu(result, "advanced")
+        and entry.options.get(const.CONF_BUILDING_PRESET_ENABLED) is False
+        and const.CONF_HOUSE_THERMAL_MASS not in entry.options,
+        f"mass={entry.options.get(const.CONF_HOUSE_THERMAL_MASS)!r}",
+    )
+
+    # solar_pv, learning, heat_curve: plain pages, each clearing its own.
+    flow, entry, _ = fresh_options()
+    await flow.async_step_solar_pv(None)
+    result = await submit(flow, "solar_pv", SOLAR_ANSWERS)
+    check(
+        "opt_solar_pv",
+        "happy",
+        "the solar page saves, clearing an absent production entity",
+        shows_menu(result, "advanced")
+        and entry.options.get(const.CONF_PV_PEAK_KW) == 8.5
+        and entry.options.get(const.CONF_PV_PRODUCTION_ENTITY) is None
+        and entry.options.get(const.CONF_PV_EXPORT_PRICE_ENTITY) == "sensor.export_price",
+        f"production={entry.options.get(const.CONF_PV_PRODUCTION_ENTITY)!r}",
+    )
+    flow, entry, _ = fresh_options()
+    await flow.async_step_learning(None)
+    result = await submit(flow, "learning", LEARNING_ANSWERS)
+    check(
+        "opt_learning",
+        "happy",
+        "the learning page saves with its watchdogs and its own entity slot",
+        shows_menu(result, "advanced")
+        and entry.options.get(const.CONF_EXTERNAL_HEAT_ENTITY) == "binary_sensor.stove"
+        and entry.options.get(const.CONF_SYSID_ENABLED) is True,
+        f"external={entry.options.get(const.CONF_EXTERNAL_HEAT_ENTITY)!r}",
+    )
+    flow, entry, _ = fresh_options()
+    await flow.async_step_heat_curve(None)
+    result = await submit(flow, "heat_curve", HEAT_CURVE_ANSWERS)
+    check(
+        "opt_heat_curve",
+        "happy",
+        "the heat curve page saves its MQTT wiring",
+        shows_menu(result, "advanced")
+        and entry.options.get(const.CONF_ECL110_COMMAND_TOPIC) == "ecl/cmd"
+        and entry.options.get(const.CONF_ECL110_PID_TIME_CONSTANT) == 1.5,
+        str({k: entry.options.get(k) for k in HEAT_CURVE_ANSWERS}),
+    )
+
+
+async def options_error_branches():
+    """Every per-page validation error, each on a fresh flow that must not save."""
+    R.section("options: every page's validation errors")
+
+    # comfort: the comfort band, one rule at a time, exact error dicts.
+    flow, entry, _ = fresh_options()
+    result = await submit(
+        flow,
+        "comfort",
+        {
+            **COMFORT_PAGE_ANSWERS,
+            const.CONF_MIN_TEMP: 21.5,
+            const.CONF_COMFORT_TEMP_DAY: 22.0,
+            const.CONF_COMFORT_TEMP_NIGHT: 21.5,
+        },
+    )
+    check(
+        "opt_comfort",
+        "error",
+        "an inverted comfort band re-shows the page with min_above_target",
+        shows(result, "comfort")
+        and result.get("errors") == {const.CONF_MIN_TEMP: "min_above_target"},
+        str(result.get("errors")),
+    )
+    check(
+        "opt_comfort",
+        "error",
+        "and stores nothing",
+        not entry.options,
+        str(sorted(entry.options)),
+    )
+
+    # hot_water: the window grammar and the deadband, through the options page.
+    flow, entry, _ = fresh_options()
+    result = await submit(
+        flow, "hot_water", {**DHW_ANSWERS, const.CONF_DHW_WINDOWS: "garbage"}
+    )
+    check(
+        "opt_hot_water",
+        "error",
+        "an unparseable window spec is invalid_dhw_windows on this page too",
+        shows(result, "hot_water")
+        and result.get("errors", {}).get(const.CONF_DHW_WINDOWS) == "invalid_dhw_windows",
+        str(result.get("errors")),
+    )
+    flow, entry, _ = fresh_options()
+    result = await submit(
+        flow,
+        "hot_water",
+        {**DHW_ANSWERS, const.CONF_DHW_SETPOINT: 48.0, const.CONF_DHW_MIN_TEMP: 46.0},
+    )
+    check(
+        "opt_hot_water",
+        "error",
+        "a minimum with no deadband below the setpoint is dhw_min_too_close here too",
+        shows(result, "hot_water")
+        and result.get("errors", {}).get(const.CONF_DHW_MIN_TEMP) == "dhw_min_too_close"
+        and not entry.options,
+        str(result.get("errors")),
+    )
+
+    # thermal_model: the power pair, whole and half (the effective-pair rule).
+    flow, entry, _ = fresh_options()
+    result = await submit(
+        flow,
+        "thermal_model",
+        {const.CONF_HEAT_PUMP_MAX_POWER: 4.0, const.CONF_HEAT_PUMP_MIN_POWER: 8.0},
+    )
+    check(
+        "opt_thermal_model",
+        "error",
+        "an inverted power pair is min_power_above_max on the thermal page",
+        shows(result, "thermal_model")
+        and result.get("errors") == {const.CONF_HEAT_PUMP_MIN_POWER: "min_power_above_max"},
+        str(result.get("errors")),
+    )
+    flow, entry, _ = fresh_options()
+    result = await submit(flow, "thermal_model", {const.CONF_HEAT_PUMP_MIN_POWER: 6.0})
+    check(
+        "opt_thermal_model",
+        "error",
+        "a submitted floor above the STORED ceiling is caught too",
+        shows(result, "thermal_model")
+        and result.get("errors") == {const.CONF_HEAT_PUMP_MIN_POWER: "min_power_above_max"}
+        and not entry.options,
+        str(result.get("errors")),
+    )
+
+    # grid: three validators, each pinned on its own field.
+    probes = [
+        (
+            "an unparseable month mask on the grid page is invalid_peak_months",
+            {const.CONF_PEAK_TARIFF_MONTHS: "garbage"},
+            const.CONF_PEAK_TARIFF_MONTHS,
+            "invalid_peak_months",
+        ),
+        (
+            "an unparseable hours mask on the grid page is invalid_peak_hours",
+            {const.CONF_PEAK_TARIFF_HOURS: "garbage"},
+            const.CONF_PEAK_TARIFF_HOURS,
+            "invalid_peak_hours",
+        ),
+        (
+            "an unparseable fee rule is invalid_grid_fee_rules",
+            {const.CONF_GRID_FEE_RULES: "garbage"},
+            const.CONF_GRID_FEE_RULES,
+            "invalid_grid_fee_rules",
+        ),
+        (
+            "a negative fee rate is grid_fee_rules_negative",
+            {const.CONF_GRID_FEE_RULES: "06:00-08:00 = -1"},
+            const.CONF_GRID_FEE_RULES,
+            "grid_fee_rules_negative",
+        ),
+    ]
+    for name, override, field, expected in probes:
+        flow, entry, _ = fresh_options()
+        result = await submit(flow, "grid", {**GRID_ANSWERS, **override})
+        check(
+            "opt_grid",
+            "error",
+            name,
+            shows(result, "grid")
+            and result.get("errors") == {field: expected}
+            and not entry.options,
+            f"got {result.get('errors')}, want {{{field!r}: {expected!r}}}",
+        )
+
+
+# ---------------------------------------------------------------------------
+# Tranche 2 (#194): the reconfigure flow, end to end through the real
+# validate_tibber_token. tests/entities.py drives this flow with the verdict
+# stubbed to accept-anything; the branches below (a refused token
+# mid-reconfigure, an unreachable Tibber, the whole round trip against
+# scripted HTTP) had never run against the production verdict logic.
+# ---------------------------------------------------------------------------
+RC_ENTRY_DATA = {
+    config_flow.CONF_NAME: "Annex pump",
+    const.CONF_TIBBER_TOKEN: "stale-token",
+    const.CONF_WEATHER_ENTITY: "weather.home",
+    const.CONF_HEAT_PUMP_SWITCH_ENTITY: "switch.pump_a",
+    const.CONF_INDOOR_TEMP_ENTITY: "sensor.annex_indoor",
+    const.CONF_TARGET_TEMP: 21.5,  # a second-screen setting the first screen never asks
+}
+RC_SAME = {
+    config_flow.CONF_NAME: "Annex pump",
+    const.CONF_TIBBER_TOKEN: "stale-token",
+    const.CONF_WEATHER_ENTITY: "weather.home",
+    const.CONF_HEAT_PUMP_SWITCH_ENTITY: "switch.pump_a",
+    const.CONF_INDOOR_TEMP_ENTITY: "sensor.annex_indoor",
+}
+RC_OTHER_PLANT = {
+    **FIRST_SCREEN,
+    const.CONF_HEAT_PUMP_SWITCH_ENTITY: "switch.pump_b",
+}
+
+
+def rc_setup():
+    """A reconfigure flow as the 2024.6 manager starts one: two plants, entry A."""
+    hass = FakeHass()
+    entry = FakeEntry(
+        data=dict(RC_ENTRY_DATA),
+        entry_id="plant_a",
+        unique_id=config_flow.entry_identity(RC_ENTRY_DATA),
+    )
+    other = FakeEntry(
+        data=dict(RC_OTHER_PLANT),
+        entry_id="plant_b",
+        unique_id=config_flow.entry_identity(RC_OTHER_PLANT),
+    )
+    hass.config_entries.entries += [entry, other]
+    flow = config_flow.HeatPumpOptimizerConfigFlow()
+    flow.hass = hass
+    flow.context = {"source": "reconfigure", "entry_id": "plant_a"}
+    return flow, entry, other, hass
+
+
+def rc_suggested(result):
+    """The suggested values the reopened first screen carries, by field."""
+    schema = result.get("data_schema")
+    if schema is None:
+        return {}
+    return {
+        str(getattr(key, "schema", key)): (getattr(key, "description", None) or {}).get(
+            "suggested_value"
+        )
+        for key in schema.schema
+    }
+
+
+async def reconfigure_flow():
+    R.section("reconfigure: the first screen reopened over the entry it changes")
+    real = install_session(config_flow, FakeSession([TIBBER_VIEWER_OK]))
+
+    # The entry point: the manager calls async_step_reconfigure with the
+    # entry's own data; the step reopens the first screen prefilled from it.
+    flow, entry, _, _ = rc_setup()
+    result = await flow.async_step_reconfigure(None)
+    suggested = rc_suggested(result)
+    check(
+        "reconfigure",
+        "happy",
+        "reconfigure reopens the first screen, prefilled with this entry's answers",
+        shows(result, "user")
+        and suggested.get(config_flow.CONF_NAME) == "Annex pump"
+        and suggested.get(const.CONF_TIBBER_TOKEN) == "stale-token"
+        and suggested.get(const.CONF_INDOOR_TEMP_ENTITY) == "sensor.annex_indoor",
+        f"{result.get('type')}/{result.get('step_id')} suggested={suggested}",
+    )
+
+    # 401 mid-reconfigure: the token is refused, the entry is untouched.
+    config_flow.async_get_clientsession = lambda hass, verify_ssl=True: FakeSession([(401, None)])
+    flow, entry, _, hass = rc_setup()
+    result = await submit(flow, "reconfigure", RC_SAME)
+    check(
+        "reconfigure",
+        "error",
+        "a refused token mid-reconfigure shows invalid_tibber_token, changing nothing",
+        shows(result, "user")
+        and result.get("errors", {}).get(const.CONF_TIBBER_TOKEN) == "invalid_tibber_token"
+        and entry.data == dict(RC_ENTRY_DATA)
+        and not hass.config_entries.updated,
+        f"{result.get('errors')} updated={hass.config_entries.updated}",
+    )
+    config_flow.async_get_clientsession = lambda hass, verify_ssl=True: FakeSession(
+        [OSError("router rebooting")]
+    )
+    flow, entry, _, hass = rc_setup()
+    result = await submit(flow, "reconfigure", RC_SAME)
+    check(
+        "reconfigure",
+        "error",
+        "an unreachable Tibber is cannot_connect mid-reconfigure too",
+        shows(result, "user")
+        and result.get("errors", {}).get(const.CONF_TIBBER_TOKEN) == "cannot_connect"
+        and not hass.config_entries.updated,
+        str(result.get("errors")),
+    )
+
+    # Re-submitting this entry's OWN identity is the case the plain duplicate
+    # guard would get wrong: the registry finds THIS entry, and the guard's
+    # own-identity exemption is what lets the reconfigure proceed.
+    config_flow.async_get_clientsession = lambda hass, verify_ssl=True: FakeSession(
+        [TIBBER_VIEWER_OK]
+    )
+    flow, entry, _, hass = rc_setup()
+    result = await submit(flow, "reconfigure", RC_SAME)
+    round_trip_done = (
+        result == {"type": "abort", "reason": "reconfigure_successful"}
+        and entry.data[const.CONF_TARGET_TEMP] == 21.5
+        and entry.data[const.CONF_TIBBER_TOKEN] == "stale-token"
+        and hass.config_entries.reloaded == ["plant_a"]
+        and entry.unique_id == config_flow.entry_identity(RC_ENTRY_DATA)
+    )
+    check(
+        "reconfigure",
+        "happy",
+        "re-submitting this entry's own identity reconfigures it instead of aborting",
+        round_trip_done,
+        f"{result} reloaded={hass.config_entries.reloaded}",
+    )
+
+    # A rotated token: a new identity no other entry holds, written through
+    # with the rest of the entry's data intact.
+    flow, entry, _, hass = rc_setup()
+    result = await submit(flow, "reconfigure", {**RC_SAME, const.CONF_TIBBER_TOKEN: "tok-fresh"})
+    check(
+        "reconfigure",
+        "happy",
+        "a rotated token is written through and the entry keeps its other settings",
+        result == {"type": "abort", "reason": "reconfigure_successful"}
+        and entry.data[const.CONF_TIBBER_TOKEN] == "tok-fresh"
+        and entry.data[const.CONF_TARGET_TEMP] == 21.5
+        and hass.config_entries.reloaded == ["plant_a"]
+        and entry.unique_id
+        == config_flow.entry_identity({**RC_ENTRY_DATA, const.CONF_TIBBER_TOKEN: "tok-fresh"}),
+        f"{result} token={entry.data.get(const.CONF_TIBBER_TOKEN)} "
+        f"reloaded={hass.config_entries.reloaded}",
+    )
+
+    # Changed identity: the picks now name the OTHER entry's plant. The
+    # guard runs (this is not this entry's identity) and must refuse.
+    flow, entry, _, hass = rc_setup()
+    result = await submit(flow, "reconfigure", RC_OTHER_PLANT)
+    check(
+        "reconfigure",
+        "error",
+        "reconfiguring into another entry's plant is refused",
+        result == {"type": "abort", "reason": "already_configured"}
+        and entry.data == dict(RC_ENTRY_DATA)
+        and not hass.config_entries.reloaded,
+        f"{result} data_unchanged={entry.data == dict(RC_ENTRY_DATA)}",
+    )
+
+    # A cleared slot: the user stopped using this sensor, and the update
+    # drops it instead of silently keeping the old entity.
+    flow, entry, _, _ = rc_setup()
+    cleared = {k: v for k, v in RC_SAME.items() if k != const.CONF_INDOOR_TEMP_ENTITY}
+    result = await submit(flow, "reconfigure", cleared)
+    check(
+        "reconfigure",
+        "happy",
+        "a slot the user cleared is dropped, not silently kept",
+        result == {"type": "abort", "reason": "reconfigure_successful"}
+        and const.CONF_INDOOR_TEMP_ENTITY not in entry.data,
+        f"{result} indoor={entry.data.get(const.CONF_INDOOR_TEMP_ENTITY)!r}",
+    )
+
+    LEDGER.rows["_reconfigure"] = int(round_trip_done)
+    config_flow.async_get_clientsession = real
+
+
+# ---------------------------------------------------------------------------
 # --self-check: break production in memory, one behaviour at a time, and
 # require the checks that guard each behaviour to fail. A check that cannot
 # fail pins nothing (tests/README.md).
 # ---------------------------------------------------------------------------
 async def self_check():
     print("\n=== self-check: each mutation must break its named check ===")
+    # The base-entry walk passes through the dhw warning; sink it so the
+    # mutation verdicts stay readable.
+    sink = logging.Handler()
+    sink.emit = lambda record: None
+    logging.getLogger().addHandler(sink)
     outcomes = []
 
     # Mutation 1: the duplicate guard is a no-op.
@@ -936,6 +1923,61 @@ async def self_check():
     finally:
         config_flow.validate_tibber_token = real_validate
 
+    # Mutation 3: the options grid page's month-mask validation is a no-op.
+    real_months = config_flow._valid_months_spec
+    config_flow._valid_months_spec = lambda spec: True
+    try:
+        await seed_base_entry()
+        flow, entry, _ = fresh_options()
+        result = await submit(
+            flow, "grid", {**GRID_ANSWERS, const.CONF_PEAK_TARIFF_MONTHS: "garbage"}
+        )
+        caught = (
+            result.get("errors", {}).get(const.CONF_PEAK_TARIFF_MONTHS)
+            != "invalid_peak_months"
+        )
+        outcomes.append(
+            (
+                "grid months validation no-op",
+                caught,
+                "an unparseable month mask on the grid page is invalid_peak_months",
+                str(result.get("errors")),
+            )
+        )
+    finally:
+        config_flow._valid_months_spec = real_months
+
+    # Mutation 4: the reconfigure guard runs on the entry's OWN identity --
+    # the exemption removed. The wrapper runs the REAL guard against the
+    # REAL identity before delegating, which is exactly what deleting the
+    # ``self._reconfigure_entry is None or ...`` condition does to the
+    # reconfigure path (the production-edit proof is in the PR body).
+    real_user = config_flow.HeatPumpOptimizerConfigFlow.async_step_user
+
+    async def guard_before_exemption(self, user_input=None):
+        if user_input is not None and self._reconfigure_entry is not None:
+            await self.async_set_unique_id(config_flow.entry_identity(user_input))
+            self._abort_if_unique_id_configured()
+        return await real_user(self, user_input)
+
+    config_flow.HeatPumpOptimizerConfigFlow.async_step_user = guard_before_exemption
+    try:
+        real = install_session(config_flow, FakeSession([TIBBER_VIEWER_OK]))
+        flow, _, _, _ = rc_setup()
+        result = await submit(flow, "reconfigure", RC_SAME)
+        caught = result != {"type": "abort", "reason": "reconfigure_successful"}
+        outcomes.append(
+            (
+                "reconfigure guard runs on own identity",
+                caught,
+                "re-submitting this entry's own identity reconfigures it instead of aborting",
+                str(result)[:120],
+            )
+        )
+        config_flow.async_get_clientsession = real
+    finally:
+        config_flow.HeatPumpOptimizerConfigFlow.async_step_user = real_user
+
     ok = True
     for mutation, caught, check_name, detail in outcomes:
         print(
@@ -947,7 +1989,7 @@ async def self_check():
     if not ok:
         print("\na mutation survived: a check that cannot fail pins nothing")
         return 1
-    print("\nboth mutations caught by their named checks")
+    print("\nall four mutations caught by their named checks")
     return 0
 
 
@@ -961,12 +2003,18 @@ async def main() -> int:
     sink.emit = lambda record: None
     logging.getLogger().addHandler(sink)
 
+    await seed_base_entry()
     await duplicate_and_null_control()
     await user_error_branches()
     await walk_questionnaire()
     await walk_expert()
     await temperature_error_branches()
     await reauth_round_trip()
+    await options_menus()
+    await options_walk()
+    await options_advanced_pages()
+    await options_error_branches()
+    await reconfigure_flow()
 
     print()
     LEDGER.print_result_lines()
