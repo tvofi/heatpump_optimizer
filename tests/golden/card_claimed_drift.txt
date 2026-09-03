@@ -19,8 +19,8 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 6.3.5
+# claims-for: 6.3.6
 #
-# v6.3.5: the Mixed Hot Water gate and a gate that scopes. The stamp empties the list; the
+# v6.3.6: the round-2 quality pass. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #

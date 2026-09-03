@@ -1,5 +1,121 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.3.6
+
+The first release out of audit round 2, and mostly about how the integration
+behaves as a Home Assistant citizen: what it shows, what it lets you change,
+and what it says when something fails.
+
+### You can reconfigure without removing the entry
+
+A reconfigure flow reopens the first screen over the entry it changes (#307),
+so correcting a thermometer or a token no longer means deleting the
+integration and setting it up again.
+
+### Icons come from icons.json
+
+Sixty-four hardcoded icon attributes become icon translations keyed by
+translation key (#308, closing #189), four of which only ever restated the default. Icons are
+entity state, and now they are declared as such.
+
+### Failures say what went wrong, in your language
+
+Every user-facing exception is translatable — thirteen keys across three files
+(#309) — and the service actions that used to fail silently now raise:
+`run_optimization`, `simulate_plan` and `restore_snapshot` report an
+operational failure instead of no-oping (#319). Two buttons that stayed
+clickable after the coordinator had failed now go unavailable with everything
+else (#314, closing #295).
+
+A failed Tibber poll no longer logs an ERROR with a traceback on every cycle:
+the outage latch owns its logging end to end, and stops double-counting an
+outage when the failure arrives through a nested path (#312, closing #216).
+
+### A shared entity base
+
+The five platform files carried the same base-class boilerplate five times; it
+now lives once in `entity.py` (#316, D10-08's common-modules half). A verbatim
+move: no behaviour changes with it.
+
+### The closures gate catches a new file before it reddens main
+
+Four times this week a new file under `custom_components/` merged with no
+dependency closure recorded, and `main` went red one gate later —
+`diagnostics.py`, `icons.json`, `quality_scale.yaml`, `entity.py`. The
+`closures` job only ran on pushes, so it could only ever report the fire after
+it started. A pull request that adds a file under `custom_components/` now
+runs it too (#332), and goes red before it merges instead of after.
+
+### The self-learning experiment stops adopting a drifting sensor
+
+A regression in v6.3.3, found by the audit's judge while re-checking an
+unrelated finding against the released tree (#322). #212 fixed the half of
+the problem its notes describe — the adoption gate could not open at the
+default interval — and made the other half sharply worse: a sensor drifting
+at 0.10 K/h scored **confidence 1.000** while carrying a **-14.2 %** bias in
+the identified heat loss. On main a drifting sensor was adopted with
+certainty.
+
+Two independent causes, neither in the bias-correction path that release
+advertised: the gains prior's weighting pulled the intercept toward zero
+gains, and the confidence score divided by a comfort bound that had widened,
+so a *finished* experiment scored lower the more room it had been given. The
+sensor's drift is now carried as a nuisance parameter, which is what the
+noise statistic could never see — a linear drift has no second difference.
+
+Drift bias goes to -0.0000 at 0.05, 0.10 and 0.15 K/h; a clean sensor is
+still adopted; the 0.300 adoption gate is untouched. One case remains open
+and is filed rather than papered over: a sensor that drifts *and* is noisy is
+not distinguishable from a clean one at this protocol, and no estimator
+change can separate them.
+
+### Two more flows walked end to end, and a schedule write that no longer lies
+
+The options flow and the reconfigure flow are now exercised end to end in the
+suite (#328), and `set_thermal_parameters` refuses a weekly specification its
+own write path would have dropped (#330, closing #321) — previously the service reported
+success while the coordinator discarded the windows with a warning.
+
+The decomposition program gains its structural ratchet (#331).
+
+### Documentation
+
+Automation examples for power headroom, price mode and manual-plan pins
+(#313, closing #218); a "Supported heat pumps and controls" section (#315); and a pass over
+the documentation's own accuracy (#318) — `tests/README.md` had drifted from
+the tree in seven statements, the ECL110 page told installs to leave topics
+blank that ship non-empty, three documents were unreachable from the README,
+and six code comments were wrong or merely restated the line beneath them.
+
+### Under the hood
+
+The config flow is now walked end to end in the suite, errors and all (#306).
+`quality_scale.yaml` records the Home Assistant quality scale rule by rule —
+44 done, 4 exempt, 6 to do (#229).
+
+`docs/audit-2026-09.md` carries the whole of audit round 2 (#230): 75 findings
+across eleven dimensions, each through an adversarial panel of three
+verifiers, with `tools/audit/round2/JUDGE.md` recording an independent
+re-measurement of all 53 survivors — the command, the load and the verdict for
+each. No panel refuted a finding, which is not the same as no effect: the
+panels corrected titles, perturbations, severities and, repeatedly, proposed
+fixes. One proposed formula turned out to be algebraically the shipping code;
+another would have failed a shipped assertion; a function reported as dead is
+called on every planning cycle of a grid-fee install.
+
+The 79 executable harnesses behind those findings now live at the annotated tag
+`audit-round2-evidence` rather than on `main` (#311). They are fuzzers,
+mutation drivers and file walkers, so they carry `eval`, `exec`, `urlopen` and
+`subprocess` by the nature of what they do, and on `main` that was a permanent
+dangerous-pattern surface in a repository people clone. Everything they
+produced stays; only re-running one needs the tag. None of it ever reached an
+installation — HACS ships `custom_components/`.
+
+Finally, the dependency closures record `icons.json` and `quality_scale.yaml`
+(#320). Both are new files under the integration, both are read by the
+behaviour-comparison gate, and neither was listed — which turned `main` red
+one merge after each arrived.
+
 ## v6.3.5
 
 ### Mixed Hot Water follows the thermometer it is computed from
