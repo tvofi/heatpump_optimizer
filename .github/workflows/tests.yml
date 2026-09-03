@@ -13,6 +13,17 @@ name: Tests
 #   change's own behavioural footprint, which must be empty or claimed
 #   in tests/golden/claimed_drift.txt.
 #
+#   That comparison is computed-against-computed, so neither side of it is
+#   the committed file, and until #347 no CI job compared a committed
+#   fixture at all -- run.sh skips golden.py entirely in drift mode. The
+#   same env_drift run now also judges its own capture against the
+#   committed files, in two machine-independent levels that fail this job:
+#   exact for the fixtures with no float in them (config_flow), and
+#   structural -- key paths and JSON type classes, no scalar values, no list
+#   lengths -- for all 55. The value differences that ARE the machine are
+#   counted and printed, never failed; the nightly below prints them per
+#   fixture so a human can decide what to re-record.
+#
 #   The env_drift baseline is cached between runs
 #   under a key covering the baseline commit and tree, tests/env_drift.py
 #   itself, the interpreter, the installed distributions and a bit-exact
@@ -295,6 +306,14 @@ jobs:
           # of the runs the scoped gate is measured against, so it never
           # scopes.
           GATE_SCOPE: full
+          # The committed-fixture value report (#347, level 3), per fixture
+          # rather than as a count. Only a canonical environment can honestly
+          # re-record a float-bearing fixture -- a dev box would poison it,
+          # which is exactly why claims exist instead of re-records -- so
+          # this run is where the list belongs. It never fails anything: the
+          # numbers in it are the runner's own. Levels 1 and 2 gate, in this
+          # job and in `fast`, because they do not depend on the machine.
+          DRIFT_VALUE_REPORT: "1"
           # See the fast job: the solve-time guard calibrates against this
           # runner rather than against a stopwatch, and threads are pinned
           # so process CPU time means the same thing here as anywhere else.
