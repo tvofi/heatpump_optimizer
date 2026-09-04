@@ -123,7 +123,9 @@ corrected version is recorded here as well as on the issues.
   reachable by extending the existing harness with **no production change**; the largest
   single bite is 6 of 21, one repeated `return vol.Optional(key, default=existing)` idiom
   across six options pages.
-  **Sequencing consequence:** #304 lands *before* S11, not in Wave 5. S11 (#223) rewrites
+  **Sequencing consequence:** #304 lands *before* the #223 registry stage, not in
+  Wave 5. (That stage is numbered S11 here and S10 in #193's own stage list; the
+  issue number is the stable reference, not the stage number.) #223 rewrites
   exactly those six options pages into a registry, so the coverage extension is the witness
   S11 needs, and writing it afterwards would mean writing it against code that has already
   moved.
@@ -268,6 +270,27 @@ in a 4-core cloud container with no `gh` and no way to install it, so:
 - `tests/card_browser.mjs` runs locally against the pre-installed Chromium
   (`PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers`) but CI's `browser` job is the
   authority, because the local Playwright is not CI's pinned version.
+
+## When a merge turns main red
+
+The programme has been in this state, so it gets a written answer rather than a
+judgement call each time. `web-fix-wave.js` logs `MAIN IS RED after <group>` and
+stops merging; `audit-merge.js` returns `{green:false}`. What follows:
+
+1. **A behaviour change in the merged diff → revert first, diagnose after.** The
+   revert is cheap and main being trustworthy is what every later merge is judged
+   against. Re-land with the fix and the evidence.
+2. **A failure the diff cannot reach → do not revert.** Establish it first, the
+   way the register requires: an error naming a subsystem the diff does not
+   touch, reproducing identically, or red on the base branch too. Then it is its
+   own issue with its own number, and the wave holds until it lands. #387 is the
+   worked example — a released gate instrument that was runner-dependent, found
+   only because main went red on roughly half its merges.
+3. **Never `--allow-red` to get a stamp out.** The flag exists for a human with a
+   reason, not for an agent with a deadline.
+
+A red main is work *now*, at every wake, whatever else is running: only a green,
+mergeable head waits on reviewers.
 
 ## Documentation discipline
 
