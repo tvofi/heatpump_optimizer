@@ -23,6 +23,46 @@ Metrics (definitions, one line each; the code is the authority):
   methods_over_200 /          functions (methods included, nested included)
   methods_over_150            whose span is more than 200 / 150 lines
   max_class_loc               the largest class span in the integration
+  max_method_loc              the largest function span in the integration --
+                              the WORST offender, not a count of offenders
+                              (#374). Reads 0 when nothing exceeds
+                              MONSTER_LIMITS[1], because the metric is the top
+                              of the ``monsters`` table and that table starts
+                              at 150; a re-record to 0 then makes the next
+                              function over 150 fail at once, so the
+                              truncation tightens the gate and cannot hide a
+                              149-line method behind it
+  max_cc                      the largest cyclomatic complexity in the
+                              integration, same shape, off ``cc_scores``
+
+  Why there is a max_* and deliberately NO sum_cc (#374). The four threshold
+  counts above (methods_over_150/200, functions_cc_over_15/25) price a
+  function CROSSING a line and nothing after it: once a function is counted
+  it can grow without bound and no key in the budget table moves. That makes
+  the worst function in the tree the cheapest place in the codebase to put new
+  complexity, which is the agentic-complexity vector stated literally -- with
+  methods_over_200 at 14 and functions_cc_over_25 at 11, ``optimize`` could go
+  540 -> 1,080 lines and CC 87 -> 174 with all 22 budgets unmoved.
+  ``max_class_loc`` already did exactly this job for the one shape family that
+  had it.
+
+  ``sum_cc`` is the obvious next proposal and it is REFUSED, for a reason that
+  belongs here rather than only in #374. Cyclomatic complexity is 1 + decision
+  points PER FUNCTION, so splitting a CC-87 function into a parent plus four
+  CC-20 helpers yields about 100 where there was 87 -- five function bodies
+  each paying their own +1, and the parent still branching to dispatch. A sum
+  ratchet would therefore FAIL the exact refactor #224 exists to perform, and
+  a metric that punishes the decomposition programme is worse than no metric.
+  The maxima have the opposite sign and that is why they are worth having
+  while #224 is in flight: splitting ``optimize`` drives max_cc 87 -> ~43 and
+  max_method_loc 540 -> 483, so the ratchet rewards the programme and then
+  asks for the gain to be recorded.
+
+  Accepted and stated: a max metric bounds the worst offender, not the second.
+  The RUNNER-UP can still grow to the leader's value invisibly
+  (simulate_trajectory_batch CC 43 -> 86, _optimize_with_dhw 483 -> 539 LOC),
+  gaps of 44 and 57 today and shrinking as #224 lands. Pretending otherwise
+  would make this the same kind of half-blind gate it exists to fix.
   coordinator_loc /           the same span, method count, distinct assigned
   coordinator_methods /       self-attrs and attrs assigned in more than one
   coordinator_attrs /         method, for the TOP attr-bag class -- which
@@ -74,8 +114,9 @@ Run:
 
     python tests/structure.py             ratchet: metrics vs budgets, FAIL on
                                           any worsening (floats tolerate
-                                          +-0.005), headroom printed for any
-                                          improvement
+                                          +-0.005) AND on any improvement that
+                                          is not yet recorded (#350), except
+                                          for NEVER_RERECORDED metrics
     python tests/structure.py --record    recompute and WRITE the budget table
                                           (run this on a clean tree, at the
                                           SHA recorded in ``recorded_at``).
@@ -228,6 +269,36 @@ DYNAMIC_REFERENCES: dict[tuple[str, str], tuple[str, str, str, str]] = {
 # less than the noise of rounding. Everything else must be <= its budget.
 FRACTION_METRICS = {"cross_seam_fraction"}
 FRACTION_TOLERANCE = 0.005
+
+# Metrics that are DELIBERATELY never re-recorded (#350, and #370's fourth
+# comment, which is where the category comes from). ``ratchet`` below fails an
+# improvement that has not been written down; without this category the two
+# correct decisions already taken on ``cross_seam_fraction`` -- declining to
+# record it in #352 and again in #360 -- become gate violations the moment
+# re-recording is mandatory.
+#
+# Membership rule, and it is structural rather than a matter of taste: a
+# tolerance metric passing INSIDE its band has nothing to record, and failing
+# OUTSIDE it is a decision to be made rather than bookkeeping to be locked in.
+# There is no third case, so the operation is never bookkeeping for this class.
+# Which way it moves the gate depends on the drift and both directions are a
+# reason to keep it out of a bulk re-record: an UPWARD drift loosens the fail
+# ceiling (budget 0.4289, TOL 0.005, ceiling 0.4339; recording a measured
+# 0.4301 moves it to 0.4351 while buying nothing -- the case #352 and #360 both
+# correctly declined), and a DOWNWARD one tightens it (recording today's 0.4220
+# moves the ceiling to 0.4270). A tightening is not free either: it changes
+# what the gate permits, so it belongs in a deliberate edit that says so, not
+# in a table written by a command the gate told somebody to run.
+#
+# So every FRACTION_METRIC belongs here, which ``ratchet`` asserts rather than
+# assumes: a metric carrying both a tolerance band and a re-record demand is
+# carrying two mechanisms for one job and they disagree. The two sets are kept
+# separate because they mean different things -- FRACTION_METRICS decides how a
+# value is COMPARED and printed, this decides whether it is ever WRITTEN -- and
+# a count could in principle join this one for a reason of its own. Correcting
+# a member is a deliberate edit with its own reason, which is what makes it
+# visible when it happens.
+NEVER_RERECORDED = {"cross_seam_fraction"}
 
 
 # ---------------------------------------------------------------------------
@@ -747,6 +818,14 @@ def measure() -> dict:
         "methods_over_200": sum(1 for loc, *_ in monsters if loc > MONSTER_LIMITS[0]),
         "methods_over_150": len(monsters),
         "max_class_loc": max((g[0] for g in god_classes), default=0),
+        # The worst offender, off tables that are already built and already
+        # sorted (#374). The four threshold counts above stop pricing a
+        # function once it has crossed the line, so without these two the
+        # cheapest place in the tree to put new complexity is the function
+        # that is already worst. sum_cc is refused, and the module docstring
+        # says why: it would fail #224's own refactor.
+        "max_method_loc": max((loc for loc, *_ in monsters), default=0),
+        "max_cc": max((cc for cc, *_ in cc_scores), default=0),
         "duplication_blocks": len(duplication),
         "functions_cc_over_25": sum(1 for cc, *_ in cc_scores if cc > CC_LIMITS[0]),
         "functions_cc_over_15": len(cc_scores),
@@ -804,12 +883,16 @@ def print_report(result: dict) -> None:
           % (metrics["methods_over_150"], MONSTER_LIMITS[1]))
     for loc, rel, span, name in tables["monsters"][:10]:
         print(f"  {rel}:{span}  {loc} LOC  {name}")
+    print("  max_method_loc = %d (the worst one, budgeted; a count over a"
+          " threshold stops pricing growth)" % metrics["max_method_loc"])
 
     print()
     print("########## worst 5 cyclomatic (of %d over %d) ##########"
           % (metrics["functions_cc_over_15"], CC_LIMITS[1]))
     for cc, rel, line, name in tables["cc_scores"][:5]:
         print(f"  {rel}:{line}  cc={cc}  {name}")
+    print("  max_cc = %d (the worst one, budgeted; sum_cc is refused -- see the"
+          " module docstring)" % metrics["max_cc"])
 
     print()
     print("########## .const import fan-out (names imported per module) ##########")
@@ -944,14 +1027,10 @@ def regression_rows(old: dict, new: dict) -> list[tuple[str, float, float]]:
     hand-maintained list to rot, which is the class of defect #364 and #304
     both turned out to be, so there deliberately is not one.
 
-    ``FRACTION_METRICS`` are skipped, and that is not an oversight (it
-    reverses #370's issue body). A tolerance metric passing inside its band
-    has nothing to record, and failing outside it is a decision rather than
-    bookkeeping; there is no third case. Re-recording one can therefore only
-    ever loosen the band -- with ``cross_seam_fraction`` at budget 0.4289 and
-    TOL 0.005 the ceiling is 0.4339, and recording the measured 0.4301 moves
-    it to 0.4351 while buying nothing. So ``record_budgets`` does not rewrite
-    them at all, which leaves this check nothing to check there.
+    ``NEVER_RERECORDED`` metrics are skipped, and that is not an oversight (it
+    reverses #370's issue body). ``record_budgets`` does not rewrite them at
+    all -- see that category's own comment for why the operation is meaningless
+    for the class -- which leaves this check nothing to check there.
 
     Keys absent from either side are not rows: a metric that appeared or
     disappeared is already a FAIL in ``ratchet`` ("measured but not in the
@@ -959,11 +1038,97 @@ def regression_rows(old: dict, new: dict) -> list[tuple[str, float, float]]:
     """
     rows = []
     for key in sorted(set(old) & set(new)):
-        if key == "recorded_at" or key in FRACTION_METRICS:
+        if key == "recorded_at" or key in NEVER_RERECORDED:
             continue
         if new[key] > old[key]:
             rows.append((key, old[key], new[key]))
     return rows
+
+
+def improvement_rows(budgets: dict, metrics: dict) -> list[tuple[str, float, float]]:
+    """Every metric the tree has moved BELOW its budget: the exact mirror of
+    ``regression_rows``, ``new < old`` where that one is ``new > old``.
+
+    These are the rows ``ratchet`` fails on (#350). It used to print
+    ``the next PR may re-record to lock it in`` and pass, and that note has a
+    measured 0-for-6 record: #338 opened five metrics of slack, the note
+    printed on six consecutive commits including a full release stamp, and #340
+    then added four more without clearing any. It is not a message people
+    occasionally forget -- it is one nobody has ever acted on.
+
+    What the unrecorded gap costs is the whole argument for failing. A budget
+    sitting above the tree is not a loose gate, it is an ABSENT one: after #338
+    removed ten dead symbols, five could have been reintroduced and #338's own
+    gate -- the gate that PR added in order to remove them -- would have said
+    nothing. Failing puts the re-record in the PR that EARNED it, which is the
+    only PR that can say what moved and why.
+
+    The tax is small and was measured before it was imposed: a failing gate
+    would have fired on 2 of the last 18 commits on main, about 11%, and was
+    silent across the first eleven. The tree improves rarely, which is exactly
+    why the improvement is worth capturing when it happens.
+
+    Same two exclusions as ``regression_rows``, for the same reasons:
+    ``recorded_at`` is provenance rather than a metric, and
+    ``NEVER_RERECORDED`` is a category whose members must never be written --
+    demanding a re-record there would turn two correct decisions into gate
+    violations; see that category's comment. A key present on one
+    side only is not a row either: it is already a FAIL in ``ratchet``
+    ("measured but not in the budget table"), and it has no pair to compare.
+    """
+    rows = []
+    for key in sorted(set(budgets) & set(metrics)):
+        if key == "recorded_at" or key in NEVER_RERECORDED:
+            continue
+        if metrics[key] < budgets[key]:
+            rows.append((key, budgets[key], metrics[key]))
+    return rows
+
+
+def report_improvements(rows: list[tuple[str, float, float]], breached: bool) -> None:
+    """Say what got better and how to write it down.
+
+    The framing is a requirement of #350 and not decoration: *a gate that
+    scolds a pull request for improving the tree will be worked around, and
+    then it protects nothing*. So this block does not use the word breached, it
+    names every metric that moved, and it prints the exact runnable command --
+    a gate that demands a re-record without naming the command is
+    unsatisfiable by anyone who has not read this file.
+
+    ``breached`` suppresses the command, because ``--record`` REFUSES a table
+    with a worsened row (#370). Offering it while a breach stands would send
+    the author into a refusal, so the breach is named as the thing to settle
+    first; the improvement is still listed, because it is still true.
+    """
+    print()
+    print("########## %d metric(s) IMPROVED and not yet recorded ##########" % len(rows))
+    print("  %-32s %12s %12s %10s" % ("metric", "budget", "measured", "delta"))
+    for key, budget, current in rows:
+        delta = current - budget
+        shown = f"{delta:+.4f}" if isinstance(delta, float) else f"{delta:+}"
+        print("  %-32s %12s %12s %10s  BETTER (lower is better)"
+              % (key, budget, current, shown))
+    print()
+    print("  You made the tree better here, so write it down. The ratchet only")
+    print("  guards numbers that are recorded: for everything in the gap between")
+    print("  a budget and a better tree the gate is not loose, it is ABSENT, and")
+    print("  the improvement can be given back without anything failing (#350).")
+    print("  This belongs in the PR that earned it -- that is the only PR that can")
+    print("  say what moved and why.")
+    if breached:
+        print()
+        print("  A budget is also BREACHED above, so --record would refuse this table")
+        print("  (#370). Settle the breach first: pay for the lines, or re-record the")
+        print('  whole table with --allow-regression="<reason>" and put that reason in')
+        print("  the commit message.")
+        return
+    print()
+    print("  Run this, and commit the result with this change:")
+    print()
+    print("      python3 tests/structure.py --record")
+    print()
+    print("  Then say in the COMMIT message which rows moved and why -- the")
+    print("  squash-merge keeps the commit and discards the branch.")
 
 
 def record_budgets(result: dict, allow_regression: str | None = None) -> int:
@@ -999,11 +1164,11 @@ def record_budgets(result: dict, allow_regression: str | None = None) -> int:
     if BUDGET_FILE.exists():
         previous = json.loads(BUDGET_FILE.read_text())
 
-    # A tolerance metric is never re-recorded (see regression_rows): carry the
-    # recorded value forward untouched. Correcting one is a deliberate edit of
-    # its own, with its own reason, which is what makes it visible.
+    # A NEVER_RERECORDED metric is exactly that: carry the recorded value
+    # forward untouched. Correcting one is a deliberate edit of its own, with
+    # its own reason, which is what makes it visible.
     carried = []
-    for key in sorted(FRACTION_METRICS & set(previous) & set(payload)):
+    for key in sorted(NEVER_RERECORDED & set(previous) & set(payload)):
         if payload[key] != previous[key]:
             carried.append((key, previous[key], payload[key]))
         payload[key] = previous[key]
@@ -1036,7 +1201,7 @@ def record_budgets(result: dict, allow_regression: str | None = None) -> int:
 
     for key, kept, measured in carried:
         print()
-        print("  keeping recorded %s = %s (tree measures %s): a tolerance metric"
+        print("  keeping recorded %s = %s (tree measures %s): this metric"
               % (key, kept, measured))
         print("  is never re-recorded -- inside its band there is nothing to record,")
         print("  outside it a failure is a decision, and either way a re-record can")
@@ -1071,6 +1236,14 @@ def ratchet(result: dict) -> int:
     print()
     print("########## ratchet vs %s (recorded_at %s) ##########"
           % (BUDGET_FILE.name, budgets.get("recorded_at", "?")[:12]))
+    stray = sorted(FRACTION_METRICS - NEVER_RERECORDED)
+    if stray:
+        print("FAIL %s carries a tolerance band AND a re-record demand;"
+              % ", ".join(stray))
+        print("  those are two mechanisms for one job and they disagree. A metric")
+        print("  that passes inside a band has nothing to record and fails outside")
+        print("  it as a decision, so it belongs in NEVER_RERECORDED (#350, #370).")
+        failures += 1
     why = recorded_at_unreachable(budgets.get("recorded_at", ""))
     if why is not None:
         print(f"FAIL {why};")
@@ -1079,6 +1252,8 @@ def ratchet(result: dict) -> int:
         print("  merge base -- a branch SHA does not survive the squash (#361).")
         failures += 1
     budget_keys = {k: v for k, v in budgets.items() if k != "recorded_at"}
+    improvements = improvement_rows(budget_keys, metrics)
+    improved = {key for key, _, _ in improvements}
     for key in sorted(set(budget_keys) | set(metrics)):
         if key not in budget_keys:
             print(f"FAIL {key}: measured but not in the budget table -- re-record")
@@ -1095,19 +1270,31 @@ def ratchet(result: dict) -> int:
                       f"(budget {budget}, +{current - budget:+.4f})")
                 failures += 1
             elif current < budget - FRACTION_TOLERANCE:
-                print(f"  headroom {key} {current:.4f} (budget {budget}, "
-                      f"{current - budget:+.4f}; the next PR may re-record to lock it in)")
+                print(f"  ok   {key} {current:.4f} <= {budget} "
+                      f"({current - budget:+.4f}, and NEVER re-recorded:"
+                      " correcting it is a deliberate edit of its own)")
             else:
                 print(f"  ok   {key} {current:.4f} <= {budget}")
         else:
             if current > budget:
                 print(f"FAIL {key} {current} > {budget} (+{current - budget})")
                 failures += 1
+            elif key in improved:
+                print(f"  gain {key} {current} (budget {budget},"
+                      f" {current - budget:+d}; not yet recorded -- see below)")
             elif current < budget:
-                print(f"  headroom {key} {current} (budget {budget}, {current - budget:+d};"
-                      " the next PR may re-record to lock it in)")
+                print(f"  ok   {key} {current} <= {budget}"
+                      f" ({current - budget:+d}, and NEVER re-recorded)")
             else:
                 print(f"  ok   {key} {current} <= {budget}")
+    if improvements:
+        # Not `bool(failures)`: what suppresses the command is precisely what
+        # --record would refuse, which is a row over its budget. A key-set
+        # mismatch also fails above and is also settled BY re-recording, so
+        # offering the command there is right.
+        report_improvements(
+            improvements, breached=bool(regression_rows(budget_keys, metrics))
+        )
     print()
     if failures:
         print(f"{failures} STRUCTURE BUDGET(S) BREACHED")
@@ -1116,6 +1303,14 @@ def ratchet(result: dict) -> int:
         print("--record refuses any row that moves the wrong way unless you pass")
         print('--allow-regression="<reason>", and that reason belongs in the commit')
         print("message because the squash-merge keeps it and drops the branch.")
+        return 1
+    if improvements:
+        # Deliberately not counted with the breaches above and deliberately not
+        # worded like one. This run failed because the tree got BETTER, and the
+        # only thing missing is the record of it (#350).
+        print("%d STRUCTURE BUDGET(S) IMPROVED AND NOT YET RECORDED" % len(improvements))
+        print("Nothing here is a violation. Run the command above, commit the")
+        print("table with this change, and say in the commit which rows moved.")
         return 1
     print("STRUCTURE RATCHET PASSED")
     return 0
