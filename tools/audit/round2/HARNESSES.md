@@ -14,9 +14,15 @@ that section before trying to re-execute anything here.
 
 ## Which SHA, exactly
 
-`audit-round2-evidence` has moved once, and it moved by name only -- no file
-on `main` recorded a SHA, which is the gap this section closes. Three SHAs
-matter and they are not interchangeable:
+`audit-round2-evidence` has moved once, and it moved by name only.
+`c398fc84` -- the baseline the round-2 numbers were measured against -- is
+already named in 49 other `*.md` documents on `main` (every dimension's
+`REPORT.md` and `verify-*.md`, `tools/audit/round2/BASELINE.md`,
+`docs/audit-2026-09.md`), because that is where a number was measured, not
+where the tag now points. What no file on `main` recorded, before this
+section, is either SHA the tag itself has pointed at -- `de668be` (archived)
+or `757e164` (current) -- which is the narrower gap this section closes.
+Three SHAs matter and they are not interchangeable:
 
 - **`c398fc84`** -- where the round-2 numbers were **recorded**. It contains
   no `tools/audit/round2/` at all; that absence is exactly why the harnesses'
@@ -39,9 +45,13 @@ produced the number they are looking at.
 
 These are fuzzers, mutation drivers, file walkers and browser rigs. By the
 nature of what they do they carry `eval`, `exec`, `urlopen`, `subprocess` and
-`shutil.rmtree` — `eval(` in 4 files, `exec(` in 3, `urlopen` in 4,
-`subprocess.` in 16. That is not a defect in them; a mutation tool that
-rewrites source files is supposed to rewrite source files.
+`shutil.rmtree` — `eval(` in 5 files (`D10/A/ast_checks.py`,
+`D10/icons_harness.py`, `D5/comment_numbers.py`, `D5/reader_paths.py`,
+`D6/claims.py`), `exec(` in 3, `urlopen` in 4, `subprocess.` in 16 (`.py`/
+`.mjs` only; the count is different if the four `.sh` harnesses are folded
+in, since two of those call `subprocess.run` from an embedded Python child).
+That is not a defect in them; a mutation tool that rewrites source files is
+supposed to rewrite source files.
 
 On `main` it is a permanent dangerous-pattern surface in a repository that
 users clone, and it had a concrete cost: a pre-push security scanner flagged
@@ -75,8 +85,9 @@ them: they are evidence, not gated code.
 
 ### The numbers are reproducible; the instructions were not
 
-63 of the 69 Python harnesses pin `c398fc84` as their baseline in a docstring,
-and `git ls-tree c398fc84 -- tools/audit/round2` is **empty** — none of them
+57 of the 69 Python harnesses pin the `c398fc84` baseline in a docstring --
+44 spelling out the full 8-char SHA, the rest abbreviated to `c398fc8` -- and
+`git ls-tree c398fc84 -- tools/audit/round2` is **empty** — none of them
 exist in the tree they name. That looks like broken provenance and is not.
 The docstrings say `Command (from the export root)`, and that phrase is
 load-bearing: these were run from an export root *against* the baseline tree
@@ -88,17 +99,19 @@ The two apparent mismatches are an offline flag moving 8 link rows between the
 `true` and `unverifiable` buckets. So: **the round-2 measurements reproduce.**
 What was missing was the recipe, which is now in the docstrings.
 
-### Three rot classes, and only two of them fail loudly
+### Four rot classes, and only one of them fails silently
 
-A harness that reaches into a production or test file by textual marker breaks
-when that file moves. Three shapes exist here, and the difference between them
-matters more than the count:
+A harness that reaches into a production or test file by textual marker
+breaks when that file moves (the fourth class, below, breaks a different
+way). Four shapes exist here, and the difference between them matters more
+than the count:
 
 | class | how it fails | instances |
 |---|---|---|
 | executable-prefix cut | `IndentationError` / `StopIteration` at import — **loud** | 2, both currently latent on current `main` -- see below |
-| section slicing | `ValueError` / `IndexError` at import — **loud** | 11, all resolving today |
+| section slicing | `ValueError` / `IndexError` at import — **loud** | several, all resolving today -- see below |
 | list drift | a plausible number for a tree that no longer exists — **silent** | at least 1 |
+| interpreter-version cut | `SyntaxError` at parse, before the harness's own code runs at all — **loud, and earlier** | 1 known -- see below |
 
 **Do not generalise "it fails loudly, so somebody notices."** The third class
 breaks that property, and it is the dangerous one: `coverage_suite.sh`'s
@@ -143,19 +156,26 @@ harness identically:
 guard", which is what turned a one-line break into an expensive one for
 whoever debugged it there — the file was misdirecting its reader.
 
-**That specific reproduction no longer holds at `a2c4982`** (`main` as of
-2026-09-04, this PR's base -- unaffected by this PR itself, which does not
-touch `tests/stress.py`). #346 (PR #378, merged after `4b6e076`; `git diff
---stat 4b6e076 HEAD -- tests/stress.py` -> 642 insertions) added the
-single-scenario detection statistic to `stress.py`'s `__main__` block, ahead
-of the cut marker. The truncated prefix now ends after real statements
-instead of immediately inside an empty `if`, so `compile()` no longer raises.
+**That specific reproduction no longer holds on `main`.** #346 (PR #378,
+merged after `4b6e076`) added the single-scenario detection statistic to
+`stress.py`'s `__main__` block, ahead of the cut marker: `git diff --stat
+4b6e076 <a post-#346 main head> -- tests/stress.py` -> **971** insertions,
+13 deletions -- not the 642 an earlier draft of this sentence gave, which
+was measured against a `main` that has since moved twice, the exact kind of
+staleness this file exists to catch. Naming a single base SHA here would
+only set up the next one: `tests/stress.py` has not moved since #346 --
+byte-identical (blob `2d27b210`) at `09ca88f`, at `48f4263` and at this
+document's own head -- so the comparison holds against any of them without
+re-anchoring to whichever happens to be "the base" this week. The truncated
+prefix now ends after real statements instead of immediately inside an empty
+`if`, so `compile()` no longer raises.
 
 Verified both ways with the same copied `d9lib.py`: reproducing against a
 `4b6e076` checkout of `tests/stress.py` still raises the `IndentationError`
-above; against an `a2c4982` checkout it does not, and `load_stress_prefix()`
-returns a namespace with `reference_solve`, `Calibration`, `build_case`,
-`SEASONS` and `BUILDINGS` all present. Running the ten dependent harnesses end
+above; against the current blob (`2d27b210`) it does not, and
+`load_stress_prefix()` returns a namespace with `reference_solve`,
+`Calibration`, `build_case`, `SEASONS` and `BUILDINGS` all present. Running
+the ten dependent harnesses end
 to end: `d9lib` itself, `h1_grad_equivalents`, `h1b_dhw_loops`, `h3_gil_hold`,
 `v2b_f0_identity` and `v2c_consequence` complete cleanly with full `RESULT`
 output; `v2_reachability`,
@@ -164,9 +184,9 @@ output; `v2_reachability`,
 are read as slow rather than broken, not confirmed complete. `h7_stress_gate`
 still fails, but on a different, semantic cause: it reads `stress["combinations"]`
 from the returned namespace, and `combinations` is now assigned by
-`combinations = sweep_combinations()` on line 1593 -- two lines **after** the
-cut, inside the sweep the harness is cutting away specifically to avoid
-running:
+`combinations = sweep_combinations()` on line 1879 -- two lines **after** the
+`R.section("Combination sweep")` cut marker at line 1877, inside the sweep
+the harness is cutting away specifically to avoid running:
 
     KeyError: 'combinations'
 
@@ -191,11 +211,29 @@ dies louder -- `StopIteration`, not `IndentationError` -- but it dies the day
 the guard lands, and `D6/claims.py` reads its output for `C293`, so the
 failure propagates.
 
-**Eleven section-slicing sites** (`D10/check_rules.py`, `D10/C/doc_coverage.py`,
+**The section-slicing sites** (`D10/check_rules.py`, `D10/C/doc_coverage.py`,
 `D4/config_flow_ux.py`, `D5/reader_paths.py`) all resolve at the tag and were
-executed to confirm it. Note the limit of that evidence: **exit 0 proves a
-harness runs, not that it still measures what its finding claims.** These are
-executed, not validated, and the second bar is unmet for them.
+executed to confirm it. Deliberately not given as a count: a plain
+`.split(`/`.index(` grep across the four files returns a different number
+depending on whether a helper call and its caller count as one site or two,
+and no rule here is claimed to settle that -- "these four files, executed"
+is the honest statement, a digit in front of it is not. Note the limit of
+that evidence: **exit 0 proves a harness runs, not that it still measures
+what its finding claims.** These are executed, not validated, and the second
+bar is unmet for them.
+
+### A fourth rot class the table above needed a row for
+
+`D6/claims.py` cannot even be **parsed** on this box's own interpreter:
+Python 3.11.5 raises `SyntaxError: f-string expression part cannot include a
+backslash` at `claims.py:1147` (PEP 701 nested-quote f-strings, Python
+`>=3.12` only). This is not one of the three shapes above -- it fails before
+any of the harness's own code runs, so "at import" undersells it, and it is
+about as loud as a failure gets, `python3` refuses to even start. Getting
+past it needs a `>=3.12` interpreter in addition to the two-tree recipe and
+the entry point given elsewhere on this page; "the round-2 measurements
+reproduce" (further up) is true only once that interpreter is in hand, and
+this page did not say so until now.
 
 ### One site deliberately left broken-by-design
 
