@@ -57,9 +57,13 @@ Never by hand. A hand-maintained table of "what does this test depend on"
 would rot on the first refactor and nobody would notice.
 
 `tests/derive_closures.sh` runs the whole suite once under instrumentation and
-rewrites `tests/closures.json`. For each script, `tests/closure.py` runs it for
-real in a subprocess with a `sys.addaudithook` hook installed and then records
-the union of
+rewrites `tests/closures.json`. A single closure that has gone stale does not
+need the whole suite: `./tests/derive_closures.sh --single tests/<script>.py`
+re-records just that one script and merges the result in — the same flag
+"Adding a test script" below uses for a brand-new script, and it is the
+cheap path for an existing one too. For each script, `tests/closure.py` runs
+it for real in a subprocess with a `sys.addaudithook` hook installed and then
+records the union of
 
 * every `open` the run performed — this is how the fixture and catalogue files
   get in: `tests/golden/*.json`, `strings.json`, `services.yaml`,
@@ -72,6 +76,17 @@ the union of
 
 `card.mjs` has no audit hook, so it is recorded under `strace` instead; the
 result is the same list of repo files it really opened.
+
+**On a machine with no `strace`** — every macOS box, including the owner's —
+`_record_node()` has no availability guard (issue #401) and a full derive
+dies mid-run with a bare `FileNotFoundError` once it reaches `card.mjs` or
+`card_drift.mjs`, after minutes of real work and while holding
+`/tmp/hpo-gate.lock`. That failure is scoped to the **two node lanes only**:
+every Python script still re-derives normally through the audit hook,
+`strace` or no `strace`. Carrying the two node entries forward from the last
+successful derive and disclosing it is the correct response to that failure
+— it is not evidence that a derive is unavailable on the machine, and it
+does not excuse skipping a Python re-derive the change actually needs.
 
 Three closures are then widened by rule, because a trace of *this* process
 cannot see what they depend on:
@@ -185,6 +200,14 @@ change regardless of what it touched. If a closure is ever wrong, the scoped
 PR gate may miss it — but the next gate, the unscoped one on `main`, does not.
 `main` goes red within one merge instead of never.
 
+On a branch, key on the mode line (`MODE: SCOPED` vs `MODE: FULL`), never the
+count — see "What you see when something is skipped" above. On a push to
+`main` there is no mode line to key on: `GATE_SCOPE=full` reaches `run.sh`
+directly through the job environment, so the `if [ "$GATE_SCOPE" = "auto" ]`
+branch that calls `tests/closure.py` and prints the `########## scoped gate
+##########` banner never runs. The only evidence in that log is the env line
+`GATE_SCOPE: full`.
+
 A second job, `closures`, runs beside it on `main` and on the nightly: it
 re-derives every closure from real instrumented runs and fails if
 `tests/closures.json` misses anything a run actually touched
@@ -192,6 +215,16 @@ re-derives every closure from real instrumented runs and fails if
 costs time and is reported rather than failed. So the closures cannot silently
 drift out of date behind a refactor; the run that would have caught the drift
 is the same run that reports it.
+
+On a pull request, `closures` runs only when `closure-scope` says the diff
+can move a closure; a diff it judges `skip` — every changed file INERT —
+leaves the job **skipped**, not passed. Read the two the same way you would
+read the mode line above: `merge_pull_request`'s "every check success or
+skipped" is correct because some jobs legitimately never run, but a skipped
+`closures` means the table was **not checked on this PR at all**, and only
+the unscoped run after the merge, on `main`, actually re-derives and checks
+it. PR #386's `closures` check showed exactly that skip; it looked like a
+clean verification and was zero re-derivation work.
 
 If you have changed what a test reaches — new fixture, new import, a script
 that starts reading a file it did not before — regenerate and commit:
