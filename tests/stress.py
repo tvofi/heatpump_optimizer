@@ -1889,6 +1889,15 @@ if __name__ == "__main__":
         baseline_note = "skipped: --record-budgets has nothing to compare"
         print(f"  solver-work baseline: {baseline_note}")
     else:
+        # Announced BEFORE it starts. The capture is a whole sweep of
+        # solves, so it is minutes of silence otherwise, and a gate that
+        # goes quiet for that long is indistinguishable from a hung one.
+        print(
+            f"  solver-work baseline: solving {len(combinations)} scenarios "
+            f"from {WORK_DRIFT_REF} in a pristine worktree, to compare "
+            f"computed against computed (#387); this is the sweep's cost "
+            f"again"
+        )
         _baseline_started = time.perf_counter()
         baseline_work, baseline_note = capture_baseline_work(
             repository_root(), WORK_DRIFT_REF
@@ -1902,6 +1911,12 @@ if __name__ == "__main__":
                 f"  solver-work baseline: {baseline_note}, captured in "
                 f"{_baseline_s:.0f} s on this machine"
             )
+            if len(baseline_work) != len(combinations):
+                print(
+                    f"    NOTE: the baseline solved {len(baseline_work)} "
+                    f"scenarios and this tree runs {len(combinations)}; the "
+                    f"difference is named scenario by scenario below"
+                )
 
     failures = 0
     comfort_failures: list[str] = []
