@@ -51,7 +51,8 @@ Where this table and a wave body disagree, this table is the truth.
 | 1a | the stress ruler, alone on an idle box | #346 | v6.3.11 | **done** — W1-G7 merged PR #378 (`291ae76`), 0 unstamped |
 | triage B1 | read-only judges, run beside the ruler | #281 #225 closed; #303 #224 #193 re-scoped | — | **done** |
 | triage B2 | solver, suite, browser and timing judges | #304 #258 re-scoped; #242 weakened to a structural zero | — | **done** for the read-only three; #291 #232 still owed a quiet box |
-| 1b | gate instruments, suite gaps, card, stores | 26 issues in 14 groups | v6.3.12 | **resumed 2026-09-04** — W1-G1 (PR #383) and W1-G10 (PR #385) merged, issues closed; #384 and #386 both reviewed `merge` and awaiting a re-rebase onto current `main`; W1-G3 resuming from a pushed branch (`e3f5ce9`), no PR |
+| 1b half I | gate instruments, suite gaps, ratchet, entity pins | 16 issues in 7 groups: #369 #370 (W1-G1), #350 #374 (W1-G2), #372 #357 (W1-G3), #373 (W1-G4), #334 (W1-G5), #247–#252 (W1-G10), #246 #251 #395 (W1-G11) | **v6.3.12** (tag `84a27b6`) | **done and released, 2026-09-04** — all seven groups merged, issues closed: PR #383, #406, #397, #384, #386, #385, #402 (merge SHAs in `.claude/workflows/wave-1b-groups.json`, each group's `resume.merge_sha`). `main` green after every merge, head `841fe0f`, stamped `84a27b6`. Five more PRs landed in the same run with no tracked issue of their own — #396 (roster/plan truth-up), #399 (the #387 coverage-floor backstop), #407 (operational docs), #409 (the ratchet-raise policy), #410 (claim priority) |
+| 1b half II | card contrast/geometry, coordinator loaders, wood_share, may-drift partition, layout-editor recovery | 12 issues in 8 groups: #288 (W1-G6), #238 (W1-G8), #260 #261 #263 #266 (W1-G12), #262 #258 (W1-G13), #403 (W1-G16, added 2026-09-04), #265 (W1-G14), #254 (W1-G15), #245 (W1-G9) | v6.3.12 | pending — none started. Four briefs corrected 2026-09-04 for citation rot against `931dffe` (W1-G8, W1-G9, W1-G13, W1-G14); W1-G16 is a new group for #403, `after: W1-G13` |
 | — | **#387, the blocker**: the basin coverage floor is runner-dependent | #387 | v6.3.12 | **fixed** — merged as `32f309f` (PR #388); sixth acceptance criterion ruled (comment 5541519696): the WORK-channel stale-cheap downgrade is kept as necessary to the `env_drift` shape, and the coverage floor's strictness is restored by a follow-up PR that hard-codes it |
 | 2 | coordinator lifecycle, learners, options grouping | #236 #237 #240 #239 #243 #283 #284 #279 #278 #277 #244 #325 #280 #198 | v6.3.12 | pending |
 | 3 | solver, DHW planner, GIL process route | #232 #234 #289 #290 #199 | v6.3.13 | pending — **W3-G4 is struck**, #242 has no admissible formula |
@@ -59,6 +60,12 @@ Where this table and a wave body disagree, this table is the truth.
 | 5 | typing lane, and the coverage deficit #195 raised | #303 #195 | per tranche | pending — **#304 moves ahead of S11**, see below |
 
 v6.3.12 is stamped at the Wave-1b/half-I boundary as a **gate and test-hardening release** — not for the accumulated no-op merges alone, and not by waiting for a runtime fix that half I will not produce, because half I is entirely test, docs and tooling.
+
+### Wave 1b, half I delivered 2026-09-04
+
+Twelve PRs merged in sequence, `main` green after each, ending at `841fe0f`: #383 (W1-G1, #369 #370), #385 (W1-G10, #247–#252), #396 (truth-up), #384 (W1-G4, #373), #386 (W1-G5, #334), #397 (W1-G3, #372 #357), #399 (the #387 coverage-floor backstop), #402 (W1-G11, #246 #251 #395), #407 (operational docs), #409 (the ratchet-raise policy), #410 (the claim priority), #406 (W1-G2, #350 #374). **Released**: `v6.3.12` is tagged at `84a27b6f21690edcd340c6d74ff303c8e0774180`, now `origin/main`.
+
+Half II (`.claude/workflows/wave-1b-groups.json`) is unstarted. One group was added to it 2026-09-04 for #403 (`W1-G16`, after `W1-G13`) — a "Tidy up" recovery button for the setup page's layout editor, exhaustive 72-candidate enumeration, near-zero crossing benefit by design, one moved `card_drift` state. Four existing half-II briefs (W1-G8, W1-G9, W1-G13, W1-G14) were corrected the same day for citations that had rotted against `931dffe`, detailed in `/Users/timmalmstrom/wt/reports/half2-brief-freshness.md`; none of their ESTABLISHED/REFUTED judge findings changed.
 
 ### The #387 blocker, 2026-09-04
 
@@ -235,8 +242,18 @@ session reads this file first.
   every PR since the last tag. Never by hand, never in a branch. No new branch
   is cut between a fixture-mover's merge and its stamp.
 - **Ratchet.** `python3 tests/structure.py` before every push. A change that
-  adds coordinator lines pays for them elsewhere or re-records with the reason
-  in the commit — a decision, not bookkeeping. `cross_seam_fraction` carries a
+  adds coordinator lines pays for them elsewhere, re-records with the reason
+  in the commit, or — for a genuine new production feature whose lines cannot
+  honestly be paid for elsewhere — **raises** the budget because the capability
+  is worth the structure it costs. All three are a decision, not bookkeeping,
+  and all three carry their reason in the commit message. A raise additionally
+  **requires the repository owner's explicit confirmation before the branch is
+  pushed**: it is not a fixer's, a reviewer's or a judge's call, so an agent
+  that wants one stops and asks. It is not a route for accommodating
+  sloppiness, an unexamined refactor or an unmeasured feature — the first
+  question is still whether the lines can be paid for elsewhere — but a metric
+  at zero headroom is not a veto on new capability either (#398 read it as
+  one). `cross_seam_fraction` carries a
   tolerance band and is never re-recorded: within the band there is nothing to
   record, outside it the gate fails, so a re-record can only loosen.
 - **Ownership.** `owner:<session>` and a `claimed-by:` comment before a branch
