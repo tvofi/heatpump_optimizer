@@ -11,7 +11,8 @@ complete. The audit register stays `docs/audit-2026-09.md`; this file is the
 delivery plan, that file is the evidence.
 
 **Session:** `tvofi-claude-web`, label `owner:claude-web`, branch prefix
-`claude-web/`. Owner decisions recorded 2026-09-03: full merge-and-stamp
+`claude-web/` — an identity, not a runner; see Model routing, every seat is a
+Cursor Task agent. Owner decisions recorded 2026-09-03: full merge-and-stamp
 authority under the standing protocol; #372, #373 and #374 released from
 `owner:cloud-ratchet` to this session on the owner's instruction; the triage
 judge settles the money-attached questions with numbers; the #193
@@ -260,6 +261,51 @@ session reads this file first.
   is cut. An unlabelled issue is *unknown*, not free.
 - **Every fix PR body**: `Closes #N`, `Part of #201`, the head SHA measured,
   and every executed number.
+
+## Model routing
+
+Every seat in this programme — orchestrator, fixer, reviewer, judge, recorder —
+runs as a **Cursor Task subagent** inside one Cursor Multitask session. There is
+no Claude Code CLI seat, no `claude.ai` web-agent seat and no external runner:
+where this file, the handover or a brief says `claude-web`, that is a **session
+identity** (label `owner:claude-web`, branch prefix `claude-web/`) kept for
+continuity with the branches already on origin, never a product to route work to.
+
+The orchestrator seat is this session's parent (Auto), which executes
+`web-fix-wave.js`'s control flow by hand. Workers are Cursor Task agents:
+
+| seat | Cursor Task model | when |
+|---|---|---|
+| orchestrator | Auto (parent session) | control flow, merges, reconciliation, all sequencing decisions |
+| architectural fixer + its reviewer | **Opus 5** (restructuring — not Grok) | W2-G1, W2-G2, every Wave 4 move PR and its review, and the decomposition judgement this plan assigns to the orchestrator seat |
+| Wave 4 per-stage survey | **Opus 5** (restructuring — not Grok) | the survey that precedes a move stage |
+| adversarial reviewer, `fix-review` with the **finder's** harness | **Grok 4.6** | every group whose brief carries a refuted or corrected claim; every fixture-moving group. Opus 5 when the group is a restructuring group |
+| judge | **Grok 4.6** | all triage judges, including the #291 and #232 timing judges (still solo on an idle box). Opus 5 for any decomposition judgement |
+| fixer on production code, mutation proof required | **Grok 4.6** | groups the wave file marks `"fixerModel": "opus"` that are not restructuring; restructuring groups stay Opus 5 |
+| fixer on tests, tooling or docs | **Grok 4.6** | groups the wave file marks `"fixerModel": "sonnet"`; Sonnet 5 remains acceptable |
+| record / roster / truth-up / citation-freshness PR | **Grok 4.6** | mechanical docs edits; Composer 2.5 optional for ones carrying no measured claim of their own |
+| read-only reporting | **Grok 4.6** | Reconcile, post-merge gate watching, the pre-merge checklist, label hygiene, release-notes source material, issue digests, Wave 4 inventories, the #303 typing and #195 coverage inventories |
+| stamp | scripted `stamp.py` via `web-stamp.js`, drafted by **Grok 4.6** under orchestrator oversight | rule 4 refuses notes omitting a merged PR, and the refusals are the product; the orchestrator reads every refusal |
+
+**Grok 4.6 (`cursor-grok-4.6-high-fast`) is allowed in every seat except
+restructuring.** Restructuring — Wave 4 decomposition, survey and move PRs and
+their reviews, W2-G1 and W2-G2, and any module-move or decomposition judgement —
+stays **Opus 5**. The orchestrator stays Auto. The former "Grok is read-only,
+never a fixer, never a reviewer, never rules" constraint is withdrawn by owner
+instruction. `tierOk` still applies: a reviewer may not rank below its fixer.
+
+**The tier tokens in the wave files are not model names.** `web-fix-wave.js`
+ranks `haiku < sonnet < opus` and throws if a reviewer ranks below its fixer, so
+the tokens stay as they are and map: `opus` → Opus 5, `sonnet` → Sonnet 5,
+`haiku` → Haiku 4.5 (unused today). Architectural seats route to Opus 5, so they
+need no token above `opus` and `tierOk` accepts them as written. Grok 4.6 is
+routed per the table above and satisfies an `opus` or `sonnet` token where the
+seat is not restructuring; the tokens do not need editing.
+
+**An architectural reviewer on the same model as its fixer is still a fresh
+agent, not the fixer continuing.** Independence here is procedural, not
+model-family: the reviewer works in a fresh worktree at the head SHA and
+measures with the **finder's** harness, per `tools/audit/briefs/fix-review.md`.
 
 ## What this container changes
 
