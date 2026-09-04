@@ -50,7 +50,15 @@ run.sh/stress.py/golden.py/env_drift.py/derive_closures process exists AND load1
 is low, the holder died (a container restart, an agent killed mid-gate). Write
 down the owner file verbatim and those three observations, then clear it -- a
 literal reading of the older rule deadlocks the whole wave behind a dead pid,
-which has already happened once. Under it run
+which has already happened once.
+ONE TRAP IN THAT TEST, found by applying it: the pid in the owner file is usually
+the GATE SHELL, which exits normally the moment the gate finishes -- while the
+agent that took the lock is still alive, reading its log, and may be about to use
+the lock again. So a dead pid ALONE is not enough when the gate log ends in a
+completed run. Clear it only when the owning agent has also gone quiet for several
+minutes; when in doubt wait, because yanking a live agent's lock costs more than
+queueing behind a finished one. Write your own label into the owner file so the
+next reader knows whose it is. Under it run
 GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main
 HEAD) ./tests/run.sh, and release with rm -rf, not rmdir: the owner file
 makes the directory non-empty, and rmdir leaves the lock standing behind a
