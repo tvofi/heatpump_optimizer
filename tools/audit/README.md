@@ -241,15 +241,22 @@ under review -- with plausible numbers and no error.
 **Copy a harness into the tree under test before running it**, and say in your
 report which root rule it used. Three reviewers have been caught by this.
 
-Two harnesses do not run at all against a current tree, for a related reason --
-each reaches into production or test code by structural assumption, and the
-structure moved:
+The tag has moved once already, and by name only. The round-2 numbers were
+**recorded** at `c398fc84` (which contains no `tools/audit/round2/` at all --
+that absence is why the two-tree recipe in `HARNESSES.md` exists),
+**archived** at `de668be`, and are **runnable** at `757e164`, which is where
+`audit-round2-evidence` points today; `de668be` stays reachable. Cite the SHA
+you actually ran, not just the tag name -- a name-only citation stops meaning
+anything the next time the tag moves, and until this paragraph nothing on
+`main` named one at all.
 
-| harness | breaks because |
-|---|---|
-| `D9/d9lib.py` | `tests/stress.py` gained an `if __name__ == "__main__":` guard, so the cut marker it slices at now sits inside it |
-| `D6/claims.py` | production moved to `entry.runtime_data`; the harness still builds `hass.data[DOMAIN]` |
-
-Both were found incidentally, by reviewers who needed them for something else.
-The tag has not been swept, so the other nine dimensions are unmeasured rather
-than clean.
+The tag has been swept, and which harnesses run, which don't, and by which of
+three rot classes, is recorded in `tools/audit/round2/HARNESSES.md` -- read
+that file, not this paragraph, for the current state, including per-harness
+results at whatever `main` head last checked it. In short: `D6/claims.py` is
+repaired (the B5 sweep landed at `757e164`); `D9/d9lib.py`'s marker-cut
+fragility is unrepaired and, run in the tag's own checkout, still gives the
+`IndentationError` `HARNESSES.md` records -- but do not assume that against a
+current `main` tree without checking, since the same cut has already stopped
+and started reproducing there once, coincidentally, as an unrelated file
+changed shape around it.
