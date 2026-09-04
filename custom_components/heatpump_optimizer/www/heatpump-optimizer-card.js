@@ -16,8 +16,13 @@ const CARD_VERSION = "5.4.20";
 // Home Assistant's default --primary-color (#03a9f4) is 2.63:1 on a white
 // card — too light for text or for white label text on a filled button.
 // Used wherever the accent must be readable, not merely visible as a border
-// or chart stroke (D4-05).
-const ACCENT_READABLE = "#0277bd";
+// or chart stroke (D4-05). #0277bd cleared card.mjs but measured 4.38:1 in
+// Chromium's bgOf walk; #026aa8 clears the 4.5:1 browser witness.
+const ACCENT_READABLE = "#026aa8";
+
+// HA's --secondary-text-color (#727272) is 4.37:1 on a white card in real
+// Chromium — too light for an active toggle state (D4-06 / #261).
+const MUTED_READABLE = "#666666";
 
 // The de-duplication key `_extraFields` files a confidence band's two
 // edges under, so the pair counts as the one named trace it is. A Symbol
@@ -2602,7 +2607,11 @@ function cardStyleBlock() {
         width: 10px; height: 10px; border-radius: 50%;
         display: inline-block; flex: 0 0 auto;
       }
-      .chip.off { color: var(--secondary-text-color); text-decoration: line-through; }
+      .chip.off {
+        color: ${MUTED_READABLE};
+        background: var(--card-background-color, #fff);
+        text-decoration: line-through;
+      }
       .chip.nodata { cursor: not-allowed; opacity: 0.3; }
       .chartwrap { position: relative; width: 100%; }
       /* Overlaid on the chart so the row costs no layout height -- the
@@ -2855,7 +2864,7 @@ function cardStyleBlock() {
       }
       .setup-slot { font-size: 12px; fill: var(--primary-text-color, #222); }
       .setup-slot.empty {
-        fill: var(--secondary-text-color, #888);
+        fill: ${MUTED_READABLE};
         font-style: italic;
       }
       .setup-slot.extra { fill: var(--secondary-text-color, #888); }
@@ -3112,7 +3121,9 @@ function cardStyleBlock() {
       .whatif .wi-add { align-self: flex-start; font-size: 0.9em; }
       .whatif .wi-apply {
         border-color: var(--primary-color, #03a9f4);
-        color: ${ACCENT_READABLE}; font-weight: 600;
+        color: ${ACCENT_READABLE};
+        background: var(--card-background-color, #fff);
+        font-weight: 600;
       }
       .whatif .wi-save {
         border-color: ${ACCENT_READABLE};
