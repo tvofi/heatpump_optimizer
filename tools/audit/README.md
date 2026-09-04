@@ -247,8 +247,9 @@ that absence is why the two-tree recipe in `HARNESSES.md` exists),
 **archived** at `de668be`, and are **runnable** at `757e164`, which is where
 `audit-round2-evidence` points today; `de668be` stays reachable. Cite the SHA
 you actually ran, not just the tag name -- a name-only citation stops meaning
-anything the next time the tag moves, and until this paragraph nothing on
-`main` named one at all.
+anything the next time the tag moves, and until this paragraph no document on
+`main` named one at all (`.claude/workflows/web-triage.js:159` and
+`web-decomp-stage.js:156` already print `757e164`, but neither is a document).
 
 The tag has been swept, and which harnesses run, which don't, and by which of
 three rot classes, is recorded in `tools/audit/round2/HARNESSES.md` -- read

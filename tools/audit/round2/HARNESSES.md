@@ -96,7 +96,7 @@ matters more than the count:
 
 | class | how it fails | instances |
 |---|---|---|
-| executable-prefix cut | `IndentationError` / `StopIteration` at import — **loud** | 2, both currently latent -- see below |
+| executable-prefix cut | `IndentationError` / `StopIteration` at import — **loud** | 2, both currently latent on current `main` -- see below |
 | section slicing | `ValueError` / `IndexError` at import — **loud** | 11, all resolving today |
 | list drift | a plausible number for a tree that no longer exists — **silent** | at least 1 |
 
@@ -110,14 +110,20 @@ for it.
 
 The list is missing **three** scripts, not one -- an earlier pass here caught
 only `tests/config_flow_steps.py`. `tests/run.sh`'s lanes carry three scripts
-the frozen `SCRIPTS` list does not: `tests/config_flow_steps.py` (:270,
-unconditional in `lane_units`), `tests/structure.py` (:278, unconditional in
-`lane_units`), and `tests/env_drift.py` (:294/:309, runs in both golden
-modes). The first two postdate the `c398fc84` baseline the list was frozen
-against; `env_drift.py` predates it and was left out anyway. Adding just the
-first back moved `coverage_config_flow_pct` **+9.8** points and the total
-**+1.2** -- so every figure `coverage_suite.sh` has produced against a
-post-baseline tree is a **lower bound**, not a point estimate. The fix is to
+the frozen `SCRIPTS` list does not: `tests/config_flow_steps.py` and
+`tests/structure.py`, both unconditional in the `lane_units` lane, and
+`tests/env_drift.py`, which runs once per golden mode inside `lane_golden`.
+Named by lane rather than by line on purpose: an earlier draft of this
+paragraph cited absolute `run.sh` line numbers, and every one of them
+drifted in the very `origin/main` merge that produced this sentence --
+anything keyed to a line number is the next instance of the class this
+section is about. The first two scripts postdate the `c398fc84` baseline
+the list was frozen against; `env_drift.py` predates it and was left out
+anyway -- for the reason `coverage_suite.sh:64` itself records: it needs
+git, and is not run in a git-less export. Adding just the first back moved
+`coverage_config_flow_pct` **+9.8** points and the total **+1.2** -- so
+every figure `coverage_suite.sh` has produced against a post-baseline tree
+is a **lower bound**, not a point estimate. The fix is to
 derive `SCRIPTS` from `tests/run.sh` rather than hand-restate it, since a
 restated copy is exactly what froze this list while `run.sh` kept moving --
 but `coverage_suite.sh` lives only at the tag, so that derivation is work for
