@@ -254,6 +254,12 @@
    "reviewerModel": "opus",
    "fixture": false,
    "after": [],
+   "resume": {
+    "stage": "done",
+    "merged_pr": 424,
+    "merge_sha": "47ded95ddfa43245826faef9792297123c2cbfaf",
+    "note": "#265 closed. Rebased onto post-#426 main; briefs green before merge. Listed only so the roster stays complete; the wave script skips a done group."
+   },
    "brief": "CARD_VERSION misreports the release in the console banner. The body was corrected on 2026-09-03 and the divergence is GROWING, which is the point: CARD_VERSION 5.4.17 -> 5.4.20 while VERSION went 6.2.14 -> 6.3.12 (re-measure VERSION at your own merge base; it moves), three card patches against several integration minors. Have tools/release/stamp.py write CARD_VERSION (www/heatpump-optimizer-card.js:14) alongside VERSION and the manifest version, so the banner cannot drift again, and revisit the prose of the \"CARD_VERSION does not run ahead of VERSION\" check in tests/entities.py in the same PR (name the check, not a line number -- it has moved once already and will again). #397 wired stamp.py --self-test into entities.py; it did not add a CARD_VERSION write, so this group's premise stands. A lagging card stays legal, it just stops happening.\n\nTHE DUPLICATE-COPY GUARD HALF IS REFUTED and must not be touched (it is correct as designed, measured 87% effective).\n\nCARD_VERSION reaches only the console banner (card.js around 9212-9247), not the rendered markup, so a stamp that rewrites it is card-drift-neutral -- confirm that with card_drift.mjs rather than assuming it, and say so in the body. This lands before the wave's stamp so that stamp exercises the new write path. The fork contains the REST-fallback change to the same file; merge origin/main first if the base has moved."
   },
   {
