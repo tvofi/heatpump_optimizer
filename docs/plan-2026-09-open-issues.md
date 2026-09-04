@@ -49,7 +49,8 @@ Where this table and a wave body disagree, this table is the truth.
 | 0 | stamp REST fallback (#376); then #367, #368 | #364, #282 | **v6.3.10** | **done** — all three merged, both reviews `merge`, tag `d7fa97f`, 0 unstamped |
 | triage A | closed or re-scoped on a measured number | #197 #233 closed; #195 #244 #325 #334 re-scoped | — | **done** |
 | 1a | the stress ruler, alone on an idle box | #346 | v6.3.11 | running |
-| triage B | the rest, against the stamped tree | #281 #304 #303 #258 #242 #225 #224 #193; #291 #232 alone | — | pending |
+| triage B1 | read-only judges, run beside the ruler | #281 #225 closed; #303 #224 #193 re-scoped | — | **done** |
+| triage B2 | solver, suite, browser and timing judges | #304 #258 #242; #291 #232 alone | — | pending |
 | 1b | gate instruments, suite gaps, card, stores | 26 issues in 14 groups | v6.3.11 | prepared |
 | 2 | coordinator lifecycle, learners, options grouping | #236 #237 #240 #239 #243 #283 #284 #279 #278 #277 #244 #325 #280 #198 | v6.3.12 | pending |
 | 3 | solver, DHW planner, GIL process route | #232 #234 #289 #290 #199 #242 | v6.3.13 | pending |
@@ -79,6 +80,42 @@ judge comments on each issue and summarised on #201.
   main names the SHAs the tag moved between.
 - **#277, #244 and #325 are one group**, three views of one lead in `sysid.py`'s
   `step()`/`identify()`; splitting them would lose #325's ordering constraint.
+- **The Wave 4 order was inverted, by the ratchet's own numbers.** The plan of
+  record put DHW before fetch. The measured cut costs on main read
+  **views 120 < fetch 132 < dhw 195 < grid 236 < learning 350**, so the stages
+  now run in that order. A stage is never justified by cut cost alone: three
+  tools give three different orderings of the same class, so cut cost is a
+  property of the partition rule rather than of the code.
+- **The context object separates nothing, and #377 says so.** The round-2
+  comment justified extracting the six hub attributes by citing a separability
+  result. Leave-one-out overturns that reading: drop **all six** and 200 of 254
+  methods remain one connected component, with every other component a
+  singleton. What it is actually worth is a cut discount — **189 of 1,033
+  cross-seam references, 18.3 %, changing no rank** — plus the deletion of a
+  coordinator back-reference every later stage would otherwise need. It goes
+  first because it relocates no method body, so no open fix can be silently
+  reverted by it.
+- **`optimize` is the most decomposable of the five monoliths, not the least.**
+  The plan assumed the opposite. It has five ratchet-clean verbatim blocks at
+  6–11 interface cost, the first being 64 lines at 6 in / 0 out after the solve,
+  where no hot-loop question arises. The real carrier case is only the DHW tail,
+  and it wants a dataclass of the 14 keys the method already returns rather than
+  a state object threaded through. Constraint that decides the cuts:
+  `functions_cc_over_15` sits at 39 of 39 with zero headroom, so every extracted
+  helper must come in at or under complexity 15 — the otherwise obvious cut is 18
+  and fails the gate.
+- **#225 is closed, not re-scoped.** Its two named targets measure worst-boundary
+  37 and 30 live locals inside the batched objective the gradient solver
+  evaluates, no cold target remains above the 150-line mark, and `ThermalModel`
+  binds no ratchet metric at all — the class contributes 3 of 23 oversized
+  methods, behind the coordinator's 8 and the optimizer's 7.
+- **#303 now has a ruler that cannot be gamed**: with the stub excluded by
+  construction rather than subtracted afterwards, main measures **427**
+  production-only strict errors, against 743 with the test fake — so 42.5 % of
+  the historical headline was an artefact of a fake class. One correction to the
+  brief it was given: `--warn-unused-ignores` does **not** prevent
+  ignore-stuffing, since four real annotations and four live ignores move the
+  count identically, so the ignore count has to be its own hard metric.
 - **#197 and #233 closed**, each with a sharper reason than the plan's: 160 mypy errors was a
   *different ruler* (non-strict) rather than a stale count, and #233's restart gap fails its
   own flat-price null at both 24 and 48 hours.
