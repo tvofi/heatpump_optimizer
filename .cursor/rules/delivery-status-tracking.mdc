@@ -1,0 +1,16 @@
+---
+description: Keep programme Delivery-status and #201 current after each merge
+alwaysApply: true
+---
+
+# Programme tracking discipline
+
+After each programme merge — wave group, tooling the plan tracks, or a closed tracked issue — update tracking in the **same session** or an **immediate record PR**:
+
+1. **`docs/plan-2026-09-open-issues.md` Delivery-status table** — authoritative vs wave body; if they disagree, fix the table first.
+2. **`.claude/workflows/wave-*-groups.json` `resume` fields** — match measured `origin/main` (merged PR SHAs, open PR heads).
+3. **GitHub issue #201** — one comment per meaningful state change (merge, block, wave start); not a heartbeat.
+
+Do **not** wait for a stamp to truth the table. Never touch `VERSION`, the manifest version, or the `RELEASE_NOTES.md` heading in a branch.
+
+Measure with `git fetch origin main`, `gh pr list --state merged`, `git log origin/main`, and closed issues — do not invent.
