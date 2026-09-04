@@ -16,7 +16,9 @@ bottom, which is allowed to go stale and says so.
    asymmetry is the safety argument: if a closure is ever wrong, main goes red
    within one merge instead of never.
    **`MODE: SCOPED — 0 script(s) run` and `MODE: FULL` both print zero and mean
-   opposite things.** Key on the mode line, never the count.
+   opposite things.** Key on the mode line, never the count — but that line
+   only exists on a branch; a push to `main` prints no mode line at all,
+   because the forced `full` above never calls the code that prints it.
 2. **A structural ratchet refuses growth.** `tests/structure.py` measures 22
    metrics against `tests/structure_budgets.json`, and every one may only move
    down. Several sit at zero headroom, so a change that adds lines to the wrong

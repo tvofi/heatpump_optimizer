@@ -185,6 +185,14 @@ change regardless of what it touched. If a closure is ever wrong, the scoped
 PR gate may miss it — but the next gate, the unscoped one on `main`, does not.
 `main` goes red within one merge instead of never.
 
+On a branch, key on the mode line (`MODE: SCOPED` vs `MODE: FULL`), never the
+count — see "What you see when something is skipped" above. On a push to
+`main` there is no mode line to key on: `GATE_SCOPE=full` reaches `run.sh`
+directly through the job environment, so the `if [ "$GATE_SCOPE" = "auto" ]`
+branch that calls `tests/closure.py` and prints the `########## scoped gate
+##########` banner never runs. The only evidence in that log is the env line
+`GATE_SCOPE: full`.
+
 A second job, `closures`, runs beside it on `main` and on the nightly: it
 re-derives every closure from real instrumented runs and fails if
 `tests/closures.json` misses anything a run actually touched
