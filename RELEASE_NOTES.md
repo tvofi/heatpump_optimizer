@@ -1,5 +1,365 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.3.12
+
+Twenty-one merges, and **not one of them changes what the integration does at
+run time**: no file under `custom_components/` moves in the whole interval,
+no fixture moves, and no drift is claimed. This is a gate and test-hardening
+release — the instruments that judge this repository were measuring less than
+they claimed to, and the checks that were supposed to see a removal could not.
+Users receive the same behaviour under a suite that is harder to fool.
+
+### The solver-work check captures its baseline instead of recording it
+
+v6.3.11's single-scenario work check judged each scenario's evaluation count
+against numbers recorded in `tests/stress_budgets.json`, plus a list of basins
+two machines had been seen to reach. Exactly **22 of 51** entries carried a
+one-entry `alt_basins` list, and those 22 flip together with the CPU/BLAS
+basin choice, so a third runner covered **29 of 51** against a floor of 40 —
+two of four full-scope pushes after #378 went red on commits that touched only
+documentation, `.claude/` and `tools/`. #388 closes #387 by giving the check
+the `env_drift` shape: `capture_baseline_work()` solves the same fifty-one
+scenarios in a detached worktree of `GOLDEN_REF` through *that tree's own*
+`sweep_combinations()` / `build_case()`, and `work_drift_compare()` judges
+computed against computed on one machine and one BLAS, so a basin choice moves
+both sides and cancels. The recorded `evals`, `objective` and `alt_basins`
+fields are deleted; `ratio` and the memory peaks stay.
+
+The floor is renamed `SCENARIO_WORK_MIN_COVERED` and is **still 40 of 51** —
+what changed is that it now counts unchanged plans against a captured
+baseline, which is a statement about the branch rather than about the runner.
+The per-scenario work stale-cheap rule no longer fails the gate and prints
+each drop instead, because a captured baseline cannot go stale and the old
+remedy would have turned a real optimisation red (#317 is the example); the
+CPU-channel stale rule is untouched, and `SCENARIO_BUDGET_FACTOR` still reads
+`ratio` at 3.0. #346's one-scenario 2x detection survives on real solves
+through the same compare. Controlled cost on one idle box: 414.52 s → 560.06 s
+(**+145.54 s, +35.1 %**), of which 138 s is the capture — not the ~500 s the
+issue had budgeted for. CI run 33858467129 covered 51 of 51 on a second
+machine.
+
+### The coverage floor is a literal again, not an environment read
+
+#388 left two relaxations, and the ruling on #387's sixth criterion kept one
+and reversed the other. #399 restores the strict half: `SCENARIO_WORK_MIN_COVERED`
+is the literal `40` again rather than
+`int(os.environ.get("STRESS_WORK_MIN_COVERED", "40"))`. The override was
+reachable in CI from a workflow `env:` line, a runner variable or a helper
+script **without ever appearing in a pull request body**, which is precisely
+the "lowering or removing the floor" the original decision had refused. The
+number never moved; only the way to move it silently is gone. The failure
+message now tells authors to say in the body how many plans moved and why, and
+a source-level check pins both the literal and the absence of the retired
+name. Three lock-free acceptance runs: fifteen re-plans fire the floor at
+36 < 40; setting the retired variable to `1` leaves the verdict byte-identical;
+a zero-replan null stays green. The WORK-channel stale-cheap report is kept,
+deliberately, and is not re-tightened here.
+
+### The duplication window can fire, and `--record` refuses a laundered regression
+
+`DUP_BLOCK_LINES` was 30 while the longest duplicated normalized run in the
+integration is **19**, so `duplication_blocks` had reported 0 since the day it
+was recorded — a fact about the detector, not about the tree. A window sweep
+(30/25/20 → 0; 15 → 4; 10 → 13) and a constructed 13-line copy-paste, visible
+at 10 and invisible at 20 and 30, set the shipped window to **10**, the largest
+that still sees the optimizer's `objective` / `objective_batch` pair. The
+budget moves `duplication_blocks` 0 → 13 and nothing else: thirteen existing
+pairs the gate could not see, not thirteen new duplications. Separately,
+`record_budgets()` never read the table it replaced, so a single `--record`
+could lock a gain and launder a regression in the same write; it now refuses a
+wrong-way move unless `--allow-regression="<reason>"` is passed, and that
+reason belongs in the commit, since the squash keeps the commit and discards
+the branch. `cross_seam_fraction` is carried forward and never re-recorded —
+reversing what #370 asked for, because a tolerance metric has no honest
+re-record that is not a loosening. #383 closes #369 and #370, with twelve of
+fourteen new `features.py` checks failing at the merge base.
+
+### An improvement fails until it is recorded, and the worst method has a budget
+
+The other half of the ratchet, on top of #383's guarded `--record`. #406
+closes #350 and #374 in one pull request because both rewrite
+`tests/structure_budgets.json` and adding #374's two keys forces a re-record
+in the same commit. Headroom used to be an advisory note that nobody acted on:
+replaying #338 names the five metrics it improved — `dead_top_level_symbols`
+11 → 6 among them — and the run is now `RC=1`, framed as *write it down*
+rather than as a breach, while a zero-headroom commit stays silent and a
+worsening still says `BREACHED`. And the table had no method-level metric at
+all, so one extra `and` clause inside `optimize` cost **exactly nothing**:
+`max_cc` and `max_method_loc` now enter the table at **87** and **540** and
+both mutations fail at +1, with the four threshold counts unmoved. Replaying
+#358's real extraction shows the acceptance condition holding — `max_method_loc`
+625 → 540, `max_cc` 87 → 87, **zero `FAIL` rows** — the ratchet rewarding the
+extraction and then asking for the gain. `sum_cc` is refused in the module
+docstring rather than only in the issue, because splitting a CC-87 function
+into a parent and four CC-20 helpers lands near 100, which would fail the very
+refactor #224 exists to perform. Six rows are recorded down (`coordinator_loc`
+and `max_class_loc` 10394 → 10365, `internal_call_edges` 379 → 372, `cut_views`
+124 → 120, `cut_fetch` 134 → 132, `coordinator_methods` 255 → 254), all earned
+by #368 and advisory-only for **twenty-one consecutive commits** on `main`
+before this; `cross_seam_fraction` stays at 0.4289. 22 checks added, 17 of 1764
+failing at the merge base, and `tests/closures.json` byte-identical — the fast
+lane's dependency on the budget table was removed rather than recorded, so a
+re-record never drags 1764 checks into scope.
+
+### `INERT` is narrowed, and the stamper finally self-tests
+
+`tools/release/stamp.py --self-test` — fifteen-plus checks needing neither
+numpy nor the Home Assistant stub — had never run in any lane, because all of
+`tools/` was `INERT`. #397 closes #372 and #357: `INERT` narrows to
+`tools/audit/`, which moves exactly `stamp.py` into the must-classify set, and
+`tests/entities.py` imports it and calls `self_test()`, so a change to the
+stamper now selects `entities.py` automatically against the re-derived table.
+The second half is a contradiction the table had carried for a while:
+`quality_scale.yaml` was simultaneously `INERT` and inside `env_drift.py`'s
+and `golden.py`'s recorded closures. Measurement says it affects neither
+script's output, so the classification stands and the recorder was wrong —
+`NEVER_WIDENED` excludes it from the blanket `custom_components/**` rule, and
+`inert_closure_violations()` is called from both `merge()` and `check()`, so a
+contradictory table can neither be written nor pass the job that validates it.
+The only net closure changes are `stamp.py` added to `entities.py` and
+`quality_scale.yaml` removed from the two. `card.mjs` and `card_drift.mjs`
+could not be re-recorded without `strace`; CI's Linux `closures` job is the
+authority there.
+
+### A blocked tag push is reported, not raised over an already-public commit
+
+`stamp.py` wrapped the version-commit push so a rejection rolled cleanly back,
+and left the tag push bare. In the container this programme ran in,
+branch-scoped credentials let the commit through and then 403'd `refs/tags/*`,
+leaving `VERSION` and the notes bumped on `main` with no tag — and therefore no
+GitHub Release at all, since `release.yml` triggers on the tag push. **v6.3.10
+and v6.3.11 both went missing exactly that way** before anyone thought to look
+at the releases page; both had been recovered by the documented
+`workflow_dispatch` before #381 was written. The tag push is now caught: the
+script prints `RESULT stamped=… tag_pushed=false`, warns that there is no
+Release yet, names the recovery, and exits **3** — distinct from success and
+from a rule refusal. Nothing is rolled back, because the commit belongs on
+`main` either way. Four `--self-test` mutations pin the catch, the absence of a
+rollback, the distinct exit and the recovery wording.
+
+### Five assertion gaps in `features.py`, and production was already right
+
+#385 closes #247, #248, #249, #250 and #252 — five surviving round-2 mutants,
+every one an assertion gap against a production branch that already exists and
+already does the right thing. **No production line changes.** #247 pins
+`hours_until_next_window` (0.0 inside a window, hours-to-next across the
+midnight wrap, `None` with no windows); no golden scenario was added, because
+the one fixture that starts inside a window spans the whole day and would not
+have closed the gap. #248 feeds the existing "hotter tanks cost more per day"
+assertion a −1.0/kWh day on the same 1500 L tank as the +1.0 case, confirming
+setpoint 48 → 60 under the mutant and price-sign invariance on shipping code.
+#249 adds `is_valid_spec` negatives for `nan`, `inf` and `-inf` plus a
+`parse_rules` raise — the gap was raised to medium because a legal config-flow
+string drove **+46.5 %** commanded power on the strength of `abs(nan) > worst`
+being false. #250 asserts `AccuracyTracker.from_dict` drops a malformed
+`lead_sigma` bucket rather than raising, which silently kills one of twelve
+fire-and-forget loader tasks rather than aborting setup. #252 stamps a reading
+thirty minutes ahead of the frozen clock and asserts `age_minutes == 0.0`.
+Five finder mutants fail 1–2 of 1728 at the merge base and are dead at the
+head with production unmodified.
+
+### The published attribute keys are pinned per entity class
+
+Deleting `rain_anticipation_factor`, or a whole `extra_state_attributes`
+property, still passed 786 of 786 checks. #384 closes #373 with a table in
+`tests/entities.py` demanding **exact equality** per class rather than subset
+containment, plus a total-pairs count so an add and a remove cannot cancel.
+Populated from entities the file already constructs, through two payloads —
+the second with a populated plan for each plan sensor, so `_PlanSensorBase` is
+read on the branch it spends its life on. Pinned at **46 classes, 290
+class/key pairs, 190 distinct names**. Nothing a user sees changes; Home
+Assistant publishes the same keys it did before. What changes is that a key
+*removal* is now red. The bound this leaves is named rather than papered over:
+it pins names and not values, and a key published from two code sites in one
+class can still lose one site silently — 14 of 290 pairs — which is #395.
+
+### Three more assertion gaps, including the one #384 left open
+
+#402 closes #246, #251 and #395, test-only again. #246 pins
+`PredictiveInsightSensor` *values* rather than only #384's key roster, which
+already catches a collapse to `{}` but passes a key that stays present and
+publishes `None` forever; a value-only mutant fails only the new check. #251
+drops one malformed Open-Meteo timestamp (`2026-08-21T01:60`) into a
+four-sample block and asserts the other three survive `_parse_block` — and
+deliberately does not claim silent corruption, because an unguarded timestamp
+fails the whole coordinator cycle loudly, with entities unavailable. #395 pins
+per *state* instead of per class — `_EMPTY_PLAN_ATTRS` at 8 keys and
+`_POPULATED_PLAN_ATTRS` at 23, for both plan sensors — so deleting `currency`
+from the populated branch while leaving the empty-branch site is now red,
+which the #373 roster alone could not see. Entity checks go from 843 to 850.
+
+### A session that starts cold is oriented by the repository
+
+Every auditor of the cold-start audit had to be *told* what to fetch, because
+Claude Code loads a root `CLAUDE.md` and there was none. #391 adds it: the
+live record, the plan and its authoritative delivery table, the newest
+handover, the per-group briefs, the three contracts, and the three rules that
+have actually cost time — the scoped-versus-full zero count, claimed goldens,
+and versions assigned only by `stamp.py`. The repository rules are written to
+stand alone after the September programme closes, with the dated material
+fenced off and labelled as expiring. Its own classification is the load-bearing
+part: a tracked file in no closure fails `entities.py` with *"these force the
+FULL suite when touched"*, so `CLAUDE.md` is placed on `tests/closure.py`'s
+`INERT` list after a staged `orphan_files()` check, and leaving it unclassified
+would have forced `MODE: FULL` on every future pull request that touched it.
+
+### Six measured incidents, written down where they will be read
+
+#407 is an operational-documentation pass from incidents of a single day. The
+headline gap: "`MODE: SCOPED — 0` and `MODE: FULL` both print zero" is correct
+on a branch and impossible to follow on a push to `main`, because the workflow
+sets `GATE_SCOPE=full` before `run.sh` starts, so **there is no mode line at
+all** — verified against run 33896775361. That clause is added in `CLAUDE.md`
+rule 1, `tests/README.md`, the canonical `GATE` block and all five `web-*.js`
+copies. Six further incidents follow: branch-versus-main comparisons are
+three-dot and not only for claims; a *skipped* `closures` job is not a passing
+one (#386); `derive_closures.sh --single` is surfaced where an operator first
+reads about deriving a closure; only the node lanes need `strace` (#401); a
+quoted number states the rule that produced it (#373's three disagreeing
+censuses); and a finding with no committed harness is itself a finding. A
+seventh item folded a claim-handling rule into `fixer.md`; #410 reversed its
+priority two merges later.
+
+### A ratchet breach has three answers, and the third is now written down
+
+`CLAUDE.md` rule 2 named two responses to a breach — pay for the lines, or
+re-record deliberately with the reason in the commit message — and nowhere did
+any of the four governing documents name a legitimate raise for genuinely new
+capability, or say who may authorise it. Every statement framed
+`--allow-regression` as a concession for a *regression*. #398 was refused in
+part because `coordinator_attrs` sat at 176/176, which was a correct reading of
+the documents as they stood and a silent conversion of a structural budget into
+a veto on new features. #409 states the third response in `CLAUDE.md` rule 2,
+the plan's standing-rules bullet, `fixer.md` and `tests/structure.py`'s message
+and help strings: for a real new production feature, raise the budget with the
+repository owner's explicit confirmation, obtained **before the branch is
+pushed**. Paying still comes first and an agent that wants a raise stops and
+asks. No budget was raised, `tests/structure_budgets.json` is untouched, the
+`git diff` on `structure.py` is four hunks all inside string literals, and
+`cross_seam_fraction` remains never re-recorded.
+
+### A claim is corrected before it is deleted
+
+#410 fixes the priority #407 folded into `fixer.md` step 9. Preferring to
+delete a fragile claim inverts the real order: a claim should be true; if it is
+wrong it is corrected in a durable way — anchored to a lane, a function, a
+marker or a SHA, never a bare line number — and deleted only when no durable
+formulation exists. The two cases are now distinguished, because they are not
+the same operation: motivation or scaffolding the finished text does not need
+is simply deleted, and that is not a last resort; a claim that is *needed* and
+wrong is corrected. #386 stays as evidence of exactly that — seventeen
+citations corrected, and the last two deleted because they had by then become
+unneeded — rather than as a general licence to delete. The same inversion was
+looked for in `tests/README.md`, `fix-review.md` and `CLAUDE.md`, and is not
+there.
+
+### The harness-rot record says what each pull request actually did
+
+#386 closes #334, a fourth round on the audit documentation. `tools/audit/README.md`
+still said the harness sweep had never happened, and no file on `main` named
+the SHA the evidence tag moved from. `HARNESSES.md` is rewritten so its
+citations survive an audit, and a recurring "N files on `main` mention this
+SHA" claim is deleted rather than re-counted, having blocked the pull request
+twice. The substantive correction: round 3 attributed a D9-reproduction
+paragraph entirely to #388, and an independent check shows #346 — in #378 —
+added the single-scenario statistic and ended the reproduction, while #388 is
+merely the later commit that last touched `tests/stress.py`. Both are now named
+for what each did. A pre-existing false inventory is fixed too: **seven** files
+carry a `__main__` guard, not the five the document listed, with `stress.py`
+and `structure.py` on the wrong side of the sentence.
+
+### Triage B2: the residual is vertical, the gap is the instrument, the formula does not exist
+
+#382 records three read-only verdicts, and ships none of the fixes they point
+at. On #258, #333 did fix clipping (`units_with_ink_on_top_row` 12 of 12 → 0 of
+12) and its `uy` clamp traded it for a *vertical* unit/tick collision — 1.00 to
+1.25 px vertical against 4.0 to 8.5 px horizontal, on 9 of 13 measurable pairs
+— which refutes the plan's horizontal-right-axis hypothesis and voids the
+finder's own harness for that row. On #304, `config_flow.py` coverage is 96.2 %
+with 21 missed statements, and the "untested pages" mechanism is false: the
+suite already drives those pages, and the gap is the frozen `coverage_suite.sh`
+omitting the script that does it. On #242, **no admissible Carnot-ratio COP
+candidate exists** — the log-slope signs oppose — so that work is struck, and
+189,882 Carnot-branch calls across the nine shipped cells all sit at
+`T_out ∈ [−16, −8] °C` against a coldest turnover of +9.96 °C. The wave's
+fourteen group briefs are committed alongside, so a cold resume reads the
+corrected ones.
+
+### Wave 1a is recorded as delivered
+
+#380 is bookkeeping after the v6.3.11 stamp, and ships nothing: the
+delivery-status table moves wave 1a from running to done, naming #378 and the
+release, and the audit register's `D9-02` cell becomes *fixed, released
+v6.3.11*. The wording is kept deliberately narrow rather than declaring the
+finding closed, because a same-basin regression in cost per evaluation is still
+only caught at the 3.0x CPU factor.
+
+### Everything a cold session needs is on origin, not in a container
+
+A container reclaim would have taken about 93 KB of unpushed work with it,
+including all seven Wave 2 briefs. #389 puts that material on origin: a
+handover written mid-flight, the Wave 2 roster (marked as a starting point that
+no orchestrator has yet read through, not a warrant), a plan-table update, and
+two `web-fix-wave.js` repairs already proven on the running copies — a group
+whose pull request is open resumes at the adversarial reviewer, and `pr` is
+typed integer-or-null so a fixer's excuse string can no longer send a reviewer
+to a pull request that does not exist.
+
+### The recorded resume state can be executed, not only read
+
+A cold-start audit found the committed Wave 1b roster inert: no group carried a
+`resume` field and an already-merged group was still a runnable entry. #390
+gives every group a stage and teaches `web-fix-wave.js` two of them — `done`
+reports the merge and spends no agent, `merge` skips the reviewer when a
+verdict already sits at that head. `audit-merge.js` now reads the review
+verdict from comments, with the body as fallback, and requires it to post-date
+the head; it had demanded the verdict in the body while every other script told
+reviewers to comment, so it would have refused a correctly reviewed pull
+request. The gate-lock fragment and all five `web-*.js` copies gain a dead-owner
+branch, since the owner file's pid is a decidable fact. Two briefs with false
+locators are corrected, and the Wave 3 and quiet-judge rosters are added so the
+struck-COP decision and the quiet-judge dependency have committed referents.
+
+### The wave-resume machinery is checked
+
+#389 and #390 added a fail-closed reconcile phase and four resume stages to
+`web-fix-wave.js` with nothing exercising them. #393 adds a checker that
+extracts the committed script body, stubs its agent, log, phase and parallel
+seams, and pins eight control-flow facts: a missing or disagreeing roster is
+refused, `done` spends no agent, `merge` skips both fixer and reviewer, and
+prose in an integer `pr` field is refused. It is run by hand and deliberately
+not on the CI gate, because `.claude/` is `INERT` and `closure.py` fails if an
+`INERT` file appears in a measured closure — a never-scoped job of the
+`browser` shape is the named follow-up, and is not in this release. The
+handover is rewritten in the same pull request to describe the tree that
+existed, with two new traps recorded: orchestration living in an unchecked
+directory, and a shallow clone inventing "commits ahead" counts.
+
+### The handover says where the session stopped
+
+#392 adds a stand-down section for a session that ended on budget with an
+adversarial review still running — the state of `main`, the unstamped merges,
+the critical path, the outstanding criterion on #387, and the observation that
+the tag-push 403 is a property of that container rather than of the owner's
+machine. It is a snapshot and not a decision, and it was overtaken quickly: two
+of the merges it describes as pending had already landed by the time it merged,
+and #393 replaced the section outright.
+
+### The committed state describes the world that exists
+
+The wave script fails closed when the committed roster disagrees with origin,
+and three committed files had drifted out of agreement with it. #396 corrects
+them against measurement: a group is marked done at its merge commit, two group
+heads are corrected to the origin heads that already carry a merge verdict, one
+gains its follow-up issue, the plan's Wave 1b row is no longer held, and the
+#387 row records both the fix and the sixth-criterion ruling. One sentence
+under that table records the framing this release is stamped under: a gate and
+test-hardening release, not a stamp of no-op merges. The handover stand-down is
+replaced with the state that then existed, and `web-fragments.md` gains a
+marked note for running the programme on a Mac — while the canonical `GH`,
+`GATE` and `WT` blocks are left byte-identical on purpose, because five
+`web-*.js` copies and the new checker pin that text.
+
 ## v6.3.11
 
 ### A single-scenario regression the stress gate can finally see

@@ -43,9 +43,9 @@
 # does not expire with the stamp and is not part of the inherited-claims
 # comparison.
 #
-# claims-for: 6.3.11
+# claims-for: 6.3.12
 #
-# v6.3.11: a single-scenario regression the stress gate can finally see. The stamp empties the list; the
+# v6.3.12: the gate and test hardening of Wave 1b half I. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 
