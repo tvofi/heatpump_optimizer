@@ -19352,4 +19352,204 @@ R.check(
     "run that swallows the status is a gate that cannot fail",
 )
 
+
+R.section("#369/#370 — the duplication window can fire, and --record refuses a laundered regression")
+
+# These drive tests/structure.py's OWN symbols, not a re-implementation of
+# them: the window scan and the re-record guard are the production code here,
+# and a test that rebuilt either would pin nothing (tests/README.md).
+import contextlib as _hpo_g_ctx
+import io as _hpo_g_io
+import json as _hpo_g_json
+import tempfile as _hpo_g_tmp
+
+import structure as _hpo_st
+
+_hpo_g_dup = getattr(_hpo_st, "duplicate_runs", None)
+_hpo_g_reg = getattr(_hpo_st, "regression_rows", None)
+
+
+def _hpo_g_sample(shared: int) -> dict:
+    """Two functions of one module sharing exactly ``shared`` normalized lines.
+
+    The shape ``duplicate_runs`` consumes: fid -> [(segment, text)], which is
+    what ``measure()`` builds per module once blanks, comment-only lines and
+    nested def spans are stripped.
+    """
+    body = [(0, f"shared_statement_{i} = compute({i})") for i in range(shared)]
+    return {
+        ("dup.py", "left", 10): [(0, "only_left = 1"), *body, (0, "return only_left")],
+        ("dup.py", "right", 90): [(0, "only_right = 2"), *body, (0, "return only_right")],
+    }
+
+
+def _hpo_g_runs(sample: dict, window: int):
+    if _hpo_g_dup is None:
+        return "duplicate_runs is missing from tests/structure.py"
+    return _hpo_g_dup(sample, window)
+
+
+# ---- #369 ---------------------------------------------------------------
+# DUP_BLOCK_LINES was 30 against a longest real duplicated run of 19, so
+# duplication_blocks reported 0 because nothing in the tree could reach the
+# window -- not because the tree was clean. Measured on this fork at
+# a2c4982: window 30 -> 0, 25 -> 0, 20 -> 0, 15 -> 4, 12 -> 6, 10 -> 13.
+# Both ends of the window are pinned here on a constructed duplication, so
+# reverting the constant fails instead of silently going quiet again.
+_hpo_g_s12 = _hpo_g_sample(12)
+R.check(
+    "a 12-line duplication is invisible to the old 30-line window (#369)",
+    _hpo_g_runs(_hpo_g_s12, 30) == [],
+    f"duplicate_runs(sample, 30) = {_hpo_g_runs(_hpo_g_s12, 30)}",
+)
+R.check(
+    "and invisible at 20 too -- which is why duplication_blocks could only read 0",
+    _hpo_g_runs(_hpo_g_s12, 20) == [],
+    f"duplicate_runs(sample, 20) = {_hpo_g_runs(_hpo_g_s12, 20)}",
+)
+_hpo_g_caught = _hpo_g_runs(_hpo_g_s12, _hpo_st.DUP_BLOCK_LINES)
+R.check(
+    "the shipped window catches it: one row per side, 12 normalized lines each",
+    isinstance(_hpo_g_caught, list)
+    and len(_hpo_g_caught) == 2
+    and sorted(row[1] for row in _hpo_g_caught) == ["left", "right"]
+    and [row[4] for row in _hpo_g_caught] == [12, 12],
+    f"duplicate_runs(sample, DUP_BLOCK_LINES={_hpo_st.DUP_BLOCK_LINES}) = {_hpo_g_caught}",
+)
+R.check(
+    "DUP_BLOCK_LINES is 10 -- the tree measures 0 at 20 and 13 at 10 (#369)",
+    _hpo_st.DUP_BLOCK_LINES == 10,
+    f"DUP_BLOCK_LINES = {_hpo_st.DUP_BLOCK_LINES}; the longest duplicated run in "
+    "the integration is 19 normalized lines, so any window above it leaves the "
+    "metric incapable of firing at all",
+)
+R.check(
+    "the window is still a floor: a 9-line shared run is not reported at 10",
+    _hpo_g_runs(_hpo_g_sample(9), _hpo_st.DUP_BLOCK_LINES) == [],
+    f"duplicate_runs(9-line sample, {_hpo_st.DUP_BLOCK_LINES}) = "
+    f"{_hpo_g_runs(_hpo_g_sample(9), _hpo_st.DUP_BLOCK_LINES)}",
+)
+
+# ---- #370 ---------------------------------------------------------------
+# record_budgets() never read the table it replaced, so --record could not
+# tell locking in a gain from laundering a regression. The direction is
+# uniformly `new > old` -- ratchet() compares all 22 metrics the same way, so
+# there is no per-metric direction table to maintain -- and FRACTION_METRICS
+# is skipped: a tolerance metric inside its band has nothing to record, and
+# outside it a failure is a decision, not bookkeeping.
+_hpo_g_old = {
+    "coordinator_loc": 10394,
+    "methods_over_150": 23,
+    "duplication_blocks": 13,
+    "cross_seam_fraction": 0.4289,
+    "recorded_at": "4b6e076517431bd8658530c5ac751f2b7ddb7ef6",
+}
+_hpo_g_base = {k: v for k, v in _hpo_g_old.items() if k != "recorded_at"}
+_hpo_g_worse = dict(_hpo_g_base, coordinator_loc=10420, methods_over_150=22)
+_hpo_g_better = dict(_hpo_g_base, coordinator_loc=10380, cross_seam_fraction=0.4301)
+_hpo_g_frac = dict(_hpo_g_base, cross_seam_fraction=0.4301)
+
+
+def _hpo_g_rows(old: dict, new: dict):
+    if _hpo_g_reg is None:
+        return "regression_rows is missing from tests/structure.py"
+    return _hpo_g_reg(old, new)
+
+
+R.check(
+    "regression_rows names the metric that moved the wrong way, old and new (#370)",
+    _hpo_g_rows(_hpo_g_old, _hpo_g_worse) == [("coordinator_loc", 10394, 10420)],
+    f"regression_rows = {_hpo_g_rows(_hpo_g_old, _hpo_g_worse)}; methods_over_150 "
+    "improved in the same table and must not be named -- the whole defect is a "
+    "re-record that carries one row along with another",
+)
+R.check(
+    "cross_seam_fraction moving up is NOT a regression row: FRACTION_METRICS is skipped",
+    _hpo_g_rows(_hpo_g_old, _hpo_g_frac) == [],
+    f"regression_rows = {_hpo_g_rows(_hpo_g_old, _hpo_g_frac)}; FRACTION_METRICS = "
+    f"{sorted(getattr(_hpo_st, 'FRACTION_METRICS', ()))}",
+)
+
+
+def _hpo_g_record(new_metrics: dict, **kwargs):
+    """record_budgets against a throwaway table. Returns (rc, table-after)."""
+    saved = _hpo_st.BUDGET_FILE
+    with _hpo_g_tmp.TemporaryDirectory() as tmp:
+        path = _Path(tmp) / "structure_budgets.json"
+        path.write_text(_hpo_g_json.dumps(_hpo_g_old, indent=1, sort_keys=True) + "\n")
+        _hpo_st.BUDGET_FILE = path
+        try:
+            with _hpo_g_ctx.redirect_stdout(_hpo_g_io.StringIO()):
+                rc = _hpo_st.record_budgets({"metrics": dict(new_metrics)}, **kwargs)
+        except TypeError as exc:
+            return f"TypeError: {exc}", {}
+        finally:
+            _hpo_st.BUDGET_FILE = saved
+        return rc, _hpo_g_json.loads(path.read_text())
+
+
+_hpo_g_refused = _hpo_g_record(_hpo_g_worse)
+R.check(
+    "--record REFUSES a worsened metric by default and leaves the table untouched",
+    _hpo_g_refused == (1, _hpo_g_old),
+    f"record_budgets returned {_hpo_g_refused[0]!r}; table now {_hpo_g_refused[1]!r}. "
+    "#350 makes re-recording routine and gate-demanded, and a regression "
+    "laundered by a gate that ASKED for the re-record carries the gate's authority.",
+)
+_hpo_g_allowed = _hpo_g_record(
+    _hpo_g_worse, allow_regression="the dhw seam extraction trades 26 lines for the cut"
+)
+R.check(
+    "an explicit --allow-regression reason lets it through and writes the new value",
+    _hpo_g_allowed[0] == 0
+    and _hpo_g_allowed[1].get("coordinator_loc") == 10420
+    and _hpo_g_allowed[1].get("methods_over_150") == 22,
+    f"record_budgets returned {_hpo_g_allowed[0]!r}; table now {_hpo_g_allowed[1]!r}",
+)
+_hpo_g_blank = _hpo_g_record(_hpo_g_worse, allow_regression="   ")
+R.check(
+    "a blank reason is refused, so the flag cannot decay into pasted boilerplate",
+    _hpo_g_blank == (1, _hpo_g_old),
+    f"record_budgets returned {_hpo_g_blank[0]!r}; table now {_hpo_g_blank[1]!r}",
+)
+_hpo_g_tight = _hpo_g_record(_hpo_g_better)
+R.check(
+    "a pure tightening still records with no flag -- that is the point of the exercise",
+    _hpo_g_tight[0] == 0 and _hpo_g_tight[1].get("coordinator_loc") == 10380,
+    f"record_budgets returned {_hpo_g_tight[0]!r}; table now {_hpo_g_tight[1]!r}",
+)
+R.check(
+    "and the path that proceeds still stamps a resolvable recorded_at (#363)",
+    isinstance(_hpo_g_tight[1].get("recorded_at"), str)
+    and len(_hpo_g_tight[1].get("recorded_at", "")) == 40,
+    f"recorded_at = {_hpo_g_tight[1].get('recorded_at')!r}",
+)
+R.check(
+    "cross_seam_fraction is carried forward, never re-recorded (#370)",
+    _hpo_g_tight[1].get("cross_seam_fraction") == 0.4289
+    and _hpo_g_record(_hpo_g_frac)[1].get("cross_seam_fraction") == 0.4289,
+    "a tolerance metric passing inside its band has nothing to record and failing "
+    "outside it is a decision, so re-recording one can only ever loosen the band. "
+    f"Got {_hpo_g_tight[1].get('cross_seam_fraction')!r} and "
+    f"{_hpo_g_record(_hpo_g_frac)[1].get('cross_seam_fraction')!r}",
+)
+R.check(
+    "--allow-regression is a flag that demands a reason, not a bare switch",
+    any(
+        isinstance(_hpo_n, _hpo_ast.Call)
+        and getattr(_hpo_n.func, "attr", "") == "add_argument"
+        and any(
+            isinstance(_hpo_a, _hpo_ast.Constant) and _hpo_a.value == "--allow-regression"
+            for _hpo_a in _hpo_n.args
+        )
+        and not any(_hpo_k.arg == "action" for _hpo_k in _hpo_n.keywords)
+        and any(
+            _hpo_k.arg == "metavar" or _hpo_k.arg == "default" for _hpo_k in _hpo_n.keywords
+        )
+        for _hpo_n in _hpo_ast.walk(_hpo_ast.parse(_Path("tests/structure.py").read_text()))
+    ),
+    "main() must expose --allow-regression=\"<reason>\" as a value-taking option; "
+    "store_true would make the reason unrecordable",
+)
+
 sys.exit(R.close("FEATURE CHECKS"))
