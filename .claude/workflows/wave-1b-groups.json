@@ -198,10 +198,10 @@
    "after": [],
    "brief": "Store loaders crash on corrupt payloads: each loader's try wraps async_load but not the stored.get(...) that follows, so payloads like [1,2,3], 'nonsense' and 7 raise AttributeError out of the loader. The judge reproduced 152 of 2000 fuzzed payloads crashing, with 74 repeating on every restart. Widen the try in the ten loaders, or in the six from_dict parsers -- _async_load_manual_plan is the template that already does it right. PRIORITISE _async_load_thermal_learning: seat 2 measured that 65 of the 74 repeaters self-heal within about an hour, and thermal_learning is the only permanently lost one, so that is where the user-visible harm is.\n\nMost of the surface is outside coordinator.py (price_model.py from_dict, defrost.py, wear.py, curve_learning.py, freq_control.py, dhw_draws.py, accuracy.py), which matters because the coordinator class's ratchet headroom moves with every merge -- RE-MEASURE IT AT YOUR OWN MERGE BASE (python3 tests/structure.py) rather than trusting a number quoted here. #406 (merged) re-recorded coordinator_loc and coordinator_methods back to zero headroom and added max_method_loc = 540 and max_cc = 87. Any line this adds to the coordinator class must be paid for elsewhere in the same PR (PR #368 is the precedent -- it left the class 29 lines smaller) or ask for an owner-confirmed raise under the #409 ratchet-raise policy. Do not silently re-record, and do not write a new literal budget number into this brief.\n\nUse the finder's store_fuzz harness from tag audit-round2-evidence (757e164), copied into the tree under test; report the before and after fuzz counts.",
    "resume": {
-    "stage": "review",
-    "pr": 421,
-    "head_sha": "3e9b149164431826234b45e7da93a022dac9c4a2",
-    "note": "Fix pushed; awaiting adversarial review. Not merged."
+    "stage": "done",
+    "merged_pr": 421,
+    "merge_sha": "a7c1e540dd9dd2878da2c5929b4c14fea3d0a4a7",
+    "note": "#238 closed. Listed only so the roster stays complete; the wave script skips a done group."
    }
   },
   {
