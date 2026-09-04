@@ -216,7 +216,7 @@ class ComfortLearner:
         stored_configured = data.get("configured_weight")
         try:
             stored_configured = float(stored_configured)
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
             stored_configured = None
         # If the user has since changed the configured weight, everything
         # learned against the old one is about a different question.
@@ -226,7 +226,7 @@ class ComfortLearner:
             learner.learned_weight = float(data.get("learned_weight", configured_weight))
             learner.evidence = float(data.get("evidence", 0.0))
             learner.overrides = int(data.get("overrides", 0))
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
             return cls(
                 configured_weight=configured_weight, learned_weight=configured_weight
             )

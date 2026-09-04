@@ -335,13 +335,13 @@ class PeakTracker:
         try:
             tracker._window_sum = float(data.get("window_sum", 0.0))
             tracker._window_samples = int(data.get("window_samples", 0))
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
             tracker._window_sum = 0.0
             tracker._window_samples = 0
         try:
             # Absent from pre-v4 payloads; 1.0 is the unmasked behaviour.
             tracker._window_factor = float(data.get("window_factor", 1.0))
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
             tracker._window_factor = 1.0
         try:
             # A restart mid-window must not close that window on the
@@ -349,7 +349,7 @@ class PeakTracker:
             # chatty-meter peak the weighted fold exists to prevent.
             tracker._window_wsum = float(data.get("window_wsum", 0.0))
             tracker._window_weight = float(data.get("window_weight", 0.0))
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
             tracker._window_wsum = 0.0
             tracker._window_weight = 0.0
         return tracker

@@ -228,7 +228,7 @@ class SnapshotRing:
             ring.snapshots = clean[-RING_SIZE:]
         try:
             ring._bias_days = max(0, int(data.get("bias_days", 0)))
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
             ring._bias_days = 0
         ring._last_day = str(data.get("last_day", ""))
         ring._streak_started = str(data.get("streak_started", ""))

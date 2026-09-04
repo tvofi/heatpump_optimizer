@@ -303,9 +303,15 @@ class PriceShapeModel:
             and len(shapes) == 2
             and all(isinstance(s, list) and len(s) == HOURS_PER_DAY for s in shapes)
         ):
-            model.shapes = [[float(v) for v in s] for s in shapes]
+            try:
+                model.shapes = [[float(v) for v in s] for s in shapes]
+            except (TypeError, ValueError, OverflowError):
+                pass
         if isinstance(days, list) and len(days) == 2:
-            model.days = [int(v) for v in days]
+            try:
+                model.days = [int(v) for v in days]
+            except (TypeError, ValueError, OverflowError):
+                pass
         # Additive fields (#19, #34): absent from a pre-v4 store, and their
         # defaults mean "no effect", so an old payload loads into exactly the
         # behaviour it had.
@@ -318,19 +324,28 @@ class PriceShapeModel:
                 for s in quarters
             )
         ):
-            model.quarter_factors = [[float(v) for v in s] for s in quarters]
+            try:
+                model.quarter_factors = [[float(v) for v in s] for s in quarters]
+            except (TypeError, ValueError, OverflowError):
+                pass
         qdays = data.get("quarter_days")
         if isinstance(qdays, list) and len(qdays) == 2:
-            model.quarter_days = [int(v) for v in qdays]
+            try:
+                model.quarter_days = [int(v) for v in qdays]
+            except (TypeError, ValueError, OverflowError):
+                pass
         var = data.get("residual_var")
         if (
             isinstance(var, list)
             and len(var) == 2
             and all(isinstance(s, list) and len(s) == HOURS_PER_DAY for s in var)
         ):
-            model.residual_var = [
-                [max(0.0, float(v)) for v in s] for s in var
-            ]
+            try:
+                model.residual_var = [
+                    [max(0.0, float(v)) for v in s] for s in var
+                ]
+            except (TypeError, ValueError, OverflowError):
+                pass
         return model
 
     def summary(self) -> dict:

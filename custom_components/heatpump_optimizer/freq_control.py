@@ -186,13 +186,13 @@ class FrequencyMap:
             try:
                 ratio = float(entry[0])
                 count = int(entry[1])
-            except (TypeError, ValueError, IndexError):
+            except (TypeError, ValueError, OverflowError, IndexError, KeyError):
                 continue
             if not np.isfinite(ratio) or ratio <= 0 or count < 0:
                 continue
             try:
                 fmap.buckets[int(key)] = [ratio, count]
-            except (TypeError, ValueError):
+            except (TypeError, ValueError, OverflowError):
                 continue
         return fmap
 
