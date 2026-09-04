@@ -271,6 +271,12 @@
    "reviewerModel": "opus",
    "fixture": false,
    "after": [],
+   "resume": {
+    "stage": "done",
+    "merged_pr": 427,
+    "merge_sha": "598c83de6745e0b5c12cface41d09fb1e9b4fa53",
+    "note": "#254 closed. Rebased onto post-#429 main; fix-review M01 rc 0→1 (458 may-drift leaves → 1 judged baseline_cost)."
+   },
    "brief": "MEASUREMENT FIRST; the code may turn out to be nothing. The drift gate cannot fail on the five SENSITIVE fixtures: mutant M01 moved wood_coil's baseline_cost 4.3x (156 -> 678) and env_drift still printed 'NO UNCLAIMED DRIFT: 55 scenario(s) checked' with rc 0. The 2026-09-03 comment (written after #355 landed, and still current) widens it: for a fixture carrying a # may-drift: entry, no value change of any magnitude can reach a failure, and #355's structural check catches SHAPE, not VALUES, so it did not fix this.\n\nTWO FIX SHAPES ARE ALREADY REFUTED IN THE ISSUE -- do not re-propose either: a magnitude ratchet (34 of 55 fixtures and 14,461 leaves move from machine identity alone, so any threshold either fires constantly or never), and path-scoped may-drift (env_drift.py:934-948 shows why).\n\nThe deciding experiment: flip a solver basin and record which keys actually move in the five SENSITIVE fixtures and in narrow_band (machine-sensitive but NOT in SENSITIVE, which is its own finding). Do baseline_cost, prices, outdoor_temps and price_known move, or only the plan? If a solver-independent residue exists, partition the keys in code and fail a may-drift fixture on the solver-independent ones. If the residue is empty, say so with the numbers and CLOSE the issue -- a gate of this shape cannot exist, and recording that is worth more than an unsound gate.\n\nThis touches the may-drift block of tests/golden/claimed_drift.txt, and #245 (W1-G9) re-measures under whatever partition lands here, so run before it. A branch here must not CLAIM any fixture: env_drift.may_drift_error refuses a name that is both claimed and may-drift."
   },
   {
