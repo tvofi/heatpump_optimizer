@@ -13,8 +13,9 @@ The optimization accounts for:
 """
 from __future__ import annotations
 
+import importlib
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
@@ -24,18 +25,46 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.loader import async_get_integration
 
 from .const import DOMAIN, CONFIG_ENTRY_VERSION
-from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
-from .frontend import async_register_frontend
-from . import services
-# The four service schemas the test suite pokes through the package root
-# (the facade rule): they are defined in -- and re-exported from --
-# services.py, along with everything else the eleven services are made of.
-from .services import (
-    SERVICE_SCHEMA_APPLY_MANUAL_PLAN,
-    SERVICE_SCHEMA_APPLY_SCHEDULE,
-    SERVICE_SCHEMA_CLEAR_MANUAL_PLAN,
-    SERVICE_SCHEMA_SIMULATE_PLAN,
-)
+
+if TYPE_CHECKING:
+    from .coordinator import HeatPumpOptimizerConfigEntry
+
+# Importing this package must not execute the coordinator's module graph.
+# ``coordinator`` and ``services`` reach 40 of the integration's modules
+# between them, and a plain ``from .coordinator import ...`` here put every
+# one of them inside the MEASURED closure of anything that imports the
+# package -- including ``tests/stress.py``, whose only production entry
+# points are the solver and the models under it. That made a change to the
+# coordinator, the frontend or the narrative select a forty-minute stress
+# run the change could not affect. Home Assistant reaches everything below
+# through ``async_setup``/``async_setup_entry``, which run long after import.
+_LAZY_ATTRS = {
+    "HeatPumpOptimizerConfigEntry": "coordinator",
+    "HeatPumpOptimizerCoordinator": "coordinator",
+    # The four service schemas the test suite pokes through the package root
+    # (the facade rule): they are defined in -- and re-exported from --
+    # services.py, along with everything else the eleven services are made of.
+    "SERVICE_SCHEMA_APPLY_MANUAL_PLAN": "services",
+    "SERVICE_SCHEMA_APPLY_SCHEDULE": "services",
+    "SERVICE_SCHEMA_CLEAR_MANUAL_PLAN": "services",
+    "SERVICE_SCHEMA_SIMULATE_PLAN": "services",
+}
+
+
+def _lazy(module: str):
+    """A sibling module, imported on first use. See ``_LAZY_ATTRS``."""
+    return importlib.import_module(f".{module}", __package__)
+
+
+def __getattr__(name: str) -> Any:
+    """Resolve a re-export from the package root (PEP 562)."""
+    module = _LAZY_ATTRS.get(name)
+    if module is None:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    value = getattr(_lazy(module), name)
+    globals()[name] = value
+    return value
+
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -157,7 +186,7 @@ async def async_setup_entry(
     # not versioned by the config entry.
     _async_remove_retired_entities(hass, entry)
 
-    coordinator = HeatPumpOptimizerCoordinator(hass, entry)
+    coordinator = _lazy("coordinator").HeatPumpOptimizerCoordinator(hass, entry)
     try:
         integration = await async_get_integration(hass, DOMAIN)
         coordinator.integration_version = str(integration.version)
@@ -190,7 +219,9 @@ async def async_setup_entry(
     entry.runtime_data = coordinator
 
     # Serve and register the Lovelace dashboard card (idempotent; runs once).
-    await async_register_frontend(hass, coordinator.integration_version)
+    await _lazy("frontend").async_register_frontend(
+        hass, coordinator.integration_version
+    )
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORM_LIST)
 
@@ -223,7 +254,7 @@ def _async_register_services(hass: HomeAssistant) -> None:
     forwards, so ``async_setup`` keeps one registration path and nothing is
     captured per entry.
     """
-    services.async_register_services(hass)
+    _lazy("services").async_register_services(hass)
 
 
 async def async_update_options(

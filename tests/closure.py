@@ -549,6 +549,20 @@ def _widen(closures: dict[str, set[str]]) -> None:
         for p in sorted((ROOT / "tests" / "golden").glob("*")):
             if p.is_file():
                 closures[ed].add(str(p.relative_to(ROOT)))
+        # The stub Home Assistant the capture runs against, for the same
+        # reason. env_drift.py's own header names it: a baseline commit's
+        # tracked content "fixes every byte of tests/golden.py,
+        # tests/profiles.py, tests/hastub/ and custom_components/", and the
+        # coordinator and config-flow captures under --all go through it.
+        # The recording lane runs env_drift with a cache key and no capture,
+        # so no trace here can see those reads. Until the package root
+        # stopped importing the coordinator eagerly they arrived by
+        # accident, through an import chain that had nothing to do with what
+        # the capture depends on.
+        for p in sorted((ROOT / "tests" / "hastub").rglob("*")):
+            rel = str(p.relative_to(ROOT))
+            if p.is_file() and "__pycache__" not in rel:
+                closures[ed].add(rel)
     # golden.py stands in for env_drift in strict mode and captures the same
     # scenarios, so it carries the same closure.
     g = "tests/golden.py"
