@@ -596,11 +596,21 @@ def table_maxima(monsters: list, cc_scores: list) -> tuple[int, int]:
     """``(max_method_loc, max_cc)`` off the two tables ``measure`` already sorts.
 
     A function of its arguments rather than three characters inline in the
-    metrics dict, so the rule can be driven without reading the integration.
-    ``tests/features.py`` is in the fast lane and its measured closure does not
-    include ``custom_components/``; a check there that called ``measure()``
-    would widen that closure to every module in the package and put the fast
-    lane in scope for every integration change (``tests/closures.json``).
+    metrics dict, so the rule can be driven from ``tests/features.py`` without
+    calling ``measure()``, which reads the whole integration and the budget
+    table.
+
+    The cost that decision avoids is specific, and it is not the one you would
+    guess. ``tests/features.py``'s measured closure already lists 43 of the 48
+    modules under ``custom_components/``, so recording ``measure()``'s reads
+    would have added six files, not the package: the five HA platform modules
+    (``binary_sensor``, ``button``, ``diagnostics``, ``sensor``, ``switch``,
+    which that script does not test and only opened because ``measure()`` walks
+    the directory) and ``tests/structure_budgets.json``. It is the last one
+    that bites. A closure entry on the budget table puts the fast lane's 1764
+    checks in scope for EVERY future re-record -- which is precisely the
+    traffic #350 above now makes mandatory, so the coupling would tax the
+    operation this file just started demanding, for ever.
 
     ``default=0`` is the empty-table case and it is safe in the direction that
     matters (#374). ``monsters`` starts at ``MONSTER_LIMITS[1]`` and

@@ -19866,13 +19866,16 @@ R.check(
 # does exactly this job for the one shape family that has it.
 #
 # Driven through table_maxima() on rows shaped exactly as measure() builds
-# them, NOT by calling measure(). measure() reads every module under
-# custom_components/, and a check here that did so would widen this script's
-# measured closure to the whole integration and put the fast lane in scope for
-# every integration change (tests/closures.json). What the real tree measures
-# is pinned by tests/structure.py itself, which is in the same closure and runs
-# in the same gate: its two-way key-set check fails a measured-but-absent key,
-# and its ratchet fails the value.
+# them, NOT by calling measure(). This script's measured closure already lists
+# 43 of the 48 modules under custom_components/, so recording measure()'s reads
+# would add six files rather than the package: the five HA platform modules
+# this script does not test and only opened because measure() walks the
+# directory, and tests/structure_budgets.json. That last entry is the one that
+# bites -- it would put these 1764 checks in scope for EVERY future budget
+# re-record, which is exactly the traffic #350 makes mandatory. What the real
+# tree measures is pinned by tests/structure.py, which is in the same closure
+# and runs in the same gate: its two-way key-set check fails a
+# measured-but-absent key, and its ratchet fails the value.
 _hpo_h_max = getattr(_hpo_st, "table_maxima", None)
 _hpo_struct_src = _Path("tests/structure.py").read_text()
 _hpo_h_monsters = [
