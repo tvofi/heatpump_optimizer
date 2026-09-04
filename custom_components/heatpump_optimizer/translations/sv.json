@@ -480,6 +480,7 @@
           "mixing_valve_target": "Ventilens börvärde",
           "mixing_valve_target_entity": "Givare för ventilens börvärde",
           "mixing_valve_write_entity": "Ventilens styrenhet",
+          "mixing_valve_write_target_kind": "Vad styrenheten förväntar sig",
           "buffer_tank_volume": "Ackumulatortankens volym",
           "buffer_max_temperature": "Högsta temperatur i ackumulatortanken",
           "valve_outlet_temp_entity": "Temperatur efter shunten mellan ved- och värmepumpstank (valfri)",
@@ -494,6 +495,7 @@
           "mixing_valve_target": "Inomhustemperaturen ventilen håller. Lämna på 0 för att använda toppen av ditt komfortintervall, vilket är den rekommenderade inställningen: byggnaden laddas först utan verkningsgradsförlust, och tanken tar bara överskottet.",
           "mixing_valve_target_entity": "Valfritt. Läser ventilens börvärde i stället för det fasta värdet ovan.",
           "mixing_valve_write_entity": "Krävs för \"Styrs av optimeraren\": den number- eller climate-entitet som ventilens styrning exponerar. Optimeraren skriver sitt rekommenderade börvärde dit efter varje planeringscykel, och bara när svaret ändras.",
+          "mixing_valve_write_target_kind": "\"Inomhustemperatur\" är rätt för ett rums-/termostatbörvärde, och är vad som alltid har skrivits — det säkra standardvalet. \"Framledningstemperatur\" är för en ventil eller värmepumpsstyrning vars börvärde är en vattentemperatur: optimeraren räknar fram den från samma flödeskurva den redan använder för en dum ventil. Välj \"Framledningstemperatur\" först när du har bekräftat att entiteten förväntar sig en vattentemperatur — riktat mot ett flödesbörvärde skulle \"Inomhustemperatur\" beställa ungefär 21 °C till en enhet som förväntar sig 35-45 °C och kraftigt underuppvärma huset.",
           "buffer_tank_volume": "Liter. Tanken mellan värmepumpen och värmekretsarna. Större tank lagrar mer billig värme.",
           "buffer_max_temperature": "Tanken laddas aldrig över detta, hur billig elen än är.",
           "valve_outlet_temp_entity": "Temperaturen på det blandade flödet som lämnar ventilen som blandar ved- och värmepumpsvatten. Tillsammans med tankgivarna talar den om hur stor del av uppvärmningen en brasa täcker just nu, så att elvärmen kan stå tillbaka lika mycket i stället för allt eller inget.",
@@ -786,7 +788,8 @@
       "day_window_empty": "Dagen skulle sluta innan den börjar, så ingen dagperiod blir kvar alls.",
       "comfort_outside_band": "Dag- och nattkomforttemperaturer måste ligga inom komfortbandet",
       "min_power_above_max": "Värmepumpens lägsta effekt ligger över dess högsta.",
-      "stored_value_out_of_range": "Det här värdet ligger utanför det intervall fältet normalt godtar. Intervallet har vidgats så att sidan ändå går att spara – kontrollera värdet och ändra det om det ser fel ut."
+      "stored_value_out_of_range": "Det här värdet ligger utanför det intervall fältet normalt godtar. Intervallet har vidgats så att sidan ändå går att spara – kontrollera värdet och ändra det om det ser fel ut.",
+      "flow_target_needs_two_zone": "\"Framledningstemperatur\" beräknas från tvåzonsmodellens egen flödeskurva, som denna anläggning inte har konfigurerad. Konfigurera tvåzonsmodellen först, eller lämna detta på \"Inomhustemperatur\"."
     }
   },
   "selector": {
@@ -838,6 +841,12 @@
         "manual": "Ställs in för hand",
         "smart_read": "Läs från givare",
         "smart_write": "Styrs av optimeraren"
+      }
+    },
+    "mixing_valve_write_target_kind": {
+      "options": {
+        "indoor": "Inomhustemperatur",
+        "flow": "Framledningstemperatur"
       }
     },
     "two_zone_mode": {

@@ -49,6 +49,8 @@ from .const import (
     CONF_LOWER_FLOOR_TEMP_ENTITY,
     CONF_MIXING_VALVE_TARGET_ENTITY,
     CONF_MIXING_VALVE_WRITE_ENTITY,
+    CONF_MIXING_VALVE_WRITE_TARGET_KIND,
+    DEFAULT_MIXING_VALVE_WRITE_TARGET_KIND,
     MIXING_VALVE_WRITE_EPSILON,
     CONF_DHW_TEMP_ENTITY,
     CONF_DHW_SCHEDULE_ENABLED,
@@ -6646,6 +6648,19 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         planned = (self._current_action or {}).get("valve_target")
         if planned is not None:
             target = float(planned)
+        kind = self._config.get(
+            CONF_MIXING_VALVE_WRITE_TARGET_KIND, DEFAULT_MIXING_VALVE_WRITE_TARGET_KIND
+        )
+        if kind not in mixing_valve.WRITE_TARGET_KINDS:  # #398: caught, not trusted
+            kind = DEFAULT_MIXING_VALVE_WRITE_TARGET_KIND
+        if kind == mixing_valve.WRITE_TARGET_FLOW:
+            if not params.two_zone_enabled:  # no flow curve without it
+                _LOGGER.error(
+                    "mixing_valve_write_target_kind=flow needs the "
+                    "two-zone model; skipping the valve write"
+                )
+                return
+            target = self._valve_flow_target(target)
         if (
             self._valve_commanded_target is not None
             and abs(target - self._valve_commanded_target)
@@ -6683,6 +6698,22 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             "Commanded mixing valve target %.1f °C via %s", target, entity_id
         )
         self._valve_commanded_target = target
+
+    def _valve_flow_target(self, indoor_target: float) -> float:
+        """Flow temperature `flow_setpoint`'s curve implies (#398)."""
+        p = self._thermal_params
+        heat_loss = self._thermal_model.effective_heat_loss_coefficient(
+            p.upper_floor_heat_loss
+        ) + self._thermal_model.effective_heat_loss_coefficient(
+            p.lower_floor_heat_loss_learned
+        )
+        design_power = p.max_electrical_power * max(p.cop_nominal, 1.0)
+        return mixing_valve.flow_setpoint(
+            target_temp=indoor_target,
+            outdoor_temp=self._current_state.outdoor_temperature,
+            heat_loss_coefficient=heat_loss,
+            emitter_ua=design_power / max(p.emitter_design_delta_t, 1.0),
+        )
 
     def _plan_age_minutes(self) -> float | None:
         """Minutes since the last successful solve; None before the first."""

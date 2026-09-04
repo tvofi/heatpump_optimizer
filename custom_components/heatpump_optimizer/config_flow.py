@@ -41,8 +41,10 @@ from .const import (
     CONF_MIXING_VALVE_TARGET,
     CONF_MIXING_VALVE_TARGET_ENTITY,
     CONF_MIXING_VALVE_WRITE_ENTITY,
+    CONF_MIXING_VALVE_WRITE_TARGET_KIND,
     DEFAULT_BUFFER_MAX_TEMP,
     DEFAULT_MIXING_VALVE_TARGET,
+    DEFAULT_MIXING_VALVE_WRITE_TARGET_KIND,
     CONF_BUFFER_TANK_TEMP_ENTITY,
     CONF_DHW_TEMP_ENTITY,
     CONF_ECL110_COMMAND_TOPIC,
@@ -2174,24 +2176,42 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         which meant describing one physical system in three places.
         The purely structural properties (windows, wind and rain) live on
         *Building type and emitters* instead.
+
+        The write-target kind (#398) is validated here rather than trusted:
+        "flow" asks for the same flow curve `_command_valve_target` reuses
+        from the two-zone model, so selecting it without that model
+        configured is caught as an error instead of being saved and
+        silently skipped every write cycle.
         """
+        errors: dict[str, str] = {}
         if user_input is not None:
-            cleaned = dict(user_input)
-            # This page's own clearable entities: an absent selector must be
-            # written back as None or clearing it silently restores the old
-            # entity.
-            for key in (
-                CONF_MIXING_VALVE_TARGET_ENTITY,
-                CONF_MIXING_VALVE_WRITE_ENTITY,
-                CONF_VALVE_OUTLET_TEMP_ENTITY,
-                CONF_WOOD_TANK_TOP_ENTITY,
-                CONF_WOOD_TANK_BOTTOM_ENTITY,
+            if (
+                user_input.get(CONF_MIXING_VALVE_WRITE_TARGET_KIND)
+                == mixing_valve.WRITE_TARGET_FLOW
+                and not self._current.get(CONF_UPPER_FLOOR_THERMAL_MASS)
             ):
-                if not cleaned.get(key):
-                    cleaned[key] = None
-            return await self._save_or_menu(cleaned)
+                errors[CONF_MIXING_VALVE_WRITE_TARGET_KIND] = (
+                    "flow_target_needs_two_zone"
+                )
+            else:
+                cleaned = dict(user_input)
+                # This page's own clearable entities: an absent selector must
+                # be written back as None or clearing it silently restores
+                # the old entity.
+                for key in (
+                    CONF_MIXING_VALVE_TARGET_ENTITY,
+                    CONF_MIXING_VALVE_WRITE_ENTITY,
+                    CONF_VALVE_OUTLET_TEMP_ENTITY,
+                    CONF_WOOD_TANK_TOP_ENTITY,
+                    CONF_WOOD_TANK_BOTTOM_ENTITY,
+                ):
+                    if not cleaned.get(key):
+                        cleaned[key] = None
+                return await self._save_or_menu(cleaned)
 
         current = self._current
+        if user_input is not None:
+            current = {**current, **user_input}
 
         def _entity(key: str) -> Any:
             """Optional key that keeps the currently configured entity as default."""
@@ -2202,6 +2222,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
 
         return self.async_show_form(
             step_id="building",
+            errors=errors,
             data_schema=_options_schema(
                 {
                     vol.Optional(
@@ -2227,6 +2248,19 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
                     # climate entity the valve's own controller exposes.
                     _entity(CONF_MIXING_VALVE_WRITE_ENTITY): _entity_of(
                         ["number", "input_number", "climate"]
+                    ),
+                    # What kind of set-point that entity expects (#398).
+                    # Defaults to "indoor", the value always written, so an
+                    # existing entry's behaviour does not move.
+                    vol.Optional(
+                        CONF_MIXING_VALVE_WRITE_TARGET_KIND,
+                        default=current.get(
+                            CONF_MIXING_VALVE_WRITE_TARGET_KIND,
+                            DEFAULT_MIXING_VALVE_WRITE_TARGET_KIND,
+                        ),
+                    ): _select(
+                        list(mixing_valve.WRITE_TARGET_KINDS),
+                        "mixing_valve_write_target_kind",
                     ),
                     vol.Optional(
                         CONF_BUFFER_TANK_VOLUME,
