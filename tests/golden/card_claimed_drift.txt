@@ -19,8 +19,8 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 6.3.10
+# claims-for: 6.3.11
 #
-# v6.3.10: the dead-symbol floor, the D8-01 remainder, and a release tool that can check its own gate. The stamp empties the list; the
+# v6.3.11: a single-scenario regression the stress gate can finally see. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #

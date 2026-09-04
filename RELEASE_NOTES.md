@@ -1,5 +1,143 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.3.11
+
+### A single-scenario regression the stress gate can finally see
+
+After #339 the stress gate caught a *uniform* slowdown at 1.41x and a 2x
+confined to a **single scenario** not at all. Executed at the merge base with
+an exact 2x injected into `shoulder/cycle` alone, the victim's CPU ratio went
+from 118.3x to 251.8x — 2.13x — and **zero** checks tripped: 1.99 is under
+`SCENARIO_BUDGET_FACTOR` 3.0, and the sweep budget is a mean over 51
+scenarios. #378 closes #346 by adding the failure mode rather than retuning a
+constant; both constants-level fixes were already refuted, one by a failed CI
+null control and one by #371's measurement of `_smallest` at 1.420 for every
+factor from 3.0 to 100.0.
+
+**The statistic is a count, not a time**, and that is measured rather than
+assumed. On the idle audit box, six repeats per scenario produced exactly
+**one** distinct objective each — bit-identical plans, so the identical
+iterate path — and the CPU still moved by up to 30 %, the CPU/reference ratio
+by up to 42 %. A 1.5x factor has 6 % of margin over that; the trailing-median
+reference adds noise rather than removing it. Normalising against the sweep's
+own median instead leaves a run-to-run spread with a **2.03x** worst case and
+a systematic cross-machine shape difference no median removes, and CPU per
+evaluation cancels the injection it is meant to see. Over those same repeats
+every scenario's solver-evaluation count was bit-identical, spread **1.000**.
+
+So `SolverWork` wraps `optimizer._scoped_minimize` — the single seam every
+L-BFGS-B run passes through — and sums scipy's `nfev`/`njev`. The rule: a
+scenario may not exceed `SCENARIO_WORK_FACTOR = 1.5x` the recorded evaluation
+count **for the basin it actually solved into**. A solve in a basin nothing
+records is exempt, named, and printed with the two numbers needed to record
+it, with `SCENARIO_BASIN_MIN_COVERED = 40` as the floor under what the check
+must still cover.
+
+At the head, one sweep per condition:
+
+* injected 2x on one scenario — 1976 evaluations, **2.000x**, objective
+  unchanged: **1 check trips, `shoulder/cycle` and only it**;
+* basin flip *and* 2x — 1944 evaluations, CPU 2.08x, in a different basin:
+  **nothing fires**. That is the acceptance bar, and it is exactly what CI
+  once did to `shoulder/tariff+cycle` at 2.28x.
+
+`SCENARIO_BASIN_TOLERANCE` is **1e-6, not the 1e-4 first committed**: fifteen
+genuine basin changes, forced through the production symbol
+`_price_guess_weights`, moved the objective by 4.41e-5 to 2.24e-3, and the
+smallest sits *under* 1e-4 — that tolerance would have called a real flip the
+same basin and judged its extra work a regression. CI corrected the design
+twice more, and is why the coverage floor is 40 rather than 51: two runners
+gave two answers for `typical_slab/shoulder`. Locally, 51 of 51 are covered.
+
+Pinned by three mutations (`work_over_verdict`'s comparison, `same_basin`'s
+comparison, `SolverWork`'s accumulation lines) each killing 3 or 4 of 58
+checks, with the failing test committed first and red at the merge base. The
+instrument's own cost is its null control: 128.0 s of sweep solver CPU at the
+head against 132.2 s at the base, 0.97x, inside the box's own run-to-run
+spread. Production-neutral — every `ratio`, `rss_peak_mb` and
+`traced_peak_mb` in `stress_budgets.json` is byte-identical. Still out of
+reach, and said so plainly: a single-scenario regression in the cost of each
+evaluation rather than in their number, which nothing denominated in CPU can
+see on this hardware.
+
+### The decomposition plan was in the wrong order, and its first stage oversold
+
+#379 is the triage pass over the #193 decomposition program — documentation
+only, five read-only judges run against static analysis alongside the stress
+work because AST and grep cannot perturb a timing number. Three of the five
+moved the plan.
+
+**The stage order was inverted by the ratchet's own numbers.** The plan of
+record put DHW before fetch; `tests/structure.py` has contradicted that since
+#331 landed — views 120 < fetch 132 < dhw 195 < grid 236 < learning 350. The
+stages now run in the measured order. The caveat matters more than the
+correction: re-implementing the round-2 minimum-cut search found **ten**
+distinct sets of at least eight methods under cut 25 where the original found
+eight, so cut cost is a property of the partition rule, not of the class. No
+stage may be justified by cut cost alone.
+
+**The first stage was sold as separability, and is not.** Drop all six hub
+attributes and 200 of 254 methods remain **one connected component**, every
+other component a singleton, at every k and on both edge definitions. What
+the stage is actually worth is 189 of 1,033 cross-seam references — 18.3 %,
+changing no rank — plus the deletion of a coordinator back-reference every
+later stage would need. Stated honestly it survives review; that is now #377,
+which also catches what the old framing would have missed: `_current_action`
+has four writer methods, so it cannot be a frozen field.
+
+**`optimize` is the most decomposable of the five monoliths, not the least**,
+and was scheduled last on the opposite assumption — five ratchet-clean
+verbatim blocks at 6–11 interface cost, the first 64 lines at 6 in / 0 out.
+The binding constraint is complexity, not size: `functions_cc_over_15` sits
+at 39 of 39 with zero headroom, and the otherwise obvious cut measures 18 and
+fails the gate. Bounding the whole exercise: dropping all five monoliths
+still leaves 2,790 lines in 48 methods.
+
+Two issues closed on measurement — #225 `not_planned` (its named targets
+carry 37 and 30 live locals inside the batched objective, and `ThermalModel`
+binds no ratchet metric at all) and #281 (all eleven definitions gone and
+pinned). And #303 finally has a ruler that cannot be gamed: excluding the
+test stub **by construction** rather than subtracting it afterwards, main
+measures **427** production-only strict errors against 743 with the fake, so
+42.5 % of the historical headline was an artefact of `class HomeAssistant:
+pass`. One correction to that judge's brief is worth keeping —
+`--warn-unused-ignores` does not prevent ignore-stuffing, since four real
+annotations and four live ignore comments move the count identically, so the
+ignore count has to be its own hard metric.
+
+### A plan of record for the open-issues program, and the machinery to run it
+
+Sixty-one issues were open at v6.3.9 across three programs, and three sessions
+stood down within the same hour. #375 is the replan they asked for: five waves
+plus a triage pass in `docs/plan-2026-09-open-issues.md`, every issue placed
+exactly once, with `tvofi-claude-40`'s handover carried verbatim off a branch
+that would otherwise have taken it, and five `web-*.js` workflows adapted from
+the `audit-*.js` pair. Documentation and `.claude/` only — both INERT, so the
+gate scoped to almost nothing, though `tests/entities.py` still ran (753
+checks) because it is what fails when a tracked file belongs to no closure and
+no list.
+
+The wave order is measured rather than preferred. **Instruments come before
+the fixes they judge**, because six of this repository's own gates currently
+report instead of measuring: `--record` cannot tell an improvement from a
+regression (#370), headroom advises and has never been acted on (#350),
+`duplication_blocks` has never been able to fire — the longest duplicated run
+is 19 lines against a 30-line window (#369), the ratchet has no method-level
+metric so `optimize` could double with all 22 budgets unmoved (#374),
+`stamp.py`'s own `--self-test` is invoked by nothing (#372), and
+`quality_scale.yaml` is INERT and inside two recorded closures at once
+(#357). Then: budget-table writers never run in parallel, since six pieces of
+work rewrite `tests/structure_budgets.json`; a behaviour fix lands before its
+region's move PR, because a fix inside relocated lines reverts silently and
+#324 nearly disappeared that way; and a fixture-mover never claims a
+`may-drift` fixture. Eight issues close on a number instead of being coded.
+
+The container running this program has no `gh` and cannot install it, which
+is why rule 2 of `tools/release/stamp.py` grew its REST fallback first: it
+called `gh run list` before `--allow-red` was consulted, so a missing binary
+raised `FileNotFoundError` where a refusal belonged, and no branch could be
+cut until stamping worked.
+
 ## v6.3.10
 
 ### Temperatures you never measured no longer look like readings
