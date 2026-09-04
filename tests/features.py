@@ -6320,6 +6320,7 @@ R.section("Two-tank topology (issue #40)")
 from heatpump_optimizer import mixing_valve as _w2t_mv  # noqa: E402
 from heatpump_optimizer.thermal_model import (  # noqa: E402
     wood_share as _w2t_share,
+    _wood_share_vec as _w2t_share_vec,
 )
 from heatpump_optimizer.const import (  # noqa: E402
     TOPOLOGY_NO_VALVE as _W2T_NO_VALVE,
@@ -6538,6 +6539,38 @@ R.check(
     _w2t_max_jump(_w2t_wood_sweep) < 3.0 * _w2t_step,
     f"largest step in w*Q was {_w2t_max_jump(_w2t_wood_sweep):.4f} K for a "
     f"{_w2t_step} K increment",
+)
+
+# Region 3 meets region 1 at the flow curve: wood_share itself must not jump
+# when hp_temp sits inside the switch margin (issue #245).
+_w2t_flow_set = 45.0
+_w2t_floor = 21.0
+_w2t_share_jump = 0.0
+for _w2t_hp in np.linspace(
+    _w2t_flow_set - _W2T_MARGIN, _w2t_flow_set, 21
+):
+    _w2t_a = _w2t_share(_w2t_flow_set - 1e-6, _w2t_hp, _w2t_flow_set, _w2t_floor)
+    _w2t_b = _w2t_share(_w2t_flow_set, _w2t_hp, _w2t_flow_set, _w2t_floor)
+    _w2t_share_jump = max(_w2t_share_jump, abs(_w2t_b - _w2t_a))
+R.check(
+    "wood_share is continuous as wood_temp crosses the flow curve in region 3",
+    _w2t_share_jump < 1e-6,
+    f"max jump {_w2t_share_jump:.4f} at flow_set with hp inside the margin",
+)
+_w2t_grid_w = np.linspace(20.0, 70.0, 101)
+_w2t_grid_h = np.linspace(20.0, 70.0, 101)
+_w2t_W, _w2t_H = np.meshgrid(_w2t_grid_w, _w2t_grid_h)
+_w2t_vec = _w2t_share_vec(
+    _w2t_W.ravel(), _w2t_H.ravel(), _w2t_flow_set, np.full(_w2t_W.size, _w2t_floor)
+)
+_w2t_scal = np.array([
+    _w2t_share(float(w), float(h), _w2t_flow_set, _w2t_floor)
+    for w, h in zip(_w2t_W.ravel(), _w2t_H.ravel())
+])
+R.check(
+    "the vector wood_share path stays bitwise-identical to the scalar law",
+    float(np.max(np.abs(_w2t_vec - _w2t_scal))) == 0.0,
+    "a 96-step solve lands in a different basin if the two paths diverge",
 )
 
 
