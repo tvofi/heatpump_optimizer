@@ -31,8 +31,9 @@ bottom, which is allowed to go stale and says so.
    honestly record one. Drift is declared in `tests/golden/claimed_drift.txt`
    (or `card_claimed_drift.txt`) with its direction, and `claims-for:` must equal
    `VERSION`. A fixture cannot be both claimed and may-drift — `env_drift.py`
-   refuses that. Check claims three-dot (`git diff $(git merge-base origin/main
-   HEAD)...HEAD`), never two-dot.
+   refuses that. Check claims — and any branch-vs-main comparison — three-dot
+   (`git diff $(git merge-base origin/main HEAD)...HEAD`), never two-dot:
+   two-dot shows main's own newer commits as if the branch had made them.
 4. **Versions are assigned after the merge, by `tools/release/stamp.py`.** Never
    touch `VERSION`, the manifest version, or the `RELEASE_NOTES.md` heading in a
    branch. The stamp has its own refusal rules, including one that rejects notes

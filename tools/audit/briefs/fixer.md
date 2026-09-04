@@ -6,8 +6,12 @@ production lines. You work in your own worktree branched from `origin/main`.
 1. **Never touch `VERSION`, the manifest version or the `RELEASE_NOTES.md`
    heading.** Versions are assigned by `tools/release/stamp.py` after the
    merge. The reviewer checks
-   `git diff origin/main -- VERSION custom_components/heatpump_optimizer/manifest.json`
-   is empty.
+   `git diff origin/main...HEAD -- VERSION custom_components/heatpump_optimizer/manifest.json`
+   is empty — three-dot, never two-dot: a two-dot `git diff origin/main
+   <branch>` during a PR #399 pre-merge check reported `tests/closures.json`
+   as changed by the branch, when the difference was `main`'s own newer
+   commits the branch had not merged. Any branch-vs-main comparison is
+   three-dot for the same reason, not only this one.
 2. **Failing test first**, importing the production symbol (a test that
    re-implements a formula pins nothing; `tests/README.md`). Record the
    mutation proof in the PR body: delete the fix's production line(s), run
@@ -29,3 +33,13 @@ production lines. You work in your own worktree branched from `origin/main`.
    new one.
 7. The PR body closes its issues (`Closes #N`), names the head SHA measured,
    and carries every executed number.
+8. **A quoted number states the rule that produced it, not just its value.**
+   Three agents counting "the same" published-attribute census (#373) got
+   59, 50, and 124/147/50, because each asked a subtly different question;
+   only a count whose rule is written down is re-derivable by whoever reads
+   the body next. Say what you counted, not only how many.
+9. **Anchor a documentation citation to a lane, function, marker or SHA, not
+   a bare line number — and prefer deleting a fragile claim over maintaining
+   one.** PR #386 took four repair rounds and 17 corrected citations before
+   its last two survivors — both bare-line-number claims a later merge
+   elsewhere silently falsified — were finally settled by deletion.
