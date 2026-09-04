@@ -169,6 +169,36 @@ junk = om._parse_block(
 )
 check("rejects negative, absurd and non-numeric values", len(junk.times) == 2)
 
+# A malformed `time` entry is the one bad field that is not a value: the skip
+# has to cost its own sample and nothing else. Letting the ValueError out of
+# _parse_block propagates through fetch() and discards the whole forecast --
+# a usable block thrown away because one stamp in it was unreadable. (#251)
+try:
+    stamped = om._parse_block(
+        {
+            "time": [
+                "2026-08-21T00:00",
+                "2026-08-21T01:60",
+                "2026-08-21T02:00",
+                "2026-08-21T03:00",
+            ],
+            "shortwave_radiation": [100.0, 200.0, 300.0, 400.0],
+        },
+        "shortwave_radiation",
+    )
+    stamped_err = None
+except Exception as _stamp_err:  # noqa: BLE001
+    stamped, stamped_err = None, _stamp_err
+check(
+    "one malformed timestamp costs its own sample, not the whole block (#251)",
+    stamped_err is None
+    and stamped.values == (100.0, 300.0, 400.0)
+    and stamped.resolution == timedelta(hours=1),
+    f"raised {stamped_err!r}"
+    if stamped_err is not None
+    else f"got {stamped.values} at {stamped.resolution}",
+)
+
 check(
     "an unusable block yields an empty series",
     not om._parse_block({"time": ["2026-08-21T00:00"], "shortwave_radiation": [1.0]}, "shortwave_radiation"),
