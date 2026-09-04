@@ -145,6 +145,19 @@ scaled = reader(
 )
 R.check("the age limit can be relaxed", scaled.read("indoor_temp_entity").ok)
 
+# Clock skew: a hub whose clock runs behind the sensor's stamps a state in
+# the future. The age is published verbatim in `input_ages_minutes` and read
+# by the health summary, so it has to be an age, not a signed difference.
+future = reader(
+    {"sensor.indoor": FakeState("21.4", last_updated=minutes_ago(-30, NOW))}
+)
+_future_reading = future.read("indoor_temp_entity")
+R.check(
+    "a future-stamped state reads as age 0, never as a negative age",
+    _future_reading.ok and _future_reading.age_minutes == 0.0,
+    f"age {_future_reading.age_minutes} minutes from a stamp 30 minutes ahead",
+)
+
 unavailable = reader({"sensor.indoor": FakeState("unavailable")})
 r = unavailable.read("indoor_temp_entity")
 R.check(
@@ -1733,6 +1746,34 @@ R.check(
     "the every-day view of a weekly spec is the merged union of its times",
     _flat_view == [(6.0, 9.5)],
     f"{_flat_view}",
+)
+
+# The countdown the optimizer publishes as `dhw_next_window_in_hours` and the
+# VVC pump reads through pump_schedule. Every golden solve starts at 00:00,
+# outside every window, so the inside-a-window answer is never computed there:
+# without a direct check, "0.0 while inside" lives only in the docstring.
+from heatpump_optimizer.dhw_schedule import hours_until_next_window as _hunw
+
+_hunw_windows = _parse_w("06:00-08:30, 17:00-22:00")
+R.check(
+    "inside a demand window the next window is now, not the following one",
+    _hunw(7.0, _hunw_windows) == 0.0 and _hunw(18.0, _hunw_windows) == 0.0,
+    f"07:00 -> {_hunw(7.0, _hunw_windows)}, 18:00 -> {_hunw(18.0, _hunw_windows)} "
+    "-- reading the FOLLOWING window while inside one pre-heats for a tank "
+    "that is already being drawn",
+)
+R.check(
+    "outside one it counts the hours to the next opening, wrapping past midnight",
+    _hunw(5.0, _hunw_windows) == 1.0
+    and _hunw(9.0, _hunw_windows) == 8.0
+    and _hunw(23.0, _hunw_windows) == 7.0,
+    f"05:00 -> {_hunw(5.0, _hunw_windows)}, 09:00 -> {_hunw(9.0, _hunw_windows)}, "
+    f"23:00 -> {_hunw(23.0, _hunw_windows)}",
+)
+R.check(
+    "with no windows configured there is no answer, which is not 'now'",
+    _hunw(7.0, []) is None,
+    f"got {_hunw(7.0, [])}",
 )
 
 
@@ -6830,6 +6871,21 @@ R.check(
     and not _gf.is_valid_spec("Frunday = 0.2")
     and not _gf.is_valid_spec("06:00-22:00"),
 )
+R.check(
+    "a rate float() accepts but the planner cannot price is rejected too",
+    not _gf.is_valid_spec("Mon-Fri = nan")
+    and not _gf.is_valid_spec("Mon-Fri = inf")
+    and not _gf.is_valid_spec("06:00-22:00 = -inf"),
+    "float('nan') and float('inf') parse: a non-finite rate reaches "
+    "fee_vector, and the coordinator's magnitude audit compares with > and "
+    "never sees a NaN",
+)
+_nan_rules = _try_exc(lambda: _gf.parse_rules("Mon-Fri = nan"))
+R.check(
+    "and the parser is where it is rejected, so no NaN ever reaches a schedule",
+    isinstance(_nan_rules, _gf.GridFeeError),
+    f"parse_rules returned {_nan_rules!r}",
+)
 # D4-05 (#169): the form's verdict. The parser stays permissive -- a stored
 # spec must keep loading -- and ``spec_problem`` is the stricter view the
 # config flow applies, naming which of the three things is wrong.
@@ -8324,6 +8380,28 @@ R.check(
     and _sweep_small.get("covers_heaviest_window") is False,
     f"got {_sweep_small.get('recommended_setpoint')}, covers "
     f"{_sweep_small.get('covers_heaviest_window')} — None-forever helps no one",
+)
+# A worthless-energy day. The sweep ranks candidates by cost, and a negative
+# price level flips every cost_per_day negative, so min-cost would crown the
+# candidate using the MOST energy. The advice must not depend on the sign of
+# the price: same tank, same draws, same recommendation as the +1.0 day above.
+_c9n = _t2_coord(dhw_tank_volume=1500.0)
+_c9n._thermal_params.dhw_enabled = True
+_c9n._prices = [{"total": -1.0}] * 24
+_sweep_neg = _c9n._dhw_setpoint_sweep()
+R.check(
+    "a negative-price day still ranks a hotter tank as the dearer one",
+    _sweep_neg["candidates"][-1]["cost_per_day"]
+    > _sweep_neg["candidates"][0]["cost_per_day"],
+    f"got {[c['cost_per_day'] for c in _sweep_neg['candidates']]} — a negative "
+    "price level inverts the ranking the whole advisor is",
+)
+R.check(
+    "and recommends what the mirrored positive day recommends",
+    _sweep_neg.get("recommended_setpoint") == _rec1
+    and _sweep_neg.get("covers_heaviest_window") is True,
+    f"got {_sweep_neg.get('recommended_setpoint')} at -1.0/kWh vs {_rec1} at "
+    "+1.0/kWh on the same 1500 L tank",
 )
 
 # --- #6 the pump schedule ------------------------------------------------------------
@@ -10419,6 +10497,21 @@ R.check(
     _tr8.sigma(1.0) == 0.4  # NaN sigma dropped; 3 h bucket answers for 1 h
     and _loaded_pending == 1
     and abs(_tr8.lead_sigma[6.0] - 0.5) < 1e-9,  # the good promise scored
+)
+
+# The same barrier on the KEY side of the same dict. lead_sigma is keyed by
+# lead hours as strings; a hand-edited or half-written store keyed by a label
+# must lose that bucket, not raise out of from_dict -- which runs during
+# setup, before there is a coordinator to catch anything.
+_bad_key_store = {"lead_sigma": {"abc": 0.4, "3.0": 0.5}, "lead_counts": {"3.0": 3}}
+_bad_key_err = _try_exc(lambda: AccuracyTracker.from_dict(_bad_key_store))
+R.check(
+    "a non-numeric lead_sigma key is skipped, not raised out of from_dict",
+    _bad_key_err is None
+    and dict(AccuracyTracker.from_dict(_bad_key_store).lead_sigma) == {3.0: 0.5},
+    f"from_dict raised {_bad_key_err!r}"
+    if _bad_key_err is not None
+    else f"loaded {dict(AccuracyTracker.from_dict(_bad_key_store).lead_sigma)}",
 )
 
 # Leaving the plan's modes voids its unmatured promises: in comfort, boost
