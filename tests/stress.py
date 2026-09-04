@@ -348,19 +348,34 @@ SCENARIO_WORK_FACTOR = float(os.environ.get("STRESS_WORK_FACTOR", "1.5"))
 #: read that 4.41e-5 flip as the same basin and judged its 1.28x as a
 #: regression; 1e-9 would read float drift as a flip and quietly empty the
 #: check on the first CI runner it met, which is what
-#: SCENARIO_BASIN_MAX_FLIPPED then refuses to let happen silently.
+#: SCENARIO_BASIN_MIN_COVERED then refuses to let happen silently.
 SCENARIO_BASIN_TOLERANCE = float(
     os.environ.get("STRESS_BASIN_TOLERANCE", "1e-6")
 )
-#: ...and how many scenarios may drop out of the work check as flipped
-#: before it is reported BLIND instead of passing on whatever is left. A
+#: ...and the floor under how many scenarios the work check must still
+#: COVER, or it is reported blind instead of passing on whatever is left. A
 #: check that silently narrows to the scenarios that happen to still agree
 #: is a check that reports success for doing nothing, which this file has
 #: shipped five times. A table with no recorded fingerprints at all -- an
 #: old table, or one written by a tool that does not know about the field --
-#: flips every scenario and so fails here, loudly, rather than passing empty.
-SCENARIO_BASIN_MAX_FLIPPED = int(
-    os.environ.get("STRESS_BASIN_MAX_FLIPPED", "12")
+#: covers zero and so fails here, loudly, rather than passing empty.
+#:
+#: The number is measured, and measuring it is the whole reason the table
+#: records more than one basin per scenario. Recorded on the audit box, a
+#: first CI run covered 28 of 51 and exempted 23 -- and the 23 were not a
+#: random 23. They are shoulder/*, winter/tariff*, winter/pv*, the two-zone
+#: DHW cases: exactly the multi-start family SCENARIO_BUDGET_FACTOR's own
+#: comment names as bimodal across platforms, identified by the fingerprint
+#: without being told. Each of those scenarios' CI basin is now recorded
+#: beside its audit-box one (see recorded_basins), which is what takes the
+#: covered count back to the whole sweep on both machines.
+#:
+#: 40 is the floor rather than 51, because a third platform may hold a third
+#: basin for some scenario and nothing here should demand that the table
+#: already know it. What the floor refuses is the failure that matters: a
+#: check that has quietly stopped covering anything.
+SCENARIO_BASIN_MIN_COVERED = int(
+    os.environ.get("STRESS_BASIN_MIN_COVERED", "40")
 )
 
 #: A floor under the per-scenario budget, for a machine whose cheap
@@ -1139,33 +1154,55 @@ def work_over_verdict(observed: int, recorded: int) -> bool:
     return observed > recorded * SCENARIO_WORK_FACTOR
 
 
-def recorded_objective(table: dict, label: str) -> float | None:
-    """The objective value this scenario reached when the table was recorded.
+def recorded_basins(table: dict, label: str) -> list[tuple[float, int]]:
+    """Every ``(objective, evals)`` pair recorded for this scenario.
 
-    ``None`` when the table carries no usable fingerprint for it: an older
-    table, a renamed scenario, or a recording whose solve failed. Callers
-    read that as "cannot tell which basin", never as "the same one".
+    A scenario has MORE THAN ONE recorded basin on purpose, and that is the
+    measured bimodality allowance rather than a hedge. The first entry is
+    the audit box's recording, in the flat ``objective``/``evals`` fields;
+    ``alt_basins`` holds the ones another platform's solver reaches for the
+    same inputs, recorded from a CI run of this same file. On the first such
+    run, 23 of the 51 scenarios landed in a basin this box never sees -- and
+    they were precisely the multi-start family that forced
+    SCENARIO_BUDGET_FACTOR to 3.0, which is the fingerprint finding the
+    bimodal population on its own rather than being handed it.
+
+    An empty list means the table cannot say which basin this scenario is
+    supposed to be in. Callers read that as "cannot tell", never as "the
+    same one", and the covered-count check refuses to let a table full of
+    those pass quietly.
     """
     entry = table.get(label)
     if not isinstance(entry, dict):
-        return None
-    value = entry.get("objective")
-    if value is None:
-        return None
-    value = float(value)
-    return value if np.isfinite(value) else None
+        return []
+    pairs: list[tuple[float, int]] = []
+    candidates = [(entry.get("objective"), entry.get("evals"))]
+    for alt in entry.get("alt_basins") or ():
+        if isinstance(alt, dict):
+            candidates.append((alt.get("objective"), alt.get("evals")))
+    for objective, evals in candidates:
+        if objective is None or evals is None:
+            continue
+        objective = float(objective)
+        evals = int(evals)
+        if np.isfinite(objective) and evals > 0:
+            pairs.append((objective, evals))
+    return pairs
 
 
-def recorded_evals(table: dict, label: str) -> int | None:
-    """How many solver evaluations this scenario took when recorded."""
-    entry = table.get(label)
-    if not isinstance(entry, dict):
-        return None
-    value = entry.get("evals")
-    if value is None:
-        return None
-    value = int(value)
-    return value if value > 0 else None
+def matching_basin(
+    table: dict, label: str, observed: float | None
+) -> int | None:
+    """The recorded evaluation count for the basin this solve landed in.
+
+    ``None`` when no recorded basin matches -- a scenario in a third basin
+    nobody has recorded, which is exempted from the work check and named in
+    the output rather than judged against a count from somewhere else.
+    """
+    for objective, evals in recorded_basins(table, label):
+        if same_basin(observed, objective):
+            return evals
+    return None
 
 
 def same_basin(observed: float | None, recorded: float | None) -> bool:
@@ -1331,26 +1368,34 @@ if __name__ == "__main__":
     R.section("Single-scenario detection (#346)")
 
     _T = load_budget_table()
-    _rec_ev = {
-        label: recorded_evals(_T, label)
+    _basins = {
+        label: recorded_basins(_T, label)
         for label in _T
         if isinstance(_T[label], dict)
     }
-    _rec_ob = {label: recorded_objective(_T, label) for label in _rec_ev}
+    _rec_ob = {
+        label: (pairs[0][0] if pairs else None)
+        for label, pairs in _basins.items()
+    }
+    _rec_ev = {
+        label: (pairs[0][1] if pairs else None)
+        for label, pairs in _basins.items()
+    }
     R.check(
         "the committed table records a solver-work count and a basin for "
         "every scenario",
-        len(_rec_ev) >= 40
-        and all(v is not None for v in _rec_ev.values())
-        and all(v is not None for v in _rec_ob.values()),
-        f"{len(_rec_ev)} scenarios, "
-        f"{sum(v is None for v in _rec_ev.values())} without a work count, "
-        f"{sum(v is None for v in _rec_ob.values())} without a basin",
+        len(_basins) >= 40 and all(_basins.values()),
+        f"{len(_basins)} scenarios, "
+        f"{sum(1 for v in _basins.values() if not v)} with no recorded basin",
+    )
+    _multi = [label for label, pairs in _basins.items() if len(pairs) > 1]
+    print(
+        f"  recorded basins: {sum(len(v) for v in _basins.values())} across "
+        f"{len(_basins)} scenarios; {len(_multi)} scenario(s) carry more than "
+        f"one, the measured bimodality allowance"
     )
 
-    if any(v is None for v in _rec_ev.values()) or any(
-        v is None for v in _rec_ob.values()
-    ):
+    if not all(_basins.values()):
         # Bootstrap: a table that predates #346, or one being re-recorded
         # right now. The check above has already failed on the real table;
         # the instrument's own properties are still worth checking, so they
@@ -1359,6 +1404,7 @@ if __name__ == "__main__":
         # same silence this file refuses everywhere else.
         _rec_ev = {f"synthetic/{i:02d}": 20 + 7 * i for i in range(51)}
         _rec_ob = {label: 100.0 + i for i, label in enumerate(sorted(_rec_ev))}
+        _basins = {label: [(_rec_ob[label], _rec_ev[label])] for label in _rec_ev}
 
     def _fires(label, work_factor, objective_factor=1.0):
         """Would the sweep's work check fail this scenario, so perturbed?"""
@@ -1443,18 +1489,39 @@ if __name__ == "__main__":
     _bare = {
         label: {"ratio": 1.0, "evals": _rec_ev[label]} for label in _rec_ev
     }
-    _bare_flipped = [
+    _bare_covered = [
         label
         for label in _bare
-        if not same_basin(_rec_ob[label], recorded_objective(_bare, label))
+        if matching_basin(_bare, label, _rec_ob[label]) is not None
     ]
     R.check(
         "a table with no recorded basins covers nothing, and says so",
-        len(_bare_flipped) == len(_bare)
-        and len(_bare_flipped) > SCENARIO_BASIN_MAX_FLIPPED,
-        f"{len(_bare) - len(_bare_flipped)} scenarios still covered from a "
-        f"table with no objectives, {len(_bare_flipped)} flipped against a "
-        f"{SCENARIO_BASIN_MAX_FLIPPED} allowance",
+        not _bare_covered
+        and len(_bare) - len(_bare_covered) > (
+            len(_bare) - SCENARIO_BASIN_MIN_COVERED
+        ),
+        f"{len(_bare_covered)} scenarios still covered from a table with no "
+        f"objectives, against a {SCENARIO_BASIN_MIN_COVERED} floor",
+    )
+    # ...and a second recorded basin covers a solve the first one does not,
+    # which is the whole mechanism that takes CI back to a full sweep.
+    _two = {
+        "x": {
+            "ratio": 1.0,
+            "evals": 100,
+            "objective": 10.0,
+            "alt_basins": [{"objective": 12.0, "evals": 250}],
+        }
+    }
+    R.check(
+        "a second recorded basin is matched, and judged against its OWN count",
+        matching_basin(_two, "x", 10.0) == 100
+        and matching_basin(_two, "x", 12.0) == 250
+        and matching_basin(_two, "x", 14.0) is None
+        and not work_over_verdict(240, matching_basin(_two, "x", 12.0))
+        and work_over_verdict(400, matching_basin(_two, "x", 12.0)),
+        f"basins matched: {matching_basin(_two, 'x', 10.0)}, "
+        f"{matching_basin(_two, 'x', 12.0)}, {matching_basin(_two, 'x', 14.0)}",
     )
 
     # (e) the cheaper side, at both ends of its range. #288 and #289 make
@@ -1505,7 +1572,9 @@ if __name__ == "__main__":
     # ...and the loop closes: a real doubling, on a real scenario, against
     # the real recorded count, reaching the same rule the sweep applies.
     # Cases (a)-(e) are the statistic's properties; this one is the finding.
-    _probe_rec = recorded_evals(_T, _probe_label)
+    _probe_rec = matching_basin(
+        _T, _probe_label, float(_plain["result"].objective_value)
+    )
     R.check(
         "a real 2x on one scenario reaches the rule the sweep applies",
         _probe_rec is not None
@@ -1784,15 +1853,20 @@ if __name__ == "__main__":
             entry = budget_table.get(label)
             if not isinstance(entry, dict):
                 continue
-            rec_evals = recorded_evals(budget_table, label)
-            if rec_evals is None:
+            if not recorded_basins(budget_table, label):
                 work_unrecorded.append(label)
                 continue
-            if not same_basin(
-                observed_objective.get(label),
-                recorded_objective(budget_table, label),
-            ):
-                work_flipped.append(label)
+            rec_evals = matching_basin(
+                budget_table, label, observed_objective.get(label)
+            )
+            if rec_evals is None:
+                # A basin no recording has seen. Exempt, named, and printed
+                # with the two numbers an operator needs to record it as a
+                # second basin rather than guess at one.
+                work_flipped.append(
+                    f"{label} (objective {observed_objective.get(label):.10g}, "
+                    f"{observed_evals[label]} evaluations)"
+                )
                 continue
             got = observed_evals[label]
             if work_over_verdict(got, rec_evals):
@@ -1815,10 +1889,11 @@ if __name__ == "__main__":
         print(
             f"  solver work: {_work_covered} of {len(observed_evals)} "
             f"scenarios judged against their recorded evaluation count at "
-            f"{SCENARIO_WORK_FACTOR:.2f}x, {len(work_flipped)} exempt as "
-            f"another basin"
-            + (f" ({', '.join(sorted(work_flipped))})" if work_flipped else "")
+            f"{SCENARIO_WORK_FACTOR:.2f}x, {len(work_flipped)} in a basin no "
+            f"recording holds"
         )
+        for _exempt in sorted(work_flipped):
+            print(f"    unrecorded basin: {_exempt}")
         R.check(
             "the solver-work counter counted something for every scenario",
             all(v > 0 for v in observed_evals.values()),
@@ -1851,14 +1926,14 @@ if __name__ == "__main__":
         )
         R.check(
             "the solver-work check still covers most of the sweep",
-            len(work_flipped) <= SCENARIO_BASIN_MAX_FLIPPED,
-            f"{len(work_flipped)} of {len(observed_evals)} scenarios solved "
-            f"into a different basin than the recording and are exempt "
-            f"({', '.join(sorted(work_flipped)[:8])}"
-            + (" ..." if len(work_flipped) > 8 else "")
-            + f"), over the {SCENARIO_BASIN_MAX_FLIPPED} allowed -- re-record "
-            "the table on this machine (`stress.py --record-budgets`) rather "
-            "than letting the check narrow to whatever still agrees",
+            _work_covered >= SCENARIO_BASIN_MIN_COVERED,
+            f"only {_work_covered} of {len(observed_evals)} scenarios are "
+            f"judged, against a floor of {SCENARIO_BASIN_MIN_COVERED}: "
+            f"{len(work_flipped)} solved into a basin no recording holds "
+            f"(each printed above with its objective and evaluation count -- "
+            f"add them to alt_basins in tests/stress_budgets.json, or "
+            f"re-record the table here) and {len(work_unrecorded)} have no "
+            f"recorded basin at all",
         )
 
     # -- D9-04: memory instrumentation -----------------------------------
