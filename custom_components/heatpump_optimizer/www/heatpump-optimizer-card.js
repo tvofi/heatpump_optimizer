@@ -13,6 +13,12 @@ const CARD_TAG = "heatpump-optimizer-card";
 const EDITOR_TAG = "heatpump-optimizer-card-editor";
 const CARD_VERSION = "5.4.20";
 
+// Home Assistant's default --primary-color (#03a9f4) is 2.63:1 on a white
+// card — too light for text or for white label text on a filled button.
+// Used wherever the accent must be readable, not merely visible as a border
+// or chart stroke (D4-05).
+const ACCENT_READABLE = "#0277bd";
+
 // The de-duplication key `_extraFields` files a confidence band's two
 // edges under, so the pair counts as the one named trace it is. A Symbol
 // so it can never collide with a series field name.
@@ -229,6 +235,9 @@ const STRINGS = {
     "stats.the_same": "the same",
     "stats.delta_detail":
       "{verdict} than the saved plan ({planned} → {edited}&nbsp;{currency}, " +
+      "estimated)",
+    "stats.delta_detail_same":
+      "the same as the saved plan ({planned} → {edited}&nbsp;{currency}, " +
       "estimated)",
 
     // expiry prose
@@ -862,7 +871,7 @@ const SERIES_DEFS = [
     // the card config, the plan sensor or Home Assistant. This is only the
     // fallback shape.
     unit: "SEK/kWh",
-    color: "#f5a623",
+    color: "#a86b00",
     sensor: "either",
     field: "price",
     style: "stepArea",
@@ -941,7 +950,7 @@ const SERIES_DEFS = [
     labelKey: "series.house_temp",
     axis: "temp",
     unit: "\u00b0C",
-    color: "#2fae7a",
+    color: "#1a7a52",
     sensor: "space",
     field: "room",
     extra: ["upper", "lower"],
@@ -963,7 +972,7 @@ const SERIES_DEFS = [
     labelKey: "series.solar",
     axis: "solar",
     unit: "W/m\u00b2",
-    color: "#f2c94c",
+    color: "#9a7700",
     sensor: "solar",
     field: "ghi",
     style: "stepArea",
@@ -2593,7 +2602,7 @@ function cardStyleBlock() {
         width: 10px; height: 10px; border-radius: 50%;
         display: inline-block; flex: 0 0 auto;
       }
-      .chip.off { opacity: 0.4; text-decoration: line-through; }
+      .chip.off { color: var(--secondary-text-color); text-decoration: line-through; }
       .chip.nodata { cursor: not-allowed; opacity: 0.3; }
       .chartwrap { position: relative; width: 100%; }
       /* Overlaid on the chart so the row costs no layout height -- the
@@ -2847,7 +2856,7 @@ function cardStyleBlock() {
       .setup-slot { font-size: 12px; fill: var(--primary-text-color, #222); }
       .setup-slot.empty {
         fill: var(--secondary-text-color, #888);
-        opacity: 0.75; font-style: italic;
+        font-style: italic;
       }
       .setup-slot.extra { fill: var(--secondary-text-color, #888); }
       .setup-value { font-weight: 600; }
@@ -2890,7 +2899,7 @@ function cardStyleBlock() {
         flex: 1 1 100%; font-size: 0.85em;
         color: var(--secondary-text-color);
       }
-      .layout-verdict.match { color: var(--primary-color, #03a9f4); }
+      .layout-verdict.match { color: ${ACCENT_READABLE}; }
       /* Editing widens the pipes: a 1.5-unit stroke is a hopeless click
          target, and clicking a pipe is how one is removed. */
       .setup-svg.editing .setup-pipe { stroke-width: 3.5; cursor: pointer; }
@@ -3013,7 +3022,7 @@ function cardStyleBlock() {
       }
       .whatif .wi-pin {
         border-color: var(--primary-color, #03a9f4);
-        color: var(--primary-color, #03a9f4);
+        color: ${ACCENT_READABLE};
       }
       .whatif .wi-pin-result { margin-top: 0.4em; min-height: 1.2em; }
 
@@ -3066,7 +3075,7 @@ function cardStyleBlock() {
         border: 1px solid var(--divider-color, #e0e0e0);
         border-radius: 10px;
         background: none;
-        color: var(--primary-color, #03a9f4);
+        color: ${ACCENT_READABLE};
         cursor: pointer;
       }
       .lane-more { pointer-events: none; font-weight: 700; }
@@ -3103,11 +3112,11 @@ function cardStyleBlock() {
       .whatif .wi-add { align-self: flex-start; font-size: 0.9em; }
       .whatif .wi-apply {
         border-color: var(--primary-color, #03a9f4);
-        color: var(--primary-color, #03a9f4); font-weight: 600;
+        color: ${ACCENT_READABLE}; font-weight: 600;
       }
       .whatif .wi-save {
-        border-color: var(--primary-color, #03a9f4);
-        background: var(--primary-color, #03a9f4);
+        border-color: ${ACCENT_READABLE};
+        background: ${ACCENT_READABLE};
         color: var(--text-primary-color, #fff); font-weight: 600;
       }
       .whatif .wi-save.confirm {
@@ -4312,7 +4321,7 @@ function renderChart(frame, opts) {
       `<line x1="${nx}" y1="${plotT}" x2="${nx}" y2="${plotB}" stroke="var(--primary-color,#03a9f4)" stroke-width="1.5" stroke-dasharray="4 3"/>`
     );
     parts.push(
-      `<text x="${nx + 3}" y="${plotT + font + 1}" font-size="${font}" fill="var(--primary-color,#03a9f4)">${esc(
+      `<text x="${nx + 3}" y="${plotT + font + 1}" font-size="${font}" fill="${ACCENT_READABLE}">${esc(
           L("plan.now")
         )}</text>`
     );
@@ -5599,9 +5608,13 @@ class ManualPlan {
           ? "stats.dearer"
           : "stats.the_same"
     );
+    const detailKey =
+      cls === "cheaper" || cls === "dearer"
+        ? "stats.delta_detail"
+        : "stats.delta_detail_same";
     return `
       <span class="delta ${cls}">${sign}${delta.toFixed(2)}&nbsp;${esc(cur)}</span>
-      <span class="wi-hint">${L("stats.delta_detail", {
+      <span class="wi-hint">${L(detailKey, {
         verdict,
         planned: planned.toFixed(2),
         edited: edited.toFixed(2),
@@ -5945,7 +5958,7 @@ class LaneEditor {
         out.push(
           `<text class="lane-more" x="${plotR - 3}" y="${
             y + laneH - 3 * (laneH / LANE_H)
-          }" font-size="${font}" text-anchor="end" fill="var(--primary-color,#03a9f4)">»</text>`
+          }" font-size="${font}" text-anchor="end" fill="${ACCENT_READABLE}">»</text>`
         );
       }
 

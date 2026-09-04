@@ -622,6 +622,109 @@ try {
     `worst overflow ${spill.worst.toFixed(1)} px (${spill.who || "none"}), document h-scroll ${spill.hScroll} px`);
   check("and the empty state gives the document no horizontal scroll",
     spill.hScroll <= 0, `${spill.hScroll} px of h-scroll`);
+
+  // D4-05 / D4-06: text contrast in real Chromium against HA's default light
+  // theme and again with every HA token stripped (card fallbacks only).
+  const HA_LIGHT = `
+    --primary-text-color:#212121; --secondary-text-color:#727272;
+    --text-primary-color:#fff; --primary-color:#03a9f4;
+    --card-background-color:#fff; --divider-color:rgba(0,0,0,.12);
+  `;
+  const contrastOf = async (themeCss, dlgPage) => {
+    await page.evaluate(async ([st, theme, tab]) => {
+      document.head.querySelectorAll("style.hpo-test").forEach((n) => n.remove());
+      document.body.innerHTML = "";
+      const style = document.createElement("style");
+      style.className = "hpo-test";
+      style.textContent =
+        `body{margin:0;font-family:-apple-system,"Segoe UI",sans-serif}` +
+        `heatpump-optimizer-card{display:block;width:900px;${theme}}`;
+      document.head.appendChild(style);
+      const card = document.createElement("heatpump-optimizer-card");
+      card.setConfig({ type: "custom:heatpump-optimizer-card", what_if: true });
+      card.hass = { states: st, language: "en" };
+      document.body.appendChild(card);
+      window.__card = card;
+      card._onCardClick({});
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      await new Promise((r) => setTimeout(r, 80));
+      if (tab === "setup") {
+        card.dialog.page = "setup";
+        card._render();
+      } else {
+        const chip = card.shadowRoot.querySelector(".chip[data-key='price']");
+        if (chip) chip.click();
+      }
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    }, [states, themeCss, dlgPage]);
+    return page.evaluate((tab) => {
+      const hex = (h) => {
+        const n = parseInt(h.slice(1), 16);
+        return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+      };
+      const parse = (s) => {
+        if (!s || s === "transparent") return null;
+        const m = s.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+        if (m) return [+m[1], +m[2], +m[3]];
+        if (s.startsWith("#")) return hex(s.length === 4
+          ? `#${s[1]}${s[1]}${s[2]}${s[2]}${s[3]}${s[3]}` : s);
+        return null;
+      };
+      const lum = (c) => {
+        const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+        return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]);
+      };
+      const ratio = (a, b) => {
+        const la = lum(a), lb = lum(b);
+        return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+      };
+      const bgOf = (el) => {
+        for (let n = el; n; n = n.parentElement || (n.getRootNode().host || null)) {
+          const bg = parse(getComputedStyle(n).backgroundColor);
+          if (bg) return bg;
+        }
+        return [255, 255, 255];
+      };
+      const root = window.__card.shadowRoot;
+      const out = [];
+      if (tab !== "setup") {
+        const htmlSel = [
+          [".whatif .wi-apply", "wi-apply"],
+          [".whatif .wi-save", "wi-save"],
+          [".chip.off", "chip-off"],
+        ];
+        for (const [sel, name] of htmlSel) {
+          const el = root.querySelector(sel);
+          if (!el) { out.push({ name, missing: true }); continue; }
+          const fg = parse(getComputedStyle(el).color);
+          const r = fg ? ratio(fg, bgOf(el)) : 0;
+          out.push({ name, ratio: +r.toFixed(2), missing: false });
+        }
+      } else {
+        const empty = root.querySelector("text.setup-slot.empty");
+        if (empty) {
+          const raw = empty.getAttribute("fill") || "";
+          const fg = parse(raw.startsWith("#") ? raw : getComputedStyle(empty).fill);
+          out.push({ name: "setup-slot.empty", ratio: fg ? +ratio(fg, [255, 255, 255]).toFixed(2) : 0, missing: false });
+        } else {
+          out.push({ name: "setup-slot.empty", missing: true });
+        }
+      }
+      return out;
+    }, dlgPage);
+  };
+  const REQUIRED = ["wi-apply", "wi-save", "setup-slot.empty", "chip-off"];
+  for (const [label, theme] of [["HA light theme", HA_LIGHT], ["card fallbacks only", ""]]) {
+    const planRows = await contrastOf(theme, "plan");
+    const setupRows = await contrastOf(theme, "setup");
+    const rows = [...planRows, ...setupRows];
+    const reqMissing = REQUIRED.filter((n) => rows.some((r) => r.name === n && r.missing));
+    const bad = rows.filter((r) => REQUIRED.includes(r.name) && !r.missing && r.ratio < 4.5);
+    check(`D4-05/D4-06 action and setup text clears 4.5:1 (${label})`,
+      reqMissing.length === 0 && bad.length === 0,
+      `${bad.map((r) => `${r.name} ${r.ratio}:1`).join("; ") || `${rows.length} site(s) measured`}` +
+      (reqMissing.length ? `; missing: ${reqMissing.join(", ")}` : ""));
+  }
 } finally {
   await browser.close();
 }
