@@ -51,14 +51,18 @@ Where this table and a wave body disagree, this table is the truth.
 | 1a | the stress ruler, alone on an idle box | #346 | v6.3.11 | **done** — W1-G7 merged PR #378 (`291ae76`), 0 unstamped |
 | triage B1 | read-only judges, run beside the ruler | #281 #225 closed; #303 #224 #193 re-scoped | — | **done** |
 | triage B2 | solver, suite, browser and timing judges | #304 #258 re-scoped; #242 weakened to a structural zero | — | **done** for the read-only three; #291 #232 still owed a quiet box |
-| 1b | gate instruments, suite gaps, card, stores | 26 issues in 14 groups | v6.3.12 | **held** — W1-G1 merged; #385 reviewed, #384 repaired, #386 open, all held behind #387 |
-| — | **#387, the blocker**: the basin coverage floor is runner-dependent | #387 | v6.3.12 | **in flight** in PR #388, alone |
+| 1b | gate instruments, suite gaps, card, stores | 26 issues in 14 groups | v6.3.12 | **resumed 2026-09-04** — W1-G1 (PR #383) and W1-G10 (PR #385) merged, issues closed; #384 and #386 both reviewed `merge` and awaiting a re-rebase onto current `main`; W1-G3 resuming from a pushed branch (`e3f5ce9`), no PR |
+| — | **#387, the blocker**: the basin coverage floor is runner-dependent | #387 | v6.3.12 | **fixed** — merged as `32f309f` (PR #388); sixth acceptance criterion ruled (comment 5541519696): the WORK-channel stale-cheap downgrade is kept as necessary to the `env_drift` shape, and the coverage floor's strictness is restored by a follow-up PR that hard-codes it |
 | 2 | coordinator lifecycle, learners, options grouping | #236 #237 #240 #239 #243 #283 #284 #279 #278 #277 #244 #325 #280 #198 | v6.3.12 | pending |
 | 3 | solver, DHW planner, GIL process route | #232 #234 #289 #290 #199 | v6.3.13 | pending — **W3-G4 is struck**, #242 has no admissible formula |
 | 4 | the #193 decomposition programme, S0–S13 | #193 #223 #224 #225, and **#304 as S11's precursor** | one per stage | pending |
 | 5 | typing lane, and the coverage deficit #195 raised | #303 #195 | per tranche | pending — **#304 moves ahead of S11**, see below |
 
+v6.3.12 is stamped at the Wave-1b/half-I boundary as a **gate and test-hardening release** — not for the accumulated no-op merges alone, and not by waiting for a runtime fix that half I will not produce, because half I is entirely test, docs and tooling.
+
 ### The #387 blocker, 2026-09-04
+
+**Fixed 2026-09-04, merged as `32f309f` (PR #388), released under the v6.3.12 framing decision above.** The reasoning below is kept because it is what the fix rests on, including the "one CI runner is not the fleet" lesson.
 
 `main` is red on roughly half of all merges and the v6.3.12 stamp is blocked
 behind it, from a regression this programme itself introduced in #346 / PR #378

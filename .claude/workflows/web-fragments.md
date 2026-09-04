@@ -138,3 +138,39 @@ same command with --push. It refuses on its own rules; if it refuses, change
 nothing and return {stamped: false, reason: <its message>}. Return {stamped:
 true, version, tag_sha}.`
 ```
+
+## Substitutions for a session running outside the original container
+
+The canonical `GH`/`GATE`/`WT` blocks above are left unedited on purpose — the
+five `web-*.js` scripts each carry their own copy by hand, and
+`check-wave-script.mjs`'s recorded fixtures pin those scripts' text, so editing
+the canonical copy here without editing all five would desynchronise them for
+no reason. A session running on the owner's own Mac instead of the original
+4-core container substitutes exactly two things, and the substitution does not
+change the control flow of any `web-*.js` script.
+
+**1. The `GH` block's premise is false here.** "No `gh` CLI exists in this
+environment" does not hold on the owner's machine, which has `gh` 2.98
+authenticated as `tvofi`. Use these equivalents in place of the named MCP
+tools:
+
+| MCP tool (as `GH` names it) | `gh` CLI equivalent |
+|---|---|
+| `issue_read` (get / get_comments) | `gh issue view N --comments` / `gh issue view N --json body,comments,labels` |
+| `add_issue_comment` | `gh issue comment N --body-file <file>` |
+| `issue_write` (labels, state) | `gh issue edit N --add-label X --remove-label Y`; `gh issue close N --reason completed\|"not planned"` |
+| `create_pull_request` | `gh pr create --base main --head <branch> --title ... --body-file <file>` |
+| `update_pull_request` | `gh pr edit N --body-file <file>` |
+| `pull_request_read` (get, get_check_runs, get_comments, get_files, get_diff) | `gh pr view N --json number,state,headRefOid,mergeable,mergeStateStatus,body,comments,files`; `gh pr diff N`; `gh pr checks N` |
+| `merge_pull_request` (squash) | `gh pr merge N --squash --delete-branch` |
+| `actions_list` (list_workflow_runs) | `gh run list --branch <branch> --workflow tests.yml --json databaseId,headSha,status,conclusion,createdAt` |
+| `actions_get` | `gh run view <id> --json jobs` |
+| `get_job_logs` (failed_only) | `gh run view <id> --log-failed` |
+
+**2. The `WT` block's worktree root is a parameter, not a constant.** It is
+`/home/user/wt/` in the original container and `/Users/timmalmstrom/wt/` on the
+owner's Mac. A brief names the root for its own run; an agent never hard-codes
+the other one.
+
+Keep this short and factual, and keep it in sync only with the two lines above
+— it does not need to grow every time a new machine runs this programme.
