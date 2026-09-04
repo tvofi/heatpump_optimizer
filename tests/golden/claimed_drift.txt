@@ -50,31 +50,15 @@
 #
 
 #
-# D8-01 remainder (#282): the five coordinator captures gain SIX key paths
-# each and lose nothing. Measured on this branch with
-# `tests/env_drift.py --fixtures` before and after re-recording: 61 lines
-# added across the five files, 0 removed, and not one pre-existing leaf
-# moves in value -- the coord_* set carries no value-level diff against the
-# committed files on this box either, which is what makes re-recording them
-# here honest.
-#
-# The direction, per fixture and identical in all five:
-#   + data.outdoor_forecast_temperature          the horizon's first outdoor
-#                                                step (-5.0 where
-#                                                outdoor_temperature is the
-#                                                5.0 constructor default)
-#   + data.reading_ok.outdoor_temperature        false: these scenarios
-#                                                configure no thermometer
-#   + data.battery.components[].measured         false on every store, for
-#                                                the same reason
-#   + data.battery.measured_components           []
-#   + data.battery.modelled_components(+[])      every store, named
-#
-# No published FIGURE changes: dropping a store would have rescaled the SOC
-# denominator for every partly-probed install, so the components are
-# labelled rather than removed.
-
-config_flow # #398: adds the building step's mixing_valve_write_target_kind key path (a new options-flow field, defaulting to "indoor"); recorded via `golden.py --record --only config_flow`, not a value re-record -- a genuinely new key path, per CLAUDE.md rule 3.
+# gate/stress-solve-closure: this branch claims NOTHING. It stops the package
+# root importing the coordinator eagerly and re-derives the gate's closures;
+# no solve input, no captured key path and no recorded value moves, and
+# `env_drift.py --all` against the merge base is byte-identical outside the
+# five may-drift fixtures below. The claim list is empty for that reason,
+# not because it was forgotten -- the previous entries (#282's five
+# coordinator captures and #398's config_flow key path) both describe diffs
+# that are now merged, and carrying either forward would excuse this change
+# by accident.
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
