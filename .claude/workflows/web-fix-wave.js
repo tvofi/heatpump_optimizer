@@ -4,7 +4,7 @@
 export const meta = {
   name: 'web-fix-wave',
   description: 'Fix, adversarially review and merge PR groups from one fork SHA, honoring merge-gated dependencies',
-  phases: [{ title: 'Wave', detail: 'fixer, adversarial reviewer, then a serialized merge per group' }],
+  phases: [{ title: 'Reconcile', detail: 'check the committed roster against origin, fail closed' }, { title: 'Wave', detail: 'fixer, adversarial reviewer, then a serialized merge per group' }],
 }
 const GH = `No gh CLI exists in this environment. For every GitHub action run
 ToolSearch with "select:<tool>" first, then call it (owner tvofi, repo
@@ -107,7 +107,7 @@ const mergePrompt = (pr, head) => `${GH} Merge PR #${pr} only if ALL of:
 pull_request_read get shows mergeable_state clean and head sha ${head};
 get_check_runs shows every check success or skipped; the newest "Fix review:"
 comment says merge and post-dates that head; the diff touches neither VERSION
-nor manifest.json nor the RELEASE_NOTES.md heading. Then merge_pull_request
+nor manifest.json nor the RELEASE_NOTES.md heading. Then, so the owner label means IN-FLIGHT rather than ever-touched, remove owner:${session} from every issue this PR closes (issue_write update, keeping the other labels) -- a label that is only ever added cannot answer the question a resuming session actually asks. Then merge_pull_request
 with merge_method squash and return {merged: true, sha: <merge commit sha>}.
 If mergeable_state is dirty, return {merged: false, reason: "needs repair"} --
 do not merge main into the branch yourself, the fixer must, because a rebase
@@ -149,8 +149,14 @@ true, version, tag_sha}.`
 //           fixerModel, reviewerModel, effort}
 // ---------------------------------------------------------------------------
 
-const { groups = [], repo, fork, session = 'claude-web' } = args ?? {}
+const { groups = [], groupsFile, repo, fork, session = 'claude-web' } = args ?? {}
 if (!groups.length || !repo || !fork) throw new Error('args.groups, args.repo and args.fork are required')
+// PROVENANCE. The briefs are the most expensive artefact in a programme and the
+// container they were written in is the least durable thing about it, so a wave
+// runs from a roster committed to the repository -- never from an array that
+// exists only in one orchestrator's head. groupsFile names it; Reconcile below
+// reads it from the repo and refuses if what was passed does not match.
+if (!groupsFile) throw new Error('args.groupsFile is required: a wave runs from a committed roster (e.g. .claude/workflows/wave-1b-groups.json), so the briefs survive the session that wrote them')
 for (const g of groups) {
   if (!g.group || !g.issues?.length || !g.brief) throw new Error(`every group needs group, issues and brief (${g.group ?? '?'})`)
   if (!tierOk(g.fixerModel ?? 'opus', g.reviewerModel ?? 'opus')) throw new Error(`${g.group}: a reviewer below the fixer measures nothing`)
@@ -169,6 +175,68 @@ Return {pr, head_sha, summary} where pr is the PR NUMBER as an integer. If you c
 const reviewerPrompt = (g, fix, round) => `You are the adversarial fix reviewer for PR #${fix.pr} (group ${g.group}, head ${fix.head_sha}), in a fresh context. ${GH} ${WT_REVIEW(g.group + '-' + round, fix.head_sha)}
 Read tools/audit/briefs/fix-review.md and follow it. You are not checking that the code looks right; four implementations on this project looked right and were wrong, one worse than its bug. Check that the numbers are real: re-run the mutation proof the body names and confirm those checks fail; measure with the FINDER's harness rather than the fixer's, at ${fork} and at ${fix.head_sha}, printing your own RESULT lines; re-run every null control and both-ends check the body claims; run env_drift.py --all (and card_drift.mjs for card changes) against the merge base and confirm every moved fixture is claimed, every claim moved, and no may-drift fixture is claimed; run python3 tests/structure.py against origin/main's budgets and require any loosened metric to be named and argued in the body; confirm VERSION, the manifest and the notes heading are untouched; attack the fix at other topologies, other price profiles and the zero-evidence install; confirm the head SHA in the body is the head you measured. ${GATE}
 Post your verdict as a PR comment beginning "Fix review: merge" or "Fix review: blocked — <why>", with your RESULT lines. Return {verdict, comment}.`
+
+// ---------------------------------------------------------------------------
+// RECONCILE, and fail closed. A roster records what WAS true when someone wrote
+// it down; origin records what IS true. Every previous failure in this programme
+// came from trusting the first: a killed agent never writes its own state-at-stop
+// comment, so the roster silently describes a world that has moved on. Worse, the
+// resume stages this script now honours make it trust the roster HARDER -- stage
+// 'done' returns merged without asking anyone, and stage 'merge' skips the
+// reviewer entirely. Neither may be taken on a written claim.
+//
+// One cheap agent, before any fixer, asking origin the three questions the roster
+// claims to answer. It costs no gate time: it runs in the workflow runtime, not
+// under the lock.
+phase('Reconcile')
+const rosterNames = groups.map((g) => g.group)
+const recon = await agent(`${GH} You are the reconciler. Before a single fixer runs, check that a wave roster still describes the world. You change NOTHING -- no commits, no pushes, no comments, no merges. Read only.
+
+In ${repo}: git fetch origin --prune.
+
+FIRST, PROVENANCE. Read the committed roster at ${groupsFile}. Its groups, in order, must be exactly: ${rosterNames.join(', ')}. If the file is missing, unparseable, or names a different set, return provenance_ok false and say which -- the orchestrator is running from briefs that are not the ones in the repository, and that is the failure this check exists to catch.
+
+THEN, PER GROUP, ask origin rather than the roster:
+  - the branch tip: git ls-remote --heads origin claude-web/<group lowercased>
+  - the pull request: list_pull_requests with head "tvofi:claude-web/<group lowercased>" and state all -- its number, state, merged flag and head SHA
+  - the newest review verdict: pull_request_read get_comments, looking for the most recent comment starting "Fix review:", and whether it post-dates the PR's current head
+
+Compare each against the roster's own resume field and report a mismatch when:
+  - resume.stage is 'done' but the PR is not merged, or there is no PR at all
+  - resume.stage is 'merge' but there is no "Fix review: merge" comment at the CURRENT head (a verdict at an older head does not count -- that is the whole reason this check exists)
+  - resume.stage is 'review' but the PR is closed or merged, or its head SHA differs from resume.head_sha
+  - resume.stage is 'fix' but the branch tip differs from resume.pushed_sha, or a PR is already open for it
+  - a group has NO resume field but a branch or an open PR already exists for it -- that is work the roster does not know about, and starting a fixer would duplicate or clobber it
+
+Report the observed values whether or not they match, so a human can audit the judgement rather than trust the verdict.
+
+Return {provenance_ok, groups: [{group, stage, matches, expected, observed}], mismatches: [<group names>], summary}.`, {
+  model: 'sonnet',
+  effort: 'medium',
+  label: 'reconcile roster against origin',
+  phase: 'Reconcile',
+  schema: {
+    type: 'object',
+    properties: {
+      provenance_ok: { type: 'boolean' },
+      groups: { type: 'array', items: { type: 'object', properties: {
+        group: { type: 'string' }, stage: { type: ['string', 'null'] }, matches: { type: 'boolean' },
+        expected: { type: 'string' }, observed: { type: 'string' },
+      }, required: ['group', 'matches', 'observed'] } },
+      mismatches: { type: 'array', items: { type: 'string' } },
+      summary: { type: 'string' },
+    },
+    required: ['provenance_ok', 'groups', 'mismatches', 'summary'],
+  },
+})
+
+if (!recon) throw new Error('Reconcile returned nothing. A wave does not start on an unverified roster -- re-run it, or fix the roster by hand and say why in the run.')
+if (!recon.provenance_ok) throw new Error(`Reconcile: the passed groups do not match the committed roster at ${groupsFile}. ${recon.summary}`)
+if (recon.mismatches?.length) {
+  for (const g of recon.groups.filter((x) => !x.matches)) log(`RECONCILE ${g.group}: roster says ${g.expected}, origin says ${g.observed}`)
+  throw new Error(`Reconcile: ${recon.mismatches.length} group(s) whose recorded resume state no longer matches origin -- ${recon.mismatches.join(', ')}. Fix the roster (it is committed; correct it and push) before running the wave. Starting anyway would redo finished work or skip a review nobody gave.`)
+}
+log(`reconciled ${recon.groups.length} groups against origin: ${recon.summary}`)
 
 phase('Wave')
 

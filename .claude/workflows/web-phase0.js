@@ -108,7 +108,7 @@ const mergePrompt = (pr, head) => `${GH} Merge PR #${pr} only if ALL of:
 pull_request_read get shows mergeable_state clean and head sha ${head};
 get_check_runs shows every check success or skipped; the newest "Fix review:"
 comment says merge and post-dates that head; the diff touches neither VERSION
-nor manifest.json nor the RELEASE_NOTES.md heading. Then merge_pull_request
+nor manifest.json nor the RELEASE_NOTES.md heading. Then, so the owner label means IN-FLIGHT rather than ever-touched, remove owner:${session} from every issue this PR closes (issue_write update, keeping the other labels) -- a label that is only ever added cannot answer the question a resuming session actually asks. Then merge_pull_request
 with merge_method squash and return {merged: true, sha: <merge commit sha>}.
 If mergeable_state is dirty, return {merged: false, reason: "needs repair"} --
 do not merge main into the branch yourself, the fixer must, because a rebase
