@@ -14,15 +14,10 @@ that section before trying to re-execute anything here.
 
 ## Which SHA, exactly
 
-`audit-round2-evidence` has moved once, and it moved by name only.
-`c398fc84` -- the baseline the round-2 numbers were measured against -- is
-already named in 49 other `*.md` documents on `main` (every dimension's
-`REPORT.md` and `verify-*.md`, `tools/audit/round2/BASELINE.md`,
-`docs/audit-2026-09.md`), because that is where a number was measured, not
-where the tag now points. What no file on `main` recorded, before this
-section, is either SHA the tag itself has pointed at -- `de668be` (archived)
-or `757e164` (current) -- which is the narrower gap this section closes.
-Three SHAs matter and they are not interchangeable:
+`audit-round2-evidence` has moved once, and it moved by name only: this
+section names the three SHAs the move is between, so a reader has one to
+cite instead of the tag name alone. Three SHAs matter and they are not
+interchangeable:
 
 - **`c398fc84`** -- where the round-2 numbers were **recorded**. It contains
   no `tools/audit/round2/` at all; that absence is exactly why the harnesses'
@@ -156,17 +151,18 @@ harness identically:
 guard", which is what turned a one-line break into an expensive one for
 whoever debugged it there — the file was misdirecting its reader.
 
-**That specific reproduction no longer holds on `main`.** #346 (PR #378,
+**That specific reproduction no longer holds on `main`.** #388 (`32f309f`,
 merged after `4b6e076`) added the single-scenario detection statistic to
 `stress.py`'s `__main__` block, ahead of the cut marker: `git diff --stat
-4b6e076 <a post-#346 main head> -- tests/stress.py` -> **971** insertions,
+4b6e076 <a post-#388 main head> -- tests/stress.py` -> **971** insertions,
 13 deletions -- not the 642 an earlier draft of this sentence gave, which
 was measured against a `main` that has since moved twice, the exact kind of
 staleness this file exists to catch. Naming a single base SHA here would
-only set up the next one: `tests/stress.py` has not moved since #346 --
-byte-identical (blob `2d27b210`) at `09ca88f`, at `48f4263` and at this
-document's own head -- so the comparison holds against any of them without
-re-anchoring to whichever happens to be "the base" this week. The truncated
+only set up the next one: `tests/stress.py` has not moved since **#388**
+(`32f309f`) -- byte-identical (blob `2d27b210`) at `09ca88f`, `48f4263`,
+`00953c2`, `b5b652e` and at this document's own head -- so the comparison
+holds against any of them without re-anchoring to whichever happens to be
+"the base" this week. The truncated
 prefix now ends after real statements instead of immediately inside an empty
 `if`, so `compile()` no longer raises.
 

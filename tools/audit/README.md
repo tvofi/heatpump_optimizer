@@ -101,8 +101,9 @@ moves.
 - `tests/closure.py` globs `tests/*.py` and `tests/*.mjs` non-recursively;
   `tests/run.sh`'s wiring check does the same. A script in a subdirectory is
   invisible to both and to `no-copies`.
-- The `SLOW_GATED` assertion that `tests/closure.py:96` says lives in
-  `tests/entities.py` does not exist.
+- The `SLOW_GATED` assertion that `tests/closure.py:100-101` says lives in
+  `tests/entities.py` (checking every name in the `SLOW_GATED` set at
+  `:102` is in fact `SLOW`-gated in `run.sh`) does not exist.
 - `HeatPumpOptimizerSensorBase.__init_subclass__` wraps every subclass's
   `native_value` and `extra_state_attributes` in a non-finite scrub; deleting
   a per-sensor guard will not reproduce a non-finite publish.
@@ -247,16 +248,7 @@ that absence is why the two-tree recipe in `HARNESSES.md` exists),
 **archived** at `de668be`, and are **runnable** at `757e164`, which is where
 `audit-round2-evidence` points today; `de668be` stays reachable. Cite the SHA
 you actually ran, not just the tag name -- a name-only citation stops meaning
-anything the next time the tag moves. `c398fc84`, the baseline the numbers
-were recorded against, is not this paragraph's gap: dozens of `*.md`
-documents already name it, because that is where a number was measured. What
-no *document* on `main` named, before this paragraph, is either SHA the tag
-has since pointed at -- `de668be` or `757e164` -- though two non-document
-files already do: `web-triage.js`'s `judgePrompt` template and
-`web-decomp-stage.js`'s `survey` prompt both print `757e164` (at `:159` and
-`:156` respectively, in this tree; cite the construct, since a template
-literal's line number moves with every unrelated edit to the file it lives
-in and the name of the `const` does not).
+anything the next time the tag moves.
 
 The tag has been swept, and which harnesses run, which don't, and by which of
 three rot classes, is recorded in `tools/audit/round2/HARNESSES.md` -- read
