@@ -29,11 +29,12 @@ Metrics (definitions, one line each; the code is the authority):
   coordinator_multiassigned   this harness asserts is the coordinator; if
                               another class ever out-attrs it, this fails so
                               the budget is re-recorded deliberately
-  duplication_blocks          maximal runs of >= 30 consecutive normalized
-                              lines (whitespace/comments stripped) that appear
-                              in more than one function, nested defs excluded
-                              from their parents so containment is not
-                              reported as duplication
+  duplication_blocks          maximal runs of >= DUP_BLOCK_LINES consecutive
+                              normalized lines (whitespace/comments stripped)
+                              that appear in more than one function of the
+                              same module, nested defs excluded from their
+                              parents so containment is not reported as
+                              duplication
   functions_cc_over_25 /      cyclomatic complexity 1 + decision points
   functions_cc_over_15        (if/elif, for, while, ternary, except, assert,
                               boolean operator terms beyond the first, each
@@ -77,7 +78,14 @@ Run:
                                           improvement
     python tests/structure.py --record    recompute and WRITE the budget table
                                           (run this on a clean tree, at the
-                                          SHA recorded in ``recorded_at``)
+                                          SHA recorded in ``recorded_at``).
+                                          REFUSES if any metric would move the
+                                          wrong way; tolerance metrics are
+                                          carried forward, never re-recorded
+
+    python tests/structure.py --record --allow-regression="<reason>"
+                                          record anyway, for a stated reason
+                                          that belongs in the COMMIT message
 
 Expected at the recorded baseline (tolerance 0 on every count): exactly the
 numbers in ``tests/structure_budgets.json``. Baseline SHA: the commit in that
@@ -128,7 +136,24 @@ COORDINATOR_CLASS_NAME = "HeatPumpOptimizerCoordinator"
 GOD_CLASS_LOC_LIMIT = 300
 ATTR_BAG_LIMIT = 30
 MONSTER_LIMITS = (200, 150)
-DUP_BLOCK_LINES = 30
+# The duplication window (#369). It was 30, and the longest duplicated
+# normalized run that exists anywhere in the integration is 19 -- so the
+# metric could not fire, and its recorded 0 described the detector, not the
+# tree. Measured over the whole package at a2c4982, changing only this
+# constant and re-running measure():
+#
+#     window     30   25   20   15   12   10    8    6
+#     blocks      0    0    0    4    6   13   32   76
+#
+# 10 is where the evidence stops: it is the largest window that sees the
+# optimizer's objective / objective_batch closure pairs (11 and 10 normalized
+# lines), which are the most-cited duplication in this codebase and the one
+# 15 misses; 8 and below buy volume at a precision nobody has measured. No
+# Home Assistant entity boilerplate is caught at any window down to 10 -- the
+# 154 single-call __init__ bodies, the obvious false-positive class, appear
+# in no row. Every one of the 13 rows sits inside an open decomposition issue
+# (#193, #223, #224, #225), so the count ratchets down as that program lands.
+DUP_BLOCK_LINES = 10
 CC_LIMITS = (25, 15)
 CONST_FANOUT_LIMIT = 50
 
@@ -417,6 +442,81 @@ def cyclomatic_complexity(fn: ast.FunctionDef | ast.AsyncFunctionDef) -> int:
 # the metrics
 
 
+def normalized_function_lines(
+    fn: ast.FunctionDef | ast.AsyncFunctionDef, src_lines: list[str]
+) -> list[tuple[int, str]]:
+    """``fn``'s body as (segment, stripped-source) pairs, nested defs removed.
+
+    Blank and comment-only lines are dropped, so reformatting and commentary
+    are not duplication. Each nested def/class span is cut out and bumps the
+    segment counter, so a window is never allowed to span the hole a nested
+    definition left behind -- containment is not a copy.
+    """
+    excluded = nested_spans(fn)
+    normalized: list[tuple[int, str]] = []
+    segment = 0
+    for lineno in range(fn.lineno, fn.end_lineno + 1):  # type: ignore[arg-type]
+        if any(a <= lineno <= b for a, b in excluded):
+            segment += 1
+            continue
+        stripped = src_lines[lineno - 1].strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        normalized.append((segment, stripped))
+    return normalized
+
+
+def duplicate_runs(
+    normalized_functions: dict[tuple, list[tuple[int, str]]], window: int
+) -> list[tuple[str, str, int, str, int]]:
+    """Maximal runs of >= ``window`` normalized lines shared by two functions.
+
+    ``window`` is a parameter and not a read of ``DUP_BLOCK_LINES`` for one
+    reason: it is the only knob this metric has, and #369 was the case of a
+    knob set past the point where the detector could see anything at all --
+    30, against a longest real run of 19. A caller can therefore ask what the
+    same tree looks like at another window, which is how that was established
+    and how the tests pin both ends of it.
+
+    Returns one row per (function, run): ``(file, func, func_line, "norm
+    a-b", length)``, sorted, with overlapping windows merged into the longest
+    run that covers them.
+    """
+    windows: dict[str, list[tuple[tuple, int]]] = defaultdict(list)
+    for fid, normalized in normalized_functions.items():
+        for i in range(len(normalized) - window + 1):
+            if normalized[i][0] != normalized[i + window - 1][0]:
+                continue  # the window spans an excluded (nested) gap
+            digest = hashlib.sha1(
+                "\n".join(line for _, line in normalized[i : i + window]).encode()
+            ).hexdigest()
+            windows[digest].append((fid, i))
+
+    covered: dict[tuple, list[tuple[int, int]]] = defaultdict(list)
+    for sites in windows.values():
+        owners = {fid for fid, _ in sites}
+        if len(owners) < 2:
+            continue
+        for fid, start in sites:
+            covered[fid].append((start, start + window))
+
+    rows: list[tuple[str, str, int, str, int]] = []
+    for fid, spans in covered.items():
+        spans.sort()
+        runs = []
+        run_start, run_end = spans[0]
+        for a, b in spans[1:]:
+            if a <= run_end:
+                run_end = max(run_end, b)
+            else:
+                runs.append((run_start, run_end))
+                run_start, run_end = a, b
+        runs.append((run_start, run_end))
+        for a, b in runs:
+            rows.append((fid[0], fid[1], fid[2], f"norm {a}-{b - 1}", b - a))
+    return sorted(rows)
+
+
 def measure() -> dict:
     """Recompute every metric from the working tree. Returns a dict with the
     flat metric values (the budget keys) under ``metrics`` and everything the
@@ -525,51 +625,17 @@ def measure() -> dict:
                         )
         scan_scope(tree.body, False)
 
-        # Duplication: normalized 30-line windows shared by more than one
-        # function. Normalization strips whitespace and comment-only lines;
-        # nested def/class spans are dropped from the parent so a handler
-        # defined inside a registrar is not "a copy" of its own container.
-        windows: dict[str, list[tuple[tuple, int]]] = defaultdict(list)
+        # Duplication: normalized DUP_BLOCK_LINES-line windows shared by more
+        # than one function of this module. Normalization strips whitespace
+        # and comment-only lines; nested def/class spans are dropped from the
+        # parent so a handler defined inside a registrar is not "a copy" of
+        # its own container.
+        normalized_functions: dict[tuple, list[tuple[int, str]]] = {}
         for fn in all_functions(tree):
-            excluded = nested_spans(fn)
-            normalized: list[tuple[int, str]] = []
-            segment = 0
-            for lineno in range(fn.lineno, fn.end_lineno + 1):
-                if any(a <= lineno <= b for a, b in excluded):
-                    segment += 1
-                    continue
-                stripped = src_lines[lineno - 1].strip()
-                if not stripped or stripped.startswith("#"):
-                    continue
-                normalized.append((segment, stripped))
-            fid = (rel, fn.name, fn.lineno)
-            for i in range(len(normalized) - DUP_BLOCK_LINES + 1):
-                if normalized[i][0] != normalized[i + DUP_BLOCK_LINES - 1][0]:
-                    continue  # the window spans an excluded (nested) gap
-                digest = hashlib.sha1(
-                    "\n".join(line for _, line in normalized[i : i + DUP_BLOCK_LINES]).encode()
-                ).hexdigest()
-                windows[digest].append((fid, i))
-        covered: dict[tuple, list[tuple[int, int]]] = defaultdict(list)
-        for digest, sites in windows.items():
-            owners = {fid for fid, _ in sites}
-            if len(owners) < 2:
-                continue
-            for fid, start in sites:
-                covered[fid].append((start, start + DUP_BLOCK_LINES))
-        for fid, spans in covered.items():
-            spans.sort()
-            runs = []
-            run_start, run_end = spans[0]
-            for a, b in spans[1:]:
-                if a <= run_end:
-                    run_end = max(run_end, b)
-                else:
-                    runs.append((run_start, run_end))
-                    run_start, run_end = a, b
-            runs.append((run_start, run_end))
-            for a, b in runs:
-                duplication.append((fid[0], fid[1], fid[2], f"norm {a}-{b - 1}", b - a))
+            normalized_functions[(rel, fn.name, fn.lineno)] = normalized_function_lines(
+                fn, src_lines
+            )
+        duplication.extend(duplicate_runs(normalized_functions, DUP_BLOCK_LINES))
 
     # -- dead top-level symbols --------------------------------------------
     dynamic_exempt, dynamic_problems = dynamic_reference_audit(
@@ -868,7 +934,55 @@ def recorded_at_unreachable(recorded: str) -> str | None:
     return None  # no upstream to compare against; nothing to assert
 
 
-def record_budgets(result: dict) -> int:
+def regression_rows(old: dict, new: dict) -> list[tuple[str, float, float]]:
+    """Every metric a re-record would move in the WORSENING direction.
+
+    The direction is uniformly ``new > old`` and needs no metric-specific
+    knowledge: ``ratchet`` below compares all 22 counts the same way -- above
+    the budget fails, below it is headroom -- so every one of them is
+    lower-is-better. A per-metric direction table would be one more
+    hand-maintained list to rot, which is the class of defect #364 and #304
+    both turned out to be, so there deliberately is not one.
+
+    ``FRACTION_METRICS`` are skipped, and that is not an oversight (it
+    reverses #370's issue body). A tolerance metric passing inside its band
+    has nothing to record, and failing outside it is a decision rather than
+    bookkeeping; there is no third case. Re-recording one can therefore only
+    ever loosen the band -- with ``cross_seam_fraction`` at budget 0.4289 and
+    TOL 0.005 the ceiling is 0.4339, and recording the measured 0.4301 moves
+    it to 0.4351 while buying nothing. So ``record_budgets`` does not rewrite
+    them at all, which leaves this check nothing to check there.
+
+    Keys absent from either side are not rows: a metric that appeared or
+    disappeared is already a FAIL in ``ratchet`` ("measured but not in the
+    budget table"), and it has no old and new to put side by side.
+    """
+    rows = []
+    for key in sorted(set(old) & set(new)):
+        if key == "recorded_at" or key in FRACTION_METRICS:
+            continue
+        if new[key] > old[key]:
+            rows.append((key, old[key], new[key]))
+    return rows
+
+
+def record_budgets(result: dict, allow_regression: str | None = None) -> int:
+    """Write the budget table, refusing a re-record that loosens any metric.
+
+    ``--record`` used to rewrite every key from the working tree without ever
+    reading the table it replaced, so it could not tell locking in a gain from
+    laundering a regression, and the resulting diff could not tell the row you
+    meant to change from the row that came along with it (#370: that happened
+    twice on 2026-09-03, both caught by a human noticing).
+
+    That is latent while ``--record`` is rare and standing the moment #350
+    makes an improving PR re-record in the PR that earned it: the gate then
+    prints the exact command, the author runs it, and a metric that worsened
+    in the same diff is written silently with the gate's own authority behind
+    it. So the refusal is the default and the reason goes in the COMMIT, where
+    a squash-merge keeps it, rather than in a PR body that the history does
+    not carry.
+    """
     # Only the integration matters: a budget table describes its structure,
     # and this script itself being untracked is exactly the first-record
     # case, not a reason to warn.
@@ -879,13 +993,65 @@ def record_budgets(result: dict) -> int:
     if dirty:
         print("WARNING: the tree is dirty under custom_components/; the numbers")
         print("below describe the working tree, not commit %s." % head_sha()[:12])
+
     payload = dict(result["metrics"])
+    previous: dict = {}
+    if BUDGET_FILE.exists():
+        previous = json.loads(BUDGET_FILE.read_text())
+
+    # A tolerance metric is never re-recorded (see regression_rows): carry the
+    # recorded value forward untouched. Correcting one is a deliberate edit of
+    # its own, with its own reason, which is what makes it visible.
+    carried = []
+    for key in sorted(FRACTION_METRICS & set(previous) & set(payload)):
+        if payload[key] != previous[key]:
+            carried.append((key, previous[key], payload[key]))
+        payload[key] = previous[key]
+
+    rows = regression_rows(previous, payload)
+    if rows:
+        print()
+        print("########## re-record would LOOSEN %d budget(s) ##########" % len(rows))
+        print("  %-32s %12s %12s %10s" % ("metric", "recorded", "measured", "delta"))
+        for key, was, now in rows:
+            print("  %-32s %12s %12s %10s  WORSE (lower is better)"
+                  % (key, was, now, f"{now - was:+}"))
+        if allow_regression is None or not allow_regression.strip():
+            print()
+            print("REFUSING to record. A re-record that moves a metric the wrong way")
+            print("is a concession, not housekeeping, and it must not ride along in")
+            print("the same command that locks in an improvement (#370).")
+            print("If the loosening is deliberate, say why:")
+            print()
+            print('  python tests/structure.py --record \\')
+            print('      --allow-regression="<why this budget must grow>"')
+            print()
+            print("and put that same reason in the COMMIT message, not the PR body:")
+            print("the squash-merge keeps the commit and discards the branch.")
+            return 1
+        print()
+        print("ALLOWED: %s" % allow_regression.strip())
+        print("Repeat this reason in the commit message -- the squash-merge keeps")
+        print("the commit and discards the branch.")
+
+    for key, kept, measured in carried:
+        print()
+        print("  keeping recorded %s = %s (tree measures %s): a tolerance metric"
+              % (key, kept, measured))
+        print("  is never re-recorded -- inside its band there is nothing to record,")
+        print("  outside it a failure is a decision, and either way a re-record can")
+        print("  only loosen the band. Correct it deliberately, on its own (#370).")
+
     payload["recorded_at"] = recorded_at_sha()
     BUDGET_FILE.write_text(json.dumps(payload, indent=1, sort_keys=True) + "\n")
     print()
     print("########## budget table written to %s ##########" % BUDGET_FILE)
     for key in sorted(payload):
-        print(f"  {key} = {payload[key]}")
+        was = previous.get(key)
+        if was is not None and was != payload[key]:
+            print(f"  {key} = {payload[key]}   (was {was})")
+        else:
+            print(f"  {key} = {payload[key]}")
     return 0
 
 
@@ -1073,6 +1239,13 @@ def main() -> int:
         action="store_true",
         help="write the measured table to tests/structure_budgets.json",
     )
+    parser.add_argument(
+        "--allow-regression",
+        metavar="REASON",
+        default=None,
+        help="record even though a metric moves the wrong way, for this stated "
+             "reason -- which belongs in the commit message too (#370)",
+    )
     args = parser.parse_args()
 
     if self_check():
@@ -1089,7 +1262,10 @@ def main() -> int:
         print("never the check. (#364)")
         return 1
     if args.record:
-        return record_budgets(result)
+        return record_budgets(result, allow_regression=args.allow_regression)
+    if args.allow_regression is not None:
+        print("--allow-regression only means anything with --record")
+        return 1
     return ratchet(result)
 
 
