@@ -20,9 +20,14 @@ bottom, which is allowed to go stale and says so.
 2. **A structural ratchet refuses growth.** `tests/structure.py` measures 22
    metrics against `tests/structure_budgets.json`, and every one may only move
    down. Several sit at zero headroom, so a change that adds lines to the wrong
-   class fails — and the correct response is to pay for the lines, or to
-   re-record deliberately with the reason **in the commit message**, never to
-   loosen a budget quietly. `cross_seam_fraction` is a tolerance metric and is
+   class fails — and the correct response is to pay for the lines, to re-record
+   deliberately with the reason **in the commit message**, or, for a genuine new
+   production feature, to **raise the budget with the repository owner's
+   explicit confirmation, obtained before the branch is pushed** — never to
+   loosen a budget quietly, and never to delete working functionality merely to
+   fit. Pay for the lines first; a raise is what you do when the honest answer
+   is that you cannot, and an agent that wants one stops and asks rather than
+   pushing and explaining. `cross_seam_fraction` is a tolerance metric and is
    never re-recorded.
 3. **Value-bearing golden fixtures are claimed, not re-recorded.** Solver floats
    do not reproduce across BLAS builds, so only a canonical environment can

@@ -29,3 +29,23 @@ production lines. You work in your own worktree branched from `origin/main`.
    new one.
 7. The PR body closes its issues (`Closes #N`), names the head SHA measured,
    and carries every executed number.
+
+**When a structural budget blocks the work.** A `tests/structure.py` failure is
+a decision point, not a wall, and it has three answers rather than two: pay for
+the lines elsewhere; re-record because the tree genuinely improved; or, for a
+genuine new production feature, **raise** the budget because the capability is
+worth the structure it costs (`--record --allow-regression="<reason>"`, with
+that reason in the **commit** message, because the squash-merge keeps the commit
+and discards the branch). Paying for the lines is still the first question, and
+a raise is only for the case where the honest answer is that you cannot.
+
+A raise **requires the repository owner's explicit confirmation, obtained before
+you push.** It is not a judgement a fixer makes alone and it is not something a
+reviewer can wave through, so an agent that finds itself wanting one **stops and
+asks** rather than proceeding and explaining afterwards. This is not a route for
+accommodating sloppiness, an unexamined refactor, or a feature that has not been
+measured. But a metric sitting at zero headroom is not a veto on new
+functionality, and asking is an available move — #398 was refused in part
+because `coordinator_attrs` stood at 176/176 and a new attribute was read as
+costing the deletion of an existing one. `cross_seam_fraction` is exempt from
+all of this: it is a tolerance metric and is **never** re-recorded.
