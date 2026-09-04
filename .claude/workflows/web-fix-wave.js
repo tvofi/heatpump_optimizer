@@ -42,7 +42,14 @@ no measurement reason. Decide it, do not assume it:
 
 Taking the lock: mkdir /tmp/hpo-gate.lock and write an owner file (your
 label, the work's pid, UTC). If it exists, read it and check the pid, then
-wait and retry -- NEVER remove a lock you did not create. Under it run
+wait and retry -- NEVER remove a lock you did not create, EXCEPT when its
+owner is provably dead: the owner file records a pid precisely so that is a
+decidable fact rather than a judgement call. If that pid is not running AND no
+run.sh/stress.py/golden.py/env_drift.py/derive_closures process exists AND load1
+is low, the holder died (a container restart, an agent killed mid-gate). Write
+down the owner file verbatim and those three observations, then clear it -- a
+literal reading of the older rule deadlocks the whole wave behind a dead pid,
+which has already happened once. Under it run
 GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main
 HEAD) ./tests/run.sh, and release with rm -rf, not rmdir: the owner file
 makes the directory non-empty, and rmdir leaves the lock standing behind a
@@ -160,6 +167,19 @@ phase('Wave')
 const promises = {}
 let mergeChain = Promise.resolve(null)
 
+// One merge at a time, main waited on after each, so two movers never land
+// together. Shared by the normal path and by a group resuming at stage 'merge'.
+const mergeGroup = async (g, fix) => {
+  const outcome = await (mergeChain = mergeChain.then(async () => {
+    const m = await agent(mergePrompt(fix.pr, fix.head_sha), { model: 'opus', label: `merge ${g.group}`, phase: 'Wave', schema: MERGE })
+    if (!m?.merged) return { merged: false, reason: m?.reason ?? 'merge agent returned null' }
+    const gate = await agent(waitMainPrompt(m.sha), { model: 'sonnet', label: `main after ${g.group}`, phase: 'Wave', schema: { type: 'object', required: ['green'] } })
+    return { merged: true, sha: m.sha, green: !!gate?.green, red: gate?.green ? null : gate }
+  }))
+  if (outcome.merged && !outcome.green) log(`MAIN IS RED after ${g.group} (${outcome.sha}) -- stop and repair before the next merge: ${JSON.stringify(outcome.red)}`)
+  return { group: g.group, issues: g.issues, pr: fix.pr, head_sha: fix.head_sha, verdict: 'merge', ...outcome }
+}
+
 const runGroup = async (g) => {
   const deps = await Promise.all((g.after ?? []).map((d) => promises[d] ?? Promise.resolve(null)))
   const unmet = (g.after ?? []).filter((d, i) => !deps[i]?.merged)
@@ -178,7 +198,21 @@ const runGroup = async (g) => {
   // measured. Set resume: {stage:'review', pr, head_sha} on the group to do that;
   // resume: {stage:'fix', pushed_sha, what, missing} instead tells a fixer it is
   // continuing from a pushed branch rather than starting clean.
+  // stage 'done': already merged. It stays in the roster so the group list is
+  // complete, but running it again would re-open finished work.
+  if (g.resume?.stage === 'done') {
+    log(`${g.group}: already merged as PR #${g.resume.merged_pr} (${g.resume.merge_sha}) -- skipping`)
+    return { group: g.group, issues: g.issues, pr: g.resume.merged_pr, head_sha: g.resume.merge_sha,
+      verdict: 'merge', merged: true, green: true, sha: g.resume.merge_sha, skipped: 'already merged' }
+  }
   let fix
+  // stage 'merge': a reviewer already returned merge at THIS head, so re-reviewing
+  // spends a reviewer to re-derive a verdict that is already on the PR.
+  if (g.resume?.stage === 'merge') {
+    fix = { pr: g.resume.pr, head_sha: g.resume.head_sha }
+    log(`${g.group}: resuming at merge -- PR #${fix.pr} at ${fix.head_sha} is already reviewed`)
+    return await mergeGroup(g, fix)
+  }
   if (g.resume?.stage === 'review') {
     fix = { pr: g.resume.pr, head_sha: g.resume.head_sha }
     log(`${g.group}: resuming at review -- PR #${fix.pr} at ${fix.head_sha}`)
@@ -207,14 +241,7 @@ const runGroup = async (g) => {
     return { group: g.group, issues: g.issues, pr: fix.pr, head_sha: fix.head_sha, verdict: review?.verdict ?? null, merged: false }
   }
 
-  const outcome = await (mergeChain = mergeChain.then(async () => {
-    const m = await agent(mergePrompt(fix.pr, fix.head_sha), { model: 'opus', label: `merge ${g.group}`, phase: 'Wave', schema: MERGE })
-    if (!m?.merged) return { merged: false, reason: m?.reason ?? 'merge agent returned null' }
-    const gate = await agent(waitMainPrompt(m.sha), { model: 'sonnet', label: `main after ${g.group}`, phase: 'Wave', schema: { type: 'object', required: ['green'] } })
-    return { merged: true, sha: m.sha, green: !!gate?.green, red: gate?.green ? null : gate }
-  }))
-  if (outcome.merged && !outcome.green) log(`MAIN IS RED after ${g.group} (${outcome.sha}) -- stop and repair before the next merge: ${JSON.stringify(outcome.red)}`)
-  return { group: g.group, issues: g.issues, pr: fix.pr, head_sha: fix.head_sha, verdict: 'merge', ...outcome }
+  return await mergeGroup(g, fix)
 }
 
 for (const g of groups) promises[g.group] = runGroup(g)

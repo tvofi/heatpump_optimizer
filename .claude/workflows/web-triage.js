@@ -42,7 +42,14 @@ no measurement reason. Decide it, do not assume it:
 
 Taking the lock: mkdir /tmp/hpo-gate.lock and write an owner file (your
 label, the work's pid, UTC). If it exists, read it and check the pid, then
-wait and retry -- NEVER remove a lock you did not create. Under it run
+wait and retry -- NEVER remove a lock you did not create, EXCEPT when its
+owner is provably dead: the owner file records a pid precisely so that is a
+decidable fact rather than a judgement call. If that pid is not running AND no
+run.sh/stress.py/golden.py/env_drift.py/derive_closures process exists AND load1
+is low, the holder died (a container restart, an agent killed mid-gate). Write
+down the owner file verbatim and those three observations, then clear it -- a
+literal reading of the older rule deadlocks the whole wave behind a dead pid,
+which has already happened once. Under it run
 GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main
 HEAD) ./tests/run.sh, and release with rm -rf, not rmdir: the owner file
 makes the directory non-empty, and rmdir leaves the lock standing behind a
