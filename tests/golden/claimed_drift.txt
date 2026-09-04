@@ -74,8 +74,6 @@
 # denominator for every partly-probed install, so the components are
 # labelled rather than removed.
 
-config_flow # #398: adds the building step's mixing_valve_write_target_kind key path (a new options-flow field, defaulting to "indoor"); recorded via `golden.py --record --only config_flow`, not a value re-record -- a genuinely new key path, per CLAUDE.md rule 3.
-
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
