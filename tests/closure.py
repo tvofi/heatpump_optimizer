@@ -161,6 +161,9 @@ INERT = (
     # deliberately, instead of silently making every gate full.
     ".abacus.donotdelete",
     ".claude/",
+    # Cursor project rules (`.cursor/rules/*.mdc`). Agents load them; nothing
+    # under tests/ reads them. Same reason `.claude/` is here.
+    ".cursor/",
     # Orientation for a session that starts cold. Claude Code loads a root
     # CLAUDE.md automatically, which is the whole reason it cannot live under
     # docs/ with the rest of the prose. Nothing under tests/ reads it -- unlike
