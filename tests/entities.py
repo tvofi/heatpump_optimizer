@@ -4800,6 +4800,148 @@ R.check(
     f"{sum(len(_v) for _v in _actually_published.values())} published",
 )
 
+# --- D3-01 (#246): PredictiveInsightSensor's published VALUES, not just keys
+#
+# The roster above already catches deleting the whole of this property's
+# dict (PredictiveInsightSensor drops from its pinned 20 keys to 0) or any
+# one key within it -- that gap is #246's own finding, and PR #384 closed
+# the key-SET half of it generically for every publisher, this sensor
+# included. What the roster does NOT pin is hole one of the three stated at
+# :4442: a key that is KEPT but publishes ``None`` forever still passes,
+# because the roster compares names, never values. This closes that hole
+# for the sensor #246 was filed against, whose entire content IS its
+# attributes -- the state is one of four words, and every anticipatory
+# signal the forecast produced rides alongside it, unwatched by golden.py
+# (which records ``_build_data_dict()``, one layer upstream) or the card.
+#
+# Re-anchored from ``tools/audit/round2/D3/verify3-assertions.patch``
+# (seat 3's assertion, committed against the finding) rather than written
+# fresh -- the file has moved a great deal since that patch was cut, most
+# of it the #373/#384 roster this now sits beside. Panel-corrected count:
+# 20 published attributes, not the finding's original 21.
+PREDICTIVE_INFO = {
+    "solar_reduction_factor": 0.62,
+    "wind_anticipation_factor": 1.15,
+    "rain_anticipation_factor": 1.05,
+    "pre_heat_urgency": 0.8,
+    "future_solar_energy_kwh": 12.5,
+    "future_solar_6_12h_kwh": 4.25,
+    "avg_future_wind_ms": 6.5,
+    "avg_future_precip_mmh": 0.4,
+    "dhw_preheat_lead_hours": 1.5,
+    "dhw_peak_usage_hours": [7, 18],
+    "dhw_min_temperature": 45.0,
+    "dhw_target_temperature": 52.0,
+    "dhw_windows": [[6.0, 8.5], [17.0, 22.0]],
+    "dhw_in_demand_window": True,
+    "dhw_next_window_in_hours": 0.0,
+    "dhw_required_temperature_now": 48.0,
+    "dhw_idle_min_temperature": 40.0,
+    "dhw_legionella_due": False,
+    "dhw_planned_heating_hours": 2.0,
+}
+_pred_by_name = {
+    display_name("sensor", s): s
+    for s in collect(
+        sensor,
+        {
+            **DATA,
+            "predictive_info": PREDICTIVE_INFO,
+            "dhw_usage_profile": [0.25] * 24,
+        },
+    )
+}
+_pred = _pred_by_name["Predictive Optimization Insight"]
+_pred_attrs = _pred.extra_state_attributes
+R.check(
+    "every predictive signal reaches the published attributes under its own "
+    "name (#246)",
+    all(_pred_attrs.get(key) == value for key, value in PREDICTIVE_INFO.items())
+    and _pred_attrs.get("dhw_usage_profile") == [0.25] * 24,
+    "wrong or missing: "
+    + str(sorted(k for k, v in PREDICTIVE_INFO.items() if _pred_attrs.get(k) != v))
+    + f"; profile {_pred_attrs.get('dhw_usage_profile')!r}",
+)
+_expected_pred_keys = set(PREDICTIVE_INFO) | {"dhw_usage_profile"}
+R.check(
+    "and the published set is exactly those signals, nothing dropped or "
+    "added (#246)",
+    set(_pred_attrs) == _expected_pred_keys,
+    f"missing {sorted(_expected_pred_keys - set(_pred_attrs))}, "
+    f"extra {sorted(set(_pred_attrs) - _expected_pred_keys)}",
+)
+R.check(
+    "the state summarises the same signals, and says so when there are none "
+    "(#246)",
+    _pred.native_value == "solar_anticipation"
+    and by_name["Predictive Optimization Insight"].native_value == "no forecast",
+    f"with a forecast {_pred.native_value!r}, without "
+    f"{by_name['Predictive Optimization Insight'].native_value!r}",
+)
+
+# --- D8-14 continued (#395): the dual-site granularity bound --------------
+#
+# _PUBLISHED_ATTRS pins the UNION of keys a class publishes across the two
+# fixtures above, so a key published from two code sites of the SAME class
+# can lose one site while the other keeps the name on the class's surface:
+# the set and its count both stay right and the gate stays green. Both plan
+# sensors publish ``plan_kind``, ``manual_override``,
+# ``manual_plan_window_hours``, ``setup_topology``, ``dhw_windows_spec``,
+# ``currency``, ``projection`` and ``horizon_hours`` from BOTH the
+# empty-plan and the populated-plan ``return`` of one
+# ``extra_state_attributes`` property (`sensor.py`'s ``_PlanSensorBase`).
+#
+# Measured on the W1-G4 review of PR #384 that filed this: by "deleting one
+# site of a key stays silent", 14 of 290 class/key pairs; by code-site
+# count, 16 (seven of the eight dual-branch keys silent, across the two
+# plan classes each). The eighth, ``dhw_windows_spec``, is NOT caught by
+# the roster either -- it is rescued only because a VALUE check above
+# (":751", added by #384 for an unrelated reason: proving the spec differs
+# from the plan's own reading of the windows) happens to read the
+# populated branch by name. That is not roster coverage and this does not
+# lean on it: the per-state sets below pin ``dhw_windows_spec`` in both
+# states directly, same as the other seven.
+#
+# Fixed by pinning per STATE rather than per class: the empty-plan and
+# populated-plan key sets, asserted separately for both plan sensors,
+# reusing the two fixtures already built for the class-level roster above
+# (``_attr_base_coordinator`` reads ``DATA``, where both plans are ``{}``;
+# ``_attr_rich_coordinator`` reads ``_ATTR_RICH``, where both are
+# populated) rather than constructing new ones.
+_EMPTY_PLAN_ATTRS = frozenset({
+    "currency", "dhw_windows_spec", "horizon_hours", "manual_override",
+    "manual_plan_window_hours", "plan_kind", "projection", "setup_topology",
+})
+_POPULATED_PLAN_ATTRS = frozenset({
+    "active_now", "comfort_temp_day", "comfort_temp_night", "currency",
+    "day_end_hour", "day_start_hour", "dhw_min_temperature",
+    "dhw_min_temperature_max", "dhw_setpoint", "dhw_windows",
+    "dhw_windows_spec", "forecast", "horizon_hours", "manual_override",
+    "manual_plan_window_hours", "next_slot_start", "plan_kind", "projection",
+    "setup_topology", "slot_count", "slots", "total_cost", "total_energy_kwh",
+})
+for _plan_cls in (sensor.SpaceHeatingPlanSensor, sensor.DHWHeatingPlanSensor):
+    _empty_keys = frozenset(
+        _plan_cls(_attr_base_coordinator, ENTRY).extra_state_attributes
+    )
+    _populated_keys = frozenset(
+        _plan_cls(_attr_rich_coordinator, ENTRY).extra_state_attributes
+    )
+    R.check(
+        f"{_plan_cls.__name__} publishes exactly the pinned EMPTY-plan key "
+        "set (#395)",
+        _empty_keys == _EMPTY_PLAN_ATTRS,
+        f"removed {sorted(_EMPTY_PLAN_ATTRS - _empty_keys)}; "
+        f"added {sorted(_empty_keys - _EMPTY_PLAN_ATTRS)}",
+    )
+    R.check(
+        f"{_plan_cls.__name__} publishes exactly the pinned POPULATED-plan "
+        "key set (#395)",
+        _populated_keys == _POPULATED_PLAN_ATTRS,
+        f"removed {sorted(_POPULATED_PLAN_ATTRS - _populated_keys)}; "
+        f"added {sorted(_populated_keys - _POPULATED_PLAN_ATTRS)}",
+    )
+
 # --- D7-06 (#178): the five dead symbols stay deleted ----------------------
 for _module, _name in (
     (config_flow, "_translated_text"),
