@@ -1243,8 +1243,10 @@ def capture_work_rows(root: str, out_path: str) -> tuple[dict | None, str]:
 
     ``{label: {"evals": int, "objective": float}}`` -- the two numbers the
     comparison needs and nothing else. No timing is captured here on
-    purpose: CPU is what does not travel between two runs of the same box,
-    and the counts are what do.
+    purpose: CPU moves between two runs of the same box (1.10x to 1.44x
+    over six repeats of bit-identical work, measured for #346) while the
+    counts do not move at all, and a baseline is only worth having in the
+    quantity that does not move.
     """
     env = dict(os.environ)
     env["PYTHONPATH"] = os.path.join(root, "tests", "hastub")
