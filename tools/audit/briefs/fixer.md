@@ -38,11 +38,13 @@ production lines. You work in your own worktree branched from `origin/main`.
    59, 50, and 124/147/50, because each asked a subtly different question;
    only a count whose rule is written down is re-derivable by whoever reads
    the body next. Say what you counted, not only how many.
-9. **Anchor a documentation citation to a lane, function, marker or SHA, not
-   a bare line number — and prefer deleting a fragile claim over maintaining
-   one.** PR #386 took four repair rounds and 17 corrected citations before
-   its last two survivors — both bare-line-number claims a later merge
-   elsewhere silently falsified — were finally settled by deletion.
+9. **A claim should be true; if wrong, correct it — anchored to a lane,
+   function, marker or SHA, never a bare line number — and delete only when
+   no such correction exists.** Delete on sight, not as a last resort, when
+   the claim is only motivation or scaffolding the finished text doesn't
+   need. PR #386 took four repair rounds to correct 17 citations; only its
+   last two survivors — bare-line-number claims a later merge falsified, and
+   by then unneeded — were settled by deletion.
 
 **When a structural budget blocks the work.** A `tests/structure.py` failure is
 a decision point, not a wall, and it has three answers rather than two: pay for
