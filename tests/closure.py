@@ -136,6 +136,7 @@ INERT = (
     "NOTICE",
     "icon.png",
     "docs/",
+    "wt/",  # wave-agent progress notes; nothing in the gate reads them
     "tests/README.md",
     ".gitignore",
     # Write-once round-2 audit evidence: harnesses and reports people run by
