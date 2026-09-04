@@ -13,6 +13,12 @@ committed ``tests/stress_budgets.json``:
                                 evals > recorded_evals * SCENARIO_WORK_FACTOR,
                                 applied only where same_basin() holds
 
+Since #387 that last rule has no recorded numbers to read: the baseline is
+captured in the same environment, so here the PLAIN sweep -- this tree,
+this process, minutes earlier -- is what the other three runs are judged
+against, through stress.work_drift_compare(). The plain run's verdict
+against itself is printed as the null control and must be empty.
+
 The four runs are: PLAIN; INJECTED, with HeatPumpOptimizer.optimize made to
 do its work twice for ONE scenario (the h7 injection, scoped -- an exact 2x
 on that scenario and nothing else); BASIN, with that scenario's multi-start
@@ -97,7 +103,20 @@ def combinations() -> list:
 
 
 COMBOS = combinations()
-HAS_WORK = hasattr(stress, "matching_basin") or hasattr(stress, "recorded_evals")
+# Three shapes have existed. #346 recorded one basin per scenario
+# (recorded_evals/recorded_objective), PR #378 recorded several
+# (matching_basin), and #387 records none at all: the baseline is CAPTURED
+# in the same environment, so here the PLAIN sweep of this same tree in
+# this same process is the baseline the other three runs are judged
+# against. Without this branch the harness would report head_has_work_rule
+# =0 on a current tree and look as though the rule had been deleted.
+HAS_DRIFT = hasattr(stress, "work_drift_compare")
+HAS_WORK = (
+    HAS_DRIFT
+    or hasattr(stress, "matching_basin")
+    or hasattr(stress, "recorded_evals")
+)
+PLAIN_ROWS: dict = {}
 result("head_has_work_rule", int(HAS_WORK), "bool")
 result("scenarios", len(COMBOS), "count")
 
@@ -164,7 +183,16 @@ def sweep(label_tag: str, mode: str):
             stale.append(n)
     sweep_trip = int(sweep_ratio > stress.SWEEP_BUDGET_RATIO)
     work, flipped = [], []
-    if HAS_WORK:
+    if HAS_DRIFT and PLAIN_ROWS:
+        verdict = stress.work_drift_compare(
+            {n: r["evals"] for n, r in rows.items()},
+            {n: r["obj"] for n, r in rows.items()},
+            {n: {"evals": r["evals"], "objective": r["obj"]}
+             for n, r in PLAIN_ROWS.items()},
+        )
+        work = [f.split()[0] for f in verdict.over]
+        flipped = [f.split()[0] for f in verdict.replanned]
+    elif HAS_WORK and not HAS_DRIFT:
         for n, r in rows.items():
             if hasattr(stress, "matching_basin"):
                 # A scenario may have several recorded basins; the rule
@@ -209,6 +237,19 @@ def sweep(label_tag: str, mode: str):
 
 
 plain, tf = sweep("plain", "plain")
+PLAIN_ROWS.update(plain)
+if HAS_DRIFT:
+    # The plain run is the baseline for the three that follow, so its own
+    # work verdict is taken against itself: the null control, and it must
+    # be empty by construction or the comparison is not one.
+    _null = stress.work_drift_compare(
+        {n: r["evals"] for n, r in plain.items()},
+        {n: r["obj"] for n, r in plain.items()},
+        {n: {"evals": r["evals"], "objective": r["obj"]}
+         for n, r in plain.items()},
+    )
+    result("plain.null_control_tripped_solver_work", len(_null.over), "count")
+    result("plain.null_control_covered", len(_null.covered), "count")
 inj, _ = sweep("injected_2x_one_scenario", "inject")
 bas, _ = sweep("basin_flip_one_scenario", "basin")
 b2x, _ = sweep("basin_flip_and_2x_one_scenario", "basin2x")

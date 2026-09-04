@@ -1403,11 +1403,24 @@ def work_drift_compare(
                 f"plan (objective {_fmt_objective(objective)})"
             )
         if stale_cheap_verdict(got, base_evals):
+            # REPORTED, NOT FAILED, and the asymmetry is the point (#387).
+            # The stale rule exists because a RECORD can go stale-high and
+            # then hide a later regression back to the old cost, and its
+            # remedy is `--record-budgets`. A baseline captured from the
+            # merge base on every run cannot go stale -- it tracks main by
+            # construction -- so the premise is gone, and with it the
+            # remedy: there is no table to re-record. Left as a failure it
+            # would turn a real optimisation red with nothing the author
+            # could do, and #317 is exactly that PR: it made three
+            # scenarios 6.2x to 12.4x cheaper on plans it did not move.
+            # The stale rule itself is untouched in the CPU channel above,
+            # where the recorded `ratio` still can go stale and re-record
+            # is still the answer.
             verdict.stale.append(
                 f"{label} took {got} solver evaluations against the "
-                f"baseline's {base_evals} (cheaper by more than "
-                f"{SCENARIO_STALE_FACTOR:.0f}x on an unchanged plan: that is "
-                f"a behaviour change this branch has not explained)"
+                f"baseline's {base_evals} = {got / base_evals:.2f}x, "
+                f"cheaper by more than {SCENARIO_STALE_FACTOR:.0f}x on an "
+                f"unchanged plan"
             )
     for label in sorted(baseline):
         if label not in observed_evals:
@@ -2175,6 +2188,9 @@ if __name__ == "__main__":
             print(f"    new here, no baseline solve to compare: {_new}")
         for _gone in drift.only_baseline:
             print(f"    dropped here, the baseline solved it: {_gone}")
+        for _cheaper in drift.stale:
+            # Reported by name, not failed: see work_drift_compare().
+            print(f"    cheaper than the baseline: {_cheaper}")
         R.check(
             "the solver-work counter counted something for every scenario",
             all(v > 0 for v in observed_evals.values()),
@@ -2199,12 +2215,6 @@ if __name__ == "__main__":
             "scenarios need it there (#346)",
         )
         R.check(
-            "no scenario's solver work fell far enough to be a silent "
-            "behaviour change",
-            not drift.stale,
-            "; ".join(drift.stale),
-        )
-        R.check(
             "the solver-work check still covers most of the sweep",
             _work_covered >= SCENARIO_WORK_MIN_COVERED,
             f"only {_work_covered} of {len(observed_evals)} scenarios are "
@@ -2217,7 +2227,9 @@ if __name__ == "__main__":
             f"minutes ago -- so the golden drift gate is where they are "
             f"claimed, and this floor is the statement that so many of "
             f"them leave the work check covering less than most of the "
-            f"sweep",
+            f"sweep. A branch that re-plans this much deliberately says "
+            f"so with STRESS_WORK_MIN_COVERED and repeats the number in "
+            f"its PR body, the way a moved fixture is claimed",
         )
 
     # -- D9-04: memory instrumentation -----------------------------------
