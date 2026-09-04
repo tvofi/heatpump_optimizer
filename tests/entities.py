@@ -743,6 +743,29 @@ R.check(
     dhw_plan.extra_state_attributes.get("dhw_windows")
     != dhw_plan.extra_state_attributes.get("dhw_windows_spec"),
 )
+# ...and non-vacuously. `dhw_windows` is published only on the PLAN branch,
+# and `DATA["dhw_plan"]` is `{}`, so the check above compares `None` to the
+# spec string: it passes just as well with `dhw_windows` deleted from
+# production entirely. Read the branch that actually carries it (found by
+# the #373 review, which hit the same fixture hole in the attribute roster).
+_windows_plan_attrs = sensor.DHWHeatingPlanSensor(
+    FakeCoordinator(
+        {
+            **DATA,
+            "dhw_plan": {"slots": [{"start": "2026-02-01T05:00:00"}], "active_now": False},
+            "dhw_windows": [["06:00", "08:30"], ["17:00", "22:00"]],
+        }
+    ),
+    ENTRY,
+).extra_state_attributes
+R.check(
+    "and the plan branch really carries both, differing",
+    _windows_plan_attrs.get("dhw_windows") == [["06:00", "08:30"], ["17:00", "22:00"]]
+    and _windows_plan_attrs.get("dhw_windows_spec")
+    == "weekdays 06:00-08:30, weekend 08:00-09:30",
+    f"windows={_windows_plan_attrs.get('dhw_windows')!r} "
+    f"spec={_windows_plan_attrs.get('dhw_windows_spec')!r}",
+)
 R.check(
     "and publishes it before the first plan exists",
     sensor.DHWHeatingPlanSensor(no_plan_coord, ENTRY).extra_state_attributes.get(
@@ -4384,6 +4407,397 @@ R.check(
     "every disabled-by-default sensor is Diagnostic (#177)",
     _actually_disabled <= _actually_diagnostic,
     f"not diagnostic: {sorted(_actually_disabled - _actually_diagnostic)}",
+)
+
+# --- D8-14 (#373): the published attribute-key SET, pinned per class -------
+#
+# ``extra_state_attributes`` is public API. Its keys land in users' Home
+# Assistant automations and Jinja templates, and a deleted key breaks that
+# YAML on the next upgrade with no error anywhere. Measured at a2c4982,
+# before this roster existed: deleting ``rain_anticipation_factor`` from
+# ``PredictiveInsightSensor`` left entities.py 786/786 green, structure.py
+# green and the drift lane green, and deleting the WHOLE of
+# ``ECL110EffectiveDisplaceSensor.extra_state_attributes`` left the same
+# 786/786 green. The golden layer captures the coordinator payload one
+# level upstream, so every fixture stays byte-identical; the card never
+# reads these names; and statement coverage cannot see it either, because a
+# deleted key is a deleted line.
+#
+# The exposure, measured at a2c4982 over the entities this file already
+# constructs: 43 classes published 171 distinct keys through 244 class/key
+# pairs, and 48 of those keys (28%) appeared nowhere in ``tests/`` as a
+# string literal at all. The roster below pins 46 classes and 290 class/key
+# pairs over 190 distinct names -- more than that census because it reads
+# each platform through two payloads (see below), one of which reaches the
+# plan branch the census's single payload never did.
+#
+# EXACT EQUALITY per class, in the style of the Diagnostic roster above --
+# subset containment would pass on precisely the deletion this exists to
+# catch. The cost of exactness is measured rather than assumed: across the
+# 59 commit transitions in this history the published key sets took ONE
+# addition and ZERO removals, so exactness costs about one table line per
+# sixty commits, and an addition fails here as an addition with the class
+# and the key named.
+#
+# Three holes, stated rather than papered over:
+#   * a key that is KEPT but publishes ``None`` for ever still passes: this
+#     pins names, not values;
+#   * deleting a key together with its line in this table, in one change, is
+#     bounded only by review;
+#   * this pins the surface the two fixtures below REACH, so a branch no
+#     fixture reaches is unpinned and its keys can be deleted silently. The
+#     fix for that is a fixture, and the review of the first cut of this
+#     table found one worth 10% of the surface (the plan branch, closed
+#     above); the honest reading of the aggregate check's name is "the whole
+#     surface these two payloads measure", and the bound is the payloads.
+# A third follows from the surface's shape: a few publishers pass a data
+# dict straight through (``ComfortWeightSensor`` returns ``comfort_learning``
+# whole), so for those the table pins what the fixtures below carry rather
+# than a literal in production. Deleting the publisher outright is still
+# caught -- the class leaves the table entirely.
+#
+# The roster is taken from two payloads, because several keys are published
+# only on a branch: the base ``DATA`` above, and ``_ATTR_RICH``, which turns
+# on the two-zone setpoints, the solar gain, the predictive-forecast block,
+# the mixing-valve recommendation and -- see below -- a populated plan for
+# each of the two plan sensors. A conditional key that no fixture reaches is
+# outside this table; that is a bound on coverage, and the fix for it is a
+# fixture, not a softer check. The plan branch was exactly such a hole in
+# the first cut of this table and is closed here rather than noted: with
+# ``DATA["space_plan"] == DATA["dhw_plan"] == {}`` the two plan sensors were
+# only ever read on their EMPTY-plan branch, so deleting ``slots``,
+# ``total_cost`` or ``total_energy_kwh`` from ``_PlanSensorBase`` passed
+# silently -- 30 of 290 class/key pairs (10.3%), in the second-largest
+# publisher family after ``climate.py``.
+_ATTR_RICH = {
+    **DATA,
+    # A populated plan for each plan sensor, so ``_PlanSensorBase`` is read
+    # on the branch it spends its life on. Shaped after what the coordinator
+    # really builds (``coordinator.py`` ~2470: forecast, slots,
+    # total_energy_kwh, total_cost, active_now); two slots with
+    # ``active_now`` so ``next_slot_start`` resolves through the
+    # ``slots[1]`` arm rather than staying None on an empty list.
+    "space_plan": {
+        "forecast": [
+            {"t": "2026-02-01T10:00:00", "price": 1.2, "space_power": 1.4},
+            {"t": "2026-02-01T11:00:00", "price": 0.9, "space_power": 0.0},
+        ],
+        "slots": [
+            {"start": "2026-02-01T10:00:00", "end": "2026-02-01T11:00:00"},
+            {"start": "2026-02-01T14:00:00", "end": "2026-02-01T15:00:00"},
+        ],
+        "total_energy_kwh": 4.2,
+        "total_cost": 6.05,
+        "active_now": True,
+    },
+    "dhw_plan": {
+        "forecast": [
+            {"t": "2026-02-01T10:00:00", "price": 1.2, "dhw_power": 2.0},
+            {"t": "2026-02-01T11:00:00", "price": 0.9, "dhw_power": 0.0},
+        ],
+        "slots": [
+            {"start": "2026-02-01T05:00:00", "end": "2026-02-01T06:00:00"},
+        ],
+        "total_energy_kwh": 2.1,
+        "total_cost": 2.55,
+        "active_now": False,
+    },
+    # The schedule the plan branch republishes off the payload. ``DATA``
+    # carries none of these, so without them the branch would publish four
+    # names against ``None`` and ``dhw_min_temperature_max`` would pin the
+    # "setpoint unknown" arm of ``_dhw_min_ceiling`` rather than the
+    # arithmetic one.
+    "dhw_windows": [["06:00", "08:30"], ["17:00", "22:00"]],
+    "dhw_setpoint": 55.0,
+    "comfort_temp_night": 19.5,
+    "manual_plan": {"slots": [], "expires": "2026-02-01T18:00:00"},
+    "current_action": {
+        **DATA["current_action"],
+        "mode": "auto",
+        "heat_pump_on": True,
+        "displace_value": 3,
+        "upper_setpoint": 21.5,
+        "lower_setpoint": 20.5,
+        "solar_gain_kw": 1.2,
+    },
+    "predictive_info": {
+        "solar_reduction_factor": 0.8,
+        "wind_anticipation_factor": 1.1,
+        "rain_anticipation_factor": 1.0,
+        "pre_heat_urgency": 0.4,
+    },
+    "mixing_valve_mode": "weather_compensated",
+    "valve_target_recommendation": {
+        "target": 38.0,
+        "configured_target": 40.0,
+        "reason": "cheap hour",
+        "price_ratio": 0.6,
+    },
+}
+
+
+def _attr_coordinator(data):
+    """A ``collect`` coordinator that every publisher can be read through."""
+    coord = FakeCoordinator(data)
+    coord._month_totals = {"dhw": (41.5, 62.25), "space": (120.0, 180.0)}
+    # ``SolarHeatGainSensor`` reads ``coordinator._thermal_params`` rather
+    # than the published data, so it needs the real object a real
+    # coordinator builds -- without it that one publisher raises
+    # AttributeError instead of publishing its four keys.
+    coord._thermal_params = _blind_coord._thermal_params
+    return coord
+
+
+_attr_base_coordinator = _attr_coordinator(DATA)
+_attr_rich_coordinator = _attr_coordinator(_ATTR_RICH)
+
+
+#: The one publisher whose attribute KEYS are data rather than API:
+#: ``DHWHeavyDaySensor`` republishes ``dhw_draw_stats`` keyed by the
+#: configured hot-water windows, so its keys here would be
+#: ``"06:00-08:30"`` -- this fixture's schedule, not a name any automation
+#: can rely on across installs. Pinning it would pin the fixture. Its whole
+#: publisher disappearing is caught by the roster check below, which is the
+#: part that matters.
+_ATTR_KEYS_ARE_DATA = frozenset({"DHWHeavyDaySensor"})
+
+
+def _published_attr_keys(entities) -> dict[str, set[str]]:
+    """class name -> the attribute keys those entities actually published."""
+    found: dict[str, set[str]] = {}
+    for entity in entities:
+        if not hasattr(type(entity), "extra_state_attributes"):
+            continue
+        # Deliberately not ``getattr(..., default)``: that swallows an
+        # AttributeError raised *inside* the property and would report a
+        # broken publisher as one that publishes nothing.
+        attrs = entity.extra_state_attributes
+        if not attrs:
+            continue
+        name = type(entity).__name__
+        found.setdefault(name, set())
+        if name not in _ATTR_KEYS_ARE_DATA:
+            found[name].update(attrs)
+    return found
+
+
+_actually_published: dict[str, set[str]] = {}
+for _attr_coord in (_attr_base_coordinator, _attr_rich_coordinator):
+    for _attr_platform in (sensor, binary_sensor, button, climate_mod, switch_mod):
+        _attr_group = collect(_attr_platform, coordinator=_attr_coord)
+        for _cls_name, _keys in _published_attr_keys(_attr_group).items():
+            _actually_published.setdefault(_cls_name, set()).update(_keys)
+
+_PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
+    "AwayModeBinarySensor": frozenset({
+        "away_dhw_min_temperature", "away_target_temperature",
+        "hours_until_return", "recovery_active", "return_time", "source"
+    }),
+    "ComfortWeightSensor": frozenset({"configured", "learned", "overrides"}),
+    "CompressorStartsSensor": frozenset({
+        "lifetime", "month", "wear_price_per_start"
+    }),
+    "ContractComparisonSensor": frozenset({
+        "load_profile_value_per_kwh", "monthly_report", "months",
+        "waiting_for"
+    }),
+    "CurrentSetpointSensor": frozenset({
+        "lower_floor_setpoint", "upper_floor_setpoint"
+    }),
+    "DHWCostSensor": frozenset({
+        "counting_since", "measured", "period", "split_method",
+        "this_month_cost", "this_month_kwh"
+    }),
+    "DHWEnergySensor": frozenset({
+        "counting_since", "measured", "period", "split_method",
+        "this_month_cost", "this_month_kwh"
+    }),
+    "DHWHeatingPlanSensor": frozenset({
+        "active_now", "comfort_temp_day", "comfort_temp_night", "currency",
+        "day_end_hour", "day_start_hour", "dhw_min_temperature",
+        "dhw_min_temperature_max", "dhw_setpoint", "dhw_windows",
+        "dhw_windows_spec", "forecast", "horizon_hours", "manual_override",
+        "manual_plan_window_hours", "next_slot_start", "plan_kind",
+        "projection", "setup_topology", "slot_count", "slots", "total_cost",
+        "total_energy_kwh"
+    }),
+    # keys are the configured windows, see _ATTR_KEYS_ARE_DATA above
+    "DHWHeavyDaySensor": frozenset(),
+    "DHWScheduleSensor": frozenset({
+        "dhw_in_demand_window", "dhw_legionella_due",
+        "dhw_legionella_due_in_hours", "dhw_legionella_step_hour",
+        "dhw_next_window_in_hours", "dhw_planned_heating_hours",
+        "dhw_preheat_hours", "dhw_schedule", "dhw_schedule_enabled",
+        "dhw_windows"
+    }),
+    "DHWSetpointAdvisorSensor": frozenset({
+        "candidates", "current_setpoint", "heaviest_window_kwh",
+        "recommended_setpoint"
+    }),
+    "DHWTemperatureSensor": frozenset({
+        "dhw_cooling_rate", "dhw_cooling_rate_learned", "dhw_cooling_samples",
+        "dhw_enabled", "dhw_heating_active", "dhw_hold_hours",
+        "dhw_idle_min_temperature", "dhw_in_demand_window",
+        "dhw_legionella_due_in_hours", "dhw_min_temperature",
+        "dhw_next_window_in_hours", "dhw_required_temperature",
+        "dhw_setpoint", "dhw_windows"
+    }),
+    "ECL110EffectiveDisplaceSensor": frozenset({
+        "command_topic", "state_topic"
+    }),
+    "ExternalHeatBinarySensor": frozenset({
+        "buffer_rise_c_per_h", "confidence", "dhw_rise_c_per_h", "evidence",
+        "fading", "since", "source", "suppressing_electric_dhw"
+    }),
+    "FrequencyAdvisorSensor": frozenset({
+        "commanded_hz", "fallback_active", "map", "mode", "range_hz",
+        "recommended_hz", "reported_hz", "waiting_for"
+    }),
+    "HeatPumpActionSensor": frozenset({
+        "ecl110_displace", "heat_pump_on", "lower_floor_setpoint", "power_kw",
+        "power_normalized", "price", "setpoint", "solar_gain_kw",
+        "upper_floor_setpoint"
+    }),
+    "HeatPumpOptimizerClimate": frozenset({
+        "current_price", "dhw_enabled", "dhw_heating_active",
+        "dhw_heating_cost", "dhw_setpoint", "dhw_temperature",
+        "ecl110_command_topic", "ecl110_displace",
+        "ecl110_effective_displace", "floor_return_temperature",
+        "heat_pump_on", "lower_floor_setpoint", "lower_floor_temperature",
+        "optimization_status", "optimizer_mode", "optimizer_setpoint",
+        "outdoor_temperature", "pre_heat_urgency", "predicted_savings",
+        "recommended_power_kw", "savings_percentage", "slab_temperature",
+        "solar_heat_gain_kw", "solar_radiation_wm2", "solar_reduction_factor",
+        "two_zone_enabled", "upper_floor_setpoint", "upper_floor_temperature",
+        "wind_anticipation_factor"
+    }),
+    "InputHealthBinarySensor": frozenset({
+        "input_ages_minutes", "learner_freeze_reason", "learners_frozen",
+        "problems", "stale_inputs", "summary"
+    }),
+    "MeasuredPowerSensor": frozenset({
+        "energy_meter", "house_power", "recommended_power"
+    }),
+    "MixedHotWaterSensor": frozenset({
+        "litres_40c", "shower_minutes", "tank_temperature"
+    }),
+    "MonthlyPeakSensor": frozenset({
+        "free_headroom_threshold_kw", "fuse_advisor", "month",
+        "outage_recovery_active", "projected_peak_cost", "projected_peak_kw"
+    }),
+    "ObservedCOPSensor": frozenset({
+        "cop_samples", "cop_scale", "defrost_buckets", "defrost_derate",
+        "defrost_samples", "modelled_cop", "waiting_for"
+    }),
+    "OptimizationScoreSensor": frozenset({
+        "envelope", "machine", "operation", "overall", "price_tiles",
+        "stat_kind"
+    }),
+    "OptimizationStatusSensor": frozenset({
+        "prices_available", "solve_time_ms", "two_zone_enabled",
+        "weather_forecast_available"
+    }),
+    "OptimizerEnableSwitch": frozenset({"mode", "optimization_status"}),
+    "OutdoorTempSensor": frozenset({"source"}),
+    "PVSurplusSensor": frozenset({
+        "forecast_production_kwh", "forecast_surplus_kwh",
+        "self_consumed_kwh"
+    }),
+    "PlanNarrativeSensor": frozenset({
+        "items", "language", "lines", "stat_kind"
+    }),
+    "PowerHeadroomSensor": frozenset({
+        "baseline_source", "headroom_kw", "horizon_headroom_kw", "limit_kw"
+    }),
+    "PredictedSavingsSensor": frozenset({"stat_kind"}),
+    "PredictionAccuracySensor": frozenset({
+        "last_diagnosis", "temperature_bias", "temperature_mae", "trust",
+        "waiting_for"
+    }),
+    "PredictiveInsightSensor": frozenset({
+        "avg_future_precip_mmh", "avg_future_wind_ms",
+        "dhw_idle_min_temperature", "dhw_in_demand_window",
+        "dhw_legionella_due", "dhw_min_temperature",
+        "dhw_next_window_in_hours", "dhw_peak_usage_hours",
+        "dhw_planned_heating_hours", "dhw_preheat_lead_hours",
+        "dhw_required_temperature_now", "dhw_target_temperature",
+        "dhw_usage_profile", "dhw_windows", "future_solar_6_12h_kwh",
+        "future_solar_energy_kwh", "pre_heat_urgency",
+        "rain_anticipation_factor", "solar_reduction_factor",
+        "wind_anticipation_factor"
+    }),
+    "SavingsPercentageSensor": frozenset({
+        "baseline_cost", "deferred_energy_cost", "predicted_cost",
+        "stat_kind"
+    }),
+    "ScheduleSensor": frozenset({"schedule"}),
+    "SolarHeatGainSensor": frozenset({
+        "orientation_factor", "shgc", "solar_radiation_wm2", "window_area_m2"
+    }),
+    "SolarIrradianceSensor": frozenset({
+        "forecast", "plan_kind", "solar_heat_gain_kw", "source"
+    }),
+    "SpaceCostSensor": frozenset({
+        "counting_since", "measured", "period", "split_method",
+        "this_month_cost", "this_month_kwh"
+    }),
+    "SpaceEnergySensor": frozenset({
+        "counting_since", "measured", "period", "split_method",
+        "this_month_cost", "this_month_kwh"
+    }),
+    "SpaceHeatingPlanSensor": frozenset({
+        "active_now", "comfort_temp_day", "comfort_temp_night", "currency",
+        "day_end_hour", "day_start_hour", "dhw_min_temperature",
+        "dhw_min_temperature_max", "dhw_setpoint", "dhw_windows",
+        "dhw_windows_spec", "forecast", "horizon_hours", "manual_override",
+        "manual_plan_window_hours", "next_slot_start", "plan_kind",
+        "projection", "setup_topology", "slot_count", "slots", "total_cost",
+        "total_energy_kwh"
+    }),
+    "ThermalBatteryEnergySensor": frozenset({
+        "charge_rate_kw", "discharge_rate_kw", "hours_of_autonomy",
+        "modelled_components", "round_trip_efficiency_6h",
+        "usable_capacity_kwh"
+    }),
+    "ThermalBatterySensor": frozenset({
+        "charge_rate_kw", "components", "discharge_rate_kw",
+        "hours_of_autonomy", "measured_components", "modelled_components",
+        "round_trip_efficiency_6h", "state_of_charge_percent",
+        "stored_energy_kwh", "usable_capacity_kwh"
+    }),
+    "TotalCostSensor": frozenset({
+        "counting_since", "measured", "period", "split_method"
+    }),
+    "TotalEnergySensor": frozenset({
+        "counting_since", "measured", "period", "split_method"
+    }),
+    "UpperFloorTempSensor": frozenset({"source"}),
+    "ValveTargetRecommendationSensor": frozenset({
+        "configured_target", "mixing_valve_mode", "price_ratio", "reason"
+    }),
+    "VentilationBinarySensor": frozenset({"evidence"}),
+}
+
+R.check(
+    "every class that publishes attributes is in the pinned roster (#373)",
+    set(_actually_published) == set(_PUBLISHED_ATTRS),
+    "roster vs reality: "
+    f"{sorted(set(_actually_published) ^ set(_PUBLISHED_ATTRS))}",
+)
+for _cls_name in sorted(set(_PUBLISHED_ATTRS) | set(_actually_published)):
+    _pinned = _PUBLISHED_ATTRS.get(_cls_name, frozenset())
+    _live = frozenset(_actually_published.get(_cls_name, ()))
+    R.check(
+        f"{_cls_name} publishes exactly its pinned attribute keys (#373)",
+        _live == _pinned,
+        f"removed {sorted(_pinned - _live)}; added {sorted(_live - _pinned)}",
+    )
+R.check(
+    "the pinned attribute surface is the whole measured one (#373)",
+    sum(len(_v) for _v in _PUBLISHED_ATTRS.values())
+    == sum(len(_v) for _v in _actually_published.values()),
+    f"{sum(len(_v) for _v in _PUBLISHED_ATTRS.values())} pinned vs "
+    f"{sum(len(_v) for _v in _actually_published.values())} published",
 )
 
 # --- D7-06 (#178): the five dead symbols stay deleted ----------------------
