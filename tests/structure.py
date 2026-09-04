@@ -1112,7 +1112,10 @@ def ratchet(result: dict) -> int:
     if failures:
         print(f"{failures} STRUCTURE BUDGET(S) BREACHED")
         print("A budget may only be re-recorded deliberately, on a clean tree,")
-        print("with the reason in the PR body -- never to make a failure go away.")
+        print("with the reason in the COMMIT -- never to make a failure go away.")
+        print("--record refuses any row that moves the wrong way unless you pass")
+        print('--allow-regression="<reason>", and that reason belongs in the commit')
+        print("message because the squash-merge keeps it and drops the branch.")
         return 1
     print("STRUCTURE RATCHET PASSED")
     return 0
