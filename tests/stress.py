@@ -34,7 +34,10 @@ import itertools
 import json
 import os
 import resource
+import shutil
+import subprocess
 import sys
+import tempfile
 import time
 import tracemalloc
 from datetime import datetime, timedelta
@@ -347,8 +350,15 @@ SCENARIO_WORK_FACTOR = float(os.environ.get("STRESS_WORK_FACTOR", "1.5"))
 #: over same-basin float drift. 1e-4, the first value tried here, would have
 #: read that 4.41e-5 flip as the same basin and judged its 1.28x as a
 #: regression; 1e-9 would read float drift as a flip and quietly empty the
-#: check on the first CI runner it met, which is what
-#: SCENARIO_BASIN_MIN_COVERED then refuses to let happen silently.
+#: check, which SCENARIO_WORK_MIN_COVERED then refuses to let happen
+#: silently.
+#:
+#: Since #387 both objectives being compared are COMPUTED, in one process
+#: tree on one machine, so two unchanged solves agree bit for bit and the
+#: tolerance is not carrying a platform difference any more. It is carrying
+#: the last-decimal move an unrelated production change on the branch can
+#: make to a solve whose plan is otherwise the same one -- the same width,
+#: for a smaller job, which is why it did not need re-sizing.
 SCENARIO_BASIN_TOLERANCE = float(
     os.environ.get("STRESS_BASIN_TOLERANCE", "1e-6")
 )
@@ -356,27 +366,48 @@ SCENARIO_BASIN_TOLERANCE = float(
 #: COVER, or it is reported blind instead of passing on whatever is left. A
 #: check that silently narrows to the scenarios that happen to still agree
 #: is a check that reports success for doing nothing, which this file has
-#: shipped five times. A table with no recorded fingerprints at all -- an
-#: old table, or one written by a tool that does not know about the field --
-#: covers zero and so fails here, loudly, rather than passing empty.
+#: shipped five times.
 #:
-#: The number is measured, and measuring it is the whole reason the table
-#: records more than one basin per scenario. Recorded on the audit box, a
-#: first CI run covered 28 of 51 and exempted 23 -- and the 23 were not a
-#: random 23. They are shoulder/*, winter/tariff*, winter/pv*, the two-zone
-#: DHW cases: exactly the multi-start family SCENARIO_BUDGET_FACTOR's own
-#: comment names as bimodal across platforms, identified by the fingerprint
-#: without being told. Each of those scenarios' CI basin is now recorded
-#: beside its audit-box one (see recorded_basins), which is what takes the
-#: covered count back to the whole sweep on both machines.
+#: WHAT IT COUNTS CHANGED IN #387; THE NUMBER DID NOT. It used to count
+#: scenarios whose objective matched a RECORDED basin, which made it a
+#: statement about the runner rather than about the branch. The table held
+#: two basins for each bimodal scenario -- this box and one CI runner --
+#: and a third runner model reaches a third basin for ALL of them at once,
+#: leaving 51 - 22 = 29 covered, eleven under this floor, on every machine
+#: not already in the table. Main went red on two of the four full-scope
+#: pushes after #378 (runs 33840988749 and 33841375106 red, 33840144200 and
+#: 33847813156 green) on commits whose only differences were in docs/,
+#: .claude/ and tools/ -- inert, unreachable from the solver, so the code
+#: under test was identical and the runner was the variable.
 #:
-#: 40 is the floor rather than 51, because a third platform may hold a third
-#: basin for some scenario and nothing here should demand that the table
-#: already know it. What the floor refuses is the failure that matters: a
-#: check that has quietly stopped covering anything.
-SCENARIO_BASIN_MIN_COVERED = int(
-    os.environ.get("STRESS_BASIN_MIN_COVERED", "40")
+#: The 22 that flipped were exactly the 22 the table gave a second basin,
+#: because they share ONE cause: the CPU model and its BLAS kernels
+#: choosing which multi-start basin a solve falls into. They move as a
+#: cohort, so the eleven scenarios of slack this floor was sized with --
+#: "a third platform may hold a third basin FOR SOME SCENARIO" -- never
+#: existed. Recording the new basins does not close it either: the
+#: ubuntu-latest fleet is not enumerable, and each new runner model
+#: contributes another basin for all 22.
+#:
+#: It now counts scenarios whose plan is unchanged against the BASELINE
+#: CAPTURED BESIDE THIS RUN (capture_baseline_work). Both halves solve on
+#: the same machine with the same BLAS, so the runner's basin choice
+#: cancels instead of being enumerated, and what is left uncovered is a
+#: scenario THIS BRANCH re-planned -- a statement about the diff, and the
+#: same population tests/env_drift.py already makes a branch claim. 40 of
+#: 51 stays the number: a branch that has moved a dozen plans has moved the
+#: ground this check stands on and should be told the check no longer
+#: covers most of the sweep, rather than shown a green tick.
+SCENARIO_WORK_MIN_COVERED = int(
+    os.environ.get("STRESS_WORK_MIN_COVERED", "40")
 )
+
+#: The baseline half of the solver-work comparison: the tree this run's
+#: counts are judged against. GOLDEN_REF, because this is the same question
+#: tests/env_drift.py asks about the same pair of trees -- tests/run.sh
+#: exports it, and .github/workflows/tests.yml sets it to the pull
+#: request's merge base, or to HEAD^1 on a push to main.
+WORK_DRIFT_REF = os.environ.get("GOLDEN_REF") or "origin/main"
 
 #: A floor under the per-scenario budget, for a machine whose cheap
 #: scenarios are noisy enough that the factor above cannot hold them.
@@ -1154,72 +1185,281 @@ def work_over_verdict(observed: int, recorded: int) -> bool:
     return observed > recorded * SCENARIO_WORK_FACTOR
 
 
-def recorded_basins(table: dict, label: str) -> list[tuple[float, int]]:
-    """Every ``(objective, evals)`` pair recorded for this scenario.
+#: The worker that captures one tree's solver work, run as a fresh
+#: interpreter against a repository root.
+#:
+#: `python3 -c` rather than this file with a flag, and that is forced
+#: rather than stylistic: the code being captured IS tests/stress.py, and a
+#: module cannot import a second copy of itself -- `import stress` inside a
+#: process that was started from tests/stress.py returns the copy already
+#: in sys.modules. So the driver is the three lines tests/env_drift.py's
+#: capture worker uses (chdir into the root, put its own paths first,
+#: import from it), executed in a child that has never imported anything
+#: from this tree. Both halves of the comparison run identical driver code
+#: over each tree's own sweep_combinations() and build_case(), which is
+#: what makes the two counts comparable.
+#:
+#: tests/harness.py inserts the RELATIVE paths "tests" and
+#: "custom_components", so the chdir is what makes the baseline import its
+#: own production code rather than this one's; PYTHONPATH is rewritten to
+#: the baseline's stub for the same reason.
+WORK_PROBE_DRIVER = '''
+import json, os, sys
+root, out_path = sys.argv[1], sys.argv[2]
+os.chdir(root)
+for part in ("custom_components", os.path.join("tests", "hastub"), "tests"):
+    sys.path.insert(0, os.path.join(root, part))
+import stress
+rows = {}
+for combo in stress.sweep_combinations():
+    combo = dict(combo)
+    label = combo.pop("label")
+    run = stress.build_case(**combo)
+    rows[label] = {
+        "evals": int(run["solver_evals"]),
+        "objective": float(run["result"].objective_value),
+    }
+with open(out_path, "w") as fh:
+    json.dump(rows, fh, indent=1, sort_keys=True)
+'''
 
-    A scenario has MORE THAN ONE recorded basin on purpose, and that is the
-    measured bimodality allowance rather than a hedge. The first entry is
-    the audit box's recording, in the flat ``objective``/``evals`` fields;
-    ``alt_basins`` holds the ones another platform's solver reaches for the
-    same inputs, recorded from a CI run of this same file. On the first such
-    run, 23 of the 51 scenarios landed in a basin this box never sees -- and
-    they were precisely the multi-start family that forced
-    SCENARIO_BUDGET_FACTOR to 3.0, which is the fingerprint finding the
-    bimodal population on its own rather than being handed it.
 
-    An empty list means the table cannot say which basin this scenario is
-    supposed to be in. Callers read that as "cannot tell", never as "the
-    same one", and the covered-count check refuses to let a table full of
-    those pass quietly.
+def repository_root() -> str:
+    """The checkout this file belongs to, however the run was started."""
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def git_commit(repo: str, rev: str) -> str | None:
+    """``rev`` as a commit SHA in ``repo``, or None if it names nothing."""
+    proc = subprocess.run(
+        ["git", "rev-parse", "--verify", "--quiet", f"{rev}^{{commit}}"],
+        cwd=repo, capture_output=True, text=True,
+    )
+    return proc.stdout.strip() or None
+
+
+def capture_work_rows(root: str, out_path: str) -> tuple[dict | None, str]:
+    """Run one tree's sweep in a child process and read back its work rows.
+
+    ``{label: {"evals": int, "objective": float}}`` -- the two numbers the
+    comparison needs and nothing else. No timing is captured here on
+    purpose: CPU moves between two runs of the same box (1.10x to 1.44x
+    over six repeats of bit-identical work, measured for #346) while the
+    counts do not move at all, and a baseline is only worth having in the
+    quantity that does not move.
     """
-    entry = table.get(label)
-    if not isinstance(entry, dict):
-        return []
-    pairs: list[tuple[float, int]] = []
-    candidates = [(entry.get("objective"), entry.get("evals"))]
-    for alt in entry.get("alt_basins") or ():
-        if isinstance(alt, dict):
-            candidates.append((alt.get("objective"), alt.get("evals")))
-    for objective, evals in candidates:
-        if objective is None or evals is None:
+    env = dict(os.environ)
+    env["PYTHONPATH"] = os.path.join(root, "tests", "hastub")
+    proc = subprocess.run(
+        [sys.executable, "-c", WORK_PROBE_DRIVER, root, out_path],
+        capture_output=True, text=True, env=env,
+    )
+    if proc.returncode != 0:
+        tail = (proc.stderr or proc.stdout or "no output").strip()[-400:]
+        return None, f"the capture exited {proc.returncode}: {tail}"
+    try:
+        with open(out_path, encoding="utf-8") as fh:
+            rows = json.load(fh)
+    except (OSError, ValueError) as err:
+        return None, f"the capture wrote nothing readable: {err}"
+    if not isinstance(rows, dict) or not rows:
+        return None, "the capture produced no scenarios"
+    return rows, f"{len(rows)} scenarios"
+
+
+def capture_baseline_work(repo: str, ref: str) -> tuple[dict | None, str]:
+    """The baseline half of the comparison: ``ref``'s own solver work.
+
+    Captured HERE, now, on this machine, in a pristine worktree of ``ref``
+    -- never read from a committed table. That is the whole of #387. A
+    recorded evaluation count is a recorded solver float outcome, and
+    tests/env_drift.py exists because those do not travel between BLAS
+    builds: the fingerprint table repeated the mistake env_drift had
+    already fixed, and made main red on half its merges. Two solves of the
+    same scenario on the same box in the same minute cannot disagree about
+    which basin they fell into, so nothing here has to know what basins
+    exist.
+
+    Returns (rows, note). ``rows`` is None when there is no baseline to be
+    had, and the note says why in the terms the caller prints; a run
+    without a baseline FAILS the check rather than passing it, because a
+    comparison that did not happen is not a comparison that agreed.
+    """
+    ref_sha = git_commit(repo, ref)
+    head_sha = git_commit(repo, "HEAD")
+    if ref_sha is None:
+        return None, (
+            f"{ref} does not resolve to a commit here. Set GOLDEN_REF to the "
+            "tree this one should be judged against (the merge base on a "
+            "branch, HEAD^1 on main)."
+        )
+    if ref_sha == head_sha:
+        return None, (
+            f"{ref} IS this commit ({head_sha[:12]}). A tree compared against "
+            "itself reports no drift whatever it did, so there is nothing to "
+            "learn here; run with GOLDEN_REF=HEAD^1."
+        )
+    tmp = tempfile.mkdtemp(prefix="stress_work_")
+    worktree = os.path.join(tmp, "baseline")
+    # Checked out at the resolved SHA rather than at the ref NAME, for the
+    # reason env_drift.py records: a `git fetch` in another worktree
+    # sharing this .git can move origin/main between the two calls, and a
+    # baseline that is not the one it names is worse than none.
+    add = subprocess.run(
+        ["git", "worktree", "add", "--detach", worktree, ref_sha],
+        cwd=repo, capture_output=True, text=True,
+    )
+    if add.returncode != 0:
+        shutil.rmtree(tmp, ignore_errors=True)
+        return None, (
+            f"git worktree add {ref_sha[:12]} failed: "
+            f"{add.stderr.strip()[-300:]}"
+        )
+    try:
+        rows, note = capture_work_rows(
+            worktree, os.path.join(tmp, "baseline.json")
+        )
+        if rows is None:
+            return None, f"the baseline capture failed -- {note}"
+        return rows, f"{note} from {ref} ({ref_sha[:12]})"
+    finally:
+        subprocess.run(
+            ["git", "worktree", "remove", "--force", worktree],
+            cwd=repo, capture_output=True,
+        )
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+class WorkDrift:
+    """The scenario-by-scenario verdict of the solver-work comparison.
+
+    Every scenario the sweep ran lands in exactly one of ``covered``,
+    ``replanned`` and ``only_here``; ``over`` and ``stale`` are the
+    verdicts within ``covered``, and ``only_baseline`` names scenarios the
+    baseline had and this tree does not. The three uncovered populations
+    are LISTS, not a count, because the failure this file keeps having is a
+    check that quietly narrowed to whatever still agreed -- a blind spot
+    has to be printable by name before anyone can argue about it.
+    """
+
+    __slots__ = ("covered", "replanned", "only_here", "only_baseline",
+                 "over", "stale")
+
+    def __init__(self) -> None:
+        self.covered: list[str] = []
+        self.replanned: list[str] = []
+        self.only_here: list[str] = []
+        self.only_baseline: list[str] = []
+        self.over: list[str] = []
+        self.stale: list[str] = []
+
+
+def work_drift_compare(
+    observed_evals: dict[str, int],
+    observed_objective: dict[str, float],
+    baseline: dict[str, dict],
+) -> WorkDrift:
+    """Judge this tree's solver work against the baseline's, per scenario.
+
+    Computed against computed. The sweep and the checks that prove the
+    sweep can fail both call this one function, so a test cannot pass by
+    re-implementing the comparison it is meant to pin (tests/README.md).
+
+    A scenario is judged only where the two trees produced the SAME PLAN,
+    which is what same_basin() decides on the objective value. That
+    exemption is not a platform allowance any more -- both solves ran in
+    this process tree, on this machine, on the same BLAS -- so a scenario
+    lands in ``replanned`` for exactly one reason: this branch changed what
+    the solver does with it. Which is a behaviour change, belongs to
+    tests/env_drift.py and the golden gate, and cannot be judged as a
+    performance regression because there is no longer one thing being
+    compared.
+    """
+    verdict = WorkDrift()
+    for label in sorted(observed_evals):
+        entry = baseline.get(label)
+        base_evals = entry.get("evals") if isinstance(entry, dict) else None
+        base_objective = (
+            entry.get("objective") if isinstance(entry, dict) else None
+        )
+        if not isinstance(base_evals, int) or base_evals <= 0:
+            # No usable baseline solve for this scenario: either this
+            # branch added it, or the baseline's own solve failed and
+            # reported no evaluations. Either way there is nothing to
+            # compare it with, so it is reported and never judged.
+            verdict.only_here.append(label)
             continue
-        objective = float(objective)
-        evals = int(evals)
-        if np.isfinite(objective) and evals > 0:
-            pairs.append((objective, evals))
-    return pairs
+        got = observed_evals[label]
+        objective = observed_objective.get(label)
+        if not same_basin(objective, base_objective):
+            verdict.replanned.append(
+                f"{label} (objective {_fmt_objective(objective)} here vs "
+                f"{_fmt_objective(base_objective)} at the baseline; "
+                f"{got} evaluations vs {base_evals})"
+            )
+            continue
+        verdict.covered.append(label)
+        if work_over_verdict(got, base_evals):
+            verdict.over.append(
+                f"{label} took {got} solver evaluations against the "
+                f"baseline's {base_evals} = {got / base_evals:.2f}x, over "
+                f"the {SCENARIO_WORK_FACTOR:.2f}x factor, on an unchanged "
+                f"plan (objective {_fmt_objective(objective)})"
+            )
+        if stale_cheap_verdict(got, base_evals):
+            # REPORTED, NOT FAILED, and the asymmetry is the point (#387).
+            # The stale rule exists because a RECORD can go stale-high and
+            # then hide a later regression back to the old cost, and its
+            # remedy is `--record-budgets`. A baseline captured from the
+            # merge base on every run cannot go stale -- it tracks main by
+            # construction -- so the premise is gone, and with it the
+            # remedy: there is no table to re-record. Left as a failure it
+            # would turn a real optimisation red with nothing the author
+            # could do, and #317 is exactly that PR: it made three
+            # scenarios 6.2x to 12.4x cheaper on plans it did not move.
+            # The stale rule itself is untouched in the CPU channel above,
+            # where the recorded `ratio` still can go stale and re-record
+            # is still the answer.
+            verdict.stale.append(
+                f"{label} took {got} solver evaluations against the "
+                f"baseline's {base_evals} = {got / base_evals:.2f}x, "
+                f"cheaper by more than {SCENARIO_STALE_FACTOR:.0f}x on an "
+                f"unchanged plan"
+            )
+    for label in sorted(baseline):
+        if label not in observed_evals:
+            verdict.only_baseline.append(label)
+    return verdict
 
 
-def matching_basin(
-    table: dict, label: str, observed: float | None
-) -> int | None:
-    """The recorded evaluation count for the basin this solve landed in.
-
-    ``None`` when no recorded basin matches -- a scenario in a third basin
-    nobody has recorded, which is exempted from the work check and named in
-    the output rather than judged against a count from somewhere else.
-    """
-    for objective, evals in recorded_basins(table, label):
-        if same_basin(observed, objective):
-            return evals
-    return None
+def _fmt_objective(value) -> str:
+    """An objective for a message, whatever shape it arrived in."""
+    try:
+        return f"{float(value):.10g}"
+    except (TypeError, ValueError):
+        return "none"
 
 
-def same_basin(observed: float | None, recorded: float | None) -> bool:
-    """Did this solve land in the same local minimum the recording did?
+def same_basin(observed: float | None, reference: float | None) -> bool:
+    """Did these two solves land in the same local minimum?
 
     The objective value answers it and nothing cheaper does. Cost cannot:
     that is exactly the observation that reverted the 1.4142 factor, a
     scenario costing 2.28x on a steady ruler because the plan changed. Nor
     can the evaluation count, which moves WITH the basin -- which is why it
     is the thing being judged here rather than the thing doing the judging.
+
+    Both arguments are COMPUTED since #387 -- this tree's solve and the
+    baseline's, taken minutes apart on one machine. Before that the second
+    one came out of tests/stress_budgets.json, which is what made the
+    answer depend on which runner GitHub happened to allocate.
     """
-    if observed is None or recorded is None:
+    if observed is None or reference is None:
         return False
-    if not (np.isfinite(observed) and np.isfinite(recorded)):
+    if not (np.isfinite(observed) and np.isfinite(reference)):
         return False
-    scale = max(abs(float(recorded)), 1e-12)
-    return abs(float(observed) - float(recorded)) <= SCENARIO_BASIN_TOLERANCE * scale
+    scale = max(abs(float(reference)), 1e-12)
+    return abs(float(observed) - float(reference)) <= SCENARIO_BASIN_TOLERANCE * scale
 
 
 def rss_mb() -> float:
@@ -1356,80 +1596,83 @@ def sweep_combinations() -> list[dict]:
 
 if __name__ == "__main__":
     # ===========================================================================
-    # The single-scenario detection statistic (#346)
+    # The single-scenario detection statistic (#346), compared in one
+    # environment rather than against a recorded table (#387)
     # ===========================================================================
     # The sweep below MEASURES; this section checks that the instrument
-    # doing the measuring can see what it claims to, on synthetic tables, in
-    # milliseconds. Every case is a run that actually happened somewhere and
-    # is named with its number, because this file's two historical failure
-    # modes are a check that cannot fail and a check that false-fails on the
-    # second machine -- and the second one is what reverted the 1.4142
-    # factor and closed #371.
-    R.section("Single-scenario detection (#346)")
+    # doing the measuring can see what it claims to, on synthetic captures,
+    # in milliseconds. Every case is a run that actually happened somewhere
+    # and is named with its number, because this file's two historical
+    # failure modes are a check that cannot fail and a check that
+    # false-fails on the second machine -- and the second one is what
+    # reverted the 1.4142 factor, closed #371, and then came back as #387.
+    R.section("Single-scenario detection (#346, #387)")
 
-    _T = load_budget_table()
-    _basins = {
-        label: recorded_basins(_T, label)
-        for label in _T
-        if isinstance(_T[label], dict)
+    # A synthetic baseline capture: what capture_baseline_work() hands the
+    # comparison. Fifty-one scenarios, an evaluation count and the
+    # objective value that identifies the plan it came from.
+    _SYN = {
+        f"synthetic/{i:02d}": {"evals": 20 + 7 * i, "objective": 100.0 + i}
+        for i in range(51)
     }
-    _rec_ob = {
-        label: (pairs[0][0] if pairs else None)
-        for label, pairs in _basins.items()
-    }
-    _rec_ev = {
-        label: (pairs[0][1] if pairs else None)
-        for label, pairs in _basins.items()
-    }
+    _SYN_LABELS = sorted(_SYN)
+    # The cohort #387 measured: 22 of the 51 are the multi-start family,
+    # and a runner's BLAS decides their basin for all of them at once.
+    _COHORT = _SYN_LABELS[:22]
+    _VICTIM = _SYN_LABELS[7]
+
+    def _capture(work=1.0, objective=1.0, only=None, drop=(), baseline=None):
+        """One tree's capture, perturbed off the baseline it is compared to.
+
+        ``only`` restricts the perturbation to a set of scenarios; passing
+        the same ``objective`` shift to BOTH captures is how a runner that
+        holds a basin no table has ever seen is expressed, because that is
+        what such a runner does -- it moves both halves together.
+        """
+        rows = baseline if baseline is not None else _SYN
+        evals, objectives = {}, {}
+        for label, row in rows.items():
+            if label in drop:
+                continue
+            hot = only is None or label in only
+            evals[label] = int(round(row["evals"] * (work if hot else 1.0)))
+            objectives[label] = row["objective"] * (objective if hot else 1.0)
+        return evals, objectives
+
+    def _shifted(factor, only=None):
+        """The same baseline as solved by a machine with different kernels."""
+        return {
+            label: {
+                "evals": row["evals"],
+                "objective": row["objective"] * (
+                    factor if (only is None or label in only) else 1.0
+                ),
+            }
+            for label, row in _SYN.items()
+        }
+
+    def _verdict(baseline=None, **kw):
+        base = _SYN if baseline is None else baseline
+        return work_drift_compare(*_capture(baseline=base, **kw), base)
+
+    # (a) the null: an unchanged tree fires nothing and covers everything.
+    _null = _verdict()
     R.check(
-        "the committed table records a solver-work count and a basin for "
-        "every scenario",
-        len(_basins) >= 40 and all(_basins.values()),
-        f"{len(_basins)} scenarios, "
-        f"{sum(1 for v in _basins.values() if not v)} with no recorded basin",
-    )
-    _multi = [label for label, pairs in _basins.items() if len(pairs) > 1]
-    print(
-        f"  recorded basins: {sum(len(v) for v in _basins.values())} across "
-        f"{len(_basins)} scenarios; {len(_multi)} scenario(s) carry more than "
-        f"one, the measured bimodality allowance"
+        "an unchanged sweep fires the work check on no scenario, and covers "
+        "all of them",
+        not _null.over and len(_null.covered) == len(_SYN),
+        f"{len(_null.over)} fired, {len(_null.covered)} of {len(_SYN)} covered",
     )
 
-    if not all(_basins.values()):
-        # Bootstrap: a table that predates #346, or one being re-recorded
-        # right now. The check above has already failed on the real table;
-        # the instrument's own properties are still worth checking, so they
-        # run against a synthetic stand-in rather than being skipped -- a
-        # section that quietly disappears when the fixture is missing is the
-        # same silence this file refuses everywhere else.
-        _rec_ev = {f"synthetic/{i:02d}": 20 + 7 * i for i in range(51)}
-        _rec_ob = {label: 100.0 + i for i, label in enumerate(sorted(_rec_ev))}
-        _basins = {label: [(_rec_ob[label], _rec_ev[label])] for label in _rec_ev}
-
-    def _fires(label, work_factor, objective_factor=1.0):
-        """Would the sweep's work check fail this scenario, so perturbed?"""
-        got = int(round(_rec_ev[label] * work_factor))
-        if not same_basin(_rec_ob[label] * objective_factor, _rec_ob[label]):
-            return False
-        return work_over_verdict(got, _rec_ev[label])
-
-    _victim = "shoulder/cycle" if "shoulder/cycle" in _rec_ev else sorted(_rec_ev)[0]
-
-    # (a) the null: an unchanged run fails nothing at all.
-    R.check(
-        "an unchanged sweep fires the work check on no scenario",
-        not [label for label in _rec_ev if _fires(label, 1.0)],
-        f"{[label for label in _rec_ev if _fires(label, 1.0)]}",
-    )
-
-    # (b) the finding itself, executed at 1.99x on one scenario. Before this
-    # section existed that tripped 0 of 38 checks: 1.99 < SCENARIO_BUDGET_
-    # FACTOR, and the sweep budget is a mean over fifty-one.
+    # (b) the finding itself, executed at 1.99x on one scenario. Before
+    # #346 that tripped 0 of 38 checks: 1.99 < SCENARIO_BUDGET_FACTOR, and
+    # the sweep budget is a mean over fifty-one.
+    _one_2x = _verdict(work=1.99, only={_VICTIM})
     R.check(
         "a 2x regression confined to one scenario is seen",
-        _fires(_victim, 1.99),
-        f"{_victim} at 1.99x its recorded {_rec_ev[_victim]} evaluations "
-        f"did not reach the {SCENARIO_WORK_FACTOR:.2f}x factor",
+        [f.split()[0] for f in _one_2x.over] == [_VICTIM],
+        f"{_one_2x.over or 'nothing fired'} at 1.99x one scenario's "
+        f"{_SYN[_VICTIM]['evals']} evaluations",
     )
     R.check(
         "...and it is still under the per-scenario CPU factor, so this is "
@@ -1438,20 +1681,56 @@ if __name__ == "__main__":
         f"1.99x against SCENARIO_BUDGET_FACTOR {SCENARIO_BUDGET_FACTOR:.2f}",
     )
 
-    # (c) THE acceptance bar. CI ran shoulder/tariff+cycle at 352.7x its
-    # recorded 154.4x -- 2.28x the work, on a runner whose own reference
-    # solve was steady to a millisecond -- because the multi-start solver
-    # landed in another basin. That is not a regression and must not fire.
-    _flip = (
-        "shoulder/tariff+cycle"
-        if "shoulder/tariff+cycle" in _rec_ev
-        else sorted(_rec_ev)[-1]
+    # (c) THE #387 acceptance bar, and the reason the recorded fingerprint
+    # table is gone. On CI run 33841375106 all 22 bimodal scenarios solved
+    # into a basin no recording held -- 51 - 22 = 29 covered against a
+    # floor of 40 -- and main went red on a commit whose only difference
+    # from a green one was in docs/, .claude/ and tools/. The runner moves
+    # BOTH halves of a computed-vs-computed comparison, so the same event
+    # is now a no-op: 1.003 is above SCENARIO_BASIN_TOLERANCE and inside
+    # the 4.41e-5 to 2.24e-3 band the fifteen executed basin changes moved
+    # the objective by, i.e. a genuinely different local minimum.
+    _foreign = _shifted(1.003, only=_COHORT)
+    _foreign_verdict = _verdict(baseline=_foreign)
+    R.check(
+        "a runner whose basins are in no table changes no verdict at all",
+        len(_foreign_verdict.covered) == len(_SYN)
+        and not _foreign_verdict.over
+        and not _foreign_verdict.replanned,
+        f"{len(_foreign_verdict.covered)} of {len(_SYN)} covered with the "
+        f"{len(_COHORT)}-scenario multi-start cohort in a third basin, "
+        f"{len(_foreign_verdict.replanned)} exempted",
     )
     R.check(
-        "the recorded 2.28x basin flip does not fire the work check",
-        not _fires(_flip, 2.28, objective_factor=1.01),
-        f"{_flip} at 2.28x the work with a 1 % different objective fired "
-        "the check that exists to exempt exactly it",
+        "...and it still sees the one-scenario 2x from there, which is what "
+        "makes it a check rather than a machine that always says yes",
+        [
+            f.split()[0]
+            for f in _verdict(
+                baseline=_foreign, work=1.99, only={_VICTIM}
+            ).over
+        ] == [_VICTIM],
+        "the 1.99x went unseen on a runner holding an unrecorded basin",
+    )
+    R.check(
+        "...and every scenario moving at once is still not a coverage "
+        "collapse, however far the objectives move",
+        len(_verdict(baseline=_shifted(1.5)).covered) == len(_SYN),
+        "a whole-sweep basin shift emptied the check",
+    )
+
+    # (d) the exemption that remains, and it is now about the BRANCH rather
+    # than the machine: this tree re-planned a scenario, so its work is not
+    # comparable and is named instead of judged. That is what CI saw on
+    # shoulder/tariff+cycle at 2.28x -- a different local minimum doing
+    # more iterations -- and it must not fire.
+    _replan = _verdict(work=2.28, objective=1.01, only={_VICTIM})
+    R.check(
+        "a scenario this branch re-planned is exempted and named, not judged",
+        not _replan.over
+        and [f.split()[0] for f in _replan.replanned] == [_VICTIM]
+        and _VICTIM not in _replan.covered,
+        f"over={_replan.over}, replanned={_replan.replanned}",
     )
     R.check(
         "...and 2.28x is still inside the loose per-scenario CPU factor, so "
@@ -1462,9 +1741,9 @@ if __name__ == "__main__":
 
     # The tolerance has to separate those two populations with room on both
     # sides, or it is a knife-edge wearing a constant's clothes.
-    # Both anchors are measured, not chosen: 1e-9 is same-basin float drift
-    # between platforms, and 4.41e-5 is the SMALLEST of fifteen executed
-    # basin changes on shoulder/cycle (see SCENARIO_BASIN_TOLERANCE).
+    # Both anchors are measured, not chosen: 1e-9 is same-basin float drift,
+    # and 4.41e-5 is the SMALLEST of fifteen executed basin changes on
+    # shoulder/cycle (see SCENARIO_BASIN_TOLERANCE).
     R.check(
         "the basin tolerance sits between float drift and the smallest "
         "measured flip",
@@ -1483,50 +1762,39 @@ if __name__ == "__main__":
         "same_basin() agreed with a fingerprint it does not have",
     )
 
-    # (d) the check may not narrow itself to whatever still agrees. A table
-    # with no fingerprints exempts every scenario, and that has to be a
-    # failure rather than fifty-one silent passes.
-    _bare = {
-        label: {"ratio": 1.0, "evals": _rec_ev[label]} for label in _rec_ev
-    }
-    _bare_covered = [
-        label
-        for label in _bare
-        if matching_basin(_bare, label, _rec_ob[label]) is not None
-    ]
+    # (e) the check may not narrow itself to whatever still agrees. A
+    # baseline that captured nothing exempts every scenario, and that has
+    # to be a failure rather than fifty-one silent passes.
+    _blind = work_drift_compare(*_capture(), {})
     R.check(
-        "a table with no recorded basins covers nothing, and says so",
-        not _bare_covered
-        and len(_bare) - len(_bare_covered) > (
-            len(_bare) - SCENARIO_BASIN_MIN_COVERED
+        "a comparison with no baseline covers nothing, and says so",
+        not _blind.covered
+        and len(_blind.only_here) == len(_SYN)
+        and len(_SYN) - len(_blind.covered) > (
+            len(_SYN) - SCENARIO_WORK_MIN_COVERED
         ),
-        f"{len(_bare_covered)} scenarios still covered from a table with no "
-        f"objectives, against a {SCENARIO_BASIN_MIN_COVERED} floor",
+        f"{len(_blind.covered)} scenarios still covered from an empty "
+        f"baseline, against a {SCENARIO_WORK_MIN_COVERED} floor",
     )
-    # ...and a second recorded basin covers a solve the first one does not,
-    # which is the whole mechanism that takes CI back to a full sweep.
-    _two = {
-        "x": {
-            "ratio": 1.0,
-            "evals": 100,
-            "objective": 10.0,
-            "alt_basins": [{"objective": 12.0, "evals": 250}],
-        }
-    }
+    # ...and the two asymmetric populations are reported rather than judged
+    # or silently dropped: a scenario this branch added has nothing to be
+    # compared with, and one it deleted is a fact about the diff.
+    _added = work_drift_compare(
+        *_capture(), {k: v for k, v in _SYN.items() if k != _VICTIM}
+    )
+    _deleted = work_drift_compare(*_capture(drop={_VICTIM}), _SYN)
     R.check(
-        "a second recorded basin is matched, and judged against its OWN count",
-        matching_basin(_two, "x", 10.0) == 100
-        and matching_basin(_two, "x", 12.0) == 250
-        and matching_basin(_two, "x", 14.0) is None
-        and not work_over_verdict(240, matching_basin(_two, "x", 12.0))
-        and work_over_verdict(400, matching_basin(_two, "x", 12.0)),
-        f"basins matched: {matching_basin(_two, 'x', 10.0)}, "
-        f"{matching_basin(_two, 'x', 12.0)}, {matching_basin(_two, 'x', 14.0)}",
+        "a scenario on only one side is named, not judged against nothing",
+        _added.only_here == [_VICTIM]
+        and not _added.over
+        and _deleted.only_baseline == [_VICTIM]
+        and len(_deleted.covered) == len(_SYN) - 1,
+        f"added: {_added.only_here}, deleted: {_deleted.only_baseline}",
     )
 
-    # (e) the cheaper side, at both ends of its range. #288 and #289 make
-    # scenarios cheaper on purpose; this rule is what stops the table being
-    # silently re-fitted around them, and it now guards the work count too.
+    # (f) the cheaper side, at both ends of its range. #288 and #289 make
+    # scenarios cheaper on purpose; this rule is what stops the comparison
+    # being quietly re-fitted around them.
     R.check(
         "a figure more than the stale factor cheaper is still caught",
         stale_cheap_verdict(100.0 / (SCENARIO_STALE_FACTOR + 0.5), 100.0)
@@ -1540,9 +1808,10 @@ if __name__ == "__main__":
         f"{SCENARIO_STALE_FACTOR - 0.5:.1f}x cheaper failed the stale rule",
     )
 
-    # (f) the instrument itself, end to end: the hook has to reach the
-    # solver and the count has to move with the work. A counter that reports
-    # a plausible constant is the failure this file exists to refuse.
+    # (g) the instrument itself, end to end: the hook has to reach the
+    # solver and the count has to move with the work. A counter that
+    # reports a plausible constant is the failure this file exists to
+    # refuse.
     _probe = dict(sweep_combinations()[0])
     _probe_label = _probe.pop("label")
     _plain = build_case(**_probe)
@@ -1569,20 +1838,37 @@ if __name__ == "__main__":
         optimizer_module._scoped_minimize is SolverWork._wrapped,
         "SolverWork left optimizer._scoped_minimize replaced",
     )
-    # ...and the loop closes: a real doubling, on a real scenario, against
-    # the real recorded count, reaching the same rule the sweep applies.
-    # Cases (a)-(e) are the statistic's properties; this one is the finding.
-    _probe_rec = matching_basin(
-        _T, _probe_label, float(_plain["result"].objective_value)
+    # ...and the loop closes on REAL solves, through the same function the
+    # sweep calls: the plain run is the baseline, the doubled run is the
+    # tree, both solved in this process a second apart. Cases (a)-(f) are
+    # the statistic's properties; this one is the finding, and it is also
+    # the whole shape of #387 executed rather than argued -- two computed
+    # captures, no recorded number anywhere in it.
+    _real_base = {
+        _probe_label: {
+            "evals": int(_plain["solver_evals"]),
+            "objective": float(_plain["result"].objective_value),
+        }
+    }
+    _real_null = work_drift_compare(
+        {_probe_label: int(_plain["solver_evals"])},
+        {_probe_label: float(_plain["result"].objective_value)},
+        _real_base,
+    )
+    _real_2x = work_drift_compare(
+        {_probe_label: int(_doubled["solver_evals"])},
+        {_probe_label: float(_doubled["result"].objective_value)},
+        _real_base,
     )
     R.check(
-        "a real 2x on one scenario reaches the rule the sweep applies",
-        _probe_rec is not None
-        and not work_over_verdict(_plain["solver_evals"], _probe_rec)
-        and work_over_verdict(_doubled["solver_evals"], _probe_rec),
-        f"{_probe_label}: recorded {_probe_rec}, plain "
-        f"{_plain['solver_evals']}, doubled {_doubled['solver_evals']}, "
-        f"factor {SCENARIO_WORK_FACTOR:.2f}",
+        "a real 2x on one scenario reaches the rule the sweep applies, and "
+        "an unchanged one does not",
+        not _real_null.over
+        and _real_null.covered == [_probe_label]
+        and [f.split()[0] for f in _real_2x.over] == [_probe_label],
+        f"{_probe_label}: plain {_plain['solver_evals']}, doubled "
+        f"{_doubled['solver_evals']}, factor {SCENARIO_WORK_FACTOR:.2f}; "
+        f"null fired {_real_null.over}, doubled fired {_real_2x.over}",
     )
 
     # ===========================================================================
@@ -1591,6 +1877,50 @@ if __name__ == "__main__":
     R.section("Combination sweep")
 
     combinations = sweep_combinations()
+    record_mode = "--record-budgets" in sys.argv
+
+    # THE BASELINE HALF OF THE SOLVER-WORK COMPARISON (#387), captured
+    # before this tree solves anything so that a broken ref or an
+    # unbuildable worktree is reported in seconds rather than after the
+    # sweep. It costs the sweep's solve time again, and that is the price
+    # of the shape: tests/env_drift.py pays exactly this for exactly this
+    # reason -- solver floats do not travel between BLAS builds, so a
+    # comparison against numbers recorded on another machine is a
+    # comparison against the machine. The fingerprint table this replaces
+    # made main red on two of the four full-scope pushes that followed it.
+    baseline_work: dict = {}
+    if record_mode:
+        baseline_note = "skipped: --record-budgets has nothing to compare"
+        print(f"  solver-work baseline: {baseline_note}")
+    else:
+        # Announced BEFORE it starts. The capture is a whole sweep of
+        # solves, so it is minutes of silence otherwise, and a gate that
+        # goes quiet for that long is indistinguishable from a hung one.
+        print(
+            f"  solver-work baseline: solving {len(combinations)} scenarios "
+            f"from {WORK_DRIFT_REF} in a pristine worktree, to compare "
+            f"computed against computed (#387); this is the sweep's cost "
+            f"again"
+        )
+        _baseline_started = time.perf_counter()
+        baseline_work, baseline_note = capture_baseline_work(
+            repository_root(), WORK_DRIFT_REF
+        )
+        _baseline_s = time.perf_counter() - _baseline_started
+        if baseline_work is None:
+            baseline_work = {}
+            print(f"  solver-work baseline: NONE -- {baseline_note}")
+        else:
+            print(
+                f"  solver-work baseline: {baseline_note}, captured in "
+                f"{_baseline_s:.0f} s on this machine"
+            )
+            if len(baseline_work) != len(combinations):
+                print(
+                    f"    NOTE: the baseline solved {len(baseline_work)} "
+                    f"scenarios and this tree runs {len(combinations)}; the "
+                    f"difference is named scenario by scenario below"
+                )
 
     failures = 0
     comfort_failures: list[str] = []
@@ -1628,7 +1958,6 @@ if __name__ == "__main__":
     # by three orders of magnitude; the per-scenario table closes that. In
     # record mode the sweep's measurements become the new table instead of
     # being judged.
-    record_mode = "--record-budgets" in sys.argv
     budget_table = load_budget_table()
     unrecorded: list[str] = []
     stale_cheap: list[str] = []
@@ -1636,10 +1965,6 @@ if __name__ == "__main__":
     new_table: dict[str, dict] = {}
     observed_evals: dict[str, int] = {}
     observed_objective: dict[str, float] = {}
-    work_over: list[str] = []
-    work_stale: list[str] = []
-    work_flipped: list[str] = []
-    work_unrecorded: list[str] = []
     if not record_mode and not budget_table:
         print(
             "  NOTE: no budget table found; run `stress.py --record-budgets`\n"
@@ -1686,13 +2011,14 @@ if __name__ == "__main__":
         sweep_solve_ms += solve_ms
         sweep_solve_thread_ms += float(run["solve_thread_ms"])
         if record_mode:
-            new_table[label] = {"ratio": round(ratio, 2), "evals": evals}
-            _objective = observed_objective[label]
-            if np.isfinite(_objective):
-                # Ten significant figures puts the stored fingerprint six
-                # orders below the 1e-4 the comparison uses, so the rounding
-                # is never what decides a basin.
-                new_table[label]["objective"] = float(f"{_objective:.10g}")
+            # A ratio, and no fingerprint. The recorded evaluation count and
+            # objective this used to write were removed in #387: both are
+            # recorded SOLVER FLOAT OUTCOMES, which tests/env_drift.py
+            # exists because they do not travel between BLAS builds, and
+            # judging a runner's solve against them made main red on half
+            # its merges. The work comparison captures its own baseline in
+            # this environment instead (capture_baseline_work).
+            new_table[label] = {"ratio": round(ratio, 2)}
         else:
             allowed = scenario_budget(label, budget_table)
             if allowed is None:
@@ -1832,7 +2158,8 @@ if __name__ == "__main__":
             "; ".join(stale_cheap),
         )
 
-        # -- the single-scenario statistic (#346) ------------------------
+        # -- the single-scenario statistic (#346), compared against a
+        #    baseline captured beside this run (#387) -------------------
         # Everything above judges a scenario's CPU against its own record
         # times a constant, and that constant has to be 3.0: it must clear
         # the most bimodal scenario on the least similar machine, so 1.99x
@@ -1842,58 +2169,47 @@ if __name__ == "__main__":
         # at a factor under DETECTION_TARGET. See SCENARIO_WORK_FACTOR for
         # the three CPU-denominated statistics measured and rejected first.
         #
-        # A basin flip is the thing this must not fire on, and it is also
-        # the one perturbation that moves the count without any regression:
-        # a different local minimum is a different iterate path. So the
-        # check applies only where the plan is unchanged, judged by the
-        # objective value, and every exempted scenario is NAMED -- the blind
-        # spot is a printed list rather than an average nobody can take
-        # apart.
-        for label in sorted(observed_evals):
-            entry = budget_table.get(label)
-            if not isinstance(entry, dict):
-                continue
-            if not recorded_basins(budget_table, label):
-                work_unrecorded.append(label)
-                continue
-            rec_evals = matching_basin(
-                budget_table, label, observed_objective.get(label)
-            )
-            if rec_evals is None:
-                # A basin no recording has seen. Exempt, named, and printed
-                # with the two numbers an operator needs to record it as a
-                # second basin rather than guess at one.
-                work_flipped.append(
-                    f"{label} (objective {observed_objective.get(label):.10g}, "
-                    f"{observed_evals[label]} evaluations)"
-                )
-                continue
-            got = observed_evals[label]
-            if work_over_verdict(got, rec_evals):
-                work_over.append(
-                    f"{label} took {got} solver evaluations against a "
-                    f"recorded {rec_evals} = {got / rec_evals:.2f}x, over the "
-                    f"{SCENARIO_WORK_FACTOR:.2f}x factor, on an unchanged "
-                    f"plan (objective {observed_objective[label]:.10g})"
-                )
-            if stale_cheap_verdict(got, rec_evals):
-                work_stale.append(
-                    f"{label} took {got} solver evaluations against a "
-                    f"recorded {rec_evals} (cheaper by more than "
-                    f"{SCENARIO_STALE_FACTOR:.0f}x: re-record, or a "
-                    f"regression back to the old work would pass unnoticed)"
-                )
-        _work_covered = (
-            len(observed_evals) - len(work_flipped) - len(work_unrecorded)
+        # WHAT IT IS COMPARED AGAINST CHANGED IN #387. It used to be a
+        # count recorded in tests/stress_budgets.json, with a list of the
+        # basins two machines had been seen to reach; a third runner model
+        # reaches a third basin for the whole 22-scenario multi-start
+        # cohort at once, and the check then covered 29 of 51 and failed
+        # its own floor -- on main, on half the merges, with no code
+        # difference between a red run and a green one. Enumerating basins
+        # cannot fix that: the ubuntu-latest fleet is not enumerable.
+        #
+        # So the baseline is CAPTURED, not recorded: the merge base solves
+        # the same fifty-one scenarios in a pristine worktree, on this
+        # machine, minutes before this tree does. A runner's basin choice
+        # then moves both halves together and cancels, exactly as
+        # tests/env_drift.py's doctrine says it must -- that file exists
+        # because solver floats do not reproduce across BLAS builds, and a
+        # recorded evaluation count is a recorded solver float outcome.
+        #
+        # The exemption that remains is about the DIFF, not the machine: a
+        # scenario whose plan this branch changed has no comparable work,
+        # and is named rather than judged.
+        drift = work_drift_compare(
+            observed_evals, observed_objective, baseline_work
         )
+        _work_covered = len(drift.covered)
         print(
             f"  solver work: {_work_covered} of {len(observed_evals)} "
-            f"scenarios judged against their recorded evaluation count at "
-            f"{SCENARIO_WORK_FACTOR:.2f}x, {len(work_flipped)} in a basin no "
-            f"recording holds"
+            f"scenarios judged against the baseline captured beside this "
+            f"run, at {SCENARIO_WORK_FACTOR:.2f}x; "
+            f"{len(drift.replanned)} re-planned by this branch, "
+            f"{len(drift.only_here)} new here, "
+            f"{len(drift.only_baseline)} dropped"
         )
-        for _exempt in sorted(work_flipped):
-            print(f"    unrecorded basin: {_exempt}")
+        for _exempt in drift.replanned:
+            print(f"    re-planned by this branch: {_exempt}")
+        for _new in drift.only_here:
+            print(f"    new here, no baseline solve to compare: {_new}")
+        for _gone in drift.only_baseline:
+            print(f"    dropped here, the baseline solved it: {_gone}")
+        for _cheaper in drift.stale:
+            # Reported by name, not failed: see work_drift_compare().
+            print(f"    cheaper than the baseline: {_cheaper}")
         R.check(
             "the solver-work counter counted something for every scenario",
             all(v > 0 for v in observed_evals.values()),
@@ -1903,37 +2219,50 @@ if __name__ == "__main__":
             "the check below cannot fail and means nothing",
         )
         R.check(
-            "every scenario has a recorded solver-work count",
-            not work_unrecorded,
-            f"{len(work_unrecorded)} without one: "
-            f"{', '.join(work_unrecorded[:8])}"
-            + (" ..." if len(work_unrecorded) > 8 else "")
-            + "; run `stress.py --record-budgets` on a clean tree",
+            "this tree's solver work has a baseline to be judged against",
+            bool(baseline_work),
+            f"no baseline was captured, so the checks below compared "
+            f"nothing: {baseline_note}",
         )
         R.check(
             "no scenario's solver work grew on an unchanged plan",
-            not work_over,
-            "; ".join(work_over)
+            not drift.over,
+            "; ".join(drift.over)
             + "; this is the localised-regression check -- the sweep budget "
             "is a mean over fifty-one and cannot see one scenario double, "
             "and the per-scenario CPU factor is 3.0 because bimodal "
             "scenarios need it there (#346)",
         )
-        R.check(
-            "no scenario's solver work fell far enough to stale its record",
-            not work_stale,
-            "; ".join(work_stale),
-        )
+        # Two different failures wear this check's name, and telling a
+        # reader they made a behaviour change when the baseline simply
+        # never arrived would send them looking in the wrong place.
+        if not baseline_work:
+            _cover_why = (
+                f"there was no baseline at all, so nothing could be judged: "
+                f"{baseline_note}. The check above says the same thing; this "
+                f"one is here because a comparison that did not happen must "
+                f"not read as a comparison that agreed"
+            )
+        else:
+            _cover_why = (
+                f"{len(drift.replanned)} were re-planned by this branch and "
+                f"{len(drift.only_here)} have no baseline solve (each "
+                f"printed above with both objectives). Those are properties "
+                f"of this diff, not of the runner -- the baseline solved the "
+                f"same scenarios on this same machine minutes ago -- so the "
+                f"golden drift gate is where a deliberate one is claimed, "
+                f"and this floor is the statement that so many of them "
+                f"leave the work check covering less than most of the "
+                f"sweep. A branch that re-plans this much on purpose says "
+                f"so with STRESS_WORK_MIN_COVERED and repeats the number in "
+                f"its PR body, the way a moved fixture is claimed"
+            )
         R.check(
             "the solver-work check still covers most of the sweep",
-            _work_covered >= SCENARIO_BASIN_MIN_COVERED,
+            _work_covered >= SCENARIO_WORK_MIN_COVERED,
             f"only {_work_covered} of {len(observed_evals)} scenarios are "
-            f"judged, against a floor of {SCENARIO_BASIN_MIN_COVERED}: "
-            f"{len(work_flipped)} solved into a basin no recording holds "
-            f"(each printed above with its objective and evaluation count -- "
-            f"add them to alt_basins in tests/stress_budgets.json, or "
-            f"re-record the table here) and {len(work_unrecorded)} have no "
-            f"recorded basin at all",
+            f"judged, against a floor of {SCENARIO_WORK_MIN_COVERED}: "
+            + _cover_why,
         )
 
     # -- D9-04: memory instrumentation -----------------------------------

@@ -50,12 +50,94 @@ Where this table and a wave body disagree, this table is the truth.
 | triage A | closed or re-scoped on a measured number | #197 #233 closed; #195 #244 #325 #334 re-scoped | — | **done** |
 | 1a | the stress ruler, alone on an idle box | #346 | v6.3.11 | **done** — W1-G7 merged PR #378 (`291ae76`), 0 unstamped |
 | triage B1 | read-only judges, run beside the ruler | #281 #225 closed; #303 #224 #193 re-scoped | — | **done** |
-| triage B2 | solver, suite, browser and timing judges | #304 #258 #242; #291 #232 alone | — | pending |
-| 1b | gate instruments, suite gaps, card, stores | 26 issues in 14 groups | v6.3.11 | prepared |
+| triage B2 | solver, suite, browser and timing judges | #304 #258 re-scoped; #242 weakened to a structural zero | — | **done** for the read-only three; #291 #232 still owed a quiet box |
+| 1b | gate instruments, suite gaps, card, stores | 26 issues in 14 groups | v6.3.12 | **held** — W1-G1 merged; #385 reviewed, #384 repaired, #386 open, all held behind #387 |
+| — | **#387, the blocker**: the basin coverage floor is runner-dependent | #387 | v6.3.12 | **in flight** in PR #388, alone |
 | 2 | coordinator lifecycle, learners, options grouping | #236 #237 #240 #239 #243 #283 #284 #279 #278 #277 #244 #325 #280 #198 | v6.3.12 | pending |
-| 3 | solver, DHW planner, GIL process route | #232 #234 #289 #290 #199 #242 | v6.3.13 | pending |
-| 4 | the #193 decomposition programme, S0–S13 | #193 #223 #224 #225 | one per stage | pending |
-| 5 | typing lane, and the coverage deficit #195 raised | #303 #304 #195 | per tranche | pending |
+| 3 | solver, DHW planner, GIL process route | #232 #234 #289 #290 #199 | v6.3.13 | pending — **W3-G4 is struck**, #242 has no admissible formula |
+| 4 | the #193 decomposition programme, S0–S13 | #193 #223 #224 #225, and **#304 as S11's precursor** | one per stage | pending |
+| 5 | typing lane, and the coverage deficit #195 raised | #303 #195 | per tranche | pending — **#304 moves ahead of S11**, see below |
+
+### The #387 blocker, 2026-09-04
+
+`main` is red on roughly half of all merges and the v6.3.12 stamp is blocked
+behind it, from a regression this programme itself introduced in #346 / PR #378
+and released as v6.3.11. Every push to `main` forces `GATE_SCOPE=full`, so
+`tests/stress.py` runs on every merge; its coverage check demands **≥ 40 of 51**
+scenarios land in a *recorded* solver basin, and on a runner whose basins are not
+the recorded set it gets **29**.
+
+Exactly 22 entries in `tests/stress_budgets.json` carry an `alt_basins` list, and
+exactly those 22 flip together — one cause (the CPU model and its BLAS kernels
+choosing the multi-start basin), one cohort. The floor was sized on the
+assumption in its own comment that "a third platform may hold a third basin *for
+some scenario*", i.e. that the misses are per-scenario and independent, leaving
+eleven scenarios of slack. They are not independent. Four full-scope pushes after
+#378: two green, two red, on commits differing only in INERT paths.
+
+The owner chose **the `env_drift` shape** — capture each scenario's solver work
+twice in one run, tree and merge base, compare computed against computed, no
+basin table — at an accepted **≈ +500 s** on full-scope runs, and chose to fix it
+**alone before anything else merges**. Recording the observed basins was rejected
+as a treadmill (the `ubuntu-latest` fleet is heterogeneous and not enumerable, so
+each new runner model contributes another basin for all 22); lowering the floor
+was rejected as discarding what #346 existed to buy.
+
+The general lesson, which the remaining gate-instrument groups are now reviewed
+against: **one CI runner is not the fleet.** #378's reviewer asked exactly the
+right question — whether a 2× regression is still caught on a machine whose
+basins are not the recorded set — and the answer was measured on a single runner
+and generalised.
+
+### What triage changed, 2026-09-04 (batch B2)
+
+Three read-only judges, run on this idle box (`load1` 0.17–0.58, `thread_factor` 1.00) at
+`291ae76`. Two of the three overturned a brief this plan had already written, so the
+corrected version is recorded here as well as on the issues.
+
+- **#258 is re-scoped, and W1-G13's brief was wrong.** #333 did fix the clipping half:
+  `units_with_ink_on_top_row` **12/12 → 0/12**. But its `uy` clamp traded the clipping for a
+  new ink collision — the value-axis unit and the top tick of its own axis overlap by
+  **1.00–1.25 px vertically and 4.0–8.5 px horizontally** on every tile that engages the
+  font floor, **9 of 13** measurable pairs, leave-one-out **9 of 9**. This plan's hypothesis
+  (a horizontal right-axis unit at `ux = x + 5` running past the viewBox) is **refuted**:
+  right-edge headroom is −21.5 to −80.7 viewBox units and `ink_at_right_col` is false in
+  every arm. The residual is vertical, not horizontal, and W1-G13's brief has been rewritten
+  to say so. The finder's `card_geometry.mjs` is **void** for this row — its
+  `text_overlap_pairs` reads 941 before and 941 after a perturbation that takes the collision
+  9 → 0. The measured fix is `plotT = Math.max(MARGIN.top * marginScale, font * 1.45)` plus
+  the `uy` offset 4 → 5.2; raising `plotT` alone does not work because `uy` tracks it.
+  **No committed check can see this defect**: the DOM stub returns a constant 900×400 rect so
+  the font floor never engages, the browser lane measures fonts and hit targets and never
+  label proximity, and CI run 33829697839 at `291ae76` is green with the defect present. The
+  fixer's failing test must therefore be a real-Chromium proximity check in the committed
+  browser lane, or the fix ships without a witness.
+- **#304 is re-scoped to 21 named statements, and its mechanism is refuted.**
+  `config_flow.py` measures **96.2 %** (547 statements, 21 missed) — the third independent
+  measurement to land on that figure, across two Python versions and two coverage cores. The
+  body's mechanism (“no test submits `async_step_user` with input”) is false:
+  `tests/config_flow_steps.py` is unconditional in `run.sh` and drives all three token
+  verdicts plus `create_entry` through the real validation path, 89 checks passing. What made
+  the gap look open was the frozen `coverage_suite.sh`, whose hand-typed `SCRIPTS` list omits
+  that script — the same instrument-rot class as #334. All 21 residual statements are
+  reachable by extending the existing harness with **no production change**; the largest
+  single bite is 6 of 21, one repeated `return vol.Optional(key, default=existing)` idiom
+  across six options pages.
+  **Sequencing consequence:** #304 lands *before* the #223 registry stage, not in
+  Wave 5. (That stage is numbered S11 here and S10 in #193's own stage list; the
+  issue number is the stable reference, not the stage number.) #223 rewrites
+  exactly those six options pages into a registry, so the coverage extension is the witness
+  S11 needs, and writing it afterwards would mean writing it against code that has already
+  moved.
+- **#242 is weakened to a structural zero, and W3-G4 is struck.** The derivation spike
+  returned **no admissible candidate**, and the obstruction is analytic rather than a
+  coefficient that needs tuning. The base curve's log-slope budget is **+0.03030/K at 0 °C
+  and exactly 0 above +27 °C**, while any ratio anchored on `(T_ref − T_out)` contributes
+  **−0.01429/K at 0 °C, −0.04667/K at 20 °C** and diverges as `T_out → 35 °C`. The 0.0000 SEK
+  plan consequence is therefore structural, not a sampling artefact: **189,882 Carnot-branch
+  calls** across all nine shipped cells, every one at `T_out ∈ [−16, −8] °C`, against a
+  coldest turnover of **+9.96 °C** — a 17.96 K margin. Wave 3 loses its fourth group; the
+  physics half of the issue stands as verified and documented.
 
 ### What triage changed, 2026-09-03
 
@@ -189,6 +271,27 @@ in a 4-core cloud container with no `gh` and no way to install it, so:
   (`PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers`) but CI's `browser` job is the
   authority, because the local Playwright is not CI's pinned version.
 
+## When a merge turns main red
+
+The programme has been in this state, so it gets a written answer rather than a
+judgement call each time. `web-fix-wave.js` logs `MAIN IS RED after <group>` and
+stops merging; `audit-merge.js` returns `{green:false}`. What follows:
+
+1. **A behaviour change in the merged diff → revert first, diagnose after.** The
+   revert is cheap and main being trustworthy is what every later merge is judged
+   against. Re-land with the fix and the evidence.
+2. **A failure the diff cannot reach → do not revert.** Establish it first, the
+   way the register requires: an error naming a subsystem the diff does not
+   touch, reproducing identically, or red on the base branch too. Then it is its
+   own issue with its own number, and the wave holds until it lands. #387 is the
+   worked example — a released gate instrument that was runner-dependent, found
+   only because main went red on roughly half its merges.
+3. **Never `--allow-red` to get a stamp out.** The flag exists for a human with a
+   reason, not for an agent with a deadline.
+
+A red main is work *now*, at every wake, whatever else is running: only a green,
+mergeable head waits on reviewers.
+
 ## Documentation discipline
 
 So that an aborted session loses nothing:
@@ -202,3 +305,11 @@ So that an aborted session loses nothing:
 | cannot finish | the issue: `state at stop:` naming branch, pushed SHA, last green check, what is missing |
 | wave end | this file's Delivery status, `docs/audit-2026-09.md` status cells, a #201 comment |
 | stand-down | a #201 comment and `docs/handover-<date>.md` |
+
+The per-group briefs are committed too, not only the wave tables above:
+`.claude/workflows/wave-1b-groups.json` holds all fourteen Wave 1b groups as
+`web-fix-wave.js` consumes them, cut from the same fork. They are worth reading
+before re-deriving anything, because several exist only to stop a fixer redoing
+work a judge already refuted — W1-G13 names the measured fix for #258 and the
+harness that must not be used to check it. Later waves add their own file at the
+same path when they are prepared.

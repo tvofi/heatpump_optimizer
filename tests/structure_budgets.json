@@ -13,7 +13,7 @@
  "cut_learning": 350,
  "cut_views": 124,
  "dead_top_level_symbols": 0,
- "duplication_blocks": 0,
+ "duplication_blocks": 13,
  "functions_cc_over_15": 39,
  "functions_cc_over_25": 11,
  "internal_call_edges": 379,

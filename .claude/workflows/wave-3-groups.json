@@ -1,0 +1,61 @@
+{
+ "_comment": [
+  "Wave 3 of the open-issues programme (docs/plan-2026-09-open-issues.md).",
+  "Committed because 'W3-G4 is struck' and 'W3-G1's brief depends on the #291/#232",
+  "verdict' were written in the plan and the handover while NO committed file defined",
+  "what W3-G1..W3-G4 were -- a cold-start audit found the references dangling.",
+  "",
+  "SKELETON, NOT A WARRANT. These briefs are transcribed from the plan of record and",
+  "have not been through the ESTABLISHED/REFUTED treatment the Wave 1b briefs got.",
+  "Before spending a fixer, read each issue's body AND comments and rewrite the brief",
+  "the way wave-1b-groups.json does it. Wave 3 is the fixture-moving wave: every group",
+  "here moves goldens, so it runs strictly serially, one fork, one stamp at the end.",
+  "",
+  "Consumed by .claude/workflows/web-fix-wave.js as its `groups` argument."
+ ],
+ "fork": "TBD-at-launch",
+ "fork_note": "Cut every branch from the tag that closes Wave 2. Fixture movers may merge consecutively and share one stamp, and no new branch is cut between a mover's merge and that stamp.",
+ "session": "claude-web",
+ "repo": "/home/user/heatpump_optimizer",
+ "serial": true,
+ "struck": [
+  {
+   "group": "W3-G4",
+   "issues": [242],
+   "why": "STRUCK by the triage-B2 judge. The derivation spike returned no admissible candidate and the obstruction is analytic rather than a coefficient: the base curve's log-slope budget is +0.03030/K at 0 C and exactly 0 above +27 C, while any ratio anchored on (T_ref - T_out) contributes -0.01429/K at 0 C, -0.04667/K at 20 C and diverges as T_out -> 35 C. The 0.0000 SEK plan consequence is structural -- 189,882 Carnot-branch calls across all nine shipped cells, every one at T_out in [-16, -8] C, against a coldest turnover of +9.96 C. The physics half of #242 stands verified. Do not re-open this without a formula that takes 7/7 to 0."
+  }
+ ],
+ "groups": [
+  {
+   "group": "W3-G1",
+   "issues": [232, 234],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "effort": "high",
+   "fixture": true,
+   "blocked_on": "the #291 and #232 timing judges, which have not run",
+   "brief": "DO NOT START THIS GROUP UNTIL THE TIMING JUDGES HAVE RULED. #291 and #232 are the two judges still owed a quiet box, and #232's verdict IS this group's scope: it decides whether the work is (a) the smooth top-k in tariff.peak_cost alone, or (b) that plus the restart rule in _multi_start_minimize priced honestly at mean 3.11 extra solves per call against _MULTI_START_SOLVES = 4. Starting before the verdict means guessing which, and the plan of record already records that #232's medium severity rests on a single 58 SEK cell. The judges must run ALONE on an idle box -- their numbers are the ones the load caveat actually bites -- and after the #387 fix has landed, so they measure the replacement ruler rather than the runner-dependent one.\n\n#234 rides along: seed the cap-tightened re-solve (optimize:2379-2388, _tighten_buffer_caps) from the previous answer clipped to the new caps plus a bang-bang seed at equal energy, and run BOTH null definitions rather than picking the flattering one.\n\nThis group moves about 14 fixtures. They are CLAIMED with their direction, never re-recorded here: kinked arms are not stack-portable, so report the counts and the leave-one-out. Sequenced after W1-G6 (#288), which touches the same function.",
+   "after": []
+  },
+  {
+   "group": "W3-G2",
+   "issues": [289],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "effort": "high",
+   "fixture": true,
+   "brief": "The DHW planner's hot loops: _apply_dhw_min_run, _repair_dhw_floor's range(48), _plan_dhw_cheapest_first's range(400), _co_optimize's second pass, and the hoisted lookups in simulate_dhw_only. Lead with planner_over_reference (3.4-4.1), which is the metric that survives.\n\nThe division that decides the claim file: an order-preserving refactor moves NO fixture and must be shown to move none; a joint-raise moves fixtures and is claimed. Do not blur the two into one commit. A stress re-record is permitted only under the statistic that replaced #346's -- see #387 and whatever landed for it -- never against the old basin table.",
+   "after": ["W3-G1"]
+  },
+  {
+   "group": "W3-G3",
+   "issues": [290, 199],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "effort": "high",
+   "fixture": true,
+   "brief": "The process route for the three executor lambdas: async_run_optimization (:4781), async_simulate (:10903), async_diagnose_interval (:10231). _solve_snapshot already deep-copies, so the payload side is done. Closes #199 as well.\n\nMEASURE ON A REAL LOOP OR NOT AT ALL. Use the finder's h3_gil_hold.py and h4_loop_thread_work.py from tag audit-round2-evidence (757e164) against a real asyncio loop with a ThreadPoolExecutor(1) and a 1 ms heartbeat -- never FakeHass, which is what made the round-1 result unreproducible. Score gap_p50 or the judge's inverted switch-interval lever. time.sleep(0) releases nothing and is not a control.\n\nThis touches coordinator.py, which sits at zero headroom on coordinator_loc: pay for the lines, or re-record with the reason IN THE COMMIT (#370's guard demands that, because the squash-merge keeps the commit and discards the branch).",
+   "after": ["W3-G2"]
+  }
+ ]
+}

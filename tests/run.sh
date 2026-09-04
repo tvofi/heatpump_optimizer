@@ -31,8 +31,13 @@
 #     exists to see through, and it should not have to see through noise
 #     this suite made itself.
 #   * Nothing else shares mutable state: the only files any of them write
-#     are the plan payload above and per-run temporary directories, and
-#     env_drift.py is the only script that touches git.
+#     are the plan payload above and per-run temporary directories. Two
+#     scripts touch git, and both do the same thing with it: env_drift.py
+#     and stress.py each add a detached worktree of GOLDEN_REF under a
+#     mktemp directory, capture from it, and remove it again (#387 -- the
+#     solver-work check compares this tree against the merge base in one
+#     environment rather than against recorded numbers, for the same
+#     reason env_drift does). Neither writes anything a lane could see.
 #
 # GATE_JOBS controls it: unset (default) uses the smaller of `nproc` and 3
 # lanes; GATE_JOBS=1 runs everything serially with live streaming output,
