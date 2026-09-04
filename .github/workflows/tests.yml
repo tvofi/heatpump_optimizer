@@ -279,10 +279,10 @@ jobs:
   # position and still runs by hand only; this is the follow-up docs/
   # handover-2026-09-04.md's trap 7 named as owed.
   #
-  # Wave rosters currently carry real rot this job is expected to catch
-  # (issue #411's own measurement, 12 citations at 931dffe) until the
-  # correcting PRs land -- that is this job doing its one job, not a
-  # regression in whatever else is on the branch.
+  # Live wave-*-groups.json must lint clean (0 errors) so this job can
+  # stay green on main. The 931dffe acceptance fixture is the rot pin:
+  # brief_lint.mjs's no-arg path requires those ten errors, so gutting
+  # lintBrief cannot green the job.
   briefs:
     if: github.event_name == 'push' || github.event_name == 'pull_request'
     runs-on: ubuntu-latest

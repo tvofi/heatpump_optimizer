@@ -36,6 +36,10 @@
 // ambiguous shorthand, no tag object present locally) is a WARNING, not a
 // failure -- a linter that cries wolf gets bypassed. Run:
 //   node .claude/workflows/brief_lint.mjs [files...]
+//
+// The no-arg (CI) path also lints fixtures/wave-1b-931dffe.json and REQUIRES
+// the ten #411 acceptance errors. Deleting the lintBrief calls otherwise
+// greens the job while catching nothing.
 
 import fs from 'node:fs'
 import path from 'node:path'
@@ -600,15 +604,49 @@ function printReport(file, findings) {
   return errors.length
 }
 
+// #411 acceptance at 931dffe: the four half-II groups named in the issue,
+// plus min_ink_gap (outside the freshness table). A gutted lintBrief makes
+// this list miss and the no-arg path exit 1.
+const REQUIRED_931DFFE = [
+  { group: 'W1-G8', kind: 'metric', needle: 'coordinator_loc' },
+  { group: 'W1-G8', kind: 'metric', needle: 'methods 255' },
+  { group: 'W1-G8', kind: 'metric', needle: 'attrs 176' },
+  { group: 'W1-G13', kind: 'path', needle: 'card_geometry.mjs' },
+  { group: 'W1-G13', kind: 'symbol', needle: 'min_ink_gap' },
+  { group: 'W1-G14', kind: 'path:line', needle: 'entities.py:6042-6062' },
+  { group: 'W1-G14', kind: 'version', needle: '6.3.9' },
+  { group: 'W1-G9', kind: 'path', needle: 'model_sanity.py' },
+  { group: 'W1-G9', kind: 'path:line (anchored)', needle: 'wood_share:1152' },
+  { group: 'W1-G9', kind: 'symbol', needle: 'wood_share_vec_parity' },
+]
+
+function assertAcceptanceFixture() {
+  const fixture = path.join(HERE, 'fixtures', 'wave-1b-931dffe.json')
+  const findings = lintFile(fixture)
+  const errors = findings.filter((f) => f.severity === 'error')
+  printReport(path.relative(ROOT, fixture), findings)
+  const missing = REQUIRED_931DFFE.filter(
+    (r) => !errors.some((e) => e.group === r.group && e.kind === r.kind && e.message.includes(r.needle))
+  )
+  if (missing.length) {
+    console.log('\nFIXTURE VACUOUS: 931dffe acceptance pins missing:')
+    for (const m of missing) console.log(`  [${m.group}] ${m.kind}: ${m.needle}`)
+    return 1
+  }
+  console.log(`\nFIXTURE ok: ${errors.length} error(s) pin the 931dffe acceptance (${REQUIRED_931DFFE.length} required)`)
+  return 0
+}
+
 function main() {
   const args = process.argv.slice(2)
-  const files = args.length
-    ? args
-    : fs
+  const defaultRun = args.length === 0
+  const files = defaultRun
+    ? fs
         .readdirSync(path.join(ROOT, '.claude', 'workflows'))
         .filter((f) => /^wave-.*-groups\.json$/.test(f))
         .map((f) => path.join(ROOT, '.claude', 'workflows', f))
         .sort()
+    : args
 
   let totalErrors = 0
   for (const f of files) {
@@ -616,7 +654,8 @@ function main() {
     totalErrors += printReport(path.relative(ROOT, f), findings)
   }
   console.log(`\nTOTAL: ${totalErrors} error(s) across ${files.length} file(s)`)
-  process.exit(totalErrors > 0 ? 1 : 0)
+  const fixtureRc = defaultRun ? assertAcceptanceFixture() : 0
+  process.exit(totalErrors > 0 || fixtureRc ? 1 : 0)
 }
 
 main()
