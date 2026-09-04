@@ -269,6 +269,41 @@ jobs:
           NODE_PATH="${{ runner.temp }}/pwlane/node_modules"
           node tests/card_browser.mjs
 
+  # The brief-citation linter (#411). `.claude/` is on tests/closure.py's
+  # INERT list -- closure.py's own merge check FAILS if an INERT file turns
+  # up in a recorded closure -- so the scoped gate structurally cannot see
+  # this directory. Same shape as `browser` above (also driving an INERT
+  # script, tests/card_browser.mjs): its own never-scoped job, `if:` copied
+  # verbatim, so `closure-scope`'s case output cannot skip it. `node
+  # .claude/workflows/check-wave-script.mjs` is the other file in this
+  # position and still runs by hand only; this is the follow-up docs/
+  # handover-2026-09-04.md's trap 7 named as owed.
+  #
+  # Live wave-*-groups.json must lint clean (0 errors) so this job can
+  # stay green on main. The 931dffe acceptance fixture is the rot pin:
+  # brief_lint.mjs's no-arg path requires those ten errors, so gutting
+  # lintBrief cannot green the job.
+  briefs:
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Tags are not fetched by a plain checkout. Fetched here (rather
+          # than skipped) so a tag-scoped citation gets verified for real in
+          # CI instead of only warned about; the linter still degrades to a
+          # warning on its own if a cited tag is ever unresolvable.
+          fetch-depth: 0
+          fetch-tags: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Lint every wave roster's citations
+        run: node .claude/workflows/brief_lint.mjs
+
   slow:
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
     runs-on: ubuntu-latest
