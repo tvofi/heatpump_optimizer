@@ -27,11 +27,12 @@ claim file turned main red. So every rule below is a refusal, not a warning:
   5. manifest.json's version equals VERSION before the stamp (a botched
      earlier stamp is fixed by hand, not papered over here).
 
-What it writes: VERSION, the manifest version, both claim files (the
-`claims-for:` stamp moves to the new version, the reason block is rewritten,
-and every bare claim line is deleted -- a stamp empties the list, the next
-branch restates its own footprint), then one commit and one tag. Nothing is
-pushed without --push.
+What it writes: VERSION, the manifest version, CARD_VERSION in the bundled
+card (console banner only -- card_drift.mjs is unchanged), both claim files
+(the `claims-for:` stamp moves to the new version, the reason block is
+rewritten, and every bare claim line is deleted -- a stamp empties the list,
+the next branch restates its own footprint), then one commit and one tag.
+Nothing is pushed without --push.
 """
 from __future__ import annotations
 
@@ -49,7 +50,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 VERSION_FILE = ROOT / "VERSION"
 MANIFEST = ROOT / "custom_components" / "heatpump_optimizer" / "manifest.json"
+CARD_JS = (
+    ROOT / "custom_components" / "heatpump_optimizer" / "www" / "heatpump-optimizer-card.js"
+)
 NOTES = ROOT / "RELEASE_NOTES.md"
+CARD_VERSION_RE = re.compile(r'const CARD_VERSION = "\d+\.\d+\.\d+";')
 CLAIM_FILES = (
     ROOT / "tests" / "golden" / "claimed_drift.txt",
     ROOT / "tests" / "golden" / "card_claimed_drift.txt",
@@ -112,6 +117,20 @@ def notes_section(text: str, version: str) -> str | None:
 
 def merged_prs(subjects: list[str]) -> set[str]:
     return {m.group(1) for s in subjects for m in PR_RE.finditer(s)}
+
+
+def rewrite_card_version(text: str, new_version: str) -> tuple[str, str | None]:
+    """Replace CARD_VERSION in the bundled card. Returns (new_text, old_version)."""
+    match = re.search(r'const CARD_VERSION = "(\d+\.\d+\.\d+)";', text)
+    if not match:
+        raise ValueError("no CARD_VERSION constant in card")
+    old = match.group(1)
+    new_text, n = CARD_VERSION_RE.subn(
+        f'const CARD_VERSION = "{new_version}";', text, count=1
+    )
+    if n != 1:
+        raise ValueError("could not rewrite CARD_VERSION")
+    return new_text, old
 
 
 def rewrite_claims(text: str, new_version: str, title: str) -> tuple[str, str | None, int]:
@@ -233,6 +252,15 @@ def self_test() -> int:
     tight = "# claims-for: 6.2.12\n# reason\n# may-drift: wood_coil -- x\nfoo  # claim\n"
     new2, _, deleted2 = rewrite_claims(tight, "6.2.13", "t")
     check("claims: may-drift survives without a blank line", "# may-drift: wood_coil" in new2 and deleted2 == 1)
+    card = 'const CARD_VERSION = "5.4.20";\n'
+    card_new, card_old = rewrite_card_version(card, "6.3.13")
+    check("card: old version read", card_old == "5.4.20")
+    check("card: new version written", 'const CARD_VERSION = "6.3.13";' in card_new)
+    try:
+        rewrite_card_version("no version here", "6.3.13")
+        check("card: missing constant refuses", False)
+    except ValueError:
+        check("card: missing constant refuses", True)
     check("notes: #16 is not covered by #165", not re.search(r"#16(?!\d)", "fixed in #165"))
     check("tags: pre-release tags are ignored", not TAG_RE.match("v6.2.15-rc1") and bool(TAG_RE.match("v6.2.15")))
 
@@ -396,7 +424,17 @@ def main() -> int:
     if manifest.get("version") != current:
         raise Refuse(5, f"manifest version {manifest.get('version')} != VERSION {current}; fix by hand first")
 
-    plan = [f"VERSION {current} -> {nxt}", f"manifest version -> {nxt}"]
+    card_before = CARD_JS.read_text()
+    card_match = re.search(r'const CARD_VERSION = "(\d+\.\d+\.\d+)";', card_before)
+    if not card_match:
+        raise Refuse(5, "could not read CARD_VERSION from the bundled card")
+    card_current = card_match.group(1)
+
+    plan = [
+        f"VERSION {current} -> {nxt}",
+        f"manifest version -> {nxt}",
+        f"CARD_VERSION {card_current} -> {nxt}",
+    ]
     claim_edits = []
     for path in CLAIM_FILES:
         new, old, deleted = rewrite_claims(path.read_text(), nxt, args.title)
@@ -418,9 +456,12 @@ def main() -> int:
     if n != 1:
         raise Refuse(5, "could not rewrite the manifest version")
     MANIFEST.write_text(text)
+    card_text, _ = rewrite_card_version(card_before, nxt)
+    CARD_JS.write_text(card_text)
     for path, new in claim_edits:
         path.write_text(new)
-    sh("git", "add", str(VERSION_FILE), str(MANIFEST), str(NOTES), *map(str, CLAIM_FILES))
+    sh("git", "add", str(VERSION_FILE), str(MANIFEST), str(CARD_JS), str(NOTES),
+       *map(str, CLAIM_FILES))
     sh("git", "commit", "-q", "-m",
        f"v{nxt}: stamp {args.title}\n\nCo-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>")
     sh("git", "tag", f"v{nxt}")
