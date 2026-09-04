@@ -588,6 +588,30 @@ def duplicate_runs(
     return sorted(rows)
 
 
+def table_maxima(monsters: list, cc_scores: list) -> tuple[int, int]:
+    """``(max_method_loc, max_cc)`` off the two tables ``measure`` already sorts.
+
+    A function of its arguments rather than three characters inline in the
+    metrics dict, so the rule can be driven without reading the integration.
+    ``tests/features.py`` is in the fast lane and its measured closure does not
+    include ``custom_components/``; a check there that called ``measure()``
+    would widen that closure to every module in the package and put the fast
+    lane in scope for every integration change (``tests/closures.json``).
+
+    ``default=0`` is the empty-table case and it is safe in the direction that
+    matters (#374). ``monsters`` starts at ``MONSTER_LIMITS[1]`` and
+    ``cc_scores`` at ``CC_LIMITS[1]``, so a tree with nothing over those
+    thresholds reports 0 rather than its real 149-line worst method. A budget
+    re-recorded to 0 then fails the moment any function crosses 150 again, so
+    the truncation TIGHTENS the gate; it cannot hide a 149-line method behind a
+    budget of 540.
+    """
+    return (
+        max((loc for loc, *_ in monsters), default=0),
+        max((cc for cc, *_ in cc_scores), default=0),
+    )
+
+
 def measure() -> dict:
     """Recompute every metric from the working tree. Returns a dict with the
     flat metric values (the budget keys) under ``metrics`` and everything the
@@ -812,6 +836,8 @@ def measure() -> dict:
         top_attrbag and top_attrbag[3] == COORDINATOR_CLASS_NAME
     )
 
+    max_method_loc, max_cc = table_maxima(monsters, cc_scores)
+
     metrics = {
         "classes_over_300": len(god_classes),
         "attrbag_classes_over_30": len(attrbag_classes),
@@ -824,8 +850,8 @@ def measure() -> dict:
         # cheapest place in the tree to put new complexity is the function
         # that is already worst. sum_cc is refused, and the module docstring
         # says why: it would fail #224's own refactor.
-        "max_method_loc": max((loc for loc, *_ in monsters), default=0),
-        "max_cc": max((cc for cc, *_ in cc_scores), default=0),
+        "max_method_loc": max_method_loc,
+        "max_cc": max_cc,
         "duplication_blocks": len(duplication),
         "functions_cc_over_25": sum(1 for cc, *_ in cc_scores if cc > CC_LIMITS[0]),
         "functions_cc_over_15": len(cc_scores),

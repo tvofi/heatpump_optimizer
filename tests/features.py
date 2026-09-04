@@ -19864,22 +19864,72 @@ R.check(
 # pinned at 14 and functions_cc_over_25 at 11, `optimize` could go 540 -> 1,080
 # lines and CC 87 -> 174 with all 22 budgets unchanged. max_class_loc already
 # does exactly this job for the one shape family that has it.
-_hpo_h_measured = _hpo_st.measure()
-_hpo_h_m = _hpo_h_measured["metrics"]
-_hpo_h_t = _hpo_h_measured["tables"]
+#
+# Driven through table_maxima() on rows shaped exactly as measure() builds
+# them, NOT by calling measure(). measure() reads every module under
+# custom_components/, and a check here that did so would widen this script's
+# measured closure to the whole integration and put the fast lane in scope for
+# every integration change (tests/closures.json). What the real tree measures
+# is pinned by tests/structure.py itself, which is in the same closure and runs
+# in the same gate: its two-way key-set check fails a measured-but-absent key,
+# and its ratchet fails the value.
+_hpo_h_max = getattr(_hpo_st, "table_maxima", None)
+_hpo_struct_src = _Path("tests/structure.py").read_text()
+_hpo_h_monsters = [
+    (540, "optimizer.py", "1926-2465", "optimize"),
+    (483, "optimizer.py", "4613-5095", "_optimize_with_dhw"),
+    (416, "optimizer.py", "3419-3834", "_build_dhw_requirements"),
+]
+_hpo_h_ccs = [
+    (87, "optimizer.py", 1926, "optimize"),
+    (43, "thermal_model.py", 2316, "simulate_trajectory_batch"),
+    (35, "sysid.py", 355, "identify"),
+]
 R.check(
-    "measure() reports max_method_loc, tracking the worst row of the monsters table (#374)",
-    _hpo_h_m.get("max_method_loc") == _hpo_h_t["monsters"][0][0],
-    f"max_method_loc = {_hpo_h_m.get('max_method_loc')!r}, worst monster = "
-    f"{_hpo_h_t['monsters'][0] if _hpo_h_t['monsters'] else None}. The table is "
-    "already built and already sorted; the metric is the number the evidence "
-    "section has been printing at the top all along",
+    "table_maxima reports the worst row of each table measure() already sorts (#374)",
+    _hpo_h_max is not None
+    and _hpo_h_max(_hpo_h_monsters, _hpo_h_ccs) == (540, 87),
+    f"table_maxima = {_hpo_h_max(_hpo_h_monsters, _hpo_h_ccs) if _hpo_h_max else None!r}; "
+    "both tables are already built and already sorted, so this is the number the "
+    "evidence section has been printing at the top all along",
 )
 R.check(
-    "and max_cc, tracking the worst row of the cc table",
-    _hpo_h_m.get("max_cc") == _hpo_h_t["cc_scores"][0][0],
-    f"max_cc = {_hpo_h_m.get('max_cc')!r}, worst cc = "
-    f"{_hpo_h_t['cc_scores'][0] if _hpo_h_t['cc_scores'] else None}",
+    "and it is a MAX, not the first row -- an unsorted table still reports the worst",
+    _hpo_h_max is not None
+    and _hpo_h_max(list(reversed(_hpo_h_monsters)), list(reversed(_hpo_h_ccs)))
+    == (540, 87),
+    f"table_maxima(reversed) = "
+    f"{_hpo_h_max(list(reversed(_hpo_h_monsters)), list(reversed(_hpo_h_ccs))) if _hpo_h_max else None!r}",
+)
+R.check(
+    "an empty table reads 0, which tightens the gate rather than opening a hole",
+    _hpo_h_max is not None and _hpo_h_max([], []) == (0, 0),
+    f"table_maxima([], []) = {_hpo_h_max([], []) if _hpo_h_max else None!r}; monsters "
+    "starts at 150 LOC and cc_scores at CC 15, so a tree with nothing over those "
+    "thresholds reports 0. A budget re-recorded to 0 fails the moment a function "
+    "crosses 150 again, so the truncation cannot hide a 149-line method behind a "
+    "budget of 540",
+)
+R.check(
+    "and measure() wires both budget keys to it (#374)",
+    any(
+        isinstance(_hpo_n, _hpo_ast.Dict)
+        and {
+            _hpo_k.value
+            for _hpo_k in _hpo_n.keys
+            if isinstance(_hpo_k, _hpo_ast.Constant)
+        }
+        >= {"max_method_loc", "max_cc", "max_class_loc", "methods_over_200"}
+        for _hpo_n in _hpo_ast.walk(_hpo_struct_tree)
+    )
+    and any(
+        isinstance(_hpo_n, _hpo_ast.Call)
+        and getattr(_hpo_n.func, "id", "") == "table_maxima"
+        for _hpo_n in _hpo_ast.walk(_hpo_struct_tree)
+    ),
+    "the two keys must be in the metrics dict measure() returns, next to the "
+    "threshold counts they close the hole in, and they must come from "
+    "table_maxima rather than from a second scan",
 )
 R.check(
     "both are plain counts, so the existing current > budget arm handles them",
@@ -19908,18 +19958,15 @@ R.check(
     "something; today it costs nothing, because the only place the gate cannot see "
     "new complexity is the worst function in the tree",
 )
-_hpo_h_table = _hpo_g_json.loads(_Path("tests/structure_budgets.json").read_text())
 R.check(
-    "and both keys are recorded in structure_budgets.json, in the same commit",
-    isinstance(_hpo_h_table.get("max_method_loc"), int)
-    and isinstance(_hpo_h_table.get("max_cc"), int)
-    and _hpo_h_table.get("max_method_loc") == _hpo_h_m.get("max_method_loc")
-    and _hpo_h_table.get("max_cc") == _hpo_h_m.get("max_cc"),
-    f"table has max_method_loc={_hpo_h_table.get('max_method_loc')!r} "
-    f"max_cc={_hpo_h_table.get('max_cc')!r}; measured "
-    f"{_hpo_h_m.get('max_method_loc')!r} and {_hpo_h_m.get('max_cc')!r}. The "
-    "two-way key-set check fails a measured-but-absent key, which is why adding "
-    "these forces the re-record into this commit",
+    "and print_report prints both, so the evidence and the RESULT line agree",
+    all(
+        f'metrics["{_hpo_key}"]' in _hpo_struct_src
+        and f"{_hpo_key} = %d" in _hpo_struct_src
+        for _hpo_key in ("max_method_loc", "max_cc")
+    ),
+    "a budgeted number with no evidence line above it is the shape tests/README.md "
+    "refuses; the reader has to be able to see which function the budget is about",
 )
 R.check(
     "sum_cc is rejected IN THE CODE, with the reason and the issue it would break (#374)",
