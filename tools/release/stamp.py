@@ -38,6 +38,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import pathlib
 import re
 import shutil
 import subprocess
@@ -282,6 +283,24 @@ def self_test() -> int:
     check("rule 2: a source that cannot answer refuses, it does not raise",
           not unreadable[0] and "could not read the Tests gate" in unreadable[1])
 
+    # The tag-push fallback is a control-flow contract, so it is pinned by
+    # reading this file: a failed tag push must not raise past the caller,
+    # must not roll the commit back, and must leave an exit code the caller
+    # can tell apart from success.
+    # rindex, not index: the literal searched for also occurs in this very
+    # check, so a forward search matches the check's own source and pins
+    # nothing -- the exact failure tests/README.md describes as a test
+    # asserting against its own copy. The last occurrence is the real one.
+    src = pathlib.Path(__file__).read_text()
+    tail = src[src.rindex('push", "origin", f"v{nxt}"'):]
+    guarded = tail[:tail.index("RESULT stamped=")]
+    check("tag push: the failure is caught, not raised",
+          "except subprocess.CalledProcessError" in guarded)
+    check("tag push: a failed tag push does not roll the commit back",
+          "reset" not in guarded)
+    check("tag push: the caller can tell it apart from success", "return 3" in tail)
+    check("tag push: the recovery names the Release workflow",
+          "Dispatch the Release" in tail and "creates the tag" in tail)
     print(f"RESULT stamp_self_test={'pass' if ok else 'fail'}")
     return 0 if ok else 1
 
@@ -417,8 +436,34 @@ def main() -> int:
             raise Refuse(1, "push to main was rejected (main moved); the stamp commit and tag were "
                             "discarded -- fetch, rewrite the notes for the new HEAD, run again: "
                             + exc.stderr.strip().splitlines()[-1]) from exc
-        sh("git", "push", "origin", f"v{nxt}")
-    print(f"RESULT stamped=v{nxt}")
+        # The tag push is the one step that can fail AFTER the commit is
+        # already public, and in some environments it always does: push
+        # credentials scoped to branches get 403 on refs/tags while
+        # refs/heads succeeds. Raising here left the stamp half-done and
+        # quiet -- the version commit on main, the tag local only, and so
+        # no GitHub Release at all, because release.yml triggers on the tag
+        # push. v6.3.10 and v6.3.11 both went missing exactly that way
+        # before anyone thought to look at the releases page.
+        #
+        # So this failure is reported rather than raised, and the caller is
+        # pointed at the recovery release.yml already documents for the
+        # branch-scoped case: dispatch it with the tag name and it creates
+        # the tag at the commit it runs on. Nothing is rolled back -- the
+        # commit belongs on main either way, and rule 3 refuses a second
+        # stamp of a version that is already there.
+        try:
+            sh("git", "push", "origin", f"v{nxt}")
+        except subprocess.CalledProcessError as exc:
+            why = (exc.stderr or "").strip().splitlines()
+            print(f"RESULT stamped=v{nxt} tag_pushed=false")
+            print(f"WARNING: v{nxt} is committed on main but its tag was NOT pushed: "
+                  + (why[-1] if why else "git push failed"), file=sys.stderr)
+            print(f"         There is no GitHub Release yet. Dispatch the Release "
+                  f"workflow with tag=v{nxt} at this commit -- it creates the tag "
+                  f"itself -- or push refs/tags/v{nxt} from a checkout whose "
+                  f"credentials allow it.", file=sys.stderr)
+            return 3
+    print(f"RESULT stamped=v{nxt} tag_pushed={'true' if args.push else 'false'}")
     return 0
 
 
