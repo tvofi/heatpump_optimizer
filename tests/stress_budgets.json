@@ -21,6 +21,12 @@
   "traced_peak_mb": 1.83
  },
  "flat/2z/space": {
+  "alt_basins": [
+   {
+    "evals": 816,
+    "objective": 99.6021582
+   }
+  ],
   "evals": 756,
   "objective": 99.7397663,
   "ratio": 82.67,
@@ -70,6 +76,12 @@
   "traced_peak_mb": 0.88
  },
  "shoulder/2z/dhw": {
+  "alt_basins": [
+   {
+    "evals": 700,
+    "objective": 10.29295991
+   }
+  ],
   "evals": 594,
   "objective": 10.29215064,
   "ratio": 89.7,
@@ -77,6 +89,12 @@
   "traced_peak_mb": 1.83
  },
  "shoulder/2z/space": {
+  "alt_basins": [
+   {
+    "evals": 614,
+    "objective": 6.894069276
+   }
+  ],
   "evals": 564,
   "objective": 6.894105887,
   "ratio": 81.23,
@@ -84,6 +102,12 @@
   "traced_peak_mb": 0.9
  },
  "shoulder/cycle": {
+  "alt_basins": [
+   {
+    "evals": 1328,
+    "objective": 12.02409316
+   }
+  ],
   "evals": 988,
   "objective": 12.00722774,
   "ratio": 192.52,
@@ -91,6 +115,12 @@
   "traced_peak_mb": 1.83
  },
  "shoulder/pv": {
+  "alt_basins": [
+   {
+    "evals": 1252,
+    "objective": 7.998452967
+   }
+  ],
   "evals": 1120,
   "objective": 8.00351991,
   "ratio": 175.98,
@@ -98,6 +128,12 @@
   "traced_peak_mb": 1.83
  },
  "shoulder/pv+cycle": {
+  "alt_basins": [
+   {
+    "evals": 1644,
+    "objective": 9.513513208
+   }
+  ],
   "evals": 1730,
   "objective": 9.51497478,
   "ratio": 291.25,
@@ -105,6 +141,12 @@
   "traced_peak_mb": 1.83
  },
  "shoulder/tariff": {
+  "alt_basins": [
+   {
+    "evals": 1244,
+    "objective": 10.7825076
+   }
+  ],
   "evals": 1656,
   "objective": 10.68195625,
   "ratio": 176.87,
@@ -112,6 +154,12 @@
   "traced_peak_mb": 1.83
  },
  "shoulder/tariff+cycle": {
+  "alt_basins": [
+   {
+    "evals": 2272,
+    "objective": 12.30226966
+   }
+  ],
   "evals": 1232,
   "objective": 12.31733517,
   "ratio": 154.41,
@@ -119,6 +167,12 @@
   "traced_peak_mb": 1.83
  },
  "shoulder/tariff+pv": {
+  "alt_basins": [
+   {
+    "evals": 2086,
+    "objective": 8.108644856
+   }
+  ],
   "evals": 1990,
   "objective": 8.133928091,
   "ratio": 491.85,
@@ -126,6 +180,12 @@
   "traced_peak_mb": 1.83
  },
  "shoulder/tariff+pv+cycle": {
+  "alt_basins": [
+   {
+    "evals": 1884,
+    "objective": 9.81835635
+   }
+  ],
   "evals": 2090,
   "objective": 9.761187935,
   "ratio": 546.76,
@@ -238,6 +298,12 @@
   "traced_peak_mb": 0.87
  },
  "winter/2z/dhw": {
+  "alt_basins": [
+   {
+    "evals": 564,
+    "objective": 87.0351245
+   }
+  ],
   "evals": 708,
   "objective": 86.77572306,
   "ratio": 87.01,
@@ -252,6 +318,12 @@
   "traced_peak_mb": 0.89
  },
  "winter/cycle": {
+  "alt_basins": [
+   {
+    "evals": 978,
+    "objective": 89.3317843
+   }
+  ],
   "evals": 912,
   "objective": 89.51195527,
   "ratio": 170.78,
@@ -259,6 +331,12 @@
   "traced_peak_mb": 3.47
  },
  "winter/pv": {
+  "alt_basins": [
+   {
+    "evals": 564,
+    "objective": 87.0351245
+   }
+  ],
   "evals": 708,
   "objective": 86.77572306,
   "ratio": 86.02,
@@ -266,6 +344,12 @@
   "traced_peak_mb": 3.46
  },
  "winter/pv+cycle": {
+  "alt_basins": [
+   {
+    "evals": 978,
+    "objective": 89.3317843
+   }
+  ],
   "evals": 912,
   "objective": 89.51195527,
   "ratio": 170.95,
@@ -273,6 +357,12 @@
   "traced_peak_mb": 3.47
  },
  "winter/tariff": {
+  "alt_basins": [
+   {
+    "evals": 1038,
+    "objective": 216.6611937
+   }
+  ],
   "evals": 1044,
   "objective": 216.6138831,
   "ratio": 191.93,
@@ -280,6 +370,12 @@
   "traced_peak_mb": 1.83
  },
  "winter/tariff+cycle": {
+  "alt_basins": [
+   {
+    "evals": 1448,
+    "objective": 217.9144128
+   }
+  ],
   "evals": 1450,
   "objective": 217.8801699,
   "ratio": 263.99,
@@ -287,6 +383,12 @@
   "traced_peak_mb": 1.83
  },
  "winter/tariff+pv": {
+  "alt_basins": [
+   {
+    "evals": 1038,
+    "objective": 216.6611937
+   }
+  ],
   "evals": 1044,
   "objective": 216.6138831,
   "ratio": 192.35,
@@ -294,6 +396,12 @@
   "traced_peak_mb": 1.83
  },
  "winter/tariff+pv+cycle": {
+  "alt_basins": [
+   {
+    "evals": 1448,
+    "objective": 217.9144128
+   }
+  ],
   "evals": 1450,
   "objective": 217.8801699,
   "ratio": 263.93,
@@ -315,6 +423,12 @@
   "traced_peak_mb": 0.87
  },
  "winter_extreme/2z/dhw": {
+  "alt_basins": [
+   {
+    "evals": 684,
+    "objective": 128.3261009
+   }
+  ],
   "evals": 652,
   "objective": 128.3677063,
   "ratio": 99.27,
@@ -322,6 +436,12 @@
   "traced_peak_mb": 3.45
  },
  "winter_extreme/2z/space": {
+  "alt_basins": [
+   {
+    "evals": 852,
+    "objective": 111.6248235
+   }
+  ],
   "evals": 790,
   "objective": 111.5412536,
   "ratio": 126.91,
@@ -329,6 +449,12 @@
   "traced_peak_mb": 0.9
  },
  "winter_mild/1z/dhw": {
+  "alt_basins": [
+   {
+    "evals": 588,
+    "objective": 29.29223168
+   }
+  ],
   "evals": 650,
   "objective": 29.27865716,
   "ratio": 48.05,
@@ -343,6 +469,12 @@
   "traced_peak_mb": 0.87
  },
  "winter_mild/2z/dhw": {
+  "alt_basins": [
+   {
+    "evals": 684,
+    "objective": 35.62512718
+   }
+  ],
   "evals": 618,
   "objective": 35.64822403,
   "ratio": 82.24,
