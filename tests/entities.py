@@ -743,6 +743,29 @@ R.check(
     dhw_plan.extra_state_attributes.get("dhw_windows")
     != dhw_plan.extra_state_attributes.get("dhw_windows_spec"),
 )
+# ...and non-vacuously. `dhw_windows` is published only on the PLAN branch,
+# and `DATA["dhw_plan"]` is `{}`, so the check above compares `None` to the
+# spec string: it passes just as well with `dhw_windows` deleted from
+# production entirely. Read the branch that actually carries it (found by
+# the #373 review, which hit the same fixture hole in the attribute roster).
+_windows_plan_attrs = sensor.DHWHeatingPlanSensor(
+    FakeCoordinator(
+        {
+            **DATA,
+            "dhw_plan": {"slots": [{"start": "2026-02-01T05:00:00"}], "active_now": False},
+            "dhw_windows": [["06:00", "08:30"], ["17:00", "22:00"]],
+        }
+    ),
+    ENTRY,
+).extra_state_attributes
+R.check(
+    "and the plan branch really carries both, differing",
+    _windows_plan_attrs.get("dhw_windows") == [["06:00", "08:30"], ["17:00", "22:00"]]
+    and _windows_plan_attrs.get("dhw_windows_spec")
+    == "weekdays 06:00-08:30, weekend 08:00-09:30",
+    f"windows={_windows_plan_attrs.get('dhw_windows')!r} "
+    f"spec={_windows_plan_attrs.get('dhw_windows_spec')!r}",
+)
 R.check(
     "and publishes it before the first plan exists",
     sensor.DHWHeatingPlanSensor(no_plan_coord, ENTRY).extra_state_attributes.get(
@@ -4403,9 +4426,10 @@ R.check(
 # The exposure, measured at a2c4982 over the entities this file already
 # constructs: 43 classes published 171 distinct keys through 244 class/key
 # pairs, and 48 of those keys (28%) appeared nowhere in ``tests/`` as a
-# string literal at all. The roster below pins 46 classes and 260 class/key
-# pairs over 179 distinct names -- more than the census because it reads
-# each platform through two payloads (see below).
+# string literal at all. The roster below pins 46 classes and 290 class/key
+# pairs over 190 distinct names -- more than that census because it reads
+# each platform through two payloads (see below), one of which reaches the
+# plan branch the census's single payload never did.
 #
 # EXACT EQUALITY per class, in the style of the Diagnostic roster above --
 # subset containment would pass on precisely the deletion this exists to
@@ -4415,11 +4439,17 @@ R.check(
 # sixty commits, and an addition fails here as an addition with the class
 # and the key named.
 #
-# Two holes, stated rather than papered over:
+# Three holes, stated rather than papered over:
 #   * a key that is KEPT but publishes ``None`` for ever still passes: this
 #     pins names, not values;
 #   * deleting a key together with its line in this table, in one change, is
-#     bounded only by review.
+#     bounded only by review;
+#   * this pins the surface the two fixtures below REACH, so a branch no
+#     fixture reaches is unpinned and its keys can be deleted silently. The
+#     fix for that is a fixture, and the review of the first cut of this
+#     table found one worth 10% of the surface (the plan branch, closed
+#     above); the honest reading of the aggregate check's name is "the whole
+#     surface these two payloads measure", and the bound is the payloads.
 # A third follows from the surface's shape: a few publishers pass a data
 # dict straight through (``ComfortWeightSensor`` returns ``comfort_learning``
 # whole), so for those the table pins what the fixtures below carry rather
@@ -4428,12 +4458,59 @@ R.check(
 #
 # The roster is taken from two payloads, because several keys are published
 # only on a branch: the base ``DATA`` above, and ``_ATTR_RICH``, which turns
-# on the two-zone setpoints, the solar gain, the predictive-forecast block
-# and the mixing-valve recommendation. A conditional key that no fixture
-# reaches is outside this table -- that is a bound on coverage, not a
-# silent pass.
+# on the two-zone setpoints, the solar gain, the predictive-forecast block,
+# the mixing-valve recommendation and -- see below -- a populated plan for
+# each of the two plan sensors. A conditional key that no fixture reaches is
+# outside this table; that is a bound on coverage, and the fix for it is a
+# fixture, not a softer check. The plan branch was exactly such a hole in
+# the first cut of this table and is closed here rather than noted: with
+# ``DATA["space_plan"] == DATA["dhw_plan"] == {}`` the two plan sensors were
+# only ever read on their EMPTY-plan branch, so deleting ``slots``,
+# ``total_cost`` or ``total_energy_kwh`` from ``_PlanSensorBase`` passed
+# silently -- 30 of 290 class/key pairs (10.3%), in the second-largest
+# publisher family after ``climate.py``.
 _ATTR_RICH = {
     **DATA,
+    # A populated plan for each plan sensor, so ``_PlanSensorBase`` is read
+    # on the branch it spends its life on. Shaped after what the coordinator
+    # really builds (``coordinator.py`` ~2470: forecast, slots,
+    # total_energy_kwh, total_cost, active_now); two slots with
+    # ``active_now`` so ``next_slot_start`` resolves through the
+    # ``slots[1]`` arm rather than staying None on an empty list.
+    "space_plan": {
+        "forecast": [
+            {"t": "2026-02-01T10:00:00", "price": 1.2, "space_power": 1.4},
+            {"t": "2026-02-01T11:00:00", "price": 0.9, "space_power": 0.0},
+        ],
+        "slots": [
+            {"start": "2026-02-01T10:00:00", "end": "2026-02-01T11:00:00"},
+            {"start": "2026-02-01T14:00:00", "end": "2026-02-01T15:00:00"},
+        ],
+        "total_energy_kwh": 4.2,
+        "total_cost": 6.05,
+        "active_now": True,
+    },
+    "dhw_plan": {
+        "forecast": [
+            {"t": "2026-02-01T10:00:00", "price": 1.2, "dhw_power": 2.0},
+            {"t": "2026-02-01T11:00:00", "price": 0.9, "dhw_power": 0.0},
+        ],
+        "slots": [
+            {"start": "2026-02-01T05:00:00", "end": "2026-02-01T06:00:00"},
+        ],
+        "total_energy_kwh": 2.1,
+        "total_cost": 2.55,
+        "active_now": False,
+    },
+    # The schedule the plan branch republishes off the payload. ``DATA``
+    # carries none of these, so without them the branch would publish four
+    # names against ``None`` and ``dhw_min_temperature_max`` would pin the
+    # "setpoint unknown" arm of ``_dhw_min_ceiling`` rather than the
+    # arithmetic one.
+    "dhw_windows": [["06:00", "08:30"], ["17:00", "22:00"]],
+    "dhw_setpoint": 55.0,
+    "comfort_temp_night": 19.5,
+    "manual_plan": {"slots": [], "expires": "2026-02-01T18:00:00"},
     "current_action": {
         **DATA["current_action"],
         "mode": "auto",
@@ -4536,9 +4613,13 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
         "this_month_cost", "this_month_kwh"
     }),
     "DHWHeatingPlanSensor": frozenset({
-        "currency", "dhw_windows_spec", "horizon_hours", "manual_override",
-        "manual_plan_window_hours", "plan_kind", "projection",
-        "setup_topology"
+        "active_now", "comfort_temp_day", "comfort_temp_night", "currency",
+        "day_end_hour", "day_start_hour", "dhw_min_temperature",
+        "dhw_min_temperature_max", "dhw_setpoint", "dhw_windows",
+        "dhw_windows_spec", "forecast", "horizon_hours", "manual_override",
+        "manual_plan_window_hours", "next_slot_start", "plan_kind",
+        "projection", "setup_topology", "slot_count", "slots", "total_cost",
+        "total_energy_kwh"
     }),
     # keys are the configured windows, see _ATTR_KEYS_ARE_DATA above
     "DHWHeavyDaySensor": frozenset(),
@@ -4665,9 +4746,13 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
         "this_month_cost", "this_month_kwh"
     }),
     "SpaceHeatingPlanSensor": frozenset({
-        "currency", "dhw_windows_spec", "horizon_hours", "manual_override",
-        "manual_plan_window_hours", "plan_kind", "projection",
-        "setup_topology"
+        "active_now", "comfort_temp_day", "comfort_temp_night", "currency",
+        "day_end_hour", "day_start_hour", "dhw_min_temperature",
+        "dhw_min_temperature_max", "dhw_setpoint", "dhw_windows",
+        "dhw_windows_spec", "forecast", "horizon_hours", "manual_override",
+        "manual_plan_window_hours", "next_slot_start", "plan_kind",
+        "projection", "setup_topology", "slot_count", "slots", "total_cost",
+        "total_energy_kwh"
     }),
     "ThermalBatteryEnergySensor": frozenset({
         "charge_rate_kw", "discharge_rate_kw", "hours_of_autonomy",
