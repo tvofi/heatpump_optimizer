@@ -6395,11 +6395,14 @@ import closure as _closure
 # measured rather than argued -- two captures on the same tree with
 # `env_drift.py --capture . <out> --all`:
 #
-#   null control      the card asset edited (an added statement, CARD_VERSION
-#                     5.4.19 -> 9.9.99): all 55 scenarios byte-identical,
-#                     sha256 1f1dcb966bdf7ae9... on both sides
-#   positive control  one token in thermal_model.py (`* dt` -> `* dt * 1.0001`):
-#                     the captures differ
+#   null control      the card asset edited (`www/heatpump-optimizer-card.js:14`,
+#                     CARD_VERSION 5.4.20 -> 9.9.99): all 55 scenarios
+#                     byte-identical, sha256
+#                     294c98fb07f7bac0e16342a13a34c354577cf88c60bc9a1e73c52d4432890c10
+#                     on both sides
+#   positive control  one token, `thermal_model.py:2683` (`T_room * dt` ->
+#                     `T_room * dt * 1.0001`): the captures differ, sha256
+#                     656df8995f3692d18d12992679aa0dda6b13e082463763e84ca460636736411c
 #
 # frontend.py registers `www/` as a static path and never opens the file, so
 # there is no path by which its bytes reach a capture. These checks hold the
@@ -6991,19 +6994,41 @@ import contextlib as _stamp_contextlib
 import importlib.util as _importlib_util
 import io as _stamp_io
 
+# Loading a module and calling a function it defines are both module-scope
+# statements here, with no guard: a raising `stamp.py` (a syntax error, a
+# missing dependency, an exception inside `self_test()` itself) would abort
+# THIS FILE mid-run instead of failing the one check it is supposed to feed,
+# and every later check in this ~7000-line script would then never execute --
+# a truncated run that also happens to be the exact under-approximation
+# `closure.py merge`'s `--allow-failures` flag exists to wave through
+# (confirmed by probe: `mv`-ing stamp.py away and running this file raises
+# an unhandled FileNotFoundError at the `exec_module` call below). Catching
+# broadly here is deliberate: turning any failure mode into one red `R.check`
+# is strictly safer than letting any of them turn into a partial run.
 _STAMP_PATH = _closure.ROOT / "tools" / "release" / "stamp.py"
-_stamp_spec = _importlib_util.spec_from_file_location(
-    "hpo_release_stamp", _STAMP_PATH
-)
-_stamp = _importlib_util.module_from_spec(_stamp_spec)
-_stamp_spec.loader.exec_module(_stamp)
-with _stamp_contextlib.redirect_stdout(_stamp_io.StringIO()) as _stamp_out:
-    _stamp_rc = _stamp.self_test()
+try:
+    _stamp_spec = _importlib_util.spec_from_file_location(
+        "hpo_release_stamp", _STAMP_PATH
+    )
+    _stamp = _importlib_util.module_from_spec(_stamp_spec)
+    _stamp_spec.loader.exec_module(_stamp)
+    with _stamp_contextlib.redirect_stdout(_stamp_io.StringIO()) as _stamp_out:
+        _stamp_rc = _stamp.self_test()
+    _stamp_ok = _stamp_rc == 0
+    _stamp_detail = (
+        "run `python tools/release/stamp.py --self-test` by hand for the "
+        "failing check names:\n" + _stamp_out.getvalue()
+    )
+except Exception as _stamp_exc:  # noqa: BLE001 -- see comment above
+    _stamp_ok = False
+    _stamp_detail = (
+        f"tools/release/stamp.py raised loading or running --self-test: "
+        f"{type(_stamp_exc).__name__}: {_stamp_exc}"
+    )
 R.check(
     "tools/release/stamp.py's --self-test passes",
-    _stamp_rc == 0,
-    "run `python tools/release/stamp.py --self-test` by hand for the "
-    "failing check names:\n" + _stamp_out.getvalue(),
+    _stamp_ok,
+    _stamp_detail,
 )
 R.check(
     "stamp.py is no longer INERT: closure.py must classify it",
@@ -7018,6 +7043,30 @@ R.check(
         capture_output=True, text=True).stdout.split()
      if not f.startswith("tools/audit/")] == ["tools/release/stamp.py"],
     "tools/ should hold exactly one file outside tools/audit/",
+)
+# The claim above ("now shows up in this script's own recorded closure") was
+# stated but never asserted -- issue #372's own acceptance criterion 4 asks
+# for both halves explicitly: that `closure.py check` records stamp.py in a
+# closure, and that a change to it selects this script. Checked here against
+# the COMMITTED table, which is what CI's `--record-only` job actually
+# validates (the same distinction `inert_closure_violations` above draws).
+_stamp_committed_closures = json.loads(
+    _closure.CLOSURES.read_text())["closures"]
+R.check(
+    "the committed table records stamp.py in tests/entities.py's own "
+    "closure",
+    "tools/release/stamp.py" in
+    _stamp_committed_closures.get("tests/entities.py", []),
+    "closure.py's recorder should have picked this up from the "
+    "spec_from_file_location/exec_module call above without a hand-written "
+    "entry",
+)
+R.check(
+    "a change to stamp.py selects tests/entities.py",
+    "tests/entities.py" in
+    _closure.select(["tools/release/stamp.py"])["run"],
+    "the whole point of narrowing INERT (#372) is that a future stamp.py "
+    "change is not silently un-tested",
 )
 
 # --- the committed fixtures' own staleness gate (#347, #326) ----------------

@@ -450,13 +450,21 @@ def _is_real_file(rel: str) -> bool:
 # Measured before narrowing the rule, both captures on the same tree with
 # `env_drift.py --capture . <out> --all`:
 #
-#   null control     card asset edited (a new statement, CARD_VERSION
-#                    5.4.19 -> 9.9.99): all 55 scenarios byte-identical,
-#                    sha256 1f1dcb966bdf7ae9... on both sides
-#   positive control one token in thermal_model.py (`* dt` -> `* dt * 1.0001`):
-#                    captures differ
+#   null control     card asset edited (`www/heatpump-optimizer-card.js:14`,
+#                    CARD_VERSION 5.4.20 -> 9.9.99): all 55 scenarios
+#                    byte-identical, sha256
+#                    294c98fb07f7bac0e16342a13a34c354577cf88c60bc9a1e73c52d4432890c10
+#                    on both sides
+#   positive control  one token, `thermal_model.py:2683`
+#                    (`T_room * dt` -> `T_room * dt * 1.0001`): captures
+#                    differ, sha256
+#                    656df8995f3692d18d12992679aa0dda6b13e082463763e84ca460636736411c
 #
 # So the card cannot move a capture, and the capture would notice if it could.
+# Re-measured at 48f4263 (the merge base after the fork moved); the sha256s
+# above are tied to that tree and will shift the next time anyone re-runs
+# this probe on a later one -- what must not shift is null == baseline and
+# positive != baseline.
 # Without this, every card-only pull request ran env_drift's 55-scenario double
 # capture -- the most expensive script in the suite -- to prove a plan that
 # could not have changed.
@@ -477,24 +485,30 @@ def _is_frontend_asset(rel: str) -> bool:
 # `env_drift.py --capture . <out> --all` and a direct call to
 # `golden.capture()` over five scenarios:
 #
-#   null control     quality_scale.yaml edited (a trailing comment line
+#   null control      quality_scale.yaml edited (a trailing comment line
 #                     appended): env_drift capture byte-identical, sha256
-#                     6111753cb7872fcc9444573d291a126a5ce4e7fe6353224a316fc77962c5d6a7
-#                     before and after; golden.capture() sha256
-#                     1ad50d3e634924c988930acffcb2ff27f24cdbb1a5b46bf0cbdfaf6ea2c774f9
+#                     294c98fb07f7bac0e16342a13a34c354577cf88c60bc9a1e73c52d4432890c10
+#                     before and after; golden.capture() over the first five
+#                     SCENARIOS keys (winter_single_dhw, winter_two_zone_dhw,
+#                     winter_single_no_dhw, winter_two_zone_no_dhw,
+#                     summer_dhw_only) byte-identical, sha256
+#                     e8bea574c835572442b70180e7747f2ad0c718e42f34aed12af8ff34fecf1be6
 #                     before and after
-#   positive control one token in thermal_model.py (`* dt` -> `* dt * 1.0001`):
-#                     env_drift capture sha256 changes to
-#                     744d8d04b6bd0897189b75d37ac71db4e91a0f4ee33cd64cfb5f9af10dfa67ab;
-#                     golden.capture() sha256 changes to
-#                     4bd4b84357c354bc70d69d7a496e5434a4e8469a11c2677d7d548998d0f12372
+#   positive control  the same probe line as FRONTEND_ASSETS above,
+#                     `thermal_model.py:2683` (`T_room * dt` ->
+#                     `T_room * dt * 1.0001`): env_drift capture sha256
+#                     changes to
+#                     656df8995f3692d18d12992679aa0dda6b13e082463763e84ca460636736411c;
+#                     golden.capture() over the same five scenarios changes to
+#                     84bd6b951368845c5bdcaca6f420f2baafe9f37cd7880b6b4c64b6765dc69546
 #
 # hassfest skips the quality-scale register for custom repositories and
 # nothing under custom_components/ ever opens it -- unlike the bundled card,
 # there is not even a static-path registration to explain the absence, there
 # is simply no reader. It stays on INERT; the recorder was the one that was
 # wrong, matching the accepted over-approximation ground #251/D3-09 was
-# closed on.
+# closed on. Re-measured at 48f4263, same caveat as above: the pair
+# (identical / different) is the claim, not the exact digits.
 NEVER_WIDENED = ("custom_components/heatpump_optimizer/quality_scale.yaml",)
 
 
