@@ -141,14 +141,15 @@ for (const g of groups) {
   if (!tierOk(g.fixerModel ?? 'opus', g.reviewerModel ?? 'opus')) throw new Error(`${g.group}: a reviewer below the fixer measures nothing`)
 }
 
-const fixerPrompt = (g, repair) => `You own fix group ${g.group} of the open-issues program: issues #${g.issues.join(', #')}. ${GH} ${WT('claude-web/' + g.group.toLowerCase(), fork)} ${(g.after ?? []).length ? 'Your dependencies have already merged, so your first action in the worktree is: git merge origin/main (never rebase). Resolve any claim-file or budget-table conflict by keeping ONLY your own lines -- your dependency already landed its own.' : ''} ${DOC(session)}
+const RESUMED = (g) => g.resume?.stage === 'fix' ? `THIS GROUP IS BEING RESUMED. An earlier fixer stopped after pushing ${g.resume.pushed_sha} to claude-web/${g.group.toLowerCase()}: ${g.resume.what}. That work is NOT lost and is NOT yours to redo -- the worktree command below re-attaches to that branch. Read the pushed diff first (git log origin/main..HEAD, git diff origin/main...HEAD) and continue from it. What is still missing: ${g.resume.missing}` : ''
+const fixerPrompt = (g, repair) => `You own fix group ${g.group} of the open-issues program: issues #${g.issues.join(', #')}. ${GH} ${WT('claude-web/' + g.group.toLowerCase(), fork)} ${(g.after ?? []).length ? 'Your dependencies have already merged, so your first action in the worktree is: git merge origin/main (never rebase). Resolve any claim-file or budget-table conflict by keeping ONLY your own lines -- your dependency already landed its own.' : ''} ${RESUMED(g)} ${DOC(session)}
 Read tools/audit/briefs/fixer.md and tools/audit/README.md, then every issue's body AND its comments -- the comments carry corrections that override the body, and a fixer who reads only the body will implement the superseded plan. Your brief, which already applies those corrections:
 ${g.brief}
 Follow every step of the fixer contract: a failing test first that imports the production symbol; the mutation proof with the failing check names pasted; the finding's own harness re-run before and after at your head SHA (copy a harness into the tree under test before running it -- the harnesses disagree about how they find the repository root); a null control on any cost, gain or time claim; both ends of the range for a learner or guard change. ${GATE}
 ${g.fixture ? 'This group moves fixtures. Claim each one with its expected direction in the right claim file, and never claim a fixture that is already may-drift -- env_drift refuses a name that is both. Run env_drift.py --fixtures before and after.' : 'This group must move no fixture: env_drift.py --all against the merge base reports no unclaimed drift, and both claim files stay byte-identical to origin/main.'}
 Never touch VERSION, the manifest version or the RELEASE_NOTES.md heading. Open the pull request with a body that carries Closes #N for each issue, Part of #201, the head SHA you measured, and every executed number; then wait for CI (fast, closures, browser) with actions_list and fix red until it is green.
 ${repair ? `A reviewer BLOCKED your previous head. Their comment: ${repair}\nRepair in the same worktree, re-execute fixer steps 2-4 (the evidence described the old tree), push, and return the new head SHA.` : ''}
-Return {pr, head_sha, summary}.`
+Return {pr, head_sha, summary} where pr is the PR NUMBER as an integer. If you could not open a PR -- you ran out of budget, the gate never went green, anything -- return pr: null with the reason in summary, and post the contractual "state at stop:" comment on every issue first. NEVER put prose in the pr field: a sentence there satisfies the schema, is read as a PR number, and sends a reviewer to a PR that does not exist.`
 
 const reviewerPrompt = (g, fix, round) => `You are the adversarial fix reviewer for PR #${fix.pr} (group ${g.group}, head ${fix.head_sha}), in a fresh context. ${GH} ${WT_REVIEW(g.group + '-' + round, fix.head_sha)}
 Read tools/audit/briefs/fix-review.md and follow it. You are not checking that the code looks right; four implementations on this project looked right and were wrong, one worse than its bug. Check that the numbers are real: re-run the mutation proof the body names and confirm those checks fail; measure with the FINDER's harness rather than the fixer's, at ${fork} and at ${fix.head_sha}, printing your own RESULT lines; re-run every null control and both-ends check the body claims; run env_drift.py --all (and card_drift.mjs for card changes) against the merge base and confirm every moved fixture is claimed, every claim moved, and no may-drift fixture is claimed; run python3 tests/structure.py against origin/main's budgets and require any loosened metric to be named and argued in the body; confirm VERSION, the manifest and the notes heading are untouched; attack the fix at other topologies, other price profiles and the zero-evidence install; confirm the head SHA in the body is the head you measured. ${GATE}
@@ -167,12 +168,31 @@ const runGroup = async (g) => {
   const fm = g.fixerModel ?? 'opus'
   const rm = g.reviewerModel ?? 'opus'
   const ef = g.effort ?? 'high'
-  const FIX = { type: 'object', required: ['pr', 'head_sha'] }
+  const FIX = { type: 'object', required: ['pr', 'head_sha'],
+    properties: { pr: { type: ['integer', 'null'] }, head_sha: { type: ['string', 'null'] } } }
   const VERDICT = { type: 'object', required: ['verdict'] }
 
-  let fix = await agent(fixerPrompt(g), { model: fm, effort: ef, label: `fix ${g.group}`, phase: 'Wave', schema: FIX })
-  if (!fix?.pr) fix = await agent(fixerPrompt(g), { model: fm, effort: ef, label: `fix ${g.group} (retry)`, phase: 'Wave', schema: FIX })
-  if (!fix?.pr) return { group: g.group, issues: g.issues, pr: null, merged: false, reason: 'fixer returned no PR after one retry' }
+  // A group whose PR is already open -- because an earlier run of this wave was
+  // killed after the fixer finished -- starts at the ADVERSARIAL REVIEWER. Re-running
+  // a finished fixer redoes the work and, worse, hands the reviewer a head nobody
+  // measured. Set resume: {stage:'review', pr, head_sha} on the group to do that;
+  // resume: {stage:'fix', pushed_sha, what, missing} instead tells a fixer it is
+  // continuing from a pushed branch rather than starting clean.
+  let fix
+  if (g.resume?.stage === 'review') {
+    fix = { pr: g.resume.pr, head_sha: g.resume.head_sha }
+    log(`${g.group}: resuming at review -- PR #${fix.pr} at ${fix.head_sha}`)
+  } else {
+    fix = await agent(fixerPrompt(g), { model: fm, effort: ef, label: `fix ${g.group}`, phase: 'Wave', schema: FIX })
+    // Number.isInteger, not truthiness: a fixer that returns its excuse as the pr
+    // field satisfies the schema, and `!fix.pr` is false for a non-empty string.
+    if (!Number.isInteger(fix?.pr)) {
+      if (fix?.pr) log(`${g.group}: no usable PR number (${JSON.stringify(fix.pr).slice(0, 160)}) -- retrying`)
+      fix = await agent(fixerPrompt(g), { model: fm, effort: ef, label: `fix ${g.group} (retry)`, phase: 'Wave', schema: FIX })
+    }
+    if (!Number.isInteger(fix?.pr)) return { group: g.group, issues: g.issues, pr: null, head_sha: fix?.head_sha ?? null,
+      merged: false, reason: `fixer opened no PR after one retry: ${JSON.stringify(fix?.pr ?? null).slice(0, 300)}` }
+  }
 
   let review = await agent(reviewerPrompt(g, fix, 1), { model: rm, effort: 'high', label: `review ${g.group}`, phase: 'Wave', schema: VERDICT })
   if (review && review.verdict !== 'merge') {

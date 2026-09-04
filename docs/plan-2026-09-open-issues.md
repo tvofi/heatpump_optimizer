@@ -51,11 +51,43 @@ Where this table and a wave body disagree, this table is the truth.
 | 1a | the stress ruler, alone on an idle box | #346 | v6.3.11 | **done** — W1-G7 merged PR #378 (`291ae76`), 0 unstamped |
 | triage B1 | read-only judges, run beside the ruler | #281 #225 closed; #303 #224 #193 re-scoped | — | **done** |
 | triage B2 | solver, suite, browser and timing judges | #304 #258 re-scoped; #242 weakened to a structural zero | — | **done** for the read-only three; #291 #232 still owed a quiet box |
-| 1b | gate instruments, suite gaps, card, stores | 26 issues in 14 groups | v6.3.11 | prepared |
+| 1b | gate instruments, suite gaps, card, stores | 26 issues in 14 groups | v6.3.12 | **held** — W1-G1 merged; #385 reviewed, #384 repaired, #386 open, all held behind #387 |
+| — | **#387, the blocker**: the basin coverage floor is runner-dependent | #387 | v6.3.12 | **in flight** in PR #388, alone |
 | 2 | coordinator lifecycle, learners, options grouping | #236 #237 #240 #239 #243 #283 #284 #279 #278 #277 #244 #325 #280 #198 | v6.3.12 | pending |
 | 3 | solver, DHW planner, GIL process route | #232 #234 #289 #290 #199 | v6.3.13 | pending — **W3-G4 is struck**, #242 has no admissible formula |
 | 4 | the #193 decomposition programme, S0–S13 | #193 #223 #224 #225, and **#304 as S11's precursor** | one per stage | pending |
 | 5 | typing lane, and the coverage deficit #195 raised | #303 #195 | per tranche | pending — **#304 moves ahead of S11**, see below |
+
+### The #387 blocker, 2026-09-04
+
+`main` is red on roughly half of all merges and the v6.3.12 stamp is blocked
+behind it, from a regression this programme itself introduced in #346 / PR #378
+and released as v6.3.11. Every push to `main` forces `GATE_SCOPE=full`, so
+`tests/stress.py` runs on every merge; its coverage check demands **≥ 40 of 51**
+scenarios land in a *recorded* solver basin, and on a runner whose basins are not
+the recorded set it gets **29**.
+
+Exactly 22 entries in `tests/stress_budgets.json` carry an `alt_basins` list, and
+exactly those 22 flip together — one cause (the CPU model and its BLAS kernels
+choosing the multi-start basin), one cohort. The floor was sized on the
+assumption in its own comment that "a third platform may hold a third basin *for
+some scenario*", i.e. that the misses are per-scenario and independent, leaving
+eleven scenarios of slack. They are not independent. Four full-scope pushes after
+#378: two green, two red, on commits differing only in INERT paths.
+
+The owner chose **the `env_drift` shape** — capture each scenario's solver work
+twice in one run, tree and merge base, compare computed against computed, no
+basin table — at an accepted **≈ +500 s** on full-scope runs, and chose to fix it
+**alone before anything else merges**. Recording the observed basins was rejected
+as a treadmill (the `ubuntu-latest` fleet is heterogeneous and not enumerable, so
+each new runner model contributes another basin for all 22); lowering the floor
+was rejected as discarding what #346 existed to buy.
+
+The general lesson, which the remaining gate-instrument groups are now reviewed
+against: **one CI runner is not the fleet.** #378's reviewer asked exactly the
+right question — whether a 2× regression is still caught on a machine whose
+basins are not the recorded set — and the answer was measured on a single runner
+and generalised.
 
 ### What triage changed, 2026-09-04 (batch B2)
 
