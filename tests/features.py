@@ -2421,6 +2421,44 @@ def _grad_parity(two_zone, wood=False, valve=None, extra_cfg=None, label="",
 
 import heatpump_optimizer.optimizer as _grad_optmod
 
+
+def _d903_jac_f0_reuses_fun():
+    """#288: jac f0 must not re-run the objective at scipy's last x."""
+    raw = []
+
+    def obj(x, *_a):
+        raw.append(np.asarray(x, dtype=float).tobytes())
+        d = np.asarray(x, dtype=float) - 1.0
+        return float(np.dot(d, d))
+
+    def batch_obj(mat, *_a):
+        d = np.asarray(mat, dtype=float) - 1.0
+        return np.einsum("ij,ij->i", d, d)
+
+    n = 8
+    bounds = [(-2.0, 2.0)] * n
+    res = _grad_optmod._multi_start_minimize(
+        obj, [np.zeros(n), np.full(n, 0.4)], bounds, maxiter=20,
+        batch_objective=batch_obj, fd_eps=1e-4,
+    )
+    consecutive_dups = sum(
+        1 for i in range(1, len(raw)) if raw[i] == raw[i - 1]
+    )
+    R.check(
+        "D9-03 jac f0 reuses scipy's last objective evaluation (#288)",
+        consecutive_dups == 0,
+        f"{consecutive_dups} consecutive duplicate objective evaluations "
+        f"in {len(raw)} raw calls; nfev={int(res.nfev)} njev={int(res.njev)}",
+    )
+    R.check(
+        "D9-03 memo solve still reaches the quadratic minimizer",
+        bool(np.allclose(res.x, 1.0, atol=1e-3)),
+        f"x={res.x[:4]} fun={float(res.fun)}",
+    )
+
+
+_d903_jac_f0_reuses_fun()
+
 # Space-only, uniform bounds (the historical five, unchanged).
 _grad_parity(False, label="single-zone")
 _grad_parity(True, label="two-zone")
