@@ -48,6 +48,16 @@ A new tracked file must be **deliberately classified** — put in a measured
 closure, or on `tests/closure.py`'s `INERT` list — or `tests/entities.py` fails
 with *"these force the FULL suite when touched"*.
 
+## Programme tracking (#201)
+
+After each programme merge — wave group, tooling the plan tracks, or a closed
+tracked issue — the same session or an immediate record PR updates
+`docs/plan-2026-09-open-issues.md` Delivery-status (authoritative vs wave
+body; if they disagree, fix the table first), the roster `resume` fields in
+`.claude/workflows/wave-*-groups.json`, and posts one #201 comment per
+meaningful state change (merge, block, wave start). Do not wait for a stamp
+to truth the table. See `.cursor/rules/delivery-status-tracking.mdc`.
+
 ## Programme plans and the brief linter
 
 Load-bearing citations go in `.claude/workflows/wave-*-groups.json` in a form
