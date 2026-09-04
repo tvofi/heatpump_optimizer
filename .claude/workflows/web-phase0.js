@@ -37,7 +37,10 @@ no measurement reason. Decide it, do not assume it:
     how the gate reports a change it cannot reason about -- a gate file, or
     a file in no recorded closure -- and it then runs every script including
     stress.py. It prints ZERO selected scripts while meaning the opposite of
-    zero, so key on the mode line, never on the count.
+    zero, so key on the mode line, never on the count. That line only exists
+    on a branch; a push to main forces GATE_SCOPE=full through the job
+    environment, which skips the code that prints a mode line at all -- the
+    only evidence in that log is the env line GATE_SCOPE: full.
   * "$D/scope.run" names tests/stress.py  ->  TAKE THE LOCK.
   * otherwise  ->  NO LOCK. Run the scripts scope.run names, directly.
 
