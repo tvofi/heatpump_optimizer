@@ -1,0 +1,245 @@
+{
+ "_comment": [
+  "Wave 1b of the open-issues programme (docs/plan-2026-09-open-issues.md), as executed.",
+  "EXECUTABLE, not merely informative: every group carries a `resume` field naming where it restarts --",
+  "  done (skip), merge (skip to the merge chain), review (skip the fixer), fix (continue from a pushed branch).",
+  "  web-fix-wave.js reads these. Feeding this file to the wave script without them would re-run fixers over",
+  "  finished work and hand reviewers heads nobody measured.",
+  "Committed so an aborted session can resume the wave from the same briefs rather than",
+  "re-deriving them: every brief carries the corrections the triage judges made to the",
+  "plan of record, and several of them exist only to stop a fixer re-doing refuted work.",
+  "Split into two halves only because this box runs two agents at a time; the halves share",
+  "one fork, so a group in half II may depend on a group in half I only through main.",
+  "Consumed by .claude/workflows/web-fix-wave.js as its `groups` argument."
+ ],
+ "fork": "a2c498229ef2d339ac8523d3f77a6fa308ed3ef7",
+ "fork_note": "v6.3.11 + #381; both halves were cut from it. STALE AS A FORK FOR NEW WORK: main has since taken #382, #383, #389 and will take the #387 fix. Groups with a resume field continue on their existing branch and merge origin/main; W1-G2 and W1-G11, which never started, must be cut from main as it is when they start, not from this SHA.",
+ "session": "claude-web",
+ "repo": "/home/user/heatpump_optimizer",
+ "halves": {
+  "I": [
+   "W1-G1",
+   "W1-G2",
+   "W1-G3",
+   "W1-G4",
+   "W1-G11",
+   "W1-G10",
+   "W1-G5"
+  ],
+  "II": [
+   "W1-G6",
+   "W1-G8",
+   "W1-G12",
+   "W1-G13",
+   "W1-G14",
+   "W1-G15",
+   "W1-G9"
+  ]
+ },
+ "groups": [
+  {
+   "group": "W1-G1",
+   "issues": [
+    370,
+    369
+   ],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "fixture": false,
+   "after": [],
+   "brief": "Two changes to tests/structure.py, landing together because they are the two halves of making the budget table trustworthy before #350 makes re-recording mandatory.\n\n#370 -- record_budgets() refuses by default. Today --record rewrites every row from the current tree, so it cannot distinguish locking in a gain from laundering a regression, and the tool cannot tell the row you meant to change from the row that came along (that happened twice on 2026-09-03, both caught by a human noticing). Refuse a re-record that moves any metric the wrong way unless --allow-regression=\"<reason>\" is passed, and write that reason into the COMMIT rather than the PR body. THE DIRECTION IS UNIFORMLY new > old FOR ALL 22 METRICS -- do not build a per-metric direction table, that is one more hand-maintained list to rot. THE CHECK MUST SKIP FRACTION_METRICS (single member: cross_seam_fraction). This REVERSES the issue body, and the argument is structural: a tolerance metric passes inside its band, so there is nothing to record, and fails outside it, so it is a decision -- there is no third case, and re-recording one can only ever loosen the band. Print old and new side by side with the direction named. Keep #363's resolvable merge-base recorded_at on the path that proceeds.\n\n#369 -- duplication_blocks has never been able to fire: the longest duplicated run in the tree is 19 lines against a 30-line window, so the metric has been reporting 0 since the day it was recorded. DUP_BLOCK_LINES 30 -> 10 (tests/structure.py:126) and re-record duplication_blocks 0 -> the measured value, quoting the rows in the commit. Two things the fixer must SHOW rather than assert: that the count is still 0 at window 20 (which is what proves it had never been able to fire), and a duplication you construct that the new window catches. Re-measure the row line numbers on the fork rather than trusting the issue -- thermal_model's rows moved about +17 lines since it was filed, and the count is a measurement, not a target.\n\nBoth touch tests/structure_budgets.json, so they are one PR. cross_seam_fraction is never re-recorded.",
+   "resume": {
+    "stage": "done",
+    "merged_pr": 383,
+    "merge_sha": "b0703f7b7e0af96026e8272830b8ccd9a451803e",
+    "note": "#369 and #370 closed. Listed only so the roster stays complete; the wave script skips a done group."
+   }
+  },
+  {
+   "group": "W1-G2",
+   "issues": [
+    350,
+    374
+   ],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "fixture": false,
+   "after": [
+    "W1-G1"
+   ],
+   "brief": "The other half of the ratchet, on top of W1-G1's guarded --record.\n\n#350 -- headroom is advisory and has never once been acted on (0 for 6). Make an improving metric FAIL rather than print a note. Two things decide whether this is a good gate or a hated one: the failure must print the exact runnable command (python3 tests/structure.py --record) and it must be framed as 'you made this better, write it down' -- a gate that scolds a pull request for improving the tree will be worked around, and then it protects nothing. #370's fourth comment adds a requirement the body does not have: an explicit category for metrics that are DELIBERATELY never re-recorded, or the two correct decisions already taken on cross_seam_fraction become gate violations the moment re-recording is mandatory. Acceptance, all four executed: replay #338 (five metrics improved, all named); replay a zero-headroom commit (silent); a worsening still fails; --record writes a recorded_at that is an ancestor of origin/main.\n\n#374 -- the table has max_class_loc but no max_method_loc and no max_cc, so optimize could double to 1,080 lines at complexity 174 with all 22 budgets unmoved. Both tables are ALREADY built and sorted in measure() (monsters, cc_scores), so this is two lines plus their budget entries. Plain counts, so the existing current > budget arm handles them: no tolerance, no new polarity, no interaction with the FRACTION_METRICS exemption. REJECT sum_cc AND PUT THE REASON IN THE DOCSTRING, not only in the issue -- it is the obvious next proposal and it is wrong, because splitting a CC-87 method into a parent and four helpers lands near 100, so a sum_cc budget would fail the exact refactor #224 exists to perform. The acceptance test that matters is the replay: run 4a7bdb6^ -> 4a7bdb6 (a legitimate extraction) and show both maxima UNCHANGED.\n\nAdding the two keys forces a re-record in the same commit (the two-way key-set check), which is why this rides behind #370's guard rather than in front of it."
+  },
+  {
+   "group": "W1-G3",
+   "issues": [
+    372,
+    357
+   ],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "fixture": false,
+   "after": [],
+   "brief": "One question in two issues: which files are genuinely inert, and does anything check that answer.\n\n#372 -- stamp.py's --self-test is invoked by nothing and is in no closure, so the release gate's own test has never run. USE THE THIRD OPTION FROM THE ISSUE'S COMMENT, NOT EITHER OPTION IN THE BODY: narrow tests/closure.py's INERT entry from 'tools/' to 'tools/audit/', and wire --self-test into a lane. tools/ is on INERT because it holds write-once round-2 audit evidence -- that is tools/audit/ specifically; stamp.py was exempt only by sharing a prefix. Narrowing moves exactly one file into the must-classify set (git ls-files tools/ | grep -v '^tools/audit/' returns tools/release/stamp.py alone), the recorder then pulls the test into scope on its own, and a future change to stamp.py selects its test automatically -- no exemption, no hidden call site. Re-derive the affected closure with ./tests/derive_closures.sh under the gate lock -- a FULL derive, not --single: this diff changes closure.py itself, so the gate reports MODE: FULL and the single-script path cannot produce a table the gate will accept. The blocked review on #372 (comment 5537527625) says so with the traces, and its four red checks all reduce to the un-re-derived table. Never hand-edit closures.json. Then break one pure piece of stamp.py and show the suite goes red; a test wired in but not selected is the same defect one level up.\n\n#357 -- quality_scale.yaml is on INERT and inside two recorded closures (env_drift.py and golden.py) at the same time. closure.py merge would fail on it today, and --record-only is what hides that: derive_closures.sh and both CI paths pass it, so the contradiction check never runs. DECIDE BY MEASUREMENT, NOT BY READING: change the file, capture env_drift and golden output both ways, and see whether anything moves. If it genuinely affects output it belongs off INERT; if not, the recorded closures over-approximate, which is documented and accepted (#251/D3-09 was closed wontfix on exactly that ground) and the RECORDER is what needs looking at. Either way, add the assertion that no file is both INERT and in any recorded closure, on the path CI actually runs, and SHOW IT FAILING ON TODAY'S TREE FIRST -- the general form of this issue is that a check whose failure is visible and one whose failure is blocking look identical in a passing run.\n\nBoth edit the INERT tuple, so they are one PR: #357's new assertion is exactly the check that must not break when #372 narrows the prefix.",
+   "resume": {
+    "stage": "fix",
+    "pushed_sha": "e3f5ce9349a2b3f3c7e5c951bcdc948eba5c870b",
+    "what": "tests/closure.py +95/-9 and tests/entities.py +122: INERT narrowed tools/ -> tools/audit/, stamp.py --self-test wired in, NEVER_WIDENED added, inert_closure_violations() called from merge() and check()",
+    "missing": "the re-derived tests/closures.json, the #357 mutation proof, a local gate run, the PR and its review. This group has ALREADY been adversarially reviewed without a PR -- 'Fix review: blocked' on issue #372 comment 5537527625 carries a numbered six-step resume list AND an explicit list of what needs no redoing (the #372 mutation proof, the env_drift null and positive controls with sha256 6111753c/954ffb6a, three raw closure traces, env_drift --all, structure.py, release-identity). Read it before touching anything."
+   }
+  },
+  {
+   "group": "W1-G4",
+   "issues": [
+    373
+   ],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "fixture": false,
+   "after": [],
+   "brief": "FIRST, decide whether to build it at all, and say so on the issue with the number. This issue's own body records the fact that disqualifies it as a measurement -- zero attribute-key removals in 52 commits -- so it is a judgement about an unwitnessed vector, and the owner has asked that such calls be settled with numbers rather than assertion. Measure the exposure: how many published attribute keys exist (32 classes, about 151 keys), how many are referenced by any test today (about 62 are not), and what a removal would cost a user (an attribute key reaching automations and templates, with no error anywhere when it goes). If the table does not earn its keep, close the issue with that measurement and stop.\n\nIf it does: add _PUBLISHED_ATTRS: dict[str, frozenset[str]] beside the pinned Diagnostic roster in tests/entities.py (the _expected_diagnostic / _actually_diagnostic pattern, symmetric-difference comparison), populated from entities the file already constructs. EXACT EQUALITY PER CLASS, NOT SUBSET CONTAINMENT -- a subset check passes on precisely the deletion this exists to catch. INCLUDE climate.py: 31 keys, the largest single publisher and the easiest to omit. State both holes in the comment rather than papering over them: a key that is kept but published None forever still passes, and deleting a key together with its table line in one change is bounded only by review.\n\nTest-only; no production change; no fixture moves. The fork already contains #368, which changed climate.py's and sensor.py's attributes, so measure against the fork rather than against the issue's numbers.",
+   "resume": {
+    "stage": "review",
+    "pr": 384,
+    "head_sha": "f1063e20a1b90f59d682ab2095137f256a422901",
+    "note": "BLOCKED at the earlier head 5b97e24 (PR #384 comment 5537365998): the pinned table covered only the empty-plan branch of _PlanSensorBase, so deleting slots/total_cost/total_energy_kwh/active_now/next_slot_start/slot_count still gave ALL 834 ENTITY CHECKS PASSED -- 30 of 290 class/key pairs unpinned. Commit f1063e2 is the repair (23 keys per plan sensor, 290 pairs) and has NO review. Re-review at this head."
+   }
+  },
+  {
+   "group": "W1-G11",
+   "issues": [
+    246,
+    251
+   ],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "fixture": false,
+   "after": [
+    "W1-G4"
+   ],
+   "brief": "Two independent assertion gaps, grouped because both are test-only and neither is in tests/features.py.\n\n#246 -- PredictiveInsightSensor can lose all its attributes and no script notices. The panel corrected the count to 20, not 21. THE ASSERTION IS ALREADY WRITTEN: tools/audit/round2/D3/verify3-assertions.patch (committed, its tests/entities.py hunk) carries it -- re-anchor that hunk to the current file rather than writing it fresh, and credit it. Pin the published key SET and each value. If W1-G4 landed a _PUBLISHED_ATTRS table, this sensor's entry belongs in it rather than beside it.\n\n#251 -- one unparsable Open-Meteo timestamp would discard the whole forecast block, and the skip is untested. Add one malformed stamp to a sample block in tests/open_meteo.py and assert the other three survive and the resolution still holds. The panel weakened the consequence and the fixer should not overstate it: the failure is LOUD (the whole cycle fails and every entity goes unavailable), not silent, which is why it stays low.\n\nAfter W1-G4 because both touch tests/entities.py's closure."
+  },
+  {
+   "group": "W1-G10",
+   "issues": [
+    247,
+    248,
+    249,
+    250,
+    252
+   ],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "fixture": false,
+   "after": [],
+   "brief": "Five surviving mutants in tests/features.py, all confirmed by a full unscoped gate: each of these production branches can be deleted and the suite stays green. Test-only, zero production change, zero fixtures. Source material is COMMITTED and should be reused rather than rewritten: tools/audit/round2/D3/verify3-assertions.patch (hunks for all seven gaps) and tools/audit/round2/D3/mutants/M*.patch (the mutation proofs). features.py is now about 19,357 lines, so re-anchor rather than apply blind.\n\n#247 hours_until_next_window's inside-a-window branch: direct unit checks -- inside returns 0.0 at two hours, outside, wrapping midnight, and [] returns None. DO NOT add a golden scenario that starts inside a window: the panel voided that half of the fix scope, because dhw_schedule_off's window spans the whole day so mutant and shipping code agree there.\n\n#248 the DHW setpoint advisor's negative-price floor: the assertion ALREADY EXISTS at features.py:8307 ('hotter tanks cost more per day') and has simply never been fed a non-positive price; tests/profiles.py:39 already ships an unused summer_negative. Feed it. At -0.4 the recommendation flips 48 -> 60 C and every cost_per_day goes negative.\n\n#249 a non-finite grid-fee rate ('= nan', '= inf') passes rule validation: the production guard exists (np.isfinite, grid_fee.py:152) and nothing tests it. Two or three negatives through is_valid_spec for nan/inf/-inf plus one parse_rules raise. Seat 2 raised this low -> medium uncontested: a legal config-flow string yields +46.5% commanded power and the magnitude audit is blind to it because abs(nan) > worst is False.\n\n#250 a corrupt lead_sigma KEY in the accuracy store: extend the malformed-store fixture with a non-numeric key ({'abc': 0.4, '3.0': 0.5}) and assert from_dict does not raise and drops only that bucket. Correct the consequence: it does NOT abort coordinator setup -- it kills one of twelve fire-and-forget loader tasks, leaving five or six learners at defaults every startup.\n\n#252 a future-stamped state yields a negative published age_minutes: one reading stamped 30 minutes ahead, assert age_minutes == 0.0 and ok is true. The stated mechanism is FALSE -- features.py already computes a negative age 13 times and asserts nothing -- and that 13 is a calendar artefact of the frozen fixture clock, so do not build a check on the number.",
+   "resume": {
+    "stage": "merge",
+    "pr": 385,
+    "head_sha": "bf9bda67a7aae123dc932923f4db2611e8a80ca8",
+    "note": "Already carries 'Fix review: merge' at this exact head (PR #385 comment 5537373789): five finder mutants alive at merge base a2c4982 and dead at head, 1719->1728 checks, env_drift --all clean 55/55, budgets byte-identical. A re-review would be redundant; it needs only merging, once main is trustworthy."
+   }
+  },
+  {
+   "group": "W1-G5",
+   "issues": [
+    334
+   ],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "fixture": false,
+   "after": [],
+   "brief": "Docs-only PR on main, no code; tools/ and docs/ are INERT so the gate scopes to almost nothing. TAKE THE TRIAGE JUDGE'S RE-SCOPED BODY ON #334, NOT THE ORIGINAL PLAN -- the judge found the residue is real but is NOT the one the plan named, and got the harnesses backwards.\n\nRewrite tools/audit/README.md:244-255 so it stops contradicting tools/audit/round2/HARNESSES.md, which #348 added to the same main without touching this file. The corrected facts, measured by the judge at origin/main: D6/claims.py is REPAIRED at the tag (the plan and the README both say it is broken); D9/d9lib.py is the one STILL DEAD, in ten files, with an IndentationError at tests/stress.py:1024 against the guard at :1020; and the tag HAS been swept. So delete or restate 'Two harnesses do not run at all' and 'The tag has not been swept, so the other nine dimensions are unmeasured rather than clean' -- or reduce the whole section to a pointer at HARNESSES.md, which is now the accurate record.\n\nIn both README.md and HARNESSES.md, name the three SHAs the tag move left undocumented, because git grep for any of them on main is currently empty: recorded at c398fc8 (which contains no tools/audit/round2/ at all, which is why the two-tree recipe exists), archived at de668be, runnable at 757e164 where audit-round2-evidence points today, with de668be still reachable.\n\nAlso correct the coverage_suite.sh drift record from ONE omitted script to THREE -- tests/config_flow_steps.py and tests/structure.py are both unconditional in run.sh's lanes and both missing from the frozen SCRIPTS list -- and derive that list from tests/run.sh rather than restating it, since a hand-maintained copy of a list is exactly what froze it at the tag and made #304's and #195's figures wrong. Record the D6/rolling_learning.py latent twin: the same exec(compile(prefix)) construction against tests/rolling.py, alive only because rolling.py has no __main__ guard, so it will break the way stress.py's did.\n\nLeave D6/claims.py's own defect documented-not-fixed: it cuts README.md on markers that embed the counts it checks, so it is a drift detector broken by drift, and there is no recorded number to validate a change against.",
+   "resume": {
+    "stage": "review",
+    "pr": 386,
+    "head_sha": "e3a297fcaed3e7b2c54c4811da2c0819f123e5b4",
+    "note": "PR open with zero comments; no review recorded. Docs only, under the INERT tools/ prefix."
+   }
+  },
+  {
+   "group": "W1-G6",
+   "issues": [
+    288
+   ],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "fixture": false,
+   "after": [],
+   "brief": "The batched jacobian re-evaluates f(x) that scipy has just computed: 2n scalar simulate_steps per gradient where n would do. The judge measured f0_x_identity = 1.000 -- 103 of 103 _batch_fd_gradient calls arrive at an x byte-identical to scipy's immediately preceding objective call -- so the second evaluation is pure waste, not a different point. Wrap the objective in a one-entry cache keyed on x.tobytes() plus the args, shared by scipy's fun and the jac's f0; the closure is around optimizer.py:366-373, inside module-level _multi_start_minimize. About 15 production lines. The panel already implemented and measured this: trajectories per gradient 201.32 -> 100.66, and 0 of 49 fixtures change with 8 fields bit-identical, so a moved fixture means the fix is wrong, not that the fixture drifted.\n\n_multi_start_minimize MUST STAY TOP-LEVEL in optimizer.py: tests/optimality.py mocks it by that path in three places.\n\nW1-G7 (#346, the stress ruler) has ALREADY MERGED before this wave started -- that is why it is not an after-edge here. It matters for one reason: halving the scalar step count makes the sweep about twice as cheap, and SCENARIO_STALE_FACTOR (3.0) fails a scenario that gets more than 3x CHEAPER as well as one that gets slower. If a stress re-record is needed it must happen under W1-G7's replacement statistic, or the budget is refitted around the old ruler."
+  },
+  {
+   "group": "W1-G8",
+   "issues": [
+    238
+   ],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "fixture": false,
+   "after": [],
+   "brief": "Store loaders crash on corrupt payloads: each loader's try wraps async_load but not the stored.get(...) that follows, so payloads like [1,2,3], 'nonsense' and 7 raise AttributeError out of the loader. The judge reproduced 152 of 2000 fuzzed payloads crashing, with 74 repeating on every restart. Widen the try in the ten loaders, or in the six from_dict parsers -- _async_load_manual_plan is the template that already does it right. PRIORITISE _async_load_thermal_learning: seat 2 measured that 65 of the 74 repeaters self-heal within about an hour, and thermal_learning is the only permanently lost one, so that is where the user-visible harm is.\n\nMost of the surface is outside coordinator.py (price_model.py from_dict, defrost.py, wear.py, curve_learning.py, freq_control.py, dhw_draws.py, accuracy.py), which matters because the structural ratchet is at ZERO HEADROOM on every coordinator metric: coordinator_loc 10394 <= 10394, methods 255 <= 255, attrs 176 <= 176. Any line this adds to that class must be paid for elsewhere in the same PR (PR #368 is the precedent -- it left the class 29 lines smaller) or re-recorded as an argued decision in the commit. Do not silently re-record.\n\nUse the finder's store_fuzz harness from tag audit-round2-evidence (757e164), copied into the tree under test; report the before and after fuzz counts."
+  },
+  {
+   "group": "W1-G12",
+   "issues": [
+    260,
+    261,
+    263,
+    266
+   ],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "fixture": true,
+   "after": [],
+   "brief": "One pass over the dashboard card's style block and series definitions. Card markup changes move card_drift states, so claim each moved state in tests/golden/card_claimed_drift.txt with its reason; that file's claims-for: line must equal the repo-root VERSION, checked by both card_drift.mjs and card.mjs.\n\n#260 primary-colour text and the Save button render at 2.63:1 in Home Assistant's default light theme. Replace var(--primary-color) where it is TEXT with a text-safe token (the accent can stay as border or fill); .wi-save needs its own AA-clearing pair. THE ISSUE'S OWN PROPOSED REPLACEMENT IS 3.86:1 AND STILL FAILS -- measure the replacement, do not adopt it. Measure at >= 4.5:1 both in HA's default light theme AND with every HA token stripped, because the 2.63:1 also holds on the card's own fallbacks. Sites: cardStyleBlock's .wi-apply, .wi-save, .wi-viewreset, .layout-verdict.match, and the now/next markers.\n\n#261 opacity-faded text falls below AA (.setup-slot.empty at 0.75, .chip.off at 0.4). Express 'empty' and 'off' with a colour or italics that clears 4.5:1 rather than with opacity; leave genuine inactive-control exemptions alone. The fix is confirmed working at opacity 1 (4.81:1).\n\n#263 three of seven series colours are below WCAG 1.4.11's 3:1 non-text threshold on the light card background: price #f5a623 (2.03:1), solar #f2c94c (1.59:1), house temp #2fae7a (2.82:1). Theme-aware light and dark pairs, or darker light values; dark must stay at 0 of 7. The issue's replacement fixes solar only (3 -> 2).\n\n#266 'the same than the saved plan' is ungrammatical, and it shows on EVERY unedited dialog open (delta 0.00), not only after a neutral edit. Give 'the same' a non-comparative template; English only, the Swedish is already correct.\n\nRestate the headlines honestly in the PR body rather than repeating the finder's aggregates: the judge's per-render-set figures are 56 boxes (#260) and 40 rows (#261), and the two overlap, so they must not be summed. Contrast and geometry only count in real Chromium: NODE_PATH=/opt/node22/lib/node_modules PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers node tests/card_browser.mjs, with CI's browser job as the authority."
+  },
+  {
+   "group": "W1-G13",
+   "issues": [
+    262,
+    258
+   ],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "fixture": true,
+   "after": [
+    "W1-G12"
+   ],
+   "brief": "The geometry half of the card work, after W1-G12 because it shares the style block and the claim file. Start by merging origin/main.\n\n#262 with a coarse pointer no control grows. RE-SCOPE BEFORE CODING, and say so in the body: 44 px is WCAG AAA (2.5.5); the AA line is 24 px (2.5.8). Of the 167 targets failing AA, 130 were D4-02 and are already fixed by #333. The honest remaining target is about 37 controls, worst page 42, stock compact 18. Add (pointer: coarse) sizing in cardStyleBlock for buttons, chips, tabs, range inputs and setup rows to the AA 24 px bar -- TARGET_MIN_PX_COARSE exists but is used at only two call sites, both SVG; #333 pixel-floored the SVG lane and slot geometry and nothing else. Then widen tests/card_browser.mjs's 24 px census (around lines 495-520) from SVG rects in the dialog to the HTML controls, or the fix has no witness.\n\n#258 axis labels are clipped and crowded -- RE-SCOPED BY THE TRIAGE JUDGE at 291ae76. Read that comment on #258 and the rewritten body before anything else. Do not re-derive the question and do not close it: the measurement is done, and it overturns the brief you would otherwise have been given.\n\nESTABLISHED. #333 fixed the clipping half: units_with_ink_on_top_row 12/12 at 2385df6 (the merge base of #333) -> 0/12 at main. But #333's uy clamp traded the clipping for a real ink collision. The value-axis unit and the top tick label of its own axis now overlap by 1.00-1.25 px vertically and 4.0-8.5 px horizontally -- the same pixels in two dimensions, not a projection artefact -- on every tile that engages the font floor. 9 of the 13 measurable unit/tick pairs; leave-one-out drops the only unboosted arm (tile-900) and leaves 9 of 9. Present on every tile narrower than about 1125 CSS px, i.e. every phone and every normal dashboard column, absent only on the full-width desktop chart. The geometry: once the font is floored, plotT = MARGIN.top * marginScale = 1.067*font, so plotT - 0.4*font < 0.8*font and the clamp binds at uy = 0.8*font, while the top tick baseline sits at plotT + size/3 = 1.4*font -- 0.60*font apart against a measured glyph ascent of about 0.79*font.\n\nREFUTED, DO NOT PURSUE. The right-axis unit at ux = x + 5 running past the viewBox does not happen. Right-edge headroom on the outermost unit is -32.4 / -21.5 / -52.2 / -80.7 viewBox units across the four arms and ink_at_right_col is false in every one. There is no horizontal residual. The residual is vertical. An earlier version of this brief told you to look for that clamp; it was wrong.\n\nTHE FINDER'S HARNESS IS VOID FOR THIS ROW. tools/audit/round2/D4/card_geometry.mjs reads text_overlap_pairs 941 at main and 941 under a perturbation that demonstrably takes the ink collision 9 -> 0. Never measure #258 with it, and never frame this as overlapping text boxes: that box metric is exactly the one that did not move. Measure with the judge's probe -- WHICH IS NOT COMMITTED ANYWHERE: its source exists only inside the #258 judge comment, so recreate it from there before you can use it, and commit the equivalent as the real-Chromium proximity check this group owes tests/card_browser.mjs. Do not go looking for tests/probe258ink.mjs, whose source is in the #258 comment -- real Chromium, deviceScaleFactor 4, the whole svg hidden and one <text> revealed at a time, PNG decoded by hand for the first and last device row and column carrying ink, root rule dirname(import.meta.url)/.. as in tests/card_browser.mjs. Its two-way control: 12 clipped units at 2385df6 and 0 at main, 9 colliding pairs at main and 0 under the perturbation.\n\nTHE MEASURED FIX, which you start from rather than invent: plotT = Math.max(MARGIN.top * marginScale, font * 1.45) together with the uy offset 4 -> 5.2. Raising plotT alone does not work, because uy tracks plotT. Under that pair: ink_pairs 9 -> 0, min_ink_gap +0.75 px, top-row ink still 0, and the unboosted tile-900 arm improves too (0.00 -> -1.25 px). Confirm those numbers yourself at your own head SHA; if your implementation differs, carry its own before/after from the probe.\n\nWARNING -- THIS IS WHY THE GROUP EXISTS. No committed check can see this defect. tests/card.mjs's DOM stub returns a constant 900x400 rect, so the font floor never engages; tests/card_browser.mjs asserts font sizes and hit targets and never label proximity; CI run 33829697839 at 291ae76 is green with the defect present. So your failing-test-first commit must be a real-Chromium proximity check inside the committed browser lane -- port the probe's per-glyph ink measurement into tests/card_browser.mjs -- or the fix has no witness and the reviewer blocks it. stop_rule_class is hygiene: 1.25 px of ink on an 8 px glyph is a regression and is ugly, nothing is unreadable."
+  },
+  {
+   "group": "W1-G14",
+   "issues": [
+    265
+   ],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "fixture": false,
+   "after": [],
+   "brief": "CARD_VERSION misreports the release in the console banner. The body was corrected on 2026-09-03 and the divergence is GROWING, which is the point: CARD_VERSION 5.4.17 -> 5.4.20 while VERSION went 6.2.14 -> 6.3.9, three card patches against four integration minors in one day. Have tools/release/stamp.py write CARD_VERSION (www/heatpump-optimizer-card.js:14) alongside VERSION and the manifest version, so the banner cannot drift again, and revisit the 'does not run ahead' check's prose at tests/entities.py:6042-6062 in the same PR -- a lagging card stays legal, it just stops happening.\n\nTHE DUPLICATE-COPY GUARD HALF IS REFUTED and must not be touched (it is correct as designed, measured 87% effective).\n\nCARD_VERSION reaches only the console banner (card.js around 9212-9247), not the rendered markup, so a stamp that rewrites it is card-drift-neutral -- confirm that with card_drift.mjs rather than assuming it, and say so in the body. This lands before the wave's stamp so that stamp exercises the new write path. The fork contains the REST-fallback change to the same file; merge origin/main first if the base has moved."
+  },
+  {
+   "group": "W1-G15",
+   "issues": [
+    254
+   ],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "fixture": false,
+   "after": [],
+   "brief": "MEASUREMENT FIRST; the code may turn out to be nothing. The drift gate cannot fail on the five SENSITIVE fixtures: mutant M01 moved wood_coil's baseline_cost 4.3x (156 -> 678) and env_drift still printed 'NO UNCLAIMED DRIFT: 55 scenario(s) checked' with rc 0. The 2026-09-03 comment (written after #355 landed, and still current) widens it: for a fixture carrying a # may-drift: entry, no value change of any magnitude can reach a failure, and #355's structural check catches SHAPE, not VALUES, so it did not fix this.\n\nTWO FIX SHAPES ARE ALREADY REFUTED IN THE ISSUE -- do not re-propose either: a magnitude ratchet (34 of 55 fixtures and 14,461 leaves move from machine identity alone, so any threshold either fires constantly or never), and path-scoped may-drift (env_drift.py:934-948 shows why).\n\nThe deciding experiment: flip a solver basin and record which keys actually move in the five SENSITIVE fixtures and in narrow_band (machine-sensitive but NOT in SENSITIVE, which is its own finding). Do baseline_cost, prices, outdoor_temps and price_known move, or only the plan? If a solver-independent residue exists, partition the keys in code and fail a may-drift fixture on the solver-independent ones. If the residue is empty, say so with the numbers and CLOSE the issue -- a gate of this shape cannot exist, and recording that is worth more than an unsound gate.\n\nThis touches the may-drift block of tests/golden/claimed_drift.txt, and #245 (W1-G9) re-measures under whatever partition lands here, so run before it. A branch here must not CLAIM any fixture: env_drift.may_drift_error refuses a name that is both claimed and may-drift."
+  },
+  {
+   "group": "W1-G9",
+   "issues": [
+    245
+   ],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "fixture": false,
+   "after": [
+    "W1-G15"
+   ],
+   "brief": "wood_share is discontinuous at the flow curve when the HP tank sits within the switch margin: a jump of 1.0, which is 13.44 kW of a 13.44 kW draw, against a docstring that promises continuity. Make the switch reach 1.0 at the curve -- thermal_model.wood_share region 3 (the return around :1152) and the matching v3 branch in _wood_share_vec, which shares the discontinuity bitwise. Keep wood_share_vec_parity at exactly 0.000e+00: the scalar and vector paths must stay bit-identical or a 96-step solve lands in a different basin.\n\nTWO CORRECTIONS. The finder over-listed the drift: it is wood_two_tank_smart_write ALONE, 1 of 55 -- wood_two_tank and wood_coil do not move. And model_sanity.py's header says the maximum jump is 0.5; the true value is 1.0.\n\nDO NOT CLAIM THAT FIXTURE. wood_two_tank_smart_write is in SENSITIVE and already carries a # may-drift: line, and env_drift.may_drift_error refuses a name that is both claimed and may-drift -- a claim would fail the gate by construction. Report the may-drift diff in the PR body instead, and re-measure it under whatever partition W1-G15 lands. That is why this group runs after W1-G15 and why it is marked fixture:false despite moving a fixture.\n\nSeverity context, so the body does not overstate: 0 of 4.8 million recorded solver calls come within 0.5 K of the cliff (closest 1.33 K), and trajectories reconverge to 5.5e-05 C over 96 steps."
+  }
+ ]
+}
