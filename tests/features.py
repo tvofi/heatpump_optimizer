@@ -3561,6 +3561,180 @@ R.check(
     f"restored scale {_restarted._cop_scale}, {_restarted._cop_samples} samples",
 )
 
+# #238: the loader's try wraps async_load but not stored.get / int(), so a
+# list, a string, 7, inf sample counts and a wrapped freq_map raise out of
+# the task. thermal_learning is the store the panel showed does not self-heal.
+R.section("Store loaders discard corrupt payloads (#238)")
+
+for _junk in ([1, 2, 3], "nonsense", 7):
+    _junk_store = _FakeLearnStore()
+    _junk_store.saved = _junk
+    try:
+        _aio.run(_LearnPersist(_junk_store)._async_load_thermal_learning())
+        _survived = True
+        _detail = ""
+    except Exception as _err:  # noqa: BLE001
+        _survived = False
+        _detail = f"{type(_err).__name__}: {_err}"
+    R.check(
+        f"thermal_learning {type(_junk).__name__} payload is discarded, not raised",
+        _survived,
+        _detail,
+    )
+
+_inf_store = _FakeLearnStore()
+_inf_store.saved = {
+    "buffer_cooling_rate": 1.0,
+    "buffer_cooling_samples": float("inf"),
+}
+try:
+    _aio.run(_LearnPersist(_inf_store)._async_load_thermal_learning())
+    _inf_ok = True
+    _inf_detail = ""
+except Exception as _err:  # noqa: BLE001
+    _inf_ok = False
+    _inf_detail = f"{type(_err).__name__}: {_err}"
+R.check(
+    "thermal_learning inf sample count is discarded, not raised",
+    _inf_ok,
+    _inf_detail,
+)
+
+_wrap_store = _FakeLearnStore()
+_wrap_store.saved = {"freq_map": {"0": {"v": [1.0, 1]}}}
+try:
+    _aio.run(_LearnPersist(_wrap_store)._async_load_thermal_learning())
+    _wrap_ok = True
+    _wrap_detail = ""
+except Exception as _err:  # noqa: BLE001
+    _wrap_ok = False
+    _wrap_detail = f"{type(_err).__name__}: {_err}"
+R.check(
+    "thermal_learning wrapped freq_map is discarded, not raised",
+    _wrap_ok,
+    _wrap_detail,
+)
+
+from harness import FakeEntry as _StoreFakeEntry, FakeHass as _StoreFakeHass
+from homeassistant.helpers.storage import _reset_store_disk as _reset_stores
+
+_STORE_LOADERS = (
+    ("_dhw_profile_store", "_async_load_dhw_profile"),
+    ("_thermal_learning_store", "_async_load_thermal_learning"),
+    ("_price_model_store", "_async_load_price_model"),
+    ("_ledger_store", "_async_load_ledger"),
+    ("_accuracy_store", "_async_load_accuracy"),
+    ("_energy_store", "_async_load_energy_totals"),
+)
+
+
+def _store_coord():
+    _reset_stores()
+    return Coord(
+        _StoreFakeHass({}),
+        _StoreFakeEntry(
+            data={
+                "tibber_token": "x",
+                "weather_entity": "weather.home",
+                "indoor_temp_entity": "sensor.indoor",
+                "outdoor_temp_entity": "sensor.outdoor",
+                "dhw_temp_entity": "sensor.dhw",
+                "heat_pump_power_entity": "sensor.hp_power",
+            }
+        ),
+    )
+
+
+for _store_attr, _loader_name in _STORE_LOADERS:
+    for _junk in ([1, 2, 3], "nonsense", 7):
+        _coord = _store_coord()
+        _aio.run(getattr(_coord, _store_attr).async_save(_junk))
+        try:
+            _aio.run(getattr(_coord, _loader_name)())
+            _ok = True
+            _detail = ""
+        except Exception as _err:  # noqa: BLE001
+            _ok = False
+            _detail = f"{type(_err).__name__}: {_err}"
+        R.check(
+            f"{_loader_name} discards a stored {type(_junk).__name__}",
+            _ok,
+            _detail,
+        )
+
+_dhw_junk = _store_coord()
+_aio.run(_dhw_junk._dhw_profile_store.async_save({"hourly_profile": ["x"] * 24}))
+try:
+    _aio.run(_dhw_junk._async_load_dhw_profile())
+    _dhw_ok = True
+    _dhw_detail = ""
+except Exception as _err:  # noqa: BLE001
+    _dhw_ok = False
+    _dhw_detail = f"{type(_err).__name__}: {_err}"
+R.check(
+    "dhw_profile 24-string hourly_profile is discarded, not raised",
+    _dhw_ok,
+    _dhw_detail,
+)
+
+from heatpump_optimizer.price_model import PriceShapeModel as _FuzzPSM
+from heatpump_optimizer.wear import StartCounter as _FuzzStarts
+from heatpump_optimizer.accuracy import AccuracyTracker as _FuzzAcc
+from heatpump_optimizer.dhw_draws import DrawStats as _FuzzDraws
+
+
+def _from_dict_survives(fn):
+    try:
+        fn()
+        return True, ""
+    except Exception as err:  # noqa: BLE001
+        return False, f"{type(err).__name__}: {err}"
+
+
+_ok, _detail = _from_dict_survives(
+    lambda: _FuzzPSM.from_dict(
+        {"shapes": [[1.0] * 24, [1.0] * 24], "days": [float("inf"), 7]}
+    )
+)
+R.check("PriceShapeModel.from_dict swallows inf day counts", _ok, _detail)
+_ok, _detail = _from_dict_survives(
+    lambda: _FuzzPSM.from_dict(
+        {"shapes": [["x"] * 24, [1.0] * 24], "days": [7, 7]}
+    )
+)
+R.check("PriceShapeModel.from_dict swallows non-numeric shapes", _ok, _detail)
+_ok, _detail = _from_dict_survives(
+    lambda: _FuzzStarts.from_dict({"lifetime": float("inf")})
+)
+R.check("StartCounter.from_dict swallows inf lifetime", _ok, _detail)
+_ok, _detail = _from_dict_survives(
+    lambda: _FuzzAcc.from_dict({"lead_counts": {"1.0": float("inf")}})
+)
+R.check("AccuracyTracker.from_dict swallows inf lead counts", _ok, _detail)
+_ok, _detail = _from_dict_survives(
+    lambda: _FuzzDraws.from_dict(
+        {"reservoirs": {"06:00-08:30": [10**30]}}
+    )
+)
+R.check("DrawStats.from_dict swallows a huge-int reservoir event", _ok, _detail)
+
+_huge_energy = _store_coord()
+_aio.run(
+    _huge_energy._energy_store.async_save({"space_cost": 10**30})
+)
+try:
+    _aio.run(_huge_energy._async_load_energy_totals())
+    _huge_ok = True
+    _huge_detail = ""
+except Exception as _err:  # noqa: BLE001
+    _huge_ok = False
+    _huge_detail = f"{type(_err).__name__}: {_err}"
+R.check(
+    "energy_totals huge-int accumulator is discarded, not raised",
+    _huge_ok,
+    _huge_detail,
+)
+
 # --- The learned heat-loss scale survives an options edit (issue #86) --------
 #
 # The store now records the UA the scale was fitted against, and the

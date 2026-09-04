@@ -133,7 +133,7 @@ class Cusum:
             return
         try:
             self.stat = max(0.0, float(data.get("stat", 0.0)))
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
             self.stat = 0.0
         # `is True`, not truthiness: a corrupt payload ("tripped": "yes")
         # must load as a quiet detector, not a latched one.

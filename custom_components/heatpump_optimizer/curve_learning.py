@@ -145,15 +145,15 @@ class CurveLearner:
             return learner
         try:
             learner.bias = float(np.clip(data.get("bias", 0.0), BIAS_MIN, BIAS_MAX))
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
             learner.bias = 0.0
         try:
             learner.comfortable_days = max(0, int(data.get("comfortable_days", 0)))
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
             learner.comfortable_days = 0
         try:
             learner.resets = max(0, int(data.get("resets", 0)))
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
             learner.resets = 0
         learner._last_day = str(data.get("last_day", ""))
         learner._last_step_at = str(data.get("last_step_at", ""))

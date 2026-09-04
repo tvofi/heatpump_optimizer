@@ -406,7 +406,7 @@ class DefrostDerate:
             ):
                 try:
                     return [[cast(v) for v in row] for row in raw]
-                except (TypeError, ValueError):
+                except (TypeError, ValueError, OverflowError):
                     return None
             return None
 

@@ -371,7 +371,7 @@ class AccuracyTracker:
             for key, value in raw_sigma.items():
                 try:
                     parsed = float(value)
-                except (TypeError, ValueError):
+                except (TypeError, ValueError, OverflowError):
                     continue
                 # max(0, NaN) is NaN — a poisoned sigma would reach the
                 # comfort bounds as a NaN margin.
@@ -379,14 +379,14 @@ class AccuracyTracker:
                     continue
                 try:
                     tracker.lead_sigma[float(key)] = max(0.0, parsed)
-                except (TypeError, ValueError):
+                except (TypeError, ValueError, OverflowError):
                     continue
         raw_counts = data.get("lead_counts")
         if isinstance(raw_counts, dict):
             for key, value in raw_counts.items():
                 try:
                     tracker.lead_counts[float(key)] = max(0, int(value))
-                except (TypeError, ValueError):
+                except (TypeError, ValueError, OverflowError):
                     continue
         raw_pending = data.get("lead_pending")
         if isinstance(raw_pending, list):
@@ -395,7 +395,7 @@ class AccuracyTracker:
                     when = datetime.fromisoformat(str(entry[0]))
                     lead = float(entry[1])
                     predicted = float(entry[2])
-                except (TypeError, ValueError, IndexError):
+                except (TypeError, ValueError, OverflowError, IndexError, KeyError):
                     continue
                 # A tz-naive timestamp raises on the first aware
                 # comparison and, because it raises BEFORE pruning, would

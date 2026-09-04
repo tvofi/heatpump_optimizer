@@ -103,14 +103,14 @@ class StartCounter:
             return counter
         try:
             counter.lifetime = max(0, int(data.get("lifetime", 0)))
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
             counter.lifetime = 0
         months = data.get("months")
         if isinstance(months, dict):
             for key, value in months.items():
                 try:
                     counter.months[str(key)] = max(0, int(value))
-                except (TypeError, ValueError):
+                except (TypeError, ValueError, OverflowError):
                     continue
         counter.running = bool(data.get("running", False))
         return counter

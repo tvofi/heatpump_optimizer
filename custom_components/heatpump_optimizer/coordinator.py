@@ -1501,24 +1501,22 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
     def _normalize_dhw_profile(self, profile: list[float]) -> list[float]:
         """Normalize and clamp DHW hourly profile (average ~= 1.0)."""
+        default = self._thermal_params.dhw_hourly_draw_pattern.copy()
         if len(profile) != 24:
-            profile = self._thermal_params.dhw_hourly_draw_pattern.copy()
-
-        cleaned = [
-            float(np.clip(v, DHW_PROFILE_MIN_INTENSITY, DHW_PROFILE_MAX_INTENSITY))
-            for v in profile
-        ]
-        avg = float(np.mean(cleaned)) if cleaned else 1.0
+            return default
+        try:
+            cleaned = [float(np.clip(v, DHW_PROFILE_MIN_INTENSITY, DHW_PROFILE_MAX_INTENSITY)) for v in profile]
+            avg = float(np.mean(cleaned))
+        except (TypeError, ValueError):
+            return default
         if avg <= 0:
-            return self._thermal_params.dhw_hourly_draw_pattern.copy()
-
-        normalized = [float(np.clip(v / avg, DHW_PROFILE_MIN_INTENSITY, DHW_PROFILE_MAX_INTENSITY)) for v in cleaned]
-        return normalized
+            return default
+        return [float(np.clip(v / avg, DHW_PROFILE_MIN_INTENSITY, DHW_PROFILE_MAX_INTENSITY)) for v in cleaned]
 
     async def _async_load_dhw_profile(self) -> None:
         """Load the persisted DHW usage profile and tank cooling rate."""
         try:
-            stored = await self._dhw_profile_store.async_load() or {}
+            stored = dict(await self._dhw_profile_store.async_load() or {})
         except Exception as err:
             _LOGGER.debug("Could not load learned DHW profile: %s", err)
             return
@@ -1548,7 +1546,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 self._dhw_daytype_samples[count_idx] = max(
                     0, int(stored.get(f"{key}_samples", 0))
                 )
-            except (TypeError, ValueError):
+            except (TypeError, ValueError, OverflowError):
                 self._dhw_daytype_samples[count_idx] = 0
 
         rate = stored.get("cooling_rate")
@@ -1557,7 +1555,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         try:
             self._apply_dhw_cooling_rate(float(rate))
             self._dhw_cooling_samples = int(stored.get("cooling_samples", 0))
-        except (TypeError, ValueError) as err:
+        except (TypeError, ValueError, OverflowError) as err:
             _LOGGER.debug("Could not load learned DHW cooling rate: %s", err)
             return
         _LOGGER.info(
@@ -1610,7 +1608,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         except Exception as err:  # noqa: BLE001
             _LOGGER.debug("Could not load DHW draw statistics: %s", err)
             return
-        if stored:
+        if isinstance(stored, dict):
             self._draw_stats = DrawStats.from_dict(stored)
 
     async def _async_save_dhw_draws(self) -> None:
@@ -1960,7 +1958,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     async def _async_load_thermal_learning(self) -> None:
         """Load the learned buffer cooling rate and house heat loss scale."""
         try:
-            stored = await self._thermal_learning_store.async_load() or {}
+            stored = dict(await self._thermal_learning_store.async_load() or {})
         except Exception as err:
             _LOGGER.debug("Could not load learned thermal parameters: %s", err)
             return
@@ -1977,7 +1975,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     self._buffer_cooling_rate,
                     self._buffer_cooling_samples,
                 )
-            except (TypeError, ValueError) as err:
+            except (TypeError, ValueError, OverflowError) as err:
                 _LOGGER.debug("Could not load buffer cooling rate: %s", err)
 
         scale = stored.get("house_heat_loss_scale")
@@ -1992,7 +1990,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     self._house_heat_loss_scale,
                     self._house_heat_loss_samples,
                 )
-            except (TypeError, ValueError) as err:
+            except (TypeError, ValueError, OverflowError) as err:
                 _LOGGER.debug("Could not load house heat loss scale: %s", err)
 
         ratio = stored.get("lower_floor_loss_ratio")
@@ -2007,7 +2005,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     self._lower_floor_loss_ratio,
                     self._lower_floor_loss_samples,
                 )
-            except (TypeError, ValueError) as err:
+            except (TypeError, ValueError, OverflowError) as err:
                 _LOGGER.debug("Could not load lower floor loss ratio: %s", err)
 
         # v5.7.0 (issue #86): the store now records the UA the scale was
@@ -2034,7 +2032,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     self._cop_scale,
                     self._cop_samples,
                 )
-            except (TypeError, ValueError) as err:
+            except (TypeError, ValueError, OverflowError) as err:
                 _LOGGER.debug("Could not load COP scale: %s", err)
 
         # v4.0.0 T4a — the detectors' memory. Absent from every pre-T4
@@ -2054,14 +2052,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                         float(entry[0]),
                         int(entry[1]),
                     ]
-                except (TypeError, ValueError, IndexError):
+                except (TypeError, ValueError, OverflowError, IndexError, KeyError):
                     continue
         raw_events = stored.get("immersion_events")
         if isinstance(raw_events, list):
             self._immersion_events = [str(e) for e in raw_events[-20:]]
         try:
             self._snow_accum_cm = max(0.0, float(stored.get("snow_accum_cm", 0.0)))
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
             self._snow_accum_cm = 0.0
         raw_snow = stored.get("last_heavy_snow")
         if isinstance(raw_snow, str):
@@ -2115,14 +2113,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                         float(entry[0]),
                         int(entry[1]),
                     ]
-                except (TypeError, ValueError, IndexError):
+                except (TypeError, ValueError, OverflowError, IndexError, KeyError):
                     continue
         raw_ap = stored.get("solar_aperture")
         if isinstance(raw_ap, dict):
             for key in ("n", "mx", "my", "cov", "var", "scale"):
                 try:
                     self._solar_aperture[key] = float(raw_ap.get(key, self._solar_aperture[key]))
-                except (TypeError, ValueError):
+                except (TypeError, ValueError, OverflowError):
                     continue
             self._solar_aperture["scale"] = float(
                 np.clip(
@@ -2135,7 +2133,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if isinstance(raw_gains, list) and len(raw_gains) == 24:
             try:
                 self._internal_gains_profile = [float(g) for g in raw_gains]
-            except (TypeError, ValueError):
+            except (TypeError, ValueError, OverflowError):
                 self._internal_gains_profile = None
         raw_curve = stored.get("curve_learner")
         if isinstance(raw_curve, dict):
@@ -3159,7 +3157,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             return False
         try:
             anchor = float(anchor)
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
             return False
         current = self._house_heat_loss_anchor()
         if anchor <= 1e-9 or current <= 1e-9 or not np.isfinite(anchor):
@@ -7316,7 +7314,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         except Exception as err:  # noqa: BLE001 - never block setup on storage
             _LOGGER.debug("Could not load price model: %s", err)
             return
-        if not stored:
+        if not isinstance(stored, dict):
             return
         self._price_model = PriceShapeModel.from_dict(stored.get("model"))
         days = stored.get("days_seen")
@@ -7347,7 +7345,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         except Exception as err:  # noqa: BLE001 - never block setup on storage
             _LOGGER.debug("Could not load ledger: %s", err)
             return
-        if not stored:
+        if not isinstance(stored, dict):
             return
         self._ledger = MonthlyLedger.from_dict(stored.get("ledger"))
         # T6, all additive on the same payload: absent keys on a pre-T6
@@ -7381,7 +7379,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     if k != "day"
                 ):
                     self._score_day = cleaned
-            except (TypeError, ValueError):
+            except (TypeError, ValueError, OverflowError):
                 pass
         score = stored.get("operation_score")
         if isinstance(score, (int, float)) and np.isfinite(score):
@@ -7412,7 +7410,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         except Exception as err:  # noqa: BLE001
             _LOGGER.debug("Could not load accuracy history: %s", err)
             return
-        if not stored:
+        if not isinstance(stored, dict):
             return
         self._accuracy = AccuracyTracker.from_dict(stored.get("accuracy"))
         # v5.2.0, additive key. A store written by an older build has no
@@ -7484,11 +7482,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         except Exception as err:  # noqa: BLE001
             _LOGGER.debug("Could not load energy totals: %s", err)
             return
-        if not stored:
+        if not isinstance(stored, dict):
             return
         for key in list(self._energy_totals):
             value = stored.get(key)
-            if isinstance(value, (int, float)) and np.isfinite(value):
+            if isinstance(value, (int, float)) and np.isfinite(np.float64(value)):
                 # Accumulators must never go backwards, or Home Assistant reads
                 # the drop as a meter reset and creates a spurious spike.
                 self._energy_totals[key] = max(
@@ -9072,7 +9070,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             # Set even on failure: a lost store means an empty ring, and
             # the insurance must keep running rather than disarm forever.
             self._snapshots_loaded = True
-        if stored:
+        if isinstance(stored, dict):
             self._snapshot_ring = SnapshotRing.from_dict(stored)
 
     async def _async_save_snapshots(self) -> None:

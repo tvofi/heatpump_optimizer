@@ -124,7 +124,7 @@ class DrawStats:
                     stats.reservoirs[str(label)] = [
                         float(e)
                         for e in events[-MAX_EVENTS_PER_WINDOW:]
-                        if isinstance(e, (int, float)) and np.isfinite(e)
+                        if isinstance(e, (int, float)) and np.isfinite(np.float64(e))
                     ]
         stats._open_label = str(data.get("open_label", ""))
         stats._open_date = str(data.get("open_date", ""))
