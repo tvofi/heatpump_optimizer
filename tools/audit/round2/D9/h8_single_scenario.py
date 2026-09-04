@@ -97,7 +97,7 @@ def combinations() -> list:
 
 
 COMBOS = combinations()
-HAS_WORK = hasattr(stress, "recorded_evals") and hasattr(stress, "same_basin")
+HAS_WORK = hasattr(stress, "matching_basin") or hasattr(stress, "recorded_evals")
 result("head_has_work_rule", int(HAS_WORK), "bool")
 result("scenarios", len(COMBOS), "count")
 
@@ -166,10 +166,20 @@ def sweep(label_tag: str, mode: str):
     work, flipped = [], []
     if HAS_WORK:
         for n, r in rows.items():
-            rec_ev = stress.recorded_evals(TABLE, n)
-            if rec_ev is None:
+            if hasattr(stress, "matching_basin"):
+                # A scenario may have several recorded basins; the rule
+                # judges the work against the count for the basin this
+                # solve actually landed in.
+                rec_ev = stress.matching_basin(TABLE, n, r["obj"])
+            elif stress.recorded_evals(TABLE, n) is None:
                 continue
-            if not stress.same_basin(r["obj"], stress.recorded_objective(TABLE, n)):
+            elif stress.same_basin(
+                r["obj"], stress.recorded_objective(TABLE, n)
+            ):
+                rec_ev = stress.recorded_evals(TABLE, n)
+            else:
+                rec_ev = None
+            if rec_ev is None:
                 flipped.append(n)
                 continue
             if r["evals"] > rec_ev * stress.SCENARIO_WORK_FACTOR:
