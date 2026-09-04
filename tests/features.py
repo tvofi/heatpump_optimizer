@@ -19645,4 +19645,290 @@ R.check(
     "store_true would make the reason unrecordable",
 )
 
+R.section("#350/#374 — an improvement must be recorded, and the worst method has a budget")
+
+# Same rule as the section above: these drive tests/structure.py's own
+# symbols. `structure as _hpo_st` is already imported there.
+_hpo_h_never = getattr(_hpo_st, "NEVER_RERECORDED", None)
+_hpo_h_imp = getattr(_hpo_st, "improvement_rows", None)
+_hpo_h_report = getattr(_hpo_st, "report_improvements", None)
+
+# ---- #350 ---------------------------------------------------------------
+# Headroom was advisory and had a 0-for-6 record: #338 opened five metrics of
+# slack, the note printed on six consecutive commits including a release
+# stamp, and nobody ever locked it in. For everything in that gap the gate is
+# not loose, it is absent -- five dead symbols could have been reintroduced
+# and #338's own gate would have said nothing.
+_hpo_h_budgets = {
+    "coordinator_loc": 10394,
+    "max_class_loc": 10394,
+    "internal_call_edges": 379,
+    "methods_over_150": 23,
+    "cross_seam_fraction": 0.4289,
+    "recorded_at": "4b6e076517431bd8658530c5ac751f2b7ddb7ef6",
+}
+_hpo_h_better = {
+    "coordinator_loc": 10365,
+    "max_class_loc": 10365,
+    "internal_call_edges": 372,
+    "methods_over_150": 23,
+    "cross_seam_fraction": 0.4220,
+}
+_hpo_h_worse = dict(_hpo_h_better, methods_over_150=24)
+_hpo_h_level = {k: v for k, v in _hpo_h_budgets.items() if k != "recorded_at"}
+
+
+def _hpo_h_rows(budgets: dict, metrics: dict):
+    if _hpo_h_imp is None:
+        return "improvement_rows is missing from tests/structure.py"
+    return _hpo_h_imp(budgets, metrics)
+
+
+R.check(
+    "improvement_rows names every metric with headroom, budget and measured (#350)",
+    _hpo_h_rows(_hpo_h_budgets, _hpo_h_better)
+    == [
+        ("coordinator_loc", 10394, 10365),
+        ("internal_call_edges", 379, 372),
+        ("max_class_loc", 10394, 10365),
+    ],
+    f"improvement_rows = {_hpo_h_rows(_hpo_h_budgets, _hpo_h_better)}; the advisory "
+    "note it replaces named the metrics too and was ignored six times running -- "
+    "naming them is not the fix, failing on them is, and the failure has to say "
+    "which ones so the author can write down what they earned",
+)
+R.check(
+    "and is the exact mirror of regression_rows: a worsening is not an improvement",
+    isinstance(_hpo_h_rows(_hpo_h_budgets, _hpo_h_worse), list)
+    and _hpo_h_rows(_hpo_h_budgets, _hpo_h_worse)
+    == _hpo_h_rows(_hpo_h_budgets, _hpo_h_better)
+    and _hpo_g_rows(_hpo_h_budgets, _hpo_h_worse) == [("methods_over_150", 23, 24)],
+    f"improvement_rows = {_hpo_h_rows(_hpo_h_budgets, _hpo_h_worse)}, "
+    f"regression_rows = {_hpo_g_rows(_hpo_h_budgets, _hpo_h_worse)}; a metric that "
+    "moved the wrong way must appear in exactly one of the two",
+)
+R.check(
+    "a level metric is neither an improvement nor a regression",
+    isinstance(_hpo_h_rows(_hpo_h_budgets, _hpo_h_level), list)
+    and _hpo_h_rows(_hpo_h_budgets, _hpo_h_level) == []
+    and _hpo_g_rows(_hpo_h_budgets, _hpo_h_level) == [],
+    f"improvement_rows = {_hpo_h_rows(_hpo_h_budgets, _hpo_h_level)}, "
+    f"regression_rows = {_hpo_g_rows(_hpo_h_budgets, _hpo_h_level)}",
+)
+
+# The category #370's fourth comment asked for. Without it, `tvofi-claude-09`'s
+# two correct decisions to decline re-recording cross_seam_fraction become two
+# gate violations the moment re-recording is mandatory.
+R.check(
+    "NEVER_RERECORDED exists and holds cross_seam_fraction (#350, #370)",
+    isinstance(_hpo_h_never, (set, frozenset)) and "cross_seam_fraction" in _hpo_h_never,
+    f"NEVER_RERECORDED = {_hpo_h_never!r}; a tolerance metric passing inside its "
+    "band has nothing to record and failing outside it is a decision, so there is "
+    "no third case and a re-record could only ever loosen the band",
+)
+R.check(
+    "improvement_rows skips it, so declining to re-record it can never be a failure",
+    _hpo_h_rows(
+        {"cross_seam_fraction": 0.4289, "coordinator_loc": 10394},
+        {"cross_seam_fraction": 0.4220, "coordinator_loc": 10394},
+    )
+    == [],
+    "cross_seam_fraction reads 0.4220 against a recorded 0.4289 on this fork, which "
+    "is headroom by any comparison; demanding a re-record there would loosen the "
+    "0.4339 ceiling for nothing. Got "
+    f"{_hpo_h_rows({'cross_seam_fraction': 0.4289, 'coordinator_loc': 10394}, {'cross_seam_fraction': 0.4220, 'coordinator_loc': 10394})}",
+)
+R.check(
+    "every tolerance metric is in the category -- a ratchet on a band is a contradiction",
+    _hpo_h_never is not None
+    and set(getattr(_hpo_st, "FRACTION_METRICS", set())) <= set(_hpo_h_never),
+    f"FRACTION_METRICS = {sorted(getattr(_hpo_st, 'FRACTION_METRICS', ()))}, "
+    f"NEVER_RERECORDED = {sorted(_hpo_h_never or ())}; a metric with both a "
+    "tolerance band and a re-record demand is carrying two mechanisms for one job "
+    "and they disagree",
+)
+
+
+def _hpo_h_ratchet(budgets: dict, metrics: dict):
+    """ratchet() against a throwaway table. Returns (rc, captured stdout).
+
+    ``recorded_at_unreachable`` is stubbed to None for the duration: whether a
+    recorded SHA resolves is #361/#363's concern, pinned separately above, and
+    leaving it live would make these checks depend on the clone depth of
+    whatever runner they execute on rather than on the headroom decision.
+    """
+    saved_file = _hpo_st.BUDGET_FILE
+    saved_check = _hpo_st.recorded_at_unreachable
+    out = _hpo_g_io.StringIO()
+    with _hpo_g_tmp.TemporaryDirectory() as tmp:
+        path = _Path(tmp) / "structure_budgets.json"
+        path.write_text(_hpo_g_json.dumps(budgets, indent=1, sort_keys=True) + "\n")
+        _hpo_st.BUDGET_FILE = path
+        _hpo_st.recorded_at_unreachable = lambda recorded: None
+        try:
+            with _hpo_g_ctx.redirect_stdout(out):
+                rc = _hpo_st.ratchet(
+                    {
+                        "metrics": dict(metrics),
+                        "tables": {"top_is_coordinator": True, "cross_edges": 0},
+                    }
+                )
+        finally:
+            _hpo_st.BUDGET_FILE = saved_file
+            _hpo_st.recorded_at_unreachable = saved_check
+    return rc, out.getvalue()
+
+
+_hpo_h_run_better = _hpo_h_ratchet(_hpo_h_budgets, _hpo_h_better)
+R.check(
+    "the ratchet FAILS on an improvement instead of printing a note (#350)",
+    _hpo_h_run_better[0] == 1,
+    f"ratchet returned {_hpo_h_run_better[0]!r} for a tree three metrics better than "
+    "its budgets. A failing gate would have fired on 2 of the last 18 commits on "
+    f"main (~11%). Output:\n{_hpo_h_run_better[1]}",
+)
+_hpo_h_block = (
+    _hpo_h_run_better[1].split("IMPROVED", 1)[-1]
+    if "IMPROVED" in _hpo_h_run_better[1]
+    else ""
+)
+R.check(
+    "and the improvement block names all three, so the author knows what to write down",
+    all(
+        k in _hpo_h_block
+        for k in ("coordinator_loc", "internal_call_edges", "max_class_loc")
+    )
+    and "cross_seam_fraction" not in _hpo_h_block,
+    f"the block after the IMPROVED header was:\n{_hpo_h_block}",
+)
+R.check(
+    "and prints the exact runnable command, not just the numbers",
+    "python3 tests/structure.py --record" in _hpo_h_run_better[1],
+    "an improving PR must be able to re-record in the same commit; a gate that "
+    "demands a re-record without naming the command is unsatisfiable by anyone "
+    f"who has not read the source. Output:\n{_hpo_h_run_better[1]}",
+)
+R.check(
+    "and frames it as 'you made this better, write it down', not as a breach",
+    "BREACHED" not in _hpo_h_run_better[1]
+    and "IMPROVED" in _hpo_h_run_better[1],
+    "a gate that scolds a PR for improving the tree will be worked around, and "
+    f"then it protects nothing (#350). Output:\n{_hpo_h_run_better[1]}",
+)
+_hpo_h_run_level = _hpo_h_ratchet(_hpo_h_budgets, _hpo_h_level)
+R.check(
+    "a zero-headroom tree still passes silently -- eleven of the last eighteen commits",
+    _hpo_h_run_level[0] == 0 and "STRUCTURE RATCHET PASSED" in _hpo_h_run_level[1],
+    f"ratchet returned {_hpo_h_run_level[0]!r}. This must add a failure mode, not "
+    f"replace one. Output:\n{_hpo_h_run_level[1]}",
+)
+_hpo_h_run_worse = _hpo_h_ratchet(_hpo_h_budgets, _hpo_h_worse)
+R.check(
+    "a worsening still fails, and still as a breach",
+    _hpo_h_run_worse[0] == 1
+    and "FAIL methods_over_150 24 > 23" in _hpo_h_run_worse[1]
+    and "BREACHED" in _hpo_h_run_worse[1],
+    f"ratchet returned {_hpo_h_run_worse[0]!r}. Output:\n{_hpo_h_run_worse[1]}",
+)
+_hpo_h_run_frac = _hpo_h_ratchet(
+    {"cross_seam_fraction": 0.4289, "coordinator_loc": 10394,
+     "recorded_at": _hpo_h_budgets["recorded_at"]},
+    {"cross_seam_fraction": 0.4220, "coordinator_loc": 10394},
+)
+R.check(
+    "headroom on a never-re-recorded metric alone leaves the run green",
+    _hpo_h_run_frac[0] == 0,
+    f"ratchet returned {_hpo_h_run_frac[0]!r} for a tree whose only movement is "
+    "cross_seam_fraction inside its own category. Output:\n"
+    f"{_hpo_h_run_frac[1]}",
+)
+if _hpo_h_report is not None:
+    _hpo_h_mixed_out = _hpo_g_io.StringIO()
+    with _hpo_g_ctx.redirect_stdout(_hpo_h_mixed_out):
+        _hpo_h_report([("coordinator_loc", 10394, 10365)], breached=True)
+    _hpo_h_mixed = _hpo_h_mixed_out.getvalue()
+else:
+    _hpo_h_mixed = "report_improvements is missing from tests/structure.py"
+R.check(
+    "with a breach in the same diff the improvement is still named but --record is not offered",
+    "coordinator_loc" in _hpo_h_mixed
+    and "python3 tests/structure.py --record" not in _hpo_h_mixed,
+    "--record REFUSES a table with a worsened row (#370), so telling the author to "
+    f"run it while a breach stands would send them into a refusal. Output:\n{_hpo_h_mixed}",
+)
+
+# ---- #374 ---------------------------------------------------------------
+# methods_over_150/200 and functions_cc_over_15/25 are counts over a
+# threshold: once a function is over the line it is already counted, so it can
+# grow without bound and no key in the table moves. With methods_over_200
+# pinned at 14 and functions_cc_over_25 at 11, `optimize` could go 540 -> 1,080
+# lines and CC 87 -> 174 with all 22 budgets unchanged. max_class_loc already
+# does exactly this job for the one shape family that has it.
+_hpo_h_measured = _hpo_st.measure()
+_hpo_h_m = _hpo_h_measured["metrics"]
+_hpo_h_t = _hpo_h_measured["tables"]
+R.check(
+    "measure() reports max_method_loc, tracking the worst row of the monsters table (#374)",
+    _hpo_h_m.get("max_method_loc") == _hpo_h_t["monsters"][0][0],
+    f"max_method_loc = {_hpo_h_m.get('max_method_loc')!r}, worst monster = "
+    f"{_hpo_h_t['monsters'][0] if _hpo_h_t['monsters'] else None}. The table is "
+    "already built and already sorted; the metric is the number the evidence "
+    "section has been printing at the top all along",
+)
+R.check(
+    "and max_cc, tracking the worst row of the cc table",
+    _hpo_h_m.get("max_cc") == _hpo_h_t["cc_scores"][0][0],
+    f"max_cc = {_hpo_h_m.get('max_cc')!r}, worst cc = "
+    f"{_hpo_h_t['cc_scores'][0] if _hpo_h_t['cc_scores'] else None}",
+)
+R.check(
+    "both are plain counts, so the existing current > budget arm handles them",
+    "max_method_loc" not in _hpo_st.FRACTION_METRICS
+    and "max_cc" not in _hpo_st.FRACTION_METRICS
+    and _hpo_h_ratchet(
+        {"max_cc": 87, "recorded_at": _hpo_h_budgets["recorded_at"]}, {"max_cc": 88}
+    )[0] == 1
+    and "FAIL max_cc 88 > 87" in _hpo_h_ratchet(
+        {"max_cc": 87, "recorded_at": _hpo_h_budgets["recorded_at"]}, {"max_cc": 88}
+    )[1],
+    "no tolerance, no new polarity, nothing that touches the FRACTION_METRICS "
+    "exemption. Output:\n"
+    f"{_hpo_h_ratchet({'max_cc': 87, 'recorded_at': _hpo_h_budgets['recorded_at']}, {'max_cc': 88})[1]}",
+)
+R.check(
+    "one extra `and` clause inside a function costs exactly 1 of CC -- the vector, priced",
+    _hpo_st.cyclomatic_complexity(
+        _hpo_ast.parse("def f(a, b):\n    return bool(a and b)\n").body[0]
+    )
+    - _hpo_st.cyclomatic_complexity(
+        _hpo_ast.parse("def f(a, b):\n    return bool(a)\n").body[0]
+    )
+    == 1,
+    "'add a defensive branch to the function that already has CC 87' has to cost "
+    "something; today it costs nothing, because the only place the gate cannot see "
+    "new complexity is the worst function in the tree",
+)
+_hpo_h_table = _hpo_g_json.loads(_Path("tests/structure_budgets.json").read_text())
+R.check(
+    "and both keys are recorded in structure_budgets.json, in the same commit",
+    isinstance(_hpo_h_table.get("max_method_loc"), int)
+    and isinstance(_hpo_h_table.get("max_cc"), int)
+    and _hpo_h_table.get("max_method_loc") == _hpo_h_m.get("max_method_loc")
+    and _hpo_h_table.get("max_cc") == _hpo_h_m.get("max_cc"),
+    f"table has max_method_loc={_hpo_h_table.get('max_method_loc')!r} "
+    f"max_cc={_hpo_h_table.get('max_cc')!r}; measured "
+    f"{_hpo_h_m.get('max_method_loc')!r} and {_hpo_h_m.get('max_cc')!r}. The "
+    "two-way key-set check fails a measured-but-absent key, which is why adding "
+    "these forces the re-record into this commit",
+)
+R.check(
+    "sum_cc is rejected IN THE CODE, with the reason and the issue it would break (#374)",
+    "sum_cc" in (_hpo_st.__doc__ or "") and "#224" in (_hpo_st.__doc__ or ""),
+    "splitting a CC-87 method into a parent and four CC-20 helpers lands near 100 "
+    "where there was 87, so a sum_cc budget would fail the exact refactor #224 "
+    "exists to perform. It is the obvious next proposal and it is wrong, so the "
+    "refusal belongs where the next person reads it, not only in the issue. "
+    f"docstring mentions sum_cc: {'sum_cc' in (_hpo_st.__doc__ or '')}",
+)
+
 sys.exit(R.close("FEATURE CHECKS"))
