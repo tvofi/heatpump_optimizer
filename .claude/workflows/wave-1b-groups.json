@@ -13,7 +13,7 @@
   "Consumed by .claude/workflows/web-fix-wave.js as its `groups` argument."
  ],
  "fork": "a2c498229ef2d339ac8523d3f77a6fa308ed3ef7",
- "fork_note": "v6.3.11 + #381; both halves were cut from it. STALE AS A FORK FOR NEW WORK: main has since taken #382, #383, #389 and will take the #387 fix. Groups with a resume field continue on their existing branch and merge origin/main; W1-G2 and W1-G11, which never started, must be cut from main as it is when they start, not from this SHA.",
+ "fork_note": "v6.3.11 + #381; both halves were cut from it. STALE AS A FORK FOR EVERY PURPOSE: main has since taken #382, #383, #389, #390, #391, #392, #393, #385, and the #387 fix (#388). Groups with a resume field continue on their existing branch and start with git merge origin/main; W1-G2 and W1-G11, which never started, are cut from origin/main as it is when they start -- which is at or after 48f4263, not from this SHA.",
  "session": "claude-web",
  "repo": "/home/user/heatpump_optimizer",
  "halves": {
@@ -100,15 +100,16 @@
    "resume": {
     "stage": "review",
     "pr": 384,
-    "head_sha": "f1063e20a1b90f59d682ab2095137f256a422901",
-    "note": "BLOCKED at the earlier head 5b97e24 (PR #384 comment 5537365998): the pinned table covered only the empty-plan branch of _PlanSensorBase, so deleting slots/total_cost/total_energy_kwh/active_now/next_slot_start/slot_count still gave ALL 834 ENTITY CHECKS PASSED -- 30 of 290 class/key pairs unpinned. Commit f1063e2 is the repair (23 keys per plan sensor, 290 pairs) and has NO review. Re-review at this head."
+    "head_sha": "f6010738361c883244b5a1a95ebd4344d0e5678b",
+    "note": "'Fix review: merge' is posted at this head (comment 5541238122) -- the earlier block at 5b97e24 (only the empty-plan branch of _PlanSensorBase was pinned; 30 of 290 class/key pairs unpinned) was repaired at f1063e2 and confirmed killed 18 of 18 at this head. The head is on merge base 09ca88f, before #385, so it is re-merged with origin/main and the verdict re-confirmed at the resulting head before it merges -- which will move this SHA. Residual bound (a) is filed as #395."
    }
   },
   {
    "group": "W1-G11",
    "issues": [
     246,
-    251
+    251,
+    395
    ],
    "fixerModel": "sonnet",
    "reviewerModel": "opus",
@@ -116,7 +117,7 @@
    "after": [
     "W1-G4"
    ],
-   "brief": "Two independent assertion gaps, grouped because both are test-only and neither is in tests/features.py.\n\n#246 -- PredictiveInsightSensor can lose all its attributes and no script notices. The panel corrected the count to 20, not 21. THE ASSERTION IS ALREADY WRITTEN: tools/audit/round2/D3/verify3-assertions.patch (committed, its tests/entities.py hunk) carries it -- re-anchor that hunk to the current file rather than writing it fresh, and credit it. Pin the published key SET and each value. If W1-G4 landed a _PUBLISHED_ATTRS table, this sensor's entry belongs in it rather than beside it.\n\n#251 -- one unparsable Open-Meteo timestamp would discard the whole forecast block, and the skip is untested. Add one malformed stamp to a sample block in tests/open_meteo.py and assert the other three survive and the resolution still holds. The panel weakened the consequence and the fixer should not overstate it: the failure is LOUD (the whole cycle fails and every entity goes unavailable), not silent, which is why it stays low.\n\nAfter W1-G4 because both touch tests/entities.py's closure."
+   "brief": "Two independent assertion gaps, grouped because both are test-only and neither is in tests/features.py.\n\n#246 -- PredictiveInsightSensor can lose all its attributes and no script notices. The panel corrected the count to 20, not 21. THE ASSERTION IS ALREADY WRITTEN: tools/audit/round2/D3/verify3-assertions.patch (committed, its tests/entities.py hunk) carries it -- re-anchor that hunk to the current file rather than writing it fresh, and credit it. Pin the published key SET and each value. If W1-G4 landed a _PUBLISHED_ATTRS table, this sensor's entry belongs in it rather than beside it.\n\n#251 -- one unparsable Open-Meteo timestamp would discard the whole forecast block, and the skip is untested. Add one malformed stamp to a sample block in tests/open_meteo.py and assert the other three survive and the resolution still holds. The panel weakened the consequence and the fixer should not overstate it: the failure is LOUD (the whole cycle fails and every entity goes unavailable), not silent, which is why it stays low.\n\nAfter W1-G4 because both touch tests/entities.py's closure.\n\n#395 -- filed from PR #384's reviewer §4(a): the class->key-set attribute pin cannot see a key published from two code sites in one class, 14 of 290 pairs. Pin per-state for those 14 dual-site pairs: drive at least the empty-plan and populated-plan states of both plan sensors and assert the key set in each state separately, reusing the fixtures #246's assertion already constructs. The mutation proof deletes the populated-branch site of one dual-site key with the empty-branch site left intact and shows the named check fails. #395's bound is a granularity bound of W1-G4's class->key-set pin, not the under-measurement that blocked #384's first head -- do not re-litigate that earlier finding."
   },
   {
    "group": "W1-G10",
@@ -133,10 +134,10 @@
    "after": [],
    "brief": "Five surviving mutants in tests/features.py, all confirmed by a full unscoped gate: each of these production branches can be deleted and the suite stays green. Test-only, zero production change, zero fixtures. Source material is COMMITTED and should be reused rather than rewritten: tools/audit/round2/D3/verify3-assertions.patch (hunks for all seven gaps) and tools/audit/round2/D3/mutants/M*.patch (the mutation proofs). features.py is now about 19,357 lines, so re-anchor rather than apply blind.\n\n#247 hours_until_next_window's inside-a-window branch: direct unit checks -- inside returns 0.0 at two hours, outside, wrapping midnight, and [] returns None. DO NOT add a golden scenario that starts inside a window: the panel voided that half of the fix scope, because dhw_schedule_off's window spans the whole day so mutant and shipping code agree there.\n\n#248 the DHW setpoint advisor's negative-price floor: the assertion ALREADY EXISTS at features.py:8307 ('hotter tanks cost more per day') and has simply never been fed a non-positive price; tests/profiles.py:39 already ships an unused summer_negative. Feed it. At -0.4 the recommendation flips 48 -> 60 C and every cost_per_day goes negative.\n\n#249 a non-finite grid-fee rate ('= nan', '= inf') passes rule validation: the production guard exists (np.isfinite, grid_fee.py:152) and nothing tests it. Two or three negatives through is_valid_spec for nan/inf/-inf plus one parse_rules raise. Seat 2 raised this low -> medium uncontested: a legal config-flow string yields +46.5% commanded power and the magnitude audit is blind to it because abs(nan) > worst is False.\n\n#250 a corrupt lead_sigma KEY in the accuracy store: extend the malformed-store fixture with a non-numeric key ({'abc': 0.4, '3.0': 0.5}) and assert from_dict does not raise and drops only that bucket. Correct the consequence: it does NOT abort coordinator setup -- it kills one of twelve fire-and-forget loader tasks, leaving five or six learners at defaults every startup.\n\n#252 a future-stamped state yields a negative published age_minutes: one reading stamped 30 minutes ahead, assert age_minutes == 0.0 and ok is true. The stated mechanism is FALSE -- features.py already computes a negative age 13 times and asserts nothing -- and that 13 is a calendar artefact of the frozen fixture clock, so do not build a check on the number.",
    "resume": {
-    "stage": "merge",
-    "pr": 385,
-    "head_sha": "bf9bda67a7aae123dc932923f4db2611e8a80ca8",
-    "note": "Already carries 'Fix review: merge' at this exact head (PR #385 comment 5537373789): five finder mutants alive at merge base a2c4982 and dead at head, 1719->1728 checks, env_drift --all clean 55/55, budgets byte-identical. A re-review would be redundant; it needs only merging, once main is trustworthy."
+    "stage": "done",
+    "merged_pr": 385,
+    "merge_sha": "48f4263738cb58ff2f32de2352457f8ecb58ee6a",
+    "note": "Issues #247-#252 closed. Post-merge full-scope Tests run 33877705928 green. Listed only so the roster stays complete; the wave script skips a done group."
    }
   },
   {
@@ -152,8 +153,8 @@
    "resume": {
     "stage": "review",
     "pr": 386,
-    "head_sha": "e3a297fcaed3e7b2c54c4811da2c0819f123e5b4",
-    "note": "PR open with zero comments; no review recorded. Docs only, under the INERT tools/ prefix."
+    "head_sha": "cfc231c2c27097e94c2ee2106443168b8d578172",
+    "note": "'Fix review: merge' is posted at this head (comment 5541073433); finding A (three run.sh line citations in HARNESSES.md went stale in the rebase) is owed as a fixup, and the head is on merge base 09ca88f, so it is re-merged with origin/main and re-confirmed before merge -- which will move this SHA. Docs-only under the INERT tools/ prefix."
    }
   },
   {
