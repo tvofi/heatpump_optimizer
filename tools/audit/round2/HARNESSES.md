@@ -151,20 +151,26 @@ harness identically:
 guard", which is what turned a one-line break into an expensive one for
 whoever debugged it there — the file was misdirecting its reader.
 
-**That specific reproduction no longer holds on `main`.** #388 (`32f309f`,
-merged after `4b6e076`) added the single-scenario detection statistic to
-`stress.py`'s `__main__` block, ahead of the cut marker: `git diff --stat
-4b6e076 <a post-#388 main head> -- tests/stress.py` -> **971** insertions,
-13 deletions -- not the 642 an earlier draft of this sentence gave, which
-was measured against a `main` that has since moved twice, the exact kind of
-staleness this file exists to catch. Naming a single base SHA here would
-only set up the next one: `tests/stress.py` has not moved since **#388**
-(`32f309f`) -- byte-identical (blob `2d27b210`) at `09ca88f`, `48f4263`,
-`00953c2`, `b5b652e` and at this document's own head -- so the comparison
-holds against any of them without re-anchoring to whichever happens to be
-"the base" this week. The truncated
-prefix now ends after real statements instead of immediately inside an empty
-`if`, so `compile()` no longer raises.
+**That specific reproduction no longer holds on `main`.** #346 (PR #378,
+`291ae76`, merged after `4b6e076`) added the single-scenario detection
+statistic to `stress.py`'s `__main__` block, ahead of the cut marker --
+`stress.py`'s own comment at that block credits #346 for the statistic
+itself, and #388 only for how it is later compared. `d9lib` already loads
+cleanly against `291ae76` (five of five symbols), so #346 is what ended the
+reproduction, not #388: the truncated prefix ends after real statements
+instead of immediately inside an empty `if`, so `compile()` no longer
+raises. #388 (`32f309f`) is a separate, later commit relevant to two other
+things in this paragraph: `git diff --stat 4b6e076 <a post-#388 main head>
+-- tests/stress.py` -> **971** insertions, 13 deletions -- not the 642 an
+earlier draft of this sentence gave, which was measured against `291ae76`
+(the #346 head) rather than a `main` that has since moved again, the exact
+kind of staleness this file exists to catch. Naming a single base SHA here
+would only set up the next one: `tests/stress.py` has not moved since
+**#388** (`32f309f`, the most recent commit to touch the file) --
+byte-identical (blob `2d27b210`) at `09ca88f`, `48f4263`, `00953c2`,
+`b5b652e` and at this document's own head -- so the comparison holds against
+any of them without re-anchoring to whichever happens to be "the base" this
+week.
 
 Verified both ways with the same copied `d9lib.py`: reproducing against a
 `4b6e076` checkout of `tests/stress.py` still raises the `IndentationError`

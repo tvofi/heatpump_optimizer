@@ -87,10 +87,11 @@ moves.
   on the calling thread. An event-loop or GIL measurement built on `FakeHass`
   measures nothing about the executor boundary; use a real loop and a
   `ThreadPoolExecutor`.
-- Only `golden.py`, `env_drift.py`, `closure.py`, `frontend.py` and
-  `manual_plan.py` have `__main__` guards. `entities.py`, `features.py`,
-  `stress.py`, `rolling.py`, `backtest.py` and `optimality.py` run every check
-  at import and `sys.exit`.
+- `golden.py`, `env_drift.py`, `closure.py`, `frontend.py`, `manual_plan.py`,
+  `stress.py` (`:1597`) and `structure.py` (`:1275`, there since it was
+  added, in `b38e079` -- #193 PR-0, #331) have `__main__` guards.
+  `entities.py`, `features.py`, `rolling.py`, `backtest.py` and
+  `optimality.py` run every check at import and `sys.exit`.
 - `tests/plan_view.py` writes `/tmp/plandata-<sha256(tests dir)[:12]>.json`;
   every Node harness reads it; `card.mjs` falls back to `/tmp/plandata.json`
   with a warning, the others fail. Set `HPO_PLANDATA` per harness.
