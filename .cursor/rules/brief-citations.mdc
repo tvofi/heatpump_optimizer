@@ -1,0 +1,30 @@
+---
+description: Wave-brief citations must be linter-resolvable; do not leave them only in plan markdown
+globs: .claude/workflows/wave-*-groups.json,.claude/workflows/*.json,docs/plan*.md,docs/handover*.md
+alwaysApply: true
+---
+
+# Brief-linter citations
+
+`node .claude/workflows/brief_lint.mjs` (path #416 lands) lints each group's `brief` in `.claude/workflows/wave-*-groups.json`. It does not read `docs/plan-*.md`, handovers, or `tools/audit/briefs/`.
+
+**Where they go.** New programme plans and wave briefs put load-bearing citations in `wave-*-groups.json` (or the linter's input set) in a form that script can resolve. Do not leave critical citations only in free-form markdown. Extending the plan format means extending the linter in the same PR. Do not weaken the linter to fit a citation.
+
+`resume.stage: done` skips a brief. `after:` must name a group in the same file.
+
+**What resolves**
+
+1. **Paths** (`dir/file.ext` or a unique basename) — in the tree, or in the same brief as a tag SHA (7–40 hex, at least one `a-f`) or `audit-round2-evidence` that actually carries them. A tag-only path without its tag is an error. Negation ("does not exist") is skipped.
+2. **`path:line`** (`foo.py:123` or `foo.py:123-145`) — the range exists, and a quoted phrase, a keyword (`return`/`raise`/`assert`/…), or a nearby snake_case identifier is found there or in the enclosing `def`/`class`. No extractable anchor is only a warning. Bare `:123` works only next to a `module.symbol`.
+3. **Symbols** — `snake_case` (≥2 segments), `SCREAMING_SNAKE`, or `module.symbol`, found in the tracked tree (not `.claude/` or `tools/audit/round2/`) or at a cited tag. Probe-output names (`min_ink_gap`) fail unless tagged.
+4. **Metrics** — name a key from `tests/structure_budgets.json`. A literal (`coordinator_loc 10394 <= 10394`) is always an error; the fixer re-measures at their merge base.
+
+**VERSION** — `VERSION x.y.z` or `VERSION a -> b` must match the live `VERSION` file (arrow checks `b`). Do not pin a version a later stamp will invalidate.
+
+```
+# BAD — only in docs/plan-*.md, or a moved range with no live anchor
+tests/entities.py:6042-6062 "does not run ahead"
+
+# GOOD — in the group's brief, re-anchored, quoted phrase still at the range
+tests/entities.py:7305 "does not run ahead"
+```

@@ -48,6 +48,14 @@ A new tracked file must be **deliberately classified** — put in a measured
 closure, or on `tests/closure.py`'s `INERT` list — or `tests/entities.py` fails
 with *"these force the FULL suite when touched"*.
 
+## Programme plans and the brief linter
+
+Load-bearing citations go in `.claude/workflows/wave-*-groups.json` in a form
+`node .claude/workflows/brief_lint.mjs` can resolve (that path is what #416
+lands; run it locally the same way). The linter does not read `docs/plan-*.md`
+or `tools/audit/briefs/`. Extending the plan format means extending the linter
+in the same PR.
+
 ## The contracts, when the work is a fix
 
 - `tools/audit/briefs/fixer.md` — failing test first, importing the production
