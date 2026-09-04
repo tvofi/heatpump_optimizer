@@ -1383,8 +1383,10 @@ def work_drift_compare(
             entry.get("objective") if isinstance(entry, dict) else None
         )
         if not isinstance(base_evals, int) or base_evals <= 0:
-            # A scenario this branch added: the baseline never solved it,
-            # so there is nothing to compare. Reported, never judged.
+            # No usable baseline solve for this scenario: either this
+            # branch added it, or the baseline's own solve failed and
+            # reported no evaluations. Either way there is nothing to
+            # compare it with, so it is reported and never judged.
             verdict.only_here.append(label)
             continue
         got = observed_evals[label]
@@ -2231,22 +2233,36 @@ if __name__ == "__main__":
             "and the per-scenario CPU factor is 3.0 because bimodal "
             "scenarios need it there (#346)",
         )
+        # Two different failures wear this check's name, and telling a
+        # reader they made a behaviour change when the baseline simply
+        # never arrived would send them looking in the wrong place.
+        if not baseline_work:
+            _cover_why = (
+                f"there was no baseline at all, so nothing could be judged: "
+                f"{baseline_note}. The check above says the same thing; this "
+                f"one is here because a comparison that did not happen must "
+                f"not read as a comparison that agreed"
+            )
+        else:
+            _cover_why = (
+                f"{len(drift.replanned)} were re-planned by this branch and "
+                f"{len(drift.only_here)} have no baseline solve (each "
+                f"printed above with both objectives). Those are properties "
+                f"of this diff, not of the runner -- the baseline solved the "
+                f"same scenarios on this same machine minutes ago -- so the "
+                f"golden drift gate is where a deliberate one is claimed, "
+                f"and this floor is the statement that so many of them "
+                f"leave the work check covering less than most of the "
+                f"sweep. A branch that re-plans this much on purpose says "
+                f"so with STRESS_WORK_MIN_COVERED and repeats the number in "
+                f"its PR body, the way a moved fixture is claimed"
+            )
         R.check(
             "the solver-work check still covers most of the sweep",
             _work_covered >= SCENARIO_WORK_MIN_COVERED,
             f"only {_work_covered} of {len(observed_evals)} scenarios are "
             f"judged, against a floor of {SCENARIO_WORK_MIN_COVERED}: "
-            f"{len(drift.replanned)} were re-planned by this branch and "
-            f"{len(drift.only_here)} are new here (each printed above with "
-            f"both objectives). Every one of those is a behaviour change "
-            f"this branch made, not a property of the runner -- the "
-            f"baseline solved the same scenarios on this same machine "
-            f"minutes ago -- so the golden drift gate is where they are "
-            f"claimed, and this floor is the statement that so many of "
-            f"them leave the work check covering less than most of the "
-            f"sweep. A branch that re-plans this much deliberately says "
-            f"so with STRESS_WORK_MIN_COVERED and repeats the number in "
-            f"its PR body, the way a moved fixture is claimed",
+            + _cover_why,
         )
 
     # -- D9-04: memory instrumentation -----------------------------------
