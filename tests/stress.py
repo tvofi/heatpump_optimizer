@@ -72,6 +72,7 @@ import numpy as np
 from scipy.optimize import minimize
 
 from profiles import DT, house, prices, weather
+from heatpump_optimizer import optimizer as optimizer_module
 from heatpump_optimizer import pv as pv_model
 
 # ===========================================================================
@@ -277,6 +278,106 @@ SCENARIO_BUDGET_FACTOR = float(os.environ.get("STRESS_SCENARIO_FACTOR", "3.0"))
 #: old cost would pass unnoticed. Like the golden-claims file, the table is
 #: re-recorded deliberately (`--record-budgets`), not inherited.
 SCENARIO_STALE_FACTOR = float(os.environ.get("STRESS_STALE_FACTOR", "3.0"))
+#: The SINGLE-SCENARIO detection statistic (#346), measured in SOLVER WORK
+#: rather than in CPU time -- and the only per-scenario number in this file
+#: that is allowed to sit under DETECTION_TARGET.
+#:
+#: SCENARIO_BUDGET_FACTOR above cannot be tightened, and its own comment is
+#: the record of why: CI ran shoulder/tariff+cycle at 2.28x its recorded
+#: cost on a ruler that was steady to a millisecond, because the multi-start
+#: solver landed in another basin. #371 then measured that no value of that
+#: factor moves this file's detection floor at all, and closed. So a 2x
+#: regression confined to ONE scenario passed the whole gate: an injected
+#: 1.99x tripped 0 of 38 checks, because 1.99 < 3.0 and the sweep budget is
+#: a MEAN that divides one scenario's doubling by fifty-one.
+#:
+#: Three CPU-denominated candidates were measured on the audit box before
+#: this one, and all three failed on this box's own numbers -- the measured
+#: spreads are in the PR for #346:
+#:
+#:   * the per-scenario CPU ratio, repeated: identical work (bit-identical
+#:     objective, so the same iterates) cost 1.10x to 1.44x of itself over
+#:     six consecutive solves. A 1.5x factor has 4 % of margin over that;
+#:   * the same ratio normalised by the sweep's own median, which does
+#:     remove the up-to-1.7x compression of the reference solve between
+#:     machines: over three clean sweeps it still ranged 0.60x to 1.81x,
+#:     with a run-to-run spread of 2.03x on one scenario;
+#:   * CPU per solver evaluation, which cancels a basin flip but also
+#:     cancels the injection the finding is written against -- calling
+#:     optimize() twice doubles the evaluations with it.
+#:
+#: What is stable is the COUNT. The solver's evaluations are integers
+#: produced by the iterate path, not by the machine: over the six repeats
+#: above every scenario's count was bit-identical, spread 1.000, while its
+#: CPU moved by up to 44 %. A count carries no ruler, so it cannot compress
+#: between an M1 and a runner, and it cannot drift with a core's clock. That
+#: is what makes a factor under DETECTION_TARGET defensible here when three
+#: attempts at one in CPU were not.
+#:
+#: 1.5, not 1.05: the count is exact on one machine but the iterate path is
+#: not identical across platforms -- floating-point differences can add or
+#: drop a line-search step, which is the same mechanism that makes strict
+#: golden mode non-reproducible off the recording machine (tests/README.md).
+#: 1.5 leaves 50 % for that and still sees the 1.99x the finding injected;
+#: the detection check below holds it under DETECTION_TARGET so it cannot be
+#: widened past the thing it exists to catch.
+SCENARIO_WORK_FACTOR = float(os.environ.get("STRESS_WORK_FACTOR", "1.5"))
+#: How far this run's objective value may sit from the recorded one and
+#: still count as the same basin, relative.
+#:
+#: This is the hinge, so it is worth saying what it separates, and the
+#: separation was measured rather than assumed. A performance regression
+#: does not move the plan -- if it did the golden gate would fail first, and
+#: that is a different failure with a different owner. A multi-start basin
+#: flip does move it, because a different local minimum is the whole reason
+#: _multi_start_minimize exists. Below both sits the last-decimal drift of
+#: the SAME basin re-evaluated on another platform, which tests/README.md
+#: records as why strict golden mode does not reproduce off the recording
+#: machine.
+#:
+#: Fifteen genuine basin changes were executed on shoulder/cycle to size
+#: this, by perturbing the multi-start guess through the production symbol
+#: _price_guess_weights (reversed, flat, alternating, ramped, rolled, and
+#: six random starts). Every one landed in a different minimum, and the
+#: objective moved by 4.41e-5 to 2.24e-3 relative -- the SMALLEST of them,
+#: a random start that also did 1.28x the work, is the number that sets
+#: this constant.
+#:
+#: 1e-6 sits 44x under that smallest measured flip and three or more orders
+#: over same-basin float drift. 1e-4, the first value tried here, would have
+#: read that 4.41e-5 flip as the same basin and judged its 1.28x as a
+#: regression; 1e-9 would read float drift as a flip and quietly empty the
+#: check on the first CI runner it met, which is what
+#: SCENARIO_BASIN_MIN_COVERED then refuses to let happen silently.
+SCENARIO_BASIN_TOLERANCE = float(
+    os.environ.get("STRESS_BASIN_TOLERANCE", "1e-6")
+)
+#: ...and the floor under how many scenarios the work check must still
+#: COVER, or it is reported blind instead of passing on whatever is left. A
+#: check that silently narrows to the scenarios that happen to still agree
+#: is a check that reports success for doing nothing, which this file has
+#: shipped five times. A table with no recorded fingerprints at all -- an
+#: old table, or one written by a tool that does not know about the field --
+#: covers zero and so fails here, loudly, rather than passing empty.
+#:
+#: The number is measured, and measuring it is the whole reason the table
+#: records more than one basin per scenario. Recorded on the audit box, a
+#: first CI run covered 28 of 51 and exempted 23 -- and the 23 were not a
+#: random 23. They are shoulder/*, winter/tariff*, winter/pv*, the two-zone
+#: DHW cases: exactly the multi-start family SCENARIO_BUDGET_FACTOR's own
+#: comment names as bimodal across platforms, identified by the fingerprint
+#: without being told. Each of those scenarios' CI basin is now recorded
+#: beside its audit-box one (see recorded_basins), which is what takes the
+#: covered count back to the whole sweep on both machines.
+#:
+#: 40 is the floor rather than 51, because a third platform may hold a third
+#: basin for some scenario and nothing here should demand that the table
+#: already know it. What the floor refuses is the failure that matters: a
+#: check that has quietly stopped covering anything.
+SCENARIO_BASIN_MIN_COVERED = int(
+    os.environ.get("STRESS_BASIN_MIN_COVERED", "40")
+)
+
 #: A floor under the per-scenario budget, for a machine whose cheap
 #: scenarios are noisy enough that the factor above cannot hold them.
 #:
@@ -526,6 +627,52 @@ BUILDINGS = {
 }
 
 
+class SolverWork:
+    """Counts the solver's own evaluations across one optimize() call.
+
+    Wraps ``optimizer._scoped_minimize`` -- the single seam every L-BFGS-B
+    run in the package goes through, from both the DHW and the space stage
+    and from every multi-start guess -- and adds up the ``nfev``/``njev``
+    scipy reports for each. Four calls per solve on the sweep's scenarios,
+    so the instrument costs four Python-level function calls against
+    hundreds of objective evaluations; it is measured as unchanged CPU in
+    the PR for #346 rather than argued to be free.
+
+    The candidate SCORING loop in ``_multi_start_minimize`` evaluates the
+    objective directly and is therefore not counted. That is deliberate and
+    harmless: it is a fixed handful of evaluations per solve, the same
+    handful in the recording and in the run being judged.
+
+    Hooking a private symbol is a coupling, so it is one that fails loudly:
+    the class body below resolves it at import, so a rename stops the whole
+    file rather than leaving a counter that silently reports zero -- and the
+    sweep additionally refuses a scenario whose count came back zero.
+    """
+
+    _wrapped = optimizer_module._scoped_minimize
+
+    def __init__(self) -> None:
+        self.evaluations = 0
+        self.calls = 0
+
+    def __enter__(self) -> "SolverWork":
+        outer = self
+
+        def counting(*args, **kwargs):
+            res = SolverWork._wrapped(*args, **kwargs)
+            outer.calls += 1
+            outer.evaluations += int(getattr(res, "nfev", 0) or 0)
+            outer.evaluations += int(getattr(res, "njev", 0) or 0)
+            return res
+
+        optimizer_module._scoped_minimize = counting
+        return self
+
+    def __exit__(self, *exc) -> bool:
+        optimizer_module._scoped_minimize = SolverWork._wrapped
+        return False
+
+
 def build_case(
     *,
     season: str,
@@ -639,18 +786,24 @@ def build_case(
     # machine; CPU time counts work done. Measured on this box: putting
     # three extra CPU hogs on it moved a scenario's wall time 3.08x and its
     # CPU time 0.99x. Only one of those two numbers is about the code.
+    work = SolverWork()
     _cpu_before = time.process_time()
     _thread_before = time.thread_time()
-    result = optimizer.optimize(
-        initial, price_series, outdoor, wind, rain, solar, START, None, surplus,
-        space_pins=space_pins, power_caps_extra=caps_extra,
-    )
+    with work:
+        result = optimizer.optimize(
+            initial, price_series, outdoor, wind, rain, solar, START, None, surplus,
+            space_pins=space_pins, power_caps_extra=caps_extra,
+        )
     solve_cpu_ms = (time.process_time() - _cpu_before) * 1000.0
     solve_thread_ms = (time.thread_time() - _thread_before) * 1000.0
     return {
         "result": result,
         "solve_cpu_ms": solve_cpu_ms,
         "solve_thread_ms": solve_thread_ms,
+        # The machine-independent half of the cost (#346): what the solver
+        # actually did, as opposed to how long this core took to do it.
+        "solver_evals": work.evaluations,
+        "solver_calls": work.calls,
         "model": model,
         "params": params,
         "config": opt_cfg,
@@ -977,6 +1130,98 @@ def scenario_budget(label: str, table: dict) -> float | None:
     )
 
 
+def stale_cheap_verdict(observed: float, recorded: float) -> bool:
+    """Has this figure fallen far enough that its record is stale-high?
+
+    Extracted from the sweep loop so both ends of its range are exercised by
+    a check rather than by the sweep happening to contain an example, and
+    shared by the cost and the solver-work tables so they cannot drift
+    apart. Two later groups (#288, #289) make scenarios cheaper on purpose;
+    this is the rule that has to keep saying so instead of being quietly
+    re-fitted around.
+    """
+    return observed < recorded / SCENARIO_STALE_FACTOR
+
+
+def work_over_verdict(observed: int, recorded: int) -> bool:
+    """Has this scenario's solver work grown past its recorded count?
+
+    The sweep and the checks that prove the sweep can fail both call this
+    one function, so a test cannot pass by re-implementing the comparison it
+    is meant to pin (tests/README.md). Deleting the body's comparison turns
+    four named checks red; the mutation proof is in the PR for #346.
+    """
+    return observed > recorded * SCENARIO_WORK_FACTOR
+
+
+def recorded_basins(table: dict, label: str) -> list[tuple[float, int]]:
+    """Every ``(objective, evals)`` pair recorded for this scenario.
+
+    A scenario has MORE THAN ONE recorded basin on purpose, and that is the
+    measured bimodality allowance rather than a hedge. The first entry is
+    the audit box's recording, in the flat ``objective``/``evals`` fields;
+    ``alt_basins`` holds the ones another platform's solver reaches for the
+    same inputs, recorded from a CI run of this same file. On the first such
+    run, 23 of the 51 scenarios landed in a basin this box never sees -- and
+    they were precisely the multi-start family that forced
+    SCENARIO_BUDGET_FACTOR to 3.0, which is the fingerprint finding the
+    bimodal population on its own rather than being handed it.
+
+    An empty list means the table cannot say which basin this scenario is
+    supposed to be in. Callers read that as "cannot tell", never as "the
+    same one", and the covered-count check refuses to let a table full of
+    those pass quietly.
+    """
+    entry = table.get(label)
+    if not isinstance(entry, dict):
+        return []
+    pairs: list[tuple[float, int]] = []
+    candidates = [(entry.get("objective"), entry.get("evals"))]
+    for alt in entry.get("alt_basins") or ():
+        if isinstance(alt, dict):
+            candidates.append((alt.get("objective"), alt.get("evals")))
+    for objective, evals in candidates:
+        if objective is None or evals is None:
+            continue
+        objective = float(objective)
+        evals = int(evals)
+        if np.isfinite(objective) and evals > 0:
+            pairs.append((objective, evals))
+    return pairs
+
+
+def matching_basin(
+    table: dict, label: str, observed: float | None
+) -> int | None:
+    """The recorded evaluation count for the basin this solve landed in.
+
+    ``None`` when no recorded basin matches -- a scenario in a third basin
+    nobody has recorded, which is exempted from the work check and named in
+    the output rather than judged against a count from somewhere else.
+    """
+    for objective, evals in recorded_basins(table, label):
+        if same_basin(observed, objective):
+            return evals
+    return None
+
+
+def same_basin(observed: float | None, recorded: float | None) -> bool:
+    """Did this solve land in the same local minimum the recording did?
+
+    The objective value answers it and nothing cheaper does. Cost cannot:
+    that is exactly the observation that reverted the 1.4142 factor, a
+    scenario costing 2.28x on a steady ruler because the plan changed. Nor
+    can the evaluation count, which moves WITH the basin -- which is why it
+    is the thing being judged here rather than the thing doing the judging.
+    """
+    if observed is None or recorded is None:
+        return False
+    if not (np.isfinite(observed) and np.isfinite(recorded)):
+        return False
+    scale = max(abs(float(recorded)), 1e-12)
+    return abs(float(observed) - float(recorded)) <= SCENARIO_BASIN_TOLERANCE * scale
+
+
 def rss_mb() -> float:
     """The process's resident set high-water mark, in MiB (platform-tuned)."""
     ru = resource.getrusage(resource.RUSAGE_SELF)
@@ -1017,12 +1262,15 @@ if "--memory-probe" in sys.argv:
     sys.exit(_memory_probe_main(sys.argv))
 
 
-if __name__ == "__main__":
-    # ===========================================================================
-    # The sweep
-    # ===========================================================================
-    R.section("Combination sweep")
+def sweep_combinations() -> list[dict]:
+    """The build_case() specs the sweep runs, in order.
 
+    A module-level function rather than a block inside ``__main__`` so
+    that the checks below, and any harness re-deriving this file's
+    numbers, see exactly the list the gate runs. A second, hand-copied
+    list is how a budget table and the sweep it was recorded from drift
+    apart without either one being wrong on its own.
+    """
     combinations = []
     for season, two_zone, dhw in itertools.product(
         SEASONS, (False, True), (False, True)
@@ -1103,6 +1351,246 @@ if __name__ == "__main__":
                  pin_off_steps=(_PIN_STEP,), label="winter/1z/space/pin-off"),
         ]
     )
+    return combinations
+
+
+if __name__ == "__main__":
+    # ===========================================================================
+    # The single-scenario detection statistic (#346)
+    # ===========================================================================
+    # The sweep below MEASURES; this section checks that the instrument
+    # doing the measuring can see what it claims to, on synthetic tables, in
+    # milliseconds. Every case is a run that actually happened somewhere and
+    # is named with its number, because this file's two historical failure
+    # modes are a check that cannot fail and a check that false-fails on the
+    # second machine -- and the second one is what reverted the 1.4142
+    # factor and closed #371.
+    R.section("Single-scenario detection (#346)")
+
+    _T = load_budget_table()
+    _basins = {
+        label: recorded_basins(_T, label)
+        for label in _T
+        if isinstance(_T[label], dict)
+    }
+    _rec_ob = {
+        label: (pairs[0][0] if pairs else None)
+        for label, pairs in _basins.items()
+    }
+    _rec_ev = {
+        label: (pairs[0][1] if pairs else None)
+        for label, pairs in _basins.items()
+    }
+    R.check(
+        "the committed table records a solver-work count and a basin for "
+        "every scenario",
+        len(_basins) >= 40 and all(_basins.values()),
+        f"{len(_basins)} scenarios, "
+        f"{sum(1 for v in _basins.values() if not v)} with no recorded basin",
+    )
+    _multi = [label for label, pairs in _basins.items() if len(pairs) > 1]
+    print(
+        f"  recorded basins: {sum(len(v) for v in _basins.values())} across "
+        f"{len(_basins)} scenarios; {len(_multi)} scenario(s) carry more than "
+        f"one, the measured bimodality allowance"
+    )
+
+    if not all(_basins.values()):
+        # Bootstrap: a table that predates #346, or one being re-recorded
+        # right now. The check above has already failed on the real table;
+        # the instrument's own properties are still worth checking, so they
+        # run against a synthetic stand-in rather than being skipped -- a
+        # section that quietly disappears when the fixture is missing is the
+        # same silence this file refuses everywhere else.
+        _rec_ev = {f"synthetic/{i:02d}": 20 + 7 * i for i in range(51)}
+        _rec_ob = {label: 100.0 + i for i, label in enumerate(sorted(_rec_ev))}
+        _basins = {label: [(_rec_ob[label], _rec_ev[label])] for label in _rec_ev}
+
+    def _fires(label, work_factor, objective_factor=1.0):
+        """Would the sweep's work check fail this scenario, so perturbed?"""
+        got = int(round(_rec_ev[label] * work_factor))
+        if not same_basin(_rec_ob[label] * objective_factor, _rec_ob[label]):
+            return False
+        return work_over_verdict(got, _rec_ev[label])
+
+    _victim = "shoulder/cycle" if "shoulder/cycle" in _rec_ev else sorted(_rec_ev)[0]
+
+    # (a) the null: an unchanged run fails nothing at all.
+    R.check(
+        "an unchanged sweep fires the work check on no scenario",
+        not [label for label in _rec_ev if _fires(label, 1.0)],
+        f"{[label for label in _rec_ev if _fires(label, 1.0)]}",
+    )
+
+    # (b) the finding itself, executed at 1.99x on one scenario. Before this
+    # section existed that tripped 0 of 38 checks: 1.99 < SCENARIO_BUDGET_
+    # FACTOR, and the sweep budget is a mean over fifty-one.
+    R.check(
+        "a 2x regression confined to one scenario is seen",
+        _fires(_victim, 1.99),
+        f"{_victim} at 1.99x its recorded {_rec_ev[_victim]} evaluations "
+        f"did not reach the {SCENARIO_WORK_FACTOR:.2f}x factor",
+    )
+    R.check(
+        "...and it is still under the per-scenario CPU factor, so this is "
+        "the gap #346 records and not a different one",
+        1.99 <= SCENARIO_BUDGET_FACTOR,
+        f"1.99x against SCENARIO_BUDGET_FACTOR {SCENARIO_BUDGET_FACTOR:.2f}",
+    )
+
+    # (c) THE acceptance bar. CI ran shoulder/tariff+cycle at 352.7x its
+    # recorded 154.4x -- 2.28x the work, on a runner whose own reference
+    # solve was steady to a millisecond -- because the multi-start solver
+    # landed in another basin. That is not a regression and must not fire.
+    _flip = (
+        "shoulder/tariff+cycle"
+        if "shoulder/tariff+cycle" in _rec_ev
+        else sorted(_rec_ev)[-1]
+    )
+    R.check(
+        "the recorded 2.28x basin flip does not fire the work check",
+        not _fires(_flip, 2.28, objective_factor=1.01),
+        f"{_flip} at 2.28x the work with a 1 % different objective fired "
+        "the check that exists to exempt exactly it",
+    )
+    R.check(
+        "...and 2.28x is still inside the loose per-scenario CPU factor, so "
+        "the gate stays green on it rather than exempting it twice",
+        2.28 <= SCENARIO_BUDGET_FACTOR,
+        f"2.28x against SCENARIO_BUDGET_FACTOR {SCENARIO_BUDGET_FACTOR:.2f}",
+    )
+
+    # The tolerance has to separate those two populations with room on both
+    # sides, or it is a knife-edge wearing a constant's clothes.
+    # Both anchors are measured, not chosen: 1e-9 is same-basin float drift
+    # between platforms, and 4.41e-5 is the SMALLEST of fifteen executed
+    # basin changes on shoulder/cycle (see SCENARIO_BASIN_TOLERANCE).
+    R.check(
+        "the basin tolerance sits between float drift and the smallest "
+        "measured flip",
+        same_basin(1234.5, 1234.5 * (1.0 + 1e-9))
+        and not same_basin(1234.5, 1234.5 * (1.0 + 4.41e-5))
+        and not same_basin(1234.5, 1234.5 * 1.01),
+        f"tolerance {SCENARIO_BASIN_TOLERANCE:g} does not separate a 1e-9 "
+        "last-decimal difference from the 4.41e-5 flip that was executed",
+    )
+    R.check(
+        "a missing or non-finite fingerprint is 'cannot tell', never 'agrees'",
+        not same_basin(1.0, None)
+        and not same_basin(None, 1.0)
+        and not same_basin(float("nan"), 1.0)
+        and not same_basin(1.0, float("inf")),
+        "same_basin() agreed with a fingerprint it does not have",
+    )
+
+    # (d) the check may not narrow itself to whatever still agrees. A table
+    # with no fingerprints exempts every scenario, and that has to be a
+    # failure rather than fifty-one silent passes.
+    _bare = {
+        label: {"ratio": 1.0, "evals": _rec_ev[label]} for label in _rec_ev
+    }
+    _bare_covered = [
+        label
+        for label in _bare
+        if matching_basin(_bare, label, _rec_ob[label]) is not None
+    ]
+    R.check(
+        "a table with no recorded basins covers nothing, and says so",
+        not _bare_covered
+        and len(_bare) - len(_bare_covered) > (
+            len(_bare) - SCENARIO_BASIN_MIN_COVERED
+        ),
+        f"{len(_bare_covered)} scenarios still covered from a table with no "
+        f"objectives, against a {SCENARIO_BASIN_MIN_COVERED} floor",
+    )
+    # ...and a second recorded basin covers a solve the first one does not,
+    # which is the whole mechanism that takes CI back to a full sweep.
+    _two = {
+        "x": {
+            "ratio": 1.0,
+            "evals": 100,
+            "objective": 10.0,
+            "alt_basins": [{"objective": 12.0, "evals": 250}],
+        }
+    }
+    R.check(
+        "a second recorded basin is matched, and judged against its OWN count",
+        matching_basin(_two, "x", 10.0) == 100
+        and matching_basin(_two, "x", 12.0) == 250
+        and matching_basin(_two, "x", 14.0) is None
+        and not work_over_verdict(240, matching_basin(_two, "x", 12.0))
+        and work_over_verdict(400, matching_basin(_two, "x", 12.0)),
+        f"basins matched: {matching_basin(_two, 'x', 10.0)}, "
+        f"{matching_basin(_two, 'x', 12.0)}, {matching_basin(_two, 'x', 14.0)}",
+    )
+
+    # (e) the cheaper side, at both ends of its range. #288 and #289 make
+    # scenarios cheaper on purpose; this rule is what stops the table being
+    # silently re-fitted around them, and it now guards the work count too.
+    R.check(
+        "a figure more than the stale factor cheaper is still caught",
+        stale_cheap_verdict(100.0 / (SCENARIO_STALE_FACTOR + 0.5), 100.0)
+        and stale_cheap_verdict(4, 4 * SCENARIO_STALE_FACTOR + 4),
+        f"{SCENARIO_STALE_FACTOR + 0.5:.1f}x cheaper passed the stale rule",
+    )
+    R.check(
+        "...and one less than the stale factor cheaper is still allowed",
+        not stale_cheap_verdict(100.0 / (SCENARIO_STALE_FACTOR - 0.5), 100.0)
+        and not stale_cheap_verdict(100.0, 100.0),
+        f"{SCENARIO_STALE_FACTOR - 0.5:.1f}x cheaper failed the stale rule",
+    )
+
+    # (f) the instrument itself, end to end: the hook has to reach the
+    # solver and the count has to move with the work. A counter that reports
+    # a plausible constant is the failure this file exists to refuse.
+    _probe = dict(sweep_combinations()[0])
+    _probe_label = _probe.pop("label")
+    _plain = build_case(**_probe)
+    _orig_optimize = optimizer_module.HeatPumpOptimizer.optimize
+
+    def _twice(self, *a, **k):
+        _orig_optimize(self, *a, **k)
+        return _orig_optimize(self, *a, **k)
+
+    optimizer_module.HeatPumpOptimizer.optimize = _twice
+    try:
+        _doubled = build_case(**_probe)
+    finally:
+        optimizer_module.HeatPumpOptimizer.optimize = _orig_optimize
+    R.check(
+        "the solver-work counter sees a real solve, and doubles with it",
+        _plain["solver_evals"] > 0
+        and 1.9 <= _doubled["solver_evals"] / _plain["solver_evals"] <= 2.1,
+        f"{_plain['solver_evals']} evaluations plain, "
+        f"{_doubled['solver_evals']} with optimize() run twice",
+    )
+    R.check(
+        "...and the hook is restored, so nothing downstream is left wrapped",
+        optimizer_module._scoped_minimize is SolverWork._wrapped,
+        "SolverWork left optimizer._scoped_minimize replaced",
+    )
+    # ...and the loop closes: a real doubling, on a real scenario, against
+    # the real recorded count, reaching the same rule the sweep applies.
+    # Cases (a)-(e) are the statistic's properties; this one is the finding.
+    _probe_rec = matching_basin(
+        _T, _probe_label, float(_plain["result"].objective_value)
+    )
+    R.check(
+        "a real 2x on one scenario reaches the rule the sweep applies",
+        _probe_rec is not None
+        and not work_over_verdict(_plain["solver_evals"], _probe_rec)
+        and work_over_verdict(_doubled["solver_evals"], _probe_rec),
+        f"{_probe_label}: recorded {_probe_rec}, plain "
+        f"{_plain['solver_evals']}, doubled {_doubled['solver_evals']}, "
+        f"factor {SCENARIO_WORK_FACTOR:.2f}",
+    )
+
+    # ===========================================================================
+    # The sweep
+    # ===========================================================================
+    R.section("Combination sweep")
+
+    combinations = sweep_combinations()
 
     failures = 0
     comfort_failures: list[str] = []
@@ -1146,6 +1634,12 @@ if __name__ == "__main__":
     stale_cheap: list[str] = []
     over_budget: list[str] = []
     new_table: dict[str, dict] = {}
+    observed_evals: dict[str, int] = {}
+    observed_objective: dict[str, float] = {}
+    work_over: list[str] = []
+    work_stale: list[str] = []
+    work_flipped: list[str] = []
+    work_unrecorded: list[str] = []
     if not record_mode and not budget_table:
         print(
             "  NOTE: no budget table found; run `stress.py --record-budgets`\n"
@@ -1181,11 +1675,24 @@ if __name__ == "__main__":
         wall_ms = float(run["result"].solve_time_ms)   # wall: for the ceiling only
         ratio = solve_ms / unit_ms
         ratios.append((ratio, label, solve_ms, unit_ms))
+        # The machine-independent channel (#346). The count is what the
+        # iterate path did; the CPU above is what this core charged for it.
+        evals = int(run["solver_evals"])
+        observed_evals[label] = evals
+        # NaN when the solve failed, which same_basin() reads as "cannot
+        # tell" rather than as agreement.
+        observed_objective[label] = float(run["result"].objective_value)
         sweep_reference_ms += sample_ms
         sweep_solve_ms += solve_ms
         sweep_solve_thread_ms += float(run["solve_thread_ms"])
         if record_mode:
-            new_table[label] = {"ratio": round(ratio, 2)}
+            new_table[label] = {"ratio": round(ratio, 2), "evals": evals}
+            _objective = observed_objective[label]
+            if np.isfinite(_objective):
+                # Ten significant figures puts the stored fingerprint six
+                # orders below the 1e-4 the comparison uses, so the rounding
+                # is never what decides a basin.
+                new_table[label]["objective"] = float(f"{_objective:.10g}")
         else:
             allowed = scenario_budget(label, budget_table)
             if allowed is None:
@@ -1198,7 +1705,7 @@ if __name__ == "__main__":
                         f"budget {allowed:.1f}x (recorded {recorded:.1f}x "
                         f"x {SCENARIO_BUDGET_FACTOR:.0f})"
                     )
-                if ratio < recorded / SCENARIO_STALE_FACTOR:
+                if stale_cheap_verdict(ratio, recorded):
                     stale_cheap.append(
                         f"{label} at {ratio:.1f}x vs recorded {recorded:.1f}x "
                         f"(cheaper by more than {SCENARIO_STALE_FACTOR:.0f}x: "
@@ -1323,6 +1830,110 @@ if __name__ == "__main__":
             "no scenario got dramatically cheaper without a re-record",
             not stale_cheap,
             "; ".join(stale_cheap),
+        )
+
+        # -- the single-scenario statistic (#346) ------------------------
+        # Everything above judges a scenario's CPU against its own record
+        # times a constant, and that constant has to be 3.0: it must clear
+        # the most bimodal scenario on the least similar machine, so 1.99x
+        # on one scenario passes it by design. This judges the SOLVER WORK
+        # instead -- a count of evaluations, an integer the iterate path
+        # produces and the machine does not touch -- and can therefore run
+        # at a factor under DETECTION_TARGET. See SCENARIO_WORK_FACTOR for
+        # the three CPU-denominated statistics measured and rejected first.
+        #
+        # A basin flip is the thing this must not fire on, and it is also
+        # the one perturbation that moves the count without any regression:
+        # a different local minimum is a different iterate path. So the
+        # check applies only where the plan is unchanged, judged by the
+        # objective value, and every exempted scenario is NAMED -- the blind
+        # spot is a printed list rather than an average nobody can take
+        # apart.
+        for label in sorted(observed_evals):
+            entry = budget_table.get(label)
+            if not isinstance(entry, dict):
+                continue
+            if not recorded_basins(budget_table, label):
+                work_unrecorded.append(label)
+                continue
+            rec_evals = matching_basin(
+                budget_table, label, observed_objective.get(label)
+            )
+            if rec_evals is None:
+                # A basin no recording has seen. Exempt, named, and printed
+                # with the two numbers an operator needs to record it as a
+                # second basin rather than guess at one.
+                work_flipped.append(
+                    f"{label} (objective {observed_objective.get(label):.10g}, "
+                    f"{observed_evals[label]} evaluations)"
+                )
+                continue
+            got = observed_evals[label]
+            if work_over_verdict(got, rec_evals):
+                work_over.append(
+                    f"{label} took {got} solver evaluations against a "
+                    f"recorded {rec_evals} = {got / rec_evals:.2f}x, over the "
+                    f"{SCENARIO_WORK_FACTOR:.2f}x factor, on an unchanged "
+                    f"plan (objective {observed_objective[label]:.10g})"
+                )
+            if stale_cheap_verdict(got, rec_evals):
+                work_stale.append(
+                    f"{label} took {got} solver evaluations against a "
+                    f"recorded {rec_evals} (cheaper by more than "
+                    f"{SCENARIO_STALE_FACTOR:.0f}x: re-record, or a "
+                    f"regression back to the old work would pass unnoticed)"
+                )
+        _work_covered = (
+            len(observed_evals) - len(work_flipped) - len(work_unrecorded)
+        )
+        print(
+            f"  solver work: {_work_covered} of {len(observed_evals)} "
+            f"scenarios judged against their recorded evaluation count at "
+            f"{SCENARIO_WORK_FACTOR:.2f}x, {len(work_flipped)} in a basin no "
+            f"recording holds"
+        )
+        for _exempt in sorted(work_flipped):
+            print(f"    unrecorded basin: {_exempt}")
+        R.check(
+            "the solver-work counter counted something for every scenario",
+            all(v > 0 for v in observed_evals.values()),
+            f"{sum(1 for v in observed_evals.values() if v <= 0)} scenarios "
+            "reported zero solver evaluations -- SolverWork's hook on "
+            "optimizer._scoped_minimize has stopped reaching the solver, so "
+            "the check below cannot fail and means nothing",
+        )
+        R.check(
+            "every scenario has a recorded solver-work count",
+            not work_unrecorded,
+            f"{len(work_unrecorded)} without one: "
+            f"{', '.join(work_unrecorded[:8])}"
+            + (" ..." if len(work_unrecorded) > 8 else "")
+            + "; run `stress.py --record-budgets` on a clean tree",
+        )
+        R.check(
+            "no scenario's solver work grew on an unchanged plan",
+            not work_over,
+            "; ".join(work_over)
+            + "; this is the localised-regression check -- the sweep budget "
+            "is a mean over fifty-one and cannot see one scenario double, "
+            "and the per-scenario CPU factor is 3.0 because bimodal "
+            "scenarios need it there (#346)",
+        )
+        R.check(
+            "no scenario's solver work fell far enough to stale its record",
+            not work_stale,
+            "; ".join(work_stale),
+        )
+        R.check(
+            "the solver-work check still covers most of the sweep",
+            _work_covered >= SCENARIO_BASIN_MIN_COVERED,
+            f"only {_work_covered} of {len(observed_evals)} scenarios are "
+            f"judged, against a floor of {SCENARIO_BASIN_MIN_COVERED}: "
+            f"{len(work_flipped)} solved into a basin no recording holds "
+            f"(each printed above with its objective and evaluation count -- "
+            f"add them to alt_basins in tests/stress_budgets.json, or "
+            f"re-record the table here) and {len(work_unrecorded)} have no "
+            f"recorded basin at all",
         )
 
     # -- D9-04: memory instrumentation -----------------------------------
@@ -1607,7 +2218,10 @@ if __name__ == "__main__":
         f"{SOLVE_BUDGET_RATIO / max(_rec_worst, 1e-9):.2f}x, sweep budget "
         f"{SWEEP_BUDGET_RATIO / max(_rec_sweep, 1e-9):.2f}x, per-scenario "
         f"table {SCENARIO_BUDGET_FACTOR:.2f}x -- the smallest of those is the "
-        f"smallest regression this gate can see where it was recorded"
+        f"smallest UNIFORM regression this gate can see where it was "
+        f"recorded; a regression confined to one scenario is seen at "
+        f"{SCENARIO_WORK_FACTOR:.2f}x of that scenario's recorded solver "
+        f"work instead, and in nothing denominated in CPU"
     )
     print(
         f"  detection on THIS machine: per-scenario ceiling "
@@ -1627,9 +2241,24 @@ if __name__ == "__main__":
             f"the smallest uniform regression any budget could see is "
             f"{_smallest:.2f}x, against a required {DETECTION_TARGET:.0f}x"
         )
+    # The other half of the same question, and the one #346 was opened on:
+    # what is the smallest regression this gate sees when it is confined to
+    # ONE scenario? Not the min() above. Its sweep term is a mean over
+    # fifty-one, so a single scenario's doubling reaches it divided by
+    # fifty-one, and its per-scenario term is 3.0 for reasons no code change
+    # can move -- #371 measured the min() at 1.420 for every value of that
+    # factor from 3.0 to 100.0 and closed on it, which is what a decorative
+    # check looks like. It is SCENARIO_WORK_FACTOR, and that constant IS
+    # free to be tightened, so this check can bind on it.
+    if SCENARIO_WORK_FACTOR >= DETECTION_TARGET:
+        _blind.append(
+            f"a regression confined to ONE scenario is invisible below "
+            f"{SCENARIO_WORK_FACTOR:.2f}x of its recorded solver work, "
+            f"against a required {DETECTION_TARGET:.0f}x"
+        )
     R.check(
         f"the budgets are tight enough to see a {DETECTION_TARGET:.0f}x "
-        "uniform regression",
+        "regression, uniform or confined to one scenario",
         not _blind,
         "; ".join(_blind)
         + "; re-derive the budgets from a measured quiet run "
