@@ -138,11 +138,16 @@ INERT = (
     "docs/",
     "tests/README.md",
     ".gitignore",
-    # Audit harnesses and release tooling: scripts people run by hand,
-    # outside the gate. Nothing under tests/ imports or opens them, and
+    # Write-once round-2 audit evidence: harnesses and reports people run by
+    # hand, outside the gate. Nothing under tests/ imports or opens them, and
     # the `merge` check below proves it every time the closures are
-    # re-derived.
-    "tools/",
+    # re-derived. Narrowed from `tools/` (#372): that wider prefix also
+    # covered tools/release/stamp.py, live release-critical code that was
+    # exempt only by sharing a directory with the evidence. Narrowing to
+    # tools/audit/ makes stamp.py an ordinary tracked file the recorder must
+    # classify, so a test that imports it pulls its closure in on its own --
+    # no exemption, no hidden call site.
+    "tools/audit/",
     # Everything below is here for one reason: a file that is neither in a
     # closure nor on this list forces the WHOLE suite, because an unmeasured
     # file is not a safe skip. That rule is right, and it was quietly costing
@@ -232,6 +237,20 @@ def orphan_files() -> list[str]:
 
 def is_gate_file(rel: str) -> bool:
     return any(rel == p or (p.endswith("/") and rel.startswith(p)) for p in GATE_FILES)
+
+
+def inert_closure_violations(closures: dict[str, list[str]]) -> list[str]:
+    """Files declared INERT ("nothing in the gate reads this") that also
+    appear inside a recorded closure ("a test does read this"). The two
+    declarations contradict, and the recorded trace is the one taken from a
+    running process, so a hit here means either INERT is wrong or the
+    recorder over-approximated (#357). `merge` has refused a fresh
+    re-derivation on this since it was written; the closures CI job runs
+    `--record-only` and never calls `merge`, so nothing on that path ever
+    asked the question. Called from both `merge` (a fresh fold) and `check`
+    (the committed table, which is what the CI job that never reaches
+    `merge` actually validates)."""
+    return sorted({f for files in closures.values() for f in files if is_inert(f)})
 
 
 def test_scripts() -> list[str]:
@@ -431,13 +450,21 @@ def _is_real_file(rel: str) -> bool:
 # Measured before narrowing the rule, both captures on the same tree with
 # `env_drift.py --capture . <out> --all`:
 #
-#   null control     card asset edited (a new statement, CARD_VERSION
-#                    5.4.19 -> 9.9.99): all 55 scenarios byte-identical,
-#                    sha256 1f1dcb966bdf7ae9... on both sides
-#   positive control one token in thermal_model.py (`* dt` -> `* dt * 1.0001`):
-#                    captures differ
+#   null control     card asset edited (`www/heatpump-optimizer-card.js:14`,
+#                    CARD_VERSION 5.4.20 -> 9.9.99): all 55 scenarios
+#                    byte-identical, sha256
+#                    294c98fb07f7bac0e16342a13a34c354577cf88c60bc9a1e73c52d4432890c10
+#                    on both sides
+#   positive control  one token, `thermal_model.py:2683`
+#                    (`T_room * dt` -> `T_room * dt * 1.0001`): captures
+#                    differ, sha256
+#                    656df8995f3692d18d12992679aa0dda6b13e082463763e84ca460636736411c
 #
 # So the card cannot move a capture, and the capture would notice if it could.
+# Re-measured at 48f4263 (the merge base after the fork moved); the sha256s
+# above are tied to that tree and will shift the next time anyone re-runs
+# this probe on a later one -- what must not shift is null == baseline and
+# positive != baseline.
 # Without this, every card-only pull request ran env_drift's 55-scenario double
 # capture -- the most expensive script in the suite -- to prove a plan that
 # could not have changed.
@@ -446,6 +473,43 @@ FRONTEND_ASSETS = ("custom_components/heatpump_optimizer/www/",)
 
 def _is_frontend_asset(rel: str) -> bool:
     return any(rel.startswith(prefix) for prefix in FRONTEND_ASSETS)
+
+
+# A second file the whole-integration rule cannot see, for a different
+# reason (#357). quality_scale.yaml was simultaneously declared INERT and
+# recorded inside env_drift.py's and golden.py's closures -- a contradiction
+# `merge` below refuses, that the closures CI job's `--record-only` path
+# never reaches, so it was never checked in the configuration that runs.
+#
+# Decided by measurement, not by reading, on the same tree with
+# `env_drift.py --capture . <out> --all` and a direct call to
+# `golden.capture()` over five scenarios:
+#
+#   null control      quality_scale.yaml edited (a trailing comment line
+#                     appended): env_drift capture byte-identical, sha256
+#                     294c98fb07f7bac0e16342a13a34c354577cf88c60bc9a1e73c52d4432890c10
+#                     before and after; golden.capture() over the first five
+#                     SCENARIOS keys (winter_single_dhw, winter_two_zone_dhw,
+#                     winter_single_no_dhw, winter_two_zone_no_dhw,
+#                     summer_dhw_only) byte-identical, sha256
+#                     e8bea574c835572442b70180e7747f2ad0c718e42f34aed12af8ff34fecf1be6
+#                     before and after
+#   positive control  the same probe line as FRONTEND_ASSETS above,
+#                     `thermal_model.py:2683` (`T_room * dt` ->
+#                     `T_room * dt * 1.0001`): env_drift capture sha256
+#                     changes to
+#                     656df8995f3692d18d12992679aa0dda6b13e082463763e84ca460636736411c;
+#                     golden.capture() over the same five scenarios changes to
+#                     84bd6b951368845c5bdcaca6f420f2baafe9f37cd7880b6b4c64b6765dc69546
+#
+# hassfest skips the quality-scale register for custom repositories and
+# nothing under custom_components/ ever opens it -- unlike the bundled card,
+# there is not even a static-path registration to explain the absence, there
+# is simply no reader. It stays on INERT; the recorder was the one that was
+# wrong, matching the accepted over-approximation ground #251/D3-09 was
+# closed on. Re-measured at 48f4263, same caveat as above: the pair
+# (identical / different) is the claim, not the exact digits.
+NEVER_WIDENED = ("custom_components/heatpump_optimizer/quality_scale.yaml",)
 
 
 def _widen(closures: dict[str, set[str]]) -> None:
@@ -476,7 +540,8 @@ def _widen(closures: dict[str, set[str]]) -> None:
     if ed in closures:
         for p in sorted((ROOT / "custom_components").rglob("*")):
             rel = str(p.relative_to(ROOT))
-            if p.is_file() and "__pycache__" not in rel and not _is_frontend_asset(rel):
+            if (p.is_file() and "__pycache__" not in rel
+                    and not _is_frontend_asset(rel) and rel not in NEVER_WIDENED):
                 closures[ed].add(rel)
         for p in sorted((ROOT / "tests" / "golden").glob("*")):
             if p.is_file():
@@ -594,7 +659,7 @@ def merge(in_dir: Path, out: Path, allow_failures: bool = False,
             print(f"  {k:26s} {len(closures[k]):4d} files")
         return 0
     closures = _fold(records)
-    bad = sorted({f for files in closures.values() for f in files if is_inert(f)})
+    bad = inert_closure_violations(closures)
     if bad:
         print("closure: files on the INERT list are actually read by tests:", file=sys.stderr)
         for b in bad:
@@ -741,6 +806,22 @@ def check(in_dir: Path, partial: bool = False) -> int:
         print("closure: tests/closures.json is missing", file=sys.stderr)
         return 1
     committed = json.loads(CLOSURES.read_text())["closures"]
+    # Same contradiction `merge` refuses, checked here too (#357): the
+    # closures CI job runs `derive_closures.sh --record-only`, which never
+    # calls `merge`, so a file that is both INERT and inside a recorded
+    # closure was never caught in the configuration that actually executes.
+    bad = inert_closure_violations(committed)
+    if bad:
+        print("closure: files on the INERT list are inside a recorded "
+              "closure (committed tests/closures.json):", file=sys.stderr)
+        for b in bad:
+            print(f"  {b}", file=sys.stderr)
+        print("  A file cannot be declared unread (INERT) and recorded as "
+              "read (in a closure) at the same time. Either it genuinely "
+              "affects that script's output and must leave INERT, or the "
+              "recorder over-approximated and should stop recording it "
+              "(#357).", file=sys.stderr)
+        return 1
     records = {}
     for f in sorted(in_dir.glob("*.json")):
         rec = json.loads(f.read_text())
@@ -1004,11 +1085,17 @@ def write_plan(plan: dict, workdir: Path) -> None:
 #
 # The order matters, and the skip is LAST on purpose. The first draft asked
 # "is every changed file INERT?" first, and that is a different question: a
-# file can be on INERT and in a recorded closure at the same time --
-# quality_scale.yaml is both on main today, listed as inert and inside
-# env_drift's rule-widened closure. Asking the hand list first would have
-# skipped a change to a file the table says a test reads. The table decides
-# the skip; INERT only licenses a file's ABSENCE from the table.
+# file CAN be on INERT and in a recorded closure at the same time -- that is
+# exactly the shape quality_scale.yaml took until #357: listed as inert and
+# also inside env_drift's rule-widened closure, simultaneously, on main.
+# Asking the hand list first would have skipped a change to a file the table
+# said a test reads. The table decides the skip; INERT only licenses a
+# file's ABSENCE from the table. #357 fixed the recorder so quality_scale.yaml
+# no longer sits in both places (measured: it does not move env_drift's or
+# golden's output), and `inert_closure_violations()` now asserts that no
+# other file does either -- but the ORDER this function applies stays right
+# regardless of whether such a file currently exists, which is what the
+# synthetic case in tests/entities.py pins.
 #
 # The `full` rule carries no path prefix on purpose. The first draft said "a
 # changed file under custom_components/ that is in no closure", and the
