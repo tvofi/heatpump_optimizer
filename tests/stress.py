@@ -398,9 +398,15 @@ SCENARIO_BASIN_TOLERANCE = float(
 #: 51 stays the number: a branch that has moved a dozen plans has moved the
 #: ground this check stands on and should be told the check no longer
 #: covers most of the sweep, rather than shown a green tick.
-SCENARIO_WORK_MIN_COVERED = int(
-    os.environ.get("STRESS_WORK_MIN_COVERED", "40")
-)
+#:
+#: NON-TUNABLE, by the #387 ruling on its sixth acceptance criterion (issue
+#: comment 5541519696). The floor's job -- telling a branch that has
+#: re-planned more than eleven of the fifty-one that the check no longer
+#: covers most of the sweep -- does not depend on being tunable, and an
+#: environment override is reachable from a workflow `env:` line, a
+#: runner-level variable or a helper script without ever appearing in a PR
+#: body where a human would see it. So this is a literal, not a read.
+SCENARIO_WORK_MIN_COVERED = 40
 
 #: The baseline half of the solver-work comparison: the tree this run's
 #: counts are judged against. GOLDEN_REF, because this is the same question
@@ -2253,9 +2259,14 @@ if __name__ == "__main__":
                 f"golden drift gate is where a deliberate one is claimed, "
                 f"and this floor is the statement that so many of them "
                 f"leave the work check covering less than most of the "
-                f"sweep. A branch that re-plans this much on purpose says "
-                f"so with STRESS_WORK_MIN_COVERED and repeats the number in "
-                f"its PR body, the way a moved fixture is claimed"
+                f"sweep -- a statement about THIS DIFF, the same population "
+                f"tests/env_drift.py already makes a branch claim about. "
+                f"There is no environment variable that reaches this floor "
+                f"any more (#387 ruling, comment 5541519696): a branch that "
+                f"re-plans this much on purpose says so in its PR body -- "
+                f"how many plans moved and why -- the way a moved fixture "
+                f"is claimed, rather than reaching for a variable that no "
+                f"longer exists"
             )
         R.check(
             "the solver-work check still covers most of the sweep",
@@ -2263,6 +2274,31 @@ if __name__ == "__main__":
             f"only {_work_covered} of {len(observed_evals)} scenarios are "
             f"judged, against a floor of {SCENARIO_WORK_MIN_COVERED}: "
             + _cover_why,
+        )
+        # The #387 ruling on the sixth acceptance criterion (comment
+        # 5541519696) restored this floor to a hard-coded backstop
+        # specifically because a runtime override is reachable from a
+        # workflow env: line without ever appearing in a PR body where a
+        # human would see it. Pinning "the default is still 40" is not
+        # enough -- os.environ.get(name, "40") also evaluates to 40 with no
+        # override set, so a mutation that puts the read back would pass
+        # that alone. This scans this file's own source for the retired
+        # read instead. The name is split across two adjacent literals so
+        # that THIS check's own text does not contain the very string the
+        # mutation proof is looking for -- if it did, restoring the deleted
+        # read would add nothing new for the scan to find.
+        _retired_env_name = "STRESS_WORK" "_MIN_COVERED"
+        _own_source = open(__file__, encoding="utf-8").read()
+        R.check(
+            "the solver-work floor is a literal, not an environment override",
+            SCENARIO_WORK_MIN_COVERED == 40
+            and isinstance(SCENARIO_WORK_MIN_COVERED, int)
+            and _retired_env_name not in _own_source,
+            f"SCENARIO_WORK_MIN_COVERED is {SCENARIO_WORK_MIN_COVERED!r}, or "
+            f"the retired environment variable name is back in this file -- "
+            f"either way the #387 ruling (comment 5541519696) is violated: "
+            f"this floor must be a hard-coded 40 that no environment "
+            f"variable, workflow env: line or helper script can move",
         )
 
     # -- D9-04: memory instrumentation -----------------------------------
