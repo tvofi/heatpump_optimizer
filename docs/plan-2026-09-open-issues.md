@@ -48,7 +48,7 @@ Where this table and a wave body disagree, this table is the truth.
 |---|---|---|---|---|
 | 0 | stamp REST fallback (#376); then #367, #368 | #364, #282 | **v6.3.10** | **done** — all three merged, both reviews `merge`, tag `d7fa97f`, 0 unstamped |
 | triage A | closed or re-scoped on a measured number | #197 #233 closed; #195 #244 #325 #334 re-scoped | — | **done** |
-| 1a | the stress ruler, alone on an idle box | #346 | v6.3.11 | running |
+| 1a | the stress ruler, alone on an idle box | #346 | v6.3.11 | **done** — W1-G7 merged PR #378 (`291ae76`), 0 unstamped |
 | triage B1 | read-only judges, run beside the ruler | #281 #225 closed; #303 #224 #193 re-scoped | — | **done** |
 | triage B2 | solver, suite, browser and timing judges | #304 #258 #242; #291 #232 alone | — | pending |
 | 1b | gate instruments, suite gaps, card, stores | 26 issues in 14 groups | v6.3.11 | prepared |
