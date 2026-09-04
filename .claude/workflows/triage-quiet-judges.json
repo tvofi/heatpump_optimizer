@@ -1,0 +1,39 @@
+{
+ "_comment": [
+  "The two timing judges still owed a quiet box: #291 and #232.",
+  "Committed because docs/handover-2026-09-04.md pointed at a scratchpad file that",
+  "dies with the session container -- a cold-start audit found the pointer dangling.",
+  "",
+  "THEY RUN ALONE. Not two at a time, and nothing else on the box: these are the only",
+  "rows in the programme whose numbers the load caveat actually bites, and the judge",
+  "contract rejects any RESULT taken at load1 > 1.5 or thread_factor > 1.05.",
+  "",
+  "RUN THEM AFTER THE #387 FIX HAS LANDED. Both measure solver work against the stress",
+  "ruler, and v6.3.11's ruler was runner-dependent (#387). Measuring against the old",
+  "one would produce a number that does not travel -- which is the very defect #387 is.",
+  "",
+  "#232's verdict SETS THE SCOPE of Wave 3's W3-G1 (see wave-3-groups.json), so W3-G1",
+  "cannot start until this has ruled. #291 is a decision with money attached, not a",
+  "defect: the owner asked that it be settled with numbers rather than opinion.",
+  "",
+  "Consumed by .claude/workflows/web-triage.js. Each judge works under",
+  "tools/audit/briefs/judge.md: re-run the harness from the ref that carries it, run",
+  "the perturbation, and treat a harness that does not move under its own perturbation",
+  "as void whatever the votes said."
+ ],
+ "repo": "/home/user/heatpump_optimizer",
+ "session": "claude-web",
+ "quiet": true,
+ "issues": [
+  {
+   "issue": 291,
+   "quiet": true,
+   "expect": "A DECISION with money attached, not a defect -- the owner has asked that it be settled with numbers. The attribution is already complete and deterministic: the 2.33x slowdown of the default two-zone DHW solve is entirely #208 (38dc061), one commit, with simulate_step_calls going 20,736 -> 53,856 (2.597x) byte-identically to main. That is #208's INTENDED cost: it bought the D0-01/02/03 seeding gains, worth roughly 0.05 SEK/day. So there is no bug to fix; there is a Pi-class trade to decide, and the lever (_MULTI_START_SOLVES = 4, and refine-every-candidate in _multi_start_minimize) is the SAME lever #232 wants to push HARDER. Re-measure the current cost on this idle box -- solve wall and CPU against the stress reference solve, plus simulate_step_calls -- and state the trade in one table: what the seeding gains are worth per day, what the solve costs on Pi-class hardware at that setting, and what each alternative setting does to both. Recommend a setting, close the issue with that recommendation, and say plainly that #232's scope depends on it. Print the concurrent-process count beside every timing RESULT."
+  },
+  {
+   "issue": 232,
+   "quiet": true,
+   "expect": "SET THE SCOPE for wave 3's solver group; this is the decision #233 and #291 both hang on. The finding is verified: the capacity-tariff single-zone solver stalls on the top-k peak plateau. But the judge's settled figure after leave-one-out is 0.2953 SEK/day, medium rests on ONE 58 SEK cell, and 'the named stall mechanism itself recovers only 0.0232 SEK, winning no cell'. The proposed restart costs a MEAN OF 3.11 EXTRA L-BFGS-B SOLVES PER CALL (max 6), which directly worsens #291 and #290 -- and _MULTI_START_SOLVES is 4 on main, not the 2 the issue quotes. Meanwhile the smooth top-k in tariff.peak_cost alone collapses that 58 SEK cell to 0.356. So measure both arms on this idle box and choose: (a) the smooth top-k alone -- cheap, and note that peak_cost is a PUBLISHED field reaching users through _grid_terms and _grid_report, so it changes a visible cost figure, not just the search path; or (b) top-k plus the restart, priced honestly at 3.11 extra solves. Re-scope the body to whichever the numbers support, say explicitly what happens to #233 (the batch-A judge already closed it as solver noise) and to #234 (whose cap-tighten seeding is independent and stays), and print the concurrent-process count beside every timing RESULT. Leave open with the chosen scope."
+  }
+ ]
+}

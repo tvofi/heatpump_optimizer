@@ -161,6 +161,12 @@ INERT = (
     # deliberately, instead of silently making every gate full.
     ".abacus.donotdelete",
     ".claude/",
+    # Orientation for a session that starts cold. Claude Code loads a root
+    # CLAUDE.md automatically, which is the whole reason it cannot live under
+    # docs/ with the rest of the prose. Nothing under tests/ reads it -- unlike
+    # README.md and RELEASE_NOTES.md above, which entities.py checks against the
+    # code and which are therefore dependencies rather than inert.
+    "CLAUDE.md",
     "DISCLAIMER.md",
     # The quality-scale register (#229): a truthful rule-by-rule record in
     # home-assistant/core's own schema. No gate script reads it (hassfest

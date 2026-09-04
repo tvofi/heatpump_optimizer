@@ -12,7 +12,7 @@ if (!pr || !title || !repo) throw new Error('args.pr, args.title and args.repo a
 
 phase('Merge')
 const merge = await agent(
-  `In ${repo}: gh pr view ${pr} --json state,mergeStateStatus,headRefOid,body,statusCheckRollup. If state is MERGED, return {merged: true, sha: <merge commit from gh pr view --json mergeCommit>} without doing anything. Otherwise refuse (return {merged: false, reason}) unless: every check is SUCCESS or SKIPPED; the body names a measured head SHA equal to headRefOid; the body carries a fix-review verdict of "merge"; git diff origin/main...<head> -- VERSION custom_components/heatpump_optimizer/manifest.json is empty. Then gh pr merge ${pr} --squash --delete-branch and return {merged: true, sha}.`,
+  `In ${repo}: gh pr view ${pr} --json state,mergeStateStatus,headRefOid,body,statusCheckRollup. If state is MERGED, return {merged: true, sha: <merge commit from gh pr view --json mergeCommit>} without doing anything. Otherwise refuse (return {merged: false, reason}) unless: every check is SUCCESS or SKIPPED; the body names a measured head SHA equal to headRefOid; a fix-review verdict of "merge" is present -- reviewers post it as a PR COMMENT (gh pr view --json comments), which is what audit-fix.js and audit-wave.js instruct, so check the comments and accept the body only as a fallback; the newest such comment must post-date the head; git diff origin/main...<head> -- VERSION custom_components/heatpump_optimizer/manifest.json is empty. Then gh pr merge ${pr} --squash --delete-branch and return {merged: true, sha}.`,
   { label: `merge #${pr}`, schema: { type: 'object', required: ['merged'] } },
 )
 if (!merge?.merged) { log(`not merged: ${merge?.reason ?? 'merge agent returned null'}`); return merge }
