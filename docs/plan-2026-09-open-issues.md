@@ -235,8 +235,18 @@ session reads this file first.
   every PR since the last tag. Never by hand, never in a branch. No new branch
   is cut between a fixture-mover's merge and its stamp.
 - **Ratchet.** `python3 tests/structure.py` before every push. A change that
-  adds coordinator lines pays for them elsewhere or re-records with the reason
-  in the commit — a decision, not bookkeeping. `cross_seam_fraction` carries a
+  adds coordinator lines pays for them elsewhere, re-records with the reason
+  in the commit, or — for a genuine new production feature whose lines cannot
+  honestly be paid for elsewhere — **raises** the budget because the capability
+  is worth the structure it costs. All three are a decision, not bookkeeping,
+  and all three carry their reason in the commit message. A raise additionally
+  **requires the repository owner's explicit confirmation before the branch is
+  pushed**: it is not a fixer's, a reviewer's or a judge's call, so an agent
+  that wants one stops and asks. It is not a route for accommodating
+  sloppiness, an unexamined refactor or an unmeasured feature — the first
+  question is still whether the lines can be paid for elsewhere — but a metric
+  at zero headroom is not a veto on new capability either (#398 read it as
+  one). `cross_seam_fraction` carries a
   tolerance band and is never re-recorded: within the band there is nothing to
   record, outside it the gate fails, so a re-record can only loosen.
 - **Ownership.** `owner:<session>` and a `claimed-by:` comment before a branch

@@ -16,21 +16,29 @@ bottom, which is allowed to go stale and says so.
    asymmetry is the safety argument: if a closure is ever wrong, main goes red
    within one merge instead of never.
    **`MODE: SCOPED — 0 script(s) run` and `MODE: FULL` both print zero and mean
-   opposite things.** Key on the mode line, never the count.
+   opposite things.** Key on the mode line, never the count — but that line
+   only exists on a branch; a push to `main` prints no mode line at all,
+   because the forced `full` above never calls the code that prints it.
 2. **A structural ratchet refuses growth.** `tests/structure.py` measures 22
    metrics against `tests/structure_budgets.json`, and every one may only move
    down. Several sit at zero headroom, so a change that adds lines to the wrong
-   class fails — and the correct response is to pay for the lines, or to
-   re-record deliberately with the reason **in the commit message**, never to
-   loosen a budget quietly. `cross_seam_fraction` is a tolerance metric and is
+   class fails — and the correct response is to pay for the lines, to re-record
+   deliberately with the reason **in the commit message**, or, for a genuine new
+   production feature, to **raise the budget with the repository owner's
+   explicit confirmation, obtained before the branch is pushed** — never to
+   loosen a budget quietly, and never to delete working functionality merely to
+   fit. Pay for the lines first; a raise is what you do when the honest answer
+   is that you cannot, and an agent that wants one stops and asks rather than
+   pushing and explaining. `cross_seam_fraction` is a tolerance metric and is
    never re-recorded.
 3. **Value-bearing golden fixtures are claimed, not re-recorded.** Solver floats
    do not reproduce across BLAS builds, so only a canonical environment can
    honestly record one. Drift is declared in `tests/golden/claimed_drift.txt`
    (or `card_claimed_drift.txt`) with its direction, and `claims-for:` must equal
    `VERSION`. A fixture cannot be both claimed and may-drift — `env_drift.py`
-   refuses that. Check claims three-dot (`git diff $(git merge-base origin/main
-   HEAD)...HEAD`), never two-dot.
+   refuses that. Check claims — and any branch-vs-main comparison — three-dot
+   (`git diff $(git merge-base origin/main HEAD)...HEAD`), never two-dot:
+   two-dot shows main's own newer commits as if the branch had made them.
 4. **Versions are assigned after the merge, by `tools/release/stamp.py`.** Never
    touch `VERSION`, the manifest version, or the `RELEASE_NOTES.md` heading in a
    branch. The stamp has its own refusal rules, including one that rejects notes

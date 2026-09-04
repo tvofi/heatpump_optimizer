@@ -126,7 +126,11 @@ Run:
 
     python tests/structure.py --record --allow-regression="<reason>"
                                           record anyway, for a stated reason
-                                          that belongs in the COMMIT message
+                                          that belongs in the COMMIT message.
+                                          Raising a budget to buy a genuine new
+                                          production feature is legitimate, but
+                                          needs the repository OWNER's explicit
+                                          confirmation before the push
 
 Expected at the recorded baseline (tolerance 0 on every count): exactly the
 numbers in ``tests/structure_budgets.json``. Baseline SHA: the commit in that
@@ -1324,6 +1328,14 @@ def ratchet(result: dict) -> int:
     print()
     if failures:
         print(f"{failures} STRUCTURE BUDGET(S) BREACHED")
+        print("Three responses, all of them deliberate: pay for the lines")
+        print("elsewhere; re-record because the tree genuinely improved; or, for")
+        print("a genuine new production FEATURE, RAISE the budget because the")
+        print("capability is worth the structure it costs. Paying is the first")
+        print("question; a raise is for when the honest answer is that you")
+        print("cannot. A raise needs the repository OWNER'S EXPLICIT CONFIRMATION")
+        print("before the branch is pushed -- stop and ask, do not push and")
+        print("explain -- and it never applies to cross_seam_fraction.")
         print("A budget may only be re-recorded deliberately, on a clean tree,")
         print("with the reason in the COMMIT -- never to make a failure go away.")
         print("--record refuses any row that moves the wrong way unless you pass")
@@ -1468,7 +1480,9 @@ def main() -> int:
         metavar="REASON",
         default=None,
         help="record even though a metric moves the wrong way, for this stated "
-             "reason -- which belongs in the commit message too (#370)",
+             "reason -- which belongs in the commit message too (#370). Raising "
+             "a budget for a new production feature needs the repository "
+             "owner's explicit confirmation before the branch is pushed",
     )
     args = parser.parse_args()
 

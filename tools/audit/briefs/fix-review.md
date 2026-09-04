@@ -19,5 +19,24 @@ its bug. You are checking that the numbers are real.
 6. Attack the fix at other configurations the finding's harness accepts:
    the other topologies, the other price profiles, the zero-evidence install.
 7. Confirm the head SHA in the PR body is the head you measured.
+8. **A quoted number you cannot re-derive is not verified — say so.** Three
+   agents counting "the same" published-attribute census (#373) got three
+   different absolute counts because each used a different rule; a later
+   judge built sixteen definitions and found the residual non-zero at the
+   merge base and zero at head under all of them, so the conclusion held
+   even though every headline number in the bodies disagreed. Re-derive
+   under the PR's stated rule before trusting its count; if you cannot, or
+   if you had to build your own definition to check it, write that in the
+   verdict rather than reporting a number as confirmed.
+9. **When the finding has no committed harness, that is itself a finding.**
+   Step 2 assumes one exists to measure with; twice it has not. #373's
+   instrument was a shell `grep` in the issue's own body, nothing at tag
+   `audit-round2-evidence`; #258's proximity probe and #290's `j5_gil.py`
+   exist only inside judge comments and must be recreated from there. A
+   fixer who builds their own instrument in that case must disclose it as
+   its own construction, not the finder's, and you say the same in your
+   verdict if you had to build one to check the fix. Read the finding's own
+   judge ruling first — #290's brief still prescribes a harness its judge
+   already refused.
 
 Return a verdict (`merge` / `blocked: <what>`) with your RESULT lines.
