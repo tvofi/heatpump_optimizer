@@ -597,20 +597,27 @@ def table_maxima(monsters: list, cc_scores: list) -> tuple[int, int]:
 
     A function of its arguments rather than three characters inline in the
     metrics dict, so the rule can be driven from ``tests/features.py`` without
-    calling ``measure()``, which reads the whole integration and the budget
-    table.
+    calling ``measure()``, which reads every module under
+    ``custom_components/`` and nothing outside it.
 
-    The cost that decision avoids is specific, and it is not the one you would
-    guess. ``tests/features.py``'s measured closure already lists 43 of the 48
-    modules under ``custom_components/``, so recording ``measure()``'s reads
-    would have added six files, not the package: the five HA platform modules
-    (``binary_sensor``, ``button``, ``diagnostics``, ``sensor``, ``switch``,
-    which that script does not test and only opened because ``measure()`` walks
-    the directory) and ``tests/structure_budgets.json``. It is the last one
-    that bites. A closure entry on the budget table puts the fast lane's 1764
-    checks in scope for EVERY future re-record -- which is precisely the
-    traffic #350 above now makes mandatory, so the coupling would tax the
-    operation this file just started demanding, for ever.
+    That bought the smaller of two savings, and they are worth keeping apart.
+    ``tests/features.py``'s measured closure already lists most of the
+    integration, so recording ``measure()``'s reads would have added only the
+    HA platform modules missing from it -- which that script does not test and
+    would have opened purely because ``measure()`` walks the directory.
+    Spurious, and cheap.
+
+    The expensive dependency was never ``measure()``'s: it does not open the
+    budget table at all, only ``record_budgets`` and ``ratchet`` do. It came
+    from a separate check that read ``tests/structure_budgets.json`` directly
+    to confirm both new keys had been recorded, and that check is gone,
+    replaced by AST checks that read this module's source instead. That one
+    mattered because a closure entry on the budget table would put the fast
+    lane in scope for EVERY future re-record -- precisely the traffic #350
+    above now makes mandatory -- so it would have taxed, for ever, the one
+    operation this file just started demanding. Credit where it is due:
+    ``table_maxima`` removes the directory walk, the AST checks remove the
+    budget-table read.
 
     ``default=0`` is the empty-table case and it is safe in the direction that
     matters (#374). ``monsters`` starts at ``MONSTER_LIMITS[1]`` and
