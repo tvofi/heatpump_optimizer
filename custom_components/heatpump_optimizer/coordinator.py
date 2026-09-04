@@ -49,6 +49,7 @@ from .const import (
     CONF_LOWER_FLOOR_TEMP_ENTITY,
     CONF_MIXING_VALVE_TARGET_ENTITY,
     CONF_MIXING_VALVE_WRITE_ENTITY,
+    CONF_MIXING_VALVE_WRITE_TARGET_KIND, DEFAULT_MIXING_VALVE_WRITE_TARGET_KIND,
     MIXING_VALVE_WRITE_EPSILON,
     CONF_DHW_TEMP_ENTITY,
     CONF_DHW_SCHEDULE_ENABLED,
@@ -6614,20 +6615,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     async def _command_valve_target(self) -> None:
         """Write the valve target to its controller, in ``smart_write`` mode.
 
-        The commanded number is the one the plan was built against: the
-        configured static target, or the comfort ceiling -- which is also
-        what the dumb-valve recommendation tells a user to set by hand. It is
-        deliberately *not* the read-back entity: commanding what a sensor
-        reports would freeze whatever the valve happened to hold when the
-        mode was enabled, and a changed comfort band would never reach it.
-
-        Skipped when the answer has not meaningfully changed
-        (``MIXING_VALVE_WRITE_EPSILON``): the write runs after every
-        optimization cycle, and re-sending an identical setpoint every 15
-        minutes wears flash on some controllers and floods others' logs.
-        Failures are logged and swallowed -- a valve that refuses a write must
-        never break planning, and the model keeps working from the target it
-        intended, exactly as ``manual`` mode does.
+        Commands the plan's target (static target or comfort ceiling), never
+        the read-back entity, so a changed comfort band still reaches it.
+        Skipped when unchanged by less than ``MIXING_VALVE_WRITE_EPSILON``
+        (avoids flash wear on every cycle); write failures are logged and
+        swallowed so a balky valve never breaks planning.
         """
         params = self._thermal_params
         if params.mixing_valve_mode != mixing_valve.MODE_SMART_WRITE:
@@ -6646,6 +6638,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         planned = (self._current_action or {}).get("valve_target")
         if planned is not None:
             target = float(planned)
+        kind = self._config.get(CONF_MIXING_VALVE_WRITE_TARGET_KIND)
+        if kind not in mixing_valve.WRITE_TARGET_KINDS:  # #398: caught, not trusted
+            kind = DEFAULT_MIXING_VALVE_WRITE_TARGET_KIND
+        if kind == mixing_valve.WRITE_TARGET_FLOW:
+            if not params.two_zone_enabled:
+                _LOGGER.error("mixing_valve_write_target_kind=flow needs two-zone")
+                return
+            outdoor = self._current_state.outdoor_temperature
+            target = self._thermal_model.flow_target_for_indoor(target, outdoor)
         if (
             self._valve_commanded_target is not None
             and abs(target - self._valve_commanded_target)

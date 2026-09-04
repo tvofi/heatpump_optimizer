@@ -480,6 +480,7 @@
           "mixing_valve_target": "Valve target temperature",
           "mixing_valve_target_entity": "Valve target sensor",
           "mixing_valve_write_entity": "Valve control entity",
+          "mixing_valve_write_target_kind": "What the control entity expects",
           "buffer_tank_volume": "Buffer tank size",
           "buffer_max_temperature": "Maximum buffer tank temperature",
           "valve_outlet_temp_entity": "Temperature after the wood/heat-pump mixing valve (optional)",
@@ -494,6 +495,7 @@
           "mixing_valve_target": "The indoor temperature the valve holds. Leave at 0 to use the top of your comfort band, which is the recommended setting: the building charges first at no efficiency cost, and the tank takes only the surplus.",
           "mixing_valve_target_entity": "Optional. Reads the valve's target rather than using the fixed value above.",
           "mixing_valve_write_entity": "Required for \"Commanded by the optimizer\": the number or climate entity your valve's controller exposes. The optimizer writes its recommended target there after each planning cycle, and only when the answer changes.",
+          "mixing_valve_write_target_kind": "\"Indoor temperature\" is correct for a room/thermostat set-point, and is what has always been written — the safe default. \"Flow temperature\" is for a valve or heat-pump controller whose set-point is a water temperature: the optimizer derives it from the same flow curve it already uses for a dumb valve. Only choose \"Flow temperature\" once you have confirmed the entity expects a water temperature — pointed at a flow set-point, \"Indoor temperature\" would command roughly 21 °C to a device expecting 35-45 °C and badly underheat the house.",
           "buffer_tank_volume": "Litres. The tank between the heat pump and the heating circuits. Larger tanks store more cheap heat.",
           "buffer_max_temperature": "The tank is never charged above this, however cheap electricity is.",
           "valve_outlet_temp_entity": "Temperature of the blended flow leaving the valve that mixes wood and heat-pump water. With the tank sensors it tells the plan how much of the heating a fire is covering right now, so electric heat can stand down by that much instead of all-or-nothing.",
@@ -786,7 +788,8 @@
       "day_window_empty": "The day would end at or before it starts, leaving no daytime period at all.",
       "comfort_outside_band": "Day and night comfort temperatures must sit inside the comfort band",
       "min_power_above_max": "The heat pump's minimum power is above its maximum power.",
-      "stored_value_out_of_range": "This value is outside the range this field normally accepts. The range was widened so the page can still be saved — check the value, and correct it if it looks wrong."
+      "stored_value_out_of_range": "This value is outside the range this field normally accepts. The range was widened so the page can still be saved — check the value, and correct it if it looks wrong.",
+      "flow_target_needs_two_zone": "\"Flow temperature\" derives from the two-zone building model's own flow curve, which this entry does not have configured. Configure the two-zone model first, or leave this at \"Indoor temperature\"."
     }
   },
   "selector": {
@@ -838,6 +841,12 @@
         "manual": "Set by hand",
         "smart_read": "Read from a sensor",
         "smart_write": "Commanded by the optimizer"
+      }
+    },
+    "mixing_valve_write_target_kind": {
+      "options": {
+        "indoor": "Indoor temperature",
+        "flow": "Flow temperature"
       }
     },
     "two_zone_mode": {

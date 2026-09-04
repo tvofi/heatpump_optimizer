@@ -924,6 +924,16 @@
    "required": "Optional",
    "selector": "EntitySelector"
   },
+  "mixing_valve_write_target_kind": {
+   "config": {
+    "mode": "'dropdown'",
+    "options": "['indoor', 'flow']",
+    "translation_key": "'mixing_valve_write_target_kind'"
+   },
+   "default": "'indoor'",
+   "required": "Optional",
+   "selector": "SelectSelector"
+  },
   "valve_outlet_temp_entity": {
    "config": {
     "filter": "[{'domain': ['sensor']}]"

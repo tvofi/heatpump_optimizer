@@ -5330,6 +5330,105 @@ R.check(
 )
 
 
+R.section("Unit-correct write target for flow set-point entities (#398)")
+
+# The write path already commands a temperature to whatever entity is
+# configured; the value has always been an *indoor* target
+# (`mixing_valve_target`/`comfort_ceiling`). Pointed at a flow/water
+# set-point that value is roughly 21 C to something expecting 35-45 C -- a
+# real underheating hazard, not a cosmetic mismatch. The new key makes the
+# target explicit and defaults to the value already written, so an existing
+# entry's behaviour does not move.
+
+R.check(
+    "the default preserves today's behaviour exactly",
+    hp_const.DEFAULT_MIXING_VALVE_WRITE_TARGET_KIND == _mv.WRITE_TARGET_INDOOR,
+    f"default is {hp_const.DEFAULT_MIXING_VALVE_WRITE_TARGET_KIND!r}",
+)
+
+_fi = _write_coord(
+    mixing_valve_mode="smart_write", mixing_valve_write_entity="number.valve",
+)
+_asyncio.run(_fi._command_valve_target())
+_fx = _write_coord(
+    mixing_valve_mode="smart_write", mixing_valve_write_entity="number.valve",
+    mixing_valve_write_target_kind=_mv.WRITE_TARGET_INDOOR,
+)
+_asyncio.run(_fx._command_valve_target())
+R.check(
+    "an explicit 'indoor' kind writes the same value as an absent key",
+    _fi.hass.services.calls == _fx.hass.services.calls,
+    f"absent {_fi.hass.services.calls!r} vs explicit {_fx.hass.services.calls!r}",
+)
+
+# 'flow' derives the commanded value from the flow curve
+# `_simulate_step_two_zone` already uses to bound a dumb valve's delivery
+# (`mixing_valve.flow_setpoint`, called there with the same UA/heat-loss
+# construction) -- reused rather than re-derived, per #398's scope.
+_ff = _write_coord(
+    mixing_valve_mode="smart_write", mixing_valve_write_entity="number.valve",
+    mixing_valve_write_target_kind=_mv.WRITE_TARGET_FLOW,
+    upper_floor_heat_loss=0.10, lower_floor_heat_loss=0.10,
+    heat_pump_max_power=10.0, heat_pump_cop_nominal=1.0,
+)
+_ff._current_state.outdoor_temperature = -5.0
+_asyncio.run(_ff._command_valve_target())
+_expected_flow = _mv.flow_setpoint(
+    target_temp=23.5, outdoor_temp=-5.0,
+    heat_loss_coefficient=0.20, emitter_ua=10.0 / 15.0,
+)
+R.check(
+    "'flow' commands the flow curve's temperature, not the raw indoor target",
+    bool(_ff.hass.services.calls)
+    and abs(_ff.hass.services.calls[0][2]["value"] - round(_expected_flow, 1)) < 1e-6
+    and _expected_flow > 23.5,
+    f"got {_ff.hass.services.calls!r}, expected {round(_expected_flow, 1)} "
+    f"(unrounded {_expected_flow:.4f})",
+)
+
+# The mode is validated, not trusted -- the same rule `from_config` already
+# applies to `mixing_valve_mode` itself, for the same reason: an unknown
+# string must not fall through to a silently wrong branch.
+_fs = _write_coord(
+    mixing_valve_mode="smart_write", mixing_valve_write_entity="climate.valve",
+    mixing_valve_write_target_kind="not-a-real-kind",
+)
+_asyncio.run(_fs._command_valve_target())
+R.check(
+    "an unrecognised kind is validated away to 'indoor' rather than trusted",
+    bool(_fs.hass.services.calls)
+    and abs(_fs.hass.services.calls[0][2]["temperature"] - 23.5) < 1e-6,
+    f"got {_fs.hass.services.calls!r}",
+)
+
+# The catch #398 names: the flow curve is two-zone building physics
+# (`_simulate_step_two_zone`'s own heat-loss/emitter-UA construction), so
+# 'flow' on a single-zone install -- which has neither -- has no curve to
+# derive from. Caught rather than commanded: skip the write instead of
+# sending a fabricated number to what is believed to be a flow set-point.
+_fu_cfg = {
+    "tibber_token": "x", "weather_entity": "weather.home",
+    "indoor_temp_entity": "sensor.indoor", "outdoor_temp_entity": "sensor.outdoor",
+    "mixing_valve_mode": "smart_write",
+    "mixing_valve_write_entity": "number.valve",
+    "mixing_valve_write_target_kind": _mv.WRITE_TARGET_FLOW,
+    "max_temperature": 23.5,
+}
+_fu = _Coord(_FakeHass(_BASE), _FakeEntry(data=_fu_cfg))
+R.check(
+    "and single-zone is exactly the install that has none -- fixture check",
+    not _fu._thermal_params.two_zone_enabled,
+    "this next check is only meaningful if the fixture is actually single-zone",
+)
+_asyncio.run(_fu._command_valve_target())
+R.check(
+    "single-zone with 'flow' selected skips the write rather than "
+    "commanding an indoor value to a flow set-point",
+    _fu.hass.services.calls == [],
+    f"got {_fu.hass.services.calls!r}",
+)
+
+
 R.section("Per-step external heat reaches the model and the plan (item 28)")
 
 # The harness prerequisite the item names: `external_heat_active` was a scalar

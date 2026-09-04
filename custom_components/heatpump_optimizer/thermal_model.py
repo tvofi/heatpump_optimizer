@@ -1459,6 +1459,23 @@ class ThermalModel:
 
         return u_wind
 
+    def flow_target_for_indoor(self, indoor_target: float, outdoor_temp: float) -> float:
+        """Flow temperature `mixing_valve.flow_setpoint`'s curve implies for
+        `indoor_target` (#398) -- the same conversion `_simulate_step_two_zone`
+        uses to bound a dumb valve's delivery, reused rather than re-derived.
+        """
+        p = self.params
+        heat_loss = self.effective_heat_loss_coefficient(
+            p.upper_floor_heat_loss
+        ) + self.effective_heat_loss_coefficient(p.lower_floor_heat_loss_learned)
+        design_power = p.max_electrical_power * max(p.cop_nominal, 1.0)
+        return mixing_valve.flow_setpoint(
+            target_temp=indoor_target,
+            outdoor_temp=outdoor_temp,
+            heat_loss_coefficient=heat_loss,
+            emitter_ua=design_power / max(p.emitter_design_delta_t, 1.0),
+        )
+
     def compute_solar_gain(self, solar_radiation: float) -> float:
         """Compute total solar heat gain in kW from solar radiation (W/m²).
 

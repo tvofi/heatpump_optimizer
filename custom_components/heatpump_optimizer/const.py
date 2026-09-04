@@ -591,6 +591,15 @@ CONF_MIXING_VALVE_WRITE_ENTITY: Final = "mixing_valve_write_entity"
 # number -- hammering a device with identical setpoints every 15 minutes
 # wears flash on some controllers and floods others' logs.
 MIXING_VALVE_WRITE_EPSILON: Final = 0.25  # K
+# What kind of set-point the write entity expects (#398). "indoor" is the
+# value already written -- a room-temperature target, unit-correct for a
+# thermostat-shaped entity -- and stays the default so an existing entry's
+# behaviour does not move. "flow" is for a valve or heat-pump controller
+# whose set-point is a *water* temperature: pointing an indoor target at one
+# of those commands roughly 21 C to something expecting 35-45 C, so the
+# choice is explicit rather than guessed from the entity.
+CONF_MIXING_VALVE_WRITE_TARGET_KIND: Final = "mixing_valve_write_target_kind"
+DEFAULT_MIXING_VALVE_WRITE_TARGET_KIND: Final = "indoor"
 CONF_BUFFER_MAX_TEMP: Final = "buffer_max_temperature"  # °C
 DEFAULT_BUFFER_MAX_TEMP: Final = 70.0  # °C
 # 0.0 means "not set": the comfort ceiling is used instead, which is the

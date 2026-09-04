@@ -58,6 +58,17 @@ THROTTLING_MODES: frozenset[str] = frozenset(
     {MODE_MANUAL, MODE_SMART_READ, MODE_SMART_WRITE}
 )
 
+# --- What kind of set-point `smart_write` commands (#398) -------------------
+#
+# The same commanded number, aimed at two different kinds of entity. An
+# "indoor" set-point is a room-temperature target -- what has always been
+# written. A "flow" set-point is a water temperature, unit-correct only after
+# `flow_setpoint` below, the same conversion the two-zone model already
+# applies to bound a dumb valve's delivery.
+WRITE_TARGET_INDOOR = "indoor"
+WRITE_TARGET_FLOW = "flow"
+WRITE_TARGET_KINDS: tuple[str, ...] = (WRITE_TARGET_INDOOR, WRITE_TARGET_FLOW)
+
 def is_throttling(mode: str | None) -> bool:
     """Whether this mode has a valve that limits delivery."""
     return (mode or MODE_NONE) in THROTTLING_MODES

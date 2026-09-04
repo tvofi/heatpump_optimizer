@@ -253,6 +253,7 @@ GRID_ANSWERS = {
 BUILDING_PAGE_ANSWERS = {
     const.CONF_MIXING_VALVE_MODE: config_flow.mixing_valve.MODE_NONE,
     const.CONF_MIXING_VALVE_TARGET: 0.0,
+    const.CONF_MIXING_VALVE_WRITE_TARGET_KIND: config_flow.mixing_valve.WRITE_TARGET_INDOOR,
     const.CONF_BUFFER_TANK_VOLUME: 250.0,
     const.CONF_BUFFER_MAX_TEMP: 70.0,
     const.CONF_WOOD_TANK_VOLUME: 600.0,
@@ -1424,7 +1425,8 @@ async def options_advanced_pages():
     )
     config_flow.async_get_clientsession = real
 
-    # building: the plumbing page, no validation, clearable entities.
+    # building: the plumbing page, clearable entities, and one validated
+    # field (#398) -- see below.
     flow, entry, _ = fresh_options()
     await flow.async_step_building(None)
     result = await submit(flow, "building", BUILDING_PAGE_ANSWERS)
@@ -1439,6 +1441,66 @@ async def options_advanced_pages():
         and entry.options.get(const.CONF_VALVE_OUTLET_TEMP_ENTITY) is None,
         f"valve={entry.options.get(const.CONF_MIXING_VALVE_TARGET_ENTITY)!r} "
         f"wood_top={entry.options.get(const.CONF_WOOD_TANK_TOP_ENTITY)!r}",
+    )
+    check(
+        "opt_building",
+        "happy",
+        "the 'indoor' write-target kind round-trips through the page (#398)",
+        entry.options.get(const.CONF_MIXING_VALVE_WRITE_TARGET_KIND)
+        == config_flow.mixing_valve.WRITE_TARGET_INDOOR,
+        str(entry.options.get(const.CONF_MIXING_VALVE_WRITE_TARGET_KIND)),
+    )
+
+    # 'flow' needs the two-zone model, whose absence is what the owner's
+    # entry has by default here -- catch it rather than saving it silently.
+    flow, entry, _ = fresh_options()
+    await flow.async_step_building(None)
+    result = await submit(
+        flow,
+        "building",
+        {
+            **BUILDING_PAGE_ANSWERS,
+            const.CONF_MIXING_VALVE_WRITE_TARGET_KIND: (
+                config_flow.mixing_valve.WRITE_TARGET_FLOW
+            ),
+        },
+    )
+    check(
+        "opt_building",
+        "error",
+        "'flow' without the two-zone model is refused, not saved (#398)",
+        shows(result, "building")
+        and result.get("errors", {}).get(
+            const.CONF_MIXING_VALVE_WRITE_TARGET_KIND
+        )
+        == "flow_target_needs_two_zone"
+        and not entry.options,
+        f"errors={result.get('errors')} options={sorted(entry.options)}",
+    )
+
+    # With the two-zone model present, the same choice saves.
+    flow, entry, _ = fresh_options(
+        pre_options={const.CONF_UPPER_FLOOR_THERMAL_MASS: 4.0}
+    )
+    await flow.async_step_building(None)
+    result = await submit(
+        flow,
+        "building",
+        {
+            **BUILDING_PAGE_ANSWERS,
+            const.CONF_MIXING_VALVE_WRITE_TARGET_KIND: (
+                config_flow.mixing_valve.WRITE_TARGET_FLOW
+            ),
+        },
+    )
+    check(
+        "opt_building",
+        "happy",
+        "'flow' with the two-zone model configured saves cleanly (#398)",
+        shows_menu(result, "advanced")
+        and entry.options.get(const.CONF_MIXING_VALVE_WRITE_TARGET_KIND)
+        == config_flow.mixing_valve.WRITE_TARGET_FLOW,
+        f"options={entry.options.get(const.CONF_MIXING_VALVE_WRITE_TARGET_KIND)!r}",
     )
 
     # thermal_model: the presence-hazard page. A no-op save keeps the
