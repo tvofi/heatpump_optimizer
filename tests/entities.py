@@ -6453,6 +6453,22 @@ R.check(
     "custom_components/heatpump_optimizer/coordinator.py" in _widened[_ED],
     "the rule must narrow by one subtree, not collapse",
 )
+# A second exclusion, for a different reason (#357): quality_scale.yaml was
+# simultaneously declared INERT and swept into env_drift's and golden's
+# widened closures by this same rule -- a contradiction `merge` refuses that
+# the closures CI job's `--record-only` path never reached. Measured rather
+# than argued, like the card above: `env_drift.py --capture . <out> --all`
+# and a direct `golden.capture()` over five scenarios were byte-identical
+# across a quality_scale.yaml edit and differed across the same thermal_model
+# probe used for the card's positive control (see tests/closure.py's
+# NEVER_WIDENED comment for both sha256 pairs).
+_QS = "custom_components/heatpump_optimizer/quality_scale.yaml"
+R.check(
+    "the widening rule leaves the quality-scale register out too",
+    _QS not in _widened[_ED] and _QS not in _widened["tests/golden.py"],
+    "hassfest skips it for custom repositories and nothing under "
+    "custom_components/ opens it; measured byte-identical captures say so",
+)
 
 # The scoped gate refuses to skip anything when a changed file is in no
 # closure -- an unmeasured file is not a safe skip. That is right, and it was
@@ -6497,16 +6513,60 @@ R.check(
     "request pays 12-22 minutes the scoping this replaces was pointless",
 )
 # The skip is decided by the TABLE, not by the hand-written INERT list, and
-# the order is why. quality_scale.yaml is on INERT and inside env_drift's
-# rule-widened closure at the same time; asking "is every changed file inert?"
-# first would skip a change to a file the table says a test reads.
-_QS = "custom_components/heatpump_optimizer/quality_scale.yaml"
+# the order is why. Until #357, quality_scale.yaml was on INERT and inside
+# env_drift's rule-widened closure at the same time -- the real, on-main
+# instance of exactly the shape this ordering rule exists to get right.
+# #357 fixed the recorder (NEVER_WIDENED, above), so that file is no longer
+# a live example: both checks below use it to confirm the fix landed clean.
 _A_QS = _closure.affected([_QS])
 R.check(
-    "a file that is both INERT and inside a recorded closure is not skipped",
-    _closure.is_inert(_QS) and _A_QS["case"] == "scoped",
-    f"{_QS} is inert={_closure.is_inert(_QS)} and case={_A_QS['case']}: the "
-    "hand list may license a file's ABSENCE from the table, never override it",
+    "the (fixed) quality-scale contradiction is gone: INERT and in no "
+    "closure now means skip, not scoped",
+    _closure.is_inert(_QS) and _A_QS["case"] == "skip",
+    f"{_QS} is inert={_closure.is_inert(_QS)} and case={_A_QS['case']}",
+)
+# The ORDER still has to be pinned even with no naturally occurring
+# contradiction left on disk, so this manufactures one: start from the real
+# committed table (every selectable script stays covered, which `affected`
+# requires) and inject one INERT-listed path into an existing closure's file
+# list. `affected` must still call that "scoped", never "skip" -- the same
+# property the fixed quality_scale.yaml case demonstrated when it was real.
+def _affected_against(table: dict, files: list[str]) -> dict:
+    with _tempfile.TemporaryDirectory() as _td:
+        _p = Path(_td) / "closures.json"
+        _p.write_text(json.dumps({"closures": table}))
+        _orig_closures, _closure.CLOSURES = _closure.CLOSURES, _p
+        try:
+            return _closure.affected(files)
+        finally:
+            _closure.CLOSURES = _orig_closures
+
+
+_FAKE_INERT = "docs/does-not-need-to-exist.md"
+assert _closure.is_inert(_FAKE_INERT), "docs/ must stay on INERT for this probe"
+_synthetic_closures = {
+    k: list(v) for k, v in
+    json.loads(_closure.CLOSURES.read_text())["closures"].items()
+}
+_synthetic_closures[_ED] = _synthetic_closures[_ED] + [_FAKE_INERT]
+_A_SYNTHETIC = _affected_against(_synthetic_closures, [_FAKE_INERT])
+R.check(
+    "manufactured case: table presence outranks INERT regardless of which "
+    "file it is",
+    _A_SYNTHETIC["case"] == "scoped",
+    f"case={_A_SYNTHETIC['case']}: a file both INERT and recorded must be "
+    "scoped, not skipped, or the ordering rule has regressed",
+)
+# The general check #357 asks for, run on the committed table -- the same
+# thing `merge` has always refused, now also checked on the path the
+# closures CI job (--record-only, never `merge`) actually runs.
+_committed_closures = json.loads(_closure.CLOSURES.read_text())["closures"]
+_inert_violations = _closure.inert_closure_violations(_committed_closures)
+R.check(
+    "no file is both INERT and inside a recorded closure",
+    not _inert_violations,
+    "these are declared unread and recorded as read at once: "
+    + ", ".join(_inert_violations),
 )
 R.check(
     "a gate file re-derives everything, as it does for selection",
@@ -6912,6 +6972,52 @@ R.check(
 R.check(
     "this tree's own claim file passes the scope check",
     _env_drift.may_drift_error(_md_entries, _md_claims) is None,
+)
+
+# --- stamp.py's --self-test, wired into a lane (#372) -----------------------
+#
+# tools/release/stamp.py is, in its own words, "the only way a version
+# number is assigned", and it carries a 15+-check --self-test that has never
+# run: not in tests/run.sh, not in any workflow, not in any tests/*.py --
+# because tools/ was INERT (write-once round-2 audit evidence) and stamp.py
+# was exempt only by sharing that directory's prefix. #372 narrowed INERT to
+# tools/audit/ (tests/closure.py), which makes stamp.py an ordinary tracked
+# file the recorder must classify. Importing it here, rather than adding an
+# exemption or a hidden call site, is what gives closure.py's recorder
+# something to record: `tools/release/stamp.py` now shows up in this
+# script's own recorded closure (checked below), so a future change to
+# stamp.py pulls this check back into scope on its own.
+import contextlib as _stamp_contextlib
+import importlib.util as _importlib_util
+import io as _stamp_io
+
+_STAMP_PATH = _closure.ROOT / "tools" / "release" / "stamp.py"
+_stamp_spec = _importlib_util.spec_from_file_location(
+    "hpo_release_stamp", _STAMP_PATH
+)
+_stamp = _importlib_util.module_from_spec(_stamp_spec)
+_stamp_spec.loader.exec_module(_stamp)
+with _stamp_contextlib.redirect_stdout(_stamp_io.StringIO()) as _stamp_out:
+    _stamp_rc = _stamp.self_test()
+R.check(
+    "tools/release/stamp.py's --self-test passes",
+    _stamp_rc == 0,
+    "run `python tools/release/stamp.py --self-test` by hand for the "
+    "failing check names:\n" + _stamp_out.getvalue(),
+)
+R.check(
+    "stamp.py is no longer INERT: closure.py must classify it",
+    not _closure.is_inert("tools/release/stamp.py"),
+    "narrowing INERT to tools/audit/ (#372) must not still cover "
+    "tools/release/stamp.py, or the recorder has nothing to pull it into",
+)
+R.check(
+    "narrowing INERT moves exactly stamp.py into the must-classify set",
+    [f for f in __import__("subprocess").run(
+        ["git", "ls-files", "tools/"], cwd=_closure.ROOT,
+        capture_output=True, text=True).stdout.split()
+     if not f.startswith("tools/audit/")] == ["tools/release/stamp.py"],
+    "tools/ should hold exactly one file outside tools/audit/",
 )
 
 # --- the committed fixtures' own staleness gate (#347, #326) ----------------

@@ -138,11 +138,16 @@ INERT = (
     "docs/",
     "tests/README.md",
     ".gitignore",
-    # Audit harnesses and release tooling: scripts people run by hand,
-    # outside the gate. Nothing under tests/ imports or opens them, and
+    # Write-once round-2 audit evidence: harnesses and reports people run by
+    # hand, outside the gate. Nothing under tests/ imports or opens them, and
     # the `merge` check below proves it every time the closures are
-    # re-derived.
-    "tools/",
+    # re-derived. Narrowed from `tools/` (#372): that wider prefix also
+    # covered tools/release/stamp.py, live release-critical code that was
+    # exempt only by sharing a directory with the evidence. Narrowing to
+    # tools/audit/ makes stamp.py an ordinary tracked file the recorder must
+    # classify, so a test that imports it pulls its closure in on its own --
+    # no exemption, no hidden call site.
+    "tools/audit/",
     # Everything below is here for one reason: a file that is neither in a
     # closure nor on this list forces the WHOLE suite, because an unmeasured
     # file is not a safe skip. That rule is right, and it was quietly costing
@@ -226,6 +231,20 @@ def orphan_files() -> list[str]:
 
 def is_gate_file(rel: str) -> bool:
     return any(rel == p or (p.endswith("/") and rel.startswith(p)) for p in GATE_FILES)
+
+
+def inert_closure_violations(closures: dict[str, list[str]]) -> list[str]:
+    """Files declared INERT ("nothing in the gate reads this") that also
+    appear inside a recorded closure ("a test does read this"). The two
+    declarations contradict, and the recorded trace is the one taken from a
+    running process, so a hit here means either INERT is wrong or the
+    recorder over-approximated (#357). `merge` has refused a fresh
+    re-derivation on this since it was written; the closures CI job runs
+    `--record-only` and never calls `merge`, so nothing on that path ever
+    asked the question. Called from both `merge` (a fresh fold) and `check`
+    (the committed table, which is what the CI job that never reaches
+    `merge` actually validates)."""
+    return sorted({f for files in closures.values() for f in files if is_inert(f)})
 
 
 def test_scripts() -> list[str]:
@@ -442,6 +461,37 @@ def _is_frontend_asset(rel: str) -> bool:
     return any(rel.startswith(prefix) for prefix in FRONTEND_ASSETS)
 
 
+# A second file the whole-integration rule cannot see, for a different
+# reason (#357). quality_scale.yaml was simultaneously declared INERT and
+# recorded inside env_drift.py's and golden.py's closures -- a contradiction
+# `merge` below refuses, that the closures CI job's `--record-only` path
+# never reaches, so it was never checked in the configuration that runs.
+#
+# Decided by measurement, not by reading, on the same tree with
+# `env_drift.py --capture . <out> --all` and a direct call to
+# `golden.capture()` over five scenarios:
+#
+#   null control     quality_scale.yaml edited (a trailing comment line
+#                     appended): env_drift capture byte-identical, sha256
+#                     6111753cb7872fcc9444573d291a126a5ce4e7fe6353224a316fc77962c5d6a7
+#                     before and after; golden.capture() sha256
+#                     1ad50d3e634924c988930acffcb2ff27f24cdbb1a5b46bf0cbdfaf6ea2c774f9
+#                     before and after
+#   positive control one token in thermal_model.py (`* dt` -> `* dt * 1.0001`):
+#                     env_drift capture sha256 changes to
+#                     744d8d04b6bd0897189b75d37ac71db4e91a0f4ee33cd64cfb5f9af10dfa67ab;
+#                     golden.capture() sha256 changes to
+#                     4bd4b84357c354bc70d69d7a496e5434a4e8469a11c2677d7d548998d0f12372
+#
+# hassfest skips the quality-scale register for custom repositories and
+# nothing under custom_components/ ever opens it -- unlike the bundled card,
+# there is not even a static-path registration to explain the absence, there
+# is simply no reader. It stays on INERT; the recorder was the one that was
+# wrong, matching the accepted over-approximation ground #251/D3-09 was
+# closed on.
+NEVER_WIDENED = ("custom_components/heatpump_optimizer/quality_scale.yaml",)
+
+
 def _widen(closures: dict[str, set[str]]) -> None:
     """Apply, in place, the rules a trace cannot know. Shared by the full fold
     and by the partial (``--single``) overlay, so that re-recording one script
@@ -470,7 +520,8 @@ def _widen(closures: dict[str, set[str]]) -> None:
     if ed in closures:
         for p in sorted((ROOT / "custom_components").rglob("*")):
             rel = str(p.relative_to(ROOT))
-            if p.is_file() and "__pycache__" not in rel and not _is_frontend_asset(rel):
+            if (p.is_file() and "__pycache__" not in rel
+                    and not _is_frontend_asset(rel) and rel not in NEVER_WIDENED):
                 closures[ed].add(rel)
         for p in sorted((ROOT / "tests" / "golden").glob("*")):
             if p.is_file():
@@ -588,7 +639,7 @@ def merge(in_dir: Path, out: Path, allow_failures: bool = False,
             print(f"  {k:26s} {len(closures[k]):4d} files")
         return 0
     closures = _fold(records)
-    bad = sorted({f for files in closures.values() for f in files if is_inert(f)})
+    bad = inert_closure_violations(closures)
     if bad:
         print("closure: files on the INERT list are actually read by tests:", file=sys.stderr)
         for b in bad:
@@ -735,6 +786,22 @@ def check(in_dir: Path, partial: bool = False) -> int:
         print("closure: tests/closures.json is missing", file=sys.stderr)
         return 1
     committed = json.loads(CLOSURES.read_text())["closures"]
+    # Same contradiction `merge` refuses, checked here too (#357): the
+    # closures CI job runs `derive_closures.sh --record-only`, which never
+    # calls `merge`, so a file that is both INERT and inside a recorded
+    # closure was never caught in the configuration that actually executes.
+    bad = inert_closure_violations(committed)
+    if bad:
+        print("closure: files on the INERT list are inside a recorded "
+              "closure (committed tests/closures.json):", file=sys.stderr)
+        for b in bad:
+            print(f"  {b}", file=sys.stderr)
+        print("  A file cannot be declared unread (INERT) and recorded as "
+              "read (in a closure) at the same time. Either it genuinely "
+              "affects that script's output and must leave INERT, or the "
+              "recorder over-approximated and should stop recording it "
+              "(#357).", file=sys.stderr)
+        return 1
     records = {}
     for f in sorted(in_dir.glob("*.json")):
         rec = json.loads(f.read_text())
@@ -998,11 +1065,17 @@ def write_plan(plan: dict, workdir: Path) -> None:
 #
 # The order matters, and the skip is LAST on purpose. The first draft asked
 # "is every changed file INERT?" first, and that is a different question: a
-# file can be on INERT and in a recorded closure at the same time --
-# quality_scale.yaml is both on main today, listed as inert and inside
-# env_drift's rule-widened closure. Asking the hand list first would have
-# skipped a change to a file the table says a test reads. The table decides
-# the skip; INERT only licenses a file's ABSENCE from the table.
+# file CAN be on INERT and in a recorded closure at the same time -- that is
+# exactly the shape quality_scale.yaml took until #357: listed as inert and
+# also inside env_drift's rule-widened closure, simultaneously, on main.
+# Asking the hand list first would have skipped a change to a file the table
+# said a test reads. The table decides the skip; INERT only licenses a
+# file's ABSENCE from the table. #357 fixed the recorder so quality_scale.yaml
+# no longer sits in both places (measured: it does not move env_drift's or
+# golden's output), and `inert_closure_violations()` now asserts that no
+# other file does either -- but the ORDER this function applies stays right
+# regardless of whether such a file currently exists, which is what the
+# synthetic case in tests/entities.py pins.
 #
 # The `full` rule carries no path prefix on purpose. The first draft said "a
 # changed file under custom_components/ that is in no closure", and the
