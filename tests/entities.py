@@ -7298,9 +7298,12 @@ R.check(
     _card_match is not None,
     f"no `const CARD_VERSION = \"X.Y.Z\"` in {_card_path}",
 )
-# A card-only release bumps both files; an integration-only release leaves
-# the card behind, which is legal. Ahead of VERSION is not: it would ship a
-# banner advertising a release that does not exist.
+# stamp.py now writes CARD_VERSION alongside VERSION at release, so the
+# console banner tracks the integration version and lagging stops in
+# practice. A card that still lags (a card-only patch, or a branch that
+# bumps VERSION without going through stamp.py) remains legal; ahead of
+# VERSION is not -- it would ship a banner advertising a release that
+# does not exist.
 R.check(
     "CARD_VERSION does not run ahead of VERSION",
     _card_match is not None
