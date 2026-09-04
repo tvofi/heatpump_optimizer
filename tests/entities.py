@@ -7536,6 +7536,48 @@ R.check(
     _env_drift.may_drift_error(_md_entries, _md_claims) is None,
 )
 
+# --- may-drift judged-key partition (#254) -----------------------------------
+#
+# The five SENSITIVE fixtures may drift in plan keys but not in forecast or
+# baseline-reference fields. Measured 2026-09-04: prices, outdoor_temps,
+# price_known and baseline_cost never move under committed-vs-local basin
+# noise on any SENSITIVE fixture or narrow_band; M01 moves baseline_cost on
+# wood_coil while the three input keys stay put.
+R.check(
+    "may-drift judged keys are exactly the forecast and baseline fields",
+    _env_drift.MAY_DRIFT_JUDGED_KEYS
+    == frozenset({"prices", "outdoor_temps", "price_known", "baseline_cost"}),
+)
+R.check(
+    "may_drift_judged_diffs keeps baseline_cost and drops plan schedules",
+    _env_drift.may_drift_judged_diffs(
+        "wood_coil",
+        [
+            "wood_coil.baseline_cost: 156.0 vs 678.0",
+            "wood_coil.power_schedule[0]: 1.0 vs 2.0",
+            "wood_coil.prices[3]: 0.5 vs 0.6",
+        ],
+    )
+    == [
+        "wood_coil.baseline_cost: 156.0 vs 678.0",
+        "wood_coil.prices[3]: 0.5 vs 0.6",
+    ],
+)
+R.check(
+    "may_drift_exempt_diffs is the complement on mixed diffs",
+    len(_env_drift.may_drift_exempt_diffs(
+        "wood_coil",
+        [
+            "wood_coil.baseline_cost: 1 vs 2",
+            "wood_coil.optimal_setpoints[0]: 20 vs 21",
+        ],
+    )) == 1
+    and "optimal_setpoints"
+    in _env_drift.may_drift_exempt_diffs(
+        "wood_coil", ["wood_coil.optimal_setpoints[0]: 20 vs 21"]
+    )[0],
+)
+
 # --- stamp.py's --self-test, wired into a lane (#372) -----------------------
 #
 # tools/release/stamp.py is, in its own words, "the only way a version

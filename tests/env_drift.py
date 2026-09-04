@@ -122,6 +122,19 @@ CLAIM_VERSION_MARKER = "claims-for:"
 MAY_DRIFT_MARKER = "may-drift:"
 VERSION_FILE = "VERSION"
 
+# Payload keys fixed by the forecast and baseline reference, not by which local
+# optimum the solver reached. Measured 2026-09-04 (#254): committed vs local
+# capture on all five SENSITIVE fixtures plus narrow_band never moves these
+# four under machine noise; M01 (thermal_model.dhw_coil_draw_reduction) moves
+# baseline_cost 156 -> 678 on wood_coil while they stay put. Every other key
+# can move with basin noise alone and stays exempt for may-drift fixtures.
+MAY_DRIFT_JUDGED_KEYS = frozenset({
+    "baseline_cost",
+    "outdoor_temps",
+    "price_known",
+    "prices",
+})
+
 # ===========================================================================
 # The baseline cache
 # ===========================================================================
@@ -572,6 +585,26 @@ def _diff_leaves(a, b, path, out) -> None:
         out.append(f"{path}: {a!r} vs {b!r}")
 
 
+def _payload_key(fixture: str, diff_line: str) -> str | None:
+    """Top-level golden payload key from a ``_diff_leaves`` line."""
+    prefix = f"{fixture}."
+    if not diff_line.startswith(prefix):
+        return None
+    rest = diff_line[len(prefix):]
+    return rest.split(".")[0].split("[")[0].split(":")[0]
+
+
+def may_drift_judged_diffs(fixture: str, diffs: list[str]) -> list[str]:
+    """Diff lines in ``MAY_DRIFT_JUDGED_KEYS`` — fail even on may-drift fixtures."""
+    return [d for d in diffs if _payload_key(fixture, d) in MAY_DRIFT_JUDGED_KEYS]
+
+
+def may_drift_exempt_diffs(fixture: str, diffs: list[str]) -> list[str]:
+    """Plan and basin-sensitive diffs a may-drift fixture may carry."""
+    judged = set(MAY_DRIFT_JUDGED_KEYS)
+    return [d for d in diffs if _payload_key(fixture, d) not in judged]
+
+
 # ===========================================================================
 # The committed fixtures' own staleness gate (#347, #326)
 # ===========================================================================
@@ -948,10 +981,13 @@ def _may_drift(repo: str) -> dict[str, str]:
 
     A may-drift entry says the honest thing: this scenario is one the gate
     itself declares non-reproducible, this change plausibly touches it, and
-    the diff is printed for a human rather than judged by the runner. It is
-    deliberately weaker than a claim, and confined so it cannot be used as
-    one: `may_drift_error` rejects any name outside ``SENSITIVE``, so the
-    exemption can never reach a fixture whose floats do travel.
+    plan drift is printed for a human rather than judged by the runner.
+    Diffs in ``MAY_DRIFT_JUDGED_KEYS`` (prices, outdoor_temps, price_known,
+    baseline_cost) still fail: they are fixed by the forecast and baseline
+    reference, not by which local optimum was reached. It is deliberately
+    weaker than a claim for plan keys only, and confined so it cannot be
+    used as one: `may_drift_error` rejects any name outside ``SENSITIVE``,
+    so the exemption can never reach a fixture whose floats do travel.
 
     Written as comment lines (``# may-drift: <name> -- <reason>``) so that
     `_claimed`, which reads any non-comment line as a claim, is untouched --
@@ -1398,14 +1434,23 @@ def main() -> int:
             elif not diffs:
                 print(f"  ok    {name} is byte-identical to {ref} here")
             elif name in may_drift:
-                may_drift_hits.append(name)
-                print(f"  MAY-DRIFT {name}: {len(diffs)} leaves moved "
-                      f"({may_drift[name]})")
-                # Printed in full rather than truncated at three: nobody can
-                # judge these from a runner's verdict, so the log is the only
-                # place the evidence exists.
-                for line in diffs[:10]:
-                    print(f"         {line}")
+                judged_diffs = may_drift_judged_diffs(name, diffs)
+                exempt_diffs = may_drift_exempt_diffs(name, diffs)
+                if judged_diffs:
+                    drifted += 1
+                    extra = ""
+                    if exempt_diffs:
+                        extra = f" ({len(exempt_diffs)} plan leaf/leaves exempt)"
+                    print(f"  DRIFT {name}: {len(judged_diffs)} judged "
+                          f"leaf/leaves moved vs {ref}{extra}")
+                    for line in judged_diffs[:5]:
+                        print(f"         {line}")
+                else:
+                    may_drift_hits.append(name)
+                    print(f"  MAY-DRIFT {name}: {len(exempt_diffs)} leaves moved "
+                          f"({may_drift[name]})")
+                    for line in exempt_diffs[:10]:
+                        print(f"         {line}")
             elif name in claims:
                 claimed_hits.append(name)
                 print(f"  CLAIMED {name}: {len(diffs)} leaves moved ({claims[name]})")
@@ -1431,10 +1476,10 @@ def main() -> int:
             print(f"  unjudged claim for {name}: not captured in this mode")
 
         if may_drift_hits:
-            print(f"\n{len(may_drift_hits)} MAY-DRIFT SCENARIO(S) MOVED, unjudged")
-            print("These are the fixtures this gate declares non-reproducible")
-            print("across BLAS builds, so a diff in them is not evidence about")
-            print("this branch either way and is printed rather than judged:")
+            print(f"\n{len(may_drift_hits)} MAY-DRIFT SCENARIO(S) MOVED, plan only")
+            print("These fixtures are non-reproducible across BLAS builds; only")
+            print("diffs outside MAY_DRIFT_JUDGED_KEYS are exempt. Plan drift")
+            print("is printed rather than judged:")
             for name in may_drift_hits:
                 print(f"  {name}: {may_drift[name]}")
             print("Read the leaf diffs above. Never re-record them on a")
