@@ -54,7 +54,7 @@ Where this table and a wave body disagree, this table is the truth.
 | 1b | gate instruments, suite gaps, card, stores | 26 issues in 14 groups | v6.3.11 | prepared |
 | 2 | coordinator lifecycle, learners, options grouping | #236 #237 #240 #239 #243 #283 #284 #279 #278 #277 #244 #325 #280 #198 | v6.3.12 | pending |
 | 3 | solver, DHW planner, GIL process route | #232 #234 #289 #290 #199 | v6.3.13 | pending — **W3-G4 is struck**, #242 has no admissible formula |
-| 4 | the #193 decomposition programme, S0–S13 | #193 #223 #224 #225 | one per stage | pending |
+| 4 | the #193 decomposition programme, S0–S13 | #193 #223 #224 #225, and **#304 as S11's precursor** | one per stage | pending |
 | 5 | typing lane, and the coverage deficit #195 raised | #303 #195 | per tranche | pending — **#304 moves ahead of S11**, see below |
 
 ### What triage changed, 2026-09-04 (batch B2)
