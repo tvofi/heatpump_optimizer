@@ -604,15 +604,15 @@ function printReport(file, findings) {
   return errors.length
 }
 
-// #411 acceptance at 931dffe: the four half-II groups named in the issue,
-// plus min_ink_gap (outside the freshness table). A gutted lintBrief makes
-// this list miss and the no-arg path exit 1.
+// #411 acceptance at 931dffe: the four half-II groups named in the issue.
+// min_ink_gap is not pinned: a later doc (#417 `.cursor/rules`) names it,
+// so the symbol check goes quiet on a merge even though lintBrief is live.
+// The nine below still go missing if lintBrief is deleted.
 const REQUIRED_931DFFE = [
   { group: 'W1-G8', kind: 'metric', needle: 'coordinator_loc' },
   { group: 'W1-G8', kind: 'metric', needle: 'methods 255' },
   { group: 'W1-G8', kind: 'metric', needle: 'attrs 176' },
   { group: 'W1-G13', kind: 'path', needle: 'card_geometry.mjs' },
-  { group: 'W1-G13', kind: 'symbol', needle: 'min_ink_gap' },
   { group: 'W1-G14', kind: 'path:line', needle: 'entities.py:6042-6062' },
   { group: 'W1-G14', kind: 'version', needle: '6.3.9' },
   { group: 'W1-G9', kind: 'path', needle: 'model_sanity.py' },
