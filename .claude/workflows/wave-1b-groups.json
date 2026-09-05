@@ -1,6 +1,7 @@
 {
  "_comment": [
   "Wave 1b of the open-issues programme (docs/plan-2026-09-open-issues.md), as executed.",
+  "Half II released as v6.3.13 (tag f94ae13), 2026-09-05.",
   "EXECUTABLE, not merely informative: every group carries a `resume` field naming where it restarts --",
   "  done (skip), merge (skip to the merge chain), review (skip the fixer), fix (continue from a pushed branch).",
   "  web-fix-wave.js reads these. Feeding this file to the wave script without them would re-run fixers over",
