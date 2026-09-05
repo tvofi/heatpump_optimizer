@@ -14853,6 +14853,586 @@ R.check(
 )
 _asyncio.run(_ha_unload_entry(_integ, _ho_hass, _ho_entry))
 
+R.section("#236/#237/#240 — the coordinator's lifecycle seam")
+
+# The three registrations the coordinator puts on `hass` -- the peak guard's
+# meter listener, the defrost watch and the ECL110 MQTT subscription -- are
+# spawned from `__init__`, BEFORE `async_setup_entry` awaits the first
+# refresh. When Tibber is unreachable at boot that refresh raises
+# ConfigEntryNotReady, and Home Assistant then runs the entry's
+# `async_on_unload` callbacks and nothing else: no `async_unload_entry`, so
+# no `async_shutdown`. Every retry -- about 45 an hour -- used to leave a
+# whole live coordinator on the bus.
+#
+# Everything below runs on a hass whose `async_create_task` is REAL. The
+# shared FakeHass closes spawned coroutines, which would make the leak
+# unreproducible, and `mqtt.async_subscribe` is swapped for one that returns
+# a real unsubscribe -- the stub returns None, so an MQTT leak is invisible
+# through it.
+from homeassistant.components import mqtt as _lc_mqtt
+from homeassistant.exceptions import HomeAssistantError as _HAError
+import heatpump_optimizer.coordinator as _coord_mod
+
+
+class _NotReady(_HAError):
+    """Stands in for ConfigEntryNotReady, which the stub does not carry."""
+
+
+_GUARDED_DATA = {
+    "tibber_token": "x",
+    "weather_entity": "weather.home",
+    "house_power_entity": "sensor.house_power",
+    "heat_pump_defrost_entity": "binary_sensor.defrost",
+    "peak_guard_enabled": True,
+}
+
+
+# asyncio grew eager task start in 3.12; below that only the lazy arm is
+# reachable, so the eager arm falls back rather than erroring at import.
+_EAGER_TASKS = sys.version_info >= (3, 12)
+
+
+class _BusHass(_FakeHass):
+    """A real loop behind async_create_task, and an honest MQTT registry."""
+
+    def __init__(self, states=None, *, eager=True) -> None:
+        super().__init__(states)
+        self.state_listeners = []
+        self.mqtt_subs = []
+        self.eager = eager
+
+    def async_create_task(self, coro, name=None, eager_start=None):
+        try:
+            loop = _asyncio.get_running_loop()
+        except RuntimeError:
+            coro.close()
+            return None
+        if self.eager and _EAGER_TASKS:
+            # Home Assistant 2024.3+ installs asyncio's eager task factory.
+            return _asyncio.Task(coro, loop=loop, eager_start=True)
+        # 2024.1-2024.2, and plain asyncio: queued, run on a later iteration.
+        # Also the fallback below 3.12, which has no eager_start: the arm
+        # degenerates to the lazy one rather than skipping, and the leak this
+        # asserts against shows up in both arms (10 listeners either way).
+        return loop.create_task(coro)
+
+
+async def _lc_subscribe(hass, topic, callback, qos=0, **kwargs):
+    entry = [topic, callback]
+    hass.mqtt_subs.append(entry)
+
+    def _unsub():
+        if entry in hass.mqtt_subs:
+            hass.mqtt_subs.remove(entry)
+
+    return _unsub
+
+
+def _lc_bus_states():
+    return {
+        "sensor.house_power": FakeState("2000", unit="W"),
+        "binary_sensor.defrost": FakeState("off"),
+    }
+
+
+async def _notready_retries(retries: int, *, eager: bool, settle: bool) -> dict:
+    """`retries` setups that all raise ConfigEntryNotReady, HA's way.
+
+    ``settle`` decides whether the loop is yielded to before the failure --
+    a real first refresh is several awaits of network I/O, so it normally is.
+    With it off, a lazily started registration task arrives only AFTER the
+    entry's unload callbacks have already run: the arm the latch exists for.
+    """
+    hass = _BusHass(_lc_bus_states(), eager=eager)
+    original = Coord.async_config_entry_first_refresh
+
+    async def _raise_not_ready(self):
+        if settle:
+            for _ in range(6):
+                await _asyncio.sleep(0)
+        raise _NotReady("Tibber unreachable at boot")
+
+    Coord.async_config_entry_first_refresh = _raise_not_ready
+    try:
+        for i in range(retries):
+            entry = _FakeEntry(data=dict(_GUARDED_DATA), entry_id=f"retry_{i}")
+            try:
+                await _integ.async_setup_entry(hass, entry)
+            except _NotReady:
+                # ConfigEntry.async_setup -> _async_process_on_unload, and
+                # nothing else, on this path.
+                for cb in list(entry._on_unload):
+                    cb()
+                entry._on_unload.clear()
+            for _ in range(6):
+                await _asyncio.sleep(0)
+    finally:
+        Coord.async_config_entry_first_refresh = original
+
+    fired = 0
+    event = type("Ev", (), {"data": {"new_state": FakeState("2500", unit="W")}})()
+    for _ids, action in list(hass.state_listeners):
+        if getattr(action, "__name__", "") == "_on_power_event":
+            action(event)
+            fired += 1
+    return {
+        "listeners": len(hass.state_listeners),
+        "mqtt_subs": len(hass.mqtt_subs),
+        "dead_handler_runs": fired,
+    }
+
+
+_lc_real_subscribe = _lc_mqtt.async_subscribe
+_lc_mqtt.async_subscribe = _lc_subscribe
+try:
+    for _arm_name, _eager in (("eager (HA 2024.3+)", True), ("lazy (HA 2024.1)", False)):
+        for _n in (1, 5):
+            _leak = _asyncio.run(
+                _notready_retries(_n, eager=_eager, settle=True)
+            )
+            R.check(
+                f"{_n} ConfigEntryNotReady retries leak no listener or "
+                f"subscription, {_arm_name} (#236)",
+                _leak["listeners"] == 0
+                and _leak["mqtt_subs"] == 0
+                and _leak["dead_handler_runs"] == 0,
+                f"{_leak['listeners']} listeners, {_leak['mqtt_subs']} subs, "
+                f"{_leak['dead_handler_runs']} dead handlers ran",
+            )
+    # The arm the panel called load-bearing: on the declared floor the
+    # registration tasks start lazily and can arrive AFTER the teardown.
+    _late = _asyncio.run(_notready_retries(5, eager=False, settle=False))
+    R.check(
+        "a registration arriving after the entry's unload callbacks does not "
+        "register at all (#236, the lazy-start arm)",
+        _late["listeners"] == 0 and _late["mqtt_subs"] == 0,
+        f"{_late['listeners']} listeners, {_late['mqtt_subs']} subs",
+    )
+
+    # NULL CONTROL. The fix must not have simply stopped the listeners
+    # working: a setup that SUCCEEDS still registers all three, the guard
+    # still runs on a meter event, and the unload still removes them.
+    async def _healthy_lifecycle() -> dict:
+        hass = _BusHass(_lc_bus_states(), eager=True)
+        entry = _FakeEntry(data=dict(_GUARDED_DATA), entry_id="healthy")
+        ok = await _ha_setup_entry(_integ, hass, entry)
+        for _ in range(6):
+            await _asyncio.sleep(0)
+        live = (len(hass.state_listeners), len(hass.mqtt_subs))
+        fired = 0
+        event = type(
+            "Ev", (), {"data": {"new_state": FakeState("2500", unit="W")}}
+        )()
+        for _ids, action in list(hass.state_listeners):
+            if getattr(action, "__name__", "") == "_on_power_event":
+                action(event)
+                fired += 1
+        unloaded = await _ha_unload_entry(_integ, hass, entry)
+        return {
+            "ok": ok,
+            "live": live,
+            "fired": fired,
+            "unloaded": unloaded,
+            "after": (len(hass.state_listeners), len(hass.mqtt_subs)),
+        }
+
+    _ctl = _asyncio.run(_healthy_lifecycle())
+    R.check(
+        "null control: a healthy setup still registers both listeners and the "
+        "MQTT subscription, and the guard still fires (#236)",
+        _ctl["ok"] and _ctl["live"] == (2, 1) and _ctl["fired"] == 1,
+        f"live={_ctl['live']}, guard fired {_ctl['fired']}x",
+    )
+    R.check(
+        "null control: the normal unload still removes every one of them (#236)",
+        _ctl["unloaded"] and _ctl["after"] == (0, 0),
+        f"after unload={_ctl['after']}",
+    )
+finally:
+    _lc_mqtt.async_subscribe = _lc_real_subscribe
+
+# `async_shutdown` is also called directly -- by `async_unload_entry`, before
+# Home Assistant gets to the entry's callbacks, and by any test that tears a
+# coordinator down on its own. It has always been where the three
+# unsubscribes lived, and moving them into `_release_registrations` must not
+# have quietly made the entry's callback the only path that runs them.
+async def _direct_shutdown() -> tuple:
+    hass = _BusHass(_lc_bus_states(), eager=True)
+    coord = Coord(hass, _FakeEntry(data=dict(_GUARDED_DATA), entry_id="direct"))
+    for _ in range(6):
+        await _asyncio.sleep(0)
+    live = (len(hass.state_listeners), len(hass.mqtt_subs))
+    await coord.async_shutdown()
+    return live, (len(hass.state_listeners), len(hass.mqtt_subs))
+
+
+_lc_real_subscribe = _lc_mqtt.async_subscribe
+_lc_mqtt.async_subscribe = _lc_subscribe
+try:
+    _ds_live, _ds_after = _asyncio.run(_direct_shutdown())
+finally:
+    _lc_mqtt.async_subscribe = _lc_real_subscribe
+R.check(
+    "async_shutdown on its own still drops both listeners and the MQTT "
+    "subscription, without the entry's unload callbacks (#236)",
+    _ds_live == (2, 1) and _ds_after == (0, 0),
+    f"live={_ds_live}, after direct shutdown={_ds_after}",
+)
+
+# ---------------------------------------------------------------------------
+# #237: an options reload while the scheduled refresh is inside the executor.
+#
+# `async_shutdown`'s docstring used to claim the base class stops an in-flight
+# refresh. It does not: Home Assistant's DataUpdateCoordinator cancels the
+# scheduled TIMER and the debouncer, and a refresh already running is a task
+# somebody else owns. Nothing between the executor await and `_apply_action`
+# consulted a shutdown flag, so the torn-down coordinator commanded the
+# supply switch, published two MQTT commands and wrote two stores after its
+# own shutdown had returned -- concurrently with its replacement's setup.
+
+
+class _SolveHass(_FakeHass):
+    """Real tasks, a recording service registry, and a holdable executor.
+
+    ``spawn_real`` is off while the coordinator is constructed, so the ten
+    fire-and-forget store loads `__init__` spawns are closed rather than run:
+    the simulated disk is class-level and shared across this whole file, and a
+    timestamp some earlier case wrote is not an input these checks want.
+    """
+
+    spawn_real = False
+
+    def __init__(self, states=None) -> None:
+        super().__init__(states)
+        self.state_listeners = []
+        self.entered = None
+        self.release = None
+
+    def async_create_task(self, coro, name=None, eager_start=None):
+        if not self.spawn_real:
+            coro.close()
+            return None
+        try:
+            loop = _asyncio.get_running_loop()
+        except RuntimeError:
+            coro.close()
+            return None
+        return loop.create_task(coro)
+
+    async def async_add_executor_job(self, func, *args):
+        if self.entered is not None:
+            self.entered.set()
+        if self.release is not None:
+            await self.release.wait()
+        return func(*args)
+
+
+def _solve_coord() -> Coord:
+    """A coordinator with prices and forecasts, ready to solve.
+
+    The horizon is anchored on the real clock rather than a fixed day, so the
+    published prices are the ones `_forecast_arrays` picks up and the solve
+    genuinely runs -- a horizon in the past yields "no_prices" and the
+    executor is never reached at all.
+    """
+    hass = _SolveHass(
+        {
+            "sensor.indoor": FakeState("21.0", unit="°C"),
+            "sensor.outdoor": FakeState("-5.0", unit="°C"),
+        }
+    )
+    coord = Coord(
+        hass,
+        _FakeEntry(
+            data={
+                "tibber_token": "x",
+                "weather_entity": "weather.home",
+                "heat_pump_switch_entity": "switch.heat_pump",
+                "indoor_temp_entity": "sensor.indoor",
+                "outdoor_temp_entity": "sensor.outdoor",
+            }
+        ),
+    )
+    hass.spawn_real = True
+    coord._skip_solve_once = False
+    _t0 = dt_util.now().replace(minute=0, second=0, microsecond=0) - timedelta(
+        hours=1
+    )
+    coord._prices = [
+        {
+            "total": round(0.6 + 0.5 * (h % 12) / 12.0, 4),
+            "starts_at": (_t0 + timedelta(hours=h)).isoformat(),
+            "level": "NORMAL",
+        }
+        for h in range(48)
+    ]
+    coord._weather_forecast = [
+        {
+            "datetime": (_t0 + timedelta(hours=h)).isoformat(),
+            "temperature": -5.0,
+            "wind_speed": 3.0,
+            "precipitation": 0.0,
+            "humidity": 85.0,
+        }
+        for h in range(48)
+    ]
+    coord._solar_radiation_forecast = [0.0] * 48
+
+    async def _noop():
+        return None
+
+    for _name in (
+        "_update_current_state",
+        "_fetch_tibber_prices",
+        "_fetch_weather_forecast",
+        "_fetch_solar_forecast",
+        "_async_learn_price_shape",
+    ):
+        setattr(coord, _name, _noop)
+    return coord
+
+
+def _actuations(hass) -> list[str]:
+    return [
+        f"{domain}.{service}"
+        for domain, service, _data in hass.services.calls
+        if domain in ("switch", "mqtt")
+    ]
+
+
+async def _mqtt_publish_recording(hass, *a, **k):
+    """mqtt.async_publish routed through the honest service registry.
+
+    The committed stub swallows the publish, so the two ECL110 commands the
+    plan issues would be invisible; production's own call path is left
+    untouched.
+    """
+    await hass.services.async_call("mqtt", "publish", {})
+
+
+async def _reload_midsolve(*, hold_the_solve: bool, orphan_task: bool = False) -> dict:
+    """Shut the coordinator down while its refresh sits in the executor.
+
+    ``orphan_task`` drops the coordinator's handle on the running refresh
+    before the shutdown. That is the arm the audit panel could not settle on
+    this box: whether Home Assistant's scheduled interval refresh is a task
+    entry unload cancels. With the handle gone nothing cancels the refresh,
+    the solve runs to completion, and only the ``_entry_released`` guards
+    stand between it and the pump.
+    """
+    coord = _solve_coord()
+    hass = coord.hass
+    hass.entered = _asyncio.Event()
+    hass.release = _asyncio.Event()
+
+    task = hass.async_create_task(coord._async_update_data())
+    await hass.entered.wait()
+    if orphan_task:
+        coord._refresh_task = None
+    before = sum(1 for c in hass.services.calls if c[0] in ("switch", "mqtt"))
+    saves_before = sum(_ha_storage.SAVE_COUNTS.values())
+    await coord.async_shutdown()
+    if hold_the_solve:
+        # Let the held solve run to completion anyway, so the guards -- not
+        # the cancellation alone -- are what is under test.
+        hass.release.set()
+    cancelled = False
+    try:
+        # Shielded and capped: without the cancellation in async_shutdown the
+        # refresh is still parked in the executor and would hang the gate
+        # rather than report a failed check.
+        await _asyncio.wait_for(_asyncio.shield(task), timeout=15.0)
+    except _asyncio.CancelledError:
+        cancelled = True
+    except _asyncio.TimeoutError:
+        hass.release.set()
+        try:
+            await task
+        except Exception:  # noqa: BLE001
+            pass
+    except Exception:  # noqa: BLE001
+        pass
+    return {
+        "cancelled": cancelled or task.cancelled(),
+        "post_shutdown_actuations": _actuations(hass)[before:],
+        "post_shutdown_saves": sum(_ha_storage.SAVE_COUNTS.values()) - saves_before,
+        # getattr, not attribute access: a tree without the fix at all must
+        # report a FAILED check here rather than crash the whole script.
+        "shutdown_flag": getattr(coord, "_entry_released", None),
+    }
+
+
+async def _solve_after_shutdown() -> tuple:
+    """The solve's own tail: does it publish a plan cut before the teardown?"""
+    coord = _solve_coord()
+    hass = coord.hass
+    hass.entered = _asyncio.Event()
+    hass.release = _asyncio.Event()
+    task = hass.async_create_task(coord.async_run_optimization())
+    await hass.entered.wait()
+    await coord.async_shutdown()
+    hass.release.set()
+    status = await task
+    return status, coord._optimization_result
+
+
+async def _uninterrupted_cycle() -> tuple:
+    """NULL CONTROL: with no shutdown, the same cycle still actuates and saves."""
+    coord = _solve_coord()
+    hass = coord.hass
+    saves_before = sum(_ha_storage.SAVE_COUNTS.values())
+    await coord._async_update_data()
+    return (
+        _actuations(hass),
+        sum(_ha_storage.SAVE_COUNTS.values()) - saves_before,
+    )
+
+
+_lc_real_publish = _lc_mqtt.async_publish
+_lc_mqtt.async_publish = _mqtt_publish_recording
+try:
+    _rl = _asyncio.run(_reload_midsolve(hold_the_solve=True))
+    _rl_orphan = _asyncio.run(
+        _reload_midsolve(hold_the_solve=True, orphan_task=True)
+    )
+    _rl_cancel = _asyncio.run(_reload_midsolve(hold_the_solve=False))
+    _sa_status, _sa_result = _asyncio.run(_solve_after_shutdown())
+    _uc_calls, _uc_saves = _asyncio.run(_uninterrupted_cycle())
+finally:
+    _lc_mqtt.async_publish = _lc_real_publish
+
+R.check(
+    "a solve that finishes after shutdown actuates nothing (#237)",
+    _rl["post_shutdown_actuations"] == [],
+    f"post-shutdown service calls: {_rl['post_shutdown_actuations']}",
+)
+R.check(
+    "and writes no store after shutdown (#237)",
+    _rl["post_shutdown_saves"] == 0,
+    f"post-shutdown store writes: {_rl['post_shutdown_saves']}",
+)
+R.check(
+    "async_shutdown latches the shutdown flag the guards read (#237)",
+    _rl["shutdown_flag"],
+    "the flag was never set",
+)
+R.check(
+    "async_shutdown cancels the in-flight refresh rather than trusting the "
+    "base class to have done it (#237)",
+    _rl_cancel["cancelled"],
+    "the refresh task survived shutdown",
+)
+R.check(
+    "and when nothing cancels the refresh at all -- the ownership question "
+    "the panel could not settle -- the guards still stop every actuation "
+    "and every store write (#237)",
+    _rl_orphan["post_shutdown_actuations"] == []
+    and _rl_orphan["post_shutdown_saves"] == 0,
+    f"calls={_rl_orphan['post_shutdown_actuations']}, "
+    f"writes={_rl_orphan['post_shutdown_saves']}",
+)
+R.check(
+    "a solve completed after shutdown reports it and adopts no plan (#237)",
+    _sa_status == "shutdown" and _sa_result is None,
+    f"status={_sa_status!r}, result adopted={_sa_result is not None}",
+)
+R.check(
+    "null control: an uninterrupted cycle still commands the pump and saves "
+    "(#237 -- the guards fire on shutdown, not on every cycle)",
+    len(_uc_calls) == 3 and _uc_saves > 0,
+    f"calls={_uc_calls}, store writes={_uc_saves}",
+)
+# ---------------------------------------------------------------------------
+# #240: the what-if's parameters must share no mutable container with the
+# live ones. `dataclasses.replace` copies scalars only, so the shadow solve
+# carried the live DefrostDerate learner, the live gains profile, the live
+# draw pattern and the live windows into the executor, where
+# `_record_accuracy`'s once-a-cycle `observe` could write them out from under
+# it. The what-if never writes back, so nothing was corrupted -- but the
+# answer the card printed was not the answer it was asked.
+
+
+async def _whatif_scratch_params():
+    """The parameter and config objects `async_simulate` actually builds."""
+    coord = _solve_coord()
+    await coord.async_run_optimization()
+    coord._thermal_params.internal_gains_profile = [0.3] * 24
+    captured = []
+    real_model = _coord_mod.ThermalModel
+
+    class _Spy(real_model):
+        def __init__(self, params, *a, **k):
+            captured.append(params)
+            super().__init__(params, *a, **k)
+
+    _coord_mod.ThermalModel = _Spy
+    try:
+        coord._last_simulation = None
+        payload = await coord.async_simulate({"target_temp": 20.5})
+    finally:
+        _coord_mod.ThermalModel = real_model
+    return coord, captured[-1] if captured else None, payload
+
+
+_wi_coord, _wi_params, _wi_payload = _asyncio.run(_whatif_scratch_params())
+R.check(
+    "the what-if actually reached a solve (else the sharing check is vacuous)",
+    _wi_params is not None and "cost_delta" in _wi_payload,
+    f"payload keys: {sorted(_wi_payload)[:5]}",
+)
+_wi_shared = [
+    _name
+    for _name in (
+        "defrost_derate",
+        "internal_gains_profile",
+        "dhw_hourly_draw_pattern",
+        "dhw_windows",
+    )
+    if getattr(_wi_params, _name, None) is not None
+    and getattr(_wi_params, _name) is getattr(_wi_coord._thermal_params, _name)
+]
+R.check(
+    "the what-if shares no mutable learner container with the live "
+    "parameters (#240)",
+    _wi_shared == [],
+    f"shared by identity: {_wi_shared}",
+)
+R.check(
+    "the what-if's own defrost learner is a copy, not the live one (#240)",
+    _wi_params.defrost_derate is not _wi_coord._defrost,
+    "the live DefrostDerate went into the executor",
+)
+
+
+async def _whatif_scratch_config():
+    coord = _solve_coord()
+    await coord.async_run_optimization()
+    captured = []
+    real_opt = _coord_mod.HeatPumpOptimizer
+
+    class _OptSpy(real_opt):
+        def __init__(self, model, config, *a, **k):
+            captured.append(config)
+            super().__init__(model, config, *a, **k)
+
+    _coord_mod.HeatPumpOptimizer = _OptSpy
+    try:
+        coord._last_simulation = None
+        await coord.async_simulate({"target_temp": 20.5})
+    finally:
+        _coord_mod.HeatPumpOptimizer = real_opt
+    return coord, captured[-1] if captured else None
+
+
+_wc_coord, _wc_config = _asyncio.run(_whatif_scratch_config())
+R.check(
+    "the what-if's optimizer config is a deep copy too, so the live "
+    "baseline-load array does not travel with it (#240)",
+    _wc_config is not None
+    and _wc_config.baseline_load_kw is not _wc_coord._opt_config.baseline_load_kw,
+    "the scratch config shares the live baseline load array",
+)
+
 R.section("v5.1.3 — an unusable sensor freezes the learners, not just a quiet one")
 
 # The rank-1 finding of the second audit. `_learning_frozen` froze only on
