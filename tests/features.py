@@ -70,6 +70,7 @@ from heatpump_optimizer.sysid import (
 from heatpump_optimizer.tariff import (
     CapacityTariff,
     PeakTracker,
+    _smooth_topk_sum,
     peak_cost,
     realised_peak,
 )
