@@ -1,1 +1,1 @@
-W1-G16 merged PR #433 ac35bf8 — half II complete, v6.3.13 stamp pending.
+Wave 2 briefs verified (brief_lint rc 0, fork f94ae13); next seat W2-G1 Opus 5.
