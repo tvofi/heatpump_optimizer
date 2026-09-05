@@ -21696,4 +21696,95 @@ R.check(
     f"dhw_schedule={len(_dhw284)}",
 )
 
+# ---------------------------------------------------------------------------
+R.section("W3-G2 — DHW planner re-simulation count (#289)")
+
+from heatpump_optimizer.thermal_model import ThermalModel as _G2Tm
+
+_g2_sim_calls = 0
+_g2_sim_orig = _G2Tm.simulate_dhw_only
+
+
+def _g2_count_sim(self, *a, **k):
+    global _g2_sim_calls
+    _g2_sim_calls += 1
+    return _g2_sim_orig(self, *a, **k)
+
+
+def _g2_planning_sim_calls(**kw):
+    global _g2_sim_calls
+    _g2_sim_calls = 0
+    _G2Tm.simulate_dhw_only = _g2_count_sim
+    try:
+        built = _mk_golden(dhw=True, two_zone=False, **kw)
+        opt = built["optimizer"]
+        st = built["state"]
+        n = len(built["prices"])
+        step_hours = np.array(
+            [
+                (_G_START + timedelta(hours=i * 0.25)).hour
+                + (_G_START + timedelta(hours=i * 0.25)).minute / 60.0
+                for i in range(n)
+            ]
+        )
+        opt._build_dhw_requirements(
+            initial_state=st,
+            prices=built["prices"],
+            outdoor_temps=built["outdoor"],
+            step_hours=step_hours,
+            n_steps=n,
+            dt=0.25,
+            p_max=opt.model.params.max_electrical_power,
+        )
+    finally:
+        _G2Tm.simulate_dhw_only = _g2_sim_orig
+    return _g2_sim_calls
+
+
+_g2_winter_calls = _g2_planning_sim_calls(
+    price_profile="winter_typical", weather_profile="winter_cold"
+)
+R.check(
+    "winter single-zone planning uses fewer than 64 simulate_dhw_only calls "
+    "(judge baseline per _build_dhw_requirements)",
+    _g2_winter_calls < 64,
+    f"got {_g2_winter_calls}",
+)
+
+# Mutation: incremental greedy refresh gone — each edit is a full
+# simulate_dhw_only. Cannot call simulate_dhw_only from a live
+# extend_dhw_temps patch: production simulate_dhw_only delegates into
+# extend_dhw_temps and that pair recurses (CI fast on 1afa09b).
+_g2_saved_extend = _G2Tm.extend_dhw_temps
+
+
+def _g2_extend_via_full_sim(self, temps, from_step, schedule, outdoor, draws, dt_hours=0.25):
+    _G2Tm.extend_dhw_temps = _g2_saved_extend
+    try:
+        new = self.simulate_dhw_only(
+            initial_temp=float(temps[0]),
+            dhw_power_schedule=schedule,
+            outdoor_temps=outdoor,
+            draw_rates=draws,
+            dt_hours=dt_hours,
+        )
+    finally:
+        _G2Tm.extend_dhw_temps = _g2_extend_via_full_sim
+    temps[:] = new
+    return temps
+
+
+try:
+    _G2Tm.extend_dhw_temps = _g2_extend_via_full_sim
+    _g2_mut_calls = _g2_planning_sim_calls(
+        price_profile="winter_typical", weather_profile="winter_cold"
+    )
+finally:
+    _G2Tm.extend_dhw_temps = _g2_saved_extend
+R.check(
+    "restoring full greedy re-simulation raises simulate_dhw_only count (mutation)",
+    _g2_mut_calls >= _g2_winter_calls + 4,
+    f"fixed {_g2_winter_calls} vs mutant {_g2_mut_calls}",
+)
+
 sys.exit(R.close("FEATURE CHECKS"))
