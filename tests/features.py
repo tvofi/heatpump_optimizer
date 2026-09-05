@@ -21886,4 +21886,55 @@ R.check(
     repr(_closed),
 )
 
+import inspect as _sav_inspect
+import pickle as _sav_pickle
+from pathlib import Path as _SavPath
+from heatpump_optimizer.optimizer import (
+    HeatPumpOptimizer as _SavOpt,
+    OptimizationResult as _SavOR,
+)
+
+_ts_sav = [_SavDT(2026, 2, 10, 12, 0) + timedelta(minutes=15 * i) for i in range(4)]
+_res_sav = _SavOR(
+    power_schedule=[1.0] * 4,
+    room_temp_trajectory=[21.0] * 5,
+    slab_temp_trajectory=[22.0] * 5,
+    timestamps=_ts_sav,
+    prices=[1.0] * 4,
+    predicted_cost=1.0,
+    baseline_cost=2.0,
+    predicted_savings=1.0,
+    savings_percentage=50.0,
+    optimal_setpoints=[21.0] * 4,
+    status="optimal",
+    baseline_power_schedule=[3.5, 4.0, 0.0, 1.25],
+)
+R.check(
+    "baseline_power_schedule pickles as a plain float list",
+    _sav_pickle.dumps(_res_sav.baseline_power_schedule) and True,
+)
+_act_sav = _bl_opt.get_current_action(_res_sav, _ts_sav[1])
+R.check(
+    "get_current_action copies the current step's baseline kW",
+    abs(_act_sav["baseline_kw"] - 4.0) < 1e-12,
+    repr(_act_sav.get("baseline_kw")),
+)
+_act_zero = _bl_opt.get_current_action(_res_sav, _ts_sav[2])
+R.check(
+    "a 0.0 baseline step is copied, not treated as missing",
+    "baseline_kw" in _act_zero and _act_zero["baseline_kw"] == 0.0,
+    repr(_act_zero.get("baseline_kw")),
+)
+_src_br = _sav_inspect.getsource(_SavOpt._build_result)
+R.check(
+    "_build_result writes baseline_power_schedule",
+    "baseline_power_schedule=" in _src_br,
+)
+_src_opt = _SavPath("custom_components/heatpump_optimizer/optimizer.py").read_text()
+R.check(
+    "both solve paths pass the baseline array into _build_result",
+    "baseline_power=baseline_power," in _src_opt
+    and "baseline_power=baseline_power + baseline_dhw," in _src_opt,
+)
+
 sys.exit(R.close("FEATURE CHECKS"))
