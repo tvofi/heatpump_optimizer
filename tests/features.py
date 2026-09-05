@@ -7213,6 +7213,68 @@ R.check(
     "no probe means no preheat claim, exactly the two-tank rule",
 )
 
+# #400: the planner must credit the coil, not only the reporting simulation.
+# optimize() is the witness — a re-implemented reduction would pin nothing.
+from golden import (
+    make as _coil_mk,
+    START as _COIL_START,
+    SCENARIOS as _COIL_SCENARIOS,
+)
+
+def _coil_plan(*, enabled, wood):
+    spec = dict(_COIL_SCENARIOS["wood_coil"])
+    spec["config_overrides"] = {
+        **spec["config_overrides"],
+        "wood_tank_volume": 2000.0,
+        "dhw_wood_coil_enabled": enabled,
+    }
+    spec["state_overrides"] = {
+        **spec["state_overrides"],
+        "wood_tank_temperature": wood,
+    }
+    built = _coil_mk(**spec)
+    n = len(built["prices"])
+    dt = 0.25
+    steps = min(n, int(24.0 / dt))
+    ext = np.zeros(n)
+    for i in range(steps):
+        ext[i] = 8.0 * (1.0 - i / max(steps, 1))
+    return built["optimizer"].optimize(
+        built["state"], built["prices"], built["outdoor"], built["wind"],
+        built["rain"], built["solar"], _COIL_START,
+        external_heat_kw=ext,
+    ), built["optimizer"].model.params
+
+_coil_on_res, _coil_on_p = _coil_plan(enabled=True, wood=85.0)
+_coil_off_res, _ = _coil_plan(enabled=False, wood=85.0)
+_coil_null_res, _ = _coil_plan(
+    enabled=True, wood=_coil_on_p.dhw_inlet_reference,
+)
+_coil_on_dhw = np.asarray(_coil_on_res.dhw_power_schedule, dtype=float)
+_coil_off_dhw = np.asarray(_coil_off_res.dhw_power_schedule, dtype=float)
+_coil_null_dhw = np.asarray(_coil_null_res.dhw_power_schedule, dtype=float)
+_coil_dt = 0.25
+R.check(
+    "the DHW planner buys less electricity with a hot wood-tank coil",
+    float(np.sum(_coil_on_dhw) * _coil_dt)
+    < float(np.sum(_coil_off_dhw) * _coil_dt),
+    f"coil-on {float(np.sum(_coil_on_dhw)*_coil_dt):.6f} kWh vs "
+    f"coil-off {float(np.sum(_coil_off_dhw)*_coil_dt):.6f}",
+)
+R.check(
+    "and the credited plan still clears dhw_min_temp",
+    float(np.min(_coil_on_res.dhw_temp_trajectory))
+    >= float(_coil_on_p.dhw_min_temp) - 1e-9,
+    f"min {float(np.min(_coil_on_res.dhw_temp_trajectory)):.2f} vs "
+    f"floor {_coil_on_p.dhw_min_temp}",
+)
+R.check(
+    "coil off, or wood at the inlet reference, is byte-identical to HEAD",
+    np.array_equal(_coil_off_dhw, _coil_null_dhw),
+    f"max|diff|="
+    f"{float(np.max(np.abs(_coil_off_dhw - _coil_null_dhw)))}",
+)
+
 
 R.section("Topology catalog and the layout editor's contract (v3.16.0)")
 
