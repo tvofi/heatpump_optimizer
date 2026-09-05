@@ -20,7 +20,7 @@
 - Savings is derived: `baseline.sek − actual.sek`. Skip **both** lines when `baseline_kw` is missing. Do not write zeros as a stand-in for “no plan”.
 - `savings_pct` is omitted (`null`) when `baseline_sek <= 0.01`. Do not publish `0.0` as “no pct”. Clip otherwise matches `_savings_percentage` (`−100..100`).
 - Never hand-edit `VERSION`, the manifest version, `RELEASE_NOTES.md` headings, or `CARD_VERSION` — `tools/release/stamp.py` only.
-- One PR. File `[card] Monthly savings history` (labels `enhancement`, `Part of #201`) when this group starts; `Closes` that issue on its own line. Do not reuse #457. Do not `Closes #232` / `#234`.
+- One PR. `Closes #460` on its own line. Do not reuse #457. Do not `Closes #232` / `#234`.
 - Gate lock `/tmp/hpo-gate.lock` if the select is `MODE: FULL` or names `tests/stress.py`. This plan’s default select is features / entities / card / structure — no lock.
 - Three-dot diffs vs merge-base. `cp` backups for source mutation; restore and confirm md5.
 - This repo’s tests are plain scripts, not pytest. Commands below are exact.

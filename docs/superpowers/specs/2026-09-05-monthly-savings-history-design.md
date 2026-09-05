@@ -143,5 +143,4 @@ instead so Wave 4 does not wait on the setup button.
 Model: Grok 4.6 extra high (touches coordinator settlement). Card half may
 be the same PR.
 
-When 3L-G7 starts, file issue `[card] Monthly savings history` (labels
-`enhancement`, `Part of #201`) and `Closes` that issue. Do not reuse #457.
+Issue **#460** is filed. `Closes #460` on its own line. Do not reuse #457.

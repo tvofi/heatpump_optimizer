@@ -1,0 +1,92 @@
+{
+  "_comment": [
+    "Wave 3L of the open-issues programme (docs/plan-2026-09-open-issues.md).",
+    "Leftovers after Wave 3, before Wave 4. Serial. Do not start while W3-G3 holds",
+    "coordinator.py or the gate lock. #412 stays last of the programme, not in this burst.",
+    "Consumed by .claude/workflows/web-fix-wave.js as its `groups` argument."
+  ],
+  "fork": "after-w3-g3",
+  "fork_note": "Cut every branch from origin/main after W3-G3 (#290 #199) merges. Re-measure structure at that merge-base. claims-for stays 6.3.14.",
+  "session": "claude-web",
+  "repo": "/Users/timmalmstrom/heatpump_optimizer",
+  "serial": true,
+  "struck": [],
+  "groups": [
+    {
+      "group": "3L-G1",
+      "issues": [400],
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "high",
+      "fixture": true,
+      "blocked_on": "W3-G3",
+      "after": [],
+      "brief": "DHW planner credits the wood-tank refill coil. Measured -5.394 SEK/day on 2000 L @ 85 C; plan is byte-identical coil-on/off today. optimizer.py only. Claims, never re-record goldens. wood_coil is may-drift and cannot be claimed. Other 54 scenarios byte-identical."
+    },
+    {
+      "group": "3L-G2",
+      "issues": [401],
+      "fixerModel": "sonnet",
+      "reviewerModel": "sonnet",
+      "effort": "medium",
+      "fixture": false,
+      "after": ["3L-G1"],
+      "brief": "closure.py _record_node() strace availability guard. Unblocks a full derive on macOS. Before #404."
+    },
+    {
+      "group": "3L-G3",
+      "issues": [404],
+      "fixerModel": "sonnet",
+      "reviewerModel": "sonnet",
+      "effort": "medium",
+      "fixture": false,
+      "after": ["3L-G2"],
+      "brief": "Gate lock becomes a renewed lease + flock. Lives in tests/, needs the derive #401 unlocks."
+    },
+    {
+      "group": "3L-G4",
+      "issues": [405],
+      "fixerModel": "sonnet",
+      "reviewerModel": "sonnet",
+      "effort": "medium",
+      "fixture": false,
+      "after": ["3L-G3"],
+      "brief": "SolarIrradianceSensor / OptimizationScoreSensor data-driven keys: state the bound in the holes list, no exact-set pin."
+    },
+    {
+      "group": "3L-G5",
+      "issues": [408],
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "high",
+      "fixture": false,
+      "after": ["3L-G4"],
+      "brief": "Optional set-point entities + consistency repair only. Optimality / Fix-to-argmin refused (50 to 65 C instability). Holds coordinator/config — 3L-G7 must not merge ahead of this seat."
+    },
+    {
+      "group": "3L-G6",
+      "issues": [457],
+      "fixerModel": "sonnet",
+      "reviewerModel": "sonnet",
+      "effort": "medium",
+      "fixture": false,
+      "after": ["3L-G5"],
+      "brief": "Card setup-page button that opens the conflict flow. Card-only. If still blocked on the conflict-flow spec, 3L-G7 sits after 3L-G5 instead."
+    },
+    {
+      "group": "3L-G7",
+      "issues": [460],
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "high",
+      "fixture": false,
+      "after": ["3L-G6"],
+      "resume": {
+        "stage": "in_progress",
+        "branch": "3l-g7-monthly-savings",
+        "note": "Spec+plan on branch. Implementing via subagent-driven plan docs/superpowers/plans/2026-09-05-monthly-savings-history.md. Rebase after W3-G3 and 3L-G5/G6. Do not merge ahead of those seats."
+      },
+      "brief": "Monthly savings history card page (#460). Book savings_baseline and savings_actual on MonthlyLedger; derive savings; calendar pro-rata for the open month; MonthlySavingsSensor _monthly_savings; third expanded-dialog tab. Baseline kW rides on OptimizationResult.baseline_power_schedule (pickle-safe lists for the W3-G3 process route), not on data[] or a plan sensor. Pay coordinator_loc, never raise. claims-for 6.3.14. No golden re-record. Closes #460 on its own line. Spec docs/superpowers/specs/2026-09-05-monthly-savings-history-design.md. Plan docs/superpowers/plans/2026-09-05-monthly-savings-history.md."
+    }
+  ]
+}
