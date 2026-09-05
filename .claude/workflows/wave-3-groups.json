@@ -67,7 +67,13 @@
    "effort": "high",
    "fixture": true,
    "brief": "Process route for the three executor jobs in HeatPumpOptimizerCoordinator: async_run_optimization (hass.async_add_executor_job lambda around HeatPumpOptimizer.optimize), async_simulate (what-if lambda), async_diagnose_interval (diagnose_last_interval). _solve_snapshot already deep-copies. Put Closes #290 and Closes #199 on separate lines.\n\nDo not go looking for h3_gil_hold.py or h4_loop_thread_work.py on main (they live only at tag audit-round2-evidence, 757e164) and do not use sys.setswitchinterval(0.05): the #290 judge voided that lever. Do not go looking for j5_gil.py on main; recreate it from the #290 judge comment: real asyncio loop, 1 ms heartbeat, HeatPumpOptimizer.optimize submitted through hass.async_add_executor_job — never FakeHass. Score the judge gap p50 (panel 2.54 to 17.24 ms) or the inverted lever (switchinterval 5 to 0.5 ms: share 0.9589 to 0). time.sleep(0) releases nothing.\n\nFix is a process pool or a one-shot subprocess — whole-interpreter GIL starvation (ordinary thread share 0.939). Not a smaller switchinterval, not a sleep. Lambdas are not picklable; restructure all three jobs. Expected golden drift: none.\n\ncoordinator_loc is 10400/10400. Pay for the lines, or STOP and ask the owner before any raise. Do not raise SOLVE_BUDGET_RATIO. Do not re-record goldens.",
-   "after": ["W3-G2"]
+   "after": ["W3-G2"],
+   "resume": {
+    "stage": "done",
+    "merged_pr": 461,
+    "merge_sha": "8542e51cb325d9b52f6eb2a03f69e308298b5f84",
+    "note": "Review merge 5554485684 at 7076075. Production starvation_share 0 vs thread 0.9425/0.961. Mutation FAIL+md5 restore. env_drift empty claims 6.3.14. SCENARIO_STALE_FACTOR 3.5 owner-approved; SOLVE_BUDGET_RATIO 782.11; SCENARIO_BUDGET_FACTOR 3.0. coordinator_loc/max_class_loc 10400->10385. #290 #199 closed. #232 #234 stay closed. Next seat 3L-G1."
+   }
   }
  ]
 }
