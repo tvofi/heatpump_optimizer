@@ -21,5 +21,7 @@
 #
 # claims-for: 6.3.12
 #
-layout_editing_dragged # W1-G16 Tidy up button in layout bar (#403)
-layout_editing_tidy # W1-G16 Tidy up pressed after drag (#403)
+# record/w1-g16 (#433): this commit moves no card markup — only delivery-status
+# and roster. The W1-G16 claims above were written for ac35bf8; carrying them
+# forward would inherit exactly what that diff already claims.
+#
