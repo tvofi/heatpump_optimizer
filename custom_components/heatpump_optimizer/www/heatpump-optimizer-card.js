@@ -2387,10 +2387,15 @@ function setupSvgHtml(topo, ctx) {
       // is a thin target, and the gap between label and value would not
       // respond at all -- which reads as a diagram that is only sometimes
       // clickable.
+      const hitBase = rowH - 2;
+      const hitH = _coarsePointer()
+        ? Math.max(hitBase, _targetMinPx() * (SETUP_W / 280))
+        : hitBase;
+      const hitY = y - rowH + 5 - (hitH - hitBase) / 2;
       rows.push(`<rect class="setup-hit" data-key="${esc(s.key)}"
         tabindex="0" role="button" aria-label="${esc(full)}"
-        x="${b.x + 4}" y="${y - rowH + 5}" width="${colW - 8}"
-        height="${rowH - 2}" rx="3">
+        x="${b.x + 4}" y="${hitY}" width="${colW - 8}"
+        height="${hitH}" rx="3">
         <title>${esc(full)}</title></rect>`);
       y += rowH;
     }
@@ -3135,6 +3140,33 @@ function cardStyleBlock() {
         background: var(--error-color, #e0544e);
       }
       .whatif .wi-save[disabled] { opacity: 0.6; cursor: default; }
+      /* D4-02 (#262): under a coarse pointer the HTML controls must meet
+         WCAG 2.2 SC 2.5.8's 24 px AA bar. SVG slot/lane targets already
+         pixel-floor separately; this block is the rest of the residue. */
+      @media (pointer: coarse) {
+        .expand, .close, .viewctl button, .chip, .dlg-tab,
+        .layout-bar button, .whatif button, .whatif input[type="time"],
+        .whatif .wi-win-days, .whatif .wi-viewreset, .sp-actions button,
+        .slot-menu button {
+          min-height: ${TARGET_MIN_PX}px;
+          min-width: ${TARGET_MIN_PX}px;
+          box-sizing: border-box;
+        }
+        .whatif input[type="range"] {
+          min-height: ${TARGET_MIN_PX}px;
+        }
+        .chip { padding: 0.45em 0.85em; }
+        .dlg-tab { padding: 0.35em 0.9em; }
+        .whatif button { padding: 0.45em 0.85em; }
+        .whatif .wi-remove {
+          min-width: ${TARGET_MIN_PX}px;
+          padding: 0 0.45em;
+        }
+        .viewctl button {
+          width: auto; height: auto;
+          min-width: ${TARGET_MIN_PX}px; min-height: ${TARGET_MIN_PX}px;
+        }
+      }
       .whatif .wi-result {
         flex: 1 1 100%; min-height: 1.4em; line-height: 1.5em;
         color: var(--secondary-text-color);
@@ -4239,7 +4271,10 @@ function renderChart(frame, opts) {
   const rightMargin =
     (axes.solar ? MARGIN_RIGHT_WITH_SOLAR : MARGIN.right) * marginScale;
   const plotR = VIEW_W - rightMargin;
-  const plotT = MARGIN.top * marginScale;
+  // Once D4-01 floors the font, MARGIN.top * marginScale alone leaves the
+  // unit label strip too short and the uy clamp pushes units onto the top
+  // tick (#258). The 1.45 floor clears the measured glyph ascent.
+  const plotT = Math.max(MARGIN.top * marginScale, font * 1.45);
   const plotB = VIEW_H - MARGIN.bottom * marginScale;
   const plotW = plotR - plotL;
   const plotH = plotB - plotT;
@@ -4562,7 +4597,7 @@ function valueAxis(
   // unit belongs, but at a boosted compact font (D4-01) -- and at the
   // dialog's 15 units, which already did this before the boost -- the
   // ascender ran off the top of the chart.
-  const uy = Math.max(size * 0.8, plotT - 4 * (size / FONT_BASE));
+  const uy = Math.max(size * 0.8, plotT - 5.2 * (size / FONT_BASE));
   const ta = titleAnchor || anchor;
   const ux = ta === "end" ? x - 5 : x + 5;
   out.push(

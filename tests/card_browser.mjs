@@ -522,6 +522,192 @@ try {
       : "none") +
     (tooSmall.length ? `; under: ${tooSmall.slice(0, 4).map((t) => `${t.cls} ${t.w.toFixed(1)}x${t.h.toFixed(1)}`).join(", ")}` : ""));
 
+  // D4-02 (#262): HTML controls under a coarse pointer must also clear 24 px.
+  // Isolated page so matchMedia stub does not leak into later ink checks.
+  const coarsePage = await browser.newPage({ viewport: { width: 1024, height: 800 } });
+  coarsePage.on("pageerror", (err) => console.log(`  page error: ${err.message}`));
+  await coarsePage.goto("about:blank");
+  await coarsePage.addScriptTag({ path: CARD_SRC });
+  await coarsePage.evaluate(() => {
+    const orig = window.matchMedia.bind(window);
+    window.matchMedia = (q) => {
+      if (q === "(pointer: coarse)") {
+        return {
+          matches: true, media: q, onchange: null,
+          addEventListener() {}, removeEventListener() {},
+          addListener() {}, removeListener() {},
+          dispatchEvent() { return true; },
+        };
+      }
+      return orig(q);
+    };
+  });
+  await coarsePage.evaluate(
+    mountScript("lovelace", PHONE_TILE, { what_if: true }),
+    [states, "lovelace", PHONE_TILE, { what_if: true }],
+  );
+  await coarsePage.evaluate(async () => {
+    window.__card.dialog.open();
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    await new Promise((r) => setTimeout(r, 80));
+  });
+  const htmlTargets = await coarsePage.evaluate(() => {
+    const root = window.__card.shadowRoot;
+    const sel = [
+      "button", ".chip", "input[type='range']", "input[type='time']",
+      "select", ".dlg-tab",
+    ].join(", ");
+    return [...root.querySelectorAll(sel)]
+      .filter((el) => {
+        const st = getComputedStyle(el);
+        return st.display !== "none" && st.visibility !== "hidden" && !el.disabled;
+      })
+      .map((el) => {
+        const b = el.getBoundingClientRect();
+        return {
+          tag: el.className || el.tagName.toLowerCase(),
+          w: b.width, h: b.height,
+        };
+      });
+  });
+  const htmlSmall = htmlTargets.filter((t) => Math.min(t.w, t.h) < 24 - 0.05);
+  check("every HTML control in the dialog clears 24 px under a coarse pointer",
+    htmlTargets.length > 0 && htmlSmall.length === 0,
+    `${htmlTargets.length} control(s); smallest ` +
+    (htmlTargets.length
+      ? htmlTargets
+          .map((t) => `${t.tag} ${t.w.toFixed(1)}x${t.h.toFixed(1)}`)
+          .sort((a, b) => Math.min(a.w, a.h) - Math.min(b.w, b.h))[0]
+      : "none") +
+    (htmlSmall.length
+      ? `; under: ${htmlSmall.slice(0, 4).map((t) => `${t.tag} ${t.w.toFixed(1)}x${t.h.toFixed(1)}`).join(", ")}`
+      : ""));
+  await coarsePage.close();
+
+  // #258: axis unit labels must not ink-collide with their top tick once the
+  // D4-01 font floor engages. Rasterize each text alone and pair units with
+  // the top tick on the same axis (same x band); positive overlap in both
+  // dimensions is a failure. deviceScaleFactor 4 matches the judge probe.
+  const inkPage = await browser.newPage({
+    viewport: { width: 500, height: 700 },
+    deviceScaleFactor: 4,
+  });
+  inkPage.on("pageerror", (err) => console.log(`  page error: ${err.message}`));
+  await inkPage.goto("about:blank");
+  await inkPage.addScriptTag({ path: CARD_SRC });
+  await inkPage.evaluate(() => {
+    if (customElements.get("ha-card")) return;
+    customElements.define("ha-card", class extends HTMLElement {
+      constructor() {
+        super();
+        this.attachShadow({ mode: "open" }).innerHTML =
+          "<style>:host{background:var(--card-background-color,white);" +
+          "box-sizing:border-box;border-radius:12px;border-width:1px;" +
+          "border-style:solid;border-color:var(--divider-color,#e0e0e0);" +
+          "display:block;position:relative;}</style><slot></slot>";
+      }
+    });
+  });
+  await inkPage.evaluate(async ([st, w]) => {
+    document.head.querySelectorAll("style.hpo-test").forEach((n) => n.remove());
+    document.body.innerHTML = "";
+    const style = document.createElement("style");
+    style.className = "hpo-test";
+    style.textContent =
+      `body{margin:0;font-family:-apple-system,"Segoe UI",sans-serif}` +
+      `heatpump-optimizer-card{display:block;width:${w}px;}`;
+    document.head.appendChild(style);
+    const card = document.createElement("heatpump-optimizer-card");
+    card.setConfig({ type: "custom:heatpump-optimizer-card", what_if: true });
+    card.hass = { states: st };
+    document.body.appendChild(card);
+    window.__card = card;
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    card._onCardClick({});
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    await new Promise((r) => setTimeout(r, 80));
+  }, [states, PHONE_TILE]);
+  const inkStats = await inkPage.evaluate(async () => {
+    const root = window.__card.shadowRoot;
+    const svg = [...root.querySelectorAll(".chartwrap svg")].pop();
+    if (!svg) return { pairs: -1, topRow: -1, detail: "no chart svg" };
+    const vb = (svg.getAttribute("viewBox") || "0 0 900 380").split(/\s+/);
+    const W = Number(vb[2]) || 900;
+    const H = Number(vb[3]) || 380;
+    const unitPat = /^(°C|kW|kr\/kWh|öre\/kWh|W\/m²)$/;
+    const tickPat = /^-?\d[\d.,]*$/;
+    const texts = [...svg.querySelectorAll("text")]
+      .filter((t) => (t.textContent || "").trim().length > 0);
+    async function inkOf(el) {
+      const mini = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      mini.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+      mini.setAttribute("viewBox", `0 0 ${W} ${H}`);
+      mini.setAttribute("width", String(W));
+      mini.setAttribute("height", String(H));
+      const bg = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+      bg.setAttribute("width", "100%");
+      bg.setAttribute("height", "100%");
+      bg.setAttribute("fill", "white");
+      mini.appendChild(bg);
+      mini.appendChild(el.cloneNode(true));
+      const url = "data:image/svg+xml;charset=utf-8," +
+        encodeURIComponent(new XMLSerializer().serializeToString(mini));
+      const img = new Image();
+      await new Promise((ok, no) => { img.onload = ok; img.onerror = no; img.src = url; });
+      const canvas = document.createElement("canvas");
+      canvas.width = W;
+      canvas.height = H;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0);
+      const { data } = ctx.getImageData(0, 0, W, H);
+      let r0 = H, r1 = -1, c0 = W, c1 = -1;
+      for (let y = 0; y < H; y++) {
+        for (let x = 0; x < W; x++) {
+          const i = (y * W + x) * 4;
+          if (data[i + 3] > 8 && data[i] + data[i + 1] + data[i + 2] < 740) {
+            r0 = Math.min(r0, y); r1 = Math.max(r1, y);
+            c0 = Math.min(c0, x); c1 = Math.max(c1, x);
+          }
+        }
+      }
+      return r1 < 0 ? null : { rows: [r0, r1], cols: [c0, c1] };
+    }
+    const axisBand = (el) => Math.round(Number(el.getAttribute("x") || 0) / 40);
+    const unitEls = texts.filter((t) => unitPat.test((t.textContent || "").trim()));
+    let topRowUnits = 0;
+    let pairs = 0;
+    const detail = [];
+    for (const u of unitEls) {
+      const uInk = await inkOf(u);
+      if (!uInk) continue;
+      if (uInk.rows[0] <= 0) topRowUnits += 1;
+      const band = axisBand(u);
+      const ticks = texts.filter(
+        (t) => tickPat.test((t.textContent || "").trim()) && axisBand(t) === band
+      );
+      if (!ticks.length) continue;
+      const topTick = ticks.reduce(
+        (a, b) => (Number(a.getAttribute("y")) < Number(b.getAttribute("y")) ? a : b)
+      );
+      const tInk = await inkOf(topTick);
+      if (!tInk) continue;
+      const vOv = Math.min(uInk.rows[1], tInk.rows[1]) - Math.max(uInk.rows[0], tInk.rows[0]) + 1;
+      const hOv = Math.min(uInk.cols[1], tInk.cols[1]) - Math.max(uInk.cols[0], tInk.cols[0]) + 1;
+      if (vOv > 0 && hOv > 0) {
+        pairs += 1;
+        detail.push(`${(u.textContent || "").trim()}/${(topTick.textContent || "").trim()} v${vOv} h${hOv}`);
+      }
+    }
+    return { pairs, topRow: topRowUnits, detail: detail.join("; ") };
+  });
+  check("axis unit labels carry no ink on the svg's top row",
+    inkStats.topRow === 0,
+    `${inkStats.topRow} unit(s) with row-0 ink`);
+  check("axis unit labels do not ink-collide with their top tick",
+    inkStats.pairs === 0,
+    `${inkStats.pairs} colliding pair(s)${inkStats.detail ? `: ${inkStats.detail}` : ""}`);
+  await inkPage.close();
+
   // A target that falls short of the floor has to be BOXED IN, not merely
   // clipped on one side. The first review of this fix found every residual
   // target sitting next to 84-258 px of empty lane: the deficit was split in
