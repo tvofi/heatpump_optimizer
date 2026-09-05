@@ -2243,14 +2243,13 @@ class HeatPumpOptimizer:
         # Per-step valve target schedule, set by the hold-candidate pass below
         # and read by every solve and re-simulation through the closure.
         valve_targets: np.ndarray | None = None
-        cap_resolv_starts: tuple[np.ndarray, ...] | None = None
 
         # Solve, then check the solved trajectory against the hard safety lines,
         # release any forced-off pin that would breach one, and solve again.
         # The comfort and tank floors are *soft* penalties in the objective, so
         # clamping a step off does not actually protect the house or tank — only
         # re-solving with the offending pin freed does.
-        def _solve() -> OptimizationResult:
+        def _solve(extra_starts=None) -> OptimizationResult:
             horizon = _Horizon(
                 initial_state=initial_state,
                 prices=prices,
@@ -2279,7 +2278,7 @@ class HeatPumpOptimizer:
                 humidity=humidity,
                 space_blocked=space_blocked,
                 dhw_blocked=dhw_blocked,
-                extra_starts=cap_resolv_starts,
+                extra_starts=extra_starts,
             )
             if dhw_enabled:
                 return self._optimize_with_dhw(horizon)
@@ -2406,11 +2405,9 @@ class HeatPumpOptimizer:
                     start_hour=float(step_hours[0]),
                 ):
                     break
-                cap_resolv_starts = self._cap_tighten_extra_starts(
-                    result.power_schedule, power_caps, prices, dt,
+                result = self._resolve_after_cap_tighten(
+                    result, power_caps, prices, dt, _solve,
                 )
-                result = _solve()
-                cap_resolv_starts = None
 
         result.manual_pins_active = space_pins is not None or dhw_pins is not None
         result.manual_released_space = sorted(released_space)
@@ -2486,6 +2483,28 @@ class HeatPumpOptimizer:
                     )
             result.predictive_info["dhw_floor_breach_c"] = round(shortfall, 3)
         return result
+
+    @staticmethod
+    def _better_objective(left, right):
+        """The plan with the lower finite objective; ties keep ``left``."""
+        lo = float(left.objective_value)
+        ro = float(right.objective_value)
+        if np.isfinite(ro) and (not np.isfinite(lo) or ro < lo - 1e-9):
+            return right
+        return left
+
+    def _resolve_after_cap_tighten(self, prev, power_caps, prices, dt, solve):
+        """Re-solve after a cap tighten; extra seeds may only win.
+
+        Prepending the clipped/bang-bang pair occupies two of
+        ``_MULTI_START_SOLVES`` slots, which can displace a cheaper
+        basin the unseeded four already reach (#234 winter_extreme).
+        Run both arms and keep the better objective.
+        """
+        extras = self._cap_tighten_extra_starts(
+            prev.power_schedule, power_caps, prices, dt,
+        )
+        return self._better_objective(solve(), solve(extras))
 
     def _cap_tighten_extra_starts(self, prev, power_caps, prices, dt):
         """Clipped prior plus equal-energy bang-bang for a cap-tighten re-solve.

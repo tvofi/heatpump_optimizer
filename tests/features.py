@@ -5609,6 +5609,82 @@ if _got234 is not None:
         "wired extra_starts are not (clipped prev, equal-energy bang-bang)",
     )
 
+# Extra seeds occupy two of `_MULTI_START_SOLVES` slots. On winter_extreme
+# that displaced a cheaper unseeded basin (#234 review). Seeds may only win.
+_keep234 = {"seeded": 0, "unseeded": 0}
+_unseeded_keep234 = _StoreRes(
+    power_schedule=_prev234.tolist(),
+    room_temp_trajectory=[21.0] * (_n234 + 1),
+    slab_temp_trajectory=[23.0] * (_n234 + 1),
+    timestamps=[datetime(2026, 1, 15)] * _n234,
+    prices=_p234.tolist(),
+    predicted_cost=1.0,
+    baseline_cost=1.0,
+    predicted_savings=0.0,
+    savings_percentage=0.0,
+    optimal_setpoints=[21.0] * _n234,
+    status="optimal",
+    objective_value=1.0,
+    upper_temp_trajectory=[21.0] * (_n234 + 1),
+    lower_temp_trajectory=[21.0] * (_n234 + 1),
+)
+_seeded_keep234 = _StoreRes(
+    power_schedule=_prev234.tolist(),
+    room_temp_trajectory=[21.0] * (_n234 + 1),
+    slab_temp_trajectory=[23.0] * (_n234 + 1),
+    timestamps=[datetime(2026, 1, 15)] * _n234,
+    prices=_p234.tolist(),
+    predicted_cost=10.0,
+    baseline_cost=1.0,
+    predicted_savings=0.0,
+    savings_percentage=0.0,
+    optimal_setpoints=[21.0] * _n234,
+    status="optimal",
+    objective_value=10.0,
+    upper_temp_trajectory=[21.0] * (_n234 + 1),
+    lower_temp_trajectory=[21.0] * (_n234 + 1),
+)
+_fired_keep234 = {"n": 0}
+
+
+def _space_keep234(self, h):
+    if h.extra_starts:
+        _keep234["seeded"] += 1
+        return _seeded_keep234
+    _keep234["unseeded"] += 1
+    return _unseeded_keep234
+
+
+def _tight_keep234(self, result, power_caps, *a, **kw):
+    _fired_keep234["n"] += 1
+    if _fired_keep234["n"] != 1:
+        return False
+    power_caps[:] = np.minimum(
+        power_caps, np.maximum(np.asarray(result.power_schedule, dtype=float) * 0.5, 0.05)
+    )
+    return True
+
+
+_StoreOpt._optimize_space_only = _space_keep234
+_StoreOpt._tighten_buffer_caps = _tight_keep234
+try:
+    _kept234 = _opt234.optimize(
+        _st234, _p234, np.full(_n234, -2.0), _z234, _z234, _z234,
+        datetime(2026, 1, 15),
+    )
+finally:
+    _StoreOpt._optimize_space_only = _real_space234
+    _StoreOpt._tighten_buffer_caps = _real_tight234
+R.check(
+    "cap-tighten re-solve keeps the better of seeded and unseeded",
+    _fired_keep234["n"] >= 1
+    and _keep234["seeded"] >= 1
+    and _keep234["unseeded"] >= 2
+    and abs(float(_kept234.objective_value) - 1.0) < 1e-12,
+    f"seeded={_keep234['seeded']} unseeded={_keep234['unseeded']} "
+    f"obj={getattr(_kept234, 'objective_value', None)}",
+)
+
 # The recommendation is surfaced, not just computable. recommend_target()
 # existed since v3.7.0 with zero callers -- the integration could recommend a
 # setting and told nobody. The coordinator now publishes it for the
