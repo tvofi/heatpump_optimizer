@@ -16,12 +16,15 @@ import hashlib
 import json
 import logging
 import math
-import multiprocessing
+import os
+import pickle
+import subprocess
+import sys
 import threading
 from bisect import bisect_right
-from concurrent.futures import ProcessPoolExecutor
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any, NamedTuple
 
 import aiohttp
@@ -754,34 +757,83 @@ TIBBER_PRICE_QUERY = """
 """
 
 
-_PROCESS_CTX = multiprocessing.get_context("spawn")
-_PROCESS_POOL: ProcessPoolExecutor | None = None
 _PROCESS_LOCK = threading.Lock()
+_PROCESS_WORKER: subprocess.Popen | None = None
+_PROCESS_ATEXIT = False
 
 
-def _process_executor() -> ProcessPoolExecutor:
-    """One spawn-context worker. Threads still share this interpreter's GIL."""
-    global _PROCESS_POOL
-    with _PROCESS_LOCK:
-        if _PROCESS_POOL is None:
-            _PROCESS_POOL = ProcessPoolExecutor(
-                max_workers=1, mp_context=_PROCESS_CTX
-            )
-            atexit.register(_shutdown_process_pool)
-        return _PROCESS_POOL
+def _worker_env() -> dict[str, str]:
+    """Make ``heatpump_optimizer`` importable in the child, tests or HA."""
+    env = os.environ.copy()
+    here = Path(__file__).resolve().parent
+    extra = [str(here.parent)]
+    tests_dir = here.parent.parent / "tests"
+    if tests_dir.is_dir():
+        extra.append(str(tests_dir))
+        extra.append(str(tests_dir / "hastub"))
+    old = env.get("PYTHONPATH")
+    env["PYTHONPATH"] = os.pathsep.join(extra + ([old] if old else []))
+    return env
+
+
+def _ensure_worker() -> subprocess.Popen:
+    """Persistent child interpreter. Not multiprocessing: spawn reimports __main__."""
+    global _PROCESS_WORKER, _PROCESS_ATEXIT
+    worker = _PROCESS_WORKER
+    if worker is not None and worker.poll() is None:
+        return worker
+    script = Path(__file__).resolve().with_name("process_worker.py")
+    _PROCESS_WORKER = subprocess.Popen(
+        [sys.executable, "-u", str(script)],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=None,
+        env=_worker_env(),
+    )
+    if not _PROCESS_ATEXIT:
+        atexit.register(_shutdown_process_pool)
+        _PROCESS_ATEXIT = True
+    return _PROCESS_WORKER
 
 
 def _shutdown_process_pool() -> None:
-    global _PROCESS_POOL
+    global _PROCESS_WORKER
     with _PROCESS_LOCK:
-        pool, _PROCESS_POOL = _PROCESS_POOL, None
-    if pool is not None:
-        pool.shutdown(wait=False, cancel_futures=True)
+        worker, _PROCESS_WORKER = _PROCESS_WORKER, None
+    if worker is None:
+        return
+    try:
+        if worker.stdin:
+            worker.stdin.close()
+    except Exception:  # noqa: BLE001 - shutdown must not raise
+        pass
+    if worker.poll() is None:
+        worker.terminate()
+        try:
+            worker.wait(timeout=2)
+        except Exception:  # noqa: BLE001
+            worker.kill()
 
 
 def _run_in_process(fn, args):
     """Run ``fn(*args)`` in the process worker. ``fn`` must be picklable."""
-    return _process_executor().submit(fn, *args).result()
+    global _PROCESS_WORKER
+    with _PROCESS_LOCK:
+        worker = _ensure_worker()
+        stdin, stdout = worker.stdin, worker.stdout
+        if stdin is None or stdout is None:
+            raise RuntimeError("process worker pipes missing")
+        pickle.dump((fn, args), stdin, protocol=pickle.HIGHEST_PROTOCOL)
+        stdin.flush()
+        try:
+            status, payload = pickle.load(stdout)
+        except (EOFError, BrokenPipeError) as err:
+            rc = worker.poll()
+            _PROCESS_WORKER = None
+            raise RuntimeError(f"process worker exited rc={rc}") from err
+    if status == "err":
+        raise payload
+    return payload
 
 
 async def _await_process(hass, fn, *args):
