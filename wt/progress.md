@@ -1,1 +1,1 @@
-W1-G13 merged PR #432 at 1801b76 — G16 only group left in half II.
+W1-G16 PR open — layout-editor Tidy up (#403); last half-II group.

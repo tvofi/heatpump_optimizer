@@ -268,6 +268,9 @@ const STRINGS = {
     "setup.undo_layout_aria":
       "Undo the changes and go back to the layout in use, staying in the " +
       "editor",
+    "setup.tidy_layout": "Tidy up",
+    "setup.tidy_layout_aria":
+      "Arrange the boxes neatly in their columns again",
     "setup.verdict_match": "Matches {label}.",
     "setup.verdict_req": "{label} — {requirement}.",
     "setup.verdict_not_modelled":
@@ -641,6 +644,9 @@ const STRINGS = {
     "setup.undo_layout_aria":
       "Ångra ändringarna och återgå till den layout som används, utan att " +
       "lämna redigeringsläget",
+    "setup.tidy_layout": "Städa upp",
+    "setup.tidy_layout_aria":
+      "Ordna lådorna snyggt i sina kolumner igen",
     "setup.verdict_match": "Motsvarar {label}.",
     "setup.verdict_req": "{label} — {requirement}.",
     "setup.verdict_not_modelled":
@@ -2116,7 +2122,7 @@ function setupSvgHtml(topo, ctx) {
   }
   // Where the boxes ended up, for the editor's drop tests.
   boxesOut = boxes.map((b) => ({
-    place: b.place, x: b.x, y: b.y, w: colW, h: b.h,
+    place: b.place, x: b.x, y: b.y, w: colW, h: b.h, col: b.col,
   }));
 
   const parts = [];
@@ -7767,6 +7773,257 @@ class SetupPage {
 // null means "not editing", so an untouched setup page behaves exactly as
 // it did before the editor existed -- and `boxes`, where the last drawing
 // put each box. Uses `host.setup` (the diagram, the picker, the note),
+// ---- Layout tidy-up (#403) -------------------------------------------------
+//
+// A recovery affordance: drag positions persist with no column reset. With
+// column abscissae fixed the search is each column's internal permutations
+// only -- at most 3!·3!·2! = 72 candidates -- so enumerate all of them and
+// keep the lowest cost. Deterministic tie-break: enumeration index, never
+// randomness or DOM measurement.
+//
+// cost = w_pipe · (pipe-pair crossings, endpoint-sharing pairs excluded)
+//      + w_tank · (pipe-over-tank incidences, the pipe's endpoints excluded)
+//      + w_other · (pipe-over-other-box incidences, same exclusion)
+//      + w_len · (total pipe length)   [tie-break only]
+//
+// w_tank = 3 is the smallest integer with w_tank > 2·w_pipe (w_pipe = 1).
+// w_other = 2 is a judgement call so tank ordering survives over boxes
+// that are not tanks; change one constant if the owner prefers otherwise.
+const LAYOUT_W_PIPE = 1;
+const LAYOUT_W_TANK = 3;
+const LAYOUT_W_OTHER_BOX = 2;
+const LAYOUT_W_LENGTH = 1e-4;
+const LAYOUT_TANKS = new Set(["buffer_tank", "wood_tank", "dhw_tank"]);
+const LAYOUT_COL_X = [16, 260, 504];
+const LAYOUT_COL_TOP = 16;
+const LAYOUT_COL_GAP = 14;
+const LAYOUT_PIPE_SAMPLES = 24;
+const LAYOUT_ANCHOR_OVERRIDES = {
+  "wood_tank>dhw_tank": {
+    from: (bb) => ({
+      x: bb.x + SETUP_COL_W + 13,
+      y: bb.y + (bb.h < 49 ? 16.5 : 23),
+    }),
+  },
+};
+
+function layoutKind(box) {
+  return NODE_SHAPES[PLACE_KIND[box.place]] || NODE_SHAPES.hp;
+}
+
+/** Every ordering of `items`; one item is a singleton, none is [[]]. */
+function layoutPermutations(items) {
+  if (!items.length) return [[]];
+  if (items.length === 1) return [items];
+  const out = [];
+  for (let i = 0; i < items.length; i++) {
+    const head = items[i];
+    const tail = items.slice(0, i).concat(items.slice(i + 1));
+    for (const rest of layoutPermutations(tail)) out.push([head, ...rest]);
+  }
+  return out;
+}
+
+/** Polyline for one edge, mirroring `setupSvgHtml`'s `line()`. */
+function layoutPipePolyline(a, b) {
+  const colW = SETUP_COL_W;
+  const kindA = layoutKind(a);
+  const kindB = layoutKind(b);
+  const over = LAYOUT_ANCHOR_OVERRIDES[`${a.place}>${b.place}`];
+  if (!over && a.x === b.x) {
+    const upper = a.y < b.y ? a : b;
+    const lower = a.y < b.y ? b : a;
+    const kindU = layoutKind(upper);
+    const kindL = layoutKind(lower);
+    const x = a.x + 24;
+    return [
+      { x, y: upper.y + upper.h - kindU.inset.b },
+      { x, y: lower.y + kindL.inset.t },
+    ];
+  }
+  const anchor = (bb) => ({ x: bb.x + colW, y: bb.y + bb.h / 2 });
+  const toPt = (bb) => ({ x: bb.x, y: bb.y + bb.h / 2 });
+  const f = over
+    ? over.from(a)
+    : { x: anchor(a).x - kindA.inset.r, y: anchor(a).y };
+  const t = { x: toPt(b).x + kindB.inset.l, y: toPt(b).y };
+  const p0 = f;
+  const p1 = { x: f.x + 40, y: f.y };
+  const p2 = { x: t.x - 40, y: t.y };
+  const p3 = t;
+  const pts = [];
+  for (let i = 0; i <= LAYOUT_PIPE_SAMPLES; i++) {
+    const u = i / LAYOUT_PIPE_SAMPLES;
+    const omu = 1 - u;
+    pts.push({
+      x:
+        omu * omu * omu * p0.x +
+        3 * omu * omu * u * p1.x +
+        3 * omu * u * u * p2.x +
+        u * u * u * p3.x,
+      y:
+        omu * omu * omu * p0.y +
+        3 * omu * omu * u * p1.y +
+        3 * omu * u * u * p2.y +
+        u * u * u * p3.y,
+    });
+  }
+  return pts;
+}
+
+function layoutSegCross(ax, ay, bx, by, cx, cy, dx, dy) {
+  const d1x = bx - ax;
+  const d1y = by - ay;
+  const d2x = dx - cx;
+  const d2y = dy - cy;
+  const den = d1x * d2y - d1y * d2x;
+  if (Math.abs(den) < 1e-9) return false;
+  const t = ((cx - ax) * d2y - (cy - ay) * d2x) / den;
+  const u = ((cx - ax) * d1y - (cy - ay) * d1x) / den;
+  return t > 1e-9 && t < 1 - 1e-9 && u > 1e-9 && u < 1 - 1e-9;
+}
+
+function layoutPolylinesCross(ptsA, ptsB) {
+  for (let i = 1; i < ptsA.length; i++) {
+    for (let j = 1; j < ptsB.length; j++) {
+      const a0 = ptsA[i - 1];
+      const a1 = ptsA[i];
+      const b0 = ptsB[j - 1];
+      const b1 = ptsB[j];
+      if (
+        layoutSegCross(a0.x, a0.y, a1.x, a1.y, b0.x, b0.y, b1.x, b1.y)
+      ) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+function layoutSegHitsRect(x1, y1, x2, y2, rx, ry, rw, rh) {
+  const inside = (x, y) =>
+    x > rx && x < rx + rw && y > ry && y < ry + rh;
+  if (inside(x1, y1) || inside(x2, y2)) return true;
+  const rx2 = rx + rw;
+  const ry2 = ry + rh;
+  const edges = [
+    [rx, ry, rx2, ry],
+    [rx2, ry, rx2, ry2],
+    [rx2, ry2, rx, ry2],
+    [rx, ry2, rx, ry],
+  ];
+  for (const [ex1, ey1, ex2, ey2] of edges) {
+    if (layoutSegCross(x1, y1, x2, y2, ex1, ey1, ex2, ey2)) return true;
+  }
+  return false;
+}
+
+function layoutPolylineHitsRect(pts, box) {
+  for (let i = 1; i < pts.length; i++) {
+    const a = pts[i - 1];
+    const b = pts[i];
+    if (layoutSegHitsRect(a.x, a.y, b.x, b.y, box.x, box.y, box.w, box.h)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function layoutPolylineLength(pts) {
+  let len = 0;
+  for (let i = 1; i < pts.length; i++) {
+    len += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
+  }
+  return len;
+}
+
+/** Weighted crossing cost for one box layout and edge list. */
+function layoutCost(boxes, edges) {
+  const byPlace = new Map(boxes.map((b) => [b.place, b]));
+  const pipes = [];
+  for (const e of edges) {
+    const from = e[0];
+    const to = e[1];
+    const a = byPlace.get(from);
+    const b = byPlace.get(to);
+    if (!a || !b) continue;
+    pipes.push({ from, to, pts: layoutPipePolyline(a, b) });
+  }
+  let cost = 0;
+  for (let i = 0; i < pipes.length; i++) {
+    for (let j = i + 1; j < pipes.length; j++) {
+      const pi = pipes[i];
+      const pj = pipes[j];
+      if (
+        pi.from === pj.from ||
+        pi.from === pj.to ||
+        pi.to === pj.from ||
+        pi.to === pj.to
+      ) {
+        continue;
+      }
+      if (layoutPolylinesCross(pi.pts, pj.pts)) cost += LAYOUT_W_PIPE;
+    }
+  }
+  for (const pipe of pipes) {
+    for (const box of boxes) {
+      if (box.place === pipe.from || box.place === pipe.to) continue;
+      if (layoutPolylineHitsRect(pipe.pts, box)) {
+        cost += LAYOUT_TANKS.has(box.place) ? LAYOUT_W_TANK : LAYOUT_W_OTHER_BOX;
+      }
+    }
+  }
+  for (const pipe of pipes) {
+    cost += LAYOUT_W_LENGTH * layoutPolylineLength(pipe.pts);
+  }
+  return cost;
+}
+
+/** Best in-column ordering; returns `{ place: [x, y], … }`. */
+function layoutArrange(boxes, edges) {
+  const cols = [[], [], []];
+  for (const b of boxes) {
+    const c = b.col;
+    if (c >= 0 && c < 3) cols[c].push(b);
+  }
+  const perms = cols.map((col) => layoutPermutations(col));
+  let bestCost = Infinity;
+  let bestIdx = Infinity;
+  let bestPositions = null;
+  let idx = 0;
+  for (const col0 of perms[0]) {
+    for (const col1 of perms[1]) {
+      for (const col2 of perms[2]) {
+        const ordered = [col0, col1, col2];
+        const candidate = [];
+        for (let col = 0; col < 3; col++) {
+          let y = LAYOUT_COL_TOP;
+          for (const b of ordered[col]) {
+            candidate.push({
+              place: b.place,
+              col,
+              w: b.w,
+              h: b.h,
+              x: LAYOUT_COL_X[col],
+              y,
+            });
+            y += b.h + LAYOUT_COL_GAP;
+          }
+        }
+        const cost = layoutCost(candidate, edges);
+        if (cost < bestCost || (cost === bestCost && idx < bestIdx)) {
+          bestCost = cost;
+          bestIdx = idx;
+          bestPositions = {};
+          for (const b of candidate) bestPositions[b.place] = [b.x, b.y];
+        }
+        idx++;
+      }
+    }
+  }
+  return bestPositions || {};
+}
+
 // `host.plan`, `host.hass`, `host.shadowRoot` and `host.render()`.
 // PR 7 of #136.
 class LayoutEditor {
@@ -7857,6 +8114,15 @@ class LayoutEditor {
         }
         ${
           active
+            ? `<button type="button" class="layout-tidy"
+              title="${esc(L("setup.tidy_layout_aria"))}"
+              aria-label="${esc(L("setup.tidy_layout_aria"))}">${
+                esc(L("setup.tidy_layout"))
+              }</button>`
+            : ""
+        }
+        ${
+          active
             ? `<span class="layout-verdict${match ? " match" : ""}"
                  role="status">${esc((ed && ed.verdict) || "")}</span>`
             : ""
@@ -7893,6 +8159,13 @@ class LayoutEditor {
       undo.addEventListener("click", (ev) => {
         stop(ev);
         this.undo();
+      });
+    }
+    const tidy = root.querySelector(".layout-tidy");
+    if (tidy) {
+      tidy.addEventListener("click", (ev) => {
+        stop(ev);
+        this.tidy();
       });
     }
     const canvas = root.querySelector(".setup-canvas");
@@ -8253,6 +8526,21 @@ class LayoutEditor {
     this.evaluate();
     // The in-place redraw, not `_render`: a full rebuild would replace the
     // bar and take the focus off the Undo button the keyboard just pressed.
+    this.refresh();
+  }
+
+  /** Re-stack every box in its column at the lowest crossing cost.
+   *
+   * Positions only: edges and the matched layout key are untouched, so
+   * Save stays available whenever it was before. The search is exhaustive
+   * over in-column permutations (at most 72), not a heuristic.
+   */
+  tidy() {
+    const ed = this.edit;
+    if (!ed || !ed.active) return;
+    const arranged = layoutArrange(this.boxes, ed.edges);
+    ed.positions = arranged;
+    ed.dirty = true;
     this.refresh();
   }
 

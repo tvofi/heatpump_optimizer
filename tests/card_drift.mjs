@@ -350,6 +350,23 @@ const STATES = [
       }
       return c;
     } },
+  { name: "layout_editing_tidy",
+    drive: (s) => {
+      const c = setupPage(s, layoutCatalogTopo());
+      const toggle = c.shadowRoot.querySelector(".layout-edit-toggle");
+      if (toggle) fire(toggle, "click", { ...noop });
+      const box = api.boxes(c).find((b) => b.place === "buffer_tank");
+      if (box) {
+        const from = { x: box.x + box.w / 2, y: box.y + box.h / 2 };
+        const to = { x: from.x + 40, y: from.y + 30 };
+        api.layoutDown(c, layoutEv(from, { dataset: {} }));
+        api.layoutMove(c, layoutEv({ x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 }));
+        api.layoutUp(c, layoutEv(to));
+      }
+      const tidy = c.shadowRoot.querySelector(".layout-tidy");
+      if (tidy) fire(tidy, "click", { ...noop });
+      return c;
+    } },
   { name: "picker_open_filtered",
     drive: (s) => {
       const c = setupPage(s, qaTopologies().base, bigStates());
