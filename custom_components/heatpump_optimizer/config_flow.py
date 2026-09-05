@@ -697,6 +697,31 @@ def _power_errors(
     return {}
 
 
+def _options_suggested_numeric(current: dict[str, Any], key: str) -> Any:
+    """Optional key that suggests the stored value without defaulting it."""
+    if key in current:
+        return vol.Optional(key, description={"suggested_value": current[key]})
+    return vol.Optional(key)
+
+
+def _building_preset_warning(hass: Any, current: dict[str, Any]) -> str:
+    """Preset-derived warning when the thermal model pages would overwrite it."""
+    if not current.get(CONF_BUILDING_PRESET_ENABLED, DEFAULT_BUILDING_PRESET_ENABLED):
+        return ""
+    lang = (hass.config.language or "en").split("-")[0]
+    return PRESET_WARNING.get(lang, PRESET_WARNING["en"])
+
+
+def _disarm_preset_on_derived_edit(
+    saved: dict[str, Any], stored: dict[str, Any]
+) -> None:
+    """Stop the questionnaire from overwriting a hand-edited derived value."""
+    if any(
+        key in saved and saved[key] != stored.get(key) for key in DERIVED_THERMAL_KEYS
+    ):
+        saved[CONF_BUILDING_PRESET_ENABLED] = False
+
+
 def _dhw_min_too_close(candidate: dict[str, Any], current: dict[str, Any]) -> bool:
     """Whether the effective DHW minimum leaves no deadband below the setpoint.
 
@@ -1735,6 +1760,21 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
             return await self.async_step_advanced()
         return await self.async_step_init()
 
+    async def _try_thermal_model_save(
+        self, user_input: dict[str, Any] | None
+    ) -> FlowResult | tuple[dict[str, str], dict[str, Any]]:
+        """Shared submit path for the split thermal_model pages."""
+        errors: dict[str, str] = {}
+        current = self._current
+        if user_input is not None:
+            errors = _power_errors(user_input, self._current)
+            if not errors:
+                saved = dict(user_input)
+                _disarm_preset_on_derived_edit(saved, self._current)
+                return await self._save_or_menu(saved)
+            current = {**current, **user_input}
+        return errors, current
+
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
@@ -2432,55 +2472,11 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         is a no-op — and fields without one render empty; an empty box is
         omitted from ``user_input`` and never saved.
         """
-        errors: dict[str, str] = {}
-        if user_input is not None:
-            # Judged against the *effective* pair: this page saves partial
-            # input over stored data, so a submitted floor can contradict a
-            # stored ceiling without both being on the form.
-            errors = _power_errors(user_input, self._current)
-            if not errors:
-                saved = dict(user_input)
-                stored = self._current
-                if any(
-                    key in saved and saved[key] != stored.get(key)
-                    for key in DERIVED_THERMAL_KEYS
-                ):
-                    # Editing a derived number here has to mean it. Left
-                    # armed, the questionnaire would overwrite this value the
-                    # next time that page was saved, and the user would be
-                    # back to a number they did not choose with no idea why.
-                    #
-                    # It has to be a *changed* value, not merely a present
-                    # one. ``user_input`` is what the browser posted, and the
-                    # browser posts every pre-filled field back — which is
-                    # the whole premise of this page's suggested values — so
-                    # presence alone is true on a no-op Submit, and testing
-                    # it disarmed the questionnaire for every user who had
-                    # ever opened this page and pressed the button.
-                    saved[CONF_BUILDING_PRESET_ENABLED] = False
-                return await self._save_or_menu(saved)
-
-        current = self._current
-        if user_input is not None:
-            current = {**current, **user_input}
-
-        def _numeric(key: str) -> Any:
-            """Optional key that suggests the stored value without defaulting it."""
-            if key in current:
-                return vol.Optional(
-                    key, description={"suggested_value": current[key]}
-                )
-            return vol.Optional(key)
-
-        # Home Assistant cannot grey a field out — a selector carries no
-        # read-only flag, and the schema the browser receives has nowhere to
-        # put one — so say in words what the form cannot show.
-        preset_warning = ""
-        if current.get(
-            CONF_BUILDING_PRESET_ENABLED, DEFAULT_BUILDING_PRESET_ENABLED
-        ):
-            lang = (self.hass.config.language or "en").split("-")[0]
-            preset_warning = PRESET_WARNING.get(lang, PRESET_WARNING["en"])
+        outcome = await self._try_thermal_model_save(user_input)
+        if not isinstance(outcome, tuple):
+            return outcome
+        errors, current = outcome
+        preset_warning = _building_preset_warning(self.hass, current)
 
         return self.async_show_form(
             step_id="thermal_model",
@@ -2488,21 +2484,27 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
             description_placeholders={"preset_warning": preset_warning},
             data_schema=_options_schema(
                 {
-                    _numeric(CONF_HOUSE_THERMAL_MASS): _number(
+                    _options_suggested_numeric(current, CONF_HOUSE_THERMAL_MASS): _number(
                         *RANGE_HOUSE_THERMAL_MASS, 0.5, "kWh/°C"
                     ),
-                    _numeric(CONF_HOUSE_HEAT_LOSS_COEFFICIENT): _number(
-                        *RANGE_HOUSE_HEAT_LOSS, 0.01, "kW/°C"
-                    ),
-                    _numeric(CONF_SLAB_THERMAL_MASS): _number(
+                    _options_suggested_numeric(
+                        current, CONF_HOUSE_HEAT_LOSS_COEFFICIENT
+                    ): _number(*RANGE_HOUSE_HEAT_LOSS, 0.01, "kW/°C"),
+                    _options_suggested_numeric(current, CONF_SLAB_THERMAL_MASS): _number(
                         *RANGE_SLAB_THERMAL_MASS, 0.5, "kWh/°C"
                     ),
-                    _numeric(CONF_SLAB_HEAT_TRANSFER): _number(
-                        *RANGE_SLAB_HEAT_TRANSFER, 0.1, "kW/°C"
-                    ),
-                    _numeric(CONF_HEAT_PUMP_COP_NOMINAL): _number(1.5, 6.0, 0.1),
-                    _numeric(CONF_HEAT_PUMP_MAX_POWER): _number(1, 20, 0.5, "kW"),
-                    _numeric(CONF_HEAT_PUMP_MIN_POWER): _number(0, 10, 0.5, "kW"),
+                    _options_suggested_numeric(
+                        current, CONF_SLAB_HEAT_TRANSFER
+                    ): _number(*RANGE_SLAB_HEAT_TRANSFER, 0.1, "kW/°C"),
+                    _options_suggested_numeric(
+                        current, CONF_HEAT_PUMP_COP_NOMINAL
+                    ): _number(1.5, 6.0, 0.1),
+                    _options_suggested_numeric(
+                        current, CONF_HEAT_PUMP_MAX_POWER
+                    ): _number(1, 20, 0.5, "kW"),
+                    _options_suggested_numeric(
+                        current, CONF_HEAT_PUMP_MIN_POWER
+                    ): _number(0, 10, 0.5, "kW"),
                 }
             ),
         )
@@ -2511,36 +2513,11 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Two-zone split and solar orientation."""
-        errors: dict[str, str] = {}
-        if user_input is not None:
-            errors = _power_errors(user_input, self._current)
-            if not errors:
-                saved = dict(user_input)
-                stored = self._current
-                if any(
-                    key in saved and saved[key] != stored.get(key)
-                    for key in DERIVED_THERMAL_KEYS
-                ):
-                    saved[CONF_BUILDING_PRESET_ENABLED] = False
-                return await self._save_or_menu(saved)
-
-        current = self._current
-        if user_input is not None:
-            current = {**current, **user_input}
-
-        def _numeric(key: str) -> Any:
-            if key in current:
-                return vol.Optional(
-                    key, description={"suggested_value": current[key]}
-                )
-            return vol.Optional(key)
-
-        preset_warning = ""
-        if current.get(
-            CONF_BUILDING_PRESET_ENABLED, DEFAULT_BUILDING_PRESET_ENABLED
-        ):
-            lang = (self.hass.config.language or "en").split("-")[0]
-            preset_warning = PRESET_WARNING.get(lang, PRESET_WARNING["en"])
+        outcome = await self._try_thermal_model_save(user_input)
+        if not isinstance(outcome, tuple):
+            return outcome
+        errors, current = outcome
+        preset_warning = _building_preset_warning(self.hass, current)
 
         return self.async_show_form(
             step_id="thermal_model_zones",
@@ -2556,30 +2533,30 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
                             )
                         },
                     ): _select(list(TWO_ZONE_MODES), "two_zone_mode"),
-                    _numeric(CONF_UPPER_FLOOR_THERMAL_MASS): _number(
-                        *RANGE_ZONE_THERMAL_MASS, 0.5, "kWh/°C"
-                    ),
-                    _numeric(CONF_LOWER_FLOOR_THERMAL_MASS): _number(
-                        *RANGE_ZONE_THERMAL_MASS, 0.5, "kWh/°C"
-                    ),
-                    _numeric(CONF_UPPER_FLOOR_HEAT_LOSS): _number(
-                        *RANGE_ZONE_HEAT_LOSS, 0.01, "kW/°C"
-                    ),
-                    _numeric(CONF_LOWER_FLOOR_HEAT_LOSS): _number(
-                        *RANGE_ZONE_HEAT_LOSS, 0.01, "kW/°C"
-                    ),
-                    _numeric(CONF_INTER_ZONE_TRANSFER): _number(
-                        POSITIVE_PARAM_FLOOR, 3.0, 0.1, "kW/°C"
-                    ),
-                    _numeric(CONF_RADIATOR_POWER_FRACTION): _number(
-                        0.0, 1.0, 0.05, slider=True
-                    ),
-                    _numeric(CONF_UPPER_FLOOR_AREA_RATIO): _number(
-                        0.1, 0.9, 0.05, slider=True
-                    ),
-                    _numeric(CONF_SOLAR_ORIENTATION_FACTOR): _number(
-                        0.0, 1.0, 0.05, slider=True
-                    ),
+                    _options_suggested_numeric(
+                        current, CONF_UPPER_FLOOR_THERMAL_MASS
+                    ): _number(*RANGE_ZONE_THERMAL_MASS, 0.5, "kWh/°C"),
+                    _options_suggested_numeric(
+                        current, CONF_LOWER_FLOOR_THERMAL_MASS
+                    ): _number(*RANGE_ZONE_THERMAL_MASS, 0.5, "kWh/°C"),
+                    _options_suggested_numeric(
+                        current, CONF_UPPER_FLOOR_HEAT_LOSS
+                    ): _number(*RANGE_ZONE_HEAT_LOSS, 0.01, "kW/°C"),
+                    _options_suggested_numeric(
+                        current, CONF_LOWER_FLOOR_HEAT_LOSS
+                    ): _number(*RANGE_ZONE_HEAT_LOSS, 0.01, "kW/°C"),
+                    _options_suggested_numeric(
+                        current, CONF_INTER_ZONE_TRANSFER
+                    ): _number(POSITIVE_PARAM_FLOOR, 3.0, 0.1, "kW/°C"),
+                    _options_suggested_numeric(
+                        current, CONF_RADIATOR_POWER_FRACTION
+                    ): _number(0.0, 1.0, 0.05, slider=True),
+                    _options_suggested_numeric(
+                        current, CONF_UPPER_FLOOR_AREA_RATIO
+                    ): _number(0.1, 0.9, 0.05, slider=True),
+                    _options_suggested_numeric(
+                        current, CONF_SOLAR_ORIENTATION_FACTOR
+                    ): _number(0.0, 1.0, 0.05, slider=True),
                 }
             ),
         )
