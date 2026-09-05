@@ -1037,6 +1037,7 @@ def capture_config_flow() -> dict:
     initial_pages = {}
     for step in (
         "user",
+        "user_sensors",
         "temperature",
         "building",
         "building_describe",
