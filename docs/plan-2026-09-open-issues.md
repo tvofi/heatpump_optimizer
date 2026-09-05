@@ -56,9 +56,26 @@ Where this table and a wave body disagree, this table is the truth.
 | 1b half II | card contrast/geometry, coordinator loaders, wood_share, may-drift partition, layout-editor recovery | 12 issues in 8 groups: #288 (W1-G6), #238 (W1-G8), #260 #261 #263 #266 (W1-G12), #262 #258 (W1-G13), #403 (W1-G16, added 2026-09-04), #265 (W1-G14), #254 (W1-G15), #245 (W1-G9) | **v6.3.13** (tag `f94ae13`) | **done and released, 2026-09-05** — all eight groups merged, issues closed: PR #419 (`7cc75a1`, W1-G6/#288), #421 (`a7c1e54`, W1-G8/#238), #424 (`47ded95`, W1-G14/#265), #427 (`598c83d`, W1-G15/#254), #431 (`cabcce1`, W1-G9/#245), #428 (`6bee53f`, W1-G12/#260 #261 #263 #266), #432 (`1801b76`, W1-G13/#262 #258), #433 (`ac35bf8`, W1-G16/#403). Record/tooling since v6.3.12 stamp: #414/#398, #415, #417, #418, #416/#411, #420, #426, #413; inherited-card-claims fix `7044a27` before stamp. Stamped `f94ae13`, 0 unstamped |
 | — | **#387, the blocker**: the basin coverage floor is runner-dependent | #387 | v6.3.12 | **fixed** — merged as `32f309f` (PR #388); sixth acceptance criterion ruled (comment 5541519696): the WORK-channel stale-cheap downgrade is kept as necessary to the `env_drift` shape, and the coverage floor's strictness is restored by a follow-up PR that hard-codes it |
 | 2 | coordinator lifecycle, learners, options grouping | #236 #237 #240 #239 #243 #283 #284 #277 #244 #325 #279 #278 #280 #198 | **v6.3.14** (tag `ef539be`) | **done and released, 2026-09-05** — seven groups merged, issues closed: PR #437 (`44a6351`, W2-G1/#236 #237 #240), #440 (`90c71c4`, W2-G2/#239 #243; duplicate #441 closed unmerged), #444 (`dc3bb8e`, W2-G3/#283 #284), #447 (`851c555`, W2-G4/#279 #278), #449 (`f492b1f`, W2-G5/#277), #451 (`efe5a27`, W2-G5 follow-up/#244 #325, review `merge` 5551113810: mid-step abort 36→0, 21 leftovers named), #438 (`e1a14f9`, W2-G6/#280), #436 (`3c141d7`, W2-G7/#198). Record/tooling since v6.3.13 stamp: #434, #435, #439, #442, #443, #446, #448, #450. Stamped `ef539be` as v6.3.14; **#451 is unstamped** on that tag. Next seat **W3-G1** |
-| 3 | solver, DHW planner, GIL process route | #232 #234 #289 #290 #199 | v6.3.14 | **W3-G1 done** — PR #454 (`1585435`, #232/#234 closed: hybrid smooth top-k + cap-tighten seeds; fix review `merge`). Next seat **W3-G2** (#289). **W3-G4 is struck**, #242 has no admissible formula |
+| 3 | solver, DHW planner, GIL process route | #232 #234 #289 #290 #199 | v6.3.14 | **W3-G1 done** — #454 (`1585435`) closed #232/#234 (hybrid). Follow-up **#455** (`aa61130`) logistic top-k + keep-best; review `merge` at `a596030`. #232/#234 stay closed. Next seat **W3-G2** (#289). **W3-G4 is struck** |
+| **3L** | mid-programme leftovers, one burst | #400 #401 #404 #405 #408 #457 | after Wave 3 | **next after W3-G3**, before Wave 4 — see below. #412 stays last of the programme |
 | 4 | the #193 decomposition programme, S0–S13 | #193 #223 #224 #225, and **#304 as S11's precursor** | one per stage | pending |
 | 5 | typing lane, and the coverage deficit #195 raised | #303 #195 | per tranche | pending — **#304 moves ahead of S11**, see below |
+| last | CI Node majors | #412 | after Wave 5 | pending — owner: last task; do not pull into 3L |
+
+### Wave 3L — leftovers, after Wave 3, before Wave 4
+
+Every open issue that is not already in Waves 3–5 or #201, filed after the 2026-09-03 plan cut. One burst so they are not lost again, and **before** Wave 4 because #400 and #408 are behaviour in the DHW/optimizer/config region a move PR would silently revert (principle 3). Earliest the whole bag can sit without colliding with in-flight W3-G2 (`optimizer.py`). #412 stays last of the programme and is not in this burst.
+
+| group | issues | model | after | scope |
+|---|---|---|---|---|
+| **3L-G1** | #400 | Grok 4.6 extra high | W3-G3 | DHW planner sees the wood-tank refill coil. Measured 5.394 SEK/day; plan is byte-identical coil-on/off today. Claims, never re-record goldens |
+| **3L-G2** | #401 | Composer 2.5 | 3L-G1 | `closure.py` `_record_node()` strace availability guard. Unblocks a full derive on macOS. Before #404 |
+| **3L-G3** | #404 | Composer 2.5 | 3L-G2 | Gate lock becomes a renewed lease + `flock`. Lives in `tests/`, needs the derive #401 unlocks |
+| **3L-G4** | #405 | Composer 2.5 | 3L-G3 | `SolarIrradianceSensor` / `OptimizationScoreSensor` data-driven keys: state the bound in the holes list, no exact-set pin |
+| **3L-G5** | #408 | Grok 4.6 extra high | 3L-G4 | Optional set-point entities + **consistency** repair issue only. Optimality / Fix-to-argmin half is refused (50→65 °C instability) |
+| **3L-G6** | #457 | Composer 2.5 | 3L-G5 | Card setup-page button that opens the conflict flow. Card-only |
+
+Do not fold 3L into W3-G2 or #455. Do not start 3L while W3-G2 holds `optimizer.py` or the gate lock.
 
 v6.3.12 is stamped at the Wave-1b/half-I boundary as a **gate and test-hardening release** — not for the accumulated no-op merges alone, and not by waiting for a runtime fix that half I will not produce, because half I is entirely test, docs and tooling.
 
@@ -279,30 +296,29 @@ The orchestrator seat is this session's parent (Auto), which executes
 | seat | Cursor Task model | when |
 |---|---|---|
 | orchestrator | Auto (parent session) | control flow, merges, reconciliation, all sequencing decisions |
-| architectural fixer + its reviewer | **Opus 5** (restructuring — not Grok) | W2-G1, W2-G2, every Wave 4 move PR and its review, and the decomposition judgement this plan assigns to the orchestrator seat |
-| Wave 4 per-stage survey | **Opus 5** (restructuring — not Grok) | the survey that precedes a move stage |
-| adversarial reviewer, `fix-review` with the **finder's** harness | **Grok 4.6** | every group whose brief carries a refuted or corrected claim; every fixture-moving group. Opus 5 when the group is a restructuring group |
-| judge | **Grok 4.6** | all triage judges, including the #291 and #232 timing judges (still solo on an idle box). Opus 5 for any decomposition judgement |
-| fixer on production code, mutation proof required | **Grok 4.6** | groups the wave file marks `"fixerModel": "opus"` that are not restructuring; restructuring groups stay Opus 5 |
-| fixer on tests, tooling or docs | **Grok 4.6** | groups the wave file marks `"fixerModel": "sonnet"`; Sonnet 5 remains acceptable |
-| record / roster / truth-up / citation-freshness PR | **Grok 4.6** | mechanical docs edits; Composer 2.5 optional for ones carrying no measured claim of their own |
+| architectural fixer + its reviewer | **Grok 4.6 extra high** | W2-G1, W2-G2, every Wave 4 move PR and its review. Former Fable / Opus seats; same slug as every other worker |
+| Wave 4 per-stage survey | **Grok 4.6 extra high** | the survey that precedes a move stage |
+| adversarial reviewer, `fix-review` with the **finder's** harness | **Grok 4.6 extra high** | every group whose brief carries a refuted or corrected claim; every fixture-moving group; Wave 4 move reviews |
+| judge | **Grok 4.6 extra high** | all triage judges, including the #291 and #232 timing judges (still solo on an idle box), and any decomposition judgement |
+| fixer on production code, mutation proof required | **Grok 4.6 extra high** | groups the wave file marks `"fixerModel": "opus"`, including former Fable / restructuring groups |
+| fixer on tests, tooling or docs | **Composer 2.5** | groups the wave file marks `"fixerModel": "sonnet"` |
+| record / roster / truth-up / citation-freshness PR | **Composer 2.5** | mechanical docs edits; no measured claim of their own |
 | read-only reporting | **Grok 4.6** | Reconcile, post-merge gate watching, the pre-merge checklist, label hygiene, release-notes source material, issue digests, Wave 4 inventories, the #303 typing and #195 coverage inventories |
 | stamp | scripted `stamp.py` via `web-stamp.js`, drafted by **Grok 4.6** under orchestrator oversight | rule 4 refuses notes omitting a merged PR, and the refusals are the product; the orchestrator reads every refusal |
 
-**Grok 4.6 (`cursor-grok-4.6-high-fast`) is allowed in every seat except
-restructuring.** Restructuring — Wave 4 decomposition, survey and move PRs and
-their reviews, W2-G1 and W2-G2, and any module-move or decomposition judgement —
-stays **Opus 5**. The orchestrator stays Auto. The former "Grok is read-only,
-never a fixer, never a reviewer, never rules" constraint is withdrawn by owner
-instruction. `tierOk` still applies: a reviewer may not rank below its fixer.
+**Grok 4.6 extra high (`cursor-grok-4.6-xhigh`) is the worker slug for every
+former Opus 5 seat and every former Fable seat.** Wave 4 survey / move / review,
+W2-G1 and W2-G2, and any module-move or decomposition judgement use that slug.
+The orchestrator stays Auto. Do not use Auto as a worker slug. Grok 4.6 fast
+(`cursor-grok-4.6-high-fast`) stays the read-only / polling slug. `tierOk` still
+applies: a reviewer may not rank below its fixer.
 
 **The tier tokens in the wave files are not model names.** `web-fix-wave.js`
 ranks `haiku < sonnet < opus` and throws if a reviewer ranks below its fixer, so
-the tokens stay as they are and map: `opus` → Opus 5, `sonnet` → Sonnet 5,
-`haiku` → Haiku 4.5 (unused today). Architectural seats route to Opus 5, so they
-need no token above `opus` and `tierOk` accepts them as written. Grok 4.6 is
-routed per the table above and satisfies an `opus` or `sonnet` token where the
-seat is not restructuring; the tokens do not need editing.
+the tokens stay as they are and map: `opus` → Grok 4.6 extra high, `sonnet` →
+Composer 2.5 (`composer-2.5`), `haiku` → Haiku 4.5 (unused today). Grok 4.6
+extra high satisfies an `opus` token; Composer 2.5 satisfies a `sonnet` token.
+The tokens do not need editing.
 
 **An architectural reviewer on the same model as its fixer is still a fresh
 agent, not the fixer continuing.** Independence here is procedural, not
