@@ -12542,9 +12542,15 @@ _svc_crash_hass = FakeHass()
 _svc_crash_entry = FakeEntry(data=_LC_DATA, entry_id="crash_pump")
 _asyncio.run(_ha_setup_entry(_integ, _svc_crash_hass, _svc_crash_entry))
 _svc_crash_coord = _svc_crash_entry.runtime_data
+_svc_cover_mid = _stale_dt.now().replace(minute=0, second=0, microsecond=0)
 _svc_crash_coord._prices = [
-    {"total": 0.8, "starts_at": "2026-01-15T00:00:00+00:00", "level": "NORMAL"}
-] * 24
+    {
+        "total": 0.8,
+        "starts_at": (_svc_cover_mid + timedelta(hours=h)).isoformat(),
+        "level": "NORMAL",
+    }
+    for h in range(48)
+]
 
 
 def _tariff_boom():
@@ -12574,8 +12580,13 @@ _svc_check(
     "simulate_plan_no_prices",
 )
 _svc_sim_coord._prices = [
-    {"total": 0.8, "starts_at": "2026-01-15T00:00:00+00:00", "level": "NORMAL"}
-] * 24
+    {
+        "total": 0.8,
+        "starts_at": (_svc_cover_mid + timedelta(hours=h)).isoformat(),
+        "level": "NORMAL",
+    }
+    for h in range(48)
+]
 _svc_check(
     "simulate_plan with unparseable windows refuses the call",
     _svc_call(_svc_sim_hass, "simulate_plan", {"dhw_windows": "25-99"}),
