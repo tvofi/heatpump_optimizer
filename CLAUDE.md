@@ -97,6 +97,11 @@ a decidable fact — but that pid is usually the gate shell, which exits normall
 when the gate finishes while its agent is still alive, so check that the agent
 has gone quiet too before clearing one.
 
+A full `./tests/derive_closures.sh` cannot re-record the node lanes
+(`tests/card.mjs`, `tests/card_drift.mjs`) on macOS: they need `strace`, which
+CI's `closures` job provides on Linux. Python closures can still be re-derived
+locally.
+
 <!-- ▼ DATED BLOCK. Everything below describes work in progress and expires with
      it. If the tracking issue is closed, this block is history, not instruction. -->
 
