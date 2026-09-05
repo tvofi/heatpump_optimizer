@@ -6906,29 +6906,18 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
         # 1) Toggle heat pump supply (ON/OFF)
         #
-        # v5.3.0: a mode block suppresses PLANNING, never actuation, and this
-        # is the line where the difference matters. A block hard-zeroes its
-        # channel, so a mode that blocks both — ``cool``, which is the whole
-        # point of a cooling mode — leaves every step with
-        # ``heat_pump_on=False`` and this call would cut the supply to a unit
-        # the owner deliberately set to cool, every cycle, defeating the
-        # cooling he asked for. Before this release the same install left the
-        # switch alone. The feature's own promise is that it is read-only, and
-        # an owner will reasonably read that as "configuring the mode entity
-        # cannot make things worse".
-        #
-        # So while a block is in force this never commands OFF. Turning the
-        # supply ON is still allowed: that is the plan asking for something
-        # the pump can actually deliver on its unblocked channel, and it is
-        # not a decision the block has any claim over. When BOTH channels are
-        # blocked there is genuinely nothing to command, and the correct
-        # action is to command nothing — the pump is left exactly as the
-        # owner's mode selection left it.
-        mode_blocked = (
-            self._pump_signals.space_blocked or self._pump_signals.dhw_blocked
+        # Skip OFF only when cooling or both channels are blocked. A
+        # single-channel heat block (DHW-only, heating-only) still
+        # commands OFF on an empty plan — otherwise a summer DHW pulse
+        # leaves the supply latched while the tank is supposed to drift.
+        both_blocked = (
+            self._pump_signals.space_blocked and self._pump_signals.dhw_blocked
+        )
+        skip_off = (not heat_pump_on) and (
+            both_blocked or self._pump_signals.mode.cooling
         )
         switch_entity = self._config.get(CONF_HEAT_PUMP_SWITCH_ENTITY)
-        if switch_entity and not (mode_blocked and not heat_pump_on):
+        if switch_entity and not skip_off:
             try:
                 await self.hass.services.async_call(
                     "switch",
@@ -6940,9 +6929,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 _LOGGER.error("Error toggling heat pump switch: %s", err)
         elif switch_entity:
             _LOGGER.debug(
-                "Not switching %s off: the pump's mode (%s) is suppressing a "
-                "channel, so an empty plan is this integration's doing rather "
-                "than a decision to stop the pump",
+                "Not switching %s off: mode %s is cooling or blocks both "
+                "channels, so an empty plan is this integration's doing "
+                "rather than a decision to stop the pump",
                 switch_entity,
                 self._pump_signals.mode.label,
             )

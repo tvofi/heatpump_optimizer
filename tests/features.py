@@ -18720,8 +18720,18 @@ _AC_COOL = pump_signals.PumpSignals(
     mode_source=pump_signals.MODE_SOURCE_LIVE,
     freeze_reason=pump_signals.FREEZE_COOLING,
 )
+_AC_COOL_DHW = pump_signals.PumpSignals(
+    mode=pump_mode.capability("Cooling + DHW"),
+    mode_observed=True,
+    mode_source=pump_signals.MODE_SOURCE_LIVE,
+)
 _AC_DHW_ONLY = pump_signals.PumpSignals(
     mode=pump_mode.capability("DHW"),
+    mode_observed=True,
+    mode_source=pump_signals.MODE_SOURCE_LIVE,
+)
+_AC_HEAT_ONLY = pump_signals.PumpSignals(
+    mode=pump_mode.capability("Heating"),
     mode_observed=True,
     mode_source=pump_signals.MODE_SOURCE_LIVE,
 )
@@ -18742,8 +18752,19 @@ R.check(
     "cooling the owner selected, from a feature documented as read-only",
 )
 R.check(
-    "nor does a mode that blocks only the other channel",
-    _ac_calls(_AC_DHW_ONLY, False) == [],
+    "nor does cooling-plus-DHW: summer cooling must survive an idle DHW plan",
+    _ac_calls(_AC_COOL_DHW, False) == [],
+)
+R.check(
+    "but hot-water-only idle DOES switch the pump off",
+    [c[1] for c in _ac_calls(_AC_DHW_ONLY, False)] == ["turn_off"],
+    "space is blocked, cooling is not; an empty plan means the tank is "
+    "allowed to drift, and leaving the supply on past the last DHW slot "
+    "is the integration holding a duty it does not plan",
+)
+R.check(
+    "and heating-only idle switches off the same way",
+    [c[1] for c in _ac_calls(_AC_HEAT_ONLY, False)] == ["turn_off"],
 )
 R.check(
     "but a block never stops the pump being switched ON",
