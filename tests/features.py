@@ -1236,7 +1236,7 @@ R.check(
         )
         - tariff.peaks_averaged * 2.0 * tariff.marginal_price_per_kw
     )
-    < 0.05,
+    < 5e-5,
     "three hours 2 kW over, averaged, at the full 60/kW = 120",
 )
 
