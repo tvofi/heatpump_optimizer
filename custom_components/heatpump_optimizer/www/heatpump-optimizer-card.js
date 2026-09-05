@@ -48,6 +48,14 @@ const STRINGS = {
     "header.enlarge_chart": "Enlarge chart",
     "header.tab_plan": "Plan",
     "header.tab_setup": "Setup",
+    "header.tab_savings": "Savings",
+    "savings.col_month": "Month",
+    "savings.col_baseline": "Baseline",
+    "savings.col_actual": "Actual",
+    "savings.col_savings": "Savings",
+    "savings.col_pct": "%",
+    "savings.estimated": "estimated",
+    "savings.empty": "No settled savings months yet.",
     "header.close": "Close",
 
     // legend / series
@@ -451,6 +459,14 @@ const STRINGS = {
     "header.enlarge_chart": "Förstora diagrammet",
     "header.tab_plan": "Plan",
     "header.tab_setup": "Anläggning",
+    "header.tab_savings": "Sparande",
+    "savings.col_month": "Månad",
+    "savings.col_baseline": "Referens",
+    "savings.col_actual": "Faktisk",
+    "savings.col_savings": "Sparande",
+    "savings.col_pct": "%",
+    "savings.estimated": "uppskattat",
+    "savings.empty": "Inga avräknade sparandemånader ännu.",
     "header.close": "Stäng",
 
     "series.price": "Elpris",
@@ -2806,6 +2822,14 @@ function cardStyleBlock() {
         /* Room for the scrollbar so it never lands on top of the chart. */
         scrollbar-gutter: stable;
       }
+      .savings-table { width: 100%; border-collapse: collapse; }
+      .savings-table th, .savings-table td {
+        text-align: left; padding: 0.35em 0.5em;
+      }
+      .savings-table th { font-weight: 600; }
+      .savings-table tr.estimated td { font-style: italic; }
+      .savings-est { font-weight: 400; opacity: 0.75; }
+      .savings-empty { margin: 1em 0; }
       dialog.expanded::backdrop {
         background: rgba(0, 0, 0, 0.55);
       }
@@ -5281,7 +5305,9 @@ class ExpandedDialog {
 
   /** The page to draw: "setup" when chosen, "plan" otherwise. */
   activePage() {
-    return this.page === "setup" ? "setup" : "plan";
+    if (this.page === "setup") return "setup";
+    if (this.page === "savings") return "savings";
+    return "plan";
   }
 
   /** Remember where the user was before `root` is rebuilt: the body scrolls,
@@ -5322,6 +5348,7 @@ class ExpandedDialog {
           <div class="dlg-tabs" role="tablist">
             ${tab("plan", esc(L("header.tab_plan")))}
             ${tab("setup", esc(L("header.tab_setup")))}
+            ${tab("savings", esc(L("header.tab_savings")))}
           </div>
           <button type="button" class="close" title="${esc(L("header.close"))}"
             aria-label="${esc(L("header.close"))}">${CLOSE_ICON}</button>
@@ -8997,7 +9024,9 @@ class HeatpumpOptimizerCard extends HTMLElement {
 
     let body;
     if (!anyData) {
-      body = this._noPlanHtml();
+      body = `<div class="empty">${L("errors.no_plan_data")}<br>
+      ${this.plan.diagnose("space")}<br>
+      ${this.plan.diagnose("dhw")}</div>`;
       this._plot = null;
       // And the lane geometry with it (#142): a stale one would let the edit
       // floor and a pointer hit-test answer against a chart that is not there.
@@ -9025,9 +9054,13 @@ class HeatpumpOptimizerCard extends HTMLElement {
       const body =
         page === "setup"
           ? this._setupPageHtml()
-          : anyData
-            ? `${this._chartBlock(built, true)}${this.whatIf.html()}`
-            : this._noPlanHtml();
+          : page === "savings"
+            ? this._savingsPageHtml()
+            : anyData
+              ? `${this._chartBlock(built, true)}${this.whatIf.html()}`
+              : `<div class="empty">${L("errors.no_plan_data")}<br>
+      ${this.plan.diagnose("space")}<br>
+      ${this.plan.diagnose("dhw")}</div>`;
       dialog = this.dialog.html({
         title: this._title(),
         legend: page === "plan" && anyData ? this.legend.html(this._series) : "",
@@ -9169,16 +9202,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
       <div class="tooltip" hidden></div></div>`;
   }
 
-  /** Why there is no chart, and which sensor to look at. Shared by the card
-   * and the dialog's plan page: before the first solve both have to say the
-   * same thing, and a dialog that drew an empty box instead would be the
-   * worse half of the pair. */
-  _noPlanHtml() {
-    return `<div class="empty">${L("errors.no_plan_data")}<br>
-      ${this.plan.diagnose("space")}<br>
-      ${this.plan.diagnose("dhw")}</div>`;
-  }
-
   /** Item 33: the configured system as a picture, with live values in place.
    *
    * Drawn from the `setup_topology` attribute the plan sensors publish --
@@ -9191,6 +9214,45 @@ class HeatpumpOptimizerCard extends HTMLElement {
    * step, no dependencies. Composed here from `setup` (the diagram, the
    * picker) and `layout` (the editor's bar and its working drawing).
    */
+  _savingsPageHtml() {
+    const st = this.plan.statEntity("_monthly_savings");
+    const rows = st && st.attributes && Array.isArray(st.attributes.savings_months)
+      ? st.attributes.savings_months
+      : [];
+    if (!rows.length) {
+      return `<p class="savings-empty">${esc(L("savings.empty"))}</p>`;
+    }
+    const cur = this.plan.currency();
+    const money = (n) =>
+      typeof n === "number" && Number.isFinite(n)
+        ? `${n.toFixed(2)} ${esc(cur)}`
+        : "—";
+    const pct = (n) =>
+      typeof n === "number" && Number.isFinite(n) ? `${n.toFixed(0)}%` : "—";
+    const tr = (row) => {
+      const est = row.estimated
+        ? ` <span class="savings-est">${esc(L("savings.estimated"))}</span>`
+        : "";
+      return `<tr class="${row.estimated ? "estimated" : ""}">
+        <td>${esc(String(row.month || ""))}${est}</td>
+        <td>${money(row.baseline_sek)}</td>
+        <td>${money(row.actual_sek)}</td>
+        <td>${money(row.savings_sek)}</td>
+        <td>${pct(row.savings_pct)}</td>
+      </tr>`;
+    };
+    return `<table class="savings-table">
+      <thead><tr>
+        <th>${esc(L("savings.col_month"))}</th>
+        <th>${esc(L("savings.col_baseline"))}</th>
+        <th>${esc(L("savings.col_actual"))}</th>
+        <th>${esc(L("savings.col_savings"))}</th>
+        <th>${esc(L("savings.col_pct"))}</th>
+      </tr></thead>
+      <tbody>${rows.map(tr).join("")}</tbody>
+    </table>`;
+  }
+
   _setupPageHtml() {
     const topo = this.plan.attrRaw("setup_topology", null);
     if (!topo || !Array.isArray(topo.slots)) {
