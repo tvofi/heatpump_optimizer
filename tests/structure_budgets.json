@@ -13,7 +13,7 @@
  "cut_learning": 350,
  "cut_views": 120,
  "dead_top_level_symbols": 0,
- "duplication_blocks": 13,
+ "duplication_blocks": 12,
  "functions_cc_over_15": 39,
  "functions_cc_over_25": 11,
  "internal_call_edges": 372,
@@ -23,5 +23,5 @@
  "max_method_loc": 540,
  "methods_over_150": 23,
  "methods_over_200": 14,
- "recorded_at": "7cc75a1c45fc900fd8210b43dbe112bf4579f394"
+ "recorded_at": "f88bbb6f6397a24d56630e4330b2cc1157614f5f"
 }
