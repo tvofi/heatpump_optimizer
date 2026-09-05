@@ -1,1 +1,1 @@
-Timing judges #291+#232 done: keep multistart=4; W3-G1 scoped to smooth top-k only (#232 open).
+W2-G1 #437 reviewed `merge` and rebased onto 2fdee33; next seat W2-G2 on Opus 5.
