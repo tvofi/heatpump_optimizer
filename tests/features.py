@@ -21004,4 +21004,149 @@ R.check(
     f"docstring mentions sum_cc: {'sum_cc' in (_hpo_st.__doc__ or '')}",
 )
 
+# ===========================================================================
+# #283 numpy scalars at two roots; #284 legacy schedule span
+# ===========================================================================
+R.section("#283 numpy scalars at compute_solar_gain and _deferred_energy_cost")
+
+from heatpump_optimizer.optimizer import (  # noqa: E402
+    HeatPumpOptimizer as _HPO283,
+    OptimizationConfig as _OC283,
+    OptimizationResult as _OR283,
+)
+
+_gain283 = ThermalModel(ThermalParameters()).compute_solar_gain(np.float64(400.0))
+R.check(
+    "compute_solar_gain returns a builtin float when irradiance is numpy (#283)",
+    type(_gain283) is float,
+    repr(type(_gain283)),
+)
+R.check(
+    "the zero-sun early return is already a builtin float (#283)",
+    type(ThermalModel(ThermalParameters()).compute_solar_gain(np.float64(0.0)))
+    is float,
+)
+
+_p283 = ThermalParameters(
+    two_zone_enabled=True,
+    buffer_tank_volume=750.0,
+    mixing_valve_mode="manual",
+    buffer_max_temp=70.0,
+    cop_flow_carnot=True,
+)
+_opt283 = _HPO283(
+    ThermalModel(_p283),
+    _OC283(
+        horizon_hours=24,
+        time_step_minutes=15,
+        target_temp=21.0,
+        min_temp=19.0,
+        max_temp=23.0,
+    ),
+)
+_out283 = np.full(96, -5.0)
+_caps283 = _opt283._settlement_caps(_out283)
+
+
+def _st283(buf):
+    return ThermalState(
+        room_temperature=21.0,
+        upper_floor_temperature=21.0,
+        lower_floor_temperature=20.5,
+        slab_temperature=25.0,
+        buffer_tank_temperature=buf,
+        outdoor_temperature=-5.0,
+    )
+
+
+_cost283 = _opt283._deferred_energy_cost(
+    _st283(np.float64(50.0)),
+    _st283(np.float64(45.0)),
+    np.full(96, 1.0),
+    _out283,
+    caps=_caps283,
+)
+R.check(
+    "_deferred_energy_cost returns a builtin float when stores are numpy (#283)",
+    type(_cost283) is float,
+    repr(type(_cost283)),
+)
+R.check(
+    "predicted_savings subtraction of that cost stays a builtin float (#283)",
+    type(10.0 - _cost283) is float,
+    repr(type(10.0 - _cost283)),
+)
+
+_ts283 = [
+    datetime(2026, 1, 15, 12, 0, tzinfo=timezone.utc) + timedelta(minutes=15 * i)
+    for i in range(4)
+]
+_act283 = _opt283.get_current_action(
+    _OR283(
+        power_schedule=[1.0] * 4,
+        room_temp_trajectory=[21.0] * 5,
+        slab_temp_trajectory=[22.0] * 5,
+        timestamps=_ts283,
+        prices=[1.0] * 4,
+        predicted_cost=1.0,
+        baseline_cost=2.0,
+        predicted_savings=1.0,
+        savings_percentage=50.0,
+        optimal_setpoints=[21.0] * 4,
+        status="optimal",
+        solar_gain_trajectory=[_gain283] * 4,
+    ),
+    _ts283[0],
+)
+R.check(
+    "get_current_action solar_gain_kw is a builtin float after compute_solar_gain (#283)",
+    type(_act283["solar_gain_kw"]) is float,
+    repr(type(_act283.get("solar_gain_kw"))),
+)
+
+R.section("#284 legacy schedule publishes the full horizon")
+
+_n284 = 96
+_start284 = datetime(2026, 1, 15, 0, 0, tzinfo=timezone.utc)
+_ts284 = [_start284 + timedelta(minutes=15 * i) for i in range(_n284)]
+_coord284 = _t2_coord(dhw_tank_volume=180.0)
+_coord284._optimization_result = _OR283(
+    power_schedule=[1.0] * _n284,
+    room_temp_trajectory=[21.0] * (_n284 + 1),
+    slab_temp_trajectory=[22.0] * (_n284 + 1),
+    timestamps=_ts284,
+    prices=[1.0] * _n284,
+    predicted_cost=10.0,
+    baseline_cost=12.0,
+    predicted_savings=2.0,
+    savings_percentage=16.7,
+    optimal_setpoints=[21.0] * _n284,
+    status="optimal",
+    dhw_power_schedule=[0.5] * _n284,
+    dhw_temp_trajectory=[50.0] * (_n284 + 1),
+    solar_gain_trajectory=[0.1] * _n284,
+)
+_data284 = _coord284._build_data_dict()
+_sched284 = _data284.get("schedule") or []
+_dhw284 = _data284.get("dhw_schedule") or []
+_forecast284 = (_data284.get("space_plan") or {}).get("forecast") or []
+_span284 = (
+    datetime.fromisoformat(_sched284[-1]["time"])
+    - datetime.fromisoformat(_sched284[0]["time"])
+    if len(_sched284) >= 2
+    else timedelta(0)
+)
+R.check(
+    "_build_data_dict publishes the full 24 h schedule, not 6 h (#284)",
+    len(_sched284) == _n284
+    and len(_sched284) == len(_forecast284)
+    and _span284 == timedelta(hours=23, minutes=45),
+    f"schedule={len(_sched284)} forecast={len(_forecast284)} span={_span284}",
+)
+R.check(
+    "and the DHW schedule matches that span (#284)",
+    len(_dhw284) == _n284,
+    f"dhw_schedule={len(_dhw284)}",
+)
+
 sys.exit(R.close("FEATURE CHECKS"))
