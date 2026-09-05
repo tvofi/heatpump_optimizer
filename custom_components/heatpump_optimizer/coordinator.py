@@ -7251,6 +7251,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # published so the card never has to guess it from a sensor's unit
         # string.
         data["currency"] = self.currency
+        data["savings_months"] = self._ledger.savings_months(dt_util.now())
 
         # Only surface the manual-plan key while an override is actually active,
         # so a plan-free solve (the golden fixtures included) is byte-for-byte
@@ -9615,6 +9616,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             # T6 #52: the assumptions this interval starts under, for the
             # diagnosis re-run when it settles.
             "diag": self._capture_diagnosis_inputs(),
+            "baseline_kw": self._current_action.get("baseline_kw"),
         }
 
     def _dhw_probe_temperature(self) -> float | None:
@@ -9808,6 +9810,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             spot,
             elapsed_hours,
             pending.get("spot_price") is not None,
+        )
+        self._ledger.add_savings_settlement(
+            when,
+            baseline_kw=pending.get("baseline_kw"),
+            actual_kwh=energy,
+            spot=spot,
+            dt=elapsed_hours,
         )
         if energy <= 0:
             self._schedule_ledger_save()
