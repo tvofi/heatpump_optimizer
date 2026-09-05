@@ -71,7 +71,8 @@ CLOSURES = ROOT / "tests" / "closures.json"
 # because it needs Chromium, which no other lane installs: the closures job
 # could not record it without growing a browser. It runs in its own job.
 NOT_A_TEST = {
-    "harness.py", "profiles.py", "closure.py", "setup_qa_render.mjs",
+    "harness.py", "profiles.py", "closure.py", "gate_lock.py",
+    "setup_qa_render.mjs",
     "card_browser.mjs",
     # The shared DOM stub (#101) and the rig around it, imported by the three
     # Node harnesses (card.mjs, setup_qa_render.mjs, card_drift.mjs): libraries,

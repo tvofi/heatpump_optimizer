@@ -51,6 +51,30 @@ GATE_SCOPE=auto GATE_SCOPE_BASE=v5.1.0 ./tests/run.sh   # ...vs something else
 own scripts when nobody has said otherwise. Scoping has to be asked for by
 name.
 
+### The gate lock on a shared box
+
+`tests/stress.py` measures this machine while it solves, so only one agent on
+a box may run it (or a full gate that includes it) at a time. Use
+`tests/gate_lock.py` — not `mkdir /tmp/hpo-gate.lock` and a shell pid:
+
+```bash
+python3 tests/gate_lock.py take --label <your-label>
+HPO_GATE_LOCK_LABEL=<your-label> GATE_SCOPE=auto GOLDEN_MODE=drift \
+  GOLDEN_REF=$(git merge-base origin/main HEAD) ./tests/run.sh
+python3 tests/gate_lock.py renew --label <your-label>   # between commands
+python3 tests/gate_lock.py release --label <your-label>
+python3 tests/gate_lock.py status
+```
+
+The owner file at `/tmp/hpo-gate.lock/owner` carries your label and an
+`expires_at` lease (30 minutes — above the longest observed full gate and
+stress lane). Every script `run.sh` runs under lock renews it. An expired
+lease may be taken without forensics. `run.sh` holds `flock` on
+`/tmp/hpo-gate.lock/flock` for the gate run so a crash releases immediately;
+the lease covers the window between commands when nothing holds flock (#404).
+Take the lock only when `tests/closure.py select` reports `MODE: FULL` or names
+`tests/stress.py` — see `CLAUDE.md` "Running it".
+
 ### How a closure is derived
 
 Never by hand. A hand-maintained table of "what does this test depend on"
@@ -642,6 +666,9 @@ Seven files in `tests/` are not tests at all and are excluded from the
   records into `tests/closures.json`, decides what a given diff needs, and
   (`closure.py check`) fails when the committed closures miss something a real
   run touched. Wiring it into the suite would make the suite run itself.
+- **gate_lock.py** is the renewed-lease gate lock (#404): take, renew, release,
+  and status for `/tmp/hpo-gate.lock`. Agents invoke it directly; `run.sh`
+  renews the lease and holds `flock` when `HPO_GATE_LOCK_LABEL` is set.
 - **derive_closures.sh** drives it across every script, in three lanes, and
   rewrites `tests/closures.json`. See "The scoped gate" above.
 

@@ -6981,6 +6981,7 @@ import tempfile as _tempfile
 
 import env_drift as _env_drift
 import closure as _closure
+import gate_lock as _gate_lock  # noqa: F401 — classified in entities closure (#404)
 
 # --- the scoped gate's one exception to "the whole integration" -------------
 #
