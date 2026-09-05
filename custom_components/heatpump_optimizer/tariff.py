@@ -440,6 +440,10 @@ def window_factors(
 # that separated peaks still match the billed sum; large enough that tied
 # windows all carry gradient (#232).
 _PEAK_SMOOTH_TAU = 0.05
+# Wider than L-BFGS-B's 2-point abs_step (1e-4 kW) so a plateau still
+# looks tied under a one-window probe; tighter than a 0.1 kW separated
+# peak so those stay on the exact hard sum.
+_PEAK_TIE_BAND = 1e-3
 
 
 def _smooth_topk_sum(values: np.ndarray, k: int, tau: float) -> float:
@@ -462,7 +466,8 @@ def _smooth_topk_sum(values: np.ndarray, k: int, tau: float) -> float:
     lo, hi = float(np.min(x)) - 1.0, peak + 1.0
     mid = 0.5 * (lo + hi)
     for _ in range(64):
-        w = 1.0 / (1.0 + np.exp(-(x - mid) / scale))
+        z = np.clip((x - mid) / scale, -60.0, 60.0)
+        w = 1.0 / (1.0 + np.exp(-z))
         count = float(np.sum(w))
         if abs(count - k) < 1e-6:
             break
@@ -471,7 +476,8 @@ def _smooth_topk_sum(values: np.ndarray, k: int, tau: float) -> float:
         else:
             hi = mid
         mid = 0.5 * (lo + hi)
-    w = 1.0 / (1.0 + np.exp(-(x - mid) / scale))
+    z = np.clip((x - mid) / scale, -60.0, 60.0)
+    w = 1.0 / (1.0 + np.exp(-z))
     return float(np.sum(w * x))
 
 
@@ -539,7 +545,16 @@ def peak_cost(
     if not np.any(excess > 0):
         return 0.0
     k = max(1, min(int(peaks_averaged), excess.size))
-    return float(price_per_kw * _smooth_topk_sum(excess, k, _PEAK_SMOOTH_TAU))
+    # Separated peaks are the bill: hard top-k is exact and cheap. A plateau
+    # of more than k windows at the peak is where hard top-k goes blind
+    # (#232); only then pay for the smooth sum.
+    peak = float(np.max(excess))
+    n_at_peak = int(np.sum(excess >= peak - _PEAK_TIE_BAND))
+    if n_at_peak > k:
+        top_sum = _smooth_topk_sum(excess, k, _PEAK_SMOOTH_TAU)
+    else:
+        top_sum = float(np.sum(np.sort(excess)[-k:]))
+    return float(price_per_kw * top_sum)
 
 
 def realised_peak(

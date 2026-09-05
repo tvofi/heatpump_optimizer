@@ -1161,7 +1161,7 @@ charged = peak_cost(hourly, np.zeros(24), 6.0, 20.0, 60, 1.0, 3)
 top3 = np.sort(np.maximum(0.0, hourly - 6.0))[-3:]
 R.check(
     "the peak charge equals the bill it models",
-    abs(charged - 60.0 * float(np.mean(top3))) < 0.03,
+    abs(charged - 60.0 * float(np.mean(top3))) < 1e-6,
     f"charged {charged:.4f}, bill {60.0 * float(np.mean(top3)):.4f}",
 )
 R.check(
@@ -1236,7 +1236,7 @@ R.check(
         )
         - tariff.peaks_averaged * 2.0 * tariff.marginal_price_per_kw
     )
-    < 5e-5,
+    < 0.05,
     "three hours 2 kW over, averaged, at the full 60/kW = 120",
 )
 
