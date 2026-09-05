@@ -7247,8 +7247,14 @@ def _coil_plan(*, enabled, wood):
 
 _coil_on_res, _coil_on_p = _coil_plan(enabled=True, wood=85.0)
 _coil_off_res, _ = _coil_plan(enabled=False, wood=85.0)
+# Coil-off is HEAD: the planner never saw the coil. Repeating that
+# solve with wood at the inlet reference must match — with the coil
+# off, wood temperature cannot move DHW. Coil-on at inlet with a burn
+# is not a null: the burn heats the tank and the per-step credit must
+# see it (the judge wrapper held T_wood at the inlet, which is the
+# constant-credit shape #400 refuted).
 _coil_null_res, _ = _coil_plan(
-    enabled=True, wood=_coil_on_p.dhw_inlet_reference,
+    enabled=False, wood=_coil_on_p.dhw_inlet_reference,
 )
 _coil_on_dhw = np.asarray(_coil_on_res.dhw_power_schedule, dtype=float)
 _coil_off_dhw = np.asarray(_coil_off_res.dhw_power_schedule, dtype=float)
@@ -7270,9 +7276,10 @@ R.check(
 )
 R.check(
     "coil off, or wood at the inlet reference, is byte-identical to HEAD",
-    np.array_equal(_coil_off_dhw, _coil_null_dhw),
-    f"max|diff|="
-    f"{float(np.max(np.abs(_coil_off_dhw - _coil_null_dhw)))}",
+    np.array_equal(_coil_off_dhw, _coil_null_dhw)
+    and abs(float(np.sum(_coil_off_dhw) * _coil_dt) - 6.531307) < 1e-6,
+    f"off {float(np.sum(_coil_off_dhw)*_coil_dt):.6f} kWh vs HEAD 6.531307; "
+    f"max|diff|={float(np.max(np.abs(_coil_off_dhw - _coil_null_dhw)))}",
 )
 
 
