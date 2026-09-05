@@ -21751,18 +21751,25 @@ R.check(
     f"got {_g2_winter_calls}",
 )
 
-# Mutation: incremental greedy re-sim removed — full simulate_dhw_only each pass.
+# Mutation: incremental greedy refresh gone — each edit is a full
+# simulate_dhw_only. Cannot call simulate_dhw_only from a live
+# extend_dhw_temps patch: production simulate_dhw_only delegates into
+# extend_dhw_temps and that pair recurses (CI fast on 1afa09b).
 _g2_saved_extend = _G2Tm.extend_dhw_temps
 
 
 def _g2_extend_via_full_sim(self, temps, from_step, schedule, outdoor, draws, dt_hours=0.25):
-    new = self.simulate_dhw_only(
-        initial_temp=float(temps[0]),
-        dhw_power_schedule=schedule,
-        outdoor_temps=outdoor,
-        draw_rates=draws,
-        dt_hours=dt_hours,
-    )
+    _G2Tm.extend_dhw_temps = _g2_saved_extend
+    try:
+        new = self.simulate_dhw_only(
+            initial_temp=float(temps[0]),
+            dhw_power_schedule=schedule,
+            outdoor_temps=outdoor,
+            draw_rates=draws,
+            dt_hours=dt_hours,
+        )
+    finally:
+        _G2Tm.extend_dhw_temps = _g2_extend_via_full_sim
     temps[:] = new
     return temps
 
