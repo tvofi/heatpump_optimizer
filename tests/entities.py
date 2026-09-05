@@ -7097,22 +7097,48 @@ R.check(
 )
 
 # --- node recording needs strace (#401) ------------------------------------
+import contextlib as _strace_ctx
+import io as _strace_io
 from unittest import mock as _mock
 
-def _record_node_missing_strace_rc() -> int | None:
+def _record_node_missing_strace() -> tuple[int | None, str]:
+    err = _strace_io.StringIO()
     with _mock.patch.object(_closure.shutil, "which", return_value=None):
-        with _tempfile.TemporaryDirectory() as d:
-            try:
-                _closure._record_node(
-                    "tests/card.mjs", f"{d}/card.mjs.json", {})
-            except SystemExit as exc:
-                return exc.code
-    return None
+        with _strace_ctx.redirect_stderr(err):
+            with _tempfile.TemporaryDirectory() as d:
+                try:
+                    _closure._record_node(
+                        "tests/card.mjs", f"{d}/card.mjs.json", {})
+                except SystemExit as exc:
+                    return exc.code, err.getvalue()
+                except FileNotFoundError:
+                    return None, err.getvalue()
+    return None, err.getvalue()
 
+_missing_strace_rc, _missing_strace_err = _record_node_missing_strace()
 R.check(
     "_record_node refuses when strace is missing",
-    _record_node_missing_strace_rc() == 1,
+    _missing_strace_rc == 1,
     "must abort before subprocess, not with a bare FileNotFoundError",
+)
+R.check(
+    "the refusal names strace and the Linux CI recorder",
+    "strace" in _missing_strace_err and "closures job" in _missing_strace_err,
+    f"stderr was {_missing_strace_err!r}",
+)
+
+def _require_strace_present_ok() -> bool:
+    with _mock.patch.object(_closure.shutil, "which", return_value="/usr/bin/strace"):
+        try:
+            _closure._require_strace()
+        except SystemExit:
+            return False
+    return True
+
+R.check(
+    "_require_strace is silent when strace is on PATH",
+    _require_strace_present_ok(),
+    "the guard must not refuse a Linux recorder",
 )
 
 # --- when the closures CHECK itself runs (#354) -----------------------------
