@@ -4,7 +4,7 @@ Approved design, 2026-09-05. Advisory wood-vs-heat-pump price, a binary
 sensor, a Plan-tab alert, what-if wood slots, and a Wood lane for detected
 fires. The live solver does not choose wood.
 
-Part of #201. Programme seats: **3L-G8** then **3L-G9** (see Seat).
+Part of #201. Issue **#463**. Programme seats: **3L-G8** then **3L-G9** (see Seat).
 
 ## Goal
 
@@ -128,6 +128,7 @@ Always created. Unavailable until ready.
 ```
 ready: bool
 cheaper: bool   # false when not ready
+show_whatif: bool   # wood_furnace_on(config)
 sek_per_kwh: float | null
 type: str | null
 packing: str | null
@@ -197,6 +198,5 @@ behaviour before `#223` / `#193` moves). Do not merge ahead of W3-G3.
 | **3L-G8** | Grok 4.6 extra high | 3L-G7 | Toggle, migration, `wood_fuel.py`, coordinator publish, binary sensor |
 | **3L-G9** | Grok 4.6 extra high | 3L-G8 | Plan banner, Wood lane, what-if slots and overrides |
 
-One new GitHub issue (file on spec approval). `Closes #N` on its own line
-on both PRs, or G8 leaves the issue open and G9 closes it — G9 is the
-user-visible half, so **G9 closes**. Do not reuse #457 or #460.
+Issue **#463** is filed. G8 leaves it open. **G9** has `Closes #463` on
+its own line. Do not reuse #457 or #460.
