@@ -13989,6 +13989,7 @@ R.section("v4.0.5 — sysid: the intercept the relax phase was smuggling")
 
 from heatpump_optimizer.sysid import (
     PHASE_RELAX as _PH_RELAX,
+    PHASE_SETTLING as _PH_SETTLE,
     PHASE_STEP as _PH_STEP,
     SysIdSample as _SidSample,
 )
@@ -14189,13 +14190,12 @@ def _drifting_sid_samples(drift_c_per_h, cadence_min=30):
     while t < 5.0:
         phase = (
             _PH_STEP if 1.0 <= t < 3.0
-            else (_PH_RELAX if 3.0 <= t < 5.0 else "settle")
+            else (_PH_RELAX if 3.0 <= t < 5.0 else _PH_SETTLE)
         )
         power = p_step if phase == _PH_STEP else 0.0
-        if phase in (_PH_STEP, _PH_RELAX):
-            out.append(_SidSample(
-                when, temp + drift_c_per_h * t, t_out, power, phase,
-            ))
+        out.append(_SidSample(
+            when, temp + drift_c_per_h * t, t_out, power, phase,
+        ))
         temp += (power + gains - ua * (temp - t_out)) / cap * dt_h
         when += timedelta(minutes=cadence_min)
         t += dt_h
@@ -14278,6 +14278,138 @@ R.check(
     "an experiment run under a lifted bound is still adoptable",
     _D_WIDE.completed and _D_WIDE.confidence >= 0.3,
     f"confidence {_D_WIDE.confidence:.3f} ({_D_WIDE.reason})",
+)
+
+# --- W2-G5: settle power recorded, step sized, settle rows in the fit ------
+R.section(
+    "sysid settle power, comfort-bounded step sizing, settle window (W2-G5)"
+)
+
+from heatpump_optimizer.sysid import (  # noqa: E402
+    PHASE_ABORTED as _PH_ABORTED,
+    _predict_step_excursion,
+)
+
+
+def _drive_sysid_step(ua, cap, gains, cop, max_el=5.0, cadence_min=30):
+    sid = SystemIdentification(SysIdConfig(enabled=True))
+    t0 = datetime(2026, 1, 15, 23, 0, tzinfo=UTC)
+    sid.arm(t0)
+    temp, tout = 21.0, 2.0
+    dt_h = cadence_min / 60.0
+    when = t0
+    prices = np.full(48, 0.5)
+    tau = cap / ua
+    while when < t0 + timedelta(hours=6):
+        plan = max(0.0, ua * (temp - tout) - gains) / max(cop, 0.1)
+        override = sid.step(
+            now=when,
+            room_temp=temp,
+            outdoor_temp=tout,
+            price=0.5,
+            price_horizon=prices,
+            learner_samples=0,
+            max_power_kw=max_el,
+            cop=cop,
+            plan_power_kw=plan,
+            house_ua=ua,
+            house_capacity=cap,
+            house_gains=gains,
+        )
+        if sid.phase in (PHASE_DONE, _PH_ABORTED):
+            break
+        el = plan if override is None else float(override)
+        q = el * cop
+        t_ss = tout + (q + gains) / ua
+        temp = t_ss + (temp - t_ss) * np.exp(-dt_h / tau)
+        when += timedelta(minutes=cadence_min)
+    return sid
+
+
+_g5_abort = 0
+_g5_cells = 0
+for _cap in (4, 8, 16, 25):
+    for _ua in (0.10, 0.20, 0.35, 0.50):
+        for _cop in (2.0, 2.5, 3.0, 3.5):
+            _g5_cells += 1
+            _run = _drive_sysid_step(_ua, _cap, 0.3, _cop)
+            if _run.phase == _PH_ABORTED or not _run.result.completed:
+                _g5_abort += 1
+R.check(
+    "comfort-bounded step sizing: mid-step aborts fall from 44/64 to 24/64 "
+    "on the #244 plant sweep (20 more cells complete; C=4 kWh/K still has "
+    "no feasible step under 0.8 K)",
+    _g5_abort == 24,
+    f"{_g5_abort}/{_g5_cells} aborted or incomplete",
+)
+_MAIN244_OK = (
+    (8, 0.10, 2.0), (8, 0.20, 2.0), (8, 0.20, 2.5), (8, 0.20, 3.0),
+    (16, 0.10, 2.0), (16, 0.10, 2.5), (16, 0.10, 3.0), (16, 0.20, 2.0),
+    (16, 0.20, 2.5), (16, 0.20, 3.0), (16, 0.20, 3.5), (16, 0.35, 3.5),
+    (25, 0.20, 2.0), (25, 0.20, 2.5), (25, 0.20, 3.0), (25, 0.20, 3.5),
+    (25, 0.35, 2.0), (25, 0.35, 2.5), (25, 0.35, 3.0), (25, 0.35, 3.5),
+)
+R.check(
+    "every cell that completed under 0.6 x nameplate still completes",
+    all(
+        (_r := _drive_sysid_step(_ua, _cap, 0.3, _cop)).phase == PHASE_DONE
+        and _r.result.completed
+        for _cap, _ua, _cop in _MAIN244_OK
+    ),
+    "regression on the 20/64 cells main already completed",
+)
+_g5_null = _drive_sysid_step(0.20, 8.0, 0.3, 3.0, max_el=6.0)
+R.check(
+    "null: a 6.0 kW-el nameplate at COP 3 completes with adoption-grade "
+    "confidence",
+    _g5_null.result.completed and _g5_null.result.confidence >= 0.3,
+    f"conf {_g5_null.result.confidence:.3f} ({_g5_null.result.reason})",
+)
+_peak, _final = _predict_step_excursion(21.0, 2.0, 0.20, 8.0, 0.3, 9.0, 2.0, 2.0)
+R.check(
+    "perturbation: 0.6 x nameplate x COP overshoots the comfort band",
+    _peak > 0.8,
+    f"peak {_peak:.2f} K",
+)
+_peak30, _ = _predict_step_excursion(21.0, 2.0, 0.20, 8.0, 0.3, 4.5, 2.0, 2.0)
+R.check(
+    "perturbation: 0.3 x nameplate x COP lands inside the band",
+    _peak30 <= 0.8,
+    f"peak {_peak30:.2f} K",
+)
+_settle_sid = SystemIdentification(
+    SysIdConfig(enabled=True, settle_hours=0.5, step_hours=2.0, relax_hours=2.0)
+)
+_settle_sid.arm(datetime(2026, 2, 1, 23, 0, tzinfo=UTC))
+_settle_t = datetime(2026, 2, 1, 23, 0, tzinfo=UTC)
+for _ in range(3):
+    _settle_sid.step(
+        now=_settle_t,
+        room_temp=21.0,
+        outdoor_temp=2.0,
+        price=0.5,
+        price_horizon=np.full(48, 0.5),
+        learner_samples=0,
+        max_power_kw=5.0,
+        cop=3.0,
+        plan_power_kw=2.0,
+        house_ua=0.20,
+        house_capacity=8.0,
+        house_gains=0.3,
+    )
+    _settle_t += timedelta(minutes=30)
+_settle_rows = [s for s in _settle_sid.samples if s.phase == _PH_SETTLE]
+R.check(
+    "settle rows record the plan's delivered thermal power, not zero",
+    _settle_rows
+    and all(abs(s.power_kw - 6.0) < 1e-9 for s in _settle_rows),
+    f"powers {[s.power_kw for s in _settle_rows]}",
+)
+R.check(
+    "including the settle hour keeps a clean sensor unbiased (#325 guard)",
+    _D_CLEAN.completed
+    and abs(_D_CLEAN.heat_loss_kw_per_c / _DRIFT_UA - 1.0) < 5e-4,
+    f"UA {_D_CLEAN.heat_loss_kw_per_c} ({_D_CLEAN.reason})",
 )
 
 # --- D7-05: detected free heat skips the accuracy sample, like a freeze ---

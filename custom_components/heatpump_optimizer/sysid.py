@@ -56,6 +56,38 @@ PHASE_ABORTED = "aborted"
 DEFAULT_MAX_EXCURSION_C = 0.8
 
 
+def _predict_step_excursion(
+    baseline: float,
+    outdoor: float,
+    ua: float,
+    capacity: float,
+    gains: float,
+    step_thermal_kw: float,
+    step_hours: float,
+    relax_hours: float,
+    dt_h: float = 0.05,
+) -> tuple[float, float]:
+    """Peak and final |T − baseline| over a first-order step then relax."""
+    if ua <= 1e-9 or capacity <= 1e-9:
+        return float("inf"), float("inf")
+    tau = capacity / ua
+    peak = 0.0
+    temp = baseline
+
+    def _advance(duration: float, q: float) -> None:
+        nonlocal peak, temp
+        t_ss = outdoor + (q + gains) / ua
+        steps = max(int(duration / dt_h), 1)
+        h = duration / steps
+        for _ in range(steps):
+            temp = t_ss + (temp - t_ss) * np.exp(-h / tau)
+            peak = max(peak, abs(temp - baseline))
+
+    _advance(step_hours, step_thermal_kw)
+    _advance(relax_hours, 0.0)
+    return peak, abs(temp - baseline)
+
+
 @dataclass
 class SysIdConfig:
     """Gating conditions and step size."""
@@ -257,6 +289,85 @@ class SystemIdentification:
 
     # -- execution ----------------------------------------------------------
 
+    def _size_step_power(
+        self,
+        max_power_kw: float,
+        cop: float,
+        baseline: float,
+        outdoor_temp: float,
+        ua: float,
+        capacity: float,
+        gains: float,
+    ) -> float | None:
+        """Largest electrical step whose predicted excursion fits the bound."""
+        cfg = self.config
+        cop = max(cop, 0.1)
+        best: float | None = None
+        for i in range(1, 41):
+            power = max_power_kw * i / 40.0
+            peak, final = _predict_step_excursion(
+                baseline,
+                outdoor_temp,
+                ua,
+                capacity,
+                gains,
+                power * cop,
+                cfg.step_hours,
+                cfg.relax_hours,
+            )
+            if peak <= cfg.max_excursion_c and final <= cfg.max_excursion_c:
+                best = power
+        return best
+
+    def _over_excursion(self, room_temp: float) -> bool:
+        base = self._baseline_temp
+        return (
+            base is not None
+            and abs(room_temp - base) > self.config.max_excursion_c
+        )
+
+    def _begin_step_phase(
+        self,
+        now: datetime,
+        outdoor_temp: float,
+        max_power_kw: float,
+        cop: float,
+        house_ua: float | None,
+        house_capacity: float | None,
+        house_gains: float | None,
+    ) -> bool:
+        """Enter PHASE_STEP with a comfort-bounded injection. False if none fits."""
+        self.phase = PHASE_STEP
+        self.phase_started = now
+        if (
+            house_ua is not None
+            and house_capacity is not None
+            and house_gains is not None
+            and house_ua > 1e-6
+            and house_capacity > 1e-6
+            and self._baseline_temp is not None
+        ):
+            sized = self._size_step_power(
+                max_power_kw,
+                cop,
+                self._baseline_temp,
+                outdoor_temp,
+                house_ua,
+                house_capacity,
+                house_gains,
+            )
+            if sized is None:
+                self.abort("no step fits within the comfort bound")
+                return False
+            self._step_power = sized
+        else:
+            self._step_power = max_power_kw * 0.3
+        _LOGGER.debug(
+            "System identification step: injecting %.2f kW",
+            self._step_power,
+        )
+        return True
+
     def step(
         self,
         now: datetime,
@@ -267,6 +378,10 @@ class SystemIdentification:
         learner_samples: int,
         max_power_kw: float,
         cop: float = 1.0,
+        plan_power_kw: float = 0.0,
+        house_ua: float | None = None,
+        house_capacity: float | None = None,
+        house_gains: float | None = None,
     ) -> float | None:
         """Advance the experiment; returns a power override, or ``None``.
 
@@ -302,28 +417,32 @@ class SystemIdentification:
         self.samples.append(
             SysIdSample(now, room_temp, outdoor_temp, 0.0, self.phase)
         )
-
-        # Comfort is a hard constraint: abandon the experiment rather than
-        # trade a degree of comfort for a better fit.
-        if self._baseline_temp is not None:
-            if abs(room_temp - self._baseline_temp) > cfg.max_excursion_c:
+        thermal_cop = max(cop, 0.1)
+        if self.phase == PHASE_SETTLING:
+            # D2-08 / #325: the plan keeps running during settle; record what
+            # was actually delivered, not zero, before the rows enter identify().
+            self.samples[-1].power_kw = max(plan_power_kw, 0.0) * thermal_cop
+            if self._over_excursion(room_temp):
                 self.abort("room temperature drifted beyond the allowed excursion")
                 return None
+            if elapsed >= cfg.settle_hours and not self._begin_step_phase(
+                now,
+                outdoor_temp,
+                max_power_kw,
+                cop,
+                house_ua,
+                house_capacity,
+                house_gains,
+            ):
+                return None
+            return None
 
-        if self.phase == PHASE_SETTLING:
-            # Hold steady so the step starts from a known, quiet state.
-            if elapsed >= cfg.settle_hours:
-                self.phase = PHASE_STEP
-                self.phase_started = now
-                self._step_power = max_power_kw * 0.6
-                _LOGGER.debug(
-                    "System identification step: injecting %.2f kW",
-                    self._step_power,
-                )
+        if self._over_excursion(room_temp):
+            self.abort("room temperature drifted beyond the allowed excursion")
             return None
 
         if self.phase == PHASE_STEP:
-            self.samples[-1].power_kw = self._step_power * max(cop, 0.1)
+            self.samples[-1].power_kw = self._step_power * thermal_cop
             if elapsed >= cfg.step_hours:
                 self.phase = PHASE_RELAX
                 self.phase_started = now
@@ -375,7 +494,9 @@ class SystemIdentification:
         and reports no gains figure.
         """
         usable = [
-            s for s in self.samples if s.phase in (PHASE_STEP, PHASE_RELAX)
+            s
+            for s in self.samples
+            if s.phase in (PHASE_SETTLING, PHASE_STEP, PHASE_RELAX)
         ]
         if len(usable) < 6:
             return SysIdResult(completed=False, reason="not enough samples")
