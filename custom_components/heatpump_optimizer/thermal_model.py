@@ -1234,75 +1234,11 @@ def dhw_coil_draw_reduction(
     return reduced, draw_kw - reduced
 
 
-class _StaleTrajectory(np.ndarray):
-    """A poison array left on the ``last_*_trajectory`` side-channels by
-    ``simulate_trajectory_batch``.
-
-    The batch returns every row's buffer/wood trajectory in its result dict,
-    so it has no single trajectory to publish on the scalar path's
-    ``last_buffer_trajectory`` / ``last_wood_trajectory`` attributes -- yet it
-    used to leave whatever the previous scalar ``simulate_trajectory`` wrote
-    there, so any code reading the attribute after a batch call silently got a
-    trajectory belonging to a different power schedule. That is a quiet
-    correctness trap.
-
-    This sentinel makes the contract explicit and safe: the batch overwrites
-    the attributes with a poison value that reads fine when merely stored or
-    identity-checked, but raises loudly the instant anyone tries to USE it as
-    a trajectory (index it, or do arithmetic on it). The message points the
-    caller at the batch result dict, which carries the per-row trajectories.
-    """
-
-    def __new__(cls):
-        return np.empty(0, dtype=float).view(cls)
-
-    @staticmethod
-    def _boom(*_a, **_k):
-        raise RuntimeError(
-            "last_buffer_trajectory/last_wood_trajectory were poisoned by "
-            "simulate_trajectory_batch: the batch has no single scalar "
-            "trajectory to publish -- read the per-row 'buffer'/'wood' arrays "
-            "from the batch result dict instead. Call simulate_trajectory for "
-            "a fresh scalar side-channel before reading these attributes."
-        )
-
-    def __array_function__(self, *_a, **_k):
-        self._boom()
-
-    def __array_ufunc__(self, *_a, **_k):
-        self._boom()
-
-    def __getitem__(self, _key):
-        self._boom()
-
-    def __len__(self):
-        self._boom()
-
-    def __iter__(self):
-        self._boom()
-
-
-#: Singleton poison written by the batch. It is a distinct object so callers
-#: may still cheaply test ``x is _STALE_TRAJECTORY`` without tripping it.
-_STALE_TRAJECTORY = _StaleTrajectory()
-
-
 class ThermalModel:
     """Thermal model supporting single-zone, two-zone, and DHW operation."""
 
-    #: Buffer trajectory of the last `simulate_trajectory` call.
-    last_buffer_trajectory: np.ndarray | None = None
-    #: Heat (kW) the buffer cap refused per step of that call. The clamp in
-    #: `_simulate_step_two_zone` deletes heat that would push the tank past
-    #: its safe ceiling; the optimizer's hard-cap loop reads this to find the
-    #: steps that tried, because a plan that pays for deleted heat is merely
-    #: wasteful in the model but boils the tank on the real system.
-    last_buffer_refused: np.ndarray | None = None
-    #: Per-step scratch for the above, written by the step function.
+    #: Per-step scratch for buffer cap refusal, written by the step function.
     _step_buffer_refused: float = 0.0
-    #: Wood-tank trajectory of the last trajectory call, ``None`` whenever
-    #: the two-tank topology is not being simulated (issue #40).
-    last_wood_trajectory: np.ndarray | None = None
     #: DHW analogue of the buffer's refused-heat ledger (v4.0.5). The DHW
     #: step now clamps charging at the tank rating instead of trusting every
     #: caller to pre-clamp, and heat the rating refuses is booked here (kW)
@@ -2243,7 +2179,15 @@ class ThermalModel:
         valve_targets: np.ndarray | None = None,
         humidity: np.ndarray | None = None,
         start_hour: float | None = None,
-    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    ) -> tuple[
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray | None,
+    ]:
         """Simulate the full trajectory given a power schedule.
 
         ``external_heat_kw`` is an optional per-step forecast of free thermal
@@ -2258,7 +2202,9 @@ class ThermalModel:
 
         Returns:
             Tuple of (room_temperatures, slab_temperatures,
-                       upper_floor_temperatures, lower_floor_temperatures)
+                       upper_floor_temperatures, lower_floor_temperatures,
+                       buffer_tank_temperatures, buffer_refused_kw,
+                       wood_tank_temperatures or None)
         """
         n_steps = len(power_schedule)
 
@@ -2332,14 +2278,15 @@ class ThermalModel:
             if wood_temps is not None:
                 wood_temps[i + 1] = state.wood_tank_temperature
 
-        # Recorded rather than returned: nine call sites unpack a four-tuple,
-        # and the buffer is only wanted by the terminal-cost term. Without this
-        # the tank's end state is invisible to the objective, so charging it can
-        # only ever look like cost.
-        self.last_buffer_trajectory = buffer_temps
-        self.last_buffer_refused = buffer_refused
-        self.last_wood_trajectory = wood_temps
-        return room_temps, slab_temps, upper_temps, lower_temps
+        return (
+            room_temps,
+            slab_temps,
+            upper_temps,
+            lower_temps,
+            buffer_temps,
+            buffer_refused,
+            wood_temps,
+        )
 
     def simulate_trajectory_batch(
         self,
@@ -2718,14 +2665,6 @@ class ThermalModel:
                     if wood is not None:
                         wood[:, i + 1] = T_wood
 
-        # The batch has no single scalar trajectory to publish on the
-        # ``last_*_trajectory`` side-channels the scalar path maintains: every
-        # row's buffer/wood trajectory is in the result dict below. Leaving the
-        # attributes holding a previous scalar call's arrays let a later read
-        # silently pick up a trajectory for a different power schedule, so poison
-        # them -- a stale read now raises loudly and points at the result dict.
-        self.last_buffer_trajectory = _STALE_TRAJECTORY
-        self.last_wood_trajectory = _STALE_TRAJECTORY
         return {
             "room": room, "slab": slab, "upper": upper, "lower": lower,
             "buffer": buf, "wood": wood, "refused": refused,
@@ -2746,7 +2685,15 @@ class ThermalModel:
         external_heat_kw: np.ndarray | None = None,
         valve_targets: np.ndarray | None = None,
         humidity: np.ndarray | None = None,
-    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    ) -> tuple[
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray | None,
+    ]:
         """Simulate full trajectory with coordinated space + DHW heating.
 
         Args:
@@ -2756,7 +2703,8 @@ class ThermalModel:
                 times per solve.
 
         Returns:
-            Tuple of (room_temps, slab_temps, upper_temps, lower_temps, dhw_temps)
+            Tuple of (room_temps, slab_temps, upper_temps, lower_temps,
+                       dhw_temps, buffer_temps, wood_temps or None)
         """
         n_steps = len(space_power_schedule)
 
@@ -2881,14 +2829,16 @@ class ThermalModel:
 
             current_hour += dt_hours
 
-        # Recorded on the same attribute as `simulate_trajectory`, which is not
-        # decoration: this method used to leave it holding whatever the last
-        # space-only simulation put there, so anything reading it afterwards got
-        # a trajectory belonging to a different power schedule.
-        self.last_buffer_trajectory = buffer_temps
-        self.last_wood_trajectory = wood_temps
         self.last_dhw_refused = dhw_refused
-        return room_temps, slab_temps, upper_temps, lower_temps, dhw_temps
+        return (
+            room_temps,
+            slab_temps,
+            upper_temps,
+            lower_temps,
+            dhw_temps,
+            buffer_temps,
+            wood_temps,
+        )
 
     def update_slab_from_return_temp(
         self, state: ThermalState, return_temp: float

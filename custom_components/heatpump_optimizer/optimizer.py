@@ -2590,7 +2590,7 @@ class HeatPumpOptimizer:
         returns whether anything changed so the caller knows to re-solve.
         """
         schedule = np.asarray(result.power_schedule, dtype=float)
-        self.model.simulate_trajectory(
+        _, _, _, _, _, refused, _ = self.model.simulate_trajectory(
             initial_state=initial_state,
             power_schedule=schedule,
             outdoor_temps=outdoor_temps,
@@ -2607,7 +2607,6 @@ class HeatPumpOptimizer:
             # not believe.
             start_hour=start_hour,
         )
-        refused = self.model.last_buffer_refused
         if refused is None:
             return False
         changed = False
@@ -2791,22 +2790,25 @@ class HeatPumpOptimizer:
         )
         energy_cost_of = self._energy_cost_fn(prices, dt)
 
+        def _space_traj(power_schedule: np.ndarray):
+            return self.model.simulate_trajectory(
+                initial_state=initial_state,
+                power_schedule=power_schedule,
+                outdoor_temps=outdoor_temps,
+                wind_speeds=wind_speeds,
+                precipitation=precipitation,
+                solar_radiation=solar_radiation,
+                dt_hours=dt,
+                external_heat_kw=h.external_heat_kw,
+                valve_targets=h.valve_targets,
+                humidity=h.humidity,
+                start_hour=float(h.step_hours[0]),
+            )
+
         def objective(power_schedule: np.ndarray) -> float:
             """Compute the total cost with predictive weather anticipation."""
-            room_temps, slab_temps, upper_temps, lower_temps = (
-                self.model.simulate_trajectory(
-                    initial_state=initial_state,
-                    power_schedule=power_schedule,
-                    outdoor_temps=outdoor_temps,
-                    wind_speeds=wind_speeds,
-                    precipitation=precipitation,
-                    solar_radiation=solar_radiation,
-                    dt_hours=dt,
-                    external_heat_kw=h.external_heat_kw,
-                    valve_targets=h.valve_targets,
-                    humidity=h.humidity,
-                    start_hour=float(h.step_hours[0]),
-                )
+            room_temps, slab_temps, upper_temps, lower_temps, buffer_temps, _, _ = (
+                _space_traj(power_schedule)
             )
 
             # Electricity cost, piecewise in PV surplus
@@ -2843,9 +2845,7 @@ class HeatPumpOptimizer:
                     slab_temps,
                     upper_temps,
                     lower_temps,
-                    # Recorded by the call above rather than returned, because
-                    # nine call sites unpack a four-tuple.
-                    self.model.last_buffer_trajectory,
+                    buffer_temps,
                 )
             )
 
@@ -2956,25 +2956,15 @@ class HeatPumpOptimizer:
             status = f"failed ({e})"
 
         # Simulate with optimal schedule
-        room_temps, slab_temps, upper_temps, lower_temps = (
-            self.model.simulate_trajectory(
-                initial_state=initial_state,
-                power_schedule=optimal_power,
-                outdoor_temps=outdoor_temps,
-                wind_speeds=wind_speeds,
-                precipitation=precipitation,
-                solar_radiation=solar_radiation,
-                dt_hours=dt,
-                external_heat_kw=h.external_heat_kw,
-                valve_targets=h.valve_targets,
-                humidity=h.humidity,
-                start_hour=float(h.step_hours[0]),
-            )
-        )
-        # Captured here, next to the call that wrote it, rather than read back
-        # at assembly time -- by then further simulations have run.
-        buffer_temps = self.model.last_buffer_trajectory
-        wood_temps = self.model.last_wood_trajectory
+        (
+            room_temps,
+            slab_temps,
+            upper_temps,
+            lower_temps,
+            buffer_temps,
+            _,
+            wood_temps,
+        ) = _space_traj(optimal_power)
         # The achieved objective, for candidate comparison across valve
         # schedules. One extra evaluation, robust on the failure path too.
         achieved_objective = float(objective(optimal_power))
@@ -4725,25 +4715,28 @@ class HeatPumpOptimizer:
         )
         energy_cost_of = self._energy_cost_fn(prices, dt)
 
+        def _space_traj(power_schedule: np.ndarray):
+            return self.model.simulate_trajectory(
+                initial_state=initial_state,
+                power_schedule=power_schedule,
+                outdoor_temps=outdoor_temps,
+                wind_speeds=wind_speeds,
+                precipitation=precipitation,
+                solar_radiation=solar_radiation,
+                dt_hours=dt,
+                external_heat_kw=h.external_heat_kw,
+                valve_targets=h.valve_targets,
+                humidity=h.humidity,
+                start_hour=float(h.step_hours[0]),
+            )
+
         def objective(
             space_power: np.ndarray,
             dhw_plan_power: np.ndarray | None = None,
         ) -> float:
             """Space heating objective given the fixed DHW schedule."""
-            room_temps, slab_temps, upper_temps, lower_temps = (
-                self.model.simulate_trajectory(
-                    initial_state=initial_state,
-                    power_schedule=space_power,
-                    outdoor_temps=outdoor_temps,
-                    wind_speeds=wind_speeds,
-                    precipitation=precipitation,
-                    solar_radiation=solar_radiation,
-                    dt_hours=dt,
-                    external_heat_kw=h.external_heat_kw,
-                    valve_targets=h.valve_targets,
-                    humidity=h.humidity,
-                    start_hour=float(h.step_hours[0]),
-                )
+            room_temps, slab_temps, upper_temps, lower_temps, buffer_temps, _, _ = (
+                _space_traj(space_power)
             )
 
             # The compressor is one machine: the grid sees the *combined*
@@ -4780,9 +4773,7 @@ class HeatPumpOptimizer:
                     slab_temps,
                     upper_temps,
                     lower_temps,
-                    # Recorded by the call above rather than returned, because
-                    # nine call sites unpack a four-tuple.
-                    self.model.last_buffer_trajectory,
+                    buffer_temps,
                 )
             )
 
@@ -4935,28 +4926,29 @@ class HeatPumpOptimizer:
         )
 
         # Simulate with optimal schedule
-        room_temps, slab_temps, upper_temps, lower_temps, dhw_temps = (
-            self.model.simulate_trajectory_with_dhw(
-                initial_state=initial_state,
-                space_power_schedule=optimal_space,
-                dhw_power_schedule=optimal_dhw,
-                outdoor_temps=outdoor_temps,
-                wind_speeds=wind_speeds,
-                precipitation=precipitation,
-                solar_radiation=solar_radiation,
-                start_hour=start_hour,
-                dt_hours=dt,
-                dhw_draw_rates=dhw_draw_rates,
-                external_heat_kw=h.external_heat_kw,
-                valve_targets=h.valve_targets,
-                humidity=h.humidity,
-            )
+        (
+            room_temps,
+            slab_temps,
+            upper_temps,
+            lower_temps,
+            dhw_temps,
+            buffer_temps,
+            wood_temps,
+        ) = self.model.simulate_trajectory_with_dhw(
+            initial_state=initial_state,
+            space_power_schedule=optimal_space,
+            dhw_power_schedule=optimal_dhw,
+            outdoor_temps=outdoor_temps,
+            wind_speeds=wind_speeds,
+            precipitation=precipitation,
+            solar_radiation=solar_radiation,
+            start_hour=start_hour,
+            dt_hours=dt,
+            dhw_draw_rates=dhw_draw_rates,
+            external_heat_kw=h.external_heat_kw,
+            valve_targets=h.valve_targets,
+            humidity=h.humidity,
         )
-        # Captured next to the call that wrote it. Before this method recorded
-        # the series, whatever the last space-only simulation had left on the
-        # model was a trajectory for a different power schedule.
-        buffer_temps = self.model.last_buffer_trajectory
-        wood_temps = self.model.last_wood_trajectory
         # The achieved objective, for candidate comparison across valve
         # schedules.
         achieved_objective = float(objective(optimal_space, optimal_dhw))

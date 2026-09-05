@@ -2275,13 +2275,13 @@ def _grad_parity(two_zone, wood=False, valve=None, extra_cfg=None, label="",
         st, powers, ot, wi, ra, so, 0.25, ext, None, hum, 7.0)
     mism = []
     for b in range(powers.shape[0]):
-        r, s, u, l = m.simulate_trajectory(
+        r, s, u, l, buf, _, wood = m.simulate_trajectory(
             st, powers[b], ot, wi, ra, so, 0.25, ext, None, hum, 7.0)
         refs = (("room", batch["room"][b], r), ("slab", batch["slab"][b], s),
                 ("upper", batch["upper"][b], u), ("lower", batch["lower"][b], l),
-                ("buffer", batch["buffer"][b], m.last_buffer_trajectory))
+                ("buffer", batch["buffer"][b], buf))
         if batch["wood"] is not None:
-            refs += (("wood", batch["wood"][b], m.last_wood_trajectory),)
+            refs += (("wood", batch["wood"][b], wood),)
         for name, arr, ref in refs:
             if not np.array_equal(arr, ref):
                 mism.append(f"{name}[{b}]@{int(np.argmax(arr != ref))}")
@@ -2303,7 +2303,7 @@ def _grad_parity(two_zone, wood=False, valve=None, extra_cfg=None, label="",
     targets = np.full(n, 21.0)
 
     def space_obj(x):
-        rr, _, _, _ = m.simulate_trajectory(
+        rr, _, _, _, _, _, _ = m.simulate_trajectory(
             st, np.clip(x, 0.0, None), ot, wi, ra, so, 0.25, ext, None, hum, 7.0)
         room = rr[1:]
         return float(np.sum((room - targets) ** 2) + 0.01 * np.sum(x))
@@ -4758,15 +4758,24 @@ R.check(
     "750 L must clear the threshold",
 )
 
-# 5. The trajectory the objective needs must actually be recorded.
-_m_valve.simulate_trajectory(
+# 5. The trajectory the objective needs travels with the return value (#280).
+_tr280 = _m_valve.simulate_trajectory(
     _st(45.0), np.full(96, 3.0), _outdoor, dt_hours=0.25
 )
 R.check(
-    "the buffer trajectory is available after a simulation",
-    _m_valve.last_buffer_trajectory is not None
-    and len(_m_valve.last_buffer_trajectory) == 97,
-    "the objective reads it from here rather than from a return value",
+    "simulate_trajectory returns the buffer trajectory",
+    len(_tr280) == 7 and _tr280[4] is not None and len(_tr280[4]) == 97,
+    "room, slab, upper, lower, buffer, refused, wood",
+)
+_r280, _s280, _u280, _l280, _buf280, *_ = _tr280
+_tc280 = float(_term(_r280, _s280, _u280, _l280, _buf280))
+_m_valve.simulate_trajectory(
+    _st(45.0), np.zeros(96), _outdoor, dt_hours=0.25
+)
+R.check(
+    "terminal cost is stable when the buffer came from the return value (#280)",
+    abs(float(_term(_r280, _s280, _u280, _l280, _buf280)) - _tc280) < 1e-9,
+    "an intervening simulation must not change a caller's retained buffer",
 )
 
 
@@ -5081,13 +5090,13 @@ def _storage_plan(price_profile):
     r = opt.optimize(st, prices, outdoor, zeros, zeros, zeros,
                      datetime(2026, 1, 15))
     pw = np.asarray(r.power_schedule)
-    m.simulate_trajectory(st, pw, outdoor, zeros, zeros, zeros, 0.25)
+    _, _, _, _, buf, _, _ = m.simulate_trajectory(st, pw, outdoor, zeros, zeros, zeros, 0.25)
     night = float(pw[hours < 5].sum() * 0.25)
     peaks = float(
         pw[((hours >= 7) & (hours < 10)) | ((hours >= 16) & (hours < 20))].sum()
         * 0.25
     )
-    return night, peaks, m.last_buffer_trajectory
+    return night, peaks, buf
 
 
 _night_s, _peak_s, _buf_s = _storage_plan("spread")
@@ -5273,16 +5282,16 @@ _ht_st = ThermalState(
     buffer_tank_temperature=60.0, outdoor_temperature=-5.0,
 )
 _ht_zero = np.zeros(24)
-_ht_open = _ht_m.simulate_trajectory(
+_, _, _, _, _ht_open_buf, _, _ = _ht_m.simulate_trajectory(
     _ht_st, _ht_zero, np.full(24, -5.0), _ht_zero, _ht_zero, _ht_zero, 0.25,
     valve_targets=np.full(24, 23.0),
 )
-_ht_open_end = float(_ht_m.last_buffer_trajectory[-1])
-_ht_held = _ht_m.simulate_trajectory(
+_ht_open_end = float(_ht_open_buf[-1])
+_, _, _, _, _ht_held_buf, _, _ = _ht_m.simulate_trajectory(
     _ht_st, _ht_zero, np.full(24, -5.0), _ht_zero, _ht_zero, _ht_zero, 0.25,
     valve_targets=np.full(24, 17.0),
 )
-_ht_held_end = float(_ht_m.last_buffer_trajectory[-1])
+_ht_held_end = float(_ht_held_buf[-1])
 R.check(
     "a held valve really does keep heat in the tank",
     _ht_held_end > _ht_open_end + 2.0,
@@ -5338,11 +5347,13 @@ _cp, _cm, _copt, _cst, _cprices, _cout, _czeros = _cap_fixture()
 # The mechanism, directly: a full-power schedule against a near-full tank
 # must refuse heat, and the tighten helper must cut those steps' ceilings.
 _full = np.full(96, _cp.max_electrical_power)
-_cm.simulate_trajectory(_cst, _full, _cout, _czeros, _czeros, _czeros, 0.25)
+_, _, _, _, _, _full_refused, _ = _cm.simulate_trajectory(
+    _cst, _full, _cout, _czeros, _czeros, _czeros, 0.25
+)
 R.check(
     "charging a full tank at full power is refused by the physics",
-    _cm.last_buffer_refused is not None and _cm.last_buffer_refused.max() > 0.5,
-    f"peak refusal {_cm.last_buffer_refused.max():.2f} kW",
+    _full_refused is not None and _full_refused.max() > 0.5,
+    f"peak refusal {_full_refused.max():.2f} kW",
 )
 
 
@@ -5367,20 +5378,20 @@ R.check(
 _cres = _copt.optimize(
     _cst, _cprices, _cout, _czeros, _czeros, _czeros, datetime(2026, 1, 15)
 )
-_cm.simulate_trajectory(
+_, _, _, _, _cres_buf, _cres_refused, _ = _cm.simulate_trajectory(
     _cst, np.asarray(_cres.power_schedule), _cout,
     _czeros, _czeros, _czeros, 0.25,
 )
 R.check(
     "even free electricity cannot plan past the tank's ceiling",
-    float(_cm.last_buffer_refused.max()) < 1e-6,
-    f"refused {float(_cm.last_buffer_refused.max()):.4f} kW somewhere in the "
+    float(_cres_refused.max()) < 1e-6,
+    f"refused {float(_cres_refused.max()):.4f} kW somewhere in the "
     "final plan; the cap loop should have re-solved it away",
 )
 R.check(
     "and the trajectory itself respects the cap",
-    float(_cm.last_buffer_trajectory.max()) <= 60.0 + 1e-6,
-    f"tank peaked at {float(_cm.last_buffer_trajectory.max()):.2f} C",
+    float(_cres_buf.max()) <= 60.0 + 1e-6,
+    f"tank peaked at {float(_cres_buf.max()):.2f} C",
 )
 
 # The recommendation is surfaced, not just computable. recommend_target()
@@ -6457,17 +6468,14 @@ R.check(
     "a gated-on model with no wood reading reduces byte-for-byte",
     all(
         np.array_equal(a, b)
-        for a, b in zip(_w2t_out_none, _w2t_out_ref)
-    )
-    and np.array_equal(
-        _w2t_m_none.last_buffer_trajectory, _w2t_m_ref.last_buffer_trajectory
+        for a, b in zip(_w2t_out_none[:5], _w2t_out_ref[:5])
     ),
     "a 5 kW burn must fold into the heat-pump tank identically in both, or "
     "a stale probe silently changes the plan",
 )
 R.check(
     "and reports no wood trajectory at all",
-    _w2t_m_none.last_wood_trajectory is None,
+    _w2t_out_none[6] is None,
     "None rather than a flat line of ambient, so a silent reset is visible",
 )
 
@@ -6579,53 +6587,53 @@ R.check(
 # Equal power schedules, hot wood tank, burn versus no burn. The burn must be
 # invisible to everything the heat pump is judged by.
 
-_w2t_m_burn, _ = _w2t_run(_w2t_params_two, 60.0, 10.0)
-_w2t_m_calm, _ = _w2t_run(_w2t_params_two, 60.0, 0.0)
-_w2t_m_old, _ = _w2t_run(_w2t_params_off, None, 10.0)
+_w2t_m_burn, _w2t_out_burn = _w2t_run(_w2t_params_two, 60.0, 10.0)
+_w2t_m_calm, _w2t_out_calm = _w2t_run(_w2t_params_two, 60.0, 0.0)
+_w2t_m_old, _w2t_out_old = _w2t_run(_w2t_params_off, None, 10.0)
 
 R.check(
     "a burn charges the wood tank, pointwise",
     np.all(
-        _w2t_m_burn.last_wood_trajectory
-        >= _w2t_m_calm.last_wood_trajectory - 1e-12
+        _w2t_out_burn[6]
+        >= _w2t_out_calm[6] - 1e-12
     )
-    and _w2t_m_burn.last_wood_trajectory[-1]
-    > _w2t_m_calm.last_wood_trajectory[-1] + 1.0,
-    f"ends at {_w2t_m_burn.last_wood_trajectory[-1]:.1f} C against "
-    f"{_w2t_m_calm.last_wood_trajectory[-1]:.1f} C unburnt",
+    and _w2t_out_burn[6][-1]
+    > _w2t_out_calm[6][-1] + 1.0,
+    f"ends at {_w2t_out_burn[6][-1]:.1f} C against "
+    f"{_w2t_out_calm[6][-1]:.1f} C unburnt",
 )
 R.check(
     "and takes no cap headroom from the heat pump's tank",
-    _w2t_m_burn.last_buffer_refused.max() == 0.0
-    and _w2t_m_burn.last_buffer_trajectory.max()
+    _w2t_out_burn[5].max() == 0.0
+    and _w2t_out_burn[4].max()
     < _w2t_params_two.buffer_max_temp - 1.0,
-    f"HP tank peaked at {_w2t_m_burn.last_buffer_trajectory.max():.1f} C "
+    f"HP tank peaked at {_w2t_out_burn[4].max():.1f} C "
     f"against a {_w2t_params_two.buffer_max_temp:.0f} C cap with nothing "
     "refused",
 )
 R.check(
     "the burn moves load off the heat pump's tank rather than into it",
-    _w2t_m_burn.last_buffer_trajectory[-1]
-    >= _w2t_m_calm.last_buffer_trajectory[-1] - 1e-9,
-    f"HP tank ends {_w2t_m_burn.last_buffer_trajectory[-1]:.1f} C with the "
-    f"burn and {_w2t_m_calm.last_buffer_trajectory[-1]:.1f} C without: the "
+    _w2t_out_burn[4][-1]
+    >= _w2t_out_calm[4][-1] - 1e-9,
+    f"HP tank ends {_w2t_out_burn[4][-1]:.1f} C with the "
+    f"burn and {_w2t_out_calm[4][-1]:.1f} C without: the "
     "wood side carries the emitters, so the HP tank is drawn less",
 )
 R.check(
     "which is exactly what the single-tank abstraction could not do",
-    _w2t_m_old.last_buffer_trajectory.max()
-    > _w2t_m_burn.last_buffer_trajectory.max() + 5.0
-    and _w2t_m_old.last_buffer_refused.max() > 0.0,
+    _w2t_out_old[4].max()
+    > _w2t_out_burn[4].max() + 5.0
+    and _w2t_out_old[5].max() > 0.0,
     f"the same burn put the old model's tank at "
-    f"{_w2t_m_old.last_buffer_trajectory.max():.1f} C and had it refuse "
-    f"{_w2t_m_old.last_buffer_refused.max():.1f} kW of the pump's own heat",
+    f"{_w2t_out_old[4].max():.1f} C and had it refuse "
+    f"{_w2t_out_old[5].max():.1f} kW of the pump's own heat",
 )
 _w2t_cop_model = ThermalModel(_w2t_params_two)
 _w2t_cop_two = _w2t_cop_model.compute_cop(
-    -5.0, flow_temp=float(_w2t_m_burn.last_buffer_trajectory[-1])
+    -5.0, flow_temp=float(_w2t_out_burn[4][-1])
 )
 _w2t_cop_old = _w2t_cop_model.compute_cop(
-    -5.0, flow_temp=float(_w2t_m_old.last_buffer_trajectory[-1])
+    -5.0, flow_temp=float(_w2t_out_old[4][-1])
 )
 R.check(
     "so wood heat no longer shows up as a heat pump COP penalty",
@@ -6733,19 +6741,19 @@ R.check(
 
 # --- Step length ----------------------------------------------------------
 
-_w2t_m_q, _ = _w2t_run(_w2t_params_two, 60.0, 3.0, n=24, dt=0.25)
-_w2t_m_f, _ = _w2t_run(_w2t_params_two, 60.0, 3.0, n=72, dt=1.0 / 12.0)
+_w2t_m_q, _w2t_out_q = _w2t_run(_w2t_params_two, 60.0, 3.0, n=24, dt=0.25)
+_w2t_m_f, _w2t_out_f = _w2t_run(_w2t_params_two, 60.0, 3.0, n=72, dt=1.0 / 12.0)
 R.check(
     "six hours of two-tank operation does not depend on the step length",
     abs(
-        _w2t_m_q.last_wood_trajectory[-1] - _w2t_m_f.last_wood_trajectory[-1]
+        _w2t_out_q[6][-1] - _w2t_out_f[6][-1]
     ) < 0.5
     and abs(
-        _w2t_m_q.last_buffer_trajectory[-1]
-        - _w2t_m_f.last_buffer_trajectory[-1]
+        _w2t_out_q[4][-1]
+        - _w2t_out_f[4][-1]
     ) < 0.5,
-    f"wood ends {_w2t_m_q.last_wood_trajectory[-1]:.2f} C at 15 min vs "
-    f"{_w2t_m_f.last_wood_trajectory[-1]:.2f} C at 5 min",
+    f"wood ends {_w2t_out_q[6][-1]:.2f} C at 15 min vs "
+    f"{_w2t_out_f[6][-1]:.2f} C at 5 min",
 )
 
 
@@ -6763,7 +6771,7 @@ _w2t_m_tiny, _w2t_out_tiny = _w2t_run(
     ),
     60.0, 0.0, n=48, power=0.0,
 )
-_w2t_wood_tiny = _w2t_m_tiny.last_wood_trajectory
+_w2t_wood_tiny = _w2t_out_tiny[6]
 # The floor each step is judged against is the coldest zone it feeds, or the
 # 20 C room the tank stands in once the zones fall below that: standby loss
 # to a warmer room is not a draw, and the availability bound does not (and
@@ -6800,19 +6808,16 @@ R.check(
     "a cold wood tank and no burn is byte-identical to no wood tank",
     all(
         np.array_equal(a, b)
-        for a, b in zip(_w2t_out_cold, _w2t_out_flat)
-    )
-    and np.array_equal(
-        _w2t_m_cold.last_buffer_trajectory, _w2t_m_flat.last_buffer_trajectory
+        for a, b in zip(_w2t_out_cold[:5], _w2t_out_flat[:5])
     ),
     "the share is zero, the supply is the HP tank either way, and the two "
     "branches must agree exactly there -- not to within a tolerance",
 )
 R.check(
     "and the cold tank only drifts towards the room it stands in",
-    _w2t_m_cold.last_wood_trajectory[-1] > 15.0
-    and _w2t_m_cold.last_wood_trajectory[-1] < 20.0,
-    f"ended at {_w2t_m_cold.last_wood_trajectory[-1]:.2f} C from 15 C, on "
+    _w2t_out_cold[6][-1] > 15.0
+    and _w2t_out_cold[6][-1] < 20.0,
+    f"ended at {_w2t_out_cold[6][-1]:.2f} C from 15 C, on "
     "standby loss alone",
 )
 
@@ -6891,10 +6896,10 @@ R.check(
 )
 R.check(
     "and the preheat genuinely comes out of the wood tank",
-    float(_m_on.last_wood_trajectory[-1])
-    < float(_m_off.last_wood_trajectory[-1]),
-    f"wood ended {_m_on.last_wood_trajectory[-1]:.2f} with the coil vs "
-    f"{_m_off.last_wood_trajectory[-1]:.2f} without",
+    float(_out_on[6][-1])
+    < float(_out_off[6][-1]),
+    f"wood ended {_out_on[6][-1]:.2f} with the coil vs "
+    f"{_out_off[6][-1]:.2f} without",
 )
 _m_flag, _out_flag = _coil_run(_p_coil, None)
 _m_ref2, _out_ref2 = _coil_run(_p_nocoil, None)
@@ -7023,8 +7028,8 @@ R.check(
 )
 R.check(
     "and the tank pays for it",
-    float(_m_vud.last_buffer_trajectory[-1])
-    < float(_m_valved.last_buffer_trajectory[-1]),
+    float(_out_vud[4][-1])
+    < float(_out_valved[4][-1]),
     "raw tank water to the slab must drain the tank faster",
 )
 _m_a, _out_a2 = _vud_run(
@@ -7032,10 +7037,7 @@ _m_a, _out_a2 = _vud_run(
 )
 R.check(
     "no stored layout means byte-identical v3.15.1 behaviour",
-    all(np.array_equal(a, b) for a, b in zip(_out_valved, _out_a2))
-    and np.array_equal(
-        _m_valved.last_buffer_trajectory, _m_a.last_buffer_trajectory
-    ),
+    all(np.array_equal(a, b) for a, b in zip(_out_valved[:5], _out_a2[:5])),
     "the editor's absence is exactly the previous release",
 )
 
@@ -13059,7 +13061,7 @@ R.check(
     "the stiff case genuinely exercises the subdivision",
     _g_stiff._stability_substeps(0.0, 0.0, 0.25) > 1,
 )
-_g_room, _g_slab, _g_up, _g_low = _g_stiff.simulate_trajectory(
+_g_room, _g_slab, _g_up, _g_low, *_ = _g_stiff.simulate_trajectory(
     ThermalState(),
     np.full(96, 2.0),
     np.full(96, -5.0),

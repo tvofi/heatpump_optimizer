@@ -1060,7 +1060,7 @@ def best_possible_violation(run: dict) -> float:
     and calling that a planning bug would be blaming the optimizer for physics.
     """
     model = run["model"]
-    room, _, upper, lower = model.simulate_trajectory(
+    room, _, upper, lower, _, _, _ = model.simulate_trajectory(
         initial_state=run["initial"],
         power_schedule=np.full(run["n"], run["params"].max_electrical_power),
         outdoor_temps=run["outdoor"],

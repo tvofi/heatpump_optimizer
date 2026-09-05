@@ -1,1 +1,1 @@
-Wave 2 briefs verified (brief_lint rc 0, fork f94ae13); next seat W2-G1 Opus 5.
+W2-G6 PR open (trajectory return refactor, #280); gate pending post-commit.

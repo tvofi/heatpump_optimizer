@@ -172,7 +172,7 @@ def run_rolling(
 
         # Advance the *real* house by one step under that command.
         if dhw:
-            room, slab, upper, lower, tank = plant.simulate_trajectory_with_dhw(
+            room, slab, upper, lower, tank, _, _ = plant.simulate_trajectory_with_dhw(
                 initial_state=state,
                 space_power_schedule=np.array([space_power]),
                 dhw_power_schedule=np.array([dhw_power]),
@@ -184,7 +184,7 @@ def run_rolling(
                 dt_hours=DT,
             )
         else:
-            room, slab, upper, lower = plant.simulate_trajectory(
+            room, slab, upper, lower, _, _, _ = plant.simulate_trajectory(
                 initial_state=state,
                 power_schedule=np.array([space_power]),
                 outdoor_temps=outdoor[step : step + 1],
@@ -572,12 +572,10 @@ R.check(
     f"{len(_learner._sysid.samples)} sysid samples retained "
     "(arm() clears per run)",
 )
-_traj = _learner._thermal_model.last_buffer_trajectory
 R.check(
-    "the retained buffer trajectory is one horizon, not one per solve",
-    _traj is None or len(_traj) <= int(24 / DT) + 1,
-    f"{0 if _traj is None else len(_traj)} points retained "
-    "(one horizon; +1 is the initial state every trajectory carries)",
+    "the thermal model retains no simulation side-channels",
+    not hasattr(_learner._thermal_model, "last_buffer_trajectory"),
+    "buffer trajectories travel in simulate_trajectory's return value",
 )
 
 

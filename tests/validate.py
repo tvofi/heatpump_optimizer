@@ -209,7 +209,7 @@ def run(scen, price_p, weather_p, two_zone=False, dhw=True, start=START, **over)
     # that pays the objective to run the pump while the house is already
     # comfortable reproduces the same user-visible bug and would otherwise
     # ship green.
-    coast_room, _, coast_up, coast_lo = m.simulate_trajectory(
+    coast_room, _, coast_up, coast_lo, _, _, _ = m.simulate_trajectory(
         st, np.zeros(N), ot, wind, rain, sol, DT, start_hour=start.hour
     )
     coast_zones = [coast_room] + ([coast_up, coast_lo] if two_zone else [])
