@@ -353,7 +353,7 @@ Since v5.0.0 the display names are translated (English and Swedish) and follow
 your Home Assistant language; the tables below show the English names. Entity ids
 and history are unaffected by the language.
 
-### Sensors (55 total)
+### Sensors (56 total)
 
 `CUR` is your Home Assistant instance currency (SEK when the instance has none
 configured).

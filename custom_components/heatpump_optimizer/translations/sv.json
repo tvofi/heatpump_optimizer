@@ -1110,6 +1110,9 @@
       "monthly_peak_power": {
         "name": "Månadens effekttopp"
       },
+      "monthly_savings": {
+        "name": "Månatligt sparande"
+      },
       "next_optimization": {
         "name": "Nästa optimering"
       },

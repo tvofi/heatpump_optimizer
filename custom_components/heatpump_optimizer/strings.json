@@ -1110,6 +1110,9 @@
       "monthly_peak_power": {
         "name": "Monthly Peak Power"
       },
+      "monthly_savings": {
+        "name": "Monthly Savings"
+      },
       "next_optimization": {
         "name": "Next Optimization"
       },

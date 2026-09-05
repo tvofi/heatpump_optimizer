@@ -101,6 +101,9 @@
       "monthly_peak_power": {
         "default": "mdi:chart-bell-curve"
       },
+      "monthly_savings": {
+        "default": "mdi:calendar-month"
+      },
       "next_optimization": {
         "default": "mdi:clock-outline"
       },
