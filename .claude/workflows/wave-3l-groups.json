@@ -1,12 +1,12 @@
 {
   "_comment": [
     "Wave 3L of the open-issues programme (docs/plan-2026-09-open-issues.md).",
-    "Leftovers after Wave 3, before Wave 4. Serial. 3L-G1 done (81aa0c3).",
+    "Leftovers after Wave 3, before Wave 4. Serial. 3L-G2 done (2abe2f7).",
     "#412 stays last of the programme, not in this burst.",
     "Consumed by .claude/workflows/web-fix-wave.js as its `groups` argument."
   ],
-  "fork": "81aa0c3b17b7fef448fdf1a3822bcdaf8c81d9d1",
-  "fork_note": "origin/main after 3L-G1 #470 (`81aa0c3`). Re-measure structure at this merge-base. claims-for stays 6.3.15.",
+  "fork": "2abe2f7a2a0d9544868852b566f1f8d545dfa554",
+  "fork_note": "origin/main after 3L-G2 #472 (`2abe2f7`). Re-measure structure at this merge-base. claims-for stays 6.3.15.",
   "session": "claude-web",
   "repo": "/Users/timmalmstrom/heatpump_optimizer",
   "serial": true,
@@ -37,6 +37,12 @@
       "effort": "medium",
       "fixture": false,
       "after": ["3L-G1"],
+      "resume": {
+        "stage": "done",
+        "merged_pr": 472,
+        "merge_sha": "2abe2f7a2a0d9544868852b566f1f8d545dfa554",
+        "note": "Review merge 5555406632 at 6b1efc2. _require_strace aborts on Darwin; no fake measured record. Mutation FileNotFoundError on mutant; restore md5 04d6018e. claims-for 6.3.15. #401 closed. Next seat 3L-G3."
+      },
       "brief": "closure.py _record_node() strace availability guard. Unblocks a full derive on macOS. Before #404."
     },
     {
