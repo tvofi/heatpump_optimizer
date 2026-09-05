@@ -2396,18 +2396,6 @@ class HeatPumpOptimizer:
                     valve_targets = None
 
         if power_caps is not None and throttling:
-            # The tank's safe ceiling as a hard constraint. The model's clamp
-            # already stops the simulated temperature exceeding the cap, but it
-            # does so by *deleting* the excess heat -- so a plan that charges a
-            # full tank is merely wasteful in the objective while boiling the
-            # tank on the real system, and at a low enough price the solver is
-            # indifferent to the waste. A soft penalty is explicitly ruled out
-            # by item 29 (the solver would plan to boil the tank at a small
-            # modelled cost); instead, mirror the pin-safety loop above with
-            # the opposite polarity: find the steps whose heat the cap
-            # refused, lower their power ceiling to what the tank could
-            # actually accept, and re-solve. Bounded like the release loop, and
-            # for the same reason.
             for _ in range(_SAFETY_REPAIR_ROUNDS):
                 if not self._tighten_buffer_caps(
                     result, power_caps, initial_state, outdoor_temps,
@@ -2418,14 +2406,9 @@ class HeatPumpOptimizer:
                     start_hour=float(step_hours[0]),
                 ):
                     break
-                prev = np.asarray(result.power_schedule, dtype=float)
-                clipped = np.minimum(prev, power_caps)
-                p_max = self.model.params.max_electrical_power
-                energy = float(np.sum(clipped) * dt)
-                bang_bang = np.minimum(
-                    _price_ranked_start(prices, energy, p_max, dt), power_caps
+                cap_resolv_starts = self._cap_tighten_extra_starts(
+                    result.power_schedule, power_caps, prices, dt,
                 )
-                cap_resolv_starts = (clipped, bang_bang)
                 result = _solve()
                 cap_resolv_starts = None
 
@@ -2503,6 +2486,30 @@ class HeatPumpOptimizer:
                     )
             result.predictive_info["dhw_floor_breach_c"] = round(shortfall, 3)
         return result
+
+    def _cap_tighten_extra_starts(self, prev, power_caps, prices, dt):
+        """Clipped prior plus equal-energy bang-bang for a cap-tighten re-solve.
+
+        The tank's safe ceiling is a hard constraint. The model's clamp
+        already stops the simulated temperature exceeding the cap, but it
+        does so by *deleting* the excess heat -- so a plan that charges a
+        full tank is merely wasteful in the objective while boiling the
+        tank on the real system, and at a low enough price the solver is
+        indifferent to the waste. A soft penalty is explicitly ruled out
+        by item 29 (the solver would plan to boil the tank at a small
+        modelled cost); instead, the caller mirrors the pin-safety loop
+        with the opposite polarity: find the steps whose heat the cap
+        refused, lower their power ceiling to what the tank could
+        actually accept, and re-solve from these two seeds. Bounded like
+        the release loop, and for the same reason.
+        """
+        clipped = np.minimum(np.asarray(prev, dtype=float), power_caps)
+        p_max = self.model.params.max_electrical_power
+        energy = float(np.sum(clipped) * dt)
+        bang_bang = np.minimum(
+            _price_ranked_start(prices, energy, p_max, dt), power_caps
+        )
+        return (clipped, bang_bang)
 
     @staticmethod
     def _normalise_pins(
