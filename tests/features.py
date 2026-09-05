@@ -14314,6 +14314,26 @@ R.check(
     f"freeze={_xh2._pump_signals.freeze_reason}",
 )
 
+# --- D7-03 (#279): open window skips the accuracy sample -------------------
+_xv = _t2_coord()
+_xv._vent_cusum.tripped = True
+_xv._pending_prediction = dict(_xh_pending)
+_xv.hass.states.set("sensor.indoor", FakeState("21.9"))
+_xv._record_accuracy()
+_xv_kept = len(_xv._accuracy.samples)
+_xv2 = _t2_coord()
+_xv2._vent_cusum.tripped = False
+_xv2._pending_prediction = dict(_xh_pending)
+_xv2.hass.states.set("sensor.indoor", FakeState("21.9"))
+_xv2._record_accuracy()
+_xv2_kept = len(_xv2._accuracy.samples)
+R.check(
+    "an interval with the open-window detector tripped records no accuracy sample",
+    _xv2_kept > _xv_kept,
+    f"vent-tripped kept {_xv_kept}, control kept {_xv2_kept}; "
+    f"frozen={_xv._learning_frozen('sensor.indoor')!r}",
+)
+
 # ---------------------------------------------------------------------------
 R.section("v4.0.5 — learners: tracking error is not efficiency")
 
