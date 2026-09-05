@@ -48,14 +48,15 @@
 # claims-for: 6.3.13
 #
 #
-# w2-g1-lifecycle: this branch claims NOTHING. #236/#237/#240 change entry
-# release, shutdown ordering and what-if copying; no solve input, no captured
-# key path and no recorded value moves, and `env_drift.py --all` against the
-# merge base is byte-identical outside the five may-drift fixtures below. The
-# list is empty for that reason, not because it was forgotten -- #198's
-# config_flow claim is merged (3834a8a) and describes the baseline's own diff,
-# so carrying it forward would excuse this change by accident, which is the
-# inherited-claims rule above.
+# w2-g2-dst-and-stuck-prices: this branch claims NOTHING. #243 moves the step
+# grid onto real instants only when the anchor carries a zone; every captured
+# fixture uses naive datetimes, where `_utc_step_starts` keeps the old
+# wall-clock walk, so no fixture can see the change. #239 refuses a solve on a
+# list that covers no horizon step, and no fixture is built from one. The list
+# is empty for that reason, not because it was forgotten -- w2-g1's paragraph
+# and #198's merged config_flow claim (3834a8a) both describe an earlier
+# diff, so carrying either forward would excuse this change by accident,
+# which is the inherited-claims rule above.
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum

@@ -12359,6 +12359,86 @@ _svc_check(
     _svc_call(_svc_hass, "run_optimization", {}),
     "run_optimization_no_prices",
 )
+
+# #239: a non-empty price list whose timestamps miss the horizon used to
+# invent a prior-only curve and let the service solve. The empty-list
+# guard above does not cover that arm — `_prices` is truthy, `known` is not.
+R.section("stuck prices skip the service solve (#239)")
+
+from homeassistant.util import dt as _stale_dt  # noqa: E402
+
+_STALE_NOW = datetime(2026, 1, 15, 12, 0, tzinfo=timezone.utc)
+_stale_dt.freeze(_STALE_NOW)
+_stale_hass = FakeHass()
+_stale_entry = FakeEntry(data=_LC_DATA, entry_id="stuck_prices")
+_asyncio.run(_ha_setup_entry(_integ, _stale_hass, _stale_entry))
+_stale_coord = _stale_entry.runtime_data
+_stale_yesterday = _STALE_NOW.replace(hour=0) - timedelta(days=2)
+_stale_coord._prices = [
+    {
+        "total": 0.6 + 0.5 * (h % 12) / 12.0,
+        "starts_at": (_stale_yesterday + timedelta(hours=h)).isoformat(),
+        "level": "NORMAL",
+    }
+    for h in range(48)
+]
+_stale_priced = _stale_coord._price_series(
+    _stale_coord._opt_config.n_steps,
+    _STALE_NOW.replace(hour=0, minute=0, second=0, microsecond=0),
+    0,
+)
+R.check(
+    "a stale list that covers no horizon step returns None, not a prior",
+    _stale_priced is None,
+    "empty known must match an empty list",
+)
+_stale_arrays = _stale_coord._forecast_arrays(_STALE_NOW)
+R.check(
+    "no price_known-false step reaches a horizon that can still solve",
+    len(_stale_arrays.prices) == 0
+    and int(np.sum(~np.asarray(_stale_arrays.price_known, dtype=bool))) == 0,
+    f"n={len(_stale_arrays.prices)} "
+    f"unknown={int(np.sum(~np.asarray(_stale_arrays.price_known, dtype=bool)))}",
+)
+R.check(
+    "async_run_optimization reports no_prices on that list",
+    _asyncio.run(_stale_coord.async_run_optimization()) == "no_prices"
+    and _stale_coord._optimization_result is None,
+)
+_svc_check(
+    "run_optimization on a stale list raises the same no-prices error",
+    _svc_call(_stale_hass, "run_optimization", {}),
+    "run_optimization_no_prices",
+)
+
+_cover_hass = FakeHass()
+_cover_entry = FakeEntry(data=_LC_DATA, entry_id="covering_prices")
+_asyncio.run(_ha_setup_entry(_integ, _cover_hass, _cover_entry))
+_cover_coord = _cover_entry.runtime_data
+_cover_mid = _STALE_NOW.replace(hour=0, minute=0, second=0, microsecond=0)
+_cover_coord._prices = [
+    {
+        "total": 0.6 + 0.5 * (h % 12) / 12.0,
+        "starts_at": (_cover_mid + timedelta(hours=h)).isoformat(),
+        "level": "NORMAL",
+    }
+    for h in range(48)
+]
+_cover_priced = _cover_coord._price_series(
+    _cover_coord._opt_config.n_steps, _cover_mid, 0
+)
+R.check(
+    "a covering list still builds a series (the #239 null)",
+    _cover_priced is not None
+    and int(np.sum(_cover_priced[1])) == _cover_coord._opt_config.n_steps,
+    "known_steps must stay 96 when the list covers the horizon",
+)
+R.check(
+    "and the service path still solves on that covering list",
+    _asyncio.run(_cover_coord.async_run_optimization()) is None
+    and _cover_coord._optimization_result is not None,
+)
+_stale_dt.freeze(None)
 _svc_check(
     "simulate_plan with no plan raises a translated operational error",
     _svc_call(_svc_hass, "simulate_plan", {"target_temp": 21.0}),
@@ -12462,9 +12542,22 @@ _svc_crash_hass = FakeHass()
 _svc_crash_entry = FakeEntry(data=_LC_DATA, entry_id="crash_pump")
 _asyncio.run(_ha_setup_entry(_integ, _svc_crash_hass, _svc_crash_entry))
 _svc_crash_coord = _svc_crash_entry.runtime_data
-_svc_crash_coord._prices = [
-    {"total": 0.8, "starts_at": "2026-01-15T00:00:00+00:00", "level": "NORMAL"}
-] * 24
+# The list has to COVER the horizon, not merely be non-empty: since #239 a
+# list whose entries all sit before the first step is refused as no_prices
+# and never reaches the solve these two checks are about.
+def _svc_covering_prices() -> list[dict]:
+    midnight = dt_util.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    return [
+        {
+            "total": 0.8,
+            "starts_at": (midnight + timedelta(hours=h)).isoformat(),
+            "level": "NORMAL",
+        }
+        for h in range(48)
+    ]
+
+
+_svc_crash_coord._prices = _svc_covering_prices()
 
 
 def _tariff_boom():
@@ -12493,9 +12586,7 @@ _svc_check(
     _svc_call(_svc_sim_hass, "simulate_plan", {"target_temp": 21.0}),
     "simulate_plan_no_prices",
 )
-_svc_sim_coord._prices = [
-    {"total": 0.8, "starts_at": "2026-01-15T00:00:00+00:00", "level": "NORMAL"}
-] * 24
+_svc_sim_coord._prices = _svc_covering_prices()
 _svc_check(
     "simulate_plan with unparseable windows refuses the call",
     _svc_call(_svc_sim_hass, "simulate_plan", {"dhw_windows": "25-99"}),

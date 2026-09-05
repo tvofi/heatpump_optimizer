@@ -457,6 +457,27 @@ def _as_float(value: Any, default: float) -> float:
 FORECAST_STEP_MINUTES = 15
 
 
+def _utc_step_starts(
+    midnight: datetime,
+    n_steps: int,
+    step_offset: int = 0,
+    step: timedelta = timedelta(minutes=FORECAST_STEP_MINUTES),
+) -> list[datetime]:
+    """Step labels walked in UTC, then converted back to ``midnight``'s zone.
+
+    Adding ``step`` on the wall clock invents the spring DST gap (labels no
+    real instant carries) and stretches the autumn overlap into a 75-minute
+    step. Walking the same count in UTC keeps every label a real instant
+    ``step`` after the last. Naive ``midnight`` (the test stub) keeps the old
+    wall-clock walk so fixtures that never set a zone stay byte-identical.
+    """
+    tz = midnight.tzinfo
+    if tz is None:
+        return [midnight + step * (step_offset + i) for i in range(n_steps)]
+    base = midnight.astimezone(timezone.utc)
+    return [(base + step * (step_offset + i)).astimezone(tz) for i in range(n_steps)]
+
+
 def _comparable_ts(raw: Any, reference: datetime) -> datetime | None:
     """Parse an entry timestamp so it can be ordered against the step grid.
 
@@ -5951,10 +5972,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             )
             return None
 
-        step_starts = [
-            midnight + timedelta(minutes=FORECAST_STEP_MINUTES * (step_offset + i))
-            for i in range(n_steps)
-        ]
+        step_starts = _utc_step_starts(midnight, n_steps, step_offset)
 
         # Align by each entry's own timestamp, not by its position. Position
         # assumed the first entry is *today's* midnight, which breaks two real
@@ -5965,6 +5983,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # span. The known series stops at the first step no entry covers, and
         # the learned prior fills the rest below.
         known = self._known_prices_for(step_starts)
+        # An empty leading known run is the same as no prices at all: a
+        # prior-only horizon let the run_optimization service solve and
+        # report savings no published price supported (#239).
+        if not known:
+            _LOGGER.warning("No published price covers the horizon; not solving")
+            return None
 
         # Past the published horizon, model the shape rather than repeating the
         # last price. A flat tail has no trough, so the optimizer cannot see a
@@ -6054,10 +6078,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # Guessing from the magnitude misreads a moderate 20 km/h breeze as a
         # 20 m/s storm and doubles the predicted heat loss.
         wind_scale = self._wind_speed_scale()
-        step_starts = [
-            midnight + timedelta(minutes=FORECAST_STEP_MINUTES * (step_offset + i))
-            for i in range(n_steps)
-        ]
+        step_starts = _utc_step_starts(midnight, n_steps, step_offset)
 
         parsed: list[
             tuple[datetime | None, tuple[float, float, float, float, float]]
@@ -6144,10 +6165,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         step = timedelta(minutes=FORECAST_STEP_MINUTES)
         aligned: list[float] = []
         missing = 0
-        for i in range(n_steps):
-            step_start = midnight + timedelta(
-                minutes=FORECAST_STEP_MINUTES * (step_offset + i)
-            )
+        for i, step_start in enumerate(
+            _utc_step_starts(midnight, n_steps, step_offset)
+        ):
             value = self._open_meteo.irradiance_for(step_start, step)
             if value is None:
                 # Past the end of the published horizon: keep whatever the
@@ -6239,10 +6259,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         snowfall = [0.0] * n_steps
         if self._open_meteo is not None and self._open_meteo.available:
             step = timedelta(minutes=FORECAST_STEP_MINUTES)
-            for i in range(n_steps):
-                step_start = midnight + timedelta(
-                    minutes=FORECAST_STEP_MINUTES * (step_offset + i)
-                )
+            for i, step_start in enumerate(
+                _utc_step_starts(midnight, n_steps, step_offset)
+            ):
                 rh = self._open_meteo.humidity_for(step_start, step)
                 if rh is not None:
                     humidity[i] = float(np.clip(rh, 0.0, 100.0))
@@ -7631,8 +7650,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
     def _horizon_step_starts(self, solve_now: datetime, n_steps: int) -> list[datetime]:
         """The instant each solved step begins, matching the optimizer's own."""
-        dt_hours = self._opt_config.dt_hours
-        return [solve_now + timedelta(hours=i * dt_hours) for i in range(n_steps)]
+        return _utc_step_starts(
+            solve_now, n_steps, step=timedelta(hours=self._opt_config.dt_hours)
+        )
 
     def _manual_pins(
         self, solve_now: datetime, n_steps: int
