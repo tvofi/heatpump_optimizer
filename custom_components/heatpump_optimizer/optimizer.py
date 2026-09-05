@@ -42,7 +42,7 @@ import logging
 import math
 import time as _time_mod
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, NamedTuple
 
 import numpy as np
@@ -83,6 +83,18 @@ from .dhw_schedule import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _utc_step_starts(start: datetime, n: int, dt_hours: float) -> list[datetime]:
+    """Horizon clock in UTC so DST transitions do not invent or drop a step."""
+    if start.tzinfo is None:
+        return [start + timedelta(hours=i * dt_hours) for i in range(n)]
+    utc = start.astimezone(timezone.utc)
+    return [
+        (utc + timedelta(hours=i * dt_hours)).astimezone(start.tzinfo)
+        for i in range(n)
+    ]
+
 
 # How far either side of a contended step space heating may look for spare
 # compressor capacity when its energy is displaced by hot water. Beyond a few
@@ -1042,10 +1054,7 @@ class _Horizon:
 
     @property
     def timestamps(self) -> list[datetime]:
-        return [
-            self.start_time + timedelta(hours=i * self.dt)
-            for i in range(self.n_steps)
-        ]
+        return _utc_step_starts(self.start_time, self.n_steps, self.dt)
 
     @property
     def weather(self) -> dict[str, np.ndarray]:
@@ -2105,9 +2114,7 @@ class HeatPumpOptimizer:
         # Hour of day at each step. Computed once: the comfort target, both
         # temperature bounds and the DHW draw pattern all key off it, and it
         # was previously rebuilt from scratch for each of the four.
-        step_datetimes = [
-            start_time + timedelta(hours=i * dt) for i in range(n_steps)
-        ]
+        step_datetimes = _utc_step_starts(start_time, n_steps, dt)
         step_hours = np.array([
             d.hour + d.minute / 60.0 for d in step_datetimes
         ])
