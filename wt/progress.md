@@ -1,1 +1,1 @@
-W2-G6 PR open (trajectory return refactor, #280); gate pending post-commit.
+W2-G6 #438 ready for re-review: brief re-anchored to return-tuple API.
