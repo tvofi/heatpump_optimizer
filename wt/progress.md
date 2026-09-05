@@ -1,1 +1,1 @@
-W3-G3 ready-for-re-review: closures fixed (features.py +solve_process.py +solve_process_check.py); closure.py check pass.
+W3-G3 re-review: ready — UNWIRED solve_process_check exempt; closures re-derived (7 scripts + card.mjs); code OK.

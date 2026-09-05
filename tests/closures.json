@@ -2,7 +2,7 @@
  "_comment": "MEASURED, not written by hand. Regenerate with tests/derive_closures.sh; the post-merge gate on main re-records these and fails if this file misses anything a real run touched.",
  "recorded": {
   "tests/backtest.py": {
-   "seconds": 31.4,
+   "seconds": 22.4,
    "rc": 0
   },
   "tests/card.mjs": {
@@ -14,7 +14,7 @@
    "rc": 0
   },
   "tests/config_flow_steps.py": {
-   "seconds": 0.7,
+   "seconds": 0.5,
    "rc": 0
   },
   "tests/dst_checks.py": {
@@ -22,19 +22,19 @@
    "rc": 0
   },
   "tests/edge.py": {
-   "seconds": 37.9,
+   "seconds": 20.7,
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 15.6,
+   "seconds": 8.9,
    "rc": 0
   },
   "tests/env_drift.py": {
-   "seconds": 0.6,
+   "seconds": 0.5,
    "rc": 0
   },
   "tests/features.py": {
-   "seconds": 47.2,
+   "seconds": 48.5,
    "rc": 1
   },
   "tests/frontend.py": {
@@ -42,43 +42,43 @@
    "rc": 0
   },
   "tests/golden.py": {
-   "seconds": 0.9,
+   "seconds": 0.4,
    "rc": 0
   },
   "tests/manual_plan.py": {
-   "seconds": 6.9,
+   "seconds": 4.9,
    "rc": 0
   },
   "tests/open_meteo.py": {
-   "seconds": 0.2,
+   "seconds": 0.1,
    "rc": 0
   },
   "tests/optimality.py": {
-   "seconds": 54.6,
+   "seconds": 42.0,
    "rc": 0
   },
   "tests/plan_view.py": {
-   "seconds": 1.0,
-   "rc": 0
-  },
-  "tests/solar_alignment.py": {
    "seconds": 0.7,
    "rc": 0
   },
+  "tests/solar_alignment.py": {
+   "seconds": 0.5,
+   "rc": 0
+  },
   "tests/stress.py": {
-   "seconds": 578.2,
+   "seconds": 421.7,
    "rc": 0
   },
   "tests/structure.py": {
-   "seconds": 1.2,
+   "seconds": 0.9,
    "rc": 0
   },
   "tests/validate.py": {
-   "seconds": 31.2,
+   "seconds": 20.4,
    "rc": 0
   },
   "tests/solve_process_check.py": {
-   "seconds": 1.0,
+   "seconds": 0.9,
    "rc": 0
   }
  },
@@ -141,6 +141,7 @@
    "custom_components/heatpump_optimizer/pv.py",
    "custom_components/heatpump_optimizer/services.py",
    "custom_components/heatpump_optimizer/snapshots.py",
+   "custom_components/heatpump_optimizer/solve_process.py",
    "custom_components/heatpump_optimizer/sysid.py",
    "custom_components/heatpump_optimizer/tariff.py",
    "custom_components/heatpump_optimizer/thermal_model.py",
@@ -277,6 +278,7 @@
    "custom_components/heatpump_optimizer/pump_signals.py",
    "custom_components/heatpump_optimizer/pv.py",
    "custom_components/heatpump_optimizer/snapshots.py",
+   "custom_components/heatpump_optimizer/solve_process.py",
    "custom_components/heatpump_optimizer/sysid.py",
    "custom_components/heatpump_optimizer/tariff.py",
    "custom_components/heatpump_optimizer/thermal_model.py",
@@ -378,6 +380,7 @@
    "custom_components/heatpump_optimizer/services.py",
    "custom_components/heatpump_optimizer/services.yaml",
    "custom_components/heatpump_optimizer/snapshots.py",
+   "custom_components/heatpump_optimizer/solve_process.py",
    "custom_components/heatpump_optimizer/strings.json",
    "custom_components/heatpump_optimizer/switch.py",
    "custom_components/heatpump_optimizer/sysid.py",
@@ -846,6 +849,7 @@
    "custom_components/heatpump_optimizer/pump_signals.py",
    "custom_components/heatpump_optimizer/pv.py",
    "custom_components/heatpump_optimizer/snapshots.py",
+   "custom_components/heatpump_optimizer/solve_process.py",
    "custom_components/heatpump_optimizer/sysid.py",
    "custom_components/heatpump_optimizer/tariff.py",
    "custom_components/heatpump_optimizer/thermal_model.py",
@@ -935,6 +939,7 @@
    "custom_components/heatpump_optimizer/pump_signals.py",
    "custom_components/heatpump_optimizer/pv.py",
    "custom_components/heatpump_optimizer/snapshots.py",
+   "custom_components/heatpump_optimizer/solve_process.py",
    "custom_components/heatpump_optimizer/sysid.py",
    "custom_components/heatpump_optimizer/tariff.py",
    "custom_components/heatpump_optimizer/thermal_model.py",
@@ -996,6 +1001,7 @@
    "custom_components/heatpump_optimizer/pump_signals.py",
    "custom_components/heatpump_optimizer/pv.py",
    "custom_components/heatpump_optimizer/snapshots.py",
+   "custom_components/heatpump_optimizer/solve_process.py",
    "custom_components/heatpump_optimizer/sysid.py",
    "custom_components/heatpump_optimizer/tariff.py",
    "custom_components/heatpump_optimizer/thermal_model.py",
@@ -1090,6 +1096,7 @@
    "custom_components/heatpump_optimizer/sensor.py",
    "custom_components/heatpump_optimizer/services.py",
    "custom_components/heatpump_optimizer/snapshots.py",
+   "custom_components/heatpump_optimizer/solve_process.py",
    "custom_components/heatpump_optimizer/switch.py",
    "custom_components/heatpump_optimizer/sysid.py",
    "custom_components/heatpump_optimizer/tariff.py",

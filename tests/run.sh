@@ -250,6 +250,8 @@ for f in tests/*.py tests/*.mjs; do
     # Run by features.py in a subprocess: HASTUB_TZ must be set before the
     # dt stub is imported, which an in-process import cannot arrange.
     dst_checks.py) continue ;;
+    # Run by features.py in a subprocess: worker_pid needs a real child process.
+    solve_process_check.py) continue ;;
     # The visual-QA renderer is WIRED into the card lane (v6.x, #101); no
     # exclusion here -- the UNWIRED check below must see it referenced.
     # The real-browser layout lane (issue #96): its own job in the
