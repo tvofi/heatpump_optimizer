@@ -4151,6 +4151,24 @@ class HeatPumpOptimizer:
                 out[i] = 0.0
         return out
 
+    def _dhw_plan_temps(
+        self,
+        plan: np.ndarray,
+        initial_temp: float,
+        outdoor_temps: np.ndarray,
+        draw_rates: np.ndarray,
+        dt: float,
+    ) -> np.ndarray:
+        return np.asarray(
+            self.model.simulate_dhw_only(
+                initial_temp=initial_temp,
+                dhw_power_schedule=plan,
+                outdoor_temps=outdoor_temps,
+                draw_rates=draw_rates,
+                dt_hours=dt,
+            )
+        )
+
     def _repair_dhw_floor(
         self,
         *,
@@ -4213,16 +4231,12 @@ class HeatPumpOptimizer:
         # Convergence is a min-run trickle per round in the worst case (a
         # cheap-step landscape already near the run cap), so the bound is
         # sized for a multi-degree breach at trickle pace, not for elegance.
+        temps: np.ndarray | None = None
         for _ in range(48):
-            temps = np.asarray(
-                self.model.simulate_dhw_only(
-                    initial_temp=initial_temp,
-                    dhw_power_schedule=plan,
-                    outdoor_temps=outdoor_temps,
-                    draw_rates=draw_rates,
-                    dt_hours=dt,
+            if temps is None:
+                temps = self._dhw_plan_temps(
+                    plan, initial_temp, outdoor_temps, draw_rates, dt
                 )
-            )
             deficit = req - temps[1 : n + 1]
             breach = [
                 int(i)
@@ -4340,6 +4354,10 @@ class HeatPumpOptimizer:
                     # as one nothing ceiling-legal closes and the search moves
                     # on to the next.
                     unreachable.add(b)
+                else:
+                    temps = self._dhw_plan_temps(
+                        plan, initial_temp, outdoor_temps, draw_rates, dt
+                    )
             else:
                 # Nothing ceiling-legal can fix this step; move on rather than
                 # abandoning every later breach with it.
@@ -4501,6 +4519,15 @@ class HeatPumpOptimizer:
 
         run_power = min(min_run_power, p_dhw_max)
         base = trajectory(plan)
+        joint = plan.copy()
+        joint[weak] = run_power
+        joint_temps = trajectory(joint)
+        joint_limit = np.maximum(
+            ceiling[: joint_temps.size], base[: joint_temps.size]
+        )
+        if bool(np.all(joint_temps <= joint_limit + 1e-9)):
+            return np.clip(joint, 0.0, p_dhw_max)
+
         for i in weak:
             raised = plan.copy()
             raised[i] = run_power
@@ -4582,14 +4609,12 @@ class HeatPumpOptimizer:
 
         tolerance = 0.05  # °C
         unreachable: set[int] = set()
+        temps: np.ndarray | None = None
         for _ in range(400):
-            temps = self.model.simulate_dhw_only(
-                initial_temp=initial_temp,
-                dhw_power_schedule=plan,
-                outdoor_temps=outdoor_temps,
-                draw_rates=draw_rates,
-                dt_hours=dt,
-            )
+            if temps is None:
+                temps = self._dhw_plan_temps(
+                    plan, initial_temp, outdoor_temps, draw_rates, dt
+                )
             gaps = requirement - temps[1:]
             violations = [
                 int(i) for i in np.where(gaps > tolerance)[0] if int(i) not in unreachable
@@ -4672,6 +4697,14 @@ class HeatPumpOptimizer:
                 # Charging one slot changes every later tank temperature, so
                 # re-simulate before choosing the next one. This is what keeps
                 # the plan from overshooting the tank's maximum temperature.
+                self.model.extend_dhw_temps(
+                    temps,
+                    j,
+                    plan,
+                    outdoor_temps,
+                    draw_rates,
+                    dt_hours=dt,
+                )
                 break
 
             if added <= 1e-9:

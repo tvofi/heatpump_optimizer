@@ -1685,18 +1685,43 @@ class ThermalModel:
 
         Returns an array of length ``n_steps + 1`` starting at ``initial_temp``.
         """
-        n_steps = len(dhw_power_schedule)
-        temps = np.zeros(n_steps + 1)
+        schedule = np.asarray(dhw_power_schedule, dtype=float)
+        n_steps = schedule.size
+        temps = np.empty(n_steps + 1)
         temps[0] = initial_temp
-        temp = initial_temp
-        for i in range(n_steps):
-            cop = self.compute_cop_dhw(float(outdoor_temps[i]), temp)
-            temp = self.simulate_dhw_step(
+        return self.extend_dhw_temps(
+            temps,
+            0,
+            schedule,
+            outdoor_temps,
+            draw_rates,
+            dt_hours=dt_hours,
+        )
+
+    def extend_dhw_temps(
+        self,
+        temps: np.ndarray,
+        from_step: int,
+        dhw_power_schedule: np.ndarray,
+        outdoor_temps: np.ndarray,
+        draw_rates: np.ndarray,
+        dt_hours: float = 0.25,
+    ) -> np.ndarray:
+        """Refresh ``temps[from_step + 1:]`` after the schedule changed there."""
+        schedule = np.asarray(dhw_power_schedule, dtype=float)
+        outdoor = np.asarray(outdoor_temps, dtype=float)
+        draws = np.asarray(draw_rates, dtype=float)
+        temp = float(temps[from_step])
+        compute_cop = self.compute_cop_dhw
+        simulate_step = self.simulate_dhw_step
+        for i in range(from_step, schedule.size):
+            cop = compute_cop(outdoor[i], temp)
+            temp = simulate_step(
                 dhw_temp=temp,
-                dhw_power_thermal=cop * float(dhw_power_schedule[i]),
+                dhw_power_thermal=cop * schedule[i],
                 hour_of_day=0.0,
                 dt_hours=dt_hours,
-                draw_power=float(draw_rates[i]),
+                draw_power=draws[i],
             )
             temps[i + 1] = temp
         return temps
