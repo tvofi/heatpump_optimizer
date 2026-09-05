@@ -445,6 +445,22 @@ def _price_guess_weights(prices: np.ndarray) -> np.ndarray:
     return 1.0 - 0.8 * ranks / float(max(len(prices) - 1, 1))
 
 
+def _cap_tighten_starts(
+    prev: np.ndarray,
+    power_caps: np.ndarray,
+    prices: np.ndarray,
+    dt: float,
+    p_max: float,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Starting points for a buffer-cap re-solve (#234)."""
+    clipped = np.minimum(np.asarray(prev, dtype=float), power_caps)
+    energy = float(np.sum(clipped) * dt)
+    bang_bang = np.minimum(
+        _price_ranked_start(prices, energy, p_max, dt), power_caps
+    )
+    return clipped, bang_bang
+
+
 def _price_ranked_start(
     prices: np.ndarray, energy_kwh: float, p_max: float, dt: float
 ) -> np.ndarray:
@@ -2243,14 +2259,15 @@ class HeatPumpOptimizer:
         # Per-step valve target schedule, set by the hold-candidate pass below
         # and read by every solve and re-simulation through the closure.
         valve_targets: np.ndarray | None = None
-        cap_resolv_starts: tuple[np.ndarray, ...] | None = None
 
         # Solve, then check the solved trajectory against the hard safety lines,
         # release any forced-off pin that would breach one, and solve again.
         # The comfort and tank floors are *soft* penalties in the objective, so
         # clamping a step off does not actually protect the house or tank — only
         # re-solving with the offending pin freed does.
-        def _solve() -> OptimizationResult:
+        def _solve(
+            extra_starts: tuple[np.ndarray, ...] | None = None,
+        ) -> OptimizationResult:
             horizon = _Horizon(
                 initial_state=initial_state,
                 prices=prices,
@@ -2279,7 +2296,7 @@ class HeatPumpOptimizer:
                 humidity=humidity,
                 space_blocked=space_blocked,
                 dhw_blocked=dhw_blocked,
-                extra_starts=cap_resolv_starts,
+                extra_starts=extra_starts,
             )
             if dhw_enabled:
                 return self._optimize_with_dhw(horizon)
@@ -2396,38 +2413,12 @@ class HeatPumpOptimizer:
                     valve_targets = None
 
         if power_caps is not None and throttling:
-            # The tank's safe ceiling as a hard constraint. The model's clamp
-            # already stops the simulated temperature exceeding the cap, but it
-            # does so by *deleting* the excess heat -- so a plan that charges a
-            # full tank is merely wasteful in the objective while boiling the
-            # tank on the real system, and at a low enough price the solver is
-            # indifferent to the waste. A soft penalty is explicitly ruled out
-            # by item 29 (the solver would plan to boil the tank at a small
-            # modelled cost); instead, mirror the pin-safety loop above with
-            # the opposite polarity: find the steps whose heat the cap
-            # refused, lower their power ceiling to what the tank could
-            # actually accept, and re-solve. Bounded like the release loop, and
-            # for the same reason.
-            for _ in range(_SAFETY_REPAIR_ROUNDS):
-                if not self._tighten_buffer_caps(
-                    result, power_caps, initial_state, outdoor_temps,
-                    wind_speeds, precipitation, solar_radiation, dt,
-                    external_heat_kw=external_heat_kw,
-                    valve_targets=valve_targets,
-                    humidity=humidity,
-                    start_hour=float(step_hours[0]),
-                ):
-                    break
-                prev = np.asarray(result.power_schedule, dtype=float)
-                clipped = np.minimum(prev, power_caps)
-                p_max = self.model.params.max_electrical_power
-                energy = float(np.sum(clipped) * dt)
-                bang_bang = np.minimum(
-                    _price_ranked_start(prices, energy, p_max, dt), power_caps
-                )
-                cap_resolv_starts = (clipped, bang_bang)
-                result = _solve()
-                cap_resolv_starts = None
+            result = self._repair_throttled_buffer_caps(
+                result, power_caps, initial_state, outdoor_temps,
+                wind_speeds, precipitation, solar_radiation, dt,
+                prices, step_hours, external_heat_kw, valve_targets,
+                humidity, _solve,
+            )
 
         result.manual_pins_active = space_pins is not None or dhw_pins is not None
         result.manual_released_space = sorted(released_space)
@@ -2655,6 +2646,40 @@ class HeatPumpOptimizer:
                 int(np.count_nonzero(refused > 1e-9)),
             )
         return changed
+
+    def _repair_throttled_buffer_caps(
+        self,
+        result: OptimizationResult,
+        power_caps: np.ndarray,
+        initial_state: ThermalState,
+        outdoor_temps: np.ndarray,
+        wind_speeds: np.ndarray,
+        precipitation: np.ndarray,
+        solar_radiation: np.ndarray,
+        dt: float,
+        prices: np.ndarray,
+        step_hours: np.ndarray,
+        external_heat_kw: np.ndarray | None,
+        valve_targets: np.ndarray | None,
+        humidity: np.ndarray | None,
+        solve,
+    ) -> OptimizationResult:
+        """Re-solve after lowering ceilings where the tank clamp refused heat."""
+        p_max = self.model.params.max_electrical_power
+        for _ in range(_SAFETY_REPAIR_ROUNDS):
+            if not self._tighten_buffer_caps(
+                result, power_caps, initial_state, outdoor_temps,
+                wind_speeds, precipitation, solar_radiation, dt,
+                external_heat_kw=external_heat_kw,
+                valve_targets=valve_targets,
+                humidity=humidity,
+                start_hour=float(step_hours[0]),
+            ):
+                break
+            result = solve(_cap_tighten_starts(
+                result.power_schedule, power_caps, prices, dt, p_max,
+            ))
+        return result
 
     def _safety_release_steps(
         self,
