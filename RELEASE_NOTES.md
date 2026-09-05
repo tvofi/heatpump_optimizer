@@ -1,5 +1,112 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.3.13
+
+Wave 1b half II: eight fixer groups and the gate tooling they depended on. Unlike
+v6.3.12, this release moves production code under `custom_components/` — card
+geometry and contrast, coordinator store loaders, solver objective caching,
+`wood_share` continuity, may-drift judging, layout-editor recovery — and ships
+two card-drift states claimed for the new Tidy up button (#403).
+
+### One-entry objective cache so the batched jac does not re-evaluate f(x) (#419, #288)
+
+#419 closes #288 (D9-03). `_multi_start_minimize` keeps a one-entry cache so
+scipy's `fun(x)` and the batched jac's `f0` share one raw objective evaluation.
+On the merge base, **11 consecutive duplicate evaluations in 20 raw calls**;
+after the fix, **0 dups in 9 raw calls** with the same minimizer path. The
+finder harness on `two_zone_dhw` measured `scalar_steps_per_gradient` **196.5 →
+99.1**; `batch_rows_per_gradient` stayed **96** (null control — the batch arm
+untouched). `simulate_step_calls` halved; `njev` unchanged.
+
+### Store loaders discard corrupt payloads instead of raising (#238)
+
+Six fire-and-forget store loaders wrapped `async_load` but not the type checks
+that followed, so structurally valid JSON of the wrong type raised out of the
+loader task — `thermal_learning` was the only store that did not self-heal.
+Every junk payload (`list`, `str`, `int`, `inf` counts, wrapped `freq_map`,
+`10**30` under `np.isfinite`) is now discarded. The round-2 store fuzzer at
+2000 mutants: `thermal_learning` **9/9 → 0/0** loader raises;
+`price_model` **57/0 → 0/0**; `dhw_draws` **1/1 → 0/0**.
+
+### Only solve-reachable changes run tests/stress.py
+
+The package root no longer imports the coordinator at module scope. PEP 562
+`__getattr__` and lazy resolution in `async_setup_entry` cut the import graph
+from **40 to 10** `heatpump_optimizer.*` modules for what stress imports.
+`tests/stress.py`'s measured closure **64 → 22**; #414's setpoint-mapping
+change no longer selects stress. Push-to-main still forces `GATE_SCOPE=full`.
+
+### May-drift fixtures judged only on four keys (#254)
+
+#427 closes #254. Experiment on all five `SENSITIVE` fixtures plus
+`narrow_band`: `prices`, `outdoor_temps`, `price_known`, `baseline_cost` never
+move under machine noise; plan keys do. `MAY_DRIFT_JUDGED_KEYS` holds those
+four; diffs in them increment `drifted` and fail the gate. M01 on `wood_coil`:
+458 plan leaves move; the four judged keys stay put except `baseline_cost`
+(156 → 678); with the old code rc **0**, with the fix rc **1** as intended.
+
+### CARD_VERSION tracks VERSION at stamp (#265)
+
+#424 closes #265. `stamp.py` now rewrites `CARD_VERSION` in the bundled card
+alongside `VERSION` and the manifest, so the console banner tracks the
+integration release. `rewrite_card_version` is covered by `--self-test`; a
+`CARD_VERSION`-only edit is card-drift-neutral in all 27 states.
+
+### wood_share is continuous as wood_temp crosses the flow curve (#245)
+
+Region 3 of `wood_share` (and `_wood_share_vec`) now reaches 1.0 as `wood_temp`
+hits `flow_set`, meeting region 1 continuously. `wood_share_max_jump` **1.0 →
+0.0**; `wood_share_times_drawn_jump` **13.4 kW → 0**. Severity context: 0 of
+4.8 M solver calls within 0.5 K of the cliff.
+
+### Card contrast and delta wording (W1-G12)
+
+Darker readable tokens and opaque chip/apply backgrounds fix D4-05/D4-06
+contrast failures; delta wording corrected for the card's savings display.
+Stale `editor_schema` card drift claim dropped.
+
+### Coarse HTML targets and unit ink proximity (#432)
+
+#432 closes #262 and #258. Compact-chart `plotT` floor and `uy` clamp clear
+axis unit labels from the top tick once the 8 px font floor engages.
+Coarse-pointer `@media` min sizes for dialog HTML controls; taller setup-diagram
+`setup-hit` rects under coarse pointers. **26 card_drift states** claimed and
+moved; `editor_schema` unchanged.
+
+### Layout editor Tidy up recovery button (#403)
+
+Exhaustive in-column permutation search (at most 72 candidates) scores
+pipe-pair crossings and pipe-over-box incidences, writes `ed.positions` without
+touching edges. Two `card_drift` states claimed: `layout_editing_dragged`,
+`layout_editing_tidy`.
+
+### Unit-correct write-target mapping for smart_write valve commands (#414, #398)
+
+#414 closes #398. `smart_write` valve commands now map write targets with
+unit-correct semantics so the coordinator does not send incompatible setpoints.
+
+### Brief linter CI for wave roster citations (#416, #411)
+
+#416 closes #411. `node .claude/workflows/brief_lint.mjs` resolves paths,
+symbols and metrics cited in `wave-*-groups.json`; a never-scoped CI job
+enforces it. Wave 2 fixers depend on this landing first.
+
+### Programme plans cite through the brief linter (#417)
+
+Load-bearing citations in programme plans must live in `wave-*-groups.json` in
+a form the linter can resolve — not only in free-form markdown.
+
+### Model routing table committed (#418)
+
+The open-issues programme's model-routing table: Grok 4.6 in every seat except
+restructuring (Opus 5 for Wave 4 moves, W2-G1/G2, decomposition judgements).
+
+### Record and delivery-status updates (#413, #415, #422, #423, #426)
+
+#413 records half I completion, W1-G16 addition, four half-II brief corrections.
+#415 records D2-02 as an accepted limit. #422/#423/#426 catch up
+delivery-status and re-anchor W2-G2 brief citations after line drift.
+
 ## v6.3.12
 
 Twenty-one merges, and **not one of them changes what the integration does at

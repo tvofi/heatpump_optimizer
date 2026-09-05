@@ -19,9 +19,8 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 6.3.12
+# claims-for: 6.3.13
 #
-# record/w1-g16 (#433): this commit moves no card markup — only delivery-status
-# and roster. The W1-G16 claims above were written for ac35bf8; carrying them
-# forward would inherit exactly what that diff already claims.
+# v6.3.13: Wave 1b half II card, coordinator, solver, gate. The stamp empties the list; the
+# next branch restates its own footprint, claims included.
 #
