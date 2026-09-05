@@ -1,5 +1,66 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.3.14
+
+Wave 2 of the open-issues programme: coordinator lifecycle, price-grid alignment,
+numpy serialisation, learner recording gates, system-identification sizing,
+buffer trajectory returns, and config-flow page density. Seven fixer groups
+merged in sequence on `main` after the v6.3.13 fork (`f94ae13`); record PRs
+(#434)–(#450) and triage (#439) carry delivery tracking between merges.
+
+### A failed setup and a mid-solve reload both leave the entry behind (#437)
+
+#437 closes #236, #237, and #240. ConfigEntryNotReady retries no longer leak
+MQTT subscriptions or zombie coordinators; mid-solve reload cancels in-flight
+service calls and saves; what-if simulation deep-copies config and thermal
+params so live state cannot tear. Owner-confirmed structure budget raise for
+the coordinator class.
+
+### Skip a prior-only horizon; walk the plan grid in UTC (#440)
+
+#440 closes #239 and #243. Empty leading price slots no longer block the
+optimization service path; the wall-clock step grid aligns weather and tariff
+series on DST transition days. Record PR (#442) carries the merge; duplicate
+(#441) closed unmerged; second independent review (#443).
+
+### Builtin float at two numpy roots; legacy schedule spans 24 h (#444)
+
+#444 closes #283 and #284. `_plain_types` wraps deferred-energy and solar-gain
+leaves so orjson sees Python floats; legacy schedule sensors publish the full
+24 h window. Record PR (#446).
+
+### Gate open-window accuracy recording (#447)
+
+#447 closes #279 and closes #278 with evidence — the defrost learner gate
+harms honest installs when configured, and is inert without a defrost entity.
+Open-window vent-CUSUM contamination is gated via `_learning_frozen` reuse.
+
+### Record settle power, size sysid step, fit settle hour
+
+W2-G5 lands at `f492b1f` after (#447): settle-phase rows carry delivered
+power before identify() widens its filter; step power sizes from predicted
+excursion; plant sweeps complete instead of aborting at the production bound.
+Record PR (#450) carries the merge.
+
+### Return buffer trajectories from simulate_trajectory (#438)
+
+#438 closes #280. `simulate_trajectory*` returns buffer, refused, and wood
+temperature trajectories instead of side-channel mutation — stale-read hygiene
+for two-zone store paths.
+
+### Split config flow pages to ≤15 fields (#436)
+
+#436 closes #198. Five option pages split so every screen stays at or under
+15 fields; space-circulation pump moves off the hot-water page. Golden
+`config_flow.json` claimed for the page split.
+
+### Record and triage since v6.3.13
+
+#434 records the v6.3.13 release. #435 verifies Wave 2 briefs and forks the
+wave at `f94ae13`. #439 records triage B2 timing judges — W3-G1 scoped,
+unblocked. #442, #443, #446, and #450 are delivery record PRs for W2-G2,
+G2 review, W2-G3, and W2-G5.
+
 ## v6.3.13
 
 Wave 1b half II: eight fixer groups and the gate tooling they depended on. Unlike

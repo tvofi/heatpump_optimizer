@@ -45,17 +45,11 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 6.3.13
+# claims-for: 6.3.14
 #
+# v6.3.14: Wave 2 coordinator lifecycle, learners, options grouping. The stamp empties the list; the
+# next branch restates its own footprint, claims included.
 #
-# w2-g1-lifecycle: this branch claims NOTHING. #236/#237/#240 change entry
-# release, shutdown ordering and what-if copying; no solve input, no captured
-# key path and no recorded value moves, and `env_drift.py --all` against the
-# merge base is byte-identical outside the five may-drift fixtures below. The
-# list is empty for that reason, not because it was forgotten -- #198's
-# config_flow claim is merged (3834a8a) and describes the baseline's own diff,
-# so carrying it forward would excuse this change by accident, which is the
-# inherited-claims rule above.
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
