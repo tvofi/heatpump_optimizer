@@ -7100,7 +7100,7 @@ R.check(
 from unittest import mock as _mock
 
 def _record_node_missing_strace_rc() -> int | None:
-    with _mock.patch.object(__import__("shutil"), "which", return_value=None):
+    with _mock.patch.object(_closure.shutil, "which", return_value=None):
         with _tempfile.TemporaryDirectory() as d:
             try:
                 _closure._record_node(
