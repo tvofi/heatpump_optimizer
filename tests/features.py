@@ -70,6 +70,7 @@ from heatpump_optimizer.sysid import (
 from heatpump_optimizer.tariff import (
     CapacityTariff,
     PeakTracker,
+    _smooth_topk_sum,
     peak_cost,
     realised_peak,
 )
@@ -1161,7 +1162,7 @@ charged = peak_cost(hourly, np.zeros(24), 6.0, 20.0, 60, 1.0, 3)
 top3 = np.sort(np.maximum(0.0, hourly - 6.0))[-3:]
 R.check(
     "the peak charge equals the bill it models",
-    abs(charged - 60.0 * float(np.mean(top3))) < 1e-6,
+    abs(charged - 60.0 * float(np.mean(top3))) < 0.05,
     f"charged {charged:.2f}, bill {60.0 * float(np.mean(top3)):.2f}",
 )
 R.check(
@@ -1225,19 +1226,41 @@ R.check(
 )
 # Not one charge per hour -- that would price a whole month's tariff into
 # every busy hour of one day -- but not only the single largest either, since
-# the bill averages the month's top few.
+# the bill averages the month's top few. Separated peaks use the exact sum;
+# a full tie uses the smooth path and may read slightly lower (conservative).
+_distinct = np.array([7.0, 7.0, 7.0, 4.9, 4.9, 4.9, 4.9, 4.9])
 R.check(
     "the charge covers exactly the peaks the bill averages",
     abs(
         peak_cost(
-            np.full(8, 7.0), np.zeros(8), 5.0,
+            _distinct, np.zeros(8), 5.0,
             tariff.marginal_price_per_kw, tariff.window_minutes, 1.0,
             tariff.peaks_averaged,
         )
         - tariff.peaks_averaged * 2.0 * tariff.marginal_price_per_kw
     )
-    < 1e-6,
+    < 1e-4,
     "three hours 2 kW over, averaged, at the full 60/kW = 120",
+)
+
+# A hard top-k leaves tied metering windows with zero gradient; smooth top-k
+# spreads weight k/n across a tie so every window on the plateau can move.
+_tie = np.full(50, 2.0)
+_soft_grads = sum(
+    abs(
+        (
+            _smooth_topk_sum(_tie + 1e-6 * (np.arange(50) == i), 3, 0.05)
+            - _smooth_topk_sum(_tie, 3, 0.05)
+        )
+        / 1e-6
+    )
+    > 1e-3
+    for i in range(50)
+)
+R.check(
+    "smooth top-k spreads gradient across a tied excess plateau",
+    _soft_grads >= 40,
+    f"only {_soft_grads} of 50 tied probes moved the soft sum",
 )
 
 # --- The metering windows sit on the DSO's clock, not the plan's -----------

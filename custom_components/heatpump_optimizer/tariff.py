@@ -436,6 +436,45 @@ def window_factors(
     )
 
 
+# Soft top-k temperature as a fraction of the largest excess. Small enough
+# that separated peaks still match the billed sum; large enough that tied
+# windows all carry gradient (#232).
+_PEAK_SMOOTH_TAU = 0.05
+
+
+def _smooth_topk_sum(values: np.ndarray, k: int, tau: float) -> float:
+    """Differentiable approximation to ``sum(sort(values)[-k:])``.
+
+    A hard top-k has zero gradient on every tied window beyond the kth, which
+    leaves gradient-based solvers blind on the peak plateau that capacity
+    tariffs create. Three soft-max selections — one per billed peak — spread
+    weight across tied windows while keeping the cost of each evaluation
+    bounded (#232).
+    """
+    x = np.asarray(values, dtype=float)
+    if x.size == 0 or k <= 0:
+        return 0.0
+    k = max(1, min(int(k), x.size))
+    if not np.any(x > 0):
+        return 0.0
+    scale = max(tau * float(np.max(x)), 1e-9)
+    total = 0.0
+    rem = x.copy()
+    for _ in range(k):
+        peak = float(np.max(rem))
+        if peak <= 0:
+            break
+        z = np.clip((rem - peak) / scale, -500.0, 500.0)
+        w = 1.0 / (1.0 + np.exp(-z))
+        w_sum = float(np.sum(w))
+        if w_sum <= 0:
+            break
+        w /= w_sum
+        total += float(np.sum(w * rem))
+        rem *= 1.0 - w
+    return total
+
+
 def peak_cost(
     total_power_kw: np.ndarray,
     baseline_load_kw: np.ndarray,
@@ -464,7 +503,8 @@ def peak_cost(
       one window, so a gradient-based optimizer got a signal at 1 step in 96
       and the term was effectively inert; the measured result was that enabling
       the tariff *raised* the peak. Summing the top k gives every one of those
-      k windows a gradient.
+      k windows a gradient; when more than k windows tie, a smooth top-k
+      spreads that signal across all of them (#232).
 
     It is still an upper bound on the true marginal bill, not an exact figure:
     each of the plan's top-k windows is charged as if it displaced a billed
@@ -499,8 +539,13 @@ def peak_cost(
     if not np.any(excess > 0):
         return 0.0
     k = max(1, min(int(peaks_averaged), excess.size))
-    top_k = np.sort(excess)[-k:]
-    return float(price_per_kw * np.sum(top_k))
+    peak = float(np.max(excess))
+    tied = int(np.sum(excess >= peak - max(1e-9 * peak, 1e-12))) > k
+    if tied:
+        top_sum = _smooth_topk_sum(excess, k, _PEAK_SMOOTH_TAU)
+    else:
+        top_sum = float(np.sum(np.sort(excess)[-k:]))
+    return float(price_per_kw * top_sum)
 
 
 def realised_peak(
