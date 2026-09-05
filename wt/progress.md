@@ -1,1 +1,1 @@
-W2-G5 follow-up #451 merged efe5a27 (review 5551113810); #244 #325 closed. Next W3-G1 after main green.
+W3-G1 PR open (claude-web/w3-g1): smooth top-k #232 + cap-tighten seeds #234; 5 goldens claimed; gate green pending CI.
