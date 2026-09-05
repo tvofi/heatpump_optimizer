@@ -1704,7 +1704,8 @@ class HeatPumpOptimizer:
         The second plan is adopted **only if it scores better on the same
         objective**, so this pass can never make the plan worse — which is what
         makes a single extra iteration safe rather than something that needs to
-        run to convergence.
+        run to convergence. The wood-tank coil (#400) re-plans here against
+        the solved space heating's wood trajectory; no compressor pin required.
         """
         try:
             headroom = np.maximum(0.0, p_max - dhw_power)
@@ -1712,7 +1713,14 @@ class HeatPumpOptimizer:
             # it, it wanted more power than it could have; its unconstrained
             # demand there is at least the full compressor.
             pinned = (dhw_power > 1e-6) & (space_power >= headroom - 1e-3)
-            if not bool(np.any(pinned)):
+            wood_temps = self._dhw_coil_wood_forecast(h, space_power)
+            coil_replan = False
+            if wood_temps is not None:
+                hours = np.asarray(h.step_hours, dtype=float) % 24.0
+                raw = self.model.dhw_draw_rates(hours)
+                credited = self._dhw_planner_draws(raw, wood_temps)
+                coil_replan = not np.allclose(credited, raw, atol=1e-9)
+            if not bool(np.any(pinned)) and not coil_replan:
                 return space_power, dhw_power, status
 
             replanned = self._build_dhw_requirements(
@@ -1731,6 +1739,7 @@ class HeatPumpOptimizer:
                     else None
                 ),
                 step_weekdays=h.step_weekdays,
+                wood_temps=wood_temps,
             )["schedule"]
             if np.allclose(replanned, dhw_power, atol=1e-4):
                 return space_power, dhw_power, status
@@ -3485,6 +3494,78 @@ class HeatPumpOptimizer:
             legionella_step=legionella_step,
         )
 
+    def _dhw_coil_wood_forecast(
+        self,
+        h: _Horizon,
+        space_power: np.ndarray | None = None,
+    ) -> np.ndarray | None:
+        """Per-step wood temps the DHW coil credit is priced against (#400).
+
+        ``simulate_trajectory`` already applies standby loss, ``wood_share``
+        and the external-heat forecast. Coil drain is folded in with
+        ``dhw_coil_draw_reduction`` so later hours are not credited at a tank
+        the coil itself has cooled. Planner-only: physics still sees raw draws.
+        """
+        p = self.model.params
+        if not p.dhw_coil_active or h.initial_state.wood_tank_temperature is None:
+            return None
+        n = h.n_steps
+        power = (
+            np.zeros(n)
+            if space_power is None
+            else np.asarray(space_power, dtype=float)[:n]
+        )
+        *_, wood = self.model.simulate_trajectory(
+            initial_state=h.initial_state,
+            power_schedule=power,
+            outdoor_temps=h.outdoor_temps,
+            wind_speeds=h.wind_speeds,
+            precipitation=h.precipitation,
+            solar_radiation=h.solar_radiation,
+            dt_hours=h.dt,
+            external_heat_kw=h.external_heat_kw,
+            valve_targets=h.valve_targets,
+            humidity=h.humidity,
+            start_hour=float(h.step_hours[0]),
+        )
+        if wood is None:
+            return None
+        hours = np.asarray(h.step_hours, dtype=float) % 24.0
+        raw = np.asarray(self.model.dhw_draw_rates(hours), dtype=float)
+        out = np.array(wood, dtype=float, copy=True)
+        c_w = max(p.wood_tank_thermal_mass, 0.01)
+        inlet = p.dhw_inlet_reference
+        setpoint = p.dhw_setpoint
+        dt = h.dt
+        n_apply = min(len(raw), len(out) - 1)
+        for i in range(n_apply):
+            _, q_coil = dhw_coil_draw_reduction(
+                float(raw[i]), float(out[i + 1]), setpoint, inlet_temp=inlet,
+            )
+            if q_coil > 0.0:
+                out[i + 1] = max(inlet, out[i + 1] - q_coil * dt / c_w)
+        return out
+
+    def _dhw_planner_draws(
+        self,
+        raw_draw_rates: np.ndarray,
+        wood_temps: np.ndarray | None,
+    ) -> np.ndarray:
+        """Coil-reduced draws for planning. Caller keeps the raw array for physics."""
+        if wood_temps is None:
+            return raw_draw_rates
+        p = self.model.params
+        wt = np.asarray(wood_temps, dtype=float)
+        out = np.empty_like(raw_draw_rates, dtype=float)
+        last = len(wt) - 1
+        setpoint = p.dhw_setpoint
+        inlet = p.dhw_inlet_reference
+        for i, rate in enumerate(raw_draw_rates):
+            idx = i if i <= last else last
+            out[i], _ = dhw_coil_draw_reduction(
+                float(rate), float(wt[idx]), setpoint, inlet_temp=inlet,
+            )
+        return out
 
     def _build_dhw_requirements(
         self,
@@ -3500,6 +3581,7 @@ class HeatPumpOptimizer:
         p_run_cap: float | None = None,
         blocked: bool = False,
         step_weekdays: np.ndarray | None = None,
+        wood_temps: np.ndarray | None = None,
     ) -> dict[str, Any]:
         """Build the DHW availability requirements and a cheapest-first plan.
 
@@ -3561,7 +3643,10 @@ class HeatPumpOptimizer:
         )
         window_starts = np.where(in_window & ~prev_in_window)[0].tolist()
 
-        draw_rates = self.model.dhw_draw_rates(hours_mod)
+        raw_draw_rates = self.model.dhw_draw_rates(hours_mod)
+        # Planners may see the coil; physics must not — simulate_trajectory_with_dhw
+        # applies dhw_coil_draw_reduction itself (#400).
+        draw_rates = self._dhw_planner_draws(raw_draw_rates, wood_temps)
 
         floor_temps = np.where(in_window, dhw_min_temp, idle_min_temp).astype(float)
         ready_temps = np.zeros(n_steps)
@@ -3881,7 +3966,7 @@ class HeatPumpOptimizer:
         return {
             "floor_temps": floor_temps,
             "ready_temps": ready_temps,
-            "draw_rates": draw_rates,
+            "draw_rates": raw_draw_rates,
             "in_window": in_window,
             # The everyday charge limit, as one number: this is the plan's
             # published ceiling, and a disinfection cycle is an exception to
@@ -4771,6 +4856,7 @@ class HeatPumpOptimizer:
             ),
             blocked=h.dhw_blocked,
             step_weekdays=h.step_weekdays,
+            wood_temps=self._dhw_coil_wood_forecast(h),
         )
 
         dhw_floor_temps = dhw_plan["floor_temps"]
