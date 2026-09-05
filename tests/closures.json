@@ -26,15 +26,15 @@
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 15.6,
+   "seconds": 9.1,
    "rc": 0
   },
   "tests/env_drift.py": {
-   "seconds": 0.7,
+   "seconds": 0.6,
    "rc": 0
   },
   "tests/features.py": {
-   "seconds": 87.3,
+   "seconds": 45.8,
    "rc": 0
   },
   "tests/frontend.py": {
@@ -70,7 +70,7 @@
    "rc": 0
   },
   "tests/structure.py": {
-   "seconds": 1.2,
+   "seconds": 0.9,
    "rc": 0
   },
   "tests/validate.py": {
@@ -366,6 +366,7 @@
    "custom_components/heatpump_optimizer/power_guard.py",
    "custom_components/heatpump_optimizer/presets.py",
    "custom_components/heatpump_optimizer/price_model.py",
+   "custom_components/heatpump_optimizer/process_worker.py",
    "custom_components/heatpump_optimizer/pump_mode.py",
    "custom_components/heatpump_optimizer/pump_schedule.py",
    "custom_components/heatpump_optimizer/pump_signals.py",
@@ -463,6 +464,7 @@
    "custom_components/heatpump_optimizer/power_guard.py",
    "custom_components/heatpump_optimizer/presets.py",
    "custom_components/heatpump_optimizer/price_model.py",
+   "custom_components/heatpump_optimizer/process_worker.py",
    "custom_components/heatpump_optimizer/pump_mode.py",
    "custom_components/heatpump_optimizer/pump_schedule.py",
    "custom_components/heatpump_optimizer/pump_signals.py",
@@ -601,6 +603,7 @@
    "custom_components/heatpump_optimizer/power_guard.py",
    "custom_components/heatpump_optimizer/presets.py",
    "custom_components/heatpump_optimizer/price_model.py",
+   "custom_components/heatpump_optimizer/process_worker.py",
    "custom_components/heatpump_optimizer/pump_mode.py",
    "custom_components/heatpump_optimizer/pump_schedule.py",
    "custom_components/heatpump_optimizer/pump_signals.py",
@@ -698,6 +701,7 @@
    "custom_components/heatpump_optimizer/power_guard.py",
    "custom_components/heatpump_optimizer/presets.py",
    "custom_components/heatpump_optimizer/price_model.py",
+   "custom_components/heatpump_optimizer/process_worker.py",
    "custom_components/heatpump_optimizer/pump_mode.py",
    "custom_components/heatpump_optimizer/pump_schedule.py",
    "custom_components/heatpump_optimizer/pump_signals.py",
@@ -1075,6 +1079,7 @@
    "custom_components/heatpump_optimizer/power_guard.py",
    "custom_components/heatpump_optimizer/presets.py",
    "custom_components/heatpump_optimizer/price_model.py",
+   "custom_components/heatpump_optimizer/process_worker.py",
    "custom_components/heatpump_optimizer/pump_mode.py",
    "custom_components/heatpump_optimizer/pump_schedule.py",
    "custom_components/heatpump_optimizer/pump_signals.py",

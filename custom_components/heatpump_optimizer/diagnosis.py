@@ -27,10 +27,15 @@ Kept free of Home Assistant imports so it can be unit-tested directly.
 """
 from __future__ import annotations
 
+import logging
 from dataclasses import replace
 from typing import Any
 
 import numpy as np
+
+from .thermal_model import ThermalModel
+
+_LOGGER = logging.getLogger(__name__)
 
 #: The inputs a swap can attribute, in publication order. Each maps to a
 #: ``simulate_step`` keyword; power is positional and handled by name too.
@@ -118,3 +123,29 @@ def attribute(
         "contributions": contributions,
         "unexplained": round(unexplained, 3),
     }
+
+
+def diagnose_record(record, params):
+    """Picklable diagnosis worker; the coordinator itself is not picklable.
+
+    A scratch model, never the live one: ``simulate_step`` writes per-call
+    scratch on the model instance, and the scheduled solve may be walking
+    the same instance in another process. Same idiom as the what-if solves.
+    """
+    if not record:
+        return None
+    try:
+        scratch_model = ThermalModel(replace(params))
+        report = attribute(
+            scratch_model,
+            record["state"],
+            dict(record["planned"], dt_hours=record["dt_hours"]),
+            record["realised"],
+            record["actual"],
+        )
+    except Exception as err:  # noqa: BLE001 - never break ops for insight
+        _LOGGER.debug("Interval diagnosis failed: %s", err)
+        return None
+    if report is not None:
+        report["interval_end"] = record["when"]
+    return report
