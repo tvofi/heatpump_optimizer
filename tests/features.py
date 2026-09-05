@@ -21792,6 +21792,8 @@ R.check(
 
 
 def _process_pool_pids() -> tuple[int, int]:
+    from heatpump_optimizer.solve_process import worker_pid  # gate anchor
+
     root = _os.path.dirname(_os.path.dirname(__file__))
     out = _subprocess.check_output(
         [sys.executable, "tests/solve_process_check.py"],

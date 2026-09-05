@@ -76,6 +76,10 @@
   "tests/validate.py": {
    "seconds": 31.2,
    "rc": 0
+  },
+  "tests/solve_process_check.py": {
+   "seconds": 1.1,
+   "rc": 0
   }
  },
  "closures": {
@@ -1113,6 +1117,28 @@
    "tests/hastub/homeassistant/loader.py",
    "tests/profiles.py",
    "tests/validate.py"
+  ],
+  "tests/solve_process_check.py": [
+   "custom_components/heatpump_optimizer/__init__.py",
+   "custom_components/heatpump_optimizer/const.py",
+   "custom_components/heatpump_optimizer/dhw_draws.py",
+   "custom_components/heatpump_optimizer/dhw_schedule.py",
+   "custom_components/heatpump_optimizer/diagnosis.py",
+   "custom_components/heatpump_optimizer/mixing_valve.py",
+   "custom_components/heatpump_optimizer/optimizer.py",
+   "custom_components/heatpump_optimizer/pv.py",
+   "custom_components/heatpump_optimizer/solve_process.py",
+   "custom_components/heatpump_optimizer/tariff.py",
+   "custom_components/heatpump_optimizer/thermal_model.py",
+   "tests/hastub/homeassistant/__init__.py",
+   "tests/hastub/homeassistant/config_entries.py",
+   "tests/hastub/homeassistant/const.py",
+   "tests/hastub/homeassistant/core.py",
+   "tests/hastub/homeassistant/helpers/__init__.py",
+   "tests/hastub/homeassistant/helpers/config_validation.py",
+   "tests/hastub/homeassistant/helpers/entity_registry.py",
+   "tests/hastub/homeassistant/loader.py",
+   "tests/solve_process_check.py"
   ]
  }
 }

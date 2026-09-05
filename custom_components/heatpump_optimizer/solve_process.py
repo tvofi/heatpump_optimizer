@@ -149,3 +149,6 @@ def run_interval_diagnosis(
     if report is not None:
         report["interval_end"] = record["when"]
     return report
+
+
+(worker_pid, run_optimize_worker, run_interval_diagnosis)

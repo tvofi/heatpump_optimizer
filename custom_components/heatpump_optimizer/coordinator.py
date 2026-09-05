@@ -4939,8 +4939,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             # Taken here, after every pre-solve mutation above, so the copies
             # carry all of them into the executor thread.
             solve_state, solve_optimizer = self._solve_snapshot()
-            # #290/#199: child process, not the HA thread pool — the GIL
-            # is whole-interpreter and a thread executor starves every loop.
+            # #290/#199: process pool, not the HA thread pool.
             result = await async_run_solve_job(
                 self.hass,
                 run_optimize_worker,
@@ -10329,9 +10328,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     async def async_diagnose_interval(self) -> None:
         """Service/button entry for #52; publishes on the insight view."""
         record = self._last_interval_record
-        if not record:
-            report = None
-        else:
+        report = None
+        if record:
             report = await async_run_solve_job(
                 self.hass,
                 run_interval_diagnosis,
@@ -10342,8 +10340,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 self._last_diagnosis = report
         if report is None:
             _LOGGER.info(
-                "No settled interval to diagnose yet — one full "
-                "optimization interval must pass first"
+                "No settled interval to diagnose yet — one full optimization interval must pass first"
             )
         await self.async_request_refresh()
 

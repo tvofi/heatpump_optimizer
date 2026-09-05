@@ -412,8 +412,8 @@ done
 # calls, passes the first check and fails this one.
 for f in tests/*.py tests/*.mjs; do
   base=$(basename "$f")
-  case "$base" in
-    harness.py|profiles.py|dst_checks.py|closure.py|dom_stub.mjs|card_rig.mjs|card_browser.mjs) continue ;;
+    case "$base" in
+    harness.py|profiles.py|dst_checks.py|solve_process_check.py|closure.py|dom_stub.mjs|card_rig.mjs|card_browser.mjs) continue ;;
   esac
   if ! cat "$WORKDIR"/*.manifest 2>/dev/null | grep -Fq "tests/$base"; then
     echo "TEST NEVER RAN: tests/$base is wired into tests/run.sh but no lane"
