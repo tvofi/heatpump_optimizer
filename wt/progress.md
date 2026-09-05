@@ -1,1 +1,1 @@
-Wave 2 briefs verified (brief_lint rc 0, fork f94ae13); next seat W2-G1 Opus 5.
+W2-G6 #438 ready for re-review: brief re-anchored to return-tuple API.

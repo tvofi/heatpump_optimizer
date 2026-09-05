@@ -67,7 +67,7 @@ def build_case(two_zone: bool, dhw: bool):
 
 def score(model, opt_cfg, power, price_series, outdoor, wind, rain, solar, state):
     """Cost and realised comfort of an arbitrary power schedule."""
-    room, slab, upper, lower = model.simulate_trajectory(
+    room, slab, upper, lower, _, _, _ = model.simulate_trajectory(
         initial_state=state,
         power_schedule=power,
         outdoor_temps=outdoor,
@@ -327,10 +327,9 @@ def _storage_arm(volume: float, price_profile: str):
     # reference the integration's own settlement uses. Symmetric because the
     # arms are peers, not a plan against a thermostat: a surplus carried into
     # tomorrow is worth exactly what a deficit costs.
-    room, slab, upper, lower = model.simulate_trajectory(
+    room, slab, upper, lower, buf, _, _ = model.simulate_trajectory(
         state, power, outdoor, wind, rain, solar, DT
     )
-    buf = model.last_buffer_trajectory
     p = model.params
     e_delta = (
         p.upper_floor_thermal_mass * (upper[-1] - 20.0)
@@ -410,7 +409,7 @@ def _furnace_arm(informed: bool, burn: np.ndarray):
     power = np.asarray(result.power_schedule)
     # Score under the real physics: the fire burns whether or not the plan
     # knew about it.
-    room, slab, upper, lower = model.simulate_trajectory(
+    room, slab, upper, lower, _, _, _ = model.simulate_trajectory(
         state, power, outdoor, wind, rain, solar, DT, external_heat_kw=burn
     )
     indoor = np.minimum(upper[1:], lower[1:])
