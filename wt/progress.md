@@ -1,1 +1,1 @@
-W3-G3 re-review: ready — UNWIRED solve_process_check exempt; closures re-derived (7 scripts + card.mjs); code OK.
+W3-G3 merged PR #462 dc11da5: process-pool solves (#290 #199); UNWIRED+closures fixed; fast+closures CI green.
