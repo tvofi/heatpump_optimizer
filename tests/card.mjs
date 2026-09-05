@@ -2860,6 +2860,133 @@ check("the hand-scheduled reason has a label",
         `edges drawn: ${edgesOf(c).join(", ")}`);
     }
   }
+
+  // --- Tidy up: exhaustive in-column reorder (#403) -----------------------
+  {
+    const layoutCost = fn("layoutCost");
+    const layoutArrange = fn("layoutArrange");
+    const W_PIPE = fn("LAYOUT_W_PIPE");
+    const W_TANK = fn("LAYOUT_W_TANK");
+    const tidyBtn = (card) => card.shadowRoot.querySelector(".layout-tidy");
+    const pileBox = (card, place, dx, dy) => {
+      const from = centre(card, place);
+      card.layoutEditor.onDown(ev(from, { dataset: {} }));
+      card.layoutEditor.onMove(ev({ x: from.x + dx, y: from.y + dy }));
+      card.layoutEditor.onUp(ev({ x: from.x + dx, y: from.y + dy }));
+    };
+    const costNow = (card) =>
+      layoutCost(card.layoutEditor.boxes, card.layoutEditor.edit.edges);
+    const overlap = (card) => {
+      const bs = card.layoutEditor.boxes || [];
+      for (let i = 0; i < bs.length; i++) {
+        for (let j = i + 1; j < bs.length; j++) {
+          const a = bs[i];
+          const b = bs[j];
+          if (
+            a.x < b.x + b.w && a.x + a.w > b.x &&
+            a.y < b.y + b.h && a.y + a.h > b.y
+          ) {
+            return true;
+          }
+        }
+      }
+      return false;
+    };
+
+    check("a pipe over a tank outranks two pipes crossing",
+      W_TANK > 2 * W_PIPE,
+      `w_tank=${W_TANK} w_pipe=${W_PIPE}`);
+
+    {
+      const outdoor = { place: "outdoor", x: 16, y: 16, w: 200, h: 83, col: 0 };
+      const hp = { place: "heat_pump", x: 16, y: 113, w: 200, h: 32, col: 0 };
+      const valve = { place: "mixing_valve", x: 260, y: 16, w: 200, h: 32, col: 1 };
+      const buffer = { place: "buffer_tank", x: 260, y: 62, w: 200, h: 66, col: 1 };
+      const upper = { place: "upper_zone", x: 504, y: 16, w: 200, h: 66, col: 2 };
+      const lower = { place: "lower_zone", x: 504, y: 96, w: 200, h: 49, col: 2 };
+      const edges = [
+        ["heat_pump", "buffer_tank"], ["buffer_tank", "mixing_valve"],
+        ["mixing_valve", "upper_zone"], ["mixing_valve", "lower_zone"],
+        ["buffer_tank", "lower_zone"],
+      ];
+      const neat = [outdoor, hp, valve, buffer, upper, lower];
+      const piled = [
+        outdoor, hp,
+        { ...buffer, x: 260, y: 16 },
+        { ...valve, x: 260, y: 62 },
+        upper, lower,
+      ];
+      const neatCost = layoutCost(neat, edges);
+      const piledCost = layoutCost(piled, edges);
+      check("layoutCost scores a tangled column stack above the neat default",
+        piledCost > neatCost + W_PIPE,
+        `neat=${neatCost} piled=${piledCost}`);
+    }
+
+    {
+      const c = mkEditor();
+      clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
+      check("Tidy up is offered while the layout editor is open",
+        !!tidyBtn(c) && /Tidy up/.test(tidyBtn(c).textContent));
+      const beforeCost = costNow(c);
+      pileBox(c, "buffer_tank", 50, 40);
+      pileBox(c, "mixing_valve", 45, 35);
+      check("two dragged boxes can land on each other",
+        overlap(c), `boxes ${JSON.stringify(c.layoutEditor.boxes)}`);
+      const piledCost = costNow(c);
+      check("a piled layout costs strictly more than the default",
+        piledCost > beforeCost,
+        `${beforeCost} -> ${piledCost}`);
+      clickOn(tidyBtn(c));
+      check("Tidy up lowers the crossing cost and clears the pile",
+        costNow(c) < piledCost && !overlap(c),
+        `after tidy cost=${costNow(c)}`);
+      check("Tidy up leaves the pipe set and the matched layout alone",
+        c.layoutEditor.edit.edges.map((e) => `${e[0]}>${e[1]}`).join() ===
+          EDGES.valve_upper_direct_slab.map((e) => `${e[0]}>${e[1]}`).join() &&
+        c.layoutEditor.edit.match.key === "valve_upper_direct_slab");
+      check("Tidy up marks the drawing dirty and saveable",
+        c.layoutEditor.edit.dirty &&
+        !c.shadowRoot.querySelector(".layout-save").disabled);
+    }
+
+    {
+      const c = mkEditor();
+      clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
+      const optimal = costNow(c);
+      clickOn(tidyBtn(c));
+      check("Tidy up on an already neat layout does not raise the cost",
+        costNow(c) <= optimal + 1e-9,
+        `${optimal} -> ${costNow(c)}`);
+      const once = JSON.stringify(c.layoutEditor.edit.positions);
+      clickOn(tidyBtn(c));
+      check("Tidy up is idempotent once the layout is already tidy",
+        JSON.stringify(c.layoutEditor.edit.positions) === once);
+    }
+
+    {
+      const mkPiled = () => {
+        const c = mkEditor();
+        clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
+        pileBox(c, "heat_pump", 60, 50);
+        pileBox(c, "buffer_tank", 55, 45);
+        return c;
+      };
+      const a = mkPiled();
+      clickOn(tidyBtn(a));
+      const posA = JSON.stringify(a.layoutEditor.edit.positions);
+      const b = mkPiled();
+      clickOn(tidyBtn(b));
+      const posB = JSON.stringify(b.layoutEditor.edit.positions);
+      check("Tidy up is deterministic from two different starting piles",
+        posA === posB, `${posA} vs ${posB}`);
+    }
+
+    check("the Tidy up label goes through the translation layer, both ways",
+      /"setup\.tidy_layout": "Tidy up"/.test(cardSrc) &&
+      /"setup\.tidy_layout": "Städa upp"/.test(cardSrc) &&
+      (cardSrc.match(/"setup\.tidy_layout_aria":/g) || []).length === 2);
+  }
 }
 
 // --- Scenario: phone-width usability (#40 feedback, item 1) -----------------
