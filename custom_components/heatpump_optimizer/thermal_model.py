@@ -1147,7 +1147,14 @@ def wood_share(
         useful = max(0.0, wood_temp - floor_temp)
         span = max(flow_set - floor_temp, 1e-6)
         return min(1.0, max(0.0, f_w * useful / span))
-    return min(1.0, max(0.0, (wood_temp - hp_temp) / max(margin, 1e-6)))
+    return min(
+        1.0,
+        max(
+            0.0,
+            max(wood_temp - hp_temp, wood_temp - flow_set + margin)
+            / max(margin, 1e-6),
+        ),
+    )
 
 
 def _wood_share_vec(
@@ -1178,7 +1185,11 @@ def _wood_share_vec(
     # Region 3: the smooth switch to the hotter source.
     v3 = np.minimum(
         1.0,
-        np.maximum(0.0, (wood_temp - hp_temp) / max(margin, 1e-6)),
+        np.maximum(
+            0.0,
+            np.maximum(wood_temp - hp_temp, wood_temp - flow_set + margin)
+            / max(margin, 1e-6),
+        ),
     )
     return np.where(r1, 1.0, np.where(r2, v2, v3))
 
