@@ -440,6 +440,10 @@ def window_factors(
 # that separated peaks still match the billed sum; large enough that tied
 # windows all carry gradient (#232).
 _PEAK_SMOOTH_TAU = 0.05
+# Wider than L-BFGS-B's 2-point abs_step (1e-4 kW) so a plateau still
+# looks tied under a one-window probe; tighter than a 0.1 kW separated
+# peak so those stay on the exact hard sum.
+_PEAK_TIE_BAND = 1e-3
 
 
 def _smooth_topk_sum(values: np.ndarray, k: int, tau: float) -> float:
@@ -447,9 +451,9 @@ def _smooth_topk_sum(values: np.ndarray, k: int, tau: float) -> float:
 
     A hard top-k has zero gradient on every tied window beyond the kth, which
     leaves gradient-based solvers blind on the peak plateau that capacity
-    tariffs create. Three soft-max selections — one per billed peak — spread
-    weight across tied windows while keeping the cost of each evaluation
-    bounded (#232).
+    tariffs create. Here a logistic threshold is chosen so the soft weights
+    sum to *k*; when many windows tie, each gets weight ``k/n`` and the
+    approximate sum stays ``k × tie_level``.
     """
     x = np.asarray(values, dtype=float)
     if x.size == 0 or k <= 0:
@@ -457,22 +461,24 @@ def _smooth_topk_sum(values: np.ndarray, k: int, tau: float) -> float:
     k = max(1, min(int(k), x.size))
     if not np.any(x > 0):
         return 0.0
-    scale = max(tau * float(np.max(x)), 1e-9)
-    total = 0.0
-    rem = x.copy()
-    for _ in range(k):
-        peak = float(np.max(rem))
-        if peak <= 0:
-            break
-        z = np.clip((rem - peak) / scale, -500.0, 500.0)
+    peak = float(np.max(x))
+    scale = max(tau * peak, 1e-9)
+    lo, hi = float(np.min(x)) - 1.0, peak + 1.0
+    mid = 0.5 * (lo + hi)
+    for _ in range(64):
+        z = np.clip((x - mid) / scale, -60.0, 60.0)
         w = 1.0 / (1.0 + np.exp(-z))
-        w_sum = float(np.sum(w))
-        if w_sum <= 0:
+        count = float(np.sum(w))
+        if abs(count - k) < 1e-6:
             break
-        w /= w_sum
-        total += float(np.sum(w * rem))
-        rem *= 1.0 - w
-    return total
+        if count > k:
+            lo = mid
+        else:
+            hi = mid
+        mid = 0.5 * (lo + hi)
+    z = np.clip((x - mid) / scale, -60.0, 60.0)
+    w = 1.0 / (1.0 + np.exp(-z))
+    return float(np.sum(w * x))
 
 
 def peak_cost(
@@ -539,9 +545,12 @@ def peak_cost(
     if not np.any(excess > 0):
         return 0.0
     k = max(1, min(int(peaks_averaged), excess.size))
+    # Separated peaks are the bill: hard top-k is exact and cheap. A plateau
+    # of more than k windows at the peak is where hard top-k goes blind
+    # (#232); only then pay for the smooth sum.
     peak = float(np.max(excess))
-    tied = int(np.sum(excess >= peak - max(1e-9 * peak, 1e-12))) > k
-    if tied:
+    n_at_peak = int(np.sum(excess >= peak - _PEAK_TIE_BAND))
+    if n_at_peak > k:
         top_sum = _smooth_topk_sum(excess, k, _PEAK_SMOOTH_TAU)
     else:
         top_sum = float(np.sum(np.sort(excess)[-k:]))

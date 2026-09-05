@@ -461,6 +461,15 @@ def _cap_tighten_starts(
     return clipped, bang_bang
 
 
+def _better_objective(left, right):
+    """The plan with the lower finite objective; ties keep ``left``."""
+    lo = float(left.objective_value)
+    ro = float(right.objective_value)
+    if np.isfinite(ro) and (not np.isfinite(lo) or ro < lo - 1e-9):
+        return right
+    return left
+
+
 def _price_ranked_start(
     prices: np.ndarray, energy_kwh: float, p_max: float, dt: float
 ) -> np.ndarray:
@@ -2676,9 +2685,13 @@ class HeatPumpOptimizer:
                 start_hour=float(step_hours[0]),
             ):
                 break
-            result = solve(_cap_tighten_starts(
+            extras = _cap_tighten_starts(
                 result.power_schedule, power_caps, prices, dt, p_max,
-            ))
+            )
+            # Extra seeds occupy two of `_MULTI_START_SOLVES` slots and can
+            # displace a cheaper unseeded basin. Run both arms; seeds may
+            # only win.
+            result = _better_objective(solve(), solve(extras))
         return result
 
     def _safety_release_steps(
