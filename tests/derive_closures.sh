@@ -105,6 +105,8 @@ p1=$!
 # card.mjs reads, so that pair keeps its order here exactly as in run.sh.
 (
   rec tests/features.py
+  # features.py runs this one in a subprocess for the #290 process-pool gate.
+  rec tests/solve_process_check.py
   rec tests/entities.py
   # The config-flow driver (#194), in lane order next to entities.py: a
   # selectable script the lanes never recorded reads as "no closure" and

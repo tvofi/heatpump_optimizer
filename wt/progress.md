@@ -1,1 +1,1 @@
-W3-G3 open PR: process-pool solves (#290 #199).
+W3-G3: closures CI unblocked — solve_process_check.py in derive_closures lane 3; ready-for-re-review.

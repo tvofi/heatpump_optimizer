@@ -78,7 +78,7 @@
    "rc": 0
   },
   "tests/solve_process_check.py": {
-   "seconds": 1.1,
+   "seconds": 1.0,
    "rc": 0
   }
  },
