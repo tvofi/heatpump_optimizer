@@ -21787,4 +21787,44 @@ R.check(
     f"fixed {_g2_winter_calls} vs mutant {_g2_mut_calls}",
 )
 
+R.section("3L-G7 — monthly savings history")
+
+from datetime import datetime as _SavDT
+from heatpump_optimizer.ledger import (
+    MonthlyLedger as _SavLedger,
+    month_key as _sav_month_key,
+    pro_rata_factor as _sav_factor,
+    savings_pct as _sav_pct,
+)
+
+_feb10 = _SavDT(2026, 2, 10, 15, 0)
+_feb1 = _SavDT(2026, 2, 1, 8, 0)
+_jan31 = _SavDT(2026, 1, 31, 12, 0)
+R.check(
+    "February 10 uses 28 / 10",
+    abs(_sav_factor(_feb10) - 2.8) < 1e-12,
+    repr(_sav_factor(_feb10)),
+)
+R.check(
+    "day 1 uses divisor 1 (February 1 is 28 / 1)",
+    abs(_sav_factor(_feb1) - 28.0) < 1e-12,
+    repr(_sav_factor(_feb1)),
+)
+R.check(
+    "January 31 uses 31 / 31",
+    abs(_sav_factor(_jan31) - 1.0) < 1e-12,
+    repr(_sav_factor(_jan31)),
+)
+R.check(
+    "pct is baseline-relative and clipped",
+    abs(_sav_pct(100.0, 60.0) - 60.0) < 1e-12
+    and abs(_sav_pct(100.0, 200.0) - 100.0) < 1e-12
+    and abs(_sav_pct(100.0, -200.0) - (-100.0)) < 1e-12,
+)
+R.check(
+    "pct is omitted when baseline_sek <= 0.01, not published as 0.0",
+    _sav_pct(0.01, 0.0) is None and _sav_pct(0.0, 1.0) is None,
+    repr(_sav_pct(0.01, 0.0)),
+)
+
 sys.exit(R.close("FEATURE CHECKS"))

@@ -17,6 +17,7 @@ coordinator owns the Store; this owns the arithmetic.
 """
 from __future__ import annotations
 
+import calendar
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -32,6 +33,23 @@ KEEP_MONTHS = 24
 
 def month_key(when: datetime) -> str:
     return when.strftime("%Y-%m")
+
+
+def pro_rata_factor(now: datetime) -> float:
+    """Calendar days in this month over max(1, day-of-month)."""
+    days = calendar.monthrange(now.year, now.month)[1]
+    return days / max(1, now.day)
+
+
+def savings_pct(baseline_sek: float, savings_sek: float) -> float | None:
+    """Same clip as optimizer._savings_percentage, but None when the baseline is ~0.
+
+    The optimizer helper returns 0.0 in that case; the published row must omit
+    the percentage instead of claiming 0 %.
+    """
+    if baseline_sek <= 0.01:
+        return None
+    return float(np.clip(savings_sek / baseline_sek * 100.0, -100.0, 100.0))
 
 
 @dataclass
