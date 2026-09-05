@@ -1,12 +1,12 @@
 {
   "_comment": [
     "Wave 3L of the open-issues programme (docs/plan-2026-09-open-issues.md).",
-    "Leftovers after Wave 3, before Wave 4. Serial. Do not start while W3-G3 holds",
-    "coordinator.py or the gate lock. #412 stays last of the programme, not in this burst.",
+    "Leftovers after Wave 3, before Wave 4. Serial. Wave 3 is done (8542e51).",
+    "#412 stays last of the programme, not in this burst.",
     "Consumed by .claude/workflows/web-fix-wave.js as its `groups` argument."
   ],
-  "fork": "after-w3-g3",
-  "fork_note": "Cut every branch from origin/main after W3-G3 (#290 #199) merges. Re-measure structure at that merge-base. claims-for stays 6.3.14.",
+  "fork": "8542e51cb325d9b52f6eb2a03f69e308298b5f84",
+  "fork_note": "origin/main after W3-G3 #461 (`8542e51`). Re-measure structure at this merge-base. claims-for stays 6.3.14.",
   "session": "claude-web",
   "repo": "/Users/timmalmstrom/heatpump_optimizer",
   "serial": true,
@@ -19,7 +19,7 @@
       "reviewerModel": "opus",
       "effort": "high",
       "fixture": true,
-      "blocked_on": "W3-G3",
+      "blocked_on": null,
       "after": [],
       "brief": "DHW planner credits the wood-tank refill coil. Measured -5.394 SEK/day on 2000 L @ 85 C; plan is byte-identical coil-on/off today. optimizer.py only. Claims, never re-record goldens. wood_coil is may-drift and cannot be claimed. Other 54 scenarios byte-identical."
     },
@@ -84,9 +84,9 @@
       "resume": {
         "stage": "in_progress",
         "branch": "3l-g7-monthly-savings",
-        "note": "Implemented on 3l-g7-monthly-savings. Rebase after W3-G3 and 3L-G5/G6. Do not merge ahead of those seats."
+        "note": "Implemented on 3l-g7-monthly-savings. Rebase after 3L-G5/G6. Do not merge ahead of those seats."
       },
-      "brief": "Monthly savings history card page (#460). Realised thermostat-baseline ledger; calendar pro-rata for the open month; third expanded-dialog tab. Rebase after W3-G3. Do not merge ahead of 3L-G5. Closes #460 on its own line."
+      "brief": "Monthly savings history card page (#460). Realised thermostat-baseline ledger; calendar pro-rata for the open month; third expanded-dialog tab. Rebase after 3L-G5/G6. Do not merge ahead of those seats. Closes #460 on its own line."
     },
     {
       "group": "3L-G8",
