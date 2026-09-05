@@ -9464,10 +9464,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             / 60.0
         )
         actual_now = self._current_state.room_temperature
-        if (
-            actual_now is not None
-            and self._learning_frozen(CONF_INDOOR_TEMP_ENTITY) is None
-        ):
+        indoor_frozen = self._learning_frozen(CONF_INDOOR_TEMP_ENTITY)
+        if actual_now is not None and indoor_frozen is None:
             self._accuracy.score_lead_predictions(
                 now, float(actual_now), window_hours=interval_h
             )
@@ -9538,26 +9536,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                         )
                     except Exception:  # noqa: BLE001 - tag is best-effort
                         sample.cop_residual = None
-                # v5.3.0: an interval the pump spent cooling, faulted or
-                # off the network is not a measurement of the model's
-                # accuracy — the plan asked for heat and something else
-                # happened — and ``_confidence_margins`` turns recorded
-                # error into a widened comfort band on every future solve.
-                # The energy below is still accumulated: it really was
-                # drawn, and the ledger must stay honest about that.
-                # ``freeze_reason`` is None on any install without the pump
-                # signals configured, so this is inert for them.
-                # D7-05: the same honesty for detected free heat. An open
-                # window or a fireplace is "something else happened" every
-                # bit as much as a faulted pump — the plan's predicted
-                # trajectory assumes the modelled inputs only — and a
-                # poisoned trust score from such an interval widens every
-                # future comfort band for weeks. Symmetric with the pump
-                # freeze: skip the accuracy sample, keep the energy.
-                if (
-                    self._pump_signals.freeze_reason is None
-                    and not self._external_heat_active
-                ):
+                # D7-03/D7-05: skip the accuracy sample when ``indoor_frozen``
+                # above is set — open window, external heat, pump fault, or
+                # an unusable indoor sensor. Energy below is still
+                # accumulated: it really was drawn.
+                if indoor_frozen is None:
                     self._accuracy.record(sample)
                 self._accumulate_energy(sample, elapsed, pending)
 
