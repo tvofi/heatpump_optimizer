@@ -523,10 +523,18 @@ try {
     (tooSmall.length ? `; under: ${tooSmall.slice(0, 4).map((t) => `${t.cls} ${t.w.toFixed(1)}x${t.h.toFixed(1)}`).join(", ")}` : ""));
 
   // D4-02 (#262): HTML controls under a coarse pointer must also clear 24 px.
-  // Isolated page so matchMedia stub does not leak into later ink checks.
+  // Isolated page so coarse media does not leak into later ink checks.
   const coarsePage = await browser.newPage({ viewport: { width: 1024, height: 800 } });
   coarsePage.on("pageerror", (err) => console.log(`  page error: ${err.message}`));
   await coarsePage.goto("about:blank");
+  // Headless Chromium is pointer:fine; the card's @media (pointer: coarse) CSS
+  // only applies when the engine's media features say coarse. Playwright 1.49
+  // has no emulateMedia({ pointer }) — CDP is the equivalent. matchMedia stub
+  // below still covers JS _coarsePointer() reads on this page.
+  const coarseCdp = await coarsePage.context().newCDPSession(coarsePage);
+  await coarseCdp.send("Emulation.setEmulatedMedia", {
+    features: [{ name: "pointer", value: "coarse" }],
+  });
   await coarsePage.addScriptTag({ path: CARD_SRC });
   await coarsePage.evaluate(() => {
     const orig = window.matchMedia.bind(window);
