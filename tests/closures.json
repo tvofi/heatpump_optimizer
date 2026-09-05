@@ -34,8 +34,8 @@
    "rc": 0
   },
   "tests/features.py": {
-   "seconds": 87.3,
-   "rc": 0
+   "seconds": 47.2,
+   "rc": 1
   },
   "tests/frontend.py": {
    "seconds": 0.0,
@@ -612,6 +612,7 @@
    "custom_components/heatpump_optimizer/pv.py",
    "custom_components/heatpump_optimizer/services.py",
    "custom_components/heatpump_optimizer/snapshots.py",
+   "custom_components/heatpump_optimizer/solve_process.py",
    "custom_components/heatpump_optimizer/strings.json",
    "custom_components/heatpump_optimizer/sysid.py",
    "custom_components/heatpump_optimizer/tariff.py",
@@ -653,6 +654,7 @@
    "tests/hastub/homeassistant/util/dt.py",
    "tests/profiles.py",
    "tests/run.sh",
+   "tests/solve_process_check.py",
    "tests/structure.py"
   ],
   "tests/frontend.py": [
