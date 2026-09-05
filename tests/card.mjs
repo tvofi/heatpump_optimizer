@@ -6086,6 +6086,65 @@ const setupBox = (card, place) =>
     "the dialog's geometry would have read it as a different time");
 }
 
+// --- D4-08 (#263): chart series colours against the card background --------
+// WCAG 1.4.11 asks 3:1 of graphical objects on #ffffff and #1c1c1c.
+{
+  const hex = (h) => {
+    const n = parseInt(h.slice(1), 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  };
+  const lum = (c) => {
+    const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+    return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]);
+  };
+  const ratio = (a, b) => {
+    const la = lum(a), lb = lum(b);
+    return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+  };
+  const defs = vm.runInContext("SERIES_DEFS", ctx);
+  const BG = { light: hex("#ffffff"), dark: hex("#1c1c1c") };
+  let low = { light: 0, dark: 0 };
+  for (const d of defs) {
+    const c = hex(d.color);
+    if (ratio(c, BG.light) < 3) low.light++;
+    if (ratio(c, BG.dark) < 3) low.dark++;
+  }
+  check("every series colour clears WCAG 1.4.11's 3:1 on a light card",
+    low.light === 0, `${low.light} of ${defs.length} below 3:1 on #fff`);
+  check("every series colour clears WCAG 1.4.11's 3:1 on a dark card",
+    low.dark === 0, `${low.dark} of ${defs.length} below 3:1 on #1c1c1c`);
+}
+
+// --- D4-12 (#266): what-if delta sentence grammar -------------------------
+{
+  vm.runInContext(`setLanguage("en")`, ctx);
+  let badEn = 0;
+  for (const [verdict, detailKey] of [
+    ["stats.cheaper", "stats.delta_detail"],
+    ["stats.dearer", "stats.delta_detail"],
+    ["stats.the_same", "stats.delta_detail_same"],
+  ]) {
+    const s = vm.runInContext(
+      `L(${JSON.stringify(detailKey)}, { verdict: L(${JSON.stringify(verdict)}), ` +
+      `planned: "31.97", edited: "31.97", currency: "SEK" })`,
+      ctx);
+    if (/\bthe same than\b/.test(s)) badEn++;
+  }
+  check("no English delta sentence reads 'the same than'",
+    badEn === 0, `${badEn} of 3 verdicts ungrammatical`);
+  vm.runInContext(`setLanguage("sv")`, ctx);
+  let badSv = 0;
+  for (const verdict of ["stats.cheaper", "stats.dearer", "stats.the_same"]) {
+    const s = vm.runInContext(
+      `L("stats.delta_detail", { verdict: L(${JSON.stringify(verdict)}), ` +
+      `planned: "31.97", edited: "31.97", currency: "SEK" })`,
+      ctx);
+    if (/oförändrad än/.test(s)) badSv++;
+  }
+  check("Swedish delta sentences stay grammatical for all three verdicts",
+    badSv === 0, `${badSv} of 3 verdicts ungrammatical`);
+}
+
 // --- The host stays small ---------------------------------------------------
 // The decomposition (#136) left the element with the Lovelace contract, the
 // render cycle and its compositions, and nothing else. A ratchet, not a
