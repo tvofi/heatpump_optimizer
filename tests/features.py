@@ -12438,6 +12438,58 @@ R.check(
     _asyncio.run(_cover_coord.async_run_optimization()) is None
     and _cover_coord._optimization_result is not None,
 )
+_cover_data = _cover_coord._build_data_dict()
+R.section("optimizer outputs are plain Python (#283)")
+R.check(
+    "deferred_energy_cost is a plain float, not numpy.float64",
+    type(_cover_data["deferred_energy_cost"]) is float,
+    repr(type(_cover_data["deferred_energy_cost"])),
+)
+R.check(
+    "predicted_savings is a plain float, not numpy.float64",
+    type(_cover_data["predicted_savings"]) is float,
+    repr(type(_cover_data["predicted_savings"])),
+)
+R.check(
+    "schedule solar_gain leaves the model as a plain float",
+    _cover_data.get("schedule")
+    and type(_cover_data["schedule"][0]["solar_gain"]) is float,
+    repr(
+        type(_cover_data["schedule"][0]["solar_gain"])
+        if _cover_data.get("schedule")
+        else None
+    ),
+)
+_prices_np = np.array([1.0, 2.0, 3.0], dtype=np.float64)
+_out_np = np.array([-5.0, -5.0, -5.0], dtype=np.float64)
+_base_np = ThermalState(
+    room_temperature=21.0, outdoor_temperature=-5.0, dhw_temperature=47.0
+)
+_opt_np = _dc_replace(_base_np, dhw_temperature=45.0)
+from heatpump_optimizer.optimizer import HeatPumpOptimizer as _Opt283, OptimizationConfig as _Cfg283
+
+_opt283 = _Opt283(ThermalModel(ThermalParameters()), _Cfg283())
+R.check(
+    "_deferred_energy_cost coerces numpy arithmetic to plain float",
+    type(
+        _opt283._deferred_energy_cost(
+            _base_np, _opt_np, _prices_np, _out_np, include_dhw=True
+        )
+    )
+    is float,
+)
+R.check(
+    "compute_solar_gain coerces learned parameters to plain float",
+    type(ThermalModel(ThermalParameters()).compute_solar_gain(400.0)) is float,
+)
+R.section("legacy schedule spans the plan horizon (#284)")
+_space_forecast = (_cover_data.get("space_plan") or {}).get("forecast") or []
+R.check(
+    "schedule matches space_plan forecast length",
+    len(_cover_data.get("schedule") or []) == len(_space_forecast),
+    f"schedule={len(_cover_data.get('schedule') or [])} "
+    f"forecast={len(_space_forecast)}",
+)
 _stale_dt.freeze(None)
 _svc_check(
     "simulate_plan with no plan raises a translated operational error",

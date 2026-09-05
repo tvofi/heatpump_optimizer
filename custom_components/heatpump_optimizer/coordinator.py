@@ -2415,9 +2415,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         """Full-resolution space heating and DHW plans for the plan sensors.
 
         Deliberately separate from the ``schedule`` / ``dhw_schedule`` keys,
-        which are truncated to 24 steps (only six hours at the default 15
-        minute resolution) for the legacy sensors. Charting the plan needs the
-        whole horizon.
+        which carry the same step count as the solve. Charting the plan needs
+        the whole horizon in slot form too.
         """
         dt_hours = self._opt_config.dt_hours
         timestamps = result.timestamps
@@ -7260,13 +7259,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             data["manual_plan"] = manual_state
 
         if result:
+            n = len(result.timestamps)
             # DHW schedule data
             dhw_schedule = []
             if result.dhw_power_schedule:
                 for i, (ts, dp, dt_val) in enumerate(zip(
-                    result.timestamps[:24],
-                    result.dhw_power_schedule[:24],
-                    result.dhw_temp_trajectory[1:25] if result.dhw_temp_trajectory else [0.0] * 24,
+                    result.timestamps[:n],
+                    result.dhw_power_schedule[:n],
+                    result.dhw_temp_trajectory[1:n + 1] if result.dhw_temp_trajectory else [0.0] * n,
                 )):
                     dhw_schedule.append({
                         "time": ts.isoformat(),
@@ -7319,25 +7319,25 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                             ),
                         }
                         for idx, (ts, p, s, pr, rt, ut, lt, sg) in enumerate(zip(
-                            result.timestamps[:24],
-                            result.power_schedule[:24],
-                            result.optimal_setpoints[:24],
-                            result.prices[:24],
-                            result.room_temp_trajectory[1:25],
+                            result.timestamps[:n],
+                            result.power_schedule[:n],
+                            result.optimal_setpoints[:n],
+                            result.prices[:n],
+                            result.room_temp_trajectory[1:n + 1],
                             (
-                                result.upper_temp_trajectory[1:25]
+                                result.upper_temp_trajectory[1:n + 1]
                                 if result.upper_temp_trajectory
-                                else result.room_temp_trajectory[1:25]
+                                else result.room_temp_trajectory[1:n + 1]
                             ),
                             (
-                                result.lower_temp_trajectory[1:25]
+                                result.lower_temp_trajectory[1:n + 1]
                                 if result.lower_temp_trajectory
-                                else result.room_temp_trajectory[1:25]
+                                else result.room_temp_trajectory[1:n + 1]
                             ),
                             (
-                                result.solar_gain_trajectory[:24]
+                                result.solar_gain_trajectory[:n]
                                 if result.solar_gain_trajectory
-                                else [0.0] * 24
+                                else [0.0] * n
                             ),
                         ))
                     ],

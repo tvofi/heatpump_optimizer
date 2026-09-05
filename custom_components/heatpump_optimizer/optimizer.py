@@ -5344,7 +5344,7 @@ class HeatPumpOptimizer:
                     - _capped(optimized_end.dhw_temperature, "dhw")
                 )
                 electrical += dhw_gap / cop_dhw - dhw_gap / cop
-        return electrical * refill_price
+        return float(electrical * refill_price)
 
     def _compute_baseline_power(
         self,
@@ -5877,7 +5877,9 @@ class HeatPumpOptimizer:
 
         # Add solar gain info
         if result.solar_gain_trajectory and i < len(result.solar_gain_trajectory):
-            action["solar_gain_kw"] = round(result.solar_gain_trajectory[i], 3)
+            action["solar_gain_kw"] = float(
+                round(result.solar_gain_trajectory[i], 3)
+            )
 
         # Add DHW info
         if result.dhw_power_schedule and i < len(result.dhw_power_schedule):
