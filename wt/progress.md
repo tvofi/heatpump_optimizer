@@ -1,1 +1,1 @@
-W3-G1 PR open (claude-web/w3-g1): smooth top-k #232 + cap-tighten seeds #234; 5 goldens claimed; gate green pending CI.
+W3-G1 merged #454 @ 1585435 (#232/#234); next W3-G2.
