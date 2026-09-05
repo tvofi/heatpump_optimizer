@@ -1,12 +1,12 @@
 {
   "_comment": [
     "Wave 3L of the open-issues programme (docs/plan-2026-09-open-issues.md).",
-    "Leftovers after Wave 3, before Wave 4. Serial. Wave 3 is done (8542e51).",
+    "Leftovers after Wave 3, before Wave 4. Serial. 3L-G1 done (81aa0c3).",
     "#412 stays last of the programme, not in this burst.",
     "Consumed by .claude/workflows/web-fix-wave.js as its `groups` argument."
   ],
-  "fork": "8542e51cb325d9b52f6eb2a03f69e308298b5f84",
-  "fork_note": "origin/main after W3-G3 #461 (`8542e51`). Re-measure structure at this merge-base. claims-for stays 6.3.14.",
+  "fork": "81aa0c3b17b7fef448fdf1a3822bcdaf8c81d9d1",
+  "fork_note": "origin/main after 3L-G1 #470 (`81aa0c3`). Re-measure structure at this merge-base. claims-for stays 6.3.15.",
   "session": "claude-web",
   "repo": "/Users/timmalmstrom/heatpump_optimizer",
   "serial": true,
@@ -21,6 +21,12 @@
       "fixture": true,
       "blocked_on": null,
       "after": [],
+      "resume": {
+        "stage": "done",
+        "merged_pr": 470,
+        "merge_sha": "81aa0c3b17b7fef448fdf1a3822bcdaf8c81d9d1",
+        "note": "Review merge 5555202462 at 612e9c3. Mutation FAIL planner-buys-less + md5 4b5dad66. 2000 L@85 burn24h 6.531→3.015 kWh, tmin 45.045 vs 45.0. wood_coil may-drift 818 leaves, not claimed; other 54 byte-identical. SOLVE_BUDGET_RATIO 782.11. #400 closed. Next seat 3L-G2."
+      },
       "brief": "DHW planner credits the wood-tank refill coil. Measured -5.394 SEK/day on 2000 L @ 85 C; plan is byte-identical coil-on/off today. optimizer.py only. Claims, never re-record goldens. wood_coil is may-drift and cannot be claimed. Other 54 scenarios byte-identical."
     },
     {
