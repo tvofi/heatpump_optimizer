@@ -36,9 +36,9 @@
    "blocked_on": null,
    "resume": {
     "stage": "done",
-    "merged_pr": 454,
-    "merge_sha": "1585435c240e29cffe03edec46822606c0a975d4",
-    "note": "#232 #234 closed. Fix review merge at measured head 7e0d6f0 (rebased b981f90). Hybrid smooth top-k: 58 SEK cell summer_negative/winter_cold/sz/nodhw 58.285→0.000; max_gap_sek_sz 58.3→3.159; loo_mean_gap_pct_sz 1.374→0.933. _MULTI_START_SOLVES=4 unchanged. Five goldens claimed (claims-for 6.3.14). Gate 15/15 scoped green. Next seat W3-G2."
+    "merged_pr": 455,
+    "merge_sha": "aa61130087a2fc51ce7d2d8e24b2ae004fcdb6e3",
+    "note": "#454 1585435 closed #232 #234 (hybrid sequential softmax). Follow-up #455 aa61130: logistic top-k (tie 59.99 vs 60, FD 2.66) + keep-best. Review merge 5552512337 at a596030. Four goldens claimed; valve_storage_small_tank unclaimed. shoulder/tariff+cycle re-recorded 154.41→520.2; SOLVE_BUDGET_RATIO 782.11. #232 #234 stay closed. #453 superseded unmerged. Next seat W3-G2."
    },
    "brief": "#232 timing judge ruled 2026-09-05: scope is **(a) smooth top-k in tariff.peak_cost alone** — not the restart rule. Measured on origin/main (`d156092`): `peak_count=16` proxy collapses `summer_negative/winter_cold/sz/nodhw` 58.285 → **0.130 SEK**; LOO mean gap 0.702 → **0.286 SEK**; `D0_PERTURB=ftol9` and `D0_PERTURB=restart` both leave the 58 SEK cell (~58.13 SEK). `peak_cost` is published via `_grid_terms` and `_grid_report` — golden drift review must account for the visible figure change, not just the search path.\n\n#234 rides along unchanged: seed the cap-tightened re-solve (optimizer.py:2688-2694, _repair_throttled_buffer_caps keep-best) from the previous answer clipped to the new caps plus a bang-bang seed at equal energy; keep the better of seeded and unseeded; run BOTH null definitions.\n\n#291 closed same session: keep `_MULTI_START_SOLVES = 4`; Pi-class cost is ~10.7 s/solve (×7 on 1532 ms M1 CPU); compromise is 3 starts (979 ms / ~6.9 s Pi) if CPU binds.\n\nMoves ~14 fixtures, CLAIMED with direction. After W1-G6 (#288). Harness: `tools/audit/round2/D0/race_grid.py` (checkout from tag `audit-round2-evidence`; patch `d0lib.py:491` for 7-tuple `simulate_trajectory` return on current main).",
    "after": []
