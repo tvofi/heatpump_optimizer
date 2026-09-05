@@ -1,1 +1,1 @@
-W2-G7 #436 merged 3c141d7; next seat W2-G1 Opus 5.
+Timing judges #291+#232 done: keep multistart=4; W3-G1 scoped to smooth top-k only (#232 open).
