@@ -462,7 +462,8 @@ def _smooth_topk_sum(values: np.ndarray, k: int, tau: float) -> float:
     lo, hi = float(np.min(x)) - 1.0, peak + 1.0
     mid = 0.5 * (lo + hi)
     for _ in range(64):
-        w = 1.0 / (1.0 + np.exp(-(x - mid) / scale))
+        z = np.clip((x - mid) / scale, -500.0, 500.0)
+        w = 1.0 / (1.0 + np.exp(-z))
         count = float(np.sum(w))
         if abs(count - k) < 1e-6:
             break
@@ -471,7 +472,8 @@ def _smooth_topk_sum(values: np.ndarray, k: int, tau: float) -> float:
         else:
             hi = mid
         mid = 0.5 * (lo + hi)
-    w = 1.0 / (1.0 + np.exp(-(x - mid) / scale))
+    z = np.clip((x - mid) / scale, -500.0, 500.0)
+    w = 1.0 / (1.0 + np.exp(-z))
     return float(np.sum(w * x))
 
 

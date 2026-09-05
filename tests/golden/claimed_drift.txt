@@ -47,13 +47,14 @@
 #
 # claims-for: 6.3.14
 #
-# v6.3.14: Wave 2 coordinator lifecycle, learners, options grouping. The stamp empties the list; the
-# next branch restates its own footprint, claims included.
-#
+capacity_tariff # smooth top-k peak_cost lowers compressor churn (#232)
+capacity_tariff_15min # smooth top-k peak_cost reshapes 15-min metering plan (#232)
+everything_on # smooth top-k peak_cost on combined tariff stack (#232)
+tariff_plus_two_zone # smooth top-k peak_cost on two-zone tariff (#232)
+valve_storage_small_tank # cap-tighten re-solve seeds escape buffer kink (#234)
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_coil -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: valve_upper_direct_slab -- machine-sensitive; the DHW plan can reach it, per local optimum
-
