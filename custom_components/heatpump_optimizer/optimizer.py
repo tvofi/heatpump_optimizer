@@ -96,6 +96,12 @@ def _utc_step_starts(start: datetime, n: int, dt_hours: float) -> list[datetime]
     ]
 
 
+def _baseline_power_list(baseline_power: np.ndarray | None) -> list[float]:
+    if baseline_power is None:
+        return []
+    return [float(v) for v in np.asarray(baseline_power, dtype=float)]
+
+
 # How far either side of a contended step space heating may look for spare
 # compressor capacity when its energy is displaced by hot water. Beyond a few
 # hours the building has already lost the heat, so a cheap slot that far away
@@ -1657,11 +1663,7 @@ class HeatPumpOptimizer:
             dhw_power_schedule=(
                 dhw_power.tolist() if dhw_power is not None else []
             ),
-            baseline_power_schedule=(
-                [float(v) for v in np.asarray(baseline_power, dtype=float)]
-                if baseline_power is not None
-                else []
-            ),
+            baseline_power_schedule=_baseline_power_list(baseline_power),
             dhw_temp_trajectory=(
                 dhw_temps.tolist() if dhw_temps is not None else []
             ),

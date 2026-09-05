@@ -91,6 +91,18 @@ class MonthlyLedger:
         entry["sum"] = float(entry["sum"]) + float(value)
         entry["count"] = int(entry["count"]) + 1
 
+    def observe_spot_and_settle_savings(
+        self,
+        when: datetime,
+        spot: float,
+        pending: dict,
+        actual_kwh: float,
+        dt: float,
+    ) -> None:
+        """Sample spot for the month mean, then book savings if baseline exists."""
+        self.observe_meta_mean(when, "spot_price", spot)
+        self.settle_interval_savings(when, pending, actual_kwh, spot, dt)
+
     def add_savings_settlement(
         self,
         when: datetime,
@@ -124,6 +136,23 @@ class MonthlyLedger:
             "savings_actual",
             kwh=float(actual_kwh),
             sek=float(actual_kwh) * float(spot),
+        )
+
+    def settle_interval_savings(
+        self,
+        when: datetime,
+        pending: dict,
+        actual_kwh: float,
+        spot: float,
+        dt: float,
+    ) -> None:
+        """Book savings from a settled interval's pending snapshot."""
+        self.add_savings_settlement(
+            when,
+            baseline_kw=pending.get("baseline_kw"),
+            actual_kwh=actual_kwh,
+            spot=spot,
+            dt=dt,
         )
 
     # -- reading ------------------------------------------------------------
