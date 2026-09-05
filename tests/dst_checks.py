@@ -14,7 +14,7 @@ import sys
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
-from harness import FakeEntry, FakeHass, Results
+from harness import CapturingOptimizer, FakeEntry, FakeHass, Results
 
 import numpy as np
 
@@ -29,7 +29,6 @@ from heatpump_optimizer.manual_plan import ManualOverride, PIN_ON
 from heatpump_optimizer.optimizer import (
     HeatPumpOptimizer,
     OptimizationConfig,
-    OptimizationResult,
     _Horizon,
     _utc_step_starts as _opt_utc_step_starts,
 )
@@ -94,48 +93,15 @@ coord._prices = [
     for i in range(48)
 ]
 
-captured: dict[str, object] = {}
 _real_state, _real_opt = coord._solve_snapshot()
-
-
-class CapturingOptimizer:
-    """Records optimize()'s anchor; timestamps built exactly as _Horizon's."""
-
-    def __init__(self, inner):
-        self._inner = inner
-
-    def optimize(
-        self, state, prices, outdoor, wind, precip, solar, start_time,
-        *args, **kwargs
-    ):
-        captured["start_time"] = start_time
-        n = len(prices)
-        return OptimizationResult(
-            power_schedule=[1.0] * n,
-            room_temp_trajectory=[21.0] * (n + 1),
-            slab_temp_trajectory=[22.0] * (n + 1),
-            timestamps=[start_time + timedelta(hours=0.25 * i) for i in range(n)],
-            prices=[float(p) for p in prices],
-            predicted_cost=1.0,
-            baseline_cost=1.0,
-            predicted_savings=0.0,
-            savings_percentage=0.0,
-            optimal_setpoints=[21.0] * n,
-            status="ok",
-        )
-
-    def get_current_action(self, result, now):
-        return self._inner.get_current_action(result, now)
-
-
 coord._solve_snapshot = lambda: (_real_state, CapturingOptimizer(_real_opt))
 asyncio.run(coord.async_run_optimization())
 result = coord._optimization_result
 
 R.check(
     "optimize() receives the snapped anchor, not the raw 12:07 instant",
-    captured.get("start_time") == anchor,
-    f"got {captured.get('start_time')}",
+    result is not None and result.timestamps[0] == anchor,
+    f"got {result.timestamps[0] if result else None}",
 )
 R.check(
     "every published plan timestamp lands on a :00/:15/:30/:45 boundary",

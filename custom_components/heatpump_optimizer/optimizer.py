@@ -5994,3 +5994,12 @@ class HeatPumpOptimizer:
             )
 
         return action
+
+
+def optimize_in_process(optimizer, state, positional, keywords):
+    """Picklable ``optimize`` entry for the process pool; lambdas are not.
+
+    ``ProcessPoolExecutor`` has to pickle the callable. The coordinator's
+    three executor lambdas could not cross that boundary (#199 #290).
+    """
+    return optimizer.optimize(state, *positional, **keywords)

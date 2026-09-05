@@ -21787,4 +21787,72 @@ R.check(
     f"fixed {_g2_winter_calls} vs mutant {_g2_mut_calls}",
 )
 
+# ---------------------------------------------------------------------------
+R.section("W3-G3 — process-route the solve off the GIL (#290 #199)")
+
+from heatpump_optimizer.coordinator import (  # noqa: E402
+    _await_optimize,
+    _await_process,
+    _run_in_process,
+)
+from heatpump_optimizer.diagnosis import diagnose_record as _g3_diagnose
+from heatpump_optimizer.optimizer import optimize_in_process as _g3_opt_job
+
+_g3_run = inspect.getsource(Coord.async_run_optimization)
+_g3_sim = inspect.getsource(Coord.async_simulate)
+_g3_diag = inspect.getsource(Coord.async_diagnose_interval)
+R.check(
+    "async_run_optimization submits a picklable job, not a lambda",
+    "_await_optimize" in _g3_run and "lambda:" not in _g3_run,
+)
+R.check(
+    "async_simulate submits a picklable job, not a lambda",
+    "_await_optimize" in _g3_sim
+    and "lambda:" not in _g3_sim
+    and "space_blocked=self._pump_signals.space_blocked" in _g3_sim
+    and "dhw_blocked=self._pump_signals.dhw_blocked" in _g3_sim,
+)
+R.check(
+    "async_diagnose_interval submits diagnose_record, not a bound method",
+    "diagnose_record" in _g3_diag and "_await_process" in _g3_diag,
+)
+R.check(
+    "optimize_in_process is the picklable production symbol",
+    _g3_opt_job is not None
+    and "optimize_in_process" in inspect.getsource(_await_optimize),
+)
+_g3_parent = _os.getpid()
+_g3_child = _run_in_process(_os.getpid, ())
+R.check(
+    "the worker is another interpreter (GIL is not shared)",
+    _g3_child != _g3_parent,
+    f"parent={_g3_parent} child={_g3_child}",
+)
+
+
+class _G3Hass:
+    def __init__(self) -> None:
+        self.seen = []
+
+    async def async_add_executor_job(self, func, *args):
+        self.seen.append(func)
+        return func(*args)
+
+
+_g3_hass = _G3Hass()
+_g3_via = _asyncio.run(_await_process(_g3_hass, _os.getpid))
+R.check(
+    "await_process still parks on HA's executor wait-point",
+    _g3_hass.seen == [_run_in_process],
+)
+R.check(
+    "and that wait-point still ran the job in another interpreter",
+    _g3_via != _g3_parent,
+    f"parent={_g3_parent} child={_g3_via}",
+)
+R.check(
+    "diagnose_record is a no-op on an empty interval",
+    _g3_diagnose(None, None) is None,
+)
+
 sys.exit(R.close("FEATURE CHECKS"))

@@ -408,3 +408,36 @@ async def ha_unload_entry(integration, hass, entry) -> bool:
 
 def minutes_ago(minutes: float, now: datetime | None = None) -> datetime:
     return (now or datetime.now(UTC)) - timedelta(minutes=minutes)
+
+
+class CapturingOptimizer:
+    """Picklable optimize() stub for dst_checks (must not live in ``__main__``)."""
+
+    def __init__(self, inner):
+        self._inner = inner
+
+    def optimize(
+        self, state, prices, outdoor, wind, precip, solar, start_time,
+        *args, **kwargs
+    ):
+        from heatpump_optimizer.optimizer import OptimizationResult
+
+        n = len(prices)
+        return OptimizationResult(
+            power_schedule=[1.0] * n,
+            room_temp_trajectory=[21.0] * (n + 1),
+            slab_temp_trajectory=[22.0] * (n + 1),
+            timestamps=[
+                start_time + timedelta(hours=0.25 * i) for i in range(n)
+            ],
+            prices=[float(p) for p in prices],
+            predicted_cost=1.0,
+            baseline_cost=1.0,
+            predicted_savings=0.0,
+            savings_percentage=0.0,
+            optimal_setpoints=[21.0] * n,
+            status="ok",
+        )
+
+    def get_current_action(self, result, now):
+        return self._inner.get_current_action(result, now)
