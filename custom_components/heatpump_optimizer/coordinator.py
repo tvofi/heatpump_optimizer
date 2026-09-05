@@ -765,6 +765,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._init_insurance(hass, entry)
         self._init_ecl110()
 
+        # #236: ConfigEntryNotReady runs the entry's unload callbacks and
+        # nothing else -- no async_unload_entry, so no async_shutdown -- and
+        # the registrations above are already on ``hass``: 1 leak per retry.
+        on_unload = getattr(entry, "async_on_unload", None)
+        if on_unload is not None:
+            on_unload(self._release_registrations)
+
         # Deferred: MQTT may not be up yet, and the stores are on disk.
         # Tracked (D1-02 hygiene): the panel's refuted leak does not
         # reproduce through the config-entry state machine, but an
@@ -786,6 +793,23 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._async_load_manual_plan,
         ):
             self._spawn(load())
+
+    @callback
+    def _release_registrations(self) -> None:
+        """Drop every hass-level registration this coordinator holds (#236).
+
+        Idempotent: both the entry's ``async_on_unload`` list and
+        ``async_shutdown`` may run it. The latch matters as much as the
+        unsubscribes -- a deferred registration task can still be queued when
+        setup fails and would otherwise register after this ran -- and it is
+        also what every actuation point reads to decline (#237).
+        """
+        self._entry_released = True
+        for name in ("_unsub_ecl110_state", "_unsub_peak_guard", "_unsub_defrost"):
+            unsub = getattr(self, name, None)
+            setattr(self, name, None)
+            if unsub is not None:
+                unsub()
 
     def _spawn(self, coro) -> Any:
         """Fire-and-forget a coroutine, but keep the task until it lands.
@@ -940,6 +964,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # so shutdown can let them finish instead of orphaning them against
         # a torn-down entry; and the Tibber outage latch (D10-09).
         self._background_tasks: set[Any] = set()
+        # The lifecycle seam (#236, #237): one latch for "this entry is gone",
+        # and the refresh handle shutdown cancels -- HA cancels an entry's
+        # BACKGROUND tasks, and the scheduled refresh may not be one.
+        self._entry_released: bool = False
+        self._refresh_task: Any = None
         self._tibber_outage_cycles: int = 0
         # One reauth flow per auth outage (D10-08): re-armed on recovery.
         self._tibber_reauth_started: bool = False
@@ -1366,12 +1395,19 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if not self._ecl110_state_topic:
             return
         try:
-            self._unsub_ecl110_state = await mqtt.async_subscribe(
+            unsub = await mqtt.async_subscribe(
                 self.hass,
                 self._ecl110_state_topic,
                 self._async_handle_ecl110_state_message,
                 qos=self._ecl110_qos,
             )
+            # #236: the entry can go away across the await, and the state
+            # topic defaults on -- the leak neither guard being on can avoid.
+            if self._entry_released:
+                if unsub is not None:
+                    unsub()
+                return
+            self._unsub_ecl110_state = unsub
             _LOGGER.debug("Subscribed to ECL110 state topic: %s", self._ecl110_state_topic)
         except Exception as err:
             _LOGGER.debug("ECL110 MQTT state subscription not available: %s", err)
@@ -4456,6 +4492,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch data and run optimization."""
+        # #237: the handle ``async_shutdown`` cancels.
+        self._refresh_task = asyncio.current_task()
         if self._skip_solve_once:
             # Consume the flag FIRST: no exception below may leave it
             # latched, or every later cycle would skip its solve too.
@@ -4513,6 +4551,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     "heat_pump_on": False,
                     "displace_value": self._ecl110_displace_min,
                 }
+
+            # #237: everything below writes to the world, and a plan cut
+            # before a reload must not land on the instance that replaced us.
+            if self._entry_released:
+                _LOGGER.debug("Shutdown requested mid-cycle; not actuating")
+                return self._build_data_dict()
 
             # Apply current action to heat pump
             await self._apply_action()
@@ -4909,6 +4953,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 )
             )
 
+            # #237: the executor await above is seconds wide, and an options
+            # save inside it unloads the entry.
+            if self._entry_released:
+                _LOGGER.debug("Solve finished after shutdown; discarding it")
+                return "shutdown"
+
             self._record_manual_release(result)
 
             self._optimization_result = result
@@ -5130,27 +5180,28 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     async def async_shutdown(self) -> None:
         """Shut down the coordinator.
 
-        The base class's shutdown runs FIRST (D10-06): it stops the refresh
-        debouncer and any in-flight refresh, and an override that skips it
-        leaks both on every unload/reload -- the config-entry-unloading rule
-        exists precisely because this was forgotten once. Then our own
-        listeners go, then any still-pending fire-and-forget tasks are
-        awaited (store writes must land, not die with the entry; a capped
-        wait so a wedged save cannot hang the unload).
+        The latch is set before anything is awaited, so every point that
+        would command the pump or write a store declines from here on (#237).
+        The in-flight refresh is then cancelled, which the base class does
+        NOT do: it cancels the SCHEDULED timer and the debouncer, and a
+        refresh already running is a task somebody else owns.
+
+        The base class's shutdown still runs (D10-06): an override that skips
+        it leaks the debouncer and the timer on every unload/reload. Then our
+        own listeners go, via the same ``_release_registrations`` the entry's
+        unload callbacks use so a failed setup cleans up too (#236), then any
+        still-pending fire-and-forget tasks are awaited (a capped wait, so a
+        wedged save cannot hang the unload).
         """
+        refresh, self._refresh_task = self._refresh_task, None
+        self._entry_released = True
+        if refresh is not None and refresh is not asyncio.current_task():
+            refresh.cancel()
         await super().async_shutdown()
         if self._unsub_timer:
             self._unsub_timer()
             self._unsub_timer = None
-        if self._unsub_ecl110_state:
-            self._unsub_ecl110_state()
-            self._unsub_ecl110_state = None
-        if self._unsub_peak_guard:
-            self._unsub_peak_guard()
-            self._unsub_peak_guard = None
-        if self._unsub_defrost:
-            self._unsub_defrost()
-            self._unsub_defrost = None
+        self._release_registrations()
         pending = [t for t in self._background_tasks if not t.done()]
         if pending:
             _LOGGER.debug(
@@ -7852,7 +7903,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         confident duty of zero. Each source sees what the other cannot.
         """
         entity = self._config.get(CONF_HEAT_PUMP_DEFROST_ENTITY)
-        if not entity:
+        # #236: released means the entry is gone; registering now would leak.
+        if not entity or self._entry_released:
             return
         self._unsub_defrost = async_track_state_change_event(
             self.hass, [entity], self._on_defrost_event
@@ -7888,7 +7940,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         run. The subscription follows the whole-house meter when one exists
         (the billed quantity), else the heat pump's own meter.
         """
-        if not self._config.get(
+        # #236's latch as well -- see ``_release_registrations``.
+        if self._entry_released or not self._config.get(
             CONF_PEAK_GUARD_ENABLED, DEFAULT_PEAK_GUARD_ENABLED
         ):
             return
@@ -10910,7 +10963,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if len(horizon.prices) < 4:
             return {"error": "no_prices", "rate_limited": False}
 
-        scratch_config = replace(self._opt_config)
+        # #240: ``replace`` copies scalars and shares the rest by reference,
+        # so the what-if carried the LIVE learner, draw pattern and windows
+        # into the executor, where ``observe`` could write them mid-solve.
+        scratch_config = copy.deepcopy(self._opt_config)
         for key in (
             "target_temp",
             "min_temp",
@@ -10927,7 +10983,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             if key in overrides:
                 setattr(scratch_config, key, int(overrides[key]))
 
-        scratch_params = replace(self._thermal_params)
+        scratch_params = copy.deepcopy(self._thermal_params)
         if "max_temp" in overrides:
             # The valve's default target is the comfort ceiling, so a
             # simulated ceiling change has to reach the model too.
@@ -10966,6 +11022,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         try:
             simulated = await self.hass.async_add_executor_job(
                 lambda: scratch.optimize(
+                    # Shallow deliberately: ``ThermalState`` is scalars only.
                     replace(self._current_state),
                     horizon.prices,
                     horizon.outdoor_temps,
