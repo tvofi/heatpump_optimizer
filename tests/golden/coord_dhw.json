@@ -466,6 +466,7 @@
    "slab_temperature": false,
    "upper_floor_temperature": false
   },
+  "savings_months": [],
   "savings_percentage": null,
   "schedule": [],
   "slab_temperature": 22.0,

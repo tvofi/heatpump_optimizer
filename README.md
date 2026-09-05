@@ -50,7 +50,7 @@ flowchart LR
     end
 
     subgraph out["Outputs"]
-        ent["65 entities<br/>55 sensors, 4 binary,<br/>4 buttons, switch, climate"]
+        ent["66 entities<br/>56 sensors, 4 binary,<br/>4 buttons, switch, climate"]
         card["Dashboard card<br/>plan chart + editor"]
         ctl["Heat pump switch /<br/>ECL110 displace /<br/>frequency advisor"]
     end
@@ -406,6 +406,7 @@ configured).
 | Thermal Battery Energy | kWh | Stored energy available above the comfort floor | Unavailable when no store is sensed at all; `modelled_components` says which are estimated |
 | Comfort Weight | — | The comfort weight in force, learned or configured | Diagnostic |
 | Contract Comparison | CUR/kWh | How far below the month's flat-consumer average the shifting landed; the three settled totals — hourly spot, monthly-average spot, fixed price — ride in attributes | Diagnostic; disabled by default; needs a configured contract comparison |
+| Monthly Savings | CUR | Estimated savings for the open month, with the settled and in-progress months in attributes | Unavailable until at least one month row exists |
 | Power Headroom | kW | What the house can draw right now without new cost — a number an EV charger's dynamic limit can follow | Unavailable until it can be computed |
 | DHW Setpoint Advisor | °C | The cheapest hot-water setpoint that still covers your heavy days | Diagnostic; unavailable until there is a recommendation |
 | DHW Mixed Water | L | Litres of 40 °C water the tank holds now, with shower minutes alongside | Unavailable without mixed-water data; renamed from Mixed Hot Water by #174 |

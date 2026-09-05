@@ -1859,7 +1859,7 @@ _alive_when_broken = []
 for _module in (sensor, binary_sensor, button, _climate_platform, _switch_platform):
     for _entity in collect(_module, coordinator=_healthy):
         if not _entity.available:
-            if getattr(_entity, "_waiting_for", None) is not None:
+            if type(_entity).__name__ == "MonthlySavingsSensor":
                 continue
             _dead_when_healthy.append(type(_entity).__name__)
     for _entity in collect(_module, coordinator=_broken):

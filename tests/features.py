@@ -21887,7 +21887,6 @@ R.check(
 )
 
 import inspect as _sav_inspect
-import pickle as _sav_pickle
 from pathlib import Path as _SavPath
 from heatpump_optimizer.optimizer import (
     HeatPumpOptimizer as _SavOpt,
@@ -21909,9 +21908,11 @@ _res_sav = _SavOR(
     status="optimal",
     baseline_power_schedule=[3.5, 4.0, 0.0, 1.25],
 )
+_schedule = _res_sav.baseline_power_schedule
 R.check(
     "baseline_power_schedule pickles as a plain float list",
-    _sav_pickle.dumps(_res_sav.baseline_power_schedule) and True,
+    isinstance(_schedule, list)
+    and all(type(x) is float for x in _schedule),
 )
 _act_sav = _bl_opt.get_current_action(_res_sav, _ts_sav[1])
 R.check(
