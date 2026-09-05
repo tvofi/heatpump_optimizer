@@ -436,6 +436,45 @@ def window_factors(
     )
 
 
+# Soft top-k temperature as a fraction of the largest excess. Small enough
+# that separated peaks still match the billed sum; large enough that tied
+# windows all carry gradient (#232).
+_PEAK_SMOOTH_TAU = 0.05
+
+
+def _smooth_topk_sum(values: np.ndarray, k: int, tau: float) -> float:
+    """Differentiable approximation to ``sum(sort(values)[-k:])``.
+
+    A hard top-k has zero gradient on every tied window beyond the kth, which
+    leaves gradient-based solvers blind on the peak plateau that capacity
+    tariffs create. Here a logistic threshold is chosen so the soft weights
+    sum to *k*; when many windows tie, each gets weight ``k/n`` and the
+    approximate sum stays ``k × tie_level``.
+    """
+    x = np.asarray(values, dtype=float)
+    if x.size == 0 or k <= 0:
+        return 0.0
+    k = max(1, min(int(k), x.size))
+    if not np.any(x > 0):
+        return 0.0
+    peak = float(np.max(x))
+    scale = max(tau * peak, 1e-9)
+    lo, hi = float(np.min(x)) - 1.0, peak + 1.0
+    mid = 0.5 * (lo + hi)
+    for _ in range(64):
+        w = 1.0 / (1.0 + np.exp(-(x - mid) / scale))
+        count = float(np.sum(w))
+        if abs(count - k) < 1e-6:
+            break
+        if count > k:
+            lo = mid
+        else:
+            hi = mid
+        mid = 0.5 * (lo + hi)
+    w = 1.0 / (1.0 + np.exp(-(x - mid) / scale))
+    return float(np.sum(w * x))
+
+
 def peak_cost(
     total_power_kw: np.ndarray,
     baseline_load_kw: np.ndarray,
@@ -464,7 +503,8 @@ def peak_cost(
       one window, so a gradient-based optimizer got a signal at 1 step in 96
       and the term was effectively inert; the measured result was that enabling
       the tariff *raised* the peak. Summing the top k gives every one of those
-      k windows a gradient.
+      k windows a gradient; when more than k windows tie, a smooth top-k
+      spreads that signal across all of them (#232).
 
     It is still an upper bound on the true marginal bill, not an exact figure:
     each of the plan's top-k windows is charged as if it displaced a billed
@@ -499,8 +539,7 @@ def peak_cost(
     if not np.any(excess > 0):
         return 0.0
     k = max(1, min(int(peaks_averaged), excess.size))
-    top_k = np.sort(excess)[-k:]
-    return float(price_per_kw * np.sum(top_k))
+    return float(price_per_kw * _smooth_topk_sum(excess, k, _PEAK_SMOOTH_TAU))
 
 
 def realised_peak(

@@ -1051,6 +1051,10 @@ class _Horizon:
     #: already in ``power_caps`` (space) and the DHW forced-off mask.
     space_blocked: bool = False
     dhw_blocked: bool = False
+    #: Extra L-BFGS-B starting points for a cap-tightened re-solve (#234).
+    #: Prepended ahead of the usual candidates so the solver can escape the
+    #: kink at a lowered ceiling instead of re-descending onto it.
+    extra_starts: tuple[np.ndarray, ...] | None = None
 
     @property
     def timestamps(self) -> list[datetime]:
@@ -2239,6 +2243,7 @@ class HeatPumpOptimizer:
         # Per-step valve target schedule, set by the hold-candidate pass below
         # and read by every solve and re-simulation through the closure.
         valve_targets: np.ndarray | None = None
+        cap_resolv_starts: tuple[np.ndarray, ...] | None = None
 
         # Solve, then check the solved trajectory against the hard safety lines,
         # release any forced-off pin that would breach one, and solve again.
@@ -2274,6 +2279,7 @@ class HeatPumpOptimizer:
                 humidity=humidity,
                 space_blocked=space_blocked,
                 dhw_blocked=dhw_blocked,
+                extra_starts=cap_resolv_starts,
             )
             if dhw_enabled:
                 return self._optimize_with_dhw(horizon)
@@ -2412,7 +2418,16 @@ class HeatPumpOptimizer:
                     start_hour=float(step_hours[0]),
                 ):
                     break
+                prev = np.asarray(result.power_schedule, dtype=float)
+                clipped = np.minimum(prev, power_caps)
+                p_max = self.model.params.max_electrical_power
+                energy = float(np.sum(clipped) * dt)
+                bang_bang = np.minimum(
+                    _price_ranked_start(prices, energy, p_max, dt), power_caps
+                )
+                cap_resolv_starts = (clipped, bang_bang)
                 result = _solve()
+                cap_resolv_starts = None
 
         result.manual_pins_active = space_pins is not None or dhw_pins is not None
         result.manual_released_space = sorted(released_space)
@@ -2949,6 +2964,8 @@ class HeatPumpOptimizer:
                 dt,
             ),
         ]
+        if h.extra_starts:
+            starts = list(h.extra_starts) + starts
 
         try:
             result = _multi_start_minimize(
@@ -4874,6 +4891,8 @@ class HeatPumpOptimizer:
             # in the space-only path: without it every candidate anchors to
             # the same total energy and arbitrage days refine into one basin.
             starts = [guess]
+            if h.extra_starts:
+                starts = list(h.extra_starts) + starts
             if warm_start is None:
                 energy = float(np.sum(np.minimum(init_base, headroom)) * dt)
                 starts.append(
