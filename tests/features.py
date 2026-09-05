@@ -1161,8 +1161,8 @@ charged = peak_cost(hourly, np.zeros(24), 6.0, 20.0, 60, 1.0, 3)
 top3 = np.sort(np.maximum(0.0, hourly - 6.0))[-3:]
 R.check(
     "the peak charge equals the bill it models",
-    abs(charged - 60.0 * float(np.mean(top3))) < 0.05,
-    f"charged {charged:.2f}, bill {60.0 * float(np.mean(top3)):.2f}",
+    abs(charged - 60.0 * float(np.mean(top3))) < 0.03,
+    f"charged {charged:.4f}, bill {60.0 * float(np.mean(top3)):.4f}",
 )
 R.check(
     "several high hours cost more than one",
@@ -1236,7 +1236,7 @@ R.check(
         )
         - tariff.peaks_averaged * 2.0 * tariff.marginal_price_per_kw
     )
-    < 1e-4,
+    < 5e-5,
     "three hours 2 kW over, averaged, at the full 60/kW = 120",
 )
 
@@ -5083,9 +5083,13 @@ R.check(
 # tank that starts too cold to coast for free, because a tank that already
 # holds enough heat gives charging nothing to displace and the optimizer is
 # right to decline (measured: exactly that, at a 40 C start).
+from heatpump_optimizer import optimizer as _optmod  # noqa: E402
 from heatpump_optimizer.optimizer import (  # noqa: E402
     HeatPumpOptimizer as _StoreOpt,
     OptimizationConfig as _StoreCfg,
+    OptimizationResult as _StoreRes,
+    _Horizon,
+    _price_ranked_start,
 )
 
 
@@ -5425,6 +5429,184 @@ R.check(
     float(_cres_buf.max()) <= 60.0 + 1e-6,
     f"tank peaked at {float(_cres_buf.max()):.2f} C",
 )
+
+# #234: extra_starts must be the clipped prior plus equal-energy bang-bang,
+# and they must lead the multi-start list. The free-electricity solve above
+# can already sit inside the cap, so tighten may not fire; drive both
+# production sites directly.
+_n234 = 8
+_dt234 = 0.25
+_z234 = np.zeros(_n234)
+_p234 = np.array([3.0, 0.4, 2.0, 1.2, 4.0, 0.2, 1.8, 0.9])
+_st234 = ThermalState(
+    room_temperature=21.0, upper_floor_temperature=21.0,
+    lower_floor_temperature=21.0, slab_temperature=23.0,
+    buffer_tank_temperature=55.0, outdoor_temperature=-2.0,
+)
+_opt234 = _StoreOpt(
+    ThermalModel(ThermalParameters(
+        two_zone_enabled=True, buffer_tank_volume=35.0,
+        mixing_valve_mode=_mv.MODE_MANUAL, buffer_max_temp=70.0,
+        cop_flow_carnot=True,
+    )),
+    _StoreCfg(horizon_hours=2, time_step_minutes=15,
+              target_temp=21.0, min_temp=17.0, max_temp=23.0),
+)
+_caps234 = np.full(_n234, 1.0)
+_prev234 = np.array([0.8, 0.9, 0.7, 1.2, 0.6, 1.5, 0.5, 0.4])
+_clipped234 = np.minimum(_prev234, _caps234)
+_bang234 = np.minimum(
+    _price_ranked_start(
+        _p234, float(np.sum(_clipped234) * _dt234),
+        _opt234.model.params.max_electrical_power, _dt234,
+    ),
+    _caps234,
+)
+_h234 = _Horizon(
+    initial_state=_st234,
+    prices=_p234,
+    outdoor_temps=np.full(_n234, -2.0),
+    wind_speeds=_z234,
+    precipitation=_z234,
+    solar_radiation=_z234,
+    start_time=datetime(2026, 1, 15),
+    n_steps=_n234,
+    dt=_dt234,
+    comfort_targets=np.full(_n234, 21.0),
+    temp_min_bounds=np.full(_n234, 17.0),
+    temp_max_bounds=np.full(_n234, 23.0),
+    step_hours=np.arange(_n234) * _dt234,
+    solar_gains=_z234,
+    heat_loss_factors=np.ones(_n234),
+    forecast={
+        "future_solar_energy_kwh": 0.0,
+        "solar_peak_indices": [],
+        "pre_heat_urgency": 0.5,
+        "solar_reduction_factor": 1.0,
+        "wind_anticipation_factor": 1.0,
+        "rain_anticipation_factor": 1.0,
+    },
+    t_start=0.0,
+    power_caps=_caps234,
+    extra_starts=(_clipped234, _bang234),
+)
+_seen234 = []
+
+
+class _Min234:
+    def __init__(self, x):
+        self.x = x
+        self.success = True
+        self.message = "ok"
+        self.nit = 0
+        self.nfev = 1
+        self.fun = 0.0
+
+
+def _ms234(objective, starts, *a, **kw):
+    _seen234.append([np.asarray(s, dtype=float).copy() for s in starts])
+    return _Min234(np.asarray(starts[0], dtype=float))
+
+
+_real_ms234 = _optmod._multi_start_minimize
+_optmod._multi_start_minimize = _ms234
+try:
+    _opt234._optimize_space_only(_h234)
+finally:
+    _optmod._multi_start_minimize = _real_ms234
+R.check(
+    "extra_starts are prepended ahead of the usual candidates",
+    len(_seen234) == 1
+    and len(_seen234[0]) >= 2
+    and np.allclose(_seen234[0][0], _clipped234)
+    and np.allclose(_seen234[0][1], _bang234),
+    "clipped/bang-bang pair did not lead _multi_start_minimize",
+)
+
+
+class _Got234(Exception):
+    def __init__(self, extras, prices, caps, dt):
+        self.extras = extras
+        self.prices = prices
+        self.caps = caps
+        self.dt = dt
+
+
+_fake234 = _StoreRes(
+    power_schedule=_prev234.tolist(),
+    room_temp_trajectory=[21.0] * (_n234 + 1),
+    slab_temp_trajectory=[23.0] * (_n234 + 1),
+    timestamps=[datetime(2026, 1, 15)] * _n234,
+    prices=_p234.tolist(),
+    predicted_cost=1.0,
+    baseline_cost=1.0,
+    predicted_savings=0.0,
+    savings_percentage=0.0,
+    optimal_setpoints=[21.0] * _n234,
+    status="optimal",
+    objective_value=1.0,
+    upper_temp_trajectory=[21.0] * (_n234 + 1),
+    lower_temp_trajectory=[21.0] * (_n234 + 1),
+)
+_real_space234 = _StoreOpt._optimize_space_only
+_real_tight234 = _StoreOpt._tighten_buffer_caps
+_fired234 = {"n": 0}
+
+
+def _space234(self, h):
+    if h.extra_starts:
+        raise _Got234(
+            tuple(np.asarray(s, dtype=float).copy() for s in h.extra_starts),
+            np.asarray(h.prices, dtype=float).copy(),
+            None if h.power_caps is None else np.asarray(h.power_caps, dtype=float).copy(),
+            float(h.dt),
+        )
+    return _fake234
+
+
+def _tight234(self, result, power_caps, *a, **kw):
+    _fired234["n"] += 1
+    if _fired234["n"] != 1:
+        return False
+    power_caps[:] = np.minimum(
+        power_caps, np.maximum(np.asarray(result.power_schedule, dtype=float) * 0.5, 0.05)
+    )
+    return True
+
+
+_StoreOpt._optimize_space_only = _space234
+_StoreOpt._tighten_buffer_caps = _tight234
+_got234 = None
+try:
+    _opt234.optimize(
+        _st234, _p234, np.full(_n234, -2.0), _z234, _z234, _z234,
+        datetime(2026, 1, 15),
+    )
+except _Got234 as exc:
+    _got234 = exc
+finally:
+    _StoreOpt._optimize_space_only = _real_space234
+    _StoreOpt._tighten_buffer_caps = _real_tight234
+R.check(
+    "cap-tighten re-solve seeds extra_starts with clipped and bang-bang",
+    _got234 is not None and len(_got234.extras) == 2,
+    "cap-tighten path never passed extra_starts into _solve",
+)
+if _got234 is not None:
+    _clip_w, _bang_w = _got234.extras
+    _expect_clip = np.minimum(np.asarray(_prev234), _got234.caps)
+    _expect_bang = np.minimum(
+        _price_ranked_start(
+            _got234.prices, float(np.sum(_expect_clip) * _got234.dt),
+            _opt234.model.params.max_electrical_power, _got234.dt,
+        ),
+        _got234.caps,
+    )
+    R.check(
+        "the bang-bang extra_start is equal-energy price-ranked then capped",
+        np.allclose(_clip_w, _expect_clip) and np.allclose(_bang_w, _expect_bang),
+        "wired extra_starts are not (clipped prev, equal-energy bang-bang)",
+    )
 
 # The recommendation is surfaced, not just computable. recommend_target()
 # existed since v3.7.0 with zero callers -- the integration could recommend a
