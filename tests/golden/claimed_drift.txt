@@ -47,9 +47,16 @@
 #
 # claims-for: 6.3.14
 #
-# v6.3.14: Wave 2 coordinator lifecycle, learners, options grouping. The stamp empties the list; the
-# next branch restates its own footprint, claims included.
+# W3-G1 (#232/#234) vs merge-base cd4c5a5. Smooth top-k peak_cost and
+# cap-tighten extra_starts. Five fixtures moved here; peak_masked and
+# valve_storage_low_target did not. Measured with env_drift.py --all.
 #
+
+capacity_tariff # #232: predicted_cost up, compressor_starts 4→7, savings down
+capacity_tariff_15min # #232: predicted_cost up, peak_cost 0.107→0, projected_peak_kw down to 6.0
+everything_on # #232: predicted_cost down, peak_cost 0→0.002
+tariff_plus_two_zone # #232: predicted_cost up, peak_cost down
+valve_storage_small_tank # #234: predicted_cost down, compressor_starts 3→5
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
