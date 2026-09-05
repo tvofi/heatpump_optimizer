@@ -384,7 +384,7 @@ configured).
 | Solar Heat Gain | kW | Passive solar gain through the windows right now | |
 | Buffer Tank Temperature (Model) | °C | Modelled buffer tank temperature | |
 | DHW Temperature | °C | Tank temperature, with the demand-window state and the learned cooling rate in attributes | |
-| DHW Heating Schedule | — | The planned hot-water heating periods | Not recorded |
+| DHW Heating Schedule | — | The whole 24 h of planned hot-water heating periods | Not recorded |
 | DHW Heating Cost (next 24 h) | CUR | Estimated cost of the planned hot water | |
 | Predictive Optimization Insight | — | What the forecast is making the plan do | Diagnostic |
 | ECL110 Displace | °C | The parallel shift commanded to an ECL110 heat curve | Diagnostic; disabled by default; ECL110 hardware |
