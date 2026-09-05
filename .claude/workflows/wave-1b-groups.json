@@ -290,6 +290,12 @@
    "after": [
     "W1-G15"
    ],
+   "resume": {
+    "stage": "done",
+    "merged_pr": 431,
+    "merge_sha": "cabcce121a33cc86ccc73f422c15b2ae5f9b37af",
+    "note": "#245 closed. Re-review at 8541acc: brief_lint rc 0, briefs CI green; wood_share fix 5621b2d unchanged; W2-G2/G6 citations re-anchored."
+   },
    "brief": "wood_share is discontinuous at the flow curve when the HP tank sits within the switch margin: a jump of 1.0, which is 13.44 kW of a 13.44 kW draw, against a docstring that promises continuity. Make the switch reach 1.0 at the curve -- thermal_model.wood_share region 3 (the return at :1150) and the matching v3 branch in _wood_share_vec, which shares the discontinuity bitwise. Keep wood_share_vec_parity at exactly 0.000e+00 -- the scalar and vector paths must stay bit-identical or a 96-step solve lands in a different basin. NEITHER model_sanity.py NOR the wood_share_vec_parity metric IS ON MAIN: both live only at tag audit-round2-evidence (757e164), tools/audit/round2/D2/model_sanity.py; copy the harness in before running it.\n\nTWO CORRECTIONS. The finder over-listed the drift: it is wood_two_tank_smart_write ALONE, 1 of 55 -- wood_two_tank and wood_coil do not move. And model_sanity.py's header (on the tag) says the maximum jump is 0.5; the true value is 1.0.\n\nDO NOT CLAIM THAT FIXTURE. wood_two_tank_smart_write is in SENSITIVE and already carries a # may-drift: line, and env_drift.may_drift_error refuses a name that is both claimed and may-drift -- a claim would fail the gate by construction. Report the may-drift diff in the PR body instead, and re-measure it under whatever partition W1-G15 lands. That is why this group runs after W1-G15 and why it is marked fixture:false despite moving a fixture.\n\nSeverity context, so the body does not overstate: 0 of 4.8 million recorded solver calls come within 0.5 K of the cliff (closest 1.33 K), and trajectories reconverge to 5.5e-05 C over 96 steps."
   }
  ]
