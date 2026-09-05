@@ -1240,36 +1240,37 @@ R.check(
     "three hours 2 kW over, averaged, at the full 60/kW = 120",
 )
 
-# A hard top-k leaves tied metering windows with zero gradient; smooth top-k
-# spreads weight k/n across a tie so every window on the plateau can move.
-_tied_excess = np.full(24, 1.0)
+# A one-window +eps probe always moves a hard top-k (that window becomes
+# the unique largest, FD ≈ price_per_kw). Smooth top-k shares weight k/n
+# across the tie, so the same probe is ≈ price * k/n (here 20 * 3/24 ≈ 2.5).
 _tied_base = peak_cost(
     np.full(24, 7.0), np.zeros(24), 6.0, 20.0, 60, 1.0, 3,
 )
-_tied_grads = sum(
-    1
-    for i in (0, 6, 12, 18)
-    if abs(
-        (
-            peak_cost(
-                np.where(np.arange(24) == i, 7.0001, 7.0),
-                np.zeros(24),
-                6.0,
-                20.0,
-                60,
-                1.0,
-                3,
-            )
-            - _tied_base
+_tied_fd = [
+    (
+        peak_cost(
+            np.where(np.arange(24) == i, 7.0001, 7.0),
+            np.zeros(24),
+            6.0,
+            20.0,
+            60,
+            1.0,
+            3,
         )
-        / 1e-4
+        - _tied_base
     )
-    > 1e-6
-)
+    / 1e-4
+    for i in (0, 6, 12, 18)
+]
 R.check(
     "tied peak windows all carry gradient under smooth top-k",
-    _tied_grads >= 3,
-    f"only {_tied_grads} of 4 tied probes moved the charge",
+    sum(1 for g in _tied_fd if abs(g) > 1e-6) >= 3,
+    f"only {sum(1 for g in _tied_fd if abs(g) > 1e-6)} of 4 tied probes moved the charge",
+)
+R.check(
+    "tied-window FD is the shared k/n weight, not a hard unique top",
+    all(1.0 < g < 8.0 for g in _tied_fd),
+    f"fd={_tied_fd} (hard unique-window is ~20, smooth k/n is ~2.5)",
 )
 
 # --- The metering windows sit on the DSO's clock, not the plan's -----------
