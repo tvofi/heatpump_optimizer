@@ -65,27 +65,24 @@ def _predict_step_excursion(
     step_thermal_kw: float,
     step_hours: float,
     relax_hours: float,
-    dt_h: float = 0.05,
 ) -> tuple[float, float]:
-    """Peak and final |T − baseline| over a first-order step then relax."""
+    """Peak and final |T − baseline| over a first-order step then relax.
+
+    Each phase is one exponential with constant Q, so the extrema are at
+    the phase endpoints (heating then cooling is monotonic in each).
+    """
     if ua <= 1e-9 or capacity <= 1e-9:
         return float("inf"), float("inf")
     tau = capacity / ua
-    peak = 0.0
-    temp = baseline
 
-    def _advance(duration: float, q: float) -> None:
-        nonlocal peak, temp
+    def _end(temp: float, q: float, hours: float) -> float:
         t_ss = outdoor + (q + gains) / ua
-        steps = max(int(duration / dt_h), 1)
-        h = duration / steps
-        for _ in range(steps):
-            temp = t_ss + (temp - t_ss) * np.exp(-h / tau)
-            peak = max(peak, abs(temp - baseline))
+        return t_ss + (temp - t_ss) * np.exp(-hours / tau)
 
-    _advance(step_hours, step_thermal_kw)
-    _advance(relax_hours, 0.0)
-    return peak, abs(temp - baseline)
+    after_step = _end(baseline, step_thermal_kw, step_hours)
+    after_relax = _end(after_step, 0.0, relax_hours)
+    peak = max(abs(after_step - baseline), abs(after_relax - baseline))
+    return peak, abs(after_relax - baseline)
 
 
 @dataclass
@@ -302,21 +299,24 @@ class SystemIdentification:
         """Largest electrical step whose predicted excursion fits the bound."""
         cfg = self.config
         cop = max(cop, 0.1)
+        q_max = max_power_kw * cop
+        # 0.01 kW thermal: the C=8 UA=0.35 kW/K needle is ~0.05 kW wide.
+        steps = max(int(round(q_max / 0.01)), 1)
         best: float | None = None
-        for i in range(1, 41):
-            power = max_power_kw * i / 40.0
+        for i in range(1, steps + 1):
+            q = q_max * i / steps
             peak, final = _predict_step_excursion(
                 baseline,
                 outdoor_temp,
                 ua,
                 capacity,
                 gains,
-                power * cop,
+                q,
                 cfg.step_hours,
                 cfg.relax_hours,
             )
             if peak <= cfg.max_excursion_c and final <= cfg.max_excursion_c:
-                best = power
+                best = q / cop
         return best
 
     def _over_excursion(self, room_temp: float) -> bool:
@@ -481,9 +481,9 @@ class SystemIdentification:
         with G the constant free heat (occupancy, appliances, residual
         solar). Regressing dT/dt on (T - T_out), Q and a constant gives
         UA/C, 1/C and G/C directly, which is a plain least-squares problem.
-        It is solved over both the step and the relaxation phases because
-        the relaxation carries the cleanest information about UA (no input
-        to confound it) while the step carries the information about C.
+        It is solved over settle, step and relax: settle is a known-input
+        hour the step used to throw away; relax carries UA (no input to
+        confound it); the step carries C.
 
         The intercept column is not decoration. Relax-phase samples carry
         ``power_kw = 0`` while the gains keep heating the room, so a fit
