@@ -15997,18 +15997,18 @@ async def _whatif_scratch_params():
     coord._thermal_params.internal_gains_profile = [0.3] * 24
     captured = []
     real_model = _coord_mod.ThermalModel
+    real_init = real_model.__init__
 
-    class _Spy(real_model):
-        def __init__(self, params, *a, **k):
-            captured.append(params)
-            super().__init__(params, *a, **k)
+    def _spy_init(self, params, *a, **k):
+        captured.append(params)
+        return real_init(self, params, *a, **k)
 
-    _coord_mod.ThermalModel = _Spy
+    real_model.__init__ = _spy_init
     try:
         coord._last_simulation = None
         payload = await coord.async_simulate({"target_temp": 20.5})
     finally:
-        _coord_mod.ThermalModel = real_model
+        real_model.__init__ = real_init
     return coord, captured[-1] if captured else None, payload
 
 
@@ -16047,18 +16047,18 @@ async def _whatif_scratch_config():
     await coord.async_run_optimization()
     captured = []
     real_opt = _coord_mod.HeatPumpOptimizer
+    real_init = real_opt.__init__
 
-    class _OptSpy(real_opt):
-        def __init__(self, model, config, *a, **k):
-            captured.append(config)
-            super().__init__(model, config, *a, **k)
+    def _spy_init(self, model, config, *a, **k):
+        captured.append(config)
+        return real_init(self, model, config, *a, **k)
 
-    _coord_mod.HeatPumpOptimizer = _OptSpy
+    real_opt.__init__ = _spy_init
     try:
         coord._last_simulation = None
         await coord.async_simulate({"target_temp": 20.5})
     finally:
-        _coord_mod.HeatPumpOptimizer = real_opt
+        real_opt.__init__ = real_init
     return coord, captured[-1] if captured else None
 
 
