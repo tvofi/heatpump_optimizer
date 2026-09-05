@@ -3005,7 +3005,7 @@ function cardStyleBlock() {
         cursor: crosshair;
       }
       .layout-port-hit {
-        fill: #fff; fill-opacity: 0.001; stroke: none;
+        fill: #fff; fill-opacity: .001; stroke: none;
         cursor: crosshair;
       }
       .layout-ghost {
@@ -9004,7 +9004,14 @@ class HeatpumpOptimizerCard extends HTMLElement {
     const anyData = this._series.some((s) => s.hasData);
 
     const style = cardStyleBlock();
-    const legend = this.legend.html(this._series);
+
+    // Which page an expanded dialog opens on. Decided here, where `anyData`
+    // is known, and only while the dialog is actually open, so a tab the user
+    // chose themselves is never overridden by a later refresh.
+    this.dialog.pickDefaultPage(anyData);
+    const savingsTile =
+      this.dialog.expanded && this.dialog.activePage() === "savings";
+    const legend = savingsTile ? "" : this.legend.html(this._series);
 
     // The setup page is drawn from configuration alone: `sensor.py` publishes
     // `setup_topology` with no plan at all, saying so in as many words --
@@ -9023,7 +9030,12 @@ class HeatpumpOptimizerCard extends HTMLElement {
     this._chartWidthUsed = [];
 
     let body;
-    if (!anyData) {
+    if (savingsTile) {
+      body = "";
+      this._plot = null;
+      this._geom = null;
+      this._geoms = [];
+    } else if (!anyData) {
       body = `<div class="empty">${L("errors.no_plan_data")}<br>
       ${this.plan.diagnose("space")}<br>
       ${this.plan.diagnose("dhw")}</div>`;
@@ -9035,11 +9047,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
     } else {
       body = this._chartBlock(built, false);
     }
-
-    // Which page an expanded dialog opens on. Decided here, where `anyData`
-    // is known, and only while the dialog is actually open, so a tab the user
-    // chose themselves is never overridden by a later refresh.
-    this.dialog.pickDefaultPage(anyData);
 
     // The dialog is a sibling of ha-card, not a child, so a click inside it
     // never bubbles into the card's own open-on-click handler. Rendered
