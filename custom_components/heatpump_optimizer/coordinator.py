@@ -10794,20 +10794,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         await self.async_request_refresh()
 
     def _run_system_identification(self, prices: np.ndarray) -> None:
-        """Advance the experiment and override the plan if it wants the pump.
+        """Advance sysid and override the plan when the experiment commands heat.
 
-        v5.3.0: the experiment is subject to the mode gate and the pump-signal
-        freeze, like every other path that commands power. It writes
-        ``_current_action["power"]`` directly, *after* the solve, so it is the
-        one route that bypasses the bounds the mode block is enforced at —
-        and it is the worst route to bypass them by. A step response measured
-        while the pump is cooling, faulted or offline is not a noisy
-        measurement of the house, it is a measurement of something else
-        entirely, and ``_adopt_system_identification`` seeds the persisted
-        thermal parameters from it. Aborting rather than pausing is
-        deliberate: an experiment is a contiguous step, and one resumed
-        across an interval that commanded heat the pump never delivered
-        would identify a house that does not exist.
+        Subject to the mode gate and pump freeze like every other power path.
+        Writes ``_current_action["power"]`` after the solve — the one route
+        that bypasses mode bounds — so a response measured while cooling,
+        faulted or offline seeds wrong parameters via ``_adopt_system_identification``.
         """
         if not self._sysid.active:
             return
@@ -10831,6 +10823,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             cop=self._thermal_model.compute_cop(
                 self._current_state.outdoor_temperature
             ),
+            plan_power_kw=float(self._current_action.get("power", 0.0)),
+            house_ua=(
+                self._thermal_params.heat_loss_coefficient
+                * self._thermal_params.house_heat_loss_scale
+            ),
+            house_capacity=self._thermal_params.room_thermal_mass,
+            house_gains=self._thermal_params.internal_gains,
         )
         if override is None:
             return
