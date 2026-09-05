@@ -47,9 +47,14 @@
 #
 # claims-for: 6.3.14
 #
-# W3-G1 follow-up vs 0a0f6d7. Logistic top-k (weights sum to k) and
-# keep-best cap-tighten. Claims filled after env_drift --all vs origin/main.
+# W3-G1 follow-up vs 0a0f6d7. Logistic top-k (weights sum to k) vs
+# #454 sequential softmax, and keep-best cap-tighten. Four #232
+# fixtures moved here; valve_storage_small_tank did not.
 #
+capacity_tariff # logistic top-k vs #454 sequential softmax (#232)
+capacity_tariff_15min # logistic top-k vs #454 sequential softmax (#232)
+everything_on # logistic top-k vs #454 sequential softmax (#232)
+tariff_plus_two_zone # logistic top-k; compressor_starts 1→4 vs #454 (#232)
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
