@@ -14171,7 +14171,9 @@ R.section("sysid vs a drifting room sensor, and a bound-blind gate (D2-07)")
 _DRIFT_UA, _DRIFT_CAP, _DRIFT_G = 0.28, 12.0, 0.3
 
 
-def _drifting_sid_samples(drift_c_per_h, cadence_min=30):
+def _drifting_sid_samples(
+    drift_c_per_h, cadence_min=30, settle_power_kw=0.0, record_settle_kw=None,
+):
     """The 0.10 °C harness's plant, noise-free, with a LINEAR sensor drift.
 
     Euler-integrated so the discrete regression's model is exact: with no
@@ -14179,6 +14181,10 @@ def _drifting_sid_samples(drift_c_per_h, cadence_min=30):
     this the unbiasedness null control. A drifting sensor adds ``d·t`` to the
     room reading only — the contaminant a second-difference noise estimate is
     structurally blind to, because a straight line has no second difference.
+
+    This plant coasts at ``settle_power_kw`` during settle (0 kW by default,
+    the committed #325 instrument). Recorded settle power defaults to what
+    was actually applied; pass ``record_settle_kw`` only to lie.
     """
     ua, cap, gains = _DRIFT_UA, _DRIFT_CAP, _DRIFT_G
     p_step, t_out = 10.8, -3.0
@@ -14192,11 +14198,19 @@ def _drifting_sid_samples(drift_c_per_h, cadence_min=30):
             _PH_STEP if 1.0 <= t < 3.0
             else (_PH_RELAX if 3.0 <= t < 5.0 else _PH_SETTLE)
         )
-        power = p_step if phase == _PH_STEP else 0.0
+        if phase == _PH_STEP:
+            applied = recorded = p_step
+        elif phase == _PH_SETTLE:
+            applied = settle_power_kw
+            recorded = (
+                settle_power_kw if record_settle_kw is None else record_settle_kw
+            )
+        else:
+            applied = recorded = 0.0
         out.append(_SidSample(
-            when, temp + drift_c_per_h * t, t_out, power, phase,
+            when, temp + drift_c_per_h * t, t_out, recorded, phase,
         ))
-        temp += (power + gains - ua * (temp - t_out)) / cap * dt_h
+        temp += (applied + gains - ua * (temp - t_out)) / cap * dt_h
         when += timedelta(minutes=cadence_min)
         t += dt_h
     return out
@@ -14291,7 +14305,7 @@ from heatpump_optimizer.sysid import (  # noqa: E402
 )
 
 
-def _drive_sysid_step(ua, cap, gains, cop, max_el=5.0, cadence_min=30):
+def _drive_sysid_step(ua, cap, gains, cop, max_el=5.0, cadence_min=30, size=True):
     sid = SystemIdentification(SysIdConfig(enabled=True))
     t0 = datetime(2026, 1, 15, 23, 0, tzinfo=UTC)
     sid.arm(t0)
@@ -14300,9 +14314,9 @@ def _drive_sysid_step(ua, cap, gains, cop, max_el=5.0, cadence_min=30):
     when = t0
     prices = np.full(48, 0.5)
     tau = cap / ua
-    while when < t0 + timedelta(hours=6):
+    while when < t0 + timedelta(hours=8):
         plan = max(0.0, ua * (temp - tout) - gains) / max(cop, 0.1)
-        override = sid.step(
+        kw = dict(
             now=when,
             room_temp=temp,
             outdoor_temp=tout,
@@ -14312,10 +14326,10 @@ def _drive_sysid_step(ua, cap, gains, cop, max_el=5.0, cadence_min=30):
             max_power_kw=max_el,
             cop=cop,
             plan_power_kw=plan,
-            house_ua=ua,
-            house_capacity=cap,
-            house_gains=gains,
         )
+        if size:
+            kw.update(house_ua=ua, house_capacity=cap, house_gains=gains)
+        override = sid.step(**kw)
         if sid.phase in (PHASE_DONE, _PH_ABORTED):
             break
         el = plan if override is None else float(override)
@@ -14326,28 +14340,56 @@ def _drive_sysid_step(ua, cap, gains, cop, max_el=5.0, cadence_min=30):
     return sid
 
 
-_g5_abort = 0
-_g5_cells = 0
+_G5_EMPTY = {(4, 0.20), (4, 0.35), (4, 0.50), (8, 0.50)}
+_G5_SHORT = {(16, 0.50, 2.0)}
+_G5_TAU = {(25, 0.10, 2.0), (25, 0.10, 2.5), (25, 0.10, 3.0), (25, 0.10, 3.5)}
+_MAIN244_OK = (
+    (8, 0.20, 2.0), (8, 0.35, 3.0),
+    (16, 0.10, 2.0), (16, 0.10, 2.5), (16, 0.20, 2.0), (16, 0.20, 2.5),
+    (16, 0.20, 3.0), (16, 0.35, 2.0), (16, 0.35, 2.5), (16, 0.35, 3.0),
+    (16, 0.35, 3.5), (16, 0.50, 3.5),
+    (25, 0.20, 2.0), (25, 0.20, 2.5), (25, 0.20, 3.0), (25, 0.20, 3.5),
+    (25, 0.35, 2.0), (25, 0.35, 2.5), (25, 0.35, 3.0), (25, 0.35, 3.5),
+    (25, 0.50, 2.0), (25, 0.50, 2.5), (25, 0.50, 3.0), (25, 0.50, 3.5),
+)
+_g5_midstep = _g5_empty = _g5_short = _g5_tau = _g5_other = 0
+_g5_done = 0
 for _cap in (4, 8, 16, 25):
     for _ua in (0.10, 0.20, 0.35, 0.50):
         for _cop in (2.0, 2.5, 3.0, 3.5):
-            _g5_cells += 1
             _run = _drive_sysid_step(_ua, _cap, 0.3, _cop)
-            if _run.phase == _PH_ABORTED or not _run.result.completed:
-                _g5_abort += 1
+            _reason = _run.result.reason or ""
+            if _run.phase == PHASE_DONE and _run.result.completed:
+                _g5_done += 1
+            elif "drifted beyond" in _reason:
+                _g5_midstep += 1
+            elif (_cap, _ua) in _G5_EMPTY and "no step fits" in _reason:
+                _g5_empty += 1
+            elif (_cap, _ua, _cop) in _G5_SHORT and "no step fits" in _reason:
+                _g5_short += 1
+            elif (_cap, _ua, _cop) in _G5_TAU and "plausible bounds" in _reason:
+                _g5_tau += 1
+            else:
+                _g5_other += 1
 R.check(
-    "comfort-bounded step sizing: mid-step aborts fall from 44/64 to 24/64 "
-    "on the #244 plant sweep (20 more cells complete; C=4 kWh/K still has "
-    "no feasible step under 0.8 K)",
-    _g5_abort == 24,
-    f"{_g5_abort}/{_g5_cells} aborted or incomplete",
+    "#244: mid-step comfort abort 36/64 -> 0 (sized step, predicted bound)",
+    _g5_midstep == 0,
+    f"{_g5_midstep} mid-step aborts, {_g5_done}/64 completed",
 )
-_MAIN244_OK = (
-    (8, 0.10, 2.0), (8, 0.20, 2.0), (8, 0.20, 2.5), (8, 0.20, 3.0),
-    (16, 0.10, 2.0), (16, 0.10, 2.5), (16, 0.10, 3.0), (16, 0.20, 2.0),
-    (16, 0.20, 2.5), (16, 0.20, 3.0), (16, 0.20, 3.5), (16, 0.35, 3.5),
-    (25, 0.20, 2.0), (25, 0.20, 2.5), (25, 0.20, 3.0), (25, 0.20, 3.5),
-    (25, 0.35, 2.0), (25, 0.35, 2.5), (25, 0.35, 3.0), (25, 0.35, 3.5),
+R.check(
+    "#244 remaining: 16 empty-band declines (C=4 UA>=0.20 and C=8 UA=0.50)",
+    _g5_empty == 16,
+    f"{_g5_empty} empty-band declines",
+)
+R.check(
+    "#244 remaining: 1 nameplate-short decline (C=16 UA=0.50 COP=2, Qmin=12 kW, max=10)",
+    _g5_short == 1,
+    f"{_g5_short} nameplate-short declines",
+)
+R.check(
+    "#244 remaining: 4 identify() tau-guard failures (C=25 UA=0.10, tau=250 h > 200)",
+    _g5_tau == 4 and _g5_other == 0 and _g5_done == 43,
+    f"tau={_g5_tau} other={_g5_other} done={_g5_done}",
 )
 R.check(
     "every cell that completed under 0.6 x nameplate still completes",
@@ -14356,14 +14398,41 @@ R.check(
         and _r.result.completed
         for _cap, _ua, _cop in _MAIN244_OK
     ),
-    "regression on the 20/64 cells main already completed",
+    "regression on the 24/64 cells main already completed",
 )
-_g5_null = _drive_sysid_step(0.20, 8.0, 0.3, 3.0, max_el=6.0)
+_g5_null = _drive_sysid_step(0.20, 8.0, 0.3, 1.0, max_el=6.0)
+_g5_sr = [s for s in _g5_null.samples if s.phase in (_PH_STEP, _PH_RELAX)]
+_g5_sr_sid = SystemIdentification(SysIdConfig(enabled=True))
+_g5_sr_sid.samples = _g5_sr
+_g5_sr_res = _g5_sr_sid.identify()
+_g5_full = _g5_null.identify()
 R.check(
-    "null: a 6.0 kW-el nameplate at COP 3 completes with adoption-grade "
-    "confidence",
-    _g5_null.result.completed and _g5_null.result.confidence >= 0.3,
-    f"conf {_g5_null.result.confidence:.3f} ({_g5_null.result.reason})",
+    "null: 6.0 kW thermal via real step() completes rows=7 at conf 0.445 "
+    "matching identify() on the STEP+RELAX samples (sysid_bias.py plant)",
+    _g5_null.result.completed
+    and abs(_g5_null._step_power * 1.0 - 6.0) < 1e-9
+    and len(_g5_sr) - 1 == 7
+    and abs(_g5_sr_res.confidence - 0.445) < 5e-4
+    and abs(_g5_full.confidence - _g5_null.result.confidence) < 1e-12,
+    f"Pel={_g5_null._step_power:.3f} rows={len(_g5_sr) - 1} "
+    f"sr_conf={_g5_sr_res.confidence:.3f} full={_g5_full.confidence:.3f}",
+)
+_g5_frac30 = _drive_sysid_step(0.20, 8.0, 0.3, 3.0, max_el=6.0, size=False)
+_g5_frac15 = _drive_sysid_step(0.20, 8.0, 0.3, 3.0, max_el=3.0, size=False)
+R.check(
+    "perturbation: 0.3 x nameplate (6 kW el, COP 3, no sizer) completes",
+    _g5_frac30.phase == PHASE_DONE
+    and _g5_frac30.result.completed
+    and abs(_g5_frac30._step_power - 1.8) < 1e-9,
+    f"phase={_g5_frac30.phase} conf={_g5_frac30.result.confidence:.3f} "
+    f"Pel={_g5_frac30._step_power}",
+)
+R.check(
+    "perturbation: 0.15 x nameplate-equivalent (2.7 kW thermal) aborts on undershoot",
+    _g5_frac15.phase == _PH_ABORTED
+    and "excursion" in _g5_frac15.result.reason
+    and abs(_g5_frac15._step_power - 0.9) < 1e-9,
+    f"phase={_g5_frac15.phase} reason={_g5_frac15.result.reason}",
 )
 _peak, _final = _predict_step_excursion(21.0, 2.0, 0.20, 8.0, 0.3, 9.0, 2.0, 2.0)
 R.check(
@@ -14405,11 +14474,33 @@ R.check(
     and all(abs(s.power_kw - 6.0) < 1e-9 for s in _settle_rows),
     f"powers {[s.power_kw for s in _settle_rows]}",
 )
+_D_LIE = _sid_on(_drifting_sid_samples(0.0, settle_power_kw=3.0, record_settle_kw=0.0))
+_D_TRUE3 = _sid_on(_drifting_sid_samples(0.0, settle_power_kw=3.0))
+R.check(
+    "mis-recorded settle 3 kW as 0 kW biases clean UA (#325 trap)",
+    _D_LIE.completed
+    and (_D_LIE.heat_loss_kw_per_c / _DRIFT_UA - 1.0) < -0.04,
+    f"UA err {_D_LIE.heat_loss_kw_per_c / _DRIFT_UA - 1.0:+.3f}",
+)
+R.check(
+    "the same 3 kW settle hour recorded correctly stays unbiased",
+    _D_TRUE3.completed
+    and abs(_D_TRUE3.heat_loss_kw_per_c / _DRIFT_UA - 1.0) < 5e-4,
+    f"UA {_D_TRUE3.heat_loss_kw_per_c} ({_D_TRUE3.reason})",
+)
 R.check(
     "including the settle hour keeps a clean sensor unbiased (#325 guard)",
     _D_CLEAN.completed
     and abs(_D_CLEAN.heat_loss_kw_per_c / _DRIFT_UA - 1.0) < 5e-4,
     f"UA {_D_CLEAN.heat_loss_kw_per_c} ({_D_CLEAN.reason})",
+)
+R.check(
+    "sigma->0 recovers d exactly on both arms",
+    _D_CLEAN.completed
+    and abs((_D_CLEAN.sensor_drift_c_per_h or 0.0) - 0.0) < 5e-5
+    and _D_DRIFT.completed
+    and abs(_D_DRIFT.sensor_drift_c_per_h - 0.10) < 5e-5,
+    f"clean d={_D_CLEAN.sensor_drift_c_per_h} drift d={_D_DRIFT.sensor_drift_c_per_h}",
 )
 
 # --- D7-05: detected free heat skips the accuracy sample, like a freeze ---
