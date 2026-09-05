@@ -1,1 +1,1 @@
-W1-G12: merged PR #428 at `6bee53f` (#260 #261 #263 #266 closed); next seat W1-G13.
+W1-G13: PR #432 chip coarse floor fix pushed — dialog.expanded padding/line-height + _coarsePointer() CSS path; browser green.
