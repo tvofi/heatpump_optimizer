@@ -51,7 +51,13 @@
    "effort": "high",
    "fixture": true,
    "brief": "The DHW planner's hot loops: _apply_dhw_min_run, _repair_dhw_floor's range(48), _plan_dhw_cheapest_first's range(400), _co_optimize's second pass, and the hoisted lookups in simulate_dhw_only. Lead with planner_over_reference (3.4-4.1), which is the metric that survives.\n\nThe division that decides the claim file: an order-preserving refactor moves NO fixture and must be shown to move none; a joint-raise moves fixtures and is claimed. Do not blur the two into one commit. A stress re-record is permitted only under the statistic that replaced #346's -- see #387 and whatever landed for it -- never against the old basin table.",
-   "after": ["W3-G1"]
+   "after": ["W3-G1"],
+   "resume": {
+    "stage": "done",
+    "merged_pr": 456,
+    "merge_sha": "ebf71709a6f4642f57af13888bb60a748afa1012",
+    "note": "Review merge 5552887642 at 5fd6d5a. Mutation 59 vs 122, no RecursionError. env_drift exit 0 empty claims. Lead planner_over_reference 3.563→4.030 in band. Calls 64→59. CI 12/12. #289 closed. #232 #234 stay closed. Next seat W3-G3."
+   }
   },
   {
    "group": "W3-G3",
@@ -60,7 +66,7 @@
    "reviewerModel": "opus",
    "effort": "high",
    "fixture": true,
-   "brief": "The process route for the three executor lambdas: async_run_optimization (:4781), async_simulate (:10903), async_diagnose_interval (:10231). _solve_snapshot already deep-copies, so the payload side is done. Closes #199 as well.\n\nMEASURE ON A REAL LOOP OR NOT AT ALL. Use the finder's h3_gil_hold.py and h4_loop_thread_work.py from tag audit-round2-evidence (757e164) against a real asyncio loop with a ThreadPoolExecutor(1) and a 1 ms heartbeat -- never FakeHass, which is what made the round-1 result unreproducible. Score gap_p50 or the judge's inverted switch-interval lever. time.sleep(0) releases nothing and is not a control.\n\nThis touches coordinator.py, which sits at zero headroom on coordinator_loc: pay for the lines, or re-record with the reason IN THE COMMIT (#370's guard demands that, because the squash-merge keeps the commit and discards the branch).",
+   "brief": "Process route for the three executor jobs in HeatPumpOptimizerCoordinator: async_run_optimization (hass.async_add_executor_job lambda around HeatPumpOptimizer.optimize), async_simulate (what-if lambda), async_diagnose_interval (diagnose_last_interval). _solve_snapshot already deep-copies. Put Closes #290 and Closes #199 on separate lines.\n\nDo not go looking for h3_gil_hold.py or h4_loop_thread_work.py on main (they live only at tag audit-round2-evidence, 757e164) and do not use sys.setswitchinterval(0.05): the #290 judge voided that lever. Do not go looking for j5_gil.py on main; recreate it from the #290 judge comment: real asyncio loop, 1 ms heartbeat, HeatPumpOptimizer.optimize submitted through hass.async_add_executor_job — never FakeHass. Score the judge gap p50 (panel 2.54 to 17.24 ms) or the inverted lever (switchinterval 5 to 0.5 ms: share 0.9589 to 0). time.sleep(0) releases nothing.\n\nFix is a process pool or a one-shot subprocess — whole-interpreter GIL starvation (ordinary thread share 0.939). Not a smaller switchinterval, not a sleep. Lambdas are not picklable; restructure all three jobs. Expected golden drift: none.\n\ncoordinator_loc is 10400/10400. Pay for the lines, or STOP and ask the owner before any raise. Do not raise SOLVE_BUDGET_RATIO. Do not re-record goldens.",
    "after": ["W3-G2"]
   }
  ]
