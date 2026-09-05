@@ -319,6 +319,7 @@ from .external_heat import (
 from . import away as away_mode
 from . import battery as battery_view
 from . import comfort_band
+from . import diagnosis
 from . import mixing_valve
 from . import topology
 from . import pv as pv_model
@@ -361,7 +362,6 @@ from .drift import Cusum
 from .ledger import KEEP_MONTHS, MonthlyLedger, month_key
 from .wear import StartCounter, wear_price_per_start
 from . import narrative
-from . import diagnosis
 from .freq_control import (
     FREQ_MODE_CONTROL,
     FREQ_MODE_OBSERVE,
@@ -399,6 +399,12 @@ from .optimizer import (
     OptimizationConfig,
     OptimizationResult,
     slab_settlement_cap,
+)
+from .solve_process import (
+    async_run_solve_job,
+    run_interval_diagnosis,
+    run_optimize_worker,
+    shutdown_solve_pool,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -980,6 +986,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._weather_outage_cycles: int = 0
         self._current_state = ThermalState()
         self._current_action: dict[str, Any] = {}
+        # #52: last settled interval triple and its attribution (#52).
+        self._last_interval_record: dict[str, Any] | None = None
+        self._last_diagnosis: dict[str, Any] | None = None
         self._unsub_timer: Any = None
         # Fire-and-forget tasks (store saves, listener registrations), held
         # so shutdown can let them finish instead of orphaning them against
@@ -1204,11 +1213,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # #39: the price tiles, refreshed one per scheduled solve.
         self._price_tiles: dict[str, dict] = {}
         self._price_tile_cursor = 0
-        # #52: the last settled interval's (planned, realised, actual)
-        # triple, and the latest attribution run over one. In memory only:
-        # a diagnosis is about the interval that just happened.
-        self._last_interval_record: dict[str, Any] | None = None
-        self._last_diagnosis: dict[str, Any] | None = None
 
         # --- Inverter frequency (v4.0.0 T7 #61) ----------------------------
         # Observe learns; control actuates only on explicit opt-in, and the
@@ -4935,43 +4939,36 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             # Taken here, after every pre-solve mutation above, so the copies
             # carry all of them into the executor thread.
             solve_state, solve_optimizer = self._solve_snapshot()
-            # Run optimization in executor to avoid blocking
-            result = await self.hass.async_add_executor_job(
-                lambda: solve_optimizer.optimize(
-                    solve_state,
-                    horizon.prices,
-                    horizon.outdoor_temps,
-                    horizon.wind_speeds,
-                    horizon.precipitation,
-                    horizon.solar_radiation,
-                    solve_now,
-                    horizon.price_known,
-                    horizon.pv_surplus,
-                    space_pins,
-                    dhw_pins,
-                    external_heat,
-                    horizon.price_sigma,
-                    caps_extra,
-                    # #21: the forecast humidity series, when it carries
-                    # data. None keeps the solve's inner loop free of dead
-                    # lookups.
-                    (
-                        horizon.humidity
-                        if horizon.humidity.size
-                        and bool(np.any(np.isfinite(horizon.humidity)))
-                        else None
-                    ),
-                    min_temp_margins=margins,
-                    min_temp_floors=mold_floors,
-                    # v5.3.0: never promise heat the pump's current mode
-                    # cannot deliver — symmetrically. A cooling or hot-water
-                    # mode suppresses space slots; a heating-only mode
-                    # suppresses hot-water slots. Both default False and the
-                    # capability defaults to "can do everything", so an
-                    # install with no mode entity plans exactly as before.
-                    space_blocked=mode_blocked_space,
-                    dhw_blocked=mode_blocked_dhw,
-                )
+            # #290/#199: child process, not the HA thread pool — the GIL
+            # is whole-interpreter and a thread executor starves every loop.
+            result = await async_run_solve_job(
+                self.hass,
+                run_optimize_worker,
+                solve_optimizer,
+                solve_state,
+                horizon.prices,
+                horizon.outdoor_temps,
+                horizon.wind_speeds,
+                horizon.precipitation,
+                horizon.solar_radiation,
+                solve_now,
+                horizon.price_known,
+                horizon.pv_surplus,
+                horizon.price_sigma,
+                space_pins,
+                dhw_pins,
+                external_heat,
+                caps_extra,
+                (
+                    horizon.humidity
+                    if horizon.humidity.size
+                    and bool(np.any(np.isfinite(horizon.humidity)))
+                    else None
+                ),
+                margins,
+                mold_floors,
+                mode_blocked_space,
+                mode_blocked_dhw,
             )
 
             # #237: the executor await above is seconds wide, and an options
@@ -5219,6 +5216,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if refresh is not None and refresh is not asyncio.current_task():
             refresh.cancel()
         await super().async_shutdown()
+        shutdown_solve_pool()
         if self._unsub_timer:
             self._unsub_timer()
             self._unsub_timer = None
@@ -10323,33 +10321,25 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         record = self._last_interval_record
         if not record:
             return None
-        try:
-            # A scratch model, never the live one: simulate_step writes
-            # per-call scratch on the model instance, and the scheduled
-            # solve may be walking the SAME instance in another executor
-            # thread — a diagnosis mid-solve must not corrupt the live
-            # plan's accounting. Same idiom as the what-if solves.
-            scratch_model = ThermalModel(replace(self._thermal_params))
-            report = diagnosis.attribute(
-                scratch_model,
-                record["state"],
-                dict(record["planned"], dt_hours=record["dt_hours"]),
-                record["realised"],
-                record["actual"],
-            )
-        except Exception as err:  # noqa: BLE001 - never break ops for insight
-            _LOGGER.debug("Interval diagnosis failed: %s", err)
-            return None
+        report = run_interval_diagnosis(self._thermal_params, record)
         if report is not None:
-            report["interval_end"] = record["when"]
             self._last_diagnosis = report
         return report
 
     async def async_diagnose_interval(self) -> None:
         """Service/button entry for #52; publishes on the insight view."""
-        report = await self.hass.async_add_executor_job(
-            self.diagnose_last_interval
-        )
+        record = self._last_interval_record
+        if not record:
+            report = None
+        else:
+            report = await async_run_solve_job(
+                self.hass,
+                run_interval_diagnosis,
+                self._thermal_params,
+                record,
+            )
+            if report is not None:
+                self._last_diagnosis = report
         if report is None:
             _LOGGER.info(
                 "No settled interval to diagnose yet — one full "
@@ -11021,57 +11011,37 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
         scratch = HeatPumpOptimizer(ThermalModel(scratch_params), scratch_config)
         try:
-            simulated = await self.hass.async_add_executor_job(
-                lambda: scratch.optimize(
-                    # Shallow deliberately: ``ThermalState`` is scalars only.
-                    replace(self._current_state),
-                    horizon.prices,
+            simulated = await async_run_solve_job(
+                self.hass,
+                run_optimize_worker,
+                scratch,
+                replace(self._current_state),
+                horizon.prices,
+                horizon.outdoor_temps,
+                horizon.wind_speeds,
+                horizon.precipitation,
+                horizon.solar_radiation,
+                self._solve_anchor(now),
+                horizon.price_known,
+                horizon.pv_surplus,
+                horizon.price_sigma,
+                None,
+                None,
+                None,
+                cap_extra,
+                (
+                    horizon.humidity
+                    if horizon.humidity.size
+                    and bool(np.any(np.isfinite(horizon.humidity)))
+                    else None
+                ),
+                self._confidence_margins(len(horizon.prices)),
+                self._mold_floor_series(
                     horizon.outdoor_temps,
-                    horizon.wind_speeds,
-                    horizon.precipitation,
-                    horizon.solar_radiation,
-                    self._solve_anchor(now),
-                    horizon.price_known,
-                    horizon.pv_surplus,
-                    # The scratch config inherits price_risk_lambda, so the
-                    # what-if must price guessed steps the same way the plan
-                    # it is compared against did (#34).
-                    price_sigma=horizon.price_sigma,
-                    power_caps_extra=cap_extra,
-                    # #21: the what-if is compared against a plan that saw
-                    # the humidity series, so it must see the same one.
-                    humidity=(
-                        horizon.humidity
-                        if horizon.humidity.size
-                        and bool(np.any(np.isfinite(horizon.humidity)))
-                        else None
-                    ),
-                    # T5: same floors as the live plan, same reasoning —
-                    # except the mold cap follows the SIMULATED target, so
-                    # a what-if dragging the target down sees the floor
-                    # that choice would actually get.
-                    min_temp_margins=self._confidence_margins(
-                        len(horizon.prices)
-                    ),
-                    min_temp_floors=self._mold_floor_series(
-                        horizon.outdoor_temps,
-                        target_cap=float(scratch_config.target_temp),
-                    ),
-                    # v5.3.0: and the mode block, for the same reason as
-                    # every inherited input above — the what-if is
-                    # DIFFERENCED against the live plan, so anything that
-                    # shaped the live plan and not the shadow one turns the
-                    # difference into a comparison of two different
-                    # questions. This one is the worst of them: the live
-                    # plan under a block heats nothing, so an unblocked
-                    # shadow solve looks warmer than its own baseline,
-                    # ``base_cold - sim_cold`` goes negative, and the fuse
-                    # advisor's clamp turns a real comfort breach into
-                    # "feasible" — a published recommendation to fit a
-                    # smaller main fuse.
-                    space_blocked=self._pump_signals.space_blocked,
-                    dhw_blocked=self._pump_signals.dhw_blocked,
-                )
+                    target_cap=float(scratch_config.target_temp),
+                ),
+                space_blocked=self._pump_signals.space_blocked,
+                dhw_blocked=self._pump_signals.dhw_blocked,
             )
         except Exception as err:  # noqa: BLE001 - a what-if must never break ops
             _LOGGER.warning("What-if simulation failed: %s", err)

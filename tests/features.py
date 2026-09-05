@@ -21787,4 +21787,26 @@ R.check(
     f"fixed {_g2_winter_calls} vs mutant {_g2_mut_calls}",
 )
 
+# ---------------------------------------------------------------------------
+# #290/#199: MPC solves run in a child process, not the HA thread pool.
+
+
+def _process_pool_pids() -> tuple[int, int]:
+    root = _os.path.dirname(_os.path.dirname(__file__))
+    out = _subprocess.check_output(
+        [sys.executable, "tests/solve_process_check.py"],
+        cwd=root,
+        env={**_os.environ, "PYTHONPATH": "tests/hastub:custom_components"},
+        text=True,
+    )
+    return tuple(map(int, out.split()))
+
+
+_parent_pid, _child_pid = _process_pool_pids()
+R.check(
+    _parent_pid != _child_pid,
+    "async_run_solve_job dispatches to a child process (#290)",
+)
+
+
 sys.exit(R.close("FEATURE CHECKS"))
