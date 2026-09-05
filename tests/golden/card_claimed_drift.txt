@@ -19,8 +19,8 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 6.3.14
+# claims-for: 6.3.15
 #
-# v6.3.14: Wave 2 coordinator lifecycle, learners, options grouping. The stamp empties the list; the
+# v6.3.15: Wave 3 solver, DHW planner, GIL process route. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
