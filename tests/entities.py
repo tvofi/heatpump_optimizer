@@ -7096,6 +7096,25 @@ R.check(
     "the lanes decide how every recording is taken; that invalidates them all",
 )
 
+# --- node recording needs strace (#401) ------------------------------------
+from unittest import mock as _mock
+
+def _record_node_missing_strace_rc() -> int | None:
+    with _mock.patch.object(__import__("shutil"), "which", return_value=None):
+        with _tempfile.TemporaryDirectory() as d:
+            try:
+                _closure._record_node(
+                    "tests/card.mjs", f"{d}/card.mjs.json", {})
+            except SystemExit as exc:
+                return exc.code
+    return None
+
+R.check(
+    "_record_node refuses when strace is missing",
+    _record_node_missing_strace_rc() == 1,
+    "must abort before subprocess, not with a bare FileNotFoundError",
+)
+
 # --- when the closures CHECK itself runs (#354) -----------------------------
 #
 # `select` above decides which tests a change needs. `affected` decides
