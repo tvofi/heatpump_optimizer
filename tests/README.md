@@ -34,6 +34,28 @@ solver floats recorded on one machine do not reproduce bit-exactly on
 another. The `SLOW=1` closed-loop simulation runs nightly and on manual
 dispatch.
 
+## The gate lock
+
+`/tmp/hpo-gate.lock` serialises anything that runs `tests/stress.py`. A
+scoped run that does not select that script does not need it. The mechanism
+is `tests/gate_lock.py` (#404): a renewed lease plus `flock`, not a shell
+pid and a process-table judgement.
+
+```
+python3 tests/gate_lock.py take --label YOUR_LABEL
+python3 tests/gate_lock.py hold --label YOUR_LABEL -- \
+  env GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) \
+  ./tests/run.sh
+python3 tests/gate_lock.py release --label YOUR_LABEL
+```
+
+`take` writes `label` and `expires_at` (30 minutes; renew on every command).
+An expired lease is taken with no forensics. A live holder between commands
+keeps the lock by renewing. `hold` takes `flock` for one process so a crash
+releases waiters immediately instead of sitting out the rest of the lease.
+`status` prints who holds it and when it expires. Do not `rm -rf` a lock you
+did not take; do not `rmdir` (the owner file makes the directory non-empty).
+
 ## The scoped gate
 
 A full run is about forty minutes. A change to the dashboard card genuinely
@@ -617,7 +639,7 @@ model. Drift, oscillation and learner divergence only appear there.
   skips it when `GOLDEN_REF` is unreachable or is this commit, exactly as it
   does for `env_drift.py`.
 
-Seven files in `tests/` are not tests at all and are excluded from the
+Eight files in `tests/` are not tests at all and are excluded from the
 "every script must be wired into `run.sh`" accounting:
 
 - **dom_stub.mjs** is the DOM the Node card harnesses run against (#101),
@@ -630,6 +652,9 @@ Seven files in `tests/` are not tests at all and are excluded from the
   end-to-end scripts import — fakes and price/weather profiles, not scripts
   with assertions of their own; see "What each script is for" below for what
   each holds.
+- **gate_lock.py** is the `/tmp/hpo-gate.lock` helper (#404): take / renew /
+  release / status / hold. Owner file is `label` + `expires_at`, not a shell
+  pid. `entities.py` imports it. See "The gate lock" above.
 - **setup_qa_render.mjs** is a manual QA render: it writes SVGs to
   `../setup-qa/`, outside the repository, for a designer to eyeball, and
   nothing in the gate reads its output.

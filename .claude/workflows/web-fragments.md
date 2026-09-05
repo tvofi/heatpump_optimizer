@@ -48,29 +48,20 @@ no measurement reason. Decide it, do not assume it:
   * "$D/scope.run" names tests/stress.py  ->  TAKE THE LOCK.
   * otherwise  ->  NO LOCK. Run the scripts scope.run names, directly.
 
-Taking the lock: mkdir /tmp/hpo-gate.lock and write an owner file (your
-label, the work's pid, UTC). If it exists, read it and check the pid, then
-wait and retry -- NEVER remove a lock you did not create, EXCEPT when its
-owner is provably dead: the owner file records a pid precisely so that is a
-decidable fact rather than a judgement call. If that pid is not running AND no
-run.sh/stress.py/golden.py/env_drift.py/derive_closures process exists AND load1
-is low, the holder died (a container restart, an agent killed mid-gate). Write
-down the owner file verbatim and those three observations, then clear it -- a
-literal reading of the older rule deadlocks the whole wave behind a dead pid,
-which has already happened once.
-ONE TRAP IN THAT TEST, found by applying it: the pid in the owner file is usually
-the GATE SHELL, which exits normally the moment the gate finishes -- while the
-agent that took the lock is still alive, reading its log, and may be about to use
-the lock again. So a dead pid ALONE is not enough when the gate log ends in a
-completed run. Clear it only when the owning agent has also gone quiet for several
-minutes; when in doubt wait, because yanking a live agent's lock costs more than
-queueing behind a finished one. Write your own label into the owner file so the
-next reader knows whose it is. Under it run
-GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main
-HEAD) ./tests/run.sh, and release with rm -rf, not rmdir: the owner file
-makes the directory non-empty, and rmdir leaves the lock standing behind a
-green gate, which has blocked two sessions before. Print the concurrent
-process count beside every timing RESULT.
+Taking the lock: python3 tests/gate_lock.py take --label YOUR_LABEL
+If it is held, the helper prints who holds it and when the lease expires,
+then exits 1 -- wait and retry, or pass --wait to queue. An expired lease
+is taken with no pid check and no process-table forensics. A live holder
+between commands keeps the lock by renewing; do not clear it. Wrap each
+long command so a crash drops flock immediately:
+
+    python3 tests/gate_lock.py hold --label YOUR_LABEL -- \
+      env GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) \
+      ./tests/run.sh
+
+Release with: python3 tests/gate_lock.py release --label YOUR_LABEL
+(rm -rf only via the helper; rmdir leaves a lock standing). Print the
+concurrent process count beside every timing RESULT.
 
 CI IS THE AUTHORITY EITHER WAY. Its fast, closures and browser jobs run the
 same run.sh in the same drift mode against the same merge base, on a runner

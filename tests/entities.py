@@ -7141,6 +7141,207 @@ R.check(
     "the guard must not refuse a Linux recorder",
 )
 
+# --- gate lock is a renewed lease + flock (#404) ---------------------------
+#
+# `/tmp/hpo-gate.lock` was mkdir + a shell pid plus prose. The pid is the
+# gate shell, which exits while the agent is still alive, so a dead-pid
+# check either deadlocks a wave or steals a live run. The helper replaces
+# that with expires_at + label, renewal, and flock around a command.
+import os as _os
+import subprocess as _subprocess
+import threading as _threading
+import time as _time
+
+import gate_lock as _gate_lock
+
+_GL_T0 = datetime(2026, 9, 6, tzinfo=UTC)
+
+
+def _gl_take_rc(label, lock_dir, *, now, lease_s=1800, wait=False):
+    err = _strace_io.StringIO()
+    with _strace_ctx.redirect_stderr(err):
+        try:
+            _gate_lock.take(
+                label, lock_dir=lock_dir, now=now, lease_s=lease_s, wait=wait,
+            )
+            return 0, err.getvalue()
+        except SystemExit as exc:
+            return exc.code, err.getvalue()
+
+
+def _gl_expired_taken() -> bool:
+    with _tempfile.TemporaryDirectory() as td:
+        d = Path(td) / "lock"
+        _gate_lock.take("dead", lock_dir=d, now=_GL_T0, lease_s=60)
+        rc, err = _gl_take_rc(
+            "next", d, now=_GL_T0 + timedelta(seconds=61), lease_s=60,
+        )
+        st = _gate_lock.status(lock_dir=d, now=_GL_T0 + timedelta(seconds=61))
+        return (
+            rc == 0
+            and st is not None
+            and st.label == "next"
+            and "pid" not in err.lower()
+        )
+
+
+def _gl_between_commands_kept() -> tuple[bool, str]:
+    with _tempfile.TemporaryDirectory() as td:
+        d = Path(td) / "lock"
+        _gate_lock.take("live", lock_dir=d, now=_GL_T0, lease_s=1800)
+        rc, err = _gl_take_rc(
+            "other", d, now=_GL_T0 + timedelta(seconds=10), lease_s=1800,
+        )
+        st = _gate_lock.status(lock_dir=d, now=_GL_T0 + timedelta(seconds=10))
+        ok = (
+            rc == 1
+            and st is not None
+            and st.label == "live"
+            and "live" in err
+            and "pid" not in Path(d, "owner").read_text().lower()
+            and "expires_at" in Path(d, "owner").read_text()
+        )
+        return ok, err
+
+
+def _gl_renew_extends() -> bool:
+    with _tempfile.TemporaryDirectory() as td:
+        d = Path(td) / "lock"
+        _gate_lock.take("live", lock_dir=d, now=_GL_T0, lease_s=60)
+        _gate_lock.renew("live", lock_dir=d, now=_GL_T0 + timedelta(seconds=30),
+                         lease_s=60)
+        mid = _gl_take_rc(
+            "other", d, now=_GL_T0 + timedelta(seconds=61), lease_s=60,
+        )[0]
+        late = _gl_take_rc(
+            "other", d, now=_GL_T0 + timedelta(seconds=91), lease_s=60,
+        )[0]
+        return mid == 1 and late == 0
+
+
+def _gl_release_frees() -> bool:
+    with _tempfile.TemporaryDirectory() as td:
+        d = Path(td) / "lock"
+        _gate_lock.take("a", lock_dir=d, now=_GL_T0, lease_s=1800)
+        _gate_lock.release("a", lock_dir=d)
+        rc, _ = _gl_take_rc("b", d, now=_GL_T0 + timedelta(seconds=1), lease_s=1800)
+        return rc == 0 and _gate_lock.status(lock_dir=d).label == "b"
+
+
+def _gl_queue_after_release() -> bool:
+    with _tempfile.TemporaryDirectory() as td:
+        d = Path(td) / "lock"
+        _gate_lock.take("a", lock_dir=d, now=_GL_T0, lease_s=1800)
+        got: list[str] = []
+
+        def _other() -> None:
+            _gate_lock.take("b", lock_dir=d, wait=True, lease_s=1800, poll_s=0.05)
+            st = _gate_lock.status(lock_dir=d)
+            got.append(st.label if st else "")
+
+        t = _threading.Thread(target=_other)
+        t.start()
+        _time.sleep(0.2)
+        if got:
+            return False
+        _gate_lock.release("a", lock_dir=d)
+        t.join(2)
+        return got == ["b"]
+
+
+def _gl_spawn(code: str, *args: str) -> _subprocess.Popen:
+    env = _os.environ.copy()
+    env["PYTHONPATH"] = str(_closure.ROOT / "tests") + _os.pathsep + env.get(
+        "PYTHONPATH", "",
+    )
+    return _subprocess.Popen(
+        [sys.executable, "-c", code, *args],
+        cwd=str(_closure.ROOT),
+        env=env,
+        stdout=_subprocess.PIPE,
+        stderr=_subprocess.PIPE,
+    )
+
+
+def _gl_crash_releases_waiter() -> bool:
+    with _tempfile.TemporaryDirectory() as td:
+        d = str(Path(td) / "lock")
+        ready = str(Path(td) / "ready")
+        done = str(Path(td) / "done")
+        holder = _gl_spawn(
+            "import sys, time\n"
+            "import gate_lock\n"
+            "from pathlib import Path\n"
+            "d = Path(sys.argv[1])\n"
+            "gate_lock.take('holder', lock_dir=d, lease_s=1800)\n"
+            "with gate_lock.hold('holder', lock_dir=d):\n"
+            "    Path(sys.argv[2]).write_text('1')\n"
+            "    time.sleep(60)\n",
+            d,
+            ready,
+        )
+        for _ in range(50):
+            if Path(ready).exists():
+                break
+            _time.sleep(0.1)
+        else:
+            holder.kill()
+            return False
+        waiter = _gl_spawn(
+            "import sys\n"
+            "import gate_lock\n"
+            "from pathlib import Path\n"
+            "d = Path(sys.argv[1])\n"
+            "gate_lock.take('waiter', lock_dir=d, wait=True, lease_s=1800, poll_s=0.05)\n"
+            "Path(sys.argv[2]).write_text('1')\n",
+            d,
+            done,
+        )
+        _time.sleep(0.3)
+        if Path(done).exists():
+            holder.kill()
+            waiter.kill()
+            return False
+        holder.kill()
+        try:
+            waiter.wait(timeout=5)
+        except _subprocess.TimeoutExpired:
+            waiter.kill()
+            return False
+        return Path(done).exists() and waiter.returncode == 0
+
+
+R.check(
+    "an expired lease is taken without forensics",
+    _gl_expired_taken(),
+    "must steal on expires_at, not a pid table",
+)
+_between_ok, _between_err = _gl_between_commands_kept()
+R.check(
+    "a live agent between commands keeps the lock",
+    _between_ok,
+    f"stderr was {_between_err!r}",
+)
+R.check(
+    "renew extends the lease past the original expiry",
+    _gl_renew_extends(),
+    "a renewed lease must still refuse a second label",
+)
+R.check(
+    "release frees the lock for the next label",
+    _gl_release_frees(),
+)
+R.check(
+    "a waiter proceeds when the holder releases",
+    _gl_queue_after_release(),
+    "two agents contend: the queued take must succeed after release",
+)
+R.check(
+    "a crashed hold releases waiters via flock",
+    _gl_crash_releases_waiter(),
+    "killing the holder must not wait out the 30-minute lease",
+)
+
 # --- when the closures CHECK itself runs (#354) -----------------------------
 #
 # `select` above decides which tests a change needs. `affected` decides

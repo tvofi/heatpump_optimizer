@@ -92,10 +92,21 @@ GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) 
 `/tmp/hpo-gate.lock` serialises anything that runs `tests/stress.py`, which
 measures the machine while it solves and is wrong if something else is running.
 Take it for a full or stress-selecting run; a scoped run that does not select
-`stress.py` does not need it. The owner file records a pid, so a *dead* holder is
-a decidable fact — but that pid is usually the gate shell, which exits normally
-when the gate finishes while its agent is still alive, so check that the agent
-has gone quiet too before clearing one.
+`stress.py` does not need it. The owner file is a renewed lease (`label` +
+`expires_at`), not a shell pid:
+
+```
+python3 tests/gate_lock.py take --label YOUR_LABEL
+python3 tests/gate_lock.py hold --label YOUR_LABEL -- \
+  env GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) \
+  ./tests/run.sh
+python3 tests/gate_lock.py release --label YOUR_LABEL
+```
+
+An expired lease is taken with no forensics. A live agent between commands
+keeps the lock by renewing. A crash mid-command drops `flock` so a waiter
+does not sit out the remaining lease. The lease is 30 minutes (above a 735 s
+full gate / 560 s stress); renewal makes a longer run safe.
 
 A full `./tests/derive_closures.sh` cannot re-record the node lanes
 (`tests/card.mjs`, `tests/card_drift.mjs`) on macOS: they need `strace`, which

@@ -26,7 +26,7 @@
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 9.1,
+   "seconds": 11.1,
    "rc": 0
   },
   "tests/env_drift.py": {
@@ -388,6 +388,7 @@
    "hacs.json",
    "tests/entities.py",
    "tests/env_drift.py",
+   "tests/gate_lock.py",
    "tests/golden/claimed_drift.txt",
    "tests/golden/config_flow.json",
    "tests/golden/winter_single_dhw.json",

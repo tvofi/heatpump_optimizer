@@ -239,7 +239,7 @@ skip() {
 for f in tests/*.py tests/*.mjs; do
   base=$(basename "$f")
   case "$base" in
-    harness.py|profiles.py) continue ;;  # shared plumbing, not tests
+    harness.py|profiles.py|gate_lock.py) continue ;;  # shared plumbing, not tests
     # The shared DOM stub (#101) and the rig around it: imported by
     # card.mjs, setup_qa_render.mjs and card_drift.mjs, never run on
     # their own.
