@@ -57,14 +57,14 @@ Where this table and a wave body disagree, this table is the truth.
 | — | **#387, the blocker**: the basin coverage floor is runner-dependent | #387 | v6.3.12 | **fixed** — merged as `32f309f` (PR #388); sixth acceptance criterion ruled (comment 5541519696): the WORK-channel stale-cheap downgrade is kept as necessary to the `env_drift` shape, and the coverage floor's strictness is restored by a follow-up PR that hard-codes it |
 | 2 | coordinator lifecycle, learners, options grouping | #236 #237 #240 #239 #243 #283 #284 #277 #244 #325 #279 #278 #280 #198 | **v6.3.14** (tag `ef539be`) | **done and released, 2026-09-05** — seven groups merged, issues closed: PR #437 (`44a6351`, W2-G1/#236 #237 #240), #440 (`90c71c4`, W2-G2/#239 #243; duplicate #441 closed unmerged), #444 (`dc3bb8e`, W2-G3/#283 #284), #447 (`851c555`, W2-G4/#279 #278), #449 (`f492b1f`, W2-G5/#277), #451 (`efe5a27`, W2-G5 follow-up/#244 #325, review `merge` 5551113810: mid-step abort 36→0, 21 leftovers named), #438 (`e1a14f9`, W2-G6/#280), #436 (`3c141d7`, W2-G7/#198). Record/tooling since v6.3.13 stamp: #434, #435, #439, #442, #443, #446, #448, #450. Stamped `ef539be` as v6.3.14; **#451 is unstamped** on that tag. Next seat **W3-G1** |
 | 3 | solver, DHW planner, GIL process route | #232 #234 #289 #290 #199 | v6.3.14 | **W3-G1 + W3-G2 done** — #454 (`1585435`) closed #232/#234 (hybrid); #455 (`aa61130`) logistic top-k + keep-best. **#456** (`ebf7170`) closed #289 (order-preserving DHW planner cut; review `merge` at `5fd6d5a`, comment 5552887642). Empty claims clear #458 inherited-claims red. #232/#234 stay closed. Next seat **W3-G3** (#290 #199). **W3-G4 is struck** |
-| **3L** | mid-programme leftovers, one burst | #400 #401 #404 #405 #408 #457 #460 #463 | after Wave 3 | **next after W3-G3**, before Wave 4 — see below. #412 stays last of the programme |
+| **3L** | mid-programme leftovers, one burst | #400 #401 #404 #405 #408 #457 #460 #463 #465 | after Wave 3 | **next after W3-G3**, before Wave 4 — see below. #412 stays last of the programme |
 | 4 | the #193 decomposition programme, S0–S13 | #193 #223 #224 #225, and **#304 as S11's precursor** | one per stage | pending |
 | 5 | typing lane, and the coverage deficit #195 raised | #303 #195 | per tranche | pending — **#304 moves ahead of S11**, see below |
 | last | CI Node majors | #412 | after Wave 5 | pending — owner: last task; do not pull into 3L |
 
 ### Wave 3L — leftovers, after Wave 3, before Wave 4
 
-Every open issue that is not already in Waves 3–5 or #201, filed after the 2026-09-03 plan cut, plus #460 (monthly savings) and #463 (wood furnace economics). One burst so they are not lost again, and **before** Wave 4 because #400, #408 and #463 are behaviour in the DHW/optimizer/config region a move PR would silently revert (principle 3). Earliest the whole bag can sit without colliding with in-flight W3-G3 (`coordinator.py`). #412 stays last of the programme and is not in this burst.
+Every open issue that is not already in Waves 3–5 or #201, filed after the 2026-09-03 plan cut, plus #460 (monthly savings), #463 (wood furnace economics), and #465 (Plan-page away toggle). One burst so they are not lost again, and **before** Wave 4 because #400, #408, #463 and #465 are behaviour in the DHW/optimizer/config/card region a move PR would silently revert (principle 3). Earliest the whole bag can sit without colliding with in-flight W3-G3 (`coordinator.py`). #412 stays last of the programme and is not in this burst.
 
 | group | issues | model | after | scope |
 |---|---|---|---|---|
@@ -77,8 +77,9 @@ Every open issue that is not already in Waves 3–5 or #201, filed after the 202
 | **3L-G7** | #460 | Grok 4.6 extra high | 3L-G6 | Monthly savings history card page. Realised thermostat-baseline ledger lines; calendar pro-rata for the open month. After #457 (or after #408 if #457 stays blocked). Spec/plan `docs/superpowers/{specs,plans}/2026-09-05-monthly-savings-history*.md` |
 | **3L-G8** | #463 | Grok 4.6 extra high | 3L-G7 | Wood-furnace toggle, firewood price, `wood_fuel.py`, cheaper-than-pump sensor. Does not close #463. Spec/plan `docs/superpowers/{specs,plans}/2026-09-05-wood-furnace-economics*.md` |
 | **3L-G9** | #463 | Grok 4.6 extra high | 3L-G8 | Plan banner, Wood lane, what-if wood slots. `Closes #463`. Same spec/plan |
+| **3L-G10** | #465 | Grok 4.6 extra high | 3L-G9 | Plan-page Away toggle and return datetime. Service-backed store; published switch and datetime; optional person/calendar. `Closes #465`. Spec/plan `docs/superpowers/{specs,plans}/2026-09-05-away-plan-toggle*.md` |
 
-Do not fold 3L into W3-G3. Do not start 3L while W3-G3 holds `coordinator.py` or the gate lock. 3L-G7 production code may be prepared on `3l-g7-monthly-savings` and rebased after those seats; do not merge it ahead of them. Do not start 3L-G8/G9 production until W3-G3 and 3L-G7 have merged.
+Do not fold 3L into W3-G3. Do not start 3L while W3-G3 holds `coordinator.py` or the gate lock. 3L-G7 production code may be prepared on `3l-g7-monthly-savings` and rebased after those seats; do not merge it ahead of them. Do not start 3L-G8/G9 production until W3-G3 and 3L-G7 have merged. Do not start 3L-G10 production until W3-G3 and 3L-G8/G9 have merged.
 
 v6.3.12 is stamped at the Wave-1b/half-I boundary as a **gate and test-hardening release** — not for the accumulated no-op merges alone, and not by waiting for a runtime fix that half I will not produce, because half I is entirely test, docs and tooling.
 

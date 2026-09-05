@@ -107,6 +107,16 @@
       "fixture": false,
       "after": ["3L-G8"],
       "brief": "Plan banner, Wood lane, what-if wood slots (#463). Closes #463 on its own line. Same spec and plan as 3L-G8."
+    },
+    {
+      "group": "3L-G10",
+      "issues": [465],
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "high",
+      "fixture": false,
+      "after": ["3L-G9"],
+      "brief": "Plan-page Away toggle and return datetime (#465). Service-backed store; published switch and datetime; optional person/calendar. Spec docs/superpowers/specs/2026-09-05-away-plan-toggle-design.md. Plan docs/superpowers/plans/2026-09-05-away-plan-toggle.md. After 3L-G9, before Wave 4. Closes #465 on its own line."
     }
   ]
 }
