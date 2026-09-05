@@ -1436,7 +1436,7 @@ class ThermalModel:
         p = self.params
         if solar_radiation <= 0:
             return 0.0
-        return (
+        return float(
             solar_radiation
             * p.window_area
             * p.solar_orientation_factor
