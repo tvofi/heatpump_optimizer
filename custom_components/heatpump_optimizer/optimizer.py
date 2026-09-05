@@ -5344,7 +5344,7 @@ class HeatPumpOptimizer:
                     - _capped(optimized_end.dhw_temperature, "dhw")
                 )
                 electrical += dhw_gap / cop_dhw - dhw_gap / cop
-        return electrical * refill_price
+        return float(electrical * refill_price)
 
     def _compute_baseline_power(
         self,

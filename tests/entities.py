@@ -8401,4 +8401,67 @@ for _module in (sensor, binary_sensor, _climate_platform, _switch_platform, butt
         "an entity stopped resolving the shared plumbing",
     )
 
+# --- #284 grammar of the two legacy schedule / plan states -----------------
+R.section("#284 singular schedule and plan states")
+_dhw_one = sensor.DHWScheduleSensor(
+    FakeCoordinator(
+        {
+            "dhw_schedule": [
+                {"dhw_power": 1.0},
+                {"dhw_power": 0.0},
+            ]
+        }
+    ),
+    ENTRY,
+)
+R.check(
+    "one DHW heating step is a period, not periods (#284)",
+    _dhw_one.native_value == "1 heating period",
+    repr(_dhw_one.native_value),
+)
+_dhw_two = sensor.DHWScheduleSensor(
+    FakeCoordinator({"dhw_schedule": [{"dhw_power": 1.0}, {"dhw_power": 1.0}]}),
+    ENTRY,
+)
+R.check(
+    "two DHW heating steps keep the plural (#284)",
+    _dhw_two.native_value == "2 heating periods",
+    repr(_dhw_two.native_value),
+)
+_plan_one = sensor.SpaceHeatingPlanSensor(
+    FakeCoordinator(
+        {
+            "space_plan": {
+                "slots": [{"start": "2026-01-15T00:00:00"}],
+                "active_now": False,
+            }
+        }
+    ),
+    ENTRY,
+)
+R.check(
+    "one plan slot is a slot, not slots (#284)",
+    _plan_one.native_value == "1 slot planned",
+    repr(_plan_one.native_value),
+)
+_plan_two = sensor.SpaceHeatingPlanSensor(
+    FakeCoordinator(
+        {
+            "space_plan": {
+                "slots": [
+                    {"start": "2026-01-15T00:00:00"},
+                    {"start": "2026-01-15T06:00:00"},
+                ],
+                "active_now": False,
+            }
+        }
+    ),
+    ENTRY,
+)
+R.check(
+    "two plan slots keep the plural (#284)",
+    _plan_two.native_value == "2 slots planned",
+    repr(_plan_two.native_value),
+)
+
 sys.exit(R.close("ENTITY CHECKS"))

@@ -1067,7 +1067,7 @@ class DHWScheduleSensor(_DHWEntityMixin, HeatPumpOptimizerSensorBase):
             schedule = self.coordinator.data.get("dhw_schedule", [])
             if schedule:
                 active_steps = sum(1 for s in schedule if s.get("dhw_power", 0) > 0.1)
-                return f"{active_steps} heating periods"
+                return f"{active_steps} heating period{'s' if active_steps != 1 else ''}"
             return "no schedule"
         return "no schedule"
 
@@ -1304,7 +1304,7 @@ class _PlanSensorBase(HeatPumpOptimizerSensorBase):
             return "no heating planned"
         if plan.get("active_now"):
             return "heating now"
-        return f"{len(slots)} slots planned"
+        return f"{len(slots)} slot{'s' if len(slots) != 1 else ''} planned"
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
