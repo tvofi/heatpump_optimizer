@@ -447,9 +447,9 @@ def _smooth_topk_sum(values: np.ndarray, k: int, tau: float) -> float:
 
     A hard top-k has zero gradient on every tied window beyond the kth, which
     leaves gradient-based solvers blind on the peak plateau that capacity
-    tariffs create. Here a logistic threshold is chosen so the soft weights
-    sum to *k*; when many windows tie, each gets weight ``k/n`` and the
-    approximate sum stays ``k × tie_level``.
+    tariffs create. Three soft-max selections — one per billed peak — spread
+    weight across tied windows while keeping the cost of each evaluation
+    bounded (#232).
     """
     x = np.asarray(values, dtype=float)
     if x.size == 0 or k <= 0:
@@ -457,24 +457,22 @@ def _smooth_topk_sum(values: np.ndarray, k: int, tau: float) -> float:
     k = max(1, min(int(k), x.size))
     if not np.any(x > 0):
         return 0.0
-    peak = float(np.max(x))
-    scale = max(tau * peak, 1e-9)
-    lo, hi = float(np.min(x)) - 1.0, peak + 1.0
-    mid = 0.5 * (lo + hi)
-    for _ in range(64):
-        z = np.clip((x - mid) / scale, -500.0, 500.0)
-        w = 1.0 / (1.0 + np.exp(-z))
-        count = float(np.sum(w))
-        if abs(count - k) < 1e-6:
+    scale = max(tau * float(np.max(x)), 1e-9)
+    total = 0.0
+    rem = x.copy()
+    for _ in range(k):
+        peak = float(np.max(rem))
+        if peak <= 0:
             break
-        if count > k:
-            lo = mid
-        else:
-            hi = mid
-        mid = 0.5 * (lo + hi)
-    z = np.clip((x - mid) / scale, -500.0, 500.0)
-    w = 1.0 / (1.0 + np.exp(-z))
-    return float(np.sum(w * x))
+        z = np.clip((rem - peak) / scale, -500.0, 500.0)
+        w = 1.0 / (1.0 + np.exp(-z))
+        w_sum = float(np.sum(w))
+        if w_sum <= 0:
+            break
+        w /= w_sum
+        total += float(np.sum(w * rem))
+        rem *= 1.0 - w
+    return total
 
 
 def peak_cost(
@@ -541,7 +539,13 @@ def peak_cost(
     if not np.any(excess > 0):
         return 0.0
     k = max(1, min(int(peaks_averaged), excess.size))
-    return float(price_per_kw * _smooth_topk_sum(excess, k, _PEAK_SMOOTH_TAU))
+    peak = float(np.max(excess))
+    tied = int(np.sum(excess >= peak - max(1e-9 * peak, 1e-12))) > k
+    if tied:
+        top_sum = _smooth_topk_sum(excess, k, _PEAK_SMOOTH_TAU)
+    else:
+        top_sum = float(np.sum(np.sort(excess)[-k:]))
+    return float(price_per_kw * top_sum)
 
 
 def realised_peak(

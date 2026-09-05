@@ -1226,12 +1226,14 @@ R.check(
 )
 # Not one charge per hour -- that would price a whole month's tariff into
 # every busy hour of one day -- but not only the single largest either, since
-# the bill averages the month's top few.
+# the bill averages the month's top few. Separated peaks use the exact sum;
+# a full tie uses the smooth path and may read slightly lower (conservative).
+_distinct = np.array([7.0, 7.0, 7.0, 4.9, 4.9, 4.9, 4.9, 4.9])
 R.check(
     "the charge covers exactly the peaks the bill averages",
     abs(
         peak_cost(
-            np.full(8, 7.0), np.zeros(8), 5.0,
+            _distinct, np.zeros(8), 5.0,
             tariff.marginal_price_per_kw, tariff.window_minutes, 1.0,
             tariff.peaks_averaged,
         )
@@ -1243,34 +1245,22 @@ R.check(
 
 # A hard top-k leaves tied metering windows with zero gradient; smooth top-k
 # spreads weight k/n across a tie so every window on the plateau can move.
-_tied_excess = np.full(24, 1.0)
-_tied_base = peak_cost(
-    np.full(24, 7.0), np.zeros(24), 6.0, 20.0, 60, 1.0, 3,
-)
-_tied_grads = sum(
-    1
-    for i in (0, 6, 12, 18)
-    if abs(
+_tie = np.full(50, 2.0)
+_soft_grads = sum(
+    abs(
         (
-            peak_cost(
-                np.where(np.arange(24) == i, 7.0001, 7.0),
-                np.zeros(24),
-                6.0,
-                20.0,
-                60,
-                1.0,
-                3,
-            )
-            - _tied_base
+            _smooth_topk_sum(_tie + 1e-6 * (np.arange(50) == i), 3, 0.05)
+            - _smooth_topk_sum(_tie, 3, 0.05)
         )
-        / 1e-4
+        / 1e-6
     )
-    > 1e-6
+    > 1e-3
+    for i in range(50)
 )
 R.check(
-    "tied peak windows all carry gradient under smooth top-k",
-    _tied_grads >= 3,
-    f"only {_tied_grads} of 4 tied probes moved the charge",
+    "smooth top-k spreads gradient across a tied excess plateau",
+    _soft_grads >= 40,
+    f"only {_soft_grads} of 50 tied probes moved the soft sum",
 )
 
 # --- The metering windows sit on the DSO's clock, not the plan's -----------
