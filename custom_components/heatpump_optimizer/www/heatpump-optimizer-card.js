@@ -2504,6 +2504,39 @@ function setupSvgHtml(topo, ctx) {
 // so the largest pure member of a 7,900-line god class is a visible
 // seam instead of one method among one hundred and eighty.
 function cardStyleBlock() {
+  /* D4-02 (#262): legend chips in dialog.expanded beat the coarse block's
+     .chip padding via (0,2,0) specificity; at the dialog's 12 px font floor
+     0.32em vertical padding + normal line-height lands at 23 px while
+     min-height never engages on inline-flex buttons without an explicit
+     line-height. Duplicated outside @media when _coarsePointer() so the
+     browser witness's matchMedia stub still sizes HTML targets in headless
+     Chromium, where CDP pointer emulation does not re-evaluate shadow styles. */
+  const coarseHtmlTargets = `
+        .expand, .close, .viewctl button, .chip, .dlg-tab,
+        .layout-bar button, .whatif button, .whatif input[type="time"],
+        .whatif .wi-win-days, .whatif .wi-viewreset, .sp-actions button,
+        .slot-menu button {
+          min-height: ${TARGET_MIN_PX}px;
+          min-width: ${TARGET_MIN_PX}px;
+          box-sizing: border-box;
+        }
+        .whatif input[type="range"] {
+          min-height: ${TARGET_MIN_PX}px;
+        }
+        .chip, dialog.expanded .chip {
+          padding: 0.45em 0.85em;
+          line-height: 1.25;
+        }
+        .dlg-tab { padding: 0.35em 0.9em; }
+        .whatif button { padding: 0.45em 0.85em; }
+        .whatif .wi-remove {
+          min-width: ${TARGET_MIN_PX}px;
+          padding: 0 0.45em;
+        }
+        .viewctl button {
+          width: auto; height: auto;
+          min-width: ${TARGET_MIN_PX}px; min-height: ${TARGET_MIN_PX}px;
+        }`;
   return `
     <style>
       ha-card { padding: 12px 12px 8px 12px; }
@@ -3140,33 +3173,9 @@ function cardStyleBlock() {
         background: var(--error-color, #e0544e);
       }
       .whatif .wi-save[disabled] { opacity: 0.6; cursor: default; }
-      /* D4-02 (#262): under a coarse pointer the HTML controls must meet
-         WCAG 2.2 SC 2.5.8's 24 px AA bar. SVG slot/lane targets already
-         pixel-floor separately; this block is the rest of the residue. */
-      @media (pointer: coarse) {
-        .expand, .close, .viewctl button, .chip, .dlg-tab,
-        .layout-bar button, .whatif button, .whatif input[type="time"],
-        .whatif .wi-win-days, .whatif .wi-viewreset, .sp-actions button,
-        .slot-menu button {
-          min-height: ${TARGET_MIN_PX}px;
-          min-width: ${TARGET_MIN_PX}px;
-          box-sizing: border-box;
-        }
-        .whatif input[type="range"] {
-          min-height: ${TARGET_MIN_PX}px;
-        }
-        .chip { padding: 0.45em 0.85em; }
-        .dlg-tab { padding: 0.35em 0.9em; }
-        .whatif button { padding: 0.45em 0.85em; }
-        .whatif .wi-remove {
-          min-width: ${TARGET_MIN_PX}px;
-          padding: 0 0.45em;
-        }
-        .viewctl button {
-          width: auto; height: auto;
-          min-width: ${TARGET_MIN_PX}px; min-height: ${TARGET_MIN_PX}px;
-        }
+      @media (pointer: coarse) {${coarseHtmlTargets}
       }
+      ${_coarsePointer() ? coarseHtmlTargets : ""}
       .whatif .wi-result {
         flex: 1 1 100%; min-height: 1.4em; line-height: 1.5em;
         color: var(--secondary-text-color);
