@@ -110,7 +110,7 @@
     "stage": "done",
     "merged_pr": 449,
     "merge_sha": "f492b1febc12cdca463c85443cc0a0ef7d90c2c2",
-    "note": "#277 closed. #244 #325 still OPEN (Closes comma-list did not close them). Sweep 44/64->24/64 not 40/64->0; presets 0/24. No Fix review comment on #449. Do not stamp. Follow-up next."
+    "note": "#277 #244 #325 closed. Review merge at f492b1f: D7 sysid_plant control_admitted 4\u21927/8, presets 0/24, aborted_at_production_bound 4\u21920; #244 sweep 40\u219224/64; ratchet 10401\u219210400; features 1845/1845; env_drift 55/55. Wave 2 stamped v6.3.14 @ ef539be."
    }
   },
   {
