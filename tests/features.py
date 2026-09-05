@@ -21827,4 +21827,63 @@ R.check(
     repr(_sav_pct(0.01, 0.0)),
 )
 
+_led = _SavLedger()
+_led.add_savings_settlement(
+    _feb10, baseline_kw=2.0, actual_kwh=0.5, spot=2.0, dt=0.5
+)
+_k = _sav_month_key(_feb10)
+_base = _led.line(_k, "savings_baseline")
+_act = _led.line(_k, "savings_actual")
+R.check(
+    "settlement books baseline kW×dt and actual kWh at spot",
+    abs(_base["kwh"] - 1.0) < 1e-12
+    and abs(_base["sek"] - 2.0) < 1e-12
+    and abs(_act["kwh"] - 0.5) < 1e-12
+    and abs(_act["sek"] - 1.0) < 1e-12,
+    f"base {_base} actual {_act}",
+)
+_led_skip = _SavLedger()
+_led_skip.add_savings_settlement(
+    _feb10, baseline_kw=None, actual_kwh=0.5, spot=2.0, dt=0.5
+)
+R.check(
+    "missing baseline_kw writes neither line",
+    "savings_baseline" not in _led_skip.months.get(_k, {}).get("lines", {})
+    and "savings_actual" not in _led_skip.months.get(_k, {}).get("lines", {}),
+)
+_led.add(_feb10, "spot", kwh=1.0, sek=2.0)
+_led.add(_SavDT(2026, 1, 15), "spot", kwh=10.0, sek=20.0)
+_rows = _led.savings_months(_feb10)
+R.check(
+    "a month without savings_baseline is omitted, even if spot was booked",
+    [r["month"] for r in _rows] == ["2026-02"],
+    repr([r["month"] for r in _rows]),
+)
+R.check(
+    "open month scales all three SEK columns and leaves pct unchanged",
+    _rows[0]["estimated"] is True
+    and abs(_rows[0]["baseline_sek"] - 5.6) < 1e-9
+    and abs(_rows[0]["actual_sek"] - 2.8) < 1e-9
+    and abs(_rows[0]["savings_sek"] - 2.8) < 1e-9
+    and abs(_rows[0]["savings_pct"] - 50.0) < 1e-9,
+    repr(_rows[0]),
+)
+_led.add_savings_settlement(
+    _SavDT(2026, 1, 20), baseline_kw=1.0, actual_kwh=1.0, spot=1.0, dt=1.0
+)
+_ordered = [r["month"] for r in _led.savings_months(_feb10)]
+R.check(
+    "rows are oldest first, newest last",
+    _ordered == ["2026-01", "2026-02"],
+    repr(_ordered),
+)
+_closed = [r for r in _led.savings_months(_feb10) if r["month"] == "2026-01"][0]
+R.check(
+    "a closed month is unscaled",
+    _closed["estimated"] is False
+    and abs(_closed["baseline_sek"] - 1.0) < 1e-9
+    and abs(_closed["actual_sek"] - 1.0) < 1e-9,
+    repr(_closed),
+)
+
 sys.exit(R.close("FEATURE CHECKS"))
