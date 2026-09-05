@@ -47,9 +47,7 @@
 #
 # claims-for: 6.3.13
 #
-# v6.3.13: Wave 1b half II card, coordinator, solver, gate. The stamp empties the list; the
-# next branch restates its own footprint, claims included.
-#
+config_flow #198: split dense options pages and user step; new menu keys and field fingerprints
 
 #
 # gate/stress-solve-closure: this branch claims NOTHING. It stops the package

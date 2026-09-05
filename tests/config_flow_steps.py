@@ -122,8 +122,11 @@ FIRST_SCREEN = {
     "name": "Heat Pump Optimizer",
     const.CONF_TIBBER_TOKEN: "tok-a",
     const.CONF_WEATHER_ENTITY: "weather.home",
+}
+USER_SENSORS = {
     const.CONF_HEAT_PUMP_SWITCH_ENTITY: "switch.pump_a",
 }
+FULL_FIRST_SCREEN = {**FIRST_SCREEN, **USER_SENSORS}
 
 # Valid answers for every form step, at the defaults the forms themselves
 # pre-fill. One dict per step so a probe can override a single field and
@@ -183,6 +186,31 @@ DHW_ANSWERS = {
     const.CONF_DHW_LEGIONELLA_ENABLED: True,
     const.CONF_DHW_LEGIONELLA_TEMP: 60.0,
     const.CONF_DHW_LEGIONELLA_INTERVAL_DAYS: 14,
+}
+HOT_WATER_PAGE_ANSWERS = {
+    k: v
+    for k, v in DHW_ANSWERS.items()
+    if k
+    in (
+        const.CONF_DHW_SCHEDULE_ENABLED,
+        const.CONF_DHW_WINDOWS,
+        const.CONF_DHW_MIN_TEMP,
+        const.CONF_DHW_IDLE_MIN_TEMP,
+        const.CONF_DHW_SETPOINT,
+        const.CONF_DHW_LEGIONELLA_ENABLED,
+        const.CONF_DHW_LEGIONELLA_TEMP,
+        const.CONF_DHW_LEGIONELLA_INTERVAL_DAYS,
+    )
+}
+HOT_WATER_TANK_ANSWERS = {
+    k: v
+    for k, v in DHW_ANSWERS.items()
+    if k
+    in (
+        const.CONF_DHW_TANK_VOLUME,
+        const.CONF_DHW_DAILY_CONSUMPTION,
+        const.CONF_DHW_COOLING_RATE,
+    )
 }
 WEATHER_ANSWERS = {
     const.CONF_WIND_SENSITIVITY: 0.03,
@@ -249,6 +277,21 @@ GRID_ANSWERS = {
     const.CONF_GRID_FEE_FIXED: 0.15,
     const.CONF_GRID_FEE_RULES: "06:00-08:00 = 0.5",
     const.CONF_CONTRACT_FIXED_PRICE: 0.9,
+}
+GRID_PEAK_ANSWERS = {
+    k: v
+    for k, v in GRID_ANSWERS.items()
+    if k.startswith("peak_") or k == const.CONF_PEAK_TARIFF_ENABLED
+}
+GRID_CONNECTION_ANSWERS = {
+    k: v
+    for k, v in GRID_ANSWERS.items()
+    if k.startswith("main_fuse") or k.startswith("fuse_guard") or k.startswith("peak_guard")
+}
+GRID_FEES_ANSWERS = {
+    k: v
+    for k, v in GRID_ANSWERS.items()
+    if k.startswith("grid_fee") or k == const.CONF_CONTRACT_FIXED_PRICE
 }
 BUILDING_PAGE_ANSWERS = {
     const.CONF_MIXING_VALVE_MODE: config_flow.mixing_valve.MODE_NONE,
@@ -380,6 +423,24 @@ async def submit(flow, step, answers):
         return {"type": "abort", "reason": err.reason}
 
 
+async def submit_first_screen(flow, creds, sensors=None):
+    """Credentials screen, then optional sensors (#198)."""
+    result = await submit(flow, "user", creds)
+    if shows(result, "user_sensors"):
+        result = await submit(flow, "user_sensors", sensors if sensors is not None else USER_SENSORS)
+    return result
+
+
+async def submit_reconfigure(flow, answers):
+    """Reconfigure through credentials and optional sensors."""
+    creds = {k: answers[k] for k in answers if k in FIRST_SCREEN}
+    sensors = {k: v for k, v in answers.items() if k not in FIRST_SCREEN}
+    result = await submit(flow, "reconfigure", creds)
+    if shows(result, "user_sensors"):
+        result = await submit(flow, "user_sensors", sensors)
+    return result
+
+
 # ---------------------------------------------------------------------------
 # The coverage ledger: one row per step, happy checks and error branches.
 # ---------------------------------------------------------------------------
@@ -401,6 +462,7 @@ class Ledger:
         print(f"RESULT flow_checks_covered={total_ok}/{total} checks")
         for step in (
             "user",
+            "user_sensors",
             "temperature",
             "building",
             "building_describe",
@@ -424,17 +486,25 @@ class Ledger:
             "opt_advanced",
             "opt_setup_overview",
             "opt_entities",
+            "opt_entities_metering",
+            "opt_entities_pump",
             "opt_comfort",
             "opt_hot_water",
+            "opt_hot_water_tank",
+            "opt_hot_water_pumps",
             "opt_building",
             "opt_thermal_model",
+            "opt_thermal_model_zones",
             "opt_tuning",
             "opt_heat_curve",
             "opt_building_preset",
             "opt_grid",
+            "opt_grid_connection",
+            "opt_grid_fees",
             "opt_solar_pv",
             "opt_away",
             "opt_learning",
+            "opt_learning_features",
         )
         covered = 0
         for step in options_steps:
@@ -444,7 +514,7 @@ class Ledger:
             print(f"RESULT step_{step} happy={happy} error_branches={errors}")
             if row["happy"]:
                 covered += 1
-        print(f"RESULT options_steps_covered={covered}/15 pages")
+        print(f"RESULT options_steps_covered={covered}/23 pages")
         row = self.rows.get("reconfigure", {"happy": [], "error": [], "happy_ok": 0, "error_ok": 0})
         print(
             f"RESULT step_reconfigure happy={row['happy_ok']}/{len(row['happy'])} "
@@ -576,7 +646,7 @@ async def duplicate_and_null_control():
     hass = FakeHass()
 
     first = fresh_flow(hass)
-    result = await submit(first, "user", FIRST_SCREEN)
+    result = await submit_first_screen(first, FIRST_SCREEN)
     check(
         "user",
         "happy",
@@ -595,9 +665,9 @@ async def duplicate_and_null_control():
     # What the flow manager does when that flow finishes: an entry holding
     # the flow's unique id.
     hass.config_entries.entries.append(
-        FakeEntry(data=dict(FIRST_SCREEN), entry_id="first", unique_id=first.unique_id)
+        FakeEntry(data=dict(FULL_FIRST_SCREEN), entry_id="first", unique_id=first.unique_id)
     )
-    duplicate = await submit(fresh_flow(hass), "user", FIRST_SCREEN)
+    duplicate = await submit_first_screen(fresh_flow(hass), FIRST_SCREEN)
     dup_aborted = duplicate == {"type": "abort", "reason": "already_configured"}
     check(
         "user",
@@ -609,10 +679,10 @@ async def duplicate_and_null_control():
 
     # Null control: one different entity slot is a different plant -- a
     # second heat pump must go through.
-    distinct = await submit(
+    distinct = await submit_first_screen(
         fresh_flow(hass),
-        "user",
-        {**FIRST_SCREEN, const.CONF_HEAT_PUMP_SWITCH_ENTITY: "switch.pump_b"},
+        FIRST_SCREEN,
+        {**USER_SENSORS, const.CONF_HEAT_PUMP_SWITCH_ENTITY: "switch.pump_b"},
     )
     check(
         "user",
@@ -634,7 +704,7 @@ async def walk_questionnaire():
     real = install_session(config_flow, FakeSession([TIBBER_VIEWER_OK]))
     flow = fresh_flow()
 
-    result = await submit(flow, "user", FIRST_SCREEN)
+    result = await submit_first_screen(flow, FIRST_SCREEN)
     check(
         "temperature",
         "happy",
@@ -716,7 +786,7 @@ async def walk_questionnaire():
 
     # The dhw step's three errors and one warning, each on its own flow
     # seeded exactly as the walk had it, each still standing on dhw.
-    seeded = lambda: fresh_flow(data={**FIRST_SCREEN, **TEMPERATURE_ANSWERS, **QUESTIONNAIRE_ANSWERS, **EXTRAS_ANSWERS, **derived_into(flow)})  # noqa: E731
+    seeded = lambda: fresh_flow(data={**FULL_FIRST_SCREEN, **TEMPERATURE_ANSWERS, **QUESTIONNAIRE_ANSWERS, **EXTRAS_ANSWERS, **derived_into(flow)})  # noqa: E731
 
     bad_spec = await submit(seeded(), "dhw", {**DHW_ANSWERS, const.CONF_DHW_WINDOWS: "garbage"})
     check(
@@ -743,7 +813,7 @@ async def walk_questionnaire():
     too_close = await submit(
         seeded(),
         "dhw",
-        {**DHW_ANSWERS, const.CONF_DHW_SETPOINT: 48.0, const.CONF_DHW_MIN_TEMP: 46.0},
+        {**HOT_WATER_PAGE_ANSWERS, const.CONF_DHW_SETPOINT: 48.0, const.CONF_DHW_MIN_TEMP: 46.0},
     )
     check(
         "dhw",
@@ -830,13 +900,13 @@ async def walk_expert():
     real = install_session(config_flow, FakeSession([TIBBER_VIEWER_OK]))
 
     seeded = lambda: fresh_flow(  # noqa: E731
-        data={**FIRST_SCREEN, **TEMPERATURE_ANSWERS}
+        data={**FULL_FIRST_SCREEN, **TEMPERATURE_ANSWERS}
     )
 
     # building_extras never runs on this path; its error is probed on a
     # flow seeded the way the questionnaire walk would have left it.
     extras_seeded = lambda: fresh_flow(  # noqa: E731
-        data={**FIRST_SCREEN, **TEMPERATURE_ANSWERS, **QUESTIONNAIRE_ANSWERS}
+        data={**FULL_FIRST_SCREEN, **TEMPERATURE_ANSWERS, **QUESTIONNAIRE_ANSWERS}
     )
     inverted = await submit(
         extras_seeded(),
@@ -956,7 +1026,7 @@ async def temperature_error_branches():
         ),
     ]
     for name, override, expected in probes:
-        flow = fresh_flow(data={**FIRST_SCREEN})
+        flow = fresh_flow(data={**FULL_FIRST_SCREEN})
         result = await submit(
             flow, "temperature", {**TEMPERATURE_ANSWERS, **override}
         )
@@ -1080,7 +1150,7 @@ async def options_entry_data():
         await submit(
             flow,
             "user",
-            {**FIRST_SCREEN, const.CONF_INDOOR_TEMP_ENTITY: "sensor.indoor_a"},
+            {**FULL_FIRST_SCREEN, const.CONF_INDOOR_TEMP_ENTITY: "sensor.indoor_a"},
         )
         await submit(flow, "temperature", TEMPERATURE_ANSWERS)
         await submit(flow, "building_describe", QUESTIONNAIRE_ANSWERS)
@@ -1130,11 +1200,19 @@ async def options_menus():
         and list(advanced.get("menu_options", {}))
         == [
             "entities",
+            "entities_metering",
+            "entities_pump",
             "building",
             "building_preset",
             "thermal_model",
+            "thermal_model_zones",
+            "hot_water_tank",
+            "hot_water_pumps",
             "solar_pv",
             "learning",
+            "learning_features",
+            "grid_connection",
+            "grid_fees",
             "heat_curve",
         ],
         str(list(advanced.get("menu_options", {}))),
@@ -1191,7 +1269,7 @@ async def options_walk():
     logger.addHandler(Capture())
     try:
         await flow.async_step_hot_water(None)
-        result = await submit(flow, "hot_water", DHW_ANSWERS)
+        result = await submit(flow, "hot_water", HOT_WATER_PAGE_ANSWERS)
     finally:
         logger.removeHandler(Capture())
     check(
@@ -1203,10 +1281,16 @@ async def options_walk():
         and any("legionella" in w for w in warnings),
         f"{result.get('type')}/{result.get('step_id')} warned={warnings[:1]}",
     )
+    await flow.async_step_hot_water_tank(None)
+    await submit(flow, "hot_water_tank", HOT_WATER_TANK_ANSWERS)
+    await flow.async_step_hot_water_pumps(None)
+    await submit(flow, "hot_water_pumps", {})
+    await flow.async_step_building(None)
+    await submit(flow, "building", BUILDING_PAGE_ANSWERS)
     check(
         "opt_hot_water",
         "happy",
-        "this page's cleared entity slots are written back as None",
+        "cleared entity slots on split pages are written back as None",
         entry.options.get(const.CONF_DHW_INLET_ENTITY) is None
         and entry.options.get(const.CONF_VVC_PUMP_ENTITY) is None
         and entry.options.get(const.CONF_SPACE_PUMP_ENTITY) is None,
@@ -1236,7 +1320,9 @@ async def options_walk():
 
     # grid: the fee and tariff page, with its string->int window conversion.
     await flow.async_step_grid(None)
-    result = await submit(flow, "grid", GRID_ANSWERS)
+    result = await submit(flow, "grid", GRID_PEAK_ANSWERS)
+    await flow.async_step_grid_fees(None)
+    await submit(flow, "grid_fees", GRID_FEES_ANSWERS)
     check(
         "opt_grid",
         "happy",
@@ -1278,8 +1364,8 @@ async def options_walk():
     check(
         "opt_init",
         "happy",
-        "five saved pages accumulate on the entry, not replace each other",
-        not from_every_page and len(hass.config_entries.updated) == 5,
+        "five saved top pages accumulate on the entry, not replace each other",
+        not from_every_page and len(hass.config_entries.updated) == 9,
         f"missing {from_every_page} updated={len(hass.config_entries.updated)}",
     )
 
@@ -1657,7 +1743,7 @@ async def options_error_branches():
     # hot_water: the window grammar and the deadband, through the options page.
     flow, entry, _ = fresh_options()
     result = await submit(
-        flow, "hot_water", {**DHW_ANSWERS, const.CONF_DHW_WINDOWS: "garbage"}
+        flow, "hot_water", {**HOT_WATER_PAGE_ANSWERS, const.CONF_DHW_WINDOWS: "garbage"}
     )
     check(
         "opt_hot_water",
@@ -1671,7 +1757,7 @@ async def options_error_branches():
     result = await submit(
         flow,
         "hot_water",
-        {**DHW_ANSWERS, const.CONF_DHW_SETPOINT: 48.0, const.CONF_DHW_MIN_TEMP: 46.0},
+        {**HOT_WATER_PAGE_ANSWERS, const.CONF_DHW_SETPOINT: 48.0, const.CONF_DHW_MIN_TEMP: 46.0},
     )
     check(
         "opt_hot_water",
@@ -1737,14 +1823,26 @@ async def options_error_branches():
             "grid_fee_rules_negative",
         ),
     ]
-    for name, override, field, expected in probes:
+    for name, override, field, expected in probes[:2]:
         flow, entry, _ = fresh_options()
-        result = await submit(flow, "grid", {**GRID_ANSWERS, **override})
+        result = await submit(flow, "grid", {**GRID_PEAK_ANSWERS, **override})
         check(
             "opt_grid",
             "error",
             name,
             shows(result, "grid")
+            and result.get("errors") == {field: expected}
+            and not entry.options,
+            f"got {result.get('errors')}, want {{{field!r}: {expected!r}}}",
+        )
+    for name, override, field, expected in probes[2:]:
+        flow, entry, _ = fresh_options()
+        result = await submit(flow, "grid_fees", {**GRID_FEES_ANSWERS, **override})
+        check(
+            "opt_grid_fees",
+            "error",
+            name,
+            shows(result, "grid_fees")
             and result.get("errors") == {field: expected}
             and not entry.options,
             f"got {result.get('errors')}, want {{{field!r}: {expected!r}}}",
@@ -1769,7 +1867,7 @@ async def options_error_branches():
     result = await submit(
         flow,
         "grid",
-        {**GRID_ANSWERS, const.CONF_PEAK_TARIFF_HOURS: "07:00-19:00"},
+        {**GRID_PEAK_ANSWERS, const.CONF_PEAK_TARIFF_HOURS: "07:00-19:00"},
     )
     stored = entry.options.get(const.CONF_PEAK_TARIFF_HOURS)
     coordinator = HeatPumpOptimizerCoordinator(
@@ -1813,7 +1911,7 @@ RC_SAME = {
     const.CONF_INDOOR_TEMP_ENTITY: "sensor.annex_indoor",
 }
 RC_OTHER_PLANT = {
-    **FIRST_SCREEN,
+    **FULL_FIRST_SCREEN,
     const.CONF_HEAT_PUMP_SWITCH_ENTITY: "switch.pump_b",
 }
 
@@ -1860,6 +1958,8 @@ async def reconfigure_flow():
     flow, entry, _, _ = rc_setup()
     result = await flow.async_step_reconfigure(None)
     suggested = rc_suggested(result)
+    sensors_form = await flow.async_step_user_sensors(None)
+    sensors_suggested = rc_suggested(sensors_form)
     check(
         "reconfigure",
         "happy",
@@ -1867,14 +1967,15 @@ async def reconfigure_flow():
         shows(result, "user")
         and suggested.get(config_flow.CONF_NAME) == "Annex pump"
         and suggested.get(const.CONF_TIBBER_TOKEN) == "stale-token"
-        and suggested.get(const.CONF_INDOOR_TEMP_ENTITY) == "sensor.annex_indoor",
-        f"{result.get('type')}/{result.get('step_id')} suggested={suggested}",
+        and sensors_suggested.get(const.CONF_INDOOR_TEMP_ENTITY) == "sensor.annex_indoor",
+        f"{result.get('type')}/{result.get('step_id')} suggested={suggested} "
+        f"sensors={sensors_suggested}",
     )
 
     # 401 mid-reconfigure: the token is refused, the entry is untouched.
     config_flow.async_get_clientsession = lambda hass, verify_ssl=True: FakeSession([(401, None)])
     flow, entry, _, hass = rc_setup()
-    result = await submit(flow, "reconfigure", RC_SAME)
+    result = await submit_reconfigure(flow, RC_SAME)
     check(
         "reconfigure",
         "error",
@@ -1889,7 +1990,7 @@ async def reconfigure_flow():
         [OSError("router rebooting")]
     )
     flow, entry, _, hass = rc_setup()
-    result = await submit(flow, "reconfigure", RC_SAME)
+    result = await submit_reconfigure(flow, RC_SAME)
     check(
         "reconfigure",
         "error",
@@ -1907,7 +2008,7 @@ async def reconfigure_flow():
         [TIBBER_VIEWER_OK]
     )
     flow, entry, _, hass = rc_setup()
-    result = await submit(flow, "reconfigure", RC_SAME)
+    result = await submit_reconfigure(flow, RC_SAME)
     round_trip_done = (
         result == {"type": "abort", "reason": "reconfigure_successful"}
         and entry.data[const.CONF_TARGET_TEMP] == 21.5
@@ -1926,7 +2027,7 @@ async def reconfigure_flow():
     # A rotated token: a new identity no other entry holds, written through
     # with the rest of the entry's data intact.
     flow, entry, _, hass = rc_setup()
-    result = await submit(flow, "reconfigure", {**RC_SAME, const.CONF_TIBBER_TOKEN: "tok-fresh"})
+    result = await submit_reconfigure(flow, {**RC_SAME, const.CONF_TIBBER_TOKEN: "tok-fresh"})
     check(
         "reconfigure",
         "happy",
@@ -1944,7 +2045,7 @@ async def reconfigure_flow():
     # Changed identity: the picks now name the OTHER entry's plant. The
     # guard runs (this is not this entry's identity) and must refuse.
     flow, entry, _, hass = rc_setup()
-    result = await submit(flow, "reconfigure", RC_OTHER_PLANT)
+    result = await submit_reconfigure(flow, RC_OTHER_PLANT)
     check(
         "reconfigure",
         "error",
@@ -1959,7 +2060,7 @@ async def reconfigure_flow():
     # drops it instead of silently keeping the old entity.
     flow, entry, _, _ = rc_setup()
     cleared = {k: v for k, v in RC_SAME.items() if k != const.CONF_INDOOR_TEMP_ENTITY}
-    result = await submit(flow, "reconfigure", cleared)
+    result = await submit_reconfigure(flow, cleared)
     check(
         "reconfigure",
         "happy",
@@ -1996,11 +2097,11 @@ async def self_check():
         real = install_session(config_flow, FakeSession([TIBBER_VIEWER_OK]))
         hass = FakeHass()
         first = fresh_flow(hass)
-        await submit(first, "user", FIRST_SCREEN)
+        await submit_first_screen(first, FIRST_SCREEN)
         hass.config_entries.entries.append(
-            FakeEntry(data=dict(FIRST_SCREEN), entry_id="first", unique_id=first.unique_id)
+            FakeEntry(data=dict(FULL_FIRST_SCREEN), entry_id="first", unique_id=first.unique_id)
         )
-        duplicate = await submit(fresh_flow(hass), "user", FIRST_SCREEN)
+        duplicate = await submit_first_screen(fresh_flow(hass), FIRST_SCREEN)
         caught = duplicate != {"type": "abort", "reason": "already_configured"}
         outcomes.append(
             (
@@ -2045,7 +2146,7 @@ async def self_check():
         await seed_base_entry()
         flow, entry, _ = fresh_options()
         result = await submit(
-            flow, "grid", {**GRID_ANSWERS, const.CONF_PEAK_TARIFF_MONTHS: "garbage"}
+            flow, "grid", {**GRID_PEAK_ANSWERS, const.CONF_PEAK_TARIFF_MONTHS: "garbage"}
         )
         caught = (
             result.get("errors", {}).get(const.CONF_PEAK_TARIFF_MONTHS)
@@ -2079,7 +2180,7 @@ async def self_check():
     try:
         real = install_session(config_flow, FakeSession([TIBBER_VIEWER_OK]))
         flow, _, _, _ = rc_setup()
-        result = await submit(flow, "reconfigure", RC_SAME)
+        result = await submit_reconfigure(flow, RC_SAME)
         caught = result != {"type": "abort", "reason": "reconfigure_successful"}
         outcomes.append(
             (
@@ -2107,7 +2208,7 @@ async def self_check():
         result = await submit(
             flow,
             "grid",
-            {**GRID_ANSWERS, const.CONF_PEAK_TARIFF_HOURS: "07:00-19:00"},
+            {**GRID_PEAK_ANSWERS, const.CONF_PEAK_TARIFF_HOURS: "07:00-19:00"},
         )
         stored = entry.options.get(const.CONF_PEAK_TARIFF_HOURS)
         caught = not (shows_menu(result, "init") and stored == "07:00-19:00")

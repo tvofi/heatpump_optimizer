@@ -1,1 +1,1 @@
-W2-G6 #438 merged e1a14f9; next seat W2-G1 Opus 5.
+#436 ready-for-re-review: reverted W2-G6 brief hunk, entities page-split assertions, structure ratchet recorded (methods_over_150/200).

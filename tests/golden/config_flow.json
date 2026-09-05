@@ -435,6 +435,28 @@
    }
   },
   "user": {
+   "name": {
+    "config": null,
+    "default": "'Heat Pump Optimizer'",
+    "required": "Required",
+    "selector": "type"
+   },
+   "tibber_token": {
+    "config": null,
+    "default": null,
+    "required": "Required",
+    "selector": "type"
+   },
+   "weather_entity": {
+    "config": {
+     "filter": "[{'domain': ['weather']}]"
+    },
+    "default": null,
+    "required": "Required",
+    "selector": "EntitySelector"
+   }
+  },
+  "user_sensors": {
    "buffer_tank_temp_entity": {
     "config": {
      "filter": "[{'domain': ['sensor'], 'device_class': ['temperature']}]"
@@ -515,12 +537,6 @@
     "required": "Optional",
     "selector": "EntitySelector"
    },
-   "name": {
-    "config": null,
-    "default": "'Heat Pump Optimizer'",
-    "required": "Required",
-    "selector": "type"
-   },
    "outdoor_temp_entity": {
     "config": {
      "filter": "[{'domain': ['sensor'], 'device_class': ['temperature']}]"
@@ -553,20 +569,6 @@
     },
     "default": null,
     "required": "Optional",
-    "selector": "EntitySelector"
-   },
-   "tibber_token": {
-    "config": null,
-    "default": null,
-    "required": "Required",
-    "selector": "type"
-   },
-   "weather_entity": {
-    "config": {
-     "filter": "[{'domain': ['weather']}]"
-    },
-    "default": null,
-    "required": "Required",
     "selector": "EntitySelector"
    }
   },
@@ -732,6 +734,14 @@
     "Sensors and entities"
    ],
    [
+    "entities_metering",
+    "Power and solar sensors"
+   ],
+   [
+    "entities_pump",
+    "Heat pump telemetry"
+   ],
+   [
     "building",
     "Heating system and heat storage"
    ],
@@ -744,12 +754,36 @@
     "Thermal model (expert)"
    ],
    [
+    "thermal_model_zones",
+    "Two-zone model"
+   ],
+   [
+    "hot_water_tank",
+    "Hot water tank and inlet"
+   ],
+   [
+    "hot_water_pumps",
+    "Circulation pumps"
+   ],
+   [
     "solar_pv",
     "Solar panels"
    ],
    [
     "learning",
     "Self-learning and diagnostics"
+   ],
+   [
+    "learning_features",
+    "Advanced learning features"
+   ],
+   [
+    "grid_connection",
+    "Fuse and peak guards"
+   ],
+   [
+    "grid_fees",
+    "Transfer fees and contract"
    ],
    [
     "heat_curve",
@@ -775,7 +809,7 @@
    ],
    [
     "grid",
-    "Grid costs"
+    "Grid peak tariff"
    ],
    [
     "away",
@@ -933,6 +967,14 @@
    "default": "'indoor'",
    "required": "Optional",
    "selector": "SelectSelector"
+  },
+  "space_circulation_pump_entity": {
+   "config": {
+    "filter": "[{'domain': ['switch', 'input_boolean']}]"
+   },
+   "default": null,
+   "required": "Optional",
+   "selector": "EntitySelector"
   },
   "valve_outlet_temp_entity": {
    "config": {
@@ -1234,22 +1276,6 @@
    "required": "Optional",
    "selector": "EntitySelector"
   },
-  "compressor_freq_entity": {
-   "config": {
-    "filter": "[{'domain': ['number']}]"
-   },
-   "default": null,
-   "required": "Optional",
-   "selector": "EntitySelector"
-  },
-  "compressor_freq_sensor": {
-   "config": {
-    "filter": "[{'domain': ['sensor'], 'device_class': ['frequency']}]"
-   },
-   "default": null,
-   "required": "Optional",
-   "selector": "EntitySelector"
-  },
   "dhw_temp_entity": {
    "config": {
     "filter": "[{'domain': ['sensor'], 'device_class': ['temperature']}]"
@@ -1266,75 +1292,9 @@
    "required": "Optional",
    "selector": "EntitySelector"
   },
-  "freq_control_mode": {
-   "config": {
-    "mode": "'dropdown'",
-    "options": "['observe', 'control']",
-    "translation_key": "'freq_control_mode'"
-   },
-   "default": "'observe'",
-   "required": "Optional",
-   "selector": "SelectSelector"
-  },
-  "heat_pump_defrost_entity": {
-   "config": {
-    "filter": "[{'domain': ['binary_sensor', 'switch', 'input_boolean', 'sensor']}]"
-   },
-   "default": null,
-   "required": "Optional",
-   "selector": "EntitySelector"
-  },
-  "heat_pump_energy_entity": {
-   "config": {
-    "filter": "[{'domain': ['sensor'], 'device_class': ['energy']}]"
-   },
-   "default": null,
-   "required": "Optional",
-   "selector": "EntitySelector"
-  },
-  "heat_pump_fault_entity": {
-   "config": {
-    "filter": "[{'domain': ['binary_sensor', 'switch', 'input_boolean', 'sensor']}]"
-   },
-   "default": null,
-   "required": "Optional",
-   "selector": "EntitySelector"
-  },
-  "heat_pump_mode_entity": {
-   "config": {
-    "filter": "[{'domain': ['select', 'sensor', 'input_select']}]"
-   },
-   "default": null,
-   "required": "Optional",
-   "selector": "EntitySelector"
-  },
-  "heat_pump_online_entity": {
-   "config": {
-    "filter": "[{'domain': ['binary_sensor', 'switch', 'input_boolean', 'sensor']}]"
-   },
-   "default": null,
-   "required": "Optional",
-   "selector": "EntitySelector"
-  },
-  "heat_pump_power_entity": {
-   "config": {
-    "filter": "[{'domain': ['sensor'], 'device_class': ['power']}]"
-   },
-   "default": null,
-   "required": "Optional",
-   "selector": "EntitySelector"
-  },
   "heat_pump_switch_entity": {
    "config": {
     "filter": "[{'domain': ['switch']}]"
-   },
-   "default": null,
-   "required": "Optional",
-   "selector": "EntitySelector"
-  },
-  "house_power_entity": {
-   "config": {
-    "filter": "[{'domain': ['sensor'], 'device_class': ['power']}]"
    },
    "default": null,
    "required": "Optional",
@@ -1359,6 +1319,84 @@
   "outdoor_temp_entity": {
    "config": {
     "filter": "[{'domain': ['sensor'], 'device_class': ['temperature']}]"
+   },
+   "default": null,
+   "required": "Optional",
+   "selector": "EntitySelector"
+  },
+  "tibber_token": {
+   "config": {
+    "type": "'password'"
+   },
+   "default": "'x'",
+   "required": "Required",
+   "selector": "TextSelector"
+  },
+  "weather_entity": {
+   "config": {
+    "filter": "[{'domain': ['weather']}]"
+   },
+   "default": "'weather.home'",
+   "required": "Required",
+   "selector": "EntitySelector"
+  }
+ },
+ "entities_metering": {
+  "after_save": {
+   "config": {
+    "mode": "'dropdown'",
+    "options": "['menu', 'close']",
+    "translation_key": "'after_save'"
+   },
+   "default": "'menu'",
+   "required": "Optional",
+   "selector": "SelectSelector"
+  },
+  "compressor_freq_entity": {
+   "config": {
+    "filter": "[{'domain': ['number']}]"
+   },
+   "default": null,
+   "required": "Optional",
+   "selector": "EntitySelector"
+  },
+  "compressor_freq_sensor": {
+   "config": {
+    "filter": "[{'domain': ['sensor'], 'device_class': ['frequency']}]"
+   },
+   "default": null,
+   "required": "Optional",
+   "selector": "EntitySelector"
+  },
+  "freq_control_mode": {
+   "config": {
+    "mode": "'dropdown'",
+    "options": "['observe', 'control']",
+    "translation_key": "'freq_control_mode'"
+   },
+   "default": "'observe'",
+   "required": "Optional",
+   "selector": "SelectSelector"
+  },
+  "heat_pump_energy_entity": {
+   "config": {
+    "filter": "[{'domain': ['sensor'], 'device_class': ['energy']}]"
+   },
+   "default": null,
+   "required": "Optional",
+   "selector": "EntitySelector"
+  },
+  "heat_pump_power_entity": {
+   "config": {
+    "filter": "[{'domain': ['sensor'], 'device_class': ['power']}]"
+   },
+   "default": null,
+   "required": "Optional",
+   "selector": "EntitySelector"
+  },
+  "house_power_entity": {
+   "config": {
+    "filter": "[{'domain': ['sensor'], 'device_class': ['power']}]"
    },
    "default": null,
    "required": "Optional",
@@ -1389,21 +1427,49 @@
    "default": null,
    "required": "Optional",
    "selector": "EntitySelector"
-  },
-  "tibber_token": {
+  }
+ },
+ "entities_pump": {
+  "after_save": {
    "config": {
-    "type": "'password'"
+    "mode": "'dropdown'",
+    "options": "['menu', 'close']",
+    "translation_key": "'after_save'"
    },
-   "default": "'x'",
-   "required": "Required",
-   "selector": "TextSelector"
+   "default": "'menu'",
+   "required": "Optional",
+   "selector": "SelectSelector"
   },
-  "weather_entity": {
+  "heat_pump_defrost_entity": {
    "config": {
-    "filter": "[{'domain': ['weather']}]"
+    "filter": "[{'domain': ['binary_sensor', 'switch', 'input_boolean', 'sensor']}]"
    },
-   "default": "'weather.home'",
-   "required": "Required",
+   "default": null,
+   "required": "Optional",
+   "selector": "EntitySelector"
+  },
+  "heat_pump_fault_entity": {
+   "config": {
+    "filter": "[{'domain': ['binary_sensor', 'switch', 'input_boolean', 'sensor']}]"
+   },
+   "default": null,
+   "required": "Optional",
+   "selector": "EntitySelector"
+  },
+  "heat_pump_mode_entity": {
+   "config": {
+    "filter": "[{'domain': ['select', 'sensor', 'input_select']}]"
+   },
+   "default": null,
+   "required": "Optional",
+   "selector": "EntitySelector"
+  },
+  "heat_pump_online_entity": {
+   "config": {
+    "filter": "[{'domain': ['binary_sensor', 'switch', 'input_boolean', 'sensor']}]"
+   },
+   "default": null,
+   "required": "Optional",
    "selector": "EntitySelector"
   }
  },
@@ -1417,104 +1483,6 @@
    "default": "'menu'",
    "required": "Optional",
    "selector": "SelectSelector"
-  },
-  "contract_fixed_price": {
-   "config": {
-    "max": "10",
-    "min": "0",
-    "mode": "'box'",
-    "step": "0.01",
-    "unit_of_measurement": "'SEK/kWh'"
-   },
-   "default": "0.0",
-   "required": "Optional",
-   "selector": "NumberSelector"
-  },
-  "fuse_guard_enabled": {
-   "config": null,
-   "default": "False",
-   "required": "Optional",
-   "selector": "type"
-  },
-  "grid_fee_entity": {
-   "config": {
-    "filter": "[{'domain': ['sensor']}]"
-   },
-   "default": null,
-   "required": "Optional",
-   "selector": "EntitySelector"
-  },
-  "grid_fee_fixed": {
-   "config": {
-    "max": "5",
-    "min": "0",
-    "mode": "'box'",
-    "step": "0.01",
-    "unit_of_measurement": "'SEK/kWh'"
-   },
-   "default": "0.0",
-   "required": "Optional",
-   "selector": "NumberSelector"
-  },
-  "grid_fee_mode": {
-   "config": {
-    "mode": "'dropdown'",
-    "options": "['none', 'rules', 'entity']",
-    "translation_key": "'grid_fee_mode'"
-   },
-   "default": "'none'",
-   "required": "Optional",
-   "selector": "SelectSelector"
-  },
-  "grid_fee_rules": {
-   "config": {
-    "multiline": "True",
-    "type": "'text'"
-   },
-   "default": "''",
-   "required": "Optional",
-   "selector": "TextSelector"
-  },
-  "main_fuse_amperes": {
-   "config": {
-    "max": "125",
-    "min": "0",
-    "mode": "'box'",
-    "step": "1",
-    "unit_of_measurement": "'A'"
-   },
-   "default": "0",
-   "required": "Optional",
-   "selector": "NumberSelector"
-  },
-  "main_fuse_phases": {
-   "config": {
-    "max": "3",
-    "min": "1",
-    "mode": "'slider'",
-    "step": "1"
-   },
-   "default": "3",
-   "required": "Optional",
-   "selector": "NumberSelector"
-  },
-  "peak_guard_enabled": {
-   "config": null,
-   "default": "False",
-   "required": "Optional",
-   "selector": "type"
-  },
-  "peak_guard_margin_kw": {
-   "config": {
-    "max": "3.0",
-    "min": "0.0",
-    "mode": "'slider'",
-    "step": "0.1",
-    "unit_of_measurement": "'kW'"
-   },
-   "default": "0.5",
-   "required": "Optional",
-   "selector": "NumberSelector"
   },
   "peak_tariff_enabled": {
    "config": null,
@@ -1586,6 +1554,128 @@
    "default": "'60'",
    "required": "Optional",
    "selector": "SelectSelector"
+  }
+ },
+ "grid_connection": {
+  "after_save": {
+   "config": {
+    "mode": "'dropdown'",
+    "options": "['menu', 'close']",
+    "translation_key": "'after_save'"
+   },
+   "default": "'menu'",
+   "required": "Optional",
+   "selector": "SelectSelector"
+  },
+  "fuse_guard_enabled": {
+   "config": null,
+   "default": "False",
+   "required": "Optional",
+   "selector": "type"
+  },
+  "main_fuse_amperes": {
+   "config": {
+    "max": "125",
+    "min": "0",
+    "mode": "'box'",
+    "step": "1",
+    "unit_of_measurement": "'A'"
+   },
+   "default": "0",
+   "required": "Optional",
+   "selector": "NumberSelector"
+  },
+  "main_fuse_phases": {
+   "config": {
+    "max": "3",
+    "min": "1",
+    "mode": "'slider'",
+    "step": "1"
+   },
+   "default": "3",
+   "required": "Optional",
+   "selector": "NumberSelector"
+  },
+  "peak_guard_enabled": {
+   "config": null,
+   "default": "False",
+   "required": "Optional",
+   "selector": "type"
+  },
+  "peak_guard_margin_kw": {
+   "config": {
+    "max": "3.0",
+    "min": "0.0",
+    "mode": "'slider'",
+    "step": "0.1",
+    "unit_of_measurement": "'kW'"
+   },
+   "default": "0.5",
+   "required": "Optional",
+   "selector": "NumberSelector"
+  }
+ },
+ "grid_fees": {
+  "after_save": {
+   "config": {
+    "mode": "'dropdown'",
+    "options": "['menu', 'close']",
+    "translation_key": "'after_save'"
+   },
+   "default": "'menu'",
+   "required": "Optional",
+   "selector": "SelectSelector"
+  },
+  "contract_fixed_price": {
+   "config": {
+    "max": "10",
+    "min": "0",
+    "mode": "'box'",
+    "step": "0.01",
+    "unit_of_measurement": "'SEK/kWh'"
+   },
+   "default": "0.0",
+   "required": "Optional",
+   "selector": "NumberSelector"
+  },
+  "grid_fee_entity": {
+   "config": {
+    "filter": "[{'domain': ['sensor']}]"
+   },
+   "default": null,
+   "required": "Optional",
+   "selector": "EntitySelector"
+  },
+  "grid_fee_fixed": {
+   "config": {
+    "max": "5",
+    "min": "0",
+    "mode": "'box'",
+    "step": "0.01",
+    "unit_of_measurement": "'SEK/kWh'"
+   },
+   "default": "0.0",
+   "required": "Optional",
+   "selector": "NumberSelector"
+  },
+  "grid_fee_mode": {
+   "config": {
+    "mode": "'dropdown'",
+    "options": "['none', 'rules', 'entity']",
+    "translation_key": "'grid_fee_mode'"
+   },
+   "default": "'none'",
+   "required": "Optional",
+   "selector": "SelectSelector"
+  },
+  "grid_fee_rules": {
+   "config": {
+    "multiline": "True",
+    "type": "'text'"
+   },
+   "default": "''",
+   "required": "Optional",
+   "selector": "TextSelector"
   }
  },
  "heat_curve": {
@@ -1682,6 +1772,130 @@
    "required": "Optional",
    "selector": "SelectSelector"
   },
+  "dhw_idle_min_temperature": {
+   "config": {
+    "max": "55",
+    "min": "10",
+    "mode": "'slider'",
+    "step": "1",
+    "unit_of_measurement": "'\u00b0C'"
+   },
+   "default": "20.0",
+   "required": "Optional",
+   "selector": "NumberSelector"
+  },
+  "dhw_legionella_enabled": {
+   "config": null,
+   "default": "True",
+   "required": "Optional",
+   "selector": "BooleanSelector"
+  },
+  "dhw_legionella_interval_days": {
+   "config": {
+    "max": "30",
+    "min": "1",
+    "mode": "'slider'",
+    "step": "1",
+    "unit_of_measurement": "'days'"
+   },
+   "default": "7.0",
+   "required": "Optional",
+   "selector": "NumberSelector"
+  },
+  "dhw_legionella_temperature": {
+   "config": {
+    "max": "70",
+    "min": "55",
+    "mode": "'slider'",
+    "step": "1",
+    "unit_of_measurement": "'\u00b0C'"
+   },
+   "default": "60.0",
+   "required": "Optional",
+   "selector": "NumberSelector"
+  },
+  "dhw_min_temperature": {
+   "config": {
+    "max": "55",
+    "min": "35",
+    "mode": "'slider'",
+    "step": "1",
+    "unit_of_measurement": "'\u00b0C'"
+   },
+   "default": "45.0",
+   "required": "Optional",
+   "selector": "NumberSelector"
+  },
+  "dhw_schedule_enabled": {
+   "config": null,
+   "default": "True",
+   "required": "Optional",
+   "selector": "BooleanSelector"
+  },
+  "dhw_setpoint": {
+   "config": {
+    "max": "65",
+    "min": "40",
+    "mode": "'slider'",
+    "step": "1",
+    "unit_of_measurement": "'\u00b0C'"
+   },
+   "default": "55.0",
+   "required": "Optional",
+   "selector": "NumberSelector"
+  },
+  "dhw_windows": {
+   "config": {
+    "type": "'text'"
+   },
+   "default": "'06:00-08:30, 17:00-22:00'",
+   "required": "Optional",
+   "selector": "TextSelector"
+  }
+ },
+ "hot_water_pumps": {
+  "after_save": {
+   "config": {
+    "mode": "'dropdown'",
+    "options": "['menu', 'close']",
+    "translation_key": "'after_save'"
+   },
+   "default": "'menu'",
+   "required": "Optional",
+   "selector": "SelectSelector"
+  },
+  "vvc_lead_minutes": {
+   "config": {
+    "max": "120",
+    "min": "0",
+    "mode": "'slider'",
+    "step": "5",
+    "unit_of_measurement": "'min'"
+   },
+   "default": "20",
+   "required": "Optional",
+   "selector": "NumberSelector"
+  },
+  "vvc_pump_entity": {
+   "config": {
+    "filter": "[{'domain': ['switch', 'input_boolean']}]"
+   },
+   "default": null,
+   "required": "Optional",
+   "selector": "EntitySelector"
+  }
+ },
+ "hot_water_tank": {
+  "after_save": {
+   "config": {
+    "mode": "'dropdown'",
+    "options": "['menu', 'close']",
+    "translation_key": "'after_save'"
+   },
+   "default": "'menu'",
+   "required": "Optional",
+   "selector": "SelectSelector"
+  },
   "dhw_cooling_rate": {
    "config": {
     "max": "3.0",
@@ -1718,18 +1932,6 @@
    "required": "Optional",
    "selector": "BooleanSelector"
   },
-  "dhw_idle_min_temperature": {
-   "config": {
-    "max": "55",
-    "min": "10",
-    "mode": "'slider'",
-    "step": "1",
-    "unit_of_measurement": "'\u00b0C'"
-   },
-   "default": "20.0",
-   "required": "Optional",
-   "selector": "NumberSelector"
-  },
   "dhw_inlet_entity": {
    "config": {
     "filter": "[{'domain': ['sensor'], 'device_class': ['temperature']}]"
@@ -1762,24 +1964,6 @@
    "required": "Optional",
    "selector": "NumberSelector"
   },
-  "dhw_legionella_enabled": {
-   "config": null,
-   "default": "True",
-   "required": "Optional",
-   "selector": "BooleanSelector"
-  },
-  "dhw_legionella_interval_days": {
-   "config": {
-    "max": "30",
-    "min": "1",
-    "mode": "'slider'",
-    "step": "1",
-    "unit_of_measurement": "'days'"
-   },
-   "default": "7.0",
-   "required": "Optional",
-   "selector": "NumberSelector"
-  },
   "dhw_legionella_min_interval_days": {
    "config": {
     "max": "14",
@@ -1792,53 +1976,11 @@
    "required": "Optional",
    "selector": "NumberSelector"
   },
-  "dhw_legionella_temperature": {
-   "config": {
-    "max": "70",
-    "min": "55",
-    "mode": "'slider'",
-    "step": "1",
-    "unit_of_measurement": "'\u00b0C'"
-   },
-   "default": "60.0",
-   "required": "Optional",
-   "selector": "NumberSelector"
-  },
-  "dhw_min_temperature": {
-   "config": {
-    "max": "55",
-    "min": "35",
-    "mode": "'slider'",
-    "step": "1",
-    "unit_of_measurement": "'\u00b0C'"
-   },
-   "default": "45.0",
-   "required": "Optional",
-   "selector": "NumberSelector"
-  },
   "dhw_quantile_targets_enabled": {
    "config": null,
    "default": "False",
    "required": "Optional",
    "selector": "BooleanSelector"
-  },
-  "dhw_schedule_enabled": {
-   "config": null,
-   "default": "True",
-   "required": "Optional",
-   "selector": "BooleanSelector"
-  },
-  "dhw_setpoint": {
-   "config": {
-    "max": "65",
-    "min": "40",
-    "mode": "'slider'",
-    "step": "1",
-    "unit_of_measurement": "'\u00b0C'"
-   },
-   "default": "55.0",
-   "required": "Optional",
-   "selector": "NumberSelector"
   },
   "dhw_tank_volume": {
    "config": {
@@ -1851,14 +1993,6 @@
    "default": "200.0",
    "required": "Optional",
    "selector": "NumberSelector"
-  },
-  "dhw_windows": {
-   "config": {
-    "type": "'text'"
-   },
-   "default": "'06:00-08:30, 17:00-22:00'",
-   "required": "Optional",
-   "selector": "TextSelector"
   },
   "greywater_recovery_effectiveness": {
    "config": {
@@ -1882,34 +2016,6 @@
    "default": "8.0",
    "required": "Optional",
    "selector": "NumberSelector"
-  },
-  "space_circulation_pump_entity": {
-   "config": {
-    "filter": "[{'domain': ['switch', 'input_boolean']}]"
-   },
-   "default": null,
-   "required": "Optional",
-   "selector": "EntitySelector"
-  },
-  "vvc_lead_minutes": {
-   "config": {
-    "max": "120",
-    "min": "0",
-    "mode": "'slider'",
-    "step": "5",
-    "unit_of_measurement": "'min'"
-   },
-   "default": "20",
-   "required": "Optional",
-   "selector": "NumberSelector"
-  },
-  "vvc_pump_entity": {
-   "config": {
-    "filter": "[{'domain': ['switch', 'input_boolean']}]"
-   },
-   "default": null,
-   "required": "Optional",
-   "selector": "EntitySelector"
   }
  },
  "learning": {
@@ -1923,19 +2029,7 @@
    "required": "Optional",
    "selector": "SelectSelector"
   },
-  "capacity_curve_enabled": {
-   "config": null,
-   "default": "False",
-   "required": "Optional",
-   "selector": "type"
-  },
   "comfort_learning_enabled": {
-   "config": null,
-   "default": "False",
-   "required": "Optional",
-   "selector": "type"
-  },
-  "curve_learning_enabled": {
    "config": null,
    "default": "False",
    "required": "Optional",
@@ -1979,6 +2073,59 @@
    "required": "Optional",
    "selector": "NumberSelector"
   },
+  "price_prior_enabled": {
+   "config": null,
+   "default": "True",
+   "required": "Optional",
+   "selector": "type"
+  },
+  "staleness_max_age_scale": {
+   "config": {
+    "max": "10.0",
+    "min": "0.5",
+    "mode": "'slider'",
+    "step": "0.5"
+   },
+   "default": "1.0",
+   "required": "Optional",
+   "selector": "NumberSelector"
+  },
+  "staleness_watchdog_enabled": {
+   "config": null,
+   "default": "True",
+   "required": "Optional",
+   "selector": "type"
+  },
+  "system_identification_enabled": {
+   "config": null,
+   "default": "False",
+   "required": "Optional",
+   "selector": "type"
+  }
+ },
+ "learning_features": {
+  "after_save": {
+   "config": {
+    "mode": "'dropdown'",
+    "options": "['menu', 'close']",
+    "translation_key": "'after_save'"
+   },
+   "default": "'menu'",
+   "required": "Optional",
+   "selector": "SelectSelector"
+  },
+  "capacity_curve_enabled": {
+   "config": null,
+   "default": "False",
+   "required": "Optional",
+   "selector": "type"
+  },
+  "curve_learning_enabled": {
+   "config": null,
+   "default": "False",
+   "required": "Optional",
+   "selector": "type"
+  },
   "immersion_feedback_enabled": {
    "config": null,
    "default": "False",
@@ -2009,12 +2156,6 @@
    "required": "Optional",
    "selector": "type"
   },
-  "price_prior_enabled": {
-   "config": null,
-   "default": "True",
-   "required": "Optional",
-   "selector": "type"
-  },
   "snow_roof_factor_enabled": {
    "config": null,
    "default": "False",
@@ -2022,29 +2163,6 @@
    "selector": "type"
   },
   "solar_aperture_learning_enabled": {
-   "config": null,
-   "default": "False",
-   "required": "Optional",
-   "selector": "type"
-  },
-  "staleness_max_age_scale": {
-   "config": {
-    "max": "10.0",
-    "min": "0.5",
-    "mode": "'slider'",
-    "step": "0.5"
-   },
-   "default": "1.0",
-   "required": "Optional",
-   "selector": "NumberSelector"
-  },
-  "staleness_watchdog_enabled": {
-   "config": null,
-   "default": "True",
-   "required": "Optional",
-   "selector": "type"
-  },
-  "system_identification_enabled": {
    "config": null,
    "default": "False",
    "required": "Optional",
@@ -2190,6 +2308,42 @@
    "required": "Optional",
    "selector": "NumberSelector"
   },
+  "slab_heat_transfer": {
+   "config": {
+    "max": "5.0",
+    "min": "0.02",
+    "mode": "'box'",
+    "step": "0.1",
+    "unit_of_measurement": "'kW/\u00b0C'"
+   },
+   "default": null,
+   "required": "Optional",
+   "selector": "NumberSelector"
+  },
+  "slab_thermal_mass": {
+   "config": {
+    "max": "60.0",
+    "min": "0.1",
+    "mode": "'box'",
+    "step": "0.5",
+    "unit_of_measurement": "'kWh/\u00b0C'"
+   },
+   "default": null,
+   "required": "Optional",
+   "selector": "NumberSelector"
+  }
+ },
+ "thermal_model_zones": {
+  "after_save": {
+   "config": {
+    "mode": "'dropdown'",
+    "options": "['menu', 'close']",
+    "translation_key": "'after_save'"
+   },
+   "default": "'menu'",
+   "required": "Optional",
+   "selector": "SelectSelector"
+  },
   "inter_zone_heat_transfer": {
    "config": {
     "max": "3.0",
@@ -2232,30 +2386,6 @@
     "min": "0.0",
     "mode": "'slider'",
     "step": "0.05"
-   },
-   "default": null,
-   "required": "Optional",
-   "selector": "NumberSelector"
-  },
-  "slab_heat_transfer": {
-   "config": {
-    "max": "5.0",
-    "min": "0.02",
-    "mode": "'box'",
-    "step": "0.1",
-    "unit_of_measurement": "'kW/\u00b0C'"
-   },
-   "default": null,
-   "required": "Optional",
-   "selector": "NumberSelector"
-  },
-  "slab_thermal_mass": {
-   "config": {
-    "max": "60.0",
-    "min": "0.1",
-    "mode": "'box'",
-    "step": "0.5",
-    "unit_of_measurement": "'kWh/\u00b0C'"
    },
    "default": null,
    "required": "Optional",

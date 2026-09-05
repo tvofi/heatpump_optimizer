@@ -2479,25 +2479,27 @@ _SIGNAL_KEYS = (
     const.CONF_HEAT_PUMP_ONLINE_ENTITY,
     const.CONF_HEAT_PUMP_FAULT_ENTITY,
 )
-# ``_form`` above is this page's rendered schema; ``_pages`` is not built
-# until further down the file.
-_entities_schema = _form["data_schema"]
-_entities_fields = {
-    str(getattr(k, "schema", k)): k for k in _entities_schema.schema
+# The four pump signals moved to entities_pump when the entities page split (#198).
+_pump_flow = options(FakeEntry(options={const.CONF_TIBBER_TOKEN: "t"}))
+_pump_flow.hass = FakeHass()
+_pump_form = asyncio.run(_pump_flow.async_step_entities_pump(None))
+_pump_schema = _pump_form["data_schema"]
+_pump_fields = {
+    str(getattr(k, "schema", k)): k for k in _pump_schema.schema
 }
 for _key in _SIGNAL_KEYS:
     R.check(
-        f"{_key} is offered on the sensors page",
-        _key in _entities_fields,
+        f"{_key} is offered on the entities_pump page",
+        _key in _pump_fields,
     )
     R.check(
         f"{_key} is optional",
-        type(_entities_fields[_key]).__name__ == "Optional",
+        type(_pump_fields[_key]).__name__ == "Optional",
         "a required field here would break every existing install on save",
     )
     R.check(
         f"{_key} can be cleared again once set",
-        _key in options._ENTITIES_PAGE_KEYS,
+        _key in options._ENTITIES_PUMP_KEYS,
         "options merge over setup data, so an absent key restores the old value",
     )
     R.check(
@@ -2506,9 +2508,9 @@ for _key in _SIGNAL_KEYS:
     )
     R.check(
         f"the picker for {_key} offers exactly its slot's domains",
-        _entities_fields[_key] is not None
+        _pump_fields[_key] is not None
         and list(
-            _entities_schema.schema[_entities_fields[_key]].config["filter"][0][
+            _pump_schema.schema[_pump_fields[_key]].config["filter"][0][
                 "domain"
             ]
         )
@@ -2526,16 +2528,16 @@ _sig_values = {
     const.CONF_HEAT_PUMP_ONLINE_ENTITY: "binary_sensor.pump_online",
     const.CONF_HEAT_PUMP_FAULT_ENTITY: "binary_sensor.pump_fault",
 }
-_sig_form = asyncio.run(_sig_flow.async_step_entities(None))
+_sig_form = asyncio.run(_sig_flow.async_step_entities_pump(None))
 _sig_result = asyncio.run(
-    _sig_flow.async_step_entities(
+    _sig_flow.async_step_entities_pump(
         {**_sig_form["data_schema"]({}), **_sig_values,
          const.CONF_AFTER_SAVE: const.AFTER_SAVE_CLOSE}
     )
 )
 _sig_saved = _sig_result.get("data") or {}
 R.check(
-    "the entities page reaches a close-save",
+    "the entities_pump page reaches a close-save",
     _sig_result.get("type") == "create_entry",
     str(_sig_result.get("type")),
 )
@@ -2549,7 +2551,7 @@ _sig_flow2 = options(
     FakeEntry(options={const.CONF_TIBBER_TOKEN: "t", **_sig_values})
 )
 _sig_flow2.hass = FakeHass()
-_sig_form2 = asyncio.run(_sig_flow2.async_step_entities(None))
+_sig_form2 = asyncio.run(_sig_flow2.async_step_entities_pump(None))
 R.check(
     "a configured signal comes back as the field's default",
     all(
@@ -2559,7 +2561,7 @@ R.check(
     "a page that forgets what is configured invites the user to re-enter it",
 )
 _sig_cleared_result = asyncio.run(
-    _sig_flow2.async_step_entities(
+    _sig_flow2.async_step_entities_pump(
         {
             k: v
             for k, v in _sig_form2["data_schema"]({}).items()
@@ -3075,13 +3077,17 @@ def _bounds(schema):
     }
 
 
-# The nominal ranges: the expert page as it renders for an entry that has
+# The nominal ranges: the expert pages as they render for an entry that has
 # stored nothing, so no field has been widened to fit a value.
 _nominal_flow = options(FakeEntry(data={const.CONF_TIBBER_TOKEN: "t"}))
 _nominal_flow.hass = FakeHass()
-_NOMINAL = _bounds(
+_NOMINAL_THERMAL = _bounds(
     asyncio.run(_nominal_flow.async_step_thermal_model(None))["data_schema"]
 )
+_NOMINAL_ZONES = _bounds(
+    asyncio.run(_nominal_flow.async_step_thermal_model_zones(None))["data_schema"]
+)
+_NOMINAL = {**_NOMINAL_THERMAL, **_NOMINAL_ZONES}
 
 # The same keys are also editable during initial setup. Two pages storing one
 # key under two different ranges is the same defect with a longer fuse: the
@@ -3210,10 +3216,16 @@ _sweep_flow.hass = FakeHass()
 for _case in _matrix(_EXTREME_AREAS, (0.1, 0.5, 0.9)):
     _stored = _derived(*_case)
     _entry_for_sweep.options = dict(_stored)
-    _schema = _drive(_sweep_flow.async_step_thermal_model(None))["data_schema"]
+    _thermal_schema = _drive(_sweep_flow.async_step_thermal_model(None))["data_schema"]
+    _zones_schema = _drive(
+        _sweep_flow.async_step_thermal_model_zones(None)
+    )["data_schema"]
     _roundtrips += 1
     try:
-        _accepted = _schema(_submission(_schema))
+        _accepted = {
+            **_thermal_schema(_submission(_thermal_schema)),
+            **_zones_schema(_submission(_zones_schema)),
+        }
     except Exception as err:  # noqa: BLE001 - any rejection is the bug
         _unsubmittable.append(f"{_case}: {type(err).__name__}: {err}")
         continue
@@ -3389,8 +3401,12 @@ R.check(
 R.check(
     "and no other field on the page moves",
     {k: v for k, v in _wide.items() if k != const.CONF_SLAB_THERMAL_MASS}
-    == {k: v for k, v in _NOMINAL.items() if k != const.CONF_SLAB_THERMAL_MASS},
-    str(sorted(set(_wide.items()) ^ set(_NOMINAL.items()))),
+    == {
+        k: v
+        for k, v in _NOMINAL_THERMAL.items()
+        if k != const.CONF_SLAB_THERMAL_MASS
+    },
+    str(sorted(set(_wide.items()) ^ set(_NOMINAL_THERMAL.items()))),
 )
 
 # The ``default=`` half of the hazard, which breaks a page the same way and is
@@ -5390,13 +5406,16 @@ from homeassistant.data_entry_flow import AbortFlow as _AbortFlow
 
 from heatpump_optimizer.config_flow import entry_identity as _entry_identity
 
-_first_screen = {
+_first_credentials = {
     _CONF_NAME: "Heat Pump Optimizer",
     const.CONF_TIBBER_TOKEN: "tok-a",
     const.CONF_WEATHER_ENTITY: "weather.home",
+}
+_first_sensors = {
     const.CONF_HEAT_PUMP_SWITCH_ENTITY: "switch.pump_a",
     const.CONF_SOLAR_FORECAST_SOURCE: const.DEFAULT_SOLAR_FORECAST_SOURCE,
 }
+_first_screen = {**_first_credentials, **_first_sensors}
 _first_identity = _entry_identity(_first_screen)
 R.check(
     "the identity is the same for the same answers, whatever their order",
@@ -5450,13 +5469,26 @@ def _run_user_step(flow, answers):
         return {"type": "abort", "reason": err.reason}
 
 
+def _run_past_user_sensors(flow, credentials, sensors=None):
+    """Credentials, then optional pickers — the split first screen (#198)."""
+    result = _run_user_step(flow, credentials)
+    if result.get("type") != "form" or result.get("step_id") != "user_sensors":
+        return result
+    try:
+        return asyncio.run(flow.async_step_user_sensors(dict(sensors or {})))
+    except _AbortFlow as err:
+        return {"type": "abort", "reason": err.reason}
+
+
 _real_validate_token = config_flow.validate_tibber_token
 config_flow.validate_tibber_token = _accept_any_token
 try:
     _dup_hass = FakeHass()
     _dup_first = _fresh_flow()
     _dup_first.hass = _dup_hass
-    _dup_first_result = _run_user_step(_dup_first, _first_screen)
+    _dup_first_result = _run_past_user_sensors(
+        _dup_first, _first_credentials, _first_sensors
+    )
     R.check(
         "the first flow with these answers proceeds to the temperature step",
         _dup_first_result.get("type") == "form"
@@ -5481,14 +5513,15 @@ try:
     _dup_second.hass = _dup_hass
     R.check(
         "the same answers a second time abort as already configured",
-        _run_user_step(_dup_second, _first_screen)
+        _run_past_user_sensors(_dup_second, _first_credentials, _first_sensors)
         == {"type": "abort", "reason": "already_configured"},
     )
     _dup_other = _fresh_flow()
     _dup_other.hass = _dup_hass
-    _dup_other_result = _run_user_step(
+    _dup_other_result = _run_past_user_sensors(
         _dup_other,
-        {**_first_screen, const.CONF_HEAT_PUMP_SWITCH_ENTITY: "switch.pump_b"},
+        _first_credentials,
+        {**_first_sensors, const.CONF_HEAT_PUMP_SWITCH_ENTITY: "switch.pump_b"},
     )
     R.check(
         "a second heat pump on the same Tibber account proceeds",
@@ -5506,15 +5539,19 @@ finally:
 
 _user_form = asyncio.run(_fresh_flow().async_step_user(None))
 _user_fields = {str(getattr(k, "schema", k)) for k in _user_form["data_schema"].schema}
+_sensors_form = asyncio.run(_fresh_flow().async_step_user_sensors(None))
+_sensors_fields = {
+    str(getattr(k, "schema", k)) for k in _sensors_form["data_schema"].schema
+}
 R.check(
     "the first screen no longer carries the ECL110 MQTT fields",
     not any(f.startswith("ecl110") for f in _user_fields),
     sorted(f for f in _user_fields if f.startswith("ecl110")),
 )
 R.check(
-    "the first screen offers the four heat-pump signal slots too",
-    set(_SIGNAL_KEYS) <= _user_fields,
-    sorted(set(_SIGNAL_KEYS) - _user_fields),
+    "the sensor step offers the four heat-pump signal slots too",
+    set(_SIGNAL_KEYS) <= _sensors_fields,
+    sorted(set(_SIGNAL_KEYS) - _sensors_fields),
     # A slot that exists only in the options flow is a slot most users never
     # find: setup is where they are already naming their pump's entities.
 )
@@ -5522,19 +5559,17 @@ R.check(
     "and offers them optionally, so setup still completes without a pump",
     all(
         type(k).__name__ == "Optional"
-        for k in _user_form["data_schema"].schema
+        for k in _sensors_form["data_schema"].schema
         if str(getattr(k, "schema", k)) in _SIGNAL_KEYS
     ),
 )
 # The null case: a fresh install with no pump integration at all. Only the
 # three genuinely required fields are supplied; nothing else may appear.
-_bare_user = _user_form["data_schema"](
-    {const.CONF_TIBBER_TOKEN: "t", const.CONF_WEATHER_ENTITY: "weather.home"}
-)
+_bare_sensors = _sensors_form["data_schema"]({})
 R.check(
-    "an untouched first screen configures none of them",
-    not (set(_SIGNAL_KEYS) & set(_bare_user)),
-    str(set(_SIGNAL_KEYS) & set(_bare_user)),
+    "an untouched sensor step configures none of them",
+    not (set(_SIGNAL_KEYS) & set(_bare_sensors)),
+    str(set(_SIGNAL_KEYS) & set(_bare_sensors)),
 )
 
 R.check(
@@ -5891,13 +5926,13 @@ def _b3_placeholders(text):
 
 # --- #168: the money fields follow hass.config.currency ----------------------
 _eur = _b3_options("EUR")
-_eur_grid = asyncio.run(_eur.async_step_grid(None))
+_eur_grid_fees = asyncio.run(_eur.async_step_grid_fees(None))
 _eur_tuning = asyncio.run(_eur.async_step_tuning(None))
 R.check(
     "the per-kWh money fields carry the instance currency as their unit",
-    _b3_units(_eur_grid).get(const.CONF_GRID_FEE_FIXED) == "EUR/kWh"
-    and _b3_units(_eur_grid).get(const.CONF_CONTRACT_FIXED_PRICE) == "EUR/kWh",
-    str({k: v for k, v in _b3_units(_eur_grid).items() if v}),
+    _b3_units(_eur_grid_fees).get(const.CONF_GRID_FEE_FIXED) == "EUR/kWh"
+    and _b3_units(_eur_grid_fees).get(const.CONF_CONTRACT_FIXED_PRICE) == "EUR/kWh",
+    str({k: v for k, v in _b3_units(_eur_grid_fees).items() if v}),
 )
 R.check(
     "and so does the compressor replacement cost",
@@ -5905,28 +5940,30 @@ R.check(
     str({k: v for k, v in _b3_units(_eur_tuning).items() if v}),
 )
 R.check(
-    "the grid page hands the currency to its descriptions as a placeholder",
-    (_eur_grid.get("description_placeholders") or {}).get("currency") == "EUR",
-    str(_eur_grid.get("description_placeholders")),
+    "the grid fees page hands the currency to its descriptions as a placeholder",
+    (_eur_grid_fees.get("description_placeholders") or {}).get("currency") == "EUR",
+    str(_eur_grid_fees.get("description_placeholders")),
 )
-_grid_texts = strings["options"]["step"]["grid"]
-_grid_wanted = set().union(
+_grid_fees_texts = strings["options"]["step"]["grid_fees"]
+_grid_fees_wanted = set().union(
     *(
         _b3_placeholders(t)
         for section in ("data", "data_description")
-        for t in _grid_texts.get(section, {}).values()
+        for t in _grid_fees_texts.get(section, {}).values()
     )
 )
 R.check(
-    "every placeholder the grid page's strings name is supplied by its render",
-    _grid_wanted and _grid_wanted <= set(_eur_grid.get("description_placeholders") or {}),
-    f"strings want {_grid_wanted}, render gives "
-    f"{set(_eur_grid.get('description_placeholders') or {})}",
+    "every placeholder the grid fees page's strings name is supplied by its render",
+    _grid_fees_wanted <= set(_eur_grid_fees.get("description_placeholders") or {}),
+    f"strings want {_grid_fees_wanted}, render gives "
+    f"{set(_eur_grid_fees.get('description_placeholders') or {})}",
 )
 _bare = _b3_options(None)
 R.check(
     "an unconfigured instance keeps the SEK every existing install has shown",
-    _b3_units(asyncio.run(_bare.async_step_grid(None))).get(const.CONF_GRID_FEE_FIXED)
+    _b3_units(asyncio.run(_bare.async_step_grid_fees(None))).get(
+        const.CONF_GRID_FEE_FIXED
+    )
     == f"{currency_mod.FALLBACK_CURRENCY}/kWh",
     "a unit that changes under an unconfigured instance breaks statistics",
 )
@@ -5976,7 +6013,7 @@ R.check(
 def _grid_verdict(spec):
     res = _b3_submit(
         _b3_options(),
-        "grid",
+        "grid_fees",
         {
             const.CONF_GRID_FEE_MODE: grid_fee.MODE_RULES,
             const.CONF_GRID_FEE_RULES: spec,
@@ -6541,6 +6578,9 @@ _preset_entry = FakeEntry(
 _thermal_flow = options(_preset_entry)
 _thermal_flow.hass = FakeHass()
 _thermal_form = asyncio.run(_thermal_flow.async_step_thermal_model(None))["data_schema"]
+_thermal_zones_form = asyncio.run(
+    _thermal_flow.async_step_thermal_model_zones(None)
+)["data_schema"]
 _preset_flow = options(_preset_entry)
 _preset_flow.hass = FakeHass()
 _preset_form2 = asyncio.run(_preset_flow.async_step_building_preset(None))[
@@ -6560,8 +6600,8 @@ _config_flow_minimums = {
         _zones_form, const.CONF_INTER_ZONE_TRANSFER
     ),
     "zones/window_area": _selector_min(_zones_form, const.CONF_WINDOW_AREA),
-    "thermal_model/inter_zone_heat_transfer": _selector_min(
-        _thermal_form, const.CONF_INTER_ZONE_TRANSFER
+    "thermal_model_zones/inter_zone_heat_transfer": _selector_min(
+        _thermal_zones_form, const.CONF_INTER_ZONE_TRANSFER
     ),
     "building_preset/window_area": _selector_min(_preset_form2, const.CONF_WINDOW_AREA),
 }
@@ -8073,8 +8113,20 @@ def _rc_flow(entry_id="plant_a"):
 
 
 def _run_reconfigure(flow, answers):
+    _rc_credential_keys = (
+        _CONF_NAME,
+        const.CONF_TIBBER_TOKEN,
+        const.CONF_WEATHER_ENTITY,
+    )
     try:
-        return asyncio.run(flow.async_step_reconfigure(None if answers is None else dict(answers)))
+        if answers is None:
+            return asyncio.run(flow.async_step_reconfigure(None))
+        credentials = {k: v for k, v in answers.items() if k in _rc_credential_keys}
+        sensors = {k: v for k, v in answers.items() if k not in credentials}
+        result = asyncio.run(flow.async_step_reconfigure(credentials))
+        if result.get("type") != "form" or result.get("step_id") != "user_sensors":
+            return result
+        return asyncio.run(flow.async_step_user_sensors(sensors))
     except _AbortFlow as err:
         return {"type": "abort", "reason": err.reason}
     except AttributeError as err:
@@ -8084,7 +8136,9 @@ def _run_reconfigure(flow, answers):
 _rc_real_validate = config_flow.validate_tibber_token
 config_flow.validate_tibber_token = _accept_any_token
 try:
-    _rc_form = _run_reconfigure(_rc_flow(), None)
+    _rc_flow_open = _rc_flow()
+    _rc_form = asyncio.run(_rc_flow_open.async_step_reconfigure(None))
+    _rc_sensors_form = asyncio.run(_rc_flow_open.async_step_user_sensors(None))
 finally:
     config_flow.validate_tibber_token = _rc_real_validate
 
@@ -8109,15 +8163,30 @@ _rc_suggested = (
 R.check(
     "the reopened screen is prefilled with this entry's answers",
     _rc_suggested.get(_CONF_NAME) == "Annex pump"
-    and _rc_suggested.get(const.CONF_TIBBER_TOKEN) == "tok-a"
-    and _rc_suggested.get(const.CONF_INDOOR_TEMP_ENTITY) == "sensor.annex_indoor",
+    and _rc_suggested.get(const.CONF_TIBBER_TOKEN) == "tok-a",
     f"suggested name {_rc_suggested.get(_CONF_NAME)!r}, "
     f"token {_rc_suggested.get(const.CONF_TIBBER_TOKEN)!r}",
 )
+_rc_sensors_schema = _rc_sensors_form.get("data_schema")
+_rc_sensors_suggested = (
+    {
+        str(getattr(k, "schema", k)): (getattr(k, "description", None) or {}).get(
+            "suggested_value"
+        )
+        for k in _rc_sensors_schema.schema
+    }
+    if _rc_sensors_schema is not None
+    else {}
+)
+R.check(
+    "the reopened sensor step carries this entry's picks",
+    _rc_sensors_suggested.get(const.CONF_INDOOR_TEMP_ENTITY) == "sensor.annex_indoor",
+    f"suggested indoor {_rc_sensors_suggested.get(const.CONF_INDOOR_TEMP_ENTITY)!r}",
+)
 R.check(
     "a slot this entry leaves empty is not invented",
-    _rc_suggested.get(const.CONF_OUTDOOR_TEMP_ENTITY) is None,
-    f"suggested outdoor {_rc_suggested.get(const.CONF_OUTDOOR_TEMP_ENTITY)!r}",
+    _rc_sensors_suggested.get(const.CONF_OUTDOOR_TEMP_ENTITY) is None,
+    f"suggested outdoor {_rc_sensors_suggested.get(const.CONF_OUTDOOR_TEMP_ENTITY)!r}",
 )
 
 _rc_submit_same = {

@@ -697,6 +697,31 @@ def _power_errors(
     return {}
 
 
+def _options_suggested_numeric(current: dict[str, Any], key: str) -> Any:
+    """Optional key that suggests the stored value without defaulting it."""
+    if key in current:
+        return vol.Optional(key, description={"suggested_value": current[key]})
+    return vol.Optional(key)
+
+
+def _building_preset_warning(hass: Any, current: dict[str, Any]) -> str:
+    """Preset-derived warning when the thermal model pages would overwrite it."""
+    if not current.get(CONF_BUILDING_PRESET_ENABLED, DEFAULT_BUILDING_PRESET_ENABLED):
+        return ""
+    lang = (hass.config.language or "en").split("-")[0]
+    return PRESET_WARNING.get(lang, PRESET_WARNING["en"])
+
+
+def _disarm_preset_on_derived_edit(
+    saved: dict[str, Any], stored: dict[str, Any]
+) -> None:
+    """Stop the questionnaire from overwriting a hand-edited derived value."""
+    if any(
+        key in saved and saved[key] != stored.get(key) for key in DERIVED_THERMAL_KEYS
+    ):
+        saved[CONF_BUILDING_PRESET_ENABLED] = False
+
+
 def _dhw_min_too_close(candidate: dict[str, Any], current: dict[str, Any]) -> bool:
     """Whether the effective DHW minimum leaves no deadband below the setpoint.
 
@@ -970,59 +995,54 @@ async def _translated_menu(
     return labels
 
 
-def _first_screen_schema(hass: HomeAssistant) -> vol.Schema:
-    """The first screen: API credentials and entity selection.
+def _user_credentials_fields() -> dict[Any, Any]:
+    """Name, token and weather — what every install must bring."""
+    return {
+        vol.Required(CONF_NAME, default="Heat Pump Optimizer"): str,
+        vol.Required(CONF_TIBBER_TOKEN): str,
+        vol.Required(CONF_WEATHER_ENTITY): _entity_of("weather"),
+    }
 
-    One builder serves both ways in (the plain setup flow and the
-    reconfigure step that reopens this screen over an existing entry), so a
-    field added for one is offered by the other too.
-    """
-    return vol.Schema(
-        {
-            vol.Required(CONF_NAME, default="Heat Pump Optimizer"): str,
-            vol.Required(CONF_TIBBER_TOKEN): str,
-            vol.Required(CONF_WEATHER_ENTITY): _entity_of("weather"),
-            vol.Optional(CONF_INDOOR_TEMP_ENTITY): _entity_of("sensor", "temperature"),
-            vol.Optional(CONF_OUTDOOR_TEMP_ENTITY): _entity_of("sensor", "temperature"),
-            vol.Optional(CONF_HEAT_PUMP_SWITCH_ENTITY): _entity_of("switch"),
-            vol.Optional(CONF_SOLAR_RADIATION_ENTITY): _entity_of("sensor"),
-            vol.Optional(
-                CONF_SOLAR_FORECAST_SOURCE,
-                default=DEFAULT_SOLAR_FORECAST_SOURCE,
-            ): _solar_source_selector(),
-            vol.Optional(
-                CONF_SOLAR_LOCATION,
-                default=_default_location(hass, {}),
-            ): _solar_location_selector(),
-            vol.Optional(CONF_FLOOR_RETURN_TEMP_ENTITY): _entity_of("sensor", "temperature"),
-            vol.Optional(CONF_LOWER_FLOOR_TEMP_ENTITY): _entity_of("sensor", "temperature"),
-            vol.Optional(CONF_DHW_TEMP_ENTITY): _entity_of("sensor", "temperature"),
-            vol.Optional(
-                CONF_BUFFER_TANK_TEMP_ENTITY
-            ): _entity_of("sensor", "temperature"),
-            # v5.3.0: what the pump reports about itself. Read only —
-            # the optimizer never writes the mode — and every one of
-            # them optional, so an install that leaves all four empty
-            # behaves exactly as it did before they existed.
-            vol.Optional(CONF_HEAT_PUMP_MODE_ENTITY): _entity_of(
-                list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_MODE_ENTITY])
-            ),
-            vol.Optional(CONF_HEAT_PUMP_DEFROST_ENTITY): _entity_of(
-                list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_DEFROST_ENTITY])
-            ),
-            vol.Optional(CONF_HEAT_PUMP_ONLINE_ENTITY): _entity_of(
-                list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_ONLINE_ENTITY])
-            ),
-            vol.Optional(CONF_HEAT_PUMP_FAULT_ENTITY): _entity_of(
-                list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_FAULT_ENTITY])
-            ),
-            # The Danfoss ECL110 MQTT fields lived here until v4.1.0.
-            # Eight fields only ECL110 owners can answer do not belong
-            # on everyone's first screen; the options page "Heat curve
-            # control (ECL110)" owns them, and every reader falls back
-            # to the same defaults when the keys are absent.
-        }
-    )
+
+def _user_sensors_fields(hass: HomeAssistant) -> dict[Any, Any]:
+    """Optional telemetry pickers, separated from credentials (#198)."""
+    return {
+        vol.Optional(CONF_INDOOR_TEMP_ENTITY): _entity_of("sensor", "temperature"),
+        vol.Optional(CONF_OUTDOOR_TEMP_ENTITY): _entity_of("sensor", "temperature"),
+        vol.Optional(CONF_HEAT_PUMP_SWITCH_ENTITY): _entity_of("switch"),
+        vol.Optional(CONF_SOLAR_RADIATION_ENTITY): _entity_of("sensor"),
+        vol.Optional(
+            CONF_SOLAR_FORECAST_SOURCE,
+            default=DEFAULT_SOLAR_FORECAST_SOURCE,
+        ): _solar_source_selector(),
+        vol.Optional(
+            CONF_SOLAR_LOCATION,
+            default=_default_location(hass, {}),
+        ): _solar_location_selector(),
+        vol.Optional(CONF_FLOOR_RETURN_TEMP_ENTITY): _entity_of("sensor", "temperature"),
+        vol.Optional(CONF_LOWER_FLOOR_TEMP_ENTITY): _entity_of("sensor", "temperature"),
+        vol.Optional(CONF_DHW_TEMP_ENTITY): _entity_of("sensor", "temperature"),
+        vol.Optional(
+            CONF_BUFFER_TANK_TEMP_ENTITY
+        ): _entity_of("sensor", "temperature"),
+        vol.Optional(CONF_HEAT_PUMP_MODE_ENTITY): _entity_of(
+            list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_MODE_ENTITY])
+        ),
+        vol.Optional(CONF_HEAT_PUMP_DEFROST_ENTITY): _entity_of(
+            list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_DEFROST_ENTITY])
+        ),
+        vol.Optional(CONF_HEAT_PUMP_ONLINE_ENTITY): _entity_of(
+            list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_ONLINE_ENTITY])
+        ),
+        vol.Optional(CONF_HEAT_PUMP_FAULT_ENTITY): _entity_of(
+            list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_FAULT_ENTITY])
+        ),
+    }
+
+
+def _first_screen_schema(hass: HomeAssistant) -> vol.Schema:
+    """Both first-screen steps merged — for reconfigure key iteration only."""
+    return vol.Schema({**_user_credentials_fields(), **_user_sensors_fields(hass)})
 
 
 class HeatPumpOptimizerConfigFlow(
@@ -1075,31 +1095,11 @@ class HeatPumpOptimizerConfigFlow(
             elif verdict != "ok":
                 errors[CONF_TIBBER_TOKEN] = "cannot_connect"
             else:
-                # One heat pump configured twice is refused here, on the
-                # first screen, before four more pages of answers are asked
-                # for nothing (unique-config-entry). A second heat pump --
-                # its own switch, its own sensors -- is a different identity
-                # and goes through. Reconfiguring is the one caller that
-                # legitimately lands on an identity the registry already
-                # holds: re-entering THIS entry's plant is what the flow is
-                # for, so the guard runs only when the identity moved, and
-                # then it means the picks now name someone else's install.
-                await self.async_set_unique_id(entry_identity(user_input))
-                if (
-                    self._reconfigure_entry is None
-                    or self.unique_id != self._reconfigure_entry.unique_id
-                ):
-                    self._abort_if_unique_id_configured()
                 self._data.update(user_input)
-                if self._reconfigure_entry is not None:
-                    return await self._async_save_reconfigure(user_input)
-                return await self.async_step_temperature()
+                return await self.async_step_user_sensors()
 
-        schema = _first_screen_schema(self.hass)
+        schema = vol.Schema(_user_credentials_fields())
         if self._reconfigure_entry is not None:
-            # Current values as defaults (the suggested-value mechanism the
-            # frontend prefills from), never as silent submissions: the form
-            # still returns exactly what the user leaves in it.
             schema = self.add_suggested_values_to_schema(
                 schema, self._reconfigure_entry.data
             )
@@ -1110,6 +1110,32 @@ class HeatPumpOptimizerConfigFlow(
             description_placeholders={
                 "tibber_info": "Get your token from https://developer.tibber.com",
             },
+        )
+
+    async def async_step_user_sensors(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Optional entity pickers, after credentials (#198)."""
+        if user_input is not None:
+            self._data.update(user_input)
+            await self.async_set_unique_id(entry_identity(self._data))
+            if (
+                self._reconfigure_entry is None
+                or self.unique_id != self._reconfigure_entry.unique_id
+            ):
+                self._abort_if_unique_id_configured()
+            if self._reconfigure_entry is not None:
+                return await self._async_save_reconfigure(self._data)
+            return await self.async_step_temperature()
+
+        schema = vol.Schema(_user_sensors_fields(self.hass))
+        if self._reconfigure_entry is not None:
+            schema = self.add_suggested_values_to_schema(
+                schema, self._reconfigure_entry.data
+            )
+        return self.async_show_form(
+            step_id="user_sensors",
+            data_schema=schema,
         )
 
     async def _async_save_reconfigure(
@@ -1577,25 +1603,33 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
     # sticks — but only for the fields this page actually renders: nulling the
     # whole roster wiped the PV, away and external-heat entities configured on
     # their own pages every time this one was saved.
-    _ENTITIES_PAGE_KEYS = (
+    _ENTITIES_CORE_KEYS = (
         CONF_INDOOR_TEMP_ENTITY,
         CONF_OUTDOOR_TEMP_ENTITY,
         CONF_HEAT_PUMP_SWITCH_ENTITY,
-        CONF_SOLAR_RADIATION_ENTITY,
-        CONF_FLOOR_RETURN_TEMP_ENTITY,
-        CONF_LOWER_FLOOR_TEMP_ENTITY,
         CONF_DHW_TEMP_ENTITY,
         CONF_BUFFER_TANK_TEMP_ENTITY,
+        CONF_FLOOR_RETURN_TEMP_ENTITY,
+        CONF_LOWER_FLOOR_TEMP_ENTITY,
+    )
+
+    _ENTITIES_METERING_KEYS = (
+        CONF_SOLAR_RADIATION_ENTITY,
         CONF_POWER_ENTITY,
         CONF_ENERGY_ENTITY,
         CONF_HOUSE_POWER_ENTITY,
         CONF_COMPRESSOR_FREQ_ENTITY,
         CONF_COMPRESSOR_FREQ_SENSOR,
+    )
+
+    _ENTITIES_PUMP_KEYS = (
         CONF_HEAT_PUMP_MODE_ENTITY,
         CONF_HEAT_PUMP_DEFROST_ENTITY,
         CONF_HEAT_PUMP_ONLINE_ENTITY,
         CONF_HEAT_PUMP_FAULT_ENTITY,
     )
+
+    _ENTITIES_PAGE_KEYS = _ENTITIES_CORE_KEYS + _ENTITIES_METERING_KEYS + _ENTITIES_PUMP_KEYS
 
     # Every clearable entity across all pages; the solar, away, learning and
     # building pages clear their own members in their own handlers.
@@ -1626,16 +1660,24 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
     _MENU_LABELS = {
         "setup_overview": "Your system, as configured",
         "entities": "Sensors and entities",
+        "entities_metering": "Power and solar sensors",
+        "entities_pump": "Heat pump telemetry",
         "comfort": "Comfort and temperatures",
         "hot_water": "Hot water",
+        "hot_water_tank": "Hot water tank and inlet",
+        "hot_water_pumps": "Circulation pumps",
         "building": "Heating system and heat storage",
         "building_preset": "Building type and emitters",
         "thermal_model": "Thermal model (expert)",
+        "thermal_model_zones": "Two-zone model",
         "tuning": "Savings vs comfort",
-        "grid": "Grid costs",
+        "grid": "Grid peak tariff",
+        "grid_connection": "Fuse and peak guards",
+        "grid_fees": "Transfer fees and contract",
         "solar_pv": "Solar panels",
         "away": "Away and holiday mode",
         "learning": "Self-learning and diagnostics",
+        "learning_features": "Advanced learning features",
         "heat_curve": "Heat curve control (ECL110)",
     }
 
@@ -1650,11 +1692,19 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
     # Set-once configuration: sensors, building physics, actuation plumbing.
     _ADVANCED_MENU = (
         "entities",
+        "entities_metering",
+        "entities_pump",
         "building",
         "building_preset",
         "thermal_model",
+        "thermal_model_zones",
+        "hot_water_tank",
+        "hot_water_pumps",
         "solar_pv",
         "learning",
+        "learning_features",
+        "grid_connection",
+        "grid_fees",
         "heat_curve",
     )
 
@@ -1709,6 +1759,21 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         if step_id in self._ADVANCED_MENU:
             return await self.async_step_advanced()
         return await self.async_step_init()
+
+    async def _try_thermal_model_save(
+        self, user_input: dict[str, Any] | None
+    ) -> FlowResult | tuple[dict[str, str], dict[str, Any]]:
+        """Shared submit path for the split thermal_model pages."""
+        errors: dict[str, str] = {}
+        current = self._current
+        if user_input is not None:
+            errors = _power_errors(user_input, self._current)
+            if not errors:
+                saved = dict(user_input)
+                _disarm_preset_on_derived_edit(saved, self._current)
+                return await self._save_or_menu(saved)
+            current = {**current, **user_input}
+        return errors, current
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
@@ -1777,7 +1842,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
                     errors[CONF_TIBBER_TOKEN] = "cannot_connect"
             if not errors:
                 cleaned = dict(user_input)
-                for key in self._ENTITIES_PAGE_KEYS:
+                for key in self._ENTITIES_CORE_KEYS:
                     if not cleaned.get(key):
                         cleaned[key] = None
                 return await self._save_or_menu(cleaned)
@@ -1809,6 +1874,38 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
                     ): _entity_of("weather"),
                     _entity(CONF_INDOOR_TEMP_ENTITY): _entity_of("sensor", "temperature"),
                     _entity(CONF_OUTDOOR_TEMP_ENTITY): _entity_of("sensor", "temperature"),
+                    _entity(CONF_HEAT_PUMP_SWITCH_ENTITY): _entity_of("switch"),
+                    _entity(CONF_DHW_TEMP_ENTITY): _entity_of("sensor", "temperature"),
+                    _entity(CONF_BUFFER_TANK_TEMP_ENTITY): _entity_of("sensor", "temperature"),
+                    _entity(CONF_FLOOR_RETURN_TEMP_ENTITY): _entity_of("sensor", "temperature"),
+                    _entity(CONF_LOWER_FLOOR_TEMP_ENTITY): _entity_of("sensor", "temperature"),
+                }
+            ),
+        )
+
+    async def async_step_entities_metering(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Solar, power and compressor frequency sensors."""
+        if user_input is not None:
+            cleaned = dict(user_input)
+            for key in self._ENTITIES_METERING_KEYS:
+                if not cleaned.get(key):
+                    cleaned[key] = None
+            return await self._save_or_menu(cleaned)
+
+        current = self._current
+
+        def _entity(key: str) -> Any:
+            existing = current.get(key)
+            if existing:
+                return vol.Optional(key, default=existing)
+            return vol.Optional(key)
+
+        return self.async_show_form(
+            step_id="entities_metering",
+            data_schema=_options_schema(
+                {
                     _entity(CONF_SOLAR_RADIATION_ENTITY): _entity_of("sensor"),
                     vol.Optional(
                         CONF_SOLAR_FORECAST_SOURCE,
@@ -1821,33 +1918,10 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
                         CONF_SOLAR_LOCATION,
                         default=_default_location(self.hass, current),
                     ): _solar_location_selector(),
-                    _entity(CONF_DHW_TEMP_ENTITY): _entity_of("sensor", "temperature"),
-                    _entity(CONF_BUFFER_TANK_TEMP_ENTITY): _entity_of("sensor", "temperature"),
-                    _entity(CONF_FLOOR_RETURN_TEMP_ENTITY): _entity_of("sensor", "temperature"),
-                    _entity(CONF_LOWER_FLOOR_TEMP_ENTITY): _entity_of("sensor", "temperature"),
-                    _entity(CONF_HEAT_PUMP_SWITCH_ENTITY): _entity_of("switch"),
-                    # Measured electrical draw. Optional, and everything that
-                    # uses it degrades cleanly without it — but with it, COP
-                    # becomes observable, predicted cost gets a realised
-                    # counterpart, and the external-heat detector gets its
-                    # cleanest signal.
                     _entity(CONF_POWER_ENTITY): _entity_of("sensor", "power"),
                     _entity(CONF_ENERGY_ENTITY): _entity_of("sensor", "energy"),
-                    # Whole-house load. The capacity tariff is metered at the
-                    # connection point, not at the heat pump, so without this
-                    # the peak model only sees part of the picture.
                     _entity(CONF_HOUSE_POWER_ENTITY): _entity_of("sensor", "power"),
-                    # T7 #61: the compressor frequency number entity, and
-                    # which stage runs. Observe (the default) learns and
-                    # recommends but never writes; control is the explicit
-                    # per-install opt-in AFTER the user has validated the
-                    # entity against their real hardware.
                     _entity(CONF_COMPRESSOR_FREQ_ENTITY): _entity_of("number"),
-                    # The ACTUAL frequency, when the number above is a
-                    # setpoint register that merely echoes what was
-                    # written: feedback read from an echo can never
-                    # diverge, so without this the watchdog is decorative
-                    # and the map learns against a frozen setpoint.
                     _entity(CONF_COMPRESSOR_FREQ_SENSOR): _entity_of(
                         "sensor", "frequency"
                     ),
@@ -1857,10 +1931,33 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
                             CONF_FREQ_CONTROL_MODE, DEFAULT_FREQ_CONTROL_MODE
                         ),
                     ): _freq_mode_selector(),
-                    # v5.3.0: the pump's own account of itself. The domains
-                    # come from the topology slot table, so the picker here,
-                    # the card's picker and the assign_entity service cannot
-                    # offer three different answers about what fits a slot.
+                }
+            ),
+        )
+
+    async def async_step_entities_pump(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """What the heat pump reports about itself."""
+        if user_input is not None:
+            cleaned = dict(user_input)
+            for key in self._ENTITIES_PUMP_KEYS:
+                if not cleaned.get(key):
+                    cleaned[key] = None
+            return await self._save_or_menu(cleaned)
+
+        current = self._current
+
+        def _entity(key: str) -> Any:
+            existing = current.get(key)
+            if existing:
+                return vol.Optional(key, default=existing)
+            return vol.Optional(key)
+
+        return self.async_show_form(
+            step_id="entities_pump",
+            data_schema=_options_schema(
+                {
                     _entity(CONF_HEAT_PUMP_MODE_ENTITY): _entity_of(
                         list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_MODE_ENTITY])
                     ),
@@ -1996,17 +2093,6 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
                         warning["interval_days"],
                     )
                 cleaned = dict(user_input)
-                # This page's clearable entities (T3): an absent selector is
-                # written back as None so clearing genuinely clears. The
-                # presence rule ignores None-valued keys, so this can never
-                # phantom-enable hot water.
-                for key in (
-                    CONF_DHW_INLET_ENTITY,
-                    CONF_VVC_PUMP_ENTITY,
-                    CONF_SPACE_PUMP_ENTITY,
-                ):
-                    if not cleaned.get(key):
-                        cleaned[key] = None
                 return await self._save_or_menu(cleaned)
 
         current = self._current
@@ -2054,24 +2140,6 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
                         default=current.get(CONF_DHW_SETPOINT, DEFAULT_DHW_SETPOINT),
                     ): _number(40, 65, 1, "°C", slider=True),
                     vol.Optional(
-                        CONF_DHW_TANK_VOLUME,
-                        default=current.get(
-                            CONF_DHW_TANK_VOLUME, DEFAULT_DHW_TANK_VOLUME
-                        ),
-                    ): _number(50, 1500, 10, "L"),
-                    vol.Optional(
-                        CONF_DHW_DAILY_CONSUMPTION,
-                        default=current.get(
-                            CONF_DHW_DAILY_CONSUMPTION, DEFAULT_DHW_DAILY_CONSUMPTION
-                        ),
-                    ): _number(50, 1500, 10, "L/day"),
-                    vol.Optional(
-                        CONF_DHW_COOLING_RATE,
-                        default=current.get(
-                            CONF_DHW_COOLING_RATE, DEFAULT_DHW_COOLING_RATE
-                        ),
-                    ): _number(0.05, 3.0, 0.05, "°C/h"),
-                    vol.Optional(
                         CONF_DHW_LEGIONELLA_ENABLED,
                         default=current.get(
                             CONF_DHW_LEGIONELLA_ENABLED,
@@ -2091,7 +2159,52 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
                             DEFAULT_DHW_LEGIONELLA_INTERVAL_DAYS,
                         ),
                     ): _number(1, 30, 1, "days", slider=True),
-                    # --- v4.0.0 T3 -------------------------------------
+                }
+            ),
+        )
+
+    async def async_step_hot_water_tank(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Tank size, inlet water and advanced DHW learning."""
+        if user_input is not None:
+            cleaned = dict(user_input)
+            if not cleaned.get(CONF_DHW_INLET_ENTITY):
+                cleaned[CONF_DHW_INLET_ENTITY] = None
+            return await self._save_or_menu(cleaned)
+
+        current = self._current
+        if user_input is not None:
+            current = {**current, **user_input}
+
+        def _entity_default(key: str) -> Any:
+            existing = current.get(key)
+            if existing:
+                return vol.Optional(key, default=existing)
+            return vol.Optional(key)
+
+        return self.async_show_form(
+            step_id="hot_water_tank",
+            data_schema=_options_schema(
+                {
+                    vol.Optional(
+                        CONF_DHW_TANK_VOLUME,
+                        default=current.get(
+                            CONF_DHW_TANK_VOLUME, DEFAULT_DHW_TANK_VOLUME
+                        ),
+                    ): _number(50, 1500, 10, "L"),
+                    vol.Optional(
+                        CONF_DHW_DAILY_CONSUMPTION,
+                        default=current.get(
+                            CONF_DHW_DAILY_CONSUMPTION, DEFAULT_DHW_DAILY_CONSUMPTION
+                        ),
+                    ): _number(50, 1500, 10, "L/day"),
+                    vol.Optional(
+                        CONF_DHW_COOLING_RATE,
+                        default=current.get(
+                            CONF_DHW_COOLING_RATE, DEFAULT_DHW_COOLING_RATE
+                        ),
+                    ): _number(0.05, 3.0, 0.05, "°C/h"),
                     vol.Optional(
                         CONF_DHW_INLET_TEMP,
                         default=current.get(
@@ -2148,6 +2261,33 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
                             CONF_SHOWER_FLOW_LPM, DEFAULT_SHOWER_FLOW_LPM
                         ),
                     ): _number(4, 20, 0.5, "L/min"),
+                }
+            ),
+        )
+
+    async def async_step_hot_water_pumps(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Hot-water circulation pump scheduling."""
+        if user_input is not None:
+            cleaned = dict(user_input)
+            for key in (CONF_VVC_PUMP_ENTITY,):
+                if not cleaned.get(key):
+                    cleaned[key] = None
+            return await self._save_or_menu(cleaned)
+
+        current = self._current
+
+        def _entity_default(key: str) -> Any:
+            existing = current.get(key)
+            if existing:
+                return vol.Optional(key, default=existing)
+            return vol.Optional(key)
+
+        return self.async_show_form(
+            step_id="hot_water_pumps",
+            data_schema=_options_schema(
+                {
                     _entity_default(CONF_VVC_PUMP_ENTITY): _entity_of(
                         ["switch", "input_boolean"]
                     ),
@@ -2157,9 +2297,6 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
                             CONF_VVC_LEAD_MINUTES, DEFAULT_VVC_LEAD_MINUTES
                         ),
                     ): _number(0, 120, 5, "min", slider=True),
-                    _entity_default(CONF_SPACE_PUMP_ENTITY): _entity_of(
-                        ["switch", "input_boolean"]
-                    ),
                 }
             ),
         )
@@ -2204,6 +2341,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
                     CONF_VALVE_OUTLET_TEMP_ENTITY,
                     CONF_WOOD_TANK_TOP_ENTITY,
                     CONF_WOOD_TANK_BOTTOM_ENTITY,
+                    CONF_SPACE_PUMP_ENTITY,
                 ):
                     if not cleaned.get(key):
                         cleaned[key] = None
@@ -2309,6 +2447,9 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
                             DEFAULT_DHW_WOOD_COIL_ENABLED,
                         ),
                     ): bool,
+                    _entity(CONF_SPACE_PUMP_ENTITY): _entity_of(
+                        ["switch", "input_boolean"]
+                    ),
                 }
             ),
         )
@@ -2331,55 +2472,11 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         is a no-op — and fields without one render empty; an empty box is
         omitted from ``user_input`` and never saved.
         """
-        errors: dict[str, str] = {}
-        if user_input is not None:
-            # Judged against the *effective* pair: this page saves partial
-            # input over stored data, so a submitted floor can contradict a
-            # stored ceiling without both being on the form.
-            errors = _power_errors(user_input, self._current)
-            if not errors:
-                saved = dict(user_input)
-                stored = self._current
-                if any(
-                    key in saved and saved[key] != stored.get(key)
-                    for key in DERIVED_THERMAL_KEYS
-                ):
-                    # Editing a derived number here has to mean it. Left
-                    # armed, the questionnaire would overwrite this value the
-                    # next time that page was saved, and the user would be
-                    # back to a number they did not choose with no idea why.
-                    #
-                    # It has to be a *changed* value, not merely a present
-                    # one. ``user_input`` is what the browser posted, and the
-                    # browser posts every pre-filled field back — which is
-                    # the whole premise of this page's suggested values — so
-                    # presence alone is true on a no-op Submit, and testing
-                    # it disarmed the questionnaire for every user who had
-                    # ever opened this page and pressed the button.
-                    saved[CONF_BUILDING_PRESET_ENABLED] = False
-                return await self._save_or_menu(saved)
-
-        current = self._current
-        if user_input is not None:
-            current = {**current, **user_input}
-
-        def _numeric(key: str) -> Any:
-            """Optional key that suggests the stored value without defaulting it."""
-            if key in current:
-                return vol.Optional(
-                    key, description={"suggested_value": current[key]}
-                )
-            return vol.Optional(key)
-
-        # Home Assistant cannot grey a field out — a selector carries no
-        # read-only flag, and the schema the browser receives has nowhere to
-        # put one — so say in words what the form cannot show.
-        preset_warning = ""
-        if current.get(
-            CONF_BUILDING_PRESET_ENABLED, DEFAULT_BUILDING_PRESET_ENABLED
-        ):
-            lang = (self.hass.config.language or "en").split("-")[0]
-            preset_warning = PRESET_WARNING.get(lang, PRESET_WARNING["en"])
+        outcome = await self._try_thermal_model_save(user_input)
+        if not isinstance(outcome, tuple):
+            return outcome
+        errors, current = outcome
+        preset_warning = _building_preset_warning(self.hass, current)
 
         return self.async_show_form(
             step_id="thermal_model",
@@ -2387,27 +2484,47 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
             description_placeholders={"preset_warning": preset_warning},
             data_schema=_options_schema(
                 {
-                    _numeric(CONF_HOUSE_THERMAL_MASS): _number(
+                    _options_suggested_numeric(current, CONF_HOUSE_THERMAL_MASS): _number(
                         *RANGE_HOUSE_THERMAL_MASS, 0.5, "kWh/°C"
                     ),
-                    _numeric(CONF_HOUSE_HEAT_LOSS_COEFFICIENT): _number(
-                        *RANGE_HOUSE_HEAT_LOSS, 0.01, "kW/°C"
-                    ),
-                    _numeric(CONF_SLAB_THERMAL_MASS): _number(
+                    _options_suggested_numeric(
+                        current, CONF_HOUSE_HEAT_LOSS_COEFFICIENT
+                    ): _number(*RANGE_HOUSE_HEAT_LOSS, 0.01, "kW/°C"),
+                    _options_suggested_numeric(current, CONF_SLAB_THERMAL_MASS): _number(
                         *RANGE_SLAB_THERMAL_MASS, 0.5, "kWh/°C"
                     ),
-                    _numeric(CONF_SLAB_HEAT_TRANSFER): _number(
-                        *RANGE_SLAB_HEAT_TRANSFER, 0.1, "kW/°C"
-                    ),
-                    _numeric(CONF_HEAT_PUMP_COP_NOMINAL): _number(1.5, 6.0, 0.1),
-                    _numeric(CONF_HEAT_PUMP_MAX_POWER): _number(1, 20, 0.5, "kW"),
-                    _numeric(CONF_HEAT_PUMP_MIN_POWER): _number(0, 10, 0.5, "kW"),
-                    # The explicit two-zone switch. Presence of the zone keys
-                    # below can only ever turn the model on — the initial flow
-                    # writes them into entry.data, where this page cannot
-                    # erase them — so turning it *off* needs a real override.
-                    # Suggested, not defaulted, like every field here: an
-                    # untouched save must write nothing.
+                    _options_suggested_numeric(
+                        current, CONF_SLAB_HEAT_TRANSFER
+                    ): _number(*RANGE_SLAB_HEAT_TRANSFER, 0.1, "kW/°C"),
+                    _options_suggested_numeric(
+                        current, CONF_HEAT_PUMP_COP_NOMINAL
+                    ): _number(1.5, 6.0, 0.1),
+                    _options_suggested_numeric(
+                        current, CONF_HEAT_PUMP_MAX_POWER
+                    ): _number(1, 20, 0.5, "kW"),
+                    _options_suggested_numeric(
+                        current, CONF_HEAT_PUMP_MIN_POWER
+                    ): _number(0, 10, 0.5, "kW"),
+                }
+            ),
+        )
+
+    async def async_step_thermal_model_zones(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Two-zone split and solar orientation."""
+        outcome = await self._try_thermal_model_save(user_input)
+        if not isinstance(outcome, tuple):
+            return outcome
+        errors, current = outcome
+        preset_warning = _building_preset_warning(self.hass, current)
+
+        return self.async_show_form(
+            step_id="thermal_model_zones",
+            errors=errors,
+            description_placeholders={"preset_warning": preset_warning},
+            data_schema=_options_schema(
+                {
                     vol.Optional(
                         CONF_TWO_ZONE_MODE,
                         description={
@@ -2416,30 +2533,30 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
                             )
                         },
                     ): _select(list(TWO_ZONE_MODES), "two_zone_mode"),
-                    _numeric(CONF_UPPER_FLOOR_THERMAL_MASS): _number(
-                        *RANGE_ZONE_THERMAL_MASS, 0.5, "kWh/°C"
-                    ),
-                    _numeric(CONF_LOWER_FLOOR_THERMAL_MASS): _number(
-                        *RANGE_ZONE_THERMAL_MASS, 0.5, "kWh/°C"
-                    ),
-                    _numeric(CONF_UPPER_FLOOR_HEAT_LOSS): _number(
-                        *RANGE_ZONE_HEAT_LOSS, 0.01, "kW/°C"
-                    ),
-                    _numeric(CONF_LOWER_FLOOR_HEAT_LOSS): _number(
-                        *RANGE_ZONE_HEAT_LOSS, 0.01, "kW/°C"
-                    ),
-                    _numeric(CONF_INTER_ZONE_TRANSFER): _number(
-                        POSITIVE_PARAM_FLOOR, 3.0, 0.1, "kW/°C"
-                    ),
-                    _numeric(CONF_RADIATOR_POWER_FRACTION): _number(
-                        0.0, 1.0, 0.05, slider=True
-                    ),
-                    _numeric(CONF_UPPER_FLOOR_AREA_RATIO): _number(
-                        0.1, 0.9, 0.05, slider=True
-                    ),
-                    _numeric(CONF_SOLAR_ORIENTATION_FACTOR): _number(
-                        0.0, 1.0, 0.05, slider=True
-                    ),
+                    _options_suggested_numeric(
+                        current, CONF_UPPER_FLOOR_THERMAL_MASS
+                    ): _number(*RANGE_ZONE_THERMAL_MASS, 0.5, "kWh/°C"),
+                    _options_suggested_numeric(
+                        current, CONF_LOWER_FLOOR_THERMAL_MASS
+                    ): _number(*RANGE_ZONE_THERMAL_MASS, 0.5, "kWh/°C"),
+                    _options_suggested_numeric(
+                        current, CONF_UPPER_FLOOR_HEAT_LOSS
+                    ): _number(*RANGE_ZONE_HEAT_LOSS, 0.01, "kW/°C"),
+                    _options_suggested_numeric(
+                        current, CONF_LOWER_FLOOR_HEAT_LOSS
+                    ): _number(*RANGE_ZONE_HEAT_LOSS, 0.01, "kW/°C"),
+                    _options_suggested_numeric(
+                        current, CONF_INTER_ZONE_TRANSFER
+                    ): _number(POSITIVE_PARAM_FLOOR, 3.0, 0.1, "kW/°C"),
+                    _options_suggested_numeric(
+                        current, CONF_RADIATOR_POWER_FRACTION
+                    ): _number(0.0, 1.0, 0.05, slider=True),
+                    _options_suggested_numeric(
+                        current, CONF_UPPER_FLOOR_AREA_RATIO
+                    ): _number(0.1, 0.9, 0.05, slider=True),
+                    _options_suggested_numeric(
+                        current, CONF_SOLAR_ORIENTATION_FACTOR
+                    ): _number(0.0, 1.0, 0.05, slider=True),
                 }
             ),
         )
@@ -2673,19 +2790,9 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
     async def async_step_grid(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """What the DSO charges: capacity tariff, transfer fees, contracts."""
+        """Peak capacity tariff hours and pricing."""
         errors: dict[str, str] = {}
         if user_input is not None:
-            # Unreadable, negative or 100× too large, each by name (audit
-            # D4-05, #169): a sign-flip typo used to store as a permanent
-            # fee subsidy on exactly the hours the grid company charges
-            # most for, and the coordinator's magnitude notice only fires
-            # after the save it should have prevented.
-            fee_problem = grid_fee.spec_problem(
-                user_input.get(CONF_GRID_FEE_RULES, "")
-            )
-            if fee_problem is not None:
-                errors[CONF_GRID_FEE_RULES] = fee_problem
             if not _valid_months_spec(
                 user_input.get(CONF_PEAK_TARIFF_MONTHS, "")
             ):
@@ -2694,10 +2801,6 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
                 errors[CONF_PEAK_TARIFF_HOURS] = "invalid_peak_hours"
             if not errors:
                 cleaned = dict(user_input)
-                # The dropdown speaks strings; everything downstream treats
-                # the window as a number of minutes. Convert once, here, so
-                # the stored value has the type the rest of the integration
-                # expects.
                 window = cleaned.get(CONF_PEAK_TARIFF_WINDOW)
                 if window is not None:
                     try:
@@ -2706,30 +2809,12 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
                         cleaned[CONF_PEAK_TARIFF_WINDOW] = (
                             DEFAULT_PEAK_TARIFF_WINDOW
                         )
-                if not cleaned.get(CONF_GRID_FEE_ENTITY):
-                    cleaned[CONF_GRID_FEE_ENTITY] = None
                 return await self._save_or_menu(cleaned)
 
         current = self._current
         if user_input is not None:
             current = {**current, **user_input}
-            # A cleared entity selector is simply absent from the submission,
-            # so on the error re-render the merge above would resurrect the
-            # stored value — and fixing the unrelated error would then
-            # silently re-save the entity the user cleared.
-            if not user_input.get(CONF_GRID_FEE_ENTITY):
-                current.pop(CONF_GRID_FEE_ENTITY, None)
 
-        def _entity(key: str) -> Any:
-            existing = current.get(key)
-            if existing:
-                return vol.Optional(key, default=existing)
-            return vol.Optional(key)
-
-        # The money fields are priced in whatever the instance is priced in
-        # (audit D4-04, #168): the unit rides on the selector, and the
-        # descriptions and error texts take it as a placeholder, so no label
-        # has to spell a currency out.
         currency = resolve_currency(self.hass)
 
         return self.async_show_form(
@@ -2761,20 +2846,12 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
                     ): _number(1, 10, 1, slider=True),
                     vol.Optional(
                         CONF_PEAK_TARIFF_WINDOW,
-                        # The selector's options are strings, so the default
-                        # must be one too. An int default is returned verbatim
-                        # when the field is left untouched, and SelectSelector
-                        # rejects it with "expected str" — which made the
-                        # already-selected option the one that could not be
-                        # submitted.
                         default=str(
                             current.get(
                                 CONF_PEAK_TARIFF_WINDOW, DEFAULT_PEAK_TARIFF_WINDOW
                             )
                         ),
                     ): _select(["15", "60"], "peak_window"),
-                    # The #13 masks: which hours a peak actually bills in.
-                    # Empty means every hour at full rate — the flat model.
                     vol.Optional(
                         CONF_PEAK_TARIFF_MONTHS,
                         default=current.get(
@@ -2809,8 +2886,22 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
                             DEFAULT_PEAK_TARIFF_OFFPEAK_FACTOR,
                         ),
                     ): _number(0.0, 1.0, 0.05, slider=True),
-                    # The main fuse and its guards (T2). 0 A means
-                    # unconfigured: advisor, guard and headroom all dormant.
+                }
+            ),
+        )
+
+    async def async_step_grid_connection(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Main fuse and peak guards."""
+        if user_input is not None:
+            return await self._save_or_menu(user_input)
+
+        current = self._current
+        return self.async_show_form(
+            step_id="grid_connection",
+            data_schema=_options_schema(
+                {
                     vol.Optional(
                         CONF_MAIN_FUSE_A,
                         default=current.get(
@@ -2842,7 +2933,50 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
                             DEFAULT_PEAK_GUARD_MARGIN_KW,
                         ),
                     ): _number(0.0, 3.0, 0.1, "kW", slider=True),
-                    # The ToU fee layer (#1).
+                }
+            ),
+        )
+
+    async def async_step_grid_fees(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Transfer fees and contract shadow price."""
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            fee_problem = grid_fee.spec_problem(
+                user_input.get(CONF_GRID_FEE_RULES, "")
+            )
+            if fee_problem is not None:
+                errors[CONF_GRID_FEE_RULES] = fee_problem
+            if not errors:
+                cleaned = dict(user_input)
+                if not cleaned.get(CONF_GRID_FEE_ENTITY):
+                    cleaned[CONF_GRID_FEE_ENTITY] = None
+                return await self._save_or_menu(cleaned)
+
+        current = self._current
+        if user_input is not None:
+            current = {**current, **user_input}
+            if not user_input.get(CONF_GRID_FEE_ENTITY):
+                current.pop(CONF_GRID_FEE_ENTITY, None)
+
+        def _entity(key: str) -> Any:
+            existing = current.get(key)
+            if existing:
+                return vol.Optional(key, default=existing)
+            return vol.Optional(key)
+
+        currency = resolve_currency(self.hass)
+
+        return self.async_show_form(
+            step_id="grid_fees",
+            errors=errors,
+            description_placeholders={
+                "currency": currency,
+                "fee_bound": f"{grid_fee.IMPLAUSIBLE_FEE_SEK_PER_KWH:g}",
+            },
+            data_schema=_options_schema(
+                {
                     vol.Optional(
                         CONF_GRID_FEE_MODE,
                         default=current.get(
@@ -2867,7 +3001,6 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
                         )
                     ),
                     _entity(CONF_GRID_FEE_ENTITY): _entity_of("sensor"),
-                    # The contract shadow settlement's fixed column (#23).
                     vol.Optional(
                         CONF_CONTRACT_FIXED_PRICE,
                         default=current.get(
@@ -3052,8 +3185,22 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
                             CONF_PRICE_PRIOR_ENABLED, DEFAULT_PRICE_PRIOR_ENABLED
                         ),
                     ): bool,
-                    # Post-outage staggered recovery (#22, T2): a diagnostic
-                    # behaviour, so it lives with the other watchdogs.
+                }
+            ),
+        )
+
+    async def async_step_learning_features(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Plan-affecting learning toggles."""
+        if user_input is not None:
+            return await self._save_or_menu(user_input)
+
+        current = self._current
+        return self.async_show_form(
+            step_id="learning_features",
+            data_schema=_options_schema(
+                {
                     vol.Optional(
                         CONF_OUTAGE_RECOVERY_ENABLED,
                         default=current.get(
@@ -3061,9 +3208,6 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
                             DEFAULT_OUTAGE_RECOVERY_ENABLED,
                         ),
                     ): bool,
-                    # T4a: only the plan-affecting halves are gated — the
-                    # detectors themselves ship on, because a freeze only
-                    # stops learning and never moves a plan.
                     vol.Optional(
                         CONF_OPEN_WINDOW_RELAX_ENABLED,
                         default=current.get(
@@ -3078,11 +3222,6 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
                             DEFAULT_IMMERSION_FEEDBACK_ENABLED,
                         ),
                     ): bool,
-                    # T4b: every one of these moves real physics or real
-                    # heat, so learning AND application sit behind the
-                    # same flag — a half-armed learner that suddenly
-                    # applies weeks of unreviewed evidence is worse than
-                    # an off one.
                     vol.Optional(
                         CONF_PRECIP_TYPE_ENABLED,
                         default=current.get(
