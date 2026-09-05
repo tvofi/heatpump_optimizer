@@ -16,7 +16,7 @@ def _bootstrap() -> None:
     sys.path.insert(0, str(here.parent))
 
 
-def main() -> None:
+def run_worker() -> None:
     _bootstrap()
     stdin = sys.stdin.buffer
     stdout = sys.stdout.buffer
@@ -34,4 +34,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    run_worker()
