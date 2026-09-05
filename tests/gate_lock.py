@@ -259,6 +259,12 @@ class hold:
 
 
 def main(argv: list[str] | None = None) -> int:
+    argv = list(sys.argv[1:] if argv is None else argv)
+    cmd: list[str] = []
+    if "--" in argv:
+        split = argv.index("--")
+        cmd = argv[split + 1 :]
+        argv = argv[:split]
     parser = argparse.ArgumentParser(
         description="Gate lock: renewed lease + flock (#404).",
     )
@@ -269,7 +275,6 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--lock-dir", default=str(DEFAULT_LOCK_DIR))
     parser.add_argument("--lease-s", type=int, default=LEASE_SECONDS)
     parser.add_argument("--wait", action="store_true")
-    parser.add_argument("cmd", nargs=argparse.REMAINDER)
     args = parser.parse_args(argv)
     root = Path(args.lock_dir)
     if args.command == "status":
@@ -295,9 +300,6 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "release":
         release(args.label, lock_dir=root)
         return 0
-    cmd = list(args.cmd)
-    if cmd and cmd[0] == "--":
-        cmd = cmd[1:]
     if not cmd:
         print("gate lock: hold requires a command after --", file=sys.stderr)
         return 2

@@ -7342,6 +7342,36 @@ R.check(
     "killing the holder must not wait out the 30-minute lease",
 )
 
+
+def _gl_cli_take() -> bool:
+    with _tempfile.TemporaryDirectory() as td:
+        d = Path(td) / "lock"
+        rc = _subprocess.run(
+            [
+                sys.executable,
+                str(_closure.ROOT / "tests" / "gate_lock.py"),
+                "take",
+                "--label",
+                "cli",
+                "--lock-dir",
+                str(d),
+                "--lease-s",
+                "60",
+            ],
+            cwd=str(_closure.ROOT),
+            capture_output=True,
+            text=True,
+        )
+        st = _gate_lock.status(lock_dir=d)
+        return rc.returncode == 0 and st is not None and st.label == "cli"
+
+
+R.check(
+    "the CLI take keeps --label out of the command remainder",
+    _gl_cli_take(),
+    "argparse remainder must not swallow --label",
+)
+
 # --- when the closures CHECK itself runs (#354) -----------------------------
 #
 # `select` above decides which tests a change needs. `affected` decides
