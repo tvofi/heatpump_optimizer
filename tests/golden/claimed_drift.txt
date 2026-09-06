@@ -69,8 +69,11 @@
 # tests/README.md exclusion list and script counts): this branch claims
 # NOTHING. Prose in two documents only -- no production file, no fixture and
 # no solver input is touched, so every fixture is byte-identical by
-# construction. closure.py select reports MODE: SCOPED with an empty
-# scope.run for this diff.
+# construction. The two prose files are in no recorded closure, but this file
+# and card_claimed_drift.txt are in those of card.mjs, card_drift.mjs,
+# entities.py, env_drift.py and golden.py -- so closure.py select reports
+# MODE: SCOPED over those five plus plan_view.py, pulled in by PRODUCERS as
+# card.mjs's producer. Six scripts, stress.py not among them, no gate lease.
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
