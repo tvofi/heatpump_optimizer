@@ -102,9 +102,9 @@
       "fixture": false,
       "after": ["3L-G5"],
       "resume": {
-        "stage": "in_progress",
+        "stage": "blocked",
         "branch": "cursor/3l-g6-setup-conflict-btn-3c04",
-        "note": "Started after #483. Card-only. If conflict-flow spec is missing, STOP NEEDS_CONTEXT — do not invent a backend step."
+        "note": "NEEDS_CONTEXT at 6f02b8a: no conflict flow in production. #457 stays open. 3L-G7 sits after 3L-G5."
       },
       "brief": "Card setup-page button that opens the conflict flow. Card-only. If still blocked on the conflict-flow spec, 3L-G7 sits after 3L-G5 instead."
     },
@@ -119,7 +119,7 @@
       "resume": {
         "stage": "in_progress",
         "branch": "3l-g7-monthly-savings",
-        "note": "Implemented on 3l-g7-monthly-savings. Rebase after 3L-G5/G6. Do not merge ahead of those seats."
+        "note": "Implemented on 3l-g7-monthly-savings @ 222c3ce. Merge origin/main (6f02b8a) after G6 spec-block. Pay coordinator_loc ≤10374. claims-for 6.3.15."
       },
       "brief": "Monthly savings history card page (#460). Realised thermostat-baseline ledger; calendar pro-rata for the open month; third expanded-dialog tab. Rebase after 3L-G5/G6. Do not merge ahead of those seats. Closes #460 on its own line."
     },
