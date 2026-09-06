@@ -6002,7 +6002,7 @@ _hardcoded = sorted(
 ) + sorted(
     f"issues.{key}"
     for key, texts in strings["issues"].items()
-    if "SEK" in texts["description"]
+    if "SEK" in texts.get("description", "")
 )
 R.check(
     "no field label, description or repair notice hardcodes SEK",
@@ -7312,6 +7312,19 @@ R.check(
     "every tracked file is either measured or deliberately classified",
     not _orphans,
     "these force the FULL suite when touched: " + ", ".join(_orphans[:8]),
+)
+# HA loads repairs.py dynamically, so a witness must import it or it is an
+# orphan and forces MODE: FULL (#408).
+from heatpump_optimizer import repairs as _repairs_mod  # noqa: E402
+from heatpump_optimizer import setpoint_check as _setpoint_check_mod  # noqa: E402
+
+R.check(
+    "repairs.py is imported so the dynamically loaded platform is classified",
+    callable(getattr(_repairs_mod, "async_create_fix_flow", None)),
+)
+R.check(
+    "setpoint_check.evaluate is the consistency detector",
+    callable(getattr(_setpoint_check_mod, "evaluate", None)),
 )
 R.check(
     "a hand-run QA script does not drag the whole suite in",

@@ -21945,4 +21945,262 @@ R.check(
     _g3_diagnose(None, None) is None,
 )
 
+# ---------------------------------------------------------------------------
+R.section("3L-G5 — DHW set-point consistency (#408)")
+
+from heatpump_optimizer.const import (  # noqa: E402
+    CONF_DHW_SETPOINT_ENTITY as _SP_DHW_ENT,
+    CONF_SPACE_SETPOINT_ENTITY as _SP_SPACE_ENT,
+    MIXING_VALVE_WRITE_EPSILON as _SP_EPS,
+)
+from heatpump_optimizer.setpoint_check import (  # noqa: E402
+    ISSUE_DHW as _SP_ISSUE_DHW,
+    ISSUE_SPACE as _SP_ISSUE_SPACE,
+    evaluate as _sp_evaluate,
+)
+from heatpump_optimizer import repairs as _sp_repairs  # noqa: E402
+
+
+def _sp_coord(states, **extra):
+    coord = _t2_coord(states=states, **extra)
+    coord._thermal_params.dhw_legionella_enabled = True
+    coord._thermal_params.dhw_legionella_temp = 60.0
+    coord._thermal_params.dhw_min_temp = 45.0
+    coord.hass.issues = []
+    return coord
+
+
+def _sp_issues(coord, issue_id):
+    return [i for i in getattr(coord.hass, "issues", []) if i[1] == issue_id]
+
+
+_sp_below = _sp_coord(
+    {"number.dhw_sp": FakeState("50.0")},
+    **{_SP_DHW_ENT: "number.dhw_sp"},
+)
+_sp_evaluate(_sp_below)
+_sp_raised = _sp_issues(_sp_below, _SP_ISSUE_DHW)
+R.check(
+    "raised on a pump set-point below the configured disinfection temperature",
+    len(_sp_raised) == 1
+    and _sp_raised[0][2].get("translation_key") == _SP_ISSUE_DHW
+    and _sp_raised[0][2].get("is_fixable") is True
+    and _sp_raised[0][2].get("severity") == "warning"
+    and _sp_raised[0][2].get("translation_placeholders", {}).get("pump") == "50.0"
+    and _sp_raised[0][2].get("translation_placeholders", {}).get("target") == "60"
+    and _sp_raised[0][2].get("data", {}).get("entity_id") == "number.dhw_sp"
+    and _sp_raised[0][2].get("data", {}).get("target") == 60.0,
+    f"got {_sp_raised!r}",
+)
+_sp_evaluate(_sp_below)
+R.check(
+    "a second evaluate leaves exactly one issue (idempotent)",
+    len(_sp_issues(_sp_below, _SP_ISSUE_DHW)) == 1,
+    f"got {_sp_issues(_sp_below, _SP_ISSUE_DHW)!r}",
+)
+
+_sp_ok = _sp_coord(
+    {"number.dhw_sp": FakeState("60.0")},
+    **{_SP_DHW_ENT: "number.dhw_sp"},
+)
+_sp_evaluate(_sp_ok)
+R.check(
+    "not raised when the pump set-point meets disinfection",
+    not _sp_issues(_sp_ok, _SP_ISSUE_DHW),
+)
+
+_sp_band = _sp_coord(
+    {"number.dhw_sp": FakeState(f"{60.0 - _SP_EPS}")},
+    **{_SP_DHW_ENT: "number.dhw_sp"},
+)
+_sp_evaluate(_sp_band)
+R.check(
+    "not raised inside the 0.25 K deadband",
+    not _sp_issues(_sp_band, _SP_ISSUE_DHW),
+    f"epsilon={_SP_EPS} pump={60.0 - _SP_EPS}",
+)
+
+_sp_beyond = _sp_coord(
+    {"number.dhw_sp": FakeState(f"{60.0 - _SP_EPS - 0.05}")},
+    **{_SP_DHW_ENT: "number.dhw_sp"},
+)
+_sp_evaluate(_sp_beyond)
+R.check(
+    "raised when the shortfall exceeds the deadband",
+    len(_sp_issues(_sp_beyond, _SP_ISSUE_DHW)) == 1,
+)
+
+_sp_none = _sp_coord({"number.dhw_sp": FakeState("50.0")})
+_sp_evaluate(_sp_none)
+R.check(
+    "not raised with no entity configured",
+    not _sp_issues(_sp_none, _SP_ISSUE_DHW),
+)
+
+_sp_climate = _sp_coord(
+    {"climate.dhw": FakeState("heat", attributes={"temperature": 50.0})},
+    **{_SP_DHW_ENT: "climate.dhw"},
+)
+_sp_evaluate(_sp_climate)
+R.check(
+    "a climate entity's target temperature is the pump set-point",
+    len(_sp_issues(_sp_climate, _SP_ISSUE_DHW)) == 1,
+    f"got {_sp_issues(_sp_climate, _SP_ISSUE_DHW)!r}",
+)
+
+_sp_min_only = _sp_coord(
+    {"number.dhw_sp": FakeState("40.0")},
+    **{_SP_DHW_ENT: "number.dhw_sp"},
+)
+_sp_min_only._thermal_params.dhw_legionella_enabled = False
+_sp_evaluate(_sp_min_only)
+_sp_min_raised = _sp_issues(_sp_min_only, _SP_ISSUE_DHW)
+R.check(
+    "raised when the pump sits below the DHW minimum with legionella off",
+    len(_sp_min_raised) == 1
+    and _sp_min_raised[0][2].get("translation_placeholders", {}).get("target")
+    == "45"
+    and _sp_min_raised[0][2].get("data", {}).get("target") == 45.0,
+    f"got {_sp_min_raised!r}",
+)
+
+_sp_clear = _sp_coord(
+    {"number.dhw_sp": FakeState("50.0")},
+    **{_SP_DHW_ENT: "number.dhw_sp"},
+)
+_sp_evaluate(_sp_clear)
+_sp_clear.hass.states.set("number.dhw_sp", FakeState("60.0"))
+_sp_evaluate(_sp_clear)
+R.check(
+    "cleared when the pump set-point is raised to the configured floor",
+    not _sp_issues(_sp_clear, _SP_ISSUE_DHW),
+)
+
+_sp_unread = _sp_coord(
+    {"number.space_sp": FakeState("unavailable")},
+    **{_SP_SPACE_ENT: "number.space_sp"},
+)
+_sp_evaluate(_sp_unread)
+_sp_space = _sp_issues(_sp_unread, _SP_ISSUE_SPACE)
+R.check(
+    "space_setpoint_unreadable is raised when the entity cannot be read",
+    len(_sp_space) == 1
+    and _sp_space[0][2].get("is_fixable") is False
+    and _sp_space[0][2].get("translation_key") == _SP_ISSUE_SPACE,
+    f"got {_sp_space!r}",
+)
+_sp_space_ok = _sp_coord(
+    {"number.space_sp": FakeState("21.0")},
+    **{_SP_SPACE_ENT: "number.space_sp"},
+)
+_sp_evaluate(_sp_space_ok)
+R.check(
+    "space set-point is never recommended, only reported unreadable",
+    not _sp_issues(_sp_space_ok, _SP_ISSUE_SPACE)
+    and not [
+        i
+        for i in getattr(_sp_space_ok.hass, "issues", [])
+        if "space" in i[1] and i[1] != _SP_ISSUE_SPACE
+    ],
+)
+
+import heatpump_optimizer.setpoint_check as _sp_mod  # noqa: E402
+
+_sp_src = inspect.getsource(_sp_mod)
+R.check(
+    "the deadband reuses MIXING_VALVE_WRITE_EPSILON",
+    "MIXING_VALVE_WRITE_EPSILON" in _sp_src,
+)
+R.check(
+    "the detector is called from the core update path",
+    "setpoint_check.evaluate" in inspect.getsource(_Coord._update_current_state),
+)
+
+_sp_fix = _sp_coord(
+    {"number.dhw_sp": FakeState("50.0")},
+    **{_SP_DHW_ENT: "number.dhw_sp"},
+)
+_sp_evaluate(_sp_fix)
+_sp_flow = _sp_repairs.DhwSetpointRepairFlow()
+_sp_flow.hass = _sp_fix.hass
+_sp_flow.issue_id = _SP_ISSUE_DHW
+_sp_flow.data = {"entity_id": "number.dhw_sp", "target": 60.0}
+_sp_shown = _asyncio.run(_sp_flow.async_step_confirm(None))
+R.check(
+    "the DHW repair confirm step shows a form before writing",
+    _sp_shown.get("type") == "form" and _sp_shown.get("step_id") == "confirm",
+    f"got {_sp_shown!r}",
+)
+_sp_done = _asyncio.run(_sp_flow.async_step_confirm({}))
+R.check(
+    "Fix writes the configured disinfection temperature to the number entity",
+    _sp_done.get("type") == "create_entry"
+    and _sp_fix.hass.services.calls
+    == [
+        (
+            "number",
+            "set_value",
+            {"entity_id": "number.dhw_sp", "value": 60.0},
+        )
+    ],
+    f"result={_sp_done!r} calls={_sp_fix.hass.services.calls!r}",
+)
+R.check(
+    "Fix deletes the issue after the write",
+    not _sp_issues(_sp_fix, _SP_ISSUE_DHW),
+)
+
+_sp_cf = _asyncio.run(
+    _sp_repairs.async_create_fix_flow(
+        _sp_fix.hass, _SP_ISSUE_DHW, {"entity_id": "number.dhw_sp", "target": 60.0}
+    )
+)
+R.check(
+    "async_create_fix_flow returns the DHW consistency flow",
+    isinstance(_sp_cf, _sp_repairs.DhwSetpointRepairFlow),
+)
+
+_sp_clim_fix = _sp_coord(
+    {"climate.dhw": FakeState("heat", attributes={"temperature": 50.0})},
+    **{_SP_DHW_ENT: "climate.dhw"},
+)
+_sp_clim_flow = _sp_repairs.DhwSetpointRepairFlow()
+_sp_clim_flow.hass = _sp_clim_fix.hass
+_sp_clim_flow.data = {"entity_id": "climate.dhw", "target": 60.0}
+_asyncio.run(_sp_clim_flow.async_step_confirm({}))
+R.check(
+    "Fix commands a climate entity through set_temperature",
+    _sp_clim_fix.hass.services.calls
+    == [
+        (
+            "climate",
+            "set_temperature",
+            {"entity_id": "climate.dhw", "temperature": 60.0},
+        )
+    ],
+    f"got {_sp_clim_fix.hass.services.calls!r}",
+)
+
+for _lang_file in ("strings.json", "translations/en.json", "translations/sv.json"):
+    _sp_doc = _json.loads((_PKG_DIR / _lang_file).read_text(encoding="utf-8"))
+    R.check(
+        f"the DHW consistency notice is translated in {_lang_file}",
+        _SP_ISSUE_DHW in _sp_doc.get("issues", {})
+        and "description" not in _sp_doc["issues"][_SP_ISSUE_DHW]
+        and "flow_title" in _sp_doc["issues"][_SP_ISSUE_DHW]["fix_flow"]
+        and "{target}"
+        in _sp_doc["issues"][_SP_ISSUE_DHW]["fix_flow"]["step"]["confirm"][
+            "description"
+        ]
+        and "{entity}"
+        in _sp_doc["issues"][_SP_ISSUE_DHW]["fix_flow"]["step"]["confirm"][
+            "description"
+        ],
+    )
+    R.check(
+        f"the space unreadable notice is translated in {_lang_file}",
+        _SP_ISSUE_SPACE in _sp_doc.get("issues", {})
+        and "{entity}" in _sp_doc["issues"][_SP_ISSUE_SPACE]["description"],
+    )
+
 sys.exit(R.close("FEATURE CHECKS"))

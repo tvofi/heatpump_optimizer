@@ -1281,6 +1281,41 @@ async def options_walk():
         and any("legionella" in w for w in warnings),
         f"{result.get('type')}/{result.get('step_id')} warned={warnings[:1]}",
     )
+
+    # Optional DHW set-point entity (#408). Unset by default; clearing
+    # writes None. Own flows so the page walk below keeps its `flow`.
+    _hw_flow, _hw_entry, _ = fresh_options()
+    await _hw_flow.async_step_hot_water(None)
+    result = await submit(
+        _hw_flow,
+        "hot_water",
+        {
+            **HOT_WATER_PAGE_ANSWERS,
+            const.CONF_DHW_SETPOINT_ENTITY: "number.dhw_sp",
+        },
+    )
+    check(
+        "opt_hot_water",
+        "happy",
+        "the DHW set-point entity round-trips on the hot_water page",
+        shows_menu(result, "init")
+        and _hw_entry.options.get(const.CONF_DHW_SETPOINT_ENTITY) == "number.dhw_sp",
+        f"got {_hw_entry.options.get(const.CONF_DHW_SETPOINT_ENTITY)!r}",
+    )
+    _hw_flow, _hw_entry, _ = fresh_options(
+        pre_options={const.CONF_DHW_SETPOINT_ENTITY: "number.dhw_sp"}
+    )
+    await _hw_flow.async_step_hot_water(None)
+    result = await submit(_hw_flow, "hot_water", dict(HOT_WATER_PAGE_ANSWERS))
+    check(
+        "opt_hot_water",
+        "happy",
+        "clearing the DHW set-point entity writes None",
+        shows_menu(result, "init")
+        and _hw_entry.options.get(const.CONF_DHW_SETPOINT_ENTITY) is None,
+        f"got {_hw_entry.options.get(const.CONF_DHW_SETPOINT_ENTITY)!r}",
+    )
+
     await flow.async_step_hot_water_tank(None)
     await submit(flow, "hot_water_tank", HOT_WATER_TANK_ANSWERS)
     await flow.async_step_hot_water_pumps(None)
@@ -1487,6 +1522,54 @@ async def options_advanced_pages():
                 )
             }
         ),
+    )
+
+    # Optional space set-point entity + unit (#408). Unset by default;
+    # clearing writes None; the unit is a declaration, never a recommendation.
+    flow, entry, _ = fresh_options()
+    await flow.async_step_entities(None)
+    result = await submit(
+        flow,
+        "entities",
+        {
+            const.CONF_TIBBER_TOKEN: BASE_ENTRY_DATA[const.CONF_TIBBER_TOKEN],
+            const.CONF_WEATHER_ENTITY: "weather.home",
+            const.CONF_SPACE_SETPOINT_ENTITY: "number.space_sp",
+            const.CONF_SPACE_SETPOINT_UNIT: "flow",
+        },
+    )
+    check(
+        "opt_entities",
+        "happy",
+        "the space set-point entity and unit round-trip on the entities page",
+        shows_menu(result, "advanced")
+        and entry.options.get(const.CONF_SPACE_SETPOINT_ENTITY) == "number.space_sp"
+        and entry.options.get(const.CONF_SPACE_SETPOINT_UNIT) == "flow",
+        f"entity={entry.options.get(const.CONF_SPACE_SETPOINT_ENTITY)!r} "
+        f"unit={entry.options.get(const.CONF_SPACE_SETPOINT_UNIT)!r}",
+    )
+    flow, entry, _ = fresh_options(
+        pre_options={
+            const.CONF_SPACE_SETPOINT_ENTITY: "number.space_sp",
+            const.CONF_SPACE_SETPOINT_UNIT: "flow",
+        }
+    )
+    await flow.async_step_entities(None)
+    result = await submit(
+        flow,
+        "entities",
+        {
+            const.CONF_TIBBER_TOKEN: BASE_ENTRY_DATA[const.CONF_TIBBER_TOKEN],
+            const.CONF_WEATHER_ENTITY: "weather.home",
+        },
+    )
+    check(
+        "opt_entities",
+        "happy",
+        "clearing the space set-point entity writes None",
+        shows_menu(result, "advanced")
+        and entry.options.get(const.CONF_SPACE_SETPOINT_ENTITY) is None,
+        f"got {entry.options.get(const.CONF_SPACE_SETPOINT_ENTITY)!r}",
     )
 
     # A changed token that validates saves through.

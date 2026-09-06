@@ -1324,6 +1324,24 @@
    "required": "Optional",
    "selector": "EntitySelector"
   },
+  "space_setpoint_entity": {
+   "config": {
+    "filter": "[{'domain': ['number', 'input_number', 'climate']}]"
+   },
+   "default": null,
+   "required": "Optional",
+   "selector": "EntitySelector"
+  },
+  "space_setpoint_unit": {
+   "config": {
+    "mode": "'dropdown'",
+    "options": "['indoor', 'flow']",
+    "translation_key": "'space_setpoint_unit'"
+   },
+   "default": "'indoor'",
+   "required": "Optional",
+   "selector": "SelectSelector"
+  },
   "tibber_token": {
    "config": {
     "type": "'password'"
@@ -1843,6 +1861,14 @@
    "default": "55.0",
    "required": "Optional",
    "selector": "NumberSelector"
+  },
+  "dhw_setpoint_entity": {
+   "config": {
+    "filter": "[{'domain': ['number', 'input_number', 'climate']}]"
+   },
+   "default": null,
+   "required": "Optional",
+   "selector": "EntitySelector"
   },
   "dhw_windows": {
    "config": {

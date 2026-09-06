@@ -49,7 +49,9 @@
 #
 # v6.3.15: Wave 3 solver, DHW planner, GIL process route. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
-#
+
+config_flow # #408: adds entities.space_setpoint_entity, entities.space_setpoint_unit, and hot_water.dhw_setpoint_entity (optional, unset by default); recorded via `golden.py --record --only config_flow`, not a value re-record -- genuinely new key paths, per CLAUDE.md rule 3.
+
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
