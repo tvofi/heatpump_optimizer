@@ -1,12 +1,12 @@
 {
   "_comment": [
     "Wave 3L of the open-issues programme (docs/plan-2026-09-open-issues.md).",
-    "Leftovers after Wave 3, before Wave 4. Serial. 3L-G2 done (2abe2f7).",
+    "Leftovers after Wave 3, before Wave 4. Serial. 3L-G3 done (e8adfe4).",
     "#412 stays last of the programme, not in this burst.",
     "Consumed by .claude/workflows/web-fix-wave.js as its `groups` argument."
   ],
-  "fork": "2abe2f7a2a0d9544868852b566f1f8d545dfa554",
-  "fork_note": "origin/main after 3L-G2 #472 (`2abe2f7`). Re-measure structure at this merge-base. claims-for stays 6.3.15.",
+  "fork": "e8adfe44d768047b8d2cbcea16be7301a694510a",
+  "fork_note": "origin/main after 3L-G3 #474 (`e8adfe4`). Re-measure structure at this merge-base. claims-for stays 6.3.15.",
   "session": "claude-web",
   "repo": "/Users/timmalmstrom/heatpump_optimizer",
   "serial": true,
@@ -53,6 +53,12 @@
       "effort": "medium",
       "fixture": false,
       "after": ["3L-G2"],
+      "resume": {
+        "stage": "done",
+        "merged_pr": 474,
+        "merge_sha": "e8adfe44d768047b8d2cbcea16be7301a694510a",
+        "note": "Review merge 5555631655 at fb7a950. Lease 1800s + flock; accept 9/9; mutation flock-held FAIL; entities closure 96→97. claims-for 6.3.15. #404 closed. Next seat 3L-G4."
+      },
       "brief": "Gate lock becomes a renewed lease + flock. Lives in tests/, needs the derive #401 unlocks."
     },
     {
