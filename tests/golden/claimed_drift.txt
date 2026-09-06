@@ -50,10 +50,11 @@
 # v6.3.16: the solve worker could not unpickle its job. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
-# #518, the handover consolidation: this branch claims NOTHING. Docs, the
-# gate's own classification of them, and tests/entities.py only -- no
-# production file is touched, so every fixture is byte-identical by
-# construction.
+# #509, the diagnostics privacy fix: this branch claims NOTHING. It touches
+# custom_components/heatpump_optimizer/diagnostics.py, which Home Assistant
+# loads by name for `Download diagnostics` and which no other production
+# module imports -- no solver, coordinator or fetch path reaches it, so every
+# scenario fixture is byte-identical by construction.
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum

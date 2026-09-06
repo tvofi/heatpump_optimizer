@@ -24,6 +24,6 @@
 # v6.3.16: the solve worker could not unpickle its job. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
-# #518, the handover consolidation: this branch claims NOTHING. Docs, the
-# gate's own classification of them, and tests/entities.py only -- no card
-# source is touched.
+# #509, the diagnostics privacy fix: this branch claims NOTHING. No card
+# source is touched; diagnostics.py is loaded by Home Assistant for
+# `Download diagnostics` and is not on any path that renders the card.
