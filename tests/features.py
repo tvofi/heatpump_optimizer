@@ -23271,4 +23271,80 @@ R.check(
     "wood_slots" not in inspect.getsource(Coord.async_run_optimization),
 )
 
+
+# ---------------------------------------------------------------------------
+R.section("#193 S5 — effective house heat loss over plain values")
+
+# The helper takes the params and the learned scale, never ``self``: a
+# module-level helper handed the coordinator would keep every reference it
+# moved, because tests/structure.py walks only class methods, so the cut would
+# fall while the coupling stood.
+try:
+    from heatpump_optimizer.coordinator import (  # noqa: E402
+        _effective_house_heat_loss as _s5_effective,
+    )
+except ImportError:  # pragma: no cover - the pre-S5 tree
+    _s5_effective = None
+R.check(
+    "_effective_house_heat_loss is importable from the coordinator module (#193 S5)",
+    _s5_effective is not None,
+    "not present at module level",
+)
+
+_s5_coord = _coord284
+_s5_published = _s5_coord._learning_view()["house_heat_loss_effective"]
+R.check(
+    "the published effective house heat loss is what the helper computes from "
+    "the params and scale the coordinator holds (#193 S5)",
+    _s5_effective is not None
+    and _s5_published
+    == _s5_effective(
+        _s5_coord._thermal_params, _s5_coord._house_heat_loss_scale
+    ),
+    f"published={_s5_published!r}",
+)
+
+# Null control. Both sides of the equality above are read from production, so
+# it would also hold if the view stopped reading the scale at all and both
+# sides went to the same constant. Move the scale and the published number
+# must move with it.
+_s5_scale0 = _s5_coord._house_heat_loss_scale
+_s5_coord._house_heat_loss_scale = _s5_scale0 * 1.5
+_s5_moved = _s5_coord._learning_view()["house_heat_loss_effective"]
+_s5_coord._house_heat_loss_scale = _s5_scale0
+R.check(
+    "and that number tracks the learned scale, so the equality above is not "
+    "vacuous (#193 S5)",
+    _s5_moved != _s5_published and _s5_moved > 0,
+    f"scale {_s5_scale0} -> {_s5_scale0 * 1.5} moved {_s5_published!r} -> {_s5_moved!r}",
+)
+
+# The split must not have dropped an assignment. The names are read off
+# ``_init_thermal_learning`` itself rather than listed here, so an attribute
+# added to it later is covered without touching this test.
+import ast as _ast_s5  # noqa: E402
+import inspect as _inspect_s5  # noqa: E402
+import textwrap as _textwrap_s5  # noqa: E402
+
+_s5_init = getattr(Coord, "_init_thermal_learning", None)
+if _s5_init is None:
+    _s5_names: set = set()
+else:
+    _s5_names = {
+        _n.attr
+        for _n in _ast_s5.walk(
+            _ast_s5.parse(
+                _textwrap_s5.dedent(_inspect_s5.getsource(_s5_init))
+            )
+        )
+        if isinstance(_n, _ast_s5.Attribute) and isinstance(_n.ctx, _ast_s5.Store)
+    }
+_s5_absent = sorted(_a for _a in _s5_names if not hasattr(_s5_coord, _a))
+R.check(
+    "every attribute _init_thermal_learning assigns is present on a constructed "
+    "coordinator, so the split dropped none of them (#193 S5)",
+    len(_s5_names) > 1 and not _s5_absent,
+    f"assigned={len(_s5_names)} missing={_s5_absent}",
+)
+
 sys.exit(R.close("FEATURE CHECKS"))

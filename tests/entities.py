@@ -1136,6 +1136,79 @@ R.check(
     f"module={'_solve_anchor' in _s2_mod_fns} class={'_solve_anchor' in _s2_cls_fns}",
 )
 
+# S5 of #193: the self-learned house and buffer state is initialised OUTSIDE
+# the dhw seam. structure.py buckets a coordinator method by its NAME, so
+# while `_init_dhw_learning` assigned these, dhw *owned* them and every
+# learner read of them was priced against hot water -- 88 of cut_dhw for
+# state no dhw method ever reads. Merging the block back would give that
+# back with nothing else failing, which is what these checks exist to stop.
+# The seam list is imported from the metric rather than restated here, so a
+# change to SEAM_REGEXES moves this test with it.
+R.section("S5 thermal-learning state outside the dhw seam (#193)")
+import structure as _s5_structure
+
+
+def _s5_seam(_name: str) -> str:
+    for _label, _rx in _s5_structure.SEAM_REGEXES:
+        if _rx.search(_name):
+            return _label
+    return "core"
+
+
+# The names come from the initialiser itself, not from a list kept here: a
+# hand-kept list would silently stop covering an attribute added later.
+_s5_init = next(
+    (
+        _n
+        for _n in _s1_cls.body
+        if isinstance(_n, (_ast_s1.FunctionDef, _ast_s1.AsyncFunctionDef))
+        and _n.name == "_init_thermal_learning"
+    ),
+    None,
+)
+_s5_state = {
+    _n.attr
+    for _n in _ast_s1.walk(_s5_init)
+    if isinstance(_n, _ast_s1.Attribute) and isinstance(_n.ctx, _ast_s1.Store)
+} if _s5_init is not None else set()
+
+R.check(
+    "_init_thermal_learning exists, in the learning seam, and initialises state",
+    _s5_init is not None
+    and _s5_seam("_init_thermal_learning") == "learning"
+    and len(_s5_state) > 1,
+    f"present={_s5_init is not None} "
+    f"seam={_s5_seam('_init_thermal_learning')} attrs={len(_s5_state)}",
+)
+
+# Every method that stores one of those names, and the seam it is bucketed
+# into. Anything in dhw here is the regression this section guards.
+_s5_dhw_writers: dict[str, list[str]] = {}
+for _fn in _s1_cls.body:
+    if not isinstance(_fn, (_ast_s1.FunctionDef, _ast_s1.AsyncFunctionDef)):
+        continue
+    if _s5_seam(_fn.name) != "dhw":
+        continue
+    for _n in _ast_s1.walk(_fn):
+        if (
+            isinstance(_n, _ast_s1.Attribute)
+            and isinstance(_n.ctx, _ast_s1.Store)
+            and _n.attr in _s5_state
+        ):
+            _s5_dhw_writers.setdefault(_n.attr, []).append(_fn.name)
+R.check(
+    "no dhw-seam method assigns house or buffer learning state (#193 S5)",
+    _s5_state and not _s5_dhw_writers,
+    f"dhw-seam assignments: { {k: sorted(set(v)) for k, v in _s5_dhw_writers.items()} }",
+)
+R.check(
+    "_effective_house_heat_loss is a module-level FunctionDef, not a class method",
+    "_effective_house_heat_loss" in _s2_mod_fns
+    and "_effective_house_heat_loss" not in _s2_cls_fns,
+    f"module={'_effective_house_heat_loss' in _s2_mod_fns} "
+    f"class={'_effective_house_heat_loss' in _s2_cls_fns}",
+)
+
 # The premise, stated in production's own terms: with nothing sensing the
 # tank, the buffer or the lower floor, what gets published IS the dataclass
 # default. No magic numbers here -- they are read off `ThermalState()`.
