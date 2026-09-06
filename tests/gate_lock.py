@@ -152,6 +152,11 @@ def take(
             fresh.write(lock_dir / OWNER_NAME)
             return fresh
         if owner.label == label:
+            (lock_dir / HOLDING_NAME).unlink(missing_ok=True)
+            if owner.expired:
+                fresh = _new_owner(label, lease_seconds)
+                fresh.write(lock_dir / OWNER_NAME)
+                return fresh
             return renew(label, lock_dir=lock_dir, lease_seconds=lease_seconds)
         if owner.expired or _abandoned_hold(lock_dir):
             _clear_lock(lock_dir)
@@ -178,6 +183,7 @@ def renew(
         expires_at=datetime.now(UTC) + timedelta(seconds=lease_seconds),
     )
     refreshed.write(lock_dir / OWNER_NAME)
+    (lock_dir / HOLDING_NAME).unlink(missing_ok=True)
     return refreshed
 
 
