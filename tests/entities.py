@@ -9529,8 +9529,31 @@ _diag = asyncio.run(
     _diag_mod.async_get_config_entry_diagnostics(_diag_hass, _diag_entry)
 )
 _blob = _json.dumps(_diag, default=str)
-_diag_location = (_diag.get("config") or {}).get(const.CONF_SOLAR_LOCATION) or {}
 _HA_REDACTED = "**REDACTED**"
+
+
+def _diag_at(node, *path):
+    """Walk ``path`` through dicts and lists, returning None at any mismatch.
+
+    Over-redaction replaces a dict with a string, so a check written as
+    ``payload["config"]["solar_location"].get(...)`` raises instead of
+    failing -- which aborts the section before the over-redaction control
+    below can run. This keeps every outcome a named check.
+    """
+    for step in path:
+        if isinstance(step, int):
+            if not isinstance(node, list) or len(node) <= step:
+                return None
+            node = node[step]
+        elif isinstance(node, dict):
+            node = node.get(step)
+        else:
+            return None
+    return node
+
+
+_diag_location = _diag_at(_diag, "config", const.CONF_SOLAR_LOCATION)
+_diag_location = _diag_location if isinstance(_diag_location, dict) else {}
 
 R.check(
     "the Tibber token never leaves the instance",
@@ -9568,16 +9591,13 @@ R.check(
 )
 R.check(
     "the coarsening reaches a coordinate nested below the top level",
-    (
-        ((_diag.get("config") or {}).get("_deep") or {})
-        .get("sites", [{}])[0]
-        .get("station", {})
-        .get("latitude")
-    )
+    _diag_at(_diag, "config", "_deep", "sites", 0, "station", "latitude")
     == round(_DIAG_LAT, 1),
-    "a coordinate two levels down, inside a list, was not coarsened",
+    "a coordinate two levels down, inside a list, came back as "
+    f"{_diag_at(_diag, 'config', '_deep', 'sites', 0, 'station', 'latitude')!r}",
 )
-_diag_typed = ((_diag.get("config") or {}).get("_deep") or {}).get("typed") or {}
+_diag_typed = _diag_at(_diag, "config", "_deep", "typed")
+_diag_typed = _diag_typed if isinstance(_diag_typed, dict) else {}
 R.check(
     "a coordinate that is not a number is redacted rather than published",
     _diag_typed.get("latitude") == _HA_REDACTED
@@ -9600,11 +9620,12 @@ R.check(
 # useless, so the two things a bug report is actually read for are pinned.
 R.check(
     "the entity ids and the MQTT topic survive redaction",
-    _diag["config"].get("weather_entity") == _CRED_DATA["weather_entity"]
-    and _diag["config"].get("indoor_temp_entity")
+    _diag_at(_diag, "config", "weather_entity") == _CRED_DATA["weather_entity"]
+    and _diag_at(_diag, "config", "indoor_temp_entity")
     == _CRED_DATA["indoor_temp_entity"]
-    and _diag["config"].get(const.CONF_ECL110_STATE_TOPIC) == _DIAG_TOPIC,
-    "redaction removed what a diagnostics file is read for",
+    and _diag_at(_diag, "config", const.CONF_ECL110_STATE_TOPIC) == _DIAG_TOPIC,
+    "redaction removed what a diagnostics file is read for: weather_entity is "
+    f"{_diag_at(_diag, 'config', 'weather_entity')!r}",
 )
 R.check(
     "the payload is plain JSON and names the coordinator's state",
