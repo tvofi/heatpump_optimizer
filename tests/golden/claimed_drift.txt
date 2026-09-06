@@ -59,6 +59,11 @@
 # loads by name for `Download diagnostics` and which no other production
 # module imports -- no solver, coordinator or fetch path reaches it, so every
 # scenario fixture is byte-identical by construction.
+#
+# #523 (an autofix job that reported success without repairing): this
+# branch claims NOTHING. tests/closure.py, tests/env_drift.py and the CI
+# workflow only -- gate plumbing, no solver or fixture input changes, so
+# every scenario is byte-identical by construction.
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum

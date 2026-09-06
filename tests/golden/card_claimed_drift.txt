@@ -33,3 +33,7 @@
 # #509, the diagnostics privacy fix: this branch claims NOTHING. No card
 # source is touched; diagnostics.py is loaded by Home Assistant for
 # `Download diagnostics` and is not on any path that renders the card.
+#
+# #523 (an autofix job that reported success without repairing): this
+# branch claims NOTHING. Gate plumbing and CI only -- no card source is
+# touched.
