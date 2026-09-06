@@ -256,10 +256,19 @@ If that same-repo PR's `closures` job fails with `UNDER-SCOPED`,
 `closures-autofix` merges the recordings the failed job already took into
 `tests/closures.json` and pushes `ci: re-record closures`. It does not
 re-run the derive, and it does not push on no-copies, a failed recording,
-an INERT contradiction, or its own follow-up commit. The default
-`GITHUB_TOKEN` can push that commit but GitHub will not re-trigger Tests;
-set repo secret `CLOSURES_PUSH_TOKEN` (PAT with `repo` and `workflow`) so
-the repaired tree is actually re-checked.
+an INERT contradiction, or its own follow-up commit.
+
+If `fast` fails because a claim list is identical to `origin/main`
+(`INHERITED CLAIMS`, the #493/#494/#496 case), `claims-autofix` deletes
+the bare claim lines, keeps `claims-for:` and `# may-drift:`, and pushes
+`ci: drop inherited claims`.
+
+A `GITHUB_TOKEN` push does not fire `pull_request`. After either push the
+job dispatches Tests, Hassfest and Validate on the new SHA. Tests treats
+a `ci:` HEAD subject (or `workflow_dispatch` input `recheck`) as a
+PR-like run: fast/browser/briefs/closures, not slow. Optional repo
+secret `CLOSURES_PUSH_TOKEN` (PAT with `repo` and `workflow`) retriggers
+via synchronize instead; the dispatch is then skipped.
 
 If you have changed what a test reaches — new fixture, new import, a script
 that starts reading a file it did not before — regenerate and commit:

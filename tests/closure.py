@@ -952,14 +952,20 @@ def check(in_dir: Path, partial: bool = False) -> int:
 
 
 def autofix_allowed(*, event_name: str, closures_result: str,
-                    head_repo: str, repo: str, commit_subject: str) -> bool:
-    """True only for a failed same-repo PR closures job that is not our push."""
+                    head_repo: str, repo: str, commit_subject: str,
+                    loop_subject: str = "ci: re-record closures") -> bool:
+    """True only for a failed same-repo PR job that is not our own push."""
     return (
         event_name == "pull_request"
         and closures_result == "failure"
         and head_repo == repo
-        and commit_subject != "ci: re-record closures"
+        and commit_subject != loop_subject
     )
+
+
+def retrigger_needed(*, pushed: bool, used_pat: bool) -> bool:
+    """GITHUB_TOKEN pushes do not fire pull_request; dispatch must."""
+    return pushed and not used_pat
 
 
 def apply_under_scoped_recordings(in_dir: Path, *, partial: bool = True) -> str:

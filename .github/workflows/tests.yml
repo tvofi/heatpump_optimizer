@@ -75,6 +75,11 @@ on:
       - main
   pull_request:
   workflow_dispatch:
+    inputs:
+      recheck:
+        description: "PR-like checks after an autofix push (skip slow)"
+        type: boolean
+        default: false
   schedule:
     - cron: "17 2 * * *"
 
@@ -84,8 +89,38 @@ permissions:
   contents: read
 
 jobs:
+  # workflow_dispatch inputs exist only on the default branch. An autofix
+  # push from this PR must retrigger before that lands, so recheck is also
+  # true when HEAD's subject is `ci: …` (the two autofix commit messages).
+  recheck-gate:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      recheck: ${{ steps.decide.outputs.recheck }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: decide
+        run: |
+          if [ "${{ github.event.inputs.recheck }}" = "true" ]; then
+            echo "recheck=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          SUBJECT=$(git log -1 --pretty=%s)
+          case "$SUBJECT" in
+            ci:*) echo "recheck=true" >> "$GITHUB_OUTPUT" ;;
+            *)    echo "recheck=false" >> "$GITHUB_OUTPUT" ;;
+          esac
+
   fast:
-    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    needs: [recheck-gate]
+    if: >-
+      always() && (
+        github.event_name == 'push'
+        || github.event_name == 'pull_request'
+        || (github.event_name == 'workflow_dispatch'
+            && needs.recheck-gate.outputs.recheck == 'true')
+      )
     runs-on: ubuntu-latest
     # Drift mode captures all 53 scenarios twice (tree + merge-base); the
     # first main run proved 45 min is not enough on GitHub's runners — the
@@ -115,6 +150,12 @@ jobs:
             # The PR's merge-base with its target: exactly the code this
             # PR forked from, so the drift comparison isolates the PR.
             REF=$(git merge-base "origin/${{ github.base_ref }}" HEAD)
+          elif [ "${{ needs.recheck-gate.outputs.recheck }}" = "true" ]; then
+            # Autofix dispatch is not a pull_request event. Compare against
+            # main the same way a PR would, not HEAD^1 (the autofix commit's
+            # parent), so leftover drift vs main cannot hide.
+            git fetch --no-tags origin main
+            REF=$(git merge-base origin/main HEAD)
           else
             # Push to main: compare against the state before this push.
             REF=$(git rev-parse --verify --quiet 'HEAD^1^{commit}') || REF=""
@@ -139,13 +180,17 @@ jobs:
       # never be hit and would only take up room.
       - name: Key the drift baseline cache
         id: driftkey
-        if: github.event_name == 'pull_request'
+        if: >-
+          github.event_name == 'pull_request'
+          || needs.recheck-gate.outputs.recheck == 'true'
         env:
           PYTHONPATH: tests/hastub
         run: echo "key=$(python tests/env_drift.py --cache-key "$GOLDEN_REF" --all)" >> "$GITHUB_OUTPUT"
 
       - name: Restore the drift baseline
-        if: github.event_name == 'pull_request'
+        if: >-
+          github.event_name == 'pull_request'
+          || needs.recheck-gate.outputs.recheck == 'true'
         uses: actions/cache@v4
         with:
           path: ~/.cache/heatpump_optimizer/drift-baseline
@@ -177,7 +222,8 @@ jobs:
       # about lands on `full`, not on `auto`.
       - name: Decide the gate scope
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
+          if [ "${{ github.event_name }}" = "pull_request" ] \
+             || [ "${{ needs.recheck-gate.outputs.recheck }}" = "true" ]; then
             echo "GATE_SCOPE=auto" >> "$GITHUB_ENV"
             echo "GATE_SCOPE_BASE=$GOLDEN_REF" >> "$GITHUB_ENV"
           else
@@ -226,7 +272,14 @@ jobs:
   # anything for this lane (it is in NOT_A_TEST) -- the card source is
   # in every closure that matters, and the lane runs on every PR.
   browser:
-    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    needs: [recheck-gate]
+    if: >-
+      always() && (
+        github.event_name == 'push'
+        || github.event_name == 'pull_request'
+        || (github.event_name == 'workflow_dispatch'
+            && needs.recheck-gate.outputs.recheck == 'true')
+      )
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -284,7 +337,14 @@ jobs:
   # brief_lint.mjs's no-arg path requires those ten errors, so gutting
   # lintBrief cannot green the job.
   briefs:
-    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    needs: [recheck-gate]
+    if: >-
+      always() && (
+        github.event_name == 'push'
+        || github.event_name == 'pull_request'
+        || (github.event_name == 'workflow_dispatch'
+            && needs.recheck-gate.outputs.recheck == 'true')
+      )
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -305,7 +365,13 @@ jobs:
         run: node .claude/workflows/brief_lint.mjs
 
   slow:
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    needs: [recheck-gate]
+    if: >-
+      always() && (
+        github.event_name == 'schedule'
+        || (github.event_name == 'workflow_dispatch'
+            && needs.recheck-gate.outputs.recheck != 'true')
+      )
     runs-on: ubuntu-latest
     timeout-minutes: 150
     steps:
@@ -538,9 +604,10 @@ jobs:
   # no-copies, a failed recording, an INERT contradiction, or its own
   # follow-up commit (`ci: re-record closures`).
   #
-  # github.token can push but will not re-trigger Tests. Set repo secret
-  # CLOSURES_PUSH_TOKEN (PAT: repo + workflow) so the repaired tree is
-  # actually re-checked.
+  # A GITHUB_TOKEN push does not fire pull_request, so after the push this
+  # job dispatches Tests (recheck=true), Hassfest and Validate on the new
+  # SHA. CLOSURES_PUSH_TOKEN, if set, already retriggers via synchronize
+  # and the dispatch is skipped.
   closures-autofix:
     needs: [closures]
     if: >-
@@ -552,7 +619,7 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: write
-      actions: read
+      actions: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -603,6 +670,10 @@ jobs:
 
       - name: Push the merged closures
         if: steps.autofix.outputs.status == 'changed'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_REF: ${{ github.head_ref }}
+          USED_PAT: ${{ secrets.CLOSURES_PUSH_TOKEN != '' }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -612,7 +683,101 @@ jobs:
             exit 0
           }
           git commit -m "ci: re-record closures"
+          git pull --rebase origin "$HEAD_REF" || true
           git push
-          if [ -z "${{ secrets.CLOSURES_PUSH_TOKEN }}" ]; then
-            echo "::notice::Pushed with github.token; GitHub will not re-trigger Tests. Set CLOSURES_PUSH_TOKEN so the repaired tree is re-checked."
+          if [ "$USED_PAT" = "true" ]; then
+            echo "PAT push retriggers pull_request; not dispatching"
+            exit 0
           fi
+          # No -f recheck=: that input is only on default-branch YAML.
+          # The dispatched run uses this ref's workflow; recheck-gate
+          # treats a `ci:` subject as recheck.
+          gh workflow run tests.yml --ref "$HEAD_REF"
+          gh workflow run hassfest.yml --ref "$HEAD_REF"
+          gh workflow run validate.yml --ref "$HEAD_REF"
+
+  # Same-repo PR only. fast fails INHERITED CLAIMS when a branch copies
+  # main's non-empty list (#493/#494/#496). Empty both files, keep
+  # claims-for and may-drift, push `ci: drop inherited claims`.
+  claims-autofix:
+    needs: [fast]
+    if: >-
+      always()
+      && github.event_name == 'pull_request'
+      && needs.fast.result == 'failure'
+      && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      actions: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+          token: ${{ secrets.CLOSURES_PUSH_TOKEN || github.token }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Drop inherited claim lists
+        id: autofix
+        env:
+          PYTHONPATH: tests/hastub
+          EVENT_NAME: ${{ github.event_name }}
+          FAST_RESULT: ${{ needs.fast.result }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          git fetch --no-tags origin main
+          export SUBJECT=$(git log -1 --pretty=%s)
+          python - <<'PY'
+          import os, sys
+          sys.path.insert(0, "tests")
+          import closure
+          import env_drift
+          allowed = closure.autofix_allowed(
+              event_name=os.environ["EVENT_NAME"],
+              closures_result=os.environ["FAST_RESULT"],
+              head_repo=os.environ["HEAD_REPO"],
+              repo=os.environ["REPO"],
+              commit_subject=os.environ["SUBJECT"],
+              loop_subject="ci: drop inherited claims",
+          )
+          print(f"allowed={allowed}")
+          if not allowed:
+              status = "skip-not-allowed"
+          else:
+              status = env_drift.apply_inherited_claims(
+                  ".", ref="origin/main")
+          print(f"AUTOFIX: {status}")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
+              fh.write(f"status={status}\n")
+          PY
+
+      - name: Push emptied claim files
+        if: steps.autofix.outputs.status == 'changed'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_REF: ${{ github.head_ref }}
+          USED_PAT: ${{ secrets.CLOSURES_PUSH_TOKEN != '' }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tests/golden/claimed_drift.txt tests/golden/card_claimed_drift.txt
+          git diff --cached --quiet && {
+            echo "claim files unchanged after apply; not pushing"
+            exit 0
+          }
+          git commit -m "ci: drop inherited claims"
+          git pull --rebase origin "$HEAD_REF" || true
+          git push
+          if [ "$USED_PAT" = "true" ]; then
+            echo "PAT push retriggers pull_request; not dispatching"
+            exit 0
+          fi
+          gh workflow run tests.yml --ref "$HEAD_REF"
+          gh workflow run hassfest.yml --ref "$HEAD_REF"
+          gh workflow run validate.yml --ref "$HEAD_REF"

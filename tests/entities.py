@@ -7855,6 +7855,28 @@ R.check(
     _af5_status == "skip-still-fails" and _af5_after == _af5_before,
     f"status={_af5_status}",
 )
+R.check(
+    "a GITHUB_TOKEN autofix push must retrigger Tests",
+    _closure.retrigger_needed(pushed=True, used_pat=False),
+    "otherwise the new SHA has no checks and the PR stays red",
+)
+R.check(
+    "a PAT autofix push must not also dispatch",
+    not _closure.retrigger_needed(pushed=True, used_pat=True),
+    "the PAT push already fires pull_request; a second run would double the gate",
+)
+R.check(
+    "no retrigger when autofix did not push",
+    not _closure.retrigger_needed(pushed=False, used_pat=False),
+    "a skip is not a new SHA",
+)
+R.check(
+    "claims autofix may run after a closures autofix commit",
+    _closure.autofix_allowed(
+        **{**_AF_KW, "commit_subject": "ci: re-record closures"},
+        loop_subject="ci: drop inherited claims"),
+    "the two repairs have separate loop guards",
+)
 # A script another script drives in a subprocess reaches the table only
 # through its driver's fold, and --single cannot record it.
 R.check(
@@ -8126,6 +8148,50 @@ R.check(
     ) is None,
     "an empty list claims nothing and a changed reason is a rewrite; "
     "neither is an inherited list",
+)
+_INH_HDR = "# claims-for: 6.3.15\n#\n"
+_INH_FILE = _INH_HDR + "wood_coil  # copied from baseline\n\n# may-drift: wood_coil -- keep\n"
+_INH_DROPPED = _env_drift.drop_inherited_claim_lines(_INH_FILE, _INH_FILE)
+R.check(
+    "inherited claim lines are dropped and may-drift is kept",
+    _INH_DROPPED is not None
+    and "wood_coil  #" not in _INH_DROPPED
+    and "# may-drift: wood_coil -- keep" in _INH_DROPPED
+    and "claims-for: 6.3.15" in _INH_DROPPED,
+    f"dropped={_INH_DROPPED!r}",
+)
+R.check(
+    "a rewritten reason is not an inherited-claims autofix",
+    _env_drift.drop_inherited_claim_lines(
+        _INH_HDR + "wood_coil  # this branch\n",
+        _INH_HDR + "wood_coil  # baseline\n",
+    ) is None,
+    "only an identical parsed list is mechanical to empty",
+)
+R.check(
+    "an empty list is not an inherited-claims autofix",
+    _env_drift.drop_inherited_claim_lines(_INH_HDR, _INH_HDR) is None,
+    "empty already claims nothing",
+)
+with _tempfile.TemporaryDirectory() as _inh_td:
+    _inh_repo = Path(_inh_td) / "repo"
+    _inh_base = Path(_inh_td) / "base"
+    for _d in (_inh_repo, _inh_base):
+        (_d / "tests" / "golden").mkdir(parents=True)
+        (_d / _env_drift.CLAIM_FILE).write_text(_INH_FILE)
+        (_d / "tests" / "golden" / "card_claimed_drift.txt").write_text(
+            _INH_HDR + "away_toggle  # copied\n")
+    _inh_status = _env_drift.apply_inherited_claims(
+        str(_inh_repo), baseline_dir=str(_inh_base))
+    _inh_solver = (_inh_repo / _env_drift.CLAIM_FILE).read_text()
+    _inh_card = (_inh_repo / "tests" / "golden" / "card_claimed_drift.txt").read_text()
+R.check(
+    "both inherited claim files are emptied in one apply",
+    _inh_status == "changed"
+    and "wood_coil  #" not in _inh_solver
+    and "away_toggle" not in _inh_card
+    and "# may-drift: wood_coil -- keep" in _inh_solver,
+    f"status={_inh_status} solver={_inh_solver!r} card={_inh_card!r}",
 )
 
 # The other end of the same rule (v6.3.3). The inherited-claims check fires
