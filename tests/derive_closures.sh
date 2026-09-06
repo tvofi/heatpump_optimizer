@@ -120,6 +120,12 @@ p1=$!
   rec tests/manual_plan.py
   rec tests/open_meteo.py
   rec tests/solar_alignment.py
+  # The deployment-shape lane (#513), in run.sh's lane order. It copies the
+  # tracked package into a temporary tree and drives it from a child
+  # interpreter, so the audit hook sees the package files it reads plus the
+  # git call that enumerates them; nothing here depends on that recording
+  # being taken any particular way.
+  rec tests/deployment_shape.py
   rec tests/optimality.py
   # features.py runs this one in a subprocess with HASTUB_TZ set, because the
   # stub's DEFAULT_TIME_ZONE is fixed at import. Recorded the same way: without
