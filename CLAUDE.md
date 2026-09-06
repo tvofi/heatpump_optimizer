@@ -120,8 +120,10 @@ Node lanes (`tests/card.mjs`, `tests/card_drift.mjs`) record on Darwin via
 `node --import tests/node_fs_trace.mjs` (Node `fs` / loader, not `strace`).
 `--single` of an existing node script **unions** into the committed list;
 it cannot shrink a Linux `strace` closure. Python closures re-derive locally
-as before. Do not Darwin `--single` a CI `UNDER-SCOPED` — autofix already
-has the Linux recordings.
+as before. Do not Darwin `--single` a CI `UNDER-SCOPED` **while the autofix
+job is green** — it already has the Linux recordings. Once that job goes red
+it has told you it did not merge them, and re-deriving the failing script
+yourself is then the only thing that moves the PR.
 
 ## CI already repairs two mechanical failures — do not re-implement them
 
@@ -130,6 +132,15 @@ already exist on same-repo PRs. Do **not** open a second PR, run Darwin
 `--single`, or hand-empty claim files for these. Wait for the bot commit
 (`ci: re-record closures` / `ci: drop inherited claims`) and the dispatched
 recheck. Loop-guarded: those subjects are not repaired again.
+
+**Wait only while the job reports that it is repairing.** It pushes on one
+status and used to report success on every other, so a job that repaired
+nothing looked exactly like one that did (#523). It now ends by printing
+its status to the job summary and going red when a repair was attempted and
+did not work. **A red autofix job means no bot commit is coming**, and the
+rule above stops applying: that is the "failed recording" case listed below
+as a human judgment call, so read the summary and re-derive the named
+script yourself. A green job that pushed nothing is an ordinary no-op.
 
 - **`UNDER-SCOPED`:** `closures` already recorded under strace. Autofix
   merges those recordings into `tests/closures.json` and retriggers Tests.

@@ -13,6 +13,21 @@ do not hand-empty claim files that match `origin/main`. Darwin can
 `--single` a **new** node script, or grow a node closure; it cannot
 replace a Linux node recording.
 
+**That wait is conditional: it holds only while the job reports that it is
+repairing.** Each job pushes on `changed` alone, and every other status used
+to fall through to job success, so a skipped repair was indistinguishable
+from a completed one and the wait never ended (#523). Both jobs now end by
+printing their status to the job summary, and `closures-autofix` goes red on
+`skip-merge-failed`, `skip-still-fails` and `skip-unchanged` — a repair was
+attempted and did not work. **A red autofix job means there will be no bot
+commit.** It is the "failed recording" case this file already lists as a
+human judgment call, and the `--single` prohibition above does not survive
+it: that prohibition assumes the autofix holds the recordings *and will
+merge them*. Re-derive the named script yourself and commit
+`tests/closures.json`; Python lanes record through `sys.addaudithook`, so
+Darwin is sound for them. A **green** job that pushed nothing is an ordinary
+no-op and owes you nothing.
+
 | Failure | Job | Commit subject | Code |
 |---|---|---|---|
 | `UNDER-SCOPED` | `closures-autofix` | `ci: re-record closures` | `closure.apply_under_scoped_recordings` |
