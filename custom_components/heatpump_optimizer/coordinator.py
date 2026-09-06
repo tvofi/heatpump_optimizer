@@ -7204,6 +7204,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 self._config.get(CONF_PV_ENABLED, DEFAULT_PV_ENABLED)
             ),
             "pv": self._pv_summary,
+            "savings_months": self._ledger.savings_months(dt_util.now()),
         }
 
     def _ecl110_view(self) -> dict[str, Any]:
@@ -7345,14 +7346,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # T6: narrative, scores, starts, receipts, tiles and the last
         # diagnosis — one additive block, present even while everything in
         # it is gated off (it reads as empty/inert).
-        data["insight"] = self._insight_view()
-        # T7 #61: the frequency stage, map and recommendation — additive,
-        # "unconfigured" and empty without the entity.
-        data["freq_control"] = self._freq_view()
-        # v4.1.0: the unit every monetary figure above is denominated in,
-        # published so the card never has to guess it from a sensor's unit
-        # string.
-        data["currency"] = self.currency
+        data["insight"], data["freq_control"], data["currency"] = self._insight_view(), self._freq_view(), self.currency
 
         # Only surface the manual-plan key while an override is actually active,
         # so a plan-free solve (the golden fixtures included) is byte-for-byte
@@ -9716,7 +9710,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             "humidity": self._current_humidity(),
             # T6 #52: the assumptions this interval starts under, for the
             # diagnosis re-run when it settles.
-            "diag": self._capture_diagnosis_inputs(),
+            "diag": self._capture_diagnosis_inputs(), "baseline_kw": self._current_action.get("baseline_kw"),
         }
 
     def _dhw_probe_temperature(self) -> float | None:
@@ -9892,13 +9886,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
         # The månadsspot shadow column (#23) settles on the month's *average*
         # spot price, so the average must sample every interval — including
-        # the ones where nothing was consumed. Before the energy gate below.
-        self._ledger.observe_meta_mean(when, "spot_price", spot)
-
+        # the ones where nothing was consumed. Savings uses the same spot
+        # sample; both book before the energy gate below.
         actual = sample.actual_power_kw
         if actual is None:
             actual = planned_total
         energy = max(0.0, actual * elapsed_hours)
+        self._ledger.observe_spot_and_settle_savings(
+            when, spot, pending, energy, elapsed_hours
+        )
         # T6 #65: the operation score's day book samples every interval
         # too — the flat-consumer baseline it replays against is the
         # time-mean spot price, idle hours included, but only hours whose

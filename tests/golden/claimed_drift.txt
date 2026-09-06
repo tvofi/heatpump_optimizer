@@ -47,11 +47,12 @@
 #
 # claims-for: 6.3.15
 #
-# v6.3.15: Wave 3 solver, DHW planner, GIL process route. The stamp empties the list; the
-# next branch restates its own footprint, claims included.
-
-config_flow # #408: adds entities.space_setpoint_entity, entities.space_setpoint_unit, and hot_water.dhw_setpoint_entity (optional, unset by default); recorded via `golden.py --record --only config_flow`, not a value re-record -- genuinely new key paths, per CLAUDE.md rule 3.
-
+# 3L-G7: coordinator always publishes savings_months; coord fixtures gain the key.
+coord_minimal # additive empty savings_months list
+coord_dhw # additive empty savings_months list
+coord_two_zone # additive empty savings_months list
+coord_grid_fee # additive empty savings_months list
+coord_all_features # additive empty savings_months list
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum

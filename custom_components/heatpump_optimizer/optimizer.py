@@ -96,6 +96,12 @@ def _utc_step_starts(start: datetime, n: int, dt_hours: float) -> list[datetime]
     ]
 
 
+def _baseline_power_list(baseline_power: np.ndarray | None) -> list[float]:
+    if baseline_power is None:
+        return []
+    return [float(v) for v in np.asarray(baseline_power, dtype=float)]
+
+
 # How far either side of a contended step space heating may look for spare
 # compressor capacity when its energy is displaced by hot water. Beyond a few
 # hours the building has already lost the heat, so a cheap slot that far away
@@ -818,6 +824,9 @@ class OptimizationResult:
 
     # DHW optimization results
     dhw_power_schedule: list[float] = field(default_factory=list)
+    # Thermostat-baseline electrical kW per step (space + DHW). Settlement
+    # reads the current step; must be a pickle-safe list for the process route.
+    baseline_power_schedule: list[float] = field(default_factory=list)
     dhw_temp_trajectory: list[float] = field(default_factory=list)
     dhw_heating_cost: float = 0.0
 
@@ -1574,6 +1583,7 @@ class HeatPumpOptimizer:
         dhw_power: np.ndarray | None = None,
         dhw_temps: np.ndarray | None = None,
         dhw_cost: float = 0.0,
+        baseline_power: np.ndarray | None = None,
         buffer_temps: np.ndarray | None = None,
         wood_temps: np.ndarray | None = None,
         predictive_info: dict | None = None,
@@ -1653,6 +1663,7 @@ class HeatPumpOptimizer:
             dhw_power_schedule=(
                 dhw_power.tolist() if dhw_power is not None else []
             ),
+            baseline_power_schedule=_baseline_power_list(baseline_power),
             dhw_temp_trajectory=(
                 dhw_temps.tolist() if dhw_temps is not None else []
             ),
@@ -3077,6 +3088,7 @@ class HeatPumpOptimizer:
             baseline_cost=baseline_cost,
             savings=savings,
             deferred_cost=deferred_cost,
+            baseline_power=baseline_power,
         )
 
     # ------------------------------------------------------------------
@@ -5229,6 +5241,7 @@ class HeatPumpOptimizer:
             baseline_cost=baseline_cost,
             savings=savings,
             deferred_cost=deferred_cost,
+            baseline_power=baseline_power + baseline_dhw,
             dhw_power=optimal_dhw,
             dhw_temps=dhw_temps,
             dhw_cost=dhw_cost,
@@ -6060,6 +6073,8 @@ class HeatPumpOptimizer:
             dhw_power = result.dhw_power_schedule[i]
             action["dhw_power"] = round(dhw_power, 2)
             action["dhw_heating_active"] = dhw_power > 0.1
+        if result.baseline_power_schedule and i < len(result.baseline_power_schedule):
+            action["baseline_kw"] = float(result.baseline_power_schedule[i])
         if result.dhw_temp_trajectory and i < len(result.dhw_temp_trajectory):
             action["dhw_temperature"] = round(result.dhw_temp_trajectory[i], 1)
         if result.predictive_info.get("dhw_target_temperature") is not None:

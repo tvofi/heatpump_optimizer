@@ -167,6 +167,7 @@ async def async_setup_entry(
         OptimizationModeSensor(coordinator, entry),
         OptimizationStatusSensor(coordinator, entry),
         PredictedSavingsSensor(coordinator, entry),
+        MonthlySavingsSensor(coordinator, entry),
         SavingsPercentageSensor(coordinator, entry),
         PredictedCostSensor(coordinator, entry),
         BaselineCostSensor(coordinator, entry),
@@ -451,6 +452,39 @@ class PredictedSavingsSensor(HeatPumpOptimizerSensorBase):
         # stats, same contract as plan_kind on the plan sensors: ids can be
         # renamed by users, attributes cannot.
         return {"stat_kind": "predicted_savings"}
+
+
+class MonthlySavingsSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase):
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_suggested_display_precision = 2
+
+    def __init__(self, coordinator, entry):
+        super().__init__(coordinator, entry, "monthly_savings", "monthly_savings")
+        self._attr_native_unit_of_measurement = coordinator.currency
+
+    def _rows(self) -> list:
+        rows = (self.coordinator.data or {}).get("savings_months")
+        return rows if isinstance(rows, list) else []
+
+    @property
+    def _waiting_for(self) -> str | None:
+        return None if self._rows() else "settled_savings_month"
+
+    @property
+    def native_value(self) -> float | None:
+        for row in self._rows():
+            if isinstance(row, dict) and row.get("estimated"):
+                val = row.get("savings_sek")
+                return round(val, 2) if isinstance(val, (int, float)) else None
+        return None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        attrs: dict[str, Any] = {"savings_months": self._rows()}
+        waiting = self._waiting_for
+        if waiting is not None:
+            attrs["waiting_for"] = waiting
+        return attrs
 
 
 class SavingsPercentageSensor(HeatPumpOptimizerSensorBase):

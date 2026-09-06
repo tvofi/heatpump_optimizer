@@ -401,6 +401,7 @@ DATA = {
     # The horizon the plan sensors publish (#4): the projection attribute
     # reads it off the optimizer's own configuration.
     "horizon_hours": 24.0,
+    "savings_months": [],
 }
 
 
@@ -1858,6 +1859,8 @@ _alive_when_broken = []
 for _module in (sensor, binary_sensor, button, _climate_platform, _switch_platform):
     for _entity in collect(_module, coordinator=_healthy):
         if not _entity.available:
+            if type(_entity).__name__ == "MonthlySavingsSensor":
+                continue
             _dead_when_healthy.append(type(_entity).__name__)
     for _entity in collect(_module, coordinator=_broken):
         if _entity.available:
@@ -4555,6 +4558,24 @@ _ATTR_RICH = {
         "reason": "cheap hour",
         "price_ratio": 0.6,
     },
+    "savings_months": [
+        {
+            "month": "2026-01",
+            "baseline_sek": 1200.0,
+            "actual_sek": 900.0,
+            "savings_sek": 300.0,
+            "savings_pct": 25.0,
+            "estimated": False,
+        },
+        {
+            "month": "2026-02",
+            "baseline_sek": 800.0,
+            "actual_sek": 700.0,
+            "savings_sek": 100.0,
+            "savings_pct": 12.5,
+            "estimated": True,
+        },
+    ],
 }
 
 
@@ -4572,6 +4593,33 @@ def _attr_coordinator(data):
 
 _attr_base_coordinator = _attr_coordinator(DATA)
 _attr_rich_coordinator = _attr_coordinator(_ATTR_RICH)
+
+_empty_sav = sensor.MonthlySavingsSensor(
+    FakeCoordinator({**DATA, "savings_months": []}), ENTRY
+)
+R.check(
+    "MonthlySavingsSensor is unavailable before any booked month",
+    not _empty_sav.available,
+)
+R.check(
+    "MonthlySavingsSensor names settled_savings_month while empty",
+    _empty_sav.extra_state_attributes.get("waiting_for") == "settled_savings_month"
+    and _empty_sav.native_value is None
+    and _empty_sav.extra_state_attributes.get("savings_months") == [],
+    repr(_empty_sav.extra_state_attributes),
+)
+_ready_sav = sensor.MonthlySavingsSensor(
+    FakeCoordinator(_ATTR_RICH), ENTRY
+)
+R.check(
+    "MonthlySavingsSensor state is the open month's estimated savings_sek",
+    _ready_sav.available
+    and _ready_sav.native_value == 100.0
+    and _ready_sav.extra_state_attributes.get("waiting_for") is None
+    and _ready_sav.extra_state_attributes.get("savings_months")
+    == _ATTR_RICH["savings_months"],
+    repr(_ready_sav.native_value),
+)
 
 
 #: The one publisher whose attribute KEYS are data rather than API:
@@ -4713,6 +4761,7 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
         "free_headroom_threshold_kw", "fuse_advisor", "month",
         "outage_recovery_active", "projected_peak_cost", "projected_peak_kw"
     }),
+    "MonthlySavingsSensor": frozenset({"savings_months", "waiting_for"}),
     "ObservedCOPSensor": frozenset({
         "cop_samples", "cop_scale", "defrost_buckets", "defrost_derate",
         "defrost_samples", "modelled_cop", "waiting_for"
@@ -5092,6 +5141,7 @@ for _display, _expected_id in (
     ("Space Heating Plan (next 24 h)", "sensor.heat_pump_optimizer_space_heating_plan"),
     ("DHW Heating Plan (next 24 h)", "sensor.heat_pump_optimizer_dhw_heating_plan"),
     ("Predicted Savings", "sensor.heat_pump_optimizer_predicted_savings"),
+    ("Monthly Savings", "sensor.heat_pump_optimizer_monthly_savings"),
     ("Savings Percentage", "sensor.heat_pump_optimizer_savings_percentage"),
     ("Optimization Score", "sensor.heat_pump_optimizer_optimization_score"),
     ("Plan Narrative", "sensor.heat_pump_optimizer_plan_narrative"),
@@ -5112,6 +5162,7 @@ for _display, _expected_id in (
 _plan_id = by_name["Space Heating Plan (next 24 h)"].entity_id
 for _stat_suffix in (
     "_predicted_savings",
+    "_monthly_savings",
     "_savings_percentage",
     "_optimization_score",
     "_plan_narrative",
@@ -5147,8 +5198,8 @@ R.check(
     not [s for s in sensors if s._attr_unique_id.endswith("_solar_radiation")],
 )
 R.check(
-    "there are exactly 55 sensors after the merge",
-    len(sensors) == 55,
+    "there are exactly 56 sensors after the merge",
+    len(sensors) == 56,
     str(len(sensors)),
 )
 R.check(

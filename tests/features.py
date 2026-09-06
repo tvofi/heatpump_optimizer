@@ -22203,4 +22203,240 @@ for _lang_file in ("strings.json", "translations/en.json", "translations/sv.json
         and "{entity}" in _sp_doc["issues"][_SP_ISSUE_SPACE]["description"],
     )
 
+R.section("3L-G7 — monthly savings history")
+
+from datetime import datetime as _SavDT
+from heatpump_optimizer.ledger import (
+    MonthlyLedger as _SavLedger,
+    month_key as _sav_month_key,
+    pro_rata_factor as _sav_factor,
+    savings_pct as _sav_pct,
+)
+
+_feb10 = _SavDT(2026, 2, 10, 15, 0)
+_feb1 = _SavDT(2026, 2, 1, 8, 0)
+_jan31 = _SavDT(2026, 1, 31, 12, 0)
+R.check(
+    "February 10 uses 28 / 10",
+    abs(_sav_factor(_feb10) - 2.8) < 1e-12,
+    repr(_sav_factor(_feb10)),
+)
+R.check(
+    "day 1 uses divisor 1 (February 1 is 28 / 1)",
+    abs(_sav_factor(_feb1) - 28.0) < 1e-12,
+    repr(_sav_factor(_feb1)),
+)
+R.check(
+    "January 31 uses 31 / 31",
+    abs(_sav_factor(_jan31) - 1.0) < 1e-12,
+    repr(_sav_factor(_jan31)),
+)
+R.check(
+    "pct is baseline-relative and clipped",
+    abs(_sav_pct(100.0, 60.0) - 60.0) < 1e-12
+    and abs(_sav_pct(100.0, 200.0) - 100.0) < 1e-12
+    and abs(_sav_pct(100.0, -200.0) - (-100.0)) < 1e-12,
+)
+R.check(
+    "pct is omitted when baseline_sek <= 0.01, not published as 0.0",
+    _sav_pct(0.01, 0.0) is None and _sav_pct(0.0, 1.0) is None,
+    repr(_sav_pct(0.01, 0.0)),
+)
+
+_led = _SavLedger()
+_led.add_savings_settlement(
+    _feb10, baseline_kw=2.0, actual_kwh=0.5, spot=2.0, dt=0.5
+)
+_k = _sav_month_key(_feb10)
+_base = _led.line(_k, "savings_baseline")
+_act = _led.line(_k, "savings_actual")
+R.check(
+    "settlement books baseline kW×dt and actual kWh at spot",
+    abs(_base["kwh"] - 1.0) < 1e-12
+    and abs(_base["sek"] - 2.0) < 1e-12
+    and abs(_act["kwh"] - 0.5) < 1e-12
+    and abs(_act["sek"] - 1.0) < 1e-12,
+    f"base {_base} actual {_act}",
+)
+_led_skip = _SavLedger()
+_led_skip.add_savings_settlement(
+    _feb10, baseline_kw=None, actual_kwh=0.5, spot=2.0, dt=0.5
+)
+R.check(
+    "missing baseline_kw writes neither line",
+    "savings_baseline" not in _led_skip.months.get(_k, {}).get("lines", {})
+    and "savings_actual" not in _led_skip.months.get(_k, {}).get("lines", {}),
+)
+_led.add(_feb10, "spot", kwh=1.0, sek=2.0)
+_led.add(_SavDT(2026, 1, 15), "spot", kwh=10.0, sek=20.0)
+_rows = _led.savings_months(_feb10)
+R.check(
+    "a month without savings_baseline is omitted, even if spot was booked",
+    [r["month"] for r in _rows] == ["2026-02"],
+    repr([r["month"] for r in _rows]),
+)
+R.check(
+    "open month scales all three SEK columns and leaves pct unchanged",
+    _rows[0]["estimated"] is True
+    and abs(_rows[0]["baseline_sek"] - 5.6) < 1e-9
+    and abs(_rows[0]["actual_sek"] - 2.8) < 1e-9
+    and abs(_rows[0]["savings_sek"] - 2.8) < 1e-9
+    and abs(_rows[0]["savings_pct"] - 50.0) < 1e-9,
+    repr(_rows[0]),
+)
+_led.add_savings_settlement(
+    _SavDT(2026, 1, 20), baseline_kw=1.0, actual_kwh=1.0, spot=1.0, dt=1.0
+)
+_ordered = [r["month"] for r in _led.savings_months(_feb10)]
+R.check(
+    "rows are oldest first, newest last",
+    _ordered == ["2026-01", "2026-02"],
+    repr(_ordered),
+)
+_closed = [r for r in _led.savings_months(_feb10) if r["month"] == "2026-01"][0]
+R.check(
+    "a closed month is unscaled",
+    _closed["estimated"] is False
+    and abs(_closed["baseline_sek"] - 1.0) < 1e-9
+    and abs(_closed["actual_sek"] - 1.0) < 1e-9,
+    repr(_closed),
+)
+
+import inspect as _sav_inspect
+from pathlib import Path as _SavPath
+from heatpump_optimizer.optimizer import (
+    HeatPumpOptimizer as _SavOpt,
+    OptimizationResult as _SavOR,
+)
+
+_ts_sav = [_SavDT(2026, 2, 10, 12, 0) + timedelta(minutes=15 * i) for i in range(4)]
+_res_sav = _SavOR(
+    power_schedule=[1.0] * 4,
+    room_temp_trajectory=[21.0] * 5,
+    slab_temp_trajectory=[22.0] * 5,
+    timestamps=_ts_sav,
+    prices=[1.0] * 4,
+    predicted_cost=1.0,
+    baseline_cost=2.0,
+    predicted_savings=1.0,
+    savings_percentage=50.0,
+    optimal_setpoints=[21.0] * 4,
+    status="optimal",
+    baseline_power_schedule=[3.5, 4.0, 0.0, 1.25],
+)
+_schedule = _res_sav.baseline_power_schedule
+R.check(
+    "baseline_power_schedule pickles as a plain float list",
+    isinstance(_schedule, list)
+    and all(type(x) is float for x in _schedule),
+)
+_act_sav = _bl_opt.get_current_action(_res_sav, _ts_sav[1])
+R.check(
+    "get_current_action copies the current step's baseline kW",
+    abs(_act_sav["baseline_kw"] - 4.0) < 1e-12,
+    repr(_act_sav.get("baseline_kw")),
+)
+_act_zero = _bl_opt.get_current_action(_res_sav, _ts_sav[2])
+R.check(
+    "a 0.0 baseline step is copied, not treated as missing",
+    "baseline_kw" in _act_zero and _act_zero["baseline_kw"] == 0.0,
+    repr(_act_zero.get("baseline_kw")),
+)
+_src_br = _sav_inspect.getsource(_SavOpt._build_result)
+R.check(
+    "_build_result writes baseline_power_schedule",
+    "baseline_power_schedule=" in _src_br,
+)
+_src_opt = _SavPath("custom_components/heatpump_optimizer/optimizer.py").read_text()
+R.check(
+    "both solve paths pass the baseline array into _build_result",
+    "baseline_power=baseline_power," in _src_opt
+    and "baseline_power=baseline_power + baseline_dhw," in _src_opt,
+)
+
+_sv = _t2_coord()
+_sv_pending = {
+    "price": 2.5,
+    "spot_price": 2.0,
+    "grid_fee": 0.5,
+    "space_power": 1.0,
+    "dhw_power": 1.0,
+    "when": NOW,
+    "baseline_kw": 4.0,
+}
+_sv_sample = AccuracySample(when=NOW, actual_power_kw=2.0)
+_sv._accumulate_energy(_sv_sample, 0.5, _sv_pending)
+_sv_m = NOW.strftime("%Y-%m")
+_sv_b = _sv._ledger.line(_sv_m, "savings_baseline")
+_sv_a = _sv._ledger.line(_sv_m, "savings_actual")
+R.check(
+    "with a pending baseline both savings lines move",
+    abs(_sv_b["kwh"] - 2.0) < 1e-12
+    and abs(_sv_b["sek"] - 4.0) < 1e-12
+    and abs(_sv_a["kwh"] - 1.0) < 1e-12
+    and abs(_sv_a["sek"] - 2.0) < 1e-12,
+    f"base {_sv_b} actual {_sv_a}",
+)
+_sv0 = _t2_coord()
+_sv0._accumulate_energy(_sv_sample, 0.5, {**_sv_pending, "baseline_kw": None})
+# also the omitted-key case
+_sv_omit = dict(_sv_pending)
+del _sv_omit["baseline_kw"]
+_sv1 = _t2_coord()
+_sv1._accumulate_energy(_sv_sample, 0.5, _sv_omit)
+R.check(
+    "without a pending baseline neither savings line is written",
+    _sv0._ledger.line(_sv_m, "savings_baseline")["kwh"] == 0.0
+    and "savings_baseline" not in _sv0._ledger.months.get(_sv_m, {}).get("lines", {})
+    and "savings_baseline" not in _sv1._ledger.months.get(_sv_m, {}).get("lines", {}),
+)
+_sv_idle = _t2_coord()
+_sv_idle._accumulate_energy(
+    AccuracySample(when=NOW, actual_power_kw=0.0),
+    0.5,
+    {**_sv_pending, "space_power": 0.0, "dhw_power": 0.0},
+)
+R.check(
+    "zero metered energy still books savings when a baseline exists",
+    abs(_sv_idle._ledger.line(_sv_m, "savings_baseline")["kwh"] - 2.0) < 1e-12
+    and abs(_sv_idle._ledger.line(_sv_m, "savings_actual")["kwh"] - 0.0) < 1e-12,
+)
+_sv_imm = _t2_coord()
+_sv_imm._immersion_active = True
+_sv_imm._accumulate_energy(
+    AccuracySample(when=NOW, actual_power_kw=6.9),
+    0.5,
+    {**_sv_pending, "space_power": 1.0, "dhw_power": 1.0},
+)
+# 6.9 kW × 0.5 h = 3.45 kWh actual (spot+immersion), same as contract comparison
+R.check(
+    "savings_actual is spot+immersion metered kWh, not the carved spot line",
+    abs(_sv_imm._ledger.line(_sv_m, "savings_actual")["kwh"] - 3.45) < 1e-9,
+    repr(_sv_imm._ledger.line(_sv_m, "savings_actual")),
+)
+import homeassistant.util.dt as _dt_sav
+_real_now_sav = _dt_sav.now
+try:
+    _dt_sav.now = lambda: NOW
+    _pub = _sv._build_data_dict()
+finally:
+    _dt_sav.now = _real_now_sav
+R.check(
+    "coordinator publishes savings_months and never the baseline series",
+    isinstance(_pub.get("savings_months"), list)
+    and len(_pub["savings_months"]) >= 1
+    and "baseline_power_schedule" not in _pub
+    and "baseline_kw" not in _pub,
+    repr({k: _pub.get(k) for k in ("savings_months", "baseline_power_schedule")}),
+)
+_sv._current_action = {"power": 1.0, "dhw_power": 0.5, "baseline_kw": 3.25}
+# Drive the pending builder by reading the assignment target after a call
+# is not possible without the interval loop; pin the source instead:
+_pend_src = _SavPath(
+    "custom_components/heatpump_optimizer/coordinator.py"
+).read_text()
+R.check(
+    "interval-start pending copies baseline_kw from the current action",
+    '"baseline_kw": self._current_action.get("baseline_kw")' in _pend_src,
+)
 sys.exit(R.close("FEATURE CHECKS"))

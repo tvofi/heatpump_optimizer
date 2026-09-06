@@ -1853,6 +1853,52 @@ check("the hand-scheduled reason has a label",
     /dlg-tab[^>]*data-page="plan"/.test(planPage) &&
     /dlg-tab[^>]*data-page="setup"/.test(planPage));
 
+  check("the dialog offers a savings tab",
+    /dlg-tab[^>]*data-page="savings"/.test(planPage));
+
+  su.dialog.page = "savings";
+  su._render();
+  const savingsEmpty = collect(su.shadowRoot).join("\n");
+  const savingsBody = collect(
+    su.shadowRoot.querySelector(".dlg-body") || su.shadowRoot
+  ).join("\n");
+  check("savings tab empty copy when the attribute is missing",
+    /No settled savings months yet/.test(savingsEmpty));
+  check("savings tab does not invent zero rows",
+    !/0\.00/.test(savingsBody) && !/<tbody>\s*<tr/.test(savingsBody));
+  check("legend stays off the savings page",
+    !/Electricity price/.test(savingsEmpty));
+
+  const savStates = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  savStates["sensor.heat_pump_optimizer_monthly_savings"] = {
+    state: "100.00",
+    attributes: {
+      unit_of_measurement: "SEK",
+      savings_months: [
+        {
+          month: "2026-02",
+          baseline_sek: 800,
+          actual_sek: 700,
+          savings_sek: 100,
+          savings_pct: 12,
+          estimated: true,
+        },
+      ],
+    },
+  };
+  const sav = build(savStates);
+  sav._onCardClick({});
+  sav.dialog.page = "savings";
+  sav._render();
+  const savingsFilled = collect(sav.shadowRoot).join("\n");
+  check("savings tab draws the estimated current-month row",
+    /2026-02/.test(savingsFilled) &&
+    /800\.00/.test(savingsFilled) &&
+    /700\.00/.test(savingsFilled) &&
+    /100\.00/.test(savingsFilled) &&
+    /12%/.test(savingsFilled) &&
+    /estimated/.test(savingsFilled));
+
   su.dialog.page = "setup";
   su._render();
   const setupPage = collect(su.shadowRoot).join("\n");

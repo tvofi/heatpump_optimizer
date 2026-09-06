@@ -17,6 +17,7 @@ coordinator owns the Store; this owns the arithmetic.
 """
 from __future__ import annotations
 
+import calendar
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -32,6 +33,23 @@ KEEP_MONTHS = 24
 
 def month_key(when: datetime) -> str:
     return when.strftime("%Y-%m")
+
+
+def pro_rata_factor(now: datetime) -> float:
+    """Calendar days in this month over max(1, day-of-month)."""
+    days = calendar.monthrange(now.year, now.month)[1]
+    return days / max(1, now.day)
+
+
+def savings_pct(baseline_sek: float, savings_sek: float) -> float | None:
+    """Same clip as optimizer._savings_percentage, but None when the baseline is ~0.
+
+    The optimizer helper returns 0.0 in that case; the published row must omit
+    the percentage instead of claiming 0 %.
+    """
+    if baseline_sek <= 0.01:
+        return None
+    return float(np.clip(savings_sek / baseline_sek * 100.0, -100.0, 100.0))
 
 
 @dataclass
@@ -73,6 +91,70 @@ class MonthlyLedger:
         entry["sum"] = float(entry["sum"]) + float(value)
         entry["count"] = int(entry["count"]) + 1
 
+    def observe_spot_and_settle_savings(
+        self,
+        when: datetime,
+        spot: float,
+        pending: dict,
+        actual_kwh: float,
+        dt: float,
+    ) -> None:
+        """Sample spot for the month mean, then book savings if baseline exists."""
+        self.observe_meta_mean(when, "spot_price", spot)
+        self.settle_interval_savings(when, pending, actual_kwh, spot, dt)
+
+    def add_savings_settlement(
+        self,
+        when: datetime,
+        *,
+        baseline_kw: float | None,
+        actual_kwh: float,
+        spot: float,
+        dt: float,
+    ) -> None:
+        """Book the two savings lines, or neither.
+
+        ``baseline_kw is None`` means no plan covered the interval — skip.
+        A finite 0.0 kW is a real thermostat-off step and must book.
+        ``actual_kwh`` is already energy (spot + immersion), not kW.
+        """
+        if baseline_kw is None:
+            return
+        if not (
+            np.isfinite(baseline_kw)
+            and np.isfinite(actual_kwh)
+            and np.isfinite(spot)
+            and np.isfinite(dt)
+        ):
+            return
+        base_kwh = float(baseline_kw) * float(dt)
+        self.add(
+            when, "savings_baseline", kwh=base_kwh, sek=base_kwh * float(spot)
+        )
+        self.add(
+            when,
+            "savings_actual",
+            kwh=float(actual_kwh),
+            sek=float(actual_kwh) * float(spot),
+        )
+
+    def settle_interval_savings(
+        self,
+        when: datetime,
+        pending: dict,
+        actual_kwh: float,
+        spot: float,
+        dt: float,
+    ) -> None:
+        """Book savings from a settled interval's pending snapshot."""
+        self.add_savings_settlement(
+            when,
+            baseline_kw=pending.get("baseline_kw"),
+            actual_kwh=actual_kwh,
+            spot=spot,
+            dt=dt,
+        )
+
     # -- reading ------------------------------------------------------------
 
     def line(self, month: str, name: str) -> dict:
@@ -107,6 +189,34 @@ class MonthlyLedger:
             for name, entry in lines.items()
             if isinstance(entry, dict)
         }
+
+    def savings_months(self, now: datetime) -> list[dict]:
+        """Published rows: months that booked savings_baseline, oldest first."""
+        open_key = month_key(now)
+        factor = pro_rata_factor(now)
+        rows: list[dict] = []
+        for key in sorted(self.months):
+            lines = self.months[key].get("lines") or {}
+            if "savings_baseline" not in lines:
+                continue
+            baseline_sek = float(self.line(key, "savings_baseline")["sek"])
+            actual_sek = float(self.line(key, "savings_actual")["sek"])
+            estimated = key == open_key
+            if estimated:
+                baseline_sek *= factor
+                actual_sek *= factor
+            savings_sek = baseline_sek - actual_sek
+            rows.append(
+                {
+                    "month": key,
+                    "baseline_sek": round(baseline_sek, 2),
+                    "actual_sek": round(actual_sek, 2),
+                    "savings_sek": round(savings_sek, 2),
+                    "savings_pct": savings_pct(baseline_sek, savings_sek),
+                    "estimated": estimated,
+                }
+            )
+        return rows
 
     # -- persistence --------------------------------------------------------
 
