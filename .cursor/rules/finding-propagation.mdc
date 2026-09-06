@@ -36,7 +36,7 @@ carried.
 record the finding; they do not deliver it.
 
 The test is **where the seat who needs this will be looking**: its own brief, the
-shared seat block, `CLAUDE.md`, its role contract. It will not read the comments
+role contract under `tools/audit/briefs/`, `CLAUDE.md`. It will not read the comments
 of a PR that merged several stages before it started. A finding that lives only
 in the PR that produced it will be re-derived by the next stage, or — the usual
 outcome — not derived at all, and the refused technique gets attempted again.
@@ -56,18 +56,45 @@ outcome — not derived at all, and the refused technique gets attempted again.
 
 ## Where it goes
 
-- **Constrains one stage** → that stage's brief.
-- **Constrains every seat** → the shared seat block **once**, not copied into
-  each brief. Duplication across briefs goes stale unevenly, and a reader who
-  finds two versions trusts neither.
+- **Constrains one stage** → that stage's brief. **A stage's brief lives in two
+  places, and both must receive it**: the roster `brief` string in
+  `.claude/workflows/wave-*-groups.json`, which is in the tree and is what the
+  linter and the next session read; and any out-of-tree brief file a running
+  session hands its seats. They are separate destinations, not one — carrying to
+  a session's own scratch copy leaves the tree unchanged, and the tree is what
+  survives the session.
+- **Constrains every seat** → the **role contract** it belongs to under
+  `tools/audit/briefs/` (`fixer.md`, `fix-review.md`, `judge.md`), **once**.
+  That is the in-tree file every seat of that role reads, so it is the
+  destination a reviewer can open. Do not copy it into each stage's brief:
+  duplication goes stale unevenly, and a reader who finds two versions trusts
+  neither. If the session also runs an out-of-tree shared block, that is a
+  convenience copy of the contract and never the only home.
 - **The stage has no brief yet** → the plan row that will become one, and
   **creating that row is part of the finding**. A rule that silently does not
   apply to unplanned work fails precisely where unplanned work needs it most.
 
+**While two copies disagree, the newer one is right and the other is the bug.**
+Say which is which in the carry itself, because a seat that finds a conflict
+between its brief and the roster must not have to guess. The out-of-tree copy
+can be updated in a minute with no PR, so it will usually be ahead; the record
+PR that follows the merge brings the tree level.
+
 ## Enforcement
 
-The producing PR does not merge until the carry is in place. Its body says which
-brief, block, or plan row received the finding, so a reviewer can check the
-destination rather than take the claim. Where the destination is out of tree, it
-is still named, and the in-tree roster or plan carries the same finding in the
-record that follows the merge.
+The producing PR does not merge until the carry is **in the tree**. Its body
+names the file and the stage that received it, so a reviewer opens the
+destination rather than taking the claim.
+
+**Name a destination that exists.** A carry pointing at a file `git grep` cannot
+find is not a carry, and a rule that makes an unfindable destination a merge
+blocker is worse than no rule — the seat cannot comply and the reviewer cannot
+check. If the right destination does not exist yet, creating it is part of the
+carry.
+
+**Verify the write landed, do not assume it.** A scripted edit that matches
+nothing usually reports success — `str.replace` and `sed` both do — so the
+check is to read the destination back and confirm the text is there. Asserting
+that the anchor was findable is not the same as asserting the edit was made,
+and this rule was itself first landed with seven of nine carries missing for
+exactly that reason.

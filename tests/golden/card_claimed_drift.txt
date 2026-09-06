@@ -38,6 +38,16 @@
 # branch claims NOTHING. Gate plumbing and CI only -- no card source is
 # touched.
 #
+#
+#
+# The finding-propagation destination fix: this branch claims NOTHING. Two
+# rules files and CLAUDE.md only -- no card source is touched.
+#
+# The document-contradiction fixes (tools/audit/briefs/fixer.md step 5,
+# tests/README.md exclusion list and script counts): this branch claims
+# NOTHING. Prose in two documents only -- no card source, template or style
+# is touched, so the rendered markup is byte-identical by construction.
+#
 # The #529 record, the open-issue dispositions and the forward carries: this
 # branch claims NOTHING. The plan doc, the two wave rosters and
 # docs/HANDOVER.md only -- no card source is touched.
