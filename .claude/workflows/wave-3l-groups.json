@@ -1,12 +1,12 @@
 {
   "_comment": [
     "Wave 3L of the open-issues programme (docs/plan-2026-09-open-issues.md).",
-    "Leftovers after Wave 3, before Wave 4. Serial. 3L-G4 done (531d8b7); G3 residuals #479+#480 at 162e759.",
+    "Leftovers after Wave 3, before Wave 4. Serial. 3L-G5 done (6f02b8a).",
     "#412 stays last of the programme, not in this burst.",
     "Consumed by .claude/workflows/web-fix-wave.js as its `groups` argument."
   ],
-  "fork": "162e75990779a351061afadbe4ceea9b763e1d11",
-  "fork_note": "origin/main after 3L-G3 residuals #479+#480 (`162e759`). Re-measure structure at this merge-base. claims-for stays 6.3.15.",
+  "fork": "6f02b8a71ee6fcc250d17657d60a63cc5cb1532e",
+  "fork_note": "origin/main after 3L-G5 #483 (`6f02b8a`). Re-measure structure at this merge-base. claims-for stays 6.3.15.",
   "session": "claude-web",
   "repo": "/Users/timmalmstrom/heatpump_optimizer",
   "serial": true,
@@ -86,9 +86,10 @@
       "fixture": false,
       "after": ["3L-G4"],
       "resume": {
-        "stage": "in_progress",
-        "branch": "cursor/3l-g5-setpoint-consistency-3c04",
-        "note": "In flight from 531d8b7. Merge origin/main (162e759, #480) before the locked gate. Do not raise structure. claims-for 6.3.15."
+        "stage": "done",
+        "merged_pr": 483,
+        "merge_sha": "6f02b8a71ee6fcc250d17657d60a63cc5cb1532e",
+        "note": "Review merge 5556388345 at 0d9ce1b. Consistency only; hassfest flow_title; 7 closures; optimality.evaluate renamed score_plan. Mutation 6+2 FAIL. coordinator_loc 10374. #408 closed. Next seat 3L-G6."
       },
       "brief": "Optional set-point entities + consistency repair only. Optimality / Fix-to-argmin refused (50 to 65 C instability). Holds coordinator/config — later 3L groups must not merge ahead of this seat."
     },
@@ -100,6 +101,11 @@
       "effort": "medium",
       "fixture": false,
       "after": ["3L-G5"],
+      "resume": {
+        "stage": "blocked",
+        "branch": "cursor/3l-g6-setup-conflict-btn-3c04",
+        "note": "NEEDS_CONTEXT at 6f02b8a: no conflict flow in production. #457 stays open. 3L-G7 sits after 3L-G5."
+      },
       "brief": "Card setup-page button that opens the conflict flow. Card-only. If still blocked on the conflict-flow spec, 3L-G7 sits after 3L-G5 instead."
     },
     {
@@ -113,7 +119,7 @@
       "resume": {
         "stage": "in_progress",
         "branch": "3l-g7-monthly-savings",
-        "note": "Implemented on 3l-g7-monthly-savings. Rebase after 3L-G5/G6. Do not merge ahead of those seats."
+        "note": "Implemented on 3l-g7-monthly-savings @ 222c3ce. Merge origin/main (6f02b8a) after G6 spec-block. Pay coordinator_loc ≤10374. claims-for 6.3.15."
       },
       "brief": "Monthly savings history card page (#460). Realised thermostat-baseline ledger; calendar pro-rata for the open month; third expanded-dialog tab. Rebase after 3L-G5/G6. Do not merge ahead of those seats. Closes #460 on its own line."
     },
