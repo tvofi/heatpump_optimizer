@@ -43,6 +43,11 @@
 # The finding-propagation destination fix: this branch claims NOTHING. Two
 # rules files and CLAUDE.md only -- no card source is touched.
 #
+# The document-contradiction fixes (tools/audit/briefs/fixer.md step 5,
+# tests/README.md exclusion list and script counts): this branch claims
+# NOTHING. Prose in two documents only -- no card source, template or style
+# is touched, so the rendered markup is byte-identical by construction.
+#
 # #546, the unsaveable setup page: this branch claims NOTHING. The card's
 # only edit is a comment above its own PLACE_LABELS map; no box, position
 # or payload key is touched, so every rendered state is byte-identical.
