@@ -8,12 +8,12 @@ Everything in this section is **permanent** — it describes the repository, not
 any particular piece of work. Anything dated lives in the fenced block at the
 bottom, which is allowed to go stale and says so.
 
-**This file is not the whole of what applies.** `.cursor/rules/*.mdc` hold four
-`alwaysApply: true` project policies — `delivery-status-tracking.mdc`,
-`ci-autofix.mdc`, `brief-citations.mdc`, `defect-root-cause.mdc`. Cursor loaded them for you; Claude Code
-loads only this file, so **open every one of them yourself at session start** —
-list the directory rather than trusting a count here. The
-sections below summarise them and cite them by name; a summary is not the policy.
+**This file is not the whole of what applies.** `.cursor/rules/*.mdc` hold the
+`alwaysApply: true` project policies. Cursor loaded them for you; Claude Code
+loads only this file, so **list that directory and open every rule in it at
+session start** — do not work from a count or a list of names written here,
+which goes stale the moment a policy is added. The sections below summarise
+some of them and cite them by name; a summary is not the policy.
 
 ## Four rules that will refuse your pull request
 
