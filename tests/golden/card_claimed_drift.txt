@@ -37,3 +37,8 @@
 # #523 (an autofix job that reported success without repairing): this
 # branch claims NOTHING. Gate plumbing and CI only -- no card source is
 # touched.
+#
+#
+#
+# The finding-propagation destination fix: this branch claims NOTHING. Two
+# rules files and CLAUDE.md only -- no card source is touched.
