@@ -60,11 +60,6 @@
 # module imports -- no solver, coordinator or fetch path reaches it, so every
 # scenario fixture is byte-identical by construction.
 #
-# #514 (declare Python 3.13+, raise the Home Assistant floor to 2025.2.0):
-# this branch claims NOTHING. hacs.json, README.md, the CI workflow and
-# comment text only; the one production edit is a docstring in
-# coordinator.py, so every fixture is byte-identical by construction.
-#
 # The #529 record, the open-issue dispositions and the forward carries: this
 # branch claims NOTHING. The plan doc, the two wave rosters and
 # docs/HANDOVER.md only -- no production file, no test input and no solver
