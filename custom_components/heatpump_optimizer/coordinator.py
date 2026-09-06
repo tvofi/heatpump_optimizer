@@ -2011,8 +2011,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         entities), not a physical device, so the registry entry says so:
         ``entry_type=DeviceEntryType.SERVICE`` is what the Gold "devices"
         rule asks for and what makes HA present the entry as a service
-        (#305). It lives in ``helpers.device_registry`` at the 2024.6 floor;
-        ``DeviceInfo`` has no ``config_entry`` field there.
+        (#305). ``helpers.device_registry`` has carried it since 2024.6.0, so
+        it is present at the floor; ``DeviceInfo`` has no ``config_entry``.
         """
         return DeviceInfo(
             identifiers={(DOMAIN, self.entry.entry_id)},
