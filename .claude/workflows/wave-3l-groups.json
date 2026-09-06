@@ -6,7 +6,7 @@
     "Consumed by .claude/workflows/web-fix-wave.js as its `groups` argument."
   ],
   "fork": "6f02b8a71ee6fcc250d17657d60a63cc5cb1532e",
-  "fork_note": "origin/main after 3L-G5 (#483, `6f02b8a`). Re-measure structure at this merge-base. claims-for stays 6.3.15.",
+  "fork_note": "origin/main after 3L-G5 #483 (`6f02b8a`). Re-measure structure at this merge-base. claims-for stays 6.3.15.",
   "session": "claude-web",
   "repo": "/Users/timmalmstrom/heatpump_optimizer",
   "serial": true,
@@ -89,7 +89,7 @@
         "stage": "done",
         "merged_pr": 483,
         "merge_sha": "6f02b8a71ee6fcc250d17657d60a63cc5cb1532e",
-        "note": "Review merge 5556388345 at 0d9ce1b. Optional set-point entities + DHW consistency repair. #408 closed. 3L-G6 spec-blocked; next seat 3L-G7."
+        "note": "Review merge 5556388345 at 0d9ce1b. Consistency only; hassfest flow_title; 7 closures; optimality.evaluate renamed score_plan. Mutation 6+2 FAIL. coordinator_loc 10374. #408 closed. Next seat 3L-G6 (spec-blocked); 3L-G7 follows G5.",
       },
       "brief": "Optional set-point entities + consistency repair only. Optimality / Fix-to-argmin refused (50 to 65 C instability). Holds coordinator/config — later 3L groups must not merge ahead of this seat."
     },
@@ -103,7 +103,8 @@
       "after": ["3L-G5"],
       "resume": {
         "stage": "blocked",
-        "note": "Spec-blocked (#457): no conflict flow exists on main at 6f02b8a. 3L-G7 sits after 3L-G5."
+        "branch": "cursor/3l-g6-setup-conflict-btn-3c04",
+        "note": "NEEDS_CONTEXT at 6f02b8a: no conflict flow in production. #457 stays open. 3L-G7 sits after 3L-G5."
       },
       "brief": "Card setup-page button that opens the conflict flow. Card-only. If still blocked on the conflict-flow spec, 3L-G7 sits after 3L-G5 instead."
     },
@@ -118,7 +119,7 @@
       "resume": {
         "stage": "in_progress",
         "branch": "3l-g7-monthly-savings",
-        "note": "Merging origin/main 6f02b8a. 3L-G6 spec-blocked so this seat follows 3L-G5. claims-for 6.3.15. coordinator_loc must stay ≤10374."
+        "note": "PR #485. Merged origin/main 1859f9d (#484). 3L-G6 spec-blocked so this seat follows 3L-G5. claims-for 6.3.15. coordinator_loc 10370."
       },
       "brief": "Monthly savings history card page (#460). Book savings_baseline and savings_actual on MonthlyLedger; derive savings; calendar pro-rata for the open month; MonthlySavingsSensor _monthly_savings; third expanded-dialog tab. Baseline kW rides on OptimizationResult.baseline_power_schedule (pickle-safe lists for the W3-G3 process route), not on data[] or a plan sensor. Pay coordinator_loc, never raise. claims-for 6.3.15. No golden re-record. Closes #460 on its own line. Spec docs/superpowers/specs/2026-09-05-monthly-savings-history-design.md. Plan docs/superpowers/plans/2026-09-05-monthly-savings-history.md."
     },
