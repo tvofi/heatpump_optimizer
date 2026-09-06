@@ -24,9 +24,9 @@
 # v6.3.16: the solve worker could not unpickle its job. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
-# #518, the handover consolidation: this branch claims NOTHING. Docs, the
-# gate's own classification of them, and tests/entities.py only -- no card
-# source is touched.
+# The #529 record and the open-issue dispositions: this branch claims
+# NOTHING. The plan doc and the two wave rosters only -- no card source is
+# touched.
 #
 # 2026-09-06, the #201 record seat: this branch claims NOTHING. The plan doc,
 # a Wave 4 roster recount and docs/HANDOVER.md only -- no card source is
