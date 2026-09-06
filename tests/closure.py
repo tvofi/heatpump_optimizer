@@ -222,13 +222,16 @@ HANDOVER_STEM = "handover"
 
 
 def is_handover(rel: str) -> bool:
-    name = rel[len(HANDOVER_DIR):].lower()
-    return (
-        rel.startswith(HANDOVER_DIR)
-        and "/" not in name
-        and name.startswith(HANDOVER_STEM)
-        and name.endswith(".md")
-    )
+    """Anything under `docs/` whose first path segment starts with `handover`.
+
+    Deliberately wider than the one filename: it also catches a dated sibling
+    and the `docs/handovers/` directory someone reaches for once the flat name
+    is refused, which is the shape the ban would otherwise be one rename from.
+    """
+    if not rel.startswith(HANDOVER_DIR):
+        return False
+    first = rel[len(HANDOVER_DIR):].lower().split("/", 1)[0]
+    return first.startswith(HANDOVER_STEM)
 
 
 def is_inert(rel: str) -> bool:

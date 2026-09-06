@@ -86,11 +86,13 @@ an abort, which an unpushed in-tree edit does not.
 
 **Nothing goes in both.** That is what non-redundant means here.
 
-`tests/entities.py` enforces it: exactly one `docs/handover*.md`, and an
+`tests/entities.py` enforces it: exactly one handover under `docs/`, and an
 `updated-for:` naming a commit reachable from `HEAD`. Handover files are
 deliberately *not* on `tests/closure.py`'s `INERT` list, so editing the living
 one selects that script and adding a second forces `MODE: FULL` — either way
-the refusal lands on the pull request rather than on the push to main.
+the refusal lands on the pull request rather than on the push to main. The
+count is by path segment, not filename, so `docs/handovers/` is a second
+handover too.
 
 ## Programme plans and the brief linter
 
