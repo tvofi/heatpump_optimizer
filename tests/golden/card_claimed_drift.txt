@@ -19,11 +19,10 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 6.3.16
+# claims-for: 6.3.17
 #
-# W4-G7 S6 (#193, the grid seam): this branch claims NOTHING. Coordinator
-# initialisation and one helper's location only -- no card source, no payload
-# key and no published value is touched.
+# v6.3.17: the card's setup page could not be saved. The stamp empties the list; the
+# next branch restates its own footprint, claims included.
 #
 # #521, the real-Home-Assistant nightly: this branch claims NOTHING. A new
 # test script, its two classification entries and one workflow job -- no
