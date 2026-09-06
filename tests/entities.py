@@ -7717,6 +7717,58 @@ R.check(
     not _orphans,
     "these force the FULL suite when touched: " + ", ".join(_orphans[:8]),
 )
+
+# One living handover (#518). A dated series accumulates, and every file in it
+# but the newest hands the next session confident, wrong instructions -- the
+# resumability audit this repository's CLAUDE.md opens with is the same finding
+# one level up. The policy is in CLAUDE.md under "One living handover"; this is
+# what refuses a second copy.
+#
+# Reading it here is what keeps `docs/HANDOVER.md` out of INERT, and that is
+# deliberate rather than incidental: the pull requests that touch a handover are
+# usually record pull requests carrying nothing but docs and roster JSON, which
+# are otherwise INERT to a man and scope to zero scripts. Left inert, this check
+# would run only on the push to main -- the late-gate shape that produced #354
+# and five repeats.
+_handovers = sorted(
+    f for f in _subprocess.run(
+        ["git", "ls-files", "docs"], cwd=_closure.ROOT,
+        capture_output=True, text=True,
+    ).stdout.split()
+    if _closure.is_handover(f)
+)
+R.check(
+    "exactly one handover, with no date in its name",
+    _handovers == ["docs/HANDOVER.md"],
+    f"found {_handovers or 'none'}; durable state belongs in the single "
+    "docs/HANDOVER.md and volatile state on #201, never in both",
+)
+# `updated-for:` is the staleness half: a handover nobody has re-pointed since
+# the merge it describes is the failure mode, not one that has been deleted.
+# Reachability, rather than equality with HEAD, is what a branch can satisfy --
+# the line names the merge the text reflects, which is always an ancestor.
+_uf = _re.search(
+    r"^updated-for:[ \t]*([0-9a-f]{7,40})[ \t]*$",
+    Path("docs/HANDOVER.md").read_text(),
+    _re.M,
+) if Path("docs/HANDOVER.md").exists() else None
+R.check(
+    "the handover names the commit it reflects",
+    _uf is not None,
+    "docs/HANDOVER.md needs a line `updated-for: <sha>` naming the merge it "
+    "was last written against",
+)
+R.check(
+    "and that commit is reachable from HEAD",
+    _uf is not None and _subprocess.run(
+        ["git", "merge-base", "--is-ancestor", _uf.group(1), "HEAD"],
+        cwd=_closure.ROOT, capture_output=True,
+    ).returncode == 0,
+    f"updated-for: {_uf.group(1) if _uf else '?'} is not an ancestor of HEAD -- "
+    "re-point it at the merge this handover reflects (a shallow clone cannot "
+    "answer this; the gate jobs check out with fetch-depth: 0)",
+)
+
 # HA loads repairs.py dynamically, so a witness must import it or it is an
 # orphan and forces MODE: FULL (#408).
 from heatpump_optimizer import repairs as _repairs_mod  # noqa: E402

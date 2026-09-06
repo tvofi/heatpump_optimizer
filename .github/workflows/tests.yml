@@ -350,8 +350,9 @@ jobs:
   # script, tests/card_browser.mjs): its own never-scoped job, `if:` copied
   # verbatim, so `closure-scope`'s case output cannot skip it. `node
   # .claude/workflows/check-wave-script.mjs` is the other file in this
-  # position and still runs by hand only; this is the follow-up docs/
-  # handover-2026-09-04.md's trap 7 named as owed.
+  # position and still runs by hand only, which leaves the wave resume control
+  # flow as the one piece of orchestration no CI job runs; a job of this shape
+  # for it is owed.
   #
   # Live wave-*-groups.json must lint clean (0 errors) so this job can
   # stay green on main. The 931dffe acceptance fixture is the rot pin:

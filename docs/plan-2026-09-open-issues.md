@@ -3,8 +3,9 @@
 Written 2026-09-03 against `main` at `4b6e076` (v6.3.9, eight merges
 unstamped). This is the worklist for every issue open at that moment — 61 of
 them — planned in one pass after three sessions stood down and handed over
-(`tvofi-claude-09` and `tvofi-claude-40` on #201, the latter also in
-`docs/handover-2026-09-03.md`; `cloud-ratchet` is one-way).
+(`tvofi-claude-09` and `tvofi-claude-40`, both on #201; `cloud-ratchet` is
+one-way). What those stand-downs established that is still in force was folded
+into `docs/HANDOVER.md` when the dated handover series was retired (#518).
 
 It supersedes `docs/plan-open-issues.md`, which covered #86–#101 and is
 complete. The audit register stays `docs/audit-2026-09.md`; this file is the
@@ -440,7 +441,8 @@ So that an aborted session loses nothing:
 | reviewer verdict | the PR: `Fix review: …` with RESULT lines |
 | cannot finish | the issue: `state at stop:` naming branch, pushed SHA, last green check, what is missing |
 | wave end | this file's Delivery status, `docs/audit-2026-09.md` status cells, a #201 comment |
-| stand-down | a #201 comment and `docs/handover-<date>.md` |
+| a merge that settles a decision, corrects the record or leaves work owed | `docs/HANDOVER.md`, in that merge's own PR |
+| stand-down | a #201 comment — running seats, unpushed branches, next action. Durable state is already in `docs/HANDOVER.md` and is not repeated |
 
 The per-group briefs are committed too, not only the wave tables above:
 `.claude/workflows/wave-1b-groups.json` holds all fourteen Wave 1b groups as
