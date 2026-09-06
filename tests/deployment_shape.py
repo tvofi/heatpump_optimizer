@@ -222,8 +222,22 @@ def _materialise(repo: Path, dest: Path) -> int:
     ``__pycache__`` or whatever else is lying in the working tree. Content
     comes from the working tree so that a fix under test is the thing measured
     rather than whatever HEAD happens to hold.
+
+    Files the gate declares INERT are skipped. Copying one would open it, the
+    audit hook would record it, and `closure.py check` refuses a file that is
+    both declared unread and recorded as read (#357) — a contradiction no CI
+    autofix repairs. The predicate is asked of `closure.py` rather than
+    restated, so a file entering or leaving INERT needs no edit here. Nothing
+    dropped this way can change what this lane measures: INERT means no test
+    reads it, and quality_scale.yaml -- the only package file it covers today
+    -- is a register hassfest skips for custom repositories.
     """
-    rels = _tracked(repo)
+    # Local: `tests/` is deliberately off this file's sys.path, because the
+    # driver half runs under -P and must not resolve anything from here.
+    sys.path.insert(0, str(repo / "tests"))
+    import closure
+
+    rels = [rel for rel in _tracked(repo) if not closure.is_inert(rel)]
     for rel in rels:
         target = dest / rel
         target.parent.mkdir(parents=True, exist_ok=True)
