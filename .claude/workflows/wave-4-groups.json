@@ -68,8 +68,10 @@
       "fixture": false,
       "after": ["W4-G2"],
       "resume": {
-        "stage": "pending",
-        "note": "Next seat after #500 (`67e1cf3`). No child issue — survey/record only unless a verbatim zero-state extraction exists. Do not Closes #193."
+        "stage": "review",
+        "pr": 502,
+        "head": "c77a66d49a0af16014a9ff37b84b043c7a29bf96",
+        "note": "S2. Extracted _solve_anchor and _liquid_fraction to coordinator.py module level. Loc 10344→10305, methods 253→251, edges 372→367. _plan_slots stays on the class (cc=23). Do not Closes #193. Do not start S3."
       },
       "brief": "S2 of #193. No child issue — survey/record only. SURVEY FIRST: zero-state series / headroom / plan math to module level (existing coordinator.py, not a new file). HALT (docs/roster record, empty claims, no production extraction) if any of: (1) no remaining zero-state function that extracts at helper cc≤15; (2) extraction needs a new module (local_imports 7/7); (3) any structure metric would rise; (4) the candidate is not pure/zero-state. Cut cost must not justify a different seam. Do not invent a backend. Do not Closes #193 — Part of #193, Part of #201. If you extract: bodies verbatim, goldens byte-identical, empty claims, coordinator_loc and max_class_loc must go down. Never re-record cross_seam_fraction. claims-for 6.3.15. Do not stamp. Do not start S3."
     },
