@@ -23361,4 +23361,89 @@ R.check(
     f"assigned={len(_s5_names)} missing={_s5_absent}",
 )
 
+R.section("#193 S6 — the grid fee entity read over plain values")
+
+# The helper takes ``hass`` and the config mapping, never ``self``: a
+# module-level helper handed the coordinator would keep every reference it
+# moved, because tests/structure.py walks only class methods, so the cut would
+# fall while the coupling stood. Same rule as S5's _effective_house_heat_loss.
+try:
+    from heatpump_optimizer.coordinator import (  # noqa: E402
+        _grid_fee_entity_value as _s6_fee,
+    )
+except ImportError:  # pragma: no cover - the pre-S6 tree
+    _s6_fee = None
+from heatpump_optimizer.const import CONF_GRID_FEE_ENTITY as _S6_FEE_KEY  # noqa: E402
+
+R.check(
+    "_grid_fee_entity_value is importable from the coordinator module (#193 S6)",
+    _s6_fee is not None,
+    "not present at module level",
+)
+
+
+class _S6State:
+    def __init__(self, state):
+        self.state = state
+
+
+class _S6Hass:
+    """Just enough hass for a states lookup: the helper touches nothing else."""
+
+    def __init__(self, mapping):
+        self.states = type("_S", (), {"get": staticmethod(mapping.get)})()
+
+
+_s6_cfg = {_S6_FEE_KEY: "sensor.fee"}
+_s6_read = (
+    (lambda raw: _s6_fee(_S6Hass({"sensor.fee": _S6State(raw)}), _s6_cfg))
+    if _s6_fee is not None
+    else (lambda raw: None)
+)
+R.check(
+    "the helper returns the fee entity's own value (#193 S6)",
+    _s6_fee is not None and _s6_read("0.42") == 0.42,
+    f"got {_s6_read('0.42')!r} for a sensor reading 0.42",
+)
+# The null control. The check above passes for a helper that returns the
+# constant 0.42, or that ignores its arguments entirely -- so it is re-run at
+# a second value, where a constant and a real read part company.
+R.check(
+    "and that number tracks the entity, so the equality is not vacuous (#193 S6)",
+    _s6_fee is not None and _s6_read("0.42") == 0.42 and _s6_read("0.91") == 0.91,
+    f"0.42 -> {_s6_read('0.42')!r}, 0.91 -> {_s6_read('0.91')!r}",
+)
+R.check(
+    "an unreadable, absent or unconfigured fee entity reads as None (#193 S6)",
+    _s6_fee is not None
+    and _s6_read("unavailable") is None
+    and _s6_read("inf") is None
+    and _s6_fee(_S6Hass({}), _s6_cfg) is None
+    and _s6_fee(_S6Hass({"sensor.fee": _S6State("0.42")}), {}) is None,
+    "a non-numeric, non-finite, missing or unconfigured entity must not "
+    "become a fee",
+)
+
+# The frequency split must not have dropped an assignment. The names are read
+# off ``_init_frequency`` itself rather than listed here, so an attribute added
+# to it later is covered without touching this test.
+_s6_init = getattr(Coord, "_init_frequency", None)
+if _s6_init is None:
+    _s6_names: set = set()
+else:
+    _s6_names = {
+        _n.attr
+        for _n in _ast_s5.walk(
+            _ast_s5.parse(_textwrap_s5.dedent(_inspect_s5.getsource(_s6_init)))
+        )
+        if isinstance(_n, _ast_s5.Attribute) and isinstance(_n.ctx, _ast_s5.Store)
+    }
+_s6_absent = sorted(_a for _a in _s6_names if not hasattr(_s5_coord, _a))
+R.check(
+    "every attribute _init_frequency assigns is present on a constructed "
+    "coordinator, so the split dropped none of them (#193 S6)",
+    len(_s6_names) > 1 and not _s6_absent,
+    f"assigned={len(_s6_names)} missing={_s6_absent}",
+)
+
 sys.exit(R.close("FEATURE CHECKS"))

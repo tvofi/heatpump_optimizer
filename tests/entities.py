@@ -1249,6 +1249,70 @@ R.check(
     f"class={'_effective_house_heat_loss' in _s2_cls_fns}",
 )
 
+# S6 of #193, the same lever on the grid seam. `freq_control.py` is the heat
+# pump's own compressor frequency -- not anything about the electrical grid --
+# but `_init_grid` assigned its four attributes, so grid *owned* them and every
+# `_observe_frequency` / `_command_frequency` read was priced against the grid
+# seam: 28 of cut_grid for state no grid method reads. Merging the block back
+# is the regression these checks exist to stop; nothing else in the suite could
+# fail on it. `_s5_seam` is reused deliberately -- it buckets by structure.py's
+# own SEAM_REGEXES, so a change to the metric moves this test with it.
+R.section("S6 inverter-frequency state outside the grid seam (#193)")
+_s6_init = next(
+    (
+        _n
+        for _n in _s1_cls.body
+        if isinstance(_n, (_ast_s1.FunctionDef, _ast_s1.AsyncFunctionDef))
+        and _n.name == "_init_frequency"
+    ),
+    None,
+)
+# Read off the initialiser itself, never a list kept here: a hand-kept list
+# would silently stop covering an attribute added to it later.
+_s6_state = (
+    {
+        _n.attr
+        for _n in _ast_s1.walk(_s6_init)
+        if isinstance(_n, _ast_s1.Attribute) and isinstance(_n.ctx, _ast_s1.Store)
+    }
+    if _s6_init is not None
+    else set()
+)
+R.check(
+    "_init_frequency exists, outside the grid seam, and initialises state",
+    _s6_init is not None
+    and _s5_seam("_init_frequency") != "grid"
+    and len(_s6_state) > 1,
+    f"present={_s6_init is not None} "
+    f"seam={_s5_seam('_init_frequency')} attrs={len(_s6_state)}",
+)
+
+_s6_grid_writers: dict[str, list[str]] = {}
+for _fn in _s1_cls.body:
+    if not isinstance(_fn, (_ast_s1.FunctionDef, _ast_s1.AsyncFunctionDef)):
+        continue
+    if _s5_seam(_fn.name) != "grid":
+        continue
+    for _n in _ast_s1.walk(_fn):
+        if (
+            isinstance(_n, _ast_s1.Attribute)
+            and isinstance(_n.ctx, _ast_s1.Store)
+            and _n.attr in _s6_state
+        ):
+            _s6_grid_writers.setdefault(_n.attr, []).append(_fn.name)
+R.check(
+    "no grid-seam method assigns inverter-frequency state (#193 S6)",
+    bool(_s6_state) and not _s6_grid_writers,
+    f"grid-seam assignments: { {k: sorted(set(v)) for k, v in _s6_grid_writers.items()} }",
+)
+R.check(
+    "_grid_fee_entity_value is a module-level FunctionDef, not a class method",
+    "_grid_fee_entity_value" in _s2_mod_fns
+    and "_grid_fee_entity_value" not in _s2_cls_fns,
+    f"module={'_grid_fee_entity_value' in _s2_mod_fns} "
+    f"class={'_grid_fee_entity_value' in _s2_cls_fns}",
+)
+
 # The premise, stated in production's own terms: with nothing sensing the
 # tank, the buffer or the lower floor, what gets published IS the dataclass
 # default. No magic numbers here -- they are read off `ThermalState()`.
@@ -9676,21 +9740,149 @@ R.section("Diagnostics (D10-12)")
 from heatpump_optimizer import diagnostics as _diag_mod  # noqa: E402
 import json as _json
 
+# #509: what a household looks like in a diagnostics file. The coordinate is
+# full precision and its 1-decimal cell is a different string, so "the precise
+# value is absent" cannot pass just because the two happen to render the same;
+# ``_DIAG_DEEP`` sits two levels down and inside a list, because the property
+# that stops the NEXT nested location from leaking is depth-independence, not a
+# rule about ``solar_location``; and the option-level coordinate differs from
+# the data-level one so a payload that ever starts emitting option values is
+# measured too.
+_DIAG_LAT, _DIAG_LON = 59.331234, 18.071234
+_DIAG_OPT_LAT, _DIAG_OPT_LON = 59.335555, 18.075555
+_DIAG_NAME = "Villa Solbacken Storgatan 5"
+_DIAG_TOPIC = "home/storgatan5/ecl110/state"
+_DIAG_DEEP = {
+    "sites": [{"station": {"latitude": _DIAG_LAT, "longitude": _DIAG_LON}}],
+    # A coordinate that is not a number: free text under a coordinate key can
+    # be an address, so it must not survive the way a number does.
+    "typed": {"latitude": "Storgatan 5, Solna", "longitude": None},
+}
+_DIAG_DATA = {
+    **_CRED_DATA,
+    "name": _DIAG_NAME,
+    const.CONF_SOLAR_LOCATION: {
+        "latitude": _DIAG_LAT,
+        "longitude": _DIAG_LON,
+        "elevation": "not-a-number",
+    },
+    const.CONF_ECL110_STATE_TOPIC: _DIAG_TOPIC,
+    "_deep": _DIAG_DEEP,
+}
+_DIAG_OPTIONS = {
+    const.CONF_SOLAR_LOCATION: {
+        "latitude": _DIAG_OPT_LAT,
+        "longitude": _DIAG_OPT_LON,
+    },
+    const.CONF_TARGET_TEMP: 21.0,
+}
+
 _diag_hass = FakeHass()
-_diag_entry = FakeEntry(data=dict(_CRED_DATA))
+_diag_entry = FakeEntry(data=dict(_DIAG_DATA), options=dict(_DIAG_OPTIONS))
 _diag_entry.runtime_data = integration.HeatPumpOptimizerCoordinator(
-    _diag_hass, FakeEntry(data=dict(_CRED_DATA))
+    _diag_hass, FakeEntry(data=dict(_DIAG_DATA), options=dict(_DIAG_OPTIONS))
 )
 _diag = asyncio.run(
     _diag_mod.async_get_config_entry_diagnostics(_diag_hass, _diag_entry)
 )
 _blob = _json.dumps(_diag, default=str)
+_HA_REDACTED = "**REDACTED**"
+
+
+def _diag_at(node, *path):
+    """Walk ``path`` through dicts and lists, returning None at any mismatch.
+
+    Over-redaction replaces a dict with a string, so a check written as
+    ``payload["config"]["solar_location"].get(...)`` raises instead of
+    failing -- which aborts the section before the over-redaction control
+    below can run. This keeps every outcome a named check.
+    """
+    for step in path:
+        if isinstance(step, int):
+            if not isinstance(node, list) or len(node) <= step:
+                return None
+            node = node[step]
+        elif isinstance(node, dict):
+            node = node.get(step)
+        else:
+            return None
+    return node
+
+
+_diag_location = _diag_at(_diag, "config", const.CONF_SOLAR_LOCATION)
+_diag_location = _diag_location if isinstance(_diag_location, dict) else {}
+
 R.check(
     "the Tibber token never leaves the instance",
-    _diag["config"].get(_CONF_TOKEN) == "REDACTED"
+    _diag["config"].get(_CONF_TOKEN) == _HA_REDACTED
     and "stub-token" not in _blob
     and _CRED_DATA[_CONF_TOKEN] not in _blob,
     "a credential (or a fragment of it) appeared in the payload",
+)
+
+# --- #509: no precise coordinate, and no household label, in the payload ----
+R.check(
+    "no precise coordinate leaves the instance, from data or from options",
+    not any(
+        repr(_c) in _blob
+        for _c in (_DIAG_LAT, _DIAG_LON, _DIAG_OPT_LAT, _DIAG_OPT_LON)
+    ),
+    "a full-precision coordinate appeared in the diagnostics payload: "
+    + ", ".join(
+        repr(_c)
+        for _c in (_DIAG_LAT, _DIAG_LON, _DIAG_OPT_LAT, _DIAG_OPT_LON)
+        if repr(_c) in _blob
+    ),
+)
+R.check(
+    "the coordinate survives as a coarse cell rather than as a hole",
+    _diag_location.get("latitude") == round(_DIAG_LAT, 1)
+    and _diag_location.get("longitude") == round(_DIAG_LON, 1),
+    f"solar_location came back as {_diag_location!r}; support cannot see a "
+    f"swapped or wrong-country coordinate through a redacted one",
+)
+R.check(
+    "the documented coordinate precision is one decimal place",
+    getattr(_diag_mod, "COORDINATE_PLACES", None) == 1,
+    f"COORDINATE_PLACES is {getattr(_diag_mod, 'COORDINATE_PLACES', None)!r}",
+)
+R.check(
+    "the coarsening reaches a coordinate nested below the top level",
+    _diag_at(_diag, "config", "_deep", "sites", 0, "station", "latitude")
+    == round(_DIAG_LAT, 1),
+    "a coordinate two levels down, inside a list, came back as "
+    f"{_diag_at(_diag, 'config', '_deep', 'sites', 0, 'station', 'latitude')!r}",
+)
+_diag_typed = _diag_at(_diag, "config", "_deep", "typed")
+_diag_typed = _diag_typed if isinstance(_diag_typed, dict) else {}
+R.check(
+    "a coordinate that is not a number is redacted rather than published",
+    _diag_typed.get("latitude") == _HA_REDACTED
+    and _diag_typed.get("longitude") == _HA_REDACTED
+    and "Storgatan 5, Solna" not in _blob,
+    f"a non-numeric coordinate came back as {_diag_typed!r}",
+)
+R.check(
+    "a non-coordinate member of the location dict is left alone",
+    _diag_location.get("elevation") == "not-a-number",
+    "redaction reached a key that is not a coordinate",
+)
+R.check(
+    "the installation name the user typed never leaves the instance",
+    _diag["config"].get("name") == _HA_REDACTED and _DIAG_NAME not in _blob,
+    "the user's chosen entry name appeared in the diagnostics payload",
+)
+# The over-redaction control. Diagnostics exist for support; a fix that
+# redacts the whole config would pass every check above and make the file
+# useless, so the two things a bug report is actually read for are pinned.
+R.check(
+    "the entity ids and the MQTT topic survive redaction",
+    _diag_at(_diag, "config", "weather_entity") == _CRED_DATA["weather_entity"]
+    and _diag_at(_diag, "config", "indoor_temp_entity")
+    == _CRED_DATA["indoor_temp_entity"]
+    and _diag_at(_diag, "config", const.CONF_ECL110_STATE_TOPIC) == _DIAG_TOPIC,
+    "redaction removed what a diagnostics file is read for: weather_entity is "
+    f"{_diag_at(_diag, 'config', 'weather_entity')!r}",
 )
 R.check(
     "the payload is plain JSON and names the coordinator's state",
