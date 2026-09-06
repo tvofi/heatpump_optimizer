@@ -7554,50 +7554,76 @@ R.check(
     _closure.select(["tests/derive_closures.sh"])["mode"] == "full",
     "the lanes decide how every recording is taken; that invalidates them all",
 )
+R.check(
+    "changing the portable node recorder invalidates every closure",
+    _closure.select(["tests/node_fs_trace.mjs"])["mode"] == "full",
+    "a different wrap changes every node recording",
+)
 
-# --- node recording needs strace (#401) ------------------------------------
-import contextlib as _strace_ctx
-import io as _strace_io
+# --- node recording without strace -----------------------------------------
+# Darwin has no strace (SIP blocks dtruss). The portable --import tracer
+# records the same repo files; Linux CI still uses strace when present.
 from unittest import mock as _mock
 
-def _record_node_missing_strace() -> tuple[int | None, str]:
-    err = _strace_io.StringIO()
-    with _mock.patch.object(_closure.shutil, "which", return_value=None):
-        with _strace_ctx.redirect_stderr(err):
-            with _tempfile.TemporaryDirectory() as d:
-                try:
-                    _closure._record_node(
-                        "tests/card.mjs", f"{d}/card.mjs.json", {})
-                except SystemExit as exc:
-                    return exc.code, err.getvalue()
-                except FileNotFoundError:
-                    return None, err.getvalue()
-    return None, err.getvalue()
+def _record_probe_no_strace() -> tuple[int, dict]:
+    with _tempfile.TemporaryDirectory() as d:
+        probe = Path(d) / "probe.mjs"
+        probe.write_text(
+            'import fs from "node:fs";\n'
+            'fs.readFileSync("VERSION", "utf8");\n'
+            'fs.readFileSync("tests/README.md", "utf8");\n'
+        )
+        out = Path(d) / "probe.json"
+        real_which = _closure.shutil.which
 
-_missing_strace_rc, _missing_strace_err = _record_node_missing_strace()
+        def _hide_strace(cmd, *a, **k):
+            if cmd == "strace":
+                return None
+            return real_which(cmd, *a, **k)
+
+        with _mock.patch.object(_closure.shutil, "which", _hide_strace):
+            rc = _closure._record_node(str(probe), str(out), dict(_os.environ))
+        rec = json.loads(out.read_text()) if out.exists() else {}
+        return rc, rec
+
+_probe_rc, _probe_rec = _record_probe_no_strace()
 R.check(
-    "_record_node refuses when strace is missing",
-    _missing_strace_rc == 1,
-    "must abort before subprocess, not with a bare FileNotFoundError",
+    "node recording works without strace",
+    _probe_rc == 0 and _probe_rec.get("how") == "node-fs-trace",
+    f"rc={_probe_rc} how={_probe_rec.get('how')!r} err={_probe_rec.get('stderr_tail', '')[-300:]!r}",
 )
 R.check(
-    "the refusal names strace and the Linux CI recorder",
-    "strace" in _missing_strace_err and "closures job" in _missing_strace_err,
-    f"stderr was {_missing_strace_err!r}",
+    "the portable node recorder sees repo files the script opened",
+    "VERSION" in _probe_rec.get("files", [])
+    and "tests/README.md" in _probe_rec.get("files", []),
+    f"files={_probe_rec.get('files')}",
 )
-
-def _require_strace_present_ok() -> bool:
-    with _mock.patch.object(_closure.shutil, "which", return_value="/usr/bin/strace"):
-        try:
-            _closure._require_strace()
-        except SystemExit:
-            return False
-    return True
-
+# Darwin --single must grow, not shrink: node-fs-trace is a subset of
+# strace -f. Union keeps files only Linux recorded.
+with _tempfile.TemporaryDirectory() as _un_td:
+    _un_root = Path(_un_td)
+    _un_out = _un_root / "closures.json"
+    _un_script = "tests/card.mjs"
+    _un_out.write_text(json.dumps({
+        "closures": {_un_script: ["VERSION", "tests/card.mjs",
+                                  "custom_components/heatpump_optimizer/frontend.py"]},
+        "recorded": {},
+    }))
+    _un_rec = _un_root / "rec"
+    _un_rec.mkdir()
+    (_un_rec / "card.mjs.json").write_text(json.dumps({
+        "script": _un_script, "rc": 0, "seconds": 0.1,
+        "files": ["VERSION", "tests/README.md"],
+        "how": "node-fs-trace",
+    }))
+    _un_rc = _closure.merge(_un_rec, _un_out, partial=True)
+    _un_got = set(json.loads(_un_out.read_text())["closures"][_un_script])
 R.check(
-    "_require_strace is silent when strace is on PATH",
-    _require_strace_present_ok(),
-    "the guard must not refuse a Linux recorder",
+    "a Darwin node re-record unions instead of replacing",
+    _un_rc == 0
+    and "custom_components/heatpump_optimizer/frontend.py" in _un_got
+    and "tests/README.md" in _un_got,
+    f"rc={_un_rc} files={sorted(_un_got)}",
 )
 
 # --- when the closures CHECK itself runs (#354) -----------------------------

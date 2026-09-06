@@ -99,20 +99,19 @@ records the union of
 * every entry in `sys.modules` whose `__file__` is inside the repo — the
   integration modules and the `tests/hastub` stub.
 
-`card.mjs` has no audit hook, so it is recorded under `strace` instead; the
-result is the same list of repo files it really opened.
+`card.mjs` has no Python audit hook. Linux CI records it under `strace`
+(`openat`, including children). Darwin has no `strace` (SIP blocks
+`dtruss`); `_record_node()` then uses `node --import tests/node_fs_trace.mjs`,
+which wraps `fs` / `child_process` and the ESM loader. That is Node's own
+opens, not a Linux syscall emulator. Python scripts still re-derive through
+the audit hook on every platform.
 
-**Node scripts need `strace`.** `card.mjs` and `card_drift.mjs` have no audit
-hook, so `_record_node()` records them under `strace`. On platforms without
-it — macOS, including the owner's machine — `_record_node()` aborts with a
-clear message rather than failing mid-derive with `FileNotFoundError`. That
-limit is scoped to the **two node lanes only**: every Python script still
-re-derives normally through the audit hook. Re-record the node lanes on Linux
-or anywhere `strace` is installed; CI's `closures` job does this on every
-push to `main`. Carrying the two node entries forward from the last
-successful derive and disclosing it remains the correct response when you
-cannot reach `strace` — it does not excuse skipping a Python re-derive the
-change actually needs.
+A Darwin node recording is a **subset** of `strace -f`. `merge --partial`
+unions a `how: node-fs-trace` record into the committed list so `--single`
+can grow a node closure without dropping files only Linux `strace` saw.
+Do **not** use Darwin `--single` to repair a CI `UNDER-SCOPED` — that job
+already recorded under `strace`. Linux `closures` on `main` stays the
+completeness check.
 
 Three closures are then widened by rule, because a trace of *this* process
 cannot see what they depend on:
@@ -197,7 +196,7 @@ whole suite and takes as long):
 which records just that script and merges the result into
 `tests/closures.json`. Commit both together. (`golden.py` and `env_drift.py`
 get their cheap recorded arguments automatically; `card.mjs` and
-`card_drift.mjs` are recorded through strace.) If the script belongs in a
+`card_drift.mjs` record through `strace` on Linux or `--import` on Darwin.) If the script belongs in a
 lane permanently, add it to `tests/derive_closures.sh` as well, so full
 re-derivations keep it fresh.
 

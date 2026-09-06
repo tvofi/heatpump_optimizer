@@ -110,10 +110,12 @@ forensics. `run.sh` holds `flock` for the gate run so a crash drops flock and
 a waiter can take immediately — the lease covers the window between commands
 when nothing holds flock (#404).
 
-A full `./tests/derive_closures.sh` cannot re-record the node lanes
-(`tests/card.mjs`, `tests/card_drift.mjs`) on macOS: they need `strace`, which
-CI's `closures` job provides on Linux. Python closures can still be re-derived
-locally.
+Node lanes (`tests/card.mjs`, `tests/card_drift.mjs`) record on Darwin via
+`node --import tests/node_fs_trace.mjs` (Node `fs` / loader, not `strace`).
+`--single` of an existing node script **unions** into the committed list;
+it cannot shrink a Linux `strace` closure. Python closures re-derive locally
+as before. Do not Darwin `--single` a CI `UNDER-SCOPED` — autofix already
+has the Linux recordings.
 
 ## CI already repairs two mechanical failures — do not re-implement them
 

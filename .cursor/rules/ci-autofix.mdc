@@ -7,9 +7,11 @@ alwaysApply: true
 
 Same-repo PRs already have two jobs in `.github/workflows/tests.yml`. If
 `closures` is `UNDER-SCOPED` or `fast` fails `INHERITED CLAIMS`, **wait**.
-Do not open a parallel PR, do not run `./tests/derive_closures.sh --single`
-on Darwin for an under-scope CI already recorded, and do not hand-empty
-claim files that match `origin/main`.
+Do not open a parallel PR, do not Darwin `--single` an under-scope CI
+already recorded (Linux `strace` recordings are the ones to merge), and
+do not hand-empty claim files that match `origin/main`. Darwin can
+`--single` a **new** node script, or grow a node closure; it cannot
+replace a Linux node recording.
 
 | Failure | Job | Commit subject | Code |
 |---|---|---|---|
