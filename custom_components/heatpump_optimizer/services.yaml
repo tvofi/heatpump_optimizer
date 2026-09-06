@@ -491,6 +491,41 @@ simulate_plan:
         simulates having no demand windows at all.
       selector:
         text:
+    wood_slots:
+      name: Wood slots
+      description: >-
+        What-if wood fires as a list of {start, end, liters} objects. Injected
+        only into the shadow solve; never written to the config entry.
+      selector:
+        object:
+    wood_type:
+      name: Wood type
+      description: What-if wood type override (birch, pine, mixed).
+      selector:
+        text:
+    wood_packing:
+      name: Wood packing
+      description: What-if packing override (packed or loose).
+      selector:
+        text:
+    wood_price_sek_m3:
+      name: Wood price
+      description: What-if firewood price in SEK per billed cubic metre.
+      selector:
+        number:
+          min: 0
+          max: 10000
+          step: 1
+          unit_of_measurement: "SEK/m³"
+    wood_furnace_efficiency:
+      name: Wood furnace efficiency
+      description: What-if furnace efficiency in percent.
+      selector:
+        number:
+          min: 10
+          max: 95
+          step: 1
+          unit_of_measurement: "%"
 
 assign_entity:
   name: Assign Entity

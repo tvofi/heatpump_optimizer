@@ -383,7 +383,11 @@ from .snapshots import BIAS_TRIP_DAYS, SnapshotRing
 from . import pump_schedule
 from homeassistant.helpers import issue_registry as ir
 from .open_meteo import OpenMeteoSolar
-from .wood_fuel import wood_furnace_on, wood_fuel_from_coordinator
+from .wood_fuel import (
+    simulate_wood_slots,
+    wood_furnace_on,
+    wood_fuel_from_coordinator,
+)
 from .thermal_model import (
     DHW_AMBIENT_TEMP,
     WATER_SPECIFIC_HEAT,
@@ -861,6 +865,26 @@ def _diagnose_payload(coord) -> tuple:
 def _store_diagnosis(coord, report) -> None:
     if report is not None:
         coord._last_diagnosis = report
+
+
+def _sim_coldest(plan) -> float | None:
+    """Lowest temperature the plan actually reaches, in either zone."""
+    series = [
+        s
+        for s in (
+            plan.upper_temp_trajectory,
+            plan.lower_temp_trajectory,
+            plan.room_temp_trajectory,
+        )
+        if s
+    ]
+    return round(min(min(s) for s in series), 2) if series else None
+
+
+def _sim_dhw_low(plan) -> float | None:
+    if not plan.dhw_temp_trajectory:
+        return None
+    return round(float(min(plan.dhw_temp_trajectory)), 2)
 
 
 class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
@@ -11102,6 +11126,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             cap_extra = np.full(
                 len(horizon.prices), float(overrides["power_cap_kw"])
             )
+        # One snap for slot stamps and the shadow solve (#463).
+        solve_at = self._solve_anchor(now)
+        wood_err, wood_kw, wood_sek = simulate_wood_slots(
+            overrides, self._config, len(horizon.prices),
+            self._opt_config.dt_hours, solve_at,
+        )
+        if wood_err:
+            return {"error": wood_err, "rate_limited": False}
 
         scratch = HeatPumpOptimizer(ThermalModel(scratch_params), scratch_config)
         try:
@@ -11115,7 +11147,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 horizon.wind_speeds,
                 horizon.precipitation,
                 horizon.solar_radiation,
-                self._solve_anchor(now),
+                solve_at,
                 horizon.price_known,
                 horizon.pv_surplus,
                 # The scratch config inherits price_risk_lambda, so the
@@ -11156,6 +11188,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 # smaller main fuse.
                 space_blocked=self._pump_signals.space_blocked,
                 dhw_blocked=self._pump_signals.dhw_blocked,
+                external_heat_kw=(
+                    np.asarray(wood_kw, dtype=float) if wood_kw is not None else None
+                ),
             )
         except Exception as err:  # noqa: BLE001 - a what-if must never break ops
             _LOGGER.warning("What-if simulation failed: %s", err)
@@ -11164,30 +11199,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         horizon_hours = max(self._opt_config.horizon_hours, 1.0)
         days_per_month = 30.4
         scale = days_per_month * 24.0 / horizon_hours
-        delta = simulated.predicted_cost - result.predicted_cost
-
-        def coldest(plan) -> float | None:
-            """Lowest temperature the plan actually reaches, in either zone."""
-            series = [
-                s
-                for s in (
-                    plan.upper_temp_trajectory,
-                    plan.lower_temp_trajectory,
-                    plan.room_temp_trajectory,
-                )
-                if s
-            ]
-            return round(min(min(s) for s in series), 2) if series else None
-
-        def dhw_low(plan) -> float | None:
-            if not plan.dhw_temp_trajectory:
-                return None
-            return round(float(min(plan.dhw_temp_trajectory)), 2)
+        delta = simulated.predicted_cost - result.predicted_cost + wood_sek
 
         payload = {
             "baseline_cost": round(result.predicted_cost, 2),
-            "simulated_cost": round(simulated.predicted_cost, 2),
+            "simulated_cost": round(simulated.predicted_cost + wood_sek, 2),
             "cost_delta": round(delta, 2),
+            **({"wood_sek": round(wood_sek, 2)} if "wood_slots" in overrides else {}),
             "monthly_cost_delta": round(delta * scale, 2),
             # T2: present only when the what-if capped power — the worst
             # comfort-floor shortfall that cap forced, 0.0 when feasible.
@@ -11201,14 +11219,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 else {}
             ),
             "savings_percentage": round(simulated.savings_percentage, 1),
-            "min_room_temperature": coldest(simulated),
+            "min_room_temperature": _sim_coldest(simulated),
             # The comfort consequence, alongside the money. A cheaper plan that
             # is colder or leaves the tank short is not the same trade, and a
             # simulator that reported only the saving would be inviting the
             # user to make exactly that mistake.
-            "baseline_min_room_temperature": coldest(result),
-            "min_dhw_temperature": dhw_low(simulated),
-            "baseline_min_dhw_temperature": dhw_low(result),
+            "baseline_min_room_temperature": _sim_coldest(result),
+            "min_dhw_temperature": _sim_dhw_low(simulated),
+            "baseline_min_dhw_temperature": _sim_dhw_low(result),
             "dhw_slots": len(
                 self._plan_slots(
                     simulated.timestamps,

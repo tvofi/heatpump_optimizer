@@ -1,6 +1,8 @@
 """Firewood price and the cheaper-than-pump rule. Does not detect fires."""
 from __future__ import annotations
 
+from datetime import datetime, timedelta
+
 from .const import (
     CONF_DHW_WOOD_COIL_ENABLED,
     CONF_EXTERNAL_HEAT_ENABLED,
@@ -122,6 +124,122 @@ def wood_cheaper(
 
 def _iso(ts) -> str:
     return ts.isoformat() if hasattr(ts, "isoformat") else str(ts)
+
+
+def _as_dt(raw, stamps):
+    if raw is None:
+        return None
+    if hasattr(raw, "tzinfo"):
+        ts = raw
+    else:
+        try:
+            ts = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+        except (TypeError, ValueError):
+            return None
+    if not stamps:
+        return ts
+    ref = stamps[0]
+    if ts.tzinfo is None and getattr(ref, "tzinfo", None) is not None:
+        return ts.replace(tzinfo=ref.tzinfo)
+    if ts.tzinfo is not None and getattr(ref, "tzinfo", None) is None:
+        return ts.replace(tzinfo=None)
+    return ts
+
+
+def wood_slots_to_kw(
+    slots: list[dict],
+    timestamps: list,
+    dt_hours: float,
+    wood_type: str,
+    packing: str,
+    efficiency: float,
+) -> list[float]:
+    """kW-thermal per step. liters<=0 or hours<=0 skipped (caller may refuse)."""
+    n = len(timestamps)
+    out = [0.0] * n
+    step = timedelta(hours=float(dt_hours))
+    for slot in slots:
+        try:
+            liters = float(slot.get("liters") or 0.0)
+        except (TypeError, ValueError, AttributeError):
+            continue
+        start = _as_dt(slot.get("start") if isinstance(slot, dict) else None, timestamps)
+        end = _as_dt(slot.get("end") if isinstance(slot, dict) else None, timestamps)
+        if liters <= 0.0 or start is None or end is None or end <= start:
+            continue
+        hours = (end - start).total_seconds() / 3600.0
+        if hours <= 0.0:
+            continue
+        rate = liters_to_kwh(liters, wood_type, packing, efficiency) / hours
+        for i, ts in enumerate(timestamps):
+            if ts < end and ts + step > start:
+                out[i] += rate
+    return out
+
+
+def _wood_slots_error(slots, stamps):
+    """``invalid_wood_slots`` or None. Empty list is allowed (no fires)."""
+    if not isinstance(slots, list):
+        return "invalid_wood_slots"
+    for slot in slots:
+        if not isinstance(slot, dict):
+            return "invalid_wood_slots"
+        try:
+            liters = float(slot.get("liters") or 0.0)
+        except (TypeError, ValueError):
+            return "invalid_wood_slots"
+        start = _as_dt(slot.get("start"), stamps)
+        end = _as_dt(slot.get("end"), stamps)
+        if liters <= 0.0 or start is None or end is None or end <= start:
+            return "invalid_wood_slots"
+    return None
+
+
+def _wood_override_fuel(overrides, config):
+    """Type, packing, price, efficiency — or None when not computable."""
+    wtype = overrides.get(CONF_WOOD_TYPE, config.get(CONF_WOOD_TYPE))
+    packing = overrides.get(CONF_WOOD_PACKING, config.get(CONF_WOOD_PACKING))
+    try:
+        price = float(
+            overrides[CONF_WOOD_PRICE_SEK_M3]
+            if CONF_WOOD_PRICE_SEK_M3 in overrides
+            else (config.get(CONF_WOOD_PRICE_SEK_M3) or 0.0)
+        )
+        eff = float(
+            overrides[CONF_WOOD_FURNACE_EFFICIENCY]
+            if CONF_WOOD_FURNACE_EFFICIENCY in overrides
+            else (config.get(CONF_WOOD_FURNACE_EFFICIENCY) or 0.0)
+        )
+    except (TypeError, ValueError):
+        return None
+    if (
+        wtype not in WOOD_KWH_M3
+        or packing not in WOOD_KWH_M3["birch"]
+        or price <= 0.0
+        or not (10.0 <= eff <= 95.0)
+    ):
+        return None
+    return wtype, packing, price, eff
+
+
+def simulate_wood_slots(overrides, config, n_steps, dt_hours, anchor):
+    """Shadow-only wood injection. Returns (error, kw_or_None, wood_sek)."""
+    if "wood_slots" not in overrides:
+        return None, None, 0.0
+    slots = overrides.get("wood_slots")
+    stamps = [
+        anchor + timedelta(hours=i * float(dt_hours)) for i in range(int(n_steps))
+    ]
+    err = _wood_slots_error(slots, stamps)
+    if err:
+        return err, None, 0.0
+    fuel = _wood_override_fuel(overrides, config)
+    if fuel is None:
+        return "wood_fuel_not_ready", None, 0.0
+    wtype, packing, price, eff = fuel
+    kw = wood_slots_to_kw(slots, stamps, float(dt_hours), wtype, packing, eff)
+    wood_sek = price * sum(float(s["liters"]) for s in slots) / 1000.0
+    return None, kw, wood_sek
 
 
 def detected_wood_slots(timestamps, forecast_kw) -> list[dict]:
