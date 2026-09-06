@@ -22640,6 +22640,15 @@ async def _g525_ticks(shutdown):
     return len(ticks), elapsed
 
 
+# ``_PROCESS_WORKER`` is a module global, and the two spellings of this
+# package are two module objects with two of them (#511's own subject). The
+# listener below came from ``_integ``, so everything here works on the module
+# ``_integ`` reaches -- planting the child on the other one measures a
+# shutdown that has nothing to shut down, and reads as a pass.
+_g525_worker_mod = _g511_harness_coord
+assert _g525_worker_mod is _integ._lazy("coordinator")
+
+
 def _g525_measure(shutdown):
     """Run ``shutdown`` against a child that ignores SIGTERM, and time the loop."""
     child = _g525_subprocess.Popen(
@@ -22647,21 +22656,22 @@ def _g525_measure(shutdown):
         stdin=_g525_subprocess.PIPE,
         stdout=_g525_subprocess.DEVNULL,
     )
-    _g511_coord._PROCESS_WORKER = child
+    _g525_worker_mod._PROCESS_WORKER = child
     try:
         return _asyncio.run(_g525_ticks(shutdown))
     finally:
-        _g511_coord._PROCESS_WORKER = None
+        _g525_worker_mod._PROCESS_WORKER = None
         child.kill()
         child.wait(timeout=5)
 
 
-# The live worker from the checks above must not be the one under the axe.
+# The live workers from the checks above must not be the ones under the axe.
 _g511_coord._shutdown_process_pool()
+_g525_worker_mod._shutdown_process_pool()
 
 
 async def _g525_inline_shutdown():
-    _g511_coord._shutdown_process_pool()
+    _g525_worker_mod._shutdown_process_pool()
 
 
 _g525_block_ticks, _g525_block_s = _g525_measure(_g525_inline_shutdown)

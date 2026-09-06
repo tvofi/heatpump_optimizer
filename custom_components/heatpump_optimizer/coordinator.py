@@ -32,7 +32,7 @@ import numpy as np
 
 from homeassistant.components import mqtt
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import UnitOfSpeed
+from homeassistant.const import EVENT_HOMEASSISTANT_STOP, UnitOfSpeed
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -831,6 +831,26 @@ def _shutdown_process_pool() -> None:
             worker.wait(timeout=2)
         except Exception:  # noqa: BLE001
             worker.kill()
+
+
+@callback
+def async_register_worker_shutdown(hass, entry) -> None:
+    """Reap the solve worker at Home Assistant's stop, on the executor (#525).
+
+    ``Popen.wait`` polls with ``time.sleep``, and the ``atexit`` backstop
+    above runs on the loop thread, where a child that does not answer
+    ``terminate`` stalls the whole instance for the full two-second timeout.
+    Reaping at ``EVENT_HOMEASSISTANT_STOP`` instead leaves that backstop
+    nothing to wait for. Dropped with the entry, so a reload does not stack
+    up one-shot listeners.
+    """
+
+    async def _stop(_event) -> None:
+        await hass.async_add_executor_job(_shutdown_process_pool)
+
+    entry.async_on_unload(
+        hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, _stop)
+    )
 
 
 def _run_in_process(fn, args):
