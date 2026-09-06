@@ -18,6 +18,7 @@ both runs share the solver; anything left is this branch's doing.
     PYTHONPATH=tests/hastub python3 tests/env_drift.py [ref]          # 5 sensitive fixtures
     PYTHONPATH=tests/hastub python3 tests/env_drift.py --all [ref]    # every fixture (CI)
     PYTHONPATH=tests/hastub python3 tests/env_drift.py --claims-only [ref]  # inherited + record-PR, no capture
+    PYTHONPATH=tests/hastub python3 tests/env_drift.py --drop-inherited [ref]  # CI claims-autofix; empties inherited lists
 
 `--all` is what CI runs: committed fixtures were recorded on one machine
 and CI runs on another, so exact comparison against the files would cry
@@ -1186,6 +1187,67 @@ def stamp_claims_error(
     )
 
 
+def parse_claim_map(text: str) -> dict[str, str]:
+    """Scenario name -> reason, same rule `_claimed` uses on a file."""
+    claims: dict[str, str] = {}
+    for line in text.splitlines():
+        body, _, comment = line.partition("#")
+        name = body.strip()
+        if name:
+            claims[name] = comment.strip() or "no reason given"
+    return claims
+
+
+def drop_inherited_claim_lines(text: str, baseline_text: str) -> str | None:
+    """Delete bare claim lines when the parsed list matches the baseline.
+
+    Keeps the header, `claims-for:`, and `# may-drift:` lines. Returns
+    None when the list is empty or not inherited — those are not a
+    mechanical rewrite.
+    """
+    if inherited_claims_error(
+        parse_claim_map(text), parse_claim_map(baseline_text), "baseline"
+    ) is None:
+        return None
+    kept = [line for line in text.splitlines() if not line.partition("#")[0].strip()]
+    return "\n".join(kept) + "\n"
+
+
+def apply_inherited_claims(
+    repo: str, *, baseline_dir: str | None = None, ref: str | None = None
+) -> str:
+    """Empty inherited solver and card claim lists in `repo`.
+
+    `baseline_dir` is a tree that already has both files (tests). `ref`
+    is a git revision whose blobs are read with `git show` (CI).
+    """
+    changed = False
+    for rel in (CLAIM_FILE, CARD_CLAIM_FILE):
+        path = os.path.join(repo, rel)
+        if not os.path.exists(path):
+            continue
+        if baseline_dir is not None:
+            base_path = os.path.join(baseline_dir, rel)
+            if not os.path.exists(base_path):
+                continue
+            baseline = open(base_path).read()
+        else:
+            if not ref:
+                raise ValueError("apply_inherited_claims needs baseline_dir or ref")
+            proc = subprocess.run(
+                ["git", "show", f"{ref}:{rel}"],
+                cwd=repo, capture_output=True, text=True,
+            )
+            if proc.returncode != 0:
+                continue
+            baseline = proc.stdout
+        new = drop_inherited_claim_lines(open(path).read(), baseline)
+        if new is not None:
+            open(path, "w").write(new)
+            changed = True
+    return "changed" if changed else "skip-not-inherited"
+
+
 def inherited_claims_error(
     claims: dict[str, str], baseline_claims: dict[str, str], ref: str,
     claim_file: str = CLAIM_FILE,
@@ -1331,6 +1393,13 @@ def main() -> int:
             print(f"cannot resolve {ref}", file=sys.stderr)
             return 1
         print(cache_key(cache_key_inputs(repo, ref_sha, "--all" in sys.argv[2:])))
+        return 0
+
+    if len(sys.argv) >= 2 and sys.argv[1] == "--drop-inherited":
+        repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        ref = sys.argv[2] if len(sys.argv) > 2 else "origin/main"
+        status = apply_inherited_claims(repo, ref=ref)
+        print(f"AUTOFIX: {status}")
         return 0
 
     if len(sys.argv) >= 2 and sys.argv[1] == "--claims-only":

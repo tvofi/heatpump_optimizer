@@ -268,8 +268,8 @@ for f in tests/*.py tests/*.mjs; do
     harness.py|profiles.py) continue ;;  # shared plumbing, not tests
     # The shared DOM stub (#101) and the rig around it: imported by
     # card.mjs, setup_qa_render.mjs and card_drift.mjs, never run on
-    # their own.
-    dom_stub.mjs|card_rig.mjs) continue ;;
+    # their own. node_fs_trace.mjs is the Darwin --import recorder.
+    dom_stub.mjs|card_rig.mjs|node_fs_trace.mjs) continue ;;
     # The scoping instrument, not a test: it RUNS the tests to measure what
     # they touch. Wiring it into the suite would make the suite run itself.
     closure.py) continue ;;
@@ -444,7 +444,7 @@ done
 for f in tests/*.py tests/*.mjs; do
   base=$(basename "$f")
   case "$base" in
-    harness.py|profiles.py|dst_checks.py|closure.py|gate_lock.py|dom_stub.mjs|card_rig.mjs|card_browser.mjs) continue ;;
+    harness.py|profiles.py|dst_checks.py|closure.py|gate_lock.py|dom_stub.mjs|card_rig.mjs|card_browser.mjs|node_fs_trace.mjs) continue ;;
   esac
   if ! cat "$WORKDIR"/*.manifest 2>/dev/null | grep -Fq "tests/$base"; then
     echo "TEST NEVER RAN: tests/$base is wired into tests/run.sh but no lane"
