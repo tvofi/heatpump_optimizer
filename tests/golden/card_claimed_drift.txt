@@ -21,4 +21,5 @@
 #
 # claims-for: 6.3.15
 #
-# Record of #500: this commit claims NOTHING. Card markup is unchanged.
+# Record of #502 and the 2026-09-06 Claude seat routing: this commit claims
+# NOTHING. Card markup is unchanged; no card source is touched.

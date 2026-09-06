@@ -68,10 +68,10 @@
       "fixture": false,
       "after": ["W4-G2"],
       "resume": {
-        "stage": "review",
-        "pr": 502,
-        "head": "c77a66d49a0af16014a9ff37b84b043c7a29bf96",
-        "note": "S2. Extracted _solve_anchor and _liquid_fraction to coordinator.py module level. Loc 10344→10305, methods 253→251, edges 372→367. _plan_slots stays on the class (cc=23). Do not Closes #193. Do not start S3."
+        "stage": "done",
+        "merged_pr": 502,
+        "merge_sha": "d979110c79b291afe7b36bc11b203082892d58e4",
+        "note": "S2. _solve_anchor and _liquid_fraction extracted to existing coordinator.py module level; bodies verbatim after dedent (cc=1). _plan_slots stays a class @staticmethod (cc=23) — not one helper at cc<=15. Loc 10344→10305, methods 253→251, edges 372→367; attrs 175 and cuts 94/115/160/209/315 unchanged; local_imports 7; cross_seam_fraction not re-recorded. Review merge 5558785350 at f297f3e. Did not close #193. Next seat W4-G4."
       },
       "brief": "S2 of #193. No child issue — survey/record only. SURVEY FIRST: zero-state series / headroom / plan math to module level (existing coordinator.py, not a new file). HALT (docs/roster record, empty claims, no production extraction) if any of: (1) no remaining zero-state function that extracts at helper cc≤15; (2) extraction needs a new module (local_imports 7/7); (3) any structure metric would rise; (4) the candidate is not pure/zero-state. Cut cost must not justify a different seam. Do not invent a backend. Do not Closes #193 — Part of #193, Part of #201. If you extract: bodies verbatim, goldens byte-identical, empty claims, coordinator_loc and max_class_loc must go down. Never re-record cross_seam_fraction. claims-for 6.3.15. Do not stamp. Do not start S3."
     },
@@ -85,7 +85,7 @@
       "after": ["W4-G3"],
       "resume": {
         "stage": "pending",
-        "note": "No child issue. views stays the facade — thinned, not moved out. Survey-first, halt if not this seam."
+        "note": "NEXT SEAT. No child issue. views stays the facade — thinned, not moved out. Survey-first, halt if not this seam. coordinator_loc ceiling is the merge-base (10305 after #502), not 10364. Opus 5 fixer, separate Opus 5 reviewer."
       },
       "brief": "S3 of #193 (views, cut 121 at 07a85ce, 120→81 after S1 at 8e99ad1 — re-measure). No child issue — survey/record only. Stays the facade: data payload keys are frozen; thin, do not move views out of HeatPumpOptimizerCoordinator. SURVEY FIRST. Region hold: before opening, run every open PR's touched coordinator method names through SEAM_REGEXES views (view|build_data|publish|payload); halt if any match until that PR merges. Also HALT if: no verbatim thin at helper cc≤15 without a new module; extraction would raise a ratchet metric; the candidate is not this seam (do not pick another seam by cut cost). Cut-SHA provenance check of any moved block vs main (#324 inside #340). Do not Closes #193. Empty claims. coordinator_loc ceiling = merge-base. Never re-record cross_seam_fraction. claims-for 6.3.15. Do not stamp."
     },

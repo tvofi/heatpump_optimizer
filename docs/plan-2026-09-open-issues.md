@@ -57,14 +57,14 @@ Where this table and a wave body disagree, this table is the truth.
 | — | **#387, the blocker**: the basin coverage floor is runner-dependent | #387 | v6.3.12 | **fixed** — merged as `32f309f` (PR #388); sixth acceptance criterion ruled (comment 5541519696): the WORK-channel stale-cheap downgrade is kept as necessary to the `env_drift` shape, and the coverage floor's strictness is restored by a follow-up PR that hard-codes it |
 | 2 | coordinator lifecycle, learners, options grouping | #236 #237 #240 #239 #243 #283 #284 #277 #244 #325 #279 #278 #280 #198 | **v6.3.14** (tag `ef539be`) | **done and released, 2026-09-05** — seven groups merged, issues closed: PR #437 (`44a6351`, W2-G1/#236 #237 #240), #440 (`90c71c4`, W2-G2/#239 #243; duplicate #441 closed unmerged), #444 (`dc3bb8e`, W2-G3/#283 #284), #447 (`851c555`, W2-G4/#279 #278), #449 (`f492b1f`, W2-G5/#277), #451 (`efe5a27`, W2-G5 follow-up/#244 #325, review `merge` 5551113810: mid-step abort 36→0, 21 leftovers named), #438 (`e1a14f9`, W2-G6/#280), #436 (`3c141d7`, W2-G7/#198). Record/tooling since v6.3.13 stamp: #434, #435, #439, #442, #443, #446, #448, #450. Stamped `ef539be` as v6.3.14. Next seat **W3-G1** |
 | 3 | solver, DHW planner, GIL process route | #232 #234 #289 #290 #199 | **v6.3.15** (tag `f0866c8`) | **done and released, 2026-09-06** — three groups merged, issues closed: PR #454 (`1585435`, W3-G1/#232 #234), #455 (`aa61130`, W3-G1 follow-up), #456 (`ebf7170`, W3-G2/#289), #461 (`8542e51`, W3-G3/#290 #199; review `merge` at `7076075`, comment 5554485684). Record/tooling since v6.3.14 stamp: #452, #458, #459, #468, #469. Stamped `f0866c8`. **W3-G4 is struck**. Unstamped on this tag include #467, #470–#500 (3L + records; #490 DHW band; #493/#494 Wave 4 roster prep; #495 inherited-claims guard `6699852`; #496 3L-G10 record; #497 W4-G1; #499 record; #500 W4-G2) |
-| **3L** | mid-programme leftovers, one burst | #400 #401 #404 #405 #408 #457 #460 #463 #465 | after Wave 3 | **done except spec-blocked 3L-G6** — **3L-G1** #470 (`81aa0c3`). **3L-G2** #472 (`2abe2f7`). **3L-G3** #474 (`e8adfe4`) + #479 (`8ea27d4`) + #480 (`162e759`). **3L-G4** #477 (`531d8b7`). **3L-G5** #483 (`6f02b8a`) closed #408. **3L-G7** #485 (`bf08217`) closed #460. **3L-G8** #487 (`a19ba03`). **3L-G9** #489 (`b29fd1e`) closed #463. **3L-G10** #492 (`e4bc375`) closed #465. **3L-G6** (#457) spec-blocked (no conflict flow). Next **W4-G3** (S2). Do not stamp. #412 / 3L-G6 not started. #481 leftover closed. #412 stays last of the programme |
-| 4 | the #193 decomposition programme, S0–S13 | #193 #223 #224 #225, and **#304 as S11's precursor** | one per stage | **W4-G3 in flight** — #502 S2 at `c77a66d` (merged `1291f3f` / #501). Do not Closes #193. Roster `.claude/workflows/wave-4-groups.json`. #225 stays closed. #412 not in this wave. Do not stamp |
+| **3L** | mid-programme leftovers, one burst | #400 #401 #404 #405 #408 #457 #460 #463 #465 | after Wave 3 | **done** — **3L-G1** #470 (`81aa0c3`). **3L-G2** #472 (`2abe2f7`). **3L-G3** #474 (`e8adfe4`) + #479 (`8ea27d4`) + #480 (`162e759`). **3L-G4** #477 (`531d8b7`). **3L-G5** #483 (`6f02b8a`) closed #408. **3L-G7** #485 (`bf08217`) closed #460. **3L-G8** #487 (`a19ba03`). **3L-G9** #489 (`b29fd1e`) closed #463. **3L-G10** #492 (`e4bc375`) closed #465. **3L-G6** (#457) never implemented: the seat returned NEEDS_CONTEXT (no production `conflict` symbol; nearest twins are read-only `setup_overview` and `reconfigure`), and the owner then closed #457 as `COMPLETED` by hand on 2026-09-06T03:40:23Z with no PR and no commits. Discharged, not blocked — do not reopen it and do not invent a backend. Next **W4-G4** (S3). Do not stamp. #481 leftover closed. #412 stays last of the programme |
+| 4 | the #193 decomposition programme, S0–S13 | #193 #223 #224 #225, and **#304 as S11's precursor** | one per stage | **W4-G1–G3 done; next W4-G4** — S0 #497 (`c197b01`), S1 #500 (`67e1cf3`, closed #377), S2 #502 (`d979110`, review `merge` 5558785350). Do not Closes #193. Roster `.claude/workflows/wave-4-groups.json`. #225 stays closed. #412 not in this wave. Do not stamp |
 | 5 | typing lane, and the coverage deficit #195 raised | #303 #195 | per tranche | pending — roster `.claude/workflows/wave-5-groups.json` prepared; **seats not started**. After Wave 4. **#304 is Wave 4**, not here. #412 not in this wave |
 | last | CI Node majors | #412 | after Wave 5 | pending — owner: last task; do not pull into 3L or Wave 4/5 |
 
 ### Wave 3L — leftovers, after Wave 3, before Wave 4
 
-Every open issue that is not already in Waves 3–5 or #201, filed after the 2026-09-03 plan cut, plus #460 (monthly savings), #463 (wood furnace economics), and #465 (Plan-page away toggle). One burst so they are not lost again, and **before** Wave 4 because #400, #408, #463 and #465 are behaviour in the DHW/optimizer/config/card region a move PR would silently revert (principle 3). Wave 3 is released (`f0866c8`); 3L-G1–G5 and 3L-G7–G10 are done (`e4bc375`). **3L-G6** (#457) is spec-blocked. Next seat **W4-G3** (S2). Do not stamp. #412 / 3L-G6 not started. #465 is closed. #412 stays last of the programme and is not in this burst.
+Every open issue that is not already in Waves 3–5 or #201, filed after the 2026-09-03 plan cut, plus #460 (monthly savings), #463 (wood furnace economics), and #465 (Plan-page away toggle). One burst so they are not lost again, and **before** Wave 4 because #400, #408, #463 and #465 are behaviour in the DHW/optimizer/config/card region a move PR would silently revert (principle 3). Wave 3 is released (`f0866c8`); 3L-G1–G5 and 3L-G7–G10 are done (`e4bc375`). **3L-G6** (#457) shipped nothing and #457 was closed `COMPLETED` by the owner on 2026-09-06 — discharged, not blocked. Next seat **W4-G4** (S3). Do not stamp. #465 is closed. #412 stays last of the programme and is not in this burst.
 
 | group | issues | model | after | scope |
 |---|---|---|---|---|
@@ -73,48 +73,48 @@ Every open issue that is not already in Waves 3–5 or #201, filed after the 202
 | **3L-G3** | #404 | Composer 2.5 | 3L-G2 | Gate lock becomes a renewed lease + `flock`. Lives in `tests/`, needs the derive #401 unlocks |
 | **3L-G4** | #405 | Composer 2.5 | 3L-G3 | `SolarIrradianceSensor` / `OptimizationScoreSensor` data-driven keys: state the bound in the holes list, no exact-set pin |
 | **3L-G5** | #408 | Grok 4.6 extra high | 3L-G4 | Optional set-point entities + **consistency** repair issue only. Optimality / Fix-to-argmin half is refused (50→65 °C instability) |
-| **3L-G6** | #457 | Composer 2.5 | 3L-G5 | Card setup-page button that opens the conflict flow. Card-only |
+| **3L-G6** | #457 | Composer 2.5 | 3L-G5 | Card setup-page button that opens the conflict flow. Card-only. **Not implemented** — no production `conflict` symbol; #457 closed `COMPLETED` by the owner 2026-09-06 |
 | **3L-G7** | #460 | Grok 4.6 extra high | 3L-G6 | Monthly savings history card page. Realised thermostat-baseline ledger lines; calendar pro-rata for the open month. After #457 (or after #408 if #457 stays blocked). Spec/plan `docs/superpowers/{specs,plans}/2026-09-05-monthly-savings-history*.md` |
 | **3L-G8** | #463 | Grok 4.6 extra high | 3L-G7 | Wood-furnace toggle, firewood price, `wood_fuel.py`, cheaper-than-pump sensor. Does not close #463. Spec/plan `docs/superpowers/{specs,plans}/2026-09-05-wood-furnace-economics*.md` |
 | **3L-G9** | #463 | Grok 4.6 extra high | 3L-G8 | Plan banner, Wood lane, what-if wood slots. `Closes #463`. Same spec/plan |
 | **3L-G10** | #465 | Grok 4.6 extra high | 3L-G9 | Plan-page Away toggle and return datetime. Service-backed store; published switch and datetime; optional person/calendar. `Closes #465`. Spec/plan `docs/superpowers/{specs,plans}/2026-09-05-away-plan-toggle*.md` |
 
-Do not fold 3L into a closed Wave 3. 3L-G10 merged as #492 (`e4bc375`); #465 closed. W4-G1 #497 (`c197b01`) and W4-G2 #500 (`67e1cf3`) merged; #377 closed. Next seat W4-G3. Do not stamp, #412, or spec-blocked 3L-G6 from this record.
+Do not fold 3L into a closed Wave 3. 3L-G10 merged as #492 (`e4bc375`); #465 closed. W4-G1 #497 (`c197b01`), W4-G2 #500 (`67e1cf3`) and W4-G3 #502 (`d979110`) merged; #377 closed. Next seat W4-G4. Do not stamp or start #412 from this record.
 
-### Wave 4 — #193 decomposition, S0–S13 (W4-G1+G2 done; next W4-G3)
+### Wave 4 — #193 decomposition, S0–S13 (W4-G1–G3 done; next W4-G4)
 
-Roster: `.claude/workflows/wave-4-groups.json`. Serial, one group per stage. Worker briefs live out of tree under `/Users/timmalmstrom/wt/briefs/w4-gN-*.md` (same convention as 3L). **#223 issue text allows parallel with coordinator moves; this table does not authorize a second lane.** Plan numbers the registry as **S11**; #193 numbers it S10 — the issue number is the stable reference. **#304 is S11's precursor** (W4-G11), not Wave 5. **#225 is closed** (triage B1) — struck in the roster, do not reopen. **#412 is not in this wave.** **#457 / 3L-G6 is not Wave 4.** S2–S8 and plan S12 have no child issue: they track #193 and must not `Closes #193`. A survey stage **halts** (record only, no invented backend) when the named seam is not extractable at this merge-base, an open PR holds the region, or a ratchet metric would rise.
+Roster: `.claude/workflows/wave-4-groups.json`. Serial, one group per stage. Worker briefs live out of tree under `/Users/timmalmstrom/wt/briefs/w4-gN-*.md` (same convention as 3L). **#223 issue text allows parallel with coordinator moves; this table does not authorize a second lane.** Plan numbers the registry as **S11**; #193 numbers it S10 — the issue number is the stable reference. **#304 is S11's precursor** (W4-G11), not Wave 5. **#225 is closed** (triage B1) — struck in the roster, do not reopen. **#412 is not in this wave.** **#457 / 3L-G6 is not Wave 4**, and #457 is closed `COMPLETED` (2026-09-06) with nothing shipped — do not go looking for that work. S2–S8 and plan S12 have no child issue: they track #193 and must not `Closes #193`. A survey stage **halts** (record only, no invented backend) when the named seam is not extractable at this merge-base, an open PR holds the region, or a ratchet metric would rise. The `model` column names Claude seats for groups not yet started and the model that actually ran for groups already delivered — see Model routing.
 
 | group | stage | issues | model | after | scope |
 |---|---|---|---|---|---|
 | **W4-G1** | S0 | #377 | Grok 4.6 extra high | 3L-G10 merge | `CoordinatorContext` defined; nothing relocates. Do not close #377 |
 | **W4-G2** | S1 | #377 | Grok 4.6 extra high | W4-G1 | Migrate hub refs; facade properties stay. `Closes #377` |
 | **W4-G3** | S2 | #193 (tracking) | Grok 4.6 extra high | W4-G2 | Pure-function extractions. Survey-first; halt if not this seam |
-| **W4-G4** | S3 | #193 (tracking) | Grok 4.6 extra high | W4-G3 | views, thinned, stays the facade. Survey-first; halt if not this seam |
-| **W4-G5** | S4 | #193 (tracking) | Grok 4.6 extra high | W4-G4 | fetch/sources. Survey-first; halt if not this seam |
-| **W4-G6** | S5 | #193 (tracking) | Grok 4.6 extra high | W4-G5 | dhw. Survey-first; halt if not this seam |
-| **W4-G7** | S6 | #193 (tracking) | Grok 4.6 extra high | W4-G6 | grid/bookkeeping. Survey-first; halt if not this seam |
-| **W4-G8** | S7 | #193 (tracking) | Grok 4.6 extra high | W4-G7 | learning A (thermal). Survey-first; halt if not this seam |
-| **W4-G9** | S8 | #193 (tracking) | Grok 4.6 extra high | W4-G8 | learning B (curve/comfort/drift-watch). Survey-first; halt if not this seam |
-| **W4-G10** | S9 | #224 | Grok 4.6 extra high | W4-G9 | optimizer.py judge-corrected splits; first PR is the cheap `optimize` tail |
-| **W4-G11** | S10 | #304 | Composer 2.5 | W4-G10 | 21 named `config_flow.py` statements; test-only; before #223 |
-| **W4-G12** | S11 | #223 | Grok 4.6 extra high | W4-G11 | config_flow settings registry; serial after #304 |
-| **W4-G13** | S12 | #193 (tracking) | Grok 4.6 extra high | W4-G12 | Delegate seams / facade deletion (#193's S11). Halt if S3–S8 all halted. #195 coordinator half is Wave 5; #374 already done |
-| **W4-G14** | S13 | #193 | Composer 2.5 | W4-G13 | Close-out: Delivery-status, roster, #201. Do not stamp. `Closes #193` only if S0–S12 are done or recorded-halted |
+| **W4-G4** | S3 | #193 (tracking) | Opus 5 | W4-G3 | views, thinned, stays the facade. Survey-first; halt if not this seam |
+| **W4-G5** | S4 | #193 (tracking) | Opus 5 | W4-G4 | fetch/sources. Survey-first; halt if not this seam |
+| **W4-G6** | S5 | #193 (tracking) | Opus 5 | W4-G5 | dhw. Survey-first; halt if not this seam |
+| **W4-G7** | S6 | #193 (tracking) | Opus 5 | W4-G6 | grid/bookkeeping. Survey-first; halt if not this seam |
+| **W4-G8** | S7 | #193 (tracking) | Opus 5 | W4-G7 | learning A (thermal). Survey-first; halt if not this seam |
+| **W4-G9** | S8 | #193 (tracking) | Opus 5 | W4-G8 | learning B (curve/comfort/drift-watch). Survey-first; halt if not this seam |
+| **W4-G10** | S9 | #224 | Opus 5 | W4-G9 | optimizer.py judge-corrected splits; first PR is the cheap `optimize` tail |
+| **W4-G11** | S10 | #304 | Sonnet 5 | W4-G10 | 21 named `config_flow.py` statements; test-only; before #223 |
+| **W4-G12** | S11 | #223 | Opus 5 | W4-G11 | config_flow settings registry; serial after #304 |
+| **W4-G13** | S12 | #193 (tracking) | Opus 5 | W4-G12 | Delegate seams / facade deletion (#193's S11). Halt if S3–S8 all halted. #195 coordinator half is Wave 5; #374 already done |
+| **W4-G14** | S13 | #193 | Sonnet 5 | W4-G13 | Close-out: Delivery-status, roster, #201. Do not stamp. `Closes #193` only if S0–S12 are done or recorded-halted |
 
 ### Wave 5 — #303 typing and #195 coverage (roster prepared, seats not started)
 
-Roster: `.claude/workflows/wave-5-groups.json`. After Wave 4. Serial. **#304 is not here.** **#412 is not here.** #303 is four named tranches (parent may split G3 further). #195 coordinator modules stay last (after #193 seams).
+Roster: `.claude/workflows/wave-5-groups.json`. After Wave 4. Serial. **#304 is not here.** **#412 is not here.** #303 is four named tranches (parent may split G3 further). #195 coordinator modules stay last (after #193 seams). Models are the Claude seats of the 2026-09-06 routing.
 
 | group | issues | model | after | scope |
 |---|---|---|---|---|
-| **W5-G1** | #303 | Composer 2.5 | Wave 4 S13 merge | Land the pinned stub-free ruler. Do not close #303 |
-| **W5-G2** | #303 | Grok 4.6 extra high | W5-G1 | `sensor.py` annotations (142 at filing) |
-| **W5-G3** | #303 | Grok 4.6 extra high | W5-G2 | Remaining modules except `coordinator.py`. Parent may split further |
-| **W5-G4** | #303 | Grok 4.6 extra high | W5-G3 | `coordinator.py` typing after Wave 4 seams. May `Closes #303` |
-| **W5-G5** | #195 | Composer 2.5 | W5-G4 | `climate.py` / `open_meteo.py` / `frontend.py`. No coordinator |
-| **W5-G6** | #195 | Composer 2.5 | W5-G5 | `diagnosis.py` / `curve_learning.py` / `grid_fee.py` / `switch.py`. Cleanup is not this tranche |
-| **W5-G7** | #195 | Grok 4.6 extra high | W5-G6 | `coordinator.py` coverage (789 missed) after #193 seams. May `Closes #195` |
+| **W5-G1** | #303 | Sonnet 5 | Wave 4 S13 merge | Land the pinned stub-free ruler. Do not close #303 |
+| **W5-G2** | #303 | Opus 5 | W5-G1 | `sensor.py` annotations (142 at filing) |
+| **W5-G3** | #303 | Opus 5 | W5-G2 | Remaining modules except `coordinator.py`. Parent may split further |
+| **W5-G4** | #303 | Opus 5 | W5-G3 | `coordinator.py` typing after Wave 4 seams. May `Closes #303` |
+| **W5-G5** | #195 | Sonnet 5 | W5-G4 | `climate.py` / `open_meteo.py` / `frontend.py`. No coordinator |
+| **W5-G6** | #195 | Sonnet 5 | W5-G5 | `diagnosis.py` / `curve_learning.py` / `grid_fee.py` / `switch.py`. Cleanup is not this tranche |
+| **W5-G7** | #195 | Opus 5 | W5-G6 | `coordinator.py` coverage (789 missed) after #193 seams. May `Closes #195` |
 
 v6.3.12 is stamped at the Wave-1b/half-I boundary as a **gate and test-hardening release** — not for the accumulated no-op merges alone, and not by waiting for a runtime fix that half I will not produce, because half I is entirely test, docs and tooling.
 
@@ -325,56 +325,66 @@ session reads this file first.
 ## Model routing
 
 Every seat in this programme — orchestrator, fixer, reviewer, judge, recorder —
-runs as a **Cursor Task subagent** inside one Cursor Multitask session. There is
-no Claude Code CLI seat, no `claude.ai` web-agent seat and no external runner:
-where this file, the handover or a brief says `claude-web`, that is a **session
-identity** (label `owner:claude-web`, branch prefix `claude-web/`) kept for
-continuity with the branches already on origin, never a product to route work to.
+runs as a **Claude Code subagent** inside one Claude Code session. `claude-web`
+(label `owner:claude-web`, branch prefix `claude-web/`) is the session identity,
+kept for continuity with the branches already on origin; since 2026-09-06 it is
+also literally the runner.
 
-The orchestrator seat is this session's parent (Auto), which executes
-`web-fix-wave.js`'s control flow by hand. Workers are Cursor Task agents:
+The orchestrator seat is this session's parent (Opus 5), which executes
+`web-fix-wave.js`'s control flow by hand. Workers are Claude Code subagents:
 
-| seat | Cursor Task model | when |
+| seat | model | when |
 |---|---|---|
-| orchestrator | Auto (parent session) | control flow, merges, reconciliation, all sequencing decisions |
-| architectural fixer + its reviewer | **Grok 4.6 extra high** | W2-G1, W2-G2, every Wave 4 move PR and its review. Former Fable / Opus seats; same slug as every other worker |
-| Wave 4 per-stage survey | **Grok 4.6 extra high** | the survey that precedes a move stage |
-| adversarial reviewer, `fix-review` with the **finder's** harness | **Grok 4.6 extra high** | every group whose brief carries a refuted or corrected claim; every fixture-moving group; Wave 4 move reviews |
-| judge | **Grok 4.6 extra high** | all triage judges, including the #291 and #232 timing judges (still solo on an idle box), and any decomposition judgement |
-| fixer on production code, mutation proof required | **Grok 4.6 extra high** | groups the wave file marks `"fixerModel": "opus"`, including former Fable / restructuring groups |
-| fixer on tests, tooling or docs | **Composer 2.5** | groups the wave file marks `"fixerModel": "sonnet"` |
-| record / roster / truth-up / citation-freshness PR | **Composer 2.5** | mechanical docs edits; no measured claim of their own |
-| read-only reporting | **Grok 4.6** | Reconcile, post-merge gate watching, the pre-merge checklist, label hygiene, release-notes source material, issue digests, Wave 4 inventories, the #303 typing and #195 coverage inventories |
-| stamp | scripted `stamp.py` via `web-stamp.js`, drafted by **Grok 4.6** under orchestrator oversight | rule 4 refuses notes omitting a merged PR, and the refusals are the product; the orchestrator reads every refusal |
+| orchestrator | **Opus 5** | control flow, merges, reconciliation, all sequencing decisions |
+| architectural fixer + its reviewer | **Opus 5** | W2-G1, W2-G2, every Wave 4 and Wave 5 move PR and its review |
+| per-stage survey | **Opus 5** | the survey that precedes a move stage; the halt decision is the product |
+| adversarial reviewer, `fix-review` with the **finder's** harness | **Opus 5** | every group whose brief carries a refuted or corrected claim; every fixture-moving group; every move review |
+| judge | **Opus 5** | all triage judges, including the #291 and #232 timing judges (still solo on an idle box), and any decomposition judgement |
+| fixer on production code, mutation proof required | **Opus 5** | groups the wave file marks `"fixerModel": "opus"` |
+| fixer on tests, tooling or docs | **Sonnet 5** | groups the wave file marks `"fixerModel": "sonnet"` |
+| record / roster / truth-up / citation-freshness PR | **Sonnet 5** | mechanical docs edits; no measured claim of their own |
+| read-only reporting | **Sonnet 5** | Reconcile, post-merge gate watching, the pre-merge checklist, label hygiene, release-notes source material, issue digests, wave inventories, the #303 typing and #195 coverage inventories |
+| stamp | scripted `stamp.py` via `web-stamp.js`, drafted by **Sonnet 5** under orchestrator oversight | rule 4 refuses notes omitting a merged PR, and the refusals are the product; the orchestrator reads every refusal |
 
-**Grok 4.6 extra high (`cursor-grok-4.6-xhigh`) is the worker slug for every
-former Opus 5 seat and every former Fable seat.** Wave 4 survey / move / review,
-W2-G1 and W2-G2, and any module-move or decomposition judgement use that slug.
-The orchestrator stays Auto. Do not use Auto as a worker slug. Grok 4.6 fast
-(`cursor-grok-4.6-high-fast`) stays the read-only / polling slug. `tierOk` still
-applies: a reviewer may not rank below its fixer.
+**Routing moved to Claude models on 2026-09-06**, at the W4-G3 merge (`d979110`).
+Delivery-status rows for groups delivered before that date name the model that
+actually ran (Grok 4.6 extra high / Composer 2.5, under a Cursor Multitask
+parent) and are left alone: the delivery record says what happened, not what the
+routing is today. Rows for groups not yet started carry the table above.
 
-**The tier tokens in the wave files are not model names.** `web-fix-wave.js`
-ranks `haiku < sonnet < opus` and throws if a reviewer ranks below its fixer, so
-the tokens stay as they are and map: `opus` → Grok 4.6 extra high, `sonnet` →
-Composer 2.5 (`composer-2.5`), `haiku` → Haiku 4.5 (unused today). Grok 4.6
-extra high satisfies an `opus` token; Composer 2.5 satisfies a `sonnet` token.
-The tokens do not need editing.
+**Fable 5.1 is deliberately routed nowhere.** No seat needs a tier above Opus 5,
+and every seat that historically took Fable is an architectural fixer or
+reviewer, which is Opus 5 already. The absence is a decision, not an oversight.
+
+**The tier tokens in the wave files now map literally.** `web-fix-wave.js` ranks
+`haiku < sonnet < opus` and throws if a reviewer ranks below its fixer, so the
+tokens stay as they are: `opus` → Opus 5, `sonnet` → Sonnet 5, `haiku` →
+Haiku 4.5 (unused today). `tierOk` still applies. The tokens do not need editing.
+
+**`.cursor/rules/*.mdc` still hold three `alwaysApply: true` policies, and
+nothing loads them for a Claude seat.** Cursor applied them automatically;
+Claude Code loads `CLAUDE.md` and nothing else. The files and every pointer to
+them stay — every seat is told to open all three at seat start, and `CLAUDE.md`'s
+summaries are not a substitute.
 
 **An architectural reviewer on the same model as its fixer is still a fresh
 agent, not the fixer continuing.** Independence here is procedural, not
 model-family: the reviewer works in a fresh worktree at the head SHA and
 measures with the **finder's** harness, per `tools/audit/briefs/fix-review.md`.
 
-## What this container changes
+## What the runner changes
 
-The previous sessions ran on the owner's M1 with the `gh` CLI. This one runs
-in a 4-core cloud container with no `gh` and no way to install it, so:
+This section was written for a 4-core cloud container with no `gh`. **Since
+2026-09-06 the programme runs on the owner's 8-core M1 again, with `gh` 2.98
+authenticated**, so the first two bullets are history rather than instruction:
+`gh` is used directly, and the REST fallback is a shipped capability nobody has
+to reach for. The rest still stands and is why it is kept.
 
-- every GitHub action goes through the GitHub MCP tools;
-- `tools/release/stamp.py`'s rule 2 gains a REST fallback (Phase 0), because
-  it shells out to `gh` before any flag is read and would otherwise make
-  stamping impossible here;
+- every GitHub action went through the GitHub MCP tools **on the container**;
+  on the M1, `gh` is used directly;
+- `tools/release/stamp.py`'s rule 2 gained a REST fallback (Phase 0), because
+  it shells out to `gh` before any flag is read and would otherwise have made
+  stamping impossible there. It is still in the script, and still correct;
 - the drift baseline cache starts cold, so the first `env_drift --all` per
   fork pays a full baseline capture — hence one fork per wave;
 - at most two agents run at once, and anything needing a quiet box (the
