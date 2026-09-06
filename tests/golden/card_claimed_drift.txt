@@ -33,3 +33,7 @@
 # #509, the diagnostics privacy fix: this branch claims NOTHING. No card
 # source is touched; diagnostics.py is loaded by Home Assistant for
 # `Download diagnostics` and is not on any path that renders the card.
+
+# #546, the unsaveable setup page: this branch claims NOTHING. The card's
+# only edit is a comment above its own PLACE_LABELS; no box, position or
+# payload key is touched, so every rendered state is byte-identical.

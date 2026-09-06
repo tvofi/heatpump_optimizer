@@ -60,6 +60,13 @@
 # module imports -- no solver, coordinator or fetch path reaches it, so every
 # scenario fixture is byte-identical by construction.
 
+# #546, the unsaveable setup page: this branch claims NOTHING. The accepted
+# set for `apply_topology`'s `positions` is derived from `_SLOTS` instead of
+# borrowed from a label map, and `describe_setup`'s `wood_valve` re-homing
+# moves verbatim into a module-level `_place_home`. No published key, value
+# or ordering changes, so every scenario fixture is byte-identical by
+# construction.
+
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
