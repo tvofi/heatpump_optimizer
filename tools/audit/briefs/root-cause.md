@@ -68,8 +68,8 @@ a defect of its own.
   your own state finding is unmotivated.
 - **If it is a check, test, lane or hook, demonstrate it failing on the defect
   and passing once fixed.** Both runs in the report. A check that passes while
-  the bug is present converts an open defect into a closed one — this repository
-  has produced that shape three times.
+  the bug is present converts an open defect into a closed one; the policy names
+  the shapes this repository has already produced.
 - Null-control it: show it does not fire on a healthy tree, and does not go
   green by skipping.
 - It obeys the ratchet. If it needs a budget raised, that is the owner's call,

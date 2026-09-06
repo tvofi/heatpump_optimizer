@@ -25,8 +25,11 @@ that none exists. A worked example of each:
 
 - **Qualifies.** `closure.py no-copies` refused a test symbol that shared a name
   with a production symbol, after roughly fifteen minutes of CI. The same check
-  runs locally in **0.56 s** and existed already — it was simply in no local
-  path. Cheaper detector: an edit-time hook. Countermeasure built.
+  runs locally in **under a second** and existed already — it was simply in no
+  local path. Cheaper detector: an edit-time hook. Countermeasure built. A cheaper
+  detector runs an existing check sooner; it does not repair the failure. That
+  distinction matters here: `no-copies` is on `ci-autofix.mdc`'s do-not-automate
+  list and stays there, and nothing in this rule licenses another autofix job.
 - **Does not qualify.** A solver regression caught by the golden fixtures. The
   cheapest detector that would have caught it *is* the gate that caught it.
   Record the finding, build nothing.
@@ -101,14 +104,41 @@ on the defect it was written for, and passing once the defect is fixed.** Both
 runs go in the report.
 
 A check that passes while the bug is present is worse than no check: it converts
-an open defect into a closed one. This repository has produced that shape three
-times — a key-set check that supplied the value it asserted, an invariant that
-went green on a broken tree, and an autofix job that reported success while
-skipping its own repair. Each was caught only by a control that assumed the
-check was lying.
+an open defect into a closed one. This repository keeps producing that shape: a
+key-set check that supplied the value it asserted, an invariant that went green
+on a broken tree, an autofix job that reported success while skipping its own
+repair. Each was caught by a control that assumed the check was lying, and none
+of them by the check itself.
 
 ## Where it is recorded
 
 The qualifying defect's issue carries a **Root cause** section: the cause, the
 process state (a-d) with its evidence, the cost test with its numbers, and the
 countermeasure or the recorded decision not to build one.
+
+## Enforcement
+
+The second trigger is the one with an observable moment, and it is enforced
+there. The moment is **a check that went red on a commit in the branch**; the
+checker is the **fix reviewer**, before returning `merge`.
+
+The fixer whose branch turned a check red names that check in the PR body, and
+answers the trigger's question there: the cheaper detector and its standing
+cost, or the recorded finding that none exists. Both answers are legitimate —
+the worked examples above are one of each — so the cost of a check that does not
+qualify is one line, which is what keeps the obligation from being argued away.
+
+Naming the trigger is not performing the analysis. The analysis runs in its own
+seat (`tools/audit/briefs/root-cause.md`), never in the fixer's, for the same
+reason `fix-review.md` is not the fixer's. What the fixer owes is that the
+trigger is visible to someone other than the seat that tripped it.
+
+The reviewer reads the PR's checks rather than the body's account of them. A red
+check the body does not answer is
+**`blocked: root-cause trigger unanswered for <check>`**.
+
+The first trigger — the defect reached a released version — has no moment
+cheaper than the issue itself, so it is carried by the **Root cause** section
+above and no verdict enforces it. That asymmetry is deliberate: a rule that
+claims an enforcement it does not have is worse than one that says where it
+stops.

@@ -137,6 +137,13 @@ The analysis runs in **its own seat**, beside the fix and never inside it:
 `tools/audit/briefs/root-cause.md`. Policy is `.cursor/rules/defect-root-cause.mdc`.
 Repository rules and policy change only with the owner's approval.
 
+The red-check trigger is enforced, and only that one. The fixer names any check
+its branch turned red in the PR body and answers there — the cheaper detector
+and its standing cost, or the finding that none exists; the fix reviewer reads
+the PR's checks before returning `merge`, and an unanswered one is
+`blocked: root-cause trigger unanswered for <check>`. Naming the trigger is not
+the analysis, which stays in its own seat.
+
 ## The contracts, when the work is a fix
 
 - `tools/audit/briefs/fixer.md` — failing test first, importing the production
