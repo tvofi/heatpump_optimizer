@@ -224,13 +224,13 @@ def _materialise(repo: Path, dest: Path) -> int:
     rather than whatever HEAD happens to hold.
 
     Files the gate declares INERT are skipped. Copying one would open it, the
-    audit hook would record it, and `closure.py check` refuses a file that is
-    both declared unread and recorded as read (#357) — a contradiction no CI
-    autofix repairs. The predicate is asked of `closure.py` rather than
-    restated, so a file entering or leaving INERT needs no edit here. Nothing
-    dropped this way can change what this lane measures: INERT means no test
-    reads it, and quality_scale.yaml -- the only package file it covers today
-    -- is a register hassfest skips for custom repositories.
+    audit hook would record it, and ``closure.py check`` refuses a file that is
+    both declared unread and recorded as read (#357) -- a contradiction no CI
+    autofix repairs. The predicate is asked of ``closure.py`` rather than
+    restated here, so a file entering or leaving INERT needs no edit in this
+    lane. Nothing dropped this way can change what the lane measures: INERT
+    means no test reads it, and ``quality_scale.yaml`` -- the only package file
+    it covers -- is a register hassfest skips for custom repositories.
     """
     # Local: `tests/` is deliberately off this file's sys.path, because the
     # driver half runs under -P and must not resolve anything from here.
