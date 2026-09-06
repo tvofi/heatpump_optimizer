@@ -64,6 +64,12 @@
 # branch claims NOTHING. tests/closure.py, tests/env_drift.py and the CI
 # workflow only -- gate plumbing, no solver or fixture input changes, so
 # every scenario is byte-identical by construction.
+#
+#
+#
+# The finding-propagation destination fix: this branch claims NOTHING. Two
+# rules files and CLAUDE.md only -- no production file, no test input and no
+# solver parameter is touched, so every scenario is byte-identical.
 
 # #546, the unsaveable setup page: this branch claims NOTHING. The accepted
 # set for `apply_topology`'s `positions` is derived from `_SLOTS` instead of
