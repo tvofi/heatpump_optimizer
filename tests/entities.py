@@ -989,9 +989,9 @@ def _honest_coordinator(extra_config=None, states=None, dhw=True):
 _blind_hass, _blind_coord, _blind = _honest_coordinator()
 _blind_fake = FakeCoordinator(_blind)
 
-# S0 of #377: CoordinatorContext is defined and constructed. The five
-# write-once hubs stay on the coordinator; _ctx is a frozen snapshot of
-# the same objects. _current_action is not a frozen field.
+# S0/S1 of #377: CoordinatorContext is defined and constructed. S1
+# deletes the raw hub attributes; facades still resolve. _current_action
+# is not a frozen field.
 from dataclasses import FrozenInstanceError, fields, is_dataclass
 
 R.section("S0 CoordinatorContext (#377)")
@@ -1056,6 +1056,44 @@ R.check(
     and _blind_coord._current_state is not None
     and _blind_coord._opt_config is not None
     and isinstance(_blind_coord._current_action, dict),
+)
+R.section("S1 hub refs via _ctx (#377)")
+_raw = vars(_blind_coord)
+R.check(
+    "the four write-once hubs are not raw instance attributes",
+    "_config" not in _raw
+    and "_thermal_params" not in _raw
+    and "_current_state" not in _raw
+    and "_opt_config" not in _raw,
+    "raw leftover: " + ", ".join(
+        k for k in ("_config", "_thermal_params", "_current_state", "_opt_config")
+        if k in _raw
+    ),
+)
+import ast as _ast_s1
+_s1_tree = _ast_s1.parse(Path(coordinator_module.__file__).read_text())
+_s1_cls = next(
+    n for n in _s1_tree.body
+    if isinstance(n, _ast_s1.ClassDef) and n.name == "HeatPumpOptimizerCoordinator"
+)
+_s1_raw_reads = []
+for _fn in _s1_cls.body:
+    if not isinstance(_fn, (_ast_s1.FunctionDef, _ast_s1.AsyncFunctionDef)):
+        continue
+    for _n in _ast_s1.walk(_fn):
+        if (
+            isinstance(_n, _ast_s1.Attribute)
+            and isinstance(_n.value, _ast_s1.Name)
+            and _n.value.id == "self"
+            and _n.attr in {
+                "_config", "_thermal_params", "_current_state", "_opt_config",
+            }
+        ):
+            _s1_raw_reads.append(f"{_fn.name}:{_n.lineno}")
+R.check(
+    "coordinator methods read those hubs through _ctx, not raw self",
+    not _s1_raw_reads,
+    "left as self._X: " + ", ".join(_s1_raw_reads[:8]),
 )
 from heatpump_optimizer.coordinator import (
     COP_LEARNING_MAX_STEP,
