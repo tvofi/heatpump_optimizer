@@ -47,8 +47,9 @@
 #
 # claims-for: 6.3.15
 #
-# 3L-G9 #463: card/UI only. No coord_* or config_flow goldens moved.
-# G8's wood_fuel payload already lives on a19ba03.
+# Record of #489: this commit claims NOTHING. Roster and Delivery-status
+# only. #489 listed no coord_* or config_flow claims; carrying G9's card
+# claims forward is the inherited-claims rule above.
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum

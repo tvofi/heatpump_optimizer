@@ -1,12 +1,12 @@
 {
   "_comment": [
     "Wave 3L of the open-issues programme (docs/plan-2026-09-open-issues.md).",
-    "Leftovers after Wave 3, before Wave 4. Serial. 3L-G8 done (a19ba03); 3L-G6 spec-blocked (#457).",
+    "Leftovers after Wave 3, before Wave 4. Serial. 3L-G9 done (b29fd1e); 3L-G6 spec-blocked (#457).",
     "#412 stays last of the programme, not in this burst.",
     "Consumed by .claude/workflows/web-fix-wave.js as its `groups` argument."
   ],
-  "fork": "a19ba032349c8b779e057b36083acc5e72d0dcab",
-  "fork_note": "origin/main after 3L-G8 #487 (`a19ba03`). Re-measure structure at this merge-base. coordinator_loc 10370. claims-for stays 6.3.15. #463 stays open.",
+  "fork": "b29fd1ed8e4eb2f043b7f78385965044a1c106d8",
+  "fork_note": "origin/main after 3L-G9 #489 (`b29fd1e`). Re-measure structure at this merge-base. coordinator_loc 10364. claims-for stays 6.3.15. #463 closed.",
   "session": "claude-web",
   "repo": "/Users/timmalmstrom/heatpump_optimizer",
   "serial": true,
@@ -149,8 +149,10 @@
       "fixture": false,
       "after": ["3L-G8"],
       "resume": {
-        "stage": "in_progress",
-        "note": "Next seat after #487 (`a19ba03`). Banner, Wood lane, what-if. Closes #463 on its own line. claims-for 6.3.15. coordinator_loc ceiling 10370."
+        "stage": "done",
+        "merged_pr": 489,
+        "merge_sha": "b29fd1ed8e4eb2f043b7f78385965044a1c106d8",
+        "note": "Review approved spec/plan Task 5-6 at a5131eb. Merge-base 213b55b ImportError / card 3 FAILs / entities wood_fuel FAIL; head 1952 FEATURE, ALL CARD (host 26), 906 ENTITY. Mutations kill display + inject witnesses. CI fast 23m32s, closures 19m36s. coordinator_loc 10364. #463 closed. Next seat 3L-G10."
       },
       "brief": "Plan banner, Wood lane, what-if wood slots (#463). Closes #463 on its own line. Same spec and plan as 3L-G8."
     },
@@ -162,6 +164,10 @@
       "effort": "high",
       "fixture": false,
       "after": ["3L-G9"],
+      "resume": {
+        "stage": "in_progress",
+        "note": "Next seat after #489 (`b29fd1e`). Away toggle and return datetime. Closes #465 on its own line. claims-for 6.3.15. coordinator_loc ceiling 10364."
+      },
       "brief": "Plan-page Away toggle and return datetime (#465). Service-backed store; published switch and datetime; optional person/calendar. Spec docs/superpowers/specs/2026-09-05-away-plan-toggle-design.md. Plan docs/superpowers/plans/2026-09-05-away-plan-toggle.md. After 3L-G9, before Wave 4. Closes #465 on its own line."
     }
   ]
