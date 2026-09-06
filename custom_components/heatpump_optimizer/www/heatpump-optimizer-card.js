@@ -66,6 +66,9 @@ const STRINGS = {
     "series.dhw_temp": "DHW tank temperature",
     "series.house_temp": "House temperature",
     "series.solar": "Solar irradiance",
+    "series.wood_slots": "Wood fire",
+    "wood.alert":
+      "Burning wood is cheaper than at least one remaining heat-pump hour.",
     // The extra traces inside the house-temperature series. They are drawn
     // dashed in the same colour, and before v5.1.7 nothing named them: one
     // legend chip and one tooltip row said "House temperature" for all
@@ -142,10 +145,12 @@ const STRINGS = {
     // slot lanes and the slot menu
     "slots.lane_dhw": "Hot water",
     "slots.lane_space": "Heating",
+    "slots.lane_wood": "Wood",
     "menu.remove_slot_dhw": "Remove this hot water slot",
     "menu.remove_slot_space": "Remove this heating slot",
     "menu.add_slot_dhw": "Add a hot water slot here",
     "menu.add_slot_space": "Add a heating slot here",
+    "menu.add_slot_wood": "Add a wood slot here",
     "slots.no_plan_to_pin": "No plan to pin yet.",
     "slots.applying": "Applying…",
     "slots.until_suffix": " until {expiry}",
@@ -196,6 +201,9 @@ const STRINGS = {
       "No windows: hot water is never required, so the tank is only kept " +
       "above its idle minimum.",
     "whatif.add_window": "+ Add window",
+    "whatif.wood": "Wood fire",
+    "whatif.wood_liters": "Liters",
+    "whatif.add_wood_slot": "Add a wood slot",
     "whatif.simulate": "Simulate these slots",
     "whatif.save_schedule": "Save as my schedule",
     "whatif.reset": "Reset",
@@ -476,6 +484,9 @@ const STRINGS = {
     "series.dhw_temp": "Varmvattentankens temperatur",
     "series.house_temp": "Innetemperatur",
     "series.solar": "Solinstrålning",
+    "series.wood_slots": "Vedeldning",
+    "wood.alert":
+      "Vedeldning är billigare än minst en återstående värmepumpstimme.",
     "series.upper_floor": "Övre plan",
     "series.lower_floor": "Nedre plan",
     "series.lower_floor_modelled": "Nedre plan (modellerad)",
@@ -527,10 +538,12 @@ const STRINGS = {
 
     "slots.lane_dhw": "Varmvatten",
     "slots.lane_space": "Värme",
+    "slots.lane_wood": "Ved",
     "menu.remove_slot_dhw": "Ta bort det här varmvattenpasset",
     "menu.remove_slot_space": "Ta bort det här värmepasset",
     "menu.add_slot_dhw": "Lägg till ett varmvattenpass här",
     "menu.add_slot_space": "Lägg till ett värmepass här",
+    "menu.add_slot_wood": "Lägg till ett vedpass här",
     "slots.no_plan_to_pin": "Ingen plan att låsa ännu.",
     "slots.applying": "Tillämpar…",
     "slots.until_suffix": " till {expiry}",
@@ -581,6 +594,9 @@ const STRINGS = {
       "Inga fönster: varmvatten krävs aldrig, så tanken hålls bara över " +
       "sitt vilominimum.",
     "whatif.add_window": "+ Lägg till fönster",
+    "whatif.wood": "Vedeldning",
+    "whatif.wood_liters": "Liter",
+    "whatif.add_wood_slot": "Lägg till ett vedpass",
     "whatif.simulate": "Simulera dessa pass",
     "whatif.save_schedule": "Spara som mitt schema",
     "whatif.reset": "Återställ",
@@ -860,6 +876,15 @@ function L(key, vars) {
   return text;
 }
 
+function isoToDatetimeLocal(iso) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(
+    d.getHours()
+  )}:${p(d.getMinutes())}`;
+}
+
 const DEFAULTS = {
   // No default title here: the default is localized, so it is resolved at
   // render time (`_title`) rather than baked into the config at setConfig
@@ -1100,6 +1125,7 @@ const TIME_LABEL_STEPS = [1, 2, 3, 4, 6, 8, 12, 24];
 const LANE_H = 15;
 const LANE_GAP = 3;
 const LANE_BOTTOM_INSET = 3;
+const WOOD_LANE_COLOR = "#7a4510";
 // D4-02 (#257): a lane and a slot are targets a finger or a mouse has to
 // land on, and a viewBox unit is not a pixel -- 15 units came out 5.5 px
 // tall on a phone. The editor therefore sizes its targets in PIXELS, from
@@ -3650,6 +3676,26 @@ class PlanSource {
     return raw === null || raw === undefined ? fallback : raw;
   }
 
+  woodFuel() {
+    const raw = this.attrRaw("wood_fuel", null);
+    return raw && typeof raw === "object" && !Array.isArray(raw) ? raw : null;
+  }
+
+  showWoodLane() {
+    const f = this.woodFuel();
+    if (!f) return false;
+    if (f.show_whatif) return true;
+    return Array.isArray(f.slots) && f.slots.length > 0;
+  }
+
+  woodAlertHtml() {
+    const f = this.woodFuel();
+    if (!f || !f.cheaper) return "";
+    return `<div class="wood-alert" role="status" style="margin:0 0 .6em;padding:.45em .7em;border-left:3px solid var(--warning-color,#d98e00);background:var(--secondary-background-color,rgba(0,0,0,.06));font-size:.9em">${esc(
+      L("wood.alert")
+    )}</div>`;
+  }
+
   /** The manual override the integration is currently honouring, if any.
    *
    * Published by both plan sensors, so either will do; the space sensor is the
@@ -6136,7 +6182,54 @@ class LaneEditor {
         }
       });
     });
+    if (this.host.plan.showWoodLane()) {
+      const y = laneTop + specs.length * (laneH + laneGap);
+      const label = L("slots.lane_wood");
+      out.push(
+        `<rect class="lane" data-channel="wood" pointer-events="none" x="${plotL}" y="${y}" width="${
+          plotR - plotL
+        }" height="${laneH}" rx="2" fill="var(--secondary-text-color,#888)" fill-opacity="0.07"/>`
+      );
+      out.push(
+        `<text class="lane-label" x="${plotL + 4}" y="${
+          y + laneH - 4 * (laneH / LANE_H)
+        }" font-size="${font * 0.8}" fill="var(--secondary-text-color,#888)">${esc(
+          label
+        )}</text>`
+      );
+      for (const run of this.woodRuns()) {
+        if (run.end <= windowStart || run.start >= windowEnd) continue;
+        const x1 = clampX(run.start);
+        const x2 = clampX(run.end);
+        out.push(
+          `<rect class="slot" pointer-events="none" x="${x1}" y="${y}" width="${Math.max(
+            1,
+            x2 - x1
+          )}" height="${laneH}" rx="2" fill="${WOOD_LANE_COLOR}" fill-opacity="${
+            run.source === "whatif" ? 0.55 : 0.85
+          }"/>`
+        );
+      }
+    }
     return out.join("");
+  }
+
+  woodRuns() {
+    const out = [];
+    const add = (slots, source) => {
+      for (const s of slots || []) {
+        const start = Date.parse(s.start);
+        const end = Date.parse(s.end);
+        if (Number.isFinite(start) && Number.isFinite(end) && end > start) {
+          out.push({ start, end, source });
+        }
+      }
+    };
+    const f = this.host.plan.woodFuel();
+    add(f && f.slots, "detected");
+    const draft = this.host.whatIf && this.host.whatIf.values;
+    add(draft && draft.woodSlots, "whatif");
+    return out;
   }
 
   /** Redraw only what a drag changes.
@@ -6628,6 +6721,9 @@ class WhatIfPanel {
     this.onSlotEdit = this.onSlotEdit.bind(this);
     this.onAddWindow = this.onAddWindow.bind(this);
     this.onRemoveWindow = this.onRemoveWindow.bind(this);
+    this.onAddWood = this.onAddWood.bind(this);
+    this.onRemoveWood = this.onRemoveWood.bind(this);
+    this.onWoodEdit = this.onWoodEdit.bind(this);
     this.onApplySlots = this.onApplySlots.bind(this);
     this.onSaveSchedule = this.onSaveSchedule.bind(this);
     this.onReset = this.onReset.bind(this);
@@ -6699,7 +6795,7 @@ class WhatIfPanel {
     );
     return `
       <div class="whatif">
-        ${this.host.manual.sectionHtml(windowHours)}
+        ${this.host.manual.sectionHtml(windowHours)}${this.woodSectionHtml()}
 
         <div class="wi-section">
           <div class="wi-group-title">${esc(L("whatif.usual_schedule"))}</div>
@@ -6839,9 +6935,82 @@ class WhatIfPanel {
         dayStart: this.host.plan.attr("day_start_hour", 7),
         dayEnd: this.host.plan.attr("day_end_hour", 22),
         dhwWindows: this.currentDhwWindows(),
+        woodSlots: [],
       };
     }
     return this.values;
+  }
+
+  woodSectionHtml() {
+    const fuel = this.host.plan.woodFuel();
+    if (!fuel || !fuel.show_whatif) return "";
+    const slots = this.draft().woodSlots || [];
+    const rows = slots
+      .map(
+        (s, i) => `
+            <div class="wi-wood-slot" data-index="${i}">
+              <input type="datetime-local" class="wi-wood-start" value="${esc(
+                isoToDatetimeLocal(s.start)
+              )}" aria-label="${esc(L("whatif.wood"))}">
+              <span>–</span>
+              <input type="datetime-local" class="wi-wood-end" value="${esc(
+                isoToDatetimeLocal(s.end)
+              )}">
+              <label class="wi-field"><span>${esc(L("whatif.wood_liters"))}</span>
+                <input type="number" class="wi-wood-liters" min="1" step="1" value="${
+                  s.liters || ""
+                }"></label>
+              <button type="button" class="wi-remove-wood" data-index="${i}" title="${esc(
+          L("whatif.remove")
+        )}">×</button>
+            </div>`
+      )
+      .join("");
+    return `
+        <div class="wi-section">
+          <div class="wi-group-title">${esc(L("whatif.wood"))}</div>
+          <div class="wi-wood-slots">${rows}</div>
+          <button type="button" class="wi-add-wood">${esc(
+            L("whatif.add_wood_slot")
+          )}</button>
+        </div>`;
+  }
+
+  onWoodEdit(ev) {
+    stop(ev);
+    const root = this.host.shadowRoot;
+    if (!root) return;
+    const draft = this.draft();
+    draft.woodSlots = [...root.querySelectorAll(".wi-wood-slot")].map((row) => {
+      const startEl = row.querySelector(".wi-wood-start");
+      const endEl = row.querySelector(".wi-wood-end");
+      const litEl = row.querySelector(".wi-wood-liters");
+      const start =
+        startEl && startEl.value ? new Date(startEl.value).toISOString() : "";
+      const end = endEl && endEl.value ? new Date(endEl.value).toISOString() : "";
+      return { start, end, liters: Number(litEl && litEl.value) || 0 };
+    });
+  }
+
+  onAddWood(ev) {
+    stop(ev);
+    this.onWoodEdit(ev);
+    const start = new Date();
+    this.draft().woodSlots.push({
+      start: start.toISOString(),
+      end: new Date(start.getTime() + 3600 * 1000).toISOString(),
+      liters: 50,
+    });
+    this.host.renderForced();
+  }
+
+  onRemoveWood(ev) {
+    stop(ev);
+    this.onWoodEdit(ev);
+    const index = Number(ev.currentTarget.getAttribute("data-index"));
+    const draft = this.draft();
+    if (Number.isFinite(index)) draft.woodSlots.splice(index, 1);
+    this.host.renderForced();
   }
 
   /** Current comfort target, as the optimizer itself is planning against.
@@ -6928,6 +7097,15 @@ class WhatIfPanel {
     });
     const add = root.querySelector(".wi-add");
     if (add) add.addEventListener("click", this.onAddWindow);
+    const addWood = root.querySelector(".wi-add-wood");
+    if (addWood) addWood.addEventListener("click", this.onAddWood);
+    root
+      .querySelectorAll(".wi-remove-wood")
+      .forEach((el) => el.addEventListener("click", this.onRemoveWood));
+    root.querySelectorAll(".wi-wood-start, .wi-wood-end, .wi-wood-liters").forEach((el) => {
+      el.addEventListener("click", stop);
+      el.addEventListener("change", this.onWoodEdit);
+    });
     root
       .querySelectorAll(".wi-remove")
       .forEach((el) => el.addEventListener("click", this.onRemoveWindow));
@@ -7132,7 +7310,7 @@ class WhatIfPanel {
   /** Everything the draft changes, as service call arguments. */
   overrides() {
     const draft = this.draft();
-    return {
+    const out = {
       target_temp: draft.comfort,
       comfort_temp_day: draft.comfort,
       // Already accepted by SERVICE_SCHEMA_SIMULATE_PLAN and applied to the
@@ -7146,6 +7324,17 @@ class WhatIfPanel {
       // guaranteeing hot water at fixed times?"
       dhw_windows: formatWindows(draft.dhwWindows),
     };
+    const slots = (draft.woodSlots || []).filter(
+      (s) => s.liters > 0 && s.start && s.end
+    );
+    if (slots.length) {
+      out.wood_slots = slots.map((s) => ({
+        start: s.start,
+        end: s.end,
+        liters: s.liters,
+      }));
+    }
+    return out;
   }
 
   async run() {
@@ -8926,6 +9115,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
       // The headline reads its own sensors; leaving them out would freeze
       // the row at whatever the first render saw.
       headlineSignature(this.plan, this._config),
+      JSON.stringify(this.plan.attrRaw("wood_fuel", null)),
     ].join("|");
   }
 
@@ -9162,7 +9352,8 @@ class HeatpumpOptimizerCard extends HTMLElement {
         this._chartWidthUsed[expanded ? 1 : 0] = w;
         return w;
       },
-      laneCount: () => this.manual.laneSpecs().length,
+      laneCount: () =>
+        this.manual.laneSpecs().length + (this.plan.showWoodLane() ? 1 : 0),
       priceUnit: this.plan.priceUnit(),
       estimatedFrom: this.plan.estimatedPricesFrom(),
       editing: this.manual.enabled(),
@@ -9196,7 +9387,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
       expanded && viewH && viewH !== VIEW_H
         ? ` style="aspect-ratio:${VIEW_W} / ${Number(viewH.toFixed(2))}"`
         : "";
-    return `<div class="chartwrap${expanded ? " big" : ""}${pannable}"${ratio}>${chart}
+    return `${this.plan.woodAlertHtml()}<div class="chartwrap${expanded ? " big" : ""}${pannable}"${ratio}>${chart}
       ${this.view.controlsHtml()}
       <div class="tooltip" hidden></div></div>`;
   }

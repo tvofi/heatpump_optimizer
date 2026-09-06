@@ -790,6 +790,15 @@ R.check(
     "and keeps it out of the recorder, like the windows it explains",
     "dhw_windows_spec" in sensor._PlanSensorBase._unrecorded_attributes,
 )
+R.check(
+    "the plan sensor publishes wood_fuel for the card (#463)",
+    space_plan.extra_state_attributes.get("wood_fuel") == DATA["wood_fuel"],
+    "the Lovelace card reads plan-sensor attributes, not coordinator.data",
+)
+R.check(
+    "and keeps wood_fuel out of the recorder",
+    "wood_fuel" in sensor._PlanSensorBase._unrecorded_attributes,
+)
 
 # Optional inputs must degrade cleanly.
 no_power = FakeCoordinator({**DATA, "measured_power_available": False, "measured_power": None})
@@ -4818,7 +4827,7 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
         "dhw_windows_spec", "forecast", "horizon_hours", "manual_override",
         "manual_plan_window_hours", "next_slot_start", "plan_kind",
         "projection", "setup_topology", "slot_count", "slots", "total_cost",
-        "total_energy_kwh"
+        "total_energy_kwh", "wood_fuel"
     }),
     # keys are the configured windows, see _ATTR_KEYS_ARE_DATA above
     "DHWHeavyDaySensor": frozenset(),
@@ -4947,7 +4956,7 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
         "dhw_windows_spec", "forecast", "horizon_hours", "manual_override",
         "manual_plan_window_hours", "next_slot_start", "plan_kind",
         "projection", "setup_topology", "slot_count", "slots", "total_cost",
-        "total_energy_kwh"
+        "total_energy_kwh", "wood_fuel"
     }),
     "ThermalBatteryEnergySensor": frozenset({
         "charge_rate_kw", "discharge_rate_kw", "hours_of_autonomy",
@@ -5127,6 +5136,7 @@ R.check(
 _EMPTY_PLAN_ATTRS = frozenset({
     "currency", "dhw_windows_spec", "horizon_hours", "manual_override",
     "manual_plan_window_hours", "plan_kind", "projection", "setup_topology",
+    "wood_fuel",
 })
 _POPULATED_PLAN_ATTRS = frozenset({
     "active_now", "comfort_temp_day", "comfort_temp_night", "currency",
@@ -5135,6 +5145,7 @@ _POPULATED_PLAN_ATTRS = frozenset({
     "dhw_windows_spec", "forecast", "horizon_hours", "manual_override",
     "manual_plan_window_hours", "next_slot_start", "plan_kind", "projection",
     "setup_topology", "slot_count", "slots", "total_cost", "total_energy_kwh",
+    "wood_fuel",
 })
 for _plan_cls in (sensor.SpaceHeatingPlanSensor, sensor.DHWHeatingPlanSensor):
     _empty_keys = frozenset(

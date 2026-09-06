@@ -1313,6 +1313,8 @@ class _PlanSensorBase(HeatPumpOptimizerSensorBase):
             "manual_override",
             "dhw_windows",
             "dhw_windows_spec",
+            # Lovelace reads plan-sensor attributes, not coordinator.data.
+            "wood_fuel",
         }
     )
     _plan_key: str = ""
@@ -1374,6 +1376,7 @@ class _PlanSensorBase(HeatPumpOptimizerSensorBase):
                 "horizon_hours": float(
                     (self.coordinator.data or {}).get("horizon_hours", 24.0)
                 ),
+                "wood_fuel": (self.coordinator.data or {}).get("wood_fuel"),
             }
         slots = plan.get("slots", [])
         next_slot = None
@@ -1441,6 +1444,7 @@ class _PlanSensorBase(HeatPumpOptimizerSensorBase):
             "setup_topology": self.coordinator.describe_setup(),
             # The currency the plan's costs are in (see the no-plan branch).
             "currency": self.coordinator.currency,
+            "wood_fuel": data.get("wood_fuel"),
         }
 
 

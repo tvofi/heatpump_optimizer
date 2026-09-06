@@ -21,6 +21,9 @@
 #
 # claims-for: 6.3.15
 #
-# Record of #487: this commit claims NOTHING. Card markup is unchanged
-# vs a19ba03; #487 listed no card claims.
+# 3L-G9 #463: banner, Wood lane, what-if editor. New states only.
+
+wood_alert # Plan banner when wood_fuel.cheaper (#463)
+wood_lane # Wood display lane from wood_fuel.slots (#463)
+wood_whatif # what-if wood editor when show_whatif (#463)
 
