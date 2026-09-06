@@ -112,3 +112,20 @@ Name the destination in your PR body — which brief, block or plan row received
 it — so the reviewer checks the destination rather than takes your word.
 
 See `.cursor/rules/finding-propagation.mdc`.
+
+## Before you hand off: answer any check your branch turned red
+
+`.cursor/rules/defect-root-cause.mdc` has two triggers, and one of them fires on
+your own PR: a defect that **turned a check red where a cheaper detector could
+have run**. Name that check in your PR body and answer the question there — the
+cheaper detector and its standing cost, or the finding that none exists.
+`UNDER-SCOPED` and `INHERITED CLAIMS` are answered by naming them; their
+countermeasure is the autofix job `ci-autofix.mdc` already describes.
+
+You are naming the trigger, not analysing it. The analysis runs in its own seat
+(`tools/audit/briefs/root-cause.md`), never in yours, for the same reason the
+fix review is not yours. What you owe is that the trigger is visible to a seat
+other than the one that tripped it.
+
+The reviewer reads your checks rather than your account of them, and an
+unanswered red check is `blocked: root-cause trigger unanswered for <check>`.

@@ -48,7 +48,20 @@ its bug. You are checking that the numbers are real.
     recorded, not propagated, and that is
     `blocked: finding not carried to <stage>`. See
     `.cursor/rules/finding-propagation.mdc`.
-11. **Re-read the head before you post.** Name the SHA you measured in the
+11. **A red check owes an answer.** `.cursor/rules/defect-root-cause.mdc`
+    triggers on a defect that turned a check red where a cheaper detector could
+    have run, and this step is where that trigger is checked. Read the PR's own
+    checks — `gh pr checks <n>` and the runs on the branch's commits — not the
+    body's account of them. For each gate check that went red, the body names it
+    and answers the question: the cheaper detector with its standing cost, or the
+    finding that none exists. Both answers pass; silence does not, and that is
+    `blocked: root-cause trigger unanswered for <check>`. The failures
+    `ci-autofix.mdc` already repairs — `UNDER-SCOPED`, `INHERITED CLAIMS` — are
+    answered by naming them: their countermeasure is the autofix job that exists.
+    You are checking that the trigger was answered, not adjudicating the answer
+    — the analysis is a separate seat, `tools/audit/briefs/root-cause.md`.
+
+12. **Re-read the head before you post.** Name the SHA you measured in the
     verdict, and check it is still the head when you post it. A branch that
     moved under you means some of your numbers describe a tree that no longer
     exists: say which survive and which you re-took, rather than letting the
