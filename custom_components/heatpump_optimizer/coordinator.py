@@ -1249,6 +1249,19 @@ async def _publish_ecl110_topics(
             _LOGGER.error("Error publishing ECL110 legacy MQTT command: %s", err)
 
 
+def _effective_house_heat_loss(
+    params: ThermalParameters, scale: float
+) -> float:
+    """Configured heat loss coefficient after the learned correction, kW/°C."""
+    if params.two_zone_enabled:
+        # The learned split belongs in the total the diagnostic reports, or
+        # it would show a number the model does not actually use.
+        base = params.upper_floor_heat_loss + params.lower_floor_heat_loss_learned
+    else:
+        base = params.heat_loss_coefficient
+    return round(base * scale, 4)
+
+
 class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     """Coordinator for Heat Pump Cost Optimizer."""
 
@@ -1282,6 +1295,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._ctx = CoordinatorContext(
             config, thermal_params, self.hass, current_state, opt_config)
         self._init_dhw_learning(hass, entry)
+        self._init_thermal_learning(hass, entry)
         self._init_measurements()
         self._init_grid(hass, entry)
         self._init_features(hass, entry)
@@ -1587,6 +1601,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # #6: last commanded pump states, so actuation is transitions-only.
         self._pump_commanded: dict[str, bool] = {}
 
+    def _init_thermal_learning(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+        """House and buffer self-learned state; #193 S5 split it out of dhw."""
+        ctx = getattr(self, "_ctx", self)
         # Self-learned buffer tank standby cooling, in °C/h at the same
         # reference ΔT as the DHW rate. Only learned when a buffer tank
         # temperature sensor is configured.
@@ -3600,17 +3617,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             "learners_frozen": reason is not None,
             "learner_freeze_reason": reason,
         }
-
-    def _effective_house_heat_loss(self) -> float:
-        """Configured heat loss coefficient after the learned correction, kW/°C."""
-        params = getattr(self, "_ctx", self)._thermal_params
-        if params.two_zone_enabled:
-            # The learned split belongs in the total the diagnostic reports, or
-            # it would show a number the model does not actually use.
-            base = params.upper_floor_heat_loss + params.lower_floor_heat_loss_learned
-        else:
-            base = params.heat_loss_coefficient
-        return round(base * self._house_heat_loss_scale, 4)
 
     def _current_weather(self) -> tuple[float, float]:
         """Current wind speed (m/s) and precipitation (mm/h) for simulation."""
@@ -7392,7 +7398,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             "house_heat_loss_scale": self._house_heat_loss_scale,
             "house_heat_loss_samples": self._house_heat_loss_samples,
             "house_heat_loss_learned": self._house_heat_loss_samples > 0,
-            "house_heat_loss_effective": self._effective_house_heat_loss(),
+            "house_heat_loss_effective": _effective_house_heat_loss(
+                ctx._thermal_params, self._house_heat_loss_scale
+            ),
             "lower_floor_loss_ratio": round(self._lower_floor_loss_ratio, 3),
             "lower_floor_loss_samples": self._lower_floor_loss_samples,
             "lower_floor_loss_learned": self._lower_floor_loss_samples > 0,
