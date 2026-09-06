@@ -1017,6 +1017,21 @@ def _hub(name: str):
     return property(get, set)
 
 
+def _grid_fee_entity_value(hass, config: dict[str, Any]) -> float | None:
+    """The live SEK/kWh fee entity's value, when one is configured."""
+    entity_id = config.get(CONF_GRID_FEE_ENTITY)
+    if not entity_id:
+        return None
+    state = hass.states.get(entity_id)
+    if state is None:
+        return None
+    try:
+        value = float(state.state)
+    except (TypeError, ValueError):
+        return None
+    return value if np.isfinite(value) else None
+
+
 def _solve_anchor(now: datetime) -> datetime:
     """``now`` floored onto the grid the forecast arrays are built on.
 
@@ -1318,6 +1333,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._init_thermal_learning(hass, entry)
         self._init_measurements()
         self._init_grid(hass, entry)
+        self._init_frequency()
         self._init_features(hass, entry)
         self._init_insurance(hass, entry)
         self._init_ecl110()
@@ -1747,18 +1763,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._last_interval_record: dict[str, Any] | None = None
         self._last_diagnosis: dict[str, Any] | None = None
 
-        # --- Inverter frequency (v4.0.0 T7 #61) ----------------------------
-        # Observe learns; control actuates only on explicit opt-in, and the
-        # watchdog's stand-down latch survives restarts via the thermal
-        # learning store.
-        self._freq_map = FrequencyMap()
-        self._freq_watchdog = FrequencyWatchdog()
-        self._freq_fallback = False
-        # Stamped at init rather than None: the rate limit is in-memory,
-        # and a crash-looping HA restarting every minute must not get a
-        # fresh write per boot. Costs one 5-minute delay after any start.
-        self._freq_last_write: datetime | None = dt_util.now()
-
         # --- Capacity tariff (item 8) --------------------------------------
         self._peak_tracker = PeakTracker()
 
@@ -1775,6 +1779,19 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._pv_surplus: np.ndarray | None = None
         self._pv_summary: dict[str, Any] = {}
         self._pv_production: float | None = None
+
+    def _init_frequency(self) -> None:
+        """Inverter frequency (#61); #193 S6 split it out of the grid seam."""
+        # Observe learns; control actuates only on explicit opt-in, and the
+        # watchdog's stand-down latch survives restarts via the thermal
+        # learning store.
+        self._freq_map = FrequencyMap()
+        self._freq_watchdog = FrequencyWatchdog()
+        self._freq_fallback = False
+        # Stamped at init rather than None: the rate limit is in-memory,
+        # and a crash-looping HA restarting every minute must not get a
+        # fresh write per boot. Costs one 5-minute delay after any start.
+        self._freq_last_write: datetime | None = dt_util.now()
 
     def _init_features(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         """Away mode, accuracy tracking, learning experiments and totals."""
@@ -6894,23 +6911,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 GridFeeSchedule.from_config(ctx._config),
             )
         return self._grid_fee_cache[1]
-    def _grid_fee_entity_value(self) -> float | None:
-        """The live SEK/kWh fee entity's value, when one is configured."""
-        entity_id = getattr(self, "_ctx", self)._config.get(CONF_GRID_FEE_ENTITY)
-        if not entity_id:
-            return None
-        state = self.hass.states.get(entity_id)
-        if state is None:
-            return None
-        try:
-            value = float(state.state)
-        except (TypeError, ValueError):
-            return None
-        return value if np.isfinite(value) else None
-
     def _fee_series(self, step_starts: list[datetime]) -> np.ndarray:
         schedule = self._grid_fee_schedule()
-        entity_value = self._grid_fee_entity_value()
+        entity_value = _grid_fee_entity_value(
+            self.hass, getattr(self, "_ctx", self)._config
+        )
         self._audit_grid_fee(schedule, entity_value)
         return schedule.fee_vector(step_starts, entity_value)
 
@@ -7076,7 +7081,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
     def _current_grid_fee(self, when: datetime) -> float:
         return self._grid_fee_schedule().current_fee(
-            when, self._grid_fee_entity_value()
+            when,
+            _grid_fee_entity_value(self.hass, getattr(self, "_ctx", self)._config),
         )
 
     async def async_publish_ecl110_command(
