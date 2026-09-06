@@ -32,7 +32,7 @@ def _bootstrap() -> None:
         sys.path.insert(0, parent)
 
 
-def _text(obj) -> str:
+def _describe(obj) -> str:
     """A description that cannot itself raise while reporting a failure."""
     try:
         return f"{type(obj).__name__}: {obj}"
@@ -50,7 +50,7 @@ def _dump(stdout, payload) -> None:
         blob = pickle.dumps(payload, protocol=pickle.HIGHEST_PROTOCOL)
     except Exception as err:  # noqa: BLE001 - the worker must still answer
         blob = pickle.dumps(
-            (payload[0], RuntimeError(f"{_text(payload[1])} ({_text(err)})")),
+            (payload[0], RuntimeError(f"{_describe(payload[1])} ({_describe(err)})")),
             protocol=pickle.HIGHEST_PROTOCOL,
         )
     stdout.write(blob)
