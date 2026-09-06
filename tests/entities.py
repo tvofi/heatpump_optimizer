@@ -2286,7 +2286,6 @@ R.check(
     "old payloads without the T4a keys must read as off, not crash",
 )
 
-wood_cheaper = b_by_name["Wood cheaper than heat pump"]
 R.check(
     "the cheaper sensor is unavailable until fuel is ready",
     not binary_sensor.WoodCheaperBinarySensor(
