@@ -23446,4 +23446,163 @@ R.check(
     f"assigned={len(_s6_names)} missing={_s6_absent}",
 )
 
+
+# ===========================================================================
+# #546 — the positions apply_topology accepts, and the boxes the card draws
+# ===========================================================================
+R.section("apply_topology accepts every place the setup page draws (#546)")
+
+# Reported from a live install: once the Outside box had been dragged, the
+# setup page could not be saved at all -- not the drag, and not the layout
+# change that rides the same call. `positions` was validated against
+# `PLACE_LABELS`, which is a display-label map for the places EDGES connect
+# and has no `outdoor` in it, while the card sends `ed.positions` unfiltered.
+#
+# Two sets that must agree, so both directions are asserted, and the card's
+# half is read off its own source: a list of places repeated in this file
+# would be a third copy of exactly the thing the defect is made of.
+import re as _t546_re  # noqa: E402
+import voluptuous as _t546_vol  # noqa: E402
+
+from heatpump_optimizer import const as _t546_const  # noqa: E402
+from heatpump_optimizer import topology as _t546_topo  # noqa: E402
+from heatpump_optimizer.services import (  # noqa: E402
+    SERVICE_SCHEMA_APPLY_TOPOLOGY as _t546_schema,
+)
+
+
+def _t546_install(two_zone, dhw, valve, wood):
+    """One configuration, by the four flags that decide which places exist."""
+    cfg = dict(_LC_DATA)
+    cfg[_t546_const.CONF_TWO_ZONE_MODE] = (
+        _t546_const.TWO_ZONE_MODE_ON if two_zone
+        else _t546_const.TWO_ZONE_MODE_OFF
+    )
+    cfg[_t546_const.CONF_MIXING_VALVE_MODE] = "manual" if valve else "none"
+    if dhw:
+        cfg[_t546_const.CONF_DHW_TEMP_ENTITY] = "sensor.dhw"
+    if wood:
+        cfg[_t546_const.CONF_EXTERNAL_HEAT_ENABLED] = True
+        cfg[_t546_const.CONF_WOOD_TANK_TOP_ENTITY] = "sensor.wood_top"
+    return cfg
+
+
+#: Every place `describe_setup` gives a sensor slot a home at, across all
+#: sixteen flag combinations -- the diagram's whole vocabulary, reached
+#: through the production describer rather than restated.
+_t546_drawn = sorted({
+    _slot["place"]
+    for _flags in _rt_it.product((False, True), repeat=4)
+    for _slot in _t546_topo.describe_setup(_t546_install(*_flags))["slots"]
+})
+
+
+def _t546_refused(places):
+    """The places apply_topology's schema will not take a position for."""
+    out = []
+    for _place in places:
+        try:
+            _t546_schema(
+                {"layout": "no_valve", "positions": {_place: [12.0, 34.0]}}
+            )
+        except _t546_vol.Invalid:
+            out.append(_place)
+    return out
+
+
+R.check(
+    "every place the setup description homes a sensor slot at is a position "
+    "apply_topology accepts (#546)",
+    len(_t546_drawn) > 4 and not _t546_refused(_t546_drawn),
+    f"described {_t546_drawn}; refused {_t546_refused(_t546_drawn)}",
+)
+
+# Sent together, the way the card sends `ed.positions`: one refused key fails
+# the whole call, so a per-place pass is not the same assertion.
+_t546_by_layout = []
+for _t546_key, _t546_layout in _t546_topo.LAYOUTS.items():
+    if not _t546_layout.selectable:
+        continue
+    try:
+        _t546_schema({
+            "layout": _t546_key,
+            "positions": {_p: [12.0, 34.0] for _p in _t546_drawn},
+        })
+    except _t546_vol.Invalid as _t546_err:
+        _t546_by_layout.append(f"{_t546_key}: {_t546_err}")
+R.check(
+    "and accepts them all in one call, for every selectable layout (#546)",
+    len(_t546_drawn) > 4 and not _t546_by_layout,
+    "; ".join(_t546_by_layout) or "ok",
+)
+
+# The reverse half. `slab_shunt` was accepted and drawn nowhere -- the same
+# divergence pointing the other way, and the reason the accepted set has to
+# be derived from the description rather than kept beside it.
+_t546_accepts = getattr(_t546_topo, "POSITION_PLACES", None)
+R.check(
+    "the accepted set is its own derived set, not a label map the schema "
+    "borrows (#546)",
+    _t546_accepts is not None,
+    "topology.POSITION_PLACES is missing: positions are validated against "
+    "PLACE_LABELS, which names the endpoints of drawn edges",
+)
+_t546_orphans = (
+    None if _t546_accepts is None
+    else sorted(set(_t546_accepts) - set(_t546_drawn))
+)
+R.check(
+    "and it holds no place the setup description never draws (#546)",
+    _t546_orphans == [],
+    "no accepted set to check"
+    if _t546_orphans is None
+    else f"accepted but never drawn: {_t546_orphans}",
+)
+
+# The card's half, read off its own `box(col, title, [place, ...])` calls:
+# `places[0]` is the box's identity, which is what a drag files a position
+# under and what the save then sends.
+_t546_boxes = sorted(set(_t546_re.findall(
+    r"\bbox\(\s*\d+\s*,(?:[^;]*?)\[\s*\"([a-z_]+)\"", _card_src_cl
+)))
+# The reader is the weak link here: a card refactor that moved the call shape
+# would match nothing and pass everything. These four boxes are drawn on every
+# install, so their absence means this reader broke, not that the card did.
+R.check(
+    "the card's box identities are readable from its source (#546)",
+    {"outdoor", "heat_pump", "buffer_tank", "upper_zone"} <= set(_t546_boxes),
+    f"read {_t546_boxes} from the card's box() calls",
+)
+R.check(
+    "every box the card draws files its position under a place "
+    "apply_topology accepts (#546)",
+    not _t546_refused(_t546_boxes),
+    f"the card draws {_t546_boxes}; apply_topology refuses "
+    f"{_t546_refused(_t546_boxes)}",
+)
+
+# The reported call end to end: the registered schema, the real handler, and
+# the options write the user was locked out of.
+_t546_hass = FakeHass()
+_t546_entry = FakeEntry(data=_LC_DATA)
+_asyncio.run(_ha_setup_entry(_integ, _t546_hass, _t546_entry))
+_t546_sent = {"outdoor": [12.0, 34.0], "heat_pump": [16.0, 90.0]}
+_t546_raised = None
+try:
+    _asyncio.run(_t546_hass.services.async_call(
+        _DOMAIN, "apply_topology",
+        {"layout": "no_valve", "positions": dict(_t546_sent)},
+    ))
+except Exception as _t546_exc:  # noqa: BLE001 -- "it raised at all" is the report
+    _t546_raised = _t546_exc
+_t546_stored = dict(_t546_entry.options or {}).get(
+    _t546_const.CONF_TOPOLOGY_POSITIONS
+)
+R.check(
+    "a setup page whose Outside box was dragged saves, and the position is "
+    "the one that was sent (#546)",
+    _t546_raised is None and _t546_stored == _t546_sent,
+    f"raised {_t546_raised!r}; stored {_t546_stored!r}",
+)
+
 sys.exit(R.close("FEATURE CHECKS"))
