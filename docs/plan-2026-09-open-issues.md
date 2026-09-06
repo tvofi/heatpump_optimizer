@@ -58,9 +58,9 @@ Where this table and a wave body disagree, this table is the truth.
 | 2 | coordinator lifecycle, learners, options grouping | #236 #237 #240 #239 #243 #283 #284 #277 #244 #325 #279 #278 #280 #198 | **v6.3.14** (tag `ef539be`) | **done and released, 2026-09-05** — seven groups merged, issues closed: PR #437 (`44a6351`, W2-G1/#236 #237 #240), #440 (`90c71c4`, W2-G2/#239 #243; duplicate #441 closed unmerged), #444 (`dc3bb8e`, W2-G3/#283 #284), #447 (`851c555`, W2-G4/#279 #278), #449 (`f492b1f`, W2-G5/#277), #451 (`efe5a27`, W2-G5 follow-up/#244 #325, review `merge` 5551113810: mid-step abort 36→0, 21 leftovers named), #438 (`e1a14f9`, W2-G6/#280), #436 (`3c141d7`, W2-G7/#198). Record/tooling since v6.3.13 stamp: #434, #435, #439, #442, #443, #446, #448, #450. Stamped `ef539be` as v6.3.14. Next seat **W3-G1** |
 | 3 | solver, DHW planner, GIL process route | #232 #234 #289 #290 #199 | **v6.3.15** (tag `f0866c8`) | **done and released, 2026-09-06** — three groups merged, issues closed: PR #454 (`1585435`, W3-G1/#232 #234), #455 (`aa61130`, W3-G1 follow-up), #456 (`ebf7170`, W3-G2/#289), #461 (`8542e51`, W3-G3/#290 #199; review `merge` at `7076075`, comment 5554485684). Record/tooling since v6.3.14 stamp: #452, #458, #459, #468, #469. Stamped `f0866c8`. **W3-G4 is struck**. #467, #470, #472, #474, #477, #479, #480, #483, #484, #485, #486, #487, #488 and #489 are unstamped on this tag |
 | **3L** | mid-programme leftovers, one burst | #400 #401 #404 #405 #408 #457 #460 #463 #465 | after Wave 3 | **in progress** — **3L-G1** #470 (`81aa0c3`). **3L-G2** #472 (`2abe2f7`). **3L-G3** #474 (`e8adfe4`) + #479 (`8ea27d4`) + #480 (`162e759`). **3L-G4** #477 (`531d8b7`). **3L-G5** #483 (`6f02b8a`) closed #408. **3L-G7** #485 (`bf08217`) closed #460. **3L-G8** #487 (`a19ba03`). **3L-G9** #489 (`b29fd1e`) closed #463. **3L-G6** (#457) spec-blocked (no conflict flow). Next **3L-G10** (#465). #481 leftover closed. #412 stays last of the programme |
-| 4 | the #193 decomposition programme, S0–S13 | #193 #223 #224 #225, and **#304 as S11's precursor** | one per stage | pending |
-| 5 | typing lane, and the coverage deficit #195 raised | #303 #195 | per tranche | pending — **#304 moves ahead of S11**, see below |
-| last | CI Node majors | #412 | after Wave 5 | pending — owner: last task; do not pull into 3L |
+| 4 | the #193 decomposition programme, S0–S13 | #193 #223 #224 #225, and **#304 as S11's precursor** | one per stage | pending — roster `.claude/workflows/wave-4-groups.json` prepared; **seats not started**. Do not start until 3L-G10 (#465) merges. #225 stays closed. #412 not in this wave |
+| 5 | typing lane, and the coverage deficit #195 raised | #303 #195 | per tranche | pending — roster `.claude/workflows/wave-5-groups.json` prepared; **seats not started**. After Wave 4. **#304 is Wave 4**, not here. #412 not in this wave |
+| last | CI Node majors | #412 | after Wave 5 | pending — owner: last task; do not pull into 3L or Wave 4/5 |
 
 ### Wave 3L — leftovers, after Wave 3, before Wave 4
 
@@ -80,6 +80,41 @@ Every open issue that is not already in Waves 3–5 or #201, filed after the 202
 | **3L-G10** | #465 | Grok 4.6 extra high | 3L-G9 | Plan-page Away toggle and return datetime. Service-backed store; published switch and datetime; optional person/calendar. `Closes #465`. Spec/plan `docs/superpowers/{specs,plans}/2026-09-05-away-plan-toggle*.md` |
 
 Do not fold 3L into a closed Wave 3. 3L-G9 merged as #489 (`b29fd1e`); #463 closed. Next seat 3L-G10 (Away toggle). Do not start Wave 4 until 3L-G10 has merged.
+
+### Wave 4 — #193 decomposition, S0–S13 (roster prepared, seats not started)
+
+Roster: `.claude/workflows/wave-4-groups.json`. Serial, one group per stage. Worker briefs live out of tree under `/Users/timmalmstrom/wt/briefs/w4-gN-*.md` (same convention as 3L). **#223 issue text allows parallel with coordinator moves; this table does not authorize a second lane.** Plan numbers the registry as **S11**; #193 numbers it S10 — the issue number is the stable reference. **#304 is S11's precursor** (W4-G11), not Wave 5. **#225 is closed** (triage B1) — struck in the roster, do not reopen. **#412 is not in this wave.** **#457 / 3L-G6 is not Wave 4.** S2–S8 and plan S12 have no child issue: they track #193 and must not `Closes #193`. A survey stage **halts** (record only, no invented backend) when the named seam is not extractable at this merge-base, an open PR holds the region, or a ratchet metric would rise.
+
+| group | stage | issues | model | after | scope |
+|---|---|---|---|---|---|
+| **W4-G1** | S0 | #377 | Grok 4.6 extra high | 3L-G10 merge | `CoordinatorContext` defined; nothing relocates. Do not close #377 |
+| **W4-G2** | S1 | #377 | Grok 4.6 extra high | W4-G1 | Migrate hub refs; facade properties stay. `Closes #377` |
+| **W4-G3** | S2 | #193 (tracking) | Grok 4.6 extra high | W4-G2 | Pure-function extractions. Survey-first; halt if not this seam |
+| **W4-G4** | S3 | #193 (tracking) | Grok 4.6 extra high | W4-G3 | views, thinned, stays the facade. Survey-first; halt if not this seam |
+| **W4-G5** | S4 | #193 (tracking) | Grok 4.6 extra high | W4-G4 | fetch/sources. Survey-first; halt if not this seam |
+| **W4-G6** | S5 | #193 (tracking) | Grok 4.6 extra high | W4-G5 | dhw. Survey-first; halt if not this seam |
+| **W4-G7** | S6 | #193 (tracking) | Grok 4.6 extra high | W4-G6 | grid/bookkeeping. Survey-first; halt if not this seam |
+| **W4-G8** | S7 | #193 (tracking) | Grok 4.6 extra high | W4-G7 | learning A (thermal). Survey-first; halt if not this seam |
+| **W4-G9** | S8 | #193 (tracking) | Grok 4.6 extra high | W4-G8 | learning B (curve/comfort/drift-watch). Survey-first; halt if not this seam |
+| **W4-G10** | S9 | #224 | Grok 4.6 extra high | W4-G9 | optimizer.py judge-corrected splits; first PR is the cheap `optimize` tail |
+| **W4-G11** | S10 | #304 | Composer 2.5 | W4-G10 | 21 named `config_flow.py` statements; test-only; before #223 |
+| **W4-G12** | S11 | #223 | Grok 4.6 extra high | W4-G11 | config_flow settings registry; serial after #304 |
+| **W4-G13** | S12 | #193 (tracking) | Grok 4.6 extra high | W4-G12 | Delegate seams / facade deletion (#193's S11). Halt if S3–S8 all halted. #195 coordinator half is Wave 5; #374 already done |
+| **W4-G14** | S13 | #193 | Composer 2.5 | W4-G13 | Close-out: Delivery-status, roster, #201. Do not stamp. `Closes #193` only if S0–S12 are done or recorded-halted |
+
+### Wave 5 — #303 typing and #195 coverage (roster prepared, seats not started)
+
+Roster: `.claude/workflows/wave-5-groups.json`. After Wave 4. Serial. **#304 is not here.** **#412 is not here.** #303 is four named tranches (parent may split G3 further). #195 coordinator modules stay last (after #193 seams).
+
+| group | issues | model | after | scope |
+|---|---|---|---|---|
+| **W5-G1** | #303 | Composer 2.5 | Wave 4 S13 merge | Land the pinned stub-free ruler. Do not close #303 |
+| **W5-G2** | #303 | Grok 4.6 extra high | W5-G1 | `sensor.py` annotations (142 at filing) |
+| **W5-G3** | #303 | Grok 4.6 extra high | W5-G2 | Remaining modules except `coordinator.py`. Parent may split further |
+| **W5-G4** | #303 | Grok 4.6 extra high | W5-G3 | `coordinator.py` typing after Wave 4 seams. May `Closes #303` |
+| **W5-G5** | #195 | Composer 2.5 | W5-G4 | `climate.py` / `open_meteo.py` / `frontend.py`. No coordinator |
+| **W5-G6** | #195 | Composer 2.5 | W5-G5 | `diagnosis.py` / `curve_learning.py` / `grid_fee.py` / `switch.py`. Cleanup is not this tranche |
+| **W5-G7** | #195 | Grok 4.6 extra high | W5-G6 | `coordinator.py` coverage (789 missed) after #193 seams. May `Closes #195` |
 
 v6.3.12 is stamped at the Wave-1b/half-I boundary as a **gate and test-hardening release** — not for the accumulated no-op merges alone, and not by waiting for a runtime fix that half I will not produce, because half I is entirely test, docs and tooling.
 
@@ -402,5 +437,4 @@ The per-group briefs are committed too, not only the wave tables above:
 `web-fix-wave.js` consumes them, cut from the same fork. They are worth reading
 before re-deriving anything, because several exist only to stop a fixer redoing
 work a judge already refuted — W1-G13 names the measured fix for #258 and the
-harness that must not be used to check it. Later waves add their own file at the
-same path when they are prepared.
+harness that must not be used to check it. Wave 3L is `.claude/workflows/wave-3l-groups.json`. Wave 4 and Wave 5 rosters are prepared at `.claude/workflows/wave-4-groups.json` and `.claude/workflows/wave-5-groups.json` (seats not started).
