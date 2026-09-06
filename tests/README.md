@@ -69,9 +69,10 @@ python3 tests/gate_lock.py status
 The owner file at `/tmp/hpo-gate.lock/owner` carries your label and an
 `expires_at` lease (30 minutes — above the longest observed full gate and
 stress lane). Every script `run.sh` runs under lock renews it. An expired
-lease may be taken without forensics. `run.sh` holds `flock` on
-`/tmp/hpo-gate.lock/flock` for the gate run so a crash releases immediately;
-the lease covers the window between commands when nothing holds flock (#404).
+lease, or an abandoned hold (`holding` marker, no live flock), may be taken
+without forensics. `run.sh` holds `flock` on `/tmp/hpo-gate.lock/flock` for
+the gate run so a crash drops flock and a waiter can take immediately; the
+lease covers the window between commands when nothing holds flock (#404).
 Take the lock only when `tests/closure.py select` reports `MODE: FULL` or names
 `tests/stress.py` — see `CLAUDE.md` "Running it".
 
@@ -667,8 +668,9 @@ Seven files in `tests/` are not tests at all and are excluded from the
   (`closure.py check`) fails when the committed closures miss something a real
   run touched. Wiring it into the suite would make the suite run itself.
 - **gate_lock.py** is the renewed-lease gate lock (#404): take, renew, release,
-  and status for `/tmp/hpo-gate.lock`. Agents invoke it directly; `run.sh`
-  renews the lease and holds `flock` when `HPO_GATE_LOCK_LABEL` is set.
+  and status for `/tmp/hpo-gate.lock`. Expired and abandoned holds are stolen
+  so a waiter can take after crash or expiry. Agents invoke it directly;
+  `run.sh` renews the lease and holds `flock` when `HPO_GATE_LOCK_LABEL` is set.
 - **derive_closures.sh** drives it across every script, in three lanes, and
   rewrites `tests/closures.json`. See "The scoped gate" above.
 

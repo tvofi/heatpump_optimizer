@@ -45,9 +45,10 @@ no measurement reason. Decide it, do not assume it:
   * otherwise  ->  NO LOCK. Run the scripts scope.run names, directly.
 
 Taking the lock: python3 tests/gate_lock.py take --label <your-label>.
-If the lock exists and the lease has not expired, wait and retry -- never
-remove a lock you did not create. An expired lease may be taken without
-forensics; a live agent between commands keeps the lock by renewing. Under it
+If the lock exists, the lease has not expired, and the hold is not abandoned
+(holding marker, no live flock), wait and retry -- never remove a lock you did
+not create. An expired lease or abandoned hold may be taken without forensics;
+a live agent between commands keeps the lock by renewing. Under it
 run HPO_GATE_LOCK_LABEL=<your-label> GATE_SCOPE=auto GOLDEN_MODE=drift
 GOLDEN_REF=$(git merge-base origin/main HEAD) ./tests/run.sh (run.sh holds
 flock for the gate run and renews the lease before every script). Renew between
