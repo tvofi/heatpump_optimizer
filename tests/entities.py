@@ -4455,7 +4455,7 @@ R.check(
 # sixty commits, and an addition fails here as an addition with the class
 # and the key named.
 #
-# Three holes, stated rather than papered over:
+# Four holes, stated rather than papered over:
 #   * a key that is KEPT but publishes ``None`` for ever still passes: this
 #     pins names, not values;
 #   * deleting a key together with its line in this table, in one change, is
@@ -4466,11 +4466,17 @@ R.check(
 #     table found one worth 10% of the surface (the plan branch, closed
 #     above); the honest reading of the aggregate check's name is "the whole
 #     surface these two payloads measure", and the bound is the payloads.
-# A third follows from the surface's shape: a few publishers pass a data
-# dict straight through (``ComfortWeightSensor`` returns ``comfort_learning``
-# whole), so for those the table pins what the fixtures below carry rather
-# than a literal in production. Deleting the publisher outright is still
-# caught -- the class leaves the table entirely.
+#     A variant of this: a few publishers pass a data dict straight through
+#     (``ComfortWeightSensor`` returns ``comfort_learning`` whole), so for
+#     those the table pins what the fixtures below carry rather than a
+#     literal in production. Deleting the publisher outright is still
+#     caught -- the class leaves the table entirely.
+#   * a class whose attribute KEY SET varies with its data cannot be pinned
+#     by an exact set at all. ``SolarIrradianceSensor`` merges
+#     ``solar_diagnostics`` keys from the payload; ``OptimizationScoreSensor``
+#     spreads ``insight["scores"]`` and ``price_tiles``. Neither key set is
+#     fixed in source -- see ``_ATTR_KEYSET_IS_DATA_DRIVEN`` below. Deleting
+#     the publisher outright is still caught -- the class leaves the table.
 #
 # The roster is taken from two payloads, because several keys are published
 # only on a branch: the base ``DATA`` above, and ``_ATTR_RICH``, which turns
@@ -4577,6 +4583,12 @@ _attr_rich_coordinator = _attr_coordinator(_ATTR_RICH)
 #: part that matters.
 _ATTR_KEYS_ARE_DATA = frozenset({"DHWHeavyDaySensor"})
 
+#: Publishers whose attribute KEY SET is data-driven -- varies with payload
+#: rather than being fixed in source -- so no exact-set pin (#405).
+_ATTR_KEYSET_IS_DATA_DRIVEN = frozenset({
+    "SolarIrradianceSensor", "OptimizationScoreSensor",
+})
+
 
 def _published_attr_keys(entities) -> dict[str, set[str]]:
     """class name -> the attribute keys those entities actually published."""
@@ -4592,7 +4604,7 @@ def _published_attr_keys(entities) -> dict[str, set[str]]:
             continue
         name = type(entity).__name__
         found.setdefault(name, set())
-        if name not in _ATTR_KEYS_ARE_DATA:
+        if name not in _ATTR_KEYS_ARE_DATA and name not in _ATTR_KEYSET_IS_DATA_DRIVEN:
             found[name].update(attrs)
     return found
 
@@ -4705,10 +4717,7 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
         "cop_samples", "cop_scale", "defrost_buckets", "defrost_derate",
         "defrost_samples", "modelled_cop", "waiting_for"
     }),
-    "OptimizationScoreSensor": frozenset({
-        "envelope", "machine", "operation", "overall", "price_tiles",
-        "stat_kind"
-    }),
+    "OptimizationScoreSensor": frozenset(),  # scores + price_tiles; #405
     "OptimizationStatusSensor": frozenset({
         "prices_available", "solve_time_ms", "two_zone_enabled",
         "weather_forecast_available"
@@ -4750,9 +4759,7 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
     "SolarHeatGainSensor": frozenset({
         "orientation_factor", "shgc", "solar_radiation_wm2", "window_area_m2"
     }),
-    "SolarIrradianceSensor": frozenset({
-        "forecast", "plan_kind", "solar_heat_gain_kw", "source"
-    }),
+    "SolarIrradianceSensor": frozenset(),  # solar_diagnostics merge; #405
     "SpaceCostSensor": frozenset({
         "counting_since", "measured", "period", "split_method",
         "this_month_cost", "this_month_kwh"
@@ -4816,14 +4823,32 @@ R.check(
     f"{sum(len(_v) for _v in _actually_published.values())} published",
 )
 
+# --- #405: data-driven attribute key sets are named in the holes list and
+# excluded from exact-set pins (see the prose block above ``_PUBLISHED_ATTRS``).
+_PUBLISHED_ATTRS_HOLES_PROSE = Path(__file__).read_text().split(
+    "# Four holes, stated rather than papered over:"
+)[1].split("#\n# The roster is taken from two payloads")[0]
+R.check(
+    "data-driven attribute publishers are named in the holes list (#405)",
+    all(_cls in _PUBLISHED_ATTRS_HOLES_PROSE for _cls in _ATTR_KEYSET_IS_DATA_DRIVEN),
+    f"missing from holes prose: "
+    f"{sorted(_cls for _cls in _ATTR_KEYSET_IS_DATA_DRIVEN if _cls not in _PUBLISHED_ATTRS_HOLES_PROSE)}",
+)
+R.check(
+    "data-driven attribute publishers are not exact-set pinned (#405)",
+    all(_PUBLISHED_ATTRS.get(_cls) == frozenset() for _cls in _ATTR_KEYSET_IS_DATA_DRIVEN),
+    f"still pinned: "
+    f"{sorted(_cls for _cls in _ATTR_KEYSET_IS_DATA_DRIVEN if _PUBLISHED_ATTRS.get(_cls))}",
+)
+
 # --- D3-01 (#246): PredictiveInsightSensor's published VALUES, not just keys
 #
 # The roster above already catches deleting the whole of this property's
 # dict (PredictiveInsightSensor drops from its pinned 20 keys to 0) or any
 # one key within it -- that gap is #246's own finding, and PR #384 closed
 # the key-SET half of it generically for every publisher, this sensor
-# included. What the roster does NOT pin is hole one of the three stated at
-# :4442: a key that is KEPT but publishes ``None`` forever still passes,
+# included. What the roster does NOT pin is hole one of the four stated above:
+# a key that is KEPT but publishes ``None`` forever still passes,
 # because the roster compares names, never values. This closes that hole
 # for the sensor #246 was filed against, whose entire content IS its
 # attributes -- the state is one of four words, and every anticipatory
