@@ -41,7 +41,8 @@ production lines. You work in your own worktree branched from `origin/main`.
    and the reviewer cannot tell which of its numbers still describe the tree.
    If your branch goes stale while a review is in flight, say so and hand it
    back; do not merge it yourself. Moving it anyway is a verdict the reviewer
-   may return against you — `fix-review.md` step 11.
+   may return against you — **Re-read the head before you post**, in
+   `fix-review.md`.
 
    Landing a PR is never yours in any case — that is the orchestrator's, or a
    merge-and-release seat it starts. `git merge origin/main` into your own

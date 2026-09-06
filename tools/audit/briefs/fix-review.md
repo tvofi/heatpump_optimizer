@@ -56,10 +56,15 @@ its bug. You are checking that the numbers are real.
     three-dot diff to the production paths and comparing it across the two heads
     is usually enough to show what moved.
 
-    `fixer.md` step 6 freezes the branch at the handoff, so a head that moved
-    under you is a broken rule rather than an accident:
-    `blocked: head moved under review, measured <sha>`. Re-measuring instead is
-    yours to offer and is never owed — a violation the reviewer absorbs silently
-    costs the seat that committed it nothing, which is how it recurs.
+    Step 7 is not this check. It compares the SHA in the body against what you
+    measured, and a branch that moved after the body was written passes it. This
+    one compares the **live head at posting time** against what you measured.
+
+    `fixer.md`'s **The handoff freezes the branch** makes the head yours from the
+    handoff on, so one that moved under you is a broken rule rather than an
+    accident: `blocked: head moved under review, measured <sha>`. Re-measuring
+    instead is yours to offer and is never owed — a violation the reviewer
+    absorbs silently costs the seat that committed it nothing, which is how it
+    recurs.
 
 Return a verdict (`merge` / `blocked: <what>`) with your RESULT lines.
