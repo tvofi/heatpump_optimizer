@@ -28,11 +28,12 @@ no lane at all.
 
 The parent process here never imports the integration. It measures by running
 a driver of itself (``--driver``) under ``-P``, so neither the current
-directory nor this file's directory reaches the driver's ``sys.path`` and the
-package cannot be resolved from the repository by accident. That is not a
-theoretical hazard: it is the first thing that went wrong when #513 was
-reproduced by hand, and it turns this lane green while proving nothing, so
-``coordinator.__file__`` is asserted to live under the temporary tree.
+directory nor this file's directory reaches the driver's ``sys.path``. The trap
+that guards against: any path from which the repository's own copy of the
+package resolves turns every check below green while proving nothing, and it
+looks exactly like a pass. Isolation is therefore not trusted — the package's
+provenance is asserted, in the parent from ``coordinator.__file__`` and in the
+child from ``inspect.getfile``.
 
     python tests/deployment_shape.py
 """
