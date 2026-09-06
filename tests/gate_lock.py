@@ -135,6 +135,12 @@ def _abandoned_hold(lock_dir: Path) -> bool:
     return (lock_dir / HOLDING_NAME).exists() and flock_available(lock_dir)
 
 
+def _clear_stale_holding(lock_dir: Path) -> None:
+    # Same-label return after crash: leftover holding would let a waiter steal.
+    if _abandoned_hold(lock_dir):
+        (lock_dir / HOLDING_NAME).unlink(missing_ok=True)
+
+
 def take(
     label: str,
     *,
@@ -152,6 +158,11 @@ def take(
             fresh.write(lock_dir / OWNER_NAME)
             return fresh
         if owner.label == label:
+            _clear_stale_holding(lock_dir)
+            if owner.expired:
+                fresh = _new_owner(label, lease_seconds)
+                fresh.write(lock_dir / OWNER_NAME)
+                return fresh
             return renew(label, lock_dir=lock_dir, lease_seconds=lease_seconds)
         if owner.expired or _abandoned_hold(lock_dir):
             _clear_lock(lock_dir)
@@ -178,6 +189,7 @@ def renew(
         expires_at=datetime.now(UTC) + timedelta(seconds=lease_seconds),
     )
     refreshed.write(lock_dir / OWNER_NAME)
+    _clear_stale_holding(lock_dir)
     return refreshed
 
 

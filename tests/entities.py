@@ -7117,6 +7117,95 @@ def _gl_between_commands_kept() -> bool:
             return st["owner"] is not None and st["owner"].label == "live"
 
 
+def _gl_same_label_expired_taken() -> bool:
+    """Finder: expired same-label take must overwrite, not renew()."""
+    past = datetime.now(UTC) - timedelta(seconds=10)
+    with _tempfile.TemporaryDirectory() as td:
+        d = Path(td) / "lock"
+        _gate_lock._ensure_lock_dir(d)
+        _gate_lock.Owner("holder", past, past).write(d / _gate_lock.OWNER_NAME)
+        try:
+            taken = _gate_lock.take(
+                "holder", lock_dir=d, lease_seconds=60, wait=False,
+            )
+        except (BlockingIOError, RuntimeError):
+            return False
+        return taken.label == "holder" and not taken.expired
+
+
+def _gl_crash_abandoned(d: Path, ready: Path, label: str) -> str | None:
+    env = {**_os.environ, "PYTHONPATH": str(_closure.ROOT / "tests")}
+    holder = _subprocess.Popen(
+        [
+            sys.executable,
+            "-c",
+            "import sys, time\n"
+            "from pathlib import Path\n"
+            "import gate_lock\n"
+            "d = Path(sys.argv[1])\n"
+            "gate_lock.take(sys.argv[3], lock_dir=d, lease_seconds=1800, wait=False)\n"
+            "with gate_lock.flock_context(d):\n"
+            "    Path(sys.argv[2]).write_text('1')\n"
+            "    time.sleep(30)\n",
+            str(d),
+            str(ready),
+            label,
+        ],
+        cwd=str(_closure.ROOT),
+        env=env,
+    )
+    for _ in range(50):
+        if ready.exists():
+            break
+        _time.sleep(0.1)
+    else:
+        holder.kill()
+        return "holder never ready"
+    holder.kill()
+    holder.wait(timeout=5)
+    _time.sleep(0.2)
+    return None
+
+
+def _gl_same_label_return_blocks_waiter(via: str) -> tuple[bool, str]:
+    """After crash, same-label take/renew must clear holding; waiter stays blocked."""
+    with _tempfile.TemporaryDirectory() as td:
+        d = Path(td) / "lock"
+        ready = Path(td) / "ready"
+        err = _gl_crash_abandoned(d, ready, "holder")
+        if err:
+            return False, err
+        holding_after_crash = (d / _gate_lock.HOLDING_NAME).exists()
+        try:
+            if via == "renew":
+                returned = _gate_lock.renew("holder", lock_dir=d, lease_seconds=60)
+            else:
+                returned = _gate_lock.take(
+                    "holder", lock_dir=d, lease_seconds=60, wait=False,
+                )
+        except RuntimeError as exc:
+            return False, f"same-label {via} failed: {exc}"
+        holding_after_return = (d / _gate_lock.HOLDING_NAME).exists()
+        try:
+            _gate_lock.take("waiter", lock_dir=d, wait=False)
+            stolen = True
+        except BlockingIOError:
+            stolen = False
+        ok = (
+            holding_after_crash
+            and not holding_after_return
+            and not stolen
+            and returned.label == "holder"
+            and not returned.expired
+        )
+        return (
+            ok,
+            f"holding_after_crash={holding_after_crash} "
+            f"holding_after_return={holding_after_return} stolen={stolen} "
+            f"owner={returned.label}",
+        )
+
+
 R.check(
     "an expired lease is taken without forensics",
     _gl_expired_taken(),
@@ -7137,6 +7226,23 @@ R.check(
     "a crashed hold lets take('successor') steal",
     _gl_ok,
     _gl_detail,
+)
+R.check(
+    "an expired same-label take overwrites the owner",
+    _gl_same_label_expired_taken(),
+    "same-label must not route expired take through renew()",
+)
+_gl_take_ok, _gl_take_detail = _gl_same_label_return_blocks_waiter("take")
+R.check(
+    "same-label take after crash clears holding",
+    _gl_take_ok,
+    _gl_take_detail,
+)
+_gl_renew_ok, _gl_renew_detail = _gl_same_label_return_blocks_waiter("renew")
+R.check(
+    "same-label renew after crash clears holding",
+    _gl_renew_ok,
+    _gl_renew_detail,
 )
 
 # --- the scoped gate's one exception to "the whole integration" -------------
