@@ -338,6 +338,7 @@ from .accuracy import (
 from .comfort_learning import ComfortLearner, OverrideEvent
 from .defrost import DefrostDerate, DefrostWindow, in_frost_band
 from . import pump_signals
+from . import setpoint_check
 from .pump_signals import PumpSignals
 from .manual_plan import (
     CHANNEL_DHW,
@@ -5524,8 +5525,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._pump_mode_last_good = self._pump_signals.mode
             self._pump_mode_last_good_at = _mode_now
         self._check_pump_mode_expired()
-        # The flag's level, once per cycle. Complements the listener, which
-        # only ever sees transitions.
+        setpoint_check.evaluate(self)
+        # Flag level once per cycle; the listener only sees transitions.
         self._defrost_window.observe(
             dt_util.now(), self._pump_signals.defrosting
         )

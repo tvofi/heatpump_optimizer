@@ -90,6 +90,7 @@ from .const import (
     CONF_SOLAR_HEAT_GAIN_COEFF,
     CONF_DHW_TANK_VOLUME,
     CONF_DHW_SETPOINT,
+    CONF_DHW_SETPOINT_ENTITY,
     CONF_DHW_MIN_TEMP,
     CONF_DHW_DAILY_CONSUMPTION,
     CONF_DHW_COOLING_RATE,
@@ -120,6 +121,10 @@ from .const import (
     CONF_VVC_LEAD_MINUTES,
     DEFAULT_VVC_LEAD_MINUTES,
     CONF_SPACE_PUMP_ENTITY,
+    CONF_SPACE_SETPOINT_ENTITY,
+    CONF_SPACE_SETPOINT_UNIT,
+    DEFAULT_SPACE_SETPOINT_UNIT,
+    SPACE_SETPOINT_UNITS,
     CONF_WIND_SENSITIVITY,
     CONF_RAIN_HEAT_LOSS_MULTIPLIER,
     CONF_OPTIMIZATION_INTERVAL,
@@ -1611,6 +1616,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         CONF_BUFFER_TANK_TEMP_ENTITY,
         CONF_FLOOR_RETURN_TEMP_ENTITY,
         CONF_LOWER_FLOOR_TEMP_ENTITY,
+        CONF_SPACE_SETPOINT_ENTITY,
     )
 
     _ENTITIES_METERING_KEYS = (
@@ -1649,6 +1655,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         CONF_VVC_PUMP_ENTITY,
         CONF_SPACE_PUMP_ENTITY,
         CONF_INDOOR_HUMIDITY_ENTITY,
+        CONF_DHW_SETPOINT_ENTITY,
     )
 
     # Fallback labels for the menus, used when the frontend has no translation
@@ -1879,6 +1886,15 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
                     _entity(CONF_BUFFER_TANK_TEMP_ENTITY): _entity_of("sensor", "temperature"),
                     _entity(CONF_FLOOR_RETURN_TEMP_ENTITY): _entity_of("sensor", "temperature"),
                     _entity(CONF_LOWER_FLOOR_TEMP_ENTITY): _entity_of("sensor", "temperature"),
+                    _entity(CONF_SPACE_SETPOINT_ENTITY): _entity_of(
+                        ["number", "input_number", "climate"]
+                    ),
+                    vol.Optional(
+                        CONF_SPACE_SETPOINT_UNIT,
+                        default=current.get(
+                            CONF_SPACE_SETPOINT_UNIT, DEFAULT_SPACE_SETPOINT_UNIT
+                        ),
+                    ): _select(list(SPACE_SETPOINT_UNITS), "space_setpoint_unit"),
                 }
             ),
         )
@@ -2093,6 +2109,8 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
                         warning["interval_days"],
                     )
                 cleaned = dict(user_input)
+                if not cleaned.get(CONF_DHW_SETPOINT_ENTITY):
+                    cleaned[CONF_DHW_SETPOINT_ENTITY] = None
                 return await self._save_or_menu(cleaned)
 
         current = self._current
@@ -2139,6 +2157,9 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
                         CONF_DHW_SETPOINT,
                         default=current.get(CONF_DHW_SETPOINT, DEFAULT_DHW_SETPOINT),
                     ): _number(40, 65, 1, "°C", slider=True),
+                    _entity_default(CONF_DHW_SETPOINT_ENTITY): _entity_of(
+                        ["number", "input_number", "climate"]
+                    ),
                     vol.Optional(
                         CONF_DHW_LEGIONELLA_ENABLED,
                         default=current.get(

@@ -361,7 +361,9 @@
           "buffer_tank_temp_entity": "Temperaturgivare för buffertank",
           "floor_return_temp_entity": "Givare för golvvärmens returtemperatur",
           "lower_floor_temp_entity": "Givare för temperaturen på nedre plan",
-          "after_save": "Efter sparande"
+          "after_save": "Efter sparande",
+          "space_setpoint_entity": "Börvärdesenhet för rumsuppvärmning (valfritt)",
+          "space_setpoint_unit": "Vad den börvärdesenheten förväntar sig"
         },
         "data_description": {
           "tibber_token": "Används för att läsa dina timpriser på el. Skapa en på developer.tibber.com. Lämna som den är om den inte har ändrats.",
@@ -373,7 +375,9 @@
           "buffer_tank_temp_entity": "Valfritt. När den anges lär sig integrationen hur snabbt buffertanken svalnar i stället för att förlita sig på det konfigurerade värdet.",
           "floor_return_temp_entity": "Valfritt. Vattentemperaturen tillbaka från golvslingorna, används för att bedöma hur mycket värme plattan lagrar.",
           "lower_floor_temp_entity": "Valfritt, endast tvåzonsläge. En riktig givare på nedre plan. Utan en sådan planeras och ritas nedre plan efter vad rumsgivaren visar, så ett nedre plan som är varmare eller kallare än övre plan syns inte.",
-          "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst."
+          "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst.",
+          "space_setpoint_entity": "Valfritt. En number-, helper- eller climate-enhet som är pumpens börvärde för rumsuppvärmning. Används bara för att märka när enheten inte går att läsa. Optimeringen skriver aldrig ett rekommenderat rumsuppvärmningsbörvärde.",
+          "space_setpoint_unit": "Inomhustemperatur är rätt för ett rums- eller termostatbörvärde. Framledningstemperatur är för en styrenhet vars börvärde är en vattentemperatur. Att peka ett inomhusmål mot en framledningsenhet skulle kommendera ungefär 21 °C till något som förväntar sig 35–45 °C och undervärma huset kraftigt. Enheten är en deklaration: den här integrationen rekommenderar aldrig ett rumsuppvärmningsbörvärde."
         }
       },
       "comfort": {
@@ -418,7 +422,8 @@
           "dhw_legionella_enabled": "Kör legionellaskydd",
           "dhw_legionella_temperature": "Legionellatemperatur",
           "dhw_legionella_interval_days": "Intervall för legionellaskydd",
-          "after_save": "Efter sparande"
+          "after_save": "Efter sparande",
+          "dhw_setpoint_entity": "Värmepumpens börvärdesenhet för varmvatten (valfritt)"
         },
         "data_description": {
           "dhw_schedule_enabled": "På: varmvatten garanteras bara under tiderna nedan, och beredaren får svalna däremellan. Av: beredaren hålls varm dygnet runt, vilket kostar märkbart mer.",
@@ -429,7 +434,8 @@
           "dhw_legionella_enabled": "Eftersom beredaren nu får stå sval under långa perioder värms den regelbundet tillräckligt hett för att döda legionellabakterier. Rekommenderas starkt.",
           "dhw_legionella_temperature": "60 C är den vanliga rekommendationen.",
           "dhw_legionella_interval_days": "Hur ofta desinficeringen körs. Den läggs på den billigaste timmen före varje deadline.",
-          "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst."
+          "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst.",
+          "dhw_setpoint_entity": "Valfritt. Number-, helper- eller climate-enheten som är pumpens eget varmvattenbörvärde. När det ligger under desinfektionstemperaturen eller varmvattenminimum du ställt in här erbjuder ett reparationskort att höja det till den siffran."
         }
       },
       "building": {
@@ -970,6 +976,12 @@
         "menu": "Tillbaka till menyvalen",
         "close": "Stäng dialogen"
       }
+    },
+    "space_setpoint_unit": {
+      "options": {
+        "indoor": "Inomhustemperatur",
+        "flow": "Framledningstemperatur"
+      }
     }
   },
   "issues": {
@@ -1028,6 +1040,23 @@
     "comfort_band_contradiction": {
       "title": "Dina komforttemperaturer motsäger varandra",
       "description": "De sparade komfortinställningarna kan inte uppfyllas samtidigt: {problem}. Fram till version 5.1.7 gick kortets temperaturreglage en grad förbi den varmaste acceptabla temperaturen och sparade det värde det fick, så ett enda tryck på det översta steget kunde spara en önskad temperatur ovanför den övre gränsen. Ingenting är trasigt — optimeringen prissätter de här gränserna i stället för att tvinga fram dem, så planen fortsätter att köras, bara i ständigt litet brott mot ett intervall den aldrig kan uppfylla. Ingenting har heller ändrats åt dig: vilket av de två värdena som är fel är ditt att avgöra. Rätta dem under temperaturalternativen så försvinner meddelandet vid nästa cykel."
+    },
+    "dhw_setpoint_below_disinfection": {
+      "title": "Värmepumpens börvärde för varmvatten ligger under den konfigurerade temperaturen",
+      "description": "Pumpens varmvattenbörvärde på {entity} visar {pump} °C, vilket ligger under de {target} °C den här integrationen är inställd att använda för desinfektion eller varmvattenminimum. Planen kan beordra cykler som hårdvaran vägrar nå. Åtgärda sätter pumpen till {target} °C. Meddelandet försvinner när pumpens börvärde når den siffran, oavsett hur du kommer dit.",
+      "fix_flow": {
+        "title": "Höj värmepumpens börvärde för varmvatten",
+        "step": {
+          "confirm": {
+            "title": "Sätt pumpen till {target} °C",
+            "description": "Det här skriver {target} °C till {entity}, desinfektions- eller minimumtemperaturen som redan är konfigurerad."
+          }
+        }
+      }
+    },
+    "space_setpoint_unreadable": {
+      "title": "Börvärdesenheten för rumsuppvärmning rapporterar inte",
+      "description": "Enheten du valt som börvärde för rumsuppvärmning ({entity}) saknas eller går inte att läsa, så inget kan sägas om pumpens aktuella mål. Ett rumsuppvärmningsbörvärde rekommenderas aldrig; det här meddelandet säger bara att enheten inte går att läsa. Kontrollera att den fortfarande finns och är tillgänglig, eller töm fältet. Meddelandet försvinner så snart enheten rapporterar en temperatur."
     }
   },
   "entity": {

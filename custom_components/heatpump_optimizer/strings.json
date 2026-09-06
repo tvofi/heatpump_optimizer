@@ -361,7 +361,9 @@
           "buffer_tank_temp_entity": "Buffer tank temperature sensor",
           "floor_return_temp_entity": "Floor heating return temperature sensor",
           "lower_floor_temp_entity": "Lower floor temperature sensor",
-          "after_save": "After saving"
+          "after_save": "After saving",
+          "space_setpoint_entity": "Space-heating set-point entity (optional)",
+          "space_setpoint_unit": "What that set-point entity expects"
         },
         "data_description": {
           "tibber_token": "Used to read your hourly electricity prices. Create one at developer.tibber.com. Leave as-is unless it has changed.",
@@ -373,7 +375,9 @@
           "buffer_tank_temp_entity": "Optional. When set, the integration learns how fast the buffer tank loses heat instead of relying on the configured estimate.",
           "floor_return_temp_entity": "Optional. Water temperature coming back from the floor loops, used to gauge how much heat the slab is holding.",
           "lower_floor_temp_entity": "Optional, two-zone only. A real thermometer in the lower zone. Without one the lower floor is planned and plotted at whatever the main room sensor reads, so a downstairs that runs warmer or cooler than upstairs is invisible.",
-          "after_save": "Saving writes through immediately; this chooses where the dialog goes next."
+          "after_save": "Saving writes through immediately; this chooses where the dialog goes next.",
+          "space_setpoint_entity": "Optional. A number, helper or climate entity that is the pump's space-heating set-point. Used only to notice when the entity cannot be read. The optimizer never writes a recommended space set-point.",
+          "space_setpoint_unit": "Indoor temperature is correct for a room or thermostat set-point. Flow temperature is for a controller whose set-point is a water temperature. Pointing an indoor target at a flow entity would command roughly 21 °C to something expecting 35–45 °C and badly underheat the house. The unit is a declaration: this integration never recommends a space set-point."
         }
       },
       "comfort": {
@@ -418,7 +422,8 @@
           "dhw_legionella_enabled": "Run an anti-legionella cycle",
           "dhw_legionella_temperature": "Anti-legionella temperature",
           "dhw_legionella_interval_days": "Anti-legionella interval",
-          "after_save": "After saving"
+          "after_save": "After saving",
+          "dhw_setpoint_entity": "Heat pump DHW set-point entity (optional)"
         },
         "data_description": {
           "dhw_schedule_enabled": "On: hot water is guaranteed only during the times below, and the tank may cool down in between. Off: the tank is kept hot around the clock, which costs noticeably more.",
@@ -429,7 +434,8 @@
           "dhw_legionella_enabled": "Because the tank is now allowed to stay cool for long stretches, it is periodically heated hot enough to kill legionella bacteria. Strongly recommended.",
           "dhw_legionella_temperature": "60 C is the usual recommendation.",
           "dhw_legionella_interval_days": "How often the disinfection heat-up runs. It is placed in the cheapest hour before each deadline.",
-          "after_save": "Saving writes through immediately; this chooses where the dialog goes next."
+          "after_save": "Saving writes through immediately; this chooses where the dialog goes next.",
+          "dhw_setpoint_entity": "Optional. The number, helper or climate entity that is the pump's own hot-water set-point. When it sits below the disinfection temperature or the hot-water minimum you configured here, a repair card offers to raise it to that figure."
         }
       },
       "building": {
@@ -970,6 +976,12 @@
         "menu": "Return to the section menu",
         "close": "Close the dialog"
       }
+    },
+    "space_setpoint_unit": {
+      "options": {
+        "indoor": "Indoor temperature",
+        "flow": "Flow temperature"
+      }
     }
   },
   "issues": {
@@ -1028,6 +1040,23 @@
     "comfort_band_contradiction": {
       "title": "Your comfort temperatures contradict each other",
       "description": "The stored comfort settings cannot all be satisfied at once: {problem}. Until version 5.1.7 the thermostat card's temperature slider ran one degree past the warmest acceptable temperature and saved whatever it was given, so a single tap on its top notch could store a target above the ceiling. Nothing is broken — the optimizer prices these bounds rather than enforcing them, so the plan keeps running, just in permanent slight violation of a band it can never satisfy. Nothing has been changed for you either: which of the two numbers is the wrong one is yours to say. Correct them under the temperature options and this notice clears on the next cycle."
+    },
+    "dhw_setpoint_below_disinfection": {
+      "title": "The heat pump's hot water set-point is below the configured temperature",
+      "description": "The pump's DHW set-point on {entity} reads {pump} °C, which is below the {target} °C this integration is configured to use for disinfection or the hot-water minimum. The plan can command cycles the hardware will refuse to reach. Fix sets the pump to {target} °C. This notice clears when the pump set-point meets that figure, however you get there.",
+      "fix_flow": {
+        "title": "Raise the heat pump's hot water set-point",
+        "step": {
+          "confirm": {
+            "title": "Set the pump to {target} °C",
+            "description": "This writes {target} °C to {entity}, the disinfection or minimum temperature already configured."
+          }
+        }
+      }
+    },
+    "space_setpoint_unreadable": {
+      "title": "The space-heating set-point entity is not reporting",
+      "description": "The entity you chose as the space-heating set-point ({entity}) is missing or unreadable, so nothing can be said about the pump's current target. The space-heating set-point is never recommended; this notice only reports that the entity cannot be read. Check that it still exists and is available, or clear the slot. This notice clears as soon as the entity reports a temperature."
     }
   },
   "entity": {
