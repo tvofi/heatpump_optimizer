@@ -60,6 +60,11 @@
 # module imports -- no solver, coordinator or fetch path reaches it, so every
 # scenario fixture is byte-identical by construction.
 #
+# #523 (an autofix job that reported success without repairing): this
+# branch claims NOTHING. tests/closure.py, tests/env_drift.py and the CI
+# workflow only -- gate plumbing, no solver or fixture input changes, so
+# every scenario is byte-identical by construction.
+#
 # Claim-file merge driver: this branch claims NOTHING. It adds .gitattributes,
 # a resolver and its tests under tests/, and one closure entry. No file under
 # custom_components/ is touched, so every fixture is byte-identical by
