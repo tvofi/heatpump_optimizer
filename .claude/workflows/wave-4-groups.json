@@ -134,8 +134,10 @@
       "fixture": false,
       "after": ["W4-G6"],
       "resume": {
-        "stage": "next",
-        "note": "No child issue. grid/bookkeeping. Survey-first, halt if not this seam. Merge base is 8281f54 or later -- re-measure every metric there; do not use a literal from this roster or any brief. Read the S5 ownership-lever precondition carried into the W4-G7 brief before reaching for a relocation."
+              "stage": "done",
+              "merged_pr": 537,
+              "merge_sha": "d04ed89f7739ab3a957f4c579bd814db58f1e326",
+              "note": "S6 MERGED as d04ed89. _init_grid was assigning the four inverter-frequency attributes; freq_control.py is the COMPRESSOR frequency and says its kW-per-Hz map does not feed the optimizer, so nothing about it is the electrical grid -- SEAM_REGEXES buckets by method NAME and grid paid for every frequency read. Moved verbatim to _init_frequency (core). cut_grid 234->205; five-seam total 902->873 AND core 861->858, both control halves falling; cross_seam_fraction FELL 0.4305->0.4290, never re-recorded. Refused on the S5 precondition: _price_model, _price_known_steps, _pv_summary -- _grid_view reads each. S6 also CORRECTED S5 by building both variants: S5's rejection at 0.4344 counted its OWN new method's cross edge; against an intra-seam edge the same payment measures 0.4317, in band."
       },
       "brief": "S6 of #193 (grid/bookkeeping; cut was 234 at 07a85ce and 209 later -- BOTH stale, re-measure cut_grid at YOUR merge base). No child issue — survey/record only. SURVEY FIRST. Region hold: SEAM_REGEXES grid (grid|peak|fuse|power|outage|tariff|ledger) against open-PR coordinator method names; halt until those PRs merge. Also HALT if no verbatim extract at helper cc≤15 without a new module; any ratchet metric would rise; candidate is not this seam. Cut-SHA provenance. Do not Closes #193. Empty claims. coordinator_loc ceiling = merge-base. Never re-record cross_seam_fraction. claims-for = the repo-root VERSION at your merge base, never a literal from here. Do not stamp. CARRIED FROM S5 (#529): the ownership lever -- relocating an attribute assignment to the seam that owns it -- is legitimate ONLY where this seam's entire contact with that attribute is the assignment, no reads and no other writes, demonstrated per attribute from the AST. _helper(self, ...) at S3 and getattr(self, '_ctx', self) at S1 were both refused on exactly that point. Prove it with the distinguishing control: sum the cut across all five seams AND check core; if the total or core does not fall, the points moved to a neighbour rather than leaving the class."
     },
@@ -148,8 +150,10 @@
       "fixture": false,
       "after": ["W4-G7"],
       "resume": {
-        "stage": "pending",
-        "note": "No child issue. learning A (thermal). Survey-first, halt if not this seam. #277/#244/#325/#278/#279 are closed — still re-check open PRs."
+              "stage": "review",
+              "pr": 551,
+              "head_sha": "c3aef3e",
+              "note": "S7 EXTRACTED, not halted. Both learners carried the same Newton step, trust region, EWMA blend and rate limit; extracted verbatim to thermal_model.learner_newton_step (cc 4) in an EXISTING module, before class ThermalModel so wood_share stays at 1107. coordinator_loc 10150->10086, methods_over_150 20->19, methods_over_200 12->11, duplication_blocks held at 12. NO PAYMENT SPENT -- coordinator_methods 251 and internal_call_edges 366 both unchanged, because a module-level call is not a self-method edge. Check whether your extraction needs to be a method before shopping for one to delete. Control FLAT both halves (873->873, core 803->803), correct here because no ownership and no reference moved; stated rather than dressed as a cut gain. Ownership lever swept and REFUSED: only 3 of learning's 39 owned attributes are store-only and each store sits in a behavioural method. _cop_health_cusum passes the precondition and is worth -6 on cut_learning, but it is COP-health state, so carried to S8 rather than switching seams."
       },
       "brief": "S7 of #193 (learning A — thermal learning; part of cut_learning 350). No child issue — survey/record only. SURVEY FIRST. Historical hold #277/#244/#325/#278/#279 is cleared (all closed in Wave 2); still run SEAM_REGEXES learning (learn|reanchor|drift|curve|comfort|cop) against currently open PRs and halt on a match. Also HALT if no verbatim thermal-learning extract at helper cc≤15 without a new module; any ratchet metric would rise; candidate is not this half of learning (do not take curve/comfort/drift-watch — that is S8). Cut-SHA provenance. Do not Closes #193. Empty claims. coordinator_loc ceiling = merge-base. Never re-record cross_seam_fraction. claims-for = the repo-root VERSION at your merge base, never a literal from here. Do not stamp. CARRIED FROM S5 (#529): the ownership lever -- relocating an attribute assignment to the seam that owns it -- is legitimate ONLY where this seam's entire contact with that attribute is the assignment, no reads and no other writes, demonstrated per attribute from the AST. _helper(self, ...) at S3 and getattr(self, '_ctx', self) at S1 were both refused on exactly that point. Prove it with the distinguishing control: sum the cut across all five seams AND check core; if the total or core does not fall, the points moved to a neighbour rather than leaving the class."
     },
@@ -190,8 +194,9 @@
       "fixture": false,
       "after": ["W4-G10"],
       "resume": {
-        "stage": "pending",
-        "note": "S11 precursor. Test-only. Before #223. Not Wave 5."
+              "stage": "review",
+              "pr": 543,
+              "note": "S10 done pending merge, Closes #304. config_flow.py 96.13%->99.26% (672 statements, 26->5 missed); all 21 named statements pinned INDIVIDUALLY, one mutation each killing that page's own check; excluded_lines empty at BOTH ends so no pragma bought the bar. Test-only: zero production files in the three-dot diff, config_flow.py md5-identical at every base and head. quality_scale.yaml deliberately left todo -- the 5 residual statements are AST-verified unreachable dead code, not uncovered, against a 100% bar. Found and FILED rather than fixed: #542, saving the learning page wipes external_heat_entity. Fixed one unfaithful hastub in-PR: NumberSelector accepted an unbounded slider that real HA 2025.2.0 refuses."
       },
       "brief": "Plan S10 / S11 precursor: #304. 21 named missed statements in config_flow.py (96.2 %, 547 statements). Mechanism in the original body is refuted — tests/config_flow_steps.py already drives token verdicts (89 checks). Extend THAT harness with the eleven cases in the issue table; no production change. Largest bite: six-page `return vol.Optional(key, default=existing)` idiom (hot_water, building, grid, solar_pv, away, learning) from a _current that already has a stored value. Grow the RESULT assertion ledger, not just the percentage. Do not touch the aggregate or coordinator.py (that is #195). Do not add scripts to buy coverage. Do not grow `# pragma: no cover` (8 sites). Do not use the stale 88.4 % tsv. Harness script list from tests/run.sh, not the frozen round-2 D10 coverage harness. quality_scale.yaml config-flow-test-coverage todo→done only when the 21 are covered. Expected golden drift: none. Closes #304. Part of #201. claims-for = the repo-root VERSION at your merge base, never a literal from here. Do not stamp. Do not start #223. Do not implement #195."
     },
