@@ -336,6 +336,7 @@
    "tests/profiles.py"
   ],
   "tests/entities.py": [
+   ".github/workflows/tests.yml",
    "README.md",
    "RELEASE_NOTES.md",
    "VERSION",

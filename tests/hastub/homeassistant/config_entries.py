@@ -1,8 +1,11 @@
 """Minimal stand-in for ``homeassistant.config_entries``.
 
-Mirrored from Home Assistant 2024.6.0 -- the floor ``hacs.json`` declares,
-and the release that introduced ``ConfigEntry.runtime_data`` -- and kept to
-the semantics the integration and its tests lean on:
+Mirrored from Home Assistant 2024.6.0, the release that introduced
+``ConfigEntry.runtime_data``, and kept to the semantics the integration and
+its tests lean on. Since #514 raised the ``hacs.json`` floor to 2025.2.0 this
+mirror is OLDER than the floor, which is the safe direction: a stub offering
+less than the real release cannot let a test pass on an API the integration
+is not entitled to. Re-mirroring against 2025.2.0 is a change of its own:
 
 * ``ConfigEntry`` is generic in its runtime data (``ConfigEntry[MyClient]``
   subscripts, so the integration's typed alias imports). ``runtime_data`` is
