@@ -1,5 +1,57 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.3.17
+
+**The card's setup page could not be saved.** Pressing **Tidy** made every save
+fail with `value must be one of [...] at 'positions.outdoor'`, and because the
+layout change rides the same call, nothing on that page could be saved at all.
+The service validated its `positions` argument against a hand-kept map of
+English endpoint names that had no `outdoor` in it, while the card has always
+sent every box it draws. **Present since v3.16.0.** Nothing was corrupted and no
+re-entry is needed: the dragged positions were never persisted, and the editor
+stayed open on rejection. The accepted set is now derived from the slot table,
+so the two can no longer disagree (#548, closing #546).
+
+**Diagnostics no longer publish your home's exact location.** Coordinates are
+coarsened to one decimal place — about 64 km², at or below the weather grid the
+forecast already uses — which still exposes a swapped latitude/longitude or a
+wrong country in a bug report, and the config entry's name is redacted. Entity
+ids, MQTT topics and the building and tariff parameters are deliberately kept:
+they are what a bug report is read for (#535, closing #509).
+
+**Python 3.13+ is now declared, and the Home Assistant floor is 2025.2.0.** The
+floor was undeclared and permitted 3.12; 2025.2.0 is the first release requiring
+3.13. CI now tests 3.14, which the reporting user of the v6.3.15 failure runs and
+which had never been exercised here (#520, closing #514).
+
+### Testing and tooling
+
+- A nightly job installs the integration into a real Home Assistant container
+  and asserts it sets up, on 2025.2.0 and stable — the harness gap that let
+  v6.3.15 ship unable to generate a plan (#522, closing #521).
+- `tests/deployment_shape.py` runs the package under an installation's real
+  module name and directory layout (#517).
+- The `closures-autofix` job no longer reports success while repairing nothing;
+  a failed recording gets its own status and reddens (#528, closing #523).
+- A merge driver ends the recurring claim-file conflict, unioning the notes and
+  refusing a claim list both sides rewrote (#545).
+
+### Decomposition of the coordinator (#193, stages S5–S7)
+
+- S5: thermal-learning state leaves the DHW seam, `cut_dhw` 194 → 103 (#529).
+- S6: inverter-frequency state leaves the grid seam, `cut_grid` 234 → 205 (#537).
+- S7: the shared learner Newton step moves to `thermal_model`,
+  `coordinator_loc` 10150 → 10086 (#551).
+
+### Documentation and process
+
+One living handover replaces the dated series (#519). Programme tracking now
+covers every PR and every open issue, and a finding that constrains a later
+stage is written into that stage's brief before the PR that produced it merges
+(#530, #538). A root-cause doctrine and its seat contract (#526). The handoff to
+review freezes the branch (#532). Three permanent documents that contradicted
+the code are corrected (#534).
+
 ## v6.3.16
 
 **The integration could not produce a plan on any Home Assistant installation.**
