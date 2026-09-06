@@ -4816,6 +4816,27 @@ R.check(
     f"{sum(len(_v) for _v in _actually_published.values())} published",
 )
 
+# --- #405: data-driven attribute key sets are named in the holes list and
+# excluded from exact-set pins (see the prose block above ``_PUBLISHED_ATTRS``).
+_ATTR_KEYSET_IS_DATA_DRIVEN = frozenset({
+    "SolarIrradianceSensor", "OptimizationScoreSensor",
+})
+_PUBLISHED_ATTRS_HOLES_PROSE = Path(__file__).read_text().split(
+    "# Three holes, stated rather than papered over:"
+)[1].split("_PUBLISHED_ATTRS:")[0]
+R.check(
+    "data-driven attribute publishers are named in the holes list (#405)",
+    all(_cls in _PUBLISHED_ATTRS_HOLES_PROSE for _cls in _ATTR_KEYSET_IS_DATA_DRIVEN),
+    f"missing from holes prose: "
+    f"{sorted(_cls for _cls in _ATTR_KEYSET_IS_DATA_DRIVEN if _cls not in _PUBLISHED_ATTRS_HOLES_PROSE)}",
+)
+R.check(
+    "data-driven attribute publishers are not exact-set pinned (#405)",
+    all(_PUBLISHED_ATTRS.get(_cls) == frozenset() for _cls in _ATTR_KEYSET_IS_DATA_DRIVEN),
+    f"still pinned: "
+    f"{sorted(_cls for _cls in _ATTR_KEYSET_IS_DATA_DRIVEN if _PUBLISHED_ATTRS.get(_cls))}",
+)
+
 # --- D3-01 (#246): PredictiveInsightSensor's published VALUES, not just keys
 #
 # The roster above already catches deleting the whole of this property's
