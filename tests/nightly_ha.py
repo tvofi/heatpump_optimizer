@@ -448,7 +448,9 @@ def _check_entry(checks: Checks, hass, seed: dict):
     checks.check(
         "entry:loaded",
         state is ConfigEntryState.LOADED,
-        f"entry state is {state} (reason: {getattr(entry, 'reason', None)})",
+        f"no entry {seed['entry_id']}: the seed did not reach the manager"
+        if entry is None
+        else f"entry state is {state} (reason: {getattr(entry, 'reason', None)})",
     )
     return entry
 
@@ -873,17 +875,24 @@ def _report(checks: Checks, completed, config: Path) -> int:
 
 def _run_outside(args: argparse.Namespace) -> int:
     checks = Checks()
-    # Home Assistant runs as root in the container and leaves root-owned
-    # files (blueprints, .storage) in the bind mount, which the runner's user
-    # cannot delete. Cleanup errors are not a verdict about the integration.
-    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
-        config, driver = _stage(Path(tmp))
+    # mkdtemp and rmtree(ignore_errors), not TemporaryDirectory: Home Assistant
+    # runs as root in the container and leaves root-owned files (blueprints,
+    # .storage) in the bind mount that the runner's user cannot remove.
+    # `ignore_cleanup_errors=True` does not cover that -- its handler calls
+    # _resetperms, whose chmod raises PermissionError outside the ignore path,
+    # and the lane reported ALL 20 checks PASSED and then exited 1 (measured,
+    # job 101525... of run 34047698688). Cleanup is not a verdict.
+    tmp = Path(tempfile.mkdtemp(prefix="nightly-ha-"))
+    try:
+        config, driver = _stage(tmp)
         try:
             completed = _docker(args.image, config, driver, args.plan_budget, args.timeout)
         except subprocess.TimeoutExpired:
             checks.check("run:driver_reported", False, f"no result after {args.timeout}s")
             return 1
         return _report(checks, completed, config)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
 
 
 def main(argv: list[str] | None = None) -> int:
