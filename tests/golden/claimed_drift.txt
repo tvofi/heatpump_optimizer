@@ -54,6 +54,12 @@
 # them off `self`. No arithmetic, no ordering and no call sequence changes, so
 # every fixture is byte-identical by construction.
 #
+# #509, the diagnostics privacy fix: this branch claims NOTHING. It touches
+# custom_components/heatpump_optimizer/diagnostics.py, which Home Assistant
+# loads by name for `Download diagnostics` and which no other production
+# module imports -- no solver, coordinator or fetch path reaches it, so every
+# scenario fixture is byte-identical by construction.
+#
 # #524 / #525 (the solve worker's result channel, and two blocking calls in
 # the event loop): this branch claims NOTHING. process_worker._dump changes
 # the STATUS of a reply it already could not pickle, and __init__/coordinator
