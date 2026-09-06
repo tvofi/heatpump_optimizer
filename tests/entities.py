@@ -1209,6 +1209,70 @@ R.check(
     f"class={'_effective_house_heat_loss' in _s2_cls_fns}",
 )
 
+# S6 of #193, the same lever on the grid seam. `freq_control.py` is the heat
+# pump's own compressor frequency -- not anything about the electrical grid --
+# but `_init_grid` assigned its four attributes, so grid *owned* them and every
+# `_observe_frequency` / `_command_frequency` read was priced against the grid
+# seam: 28 of cut_grid for state no grid method reads. Merging the block back
+# is the regression these checks exist to stop; nothing else in the suite could
+# fail on it. `_s5_seam` is reused deliberately -- it buckets by structure.py's
+# own SEAM_REGEXES, so a change to the metric moves this test with it.
+R.section("S6 inverter-frequency state outside the grid seam (#193)")
+_s6_init = next(
+    (
+        _n
+        for _n in _s1_cls.body
+        if isinstance(_n, (_ast_s1.FunctionDef, _ast_s1.AsyncFunctionDef))
+        and _n.name == "_init_frequency"
+    ),
+    None,
+)
+# Read off the initialiser itself, never a list kept here: a hand-kept list
+# would silently stop covering an attribute added to it later.
+_s6_state = (
+    {
+        _n.attr
+        for _n in _ast_s1.walk(_s6_init)
+        if isinstance(_n, _ast_s1.Attribute) and isinstance(_n.ctx, _ast_s1.Store)
+    }
+    if _s6_init is not None
+    else set()
+)
+R.check(
+    "_init_frequency exists, outside the grid seam, and initialises state",
+    _s6_init is not None
+    and _s5_seam("_init_frequency") != "grid"
+    and len(_s6_state) > 1,
+    f"present={_s6_init is not None} "
+    f"seam={_s5_seam('_init_frequency')} attrs={len(_s6_state)}",
+)
+
+_s6_grid_writers: dict[str, list[str]] = {}
+for _fn in _s1_cls.body:
+    if not isinstance(_fn, (_ast_s1.FunctionDef, _ast_s1.AsyncFunctionDef)):
+        continue
+    if _s5_seam(_fn.name) != "grid":
+        continue
+    for _n in _ast_s1.walk(_fn):
+        if (
+            isinstance(_n, _ast_s1.Attribute)
+            and isinstance(_n.ctx, _ast_s1.Store)
+            and _n.attr in _s6_state
+        ):
+            _s6_grid_writers.setdefault(_n.attr, []).append(_fn.name)
+R.check(
+    "no grid-seam method assigns inverter-frequency state (#193 S6)",
+    bool(_s6_state) and not _s6_grid_writers,
+    f"grid-seam assignments: { {k: sorted(set(v)) for k, v in _s6_grid_writers.items()} }",
+)
+R.check(
+    "_grid_fee_entity_value is a module-level FunctionDef, not a class method",
+    "_grid_fee_entity_value" in _s2_mod_fns
+    and "_grid_fee_entity_value" not in _s2_cls_fns,
+    f"module={'_grid_fee_entity_value' in _s2_mod_fns} "
+    f"class={'_grid_fee_entity_value' in _s2_cls_fns}",
+)
+
 # The premise, stated in production's own terms: with nothing sensing the
 # tank, the buffer or the lower floor, what gets published IS the dataclass
 # default. No magic numbers here -- they are read off `ThermalState()`.
