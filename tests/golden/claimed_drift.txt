@@ -65,6 +65,22 @@
 # workflow only -- gate plumbing, no solver or fixture input changes, so
 # every scenario is byte-identical by construction.
 #
+#
+#
+# The finding-propagation destination fix: this branch claims NOTHING. Two
+# rules files and CLAUDE.md only -- no production file, no test input and no
+# solver parameter is touched, so every scenario is byte-identical.
+#
+# The document-contradiction fixes (tools/audit/briefs/fixer.md step 5,
+# tests/README.md exclusion list and script counts): this branch claims
+# NOTHING. Prose in two documents only -- no production file, no fixture and
+# no solver input is touched, so every fixture is byte-identical by
+# construction. The two prose files are in no recorded closure, but this file
+# and card_claimed_drift.txt are in those of card.mjs, card_drift.mjs,
+# entities.py, env_drift.py and golden.py -- so closure.py select reports
+# MODE: SCOPED over those five plus plan_view.py, pulled in by PRODUCERS as
+# card.mjs's producer. Six scripts, stress.py not among them, no gate lease.
+#
 # The claim-driver policy text, split out of #545 for approval: this branch
 # claims NOTHING. CLAUDE.md and .cursor/rules/ci-autofix.mdc only -- no
 # production file, no test input and no solver parameter is touched.

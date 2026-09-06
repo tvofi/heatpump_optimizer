@@ -76,10 +76,11 @@ later stage may do, invalidates an assumption it rests on, or removes an option
 it was expected to have.
 
 **A PR comment is not propagation.** The test is where the seat who needs this
-will be looking: its own brief, the shared seat block, this file, its role
+will be looking: its own brief, its roster entry, this file, its role
 contract — not the comments of a PR that merged several stages earlier. Carry
 the control as well as the claim, and state the precondition rather than the
-opportunity. A finding that constrains every seat goes in the shared block once;
+opportunity. A finding that constrains every seat goes in its role contract
+under `tools/audit/briefs/` once;
 one whose stage has no brief yet goes in the plan row that will become one, and
 creating that row is part of the finding.
 
