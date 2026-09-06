@@ -10,11 +10,12 @@ bottom, which is scoped to one programme and deleted when it closes; it names
 where the live state is and never restates it, so nothing in this file has a
 date to go stale.
 
-**This file is not the whole of what applies.** `.cursor/rules/*.mdc` hold three
-`alwaysApply: true` project policies — `delivery-status-tracking.mdc`,
-`ci-autofix.mdc`, `brief-citations.mdc`. Cursor loaded them for you; Claude Code
-loads only this file, so **open all three yourself at session start**. The
-sections below summarise them and cite them by name; a summary is not the policy.
+**This file is not the whole of what applies.** `.cursor/rules/*.mdc` hold the
+`alwaysApply: true` project policies. Cursor loaded them for you; Claude Code
+loads only this file, so **list that directory and open every rule in it at
+session start** — do not work from a count or a list of names written here,
+which goes stale the moment a policy is added. The sections below summarise
+some of them and cite them by name; a summary is not the policy.
 
 ## Four rules that will refuse your pull request
 
@@ -66,6 +67,24 @@ body; if they disagree, fix the table first), the roster `resume` fields in
 meaningful state change (merge, block, wave start). Do not wait for a stamp
 to truth the table. See `.cursor/rules/delivery-status-tracking.mdc`.
 
+## Carrying a finding forward
+
+**A finding that changes how a later stage must work is written into that
+stage's own brief before the PR that produced it merges** — where the finding is
+measured, with the null control that establishes it, and it narrows what the
+later stage may do, invalidates an assumption it rests on, or removes an option
+it was expected to have.
+
+**A PR comment is not propagation.** The test is where the seat who needs this
+will be looking: its own brief, the shared seat block, this file, its role
+contract — not the comments of a PR that merged several stages earlier. Carry
+the control as well as the claim, and state the precondition rather than the
+opportunity. A finding that constrains every seat goes in the shared block once;
+one whose stage has no brief yet goes in the plan row that will become one, and
+creating that row is part of the finding.
+
+See `.cursor/rules/finding-propagation.mdc`.
+
 ## One living handover
 
 "In the repo" and "always current" pull against each other: an in-tree file
@@ -106,11 +125,16 @@ in the same PR.
 
 - `tools/audit/briefs/fixer.md` — failing test first, importing the production
   symbol; the mutation proof pasted; the finding's own harness re-run at both
-  ends; a null control for any cost, gain or time claim. After any rebase,
-  steps 2–4 are re-executed, because the evidence described a different tree.
+  ends; a null control for any cost, gain or time claim. After any rebase **or
+  merge**, steps 2–4 are re-executed, because the evidence described a different
+  tree. The handoff to review **freezes the branch**: update it from
+  `origin/main` freely until then; after it, only the orchestrator moves the
+  head.
 - `tools/audit/briefs/fix-review.md` — the reviewer measures with the
   **finder's** harness, never the fixer's, in a fresh worktree at the head SHA.
   Four implementations here looked right and were wrong, one worse than its bug.
+  The head is re-read before the verdict is posted, and one that moved under the
+  review is `blocked: head moved under review, measured <sha>`.
 - `tools/audit/briefs/judge.md` — a finding whose harness does not move under
   its own perturbation is **void**, whatever the votes said.
 - `tests/README.md` — the suite, and why a test that re-implements a production
