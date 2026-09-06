@@ -8,9 +8,9 @@ Everything in this section is **permanent** — it describes the repository, not
 any particular piece of work. Anything dated lives in the fenced block at the
 bottom, which is allowed to go stale and says so.
 
-**This file is not the whole of what applies.** `.cursor/rules/*.mdc` hold three
+**This file is not the whole of what applies.** `.cursor/rules/*.mdc` hold four
 `alwaysApply: true` project policies — `delivery-status-tracking.mdc`,
-`ci-autofix.mdc`, `brief-citations.mdc`. Cursor loaded them for you; Claude Code
+`ci-autofix.mdc`, `brief-citations.mdc`, `defect-root-cause.mdc`. Cursor loaded them for you; Claude Code
 loads only this file, so **open all three yourself at session start**. The
 sections below summarise them and cite them by name; a summary is not the policy.
 
@@ -71,6 +71,22 @@ Load-bearing citations go in `.claude/workflows/wave-*-groups.json` in a form
 lands; run it locally the same way). The linter does not read `docs/plan-*.md`
 or `tools/audit/briefs/`. Extending the plan format means extending the linter
 in the same PR.
+
+## Root-cause remediation
+
+A defect that reached a released version, or that turned a PR red on a check a
+cheaper detector could have run, owes two things beyond its fix: the cause, and
+the **process** that let the cause get that far. The process failure is in one
+of four states — the process did not exist, existed and was not followed, was
+followed and did not work, or was sound and its preconditions changed — and the
+countermeasure differs by state. Build one only when it pays for itself against
+the measured recurrence of its class; **recording that none is worth building is
+a legitimate result**. Any countermeasure that is a check must be demonstrated
+failing on the defect it was written for.
+
+The analysis runs in **its own seat**, beside the fix and never inside it:
+`tools/audit/briefs/root-cause.md`. Policy is `.cursor/rules/defect-root-cause.mdc`.
+Repository rules and policy change only with the owner's approval.
 
 ## The contracts, when the work is a fix
 

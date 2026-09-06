@@ -1,0 +1,114 @@
+---
+description: A defect that escapes to production, or that CI catches slowly, requires a root-cause countermeasure as well as a fix
+alwaysApply: true
+---
+
+# Root-cause remediation
+
+A defect is not closed when its symptom is gone. Two more things are owed: the
+cause, and the **process** that let the cause reach a user or an expensive gate.
+
+## When this applies
+
+Either of:
+
+- the defect **reached a released version**; or
+- the defect **turned a PR red on a check that a cheaper detector could have
+  run.**
+
+The second trigger is a question, not a stopwatch. Most jobs here run for
+minutes, so elapsed time separates nothing; what separates is whether the same
+failure was reachable earlier and more cheaply than the gate that found it.
+
+Answer it by naming the cheaper detector and its standing cost, or by recording
+that none exists. A worked example of each:
+
+- **Qualifies.** `closure.py no-copies` refused a test symbol that shared a name
+  with a production symbol, after roughly fifteen minutes of CI. The same check
+  runs locally in **0.56 s** and existed already — it was simply in no local
+  path. Cheaper detector: an edit-time hook. Countermeasure built.
+- **Does not qualify.** A solver regression caught by the golden fixtures. The
+  cheapest detector that would have caught it *is* the gate that caught it.
+  Record the finding, build nothing.
+
+## What is owed
+
+1. **Fix the defect** under normal policy — failing test first, mutation proof,
+   independent review. Nothing here replaces that.
+2. **In parallel, and in a separate seat**, establish the root cause and the
+   **process root cause**. A separate seat because the fixer is invested in the
+   fix; independence here is procedural, exactly as it is for `fix-review`.
+3. **Address the root cause.** Countermeasures include worker instructions, the
+   plan, testing procedure, a local check, a hook, a CI change. When the defect
+   was found late in CI, a cheaper and earlier detector is strongly preferred.
+4. **Address the process root cause when it pays for itself** — see the cost
+   test below.
+5. **A countermeasure is a change like any other**: reproduced, verified,
+   mutation-proven, independently reviewed.
+
+## The process root cause
+
+Every process failure is in exactly one of four states:
+
+- **(a) The process did not exist.**
+- **(b) The process existed and was not followed.**
+- **(c) The process was followed and did not produce the intended result.**
+- **(d) The process was sound and its preconditions changed underneath it.**
+
+Name the state. The countermeasure differs by state, and the most common
+mistake is treating (c) or (d) as (b) — writing a firmer instruction when the
+instruction was obeyed and wrong.
+
+For **(d)**, the countermeasure is rarely a new rule: it is making the process
+notice its own precondition change.
+
+Permanent countermeasures may change how plans, rosters and briefs are made;
+how worker instructions are written; or repository conventions and policy.
+**Repository rules and policy are changed only with the owner's approval**, and
+the request states which of the four states it addresses.
+
+## The cost test
+
+Implement a countermeasure when
+
+    cost(countermeasure, recurring) < cost(defect) x P(recurrence)
+
+Both sides in the same unit: **wall-clock, per occurrence, over a release
+cycle**. State the numbers, do not assert the conclusion.
+
+- `cost(countermeasure, recurring)` is the standing cost — the seconds it adds
+  to every run, every session, forever — not the once-off cost of writing it.
+- `P(recurrence)` uses the **measured class frequency** where one exists;
+  otherwise state the estimate and its basis.
+
+**"No countermeasure" is a legitimate, recordable outcome.** Some defects are
+irreducible: the cheapest detector that would have caught them is the gate that
+did. Record that finding and stop. A doctrine that mandates a countermeasure for
+every defect manufactures ceremony and, worse, invites weakening the checks that
+already work.
+
+## The bound
+
+A countermeasure may not degrade architecture, functionality or quality, and may
+not add complexity worth more than the defect it prevents. It obeys the
+structural ratchet like any other change: if it needs a budget raised, that is
+the owner's decision, asked before the branch is pushed.
+
+## A detector must be shown to detect
+
+Any countermeasure that is a check, test, lane or hook is **demonstrated failing
+on the defect it was written for, and passing once the defect is fixed.** Both
+runs go in the report.
+
+A check that passes while the bug is present is worse than no check: it converts
+an open defect into a closed one. This repository has produced that shape three
+times — a key-set check that supplied the value it asserted, an invariant that
+went green on a broken tree, and an autofix job that reported success while
+skipping its own repair. Each was caught only by a control that assumed the
+check was lying.
+
+## Where it is recorded
+
+The qualifying defect's issue carries a **Root cause** section: the cause, the
+process state (a-d) with its evidence, the cost test with its numbers, and the
+countermeasure or the recorded decision not to build one.
