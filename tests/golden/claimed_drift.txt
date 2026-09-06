@@ -60,6 +60,11 @@
 # module imports -- no solver, coordinator or fetch path reaches it, so every
 # scenario fixture is byte-identical by construction.
 #
+# #523 (an autofix job that reported success without repairing): this
+# branch claims NOTHING. tests/closure.py, tests/env_drift.py and the CI
+# workflow only -- gate plumbing, no solver or fixture input changes, so
+# every scenario is byte-identical by construction.
+#
 # The #529 record, the open-issue dispositions and the forward carries: this
 # branch claims NOTHING. The plan doc, the two wave rosters and
 # docs/HANDOVER.md only -- no production file, no test input and no solver

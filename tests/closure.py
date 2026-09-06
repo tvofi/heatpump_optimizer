@@ -36,6 +36,8 @@ Commands
   check  --in-dir DIR [--partial] fail if the committed closures under-approximate
   autofix --in-dir DIR [--partial] [--out PATH]
                                   merge UNDER-SCOPED recordings; print AUTOFIX: <status>
+  autofix-report --job J --status S
+                                  redden an autofix job that repaired nothing
   select --files ... | --diff REF decide which scripts a change needs
                  [--workdir DIR]  ...and write the plan where run.sh reads it
   affected --files ... | --diff REF | --files-from FILE
@@ -1052,12 +1054,93 @@ def retrigger_needed(*, pushed: bool, used_pat: bool) -> bool:
     return pushed and not used_pat
 
 
+# Both autofix jobs push only on `changed`, and every other status used to fall
+# through to job success -- so a job that repaired nothing looked exactly like
+# one that did, and `.cursor/rules/ci-autofix.mdc`'s "wait for the bot commit"
+# waited for a commit no step would push (#523). These are the statuses that
+# owe a human nothing: a repair happened, or none was ever attempted.
+#
+# `claims-autofix` is a different shape, not a mirror. `apply_inherited_claims`
+# reports no attempted-and-failed status at all, and its `skip-not-inherited`
+# is the ordinary answer for every `fast` failure that was not INHERITED
+# CLAIMS -- unlike `closures-autofix`, that job never asks which it was, so
+# reddening it would redden every unrelated `fast` failure a second time. Its
+# entry is here for the summary line and to fail closed on a status added
+# later, not because anything it returns today means a skipped repair.
+AUTOFIX_QUIET = {
+    "closures-autofix": (
+        "changed", "skip-clean", "skip-not-allowed", "skip-not-under-scoped"),
+    "claims-autofix": ("changed", "skip-not-allowed", "skip-not-inherited"),
+}
+
+# Keyed by status where the job-wide remedy would misdirect. A failed
+# recording is not repaired by re-deriving: the script stopped early, so its
+# recorded closure is truncated, and re-deriving it here would record the same
+# truncation.
+_AUTOFIX_STATUS_REMEDY = {
+    "skip-failed-recording":
+        "A script exited non-zero WHILE being recorded, so its closure is only\n"
+        "what it reached before stopping -- and merging that would under-scope\n"
+        "the gate, which is why the merge refuses it. The under-approximation\n"
+        "this job was going to repair is real and still unrepaired.\n"
+        "Fix the failing script first; the closures job re-records on the next\n"
+        "push and this repair then happens on its own.\n",
+}
+
+_AUTOFIX_REMEDY = {
+    "closures-autofix":
+        "Re-derive the failing script yourself and commit tests/closures.json:\n"
+        "    ./tests/derive_closures.sh --single <script>\n"
+        "Python lanes record through sys.addaudithook, so a Darwin recording of\n"
+        "one is sound; a Darwin recording of a node lane can only widen a Linux\n"
+        "one, never replace it.",
+    "claims-autofix":
+        "Rewrite tests/golden/claimed_drift.txt and card_claimed_drift.txt for\n"
+        "THIS diff by hand, keeping `claims-for:` and any `# may-drift:` line.",
+}
+
+
+def autofix_repair_failed(job: str, status: str) -> bool:
+    """True when `job`'s status means a repair is owed and no commit is coming.
+
+    Fails closed. A status this table does not carry -- one invented later, or
+    the empty string a crashed merge step leaves in the job output -- is a
+    repair nobody can wait for, and so is an unknown job.
+    """
+    return status not in AUTOFIX_QUIET.get(job, ())
+
+
+def autofix_report(job: str, status: str) -> tuple[int, str]:
+    """The job's verdict on its own status: exit code, and what to say."""
+    if not autofix_repair_failed(job, status):
+        return 0, f"{job}: {status} -- nothing owed to a human."
+    return 1, (
+        f"{job}: {status} -- THE REPAIR DID NOT HAPPEN.\n"
+        "No commit will be pushed, so waiting for one waits forever. This is\n"
+        "the case `.cursor/rules/ci-autofix.mdc` already lists as a human\n"
+        "judgment call, and its rule against re-recording an UNDER-SCOPED\n"
+        "yourself does not apply once the bot has reported that it did not.\n"
+        + _AUTOFIX_STATUS_REMEDY.get(status, _AUTOFIX_REMEDY.get(job, "")))
+
+
+def _autofix_report_cmd(job: str, status: str) -> int:
+    rc, text = autofix_report(job, status)
+    print(text)
+    summary = os.environ.get("GITHUB_STEP_SUMMARY")
+    if summary:
+        # The point of the finding: legible without opening the log.
+        with open(summary, "a") as fh:
+            fh.write(f"### {job}\n\n```\n{text}\n```\n")
+    return rc
+
+
 def apply_under_scoped_recordings(in_dir: Path, *, partial: bool = True) -> str:
     """Merge recordings into CLOSURES only when check printed UNDER-SCOPED.
 
     Returns one of: changed, skip-clean, skip-not-under-scoped,
-    skip-merge-failed, skip-still-fails, skip-unchanged. Restores the
-    previous closures.json text unless the status is changed.
+    skip-failed-recording, skip-merge-failed, skip-still-fails,
+    skip-unchanged. Restores the previous closures.json text unless the
+    status is changed.
     """
     in_dir = Path(in_dir)
     prev = CLOSURES.read_text() if CLOSURES.exists() else None
@@ -1073,9 +1156,6 @@ def apply_under_scoped_recordings(in_dir: Path, *, partial: bool = True) -> str:
         records = [json.loads(p.read_text()) for p in sorted(in_dir.glob("*.json"))]
     except (json.JSONDecodeError, OSError):
         return "skip-merge-failed"
-    if any(r.get("rc", 0) != 0 for r in records):
-        return "skip-not-under-scoped"
-
     out, err = io.StringIO(), io.StringIO()
     try:
         with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
@@ -1086,6 +1166,19 @@ def apply_under_scoped_recordings(in_dir: Path, *, partial: bool = True) -> str:
         return "skip-clean"
     if "UNDER-SCOPED" not in out.getvalue() + err.getvalue():
         return "skip-not-under-scoped"
+    # Only now, because `closures-autofix` runs on ANY `closures` failure and
+    # a failed recording is common to several of them. Reddening it before the
+    # test above would fire on every no-copies, NOT-A-FILE or INERT failure
+    # that happened to coincide with one, and send its reader to re-derive a
+    # closure that was never stale. Past this line UNDER-SCOPED was printed,
+    # so this is not that no-op -- and `merge(allow_failures=False)` below
+    # would refuse these records anyway, as `skip-merge-failed`. This says
+    # which refusal it was, and keeps it loud (#523). The UNDER-SCOPED may
+    # itself be an artefact of the failure (an error path reads files the
+    # clean path does not), which is why the remedy is "fix the script", not
+    # "re-derive it".
+    if any(r.get("rc", 0) != 0 for r in records):
+        return "skip-failed-recording"
 
     try:
         with contextlib.redirect_stdout(io.StringIO()), \
@@ -1470,6 +1563,11 @@ def main() -> int:
     af.add_argument("--in-dir", required=True)
     af.add_argument("--partial", action="store_true")
     af.add_argument("--out", default=str(CLOSURES))
+    ar = sub.add_parser("autofix-report")
+    ar.add_argument("--job", required=True)
+    # Not required: a merge step that crashed leaves the output empty, and
+    # that has to reach the table as a status rather than as a usage error.
+    ar.add_argument("--status", default="")
     s = sub.add_parser("select")
     s.add_argument("--files", nargs="*"); s.add_argument("--diff")
     s.add_argument("--json", action="store_true")
@@ -1494,6 +1592,8 @@ def main() -> int:
         return check(Path(a.in_dir), a.partial)
     if a.cmd == "autofix":
         return _autofix_cmd(Path(a.in_dir), Path(a.out), a.partial)
+    if a.cmd == "autofix-report":
+        return _autofix_report_cmd(a.job, a.status)
     if a.cmd == "no-copies":
         return no_copies()
     if a.cmd == "show":
