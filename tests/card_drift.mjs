@@ -68,6 +68,19 @@ const woodFuelStates = (plan, fuel) => {
   return st;
 };
 
+const awayPlanStates = (plan, { sw = false, returnIso = null, resolved = false } = {}) => {
+  const st = planStates(plan);
+  st["switch.heat_pump_optimizer_away"] = { state: sw ? "on" : "off", attributes: {} };
+  st["datetime.heat_pump_optimizer_away_return"] = {
+    state: returnIso || "unknown", attributes: {},
+  };
+  st["binary_sensor.heat_pump_optimizer_away_mode"] = {
+    state: resolved ? "on" : "off",
+    attributes: { source: resolved && !sw ? "person.alice" : "none" },
+  };
+  return st;
+};
+
 const statStates = () => ({
   "sensor.heat_pump_optimizer_predicted_savings": {
     state: "12.34", attributes: { unit_of_measurement: "SEK" } },
@@ -404,6 +417,24 @@ const STATES = [
       const c = buildCard(s.Card, woodFuelStates(s.plan, {
         cheaper: false, show_whatif: true, ready: true, slots: [],
       }), { what_if: true });
+      c._onCardClick({});
+      return c;
+    } },
+  { name: "away_toggle",
+    drive: (s) => {
+      const c = buildCard(s.Card, awayPlanStates(s.plan));
+      c._onCardClick({});
+      return c;
+    } },
+  { name: "away_return",
+    drive: (s) => {
+      const c = buildCard(s.Card, awayPlanStates(s.plan, { sw: true }));
+      c._onCardClick({});
+      return c;
+    } },
+  { name: "away_status",
+    drive: (s) => {
+      const c = buildCard(s.Card, awayPlanStates(s.plan, { resolved: true }));
       c._onCardClick({});
       return c;
     } },

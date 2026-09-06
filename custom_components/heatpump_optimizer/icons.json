@@ -190,8 +190,16 @@
       }
     },
     "switch": {
+      "away": {
+        "default": "mdi:walk"
+      },
       "optimizer_active": {
         "default": "mdi:robot"
+      }
+    },
+    "datetime": {
+      "away_return": {
+        "default": "mdi:calendar-end"
       }
     }
   }

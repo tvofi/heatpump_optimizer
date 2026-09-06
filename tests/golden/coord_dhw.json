@@ -14,6 +14,8 @@
   "away_active": false,
   "away_dhw_min_temperature": null,
   "away_hours_until_return": null,
+  "away_override_active": false,
+  "away_override_return_time": null,
   "away_recovery_active": false,
   "away_recovery_hours": null,
   "away_return_time": null,

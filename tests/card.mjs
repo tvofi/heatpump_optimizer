@@ -6630,6 +6630,38 @@ const setupBox = (card, place) =>
     !/wi-add-wood/.test(collect(off.shadowRoot).join("\n")));
 }
 
+// --- 3L-G10 (#465): Plan-page Away toggle ---------------------------------
+{
+  function withAway(states, { sw = false, returnIso = null, resolved = false } = {}) {
+    const st = { ...states };
+    st["switch.heat_pump_optimizer_away"] = { state: sw ? "on" : "off", attributes: {} };
+    st["datetime.heat_pump_optimizer_away_return"] = {
+      state: returnIso || "unknown", attributes: {},
+    };
+    st["binary_sensor.heat_pump_optimizer_away_mode"] = {
+      state: resolved ? "on" : "off",
+      attributes: { source: resolved && !sw ? "person.alice" : "none" },
+    };
+    return st;
+  }
+  const awayOff = build(withAway(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true)));
+  awayOff._onCardClick({});
+  const awayOffHtml = collect(awayOff.shadowRoot).join("\n");
+  check("expanded plan shows the away toggle", /data-away-toggle/.test(awayOffHtml));
+  check("collapsed card has no away toggle",
+    !/data-away-toggle/.test(collect(build(withAway(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true))).shadowRoot).join("\n")));
+  check("return datetime is hidden while the switch is off",
+    !/data-away-return/.test(awayOffHtml));
+  const awayOn = build(withAway(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), { sw: true }));
+  awayOn._onCardClick({});
+  check("return datetime is shown while the switch is on",
+    /data-away-return/.test(collect(awayOn.shadowRoot).join("\n")));
+  const awayPerson = build(withAway(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), { resolved: true }));
+  awayPerson._onCardClick({});
+  check("person-away while the switch is off shows a status line",
+    /data-away-status/.test(collect(awayPerson.shadowRoot).join("\n")));
+}
+
 // --- The host stays small ---------------------------------------------------
 // The decomposition (#136) left the element with the Lovelace contract, the
 // render cycle and its compositions, and nothing else. A ratchet, not a

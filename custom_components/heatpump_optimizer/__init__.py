@@ -43,7 +43,7 @@ _LAZY_ATTRS = {
     "HeatPumpOptimizerCoordinator": "coordinator",
     # The four service schemas the test suite pokes through the package root
     # (the facade rule): they are defined in -- and re-exported from --
-    # services.py, along with everything else the eleven services are made of.
+    # services.py, along with everything else the twelve services are made of.
     "SERVICE_SCHEMA_APPLY_MANUAL_PLAN": "services",
     "SERVICE_SCHEMA_APPLY_SCHEDULE": "services",
     "SERVICE_SCHEMA_CLEAR_MANUAL_PLAN": "services",
@@ -78,6 +78,7 @@ PLATFORM_LIST = [
     Platform.BUTTON,
     Platform.CLIMATE,
     Platform.SWITCH,
+    Platform.DATETIME,
 ]
 # Diagnostics is deliberately NOT here. Home Assistant has no
 # ``Platform.DIAGNOSTICS``: the diagnostics component discovers
@@ -165,7 +166,7 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     """Register the domain's services, once, before any entry (action-setup).
 
     Home Assistant calls this when the integration loads, whether or not a
-    config entry exists yet, so the eleven services are known -- and an
+    config entry exists yet, so the twelve services are known -- and an
     automation naming one validates -- while every entry is unloaded. The
     handlers resolve the entry or entries they act on when a call arrives
     (``_loaded_entries``) and refuse a call that finds none loaded. Nothing

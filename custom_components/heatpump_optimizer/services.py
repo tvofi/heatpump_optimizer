@@ -1,4 +1,4 @@
-"""The domain's eleven services: schemas, handlers and registration.
+"""The domain's twelve services: schemas, handlers and registration.
 
 Moved verbatim from ``__init__.py`` (#222, the decomposition program's
 opener; the block used to be ``_async_register_services`` and the module
@@ -50,6 +50,7 @@ from .const import (
     SERVICE_DIAGNOSE_INTERVAL,
     SERVICE_RESTORE_SNAPSHOT,
     SERVICE_RUN_OPTIMIZATION,
+    SERVICE_SET_AWAY,
     SERVICE_SET_MODE,
     SERVICE_SET_THERMAL_PARAMS,
     SERVICE_SIMULATE_PLAN,
@@ -111,6 +112,22 @@ SERVICE_SCHEMA_SET_MODE = vol.Schema(
             list(OPERATION_MODES)
         ),
     }
+)
+
+def _set_away_requires_a_field(data: dict) -> dict:
+    if "active" not in data and "return_time" not in data:
+        raise vol.Invalid("at least one of active or return_time is required")
+    return data
+
+
+SERVICE_SCHEMA_SET_AWAY = vol.All(
+    vol.Schema(
+        {
+            vol.Optional("active"): cv.boolean,
+            vol.Optional("return_time"): vol.Any(None, cv.string),
+        }
+    ),
+    _set_away_requires_a_field,
 )
 
 # Assign one optional sensor from the card's setup diagram (item 32).
@@ -378,6 +395,17 @@ async def handle_run_optimization(hass: HomeAssistant, call: ServiceCall) -> Non
             translation_key="run_optimization_solve_failed",
             translation_placeholders={"entry_ids": entry_ids},
         )
+
+async def handle_set_away(hass: HomeAssistant, call: ServiceCall) -> None:
+    """Write the Plan-page away override through the coordinator store."""
+    kwargs: dict[str, Any] = {}
+    if "active" in call.data:
+        kwargs["active"] = call.data["active"]
+    if "return_time" in call.data:
+        kwargs["return_time"] = call.data["return_time"]
+    for _entry_id, coord in _loaded_coordinators(hass):
+        await coord.async_set_away(**kwargs)
+
 
 async def handle_set_mode(hass: HomeAssistant, call: ServiceCall) -> None:
     """Handle the set_mode service call."""
@@ -924,6 +952,12 @@ def async_register_services(hass: HomeAssistant) -> None:
         SERVICE_SET_MODE,
         partial(handle_set_mode, hass),
         schema=SERVICE_SCHEMA_SET_MODE,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_SET_AWAY,
+        partial(handle_set_away, hass),
+        schema=SERVICE_SCHEMA_SET_AWAY,
     )
     hass.services.async_register(
         DOMAIN,

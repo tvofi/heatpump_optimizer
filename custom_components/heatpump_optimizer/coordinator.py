@@ -211,14 +211,6 @@ from .const import (
     DEFAULT_PV_PEAK_KW,
     DEFAULT_PV_EFFICIENCY,
     DEFAULT_PV_EXPORT_PRICE,
-    CONF_AWAY_ENABLED,
-    CONF_AWAY_PRESENCE_ENTITY,
-    CONF_AWAY_RETURN_ENTITY,
-    CONF_AWAY_TEMPERATURE,
-    CONF_AWAY_DHW_MIN_TEMP,
-    DEFAULT_AWAY_ENABLED,
-    DEFAULT_AWAY_TEMPERATURE,
-    DEFAULT_AWAY_DHW_MIN_TEMP,
     CONF_SYSID_ENABLED,
     DEFAULT_SYSID_ENABLED,
     CONF_COMFORT_LEARNING_ENABLED,
@@ -952,6 +944,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._async_load_manual_plan,
         ):
             self._spawn(load())
+        self._spawn(away_mode.restore_override(self))
 
     @callback
     def _release_registrations(self) -> None:
@@ -4936,7 +4929,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             # Away mode is applied around the solve and unwound afterwards, so
             # a setback can never leak past the end of the holiday.
             self._resolve_away()
-            away_original = self._apply_away_setback()
+            away_original = away_mode.apply_setback(
+                self._away_state, self._opt_config, self._thermal_params
+            )
 
             # Economy mode, which until now was a rename of auto and nothing
             # else: identical power schedule, identical hot water, identical
@@ -5202,7 +5197,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             return "solve_failed"
         finally:
             if away_original is not None:
-                self._restore_away_setback(away_original)
+                away_mode.restore_setback(
+                    away_original, self._opt_config, self._thermal_params
+                )
             self._optimization_running = False
             self.async_update_listeners()
 
@@ -9366,22 +9363,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     # Away / holiday mode (item 13)
     # ==================================================================
 
-    def _away_config(self) -> away_mode.AwayConfig:
-        return away_mode.AwayConfig(
-            enabled=bool(
-                self._config.get(CONF_AWAY_ENABLED, DEFAULT_AWAY_ENABLED)
-            ),
-            presence_entity=self._config.get(CONF_AWAY_PRESENCE_ENTITY),
-            return_entity=self._config.get(CONF_AWAY_RETURN_ENTITY),
-            away_temperature=_as_float(
-                self._config.get(CONF_AWAY_TEMPERATURE), DEFAULT_AWAY_TEMPERATURE
-            ),
-            away_dhw_min_temperature=_as_float(
-                self._config.get(CONF_AWAY_DHW_MIN_TEMP),
-                DEFAULT_AWAY_DHW_MIN_TEMP,
-            ),
-        )
-
     def _entity_state(self, entity_id: str | None) -> tuple[str | None, dict]:
         if not entity_id:
             return None, {}
@@ -9397,78 +9378,69 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
     def _resolve_away(self) -> away_mode.AwayState:
         """Work out whether the house is empty, and when it must be warm again."""
-        config = self._away_config()
-        if not config.enabled:
-            self._away_state = away_mode.AwayState()
-            return self._away_state
-
-        presence_raw, presence_attrs = self._entity_state(config.presence_entity)
-        return_raw, _ = self._entity_state(config.return_entity)
-
+        config = away_mode.config_from_mapping(self._config)
         now = dt_util.now()
+        parsed = away_mode._parse_return_time(self._away_state.override_return_iso)
+        active, ret = away_mode.expire_override(
+            self._away_state.override_active, parsed, now
+        )
+        migrated = self._away_state.migrated_helpers
+        if active != self._away_state.override_active or ret != parsed:
+            self._away_state.override_active = active
+            self._away_state.override_return_iso = (
+                ret.isoformat() if ret else None
+            )
+            self._spawn(away_mode.persist_override(self))
+        presence_raw, presence_attrs = self._entity_state(config.presence_entity)
         self._away_state = away_mode.resolve(
             config,
             now=now,
             presence_raw=presence_raw,
             presence_attributes=presence_attrs,
-            return_raw=return_raw,
+            return_raw=None,
             comfort_temp=self._opt_config.get_comfort_temp(
                 now.hour + now.minute / 60.0
             ),
-            # The estimator ramps the real model at full power, so it sees the
-            # slab bottleneck the old lumped formula ignored.
             model=self._thermal_model,
             thermal_state=self._current_state,
             outdoor_temp=self._current_state.outdoor_temperature,
+            override_active=active,
+            override_return_time=ret,
         )
+        self._away_state.migrated_helpers = migrated
         return self._away_state
 
-    def _apply_away_setback(self) -> dict[str, float]:
-        """Temporarily lower the comfort targets while away.
-
-        Returns the original values so they can be restored, because the
-        optimizer config is shared state and a setback that leaked past the
-        end of the holiday would be a comfort failure nobody would connect
-        back to this feature.
-        """
-        state = self._away_state
-        original = {
-            "target_temp": self._opt_config.target_temp,
-            "min_temp": self._opt_config.min_temp,
-            "comfort_temp_day": self._opt_config.comfort_temp_day,
-            "comfort_temp_night": self._opt_config.comfort_temp_night,
-            "dhw_min_temp": self._thermal_params.dhw_min_temp,
-            "dhw_idle_min_temp": self._thermal_params.dhw_idle_min_temp,
-        }
-        if not state.active or state.recovery_active:
-            return original
-
-        target = state.target_temperature or DEFAULT_AWAY_TEMPERATURE
-        # target_temp joins the setback: the terminal cost, the settlement
-        # caps and the baseline thermostat all anchor on it, so leaving it at
-        # full comfort kept the objective buying heat into the slab for a
-        # house nobody is in — measured at roughly 40% more energy per away
-        # day — and inflated the reported savings against a 21 °C baseline.
-        # min() so an away target configured above the normal one can never
-        # raise anything.
-        self._opt_config.target_temp = min(original["target_temp"], target)
-        self._opt_config.min_temp = min(original["min_temp"], target)
-        self._opt_config.comfort_temp_day = target
-        self._opt_config.comfort_temp_night = target
-        dhw_floor = state.dhw_min_temperature or DEFAULT_AWAY_DHW_MIN_TEMP
-        self._thermal_params.dhw_min_temp = min(original["dhw_min_temp"], dhw_floor)
-        self._thermal_params.dhw_idle_min_temp = min(
-            original["dhw_idle_min_temp"], dhw_floor
+    async def async_set_away(
+        self,
+        active: bool | None = None,
+        return_time: Any = away_mode.OMIT,
+    ) -> None:
+        """Persist the Plan-page override. The only writer of that store."""
+        if active is False:
+            self._away_state.override_active = False
+            self._away_state.override_return_iso = None
+        else:
+            if active is True:
+                self._away_state.override_active = True
+            if return_time is not away_mode.OMIT:
+                raw = (
+                    return_time.isoformat()
+                    if hasattr(return_time, "isoformat")
+                    and not isinstance(return_time, str)
+                    else return_time
+                )
+                parsed = away_mode._parse_return_time(raw)
+                self._away_state.override_return_iso = (
+                    parsed.isoformat() if parsed else None
+                )
+        parsed = away_mode._parse_return_time(self._away_state.override_return_iso)
+        on, ret = away_mode.expire_override(
+            self._away_state.override_active, parsed, dt_util.now()
         )
-        return original
-
-    def _restore_away_setback(self, original: dict[str, float]) -> None:
-        self._opt_config.target_temp = original["target_temp"]
-        self._opt_config.min_temp = original["min_temp"]
-        self._opt_config.comfort_temp_day = original["comfort_temp_day"]
-        self._opt_config.comfort_temp_night = original["comfort_temp_night"]
-        self._thermal_params.dhw_min_temp = original["dhw_min_temp"]
-        self._thermal_params.dhw_idle_min_temp = original["dhw_idle_min_temp"]
+        self._away_state.override_active = on
+        self._away_state.override_return_iso = ret.isoformat() if ret else None
+        await away_mode.persist_override(self)
+        await self.async_request_refresh()
 
     # ==================================================================
     # Closed-loop accuracy and the defrost derate (items 11, 14)

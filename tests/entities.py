@@ -169,6 +169,7 @@ for name in ("binary_sensor", "button"):
 # on the coordinator, which commands one heat pump, and two of them racing
 # is two commands to one machine.
 from heatpump_optimizer import climate as _climate_platform
+from heatpump_optimizer import datetime as datetime_mod
 from heatpump_optimizer import switch as _switch_platform
 
 for _module, _expected in (
@@ -177,6 +178,7 @@ for _module, _expected in (
     (button, 1),
     (_climate_platform, 1),
     (_switch_platform, 1),
+    (datetime_mod, 1),
 ):
     _platform_name = _module.__name__.rsplit(".", 1)[-1]
     R.check(
@@ -252,6 +254,8 @@ DATA = {
     "away_recovery_active": False,
     "away_target_temperature": 16.0,
     "away_dhw_min_temperature": 20.0,
+    "away_override_active": False,
+    "away_override_return_time": None,
     "ventilation_active": True,
     "ventilation_evidence": [
         "2026-02-01T10:05:00: room 1.4 °C under prediction while heating"
@@ -1877,7 +1881,7 @@ _broken.last_update_success = False
 # entity nobody thought to name cannot sit this sweep out either.
 _dead_when_healthy = []
 _alive_when_broken = []
-for _module in (sensor, binary_sensor, button, _climate_platform, _switch_platform):
+for _module in (sensor, binary_sensor, button, _climate_platform, _switch_platform, datetime_mod):
     for _entity in collect(_module, coordinator=_healthy):
         if not _entity.available:
             if type(_entity).__name__ == "MonthlySavingsSensor":
@@ -2220,7 +2224,7 @@ R.check(
 # The forwarding half of the same claim: driving each platform's real
 # async_setup_entry with a real coordinator, the way HA would, every entity
 # the roster adds must land on that service device.
-for _platform in (sensor, binary_sensor, button, _switch_platform, _climate_platform):
+for _platform in (sensor, binary_sensor, button, _switch_platform, _climate_platform, datetime_mod):
     _platform_entities = collect(_platform, coordinator=_blind_coord)
     _not_service = [
         type(e).__name__
@@ -4258,8 +4262,11 @@ R.check(
 )
 
 switches = collect(switch_mod)
-R.check("the switch platform adds exactly one entity", len(switches) == 1)
-sw = switches[0]
+R.check("the switch platform adds the optimizer and away switches", len(switches) == 2)
+sw = next(
+    s for s in switches
+    if getattr(s, "entity_id", "") == "switch.heat_pump_optimizer_optimizer_active"
+)
 R.check(
     "the switch unique id is prefixed with the entry id",
     str(sw._attr_unique_id).startswith(ENTRY.entry_id),
@@ -4294,6 +4301,21 @@ asyncio.run(off_switch.async_turn_on())
 R.check(
     "turning on from off selects auto",
     off_switch.coordinator.mode_calls == [const.MODE_AUTO],
+)
+
+away_sw = next(
+    s for s in switches
+    if getattr(s, "entity_id", "") == "switch.heat_pump_optimizer_away"
+)
+R.check("the away switch pins today's object id", away_sw.entity_id == "switch.heat_pump_optimizer_away")
+R.check("the away switch is off when the override is off", not away_sw.is_on)
+
+dt_entities = collect(datetime_mod)
+R.check("the datetime platform adds exactly one entity", len(dt_entities) == 1)
+away_dt = dt_entities[0]
+R.check(
+    "the return datetime pins today's object id",
+    away_dt.entity_id == "datetime.heat_pump_optimizer_away_return",
 )
 
 
@@ -5192,7 +5214,8 @@ _named_entities = (
     [("sensor", s) for s in sensors]
     + [("binary_sensor", b) for b in binaries]
     + [("button", b) for b in buttons]
-    + [("switch", sw)]
+    + [("switch", s) for s in switches]
+    + [("datetime", d) for d in dt_entities]
 )
 
 # Every entity resolves its display name through the translation files. The
@@ -5545,7 +5568,7 @@ _DC_DEFAULT_KEYS = {
         "compressor_frequency_advisor",  # frequency renders mdi:sine-wave
     },
 }
-for _plat in ("sensor", "binary_sensor", "button", "switch"):
+for _plat in ("sensor", "binary_sensor", "button", "switch", "datetime"):
     _expected_keys = (
         {e._attr_translation_key for _p, e in _named_entities if _p == _plat}
         - _DC_DEFAULT_KEYS.get(_plat, set())
@@ -6930,6 +6953,7 @@ _svc_coord.async_simulate = _svc_record("simulate", {"status": "ok"})
 _svc_coord.async_apply_manual_plan = _svc_record("apply_manual", {"applied": True})
 _svc_coord.async_clear_manual_plan = _svc_record("clear_manual")
 _svc_coord.async_restore_learned_snapshot = _svc_record("restore", True)
+_svc_coord.async_set_away = _svc_record("set_away")
 _svc_coord.diagnose_last_interval = lambda: {"residual": None}
 
 
@@ -6941,6 +6965,9 @@ def _svc_call(service, payload=None):
 
 _svc_call(const.SERVICE_RUN_OPTIMIZATION)
 R.check("run_optimization reaches the coordinator", "run_optimization" in _svc_log)
+
+_svc_call(const.SERVICE_SET_AWAY, {"active": True})
+R.check("set_away reaches the coordinator", "set_away" in _svc_log)
 
 _svc_call(const.SERVICE_SET_MODE, {"mode": "economy"})
 R.check(
@@ -7161,6 +7188,7 @@ _svc_registered = set(
 _svc_covered = {
     const.SERVICE_RUN_OPTIMIZATION,
     const.SERVICE_SET_MODE,
+    const.SERVICE_SET_AWAY,
     const.SERVICE_SET_THERMAL_PARAMS,
     const.SERVICE_SIMULATE_PLAN,
     const.SERVICE_ASSIGN_ENTITY,
@@ -8821,7 +8849,7 @@ R.check(
     f" HeatPumpOptimizerEntity holds {_plumbing}",
 )
 
-for _pf in ("sensor.py", "binary_sensor.py", "button.py", "climate.py", "switch.py"):
+for _pf in ("sensor.py", "binary_sensor.py", "button.py", "climate.py", "switch.py", "datetime.py"):
     R.check(
         f"the {_pf[:-3]} platform imports the shared base from .entity",
         "from .entity import HeatPumpOptimizerEntity" in (ROOT / _pf).read_text(),
@@ -8832,7 +8860,7 @@ for _pf in ("sensor.py", "binary_sensor.py", "button.py", "climate.py", "switch.
 # files must no longer declare CoordinatorEntity base classes of their own.
 _bases_left = [
     _pf
-    for _pf in ("sensor.py", "binary_sensor.py", "button.py", "climate.py", "switch.py")
+    for _pf in ("sensor.py", "binary_sensor.py", "button.py", "climate.py", "switch.py", "datetime.py")
     if re.search(
         r"^class \w+\(CoordinatorEntity, \w+Entity\)", (ROOT / _pf).read_text(), re.M
     )
@@ -8851,6 +8879,7 @@ for _module, _root in (
     (button, "_OptimizerButtonBase"),
     (_climate_platform, "HeatPumpOptimizerClimate"),
     (_switch_platform, "OptimizerEnableSwitch"),
+    (datetime_mod, "AwayReturnDateTime"),
 ):
     _cls = getattr(_module, _root, None)
     R.check(
@@ -8867,7 +8896,7 @@ for _module, _root in (
 
 # Behaviour is unchanged: an entity from each platform still resolves
 # has_entity_name and still lands on the coordinator's device.
-for _module in (sensor, binary_sensor, _climate_platform, _switch_platform, button):
+for _module in (sensor, binary_sensor, _climate_platform, _switch_platform, button, datetime_mod):
     _one = collect(_module)[0]
     R.check(
         f"an entity from {_module.__name__.rsplit('.', 1)[-1]} keeps "
