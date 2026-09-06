@@ -481,11 +481,16 @@ def _check_entities(checks: Checks, hass, entry) -> None:
 
     registry = er.async_get(hass)
     registered = er.async_entries_for_config_entry(registry, entry.entry_id)
-    domains = {e.entity_id.split(".")[0] for e in registered}
+    # Six sensors set _attr_entity_registry_enabled_default = False. A disabled
+    # registry entry has no state object at all, which is the same shape as an
+    # entity that failed to add -- so they are excluded here rather than
+    # tolerated below, and an ENABLED entity with no state still fails.
+    enabled = [e for e in registered if e.disabled_by is None]
+    domains = {e.entity_id.split(".")[0] for e in enabled}
     checks.check(
         "entities:registered",
-        len(registered) > 0 and {"sensor", "binary_sensor", "climate"} <= domains,
-        f"{len(registered)} entities across {sorted(domains)}",
+        len(enabled) > 0 and {"sensor", "binary_sensor", "climate"} <= domains,
+        f"{len(enabled)} enabled entities across {sorted(domains)}",
     )
     checks.check(
         "entities:coordinator_healthy",
@@ -494,15 +499,18 @@ def _check_entities(checks: Checks, hass, entry) -> None:
     )
     unavailable = [
         e.entity_id
-        for e in registered
+        for e in enabled
         if (s := hass.states.get(e.entity_id)) is None or s.state == "unavailable"
     ]
     exposed = [e for e in unavailable if not _self_gated(hass, e)]
-    print(f"  ..   {len(registered)} entities, {len(unavailable)} unavailable, "
-          f"{len(unavailable) - len(exposed)} of those self-gated")
-    for entry_ in sorted(registered, key=lambda e: e.entity_id):
-        state = hass.states.get(entry_.entity_id)
-        print(f"       {entry_.entity_id} = {state.state if state else '<no state>'}")
+    print(
+        f"  ..   {len(registered)} registered, {len(registered) - len(enabled)} "
+        f"disabled by default, {len(unavailable)} unavailable, "
+        f"{len(unavailable) - len(exposed)} of those self-gated"
+    )
+    for item in sorted(registered, key=lambda e: e.entity_id):
+        state = hass.states.get(item.entity_id)
+        print(f"       {item.entity_id} = {state.state if state else '<no state>'}")
     checks.check(
         "entities:none_unavailable_by_coordinator",
         not exposed,
@@ -730,7 +738,17 @@ template:
         device_class: power
         state_class: measurement
         state: "1200"
-  - weather:
+  # Trigger-based on purpose: a plain template weather entity renders
+  # condition and temperature but leaves forecast_hourly_template empty, and
+  # `weather.get_forecasts` then returns [] with nothing logged. The start
+  # trigger fires inside hass.async_start(), before the solve this lane waits
+  # for.
+  - trigger:
+      - platform: homeassistant
+        event: start
+      - platform: time_pattern
+        minutes: "/5"
+    weather:
       - name: "CI weather"
         condition_template: "cloudy"
         temperature_template: "{{ 1.5 }}"
@@ -801,7 +819,7 @@ def _scan(checks: Checks, text: str) -> None:
         block
         for before, block in zip(parts, parts[1:])
         if PACKAGE_NAME in "\n".join(block.splitlines()[:40])
-        and BLOCKING_REPORT not in before[-500:]
+        and BLOCKING_REPORT not in before[-2000:]
     ]
     checks.check(
         "log:no_integration_traceback",
