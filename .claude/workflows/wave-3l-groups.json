@@ -1,12 +1,12 @@
 {
   "_comment": [
     "Wave 3L of the open-issues programme (docs/plan-2026-09-open-issues.md).",
-    "Leftovers after Wave 3, before Wave 4. Serial. Do not start while W3-G3 holds",
-    "coordinator.py or the gate lock. #412 stays last of the programme, not in this burst.",
+    "Leftovers after Wave 3, before Wave 4. Serial. 3L-G5 done (6f02b8a); 3L-G6 spec-blocked (#457).",
+    "#412 stays last of the programme, not in this burst.",
     "Consumed by .claude/workflows/web-fix-wave.js as its `groups` argument."
   ],
-  "fork": "after-w3-g3",
-  "fork_note": "Cut every branch from origin/main after W3-G3 (#290 #199) merges. Re-measure structure at that merge-base. claims-for stays 6.3.14.",
+  "fork": "6f02b8a71ee6fcc250d17657d60a63cc5cb1532e",
+  "fork_note": "origin/main after 3L-G5 (#483, `6f02b8a`). Re-measure structure at this merge-base. claims-for stays 6.3.15.",
   "session": "claude-web",
   "repo": "/Users/timmalmstrom/heatpump_optimizer",
   "serial": true,
@@ -19,8 +19,14 @@
       "reviewerModel": "opus",
       "effort": "high",
       "fixture": true,
-      "blocked_on": "W3-G3",
+      "blocked_on": null,
       "after": [],
+      "resume": {
+        "stage": "done",
+        "merged_pr": 470,
+        "merge_sha": "81aa0c3b17b7fef448fdf1a3822bcdaf8c81d9d1",
+        "note": "Review merge 5555202462 at 612e9c3. Mutation FAIL planner-buys-less + md5 4b5dad66. 2000 L@85 burn24h 6.531→3.015 kWh, tmin 45.045 vs 45.0. wood_coil may-drift 818 leaves, not claimed; other 54 byte-identical. SOLVE_BUDGET_RATIO 782.11. #400 closed. Next seat 3L-G2."
+      },
       "brief": "DHW planner credits the wood-tank refill coil. Measured -5.394 SEK/day on 2000 L @ 85 C; plan is byte-identical coil-on/off today. optimizer.py only. Claims, never re-record goldens. wood_coil is may-drift and cannot be claimed. Other 54 scenarios byte-identical."
     },
     {
@@ -31,6 +37,12 @@
       "effort": "medium",
       "fixture": false,
       "after": ["3L-G1"],
+      "resume": {
+        "stage": "done",
+        "merged_pr": 472,
+        "merge_sha": "2abe2f7a2a0d9544868852b566f1f8d545dfa554",
+        "note": "Review merge 5555406632 at 6b1efc2. _require_strace aborts on Darwin; no fake measured record. Mutation FileNotFoundError on mutant; restore md5 04d6018e. claims-for 6.3.15. #401 closed. Next seat 3L-G3."
+      },
       "brief": "closure.py _record_node() strace availability guard. Unblocks a full derive on macOS. Before #404."
     },
     {
@@ -41,6 +53,12 @@
       "effort": "medium",
       "fixture": false,
       "after": ["3L-G2"],
+      "resume": {
+        "stage": "done",
+        "merged_pr": 474,
+        "merge_sha": "e8adfe44d768047b8d2cbcea16be7301a694510a",
+        "note": "Review merge 5555631655 at fb7a950. Lease 1800s + flock. Follow-ups: #479 `8ea27d4` abandoned-hold steal (review 5555881791 at dc3f855); #480 `162e759` same-label expired take + leftover holding (review 5555932201 at b5a4c08). #481 leftover closed. #404 stays closed. Next seat 3L-G5."
+      },
       "brief": "Gate lock becomes a renewed lease + flock. Lives in tests/, needs the derive #401 unlocks."
     },
     {
@@ -51,6 +69,12 @@
       "effort": "medium",
       "fixture": false,
       "after": ["3L-G3"],
+      "resume": {
+        "stage": "done",
+        "merged_pr": 477,
+        "merge_sha": "531d8b73337f1b5019f476f2933bfee8765c5605",
+        "note": "Review merge 5555778270 at acb8660. Fourth holes-list bound; no exact-set pins for SolarIrradianceSensor / OptimizationScoreSensor. Mutation FAIL holes-prose. claims-for 6.3.15. #405 closed. Next seat 3L-G5."
+      },
       "brief": "SolarIrradianceSensor / OptimizationScoreSensor data-driven keys: state the bound in the holes list, no exact-set pin."
     },
     {
@@ -61,7 +85,13 @@
       "effort": "high",
       "fixture": false,
       "after": ["3L-G4"],
-      "brief": "Optional set-point entities + consistency repair only. Optimality / Fix-to-argmin refused (50 to 65 C instability). Holds coordinator/config — 3L-G7 must not merge ahead of this seat."
+      "resume": {
+        "stage": "done",
+        "merged_pr": 483,
+        "merge_sha": "6f02b8a71ee6fcc250d17657d60a63cc5cb1532e",
+        "note": "Review merge 5556388345 at 0d9ce1b. Optional set-point entities + DHW consistency repair. #408 closed. 3L-G6 spec-blocked; next seat 3L-G7."
+      },
+      "brief": "Optional set-point entities + consistency repair only. Optimality / Fix-to-argmin refused (50 to 65 C instability). Holds coordinator/config — later 3L groups must not merge ahead of this seat."
     },
     {
       "group": "3L-G6",
@@ -71,6 +101,10 @@
       "effort": "medium",
       "fixture": false,
       "after": ["3L-G5"],
+      "resume": {
+        "stage": "blocked",
+        "note": "Spec-blocked (#457): no conflict flow exists on main at 6f02b8a. 3L-G7 sits after 3L-G5."
+      },
       "brief": "Card setup-page button that opens the conflict flow. Card-only. If still blocked on the conflict-flow spec, 3L-G7 sits after 3L-G5 instead."
     },
     {
@@ -80,13 +114,43 @@
       "reviewerModel": "opus",
       "effort": "high",
       "fixture": false,
-      "after": ["3L-G6"],
+      "after": ["3L-G5"],
       "resume": {
         "stage": "in_progress",
         "branch": "3l-g7-monthly-savings",
-        "note": "Spec+plan on branch. Implementing via subagent-driven plan docs/superpowers/plans/2026-09-05-monthly-savings-history.md. Rebase after W3-G3 and 3L-G5/G6. Do not merge ahead of those seats."
+        "note": "Merging origin/main 6f02b8a. 3L-G6 spec-blocked so this seat follows 3L-G5. claims-for 6.3.15. coordinator_loc must stay ≤10374."
       },
-      "brief": "Monthly savings history card page (#460). Book savings_baseline and savings_actual on MonthlyLedger; derive savings; calendar pro-rata for the open month; MonthlySavingsSensor _monthly_savings; third expanded-dialog tab. Baseline kW rides on OptimizationResult.baseline_power_schedule (pickle-safe lists for the W3-G3 process route), not on data[] or a plan sensor. Pay coordinator_loc, never raise. claims-for 6.3.14. No golden re-record. Closes #460 on its own line. Spec docs/superpowers/specs/2026-09-05-monthly-savings-history-design.md. Plan docs/superpowers/plans/2026-09-05-monthly-savings-history.md."
+      "brief": "Monthly savings history card page (#460). Book savings_baseline and savings_actual on MonthlyLedger; derive savings; calendar pro-rata for the open month; MonthlySavingsSensor _monthly_savings; third expanded-dialog tab. Baseline kW rides on OptimizationResult.baseline_power_schedule (pickle-safe lists for the W3-G3 process route), not on data[] or a plan sensor. Pay coordinator_loc, never raise. claims-for 6.3.15. No golden re-record. Closes #460 on its own line. Spec docs/superpowers/specs/2026-09-05-monthly-savings-history-design.md. Plan docs/superpowers/plans/2026-09-05-monthly-savings-history.md."
+    },
+    {
+      "group": "3L-G8",
+      "issues": [463],
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "high",
+      "fixture": false,
+      "after": ["3L-G7"],
+      "brief": "Wood-furnace toggle, firewood price, cheaper-than-pump sensor (#463). Does not close the issue. Spec docs/superpowers/specs/2026-09-05-wood-furnace-economics-design.md. Plan docs/superpowers/plans/2026-09-05-wood-furnace-economics.md. After 3L-G7, before Wave 4."
+    },
+    {
+      "group": "3L-G9",
+      "issues": [463],
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "high",
+      "fixture": false,
+      "after": ["3L-G8"],
+      "brief": "Plan banner, Wood lane, what-if wood slots (#463). Closes #463 on its own line. Same spec and plan as 3L-G8."
+    },
+    {
+      "group": "3L-G10",
+      "issues": [465],
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "high",
+      "fixture": false,
+      "after": ["3L-G9"],
+      "brief": "Plan-page Away toggle and return datetime (#465). Service-backed store; published switch and datetime; optional person/calendar. Spec docs/superpowers/specs/2026-09-05-away-plan-toggle-design.md. Plan docs/superpowers/plans/2026-09-05-away-plan-toggle.md. After 3L-G9, before Wave 4. Closes #465 on its own line."
     }
   ]
 }

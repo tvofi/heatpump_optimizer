@@ -4458,7 +4458,7 @@ R.check(
 # sixty commits, and an addition fails here as an addition with the class
 # and the key named.
 #
-# Three holes, stated rather than papered over:
+# Four holes, stated rather than papered over:
 #   * a key that is KEPT but publishes ``None`` for ever still passes: this
 #     pins names, not values;
 #   * deleting a key together with its line in this table, in one change, is
@@ -4469,11 +4469,17 @@ R.check(
 #     table found one worth 10% of the surface (the plan branch, closed
 #     above); the honest reading of the aggregate check's name is "the whole
 #     surface these two payloads measure", and the bound is the payloads.
-# A third follows from the surface's shape: a few publishers pass a data
-# dict straight through (``ComfortWeightSensor`` returns ``comfort_learning``
-# whole), so for those the table pins what the fixtures below carry rather
-# than a literal in production. Deleting the publisher outright is still
-# caught -- the class leaves the table entirely.
+#     A variant of this: a few publishers pass a data dict straight through
+#     (``ComfortWeightSensor`` returns ``comfort_learning`` whole), so for
+#     those the table pins what the fixtures below carry rather than a
+#     literal in production. Deleting the publisher outright is still
+#     caught -- the class leaves the table entirely.
+#   * a class whose attribute KEY SET varies with its data cannot be pinned
+#     by an exact set at all. ``SolarIrradianceSensor`` merges
+#     ``solar_diagnostics`` keys from the payload; ``OptimizationScoreSensor``
+#     spreads ``insight["scores"]`` and ``price_tiles``. Neither key set is
+#     fixed in source -- see ``_ATTR_KEYSET_IS_DATA_DRIVEN`` below. Deleting
+#     the publisher outright is still caught -- the class leaves the table.
 #
 # The roster is taken from two payloads, because several keys are published
 # only on a branch: the base ``DATA`` above, and ``_ATTR_RICH``, which turns
@@ -4625,6 +4631,12 @@ R.check(
 #: part that matters.
 _ATTR_KEYS_ARE_DATA = frozenset({"DHWHeavyDaySensor"})
 
+#: Publishers whose attribute KEY SET is data-driven -- varies with payload
+#: rather than being fixed in source -- so no exact-set pin (#405).
+_ATTR_KEYSET_IS_DATA_DRIVEN = frozenset({
+    "SolarIrradianceSensor", "OptimizationScoreSensor",
+})
+
 
 def _published_attr_keys(entities) -> dict[str, set[str]]:
     """class name -> the attribute keys those entities actually published."""
@@ -4640,7 +4652,7 @@ def _published_attr_keys(entities) -> dict[str, set[str]]:
             continue
         name = type(entity).__name__
         found.setdefault(name, set())
-        if name not in _ATTR_KEYS_ARE_DATA:
+        if name not in _ATTR_KEYS_ARE_DATA and name not in _ATTR_KEYSET_IS_DATA_DRIVEN:
             found[name].update(attrs)
     return found
 
@@ -4754,10 +4766,7 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
         "cop_samples", "cop_scale", "defrost_buckets", "defrost_derate",
         "defrost_samples", "modelled_cop", "waiting_for"
     }),
-    "OptimizationScoreSensor": frozenset({
-        "envelope", "machine", "operation", "overall", "price_tiles",
-        "stat_kind"
-    }),
+    "OptimizationScoreSensor": frozenset(),  # scores + price_tiles; #405
     "OptimizationStatusSensor": frozenset({
         "prices_available", "solve_time_ms", "two_zone_enabled",
         "weather_forecast_available"
@@ -4799,9 +4808,7 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
     "SolarHeatGainSensor": frozenset({
         "orientation_factor", "shgc", "solar_radiation_wm2", "window_area_m2"
     }),
-    "SolarIrradianceSensor": frozenset({
-        "forecast", "plan_kind", "solar_heat_gain_kw", "source"
-    }),
+    "SolarIrradianceSensor": frozenset(),  # solar_diagnostics merge; #405
     "SpaceCostSensor": frozenset({
         "counting_since", "measured", "period", "split_method",
         "this_month_cost", "this_month_kwh"
@@ -4865,14 +4872,32 @@ R.check(
     f"{sum(len(_v) for _v in _actually_published.values())} published",
 )
 
+# --- #405: data-driven attribute key sets are named in the holes list and
+# excluded from exact-set pins (see the prose block above ``_PUBLISHED_ATTRS``).
+_PUBLISHED_ATTRS_HOLES_PROSE = Path(__file__).read_text().split(
+    "# Four holes, stated rather than papered over:"
+)[1].split("#\n# The roster is taken from two payloads")[0]
+R.check(
+    "data-driven attribute publishers are named in the holes list (#405)",
+    all(_cls in _PUBLISHED_ATTRS_HOLES_PROSE for _cls in _ATTR_KEYSET_IS_DATA_DRIVEN),
+    f"missing from holes prose: "
+    f"{sorted(_cls for _cls in _ATTR_KEYSET_IS_DATA_DRIVEN if _cls not in _PUBLISHED_ATTRS_HOLES_PROSE)}",
+)
+R.check(
+    "data-driven attribute publishers are not exact-set pinned (#405)",
+    all(_PUBLISHED_ATTRS.get(_cls) == frozenset() for _cls in _ATTR_KEYSET_IS_DATA_DRIVEN),
+    f"still pinned: "
+    f"{sorted(_cls for _cls in _ATTR_KEYSET_IS_DATA_DRIVEN if _PUBLISHED_ATTRS.get(_cls))}",
+)
+
 # --- D3-01 (#246): PredictiveInsightSensor's published VALUES, not just keys
 #
 # The roster above already catches deleting the whole of this property's
 # dict (PredictiveInsightSensor drops from its pinned 20 keys to 0) or any
 # one key within it -- that gap is #246's own finding, and PR #384 closed
 # the key-SET half of it generically for every publisher, this sensor
-# included. What the roster does NOT pin is hole one of the three stated at
-# :4442: a key that is KEPT but publishes ``None`` forever still passes,
+# included. What the roster does NOT pin is hole one of the four stated above:
+# a key that is KEPT but publishes ``None`` forever still passes,
 # because the roster compares names, never values. This closes that hole
 # for the sensor #246 was filed against, whose entire content IS its
 # attributes -- the state is one of four words, and every anticipatory
@@ -6028,7 +6053,7 @@ _hardcoded = sorted(
 ) + sorted(
     f"issues.{key}"
     for key, texts in strings["issues"].items()
-    if "SEK" in texts["description"]
+    if "SEK" in texts.get("description", "")
 )
 R.check(
     "no field label, description or repair notice hardcodes SEK",
@@ -7030,8 +7055,213 @@ R.section("Release metadata")
 import re as _re
 import tempfile as _tempfile
 
+import os as _os
+import subprocess as _subprocess
+import time as _time
+
 import env_drift as _env_drift
 import closure as _closure
+import gate_lock as _gate_lock
+
+
+def _gl_crash_then_successor() -> tuple[bool, str]:
+    """Finder incident: crash drops flock; take('successor') must steal."""
+    with _tempfile.TemporaryDirectory() as td:
+        d = Path(td) / "lock"
+        ready = Path(td) / "ready"
+        env = {**_os.environ, "PYTHONPATH": str(_closure.ROOT / "tests")}
+        holder = _subprocess.Popen(
+            [
+                sys.executable,
+                "-c",
+                "import sys, time\n"
+                "from pathlib import Path\n"
+                "import gate_lock\n"
+                "d = Path(sys.argv[1])\n"
+                "gate_lock.take('holder', lock_dir=d, lease_seconds=1800, wait=False)\n"
+                "with gate_lock.flock_context(d):\n"
+                "    Path(sys.argv[2]).write_text('1')\n"
+                "    time.sleep(30)\n",
+                str(d),
+                str(ready),
+            ],
+            cwd=str(_closure.ROOT),
+            env=env,
+        )
+        for _ in range(50):
+            if ready.exists():
+                break
+            _time.sleep(0.1)
+        else:
+            holder.kill()
+            return False, "holder never ready"
+        holder.kill()
+        holder.wait(timeout=5)
+        _time.sleep(0.2)
+        flock_free = _gate_lock.flock_available(d)
+        try:
+            taken = _gate_lock.take(
+                "successor", lock_dir=d, lease_seconds=60, wait=False,
+            )
+        except BlockingIOError as exc:
+            return False, f"flock_available={flock_free} blocked={exc}"
+        ok = flock_free and taken.label == "successor"
+        return ok, f"flock_available={flock_free} label={taken.label}"
+
+
+def _gl_expired_taken() -> bool:
+    past = datetime.now(UTC) - timedelta(seconds=10)
+    with _tempfile.TemporaryDirectory() as td:
+        d = Path(td) / "lock"
+        _gate_lock._ensure_lock_dir(d)
+        _gate_lock.Owner("dead-agent", past, past).write(d / _gate_lock.OWNER_NAME)
+        try:
+            taken = _gate_lock.take(
+                "successor", lock_dir=d, lease_seconds=60, wait=False,
+            )
+        except BlockingIOError:
+            return False
+        return taken.label == "successor" and not taken.expired
+
+
+def _gl_renew_extends() -> bool:
+    with _tempfile.TemporaryDirectory() as td:
+        d = Path(td) / "lock"
+        first = _gate_lock.take("live", lock_dir=d, lease_seconds=2, wait=False)
+        _time.sleep(0.4)
+        second = _gate_lock.renew("live", lock_dir=d, lease_seconds=2)
+        if second.expires_at <= first.expires_at:
+            return False
+        try:
+            _gate_lock.take("other", lock_dir=d, wait=False)
+            mid_blocked = False
+        except BlockingIOError:
+            mid_blocked = True
+        remain = (first.expires_at - datetime.now(UTC)).total_seconds()
+        if remain > 0:
+            _time.sleep(remain + 0.15)
+        try:
+            _gate_lock.take("other", lock_dir=d, wait=False)
+            after_orig_blocked = False
+        except BlockingIOError:
+            after_orig_blocked = True
+        remain2 = (second.expires_at - datetime.now(UTC)).total_seconds()
+        if remain2 > 0:
+            _time.sleep(remain2 + 0.15)
+        try:
+            late = _gate_lock.take("other", lock_dir=d, lease_seconds=60, wait=False)
+            late_ok = late.label == "other"
+        except BlockingIOError:
+            late_ok = False
+        return mid_blocked and after_orig_blocked and late_ok
+
+
+def _gl_between_commands_kept() -> bool:
+    with _tempfile.TemporaryDirectory() as td:
+        d = Path(td) / "lock"
+        _gate_lock.take("live", lock_dir=d, lease_seconds=1800, wait=False)
+        try:
+            _gate_lock.take("other", lock_dir=d, wait=False)
+            return False
+        except BlockingIOError:
+            st = _gate_lock.status(d)
+            return st["owner"] is not None and st["owner"].label == "live"
+
+
+R.check(
+    "an expired lease is taken without forensics",
+    _gl_expired_taken(),
+    "must steal on expires_at, not a pid table",
+)
+R.check(
+    "renew extends the lease past the original expiry",
+    _gl_renew_extends(),
+    "a renewed lease must still refuse a second label",
+)
+R.check(
+    "a live agent between commands keeps the lock",
+    _gl_between_commands_kept(),
+    "no holding marker: flock free must not steal",
+)
+_gl_ok, _gl_detail = _gl_crash_then_successor()
+R.check(
+    "a crashed hold lets take('successor') steal",
+    _gl_ok,
+    _gl_detail,
+)
+
+
+def _gl_same_label_expired_take() -> bool:
+    """Same-label take on an expired lease rewrites the owner (#479 residual)."""
+    past = datetime.now(UTC) - timedelta(seconds=10)
+    with _tempfile.TemporaryDirectory() as td:
+        d = Path(td) / "lock"
+        _gate_lock._ensure_lock_dir(d)
+        _gate_lock.Owner("holder", past, past).write(d / _gate_lock.OWNER_NAME)
+        try:
+            taken = _gate_lock.take(
+                "holder", lock_dir=d, lease_seconds=60, wait=False,
+            )
+        except RuntimeError:
+            return False
+        return taken.label == "holder" and not taken.expired
+
+
+def _gl_same_label_return_clears_holding() -> tuple[bool, str]:
+    """Same-label take after crash clears holding so a waiter cannot steal."""
+    with _tempfile.TemporaryDirectory() as td:
+        d = Path(td) / "lock"
+        ready = Path(td) / "ready"
+        env = {**_os.environ, "PYTHONPATH": str(_closure.ROOT / "tests")}
+        holder = _subprocess.Popen(
+            [
+                sys.executable,
+                "-c",
+                "import sys, time\n"
+                "from pathlib import Path\n"
+                "import gate_lock\n"
+                "d = Path(sys.argv[1])\n"
+                "gate_lock.take('holder', lock_dir=d, lease_seconds=1800, wait=False)\n"
+                "with gate_lock.flock_context(d):\n"
+                "    Path(sys.argv[2]).write_text('1')\n"
+                "    time.sleep(30)\n",
+                str(d),
+                str(ready),
+            ],
+            cwd=str(_closure.ROOT),
+            env=env,
+        )
+        for _ in range(50):
+            if ready.exists():
+                break
+            _time.sleep(0.1)
+        else:
+            holder.kill()
+            return False, "holder never ready"
+        holder.kill()
+        holder.wait(timeout=5)
+        _time.sleep(0.2)
+        _gate_lock.take("holder", lock_dir=d, lease_seconds=1800, wait=False)
+        holding = (d / _gate_lock.HOLDING_NAME).exists()
+        try:
+            _gate_lock.take("waiter", lock_dir=d, lease_seconds=60, wait=False)
+            stolen = True
+        except BlockingIOError:
+            stolen = False
+        return not holding and not stolen, f"holding={holding} stolen={stolen}"
+
+
+R.check(
+    "an expired same-label take rewrites the lease",
+    _gl_same_label_expired_take(),
+    "must not route expired same-label take through renew()",
+)
+_gl_sl_ok, _gl_sl_detail = _gl_same_label_return_clears_holding()
+R.check(
+    "same-label return clears holding",
+    _gl_sl_ok,
+    _gl_sl_detail,
+)
 
 # --- the scoped gate's one exception to "the whole integration" -------------
 #
@@ -7134,6 +7364,19 @@ R.check(
     not _orphans,
     "these force the FULL suite when touched: " + ", ".join(_orphans[:8]),
 )
+# HA loads repairs.py dynamically, so a witness must import it or it is an
+# orphan and forces MODE: FULL (#408).
+from heatpump_optimizer import repairs as _repairs_mod  # noqa: E402
+from heatpump_optimizer import setpoint_check as _setpoint_check_mod  # noqa: E402
+
+R.check(
+    "repairs.py is imported so the dynamically loaded platform is classified",
+    callable(getattr(_repairs_mod, "async_create_fix_flow", None)),
+)
+R.check(
+    "setpoint_check.evaluate is the consistency detector",
+    callable(getattr(_setpoint_check_mod, "evaluate", None)),
+)
 R.check(
     "a hand-run QA script does not drag the whole suite in",
     "tests/setup_qa_render.mjs" not in _closure.select(
@@ -7145,6 +7388,51 @@ R.check(
     "but changing how the closures are derived still runs everything",
     _closure.select(["tests/derive_closures.sh"])["mode"] == "full",
     "the lanes decide how every recording is taken; that invalidates them all",
+)
+
+# --- node recording needs strace (#401) ------------------------------------
+import contextlib as _strace_ctx
+import io as _strace_io
+from unittest import mock as _mock
+
+def _record_node_missing_strace() -> tuple[int | None, str]:
+    err = _strace_io.StringIO()
+    with _mock.patch.object(_closure.shutil, "which", return_value=None):
+        with _strace_ctx.redirect_stderr(err):
+            with _tempfile.TemporaryDirectory() as d:
+                try:
+                    _closure._record_node(
+                        "tests/card.mjs", f"{d}/card.mjs.json", {})
+                except SystemExit as exc:
+                    return exc.code, err.getvalue()
+                except FileNotFoundError:
+                    return None, err.getvalue()
+    return None, err.getvalue()
+
+_missing_strace_rc, _missing_strace_err = _record_node_missing_strace()
+R.check(
+    "_record_node refuses when strace is missing",
+    _missing_strace_rc == 1,
+    "must abort before subprocess, not with a bare FileNotFoundError",
+)
+R.check(
+    "the refusal names strace and the Linux CI recorder",
+    "strace" in _missing_strace_err and "closures job" in _missing_strace_err,
+    f"stderr was {_missing_strace_err!r}",
+)
+
+def _require_strace_present_ok() -> bool:
+    with _mock.patch.object(_closure.shutil, "which", return_value="/usr/bin/strace"):
+        try:
+            _closure._require_strace()
+        except SystemExit:
+            return False
+    return True
+
+R.check(
+    "_require_strace is silent when strace is on PATH",
+    _require_strace_present_ok(),
+    "the guard must not refuse a Linux recorder",
 )
 
 # --- when the closures CHECK itself runs (#354) -----------------------------

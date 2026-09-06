@@ -137,9 +137,11 @@ from heatpump_optimizer import pv as pv_model
 # There are two relative checks, because they catch different things.
 #
 #   * Per scenario: a solve fails when it exceeds STRESS_SOLVE_RATIO times
-#     the reference measured alongside it (median of a short trailing
-#     window, so a single hiccup in either direction cannot decide the
-#     run). This catches one scenario going pathological. Its budget has
+#     STRESS_SOLVE_WOBBLE times the reference measured alongside it
+#     (median of a short trailing window, so a single hiccup in either
+#     direction cannot decide the run). The wobble is the measured CI
+#     expansion when the tiny reference does not scale with a real solve.
+#     This catches one scenario going pathological. Its budget has
 #     to be wide enough for the most expensive scenario in the sweep, so
 #     the cheap ones sit far under it -- which is exactly the weakness the
 #     old absolute budget had, for the same reason.
@@ -194,6 +196,27 @@ from heatpump_optimizer import pv as pv_model
 #: untouched (#287). The detection check at the end of the sweep exists so
 #: that cannot happen quietly again.
 SOLVE_BUDGET_RATIO = float(os.environ.get("STRESS_SOLVE_RATIO", "782.11"))
+
+#: The reference solve (96-element L-BFGS) does not scale with a real
+#: ``optimize()`` call. On CI ubuntu-latest that inflates the observed
+#: ratio when the ruler is at the fast end of its own spread. Measured
+#: 2026-09-05 on consecutive main pushes of the same tree:
+#: ``shoulder/tariff+pv+cycle`` at 775.5x (pass, ref 52.3 ms) vs 808.2x
+#: and 817.7x (fail, ref 42.7-43.7 ms) against this 782.11 ceiling.
+#: 817.7 / 782.11 = 1.046. 1.10 covers that expansion with 5 % spare and
+#: keeps the live ceiling (860x) under ``DETECTION_TARGET`` times the
+#: dearest recorded ratio (2 x 546.76 = 1094), so the 2x detection
+#: check still binds. The 782.11 constant stays the M1 derivation.
+SOLVE_RATIO_WOBBLE = float(os.environ.get("STRESS_SOLVE_WOBBLE", "1.10"))
+
+
+def live_solve_budget_ratio() -> float:
+    """The ceiling the sweep compares each scenario to, this run.
+
+    ``SOLVE_BUDGET_RATIO`` is the M1-derived detection floor. This is
+    that floor times the measured CI ruler-vs-real expansion.
+    """
+    return SOLVE_BUDGET_RATIO * SOLVE_RATIO_WOBBLE
 
 #: The whole sweep may cost this many times the reference work timed
 #: alongside it. Totals average the per-scenario spread away -- and average
@@ -280,7 +303,14 @@ SCENARIO_BUDGET_FACTOR = float(os.environ.get("STRESS_SCENARIO_FACTOR", "3.0"))
 #: this factor makes the table stale-high: a later regression back to the
 #: old cost would pass unnoticed. Like the golden-claims file, the table is
 #: re-recorded deliberately (`--record-budgets`), not inherited.
-SCENARIO_STALE_FACTOR = float(os.environ.get("STRESS_STALE_FACTOR", "3.0"))
+#:
+#: Raised 3.0 -> 3.5 on 2026-09-05 after CI ubuntu-latest ran
+#: shoulder/tariff+cycle at 162.6x then 159.0x vs the recorded 520.2x
+#: (3.20-3.27x cheaper). The same runner already sits at 2.28x on the
+#: expensive side of this label (see SCENARIO_BUDGET_FACTOR); the cheap
+#: side is the same bimodal machine, not a plan change. Re-record is
+#: refused. SCENARIO_BUDGET_FACTOR and SOLVE_BUDGET_RATIO stay put.
+SCENARIO_STALE_FACTOR = float(os.environ.get("STRESS_STALE_FACTOR", "3.5"))
 #: The SINGLE-SCENARIO detection statistic (#346), measured in SOLVER WORK
 #: rather than in CPU time -- and the only per-scenario number in this file
 #: that is allowed to sit under DETECTION_TARGET.
@@ -589,7 +619,7 @@ class Calibration:
         return float(np.median(self.samples))
 
     def budget_ms(self) -> float:
-        return SOLVE_BUDGET_RATIO * self.unit_ms
+        return live_solve_budget_ratio() * self.unit_ms
 
     def spread(self) -> tuple[float, float, float]:
         arr = np.asarray(self.all_cpu, dtype=float)
@@ -1429,7 +1459,7 @@ def work_drift_compare(
             verdict.stale.append(
                 f"{label} took {got} solver evaluations against the "
                 f"baseline's {base_evals} = {got / base_evals:.2f}x, "
-                f"cheaper by more than {SCENARIO_STALE_FACTOR:.0f}x on an "
+                f"cheaper by more than {SCENARIO_STALE_FACTOR:g}x on an "
                 f"unchanged plan"
             )
     for label in sorted(baseline):
@@ -1613,6 +1643,29 @@ if __name__ == "__main__":
     # false-fails on the second machine -- and the second one is what
     # reverted the 1.4142 factor, closed #371, and then came back as #387.
     R.section("Single-scenario detection (#346, #387)")
+
+    # 2026-09-05 CI ubuntu-latest, consecutive main pushes, same tree:
+    # shoulder/tariff+pv+cycle at 775.5x (pass, ref 52.3 ms) vs 808.2x /
+    # 817.7x (fail, ref 42.7-43.7 ms) against the 782.11 M1 ceiling.
+    # The ruler and a real optimize() do not scale together; 817.7 is that
+    # expansion, not a slower plan (solver-work 51/51, 0 re-planned).
+    R.check(
+        "the live ceiling covers the measured CI ruler-vs-real expansion",
+        live_solve_budget_ratio() >= 817.7,
+        f"{live_solve_budget_ratio():.2f}x vs measured 817.7x",
+    )
+    _wobble_recorded = [
+        float(entry["ratio"])
+        for entry in load_budget_table().values()
+        if isinstance(entry, dict) and float(entry.get("ratio", 0.0)) > 0.0
+    ]
+    _wobble_worst = max(_wobble_recorded) if _wobble_recorded else 0.0
+    R.check(
+        "and the wobble still leaves a 2x detection floor on the recorded worst",
+        live_solve_budget_ratio() < DETECTION_TARGET * _wobble_worst,
+        f"live {live_solve_budget_ratio():.1f}x vs "
+        f"{DETECTION_TARGET:.0f} x {_wobble_worst:.1f} recorded",
+    )
 
     # A synthetic baseline capture: what capture_baseline_work() hands the
     # comparison. Fifty-one scenarios, an evaluation count and the
@@ -1953,7 +2006,7 @@ if __name__ == "__main__":
     calibration.warm_up()
     print(
         f"  solve-time guard: reference solve {calibration.unit_ms:.1f} ms of CPU "
-        f"on this machine, budget {SOLVE_BUDGET_RATIO:.0f}x that per scenario "
+        f"on this machine, budget {live_solve_budget_ratio():.0f}x that per scenario "
         f"(= {calibration.budget_ms() / 1000.0:.1f} s of CPU), sweep budget "
         f"{SWEEP_BUDGET_RATIO:.0f}x, absolute wall ceiling {SOLVE_CEILING_MS:.0f} ms"
     )
@@ -1998,7 +2051,7 @@ if __name__ == "__main__":
         # ruler and the thing being measured see the same machine.
         sample_ms = calibration.sample()
         unit_ms = max(calibration.unit_ms, 1e-6)
-        budget_ms = SOLVE_BUDGET_RATIO * unit_ms
+        budget_ms = live_solve_budget_ratio() * unit_ms
         run = build_case(**combo)
         if label in REUSED_BY_ECONOMICS:
             _case_cache[case_key(combo)] = run
@@ -2040,7 +2093,7 @@ if __name__ == "__main__":
                 if stale_cheap_verdict(ratio, recorded):
                     stale_cheap.append(
                         f"{label} at {ratio:.1f}x vs recorded {recorded:.1f}x "
-                        f"(cheaper by more than {SCENARIO_STALE_FACTOR:.0f}x: "
+                        f"(cheaper by more than {SCENARIO_STALE_FACTOR:g}x: "
                         f"re-record, or a regression back to the old cost "
                         f"would pass unnoticed)"
                     )
@@ -2048,7 +2101,7 @@ if __name__ == "__main__":
             slow.append(
                 f"{label} used {solve_ms:.0f} ms of CPU = {ratio:.0f}x the "
                 f"{unit_ms:.1f} ms reference measured beside it "
-                f"(budget {SOLVE_BUDGET_RATIO:.0f}x)"
+                f"(budget {live_solve_budget_ratio():.0f}x)"
             )
         if wall_ms > SOLVE_CEILING_MS:
             pathological.append(f"{label} took {wall_ms:.0f} ms of wall clock")
@@ -2127,7 +2180,7 @@ if __name__ == "__main__":
     print(
         f"  worst scenario: {_worst[1]} used {_worst[2]:.0f} ms of CPU = "
         f"{_worst[0]:.1f}x its {_worst[3]:.1f} ms reference; budget is "
-        f"{SOLVE_BUDGET_RATIO:.0f}x"
+        f"{live_solve_budget_ratio():.0f}x"
     )
     R.check(
         "every scenario's solve costs what it should, in CPU, for this machine",
@@ -2590,7 +2643,9 @@ if __name__ == "__main__":
     )
     print(
         f"  detection on THIS machine: per-scenario ceiling "
-        f"{SOLVE_BUDGET_RATIO / max(_worst[0], 1e-9):.2f}x, sweep budget "
+        f"{live_solve_budget_ratio() / max(_worst[0], 1e-9):.2f}x "
+        f"({SOLVE_BUDGET_RATIO:.0f}x x {SOLVE_RATIO_WOBBLE:g} wobble), "
+        f"sweep budget "
         f"{SWEEP_BUDGET_RATIO / max(_sweep_ratio, 1e-9):.2f}x -- these move "
         f"with the machine because the reference solve does not scale with "
         f"the real ones (measured 1.7x of ratio compression between an M1 "

@@ -47,7 +47,9 @@ import argparse
 import ast
 import json
 import os
+import platform
 import re
+import shutil
 import subprocess
 import sys
 import time
@@ -69,7 +71,8 @@ CLOSURES = ROOT / "tests" / "closures.json"
 # because it needs Chromium, which no other lane installs: the closures job
 # could not record it without growing a browser. It runs in its own job.
 NOT_A_TEST = {
-    "harness.py", "profiles.py", "closure.py", "setup_qa_render.mjs",
+    "harness.py", "profiles.py", "closure.py", "gate_lock.py",
+    "setup_qa_render.mjs",
     "card_browser.mjs",
     # The shared DOM stub (#101) and the rig around it, imported by the three
     # Node harnesses (card.mjs, setup_qa_render.mjs, card_drift.mjs): libraries,
@@ -389,8 +392,22 @@ def _exec_record(script: str, out_path: str, extra_args: list[str]) -> int:
 _STRACE_OPEN = re.compile(r'openat\([^,]+,\s*"([^"]+)"')
 
 
+def _require_strace() -> None:
+    if shutil.which("strace"):
+        return
+    print(
+        "closure: node recording requires strace, which is not available on "
+        f"{platform.system()} ({platform.machine()}). "
+        "Re-derive node scripts (tests/*.mjs) on Linux or anywhere strace is "
+        "installed; CI's closures job records on Linux.",
+        file=sys.stderr,
+    )
+    raise SystemExit(1)
+
+
 def _record_node(script: str, out_path: str, env: dict) -> int:
     """Record a node script's file reads with strace; node has no audit hook."""
+    _require_strace()
     trace = Path(out_path).with_suffix(".strace")
     started = time.time()
     cmd = ["strace", "-f", "-qq", "-e", "trace=openat", "-o", str(trace),

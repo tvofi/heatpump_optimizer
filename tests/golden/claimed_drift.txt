@@ -45,7 +45,7 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 6.3.14
+# claims-for: 6.3.15
 #
 # 3L-G7: coordinator always publishes savings_months; coord fixtures gain the key.
 coord_minimal # additive empty savings_months list

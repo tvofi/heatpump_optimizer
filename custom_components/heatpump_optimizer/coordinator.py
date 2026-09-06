@@ -9,15 +9,22 @@ The coordinator manages:
 """
 from __future__ import annotations
 
+import atexit
 import asyncio
 import copy
 import hashlib
 import json
 import logging
 import math
+import os
+import pickle
+import subprocess
+import sys
+import threading
 from bisect import bisect_right
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any, NamedTuple
 
 import aiohttp
@@ -331,6 +338,7 @@ from .accuracy import (
 from .comfort_learning import ComfortLearner, OverrideEvent
 from .defrost import DefrostDerate, DefrostWindow, in_frost_band
 from . import pump_signals
+from . import setpoint_check
 from .pump_signals import PumpSignals
 from .manual_plan import (
     CHANNEL_DHW,
@@ -398,6 +406,7 @@ from .optimizer import (
     HeatPumpOptimizer,
     OptimizationConfig,
     OptimizationResult,
+    optimize_in_process,
     slab_settlement_cap,
 )
 
@@ -747,6 +756,110 @@ TIBBER_PRICE_QUERY = """
   }
 }
 """
+
+
+_PROCESS_LOCK = threading.Lock()
+_PROCESS_WORKER: subprocess.Popen | None = None
+_PROCESS_ATEXIT = False
+
+
+def _worker_env() -> dict[str, str]:
+    """Make ``heatpump_optimizer`` importable in the child, tests or HA."""
+    env = os.environ.copy()
+    here = Path(__file__).resolve().parent
+    extra = [str(here.parent)]
+    tests_dir = here.parent.parent / "tests"
+    if tests_dir.is_dir():
+        extra.append(str(tests_dir))
+        extra.append(str(tests_dir / "hastub"))
+    old = env.get("PYTHONPATH")
+    env["PYTHONPATH"] = os.pathsep.join(extra + ([old] if old else []))
+    return env
+
+
+def _ensure_worker() -> subprocess.Popen:
+    """Persistent child interpreter. Not multiprocessing: spawn reimports __main__."""
+    global _PROCESS_WORKER, _PROCESS_ATEXIT
+    worker = _PROCESS_WORKER
+    if worker is not None and worker.poll() is None:
+        return worker
+    script = Path(__file__).resolve().with_name("process_worker.py")
+    _PROCESS_WORKER = subprocess.Popen(
+        [sys.executable, "-u", str(script)],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=None,
+        env=_worker_env(),
+    )
+    if not _PROCESS_ATEXIT:
+        atexit.register(_shutdown_process_pool)
+        _PROCESS_ATEXIT = True
+    return _PROCESS_WORKER
+
+
+def _shutdown_process_pool() -> None:
+    global _PROCESS_WORKER
+    with _PROCESS_LOCK:
+        worker, _PROCESS_WORKER = _PROCESS_WORKER, None
+    if worker is None:
+        return
+    try:
+        if worker.stdin:
+            worker.stdin.close()
+    except Exception:  # noqa: BLE001 - shutdown must not raise
+        pass
+    if worker.poll() is None:
+        worker.terminate()
+        try:
+            worker.wait(timeout=2)
+        except Exception:  # noqa: BLE001
+            worker.kill()
+
+
+def _run_in_process(fn, args):
+    """Run ``fn(*args)`` in the process worker. ``fn`` must be picklable."""
+    global _PROCESS_WORKER
+    with _PROCESS_LOCK:
+        worker = _ensure_worker()
+        stdin, stdout = worker.stdin, worker.stdout
+        if stdin is None or stdout is None:
+            raise RuntimeError("process worker pipes missing")
+        pickle.dump((fn, args), stdin, protocol=pickle.HIGHEST_PROTOCOL)
+        stdin.flush()
+        try:
+            status, payload = pickle.load(stdout)
+        except (EOFError, BrokenPipeError) as err:
+            rc = worker.poll()
+            _PROCESS_WORKER = None
+            raise RuntimeError(f"process worker exited rc={rc}") from err
+    if status == "err":
+        raise payload
+    return payload
+
+
+async def _await_process(hass, fn, *args):
+    """Park on HA's executor; the CPU work is in another interpreter."""
+    return await hass.async_add_executor_job(_run_in_process, fn, args)
+
+
+async def _await_optimize(hass, optimizer, state, *positional, **keywords):
+    """Submit ``optimizer.optimize`` through the process pool (#199 #290)."""
+    return await _await_process(
+        hass, optimize_in_process, optimizer, state, positional, keywords
+    )
+
+
+def _diagnose_payload(coord) -> tuple:
+    """Picklable diagnose args; the coordinator itself is not picklable."""
+    record = coord._last_interval_record
+    if record is None:
+        return None, None
+    return record, copy.deepcopy(coord._thermal_params)
+
+
+def _store_diagnosis(coord, report) -> None:
+    if report is not None:
+        coord._last_diagnosis = report
 
 
 class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
@@ -4684,7 +4797,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             raise UpdateFailed(f"Error updating data: {err}") from err
 
     def _solve_snapshot(self) -> tuple[ThermalState, HeatPumpOptimizer]:
-        """Frozen copies for the executor thread: the solve must never share
+        """Frozen copies for the process worker: the solve must never share
         mutable state with the event loop (learners, the live peak guard and
         the climate entity all write mid-solve).
 
@@ -4933,45 +5046,45 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 )
             self._check_legionella_mode_block(mode_blocked_dhw)
             # Taken here, after every pre-solve mutation above, so the copies
-            # carry all of them into the executor thread.
+            # carry all of them into the process worker.
             solve_state, solve_optimizer = self._solve_snapshot()
-            # Run optimization in executor to avoid blocking
-            result = await self.hass.async_add_executor_job(
-                lambda: solve_optimizer.optimize(
-                    solve_state,
-                    horizon.prices,
-                    horizon.outdoor_temps,
-                    horizon.wind_speeds,
-                    horizon.precipitation,
-                    horizon.solar_radiation,
-                    solve_now,
-                    horizon.price_known,
-                    horizon.pv_surplus,
-                    space_pins,
-                    dhw_pins,
-                    external_heat,
-                    horizon.price_sigma,
-                    caps_extra,
-                    # #21: the forecast humidity series, when it carries
-                    # data. None keeps the solve's inner loop free of dead
-                    # lookups.
-                    (
-                        horizon.humidity
-                        if horizon.humidity.size
-                        and bool(np.any(np.isfinite(horizon.humidity)))
-                        else None
-                    ),
-                    min_temp_margins=margins,
-                    min_temp_floors=mold_floors,
-                    # v5.3.0: never promise heat the pump's current mode
-                    # cannot deliver — symmetrically. A cooling or hot-water
-                    # mode suppresses space slots; a heating-only mode
-                    # suppresses hot-water slots. Both default False and the
-                    # capability defaults to "can do everything", so an
-                    # install with no mode entity plans exactly as before.
-                    space_blocked=mode_blocked_space,
-                    dhw_blocked=mode_blocked_dhw,
-                )
+            # Process pool: a thread still shares this interpreter's GIL.
+            result = await _await_optimize(
+                self.hass,
+                solve_optimizer,
+                solve_state,
+                horizon.prices,
+                horizon.outdoor_temps,
+                horizon.wind_speeds,
+                horizon.precipitation,
+                horizon.solar_radiation,
+                solve_now,
+                horizon.price_known,
+                horizon.pv_surplus,
+                space_pins,
+                dhw_pins,
+                external_heat,
+                horizon.price_sigma,
+                caps_extra,
+                # #21: the forecast humidity series, when it carries
+                # data. None keeps the solve's inner loop free of dead
+                # lookups.
+                (
+                    horizon.humidity
+                    if horizon.humidity.size
+                    and bool(np.any(np.isfinite(horizon.humidity)))
+                    else None
+                ),
+                min_temp_margins=margins,
+                min_temp_floors=mold_floors,
+                # v5.3.0: never promise heat the pump's current mode
+                # cannot deliver — symmetrically. A cooling or hot-water
+                # mode suppresses space slots; a heating-only mode
+                # suppresses hot-water slots. Both default False and the
+                # capability defaults to "can do everything", so an
+                # install with no mode entity plans exactly as before.
+                space_blocked=mode_blocked_space,
+                dhw_blocked=mode_blocked_dhw,
             )
 
             # #237: the executor await above is seconds wide, and an options
@@ -5412,8 +5525,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._pump_mode_last_good = self._pump_signals.mode
             self._pump_mode_last_good_at = _mode_now
         self._check_pump_mode_expired()
-        # The flag's level, once per cycle. Complements the listener, which
-        # only ever sees transitions.
+        setpoint_check.evaluate(self)
+        # Flag level once per cycle; the listener only sees transitions.
         self._defrost_window.observe(
             dt_util.now(), self._pump_signals.defrosting
         )
@@ -6794,29 +6907,18 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
         # 1) Toggle heat pump supply (ON/OFF)
         #
-        # v5.3.0: a mode block suppresses PLANNING, never actuation, and this
-        # is the line where the difference matters. A block hard-zeroes its
-        # channel, so a mode that blocks both — ``cool``, which is the whole
-        # point of a cooling mode — leaves every step with
-        # ``heat_pump_on=False`` and this call would cut the supply to a unit
-        # the owner deliberately set to cool, every cycle, defeating the
-        # cooling he asked for. Before this release the same install left the
-        # switch alone. The feature's own promise is that it is read-only, and
-        # an owner will reasonably read that as "configuring the mode entity
-        # cannot make things worse".
-        #
-        # So while a block is in force this never commands OFF. Turning the
-        # supply ON is still allowed: that is the plan asking for something
-        # the pump can actually deliver on its unblocked channel, and it is
-        # not a decision the block has any claim over. When BOTH channels are
-        # blocked there is genuinely nothing to command, and the correct
-        # action is to command nothing — the pump is left exactly as the
-        # owner's mode selection left it.
-        mode_blocked = (
-            self._pump_signals.space_blocked or self._pump_signals.dhw_blocked
+        # Skip OFF only when cooling or both channels are blocked. A
+        # single-channel heat block (DHW-only, heating-only) still
+        # commands OFF on an empty plan — otherwise a summer DHW pulse
+        # leaves the supply latched while the tank is supposed to drift.
+        both_blocked = (
+            self._pump_signals.space_blocked and self._pump_signals.dhw_blocked
+        )
+        skip_off = (not heat_pump_on) and (
+            both_blocked or self._pump_signals.mode.cooling
         )
         switch_entity = self._config.get(CONF_HEAT_PUMP_SWITCH_ENTITY)
-        if switch_entity and not (mode_blocked and not heat_pump_on):
+        if switch_entity and not skip_off:
             try:
                 await self.hass.services.async_call(
                     "switch",
@@ -6828,9 +6930,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 _LOGGER.error("Error toggling heat pump switch: %s", err)
         elif switch_entity:
             _LOGGER.debug(
-                "Not switching %s off: the pump's mode (%s) is suppressing a "
-                "channel, so an empty plan is this integration's doing rather "
-                "than a decision to stop the pump",
+                "Not switching %s off: mode %s is cooling or blocks both "
+                "channels, so an empty plan is this integration's doing "
+                "rather than a decision to stop the pump",
                 switch_entity,
                 self._pump_signals.mode.label,
             )
@@ -10316,36 +10418,21 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         needs a completed (planned, realised, actual) triple, and the
         freshest one is the interval the accuracy sample just closed.
         """
-        record = self._last_interval_record
-        if not record:
-            return None
-        try:
-            # A scratch model, never the live one: simulate_step writes
-            # per-call scratch on the model instance, and the scheduled
-            # solve may be walking the SAME instance in another executor
-            # thread — a diagnosis mid-solve must not corrupt the live
-            # plan's accounting. Same idiom as the what-if solves.
-            scratch_model = ThermalModel(replace(self._thermal_params))
-            report = diagnosis.attribute(
-                scratch_model,
-                record["state"],
-                dict(record["planned"], dt_hours=record["dt_hours"]),
-                record["realised"],
-                record["actual"],
-            )
-        except Exception as err:  # noqa: BLE001 - never break ops for insight
-            _LOGGER.debug("Interval diagnosis failed: %s", err)
-            return None
+        report = diagnosis.diagnose_record(
+            self._last_interval_record, self._thermal_params
+        )
         if report is not None:
-            report["interval_end"] = record["when"]
             self._last_diagnosis = report
         return report
 
     async def async_diagnose_interval(self) -> None:
         """Service/button entry for #52; publishes on the insight view."""
-        report = await self.hass.async_add_executor_job(
-            self.diagnose_last_interval
+        report = await _await_process(
+            self.hass,
+            diagnosis.diagnose_record,
+            *_diagnose_payload(self),
         )
+        _store_diagnosis(self, report)
         if report is None:
             _LOGGER.info(
                 "No settled interval to diagnose yet — one full "
@@ -11017,57 +11104,57 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
         scratch = HeatPumpOptimizer(ThermalModel(scratch_params), scratch_config)
         try:
-            simulated = await self.hass.async_add_executor_job(
-                lambda: scratch.optimize(
-                    # Shallow deliberately: ``ThermalState`` is scalars only.
-                    replace(self._current_state),
-                    horizon.prices,
+            simulated = await _await_optimize(
+                self.hass,
+                scratch,
+                # Shallow deliberately: ``ThermalState`` is scalars only.
+                replace(self._current_state),
+                horizon.prices,
+                horizon.outdoor_temps,
+                horizon.wind_speeds,
+                horizon.precipitation,
+                horizon.solar_radiation,
+                self._solve_anchor(now),
+                horizon.price_known,
+                horizon.pv_surplus,
+                # The scratch config inherits price_risk_lambda, so the
+                # what-if must price guessed steps the same way the plan
+                # it is compared against did (#34).
+                price_sigma=horizon.price_sigma,
+                power_caps_extra=cap_extra,
+                # #21: the what-if is compared against a plan that saw
+                # the humidity series, so it must see the same one.
+                humidity=(
+                    horizon.humidity
+                    if horizon.humidity.size
+                    and bool(np.any(np.isfinite(horizon.humidity)))
+                    else None
+                ),
+                # T5: same floors as the live plan, same reasoning —
+                # except the mold cap follows the SIMULATED target, so
+                # a what-if dragging the target down sees the floor
+                # that choice would actually get.
+                min_temp_margins=self._confidence_margins(
+                    len(horizon.prices)
+                ),
+                min_temp_floors=self._mold_floor_series(
                     horizon.outdoor_temps,
-                    horizon.wind_speeds,
-                    horizon.precipitation,
-                    horizon.solar_radiation,
-                    self._solve_anchor(now),
-                    horizon.price_known,
-                    horizon.pv_surplus,
-                    # The scratch config inherits price_risk_lambda, so the
-                    # what-if must price guessed steps the same way the plan
-                    # it is compared against did (#34).
-                    price_sigma=horizon.price_sigma,
-                    power_caps_extra=cap_extra,
-                    # #21: the what-if is compared against a plan that saw
-                    # the humidity series, so it must see the same one.
-                    humidity=(
-                        horizon.humidity
-                        if horizon.humidity.size
-                        and bool(np.any(np.isfinite(horizon.humidity)))
-                        else None
-                    ),
-                    # T5: same floors as the live plan, same reasoning —
-                    # except the mold cap follows the SIMULATED target, so
-                    # a what-if dragging the target down sees the floor
-                    # that choice would actually get.
-                    min_temp_margins=self._confidence_margins(
-                        len(horizon.prices)
-                    ),
-                    min_temp_floors=self._mold_floor_series(
-                        horizon.outdoor_temps,
-                        target_cap=float(scratch_config.target_temp),
-                    ),
-                    # v5.3.0: and the mode block, for the same reason as
-                    # every inherited input above — the what-if is
-                    # DIFFERENCED against the live plan, so anything that
-                    # shaped the live plan and not the shadow one turns the
-                    # difference into a comparison of two different
-                    # questions. This one is the worst of them: the live
-                    # plan under a block heats nothing, so an unblocked
-                    # shadow solve looks warmer than its own baseline,
-                    # ``base_cold - sim_cold`` goes negative, and the fuse
-                    # advisor's clamp turns a real comfort breach into
-                    # "feasible" — a published recommendation to fit a
-                    # smaller main fuse.
-                    space_blocked=self._pump_signals.space_blocked,
-                    dhw_blocked=self._pump_signals.dhw_blocked,
-                )
+                    target_cap=float(scratch_config.target_temp),
+                ),
+                # v5.3.0: and the mode block, for the same reason as
+                # every inherited input above — the what-if is
+                # DIFFERENCED against the live plan, so anything that
+                # shaped the live plan and not the shadow one turns the
+                # difference into a comparison of two different
+                # questions. This one is the worst of them: the live
+                # plan under a block heats nothing, so an unblocked
+                # shadow solve looks warmer than its own baseline,
+                # ``base_cold - sim_cold`` goes negative, and the fuse
+                # advisor's clamp turns a real comfort breach into
+                # "feasible" — a published recommendation to fit a
+                # smaller main fuse.
+                space_blocked=self._pump_signals.space_blocked,
+                dhw_blocked=self._pump_signals.dhw_blocked,
             )
         except Exception as err:  # noqa: BLE001 - a what-if must never break ops
             _LOGGER.warning("What-if simulation failed: %s", err)

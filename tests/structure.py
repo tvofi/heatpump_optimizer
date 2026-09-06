@@ -229,6 +229,9 @@ HA_CONVENTION_NAMES = {
     "async_redact_data",
     "async_get_engine",
     "async_get_config_flow_dialect",
+    # Home Assistant loads ``repairs.py`` by convention and looks this up
+    # when the user clicks Fix on an issue (#408).
+    "async_create_fix_flow",
     # Module-level constants the HA framework reads off platform modules.
     "CONFIG_SCHEMA",
     "PARALLEL_UPDATES",

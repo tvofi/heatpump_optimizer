@@ -1,5 +1,48 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.3.15
+
+Wave 3 of the open-issues programme: smooth top-k peak costing, DHW planner
+re-simulation cuts, and process-routed solves off the GIL. Three fixer groups
+merged in sequence on `main` after the v6.3.14 fork (`ef539be`); record PRs
+(#452), (#458), and (#459) carry delivery tracking between merges. Unstamped
+W2-G5 follow-up (#451) lands here as well.
+
+### Smooth top-k peak_cost and cap-tighten re-solve seeds (#454)
+
+#454 closes #232 and #234. Hybrid sequential softmax replaces hard top-k
+peak counting in tariff peak_cost; cap-tightened re-solves seed from the
+previous answer clipped to new caps plus a bang-bang equal-energy seed,
+keeping the better of seeded and unseeded paths. Follow-up (#455) switches
+to logistic top-k for tied windows and keep-best repair semantics. Five
+golden drifts claimed; shoulder/tariff+cycle re-recorded.
+
+### Cut DHW planner re-simulations (#456)
+
+#456 closes #289. Order-preserving refactor of the DHW planner hot loops
+cuts re-simulations from 64 to 59 calls with planner_over_reference in band
+(3.563→4.030). Record PR (#459) carries the merge and rewrites the W3-G3
+brief. No fixture drift.
+
+### Process-route the solve off the GIL (#461)
+
+#461 closes #290 and #199. HeatPumpOptimizer.optimize, what-if simulation,
+and diagnose_last_interval run in a process worker so the asyncio loop is
+not starved by whole-interpreter GIL hold. Production starvation_share 0
+vs thread 0.94; SCENARIO_STALE_FACTOR 3.5 owner-approved. Record PR (#458)
+carries Wave 3L leftovers and model routing between W3-G2 and W3-G3.
+
+### W2-G5 follow-up: 0.01 kW thermal sysid step grid (#451)
+
+#451 closes #244 and #325, unstamped on v6.3.14. Step power sizes from a
+0.01 kW thermal grid; mid-step abort 36→0. Record PR (#452) carries the
+merge.
+
+### Record and tooling since v6.3.14
+
+#458 records #455, Wave 3L leftovers, and model routing. #459 records #456
+W3-G2 merge. #469 allows the measured CI ruler-vs-real stress wobble.
+
 ## v6.3.14
 
 Wave 2 of the open-issues programme: coordinator lifecycle, price-grid alignment,

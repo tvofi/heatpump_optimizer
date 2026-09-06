@@ -51,6 +51,31 @@ GATE_SCOPE=auto GATE_SCOPE_BASE=v5.1.0 ./tests/run.sh   # ...vs something else
 own scripts when nobody has said otherwise. Scoping has to be asked for by
 name.
 
+### The gate lock on a shared box
+
+`tests/stress.py` measures this machine while it solves, so only one agent on
+a box may run it (or a full gate that includes it) at a time. Use
+`tests/gate_lock.py` — not `mkdir /tmp/hpo-gate.lock` and a shell pid:
+
+```bash
+python3 tests/gate_lock.py take --label <your-label>
+HPO_GATE_LOCK_LABEL=<your-label> GATE_SCOPE=auto GOLDEN_MODE=drift \
+  GOLDEN_REF=$(git merge-base origin/main HEAD) ./tests/run.sh
+python3 tests/gate_lock.py renew --label <your-label>   # between commands
+python3 tests/gate_lock.py release --label <your-label>
+python3 tests/gate_lock.py status
+```
+
+The owner file at `/tmp/hpo-gate.lock/owner` carries your label and an
+`expires_at` lease (30 minutes — above the longest observed full gate and
+stress lane). Every script `run.sh` runs under lock renews it. An expired
+lease, or an abandoned hold (`holding` marker, no live flock), may be taken
+without forensics. `run.sh` holds `flock` on `/tmp/hpo-gate.lock/flock` for
+the gate run so a crash drops flock and a waiter can take immediately; the
+lease covers the window between commands when nothing holds flock (#404).
+Take the lock only when `tests/closure.py select` reports `MODE: FULL` or names
+`tests/stress.py` — see `CLAUDE.md` "Running it".
+
 ### How a closure is derived
 
 Never by hand. A hand-maintained table of "what does this test depend on"
@@ -77,16 +102,17 @@ records the union of
 `card.mjs` has no audit hook, so it is recorded under `strace` instead; the
 result is the same list of repo files it really opened.
 
-**On a machine with no `strace`** — every macOS box, including the owner's —
-`_record_node()` has no availability guard (issue #401) and a full derive
-dies mid-run with a bare `FileNotFoundError` once it reaches `card.mjs` or
-`card_drift.mjs`, after minutes of real work and while holding
-`/tmp/hpo-gate.lock`. That failure is scoped to the **two node lanes only**:
-every Python script still re-derives normally through the audit hook,
-`strace` or no `strace`. Carrying the two node entries forward from the last
-successful derive and disclosing it is the correct response to that failure
-— it is not evidence that a derive is unavailable on the machine, and it
-does not excuse skipping a Python re-derive the change actually needs.
+**Node scripts need `strace`.** `card.mjs` and `card_drift.mjs` have no audit
+hook, so `_record_node()` records them under `strace`. On platforms without
+it — macOS, including the owner's machine — `_record_node()` aborts with a
+clear message rather than failing mid-derive with `FileNotFoundError`. That
+limit is scoped to the **two node lanes only**: every Python script still
+re-derives normally through the audit hook. Re-record the node lanes on Linux
+or anywhere `strace` is installed; CI's `closures` job does this on every
+push to `main`. Carrying the two node entries forward from the last
+successful derive and disclosing it remains the correct response when you
+cannot reach `strace` — it does not excuse skipping a Python re-derive the
+change actually needs.
 
 Three closures are then widened by rule, because a trace of *this* process
 cannot see what they depend on:
@@ -641,6 +667,10 @@ Seven files in `tests/` are not tests at all and are excluded from the
   records into `tests/closures.json`, decides what a given diff needs, and
   (`closure.py check`) fails when the committed closures miss something a real
   run touched. Wiring it into the suite would make the suite run itself.
+- **gate_lock.py** is the renewed-lease gate lock (#404): take, renew, release,
+  and status for `/tmp/hpo-gate.lock`. Expired and abandoned holds are stolen
+  so a waiter can take after crash or expiry. Agents invoke it directly;
+  `run.sh` renews the lease and holds `flock` when `HPO_GATE_LOCK_LABEL` is set.
 - **derive_closures.sh** drives it across every script, in three lanes, and
   rewrites `tests/closures.json`. See "The scoped gate" above.
 
