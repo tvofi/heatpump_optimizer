@@ -7373,6 +7373,7 @@ import time as _time
 
 import env_drift as _env_drift
 import closure as _closure
+import inspect as _inspect
 import gate_lock as _gate_lock
 
 
@@ -8050,6 +8051,102 @@ R.check(
         loop_subject="ci: drop inherited claims"),
     "the two repairs have separate loop guards",
 )
+# Both autofix jobs push only on `changed`, and every other status fell
+# through to job success -- so a job that repaired nothing was indistinguishable
+# from one that did, and `.cursor/rules/ci-autofix.mdc`'s "wait for the bot
+# commit" waited for a commit no step would push (#523).
+_AFJ = "closures-autofix"
+R.check(
+    "a closures autofix that attempted a repair and failed reddens its job",
+    _closure.autofix_repair_failed(_AFJ, "skip-merge-failed")
+    and _closure.autofix_repair_failed(_AFJ, "skip-still-fails"),
+    "the merge was refused, or the merged list still under-approximates",
+)
+# check() said fail, then said pass, over identical bytes. Either check is
+# not deterministic or merge reported success without writing the repair;
+# either way no `ci: re-record closures` commit exists to wait for.
+R.check(
+    "a merge that changed no bytes between a failing and a passing check reddens",
+    _closure.autofix_repair_failed(_AFJ, "skip-unchanged"),
+    "a repair that left the file identical was not recorded",
+)
+R.check(
+    "the ordinary closures autofix no-ops stay quiet",
+    not any(_closure.autofix_repair_failed(_AFJ, s) for s in (
+        "changed", "skip-clean", "skip-not-allowed", "skip-not-under-scoped")),
+    "these mean a repair happened or none was ever owed",
+)
+# claims-autofix is NOT the same shape, and this pins the difference:
+# apply_inherited_claims has no attempted-and-failed status, and
+# skip-not-inherited is the ordinary answer for every `fast` failure that was
+# not INHERITED CLAIMS -- that job never asks which it was, so reddening it
+# would redden every unrelated `fast` failure a second time.
+R.check(
+    "every status claims-autofix can return stays quiet",
+    not any(_closure.autofix_repair_failed("claims-autofix", s) for s in (
+        "changed", "skip-not-allowed", "skip-not-inherited")),
+    "a fast failure that was not INHERITED CLAIMS is not a skipped repair",
+)
+R.check(
+    "an unrecognised status or job reddens rather than passing by default",
+    _closure.autofix_repair_failed(_AFJ, "")
+    and _closure.autofix_repair_failed(_AFJ, "skip-invented-later")
+    and _closure.autofix_repair_failed("no-such-job", "changed"),
+    "a status nobody classified is a repair nobody can wait for",
+)
+# The table is a claim about what these two functions return. A status added
+# to either without a decision here defaults to reddening the job, which is
+# safe but silent; this makes the addition say so.
+_af_returns = set(re.findall(
+    r'return "([a-z][a-z-]*)"',
+    _inspect.getsource(_closure.apply_under_scoped_recordings)))
+_ac_returns = set(re.findall(
+    r'return "([a-z][a-z-]*)"',
+    _inspect.getsource(_env_drift.apply_inherited_claims)))
+R.check(
+    "every status the two apply functions return is classified here",
+    _af_returns == {"changed", "skip-clean", "skip-not-under-scoped",
+                    "skip-merge-failed", "skip-still-fails", "skip-unchanged"}
+    and _ac_returns == {"changed", "skip-not-inherited"},
+    f"closures={sorted(_af_returns)} claims={sorted(_ac_returns)}",
+)
+# A correct predicate the workflow does not call is the green check this
+# whole finding is about, so the wiring is asserted against the YAML itself.
+_TESTS_YML = (pathlib.Path(__file__).resolve().parents[1]
+              / ".github" / "workflows" / "tests.yml").read_text()
+
+
+def _workflow_job(text: str, name: str) -> str:
+    """One job's YAML block, so a wiring check cannot match a sibling job."""
+    start = text.index(f"\n  {name}:\n") + 1
+    nxt = re.compile(r"^  [A-Za-z][\w-]*:", re.M).search(
+        text, text.index("\n", start) + 1)
+    return text[start:nxt.start()] if nxt else text[start:]
+
+
+for _job in ("closures-autofix", "claims-autofix"):
+    _blk = _workflow_job(_TESTS_YML, _job)
+    _steps = _blk.split("\n      - ")
+    _rep = [s for s in _steps if "autofix-report" in s]
+    R.check(
+        f"{_job} reports its status to a human",
+        len(_rep) == 1
+        and f"--job {_job}" in _rep[0]
+        and "steps.autofix.outputs.status" in _rep[0],
+        "an unwired predicate cannot redden anything",
+    )
+    R.check(
+        f"{_job} reports even when the repair step failed or was skipped",
+        bool(_rep) and re.search(r"if:\s*always\(\)", _rep[0]),
+        "the statuses worth reporting are exactly the ones that skip the push",
+    )
+    # Last, or its own non-zero exit would skip the push step below it and
+    # throw away the repair it exists to report.
+    R.check(
+        f"{_job} reports after it has pushed, not before",
+        bool(_rep) and _steps[-1] is _rep[0],
+        "a reporting step that preempts the push destroys the repair",
+    )
 # A script another script drives in a subprocess reaches the table only
 # through its driver's fold, and --single cannot record it.
 R.check(
