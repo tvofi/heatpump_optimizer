@@ -7004,9 +7004,213 @@ R.section("Release metadata")
 import re as _re
 import tempfile as _tempfile
 
+import os as _os
+import subprocess as _subprocess
+import time as _time
+
 import env_drift as _env_drift
 import closure as _closure
-import gate_lock as _gate_lock  # noqa: F401 — classified in entities closure (#404)
+import gate_lock as _gate_lock
+
+
+def _gl_crash_then_successor() -> tuple[bool, str]:
+    """Finder incident: crash drops flock; take('successor') must steal."""
+    with _tempfile.TemporaryDirectory() as td:
+        d = Path(td) / "lock"
+        ready = Path(td) / "ready"
+        env = {**_os.environ, "PYTHONPATH": str(_closure.ROOT / "tests")}
+        holder = _subprocess.Popen(
+            [
+                sys.executable,
+                "-c",
+                "import sys, time\n"
+                "from pathlib import Path\n"
+                "import gate_lock\n"
+                "d = Path(sys.argv[1])\n"
+                "gate_lock.take('holder', lock_dir=d, lease_seconds=1800, wait=False)\n"
+                "with gate_lock.flock_context(d):\n"
+                "    Path(sys.argv[2]).write_text('1')\n"
+                "    time.sleep(30)\n",
+                str(d),
+                str(ready),
+            ],
+            cwd=str(_closure.ROOT),
+            env=env,
+        )
+        for _ in range(50):
+            if ready.exists():
+                break
+            _time.sleep(0.1)
+        else:
+            holder.kill()
+            return False, "holder never ready"
+        holder.kill()
+        holder.wait(timeout=5)
+        _time.sleep(0.2)
+        flock_free = _gate_lock.flock_available(d)
+        try:
+            taken = _gate_lock.take(
+                "successor", lock_dir=d, lease_seconds=60, wait=False,
+            )
+        except BlockingIOError as exc:
+            return False, f"flock_available={flock_free} blocked={exc}"
+        ok = flock_free and taken.label == "successor"
+        return ok, f"flock_available={flock_free} label={taken.label}"
+
+
+def _gl_expired_taken() -> bool:
+    past = datetime.now(UTC) - timedelta(seconds=10)
+    with _tempfile.TemporaryDirectory() as td:
+        d = Path(td) / "lock"
+        _gate_lock._ensure_lock_dir(d)
+        _gate_lock.Owner("dead-agent", past, past).write(d / _gate_lock.OWNER_NAME)
+        try:
+            taken = _gate_lock.take(
+                "successor", lock_dir=d, lease_seconds=60, wait=False,
+            )
+        except BlockingIOError:
+            return False
+        return taken.label == "successor" and not taken.expired
+
+
+def _gl_renew_extends() -> bool:
+    with _tempfile.TemporaryDirectory() as td:
+        d = Path(td) / "lock"
+        first = _gate_lock.take("live", lock_dir=d, lease_seconds=2, wait=False)
+        _time.sleep(0.4)
+        second = _gate_lock.renew("live", lock_dir=d, lease_seconds=2)
+        if second.expires_at <= first.expires_at:
+            return False
+        try:
+            _gate_lock.take("other", lock_dir=d, wait=False)
+            mid_blocked = False
+        except BlockingIOError:
+            mid_blocked = True
+        remain = (first.expires_at - datetime.now(UTC)).total_seconds()
+        if remain > 0:
+            _time.sleep(remain + 0.15)
+        try:
+            _gate_lock.take("other", lock_dir=d, wait=False)
+            after_orig_blocked = False
+        except BlockingIOError:
+            after_orig_blocked = True
+        remain2 = (second.expires_at - datetime.now(UTC)).total_seconds()
+        if remain2 > 0:
+            _time.sleep(remain2 + 0.15)
+        try:
+            late = _gate_lock.take("other", lock_dir=d, lease_seconds=60, wait=False)
+            late_ok = late.label == "other"
+        except BlockingIOError:
+            late_ok = False
+        return mid_blocked and after_orig_blocked and late_ok
+
+
+def _gl_between_commands_kept() -> bool:
+    with _tempfile.TemporaryDirectory() as td:
+        d = Path(td) / "lock"
+        _gate_lock.take("live", lock_dir=d, lease_seconds=1800, wait=False)
+        try:
+            _gate_lock.take("other", lock_dir=d, wait=False)
+            return False
+        except BlockingIOError:
+            st = _gate_lock.status(d)
+            return st["owner"] is not None and st["owner"].label == "live"
+
+
+R.check(
+    "an expired lease is taken without forensics",
+    _gl_expired_taken(),
+    "must steal on expires_at, not a pid table",
+)
+R.check(
+    "renew extends the lease past the original expiry",
+    _gl_renew_extends(),
+    "a renewed lease must still refuse a second label",
+)
+R.check(
+    "a live agent between commands keeps the lock",
+    _gl_between_commands_kept(),
+    "no holding marker: flock free must not steal",
+)
+_gl_ok, _gl_detail = _gl_crash_then_successor()
+R.check(
+    "a crashed hold lets take('successor') steal",
+    _gl_ok,
+    _gl_detail,
+)
+
+
+def _gl_same_label_expired_take() -> bool:
+    """Same-label take on an expired lease rewrites the owner (#479 residual)."""
+    past = datetime.now(UTC) - timedelta(seconds=10)
+    with _tempfile.TemporaryDirectory() as td:
+        d = Path(td) / "lock"
+        _gate_lock._ensure_lock_dir(d)
+        _gate_lock.Owner("holder", past, past).write(d / _gate_lock.OWNER_NAME)
+        try:
+            taken = _gate_lock.take(
+                "holder", lock_dir=d, lease_seconds=60, wait=False,
+            )
+        except RuntimeError:
+            return False
+        return taken.label == "holder" and not taken.expired
+
+
+def _gl_same_label_return_clears_holding() -> tuple[bool, str]:
+    """Same-label take after crash clears holding so a waiter cannot steal."""
+    with _tempfile.TemporaryDirectory() as td:
+        d = Path(td) / "lock"
+        ready = Path(td) / "ready"
+        env = {**_os.environ, "PYTHONPATH": str(_closure.ROOT / "tests")}
+        holder = _subprocess.Popen(
+            [
+                sys.executable,
+                "-c",
+                "import sys, time\n"
+                "from pathlib import Path\n"
+                "import gate_lock\n"
+                "d = Path(sys.argv[1])\n"
+                "gate_lock.take('holder', lock_dir=d, lease_seconds=1800, wait=False)\n"
+                "with gate_lock.flock_context(d):\n"
+                "    Path(sys.argv[2]).write_text('1')\n"
+                "    time.sleep(30)\n",
+                str(d),
+                str(ready),
+            ],
+            cwd=str(_closure.ROOT),
+            env=env,
+        )
+        for _ in range(50):
+            if ready.exists():
+                break
+            _time.sleep(0.1)
+        else:
+            holder.kill()
+            return False, "holder never ready"
+        holder.kill()
+        holder.wait(timeout=5)
+        _time.sleep(0.2)
+        _gate_lock.take("holder", lock_dir=d, lease_seconds=1800, wait=False)
+        holding = (d / _gate_lock.HOLDING_NAME).exists()
+        try:
+            _gate_lock.take("waiter", lock_dir=d, lease_seconds=60, wait=False)
+            stolen = True
+        except BlockingIOError:
+            stolen = False
+        return not holding and not stolen, f"holding={holding} stolen={stolen}"
+
+
+R.check(
+    "an expired same-label take rewrites the lease",
+    _gl_same_label_expired_take(),
+    "must not route expired same-label take through renew()",
+)
+_gl_sl_ok, _gl_sl_detail = _gl_same_label_return_clears_holding()
+R.check(
+    "same-label return clears holding",
+    _gl_sl_ok,
+    _gl_sl_detail,
+)
 
 # --- the scoped gate's one exception to "the whole integration" -------------
 #

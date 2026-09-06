@@ -4,7 +4,9 @@
 Serialises anything that runs ``tests/stress.py`` on a shared box. The owner
 file carries an ``expires_at`` lease and an agent label — not a shell pid.
 ``flock`` is held only for the duration of a gate run; the lease covers the
-window between commands when no process holds anything.
+window between commands when no process holds anything. An expired lease or
+an abandoned hold (``holding`` marker, flock dropped) is taken without
+forensics so a waiter can proceed after crash or expiry.
 """
 from __future__ import annotations
 
@@ -24,6 +26,7 @@ LEASE_SECONDS = 1800
 DEFAULT_LOCK_DIR = Path("/tmp/hpo-gate.lock")
 OWNER_NAME = "owner"
 FLOCK_NAME = "flock"
+HOLDING_NAME = "holding"
 WAIT_POLL_SECS = 5
 
 
@@ -94,16 +97,26 @@ def _clear_lock(lock_dir: Path) -> None:
 
 @contextlib.contextmanager
 def flock_context(lock_dir: Path, blocking: bool = True):
-    """Advisory flock on ``lock_dir/flock``; released when the context exits."""
+    """Advisory flock on ``lock_dir/flock``; released when the context exits.
+
+    A blocking hold writes ``holding`` so a crash (marker left, flock
+    dropped) is distinguishable from a live agent between commands.
+    """
     _ensure_lock_dir(lock_dir)
     fd = os.open(lock_dir / FLOCK_NAME, os.O_RDWR)
+    marked = False
     try:
         flags = fcntl.LOCK_EX
         if not blocking:
             flags |= fcntl.LOCK_NB
         fcntl.flock(fd, flags)
+        if blocking:
+            (lock_dir / HOLDING_NAME).write_text("holding\n")
+            marked = True
         yield
     finally:
+        if marked:
+            (lock_dir / HOLDING_NAME).unlink(missing_ok=True)
         with contextlib.suppress(OSError):
             fcntl.flock(fd, fcntl.LOCK_UN)
         os.close(fd)
@@ -115,6 +128,11 @@ def flock_available(lock_dir: Path) -> bool:
             return True
     except BlockingIOError:
         return False
+
+
+def _abandoned_hold(lock_dir: Path) -> bool:
+    # Crash mid-hold: marker remains, kernel dropped flock (#475 steal).
+    return (lock_dir / HOLDING_NAME).exists() and flock_available(lock_dir)
 
 
 def take(
@@ -133,11 +151,16 @@ def take(
             fresh = _new_owner(label, lease_seconds)
             fresh.write(lock_dir / OWNER_NAME)
             return fresh
-        if owner.expired:
+        if owner.label == label:
+            (lock_dir / HOLDING_NAME).unlink(missing_ok=True)
+            if owner.expired:
+                fresh = _new_owner(label, lease_seconds)
+                fresh.write(lock_dir / OWNER_NAME)
+                return fresh
+            return renew(label, lock_dir=lock_dir, lease_seconds=lease_seconds)
+        if owner.expired or _abandoned_hold(lock_dir):
             _clear_lock(lock_dir)
             continue
-        if owner.label == label:
-            return renew(label, lock_dir=lock_dir, lease_seconds=lease_seconds)
         if not wait:
             raise BlockingIOError(f"gate held by {owner.label} until {owner.expires_at}")
         time.sleep(WAIT_POLL_SECS)
@@ -160,6 +183,7 @@ def renew(
         expires_at=datetime.now(UTC) + timedelta(seconds=lease_seconds),
     )
     refreshed.write(lock_dir / OWNER_NAME)
+    (lock_dir / HOLDING_NAME).unlink(missing_ok=True)
     return refreshed
 
 
@@ -294,8 +318,11 @@ def _acceptance() -> int:
     (d1 / FLOCK_NAME).touch()
     past = datetime.now(UTC) - timedelta(seconds=10)
     Owner("dead-agent", past, past).write(d1 / OWNER_NAME)
-    new = take("successor", lock_dir=d1, lease_seconds=60, wait=False)
-    R.check("expired lease replaced", new.label == "successor" and not new.expired)
+    try:
+        new = take("successor", lock_dir=d1, lease_seconds=60, wait=False)
+        R.check("expired lease replaced", new.label == "successor" and not new.expired)
+    except BlockingIOError:
+        R.check("expired lease replaced", False)
 
     # 2. Live agent between commands keeps the lock (renew).
     R.section("live agent between commands keeps lock")
@@ -336,6 +363,11 @@ def _acceptance() -> int:
     holder.wait(timeout=5)
     time.sleep(0.2)
     R.check("flock released after crash", flock_available(d3))
+    try:
+        nxt = take("successor", lock_dir=d3, lease_seconds=60, wait=False)
+        R.check("successor takes after crash", nxt.label == "successor")
+    except BlockingIOError:
+        R.check("successor takes after crash", False)
 
     # 4. Two agents contend — one queues.
     R.section("two agents contend")
@@ -355,7 +387,57 @@ def _acceptance() -> int:
     R.check("waiter acquired after release", waiter.label == "waiter")
     R.check("no pid forensics required", waited < 5)
 
-    for d in (d1, d2, d3, d4):
+    # 5. Expired same-label take rewrites owner (#479 residual).
+    R.section("expired same-label take")
+    d5 = tmp / f"hpo-gate-test-same-expired-{os.getpid()}"
+    if d5.exists():
+        _clear_lock(d5)
+    _ensure_lock_dir(d5)
+    past = datetime.now(UTC) - timedelta(seconds=10)
+    Owner("holder", past, past).write(d5 / OWNER_NAME)
+    (d5 / FLOCK_NAME).touch()
+    try:
+        renewed = take("holder", lock_dir=d5, lease_seconds=60, wait=False)
+        R.check(
+            "expired same-label take succeeds",
+            renewed.label == "holder" and not renewed.expired,
+        )
+    except RuntimeError:
+        R.check("expired same-label take succeeds", False)
+
+    # 6. Same-label return after crash clears holding.
+    R.section("same-label return clears holding")
+    d6 = tmp / f"hpo-gate-test-same-return-{os.getpid()}"
+    if d6.exists():
+        _clear_lock(d6)
+    take("holder", lock_dir=d6, lease_seconds=60, wait=False)
+    holder_script = (
+        "import time\n"
+        "from pathlib import Path\n"
+        "import gate_lock\n"
+        f"lock_dir = Path('{d6}')\n"
+        "gate_lock.take('holder', lock_dir=lock_dir, wait=False)\n"
+        "with gate_lock.flock_context(lock_dir):\n"
+        "    time.sleep(30)\n"
+    )
+    holder = subprocess.Popen(
+        [sys.executable, "-c", holder_script],
+        cwd=Path(__file__).resolve().parent,
+        env={**os.environ, "PYTHONPATH": str(Path(__file__).resolve().parent)},
+    )
+    time.sleep(0.5)
+    holder.kill()
+    holder.wait(timeout=5)
+    time.sleep(0.2)
+    take("holder", lock_dir=d6, lease_seconds=60, wait=False)
+    R.check("holding cleared after same-label return", not (d6 / HOLDING_NAME).exists())
+    try:
+        take("waiter", lock_dir=d6, lease_seconds=60, wait=False)
+        R.check("waiter blocked after same-label return", False)
+    except BlockingIOError:
+        R.check("waiter blocked after same-label return", True)
+
+    for d in (d1, d2, d3, d4, d5, d6):
         if d.exists():
             _clear_lock(d)
 

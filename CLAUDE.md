@@ -105,9 +105,10 @@ python3 tests/gate_lock.py release --label <your-label>
 
 The owner file carries your label and an `expires_at` lease (30 minutes, above
 the longest observed gate). Every script under lock renews it; an expired lease
-may be taken without forensics. `run.sh` holds `flock` for the gate run so a
-crash releases immediately — the lease covers the window between commands when
-nothing holds flock (#404).
+or an abandoned hold (`holding` marker, no live flock) may be taken without
+forensics. `run.sh` holds `flock` for the gate run so a crash drops flock and
+a waiter can take immediately — the lease covers the window between commands
+when nothing holds flock (#404).
 
 A full `./tests/derive_closures.sh` cannot re-record the node lanes
 (`tests/card.mjs`, `tests/card_drift.mjs`) on macOS: they need `strace`, which
