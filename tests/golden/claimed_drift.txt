@@ -47,9 +47,6 @@
 #
 # claims-for: 6.3.16
 #
-# v6.3.16: the solve worker could not unpickle its job. The stamp empties the list; the
-# next branch restates its own footprint, claims included.
-#
 # #523 (an autofix job that reported success without repairing): this
 # branch claims NOTHING. tests/closure.py, tests/env_drift.py and the CI
 # workflow only -- gate plumbing, no solver or fixture input changes, so

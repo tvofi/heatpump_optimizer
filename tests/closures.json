@@ -26,7 +26,7 @@
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 14.4,
+   "seconds": 13.2,
    "rc": 0
   },
   "tests/env_drift.py": {
@@ -441,6 +441,7 @@
    "tests/hastub/homeassistant/util/__init__.py",
    "tests/hastub/homeassistant/util/dt.py",
    "tests/run.sh",
+   "tests/structure.py",
    "tools/release/stamp.py"
   ],
   "tests/env_drift.py": [

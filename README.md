@@ -7,7 +7,8 @@ your own sensors — so the house stays as warm as you asked, bought in better
 hours.
 
 [![HACS: custom](https://img.shields.io/badge/HACS-custom-41BDF5.svg)](https://hacs.xyz)
-[![Home Assistant: 2024.6.0+](https://img.shields.io/badge/Home%20Assistant-2024.6.0%2B-41BDF5.svg)](https://www.home-assistant.io)
+[![Home Assistant: 2025.2.0+](https://img.shields.io/badge/Home%20Assistant-2025.2.0%2B-41BDF5.svg)](https://www.home-assistant.io)
+[![Python: 3.13+](https://img.shields.io/badge/Python-3.13%2B-3776AB.svg)](https://www.python.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 <!-- Hero image: a screenshot of the dashboard card belongs here. None is
@@ -137,8 +138,9 @@ or history. Monetary units follow your instance currency.
 
 ## Requirements
 
-- Home Assistant 2024.6.0 or newer (the release that gave config entries
-  their `runtime_data`, which every platform here reads its coordinator from)
+- Home Assistant 2025.2.0 or newer (the first release whose own
+  `requires-python` is `>=3.13.0`)
+- Python 3.13 or newer. The suite is tested on 3.13 and 3.14.
 - A Tibber account with API access ([developer.tibber.com](https://developer.tibber.com))
 - A weather integration with hourly forecasts (Met.no or similar)
 - `numpy` and `scipy`, installed automatically from the integration manifest
@@ -188,19 +190,32 @@ all three live in [docs/configuration.md](docs/configuration.md).
 
 ## Installation
 
-### Minimum Home Assistant version
+### Minimum Home Assistant and Python versions
 
-Issue #227 re-verified the `hacs.json` floor rather than raising it:
-**2024.6.0 stays the minimum**, because `ConfigEntry.runtime_data` — read by
-every platform here — is still the only API in this integration with a
-minimum Home Assistant release established from evidence in this repository
-(`tests/hastub/homeassistant/config_entries.py`'s docstring and
-`RELEASE_NOTES.md`'s v6.3.0 entry, which records that release as verified
-against the upstream `home-assistant/core` tags). The reconfigure flow,
-config-flow sections, and icon translations queued behind issues #196 and
-#189 may raise this floor again once their own minimum releases are
-established — none is pinned anywhere in this repository yet, so this audit
-left the floor where the evidence actually supports it rather than guess.
+**Home Assistant 2025.2.0 and Python 3.13 are the minimum, and this is a
+breaking change**: an installation on an older Home Assistant will stop being
+offered updates through HACS.
+
+Until issue #514 the floor was whatever the newest Home Assistant API the
+integration provably used demanded — `ConfigEntry.runtime_data`, which put it
+at 2024.6.0. That rule made the *Python* range something nobody declared and
+nothing tested: 2024.6.0 implied Python 3.12, CI ran only 3.13, and reported
+installations run 3.14, so neither end of the implied range was exercised.
+
+The floor is now chosen by the Python range instead, which reverses the
+inference. **2025.2.0 is the first Home Assistant release whose own
+`pyproject.toml` says `requires-python = ">=3.13.0"`** — 2024.12.0 and
+2025.1.0 both still say `>=3.12.0`, and 2025.8.0 says `>=3.13.2`. So 2025.2.0
+is the lowest Home Assistant that can guarantee the declared Python 3.13, and
+it is comfortably above the 2024.6.0 that `runtime_data` needs. The suite runs
+on 3.13 and 3.14; `tests/entities.py` holds this section, the badge and the
+`hacs.json` pin to the versions CI actually tests, so the claim cannot rot
+away from the measurement.
+
+One consequence worth recording: config-flow `section()` grouping was rejected
+in part because the floor predated it. At 2025.2.0 that objection is gone
+(issue #189 and the wide options pages). The compatibility shims written for
+older releases are left in place — removing them is a separate change.
 
 ### HACS (recommended)
 
