@@ -88,6 +88,12 @@
 # or ordering changes, so every scenario fixture is byte-identical by
 # construction.
 
+# #539 (tools/audit generated the forbidden mkdir gate lock into the text new
+# auditors read): this branch claims NOTHING. A shell generator, agent prompt
+# strings under .claude/workflows/ and audit prose only -- no production file,
+# no fixture input and no solver parameter is touched, so every scenario is
+# byte-identical by construction.
+
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum

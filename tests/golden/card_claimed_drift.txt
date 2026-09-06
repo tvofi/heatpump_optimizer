@@ -51,3 +51,8 @@
 # #546, the unsaveable setup page: this branch claims NOTHING. The card's
 # only edit is a comment above its own PLACE_LABELS map; no box, position
 # or payload key is touched, so every rendered state is byte-identical.
+#
+# #539 (tools/audit generated the forbidden mkdir gate lock into the text new
+# auditors read): this branch claims NOTHING. No card source, template or
+# style is touched -- the diff is a shell generator, agent prompt strings
+# under .claude/workflows/ and audit prose.
