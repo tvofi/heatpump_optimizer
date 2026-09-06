@@ -26,6 +26,6 @@
 # production file is touched, so every fixture is byte-identical by
 # construction.
 #
-# #518, the handover consolidation: this branch claims NOTHING. Docs, the
-# gate's own classification of them, and tests/entities.py only -- no card
-# source is touched.
+# #514 (declare Python 3.13+, raise the Home Assistant floor to 2025.2.0):
+# this branch claims NOTHING. Docs, config and CI only -- no card source is
+# touched.
