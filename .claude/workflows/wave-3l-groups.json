@@ -1,12 +1,12 @@
 {
   "_comment": [
     "Wave 3L of the open-issues programme (docs/plan-2026-09-open-issues.md).",
-    "Leftovers after Wave 3, before Wave 4. Serial. 3L-G3 done (e8adfe4).",
+    "Leftovers after Wave 3, before Wave 4. Serial. 3L-G4 done (531d8b7).",
     "#412 stays last of the programme, not in this burst.",
     "Consumed by .claude/workflows/web-fix-wave.js as its `groups` argument."
   ],
-  "fork": "e8adfe44d768047b8d2cbcea16be7301a694510a",
-  "fork_note": "origin/main after 3L-G3 #474 (`e8adfe4`). Re-measure structure at this merge-base. claims-for stays 6.3.15.",
+  "fork": "531d8b73337f1b5019f476f2933bfee8765c5605",
+  "fork_note": "origin/main after 3L-G4 #477 (`531d8b7`). Re-measure structure at this merge-base. claims-for stays 6.3.15.",
   "session": "claude-web",
   "repo": "/Users/timmalmstrom/heatpump_optimizer",
   "serial": true,
@@ -69,6 +69,12 @@
       "effort": "medium",
       "fixture": false,
       "after": ["3L-G3"],
+      "resume": {
+        "stage": "done",
+        "merged_pr": 477,
+        "merge_sha": "531d8b73337f1b5019f476f2933bfee8765c5605",
+        "note": "Review merge 5555778270 at acb8660. Fourth holes-list bound; no exact-set pins for SolarIrradianceSensor / OptimizationScoreSensor. Mutation FAIL holes-prose. claims-for 6.3.15. #405 closed. Next seat 3L-G5."
+      },
       "brief": "SolarIrradianceSensor / OptimizationScoreSensor data-driven keys: state the bound in the holes list, no exact-set pin."
     },
     {
