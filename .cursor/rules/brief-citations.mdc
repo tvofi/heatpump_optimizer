@@ -1,12 +1,12 @@
 ---
 description: Wave-brief citations must be linter-resolvable; do not leave them only in plan markdown
-globs: .claude/workflows/wave-*-groups.json,.claude/workflows/*.json,docs/plan*.md,docs/handover*.md
+globs: .claude/workflows/wave-*-groups.json,.claude/workflows/*.json,docs/plan*.md,docs/HANDOVER.md
 alwaysApply: true
 ---
 
 # Brief-linter citations
 
-`node .claude/workflows/brief_lint.mjs` (path #416 lands) lints each group's `brief` in `.claude/workflows/wave-*-groups.json`. It does not read `docs/plan-*.md`, handovers, or `tools/audit/briefs/`.
+`node .claude/workflows/brief_lint.mjs` (path #416 lands) lints each group's `brief` in `.claude/workflows/wave-*-groups.json`. It does not read `docs/plan-*.md`, `docs/HANDOVER.md`, or `tools/audit/briefs/`.
 
 **Where they go.** New programme plans and wave briefs put load-bearing citations in `wave-*-groups.json` (or the linter's input set) in a form that script can resolve. Do not leave critical citations only in free-form markdown. Extending the plan format means extending the linter in the same PR. Do not weaken the linter to fit a citation.
 

@@ -1,8 +1,9 @@
 {
  "_comment": [
-  "The two timing judges still owed a quiet box: #291 and #232.",
-  "Committed because docs/handover-2026-09-04.md pointed at a scratchpad file that",
-  "dies with the session container -- a cold-start audit found the pointer dangling.",
+  "The two timing judges owed a quiet box: #291 and #232. BOTH ARE NOW CLOSED, so this",
+  "file is the record of what they were asked, not live work.",
+  "Committed because the handover pointed at a scratchpad file that dies with the",
+  "session container -- a cold-start audit found the pointer dangling.",
   "",
   "THEY RUN ALONE. Not two at a time, and nothing else on the box: these are the only",
   "rows in the programme whose numbers the load caveat actually bites, and the judge",

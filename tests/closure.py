@@ -146,8 +146,7 @@ INERT = (
     "LICENSE",
     "NOTICE",
     "icon.png",
-    "docs/",
-    "wt/",  # wave-agent progress notes; nothing in the gate reads them
+    "docs/",  # except the handover -- see HANDOVER_DIR below
     "tests/README.md",
     ".gitignore",
     # Write-once round-2 audit evidence: harnesses and reports people run by
@@ -211,7 +210,30 @@ GATE_FILES = (
 )
 
 
+# The one hole in `docs/` (#518). Exactly one handover may exist, and
+# `tests/entities.py` reads it to say so -- which makes it a dependency, and a
+# file cannot be both read by a test and declared unread. Every OTHER
+# `docs/handover*.md` is left unclassified on purpose: it is then in no closure
+# and on no list, so `select` refuses to skip anything (MODE: FULL) and
+# `orphan_files` reports it. A second handover is therefore refused on the pull
+# request that adds it, not on the push to main that follows.
+HANDOVER_DIR = "docs/"
+HANDOVER_STEM = "handover"
+
+
+def is_handover(rel: str) -> bool:
+    name = rel[len(HANDOVER_DIR):].lower()
+    return (
+        rel.startswith(HANDOVER_DIR)
+        and "/" not in name
+        and name.startswith(HANDOVER_STEM)
+        and name.endswith(".md")
+    )
+
+
 def is_inert(rel: str) -> bool:
+    if is_handover(rel):
+        return False
     return any(rel == p or (p.endswith("/") and rel.startswith(p)) for p in INERT)
 
 
