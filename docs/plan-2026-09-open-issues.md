@@ -58,14 +58,16 @@ Where this table and a wave body disagree, this table is the truth.
 | — | **#387, the blocker**: the basin coverage floor is runner-dependent | #387 | v6.3.12 | **fixed** — merged as `32f309f` (PR #388); sixth acceptance criterion ruled (comment 5541519696): the WORK-channel stale-cheap downgrade is kept as necessary to the `env_drift` shape, and the coverage floor's strictness is restored by a follow-up PR that hard-codes it |
 | 2 | coordinator lifecycle, learners, options grouping | #236 #237 #240 #239 #243 #283 #284 #277 #244 #325 #279 #278 #280 #198 | **v6.3.14** (tag `ef539be`) | **done and released, 2026-09-05** — seven groups merged, issues closed: PR #437 (`44a6351`, W2-G1/#236 #237 #240), #440 (`90c71c4`, W2-G2/#239 #243; duplicate #441 closed unmerged), #444 (`dc3bb8e`, W2-G3/#283 #284), #447 (`851c555`, W2-G4/#279 #278), #449 (`f492b1f`, W2-G5/#277), #451 (`efe5a27`, W2-G5 follow-up/#244 #325, review `merge` 5551113810: mid-step abort 36→0, 21 leftovers named), #438 (`e1a14f9`, W2-G6/#280), #436 (`3c141d7`, W2-G7/#198). Record/tooling since v6.3.13 stamp: #434, #435, #439, #442, #443, #446, #448, #450. Stamped `ef539be` as v6.3.14. Next seat **W3-G1** |
 | 3 | solver, DHW planner, GIL process route | #232 #234 #289 #290 #199 | **v6.3.15** (tag `f0866c8`) | **done and released, 2026-09-06** — three groups merged, issues closed: PR #454 (`1585435`, W3-G1/#232 #234), #455 (`aa61130`, W3-G1 follow-up), #456 (`ebf7170`, W3-G2/#289), #461 (`8542e51`, W3-G3/#290 #199; review `merge` at `7076075`, comment 5554485684). Record/tooling since v6.3.14 stamp: #452, #458, #459, #468, #469. Stamped `f0866c8`. **W3-G4 is struck**. Unstamped on this tag include #467, #470–#500 (3L + records; #490 DHW band; #493/#494 Wave 4 roster prep; #495 inherited-claims guard `6699852`; #496 3L-G10 record; #497 W4-G1; #499 record; #500 W4-G2) |
-| **3L** | mid-programme leftovers, one burst | #400 #401 #404 #405 #408 #457 #460 #463 #465 | after Wave 3 | **done** — **3L-G1** #470 (`81aa0c3`). **3L-G2** #472 (`2abe2f7`). **3L-G3** #474 (`e8adfe4`) + #479 (`8ea27d4`) + #480 (`162e759`). **3L-G4** #477 (`531d8b7`). **3L-G5** #483 (`6f02b8a`) closed #408. **3L-G7** #485 (`bf08217`) closed #460. **3L-G8** #487 (`a19ba03`). **3L-G9** #489 (`b29fd1e`) closed #463. **3L-G10** #492 (`e4bc375`) closed #465. **3L-G6** (#457) never implemented: the seat returned NEEDS_CONTEXT (no production `conflict` symbol; nearest twins are read-only `setup_overview` and `reconfigure`), and the owner then closed #457 as `COMPLETED` by hand on 2026-09-06T03:40:23Z with no PR and no commits. Discharged, not blocked — do not reopen it and do not invent a backend. Next **W4-G6** (S5). Do not stamp. #481 leftover closed. #412 stays last of the programme |
-| 4 | the #193 decomposition programme, S0–S13 | #193 #223 #224 #225, and **#304 as S11's precursor** | one per stage | **W4-G1–G5 done; next W4-G6** — S0 #497 (`c197b01`), S1 #500 (`67e1cf3`, closed #377), S2 #502 (`d979110`, review `merge` 5558785350), S3 #506 (`5a4e6ff`, review `merge` 5559638736 at `258b245`: cut_views 94→85, coordinator_loc/max_class_loc 10305→10164, functions_cc_over_15 39→38, methods_over_150 21→20; earlier `blocked` 5559418212 at `341c596` cleared). **S4 (W4-G5, fetch) is a RECORDED HALT at `5a4e6ff` with no production change** (#508) — 92 of cut_fetch's 115 is other seams reading the 15 fetch-owned attrs (60) and calling into fetch (32), so the seam move is sequenced to S12/W4-G13, not banned. Do not Closes #193. Roster `.claude/workflows/wave-4-groups.json`. #225 stays closed. #412 not in this wave. Do not stamp |
+| **3L** | mid-programme leftovers, one burst | #400 #401 #404 #405 #408 #457 #460 #463 #465 | after Wave 3 | **done** — **3L-G1** #470 (`81aa0c3`). **3L-G2** #472 (`2abe2f7`). **3L-G3** #474 (`e8adfe4`) + #479 (`8ea27d4`) + #480 (`162e759`). **3L-G4** #477 (`531d8b7`). **3L-G5** #483 (`6f02b8a`) closed #408. **3L-G7** #485 (`bf08217`) closed #460. **3L-G8** #487 (`a19ba03`). **3L-G9** #489 (`b29fd1e`) closed #463. **3L-G10** #492 (`e4bc375`) closed #465. **3L-G6** (#457) never implemented: the seat returned NEEDS_CONTEXT (no production `conflict` symbol; nearest twins are read-only `setup_overview` and `reconfigure`), and the owner then closed #457 as `COMPLETED` by hand on 2026-09-06T03:40:23Z with no PR and no commits. Discharged, not blocked — do not reopen it and do not invent a backend. **W4-G6** (S5) is open as PR #529, not yet merged; next after it is W4-G7. Do not stamp. #481 leftover closed. #412 stays last of the programme |
+| 4 | the #193 decomposition programme, S0–S13 | #193 #223 #224 #225, and **#304 as S11's precursor** | one per stage | **S0–S4 done, S5 in review; next W4-G7** — S0 #497 (`c197b01`), S1 #500 (`67e1cf3`, closed #377; **corrected 2026-09-06**: the reported 138-point drop across all five cuts was `structure.py` losing sight of `getattr(self, "_ctx", self)` references S1 introduced 131 of, not decoupling — fixed by #512, S1's other results (`CoordinatorContext`, the attribute count, the facades) stand unchanged), S2 #502 (`d979110`, review `merge` 5558785350), S3 #506 (`5a4e6ff`, review `merge` 5559638736 at `258b245`: cut_views 94→85, coordinator_loc/max_class_loc 10305→10164, functions_cc_over_15 39→38, methods_over_150 21→20; earlier `blocked` 5559418212 at `341c596` cleared). **S4 (W4-G5, fetch) is a RECORDED HALT, merged as `e46fb15` (#508), with no production change** — measured then as 92 of cut_fetch's 115 being other seams reading the 15 fetch-owned attrs (60) and calling into fetch (32); **re-measured after #512**, cut_fetch is 132, not 115 (the whole +17 is fetch's own reads of attributes it does not own, previously invisible through the same idiom — see the roster note for the full recount), the other-seams-reaching-in share is unchanged in absolute count at 92, and the halt's actual basis — the judge's #193 finding that no component of size>1 detaches at any k — is untouched, so the seam move stays sequenced to S12/W4-G13, not banned. **S5 (W4-G6, dhw) is open as PR #529, not yet merged**: measures cut_dhw 194→103 (-91, -47%) and cut_learning 350→321 by moving twelve non-hot-water attributes `_init_dhw_learning` misplaced into a new `_init_thermal_learning` (learning seam). Do not Closes #193. Roster `.claude/workflows/wave-4-groups.json`. #225 stays closed. #412 not in this wave. Do not stamp |
+| R | reliability, instruments and harness — hotfixes and findings made alongside Wave 4, not wave work | #510 #511 #513 #518 closed | v6.3.16 (`#512`, `#515`); unstamped (`#517`, `#519`) | **delivered 2026-09-06** — #512 fixed `structure.py`'s cut-walk blindness to `getattr(self, "_ctx", self)`, closed #510; #515 fixed the release-critical unpickle failure (every install produced no plan), closed #511; #517 added `tests/deployment_shape.py`, closed #513; #519 consolidated the handover series into one file, closed #518. Detail below |
+| UX | the UX programme: 34 owner-selected items from a 42-item survey, 3 dropped, 2 reshaped | no single tracking issue; items land under their own numbers, e.g. #516 | — | **selected 2026-09-06, lanes not yet started** — full item accounting and the sequencing rules are `docs/HANDOVER.md`'s "The UX programme" section; not relitigated here. #516 (group the wide options pages with `section()`) is sequenced as a follow-up gated on #514 (the Python 3.13+ / HA 2025.2.0 floor that makes `section()` available) |
 | 5 | typing lane, and the coverage deficit #195 raised | #303 #195 | per tranche | pending — roster `.claude/workflows/wave-5-groups.json` prepared; **seats not started**. After Wave 4. **#304 is Wave 4**, not here. #412 not in this wave |
 | last | CI Node majors | #412 | after Wave 5 | pending — owner: last task; do not pull into 3L or Wave 4/5 |
 
 ### Wave 3L — leftovers, after Wave 3, before Wave 4
 
-Every open issue that is not already in Waves 3–5 or #201, filed after the 2026-09-03 plan cut, plus #460 (monthly savings), #463 (wood furnace economics), and #465 (Plan-page away toggle). One burst so they are not lost again, and **before** Wave 4 because #400, #408, #463 and #465 are behaviour in the DHW/optimizer/config/card region a move PR would silently revert (principle 3). Wave 3 is released (`f0866c8`); 3L-G1–G5 and 3L-G7–G10 are done (`e4bc375`). **3L-G6** (#457) shipped nothing and #457 was closed `COMPLETED` by the owner on 2026-09-06 — discharged, not blocked. Next seat **W4-G6** (S5). Do not stamp. #465 is closed. #412 stays last of the programme and is not in this burst.
+Every open issue that is not already in Waves 3–5 or #201, filed after the 2026-09-03 plan cut, plus #460 (monthly savings), #463 (wood furnace economics), and #465 (Plan-page away toggle). One burst so they are not lost again, and **before** Wave 4 because #400, #408, #463 and #465 are behaviour in the DHW/optimizer/config/card region a move PR would silently revert (principle 3). Wave 3 is released (`f0866c8`); 3L-G1–G5 and 3L-G7–G10 are done (`e4bc375`). **3L-G6** (#457) shipped nothing and #457 was closed `COMPLETED` by the owner on 2026-09-06 — discharged, not blocked. **W4-G6** (S5) is open as PR #529 (not yet merged); next after it is W4-G7. Do not stamp. #465 is closed. #412 stays last of the programme and is not in this burst.
 
 | group | issues | model | after | scope |
 |---|---|---|---|---|
@@ -80,9 +82,9 @@ Every open issue that is not already in Waves 3–5 or #201, filed after the 202
 | **3L-G9** | #463 | Grok 4.6 extra high | 3L-G8 | Plan banner, Wood lane, what-if wood slots. `Closes #463`. Same spec/plan |
 | **3L-G10** | #465 | Grok 4.6 extra high | 3L-G9 | Plan-page Away toggle and return datetime. Service-backed store; published switch and datetime; optional person/calendar. `Closes #465`. Spec/plan `docs/superpowers/{specs,plans}/2026-09-05-away-plan-toggle*.md` |
 
-Do not fold 3L into a closed Wave 3. 3L-G10 merged as #492 (`e4bc375`); #465 closed. W4-G1 #497 (`c197b01`), W4-G2 #500 (`67e1cf3`), W4-G3 #502 (`d979110`) and W4-G4 #506 (`5a4e6ff`) merged; #377 closed. W4-G5 (S4, fetch) recorded a halt with no production change (#508). Next seat W4-G6. Do not stamp or start #412 from this record.
+Do not fold 3L into a closed Wave 3. 3L-G10 merged as #492 (`e4bc375`); #465 closed. W4-G1 #497 (`c197b01`), W4-G2 #500 (`67e1cf3`), W4-G3 #502 (`d979110`) and W4-G4 #506 (`5a4e6ff`) merged; #377 closed. W4-G5 (S4, fetch) recorded a halt with no production change, merged as `e46fb15` (#508). W4-G6 (S5) is open as PR #529, not yet merged; next after it is W4-G7. Do not stamp or start #412 from this record.
 
-### Wave 4 — #193 decomposition, S0–S13 (W4-G1–G5 done; next W4-G6)
+### Wave 4 — #193 decomposition, S0–S13 (S0–S4 done, S5 open as PR #529; next W4-G7)
 
 Roster: `.claude/workflows/wave-4-groups.json`. Serial, one group per stage. Worker briefs live out of tree under `/Users/timmalmstrom/wt/briefs/w4-gN-*.md` (same convention as 3L). **#223 issue text allows parallel with coordinator moves; this table does not authorize a second lane.** Plan numbers the registry as **S11**; #193 numbers it S10 — the issue number is the stable reference. **#304 is S11's precursor** (W4-G11), not Wave 5. **#225 is closed** (triage B1) — struck in the roster, do not reopen. **#412 is not in this wave.** **#457 / 3L-G6 is not Wave 4**, and #457 is closed `COMPLETED` (2026-09-06) with nothing shipped — do not go looking for that work. S2–S8 and plan S12 have no child issue: they track #193 and must not `Closes #193`. A survey stage **halts** (record only, no invented backend) when the named seam is not extractable at this merge-base, an open PR holds the region, or a ratchet metric would rise. The `model` column names Claude seats for groups not yet started and the model that actually ran for groups already delivered — see Model routing.
 
@@ -116,6 +118,48 @@ Roster: `.claude/workflows/wave-5-groups.json`. After Wave 4. Serial. **#304 is 
 | **W5-G5** | #195 | Sonnet 5 | W5-G4 | `climate.py` / `open_meteo.py` / `frontend.py`. No coordinator |
 | **W5-G6** | #195 | Sonnet 5 | W5-G5 | `diagnosis.py` / `curve_learning.py` / `grid_fee.py` / `switch.py`. Cleanup is not this tranche |
 | **W5-G7** | #195 | Opus 5 | W5-G6 | `coordinator.py` coverage (789 missed) after #193 seams. May `Closes #195` |
+
+### Reliability, instruments and harness — delivered 2026-09-06 (not a wave)
+
+The Delivery-status table above accounts for wave stages and their records.
+It does not, on its own, account for the other kind of work this session
+produced: hotfixes, an instrument repair and a harness gap, found while
+doing something else rather than surveyed into a stage. It is not Wave 4 work
+and is not forced into that table beyond the summary row above.
+
+| PR | what | issue | state |
+|---|---|---|---|
+| #512 | `structure.py`'s cut walk matched only `ast.Attribute` on `ast.Name("self")`, so a reference through `getattr(self, "_ctx", self)` — an idiom S1 (#500) introduced 131 times — had a `Call` as its value and was invisible. The walk now resolves that idiom, the direct `self._ctx` form, and local aliases bound to either. The five cut budgets are re-recorded upward to their true values: `cut_views` 85→112, `cut_fetch` 115→132, `cut_dhw` 160→194, `cut_grid` 209→234, `cut_learning` 315→350 — they rise only because the true number was always higher; no coupling is added | #510 | merged `af47c96`, released **v6.3.16** |
+| #515 | the process-solve worker could not unpickle its job on any Home Assistant install. A solve is shipped to the child by pickling a function, and pickle records it by qualified name; under Home Assistant that name begins `custom_components.`, a path the child's search path did not resolve, so every optimization on every v6.3.15 install failed, permanently and silently. Now an unloadable job is reported rather than killing the worker, and a worker fault falls back to an in-process solve | #511 | merged `98a7574`, released **v6.3.16** |
+| #517 | `tests/deployment_shape.py` runs the integration under an installation's real module name and directory layout — the gap #513 named as the reason no test caught #511: the suite imports the package under a different name and runs with a `tests/` directory no installation has | #513 | merged `6cd2c28`, **unstamped** (lands after v6.3.16) |
+| #519 | one living `docs/HANDOVER.md` replacing the dated handover series (`docs/handover-<date>.md`), with `tests/entities.py` refusing a second dated file from re-forming | #518 | merged `b6a21f1`, **unstamped** (lands after v6.3.16) |
+
+Also filed this session and not yet scheduled into a wave: #504, #505, #509,
+#514, #516, #521, #523, #524, #527 (open). #510, #511, #513, #518 are closed
+by the fixes above, not by wave work.
+
+### The UX programme — selected 2026-09-06, not a wave
+
+Thirty-four items the owner selected from a forty-two item survey, in
+concurrent lanes (the card lane and the docs lane are named in the sequencing
+rules below; others sit under their own issue numbers as they are filed).
+Three items were dropped: a static icon override defeating `device_class`,
+config entities creating a second source of truth, and a hand-kept table of
+contents duplicating GitHub's outline. Two were reshaped so they stop being
+breaking changes: `ScheduleSensor` adds a numeric entity and deprecates
+rather than renames, and `DeviceInfo` gains `configuration_url` and a
+manufacturer with no rename.
+
+**Full accounting lives in `docs/HANDOVER.md`** ("The UX programme" section),
+not restated here per that file's own durable-vs-volatile split. Three
+sequencing rules apply once lanes start: the contrast witness runs last in
+the card lane; the drift-state lane is one pull request, not four; the docs
+lane's fifth item needs its fourth landed first.
+
+No lane has started. The one named item so far, **#516** (group the wide
+options pages with `section()`), is sequenced as a follow-up gated on
+**#514** (declare Python 3.13+, raise the Home Assistant floor to 2025.2.0
+— `section()` is absent from `helpers/selector.py` below that floor).
 
 v6.3.12 is stamped at the Wave-1b/half-I boundary as a **gate and test-hardening release** — not for the accumulated no-op merges alone, and not by waiting for a runtime fix that half I will not produce, because half I is entirely test, docs and tooling.
 
@@ -449,4 +493,4 @@ The per-group briefs are committed too, not only the wave tables above:
 `web-fix-wave.js` consumes them, cut from the same fork. They are worth reading
 before re-deriving anything, because several exist only to stop a fixer redoing
 work a judge already refuted — W1-G13 names the measured fix for #258 and the
-harness that must not be used to check it. Wave 3L is `.claude/workflows/wave-3l-groups.json`. Wave 4 is `.claude/workflows/wave-4-groups.json` (W4-G1–G5 done; next W4-G6). Wave 5 roster is prepared at `.claude/workflows/wave-5-groups.json` (seats not started).
+harness that must not be used to check it. Wave 3L is `.claude/workflows/wave-3l-groups.json`. Wave 4 is `.claude/workflows/wave-4-groups.json` (S0–S4 done, S5 open as PR #529; next W4-G7). Wave 5 roster is prepared at `.claude/workflows/wave-5-groups.json` (seats not started).

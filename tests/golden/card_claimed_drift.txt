@@ -27,3 +27,7 @@
 # #518, the handover consolidation: this branch claims NOTHING. Docs, the
 # gate's own classification of them, and tests/entities.py only -- no card
 # source is touched.
+#
+# 2026-09-06, the #201 record seat: this branch claims NOTHING. The plan doc,
+# a Wave 4 roster recount and docs/HANDOVER.md only -- no card source is
+# touched.

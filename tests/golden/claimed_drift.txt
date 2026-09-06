@@ -54,6 +54,11 @@
 # gate's own classification of them, and tests/entities.py only -- no
 # production file is touched, so every fixture is byte-identical by
 # construction.
+#
+# 2026-09-06, the #201 record seat: this branch claims NOTHING. The plan doc's
+# Delivery-status table, a Wave 4 roster recount (S1's cut drop, S4's halt
+# premise), and docs/HANDOVER.md only -- no production file is touched, so
+# every fixture is byte-identical by construction.
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
