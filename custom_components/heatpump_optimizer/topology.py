@@ -149,6 +149,43 @@ ASSIGNABLE_KEYS: dict[str, tuple[str, ...]] = {
     key: domains for key, _place, _label, domains, _class in _SLOTS
 }
 
+
+def _place_home(place: str, *, two_tank: bool) -> str:
+    """Where a slot named for ``place`` actually lives on this topology.
+
+    The "wood valve" stopped being a drawn place in v4.0.0 (#40 feedback,
+    item 3): in the two-tank layout the 4-way valve is the one physical
+    device the outlet probe sits on, and in the single-tank abstraction the
+    probe belongs with the wood tank whose blended output it measures — a
+    separate box modelled nothing and could not be removed.
+    """
+    if place == "wood_valve":
+        return "mixing_valve" if two_tank else "wood_tank"
+    return place
+
+
+#: Every place a sensor slot can be homed at, under either re-homing. A box
+#: on the setup page is a titled list of those slots, so this is also every
+#: place the diagram can draw a box for — and therefore every place a saved
+#: box position may be filed under. ``apply_topology`` validates its
+#: ``positions`` argument against it.
+#:
+#: Derived from ``_SLOTS`` rather than listed beside it, because the listed
+#: version WAS the defect (#546): ``positions`` used to be validated against
+#: ``PLACE_LABELS``, a hand-kept map of English names for the endpoints of
+#: drawn edges, which has no ``outdoor`` in it. The card sends the positions
+#: the user moved, unfiltered, so dragging the Outside box made the setup
+#: page unsaveable — and the layout change rides the same call, so nothing on
+#: the page could be saved at all. That map went with the fix: the schema was
+#: its only reader, and the card's rejection line labels places from its own
+#: translation keys. A drawn box missing from this set now needs a box that
+#: holds no slots, which ``tests/features.py`` refuses.
+POSITION_PLACES: frozenset[str] = frozenset(
+    _place_home(place, two_tank=two_tank)
+    for _key, place, _label, _domains, _class in _SLOTS
+    for two_tank in (False, True)
+)
+
 # ---------------------------------------------------------------------------
 # The layout catalog (v3.16.0, issue #40)
 # ---------------------------------------------------------------------------
@@ -220,21 +257,6 @@ LAYOUTS: dict[str, Layout] = {
         ),
     )
 }
-
-#: Human names for the places edges connect. The ``assign_place`` service
-#: validator accepts exactly these keys (the layout editor's rejection
-#: explanations live in the card, in its own mirrored copy).
-PLACE_LABELS: dict[str, str] = {
-    "heat_pump": "Heat pump",
-    "buffer_tank": "Buffer tank",
-    "mixing_valve": "Mixing valve",
-    "upper_zone": "Upper floor",
-    "lower_zone": "Lower floor",
-    "wood_tank": "Wood tank",
-    "dhw_tank": "Hot water tank",
-    "slab_shunt": "Slab shunt",
-}
-
 
 def layout_edges(
     key: str,
@@ -347,24 +369,11 @@ def describe_setup(config: dict[str, Any]) -> dict[str, Any]:
         "mixing_valve": valve,
         "wood_tank": wood,
     }
-    def placed(place: str) -> str:
-        """Where this slot actually lives on the configured topology.
-
-        The "wood valve" stopped being a drawn place in v4.0.0 (#40 feedback,
-        item 3): in the two-tank layout the 4-way valve is the one physical
-        device the outlet probe sits on, and in the single-tank abstraction
-        the probe belongs with the wood tank whose blended output it
-        measures — a separate box modelled nothing and could not be removed.
-        """
-        if place == "wood_valve":
-            return "mixing_valve" if two_tank else "wood_tank"
-        return place
-
     slots = [
         {
             "key": key,
             "label": label,
-            "place": placed(place),
+            "place": _place_home(place, two_tank=two_tank),
             "entity": config.get(key) or None,
             # Carried so the card's picker offers only what the service will
             # accept for this slot -- one list, not two that can disagree.
@@ -375,7 +384,7 @@ def describe_setup(config: dict[str, Any]) -> dict[str, Any]:
             "device_class": device_class,
         }
         for key, place, label, domains, device_class in _SLOTS
-        if present.get(placed(place), True)
+        if present.get(_place_home(place, two_tank=two_tank), True)
     ]
     # The active layout's drawn edges, composed from the catalog — the card
     # draws these rather than hardcoding pipes, so drawing and physics can

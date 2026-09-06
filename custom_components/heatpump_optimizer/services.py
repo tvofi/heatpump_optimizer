@@ -148,8 +148,11 @@ SERVICE_SCHEMA_ASSIGN_ENTITY = vol.Schema(
 # Store the layout the card's editor snapped to (v3.16.0). The schema only
 # admits selectable catalog keys — an unmodelled layout (slab_shunt) is
 # impossible by construction, not by handler vigilance. Positions are
-# cosmetic box coordinates, {place: [x, y]}; free-form edges are never
-# accepted anywhere, which is the whole design.
+# cosmetic box coordinates, {place: [x, y]}, keyed by the places the diagram
+# can draw a box for — `topology.POSITION_PLACES`, derived from the slot
+# table, because keying them off a label map is what made a dragged Outside
+# box unsaveable (#546). Free-form edges are never accepted anywhere, which
+# is the whole design.
 SERVICE_SCHEMA_APPLY_TOPOLOGY = vol.Schema(
     {
         vol.Required("layout"): vol.In(
@@ -157,7 +160,7 @@ SERVICE_SCHEMA_APPLY_TOPOLOGY = vol.Schema(
         ),
         vol.Optional("positions"): vol.Schema(
             {
-                vol.In(sorted(topology.PLACE_LABELS)): vol.All(
+                vol.In(sorted(topology.POSITION_PLACES)): vol.All(
                     [vol.Coerce(float)], vol.Length(min=2, max=2)
                 ),
             }
