@@ -3,7 +3,7 @@ import vm from "vm";
 import path from "path";
 import crypto from "crypto";
 import { fileURLToPath } from "url";
-import { makeCardContext, CLAIM_FILE, parseClaims, claimVersionError } from "./card_rig.mjs";
+import { makeCardContext, CLAIM_FILE, parseClaims, claimVersionError, frozenDateClass } from "./card_rig.mjs";
 
 // Plan payload written by tests/plan_view.py earlier in the run. The path is
 // argv[2], or HPO_PLANDATA, or a default derived from this checkout's tests/
@@ -5571,6 +5571,270 @@ const setupBox = (card, place) =>
   check("and no English band string leaks into the Swedish render",
     !/expected error/.test(svTt) && !/expected error/.test(legendOnly(sv.dump)),
     svTt);
+}
+
+// --- Scenario: DHW band display overlay (option 1 + option 3) --------------
+//
+// Card-only. Published forecast lo/hi stay the historical lead envelope;
+// the chart may replace the live sample and floor in-window lo. Collapse-
+// after-heat (option 2) is not on.
+{
+  const TANK = "sensor.heat_pump_optimizer_dhw_temperature";
+  const overlayDhwDisplay = (() => {
+    try { return fn("overlayDhwDisplay"); } catch { return null; }
+  })();
+  const stamp = (y, mo, d, h, mi = 0) => {
+    const p = (n) => String(n).padStart(2, "0");
+    return `${y}-${p(mo)}-${p(d)}T${p(h)}:${p(mi)}:00`;
+  };
+  // Thursday / Saturday in the plan_view.py week (2026-01-15 is Thursday).
+  const thu0600 = stamp(2026, 1, 15, 6, 0);
+  const thu0615 = stamp(2026, 1, 15, 6, 15);
+  const thu2030 = stamp(2026, 1, 15, 20, 30);
+  const thu2145 = stamp(2026, 1, 15, 21, 45);
+  const thu2300 = stamp(2026, 1, 15, 23, 0);
+  const sat0700 = stamp(2026, 1, 17, 7, 0);
+  const sat0800 = stamp(2026, 1, 17, 8, 0);
+  const sample = (t, temp, lo, hi, extra) => ({
+    t, dhw_temp: temp, dhw_temp_lo: lo, dhw_temp_hi: hi, ...(extra || {}),
+  });
+  const published = [
+    sample(thu0600, 53.74, 49.44, 58.04, { reason: "dhw_ready", dhw_power: 4.8 }),
+    sample(thu0615, 53.5, 49.2, 57.8, { reason: "idle", dhw_power: 0 }),
+    sample(thu2030, 45.21, 38.21, 52.21, { reason: "dhw_window", dhw_power: 2.1 }),
+    sample(thu2145, 45.2, 38.2, 52.2, { reason: "idle", dhw_power: 0 }),
+    sample(thu2300, 42.89, 34.79, 50.99, { reason: "idle", dhw_power: 0 }),
+  ];
+  const WINDOWS = "06:00-08:30, 17:00-22:00";
+  const W = 45;
+  const apply = (fc, opts) =>
+    overlayDhwDisplay ? overlayDhwDisplay(fc, opts) : null;
+  const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  const ptsOf = (c, field) => {
+    const s = c._series.find((x) => x.key === "dhw_temp");
+    return s.lines.filter((l) => l.field === field).flatMap((l) => l.points);
+  };
+  const hoverAt = (c, t) => {
+    const plot = c._plot;
+    const x = plot
+      ? plot.scaleX(t)
+      : 400;
+    c._onPointerMove({
+      clientX: x,
+      currentTarget: { getBoundingClientRect: () => ({ width: 900, left: 0 }) },
+    });
+    const tt = c.shadowRoot.querySelector(".tooltip");
+    return (tt && tt._html) || "";
+  };
+
+  check("overlayDhwDisplay is the display-layer overlay",
+    typeof overlayDhwDisplay === "function");
+
+  const noProbe = apply(published, {
+    probe: null, now: Date.parse(thu0600), windowMin: W, windowsSpec: "",
+  });
+  check("with no probe the published centres and edges are unchanged",
+    noProbe && same(noProbe, published),
+    noProbe ? JSON.stringify(noProbe[0]) : "no overlay");
+  check("and the input forecast is not mutated",
+    published[0].dhw_temp === 53.74 && published[0].dhw_temp_lo === 49.44);
+
+  const liveNow = Date.parse(thu0600);
+  const live = apply(published, {
+    probe: 50.004, now: liveNow, windowMin: W, windowsSpec: "",
+  });
+  check("a live probe replaces the first displayed centre and omits the band",
+    live && live[0].dhw_temp === 50 && live[0].t === thu0600 &&
+    live[0].dhw_temp_lo == null && live[0].dhw_temp_hi == null,
+    live ? JSON.stringify(live[0]) : "no overlay");
+  check("later published centres stay on the live overlay when there is no clip",
+    live && live[2].dhw_temp === 45.21 && live[2].dhw_temp_lo === 38.21);
+
+  const farNow = Date.parse(thu0600) + 3 * 3600 * 1000;
+  const prepended = apply(published, {
+    probe: 50, now: farNow, windowMin: W, windowsSpec: "",
+  });
+  check("a stale now prepends a display-only probe sample and leaves the first plan step",
+    prepended && prepended.length === published.length + 1 &&
+    Date.parse(prepended[0].t) === farNow &&
+    prepended[0].dhw_temp === 50 &&
+    prepended[0].dhw_temp_lo == null &&
+    prepended[1].dhw_temp === 53.74 && prepended[1].dhw_temp_lo === 49.44,
+    prepended ? JSON.stringify(prepended[0]) : "no overlay");
+
+  const unknown = apply(published, {
+    probe: null, now: liveNow, windowMin: W, windowsSpec: WINDOWS,
+  });
+  check("an unavailable probe does not invent a tank sample",
+    unknown && unknown[0].dhw_temp === 53.74 && unknown[0].t === thu0600);
+
+  const clipped = apply(published, {
+    probe: null, now: liveNow, windowMin: W, windowsSpec: WINDOWS,
+  });
+  check("an in-window heating step floors displayed lo at the window minimum",
+    clipped && clipped[2].dhw_temp_lo === 45 && clipped[2].dhw_temp_hi === 52.21 &&
+    clipped[2].dhw_temp === 45.21,
+    clipped ? JSON.stringify(clipped[2]) : "no overlay");
+  check("idle-in-window is clipped too, not only reason==dhw_window",
+    clipped && clipped[3].reason === "idle" && clipped[3].dhw_temp_lo === 45,
+    clipped ? JSON.stringify(clipped[3]) : "no overlay");
+  check("a step outside the windows keeps its published lo",
+    clipped && clipped[4].dhw_temp === 42.89 && clipped[4].dhw_temp_lo === 34.79,
+    clipped ? JSON.stringify(clipped[4]) : "no overlay");
+
+  const inverted = apply(
+    [sample(thu2030, 44.0, 38.0, 50.0, { reason: "dhw_window" })],
+    { probe: null, now: Date.parse(thu2030), windowMin: W, windowsSpec: WINDOWS },
+  );
+  check("a centre below the window minimum is not inverted by the clip",
+    inverted && inverted[0].dhw_temp === 44.0 && inverted[0].dhw_temp_lo === 38.0);
+
+  const noWin = apply(published, {
+    probe: null, now: liveNow, windowMin: W, windowsSpec: "",
+  });
+  check("empty windows do not clip",
+    noWin && noWin[2].dhw_temp_lo === 38.21);
+
+  const liveClipped = apply(published, {
+    probe: 50, now: liveNow, windowMin: W, windowsSpec: WINDOWS,
+  });
+  check("the clip does not put a band back on the probe sample",
+    liveClipped && liveClipped[0].dhw_temp === 50 &&
+    liveClipped[0].dhw_temp_lo == null && liveClipped[0].dhw_temp_hi == null);
+
+  const weekly = "weekdays 06:00-08:30, weekend 08:00-09:30";
+  const satIn = apply(
+    [sample(sat0800, 46.0, 38.0, 54.0, { reason: "idle" })],
+    { probe: null, now: Date.parse(sat0800), windowMin: W, windowsSpec: weekly },
+  );
+  const satOut = apply(
+    [sample(sat0700, 46.0, 38.0, 54.0, { reason: "idle" })],
+    { probe: null, now: Date.parse(sat0700), windowMin: W, windowsSpec: weekly },
+  );
+  check("a Saturday hour inside the weekend window is clipped",
+    satIn && satIn[0].dhw_temp_lo === 45, satIn && JSON.stringify(satIn[0]));
+  check("a Saturday hour inside the weekday window is not clipped",
+    satOut && satOut[0].dhw_temp_lo === 38.0, satOut && JSON.stringify(satOut[0]));
+
+  const night = [sample(stamp(2026, 1, 15, 3, 0), 46.0, 38.0, 54.0)];
+  const always = apply(night, {
+    probe: null, now: Date.parse(night[0].t), windowMin: W, windowsSpec: "always",
+  });
+  const fullDay = apply(night, {
+    probe: null, now: Date.parse(night[0].t), windowMin: W, windowsSpec: "00:00-24:00",
+  });
+  check("a full-day window clips the whole horizon",
+    always && always[0].dhw_temp_lo === 45 &&
+    fullDay && fullDay[0].dhw_temp_lo === 45,
+    always && JSON.stringify(always[0]));
+
+  // Option 2 is off: a later step must keep the published half-width, not
+  // a re-clock from the last qualifying heat.
+  const afterHeat = apply(published, {
+    probe: null, now: liveNow, windowMin: W, windowsSpec: "",
+  });
+  check("collapse-after-heat is not applied: later published σ stays",
+    afterHeat && afterHeat[4].dhw_temp_lo === 34.79 &&
+    afterHeat[4].dhw_temp_hi === 50.99);
+
+  const savedDate = ctx.Date;
+  const firstT = Date.parse(plan.dhw_plan.forecast[0].t);
+  const firstPub = plan.dhw_plan.forecast[0];
+  const mkLive = (tankState, at, extra) => {
+    ctx.Date = frozenDateClass(Date, at);
+    const states = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    if (extra) Object.assign(states[DEFAULT_DHW].attributes, extra);
+    if (tankState !== undefined) {
+      states[TANK] = tankState;
+    }
+    const c = new Card();
+    c.setConfig({ type: "custom:heatpump-optimizer-card" });
+    c.hass = { states };
+    c.legend.hidden = {};
+    c.hass = { states };
+    return c;
+  };
+
+  const noSensor = mkLive(undefined, firstT);
+  const firstPlotted = ptsOf(noSensor, "dhw_temp")[0];
+  check("without a tank sensor the first plotted sample is the published first point",
+    firstPlotted && firstPlotted.v === firstPub.dhw_temp,
+    firstPlotted && `${firstPlotted.v} vs published ${firstPub.dhw_temp}`);
+
+  const liveCard = mkLive({ state: "50.0", attributes: {} }, firstT);
+  const livePts = ptsOf(liveCard, "dhw_temp");
+  const liveLo = ptsOf(liveCard, "dhw_temp_lo");
+  const liveHi = ptsOf(liveCard, "dhw_temp_hi");
+  check("with a live tank sensor the first displayed sample is the probe",
+    livePts[0] && livePts[0].v === 50,
+    livePts[0] && String(livePts[0].v));
+  check("and that probe sample has no dashed extras",
+    liveLo.every((q) => q.t !== livePts[0].t) &&
+    liveHi.every((q) => q.t !== livePts[0].t),
+    `${liveLo.filter((q) => livePts[0] && q.t === livePts[0].t).length} lo extras`);
+  const liveTt = hoverAt(liveCard, livePts[0].t);
+  check("the tooltip at the probe sample has no expected-error row",
+    /DHW tank temperature: 50/.test(liveTt) && !/expected error/.test(liveTt),
+    liveTt);
+  check("the published HA forecast is not rewritten by the overlay",
+    liveCard.hass.states[DEFAULT_DHW].attributes.forecast[0].dhw_temp ===
+      firstPub.dhw_temp &&
+    liveCard.hass.states[DEFAULT_DHW].attributes.forecast[0].dhw_temp_lo ===
+      firstPub.dhw_temp_lo);
+
+  const dead = mkLive({ state: "unavailable", attributes: {} }, firstT);
+  check("an unavailable tank sensor leaves the published first point on the chart",
+    ptsOf(dead, "dhw_temp")[0].v === firstPub.dhw_temp);
+
+  const unknownSt = mkLive({ state: "unknown", attributes: {} }, firstT);
+  check("an unknown tank sensor leaves the published first point on the chart",
+    ptsOf(unknownSt, "dhw_temp")[0].v === firstPub.dhw_temp);
+
+  if (savedDate === undefined) delete ctx.Date;
+  else ctx.Date = savedDate;
+  const hourOf = (iso) => {
+    const d = new Date(Date.parse(iso));
+    return d.getHours() + d.getMinutes() / 60;
+  };
+  const clockIn = (iso) => {
+    const h = hourOf(iso);
+    return (h >= 6 && h < 8.5) || (h >= 17 && h < 22);
+  };
+  const winStates = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  winStates[DEFAULT_DHW].attributes.dhw_windows = WINDOWS;
+  const winCard = (() => {
+    const c = new Card();
+    c.setConfig({ type: "custom:heatpump-optimizer-card" });
+    c.hass = { states: winStates };
+    c.legend.hidden = {};
+    c.hass = { states: winStates };
+    return c;
+  })();
+  const winLoAt = new Map(ptsOf(winCard, "dhw_temp_lo").map((q) => [q.t, q.v]));
+  const winMidAt = new Map(ptsOf(winCard, "dhw_temp").map((q) => [q.t, q.v]));
+  const inWinPub = plan.dhw_plan.forecast.filter(
+    (p) => clockIn(p.t) && p.dhw_temp >= W && p.dhw_temp_lo != null &&
+      winLoAt.has(Date.parse(p.t)));
+  const outWinPub = plan.dhw_plan.forecast.filter(
+    (p) => !clockIn(p.t) && p.dhw_temp_lo != null &&
+      winLoAt.has(Date.parse(p.t)));
+  check("the card floors every in-window plotted lo at the window minimum",
+    inWinPub.length > 0 && inWinPub.every((p) => {
+      const lo = winLoAt.get(Date.parse(p.t));
+      const mid = winMidAt.get(Date.parse(p.t));
+      return lo >= W && lo <= mid;
+    }),
+    `${inWinPub.length} in-window plotted steps`);
+  check("and a step outside the windows keeps its published lo on the card",
+    outWinPub.length > 0 && outWinPub.every((p) =>
+      winLoAt.get(Date.parse(p.t)) === p.dhw_temp_lo),
+    `${outWinPub.length} outside-window plotted steps`);
+  check("the floored-band legend names the window-minimum floor",
+    /floored at the window minimum|window minimum/.test(
+      (collect(winCard.shadowRoot).join("\n").match(
+        /data-key="dhw_temp" title="[^"]*"/) || [""])[0]),
+    (collect(winCard.shadowRoot).join("\n").match(
+      /data-key="dhw_temp" title="[^"]*"/) || [""])[0]);
 }
 
 
