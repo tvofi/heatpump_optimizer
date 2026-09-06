@@ -82,6 +82,18 @@ set -u
 
 cd "$(dirname "$0")/.."
 
+# When an agent holds the gate lease, flock-wrap this run so a crash releases
+# immediately (#404). The lease itself is renewed before every script below.
+if [ -n "${HPO_GATE_LOCK_LABEL:-}" ] && [ "${HPO_GATE_FLOCK_CHILD:-}" != 1 ]; then
+  PYTHON_WRAP="${PYTHON:-}"
+  if [ -z "$PYTHON_WRAP" ]; then
+    if [ -x .venv/bin/python ]; then PYTHON_WRAP=.venv/bin/python; else PYTHON_WRAP=python3; fi
+  fi
+  export HPO_GATE_FLOCK_CHILD=1
+  exec "$PYTHON_WRAP" tests/gate_lock.py flock-wrap \
+    --label "$HPO_GATE_LOCK_LABEL" -- "$0" "$@"
+fi
+
 PYTHON="${PYTHON:-}"
 if [ -z "$PYTHON" ]; then
   if [ -x .venv/bin/python ]; then PYTHON=.venv/bin/python; else PYTHON=python3; fi
@@ -179,6 +191,9 @@ scope_reason() {
 # incremented in there would never come back.
 run() {
   local scoped_out
+  if [ -n "${HPO_GATE_LOCK_LABEL:-}" ]; then
+    "$PYTHON" tests/gate_lock.py renew --label "$HPO_GATE_LOCK_LABEL"
+  fi
   if ! in_scope "$@"; then
     scoped_out=$(scope_script "$@")
     skip "$scoped_out" \
@@ -247,6 +262,8 @@ for f in tests/*.py tests/*.mjs; do
     # The scoping instrument, not a test: it RUNS the tests to measure what
     # they touch. Wiring it into the suite would make the suite run itself.
     closure.py) continue ;;
+    # Gate-lock helper (#404): agents invoke it directly; not a suite test.
+    gate_lock.py) continue ;;
     # Run by features.py in a subprocess: HASTUB_TZ must be set before the
     # dt stub is imported, which an in-process import cannot arrange.
     dst_checks.py) continue ;;
@@ -413,7 +430,7 @@ done
 for f in tests/*.py tests/*.mjs; do
   base=$(basename "$f")
   case "$base" in
-    harness.py|profiles.py|dst_checks.py|closure.py|dom_stub.mjs|card_rig.mjs|card_browser.mjs) continue ;;
+    harness.py|profiles.py|dst_checks.py|closure.py|gate_lock.py|dom_stub.mjs|card_rig.mjs|card_browser.mjs) continue ;;
   esac
   if ! cat "$WORKDIR"/*.manifest 2>/dev/null | grep -Fq "tests/$base"; then
     echo "TEST NEVER RAN: tests/$base is wired into tests/run.sh but no lane"
