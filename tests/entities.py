@@ -1111,6 +1111,30 @@ R.check(
     and SOLVE_FAILURE_ISSUE_COUNT == coordinator_module.SOLVE_FAILURE_ISSUE_COUNT
     and house_loss_confidence is coordinator_module.house_loss_confidence,
 )
+# S2 of #193: zero-state series / headroom / plan math at existing
+# coordinator.py module level. Pins AST location (module FunctionDef,
+# not a class method). `_plan_slots` stays on the class (helper cc>15).
+R.section("S2 zero-state helpers at module level (#193)")
+_s2_mod_fns = {
+    n.name
+    for n in _s1_tree.body
+    if isinstance(n, _ast_s1.FunctionDef)
+}
+_s2_cls_fns = {
+    n.name
+    for n in _s1_cls.body
+    if isinstance(n, (_ast_s1.FunctionDef, _ast_s1.AsyncFunctionDef))
+}
+R.check(
+    "_liquid_fraction is a module-level FunctionDef, not a class method",
+    "_liquid_fraction" in _s2_mod_fns and "_liquid_fraction" not in _s2_cls_fns,
+    f"module={'_liquid_fraction' in _s2_mod_fns} class={'_liquid_fraction' in _s2_cls_fns}",
+)
+R.check(
+    "_solve_anchor is a module-level FunctionDef, not a class method",
+    "_solve_anchor" in _s2_mod_fns and "_solve_anchor" not in _s2_cls_fns,
+    f"module={'_solve_anchor' in _s2_mod_fns} class={'_solve_anchor' in _s2_cls_fns}",
+)
 
 # The premise, stated in production's own terms: with nothing sensing the
 # tank, the buffer or the lower floor, what gets published IS the dataclass

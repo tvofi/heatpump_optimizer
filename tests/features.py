@@ -10924,7 +10924,7 @@ R.check(
 )
 
 # #30's arithmetic, now a named helper with its own numbers.
-_lf = _Coord._liquid_fraction
+from heatpump_optimizer.coordinator import _liquid_fraction as _lf
 R.check(
     "the liquid fraction: all snow is 0, all rain is 1, dry is 1",
     float(_lf(np.array([1.0]), np.array([0.7]))[0]) == 0.0
@@ -22790,7 +22790,7 @@ async def _g9_fake_await(hass, optimizer, state, *positional, **keywords):
 
 
 _g9_now = dt_util.now().replace(minute=0, second=0, microsecond=0)
-_g9_anchor = _g9_coord._solve_anchor(_g9_now)
+_g9_anchor = _coord_mod._solve_anchor(_g9_now)
 _g9_slot = {
     "start": (_g9_anchor + _g9_td(hours=1)).isoformat(),
     "end": (_g9_anchor + _g9_td(hours=3)).isoformat(),

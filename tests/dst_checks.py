@@ -23,6 +23,7 @@ from homeassistant.util import dt as dt_util
 from heatpump_optimizer.coordinator import (
     FORECAST_STEP_MINUTES,
     HeatPumpOptimizerCoordinator,
+    _solve_anchor,
     _utc_step_starts,
 )
 from heatpump_optimizer.manual_plan import ManualOverride, PIN_ON
@@ -66,7 +67,7 @@ dt_util.freeze(FROZEN)
 _data = {"tibber_token": "x", "weather_entity": "weather.home"}
 coord = HeatPumpOptimizerCoordinator(FakeHass(), FakeEntry(data=_data))
 
-anchor = coord._solve_anchor(dt_util.now())
+anchor = _solve_anchor(dt_util.now())
 R.check(
     "12:07:33 floors to 12:00:00 with tz and date intact",
     anchor == datetime(2026, 8, 26, 12, 0, tzinfo=STHLM)
@@ -75,7 +76,7 @@ R.check(
 )
 R.check(
     "a boundary instant is its own anchor",
-    coord._solve_anchor(datetime(2026, 8, 26, 12, 45, tzinfo=STHLM))
+    _solve_anchor(datetime(2026, 8, 26, 12, 45, tzinfo=STHLM))
     == datetime(2026, 8, 26, 12, 45, tzinfo=STHLM),
 )
 
@@ -482,7 +483,7 @@ def _plan_on(day: datetime):
         np.asarray(arrays.wind_speeds),
         np.asarray(arrays.precipitation),
         np.asarray(arrays.solar_radiation),
-        c._solve_anchor(now),
+        _solve_anchor(now),
     )
     dt_util.freeze(None)
     return res
