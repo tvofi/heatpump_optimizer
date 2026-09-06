@@ -8266,8 +8266,10 @@ _AFJ = "closures-autofix"
 R.check(
     "a closures autofix that attempted a repair and failed reddens its job",
     _closure.autofix_repair_failed(_AFJ, "skip-merge-failed")
-    and _closure.autofix_repair_failed(_AFJ, "skip-still-fails"),
-    "the merge was refused, or the merged list still under-approximates",
+    and _closure.autofix_repair_failed(_AFJ, "skip-still-fails")
+    and _closure.autofix_repair_failed(_AFJ, "skip-failed-recording"),
+    "the merge was refused, the merged list still under-approximates, or a "
+    "recording failed and the merge would refuse it",
 )
 # check() said fail, then said pass, over identical bytes. Either check is
 # not deterministic or merge reported success without writing the repair;
@@ -8324,7 +8326,8 @@ _ac_returns = _returned_statuses(_env_drift.apply_inherited_claims)
 R.check(
     "every status the two apply functions return is classified here",
     _af_returns == {"changed", "skip-clean", "skip-not-under-scoped",
-                    "skip-merge-failed", "skip-still-fails", "skip-unchanged"}
+                    "skip-failed-recording", "skip-merge-failed",
+                    "skip-still-fails", "skip-unchanged"}
     and _ac_returns == {"changed", "skip-not-inherited"},
     f"closures={sorted(_af_returns)} claims={sorted(_ac_returns)}",
 )

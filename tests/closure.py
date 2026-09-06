@@ -1073,6 +1073,20 @@ AUTOFIX_QUIET = {
     "claims-autofix": ("changed", "skip-not-allowed", "skip-not-inherited"),
 }
 
+# Keyed by status where the job-wide remedy would misdirect. A failed
+# recording is not repaired by re-deriving: the script stopped early, so its
+# recorded closure is truncated, and re-deriving it here would record the same
+# truncation.
+_AUTOFIX_STATUS_REMEDY = {
+    "skip-failed-recording":
+        "A script exited non-zero WHILE being recorded, so its closure is only\n"
+        "what it reached before stopping -- and merging that would under-scope\n"
+        "the gate, which is why the merge refuses it. The under-approximation\n"
+        "this job was going to repair is real and still unrepaired.\n"
+        "Fix the failing script first; the closures job re-records on the next\n"
+        "push and this repair then happens on its own.\n",
+}
+
 _AUTOFIX_REMEDY = {
     "closures-autofix":
         "Re-derive the failing script yourself and commit tests/closures.json:\n"
@@ -1106,7 +1120,7 @@ def autofix_report(job: str, status: str) -> tuple[int, str]:
         "the case `.cursor/rules/ci-autofix.mdc` already lists as a human\n"
         "judgment call, and its rule against re-recording an UNDER-SCOPED\n"
         "yourself does not apply once the bot has reported that it did not.\n"
-        + _AUTOFIX_REMEDY.get(job, ""))
+        + _AUTOFIX_STATUS_REMEDY.get(status, _AUTOFIX_REMEDY.get(job, "")))
 
 
 def _autofix_report_cmd(job: str, status: str) -> int:
@@ -1124,8 +1138,9 @@ def apply_under_scoped_recordings(in_dir: Path, *, partial: bool = True) -> str:
     """Merge recordings into CLOSURES only when check printed UNDER-SCOPED.
 
     Returns one of: changed, skip-clean, skip-not-under-scoped,
-    skip-merge-failed, skip-still-fails, skip-unchanged. Restores the
-    previous closures.json text unless the status is changed.
+    skip-failed-recording, skip-merge-failed, skip-still-fails,
+    skip-unchanged. Restores the previous closures.json text unless the
+    status is changed.
     """
     in_dir = Path(in_dir)
     prev = CLOSURES.read_text() if CLOSURES.exists() else None
@@ -1141,9 +1156,6 @@ def apply_under_scoped_recordings(in_dir: Path, *, partial: bool = True) -> str:
         records = [json.loads(p.read_text()) for p in sorted(in_dir.glob("*.json"))]
     except (json.JSONDecodeError, OSError):
         return "skip-merge-failed"
-    if any(r.get("rc", 0) != 0 for r in records):
-        return "skip-not-under-scoped"
-
     out, err = io.StringIO(), io.StringIO()
     try:
         with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
@@ -1154,6 +1166,16 @@ def apply_under_scoped_recordings(in_dir: Path, *, partial: bool = True) -> str:
         return "skip-clean"
     if "UNDER-SCOPED" not in out.getvalue() + err.getvalue():
         return "skip-not-under-scoped"
+    # Only now, because `closures-autofix` runs on ANY `closures` failure and
+    # a failed recording is common to several of them. Reddening it before the
+    # test above would fire on every no-copies, NOT-A-FILE or INERT failure
+    # that happened to coincide with one, and send its reader to re-derive a
+    # closure that was never stale. Past this line UNDER-SCOPED was printed,
+    # so a repair IS owed -- and `merge(allow_failures=False)` below would
+    # refuse these records anyway, as `skip-merge-failed`. This says which
+    # refusal it was, and keeps it loud (#523).
+    if any(r.get("rc", 0) != 0 for r in records):
+        return "skip-failed-recording"
 
     try:
         with contextlib.redirect_stdout(io.StringIO()), \
