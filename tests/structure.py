@@ -636,6 +636,74 @@ def table_maxima(monsters: list, cc_scores: list) -> tuple[int, int]:
     )
 
 
+# The coordinator reaches its own state by three spellings that all resolve to
+# the same object -- ``self.X``; ``getattr(self, "_ctx", self).X``, #500's
+# migration idiom, whose fallback IS ``self``; and ``self._ctx.X`` -- and any
+# of them may be bound to a local first. An extraction has to make every one
+# of them explicit, so the cut has to price every one of them (#510).
+STATE_CONTEXT_ATTR = "_ctx"
+
+
+def _is_context_getattr(node: ast.AST) -> bool:
+    """``getattr(self, "_ctx", self)`` -- self-rooted by its own default."""
+    return (
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "getattr"
+        and not node.keywords
+        and len(node.args) == 3
+        and all(
+            isinstance(arg, ast.Name) and arg.id == "self"
+            for arg in (node.args[0], node.args[2])
+        )
+        and isinstance(node.args[1], ast.Constant)
+        and node.args[1].value == STATE_CONTEXT_ATTR
+    )
+
+
+def _is_context_hop(node: ast.AST) -> bool:
+    """A ``self._ctx`` read: the state ``self`` reaches, one hop out."""
+    return (
+        isinstance(node, ast.Attribute)
+        and node.attr == STATE_CONTEXT_ATTR
+        and isinstance(node.value, ast.Name)
+        and node.value.id == "self"
+        and isinstance(node.ctx, ast.Load)
+    )
+
+
+def is_state_root(node: ast.AST, aliases: frozenset[str]) -> bool:
+    """Does ``node`` evaluate to the coordinator's own state?"""
+    if isinstance(node, ast.Name):
+        return node.id == "self" or node.id in aliases
+    return _is_context_getattr(node) or _is_context_hop(node)
+
+
+def state_root_bindings(fn: ast.AST) -> tuple[frozenset[str], frozenset[int]]:
+    """The locals this method binds to its own state, and the hops to discount.
+
+    A ``self._ctx`` that something is read THROUGH is a hop, not a reference.
+    Charging the hop rather than what lies beyond it costs the same in total
+    but books every read against ``_ctx``, whose owner is core, so a seam pays
+    for reaching state it owns itself. A ``self._ctx`` nothing is read through
+    -- handed to a helper, returned -- stays a reference, or passing the
+    context out would erase its reads for free: the ``_helper(self, ...)``
+    move W4-G4 already refused, for the same reason.
+    """
+    aliases: set[str] = set()
+    hops: set[int] = set()
+    for node in ast.walk(fn):
+        if isinstance(node, ast.Attribute) and _is_context_hop(node.value):
+            hops.add(id(node.value))
+        elif isinstance(node, ast.Assign) and is_state_root(node.value, frozenset()):
+            aliases.update(t.id for t in node.targets if isinstance(t, ast.Name))
+            hops.add(id(node.value))
+        elif isinstance(node, ast.NamedExpr) and is_state_root(node.value, frozenset()):
+            aliases.add(node.target.id)
+            hops.add(id(node.value))
+    return frozenset(aliases), frozenset(hops)
+
+
 def seam_metrics(coord_class: ast.ClassDef) -> dict:
     """The coordinator's seam partition: cut costs, call edges, per-seam rows.
 
@@ -662,11 +730,16 @@ def seam_metrics(coord_class: ast.ClassDef) -> dict:
     call_edges = Counter()                                # (caller bucket, callee bucket) -> occurrences
     for name, fn in methods.items():
         bucket = buckets[name]
+        aliases, hops = state_root_bindings(fn)
         for node in ast.walk(fn):
+            # The call-edge arm below stays keyed on a literal ``self``: no
+            # ctx-rooted reference in coordinator.py names a coordinator
+            # method, and widening it would move internal_call_edges and
+            # cross_seam_fraction, which this change must not touch.
             if (
                 isinstance(node, ast.Attribute)
-                and isinstance(node.value, ast.Name)
-                and node.value.id == "self"
+                and id(node) not in hops
+                and is_state_root(node.value, aliases)
                 and node.attr not in methods
             ):
                 attr_refs[node.attr][bucket] += 1
