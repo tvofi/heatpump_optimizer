@@ -521,3 +521,98 @@ jobs:
         env:
           PYTHONPATH: tests/hastub
         run: python tests/closure.py no-copies
+
+      - name: Upload closure recordings
+        # Autofix needs the recordings even when the check above failed.
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: closure-recordings
+          path: ${{ runner.temp }}/closures
+          if-no-files-found: ignore
+          retention-days: 3
+
+  # Same-repo PR only: the closures job already re-recorded under strace.
+  # If check printed UNDER-SCOPED, merge those recordings and push. Not a
+  # coding agent -- Linux CI already paid the derive. Does not push on
+  # no-copies, a failed recording, an INERT contradiction, or its own
+  # follow-up commit (`ci: re-record closures`).
+  #
+  # github.token can push but will not re-trigger Tests. Set repo secret
+  # CLOSURES_PUSH_TOKEN (PAT: repo + workflow) so the repaired tree is
+  # actually re-checked.
+  closures-autofix:
+    needs: [closures]
+    if: >-
+      always()
+      && github.event_name == 'pull_request'
+      && needs.closures.result == 'failure'
+      && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          token: ${{ secrets.CLOSURES_PUSH_TOKEN || github.token }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Download closure recordings
+        uses: actions/download-artifact@v4
+        with:
+          name: closure-recordings
+          path: ${{ runner.temp }}/closures
+
+      - name: Merge UNDER-SCOPED recordings
+        id: autofix
+        env:
+          PYTHONPATH: tests/hastub
+          EVENT_NAME: ${{ github.event_name }}
+          CLOSURES_RESULT: ${{ needs.closures.result }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          export SUBJECT=$(git log -1 --pretty=%s)
+          python - <<'PY'
+          import os, sys
+          sys.path.insert(0, "tests")
+          import closure
+          allowed = closure.autofix_allowed(
+              event_name=os.environ["EVENT_NAME"],
+              closures_result=os.environ["CLOSURES_RESULT"],
+              head_repo=os.environ["HEAD_REPO"],
+              repo=os.environ["REPO"],
+              commit_subject=os.environ["SUBJECT"],
+          )
+          print(f"allowed={allowed}")
+          if not allowed:
+              status = "skip-not-allowed"
+          else:
+              status = closure.apply_under_scoped_recordings(
+                  os.environ["RUNNER_TEMP"] + "/closures", partial=True)
+          print(f"AUTOFIX: {status}")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
+              fh.write(f"status={status}\n")
+          PY
+
+      - name: Push the merged closures
+        if: steps.autofix.outputs.status == 'changed'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tests/closures.json
+          git diff --cached --quiet && {
+            echo "closures.json unchanged after apply; not pushing"
+            exit 0
+          }
+          git commit -m "ci: re-record closures"
+          git push
+          if [ -z "${{ secrets.CLOSURES_PUSH_TOKEN }}" ]; then
+            echo "::notice::Pushed with github.token; GitHub will not re-trigger Tests. Set CLOSURES_PUSH_TOKEN so the repaired tree is re-checked."
+          fi

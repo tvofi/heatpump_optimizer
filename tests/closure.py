@@ -32,6 +32,8 @@ Commands
   record <script> --out-dir DIR   run one script instrumented, write its record
   merge  --in-dir DIR             fold records into tests/closures.json
   check  --in-dir DIR [--partial] fail if the committed closures under-approximate
+  autofix --in-dir DIR [--partial] [--out PATH]
+                                  merge UNDER-SCOPED recordings; print AUTOFIX: <status>
   select --files ... | --diff REF decide which scripts a change needs
                  [--workdir DIR]  ...and write the plan where run.sh reads it
   affected --files ... | --diff REF | --files-from FILE
@@ -45,6 +47,8 @@ from __future__ import annotations
 
 import argparse
 import ast
+import contextlib
+import io
 import json
 import os
 import platform
@@ -686,7 +690,10 @@ def merge(in_dir: Path, out: Path, allow_failures: bool = False,
                 return 1
             closures[k] = fresh
             if k in records:
-                recorded[k] = {"seconds": records[k]["seconds"], "rc": records[k]["rc"]}
+                recorded[k] = {
+                    "seconds": records[k].get("seconds", 0),
+                    "rc": records[k]["rc"],
+                }
         payload["closures"] = closures
         out.write_text(json.dumps(payload, indent=1) + "\n")
         print(f"closure: updated {len(touched)} closure(s) in {out}")
@@ -941,6 +948,91 @@ def check(in_dir: Path, partial: bool = False) -> int:
               f"tests/derive_closures.sh and commit tests/closures.json.")
         return 1
     print("closure: committed closures cover every file this run touched")
+    return 0
+
+
+def autofix_allowed(*, event_name: str, closures_result: str,
+                    head_repo: str, repo: str, commit_subject: str) -> bool:
+    """True only for a failed same-repo PR closures job that is not our push."""
+    return (
+        event_name == "pull_request"
+        and closures_result == "failure"
+        and head_repo == repo
+        and commit_subject != "ci: re-record closures"
+    )
+
+
+def apply_under_scoped_recordings(in_dir: Path, *, partial: bool = True) -> str:
+    """Merge recordings into CLOSURES only when check printed UNDER-SCOPED.
+
+    Returns one of: changed, skip-clean, skip-not-under-scoped,
+    skip-merge-failed, skip-still-fails, skip-unchanged. Restores the
+    previous closures.json text unless the status is changed.
+    """
+    in_dir = Path(in_dir)
+    prev = CLOSURES.read_text() if CLOSURES.exists() else None
+
+    def _restore() -> None:
+        if prev is None:
+            if CLOSURES.exists():
+                CLOSURES.unlink()
+        else:
+            CLOSURES.write_text(prev)
+
+    try:
+        records = [json.loads(p.read_text()) for p in sorted(in_dir.glob("*.json"))]
+    except (json.JSONDecodeError, OSError):
+        return "skip-merge-failed"
+    if any(r.get("rc", 0) != 0 for r in records):
+        return "skip-not-under-scoped"
+
+    out, err = io.StringIO(), io.StringIO()
+    try:
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            rc = check(in_dir, partial=partial)
+    except (KeyError, TypeError, json.JSONDecodeError, OSError):
+        return "skip-merge-failed"
+    if rc == 0:
+        return "skip-clean"
+    if "UNDER-SCOPED" not in out.getvalue() + err.getvalue():
+        return "skip-not-under-scoped"
+
+    try:
+        with contextlib.redirect_stdout(io.StringIO()), \
+                contextlib.redirect_stderr(io.StringIO()):
+            mrc = merge(in_dir, CLOSURES, allow_failures=False, partial=partial)
+    except (KeyError, TypeError, json.JSONDecodeError, OSError):
+        _restore()
+        return "skip-merge-failed"
+    if mrc != 0:
+        _restore()
+        return "skip-merge-failed"
+
+    out2, err2 = io.StringIO(), io.StringIO()
+    try:
+        with contextlib.redirect_stdout(out2), contextlib.redirect_stderr(err2):
+            rc2 = check(in_dir, partial=partial)
+    except (KeyError, TypeError, json.JSONDecodeError, OSError):
+        _restore()
+        return "skip-still-fails"
+    if rc2 != 0:
+        _restore()
+        return "skip-still-fails"
+    new = CLOSURES.read_text() if CLOSURES.exists() else None
+    if new == prev:
+        return "skip-unchanged"
+    return "changed"
+
+
+def _autofix_cmd(in_dir: Path, out: Path, partial: bool) -> int:
+    global CLOSURES
+    orig = CLOSURES
+    CLOSURES = out
+    try:
+        status = apply_under_scoped_recordings(in_dir, partial=partial)
+    finally:
+        CLOSURES = orig
+    print(f"AUTOFIX: {status}")
     return 0
 
 
@@ -1284,6 +1376,10 @@ def main() -> int:
     m.add_argument("--partial", action="store_true")
     c = sub.add_parser("check"); c.add_argument("--in-dir", required=True)
     c.add_argument("--partial", action="store_true")
+    af = sub.add_parser("autofix")
+    af.add_argument("--in-dir", required=True)
+    af.add_argument("--partial", action="store_true")
+    af.add_argument("--out", default=str(CLOSURES))
     s = sub.add_parser("select")
     s.add_argument("--files", nargs="*"); s.add_argument("--diff")
     s.add_argument("--json", action="store_true")
@@ -1306,6 +1402,8 @@ def main() -> int:
                       partial=a.partial)
     if a.cmd == "check":
         return check(Path(a.in_dir), a.partial)
+    if a.cmd == "autofix":
+        return _autofix_cmd(Path(a.in_dir), Path(a.out), a.partial)
     if a.cmd == "no-copies":
         return no_copies()
     if a.cmd == "show":

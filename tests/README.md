@@ -252,6 +252,15 @@ the unscoped run after the merge, on `main`, actually re-derives and checks
 it. PR #386's `closures` check showed exactly that skip; it looked like a
 clean verification and was zero re-derivation work.
 
+If that same-repo PR's `closures` job fails with `UNDER-SCOPED`,
+`closures-autofix` merges the recordings the failed job already took into
+`tests/closures.json` and pushes `ci: re-record closures`. It does not
+re-run the derive, and it does not push on no-copies, a failed recording,
+an INERT contradiction, or its own follow-up commit. The default
+`GITHUB_TOKEN` can push that commit but GitHub will not re-trigger Tests;
+set repo secret `CLOSURES_PUSH_TOKEN` (PAT with `repo` and `workflow`) so
+the repaired tree is actually re-checked.
+
 If you have changed what a test reaches — new fixture, new import, a script
 that starts reading a file it did not before — regenerate and commit:
 

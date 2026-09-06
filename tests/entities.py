@@ -7692,6 +7692,169 @@ R.check(
     _closure.affected([])["case"] == "full",
     "'no changed files could be determined' must fail closed",
 )
+# PR `closures` already records under strace (`--record-only`). Autofix
+# merges those recordings into tests/closures.json and pushes; it must
+# not run on main, forks, a green check, or its own follow-up commit.
+_AF_KW = dict(
+    event_name="pull_request", closures_result="failure",
+    head_repo="tvofi/heatpump_optimizer", repo="tvofi/heatpump_optimizer",
+    commit_subject="3L-G10: away toggle",
+)
+R.check(
+    "a failed same-repo PR closures job may autofix",
+    _closure.autofix_allowed(**_AF_KW),
+    "the #495-shaped UNDER-SCOPED case is what this exists for",
+)
+R.check(
+    "autofix does not run on a push to main",
+    not _closure.autofix_allowed(**{**_AF_KW, "event_name": "push"}),
+    "main's closures job is the auditor, not a rewriter",
+)
+R.check(
+    "autofix does not run on a fork PR",
+    not _closure.autofix_allowed(
+        **{**_AF_KW, "head_repo": "outsider/heatpump_optimizer"}),
+    "a fork has no write access to the head repo via this token",
+)
+R.check(
+    "autofix does not run when closures passed",
+    not _closure.autofix_allowed(**{**_AF_KW, "closures_result": "success"}),
+    "a green check has nothing to merge",
+)
+R.check(
+    "autofix does not loop on its own commit",
+    not _closure.autofix_allowed(
+        **{**_AF_KW, "commit_subject": "ci: re-record closures"}),
+    "one push per failure; a still-red check is not under-scope",
+)
+# Apply: a recording that names one extra file is the UNDER-SCOPED case.
+# Merge it, then check must pass, and the committed list must grow.
+with _tempfile.TemporaryDirectory() as _af_td:
+    _af_root = Path(_af_td)
+    _af_script = "tests/open_meteo.py"
+    _af_committed = {
+        "closures": {_af_script: [_af_script, "tests/harness.py"]},
+        "recorded": {},
+    }
+    _af_closures = _af_root / "closures.json"
+    _af_closures.write_text(json.dumps(_af_committed))
+    _af_rec_dir = _af_root / "rec"
+    _af_rec_dir.mkdir()
+    (_af_rec_dir / "open_meteo.json").write_text(json.dumps({
+        "script": _af_script, "rc": 0,
+        "files": [_af_script, "tests/harness.py", "tests/run.sh"],
+    }))
+    _af_orig, _closure.CLOSURES = _closure.CLOSURES, _af_closures
+    try:
+        _af_status = _closure.apply_under_scoped_recordings(
+            _af_rec_dir, partial=True)
+        _af_after = json.loads(_af_closures.read_text())["closures"][_af_script]
+    finally:
+        _closure.CLOSURES = _af_orig
+R.check(
+    "UNDER-SCOPED recordings merge into the committed closure",
+    _af_status == "changed" and "tests/run.sh" in _af_after,
+    f"status={_af_status} files={_af_after}",
+)
+with _tempfile.TemporaryDirectory() as _af2_td:
+    _af2_root = Path(_af2_td)
+    _af2_script = "tests/open_meteo.py"
+    _af2_list = [_af2_script, "tests/harness.py", "tests/run.sh"]
+    _af2_closures = _af2_root / "closures.json"
+    _af2_closures.write_text(json.dumps(
+        {"closures": {_af2_script: _af2_list}, "recorded": {}}))
+    _af2_rec = _af2_root / "rec"
+    _af2_rec.mkdir()
+    (_af2_rec / "open_meteo.json").write_text(json.dumps({
+        "script": _af2_script, "rc": 0, "files": _af2_list,
+    }))
+    _af2_orig, _closure.CLOSURES = _closure.CLOSURES, _af2_closures
+    try:
+        _af2_status = _closure.apply_under_scoped_recordings(
+            _af2_rec, partial=True)
+    finally:
+        _closure.CLOSURES = _af2_orig
+R.check(
+    "a recording that matches the committed list is not an autofix",
+    _af2_status == "skip-clean",
+    f"status={_af2_status}: merging a matching record would loop",
+)
+with _tempfile.TemporaryDirectory() as _af3_td:
+    _af3_root = Path(_af3_td)
+    _af3_closures = _af3_root / "closures.json"
+    _af3_before = json.dumps({
+        "closures": {"tests/open_meteo.py": ["tests/open_meteo.py"]},
+        "recorded": {},
+    })
+    _af3_closures.write_text(_af3_before)
+    _af3_rec = _af3_root / "rec"
+    _af3_rec.mkdir()
+    (_af3_rec / "open_meteo.json").write_text(json.dumps({
+        "script": "tests/open_meteo.py", "rc": 1,
+        "files": ["tests/open_meteo.py"],
+    }))
+    _af3_orig, _closure.CLOSURES = _closure.CLOSURES, _af3_closures
+    try:
+        _af3_status = _closure.apply_under_scoped_recordings(
+            _af3_rec, partial=True)
+        _af3_after = _af3_closures.read_text()
+    finally:
+        _closure.CLOSURES = _af3_orig
+R.check(
+    "a failed recording does not rewrite closures.json",
+    _af3_status == "skip-not-under-scoped" and _af3_after == _af3_before,
+    f"status={_af3_status}: no-copies / failed-record must not push",
+)
+with _tempfile.TemporaryDirectory() as _af4_td:
+    _af4_root = Path(_af4_td)
+    _af4_closures = _af4_root / "closures.json"
+    _af4_before = json.dumps({
+        "closures": {"tests/open_meteo.py": ["tests/open_meteo.py"]},
+        "recorded": {},
+    })
+    _af4_closures.write_text(_af4_before)
+    _af4_rec = _af4_root / "rec"
+    _af4_rec.mkdir()
+    (_af4_rec / "bad.json").write_text("{")
+    _af4_orig, _closure.CLOSURES = _closure.CLOSURES, _af4_closures
+    try:
+        _af4_status = _closure.apply_under_scoped_recordings(
+            _af4_rec, partial=True)
+        _af4_after = _af4_closures.read_text()
+    finally:
+        _closure.CLOSURES = _af4_orig
+R.check(
+    "unreadable recordings do not rewrite closures.json",
+    _af4_status == "skip-merge-failed" and _af4_after == _af4_before,
+    f"status={_af4_status}",
+)
+with _tempfile.TemporaryDirectory() as _af5_td:
+    _af5_root = Path(_af5_td)
+    _af5_script = "tests/open_meteo.py"
+    _af5_closures = _af5_root / "closures.json"
+    _af5_before = json.dumps({
+        "closures": {_af5_script: [_af5_script]},
+        "recorded": {},
+    })
+    _af5_closures.write_text(_af5_before)
+    _af5_rec = _af5_root / "rec"
+    _af5_rec.mkdir()
+    (_af5_rec / "open_meteo.json").write_text(json.dumps({
+        "script": _af5_script, "rc": 0,
+        "files": [_af5_script, "LICENSE"],
+    }))
+    _af5_orig, _closure.CLOSURES = _closure.CLOSURES, _af5_closures
+    try:
+        _af5_status = _closure.apply_under_scoped_recordings(
+            _af5_rec, partial=True)
+        _af5_after = _af5_closures.read_text()
+    finally:
+        _closure.CLOSURES = _af5_orig
+R.check(
+    "a merge that still fails check is restored, not pushed",
+    _af5_status == "skip-still-fails" and _af5_after == _af5_before,
+    f"status={_af5_status}",
+)
 # A script another script drives in a subprocess reaches the table only
 # through its driver's fold, and --single cannot record it.
 R.check(
