@@ -1,12 +1,12 @@
 {
   "_comment": [
     "Wave 3L of the open-issues programme (docs/plan-2026-09-open-issues.md).",
-    "Leftovers after Wave 3, before Wave 4. Serial. 3L-G7 done (bf08217); 3L-G6 spec-blocked (#457).",
+    "Leftovers after Wave 3, before Wave 4. Serial. 3L-G8 done (a19ba03); 3L-G6 spec-blocked (#457).",
     "#412 stays last of the programme, not in this burst.",
     "Consumed by .claude/workflows/web-fix-wave.js as its `groups` argument."
   ],
-  "fork": "bf08217dc4ffc49a93668e138240d7e9fa36b0a7",
-  "fork_note": "origin/main after 3L-G7 #485 (`bf08217`). Re-measure structure at this merge-base. coordinator_loc 10370. claims-for stays 6.3.15.",
+  "fork": "a19ba032349c8b779e057b36083acc5e72d0dcab",
+  "fork_note": "origin/main after 3L-G8 #487 (`a19ba03`). Re-measure structure at this merge-base. coordinator_loc 10370. claims-for stays 6.3.15. #463 stays open.",
   "session": "claude-web",
   "repo": "/Users/timmalmstrom/heatpump_optimizer",
   "serial": true,
@@ -133,9 +133,10 @@
       "fixture": false,
       "after": ["3L-G7"],
       "resume": {
-        "stage": "in_progress",
-        "branch": "cursor/3l-g8-wood-fuel-3c04",
-        "note": "Next seat after #485. Tasks 1–4 only. Does not close #463. claims-for 6.3.15. coordinator_loc ceiling 10370."
+        "stage": "done",
+        "merged_pr": 487,
+        "merge_sha": "a19ba032349c8b779e057b36083acc5e72d0dcab",
+        "note": "Review merge 5557257980 at 4cfb124. Mutation 3 FAIL + md5 2be697d732876d4e4457693225702911. env_drift vs a5b1c06 NO UNCLAIMED DRIFT 55; config_flow + five coord_* claimed. card_drift 28 identical. coordinator_loc 10370. #463 stays open. Next seat 3L-G9."
       },
       "brief": "Wood-furnace toggle, firewood price, cheaper-than-pump sensor (#463). Does not close the issue. Spec docs/superpowers/specs/2026-09-05-wood-furnace-economics-design.md. Plan docs/superpowers/plans/2026-09-05-wood-furnace-economics.md. After 3L-G7, before Wave 4."
     },
@@ -147,6 +148,10 @@
       "effort": "high",
       "fixture": false,
       "after": ["3L-G8"],
+      "resume": {
+        "stage": "in_progress",
+        "note": "Next seat after #487 (`a19ba03`). Banner, Wood lane, what-if. Closes #463 on its own line. claims-for 6.3.15. coordinator_loc ceiling 10370."
+      },
       "brief": "Plan banner, Wood lane, what-if wood slots (#463). Closes #463 on its own line. Same spec and plan as 3L-G8."
     },
     {

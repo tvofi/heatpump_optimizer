@@ -47,15 +47,10 @@
 #
 # claims-for: 6.3.15
 #
-# 3L-G8 #463: additive wood_fuel payload and Building-page schema.
-# Not G7's savings_months or Savings-tab card claims.
-
-config_flow # Building wood-furnace toggle; detection left Learning (#463)
-coord_all_features # additive wood_fuel.* (#463)
-coord_dhw # additive wood_fuel.* (#463)
-coord_grid_fee # additive wood_fuel.* (#463)
-coord_minimal # additive wood_fuel.* (#463)
-coord_two_zone # additive wood_fuel.* (#463)
+# Record of #487: this commit claims NOTHING. Roster and Delivery-status
+# only. #487's config_flow + five coord_* wood_fuel claims live on a19ba03
+# and describe that diff; carrying them forward is the inherited-claims
+# rule above.
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
