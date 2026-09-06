@@ -47,14 +47,9 @@
 #
 # claims-for: 6.3.15
 #
-# 3L-G10 #465: additive away override keys. Card/UI only besides that.
-
-coord_minimal # additive away override keys
-coord_dhw # additive away override keys
-coord_two_zone # additive away override keys
-coord_grid_fee # additive away override keys
-coord_all_features # additive away override keys
-config_flow # slim Away page; drop helper fields
+# Record of #492: this commit claims NOTHING. Roster and Delivery-status
+# only. #492's coord_* / config_flow claims live on that squash and
+# describe that diff.
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum

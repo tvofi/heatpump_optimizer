@@ -21,10 +21,6 @@
 #
 # claims-for: 6.3.15
 #
-# 3L-G10 #465: Plan-page Away strip. New states only vs #494's empty list.
-# DHW whatif_edited / whatif_weekly live on the #490 squash and this
-# diff does not move them. G9 wood states are not re-claimed.
-
-away_toggle # expanded Plan Away toggle when the switch exists (#465)
-away_return # return datetime when the away switch is on (#465)
-away_status # person-away status line while the switch is off (#465)
+# Record of #492: this commit claims NOTHING. Card markup is unchanged
+# vs e4bc375; #492's away_toggle / away_return / away_status claims live
+# on that squash and describe that diff.
