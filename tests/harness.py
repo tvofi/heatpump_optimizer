@@ -12,6 +12,7 @@ runners in one directory would be worse than a small amount of duplication.
 """
 from __future__ import annotations
 
+import os
 import sys
 from datetime import datetime, timedelta, timezone
 
@@ -445,3 +446,15 @@ class CapturingOptimizer:
 
     def get_current_action(self, result, now):
         return self._inner.get_current_action(result, now)
+
+
+class ProcessProbeOptimizer:
+    """An ``optimize`` the solve worker can actually unpickle (#511).
+
+    ``_worker_env`` puts ``tests/`` on the child's ``PYTHONPATH`` precisely so
+    a test job can be resolved there; a stub in a script's ``__main__`` cannot
+    be, which is what makes it the negative case rather than this.
+    """
+
+    def optimize(self, state, *positional, **keywords):
+        return (os.getpid(), state)

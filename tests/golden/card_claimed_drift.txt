@@ -19,8 +19,10 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 6.3.15
+# claims-for: 6.3.16
 #
 # #521, the real-Home-Assistant nightly: this branch claims NOTHING. A new
-# test script, its classification and a workflow job -- no card source is
-# touched.
+# test script, its two classification entries and one workflow job -- no
+# production file is touched, so every fixture is byte-identical by
+# construction.
+#

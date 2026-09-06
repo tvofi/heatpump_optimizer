@@ -45,12 +45,13 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 6.3.15
+# claims-for: 6.3.16
 #
 # #521, the real-Home-Assistant nightly: this branch claims NOTHING. A new
-# test script, its two classification entries and the workflow job only -- no
+# test script, its two classification entries and one workflow job -- no
 # production file is touched, so every fixture is byte-identical by
 # construction.
+#
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum

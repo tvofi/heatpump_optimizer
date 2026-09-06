@@ -758,13 +758,33 @@ TIBBER_PRICE_QUERY = """
 _PROCESS_LOCK = threading.Lock()
 _PROCESS_WORKER: subprocess.Popen | None = None
 _PROCESS_ATEXIT = False
+_WORKER_FALLBACK_CAUSE: str | None = None
+
+
+class ProcessWorkerUnavailable(RuntimeError):
+    """The process route could not carry the job: spawn, transport or unpickle.
+
+    Distinct from an error the job itself raised, which comes back as
+    ``("err", ...)`` and belongs to the caller. Only this one may degrade to
+    an in-process solve (#511).
+    """
 
 
 def _worker_env() -> dict[str, str]:
-    """Make ``heatpump_optimizer`` importable in the child, tests or HA."""
+    """Make the package importable in the child under BOTH of its names.
+
+    Home Assistant loads the integration as
+    ``custom_components.heatpump_optimizer``, and pickle ships a module-level
+    function by qualified NAME, so that spelling has to resolve in the child
+    as well as the bare ``heatpump_optimizer`` the test suite uses. Exporting
+    only the package's parent left every real install unable to unpickle any
+    job at all (#511).
+    """
     env = os.environ.copy()
     here = Path(__file__).resolve().parent
-    extra = [str(here.parent)]
+    # here.parent is <config>/custom_components; here.parent.parent is
+    # <config> under Home Assistant, and the repository root under test.
+    extra = [str(here.parent), str(here.parent.parent)]
     tests_dir = here.parent.parent / "tests"
     if tests_dir.is_dir():
         extra.append(str(tests_dir))
@@ -820,15 +840,27 @@ def _run_in_process(fn, args):
         worker = _ensure_worker()
         stdin, stdout = worker.stdin, worker.stdout
         if stdin is None or stdout is None:
-            raise RuntimeError("process worker pipes missing")
-        pickle.dump((fn, args), stdin, protocol=pickle.HIGHEST_PROTOCOL)
-        stdin.flush()
+            raise ProcessWorkerUnavailable("process worker pipes missing")
         try:
+            pickle.dump((fn, args), stdin, protocol=pickle.HIGHEST_PROTOCOL)
+            stdin.flush()
             status, payload = pickle.load(stdout)
-        except (EOFError, BrokenPipeError) as err:
+        except Exception as err:  # noqa: BLE001 - transport, never the job
             rc = worker.poll()
             _PROCESS_WORKER = None
-            raise RuntimeError(f"process worker exited rc={rc}") from err
+            raise ProcessWorkerUnavailable(
+                f"process worker exited rc={rc}: {err}"
+            ) from err
+        if status == "load-err":
+            # The child could not unpickle the job (#511) and has ended its
+            # loop, so it must not be handed the next one -- reusing it races
+            # the exit and reports "rc=0: Ran out of input" instead of the
+            # cause. The job never ran: this is the worker being unusable,
+            # not the caller's error.
+            _PROCESS_WORKER = None
+            raise ProcessWorkerUnavailable(
+                f"process worker cannot load the job: {payload}"
+            )
     if status == "err":
         raise payload
     return payload
@@ -839,11 +871,66 @@ async def _await_process(hass, fn, *args):
     return await hass.async_add_executor_job(_run_in_process, fn, args)
 
 
-async def _await_optimize(hass, optimizer, state, *positional, **keywords):
-    """Submit ``optimizer.optimize`` through the process pool (#199 #290)."""
-    return await _await_process(
-        hass, optimize_in_process, optimizer, state, positional, keywords
+def _note_worker_fallback(hass, err) -> None:
+    """Say that the plan came from the slow route, and why (#511).
+
+    Silence here is what let a worker that could unpickle nothing ship in
+    v6.3.15. The warning repeats every cycle because the log is where the
+    cause is read; the notice is raised once per distinct cause so its
+    timestamp still says when the failures started, as ``solve_failures`` does.
+    """
+    global _WORKER_FALLBACK_CAUSE
+    cause = f"{type(err).__name__}: {err}"
+    _LOGGER.warning(
+        "Process-solve worker unusable (%s); solving in this process instead. "
+        "The plan is correct, but the solve holds the GIL (#199 #290 #511).",
+        cause,
     )
+    if _WORKER_FALLBACK_CAUSE == cause:
+        return
+    _WORKER_FALLBACK_CAUSE = cause
+    ir.async_create_issue(
+        hass,
+        DOMAIN,
+        "solve_worker_fallback",
+        is_fixable=False,
+        # Persistent: a worker that cannot start is a property of the install,
+        # so the notice must survive the restart that does not fix it.
+        is_persistent=True,
+        severity=ir.IssueSeverity.WARNING,
+        translation_key="solve_worker_fallback",
+        translation_placeholders={"cause": cause},
+    )
+
+
+def _clear_worker_fallback(hass) -> None:
+    """The process route carried a solve again; withdraw the notice."""
+    global _WORKER_FALLBACK_CAUSE
+    if _WORKER_FALLBACK_CAUSE is None:
+        return
+    _WORKER_FALLBACK_CAUSE = None
+    ir.async_delete_issue(hass, DOMAIN, "solve_worker_fallback")
+
+
+async def _await_optimize(hass, optimizer, state, *positional, **keywords):
+    """Submit ``optimizer.optimize`` through the process pool (#199 #290).
+
+    A worker that cannot carry the job degrades to an in-process solve rather
+    than to no plan (#511). That re-acquires the GIL the process route exists
+    to escape, which is the accepted trade -- a slow plan beats none -- and it
+    is never silent, or this class of fault ships again.
+    """
+    try:
+        result = await _await_process(
+            hass, optimize_in_process, optimizer, state, positional, keywords
+        )
+    except ProcessWorkerUnavailable as err:
+        _note_worker_fallback(hass, err)
+        return await hass.async_add_executor_job(
+            optimize_in_process, optimizer, state, positional, keywords
+        )
+    _clear_worker_fallback(hass)
+    return result
 
 
 def _diagnose_payload(coord) -> tuple:
