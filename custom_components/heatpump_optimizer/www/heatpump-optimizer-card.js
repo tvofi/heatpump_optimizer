@@ -96,6 +96,10 @@ const STRINGS = {
     "series.dhw_band_note":
       "Dashed: the model's expected error, which widens further ahead. " +
       "Absent until there is enough history.",
+    "series.dhw_band_note_floored":
+      "Dashed: the model's expected error, which widens further ahead. " +
+      "Inside a demand window the lower edge is floored at the window minimum. " +
+      "Absent until there is enough history.",
 
     // chart / plan annotations
     "plan.now": "now",
@@ -497,6 +501,10 @@ const STRINGS = {
     "series.dhw_band_note":
       "Streckat: modellens förväntade fel, som växer längre fram i " +
       "tiden. Visas först när det finns tillräckligt med historik.",
+    "series.dhw_band_note_floored":
+      "Streckat: modellens förväntade fel, som växer längre fram i " +
+      "tiden. Inne i ett behovsfönster ligger undre kanten på fönstrets minimum. " +
+      "Visas först när det finns tillräckligt med historik.",
 
     "plan.now": "nu",
     "plan.estimated_prices": "uppskattade priser",
@@ -1738,6 +1746,137 @@ function formatWindows(windows) {
       return `${days}${w.start}-${w.end}`;
     })
     .join(", ");
+}
+
+/** Display-only window list. `"always"` is a full-day horizon; anything
+ * `parseWindows` cannot read is no guaranteed clock window. `24:00` stays
+ * 24.0 — do not fold it to midnight here. */
+function displayWindows(spec) {
+  if (typeof spec !== "string") return [];
+  const raw = spec.trim();
+  if (!raw) return [];
+  if (raw.toLowerCase() === "always") {
+    return [{ days: "daily", start: "00:00", end: "24:00" }];
+  }
+  return parseWindows(raw);
+}
+
+function hhmmToHour(value) {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(String(value).trim());
+  if (!m) return null;
+  return Number(m[1]) + Number(m[2]) / 60;
+}
+
+/** Monday-first weekday indices for a `parseWindows` day selector. */
+function daysNamed(selector) {
+  const t = String(selector || "").trim().toLowerCase();
+  if (!t || t === "daily" || t === "everyday" || t === "all") {
+    return [0, 1, 2, 3, 4, 5, 6];
+  }
+  if (t === "weekdays") return [0, 1, 2, 3, 4];
+  if (t === "weekend" || t === "weekends") return [5, 6];
+  const compact = t.replace(/\s+/g, "");
+  const tokens = DAY_TOKENS;
+  if (!/^[a-z]{2}(?:[-,][a-z]{2})*$/.test(compact)) return [];
+  const hyphen = compact.split("-");
+  if (hyphen.length === 2 && hyphen[0].length === 2 && hyphen[1].length === 2) {
+    const lo = tokens.indexOf(hyphen[0]);
+    const hi = tokens.indexOf(hyphen[1]);
+    if (lo < 0 || hi < 0) return [];
+    const span = ((hi - lo) % 7 + 7) % 7 + 1;
+    return Array.from({ length: span }, (_, k) => (lo + k) % 7)
+      .sort((a, b) => a - b);
+  }
+  const days = [];
+  for (const part of compact.split(",")) {
+    const i = tokens.indexOf(part);
+    if (i < 0) return [];
+    days.push(i);
+  }
+  return [...new Set(days)].sort((a, b) => a - b);
+}
+
+function hourInRange(h, start, end) {
+  if (start < end) {
+    if (start <= h && h < end) return true;
+    return end >= 24 && h >= start;
+  }
+  if (start > end) return h >= start || h < end;
+  return start === 0;
+}
+
+function clockInDemandWindow(t, windows) {
+  if (!windows || !windows.length) return false;
+  const ms = typeof t === "number" ? t : Date.parse(t);
+  if (!Number.isFinite(ms)) return false;
+  const d = new Date(ms);
+  const h = d.getHours() + d.getMinutes() / 60 + d.getSeconds() / 3600;
+  const mon = d.getDay() === 0 ? 6 : d.getDay() - 1;
+  for (const w of windows) {
+    if (!daysNamed(w.days).includes(mon)) continue;
+    const start = hhmmToHour(w.start);
+    const end = hhmmToHour(w.end);
+    if (start == null || end == null) continue;
+    if (hourInRange(h, start, end)) return true;
+  }
+  return false;
+}
+
+function forecastStepMs(fc) {
+  if (fc && fc.length >= 2) {
+    const a = Date.parse(fc[0].t);
+    const b = Date.parse(fc[1].t);
+    if (Number.isFinite(a) && Number.isFinite(b) && b > a) return b - a;
+  }
+  return 15 * 60 * 1000;
+}
+
+function finiteProbe(probe) {
+  if (probe === null || probe === undefined || probe === "") return null;
+  const v = Number(probe);
+  return Number.isFinite(v) ? v : null;
+}
+
+/** Display-only DHW overlay: true σ(0) at the probe, then clip in-window
+ * `lo` to the guaranteed-window min. Does not mutate `dhwFc`. Option 2
+ * (collapse-after-heat) is not applied. */
+function overlayDhwDisplay(dhwFc, opts = {}) {
+  const out = (Array.isArray(dhwFc) ? dhwFc : []).map((p) => ({ ...p }));
+  const probe = finiteProbe(opts.probe);
+  const now = Number(opts.now);
+  if (probe != null && Number.isFinite(now)) {
+    const centre = Math.round(probe * 100) / 100;
+    const step = forecastStepMs(out);
+    const firstT = out.length ? Date.parse(out[0].t) : NaN;
+    const live = Number.isFinite(firstT) && Math.abs(now - firstT) <= step;
+    if (live) {
+      out[0] = {
+        ...out[0],
+        dhw_temp: centre,
+        dhw_temp_lo: null,
+        dhw_temp_hi: null,
+      };
+    } else {
+      out.unshift({
+        t: new Date(now).toISOString(),
+        dhw_temp: centre,
+        dhw_temp_lo: null,
+        dhw_temp_hi: null,
+      });
+    }
+  }
+  const W = Number(opts.windowMin);
+  const windows = displayWindows(opts.windowsSpec);
+  if (windows.length && Number.isFinite(W)) {
+    for (const p of out) {
+      if (p.dhw_temp_lo == null || p.dhw_temp == null || p.dhw_temp < W) {
+        continue;
+      }
+      if (!clockInDemandWindow(p.t, windows)) continue;
+      p.dhw_temp_lo = Math.max(p.dhw_temp_lo, W);
+    }
+  }
+  return out;
 }
 
 /** The day selector's options: the three named sets, plus the window's own
@@ -3489,7 +3628,10 @@ function lineNote(def, line) {
     line &&
     (line.field === band.lo || line.field === band.hi)
   ) {
-    return L(band.noteKey);
+    const key = def.dhwBandFloored
+      ? "series.dhw_band_note_floored"
+      : band.noteKey;
+    return L(key);
   }
   return "";
 }
@@ -3533,9 +3675,14 @@ function lineLabel(def, line, isLowerModelled) {
  */
 function bandRow(s, t, unit) {
   if (!s.band) return [];
-  const lo = nearestPoint(s, s.band.lo, t);
-  const hi = nearestPoint(s, s.band.hi, t);
-  if (!lo || !hi || lo.t !== hi.t) return [];
+  // Anchor to the tank sample the tooltip is reading. A probe overlay
+  // omits extras at that t; snapping the dashes to the next step would
+  // put a forecast envelope on a measurement.
+  const mid = nearestPoint(s, s.field, t);
+  if (!mid) return [];
+  const lo = nearestPoint(s, s.band.lo, mid.t);
+  const hi = nearestPoint(s, s.band.hi, mid.t);
+  if (!lo || !hi || lo.t !== mid.t || hi.t !== mid.t) return [];
   return [
     {
       color: s.color,
@@ -5113,7 +5260,7 @@ class Legend {
       // explains itself, a dashed pair hugging the tank curve does not, and
       // this title is now the one place a puzzled reader can look.
       const notes = extras
-        .map((line) => lineNote(def, line))
+        .map((line) => lineNote(s || def, line))
         .filter(Boolean)
         .map((note) => " " + note)
         .join("");
@@ -9614,12 +9761,27 @@ class HeatpumpOptimizerCard extends HTMLElement {
     const cfg = this._config;
     const plan = this.plan;
     const spFc = plan.forecast(plan.resolveEntity("space")) || [];
-    const dhwFc = plan.forecast(plan.resolveEntity("dhw")) || [];
+    const rawDhw = plan.forecast(plan.resolveEntity("dhw")) || [];
     // The irradiance sensor publishes its own horizon. Its timestamps are
     // already interval *starts* — `_solar_forecast_view` converts Open-Meteo's
     // end-of-interval stamps on the way out — so they must not be shifted again.
     const solarFc = plan.forecast(plan.resolveEntity("solar")) || [];
-    const dw = defaultWindow(spFc, dhwFc, cfg.hours, Date.now());
+    // Window from the published series, then overlay. Prepending at wall-clock
+    // now before this would drop a historical fixture out of [now, now+hours].
+    const dw = defaultWindow(spFc, rawDhw, cfg.hours, Date.now());
+    const dhwSt = plan.stateOf(plan.resolveEntity("dhw"));
+    const dhwAttrs = (dhwSt && dhwSt.attributes) || {};
+    const windowsSpec =
+      typeof dhwAttrs.dhw_windows_spec === "string" &&
+      dhwAttrs.dhw_windows_spec.trim()
+        ? dhwAttrs.dhw_windows_spec
+        : dhwAttrs.dhw_windows;
+    const dhwFc = overlayDhwDisplay(rawDhw, {
+      probe: plan.statNumber("_dhw_temperature"),
+      now: Date.now(),
+      windowMin: plan.attr("dhw_min_temperature", DHW_MIN_FALLBACK),
+      windowsSpec,
+    });
     // `_applyView` narrows the default window to whatever the user has
     // panned or zoomed to, and is a no-op until they touch a control -- so
     // the untouched card renders exactly as before. Filtering then happens
@@ -9627,13 +9789,18 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // to what is actually on screen. Still a host seam because the tests
     // call `_buildSeries()` for exactly this side effect.
     const view = this.view.apply(dw.start, dw.end, dw.dataEnd);
-    return buildSeries({
+    const built = buildSeries({
       spFc, dhwFc, solarFc,
       windowStart: view.start,
       windowEnd: view.end,
       hidden: this.legend.hidden,
       zoomed: this.view.zoomed,
     });
+    if (displayWindows(windowsSpec).length) {
+      const s = built.series.find((x) => x.key === "dhw_temp");
+      if (s) s.dhwBandFloored = true;
+    }
+    return built;
   }
 
 }

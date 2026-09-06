@@ -44,11 +44,19 @@ reads *Lower floor (modelled)* when no sensor measures it.
 
 The **DHW tank temperature**'s dashed lines are the **prediction's expected
 error** — how far the tank curve has historically been out at that distance
-ahead. The band is `dhw_temp` ∓ the average error the model has actually made
-for a promise that far in advance, so it widens the further into the plan you
-look. It is absent entirely until there is history to draw it from: a fresh
-install, or a house with no tank temperature sensor configured, publishes no
-band rather than a zero-width one, and the card draws only the solid curve.
+ahead. The published band is `dhw_temp` ∓ the average error the model has
+actually made for a promise that far in advance, so it widens the further into
+the plan you look. It is absent entirely until there is history to draw it
+from: a fresh install, or a house with no tank temperature sensor configured,
+publishes no band rather than a zero-width one.
+
+The card then overlays two display-only rules, without rewriting the plan
+sensor: when the live tank sensor is available, the first visible sample is
+that reading with no envelope (there is no σ(0) in the record; the table's
+nearest bucket is 1 h); and inside a configured demand window the lower dashed
+edge is floored at the window minimum so the band cannot read as missing a
+window the plan just guaranteed. Outside the windows the published lower edge
+is left alone. A planned heat is not treated as a new measurement.
 
 Unlike the two floors, the band's two edges are **one** thing. They are named
 once — *Hot water, expected error* — in the tank chip's hover text, and they
