@@ -47,9 +47,11 @@
 #
 # claims-for: 6.3.15
 #
-# #510, the instrument fix: this branch claims NOTHING. tests/structure.py
-# and tests/structure_budgets.json only -- no production file is touched, so
-# every fixture is byte-identical by construction.
+# The #511 hotfix: this branch claims NOTHING. It repairs how a solve job
+# reaches the worker interpreter -- the child's PYTHONPATH, how the worker
+# reports a job it cannot load, and an in-process fallback that does not
+# engage while the worker is healthy. No model, cost term or solver input
+# changes, so every fixture is expected byte-identical.
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
