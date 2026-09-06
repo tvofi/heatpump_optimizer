@@ -568,6 +568,16 @@ CONF_SOLAR_UPPER_FRACTION: Final = "solar_upper_fraction"  # fraction going to u
 CONF_DHW_TANK_VOLUME: Final = "dhw_tank_volume"  # liters
 CONF_DHW_SETPOINT: Final = "dhw_setpoint"  # °C
 CONF_DHW_MIN_TEMP: Final = "dhw_min_temperature"  # °C
+# Optional live set-point entities (#408). Unset by default so an existing
+# entry is byte-inert. The DHW slot is a number/input_number/climate the
+# pump exposes; the space slot is the same shape, plus a unit declaration
+# because CONF_MIXING_VALVE_TARGET is an indoor target and a flow entity
+# pointed at it would command ~21 °C to hardware expecting 35–45 °C.
+CONF_DHW_SETPOINT_ENTITY: Final = "dhw_setpoint_entity"
+CONF_SPACE_SETPOINT_ENTITY: Final = "space_setpoint_entity"
+CONF_SPACE_SETPOINT_UNIT: Final = "space_setpoint_unit"
+SPACE_SETPOINT_UNITS: Final = ("indoor", "flow")
+DEFAULT_SPACE_SETPOINT_UNIT: Final = "indoor"
 CONF_DHW_DAILY_CONSUMPTION: Final = "dhw_daily_consumption"  # liters/day
 # How fast the tank cools when nothing is drawn, expressed at a reference
 # condition so it stays meaningful regardless of tank size. Self-learned at
