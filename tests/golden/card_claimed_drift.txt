@@ -21,6 +21,6 @@
 #
 # claims-for: 6.3.15
 #
-# Record of #485: this commit claims NOTHING. #460's expanded-dialog
-# Savings-tab claims live on bf08217 and describe that diff.
+# Record of #487: this commit claims NOTHING. Card markup is unchanged
+# vs a19ba03; #487 listed no card claims.
 
