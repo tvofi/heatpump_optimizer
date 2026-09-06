@@ -33,7 +33,11 @@
 # #509, the diagnostics privacy fix: this branch claims NOTHING. No card
 # source is touched; diagnostics.py is loaded by Home Assistant for
 # `Download diagnostics` and is not on any path that renders the card.
-
+#
+# #523 (an autofix job that reported success without repairing): this
+# branch claims NOTHING. Gate plumbing and CI only -- no card source is
+# touched.
+#
 # #546, the unsaveable setup page: this branch claims NOTHING. The card's
-# only edit is a comment above its own PLACE_LABELS; no box, position or
-# payload key is touched, so every rendered state is byte-identical.
+# only edit is a comment above its own PLACE_LABELS map; no box, position
+# or payload key is touched, so every rendered state is byte-identical.
