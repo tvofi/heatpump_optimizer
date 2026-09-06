@@ -9,6 +9,29 @@ run_optimization:
     fewer than four electricity price steps are available, or the solve
     failed — instead of returning as if a new plan had been computed.
 
+set_away:
+  name: Set Away
+  description: >-
+    Turn the Plan-page away override on or off, and optionally set or clear
+    the expected return time. At least one field is required. Turning the
+    override off also clears the return time.
+  fields:
+    active:
+      name: Away
+      description: Turn the override on or off. Omit to leave on/off unchanged.
+      example: true
+      selector:
+        boolean:
+    return_time:
+      name: Expected return
+      description: >-
+        ISO datetime, or empty to clear. Omit to leave the stored time.
+        Setting a time while the override is off stores it without turning
+        away on.
+      example: "2026-09-06T18:00:00"
+      selector:
+        text:
+
 set_mode:
   name: Set Optimizer Mode
   description: >-

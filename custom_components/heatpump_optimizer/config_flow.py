@@ -302,12 +302,10 @@ from .const import (
     DEFAULT_PV_PEAK_KW,
     DEFAULT_PV_EFFICIENCY,
     DEFAULT_PV_EXPORT_PRICE,
-    CONF_AWAY_ENABLED,
     CONF_AWAY_PRESENCE_ENTITY,
     CONF_AWAY_RETURN_ENTITY,
     CONF_AWAY_TEMPERATURE,
     CONF_AWAY_DHW_MIN_TEMP,
-    DEFAULT_AWAY_ENABLED,
     DEFAULT_AWAY_TEMPERATURE,
     DEFAULT_AWAY_DHW_MIN_TEMP,
     CONF_SYSID_ENABLED,
@@ -3146,9 +3144,8 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         """Deep setback while the house is empty, with timed recovery."""
         if user_input is not None:
             cleaned = dict(user_input)
-            for key in (CONF_AWAY_PRESENCE_ENTITY, CONF_AWAY_RETURN_ENTITY):
-                if not cleaned.get(key):
-                    cleaned[key] = None
+            if not cleaned.get(CONF_AWAY_PRESENCE_ENTITY):
+                cleaned[CONF_AWAY_PRESENCE_ENTITY] = None
             return await self._save_or_menu(cleaned)
 
         current = self._current
@@ -3163,12 +3160,9 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
             step_id="away",
             data_schema=_options_schema(
                 {
-                    vol.Optional(
-                        CONF_AWAY_ENABLED,
-                        default=current.get(CONF_AWAY_ENABLED, DEFAULT_AWAY_ENABLED),
-                    ): bool,
-                    _entity(CONF_AWAY_PRESENCE_ENTITY): _entity_of([ "input_boolean", "person", "device_tracker", "calendar", "binary_sensor", ]),
-                    _entity(CONF_AWAY_RETURN_ENTITY): _entity_of(["input_datetime", "sensor"]),
+                    _entity(CONF_AWAY_PRESENCE_ENTITY): _entity_of([
+                        "person", "device_tracker", "calendar", "binary_sensor",
+                    ]),
                     vol.Optional(
                         CONF_AWAY_TEMPERATURE,
                         default=current.get(

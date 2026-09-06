@@ -656,18 +656,14 @@
         "title": "Away and holiday mode",
         "description": "A week away is the biggest single saving a heating system can offer. If you also say when you are coming back, the heat needed to warm the house again is bought in the cheapest hours beforehand instead of at whatever the price happens to be when you walk in.",
         "data": {
-          "away_enabled": "Enable away mode",
-          "away_presence_entity": "Away indicator",
-          "away_return_entity": "Expected return time (optional)",
+          "away_presence_entity": "Away indicator (optional)",
           "away_temperature": "Temperature while away",
           "away_dhw_min_temperature": "Hot water minimum while away",
           "after_save": "After saving"
         },
         "data_description": {
-          "away_presence_entity": "A holiday toggle, a person or device tracker, or a calendar. The polarity is handled for you: a person being 'not home' and a holiday toggle being 'on' both mean away.",
-          "away_return_entity": "Without this the house stays at the setback until you manually switch back, and warming up then costs whatever the current price is.",
+          "away_presence_entity": "A person, device tracker, calendar, or occupancy sensor. The Plan-page toggle wins until it is turned off. A person being 'not home' still means away when the toggle is off.",
           "away_dhw_min_temperature": "The anti-legionella cycle still runs, and is timed to finish before you get back.",
-          "away_enabled": "Deep setback while the house is empty, with recovery timed so the house is warm again when you return.",
           "away_temperature": "The hold temperature while away. Low enough to save, high enough to protect the house and its plumbing.",
           "after_save": "Saving writes through immediately; this chooses where the dialog goes next."
         }
@@ -1284,8 +1280,16 @@
       }
     },
     "switch": {
+      "away": {
+        "name": "Away"
+      },
       "optimizer_active": {
         "name": "Optimizer Active"
+      }
+    },
+    "datetime": {
+      "away_return": {
+        "name": "Expected return"
       }
     }
   }

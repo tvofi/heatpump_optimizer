@@ -311,7 +311,6 @@ SOLAR_ANSWERS = {
     const.CONF_PV_EXPORT_PRICE_ENTITY: "sensor.export_price",
 }
 AWAY_ANSWERS = {
-    const.CONF_AWAY_ENABLED: True,
     const.CONF_AWAY_PRESENCE_ENTITY: "person.home",
     const.CONF_AWAY_TEMPERATURE: 17.0,
     const.CONF_AWAY_DHW_MIN_TEMP: 45.0,
@@ -1368,17 +1367,27 @@ async def options_walk():
     )
 
     # away: the last top page.
-    await flow.async_step_away(None)
+    shown_away = await flow.async_step_away(None)
+    shown_away_keys = schema_keys(shown_away)
+    check(
+        "opt_away",
+        "happy",
+        "the away page no longer offers helper fields",
+        "away_enabled" not in shown_away_keys
+        and "away_return_entity" not in shown_away_keys,
+        f"keys={sorted(shown_away_keys)}",
+    )
     result = await submit(flow, "away", AWAY_ANSWERS)
     check(
         "opt_away",
         "happy",
-        "the away page saves, clearing its own empty entity slots",
+        "the away page saves temperatures and keeps an optional person",
         shows_menu(result, "init")
         and entry.options.get(const.CONF_AWAY_TEMPERATURE) == 17.0
-        and entry.options.get(const.CONF_AWAY_RETURN_ENTITY) is None,
+        and entry.options.get(const.CONF_AWAY_PRESENCE_ENTITY) == "person.home"
+        and const.CONF_AWAY_RETURN_ENTITY not in entry.options,
         f"{result.get('type')}/{result.get('step_id')} "
-        f"return={entry.options.get(const.CONF_AWAY_RETURN_ENTITY)!r}",
+        f"presence={entry.options.get(const.CONF_AWAY_PRESENCE_ENTITY)!r}",
     )
 
     # Six pages in, one entry: the saves must have accumulated, not replaced.

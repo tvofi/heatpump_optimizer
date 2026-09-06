@@ -33,7 +33,12 @@ async def async_setup_entry(
 ) -> None:
     """Set up Heat Pump Optimizer switch from a config entry."""
     coordinator = entry.runtime_data
-    async_add_entities([OptimizerEnableSwitch(coordinator, entry)])
+    async_add_entities(
+        [
+            OptimizerEnableSwitch(coordinator, entry),
+            AwaySwitch(coordinator, entry),
+        ]
+    )
 
 
 class OptimizerEnableSwitch(HeatPumpOptimizerEntity, SwitchEntity):
@@ -84,3 +89,29 @@ class OptimizerEnableSwitch(HeatPumpOptimizerEntity, SwitchEntity):
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off the optimizer."""
         await self.coordinator.async_set_mode(MODE_OFF)
+
+
+class AwaySwitch(HeatPumpOptimizerEntity, SwitchEntity):
+    """Plan-page away override on/off. ``is_on`` is the store, not resolve()."""
+
+    _attr_translation_key = "away"
+
+    def __init__(
+        self,
+        coordinator: HeatPumpOptimizerCoordinator,
+        entry: ConfigEntry,
+    ) -> None:
+        super().__init__(coordinator)
+        self._entry = entry
+        self._attr_unique_id = f"{entry.entry_id}_away"
+        self.entity_id = "switch.heat_pump_optimizer_away"
+
+    @property
+    def is_on(self) -> bool:
+        return bool((self.coordinator.data or {}).get("away_override_active"))
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        await self.coordinator.async_set_away(active=True)
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        await self.coordinator.async_set_away(active=False)

@@ -23,6 +23,7 @@ class Platform(str):
     BUTTON = "button"
     CLIMATE = "climate"
     SWITCH = "switch"
+    DATETIME = "datetime"
 
 
 CONF_NAME = "name"

@@ -656,18 +656,14 @@
         "title": "Bortaläge och semester",
         "description": "En vecka borta är den största enskilda besparing ett värmesystem kan ge. Anger du dessutom när du kommer hem köps värmen som behövs för att värma upp huset igen under de billigaste timmarna i förväg, i stället för till vad priset råkar vara när du kliver in.",
         "data": {
-          "away_enabled": "Aktivera bortaläge",
-          "away_presence_entity": "Indikator för bortavaro",
-          "away_return_entity": "Förväntad hemkomst (valfritt)",
+          "away_presence_entity": "Indikator för bortavaro (valfritt)",
           "away_temperature": "Temperatur när ingen är hemma",
           "away_dhw_min_temperature": "Lägsta varmvattentemperatur vid bortavaro",
           "after_save": "Efter sparande"
         },
         "data_description": {
-          "away_presence_entity": "En semesterbrytare, en person eller enhetsspårare, eller en kalender. Polariteten sköts åt dig: att en person är 'inte hemma' och att en semesterbrytare är 'på' betyder båda bortavaro.",
-          "away_return_entity": "Utan denna ligger huset kvar på sänkningen tills du själv slår om, och uppvärmningen kostar då vad priset råkar vara.",
+          "away_presence_entity": "En person, enhetsspårare, kalender eller närvarosensor. Plan-sidans brytare vinner tills den slås av. Att en person är 'inte hemma' betyder fortfarande bortavaro när brytaren är av.",
           "away_dhw_min_temperature": "Legionellacykeln körs fortfarande, och tidsätts så att den hinner bli klar innan du är tillbaka.",
-          "away_enabled": "Djup sänkning när huset står tomt, med återhämtning tidsatt så att huset är varmt igen när du kommer hem.",
           "away_temperature": "Temperaturen som hålls under bortavaron. Låg nog att spara, hög nog att skydda hus och rör.",
           "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst."
         }
@@ -1284,8 +1280,16 @@
       }
     },
     "switch": {
+      "away": {
+        "name": "Borta"
+      },
       "optimizer_active": {
         "name": "Optimeraren aktiv"
+      }
+    },
+    "datetime": {
+      "away_return": {
+        "name": "Förväntad hemkomst"
       }
     }
   }

@@ -69,6 +69,9 @@ const STRINGS = {
     "series.wood_slots": "Wood fire",
     "wood.alert":
       "Burning wood is cheaper than at least one remaining heat-pump hour.",
+    "away.toggle": "Away",
+    "away.return": "Return",
+    "away.status_presence": "Away (presence)",
     // The extra traces inside the house-temperature series. They are drawn
     // dashed in the same colour, and before v5.1.7 nothing named them: one
     // legend chip and one tooltip row said "House temperature" for all
@@ -491,6 +494,9 @@ const STRINGS = {
     "series.wood_slots": "Vedeldning",
     "wood.alert":
       "Vedeldning är billigare än minst en återstående värmepumpstimme.",
+    "away.toggle": "Borta",
+    "away.return": "Hemkomst",
+    "away.status_presence": "Borta (närvaro)",
     "series.upper_floor": "Övre plan",
     "series.lower_floor": "Nedre plan",
     "series.lower_floor_modelled": "Nedre plan (modellerad)",
@@ -3723,6 +3729,74 @@ class PlanSource {
 
   get config() {
     return this.host.config;
+  }
+
+  _findPinnedEntity(pinnedId, domainPrefix, uniqueSuffix) {
+    const states = (this.hass && this.hass.states) || {};
+    if (states[pinnedId]) return pinnedId;
+    for (const [id, st] of Object.entries(states)) {
+      if (!id.startsWith(domainPrefix)) continue;
+      const uid = String((st && st.attributes && st.attributes.unique_id) || "");
+      if (uid.endsWith(uniqueSuffix)) return id;
+    }
+    return null;
+  }
+
+  awayStripHtml() {
+    if (!this.host.dialog.expanded || this.host.dialog.activePage() !== "plan") {
+      return "";
+    }
+    const swId = this._findPinnedEntity(
+      "switch.heat_pump_optimizer_away", "switch.", "_away"
+    );
+    if (!swId) return "";
+    const swOn = String(this.hass.states[swId].state) === "on";
+    const dtId = this._findPinnedEntity(
+      "datetime.heat_pump_optimizer_away_return", "datetime.", "_away_return"
+    );
+    const binId = this._findPinnedEntity(
+      "binary_sensor.heat_pump_optimizer_away_mode", "binary_sensor.", "_away_mode"
+    );
+    const resolved = binId && String(this.hass.states[binId].state) === "on";
+    let html = `<div class="away-strip"><label><input type="checkbox" data-away-toggle${
+      swOn ? " checked" : ""
+    }> ${esc(L("away.toggle"))}</label>`;
+    if (swOn) {
+      const raw = dtId ? this.hass.states[dtId].state : "";
+      const iso = raw && raw !== "unknown" && raw !== "unavailable" ? raw : "";
+      html += `<label>${esc(L("away.return"))} <input type="datetime-local" data-away-return value="${esc(
+        iso.replace("Z", "").slice(0, 16)
+      )}"></label>`;
+    }
+    if (resolved && !swOn) {
+      html += `<div data-away-status>${esc(L("away.status_presence"))}</div>`;
+    }
+    return `${html}</div>`;
+  }
+
+  bindAwayStrip(root) {
+    const hass = this.hass;
+    if (!hass || typeof hass.callService !== "function") return;
+    const toggle = root.querySelector("[data-away-toggle]");
+    if (toggle) {
+      toggle.addEventListener("click", (ev) => ev.stopPropagation());
+      toggle.addEventListener("change", (ev) => {
+        ev.stopPropagation();
+        hass.callService("heatpump_optimizer", "set_away", {
+          active: !!toggle.checked,
+        });
+      });
+    }
+    const ret = root.querySelector("[data-away-return]");
+    if (ret) {
+      ret.addEventListener("click", (ev) => ev.stopPropagation());
+      ret.addEventListener("change", (ev) => {
+        ev.stopPropagation();
+        hass.callService("heatpump_optimizer", "set_away", {
+          return_time: ret.value || "",
+        });
+      });
+    }
   }
 
   // Resolve which entity to read for a plan kind ("space" | "dhw").
@@ -9393,7 +9467,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
           : page === "savings"
             ? this._savingsPageHtml()
             : anyData
-              ? `${this._chartBlock(built, true)}${this.whatIf.html()}`
+              ? `${this.plan.awayStripHtml()}${this._chartBlock(built, true)}${this.whatIf.html()}`
               : `<div class="empty">${L("errors.no_plan_data")}<br>
       ${this.plan.diagnose("space")}<br>
       ${this.plan.diagnose("dhw")}</div>`;
@@ -9466,6 +9540,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
       // The page inside is the host's: the setup page's own wiring, and its
       // status line re-applied after the rebuild.
       attachBody: (dlg) => {
+        this.plan.bindAwayStrip(dlg);
         this.layoutEditor.attach(dlg);
         this.setup.attach(dlg, { layoutEditing: () => this.layoutEditor.editing() });
         this.setup.applyNote(dlg);

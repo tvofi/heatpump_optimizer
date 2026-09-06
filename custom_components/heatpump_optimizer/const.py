@@ -8,7 +8,7 @@ DOMAIN: Final = "heatpump_optimizer"
 # The platforms that set entities up, mirrored from ``PLATFORM_LIST`` in
 # __init__.py. Diagnostics is not one: it is discovered from diagnostics.py.
 PLATFORMS: Final = [
-    "sensor", "binary_sensor", "button", "climate", "switch",
+    "sensor", "binary_sensor", "button", "climate", "switch", "datetime",
 ]
 
 # Schema version of the config entry. Bump when stored keys change in a way
@@ -1153,6 +1153,7 @@ OPERATION_MODES: Final = (
 SERVICE_RUN_OPTIMIZATION: Final = "run_optimization"
 SERVICE_SET_MODE: Final = "set_mode"
 SERVICE_SET_THERMAL_PARAMS: Final = "set_thermal_parameters"
+SERVICE_SET_AWAY: Final = "set_away"
 
 # The buffer tank key is defined after the staleness table above, so its age
 # limit is registered here rather than inline.

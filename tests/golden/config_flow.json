@@ -844,23 +844,9 @@
    "required": "Optional",
    "selector": "NumberSelector"
   },
-  "away_enabled": {
-   "config": null,
-   "default": "False",
-   "required": "Optional",
-   "selector": "type"
-  },
   "away_presence_entity": {
    "config": {
-    "filter": "[{'domain': ['input_boolean', 'person', 'device_tracker', 'calendar', 'binary_sensor']}]"
-   },
-   "default": null,
-   "required": "Optional",
-   "selector": "EntitySelector"
-  },
-  "away_return_entity": {
-   "config": {
-    "filter": "[{'domain': ['input_datetime', 'sensor']}]"
+    "filter": "[{'domain': ['person', 'device_tracker', 'calendar', 'binary_sensor']}]"
    },
    "default": null,
    "required": "Optional",

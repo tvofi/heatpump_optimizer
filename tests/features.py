@@ -1439,9 +1439,7 @@ R.check(
 )
 
 AWAY_CFG = away_mode.AwayConfig(
-    enabled=True,
     presence_entity="input_boolean.holiday",
-    return_entity="input_datetime.back",
     away_temperature=16.0,
 )
 
@@ -1500,18 +1498,70 @@ home = away_mode.resolve(
     outdoor_temp=0.0,
 )
 R.check("an occupied house is never set back", not home.active)
-disabled_away = away_mode.resolve(
-    away_mode.AwayConfig(enabled=False),
-    now=now,
-    presence_raw="on",
+
+_now = datetime(2026, 9, 5, 12, 0, tzinfo=timezone.utc)
+_past = _now - timedelta(hours=1)
+_future = _now + timedelta(hours=8)
+
+R.check(
+    "a past return expires the override",
+    away_mode.expire_override(True, _past, _now) == (False, None),
+)
+R.check(
+    "a future return leaves the override",
+    away_mode.expire_override(True, _future, _now) == (True, _future),
+)
+R.check(
+    "no return time does not expire",
+    away_mode.expire_override(True, None, _now) == (True, None),
+)
+
+_person_home = away_mode.resolve(
+    away_mode.AwayConfig(presence_entity="person.alice", away_temperature=16.0),
+    now=_now,
+    presence_raw="home",
     presence_attributes=None,
     return_raw=None,
     comfort_temp=21.0,
     model=_away_model,
     thermal_state=_away_house(),
     outdoor_temp=0.0,
+    override_active=True,
+    override_return_time=_future,
 )
-R.check("disabled means the feature cannot cost anything", not disabled_away.active)
+R.check("the service override wins over a person at home", _person_home.active)
+R.check("override source is service", _person_home.source == "service")
+
+_person_only = away_mode.resolve(
+    away_mode.AwayConfig(presence_entity="person.alice", away_temperature=16.0),
+    now=_now,
+    presence_raw="not_home",
+    presence_attributes=None,
+    return_raw=None,
+    comfort_temp=21.0,
+    model=_away_model,
+    thermal_state=_away_house(),
+    outdoor_temp=0.0,
+    override_active=False,
+    override_return_time=None,
+)
+R.check("person-away still works when the switch is off", _person_only.active)
+R.check(
+    "person-away source is the person entity",
+    _person_only.source == "person.alice",
+)
+
+_mig = away_mode.migrate_helper_override(
+    "input_boolean.holiday", "on", None, _future.isoformat()
+)
+R.check("boolean-on migrates to active", _mig["active"] is True)
+R.check("boolean-on drops the presence key", _mig["drop_presence"] is True)
+R.check("return helper is copied", _mig["return_time"] == _future.isoformat())
+_mig_person = away_mode.migrate_helper_override(
+    "person.alice", "not_home", None, None
+)
+R.check("a person id is not dropped", _mig_person["drop_presence"] is False)
+R.check("a person id does not force the switch on", _mig_person["active"] is False)
 
 R.check(
     "a warm house needs no recovery time",
@@ -1540,7 +1590,7 @@ R.check(
 )
 
 cal = away_mode.resolve(
-    away_mode.AwayConfig(enabled=True, presence_entity="calendar.holidays"),
+    away_mode.AwayConfig(presence_entity="calendar.holidays"),
     now=now,
     presence_raw="on",
     presence_attributes={"end_time": (now + timedelta(hours=1)).isoformat()},
@@ -6507,7 +6557,9 @@ R.check(
 # restore unwinds it. `min_temp` is otherwise written only at `_init_model()`,
 # so a widening that escaped the restore would outlive the mode and quietly
 # lower the floor of every later plan -- including after the user left economy.
-_away_snapshot = param_coord._apply_away_setback()
+_away_snapshot = away_mode.apply_setback(
+    param_coord._away_state, param_coord._opt_config, param_coord._thermal_params
+)
 R.check(
     "the away snapshot carries min_temp, which is what unwinds the widening",
     "min_temp" in _away_snapshot,
@@ -9607,7 +9659,9 @@ R.check(
 _ce = _vent_coord()
 R.check(
     "the away snapshot carries min_temp, which is what unwinds the relax",
-    "min_temp" in _ce._apply_away_setback(),
+    "min_temp" in away_mode.apply_setback(
+        _ce._away_state, _ce._opt_config, _ce._thermal_params
+    ),
 )
 R.check(
     "the relax is one degree and can never pierce the absolute floor",
@@ -9621,7 +9675,7 @@ _run_src = inspect.getsource(_Coord.async_run_optimization)
 R.check(
     "the relax sits behind its flag, after the away snapshot",
     0
-    < _run_src.find("_apply_away_setback")
+    < _run_src.find("apply_setback")
     < _run_src.find("CONF_OPEN_WINDOW_RELAX_ENABLED")
     < _run_src.find("OPEN_WINDOW_RELAX_C")
     and "_vent_cusum.tripped" in _run_src,
@@ -12525,7 +12579,7 @@ _LC_DATA = {
 # setup, then its unload. The FakeServices registry is honest — registration
 # stores, removal deletes — so what it holds at each step is what Home
 # Assistant would hold. The services belong to the domain (action-setup,
-# #180): async_setup registers all eleven before any entry exists, an
+# #180): async_setup registers all twelve before any entry exists, an
 # entry's setup adds and replaces nothing, and the last unload removes
 # nothing — a service that vanished with its entry is exactly what made an
 # automation fail validation while the entry was unloaded. (Under the old
@@ -12537,8 +12591,8 @@ _lc_entry = FakeEntry(data=_LC_DATA)
 _asyncio.run(_ha_setup_component(_integ, _lc_hass))
 _lc_registered = dict(_lc_hass.services.async_services().get(_DOMAIN, {}))
 R.check(
-    "async_setup registers the integration's eleven services before any entry",
-    len(_lc_registered) == 11,
+    "async_setup registers the integration's twelve services before any entry",
+    len(_lc_registered) == 12,
     f"{len(_lc_registered)} registered: {sorted(_lc_registered)}",
 )
 _asyncio.run(_ha_setup_entry(_integ, _lc_hass, _lc_entry))
@@ -13123,6 +13177,7 @@ R.check(
 _HPO_MOVED = (
     "handle_run_optimization",
     "handle_set_mode",
+    "handle_set_away",
     "handle_set_thermal_params",
     "handle_simulate_plan",
     "handle_assign_entity",
@@ -13191,6 +13246,7 @@ R.check(
 _HPO_SERVICE_MAP = {
     "run_optimization": "handle_run_optimization",
     "set_mode": "handle_set_mode",
+    "set_away": "handle_set_away",
     "set_thermal_parameters": "handle_set_thermal_params",
     "simulate_plan": "handle_simulate_plan",
     "assign_entity": "handle_assign_entity",
@@ -13205,7 +13261,7 @@ _hpo_hass = FakeHass()
 _asyncio.run(_ha_setup_component(_integ, _hpo_hass))
 _hpo_registered = _hpo_hass.services.async_services().get(_DOMAIN, {})
 R.check(
-    "async_setup registers all eleven services, unchanged",
+    "async_setup registers all twelve services, unchanged",
     set(_hpo_registered) == set(_HPO_SERVICE_MAP),
     f"registered: {sorted(_hpo_registered)}",
 )
@@ -13239,8 +13295,8 @@ if _hpo_services_path.exists():
         ):
             _hpo_reg_sites += 1
 R.check(
-    "the eleven registration sites live in services.py, none in __init__.py",
-    _hpo_reg_sites == 11
+    "the twelve registration sites live in services.py, none in __init__.py",
+    _hpo_reg_sites == 12
     and not any(
         isinstance(_hpo_n, _hpo_ast.Call)
         and isinstance(_hpo_n.func, _hpo_ast.Attribute)

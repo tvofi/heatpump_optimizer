@@ -25,7 +25,23 @@ from dataclasses import dataclass, replace
 from datetime import datetime
 from typing import Any
 
+from homeassistant.helpers.storage import Store
+
+from .const import (
+    CONF_AWAY_DHW_MIN_TEMP,
+    CONF_AWAY_ENABLED,
+    CONF_AWAY_PRESENCE_ENTITY,
+    CONF_AWAY_RETURN_ENTITY,
+    CONF_AWAY_TEMPERATURE,
+    DEFAULT_AWAY_DHW_MIN_TEMP,
+    DEFAULT_AWAY_ENABLED,
+    DEFAULT_AWAY_TEMPERATURE,
+    DOMAIN,
+)
+
 _LOGGER = logging.getLogger(__name__)
+AWAY_STORE_VERSION = 1
+OMIT = object()
 
 # Extra margin on top of the estimated recovery time. Arriving to a house that
 # is half a degree warm costs a little; arriving to a cold one is the failure
@@ -40,12 +56,9 @@ MAX_RECOVERY_HOURS = 24.0
 class AwayConfig:
     """Configuration of away behaviour."""
 
-    enabled: bool = False
-    #: Entity whose state indicates absence (``input_boolean``, ``person``,
-    #: ``device_tracker`` or ``calendar``).
+    #: Entity whose state indicates absence (``person``, ``device_tracker``,
+    #: ``calendar`` or a class-less occupancy ``binary_sensor``).
     presence_entity: str | None = None
-    #: Optional entity carrying the expected return time.
-    return_entity: str | None = None
     #: Setback targets while away.
     away_temperature: float = 16.0
     away_dhw_min_temperature: float = 20.0
@@ -69,6 +82,9 @@ class AwayState:
     recovery_hours: float | None = None
     target_temperature: float | None = None
     dhw_min_temperature: float | None = None
+    override_active: bool = False
+    override_return_iso: str | None = None
+    migrated_helpers: bool = False
 
     def as_dict(self) -> dict:
         return {
@@ -90,6 +106,8 @@ class AwayState:
             ),
             "away_target_temperature": self.target_temperature,
             "away_dhw_min_temperature": self.dhw_min_temperature,
+            "away_override_active": self.override_active,
+            "away_override_return_time": self.override_return_iso,
         }
 
 
@@ -196,6 +214,194 @@ def estimate_recovery_hours(
     return MAX_RECOVERY_HOURS
 
 
+def expire_override(active, return_time, now):
+    """Turn the service override off once ``now`` reaches the return instant."""
+    if active and return_time is not None and now >= return_time:
+        return False, None
+    return active, return_time
+
+
+def migrate_helper_override(
+    presence_entity, presence_raw, presence_attributes, return_raw
+):
+    """One-shot copy of the old helper pair into the service store."""
+    drop_presence = bool(
+        presence_entity and str(presence_entity).startswith("input_boolean.")
+    )
+    active = False
+    if drop_presence:
+        active = interpret_presence(
+            presence_raw, presence_entity, presence_attributes
+        ) is True
+    parsed = _parse_return_time(return_raw)
+    return {
+        "active": active,
+        "return_time": parsed.isoformat() if parsed else None,
+        "drop_presence": drop_presence,
+    }
+
+
+def empty_override() -> dict[str, Any]:
+    return {"active": False, "return_time": None, "migrated_helpers": False}
+
+
+def config_from_mapping(config: dict) -> AwayConfig:
+    return AwayConfig(
+        presence_entity=config.get(CONF_AWAY_PRESENCE_ENTITY),
+        away_temperature=_as_num(
+            config.get(CONF_AWAY_TEMPERATURE), DEFAULT_AWAY_TEMPERATURE
+        ),
+        away_dhw_min_temperature=_as_num(
+            config.get(CONF_AWAY_DHW_MIN_TEMP), DEFAULT_AWAY_DHW_MIN_TEMP
+        ),
+    )
+
+
+def apply_setback(state, opt_config, thermal_params) -> dict[str, float]:
+    """Temporarily lower comfort targets while away. Returns the originals."""
+    original = {
+        "target_temp": opt_config.target_temp,
+        "min_temp": opt_config.min_temp,
+        "comfort_temp_day": opt_config.comfort_temp_day,
+        "comfort_temp_night": opt_config.comfort_temp_night,
+        "dhw_min_temp": thermal_params.dhw_min_temp,
+        "dhw_idle_min_temp": thermal_params.dhw_idle_min_temp,
+    }
+    if not state.active or state.recovery_active:
+        return original
+    target = state.target_temperature or DEFAULT_AWAY_TEMPERATURE
+    opt_config.target_temp = min(original["target_temp"], target)
+    opt_config.min_temp = min(original["min_temp"], target)
+    opt_config.comfort_temp_day = target
+    opt_config.comfort_temp_night = target
+    dhw_floor = state.dhw_min_temperature or DEFAULT_AWAY_DHW_MIN_TEMP
+    thermal_params.dhw_min_temp = min(original["dhw_min_temp"], dhw_floor)
+    thermal_params.dhw_idle_min_temp = min(
+        original["dhw_idle_min_temp"], dhw_floor
+    )
+    return original
+
+
+def restore_setback(original: dict[str, float], opt_config, thermal_params) -> None:
+    opt_config.target_temp = original["target_temp"]
+    opt_config.min_temp = original["min_temp"]
+    opt_config.comfort_temp_day = original["comfort_temp_day"]
+    opt_config.comfort_temp_night = original["comfort_temp_night"]
+    thermal_params.dhw_min_temp = original["dhw_min_temp"]
+    thermal_params.dhw_idle_min_temp = original["dhw_idle_min_temp"]
+
+
+def _away_store(coord) -> Store:
+    return Store(
+        coord.hass,
+        AWAY_STORE_VERSION,
+        f"{DOMAIN}_{coord.entry.entry_id}_away",
+    )
+
+
+def _override_payload(state: AwayState) -> dict[str, Any]:
+    return {
+        "active": bool(state.override_active),
+        "return_time": state.override_return_iso,
+        "migrated_helpers": bool(state.migrated_helpers),
+    }
+
+
+def apply_override_payload(state: AwayState, payload: dict[str, Any]) -> None:
+    state.override_active = bool(payload.get("active"))
+    parsed = _parse_return_time(payload.get("return_time"))
+    state.override_return_iso = parsed.isoformat() if parsed else None
+    state.migrated_helpers = bool(payload.get("migrated_helpers"))
+
+
+async def persist_override(coord) -> None:
+    try:
+        await _away_store(coord).async_save(_override_payload(coord._away_state))
+    except Exception as err:  # noqa: BLE001
+        _LOGGER.debug("Could not persist away override: %s", err)
+
+
+async def restore_override(coord) -> None:
+    try:
+        raw = await _away_store(coord).async_load()
+    except Exception as err:  # noqa: BLE001
+        _LOGGER.debug("Could not load away override: %s", err)
+        raw = None
+    payload = empty_override()
+    if isinstance(raw, dict):
+        payload["active"] = bool(raw.get("active"))
+        parsed = _parse_return_time(raw.get("return_time"))
+        payload["return_time"] = parsed.isoformat() if parsed else None
+        payload["migrated_helpers"] = bool(raw.get("migrated_helpers"))
+    if not payload["migrated_helpers"]:
+        payload = await _migrate_helpers(coord, payload)
+        apply_override_payload(coord._away_state, payload)
+        await persist_override(coord)
+        return
+    apply_override_payload(coord._away_state, payload)
+
+
+async def _migrate_helpers(coord, payload: dict[str, Any]) -> dict[str, Any]:
+    presence = coord._config.get(CONF_AWAY_PRESENCE_ENTITY)
+    presence_raw, presence_attrs = coord._entity_state(presence)
+    return_raw, _ = coord._entity_state(coord._config.get(CONF_AWAY_RETURN_ENTITY))
+    mig = migrate_helper_override(
+        presence, presence_raw, presence_attrs, return_raw
+    )
+    payload["active"] = mig["active"]
+    payload["return_time"] = mig["return_time"]
+    payload["migrated_helpers"] = True
+    options = dict(getattr(coord.entry, "options", {}) or {})
+    changed = False
+    if CONF_AWAY_ENABLED in options or CONF_AWAY_RETURN_ENTITY in options:
+        options.pop(CONF_AWAY_ENABLED, DEFAULT_AWAY_ENABLED)
+        options.pop(CONF_AWAY_RETURN_ENTITY, None)
+        changed = True
+    if mig["drop_presence"] and CONF_AWAY_PRESENCE_ENTITY in options:
+        options.pop(CONF_AWAY_PRESENCE_ENTITY, None)
+        changed = True
+    if changed:
+        updater = getattr(coord.hass.config_entries, "async_update_entry", None)
+        if updater is not None:
+            updater(coord.entry, options=options)
+    return payload
+
+
+def _as_num(value, default: float) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _apply_return(
+    state: AwayState,
+    return_time: datetime | None,
+    now: datetime,
+    comfort_temp: float,
+    model: Any,
+    thermal_state: Any,
+    outdoor_temp: float,
+) -> None:
+    if return_time is None:
+        return
+    if return_time.tzinfo is None and now.tzinfo is not None:
+        return_time = return_time.replace(tzinfo=now.tzinfo)
+    state.return_time = return_time
+    hours_left = (return_time - now).total_seconds() / 3600.0
+    state.hours_until_return = hours_left
+    recovery_hours = estimate_recovery_hours(
+        model,
+        thermal_state,
+        target_temp=comfort_temp,
+        outdoor_temp=outdoor_temp,
+    )
+    state.recovery_hours = recovery_hours
+    if hours_left <= recovery_hours + RECOVERY_MARGIN_HOURS:
+        state.recovery_active = True
+        state.target_temperature = comfort_temp
+
+
 def resolve(
     config: AwayConfig,
     *,
@@ -207,10 +413,25 @@ def resolve(
     model: Any,
     thermal_state: Any,
     outdoor_temp: float,
+    override_active: bool = False,
+    override_return_time: datetime | None = None,
 ) -> AwayState:
     """Work out whether we are away, and whether recovery should start."""
-    state = AwayState()
-    if not config.enabled:
+    state = AwayState(
+        override_active=bool(override_active),
+        override_return_iso=(
+            override_return_time.isoformat() if override_return_time else None
+        ),
+    )
+    if override_active:
+        state.active = True
+        state.source = "service"
+        state.target_temperature = config.away_temperature
+        state.dhw_min_temperature = config.away_dhw_min_temperature
+        _apply_return(
+            state, override_return_time, now, comfort_temp,
+            model, thermal_state, outdoor_temp,
+        )
         return state
 
     away = interpret_presence(
@@ -234,31 +455,11 @@ def resolve(
                 return_time = _parse_return_time(str(candidate))
                 if return_time is not None:
                     break
-
     if return_time is None:
-        return state
-
-    if return_time.tzinfo is None and now.tzinfo is not None:
-        return_time = return_time.replace(tzinfo=now.tzinfo)
-
-    state.return_time = return_time
-    hours_left = (return_time - now).total_seconds() / 3600.0
-    state.hours_until_return = hours_left
-
-    recovery_hours = estimate_recovery_hours(
-        model,
-        thermal_state,
-        target_temp=comfort_temp,
-        outdoor_temp=outdoor_temp,
+        return_time = override_return_time
+    _apply_return(
+        state, return_time, now, comfort_temp, model, thermal_state, outdoor_temp
     )
-    state.recovery_hours = recovery_hours
-
-    if hours_left <= recovery_hours + RECOVERY_MARGIN_HOURS:
-        state.recovery_active = True
-        # During recovery the ordinary comfort target applies again; the
-        # optimizer then buys the heat in the cheapest hours of the ramp.
-        state.target_temperature = comfort_temp
-
     return state
 
 
