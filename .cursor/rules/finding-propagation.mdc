@@ -1,0 +1,73 @@
+---
+description: A finding that changes how a later stage must work goes into that stage's own brief before the PR that produced it merges
+globs: .claude/workflows/wave-*-groups.json,docs/plan*.md,tools/audit/briefs/*.md
+alwaysApply: true
+---
+
+# Forward-carrying a finding
+
+**A finding that changes how a later stage must work is written into that
+stage's own brief before the PR that produced it merges.**
+
+## When it applies
+
+The finding must be **established by measurement with its null control** — the
+perturbation that would have made it fail — not by argument. An unverified
+observation is not carried; it is measured first or dropped.
+
+Given that, it applies whenever the finding does any of three things to a stage
+that has not started:
+
+- **narrows what that stage may do** — a technique it was expected to use is
+  refused, or is now legitimate only under a precondition;
+- **invalidates an assumption it rests on** — a figure, a partition, an
+  environment, a tool version it was scored against turns out not to hold;
+- **removes an option it was expected to have** — a dependency will not install,
+  a budget it was to spend has been spent, an interface is not available.
+
+Deliberately, no threshold of "importance" gates this. That adjective is the one
+a seat under time pressure argues its way out of, and the three effects above
+already carry the whole test: if it changes what a later stage must do, it is
+carried.
+
+## A comment is not propagation
+
+**A PR comment, an issue comment, and the record are not propagation.** They
+record the finding; they do not deliver it.
+
+The test is **where the seat who needs this will be looking**: its own brief, the
+shared seat block, `CLAUDE.md`, its role contract. It will not read the comments
+of a PR that merged several stages before it started. A finding that lives only
+in the PR that produced it will be re-derived by the next stage, or — the usual
+outcome — not derived at all, and the refused technique gets attempted again.
+
+## What to write
+
+- **Carry the control, not only the claim.** The next stage needs the
+  measurement that separates the real thing from its imitation. A conclusion
+  without its control cannot be checked, and cannot be re-established after a
+  rebase.
+- **State the precondition, not the opportunity.** "This lever gained N points"
+  invites the next seat to reach for it. "This lever is legitimate only when X,
+  demonstrated per case" is what keeps the next stage honest. Where a technique
+  was refused, name the refusal and what it turned on.
+- **Give the numbers a re-measurement instruction.** Figures carried into a
+  brief are snapshots; the stage is judged against its own merge-base.
+
+## Where it goes
+
+- **Constrains one stage** → that stage's brief.
+- **Constrains every seat** → the shared seat block **once**, not copied into
+  each brief. Duplication across briefs goes stale unevenly, and a reader who
+  finds two versions trusts neither.
+- **The stage has no brief yet** → the plan row that will become one, and
+  **creating that row is part of the finding**. A rule that silently does not
+  apply to unplanned work fails precisely where unplanned work needs it most.
+
+## Enforcement
+
+The producing PR does not merge until the carry is in place. Its body says which
+brief, block, or plan row received the finding, so a reviewer can check the
+destination rather than take the claim. Where the destination is out of tree, it
+is still named, and the in-tree roster or plan carries the same finding in the
+record that follows the merge.

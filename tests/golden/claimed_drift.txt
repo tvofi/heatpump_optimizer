@@ -50,15 +50,12 @@
 # v6.3.16: the solve worker could not unpickle its job. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
-# The #529 record and the open-issue dispositions: this branch claims
-# NOTHING. The plan doc and the two wave rosters only -- no production
-# file, no test input and no solver parameter is touched, so every
-# scenario is byte-identical by construction.
 #
-# 2026-09-06, the #201 record seat: this branch claims NOTHING. The plan doc's
-# Delivery-status table, a Wave 4 roster recount (S1's cut drop, S4's halt
-# premise), and docs/HANDOVER.md only -- no production file is touched, so
-# every fixture is byte-identical by construction.
+#
+# The #529 record, the open-issue dispositions and the forward carries: this
+# branch claims NOTHING. The plan doc, the two wave rosters and
+# docs/HANDOVER.md only -- no production file, no test input and no solver
+# parameter is touched, so every scenario is byte-identical by construction.
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum

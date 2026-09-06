@@ -21,13 +21,13 @@
 #
 # claims-for: 6.3.16
 #
-# v6.3.16: the solve worker could not unpickle its job. The stamp empties the list; the
-# next branch restates its own footprint, claims included.
+# #521, the real-Home-Assistant nightly: this branch claims NOTHING. A new
+# test script, its two classification entries and one workflow job -- no
+# production file is touched, so every fixture is byte-identical by
+# construction.
 #
-# The #529 record and the open-issue dispositions: this branch claims
-# NOTHING. The plan doc and the two wave rosters only -- no card source is
-# touched.
 #
-# 2026-09-06, the #201 record seat: this branch claims NOTHING. The plan doc,
-# a Wave 4 roster recount and docs/HANDOVER.md only -- no card source is
-# touched.
+#
+# The #529 record, the open-issue dispositions and the forward carries: this
+# branch claims NOTHING. The plan doc, the two wave rosters and
+# docs/HANDOVER.md only -- no card source is touched.

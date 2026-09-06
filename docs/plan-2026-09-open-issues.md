@@ -144,23 +144,27 @@ refused with a reason — and the PR carrying it is named where one exists.
 |---|---|---|
 | **#504** ruler will not install (Python 3.13.1 < 3.13.2) | **scheduled — W5-G1, as a precondition of it.** The choice between raising the box, re-pinning, or CI-only is made *in* that PR, with its reason | W5-G1 |
 | **#505** #195 tranches miss nine below-bar modules | **scheduled — W5-G5 re-partitions before extending coverage.** `process_worker.py` at 0.0 % is a candidate to pull forward | W5-G5, inherited by G6/G7 |
-| **#509** diagnostics publish home latitude/longitude unredacted | **scheduled — before the nightly lane merges**, so #522 arrives green rather than red on a known leak | its own fix PR, ahead of #522 |
-| **#514** Python floor undeclared, 3.14 untested | **in flight** — declares 3.13+, raises the HA floor to 2025.2.0, adds 3.14 to CI | [#520](https://github.com/tvofi/heatpump_optimizer/pull/520) |
+| **#509** diagnostics publish home latitude/longitude unredacted | **in flight** — coordinates coarsened to 1 dp rather than redacted, so a swapped lat/lon or wrong country still shows; `config.name` redacted. The "land it before #522" sequencing was **void**: #522's review measured that the lane never calls diagnostics and uploads no artifact | [#535](https://github.com/tvofi/heatpump_optimizer/pull/535) |
+| ~~**#514**~~ Python floor undeclared, 3.14 untested | **DONE** — closed by #520, merged `36b71dd` | [#520](https://github.com/tvofi/heatpump_optimizer/pull/520) |
 | **#516** config-flow options are ungrouped | **deferred to the UX programme, lane E.** Not blocked on HA version once #520 lands, but still blocked on the golden capture walking schemas one level deep — grouped fields would fall silently out of the fingerprint. That is the constraint to solve, not the HA floor | UX lane E |
-| **#521** no test runs the integration in a real HA install | **in flight** — nightly container lane, matrix 2025.2.0 + stable | [#522](https://github.com/tvofi/heatpump_optimizer/pull/522) |
-| **#523** `closures-autofix` reported success without repairing | **in flight** — the job reddens instead of concluding green on the no-repair path | [#528](https://github.com/tvofi/heatpump_optimizer/pull/528) |
+| ~~**#521**~~ no test runs the integration in a real HA install | **DONE** — closed by #522, merged `824fd84`. Residuals recorded, not swept: the lane reaches ~15 of the ~58 container-reachable escapes, and its incompleteness was silent → **#533** | [#522](https://github.com/tvofi/heatpump_optimizer/pull/522) |
+| **#523** `closures-autofix` reported success without repairing | **in flight, blocked once** — review measured a *residual* silent path: `any(rc != 0)` (a failed recording) is folded into the same quiet status, so one unrelated failure hides a real repair while the job exits 0. Being fixed | [#528](https://github.com/tvofi/heatpump_optimizer/pull/528) |
 | **#524** an unpicklable solve result is returned as the plan | **scheduled — with #525**, both in the worker/event-loop region, one PR | worker reliability PR |
 | **#525** two blocking calls in the event loop | **scheduled — with #524.** `_lazy()`'s `import_module` and `_shutdown_process_pool`'s `worker.wait` both block the loop | worker reliability PR |
 | **#527** a full `derive_closures.sh` silently shrinks the node lanes | **scheduled — after #528 lands**, since the refusal message that tells you to run one is the same code path | follows #528 |
 
+| **#533** the nightly lane's incompleteness is silent | **scheduled — A3 first** (class 3, published state wrong or non-finite, is the largest reachable gap at 16 escapes), then A10, which would pin #509 directly | follow-up to #522 |
+| **#536** `tests/hastub` can diverge from Home Assistant | **scheduled — inventory first.** A green test can pin the stub instead of HA: the #509 fix was green while returning `None` on every real install, because upstream skips `None` before redacting and the stub did not | follow-up to #535 |
+
 Policy and contract PRs this session opened, which close no issue and belong to
-no wave: [#526](https://github.com/tvofi/heatpump_optimizer/pull/526)
-(root-cause remediation doctrine and its seat contract),
-[#530](https://github.com/tvofi/heatpump_optimizer/pull/530) (tracking covers
-every PR and every open issue; carrying a finding forward),
-[#531](https://github.com/tvofi/heatpump_optimizer/pull/531) (this record),
-[#532](https://github.com/tvofi/heatpump_optimizer/pull/532) (the handoff to
-review freezes the branch).
+no wave:
+
+- [#530](https://github.com/tvofi/heatpump_optimizer/pull/530) — **merged `f4ed26c`.** Tracking covers every PR and every open issue; and `finding-propagation.mdc`: a finding that changes how a later stage must work goes into that stage's own brief before the producing PR merges. Enforced at `fix-review.md`, verdict `blocked: finding not carried to <stage>`.
+- [#526](https://github.com/tvofi/heatpump_optimizer/pull/526) — root-cause doctrine. Blocked once for having **no enforcement point**; now trigger *red on a check a cheaper detector could have run*, checked at `fix-review.md` step 11, verdict `blocked: root-cause trigger unanswered for <check>`.
+- [#532](https://github.com/tvofi/heatpump_optimizer/pull/532) — the handoff to review freezes the branch. Blocked once for naming the **coordinator** where the tree means the **orchestrator** (`coordinator` is the production god-class Wave 4 is decomposing); verdict `blocked: head moved under review, measured <sha>`.
+- [#531](https://github.com/tvofi/heatpump_optimizer/pull/531) — this record. Blocked once: it claimed nine roster briefs had received a carried finding when only two had. The script used `str.replace`, which does not raise on no match, and printed success either way — the same shape as #523. The fix asserts the string changed and re-reads the file from disk.
+
+**A pattern worth naming**, since four of these five were blocked for it: every one of those blocks was a document asserting something that was not true of the tree — a stale head, a count, an actor, a carry that did not land. None was a disagreement about the change itself.
 
 ### The UX programme — selected 2026-09-06, not a wave
 

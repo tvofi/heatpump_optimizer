@@ -39,4 +39,13 @@ its bug. You are checking that the numbers are real.
    judge ruling first — #290's brief still prescribes a harness its judge
    already refused.
 
+**Check the forward-carry before you return `merge`.** If the fixer's work
+produced a finding that changes how a later stage must work — a technique
+refused, an assumption invalidated, an option removed — the PR body names where
+it was written, and you open that destination and confirm it is there, carrying
+the control and stated as a precondition rather than an opportunity. A finding
+that exists only in this PR's comments has been recorded, not propagated, and
+that is `blocked: finding not carried to <stage>`. See
+`.cursor/rules/finding-propagation.mdc`.
+
 Return a verdict (`merge` / `blocked: <what>`) with your RESULT lines.
