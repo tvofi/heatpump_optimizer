@@ -34,10 +34,6 @@
 # source is touched; diagnostics.py is loaded by Home Assistant for
 # `Download diagnostics` and is not on any path that renders the card.
 #
-# #514 (declare Python 3.13+, raise the Home Assistant floor to 2025.2.0):
-# this branch claims NOTHING. Docs, config and CI only -- no card source is
-# touched.
-#
 # The document-contradiction fixes (tools/audit/briefs/fixer.md step 5,
 # tests/README.md exclusion list and script counts): this branch claims
 # NOTHING. Prose in two documents only -- no card source, template or style
