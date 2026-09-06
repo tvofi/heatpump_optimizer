@@ -950,6 +950,135 @@ def _liquid_fraction(
             1.0,
         )
 
+def _apply_result_payload(
+    data: dict[str, Any],
+    result: Any,
+    current_action: dict[str, Any],
+    plan_views: dict[str, Any],
+) -> None:
+    """The solved half of the entity payload, merged into ``data``.
+
+    Split out of ``_build_data_dict`` so the assembler stays a facade over
+    the subsystem views; every key here is read off ``result`` or off one
+    of the two coordinator values passed in.
+    """
+    # DHW schedule data
+    dhw_schedule = []
+    if result.dhw_power_schedule:
+        for i, (ts, dp, dt_val) in enumerate(zip(
+            result.timestamps,
+            result.dhw_power_schedule,
+            result.dhw_temp_trajectory[1:] if result.dhw_temp_trajectory else [0.0] * len(result.timestamps),
+        )):
+            dhw_schedule.append({
+                "time": ts.isoformat(),
+                "dhw_power": round(dp, 2),
+                "dhw_temp": round(dt_val, 1),
+            })
+
+    data.update(
+        {
+            "predicted_cost": result.predicted_cost,
+            "baseline_cost": result.baseline_cost,
+            "predicted_savings": result.predicted_savings,
+            "savings_percentage": result.savings_percentage,
+            "deferred_energy_cost": result.deferred_energy_cost,
+            "optimization_status": result.status,
+            "solve_time_ms": result.solve_time_ms,
+            "dhw_heating_cost": result.dhw_heating_cost,
+            "dhw_heating_active": current_action.get("dhw_heating_active", False),
+            "dhw_schedule": dhw_schedule,
+            # Predictive info. Numpy scalars are converted to plain
+            # Python types because these values end up in entity
+            # attributes, which Home Assistant must serialize.
+            "predictive_info": _plain_types(result.predictive_info),
+            # Grid-cost and provenance figures (items 7, 8, 10, 9)
+            "projected_peak_kw": result.projected_peak_kw,
+            "projected_peak_cost": result.peak_cost,
+            "compressor_starts": result.compressor_starts,
+            "pv_self_consumed_kwh": result.pv_self_consumed_kwh,
+            "plan_price_known": result.price_known,
+            **plan_views,
+            "schedule": [
+                {
+                    "time": ts.isoformat(),
+                    "power": p,
+                    "setpoint": s,
+                    "price": pr,
+                    "room_temp": rt,
+                    "upper_temp": ut,
+                    "lower_temp": lt,
+                    "solar_gain": sg,
+                    "displace": (
+                        result.displace_schedule[idx]
+                        if result.displace_schedule and idx < len(result.displace_schedule)
+                        else 0.0
+                    ),
+                    "heat_pump_on": (
+                        result.heat_pump_on_schedule[idx]
+                        if result.heat_pump_on_schedule and idx < len(result.heat_pump_on_schedule)
+                        else p > 0.1
+                    ),
+                }
+                for idx, (ts, p, s, pr, rt, ut, lt, sg) in enumerate(zip(
+                    result.timestamps,
+                    result.power_schedule,
+                    result.optimal_setpoints,
+                    result.prices,
+                    result.room_temp_trajectory[1:],
+                    (
+                        result.upper_temp_trajectory[1:]
+                        if result.upper_temp_trajectory
+                        else result.room_temp_trajectory[1:]
+                    ),
+                    (
+                        result.lower_temp_trajectory[1:]
+                        if result.lower_temp_trajectory
+                        else result.room_temp_trajectory[1:]
+                    ),
+                    (
+                        result.solar_gain_trajectory
+                        if result.solar_gain_trajectory
+                        else [0.0] * len(result.timestamps)
+                    ),
+                ))
+            ],
+        }
+    )
+
+
+def _apply_unsolved_payload(data: dict[str, Any]) -> None:
+    """The not-run half: every solved key present and inert.
+
+    The payload keys are frozen, so a solve that never ran publishes the
+    same key set rather than a shorter one — an entity reading ``data``
+    never has to test for a missing key.
+    """
+    data.update(
+        {
+            "predicted_cost": None,
+            "baseline_cost": None,
+            "predicted_savings": None,
+            "savings_percentage": None,
+            "deferred_energy_cost": None,
+            "optimization_status": "not_run",
+            "solve_time_ms": 0,
+            "dhw_heating_cost": 0.0,
+            "dhw_heating_active": False,
+            "dhw_schedule": [],
+            "predictive_info": {},
+            "schedule": [],
+            "space_plan": {},
+            "dhw_plan": {},
+            "projected_peak_kw": 0.0,
+            "projected_peak_cost": 0.0,
+            "compressor_starts": 0,
+            "pv_self_consumed_kwh": 0.0,
+            "plan_price_known": [],
+        }
+    )
+
+
 
 class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     """Coordinator for Heat Pump Cost Optimizer."""
@@ -7409,113 +7538,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             data["manual_plan"] = manual_state
 
         if result:
-            # DHW schedule data
-            dhw_schedule = []
-            if result.dhw_power_schedule:
-                for i, (ts, dp, dt_val) in enumerate(zip(
-                    result.timestamps,
-                    result.dhw_power_schedule,
-                    result.dhw_temp_trajectory[1:] if result.dhw_temp_trajectory else [0.0] * len(result.timestamps),
-                )):
-                    dhw_schedule.append({
-                        "time": ts.isoformat(),
-                        "dhw_power": round(dp, 2),
-                        "dhw_temp": round(dt_val, 1),
-                    })
-
-            data.update(
-                {
-                    "predicted_cost": result.predicted_cost,
-                    "baseline_cost": result.baseline_cost,
-                    "predicted_savings": result.predicted_savings,
-                    "savings_percentage": result.savings_percentage,
-                    "deferred_energy_cost": result.deferred_energy_cost,
-                    "optimization_status": result.status,
-                    "solve_time_ms": result.solve_time_ms,
-                    "dhw_heating_cost": result.dhw_heating_cost,
-                    "dhw_heating_active": self._current_action.get("dhw_heating_active", False),
-                    "dhw_schedule": dhw_schedule,
-                    # Predictive info. Numpy scalars are converted to plain
-                    # Python types because these values end up in entity
-                    # attributes, which Home Assistant must serialize.
-                    "predictive_info": _plain_types(result.predictive_info),
-                    # Grid-cost and provenance figures (items 7, 8, 10, 9)
-                    "projected_peak_kw": result.projected_peak_kw,
-                    "projected_peak_cost": result.peak_cost,
-                    "compressor_starts": result.compressor_starts,
-                    "pv_self_consumed_kwh": result.pv_self_consumed_kwh,
-                    "plan_price_known": result.price_known,
-                    **self._build_plan_views(result),
-                    "schedule": [
-                        {
-                            "time": ts.isoformat(),
-                            "power": p,
-                            "setpoint": s,
-                            "price": pr,
-                            "room_temp": rt,
-                            "upper_temp": ut,
-                            "lower_temp": lt,
-                            "solar_gain": sg,
-                            "displace": (
-                                result.displace_schedule[idx]
-                                if result.displace_schedule and idx < len(result.displace_schedule)
-                                else 0.0
-                            ),
-                            "heat_pump_on": (
-                                result.heat_pump_on_schedule[idx]
-                                if result.heat_pump_on_schedule and idx < len(result.heat_pump_on_schedule)
-                                else p > 0.1
-                            ),
-                        }
-                        for idx, (ts, p, s, pr, rt, ut, lt, sg) in enumerate(zip(
-                            result.timestamps,
-                            result.power_schedule,
-                            result.optimal_setpoints,
-                            result.prices,
-                            result.room_temp_trajectory[1:],
-                            (
-                                result.upper_temp_trajectory[1:]
-                                if result.upper_temp_trajectory
-                                else result.room_temp_trajectory[1:]
-                            ),
-                            (
-                                result.lower_temp_trajectory[1:]
-                                if result.lower_temp_trajectory
-                                else result.room_temp_trajectory[1:]
-                            ),
-                            (
-                                result.solar_gain_trajectory
-                                if result.solar_gain_trajectory
-                                else [0.0] * len(result.timestamps)
-                            ),
-                        ))
-                    ],
-                }
+            _apply_result_payload(
+                data, result, self._current_action, self._build_plan_views(result)
             )
         else:
-            data.update(
-                {
-                    "predicted_cost": None,
-                    "baseline_cost": None,
-                    "predicted_savings": None,
-                    "savings_percentage": None,
-                    "deferred_energy_cost": None,
-                    "optimization_status": "not_run",
-                    "solve_time_ms": 0,
-                    "dhw_heating_cost": 0.0,
-                    "dhw_heating_active": False,
-                    "dhw_schedule": [],
-                    "predictive_info": {},
-                    "schedule": [],
-                    "space_plan": {},
-                    "dhw_plan": {},
-                    "projected_peak_kw": 0.0,
-                    "projected_peak_cost": 0.0,
-                    "compressor_starts": 0,
-                    "pv_self_consumed_kwh": 0.0,
-                    "plan_price_known": [],
-                }
-            )
+            _apply_unsolved_payload(data)
 
         return data
 
