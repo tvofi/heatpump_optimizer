@@ -39,7 +39,7 @@ def setup(tz, price_p="winter_typical", weather_p="winter_cold", start=datetime(
         lower_floor_temperature=21.0,buffer_tank_temperature=40.0)
     return opt,m,pr,ot,wi,ra,so,st,start
 
-def evaluate(m,pw,st,ot,wi,ra,so,pr,minT=16.5):
+def score_plan(m,pw,st,ot,wi,ra,so,pr,minT=16.5):
     room,slab,up,lo,_,_,_=m.simulate_trajectory(st,pw,ot,wi,ra,so,DT)
     r=room[1:]
     cost=float(np.sum(pr*pw*DT))
@@ -51,7 +51,7 @@ for tz in (False,True):
     opt,m,pr,ot,wi,ra,so,st,start=setup(tz)
     r=opt.optimize(st,pr,ot,wi,ra,so,start)
     base=np.asarray(r.power_schedule)
-    c0,v0,mn0,mx0=evaluate(m,base,st,ot,wi,ra,so,pr)
+    c0,v0,mn0,mx0=score_plan(m,base,st,ot,wi,ra,so,pr)
     print(f" optimizer : cost {c0:7.2f}  room {mn0:.2f}-{mx0:.2f}  viol {v0:.3f}")
     R.check("optimizer plan meets the comfort floor", v0 <= 1e-6,
             f"degree-steps below floor: {v0:.4f}")
@@ -66,7 +66,7 @@ for tz in (False,True):
     for i in order:
         take=min(pmax,left); greedy[i]=take; left-=take
         if left<=0: break
-    c1,v1,mn1,mx1=evaluate(m,greedy,st,ot,wi,ra,so,pr)
+    c1,v1,mn1,mx1=score_plan(m,greedy,st,ot,wi,ra,so,pr)
     print(f" greedy    : cost {c1:7.2f}  room {mn1:.2f}-{mx1:.2f}  viol {v1:.3f}")
     if v1 <= v0 + 1e-6:
         R.check("greedy same-energy challenger does not rout the optimizer",
@@ -79,7 +79,7 @@ for tz in (False,True):
     best=c0; improved=0
     for k in range(300):
         cand=np.clip(base+rng.normal(0,0.6,N),0,pmax)
-        c,v,mn,mx=evaluate(m,cand,st,ot,wi,ra,so,pr)
+        c,v,mn,mx=score_plan(m,cand,st,ot,wi,ra,so,pr)
         if v<=v0+1e-6 and c<best-0.01:
             best=c; improved+=1
     print(f" random    : {improved}/300 comfort-safe perturbations cheaper; best {best:7.2f}")
@@ -105,7 +105,7 @@ for tz in (False,True):
             return _full_ms(objective, starts, bounds, *a, **kw)
         with mock.patch.object(_opt_mod, "_multi_start_minimize", _starved_ms):
             r3 = opt.optimize(st,pr,ot,wi,ra,so,start)
-        c3,v3,_,_ = evaluate(m,np.asarray(r3.power_schedule),st,ot,wi,ra,so,pr)
+        c3,v3,_,_ = score_plan(m,np.asarray(r3.power_schedule),st,ot,wi,ra,so,pr)
         print(f" starved  : cost {c3:7.2f}  viol {v3:.3f}")
         R.check("the production iteration budget buys a materially better plan",
                 v3 <= 1e-6 and c0 <= c3 * 0.95,
@@ -217,7 +217,7 @@ _pins[90] = 0.0                       # 22:30, one step forced off
 _zr = _zopt.optimize(_zst, _zpr, _zot, _zwi, _zra, _zso, _zstart,
                      space_pins=_pins)
 _zbase = np.asarray(_zr.power_schedule)
-_zc0, _zv0, _zmn, _zmx = evaluate(_zm, _zbase, _zst, _zot, _zwi, _zra, _zso, _zpr)
+_zc0, _zv0, _zmn, _zmx = score_plan(_zm, _zbase, _zst, _zot, _zwi, _zra, _zso, _zpr)
 print(f" pinned    : cost {_zc0:7.2f}  room {_zmn:.2f}-{_zmx:.2f}  viol {_zv0:.3f}")
 R.check("a pinned plan still meets the comfort floor", _zv0 <= 1e-6,
         f"degree-steps below floor: {_zv0:.4f}")
@@ -234,7 +234,7 @@ for _i in np.argsort(_zpr):
     _zgreedy[_i] = _take; _zleft -= _take
     if _zleft <= 0:
         break
-_zc1, _zv1, _, _ = evaluate(_zm, _zgreedy, _zst, _zot, _zwi, _zra, _zso, _zpr)
+_zc1, _zv1, _, _ = score_plan(_zm, _zgreedy, _zst, _zot, _zwi, _zra, _zso, _zpr)
 print(f" greedy    : cost {_zc1:7.2f}  viol {_zv1:.3f}")
 if _zv1 <= _zv0 + 1e-6:
     R.check("greedy does not rout the plan built with a fixed variable",
