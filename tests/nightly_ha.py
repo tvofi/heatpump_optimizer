@@ -849,6 +849,13 @@ def _report(checks: Checks, completed, config: Path) -> int:
         len(reported) == 1,
         f"{len(reported)} result markers in the container's output",
     )
+    # The container's own check lines, always. Without this a green run says
+    # only "ALL 20 checks PASSED" and a reader cannot see WHICH twenty ran --
+    # which is the shape of a lane nobody trusts and nobody reads.
+    print("--- inside the container ---")
+    for line in completed.stdout.splitlines():
+        if line[:6] in ("  ok  ", "  FAIL", "  ..  "):
+            print(line)
     inside = json.loads(reported[0]) if len(reported) == 1 else {}
     if set(inside) != set(INSIDE_CHECKS):
         missing = sorted(set(INSIDE_CHECKS) - set(inside))
