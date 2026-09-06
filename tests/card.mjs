@@ -1859,10 +1859,13 @@ check("the hand-scheduled reason has a label",
   su.dialog.page = "savings";
   su._render();
   const savingsEmpty = collect(su.shadowRoot).join("\n");
+  const savingsBody = collect(
+    su.shadowRoot.querySelector(".dlg-body") || su.shadowRoot
+  ).join("\n");
   check("savings tab empty copy when the attribute is missing",
     /No settled savings months yet/.test(savingsEmpty));
   check("savings tab does not invent zero rows",
-    !/0\.00/.test(savingsEmpty) && !/<tbody>\s*<tr/.test(savingsEmpty));
+    !/0\.00/.test(savingsBody) && !/<tbody>\s*<tr/.test(savingsBody));
   check("legend stays off the savings page",
     !/Electricity price/.test(savingsEmpty));
 

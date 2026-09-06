@@ -2822,14 +2822,6 @@ function cardStyleBlock() {
         /* Room for the scrollbar so it never lands on top of the chart. */
         scrollbar-gutter: stable;
       }
-      .savings-table { width: 100%; border-collapse: collapse; }
-      .savings-table th, .savings-table td {
-        text-align: left; padding: 0.35em 0.5em;
-      }
-      .savings-table th { font-weight: 600; }
-      .savings-table tr.estimated td { font-style: italic; }
-      .savings-est { font-weight: 400; opacity: 0.75; }
-      .savings-empty { margin: 1em 0; }
       dialog.expanded::backdrop {
         background: rgba(0, 0, 0, 0.55);
       }
@@ -3005,7 +2997,7 @@ function cardStyleBlock() {
         cursor: crosshair;
       }
       .layout-port-hit {
-        fill: #fff; fill-opacity: .001; stroke: none;
+        fill: #fff; fill-opacity: 0.001; stroke: none;
         cursor: crosshair;
       }
       .layout-ghost {
@@ -9227,7 +9219,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
       ? st.attributes.savings_months
       : [];
     if (!rows.length) {
-      return `<p class="savings-empty">${esc(L("savings.empty"))}</p>`;
+      return `<p class="savings-empty" style="margin:1em 0">${esc(L("savings.empty"))}</p>`;
     }
     const cur = this.plan.currency();
     const money = (n) =>
@@ -9238,23 +9230,23 @@ class HeatpumpOptimizerCard extends HTMLElement {
       typeof n === "number" && Number.isFinite(n) ? `${n.toFixed(0)}%` : "—";
     const tr = (row) => {
       const est = row.estimated
-        ? ` <span class="savings-est">${esc(L("savings.estimated"))}</span>`
+        ? ` <span class="savings-est" style="font-weight:400;opacity:.75">${esc(L("savings.estimated"))}</span>`
         : "";
-      return `<tr class="${row.estimated ? "estimated" : ""}">
+      return `<tr class="${row.estimated ? "estimated" : ""}"${row.estimated ? ' style="font-style:italic"' : ""}>
         <td>${esc(String(row.month || ""))}${est}</td>
-        <td>${money(row.baseline_sek)}</td>
-        <td>${money(row.actual_sek)}</td>
-        <td>${money(row.savings_sek)}</td>
-        <td>${pct(row.savings_pct)}</td>
+        <td style="text-align:left;padding:.35em .5em">${money(row.baseline_sek)}</td>
+        <td style="text-align:left;padding:.35em .5em">${money(row.actual_sek)}</td>
+        <td style="text-align:left;padding:.35em .5em">${money(row.savings_sek)}</td>
+        <td style="text-align:left;padding:.35em .5em">${pct(row.savings_pct)}</td>
       </tr>`;
     };
-    return `<table class="savings-table">
+    return `<table class="savings-table" style="width:100%;border-collapse:collapse">
       <thead><tr>
-        <th>${esc(L("savings.col_month"))}</th>
-        <th>${esc(L("savings.col_baseline"))}</th>
-        <th>${esc(L("savings.col_actual"))}</th>
-        <th>${esc(L("savings.col_savings"))}</th>
-        <th>${esc(L("savings.col_pct"))}</th>
+        <th style="text-align:left;padding:.35em .5em;font-weight:600">${esc(L("savings.col_month"))}</th>
+        <th style="text-align:left;padding:.35em .5em;font-weight:600">${esc(L("savings.col_baseline"))}</th>
+        <th style="text-align:left;padding:.35em .5em;font-weight:600">${esc(L("savings.col_actual"))}</th>
+        <th style="text-align:left;padding:.35em .5em;font-weight:600">${esc(L("savings.col_savings"))}</th>
+        <th style="text-align:left;padding:.35em .5em;font-weight:600">${esc(L("savings.col_pct"))}</th>
       </tr></thead>
       <tbody>${rows.map(tr).join("")}</tbody>
     </table>`;
