@@ -35,16 +35,23 @@ production lines. You work in your own worktree branched from `origin/main`.
    Key on the **mode line**, never the count — `MODE: SCOPED -- 0 script(s)
    run` and `MODE: FULL` both print zero and mean opposite things. Run what
    `scope.run` names, with `PYTHONPATH=tests/hastub`, and leave the remainder
-   to CI: it runs the same `run.sh`, in the same drift mode, against the same
-   merge base, on a runner that is not competing with you, and it is the
-   verdict. `MODE: FULL` reports a diff the gate cannot scope — often a gate
-   file or a doc — not an instruction to spend forty minutes reproducing CI.
+   to CI. `tests/README.md` ("The scoped gate") is the in-tree source for why
+   that is safe and what it costs: CI runs the same `run.sh` in the same drift
+   mode against the same merge base, and a full run is about forty minutes. So
+   `MODE: FULL` reports a diff the gate cannot scope — often a gate file or a
+   doc — not an instruction to spend forty minutes reproducing CI.
+
+   **Running locally does not discharge CI.** What `scope.run` names is green
+   locally before you push, and the PR's own checks are green before the
+   handoff in step 6 — `fix-review.md` step 11 reads those checks rather than
+   the body's account of them, and a check that went red owes an answer in the
+   body.
 
    **Take the gate lease only when `MODE: FULL` or `scope.run` names
    `tests/stress.py`**, the one script the lock exists for (`CLAUDE.md`
-   "Running it"; `tests/README.md`). Never `mkdir` and a shell pid: that lock
-   carries no lease, `run.sh` will not renew it, and a waiter cannot reclaim
-   it after a crash.
+   "Running it"; `tests/README.md`). Never `mkdir` and a shell pid, which #404
+   replaced: that lock carries no lease, `run.sh` will not renew it, and a
+   waiter cannot reclaim it after a crash.
 
        python3 tests/gate_lock.py take --label <your-label>
        HPO_GATE_LOCK_LABEL=<your-label> GATE_SCOPE=auto GOLDEN_MODE=drift \
@@ -57,9 +64,29 @@ production lines. You work in your own worktree branched from `origin/main`.
    only in the environment that recorded the fixtures. `tests/README.md` has
    the detail. `python3 tests/structure.py` is seconds and runs before every
    push regardless.
-6. Hand off to the adversarial fix reviewer. **After any rebase, steps 2–4
-   are re-executed**: the evidence describes one tree, and a rebase makes a
-   new one.
+6. Hand off to the adversarial fix reviewer. **After any rebase or merge,
+   steps 2–4 are re-executed**: the evidence describes one tree, and either
+   makes a new one.
+
+   **The handoff freezes the branch.** Until then, update it from `origin/main`
+   whenever you need to — `git merge origin/main`, never rebase. After it, the
+   head is the reviewer's measuring surface and **only the orchestrator moves
+   it**: a head that moves mid-review invalidates measurements already taken,
+   and the reviewer cannot tell which of its numbers still describe the tree.
+   If your branch goes stale while a review is in flight, say so and hand it
+   back; do not merge it yourself. Moving it anyway is a verdict the reviewer
+   may return against you — **Re-read the head before you post**, in
+   `fix-review.md`.
+
+   Landing a PR is never yours in any case — that is the orchestrator's, or a
+   merge-and-release seat it starts. `git merge origin/main` into your own
+   branch and `gh pr merge` are different acts; only the first was ever yours,
+   and only before the handoff.
+
+   The seat is the **orchestrator** — the one the Model-routing table gives
+   control flow, merges and sequencing. In this repository "coordinator" is
+   `coordinator.py` and the `coordinator_loc` / `coordinator_attrs` budgets the
+   ratchet section below measures. It is never the name of a seat.
 7. The PR body closes its issues (`Closes #N`), names the head SHA measured,
    and carries every executed number.
 8. **A quoted number states the rule that produced it, not just its value.**
