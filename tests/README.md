@@ -256,12 +256,15 @@ If that same-repo PR's `closures` job fails with `UNDER-SCOPED`,
 `closures-autofix` merges the recordings the failed job already took into
 `tests/closures.json` and pushes `ci: re-record closures`. It does not
 re-run the derive, and it does not push on no-copies, a failed recording,
-an INERT contradiction, or its own follow-up commit.
+an INERT contradiction, or its own follow-up commit. **Do not open a
+second PR or run Darwin `--single` for that failure** — Linux CI already
+has the recordings.
 
 If `fast` fails because a claim list is identical to `origin/main`
 (`INHERITED CLAIMS`, the #493/#494/#496 case), `claims-autofix` deletes
 the bare claim lines, keeps `claims-for:` and `# may-drift:`, and pushes
-`ci: drop inherited claims`.
+`ci: drop inherited claims`. **Do not hand-empty the files in a parallel
+PR** for that message.
 
 A `GITHUB_TOKEN` push does not fire `pull_request`. After either push the
 job dispatches Tests, Hassfest and Validate on the new SHA. Tests treats
@@ -271,7 +274,10 @@ secret `CLOSURES_PUSH_TOKEN` (PAT with `repo` and `workflow`) retriggers
 via synchronize instead; the dispatch is then skipped.
 
 If you have changed what a test reaches — new fixture, new import, a script
-that starts reading a file it did not before — regenerate and commit:
+that starts reading a file it did not before — push the code change and
+let `closures-autofix` merge the Linux recordings. Local regenerate is
+only needed when you are not on a same-repo PR, or when there is **no**
+recording (a new selectable script the lanes never ran):
 
 ```bash
 ./tests/derive_closures.sh                # ~one full suite; rewrites tests/closures.json
@@ -411,7 +417,11 @@ bumps the line and empties the list. And under `--all`, the claim list must
 differ from the baseline's: identical names with identical reasons mean the
 list was written for the baseline's diff and carried forward, which the stamp
 alone cannot catch, because it only expires claims when `VERSION` *changes*
-and consecutive commits often share one. An empty list is always fine.
+and consecutive commits often share one. An empty list is always fine. A
+docs/roster/plan/workflow-only three-dot must leave both claim files empty
+(header `claims-for:` only); `tests/run.sh` always runs
+`env_drift.py --claims-only` so `GATE_SCOPE=auto` cannot skip that the way it
+skipped `card_drift.mjs` on #493.
 
 The comparison ref must not resolve to `HEAD`. A tree compared against itself
 is identical by construction, so nothing can ever drift and every claim is

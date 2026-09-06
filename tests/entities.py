@@ -8194,6 +8194,189 @@ R.check(
     f"status={_inh_status} solver={_inh_solver!r} card={_inh_card!r}",
 )
 
+# --- #493: inherited card claims on a roster-only three-dot -----------------
+#
+# PR #493 (squash ae97a65) touched only INERT roster/plan files. Claim files
+# were byte-identical to 62799e4, so GATE_SCOPE=auto skipped card_drift.mjs
+# and env_drift.py (no changed file in those closures). After squash, main's
+# GATE_SCOPE=full ran `node tests/card_drift.mjs 62799e4` and failed
+# INHERITED CLAIMS on whatif_edited / whatif_weekly. The PR merge-base WAS
+# 62799e4 -- the gap is the skip, not a different baseline SHA.
+_493_FILES = [
+    ".claude/workflows/wave-4-groups.json",
+    ".claude/workflows/wave-5-groups.json",
+    "docs/plan-2026-09-open-issues.md",
+]
+_493_CARD = {
+    "whatif_edited": "in-window lo floored at the window min; floored band note",
+    "whatif_weekly": "weekly-spec in-window lo floor; floored band note",
+}
+_493_skip = _closure.select(_493_FILES)
+R.check(
+    "#493-shaped roster-only still scopes card_drift and env_drift out",
+    _493_skip["mode"] == "scoped"
+    and "tests/card_drift.mjs" in _493_skip["skip"]
+    and "tests/env_drift.py" in _493_skip["skip"],
+    "the expensive capture/render stays scoped out; claims-only must catch "
+    f"this, not a full env_drift. mode={_493_skip['mode']} "
+    f"run={_493_skip['run'][:6]}",
+)
+
+_rpr = getattr(_env_drift, "record_pr_claims_error", None)
+R.check(
+    "roster-only #493 with copied card claims is refused",
+    callable(_rpr)
+    and (_rpr(_493_FILES, {}, _493_CARD) or "").startswith("RECORD PR CLAIMS"),
+    "a docs/roster three-dot carrying #490's card claims must fail; "
+    "empty the lists",
+)
+R.check(
+    "empty claims on a roster-only three-dot pass",
+    callable(_rpr) and _rpr(_493_FILES, {}, {}) is None,
+    "header claims-for: only is the record-PR answer",
+)
+R.check(
+    "a claim-bearing change that touches solver fixtures is not a record-PR violation",
+    callable(_rpr)
+    and _rpr(
+        ["custom_components/heatpump_optimizer/optimizer.py"],
+        {"winter_single_dhw": "this branch moved the fixture"},
+        {},
+    ) is None,
+    "a real solver PR may claim the fixtures it moves",
+)
+R.check(
+    "a claim-bearing change that touches the card is not a record-PR violation",
+    callable(_rpr)
+    and _rpr(
+        [_CARD_ASSET],
+        {},
+        {"whatif_edited": "this branch moved the what-if editor"},
+    ) is None,
+    "a real card PR may claim the states it moves",
+)
+
+_runsh_text = Path("tests/run.sh").read_text()
+_claims_lines = [
+    ln for ln in _runsh_text.splitlines() if "env_drift.py --claims-only" in ln
+]
+R.check(
+    "run.sh always runs env_drift.py --claims-only through run_always",
+    bool(_claims_lines)
+    and _claims_lines[0].lstrip().startswith("run_always "),
+    "GATE_SCOPE=auto skipped card_drift on #493 because claim files were "
+    f"unchanged; claims-only must not go through in_scope. lines={_claims_lines!r}",
+)
+_ra = _re.search(r"^run_always\(\) \{$(.*?)^\}", _runsh_text, _re.M | _re.S)
+R.check(
+    "run_always never consults in_scope",
+    _ra is not None and "in_scope" not in _ra.group(1),
+    "run_always that calls in_scope is just run, and #493 would skip again",
+)
+
+_hyg = getattr(_env_drift, "check_claims_hygiene", None)
+
+
+def _hygiene_git(card_head: str, extra: dict[str, str], py_touch: bool):
+    """Two-commit repo: baseline has #493's card claims; HEAD applies extra."""
+    import subprocess as _sp
+
+    root = _tempfile.mkdtemp(prefix="h493_")
+    card_base = (
+        "# claims-for: 6.3.15\n\n"
+        "whatif_edited  # in-window lo floored at the window min; floored band note\n"
+        "whatif_weekly  # weekly-spec in-window lo floor; floored band note\n"
+    )
+    solver = "# claims-for: 6.3.15\n"
+    (Path(root) / "tests" / "golden").mkdir(parents=True)
+    (Path(root) / "custom_components" / "heatpump_optimizer").mkdir(parents=True)
+    (Path(root) / "VERSION").write_text("6.3.15\n")
+    (Path(root) / "tests" / "golden" / "claimed_drift.txt").write_text(solver)
+    (Path(root) / "tests" / "golden" / "card_claimed_drift.txt").write_text(card_base)
+    (Path(root) / "custom_components" / "heatpump_optimizer" / "optimizer.py").write_text(
+        "x = 1\n"
+    )
+    _sp.run(["git", "init"], cwd=root, check=True, capture_output=True)
+    _sp.run(["git", "config", "user.email", "t@t"], cwd=root, check=True)
+    _sp.run(["git", "config", "user.name", "t"], cwd=root, check=True)
+    _sp.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
+    _sp.run(["git", "commit", "-m", "base"], cwd=root, check=True, capture_output=True)
+    base = _sp.run(
+        ["git", "rev-parse", "HEAD"], cwd=root, check=True, capture_output=True, text=True
+    ).stdout.strip()
+    (Path(root) / "tests" / "golden" / "card_claimed_drift.txt").write_text(card_head)
+    for rel, text in extra.items():
+        p = Path(root, rel)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(text)
+    if py_touch:
+        (Path(root) / "custom_components" / "heatpump_optimizer" / "optimizer.py").write_text(
+            "x = 2\n"
+        )
+    _sp.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
+    _sp.run(["git", "commit", "-m", "head"], cwd=root, check=True, capture_output=True)
+    return root, base
+
+
+_h493_card = (
+    "# claims-for: 6.3.15\n\n"
+    "whatif_edited  # in-window lo floored at the window min; floored band note\n"
+    "whatif_weekly  # weekly-spec in-window lo floor; floored band note\n"
+)
+_h493_root, _h493_base = _hygiene_git(
+    _h493_card,
+    {
+        ".claude/workflows/wave-4-groups.json": "{}\n",
+        ".claude/workflows/wave-5-groups.json": "{}\n",
+        "docs/plan-2026-09-open-issues.md": "# plan\n",
+    },
+    py_touch=False,
+)
+_h493_err = _hyg(_h493_root, _h493_base) if callable(_hyg) else None
+R.check(
+    "check_claims_hygiene replays #493 (roster-only + copied card claims vs 62799e4) and fails",
+    callable(_hyg)
+    and isinstance(_h493_err, str)
+    and (
+        _h493_err.startswith("INHERITED CLAIMS")
+        or _h493_err.startswith("RECORD PR CLAIMS")
+    ),
+    "missing check_claims_hygiene"
+    if not callable(_hyg)
+    else f"hygiene returned {_h493_err!r}",
+)
+_h_empty_root, _h_empty_base = _hygiene_git(
+    "# claims-for: 6.3.15\n",
+    {"docs/plan-2026-09-open-issues.md": "# plan\n"},
+    py_touch=False,
+)
+_h_empty_err = _hyg(_h_empty_root, _h_empty_base) if callable(_hyg) else "missing"
+R.check(
+    "check_claims_hygiene accepts empty claims on a roster-only three-dot",
+    callable(_hyg) and _h_empty_err is None,
+    f"empty claims on docs-only should pass; got {_h_empty_err!r}",
+)
+_h_real_root, _h_real_base = _hygiene_git(
+    "# claims-for: 6.3.15\n",
+    {},
+    py_touch=True,
+)
+# Rewrite solver claims on HEAD so they are this diff's, not the baseline's.
+Path(_h_real_root, "tests/golden/claimed_drift.txt").write_text(
+    "# claims-for: 6.3.15\n\nwinter_single_dhw  # this branch moved the fixture\n"
+)
+_subprocess.run(["git", "add", "-A"], cwd=_h_real_root, check=True, capture_output=True)
+_subprocess.run(
+    ["git", "commit", "--amend", "--no-edit"],
+    cwd=_h_real_root, check=True, capture_output=True,
+)
+_h_real_err = _hyg(_h_real_root, _h_real_base) if callable(_hyg) else "missing"
+R.check(
+    "check_claims_hygiene accepts a real claim-bearing PR that moves solver fixtures",
+    callable(_hyg) and _h_real_err is None,
+    f"optimizer.py + rewritten claims should pass; got {_h_real_err!r}",
+)
+
 # The other end of the same rule (v6.3.3). The inherited-claims check fires
 # on whoever forks a main that was stamped with claims still in the file --
 # the wrong person, one commit too late. This one fires on the stamp itself:

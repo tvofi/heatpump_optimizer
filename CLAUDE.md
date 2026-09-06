@@ -115,6 +115,28 @@ A full `./tests/derive_closures.sh` cannot re-record the node lanes
 CI's `closures` job provides on Linux. Python closures can still be re-derived
 locally.
 
+## CI already repairs two mechanical failures — do not re-implement them
+
+`.github/workflows/tests.yml` jobs `closures-autofix` and `claims-autofix`
+already exist on same-repo PRs. Do **not** open a second PR, run Darwin
+`--single`, or hand-empty claim files for these. Wait for the bot commit
+(`ci: re-record closures` / `ci: drop inherited claims`) and the dispatched
+recheck. Loop-guarded: those subjects are not repaired again.
+
+- **`UNDER-SCOPED`:** `closures` already recorded under strace. Autofix
+  merges those recordings into `tests/closures.json` and retriggers Tests.
+  Policy: `closure.py` `apply_under_scoped_recordings`.
+- **`INHERITED CLAIMS`:** a list identical to `origin/main`. Autofix deletes
+  bare claim lines, keeps `claims-for:` and `# may-drift:`. Policy:
+  `env_drift.py` `apply_inherited_claims`.
+
+Not automated (still a human/agent judgment): golden drift, structure
+budgets, `no-copies`, orphans → `INERT`, briefs lint, a failed recording,
+an INERT contradiction. Do not add a third autofix job without a new
+mechanical, uniquely-detected failure.
+
+See `.cursor/rules/ci-autofix.mdc` and `tests/README.md` (scoped gate).
+
 <!-- ▼ DATED BLOCK. Everything below describes work in progress and expires with
      it. If the tracking issue is closed, this block is history, not instruction. -->
 

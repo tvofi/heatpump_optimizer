@@ -68,6 +68,10 @@ name: Tests
 #
 # * slow — nightly and on demand. Same suite plus SLOW=1, which adds
 #   tests/rolling.py (the closed-loop learner simulation, ~15 minutes).
+#
+# * closures-autofix / claims-autofix — same-repo PRs only. Merge
+#   UNDER-SCOPED recordings, or empty an inherited claim list, then
+#   retrigger Tests. Do not re-implement; see .cursor/rules/ci-autofix.mdc.
 
 on:
   push:
