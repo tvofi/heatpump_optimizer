@@ -7373,6 +7373,7 @@ import time as _time
 
 import env_drift as _env_drift
 import closure as _closure
+import ast as _ast_af
 import inspect as _inspect
 import gate_lock as _gate_lock
 
@@ -8097,12 +8098,23 @@ R.check(
 # The table is a claim about what these two functions return. A status added
 # to either without a decision here defaults to reddening the job, which is
 # safe but silent; this makes the addition say so.
-_af_returns = set(re.findall(
-    r'return "([a-z][a-z-]*)"',
-    _inspect.getsource(_closure.apply_under_scoped_recordings)))
-_ac_returns = set(re.findall(
-    r'return "([a-z][a-z-]*)"',
-    _inspect.getsource(_env_drift.apply_inherited_claims)))
+def _returned_statuses(fn) -> set[str]:
+    """Every string literal `fn` can return, conditional expressions included.
+
+    A `return "a" if c else "b"` is one Return node carrying two literals; a
+    regex over `return "..."` reads that as one status and under-reports the
+    very thing this check asks about. It did, on apply_inherited_claims.
+    """
+    tree = _ast_af.parse(_inspect.getsource(fn))
+    return {n.value
+            for r in _ast_af.walk(tree)
+            if isinstance(r, _ast_af.Return) and r.value is not None
+            for n in _ast_af.walk(r.value)
+            if isinstance(n, _ast_af.Constant) and isinstance(n.value, str)}
+
+
+_af_returns = _returned_statuses(_closure.apply_under_scoped_recordings)
+_ac_returns = _returned_statuses(_env_drift.apply_inherited_claims)
 R.check(
     "every status the two apply functions return is classified here",
     _af_returns == {"changed", "skip-clean", "skip-not-under-scoped",

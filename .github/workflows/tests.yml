@@ -700,6 +700,19 @@ jobs:
           gh workflow run hassfest.yml --ref "$HEAD_REF"
           gh workflow run validate.yml --ref "$HEAD_REF"
 
+      # The push above runs only on `changed`; the other statuses fell through
+      # to job success, so a skipped repair was invisible and the documented
+      # wait never ended (#523). Last, and always(): a status the step above
+      # skipped on is exactly the status worth reporting, and reporting before
+      # the push would let this step's own exit throw the repair away.
+      - name: Report whether the repair happened
+        if: always()
+        env:
+          PYTHONPATH: tests/hastub
+        run: |
+          python tests/closure.py autofix-report --job closures-autofix \
+            --status "${{ steps.autofix.outputs.status }}"
+
   # Same-repo PR only. fast fails INHERITED CLAIMS when a branch copies
   # main's non-empty list (#493/#494/#496). Empty both files, keep
   # claims-for and may-drift, push `ci: drop inherited claims`.
@@ -785,3 +798,15 @@ jobs:
           gh workflow run tests.yml --ref "$HEAD_REF"
           gh workflow run hassfest.yml --ref "$HEAD_REF"
           gh workflow run validate.yml --ref "$HEAD_REF"
+
+      # As in closures-autofix (#523). This job's apply function has no
+      # attempted-and-failed status, so today only an unrecognised or empty
+      # one reddens; the step exists so the status reaches the job summary,
+      # and so a status added later cannot fall through to green.
+      - name: Report whether the repair happened
+        if: always()
+        env:
+          PYTHONPATH: tests/hastub
+        run: |
+          python tests/closure.py autofix-report --job claims-autofix \
+            --status "${{ steps.autofix.outputs.status }}"
