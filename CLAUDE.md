@@ -121,6 +121,29 @@ lands; run it locally the same way). The linter does not read `docs/plan-*.md`
 or `tools/audit/briefs/`. Extending the plan format means extending the linter
 in the same PR.
 
+## Root-cause remediation
+
+A defect that reached a released version, or that turned a PR red on a check a
+cheaper detector could have run, owes two things beyond its fix: the cause, and
+the **process** that let the cause get that far. The process failure is in one
+of four states — the process did not exist, existed and was not followed, was
+followed and did not work, or was sound and its preconditions changed — and the
+countermeasure differs by state. Build one only when it pays for itself against
+the measured recurrence of its class; **recording that none is worth building is
+a legitimate result**. Any countermeasure that is a check must be demonstrated
+failing on the defect it was written for.
+
+The analysis runs in **its own seat**, beside the fix and never inside it:
+`tools/audit/briefs/root-cause.md`. Policy is `.cursor/rules/defect-root-cause.mdc`.
+Repository rules and policy change only with the owner's approval.
+
+The red-check trigger is enforced, and only that one. The fixer names any check
+its branch turned red in the PR body and answers there — the cheaper detector
+and its standing cost, or the finding that none exists; the fix reviewer reads
+the PR's checks before returning `merge`, and an unanswered one is
+`blocked: root-cause trigger unanswered for <check>`. Naming the trigger is not
+the analysis, which stays in its own seat.
+
 ## The contracts, when the work is a fix
 
 - `tools/audit/briefs/fixer.md` — failing test first, importing the production
