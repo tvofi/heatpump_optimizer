@@ -65,6 +65,15 @@
 # workflow only -- gate plumbing, no solver or fixture input changes, so
 # every scenario is byte-identical by construction.
 
+# W4-G8 S7 (#193, the thermal-learning seam): this branch claims NOTHING.
+# The shared Newton step, trust region, EWMA blend and rate limit move
+# verbatim from `_async_learn_house_heat_loss` and
+# `_async_learn_lower_floor_loss` into `thermal_model.learner_newton_step`,
+# in the same order, with the same constants passed in. Measured, not
+# assumed: ten saturated warm residuals through the real house learner land
+# on 0.8999999999999999 at the merge base and at this head, and deleting the
+# trust-region clip moves that to 0.5987369392383789.
+
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum

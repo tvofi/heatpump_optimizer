@@ -37,3 +37,7 @@
 # #523 (an autofix job that reported success without repairing): this
 # branch claims NOTHING. Gate plumbing and CI only -- no card source is
 # touched.
+
+# W4-G8 S7 (#193, the thermal-learning seam): this branch claims NOTHING.
+# One numeric helper moves out of two coordinator learners -- no card
+# source, no payload key and no published value is touched.
