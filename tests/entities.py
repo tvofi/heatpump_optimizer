@@ -7139,6 +7139,79 @@ R.check(
     _gl_detail,
 )
 
+
+def _gl_same_label_expired_take() -> bool:
+    """Same-label take on an expired lease rewrites the owner (#479 residual)."""
+    past = datetime.now(UTC) - timedelta(seconds=10)
+    with _tempfile.TemporaryDirectory() as td:
+        d = Path(td) / "lock"
+        _gate_lock._ensure_lock_dir(d)
+        _gate_lock.Owner("holder", past, past).write(d / _gate_lock.OWNER_NAME)
+        try:
+            taken = _gate_lock.take(
+                "holder", lock_dir=d, lease_seconds=60, wait=False,
+            )
+        except RuntimeError:
+            return False
+        return taken.label == "holder" and not taken.expired
+
+
+def _gl_same_label_return_clears_holding() -> tuple[bool, str]:
+    """Same-label take after crash clears holding so a waiter cannot steal."""
+    with _tempfile.TemporaryDirectory() as td:
+        d = Path(td) / "lock"
+        ready = Path(td) / "ready"
+        env = {**_os.environ, "PYTHONPATH": str(_closure.ROOT / "tests")}
+        holder = _subprocess.Popen(
+            [
+                sys.executable,
+                "-c",
+                "import sys, time\n"
+                "from pathlib import Path\n"
+                "import gate_lock\n"
+                "d = Path(sys.argv[1])\n"
+                "gate_lock.take('holder', lock_dir=d, lease_seconds=1800, wait=False)\n"
+                "with gate_lock.flock_context(d):\n"
+                "    Path(sys.argv[2]).write_text('1')\n"
+                "    time.sleep(30)\n",
+                str(d),
+                str(ready),
+            ],
+            cwd=str(_closure.ROOT),
+            env=env,
+        )
+        for _ in range(50):
+            if ready.exists():
+                break
+            _time.sleep(0.1)
+        else:
+            holder.kill()
+            return False, "holder never ready"
+        holder.kill()
+        holder.wait(timeout=5)
+        _time.sleep(0.2)
+        _gate_lock.take("holder", lock_dir=d, lease_seconds=1800, wait=False)
+        holding = (d / _gate_lock.HOLDING_NAME).exists()
+        try:
+            _gate_lock.take("waiter", lock_dir=d, lease_seconds=60, wait=False)
+            stolen = True
+        except BlockingIOError:
+            stolen = False
+        return not holding and not stolen, f"holding={holding} stolen={stolen}"
+
+
+R.check(
+    "an expired same-label take rewrites the lease",
+    _gl_same_label_expired_take(),
+    "must not route expired same-label take through renew()",
+)
+_gl_sl_ok, _gl_sl_detail = _gl_same_label_return_clears_holding()
+R.check(
+    "same-label return clears holding",
+    _gl_sl_ok,
+    _gl_sl_detail,
+)
+
 # --- the scoped gate's one exception to "the whole integration" -------------
 #
 # `_widen` gives env_drift.py the whole integration because no tracer can see
