@@ -1024,6 +1024,10 @@
       "title": "Optimization keeps failing; the plan is going stale",
       "description": "The last {count} optimization runs failed, so the integration is still showing — and until recently acting on — a plan computed at {last_success}. Once the plan is older than a few update intervals the heat pump is handed back to its own heating curve rather than driven from an outdated schedule. The usual suspects are a lost price or weather connection, or an error in the log from the solver itself. This notice clears on the next successful optimization."
     },
+    "solve_worker_fallback": {
+      "title": "Planning fell back to the slow in-process solver",
+      "description": "The separate solver process could not be used, so the optimization ran inside Home Assistant's own interpreter instead. The plan is correct, but the solve holds the interpreter lock while it runs, so Home Assistant may feel briefly unresponsive on each optimization. The cause reported was: {cause}. Please attach that line and the log to a report. This notice clears once a solve completes in the separate process again."
+    },
     "pump_mode_unreadable": {
       "title": "Heat pump operating mode entity is not reporting",
       "description": "The entity you chose for the heat pump's operating mode has not been readable for over {hours} hours. The last mode it reported was “{mode}”, and until now the plan was still being held to what that mode can deliver. It has stopped being held to it: an operating mode nobody has been able to read for hours is no longer evidence about what the pump is doing, and continuing to suppress heating or hot water on it would leave you cold on the word of a dead sensor. The plan is back to assuming the pump can do everything, which is what it assumed before you configured this entity. Check that the entity still exists and is available, or clear the slot if you no longer want it used. This notice clears as soon as the entity reports again."

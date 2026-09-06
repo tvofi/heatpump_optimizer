@@ -19,7 +19,10 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 6.3.15
+# claims-for: 6.3.16
+#
+# v6.3.16: the solve worker could not unpickle its job. The stamp empties the list; the
+# next branch restates its own footprint, claims included.
 #
 # #514 (declare Python 3.13+, raise the Home Assistant floor to 2025.2.0):
 # this branch claims NOTHING. Docs, config and CI only -- no card source is

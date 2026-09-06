@@ -22206,6 +22206,230 @@ R.check(
 )
 
 # ---------------------------------------------------------------------------
+R.section("#511 — the solve worker under Home Assistant's module naming")
+
+# Every import above spells the integration ``heatpump_optimizer``, because
+# harness.py puts ``custom_components`` on sys.path. Home Assistant spells it
+# ``custom_components.heatpump_optimizer``, and pickle ships a module-level
+# function BY QUALIFIED NAME -- so the name this suite shipped to the worker
+# was never the name a real install ships, and v6.3.15 could not solve at all.
+# Both spellings are asserted here; dropping either re-opens #511.
+import io as _g511_io  # noqa: E402
+import logging as _g511_logging  # noqa: E402
+import pickle as _g511_pickle  # noqa: E402
+import tempfile as _g511_tempfile  # noqa: E402
+
+from harness import ProcessProbeOptimizer as _G511Probe  # noqa: E402
+
+_g511_root = str(_Path(__file__).resolve().parent.parent)
+if _g511_root not in sys.path:
+    sys.path.insert(0, _g511_root)
+
+import custom_components.heatpump_optimizer.coordinator as _g511_coord  # noqa: E402
+import custom_components.heatpump_optimizer.process_worker as _g511_worker  # noqa: E402
+import heatpump_optimizer.coordinator as _g511_harness_coord  # noqa: E402
+from custom_components.heatpump_optimizer.optimizer import (  # noqa: E402
+    optimize_in_process as _g511_job,
+)
+
+# RuntimeError is what the merge base raises; the default keeps this file
+# importable there so the failure below is the bug, not a missing symbol.
+_g511_unavailable = getattr(_g511_coord, "ProcessWorkerUnavailable", RuntimeError)
+
+
+def _g511_submit(run, fn, args):
+    """Round-trip ``fn`` through the real worker. The error IS the measurement."""
+    try:
+        return None, run(fn, args)
+    except Exception as err:  # noqa: BLE001
+        return err, None
+
+
+_g511_blob = _g511_pickle.dumps(_g511_job, protocol=_g511_pickle.HIGHEST_PROTOCOL)
+R.check(
+    "the job pickles under Home Assistant's package name, not the harness's",
+    _g511_job.__module__ == "custom_components.heatpump_optimizer.optimizer"
+    and b"custom_components" in _g511_blob,
+    f"module={_g511_job.__module__}",
+)
+_g511_ha_err, _ = _g511_submit(
+    _g511_coord._run_in_process, _g511_job, (None, None, (), {})
+)
+R.check(
+    "and the child resolves that name -- the job runs there (#511)",
+    isinstance(_g511_ha_err, AttributeError) and "optimize" in str(_g511_ha_err),
+    f"got {type(_g511_ha_err).__name__}: {_g511_ha_err}",
+)
+_g511_harness_err, _ = _g511_submit(
+    _run_in_process, _g3_opt_job, (None, None, (), {})
+)
+R.check(
+    "the harness spelling still round-trips (the import at the top of W3-G3)",
+    isinstance(_g511_harness_err, AttributeError)
+    and "optimize" in str(_g511_harness_err),
+    f"got {type(_g511_harness_err).__name__}: {_g511_harness_err}",
+)
+_g511_pkg = _Path(_g511_coord.__file__).resolve().parent
+_g511_path = _g511_coord._worker_env()["PYTHONPATH"].split(_os.pathsep)
+R.check(
+    "_worker_env exports the config directory, not only custom_components",
+    str(_g511_pkg.parent) in _g511_path
+    and str(_g511_pkg.parent.parent) in _g511_path,
+    f"got {_g511_path}",
+)
+
+_g511_tmp = _g511_tempfile.mkdtemp(prefix="g511-")
+(_Path(_g511_tmp) / "g511_absent.py").write_text("def job(*a, **k):\n    return 1\n")
+sys.path.insert(0, _g511_tmp)
+import g511_absent as _g511_absent  # noqa: E402
+
+_g511_load_err, _ = _g511_submit(_g511_coord._run_in_process, _g511_absent.job, ())
+R.check(
+    "a job the child cannot import comes back over the pipe, not as rc=1",
+    isinstance(_g511_load_err, _g511_unavailable)
+    and "g511_absent" in str(_g511_load_err),
+    f"got {type(_g511_load_err).__name__}: {_g511_load_err}",
+)
+
+
+class _G511Unpicklable(Exception):
+    def __reduce__(self):
+        raise TypeError("this exception refuses to pickle")
+
+
+_g511_sink = _g511_io.BytesIO()
+_g511_dump = getattr(_g511_worker, "_dump", None)
+if _g511_dump is not None:
+    _g511_dump(_g511_sink, ("err", _G511Unpicklable("boom")))
+_g511_degraded = (
+    _g511_pickle.loads(_g511_sink.getvalue()) if _g511_sink.getvalue() else None
+)
+R.check(
+    "an error that will not pickle degrades to text instead of killing the worker",
+    isinstance(_g511_degraded, tuple)
+    and _g511_degraded[0] == "err"
+    and "_G511Unpicklable" in str(_g511_degraded[1]),
+    f"got {_g511_degraded!r}",
+)
+
+
+class _G511Hass(FakeHass):
+    """Records what reached the executor, so a fallback cannot hide."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.jobs = []
+        self.issues = []
+
+    async def async_add_executor_job(self, func, *args):
+        self.jobs.append(func)
+        return func(*args)
+
+
+class _G511LocalOptimizer:
+    """Lives in ``__main__``, which the child cannot resolve: the worker route
+    must fail and the in-process fallback must carry the solve."""
+
+    def optimize(self, state, *positional, **keywords):
+        return ("in-process", _os.getpid(), state)
+
+
+class _G511LogSink(_g511_logging.Handler):
+    def __init__(self) -> None:
+        super().__init__(level=_g511_logging.WARNING)
+        self.records = []
+
+    def emit(self, record):
+        self.records.append(record)
+
+
+def _g511_solve(coord, optimizer):
+    """``_await_optimize`` with the warnings it emitted and the hass it used."""
+    hass, sink = _G511Hass(), _G511LogSink()
+    logger = _g511_logging.getLogger(coord.__name__)
+    logger.addHandler(sink)
+    try:
+        outcome = _asyncio.run(coord._await_optimize(hass, optimizer, "STATE"))
+    except Exception as err:  # noqa: BLE001 - the merge base has no fallback
+        outcome = err
+    finally:
+        logger.removeHandler(sink)
+    return outcome, hass, [r for r in sink.records if r.levelno >= 30]
+
+
+def _g511_quiet(coord, hass, warned):
+    """No fallback engaged: the process route ran it and nothing was said."""
+    return (
+        hass.jobs == [coord._run_in_process]
+        and warned == []
+        and [i for i in hass.issues if i[1] == "solve_worker_fallback"] == []
+    )
+
+
+_g511_out, _g511_hass, _g511_warned = _g511_solve(
+    _g511_coord, _G511LocalOptimizer()
+)
+R.check(
+    "a worker fault degrades to a slower plan rather than to no plan",
+    isinstance(_g511_out, tuple)
+    and _g511_out[0] == "in-process"
+    and _g511_out[1] == _g3_parent
+    and _g511_out[2] == "STATE",
+    f"got {_g511_out!r}",
+)
+R.check(
+    "and is never silent: one warning naming the cause",
+    len(_g511_warned) == 1
+    and "_G511LocalOptimizer" in _g511_warned[0].getMessage(),
+    f"got {[r.getMessage() for r in _g511_warned]!r}",
+)
+_g511_notice = [i for i in _g511_hass.issues if i[1] == "solve_worker_fallback"]
+R.check(
+    "and raises a repair notice the way solve_failures does",
+    len(_g511_notice) == 1
+    and _g511_notice[0][2].get("translation_key") == "solve_worker_fallback"
+    and _g511_notice[0][2].get("is_persistent") is True
+    and _g511_notice[0][2].get("severity") == "warning"
+    and "_G511LocalOptimizer"
+    in _g511_notice[0][2].get("translation_placeholders", {}).get("cause", ""),
+    f"got {_g511_notice!r}",
+)
+
+# Null control: with a job the child CAN resolve, the process route must still
+# be the one that runs. A fallback that always engaged would silently undo
+# #199/#290 and put the solve back on the GIL, and every check above would go
+# green on an integration that had stopped using the worker at all.
+_g511_ok, _g511_ok_hass, _g511_ok_warned = _g511_solve(_g511_coord, _G511Probe())
+R.check(
+    "null control: a healthy worker still solves in the child interpreter",
+    isinstance(_g511_ok, tuple)
+    and _g511_ok[0] != _g3_parent
+    and _g511_ok[1] == "STATE",
+    f"parent={_g3_parent} got {_g511_ok!r}",
+)
+R.check(
+    "null control: the fallback did not engage, and said nothing",
+    _g511_quiet(_g511_coord, _g511_ok_hass, _g511_ok_warned),
+    f"jobs={_g511_ok_hass.jobs!r} warned={len(_g511_ok_warned)} "
+    f"issues={_g511_ok_hass.issues!r}",
+)
+# The same control through the harness spelling, whose worker was never broken:
+# it holds at the merge base as well as here, so "the fallback stays out of the
+# way" is measured against a route that worked before this fix and after it.
+_g511_h, _g511_h_hass, _g511_h_warned = _g511_solve(
+    _g511_harness_coord, _G511Probe()
+)
+R.check(
+    "null control (both ends): the harness spelling still uses the child, silently",
+    isinstance(_g511_h, tuple)
+    and _g511_h[0] != _g3_parent
+    and _g511_h[1] == "STATE"
+    and _g511_quiet(_g511_harness_coord, _g511_h_hass, _g511_h_warned),
+    f"parent={_g3_parent} got {_g511_h!r} jobs={_g511_h_hass.jobs!r} "
+    f"warned={len(_g511_h_warned)} issues={_g511_h_hass.issues!r}",
+)
+
+# ---------------------------------------------------------------------------
 R.section("3L-G5 — DHW set-point consistency (#408)")
 
 from heatpump_optimizer.const import (  # noqa: E402
