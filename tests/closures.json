@@ -1095,6 +1095,7 @@
    "custom_components/heatpump_optimizer/coordinator.py",
    "custom_components/heatpump_optimizer/currency.py",
    "custom_components/heatpump_optimizer/curve_learning.py",
+   "custom_components/heatpump_optimizer/datetime.py",
    "custom_components/heatpump_optimizer/defrost.py",
    "custom_components/heatpump_optimizer/dhw_draws.py",
    "custom_components/heatpump_optimizer/dhw_schedule.py",
