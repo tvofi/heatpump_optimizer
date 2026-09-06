@@ -1,0 +1,227 @@
+{
+  "_comment": [
+    "Wave 4 of the open-issues programme (docs/plan-2026-09-open-issues.md).",
+    "The #193 decomposition programme, plan stages S0–S13. Serial. One group per stage.",
+    "Delivery-status table wins vs any wave body. Plan numbers #223 as S11; #193 numbers it S10.",
+    "#304 is S11's precursor (this roster's S10 / W4-G11), not Wave 5.",
+    "#225 is closed (triage B1) — struck, do not reopen, do not implement.",
+    "#377 is the S0/S1 child. S2–S8 and S12 have no child issue: issues[] is the tracking parent #193;",
+    "those seats must NOT Closes #193. S13 may Closes #193 only if S0–S12 are done or recorded-halted.",
+    "#412 stays last of the programme, after Wave 5 — not in this roster.",
+    "#457 / 3L-G6 is not Wave 4. Do not invent a setup conflict flow.",
+    "Do not start any Wave 4 seat until 3L-G10 (#465) has merged. Do not start Wave 5 from this file.",
+    "Consumed by .claude/workflows/web-fix-wave.js as its `groups` argument.",
+    "Per-group worker briefs live out of tree: /Users/timmalmstrom/wt/briefs/w4-gN-*.md"
+  ],
+  "fork": "07a85ce857e82d48ca3d5267c386bcb3c7ca30cc",
+  "fork_note": "origin/main after 3L-G9 record #491 (`07a85ce`), G9 squash `b29fd1e`. STALE as a cut SHA once 3L-G10 (#465) lands — cut every Wave 4 branch from origin/main after that merge. Re-measure structure at the seat's merge-base. coordinator_loc ceiling is that merge-base value (10364 after G9; do not raise). claims-for stays 6.3.15. #412 not in this wave.",
+  "session": "claude-web",
+  "repo": "/Users/timmalmstrom/heatpump_optimizer",
+  "serial": true,
+  "struck": [
+    {
+      "group": "W4-thermal-225",
+      "issues": [225],
+      "why": "#225 closed at triage B1, not re-scoped. Do not reopen. Do not roster as implement. ThermalModel.simulate_trajectory_batch / _simulate_step_two_zone are the least separable methods in the file and sit in the gradient hot path. from_config already landed as #360."
+    }
+  ],
+  "groups": [
+    {
+      "group": "W4-G1",
+      "issues": [377],
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "high",
+      "fixture": false,
+      "blocked_on": "3L-G10",
+      "after": [],
+      "resume": {
+        "stage": "pending",
+        "note": "Do not start until 3L-G10 (#465) has merged. Plan: Do not start Wave 4 until 3L-G10 has merged. S0 of #377 only — do not Closes #377."
+      },
+      "brief": "S0 of #377 / #193: define and construct CoordinatorContext. Frozen dataclass over the five write-once hubs (config, thermal_params, hass, current_state, opt_config). _current_action stays a mutable slot (4 writer methods) — not a frozen field. Coordinator keeps all six as properties. Nothing relocates. No region hold. Do not Closes #377 (S1 does). Part of #193, Part of #201. Move/re-point only: no arithmetic, no reordering, no lazy-init timing change. Goldens byte-identical, empty claim list. coordinator.py selects stress.py — take the lock if select says so. Ratchet: +1 attr (_ctx); no cut_* may rise; coordinator_loc ceiling is the merge-base (10364 after G9, never raise). local_imports 7/7 — no new module. functions_cc_over_15 39/39 — every helper cc≤15. Never re-record cross_seam_fraction. claims-for 6.3.15. Do not stamp. Do not start S1 or Wave 5. Do not implement #412."
+    },
+    {
+      "group": "W4-G2",
+      "issues": [377],
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "high",
+      "fixture": false,
+      "after": ["W4-G1"],
+      "resume": {
+        "stage": "pending",
+        "note": "After W4-G1 merge. Closes #377. Facade properties stay until S12 (plan S12 = #193 S11)."
+      },
+      "brief": "S1 of #377 / #193: migrate the hub references (494 at 8e99ad1 — re-count at merge-base) to self._ctx.<name>, delete the six raw attributes, keep facade properties (including self.hass). Closes #377 on its own line. Do not Closes #193. Part of #201. Empty claims, goldens byte-identical. Ratchet: coordinator_attrs −5; every cut_* down by its hub part (judge: views −39, fetch −25, dhw −46, grid −37, learning −42; re-measure — live cuts at 07a85ce are views 121 fetch 132 dhw 194 grid 234 learning 350). Rank must stay views < fetch < dhw < grid < learning. Facade rule: HeatPumpOptimizerCoordinator, COP_LEARNING_MAX_STEP, HOUSE_LOSS_MAX_STEP, PLAN_STALE_FLOOR_MINUTES, SOLVE_FAILURE_ISSUE_COUNT, house_loss_confidence stay importable from heatpump_optimizer.coordinator. 34-key data payload untouched. coordinator_loc ceiling = merge-base, never raise. No new module. Never re-record cross_seam_fraction. claims-for 6.3.15. Do not stamp. Do not start S2."
+    },
+    {
+      "group": "W4-G3",
+      "issues": [193],
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "high",
+      "fixture": false,
+      "after": ["W4-G2"],
+      "resume": {
+        "stage": "pending",
+        "note": "No child issue — survey/record only unless a verbatim zero-state extraction exists. Do not Closes #193."
+      },
+      "brief": "S2 of #193. No child issue — survey/record only. SURVEY FIRST: zero-state series / headroom / plan math to module level (existing coordinator.py, not a new file). HALT (docs/roster record, empty claims, no production extraction) if any of: (1) no remaining zero-state function that extracts at helper cc≤15; (2) extraction needs a new module (local_imports 7/7); (3) any structure metric would rise; (4) the candidate is not pure/zero-state. Cut cost must not justify a different seam. Do not invent a backend. Do not Closes #193 — Part of #193, Part of #201. If you extract: bodies verbatim, goldens byte-identical, empty claims, coordinator_loc and max_class_loc must go down. Never re-record cross_seam_fraction. claims-for 6.3.15. Do not stamp. Do not start S3."
+    },
+    {
+      "group": "W4-G4",
+      "issues": [193],
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "high",
+      "fixture": false,
+      "after": ["W4-G3"],
+      "resume": {
+        "stage": "pending",
+        "note": "No child issue. views stays the facade — thinned, not moved out. Survey-first, halt if not this seam."
+      },
+      "brief": "S3 of #193 (views, cut 121 at 07a85ce, 120→81 after S1 at 8e99ad1 — re-measure). No child issue — survey/record only. Stays the facade: data payload keys are frozen; thin, do not move views out of HeatPumpOptimizerCoordinator. SURVEY FIRST. Region hold: before opening, run every open PR's touched coordinator method names through SEAM_REGEXES views (view|build_data|publish|payload); halt if any match until that PR merges. Also HALT if: no verbatim thin at helper cc≤15 without a new module; extraction would raise a ratchet metric; the candidate is not this seam (do not pick another seam by cut cost). Cut-SHA provenance check of any moved block vs main (#324 inside #340). Do not Closes #193. Empty claims. coordinator_loc ceiling = merge-base. Never re-record cross_seam_fraction. claims-for 6.3.15. Do not stamp."
+    },
+    {
+      "group": "W4-G5",
+      "issues": [193],
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "high",
+      "fixture": false,
+      "after": ["W4-G4"],
+      "resume": {
+        "stage": "pending",
+        "note": "No child issue. fetch/sources. Survey-first, halt if not this seam."
+      },
+      "brief": "S4 of #193 (fetch/sources, cut 132). No child issue — survey/record only. SURVEY FIRST. Region hold: SEAM_REGEXES fetch (fetch|tibber|weather|solar|price) against open-PR coordinator method names; halt until those PRs merge. Also HALT if no verbatim extract at helper cc≤15 without a new module; any ratchet metric would rise; candidate is not this seam. Cut-SHA provenance on moved blocks. Do not Closes #193. Empty claims. Goldens byte-identical. coordinator_loc ceiling = merge-base. Never re-record cross_seam_fraction. claims-for 6.3.15. Do not stamp. #490 (DHW card) is card-only and does not hold this seam; still re-check open PRs at start."
+    },
+    {
+      "group": "W4-G6",
+      "issues": [193],
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "high",
+      "fixture": false,
+      "after": ["W4-G5"],
+      "resume": {
+        "stage": "pending",
+        "note": "No child issue. dhw seam. Survey-first, halt if not this seam."
+      },
+      "brief": "S5 of #193 (dhw, cut 194 at 07a85ce). No child issue — survey/record only. SURVEY FIRST. Region hold: SEAM_REGEXES dhw (dhw|hot_water|legionella|draw) against open-PR coordinator method names; halt until those PRs merge. #400/#289 closed; still re-check. Also HALT if no verbatim extract at helper cc≤15 without a new module; any ratchet metric would rise; candidate is not this seam. Cut-SHA provenance. Do not Closes #193. Empty claims. coordinator_loc ceiling = merge-base. Never re-record cross_seam_fraction. claims-for 6.3.15. Do not stamp. Do not touch DHW PR #490 (card-only, not this seat)."
+    },
+    {
+      "group": "W4-G7",
+      "issues": [193],
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "high",
+      "fixture": false,
+      "after": ["W4-G6"],
+      "resume": {
+        "stage": "pending",
+        "note": "No child issue. grid/bookkeeping. Survey-first, halt if not this seam."
+      },
+      "brief": "S6 of #193 (grid/bookkeeping, cut 234 at 07a85ce). No child issue — survey/record only. SURVEY FIRST. Region hold: SEAM_REGEXES grid (grid|peak|fuse|power|outage|tariff|ledger) against open-PR coordinator method names; halt until those PRs merge. Also HALT if no verbatim extract at helper cc≤15 without a new module; any ratchet metric would rise; candidate is not this seam. Cut-SHA provenance. Do not Closes #193. Empty claims. coordinator_loc ceiling = merge-base. Never re-record cross_seam_fraction. claims-for 6.3.15. Do not stamp."
+    },
+    {
+      "group": "W4-G8",
+      "issues": [193],
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "high",
+      "fixture": false,
+      "after": ["W4-G7"],
+      "resume": {
+        "stage": "pending",
+        "note": "No child issue. learning A (thermal). Survey-first, halt if not this seam. #277/#244/#325/#278/#279 are closed — still re-check open PRs."
+      },
+      "brief": "S7 of #193 (learning A — thermal learning; part of cut_learning 350). No child issue — survey/record only. SURVEY FIRST. Historical hold #277/#244/#325/#278/#279 is cleared (all closed in Wave 2); still run SEAM_REGEXES learning (learn|reanchor|drift|curve|comfort|cop) against currently open PRs and halt on a match. Also HALT if no verbatim thermal-learning extract at helper cc≤15 without a new module; any ratchet metric would rise; candidate is not this half of learning (do not take curve/comfort/drift-watch — that is S8). Cut-SHA provenance. Do not Closes #193. Empty claims. coordinator_loc ceiling = merge-base. Never re-record cross_seam_fraction. claims-for 6.3.15. Do not stamp."
+    },
+    {
+      "group": "W4-G9",
+      "issues": [193],
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "high",
+      "fixture": false,
+      "after": ["W4-G8"],
+      "resume": {
+        "stage": "pending",
+        "note": "No child issue. learning B (curve/comfort/drift-watch). Survey-first, halt if not this seam."
+      },
+      "brief": "S8 of #193 (learning B — curve / comfort / drift-watch). No child issue — survey/record only. SURVEY FIRST. Same learning SEAM_REGEXES hold as S7 against open PRs. HALT if no verbatim extract for this half at helper cc≤15 without a new module; any ratchet metric would rise; candidate is thermal-learning (already S7) or not this seam. Cut-SHA provenance. Do not Closes #193. Empty claims. coordinator_loc ceiling = merge-base. Never re-record cross_seam_fraction. claims-for 6.3.15. Do not stamp. Do not start S9."
+    },
+    {
+      "group": "W4-G10",
+      "issues": [224],
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "high",
+      "fixture": false,
+      "after": ["W4-G9"],
+      "resume": {
+        "stage": "pending",
+        "note": "S9 = #224. Judge-corrected plan only. Stage 1 (#358) is done. First PR is optimize DHW floor-breach tail. Inner #224 splits may be follow-ups of this group; do not open W4-G11 until #224 is closed or remaining work is recorded as design-brief-only."
+      },
+      "brief": "S9 / #224 optimizer.py monolith splits. Implement the judge-corrected plan, not the original body and not the first correction block. Stage 1 (#358) is done. Open first with optimize's cheapest verbatim block (at 8e99ad1: 2401–2464, 64 LOC, 6 in / 0 out, cc 13) — re-measure lines at merge-base; do not trust 8e99ad1 numbers. Then remaining optimize blocks (issue table), then _optimize_with_dhw non-hot block; the nested solve_space closure is in the hot loop (called at optimizer.py:1682) — if attempted at all it is its own PR through the stress lane. _build_dhw_requirements tail needs DhwPlan (return value, 14 keys already returned — not a threaded DhwPlanState). Stage 5 (_optimize_space_only, _plan_dhw_min_cost) is design-brief only: zero qualifying blocks; do not invent a module split (local_imports 7/7). Do not land all of #224 in one PR; inner splits are follow-ups of this group. Historical hold #232/#234/#289 is cleared (Wave 3). #288 does not hold S9. _multi_start_minimize stays top-level in optimizer.py. Every helper cc≤15 (functions_cc_over_15 39/39). wood_share stays the function at thermal_model.py:1107 — do not move it. Goldens byte-identical at 6 dp, empty claims. Closes #224 only when remaining implementable stages have landed or been recorded as design-brief. Part of #193, Part of #201. SOLVE_BUDGET_RATIO 782.11, SCENARIO_BUDGET_FACTOR 3.0. coordinator_loc ceiling = merge-base. Never re-record cross_seam_fraction. claims-for 6.3.15. Do not stamp. Do not start #304/#223."
+    },
+    {
+      "group": "W4-G11",
+      "issues": [304],
+      "fixerModel": "sonnet",
+      "reviewerModel": "sonnet",
+      "effort": "medium",
+      "fixture": false,
+      "after": ["W4-G10"],
+      "resume": {
+        "stage": "pending",
+        "note": "S11 precursor. Test-only. Before #223. Not Wave 5."
+      },
+      "brief": "Plan S10 / S11 precursor: #304. 21 named missed statements in config_flow.py (96.2 %, 547 statements). Mechanism in the original body is refuted — tests/config_flow_steps.py already drives token verdicts (89 checks). Extend THAT harness with the eleven cases in the issue table; no production change. Largest bite: six-page `return vol.Optional(key, default=existing)` idiom (hot_water, building, grid, solar_pv, away, learning) from a _current that already has a stored value. Grow the RESULT assertion ledger, not just the percentage. Do not touch the aggregate or coordinator.py (that is #195). Do not add scripts to buy coverage. Do not grow `# pragma: no cover` (8 sites). Do not use the stale 88.4 % tsv. Harness script list from tests/run.sh, not coverage_suite.sh. quality_scale.yaml config-flow-test-coverage todo→done only when the 21 are covered. Expected golden drift: none. Closes #304. Part of #201. claims-for 6.3.15. Do not stamp. Do not start #223. Do not implement #195."
+    },
+    {
+      "group": "W4-G12",
+      "issues": [223],
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "high",
+      "fixture": false,
+      "after": ["W4-G11"],
+      "resume": {
+        "stage": "pending",
+        "note": "Plan S11 = #223 registry. #193 numbers this S10. Issue text allows parallel with coordinator moves; the plan table does not — serial after #304. #198 hold is cleared (closed)."
+      },
+      "brief": "Plan S11 / #223 config_flow.py settings registry (OptionsFlow; 192 hand-listed fields, 108 repeated prefills at filing). Issue text allows parallel with coordinator moves; the plan table does not authorize a second lane — this group is serial after W4-G11. Historical hold #198 is cleared (Wave 2). Registry: one table of (key, default, selector factory, step, group); each step becomes which-fields/which-menu over the registry. Ride-along: tibber_token on reauth_confirm needs data_description (D10-19 residue). Differential gate: config-flow golden must reproduce all 26 steps' schemas identically — empty claim list, that fixture is the proof. #304's six-page idiom tests are the witness this stage needs — do not rewrite them against moved code; they landed in W4-G11. Closes #223 when the registry drives all 26 steps with an identical golden. Part of #193, Part of #201. No new module if local_imports is still 7/7. coordinator_loc ceiling = merge-base. Never re-record cross_seam_fraction. claims-for 6.3.15. Do not stamp. Do not start S12."
+    },
+    {
+      "group": "W4-G13",
+      "issues": [193],
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "high",
+      "fixture": false,
+      "after": ["W4-G12"],
+      "resume": {
+        "stage": "pending",
+        "note": "Plan S12 = #193's S11 (delegate seams / facade properties). No child issue. Halt if S3–S8 all halted and there is nothing to migrate. #195 coordinator half is Wave 5, not this seat. #374 already closed."
+      },
+      "brief": "Plan S12 (= #193 S11): tests migrate to subsystem APIs; delegate seams and facade properties deleted. No child issue — survey/record only unless S3–S10 actually extracted subsystems. SURVEY FIRST. HALT (record only, empty claims) if S3–S8 all halted and there is no subsystem API to migrate to — do not delete the S0/S1 facade properties in that case; they stay until a real extraction exists. Do not implement #195's coordinator coverage (Wave 5 W5-G7). Do not re-do #374 (max_method_loc / max_cc already landed in W1-G2). Do not Closes #193. Part of #193, Part of #201. Ratchet may retire unbound class members / instance attrs only if measured. coordinator_loc ceiling = merge-base, never raise. Never re-record cross_seam_fraction. claims-for 6.3.15. Do not stamp."
+    },
+    {
+      "group": "W4-G14",
+      "issues": [193],
+      "fixerModel": "sonnet",
+      "reviewerModel": "sonnet",
+      "effort": "medium",
+      "fixture": false,
+      "after": ["W4-G13"],
+      "resume": {
+        "stage": "pending",
+        "note": "S13 close-out. Docs/roster/#201 only. Do not stamp. Closes #193 only if S0–S12 are done or recorded-halted and no implementable child remains. #195/#303/#412 are not this seat."
+      },
+      "brief": "S13 close-out of #193. Docs and roster only: Delivery-status, roster resume/fork, #201 comment, audit register status cells. Empty both claim files. Closes #193 only if S0–S12 are merged or recorded-halted and #377/#224/#223 are closed. If any implementable child remains, do not close #193 — record remaining work. Do not stamp (not from a wave seat; never hand-edit VERSION / RELEASE_NOTES heading). Do not implement #195, #303, or #412. Do not start Wave 5. Do not re-close #232/#234/#400/#401/#404/#405/#408/#460/#463. Do not list #453 or #462 on a stamp. Part of #201. claims-for 6.3.15. coordinator_loc ceiling unchanged."
+    }
+  ]
+}
