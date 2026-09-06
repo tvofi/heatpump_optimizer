@@ -22,5 +22,5 @@
 # claims-for: 6.3.15
 #
 # W4-G4 S3 (#193): this branch claims NOTHING. Card markup is unchanged; the
-# payload the card reads keeps the same keys and values, and no card source
-# is touched.
+# payload the card reads keeps the same keys and values, no MQTT write
+# changes, and no card source is touched.

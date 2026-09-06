@@ -47,9 +47,12 @@
 #
 # claims-for: 6.3.15
 #
-# W4-G4 S3 (#193): this branch claims NOTHING. The two payload halves of
-# _build_data_dict move to coordinator module level verbatim; the published
-# key set and every value are unchanged, so every fixture is byte-identical.
+# W4-G4 S3 (#193): this branch claims NOTHING. Four blocks move to
+# coordinator module level verbatim -- the two payload halves of
+# _build_data_dict, and the legacy payload and MQTT publish tail of
+# async_publish_ecl110_command. Each is called where it stood, over plain
+# values rather than self, so the published key set, every value and every
+# MQTT write are unchanged and every fixture is byte-identical.
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum

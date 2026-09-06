@@ -1079,6 +1079,88 @@ def _apply_unsolved_payload(data: dict[str, Any]) -> None:
     )
 
 
+def _ecl110_legacy_payload(
+    reason: str,
+    heat_pump_on: bool,
+    displace_int: int,
+    current_action: dict[str, Any],
+) -> dict[str, Any]:
+    """The legacy JSON command body, over the action passed in.
+
+    Takes ``current_action`` as a value rather than reading it off the
+    coordinator: a module-level helper handed ``self`` would keep every
+    reference it moved -- ``tests/structure.py`` walks only class methods
+    and matches ``self.<attr>``, so the seam metric would fall while the
+    coupling stood. Same rule as ``_solve_anchor`` and ``_liquid_fraction``.
+    """
+    return {
+        "source": DOMAIN,
+        "reason": reason,
+        "timestamp": dt_util.now().isoformat(),
+        "command": {
+            "type": "ecl110_control",
+            "heat_pump_on": bool(heat_pump_on),
+            "displace": displace_int,
+        },
+        "context": {
+            "price": current_action.get("price"),
+            "mode": current_action.get("mode"),
+            "pre_heat_urgency": current_action.get("pre_heat_urgency"),
+        },
+    }
+
+
+async def _publish_ecl110_topics(
+    hass,
+    set_topic: str | None,
+    command_topic: str | None,
+    qos: Any,
+    retain: Any,
+    displace_int: int,
+    legacy_payload: dict[str, Any],
+) -> None:
+    """Write the displace command to whichever ECL110 topics are configured.
+
+    Each arm swallows its own MQTT failure, so a broken legacy topic never
+    suppresses the direct ``/set`` write that supersedes it.
+    """
+    if not set_topic and not command_topic:
+        return
+
+    # Preferred path: write plain numeric payload directly to /set topic.
+    if set_topic:
+        try:
+            await hass.services.async_call(
+                "mqtt",
+                "publish",
+                {
+                    "topic": set_topic,
+                    "payload": str(displace_int),
+                    "qos": int(qos),
+                    "retain": bool(retain),
+                },
+                blocking=True,
+            )
+        except Exception as err:
+            _LOGGER.error("Error publishing ECL110 direct displace MQTT command: %s", err)
+
+    # Backward compatibility path: optional legacy JSON command topic.
+    if command_topic:
+        try:
+            await hass.services.async_call(
+                "mqtt",
+                "publish",
+                {
+                    "topic": command_topic,
+                    "payload": json.dumps(legacy_payload),
+                    "qos": int(qos),
+                    "retain": bool(retain),
+                },
+                blocking=True,
+            )
+        except Exception as err:
+            _LOGGER.error("Error publishing ECL110 legacy MQTT command: %s", err)
+
 
 class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     """Coordinator for Heat Pump Cost Optimizer."""
@@ -6906,61 +6988,22 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         )
         displace_int = int(round(displace))
 
-        legacy_payload = {
-            "source": DOMAIN,
-            "reason": reason,
-            "timestamp": dt_util.now().isoformat(),
-            "command": {
-                "type": "ecl110_control",
-                "heat_pump_on": bool(heat_pump_on),
-                "displace": displace_int,
-            },
-            "context": {
-                "price": self._current_action.get("price"),
-                "mode": self._current_action.get("mode"),
-                "pre_heat_urgency": self._current_action.get("pre_heat_urgency"),
-            },
-        }
+        legacy_payload = _ecl110_legacy_payload(
+            reason, heat_pump_on, displace_int, self._current_action
+        )
 
         self._ecl110_last_payload = legacy_payload
         self._ecl110_current_displace = float(displace_int)
 
-        if not self._ecl110_displace_set_topic and not self._ecl110_command_topic:
-            return
-
-        # Preferred path: write plain numeric payload directly to /set topic.
-        if self._ecl110_displace_set_topic:
-            try:
-                await self.hass.services.async_call(
-                    "mqtt",
-                    "publish",
-                    {
-                        "topic": self._ecl110_displace_set_topic,
-                        "payload": str(displace_int),
-                        "qos": int(self._ecl110_qos),
-                        "retain": bool(self._ecl110_retain),
-                    },
-                    blocking=True,
-                )
-            except Exception as err:
-                _LOGGER.error("Error publishing ECL110 direct displace MQTT command: %s", err)
-
-        # Backward compatibility path: optional legacy JSON command topic.
-        if self._ecl110_command_topic:
-            try:
-                await self.hass.services.async_call(
-                    "mqtt",
-                    "publish",
-                    {
-                        "topic": self._ecl110_command_topic,
-                        "payload": json.dumps(legacy_payload),
-                        "qos": int(self._ecl110_qos),
-                        "retain": bool(self._ecl110_retain),
-                    },
-                    blocking=True,
-                )
-            except Exception as err:
-                _LOGGER.error("Error publishing ECL110 legacy MQTT command: %s", err)
+        await _publish_ecl110_topics(
+            self.hass,
+            self._ecl110_displace_set_topic,
+            self._ecl110_command_topic,
+            self._ecl110_qos,
+            self._ecl110_retain,
+            displace_int,
+            legacy_payload,
+        )
 
     async def async_publish_current_action(self, reason: str = "optimizer") -> None:
         """Publish MQTT command for the currently selected optimizer action."""
