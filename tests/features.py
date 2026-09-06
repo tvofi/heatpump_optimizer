@@ -23304,16 +23304,30 @@ R.check(
     f"published={_s5_published!r}",
 )
 
-# Null control. Both sides of the equality above are read from production, so
-# it would also hold if the view stopped reading the scale at all and both
-# sides went to the same constant. Move the scale and the published number
-# must move with it.
+# The fixture sits at scale 1.0, where `base * scale == base`, so the equality
+# above still holds for a helper that dropped the scale entirely. Re-check it
+# off the unit point, and separately that the published number moves at all --
+# without both, a view publishing a constant equal to the fixture's own value
+# passes. (Measured: it did.)
 _s5_scale0 = _s5_coord._house_heat_loss_scale
 _s5_coord._house_heat_loss_scale = _s5_scale0 * 1.5
 _s5_moved = _s5_coord._learning_view()["house_heat_loss_effective"]
+_s5_moved_helper = (
+    None
+    if _s5_effective is None
+    else _s5_effective(
+        _s5_coord._thermal_params, _s5_coord._house_heat_loss_scale
+    )
+)
 _s5_coord._house_heat_loss_scale = _s5_scale0
 R.check(
-    "and that number tracks the learned scale, so the equality above is not "
+    "the published figure still equals the helper at a scale that is not 1.0, "
+    "where the two would part company (#193 S5)",
+    _s5_moved_helper is not None and _s5_moved == _s5_moved_helper,
+    f"published={_s5_moved!r} helper={_s5_moved_helper!r}",
+)
+R.check(
+    "and that number tracks the learned scale, so the equality is not "
     "vacuous (#193 S5)",
     _s5_moved != _s5_published and _s5_moved > 0,
     f"scale {_s5_scale0} -> {_s5_scale0 * 1.5} moved {_s5_published!r} -> {_s5_moved!r}",
