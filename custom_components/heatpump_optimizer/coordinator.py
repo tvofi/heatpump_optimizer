@@ -910,6 +910,47 @@ def _hub(name: str):
     return property(get, set)
 
 
+def _solve_anchor(now: datetime) -> datetime:
+    """``now`` floored onto the grid the forecast arrays are built on.
+
+    ``_forecast_arrays`` anchors every price and weather step at
+    ``midnight + FORECAST_STEP_MINUTES·k``, so a solve labelled with the
+    raw instant (12:07) published timestamps seven minutes off the
+    quarter its own arrays described — and pins, capacity-window
+    offsets, filed lead promises and every card timestamp inherited
+    that skew. The granularity is the forecast grid's, deliberately not
+    ``time_step_minutes``: if the two ever diverge the arrays disagree
+    first, and the anchor must follow the arrays. Wall-clock lookups
+    INTO the plan (``get_current_action``, ``_async_drive_pumps``) stay
+    on the raw clock — they ask what applies now, not where step 0 is.
+    """
+    step = int(FORECAST_STEP_MINUTES)
+    return now.replace(
+        minute=(now.minute // step) * step, second=0, microsecond=0
+    )
+
+
+def _liquid_fraction(
+    precip_array: np.ndarray, snow_array: np.ndarray
+) -> np.ndarray:
+    """#30's split: what share of each step's precipitation is rain.
+
+    Open-Meteo's ``precipitation`` already includes the snowfall's
+    water equivalent (cm × 1/0.7 mm), so subtracting it leaves the
+    liquid share; the clip absorbs cross-source disagreement (entity
+    rain vs Open-Meteo snow) and a dry step is defined as fully
+    liquid so it multiplies to zero either way.
+    """
+    snow_water = np.asarray(snow_array, dtype=float) / SNOW_CM_PER_MM_WATER
+    precip = np.asarray(precip_array, dtype=float)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        return np.where(
+            precip > 1e-9,
+            np.clip((precip - snow_water) / precip, 0.0, 1.0),
+            1.0,
+        )
+
+
 class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     """Coordinator for Heat Pump Cost Optimizer."""
 
@@ -4896,7 +4937,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             # would shift every array one step against the plan's own
             # timestamps — silently, and only a few times a day.
             now = dt_util.now()
-            solve_now = self._solve_anchor(now)
+            solve_now = _solve_anchor(now)
             horizon = self._forecast_arrays(now)
             prices = horizon.prices
 
@@ -6360,25 +6401,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._pv_surplus = surplus
         return surplus
 
-    def _solve_anchor(self, now: datetime) -> datetime:
-        """``now`` floored onto the grid the forecast arrays are built on.
-
-        ``_forecast_arrays`` anchors every price and weather step at
-        ``midnight + FORECAST_STEP_MINUTES·k``, so a solve labelled with the
-        raw instant (12:07) published timestamps seven minutes off the
-        quarter its own arrays described — and pins, capacity-window
-        offsets, filed lead promises and every card timestamp inherited
-        that skew. The granularity is the forecast grid's, deliberately not
-        ``time_step_minutes``: if the two ever diverge the arrays disagree
-        first, and the anchor must follow the arrays. Wall-clock lookups
-        INTO the plan (``get_current_action``, ``_async_drive_pumps``) stay
-        on the raw clock — they ask what applies now, not where step 0 is.
-        """
-        step = int(FORECAST_STEP_MINUTES)
-        return now.replace(
-            minute=(now.minute // step) * step, second=0, microsecond=0
-        )
-
     def _forecast_arrays(self, now: datetime | None = None) -> ForecastArrays:
         """Everything the optimizer needs to know about the horizon.
 
@@ -6440,7 +6462,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if bool(
             ctx._config.get(CONF_PRECIP_TYPE_ENABLED, DEFAULT_PRECIP_TYPE_ENABLED)
         ) and np.any(snow_array > 0.0):
-            precip_array = precip_array * self._liquid_fraction(
+            precip_array = precip_array * _liquid_fraction(
                 precip_array, snow_array
             )
 
@@ -6465,26 +6487,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             humidity=np.array(humidity[:n_steps], dtype=float),
             snowfall=snow_array,
         )
-    @staticmethod
-    def _liquid_fraction(
-        precip_array: np.ndarray, snow_array: np.ndarray
-    ) -> np.ndarray:
-        """#30's split: what share of each step's precipitation is rain.
-
-        Open-Meteo's ``precipitation`` already includes the snowfall's
-        water equivalent (cm × 1/0.7 mm), so subtracting it leaves the
-        liquid share; the clip absorbs cross-source disagreement (entity
-        rain vs Open-Meteo snow) and a dry step is defined as fully
-        liquid so it multiplies to zero either way.
-        """
-        snow_water = np.asarray(snow_array, dtype=float) / SNOW_CM_PER_MM_WATER
-        precip = np.asarray(precip_array, dtype=float)
-        with np.errstate(divide="ignore", invalid="ignore"):
-            return np.where(
-                precip > 1e-9,
-                np.clip((precip - snow_water) / precip, 0.0, 1.0),
-                1.0,
-            )
 
     def _update_snow_memory(self, now: datetime, snow_array: np.ndarray) -> bool:
         """#30's roof-snow bookkeeping; True while solar should be damped.
@@ -7854,7 +7856,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         """
         override = self._manual_override
         if override is None or override.is_expired(
-            self._solve_anchor(dt_util.now())
+            _solve_anchor(dt_util.now())
         ):
             return None
         return {
@@ -7887,7 +7889,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # a raw-instant lattice counts slot edges differently and the
         # reported figure would disagree with the plan by one step.
         step_starts = self._horizon_step_starts(
-            self._solve_anchor(dt_util.now()), getattr(self, "_ctx", self)._opt_config.n_steps
+            _solve_anchor(dt_util.now()), getattr(self, "_ctx", self)._opt_config.n_steps
         )
         return {
             "expires_at": override.expires_at.isoformat(),
@@ -11130,7 +11132,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 len(horizon.prices), float(overrides["power_cap_kw"])
             )
         # One snap for slot stamps and the shadow solve (#463).
-        solve_at = self._solve_anchor(now)
+        solve_at = _solve_anchor(now)
         wood_err, wood_kw, wood_sek = simulate_wood_slots(
             overrides, ctx._config, len(horizon.prices),
             ctx._opt_config.dt_hours, solve_at,
