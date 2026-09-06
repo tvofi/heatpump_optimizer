@@ -21,6 +21,5 @@
 #
 # claims-for: 6.3.15
 #
-# W4-G5 S4 (#193), the recorded halt for the fetch seam: this branch claims
-# NOTHING. Docs, roster and claim-file bookkeeping only -- no card source is
-# touched.
+# The #511 hotfix: this branch claims NOTHING. No card source, payload
+# producer or plan field is touched.
