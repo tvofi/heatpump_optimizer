@@ -19,8 +19,10 @@ The union of those, expressed as repo-relative paths, is the closure. That
 catches the things an import graph cannot see -- ``tests/golden/*.json``,
 ``strings.json``, ``services.yaml``, ``manifest.json``, ``VERSION``, the
 translations, ``tests/harness.py``, the plan payload -- because the run
-actually opened them. Node scripts (``tests/card.mjs``) are recorded the same
-way under ``strace``, since they have no audit hook.
+actually opened them. Node scripts (``tests/card.mjs``) are recorded under
+``strace`` when it exists, or under ``tests/node_fs_trace.mjs`` (an
+``--import`` wrap of ``fs`` and the ESM loader) on Darwin and anywhere
+else ``strace`` is missing.
 
 A hand-maintained table would rot on the first refactor and nobody would
 notice. This one cannot rot silently either: the post-merge gate on ``main``
@@ -32,6 +34,8 @@ Commands
   record <script> --out-dir DIR   run one script instrumented, write its record
   merge  --in-dir DIR             fold records into tests/closures.json
   check  --in-dir DIR [--partial] fail if the committed closures under-approximate
+  autofix --in-dir DIR [--partial] [--out PATH]
+                                  merge UNDER-SCOPED recordings; print AUTOFIX: <status>
   select --files ... | --diff REF decide which scripts a change needs
                  [--workdir DIR]  ...and write the plan where run.sh reads it
   affected --files ... | --diff REF | --files-from FILE
@@ -45,6 +49,8 @@ from __future__ import annotations
 
 import argparse
 import ast
+import contextlib
+import io
 import json
 import os
 import platform
@@ -80,6 +86,8 @@ NOT_A_TEST = {
     # and a selectable script with no closure forces a FULL run, so every
     # scoped PR gate in between quietly ran everything.
     "dom_stub.mjs", "card_rig.mjs",
+    # Preload for `_record_node` when strace is missing. Not a test.
+    "node_fs_trace.mjs",
 }
 # dst_checks.py is a test, but features.py runs it in a subprocess; it is
 # recorded so its closure can be folded into features.py's, never selected.
@@ -199,6 +207,7 @@ GATE_FILES = (
     # How the closures are DERIVED is as load-bearing as the closures: change
     # a lane here and every recording that follows is taken differently.
     "tests/derive_closures.sh",
+    "tests/node_fs_trace.mjs",
 )
 
 
@@ -406,7 +415,18 @@ def _require_strace() -> None:
 
 
 def _record_node(script: str, out_path: str, env: dict) -> int:
-    """Record a node script's file reads with strace; node has no audit hook."""
+    """Record a node script's repo file reads.
+
+    Linux CI uses strace (openat). Darwin has no strace; SIP blocks dtruss.
+    The portable path is ``node --import tests/node_fs_trace.mjs``: wrap
+    ``fs`` and the ESM loader. Over-approx is safe; under-approx is not.
+    """
+    if shutil.which("strace"):
+        return _record_node_strace(script, out_path, env)
+    return _record_node_preload(script, out_path, env)
+
+
+def _record_node_strace(script: str, out_path: str, env: dict) -> int:
     _require_strace()
     trace = Path(out_path).with_suffix(".strace")
     started = time.time()
@@ -418,16 +438,44 @@ def _record_node(script: str, out_path: str, env: dict) -> int:
         m = _STRACE_OPEN.search(line)
         if m:
             r = _rel(m.group(1))
-            if r and (ROOT / r).exists():
+            if r and (ROOT / r).is_file():
                 files.add(r)
     trace.unlink(missing_ok=True)
+    return _write_node_record(script, out_path, proc, files, "strace", started)
+
+
+def _record_node_preload(script: str, out_path: str, env: dict) -> int:
+    sink = Path(out_path).with_suffix(".nodeopens")
+    started = time.time()
+    e = dict(env)
+    e["CLOSURE_ROOT"] = str(ROOT)
+    e["CLOSURE_NODE_TRACE"] = str(sink)
+    preload = (ROOT / "tests" / "node_fs_trace.mjs").resolve().as_uri()
+    cmd = ["node", "--import", preload, script]
+    proc = subprocess.run(cmd, cwd=ROOT, env=e, capture_output=True, text=True)
+    files = set()
+    if sink.exists():
+        try:
+            files = {f for f in json.loads(sink.read_text()) if (ROOT / f).is_file()}
+        except json.JSONDecodeError:
+            files = set()
+        sink.unlink(missing_ok=True)
+    Path(str(sink) + ".mod").unlink(missing_ok=True)
+    return _write_node_record(
+        script, out_path, proc, files, "node-fs-trace", started)
+
+
+def _write_node_record(
+    script: str, out_path: str, proc: subprocess.CompletedProcess,
+    files: set[str], how: str, started: float,
+) -> int:
     record = {
-        "script": script,
+        "script": script if not Path(script).is_absolute() else _rel(script) or script,
         "rc": proc.returncode,
         "seconds": round(time.time() - started, 1),
         "files": sorted(files),
         "spawned": [],
-        "how": "strace",
+        "how": how,
         "stdout_tail": proc.stdout[-2000:],
         "stderr_tail": proc.stderr[-2000:],
     }
@@ -660,7 +708,14 @@ def merge(in_dir: Path, out: Path, allow_failures: bool = False,
         # silently lost its widening.
         overlay = {k: set(v) for k, v in closures.items()}
         for k, r in records.items():
-            overlay[k] = {f for f in r["files"] if _is_real_file(f)} | {k}
+            fresh = {f for f in r["files"] if _is_real_file(f)} | {k}
+            # node-fs-trace sees Node opens, not strace -f children. Union
+            # so Darwin --single can grow a node closure without dropping
+            # files only Linux strace recorded.
+            if r.get("how") == "node-fs-trace" and k in closures:
+                overlay[k] = set(closures[k]) | fresh
+            else:
+                overlay[k] = fresh
         _widen(overlay)
         touched = set(records)
         for child, parent in DRIVEN_BY_OTHERS.items():
@@ -686,7 +741,10 @@ def merge(in_dir: Path, out: Path, allow_failures: bool = False,
                 return 1
             closures[k] = fresh
             if k in records:
-                recorded[k] = {"seconds": records[k]["seconds"], "rc": records[k]["rc"]}
+                recorded[k] = {
+                    "seconds": records[k].get("seconds", 0),
+                    "rc": records[k]["rc"],
+                }
         payload["closures"] = closures
         out.write_text(json.dumps(payload, indent=1) + "\n")
         print(f"closure: updated {len(touched)} closure(s) in {out}")
@@ -941,6 +999,97 @@ def check(in_dir: Path, partial: bool = False) -> int:
               f"tests/derive_closures.sh and commit tests/closures.json.")
         return 1
     print("closure: committed closures cover every file this run touched")
+    return 0
+
+
+def autofix_allowed(*, event_name: str, closures_result: str,
+                    head_repo: str, repo: str, commit_subject: str,
+                    loop_subject: str = "ci: re-record closures") -> bool:
+    """True only for a failed same-repo PR job that is not our own push."""
+    return (
+        event_name == "pull_request"
+        and closures_result == "failure"
+        and head_repo == repo
+        and commit_subject != loop_subject
+    )
+
+
+def retrigger_needed(*, pushed: bool, used_pat: bool) -> bool:
+    """GITHUB_TOKEN pushes do not fire pull_request; dispatch must."""
+    return pushed and not used_pat
+
+
+def apply_under_scoped_recordings(in_dir: Path, *, partial: bool = True) -> str:
+    """Merge recordings into CLOSURES only when check printed UNDER-SCOPED.
+
+    Returns one of: changed, skip-clean, skip-not-under-scoped,
+    skip-merge-failed, skip-still-fails, skip-unchanged. Restores the
+    previous closures.json text unless the status is changed.
+    """
+    in_dir = Path(in_dir)
+    prev = CLOSURES.read_text() if CLOSURES.exists() else None
+
+    def _restore() -> None:
+        if prev is None:
+            if CLOSURES.exists():
+                CLOSURES.unlink()
+        else:
+            CLOSURES.write_text(prev)
+
+    try:
+        records = [json.loads(p.read_text()) for p in sorted(in_dir.glob("*.json"))]
+    except (json.JSONDecodeError, OSError):
+        return "skip-merge-failed"
+    if any(r.get("rc", 0) != 0 for r in records):
+        return "skip-not-under-scoped"
+
+    out, err = io.StringIO(), io.StringIO()
+    try:
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            rc = check(in_dir, partial=partial)
+    except (KeyError, TypeError, json.JSONDecodeError, OSError):
+        return "skip-merge-failed"
+    if rc == 0:
+        return "skip-clean"
+    if "UNDER-SCOPED" not in out.getvalue() + err.getvalue():
+        return "skip-not-under-scoped"
+
+    try:
+        with contextlib.redirect_stdout(io.StringIO()), \
+                contextlib.redirect_stderr(io.StringIO()):
+            mrc = merge(in_dir, CLOSURES, allow_failures=False, partial=partial)
+    except (KeyError, TypeError, json.JSONDecodeError, OSError):
+        _restore()
+        return "skip-merge-failed"
+    if mrc != 0:
+        _restore()
+        return "skip-merge-failed"
+
+    out2, err2 = io.StringIO(), io.StringIO()
+    try:
+        with contextlib.redirect_stdout(out2), contextlib.redirect_stderr(err2):
+            rc2 = check(in_dir, partial=partial)
+    except (KeyError, TypeError, json.JSONDecodeError, OSError):
+        _restore()
+        return "skip-still-fails"
+    if rc2 != 0:
+        _restore()
+        return "skip-still-fails"
+    new = CLOSURES.read_text() if CLOSURES.exists() else None
+    if new == prev:
+        return "skip-unchanged"
+    return "changed"
+
+
+def _autofix_cmd(in_dir: Path, out: Path, partial: bool) -> int:
+    global CLOSURES
+    orig = CLOSURES
+    CLOSURES = out
+    try:
+        status = apply_under_scoped_recordings(in_dir, partial=partial)
+    finally:
+        CLOSURES = orig
+    print(f"AUTOFIX: {status}")
     return 0
 
 
@@ -1284,6 +1433,10 @@ def main() -> int:
     m.add_argument("--partial", action="store_true")
     c = sub.add_parser("check"); c.add_argument("--in-dir", required=True)
     c.add_argument("--partial", action="store_true")
+    af = sub.add_parser("autofix")
+    af.add_argument("--in-dir", required=True)
+    af.add_argument("--partial", action="store_true")
+    af.add_argument("--out", default=str(CLOSURES))
     s = sub.add_parser("select")
     s.add_argument("--files", nargs="*"); s.add_argument("--diff")
     s.add_argument("--json", action="store_true")
@@ -1306,6 +1459,8 @@ def main() -> int:
                       partial=a.partial)
     if a.cmd == "check":
         return check(Path(a.in_dir), a.partial)
+    if a.cmd == "autofix":
+        return _autofix_cmd(Path(a.in_dir), Path(a.out), a.partial)
     if a.cmd == "no-copies":
         return no_copies()
     if a.cmd == "show":

@@ -1,0 +1,28 @@
+---
+description: CI already autofixes UNDER-SCOPED closures and inherited claims — do not duplicate
+alwaysApply: true
+---
+
+# Mechanical CI autofix (do not re-implement)
+
+Same-repo PRs already have two jobs in `.github/workflows/tests.yml`. If
+`closures` is `UNDER-SCOPED` or `fast` fails `INHERITED CLAIMS`, **wait**.
+Do not open a parallel PR, do not Darwin `--single` an under-scope CI
+already recorded (Linux `strace` recordings are the ones to merge), and
+do not hand-empty claim files that match `origin/main`. Darwin can
+`--single` a **new** node script, or grow a node closure; it cannot
+replace a Linux node recording.
+
+| Failure | Job | Commit subject | Code |
+|---|---|---|---|
+| `UNDER-SCOPED` | `closures-autofix` | `ci: re-record closures` | `closure.apply_under_scoped_recordings` |
+| `INHERITED CLAIMS` | `claims-autofix` | `ci: drop inherited claims` | `env_drift.apply_inherited_claims` |
+
+Those subjects are loop guards. A `GITHUB_TOKEN` push does not fire
+`pull_request`; the job dispatches Tests / Hassfest / Validate. `recheck-gate`
+treats a `ci:` subject as a PR-like run (not `slow`).
+
+Do not automate golden drift, structure budgets, `no-copies`, orphan →
+`INERT`, or briefs lint. A new selectable script with **no** recording is
+not UNDER-SCOPED — add it to a derive lane or `--single` it; autofix cannot
+invent a trace.
