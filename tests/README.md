@@ -393,7 +393,11 @@ bumps the line and empties the list. And under `--all`, the claim list must
 differ from the baseline's: identical names with identical reasons mean the
 list was written for the baseline's diff and carried forward, which the stamp
 alone cannot catch, because it only expires claims when `VERSION` *changes*
-and consecutive commits often share one. An empty list is always fine.
+and consecutive commits often share one. An empty list is always fine. A
+docs/roster/plan/workflow-only three-dot must leave both claim files empty
+(header `claims-for:` only); `tests/run.sh` always runs
+`env_drift.py --claims-only` so `GATE_SCOPE=auto` cannot skip that the way it
+skipped `card_drift.mjs` on #493.
 
 The comparison ref must not resolve to `HEAD`. A tree compared against itself
 is identical by construction, so nothing can ever drift and every claim is

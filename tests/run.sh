@@ -200,6 +200,17 @@ run() {
       "SKIP: $scoped_out (scoped out: $(scope_reason "$scoped_out"))"
     return 0
   fi
+  run_always "$@"
+}
+
+# Same as run, but GATE_SCOPE cannot skip it. Inherited claims and the
+# record-PR empty rule live here: #493's roster-only three-dot left claim
+# files unchanged, so in_scope skipped card_drift.mjs and env_drift.py, and
+# main went red after squash.
+run_always() {
+  if [ -n "${HPO_GATE_LOCK_LABEL:-}" ]; then
+    "$PYTHON" tests/gate_lock.py renew --label "$HPO_GATE_LOCK_LABEL"
+  fi
   step=$((step + 1))
   local id started finished rc=0
   id=$(printf '%s-%03d' "$LANE" "$step")
@@ -284,6 +295,9 @@ done
 # Unit-style checks: fast, and a failure here explains any end-to-end failure
 # that follows. Kept together and reported first for exactly that reason.
 lane_units() {
+  # Not a capture. Claim files unchanged => in_scope skips env_drift.py and
+  # card_drift.mjs (#493); this line cannot be scoped out.
+  run_always "$PYTHON" tests/env_drift.py --claims-only "$GOLDEN_REF"
   run "$PYTHON" tests/features.py
   run "$PYTHON" tests/entities.py
   # The initial config flow walked end to end (#194): every step's valid
