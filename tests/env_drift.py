@@ -17,6 +17,7 @@ both runs share the solver; anything left is this branch's doing.
 
     PYTHONPATH=tests/hastub python3 tests/env_drift.py [ref]          # 5 sensitive fixtures
     PYTHONPATH=tests/hastub python3 tests/env_drift.py --all [ref]    # every fixture (CI)
+    PYTHONPATH=tests/hastub python3 tests/env_drift.py --claims-only [ref]  # inherited + record-PR, no capture
 
 `--all` is what CI runs: committed fixtures were recorded on one machine
 and CI runs on another, so exact comparison against the files would cry
@@ -58,7 +59,12 @@ A claim describes exactly ONE diff, and two rules keep it that way:
     claims exactly what the baseline
     claims — same names, same reasons — the list was written for the
     baseline's diff rather than this one, and the run fails. An empty
-    list is always fine; it is a statement, not an inheritance.
+    list is always fine; it is a statement, not an inheritance. The same
+    comparison is applied to the card claim file. A three-dot that touches
+    neither integration Python nor the bundled card must leave both lists
+    empty -- that is the record-PR rule, and `tests/run.sh` always runs
+    `--claims-only` so `GATE_SCOPE=auto` cannot skip it the way it skipped
+    `card_drift.mjs` on #493.
 
 Staleness is only ever judged against scenarios this run actually
 captured. The five-fixture mode captures SENSITIVE and nothing else, so
@@ -116,6 +122,11 @@ SENSITIVE = (
 )
 
 CLAIM_FILE = os.path.join("tests", "golden", "claimed_drift.txt")
+CARD_CLAIM_FILE = os.path.join("tests", "golden", "card_claimed_drift.txt")
+CARD_JS = os.path.join(
+    "custom_components", "heatpump_optimizer", "www",
+    "heatpump-optimizer-card.js",
+)
 CLAIM_VERSION_MARKER = "claims-for:"
 #: Declares a SENSITIVE fixture whose drift is judged per machine rather than
 #: per release. See `_may_drift` for why an ordinary claim cannot do this job.
@@ -929,22 +940,11 @@ def _rev(repo: str, rev: str) -> str | None:
     return proc.stdout.strip() or None
 
 
-def _claimed(repo: str) -> tuple[str | None, dict[str, str]]:
-    """The release a claim file is stamped for, and the scenarios it claims.
-
-    The stamp is a comment line that BEGINS with the marker and nothing
-    else (`# claims-for: 5.0.0`), first one wins. Merely mentioning
-    `claims-for:` does not declare anything — the file's own header prose
-    talks about the rule, and an earlier draft of this parser read that
-    sentence as the declaration. A claim line never declares either: it has
-    a body, so its trailing reason is only a reason.
-    """
-    path = os.path.join(repo, CLAIM_FILE)
+def _parse_claims(text: str) -> tuple[str | None, dict[str, str]]:
+    """Stamp and parsed claims from claim-file text. See ``_claimed``."""
     declared: str | None = None
     claims: dict[str, str] = {}
-    if not os.path.exists(path):
-        return declared, claims
-    for line in open(path):
+    for line in text.splitlines():
         body, _, comment = line.partition("#")
         name = body.strip()
         if name:
@@ -955,6 +955,33 @@ def _claimed(repo: str) -> tuple[str | None, dict[str, str]]:
             rest = note[len(CLAIM_VERSION_MARKER):].split()
             declared = rest[0] if rest else ""
     return declared, claims
+
+
+def _claimed(repo: str, relpath: str = CLAIM_FILE) -> tuple[str | None, dict[str, str]]:
+    """The release a claim file is stamped for, and the scenarios it claims.
+
+    The stamp is a comment line that BEGINS with the marker and nothing
+    else (`# claims-for: 5.0.0`), first one wins. Merely mentioning
+    `claims-for:` does not declare anything — the file's own header prose
+    talks about the rule, and an earlier draft of this parser read that
+    sentence as the declaration. A claim line never declares either: it has
+    a body, so its trailing reason is only a reason.
+    """
+    path = os.path.join(repo, relpath)
+    if not os.path.exists(path):
+        return None, {}
+    return _parse_claims(open(path).read())
+
+
+def _claimed_at(repo: str, ref: str, relpath: str) -> dict[str, str]:
+    """Parsed claims for ``relpath`` at ``ref``, or empty if the path is missing."""
+    proc = subprocess.run(
+        ["git", "show", f"{ref}:{relpath}"],
+        cwd=repo, capture_output=True, text=True,
+    )
+    if proc.returncode != 0:
+        return {}
+    return _parse_claims(proc.stdout)[1]
 
 
 def _may_drift(repo: str) -> dict[str, str]:
@@ -1160,7 +1187,8 @@ def stamp_claims_error(
 
 
 def inherited_claims_error(
-    claims: dict[str, str], baseline_claims: dict[str, str], ref: str
+    claims: dict[str, str], baseline_claims: dict[str, str], ref: str,
+    claim_file: str = CLAIM_FILE,
 ) -> str | None:
     """Why this tree's claim list is the baseline's — None when it is not.
 
@@ -1179,7 +1207,7 @@ def inherited_claims_error(
         return None
     names = ", ".join(sorted(claims))
     return (
-        f"INHERITED CLAIMS: {CLAIM_FILE} claims exactly\n"
+        f"INHERITED CLAIMS: {claim_file} claims exactly\n"
         f"what {ref} already claims -- the same {len(claims)} scenario(s),\n"
         "with the same reasons:\n"
         f"  {names}\n"
@@ -1192,6 +1220,72 @@ def inherited_claims_error(
         "give what it does move a reason that describes this change. An\n"
         "empty list is the right answer for a change that moves nothing."
     )
+
+
+def justifies_solver_claim(path: str) -> bool:
+    """Whether ``path`` can move a solver golden this claim file excuses."""
+    return (
+        path.startswith("custom_components/heatpump_optimizer/")
+        and path.endswith(".py")
+    )
+
+
+def justifies_card_claim(path: str) -> bool:
+    """Whether ``path`` can move a card state this claim file excuses."""
+    return path == CARD_JS
+
+
+def record_pr_claims_error(
+    changed: list[str],
+    solver_claims: dict[str, str],
+    card_claims: dict[str, str],
+) -> str | None:
+    """Why a docs/roster three-dot still carries claims — None when it does not.
+
+    If the three-dot touches neither integration Python nor the bundled
+    card, it cannot have moved a claimed fixture, and both lists must be
+    empty. One-line fix: empty the lists.
+    """
+    if any(justifies_solver_claim(p) or justifies_card_claim(p) for p in changed):
+        return None
+    if not solver_claims and not card_claims:
+        return None
+    return (
+        "RECORD PR CLAIMS: three-dot touches neither card nor solver "
+        "fixtures, so both claim lists must be empty. Empty the lists."
+    )
+
+
+def three_dot_files(repo: str, ref: str) -> list[str]:
+    """Paths in ``ref...HEAD`` plus uncommitted work, same shape as closure.py."""
+    files: list[str] = []
+    for args in (
+        ["git", "diff", "--name-only", f"{ref}...HEAD"],
+        ["git", "diff", "--name-only", "HEAD"],
+        ["git", "ls-files", "--others", "--exclude-standard"],
+    ):
+        proc = subprocess.run(args, cwd=repo, capture_output=True, text=True)
+        files += [line.strip() for line in proc.stdout.splitlines() if line.strip()]
+    return sorted(set(files))
+
+
+def check_claims_hygiene(repo: str, ref: str) -> str | None:
+    """Inherited lists and the record-PR empty rule, or None when both hold."""
+    if _rev(repo, ref) is None:
+        return f"cannot resolve {ref}"
+    _, solver = _claimed(repo, CLAIM_FILE)
+    _, card = _claimed(repo, CARD_CLAIM_FILE)
+    inherited = inherited_claims_error(
+        solver, _claimed_at(repo, ref, CLAIM_FILE), ref, CLAIM_FILE
+    )
+    if inherited:
+        return inherited
+    inherited = inherited_claims_error(
+        card, _claimed_at(repo, ref, CARD_CLAIM_FILE), ref, CARD_CLAIM_FILE
+    )
+    if inherited:
+        return inherited
+    return record_pr_claims_error(three_dot_files(repo, ref), solver, card)
 
 
 def self_comparison_error(ref: str, head: str) -> str:
@@ -1239,6 +1333,30 @@ def main() -> int:
         print(cache_key(cache_key_inputs(repo, ref_sha, "--all" in sys.argv[2:])))
         return 0
 
+    if len(sys.argv) >= 2 and sys.argv[1] == "--claims-only":
+        # No capture. Inherited lists and the record-PR empty rule. run.sh
+        # always invokes this so GATE_SCOPE=auto cannot skip it.
+        repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        ref = sys.argv[2] if len(sys.argv) > 2 else (
+            os.environ.get("GOLDEN_REF") or "origin/main"
+        )
+        stamp_problem = claim_version_error(repo)
+        if stamp_problem:
+            print(stamp_problem)
+            return 1
+        _declared, claims = _claimed(repo)
+        may_drift = _may_drift(repo)
+        scope_problem = may_drift_error(may_drift, claims)
+        if scope_problem:
+            print(scope_problem)
+            return 1
+        err = check_claims_hygiene(repo, ref)
+        if err:
+            print(err)
+            return 1
+        print(f"claims hygiene: {ref} ok")
+        return 0
+
     args = [a for a in sys.argv[1:] if a != "--all"]
     everything = "--all" in sys.argv[1:]
     # WARM_ENV, not a CLI flag: the gate calls this script through
@@ -1270,6 +1388,16 @@ def main() -> int:
     if head_sha is not None and ref_sha == head_sha:
         print(self_comparison_error(ref, head_sha))
         return 1
+
+    if everything:
+        # Same checks --claims-only runs, before the capture. Solver inherited
+        # used to wait for the baseline worktree; git show is enough, and the
+        # card file has to be judged here too (#493 carried card claims while
+        # the solver list was already empty).
+        hyg = check_claims_hygiene(repo, ref)
+        if hyg:
+            print(hyg)
+            return 1
 
     # Look the baseline up before building anything. A hit skips the slowest
     # step in the whole gate; a miss costs one hash of the machine and this
@@ -1328,11 +1456,6 @@ def main() -> int:
         # Cheapest check that needs the baseline, so it runs before the two
         # capture subprocesses rather than after half an hour of solving.
         if everything:
-            _, baseline_claims = _claimed(worktree)
-            inherited = inherited_claims_error(claims, baseline_claims, ref)
-            if inherited:
-                print(inherited)
-                return 1
             stamped = stamp_claims_error(
                 claims, _repo_version(repo), _repo_version(worktree)
             )

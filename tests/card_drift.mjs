@@ -562,6 +562,8 @@ if (stampError) {
 // A claim list that is exactly the baseline's -- same names, same reasons --
 // was written for the baseline's diff, not this one (env_drift.py's
 // inherited-claims rule). An empty list claims nothing and is always fine.
+// run.sh also runs env_drift.py --claims-only (never scoped out) so a
+// roster-only PR cannot skip this the way #493 skipped this file.
 const sameClaims =
   treeClaims.claims.size > 0 &&
   treeClaims.claims.size === baseClaims.claims.size &&
