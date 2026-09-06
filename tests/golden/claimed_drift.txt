@@ -47,15 +47,12 @@
 #
 # claims-for: 6.3.16
 #
-# #521, the real-Home-Assistant nightly: this branch claims NOTHING. A new
-# test script, its two classification entries and one workflow job -- no
-# production file is touched, so every fixture is byte-identical by
-# construction.
-#
-# #514 (declare Python 3.13+, raise the Home Assistant floor to 2025.2.0):
-# this branch claims NOTHING. hacs.json, README.md, the CI workflow and
-# comment text only; the one production edit is a docstring in
-# coordinator.py, so every fixture is byte-identical by construction.
+# W4-G7 S6 (#193, the grid seam): this branch claims NOTHING. The four
+# inverter-frequency assignments move verbatim from `_init_grid` into
+# `_init_frequency`, and `_grid_fee_entity_value` moves to module level with
+# its body unchanged, taking `hass` and the config mapping instead of reading
+# them off `self`. No arithmetic, no ordering and no call sequence changes, so
+# every fixture is byte-identical by construction.
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
