@@ -148,11 +148,16 @@ the analysis, which stays in its own seat.
 
 - `tools/audit/briefs/fixer.md` — failing test first, importing the production
   symbol; the mutation proof pasted; the finding's own harness re-run at both
-  ends; a null control for any cost, gain or time claim. After any rebase,
-  steps 2–4 are re-executed, because the evidence described a different tree.
+  ends; a null control for any cost, gain or time claim. After any rebase **or
+  merge**, steps 2–4 are re-executed, because the evidence described a different
+  tree. The handoff to review **freezes the branch**: update it from
+  `origin/main` freely until then; after it, only the orchestrator moves the
+  head.
 - `tools/audit/briefs/fix-review.md` — the reviewer measures with the
   **finder's** harness, never the fixer's, in a fresh worktree at the head SHA.
   Four implementations here looked right and were wrong, one worse than its bug.
+  The head is re-read before the verdict is posted, and one that moved under the
+  review is `blocked: head moved under review, measured <sha>`.
 - `tools/audit/briefs/judge.md` — a finding whose harness does not move under
   its own perturbation is **void**, whatever the votes said.
 - `tests/README.md` — the suite, and why a test that re-implements a production
@@ -192,8 +197,13 @@ Node lanes (`tests/card.mjs`, `tests/card_drift.mjs`) record on Darwin via
 `node --import tests/node_fs_trace.mjs` (Node `fs` / loader, not `strace`).
 `--single` of an existing node script **unions** into the committed list;
 it cannot shrink a Linux `strace` closure. Python closures re-derive locally
-as before. Do not Darwin `--single` a CI `UNDER-SCOPED` — autofix already
-has the Linux recordings.
+as before. Do not Darwin `--single` a CI `UNDER-SCOPED` **while the autofix
+job is green and its summary line says `changed`** — it already has the Linux
+recordings and the commit is coming. Once that job goes red it has told you it
+did not merge them, and re-deriving the script its summary names is then the
+only thing that moves the PR. Green on `skip-not-allowed` is the third case:
+the loop guard fired after the bot's own push, so no second commit is coming
+either.
 
 ## CI already repairs two mechanical failures — do not re-implement them
 
@@ -202,6 +212,20 @@ already exist on same-repo PRs. Do **not** open a second PR, run Darwin
 `--single`, or hand-empty claim files for these. Wait for the bot commit
 (`ci: re-record closures` / `ci: drop inherited claims`) and the dispatched
 recheck. Loop-guarded: those subjects are not repaired again.
+
+**Wait only while the job reports that it is repairing, and read the summary
+line rather than the tick.** It pushes on one status and used to report
+success on every other, so a job that repaired nothing looked exactly like one
+that did (#523). It now ends by printing its status to the job summary and
+going red when UNDER-SCOPED was printed and the repair did not happen —
+`skip-failed-recording`, `skip-merge-failed`, `skip-still-fails`,
+`skip-unchanged`. **A red autofix job means no bot commit is coming**, and the
+rule above stops applying: re-derive the script the summary names. Green does
+**not** mean a commit is coming — it covers `changed` (it is), `skip-clean`
+and `skip-not-under-scoped` (nothing was owed) and `skip-not-allowed` (the job
+never classified), and the conclusion cannot tell them apart. Two paths still
+end green with a repair unmade; `.cursor/rules/ci-autofix.mdc` names both
+rather than leaving completeness to be inferred.
 
 - **`UNDER-SCOPED`:** `closures` already recorded under strace. Autofix
   merges those recordings into `tests/closures.json` and retriggers Tests.
