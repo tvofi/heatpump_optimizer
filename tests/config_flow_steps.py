@@ -299,6 +299,7 @@ BUILDING_PAGE_ANSWERS = {
     const.CONF_MIXING_VALVE_WRITE_TARGET_KIND: config_flow.mixing_valve.WRITE_TARGET_INDOOR,
     const.CONF_BUFFER_TANK_VOLUME: 250.0,
     const.CONF_BUFFER_MAX_TEMP: 70.0,
+    const.CONF_WOOD_FURNACE_ENABLED: False,
     const.CONF_WOOD_TANK_VOLUME: 600.0,
     const.CONF_DHW_WOOD_COIL_ENABLED: True,
 }
@@ -318,10 +319,6 @@ AWAY_ANSWERS = {
 LEARNING_ANSWERS = {
     const.CONF_STALENESS_ENABLED: True,
     const.CONF_STALENESS_SCALE: 2.0,
-    const.CONF_EXTERNAL_HEAT_ENABLED: True,
-    const.CONF_EXTERNAL_HEAT_ENTITY: "binary_sensor.stove",
-    const.CONF_EXTERNAL_HEAT_MIN_RISE: 0.6,
-    const.CONF_EXTERNAL_HEAT_DECAY_MINUTES: 45,
     const.CONF_COMFORT_LEARNING_ENABLED: True,
     const.CONF_SYSID_ENABLED: True,
     const.CONF_PRICE_PRIOR_ENABLED: True,
@@ -1672,6 +1669,95 @@ async def options_advanced_pages():
         f"options={entry.options.get(const.CONF_MIXING_VALVE_WRITE_TARGET_KIND)!r}",
     )
 
+    _WOOD_BLOCK = {
+        const.CONF_WOOD_TANK_TOP_ENTITY,
+        const.CONF_WOOD_PRICE_SEK_M3,
+        const.CONF_EXTERNAL_HEAT_ENABLED,
+        const.CONF_WOOD_TYPE,
+        const.CONF_WOOD_PACKING,
+        const.CONF_WOOD_FURNACE_EFFICIENCY,
+    }
+    flow, entry, _ = fresh_options()
+    shown = await flow.async_step_building(None)
+    empty_keys = schema_keys(shown)
+    check(
+        "opt_building",
+        "happy",
+        "empty building schema is toggle-only for wood",
+        const.CONF_WOOD_FURNACE_ENABLED in empty_keys
+        and not (_WOOD_BLOCK & empty_keys),
+        f"keys={sorted(empty_keys)}",
+    )
+    flow, entry, _ = fresh_options(
+        pre_options={const.CONF_WOOD_TANK_TOP_ENTITY: "sensor.wood_top"}
+    )
+    shown = await flow.async_step_building(None)
+    infer_keys = schema_keys(shown)
+    check(
+        "opt_building",
+        "happy",
+        "a stored top probe infers the wood block on",
+        _WOOD_BLOCK <= infer_keys,
+        f"keys={sorted(infer_keys)}",
+    )
+    flow, entry, _ = fresh_options(
+        pre_options={const.CONF_WOOD_TANK_VOLUME: 500.0}
+    )
+    shown = await flow.async_step_building(None)
+    vol_keys = schema_keys(shown)
+    check(
+        "opt_building",
+        "happy",
+        "500 L volume alone stays toggle-only",
+        const.CONF_WOOD_FURNACE_ENABLED in vol_keys
+        and not (_WOOD_BLOCK & vol_keys),
+        f"keys={sorted(vol_keys)}",
+    )
+    flow, entry, _ = fresh_options()
+    await flow.async_step_building(None)
+    result = await submit(
+        flow,
+        "building",
+        {const.CONF_WOOD_FURNACE_ENABLED: True},
+    )
+    check(
+        "opt_building",
+        "happy",
+        "submitting the toggle on persists it",
+        shows_menu(result, "advanced")
+        and entry.options.get(const.CONF_WOOD_FURNACE_ENABLED) is True,
+        f"{result.get('type')}/{result.get('step_id')} "
+        f"enabled={entry.options.get(const.CONF_WOOD_FURNACE_ENABLED)!r}",
+    )
+    flow, entry, _ = fresh_options(
+        pre_options={const.CONF_WOOD_FURNACE_ENABLED: True}
+    )
+    shown = await flow.async_step_building(None)
+    on_keys = schema_keys(shown)
+    check(
+        "opt_building",
+        "happy",
+        "toggle on shows probes, detection, type, packing, price, efficiency",
+        _WOOD_BLOCK <= on_keys
+        and const.CONF_WOOD_TANK_VOLUME in on_keys
+        and const.CONF_DHW_WOOD_COIL_ENABLED in on_keys
+        and const.CONF_EXTERNAL_HEAT_ENTITY in on_keys
+        and const.CONF_EXTERNAL_HEAT_MIN_RISE in on_keys
+        and const.CONF_EXTERNAL_HEAT_DECAY_MINUTES in on_keys,
+        f"keys={sorted(on_keys)}",
+    )
+    flow, entry, _ = fresh_options()
+    shown = await flow.async_step_learning(None)
+    learn_keys = schema_keys(shown)
+    check(
+        "opt_learning",
+        "happy",
+        "learning schema has no external_heat detection keys",
+        const.CONF_EXTERNAL_HEAT_ENABLED not in learn_keys
+        and const.CONF_EXTERNAL_HEAT_ENTITY not in learn_keys,
+        f"keys={sorted(learn_keys)}",
+    )
+
     # thermal_model: the presence-hazard page. A no-op save keeps the
     # questionnaire armed; editing a derived number disarms it.
     stored_mass = BASE_ENTRY_DATA[const.CONF_HOUSE_THERMAL_MASS]
@@ -1771,11 +1857,12 @@ async def options_advanced_pages():
     check(
         "opt_learning",
         "happy",
-        "the learning page saves with its watchdogs and its own entity slot",
+        "the learning page saves its watchdogs and does not carry detection",
         shows_menu(result, "advanced")
-        and entry.options.get(const.CONF_EXTERNAL_HEAT_ENTITY) == "binary_sensor.stove"
-        and entry.options.get(const.CONF_SYSID_ENABLED) is True,
-        f"external={entry.options.get(const.CONF_EXTERNAL_HEAT_ENTITY)!r}",
+        and entry.options.get(const.CONF_SYSID_ENABLED) is True
+        and const.CONF_EXTERNAL_HEAT_ENABLED not in entry.options,
+        f"external={entry.options.get(const.CONF_EXTERNAL_HEAT_ENTITY)!r} "
+        f"sysid={entry.options.get(const.CONF_SYSID_ENABLED)!r}",
     )
     flow, entry, _ = fresh_options()
     await flow.async_step_heat_curve(None)
@@ -2017,6 +2104,14 @@ def rc_setup():
     flow.hass = hass
     flow.context = {"source": "reconfigure", "entry_id": "plant_a"}
     return flow, entry, other, hass
+
+
+def schema_keys(result):
+    """Config-key names on a form schema."""
+    schema = result.get("data_schema")
+    if schema is None:
+        return set()
+    return {str(getattr(key, "schema", key)) for key in schema.schema}
 
 
 def rc_suggested(result):

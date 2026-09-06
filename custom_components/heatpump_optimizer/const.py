@@ -192,6 +192,16 @@ CONF_WOOD_TANK_TOP_ENTITY: Final = "wood_tank_top_entity"
 CONF_WOOD_TANK_BOTTOM_ENTITY: Final = "wood_tank_bottom_entity"
 CONF_WOOD_TANK_VOLUME: Final = "wood_tank_volume"  # liters
 DEFAULT_WOOD_TANK_VOLUME: Final = 500.0
+CONF_WOOD_FURNACE_ENABLED: Final = "wood_furnace_enabled"
+CONF_WOOD_TYPE: Final = "wood_type"
+CONF_WOOD_PACKING: Final = "wood_packing"
+CONF_WOOD_PRICE_SEK_M3: Final = "wood_price_sek_m3"
+CONF_WOOD_FURNACE_EFFICIENCY: Final = "wood_furnace_efficiency"
+DEFAULT_WOOD_TYPE: Final = "mixed"
+DEFAULT_WOOD_PACKING: Final = "packed"
+DEFAULT_WOOD_FURNACE_EFFICIENCY: Final = 75.0
+WOOD_TYPES: Final = ("birch", "pine", "mixed")
+WOOD_PACKINGS: Final = ("packed", "loose")
 
 # The forecast fed to the optimizer is deliberately short-lived, mirroring
 # the DHW suppression's hard cap: whatever the detector's own decay says,

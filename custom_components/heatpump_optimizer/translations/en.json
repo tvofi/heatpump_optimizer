@@ -449,11 +449,20 @@
           "mixing_valve_write_target_kind": "What the control entity expects",
           "buffer_tank_volume": "Buffer tank size",
           "buffer_max_temperature": "Maximum buffer tank temperature",
+          "wood_furnace_enabled": "Wood furnace",
           "valve_outlet_temp_entity": "Temperature after the wood/heat-pump mixing valve (optional)",
           "wood_tank_top_entity": "Wood tank top sensor (optional)",
           "wood_tank_bottom_entity": "Wood tank bottom sensor (optional)",
           "wood_tank_volume": "Wood tank volume",
           "dhw_wood_coil_enabled": "Hot water refilled through the wood tank",
+          "external_heat_detection_enabled": "Detect a wood furnace or other heat source",
+          "external_heat_entity": "Stove or flue sensor (optional)",
+          "external_heat_min_rise": "Temperature rise that counts as evidence",
+          "external_heat_decay_minutes": "How long to keep assuming it after it stops",
+          "wood_type": "Wood type",
+          "wood_packing": "Packing",
+          "wood_price_sek_m3": "Price per cubic metre",
+          "wood_furnace_efficiency": "Furnace efficiency",
           "after_save": "After saving",
           "space_circulation_pump_entity": "Heating circulation pump switch (optional)"
         },
@@ -465,11 +474,20 @@
           "mixing_valve_write_target_kind": "\"Indoor temperature\" is correct for a room/thermostat set-point, and is what has always been written — the safe default. \"Flow temperature\" is for a valve or heat-pump controller whose set-point is a water temperature: the optimizer derives it from the same flow curve it already uses for a dumb valve. Only choose \"Flow temperature\" once you have confirmed the entity expects a water temperature — pointed at a flow set-point, \"Indoor temperature\" would command roughly 21 °C to a device expecting 35-45 °C and badly underheat the house.",
           "buffer_tank_volume": "Litres. The tank between the heat pump and the heating circuits. Larger tanks store more cheap heat.",
           "buffer_max_temperature": "The tank is never charged above this, however cheap electricity is.",
+          "wood_furnace_enabled": "Off hides the wood probes, detection and fuel price; stored values are kept. A lone 500 L tank volume does not turn this on.",
           "valve_outlet_temp_entity": "Temperature of the blended flow leaving the valve that mixes wood and heat-pump water. With the tank sensors it tells the plan how much of the heating a fire is covering right now, so electric heat can stand down by that much instead of all-or-nothing.",
           "wood_tank_top_entity": "Together with the bottom sensor this says how much a fire has left. A hot top over a cold bottom means the charge is nearly spent.",
           "wood_tank_bottom_entity": "See the top sensor. Both are needed for the remaining-energy estimate; one alone is read conservatively.",
           "wood_tank_volume": "The wood-side buffer tank, used to bound how much free heat a fire can still deliver.",
           "dhw_wood_coil_enabled": "The hot water tank's cold-water inlet passes through a coil in the wood buffer tank, so refill water arrives preheated when that tank is hot. Only takes effect when the wood tank is modelled as its own store.",
+          "external_heat_detection_enabled": "Spots the tanks warming up when the heat pump is not running. While that is happening, planned electric hot water is held back — paying to heat water that is already being heated for free is the most expensive mistake available.",
+          "external_heat_entity": "If you have a flue thermostat or a stove switch, use it. It is trusted over the automatic detection in both directions — it can say a fire is lit, and it can say one is not. A switch or a helper toggle stays trusted until you change it. A flue probe reporting a temperature is trusted for an hour after it last reported: a probe stuck reading hot on a flat battery would otherwise hold heating back indefinitely.",
+          "external_heat_min_rise": "Raise this if normal operation triggers it. Missing a fire costs one unnecessary heating cycle; wrongly assuming one can leave you without hot water.",
+          "external_heat_decay_minutes": "How long detected external heat is assumed to keep contributing after the evidence fades. Longer holds the plan back further after a fire burns down.",
+          "wood_type": "The billed species. Mixed is the default.",
+          "wood_packing": "Packed is stacked (travad); loose is dumped (stjälpt) and billed at 0.60 of packed.",
+          "wood_price_sek_m3": "What you pay per billed cubic metre. Empty keeps the cheaper-than-pump sensor unavailable — there is no silent default.",
+          "wood_furnace_efficiency": "Share of the wood's energy that reaches the tank, percent.",
           "after_save": "Saving writes through immediately; this chooses where the dialog goes next.",
           "space_circulation_pump_entity": "A switch controlling the heating circulation pump. When set, the pump is paused only in slots that are provably idle and warm — it always runs when heat is planned, when it is freezing outside, or when any room is near its comfort floor."
         }
@@ -660,10 +678,6 @@
         "data": {
           "staleness_watchdog_enabled": "Ignore sensors that stop updating",
           "staleness_max_age_scale": "Allow this much extra age",
-          "external_heat_detection_enabled": "Detect a wood furnace or other heat source",
-          "external_heat_entity": "Stove or flue sensor (optional)",
-          "external_heat_min_rise": "Temperature rise that counts as evidence",
-          "external_heat_decay_minutes": "How long to keep assuming it after it stops",
           "comfort_learning_enabled": "Learn my comfort preference from overrides",
           "system_identification_enabled": "Allow a one-off measurement experiment",
           "price_prior_enabled": "Estimate prices past the published horizon",
@@ -672,10 +686,6 @@
         "data_description": {
           "staleness_watchdog_enabled": "A dead battery leaves a perfectly normal-looking value in place forever. Left alone, the model learns from that flatline and the damage survives a restart. With this on, an old value is treated as missing and learning pauses instead.",
           "staleness_max_age_scale": "Raise this if you have sensors that deliberately report rarely and are being flagged unnecessarily.",
-          "external_heat_detection_enabled": "Spots the tanks warming up when the heat pump is not running. While that is happening, planned electric hot water is held back — paying to heat water that is already being heated for free is the most expensive mistake available.",
-          "external_heat_entity": "If you have a flue thermostat or a stove switch, use it. It is trusted over the automatic detection in both directions — it can say a fire is lit, and it can say one is not. A switch or a helper toggle stays trusted until you change it. A flue probe reporting a temperature is trusted for an hour after it last reported: a probe stuck reading hot on a flat battery would otherwise hold heating back indefinitely.",
-          "external_heat_min_rise": "Raise this if normal operation triggers it. Missing a fire costs one unnecessary heating cycle; wrongly assuming one can leave you without hot water.",
-          "external_heat_decay_minutes": "How long detected external heat is assumed to keep contributing after the evidence fades. Longer holds the plan back further after a fire burns down.",
           "comfort_learning_enabled": "Every time you override the temperature, you are saying the plan went too far in one direction. This slowly adjusts the comfort setting from that. The learned value is shown on its own sensor and there is a button to reset it.",
           "system_identification_enabled": "Lets the optimizer run a small deliberate heating step on a mild, cheap night to measure your house directly, instead of waiting weeks to infer it. The change is kept too small to notice and it stops if the temperature drifts.",
           "price_prior_enabled": "Tomorrow's prices arrive around 13:00. Before then the rest of the horizon used to be a flat repeat of the last price, which hides every cheap hour ahead. This learns your typical daily price shape and uses it instead, and the plan marks which hours are estimated.",
@@ -977,6 +987,19 @@
         "close": "Close the dialog"
       }
     },
+    "wood_type": {
+      "options": {
+        "birch": "Birch",
+        "pine": "Pine",
+        "mixed": "Mixed"
+      }
+    },
+    "wood_packing": {
+      "options": {
+        "packed": "Packed (stacked)",
+        "loose": "Loose (dumped)"
+      }
+    },
     "space_setpoint_unit": {
       "options": {
         "indoor": "Indoor temperature",
@@ -1241,6 +1264,9 @@
       },
       "open_window_detected": {
         "name": "Open Window Detected"
+      },
+      "wood_cheaper": {
+        "name": "Wood cheaper than heat pump"
       }
     },
     "button": {

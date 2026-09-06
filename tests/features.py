@@ -4094,13 +4094,29 @@ def reachable(name: str) -> str | None:
     return None
 
 
+# Volume is gated on the furnace toggle (#463): a lone CONF_WOOD_TANK_VOLUME
+# does not infer a tank, so the single-key probe cannot see it.
+toggle_gated = {"wood_tank_volume"}
 probe = {name: reachable(name) for name in declared - runtime_only - validated_enums}
 
-unreachable = sorted(n for n, k in probe.items() if k is None)
+unreachable = sorted(
+    n for n, k in probe.items() if k is None and n not in toggle_gated
+)
 R.check(
     "every configurable parameter is reachable from a config key",
     not unreachable,
     ", ".join(unreachable),
+)
+_wf_vol_on = ThermalParameters.from_config(
+    {
+        hp_const.CONF_WOOD_FURNACE_ENABLED: True,
+        hp_const.CONF_WOOD_TANK_VOLUME: 0.5,
+    }
+)
+R.check(
+    "wood tank volume is reachable once the furnace toggle is on",
+    _wf_vol_on.wood_tank_volume == 0.5,
+    f"got {_wf_vol_on.wood_tank_volume!r}",
 )
 
 # The enum the probe cannot express. It is validated on the way in, so an
@@ -22438,5 +22454,214 @@ _pend_src = _SavPath(
 R.check(
     "interval-start pending copies baseline_kw from the current action",
     '"baseline_kw": self._current_action.get("baseline_kw")' in _pend_src,
+)
+
+R.section("3L-G8 — wood fuel math")
+
+from heatpump_optimizer.wood_fuel import (
+    WOOD_KWH_M3 as _wf_table,
+    cheaper_hour_count as _wf_count,
+    liters_to_kwh as _wf_liters,
+    useful_kwh_m3 as _wf_useful,
+    wood_cheaper as _wf_cheaper,
+    wood_fuel_ready as _wf_ready,
+    wood_furnace_inferred as _wf_inferred,
+    wood_furnace_on as _wf_on,
+    wood_sek_per_kwh as _wf_sek,
+)
+
+R.check("birch packed is 1900 kWh/m3", _wf_table["birch"]["packed"] == 1900.0)
+R.check("pine packed is 1500 kWh/m3", _wf_table["pine"]["packed"] == 1500.0)
+R.check("mixed packed is 1700 kWh/m3", _wf_table["mixed"]["packed"] == 1700.0)
+R.check(
+    "loose is 0.60 of packed",
+    _wf_table["birch"]["loose"] == 1140.0
+    and _wf_table["pine"]["loose"] == 900.0
+    and _wf_table["mixed"]["loose"] == 1020.0,
+)
+R.check(
+    "useful kWh applies efficiency",
+    abs(_wf_useful("birch", "packed", 75.0) - 1425.0) < 1e-9,
+)
+R.check(
+    "SEK/kWh is price over useful",
+    abs(_wf_sek(1425.0, "birch", "packed", 75.0) - 1.0) < 1e-9,
+)
+R.check(
+    "50 L of that birch is 71.25 kWh",
+    abs(_wf_liters(50.0, "birch", "packed", 75.0) - 71.25) < 1e-9,
+)
+R.check(
+    "500 L volume alone does not infer a furnace",
+    not _wf_inferred({"wood_tank_volume": 500.0}),
+)
+R.check(
+    "a top probe infers on",
+    _wf_inferred({"wood_tank_top_entity": "sensor.wood_top"}),
+)
+R.check(
+    "explicit off wins over a probe",
+    not _wf_on(
+        {
+            "wood_furnace_enabled": False,
+            "wood_tank_top_entity": "sensor.wood_top",
+        }
+    ),
+)
+_wf_cfg = {
+    "wood_furnace_enabled": True,
+    "wood_tank_top_entity": "sensor.wood_top",
+    "external_heat_detection_enabled": True,
+    "wood_type": "mixed",
+    "wood_packing": "packed",
+    "wood_price_sek_m3": 800.0,
+    "wood_furnace_efficiency": 75.0,
+}
+R.check("complete config is ready", _wf_ready(_wf_cfg))
+_wf_no_price = dict(_wf_cfg, wood_price_sek_m3=0.0)
+R.check("price 0 is not ready", not _wf_ready(_wf_no_price))
+R.check(
+    "idle plan is not cheaper",
+    not _wf_cheaper(1.0, [2.0], [3.0], [0.0], [0.0]),
+)
+R.check(
+    "one pump hour above 0.05 kW cheaper is on",
+    _wf_cheaper(1.0, [4.0], [2.0], [0.2], [0.0]),
+)
+R.check(
+    "that hour counts",
+    _wf_count(1.0, [4.0], [2.0], [0.2], [0.0]) == 1,
+)
+
+from heatpump_optimizer.thermal_model import ThermalParameters as _WfTP
+from heatpump_optimizer.wood_fuel import (
+    build_wood_fuel_view as _wf_view,
+    wood_fuel_from_coordinator as _wf_from_coord,
+)
+
+_wf_off = {
+    "wood_furnace_enabled": False,
+    "wood_tank_top_entity": "sensor.wood_top",
+    "wood_tank_volume": 500.0,
+    "dhw_wood_coil_enabled": True,
+}
+_wf_params = _WfTP.from_config(_wf_off)
+R.check(
+    "toggle off means no wood tank even if a probe is stored",
+    _wf_params.wood_tank_configured is False,
+)
+R.check(
+    "toggle off zeroes the 500 L default volume",
+    _wf_params.wood_tank_volume == 0.0,
+)
+R.check(
+    "toggle off disables the DHW wood coil in the model",
+    _wf_params.dhw_wood_coil_enabled is False,
+)
+
+_wf_eh = HeatPumpOptimizerCoordinator(
+    FakeHass(),
+    FakeEntry(
+        data={
+            "tibber_token": "x",
+            "weather_entity": "weather.home",
+            "wood_furnace_enabled": False,
+            "external_heat_detection_enabled": True,
+            "wood_tank_top_entity": "sensor.wood_top",
+        }
+    ),
+)
+R.check(
+    "toggle off disables detection even if it is stored on",
+    _wf_eh._external_heat_config().enabled is False,
+)
+
+_wf_not_ready = _wf_view(
+    {"wood_tank_volume": 500.0},
+    prices=[4.0],
+    outdoor=[-5.0],
+    space_kw=[0.2],
+    dhw_kw=[0.0],
+    cop_at=lambda _t: 2.0,
+    timestamps=[],
+    forecast_kw=[],
+    suppressing=False,
+)
+R.check(
+    "data wood_fuel cheaper is false when not ready",
+    _wf_not_ready["ready"] is False and _wf_not_ready["cheaper"] is False,
+)
+
+from datetime import datetime, timezone as _tz_wf
+from heatpump_optimizer.optimizer import OptimizationResult as _WfOR
+
+_wf_ts = datetime(2026, 1, 1, tzinfo=_tz_wf.utc)
+_wf_result = _WfOR(
+    power_schedule=[0.2],
+    room_temp_trajectory=[21.0, 21.0],
+    slab_temp_trajectory=[21.0, 21.0],
+    timestamps=[_wf_ts],
+    prices=[40.0],
+    predicted_cost=0.0,
+    baseline_cost=0.0,
+    predicted_savings=0.0,
+    savings_percentage=0.0,
+    optimal_setpoints=[21.0],
+    status="ok",
+    outdoor_temps=[-5.0],
+    dhw_power_schedule=[0.0],
+    dhw_temp_trajectory=[50.0, 50.0],
+)
+_wf_ready_coord = HeatPumpOptimizerCoordinator(
+    FakeHass(),
+    FakeEntry(data=dict(_wf_cfg)),
+)
+_wf_ready_coord._optimization_result = _wf_result
+import homeassistant.util.dt as _dt_wf
+_real_now_wf = _dt_wf.now
+try:
+    _dt_wf.now = lambda: NOW
+    _wf_pub = _wf_ready_coord._build_data_dict()
+finally:
+    _dt_wf.now = _real_now_wf
+R.check(
+    "ready publishes cheaper",
+    isinstance(_wf_pub.get("wood_fuel"), dict)
+    and _wf_pub["wood_fuel"].get("ready") is True
+    and _wf_pub["wood_fuel"].get("cheaper") is True
+    and _wf_pub["wood_fuel"].get("cheaper_hour_count") == 1,
+    repr(_wf_pub.get("wood_fuel")),
+)
+_wf_idle = _WfOR(
+    power_schedule=[0.0],
+    room_temp_trajectory=[21.0, 21.0],
+    slab_temp_trajectory=[21.0, 21.0],
+    timestamps=[_wf_ts],
+    prices=[40.0],
+    predicted_cost=0.0,
+    baseline_cost=0.0,
+    predicted_savings=0.0,
+    savings_percentage=0.0,
+    optimal_setpoints=[21.0],
+    status="ok",
+    outdoor_temps=[-5.0],
+    dhw_power_schedule=[0.0],
+    dhw_temp_trajectory=[50.0, 50.0],
+)
+_wf_ready_coord._optimization_result = _wf_idle
+try:
+    _dt_wf.now = lambda: NOW
+    _wf_idle_pub = _wf_ready_coord._build_data_dict()
+finally:
+    _dt_wf.now = _real_now_wf
+R.check(
+    "ready idle plan publishes cheaper false",
+    _wf_idle_pub["wood_fuel"].get("ready") is True
+    and _wf_idle_pub["wood_fuel"].get("cheaper") is False,
+    repr(_wf_idle_pub.get("wood_fuel")),
+)
+R.check(
+    "wood_fuel_from_coordinator is the publish helper",
+    _wf_from_coord is not None,
 )
 sys.exit(R.close("FEATURE CHECKS"))

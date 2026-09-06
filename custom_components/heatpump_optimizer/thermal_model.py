@@ -107,6 +107,7 @@ from .const import (
     WOOD_TANK_MIN_MARGIN,
     topology_layout_valid,
 )
+from .wood_fuel import wood_furnace_on
 from .dhw_schedule import (
     DHWWindowError,
     FULL_DAY,
@@ -906,19 +907,25 @@ class ThermalParameters:
 
         # Two-tank gating (issue #40): a probe, not a flag. The volume shares
         # the external-heat detector's key — one number for one physical tank.
-        values["wood_tank_configured"] = bool(
+        # Toggle off is one-tank even if probes/volume remain stored (#463).
+        values["wood_tank_configured"] = wood_furnace_on(config) and bool(
             config.get(const.CONF_WOOD_TANK_TOP_ENTITY)
+            or config.get(const.CONF_WOOD_TANK_BOTTOM_ENTITY)
         )
-        values["wood_tank_volume"] = float(
-            config.get(const.CONF_WOOD_TANK_VOLUME)
-            or const.DEFAULT_WOOD_TANK_VOLUME
-        )
-        values["dhw_wood_coil_enabled"] = bool(
-            config.get(
-                const.CONF_DHW_WOOD_COIL_ENABLED,
-                const.DEFAULT_DHW_WOOD_COIL_ENABLED,
+        if not wood_furnace_on(config):
+            values["wood_tank_volume"] = 0.0
+            values["dhw_wood_coil_enabled"] = False
+        else:
+            values["wood_tank_volume"] = float(
+                config.get(const.CONF_WOOD_TANK_VOLUME)
+                or const.DEFAULT_WOOD_TANK_VOLUME
             )
-        )
+            values["dhw_wood_coil_enabled"] = bool(
+                config.get(
+                    const.CONF_DHW_WOOD_COIL_ENABLED,
+                    const.DEFAULT_DHW_WOOD_COIL_ENABLED,
+                )
+            )
         # The stored layout choice (v3.16.0). An unknown string is dropped
         # here rather than carried: the property would refuse it anyway,
         # and carrying it would make diagnostics show a key that does

@@ -402,6 +402,18 @@ DATA = {
     # reads it off the optimizer's own configuration.
     "horizon_hours": 24.0,
     "savings_months": [],
+    "wood_fuel": {
+        "ready": True,
+        "cheaper": True,
+        "show_whatif": True,
+        "sek_per_kwh": 0.6,
+        "type": "mixed",
+        "packing": "packed",
+        "efficiency": 75.0,
+        "price_sek_m3": 800.0,
+        "cheaper_hour_count": 1,
+        "slots": [],
+    },
 }
 
 
@@ -2220,7 +2232,7 @@ R.section("Binary sensors")
 
 binaries = collect(binary_sensor)
 b_by_name = {display_name("binary_sensor", b): b for b in binaries}
-R.check("four binary sensors are added", len(binaries) == 4, str(len(binaries)))
+R.check("five binary sensors are added", len(binaries) == 5, str(len(binaries)))
 
 health = b_by_name["Input Problem"]
 R.check("a stale input raises the problem flag", health.is_on)
@@ -2274,12 +2286,84 @@ R.check(
     "old payloads without the T4a keys must read as off, not crash",
 )
 
+wood_cheaper = b_by_name["Wood cheaper than heat pump"]
+R.check(
+    "the cheaper sensor is unavailable until fuel is ready",
+    not binary_sensor.WoodCheaperBinarySensor(
+        FakeCoordinator({}), ENTRY
+    ).available,
+)
+R.check(
+    "and cheaper is false when not ready",
+    not binary_sensor.WoodCheaperBinarySensor(
+        FakeCoordinator({"wood_fuel": {"ready": False, "cheaper": True}}), ENTRY
+    ).is_on
+    and not binary_sensor.WoodCheaperBinarySensor(
+        FakeCoordinator({"wood_fuel": {"ready": False, "cheaper": True}}), ENTRY
+    ).available,
+)
+R.check(
+    "ready with a cheaper hour is on",
+    binary_sensor.WoodCheaperBinarySensor(
+        FakeCoordinator(
+            {
+                "wood_fuel": {
+                    "ready": True,
+                    "cheaper": True,
+                    "sek_per_kwh": 0.6,
+                    "cheaper_hour_count": 1,
+                }
+            }
+        ),
+        ENTRY,
+    ).is_on,
+)
+R.check(
+    "ready with an idle plan is off",
+    not binary_sensor.WoodCheaperBinarySensor(
+        FakeCoordinator(
+            {
+                "wood_fuel": {
+                    "ready": True,
+                    "cheaper": False,
+                    "sek_per_kwh": 0.6,
+                    "cheaper_hour_count": 0,
+                }
+            }
+        ),
+        ENTRY,
+    ).is_on,
+)
+_wf_ready_entity = binary_sensor.WoodCheaperBinarySensor(
+    FakeCoordinator(
+        {
+            "wood_fuel": {
+                "ready": True,
+                "cheaper": True,
+                "sek_per_kwh": 0.6,
+                "cheaper_hour_count": 1,
+            }
+        }
+    ),
+    ENTRY,
+)
+R.check(
+    "ready makes the cheaper sensor available",
+    _wf_ready_entity.available is True,
+)
+R.check(
+    "cheaper attributes are sek_per_kwh and cheaper_hour_count",
+    _wf_ready_entity.extra_state_attributes
+    == {"sek_per_kwh": 0.6, "cheaper_hour_count": 1},
+)
+
 b_crashed = []
 for entity in (
     binary_sensor.InputHealthBinarySensor(empty, ENTRY),
     binary_sensor.ExternalHeatBinarySensor(empty, ENTRY),
     binary_sensor.AwayModeBinarySensor(empty, ENTRY),
     binary_sensor.VentilationBinarySensor(empty, ENTRY),
+    binary_sensor.WoodCheaperBinarySensor(empty, ENTRY),
 ):
     try:
         entity.is_on
@@ -2996,19 +3080,46 @@ R.check(
 
 # v3.15.1: the hot water tank refills through a coil in the wood tank. That is
 # plumbing, not a detector setting, so the option lives beside the wood tank it
-# depends on -- since v4.0.0 that is the combined heating-system page.
+# depends on -- since v4.0.0 that is the combined heating-system page. The
+# wood-furnace toggle (#463) hides the coil until the furnace is on.
 _building_fields = {
     str(getattr(k, "schema", k)) for k in _pages["building"].schema
 }
 R.check(
-    "the DHW wood-coil option is offered on the wood tank's own page",
-    const.CONF_DHW_WOOD_COIL_ENABLED in _building_fields,
+    "the wood-furnace toggle is on the building page even when off",
+    const.CONF_WOOD_FURNACE_ENABLED in _building_fields,
     sorted(_building_fields),
 )
 R.check(
+    "toggle off hides the DHW wood-coil option",
+    const.CONF_DHW_WOOD_COIL_ENABLED not in _building_fields,
+    sorted(_building_fields),
+)
+_wood_on_flow = options(
+    FakeEntry(data={const.CONF_WOOD_TANK_TOP_ENTITY: "sensor.wood_top"})
+)
+_wood_on_flow.hass = FakeHass()
+_wood_on_form = asyncio.run(_wood_on_flow.async_step_building(None))
+_wood_on_fields = {
+    str(getattr(k, "schema", k)) for k in _wood_on_form["data_schema"].schema
+}
+R.check(
+    "the DHW wood-coil option is offered when the furnace is on",
+    const.CONF_DHW_WOOD_COIL_ENABLED in _wood_on_fields,
+    sorted(_wood_on_fields),
+)
+R.check(
     "and it is off unless asked for",
-    _pages["building"]({}).get(const.CONF_DHW_WOOD_COIL_ENABLED) is False,
+    _wood_on_form["data_schema"]({}).get(const.CONF_DHW_WOOD_COIL_ENABLED) is False,
     "a new option that defaults on silently changes every existing install",
+)
+_wood_on_ok, _wood_on_detail = _defaults_survive_their_own_selectors(
+    _wood_on_form["data_schema"]
+)
+R.check(
+    "the wood-on building page can be submitted untouched",
+    _wood_on_ok,
+    _wood_on_detail,
 )
 
 
@@ -3757,6 +3868,19 @@ R.check(
     "every options field has a label translation",
     not _unlabelled,
     ", ".join(_unlabelled[:6]),
+)
+_wood_on_unlabelled = sorted(
+    f"building.{key}"
+    for key in (
+        str(getattr(k, "schema", k))
+        for k in _wood_on_form["data_schema"].schema
+    )
+    if key not in strings["options"]["step"]["building"].get("data", {})
+)
+R.check(
+    "every wood-block field has a building label translation",
+    not _wood_on_unlabelled,
+    ", ".join(_wood_on_unlabelled[:6]),
 )
 
 # A boolean whose label is missing renders as the bare config key, which reads
@@ -4848,6 +4972,9 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
         "configured_target", "mixing_valve_mode", "price_ratio", "reason"
     }),
     "VentilationBinarySensor": frozenset({"evidence"}),
+    "WoodCheaperBinarySensor": frozenset({
+        "cheaper_hour_count", "sek_per_kwh"
+    }),
 }
 
 R.check(
