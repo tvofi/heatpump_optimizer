@@ -28,9 +28,22 @@ production lines. You work in your own worktree branched from `origin/main`.
 5. `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) ./tests/run.sh`
    green locally, through the gate lock (`mkdir /tmp/hpo-gate.lock`; strict
    golden mode does not reproduce on this box, see the README), then CI green.
-6. Hand off to the adversarial fix reviewer. **After any rebase, steps 2–4
-   are re-executed**: the evidence describes one tree, and a rebase makes a
-   new one.
+6. Hand off to the adversarial fix reviewer. **After any rebase or merge,
+   steps 2–4 are re-executed**: the evidence describes one tree, and either
+   makes a new one.
+
+   **The handoff freezes the branch.** Until then, update it from `origin/main`
+   whenever you need to — `git merge origin/main`, never rebase. After it, the
+   head is the reviewer's measuring surface and **only the coordinator moves
+   it**: a head that moves mid-review invalidates measurements already taken,
+   and the reviewer cannot tell which of its numbers still describe the tree.
+   If your branch goes stale while a review is in flight, say so and hand it
+   back; do not merge it yourself.
+
+   Landing a PR is never yours in any case — that is the coordinator's, or a
+   merge-and-release seat it starts. `git merge origin/main` into your own
+   branch and `gh pr merge` are different acts; only the first was ever yours,
+   and only before the handoff.
 7. The PR body closes its issues (`Closes #N`), names the head SHA measured,
    and carries every executed number.
 8. **A quoted number states the rule that produced it, not just its value.**

@@ -39,4 +39,11 @@ its bug. You are checking that the numbers are real.
    judge ruling first — #290's brief still prescribes a harness its judge
    already refused.
 
+**Re-read the head before you post.** Name the SHA you measured in the verdict,
+and check it is still the head when you post it. A branch that moved under you
+means some of your numbers describe a tree that no longer exists: say which
+survive and which you re-took, rather than letting the verdict imply all of them
+were taken at the head it names. Restricting the three-dot diff to the production
+paths and comparing it across the two heads is usually enough to show what moved.
+
 Return a verdict (`merge` / `blocked: <what>`) with your RESULT lines.
