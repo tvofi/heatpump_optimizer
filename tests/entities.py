@@ -989,6 +989,91 @@ def _honest_coordinator(extra_config=None, states=None, dhw=True):
 _blind_hass, _blind_coord, _blind = _honest_coordinator()
 _blind_fake = FakeCoordinator(_blind)
 
+# S0 of #377: CoordinatorContext is defined and constructed. The five
+# write-once hubs stay on the coordinator; _ctx is a frozen snapshot of
+# the same objects. _current_action is not a frozen field.
+from dataclasses import FrozenInstanceError, fields, is_dataclass
+
+R.section("S0 CoordinatorContext (#377)")
+_Ctx = getattr(coordinator_module, "CoordinatorContext", None)
+R.check(
+    "CoordinatorContext is importable from heatpump_optimizer.coordinator",
+    _Ctx is not None,
+)
+_ctx_fields = {f.name for f in fields(_Ctx)} if _Ctx is not None else set()
+R.check(
+    "CoordinatorContext is a frozen dataclass over the five write-once hubs",
+    _Ctx is not None
+    and is_dataclass(_Ctx)
+    and getattr(_Ctx, "__dataclass_params__").frozen
+    and _ctx_fields == {
+        "_config",
+        "_thermal_params",
+        "hass",
+        "_current_state",
+        "_opt_config",
+    },
+    f"fields={sorted(_ctx_fields)}",
+)
+R.check(
+    "_current_action is not a CoordinatorContext field",
+    "_current_action" not in _ctx_fields,
+)
+_ctx = getattr(_blind_coord, "_ctx", None)
+R.check(
+    "a real coordinator constructs _ctx in the existing assignment order",
+    _ctx is not None and type(_ctx) is _Ctx,
+    f"_ctx={type(_ctx)!r}",
+)
+R.check(
+    "_ctx holds the same write-once objects the coordinator still exposes",
+    _ctx is not None
+    and _ctx._config is _blind_coord._config
+    and _ctx._thermal_params is _blind_coord._thermal_params
+    and _ctx.hass is _blind_coord.hass
+    and _ctx._current_state is _blind_coord._current_state
+    and _ctx._opt_config is _blind_coord._opt_config,
+)
+_action_ok = False
+if _ctx is not None:
+    try:
+        _ctx.hass = object()
+    except FrozenInstanceError:
+        _action_ok = True
+R.check("CoordinatorContext rejects writes (frozen)", _action_ok)
+_blind_coord._current_action["s0_probe"] = True
+R.check(
+    "_current_action stays a mutable slot on the coordinator",
+    _blind_coord._current_action["s0_probe"] is True
+    and not hasattr(_ctx, "_current_action") if _ctx is not None else False,
+)
+_blind_coord._current_action.pop("s0_probe", None)
+R.check(
+    "the six hub names still resolve on the coordinator instance",
+    _blind_coord._config is not None
+    and _blind_coord._thermal_params is not None
+    and _blind_coord.hass is _blind_hass
+    and _blind_coord._current_state is not None
+    and _blind_coord._opt_config is not None
+    and isinstance(_blind_coord._current_action, dict),
+)
+from heatpump_optimizer.coordinator import (
+    COP_LEARNING_MAX_STEP,
+    HOUSE_LOSS_MAX_STEP,
+    PLAN_STALE_FLOOR_MINUTES,
+    SOLVE_FAILURE_ISSUE_COUNT,
+    house_loss_confidence,
+)
+R.check(
+    "facade symbols stay importable from heatpump_optimizer.coordinator",
+    HeatPumpOptimizerCoordinator is coordinator_module.HeatPumpOptimizerCoordinator
+    and COP_LEARNING_MAX_STEP == coordinator_module.COP_LEARNING_MAX_STEP
+    and HOUSE_LOSS_MAX_STEP == coordinator_module.HOUSE_LOSS_MAX_STEP
+    and PLAN_STALE_FLOOR_MINUTES == coordinator_module.PLAN_STALE_FLOOR_MINUTES
+    and SOLVE_FAILURE_ISSUE_COUNT == coordinator_module.SOLVE_FAILURE_ISSUE_COUNT
+    and house_loss_confidence is coordinator_module.house_loss_confidence,
+)
+
 # The premise, stated in production's own terms: with nothing sensing the
 # tank, the buffer or the lower floor, what gets published IS the dataclass
 # default. No magic numbers here -- they are read off `ThermalState()`.
