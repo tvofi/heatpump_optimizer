@@ -6002,7 +6002,7 @@ _hardcoded = sorted(
 ) + sorted(
     f"issues.{key}"
     for key, texts in strings["issues"].items()
-    if "SEK" in texts["description"]
+    if "SEK" in texts.get("description", "")
 )
 R.check(
     "no field label, description or repair notice hardcodes SEK",

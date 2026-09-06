@@ -22186,9 +22186,16 @@ for _lang_file in ("strings.json", "translations/en.json", "translations/sv.json
     R.check(
         f"the DHW consistency notice is translated in {_lang_file}",
         _SP_ISSUE_DHW in _sp_doc.get("issues", {})
-        and "{pump}" in _sp_doc["issues"][_SP_ISSUE_DHW]["description"]
-        and "{target}" in _sp_doc["issues"][_SP_ISSUE_DHW]["description"]
-        and "fix_flow" in _sp_doc["issues"][_SP_ISSUE_DHW],
+        and "description" not in _sp_doc["issues"][_SP_ISSUE_DHW]
+        and "flow_title" in _sp_doc["issues"][_SP_ISSUE_DHW]["fix_flow"]
+        and "{target}"
+        in _sp_doc["issues"][_SP_ISSUE_DHW]["fix_flow"]["step"]["confirm"][
+            "description"
+        ]
+        and "{entity}"
+        in _sp_doc["issues"][_SP_ISSUE_DHW]["fix_flow"]["step"]["confirm"][
+            "description"
+        ],
     )
     R.check(
         f"the space unreadable notice is translated in {_lang_file}",

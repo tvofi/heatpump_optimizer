@@ -1043,13 +1043,12 @@
     },
     "dhw_setpoint_below_disinfection": {
       "title": "The heat pump's hot water set-point is below the configured temperature",
-      "description": "The pump's DHW set-point on {entity} reads {pump} °C, which is below the {target} °C this integration is configured to use for disinfection or the hot-water minimum. The plan can command cycles the hardware will refuse to reach. Fix sets the pump to {target} °C. This notice clears when the pump set-point meets that figure, however you get there.",
       "fix_flow": {
-        "title": "Raise the heat pump's hot water set-point",
+        "flow_title": "Raise the heat pump's hot water set-point",
         "step": {
           "confirm": {
             "title": "Set the pump to {target} °C",
-            "description": "This writes {target} °C to {entity}, the disinfection or minimum temperature already configured."
+            "description": "The pump's DHW set-point on {entity} is below {target} °C. This writes {target} °C to that entity, the disinfection or minimum temperature already configured."
           }
         }
       }

@@ -1043,13 +1043,12 @@
     },
     "dhw_setpoint_below_disinfection": {
       "title": "Värmepumpens börvärde för varmvatten ligger under den konfigurerade temperaturen",
-      "description": "Pumpens varmvattenbörvärde på {entity} visar {pump} °C, vilket ligger under de {target} °C den här integrationen är inställd att använda för desinfektion eller varmvattenminimum. Planen kan beordra cykler som hårdvaran vägrar nå. Åtgärda sätter pumpen till {target} °C. Meddelandet försvinner när pumpens börvärde når den siffran, oavsett hur du kommer dit.",
       "fix_flow": {
-        "title": "Höj värmepumpens börvärde för varmvatten",
+        "flow_title": "Höj värmepumpens börvärde för varmvatten",
         "step": {
           "confirm": {
             "title": "Sätt pumpen till {target} °C",
-            "description": "Det här skriver {target} °C till {entity}, desinfektions- eller minimumtemperaturen som redan är konfigurerad."
+            "description": "Pumpens varmvattenbörvärde på {entity} ligger under {target} °C. Det här skriver {target} °C till den enheten, desinfektions- eller minimumtemperaturen som redan är konfigurerad."
           }
         }
       }
