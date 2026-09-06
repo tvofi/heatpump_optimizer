@@ -26,8 +26,8 @@
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 13.2,
-   "rc": 0
+   "seconds": 14.5,
+   "rc": 1
   },
   "tests/env_drift.py": {
    "seconds": 0.5,
@@ -336,6 +336,7 @@
    "tests/profiles.py"
   ],
   "tests/entities.py": [
+   ".gitattributes",
    ".github/workflows/tests.yml",
    "README.md",
    "RELEASE_NOTES.md",
