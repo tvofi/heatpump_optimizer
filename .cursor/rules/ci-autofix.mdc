@@ -18,15 +18,47 @@ repairing.** Each job pushes on `changed` alone, and every other status used
 to fall through to job success, so a skipped repair was indistinguishable
 from a completed one and the wait never ended (#523). Both jobs now end by
 printing their status to the job summary, and `closures-autofix` goes red on
-`skip-merge-failed`, `skip-still-fails` and `skip-unchanged` — a repair was
-attempted and did not work. **A red autofix job means there will be no bot
-commit.** It is the "failed recording" case this file already lists as a
-human judgment call, and the `--single` prohibition above does not survive
-it: that prohibition assumes the autofix holds the recordings *and will
-merge them*. Re-derive the named script yourself and commit
-`tests/closures.json`; Python lanes record through `sys.addaudithook`, so
-Darwin is sound for them. A **green** job that pushed nothing is an ordinary
-no-op and owes you nothing.
+`skip-failed-recording`, `skip-merge-failed`, `skip-still-fails` and
+`skip-unchanged` — UNDER-SCOPED was printed, a repair was owed, and it did
+not happen. **A red autofix job means there will be no bot commit.** The
+`--single` prohibition above does not survive it: that prohibition assumes
+the autofix holds the recordings *and will merge them*. Read the summary
+line, re-derive the script it names and commit `tests/closures.json`; Python
+lanes record through `sys.addaudithook`, so Darwin is sound for them. On
+`skip-failed-recording` the script named in the `closures` log stopped while
+being recorded — fix that script first; re-deriving it would only record the
+same truncation.
+
+**What green means, exactly — read the summary line, not the tick.** Green is
+`changed` (repaired and pushed), `skip-clean` or `skip-not-under-scoped` (no
+repair was owed), or `skip-not-allowed` (the job declined to classify at
+all). The conclusion cannot tell "repaired" from "nothing was owed"; the
+summary line can. `claims-autofix` reddens on nothing it can return today —
+`apply_inherited_claims` has no attempted-and-failed status, and its
+`skip-not-inherited` is the ordinary answer for every unrelated `fast`
+failure, so reddening it would over-fire — so its summary line is its only
+signal.
+
+**Two paths still end green with a repair unmade. Neither is closed here, and
+both are stated rather than left to be inferred.**
+
+- **The loop guard.** After the bot pushes, the next run's head subject is
+  `ci: re-record closures`, so `autofix_allowed` returns false *before* any
+  classification runs: if that run is still UNDER-SCOPED the status is
+  `skip-not-allowed`, the job is green, and no second commit comes. Closing
+  it needs a dry-run classification and a decision about the loop guard's
+  contract. #527 makes this path routine by making the push routine.
+- **A truncated recording masking the under-scope.** `check` never inspects a
+  recording's `rc`, and a script that exits early records only what it
+  reached. Truncation can only hide an under-approximation, never invent one
+  — so where it hides the only one, `check` passes and the job is green on
+  `skip-clean`. `skip-failed-recording` fires only *after* UNDER-SCOPED has
+  been printed, deliberately: `closures-autofix` runs on ANY `closures`
+  failure, so reddening every failed recording would fire on unrelated
+  `no-copies`, NOT-A-FILE and INERT failures and send their reader to
+  re-derive a closure that was never stale. The script that failed normally
+  reddens `fast` in the same run; one that fails *only* under recording
+  would not.
 
 | Failure | Job | Commit subject | Code |
 |---|---|---|---|
