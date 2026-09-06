@@ -1024,6 +1024,10 @@
       "title": "Optimeringen fortsätter att misslyckas; planen börjar bli inaktuell",
       "description": "De senaste {count} optimeringskörningarna misslyckades, så integrationen visar fortfarande — och agerade tills nyligen på — en plan beräknad {last_success}. När planen är äldre än några uppdateringsintervall lämnas värmepumpen tillbaka till sin egen värmekurva i stället för att styras efter ett föråldrat schema. De vanliga misstänkta är en tappad pris- eller väderanslutning, eller ett fel i loggen från själva lösaren. Meddelandet försvinner vid nästa lyckade optimering."
     },
+    "solve_worker_fallback": {
+      "title": "Planeringen föll tillbaka på den långsamma lösaren i samma process",
+      "description": "Den separata lösarprocessen kunde inte användas, så optimeringen kördes i Home Assistants egen tolk i stället. Planen är korrekt, men lösningen håller tolklåset medan den körs, så Home Assistant kan kännas kortvarigt trögt vid varje optimering. Orsaken som rapporterades var: {cause}. Bifoga gärna den raden och loggen i en rapport. Meddelandet försvinner när en lösning åter slutförs i den separata processen."
+    },
     "pump_mode_unreadable": {
       "title": "Värmepumpens driftlägesenhet rapporterar inte",
       "description": "Enheten du valt för värmepumpens driftläge har inte gått att läsa på över {hours} timmar. Det senaste läget den rapporterade var ”{mode}”, och fram tills nu har planen fortfarande hållits till vad det läget klarar. Så är det inte längre: ett driftläge som ingen kunnat läsa på timmar säger inget om vad pumpen gör, och att fortsätta stänga av värme eller varmvatten utifrån det vore att låta dig frysa på en död givares ord. Planen utgår återigen från att pumpen klarar allt, precis som innan du konfigurerade enheten. Kontrollera att enheten fortfarande finns och är tillgänglig, eller töm fältet om du inte vill använda den. Meddelandet försvinner så snart enheten rapporterar igen."

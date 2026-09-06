@@ -19,8 +19,8 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 6.3.15
+# claims-for: 6.3.16
 #
-# W4-G5 S4 (#193), the recorded halt for the fetch seam: this branch claims
-# NOTHING. Docs, roster and claim-file bookkeeping only -- no card source is
-# touched.
+# v6.3.16: the solve worker could not unpickle its job. The stamp empties the list; the
+# next branch restates its own footprint, claims included.
+#

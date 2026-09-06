@@ -45,12 +45,11 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 6.3.15
+# claims-for: 6.3.16
 #
-# W4-G5 S4 (#193), the recorded halt for the fetch seam: this branch claims
-# NOTHING. Plan Delivery-status, roster (`wave-4-groups.json` resume fields)
-# and this pair of claim files only -- no production file is touched, so
-# every fixture is byte-identical by construction.
+# v6.3.16: the solve worker could not unpickle its job. The stamp empties the list; the
+# next branch restates its own footprint, claims included.
+#
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
