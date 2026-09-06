@@ -69,6 +69,12 @@ name: Tests
 # * slow — nightly and on demand. Same suite plus SLOW=1, which adds
 #   tests/rolling.py (the closed-loop learner simulation, ~15 minutes).
 #
+# * nightly-ha — nightly and on demand. The only lane that runs the
+#   integration inside a real Home Assistant instead of tests/hastub, in
+#   the container and at the /config path an installation actually uses.
+#   Asserts that a PLAN CAME OUT, which is what #511 broke and what every
+#   other lane structurally could not see. Never gates a pull request.
+#
 # * closures-autofix / claims-autofix — same-repo PRs only. Merge
 #   UNDER-SCOPED recordings, or empty an inherited claim list, then
 #   retrigger Tests. Do not re-implement; see .cursor/rules/ci-autofix.mdc.
@@ -437,6 +443,49 @@ jobs:
           OPENBLAS_NUM_THREADS: "1"
           MKL_NUM_THREADS: "1"
         run: ./tests/run.sh
+
+  # Real Home Assistant, in the container an installation actually runs
+  # (#521). Every other lane -- tests/deployment_shape.py included -- gets
+  # `homeassistant` from tests/hastub, so none of them has ever observed real
+  # import or setup semantics; that is the third divergence of #513, and it
+  # is how #511 shipped a total loss of function in v6.3.15 behind a green
+  # suite. The check that carries the value is that a PLAN CAME OUT: setup
+  # succeeded throughout #511, so a lane asserting only "it loaded" would
+  # have been green for the whole release.
+  #
+  # Nightly and on demand, never on a pull request. It costs minutes, needs
+  # Docker, and is the first lane here that can go red for a reason outside
+  # this repository -- a registry outage, or a Home Assistant release
+  # changing setup behaviour. It reports loudly and blocks nothing.
+  nightly-ha:
+    if: >-
+      github.event_name == 'schedule'
+      || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      # Both images report. A floor that breaks while stable does not is the
+      # most informative outcome this lane has, and fail-fast would hide it.
+      fail-fast: false
+      matrix:
+        # The floor the integration supports (#514), and whatever is current.
+        image: ["2025.2.0", "stable"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      # Its own step so a registry failure is an unmistakable red here,
+      # rather than a timeout somewhere inside the lane.
+      - name: Pull the Home Assistant image
+        run: docker pull "homeassistant/home-assistant:${{ matrix.image }}"
+
+      - name: Run the integration inside Home Assistant
+        run: |
+          python tests/nightly_ha.py \
+            --image "homeassistant/home-assistant:${{ matrix.image }}"
 
   # The closures the scoped PR gate trusts, re-derived from real runs and
   # compared against what is committed. A closure that MISSES a file a run
