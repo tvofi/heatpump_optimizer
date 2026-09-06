@@ -950,6 +950,217 @@ def _liquid_fraction(
             1.0,
         )
 
+def _apply_result_payload(
+    data: dict[str, Any],
+    result: Any,
+    current_action: dict[str, Any],
+    plan_views: dict[str, Any],
+) -> None:
+    """The solved half of the entity payload, merged into ``data``.
+
+    Split out of ``_build_data_dict`` so the assembler stays a facade over
+    the subsystem views; every key here is read off ``result`` or off one
+    of the two coordinator values passed in.
+    """
+    # DHW schedule data
+    dhw_schedule = []
+    if result.dhw_power_schedule:
+        for i, (ts, dp, dt_val) in enumerate(zip(
+            result.timestamps,
+            result.dhw_power_schedule,
+            result.dhw_temp_trajectory[1:] if result.dhw_temp_trajectory else [0.0] * len(result.timestamps),
+        )):
+            dhw_schedule.append({
+                "time": ts.isoformat(),
+                "dhw_power": round(dp, 2),
+                "dhw_temp": round(dt_val, 1),
+            })
+
+    data.update(
+        {
+            "predicted_cost": result.predicted_cost,
+            "baseline_cost": result.baseline_cost,
+            "predicted_savings": result.predicted_savings,
+            "savings_percentage": result.savings_percentage,
+            "deferred_energy_cost": result.deferred_energy_cost,
+            "optimization_status": result.status,
+            "solve_time_ms": result.solve_time_ms,
+            "dhw_heating_cost": result.dhw_heating_cost,
+            "dhw_heating_active": current_action.get("dhw_heating_active", False),
+            "dhw_schedule": dhw_schedule,
+            # Predictive info. Numpy scalars are converted to plain
+            # Python types because these values end up in entity
+            # attributes, which Home Assistant must serialize.
+            "predictive_info": _plain_types(result.predictive_info),
+            # Grid-cost and provenance figures (items 7, 8, 10, 9)
+            "projected_peak_kw": result.projected_peak_kw,
+            "projected_peak_cost": result.peak_cost,
+            "compressor_starts": result.compressor_starts,
+            "pv_self_consumed_kwh": result.pv_self_consumed_kwh,
+            "plan_price_known": result.price_known,
+            **plan_views,
+            "schedule": [
+                {
+                    "time": ts.isoformat(),
+                    "power": p,
+                    "setpoint": s,
+                    "price": pr,
+                    "room_temp": rt,
+                    "upper_temp": ut,
+                    "lower_temp": lt,
+                    "solar_gain": sg,
+                    "displace": (
+                        result.displace_schedule[idx]
+                        if result.displace_schedule and idx < len(result.displace_schedule)
+                        else 0.0
+                    ),
+                    "heat_pump_on": (
+                        result.heat_pump_on_schedule[idx]
+                        if result.heat_pump_on_schedule and idx < len(result.heat_pump_on_schedule)
+                        else p > 0.1
+                    ),
+                }
+                for idx, (ts, p, s, pr, rt, ut, lt, sg) in enumerate(zip(
+                    result.timestamps,
+                    result.power_schedule,
+                    result.optimal_setpoints,
+                    result.prices,
+                    result.room_temp_trajectory[1:],
+                    (
+                        result.upper_temp_trajectory[1:]
+                        if result.upper_temp_trajectory
+                        else result.room_temp_trajectory[1:]
+                    ),
+                    (
+                        result.lower_temp_trajectory[1:]
+                        if result.lower_temp_trajectory
+                        else result.room_temp_trajectory[1:]
+                    ),
+                    (
+                        result.solar_gain_trajectory
+                        if result.solar_gain_trajectory
+                        else [0.0] * len(result.timestamps)
+                    ),
+                ))
+            ],
+        }
+    )
+
+
+def _apply_unsolved_payload(data: dict[str, Any]) -> None:
+    """The not-run half: every solved key present and inert.
+
+    The payload keys are frozen, so a solve that never ran publishes the
+    same key set rather than a shorter one — an entity reading ``data``
+    never has to test for a missing key.
+    """
+    data.update(
+        {
+            "predicted_cost": None,
+            "baseline_cost": None,
+            "predicted_savings": None,
+            "savings_percentage": None,
+            "deferred_energy_cost": None,
+            "optimization_status": "not_run",
+            "solve_time_ms": 0,
+            "dhw_heating_cost": 0.0,
+            "dhw_heating_active": False,
+            "dhw_schedule": [],
+            "predictive_info": {},
+            "schedule": [],
+            "space_plan": {},
+            "dhw_plan": {},
+            "projected_peak_kw": 0.0,
+            "projected_peak_cost": 0.0,
+            "compressor_starts": 0,
+            "pv_self_consumed_kwh": 0.0,
+            "plan_price_known": [],
+        }
+    )
+
+
+def _ecl110_legacy_payload(
+    reason: str,
+    heat_pump_on: bool,
+    displace_int: int,
+    current_action: dict[str, Any],
+) -> dict[str, Any]:
+    """The legacy JSON command body, over the action passed in.
+
+    Takes ``current_action`` as a value rather than reading it off the
+    coordinator: a module-level helper handed ``self`` would keep every
+    reference it moved -- ``tests/structure.py`` walks only class methods
+    and matches ``self.<attr>``, so the seam metric would fall while the
+    coupling stood. Same rule as ``_solve_anchor`` and ``_liquid_fraction``.
+    """
+    return {
+        "source": DOMAIN,
+        "reason": reason,
+        "timestamp": dt_util.now().isoformat(),
+        "command": {
+            "type": "ecl110_control",
+            "heat_pump_on": bool(heat_pump_on),
+            "displace": displace_int,
+        },
+        "context": {
+            "price": current_action.get("price"),
+            "mode": current_action.get("mode"),
+            "pre_heat_urgency": current_action.get("pre_heat_urgency"),
+        },
+    }
+
+
+async def _publish_ecl110_topics(
+    hass,
+    set_topic: str | None,
+    command_topic: str | None,
+    qos: Any,
+    retain: Any,
+    displace_int: int,
+    legacy_payload: dict[str, Any],
+) -> None:
+    """Write the displace command to whichever ECL110 topics are configured.
+
+    Each arm swallows its own MQTT failure, so a broken legacy topic never
+    suppresses the direct ``/set`` write that supersedes it.
+    """
+    if not set_topic and not command_topic:
+        return
+
+    # Preferred path: write plain numeric payload directly to /set topic.
+    if set_topic:
+        try:
+            await hass.services.async_call(
+                "mqtt",
+                "publish",
+                {
+                    "topic": set_topic,
+                    "payload": str(displace_int),
+                    "qos": int(qos),
+                    "retain": bool(retain),
+                },
+                blocking=True,
+            )
+        except Exception as err:
+            _LOGGER.error("Error publishing ECL110 direct displace MQTT command: %s", err)
+
+    # Backward compatibility path: optional legacy JSON command topic.
+    if command_topic:
+        try:
+            await hass.services.async_call(
+                "mqtt",
+                "publish",
+                {
+                    "topic": command_topic,
+                    "payload": json.dumps(legacy_payload),
+                    "qos": int(qos),
+                    "retain": bool(retain),
+                },
+                blocking=True,
+            )
+        except Exception as err:
+            _LOGGER.error("Error publishing ECL110 legacy MQTT command: %s", err)
+
 
 class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     """Coordinator for Heat Pump Cost Optimizer."""
@@ -6777,61 +6988,22 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         )
         displace_int = int(round(displace))
 
-        legacy_payload = {
-            "source": DOMAIN,
-            "reason": reason,
-            "timestamp": dt_util.now().isoformat(),
-            "command": {
-                "type": "ecl110_control",
-                "heat_pump_on": bool(heat_pump_on),
-                "displace": displace_int,
-            },
-            "context": {
-                "price": self._current_action.get("price"),
-                "mode": self._current_action.get("mode"),
-                "pre_heat_urgency": self._current_action.get("pre_heat_urgency"),
-            },
-        }
+        legacy_payload = _ecl110_legacy_payload(
+            reason, heat_pump_on, displace_int, self._current_action
+        )
 
         self._ecl110_last_payload = legacy_payload
         self._ecl110_current_displace = float(displace_int)
 
-        if not self._ecl110_displace_set_topic and not self._ecl110_command_topic:
-            return
-
-        # Preferred path: write plain numeric payload directly to /set topic.
-        if self._ecl110_displace_set_topic:
-            try:
-                await self.hass.services.async_call(
-                    "mqtt",
-                    "publish",
-                    {
-                        "topic": self._ecl110_displace_set_topic,
-                        "payload": str(displace_int),
-                        "qos": int(self._ecl110_qos),
-                        "retain": bool(self._ecl110_retain),
-                    },
-                    blocking=True,
-                )
-            except Exception as err:
-                _LOGGER.error("Error publishing ECL110 direct displace MQTT command: %s", err)
-
-        # Backward compatibility path: optional legacy JSON command topic.
-        if self._ecl110_command_topic:
-            try:
-                await self.hass.services.async_call(
-                    "mqtt",
-                    "publish",
-                    {
-                        "topic": self._ecl110_command_topic,
-                        "payload": json.dumps(legacy_payload),
-                        "qos": int(self._ecl110_qos),
-                        "retain": bool(self._ecl110_retain),
-                    },
-                    blocking=True,
-                )
-            except Exception as err:
-                _LOGGER.error("Error publishing ECL110 legacy MQTT command: %s", err)
+        await _publish_ecl110_topics(
+            self.hass,
+            self._ecl110_displace_set_topic,
+            self._ecl110_command_topic,
+            self._ecl110_qos,
+            self._ecl110_retain,
+            displace_int,
+            legacy_payload,
+        )
 
     async def async_publish_current_action(self, reason: str = "optimizer") -> None:
         """Publish MQTT command for the currently selected optimizer action."""
@@ -7409,113 +7581,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             data["manual_plan"] = manual_state
 
         if result:
-            # DHW schedule data
-            dhw_schedule = []
-            if result.dhw_power_schedule:
-                for i, (ts, dp, dt_val) in enumerate(zip(
-                    result.timestamps,
-                    result.dhw_power_schedule,
-                    result.dhw_temp_trajectory[1:] if result.dhw_temp_trajectory else [0.0] * len(result.timestamps),
-                )):
-                    dhw_schedule.append({
-                        "time": ts.isoformat(),
-                        "dhw_power": round(dp, 2),
-                        "dhw_temp": round(dt_val, 1),
-                    })
-
-            data.update(
-                {
-                    "predicted_cost": result.predicted_cost,
-                    "baseline_cost": result.baseline_cost,
-                    "predicted_savings": result.predicted_savings,
-                    "savings_percentage": result.savings_percentage,
-                    "deferred_energy_cost": result.deferred_energy_cost,
-                    "optimization_status": result.status,
-                    "solve_time_ms": result.solve_time_ms,
-                    "dhw_heating_cost": result.dhw_heating_cost,
-                    "dhw_heating_active": self._current_action.get("dhw_heating_active", False),
-                    "dhw_schedule": dhw_schedule,
-                    # Predictive info. Numpy scalars are converted to plain
-                    # Python types because these values end up in entity
-                    # attributes, which Home Assistant must serialize.
-                    "predictive_info": _plain_types(result.predictive_info),
-                    # Grid-cost and provenance figures (items 7, 8, 10, 9)
-                    "projected_peak_kw": result.projected_peak_kw,
-                    "projected_peak_cost": result.peak_cost,
-                    "compressor_starts": result.compressor_starts,
-                    "pv_self_consumed_kwh": result.pv_self_consumed_kwh,
-                    "plan_price_known": result.price_known,
-                    **self._build_plan_views(result),
-                    "schedule": [
-                        {
-                            "time": ts.isoformat(),
-                            "power": p,
-                            "setpoint": s,
-                            "price": pr,
-                            "room_temp": rt,
-                            "upper_temp": ut,
-                            "lower_temp": lt,
-                            "solar_gain": sg,
-                            "displace": (
-                                result.displace_schedule[idx]
-                                if result.displace_schedule and idx < len(result.displace_schedule)
-                                else 0.0
-                            ),
-                            "heat_pump_on": (
-                                result.heat_pump_on_schedule[idx]
-                                if result.heat_pump_on_schedule and idx < len(result.heat_pump_on_schedule)
-                                else p > 0.1
-                            ),
-                        }
-                        for idx, (ts, p, s, pr, rt, ut, lt, sg) in enumerate(zip(
-                            result.timestamps,
-                            result.power_schedule,
-                            result.optimal_setpoints,
-                            result.prices,
-                            result.room_temp_trajectory[1:],
-                            (
-                                result.upper_temp_trajectory[1:]
-                                if result.upper_temp_trajectory
-                                else result.room_temp_trajectory[1:]
-                            ),
-                            (
-                                result.lower_temp_trajectory[1:]
-                                if result.lower_temp_trajectory
-                                else result.room_temp_trajectory[1:]
-                            ),
-                            (
-                                result.solar_gain_trajectory
-                                if result.solar_gain_trajectory
-                                else [0.0] * len(result.timestamps)
-                            ),
-                        ))
-                    ],
-                }
+            _apply_result_payload(
+                data, result, self._current_action, self._build_plan_views(result)
             )
         else:
-            data.update(
-                {
-                    "predicted_cost": None,
-                    "baseline_cost": None,
-                    "predicted_savings": None,
-                    "savings_percentage": None,
-                    "deferred_energy_cost": None,
-                    "optimization_status": "not_run",
-                    "solve_time_ms": 0,
-                    "dhw_heating_cost": 0.0,
-                    "dhw_heating_active": False,
-                    "dhw_schedule": [],
-                    "predictive_info": {},
-                    "schedule": [],
-                    "space_plan": {},
-                    "dhw_plan": {},
-                    "projected_peak_kw": 0.0,
-                    "projected_peak_cost": 0.0,
-                    "compressor_starts": 0,
-                    "pv_self_consumed_kwh": 0.0,
-                    "plan_price_known": [],
-                }
-            )
+            _apply_unsolved_payload(data)
 
         return data
 

@@ -47,9 +47,12 @@
 #
 # claims-for: 6.3.15
 #
-# Record of #502 and the 2026-09-06 Claude seat routing: this commit claims
-# NOTHING. Delivery-status, wave-4 roster, Model routing and CLAUDE.md only.
-# No production or fixture file is touched.
+# W4-G4 S3 (#193): this branch claims NOTHING. Four blocks move to
+# coordinator module level verbatim -- the two payload halves of
+# _build_data_dict, and the legacy payload and MQTT publish tail of
+# async_publish_ecl110_command. Each is called where it stood, over plain
+# values rather than self, so the published key set, every value and every
+# MQTT write are unchanged and every fixture is byte-identical.
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum

@@ -21859,6 +21859,194 @@ R.check(
 )
 
 # ---------------------------------------------------------------------------
+R.section("#193 S3 — the two payload halves stay key-identical")
+
+from heatpump_optimizer.coordinator import (  # noqa: E402
+    _apply_result_payload as _s3_solved,
+    _apply_unsolved_payload as _s3_unsolved_fn,
+)
+
+# The published payload keys are frozen: an entity reading ``data`` never
+# tests for a missing key, so a key added to one half of _build_data_dict
+# and not the other publishes a short payload on exactly the installs that
+# never solved. Nothing else in the suite compares the two halves.
+_n_s3 = 4
+_ts_s3 = [
+    datetime(2026, 3, 1, tzinfo=timezone.utc) + timedelta(minutes=15 * i)
+    for i in range(_n_s3)
+]
+_res_s3 = _OR283(
+    power_schedule=[1.0] * _n_s3,
+    room_temp_trajectory=[21.0] * (_n_s3 + 1),
+    slab_temp_trajectory=[22.0] * (_n_s3 + 1),
+    timestamps=_ts_s3,
+    prices=[1.0] * _n_s3,
+    predicted_cost=10.0,
+    baseline_cost=12.0,
+    predicted_savings=2.0,
+    savings_percentage=16.7,
+    optimal_setpoints=[21.0] * _n_s3,
+    status="optimal",
+    dhw_power_schedule=[0.5] * _n_s3,
+    dhw_temp_trajectory=[50.0] * (_n_s3 + 1),
+    solar_gain_trajectory=[0.1] * _n_s3,
+)
+
+# plan_views comes from the production builder, never a literal. Supplied by
+# the test, the key-set check below would pin only that the two literal halves
+# agree, and a key added by _build_plan_views alone -- the same bug one level
+# up, and the half that is spread rather than written -- would pass unseen. A
+# test that supplies the value it is meant to check pins nothing (tests/README).
+_views_s3 = _coord284._build_plan_views(_res_s3)
+_solved_s3: dict = {}
+_s3_solved(_solved_s3, _res_s3, {"dhw_heating_active": True}, _views_s3)
+_unsolved_s3: dict = {}
+_s3_unsolved_fn(_unsolved_s3)
+
+R.check(
+    "the plan views spread into the solved half are non-empty, so the key-set "
+    "check below is not vacuous (#193)",
+    set(_views_s3) >= {"space_plan", "dhw_plan"} and bool(_views_s3.get("space_plan")),
+    "plan_views keys=%s" % sorted(_views_s3),
+)
+R.check(
+    "solved and not-run payload halves publish the same key set (#193)",
+    set(_solved_s3) == set(_unsolved_s3),
+    "solved_only=%s unsolved_only=%s"
+    % (
+        sorted(set(_solved_s3) - set(_unsolved_s3)),
+        sorted(set(_unsolved_s3) - set(_solved_s3)),
+    ),
+)
+R.check(
+    "the solved half reads dhw_heating_active off the current_action passed in (#193)",
+    _solved_s3.get("dhw_heating_active") is True,
+    repr(_solved_s3.get("dhw_heating_active")),
+)
+# .get on both sides: a mutated tree must report FAIL here, not abort with a
+# KeyError that hides every check after it.
+R.check(
+    "the solved half merges the plan views it is handed (#193)",
+    _solved_s3.get("space_plan") == _views_s3.get("space_plan")
+    and _solved_s3.get("dhw_plan") == _views_s3.get("dhw_plan")
+    and len(_solved_s3.get("schedule") or []) == _n_s3,
+    "space_plan_merged=%s dhw_plan_merged=%s schedule=%d"
+    % (
+        _solved_s3.get("space_plan") == _views_s3.get("space_plan"),
+        _solved_s3.get("dhw_plan") == _views_s3.get("dhw_plan"),
+        len(_solved_s3.get("schedule") or []),
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+R.section("#193 S3 — the ECL110 publish helpers, over plain values")
+
+from heatpump_optimizer.coordinator import (  # noqa: E402
+    _ecl110_legacy_payload as _s3_ecl_payload,
+    _publish_ecl110_topics as _s3_ecl_publish,
+)
+
+# The helpers take plain values, never ``self``. A module-level helper handed
+# the coordinator would keep every reference it moved -- tests/structure.py
+# walks only class methods -- so cut_views would fall while the coupling stood.
+_act_s3 = {"price": 1.5, "mode": "boost", "pre_heat_urgency": 0.25}
+_pay_s3 = _s3_ecl_payload("optimizer", True, 4, _act_s3)
+R.check(
+    "_ecl110_legacy_payload builds its context from the action passed in (#193)",
+    _pay_s3.get("context") == _act_s3
+    and _pay_s3.get("command")
+    == {"type": "ecl110_control", "heat_pump_on": True, "displace": 4}
+    and _pay_s3.get("reason") == "optimizer",
+    "context=%r command=%r" % (_pay_s3.get("context"), _pay_s3.get("command")),
+)
+R.check(
+    "and the payload's top-level keys are exactly the published five (#193)",
+    set(_pay_s3) == {"source", "reason", "timestamp", "command", "context"},
+    "keys=%s" % sorted(_pay_s3),
+)
+
+
+def _s3_publish_calls(set_topic, command_topic, services=None):
+    """Drive the publish helper against a FakeHass.
+
+    Returns the topics written, their payloads, and whatever the integration
+    logged while they ran. Propagation is off so an arm's expected failure
+    does not print through the suite's output.
+    """
+    hass = FakeHass()
+    if services is not None:
+        hass.services = services
+    logger = _logging.getLogger("heatpump_optimizer")
+    capture, real_prop = _LogCapture(), logger.propagate
+    logger.addHandler(capture)
+    logger.propagate = False
+    try:
+        _asyncio.run(
+            _s3_ecl_publish(hass, set_topic, command_topic, 1, True, 4, _pay_s3)
+        )
+    finally:
+        logger.propagate = real_prop
+        logger.removeHandler(capture)
+    calls = hass.services.calls
+    return (
+        [d.get("topic") for _, _, d in calls],
+        {d.get("topic"): d.get("payload") for _, _, d in calls},
+        capture.records,
+    )
+
+
+_t_none, _p_none, _log_none = _s3_publish_calls("", "")
+R.check(
+    "_publish_ecl110_topics writes nothing when neither topic is configured (#193)",
+    _t_none == [],
+    repr(_t_none),
+)
+_t_both, _p_both, _log_both = _s3_publish_calls("ecl/set", "ecl/cmd")
+R.check(
+    "the /set topic carries the plain integer and the legacy topic the JSON (#193)",
+    _t_both == ["ecl/set", "ecl/cmd"]
+    and _p_both.get("ecl/set") == "4"
+    and _rt_json.loads(_p_both.get("ecl/cmd") or "null") == _pay_s3,
+    "topics=%r set=%r" % (_t_both, _p_both.get("ecl/set")),
+)
+
+
+class _S3FlakySet:
+    """MQTT that refuses the first publish and accepts the rest."""
+
+    def __init__(self) -> None:
+        self.calls = []
+
+    async def async_call(self, domain, service, data=None, **kwargs):
+        self.calls.append((domain, service, data))
+        if len(self.calls) == 1:
+            raise RuntimeError("broker refused the /set write")
+        return None
+
+
+# Each arm owns its own try/except. Collapsing them into one -- the obvious
+# tidy-up now that both live in one helper -- would let a broken /set topic
+# suppress the legacy write that exists as its fallback.
+_t_flaky, _p_flaky, _log_flaky = _s3_publish_calls(
+    "ecl/set", "ecl/cmd", services=_S3FlakySet()
+)
+R.check(
+    "a failed /set write does not suppress the legacy publish (#193)",
+    _t_flaky == ["ecl/set", "ecl/cmd"]
+    and _rt_json.loads(_p_flaky.get("ecl/cmd") or "null") == _pay_s3,
+    repr(_t_flaky),
+)
+R.check(
+    "and that failure is logged, not swallowed silently (#193)",
+    any(
+        lvl >= _logging.ERROR and "direct displace" in msg for lvl, msg in _log_flaky
+    ),
+    repr(_log_flaky),
+)
+
+
+# ---------------------------------------------------------------------------
 R.section("W3-G2 — DHW planner re-simulation count (#289)")
 
 from heatpump_optimizer.thermal_model import ThermalModel as _G2Tm
