@@ -1171,9 +1171,12 @@ def apply_under_scoped_recordings(in_dir: Path, *, partial: bool = True) -> str:
     # test above would fire on every no-copies, NOT-A-FILE or INERT failure
     # that happened to coincide with one, and send its reader to re-derive a
     # closure that was never stale. Past this line UNDER-SCOPED was printed,
-    # so a repair IS owed -- and `merge(allow_failures=False)` below would
-    # refuse these records anyway, as `skip-merge-failed`. This says which
-    # refusal it was, and keeps it loud (#523).
+    # so this is not that no-op -- and `merge(allow_failures=False)` below
+    # would refuse these records anyway, as `skip-merge-failed`. This says
+    # which refusal it was, and keeps it loud (#523). The UNDER-SCOPED may
+    # itself be an artefact of the failure (an error path reads files the
+    # clean path does not), which is why the remedy is "fix the script", not
+    # "re-derive it".
     if any(r.get("rc", 0) != 0 for r in records):
         return "skip-failed-recording"
 

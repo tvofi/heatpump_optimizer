@@ -50,15 +50,23 @@ both are stated rather than left to be inferred.**
   contract. #527 makes this path routine by making the push routine.
 - **A truncated recording masking the under-scope.** `check` never inspects a
   recording's `rc`, and a script that exits early records only what it
-  reached. Truncation can only hide an under-approximation, never invent one
-  — so where it hides the only one, `check` passes and the job is green on
-  `skip-clean`. `skip-failed-recording` fires only *after* UNDER-SCOPED has
-  been printed, deliberately: `closures-autofix` runs on ANY `closures`
-  failure, so reddening every failed recording would fire on unrelated
-  `no-copies`, NOT-A-FILE and INERT failures and send their reader to
-  re-derive a closure that was never stale. The script that failed normally
-  reddens `fast` in the same run; one that fails *only* under recording
-  would not.
+  reached — so where that truncation hides the *only* under-approximation,
+  `check` passes and the job is green on `skip-clean`. `skip-failed-recording`
+  fires only *after* UNDER-SCOPED has been printed, deliberately:
+  `closures-autofix` runs on ANY `closures` failure, so reddening every failed
+  recording would fire on unrelated `no-copies`, NOT-A-FILE and INERT failures
+  and send their reader to re-derive a closure that was never stale. The
+  script that failed normally reddens `fast` in the same run; one that fails
+  *only* under recording would not.
+
+  A failed recording's file list is **not** simply a subset of what a clean run
+  would touch: an error path can read files the clean path never does (a
+  traceback pulls source through `linecache`). So an UNDER-SCOPED reached with
+  a failed recording present may be genuine or may be an artefact of the
+  failure. The remedy does not branch on which — fix the failing script, and
+  the closures job re-records on the next push — which is why
+  `skip-failed-recording` says exactly that and does **not** tell you to
+  re-derive.
 
 | Failure | Job | Commit subject | Code |
 |---|---|---|---|
