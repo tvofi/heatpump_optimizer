@@ -241,36 +241,6 @@ mechanical, uniquely-detected failure.
 
 See `.cursor/rules/ci-autofix.mdc` and `tests/README.md` (scoped gate).
 
-## Claim-file conflicts are prevented at the merge, not repaired after it
-
-Every branch writes a note into `tests/golden/claimed_drift.txt` and
-`tests/golden/card_claimed_drift.txt` at the same place, so every branch that
-merged `main` after another branch merged conflicted in both — five branches,
-ten conflicts, in one session. `.gitattributes` now routes both files to the
-`claimnotes` merge driver in `tests/env_drift.py`. Install it once per clone;
-a worktree shares its checkout's config, so one install covers every worktree:
-
-```
-python3 tests/env_drift.py --install-merge-driver
-```
-
-The driver unions the note comments and **refuses** — leaving ordinary conflict
-markers and a non-zero exit — when both sides rewrote the bare claim list. The
-refusal is the point. A claim is value-bearing, and git's free `merge=union`
-would silently reinstate a claim the branch deleted, where the inherited-claims
-guard cannot see it: that guard fires only on a list *exactly* equal to the
-baseline's, and a unioned list carries the branch's own claim too.
-
-Two limits, both measured. Git never clones config, so an uninstalled driver
-falls back to the ordinary text merge — the same conflict as today, never worse.
-And git reads `.gitattributes` from the branch being merged **into**, so a branch
-cut before it landed conflicts once more before it is covered.
-
-**A third autofix job was measured and refused.** A merge conflict means CI never
-ran, so no job is red and there is no uniquely-detected failure of the kind the
-rule above demands; the trigger would have to be a push to `main` fanning out
-over every open PR, and the repair would push to branches frozen for review.
-
 <!-- ▼ PROGRAMME BLOCK. Everything below is scoped to one programme and is
      deleted when it closes. It carries no state of its own — only where the
      state is — so it cannot go stale while the programme is open. -->
