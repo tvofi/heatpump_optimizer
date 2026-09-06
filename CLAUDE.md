@@ -11,7 +11,8 @@ bottom, which is allowed to go stale and says so.
 **This file is not the whole of what applies.** `.cursor/rules/*.mdc` hold four
 `alwaysApply: true` project policies — `delivery-status-tracking.mdc`,
 `ci-autofix.mdc`, `brief-citations.mdc`, `defect-root-cause.mdc`. Cursor loaded them for you; Claude Code
-loads only this file, so **open all three yourself at session start**. The
+loads only this file, so **open every one of them yourself at session start** —
+list the directory rather than trusting a count here. The
 sections below summarise them and cite them by name; a summary is not the policy.
 
 ## Four rules that will refuse your pull request

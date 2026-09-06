@@ -52,9 +52,11 @@ of the deliverable, whether or not it finds anything.
 
 Wall-clock, per occurrence, over a release cycle. The left side is the
 **standing** cost — what it adds to every run forever — not what it costs you to
-write it. For `P(recurrence)`, use the measured class frequency in
-`production-escape-classes.md` when the defect belongs to a class there;
-otherwise state your estimate and its basis.
+write it. For `P(recurrence)`, prefer a **measured** class frequency over a guess: the
+repository's own escape record is `RELEASE_NOTES.md` (every shipped fix is a bug
+that escaped) together with the closed `bug` issues. Where the programme has
+already classified a defect's class, use that frequency and cite where it was
+measured. Otherwise state your estimate and its basis.
 
 **Recommending nothing is a legitimate result.** Say so plainly and give the
 number that says so. A countermeasure that fails the test and is built anyway is
