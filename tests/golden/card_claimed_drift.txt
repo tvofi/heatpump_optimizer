@@ -51,3 +51,8 @@
 # #546, the unsaveable setup page: this branch claims NOTHING. The card's
 # only edit is a comment above its own PLACE_LABELS map; no box, position
 # or payload key is touched, so every rendered state is byte-identical.
+#
+# #547, the config-flow stored-value arm: this branch claims NOTHING. Two
+# test scripts and the config_flow golden fixture only -- no card source,
+# template, style or payload key is touched, so every rendered state is
+# byte-identical by construction.
