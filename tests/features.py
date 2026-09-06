@@ -21859,6 +21859,73 @@ R.check(
 )
 
 # ---------------------------------------------------------------------------
+R.section("#193 S3 — the two payload halves stay key-identical")
+
+from heatpump_optimizer.coordinator import (  # noqa: E402
+    _apply_result_payload as _s3_solved,
+    _apply_unsolved_payload as _s3_unsolved_fn,
+)
+
+# The published payload keys are frozen: an entity reading ``data`` never
+# tests for a missing key, so a key added to one half of _build_data_dict
+# and not the other publishes a short payload on exactly the installs that
+# never solved. Nothing else in the suite compares the two halves.
+_n_s3 = 4
+_ts_s3 = [
+    datetime(2026, 3, 1, tzinfo=timezone.utc) + timedelta(minutes=15 * i)
+    for i in range(_n_s3)
+]
+_res_s3 = _OR283(
+    power_schedule=[1.0] * _n_s3,
+    room_temp_trajectory=[21.0] * (_n_s3 + 1),
+    slab_temp_trajectory=[22.0] * (_n_s3 + 1),
+    timestamps=_ts_s3,
+    prices=[1.0] * _n_s3,
+    predicted_cost=10.0,
+    baseline_cost=12.0,
+    predicted_savings=2.0,
+    savings_percentage=16.7,
+    optimal_setpoints=[21.0] * _n_s3,
+    status="optimal",
+    dhw_power_schedule=[0.5] * _n_s3,
+    dhw_temp_trajectory=[50.0] * (_n_s3 + 1),
+    solar_gain_trajectory=[0.1] * _n_s3,
+)
+
+_solved_s3: dict = {}
+_s3_solved(
+    _solved_s3,
+    _res_s3,
+    {"dhw_heating_active": True},
+    {"space_plan": {"forecast": [1.0]}, "dhw_plan": {}},
+)
+_unsolved_s3: dict = {}
+_s3_unsolved_fn(_unsolved_s3)
+
+R.check(
+    "solved and not-run payload halves publish the same key set (#193)",
+    set(_solved_s3) == set(_unsolved_s3),
+    "solved_only=%s unsolved_only=%s"
+    % (
+        sorted(set(_solved_s3) - set(_unsolved_s3)),
+        sorted(set(_unsolved_s3) - set(_solved_s3)),
+    ),
+)
+R.check(
+    "the solved half reads dhw_heating_active off the current_action passed in (#193)",
+    _solved_s3["dhw_heating_active"] is True,
+    repr(_solved_s3.get("dhw_heating_active")),
+)
+R.check(
+    "the solved half merges the plan views it is handed (#193)",
+    _solved_s3["space_plan"] == {"forecast": [1.0]}
+    and len(_solved_s3["schedule"]) == _n_s3,
+    "space_plan=%r schedule=%d"
+    % (_solved_s3.get("space_plan"), len(_solved_s3.get("schedule") or [])),
+)
+
+
+# ---------------------------------------------------------------------------
 R.section("W3-G2 — DHW planner re-simulation count (#289)")
 
 from heatpump_optimizer.thermal_model import ThermalModel as _G2Tm
