@@ -47,6 +47,13 @@
 #
 # claims-for: 6.3.16
 #
+# W4-G7 S6 (#193, the grid seam): this branch claims NOTHING. The four
+# inverter-frequency assignments move verbatim from `_init_grid` into
+# `_init_frequency`, and `_grid_fee_entity_value` moves to module level with
+# its body unchanged, taking `hass` and the config mapping instead of reading
+# them off `self`. No arithmetic, no ordering and no call sequence changes, so
+# every fixture is byte-identical by construction.
+#
 # #509, the diagnostics privacy fix: this branch claims NOTHING. It touches
 # custom_components/heatpump_optimizer/diagnostics.py, which Home Assistant
 # loads by name for `Download diagnostics` and which no other production
