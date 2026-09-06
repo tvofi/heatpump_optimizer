@@ -381,7 +381,57 @@ def _acceptance() -> int:
     R.check("waiter acquired after release", waiter.label == "waiter")
     R.check("no pid forensics required", waited < 5)
 
-    for d in (d1, d2, d3, d4):
+    # 5. Expired same-label take rewrites owner (#479 residual).
+    R.section("expired same-label take")
+    d5 = tmp / f"hpo-gate-test-same-expired-{os.getpid()}"
+    if d5.exists():
+        _clear_lock(d5)
+    _ensure_lock_dir(d5)
+    past = datetime.now(UTC) - timedelta(seconds=10)
+    Owner("holder", past, past).write(d5 / OWNER_NAME)
+    (d5 / FLOCK_NAME).touch()
+    try:
+        renewed = take("holder", lock_dir=d5, lease_seconds=60, wait=False)
+        R.check(
+            "expired same-label take succeeds",
+            renewed.label == "holder" and not renewed.expired,
+        )
+    except RuntimeError:
+        R.check("expired same-label take succeeds", False)
+
+    # 6. Same-label return after crash clears holding.
+    R.section("same-label return clears holding")
+    d6 = tmp / f"hpo-gate-test-same-return-{os.getpid()}"
+    if d6.exists():
+        _clear_lock(d6)
+    take("holder", lock_dir=d6, lease_seconds=60, wait=False)
+    holder_script = (
+        "import time\n"
+        "from pathlib import Path\n"
+        "import gate_lock\n"
+        f"lock_dir = Path('{d6}')\n"
+        "gate_lock.take('holder', lock_dir=lock_dir, wait=False)\n"
+        "with gate_lock.flock_context(lock_dir):\n"
+        "    time.sleep(30)\n"
+    )
+    holder = subprocess.Popen(
+        [sys.executable, "-c", holder_script],
+        cwd=Path(__file__).resolve().parent,
+        env={**os.environ, "PYTHONPATH": str(Path(__file__).resolve().parent)},
+    )
+    time.sleep(0.5)
+    holder.kill()
+    holder.wait(timeout=5)
+    time.sleep(0.2)
+    take("holder", lock_dir=d6, lease_seconds=60, wait=False)
+    R.check("holding cleared after same-label return", not (d6 / HOLDING_NAME).exists())
+    try:
+        take("waiter", lock_dir=d6, lease_seconds=60, wait=False)
+        R.check("waiter blocked after same-label return", False)
+    except BlockingIOError:
+        R.check("waiter blocked after same-label return", True)
+
+    for d in (d1, d2, d3, d4, d5, d6):
         if d.exists():
             _clear_lock(d)
 
