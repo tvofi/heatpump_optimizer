@@ -21,4 +21,4 @@
 #
 # claims-for: 6.3.15
 #
-# Record of #495: this commit claims NOTHING. Card markup is unchanged.
+# Record of #500: this commit claims NOTHING. Card markup is unchanged.

@@ -47,8 +47,8 @@
 #
 # claims-for: 6.3.15
 #
-# Record of #495: this commit claims NOTHING. Roster and Delivery-status
-# only. #495 moved no fixtures.
+# Record of #500: this commit claims NOTHING. Roster and Delivery-status
+# only. #500 moved no fixtures.
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum

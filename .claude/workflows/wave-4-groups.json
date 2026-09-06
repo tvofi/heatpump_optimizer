@@ -9,12 +9,12 @@
     "those seats must NOT Closes #193. S13 may Closes #193 only if S0–S12 are done or recorded-halted.",
     "#412 stays last of the programme, after Wave 5 — not in this roster.",
     "#457 / 3L-G6 is not Wave 4. Do not invent a setup conflict flow.",
-    "3L-G10 (#465) has merged (#492, e4bc375). #495 inherited-claims guard merged 6699852. W4-G1 (#497) in flight. Do not start Wave 5 from this file.",
+    "3L-G10 (#465) has merged (#492, e4bc375). #495 inherited-claims guard merged 6699852. W4-G1 #497 (`c197b01`) and W4-G2 #500 (`67e1cf3`) merged; #377 closed. Next W4-G3. Do not start Wave 5 from this file.",
     "Consumed by .claude/workflows/web-fix-wave.js as its `groups` argument.",
     "Per-group worker briefs live out of tree: /Users/timmalmstrom/wt/briefs/w4-gN-*.md"
   ],
-  "fork": "66998520269206ffd4bbc33ce098ab768a1edba4",
-  "fork_note": "origin/main after #495 (`6699852`). Cut later Wave 4 branches from this SHA (or later origin/main). Re-measure structure at the seat's merge-base. coordinator_loc ceiling is that merge-base value (10344 after G10; do not raise). claims-for stays 6.3.15. W4-G1 in flight. #412 not in this wave.",
+  "fork": "67e1cf33cac86c6eede74d23a78de8a632e0b320",
+  "fork_note": "origin/main after W4-G2 #500 (`67e1cf3`). Cut later Wave 4 branches from this SHA (or later origin/main). Re-measure structure at the seat's merge-base. coordinator_loc ceiling 10344, coordinator_attrs 175. claims-for stays 6.3.15. Next seat W4-G3. #377 closed. #412 not in this wave.",
   "session": "claude-web",
   "repo": "/Users/timmalmstrom/heatpump_optimizer",
   "serial": true,
@@ -36,10 +36,10 @@
       "blocked_on": null,
       "after": [],
       "resume": {
-        "stage": "review",
-        "note": "PR #497 head `66f752c` (merged origin/main `6699852`). S0 of #377 only — do not Closes #377. Do not stamp. Do not start #412 or 3L-G6.",
-        "pr": 497,
-        "head": "66f752cf3033c3c5d0bdc3bedbe194902c4a5466"
+        "stage": "done",
+        "merged_pr": 497,
+        "merge_sha": "c197b018d8fd93fe493f530d37ef0c69ba2b09d3",
+        "note": "S0. CoordinatorContext constructed; raw hubs still on the coordinator. Loc 10344. Attrs 179 at land. #377 stayed open until S1. Next W4-G2 done same session."
       },
       "brief": "S0 of #377 / #193: define and construct CoordinatorContext. Frozen dataclass over the five write-once hubs (_config, _thermal_params, hass, _current_state, _opt_config). _current_action stays a mutable slot (4 writer methods) — not a frozen field. Coordinator keeps all six as properties. Nothing relocates. No region hold. Do not Closes #377 (S1 does). Part of #193, Part of #201. Move/re-point only: no arithmetic, no reordering, no lazy-init timing change. Goldens byte-identical, empty claim list. coordinator.py selects stress.py — take the lock if select says so. Ratchet: +1 attr (_ctx); no cut_* may rise; coordinator_loc ceiling is the merge-base (10344 after G10, never raise). local_imports 7/7 — no new module. functions_cc_over_15 39/39 — every helper cc≤15. Never re-record cross_seam_fraction. claims-for 6.3.15. Do not stamp. Do not start S1 or Wave 5. Do not implement #412."
     },
@@ -52,8 +52,10 @@
       "fixture": false,
       "after": ["W4-G1"],
       "resume": {
-        "stage": "pending",
-        "note": "After W4-G1 merge. Closes #377. Facade properties stay until S12 (plan S12 = #193 S11)."
+        "stage": "done",
+        "merged_pr": 500,
+        "merge_sha": "67e1cf33cac86c6eede74d23a78de8a632e0b320",
+        "note": "S1. Review merge 5558598900 at bff8154. Attrs 179→175. Cuts 94/115/160/209/315. Loc 10344. Facades stay until S12. #377 closed. Next seat W4-G3."
       },
       "brief": "S1 of #377 / #193: migrate the hub references (494 at 8e99ad1 — re-count at merge-base) to self._ctx.<name>, delete the six raw attributes, keep facade properties (including self.hass). Closes #377 on its own line. Do not Closes #193. Part of #201. Empty claims, goldens byte-identical. Ratchet: coordinator_attrs −5; every cut_* down by its hub part (judge: views −39, fetch −25, dhw −46, grid −37, learning −42; re-measure — live cuts at 07a85ce are views 121 fetch 132 dhw 194 grid 234 learning 350). Rank must stay views < fetch < dhw < grid < learning. Facade rule: HeatPumpOptimizerCoordinator, COP_LEARNING_MAX_STEP, HOUSE_LOSS_MAX_STEP, PLAN_STALE_FLOOR_MINUTES, SOLVE_FAILURE_ISSUE_COUNT, house_loss_confidence stay importable from heatpump_optimizer.coordinator. 34-key data payload untouched. coordinator_loc ceiling = merge-base, never raise. No new module. Never re-record cross_seam_fraction. claims-for 6.3.15. Do not stamp. Do not start S2."
     },
@@ -67,7 +69,7 @@
       "after": ["W4-G2"],
       "resume": {
         "stage": "pending",
-        "note": "No child issue — survey/record only unless a verbatim zero-state extraction exists. Do not Closes #193."
+        "note": "Next seat after #500 (`67e1cf3`). No child issue — survey/record only unless a verbatim zero-state extraction exists. Do not Closes #193."
       },
       "brief": "S2 of #193. No child issue — survey/record only. SURVEY FIRST: zero-state series / headroom / plan math to module level (existing coordinator.py, not a new file). HALT (docs/roster record, empty claims, no production extraction) if any of: (1) no remaining zero-state function that extracts at helper cc≤15; (2) extraction needs a new module (local_imports 7/7); (3) any structure metric would rise; (4) the candidate is not pure/zero-state. Cut cost must not justify a different seam. Do not invent a backend. Do not Closes #193 — Part of #193, Part of #201. If you extract: bodies verbatim, goldens byte-identical, empty claims, coordinator_loc and max_class_loc must go down. Never re-record cross_seam_fraction. claims-for 6.3.15. Do not stamp. Do not start S3."
     },
