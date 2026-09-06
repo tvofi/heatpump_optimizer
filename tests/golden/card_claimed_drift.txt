@@ -21,11 +21,5 @@
 #
 # claims-for: 6.3.16
 #
-# #521, the real-Home-Assistant nightly: this branch claims NOTHING. A new
-# test script, its two classification entries and one workflow job -- no
-# production file is touched, so every fixture is byte-identical by
-# construction.
-#
-# #514 (declare Python 3.13+, raise the Home Assistant floor to 2025.2.0):
-# this branch claims NOTHING. Docs, config and CI only -- no card source is
-# touched.
+# #304 (cover the 21 named config_flow.py statements): this branch claims
+# NOTHING. Two test files only; no card source is touched.
