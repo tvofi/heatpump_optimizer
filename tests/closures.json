@@ -26,7 +26,7 @@
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 13.1,
+   "seconds": 14.4,
    "rc": 0
   },
   "tests/env_drift.py": {
@@ -400,6 +400,7 @@
    "custom_components/heatpump_optimizer/wear.py",
    "custom_components/heatpump_optimizer/wood_fuel.py",
    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "docs/HANDOVER.md",
    "hacs.json",
    "tests/entities.py",
    "tests/env_drift.py",
