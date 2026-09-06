@@ -32,6 +32,31 @@ def _bootstrap() -> None:
         sys.path.insert(0, parent)
 
 
+def _describe(obj) -> str:
+    """A description that cannot itself raise while reporting a failure."""
+    try:
+        return f"{type(obj).__name__}: {obj}"
+    except Exception:  # noqa: BLE001 - a __str__ that raises must not kill us
+        return type(obj).__name__
+
+
+def _dump(stdout, payload) -> None:
+    """Write one reply, degrading an unpicklable error to its text (#511).
+
+    Serialised before it is written: a ``dump`` that failed halfway would
+    leave a partial frame in the pipe and the parent would unpickle garbage.
+    """
+    try:
+        blob = pickle.dumps(payload, protocol=pickle.HIGHEST_PROTOCOL)
+    except Exception as err:  # noqa: BLE001 - the worker must still answer
+        blob = pickle.dumps(
+            (payload[0], RuntimeError(f"{_describe(payload[1])} ({_describe(err)})")),
+            protocol=pickle.HIGHEST_PROTOCOL,
+        )
+    stdout.write(blob)
+    stdout.flush()
+
+
 def run_worker() -> None:
     _bootstrap()
     stdin = sys.stdin.buffer
@@ -41,12 +66,18 @@ def run_worker() -> None:
             fn, args = pickle.load(stdin)
         except EOFError:
             return
+        except Exception as err:  # noqa: BLE001 - #511: a job whose module the
+            # child cannot resolve used to kill the worker, leaving the parent
+            # a closed pipe and rc=1. Report the cause, then stop: a failed
+            # load leaves the stream mid-frame, so resuming would unpickle
+            # garbage. The parent respawns on its next call.
+            _dump(stdout, ("load-err", err))
+            return
         try:
             payload = ("ok", fn(*args))
         except Exception as err:  # noqa: BLE001 - rehydrate in the parent
             payload = ("err", err)
-        pickle.dump(payload, stdout, protocol=pickle.HIGHEST_PROTOCOL)
-        stdout.flush()
+        _dump(stdout, payload)
 
 
 if __name__ == "__main__":
