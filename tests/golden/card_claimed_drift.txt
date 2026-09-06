@@ -21,6 +21,4 @@
 #
 # claims-for: 6.3.15
 #
-# Record of #492: this commit claims NOTHING. Card markup is unchanged
-# vs e4bc375; #492's away_toggle / away_return / away_status claims live
-# on that squash and describe that diff.
+# Record of #495: this commit claims NOTHING. Card markup is unchanged.
