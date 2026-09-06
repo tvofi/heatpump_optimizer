@@ -636,6 +636,157 @@ def table_maxima(monsters: list, cc_scores: list) -> tuple[int, int]:
     )
 
 
+# The coordinator reaches its own state by three spellings that all resolve to
+# the same object -- ``self.X``; ``getattr(self, "_ctx", self).X``, #500's
+# migration idiom, whose fallback IS ``self``; and ``self._ctx.X`` -- and any
+# of them may be bound to a local first. An extraction has to make every one
+# of them explicit, so the cut has to price every one of them (#510).
+STATE_CONTEXT_ATTR = "_ctx"
+
+
+def _is_context_getattr(node: ast.AST) -> bool:
+    """``getattr(self, "_ctx", self)`` -- self-rooted by its own default."""
+    return (
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "getattr"
+        and not node.keywords
+        and len(node.args) == 3
+        and all(
+            isinstance(arg, ast.Name) and arg.id == "self"
+            for arg in (node.args[0], node.args[2])
+        )
+        and isinstance(node.args[1], ast.Constant)
+        and node.args[1].value == STATE_CONTEXT_ATTR
+    )
+
+
+def _is_context_hop(node: ast.AST) -> bool:
+    """A ``self._ctx`` read: the state ``self`` reaches, one hop out."""
+    return (
+        isinstance(node, ast.Attribute)
+        and node.attr == STATE_CONTEXT_ATTR
+        and isinstance(node.value, ast.Name)
+        and node.value.id == "self"
+        and isinstance(node.ctx, ast.Load)
+    )
+
+
+def is_state_root(node: ast.AST, aliases: frozenset[str]) -> bool:
+    """Does ``node`` evaluate to the coordinator's own state?"""
+    if isinstance(node, ast.Name):
+        return node.id == "self" or node.id in aliases
+    return _is_context_getattr(node) or _is_context_hop(node)
+
+
+def state_root_bindings(fn: ast.AST) -> tuple[frozenset[str], frozenset[int]]:
+    """The locals this method binds to its own state, and the hops to discount.
+
+    A ``self._ctx`` that something is read THROUGH is a hop, not a reference.
+    Charging the hop rather than what lies beyond it costs the same in total
+    but books every read against ``_ctx``, whose owner is core, so a seam pays
+    for reaching state it owns itself. A ``self._ctx`` nothing is read through
+    -- handed to a helper, returned -- stays a reference, or passing the
+    context out would erase its reads for free: the ``_helper(self, ...)``
+    move W4-G4 already refused, for the same reason.
+    """
+    aliases: set[str] = set()
+    hops: set[int] = set()
+    for node in ast.walk(fn):
+        if isinstance(node, ast.Attribute) and _is_context_hop(node.value):
+            hops.add(id(node.value))
+        elif isinstance(node, ast.Assign) and is_state_root(node.value, frozenset()):
+            aliases.update(t.id for t in node.targets if isinstance(t, ast.Name))
+            hops.add(id(node.value))
+        elif isinstance(node, ast.NamedExpr) and is_state_root(node.value, frozenset()):
+            aliases.add(node.target.id)
+            hops.add(id(node.value))
+    return frozenset(aliases), frozenset(hops)
+
+
+def seam_metrics(coord_class: ast.ClassDef) -> dict:
+    """The coordinator's seam partition: cut costs, call edges, per-seam rows.
+
+    Split out of ``measure`` so the counting rules can be pinned on sources of
+    our own (``self_check``) rather than only on whatever ``coordinator.py``
+    happens to hold. #510 was a counting rule that was wrong across four
+    merges with nothing in the suite able to fail on it.
+    """
+    methods = {
+        m.name: m
+        for m in coord_class.body
+        if isinstance(m, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+
+    def seam_bucket(method_name: str) -> str:
+        for label, regex in SEAM_REGEXES:
+            if regex.search(method_name):
+                return label
+        return "core"
+
+    buckets = {name: seam_bucket(name) for name in methods}
+    attr_refs: dict[str, Counter] = defaultdict(Counter)  # attr -> bucket -> occurrences
+    attr_owners: dict[str, set[str]] = defaultdict(set)   # attr -> buckets that store it
+    call_edges = Counter()                                # (caller bucket, callee bucket) -> occurrences
+    for name, fn in methods.items():
+        bucket = buckets[name]
+        aliases, hops = state_root_bindings(fn)
+        for node in ast.walk(fn):
+            # The call-edge arm below stays keyed on a literal ``self``: no
+            # ctx-rooted reference in coordinator.py names a coordinator
+            # method, and widening it would move internal_call_edges and
+            # cross_seam_fraction, which this change must not touch.
+            if (
+                isinstance(node, ast.Attribute)
+                and id(node) not in hops
+                and is_state_root(node.value, aliases)
+                and node.attr not in methods
+            ):
+                attr_refs[node.attr][bucket] += 1
+                if isinstance(node.ctx, ast.Store):
+                    attr_owners[node.attr].add(bucket)
+            elif (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Attribute)
+                and isinstance(node.func.value, ast.Name)
+                and node.func.value.id == "self"
+                and node.func.attr in methods
+            ):
+                call_edges[(bucket, buckets[node.func.attr])] += 1
+
+    total_edges = sum(call_edges.values())
+    cross_edges = sum(c for (a, b), c in call_edges.items() if a != b)
+
+    seam_rows = []
+    cut_costs = {}
+    for label, _ in SEAM_REGEXES:
+        owned = {attr for attr, owners in attr_owners.items() if label in owners}
+        cross_attr_refs = 0
+        for attr, counter in attr_refs.items():
+            inside = counter.get(label, 0)
+            outside = sum(c for b, c in counter.items() if b != label)
+            cross_attr_refs += outside if attr in owned else inside
+        cross_method_refs = sum(
+            c
+            for (a, b), c in call_edges.items()
+            if (a == label) != (b == label)
+        )
+        seam_rows.append(
+            (label, sum(1 for b in buckets.values() if b == label), len(owned),
+             cross_attr_refs, cross_method_refs, cross_attr_refs + cross_method_refs)
+        )
+        cut_costs[f"cut_{label}"] = cross_attr_refs + cross_method_refs
+
+    return {
+        "method_count": len(methods),
+        "cut_costs": cut_costs,
+        "seam_rows": seam_rows,
+        "internal_call_edges": total_edges,
+        "cross_edges": cross_edges,
+        "cross_seam_fraction": (cross_edges / total_edges) if total_edges else 0.0,
+    }
+
+
 def measure() -> dict:
     """Recompute every metric from the working tree. Returns a dict with the
     flat metric values (the budget keys) under ``metrics`` and everything the
@@ -770,7 +921,7 @@ def measure() -> dict:
         dead_symbols.append((rel, lineno, name))
 
     # -- the coordinator's seam metrics ------------------------------------
-    coordinator = seam_table = None
+    coordinator = None
     coord_file = PACKAGE_DIR / "coordinator.py"
     coord_tree = next(t for p, t in trees if p == coord_file)
     coord_class = next(
@@ -778,73 +929,14 @@ def measure() -> dict:
         for n in ast.walk(coord_tree)
         if isinstance(n, ast.ClassDef) and n.name == COORDINATOR_CLASS_NAME
     )
-    coord_methods = {
-        m.name: m
-        for m in coord_class.body
-        if isinstance(m, (ast.FunctionDef, ast.AsyncFunctionDef))
-    }
-
-    def seam_bucket(method_name: str) -> str:
-        for label, regex in SEAM_REGEXES:
-            if regex.search(method_name):
-                return label
-        return "core"
-
-    buckets = {name: seam_bucket(name) for name in coord_methods}
-    attr_refs: dict[str, Counter] = defaultdict(Counter)  # attr -> bucket -> occurrences
-    attr_owners: dict[str, set[str]] = defaultdict(set)   # attr -> buckets that store it
-    call_edges = Counter()                                # (caller bucket, callee bucket) -> occurrences
-    for name, fn in coord_methods.items():
-        bucket = buckets[name]
-        for node in ast.walk(fn):
-            if (
-                isinstance(node, ast.Attribute)
-                and isinstance(node.value, ast.Name)
-                and node.value.id == "self"
-                and node.attr not in coord_methods
-            ):
-                attr_refs[node.attr][bucket] += 1
-                if isinstance(node.ctx, ast.Store):
-                    attr_owners[node.attr].add(bucket)
-            elif (
-                isinstance(node, ast.Call)
-                and isinstance(node.func, ast.Attribute)
-                and isinstance(node.func.value, ast.Name)
-                and node.func.value.id == "self"
-                and node.func.attr in coord_methods
-            ):
-                call_edges[(bucket, buckets[node.func.attr])] += 1
-
-    total_edges = sum(call_edges.values())
-    cross_edges = sum(c for (a, b), c in call_edges.items() if a != b)
-    cross_seam_fraction = (cross_edges / total_edges) if total_edges else 0.0
-
-    seam_rows = []
-    cut_costs = {}
-    for label, _ in SEAM_REGEXES:
-        owned = {attr for attr, owners in attr_owners.items() if label in owners}
-        cross_attr_refs = 0
-        for attr, counter in attr_refs.items():
-            inside = counter.get(label, 0)
-            outside = sum(c for b, c in counter.items() if b != label)
-            cross_attr_refs += outside if attr in owned else inside
-        cross_method_refs = sum(
-            c
-            for (a, b), c in call_edges.items()
-            if (a == label) != (b == label)
-        )
-        seam_rows.append(
-            (label, sum(1 for b in buckets.values() if b == label), len(owned),
-             cross_attr_refs, cross_method_refs, cross_attr_refs + cross_method_refs)
-        )
-        cut_costs[f"cut_{label}"] = cross_attr_refs + cross_method_refs
+    seam = seam_metrics(coord_class)
 
     coord_attr_writers = per_class_attrs[
         (str(coord_file.relative_to(REPO_ROOT)), COORDINATOR_CLASS_NAME)
     ]
     coordinator = {
         "coordinator_loc": span_loc(coord_class),
-        "coordinator_methods": len(coord_methods),
+        "coordinator_methods": seam["method_count"],
         "coordinator_attrs": len(coord_attr_writers),
         "coordinator_multiassigned_attrs": sum(
             1 for writers in coord_attr_writers.values() if len(writers) > 1
@@ -882,10 +974,10 @@ def measure() -> dict:
         "const_modules_over_50": sum(1 for n in const_fanout.values() if n > CONST_FANOUT_LIMIT),
         "local_imports": len(local_imports),
         "dead_top_level_symbols": len(dead_symbols),
-        "internal_call_edges": total_edges,
-        "cross_seam_fraction": round(cross_seam_fraction, 4),
+        "internal_call_edges": seam["internal_call_edges"],
+        "cross_seam_fraction": round(seam["cross_seam_fraction"], 4),
         **coordinator,
-        **cut_costs,
+        **seam["cut_costs"],
     }
     tables = {
         "god_classes": sorted(god_classes, reverse=True),
@@ -899,8 +991,8 @@ def measure() -> dict:
         "dynamic_exempt": sorted(dynamic_exempt),
         "dynamic_problems": dynamic_problems,
         "duplication": sorted(duplication),
-        "seam_rows": seam_rows,
-        "cross_edges": cross_edges,
+        "seam_rows": seam["seam_rows"],
+        "cross_edges": seam["cross_edges"],
     }
     return {"metrics": metrics, "tables": tables}
 
@@ -1390,6 +1482,68 @@ def read(config, const):
 '''
 
 
+# ``_depth`` is stored by core and so crosses the fetch seam; ``_cache`` is
+# stored by the fetch method and so is that seam's own. One read of one of
+# them goes in the hole, written every way the coordinator spells a read of
+# its own state -- the point being that the spelling must not set the price.
+SEAM_SELF_CHECK_SOURCE = '''
+class Coordinator:
+    def __init__(self):
+        self._ctx = None
+        self._depth = 0
+
+    def _fetch_prices(self):
+        self._cache = 1
+%s
+'''
+SEAM_SELF_CHECK_SPELLINGS = (
+    "        return self.%(attr)s",
+    '        return getattr(self, "_ctx", self).%(attr)s',
+    "        return self._ctx.%(attr)s",
+    '        ctx = getattr(self, "_ctx", self)\n        return ctx.%(attr)s',
+    "        ctx = self._ctx\n        return ctx.%(attr)s",
+)
+SEAM_SELF_CHECK_FOREIGN = (
+    "        ctx = elsewhere()\n        return ctx._depth",
+    '        other = elsewhere()\n        return getattr(other, "_ctx", other)._depth',
+)
+
+
+def seam_self_check() -> tuple[tuple[str, bool], ...]:
+    """Pin what ``cut_<seam>`` prices as a reference, spelling by spelling.
+
+    ``getattr(self, "_ctx", self).X`` falls back to ``self``, so it reaches
+    what ``self.X`` reaches and an extraction still has to make it explicit.
+    Matching only ``ast.Attribute`` on ``ast.Name("self")`` scored it zero, so
+    #500's 131 rewrites were recorded as a 138-point drop across five seams
+    with no reference removed, and four merges of halt-or-extract decisions
+    were taken against those denominators before anything noticed.
+
+    The second assertion is the one the direct ``self._ctx.X`` spelling needs.
+    Pricing the hop instead of what lies beyond it costs the same in total
+    while attributing every read to ``_ctx``, which core owns -- so a seam is
+    charged for reaching state it owns itself.
+    """
+
+    def cut(body: str) -> int:
+        tree = ast.parse(SEAM_SELF_CHECK_SOURCE % body)
+        cls = next(n for n in ast.walk(tree) if isinstance(n, ast.ClassDef))
+        return seam_metrics(cls)["cut_costs"]["cut_fetch"]
+
+    base = cut("        return 0")
+    crossing = [cut(t % {"attr": "_depth"}) for t in SEAM_SELF_CHECK_SPELLINGS]
+    owned = [cut(t % {"attr": "_cache"}) for t in SEAM_SELF_CHECK_SPELLINGS]
+    foreign = [cut(b) for b in SEAM_SELF_CHECK_FOREIGN]
+    return (
+        ("a read that crosses the seam costs one, however it is spelt",
+         all(c == base + 1 for c in crossing)),
+        ("a read of what the seam owns costs nothing, however it is spelt",
+         all(c == base for c in owned)),
+        ("the state root is the binding, not the name it is bound to",
+         all(c == base for c in foreign)),
+    )
+
+
 AUDIT_SELF_CHECK_CONST = 'CONF_PROVEN: Final = "proven"\n'
 AUDIT_SELF_CHECK_PROOF = (
     'TABLE = {"row": "PROVEN"}\n'
@@ -1446,7 +1600,7 @@ def audit_self_check() -> tuple[tuple[str, bool], ...]:
 
 
 def self_check() -> int:
-    """Pin ``module_references``'s rules on a source of our own (#364).
+    """Pin the counting rules on sources of our own (#364, #510).
 
     The tree's own aliased imports are what the alias rule was written for, but
     the tree moves: delete the last aliased import from the integration and
@@ -1474,17 +1628,18 @@ def self_check() -> int:
             ('a getattr(x, f"CONF_{..}") name is NOT a static reference',
              "CONF_WANTED" not in refs),
             *audit_self_check(),
+            *seam_self_check(),
         )
         if not ok
     ]
-    print("########## reference-rule self-check ##########")
+    print("########## counting-rule self-check ##########")
     for message in failures:
         print(f"FAIL  {message}")
     if failures:
-        print(f"{len(failures)} REFERENCE RULE(S) BROKEN -- "
-              "dead_top_level_symbols cannot be trusted")
+        print(f"{len(failures)} COUNTING RULE(S) BROKEN -- "
+              "dead_top_level_symbols and cut_<seam> cannot be trusted")
         return 1
-    print("  ok   11 reference rules hold")
+    print("  ok   14 counting rules hold")
     return 0
 
 

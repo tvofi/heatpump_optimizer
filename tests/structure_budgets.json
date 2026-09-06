@@ -7,11 +7,11 @@
  "coordinator_methods": 251,
  "coordinator_multiassigned_attrs": 136,
  "cross_seam_fraction": 0.4289,
- "cut_dhw": 160,
- "cut_fetch": 115,
- "cut_grid": 209,
- "cut_learning": 315,
- "cut_views": 85,
+ "cut_dhw": 194,
+ "cut_fetch": 132,
+ "cut_grid": 234,
+ "cut_learning": 350,
+ "cut_views": 112,
  "dead_top_level_symbols": 0,
  "duplication_blocks": 12,
  "functions_cc_over_15": 38,
@@ -23,5 +23,5 @@
  "max_method_loc": 524,
  "methods_over_150": 20,
  "methods_over_200": 12,
- "recorded_at": "d40de99437d1cb8ac27ee9960f0bd80db2c6a083"
+ "recorded_at": "e46fb15a3ff902b588be3a47676613015fc9b120"
 }
