@@ -314,6 +314,9 @@ def _serve_prices(workdir: Path) -> None:
             return
 
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    # PROTOCOL_TLS_SERVER still permits TLS 1.0/1.1, which CodeQL flags high
+    # (py/insecure-protocol) and which nothing here needs.
+    context.minimum_version = ssl.TLSVersion.TLSv1_2
     context.load_cert_chain(cert, key)
     server = ThreadingHTTPServer(("127.0.0.1", 443), Handler)
     server.socket = context.wrap_socket(server.socket, server_side=True)
