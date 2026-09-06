@@ -47,12 +47,10 @@
 #
 # claims-for: 6.3.15
 #
-# W4-G4 S3 (#193): this branch claims NOTHING. Four blocks move to
-# coordinator module level verbatim -- the two payload halves of
-# _build_data_dict, and the legacy payload and MQTT publish tail of
-# async_publish_ecl110_command. Each is called where it stood, over plain
-# values rather than self, so the published key set, every value and every
-# MQTT write are unchanged and every fixture is byte-identical.
+# Record PR (W4-G4 S3 close-out, #201): this branch claims NOTHING. Docs
+# (plan Delivery-status), roster (`wave-4-groups.json` resume fields) and
+# this pair of claim files only -- no production file is touched, so every
+# fixture is byte-identical.
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
