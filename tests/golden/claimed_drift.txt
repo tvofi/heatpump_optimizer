@@ -45,13 +45,11 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 6.3.15
+# claims-for: 6.3.16
 #
-# The #511 hotfix: this branch claims NOTHING. It repairs how a solve job
-# reaches the worker interpreter -- the child's PYTHONPATH, how the worker
-# reports a job it cannot load, and an in-process fallback that does not
-# engage while the worker is healthy. No model, cost term or solver input
-# changes, so every fixture is expected byte-identical.
+# v6.3.16: the solve worker could not unpickle its job. The stamp empties the list; the
+# next branch restates its own footprint, claims included.
+#
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum

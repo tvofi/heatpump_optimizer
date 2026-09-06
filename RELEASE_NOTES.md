@@ -1,5 +1,76 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.3.16
+
+**The integration could not produce a plan on any Home Assistant installation.**
+v6.3.15 shipped a solve that is executed in a child interpreter, and the child
+could not load the job it was sent, on every cycle, permanently. If your plan
+went stale and the repair notice said the last optimization runs failed, this
+was why. Fixed in #515, with the second broken path (`diagnose_record`) repaired
+by the same change.
+
+The cause is worth stating, because it is why no test caught it: a solve is
+shipped to the child by pickling a function, and pickle records it by qualified
+name. Under Home Assistant that name begins `custom_components.`, but the child
+was given a search path on which `custom_components` does not resolve. The test
+suite imports the package under a different name and runs with a `tests/`
+directory an installation does not have, so the code path that broke was the one
+no test run ever took. `tests/deployment_shape.py` now runs the integration in an
+installation's real shape, and fails if that regresses.
+
+The solve also no longer fails silently: an unloadable job is reported rather
+than killing the worker, and a worker fault now falls back to an in-process solve
+— slower, and it says so in the log and raises a repair notice — instead of
+producing no plan at all.
+
+### Fixed
+
+- **The solve worker could not unpickle its job** (#515). Every optimization
+  failed on every installation of v6.3.15.
+- **The DHW planner credits the wood-tank refill coil** (#400) — #470.
+- **Optional set-point entities and the DHW consistency repair** (#408) — #483.
+
+### Added
+
+- **Monthly savings history** on the card (#460) — #485.
+- **Wood-furnace economics**: configuration, firewood price, a cheaper-than-pump
+  sensor, the plan alert, the Wood lane and what-if wood slots (#463) — #487, #489.
+- **Plan-page Away toggle and return time** (#465) — #492.
+- A display-only DHW band with a live probe — #490.
+
+### Changed — the coordinator decomposition (#193, stages S0–S4)
+
+`CoordinatorContext` is defined and constructed (#497), the hub references are
+migrated onto it (#500), and zero-state helpers and the views assembler are
+thinned out of the class (#502, #506). The fetch seam was surveyed and recorded
+as a halt (#508): its cut is held by other seams reading its state, so it is
+S12's to take, not S4's.
+
+**A correction to the record.** S1 was reported as moving every seam cut down by
+138 points. It did not. `tests/structure.py` could not see references written
+through `getattr(self, "_ctx", self)`, and S1 introduced 131 of them, so the
+drop was the instrument losing sight of references that still existed. The walk
+now prices every spelling of a reference alike and the five cut budgets are
+re-recorded upward to their true values (#512). S1's other results — the context
+object, the attribute count, the facades — stand unchanged.
+
+### Gate and tooling
+
+- The gate lock is a renewed lease with `flock`, and an abandoned hold can be
+  taken after a crash (#404) — #474, #479, #480.
+- `closure.py` guards strace on macOS (#401) — #472; CI re-records UNDER-SCOPED
+  closures from the failed job's own recordings — #498.
+- Data-driven sensor keys are stated in the holes list (#405) — #477.
+- An unskippable inherited-claims guard for docs and roster PRs — #495.
+- Wave 4 and Wave 5 rosters prepared — #494; card claims emptied after them — #495.
+
+### Records
+
+#471, #473, #476, #478, #482, #484, #486, #488, #491, #496, #499, #501, #503,
+#507 — Delivery-status, roster `resume` fields and claim files, one per merge.
+#503 also moves every programme seat onto Claude models and corrects the
+"spec-blocked" record of #457.
+
 ## v6.3.15
 
 Wave 3 of the open-issues programme: smooth top-k peak costing, DHW planner
