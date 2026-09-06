@@ -413,7 +413,7 @@ done
 for f in tests/*.py tests/*.mjs; do
   base=$(basename "$f")
   case "$base" in
-    harness.py|profiles.py|dst_checks.py|closure.py|dom_stub.mjs|card_rig.mjs|card_browser.mjs) continue ;;
+    harness.py|profiles.py|gate_lock.py|dst_checks.py|closure.py|dom_stub.mjs|card_rig.mjs|card_browser.mjs) continue ;;
   esac
   if ! cat "$WORKDIR"/*.manifest 2>/dev/null | grep -Fq "tests/$base"; then
     echo "TEST NEVER RAN: tests/$base is wired into tests/run.sh but no lane"
