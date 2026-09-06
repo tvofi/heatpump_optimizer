@@ -14,7 +14,7 @@
    "rc": 0
   },
   "tests/config_flow_steps.py": {
-   "seconds": 0.8,
+   "seconds": 0.5,
    "rc": 0
   },
   "tests/dst_checks.py": {
@@ -26,15 +26,15 @@
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 9.4,
-   "rc": 1
+   "seconds": 12.1,
+   "rc": 0
   },
   "tests/env_drift.py": {
-   "seconds": 0.6,
+   "seconds": 0.5,
    "rc": 0
   },
   "tests/features.py": {
-   "seconds": 45.8,
+   "seconds": 50.0,
    "rc": 0
   },
   "tests/frontend.py": {
@@ -280,6 +280,7 @@
    "custom_components/heatpump_optimizer/thermal_model.py",
    "custom_components/heatpump_optimizer/topology.py",
    "custom_components/heatpump_optimizer/wear.py",
+   "custom_components/heatpump_optimizer/wood_fuel.py",
    "tests/config_flow_steps.py",
    "tests/harness.py",
    "tests/hastub/homeassistant/__init__.py",
@@ -388,6 +389,7 @@
    "custom_components/heatpump_optimizer/translations/en.json",
    "custom_components/heatpump_optimizer/translations/sv.json",
    "custom_components/heatpump_optimizer/wear.py",
+   "custom_components/heatpump_optimizer/wood_fuel.py",
    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
    "hacs.json",
    "tests/entities.py",
@@ -490,6 +492,7 @@
    "custom_components/heatpump_optimizer/translations/en.json",
    "custom_components/heatpump_optimizer/translations/sv.json",
    "custom_components/heatpump_optimizer/wear.py",
+   "custom_components/heatpump_optimizer/wood_fuel.py",
    "tests/env_drift.py",
    "tests/golden/away_setback.json",
    "tests/golden/building_preset.json",
@@ -629,6 +632,7 @@
    "custom_components/heatpump_optimizer/translations/en.json",
    "custom_components/heatpump_optimizer/translations/sv.json",
    "custom_components/heatpump_optimizer/wear.py",
+   "custom_components/heatpump_optimizer/wood_fuel.py",
    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
    "tests/dst_checks.py",
    "tests/features.py",
@@ -733,6 +737,7 @@
    "custom_components/heatpump_optimizer/translations/en.json",
    "custom_components/heatpump_optimizer/translations/sv.json",
    "custom_components/heatpump_optimizer/wear.py",
+   "custom_components/heatpump_optimizer/wood_fuel.py",
    "tests/env_drift.py",
    "tests/golden.py",
    "tests/golden/away_setback.json",
@@ -1113,6 +1118,7 @@
    "custom_components/heatpump_optimizer/thermal_model.py",
    "custom_components/heatpump_optimizer/topology.py",
    "custom_components/heatpump_optimizer/wear.py",
+   "custom_components/heatpump_optimizer/wood_fuel.py",
    "tests/structure.py",
    "tests/structure_budgets.json"
   ],

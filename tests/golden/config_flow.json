@@ -914,12 +914,6 @@
    "required": "Optional",
    "selector": "NumberSelector"
   },
-  "dhw_wood_coil_enabled": {
-   "config": null,
-   "default": "False",
-   "required": "Optional",
-   "selector": "type"
-  },
   "mixing_valve_mode": {
    "config": {
     "mode": "'dropdown'",
@@ -976,41 +970,11 @@
    "required": "Optional",
    "selector": "EntitySelector"
   },
-  "valve_outlet_temp_entity": {
-   "config": {
-    "filter": "[{'domain': ['sensor']}]"
-   },
-   "default": null,
+  "wood_furnace_enabled": {
+   "config": null,
+   "default": "False",
    "required": "Optional",
-   "selector": "EntitySelector"
-  },
-  "wood_tank_bottom_entity": {
-   "config": {
-    "filter": "[{'domain': ['sensor']}]"
-   },
-   "default": null,
-   "required": "Optional",
-   "selector": "EntitySelector"
-  },
-  "wood_tank_top_entity": {
-   "config": {
-    "filter": "[{'domain': ['sensor']}]"
-   },
-   "default": null,
-   "required": "Optional",
-   "selector": "EntitySelector"
-  },
-  "wood_tank_volume": {
-   "config": {
-    "max": "3000",
-    "min": "50",
-    "mode": "'slider'",
-    "step": "50",
-    "unit_of_measurement": "'L'"
-   },
-   "default": "500.0",
-   "required": "Optional",
-   "selector": "NumberSelector"
+   "selector": "type"
   }
  },
  "building_preset": {
@@ -2060,44 +2024,6 @@
    "default": "False",
    "required": "Optional",
    "selector": "type"
-  },
-  "external_heat_decay_minutes": {
-   "config": {
-    "max": "360",
-    "min": "15",
-    "mode": "'slider'",
-    "step": "15",
-    "unit_of_measurement": "'min'"
-   },
-   "default": "90.0",
-   "required": "Optional",
-   "selector": "NumberSelector"
-  },
-  "external_heat_detection_enabled": {
-   "config": null,
-   "default": "False",
-   "required": "Optional",
-   "selector": "type"
-  },
-  "external_heat_entity": {
-   "config": {
-    "filter": "[{'domain': ['binary_sensor', 'switch', 'input_boolean', 'sensor']}]"
-   },
-   "default": null,
-   "required": "Optional",
-   "selector": "EntitySelector"
-  },
-  "external_heat_min_rise": {
-   "config": {
-    "max": "10",
-    "min": "0.5",
-    "mode": "'box'",
-    "step": "0.1",
-    "unit_of_measurement": "'\u00b0C/h'"
-   },
-   "default": "1.5",
-   "required": "Optional",
-   "selector": "NumberSelector"
   },
   "price_prior_enabled": {
    "config": null,
