@@ -89,7 +89,7 @@
         "stage": "done",
         "merged_pr": 483,
         "merge_sha": "6f02b8a71ee6fcc250d17657d60a63cc5cb1532e",
-        "note": "Review merge 5556388345 at 0d9ce1b. Consistency only; hassfest flow_title; 7 closures; optimality.evaluate renamed score_plan. Mutation 6+2 FAIL. coordinator_loc 10374. #408 closed. Next seat 3L-G6 (spec-blocked); 3L-G7 follows G5.",
+        "note": "Review merge 5556388345 at 0d9ce1b. Consistency only; hassfest flow_title; 7 closures; optimality.evaluate renamed score_plan. Mutation 6+2 FAIL. coordinator_loc 10374. #408 closed. Next seat 3L-G6 (spec-blocked); 3L-G7 follows G5."
       },
       "brief": "Optional set-point entities + consistency repair only. Optimality / Fix-to-argmin refused (50 to 65 C instability). Holds coordinator/config — later 3L groups must not merge ahead of this seat."
     },
