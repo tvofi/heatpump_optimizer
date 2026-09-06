@@ -40,8 +40,13 @@ its own limit:
   is ours. The Tibber *account* path -- reauth, a refused token -- is not
   covered.
 * **Actuation.** No heat-pump switch, valve or frequency entity is configured,
-  so ``_apply_action`` and its followers are reached but write nowhere. This
-  lane observes that a plan exists, not that it was carried out.
+  and the two ECL110 MQTT topics are blanked because the container has no
+  broker, so ``_apply_action`` and its followers are reached but write
+  nowhere. This lane observes that a plan exists, not that it was carried out.
+* **Home Assistant's own complaints.** Its loop protection fires twice on this
+  integration (#525). Those are pinned by ``log:no_new_blocking_call`` rather
+  than failed, so a THIRD offender is what turns this lane red; the two known
+  ones are tracked where they can be fixed.
 * **The config flow.** The entry is seeded into ``.storage/core.config_entries``
   from the defaults recorded in ``tests/golden/config_flow.json``, so the nine
   setup steps are not driven here. ``tests/entities.py`` and the golden lane own
@@ -98,7 +103,8 @@ INSIDE_CHECKS = (
     "ha:core_running",
     "entry:loaded",
     "entities:registered",
-    "entities:none_unavailable",
+    "entities:coordinator_healthy",
+    "entities:none_unavailable_by_coordinator",
     "plan:optimization_result",
     "plan:last_optimization_published",
     "plan:current_action_published",
@@ -117,6 +123,7 @@ OUTSIDE_CHECKS = (
     "log:no_module_not_found",
     "log:no_worker_exit",
     "log:no_integration_traceback",
+    "log:no_new_blocking_call",
 )
 
 FORBIDDEN = {
@@ -134,6 +141,37 @@ TRACEBACK_HEAD = "Traceback (most recent call last):"
 # worker that can unpickle nothing still produces a plan, so without this the
 # plan checks alone would call a degraded install healthy.
 SOLVE_REPAIRS = frozenset({"solve_failures", "solve_worker_fallback"})
+
+# Home Assistant's own loop protection, which no lane using tests/hastub can
+# see -- `homeassistant.util.loop` does not exist there. Its report carries a
+# stack, so it is picked out by its own rule instead of being counted as an
+# exception traceback, and the offenders are pinned: a THIRD one fails this
+# lane. The two below are #525, found by this lane's first green run.
+#
+# Subset, not equality, and the reason is measured: `worker.wait` is only
+# reached when the worker is still alive, so a tree with #511 unfixed produces
+# one offender rather than two. An equality pin would fail there for a second,
+# unrelated reason, on exactly the trees this lane is already red for. The
+# detail line names both directions, so a pin that can shrink is still visible.
+BLOCKING_CALL = re.compile(
+    r"Detected blocking call to (\S+) .* at "
+    r"(custom_components/heatpump_optimizer/[\w./]+), line \d+: (.*?) \(offender:"
+)
+KNOWN_BLOCKING = frozenset(
+    {
+        (
+            "import_module",
+            "custom_components/heatpump_optimizer/__init__.py",
+            'return importlib.import_module(f".{module}", __package__)',
+        ),
+        (
+            "sleep",
+            "custom_components/heatpump_optimizer/coordinator.py",
+            "worker.wait(timeout=2)",
+        ),
+    }
+)
+BLOCKING_REPORT = "Detected blocking call to"
 
 
 # --- shared reporting -------------------------------------------------------
@@ -415,6 +453,29 @@ def _check_entry(checks: Checks, hass, seed: dict):
     return entry
 
 
+def _self_gated(hass, entity_id: str) -> bool:
+    """Whether the entity narrows its own availability past the coordinator's.
+
+    Derived from the class, never listed. Roughly a third of this roster
+    overrides ``available`` to mean "the install has no lower floor / no
+    battery / no hot water", and on a defaults-only entry those are
+    unavailable because they are supposed to be; pinning today's set of them
+    would rot on the next entity added. What must never happen is an entity
+    going unavailable because the COORDINATOR failed, and that is exactly the
+    set this leaves behind. An entity whose object cannot be found counts as
+    NOT self-gated, so an unresolvable one fails rather than disappears.
+    """
+    from homeassistant.helpers.entity import Entity
+    from homeassistant.helpers.entity_component import DATA_INSTANCES
+    from homeassistant.helpers.update_coordinator import CoordinatorEntity
+
+    component = hass.data.get(DATA_INSTANCES, {}).get(entity_id.split(".")[0])
+    entity = component.get_entity(entity_id) if component is not None else None
+    if entity is None:
+        return False
+    return type(entity).available not in (CoordinatorEntity.available, Entity.available)
+
+
 def _check_entities(checks: Checks, hass, entry) -> None:
     from homeassistant.helpers import entity_registry as er
 
@@ -426,15 +487,26 @@ def _check_entities(checks: Checks, hass, entry) -> None:
         len(registered) > 0 and {"sensor", "binary_sensor", "climate"} <= domains,
         f"{len(registered)} entities across {sorted(domains)}",
     )
+    checks.check(
+        "entities:coordinator_healthy",
+        bool(entry.runtime_data.last_update_success),
+        "last_update_success is False: every entity is unavailable at once",
+    )
     unavailable = [
         e.entity_id
         for e in registered
         if (s := hass.states.get(e.entity_id)) is None or s.state == "unavailable"
     ]
+    exposed = [e for e in unavailable if not _self_gated(hass, e)]
+    print(f"  ..   {len(registered)} entities, {len(unavailable)} unavailable, "
+          f"{len(unavailable) - len(exposed)} of those self-gated")
+    for entry_ in sorted(registered, key=lambda e: e.entity_id):
+        state = hass.states.get(entry_.entity_id)
+        print(f"       {entry_.entity_id} = {state.state if state else '<no state>'}")
     checks.check(
-        "entities:none_unavailable",
-        not unavailable,
-        f"{len(unavailable)} unavailable: {sorted(unavailable)[:10]}",
+        "entities:none_unavailable_by_coordinator",
+        not exposed,
+        f"{len(exposed)} unavailable without gating themselves: {sorted(exposed)[:10]}",
     )
 
 
@@ -569,18 +641,28 @@ def _seed_payload() -> dict:
     version = re.search(r"CONFIG_ENTRY_VERSION:\s*Final\s*=\s*(\d+)", const)
     if version is None:
         raise SystemExit("const.py no longer declares CONFIG_ENTRY_VERSION")
+    # The effective configuration is ``{**entry.data, **entry.options}``
+    # (``HeatPumpOptimizerOptionsFlow._current``), so OPTIONS WIN. The first
+    # run of this lane put these in ``data`` alone and the fixture's own
+    # option default -- ``weather.home``, from the FakeEntry golden.py records
+    # against -- silently replaced the weather entity the container defines.
+    wiring = {
+        "tibber_token": "nightly-ha-local",
+        "weather_entity": "weather.ci_weather",
+        "indoor_temp_entity": "sensor.ci_indoor_temperature",
+        "outdoor_temp_entity": "sensor.ci_outdoor_temperature",
+        "dhw_temp_entity": "sensor.ci_dhw_temperature",
+        "heat_pump_power_entity": "sensor.ci_heat_pump_power",
+        # No broker here, and the topic defaults are non-empty, so a
+        # defaults-only entry publishes on every cycle and logs the failure at
+        # ERROR. Blanked rather than tolerated: `_publish_ecl110` returns early
+        # on two empty topics, which is the install-without-MQTT case.
+        "ecl110_command_topic": "",
+        "ecl110_displace_set_topic": "",
+    }
     data = _fixture_defaults(initial_pages)
-    data.update(
-        {
-            "name": "CI",
-            "tibber_token": "nightly-ha-local",
-            "weather_entity": "weather.ci_weather",
-            "indoor_temp_entity": "sensor.ci_indoor_temperature",
-            "outdoor_temp_entity": "sensor.ci_outdoor_temperature",
-            "dhw_temp_entity": "sensor.ci_dhw_temperature",
-            "heat_pump_power_entity": "sensor.ci_heat_pump_power",
-        }
-    )
+    data.update({"name": "CI"})
+    data.update(wiring)
     return {
         # A well-formed ULID: Home Assistant generates entry ids with one and
         # a stray I, L, O or U here is a shape no installation has.
@@ -588,7 +670,7 @@ def _seed_payload() -> dict:
         "title": "Heat Pump Optimizer",
         "version": int(version.group(1)),
         "data": data,
-        "options": _fixture_defaults(options_pages),
+        "options": {**_fixture_defaults(options_pages), **wiring},
     }
 
 
@@ -711,13 +793,28 @@ def _scan(checks: Checks, text: str) -> None:
     for name, needle in FORBIDDEN.items():
         hits = [line for line in text.splitlines() if needle in line]
         checks.check(name, not hits, f"{len(hits)} line(s), first: {hits[0][:200]}" if hits else "")
-    blocks = text.split(TRACEBACK_HEAD)[1:]
-    ours = [b for b in blocks if PACKAGE_NAME in "\n".join(b.splitlines()[:40])]
+    # A blocking-call report is a WARNING that carries a stack, not an
+    # exception, so the stack after one belongs to the pin below rather than
+    # to this check -- otherwise #525 would read as an integration crash.
+    parts = text.split(TRACEBACK_HEAD)
+    ours = [
+        block
+        for before, block in zip(parts, parts[1:])
+        if PACKAGE_NAME in "\n".join(block.splitlines()[:40])
+        and BLOCKING_REPORT not in before[-500:]
+    ]
     checks.check(
         "log:no_integration_traceback",
         not ours,
         f"{len(ours)} traceback(s) naming {PACKAGE_NAME}; first:\n"
         + (TRACEBACK_HEAD + ours[0][:600] if ours else ""),
+    )
+    found = set(BLOCKING_CALL.findall(text))
+    checks.check(
+        "log:no_new_blocking_call",
+        found <= KNOWN_BLOCKING,
+        f"new offenders: {sorted(found - KNOWN_BLOCKING)}; "
+        f"pinned but not seen this run: {sorted(KNOWN_BLOCKING - found)}",
     )
 
 
@@ -758,7 +855,10 @@ def _report(checks: Checks, completed, config: Path) -> int:
 
 def _run_outside(args: argparse.Namespace) -> int:
     checks = Checks()
-    with tempfile.TemporaryDirectory() as tmp:
+    # Home Assistant runs as root in the container and leaves root-owned
+    # files (blueprints, .storage) in the bind mount, which the runner's user
+    # cannot delete. Cleanup errors are not a verdict about the integration.
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
         config, driver = _stage(Path(tmp))
         try:
             completed = _docker(args.image, config, driver, args.plan_budget, args.timeout)
