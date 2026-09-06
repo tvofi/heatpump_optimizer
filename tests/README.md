@@ -139,11 +139,15 @@ Measured against a real CI run of the fast job (2435 s: `stress.py` 1254 s,
 
 | change | scripts run | CI seconds | saved |
 |---|---|---|---|
-| a change to `RELEASE_NOTES.md` | 1 of 16 — `entities.py` | 5 | 100% |
+| a change to `RELEASE_NOTES.md` | 1 — `entities.py` | 5 | 100% |
 | a change to `tests/card.mjs` | 3 — `plan_view.py`, `card.mjs`, `card_drift.mjs` | 15 | 100% |
 | a change to the card's JavaScript | 5 — `plan_view.py`, `card.mjs`, `card_drift.mjs`, `features.py`, `entities.py` | 430 | 82% |
 | a config-flow change (`config_flow.py`, `strings.json`, both translations) | 4 — `features.py`, `entities.py`, `golden.py`, `env_drift.py` | 431 | 82% |
 | a change to `optimizer.py` | 14 — everything but `frontend.py` and `open_meteo.py` | 2424 | 0% |
+
+Those are one CI run's numbers against the suite as it stood, kept as measured.
+Script counts move as lanes are added; the shape of each result is the point,
+and `tests/closure.py select` prints the live selection for your own diff.
 
 The last row is the point, not an embarrassment. A change to the solver can
 reach almost every script in the suite, the closures say so, and the gate
@@ -668,23 +672,35 @@ model. Drift, oscillation and learner divergence only appear there.
   optimizer change; two cards in one process share all of those. `run.sh`
   skips it when `GOLDEN_REF` is unreachable or is this commit, exactly as it
   does for `env_drift.py`.
+- **setup_qa_render.mjs** renders the three setup-page topologies to SVGs in
+  `../setup-qa/`, outside the repository, for a designer to eyeball — but it
+  is a wired check, not a manual errand. It is `run` from the card lane
+  (v6.x, #101), off the payload `plan_view.py` just wrote, and fails when a
+  topology's setup SVG comes out empty, so a dormant renderer cannot drift
+  unnoticed. It shares `card_rig.mjs` — and through it `dom_stub.mjs` — with
+  `card.mjs`, and is skipped alongside them when `node` is absent.
 
-Seven files in `tests/` are not tests at all and are excluded from the
-"every script must be wired into `run.sh`" accounting:
+Some files in `tests/` are not tests at all and are excluded from the "every
+script must be wired into `run.sh`" accounting. The exclusion list lives in
+`tests/run.sh`'s `UNWIRED TEST` loop, with a reason on each entry — read it
+there rather than from the copy below, which is what any list here can only
+be. What the notable ones are for:
 
 - **dom_stub.mjs** is the DOM the Node card harnesses run against (#101),
   and **card_rig.mjs** the rest of what they share: the vm context around
   that stub, the plan-sensor states built from `plan_view.py`'s payload,
   the three setup-page topologies, the frozen clock, and the claim-file
   parser `card.mjs` and `card_drift.mjs` both use. One copy, three
-  importers, for the reason #101 records.
+  importers, for the reason #101 records. **node_fs_trace.mjs** sits beside
+  them as the Darwin `--import` recorder, not a harness of its own.
 - **harness.py** and **profiles.py** are shared fixtures the unit-style and
   end-to-end scripts import — fakes and price/weather profiles, not scripts
   with assertions of their own; see "What each script is for" below for what
   each holds.
-- **setup_qa_render.mjs** is a manual QA render: it writes SVGs to
-  `../setup-qa/`, outside the repository, for a designer to eyeball, and
-  nothing in the gate reads its output.
+- **dst_checks.py** is a real check, but `features.py` runs it in a
+  subprocess: `HASTUB_TZ` must be set before the `dt` stub is imported, which
+  an in-process import cannot arrange. It is reached through `features.py`,
+  never wired on its own.
 - **card_browser.mjs** is a real test — the only one that exercises the card
   in an actual browser rather than a DOM stub — but it runs in its own
   `browser` CI job, not this gate's scoped selection; see "Note on browser
@@ -698,8 +714,11 @@ Seven files in `tests/` are not tests at all and are excluded from the
   and status for `/tmp/hpo-gate.lock`. Expired and abandoned holds are stolen
   so a waiter can take after crash or expiry. Agents invoke it directly;
   `run.sh` renews the lease and holds `flock` when `HPO_GATE_LOCK_LABEL` is set.
-- **derive_closures.sh** drives it across every script, in three lanes, and
-  rewrites `tests/closures.json`. See "The scoped gate" above.
+
+Not excluded, because it was never in scope for the check: **derive_closures.sh**
+drives `closure.py` across every script, in three lanes, and rewrites
+`tests/closures.json`. The loop globs `tests/*.py tests/*.mjs`, so a `.sh` is
+not a candidate for wiring in the first place. See "The scoped gate" above.
 
 ## Note on browser checks
 
@@ -709,7 +728,7 @@ load, or anything else that depends on real layout. `tests/card_browser.mjs`
 covers that gap: it drives the card in an actual Chromium (via Playwright,
 resolved from `NODE_PATH`, under `PLAYWRIGHT_BROWSERS_PATH`) and is run by its
 own `browser` job in `.github/workflows/tests.yml` on every push and pull
-request — never scoped, and not one of the sixteen scripts `run.sh` lanes
-above. For changes to the chart's geometry, that job is what actually verifies
-them; running `card_browser.mjs` locally needs the same Playwright/Chromium
-setup CI uses.
+request — never scoped, and not one of the scripts `run.sh` lanes above. For
+changes to the chart's geometry, that job is what actually verifies them;
+running `card_browser.mjs` locally needs the same Playwright/Chromium setup
+CI uses.

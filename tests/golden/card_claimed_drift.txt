@@ -24,6 +24,7 @@
 # v6.3.16: the solve worker could not unpickle its job. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
-# #518, the handover consolidation: this branch claims NOTHING. Docs, the
-# gate's own classification of them, and tests/entities.py only -- no card
-# source is touched.
+# The document-contradiction fixes (tools/audit/briefs/fixer.md step 5,
+# tests/README.md exclusion list and script counts): this branch claims
+# NOTHING. Prose in two documents only -- no card source, template or style
+# is touched, so the rendered markup is byte-identical by construction.

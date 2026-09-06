@@ -25,9 +25,38 @@ production lines. You work in your own worktree branched from `origin/main`.
    `tests/golden/claimed_drift.txt` or `card_claimed_drift.txt`, with the
    expected direction per fixture. `claims-for:` stays at the current
    `VERSION`.
-5. `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) ./tests/run.sh`
-   green locally, through the gate lock (`mkdir /tmp/hpo-gate.lock`; strict
-   golden mode does not reproduce on this box, see the README), then CI green.
+5. **Measure the gate's scope, then run what it names.** The gate is scoped
+   from measured closures, so derive the selection rather than assume it:
+
+       D=$(mktemp -d); python3 tests/closure.py select \
+         --diff $(git merge-base origin/main HEAD) --workdir "$D"
+       cat "$D/scope.txt"; cat "$D/scope.run"
+
+   Key on the **mode line**, never the count — `MODE: SCOPED -- 0 script(s)
+   run` and `MODE: FULL` both print zero and mean opposite things. Run what
+   `scope.run` names, with `PYTHONPATH=tests/hastub`, and leave the remainder
+   to CI: it runs the same `run.sh`, in the same drift mode, against the same
+   merge base, on a runner that is not competing with you, and it is the
+   verdict. `MODE: FULL` reports a diff the gate cannot scope — often a gate
+   file or a doc — not an instruction to spend forty minutes reproducing CI.
+
+   **Take the gate lease only when `MODE: FULL` or `scope.run` names
+   `tests/stress.py`**, the one script the lock exists for (`CLAUDE.md`
+   "Running it"; `tests/README.md`). Never `mkdir` and a shell pid: that lock
+   carries no lease, `run.sh` will not renew it, and a waiter cannot reclaim
+   it after a crash.
+
+       python3 tests/gate_lock.py take --label <your-label>
+       HPO_GATE_LOCK_LABEL=<your-label> GATE_SCOPE=auto GOLDEN_MODE=drift \
+         GOLDEN_REF=$(git merge-base origin/main HEAD) ./tests/run.sh
+       python3 tests/gate_lock.py renew --label <your-label>   # between commands
+       python3 tests/gate_lock.py release --label <your-label>
+
+   `GOLDEN_MODE=drift` against the merge base always: strict mode compares
+   solver floats that do not reproduce across BLAS builds, so it is honest
+   only in the environment that recorded the fixtures. `tests/README.md` has
+   the detail. `python3 tests/structure.py` is seconds and runs before every
+   push regardless.
 6. Hand off to the adversarial fix reviewer. **After any rebase, steps 2–4
    are re-executed**: the evidence describes one tree, and a rebase makes a
    new one.
