@@ -8,6 +8,12 @@ Everything in this section is **permanent** — it describes the repository, not
 any particular piece of work. Anything dated lives in the fenced block at the
 bottom, which is allowed to go stale and says so.
 
+**This file is not the whole of what applies.** `.cursor/rules/*.mdc` hold three
+`alwaysApply: true` project policies — `delivery-status-tracking.mdc`,
+`ci-autofix.mdc`, `brief-citations.mdc`. Cursor loaded them for you; Claude Code
+loads only this file, so **open all three yourself at session start**. The
+sections below summarise them and cite them by name; a summary is not the policy.
+
 ## Four rules that will refuse your pull request
 
 1. **The gate is scoped by measured dependency closures.** `GATE_SCOPE=auto`
