@@ -8120,31 +8120,71 @@ R.check(
     _af2_status == "skip-clean",
     f"status={_af2_status}: merging a matching record would loop",
 )
-with _tempfile.TemporaryDirectory() as _af3_td:
-    _af3_root = Path(_af3_td)
-    _af3_closures = _af3_root / "closures.json"
-    _af3_before = json.dumps({
-        "closures": {"tests/open_meteo.py": ["tests/open_meteo.py"]},
-        "recorded": {},
-    })
-    _af3_closures.write_text(_af3_before)
-    _af3_rec = _af3_root / "rec"
-    _af3_rec.mkdir()
-    (_af3_rec / "open_meteo.json").write_text(json.dumps({
-        "script": "tests/open_meteo.py", "rc": 1,
-        "files": ["tests/open_meteo.py"],
-    }))
-    _af3_orig, _closure.CLOSURES = _closure.CLOSURES, _af3_closures
-    try:
-        _af3_status = _closure.apply_under_scoped_recordings(
-            _af3_rec, partial=True)
-        _af3_after = _af3_closures.read_text()
-    finally:
-        _closure.CLOSURES = _af3_orig
+# A failed recording and "the failure was not UNDER-SCOPED" used to share one
+# status, and that status is quiet -- so ONE script failing to record vetoed
+# the repair of a DIFFERENT script that genuinely under-approximated, while
+# the job still concluded success and no `ci: re-record closures` commit was
+# ever pushed (#523, the residual the #528 review measured). `check` never
+# looks at `rc`, so the two conditions are independent and co-occur.
+#
+# `merge(allow_failures=False)` already refuses a failed recording, and that
+# refusal is `skip-merge-failed`, which reddens. Removing the early return
+# entirely yields exactly that -- measured -- so the status below restores a
+# refusal the early return had been pre-empting, with a remedy of its own.
+def _af_case(committed, records):
+    """Run the real apply function over a throwaway closures.json.
+
+    Returns (status, bytes-unchanged). Files named must be real files in the
+    tree: `check` rejects a recording of anything that is not a regular file.
+    """
+    with _tempfile.TemporaryDirectory() as td:
+        path = Path(td) / "closures.json"
+        before = json.dumps({"closures": committed, "recorded": {}})
+        path.write_text(before)
+        rec = Path(td) / "rec"
+        rec.mkdir()
+        for i, r in enumerate(records):
+            (rec / f"{i}.json").write_text(json.dumps(r))
+        orig, _closure.CLOSURES = _closure.CLOSURES, path
+        try:
+            status = _closure.apply_under_scoped_recordings(rec, partial=True)
+            return status, path.read_text() == before
+        finally:
+            _closure.CLOSURES = orig
+
+
+_af3_status, _af3_kept = _af_case(
+    {"tests/open_meteo.py": ["tests/open_meteo.py"],
+     "tests/frontend.py": ["tests/frontend.py"]},
+    [{"script": "tests/open_meteo.py", "rc": 0,
+      "files": ["tests/open_meteo.py", "tests/harness.py"]},
+     {"script": "tests/frontend.py", "rc": 1,
+      "files": ["tests/frontend.py"]}],
+)
 R.check(
-    "a failed recording does not rewrite closures.json",
-    _af3_status == "skip-not-under-scoped" and _af3_after == _af3_before,
-    f"status={_af3_status}: no-copies / failed-record must not push",
+    "one failed recording beside a real under-approximation reddens, not skips",
+    _af3_status == "skip-failed-recording" and _af3_kept
+    and _closure.autofix_repair_failed("closures-autofix", _af3_status),
+    f"status={_af3_status}: open_meteo.py under-approximates and the repair "
+    "is refused because frontend.py failed to record -- a human is waiting "
+    "for a commit no step will push",
+)
+# The other half of the split, and the reason it is a split rather than a
+# reclassification: a failed recording with nothing under-scoped must stay
+# quiet. `closures-autofix` runs on ANY `closures` failure, so reddening this
+# would fire on every no-copies, NOT-A-FILE or INERT failure that happened to
+# coincide with a failed recording -- and send its reader to re-derive a
+# closure that was never stale.
+_af3b_status, _af3b_kept = _af_case(
+    {"tests/open_meteo.py": ["tests/open_meteo.py"]},
+    [{"script": "tests/open_meteo.py", "rc": 1,
+      "files": ["tests/open_meteo.py"]}],
+)
+R.check(
+    "a failed recording with nothing under-scoped stays quiet",
+    _af3b_kept
+    and not _closure.autofix_repair_failed("closures-autofix", _af3b_status),
+    f"status={_af3b_status}: no repair was owed, so no human is waiting",
 )
 with _tempfile.TemporaryDirectory() as _af4_td:
     _af4_root = Path(_af4_td)
