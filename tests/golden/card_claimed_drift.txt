@@ -21,24 +21,6 @@
 #
 # claims-for: 6.3.15
 #
-# 3L-G7: third expanded-dialog tab (Savings) for monthly savings history (#460).
-no_plan_expanded # additive Savings tab on the expanded dialog
-expanded_plan # additive Savings tab on the expanded dialog
-what_if_off # additive Savings tab on the expanded dialog
-expanded_zoomed # additive Savings tab on the expanded dialog
-draft_dirty_menu_open # additive Savings tab on the expanded dialog
-draft_mid_drag # additive Savings tab on the expanded dialog
-whatif_edited # additive Savings tab on the expanded dialog
-whatif_weekly # additive Savings tab on the expanded dialog
-override_active # additive Savings tab on the expanded dialog
-shared_steps # additive Savings tab on the expanded dialog
-shared_steps_hover # additive Savings tab on the expanded dialog
-tooltip_hover # additive Savings tab on the expanded dialog
-coarse_pointer # additive Savings tab on the expanded dialog
-setup_single_buffer # additive Savings tab on the expanded dialog
-setup_two_tank # additive Savings tab on the expanded dialog
-setup_coil # additive Savings tab on the expanded dialog
-layout_editing_dragged # additive Savings tab on the expanded dialog
-layout_editing_tidy # additive Savings tab on the expanded dialog
-picker_open_filtered # additive Savings tab on the expanded dialog
+# Record of #485: this commit claims NOTHING. #460's expanded-dialog
+# Savings-tab claims live on bf08217 and describe that diff.
 

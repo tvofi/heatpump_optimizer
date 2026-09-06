@@ -47,12 +47,9 @@
 #
 # claims-for: 6.3.15
 #
-# 3L-G7: coordinator always publishes savings_months; coord fixtures gain the key.
-coord_minimal # additive empty savings_months list
-coord_dhw # additive empty savings_months list
-coord_two_zone # additive empty savings_months list
-coord_grid_fee # additive empty savings_months list
-coord_all_features # additive empty savings_months list
+# Record of #485: this commit claims NOTHING. Roster and Delivery-status
+# only. #460's coord_* savings_months claims live on bf08217 and describe
+# that diff; carrying them forward is the inherited-claims rule above.
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
