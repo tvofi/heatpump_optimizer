@@ -103,7 +103,7 @@ INSIDE_CHECKS = (
     "plan:last_optimization_published",
     "plan:current_action_published",
     "plan:setpoints_non_empty",
-    "plan:no_solve_failure_issue",
+    "plan:no_solve_repair",
 )
 
 # Judged by the outer half, over the container's combined output and the log
@@ -125,6 +125,15 @@ FORBIDDEN = {
 }
 
 TRACEBACK_HEAD = "Traceback (most recent call last):"
+
+# The repairs that mean the solve route itself is in trouble. Named rather than
+# "the integration raised nothing", because a defaults-only entry with no
+# lower-floor sensor and no legionella schedule legitimately raises others, and
+# a check that failed on those would become pressure to weaken it later.
+# solve_worker_fallback is #515's: with an in-process fallback in place a
+# worker that can unpickle nothing still produces a plan, so without this the
+# plan checks alone would call a degraded install healthy.
+SOLVE_REPAIRS = frozenset({"solve_failures", "solve_worker_fallback"})
 
 
 # --- shared reporting -------------------------------------------------------
@@ -463,12 +472,14 @@ def _check_plan(checks: Checks, hass, entry) -> None:
         len(setpoints) > 0,
         f"{len(setpoints)} setpoints in the plan",
     )
-    issues = ir.async_get(hass).issues
-    raised = [key for (domain, key) in issues if domain == PACKAGE_NAME]
+    raised = {
+        key for (domain, key) in ir.async_get(hass).issues if domain == PACKAGE_NAME
+    }
     checks.check(
-        "plan:no_solve_failure_issue",
-        "solve_failures" not in raised,
-        f"repairs raised by the integration: {raised}",
+        "plan:no_solve_repair",
+        not (raised & SOLVE_REPAIRS),
+        f"solve-route repairs raised: {sorted(raised & SOLVE_REPAIRS)}; "
+        f"everything raised: {sorted(raised)}",
     )
 
 
