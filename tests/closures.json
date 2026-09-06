@@ -26,7 +26,7 @@
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 13.2,
+   "seconds": 13.7,
    "rc": 0
   },
   "tests/env_drift.py": {
@@ -414,6 +414,7 @@
    "tests/hastub/homeassistant/components/button.py",
    "tests/hastub/homeassistant/components/climate.py",
    "tests/hastub/homeassistant/components/datetime.py",
+   "tests/hastub/homeassistant/components/diagnostics.py",
    "tests/hastub/homeassistant/components/mqtt.py",
    "tests/hastub/homeassistant/components/repairs.py",
    "tests/hastub/homeassistant/components/sensor.py",
