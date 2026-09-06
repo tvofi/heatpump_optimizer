@@ -38,6 +38,7 @@ its bug. You are checking that the numbers are real.
    verdict if you had to build one to check the fix. Read the finding's own
    judge ruling first — #290's brief still prescribes a harness its judge
    already refused.
+
 10. **Check the forward-carry before you return `merge`.** If the fixer's work
     produced a finding that changes how a later stage must work — a technique
     refused, an assumption invalidated, an option removed — the PR body names
@@ -59,5 +60,24 @@ its bug. You are checking that the numbers are real.
     answered by naming them: their countermeasure is the autofix job that exists.
     You are checking that the trigger was answered, not adjudicating the answer
     — the analysis is a separate seat, `tools/audit/briefs/root-cause.md`.
+
+12. **Re-read the head before you post.** Name the SHA you measured in the
+    verdict, and check it is still the head when you post it. A branch that
+    moved under you means some of your numbers describe a tree that no longer
+    exists: say which survive and which you re-took, rather than letting the
+    verdict imply all of them were taken at the head it names. Restricting the
+    three-dot diff to the production paths and comparing it across the two heads
+    is usually enough to show what moved.
+
+    Step 7 is not this check. It compares the SHA in the body against what you
+    measured, and a branch that moved after the body was written passes it. This
+    one compares the **live head at posting time** against what you measured.
+
+    `fixer.md`'s **The handoff freezes the branch** makes the head yours from the
+    handoff on, so one that moved under you is a broken rule rather than an
+    accident: `blocked: head moved under review, measured <sha>`. Re-measuring
+    instead is yours to offer and is never owed — a violation the reviewer
+    absorbs silently costs the seat that committed it nothing, which is how it
+    recurs.
 
 Return a verdict (`merge` / `blocked: <what>`) with your RESULT lines.

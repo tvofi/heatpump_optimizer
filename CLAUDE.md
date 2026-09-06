@@ -148,11 +148,16 @@ the analysis, which stays in its own seat.
 
 - `tools/audit/briefs/fixer.md` — failing test first, importing the production
   symbol; the mutation proof pasted; the finding's own harness re-run at both
-  ends; a null control for any cost, gain or time claim. After any rebase,
-  steps 2–4 are re-executed, because the evidence described a different tree.
+  ends; a null control for any cost, gain or time claim. After any rebase **or
+  merge**, steps 2–4 are re-executed, because the evidence described a different
+  tree. The handoff to review **freezes the branch**: update it from
+  `origin/main` freely until then; after it, only the orchestrator moves the
+  head.
 - `tools/audit/briefs/fix-review.md` — the reviewer measures with the
   **finder's** harness, never the fixer's, in a fresh worktree at the head SHA.
   Four implementations here looked right and were wrong, one worse than its bug.
+  The head is re-read before the verdict is posted, and one that moved under the
+  review is `blocked: head moved under review, measured <sha>`.
 - `tools/audit/briefs/judge.md` — a finding whose harness does not move under
   its own perturbation is **void**, whatever the votes said.
 - `tests/README.md` — the suite, and why a test that re-implements a production
