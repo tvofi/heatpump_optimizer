@@ -6318,6 +6318,54 @@ const setupBox = (card, place) =>
     badSv === 0, `${badSv} of 3 verdicts ungrammatical`);
 }
 
+// --- 3L-G9 (#463): wood alert, Wood lane, what-if --------------------------
+{
+  const slotT0 = plan.space_plan.forecast[0].t;
+  const slotT1 = plan.space_plan.forecast[Math.min(4, plan.space_plan.forecast.length - 1)].t;
+  const withFuel = (fuel) => {
+    const st = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    st[DEFAULT_SPACE].attributes.wood_fuel = fuel;
+    return st;
+  };
+  const cheaper = build(withFuel({
+    cheaper: true, show_whatif: true, ready: true, slots: [],
+  }));
+  const cheaperDump = collect(cheaper.shadowRoot).join("\n");
+  check("wood alert when cheaper",
+    /class="wood-alert"/.test(cheaperDump),
+    cheaperDump.match(/ha-card[\s\S]{0,400}/)?.[0]);
+  const quiet = build(withFuel({
+    cheaper: false, show_whatif: true, ready: true, slots: [],
+  }));
+  check("no wood alert when not cheaper",
+    !/class="wood-alert"/.test(collect(quiet.shadowRoot).join("\n")));
+  const lane = build(withFuel({
+    cheaper: false, show_whatif: true, ready: true,
+    slots: [{ start: slotT0, end: slotT1, source: "detected" }],
+  }));
+  const laneDump = collect(lane.shadowRoot).join("\n");
+  check("Wood lane renders one detected slot",
+    /data-channel="wood"/.test(laneDump) && /slots\.lane_wood|Wood/.test(laneDump),
+    laneDump.match(/lane-label[\s\S]{0,80}/g)?.join(" | "));
+  check("laneSpecs length stays 2 with a Wood display lane",
+    lane.manual.laneSpecs().length === 2,
+    String(lane.manual.laneSpecs().length));
+  const wi = build(withFuel({
+    cheaper: false, show_whatif: true, ready: true, slots: [],
+  }), { what_if: true });
+  wi._onCardClick({});
+  const wiDump = collect(wi.shadowRoot).join("\n");
+  check("what-if wood editor when show_whatif",
+    /wi-add-wood/.test(wiDump) && /whatif\.wood|Wood fire/.test(wiDump),
+    wiDump.match(/wi-add-wood[\s\S]{0,80}/)?.[0]);
+  const off = build(withFuel({
+    cheaper: false, show_whatif: false, ready: false, slots: [],
+  }), { what_if: true });
+  off._onCardClick({});
+  check("no what-if wood editor when furnace off",
+    !/wi-add-wood/.test(collect(off.shadowRoot).join("\n")));
+}
+
 // --- The host stays small ---------------------------------------------------
 // The decomposition (#136) left the element with the Lovelace contract, the
 // render cycle and its compositions, and nothing else. A ratchet, not a

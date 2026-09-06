@@ -22664,4 +22664,143 @@ R.check(
     "wood_fuel_from_coordinator is the publish helper",
     _wf_from_coord is not None,
 )
+
+R.section("3L-G9 — what-if wood slots")
+
+from datetime import timedelta as _g9_td
+from heatpump_optimizer.wood_fuel import wood_slots_to_kw as _g9_slots_kw
+
+_g9_t0 = datetime(2026, 1, 1, tzinfo=_tz_wf.utc)
+_g9_ts = [_g9_t0 + _g9_td(hours=i) for i in range(4)]
+_g9_kw = _g9_slots_kw(
+    [
+        {
+            "start": _g9_ts[1].isoformat(),
+            "end": _g9_ts[3].isoformat(),
+            "liters": 50.0,
+        }
+    ],
+    _g9_ts,
+    1.0,
+    "birch",
+    "packed",
+    75.0,
+)
+R.check(
+    "wood_slots_to_kw spreads 50 L birch over two overlapping hours",
+    len(_g9_kw) == 4
+    and _g9_kw[0] == 0.0
+    and abs(_g9_kw[1] - 35.625) < 1e-9
+    and abs(_g9_kw[2] - 35.625) < 1e-9
+    and _g9_kw[3] == 0.0,
+    repr(_g9_kw),
+)
+
+_g9_coord = _solve_coord()
+_g9_coord._config.update(
+    {
+        "wood_furnace_enabled": True,
+        "wood_type": "mixed",
+        "wood_packing": "packed",
+        "wood_price_sek_m3": 800.0,
+        "wood_furnace_efficiency": 75.0,
+    }
+)
+_g9_live = _WfOR(
+    power_schedule=[0.2] * 4,
+    room_temp_trajectory=[21.0] * 5,
+    slab_temp_trajectory=[21.0] * 5,
+    timestamps=_g9_ts,
+    prices=[1.0] * 4,
+    predicted_cost=10.0,
+    baseline_cost=12.0,
+    predicted_savings=2.0,
+    savings_percentage=10.0,
+    optimal_setpoints=[21.0] * 4,
+    status="ok",
+    outdoor_temps=[-5.0] * 4,
+    dhw_power_schedule=[0.0] * 4,
+    dhw_temp_trajectory=[50.0] * 5,
+)
+_g9_coord._optimization_result = _g9_live
+_g9_coord._last_simulation = None
+_g9_captured = []
+_g9_real_await = _coord_mod._await_optimize
+
+
+async def _g9_fake_await(hass, optimizer, state, *positional, **keywords):
+    _g9_captured.append(keywords)
+    return _g9_live
+
+
+_g9_now = dt_util.now().replace(minute=0, second=0, microsecond=0)
+_g9_anchor = _g9_coord._solve_anchor(_g9_now)
+_g9_slot = {
+    "start": (_g9_anchor + _g9_td(hours=1)).isoformat(),
+    "end": (_g9_anchor + _g9_td(hours=3)).isoformat(),
+    "liters": 50.0,
+}
+_g9_cfg_before = dict(_g9_coord._config)
+_coord_mod._await_optimize = _g9_fake_await
+_g9_real_now = _dt_wf.now
+try:
+    _dt_wf.now = lambda: _g9_now
+    _g9_payload = _asyncio.run(
+        _g9_coord.async_simulate({"wood_slots": [_g9_slot], "wood_type": "birch"})
+    )
+finally:
+    _coord_mod._await_optimize = _g9_real_await
+    _dt_wf.now = _g9_real_now
+
+_g9_ext = _g9_captured[0].get("external_heat_kw") if _g9_captured else None
+R.check(
+    "what-if wood injects external_heat_kw on the shadow solve",
+    _g9_ext is not None
+    and float(np.max(np.asarray(_g9_ext, dtype=float))) > 0.0,
+    repr(_g9_ext) if _g9_ext is not None else "no capture",
+)
+R.check(
+    "cost_delta adds wood SEK to the electricity delta",
+    _g9_payload.get("error") is None
+    and abs(float(_g9_payload.get("wood_sek", 0.0)) - 40.0) < 1e-9
+    and abs(float(_g9_payload.get("cost_delta", 0.0)) - 40.0) < 1e-9,
+    repr({k: _g9_payload.get(k) for k in ("wood_sek", "cost_delta", "error")}),
+)
+R.check(
+    "what-if wood overrides do not write the config entry",
+    dict(_g9_coord._config) == _g9_cfg_before
+    and _g9_coord._config.get("wood_type") == "mixed",
+    repr(_g9_coord._config.get("wood_type")),
+)
+
+_g9_coord._last_simulation = None
+_g9_zero = _asyncio.run(
+    _g9_coord.async_simulate(
+        {"wood_slots": [{**_g9_slot, "liters": 0.0}]}
+    )
+)
+R.check(
+    "liters 0 is invalid_wood_slots",
+    _g9_zero.get("error") == "invalid_wood_slots"
+    and _g9_zero.get("rate_limited") is False,
+    repr(_g9_zero),
+)
+
+_g9_bare = _solve_coord()
+_g9_bare._optimization_result = _g9_live
+_g9_bare._last_simulation = None
+_g9_unready = _asyncio.run(
+    _g9_bare.async_simulate({"wood_slots": [_g9_slot]})
+)
+R.check(
+    "wood slots without fuel params are wood_fuel_not_ready",
+    _g9_unready.get("error") == "wood_fuel_not_ready"
+    and _g9_unready.get("rate_limited") is False,
+    repr(_g9_unready),
+)
+R.check(
+    "live async_run_optimization source does not mention wood_slots",
+    "wood_slots" not in inspect.getsource(Coord.async_run_optimization),
+)
+
 sys.exit(R.close("FEATURE CHECKS"))

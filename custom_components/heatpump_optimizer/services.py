@@ -53,6 +53,8 @@ from .const import (
     SERVICE_SET_MODE,
     SERVICE_SET_THERMAL_PARAMS,
     SERVICE_SIMULATE_PLAN,
+    WOOD_PACKINGS,
+    WOOD_TYPES,
     OPERATION_MODES,
     POSITIVE_PARAM_FLOOR,
     topology_layout_valid,
@@ -95,6 +97,11 @@ SERVICE_SCHEMA_SIMULATE_PLAN = vol.Schema(
         # windows at all, so it must survive the "drop empty values" filter in
         # the handler below.
         vol.Optional("dhw_windows"): cv.string,
+        vol.Optional("wood_slots"): [dict],
+        vol.Optional("wood_type"): vol.In(WOOD_TYPES),
+        vol.Optional("wood_packing"): vol.In(WOOD_PACKINGS),
+        vol.Optional("wood_price_sek_m3"): vol.Coerce(float),
+        vol.Optional("wood_furnace_efficiency"): vol.Coerce(float),
     }
 )
 

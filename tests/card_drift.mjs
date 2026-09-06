@@ -62,6 +62,12 @@ const pxOf = (u) => (u * 900) / 720;
 const layoutEv = (pt, target) =>
   ({ clientX: pxOf(pt.x), clientY: pxOf(pt.y), target: target || {}, ...noop });
 
+const woodFuelStates = (plan, fuel) => {
+  const st = planStates(plan);
+  st[DEFAULT_SPACE].attributes.wood_fuel = fuel;
+  return st;
+};
+
 const statStates = () => ({
   "sensor.heat_pump_optimizer_predicted_savings": {
     state: "12.34", attributes: { unit_of_measurement: "SEK" } },
@@ -378,6 +384,27 @@ const STATES = [
         box.value = "vedpanna";
         fire(box, "input", { currentTarget: box, target: box });
       }
+      return c;
+    } },
+  { name: "wood_alert",
+    drive: (s) => buildCard(s.Card, woodFuelStates(s.plan, {
+      cheaper: true, show_whatif: true, ready: true, slots: [],
+    })) },
+  { name: "wood_lane",
+    drive: (s) => {
+      const t0 = s.plan.space_plan.forecast[0].t;
+      const t1 = s.plan.space_plan.forecast[Math.min(4, s.plan.space_plan.forecast.length - 1)].t;
+      return buildCard(s.Card, woodFuelStates(s.plan, {
+        cheaper: false, show_whatif: true, ready: true,
+        slots: [{ start: t0, end: t1, source: "detected" }],
+      }));
+    } },
+  { name: "wood_whatif",
+    drive: (s) => {
+      const c = buildCard(s.Card, woodFuelStates(s.plan, {
+        cheaper: false, show_whatif: true, ready: true, slots: [],
+      }), { what_if: true });
+      c._onCardClick({});
       return c;
     } },
   { name: "editor_schema",
