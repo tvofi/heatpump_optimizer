@@ -126,6 +126,17 @@ jobs:
             && needs.recheck-gate.outputs.recheck == 'true')
       )
     runs-on: ubuntu-latest
+    # The only job that runs the production suite, so it is the only one
+    # matrixed over interpreters (#514). 3.13 is the floor the README and
+    # hacs.json declare; 3.14 is what reported installations actually run,
+    # and before this it was tested by nothing. fail-fast is off because a
+    # 3.14 break must not cancel the 3.13 leg -- knowing which of the two
+    # broke is the entire signal. The other six jobs stay single-version:
+    # see the note above `closures`, which cannot be matrixed at all.
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.13", "3.14"]
     # Drift mode captures all 53 scenarios twice (tree + merge-base); the
     # first main run proved 45 min is not enough on GitHub's runners — the
     # step was cancelled mid-suite by its own timeout.
@@ -137,9 +148,15 @@ jobs:
           # baseline worktree.
           fetch-depth: 0
 
+      # The drift baseline cache needs no matrix-specific key: env_drift's
+      # cache_key_inputs already hashes the interpreter (`sys.version`,
+      # `api_version`) and the installed package inventory, so the two legs
+      # compute different keys and cannot restore each other's baseline.
+      # A cross-interpreter baseline is exactly the false drift that would
+      # otherwise make this matrix unreadable.
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
+          python-version: ${{ matrix.python-version }}
 
       - uses: actions/setup-node@v4
         with:
@@ -522,6 +539,13 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Single-version deliberately, unlike `fast` (#514). tests/closures.json
+      # is ONE committed artifact and this job uploads ONE `closure-recordings`
+      # for `closures-autofix` to merge; a second interpreter would upload a
+      # second artifact under the same name and hand autofix two recordings of
+      # the same script with no rule for choosing between them. The closure
+      # table records which files a script reads, which is a property of the
+      # code, not of the interpreter running it.
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"

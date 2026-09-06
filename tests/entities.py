@@ -514,25 +514,65 @@ R.check(
     "and the README badge agrees",
     f"Home%20Assistant-{_hacs_floor}%2B" in readme,
 )
-# issue #227 (hacs.json floor): ConfigEntry.runtime_data (read by every
-# platform since B5, #207) is the only API in this integration with a
-# minimum Home Assistant release established from repo evidence --
-# tests/hastub/homeassistant/config_entries.py's docstring ("Mirrored from
-# Home Assistant 2024.6.0 ... the release that introduced
-# ConfigEntry.runtime_data") and RELEASE_NOTES.md's v6.3.0 entry ("verified
-# against the upstream tags: absent at 2024.5.0, present ... at 2024.6.0").
-# The reconfigure flow (#196) has since established its minimum the way
-# this comment asked: upstream homeassistant/config_entries.py carries
-# SOURCE_RECONFIGURE, async_start_reconfigure and ConfigEntry.
-# supports_reconfigure from 2024.4.0 (verified against the 2024.4.0 and
-# 2024.6.0 tags when #196 landed), so the 2024.6.0 floor below covers it
-# and no bump was needed. Config-flow sections and icon translations
-# (#189) still have no minimum established anywhere in this repository.
+# issue #514 reversed how this floor is chosen. It used to be the newest
+# Home Assistant API the integration provably used -- ConfigEntry.runtime_data
+# (#227, #207), which put it at 2024.6.0 -- and that left the PYTHON range
+# declared by nobody and tested by nothing. It is now chosen by the declared
+# Python range instead: 2025.2.0 is the first Home Assistant whose own
+# pyproject.toml says requires-python = ">=3.13.0" (2024.12.0 and 2025.1.0
+# both still say >=3.12.0; 2025.8.0 says >=3.13.2), so it is the lowest
+# release that can guarantee 3.13. It is also well above the 2024.6.0
+# runtime_data needs, so nothing the older rule established is given up.
 _hacs_floor_tuple = tuple(int(part) for part in _hacs_floor.split("."))
 R.check(
-    "hacs.json's Home Assistant floor is at least 2024.6.0 (ConfigEntry.runtime_data, the one API establishable from repo evidence)",
-    _hacs_floor_tuple >= (2024, 6, 0),
+    "hacs.json's Home Assistant floor is at least 2025.2.0 (the first release whose own requires-python is >=3.13.0)",
+    _hacs_floor_tuple >= (2025, 2, 0),
     f"hacs.json says {_hacs_floor}",
+)
+# The Python half of the same declaration. Before #514 CI tested exactly one
+# interpreter and the README named none, so "supported Python" was an
+# inference from the HA floor that nothing could falsify. These two checks
+# make the README's claim and the versions CI actually runs the same fact:
+# the workflow is the machine-readable source, exactly as hacs.json is for
+# the Home Assistant floor above. Adding an interpreter to CI without saying
+# so in the README fails here, and so does claiming a floor CI never runs.
+# One line-wise pass reads both spellings: the six single-version pins
+# (`python-version: "3.13"`) and `fast`'s matrix list. The interpolated
+# `${{ matrix.python-version }}` carries no quoted literal and contributes
+# nothing, which is what keeps the matrix list the single source.
+_tests_workflow = Path(".github/workflows/tests.yml").read_text()
+_ci_pythons = sorted(
+    {
+        _version
+        for _line in _re.findall(r"python-version:.*", _tests_workflow)
+        for _version in _re.findall(r'"(\d+\.\d+)"', _line)
+    },
+    key=lambda v: tuple(int(p) for p in v.split(".")),
+)
+R.check(
+    "the README states the lowest Python version CI actually tests",
+    bool(_ci_pythons) and f"Python {_ci_pythons[0]} or newer" in readme,
+    f".github/workflows/tests.yml tests {_ci_pythons}",
+)
+# Bidirectional on purpose. "Every tested version is named" would catch a new
+# interpreter added to CI undocumented, but not the reverse -- dropping 3.14
+# from the matrix while the README still promises it re-opens the exact hole
+# #514 was filed for, an advertised version nothing runs. Comparing the whole
+# sentence catches both directions.
+_listed = (
+    " and ".join(_ci_pythons)
+    if len(_ci_pythons) < 3
+    else ", ".join(_ci_pythons[:-1]) + " and " + _ci_pythons[-1]
+)
+R.check(
+    "the README names exactly the interpreters CI tests, neither more nor fewer",
+    f"The suite is tested on {_listed}." in readme,
+    f"CI tests {_ci_pythons}, so the README should read "
+    f"'The suite is tested on {_listed}.'",
+)
+R.check(
+    "the Python badge agrees with that floor",
+    bool(_ci_pythons) and f"Python-{_ci_pythons[0]}%2B" in readme,
 )
 
 for name in (
@@ -2343,9 +2383,10 @@ from homeassistant.helpers.device_registry import DeviceEntryType
 # integration is a cloud API (Tibber) plus the user's own entities -- there
 # is no physical device -- and Home Assistant's device registry has a
 # dedicated kind for that: the Gold "devices" rule asks for
-# entry_type=DeviceEntryType.SERVICE, which the hacs.json floor (2024.6.0)
-# ships in homeassistant.helpers.device_registry (a StrEnum with the single
-# member SERVICE; DeviceInfo has no config_entry field at the floor).
+# entry_type=DeviceEntryType.SERVICE, which homeassistant.helpers.
+# device_registry has shipped since 2024.6.0 and so is present at the
+# hacs.json floor (a StrEnum with the single member SERVICE; DeviceInfo has
+# no config_entry field in the mirrored release).
 _dev_coord = HeatPumpOptimizerCoordinator(
     FakeHass(),
     FakeEntry(

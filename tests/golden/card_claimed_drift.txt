@@ -21,6 +21,6 @@
 #
 # claims-for: 6.3.15
 #
-# W4-G5 S4 (#193), the recorded halt for the fetch seam: this branch claims
-# NOTHING. Docs, roster and claim-file bookkeeping only -- no card source is
+# #514 (declare Python 3.13+, raise the Home Assistant floor to 2025.2.0):
+# this branch claims NOTHING. Docs, config and CI only -- no card source is
 # touched.
