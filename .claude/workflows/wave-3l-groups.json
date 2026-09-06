@@ -1,12 +1,12 @@
 {
   "_comment": [
     "Wave 3L of the open-issues programme (docs/plan-2026-09-open-issues.md).",
-    "Leftovers after Wave 3, before Wave 4. Serial. 3L-G9 done (b29fd1e); 3L-G6 spec-blocked (#457).",
+    "Leftovers after Wave 3, before Wave 4. Serial. 3L-G10 done (e4bc375); 3L-G6 spec-blocked (#457).",
     "#412 stays last of the programme, not in this burst.",
     "Consumed by .claude/workflows/web-fix-wave.js as its `groups` argument."
   ],
-  "fork": "b29fd1ed8e4eb2f043b7f78385965044a1c106d8",
-  "fork_note": "origin/main after 3L-G9 #489 (`b29fd1e`). Re-measure structure at this merge-base. coordinator_loc 10364. claims-for stays 6.3.15. #463 closed.",
+  "fork": "e4bc3756d47c4adbc4d76284cdfe4d5e1dd3a52f",
+  "fork_note": "origin/main after 3L-G10 #492 (`e4bc375`). Re-measure structure at this merge-base. coordinator_loc 10344. claims-for stays 6.3.15. #465 closed. Next seat Wave 4 S0 (W4-G1); seats not started.",
   "session": "claude-web",
   "repo": "/Users/timmalmstrom/heatpump_optimizer",
   "serial": true,
@@ -165,8 +165,10 @@
       "fixture": false,
       "after": ["3L-G9"],
       "resume": {
-        "stage": "in_progress",
-        "note": "Next seat after #489 (`b29fd1e`). Away toggle and return datetime. Closes #465 on its own line. claims-for 6.3.15. coordinator_loc ceiling 10364."
+        "stage": "done",
+        "merged_pr": 492,
+        "merge_sha": "e4bc3756d47c4adbc4d76284cdfe4d5e1dd3a52f",
+        "note": "Review approved Task 1 summary_failed 14→0 at 34fb131; mutation now>=return_time leaves (True, past); restore md5 676b84d8. CI fast 23m45s, closures 12m43s. coordinator_loc 10344. #465 closed. Next seat Wave 4 S0 (W4-G1). Do not stamp. Wave 4 / #412 / 3L-G6 not started."
       },
       "brief": "Plan-page Away toggle and return datetime (#465). Service-backed store; published switch and datetime; optional person/calendar. Spec docs/superpowers/specs/2026-09-05-away-plan-toggle-design.md. Plan docs/superpowers/plans/2026-09-05-away-plan-toggle.md. After 3L-G9, before Wave 4. Closes #465 on its own line."
     }
