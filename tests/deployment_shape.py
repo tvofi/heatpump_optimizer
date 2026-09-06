@@ -62,12 +62,12 @@ PACKAGE_REL = f"{CONFIG_DIR_NAME}/{PACKAGE_NAME}"
 # takes ``(hass, fn, *args)``; ``_run_in_process`` takes ``(fn, args)``.
 WORKER_SEAMS = {"_await_process": 1, "_run_in_process": 0}
 
-# Modules whose code only ever runs inside the worker child, so no in-process
-# measurement of this suite can see them and ``_covered_modules`` will never
-# find an importer. Each one must be exercised by this lane's round trip; the
-# registry is honoured only when that round trip actually crossed a process
-# boundary, so it cannot be used to silence a module nothing runs.
-CHILD_ENTRYPOINTS = ("process_worker",)
+# A module the package launches by PATH rather than importing runs only inside
+# a child interpreter, so nothing measuring this process can see it. That is
+# how process_worker.py reached v6.3.15 with 36 of 36 statements untested
+# (#505) and took #511 with it. The set is derived from the package's own
+# source, never listed, and every member must be a script this lane actually
+# launched -- so a second worker script cannot arrive without a lane.
 
 MARKER = "<<<deployment-shape-json>>>"
 
@@ -139,6 +139,25 @@ def _shipped_objects(module: object) -> tuple[list[tuple[int, str, object]], lis
     return found, unresolved
 
 
+def _path_named_scripts(package: Path) -> list[str]:
+    """Package modules the package reaches by path, not by import.
+
+    A module named as a string is launched or loaded as a file, so importing
+    the package never executes it and no in-process measurement of this suite
+    can reach it. Derived from the source so a second one cannot be added
+    silently; ``process_worker.py`` at ``coordinator.py``'s ``_ensure_worker``
+    is the only one today.
+    """
+    names = {p.name for p in package.glob("*.py")}
+    found: set[str] = set()
+    for src in sorted(package.glob("*.py")):
+        tree = ast.parse(src.read_text(encoding="utf-8"), str(src))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Constant) and node.value in names:
+                found.add(node.value)
+    return sorted(found)
+
+
 def _expected_module(obj: object) -> str:
     return getattr(obj, "__module__", None) or type(obj).__module__
 
@@ -162,10 +181,18 @@ def _driver(tmp: str, hastub: str) -> int:
         "driver_pid": os.getpid(),
     }
 
+    # os.getpid pickles as a stdlib name that resolves in any layout, so this
+    # round trip succeeds on a broken tree too. That is deliberate: it proves
+    # the worker mechanism itself works, which is what isolates #511 to the
+    # qualified name, and it lets the launch below be observed either way.
     try:
         out["child_pid"] = coordinator._run_in_process(os.getpid, ())
     except Exception as err:  # noqa: BLE001 - reported, then asserted on
         out["child_pid_error"] = f"{type(err).__name__}: {err}"
+    worker = coordinator._PROCESS_WORKER
+    out["launched_scripts"] = sorted(
+        {Path(a).name for a in (worker.args if worker else []) if str(a).endswith(".py")}
+    )
 
     shipped, unresolved = _shipped_objects(coordinator)
     out["unresolved_call_sites"] = unresolved
@@ -195,9 +222,7 @@ def _driver(tmp: str, hastub: str) -> int:
     out["shipped"] = records
 
     package = Path(tmp) / PACKAGE_REL
-    out["package_modules"] = sorted(
-        p.stem for p in package.glob("*.py") if p.stem != "__init__"
-    )
+    out["path_named_scripts"] = _path_named_scripts(package)
     print(MARKER)
     print(json.dumps(out))
     return 0
@@ -243,49 +268,6 @@ def _materialise(repo: Path, dest: Path) -> int:
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(repo / rel, target)
     return len(rels)
-
-
-def _covered_modules(repo: Path) -> set[str]:
-    """Package modules some other script in ``tests/`` reaches in-process.
-
-    An import counts, and so does a string naming the module — ``frontend.py``
-    is loaded through ``importlib.util.spec_from_file_location`` off a literal,
-    and a rule that missed it would be measuring its own regex. This file is
-    excluded from the scan: it is the one place ``CHILD_ENTRYPOINTS`` may
-    answer for a module, and letting that registry satisfy the scan as well
-    would make the guard circular.
-    """
-    covered: set[str] = set()
-    me = Path(__file__).resolve()
-    for path in sorted((repo / "tests").glob("*.py")):
-        if path.resolve() == me:
-            continue
-        tree = ast.parse(path.read_text(encoding="utf-8", errors="replace"), str(path))
-        for node in ast.walk(tree):
-            names: list[str] = []
-            if isinstance(node, ast.ImportFrom) and node.module:
-                parts = node.module.split(".")
-                if PACKAGE_NAME in parts:
-                    tail = parts[parts.index(PACKAGE_NAME) + 1 :]
-                    names = [tail[0]] if tail else [a.name for a in node.names]
-            elif isinstance(node, ast.Import):
-                for alias in node.names:
-                    parts = alias.name.split(".")
-                    if PACKAGE_NAME in parts:
-                        tail = parts[parts.index(PACKAGE_NAME) + 1 :]
-                        names += tail[:1]
-            elif isinstance(node, ast.Constant) and isinstance(node.value, str):
-                for sep in (".", "/"):
-                    key = f"{PACKAGE_NAME}{sep}"
-                    if key in node.value:
-                        names.append(
-                            node.value.split(key, 1)[1]
-                            .split(".py")[0]
-                            .split("/")[0]
-                            .split(".")[0]
-                        )
-            covered.update(n for n in names if n)
-    return covered
 
 
 def _check_stub_cannot_mask(hastub: Path) -> None:
@@ -418,25 +400,27 @@ def main() -> int:
             )
         crossed = data.get("child_pid") not in (None, data["driver_pid"])
 
-        print("\n-- no production module arrives with nothing running it")
-        covered = _covered_modules(repo)
-        exercised = set(CHILD_ENTRYPOINTS) if crossed and shipped else set()
-        orphans = [
-            m
-            for m in data["package_modules"]
-            if m not in covered and m not in exercised
-        ]
+        print("\n-- nothing runs only in a child interpreter unwatched")
+        # The package reaches these by path, so importing it never executes
+        # them and no in-process measurement of this suite can see them. Each
+        # must be a script this lane launched. Derived from the package source
+        # and observed from the worker's own argv, so neither side is a list
+        # anyone has to maintain.
+        named = data["path_named_scripts"]
+        launched = data["launched_scripts"]
         check(
-            "every tracked package module is imported by a test or is an "
-            "exercised child entrypoint",
-            not orphans,
-            f"{orphans} — import them from a tests/ script, or, if they only "
-            f"run in the worker child, add them to CHILD_ENTRYPOINTS here and "
-            f"exercise them above (process_worker.py entered the tree in #461 "
-            f"with 36 of 36 statements untested, and #511 followed)",
+            "the package names at least one script it runs by path",
+            bool(named),
+            "if this is now empty the derivation broke, not the package",
         )
-        stale = [m for m in CHILD_ENTRYPOINTS if m not in data["package_modules"]]
-        check("CHILD_ENTRYPOINTS names only modules that exist", not stale, f"{stale}")
+        check(
+            "every module the package runs by path is exercised here",
+            set(named) == set(launched),
+            f"named {named}, launched {launched} — a module reached by path "
+            f"runs only in a child interpreter, where nothing measures it; "
+            f"process_worker.py entered the tree that way in #461 with 36 of "
+            f"36 statements untested and #511 followed",
+        )
     return _close()
 
 
