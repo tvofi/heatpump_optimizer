@@ -1,12 +1,12 @@
 {
   "_comment": [
     "Wave 3L of the open-issues programme (docs/plan-2026-09-open-issues.md).",
-    "Leftovers after Wave 3, before Wave 4. Serial. 3L-G4 done (531d8b7).",
+    "Leftovers after Wave 3, before Wave 4. Serial. 3L-G4 done (531d8b7); G3 residuals #479+#480 at 162e759.",
     "#412 stays last of the programme, not in this burst.",
     "Consumed by .claude/workflows/web-fix-wave.js as its `groups` argument."
   ],
-  "fork": "531d8b73337f1b5019f476f2933bfee8765c5605",
-  "fork_note": "origin/main after 3L-G4 #477 (`531d8b7`). Re-measure structure at this merge-base. claims-for stays 6.3.15.",
+  "fork": "162e75990779a351061afadbe4ceea9b763e1d11",
+  "fork_note": "origin/main after 3L-G3 residuals #479+#480 (`162e759`). Re-measure structure at this merge-base. claims-for stays 6.3.15.",
   "session": "claude-web",
   "repo": "/Users/timmalmstrom/heatpump_optimizer",
   "serial": true,
@@ -57,7 +57,7 @@
         "stage": "done",
         "merged_pr": 474,
         "merge_sha": "e8adfe44d768047b8d2cbcea16be7301a694510a",
-        "note": "Review merge 5555631655 at fb7a950. Lease 1800s + flock; accept 9/9; mutation flock-held FAIL; entities closure 96→97. claims-for 6.3.15. #404 closed. Next seat 3L-G4."
+        "note": "Review merge 5555631655 at fb7a950. Lease 1800s + flock. Follow-ups: #479 `8ea27d4` abandoned-hold steal (review 5555881791 at dc3f855); #480 `162e759` same-label expired take + leftover holding (review 5555932201 at b5a4c08). #481 leftover closed. #404 stays closed. Next seat 3L-G5."
       },
       "brief": "Gate lock becomes a renewed lease + flock. Lives in tests/, needs the derive #401 unlocks."
     },
@@ -85,6 +85,11 @@
       "effort": "high",
       "fixture": false,
       "after": ["3L-G4"],
+      "resume": {
+        "stage": "in_progress",
+        "branch": "cursor/3l-g5-setpoint-consistency-3c04",
+        "note": "In flight from 531d8b7. Merge origin/main (162e759, #480) before the locked gate. Do not raise structure. claims-for 6.3.15."
+      },
       "brief": "Optional set-point entities + consistency repair only. Optimality / Fix-to-argmin refused (50 to 65 C instability). Holds coordinator/config — later 3L groups must not merge ahead of this seat."
     },
     {
