@@ -9483,21 +9483,128 @@ R.section("Diagnostics (D10-12)")
 from heatpump_optimizer import diagnostics as _diag_mod  # noqa: E402
 import json as _json
 
+# #509: what a household looks like in a diagnostics file. The coordinate is
+# full precision and its 1-decimal cell is a different string, so "the precise
+# value is absent" cannot pass just because the two happen to render the same;
+# ``_DIAG_DEEP`` sits two levels down and inside a list, because the property
+# that stops the NEXT nested location from leaking is depth-independence, not a
+# rule about ``solar_location``; and the option-level coordinate differs from
+# the data-level one so a payload that ever starts emitting option values is
+# measured too.
+_DIAG_LAT, _DIAG_LON = 59.331234, 18.071234
+_DIAG_OPT_LAT, _DIAG_OPT_LON = 59.335555, 18.075555
+_DIAG_NAME = "Villa Solbacken Storgatan 5"
+_DIAG_TOPIC = "home/storgatan5/ecl110/state"
+_DIAG_DEEP = {
+    "sites": [{"station": {"latitude": _DIAG_LAT, "longitude": _DIAG_LON}}],
+    # A coordinate that is not a number: free text under a coordinate key can
+    # be an address, so it must not survive the way a number does.
+    "typed": {"latitude": "Storgatan 5, Solna", "longitude": None},
+}
+_DIAG_DATA = {
+    **_CRED_DATA,
+    "name": _DIAG_NAME,
+    const.CONF_SOLAR_LOCATION: {
+        "latitude": _DIAG_LAT,
+        "longitude": _DIAG_LON,
+        "elevation": "not-a-number",
+    },
+    const.CONF_ECL110_STATE_TOPIC: _DIAG_TOPIC,
+    "_deep": _DIAG_DEEP,
+}
+_DIAG_OPTIONS = {
+    const.CONF_SOLAR_LOCATION: {
+        "latitude": _DIAG_OPT_LAT,
+        "longitude": _DIAG_OPT_LON,
+    },
+    const.CONF_TARGET_TEMP: 21.0,
+}
+
 _diag_hass = FakeHass()
-_diag_entry = FakeEntry(data=dict(_CRED_DATA))
+_diag_entry = FakeEntry(data=dict(_DIAG_DATA), options=dict(_DIAG_OPTIONS))
 _diag_entry.runtime_data = integration.HeatPumpOptimizerCoordinator(
-    _diag_hass, FakeEntry(data=dict(_CRED_DATA))
+    _diag_hass, FakeEntry(data=dict(_DIAG_DATA), options=dict(_DIAG_OPTIONS))
 )
 _diag = asyncio.run(
     _diag_mod.async_get_config_entry_diagnostics(_diag_hass, _diag_entry)
 )
 _blob = _json.dumps(_diag, default=str)
+_diag_location = (_diag.get("config") or {}).get(const.CONF_SOLAR_LOCATION) or {}
+_HA_REDACTED = "**REDACTED**"
+
 R.check(
     "the Tibber token never leaves the instance",
-    _diag["config"].get(_CONF_TOKEN) == "REDACTED"
+    _diag["config"].get(_CONF_TOKEN) == _HA_REDACTED
     and "stub-token" not in _blob
     and _CRED_DATA[_CONF_TOKEN] not in _blob,
     "a credential (or a fragment of it) appeared in the payload",
+)
+
+# --- #509: no precise coordinate, and no household label, in the payload ----
+R.check(
+    "no precise coordinate leaves the instance, from data or from options",
+    not any(
+        repr(_c) in _blob
+        for _c in (_DIAG_LAT, _DIAG_LON, _DIAG_OPT_LAT, _DIAG_OPT_LON)
+    ),
+    "a full-precision coordinate appeared in the diagnostics payload: "
+    + ", ".join(
+        repr(_c)
+        for _c in (_DIAG_LAT, _DIAG_LON, _DIAG_OPT_LAT, _DIAG_OPT_LON)
+        if repr(_c) in _blob
+    ),
+)
+R.check(
+    "the coordinate survives as a coarse cell rather than as a hole",
+    _diag_location.get("latitude") == round(_DIAG_LAT, 1)
+    and _diag_location.get("longitude") == round(_DIAG_LON, 1),
+    f"solar_location came back as {_diag_location!r}; support cannot see a "
+    f"swapped or wrong-country coordinate through a redacted one",
+)
+R.check(
+    "the documented coordinate precision is one decimal place",
+    getattr(_diag_mod, "COORDINATE_PLACES", None) == 1,
+    f"COORDINATE_PLACES is {getattr(_diag_mod, 'COORDINATE_PLACES', None)!r}",
+)
+R.check(
+    "the coarsening reaches a coordinate nested below the top level",
+    (
+        ((_diag.get("config") or {}).get("_deep") or {})
+        .get("sites", [{}])[0]
+        .get("station", {})
+        .get("latitude")
+    )
+    == round(_DIAG_LAT, 1),
+    "a coordinate two levels down, inside a list, was not coarsened",
+)
+_diag_typed = ((_diag.get("config") or {}).get("_deep") or {}).get("typed") or {}
+R.check(
+    "a coordinate that is not a number is redacted rather than published",
+    _diag_typed.get("latitude") == _HA_REDACTED
+    and _diag_typed.get("longitude") == _HA_REDACTED
+    and "Storgatan 5, Solna" not in _blob,
+    f"a non-numeric coordinate came back as {_diag_typed!r}",
+)
+R.check(
+    "a non-coordinate member of the location dict is left alone",
+    _diag_location.get("elevation") == "not-a-number",
+    "redaction reached a key that is not a coordinate",
+)
+R.check(
+    "the installation name the user typed never leaves the instance",
+    _diag["config"].get("name") == _HA_REDACTED and _DIAG_NAME not in _blob,
+    "the user's chosen entry name appeared in the diagnostics payload",
+)
+# The over-redaction control. Diagnostics exist for support; a fix that
+# redacts the whole config would pass every check above and make the file
+# useless, so the two things a bug report is actually read for are pinned.
+R.check(
+    "the entity ids and the MQTT topic survive redaction",
+    _diag["config"].get("weather_entity") == _CRED_DATA["weather_entity"]
+    and _diag["config"].get("indoor_temp_entity")
+    == _CRED_DATA["indoor_temp_entity"]
+    and _diag["config"].get(const.CONF_ECL110_STATE_TOPIC) == _DIAG_TOPIC,
+    "redaction removed what a diagnostics file is read for",
 )
 R.check(
     "the payload is plain JSON and names the coordinator's state",
