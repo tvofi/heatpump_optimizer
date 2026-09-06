@@ -705,6 +705,10 @@ be. What the notable ones are for:
   in an actual browser rather than a DOM stub — but it runs in its own
   `browser` CI job, not this gate's scoped selection; see "Note on browser
   checks" below.
+- **nightly_ha.py** is the same shape (#521): a real test that runs the
+  integration inside a real Home Assistant container, in its own nightly job
+  that pulls the image. Docker is not available to this suite, and it must
+  never gate a pull request.
 - **closure.py** is the scoping instrument. It runs the tests in order to
   measure what they touch, derives each one's dependency closure, folds the
   records into `tests/closures.json`, decides what a given diff needs, and
