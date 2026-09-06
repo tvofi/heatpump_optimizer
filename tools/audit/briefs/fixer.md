@@ -76,13 +76,14 @@ to have — a technique refused, a figure that no longer holds, a dependency tha
 will not install, a budget already spent.
 
 **Putting it in this PR's comments does not discharge it.** The next seat reads
-its own brief, the shared seat block, `CLAUDE.md` and this contract; it does not
+its own brief, its roster entry, `CLAUDE.md` and this contract; it does not
 read the comments of a PR that merged before it started. Carry the **control**
 as well as the claim, and state the **precondition** rather than the opportunity
 — "this gained N points" invites the next seat to reach for it, "this is
 legitimate only when X, demonstrated per case" is what keeps them honest.
 
-A finding that constrains every seat goes in the shared seat block once, not
+A finding that constrains every seat goes in the role contract it belongs to
+under `tools/audit/briefs/` once, not
 into each brief. If the stage that needs it has no brief yet, it goes in the
 plan row that will become one, and creating that row is part of the finding.
 
