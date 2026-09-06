@@ -65,3 +65,28 @@ functionality, and asking is an available move — #398 was refused in part
 because `coordinator_attrs` stood at 176/176 and a new attribute was read as
 costing the deletion of an existing one. `cross_seam_fraction` is exempt from
 all of this: it is a tolerance metric and is **never** re-recorded.
+
+## Before you hand off: carry what you found forward
+
+Your PR does not merge until any finding that **changes how a later stage must
+work** is written into that stage's own brief. It qualifies when you established
+it by measurement, with the null control, and it narrows what a later stage may
+do, invalidates an assumption it rests on, or removes an option it was expected
+to have — a technique refused, a figure that no longer holds, a dependency that
+will not install, a budget already spent.
+
+**Putting it in this PR's comments does not discharge it.** The next seat reads
+its own brief, the shared seat block, `CLAUDE.md` and this contract; it does not
+read the comments of a PR that merged before it started. Carry the **control**
+as well as the claim, and state the **precondition** rather than the opportunity
+— "this gained N points" invites the next seat to reach for it, "this is
+legitimate only when X, demonstrated per case" is what keeps them honest.
+
+A finding that constrains every seat goes in the shared seat block once, not
+into each brief. If the stage that needs it has no brief yet, it goes in the
+plan row that will become one, and creating that row is part of the finding.
+
+Name the destination in your PR body — which brief, block or plan row received
+it — so the reviewer checks the destination rather than takes your word.
+
+See `.cursor/rules/finding-propagation.mdc`.

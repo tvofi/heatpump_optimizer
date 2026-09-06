@@ -514,25 +514,65 @@ R.check(
     "and the README badge agrees",
     f"Home%20Assistant-{_hacs_floor}%2B" in readme,
 )
-# issue #227 (hacs.json floor): ConfigEntry.runtime_data (read by every
-# platform since B5, #207) is the only API in this integration with a
-# minimum Home Assistant release established from repo evidence --
-# tests/hastub/homeassistant/config_entries.py's docstring ("Mirrored from
-# Home Assistant 2024.6.0 ... the release that introduced
-# ConfigEntry.runtime_data") and RELEASE_NOTES.md's v6.3.0 entry ("verified
-# against the upstream tags: absent at 2024.5.0, present ... at 2024.6.0").
-# The reconfigure flow (#196) has since established its minimum the way
-# this comment asked: upstream homeassistant/config_entries.py carries
-# SOURCE_RECONFIGURE, async_start_reconfigure and ConfigEntry.
-# supports_reconfigure from 2024.4.0 (verified against the 2024.4.0 and
-# 2024.6.0 tags when #196 landed), so the 2024.6.0 floor below covers it
-# and no bump was needed. Config-flow sections and icon translations
-# (#189) still have no minimum established anywhere in this repository.
+# issue #514 reversed how this floor is chosen. It used to be the newest
+# Home Assistant API the integration provably used -- ConfigEntry.runtime_data
+# (#227, #207), which put it at 2024.6.0 -- and that left the PYTHON range
+# declared by nobody and tested by nothing. It is now chosen by the declared
+# Python range instead: 2025.2.0 is the first Home Assistant whose own
+# pyproject.toml says requires-python = ">=3.13.0" (2024.12.0 and 2025.1.0
+# both still say >=3.12.0; 2025.8.0 says >=3.13.2), so it is the lowest
+# release that can guarantee 3.13. It is also well above the 2024.6.0
+# runtime_data needs, so nothing the older rule established is given up.
 _hacs_floor_tuple = tuple(int(part) for part in _hacs_floor.split("."))
 R.check(
-    "hacs.json's Home Assistant floor is at least 2024.6.0 (ConfigEntry.runtime_data, the one API establishable from repo evidence)",
-    _hacs_floor_tuple >= (2024, 6, 0),
+    "hacs.json's Home Assistant floor is at least 2025.2.0 (the first release whose own requires-python is >=3.13.0)",
+    _hacs_floor_tuple >= (2025, 2, 0),
     f"hacs.json says {_hacs_floor}",
+)
+# The Python half of the same declaration. Before #514 CI tested exactly one
+# interpreter and the README named none, so "supported Python" was an
+# inference from the HA floor that nothing could falsify. These two checks
+# make the README's claim and the versions CI actually runs the same fact:
+# the workflow is the machine-readable source, exactly as hacs.json is for
+# the Home Assistant floor above. Adding an interpreter to CI without saying
+# so in the README fails here, and so does claiming a floor CI never runs.
+# One line-wise pass reads both spellings: the six single-version pins
+# (`python-version: "3.13"`) and `fast`'s matrix list. The interpolated
+# `${{ matrix.python-version }}` carries no quoted literal and contributes
+# nothing, which is what keeps the matrix list the single source.
+_tests_workflow = Path(".github/workflows/tests.yml").read_text()
+_ci_pythons = sorted(
+    {
+        _version
+        for _line in _re.findall(r"python-version:.*", _tests_workflow)
+        for _version in _re.findall(r'"(\d+\.\d+)"', _line)
+    },
+    key=lambda v: tuple(int(p) for p in v.split(".")),
+)
+R.check(
+    "the README states the lowest Python version CI actually tests",
+    bool(_ci_pythons) and f"Python {_ci_pythons[0]} or newer" in readme,
+    f".github/workflows/tests.yml tests {_ci_pythons}",
+)
+# Bidirectional on purpose. "Every tested version is named" would catch a new
+# interpreter added to CI undocumented, but not the reverse -- dropping 3.14
+# from the matrix while the README still promises it re-opens the exact hole
+# #514 was filed for, an advertised version nothing runs. Comparing the whole
+# sentence catches both directions.
+_listed = (
+    " and ".join(_ci_pythons)
+    if len(_ci_pythons) < 3
+    else ", ".join(_ci_pythons[:-1]) + " and " + _ci_pythons[-1]
+)
+R.check(
+    "the README names exactly the interpreters CI tests, neither more nor fewer",
+    f"The suite is tested on {_listed}." in readme,
+    f"CI tests {_ci_pythons}, so the README should read "
+    f"'The suite is tested on {_listed}.'",
+)
+R.check(
+    "the Python badge agrees with that floor",
+    bool(_ci_pythons) and f"Python-{_ci_pythons[0]}%2B" in readme,
 )
 
 for name in (
@@ -1134,6 +1174,79 @@ R.check(
     "_solve_anchor is a module-level FunctionDef, not a class method",
     "_solve_anchor" in _s2_mod_fns and "_solve_anchor" not in _s2_cls_fns,
     f"module={'_solve_anchor' in _s2_mod_fns} class={'_solve_anchor' in _s2_cls_fns}",
+)
+
+# S5 of #193: the self-learned house and buffer state is initialised OUTSIDE
+# the dhw seam. structure.py buckets a coordinator method by its NAME, so
+# while `_init_dhw_learning` assigned these, dhw *owned* them and every
+# learner read of them was priced against hot water -- 88 of cut_dhw for
+# state no dhw method ever reads. Merging the block back would give that
+# back with nothing else failing, which is what these checks exist to stop.
+# The seam list is imported from the metric rather than restated here, so a
+# change to SEAM_REGEXES moves this test with it.
+R.section("S5 thermal-learning state outside the dhw seam (#193)")
+import structure as _s5_structure
+
+
+def _s5_seam(_name: str) -> str:
+    for _label, _rx in _s5_structure.SEAM_REGEXES:
+        if _rx.search(_name):
+            return _label
+    return "core"
+
+
+# The names come from the initialiser itself, not from a list kept here: a
+# hand-kept list would silently stop covering an attribute added later.
+_s5_init = next(
+    (
+        _n
+        for _n in _s1_cls.body
+        if isinstance(_n, (_ast_s1.FunctionDef, _ast_s1.AsyncFunctionDef))
+        and _n.name == "_init_thermal_learning"
+    ),
+    None,
+)
+_s5_state = {
+    _n.attr
+    for _n in _ast_s1.walk(_s5_init)
+    if isinstance(_n, _ast_s1.Attribute) and isinstance(_n.ctx, _ast_s1.Store)
+} if _s5_init is not None else set()
+
+R.check(
+    "_init_thermal_learning exists, in the learning seam, and initialises state",
+    _s5_init is not None
+    and _s5_seam("_init_thermal_learning") == "learning"
+    and len(_s5_state) > 1,
+    f"present={_s5_init is not None} "
+    f"seam={_s5_seam('_init_thermal_learning')} attrs={len(_s5_state)}",
+)
+
+# Every method that stores one of those names, and the seam it is bucketed
+# into. Anything in dhw here is the regression this section guards.
+_s5_dhw_writers: dict[str, list[str]] = {}
+for _fn in _s1_cls.body:
+    if not isinstance(_fn, (_ast_s1.FunctionDef, _ast_s1.AsyncFunctionDef)):
+        continue
+    if _s5_seam(_fn.name) != "dhw":
+        continue
+    for _n in _ast_s1.walk(_fn):
+        if (
+            isinstance(_n, _ast_s1.Attribute)
+            and isinstance(_n.ctx, _ast_s1.Store)
+            and _n.attr in _s5_state
+        ):
+            _s5_dhw_writers.setdefault(_n.attr, []).append(_fn.name)
+R.check(
+    "no dhw-seam method assigns house or buffer learning state (#193 S5)",
+    _s5_state and not _s5_dhw_writers,
+    f"dhw-seam assignments: { {k: sorted(set(v)) for k, v in _s5_dhw_writers.items()} }",
+)
+R.check(
+    "_effective_house_heat_loss is a module-level FunctionDef, not a class method",
+    "_effective_house_heat_loss" in _s2_mod_fns
+    and "_effective_house_heat_loss" not in _s2_cls_fns,
+    f"module={'_effective_house_heat_loss' in _s2_mod_fns} "
+    f"class={'_effective_house_heat_loss' in _s2_cls_fns}",
 )
 
 # The premise, stated in production's own terms: with nothing sensing the
@@ -2343,9 +2456,10 @@ from homeassistant.helpers.device_registry import DeviceEntryType
 # integration is a cloud API (Tibber) plus the user's own entities -- there
 # is no physical device -- and Home Assistant's device registry has a
 # dedicated kind for that: the Gold "devices" rule asks for
-# entry_type=DeviceEntryType.SERVICE, which the hacs.json floor (2024.6.0)
-# ships in homeassistant.helpers.device_registry (a StrEnum with the single
-# member SERVICE; DeviceInfo has no config_entry field at the floor).
+# entry_type=DeviceEntryType.SERVICE, which homeassistant.helpers.
+# device_registry has shipped since 2024.6.0 and so is present at the
+# hacs.json floor (a StrEnum with the single member SERVICE; DeviceInfo has
+# no config_entry field in the mirrored release).
 _dev_coord = HeatPumpOptimizerCoordinator(
     FakeHass(),
     FakeEntry(
@@ -7676,6 +7790,58 @@ R.check(
     not _orphans,
     "these force the FULL suite when touched: " + ", ".join(_orphans[:8]),
 )
+
+# One living handover (#518). A dated series accumulates, and every file in it
+# but the newest hands the next session confident, wrong instructions -- the
+# resumability audit this repository's CLAUDE.md opens with is the same finding
+# one level up. The policy is in CLAUDE.md under "One living handover"; this is
+# what refuses a second copy.
+#
+# Reading it here is what keeps `docs/HANDOVER.md` out of INERT, and that is
+# deliberate rather than incidental: the pull requests that touch a handover are
+# usually record pull requests carrying nothing but docs and roster JSON, which
+# are otherwise INERT to a man and scope to zero scripts. Left inert, this check
+# would run only on the push to main -- the late-gate shape that produced #354
+# and five repeats.
+_handovers = sorted(
+    f for f in _subprocess.run(
+        ["git", "ls-files", "docs"], cwd=_closure.ROOT,
+        capture_output=True, text=True,
+    ).stdout.split()
+    if _closure.is_handover(f)
+)
+R.check(
+    "exactly one handover, with no date in its name",
+    _handovers == ["docs/HANDOVER.md"],
+    f"found {_handovers or 'none'}; durable state belongs in the single "
+    "docs/HANDOVER.md and volatile state on #201, never in both",
+)
+# `updated-for:` is the staleness half: a handover nobody has re-pointed since
+# the merge it describes is the failure mode, not one that has been deleted.
+# Reachability, rather than equality with HEAD, is what a branch can satisfy --
+# the line names the merge the text reflects, which is always an ancestor.
+_uf = _re.search(
+    r"^updated-for:[ \t]*([0-9a-f]{7,40})[ \t]*$",
+    Path("docs/HANDOVER.md").read_text(),
+    _re.M,
+) if Path("docs/HANDOVER.md").exists() else None
+R.check(
+    "the handover names the commit it reflects",
+    _uf is not None,
+    "docs/HANDOVER.md needs a line `updated-for: <sha>` naming the merge it "
+    "was last written against",
+)
+R.check(
+    "and that commit is reachable from HEAD",
+    _uf is not None and _subprocess.run(
+        ["git", "merge-base", "--is-ancestor", _uf.group(1), "HEAD"],
+        cwd=_closure.ROOT, capture_output=True,
+    ).returncode == 0,
+    f"updated-for: {_uf.group(1) if _uf else '?'} is not an ancestor of HEAD -- "
+    "re-point it at the merge this handover reflects (a shallow clone cannot "
+    "answer this; the gate jobs check out with fetch-depth: 0)",
+)
+
 # HA loads repairs.py dynamically, so a witness must import it or it is an
 # orphan and forces MODE: FULL (#408).
 from heatpump_optimizer import repairs as _repairs_mod  # noqa: E402

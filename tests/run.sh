@@ -283,6 +283,10 @@ for f in tests/*.py tests/*.mjs; do
     # The real-browser layout lane (issue #96): its own job in the
     # workflow installs Chromium for it, which this suite does not have.
     card_browser.mjs) continue ;;
+    # The real-Home-Assistant lane (#521): its own nightly job pulls the
+    # container image and runs the integration inside it. Docker is not
+    # available to this suite, and it must never gate a pull request.
+    nightly_ha.py) continue ;;
   esac
   if ! grep -Eq '^[[:space:]]*run .*tests/'"$base"'( |$)' tests/run.sh; then
     echo "UNWIRED TEST: tests/$base is not referenced by tests/run.sh"
@@ -315,6 +319,13 @@ lane_units() {
   run "$PYTHON" tests/manual_plan.py
   run "$PYTHON" tests/open_meteo.py
   run "$PYTHON" tests/solar_alignment.py
+  # The only lane that runs the shape an installation runs (#513): the tracked
+  # package alone, no tests/ sibling, imported as
+  # custom_components.heatpump_optimizer.*. Every other script in this
+  # directory runs the checkout shape, which is how #511 -- every solve
+  # failing, on every install -- shipped green. It spawns its own
+  # interpreters and never imports the integration into this one.
+  run "$PYTHON" tests/deployment_shape.py
 }
 
 # The characterization harness: exact behaviour, pinned. Its own lane because
@@ -444,7 +455,7 @@ done
 for f in tests/*.py tests/*.mjs; do
   base=$(basename "$f")
   case "$base" in
-    harness.py|profiles.py|dst_checks.py|closure.py|gate_lock.py|dom_stub.mjs|card_rig.mjs|card_browser.mjs|node_fs_trace.mjs) continue ;;
+    harness.py|profiles.py|dst_checks.py|closure.py|gate_lock.py|dom_stub.mjs|card_rig.mjs|card_browser.mjs|node_fs_trace.mjs|nightly_ha.py) continue ;;
   esac
   if ! cat "$WORKDIR"/*.manifest 2>/dev/null | grep -Fq "tests/$base"; then
     echo "TEST NEVER RAN: tests/$base is wired into tests/run.sh but no lane"

@@ -5,8 +5,10 @@ found that every one of its auditors had to be *told* what to fetch before it
 could work out what was in force.
 
 Everything in this section is **permanent** — it describes the repository, not
-any particular piece of work. Anything dated lives in the fenced block at the
-bottom, which is allowed to go stale and says so.
+any particular piece of work. Work in progress lives in the fenced block at the
+bottom, which is scoped to one programme and deleted when it closes; it names
+where the live state is and never restates it, so nothing in this file has a
+date to go stale.
 
 **This file is not the whole of what applies.** `.cursor/rules/*.mdc` hold the
 `alwaysApply: true` project policies. Cursor loaded them for you; Claude Code
@@ -64,6 +66,52 @@ body; if they disagree, fix the table first), the roster `resume` fields in
 `.claude/workflows/wave-*-groups.json`, and posts one #201 comment per
 meaningful state change (merge, block, wave start). Do not wait for a stamp
 to truth the table. See `.cursor/rules/delivery-status-tracking.mdc`.
+
+## Carrying a finding forward
+
+**A finding that changes how a later stage must work is written into that
+stage's own brief before the PR that produced it merges** — where the finding is
+measured, with the null control that establishes it, and it narrows what the
+later stage may do, invalidates an assumption it rests on, or removes an option
+it was expected to have.
+
+**A PR comment is not propagation.** The test is where the seat who needs this
+will be looking: its own brief, the shared seat block, this file, its role
+contract — not the comments of a PR that merged several stages earlier. Carry
+the control as well as the claim, and state the precondition rather than the
+opportunity. A finding that constrains every seat goes in the shared block once;
+one whose stage has no brief yet goes in the plan row that will become one, and
+creating that row is part of the finding.
+
+See `.cursor/rules/finding-propagation.mdc`.
+
+## One living handover
+
+"In the repo" and "always current" pull against each other: an in-tree file
+needs a pull request to change, so it is structurally behind. Split the state
+rather than asking one file to be both.
+
+**Durable state goes in exactly one `docs/HANDOVER.md`** — no date in the name,
+no second copy. Decisions and the measurement behind them, corrections to the
+record, traps, owed work. It is updated **in the same pull request as the merge
+it records**, riding the per-merge obligation above so it costs no extra pull
+request, and its `updated-for:` line names that merge. It links to the
+Delivery-status table rather than restating it, and it names a metric rather
+than the number `tests/structure_budgets.json` already holds.
+
+**Volatile state goes on #201** — which seats are running, which branches are
+unpushed, what a resumer does next. Free to post at any moment, and it survives
+an abort, which an unpushed in-tree edit does not.
+
+**Nothing goes in both.** That is what non-redundant means here.
+
+`tests/entities.py` enforces it: exactly one handover under `docs/`, and an
+`updated-for:` naming a commit reachable from `HEAD`. Handover files are
+deliberately *not* on `tests/closure.py`'s `INERT` list, so editing the living
+one selects that script and adding a second forces `MODE: FULL` — either way
+the refusal lands on the pull request rather than on the push to main. The
+count is by path segment, not filename, so `docs/handovers/` is a second
+handover too.
 
 ## Programme plans and the brief linter
 
@@ -162,20 +210,25 @@ mechanical, uniquely-detected failure.
 
 See `.cursor/rules/ci-autofix.mdc` and `tests/README.md` (scoped gate).
 
-<!-- ▼ DATED BLOCK. Everything below describes work in progress and expires with
-     it. If the tracking issue is closed, this block is history, not instruction. -->
+<!-- ▼ PROGRAMME BLOCK. Everything below is scoped to one programme and is
+     deleted when it closes. It carries no state of its own — only where the
+     state is — so it cannot go stale while the programme is open. -->
 
-## In flight as of 2026-09-04 — the open-issues programme
+## The open-issues programme
 
-Tracking issue **#201**; its newest comment is the live state. The plan of record
-is `docs/plan-2026-09-open-issues.md`, whose Delivery-status table is
+Tracking issue **#201**; its newest comment is the live state, and nothing in
+the tree competes with it for that job.
+
+Four places carry the rest, and each answers a different question. The plan of
+record is `docs/plan-2026-09-open-issues.md`, whose Delivery-status table is
 authoritative where it and a wave body disagree — so if that table looks stale
 against #201, the table is the bug and fixing it is the first task.
-`docs/handover-<latest date>.md` carries what the code cannot say: per-group
-resume points, blockers, and the traps a previous session hit.
+`docs/HANDOVER.md` carries what the code cannot say: decisions and why,
+corrections to the record, the traps a previous session hit, and owed work.
 `.claude/workflows/wave-*-groups.json` hold the per-group briefs, each with a
-`resume` field saying where it restarts. A brief records what a judge already
-**established and refuted** — reading only the issue body will have you
-implement a plan that was overturned.
+`resume` field saying where it restarts — and a brief records what a judge
+already **established and refuted**, so reading only the issue body will have
+you implement a plan that was overturned. `docs/audit-2026-09.md` is the
+evidence register the plan delivers against.
 
 When this programme closes, delete this block. The sections above stand alone.

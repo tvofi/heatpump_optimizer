@@ -76,10 +76,13 @@ CLOSURES = ROOT / "tests" / "closures.json"
 # card_browser.mjs, the real-browser layout lane (issue #96), is excluded
 # because it needs Chromium, which no other lane installs: the closures job
 # could not record it without growing a browser. It runs in its own job.
+# nightly_ha.py (#521) is that shape one step further out: it needs Docker and
+# pulls a Home Assistant image, so no gate lane can run it and the closures job
+# could not record it without both. Its own nightly job runs it.
 NOT_A_TEST = {
     "harness.py", "profiles.py", "closure.py", "gate_lock.py",
     "setup_qa_render.mjs",
-    "card_browser.mjs",
+    "card_browser.mjs", "nightly_ha.py",
     # The shared DOM stub (#101) and the rig around it, imported by the three
     # Node harnesses (card.mjs, setup_qa_render.mjs, card_drift.mjs): libraries,
     # never run. dom_stub.mjs was missing from this set from v6.1.2 to v6.2.7,
@@ -146,8 +149,7 @@ INERT = (
     "LICENSE",
     "NOTICE",
     "icon.png",
-    "docs/",
-    "wt/",  # wave-agent progress notes; nothing in the gate reads them
+    "docs/",  # except the handover -- see HANDOVER_DIR below
     "tests/README.md",
     ".gitignore",
     # Write-once round-2 audit evidence: harnesses and reports people run by
@@ -194,6 +196,11 @@ INERT = (
     "tests/card_browser.mjs",
     # A manual QA render (writes ../setup-qa/). No gate script reads it.
     "tests/setup_qa_render.mjs",
+    # Driven by the `nightly-ha` CI job (#521), which pulls a Home Assistant
+    # image and runs the integration inside it. Like card_browser.mjs it is a
+    # real test that this gate cannot run -- Docker is not available to any
+    # gate lane -- so no gate script reads it and none ever will.
+    "tests/nightly_ha.py",
 )
 
 # Changing the gate itself, or how the closures are derived, invalidates every
@@ -211,7 +218,33 @@ GATE_FILES = (
 )
 
 
+# The one hole in `docs/` (#518). Exactly one handover may exist, and
+# `tests/entities.py` reads it to say so -- which makes it a dependency, and a
+# file cannot be both read by a test and declared unread. Every OTHER
+# `docs/handover*.md` is left unclassified on purpose: it is then in no closure
+# and on no list, so `select` refuses to skip anything (MODE: FULL) and
+# `orphan_files` reports it. A second handover is therefore refused on the pull
+# request that adds it, not on the push to main that follows.
+HANDOVER_DIR = "docs/"
+HANDOVER_STEM = "handover"
+
+
+def is_handover(rel: str) -> bool:
+    """Anything under `docs/` whose first path segment starts with `handover`.
+
+    Deliberately wider than the one filename: it also catches a dated sibling
+    and the `docs/handovers/` directory someone reaches for once the flat name
+    is refused, which is the shape the ban would otherwise be one rename from.
+    """
+    if not rel.startswith(HANDOVER_DIR):
+        return False
+    first = rel[len(HANDOVER_DIR):].lower().split("/", 1)[0]
+    return first.startswith(HANDOVER_STEM)
+
+
 def is_inert(rel: str) -> bool:
+    if is_handover(rel):
+        return False
     return any(rel == p or (p.endswith("/") and rel.startswith(p)) for p in INERT)
 
 
