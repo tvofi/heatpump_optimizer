@@ -455,7 +455,19 @@
   "ventilation_active": false,
   "ventilation_evidence": [],
   "weather_forecast_available": 48,
-  "weather_forecast_stale_hours": null
+  "weather_forecast_stale_hours": null,
+  "wood_fuel": {
+   "cheaper": false,
+   "cheaper_hour_count": 0,
+   "efficiency": null,
+   "packing": null,
+   "price_sek_m3": null,
+   "ready": false,
+   "sek_per_kwh": null,
+   "show_whatif": false,
+   "slots": [],
+   "type": null
+  }
  },
  "forecast_outdoor": [
   -5.0,

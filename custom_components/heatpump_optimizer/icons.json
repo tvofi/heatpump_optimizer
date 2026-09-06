@@ -12,6 +12,9 @@
       },
       "open_window_detected": {
         "default": "mdi:window-open-variant"
+      },
+      "wood_cheaper": {
+        "default": "mdi:pine-tree"
       }
     },
     "button": {

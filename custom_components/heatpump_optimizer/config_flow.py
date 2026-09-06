@@ -204,6 +204,16 @@ from .const import (
     DEFAULT_WOOD_TANK_VOLUME,
     CONF_DHW_WOOD_COIL_ENABLED,
     DEFAULT_DHW_WOOD_COIL_ENABLED,
+    CONF_WOOD_FURNACE_ENABLED,
+    CONF_WOOD_TYPE,
+    CONF_WOOD_PACKING,
+    CONF_WOOD_PRICE_SEK_M3,
+    CONF_WOOD_FURNACE_EFFICIENCY,
+    DEFAULT_WOOD_TYPE,
+    DEFAULT_WOOD_PACKING,
+    DEFAULT_WOOD_FURNACE_EFFICIENCY,
+    WOOD_TYPES,
+    WOOD_PACKINGS,
     CONF_PRICE_PRIOR_ENABLED,
     DEFAULT_PRICE_PRIOR_ENABLED,
     CONF_PEAK_TARIFF_ENABLED,
@@ -318,6 +328,7 @@ from .const import (
     DEFAULT_HEATED_AREA,
 )
 from . import comfort_band, grid_fee, mixing_valve, presets, topology
+from .wood_fuel import wood_furnace_on
 from .currency import resolve_currency
 from .dhw_schedule import (
     MIN_WINDOW_MINUTES,
@@ -2353,24 +2364,34 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
                 )
             else:
                 cleaned = dict(user_input)
-                # This page's own clearable entities: an absent selector must
-                # be written back as None or clearing it silently restores
-                # the old entity.
                 for key in (
                     CONF_MIXING_VALVE_TARGET_ENTITY,
                     CONF_MIXING_VALVE_WRITE_ENTITY,
-                    CONF_VALVE_OUTLET_TEMP_ENTITY,
-                    CONF_WOOD_TANK_TOP_ENTITY,
-                    CONF_WOOD_TANK_BOTTOM_ENTITY,
                     CONF_SPACE_PUMP_ENTITY,
                 ):
                     if not cleaned.get(key):
                         cleaned[key] = None
+                merged = {**self._current, **cleaned}
+                if wood_furnace_on(merged):
+                    cleaned[CONF_WOOD_FURNACE_ENABLED] = True
+                    for key in (
+                        CONF_VALVE_OUTLET_TEMP_ENTITY,
+                        CONF_WOOD_TANK_TOP_ENTITY,
+                        CONF_WOOD_TANK_BOTTOM_ENTITY,
+                        CONF_EXTERNAL_HEAT_ENTITY,
+                    ):
+                        if not cleaned.get(key):
+                            cleaned[key] = None
+                elif CONF_WOOD_FURNACE_ENABLED in cleaned:
+                    cleaned[CONF_WOOD_FURNACE_ENABLED] = bool(
+                        cleaned[CONF_WOOD_FURNACE_ENABLED]
+                    )
                 return await self._save_or_menu(cleaned)
 
         current = self._current
         if user_input is not None:
             current = {**current, **user_input}
+        show_wood = wood_furnace_on(current)
 
         def _entity(key: str) -> Any:
             """Optional key that keeps the currently configured entity as default."""
@@ -2379,76 +2400,63 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
                 return vol.Optional(key, default=existing)
             return vol.Optional(key)
 
-        return self.async_show_form(
-            step_id="building",
-            errors=errors,
-            data_schema=_options_schema(
+        fields: dict[Any, Any] = {
+            vol.Optional(
+                CONF_MIXING_VALVE_MODE,
+                default=current.get(
+                    CONF_MIXING_VALVE_MODE, mixing_valve.MODE_NONE
+                ),
+            ): _select(
+                list(mixing_valve.SELECTABLE_MODES), "mixing_valve_mode"
+            ),
+            vol.Optional(
+                CONF_MIXING_VALVE_TARGET,
+                default=current.get(
+                    CONF_MIXING_VALVE_TARGET, DEFAULT_MIXING_VALVE_TARGET
+                ),
+            ): _number(0, 30, 0.5, "°C"),
+            _entity(CONF_MIXING_VALVE_TARGET_ENTITY): _entity_of(
+                "sensor", "temperature"
+            ),
+            _entity(CONF_MIXING_VALVE_WRITE_ENTITY): _entity_of(
+                ["number", "input_number", "climate"]
+            ),
+            vol.Optional(
+                CONF_MIXING_VALVE_WRITE_TARGET_KIND,
+                default=current.get(
+                    CONF_MIXING_VALVE_WRITE_TARGET_KIND,
+                    DEFAULT_MIXING_VALVE_WRITE_TARGET_KIND,
+                ),
+            ): _select(
+                list(mixing_valve.WRITE_TARGET_KINDS),
+                "mixing_valve_write_target_kind",
+            ),
+            vol.Optional(
+                CONF_BUFFER_TANK_VOLUME,
+                default=current.get(
+                    CONF_BUFFER_TANK_VOLUME, DEFAULT_BUFFER_TANK_VOLUME
+                ),
+            ): _number(10, 1500, 5, "L"),
+            vol.Optional(
+                CONF_BUFFER_MAX_TEMP,
+                default=current.get(
+                    CONF_BUFFER_MAX_TEMP, DEFAULT_BUFFER_MAX_TEMP
+                ),
+            ): _number(40, 90, 1, "°C", slider=True),
+            vol.Optional(
+                CONF_WOOD_FURNACE_ENABLED,
+                default=wood_furnace_on(current),
+            ): bool,
+        }
+        if show_wood:
+            fields.update(
                 {
-                    vol.Optional(
-                        CONF_MIXING_VALVE_MODE,
-                        default=current.get(
-                            CONF_MIXING_VALVE_MODE, mixing_valve.MODE_NONE
-                        ),
-                    ): _select(
-                        list(mixing_valve.SELECTABLE_MODES), "mixing_valve_mode"
-                    ),
-                    # 0 means "use the top of the comfort band", which is also
-                    # what a dumb valve is recommended to be set to.
-                    vol.Optional(
-                        CONF_MIXING_VALVE_TARGET,
-                        default=current.get(
-                            CONF_MIXING_VALVE_TARGET, DEFAULT_MIXING_VALVE_TARGET
-                        ),
-                    ): _number(0, 30, 0.5, "°C"),
-                    _entity(CONF_MIXING_VALVE_TARGET_ENTITY): _entity_of(
-                        "sensor", "temperature"
-                    ),
-                    # The actuation path for smart_write: the number or
-                    # climate entity the valve's own controller exposes.
-                    _entity(CONF_MIXING_VALVE_WRITE_ENTITY): _entity_of(
-                        ["number", "input_number", "climate"]
-                    ),
-                    # What kind of set-point that entity expects (#398).
-                    # Defaults to "indoor", the value always written, so an
-                    # existing entry's behaviour does not move.
-                    vol.Optional(
-                        CONF_MIXING_VALVE_WRITE_TARGET_KIND,
-                        default=current.get(
-                            CONF_MIXING_VALVE_WRITE_TARGET_KIND,
-                            DEFAULT_MIXING_VALVE_WRITE_TARGET_KIND,
-                        ),
-                    ): _select(
-                        list(mixing_valve.WRITE_TARGET_KINDS),
-                        "mixing_valve_write_target_kind",
-                    ),
-                    vol.Optional(
-                        CONF_BUFFER_TANK_VOLUME,
-                        default=current.get(
-                            CONF_BUFFER_TANK_VOLUME, DEFAULT_BUFFER_TANK_VOLUME
-                        ),
-                    ): _number(10, 1500, 5, "L"),
-                    vol.Optional(
-                        CONF_BUFFER_MAX_TEMP,
-                        default=current.get(
-                            CONF_BUFFER_MAX_TEMP, DEFAULT_BUFFER_MAX_TEMP
-                        ),
-                    ): _number(40, 90, 1, "°C", slider=True),
-                    # The radiator share is deliberately NOT here even though
-                    # the old building page carried it: it is one of the four
-                    # two-zone *presence* keys, and this page's voluptuous
-                    # defaults write every field on any save — which would
-                    # flip a legacy single-zone entry to two-zone the first
-                    # time someone configured a valve. It lives on the
-                    # thermal_model page, whose fields are presence-safe.
-                    # Wood-furnace topology: the valve outlet is the sensor
-                    # that turns the boolean fire into a continuous
-                    # displacement; the tank pair bounds how long the fire
-                    # can back it. The detector itself stays on the learning
-                    # page; this is the plumbing it observes.
                     _entity(CONF_VALVE_OUTLET_TEMP_ENTITY): _entity_of(
                         ["sensor"]
                     ),
-                    _entity(CONF_WOOD_TANK_TOP_ENTITY): _entity_of(["sensor"]),
+                    _entity(CONF_WOOD_TANK_TOP_ENTITY): _entity_of(
+                        ["sensor"]
+                    ),
                     _entity(CONF_WOOD_TANK_BOTTOM_ENTITY): _entity_of(
                         ["sensor"]
                     ),
@@ -2458,9 +2466,6 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
                             CONF_WOOD_TANK_VOLUME, DEFAULT_WOOD_TANK_VOLUME
                         ),
                     ): _number(50, 3000, 50, "L", slider=True),
-                    # How the DHW tank is plumbed to the wood tank. Only bites
-                    # with the two-tank model, which is why it sits beside the
-                    # tank it depends on (v3.15.1).
                     vol.Optional(
                         CONF_DHW_WOOD_COIL_ENABLED,
                         default=current.get(
@@ -2468,11 +2473,64 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
                             DEFAULT_DHW_WOOD_COIL_ENABLED,
                         ),
                     ): bool,
-                    _entity(CONF_SPACE_PUMP_ENTITY): _entity_of(
-                        ["switch", "input_boolean"]
+                    vol.Optional(
+                        CONF_EXTERNAL_HEAT_ENABLED,
+                        default=current.get(
+                            CONF_EXTERNAL_HEAT_ENABLED,
+                            DEFAULT_EXTERNAL_HEAT_ENABLED,
+                        ),
+                    ): bool,
+                    _entity(CONF_EXTERNAL_HEAT_ENTITY): _entity_of(
+                        [
+                            "binary_sensor",
+                            "switch",
+                            "input_boolean",
+                            "sensor",
+                        ]
                     ),
+                    vol.Optional(
+                        CONF_EXTERNAL_HEAT_MIN_RISE,
+                        default=current.get(
+                            CONF_EXTERNAL_HEAT_MIN_RISE,
+                            DEFAULT_EXTERNAL_HEAT_MIN_RISE,
+                        ),
+                    ): _number(0.5, 10, 0.1, "°C/h"),
+                    vol.Optional(
+                        CONF_EXTERNAL_HEAT_DECAY_MINUTES,
+                        default=current.get(
+                            CONF_EXTERNAL_HEAT_DECAY_MINUTES,
+                            DEFAULT_EXTERNAL_HEAT_DECAY_MINUTES,
+                        ),
+                    ): _number(15, 360, 15, "min", slider=True),
+                    vol.Optional(
+                        CONF_WOOD_TYPE,
+                        default=current.get(CONF_WOOD_TYPE, DEFAULT_WOOD_TYPE),
+                    ): _select(list(WOOD_TYPES), "wood_type"),
+                    vol.Optional(
+                        CONF_WOOD_PACKING,
+                        default=current.get(
+                            CONF_WOOD_PACKING, DEFAULT_WOOD_PACKING
+                        ),
+                    ): _select(list(WOOD_PACKINGS), "wood_packing"),
+                    _options_suggested_numeric(
+                        current, CONF_WOOD_PRICE_SEK_M3
+                    ): _number(0, 10000, 10, "SEK/m³"),
+                    vol.Optional(
+                        CONF_WOOD_FURNACE_EFFICIENCY,
+                        default=current.get(
+                            CONF_WOOD_FURNACE_EFFICIENCY,
+                            DEFAULT_WOOD_FURNACE_EFFICIENCY,
+                        ),
+                    ): _number(10, 95, 1, "%", slider=True),
                 }
-            ),
+            )
+        fields[_entity(CONF_SPACE_PUMP_ENTITY)] = _entity_of(
+            ["switch", "input_boolean"]
+        )
+        return self.async_show_form(
+            step_id="building",
+            errors=errors,
+            data_schema=_options_schema(fields),
         )
 
     async def async_step_thermal_model(
@@ -3162,28 +3220,6 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
                             CONF_STALENESS_SCALE, DEFAULT_STALENESS_SCALE
                         ),
                     ): _number(STALENESS_SCALE_MIN, STALENESS_SCALE_MAX, 0.5, slider=True),
-                    vol.Optional(
-                        CONF_EXTERNAL_HEAT_ENABLED,
-                        default=current.get(
-                            CONF_EXTERNAL_HEAT_ENABLED,
-                            DEFAULT_EXTERNAL_HEAT_ENABLED,
-                        ),
-                    ): bool,
-                    _entity(CONF_EXTERNAL_HEAT_ENTITY): _entity_of(["binary_sensor", "switch", "input_boolean", "sensor"]),
-                    vol.Optional(
-                        CONF_EXTERNAL_HEAT_MIN_RISE,
-                        default=current.get(
-                            CONF_EXTERNAL_HEAT_MIN_RISE,
-                            DEFAULT_EXTERNAL_HEAT_MIN_RISE,
-                        ),
-                    ): _number(0.5, 10, 0.1, "°C/h"),
-                    vol.Optional(
-                        CONF_EXTERNAL_HEAT_DECAY_MINUTES,
-                        default=current.get(
-                            CONF_EXTERNAL_HEAT_DECAY_MINUTES,
-                            DEFAULT_EXTERNAL_HEAT_DECAY_MINUTES,
-                        ),
-                    ): _number(15, 360, 15, "min", slider=True),
                     vol.Optional(
                         CONF_COMFORT_LEARNING_ENABLED,
                         default=current.get(

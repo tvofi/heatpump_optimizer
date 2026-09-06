@@ -383,6 +383,7 @@ from .snapshots import BIAS_TRIP_DAYS, SnapshotRing
 from . import pump_schedule
 from homeassistant.helpers import issue_registry as ir
 from .open_meteo import OpenMeteoSolar
+from .wood_fuel import wood_furnace_on, wood_fuel_from_coordinator
 from .thermal_model import (
     DHW_AMBIENT_TEMP,
     WATER_SPECIFIC_HEAT,
@@ -2785,7 +2786,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             / 60.0
         )
         return ExternalHeatConfig(
-            enabled=bool(
+            enabled=wood_furnace_on(self._config) and bool(
                 self._config.get(
                     CONF_EXTERNAL_HEAT_ENABLED, DEFAULT_EXTERNAL_HEAT_ENABLED
                 )
@@ -7347,7 +7348,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # diagnosis — one additive block, present even while everything in
         # it is gated off (it reads as empty/inert).
         data["insight"], data["freq_control"], data["currency"] = self._insight_view(), self._freq_view(), self.currency
-
+        data["wood_fuel"] = wood_fuel_from_coordinator(self, result)
         # Only surface the manual-plan key while an override is actually active,
         # so a plan-free solve (the golden fixtures included) is byte-for-byte
         # unchanged from before this feature existed.

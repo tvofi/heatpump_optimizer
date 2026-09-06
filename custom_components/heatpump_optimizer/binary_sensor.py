@@ -47,6 +47,7 @@ async def async_setup_entry(
             ExternalHeatBinarySensor(coordinator, entry),
             AwayModeBinarySensor(coordinator, entry),
             VentilationBinarySensor(coordinator, entry),
+            WoodCheaperBinarySensor(coordinator, entry),
         ]
     )
 
@@ -193,3 +194,27 @@ class AwayModeBinarySensor(_OptimizerBinarySensorBase):
             "recovery_active": data.get("away_recovery_active"),
             "source": data.get("away_source"),
         }
+
+
+class WoodCheaperBinarySensor(_OptimizerBinarySensorBase):
+    def __init__(self, coordinator, entry) -> None:
+        super().__init__(coordinator, entry, "wood_cheaper", "wood_cheaper")
+
+    @property
+    def available(self) -> bool:
+        fuel = self._data().get("wood_fuel") or {}
+        return bool(super().available and fuel.get("ready"))
+
+    @property
+    def is_on(self) -> bool:
+        fuel = self._data().get("wood_fuel") or {}
+        return bool(fuel.get("ready") and fuel.get("cheaper"))
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        fuel = self._data().get("wood_fuel") or {}
+        return {
+            "sek_per_kwh": fuel.get("sek_per_kwh"),
+            "cheaper_hour_count": fuel.get("cheaper_hour_count"),
+        }
+

@@ -2,7 +2,7 @@
  "_comment": "MEASURED, not written by hand. Regenerate with tests/derive_closures.sh; the post-merge gate on main re-records these and fails if this file misses anything a real run touched.",
  "recorded": {
   "tests/backtest.py": {
-   "seconds": 31.4,
+   "seconds": 18.9,
    "rc": 0
   },
   "tests/card.mjs": {
@@ -14,7 +14,7 @@
    "rc": 0
   },
   "tests/config_flow_steps.py": {
-   "seconds": 0.8,
+   "seconds": 0.5,
    "rc": 0
   },
   "tests/dst_checks.py": {
@@ -22,19 +22,19 @@
    "rc": 0
   },
   "tests/edge.py": {
-   "seconds": 37.9,
+   "seconds": 19.5,
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 9.4,
-   "rc": 1
+   "seconds": 12.1,
+   "rc": 0
   },
   "tests/env_drift.py": {
-   "seconds": 0.6,
+   "seconds": 0.5,
    "rc": 0
   },
   "tests/features.py": {
-   "seconds": 45.8,
+   "seconds": 50.0,
    "rc": 0
   },
   "tests/frontend.py": {
@@ -46,7 +46,7 @@
    "rc": 0
   },
   "tests/manual_plan.py": {
-   "seconds": 4.1,
+   "seconds": 4.2,
    "rc": 0
   },
   "tests/open_meteo.py": {
@@ -54,11 +54,11 @@
    "rc": 0
   },
   "tests/optimality.py": {
-   "seconds": 54.6,
+   "seconds": 34.9,
    "rc": 0
   },
   "tests/plan_view.py": {
-   "seconds": 0.6,
+   "seconds": 0.7,
    "rc": 0
   },
   "tests/solar_alignment.py": {
@@ -66,7 +66,7 @@
    "rc": 0
   },
   "tests/stress.py": {
-   "seconds": 578.2,
+   "seconds": 397.6,
    "rc": 0
   },
   "tests/structure.py": {
@@ -74,7 +74,7 @@
    "rc": 0
   },
   "tests/validate.py": {
-   "seconds": 31.2,
+   "seconds": 16.7,
    "rc": 0
   }
  },
@@ -89,6 +89,7 @@
    "custom_components/heatpump_optimizer/pv.py",
    "custom_components/heatpump_optimizer/tariff.py",
    "custom_components/heatpump_optimizer/thermal_model.py",
+   "custom_components/heatpump_optimizer/wood_fuel.py",
    "tests/backtest.py",
    "tests/harness.py",
    "tests/hastub/homeassistant/__init__.py",
@@ -143,6 +144,7 @@
    "custom_components/heatpump_optimizer/thermal_model.py",
    "custom_components/heatpump_optimizer/topology.py",
    "custom_components/heatpump_optimizer/wear.py",
+   "custom_components/heatpump_optimizer/wood_fuel.py",
    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
    "tests/card.mjs",
    "tests/card_rig.mjs",
@@ -280,6 +282,7 @@
    "custom_components/heatpump_optimizer/thermal_model.py",
    "custom_components/heatpump_optimizer/topology.py",
    "custom_components/heatpump_optimizer/wear.py",
+   "custom_components/heatpump_optimizer/wood_fuel.py",
    "tests/config_flow_steps.py",
    "tests/harness.py",
    "tests/hastub/homeassistant/__init__.py",
@@ -316,6 +319,7 @@
    "custom_components/heatpump_optimizer/pv.py",
    "custom_components/heatpump_optimizer/tariff.py",
    "custom_components/heatpump_optimizer/thermal_model.py",
+   "custom_components/heatpump_optimizer/wood_fuel.py",
    "tests/edge.py",
    "tests/hastub/homeassistant/__init__.py",
    "tests/hastub/homeassistant/config_entries.py",
@@ -388,6 +392,7 @@
    "custom_components/heatpump_optimizer/translations/en.json",
    "custom_components/heatpump_optimizer/translations/sv.json",
    "custom_components/heatpump_optimizer/wear.py",
+   "custom_components/heatpump_optimizer/wood_fuel.py",
    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
    "hacs.json",
    "tests/entities.py",
@@ -490,6 +495,7 @@
    "custom_components/heatpump_optimizer/translations/en.json",
    "custom_components/heatpump_optimizer/translations/sv.json",
    "custom_components/heatpump_optimizer/wear.py",
+   "custom_components/heatpump_optimizer/wood_fuel.py",
    "tests/env_drift.py",
    "tests/golden/away_setback.json",
    "tests/golden/building_preset.json",
@@ -629,6 +635,7 @@
    "custom_components/heatpump_optimizer/translations/en.json",
    "custom_components/heatpump_optimizer/translations/sv.json",
    "custom_components/heatpump_optimizer/wear.py",
+   "custom_components/heatpump_optimizer/wood_fuel.py",
    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
    "tests/dst_checks.py",
    "tests/features.py",
@@ -733,6 +740,7 @@
    "custom_components/heatpump_optimizer/translations/en.json",
    "custom_components/heatpump_optimizer/translations/sv.json",
    "custom_components/heatpump_optimizer/wear.py",
+   "custom_components/heatpump_optimizer/wood_fuel.py",
    "tests/env_drift.py",
    "tests/golden.py",
    "tests/golden/away_setback.json",
@@ -863,6 +871,7 @@
    "custom_components/heatpump_optimizer/thermal_model.py",
    "custom_components/heatpump_optimizer/topology.py",
    "custom_components/heatpump_optimizer/wear.py",
+   "custom_components/heatpump_optimizer/wood_fuel.py",
    "tests/harness.py",
    "tests/hastub/homeassistant/__init__.py",
    "tests/hastub/homeassistant/components/__init__.py",
@@ -902,6 +911,7 @@
    "custom_components/heatpump_optimizer/pv.py",
    "custom_components/heatpump_optimizer/tariff.py",
    "custom_components/heatpump_optimizer/thermal_model.py",
+   "custom_components/heatpump_optimizer/wood_fuel.py",
    "tests/harness.py",
    "tests/hastub/homeassistant/__init__.py",
    "tests/hastub/homeassistant/config_entries.py",
@@ -953,6 +963,7 @@
    "custom_components/heatpump_optimizer/thermal_model.py",
    "custom_components/heatpump_optimizer/topology.py",
    "custom_components/heatpump_optimizer/wear.py",
+   "custom_components/heatpump_optimizer/wood_fuel.py",
    "tests/hastub/homeassistant/__init__.py",
    "tests/hastub/homeassistant/components/__init__.py",
    "tests/hastub/homeassistant/components/mqtt.py",
@@ -1015,6 +1026,7 @@
    "custom_components/heatpump_optimizer/thermal_model.py",
    "custom_components/heatpump_optimizer/topology.py",
    "custom_components/heatpump_optimizer/wear.py",
+   "custom_components/heatpump_optimizer/wood_fuel.py",
    "tests/hastub/homeassistant/__init__.py",
    "tests/hastub/homeassistant/components/__init__.py",
    "tests/hastub/homeassistant/components/mqtt.py",
@@ -1048,6 +1060,7 @@
    "custom_components/heatpump_optimizer/pv.py",
    "custom_components/heatpump_optimizer/tariff.py",
    "custom_components/heatpump_optimizer/thermal_model.py",
+   "custom_components/heatpump_optimizer/wood_fuel.py",
    "tests/harness.py",
    "tests/hastub/homeassistant/__init__.py",
    "tests/hastub/homeassistant/config_entries.py",
@@ -1113,6 +1126,7 @@
    "custom_components/heatpump_optimizer/thermal_model.py",
    "custom_components/heatpump_optimizer/topology.py",
    "custom_components/heatpump_optimizer/wear.py",
+   "custom_components/heatpump_optimizer/wood_fuel.py",
    "tests/structure.py",
    "tests/structure_budgets.json"
   ],
@@ -1126,6 +1140,7 @@
    "custom_components/heatpump_optimizer/pv.py",
    "custom_components/heatpump_optimizer/tariff.py",
    "custom_components/heatpump_optimizer/thermal_model.py",
+   "custom_components/heatpump_optimizer/wood_fuel.py",
    "tests/hastub/homeassistant/__init__.py",
    "tests/hastub/homeassistant/config_entries.py",
    "tests/hastub/homeassistant/const.py",
