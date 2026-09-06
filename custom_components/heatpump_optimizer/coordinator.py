@@ -22,7 +22,7 @@ import subprocess
 import sys
 import threading
 from bisect import bisect_right
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, NamedTuple
@@ -879,6 +879,17 @@ def _sim_dhw_low(plan) -> float | None:
     return round(float(min(plan.dhw_temp_trajectory)), 2)
 
 
+@dataclass(frozen=True)
+class CoordinatorContext:
+    """The five write-once hubs (#377 S0). ``_current_action`` stays mutable."""
+
+    _config: dict[str, Any]
+    _thermal_params: ThermalParameters
+    hass: HomeAssistant
+    _current_state: ThermalState
+    _opt_config: OptimizationConfig
+
+
 class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     """Coordinator for Heat Pump Cost Optimizer."""
 
@@ -909,6 +920,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
         self._init_model()
         self._init_runtime_state()
+        self._ctx = CoordinatorContext(
+            self._config, self._thermal_params, self.hass,
+            self._current_state, self._opt_config)
         self._init_dhw_learning(hass, entry)
         self._init_measurements()
         self._init_grid(hass, entry)
@@ -1124,17 +1138,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._tibber_outage_cycles: int = 0
         # One reauth flow per auth outage (D10-08): re-armed on recovery.
         self._tibber_reauth_started: bool = False
-
         # Solar irradiance and the floor return temperature sensor.
         self._solar_radiation: float = 0.0
         self._floor_return_temp: float | None = None
         self._solar_radiation_forecast: list[float] = []
         self._open_meteo: OpenMeteoSolar | None = None
-
         # A run takes seconds, so a user tapping the button repeatedly must not
         # be able to stack solves on top of each other.
         self._optimization_running: bool = False
-
         # Set by ``async_setup_entry`` — and by nothing else — just before the
         # first refresh: that refresh runs inside setup, where a full cold
         # solve stalls the whole instance. Consumed on the next update cycle,
