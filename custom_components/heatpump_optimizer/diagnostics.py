@@ -25,7 +25,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from homeassistant.components.diagnostics import async_redact_data
+from homeassistant.components.diagnostics import REDACTED, async_redact_data
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
@@ -52,11 +52,6 @@ COORDINATE_KEYS = frozenset({"latitude", "longitude"})
 #: produces: latitude and longitude swapped, and a location in the wrong
 #: country.
 COORDINATE_PLACES = 1
-
-#: What ``async_redact_data`` substitutes, taken from the function itself
-#: rather than re-declared, so the two markers in one payload cannot diverge
-#: and the module needs only the one import every core integration uses.
-REDACTED = async_redact_data({"_": None}, {"_"})["_"]
 
 
 def _coordinate(value: Any) -> Any:
