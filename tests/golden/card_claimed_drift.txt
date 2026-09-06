@@ -37,3 +37,6 @@
 # #523 (an autofix job that reported success without repairing): this
 # branch claims NOTHING. Gate plumbing and CI only -- no card source is
 # touched.
+#
+# The claim-driver policy text, split out of #545 for approval: this branch
+# claims NOTHING. Two prose files only -- no card source is touched.

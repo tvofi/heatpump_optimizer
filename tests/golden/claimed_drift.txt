@@ -64,6 +64,10 @@
 # branch claims NOTHING. tests/closure.py, tests/env_drift.py and the CI
 # workflow only -- gate plumbing, no solver or fixture input changes, so
 # every scenario is byte-identical by construction.
+#
+# The claim-driver policy text, split out of #545 for approval: this branch
+# claims NOTHING. CLAUDE.md and .cursor/rules/ci-autofix.mdc only -- no
+# production file, no test input and no solver parameter is touched.
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
