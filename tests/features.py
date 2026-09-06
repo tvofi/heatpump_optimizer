@@ -9598,6 +9598,65 @@ R.check(
     _cg._vent_cusum.tripped,
 )
 
+# --- #193 S7: one bounded Newton step behind both heat-loss learners ---------
+# `_async_learn_house_heat_loss` and `_async_learn_lower_floor_loss` each
+# carried the same Newton/trust-region/EWMA/step-limit block; the structure
+# duplication table named both call sites. It now lives once in
+# thermal_model. The replay below is the null control for that move: the
+# same warm residuals through the real learner must land on the same scale.
+_eq = _vent_coord()
+_feed_residual(_eq, 0.4, 10, _T4)
+R.check(
+    "the extracted Newton step leaves the learned scale unchanged",
+    abs(_eq._house_heat_loss_scale - 0.8999999999999999) < 1e-12,
+    f"scale {_eq._house_heat_loss_scale!r}",
+)
+
+from heatpump_optimizer.thermal_model import learner_newton_step as _newton
+from heatpump_optimizer.coordinator import _LEARNER_TRUST_REGION as _HL_TR
+from heatpump_optimizer.coordinator import HOUSE_LOSS_ALPHA as _HL_ALPHA
+
+R.section("One bounded Newton step behind both heat-loss learners (#193 S7)")
+
+_STEP_KW = {
+    "trust_region": _HL_TR,
+    "alpha": _HL_ALPHA,
+    "max_step_fraction": _HL_STEP,
+}
+R.check(
+    "a degenerate coefficient or capacity yields no step at all",
+    _newton(1.0, 0.0, 8.0, 0.1, 10.0, 0.5, **_STEP_KW) is None
+    and _newton(1.0, 0.2, 0.0, 0.1, 10.0, 0.5, **_STEP_KW) is None,
+    "a zero base UA divides the Newton step by zero",
+)
+# The trust region is what makes noise-dominated samples zero-mean: the
+# residual that saturates it warm-side and the one that saturates it
+# cold-side must move the estimate by equal and opposite amounts. The
+# one-sided discard this replaced drifted the scale 1.0 -> 1.2 in 60 days
+# on pure noise.
+_warm = _newton(1.0, 0.2, 8.0, 5.0, 10.0, 0.5, **_STEP_KW)
+_cold = _newton(1.0, 0.2, 8.0, -5.0, 10.0, 0.5, **_STEP_KW)
+R.check(
+    "the trust region saturates symmetrically about the current estimate",
+    abs((_warm[0] - 1.0) + (_cold[0] - 1.0)) < 1e-12
+    and abs(_warm[0] - (1.0 - _HL_TR)) < 1e-12,
+    f"warm target {_warm[0]}, cold target {_cold[0]}",
+)
+R.check(
+    "the EWMA is what a saturated sample actually moves the estimate by",
+    abs((_cold[1] - 1.0) - _HL_ALPHA * _HL_TR) < 1e-12,
+    f"moved {_cold[1] - 1.0}, EWMA step {_HL_ALPHA * _HL_TR}",
+)
+# Where the EWMA would outrun it the rate limit binds instead, and it is a
+# fraction of the *current* estimate, not a fixed offset.
+_small = _newton(0.1, 0.2, 8.0, -5.0, 10.0, 0.5, **_STEP_KW)
+R.check(
+    "and the rate limit caps it at a fraction of the current estimate",
+    abs(_small[1] - (0.1 + 0.1 * _HL_STEP)) < 1e-12
+    and 0.1 * _HL_STEP < _HL_ALPHA * _HL_TR,
+    f"moved {_small[1] - 0.1}, cap {0.1 * _HL_STEP}",
+)
+
 # While a stale sensor is what feeds the residual, the detector must not
 # be driven by the flatline: an unusable input outranks ventilation, so the
 # latch simply holds until real data returns. Real ``InputReading`` objects,
