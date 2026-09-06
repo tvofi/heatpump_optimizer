@@ -65,6 +65,12 @@
 # workflow only -- gate plumbing, no solver or fixture input changes, so
 # every scenario is byte-identical by construction.
 #
+#
+#
+# The finding-propagation destination fix: this branch claims NOTHING. Two
+# rules files and CLAUDE.md only -- no production file, no test input and no
+# solver parameter is touched, so every scenario is byte-identical.
+#
 # The document-contradiction fixes (tools/audit/briefs/fixer.md step 5,
 # tests/README.md exclusion list and script counts): this branch claims
 # NOTHING. Prose in two documents only -- no production file, no fixture and
