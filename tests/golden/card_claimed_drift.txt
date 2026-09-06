@@ -48,5 +48,9 @@
 # NOTHING. Prose in two documents only -- no card source, template or style
 # is touched, so the rendered markup is byte-identical by construction.
 #
+# #546, the unsaveable setup page: this branch claims NOTHING. The card's
+# only edit is a comment above its own PLACE_LABELS map; no box, position
+# or payload key is touched, so every rendered state is byte-identical.
+#
 # The claim-driver policy text, split out of #545 for approval: this branch
 # claims NOTHING. Two prose files only -- no card source is touched.

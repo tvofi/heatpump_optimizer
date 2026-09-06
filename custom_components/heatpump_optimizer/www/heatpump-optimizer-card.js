@@ -1565,10 +1565,12 @@ const NODE_SHAPES = {
   },
 };
 
-// Human names for the places pipes connect, mirroring `topology.PLACE_LABELS`.
-// Only the layout editor's rejection line uses them -- every box already
-// carries its own title -- so a place added on the backend without a label
-// here degrades to its id rather than disappearing.
+// Human names for the places pipes connect. Only the layout editor's
+// rejection line uses them -- every box already carries its own title -- so a
+// place added on the backend without a label here degrades to its id rather
+// than disappearing. This is the only such map: the backend's copy was read
+// by nothing but the apply_topology schema, which is what made a dragged
+// Outside box unsaveable, and it went with that fix (#546).
 const PLACE_LABELS = {
   heat_pump: "places.heat_pump",
   buffer_tank: "places.buffer_tank",
