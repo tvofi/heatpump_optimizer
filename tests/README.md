@@ -263,6 +263,14 @@ an INERT contradiction, or its own follow-up commit. **Do not open a
 second PR or run Darwin `--single` for that failure** — Linux CI already
 has the recordings.
 
+That wait holds only while the job reports that it is repairing. Both
+autofix jobs end by printing their status to the job summary, and
+`closures-autofix` reddens when UNDER-SCOPED was printed and the repair did
+not happen. **Key on the summary line, not the conclusion**: green covers
+"repaired and pushed" and "nothing was owed" alike, and two paths still end
+green with a repair unmade. `.cursor/rules/ci-autofix.mdc` states which, and
+what each one means for the wait.
+
 If `fast` fails because a claim list is identical to `origin/main`
 (`INHERITED CLAIMS`, the #493/#494/#496 case), `claims-autofix` deletes
 the bare claim lines, keeps `claims-for:` and `# may-drift:`, and pushes

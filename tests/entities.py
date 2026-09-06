@@ -7551,6 +7551,8 @@ import time as _time
 
 import env_drift as _env_drift
 import closure as _closure
+import ast as _ast_af
+import inspect as _inspect
 import gate_lock as _gate_lock
 
 
@@ -8182,31 +8184,71 @@ R.check(
     _af2_status == "skip-clean",
     f"status={_af2_status}: merging a matching record would loop",
 )
-with _tempfile.TemporaryDirectory() as _af3_td:
-    _af3_root = Path(_af3_td)
-    _af3_closures = _af3_root / "closures.json"
-    _af3_before = json.dumps({
-        "closures": {"tests/open_meteo.py": ["tests/open_meteo.py"]},
-        "recorded": {},
-    })
-    _af3_closures.write_text(_af3_before)
-    _af3_rec = _af3_root / "rec"
-    _af3_rec.mkdir()
-    (_af3_rec / "open_meteo.json").write_text(json.dumps({
-        "script": "tests/open_meteo.py", "rc": 1,
-        "files": ["tests/open_meteo.py"],
-    }))
-    _af3_orig, _closure.CLOSURES = _closure.CLOSURES, _af3_closures
-    try:
-        _af3_status = _closure.apply_under_scoped_recordings(
-            _af3_rec, partial=True)
-        _af3_after = _af3_closures.read_text()
-    finally:
-        _closure.CLOSURES = _af3_orig
+# A failed recording and "the failure was not UNDER-SCOPED" used to share one
+# status, and that status is quiet -- so ONE script failing to record vetoed
+# the repair of a DIFFERENT script that genuinely under-approximated, while
+# the job still concluded success and no `ci: re-record closures` commit was
+# ever pushed (#523, the residual the #528 review measured). `check` never
+# looks at `rc`, so the two conditions are independent and co-occur.
+#
+# `merge(allow_failures=False)` already refuses a failed recording, and that
+# refusal is `skip-merge-failed`, which reddens. Removing the early return
+# entirely yields exactly that -- measured -- so the status below restores a
+# refusal the early return had been pre-empting, with a remedy of its own.
+def _af_case(committed, records):
+    """Run the real apply function over a throwaway closures.json.
+
+    Returns (status, bytes-unchanged). Files named must be real files in the
+    tree: `check` rejects a recording of anything that is not a regular file.
+    """
+    with _tempfile.TemporaryDirectory() as td:
+        path = Path(td) / "closures.json"
+        before = json.dumps({"closures": committed, "recorded": {}})
+        path.write_text(before)
+        rec = Path(td) / "rec"
+        rec.mkdir()
+        for i, r in enumerate(records):
+            (rec / f"{i}.json").write_text(json.dumps(r))
+        orig, _closure.CLOSURES = _closure.CLOSURES, path
+        try:
+            status = _closure.apply_under_scoped_recordings(rec, partial=True)
+            return status, path.read_text() == before
+        finally:
+            _closure.CLOSURES = orig
+
+
+_af3_status, _af3_kept = _af_case(
+    {"tests/open_meteo.py": ["tests/open_meteo.py"],
+     "tests/frontend.py": ["tests/frontend.py"]},
+    [{"script": "tests/open_meteo.py", "rc": 0,
+      "files": ["tests/open_meteo.py", "tests/harness.py"]},
+     {"script": "tests/frontend.py", "rc": 1,
+      "files": ["tests/frontend.py"]}],
+)
 R.check(
-    "a failed recording does not rewrite closures.json",
-    _af3_status == "skip-not-under-scoped" and _af3_after == _af3_before,
-    f"status={_af3_status}: no-copies / failed-record must not push",
+    "one failed recording beside a real under-approximation reddens, not skips",
+    _af3_status == "skip-failed-recording" and _af3_kept
+    and _closure.autofix_repair_failed("closures-autofix", _af3_status),
+    f"status={_af3_status}: open_meteo.py under-approximates and the repair "
+    "is refused because frontend.py failed to record -- a human is waiting "
+    "for a commit no step will push",
+)
+# The other half of the split, and the reason it is a split rather than a
+# reclassification: a failed recording with nothing under-scoped must stay
+# quiet. `closures-autofix` runs on ANY `closures` failure, so reddening this
+# would fire on every no-copies, NOT-A-FILE or INERT failure that happened to
+# coincide with a failed recording -- and send its reader to re-derive a
+# closure that was never stale.
+_af3b_status, _af3b_kept = _af_case(
+    {"tests/open_meteo.py": ["tests/open_meteo.py"]},
+    [{"script": "tests/open_meteo.py", "rc": 1,
+      "files": ["tests/open_meteo.py"]}],
+)
+R.check(
+    "a failed recording with nothing under-scoped stays quiet",
+    _af3b_kept
+    and not _closure.autofix_repair_failed("closures-autofix", _af3b_status),
+    f"status={_af3b_status}: no repair was owed, so no human is waiting",
 )
 with _tempfile.TemporaryDirectory() as _af4_td:
     _af4_root = Path(_af4_td)
@@ -8280,6 +8322,116 @@ R.check(
         loop_subject="ci: drop inherited claims"),
     "the two repairs have separate loop guards",
 )
+# Both autofix jobs push only on `changed`, and every other status fell
+# through to job success -- so a job that repaired nothing was indistinguishable
+# from one that did, and `.cursor/rules/ci-autofix.mdc`'s "wait for the bot
+# commit" waited for a commit no step would push (#523).
+_AFJ = "closures-autofix"
+R.check(
+    "a closures autofix that attempted a repair and failed reddens its job",
+    _closure.autofix_repair_failed(_AFJ, "skip-merge-failed")
+    and _closure.autofix_repair_failed(_AFJ, "skip-still-fails")
+    and _closure.autofix_repair_failed(_AFJ, "skip-failed-recording"),
+    "the merge was refused, the merged list still under-approximates, or a "
+    "recording failed and the merge would refuse it",
+)
+# check() said fail, then said pass, over identical bytes. Either check is
+# not deterministic or merge reported success without writing the repair;
+# either way no `ci: re-record closures` commit exists to wait for.
+R.check(
+    "a merge that changed no bytes between a failing and a passing check reddens",
+    _closure.autofix_repair_failed(_AFJ, "skip-unchanged"),
+    "a repair that left the file identical was not recorded",
+)
+R.check(
+    "the ordinary closures autofix no-ops stay quiet",
+    not any(_closure.autofix_repair_failed(_AFJ, s) for s in (
+        "changed", "skip-clean", "skip-not-allowed", "skip-not-under-scoped")),
+    "these mean a repair happened or none was ever owed",
+)
+# claims-autofix is NOT the same shape, and this pins the difference:
+# apply_inherited_claims has no attempted-and-failed status, and
+# skip-not-inherited is the ordinary answer for every `fast` failure that was
+# not INHERITED CLAIMS -- that job never asks which it was, so reddening it
+# would redden every unrelated `fast` failure a second time.
+R.check(
+    "every status claims-autofix can return stays quiet",
+    not any(_closure.autofix_repair_failed("claims-autofix", s) for s in (
+        "changed", "skip-not-allowed", "skip-not-inherited")),
+    "a fast failure that was not INHERITED CLAIMS is not a skipped repair",
+)
+R.check(
+    "an unrecognised status or job reddens rather than passing by default",
+    _closure.autofix_repair_failed(_AFJ, "")
+    and _closure.autofix_repair_failed(_AFJ, "skip-invented-later")
+    and _closure.autofix_repair_failed("no-such-job", "changed"),
+    "a status nobody classified is a repair nobody can wait for",
+)
+# The table is a claim about what these two functions return. A status added
+# to either without a decision here defaults to reddening the job, which is
+# safe but silent; this makes the addition say so.
+def _returned_statuses(fn) -> set[str]:
+    """Every string literal `fn` can return, conditional expressions included.
+
+    A `return "a" if c else "b"` is one Return node carrying two literals; a
+    regex over `return "..."` reads that as one status and under-reports the
+    very thing this check asks about. It did, on apply_inherited_claims.
+    """
+    tree = _ast_af.parse(_inspect.getsource(fn))
+    return {n.value
+            for r in _ast_af.walk(tree)
+            if isinstance(r, _ast_af.Return) and r.value is not None
+            for n in _ast_af.walk(r.value)
+            if isinstance(n, _ast_af.Constant) and isinstance(n.value, str)}
+
+
+_af_returns = _returned_statuses(_closure.apply_under_scoped_recordings)
+_ac_returns = _returned_statuses(_env_drift.apply_inherited_claims)
+R.check(
+    "every status the two apply functions return is classified here",
+    _af_returns == {"changed", "skip-clean", "skip-not-under-scoped",
+                    "skip-failed-recording", "skip-merge-failed",
+                    "skip-still-fails", "skip-unchanged"}
+    and _ac_returns == {"changed", "skip-not-inherited"},
+    f"closures={sorted(_af_returns)} claims={sorted(_ac_returns)}",
+)
+# A correct predicate the workflow does not call is the green check this
+# whole finding is about, so the wiring is asserted against the YAML itself.
+_TESTS_YML = (pathlib.Path(__file__).resolve().parents[1]
+              / ".github" / "workflows" / "tests.yml").read_text()
+
+
+def _workflow_job(text: str, name: str) -> str:
+    """One job's YAML block, so a wiring check cannot match a sibling job."""
+    start = text.index(f"\n  {name}:\n") + 1
+    nxt = re.compile(r"^  [A-Za-z][\w-]*:", re.M).search(
+        text, text.index("\n", start) + 1)
+    return text[start:nxt.start()] if nxt else text[start:]
+
+
+for _job in ("closures-autofix", "claims-autofix"):
+    _blk = _workflow_job(_TESTS_YML, _job)
+    _steps = _blk.split("\n      - ")
+    _rep = [s for s in _steps if "autofix-report" in s]
+    R.check(
+        f"{_job} reports its status to a human",
+        len(_rep) == 1
+        and f"--job {_job}" in _rep[0]
+        and "steps.autofix.outputs.status" in _rep[0],
+        "an unwired predicate cannot redden anything",
+    )
+    R.check(
+        f"{_job} reports even when the repair step failed or was skipped",
+        bool(_rep) and re.search(r"if:\s*always\(\)", _rep[0]),
+        "the statuses worth reporting are exactly the ones that skip the push",
+    )
+    # Last, or its own non-zero exit would skip the push step below it and
+    # throw away the repair it exists to report.
+    R.check(
+        f"{_job} reports after it has pushed, not before",
+        bool(_rep) and _steps[-1] is _rep[0],
+        "a reporting step that preempts the push destroys the repair",
+    )
 # A script another script drives in a subprocess reaches the table only
 # through its driver's fold, and --single cannot record it.
 R.check(

@@ -60,6 +60,11 @@
 # module imports -- no solver, coordinator or fetch path reaches it, so every
 # scenario fixture is byte-identical by construction.
 #
+# #523 (an autofix job that reported success without repairing): this
+# branch claims NOTHING. tests/closure.py, tests/env_drift.py and the CI
+# workflow only -- gate plumbing, no solver or fixture input changes, so
+# every scenario is byte-identical by construction.
+#
 # The document-contradiction fixes (tools/audit/briefs/fixer.md step 5,
 # tests/README.md exclusion list and script counts): this branch claims
 # NOTHING. Prose in two documents only -- no production file, no fixture and
