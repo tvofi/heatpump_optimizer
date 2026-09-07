@@ -70,3 +70,6 @@
 # under .claude/workflows/ and audit prose.
 # The claim-driver policy text, split out of #545 for approval: this branch
 # claims NOTHING. Two prose files only -- no card source is touched.
+# W4-G8 S7 (#193, the thermal-learning seam): this branch claims NOTHING.
+# One numeric helper moves out of two coordinator learners -- no card
+# source, no payload key and no published value is touched.

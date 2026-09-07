@@ -1234,6 +1234,62 @@ def dhw_coil_draw_reduction(
     return reduced, draw_kw - reduced
 
 
+def learner_newton_step(
+    current: float,
+    base_u: float,
+    capacity: float,
+    residual: float,
+    delta_t: float,
+    dt_hours: float,
+    *,
+    trust_region: float,
+    alpha: float,
+    max_step_fraction: float,
+) -> tuple[float, float] | None:
+    """One bounded Newton step for a multiplicative heat-loss correction.
+
+    Single-zone dynamics make the predicted temperature change linear in UA
+    with slope ``-(T - T_out)*dt / C``, so a residual of ``e`` degrees implies
+    ``dUA = -e*C / (dT*dt)``. Returns ``(target, updated)`` for a correction
+    sitting at ``current``, or ``None`` where the sample yields no finite one.
+
+    Both heat-loss learners take this same step -- the house scale about the
+    upper zone, the lower-floor ratio about the lower one -- which is why it
+    lives here rather than at either call site (#193).
+
+    The target is bounded symmetrically about the current value rather than
+    discarded or clamped to fixed global bounds. Discarding was one-sided: a
+    warm-side residual of +0.13 C, inside sensor noise, drove the target
+    non-positive and threw the sample away while cold-side residuals were kept
+    to the full guard, so zero-mean noise ratcheted the scale 1.0 -> 1.2 in 60
+    days at sigma=0.1 C. Fixed global bounds only slow that, because their
+    midpoint is not the current estimate and symmetric noise then clips
+    asymmetrically. The lower zone needs the trust region most: its standalone
+    time constant ``C/u`` is over a hundred hours, so a residual of +0.12 K
+    already implies a dU larger than the whole coefficient -- a negative
+    target, on exactly the intervals where the house lost less than predicted.
+    """
+    if base_u <= 1e-6 or capacity <= 1e-6:
+        return None
+
+    current_u = base_u * current
+    # Warmer than predicted means the model is over-estimating the loss.
+    delta_u = -residual * capacity / (delta_t * dt_hours)
+    target = (current_u + delta_u) / base_u
+    if not np.isfinite(target):
+        return None
+    target = float(
+        np.clip(target, current - trust_region, current + trust_region)
+    )
+
+    # The EWMA and the rate limit below are what decide how fast genuine
+    # signal moves the estimate; the trust region only keeps noise even.
+    updated = (1.0 - alpha) * current + alpha * target
+    max_step = current * max_step_fraction
+    updated = float(np.clip(updated, current - max_step, current + max_step))
+    return target, updated
+
+
 class ThermalModel:
     """Thermal model supporting single-zone, two-zone, and DHW operation."""
 
