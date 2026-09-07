@@ -55,6 +55,13 @@ from heatpump_optimizer.thermal_model import (
 GOLDEN_DIR = Path("tests/golden")
 START = datetime(2026, 1, 15, 0, 0)
 
+#: Rounds ``capture_config_flow`` gives its derived option seed to settle
+#: (#547). Two are enough today -- one to find the entity fields an unseeded
+#: install shows, one to find the fields those reveal -- and the ceiling is a
+#: guard rather than a budget: exhausting it raises instead of recording a
+#: half-seeded render.
+_SEED_ROUNDS = 8
+
 # --- which comparison this invocation makes (#341) --------------------------
 #
 # `tests/run.sh` has read GOLDEN_MODE and GOLDEN_REF since drift mode existed.
@@ -1065,6 +1072,85 @@ def capture_config_flow() -> dict:
         result = asyncio.run(getattr(flow, f"async_step_{step}")())
         menus[step] = [[k, v] for k, v in result["menu_options"].items()]
     pages["_menu"] = menus
+
+    # The stored-value arm (#547). Everything above renders an entry with NO
+    # options, so the two-armed helpers (``_entity``/``_entity_default``) only
+    # ever take their empty branch and every entity marker records
+    # ``"default": null``. A byte-identical fixture therefore proved nothing
+    # about the arm a configured install actually sees, while reading as
+    # though it proved everything: mutating that arm on eleven of the twelve
+    # pages carrying it left this fixture, ``config_flow_steps.py`` and
+    # ``entities.py`` all green.
+    #
+    # The seed is DERIVED from the render and iterated to a fixed point, never
+    # written down. A hand-kept list would quietly stop covering a field that
+    # was renamed or added -- the exact failure mode this block exists to
+    # close -- whereas a derived one moves with the schema and shows the move
+    # here, in ``_seed``.
+    #
+    # The rule: every field an option page presents whose validator is an
+    # entity picker gets a synthetic entity id, and every boolean field gets
+    # ``True``. Those two are the field kinds whose value can be derived from
+    # the schema alone without inventing semantics -- a number's or a select's
+    # stored value cannot: there is no value derivable from the spec alone, and
+    # one picked merely to satisfy a selector spec is not a configuration.
+    #
+    # An earlier version of this comment also claimed that choosing a number or
+    # select decides which fields the page then renders. That was MEASURED
+    # FALSE by #553's review: all 16 selects exercised with real option values
+    # and all 75 numbers at min and max change which fields render in exactly
+    # zero cases -- ``mixing_valve_mode`` leaves ``building`` at 10 fields under
+    # all four modes, and the DHW window grammar is a TextSelector affecting
+    # validation, not rendering. The decision to leave them unseeded stands on
+    # the two grounds above; the third was a precondition with no control.
+    #
+    # Iterating is what reaches the gated blocks, and it is not theoretical:
+    # the booleans found in the first round turn on features whose own entity
+    # fields only exist once they are on, and the second round is where
+    # ``external_heat_entity`` -- #542's key, on the page that owns it --
+    # first appears at all.
+    seed: dict[str, object] = {}
+    schemas = {}
+    for _ in range(_SEED_ROUNDS):
+        seeded = Flow(
+            FakeEntry(
+                data={"tibber_token": "x", "weather_entity": "weather.home"},
+                options=dict(seed),
+            )
+        )
+        seeded.hass = FakeHass()
+        schemas = {
+            step: asyncio.run(getattr(seeded, f"async_step_{step}")()).get(
+                "data_schema"
+            )
+            for step in Flow._MENU_LABELS
+        }
+        grown = {}
+        for schema in schemas.values():
+            for key, value in schema.schema.items() if schema else []:
+                name = str(key)
+                if name in seed:
+                    continue
+                # ``bool`` itself, not only the selector: the wood-furnace
+                # toggle is declared as the bare builtin, and it is the gate
+                # the paragraph above turns on.
+                if type(value).__name__ == "EntitySelector":
+                    grown[name] = f"sensor.seed_{name}"
+                elif value is bool or type(value).__name__ == "BooleanSelector":
+                    grown[name] = True
+        if not grown:
+            break
+        seed.update(grown)
+    else:
+        # Not a soft failure: a seed that never settles means each round
+        # reveals fields the last did not, and the fixture below would record
+        # whichever round the budget happened to stop on.
+        raise AssertionError(
+            f"the seeded config-flow render did not converge in "
+            f"{_SEED_ROUNDS} rounds ({len(seed)} keys seeded)"
+        )
+    pages["_seed"] = dict(sorted(seed.items()))
+    pages["_seeded"] = {step: fingerprint(s) for step, s in schemas.items()}
     return pages
 
 

@@ -76,6 +76,10 @@
 # W4-G9 S8 (#193, the COP-health watch): this branch claims NOTHING. Two
 # coordinator initialisations move between init methods -- no card source, no
 # payload key and no published value is touched.
+# #547, the config-flow stored-value arm: this branch claims NOTHING. Two
+# test scripts, tests/golden.py and the config_flow golden fixture only --
+# no card source, template, style or payload key is touched, so every
+# rendered state is byte-identical by construction.
 # W4-G10 S9 (#224, optimize's breach-report tail): this branch claims NOTHING.
 # One optimizer method is split in two -- no card source, no payload key and no
 # published value is touched.
