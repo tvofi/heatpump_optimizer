@@ -155,17 +155,6 @@
 # The README section on AI use: this branch claims NOTHING. README.md only
 # -- no production file, no test input and no solver parameter is touched,
 # so every scenario is byte-identical by construction.
-# #516 (the config-flow golden's fingerprint walked schemas one level deep):
-# this branch claims NOTHING. It was cut when #547's config_flow claim was
-# still here and deleted it, this diff not moving that fixture; #556 removed
-# the same line independently before this merge, so the list was already
-# empty by the time the two met.
-# Three test files only -- tests/golden.py, tests/config_flow_steps.py and
-# the tests/hastub data_entry_flow stub. schema_fingerprint now recurses
-# into a section()'s inner schema, but no option page uses section() yet, so
-# capture_config_flow() reproduces the committed config_flow.json byte for
-# byte (md5 b513df7b3bb93e1a6b15e23ffc02e063 at both ends) and no marker
-# outside a section gains a key. Nothing to record, nothing to claim.
 
 # #550 (the apply_topology set check pinned the reverse direction against a
 # module constant, not the schema): this branch claims NOTHING. tests/features.py
