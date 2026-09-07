@@ -1,7 +1,7 @@
 ########## counting-rule self-check ##########
   ok   14 counting rules hold
 ########## god classes (> 300 LOC) ##########
-  custom_components/heatpump_optimizer/coordinator.py:1281-11366  10086 LOC  251 methods  175 self-attrs  HeatPumpOptimizerCoordinator
+  custom_components/heatpump_optimizer/coordinator.py:1301-11386  10086 LOC  251 methods  175 self-attrs  HeatPumpOptimizerCoordinator
   custom_components/heatpump_optimizer/optimizer.py:1256-6118  4863 LOC  58 methods  7 self-attrs  HeatPumpOptimizer
   custom_components/heatpump_optimizer/config_flow.py:1605-3320  1716 LOC  28 methods  1 self-attrs  HeatPumpOptimizerOptionsFlow
   custom_components/heatpump_optimizer/thermal_model.py:1293-2946  1654 LOC  26 methods  6 self-attrs  ThermalModel
@@ -12,19 +12,19 @@
   custom_components/heatpump_optimizer/external_heat.py:180-488  309 LOC  13 methods  6 self-attrs  ExternalHeatDetector
 
 ########## attr bags (> 30 assigned self-attrs) ##########
-  custom_components/heatpump_optimizer/coordinator.py:1281  175 self-attrs  HeatPumpOptimizerCoordinator  <- top attr bag
+  custom_components/heatpump_optimizer/coordinator.py:1301  175 self-attrs  HeatPumpOptimizerCoordinator  <- top attr bag
 
 ########## monster methods: top 10 of 19 over 150 LOC ##########
   custom_components/heatpump_optimizer/optimizer.py:4834-5322  489 LOC  _optimize_with_dhw
   custom_components/heatpump_optimizer/optimizer.py:2002-2465  464 LOC  optimize
   custom_components/heatpump_optimizer/optimizer.py:3603-4022  420 LOC  _build_dhw_requirements
   custom_components/heatpump_optimizer/thermal_model.py:2372-2752  381 LOC  simulate_trajectory_batch
-  custom_components/heatpump_optimizer/coordinator.py:5165-5534  370 LOC  async_run_optimization
+  custom_components/heatpump_optimizer/coordinator.py:5185-5554  370 LOC  async_run_optimization
   custom_components/heatpump_optimizer/sysid.py:474-805  332 LOC  identify
   custom_components/heatpump_optimizer/thermal_model.py:1850-2136  287 LOC  _simulate_step_two_zone
-  custom_components/heatpump_optimizer/coordinator.py:5704-5970  267 LOC  _update_current_state
+  custom_components/heatpump_optimizer/coordinator.py:5724-5990  267 LOC  _update_current_state
   custom_components/heatpump_optimizer/optimizer.py:2857-3113  257 LOC  _optimize_space_only
-  custom_components/heatpump_optimizer/coordinator.py:11152-11366  215 LOC  async_simulate
+  custom_components/heatpump_optimizer/coordinator.py:11172-11386  215 LOC  async_simulate
   max_method_loc = 489 (the worst one, budgeted; a count over a threshold stops pricing growth)
 
 ########## worst 5 cyclomatic (of 37 over 15) ##########
@@ -32,7 +32,7 @@
   custom_components/heatpump_optimizer/thermal_model.py:2372  cc=43  simulate_trajectory_batch
   custom_components/heatpump_optimizer/optimizer.py:5984  cc=36  get_current_action
   custom_components/heatpump_optimizer/sysid.py:474  cc=35  identify
-  custom_components/heatpump_optimizer/coordinator.py:5704  cc=35  _update_current_state
+  custom_components/heatpump_optimizer/coordinator.py:5724  cc=35  _update_current_state
   max_cc = 72 (the worst one, budgeted; sum_cc is refused -- see the module docstring)
 
 ########## .const import fan-out (names imported per module) ##########
@@ -49,11 +49,11 @@
   custom_components/heatpump_optimizer/optimizer.py: 6
   custom_components/heatpump_optimizer/pump_signals.py: 5
   custom_components/heatpump_optimizer/inputs.py: 4
+  custom_components/heatpump_optimizer/sensor.py: 4
   custom_components/heatpump_optimizer/setpoint_check.py: 4
   custom_components/heatpump_optimizer/external_heat.py: 3
   custom_components/heatpump_optimizer/__init__.py: 2
   custom_components/heatpump_optimizer/diagnostics.py: 2
-  custom_components/heatpump_optimizer/sensor.py: 2
   custom_components/heatpump_optimizer/switch.py: 2
   custom_components/heatpump_optimizer/battery.py: 1
   custom_components/heatpump_optimizer/frontend.py: 1
@@ -89,8 +89,8 @@
 ########## duplication (>= 10 normalized lines, across functions) ##########
   custom_components/heatpump_optimizer/config_flow.py:1277  async_step_building_extras  norm 20-29  10 lines
   custom_components/heatpump_optimizer/config_flow.py:1313  async_step_thermal  norm 28-37  10 lines
-  custom_components/heatpump_optimizer/coordinator.py:3871  _async_learn_house_heat_loss  norm 48-62  15 lines
-  custom_components/heatpump_optimizer/coordinator.py:4070  _async_learn_lower_floor_loss  norm 43-57  15 lines
+  custom_components/heatpump_optimizer/coordinator.py:3891  _async_learn_house_heat_loss  norm 48-62  15 lines
+  custom_components/heatpump_optimizer/coordinator.py:4090  _async_learn_lower_floor_loss  norm 43-57  15 lines
   custom_components/heatpump_optimizer/optimizer.py:2894  _space_traj  norm 0-13  14 lines
   custom_components/heatpump_optimizer/optimizer.py:4932  _space_traj  norm 0-13  14 lines
   custom_components/heatpump_optimizer/optimizer.py:2953  objective_batch  norm 10-19  10 lines

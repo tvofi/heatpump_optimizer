@@ -116,6 +116,16 @@
   ok   an unconfigured building page offers its entity fields undefaulted
   ok   the building page re-renders every stored entity as that field's default
 
+-- golden capture: section() nesting, added and removed fields
+  ok   the section stub matches HA: a vol.Schema, options not config, collapsed defaulting False, validating through the inner schema
+  ok   grouping a page into a section keeps every field in the fingerprint
+  ok   removing a field from inside a section moves the fingerprint
+  ok   adding a field inside a section moves the fingerprint
+  ok   rewriting a selector's bounds inside a section moves the fingerprint
+  ok   a section that silently changes its collapsed state moves the fingerprint
+  ok   the option seed still reaches every field nested inside a section
+  ok   an ungrouped page gains nothing: no marker outside a section nests
+
 -- options: every page's validation errors
   ok   an inverted comfort band re-shows the page with min_above_target
   ok   and stores nothing
@@ -176,7 +186,7 @@
   ok   reconfiguring into another entry's plant is refused
   ok   a slot the user cleared is dropped, not silently kept
 
-RESULT flow_checks_covered=145/145 checks
+RESULT flow_checks_covered=153/153 checks
 RESULT step_user happy=3/3 error_branches=8/8
 RESULT step_user_sensors happy=0/0 error_branches=0/0
 RESULT step_temperature happy=2/2 error_branches=12/12
@@ -218,4 +228,4 @@ RESULT reconfigure_round_trips=1
 RESULT options_close_round_trips=1
 RESULT duplicate_aborts=1
 
-ALL 145 checks PASSED
+ALL 153 checks PASSED

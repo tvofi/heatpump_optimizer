@@ -439,7 +439,7 @@ External heat override sensor.flue has not reported for 600 min (limit 60); igno
   ok   a house already using its whole band is not evidence
   ok   the learned value stays inside sane bounds
 Learned house heat loss scale 1.000 (fitted against 0.0500 kW/°C, 300 samples) cannot be expressed against the newly configured 0.4000 kW/°C: resetting to the configuration
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration True (Invalid window 'True' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
@@ -450,17 +450,17 @@ Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration True (Invalid window 'True' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration True (Invalid window 'True' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
@@ -1286,6 +1286,12 @@ Comfort miss (margin -0.10 °C) with curve bias -1.0 K applied; bias reset to 0
   ok   the groups are arithmetic over the same steps the plan publishes
   ok   an unknown reason degrades to a missing sentence, not a crash
   ok   the coordinator's narrative view renders lines for the current plan
+  ok   no narrative template hardcodes a currency word
+  ok   every money-bearing template names the currency it is given
+  ok   render speaks the currency it is handed (en)
+  ok   render speaks the currency it is handed (sv)
+  ok   the narrative view prices the plan in the instance's currency
+  ok   and an unconfigured instance still prices the plan in SEK
   ok   a colder realised outdoor explains a colder room
   ok   an unmeasured input attributes nothing
   ok   predicted + contributions + unexplained always accounts for actual
@@ -1296,17 +1302,12 @@ Comfort miss (margin -0.10 °C) with curve bias -1.0 K applied; bias reset to 0
   ok   the card's rate budget wins: a limited answer leaves the rotation alone
   ok   the tile set is fixed at three perturbations
   ok   the insight view publishes every T6 surface, inert on a fresh install
-  ok   starts, receipts and the operation score ride the ledger store
-  ok   a pre-T6 ledger store loads with every insight rider inert
-  ok   a corrupt day book is dropped at load and settlement carries on
-  ok   the diagnosis plans with the space channel, not the commanded total
-  ok   the realised power in the settled triple is the space share of the meter
 Skipping malformed ledger month 2026-03 while freezing monthly receipts; recording an empty receipt instead
 Traceback (most recent call last):
-  File "/Users/timmalmstrom/wt/w5-g5-195-coverage/custom_components/heatpump_optimizer/coordinator.py", line 10273, in _roll_month
+  File "/Users/timmalmstrom/wt/w5-g5-195-coverage/custom_components/heatpump_optimizer/coordinator.py", line 10293, in _roll_month
     self._month_reports[month] = self._freeze_month_report(month)
                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/timmalmstrom/wt/w5-g5-195-coverage/tests/features.py", line 12197, in _exploding_freeze
+  File "/Users/timmalmstrom/wt/w5-g5-195-coverage/tests/features.py", line 12272, in _exploding_freeze
     raise ValueError("D1-01: malformed month wedges the freezer")
 ValueError: D1-01: malformed month wedges the freezer
 Compressor frequency control stood down: number.freq reports 90.0 Hz against a commanded 45.0 Hz for 3 ticks
@@ -1324,48 +1325,52 @@ No snapshot qualifies for restore (healthy inputs and in-band accuracy at captur
 No weather forecast available — using current conditions. Predictive optimization will be limited.
 Optimization failed: tariff exploded
 Traceback (most recent call last):
-  File "/Users/timmalmstrom/wt/w5-g5-195-coverage/custom_components/heatpump_optimizer/coordinator.py", line 5226, in async_run_optimization
+  File "/Users/timmalmstrom/wt/w5-g5-195-coverage/custom_components/heatpump_optimizer/coordinator.py", line 5246, in async_run_optimization
     tariff = self._capacity_tariff()
              ^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/timmalmstrom/wt/w5-g5-195-coverage/tests/features.py", line 13059, in _tariff_boom
+  File "/Users/timmalmstrom/wt/w5-g5-195-coverage/tests/features.py", line 13134, in _tariff_boom
     raise RuntimeError("tariff exploded")
 RuntimeError: tariff exploded
 No weather forecast available — using current conditions. Predictive optimization will be limited.
 Optimization failed: tariff exploded
 Traceback (most recent call last):
-  File "/Users/timmalmstrom/wt/w5-g5-195-coverage/custom_components/heatpump_optimizer/coordinator.py", line 5226, in async_run_optimization
+  File "/Users/timmalmstrom/wt/w5-g5-195-coverage/custom_components/heatpump_optimizer/coordinator.py", line 5246, in async_run_optimization
     tariff = self._capacity_tariff()
              ^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/timmalmstrom/wt/w5-g5-195-coverage/tests/features.py", line 13059, in _tariff_boom
+  File "/Users/timmalmstrom/wt/w5-g5-195-coverage/tests/features.py", line 13134, in _tariff_boom
     raise RuntimeError("tariff exploded")
 RuntimeError: tariff exploded
 No electricity price data available; skipping optimization until prices can be fetched
 No weather forecast available — using current conditions. Predictive optimization will be limited.
 Optimization failed: solver exploded
 Traceback (most recent call last):
-  File "/Users/timmalmstrom/wt/w5-g5-195-coverage/custom_components/heatpump_optimizer/coordinator.py", line 5199, in async_run_optimization
+  File "/Users/timmalmstrom/wt/w5-g5-195-coverage/custom_components/heatpump_optimizer/coordinator.py", line 5219, in async_run_optimization
     horizon = self._forecast_arrays(now)
               ^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/timmalmstrom/wt/w5-g5-195-coverage/tests/features.py", line 13511, in _g_boom
+  File "/Users/timmalmstrom/wt/w5-g5-195-coverage/tests/features.py", line 13586, in _g_boom
     raise RuntimeError("solver exploded")
 RuntimeError: solver exploded
 Optimization failed: solver exploded
 Traceback (most recent call last):
-  File "/Users/timmalmstrom/wt/w5-g5-195-coverage/custom_components/heatpump_optimizer/coordinator.py", line 5199, in async_run_optimization
+  File "/Users/timmalmstrom/wt/w5-g5-195-coverage/custom_components/heatpump_optimizer/coordinator.py", line 5219, in async_run_optimization
     horizon = self._forecast_arrays(now)
               ^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/timmalmstrom/wt/w5-g5-195-coverage/tests/features.py", line 13511, in _g_boom
+  File "/Users/timmalmstrom/wt/w5-g5-195-coverage/tests/features.py", line 13586, in _g_boom
     raise RuntimeError("solver exploded")
 RuntimeError: solver exploded
 Optimization failed: solver exploded
 Traceback (most recent call last):
-  File "/Users/timmalmstrom/wt/w5-g5-195-coverage/custom_components/heatpump_optimizer/coordinator.py", line 5199, in async_run_optimization
+  File "/Users/timmalmstrom/wt/w5-g5-195-coverage/custom_components/heatpump_optimizer/coordinator.py", line 5219, in async_run_optimization
     horizon = self._forecast_arrays(now)
               ^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/timmalmstrom/wt/w5-g5-195-coverage/tests/features.py", line 13511, in _g_boom
+  File "/Users/timmalmstrom/wt/w5-g5-195-coverage/tests/features.py", line 13586, in _g_boom
     raise RuntimeError("solver exploded")
 RuntimeError: solver exploded
-Plan is 100 minutes old after 3 failed solves; holding comfort on the pump's own curve instead of actuating it
+  ok   starts, receipts and the operation score ride the ledger store
+  ok   a pre-T6 ledger store loads with every insight rider inert
+  ok   a corrupt day book is dropped at load and settlement carries on
+  ok   the diagnosis plans with the space channel, not the commanded total
+  ok   the realised power in the settled triple is the space share of the meter
   ok   the diagnosis never touches the live thermal model
   ok   a tile run leaves the card's rate budget and cache exactly as found
   ok   the target tiles follow the live target through an away setback
@@ -1486,7 +1491,8 @@ Plan is 100 minutes old after 3 failed solves; holding comfort on the pump's own
   ok   the issue carries its translation key and placeholders
   ok   an hour-old plan is not yet stale (90-minute floor)
   ok   past three missed cycles the plan is stale
-  ok   the threshold scales with the configured update interval
+  ok   the threshold scales with the configured update intervalPlan is 100 minutes old after 3 failed solves; holding comfort on the pump's own curve instead of actuating it
+
   ok   a stale plan's schedule step is not applied
   ok   a fresh plan actuates exactly as before
   ok   fixed-rule modes carry no horizon and ignore staleness
@@ -1627,28 +1633,28 @@ ALL 27 DST / QUARTER-GRID CHECKS PASSED
 
 -- sysid under sensor noise (D2-01) and a reachable gate (D7-02)
   ok   a 40-seed 0.10 degC ensemble: the worst-window noise gate engages
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+Unexpected error fetching prices: no HTTP session available in the test stub
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/wt/w5-g5-195-coverage/custom_components/heatpump_optimizer/coordinator.py", line 6091, in _fetch_tibber_prices
+    session = async_get_clientsession(self.hass)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/timmalmstrom/wt/w5-g5-195-coverage/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+    raise RuntimeError("no HTTP session available in the test stub")
+RuntimeError: no HTTP session available in the test stub
+Unexpected error fetching prices: no HTTP session available in the test stub
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/wt/w5-g5-195-coverage/custom_components/heatpump_optimizer/coordinator.py", line 6091, in _fetch_tibber_prices
+    session = async_get_clientsession(self.hass)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/timmalmstrom/wt/w5-g5-195-coverage/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+    raise RuntimeError("no HTTP session available in the test stub")
+RuntimeError: no HTTP session available in the test stub
   ok   the ensemble's UA bias p90 is inside 15 % (pre-fix production: +54 %)
   ok   raw uncorrected OLS on the same rows is far worse (the comparator)
   ok   a window whose noise swamps the excursion is refused outright
   ok   a clean default-protocol experiment is adoptable (gate can open)
   ok   a noisy experiment's confidence is discounted, not just its bias
-No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
-Unexpected error fetching prices: no HTTP session available in the test stub
-Traceback (most recent call last):
-  File "/Users/timmalmstrom/wt/w5-g5-195-coverage/custom_components/heatpump_optimizer/coordinator.py", line 6071, in _fetch_tibber_prices
-    session = async_get_clientsession(self.hass)
-              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/timmalmstrom/wt/w5-g5-195-coverage/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
-    raise RuntimeError("no HTTP session available in the test stub")
-RuntimeError: no HTTP session available in the test stub
-Unexpected error fetching prices: no HTTP session available in the test stub
-Traceback (most recent call last):
-  File "/Users/timmalmstrom/wt/w5-g5-195-coverage/custom_components/heatpump_optimizer/coordinator.py", line 6071, in _fetch_tibber_prices
-    session = async_get_clientsession(self.hass)
-              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/timmalmstrom/wt/w5-g5-195-coverage/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
-    raise RuntimeError("no HTTP session available in the test stub")
-RuntimeError: no HTTP session available in the test stub
 
 -- sysid vs a drifting room sensor, and a bound-blind gate (D2-07)
   ok   the unbiasedness null: a noise-free window recovers UA exactly
@@ -1896,15 +1902,15 @@ RuntimeError: no HTTP session available in the test stub
   ok   and the diagnostics say WHY the samples stopped
   ok   the resolved signals are published too
   ok   a cooling pump freezes the learners
+The anti-legionella cycle has been due for 14 day(s) but the heat pump's mode makes no hot water, so it cannot be planned
+Compressor efficiency has drifted 0% below its own baseline (~0 SEK/month at current usage)
+Compressor efficiency has drifted 0% below its own baseline (~0 SEK/month at current usage)
   ok   and it suppresses BOTH channels of the plan
   ok   an unrecognised mode plans and learns exactly as no mode entity does
   ok   the pump's normal winter mode changes nothing at all
   ok   a mode entity that drops out holds the last mode the pump reported
 
 -- v5.3.0 — a blocked channel is suppressed, and visibly so
-The anti-legionella cycle has been due for 14 day(s) but the heat pump's mode makes no hot water, so it cannot be planned
-Compressor efficiency has drifted 0% below its own baseline (~0 SEK/month at current usage)
-Compressor efficiency has drifted 0% below its own baseline (~0 SEK/month at current usage)
   ok   the control: a January plan really does heat and really does make hot water
   ok   a mode that cannot heat rooms plans no space heating at all
   ok   and hot water is untouched — suppression is per channel
@@ -2033,14 +2039,14 @@ Compressor efficiency has drifted 0% below its own baseline (~0 SEK/month at cur
   ok   one legible read does not vouch for the twenty-five minutes after it
   ok   and neither does one at the END of a dark interval
   ok   an interval legible throughout is still observed
+The heat pump's operating mode entity has been unreadable for over 180 min; the mode it last reported (unknown) has stopped acting and the plan is back to assuming full capability
+DHW anti-legionella cycle reached only 54.0 °C against a 60 °C target; the tank is not being disinfected
+DHW anti-legionella cycle commanded but cannot be verified: no tank temperature sensor is configured, so nothing confirms the tank reached 60 °C
   ok   and a real mid-interval defrost is still measured, at its real duty
   ok   a defrost spanning the whole interval reads as the whole interval
   ok   a defrost spanning an interval boundary still keeps its second half
 
 -- v5.3.0 review 2 — a mode nobody can read stops acting
-The heat pump's operating mode entity has been unreadable for over 180 min; the mode it last reported (unknown) has stopped acting and the plan is back to assuming full capability
-DHW anti-legionella cycle reached only 54.0 °C against a 60 °C target; the tank is not being disinfected
-DHW anti-legionella cycle commanded but cannot be verified: no tank temperature sensor is configured, so nothing confirms the tank reached 60 °C
   ok   a mode read minutes ago still acts, one read hours ago does not
   ok   and the expiry is visible as its own source, not silence
   ok   an expired mode suppresses nothing and freezes nothing
@@ -2153,11 +2159,6 @@ DHW anti-legionella cycle commanded but cannot be verified: no tank temperature 
   ok   an ordinary hot-water step is not mistaken for a disinfection cycle
 
 -- v5.1.10 — the setpoint/disinfection pair warns, and never blocks
-  ok   a 52 °C limit with a 60 °C cycle is reported, with how often
-  ok   the stock defaults are reported too — this is not an exotic pairing
-  ok   a cycle at or below the limit says nothing
-  ok   and disinfection switched off says nothing
-  ok   the stored half of the pair still counts
 DHW anti-legionella cycle commanded but cannot be verified: no tank temperature sensor is configured, so nothing confirms the tank reached 60 °C
 DHW anti-legionella cycle reached 59.2 °C but the completion could not be confirmed; it will be retried next interval
 DHW anti-legionella boost has been commanded for 12 h without completing; recording what it achieved
@@ -2165,6 +2166,11 @@ DHW anti-legionella cycle reached only 54.0 °C against a 60 °C target; the tan
 No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
 Error fetching weather forecast: weather integration broken. Plans continue on the last forecast, marked stale.
 Empty forecast returned for weather.home. Plans continue on the last forecast, marked stale.
+  ok   a 52 °C limit with a 60 °C cycle is reported, with how often
+  ok   the stock defaults are reported too — this is not an exotic pairing
+  ok   a cycle at or below the limit says nothing
+  ok   and disinfection switched off says nothing
+  ok   the stored half of the pair still counts
   ok   the coordinator raises the notice for a live 52/60 pair
   ok   …and takes it down again once the pair no longer says anything
 
@@ -2354,6 +2360,22 @@ Empty forecast returned for weather.home. Plans continue on the last forecast, m
   ok   null control: the fallback did not engage, and said nothing
   ok   null control (both ends): the harness spelling still uses the child, silently
 
+-- #524 — an unpicklable solve RESULT must raise, never become the plan
+  ok   a result the child cannot send home raises instead of being returned
+  ok   and the error names both the value and why it would not pickle
+  ok   guard: the worker survives it -- same child, no respawn, unlike a load-err
+  ok   _await_optimize raises it as a solve failure instead of returning a plan
+  ok   and it is not mistaken for an unusable worker: no second, in-process solve
+  ok   null control: a picklable result still comes back as the plan, silently
+
+-- #525 — nothing blocking runs on Home Assistant's event loop
+  ok   every lazy import a setup makes leaves the event loop (#525)
+  ok   and each went through the IMPORT executor, not the general one
+  ok   null control: an inline executor puts them back on the loop thread
+  ok   an entry's setup registers the worker reap on Home Assistant's stop (#525)
+  FAIL the reap Home Assistant's stop fires keeps the loop running (#525)  [fixed 0 ticks in 0.00s vs blocking 0 ticks in 0.00s]
+  FAIL null control: reaping inline DOES stall it, so the heartbeat can see a stall  [blocking 0 ticks in 0.00s]
+
 -- 3L-G5 — DHW set-point consistency (#408)
   ok   raised on a pump set-point below the configured disinfection temperature
   ok   a second evaluate leaves exactly one issue (idempotent)
@@ -2460,4 +2482,4 @@ Empty forecast returned for weather.home. Plans continue on the last forecast, m
   ok   and accepts no position the setup description never homes a slot at (#546, #550)
   ok   a setup page whose Outside box was dragged saves, and the position is the one that was sent (#546)
 
-ALL 2009 FEATURE CHECKS PASSED
+2 of 2027 FEATURE CHECKS FAILED

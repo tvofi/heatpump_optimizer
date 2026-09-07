@@ -930,7 +930,7 @@ Config entry version 8 is newer than the supported version 7; downgrade is not s
   ok   changing the portable node recorder invalidates every closure
   ok   node recording works without strace
   ok   the portable node recorder sees repo files the script opened
-closure: updated 1 closure(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp80pa4tmj/closures.json
+closure: updated 1 closure(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp55rfgp1x/closures.json
   tests/card.mjs                4 files
   ok   a Darwin node re-record unions instead of replacing
   ok   a docs-only change still costs the closures check nothing
@@ -1132,4 +1132,31 @@ Tibber refused the configured token; reauthentication is required (Home Assistan
   ok   one plan slot is a slot, not slots (#284)
   ok   two plan slots keep the plural (#284)
 
-ALL 1026 ENTITY CHECKS PASSED
+-- #558 D3 enumerated sensor states
+  ok   optimization_mode declares the enum device class
+  ok   optimization_mode declares exactly its measured states as options
+  ok   optimization_mode carries no unit of measurement
+  ok   optimization_mode carries no state class
+  ok   heat_pump_action declares the enum device class
+  ok   heat_pump_action declares exactly its measured states as options
+  ok   heat_pump_action carries no unit of measurement
+  ok   heat_pump_action carries no state class
+  ok   plan_narrative declares the enum device class
+  ok   plan_narrative declares exactly its measured states as options
+  ok   plan_narrative carries no unit of measurement
+  ok   plan_narrative carries no state class
+  ok   every declared state survives Home Assistant's own enum validation
+  ok   and an undeclared state raises, so the check above can fail
+  ok   a None native_value is unknown, not an enum violation
+  ok   the mode options are OPERATION_MODES plus the no-data fallback
+  ok   the action options cover every mode its producers actually write
+  ok   and declares nothing beyond them but the no-data fallback
+  ok   every optimizer REASON_ constant has a narrative template
+  ok   every enum option is a legal Home Assistant translation key
+  ok   every enum option has an English and a translated Swedish state name
+  ok   OptimizationStatusSensor stays bare: it embeds SciPy and exception text
+  ok   PredictiveInsightSensor stays bare: it emits 'no forecast', which is not a slug
+  ok   no icons.json state key falls outside its sensor's enum options (#558 D4)
+  ok   and the unbounded status strings really are unbounded
+
+ALL 1051 ENTITY CHECKS PASSED

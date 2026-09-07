@@ -1,7 +1,7 @@
 Combined 13 files, skipped 5
 Name                                                       Stmts   Miss  Cover
 ------------------------------------------------------------------------------
-custom_components/heatpump_optimizer/__init__.py              86      1  98.8%
+custom_components/heatpump_optimizer/__init__.py              90      1  98.9%
 custom_components/heatpump_optimizer/accuracy.py             189     11  94.2%
 custom_components/heatpump_optimizer/away.py                 224     30  86.6%
 custom_components/heatpump_optimizer/battery.py              100      5  95.0%
@@ -11,8 +11,8 @@ custom_components/heatpump_optimizer/climate.py              150      0 100.0%
 custom_components/heatpump_optimizer/comfort_band.py          40      0 100.0%
 custom_components/heatpump_optimizer/comfort_learning.py     110      8  92.7%
 custom_components/heatpump_optimizer/config_flow.py          672      5  99.3%
-custom_components/heatpump_optimizer/const.py                477      5  99.0%
-custom_components/heatpump_optimizer/coordinator.py         4065    689  83.1%
+custom_components/heatpump_optimizer/const.py                479      5  99.0%
+custom_components/heatpump_optimizer/coordinator.py         4071    688  83.1%
 custom_components/heatpump_optimizer/currency.py               4      0 100.0%
 custom_components/heatpump_optimizer/curve_learning.py        82     12  85.4%
 custom_components/heatpump_optimizer/datetime.py              26      3  88.5%
@@ -33,17 +33,17 @@ custom_components/heatpump_optimizer/manual_plan.py          115      8  93.0%
 custom_components/heatpump_optimizer/mixing_valve.py          30      2  93.3%
 custom_components/heatpump_optimizer/narrative.py             40      0 100.0%
 custom_components/heatpump_optimizer/open_meteo.py           201      0 100.0%
-custom_components/heatpump_optimizer/optimizer.py           1811     77  95.7%
+custom_components/heatpump_optimizer/optimizer.py           1811     76  95.8%
 custom_components/heatpump_optimizer/power_guard.py           65      0 100.0%
 custom_components/heatpump_optimizer/presets.py              116      4  96.6%
 custom_components/heatpump_optimizer/price_model.py          217     16  92.6%
-custom_components/heatpump_optimizer/process_worker.py        50      7  86.0%
+custom_components/heatpump_optimizer/process_worker.py        51      7  86.3%
 custom_components/heatpump_optimizer/pump_mode.py             61      0 100.0%
 custom_components/heatpump_optimizer/pump_schedule.py         42      0 100.0%
 custom_components/heatpump_optimizer/pump_signals.py          85      1  98.8%
 custom_components/heatpump_optimizer/pv.py                    32      0 100.0%
 custom_components/heatpump_optimizer/repairs.py               41      6  85.4%
-custom_components/heatpump_optimizer/sensor.py              1039      7  99.3%
+custom_components/heatpump_optimizer/sensor.py              1046      7  99.3%
 custom_components/heatpump_optimizer/services.py             253      4  98.4%
 custom_components/heatpump_optimizer/setpoint_check.py        69      8  88.4%
 custom_components/heatpump_optimizer/snapshots.py            100      7  93.0%
@@ -55,4 +55,4 @@ custom_components/heatpump_optimizer/topology.py             115      2  98.3%
 custom_components/heatpump_optimizer/wear.py                  63      5  92.1%
 custom_components/heatpump_optimizer/wood_fuel.py            210     57  72.9%
 ------------------------------------------------------------------------------
-TOTAL                                                      14275   1153  91.9%
+TOTAL                                                      14295   1151  91.9%
