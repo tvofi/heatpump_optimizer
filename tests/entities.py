@@ -10665,6 +10665,24 @@ for _bare, _why in (
         getattr(getattr(sensor, _bare), "_attr_device_class", None) is None
         and getattr(getattr(sensor, _bare), "_attr_options", None) is None,
     )
+# D4 depends on this list and must not be able to drift from it. icons.json
+# gains "state" variants next (#558 D4), and Home Assistant matches those keys
+# against the entity's STATE -- so an icon state key that is not an option is
+# an icon that can never be shown. Carried as an executable check rather than
+# as a note in D4's brief, because a brief is advice and this is a constraint:
+# the mismatch fails here instead of being noticed by nobody.
+_icon_state_errors = []
+for _key, (_c, _states, _m) in _ENUM_SENSORS.items():
+    _spec = (_icons.get("entity", {}).get("sensor", {}) or {}).get(_key) or {}
+    _extra = set(_spec.get("state") or {}) - set(_states)
+    if _extra:
+        _icon_state_errors.append(f"{_key}: {sorted(_extra)}")
+R.check(
+    "no icons.json state key falls outside its sensor's enum options (#558 D4)",
+    not _icon_state_errors,
+    "; ".join(_icon_state_errors),
+)
+
 R.check(
     "and the unbounded status strings really are unbounded",
     # A failed solve whose point is WORSE than the start: that is the only
