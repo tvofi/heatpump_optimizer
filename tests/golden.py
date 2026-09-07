@@ -1092,9 +1092,17 @@ def capture_config_flow() -> dict:
     # entity picker gets a synthetic entity id, and every boolean field gets
     # ``True``. Those two are the field kinds whose value can be derived from
     # the schema alone without inventing semantics -- a number's or a select's
-    # stored value cannot, since choosing one decides which fields the page
-    # then renders (``mixing_valve_mode``, the DHW window grammar), and a
-    # value picked to satisfy a selector spec is not a configuration.
+    # stored value cannot: there is no value derivable from the spec alone, and
+    # one picked merely to satisfy a selector spec is not a configuration.
+    #
+    # An earlier version of this comment also claimed that choosing a number or
+    # select decides which fields the page then renders. That was MEASURED
+    # FALSE by #553's review: all 16 selects exercised with real option values
+    # and all 75 numbers at min and max change which fields render in exactly
+    # zero cases -- ``mixing_valve_mode`` leaves ``building`` at 10 fields under
+    # all four modes, and the DHW window grammar is a TextSelector affecting
+    # validation, not rendering. The decision to leave them unseeded stands on
+    # the two grounds above; the third was a precondition with no control.
     #
     # Iterating is what reaches the gated blocks, and it is not theoretical:
     # the booleans found in the first round turn on features whose own entity
