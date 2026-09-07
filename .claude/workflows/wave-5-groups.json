@@ -19,7 +19,9 @@
   "groups": [
     {
       "group": "W5-G1",
-      "issues": [303],
+      "issues": [
+        303
+      ],
       "fixerModel": "sonnet",
       "reviewerModel": "sonnet",
       "effort": "medium",
@@ -27,93 +29,117 @@
       "after": [],
       "resume": {
         "stage": "pending",
-        "note": "Do not start until Wave 4 W4-G14 has merged. #303 tranche 1: land the ruler. Do not Closes #303. Parent may split later annotation tranches further."
+        "note": "Do not start until Wave 4 W4-G14 has merged. #303 tranche 1: land the ruler. Leaves #303 open. Parent may split later annotation tranches further."
       },
-      "brief": "Wave 5 after Wave 4. #303 tranche 1: land the pinned stub-free ruler BEFORE any annotation. CI job running the issue's pinned command (mypy==2.3.1, homeassistant-stubs==2026.2.3, Python 3.13, no MYPYPATH, no tests/hastub). Record three numbers per run — error count, per-code breakdown, `# type: ignore` count — and ratchet all three so none may grow. Ignore count starts at 0 and is a separate hard metric; --warn-unused-ignores does NOT prevent ignore-stuffing. Do not annotate production in this PR. Do not Closes #303. Part of #201. Baseline at filing was 427 production-only strict errors at 8e99ad1 — re-measure at merge-base; the ratchet pins whatever you measure, not a stale 427. Expected golden drift: none. claims-for = the repo-root VERSION at your merge base, never a literal from here. Do not stamp. Do not implement #195 or #412. This box is Python 3.11.5 + 3.13.1; uv may be missing — CI is the authority for the job. Do not reintroduce MYPYPATH=tests/hastub to chase the historical 722/743. BLOCKER #504, read before starting: homeassistant-stubs==2026.2.3 with mypy==2.3.1 requires Python >= 3.13.2 and the programme box runs 3.13.1 -- the judge's pinned invocation does NOT install here (reproduced live, not inferred from metadata). The 427 / sensor 142 / coordinator 59 figures are unverified carryovers from 8e99ad1; do not record them as the census, and a count from an unpinned tool is not the census. Decide IN THIS PR, with the reason: raise the box to >=3.13.2 and pin as named; re-pin to the newest pair that installs on 3.13.1 and record the substitution and its effect on the counts; or run the ruler only in CI and declare local runs unavailable. Option 2 changes what the numbers mean, so it is a judgement."
+      "brief": "Wave 5 after Wave 4. #303 tranche 1: land the pinned stub-free ruler BEFORE any annotation. CI job running the issue's pinned command (mypy==2.3.1, homeassistant-stubs==2026.2.3, Python 3.13, no MYPYPATH, no tests/hastub). Record three numbers per run — error count, per-code breakdown, `# type: ignore` count — and ratchet all three so none may grow. Ignore count starts at 0 and is a separate hard metric; --warn-unused-ignores does NOT prevent ignore-stuffing. Do not annotate production in this PR. Leaves #303 open. Part of #201. Baseline at filing was 427 production-only strict errors at 8e99ad1 — re-measure at merge-base; the ratchet pins whatever you measure, not a stale 427. Expected golden drift: none. claims-for = the repo-root VERSION at your merge base, never a literal from here. Do not stamp. Do not implement #195 or #412. This box is Python 3.11.5 + 3.13.1; uv may be missing — CI is the authority for the job. Do not reintroduce MYPYPATH=tests/hastub to chase the historical 722/743. BLOCKER #504, read before starting: homeassistant-stubs==2026.2.3 with mypy==2.3.1 requires Python >= 3.13.2 and the programme box runs 3.13.1 -- the judge's pinned invocation does NOT install here (reproduced live, not inferred from metadata). The 427 / sensor 142 / coordinator 59 figures are unverified carryovers from 8e99ad1; do not record them as the census, and a count from an unpinned tool is not the census. Decide IN THIS PR, with the reason: raise the box to >=3.13.2 and pin as named; re-pin to the newest pair that installs on 3.13.1 and record the substitution and its effect on the counts; or run the ruler only in CI and declare local runs unavailable. Option 2 changes what the numbers mean, so it is a judgement."
     },
     {
       "group": "W5-G2",
-      "issues": [303],
+      "issues": [
+        303
+      ],
       "fixerModel": "opus",
       "reviewerModel": "opus",
       "effort": "high",
       "fixture": false,
-      "after": ["W5-G1"],
+      "after": [
+        "W5-G1"
+      ],
       "resume": {
         "stage": "pending",
-        "note": "#303 tranche 2: sensor.py (142 errors at 8e99ad1). Do not Closes #303."
+        "note": "#303 tranche 2: sensor.py (142 errors at 8e99ad1). Leaves #303 open."
       },
-      "brief": "#303 tranche 2: sensor.py only (142 errors at 8e99ad1; re-measure). Annotations only; no solver-plan change; empty claims. Tighten the W5-G1 ratchet behind the drop. Report per-code breakdown, not just the total (partial annotation relabels). Do not add `# type: ignore`. Do not pad tests/hastub. Do not Closes #303. Part of #201. Do not touch coordinator.py / optimizer.py (later tranches). claims-for = the repo-root VERSION at your merge base, never a literal from here. coordinator_loc ceiling = merge-base, never raise. Never re-record cross_seam_fraction. SOLVE_BUDGET_RATIO 782.11. Do not stamp. Parent may split this file further if the drop cannot land in one PR. UX-LANE COLLISION: sensor.py is also lane D's file. D3 gives the five string-state sensors SensorDeviceClass.ENUM with state translations, and D6 adds a numeric ScheduleSensor and deprecates the English-sentence one. Both land BEFORE this group starts, so the 142-error figure and every line number are stale in your favour -- re-measure. ENUM also CONSTRAINS what a sensor may publish, so an annotation that disagrees with the declared options is a runtime error on a real install, not a type complaint."
+      "brief": "#303 tranche 2: sensor.py only (142 errors at 8e99ad1; re-measure). Annotations only; no solver-plan change; empty claims. Tighten the W5-G1 ratchet behind the drop. Report per-code breakdown, not just the total (partial annotation relabels). Do not add `# type: ignore`. Do not pad tests/hastub. Leaves #303 open. Part of #201. Do not touch coordinator.py / optimizer.py (later tranches). claims-for = the repo-root VERSION at your merge base, never a literal from here. coordinator_loc ceiling = merge-base, never raise. Never re-record cross_seam_fraction. SOLVE_BUDGET_RATIO 782.11. Do not stamp. Parent may split this file further if the drop cannot land in one PR. UX-LANE COLLISION: sensor.py is also lane D's file. D3 gives the five string-state sensors SensorDeviceClass.ENUM with state translations, and D6 adds a numeric ScheduleSensor and deprecates the English-sentence one. Both land BEFORE this group starts, so the 142-error figure and every line number are stale in your favour -- re-measure. ENUM also CONSTRAINS what a sensor may publish, so an annotation that disagrees with the declared options is a runtime error on a real install, not a type complaint."
     },
     {
       "group": "W5-G3",
-      "issues": [303],
+      "issues": [
+        303
+      ],
       "fixerModel": "opus",
       "reviewerModel": "opus",
       "effort": "high",
       "fixture": false,
-      "after": ["W5-G2"],
+      "after": [
+        "W5-G2"
+      ],
       "resume": {
         "stage": "pending",
-        "note": "#303 tranche 3: all remaining production modules except coordinator.py. Parent may split further. Do not Closes #303."
+        "note": "#303 tranche 3: all remaining production modules except coordinator.py. Parent may split further. Leaves #303 open."
       },
-      "brief": "#303 tranche 3: remaining production typing except coordinator.py. Named at 8e99ad1: optimizer.py 49, thermal_model.py 36, config_flow.py 26, defrost.py 16, dhw_schedule.py 8, price_model.py 7, ledger.py 7, snapshots.py 6, comfort_learning.py 5, pv.py 4, plus the unnamed tail (38 of 48 modules have errors; ~62 errors unnamed). Parent may split further — do not turn this into 23 one-file PRs from this seat, but STOP and return needs-context rather than ship a giant mixed PR if review would be impossible. Do not touch coordinator.py (W5-G4). Annotations only; empty claims; tighten the ruler. No `# type: ignore`. no-untyped-def (109) and type-arg (101) are mechanical; no-untyped-call largely follows callees; no-any-return and Optional-narrowing need reading. wood_share stays at thermal_model.py:1107. Do not Closes #303. Part of #201. claims-for = the repo-root VERSION at your merge base, never a literal from here. coordinator_loc ceiling = merge-base. Never re-record cross_seam_fraction. Do not stamp. UX-LANE COLLISION: config_flow.py is also lane E's file, and S11 (#223) rewrites it as a settings registry. Sequence behind BOTH. The 26-error figure predates the registry and predates lane E's token masking, finish-setup-now step and setup_overview move; annotating names a registry would restructure is the same waste W5-G4 is warned about for the #193 seams."
+      "brief": "#303 tranche 3: remaining production typing except coordinator.py. Named at 8e99ad1: optimizer.py 49, thermal_model.py 36, config_flow.py 26, defrost.py 16, dhw_schedule.py 8, price_model.py 7, ledger.py 7, snapshots.py 6, comfort_learning.py 5, pv.py 4, plus the unnamed tail (38 of 48 modules have errors; ~62 errors unnamed). Parent may split further — do not turn this into 23 one-file PRs from this seat, but STOP and return needs-context rather than ship a giant mixed PR if review would be impossible. Do not touch coordinator.py (W5-G4). Annotations only; empty claims; tighten the ruler. No `# type: ignore`. no-untyped-def (109) and type-arg (101) are mechanical; no-untyped-call largely follows callees; no-any-return and Optional-narrowing need reading. wood_share stays at thermal_model.py:1107. Leaves #303 open. Part of #201. claims-for = the repo-root VERSION at your merge base, never a literal from here. coordinator_loc ceiling = merge-base. Never re-record cross_seam_fraction. Do not stamp. UX-LANE COLLISION: config_flow.py is also lane E's file, and S11 (#223) rewrites it as a settings registry. Sequence behind BOTH. The 26-error figure predates the registry and predates lane E's token masking, finish-setup-now step and setup_overview move; annotating names a registry would restructure is the same waste W5-G4 is warned about for the #193 seams."
     },
     {
       "group": "W5-G4",
-      "issues": [303],
+      "issues": [
+        303
+      ],
       "fixerModel": "opus",
       "reviewerModel": "opus",
       "effort": "high",
       "fixture": false,
-      "after": ["W5-G3"],
+      "after": [
+        "W5-G3"
+      ],
       "resume": {
         "stage": "pending",
-        "note": "#303 tranche 4: coordinator.py (59 errors at 8e99ad1). After Wave 4 seams. Closes #303 only if the ruler is at the remaining count with ignore count still 0."
+        "note": "#303 tranche 4: coordinator.py (59 errors at 8e99ad1). After Wave 4 seams. #303 may be closed by this PR -- ONLY if the ruler is at the remaining count with ignore count still 0."
       },
-      "brief": "#303 tranche 4: coordinator.py typing (59 errors at 8e99ad1; re-measure). After Wave 4 / #193 seams — do not annotate names a move PR would silently revert. coordinator.py selects stress.py — take the lock if select says so. Annotations only; empty claims; tighten the ruler. No `# type: ignore`. coordinator_loc ceiling = merge-base (10364 after G9; never raise). Never re-record cross_seam_fraction. Facade imports unchanged. Closes #303 only if production-only errors are ratcheted to the remaining total AND ignore count is still 0; otherwise leave #303 open and say what remains. Part of #201. claims-for = the repo-root VERSION at your merge base, never a literal from here. SOLVE_BUDGET_RATIO 782.11. Do not stamp. Do not start #195 coordinator (W5-G7) from this seat. CARRIED FROM WAVE 4: getattr(self, '_ctx', self) is now COUNTED by structure.py (#510/#512), so an annotated reference reached that way appears in the seam cut. Annotations are lines and coordinator_loc/max_class_loc only move down -- whatever Wave 4 won in headroom is this group's budget. Measure the annotation cost BEFORE writing the PR body; if it cannot be paid for elsewhere that is a budget raise needing the owner's explicit confirmation BEFORE the push. The S5 ownership lever is NOT available here: it requires a seam's entire contact with an attribute to be the assignment, and annotations are reads and writes by definition."
+      "brief": "#303 tranche 4: coordinator.py typing (59 errors at 8e99ad1; re-measure). After Wave 4 / #193 seams — do not annotate names a move PR would silently revert. coordinator.py selects stress.py — take the lock if select says so. Annotations only; empty claims; tighten the ruler. No `# type: ignore`. coordinator_loc ceiling = merge-base (10364 after G9; never raise). Never re-record cross_seam_fraction. Facade imports unchanged. #303 may be closed by this PR -- ONLY if production-only errors are ratcheted to the remaining total AND ignore count is still 0; otherwise leave #303 open and say what remains. Part of #201. claims-for = the repo-root VERSION at your merge base, never a literal from here. SOLVE_BUDGET_RATIO 782.11. Do not stamp. Do not start #195 coordinator (W5-G7) from this seat. CARRIED FROM WAVE 4: getattr(self, '_ctx', self) is now COUNTED by structure.py (#510/#512), so an annotated reference reached that way appears in the seam cut. Annotations are lines and coordinator_loc/max_class_loc only move down -- whatever Wave 4 won in headroom is this group's budget. Measure the annotation cost BEFORE writing the PR body; if it cannot be paid for elsewhere that is a budget raise needing the owner's explicit confirmation BEFORE the push. The S5 ownership lever is NOT available here: it requires a seam's entire contact with an attribute to be the assignment, and annotations are reads and writes by definition."
     },
     {
       "group": "W5-G5",
-      "issues": [195],
+      "issues": [
+        195
+      ],
       "fixerModel": "sonnet",
       "reviewerModel": "sonnet",
       "effort": "medium",
       "fixture": false,
-      "after": ["W5-G4"],
+      "after": [
+        "W5-G4"
+      ],
       "resume": {
         "stage": "pending",
-        "note": "#195 tranche 1: climate.py / open_meteo.py / frontend.py. Issue says start here. Do not Closes #195. Do not put coordinator modules in this group."
+        "note": "#195 tranche 1: climate.py / open_meteo.py / frontend.py. Issue says start here. Leaves #195 open. Do not put coordinator modules in this group."
       },
-      "brief": "#195 tranche 1 (start here): climate.py 58.6 % (58 missed), open_meteo.py 67.2 % (66), frontend.py 80.5 % (16) at 4b6e0765 — re-measure. Do not put coordinator.py in this group (W5-G7, after #193 seams). Coverage gain from the named modules, not from adding end-to-end scripts (validate/edge/backtest/optimality/plan_view each move the total 0.0 pt). Track assertion density (config_flow_steps RESULT ledger pattern), not just percentage. Do not grow `# pragma: no cover` (8 sites). Script list from tests/run.sh, not the frozen round-2 D10 coverage harness. Do not use the stale 88.4 % tsv; before-figure is 89.7 % / 48 modules / 1338 missed. config_flow.py's 21 statements are #304 (Wave 4), not this issue. Do not Closes #195. Part of #201. Expected golden drift: none unless a test forces a key path — then claim, never re-record value goldens. claims-for = the repo-root VERSION at your merge base, never a literal from here. Do not stamp. Mutation-prove at least one new assertion per module. PRECONDITION #505, read before starting: the tranche partition no longer covers every below-bar module. Re-measured at d979110 -- coverage 90.4 % (not 89.7 %), 30 of 53 modules below the bar (not 23 of 48), and NINE below-bar modules belong to no tranche. process_worker.py was added BY this programme in W3-G3 (#461, 8542e51) and #505 measured it at 0.0 % (36 of 36 untested); the gate missed it because there is no per-module floor, only the aggregate bar. TWO CORRECTIONS, and the second is about METHOD -- read it before trusting any figure here. (1) It was NOT added 'with no tests at all', and #540 did NOT give it its first tests. Measured by `git log -S` over tests/: 5 references already at 8542e51 itself, 6 at 98a7574 (#515), 10 at 6cd2c28 (#517), and 10 both immediately before and immediately after #540 -- so #540 added none. It edited the module for the #524 status fix; its tests went elsewhere. (2) Those earlier claims came from using REFERENCE COUNT as a proxy for 'has tests', which is wrong in kind and not merely in attribution: a reference is not a test and a test is not coverage. #461 shipped 5 references alongside a module #505 then measured at 0.0 %, which is precisely the combination the proxy cannot express. A later review measured 35.29 % at its own base. So MEASURE COVERAGE rather than counting references, and re-derive at your own merge base rather than carrying 0.0 %, 34 %, 35 % or 35.29 %. Your three named modules are NOT the whole of tranche 1: re-partition against the measured 30-of-53 list so every below-bar module belongs to exactly one group, decide where process_worker.py goes (a candidate to pull forward), correct the roster carryovers, and state the landed partition in your report so G6 and G7 inherit it. CARRIED, CORRECTED: process_worker.py is no longer at 0.0 %, but #540 is NOT what changed that -- measured, process_worker had 10 references in tests/ at 059881e (before #540) and 10 at 9da726a (after it), so #540 added none. #540 edited the module (the #524 status fix) and its tests went elsewhere. A review measured coverage at 34 % before #540 and 35 % after, and attributes the move off 0.0 % to #515 (98a7574). #505's 0-of-36 baseline was taken at d979110 and predates all of this. RE-MEASURE at your own merge base and do not go looking for the tests in #540."
+      "brief": "#195 tranche 1 (start here): climate.py 58.6 % (58 missed), open_meteo.py 67.2 % (66), frontend.py 80.5 % (16) at 4b6e0765 — re-measure. Do not put coordinator.py in this group (W5-G7, after #193 seams). Coverage gain from the named modules, not from adding end-to-end scripts (validate/edge/backtest/optimality/plan_view each move the total 0.0 pt). Track assertion density (config_flow_steps RESULT ledger pattern), not just percentage. Do not grow `# pragma: no cover` (8 sites). Script list from tests/run.sh, not the frozen round-2 D10 coverage harness. Do not use the stale 88.4 % tsv; before-figure is 89.7 % / 48 modules / 1338 missed. config_flow.py's 21 statements are #304 (Wave 4), not this issue. Leaves #195 open. Part of #201. Expected golden drift: none unless a test forces a key path — then claim, never re-record value goldens. claims-for = the repo-root VERSION at your merge base, never a literal from here. Do not stamp. Mutation-prove at least one new assertion per module. PRECONDITION #505, read before starting: the tranche partition no longer covers every below-bar module. Re-measured at d979110 -- coverage 90.4 % (not 89.7 %), 30 of 53 modules below the bar (not 23 of 48), and NINE below-bar modules belong to no tranche. process_worker.py was added BY this programme in W3-G3 (#461, 8542e51) and #505 measured it at 0.0 % (36 of 36 untested); the gate missed it because there is no per-module floor, only the aggregate bar. TWO CORRECTIONS, and the second is about METHOD -- read it before trusting any figure here. (1) It was NOT added 'with no tests at all', and #540 did NOT give it its first tests. Measured by `git log -S` over tests/: 5 references already at 8542e51 itself, 6 at 98a7574 (#515), 10 at 6cd2c28 (#517), and 10 both immediately before and immediately after #540 -- so #540 added none. It edited the module for the #524 status fix; its tests went elsewhere. (2) Those earlier claims came from using REFERENCE COUNT as a proxy for 'has tests', which is wrong in kind and not merely in attribution: a reference is not a test and a test is not coverage. #461 shipped 5 references alongside a module #505 then measured at 0.0 %, which is precisely the combination the proxy cannot express. A later review measured 35.29 % at its own base. So MEASURE COVERAGE rather than counting references, and re-derive at your own merge base rather than carrying 0.0 %, 34 %, 35 % or 35.29 %. Your three named modules are NOT the whole of tranche 1: re-partition against the measured 30-of-53 list so every below-bar module belongs to exactly one group, decide where process_worker.py goes (a candidate to pull forward), correct the roster carryovers, and state the landed partition in your report so G6 and G7 inherit it. CARRIED, CORRECTED: process_worker.py is no longer at 0.0 %, but #540 is NOT what changed that -- measured, process_worker had 10 references in tests/ at 059881e (before #540) and 10 at 9da726a (after it), so #540 added none. #540 edited the module (the #524 status fix) and its tests went elsewhere. A review measured coverage at 34 % before #540 and 35 % after, and attributes the move off 0.0 % to #515 (98a7574). #505's 0-of-36 baseline was taken at d979110 and predates all of this. RE-MEASURE at your own merge base and do not go looking for the tests in #540."
     },
     {
       "group": "W5-G6",
-      "issues": [195],
+      "issues": [
+        195
+      ],
       "fixerModel": "sonnet",
       "reviewerModel": "sonnet",
       "effort": "medium",
       "fixture": false,
-      "after": ["W5-G5"],
+      "after": [
+        "W5-G5"
+      ],
       "resume": {
         "stage": "pending",
-        "note": "#195 tranche 2: diagnosis, curve_learning, grid_fee, switch. Cleanup modules (diagnostics.py up, within 5 pt of the bar) are not this tranche unless the orchestrator splits a follow-up. Do not Closes #195."
+        "note": "#195 tranche 2: diagnosis, curve_learning, grid_fee, switch. Cleanup modules (diagnostics.py up, within 5 pt of the bar) are not this tranche unless the orchestrator splits a follow-up. Leaves #195 open."
       },
-      "brief": "#195 tranche 2: diagnosis.py 76.7 %, curve_learning.py 85.4 %, grid_fee.py 88.9 %, switch.py 89.5 % (at 4b6e0765 — re-measure). Issue calls everything from diagnostics.py (90.5 %) up cleanup, not a tranche — do not expand this group into those 15 modules from this seat; parent may split a follow-up. No coordinator.py. No end-to-end scripts to buy coverage. Assertion density; pragma count must not grow; script list from run.sh. Do not Closes #195. Part of #201. Empty claims unless a new key path is recorded. claims-for = the repo-root VERSION at your merge base, never a literal from here. Do not stamp. Mutation-prove at least one new assertion per module. CARRIED FROM #505: your four named modules are provisional -- 30 of 53 modules are below the bar, not 23 of 48, and nine belonged to no tranche. Read W5-G5's landed partition and report; that assignment is your scope, not this roster string."
+      "brief": "#195 tranche 2: diagnosis.py 76.7 %, curve_learning.py 85.4 %, grid_fee.py 88.9 %, switch.py 89.5 % (at 4b6e0765 — re-measure). Issue calls everything from diagnostics.py (90.5 %) up cleanup, not a tranche — do not expand this group into those 15 modules from this seat; parent may split a follow-up. No coordinator.py. No end-to-end scripts to buy coverage. Assertion density; pragma count must not grow; script list from run.sh. Leaves #195 open. Part of #201. Empty claims unless a new key path is recorded. claims-for = the repo-root VERSION at your merge base, never a literal from here. Do not stamp. Mutation-prove at least one new assertion per module. CARRIED FROM #505: your four named modules are provisional -- 30 of 53 modules are below the bar, not 23 of 48, and nine belonged to no tranche. Read W5-G5's landed partition and report; that assignment is your scope, not this roster string."
     },
     {
       "group": "W5-G7",
-      "issues": [195],
+      "issues": [
+        195
+      ],
       "fixerModel": "opus",
       "reviewerModel": "opus",
       "effort": "high",
       "fixture": false,
-      "after": ["W5-G6"],
+      "after": [
+        "W5-G6"
+      ],
       "resume": {
         "stage": "pending",
-        "note": "#195 coordinator half (789 of 1338 missed). After Wave 4/#193 seams and after W5-G4 typing. Closes #195 only if the 23-below-bar residual this issue owns is done or recorded."
+        "note": "#195 coordinator half (789 of 1338 missed). After Wave 4/#193 seams and after W5-G4 typing. #195 may be closed by this PR -- ONLY if the 23-below-bar residual this issue owns is done or recorded."
       },
-      "brief": "#195 tranche 3: coordinator.py coverage (789 of 1338 missed, 79.4 % at 4b6e0765 — re-measure). Sequence behind #193 seams (Wave 4) and behind W5-G4 typing. Do not bolt tests onto methods a move PR is about to relocate; if Wave 4 S3–S8 halted, test the live module boundaries and say so. Dominant term of the deficit — do not rush; mutation-prove. No end-to-end scripts to buy coverage. Assertion density; pragma count must not grow. coordinator.py selects stress.py — take the lock if select says so. coordinator_loc ceiling = merge-base, never raise. Never re-record cross_seam_fraction. Closes #195 only if this issue's below-bar modules (the 23, excluding config_flow.py which is #304) are at the bar or the remainder is recorded as a follow-up; do not close into #304. Part of #201. claims-for = the repo-root VERSION at your merge base, never a literal from here. SOLVE_BUDGET_RATIO 782.11. Do not stamp. Do not implement #412. CARRIED FROM #505: the 789-of-1338 figure here is stale -- re-measured at d979110 it is 714 of 1369, and coordinator.py's share of the total deficit is 52.2 %, not 59.0 %. Still dominant, but measure at YOUR merge base; Wave 4's seam work moves it again. See W5-G5's landed partition for which modules are yours. UX-LANE COLLISION: coordinator.py is also lane F's file. F1 gives the device entry a documentation link and a real manufacturer, neither of which exists today; F2 gives the repair notices a documentation link they currently all lack. Both are parked until Wave 4 closes because coordinator_loc and max_class_loc sit at zero headroom -- so they land between Wave 4 and this group, and the coverage figures move again. CARRIED FROM #540 (#524/#525): _shutdown_process_pool must NOT be called inline from a coroutine -- it is reaped at EVENT_HOMEASSISTANT_STOP on the executor, and the atexit backstop is left with nothing to wait for. Home Assistant's own loop-protection helper (upstream, not in this tree) compares the calling thread id against the loop's; time.sleep is protected and Popen.wait is not, but CPython's Popen._wait polls with time.sleep, which is why the detector fires. A coverage test that calls the reaper directly from async context will trip it. Also: tests/nightly_ha.py's KNOWN_BLOCKING now lists two offenders this fix removed, and Checks.check BLANKS the detail on pass, so the stale pin is SILENT -- a regression of either would pass the nightly (#533)."
+      "brief": "#195 tranche 3: coordinator.py coverage (789 of 1338 missed, 79.4 % at 4b6e0765 — re-measure). Sequence behind #193 seams (Wave 4) and behind W5-G4 typing. Do not bolt tests onto methods a move PR is about to relocate; if Wave 4 S3–S8 halted, test the live module boundaries and say so. Dominant term of the deficit — do not rush; mutation-prove. No end-to-end scripts to buy coverage. Assertion density; pragma count must not grow. coordinator.py selects stress.py — take the lock if select says so. coordinator_loc ceiling = merge-base, never raise. Never re-record cross_seam_fraction. #195 may be closed by this PR -- ONLY if this issue's below-bar modules (the 23, excluding config_flow.py which is #304) are at the bar or the remainder is recorded as a follow-up; do not fold #304 into it. Part of #201. claims-for = the repo-root VERSION at your merge base, never a literal from here. SOLVE_BUDGET_RATIO 782.11. Do not stamp. Do not implement #412. CARRIED FROM #505: the 789-of-1338 figure here is stale -- re-measured at d979110 it is 714 of 1369, and coordinator.py's share of the total deficit is 52.2 %, not 59.0 %. Still dominant, but measure at YOUR merge base; Wave 4's seam work moves it again. See W5-G5's landed partition for which modules are yours. UX-LANE COLLISION: coordinator.py is also lane F's file. F1 gives the device entry a documentation link and a real manufacturer, neither of which exists today; F2 gives the repair notices a documentation link they currently all lack. Both are parked until Wave 4 closes because coordinator_loc and max_class_loc sit at zero headroom -- so they land between Wave 4 and this group, and the coverage figures move again. CARRIED FROM #540 (#524/#525): _shutdown_process_pool must NOT be called inline from a coroutine -- it is reaped at EVENT_HOMEASSISTANT_STOP on the executor, and the atexit backstop is left with nothing to wait for. Home Assistant's own loop-protection helper (upstream, not in this tree) compares the calling thread id against the loop's; time.sleep is protected and Popen.wait is not, but CPython's Popen._wait polls with time.sleep, which is why the detector fires. A coverage test that calls the reaper directly from async context will trip it. Also: tests/nightly_ha.py's KNOWN_BLOCKING now lists two offenders this fix removed, and Checks.check BLANKS the detail on pass, so the stale pin is SILENT -- a regression of either would pass the nightly (#533)."
     }
   ]
 }
