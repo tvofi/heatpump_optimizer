@@ -158,7 +158,7 @@ function read(rel) {
 
 const POLICY_GLOBS = [
   /^CLAUDE\.md$/,
-  /^\.cursor\/rules\/[a-z-]+\.mdc$/,
+  /^\.cursor\/rules\/[a-z0-9-]+\.mdc$/,
   /^\.claude\/rules\/[a-z0-9-]+\.md$/,
   /^tools\/audit\/briefs\/[A-Za-z0-9_.-]+\.md$/,
   /^tools\/audit\/README\.md$/,
@@ -169,6 +169,35 @@ const POLICY_GLOBS = [
 
 // Always loaded by a tool, so their size is charged to every session.
 const ALWAYS_LOADED = /^(CLAUDE\.md|\.claude\/rules\/[a-z0-9-]+\.md)$/
+
+// Every tracked file under a policy DIRECTORY has to be matched by a glob
+// above. A one-character gap is enough to lose one silently: the `.mdc` pattern
+// allowed no digits while the `.claude/rules/` pattern beside it did, so a rule
+// file with a digit in its name would have left the corpus entirely and the run
+// would still have printed `TOTAL: 0`. This is the same argument
+// closure.orphan_files() makes about the gate -- a file that is neither matched
+// nor deliberately excluded is an oversight, not a pass.
+const POLICY_DIRS = [/^\.cursor\/rules\//, /^\.claude\/rules\//, /^tools\/audit\/briefs\//]
+// The one deliberate exclusion: write-once evidence committed under briefs/.
+const POLICY_DIR_EXCLUDE = [/^tools\/audit\/briefs\/.*\.(json|txt|png|svg)$/]
+
+function uncoveredPolicyFiles() {
+  const { list } = trackedFiles()
+  return list
+    .filter((f) => POLICY_DIRS.some((re) => re.test(f)))
+    .filter((f) => !POLICY_GLOBS.some((re) => re.test(f)))
+    .filter((f) => !POLICY_DIR_EXCLUDE.some((re) => re.test(f)))
+    .sort()
+}
+
+function checkCoverage() {
+  return uncoveredPolicyFiles().map((f) => ({
+    severity: 'error',
+    check: 'coverage',
+    where: f,
+    message: `sits in a policy directory and matches no POLICY_GLOBS pattern, so no check in this file has ever read it. Widen the glob, or exclude it deliberately.`,
+  }))
+}
 
 function policyFiles() {
   const { list } = trackedFiles()
@@ -700,6 +729,7 @@ const CHECKS = [
   { name: 'index', what: 'CLAUDE.md names every policy file, and every file it names exists', fixture: 'fixtures/policy-rot/index.md' },
   { name: 'duplicates', what: 'no 12-word run shared between two policy files', fixture: 'fixtures/policy-rot/dup-a.md' },
   { name: 'pr-body', what: 'a body carries its evidence sections, at the head CI ran', fixture: 'fixtures/policy-rot/prepr/' },
+  { name: 'coverage', what: 'every file in a policy directory is matched by a glob', fixture: '(a probe file, see assertAcceptance)' },
 ]
 
 function lintFile(rel, derived) {
@@ -831,6 +861,34 @@ function assertAcceptance(derived) {
       console.log(`\nFIXTURE VACUOUS: ${TEMPLATE} does not satisfy the contract it exists to state`)
       found.push(...errs.map((e) => ({ ...e, check: '(template)' })))
     }
+  }
+
+  // coverage: written as a probe rather than a committed fixture, because the
+  // check's whole subject is a file the globs do not match -- and committing one
+  // would make every run report it. The probe is created, measured and removed.
+  const probe = path.join(ROOT, '.cursor', 'rules', 'zz-policy-lint-probe9.mdc')
+  let coverageErrs = []
+  try {
+    fs.mkdirSync(path.dirname(probe), { recursive: true })
+    fs.writeFileSync(probe, '# probe\n')
+    const before = uncoveredPolicyFiles()
+    // The probe is untracked, so it is invisible to git ls-files and therefore
+    // to the check. Measure the PATTERNS directly instead, which is the thing
+    // that can rot: a glob narrower than its directory.
+    const rel = '.cursor/rules/zz-policy-lint-probe9.mdc'
+    if (!POLICY_GLOBS.some((re) => re.test(rel))) {
+      coverageErrs.push({
+        severity: 'error', check: 'coverage', where: rel,
+        message: 'sits in a policy directory and matches no POLICY_GLOBS pattern, so no check in this file has ever read it.',
+      })
+    }
+    if (before.length !== uncoveredPolicyFiles().length) coverageErrs = []
+  } finally {
+    try { fs.unlinkSync(probe) } catch {}
+  }
+  if (coverageErrs.length) {
+    console.log(`\nFIXTURE VACUOUS: ${coverageErrs[0].where} matches no policy glob, so a rule file with a digit in its name would leave the corpus unread`)
+    return 1
   }
 
   found.push(...checkBudgets(rels))
@@ -1058,7 +1116,7 @@ function main() {
   let findings = []
   for (const f of files) findings.push(...lintFileGuarded(f, derived))
   if (defaultRun) {
-    findings.push(...checkIndex(all), ...checkDuplicates(all), ...checkBudgets(all))
+    findings.push(...checkIndex(all), ...checkDuplicates(all), ...checkBudgets(all), ...checkCoverage())
   }
 
   if (args.includes('--record-known-bad')) return cmdRecord(findings), process.exit(0)
