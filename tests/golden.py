@@ -989,6 +989,59 @@ def _capture_coordinator(config: dict) -> dict:
     }
 
 
+def _presented_fields(schema):
+    """``(key, validator)`` for every field a page presents, flattened.
+
+    A ``section()`` nests the *form*, never the option keys -- a grouped field
+    is still stored and read under its own name -- so the seed built from this
+    stays flat while the fingerprint above keeps the nesting.
+    """
+    for key, value in (schema.schema.items() if schema else []):
+        yield key, value
+
+
+def schema_fingerprint(schema) -> dict:
+    """Every field a page presents, section nesting included (#516).
+
+    At module level, not a closure inside ``capture_config_flow``, so a test
+    can hand it a schema directly. That is not tidying: the one-level walk
+    this replaces was reachable only by rendering a whole fixture, which is
+    why nothing ever asked it what it did with a nested page.
+
+    ``section()`` groups fields into a collapsible block without changing
+    their option keys, and a one-level walk recorded the section marker and
+    nothing underneath it. Grouping ``comfort``'s eleven fields dropped all
+    eleven, and from then on adding a field inside that section, removing
+    one, or rewriting a selector's bounds each left this fixture
+    byte-identical -- so "no drift" would have meant nothing on exactly the
+    pages #516 exists to group.
+
+    A section's presentation config lives on ``options``; only selectors have
+    ``config``. It is read from there and recorded in the same slot, so a
+    block that silently becomes collapsed moves this fixture the same way a
+    selector whose bounds move does.
+    """
+    fields = {}
+    for key, value in (schema.schema.items() if schema else []):
+        config = getattr(value, "config", None)
+        try:
+            default = repr(key.default())
+        except Exception:
+            default = None
+        marker = {
+            "selector": type(value).__name__,
+            "config": (
+                {k: repr(v) for k, v in sorted(dict(config).items())}
+                if config
+                else None
+            ),
+            "default": default,
+            "required": type(key).__name__,
+        }
+        fields[str(key)] = marker
+    return fields
+
+
 def capture_config_flow() -> dict:
     """Every option page's schema, field by field.
 
@@ -1010,30 +1063,10 @@ def capture_config_flow() -> dict:
     )
     flow.hass = FakeHass()
 
-    def fingerprint(schema) -> dict:
-        fields = {}
-        for key, value in (schema.schema.items() if schema else []):
-            config = getattr(value, "config", None)
-            try:
-                default = repr(key.default())
-            except Exception:
-                default = None
-            fields[str(key)] = {
-                "selector": type(value).__name__,
-                "config": (
-                    {k: repr(v) for k, v in sorted(dict(config).items())}
-                    if config
-                    else None
-                ),
-                "default": default,
-                "required": type(key).__name__,
-            }
-        return fields
-
     pages = {}
     for step in Flow._MENU_LABELS:
         result = asyncio.run(getattr(flow, f"async_step_{step}")())
-        pages[step] = fingerprint(result.get("data_schema"))
+        pages[step] = schema_fingerprint(result.get("data_schema"))
 
     # The initial flow (v4.1.0): fingerprinted since its restructure, because
     # a first-run form that silently gains or loses a field is exactly the
@@ -1060,7 +1093,7 @@ def capture_config_flow() -> dict:
                 "menu": [[k, v] for k, v in result["menu_options"].items()]
             }
         else:
-            initial_pages[step] = fingerprint(result.get("data_schema"))
+            initial_pages[step] = schema_fingerprint(result.get("data_schema"))
     pages["_initial"] = initial_pages
 
     # The two-level menu (v4.0.0) is structure the schemas cannot see: which
@@ -1127,7 +1160,10 @@ def capture_config_flow() -> dict:
         }
         grown = {}
         for schema in schemas.values():
-            for key, value in schema.schema.items() if schema else []:
+            # Flattened, so grouping a page into sections cannot quietly stop
+            # seeding the fields inside it -- which would leave ``_seeded``
+            # present but rendering the empty arm #547 added it to reach.
+            for key, value in _presented_fields(schema):
                 name = str(key)
                 if name in seed:
                     continue
@@ -1150,7 +1186,7 @@ def capture_config_flow() -> dict:
             f"{_SEED_ROUNDS} rounds ({len(seed)} keys seeded)"
         )
     pages["_seed"] = dict(sorted(seed.items()))
-    pages["_seeded"] = {step: fingerprint(s) for step, s in schemas.items()}
+    pages["_seeded"] = {step: schema_fingerprint(s) for step, s in schemas.items()}
     return pages
 
 
