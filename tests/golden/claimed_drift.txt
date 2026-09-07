@@ -184,6 +184,10 @@
 # assumed: ten saturated warm residuals through the real house learner land
 # on 0.8999999999999999 at the merge base and at this head, and deleting the
 # trust-region clip moves that to 0.5987369392383789.
+#
+# The README section on AI use: this branch claims NOTHING. README.md only
+# -- no production file, no test input and no solver parameter is touched,
+# so every scenario is byte-identical by construction.
 
 # #550 (the apply_topology set check pinned the reverse direction against a
 # module constant, not the schema): this branch claims NOTHING. tests/features.py
