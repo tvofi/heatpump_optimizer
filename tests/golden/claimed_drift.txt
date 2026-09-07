@@ -156,8 +156,10 @@
 # -- no production file, no test input and no solver parameter is touched,
 # so every scenario is byte-identical by construction.
 # #516 (the config-flow golden's fingerprint walked schemas one level deep):
-# this branch claims NOTHING, and DELETES #547's config_flow claim above,
-# which this diff does not move and which would therefore fail as stale.
+# this branch claims NOTHING. It was cut when #547's config_flow claim was
+# still here and deleted it, this diff not moving that fixture; #556 removed
+# the same line independently before this merge, so the list was already
+# empty by the time the two met.
 # Three test files only -- tests/golden.py, tests/config_flow_steps.py and
 # the tests/hastub data_entry_flow stub. schema_fingerprint now recurses
 # into a section()'s inner schema, but no option page uses section() yet, so
