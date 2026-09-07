@@ -90,7 +90,18 @@
         "default": "mdi:pipe-valve"
       },
       "heat_pump_action": {
-        "default": "mdi:heat-pump"
+        "default": "mdi:heat-pump",
+        "state": {
+          "boost": "mdi:rocket-launch",
+          "comfort": "mdi:sofa",
+          "eco": "mdi:leaf",
+          "idle": "mdi:sleep",
+          "normal": "mdi:radiator",
+          "off": "mdi:radiator-off",
+          "pre_heat": "mdi:clock-fast",
+          "system_identification": "mdi:flask-outline",
+          "unknown": "mdi:help-circle-outline"
+        }
       },
       "indoor_temperature_optimizer": {
         "default": "mdi:home-thermometer"
@@ -114,7 +125,15 @@
         "default": "mdi:gauge-full"
       },
       "optimization_mode": {
-        "default": "mdi:cog-outline"
+        "default": "mdi:cog-outline",
+        "state": {
+          "auto": "mdi:autorenew",
+          "boost": "mdi:rocket-launch",
+          "comfort": "mdi:sofa",
+          "economy": "mdi:leaf",
+          "off": "mdi:power-off",
+          "unknown": "mdi:help-circle-outline"
+        }
       },
       "optimization_schedule": {
         "default": "mdi:calendar-clock"
@@ -126,7 +145,23 @@
         "default": "mdi:check-circle-outline"
       },
       "plan_narrative": {
-        "default": "mdi:text-long"
+        "default": "mdi:text-long",
+        "state": {
+          "cheap_price": "mdi:cash-clock",
+          "comfort_floor": "mdi:home-thermometer",
+          "dhw_preheat": "mdi:water-boiler-auto",
+          "dhw_ready": "mdi:water-check",
+          "dhw_window": "mdi:calendar-clock",
+          "idle": "mdi:sleep",
+          "legionella": "mdi:bacteria-outline",
+          "manual_plan": "mdi:account-edit",
+          "preheat_weather": "mdi:weather-partly-cloudy",
+          "pump_mode": "mdi:heat-pump",
+          "scheduled": "mdi:calendar-check",
+          "solar_surplus": "mdi:solar-power-variant",
+          "terminal_value": "mdi:flag-checkered",
+          "untagged": "mdi:help-circle-outline"
+        }
       },
       "power_headroom": {
         "default": "mdi:transmission-tower"

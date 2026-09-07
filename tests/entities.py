@@ -10754,9 +10754,26 @@ R.check(
     f"{sorted(_stateful_icons)} != {sorted(_ENUM_SENSORS)}",
 )
 
-# An icon that repeats the default for every state is a section that changes
-# nothing -- the shape a mechanical fill produces, and it would pass every
-# check above.
+# A state icon equal to its own default changes nothing -- the shape a
+# mechanical fill produces. hassfest means to refuse it (icons.py
+# ensure_not_same_as_default, "the same as the default icon and thus can be
+# removed") but on the "entity" section it does not: the validator is applied
+# to {platform: {key: spec}} and reads "default" off the PLATFORM mapping,
+# which has none, so it iterates and finds nothing. It is applied at the right
+# depth on "entity_component", which is how the same function works there.
+# Enforced here at the depth hassfest intends, so this integration is already
+# right if that nesting is ever corrected upstream.
+_redundant_state_icons = sorted(
+    f"{_key}.{_state}"
+    for _key, _spec in _icon_sensors.items()
+    for _state, _icon in (_spec.get("state") or {}).items()
+    if _icon == _spec.get("default")
+)
+R.check(
+    "and no state icon merely repeats its own default",
+    not _redundant_state_icons,
+    ", ".join(_redundant_state_icons[:6]),
+)
 _flat_icon_sections = sorted(
     _key
     for _key, _spec in _icon_sensors.items()
