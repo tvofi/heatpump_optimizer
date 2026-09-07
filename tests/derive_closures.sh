@@ -114,6 +114,13 @@ p1=$!
   # run.sh. Reads the whole integration, so its closure is large on
   # purpose -- a change to any integration file must put it in scope.
   rec tests/structure.py
+  # The typing ratchet's source-only half (#303), in run.sh's lane order next
+  # to the structural ratchet. Same reason ha_contract.py is recorded here and
+  # not only with --single: this job RE-DERIVES from these lanes, so a
+  # selectable script the lanes never ran fails it with "NO recording this
+  # run" however complete the committed table is. Its closure is the whole
+  # integration on purpose -- it scans every module for type-ignore comments.
+  rec tests/typing_ruler.py
   rec tests/edge.py
   rec tests/validate.py
   rec tests/backtest.py

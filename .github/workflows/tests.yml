@@ -392,6 +392,71 @@ jobs:
       - name: Lint every wave roster's citations
         run: node .claude/workflows/brief_lint.mjs
 
+  # The pinned, stub-free typing ruler (#303). Three numbers -- the error
+  # count, its per-code split, and the `# type: ignore` count -- and none of
+  # them may grow. It is a job of its own rather than a lane of `fast`
+  # because it needs a toolchain no gate lane has: mypy plus real Home
+  # Assistant type information, in a virtualenv built for the purpose. That
+  # is the `browser` and `nightly-ha` shape.
+  #
+  # The ruler's dependency-free half runs in `fast` too (tests/typing_ruler.py
+  # in the units lane), and deliberately: the ignore count is the guard
+  # `--warn-unused-ignores` does not provide, and it must not be the metric
+  # that goes unchecked on the day this install fails.
+  typing:
+    needs: [recheck-gate]
+    if: >-
+      always() && (
+        github.event_name == 'push'
+        || github.event_name == 'pull_request'
+        || (github.event_name == 'workflow_dispatch'
+            && needs.recheck-gate.outputs.recheck == 'true')
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      # Not matrixed over the interpreters `fast` uses. The pin is a PAIR and
+      # the two halves constrain each other: homeassistant-stubs 2026.2.3
+      # refuses to install below Python 3.13.2, and every release after it
+      # requires 3.14.2, so exactly one interpreter line satisfies the pin
+      # this ruler is defined by (#504). A second leg would either fail to
+      # install or measure something else and call it the same number.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      # The versions live in tests/typing_budgets.json and are not repeated
+      # here. A workflow that disagrees with the recorded pin is then not a
+      # state that can exist, rather than a state something has to check for.
+      - name: Resolve the pinned toolchain
+        run: |
+          python3 tests/typing_ruler.py --print-requirements \
+            | tee "$RUNNER_TEMP/typing-requirements.txt"
+
+      - name: Install the pinned toolchain
+        run: |
+          python3 -m venv .venv-typing
+          .venv-typing/bin/python -m pip install \
+            -r "$RUNNER_TEMP/typing-requirements.txt"
+
+      # Run BY the pinned interpreter, so the ruler introspects the
+      # environment it is measuring in rather than being told about it.
+      - name: Run the ruler and ratchet its three numbers
+        run: |
+          .venv-typing/bin/python tests/typing_ruler.py --mypy \
+            --emit "$RUNNER_TEMP/typing-census.json"
+
+      # Kept on a failure too: the run that refuses because the census is not
+      # yet recorded is exactly the run whose numbers are wanted.
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: typing-census
+          path: ${{ runner.temp }}/typing-census.json
+          if-no-files-found: ignore
+
   slow:
     needs: [recheck-gate]
     if: >-

@@ -1,0 +1,670 @@
+#!/usr/bin/env python3
+"""The typing ruler (#303): three numbers, pinned, and none of them may grow.
+
+    python3 tests/typing_ruler.py            # source-only; the gate runs this
+    .venv-typing/bin/python tests/typing_ruler.py --mypy   # the `typing` job
+    python3 tests/typing_ruler.py --print-requirements     # the pins, as pip lines
+
+#303 is not fixed by reducing its error count. It is fixed by making that
+count a number nobody can game, after which reduction is ordinary work. So
+this file lands before any annotation does, and it ratchets THREE numbers:
+
+  errors        total mypy --strict errors under the pinned, stub-free ruler
+  by_code       the same errors split by error code, ratcheted PER CODE
+  type_ignores  in-line suppression occurrences, a separate hard metric at 0
+
+The third is not a flag on the first. ``--warn-unused-ignores`` is in the
+command and does NOT prevent ignore-stuffing: the judge measured annotating
+four ``button.py`` ``__init__`` signatures properly at 427 -> 423, and adding
+four ``# type: ignore[no-untyped-def]`` comments instead at 427 -> 423 --
+identical, with the flag on throughout. It cannot fire, because a live ignore
+is a *used* ignore and that flag only catches stale ones. Keep it for
+staleness; count the ignores separately.
+
+WHY by_code IS RATCHETED PER CODE. Partial annotation relabels rather than
+reduces: typing the same members as ``object`` instead of ``Any`` moved the
+count -3 where ``Any`` moved it -33, because ``object`` generates its own
+downstream errors. A total that holds still while the mix churns is a change
+that did nothing. A code absent from the recorded table has a budget of zero,
+so relabelling into a fresh code fails rather than passing unseen.
+
+THE SPLIT, AND WHY IT IS A SPLIT. ``type_ignores`` is a source scan needing no
+toolchain, so it runs in the ordinary gate on every pull request. ``errors``
+and ``by_code`` need the pinned toolchain, which no gate lane has, so they run
+in the `typing` CI job -- the shape ``card_browser.mjs`` and ``nightly_ha.py``
+already have. Making the one metric that needs nothing depend on a job that
+installs a toolchain over the network would be the wrong way round: the guard
+against ignore-stuffing would go unchecked exactly when the toolchain fails.
+
+FOUR GUARDS, because a count is only worth what its guards are worth. Each
+names the lever it exists to stop:
+
+1. **The construction guard.** Total ``error:`` lines must EQUAL the lines
+   under ``custom_components/heatpump_optimizer/``. That is what makes the
+   number production-only *by construction* rather than by subtraction, and
+   it is also how stub leakage is caught: with ``tests/hastub`` on the path
+   there are error lines located inside it (55, measured), so the two numbers
+   part company and this refuses. ``run.sh`` exports
+   ``PYTHONPATH=$PWD/tests/hastub``, so that is not a hypothetical.
+2. **The pin guard.** The installed mypy and homeassistant-stubs versions must
+   equal the recorded pins, and the interpreter must meet ``python_min``. A
+   number from an unpinned tool is not the census. The pin is that PAIR and
+   nothing more: the integration's own requirements are installed unpinned
+   because homeassistant-stubs constrains the same packages, so pinning them
+   beside it does not tighten anything -- it makes the install unsatisfiable.
+   Their resolution is recorded in the census rather than asserted.
+3. **The exit-status guard.** mypy must exit 0 or 1. A toolchain that dies
+   emits a line or two and a naive counter reads that as a near-perfect score;
+   guard 1 catches it too, from the other side, since the dying line's path is
+   inside the stubs package rather than the integration.
+4. **The suppression-surface guard.** Nothing in the tree may suppress a
+   diagnostic. Stated as that property because an enumeration WAS the defect:
+   this guard shipped inspecting four repo-root config file *names*, and mypy's
+   inline per-module configuration comment is neither a config file nor a
+   ``# type: ignore``, so it passed. Under the pinned toolchain three
+   unannotated defs go 3 errors -> 0 with one such comment prepended, and all
+   three ratcheted numbers then move the APPROVING way -- ``errors`` falls,
+   ``by_code`` falls, ``type_ignores`` holds at 0 -- so ``ratchet()`` prints
+   IMPROVED and not yet recorded and invites the next tranche to write the
+   suppressed figure down. That is worse than missing a suppression: it rewards
+   one. The split between this guard and ``type_ignores`` is by shape, not by
+   kind: a suppression written INSIDE a source line is countable, so it is
+   counted into that metric and ratcheted; a suppression that IS a file is not
+   countable, so it is refused here.
+
+WHAT THE GUARD DELIBERATELY DOES NOT COVER, said out loud so that silence is
+not read as coverage:
+
+* A mypy configuration outside the tree -- ``~/.mypy.ini``,
+  ``$XDG_CONFIG_HOME/mypy/config``. No scan of the tree can see one; it cannot
+  travel in a pull request; and CI is authoritative for ``errors`` and
+  ``by_code``, so it can only mislead a local ``--mypy``. Closing it means
+  ``--config-file=`` on the pinned invocation, which does work (measured), but
+  that changes the command that produced the recorded census -- and the census
+  cannot be re-derived below Python 3.13.2 (#504). Recorded as an exclusion
+  rather than taken as an unverified flag.
+* A settings flag added to ``run_mypy`` itself. A guard cannot defend the file
+  it lives in; review does that.
+* ``Any``, ``object`` and ``cast``. They change what the code claims rather
+  than hiding what mypy said, and ``by_code`` already prices them -- see the
+  relabelling paragraph above.
+* Deleting or excluding a module. That changes what ships, guard 1 and the
+  ``by_module`` table both show it, and it is not a suppression.
+
+WHAT THIS DOES NOT DO. It does not annotate anything, and it does not close
+#303. It also cannot run on a box below Python 3.13.2: the pinned stubs will
+not install there, so ``--mypy`` refuses instead of quietly measuring
+something else. See #504 -- the ruler is authoritative in CI, and a local
+``--mypy`` is available only where the pins install.
+"""
+from __future__ import annotations
+
+import argparse
+import configparser
+import json
+import os
+import re
+import subprocess
+import sys
+import tempfile
+import tomllib
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+PACKAGE_REL = "custom_components/heatpump_optimizer"
+PACKAGE_DIR = REPO_ROOT / PACKAGE_REL
+BUDGET_FILE = REPO_ROOT / "tests" / "typing_budgets.json"
+
+# Every suppression that fits inside a source line. Counted per OCCURRENCE, not
+# per line: `grep -c` counts lines, and two on one line are two.
+#
+# `# mypy:` is matched WHOLE rather than by naming the settings that suppress,
+# because naming them is the mistake guard 4 was landed with. Measured under the
+# pinned mypy with the ruler's own flags, three unannotated defs go 3 errors -> 0
+# under each of `disable-error-code="..."`, `disable_error_code = ...`,
+# `allow-untyped-defs` and `ignore-errors`, and mypy honours the comment at
+# column 0 anywhere in the file rather than only above the code. This does not
+# model that column rule -- mypy ignores an indented one, measured, so refusing
+# it costs a false positive of exactly the shape a reader would misread anyway.
+#
+# `no_type_check` is here for the same reason and is not a comment: the
+# decorator makes mypy skip the function's body and signature outright
+# (measured, 3 -> 0), with no config file and no comment to find.
+SUPPRESSION_RE = re.compile(
+    r"#\s*type:\s*ignore"
+    r"|#\s*mypy:"
+    r"|\bno_type_check\b"
+)
+
+# `path:line: error: message  [code]`, with an optional column. `--no-error-summary`
+# removes the trailing total; `note:` lines are not errors and are not counted.
+ERROR_RE = re.compile(
+    r"^(?P<path>[^:]+):(?P<line>\d+):(?:\d+:)?\s*error:\s*(?P<msg>.*?)"
+    r"(?:\s*\[(?P<code>[A-Za-z0-9_-]+)\])?$"
+)
+
+# Basenames mypy reads configuration from. WHICH copy it reads depends on the
+# invocation's working directory, which is not a property of the tree, so guard
+# 4 looks for them everywhere rather than at the repository root only.
+CONFIG_BASENAMES = ("mypy.ini", ".mypy.ini", "setup.cfg", "pyproject.toml")
+
+# Not this repository's source: `.git` alone is most of the walk, and an
+# installed dependency's own mypy section is not a configuration OF this tree.
+# A virtual environment is pruned by its `pyvenv.cfg` rather than by name --
+# tests.yml builds `.venv-typing` at the repository root and .gitignore does not
+# cover that name, so a source-lane run beside one found `[tool.mypy]` inside
+# site-packages and refused, naming a third-party package.
+UNWALKED_DIRS = (".git", "__pycache__", "node_modules", "site-packages")
+VENV_MARKER = "pyvenv.cfg"
+
+
+class Report:
+    def __init__(self, title: str) -> None:
+        self.title = title
+        self.failures = 0
+        self.checks = 0
+        print(f"\n=== {title} ===")
+
+    def check(self, name: str, ok: object, detail: str = "") -> bool:
+        self.checks += 1
+        if ok:
+            print(f"  ok   {name}")
+        else:
+            self.failures += 1
+            print(f"  FAIL {name}" + (f"  [{detail}]" if detail else ""))
+        return bool(ok)
+
+    def note(self, name: str, detail: str = "") -> None:
+        print(f"  ..   {name}" + (f"  [{detail}]" if detail else ""))
+
+    def close(self, label: str) -> int:
+        if self.failures:
+            print(f"\n{self.failures} of {self.checks} {label} FAILED")
+            return 1
+        print(f"\nALL {self.checks} {label} PASSED")
+        return 0
+
+
+def budgets() -> dict:
+    return json.loads(BUDGET_FILE.read_text())
+
+
+def head_sha() -> str:
+    out = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=REPO_ROOT, capture_output=True, text=True
+    )
+    return out.stdout.strip() or "unknown"
+
+
+# ---------------------------------------------------------------------------
+# source-only measurements: no toolchain, so the ordinary gate runs them
+
+
+def count_suppressions() -> tuple[int, list[str]]:
+    """In-line suppression occurrences in the integration, with evidence.
+
+    The rule, stated because a number without its rule is not re-derivable
+    (`fixer.md` step 8): every match of SUPPRESSION_RE in every ``*.py`` under
+    ``custom_components/heatpump_optimizer``, counted per match rather than per
+    line, with no exclusions -- a match inside a string or a docstring counts,
+    because a rule with an exception is a rule with a hiding place.
+
+    The metric keeps the name ``type_ignores`` in the budget file: the recorded
+    value is 0 and every form counted here is 0, so widening what it counts
+    moves no number.
+    """
+    total = 0
+    where: list[str] = []
+    for path in sorted(PACKAGE_DIR.rglob("*.py")):
+        rel = path.relative_to(REPO_ROOT)
+        for lineno, line in enumerate(path.read_text().splitlines(), 1):
+            for _ in SUPPRESSION_RE.finditer(line):
+                total += 1
+                where.append(f"{rel}:{lineno}: {line.strip()}")
+    return total, where
+
+
+def _carries_mypy_settings(path: Path) -> bool:
+    """Whether a candidate config file actually configures mypy.
+
+    Parsed, not substring-matched. ``[tool."mypy"]`` is the same TOML key as
+    ``[tool.mypy]`` and mypy honours it -- measured, 3 errors -> 0 -- while the
+    substring test this replaces returned no finding for it. A file that will
+    not parse falls back to the substring test rather than to silence.
+    """
+    if path.name in ("mypy.ini", ".mypy.ini"):
+        return True
+    text = path.read_text(errors="replace")
+    if path.name == "pyproject.toml":
+        try:
+            return "mypy" in tomllib.loads(text).get("tool", {})
+        except (tomllib.TOMLDecodeError, AttributeError):
+            return "[tool.mypy" in text
+    parser = configparser.ConfigParser()
+    try:
+        parser.read_string(text)
+    except configparser.Error:
+        return "[mypy" in text
+    return any(s == "mypy" or s.startswith("mypy-") for s in parser.sections())
+
+
+def find_suppression_surfaces() -> list[str]:
+    """Whole-file suppression surfaces, as repository-relative paths.
+
+    Two kinds, both file-shaped, which is why they are a guard rather than a
+    ratcheted count:
+
+    * a file mypy would take settings from, found anywhere in the tree.
+      Root-only would encode today's command line instead of the prohibition;
+      from the repository root mypy does not in fact read a nested one
+      (measured), so a nested hit is a latent surface rather than a live one,
+      and the guard's contract is that none exists. ``setup.cfg`` and
+      ``pyproject.toml`` count only where they carry a mypy section -- they have
+      other jobs, and this must not become a reason nobody may add one. An
+      installed dependency is not this tree, so a virtual environment is pruned
+      whole.
+    * a ``.pyi`` beside a package source. mypy checks the stub INSTEAD of the
+      module, so every error in that module disappears (measured, 3 -> 0) with
+      no comment and no configuration anywhere to find.
+    """
+    found: list[str] = []
+    for parent, dirs, names in os.walk(REPO_ROOT):
+        if VENV_MARKER in names:
+            dirs[:] = []
+            continue
+        dirs[:] = [d for d in dirs if d not in UNWALKED_DIRS]
+        for name in names:
+            path = Path(parent, name)
+            if name in CONFIG_BASENAMES and _carries_mypy_settings(path):
+                found.append(str(path.relative_to(REPO_ROOT)))
+    found += [str(p.relative_to(REPO_ROOT)) for p in PACKAGE_DIR.rglob("*.pyi")]
+    return sorted(found)
+
+
+# ---------------------------------------------------------------------------
+# the pinned ruler itself
+
+
+def installed_version(dist: str) -> str | None:
+    from importlib.metadata import PackageNotFoundError, version
+
+    try:
+        return version(dist)
+    except PackageNotFoundError:
+        return None
+
+
+def requirement_lines(budget: dict) -> list[str]:
+    """The pins, as pip lines. The third-party names carry NO version.
+
+    They are the integration's own requirements, present so ``import-not-found``
+    is zero, and homeassistant-stubs pins its own dependency ranges over the
+    same packages. Pinning them beside it is therefore not a tightening but an
+    unsatisfiable resolution -- CI refused exactly that with ``Cannot install
+    aiohttp==3.14.3 and homeassistant-stubs because these package versions have
+    conflicting dependencies``. The stubs decide; ``environment`` below records
+    what they decided.
+    """
+    ruler = budget["ruler"]
+    return [
+        f"mypy=={ruler['mypy']}",
+        f"homeassistant-stubs=={ruler['homeassistant_stubs']}",
+        *sorted(ruler["third_party"]),
+    ]
+
+
+def third_party_versions(budget: dict) -> dict[str, str]:
+    return {
+        name: installed_version(name) or "MISSING"
+        for name in sorted(budget["ruler"]["third_party"])
+    }
+
+
+def check_pins(report: Report, budget: dict) -> bool:
+    """Guard 2. The interpreter and the two load-bearing pins.
+
+    The pin is a PAIR -- mypy and the stubs -- and only that pair is asserted.
+    The third-party resolution is reported rather than asserted, because the
+    stubs own it.
+    """
+    ruler = budget["ruler"]
+    minimum = tuple(int(p) for p in ruler["python_min"].split("."))
+    running = sys.version_info[: len(minimum)]
+    ok = report.check(
+        f"interpreter is at least Python {ruler['python_min']}",
+        running >= minimum,
+        f"running {'.'.join(str(p) for p in running)}; "
+        f"homeassistant-stubs=={ruler['homeassistant_stubs']} will not install below "
+        f"{ruler['python_min']} (#504)",
+    )
+    for dist, pin in (
+        ("mypy", ruler["mypy"]),
+        ("homeassistant-stubs", ruler["homeassistant_stubs"]),
+    ):
+        got = installed_version(dist)
+        ok &= report.check(
+            f"{dist} is pinned at {pin}", got == pin, f"found {got or 'nothing'}"
+        )
+    resolved = third_party_versions(budget)
+    report.note(
+        "third-party resolution (chosen by the stubs, recorded not asserted)",
+        ", ".join(f"{n}=={v}" for n, v in resolved.items()),
+    )
+    # A missing requirement is not a style question: it turns into
+    # `import-not-found` errors, and the census stops describing this codebase.
+    # The per-code ratchet catches that too, from the other side.
+    missing = [n for n, v in resolved.items() if v == "MISSING"]
+    ok &= report.check(
+        "every third-party requirement is installed", not missing,
+        f"{', '.join(missing)} absent; import-not-found would be non-zero",
+    )
+    return bool(ok)
+
+
+def run_mypy(budget: dict) -> tuple[int, list[str]]:
+    """The issue's pinned invocation, with the stub excluded by construction.
+
+    ``MYPYPATH`` and ``PYTHONPATH`` are stripped rather than merely unset by
+    convention: ``tests/run.sh`` exports ``PYTHONPATH=$PWD/tests/hastub`` for
+    every script it runs, and the whole point of this ruler is that the fake
+    Home Assistant is not on the path.
+    """
+    env = {k: v for k, v in os.environ.items() if k not in ("MYPYPATH", "PYTHONPATH")}
+    with tempfile.TemporaryDirectory() as cache:
+        proc = subprocess.run(
+            [
+                sys.executable, "-m", "mypy",
+                "--strict",
+                "--warn-unused-ignores",
+                "--show-error-codes",
+                "--no-error-summary",
+                "--no-incremental",
+                "--cache-dir", cache,
+                "--python-version", budget["ruler"]["python_version_flag"],
+                PACKAGE_REL,
+            ],
+            cwd=REPO_ROOT, capture_output=True, text=True, env=env,
+        )
+    return proc.returncode, (proc.stdout + proc.stderr).splitlines()
+
+
+def parse_errors(lines: list[str]) -> tuple[list[tuple[str, str]], int]:
+    """Every ``error:`` line as (path, code), plus the total seen.
+
+    The total is returned separately from the parsed list so guard 1 can
+    compare "error lines anywhere" against "error lines under the package"
+    rather than trusting one number to describe both.
+    """
+    parsed: list[tuple[str, str]] = []
+    total = 0
+    for line in lines:
+        if ": error:" not in line:
+            continue
+        total += 1
+        m = ERROR_RE.match(line)
+        if m:
+            parsed.append((m.group("path"), m.group("code") or "no-code"))
+        else:
+            parsed.append((line.split(":", 1)[0], "unparsed"))
+    return parsed, total
+
+
+def measure(report: Report, budget: dict) -> dict | None:
+    """The census: errors, by_code and type_ignores, or None if a guard refused."""
+    rc, lines = run_mypy(budget)
+
+    # Guard 3.
+    if not report.check(
+        "mypy exited 0 or 1 (clean, or errors found)",
+        rc in (0, 1),
+        f"exit {rc}; a toolchain that dies emits one or two lines and a naive "
+        f"counter reads that as a near-perfect score. First line: "
+        f"{lines[0] if lines else '(no output)'}",
+    ):
+        return None
+
+    parsed, total_lines = parse_errors(lines)
+    under_package = [p for p in parsed if p[0].startswith(PACKAGE_REL + "/")]
+
+    # Guard 1.
+    outside = [p for p in parsed if not p[0].startswith(PACKAGE_REL + "/")]
+    if not report.check(
+        "production-only by construction: every error line is under "
+        f"{PACKAGE_REL}/",
+        not outside,
+        f"{total_lines} error line(s), {len(under_package)} under the package; "
+        f"{len(outside)} elsewhere, first at {outside[0][0] if outside else ''}. "
+        "Error lines outside the integration mean the stub is on the path, or "
+        "the toolchain itself failed to parse -- either way the count no longer "
+        "describes this codebase",
+    ):
+        return None
+
+    by_code: dict[str, int] = {}
+    by_module: dict[str, int] = {}
+    for path, code in under_package:
+        by_code[code] = by_code.get(code, 0) + 1
+        module = path[len(PACKAGE_REL) + 1:]
+        by_module[module] = by_module.get(module, 0) + 1
+
+    ignores, _ = count_suppressions()
+    return {
+        "errors": len(under_package),
+        "by_code": dict(sorted(by_code.items())),
+        # REPORTED, never ratcheted, and never stored in the budget file. The
+        # module tranches of #303 are scoped by module and would otherwise have
+        # no way to size themselves -- the pinned ruler does not run below
+        # Python 3.13.2, so they cannot measure it locally (#504). A stored
+        # snapshot would go stale between tranches and a ratchet on it would
+        # fail an honest move of code between modules, so it rides the emitted
+        # measurement and the job log, where it is always current.
+        "by_module": dict(sorted(by_module.items(), key=lambda kv: (-kv[1], kv[0]))),
+        "type_ignores": ignores,
+        # Provenance, not a constraint. The stubs choose these versions, so
+        # recording them is how a resolution change becomes visible beside the
+        # number it moved instead of being invisible behind it.
+        "environment": {
+            "python": ".".join(str(p) for p in sys.version_info[:3]),
+            "mypy": installed_version("mypy"),
+            "homeassistant-stubs": installed_version("homeassistant-stubs"),
+            **third_party_versions(budget),
+        },
+    }
+
+
+# ---------------------------------------------------------------------------
+# the ratchet
+
+
+def ratchet(report: Report, recorded: dict, measured: dict) -> list[tuple]:
+    """Fail anything that grew; return the rows that IMPROVED and are unrecorded.
+
+    The improvement rows are not decoration. Between a budget and a better
+    tree the gate is not loose, it is ABSENT -- the improvement can be given
+    back with nothing failing (structure.py, #350). They are also the control
+    on a census transcribed by hand: a recorded number that is too high shows
+    up here, loudly, on every run including the one that recorded it.
+    """
+    improved: list[tuple] = []
+
+    def one(key: str, budget: int, current: int) -> None:
+        if current > budget:
+            report.check(
+                f"{key} did not grow", False,
+                f"recorded {budget}, measured {current} ({current - budget:+})",
+            )
+        else:
+            report.check(f"{key} did not grow", True)
+            if current < budget:
+                improved.append((key, budget, current))
+
+    one("errors", recorded["errors"], measured["errors"])
+
+    codes = sorted(set(recorded["by_code"]) | set(measured["by_code"]))
+    for code in codes:
+        # A code absent from the record has a budget of ZERO. That is what
+        # stops relabelling: errors moved into a fresh code fail on arrival
+        # instead of arriving under a total that did not move.
+        one(f"by_code[{code}]", recorded["by_code"].get(code, 0),
+            measured["by_code"].get(code, 0))
+    return improved
+
+
+def report_improvements(rows: list[tuple]) -> None:
+    if not rows:
+        return
+    print()
+    print("########## %d number(s) IMPROVED and not yet recorded ##########" % len(rows))
+    print("  %-32s %10s %10s %8s" % ("number", "recorded", "measured", "delta"))
+    for key, budget, current in rows:
+        print("  %-32s %10s %10s %8s  BETTER (lower is better)"
+              % (key, budget, current, f"{current - budget:+}"))
+    print()
+    print("  Write it down in the PR that earned it. Until then the gate is not")
+    print("  loose here, it is ABSENT, and the gain can be given back silently.")
+
+
+# ---------------------------------------------------------------------------
+# entry points
+
+
+def source_checks(report: Report, budget: dict) -> None:
+    ignores, where = count_suppressions()
+    for line in where[:20]:
+        report.note("suppression", line)
+    budgeted = budget["type_ignores"]
+    if ignores > budgeted:
+        report.check(
+            "type_ignores did not grow", False,
+            f"recorded {budgeted}, measured {ignores} ({ignores - budgeted:+}). "
+            "--warn-unused-ignores cannot catch this: a live ignore is a USED "
+            "ignore, and it never sees a `# mypy:` directive or no_type_check "
+            "at all. Annotate instead, or record the increase deliberately",
+        )
+    else:
+        report.check("type_ignores did not grow", True)
+        if ignores < budgeted:
+            report_improvements([("type_ignores", budgeted, ignores)])
+
+    # Guard 4.
+    surfaces = find_suppression_surfaces()
+    report.check(
+        "no mypy configuration exists to suppress error codes from",
+        not surfaces,
+        f"found {', '.join(surfaces)}; a mypy section or a stub shadowing a "
+        "module drives the count down with zero improvement, and errors, "
+        "by_code and type_ignores all move the approving way while it happens",
+    )
+
+    census = budget.get("census")
+    if census is None:
+        report.note(
+            "census not recorded yet",
+            "the `typing` CI job produces it; this lane owns type_ignores only",
+        )
+    else:
+        report.note(
+            "census recorded",
+            f"{census['errors']} errors across {len(census['by_code'])} codes "
+            f"at {str(census.get('recorded_at', '?'))[:12]}",
+        )
+
+
+def mypy_checks(report: Report, budget: dict, emit: str | None) -> None:
+    if not check_pins(report, budget):
+        print()
+        print("REFUSING to measure. A count from an unpinned tool is not the")
+        print("census (#504). Install exactly what --print-requirements names.")
+        return
+
+    measured = measure(report, budget)
+    if measured is None:
+        return
+
+    if emit:
+        Path(emit).write_text(json.dumps(measured, indent=1) + "\n")
+        print(f"\nmeasurement written to {emit}")
+
+    # Printed on every run, passing or failing. It is what a module tranche of
+    # #303 sizes itself against, and it is never recorded, so the log and the
+    # artifact are the only places it exists.
+    print("\n########## errors by module (reported, not ratcheted) ##########")
+    for module, n in measured["by_module"].items():
+        print("  %-32s %4d" % (module, n))
+
+    census = budget.get("census")
+    if census is None:
+        report.check(
+            "the census is recorded", False,
+            "this ruler has never recorded its numbers, so nothing is ratcheted",
+        )
+        print()
+        print("########## the census, measured here ##########")
+        print("  errors        %d" % measured["errors"])
+        print("  type_ignores  %d" % measured["type_ignores"])
+        print("  by code:")
+        for code, n in measured["by_code"].items():
+            print("    %-24s %4d" % (code, n))
+        print()
+        print("  Record it by putting this in tests/typing_budgets.json as")
+        print('  "census", then commit. The ratchet enforces it from the next run:')
+        print()
+        block = dict(measured)
+        # type_ignores has its own top-level key; by_module is never stored.
+        block.pop("type_ignores", None)
+        block.pop("by_module", None)
+        block["recorded_at"] = head_sha()
+        for line in json.dumps(block, indent=2).splitlines():
+            print("    " + line)
+        return
+
+    improved = ratchet(report, census, measured)
+    ignores_budget = budget["type_ignores"]
+    if measured["type_ignores"] > ignores_budget:
+        report.check(
+            "type_ignores did not grow", False,
+            f"recorded {ignores_budget}, measured {measured['type_ignores']}",
+        )
+    else:
+        report.check("type_ignores did not grow", True)
+        if measured["type_ignores"] < ignores_budget:
+            improved.append(("type_ignores", ignores_budget, measured["type_ignores"]))
+    report_improvements(improved)
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    ap.add_argument(
+        "--mypy", action="store_true",
+        help="run the pinned ruler and ratchet all three numbers "
+             "(needs the pinned toolchain; the `typing` CI job runs this)",
+    )
+    ap.add_argument(
+        "--print-requirements", action="store_true",
+        help="print the pins as pip requirement lines and exit",
+    )
+    ap.add_argument("--emit", metavar="PATH", help="write the measurement as JSON")
+    args = ap.parse_args()
+
+    budget = budgets()
+
+    if args.print_requirements:
+        print("\n".join(requirement_lines(budget)))
+        return 0
+
+    if args.mypy:
+        ruler = budget["ruler"]
+        report = Report(
+            f"typing ruler (mypy {ruler['mypy']}, "
+            f"homeassistant-stubs {ruler['homeassistant_stubs']}, stub-free)"
+        )
+        mypy_checks(report, budget, args.emit)
+        return report.close("typing-ruler checks")
+
+    report = Report("typing ruler, source-only (no toolchain needed)")
+    source_checks(report, budget)
+    return report.close("typing-ruler source checks")
+
+
+if __name__ == "__main__":
+    sys.exit(main())
