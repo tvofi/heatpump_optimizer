@@ -278,18 +278,24 @@ INVENTORY: dict[str, Entry] = {
         "the identity. Upstream tags the decorated function with _hass_callback, "
         "which is how the event loop decides to run it inline instead of in an "
         "executor -- invisible to any lane here, none of which has an event loop",
-        issue="#536",
+        issue="#577",
     ),
     # -- data_entry_flow ----------------------------------------------------
     "homeassistant.data_entry_flow.FlowResult": S(
         "``dict``. Upstream is a generic TypedDict; nothing here reads a type",
         absent=("__required_keys__",),
     ),
+    # The nine DIVERGENT entries below were measured against Home Assistant
+    # 2025.2.0 while this file was written, and are RECORDED rather than fixed:
+    # repairing them here would have left every contract green and proved
+    # nothing about whether the mechanism can fail. #577 holds their
+    # disposition, and four of them have production reach through services.py's
+    # call schemas.
     "homeassistant.data_entry_flow.FlowError": D(
         "upstream is FlowError(HomeAssistantError); the stub's base is "
         "Exception, so code catching HomeAssistantError catches an aborted flow "
         "on a real install and not here",
-        issue="#536",
+        issue="#577",
     ),
     "homeassistant.data_entry_flow.AbortFlow": F(
         "reason and description_placeholders land on the instance and the "
@@ -301,7 +307,7 @@ INVENTORY: dict[str, Entry] = {
         "upstream ALSO sets args=(translation_key,) when a translated error is "
         "raised with no message, so str(err) is the key rather than the empty "
         "string. The stub's is empty",
-        issue="#536",
+        issue="#577",
     ),
     "homeassistant.exceptions.ServiceValidationError": F(
         "subclasses HomeAssistantError, which is what lets a caller catch the "
@@ -318,24 +324,24 @@ INVENTORY: dict[str, Entry] = {
         "str(), so None becomes the string 'None'. Production validates service "
         "call data with cv.string, so an automation passing null is refused on "
         "a real install and silently coerced in every lane here",
-        issue="#536",
+        issue="#577",
     ),
     "homeassistant.helpers.config_validation.boolean": D(
         "upstream maps the strings 1/true/yes/on/enable and their negatives, "
         "and RAISES vol.Invalid on anything else; the stub is bool(), so "
         "boolean('false') is True and no input is ever refused. Production uses "
         "cv.boolean in three service schemas",
-        issue="#536",
+        issue="#577",
     ),
     "homeassistant.helpers.config_validation.positive_int": D(
         "upstream is vol.All(vol.Coerce(int), vol.Range(min=0)); the stub is "
         "int(), which accepts a negative",
-        issue="#536",
+        issue="#577",
     ),
     "homeassistant.helpers.config_validation.positive_float": D(
         "upstream is vol.All(vol.Coerce(float), vol.Range(min=0)); the stub is "
         "float(), which accepts a negative",
-        issue="#536",
+        issue="#577",
     ),
     "homeassistant.helpers.config_validation.config_entry_only_config_schema": S(
         "returns the configuration unchanged. Upstream logs an error and raises "
@@ -474,7 +480,7 @@ INVENTORY: dict[str, Entry] = {
         "None unless HASTUB_TZ is set, where upstream always carries the "
         "instance's configured zone. Opt-in because every golden fixture was "
         "recorded against the identity as_local below",
-        issue="#536",
+        issue="#577",
     ),
     "homeassistant.util.dt.freeze": H("a test-facing clock pin with no upstream counterpart"),
     "homeassistant.util.dt.now": F(
@@ -488,7 +494,7 @@ INVENTORY: dict[str, Entry] = {
         "the identity when no zone is configured, where upstream always "
         "converts. Every golden fixture was recorded that way, so making it "
         "faithful shifts every one of them by the runner's UTC offset",
-        issue="#536",
+        issue="#577",
     ),
 }
 
