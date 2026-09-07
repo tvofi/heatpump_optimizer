@@ -85,3 +85,9 @@
 # test scripts, tests/golden.py and the config_flow golden fixture only --
 # no card source, template, style or payload key is touched, so every
 # rendered state is byte-identical by construction.
+# #558 D2/D3 (lane D): this branch claims NOTHING. No card source, template,
+# style or payload key is touched. The card reads narrative.lines and renders
+# them verbatim, so the currency change alters what those already-rendered
+# strings SAY without changing any card state this lane records; the sensor
+# device class and the state translations are Home Assistant surfaces the
+# card never reads. Measured: card_drift reports "identical in all 34 states".

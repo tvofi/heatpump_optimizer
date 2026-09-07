@@ -151,7 +151,6 @@
 # assumed: ten saturated warm residuals through the real house learner land
 # on 0.8999999999999999 at the merge base and at this head, and deleting the
 # trust-region clip moves that to 0.5987369392383789.
-config_flow  # #547: gains the _seed and _seeded key paths; no existing path moves
 
 # #550 (the apply_topology set check pinned the reverse direction against a
 # module constant, not the schema): this branch claims NOTHING. tests/features.py
@@ -168,3 +167,21 @@ config_flow  # #547: gains the _seed and _seeded key paths; no existing path mov
 # `_init_thermal_learning` -- an earlier call in the same `__init__`, with
 # the same constants and no read between the two call sites -- so every
 # scenario fixture is byte-identical by construction.
+
+# #558 D2/D3 (lane D of the UX programme): this branch claims NOTHING.
+#
+# D2 changes narrative.py's template TEXT and threads the instance currency
+# into narrative.render. Every coordinator fixture records
+# insight.narrative as {"items": [], "language": "en", "lines": []} -- the
+# rendered lines are empty in all five -- so no recorded value can move.
+# _narrative_view's only other edit binds `hass = self.hass` once and calls
+# resolve_currency(hass) instead of reading self.currency; the resolved
+# value is identical (both go through currency.resolve_currency) and it is
+# not a recorded key.
+#
+# D3 adds a device class, an options list and state translations to three
+# sensors, plus two const.py tuples. capture_coordinator records
+# coordinator.data, not entity attributes, and capture_config_flow records
+# the flow's steps and schemas, not entity.* translation keys -- so neither
+# fixture has a key path for any of it. Measured, not assumed:
+# card_drift reports "identical in all 34 states" at this head.
