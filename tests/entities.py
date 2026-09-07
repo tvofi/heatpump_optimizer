@@ -8438,6 +8438,312 @@ R.check(
     "answer this; the gate jobs check out with fetch-depth: 0)",
 )
 
+# --- the real-Home-Assistant lane's own reporting (#533) --------------------
+#
+# `tests/nightly_ha.py` runs the integration inside the official Home Assistant
+# container. It is the only lane here that sees real Home Assistant, and the
+# only one that has ever caught a real divergence -- it found #525 on its first
+# green run. It needs Docker, which no gate lane has, so it stays on
+# `closure.py`'s NOT_A_TEST list and nothing in this suite will ever run it.
+#
+# Until this block nothing READ it either, and that is what went wrong. It was
+# INERT, so a change to its checks selected no script, and the gate could not
+# tell a lane that judged the container from one that judged nothing. #540
+# moved both of #525's offenders off the event loop; `KNOWN_BLOCKING` went on
+# listing both and the nightly stayed green -- because a pin that has gone
+# stale is a PASS, and `Checks.check` blanked the detail on a pass, discarding
+# the one line that named it. A regression of either would have passed too.
+#
+# Reading it here is the same deliberate move the handover check above makes
+# for `docs/HANDOVER.md`: it is what keeps the file out of INERT. What is
+# pinned is the lane's REPORTING, which is text and needs no container.
+import io as _io  # noqa: E402
+import types as _types  # noqa: E402
+
+import nightly_ha as _nightly  # noqa: E402
+
+# The two reports Home Assistant really emitted, from the nightly job that
+# found #525 -- run of 2026-09-06, job 101522529963 -- verbatim but for the
+# runner's timestamp prefix. Committed as a recorded artifact rather than
+# written to fit: a regex checked against a specimen shaped to match it pins
+# the specimen (`tools/audit/briefs/fixer.md` step 11). The `sleep` report says
+# line 831 and `coordinator.py` has moved on since; the pin captures the source
+# TEXT and not the line, which is why it still resolves.
+_NIGHTLY_REPORT_IMPORT = (
+    "2026-09-06 18:48:25.654 WARNING (MainThread) [homeassistant.util.loop] "
+    "Detected blocking call to import_module with args ('.services', "
+    "'custom_components.heatpump_optimizer') inside the event loop by custom "
+    "integration 'heatpump_optimizer' at "
+    "custom_components/heatpump_optimizer/__init__.py, line 56: return "
+    'importlib.import_module(f".{module}", __package__) (offender: '
+    "/config/custom_components/heatpump_optimizer/__init__.py, line 56: "
+    'return importlib.import_module(f".{module}", __package__)), please '
+    "create a bug report at https://github.com/tvofi/heatpump_optimizer/issues"
+)
+_NIGHTLY_REPORT_SLEEP = (
+    "2026-09-06 18:48:29.007 WARNING (MainThread) [homeassistant.util.loop] "
+    "Detected blocking call to sleep with args (0.001,) inside the event loop "
+    "by custom integration 'heatpump_optimizer' at "
+    "custom_components/heatpump_optimizer/coordinator.py, line 831: "
+    "worker.wait(timeout=2) (offender: /usr/local/lib/python3.14/"
+    "subprocess.py, line 2078: time.sleep(delay)), please create a bug report "
+    "at https://github.com/tvofi/heatpump_optimizer/issues"
+)
+_NIGHTLY_CLEAN = (
+    "2026-09-06 18:48:20.000 INFO (MainThread) [homeassistant.setup] "
+    "Setup of domain heatpump_optimizer took 4.20 seconds"
+)
+
+
+def _nightly_scan(text: str) -> tuple[list[str], dict]:
+    """`_scan` over one specimen: which checks failed, and every detail."""
+    checks = _nightly.Checks()
+    _saved_stdout, sys.stdout = sys.stdout, _io.StringIO()
+    try:
+        _nightly._scan(checks, text)
+    finally:
+        sys.stdout = _saved_stdout
+    return checks.failures(), checks.results
+
+
+def _nightly_report_probe(
+    extra_outside: tuple = (),
+    drop_outside: tuple = (),
+    markers: int = 1,
+    returncode: int = 0,
+) -> list:
+    """`_report` over a synthetic complete, green run; its `run:all_checks_ran`.
+
+    No container and no Docker: `_report` reads three attributes off the
+    finished process and is otherwise pure, so the roster comparison can be
+    driven directly.
+
+    The roster is perturbed in BOTH directions, because `ran == want` fails in
+    both and a probe that only adds names pins only half of it. `extra_outside`
+    adds a name the run never emits -- which a demanded roster must report
+    missing. `drop_outside` removes a name the run DOES emit -- which a demanded
+    roster must report undeclared, and which `want <= ran` would not.
+
+    THE INPUT SHAPE IS PRODUCTION'S, not a convenient one. The config directory
+    carries a `LOG_NAME` file, and the clean log line lives in it rather than on
+    stdout, because that is where a real run puts it: `nightly_ha.py:544` sets
+    Home Assistant's `log_file` to `IN_CONFIG / LOG_NAME`, the very directory
+    `_report` is handed. Over an empty directory `log.is_file()` is False on
+    every probe call and True on every real run, so the probe exercised the
+    COMPLEMENT of production -- and a guard that skipped the roster comparison
+    whenever the log existed kept this suite green while `run:all_checks_ran`
+    was never evaluated in the container at all.
+
+    `markers` and `returncode` reach the other two shapes a real run takes: a
+    driver that reported twice or not at all, and a container that exited
+    non-zero. Those runs are already failing for other reasons, which is
+    precisely why the roster demand must survive them -- a red run that also
+    stops saying WHICH checks ran is #533's own silence one level up.
+    """
+    checks = _nightly.Checks()
+    inside = {n: [True, "d"] for n in _nightly.INSIDE_CHECKS}
+    completed = _types.SimpleNamespace(
+        stdout=(_nightly.MARKER + json.dumps(inside) + "\n") * markers,
+        stderr="",
+        returncode=returncode,
+    )
+    _saved_roster = _nightly.OUTSIDE_CHECKS
+    _nightly.OUTSIDE_CHECKS = tuple(
+        n for n in _saved_roster + tuple(extra_outside) if n not in drop_outside
+    )
+    _saved_stdout, sys.stdout = sys.stdout, _io.StringIO()
+    try:
+        with _tempfile.TemporaryDirectory() as _dir:
+            (Path(_dir) / _nightly.LOG_NAME).write_text(_NIGHTLY_CLEAN)
+            _nightly._report(checks, completed, Path(_dir))
+    finally:
+        sys.stdout = _saved_stdout
+        _nightly.OUTSIDE_CHECKS = _saved_roster
+    # ABSENT is not FAILING, and only the first of those is #533's own shape.
+    # A guard that reads `results["run:all_checks_ran"]` directly cannot tell a
+    # wrong verdict from a check that stopped existing -- it raises KeyError and
+    # the arm that was supposed to name the defect reports a traceback instead.
+    return checks.results.get(
+        "run:all_checks_ran", [None, "ABSENT -- _report never reached it"]
+    )
+
+
+# THE GENERATOR BEFORE THE ARTIFACT (`fixer.md` step 10). Re-recording the pin
+# without this leaves the next staleness exactly as silent as this one was.
+_nightly_pass = _nightly.Checks()
+_nightly_pass.check("probe", True, "a measurement")
+R.check(
+    "the nightly lane keeps a check's detail when the check PASSES",
+    _nightly_pass.results["probe"][1] == "a measurement",
+    "tests/nightly_ha.py Checks.check blanked the detail on a pass, which is "
+    "how the stale KNOWN_BLOCKING pin survived #540 unnoticed (#533); a "
+    "detail is a measurement, not an explanation owed only by a failure",
+)
+
+# The pin is a ratchet and BOTH directions fail. Growth is a new defect; decay
+# is a pin outliving the defect it was written for.
+_nightly_new, _ = _nightly_scan(_NIGHTLY_CLEAN + "\n" + _NIGHTLY_REPORT_IMPORT)
+R.check(
+    "a Home Assistant loop-protection report fails the nightly",
+    "log:no_new_blocking_call" in _nightly_new,
+    "tests/nightly_ha.py accepted a real report of the offender #540 removed; "
+    f"with KNOWN_BLOCKING at {len(_nightly.KNOWN_BLOCKING)} entr(ies) a "
+    "regression of #525 would pass the only lane that can see it",
+)
+_nightly_saved = _nightly.KNOWN_BLOCKING
+_nightly.KNOWN_BLOCKING = frozenset(
+    _nightly.BLOCKING_CALL.findall(_NIGHTLY_REPORT_SLEEP)
+)
+try:
+    _nightly_stale, _ = _nightly_scan(_NIGHTLY_CLEAN)
+finally:
+    _nightly.KNOWN_BLOCKING = _nightly_saved
+R.check(
+    "a pinned offender the run did not produce fails the nightly",
+    "log:blocking_pin_not_stale" in _nightly_stale,
+    "tests/nightly_ha.py passes while KNOWN_BLOCKING lists an offender that "
+    "no longer occurs -- the #533 defect itself: the pin pins nothing, and "
+    "the run that would have said so reports a pass",
+)
+
+# The pin reads upstream text through a regex, so it can go blind without
+# failing: no matches reads exactly like no offenders. `BLOCKING_AT_OURS` is
+# the loose anchor that says whether a report blames THIS package, and
+# `log:blocking_report_parsed` fires on one it claims that the strict regex
+# cannot read. That only works while the two agree on the population, and
+# agreement is measured here rather than asserted structurally: a
+# `BLOCKING_CALL.pattern.startswith(...)` test passes for a degenerate anchor
+# matching every integration's reports, which was this block's first version
+# and survived both of its own mutations.
+#
+# The foreign specimen keeps `custom_components.heatpump_optimizer` in the
+# report's `args` and changes only the path after ` at `, so an anchor keyed on
+# the bare package name rather than the offending path over-fires on it.
+_NIGHTLY_REPORT_FOREIGN = _NIGHTLY_REPORT_IMPORT.replace(
+    "custom_components/heatpump_optimizer/", "custom_components/other_thing/"
+)
+R.check(
+    "the nightly's loose anchor claims a real report blaming this package",
+    bool(_nightly.BLOCKING_AT_OURS.search(_NIGHTLY_REPORT_IMPORT))
+    and bool(_nightly.BLOCKING_CALL.search(_NIGHTLY_REPORT_IMPORT))
+    # Both specimens, because they blame different files -- `__init__.py` and
+    # `coordinator.py`. Against the import report alone an anchor narrowed to
+    # one module still matches, and the narrowing goes unmeasured.
+    and bool(_nightly.BLOCKING_AT_OURS.search(_NIGHTLY_REPORT_SLEEP)),
+    "tests/nightly_ha.py cannot read the report Home Assistant really emitted "
+    "(job 101522529963); the pin measures an empty population and passes",
+)
+R.check(
+    "and does not claim another integration's report",
+    not _nightly.BLOCKING_AT_OURS.search(_NIGHTLY_REPORT_FOREIGN),
+    "BLOCKING_AT_OURS matches a report blaming a different integration, so "
+    "log:blocking_report_parsed fires on text this lane does not own -- the "
+    "over-fire that turns a nightly red for someone else's defect",
+)
+R.check(
+    "and another integration's blocking call fails nothing here",
+    not [
+        f for f in _nightly_scan(_NIGHTLY_CLEAN + "\n" + _NIGHTLY_REPORT_FOREIGN)[0]
+        if "blocking" in f
+    ],
+    "the nightly went red on a loop-protection report naming another "
+    "integration; this lane judges its own package",
+)
+_nightly_reword = _NIGHTLY_REPORT_IMPORT.split(", line 56:")[0] + " -- see the docs"
+R.check(
+    "a report this lane cannot parse fails it instead of emptying the pin",
+    "log:blocking_report_parsed" in _nightly_scan(
+        _NIGHTLY_CLEAN + "\n" + _nightly_reword
+    )[0],
+    "an upstream reword of the loop-protection report degrades "
+    "tests/nightly_ha.py to always-pass; the #522 review measured exactly "
+    "that (`HA variant with no '(offender:'  matched=0  pass=True`)",
+)
+
+# The null control on all four: the lane is not simply always-red. A clean log
+# is the real post-#540 world and must still pass.
+_nightly_clean_failures, _nightly_clean_results = _nightly_scan(_NIGHTLY_CLEAN)
+R.check(
+    "a clean log still passes every blocking check",
+    not [f for f in _nightly_clean_failures if "blocking" in f],
+    f"the nightly went red on a log with no offenders: {_nightly_clean_failures}",
+)
+R.check(
+    "and a passing check still says what it measured",
+    all(v[1] for n, v in _nightly_clean_results.items() if "blocking" in n),
+    "a passing blocking check reported an empty detail, so a green nightly "
+    "cannot be read for what it actually saw (#533)",
+)
+
+# Both rosters are demanded by name. `INSIDE_CHECKS` always was; `OUTSIDE_CHECKS`
+# was referenced NOWHERE until #533 -- a roster the run never consulted, so a
+# check deleted or renamed out of the outer half left a shorter green run and
+# no other trace. That is #580's shape, found in this lane.
+R.check(
+    "every check the outer half emits is declared in OUTSIDE_CHECKS",
+    set(_nightly_clean_results) <= set(_nightly.OUTSIDE_CHECKS),
+    "tests/nightly_ha.py _scan emits checks its own roster does not declare: "
+    f"{sorted(set(_nightly_clean_results) - set(_nightly.OUTSIDE_CHECKS))}",
+)
+# Perturb the roster and run it; do not inspect the function. Two structural
+# proxies stood here first and each was defeated by a mutant that kept its
+# shape: a source-text search for "OUTSIDE_CHECKS" (survived by leaving the
+# word in a comment), then `_report.__code__.co_names` (survived by a dead
+# `_unused = OUTSIDE_CHECKS`, and by reading the roster only for `len()`).
+# Both mutants degrade run:all_checks_ran to comparing the results with
+# themselves, which is #580's shape inside the fix for #580's shape. Loading a
+# name is not demanding a roster, and only running the comparison separates
+# them.
+#
+# Perturbed in BOTH directions because `ran == want` fails in both: an
+# added-and-never-emitted name, and a removed-but-still-emitted one. A single
+# added sentinel leaves `want <= ran` passing, which silently drops the
+# undeclared half of the comparison.
+_nightly_probe_clean = _nightly_report_probe()
+_nightly_probe_sentinel = _nightly_report_probe(
+    extra_outside=("run:SENTINEL_never_emitted",)
+)
+# Derived, not named: whichever roster entry `_scan` is actually observed to
+# emit. Hard-coding one would pin a check that may be renamed out from under it.
+_nightly_probe_dropped = _nightly_report_probe(
+    drop_outside=(sorted(set(_nightly_clean_results) & set(_nightly.OUTSIDE_CHECKS))[0],)
+)
+R.check(
+    "and the lane demands that roster of itself",
+    "run:all_checks_ran" in _nightly.OUTSIDE_CHECKS
+    and not _nightly_probe_sentinel[0]
+    and not _nightly_probe_dropped[0],
+    "_report does not DEMAND its roster in both directions, so a check "
+    "deleted or renamed out of the outer half, or emitted without being "
+    f"declared, passes unnoticed (#533) [missing arm: "
+    f"{_nightly_probe_sentinel[1]}] [undeclared arm: {_nightly_probe_dropped[1]}]",
+)
+# The null control on that probe: a check that fails whatever it is handed
+# demands nothing either. The unperturbed roster must still pass.
+R.check(
+    "and that demand is satisfiable, not simply always-red",
+    _nightly_probe_clean[0],
+    "the roster probe fails on the shipped roster too, so its sentinel arm "
+    f"separates nothing (#533) [{_nightly_probe_clean[1]}]",
+)
+# The three arms above all drive a run that is already GREEN. A run that is
+# already red is where a roster check is cheapest to skip and least missed --
+# the reader is looking at a failure and does not notice that the list of what
+# ran went away with it. Both shapes a real red run takes, and in each the
+# demand must still be REACHED: `[0] is None` is the absent case, distinct from
+# a wrong verdict, and it is the one a verdict-only guard cannot see.
+_nightly_probe_red = _nightly_report_probe(returncode=1)
+_nightly_probe_twice = _nightly_report_probe(markers=2)
+R.check(
+    "and it demands the roster on a run that already failed",
+    _nightly_probe_red[0] is True and _nightly_probe_twice[0] is False,
+    "_report stops evaluating run:all_checks_ran once the run is red, so a "
+    "container that exited non-zero -- or a driver that reported twice -- says "
+    "WHICH checks failed and no longer says which never ran (#533) "
+    f"[non-zero exit: {_nightly_probe_red[1]}] "
+    f"[two markers: {_nightly_probe_twice[1]}]",
+)
+
 # tools/audit/preflight.sh refuses a closing keyword the orchestrator did not
 # declare -- the defect that closed #224 from a merge message saying "does not
 # close #224", which closingIssuesReferences cannot see because it describes the

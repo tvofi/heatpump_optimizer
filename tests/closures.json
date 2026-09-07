@@ -448,6 +448,7 @@
    "tests/hastub/homeassistant/loader.py",
    "tests/hastub/homeassistant/util/__init__.py",
    "tests/hastub/homeassistant/util/dt.py",
+   "tests/nightly_ha.py",
    "tests/run.sh",
    "tests/structure.py",
    "tools/audit/preflight.sh",
