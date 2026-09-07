@@ -26,7 +26,7 @@
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 13.7,
+   "seconds": 19.7,
    "rc": 0
   },
   "tests/env_drift.py": {
@@ -38,7 +38,7 @@
    "rc": 0
   },
   "tests/frontend.py": {
-   "seconds": 0.0,
+   "seconds": 0.1,
    "rc": 0
   },
   "tests/golden.py": {
@@ -80,6 +80,10 @@
   "tests/deployment_shape.py": {
    "seconds": 1.1,
    "rc": 1
+  },
+  "tests/ha_contract.py": {
+   "seconds": 0.1,
+   "rc": 0
   }
  },
  "closures": {
@@ -446,6 +450,7 @@
    "tests/hastub/homeassistant/util/dt.py",
    "tests/run.sh",
    "tests/structure.py",
+   "tools/audit/preflight.sh",
    "tools/release/stamp.py"
   ],
   "tests/env_drift.py": [
@@ -694,6 +699,7 @@
    "custom_components/heatpump_optimizer/frontend.py",
    "tests/frontend.py",
    "tests/hastub/homeassistant/__init__.py",
+   "tests/hastub/homeassistant/components/__init__.py",
    "tests/hastub/homeassistant/core.py"
   ],
   "tests/golden.py": [
@@ -1238,6 +1244,41 @@
    "custom_components/heatpump_optimizer/wood_fuel.py",
    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
    "tests/deployment_shape.py"
+  ],
+  "tests/ha_contract.py": [
+   "tests/ha_contract.py",
+   "tests/hastub/homeassistant/__init__.py",
+   "tests/hastub/homeassistant/components/__init__.py",
+   "tests/hastub/homeassistant/components/binary_sensor.py",
+   "tests/hastub/homeassistant/components/button.py",
+   "tests/hastub/homeassistant/components/climate.py",
+   "tests/hastub/homeassistant/components/datetime.py",
+   "tests/hastub/homeassistant/components/diagnostics.py",
+   "tests/hastub/homeassistant/components/mqtt.py",
+   "tests/hastub/homeassistant/components/repairs.py",
+   "tests/hastub/homeassistant/components/sensor.py",
+   "tests/hastub/homeassistant/components/switch.py",
+   "tests/hastub/homeassistant/config_entries.py",
+   "tests/hastub/homeassistant/const.py",
+   "tests/hastub/homeassistant/core.py",
+   "tests/hastub/homeassistant/data_entry_flow.py",
+   "tests/hastub/homeassistant/exceptions.py",
+   "tests/hastub/homeassistant/helpers/__init__.py",
+   "tests/hastub/homeassistant/helpers/aiohttp_client.py",
+   "tests/hastub/homeassistant/helpers/config_validation.py",
+   "tests/hastub/homeassistant/helpers/device_registry.py",
+   "tests/hastub/homeassistant/helpers/entity.py",
+   "tests/hastub/homeassistant/helpers/entity_platform.py",
+   "tests/hastub/homeassistant/helpers/entity_registry.py",
+   "tests/hastub/homeassistant/helpers/event.py",
+   "tests/hastub/homeassistant/helpers/issue_registry.py",
+   "tests/hastub/homeassistant/helpers/selector.py",
+   "tests/hastub/homeassistant/helpers/storage.py",
+   "tests/hastub/homeassistant/helpers/translation.py",
+   "tests/hastub/homeassistant/helpers/update_coordinator.py",
+   "tests/hastub/homeassistant/loader.py",
+   "tests/hastub/homeassistant/util/__init__.py",
+   "tests/hastub/homeassistant/util/dt.py"
   ]
  }
 }

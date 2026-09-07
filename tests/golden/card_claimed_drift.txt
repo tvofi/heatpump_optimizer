@@ -19,9 +19,9 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 6.3.17
+# claims-for: 6.3.18
 #
-# v6.3.17: the card's setup page could not be saved. The stamp empties the list; the
+# v6.3.18: the plan works again, the #193 decomposition through S9, and the programme's own contracts. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 
@@ -98,6 +98,26 @@
 # device class and the state translations are Home Assistant surfaces the
 # card never reads. Measured: card_drift reports "identical in all 34 states".
 
+# #558 lane C, items C2 and C3. 33 of the 34 states move; the 34th,
+# editor_schema, is the card's own config editor and draws neither the legend,
+# the chart nor the card's style block -- the gate reports it identical.
+#
+# Direction, by what each state actually draws.
+#
+# All 33: MORE markup, never less, from two sources that render on every
+# page -- the style block gains the .legend-note, .savings-table and .sv-mag
+# rules, and every legend chip gains an aria-pressed attribute.
+#
+# The 31 that draw a chart also gain a .legend-note row carrying the
+# hot-water band's sentence, an aria-describedby on the chip that owns it,
+# and a class="series band" envelope path under the two dashed edges. They
+# are the only states with any SUBTRACTION: the same sentence leaves the
+# chip's title= attribute, and one or two time-axis labels are dropped per
+# chart, wherever a label clamped to the plot edge overlapped its neighbour.
+#
+# no_plan and no_plan_expanded draw the legend but no chart and no band, so
+# they move by the style block and aria-pressed alone -- purely additive.
+#
 # #558 C1, the chart's four contrast defects. 33 of 34 states move; the
 # 34th, editor_schema, is the card's own config editor and draws neither the
 # legend nor the chart.

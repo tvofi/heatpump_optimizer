@@ -718,12 +718,30 @@ const svgFont = (expanded) => {
 // comfortable over 12 hours and unreadable over 48, where labels sit 15 units
 // apart and are 40 units wide. Measure the rendered labels instead of trusting
 // the setting.
+//
+// #558 C2: the rendered box depends on the label's `text-anchor`, and the
+// chart sets `start` / `end` for the labels it clamps to the plot edge. A
+// reader that keys on `text-anchor="middle"` is blind to exactly the labels
+// that can collide -- clamping moves a label toward its neighbour and spends
+// the gap the density calculation reserved. This check reported zero overlaps
+// while the clamped label ran into its neighbour by between 3.2u and 10.6u in
+// five of the six horizon/view combinations below: it never looked at the
+// clamped label at all.
 const timeLabels = (svg) => {
   const out = [];
-  const re = /<text x="([-\d.]+)"[^>]*font-size="([\d.]+)"[^>]*text-anchor="middle"[^>]*>(\d{1,2}[:.]\d{2}[^<]*)<\/text>/g;
+  const re =
+    /<text x="([-\d.]+)" y="([-\d.]+)" font-size="([\d.]+)" text-anchor="(\w+)"[^>]*>(\d{1,2}[:.]\d{2}[^<]*)<\/text>/g;
   let m;
-  while ((m = re.exec(svg))) out.push({ x: Number(m[1]), size: Number(m[2]), text: m[3] });
-  return out.sort((a, b) => a.x - b.x);
+  while ((m = re.exec(svg))) {
+    const [, x, , size, anchor, text] = m;
+    const w = text.length * Number(size) * 0.55;
+    const cx = Number(x);
+    // `middle` centres the box on x; `start` puts its left edge there, `end`
+    // its right edge.
+    const left = anchor === "end" ? cx - w : anchor === "start" ? cx : cx - w / 2;
+    out.push({ text, anchor, x: cx, size: Number(size), w, left, right: left + w });
+  }
+  return out.sort((a, b) => a.left - b.left);
 };
 
 const collisions = (labels) => {
@@ -731,31 +749,60 @@ const collisions = (labels) => {
   for (let i = 1; i < labels.length; i++) {
     const prev = labels[i - 1];
     const cur = labels[i];
-    // Centred labels, so each occupies half its width either side of x.
-    const halfPrev = (prev.text.length * prev.size * 0.55) / 2;
-    const halfCur = (cur.text.length * cur.size * 0.55) / 2;
-    const gap = cur.x - prev.x - halfPrev - halfCur;
-    if (gap < 0) bad.push(`${prev.text}/${cur.text} overlap by ${(-gap).toFixed(1)}u`);
+    const gap = cur.left - prev.right;
+    if (gap < 0)
+      bad.push(
+        `${prev.text}[${prev.anchor}]/${cur.text}[${cur.anchor}] overlap by ${(-gap).toFixed(1)}u`
+      );
   }
   return bad;
 };
 
-for (const expanded of [false, true]) {
-  const c = build(slotStates, {});
-  if (expanded) c.dialog.open();
-  const dump = collect(c.shadowRoot).join("\n");
-  // The shadow root holds the inline chart and, once opened, the expanded one
-  // too. Compare labels within a single chart, or every label pairs with its
-  // twin in the other chart at the same coordinate.
-  const cut = dump.indexOf("chartwrap big");
-  const scoped = expanded ? dump.slice(cut) : dump.slice(0, cut === -1 ? dump.length : cut);
-  const labels = timeLabels(scoped);
-  const where = expanded ? "expanded" : "inline";
-  check(`the ${where} chart labels its time axis`, labels.length > 1,
-    `found ${labels.length} time labels`);
-  const bad = collisions(labels);
-  check(`the ${where} time axis labels do not overlap`, bad.length === 0,
-    bad.join("; "));
+// Every horizon, not only the default: the clamp fires wherever the first
+// labelled tick lands within half a label of the plot edge, and which tick
+// that is depends on the interval the width picked.
+for (const hours of [12, 24, 48]) {
+  for (const expanded of [false, true]) {
+    const c = build(slotStates, { hours });
+    if (expanded) c.dialog.open();
+    const dump = collect(c.shadowRoot).join("\n");
+    // The shadow root holds the inline chart and, once opened, the expanded one
+    // too. Compare labels within a single chart, or every label pairs with its
+    // twin in the other chart at the same coordinate.
+    const cut = dump.indexOf("chartwrap big");
+    const scoped = expanded ? dump.slice(cut) : dump.slice(0, cut === -1 ? dump.length : cut);
+    const labels = timeLabels(scoped);
+    const where = `${expanded ? "expanded" : "inline"} ${hours} h`;
+    check(`the ${where} chart labels its time axis`, labels.length > 1,
+      `found ${labels.length} time labels`);
+    // This check's own anti-vacuity control. With no clamped label present it
+    // would be measuring the case that never failed.
+    check(`the ${where} chart really does clamp a label to the plot edge`,
+      labels.some((l) => l.anchor !== "middle"),
+      `anchors present: ${[...new Set(labels.map((l) => l.anchor))].join(", ")}`);
+    const bad = collisions(labels);
+    check(`the ${where} time axis labels do not overlap`, bad.length === 0,
+      bad.join("; "));
+    // Making room by dropping the clamped label passes the check above while
+    // losing the window boundary, which is the only reason the clamp exists.
+    // Derived rather than hardcoded: a labelled tick is drawn as a heavier,
+    // less transparent gridline than an unlabelled one, so the ticks that
+    // were MEANT to carry a label are readable off the chart. The one at
+    // each end of the span must still have a label sitting over it -- which
+    // is also the invariant that a label names the tick it stands on, since
+    // a clamped label is moved but never past its own tick.
+    const labelledGrid = [...scoped.matchAll(
+      /<line x1="([-\d.]+)"[^>]*stroke-width="1" opacity="0.7"\/>/g)]
+      .map((m) => Number(m[1])).sort((a, b) => a - b);
+    const covered = (g) => labels.some((l) => l.left - 0.01 <= g && g <= l.right + 0.01);
+    check(`the ${where} time axis keeps a label over the tick at each end`,
+      labelledGrid.length > 1 &&
+        covered(labelledGrid[0]) && covered(labelledGrid[labelledGrid.length - 1]),
+      `${labelledGrid.length} labelled gridlines, ends at ` +
+      `${labelledGrid[0]} (${covered(labelledGrid[0]) ? "labelled" : "BARE"}) and ` +
+      `${labelledGrid[labelledGrid.length - 1]} ` +
+      `(${covered(labelledGrid[labelledGrid.length - 1]) ? "labelled" : "BARE"})`);
+  }
 }
 
 // The value-axis titles have the same problem as the time labels, in the one
@@ -1616,7 +1663,11 @@ check("the hand-scheduled reason has a label",
 // ---------------------------------------------------------------------------
 {
   const dump = collect(drag.shadowRoot).join("\n");
-  const seriesTags = dump.match(/<path class="series"[^>]*>/g) || [];
+  // Every path whose class STARTS with `series`, not only the ones whose
+  // class is exactly that: a filled body drawn with a second class on it is
+  // the same hazard and would have slipped past an equality match (#558 C2's
+  // band envelope is one).
+  const seriesTags = dump.match(/<path class="series[^"]*"[^>]*>/g) || [];
   check("the chart draws series paths at all", seriesTags.length > 0);
   check("every series path is pointer-inert",
     seriesTags.every((t) => t.includes('pointer-events="none"')),
@@ -5370,9 +5421,22 @@ const setupBox = (card, place) =>
   const chipCount = (dump, key) =>
     (legendOnly(dump).match(
       new RegExp(`data-key="${key}"`, "g")) || []).length;
+  // The chip carries other attributes between `data-key` and `title` now
+  // (#558 C2's aria-pressed and aria-describedby), so this cannot assume they
+  // are adjacent -- an anchored match would report every title as empty and
+  // pass every "named once" check below on an empty string.
   const legendTitle = (dump, key) => {
     const m = legendOnly(dump).match(
-      new RegExp(`data-key="${key}" title="([^"]*)"`));
+      new RegExp(`data-key="${key}"[^>]*title="([^"]*)"`));
+    return m ? m[1] : "";
+  };
+  // ... and the explanatory sentence is no longer in that title at all: it is
+  // the .legend-note the chip points at with aria-describedby (#558 C2).
+  const legendNote = (dump, key) => {
+    const m = legendOnly(dump).match(
+      // The id is scoped to the legend COPY (card-/dlg-), so match the
+      // series suffix rather than the whole id.
+      new RegExp(`<p class="legend-note" id="hpo-note-[^"]*${key}">([^<]*)</p>`));
     return m ? m[1] : "";
   };
   check("a broken band is still named once and reported once, not once per "
@@ -5400,9 +5464,8 @@ const setupBox = (card, place) =>
   // by a dashed line actually looks.
   const legEn = legendOnly(on.dump);
   check("the legend says what the tank's dashed pair is",
-    /data-key="dhw_temp" title="[^"]*expected error[^"]*widens further ahead/
-      .test(legEn),
-    (legEn.match(/data-key="dhw_temp" title="[^"]*"/g) || []).join("\n"));
+    /widens further ahead/.test(legendNote(on.dump, "dhw_temp")),
+    legendNote(on.dump, "dhw_temp"));
   // v5.1.9: ONE chip per series, extras named inside its title. The band
   // gets no chip of its own and must not: the chip toggles the series, and
   // there is no such thing as hiding one edge of it.
@@ -5411,11 +5474,16 @@ const setupBox = (card, place) =>
     /also drawn: Hot water, expected error\./.test(
       legendTitle(on.dump, "dhw_temp")),
     legendTitle(on.dump, "dhw_temp"));
-  // The sentence belongs on hover; stretched across the legend row it would
-  // push every other chip off the card.
-  check("the explanation rides in the chip's title, not its visible text",
+  // The sentence used to ride in the chip's `title` for exactly one reason:
+  // stretched across the legend row it would push every other chip off the
+  // card. #558 C2 keeps the chip the size it was and gives the sentence a row
+  // of its own underneath, because a `title` renders on hover and on nothing
+  // else -- a keyboard user never reaches it and a touch device has no hover
+  // to give. So: still not inside the button, and now genuinely rendered.
+  check("the explanation is a row of its own, not text inside the chip",
     />DHW tank temperature\s*<\/button>/.test(legEn) &&
-    !/>[^<]*widens further ahead[^<]*<\/button>/.test(legEn), legEn);
+    !/>[^<]*widens further ahead[^<]*<\/button>/.test(legEn) &&
+    /widens further ahead/.test(legendNote(on.dump, "dhw_temp")), legEn);
   // The band is named ONCE in that title, not once per edge -- which is the
   // whole point of enumerating traces through `_extraFields`: a legend
   // rewritten to stop repeating a name must not start repeating this one.
@@ -5829,12 +5897,10 @@ const setupBox = (card, place) =>
     outWinPub.length > 0 && outWinPub.every((p) =>
       winLoAt.get(Date.parse(p.t)) === p.dhw_temp_lo),
     `${outWinPub.length} outside-window plotted steps`);
+  const winNote = (collect(winCard.shadowRoot).join("\n").match(
+    /<p class="legend-note" id="hpo-note-[^"]*dhw_temp">([^<]*)<\/p>/) || ["", ""])[1];
   check("the floored-band legend names the window-minimum floor",
-    /floored at the window minimum|window minimum/.test(
-      (collect(winCard.shadowRoot).join("\n").match(
-        /data-key="dhw_temp" title="[^"]*"/) || [""])[0]),
-    (collect(winCard.shadowRoot).join("\n").match(
-      /data-key="dhw_temp" title="[^"]*"/) || [""])[0]);
+    /floored at the window minimum|window minimum/.test(winNote), winNote);
 }
 
 
@@ -6944,6 +7010,389 @@ const setupBox = (card, place) =>
   awayPerson._onCardClick({});
   check("person-away while the switch is off shows a status line",
     /data-away-status/.test(collect(awayPerson.shadowRoot).join("\n")));
+}
+
+// ---------------------------------------------------------------------------
+// #558 C2 / C3 — legend chips, the hot-water envelope, the savings table
+// ---------------------------------------------------------------------------
+// Colours are composited the way a browser does it: paint alpha multiplied by
+// element opacity, in non-linear sRGB 8-bit space. Compositing in linear light
+// moves every number below and is not what is drawn.
+const sRGB = (h) => {
+  const n = parseInt(h.slice(1), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+};
+const relLum = (c) => {
+  const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+  return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]);
+};
+const contrast = (a, b) => {
+  const la = relLum(a), lb = relLum(b);
+  return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+};
+const over = (fg, bg, alpha) =>
+  fg.map((v, i) => Math.round(alpha * v + (1 - alpha) * bg[i]));
+// A constant the card has not defined yet reads as NaN rather than aborting
+// the run: a failing test has to fail, not stop the file.
+const cardNumber = (name) => {
+  try { return Number(vm.runInContext(name, ctx)); } catch (e) { return NaN; }
+};
+// The two themes a stock install can be in. The surface everything here is
+// drawn on is the `ha-card`, so `--card-background-color` is the background
+// and `--primary-text-color` is the text that sits on it.
+const STOCK_THEMES = {
+  light: { card: sRGB("#ffffff"), text: sRGB("#212121") },
+  dark: { card: sRGB("#1c1c1c"), text: sRGB("#e1e1e1") },
+};
+
+// --- C2: the legend chips are toggles, and say so --------------------------
+{
+  const chipsIn = (card) => {
+    const dump = collect(card.shadowRoot).join("\n");
+    const from = dump.indexOf('class="legend"');
+    const legend = from === -1 ? "" : dump.slice(from);
+    return [...legend.matchAll(/<button[^>]*class="chip[^"]*"[^>]*>/g)].map((m) => ({
+      tag: m[0],
+      key: (/data-key="([^"]+)"/.exec(m[0]) || [])[1],
+      off: /class="chip off/.test(m[0]),
+      pressed: (/aria-pressed="(true|false)"/.exec(m[0]) || [])[1],
+      describedBy: (/aria-describedby="([^"]+)"/.exec(m[0]) || [])[1],
+    }));
+  };
+  const chipEl = (card, key) =>
+    [...card.shadowRoot.querySelectorAll(".chip")].find(
+      (e) => e.getAttribute("data-key") === key
+    );
+
+  const c = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), { title: "c2-legend" });
+  c.legend.hidden = { solar: true };
+  c._sig = null;
+  c._render();
+  const chips = chipsIn(c);
+
+  check("every legend chip publishes its toggle state as aria-pressed",
+    chips.length > 1 && chips.every((x) => x.pressed !== undefined),
+    `${chips.filter((x) => x.pressed === undefined).length} of ${chips.length} carry none`);
+  // A constant would pass the check above on every chip. This is the control
+  // that says the attribute is the state and not decoration: the fixture has
+  // one series hidden and the rest shown, so both values must appear.
+  check("aria-pressed is the state, not a constant",
+    chips.some((x) => x.off) && chips.some((x) => !x.off) &&
+      chips.every((x) => x.pressed === (x.off ? "false" : "true")),
+    chips.map((x) => `${x.key}:${x.off ? "off" : "on"}=${x.pressed}`).join(" "));
+
+  // A behaviour, not markup. The click goes through the listener the card
+  // wired up itself, and the attribute is read back off the re-rendered
+  // legend -- a chip that renders the attribute once and never updates it
+  // would pass a markup check and fail this one.
+  const pressedOf = (key) => (chipsIn(c).find((x) => x.key === key) || {}).pressed;
+  const wasPressed = pressedOf("price");
+  const priceEl = chipEl(c, "price");
+  priceEl.dispatchEvent({ type: "click", currentTarget: priceEl, stopPropagation() {} });
+  const nowPressed = pressedOf("price");
+  check("clicking a chip flips its aria-pressed",
+    wasPressed === "true" && nowPressed === "false", `${wasPressed} -> ${nowPressed}`);
+  const priceEl2 = chipEl(c, "price");
+  priceEl2.dispatchEvent({ type: "click", currentTarget: priceEl2, stopPropagation() {} });
+  check("and clicking it again flips it back", pressedOf("price") === "true");
+
+  // The note. `title=` renders only on hover, so a keyboard user never sees
+  // it and a touch user has no hover at all to give. It has to be text.
+  const noteText = vm.runInContext(`L("series.dhw_band_note")`, ctx)
+    .replace(/&nbsp;/g, " ");
+  const notes = [...c.shadowRoot.querySelectorAll(".legend-note")];
+  const noteFor = notes.find((n) => (n.textContent || "").includes(noteText.slice(0, 30)));
+  check("the hot-water band's note is rendered as text, not only as a hover title",
+    !!noteFor, `${notes.length} .legend-note element(s) rendered`);
+  const dhwChip = chips.find((x) => x.key === "dhw_temp");
+  check("and the chip it belongs to names it as its description",
+    !!noteFor && !!dhwChip && dhwChip.describedBy === noteFor.getAttribute("id"),
+    `chip aria-describedby=${dhwChip && dhwChip.describedBy}, ` +
+    `note id=${noteFor && noteFor.getAttribute("id")}`);
+
+  // The dialog renders a SECOND legend beside the inline one, in the same
+  // shadow root, so an id minted per series is minted twice. Duplicate ids
+  // make aria-describedby ambiguous -- the defect this item exists to remove,
+  // not to introduce -- and each chip has to point at the note in its own
+  // copy.
+  {
+    const two = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), { title: "c2-legend-two" });
+    two.legend.hidden = {};
+    two._sig = null;
+    two.dialog.open();
+    const d = collect(two.shadowRoot).join("\n");
+    const copies = d.split('class="legend"').slice(1);
+    check("the dialog really does render a second legend beside the inline one",
+      copies.length === 2, `${copies.length} legend container(s)`);
+    const ids = [...d.matchAll(/<p class="legend-note" id="([^"]+)"/g)].map((m) => m[1]);
+    check("every note id in the shadow root is unique",
+      ids.length === 2 && new Set(ids).size === ids.length, ids.join(", "));
+    check("and each chip describes the note in its own copy of the legend",
+      copies.every((copy) => {
+        const id = (/<p class="legend-note" id="([^"]+)"/.exec(copy) || [])[1];
+        const by = (/aria-describedby="([^"]+)"/.exec(copy) || [])[1];
+        return !!id && id === by;
+      }),
+      copies.map((copy) =>
+        `${(/aria-describedby="([^"]+)"/.exec(copy) || [])[1]} -> ` +
+        `${(/<p class="legend-note" id="([^"]+)"/.exec(copy) || [])[1]}`).join(" | "));
+  }
+
+  // Null control. Strip the band's two fields and the note has nothing to
+  // explain: no note element, and no chip pointing at one that is not there.
+  const noBand = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  const dhwSt = noBand[DEFAULT_DHW];
+  noBand[DEFAULT_DHW] = { ...dhwSt, attributes: { ...dhwSt.attributes,
+    forecast: dhwSt.attributes.forecast.map((p) => {
+      const q = { ...p }; delete q.dhw_temp_lo; delete q.dhw_temp_hi; return q;
+    }) } };
+  const plain = build(noBand, { title: "c2-legend-noband" });
+  plain.legend.hidden = {};
+  plain._sig = null;
+  plain._render();
+  check("a card with no expected-error band renders no note",
+    plain.shadowRoot.querySelectorAll(".legend-note").length === 0);
+  check("and no chip claims a description that is not there",
+    chipsIn(plain).every((x) => x.describedBy === undefined),
+    chipsIn(plain).map((x) => `${x.key}=${x.describedBy}`).join(" "));
+  check("the null control really did remove the band",
+    !/stroke-dasharray="3 3"/.test(collect(plain.shadowRoot).join("\n")),
+    "otherwise the two checks above are testing the same card as the two before");
+}
+
+// --- C2: the hot-water expected-error band is one region, not two lines ----
+// Two dashed edges leave the reader to join them by eye, and a reader who does
+// not read them as a pair reads them as two more predicted temperatures --
+// exactly the misreading `band` exists in SERIES_DEFS to stop.
+{
+  const c = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), { title: "c2-band" });
+  c.legend.hidden = {};
+  c._sig = null;
+  c._render();
+  const dump = collect(c.shadowRoot).join("\n");
+  const paths = [...dump.matchAll(/<path class="series[^"]*" data-key="dhw_temp"[^>]*\/>/g)]
+    .map((m) => m[0]);
+  const env = paths.filter((p) => /class="series band"/.test(p));
+  const edges = paths.filter((p) => /stroke-dasharray/.test(p));
+  const curve = paths.filter((p) => !/stroke-dasharray/.test(p) && !/class="series band"/.test(p));
+
+  check("the hot-water band is drawn as a filled envelope",
+    env.length >= 1,
+    `${paths.length} dhw_temp path(s): ${edges.length} dashed, ${env.length} filled`);
+  check("the envelope is a closed region", env.every((p) => /Z"/.test(p)));
+  check("its two edges still delimit it", edges.length === 2);
+  check("and the tank's own curve is still drawn", curve.length === 1);
+  check("the envelope is pointer-inert, like every other filled series body",
+    env.every((p) => p.includes('pointer-events="none"')));
+
+  // Geometry, not markup: the envelope has to span the two edges. Every
+  // coordinate in a path's `d` comes in x,y pairs after its command letter,
+  // for M, L and C alike.
+  const ysOf = (p) => {
+    const d = (/ d="([^"]+)"/.exec(p) || [])[1] || "";
+    const n = d.replace(/[A-Za-z]/g, " ").trim().split(/\s+/).filter(Boolean).map(Number);
+    return n.filter((_, i) => i % 2 === 1);
+  };
+  const envY = env.flatMap(ysOf);
+  const edgeY = edges.flatMap(ysOf);
+  check("the envelope spans exactly the two edges it fills between",
+    envY.length > 0 && edgeY.length > 0 &&
+      Math.abs(Math.min(...envY) - Math.min(...edgeY)) < 0.01 &&
+      Math.abs(Math.max(...envY) - Math.max(...edgeY)) < 0.01,
+    `envelope y ${Math.min(...envY).toFixed(2)}..${Math.max(...envY).toFixed(2)}, ` +
+    `edges y ${Math.min(...edgeY).toFixed(2)}..${Math.max(...edgeY).toFixed(2)}`);
+
+  // The fill's weight, both ways, from the card's own constant. Two bounds
+  // rather than one: a fill nobody can see is not an envelope, and a fill
+  // heavier than the line it surrounds hides what it explains. Both bounds
+  // are measured quantities -- no threshold is chosen here except the 1.3:1
+  // perceptibility floor this suite already applies to a graphic that is not
+  // required to read the chart.
+  const alpha = cardNumber("BAND_FILL_OPACITY");
+  const dhwColor = sRGB(vm.runInContext("SERIES_DEFS", ctx).find((d) => d.key === "dhw_temp").color);
+  for (const [theme, th] of Object.entries(STOCK_THEMES)) {
+    const band = over(dhwColor, th.card, alpha);
+    const seen = contrast(band, th.card);
+    const line = contrast(dhwColor, th.card);
+    check(`the envelope's fill is perceptible on a ${theme} card`,
+      seen >= 1.3, `${seen.toFixed(3)}:1 at fill-opacity ${alpha}`);
+    check(`the envelope stays quieter than the curve it surrounds on a ${theme} card`,
+      seen < line, `fill ${seen.toFixed(3)}:1 vs curve ${line.toFixed(3)}:1`);
+  }
+  // Why the band is NOT also held to leaving the curve at 3:1 against it.
+  // The band is a tint of the very colour it surrounds, so the two demands
+  // pull opposite ways, and ON A LIGHT CARD they have no common ground at
+  // all. Swept exhaustively over every fill-opacity in 0.001 steps rather
+  // than argued from an interval, because an interval argument is only as
+  // good as its arithmetic.
+  //
+  // The dark card is the control, and it is why this is stated as a
+  // light-card result rather than a general one: there a window does exist,
+  // and the shipped opacity sits inside it. A sweep that found nothing in
+  // either theme would more likely be a broken sweep than a real result.
+  {
+    const window = (th) => {
+      let both = 0, seen = 0, three = 0;
+      for (let i = 0; i <= 1000; i++) {
+        const band = over(dhwColor, th.card, i / 1000);
+        const p = contrast(band, th.card) >= 1.3;
+        const t = contrast(dhwColor, band) >= 3;
+        if (p) seen++;
+        if (t) three++;
+        if (p && t) both++;
+      }
+      return { both, seen, three };
+    };
+    const light = window(STOCK_THEMES.light);
+    const dark = window(STOCK_THEMES.dark);
+    check("on a light card no fill-opacity is both perceptible and leaves the curve at 3:1",
+      light.both === 0 && light.seen > 0 && light.three > 0,
+      `${light.both} of 1001 steps satisfy both ` +
+      `(${light.seen} clear perceptibility, ${light.three} leave the curve at 3:1)`);
+    check("and the dark card is the control that says the sweep can find one",
+      dark.both > 0,
+      `${dark.both} of 1001 steps satisfy both on a dark card`);
+  }
+}
+
+// --- C3: the savings table reads as a numeric table ------------------------
+{
+  const savStates = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  const months = [
+    { month: "2025-11", baseline_sek: 1840.5, actual_sek: 1502.25, savings_sek: 338.25, savings_pct: 18 },
+    { month: "2025-12", baseline_sek: 2410, actual_sek: 2265.5, savings_sek: 144.5, savings_pct: 6 },
+    { month: "2026-01", baseline_sek: 980.75, actual_sek: 1002, savings_sek: -21.25, savings_pct: -2 },
+    { month: "2026-02", baseline_sek: 800, actual_sek: 700, savings_sek: 100, savings_pct: 12, estimated: true },
+  ];
+  const withMonths = (rows) => {
+    const st = { ...savStates };
+    st["sensor.heat_pump_optimizer_monthly_savings"] = {
+      state: String(rows.length), attributes: { savings_months: rows },
+    };
+    return st;
+  };
+  // Cells are read off the parsed DOM the card built, not by stripping tags
+  // out of its serialisation. A `.replace(/<[^>]*>/g, "")` is the shape of an
+  // HTML sanitiser and is flagged as one (CodeQL js/incomplete-multi-character
+  // -sanitization), which is fair: it is the wrong tool even here, where all
+  // that was wanted is the text a reader sees.
+  const tableOf = (rows, title) => {
+    const c = build(withMonths(rows), { title });
+    c.dialog.open();
+    c.dialog.page = "savings";
+    c._sig = null;
+    c._render();
+    const dump = collect(c.shadowRoot).join("\n");
+    const at = dump.indexOf('class="savings-table');
+    const cellsOf = (tag) =>
+      [...c.shadowRoot.querySelectorAll(tag)].map((el) => ({
+        cls: el.getAttribute("class") || "",
+        text: (el.textContent || "").replace(/\u00a0/g, " ").trim(),
+        el,
+      }));
+    return {
+      dump, table: at === -1 ? "" : dump.slice(at),
+      cells: cellsOf("td"), heads: cellsOf("th"),
+    };
+  };
+
+  const { dump, table, cells, heads } = tableOf(months, "c3-savings");
+  // "Numeric" by position, not by a regex over the rendered text: the month
+  // column reads as digits too ("2025-11") and must NOT be right-aligned.
+  const COLS = 5;
+  const numeric = cells.filter((_, i) => i % COLS !== 0);
+  const monthCells = cells.filter((_, i) => i % COLS === 0);
+
+  check("the savings table renders one row per month",
+    cells.length === months.length * COLS, `${cells.length} cells`);
+  const css = dump.slice(0, dump.indexOf("</style>") + 8);
+  check("every numeric cell is marked as a numeric column",
+    numeric.length > 0 && numeric.every((x) => x.cls.split(/\s+/).includes("num")),
+    `${numeric.filter((x) => !x.cls.split(/\s+/).includes("num")).length} of ${numeric.length} are not`);
+  // The control on the check above: marking every cell would pass it and
+  // wreck the one column that is a label, not a quantity.
+  check("and the month column is not",
+    monthCells.every((x) => !x.cls.split(/\s+/).includes("num")));
+  check("the numeric headers are marked the same way",
+    heads.length === COLS && heads.slice(1).every((x) => x.cls.split(/\s+/).includes("num")) &&
+      !heads[0].cls.split(/\s+/).includes("num"),
+    heads.map((x) => `${x.text}${x.cls.split(/\s+/).includes("num") ? "[num]" : ""}`).join(" | "));
+  // The mark is only worth having if the stylesheet acts on it. Read the
+  // rule, not the class: a class nothing styles is not an alignment.
+  check("and the stylesheet right-aligns them, so the columns can be read down",
+    /\.savings-table[^{]*\.num[^{]*\{[^}]*text-align:\s*right/.test(css),
+    (/\.savings-table[^{]*\.num[^{]*\{[^}]*\}/.exec(css) || ["no .num rule at all"])[0]);
+
+  // Tabular figures, scoped to this table's own rule. The card already
+  // declares them for two what-if elements, so a check for the property
+  // "anywhere in the CSS" would return confirming evidence for a table that
+  // has none.
+  const rule = /\.savings-table[^{]*\{([^}]*)\}/.exec(css);
+  check("the savings table asks for tabular figures",
+    !!rule && /font-variant-numeric:\s*tabular-nums/.test(rule[1]),
+    rule ? rule[0].replace(/\s+/g, " ") : "no .savings-table rule at all");
+
+  // Twelve repetitions of the currency inside the cells is noise the header
+  // can carry once, and it is what stops right alignment from lining the
+  // decimal points up.
+  check("the currency is named in the column head, not in every cell",
+    heads.filter((h) => /\(.+\)/.test(h.text)).length === 3 &&
+      !cells.some((x, i) => i % COLS !== 0 && /[A-Za-z]{2,}/.test(x.text)),
+    `heads: ${heads.map((h) => h.text).join(" | ")}; ` +
+    `first money cell: "${cells[1].text}"`);
+  const money = cells.filter((_, i) => i % COLS >= 1 && i % COLS <= 3).map((x) => x.text);
+  check("so every money figure carries the same number of decimals",
+    money.every((t) => /^-?\d+\.\d\d$/.test(t)), money.join(" | "));
+
+  // In-cell magnitude. The number says how much; the bar says how much
+  // compared with the other months, which is the question a savings table is
+  // read to answer and which twelve free-standing numbers cannot answer.
+  const bars = [...table.matchAll(/<span class="sv-mag([^"]*)"[^>]*style="width:([\d.]+)%"/g)]
+    .map((m) => ({ neg: /\bneg\b/.test(m[1]), width: Number(m[2]) }));
+  check("every month's savings carries an in-cell magnitude bar",
+    bars.length === months.length, `${bars.length} bars for ${months.length} months`);
+  const byMagnitude = months.map((m) => Math.abs(m.savings_sek));
+  const biggest = Math.max(...byMagnitude);
+  check("the bar is proportional to the figure it sits behind",
+    bars.length === months.length &&
+      bars.every((b, i) => Math.abs(b.width - (byMagnitude[i] / biggest) * 100) < 0.51),
+    bars.map((b, i) => `${b.width}% vs ${((byMagnitude[i] / biggest) * 100).toFixed(1)}%`).join(", "));
+  check("a month that cost money is marked by more than its minus sign",
+    bars.filter((b) => b.neg).length === 1 &&
+      bars[months.findIndex((m) => m.savings_sek < 0)].neg,
+    bars.map((b) => (b.neg ? "neg" : "pos")).join(","));
+
+  // Null controls for the bar. A run of equal figures must not manufacture a
+  // ranking, and an all-zero table must not divide by zero and paint
+  // full-width bars for nothing saved.
+  const flat = tableOf(
+    [0, 1, 2].map((i) => ({ month: `2026-0${i + 3}`, baseline_sek: 10, actual_sek: 5, savings_sek: 5, savings_pct: 50 })),
+    "c3-savings-flat");
+  const flatBars = [...flat.table.matchAll(/class="sv-mag[^"]*"[^>]*style="width:([\d.]+)%"/g)]
+    .map((m) => Number(m[1]));
+  check("equal savings draw equal bars", flatBars.length === 3 &&
+    flatBars.every((w) => w === flatBars[0]), flatBars.join(","));
+  const zero = tableOf(
+    [0, 1].map((i) => ({ month: `2026-1${i}`, baseline_sek: 10, actual_sek: 10, savings_sek: 0, savings_pct: 0 })),
+    "c3-savings-zero");
+  const zeroBars = [...zero.table.matchAll(/class="sv-mag[^"]*"[^>]*style="width:([\d.]+)%"/g)]
+    .map((m) => Number(m[1]));
+  check("a month that saved nothing draws no bar",
+    zeroBars.length === 2 && zeroBars.every((w) => w === 0), zeroBars.join(","));
+
+  // The bar is painted behind the figure, so it is the figure's background.
+  // The number must still be text at 4.5:1, and the bar itself must be
+  // visible at the perceptibility floor -- both in both themes.
+  const barAlpha = cardNumber("SV_MAG_ALPHA");
+  for (const [theme, th] of Object.entries(STOCK_THEMES)) {
+    // `currentColor` on the cell is --primary-text-color, so the bar is the
+    // text colour laid over the card at that opacity.
+    const bar = over(th.text, th.card, barAlpha);
+    check(`the savings figure still clears 4.5:1 over its own bar on a ${theme} card`,
+      contrast(th.text, bar) >= 4.5, `${contrast(th.text, bar).toFixed(3)}:1`);
+    check(`and the bar itself is perceptible on a ${theme} card`,
+      contrast(bar, th.card) >= 1.3, `${contrast(bar, th.card).toFixed(3)}:1 at opacity ${barAlpha}`);
+  }
 }
 
 // --- The host stays small ---------------------------------------------------

@@ -61,6 +61,84 @@ A new tracked file must be **deliberately classified** — put in a measured
 closure, or on `tests/closure.py`'s `INERT` list — or `tests/entities.py` fails
 with *"these force the FULL suite when touched"*.
 
+## Where the policy is — the whole set, and who each part binds
+
+This file is the root, not the whole. Four other places carry rules, and a
+session that reads only this one is missing three of them. **Read this section
+first and open what applies to you**; nothing below is optional reading that a
+seat may skip because a summary exists here.
+
+### Always in force, for every session and every seat
+
+`.cursor/rules/*.mdc` are `alwaysApply` project policies. **Cursor loaded them
+automatically; Claude Code does not** — it loads this file and nothing else — so
+they are reachable only by being opened deliberately. All five:
+
+| rule | what it binds |
+|---|---|
+| `brief-citations.mdc` | wave-brief citations must be resolvable by `brief_lint.mjs`; a literal metric value is always an error; extending the plan format extends the linter in the same pull request |
+| `ci-autofix.mdc` | `closures-autofix` and `claims-autofix` already repair `UNDER-SCOPED` and `INHERITED CLAIMS` — wait for the bot commit, do not duplicate |
+| `defect-root-cause.mdc` | a defect that reached a release, or turned a PR red on a check a cheaper detector could have run, owes a cause, a process state and a countermeasure or a recorded refusal |
+| `delivery-status-tracking.mdc` | Delivery-status, roster `resume`, and one #201 comment per state change — at each merge, not at session end |
+| `finding-propagation.mdc` | a finding that changes how a later stage must work goes into that stage's own brief before the producing pull request merges |
+
+### Role contracts — open the one you are
+
+Under `tools/audit/briefs/`. Each says what its role owes and what blocks it.
+
+| contract | the role |
+|---|---|
+| `orchestrator.md` | dispatches seats, merges, holds the freeze, writes the record, stamps, reports to the owner |
+| `fixer.md` | owns one fix: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim |
+| `fix-review.md` | reviews one fix adversarially, from a detached worktree at the head SHA, with the **finder's** harness and never the fixer's |
+| `root-cause.md` | runs beside a fix and never inside it; owes a named cause, a process state, a cost test and a countermeasure or a refusal |
+| `judge.md` | decides; a finding whose harness does not move under its own perturbation is **void**, whatever the votes said |
+| `verifier.md` | one of three on a panel, receiving findings with claim, evidence, harness, metric and perturbation |
+| `COMMON.md` | **the finder's contract** — every audit dimension. An argument is not a finding; a number you did not execute is not a finding |
+
+**There is exactly one `COMMON.md`, and it is the finder's contract.** A running
+session may also hand its seats an out-of-tree shared block; that file is named
+`SEAT-BLOCK.md` and is **not** policy — it is a convenience copy, and the tree is
+what survives the session. The two once shared a basename, which made "read
+COMMON.md" ambiguous between a policy document and a session scratch file; the
+out-of-tree one was renamed rather than the ambiguity documented, because a
+collision a reader must resolve is a defect and not a note.
+
+### Dimension briefs — the audit rounds
+
+One per dimension, under `tools/audit/briefs/`, each carrying the owner's own
+words for its scope. Named individually rather than as a range, because a range
+reads as complete while covering a fraction — the defect this repository has
+paid for more than once:
+
+| brief | dimension |
+|---|---|
+| `D0.md` | price optimality |
+| `D1.md` | robustness and stability — lifecycle, staleness, executor boundaries, store corruption, guards |
+| `D2.md` | mathematical and physical sanity |
+| `D3.md` | test-suite gaps |
+| `D4.md` | UI/UX |
+| `D5.md` | docs structure, flow and content; code comments |
+| `D6.md` | README and documentation claim verification |
+| `D7.md` | architecture and maintainability |
+| `D8.md` | sensor verification and ordering |
+| `D9.md` | CPU and memory efficiency, Raspberry-Pi-class target |
+| `D10.md` | Home Assistant integration quality scale |
+
+### The suite
+
+`tests/README.md` — what each script pins, how the scoped gate selects, and why
+a test that re-implements a production formula pins nothing.
+
+### Changing any of it
+
+Everything named in this section is **policy**: `CLAUDE.md`, every
+`.cursor/rules/*.mdc`, and everything under `tools/audit/briefs/`. The owner's
+approval is required before **merging** a change to any of them — not before
+drafting one, so open the pull request and surface it. Every rewrite looks like
+a correction from the inside; if the honest description is *"this changes what a
+seat must do"*, it is policy however small the diff.
+
 ## Programme tracking (#201)
 
 After each programme merge — wave group, tooling the plan tracks, or a closed
@@ -117,6 +195,34 @@ one selects that script and adding a second forces `MODE: FULL` — either way
 the refusal lands on the pull request rather than on the push to main. The
 count is by path segment, not filename, so `docs/handovers/` is a second
 handover too.
+
+## Fix it; if you cannot, verify it independently; only then file it
+
+The owner's ruling, and it binds **every seat**, not only the orchestrator. The
+order is a fallback chain rather than a menu.
+
+An issue is what you write when you cannot act, not a way of recording that you
+noticed. Filing is not neutral: an issue enters the Delivery-status table, needs
+a disposition, and is read by later seats as established fact — it propagates
+further than a wrong pull request, because nothing gates it. Four issues filed
+in one day needed three refutation seats and a judge to establish that one was
+largely false and that a mechanism another asked for was already in the tree,
+landed by a pull request listed in its own evidence table.
+
+**A recurring error is not a third issue.** At roughly the third instance it is
+`tools/audit/briefs/root-cause.md`, whose product is a named cause, a named
+process state, a cost test with numbers, and a countermeasure *or a recorded
+decision not to build one*.
+
+**Out of scope is not a licence to file.** A real finding you must not touch
+goes to that stage's own brief under "Carrying a finding forward" above; an
+issue is not the instrument for propagation.
+
+This rule is stated here and again in `tools/audit/briefs/orchestrator.md`
+section 8. That duplication is deliberate and is the owner's call: it binds every
+seat, so it belongs where every seat reads, and it binds the orchestrator
+hardest, so it belongs in that contract too. **If the two ever disagree, this
+one is the rule** and the other is the bug.
 
 ## Programme plans and the brief linter
 
@@ -197,6 +303,15 @@ or an abandoned hold (`holding` marker, no live flock) may be taken without
 forensics. `run.sh` holds `flock` for the gate run so a crash drops flock and
 a waiter can take immediately — the lease covers the window between commands
 when nothing holds flock (#404).
+
+**Never run a full `tests/derive_closures.sh` off Linux.** The union that lets a
+Darwin recording *grow* a node closure without dropping files only Linux
+`strace` saw lives inside `closure.py`'s `if partial:` branch — and `--single`
+is what passes `--partial`. The full path does not, so a full re-derivation on
+this box **replaces** the Linux recordings wholesale: `card_drift.mjs` measured
+**66 scripts → 6**. Worse, the refusal message you will be reading when you
+reach for it says *"Regenerate with tests/derive_closures.sh"*, with no
+`--single` and no platform caveat. Use `--single` on the one script.
 
 Node lanes (`tests/card.mjs`, `tests/card_drift.mjs`) record on Darwin via
 `node --import tests/node_fs_trace.mjs` (Node `fs` / loader, not `strace`).
