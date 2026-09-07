@@ -1,6 +1,6 @@
 {
   "_comment": "Defects present when policy_lint landed, each with its recorded number of occurrences. A finding not listed here is an error; MORE occurrences of a listed one is an error; fewer is an error until re-recorded; an entry that no longer fires is an error. The list may only shrink. Regenerate with --record-known-bad; growing it is a deliberate edit a reviewer reads.",
-  "recorded_at": "e46ed2cabca209395168735cd377911ba58e4d2a",
+  "recorded_at": "513a4c1c1cf76a38fd8e1a976bb94de7c354ccf0",
   "entries": [
     {
       "key": "citations|.claude/rules/brief-citations.md|path `foo.py`: not in the tree, and no tag SHA is cited alon",
@@ -35,10 +35,6 @@
       "count": 1
     },
     {
-      "key": "duplicates|CLAUDE.md|repeats 12 words from .claude/rules/ci-autofix.md:N. State a",
-      "count": 1
-    },
-    {
       "key": "duplicates|CLAUDE.md|repeats 12 words from .claude/rules/finding-propagation.md:N",
       "count": 1
     },
@@ -69,10 +65,6 @@
     {
       "key": "duplicates|tools/audit/briefs/root-cause.md|repeats 12 words from tools/audit/briefs/orchestrator.md:N. ",
       "count": 2
-    },
-    {
-      "key": "index|CLAUDE.md|does not name `.claude/workflows/web-fragments.md`. The inde",
-      "count": 1
     },
     {
       "key": "index|CLAUDE.md|names `SEAT-BLOCK.md`, which is not in the tree. A seat sent",
