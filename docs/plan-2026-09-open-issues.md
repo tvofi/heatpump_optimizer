@@ -65,6 +65,134 @@ Where this table and a wave body disagree, this table is the truth.
 | 5 | typing lane, and the coverage deficit #195 raised | #303 #195 | per tranche | pending — roster `.claude/workflows/wave-5-groups.json` prepared; **seats not started**. After Wave 4. **#304 is Wave 4**, not here. #412 not in this wave |
 | last | CI Node majors, then **UX lane F** | #412, then UX F1/F2 | after Wave 5 | pending — owner: #412 is the last *task*; **lane F is the last work of the programme**, because it is the only lane that adds lines to `coordinator.py` |
 
+### The UX programme (#558) — what B1 measured, and what it binds
+
+Lane B's first item asked a question this repository's own records left open
+(`tools/audit/round2/D5/REPORT.md`, "Whether HACS's in-app README view renders
+mermaid was not checked"). It is answered, by execution rather than argument,
+and the answer constrains every later item that adds a figure.
+
+**Mermaid does not render in HACS's in-app README view.** HACS reads `README.md`
+as `additional_info` and passes it to `<ha-markdown>` with no `allow-svg`; that
+is home-assistant/frontend's `markdown-worker`, which is plain `marked` plus
+js-xss over a whitelist carrying no `svg`. A fence comes out as a literal
+`<pre><code>` dump of its own source, and the `language-mermaid` class is
+stripped with it, so nothing downstream can find it either. Control: rendering
+the README through that exact pipeline (marked 15.0.4, xss 1.0.15 — the
+versions hacs/frontend pins) yields zero `<svg>` elements, while a GFM table in
+the same document is still wrapped by the worker's own `table` renderer, so the
+pipeline is demonstrably running.
+
+What this binds:
+
+- **B6-B8 may not ship a diagram as mermaid alone.** A figure that must reach a
+  Home Assistant user is an image. `docs/*.md` is not rendered by HACS at all,
+  so a mermaid figure there is a GitHub-only figure — legitimate, but state
+  which audience it serves.
+- **A README image must survive HACS's rewriter, and the rule below is the
+  rewriter's *behaviour*, not a list of the shapes that have broken so far.**
+  This constraint has been carried three times and stated too narrowly twice;
+  each restatement enumerated the shapes then known, and each time an ordinary
+  construct obeying every listed rule still shipped blank. So read the
+  mechanism and derive your own case, rather than matching your figure against
+  the examples.
+
+  Two lines of `markdownWithRepositoryContext` produce all of it. It matches
+  `\[.*?\]\([^#](?!.*?:\/\/).*?\)` and then calls `x.replace("(", <prefix>)`,
+  which rewrites **the first `(` of the matched span** — not the image's; and
+  `showGitHubWeb` tests **the whole span** for `.md`. Whatever is left relative
+  is then blanked by js-xss, which keeps a `src` only if it is absolute or
+  `/`-, `./`-, `../`-rooted.
+
+  **Read "the span" literally, because it is the part that keeps being got
+  wrong.** The span is the rewriter's own match, and that regex is global and
+  scans left to right from the start of the document, with `\[.*?\]` free to
+  open at an unrelated `[` earlier on the line and run through the image's own
+  `]`. So the span covering an image routinely **starts left of the image** —
+  at a `> [!NOTE]` callout, a `- [ ]` task box, a `[1]` footnote marker, any
+  bracketed word — and it is that text which then supplies the first `(`, or
+  the `.md`. Every clause below is a property of **that** span, never of the
+  `![…](…)` you are looking at. Reading them at the image is exactly what the
+  #567 fix review found `tests/entities.py` doing, and it passed four ordinary
+  constructs that ship blank or broken.
+
+  A relative-src image therefore reaches a Home Assistant user only when
+  **all** of the following hold:
+
+  - **It is an inline `![alt](src)`.** The rewriter touches `](…)` and nothing
+    else, so a reference-style `![alt][ref]` and an HTML `<img src=>` are never
+    rewritten at all. Control: `![m][r]` with `[r]: docs/img/a.svg` → blank;
+    the same with an absolute `[r]:` → renders.
+  - **The `(` opening its `src` is the first `(` in the span.** A parenthetical
+    caption takes the rewrite instead — and this is the case every earlier
+    statement of this bullet permitted. Control, a minimal pair:
+    `![Plan chart (24 hours)](docs/img/plan.svg)` → blank `src`, while
+    `![Plan chart 24 hours](docs/img/plan.svg)` → rewritten and survives.
+
+    **The parenthetical does not have to be in the alt text, or anywhere near
+    the image.** Worked example, and the one to derive from, because the image
+    here is faultless read on its own:
+
+    ```
+    > [!NOTE] The chart below (updated daily) ![Plan chart](docs/img/plan.svg)
+    ```
+
+    The scan opens at `[!NOTE]`, cannot close there (no `(` follows the `]`),
+    and runs on to the image's `]` — so the span is
+    `[!NOTE] … (updated daily) ![Plan chart](docs/img/plan.svg)`, its first `(`
+    is `(updated daily)`, and the `src` is **left relative and blanked**.
+    Control, the minimal pair: drop the parentheses —
+    `> [!NOTE] The chart below updated daily ![Plan chart](docs/img/plan.svg)`
+    → the image's own `(` is first in the span, and it survives. B3 adds a
+    `> [!IMPORTANT]` callout to this README, so this is the live shape, not a
+    contrived one. `- [ ] (optional) ![…](…)` and
+    `See the plan [1] (figure 2) ![…](…)` fail identically, and
+    `See [notes] in docs/arch.md ![…](…)` reaches the `.md` clause below by the
+    same route.
+
+    The same clause explains the linked-image case: in
+    `[![License: MIT](https://img.shields.io/…)](LICENSE)` the span's first `(`
+    *is* the image's own, so the badge collects the prefix and its `src`
+    becomes `raw.githubusercontent.com/…/https://img.shields.io/…`. That badge
+    is live and still unfixed; it needs its own lane-B item.
+  - **The span carries no `.md`/`.markdown`.** The rewrite flips to
+    `github.com/<repo>/blob/…`, which serves `content-type=text/html` inside an
+    `<img src>` — broken rather than blank, and the lesser failure of the two.
+    Control: `![Module map — see docs/architecture.md](docs/img/arch.svg)` →
+    `github.com/…/blob/…`; the same alt without the `.md` →
+    `raw.githubusercontent.com/…`. Scoped to the **span**, not the line: an
+    image sharing its line with a `[docs/architecture.md](docs/architecture.md)`
+    link is fine, because that link is a separate match.
+  - **No `://` follows on the line.** The negative lookahead scans to the end
+    of the line rather than to the end of the link, so a trailing "see `<url>`"
+    — or an absolute link *target* wrapped around the image — leaves it
+    un-rewritten. Control: `![x](docs/img/x.svg) see https://example.com` →
+    blank; the identical image alone on its line → survives.
+  - **The alt text does not wrap.** The regex is built without the `s` flag.
+
+  None of these is visible on GitHub, which is where a figure is reviewed.
+  `tests/entities.py` **runs the rewriter's regex over the README and judges
+  each image in the match that covers it** — `_HACS_LINK`, a transcription of
+  `\[.*?\]\([^#](?!.*?:\/\/).*?\)`, iterated globally so its left-to-right,
+  non-overlapping consumption is reproduced rather than approximated. That is
+  the correction the #567 review forced: the check previously built its span
+  from the image's own `![`, which cannot see anything to the left of it, so
+  the four constructs above passed. Two scope notes: the population is the
+  image's own `src` being relative — which is why the `(LICENSE)` badge, whose
+  `src` is absolute, falls outside it instead of needing an allowlist — and an
+  image inside a fenced block or a `backtick span` is outside it too, since it
+  renders as text and never becomes an `<img>`. Re-measure rather than quote:
+  the pipeline is two upstream repositories, and this was measured on
+  2026-09-07 against marked 15.0.4 + xss 1.0.15.
+- **B12 should land after C1-C4.** A hero generated from the card's own renderer
+  bakes in whatever the card looks like that day, and today that includes C2's
+  colliding time-axis end labels and C1's low-contrast lane labels — both are
+  visible in the interim asset at `docs/img/card-plan-chart.svg`.
+
+Re-measure rather than quote: the pipeline is two upstream repositories that
+move independently of this one, and the versions above are what they pinned on
+2026-09-07.
+
 ### Wave 3L — leftovers, after Wave 3, before Wave 4
 
 Every open issue that is not already in Waves 3–5 or #201, filed after the 2026-09-03 plan cut, plus #460 (monthly savings), #463 (wood furnace economics), and #465 (Plan-page away toggle). One burst so they are not lost again, and **before** Wave 4 because #400, #408, #463 and #465 are behaviour in the DHW/optimizer/config/card region a move PR would silently revert (principle 3). Wave 3 is released (`f0866c8`); 3L-G1–G5 and 3L-G7–G10 are done (`e4bc375`). **3L-G6** (#457) shipped nothing and #457 was closed `COMPLETED` by the owner on 2026-09-06 — discharged, not blocked. **W4-G6** (S5) merged #529 (`8281f54`); **W4-G7** (S6) merged #537 (`d04ed89`); **W4-G8** (S7) merged #551 (`0f9eb71`); **W4-G9** (S8) merged #555 (`52d38d9`); **W4-G11** (S10) merged #543 (`e072b2d`, closed #304). Next is W4-G10 (S9, #224). Do not stamp. #465 is closed. #412 stays last of the programme and is not in this burst.
@@ -710,3 +838,76 @@ Wave 4 is `.claude/workflows/wave-4-groups.json` and Wave 5 is
 `.claude/workflows/wave-5-groups.json`. Each group's `resume.stage` says where that
 group stands and carries the merge SHA when it has landed; read that field rather
 than a progress note here, which is stale by the next merge.
+
+## The UX programme (#558) — what lane B's figure items measured
+
+Carried here because lanes B–F have no roster JSON, so a later figure seat has
+no brief of its own to read. Every figure below re-measures at its own merge
+base; the numbers are snapshots.
+
+**`docs/*.md` is not rendered by HACS at all, so B1's three constraints are
+README-only.** HACS's `async_get_info_file_contents` builds its candidate list
+from one stem and returns the first match in the repository's root tree —
+`README.md`, `readme.md`, `readme.MD`, `README.MD`, `README`, `readme`. A path
+under `docs/` matches none of them, and nothing else in the panel fetches a
+second file, so `docs/` reaches a reader only through GitHub. Relative image
+paths, and alt text on more than one line, are therefore free in `docs/` and
+still forbidden in `README.md`. Control, executed against the pipeline
+(`marked@15.0.4` + `xss@1.0.15`) on the branch that added the figures: a
+single-line markdown image is rewritten to `raw.githubusercontent.com` and
+survives, while a wrapped alt and an HTML relative `src` both come out
+`<img src>` with the attribute empty. **Do not spend quality on the README
+constraints in a `docs/` figure** — but keep alt text on one line anyway, which
+costs nothing and survives the text being moved into the README later.
+
+**A card figure that needs the house's two zone dashes must ask for a two-zone
+payload.** A one-zone house publishes `upper` and `lower` as step-by-step copies
+of `room`, and the card drops a duplicate extra rather than labelling it — so
+the dashes cannot be rendered at all from the default payload, and no amount of
+configuration in the figure generator changes that. `tests/plan_view.py` takes
+`HPO_PLAN_TWO_ZONE=1` for this; its default is off, so the gate's payload is
+unchanged. Control: `docs/img/make_card_figures.mjs` exits non-zero when the
+two-zone render carries no dashed `house_temp` path, which is what a payload
+silently reverting to one zone would produce.
+
+**Where a figure's caption is a claim, the generator checks it.** The
+demand-window figure's caption says the tank is held above the minimum inside a
+frame; `docs/img/make_model_figures.py` refuses to write the figure if the plan
+it read dips below it, using `dhw_schedule.hour_in_windows` to decide what
+"inside" means. The measured values are printed beside the curve rather than
+left to the reader's eye, because the crossing sits within a few pixels of a
+frame edge. A figure whose caption cannot fail is a drawing, not evidence.
+
+**Figure generators live in `docs/img/`, beside their output.** `docs/` is on
+`tests/closure.py`'s `INERT` list, so a generator there needs no closure entry
+and editing one selects no gate script. Under `tools/` a generator is an orphan
+until `closure.py` names it, and `closure.py` is a `GATE_FILE`: classifying it
+would force `MODE: FULL` on every documentation branch that touched the list.
+
+**Still unfixed, and outside every lane item so far:** the `[![License: MIT]…](LICENSE)`
+badge. Its cause is the "first `(` of the matched span" clause above, not — as
+this paragraph said until #567's second review — a rule about link targets and
+`.md` extensions: the span the rewriter matches runs from the wrapping `[` to
+the *image's* closing `)`, so the first `(` in it is the image's own, and the
+badge comes out of the HACS pipeline as
+`src="https://raw.githubusercontent.com/tvofi/heatpump_optimizer/6.3.17/https://img.shields.io/badge/License-MIT-green.svg"`
+— so the badge image itself does not load, not merely its link. Control: the
+same badge with an **absolute** target renders correctly, so it is the relative
+target that pulls the whole construct into one span. Reproduced on 2026-09-07
+by rendering `README.md` through the pipeline. It needs a lane-B item; it is
+not one today. A relative target also leaves the `<a>` with no `href` at all
+(measured), which is a second, smaller defect on the same construct.
+
+**Also stale, and also nobody's item:** `docs/architecture.md`'s outputs node
+still reads `65 entities / 55 sensors, 4 binary sensors, 4 buttons, 1 switch,
+1 climate`. It predates this programme (v5.1.0, #69), it is wrong at
+`origin/main` today, and no check reads it — `tests/entities.py`'s census
+covers `README.md` only. Extending that census to the architecture figure is
+the obvious repair and is a lane-B item, not a side-effect of one.
+
+**Delivery-status row.** No longer this PR's to add: #531 landed a truthed
+`| UX |` row on `main` while #567 was in review, and the merge that brought it
+here dropped #567's older duplicate in its favour — the newer copy is the right
+one, per `delivery-status-tracking.mdc`. This PR therefore adds **no** row, and
+carries B1–B5 and B6–B11 under that single existing row; a second one would be
+the duplication the merge just removed.

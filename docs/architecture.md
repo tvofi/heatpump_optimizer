@@ -199,6 +199,30 @@ terminal cost, the cycling and capacity charges — so enabling hot water cannot
 change the space-heating objective. That is not hypothetical tidiness: it used
 to, and the two objectives had silently drifted apart.
 
+## Why the version floor is where it is
+
+The floor used to be whatever the newest Home Assistant API the integration
+provably used demanded — `ConfigEntry.runtime_data`, which put it at 2024.6.0.
+That rule left the *Python* range undeclared and untested: 2024.6.0 implied
+Python 3.12, CI ran only 3.13, and reported installations run 3.14, so neither
+end of the implied range was exercised.
+
+The floor is chosen by the Python range instead, which reverses the inference.
+**2025.2.0 is the first Home Assistant release whose own `pyproject.toml` says
+`requires-python = ">=3.13.0"`** — 2024.12.0 and 2025.1.0 both still say
+`>=3.12.0`, and 2025.8.0 says `>=3.13.2`. So 2025.2.0 is the lowest Home
+Assistant that can guarantee the declared Python 3.13, and it is comfortably
+above the 2024.6.0 that `runtime_data` needs.
+
+`tests/entities.py` pins the README's requirement line, its badge and the
+`hacs.json` floor to the interpreters CI actually runs, so none of this can rot
+away from the measurement.
+
+One consequence: config-flow `section()` grouping was rejected in part because
+the floor predated it. At 2025.2.0 that objection is gone. The compatibility
+shims written for older releases are left in place — removing them is a
+separate change.
+
 ## Where to start reading
 
 - Changing what the optimizer *wants*: `optimizer.py`, then the cost terms in

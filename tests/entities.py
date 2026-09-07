@@ -436,19 +436,258 @@ R.check("all sensors are constructible", len(sensors) > 30, str(len(sensors)))
 # Entity counts are published in the README, so they are a claim rather than a
 # detail. A count that quietly drifts makes the documentation wrong in the one
 # place a user checks before installing.
+#
+# Every number below is DERIVED, and the platform set comes from
+# ``PLATFORM_LIST`` rather than from a list written here. The version this
+# replaced compared the README's binary-sensor and button headings against the
+# literals 4 and 4 -- it supplied the value it then asserted, so when
+# ``wood_cheaper`` made five binary sensors the README kept saying four and
+# this check kept passing. Driving the census off ``PLATFORM_LIST`` closes the
+# other half: a platform nobody remembers to name here still enters the total.
+import importlib as _importlib
+import re as _re
+
 readme = Path("README.md").read_text()
-for label, count, pattern in (
-    ("sensors", len(sensors), r"### Sensors \((\d+) total\)"),
-    ("binary sensors", 4, r"### Binary Sensors \((\d+) total\)"),
-    ("buttons", 4, r"### Buttons \((\d+) total\)"),
-):
-    import re as _re
-    match = _re.search(pattern, readme)
-    R.check(
-        f"the README's {label} count is right",
-        match is not None and int(match.group(1)) == count,
-        f"README says {match.group(1) if match else '?'}, there are {count}",
+
+_platform_counts = {
+    str(_p): len(collect(_importlib.import_module(f"heatpump_optimizer.{_p}")))
+    for _p in integration.PLATFORM_LIST
+}
+_total_entities = sum(_platform_counts.values())
+
+
+def _readme_table_rows(heading: str) -> int:
+    """Data rows of the markdown table under one ``### heading``."""
+    block = _re.search(
+        rf"^### {_re.escape(heading)}[^\n]*\n(.*?)(?=^## |^### |\Z)",
+        readme,
+        _re.M | _re.S,
     )
+    if block is None:
+        return -1
+    rows = [
+        line for line in block.group(1).splitlines()
+        if line.startswith("|") and not _re.fullmatch(r"\|[\s|:-]+\|", line.strip())
+    ]
+    return max(len(rows) - 1, 0)  # less the header row
+
+
+# Sensors keep the heading count and lose only the ROW count: #558 B10 split
+# the section into labelled `####` groups under one `### Sensors` heading, so a
+# row count over the whole heading double-counts each group's own header row
+# (measured: 63 rows over 56 sensors + 8 groups - 1). The name-set check below
+# subsumes that row count and is strictly stronger -- but it never reads the
+# published number, so dropping this check alongside the row count would leave
+# `### Sensors (N total)` pinned by nothing at all.
+_sensors_n = _platform_counts["sensor"]
+_sensors_heading = _re.search(r"### Sensors \((\d+) total\)", readme)
+R.check(
+    "the README's sensors count is right",
+    _sensors_heading is not None and int(_sensors_heading.group(1)) == _sensors_n,
+    f"README says {_sensors_heading.group(1) if _sensors_heading else '?'}, "
+    f"there are {_sensors_n}",
+)
+
+# Binary sensors and buttons stay single tables, so counting their rows pins
+# them too.
+for _label, _platform, _heading in (
+    ("binary sensors", "binary_sensor", "Binary Sensors"),
+    ("buttons", "button", "Buttons"),
+):
+    _n = _platform_counts[_platform]
+    match = _re.search(rf"### {_re.escape(_heading)} \((\d+) total\)", readme)
+    R.check(
+        f"the README's {_label} count is right",
+        match is not None and int(match.group(1)) == _n,
+        f"README says {match.group(1) if match else '?'}, there are {_n}",
+    )
+    # The heading and the table drifted together for ``wood_cheaper``: the
+    # number said four and the table listed four while the platform added
+    # five, so correcting the heading alone would leave the entity
+    # undocumented and this check green.
+    _rows = _readme_table_rows(_heading)
+    R.check(
+        f"the README's {_label} table lists every one of them",
+        _rows == _n,
+        f"table has {_rows} row(s), there are {_n}",
+    )
+
+_total_claim = _re.search(r"All (\d+) entities", readme)
+R.check(
+    "the README's total entity count covers every registered platform",
+    _total_claim is not None and int(_total_claim.group(1)) == _total_entities,
+    f"README says {_total_claim.group(1) if _total_claim else '?'}, "
+    f"the platforms construct {_total_entities} ({_platform_counts})",
+)
+
+# HACS renders this README inside Home Assistant -- `hacs.json` asks for it,
+# and hacs/integration's `async_get_info_file_contents` reads README.md -- so
+# the README has a second renderer, and it is much weaker than GitHub's.
+# hacs/frontend's repository dashboard passes it to `<ha-markdown>` with no
+# `allow-svg`, which is home-assistant/frontend's markdown-worker: plain
+# `marked` plus js-xss over a whitelist carrying no `svg`. Rendering this file
+# through that exact pipeline (marked 15.0.4 + xss 1.0.15, the versions
+# hacs/frontend pins) established two things that no other check would notice:
+#
+#   * a ```mermaid fence comes out as a literal <pre><code> dump of its own
+#     source, and the `language-mermaid` class is stripped with it, so nothing
+#     downstream can even find it to render later. Wrapping each fence in
+#     <details> turns that dump into a labelled, collapsible block, and costs
+#     GitHub nothing -- GitHub's own /markdown API emits the same
+#     `data-type="mermaid"` enrichment section inside <details> as outside it.
+#   * js-xss blanks any `src` that is not absolute, `/`-rooted or `./`-rooted,
+#     and HACS's `markdownWithRepositoryContext` rewrites relative markdown
+#     `[..](..)` links only -- never an HTML `src=` attribute. So
+#     `![x](docs/img/x.svg)` reaches the user and `<img src="docs/img/x.svg">`
+#     renders with an empty src.
+#
+# Both are invisible on GitHub, which is where they would otherwise be
+# reviewed, so they are pinned here rather than left to be rediscovered.
+_fences = [m.start() for m in _re.finditer(r"^```mermaid$", readme, _re.M)]
+_details = [(m.start(), m.end()) for m in _re.finditer(r"<details\b.*?</details>", readme, _re.S)]
+_bare = [p for p in _fences if not any(s < p < e for s, e in _details)]
+R.check(
+    "every README mermaid fence sits inside <details>, so HACS shows a label "
+    "rather than raw diagram source",
+    not _bare,
+    f"{len(_bare)} of {len(_fences)} fence(s) outside <details>",
+)
+_relative_src = _re.findall(r'<img[^>]+src="(?!https?://|/|\./|\.\./)([^"]*)"', readme)
+R.check(
+    "no README <img> carries a relative src, which HACS blanks",
+    not _relative_src,
+    f"relative src: {_relative_src}",
+)
+# ...and the rewrite that saves the markdown form has a narrower reach than it
+# looks: `markdownWithRepositoryContext`'s link regex is built without the `s`
+# flag, so `.` never crosses a newline and an `![alt](path)` whose alt text
+# wraps is left un-rewritten -- after which js-xss blanks its relative src just
+# the same. Measured by rendering the two forms side by side: identical alt
+# text, one line versus two, and only the wrapped one comes out `<img src>`.
+# The hero this check was written for was wrapped, and would have shipped
+# blank in the one view it exists for.
+_wrapped_img = _re.findall(
+    r"!\[[^\]]*\n[^\]]*\]\((?!https?://)([^)]*)\)", readme
+)
+R.check(
+    "no README image with a relative target wraps its alt text across lines, "
+    "which stops HACS rewriting it and leaves the src blank",
+    not _wrapped_img,
+    f"wrapped: {_wrapped_img}",
+)
+
+# The two checks above name shapes. This one RUNS the mechanism they are
+# instances of, because a rule written as a list of the shapes found so far has
+# already been too narrow three times. Twice it was the prose that was narrow;
+# the third time (PR #567 fix review, round 4) the prose was right and THIS
+# CHECK was the narrow one, which is the harder failure to see -- so the
+# rewriter is transcribed here and executed, not described and approximated.
+#
+# `markdownWithRepositoryContext` matches `\[.*?\]\([^#](?!.*?://).*?\)` and
+# then calls `x.replace("(", <prefix>)`, which rewrites the FIRST `(` of the
+# matched span -- not the image's; and `showGitHubWeb` tests THE WHOLE SPAN for
+# `.md`. Getting the span right is therefore the whole job. That regex is
+# global and scans left to right from the start of the document, and `\[.*?\]`
+# will happily open at an unrelated `[` earlier on the line and run through the
+# image's own `]`. So the span covering an image can begin at a `> [!NOTE]`
+# callout, a `- [ ]` task box, a `[1]` footnote marker or any bracketed word --
+# and THAT text then supplies the first `(`, or the `.md`. Measuring a span
+# from the image's own `![` instead, as this check did until round 4, passes
+# four ordinary constructs that ship blank or broken:
+#
+#     > [!NOTE] The chart below (updated daily) ![Plan chart](docs/img/p.svg)
+#     - [ ] (optional) ![Plan chart](docs/img/p.svg)
+#     See the plan [1] (figure 2) ![Plan chart](docs/img/p.svg)
+#     See [notes] in docs/arch.md ![Plan chart](docs/img/p.svg)
+#
+# The first three ship blank and the fourth ships `text/html`, while every
+# condition read AT THE IMAGE holds. The repair is not another clause: it is to
+# stop guessing the span. `_HACS_LINK.finditer` reproduces the rewriter's own
+# global left-to-right scan, non-overlapping consumption included, and a
+# relative-src image is judged in the match that COVERS it. Both remaining
+# questions are then asked of that span and of nothing else -- which is also
+# why the old "a `(` in the alt text" clause is gone: it was one instance of
+# the general rule, and stating it separately is what made the rule look
+# complete.
+#
+# An image no span covers is never rewritten at all, so its relative src
+# reaches js-xss and is blanked. The two ways that happens keep their own
+# diagnostics, because they are the actionable ones: a wrapped alt (the regex
+# is built without the `s` flag) and a later `://` on the line (the negative
+# lookahead scans to end of line, not to the end of the link).
+#
+# None of it is visible on GitHub, which is where it would otherwise be
+# reviewed. Measured 2026-09-07 against marked 15.0.4 + xss 1.0.15 -- the
+# versions hacs/frontend pins -- by rendering each shape and its minimal pair
+# through a transcription of the two upstream modules.
+#
+# Three scope choices, stated so the next seat does not read them as bugs. The
+# population is the image's OWN src, not the link target: the
+# `[![License: MIT](https://img.shields.io/...)](LICENSE)` badge is a real and
+# still-unfixed defect -- a relative link target mangles the img src -- but its
+# src is absolute, so it falls outside this check rather than being allowlisted
+# through it. A reference-style image is refused even though one with an
+# absolute target does render (measured), because every image here is inline
+# and "write it inline" is always the available repair. And an image inside a
+# fenced block or a `backtick span` is outside the population, because it
+# renders as text and never becomes an `<img>` at all -- note that the code
+# spans are excluded from the POPULATION without being cut from the TEXT, since
+# the rewriter runs before marked and does scan them.
+_INLINE_IMG = _re.compile(r"!\[((?:[^\n]|\n(?![ \t]*\n))*?)\]\(")
+_HACS_LINK = _re.compile(r"\[.*?\]\([^#](?!.*?://).*?\)")
+_prose = _re.sub(r"^```.*?^```", "", readme, flags=_re.M | _re.S)
+_code_spans = [(_c.start(), _c.end()) for _c in _re.finditer(r"(`+)[^\n]*?\1", _prose)]
+_spans = [(_s.start(), _s.end(), _s.group(0)) for _s in _HACS_LINK.finditer(_prose)]
+
+
+def _quoted(_pos):
+    """Is this offset inside a `backtick span`, and so never an `<img>`?"""
+    return any(_a <= _pos < _b for _a, _b in _code_spans)
+
+
+_img_offences = []
+_inline_at = set()
+for _m in _INLINE_IMG.finditer(_prose):
+    _inline_at.add(_m.start())
+    if _quoted(_m.start()):
+        continue
+    _alt = _m.group(1)
+    _src = _re.match(r"[^)\s]*", _prose[_m.end():]).group(0)
+    if _re.match(r"[a-z][a-z0-9+.-]*://", _src, _re.I):
+        continue  # absolute: never rewritten, so never blanked
+    _open = _m.end() - 1  # the `(` that opens THIS image's src
+    _span = next((_s for _s in _spans if _s[0] <= _open < _s[1]), None)
+    _eol = _prose.find("\n", _open)
+    _tail = _prose[_m.end():_eol if _eol != -1 else len(_prose)]
+    if _span is None:
+        if "\n" in _alt:
+            _why = "its alt text wraps across lines, so no rewriter span covers it"
+        elif "://" in _tail:
+            _why = "a later '://' on the line fails the rewriter's lookahead"
+        else:
+            _why = "no rewriter span covers it, so its relative src is left as-is"
+    elif _span[0] + _span[2].index("(") != _open:
+        _why = (f"the rewriter's span opens at {_span[2][:32]!r}, whose first "
+                f"'(' takes the rewrite instead of the src's")
+    elif ".md" in _span[2].lower() or ".markdown" in _span[2].lower():
+        _why = (f"'.md' in the rewriter's span {_span[2][:32]!r} sends the "
+                f"rewrite to github.com/blob")
+    else:
+        continue
+    _img_offences.append((_src, _why))
+_img_offences += [
+    (_prose[_m.start():_m.start() + 40].replace("\n", " "),
+     "not an inline ![alt](src), so HACS never rewrites it")
+    for _m in _re.finditer(r"!\[", _prose)
+    if _m.start() not in _inline_at and not _quoted(_m.start())
+]
+R.check(
+    "every relative README image survives HACS's rewriter, judged in the span "
+    "the rewriter's own global scan gives it: inline, that span's first '(' is "
+    "the src's own, and no '.md' anywhere in it",
+    not _img_offences,
+    f"{len(_img_offences)} offence(s): {_img_offences}",
+)
 
 # The sensor table is split into labelled `####` groups (#558 B10), so a count
 # of rows under the heading no longer pins it: a group boundary adds a table
