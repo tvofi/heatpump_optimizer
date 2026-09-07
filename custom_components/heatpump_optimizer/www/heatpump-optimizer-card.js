@@ -19,9 +19,10 @@ const CARD_VERSION = "6.3.17";
 // or chart stroke (D4-05). #0277bd cleared card.mjs but measured 4.38:1 in
 // Chromium's bgOf walk; #026aa8 clears the 4.5:1 browser witness.
 // The savings table's in-cell magnitude bar, as an opacity over currentColor.
-// Bounded both ways and both bounds measured: below about 0.13 the bar stops
-// clearing the 1.3:1 perceptibility floor, and above about 0.35 the figure
-// drawn over it stops clearing 4.5:1 on a dark card.
+// Bounded both ways, and both bounds swept rather than argued: below 0.133 the
+// bar stops clearing the 1.3:1 perceptibility floor (the light card binds;
+// 0.105 on dark), and above 0.368 the figure drawn over it stops clearing
+// 4.5:1 (the dark card binds; 0.538 on light).
 const SV_MAG_ALPHA = 0.16;
 const ACCENT_READABLE = "#026aa8";
 
@@ -4999,14 +5000,18 @@ function valueAxis(
 }
 
 // How heavily a band's envelope is filled. Bounded from both sides and both
-// bounds are measured: below about 0.26 the fill stops clearing the 1.3:1
-// perceptibility floor this card applies to a graphic that is not required to
-// read the chart, and the heavier it gets the more of the curve it is
-// explaining it hides. A band is a tint of the very colour it surrounds, so
-// there is no value that both clears that floor and leaves the curve at 3:1
-// against it -- on a white card those two intervals do not overlap at all.
-// The curve's 3:1 is therefore held against the CARD, which is the surface
-// D4-08 measures, and the fill is held to perceptibility.
+// bounds are measured, by sweeping every opacity rather than by argument:
+// below 0.236 the fill stops clearing the 1.3:1 perceptibility floor this
+// card applies to a graphic that is not required to read the chart (0.198 on
+// a dark card, so the light card binds), and the heavier it gets the more of
+// the curve it is explaining it hides.
+//
+// It is NOT also held to leaving the curve at 3:1 against the band, because
+// a band is a tint of the very colour it surrounds and on a WHITE card the
+// two demands have no common ground: perceptibility needs at least 0.236 and
+// that 3:1 at most 0.138. A light-card result, not a general one -- on a dark
+// card a window does exist and this value is inside it. The curve's 3:1 is
+// therefore held against the CARD, which is the surface D4-08 measures.
 const BAND_FILL_OPACITY = 0.28;
 
 /** The filled region between a band's two edges.

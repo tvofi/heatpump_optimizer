@@ -6935,21 +6935,39 @@ const STOCK_THEMES = {
     check(`the envelope stays quieter than the curve it surrounds on a ${theme} card`,
       seen < line, `fill ${seen.toFixed(3)}:1 vs curve ${line.toFixed(3)}:1`);
   }
-  // Recorded, not asserted: no fill-opacity satisfies both a 3:1 curve-over-
-  // band ratio and the perceptibility floor above, because the band is a tint
-  // of the very colour it surrounds. The intervals are disjoint on a light
-  // card -- perceptibility needs the band's relative luminance at or below
-  // 0.7577, and 3:1 against the curve needs it at or above 0.8540. So this
-  // suite holds the band to perceptibility and holds the CURVE to 3:1 against
-  // the card, which is the surface D4-08 above measures.
+  // Why the band is NOT also held to leaving the curve at 3:1 against it.
+  // The band is a tint of the very colour it surrounds, so the two demands
+  // pull opposite ways, and ON A LIGHT CARD they have no common ground at
+  // all. Swept exhaustively over every fill-opacity in 0.001 steps rather
+  // than argued from an interval, because an interval argument is only as
+  // good as its arithmetic.
+  //
+  // The dark card is the control, and it is why this is stated as a
+  // light-card result rather than a general one: there a window does exist,
+  // and the shipped opacity sits inside it. A sweep that found nothing in
+  // either theme would more likely be a broken sweep than a real result.
   {
-    const th = STOCK_THEMES.light;
-    const need3 = 3 * (relLum(dhwColor) + 0.05) - 0.05;
-    const needSeen = (relLum(th.card) + 0.05) / 1.3 - 0.05;
-    check("no fill-opacity can be both perceptible and leave the curve at 3:1",
-      need3 > needSeen,
-      `3:1 needs relative luminance >= ${need3.toFixed(4)}, ` +
-      `perceptibility needs <= ${needSeen.toFixed(4)}`);
+    const window = (th) => {
+      let both = 0, seen = 0, three = 0;
+      for (let i = 0; i <= 1000; i++) {
+        const band = over(dhwColor, th.card, i / 1000);
+        const p = contrast(band, th.card) >= 1.3;
+        const t = contrast(dhwColor, band) >= 3;
+        if (p) seen++;
+        if (t) three++;
+        if (p && t) both++;
+      }
+      return { both, seen, three };
+    };
+    const light = window(STOCK_THEMES.light);
+    const dark = window(STOCK_THEMES.dark);
+    check("on a light card no fill-opacity is both perceptible and leaves the curve at 3:1",
+      light.both === 0 && light.seen > 0 && light.three > 0,
+      `${light.both} of 1001 steps satisfy both ` +
+      `(${light.seen} clear perceptibility, ${light.three} leave the curve at 3:1)`);
+    check("and the dark card is the control that says the sweep can find one",
+      dark.both > 0,
+      `${dark.both} of 1001 steps satisfy both on a dark card`);
   }
 }
 
