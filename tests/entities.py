@@ -4721,6 +4721,29 @@ away_sw = next(
 R.check("the away switch pins today's object id", away_sw.entity_id == "switch.heat_pump_optimizer_away")
 R.check("the away switch is off when the override is off", not away_sw.is_on)
 
+# --- #195 tranche 2: switch.py's remaining branches -------------------------------
+_no_data_switch = switch_mod.OptimizerEnableSwitch(FakeCoordinator(None), ENTRY)
+R.check(
+    "with no coordinator data at all the switch reads off, not crashes",
+    not _no_data_switch.is_on,
+)
+R.check(
+    "and its extra attributes degrade to empty rather than raising",
+    _no_data_switch.extra_state_attributes == {},
+)
+asyncio.run(away_sw.async_turn_on())
+R.check(
+    "turning the away switch on reaches the coordinator's away setter",
+    away_sw.coordinator.away_calls[-1] == {"active": True, "return_time": None},
+    str(away_sw.coordinator.away_calls),
+)
+asyncio.run(away_sw.async_turn_off())
+R.check(
+    "turning it back off reaches the same setter with the opposite flag",
+    away_sw.coordinator.away_calls[-1] == {"active": False, "return_time": None},
+    str(away_sw.coordinator.away_calls),
+)
+
 dt_entities = collect(datetime_mod)
 R.check("the datetime platform adds exactly one entity", len(dt_entities) == 1)
 away_dt = dt_entities[0]
