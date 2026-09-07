@@ -1,0 +1,79 @@
+<svg viewBox="0 0 980 480" xmlns="http://www.w3.org/2000/svg" role="img"
+     aria-label="Two plots of marginal COP against outdoor temperature from minus 20 to plus 15 degrees. Left, with the throttling-valve gate off: the buffer-tank curve lies exactly on the building-mass curve, and only the hot-water tank sits lower. Right, with the gate on: the buffer tank is derated below the building-mass curve because it charges at its own temperature.">
+<style>text { font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }</style>
+<rect x="0" y="0" width="100%" height="100%" fill="#ffffff"/>
+<text x="22" y="28" font-size="16" font-weight="700" fill="#1c1c1c">One kWh costs a different amount depending on where it goes</text>
+<text x="22" y="46" font-size="12" fill="#5a5a5a">ThermalModel.marginal_cop, asked directly. Gate off, the buffer curve is not close to the plain space curve — it is the same number at every point (largest difference 0).</text>
+<text x="70" y="98" font-size="12.5" font-weight="700" fill="#1c1c1c">No throttling valve — cop_flow_carnot off</text>
+<rect x="70" y="108" width="380" height="244" fill="#ffffff" stroke="#cfcfcf"/>
+<line x1="70.0" y1="108" x2="70.0" y2="352" stroke="#e4e4e4"/>
+<text x="70.0" y="367" font-size="10.5" text-anchor="middle" fill="#5a5a5a">-20</text>
+<line x1="124.3" y1="108" x2="124.3" y2="352" stroke="#e4e4e4"/>
+<text x="124.3" y="367" font-size="10.5" text-anchor="middle" fill="#5a5a5a">-15</text>
+<line x1="178.6" y1="108" x2="178.6" y2="352" stroke="#e4e4e4"/>
+<text x="178.6" y="367" font-size="10.5" text-anchor="middle" fill="#5a5a5a">-10</text>
+<line x1="232.9" y1="108" x2="232.9" y2="352" stroke="#e4e4e4"/>
+<text x="232.9" y="367" font-size="10.5" text-anchor="middle" fill="#5a5a5a">-5</text>
+<line x1="287.1" y1="108" x2="287.1" y2="352" stroke="#e4e4e4"/>
+<text x="287.1" y="367" font-size="10.5" text-anchor="middle" fill="#5a5a5a">0</text>
+<line x1="341.4" y1="108" x2="341.4" y2="352" stroke="#e4e4e4"/>
+<text x="341.4" y="367" font-size="10.5" text-anchor="middle" fill="#5a5a5a">5</text>
+<line x1="395.7" y1="108" x2="395.7" y2="352" stroke="#e4e4e4"/>
+<text x="395.7" y="367" font-size="10.5" text-anchor="middle" fill="#5a5a5a">10</text>
+<line x1="450.0" y1="108" x2="450.0" y2="352" stroke="#e4e4e4"/>
+<text x="450.0" y="367" font-size="10.5" text-anchor="middle" fill="#5a5a5a">15</text>
+<line x1="70" y1="352.0" x2="450" y2="352.0" stroke="#e4e4e4"/>
+<text x="63" y="355.5" font-size="10.5" text-anchor="end" fill="#5a5a5a">0</text>
+<line x1="70" y1="298.2" x2="450" y2="298.2" stroke="#e4e4e4"/>
+<text x="63" y="301.7" font-size="10.5" text-anchor="end" fill="#5a5a5a">1</text>
+<line x1="70" y1="244.4" x2="450" y2="244.4" stroke="#e4e4e4"/>
+<text x="63" y="247.9" font-size="10.5" text-anchor="end" fill="#5a5a5a">2</text>
+<line x1="70" y1="190.6" x2="450" y2="190.6" stroke="#e4e4e4"/>
+<text x="63" y="194.1" font-size="10.5" text-anchor="end" fill="#5a5a5a">3</text>
+<line x1="70" y1="136.8" x2="450" y2="136.8" stroke="#e4e4e4"/>
+<text x="63" y="140.3" font-size="10.5" text-anchor="end" fill="#5a5a5a">4</text>
+<line x1="70" y1="83.0" x2="450" y2="83.0" stroke="#e4e4e4"/>
+<text x="63" y="86.5" font-size="10.5" text-anchor="end" fill="#5a5a5a">5</text>
+<text x="260.0" y="384" font-size="11.5" text-anchor="middle" fill="#1c1c1c">Outdoor temperature (°C)</text>
+<text x="26" y="230.0" font-size="11.5" text-anchor="middle" fill="#1c1c1c" transform="rotate(-90 26 230.0)">Marginal COP</text>
+<path d="M 70.00 290.81 L 75.43 288.46 L 80.86 286.10 L 86.29 283.75 L 91.71 281.40 L 97.14 279.04 L 102.57 276.69 L 108.00 274.34 L 113.43 271.98 L 118.86 269.63 L 124.29 267.28 L 129.71 264.92 L 135.14 262.57 L 140.57 260.22 L 146.00 257.86 L 151.43 255.51 L 156.86 253.16 L 162.29 250.80 L 167.71 248.45 L 173.14 246.10 L 178.57 243.74 L 184.00 241.39 L 189.43 239.04 L 194.86 236.68 L 200.29 234.33 L 205.71 231.98 L 211.14 229.62 L 216.57 227.27 L 222.00 224.92 L 227.43 222.56 L 232.86 220.21 L 238.29 217.86 L 243.71 215.50 L 249.14 213.15 L 254.57 210.80 L 260.00 208.44 L 265.43 206.09 L 270.86 203.74 L 276.29 201.38 L 281.71 199.03 L 287.14 196.68 L 292.57 194.32 L 298.00 191.97 L 303.43 189.62 L 308.86 187.26 L 314.29 184.91 L 319.71 182.56 L 325.14 180.20 L 330.57 177.85 L 336.00 175.50 L 341.43 173.14 L 346.86 170.79 L 352.29 168.44 L 357.71 166.08 L 363.14 163.73 L 368.57 161.38 L 374.00 159.02 L 379.43 156.67 L 384.86 154.31 L 390.29 151.96 L 395.71 149.61 L 401.14 147.25 L 406.57 144.90 L 412.00 142.55 L 417.43 140.19 L 422.86 137.84 L 428.29 135.49 L 433.71 133.13 L 439.14 130.78 L 444.57 128.43 L 450.00 126.07" fill="none" stroke="#1a7a52" stroke-width="2.0" stroke-opacity="1.0"/>
+<path d="M 70.00 290.81 L 75.43 288.46 L 80.86 286.10 L 86.29 283.75 L 91.71 281.40 L 97.14 279.04 L 102.57 276.69 L 108.00 274.34 L 113.43 271.98 L 118.86 269.63 L 124.29 267.28 L 129.71 264.92 L 135.14 262.57 L 140.57 260.22 L 146.00 257.86 L 151.43 255.51 L 156.86 253.16 L 162.29 250.80 L 167.71 248.45 L 173.14 246.10 L 178.57 243.74 L 184.00 241.39 L 189.43 239.04 L 194.86 236.68 L 200.29 234.33 L 205.71 231.98 L 211.14 229.62 L 216.57 227.27 L 222.00 224.92 L 227.43 222.56 L 232.86 220.21 L 238.29 217.86 L 243.71 215.50 L 249.14 213.15 L 254.57 210.80 L 260.00 208.44 L 265.43 206.09 L 270.86 203.74 L 276.29 201.38 L 281.71 199.03 L 287.14 196.68 L 292.57 194.32 L 298.00 191.97 L 303.43 189.62 L 308.86 187.26 L 314.29 184.91 L 319.71 182.56 L 325.14 180.20 L 330.57 177.85 L 336.00 175.50 L 341.43 173.14 L 346.86 170.79 L 352.29 168.44 L 357.71 166.08 L 363.14 163.73 L 368.57 161.38 L 374.00 159.02 L 379.43 156.67 L 384.86 154.31 L 390.29 151.96 L 395.71 149.61 L 401.14 147.25 L 406.57 144.90 L 412.00 142.55 L 417.43 140.19 L 422.86 137.84 L 428.29 135.49 L 433.71 133.13 L 439.14 130.78 L 444.57 128.43 L 450.00 126.07" fill="none" stroke="#4a90e2" stroke-width="3.4" stroke-opacity="0.5"/>
+<path d="M 70.00 300.60 L 75.43 298.62 L 80.86 296.65 L 86.29 294.67 L 91.71 292.69 L 97.14 290.72 L 102.57 288.74 L 108.00 286.76 L 113.43 284.79 L 118.86 282.81 L 124.29 280.83 L 129.71 278.86 L 135.14 276.88 L 140.57 274.90 L 146.00 272.93 L 151.43 270.95 L 156.86 268.97 L 162.29 267.00 L 167.71 265.02 L 173.14 263.04 L 178.57 261.06 L 184.00 259.09 L 189.43 257.11 L 194.86 255.13 L 200.29 253.16 L 205.71 251.18 L 211.14 249.20 L 216.57 247.23 L 222.00 245.25 L 227.43 243.27 L 232.86 241.30 L 238.29 239.32 L 243.71 237.34 L 249.14 235.37 L 254.57 233.39 L 260.00 231.41 L 265.43 229.44 L 270.86 227.46 L 276.29 225.48 L 281.71 223.50 L 287.14 221.53 L 292.57 219.55 L 298.00 217.57 L 303.43 215.60 L 308.86 213.62 L 314.29 211.64 L 319.71 209.67 L 325.14 207.69 L 330.57 205.71 L 336.00 203.74 L 341.43 201.76 L 346.86 199.78 L 352.29 197.81 L 357.71 195.83 L 363.14 193.85 L 368.57 191.88 L 374.00 189.90 L 379.43 187.92 L 384.86 185.94 L 390.29 183.97 L 395.71 181.99 L 401.14 180.01 L 406.57 178.04 L 412.00 176.06 L 417.43 174.08 L 422.86 172.11 L 428.29 170.13 L 433.71 168.15 L 439.14 166.18 L 444.57 164.20 L 450.00 162.22" fill="none" stroke="#c264d0" stroke-width="2.0" stroke-opacity="1.0"/>
+<text x="540" y="98" font-size="12.5" font-weight="700" fill="#1c1c1c">Throttling valve — cop_flow_carnot on, tank at 55 °C</text>
+<rect x="540" y="108" width="380" height="244" fill="#ffffff" stroke="#cfcfcf"/>
+<line x1="540.0" y1="108" x2="540.0" y2="352" stroke="#e4e4e4"/>
+<text x="540.0" y="367" font-size="10.5" text-anchor="middle" fill="#5a5a5a">-20</text>
+<line x1="594.3" y1="108" x2="594.3" y2="352" stroke="#e4e4e4"/>
+<text x="594.3" y="367" font-size="10.5" text-anchor="middle" fill="#5a5a5a">-15</text>
+<line x1="648.6" y1="108" x2="648.6" y2="352" stroke="#e4e4e4"/>
+<text x="648.6" y="367" font-size="10.5" text-anchor="middle" fill="#5a5a5a">-10</text>
+<line x1="702.9" y1="108" x2="702.9" y2="352" stroke="#e4e4e4"/>
+<text x="702.9" y="367" font-size="10.5" text-anchor="middle" fill="#5a5a5a">-5</text>
+<line x1="757.1" y1="108" x2="757.1" y2="352" stroke="#e4e4e4"/>
+<text x="757.1" y="367" font-size="10.5" text-anchor="middle" fill="#5a5a5a">0</text>
+<line x1="811.4" y1="108" x2="811.4" y2="352" stroke="#e4e4e4"/>
+<text x="811.4" y="367" font-size="10.5" text-anchor="middle" fill="#5a5a5a">5</text>
+<line x1="865.7" y1="108" x2="865.7" y2="352" stroke="#e4e4e4"/>
+<text x="865.7" y="367" font-size="10.5" text-anchor="middle" fill="#5a5a5a">10</text>
+<line x1="920.0" y1="108" x2="920.0" y2="352" stroke="#e4e4e4"/>
+<text x="920.0" y="367" font-size="10.5" text-anchor="middle" fill="#5a5a5a">15</text>
+<line x1="540" y1="352.0" x2="920" y2="352.0" stroke="#e4e4e4"/>
+<text x="533" y="355.5" font-size="10.5" text-anchor="end" fill="#5a5a5a">0</text>
+<line x1="540" y1="298.2" x2="920" y2="298.2" stroke="#e4e4e4"/>
+<text x="533" y="301.7" font-size="10.5" text-anchor="end" fill="#5a5a5a">1</text>
+<line x1="540" y1="244.4" x2="920" y2="244.4" stroke="#e4e4e4"/>
+<text x="533" y="247.9" font-size="10.5" text-anchor="end" fill="#5a5a5a">2</text>
+<line x1="540" y1="190.6" x2="920" y2="190.6" stroke="#e4e4e4"/>
+<text x="533" y="194.1" font-size="10.5" text-anchor="end" fill="#5a5a5a">3</text>
+<line x1="540" y1="136.8" x2="920" y2="136.8" stroke="#e4e4e4"/>
+<text x="533" y="140.3" font-size="10.5" text-anchor="end" fill="#5a5a5a">4</text>
+<line x1="540" y1="83.0" x2="920" y2="83.0" stroke="#e4e4e4"/>
+<text x="533" y="86.5" font-size="10.5" text-anchor="end" fill="#5a5a5a">5</text>
+<text x="730.0" y="384" font-size="11.5" text-anchor="middle" fill="#1c1c1c">Outdoor temperature (°C)</text>
+<path d="M 540.00 290.81 L 545.43 288.46 L 550.86 286.10 L 556.29 283.75 L 561.71 281.40 L 567.14 279.04 L 572.57 276.69 L 578.00 274.34 L 583.43 271.98 L 588.86 269.63 L 594.29 267.28 L 599.71 264.92 L 605.14 262.57 L 610.57 260.22 L 616.00 257.86 L 621.43 255.51 L 626.86 253.16 L 632.29 250.80 L 637.71 248.45 L 643.14 246.10 L 648.57 243.74 L 654.00 241.39 L 659.43 239.04 L 664.86 236.68 L 670.29 234.33 L 675.71 231.98 L 681.14 229.62 L 686.57 227.27 L 692.00 224.92 L 697.43 222.56 L 702.86 220.21 L 708.29 217.86 L 713.71 215.50 L 719.14 213.15 L 724.57 210.80 L 730.00 208.44 L 735.43 206.09 L 740.86 203.74 L 746.29 201.38 L 751.71 199.03 L 757.14 196.68 L 762.57 194.32 L 768.00 191.97 L 773.43 189.62 L 778.86 187.26 L 784.29 184.91 L 789.71 182.56 L 795.14 180.20 L 800.57 177.85 L 806.00 175.50 L 811.43 173.14 L 816.86 170.79 L 822.29 168.44 L 827.71 166.08 L 833.14 163.73 L 838.57 161.38 L 844.00 159.02 L 849.43 156.67 L 854.86 154.31 L 860.29 151.96 L 865.71 149.61 L 871.14 147.25 L 876.57 144.90 L 882.00 142.55 L 887.43 140.19 L 892.86 137.84 L 898.29 135.49 L 903.71 133.13 L 909.14 130.78 L 914.57 128.43 L 920.00 126.07" fill="none" stroke="#1a7a52" stroke-width="2.0" stroke-opacity="1.0"/>
+<path d="M 540.00 304.22 L 545.43 302.50 L 550.86 300.79 L 556.29 299.10 L 561.71 297.41 L 567.14 295.74 L 572.57 294.08 L 578.00 292.43 L 583.43 290.79 L 588.86 289.17 L 594.29 287.56 L 599.71 285.96 L 605.14 284.37 L 610.57 282.80 L 616.00 281.24 L 621.43 279.69 L 626.86 278.16 L 632.29 276.65 L 637.71 275.15 L 643.14 273.66 L 648.57 272.19 L 654.00 270.74 L 659.43 269.30 L 664.86 267.88 L 670.29 266.47 L 675.71 265.09 L 681.14 263.72 L 686.57 262.37 L 692.00 261.04 L 697.43 259.73 L 702.86 258.44 L 708.29 257.17 L 713.71 255.92 L 719.14 254.69 L 724.57 253.48 L 730.00 252.30 L 735.43 251.14 L 740.86 250.00 L 746.29 248.89 L 751.71 247.80 L 757.14 246.74 L 762.57 245.71 L 768.00 244.70 L 773.43 243.72 L 778.86 242.77 L 784.29 241.85 L 789.71 240.96 L 795.14 240.10 L 800.57 239.27 L 806.00 238.48 L 811.43 237.72 L 816.86 237.00 L 822.29 236.31 L 827.71 235.66 L 833.14 235.05 L 838.57 234.48 L 844.00 233.94 L 849.43 233.46 L 854.86 233.01 L 860.29 232.61 L 865.71 232.26 L 871.14 231.96 L 876.57 231.71 L 882.00 231.50 L 887.43 231.36 L 892.86 231.26 L 898.29 231.23 L 903.71 231.25 L 909.14 231.34 L 914.57 231.49 L 920.00 231.71" fill="none" stroke="#4a90e2" stroke-width="3.4" stroke-opacity="0.5"/>
+<path d="M 540.00 300.60 L 545.43 298.62 L 550.86 296.65 L 556.29 294.67 L 561.71 292.69 L 567.14 290.72 L 572.57 288.74 L 578.00 286.76 L 583.43 284.79 L 588.86 282.81 L 594.29 280.83 L 599.71 278.86 L 605.14 276.88 L 610.57 274.90 L 616.00 272.93 L 621.43 270.95 L 626.86 268.97 L 632.29 267.00 L 637.71 265.02 L 643.14 263.04 L 648.57 261.06 L 654.00 259.09 L 659.43 257.11 L 664.86 255.13 L 670.29 253.16 L 675.71 251.18 L 681.14 249.20 L 686.57 247.23 L 692.00 245.25 L 697.43 243.27 L 702.86 241.30 L 708.29 239.32 L 713.71 237.34 L 719.14 235.37 L 724.57 233.39 L 730.00 231.41 L 735.43 229.44 L 740.86 227.46 L 746.29 225.48 L 751.71 223.50 L 757.14 221.53 L 762.57 219.55 L 768.00 217.57 L 773.43 215.60 L 778.86 213.62 L 784.29 211.64 L 789.71 209.67 L 795.14 207.69 L 800.57 205.71 L 806.00 203.74 L 811.43 201.76 L 816.86 199.78 L 822.29 197.81 L 827.71 195.83 L 833.14 193.85 L 838.57 191.88 L 844.00 189.90 L 849.43 187.92 L 854.86 185.94 L 860.29 183.97 L 865.71 181.99 L 871.14 180.01 L 876.57 178.04 L 882.00 176.06 L 887.43 174.08 L 892.86 172.11 L 898.29 170.13 L 903.71 168.15 L 909.14 166.18 L 914.57 164.20 L 920.00 162.22" fill="none" stroke="#c264d0" stroke-width="2.0" stroke-opacity="1.0"/>
+<line x1="70" y1="410" x2="92" y2="410" stroke="#1a7a52" stroke-width="2.0"/><text x="99" y="414" font-size="11.5" fill="#1c1c1c">building mass (room, slab, upper, lower) — the plain space curve</text>
+<line x1="70" y1="430" x2="92" y2="430" stroke="#4a90e2" stroke-width="3.4"/><text x="99" y="434" font-size="11.5" fill="#1c1c1c">buffer tank — flow-derated at its own temperature, drawn thick so the plain curve shows through it</text>
+<line x1="70" y1="450" x2="92" y2="450" stroke="#c264d0" stroke-width="2.0"/><text x="99" y="454" font-size="11.5" fill="#1c1c1c">DHW tank — compute_cop_dhw at the tank temperature</text>
+</svg>
