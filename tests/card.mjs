@@ -5408,9 +5408,20 @@ const setupBox = (card, place) =>
   const chipCount = (dump, key) =>
     (legendOnly(dump).match(
       new RegExp(`data-key="${key}"`, "g")) || []).length;
+  // The chip carries other attributes between `data-key` and `title` now
+  // (#558 C2's aria-pressed and aria-describedby), so this cannot assume they
+  // are adjacent -- an anchored match would report every title as empty and
+  // pass every "named once" check below on an empty string.
   const legendTitle = (dump, key) => {
     const m = legendOnly(dump).match(
-      new RegExp(`data-key="${key}" title="([^"]*)"`));
+      new RegExp(`data-key="${key}"[^>]*title="([^"]*)"`));
+    return m ? m[1] : "";
+  };
+  // ... and the explanatory sentence is no longer in that title at all: it is
+  // the .legend-note the chip points at with aria-describedby (#558 C2).
+  const legendNote = (dump, key) => {
+    const m = legendOnly(dump).match(
+      new RegExp(`<p class="legend-note" id="hpo-note-${key}">([^<]*)</p>`));
     return m ? m[1] : "";
   };
   check("a broken band is still named once and reported once, not once per "
@@ -5438,9 +5449,8 @@ const setupBox = (card, place) =>
   // by a dashed line actually looks.
   const legEn = legendOnly(on.dump);
   check("the legend says what the tank's dashed pair is",
-    /data-key="dhw_temp" title="[^"]*expected error[^"]*widens further ahead/
-      .test(legEn),
-    (legEn.match(/data-key="dhw_temp" title="[^"]*"/g) || []).join("\n"));
+    /widens further ahead/.test(legendNote(on.dump, "dhw_temp")),
+    legendNote(on.dump, "dhw_temp"));
   // v5.1.9: ONE chip per series, extras named inside its title. The band
   // gets no chip of its own and must not: the chip toggles the series, and
   // there is no such thing as hiding one edge of it.
@@ -5449,11 +5459,16 @@ const setupBox = (card, place) =>
     /also drawn: Hot water, expected error\./.test(
       legendTitle(on.dump, "dhw_temp")),
     legendTitle(on.dump, "dhw_temp"));
-  // The sentence belongs on hover; stretched across the legend row it would
-  // push every other chip off the card.
-  check("the explanation rides in the chip's title, not its visible text",
+  // The sentence used to ride in the chip's `title` for exactly one reason:
+  // stretched across the legend row it would push every other chip off the
+  // card. #558 C2 keeps the chip the size it was and gives the sentence a row
+  // of its own underneath, because a `title` renders on hover and on nothing
+  // else -- a keyboard user never reaches it and a touch device has no hover
+  // to give. So: still not inside the button, and now genuinely rendered.
+  check("the explanation is a row of its own, not text inside the chip",
     />DHW tank temperature\s*<\/button>/.test(legEn) &&
-    !/>[^<]*widens further ahead[^<]*<\/button>/.test(legEn), legEn);
+    !/>[^<]*widens further ahead[^<]*<\/button>/.test(legEn) &&
+    /widens further ahead/.test(legendNote(on.dump, "dhw_temp")), legEn);
   // The band is named ONCE in that title, not once per edge -- which is the
   // whole point of enumerating traces through `_extraFields`: a legend
   // rewritten to stop repeating a name must not start repeating this one.
@@ -5867,12 +5882,10 @@ const setupBox = (card, place) =>
     outWinPub.length > 0 && outWinPub.every((p) =>
       winLoAt.get(Date.parse(p.t)) === p.dhw_temp_lo),
     `${outWinPub.length} outside-window plotted steps`);
+  const winNote = (collect(winCard.shadowRoot).join("\n").match(
+    /<p class="legend-note" id="hpo-note-dhw_temp">([^<]*)<\/p>/) || ["", ""])[1];
   check("the floored-band legend names the window-minimum floor",
-    /floored at the window minimum|window minimum/.test(
-      (collect(winCard.shadowRoot).join("\n").match(
-        /data-key="dhw_temp" title="[^"]*"/) || [""])[0]),
-    (collect(winCard.shadowRoot).join("\n").match(
-      /data-key="dhw_temp" title="[^"]*"/) || [""])[0]);
+    /floored at the window minimum|window minimum/.test(winNote), winNote);
 }
 
 
@@ -6941,22 +6954,28 @@ const STOCK_THEMES = {
 
   check("the savings table renders one row per month",
     cells.length === months.length * COLS, `${cells.length} cells`);
-  check("every numeric cell is right-aligned, so the columns can be read down",
-    numeric.length > 0 && numeric.every((x) => /text-align:\s*right/.test(x.attrs)),
-    `${numeric.filter((x) => !/text-align:\s*right/.test(x.attrs)).length} of ${numeric.length} are not`);
-  // The control on the check above: right-aligning everything would pass it
-  // and wreck the one column that is a label.
+  const css = dump.slice(0, dump.indexOf("</style>") + 8);
+  check("every numeric cell is marked as a numeric column",
+    numeric.length > 0 && numeric.every((x) => /class="num"/.test(x.attrs)),
+    `${numeric.filter((x) => !/class="num"/.test(x.attrs)).length} of ${numeric.length} are not`);
+  // The control on the check above: marking every cell would pass it and
+  // wreck the one column that is a label, not a quantity.
   check("and the month column is not",
-    monthCells.every((x) => !/text-align:\s*right/.test(x.attrs)));
-  check("the numeric headers sit over their own columns",
-    heads.slice(1).every((x) => /text-align:\s*right/.test(x.attrs)),
-    heads.map((x) => x.text).join(" | "));
+    monthCells.every((x) => !/class="num"/.test(x.attrs)));
+  check("the numeric headers are marked the same way",
+    heads.length === COLS && heads.slice(1).every((x) => /class="num"/.test(x.attrs)) &&
+      !/class="num"/.test(heads[0].attrs),
+    heads.map((x) => `${x.text}${/class="num"/.test(x.attrs) ? "[num]" : ""}`).join(" | "));
+  // The mark is only worth having if the stylesheet acts on it. Read the
+  // rule, not the class: a class nothing styles is not an alignment.
+  check("and the stylesheet right-aligns them, so the columns can be read down",
+    /\.savings-table[^{]*\.num[^{]*\{[^}]*text-align:\s*right/.test(css),
+    (/\.savings-table[^{]*\.num[^{]*\{[^}]*\}/.exec(css) || ["no .num rule at all"])[0]);
 
   // Tabular figures, scoped to this table's own rule. The card already
   // declares them for two what-if elements, so a check for the property
   // "anywhere in the CSS" would return confirming evidence for a table that
   // has none.
-  const css = dump.slice(0, dump.indexOf("</style>") + 8);
   const rule = /\.savings-table[^{]*\{([^}]*)\}/.exec(css);
   check("the savings table asks for tabular figures",
     !!rule && /font-variant-numeric:\s*tabular-nums/.test(rule[1]),

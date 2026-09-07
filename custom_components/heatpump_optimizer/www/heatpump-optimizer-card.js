@@ -18,6 +18,11 @@ const CARD_VERSION = "6.3.17";
 // Used wherever the accent must be readable, not merely visible as a border
 // or chart stroke (D4-05). #0277bd cleared card.mjs but measured 4.38:1 in
 // Chromium's bgOf walk; #026aa8 clears the 4.5:1 browser witness.
+// The savings table's in-cell magnitude bar, as an opacity over currentColor.
+// Bounded both ways and both bounds measured: below about 0.13 the bar stops
+// clearing the 1.3:1 perceptibility floor, and above about 0.35 the figure
+// drawn over it stops clearing 4.5:1 on a dark card.
+const SV_MAG_ALPHA = 0.16;
 const ACCENT_READABLE = "#026aa8";
 
 // HA's --secondary-text-color (#727272) is 4.37:1 on a white card in real
@@ -2846,6 +2851,17 @@ function cardStyleBlock() {
         text-decoration: line-through;
       }
       .chip.nodata { cursor: not-allowed; opacity: 0.3; }
+      /* The sentence a chip's title attribute used to be the only home for.
+         Drawn in --primary-text-color rather than the --secondary-text-color
+         the rest of the card's small print uses: that token's #888 fallback
+         measures 3.54:1 on a white card, below the 4.5:1 text needs, and it
+         is already one of the three defects blocking the dark and fallback
+         contrast witness. Size carries the hierarchy here, not colour. */
+      .legend-note {
+        flex: 1 0 100%; margin: 0 2px 2px 2px;
+        font-size: 0.76em; line-height: 1.35;
+        color: var(--primary-text-color);
+      }
       .chartwrap { position: relative; width: 100%; }
       /* Overlaid on the chart so the row costs no layout height -- the
          expanded dialog's height budget is already the tight one. Kept out of
@@ -3267,6 +3283,43 @@ function cardStyleBlock() {
         color: ${ACCENT_READABLE};
       }
       .whatif .wi-pin-result { margin-top: 0.4em; min-height: 1.2em; }
+
+      /* Savings table. Its figures are compared DOWN a column, which is what
+         decides the typography: proportional digits behind a left edge put
+         the decimal point at a different character offset in every row, so
+         the column cannot be read at all. Right-aligned on tabular figures,
+         with the currency moved into the head -- twelve repetitions of it
+         inside the cells were also what stopped the points lining up. */
+      .savings-table {
+        width: 100%; border-collapse: collapse;
+        font-variant-numeric: tabular-nums;
+      }
+      .savings-table th, .savings-table td { padding: 0.35em 0.5em; }
+      .savings-table th { text-align: left; font-weight: 600; }
+      .savings-table th.num, .savings-table td.num { text-align: right; }
+      .savings-table td.num { position: relative; }
+      .savings-table tr.estimated { font-style: italic; }
+      .savings-est { font-weight: 400; opacity: 0.75; }
+      /* The figure says how much; the bar says how much COMPARED WITH the
+         other months, which is the question a savings table is read to
+         answer and which a column of free-standing numbers cannot answer.
+         Drawn in currentColor, so it is the cell's own text laid over the
+         card at this opacity: perceptible in both stock themes, and light
+         enough that the figure over it keeps its own contrast. Anchored
+         right, where the numbers are, so the bars are comparable. A month
+         that COST money is hatched rather than merely coloured, so the
+         distinction survives monochrome and every form of colour blindness
+         -- the same second channel the series palette uses. */
+      .sv-mag {
+        position: absolute; right: 0; top: 12%; bottom: 12%;
+        background: currentColor; opacity: ${SV_MAG_ALPHA};
+        border-radius: 2px; pointer-events: none;
+      }
+      .sv-mag.neg {
+        background: repeating-linear-gradient(
+          45deg, currentColor 0 2px, transparent 2px 4px);
+      }
+      .sv-val { position: relative; }
 
       /* What-if simulator */
       .whatif {
@@ -4834,7 +4887,13 @@ function timeAxis(scaleX, plotT, plotB, windowStart, windowEnd, font, plotL, plo
     TIME_LABEL_STEPS.find((step) => step >= Math.max(1, needed)) ||
     TIME_LABEL_STEPS[TIME_LABEL_STEPS.length - 1];
 
+  // Half the gap `labelWidth` reserves between two centred labels. A label
+  // closer than this to its neighbour is refused; the halving is there so an
+  // interval that divides exactly cannot be refused for a rounding error.
+  const minLabelGap = (size * 0.6) / 2;
+
   const out = [];
+  const labels = [];
   for (const tick of ticks) {
     const labelled = tick.hours % every === 0;
     out.push(
@@ -4857,12 +4916,43 @@ function timeAxis(scaleX, plotT, plotB, windowStart, windowEnd, font, plotL, plo
         anchor = "end";
         lx = plotR;
       }
-      out.push(
-        `<text x="${lx}" y="${plotB + size + 4}" font-size="${size}" text-anchor="${anchor}" fill="var(--secondary-text-color,#888)">${esc(
-            tick.label
-          )}</text>`
-      );
+      const left = anchor === "start" ? lx : anchor === "end" ? lx - 2 * half : lx - half;
+      labels.push({
+        text: tick.label, anchor, lx, left, right: left + 2 * half,
+        clamped: anchor !== "middle",
+      });
     }
+  }
+
+  // `every` reserves a gap between labels that are CENTRED on their ticks.
+  // Clamping breaks that promise: it moves a label toward its neighbour by up
+  // to half the label's width and spends the gap. So the clamped label -- the
+  // one carrying the window boundary, and the reason the clamp exists -- is
+  // drawn where the clamp put it, and any label it now runs into is dropped.
+  // The dropped label's gridline stays, so the tick is still marked.
+  //
+  // Letting the label overhang the plot instead is not available at either
+  // end: the bottom value-axis tick label sits directly left of `plotL` at
+  // very nearly this baseline, so an overhanging time label trades one
+  // collision for another.
+  const kept = [];
+  for (const lab of labels) {
+    let drop = false;
+    while (kept.length && lab.left - kept[kept.length - 1].right < minLabelGap) {
+      if (!lab.clamped) {
+        drop = true;
+        break;
+      }
+      kept.pop();
+    }
+    if (!drop) kept.push(lab);
+  }
+  for (const lab of kept) {
+    out.push(
+      `<text x="${lab.lx}" y="${plotB + size + 4}" font-size="${size}" text-anchor="${lab.anchor}" fill="var(--secondary-text-color,#888)">${esc(
+          lab.text
+        )}</text>`
+    );
   }
   return out.join("");
 }
@@ -4908,8 +4998,64 @@ function valueAxis(
   return out.join("");
 }
 
+// How heavily a band's envelope is filled. Bounded from both sides and both
+// bounds are measured: below about 0.26 the fill stops clearing the 1.3:1
+// perceptibility floor this card applies to a graphic that is not required to
+// read the chart, and the heavier it gets the more of the curve it is
+// explaining it hides. A band is a tint of the very colour it surrounds, so
+// there is no value that both clears that floor and leaves the curve at 3:1
+// against it -- on a white card those two intervals do not overlap at all.
+// The curve's 3:1 is therefore held against the CARD, which is the surface
+// D4-08 measures, and the fill is held to perceptibility.
+const BAND_FILL_OPACITY = 0.28;
+
+/** The filled region between a band's two edges.
+ *
+ * Two dashed edges leave the reader to join them by eye, and a reader who
+ * does not read them as a pair reads them as two more predicted temperatures
+ * -- the misreading `band` exists in SERIES_DEFS to stop. Filling between
+ * them says "one envelope" before anything is read.
+ *
+ * A run breaks wherever either edge has a hole, for the same reason the edges
+ * themselves break: an envelope drawn across a gap claims evidence that is
+ * not there. The break is decided on the union of both edges' sample times,
+ * so a hole in either one ends the run.
+ */
+function bandEnvelope(s, scaleX, scaleY) {
+  if (!s.band) return "";
+  const lo = new Map(fieldPoints(s, s.band.lo).map((p) => [p.t, p.v]));
+  const hi = new Map(fieldPoints(s, s.band.hi).map((p) => [p.t, p.v]));
+  if (!lo.size || !hi.size) return "";
+  const runs = [];
+  let run = [];
+  for (const t of [...new Set([...lo.keys(), ...hi.keys()])].sort((a, b) => a - b)) {
+    if (lo.has(t) && hi.has(t)) run.push(t);
+    else {
+      if (run.length > 1) runs.push(run);
+      run = [];
+    }
+  }
+  if (run.length > 1) runs.push(run);
+
+  const out = [];
+  for (const times of runs) {
+    const at = (m) => times.map((t) => ({ x: scaleX(t), y: scaleY(m.get(t), s.axis) }));
+    // Smoothed with the same curve the edges are drawn with, so the fill ends
+    // exactly under them rather than beside them.
+    const back = smoothLine(at(hi).reverse()).replace(/^M/, "L");
+    out.push(
+      `<path class="series band" data-key="${s.key}" pointer-events="none" d="${
+        smoothLine(at(lo))} ${back} Z" fill="${s.color}" fill-opacity="${BAND_FILL_OPACITY}" stroke="none"/>`
+    );
+  }
+  return out.join("");
+}
+
 function seriesPath(s, scaleX, scaleY, plotB) {
   const out = [];
+  // Under its own edges and under the tank curve, so neither is tinted by it.
+  const envelope = bandEnvelope(s, scaleX, scaleY);
+  if (envelope) out.push(envelope);
   for (const line of s.lines) {
     const pts = line.points.map((p) => ({
       x: scaleX(p.t),
@@ -5302,6 +5448,13 @@ class Legend {
 
   html(series) {
     const isLowerModelled = () => this.host.plan.lowerFloorModelled();
+    // Notes rescued out of `title=`, in chip order. A `title` renders on
+    // hover and on nothing else: a keyboard user never reaches it and a
+    // touch device has no hover to give, so a sentence that is the only
+    // explanation of a trace cannot live there. It is drawn under the chips
+    // and pointed at by `aria-describedby`, which is what makes it the
+    // chip's description rather than a caption next to it.
+    const noteRows = [];
     const chips = SERIES_DEFS.map((def) => {
       const s = series.find((x) => x.key === def.key);
       const hasData = s ? s.hasData : false;
@@ -5338,24 +5491,30 @@ class Legend {
       const notes = extras
         .map((line) => lineNote(s || def, line))
         .filter(Boolean)
-        .map((note) => " " + note)
-        .join("");
+        .join(" ");
+      const noteId = notes ? `hpo-note-${def.key}` : "";
+      if (notes) noteRows.push({ id: noteId, text: notes });
       const title = extras.length
         ? L("legend.multi_trace_title", {
             label,
             unit,
             names: extras.map((line) => lineLabel(def, line, isLowerModelled)).join(", "),
-          }) + notes
+          })
         : `${label} (${unit})`;
       return `<button type="button" class="${cls}" data-key="${
         def.key
-      }" title="${esc(title)}">
+      }" aria-pressed="${hidden ? "false" : "true"}"${
+        noteId ? ` aria-describedby="${noteId}"` : ""
+      } title="${esc(title)}">
         <span class="dot" style="${dotStyle(def.color, false)}"></span>${esc(
         label
       )}
       </button>`;
     }).join("");
-    return `<div class="legend">${chips}</div>`;
+    const noteHtml = noteRows
+      .map((n) => `<p class="legend-note" id="${n.id}">${esc(n.text)}</p>`)
+      .join("");
+    return `<div class="legend">${chips}${noteHtml}</div>`;
   }
 
   onChipClick(ev) {
@@ -9638,30 +9797,44 @@ class HeatpumpOptimizerCard extends HTMLElement {
     }
     const cur = this.plan.currency();
     const money = (n) =>
-      typeof n === "number" && Number.isFinite(n)
-        ? `${n.toFixed(2)} ${esc(cur)}`
-        : "—";
+      typeof n === "number" && Number.isFinite(n) ? n.toFixed(2) : "—";
     const pct = (n) =>
       typeof n === "number" && Number.isFinite(n) ? `${n.toFixed(0)}%` : "—";
+    const amount = (n) =>
+      typeof n === "number" && Number.isFinite(n) ? Math.abs(n) : 0;
+    // Scaled to the biggest month in the table, so the bar answers "compared
+    // with the others" rather than against a figure the reader cannot see. A
+    // table where nothing was saved has no biggest and draws no bar, which is
+    // also what keeps this off a division by zero.
+    const biggest = rows.reduce((n, r) => Math.max(n, amount(r.savings_sek)), 0);
+    const mag = (n) => {
+      const w = biggest > 0 ? (amount(n) / biggest) * 100 : 0;
+      const neg = typeof n === "number" && Number.isFinite(n) && n < 0;
+      return `<span class="sv-mag${neg ? " neg" : ""}" style="width:${w.toFixed(1)}%"></span>`;
+    };
     const tr = (row) => {
       const est = row.estimated
-        ? ` <span class="savings-est" style="font-weight:400;opacity:.75">${esc(L("savings.estimated"))}</span>`
+        ? ` <span class="savings-est">${esc(L("savings.estimated"))}</span>`
         : "";
-      return `<tr class="${row.estimated ? "estimated" : ""}"${row.estimated ? ' style="font-style:italic"' : ""}>
+      return `<tr class="${row.estimated ? "estimated" : ""}">
         <td>${esc(String(row.month || ""))}${est}</td>
-        <td style="text-align:left;padding:.35em .5em">${money(row.baseline_sek)}</td>
-        <td style="text-align:left;padding:.35em .5em">${money(row.actual_sek)}</td>
-        <td style="text-align:left;padding:.35em .5em">${money(row.savings_sek)}</td>
-        <td style="text-align:left;padding:.35em .5em">${pct(row.savings_pct)}</td>
+        <td class="num">${money(row.baseline_sek)}</td>
+        <td class="num">${money(row.actual_sek)}</td>
+        <td class="num">${mag(row.savings_sek)}<span class="sv-val">${money(row.savings_sek)}</span></td>
+        <td class="num">${pct(row.savings_pct)}</td>
       </tr>`;
     };
-    return `<table class="savings-table" style="width:100%;border-collapse:collapse">
+    // The currency is named once per column rather than once per cell: it is
+    // the same unit down the whole column, and repeating it is what pushed
+    // the decimal points out of line.
+    const head = (key) => `${esc(L(key))} (${esc(cur)})`;
+    return `<table class="savings-table">
       <thead><tr>
-        <th style="text-align:left;padding:.35em .5em;font-weight:600">${esc(L("savings.col_month"))}</th>
-        <th style="text-align:left;padding:.35em .5em;font-weight:600">${esc(L("savings.col_baseline"))}</th>
-        <th style="text-align:left;padding:.35em .5em;font-weight:600">${esc(L("savings.col_actual"))}</th>
-        <th style="text-align:left;padding:.35em .5em;font-weight:600">${esc(L("savings.col_savings"))}</th>
-        <th style="text-align:left;padding:.35em .5em;font-weight:600">${esc(L("savings.col_pct"))}</th>
+        <th>${esc(L("savings.col_month"))}</th>
+        <th class="num">${head("savings.col_baseline")}</th>
+        <th class="num">${head("savings.col_actual")}</th>
+        <th class="num">${head("savings.col_savings")}</th>
+        <th class="num">${esc(L("savings.col_pct"))}</th>
       </tr></thead>
       <tbody>${rows.map(tr).join("")}</tbody>
     </table>`;
