@@ -42,7 +42,7 @@ Metrics (definitions, one line each; the code is the authority):
   the worst function in the tree the cheapest place in the codebase to put new
   complexity, which is the agentic-complexity vector stated literally -- with
   methods_over_200 at 14 and functions_cc_over_25 at 11, ``optimize`` could go
-  540 -> 1,080 lines and CC 87 -> 174 with all 22 budgets unmoved.
+  540 -> 1,080 lines and CC 87 -> 174 with every budget in the table unmoved.
   ``max_class_loc`` already did exactly this job for the one shape family that
   had it.
 
