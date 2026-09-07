@@ -1045,9 +1045,40 @@ const SERIES_DEFS = [
     labelKey: "series.solar",
     axis: "solar",
     unit: "W/m\u00b2",
-    color: "#9a7700",
+    // Was #9a7700, which differs from the price series' #a86b00 by a CIE Lab
+    // dE of 0.9 once simulated for deuteranopia -- below the ~2.3
+    // just-noticeable difference, so the two step-areas were one colour to
+    // the commonest form of colour blindness (#558 C1). #ed6900 takes that
+    // to 15.0 while staying inside the band every series colour must sit in
+    // (3:1 against BOTH a #ffffff and a #1c1c1c card, D4-08 above).
+    color: "#ed6900",
     sensor: "solar",
     field: "ghi",
+    // Colour alone cannot finish the job, but not for the reason first
+    // written here. It is NOT that lightness is the only axis a deuteranope
+    // keeps -- the S-cone blue-yellow axis survives, and among in-band
+    // colours of EQUAL luminance to #ed6900 the deuteranope separation
+    // reaches 140 dE (at #0093ff). So colours far from price DO exist, and
+    // no count of them is given here: a count is only defined against a
+    // stated separation, and the one that governs is the MINIMUM to every
+    // series below, not the distance from price.
+    //
+    // Solar is warm by CONVENTION, not because the palette forbids the
+    // alternatives. The objective that is well posed is the MINIMUM
+    // separation to every other series -- not the separation from price --
+    // because moving solar away from price pushes it toward the other
+    // series. Under that metric the warm family tops out at 18.1 dE, a
+    // plateau over hue 30-50 at C>=40, and the shipped #ed6900 sits at 15.0,
+    // which is its own figure and not the family's. Both are under the 20 dE
+    // this check demands, which is what makes the dash necessary rather than
+    // decorative. Blue clears it comfortably (54.2); green does NOT (19.6 --
+    // under the threshold, and inside the 2.3 dE just-noticeable difference
+    // of the warm best, so "green would have done" is false). Price and
+    // solar are also the only pair drawn by the same `stepArea` branch of
+    // seriesPath, so shape did not tell them apart. The dash is the second
+    // channel, and unlike a hue it survives monochrome and every other form
+    // of colour blindness.
+    dash: "6 3",
     style: "stepArea",
   },
 ];
@@ -1138,6 +1169,13 @@ const CHAR_WIDTH_EM = 0.55;
 // Label intervals that divide 24, so labels fall on the same clock times every
 // day instead of drifting across midnight.
 const TIME_LABEL_STEPS = [1, 2, 3, 4, 6, 8, 12, 24];
+// Both grids, over `--secondary-text-color`. Composites to 1.47:1 on HA's
+// light card and 1.70:1 on its dark one -- above the plot frame's own
+// 1.315:1, so the grid is resolvable, and far below WCAG 1.4.11's 3:1, which
+// a gridline deliberately does not get: the values are carried by the axis
+// LABELS, and a grid at 3:1 would compete with the series it exists to help
+// read (#558 C1).
+const GRID_OPACITY = 0.3;
 
 // The editable lanes along the bottom of the plot, in viewBox units. Slots are
 // dragged here rather than on the power bars themselves: the bars vary in
@@ -1633,12 +1671,15 @@ function samePoints(a, b) {
   return true;
 }
 
-/** The swatch for one trace: solid for a primary line, dashed for an extra.
+/** The swatch for one trace: solid for a solid stroke, dashed for a dashed one.
  *
  * The chart already distinguishes them by stroke, so the tooltip dot has to
  * as well — otherwise two rows in the same colour look like the same line
- * reported twice. The legend has one chip for the whole series and draws it
- * solid; only the tooltip speaks about individual traces.
+ * reported twice. The tooltip asks it of an extra trace, which is dashed
+ * because it is an extra; the legend asks it of the series' own `dash`,
+ * which a series carries when colour alone cannot separate it from another
+ * drawn the same way (#558 C1). A legend chip that drew a dashed series
+ * solid would hide the very channel that distinguishes it.
  */
 function dotStyle(color, dashed) {
   return dashed
@@ -4663,11 +4704,19 @@ function renderChart(frame, opts) {
     `<rect x="${plotL}" y="${plotT}" width="${plotW}" height="${plotH}" fill="none" stroke="var(--divider-color,#e0e0e0)" stroke-width="1"/>`
   );
 
-  // Hourly gridlines. How often they are labelled is worked out from the
+  // The grid, both ways, before anything it sits behind.
+  //
+  // Verticals at the LABELLED hours only; how often that is comes from the
   // space available, so a wider chart or a shorter horizon labels more.
   parts.push(
     timeAxis(scaleX, plotT, plotB, windowStart, windowEnd, font, plotL, plotR)
   );
+  // Horizontals from the outermost left-hand axis if there is one, else
+  // whichever axis is present -- the same order the axes are drawn in below,
+  // so the grid belongs to the axis nearest the reader's eye rather than to
+  // whichever series happened to be switched on.
+  const gridAxis = ["temp", "power", "price", "solar"].find((n) => axes[n]);
+  if (gridAxis) parts.push(valueGrid(axes[gridAxis], plotL, plotR, scaleY, gridAxis));
 
   // Value axes. Where two axes share a side, the inner one's title has only
   // the gap to the outer axis to live in, and that gap does not grow with
@@ -4715,14 +4764,28 @@ function renderChart(frame, opts) {
       )
     );
 
-  // Now marker
+  // Now marker.
+  //
+  // Drawn in the theme's own text colour, not an accent (#558 C1). HA's
+  // `--primary-color` is #03a9f4, which is 2.63:1 on a white card -- under
+  // WCAG 1.4.11's 3:1 for a graphical object, on the chart's single most
+  // important reference. ACCENT_READABLE is the card's answer for accent
+  // TEXT on a light card and is the wrong answer here: it is #026aa8, which
+  // measures 2.946:1 against a #1c1c1c one, so swapping the marker to it
+  // would have traded a light-theme failure for a dark-theme one. No fixed
+  // colour can clear 4.5:1 against both #ffffff and #1c1c1c -- the two
+  // constraints have no overlap -- so the label needs a theme token rather
+  // than a constant, and `--primary-text-color` is the token Home Assistant
+  // guarantees reads on the card in every theme (16.10:1 light, 13.03:1
+  // dark). The dash is what keeps it reading as chrome rather than data,
+  // and neutral also stops it colliding with the blue `space_slots` series.
   if (now >= windowStart && now <= windowEnd) {
     const nx = scaleX(now);
     parts.push(
-      `<line x1="${nx}" y1="${plotT}" x2="${nx}" y2="${plotB}" stroke="var(--primary-color,#03a9f4)" stroke-width="1.5" stroke-dasharray="4 3"/>`
+      `<line class="now" x1="${nx}" y1="${plotT}" x2="${nx}" y2="${plotB}" stroke="var(--primary-text-color,#212121)" stroke-width="1.5" stroke-dasharray="4 3"/>`
     );
     parts.push(
-      `<text x="${nx + 3}" y="${plotT + font + 1}" font-size="${font}" fill="${ACCENT_READABLE}">${esc(
+      `<text class="now-label" x="${nx + 3}" y="${plotT + font + 1}" font-size="${font}" fill="var(--primary-text-color,#212121)">${esc(
           L("plan.now")
         )}</text>`
     );
@@ -4733,12 +4796,32 @@ function renderChart(frame, opts) {
   // whether or not it rests on real prices cannot be audited.
   if (estimatedFrom !== null && estimatedFrom < windowEnd) {
     const ex = Math.max(plotL, scaleX(Math.max(estimatedFrom, windowStart)));
+    // The wash was fill-opacity 0.07, which composites to 1.089:1 on a light
+    // card (#558 C1) -- the region that says "these prices are guesses" was
+    // not visible. 0.16 is where it stops disappearing without burying the
+    // series drawn over it; a tint heavy enough to reach 1.4.11's 3:1 on its
+    // own would do exactly that, which is why the THRESHOLD is carried by
+    // the edge below instead. Boundary, wash and label together, rather than
+    // one of them straining.
     parts.push(
       `<rect class="estimated" pointer-events="none" x="${ex}" y="${plotT}" width="${Math.max(
           0,
           plotR - ex
-        )}" height="${plotH}" fill="var(--secondary-text-color,#888)" fill-opacity="0.07"/>`
+        )}" height="${plotH}" fill="var(--secondary-text-color,#888)" fill-opacity="0.16"/>`
     );
+    // Where the published prices stop. This is the part a reader has to be
+    // able to SEE -- full-strength `--secondary-text-color` is 4.81:1 light
+    // and 6.13:1 dark -- so it, not the wash, is the graphical object that
+    // answers 1.4.11. Solid, because the "now" marker three lines above is
+    // the chart's other full-height vertical and is dashed; two dashed
+    // verticals would read as the same kind of thing. Suppressed when the
+    // estimated stretch starts at or before the window, where the plot
+    // frame already draws that edge and this would double it.
+    if (ex > plotL) {
+      parts.push(
+        `<line class="estimated-edge" pointer-events="none" x1="${ex}" y1="${plotT}" x2="${ex}" y2="${plotB}" stroke="var(--secondary-text-color,#888)" stroke-width="1"/>`
+      );
+    }
     // D4-03: this used to sit at `plotB - 5`, directly on top of the
     // lane-row labels drawn near the bottom of the plot (`_laneGroupInner`),
     // garbling both. Anchored just under the top margin instead -- a strip
@@ -4898,12 +4981,19 @@ function timeAxis(scaleX, plotT, plotB, windowStart, windowEnd, font, plotL, plo
   const labels = [];
   for (const tick of ticks) {
     const labelled = tick.hours % every === 0;
-    out.push(
-      `<line x1="${tick.x}" y1="${plotT}" x2="${tick.x}" y2="${plotB}" stroke="var(--divider-color,#eee)" stroke-width="${
-          labelled ? 1 : 0.5
-        }" opacity="${labelled ? 0.7 : 0.35}"/>`
-    );
+    // Only the labelled hours get a rule (#558 C1). The unlabelled ones were
+    // drawn at stroke-width 0.5 and opacity 0.35 over `--divider-color`,
+    // which composites to 1.097:1 on a light card: two dozen rules a reader
+    // cannot see, at the cost of every one of them. A rule nobody can
+    // resolve and that names no time is not a faint gridline, it is ink.
+    //
+    // `--divider-color` cannot carry a gridline at all: it is rgba(0,0,0,.12)
+    // in HA's light theme, so even at FULL strength it reaches only 1.315:1.
+    // The token had to change, not just the opacity.
     if (labelled) {
+      out.push(
+        `<line class="grid grid-v" x1="${tick.x}" y1="${plotT}" x2="${tick.x}" y2="${plotB}" stroke="var(--secondary-text-color,#888)" stroke-width="1" opacity="${GRID_OPACITY}"/>`
+      );
       // Kept inside the plot's own span. Centred on its tick, the first
       // label runs left under the value axis and the last runs off the
       // chart -- which the boosted compact font (D4-01) makes far more
@@ -4954,6 +5044,31 @@ function timeAxis(scaleX, plotT, plotB, windowStart, windowEnd, font, plotL, plo
       `<text x="${lab.lx}" y="${plotB + size + 4}" font-size="${size}" text-anchor="${lab.anchor}" fill="var(--secondary-text-color,#888)">${esc(
           lab.text
         )}</text>`
+    );
+  }
+  return out.join("");
+}
+
+/** Horizontal gridlines at one value axis's ticks (#558 C1).
+ *
+ * What a reader actually does with a chart like this is compare two values,
+ * and until now there was nothing to sight along: the grid was hourly
+ * VERTICALS only, which answer "when" -- a question the time-axis labels
+ * already answered -- and never "how much".
+ *
+ * One axis only. The chart carries up to four (temp, power, price, solar)
+ * with unrelated domains, and a rule per tick per axis would be four
+ * interleaved grids at unrelated heights: not a grid but a hatch. The caller
+ * picks which, and the ticks are the same ones `valueAxis` labels, so every
+ * rule has a number written against it.
+ */
+function valueGrid(axis, plotL, plotR, scaleY, axisName) {
+  if (!axis) return "";
+  const out = [];
+  for (const tick of axis.ticks) {
+    const y = scaleY(tick, axisName);
+    out.push(
+      `<line class="grid grid-h" x1="${plotL}" y1="${y}" x2="${plotR}" y2="${y}" stroke="var(--secondary-text-color,#888)" stroke-width="1" opacity="${GRID_OPACITY}"/>`
     );
   }
   return out.join("");
@@ -5093,8 +5208,12 @@ function seriesPath(s, scaleX, scaleY, plotB) {
       out.push(
         `<path class="series" data-key="${s.key}" pointer-events="none" d="${areaD}" fill="${s.color}" fill-opacity="${fillOpacity}" stroke="none"/>`
       );
+      // `dash` is the non-colour channel two same-style series need to be
+      // told apart (#558 C1); it rides on the stroke only, so the filled
+      // area underneath still reads as one continuous region.
+      const seriesDash = s.dash ? ` stroke-dasharray="${s.dash}"` : "";
       out.push(
-        `<path class="series" data-key="${s.key}" pointer-events="none" d="${stepD}" fill="none" stroke="${s.color}" stroke-width="1.5"/>`
+        `<path class="series" data-key="${s.key}" pointer-events="none" d="${stepD}" fill="none" stroke="${s.color}" stroke-width="1.5"${seriesDash}/>`
       );
     } else {
       const d = smoothLine(pts);
@@ -5516,7 +5635,7 @@ class Legend {
       }" aria-pressed="${hidden ? "false" : "true"}"${
         noteId ? ` aria-describedby="${noteId}"` : ""
       } title="${esc(title)}">
-        <span class="dot" style="${dotStyle(def.color, false)}"></span>${esc(
+        <span class="dot" style="${dotStyle(def.color, !!def.dash)}"></span>${esc(
         label
       )}
       </button>`;

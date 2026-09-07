@@ -118,3 +118,63 @@
 # no_plan and no_plan_expanded draw the legend but no chart and no band, so
 # they move by the style block and aria-pressed alone -- purely additive.
 #
+# #558 C1, the chart's four contrast defects. 33 of 34 states move; the
+# 34th, editor_schema, is the card's own config editor and draws neither the
+# legend nor the chart.
+#
+# Every listed state moves for the SAME reason first: the legend row is
+# rendered on every tab, including the setup pages, so the solar chip's
+# swatch changes on all of them -- #9a7700 -> #ed6900, and solid -> a dashed
+# repeating-linear-gradient. Direction: one <span class="dot"> style string
+# per state. The 21 states that also draw the chart move further, in four
+# more ways, all in the same direction (more ink, never less):
+#
+#   the "now" marker and its label   var(--primary-color,#03a9f4) and the
+#                                    #026aa8 constant -> var(--primary-text-color,#212121),
+#                                    plus class="now" / class="now-label"
+#   the estimated-price region       fill-opacity 0.07 -> 0.16, and ONE new
+#                                    <line class="estimated-edge"> per chart
+#                                    (absent where the region starts at or
+#                                    before the plot's left edge)
+#   the time grid                    the unlabelled hourly rules are GONE
+#                                    (fewer <line> elements); the labelled
+#                                    ones change token, width and opacity
+#   value gridlines                  new: one <line class="grid grid-h"> per
+#                                    tick of the outermost drawn axis
+#   the solar series stroke          gains stroke-dasharray="6 3"
+#
+# No payload key, published value or solver path is touched: this branch
+# changes the card's own drawing only.
+no_plan  # #558 C1: legend solar swatch
+no_plan_expanded  # #558 C1: legend solar swatch
+plan_inline  # #558 C1: legend solar swatch
+plan_inline_sv  # #558 C1: legend solar swatch
+plan_short_window  # #558 C1: legend solar swatch
+custom_title_currency  # #558 C1: legend solar swatch
+hidden_series  # #558 C1: legend solar swatch
+score_open  # #558 C1: legend solar swatch
+expanded_plan  # #558 C1: legend solar swatch
+what_if_off  # #558 C1: legend solar swatch
+expanded_zoomed  # #558 C1: legend solar swatch
+draft_dirty_menu_open  # #558 C1: legend solar swatch
+draft_mid_drag  # #558 C1: legend solar swatch
+whatif_edited  # #558 C1: legend solar swatch
+whatif_weekly  # #558 C1: legend solar swatch
+override_active  # #558 C1: legend solar swatch
+shared_steps  # #558 C1: legend solar swatch
+shared_steps_hover  # #558 C1: legend solar swatch
+tooltip_hover  # #558 C1: legend solar swatch
+coarse_pointer  # #558 C1: legend solar swatch
+reduced_motion  # #558 C1: legend solar swatch
+setup_single_buffer  # #558 C1: legend solar swatch
+setup_two_tank  # #558 C1: legend solar swatch
+setup_coil  # #558 C1: legend solar swatch
+layout_editing_dragged  # #558 C1: legend solar swatch
+layout_editing_tidy  # #558 C1: legend solar swatch
+picker_open_filtered  # #558 C1: legend solar swatch
+wood_alert  # #558 C1: legend solar swatch
+wood_lane  # #558 C1: legend solar swatch
+wood_whatif  # #558 C1: legend solar swatch
+away_toggle  # #558 C1: legend solar swatch
+away_return  # #558 C1: legend solar swatch
+away_status  # #558 C1: legend solar swatch

@@ -785,14 +785,24 @@ for (const hours of [12, 24, 48]) {
       bad.join("; "));
     // Making room by dropping the clamped label passes the check above while
     // losing the window boundary, which is the only reason the clamp exists.
-    // Derived rather than hardcoded: a labelled tick is drawn as a heavier,
-    // less transparent gridline than an unlabelled one, so the ticks that
-    // were MEANT to carry a label are readable off the chart. The one at
-    // each end of the span must still have a label sitting over it -- which
-    // is also the invariant that a label names the tick it stands on, since
-    // a clamped label is moved but never past its own tick.
+    // Derived rather than hardcoded: the ticks that were MEANT to carry a
+    // label are readable off the chart, so the one at each end of the span
+    // must still have a label sitting over it -- which is also the invariant
+    // that a label names the tick it stands on, since a clamped label is
+    // moved but never past its own tick.
+    //
+    // The derivation moved when #558 C1 landed on top of this check. It used
+    // to read heaviness -- `stroke-width="1" opacity="0.7"` against an
+    // unlabelled tick's 0.5/0.35 -- because both kinds of tick were drawn.
+    // C1 draws a vertical gridline ONLY inside `if (labelled)`, at one weight
+    // over `--secondary-text-color`, having measured `--divider-color` at
+    // 1.315:1 and unreadable. So `.grid.grid-v` IS the labelled set now, and
+    // matching on it is the same derivation against the markup that exists,
+    // not a relaxation. The old regex matched zero lines against C1's markup,
+    // which failed this check rather than passing it vacuously -- the
+    // `length > 1` arm below is what made the collision visible.
     const labelledGrid = [...scoped.matchAll(
-      /<line x1="([-\d.]+)"[^>]*stroke-width="1" opacity="0.7"\/>/g)]
+      /<line class="grid grid-v" x1="([-\d.]+)"[^>]*\/>/g)]
       .map((m) => Number(m[1])).sort((a, b) => a - b);
     const covered = (g) => labels.some((l) => l.left - 0.01 <= g && g <= l.right + 0.01);
     check(`the ${where} time axis keeps a label over the tick at each end`,
@@ -6616,6 +6626,290 @@ const setupBox = (card, place) =>
     low.light === 0, `${low.light} of ${defs.length} below 3:1 on #fff`);
   check("every series colour clears WCAG 1.4.11's 3:1 on a dark card",
     low.dark === 0, `${low.dark} of ${defs.length} below 3:1 on #1c1c1c`);
+}
+
+// --- C1 (#558): the chart's graphical objects, in BOTH default themes ------
+//
+// The shipped witness (tests/card_browser.mjs) measures four TEXT sites at
+// 4.5:1 under HA_LIGHT only, so nothing here was ever measured: a stroke, a
+// fill and a marker are not text, and a dark card is not a light one. These
+// checks read the rendered chart markup, resolve each `var(--token,fallback)`
+// against Home Assistant's own default light and dark themes, composite any
+// alpha, and apply a threshold chosen per KIND of object.
+//
+// The kind split is a design choice and is stated rather than implied
+// (`tools/audit/briefs/fixer.md` step 11). WCAG 1.4.11 asks 3:1 of "parts of
+// graphics required to understand the content", which is the series, the
+// "now" reference and the boundary of the estimated-price region -- not the
+// plot frame and not the gridlines, whose job is to be legible without
+// competing with the data. Gridlines therefore get a PERCEPTIBILITY floor,
+// well under 3:1; demanding 3:1 of them would force a grid that drowns the
+// series, which is the opposite of the fix.
+//
+// Token substitution, not layout: this is the Node lane, so the numbers are
+// what the theme's own values imply. Measuring what Chromium actually
+// composites is tests/card_browser.mjs's job (item C4).
+{
+  const THEMES = {
+    // Home Assistant's default light and dark themes, the two a stock
+    // install can be in. The card's own `var(...)` fallbacks are exercised
+    // by tests/card_browser.mjs's second lane.
+    light: {
+      "--card-background-color": "#ffffff", "--primary-text-color": "#212121",
+      "--secondary-text-color": "#727272", "--primary-color": "#03a9f4",
+      "--divider-color": "rgba(0,0,0,.12)",
+    },
+    dark: {
+      "--card-background-color": "#1c1c1c", "--primary-text-color": "#e1e1e1",
+      "--secondary-text-color": "#9b9b9b", "--primary-color": "#03a9f4",
+      "--divider-color": "rgba(225,225,225,.12)",
+    },
+  };
+  const rgba = (s) => {
+    s = String(s).trim();
+    if (s.startsWith("#")) {
+      let h = s.slice(1);
+      if (h.length === 3) h = h.split("").map((c) => c + c).join("");
+      const n = parseInt(h, 16);
+      return [(n >> 16) & 255, (n >> 8) & 255, n & 255, 1];
+    }
+    const m = s.match(/^rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*(?:,\s*([\d.]+)\s*)?\)$/);
+    if (!m) return null;
+    return [+m[1], +m[2], +m[3], m[4] === undefined ? 1 : +m[4]];
+  };
+  // `var(--token, fallback)` as the theme resolves it. One level deep is
+  // all the card writes.
+  const resolve = (spec, theme) => {
+    const m = String(spec).match(/^var\(\s*(--[\w-]+)\s*(?:,\s*(.+?)\s*)?\)$/);
+    if (!m) return rgba(spec);
+    return rgba(theme[m[1]] !== undefined ? theme[m[1]] : m[2]);
+  };
+  const overBg = (c, bg, extra = 1) => {
+    const a = c[3] * extra;
+    return [0, 1, 2].map((i) => c[i] * a + bg[i] * (1 - a)).concat(1);
+  };
+  const lum = (c) => {
+    const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+    return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]);
+  };
+  const ratio = (a, b) => {
+    const la = lum(a), lb = lum(b);
+    return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+  };
+  // Contrast of one drawn object against the card it sits on, in one theme.
+  const against = (spec, theme, opacity) => {
+    const c = resolve(spec, theme);
+    if (!c) return null;
+    const bg = rgba(theme["--card-background-color"]);
+    return ratio(overBg(c, bg, opacity === undefined ? 1 : +opacity), bg);
+  };
+
+  // The chart with a half-published horizon, so the estimated-price region
+  // is drawn. Read from the rendered tree, not from the source: a check
+  // pins the artifact it reads (`fixer.md` step 11).
+  const est = (() => {
+    const st = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    st[DEFAULT_SPACE].attributes.forecast =
+      plan.space_plan.forecast.map((p, i) => ({ ...p, price_known: i < 40 }));
+    return st;
+  })();
+  const estDump = collect(build(est, { what_if: true }).shadowRoot).join("\n");
+  const attrs = (tag) => {
+    const out = {};
+    for (const m of tag.matchAll(/([\w-]+)="([^"]*)"/g)) out[m[1]] = m[2];
+    return out;
+  };
+  const tagsOf = (name, src) =>
+    (src.match(new RegExp(`<${name}\\b[^>]*>`, "g")) || []).map(attrs);
+  const lines = tagsOf("line", estDump);
+  const rects = tagsOf("rect", estDump);
+  const texts = tagsOf("text", estDump);
+
+  // ---- the "now" marker: a full-height dashed rule -----------------------
+  // Located by its dash signature rather than by a class, so this check
+  // measures the CONTRAST of whatever the tree draws there and cannot pass
+  // merely because a class was renamed.
+  const nowLine = lines.find((a) => a["stroke-dasharray"] === "4 3" && a.x1 === a.x2);
+  check("the chart draws a 'now' marker at all", !!nowLine,
+    `${lines.length} <line> elements, none dashed 4 3 and vertical`);
+  if (nowLine) {
+    for (const t of ["light", "dark"]) {
+      const r = against(nowLine.stroke, THEMES[t], nowLine.opacity);
+      check(`the 'now' marker clears WCAG 1.4.11's 3:1 on a ${t} card (#558 C1)`,
+        r !== null && r >= 3, `${nowLine.stroke} measures ${r === null ? "unparseable" : r.toFixed(2)}:1`);
+    }
+  }
+  // Its label is text, so 4.5:1 -- and in BOTH themes, which is what a
+  // light-only witness could never have said.
+  const nowLabel = texts.find((a) => /now/i.test(a.class || "")) ||
+    texts.find((a) => a.fill && a.fill.startsWith("#") && a.fill !== "#888");
+  if (nowLabel) {
+    for (const t of ["light", "dark"]) {
+      const r = against(nowLabel.fill, THEMES[t]);
+      check(`the 'now' label clears 4.5:1 on a ${t} card (#558 C1)`,
+        r !== null && r >= 4.5, `${nowLabel.fill} measures ${r === null ? "unparseable" : r.toFixed(2)}:1`);
+    }
+  }
+
+  // ---- the estimated-price region ---------------------------------------
+  // The wash alone cannot carry this: a tint dark enough to reach 3:1 would
+  // bury the series underneath it. So the region is required to be
+  // DELIMITED by an object that reaches 3:1, and the wash only has to be
+  // perceptible. Absence of a delimiter is the defect, so "missing" is the
+  // correct failure here rather than a low number.
+  const wash = rects.find((a) => (a.class || "").includes("estimated"));
+  check("the estimated-price region is drawn", !!wash, "no rect.estimated");
+  if (wash) {
+    for (const t of ["light", "dark"]) {
+      const r = against(wash.fill, THEMES[t], wash["fill-opacity"]);
+      check(`the estimated-price wash is perceptible on a ${t} card (#558 C1)`,
+        r !== null && r >= 1.15,
+        `${wash.fill} at fill-opacity ${wash["fill-opacity"]} measures ` +
+        `${r === null ? "unparseable" : r.toFixed(3)}:1`);
+    }
+    // The edge must declare itself part of the region: any vertical rule
+    // that merely shares the region's x would pass vacuously, and on a tree
+    // with an hourly gridline at every hour one always does.
+    const edge = lines.find(
+      (a) => (a.class || "").includes("estimated") && a.x1 === a.x2);
+    check("the estimated-price region has a delimiting edge (#558 C1)", !!edge,
+      `nothing marks where the guesses start at x=${wash.x}; the region's only ` +
+      `marker is a ${(against(wash.fill, THEMES.light, wash["fill-opacity"]) || 0).toFixed(3)}:1 wash`);
+    if (edge) {
+      for (const t of ["light", "dark"]) {
+        const r = against(edge.stroke, THEMES[t], edge.opacity);
+        check(`the estimated-price edge clears 3:1 on a ${t} card (#558 C1)`,
+          r !== null && r >= 3, `${edge.stroke} measures ${r === null ? "unparseable" : r.toFixed(2)}:1`);
+      }
+    }
+  }
+
+  // ---- gridlines ---------------------------------------------------------
+  // Vertical rules that are not the now marker. On a tree that emits an
+  // unlabelled rule at every hour these are the invisible ones.
+  const gridV = lines.filter(
+    (a) => a.x1 === a.x2 && a !== nowLine && a["stroke-dasharray"] === undefined &&
+      Math.abs(+a.y2 - +a.y1) > 100);
+  const gridH = lines.filter((a) => a.y1 === a.y2 && Math.abs(+a.x2 - +a.x1) > 100);
+  check("the chart draws horizontal gridlines to compare values against (#558 C1)",
+    gridH.length > 0,
+    `${gridV.length} vertical rules, ${gridH.length} horizontal — a reader ` +
+    `comparing two values has nothing to sight along`);
+  for (const [kind, set] of [["vertical", gridV], ["horizontal", gridH]]) {
+    if (!set.length) continue;
+    for (const t of ["light", "dark"]) {
+      const worst = set.reduce((w, a) => {
+        const r = against(a.stroke, THEMES[t], a.opacity);
+        return r !== null && r < w.r ? { r, a } : w;
+      }, { r: Infinity, a: null });
+      check(`every ${kind} gridline is perceptible on a ${t} card (#558 C1)`,
+        worst.r >= 1.3,
+        worst.a && `${worst.a.stroke} at opacity ${worst.a.opacity} measures ${worst.r.toFixed(3)}:1`);
+    }
+  }
+}
+
+// --- C1 (#558): series colours must survive colour-blindness --------------
+// D4-08 above asks each colour to read against the CARD. This asks the
+// colours to read against EACH OTHER, which is what tells one line from
+// another, and it asks it of a deuteranope -- the commonest form, and the
+// one that collapses exactly the amber/gold axis this palette leans on.
+{
+  const hex = (h) => {
+    const n = parseInt(h.slice(1), 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  };
+  // Vienot 1999 reduced model: project onto the deuteranope's surface in
+  // LMS, then back to sRGB.
+  const g = (v) => { v /= 255; return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+  const ug = (v) => {
+    v = v <= 0.0031308 ? v * 12.92 : 1.055 * v ** (1 / 2.4) - 0.055;
+    return Math.min(255, Math.max(0, v * 255));
+  };
+  const deuter = (c) => {
+    const [R, G, B] = [g(c[0]), g(c[1]), g(c[2])];
+    const L = 17.8824 * R + 43.5161 * G + 4.11935 * B;
+    const S = 0.0299566 * R + 0.184309 * G + 1.46709 * B;
+    const M = 0.494207 * L + 1.24827 * S;
+    return [
+      ug(0.080944 * L - 0.130504 * M + 0.116721 * S),
+      ug(-0.0102485 * L + 0.0540194 * M - 0.113615 * S),
+      ug(-0.000365294 * L - 0.00412163 * M + 0.693513 * S),
+    ];
+  };
+  // CIE Lab, so the distance is perceptual rather than a contrast ratio --
+  // a ratio only sees lightness, and two colours can differ in hue while
+  // sharing it exactly, which is this defect.
+  const lab = (c) => {
+    const [r, gg, b] = [g(c[0]), g(c[1]), g(c[2])];
+    let X = (0.4124 * r + 0.3576 * gg + 0.1805 * b) / 0.95047;
+    let Y = 0.2126 * r + 0.7152 * gg + 0.0722 * b;
+    let Z = (0.0193 * r + 0.1192 * gg + 0.9505 * b) / 1.08883;
+    const f = (t) => (t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116);
+    [X, Y, Z] = [f(X), f(Y), f(Z)];
+    return [116 * Y - 16, 500 * (X - Y), 200 * (Y - Z)];
+  };
+  const dE = (a, b) => {
+    const A = lab(a), B = lab(b);
+    return Math.hypot(A[0] - B[0], A[1] - B[1], A[2] - B[2]);
+  };
+  const defs = vm.runInContext("SERIES_DEFS", ctx);
+  // A CIE Lab dE of about 2.3 is the just-noticeable difference. 10 is a
+  // deliberate margin over it: below that two traces are not "hard to tell
+  // apart", they are the same colour.
+  const JND_MARGIN = 10;
+  let worst = { d: Infinity, pair: "" };
+  for (let i = 0; i < defs.length; i++)
+    for (let j = i + 1; j < defs.length; j++) {
+      const d = dE(deuter(hex(defs[i].color)), deuter(hex(defs[j].color)));
+      if (d < worst.d) worst = { d, pair: `${defs[i].key}/${defs[j].key}` };
+    }
+  check("no two series are the same colour to a deuteranope (#558 C1)",
+    worst.d >= JND_MARGIN,
+    `${worst.pair} differ by dE ${worst.d.toFixed(1)} simulated deuteranope ` +
+    `(just-noticeable is about 2.3)`);
+
+  // Colour cannot carry it alone here, and the reason is a CONVENTION rather
+  // than a measurement -- stated that way because earlier drafts of this
+  // comment gave contrast-shaped reasons that measurement refuted.
+  //
+  // What is measured: the S-cone blue-yellow axis survives deuteranopia, so
+  // "lightness is the only axis a deuteranope keeps" is false -- among in-band
+  // colours of EQUAL luminance to the solar series the separation reaches
+  // 140 dE. Colours far from price DO exist -- no count of them is given,
+  // because a count is only defined against a stated separation, and the
+  // one that governs here is the MINIMUM to every series, not the distance
+  // from price. What must NOT be asserted is that those colours collide with
+  // something else: the best blue is 147 dE from dhw_slots, not close to it.
+  // And "green would have done" is false under the metric this check uses:
+  // by MINIMUM separation to every series, green reaches only 19.6 -- below
+  // the 20 dE demanded, and inside the 2.3 dE just-noticeable difference of
+  // the warm best at 18.1. Blue does clear it (54.2); solar is warm by
+  // convention rather than by constraint.
+  //
+  // Solar is warm because a solar series is warm by convention, not because
+  // the palette forbids the alternatives. Within the warm family the
+  // deuteranope ceiling against price is 18.1 dE (a plateau over hue 30-50 at
+  // C>=40), and the shipped #ed6900 sits at 15.0 -- its own figure, not the
+  // family's. Both are under the 20 dE below, so the dash is necessary.
+  //
+  // So two series drawn by the SAME branch of seriesPath -- same shape, same
+  // fill treatment -- must differ in stroke pattern unless their colours are
+  // far apart on their own. 20 is comfortably below every same-style pair the
+  // palette already ships except the one this fixes: price/solar at 15.0 is
+  // the only pair under it, and the next lowest is 24.7.
+  const byStyle = {};
+  for (const d of defs) (byStyle[d.style] = byStyle[d.style] || []).push(d);
+  const undistinguished = [];
+  for (const group of Object.values(byStyle))
+    for (let i = 0; i < group.length; i++)
+      for (let j = i + 1; j < group.length; j++) {
+        const d = dE(deuter(hex(group[i].color)), deuter(hex(group[j].color)));
+        if (d < 20 && !group[i].dash === !group[j].dash)
+          undistinguished.push(`${group[i].key}/${group[j].key} (${group[i].style}, dE ${d.toFixed(1)}, neither dashed)`);
+      }
+  check("series sharing a draw style are separated by more than colour (#558 C1)",
+    undistinguished.length === 0, undistinguished.join("; "));
 }
 
 // --- D4-12 (#266): what-if delta sentence grammar -------------------------
