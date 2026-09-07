@@ -143,17 +143,16 @@ seat must do"*, it is policy however small the diff.
 
 **Scope: the development record, not the product.** This governs what one agent
 writes for another — pull-request bodies, issues, comments, commit messages,
-briefs, roster entries, reports, and `docs/HANDOVER.md` — whose reader is a
-resuming agent, which is why `tests/closure.py`'s `INERT` list already carves it
-out of `docs/`. It does **not** govern `README.md` or the rest of `docs/`.
+briefs, roster entries, reports, and `docs/HANDOVER.md`, whose reader is a
+resuming agent. It does **not** govern `README.md` or the rest of `docs/`.
 User-facing writing serves someone who did not run the command, cannot see the
 diff, and has no context to supply; it needs the explanation this rule cuts.
 
 **Precision outranks concision, always.** Where the two pull against each other,
 precision wins and the artifact gets longer. A number keeps the rule that
 produced it (`fixer.md` step 8); a claim keeps its control; a figure from a
-sliding window states the rule instead of the number. A long artifact dense with
-measurement is correct. **A short one missing a control is a defect, and cutting
+sliding window states the rule instead of the number. **A short artifact missing
+a control is a defect, and cutting
 evidence is never compliance with this rule** — if you are unsure whether
 something is filler, keep it, because the cost of a redundant sentence is a
 reader's second, and the cost of a dropped control is a defect that ships.
@@ -164,10 +163,13 @@ refused it**. Everything else is cut, not shortened: restating the ask,
 narrating the route, summarising your own diff, preamble, recap, and any
 adjective whose deletion changes no fact.
 
-The test: **delete the sentence and ask what a reader can no longer check from
-this artifact.** Nothing? It was filler. Without *from this artifact* the test
-cuts anything re-derivable by re-running the gate, which here is everything —
-including the invariant that makes a future violation legible as one.
+The test, and it is subordinate to the four above: **delete the sentence and
+ask what a reader can no longer check.** Nothing? It was filler. A sentence
+carrying one of the four survives the test whatever the test says — the test
+finds filler, it does not overrule the rule. It has to be read that way because
+"can no longer check" cannot see an invariant: `views < fetch < dhw < grid <
+learning` is derivable by sorting five numbers already on the page, so the test
+cuts it, and it is a constraint on someone downstream, so the rule keeps it.
 
 ## Programme tracking (#201)
 
