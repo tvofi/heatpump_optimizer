@@ -28,6 +28,8 @@
 #
 
 #
+#
+
 # #521, the real-Home-Assistant nightly: this branch claims NOTHING. A new
 # test script, its two classification entries and one workflow job -- no
 # production file is touched, so every fixture is byte-identical by
@@ -60,3 +62,9 @@
 #
 # #304 (cover the 21 named config_flow.py statements): this branch claims
 # NOTHING. Two test files only; no card source is touched.
+#
+#
+# #539 (tools/audit generated the forbidden mkdir gate lock into the text new
+# auditors read): this branch claims NOTHING. No card source, template or
+# style is touched -- the diff is a shell generator, agent prompt strings
+# under .claude/workflows/ and audit prose.
