@@ -88,6 +88,9 @@
 #
 # The README section on AI use: this branch claims NOTHING. README.md only
 # -- no card source is touched.
+# W4-G10 S9 (#224, optimize's breach-report tail): this branch claims NOTHING.
+# One optimizer method is split in two -- no card source, no payload key and no
+# published value is touched.
 
 # #558 C1, the chart's four contrast defects. 33 of 34 states move; the
 # 34th, editor_schema, is the card's own config editor and draws neither the
