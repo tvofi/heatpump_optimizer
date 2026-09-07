@@ -14,7 +14,7 @@
 // one implementation of "does this path/symbol/metric resolve", not two --
 // and adds the checks a prose policy file needs and a JSON roster does not.
 //
-// Six check classes, each cheap and offline:
+// Six check classes over the corpus as it stands, each cheap and offline:
 //   citations   paths, path:line and named symbols in policy prose resolve
 //   counts      a literal count in policy prose matches its derivation
 //   no-gh       no `gh <verb>` outside the MCP mapping table
@@ -22,9 +22,17 @@
 //   index       CLAUDE.md names every policy file, and every file it names exists
 //   duplicates  no 12-word run shared between two policy files
 //
+// ...and three that measure the LOOP around it -- whether the process that
+// maintains the corpus is still running. These read merged history, so none of
+// them runs on a pull request (see the `record` job in governance.yml):
+//   record      every merged pull request has a disposition somewhere  (refuses)
+//   stats       verdict and friction histograms, and what they would open
+//   sunset      rules that have outlived the reason they were written
+//
 // Every class is otherwise deletable in silence, so the no-arg (CI) path also
-// runs an acceptance over fixtures/policy-rot/, which states the errors each
-// class must still produce. A run that finds nothing and a gutted linter look
+// runs an acceptance over fixtures/policy-rot/ and fixtures/policy-loop/, which
+// states the errors each class must still produce and the healthy input each
+// must stay silent on. A run that finds nothing and a gutted linter look
 // identical without it.
 //
 //   node .claude/workflows/policy_lint.mjs            # lint + acceptance (CI)
@@ -35,6 +43,14 @@
 //   node .claude/workflows/policy_lint.mjs <files...> # lint just these
 //   node .claude/workflows/policy_lint.mjs --record-known-bad   # reseed the ratchet
 //   node .claude/workflows/policy_lint.mjs --pr-body <file> --head <sha> [--title t] [--red names]
+//   node .claude/workflows/policy_lint.mjs --record --since <ref>   # dispositions
+//   node .claude/workflows/policy_lint.mjs --stats  --since <ref>   # histograms
+//   node .claude/workflows/policy_lint.mjs --sunset --since <ref>   # dead rules
+//
+// `--record` and `--record-known-bad` are two different things and the names sit
+// one hyphen apart: the first REFUSES a merge with no disposition, the second
+// reseeds the known-bad ledger. Argument matching below is exact-string, never
+// prefix, so neither can be reached by mistyping the other.
 
 import fs from 'node:fs'
 import path from 'node:path'
@@ -1239,6 +1255,391 @@ function checkDuplicates(files) {
 }
 
 // ---------------------------------------------------------------------------
+// THE LOOP MODES. Everything above measures the corpus as it stands. These
+// three measure whether the process around it is still turning: dispositions
+// recorded, friction counted, rules retired. All three read merged history,
+// which is why the `record` job in .github/workflows/governance.yml runs on
+// push and schedule and never on `pull_request` -- a pull request's merge
+// commit does not exist yet, so `<ref>..origin/main` measured from one describes
+// a history the branch is not in.
+
+// A squash merge's subject ends `(#N)`. tools/release/stamp.py has a PR_RE for
+// the same job -- `\(#(\d+)\)`, unanchored -- and it is deliberately NOT reused
+// here. Measured over v6.3.18..origin/main, it collects two numbers from two of
+// the fifteen subjects, e.g.
+//
+//     tests(#303): the pinned stub-free typing ruler, and guard 4 ... (#596)
+//
+// where 303 is the issue the change is for and 596 is the pull request. That
+// over-collection is harmless where stamp.py uses it (release notes keyed by a
+// superset of numbers still name every merged PR, which is all rule 4 asks) and
+// wrong here, where every number extracted is then asserted to carry a
+// disposition: it would demand a plan row for an issue that was merely cited in
+// a Conventional-Commit scope. Anchored to end of subject instead.
+const MERGE_SUBJECT_RE = /\(#(\d+)\)\s*$/
+
+// Where a disposition may live. CLAUDE.md's programme-tracking section names
+// exactly these two: the Delivery-status table in the plan of record, and the
+// living handover. #201 is deliberately NOT one of them -- it is the volatile
+// half of the split, free to post at any moment and not in the tree, so a check
+// that accepted it would be satisfiable by something no later seat can read
+// from a checkout.
+const DISPOSITION_FILES = ['docs/plan-2026-09-open-issues.md', 'docs/HANDOVER.md']
+
+function mainRef() {
+  const ok = git(['rev-parse', '--verify', '--quiet', 'origin/main'], { allowFail: true }).trim()
+  return ok ? 'origin/main' : 'HEAD'
+}
+
+function mergedSubjects(since) {
+  const out = git(['log', '--format=%s', `${since}..${mainRef()}`], { allowFail: true })
+  return out ? out.split('\n').filter(Boolean) : []
+}
+
+function mergedPRs(subjects) {
+  const seen = new Set()
+  const rows = []
+  for (const s of subjects) {
+    const m = s.match(MERGE_SUBJECT_RE)
+    if (!m || seen.has(m[1])) continue
+    seen.add(m[1])
+    rows.push({ pr: m[1], subject: s })
+  }
+  return rows
+}
+
+// --record. Pure over its two inputs so the acceptance can hand it a fixture
+// history and a fixture disposition text without a git repository or a network.
+//
+// The message puts the class first and the pull-request number PAST the
+// 60-character truncation keyOf applies. That is deliberate: every
+// undispositioned merge then collapses into ONE ledger entry carrying a count,
+// which is the behaviour keyOf's own comment describes and wants. A per-PR key
+// would mean a new ledger entry for every merge that lands undispositioned and a
+// stale one for every merge that ages out of the `--since` window, so the ledger
+// would churn on the calendar rather than on the defect.
+function checkRecord(prs, dispositionText) {
+  const out = []
+  for (const { pr, subject } of prs) {
+    if (new RegExp(`#${pr}(?![0-9])`).test(dispositionText)) continue
+    out.push({
+      severity: 'error',
+      check: 'record',
+      where: DISPOSITION_FILES[0],
+      message: `no disposition in the plan of record or the living handover for merged pull request #${pr} (${subject.slice(0, 90)}). A merge nobody recorded is a merge no later seat can resume from.`,
+    })
+  }
+  return out
+}
+
+// --stats. The verdict vocabulary is READ from the wave script rather than
+// re-listed here, so the histogram cannot classify against a grammar the
+// reviewers were never given. It cannot be imported: web-fix-wave.js is a
+// workflow script whose top level destructures `args` and throws without them,
+// so `import` would execute it. The string literals in the prompt that tells a
+// reviewer what to write are the source of truth, and they are extracted.
+const WAVE_SCRIPT = '.claude/workflows/web-fix-wave.js'
+const VERDICT_LITERAL_RE = /"Fix review:\s+([a-z]+)/g
+
+// The one verdict class that means the process WORKED, read from the same file:
+// mergePrompt requires `the newest "Fix review:" comment says merge` before a
+// merge agent will merge, so that word is the terminal-success class by
+// definition rather than by anyone's opinion here. It is excluded from the
+// would-open list because friction is REWORK: measured on this repository's own
+// window, ten successful merges over fifteen pull requests cleared the threshold
+// of three and would have opened an issue titled "recurring friction: merge" --
+// an issue saying the process working is a problem. The histogram still prints
+// it; only the issue proposal is withheld. If the extraction fails the exclusion
+// is dropped rather than guessed, so the mode over-reports instead of hiding a
+// class it could not name.
+const PASSING_VERDICT_RE = /"Fix review:"\s+comment says\s+([a-z]+)/
+
+function passingVerdict(text = read(WAVE_SCRIPT)) {
+  const m = text == null ? null : text.match(PASSING_VERDICT_RE)
+  return m ? m[1] : null
+}
+
+function verdictClasses(text = read(WAVE_SCRIPT)) {
+  if (text == null) return null
+  const set = new Set()
+  VERDICT_LITERAL_RE.lastIndex = 0
+  let m
+  while ((m = VERDICT_LITERAL_RE.exec(text))) set.add(m[1])
+  return set.size ? [...set].sort() : null
+}
+
+// A `## Friction` section names, per bullet, the rule id that cost the seat
+// time. A bullet with no backticked id is counted under a single bucket rather
+// than dropped: an unparsed bullet is friction that happened, and silently
+// discarding it biases the histogram toward "no friction".
+const FRICTION_UNLABELLED = '(unlabelled friction bullet)'
+
+function frictionIds(body) {
+  const ids = []
+  let inSection = false
+  for (const line of String(body ?? '').split('\n')) {
+    if (/^##\s/.test(line)) {
+      inSection = /^##\s+Friction\b/i.test(line)
+      continue
+    }
+    if (!inSection || !/^\s*[-*]\s/.test(line)) continue
+    const m = line.match(/`([^`\n]{2,80})`/)
+    ids.push(m ? m[1] : FRICTION_UNLABELLED)
+  }
+  return ids
+}
+
+// The plan's threshold: three or more of one key inside the window opens a
+// `[policy] recurring friction:` issue. This mode PRINTS what it would open and
+// opens nothing -- CLAUDE.md's "fix it; if you cannot, verify it independently;
+// only then file it" makes filing the last resort of a seat that has measured,
+// not something a cron job does on a count.
+const FRICTION_THRESHOLD = 3
+
+function statsHistogram(prs, fetched, classes) {
+  const verdicts = new Map()
+  const friction = new Map()
+  const unclassified = []
+  const re = new RegExp(`^Fix review:\\s*(${classes.join('|')})\\b`, 'i')
+  for (const { pr } of prs) {
+    const f = fetched.get(pr)
+    if (!f) continue
+    for (const c of f.comments ?? []) {
+      const first = String(c.body ?? '').split('\n')[0].trim()
+      if (!/^Fix review:/i.test(first)) continue
+      const m = first.match(re)
+      if (!m) {
+        // A verdict that says "Fix review:" and then something the wave script
+        // never taught a reviewer to say. Reported rather than bucketed: it is
+        // the grammar drifting, and a histogram that quietly absorbs it would
+        // hide exactly that.
+        unclassified.push(`#${pr}: ${first.slice(0, 70)}`)
+        continue
+      }
+      const k = m[1].toLowerCase()
+      verdicts.set(k, (verdicts.get(k) ?? 0) + 1)
+    }
+    for (const id of frictionIds(f.body)) friction.set(id, (friction.get(id) ?? 0) + 1)
+  }
+  return { verdicts, friction, unclassified }
+}
+
+// Findings are severity `info`: the acceptance counts every finding by class, so
+// these are pinned like any other check, while main() only ever exits non-zero
+// on `error`. That is how a reporting mode is made undeletable without being
+// made able to fail a job.
+function statsFindings({ prs, fetched, fetchError, classes, passing = passingVerdict() }) {
+  if (fetchError) {
+    return [{
+      severity: 'info',
+      check: 'stats',
+      where: '(github api)',
+      message: `could not fetch pull-request bodies and comments: ${fetchError}. Printing no histogram rather than a histogram of zeroes -- a zero meaning "no data" and a zero meaning "no friction" are opposite claims, and only one of them is a reason to relax.`,
+    }]
+  }
+  const { verdicts, friction, unclassified } = statsHistogram(prs, fetched, classes)
+  const out = []
+  for (const [kind, hist] of [['verdict class', verdicts], ['friction rule id', friction]]) {
+    for (const [k, n] of [...hist.entries()].sort((a, b) => b[1] - a[1])) {
+      if (n < FRICTION_THRESHOLD) continue
+      if (kind === 'verdict class' && passing && k === passing) {
+        out.push({
+          severity: 'info',
+          check: 'stats',
+          where: '(window)',
+          message: `not opened: verdict class "${k}" at ${n} is the passing verdict ${WAVE_SCRIPT} requires before a merge, so it counts rework nowhere. Friction is rework.`,
+        })
+        continue
+      }
+      out.push({
+        severity: 'info',
+        check: 'stats',
+        where: '(window)',
+        message: `would open "[policy] recurring friction: ${k}" -- ${kind} at ${n} in this window, threshold ${FRICTION_THRESHOLD}. Not opened here: a seat measures and files, a report does not.`,
+      })
+    }
+  }
+  for (const u of unclassified) {
+    out.push({
+      severity: 'info',
+      check: 'stats',
+      where: '(window)',
+      message: `verdict comment outside the grammar in ${WAVE_SCRIPT} (${classes.join(', ')}): ${u}`,
+    })
+  }
+  return out
+}
+
+// --sunset. Three ways a rule outlives its reason, and one guard that is more
+// important than any of them.
+const REFUSED_BY_RE = /REFUSED BY\s+`?([A-Za-z0-9_./-]+)`?/g
+const SUNSET_MARKER_RE = /SUNSET:\s*(\d{4}-\d{2}-\d{2})/g
+const HONOUR_RE = /HONOUR:\s*`?([A-Za-z0-9_.:#-]+)`?/g
+// A detector is a script something can run. A rule that names one is not prose.
+const DETECTOR_TOKEN_RE = /(?<![\w./-])((?:tests|tools|\.claude|\.github)\/[A-Za-z0-9_./-]+\.(?:py|mjs|js|sh|yml))\b/g
+
+function detectorExists(token, rel) {
+  if (resolvePathToken(token)) return true
+  return !token.includes('/') && symbolElsewhere(token, rel)
+}
+
+// `frictionIds` null means the friction data could not be fetched. Every class
+// that argues FROM ABSENCE is then withheld -- "no friction recorded" and "no
+// friction measurable" are the same opposite-claims pair --record guards
+// against, and proposing a sunset on the second would retire a live rule.
+function checkSunset(rows, { friction, fires, today }) {
+  const out = []
+  const day = today.toISOString().slice(0, 10)
+  for (const { file, text } of rows) {
+    const lines = String(text ?? '').split('\n')
+    lines.forEach((line, i) => {
+      const where = `${file}:${i + 1}`
+
+      // 1. Prose whose REFUSED BY names a detector that exists. The detector is
+      //    the enforcement; the prose is a second copy of it, and two copies of
+      //    one obligation drift apart -- the same argument the duplicates check
+      //    makes within the corpus.
+      REFUSED_BY_RE.lastIndex = 0
+      let m
+      while ((m = REFUSED_BY_RE.exec(line))) {
+        if (!detectorExists(m[1], file)) continue
+        out.push({
+          severity: 'info', check: 'sunset', propose: true, where,
+          message: `prose rule is REFUSED BY \`${m[1]}\`, which exists. Cut the prose and keep the detector; a rule enforced twice is a rule that will disagree with itself.`,
+        })
+      }
+
+      // The detector guard, applied to the two classes below. A rule that names
+      // a detector with no recorded fire is NOT proposed for sunset: a detector
+      // that never fired may be working, and retiring it is how the defect it
+      // was written for comes back with nothing left to catch it.
+      DETECTOR_TOKEN_RE.lastIndex = 0
+      const named = [...line.matchAll(DETECTOR_TOKEN_RE)].map((d) => d[1])
+      const quiet = named.filter((d) => !fires.has(d))
+
+      // 2. An explicit SUNSET: marker whose date has passed.
+      SUNSET_MARKER_RE.lastIndex = 0
+      while ((m = SUNSET_MARKER_RE.exec(line))) {
+        if (m[1] >= day) continue
+        if (quiet.length) {
+          out.push({
+            severity: 'info', check: 'sunset', propose: false, where,
+            message: `held past its SUNSET: ${m[1]} marker: it names \`${quiet[0]}\`, a detector with zero recorded fires. A detector that never fired may be working, so it is not proposed for sunset on silence alone.`,
+          })
+          continue
+        }
+        out.push({
+          severity: 'info', check: 'sunset', propose: true, where,
+          message: `past its SUNSET: ${m[1]} marker (today ${day}). The rule named its own expiry; honour it or move the date deliberately.`,
+        })
+      }
+
+      // 3. An honour rule -- one nothing mechanical checks -- with no friction
+      //    and no incident reference over the window.
+      HONOUR_RE.lastIndex = 0
+      while ((m = HONOUR_RE.exec(line))) {
+        const id = m[1]
+        if (friction == null) {
+          out.push({
+            severity: 'info', check: 'sunset', propose: false, where,
+            message: `honour rule \`${id}\` not evaluated: no friction data for this window, and absence of data is not absence of friction.`,
+          })
+          continue
+        }
+        if (friction.has(id)) continue
+        if (/#\d+/.test(line)) continue
+        if (quiet.length) {
+          out.push({
+            severity: 'info', check: 'sunset', propose: false, where,
+            message: `held honour rule \`${id}\`: it names \`${quiet[0]}\`, a detector with zero recorded fires. A detector that never fired may be working.`,
+          })
+          continue
+        }
+        out.push({
+          severity: 'info', check: 'sunset', propose: true, where,
+          message: `honour rule \`${id}\` recorded no friction and cites no incident over this window. It costs every seat a read and refuses nothing measurable.`,
+        })
+      }
+    })
+  }
+  return out
+}
+
+// ---------------------------------------------------------------------------
+// The GitHub read. Nothing derived from a pull-request title, body or comment is
+// ever interpolated into a command: every one of those is a JSON value parsed
+// out of curl's stdout. The only interpolation into a URL is a pull-request
+// number already matched as `\d+`, and execFileSync passes argv directly with no
+// shell between it and curl. The token goes in on stdin as a curl -K config
+// rather than in argv, where any process on the runner can read it.
+
+function repoSlug() {
+  const url = git(['remote', 'get-url', 'origin'], { allowFail: true }).trim()
+  const m = url.match(/github\.com[:/]([^/\s]+)\/(.+?)(?:\.git)?$/)
+  return m ? `${m[1]}/${m[2]}` : null
+}
+
+function ghGet(pathname) {
+  const token = process.env.GITHUB_TOKEN
+  if (!token) return { ok: false, why: 'GITHUB_TOKEN is not set' }
+  let raw
+  try {
+    raw = execFileSync('curl', ['-sS', '-w', '\n%{http_code}', '-K', '-', 'https://api.github.com' + pathname], {
+      input:
+        `header = "Authorization: Bearer ${token}"\n` +
+        'header = "Accept: application/vnd.github+json"\n' +
+        'header = "X-GitHub-Api-Version: 2022-11-28"\n',
+      encoding: 'utf8',
+      maxBuffer: 32 * 1024 * 1024,
+    })
+  } catch (e) {
+    return { ok: false, why: `curl failed (${String(e.message).slice(0, 120)})` }
+  }
+  const cut = raw.lastIndexOf('\n')
+  const code = raw.slice(cut + 1).trim()
+  if (code !== '200') return { ok: false, why: `HTTP ${code} from ${pathname}` }
+  try {
+    return { ok: true, data: JSON.parse(raw.slice(0, cut)) }
+  } catch {
+    return { ok: false, why: `unparseable JSON from ${pathname}` }
+  }
+}
+
+// Returns {fetched, fetchError}. ANY failure aborts into fetchError rather than
+// yielding a partial map: a histogram over the pull requests that happened to
+// answer is a claim about the window that the window did not make.
+function fetchWindow(prs) {
+  const slug = repoSlug()
+  if (!slug) return { fetched: new Map(), fetchError: 'no github remote on origin' }
+  const fetched = new Map()
+  for (const { pr } of prs) {
+    const body = ghGet(`/repos/${slug}/pulls/${pr}`)
+    if (!body.ok) return { fetched: new Map(), fetchError: body.why }
+    const comments = ghGet(`/repos/${slug}/issues/${pr}/comments?per_page=100`)
+    if (!comments.ok) return { fetched: new Map(), fetchError: comments.why }
+    fetched.set(pr, { body: body.data?.body ?? '', comments: Array.isArray(comments.data) ? comments.data : [] })
+  }
+  return { fetched, fetchError: null }
+}
+
+// A detector "fires" if the ledger records a defect naming it, or the window's
+// friction does. That is a deliberately generous reading: it errs toward keeping
+// a rule, and the guard it feeds is one-sided by design.
+function detectorFires(friction) {
+  const fires = new Set()
+  for (const e of knownBad().entries ?? []) {
+    const key = typeof e === 'string' ? e : e.key
+    DETECTOR_TOKEN_RE.lastIndex = 0
+    for (const m of String(key).matchAll(DETECTOR_TOKEN_RE)) fires.add(m[1])
+  }
+  for (const id of friction?.keys() ?? []) {
+    DETECTOR_TOKEN_RE.lastIndex = 0
+    for (const m of String(id).matchAll(DETECTOR_TOKEN_RE)) fires.add(m[1])
+  }
+  return fires
+}
+
+// ---------------------------------------------------------------------------
 // The known-bad list. This linter lands on a corpus that already fails it, so
 // today's failures are recorded once and suppressed. Two properties make that
 // a ratchet rather than an amnesty: a finding NOT on the list is an error, so
@@ -1354,14 +1755,22 @@ function keyOf(f) {
 // smaller by agreement rather than by measurement.
 const NEVER_SUPPRESSED = new Set(['budgets', 'coverage', 'provenance', 'named-docs'])
 
-function applyKnownBad(findings) {
+// RECORD_KEY marks the ledger entries belonging to the `record` class. They are
+// scoped OUT of the default run and IN to `--record`, in both directions: a
+// default run does not read merged history, so without the scope every record
+// entry would report "no longer fires" on a corpus that is fine; and a --record
+// run measures nothing else, so without it every other entry would.
+const RECORD_KEY = (k) => k.startsWith('record|')
+
+function applyKnownBad(findings, keyFilter = (k) => !RECORD_KEY(k)) {
   const kb = knownBad()
   // Entries are {key, count}. A bare string is read as one occurrence, so an
   // older file still parses rather than silently suppressing everything.
   const recorded = new Map()
   for (const e of kb.entries ?? []) {
-    if (typeof e === 'string') recorded.set(e, 1)
-    else recorded.set(e.key, e.count ?? 1)
+    const key = typeof e === 'string' ? e : e.key
+    if (!keyFilter(key)) continue
+    recorded.set(key, typeof e === 'string' ? 1 : e.count ?? 1)
   }
 
   const live = new Map()
@@ -1431,6 +1840,9 @@ const CHECKS = [
   { name: 'named-docs', what: 'a document the corpus names but no cap measures', fixture: '(driven in assertAcceptance)' },
   { name: 'coverage', what: 'every file in a policy directory is matched by a glob', fixture: '(a probe file, see assertAcceptance)' },
   { name: 'provenance', what: "the known-bad ledger's recorded_at resolves from origin/main", fixture: '(driven in assertAcceptance)' },
+  { name: 'record', what: 'every merged pull request has a disposition (refuses)', fixture: 'fixtures/policy-loop/merged-subjects.txt' },
+  { name: 'stats', what: 'verdict and friction histograms, and what they would open', fixture: 'fixtures/policy-loop/pr-payloads.json' },
+  { name: 'sunset', what: 'rules that have outlived the reason they were written', fixture: 'fixtures/policy-loop/sunset-rules.md' },
 ]
 
 function lintFile(rel, derived) {
@@ -1505,9 +1917,53 @@ const REQUIRED_ROT = {
       'does not name',                   // a policy file the index omits
     ],
   },
+  // The three loop modes. `mustNot` is here because `count` is a MINIMUM, and
+  // the anchoring of MERGE_SUBJECT_RE is a claim about what must NOT be
+  // collected: `count: 2` alone is satisfied by three findings, including the
+  // one an unanchored regex would invent for the issue number in a commit
+  // scope. Over-firing is the failure mode this whole mode has to avoid, so it
+  // is pinned as a failure rather than left to a count that cannot see it.
+  record: {
+    count: 2,
+    must: ['no disposition in the plan of record'],
+    // The phrase the finding uses for the number it COLLECTED. Matching bare
+    // "#8888" would be satisfied by the subject the message echoes back, which
+    // is the rotten subject itself and proves nothing about the regex.
+    mustNot: ['merged pull request #8888'],
+  },
+  stats: {
+    count: 5,
+    must: [
+      'would open "[policy] recurring friction: CLAUDE.md#budgets"',  // a rule id at threshold
+      'would open "[policy] recurring friction: blocked"',            // a verdict class at threshold
+      'is the passing verdict',                                       // ...and the class that is not rework
+      'outside the grammar in .claude/workflows/web-fix-wave.js',     // the grammar drifting
+      'could not fetch pull-request bodies and comments',             // the opposite-claims guard
+    ],
+    // The fixture puts the passing class OVER the threshold on purpose, so this
+    // is a pin and not a vacuous one: without the exclusion the same window
+    // produces this line.
+    mustNot: ['would open "[policy] recurring friction: merge"'],
+  },
+  sunset: {
+    count: 5,
+    must: [
+      'REFUSED BY `tests/closure.py`, which exists',   // prose the detector already refuses
+      'past its SUNSET: 2020-01-01 marker',            // an expiry the rule set itself
+      'recorded no friction and cites no incident',    // an honour rule with nothing behind it
+      'zero recorded fires',                           // THE GUARD: a quiet detector is held
+      'absence of data is not absence of friction',    // no friction data withholds the class
+    ],
+  },
 }
 
 CORPUS_CHECKS.push(checkIndex, checkDuplicates, checkBudgets, coverageOverTree, namedDocsOverTree, orphanCapsOverTree, checkProvenance)
+
+// SILENT ON A HEALTHY INPUT. A count-and-substring pin proves a check can still
+// refuse; it cannot prove the check is not refusing everything. Each loop mode
+// is therefore also run against a fixture that is healthy in exactly the way the
+// rot fixture is rotten, and must produce nothing.
+const REQUIRED_SILENT = ['record', 'stats', 'sunset']
 
 function assertAcceptance(derived) {
   const dir = path.join(HERE, 'fixtures', 'policy-rot')
@@ -1574,6 +2030,33 @@ function assertAcceptance(derived) {
     return 1
   }
   found.push(...checkIndex(rels.filter((r) => r !== indexFixture), indexFixture))
+
+  // The three loop modes, pinned on fixtures/policy-loop/. Their check functions
+  // are pure over injected inputs precisely so this runs with no git history, no
+  // network and no token: a pin that needed any of those would be skipped on the
+  // machine where it matters and would pin nothing.
+  const loop = loopFixtures()
+  if (!loop) {
+    console.log('\nFIXTURE VACUOUS: fixtures/policy-loop/ is missing or unreadable; record, stats and sunset are all deletable in silence')
+    return 1
+  }
+  const rotten = checkRecord(loop.prs, loop.dispositionsRotten)
+  found.push(...rotten)
+  found.push(...statsFindings({ prs: loop.prs, fetched: loop.fetched, fetchError: null, classes: loop.classes }))
+  found.push(...statsFindings({ prs: loop.prs, fetched: new Map(), fetchError: 'fixture: the API was not reachable', classes: loop.classes }))
+  found.push(...checkSunset(loop.sunsetRot, { friction: loop.friction, fires: loop.fires, today: loop.today }))
+  found.push(...checkSunset(loop.sunsetRot, { friction: null, fires: loop.fires, today: loop.today }))
+
+  // Silent on a healthy input. Reported as its own failure line rather than
+  // folded into the counts: a check that fires on everything satisfies every
+  // count and every substring, and is exactly as useless as one that fires on
+  // nothing.
+  const silent = {
+    record: checkRecord(loop.prs, loop.dispositionsHealthy),
+    stats: statsFindings({ prs: loop.healthyPrs, fetched: loop.fetched, fetchError: null, classes: loop.classes }),
+    sunset: checkSunset(loop.sunsetHealthy, { friction: loop.friction, fires: loop.fires, today: loop.today }),
+  }
+
   const got = {}
   const msgs = {}
   for (const f of found) {
@@ -2119,6 +2602,12 @@ function assertAcceptance(derived) {
       console.log(`\nFIXTURE VACUOUS: check '${cls}' produced no error saying ${JSON.stringify(sub)}; that sub-claim refuses nothing the fixtures can produce`)
       rc = 1
     }
+    for (const sub of spec.mustNot ?? []) {
+      pins += 1
+      if (!(msgs[cls] ?? []).some((m) => m.includes(sub))) continue
+      console.log(`\nFIXTURE OVER-FIRES: check '${cls}' produced an error saying ${JSON.stringify(sub)}, which it must never collect`)
+      rc = 1
+    }
   }
   // The rot fixtures cannot pin `rulePaths`, because a rule's `paths:` block
   // decides which fixtures exist rather than what they say. Pin it against the
@@ -2137,11 +2626,66 @@ function assertAcceptance(derived) {
     console.log(`\nFIXTURE VACUOUS: rulePaths(${f}) parsed ${got} of ${want} declared path globs; a rule read as less scoped than it is lands in the always-loaded floor, and one read as more scoped is charged to no role at all`)
     rc = 1
   }
-  if (!rc) console.log(`\nFIXTURE ok: ${found.length} error(s) hold ${pins} pins across ${Object.keys(REQUIRED_ROT).length} check classes on fixtures/policy-rot/`)
+  for (const cls of REQUIRED_SILENT) {
+    pins += 1
+    const noisy = silent[cls] ?? []
+    if (!noisy.length) continue
+    console.log(`\nFIXTURE OVER-FIRES: check '${cls}' produced ${noisy.length} finding(s) on its HEALTHY fixture, e.g. ${JSON.stringify(noisy[0].message.slice(0, 120))}`)
+    rc = 1
+  }
+  if (!rc) console.log(`\nFIXTURE ok: ${found.length} error(s) hold ${pins} pins across ${Object.keys(REQUIRED_ROT).length} check classes on fixtures/policy-rot/ and fixtures/policy-loop/`)
   return rc
 }
 
-function cmdRecord(findings) {
+// The loop fixtures, loaded once. Returns null rather than throwing so the
+// acceptance reports a missing fixture directory as VACUOUS -- the same way it
+// already reports a missing policy-rot/ -- instead of dying with a stack trace
+// that reads like a bug in the linter.
+function loopFixtures() {
+  const dir = '.claude/workflows/fixtures/policy-loop'
+  try {
+    const subjects = read(`${dir}/merged-subjects.txt`).split('\n').filter(Boolean)
+    const payloads = JSON.parse(read(`${dir}/pr-payloads.json`))
+    const prs = mergedPRs(subjects)
+    const fetched = new Map()
+    for (const [k, v] of Object.entries(payloads)) {
+      if (k.startsWith('_')) continue
+      fetched.set(k, v)
+    }
+    const healthy = new Set(payloads._healthy ?? [])
+    const classes = verdictClasses()
+    if (!classes) return null
+    return {
+      prs,
+      healthyPrs: prs.filter((p) => healthy.has(p.pr)),
+      fetched,
+      classes,
+      dispositionsRotten: read(`${dir}/dispositions-rotten.md`),
+      dispositionsHealthy: read(`${dir}/dispositions-healthy.md`),
+      sunsetRot: [{ file: `${dir}/sunset-rules.md`, text: read(`${dir}/sunset-rules.md`) }],
+      sunsetHealthy: [{ file: `${dir}/sunset-healthy.md`, text: read(`${dir}/sunset-healthy.md`) }],
+      friction: statsHistogram(prs, fetched, classes).friction,
+      // Empty on purpose: the guard being pinned is "a detector with zero
+      // recorded fires is held", and a fixture that inherited the real ledger's
+      // fires would pin it only for as long as that ledger stayed the same shape.
+      fires: new Set(),
+      // Fixed, so `SUNSET: 2020-01-01` is past on every machine and every day,
+      // and `2099-01-01` is future. A `new Date()` here would make the
+      // acceptance's verdict depend on the calendar.
+      today: new Date('2026-09-07T00:00:00Z'),
+    }
+  } catch {
+    return null
+  }
+}
+
+// --record-known-bad. `measuredRecord` says whether this reseed actually read
+// merged history (it did iff --since was passed). When it did not, every
+// `record|` entry is CARRIED FORWARD untouched: a reseed that measured no
+// history has no evidence those defects were fixed, and dropping them would let
+// an undispositioned merge back in unseen -- the silent drain the whole ledger
+// exists to prevent, arriving through the tool that maintains it.
+function cmdRecord(findings, { measuredRecord = false } = {}) {
   const raw = read(KNOWN_BAD_FILE)
   const doc = raw ? JSON.parse(raw) : {}
   const before = new Map(
@@ -2152,6 +2696,9 @@ function cmdRecord(findings) {
     if (NEVER_SUPPRESSED.has(f.check)) continue
     const k = keyOf(f)
     counts.set(k, (counts.get(k) ?? 0) + 1)
+  }
+  if (!measuredRecord) {
+    for (const [k, c] of before) if (RECORD_KEY(k) && !counts.has(k)) counts.set(k, c)
   }
   const after = [...counts.keys()].sort().map((key) => ({ key, count: counts.get(key) }))
   const added = after.filter((e) => !before.has(e.key))
@@ -2450,21 +2997,126 @@ function cmdHooks(settingsPath) {
   return bad.length ? 1 : 0
 }
 
+// `--since <ref>` takes a value, so its value must not fall through to the
+// positional list and be linted as a file path. Parsed explicitly rather than by
+// filtering on a leading `--`.
+function parseArgs(argv) {
+  const flags = []
+  const positional = []
+  let since = null
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i]
+    if (a === '--since') {
+      since = argv[++i] ?? null
+      continue
+    }
+    if (a.startsWith('--since=')) {
+      since = a.slice('--since='.length)
+      continue
+    }
+    ;(a.startsWith('--') ? flags : positional).push(a)
+  }
+  return { flags, positional, since }
+}
+
+// ---------------------------------------------------------------------------
+// The loop-mode drivers. Each prints and then exits: none of them lints the
+// corpus, and none of them runs the acceptance, which belongs to the CI path.
+
+function requireSince(since, mode) {
+  if (since) return since
+  console.log(`${mode} needs a window: pass --since <ref>. It measures pull requests merged in <ref>..origin/main, and without a ref there is no window to measure.`)
+  process.exit(2)
+}
+
+function cmdRecordDispositions(since) {
+  const prs = mergedPRs(mergedSubjects(since))
+  const text = DISPOSITION_FILES.map((f) => read(f) ?? '').join('\n')
+  const all = checkRecord(prs, text)
+  const applied = applyKnownBad(all, RECORD_KEY)
+  console.log(`RECORD: ${prs.length} merged pull request(s) in ${since}..${mainRef()}; ${all.length} without a disposition in ${DISPOSITION_FILES.join(' or ')}`)
+  printFindings(applied.live)
+  console.log(`\nKNOWN-BAD: ${applied.suppressed} of ${applied.total} recorded record-class defect(s) still present, in ${applied.occurrences} recorded occurrence(s)`)
+  const errors = applied.live.filter((f) => f.severity === 'error').length
+  console.log(`\nTOTAL: ${errors} error(s) over ${prs.length} merged pull request(s)`)
+  process.exit(errors > 0 ? 1 : 0)
+}
+
+function cmdStats(since) {
+  const prs = mergedPRs(mergedSubjects(since))
+  const classes = verdictClasses()
+  if (!classes) {
+    console.log(`STATS: could not read the verdict grammar from ${WAVE_SCRIPT}; classifying nothing rather than against a list typed here.`)
+    process.exit(0)
+  }
+  const { fetched, fetchError } = fetchWindow(prs)
+  console.log(`STATS: ${prs.length} merged pull request(s) in ${since}..${mainRef()}; verdict grammar ${JSON.stringify(classes)} read from ${WAVE_SCRIPT}`)
+  if (!fetchError) {
+    const { verdicts, friction } = statsHistogram(prs, fetched, classes)
+    for (const [label, hist] of [['verdict class', verdicts], ['friction rule id', friction]]) {
+      console.log(`\n${label}:`)
+      const rows = [...hist.entries()].sort((a, b) => b[1] - a[1])
+      if (!rows.length) console.log('  (none in this window)')
+      for (const [k, n] of rows) console.log(`  ${String(n).padStart(4)}  ${k}${n >= FRICTION_THRESHOLD ? '   <- at or over threshold' : ''}`)
+    }
+  }
+  const found = statsFindings({ prs, fetched, fetchError, classes })
+  console.log(`\nthreshold: ${FRICTION_THRESHOLD} or more of one key in the window opens "[policy] recurring friction: <key>". Nothing is opened here.`)
+  printFindings(found)
+  console.log(`\nWOULD OPEN: ${found.filter((f) => f.message.startsWith('would open')).length} issue(s)`)
+  process.exit(0)
+}
+
+function cmdSunset(since) {
+  const prs = mergedPRs(mergedSubjects(since))
+  const classes = verdictClasses()
+  const { fetched, fetchError } = fetchWindow(prs)
+  const friction = fetchError || !classes ? null : statsHistogram(prs, fetched, classes).friction
+  const fires = detectorFires(friction)
+  const rows = policyFiles().map((f) => ({ file: f, text: read(f) }))
+  const found = checkSunset(rows, { friction, fires, today: new Date() })
+  console.log(`SUNSET: ${rows.length} policy file(s) over ${since}..${mainRef()}${fetchError ? `; no friction data (${fetchError}), so honour rules are not evaluated` : ''}`)
+  const propose = found.filter((f) => f.propose)
+  const held = found.filter((f) => !f.propose)
+  console.log(`\nproposed for sunset (${propose.length}) -- this mode changes nothing:`)
+  if (!propose.length) console.log('  (none)')
+  for (const f of propose) console.log(`  ${f.where}: ${f.message}`)
+  console.log(`\nheld (${held.length}):`)
+  if (!held.length) console.log('  (none)')
+  for (const f of held) console.log(`  ${f.where}: ${f.message}`)
+  process.exit(0)
+}
+
 function main() {
-  const args = process.argv.slice(2)
+  const argv = process.argv.slice(2)
+  const { flags, positional, since } = parseArgs(argv)
+  const has = (f) => flags.includes(f)
   const derived = derivations()
 
-  if (args[0] === '--list') return cmdList(), process.exit(0)
+  if (argv[0] === '--list') return cmdList(), process.exit(0)
+
+  // Exact-string, and --record-known-bad is tested FIRST, so the reseed can
+  // never be reached by a typo of --record or the other way round.
+  if (has('--record-known-bad') && has('--record')) {
+    console.log('--record and --record-known-bad are different modes: the first refuses an undispositioned merge, the second reseeds the ledger. Pass one.')
+    process.exit(2)
+  }
+  if (has('--record')) return cmdRecordDispositions(requireSince(since, '--record'))
+  if (has('--stats')) return cmdStats(requireSince(since, '--stats'))
+  if (has('--sunset')) return cmdSunset(requireSince(since, '--sunset'))
 
   const all = policyFiles()
-  const files = args.filter((a) => !a.startsWith('--')).length
-    ? args.filter((a) => !a.startsWith('--')).map((a) => path.relative(ROOT, path.resolve(a)))
-    : all
-  const defaultRun = !args.filter((a) => !a.startsWith('--')).length
+  const files = positional.length ? positional.map((a) => path.relative(ROOT, path.resolve(a))) : all
+  const defaultRun = !positional.length
 
-  if (args.includes('--budgets')) return cmdBudgets(files), process.exit(0)
-  if (args.includes('--hooks')) process.exit(cmdHooks(args[args.indexOf('--hooks') + 1]))
-  if (args.includes('--pr-body')) process.exit(cmdPrBody(args))
+  if (has('--budgets')) return cmdBudgets(files), process.exit(0)
+  // `--hooks` takes an OPTIONAL settings path, and `parseArgs` puts a bare value
+  // in `positional` -- so the path arrives there, and its absence leaves
+  // `cmdHooks` on its own default. Written in the loop branch's shape: that
+  // branch renamed main's argument array to `argv` and reads flags through
+  // `has()`, so the merge follows the rename rather than reviving `args`.
+  if (has('--hooks')) process.exit(cmdHooks(positional[0]))
+  if (has('--pr-body')) process.exit(cmdPrBody(argv))
 
   let findings = []
   for (const f of files) findings.push(...lintFileGuarded(f, derived))
@@ -2472,7 +3124,12 @@ function main() {
     for (const fn of CORPUS_CHECKS) findings.push(...fn(all))
   }
 
-  if (args.includes('--record-known-bad')) return cmdRecord(findings), process.exit(0)
+  if (has('--record-known-bad')) {
+    // A reseed may also re-measure the record class, but only when it was given
+    // a window: `--record-known-bad --since <ref>`.
+    if (since) findings.push(...checkRecord(mergedPRs(mergedSubjects(since)), DISPOSITION_FILES.map((f) => read(f) ?? '').join('\n')))
+    return cmdRecord(findings, { measuredRecord: !!since }), process.exit(0)
+  }
 
   let suppressed = 0
   let occurrences = 0
@@ -2488,7 +3145,7 @@ function main() {
   const errors = findings.filter((f) => f.severity === 'error').length
   if (defaultRun) console.log(`\nKNOWN-BAD: ${suppressed} of ${known} recorded defect(s) still present, in ${occurrences} recorded occurrence(s)`)
   console.log(`\nTOTAL: ${errors} error(s) across ${files.length} policy file(s)`)
-  if (args.includes('--report')) {
+  if (has('--report')) {
     const by = {}
     for (const f of findings) by[f.check] = (by[f.check] || 0) + 1
     console.log('\nby check:', JSON.stringify(by))

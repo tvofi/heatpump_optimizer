@@ -1,0 +1,28 @@
+{
+  "_healthy": ["9003"],
+  "_healthy_comment": "The healthy window is a SUBSET of the same payloads rather than a second file: healthy here means nothing reached the threshold and no verdict fell outside the grammar, which is a property of the window and not of a document. #9003 alone has one friction bullet, two in-grammar verdicts and no unlabelled bullet -- every key below the threshold of three and nothing off-grammar -- so every stats finding must be absent.",
+  "_comment": "Shaped exactly as fetchWindow builds it: pr -> {body, comments:[{body}]}. Held as a fixture rather than fetched so the stats histogram is pinned without a network, a token, or a repository that happens to have the right history. Three `Fix review: blocked` verdicts and three `CLAUDE.md#budgets` friction bullets put one key of each kind at the threshold; one verdict is deliberately outside the grammar in web-fix-wave.js so the drift report is pinned too.",
+  "9001": {
+    "body": "Closes #9101. Part of #201.\n\n## Friction\n\n- `CLAUDE.md#budgets` cost twenty minutes: the cap was measured at the wrong merge base.\n- `tests/README.md#scoped-gate` read as if MODE: SCOPED and MODE: FULL were comparable.\n\n## Evidence\n\nNothing in this section is friction.\n",
+    "comments": [
+      { "body": "Fix review: blocked — the mutation proof names checks that pass at this head.\n\nRESULT ..." },
+      { "body": "Fix review: merge\n\nRESULT re-measured with the finder's harness." }
+    ]
+  },
+  "9002": {
+    "body": "Closes #9102.\n\n## Friction\n\n- `CLAUDE.md#budgets` again: two seats paid the same read.\n- a bullet with no backticked rule id at all\n",
+    "comments": [
+      { "body": "Fix review: blocked \u2014 head moved under review, measured 0000000." },
+      { "body": "Fix review: merge\n\nRe-measured at the repaired head." },
+      { "body": "Fix review: approved with nits\n\nA verdict class the wave script never taught a reviewer to write." }
+    ]
+  },
+  "9003": {
+    "body": "Closes #9103.\n\n## Friction\n\n- `CLAUDE.md#budgets` a third time in this window.\n\n## Notes\n\n- `tools/audit/briefs/fixer.md` is named outside the Friction section and must not be counted.\n",
+    "comments": [
+      { "body": "Fix review: blocked — the null control is missing for the time claim." },
+      { "body": "Fix review: merge\n\nThird passing verdict in this window, so the passing class clears the threshold too." },
+      { "body": "Not a verdict comment at all." }
+    ]
+  }
+}

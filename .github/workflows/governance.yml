@@ -25,6 +25,14 @@ on:
     # gate. The other two jobs here take about ten seconds, so re-running them
     # on an edit costs nothing worth optimising.
     types: [opened, edited, synchronize, reopened]
+  # 07:00 UTC on Mondays. The `record` job below is the only one that needs a
+  # clock: a merge with no disposition is not detectable from any one pull
+  # request, so nothing on the `pull_request` path can ever find it, and a
+  # window that only advances on a push to main goes unmeasured in a quiet week.
+  # `policy-docs` runs on this trigger too, which is the same lint it already
+  # runs on every push to main and costs a runner-minute.
+  schedule:
+    - cron: "0 7 * * 1"
   workflow_dispatch:
 
 permissions:
@@ -131,3 +139,70 @@ jobs:
       - name: Pre-flight the body for unmeasured claims
         if: always()
         run: bash tools/audit/preflight.sh < /tmp/pr-body.md || true
+
+  # The loop around the corpus, rather than the corpus itself: is every merge
+  # dispositioned, what is costing seats time, and which rules have outlived
+  # their reason.
+  #
+  # NEVER ON `pull_request`, and not by omission -- the workflow's `on:` block
+  # carries that trigger for `policy-docs`, so this job states the exclusion
+  # itself. All three modes read `<ref>..origin/main`. On a pull_request event
+  # the checkout is a merge of the branch into main and the branch's own commits
+  # are not in main's history, so the window would describe a history the branch
+  # is not part of: the job would refuse merges it did not cause and miss the one
+  # under review, which does not exist as a merge yet.
+  record:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      # --stats reads pull-request bodies and review comments through the API.
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The window is `<last version tag>..origin/main`. A shallow checkout
+          # has neither the tag nor the history, and `git log` on one answers
+          # "no merges" -- which this job would otherwise report as "every merge
+          # is dispositioned", the exact zero-means-two-things confusion the
+          # --stats fetch guard exists to refuse.
+          fetch-depth: 0
+          fetch-tags: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Choose the window
+        id: window
+        run: |
+          # --match 'v*': `git describe --tags --abbrev=0` on this repository
+          # returns `archive-rosters-2026-09`, a non-release tag that is newer
+          # than v6.3.18 and yields an empty window.
+          SINCE=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || echo "")
+          if [ -z "$SINCE" ]; then SINCE=$(git rev-list --max-parents=0 HEAD | tail -1); fi
+          echo "since=$SINCE" >> "$GITHUB_OUTPUT"
+          echo "window: $SINCE..origin/main"
+
+      # THE ONLY STEP THAT MAY FAIL THIS JOB. A merged pull request with no
+      # disposition in the plan of record or the living handover is a refusal:
+      # the Delivery-status table is what a resuming seat reads, and a merge
+      # missing from it is work no later session can find.
+      - name: Every merged pull request has a disposition
+        run: node .claude/workflows/policy_lint.mjs --record --since "${{ steps.window.outputs.since }}"
+
+      # Reporting only, and deliberately unable to fail the job: a histogram and
+      # a sunset list are inputs to a judgement a seat makes, not a gate. Both
+      # print what they would open and open nothing.
+      - name: Friction and verdict histograms
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node .claude/workflows/policy_lint.mjs --stats --since "${{ steps.window.outputs.since }}" || true
+
+      - name: Rules that have outlived their reason
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node .claude/workflows/policy_lint.mjs --sunset --since "${{ steps.window.outputs.since }}" || true
