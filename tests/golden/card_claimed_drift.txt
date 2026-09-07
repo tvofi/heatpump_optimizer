@@ -73,3 +73,6 @@
 # W4-G8 S7 (#193, the thermal-learning seam): this branch claims NOTHING.
 # One numeric helper moves out of two coordinator learners -- no card
 # source, no payload key and no published value is touched.
+#
+# The README section on AI use: this branch claims NOTHING. README.md only
+# -- no card source is touched.
