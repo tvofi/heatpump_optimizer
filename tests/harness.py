@@ -96,6 +96,31 @@ class FakeStates:
         return self._states.keys()
 
 
+class FakeBus:
+    """The slice of ``hass.bus`` the integration touches: one-shot listeners.
+
+    Honest rather than a no-op: the listener is kept and the remove callback
+    actually removes it, so a test can fire what production registered and a
+    listener that outlives its entry is visible (#525).
+    """
+
+    def __init__(self) -> None:
+        self.listeners: list[tuple[str, object]] = []
+
+    def async_listen_once(self, event_type, listener):
+        entry = (event_type, listener)
+        self.listeners.append(entry)
+
+        def _remove():
+            if entry in self.listeners:
+                self.listeners.remove(entry)
+
+        return _remove
+
+    def listeners_for(self, event_type) -> list:
+        return [fn for kind, fn in self.listeners if kind == event_type]
+
+
 class FakeHass:
     """The slice of ``hass`` the integration actually touches in these tests."""
 
@@ -106,7 +131,12 @@ class FakeHass:
         self.config = FakeConfig()
         self.config_entries = FakeConfigEntries()
         self.http = FakeHttp()
+        self.bus = FakeBus()
         self._tasks = []
+        # Kept apart from the plain executor: #525 is precisely about which
+        # of the two an import goes through, so a fake that merged them
+        # could not tell a fixed call site from the blocking one.
+        self.import_jobs = []
 
     def async_create_task(self, coro):
         # Nothing here awaits the setup tasks, and leaving the coroutine
@@ -115,6 +145,10 @@ class FakeHass:
         return None
 
     async def async_add_executor_job(self, func, *args):
+        return func(*args)
+
+    async def async_add_import_executor_job(self, func, *args):
+        self.import_jobs.append(func)
         return func(*args)
 
 
@@ -458,3 +492,26 @@ class ProcessProbeOptimizer:
 
     def optimize(self, state, *positional, **keywords):
         return (os.getpid(), state)
+
+
+class UnpicklableResult:
+    """A value the solve worker can produce but can never send home (#524)."""
+
+    def __reduce__(self):
+        raise TypeError("this result refuses to pickle")
+
+
+def unpicklable_result_job(*positional, **keywords):
+    """A job the child resolves and runs; only its RESULT will not pickle."""
+    return UnpicklableResult()
+
+
+class UnpicklableResultOptimizer:
+    """``optimize`` succeeds in the child and its result cannot come back.
+
+    The sibling of ``ProcessProbeOptimizer``: same import story, so the only
+    thing under test is what the worker does with a reply it cannot pickle.
+    """
+
+    def optimize(self, state, *positional, **keywords):
+        return UnpicklableResult()

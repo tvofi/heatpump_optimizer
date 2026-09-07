@@ -25,7 +25,13 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DHW_MIN_TEMP_SETPOINT_MARGIN, MANUAL_PLAN_WINDOW_HOURS
+from . import narrative
+from .const import (
+    DHW_MIN_TEMP_SETPOINT_MARGIN,
+    HEAT_PUMP_ACTION_STATES,
+    MANUAL_PLAN_WINDOW_HOURS,
+    OPTIMIZATION_MODE_STATES,
+)
 from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
 from .entity import HeatPumpOptimizerEntity
 
@@ -385,6 +391,12 @@ class _WaitsForEvidenceMixin:
 
 class OptimizationModeSensor(HeatPumpOptimizerSensorBase):
     """Sensor showing the current optimization mode."""
+
+    # ENUM is what makes the STATE translatable rather than only the name, and
+    # it is not free: Home Assistant enforces the option list on every write,
+    # so it lives in const.py beside the producer that bounds it (#558 D3).
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_options = list(OPTIMIZATION_MODE_STATES)
 
     def __init__(self, coordinator, entry):
         super().__init__(coordinator, entry, "mode", "optimization_mode")
@@ -790,6 +802,11 @@ class LastOptimizationSensor(HeatPumpOptimizerSensorBase):
 
 
 class HeatPumpActionSensor(HeatPumpOptimizerSensorBase):
+    # See OptimizationModeSensor; the four producers are named on
+    # HEAT_PUMP_ACTION_STATES (#558 D3).
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_options = list(HEAT_PUMP_ACTION_STATES)
+
     def __init__(self, coordinator, entry):
         super().__init__(coordinator, entry, "heat_pump_action", "heat_pump_action")
 
@@ -2267,6 +2284,13 @@ class PlanNarrativeSensor(HeatPumpOptimizerSensorBase):
     # (``stat_kind``), with Predicted Savings and Savings Percentage, and the
     # family is either all primary or all Diagnostic. Half of it buried on
     # the device page's Diagnostic side was #175.
+
+    # The state is a reason CODE, so the options are the narrative's own
+    # template keys rather than a second list to keep in step: render() skips
+    # a code it has no sentence for, but native_value publishes it, and under
+    # ENUM an untemplated code raises instead of merely going unsaid (#558 D3).
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_options = sorted(narrative.TEMPLATES["en"])
 
     def __init__(self, coordinator, entry):
         super().__init__(coordinator, entry, "plan_narrative", "plan_narrative")

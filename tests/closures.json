@@ -14,7 +14,7 @@
    "rc": 0
   },
   "tests/config_flow_steps.py": {
-   "seconds": 0.5,
+   "seconds": 0.7,
    "rc": 0
   },
   "tests/dst_checks.py": {
@@ -288,6 +288,7 @@
    "custom_components/heatpump_optimizer/wear.py",
    "custom_components/heatpump_optimizer/wood_fuel.py",
    "tests/config_flow_steps.py",
+   "tests/golden.py",
    "tests/harness.py",
    "tests/hastub/homeassistant/__init__.py",
    "tests/hastub/homeassistant/components/__init__.py",
@@ -311,7 +312,8 @@
    "tests/hastub/homeassistant/helpers/update_coordinator.py",
    "tests/hastub/homeassistant/loader.py",
    "tests/hastub/homeassistant/util/__init__.py",
-   "tests/hastub/homeassistant/util/dt.py"
+   "tests/hastub/homeassistant/util/dt.py",
+   "tests/profiles.py"
   ],
   "tests/edge.py": [
    "custom_components/heatpump_optimizer/__init__.py",

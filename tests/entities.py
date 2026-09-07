@@ -23,6 +23,7 @@ What this catches that nothing else does:
 """
 from __future__ import annotations
 
+import ast
 import asyncio
 import json
 import pathlib
@@ -274,7 +275,7 @@ DATA = {
                 {"reason": "cheap_price", "kwh": 6.2, "sek": 8.4, "hours": 3.0},
                 {"reason": "idle", "kwh": 0.0, "sek": 0.0, "hours": 21.0},
             ],
-            "lines": ["6.2 kWh in the cheapest hours for 8.40 kr"],
+            "lines": ["6.2 kWh in the cheapest hours for 8.40 SEK"],
             "language": "en",
         },
         "scores": {
@@ -10544,6 +10545,280 @@ R.check(
     "two plan slots keep the plural (#284)",
     _plan_two.native_value == "2 slots planned",
     repr(_plan_two.native_value),
+)
+
+R.section("#558 D3 enumerated sensor states")
+
+from heatpump_optimizer import narrative as narrative_mod
+from heatpump_optimizer import optimizer as optimizer_mod
+
+# SensorDeviceClass.ENUM is the only mechanism by which Home Assistant will
+# translate a sensor's STATE, and it is not free: sensor/__init__.py raises
+# ValueError on every state write whose value is outside ``options``. So an
+# option list is not documentation, it is a whitelist, and a reachable state
+# missing from it takes the entity down on a real install -- where nothing in
+# this suite would have seen it, because the stub had no state path at all
+# until #558 gave it one.
+_ENUM_SENSORS = {
+    "optimization_mode": (
+        sensor.OptimizationModeSensor,
+        const.OPTIMIZATION_MODE_STATES,
+        lambda s: FakeCoordinator({"mode": s}),
+    ),
+    "heat_pump_action": (
+        sensor.HeatPumpActionSensor,
+        const.HEAT_PUMP_ACTION_STATES,
+        lambda s: FakeCoordinator({"current_action": {"mode": s}}),
+    ),
+    "plan_narrative": (
+        sensor.PlanNarrativeSensor,
+        tuple(sorted(narrative_mod.TEMPLATES["en"])),
+        lambda s: FakeCoordinator(
+            {"insight": {"narrative": {"items": [{"reason": s}]}}}
+        ),
+    ),
+}
+
+for _key, (_cls, _states, _mk) in _ENUM_SENSORS.items():
+    _e = _cls(_mk("unknown"), ENTRY)
+    R.check(
+        f"{_key} declares the enum device class",
+        getattr(_e, "_attr_device_class", None) == "enum",
+        repr(getattr(_e, "_attr_device_class", None)),
+    )
+    R.check(
+        f"{_key} declares exactly its measured states as options",
+        tuple(getattr(_e, "_attr_options", ()) or ()) == tuple(_states),
+        f"{tuple(getattr(_e, '_attr_options', ()) or ())!r} != {tuple(_states)!r}",
+    )
+    # An ENUM sensor may carry no unit: sensor/const.py puts ENUM in
+    # NON_NUMERIC_DEVICE_CLASSES and state() refuses the pair.
+    R.check(
+        f"{_key} carries no unit of measurement",
+        getattr(_e, "_attr_native_unit_of_measurement", None) is None,
+    )
+    # A state class would be both impossible (DEVICE_CLASS_STATE_CLASSES maps
+    # ENUM to the empty set) and silently destructive: capability_attributes
+    # returns ATTR_STATE_CLASS first and never reaches ATTR_OPTIONS, so the
+    # options would stop being published at all.
+    R.check(
+        f"{_key} carries no state class",
+        getattr(_e, "_attr_state_class", None) is None,
+    )
+
+# The whole point: drive every declared state through the property Home
+# Assistant actually reads. ``.state`` is the stub's transcription of
+# sensor/__init__.py, so this fails exactly where a real install would.
+_enum_state_errors = []
+for _key, (_cls, _states, _mk) in _ENUM_SENSORS.items():
+    for _s in _states:
+        try:
+            _got = _cls(_mk(_s), ENTRY).state
+        except ValueError as _err:
+            _enum_state_errors.append(f"{_key}={_s}: {_err}")
+            continue
+        if _got != _s:
+            _enum_state_errors.append(f"{_key}={_s} rendered as {_got!r}")
+R.check(
+    "every declared state survives Home Assistant's own enum validation",
+    not _enum_state_errors,
+    "; ".join(_enum_state_errors[:6]),
+)
+
+# NULL CONTROL for the check above. If it cannot fail it pins nothing, and a
+# check that supplies the value it then asserts is this repository's most
+# repeated defect. A state outside the options must raise.
+_control_raised = []
+for _key, (_cls, _states, _mk) in _ENUM_SENSORS.items():
+    try:
+        _cls(_mk("a_state_no_producer_emits"), ENTRY).state
+    except ValueError:
+        _control_raised.append(_key)
+R.check(
+    "and an undeclared state raises, so the check above can fail",
+    sorted(_control_raised) == sorted(_ENUM_SENSORS),
+    f"only {sorted(_control_raised)} refused an undeclared state",
+)
+
+# None is not a violation: upstream returns before the options check, so an
+# unavailable enum sensor is STATE_UNKNOWN rather than a raising entity.
+R.check(
+    "a None native_value is unknown, not an enum violation",
+    sensor.PlanNarrativeSensor(
+        FakeCoordinator({"insight": {"narrative": {"items": []}}}), ENTRY
+    ).state
+    is None,
+)
+
+# The option lists stay derived from their producers rather than maintained
+# beside them. Two are checkable against the production constant directly;
+# the narrative's IS the template table, which is also what renders it.
+R.check(
+    "the mode options are OPERATION_MODES plus the no-data fallback",
+    set(const.OPTIMIZATION_MODE_STATES) == set(const.OPERATION_MODES) | {"unknown"},
+    repr(const.OPTIMIZATION_MODE_STATES),
+)
+
+# HEAT_PUMP_ACTION_STATES is the one option list with no production constant
+# behind it -- the four producers write their mode as a string literal -- so
+# comparing _attr_options to it would be a check supplying the value it then
+# asserts. Derive the set from the producing SOURCE instead. Rule: inside the
+# four named producers, every ``mode = "<literal>"`` assignment and every
+# ``"mode": "<literal>"`` dict entry. A fifth producer, or a new branch in
+# these four, lands here as an option the list does not cover.
+_ACTION_PRODUCERS = {
+    "optimizer.py": {"get_current_action", "_idle_action"},
+    "coordinator.py": {"_async_update_data", "_run_system_identification"},
+}
+_emitted_modes = set()
+for _fname, _names in _ACTION_PRODUCERS.items():
+    _tree = ast.parse((ROOT / _fname).read_text())
+    for _fn in ast.walk(_tree):
+        if (
+            not isinstance(_fn, (ast.FunctionDef, ast.AsyncFunctionDef))
+            or _fn.name not in _names
+        ):
+            continue
+        for _node in ast.walk(_fn):
+            if (
+                isinstance(_node, ast.Assign)
+                and isinstance(_node.value, ast.Constant)
+                and isinstance(_node.value.value, str)
+                and any(
+                    isinstance(_t, ast.Name) and _t.id == "mode"
+                    for _t in _node.targets
+                )
+            ):
+                _emitted_modes.add(_node.value.value)
+            if isinstance(_node, ast.Dict):
+                for _k, _v in zip(_node.keys, _node.values):
+                    if (
+                        isinstance(_k, ast.Constant)
+                        and _k.value == "mode"
+                        and isinstance(_v, ast.Constant)
+                        and isinstance(_v.value, str)
+                    ):
+                        _emitted_modes.add(_v.value)
+R.check(
+    "the action options cover every mode its producers actually write",
+    _emitted_modes and _emitted_modes <= set(const.HEAT_PUMP_ACTION_STATES),
+    f"uncovered: {sorted(_emitted_modes - set(const.HEAT_PUMP_ACTION_STATES))}",
+)
+# The other direction, so the list cannot quietly grow states nothing emits:
+# only the sensor's own no-data fallback may be there without a producer.
+R.check(
+    "and declares nothing beyond them but the no-data fallback",
+    set(const.HEAT_PUMP_ACTION_STATES) - _emitted_modes == {"unknown"},
+    f"unproduced: {sorted(set(const.HEAT_PUMP_ACTION_STATES) - _emitted_modes)}",
+)
+# Every reason the optimizer can tag a step with needs a narrative sentence,
+# because PlanNarrativeSensor publishes the reason CODE as its state while
+# render() merely skips a code it has no sentence for. Before ENUM that
+# mismatch was an invisible missing line; now it is a ValueError.
+_reason_values = {
+    _v
+    for _n, _v in vars(optimizer_mod).items()
+    if _n.startswith("REASON_") and isinstance(_v, str)
+}
+R.check(
+    "every optimizer REASON_ constant has a narrative template",
+    _reason_values <= set(narrative_mod.TEMPLATES["en"]),
+    f"untemplated: {sorted(_reason_values - set(narrative_mod.TEMPLATES['en']))}",
+)
+
+# Home Assistant looks a state translation up by the state string itself, so
+# every option has to be a legal translation key. script/hassfest's
+# RE_TRANSLATION_KEY, transcribed from 2025.2.0: lowercase alphanumeric with
+# single internal hyphens or underscores, and none at either end.
+_RE_TRANSLATION_KEY = re.compile(r"^(?!.+[_-]{2})(?![_-])[a-z0-9-_]+(?<![_-])$")
+_unslugged = sorted(
+    f"{_key}.{_s}"
+    for _key, (_c, _states, _m) in _ENUM_SENSORS.items()
+    for _s in _states
+    if not _RE_TRANSLATION_KEY.match(_s)
+)
+R.check(
+    "every enum option is a legal Home Assistant translation key",
+    not _unslugged,
+    ", ".join(_unslugged),
+)
+
+# And the translations themselves, in all three files. A missing state entry
+# renders the raw token -- exactly the defect D3 exists to remove.
+_state_string_errors = []
+_sv_ent = json.loads((ROOT / "translations" / "sv.json").read_text())["entity"]
+for _key, (_c, _states, _m) in _ENUM_SENSORS.items():
+    _en_states = (_ENTITY_STRINGS["sensor"].get(_key) or {}).get("state") or {}
+    _sv_states = (_sv_ent["sensor"].get(_key) or {}).get("state") or {}
+    if set(_en_states) != set(_states):
+        _state_string_errors.append(
+            f"{_key}: strings.json states {sorted(set(_en_states) ^ set(_states))}"
+        )
+    if set(_sv_states) != set(_states):
+        _state_string_errors.append(
+            f"{_key}: sv.json states {sorted(set(_sv_states) ^ set(_states))}"
+        )
+    for _s in sorted(set(_en_states) & set(_sv_states)):
+        if _sv_states[_s] == _en_states[_s]:
+            _state_string_errors.append(f"{_key}.{_s} is identical in sv")
+R.check(
+    "every enum option has an English and a translated Swedish state name",
+    not _state_string_errors,
+    "; ".join(_state_string_errors[:6]),
+)
+
+# The two string-state sensors that deliberately do NOT get ENUM, pinned with
+# their measurement in the same shape as the bare-device-class pins above,
+# because a future consistency pass that adds ENUM to either takes the entity
+# down on a real install.
+#
+# OptimizationStatusSensor publishes _solver_status's
+# "suboptimal ({result.message})" and the solve path's "failed ({e})" --
+# SciPy's message and an arbitrary exception string. Neither is enumerable,
+# and _solver_status's own docstring says its suboptimal branch "fires
+# routinely" on a flat price curve, so ENUM here would raise in ordinary
+# operation. PredictiveInsightSensor's "no forecast" carries a SPACE, which
+# RE_TRANSLATION_KEY above refuses, so that state cannot be a translation key
+# at all. Both want a bounded companion sensor and a deprecation -- the
+# reshaped D6 treatment -- never a mutated state.
+for _bare, _why in (
+    ("OptimizationStatusSensor", "embeds SciPy and exception text"),
+    ("PredictiveInsightSensor", "emits 'no forecast', which is not a slug"),
+):
+    R.check(
+        f"{_bare} stays bare: it {_why}",
+        getattr(getattr(sensor, _bare), "_attr_device_class", None) is None
+        and getattr(getattr(sensor, _bare), "_attr_options", None) is None,
+    )
+# D4 depends on this list and must not be able to drift from it. icons.json
+# gains "state" variants next (#558 D4), and Home Assistant matches those keys
+# against the entity's STATE -- so an icon state key that is not an option is
+# an icon that can never be shown. Carried as an executable check rather than
+# as a note in D4's brief, because a brief is advice and this is a constraint:
+# the mismatch fails here instead of being noticed by nobody.
+_icon_state_errors = []
+for _key, (_c, _states, _m) in _ENUM_SENSORS.items():
+    _spec = (_icons.get("entity", {}).get("sensor", {}) or {}).get(_key) or {}
+    _extra = set(_spec.get("state") or {}) - set(_states)
+    if _extra:
+        _icon_state_errors.append(f"{_key}: {sorted(_extra)}")
+R.check(
+    "no icons.json state key falls outside its sensor's enum options (#558 D4)",
+    not _icon_state_errors,
+    "; ".join(_icon_state_errors),
+)
+
+R.check(
+    "and the unbounded status strings really are unbounded",
+    # A failed solve whose point is WORSE than the start: that is the only
+    # path that formats the message in, and it is the routine one.
+    "(" in optimizer_mod._solver_status(
+        type("_R", (), {"success": False, "message": "ABNORMAL", "x": 1.0})(),
+        float,
+        0.0,
+    ),
+    "if this stops being a formatted string, OptimizationStatusSensor can "
+    "take ENUM and the pin above should go",
 )
 
 sys.exit(R.close("ENTITY CHECKS"))

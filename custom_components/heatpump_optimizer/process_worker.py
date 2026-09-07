@@ -49,8 +49,14 @@ def _dump(stdout, payload) -> None:
     try:
         blob = pickle.dumps(payload, protocol=pickle.HIGHEST_PROTOCOL)
     except Exception as err:  # noqa: BLE001 - the worker must still answer
+        # A RESULT that will not pickle is a FAILED solve, not a solve whose
+        # value happens to be an error object. Keeping "ok" here handed the
+        # parent a RuntimeError to publish as the plan (#524) -- quieter than
+        # the rc=1 this degradation replaced. "err" and "load-err" already
+        # mean failure and keep their own status.
+        status = "err" if payload[0] == "ok" else payload[0]
         blob = pickle.dumps(
-            (payload[0], RuntimeError(f"{_describe(payload[1])} ({_describe(err)})")),
+            (status, RuntimeError(f"{_describe(payload[1])} ({_describe(err)})")),
             protocol=pickle.HIGHEST_PROTOCOL,
         )
     stdout.write(blob)
