@@ -361,7 +361,7 @@ Since v5.0.0 the display names are translated (English and Swedish) and follow
 your Home Assistant language; the tables below show the English names. Entity ids
 and history are unaffected by the language.
 
-### Sensors (56 total)
+### Sensors (57 total)
 
 `CUR` is your Home Assistant instance currency (SEK when the instance has none
 configured).
@@ -388,6 +388,7 @@ every sensor is created on every install regardless of which group it is in.
 | Sensor | Unit | What it tells you | Notes |
 |---|---|---|---|
 | Optimization Schedule | — | The whole 24 h schedule, in attributes | Diagnostic; not recorded |
+| Optimization Schedule Steps | — | How many steps that schedule has, as a number | Diagnostic; unknown until the first solve, 0 for an empty one |
 | Space Heating Plan (next 24 h) | — | Planned space-heating slots plus the full-horizon forecast | Backs the card; forecast not recorded |
 | DHW Heating Plan (next 24 h) | — | Planned hot-water slots plus the full-horizon forecast | Backs the card; forecast not recorded |
 | DHW Heating Schedule | — | The whole 24 h of planned hot-water heating periods | Not recorded |
