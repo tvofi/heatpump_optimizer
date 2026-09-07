@@ -28,9 +28,13 @@ some of them and cite them by name; a summary is not the policy.
    opposite things.** Key on the mode line, never the count — but that line
    only exists on a branch; a push to `main` prints no mode line at all,
    because the forced `full` above never calls the code that prints it.
-2. **A structural ratchet refuses growth.** `tests/structure.py` measures 22
-   metrics against `tests/structure_budgets.json`, and every one may only move
-   down. Several sit at zero headroom, so a change that adds lines to the wrong
+2. **A structural ratchet refuses growth.** `tests/structure.py` measures every
+   metric in `tests/structure_budgets.json` — **derive the count, do not carry
+   one**: it is the budget file's keys less `recorded_at`, which is metadata
+   rather than a metric. This sentence said 22 for some time while the answer
+   was 24, and `structure.py`'s own `ok` lines are a third number again (they
+   include the counting-rule check and four `const.py` symbol checks). Every
+   metric may only move down. Several sit at zero headroom, so a change that adds lines to the wrong
    class fails — and the correct response is to pay for the lines, to re-record
    deliberately with the reason **in the commit message**, or, for a genuine new
    production feature, to **raise the budget with the repository owner's
@@ -266,6 +270,27 @@ Two limits, both measured. Git never clones config, so an uninstalled driver
 falls back to the ordinary text merge — the same conflict as today, never worse.
 And git reads `.gitattributes` from the branch being merged **into**, so a branch
 cut before it landed conflicts once more before it is covered.
+
+**GitHub is one of those uninstalled clones, and that one is not free (#570).**
+`mergeStateStatus` is computed on GitHub's side, where the driver cannot run, so
+every open pull request flips to `DIRTY` the moment `main` touches a claim file.
+GitHub will not build a merge commit for a `DIRTY` pull request, and the
+`pull_request` workflows never fire — such a PR does not go red, it **cannot
+run**. A run already in flight survives; no new one queues. Merge `main` locally,
+where the driver does run, and push. Before treating any conflict as real,
+confirm it:
+
+```
+git merge-tree --write-tree origin/main HEAD
+```
+
+**So a branch that claims nothing does not touch the claim files at all.** The
+note is a convention, not a requirement: `inherited_claims_error` compares the
+parsed claim map, an empty list always passes, and no check anywhere reads a
+note. A branch that leaves both files byte-identical to `main` cannot conflict,
+and inherits whatever `stamp.py` last wrote to `claims-for:` — which is also how
+you stop hand-editing that line wrong. Edit these files only when you are
+actually claiming drift; there a conflict is meaningful, and rare.
 
 **A third autofix job was measured and refused.** A merge conflict means CI never
 ran, so no job is red and there is no uniquely-detected failure of the kind the
