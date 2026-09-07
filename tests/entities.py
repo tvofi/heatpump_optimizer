@@ -575,61 +575,102 @@ R.check(
     f"wrapped: {_wrapped_img}",
 )
 
-# The two checks above name shapes. This one names the MECHANISM they are
+# The two checks above name shapes. This one RUNS the mechanism they are
 # instances of, because a rule written as a list of the shapes found so far has
-# already been too narrow twice: `markdownWithRepositoryContext` matches
-# `\[.*?\]\([^#](?!.*?://).*?\)` and then calls `x.replace("(", <prefix>)`,
-# which rewrites the FIRST `(` of the matched span -- not the image's. So a
-# relative-src image reaches a Home Assistant user only when all of these hold,
-# and js-xss blanks or GitHub-blobs it otherwise:
+# already been too narrow three times. Twice it was the prose that was narrow;
+# the third time (PR #567 fix review, round 4) the prose was right and THIS
+# CHECK was the narrow one, which is the harder failure to see -- so the
+# rewriter is transcribed here and executed, not described and approximated.
 #
-#   * it is an INLINE `![alt](src)`. The rewriter touches `](...)` and nothing
-#     else, so a reference-style `![alt][ref]` is never rewritten at all.
-#   * the `(` opening its src is the first `(` in the span. A parenthetical
-#     caption -- `![Plan chart (24 hours)](docs/img/plan.svg)` -- takes the
-#     rewrite instead, and every rule the previous carry stated is still obeyed.
-#   * the span carries no `.md`/`.markdown`. `showGitHubWeb` tests the whole
-#     span, and flips the rewrite to `github.com/<repo>/blob/...`, which serves
-#     `text/html` inside an `<img src>`.
-#   * no `://` follows on the line. The negative lookahead scans to end of
-#     line, not to the end of the link.
-#   * the alt text does not wrap. The regex is built without the `s` flag.
+# `markdownWithRepositoryContext` matches `\[.*?\]\([^#](?!.*?://).*?\)` and
+# then calls `x.replace("(", <prefix>)`, which rewrites the FIRST `(` of the
+# matched span -- not the image's; and `showGitHubWeb` tests THE WHOLE SPAN for
+# `.md`. Getting the span right is therefore the whole job. That regex is
+# global and scans left to right from the start of the document, and `\[.*?\]`
+# will happily open at an unrelated `[` earlier on the line and run through the
+# image's own `]`. So the span covering an image can begin at a `> [!NOTE]`
+# callout, a `- [ ]` task box, a `[1]` footnote marker or any bracketed word --
+# and THAT text then supplies the first `(`, or the `.md`. Measuring a span
+# from the image's own `![` instead, as this check did until round 4, passes
+# four ordinary constructs that ship blank or broken:
+#
+#     > [!NOTE] The chart below (updated daily) ![Plan chart](docs/img/p.svg)
+#     - [ ] (optional) ![Plan chart](docs/img/p.svg)
+#     See the plan [1] (figure 2) ![Plan chart](docs/img/p.svg)
+#     See [notes] in docs/arch.md ![Plan chart](docs/img/p.svg)
+#
+# The first three ship blank and the fourth ships `text/html`, while every
+# condition read AT THE IMAGE holds. The repair is not another clause: it is to
+# stop guessing the span. `_HACS_LINK.finditer` reproduces the rewriter's own
+# global left-to-right scan, non-overlapping consumption included, and a
+# relative-src image is judged in the match that COVERS it. Both remaining
+# questions are then asked of that span and of nothing else -- which is also
+# why the old "a `(` in the alt text" clause is gone: it was one instance of
+# the general rule, and stating it separately is what made the rule look
+# complete.
+#
+# An image no span covers is never rewritten at all, so its relative src
+# reaches js-xss and is blanked. The two ways that happens keep their own
+# diagnostics, because they are the actionable ones: a wrapped alt (the regex
+# is built without the `s` flag) and a later `://` on the line (the negative
+# lookahead scans to end of line, not to the end of the link).
 #
 # None of it is visible on GitHub, which is where it would otherwise be
 # reviewed. Measured 2026-09-07 against marked 15.0.4 + xss 1.0.15 -- the
 # versions hacs/frontend pins -- by rendering each shape and its minimal pair
 # through a transcription of the two upstream modules.
 #
-# Two scope choices, stated so the next seat does not read them as bugs. The
+# Three scope choices, stated so the next seat does not read them as bugs. The
 # population is the image's OWN src, not the link target: the
 # `[![License: MIT](https://img.shields.io/...)](LICENSE)` badge is a real and
 # still-unfixed defect -- a relative link target mangles the img src -- but its
 # src is absolute, so it falls outside this check rather than being allowlisted
-# through it. And a reference-style image is refused even though one with an
+# through it. A reference-style image is refused even though one with an
 # absolute target does render (measured), because every image here is inline
-# and "write it inline" is always the available repair.
+# and "write it inline" is always the available repair. And an image inside a
+# fenced block or a `backtick span` is outside the population, because it
+# renders as text and never becomes an `<img>` at all -- note that the code
+# spans are excluded from the POPULATION without being cut from the TEXT, since
+# the rewriter runs before marked and does scan them.
 _INLINE_IMG = _re.compile(r"!\[((?:[^\n]|\n(?![ \t]*\n))*?)\]\(")
+_HACS_LINK = _re.compile(r"\[.*?\]\([^#](?!.*?://).*?\)")
 _prose = _re.sub(r"^```.*?^```", "", readme, flags=_re.M | _re.S)
+_code_spans = [(_c.start(), _c.end()) for _c in _re.finditer(r"(`+)[^\n]*?\1", _prose)]
+_spans = [(_s.start(), _s.end(), _s.group(0)) for _s in _HACS_LINK.finditer(_prose)]
+
+
+def _quoted(_pos):
+    """Is this offset inside a `backtick span`, and so never an `<img>`?"""
+    return any(_a <= _pos < _b for _a, _b in _code_spans)
+
+
 _img_offences = []
 _inline_at = set()
 for _m in _INLINE_IMG.finditer(_prose):
     _inline_at.add(_m.start())
+    if _quoted(_m.start()):
+        continue
     _alt = _m.group(1)
     _src = _re.match(r"[^)\s]*", _prose[_m.end():]).group(0)
     if _re.match(r"[a-z][a-z0-9+.-]*://", _src, _re.I):
         continue  # absolute: never rewritten, so never blanked
-    _close = _prose.find(")", _m.end())
-    _span = _prose[_m.start():_close + 1]
-    _eol = _prose.find("\n", _close)
+    _open = _m.end() - 1  # the `(` that opens THIS image's src
+    _span = next((_s for _s in _spans if _s[0] <= _open < _s[1]), None)
+    _eol = _prose.find("\n", _open)
     _tail = _prose[_m.end():_eol if _eol != -1 else len(_prose)]
-    if "\n" in _alt:
-        _why = "its alt text wraps across lines"
-    elif "(" in _alt:
-        _why = "a '(' in its alt text takes the rewrite instead of its src"
-    elif ".md" in _span.lower() or ".markdown" in _span.lower():
-        _why = "'.md' in the span sends the rewrite to github.com/blob"
-    elif "://" in _tail:
-        _why = "a later '://' on the line fails the rewriter's lookahead"
+    if _span is None:
+        if "\n" in _alt:
+            _why = "its alt text wraps across lines, so no rewriter span covers it"
+        elif "://" in _tail:
+            _why = "a later '://' on the line fails the rewriter's lookahead"
+        else:
+            _why = "no rewriter span covers it, so its relative src is left as-is"
+    elif _span[0] + _span[2].index("(") != _open:
+        _why = (f"the rewriter's span opens at {_span[2][:32]!r}, whose first "
+                f"'(' takes the rewrite instead of the src's")
+    elif ".md" in _span[2].lower() or ".markdown" in _span[2].lower():
+        _why = (f"'.md' in the rewriter's span {_span[2][:32]!r} sends the "
+                f"rewrite to github.com/blob")
     else:
         continue
     _img_offences.append((_src, _why))
@@ -637,11 +678,12 @@ _img_offences += [
     (_prose[_m.start():_m.start() + 40].replace("\n", " "),
      "not an inline ![alt](src), so HACS never rewrites it")
     for _m in _re.finditer(r"!\[", _prose)
-    if _m.start() not in _inline_at
+    if _m.start() not in _inline_at and not _quoted(_m.start())
 ]
 R.check(
-    "every relative README image survives HACS's rewriter: inline, the src's "
-    "own '(' first in the span, no '.md' in the span, no later '://' on the line",
+    "every relative README image survives HACS's rewriter, judged in the span "
+    "the rewriter's own global scan gives it: inline, that span's first '(' is "
+    "the src's own, and no '.md' anywhere in it",
     not _img_offences,
     f"{len(_img_offences)} offence(s): {_img_offences}",
 )

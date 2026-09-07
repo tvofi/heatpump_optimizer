@@ -101,8 +101,22 @@ What this binds:
   which rewrites **the first `(` of the matched span** — not the image's; and
   `showGitHubWeb` tests **the whole span** for `.md`. Whatever is left relative
   is then blanked by js-xss, which keeps a `src` only if it is absolute or
-  `/`-, `./`-, `../`-rooted. A relative-src image therefore reaches a Home
-  Assistant user only when **all** of the following hold:
+  `/`-, `./`-, `../`-rooted.
+
+  **Read "the span" literally, because it is the part that keeps being got
+  wrong.** The span is the rewriter's own match, and that regex is global and
+  scans left to right from the start of the document, with `\[.*?\]` free to
+  open at an unrelated `[` earlier on the line and run through the image's own
+  `]`. So the span covering an image routinely **starts left of the image** —
+  at a `> [!NOTE]` callout, a `- [ ]` task box, a `[1]` footnote marker, any
+  bracketed word — and it is that text which then supplies the first `(`, or
+  the `.md`. Every clause below is a property of **that** span, never of the
+  `![…](…)` you are looking at. Reading them at the image is exactly what the
+  #567 fix review found `tests/entities.py` doing, and it passed four ordinary
+  constructs that ship blank or broken.
+
+  A relative-src image therefore reaches a Home Assistant user only when
+  **all** of the following hold:
 
   - **It is an inline `![alt](src)`.** The rewriter touches `](…)` and nothing
     else, so a reference-style `![alt][ref]` and an HTML `<img src=>` are never
@@ -113,6 +127,28 @@ What this binds:
     statement of this bullet permitted. Control, a minimal pair:
     `![Plan chart (24 hours)](docs/img/plan.svg)` → blank `src`, while
     `![Plan chart 24 hours](docs/img/plan.svg)` → rewritten and survives.
+
+    **The parenthetical does not have to be in the alt text, or anywhere near
+    the image.** Worked example, and the one to derive from, because the image
+    here is faultless read on its own:
+
+    ```
+    > [!NOTE] The chart below (updated daily) ![Plan chart](docs/img/plan.svg)
+    ```
+
+    The scan opens at `[!NOTE]`, cannot close there (no `(` follows the `]`),
+    and runs on to the image's `]` — so the span is
+    `[!NOTE] … (updated daily) ![Plan chart](docs/img/plan.svg)`, its first `(`
+    is `(updated daily)`, and the `src` is **left relative and blanked**.
+    Control, the minimal pair: drop the parentheses —
+    `> [!NOTE] The chart below updated daily ![Plan chart](docs/img/plan.svg)`
+    → the image's own `(` is first in the span, and it survives. B3 adds a
+    `> [!IMPORTANT]` callout to this README, so this is the live shape, not a
+    contrived one. `- [ ] (optional) ![…](…)` and
+    `See the plan [1] (figure 2) ![…](…)` fail identically, and
+    `See [notes] in docs/arch.md ![…](…)` reaches the `.md` clause below by the
+    same route.
+
     The same clause explains the linked-image case: in
     `[![License: MIT](https://img.shields.io/…)](LICENSE)` the span's first `(`
     *is* the image's own, so the badge collects the prefix and its `src`
@@ -134,12 +170,19 @@ What this binds:
   - **The alt text does not wrap.** The regex is built without the `s` flag.
 
   None of these is visible on GitHub, which is where a figure is reviewed.
-  `tests/entities.py` now **executes** the whole rule rather than describing
-  it, scoped on the image's own `src` being relative — which is why the
-  `(LICENSE)` badge, whose `src` is absolute, falls outside the population
-  instead of needing an allowlist. Re-measure rather than quote: the pipeline
-  is two upstream repositories, and this was measured on 2026-09-07 against
-  marked 15.0.4 + xss 1.0.15.
+  `tests/entities.py` **runs the rewriter's regex over the README and judges
+  each image in the match that covers it** — `_HACS_LINK`, a transcription of
+  `\[.*?\]\([^#](?!.*?:\/\/).*?\)`, iterated globally so its left-to-right,
+  non-overlapping consumption is reproduced rather than approximated. That is
+  the correction the #567 review forced: the check previously built its span
+  from the image's own `![`, which cannot see anything to the left of it, so
+  the four constructs above passed. Two scope notes: the population is the
+  image's own `src` being relative — which is why the `(LICENSE)` badge, whose
+  `src` is absolute, falls outside it instead of needing an allowlist — and an
+  image inside a fenced block or a `backtick span` is outside it too, since it
+  renders as text and never becomes an `<img>`. Re-measure rather than quote:
+  the pipeline is two upstream repositories, and this was measured on
+  2026-09-07 against marked 15.0.4 + xss 1.0.15.
 - **B12 should land after C1-C4.** A hero generated from the card's own renderer
   bakes in whatever the card looks like that day, and today that includes C2's
   colliding time-axis end labels and C1's low-contrast lane labels — both are
