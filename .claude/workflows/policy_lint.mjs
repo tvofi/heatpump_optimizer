@@ -107,9 +107,36 @@ function isMcpTool(symbol) {
   return _mcpTools.has(symbol)
 }
 
+// The budget file's own keys are the second allowlist. A rule that governs the
+// caps has to name them, and they live under `.claude/`, which the grep below
+// excludes wholesale for a reason the comment above states. Sourced FROM the
+// file rather than hand-listed, so it cannot drift: a key that is renamed stops
+// being citable in the same commit that renames it.
+//
+// Extending the grep to `.claude/workflows/*.mjs` instead was measured and
+// refused -- `SCREAMING_SNAKE` and `min_ink_gap`, two of the five dead
+// citations the wholesale exclusion keeps dead, resolve against COMMENTS in
+// `brief_lint.mjs` that name them precisely to say they are not pinned. The
+// known-bad ledger reported both as `entry no longer fires`. An extension is
+// prose or code by what it holds, not by its name.
+let _budgetKeys = null
+function isBudgetKey(symbol) {
+  if (!_budgetKeys) {
+    _budgetKeys = new Set()
+    try {
+      const b = JSON.parse(read(BUDGET_FILE) ?? '{}')
+      for (const k of Object.keys(b)) _budgetKeys.add(k)
+      for (const k of Object.keys(b.roles ?? {})) _budgetKeys.add(k)
+      for (const spec of Object.values(b.roles ?? {})) for (const k of Object.keys(spec)) _budgetKeys.add(k)
+    } catch {}
+  }
+  return _budgetKeys.has(symbol)
+}
+
 let _policySpec = null
 function symbolElsewhere(symbol, exceptRel) {
   if (isMcpTool(symbol)) return true
+  if (isBudgetKey(symbol)) return true
   if (!_policySpec) _policySpec = policyFiles().map((f) => `:!${f}`)
   const spec = _policySpec.includes(`:!${exceptRel}`) ? _policySpec : [..._policySpec, `:!${exceptRel}`]
   const out = git(
@@ -586,12 +613,24 @@ function policyBudgets() {
   return raw ? JSON.parse(raw) : null
 }
 
+function countLines(raw) {
+  if (raw === '') return 0
+  const n = (raw.match(/\n/g) || []).length
+  return raw.endsWith('\n') ? n : n + 1
+}
+
 function sizes(files) {
   const rows = []
   for (const f of files) {
     const raw = read(f)
     if (raw == null) continue
-    rows.push({ file: f, lines: raw.split('\n').length, bytes: Buffer.byteLength(raw), always: isAlwaysLoaded(f) })
+    // `split('\n').length` counts the empty string after a file's final
+    // newline, so every cap read one line higher than `wc -l` on the same file.
+    // A seat that cuts until `wc -l` matches its cap was still refused, and the
+    // error named a number no local command produced -- reported on #612 by a
+    // reviewer who noticed the control print 320 where `wc -l` said 319. Count
+    // what `wc -l` counts: newline-terminated lines, plus a trailing partial.
+    rows.push({ file: f, lines: countLines(raw), bytes: Buffer.byteLength(raw), always: isAlwaysLoaded(f) })
   }
   return rows
 }
@@ -630,7 +669,82 @@ function checkBudgets(files) {
       message: `about ${alwaysTokens} tokens exceeds the cap of ${b.always_loaded_tokens}. Every seat pays this before its first productive read.`,
     })
   }
+
+  // The floor is not the cost. `always_loaded_tokens` measures a session that
+  // opens nothing, so moving prose out of `CLAUDE.md` into a `paths:`-scoped
+  // rule lowers it without deleting a line -- measured across the index split,
+  // the floor fell 6800 -> 3198 while the corpus moved 57398 -> 57325, a 53%
+  // drop against 0.13% of actual deletion. Recording that drop as the ratchet
+  // would hand a later pull request headroom nobody earned, and would price a
+  // scoped rule at zero however far it grew. Two more one-sided caps close it:
+  // the corpus, which a move does not change, and the per-role load, which is
+  // what a seat that opens a file actually pays.
+  const corpusTokens = rows.reduce((n, r) => n + Math.round(r.bytes / 4), 0)
+  if (b.corpus_tokens != null && corpusTokens > b.corpus_tokens) {
+    out.push({
+      severity: 'error',
+      check: 'budgets',
+      where: '(whole corpus)',
+      message: `about ${corpusTokens} tokens exceeds the cap of ${b.corpus_tokens}. Moving prose between policy files does not change this number, which is why it is here: cut it, or raise the cap in the diff a reviewer reads.`,
+    })
+  }
+
+  for (const [role, spec] of Object.entries(b.roles || {})) {
+    const t = roleTokens(rows, spec.opens)
+    if (spec.cap != null && t > spec.cap) {
+      out.push({
+        severity: 'error',
+        check: 'budgets',
+        where: `(role ${role})`,
+        message: `about ${t} tokens exceeds the cap of ${spec.cap}. This is what the seat loads once it opens ${spec.opens.join(', ')} -- the floor in always_loaded_tokens is what it pays before that.`,
+      })
+    }
+  }
   return out
+}
+
+// A rule's `paths:` globs decide when the harness loads it, so a role's real
+// load is the floor plus every rule whose globs match a file that role opens.
+// `opens` is a representative file per surface, not an exhaustive list: the cap
+// is a ratchet on a fixed sample, and changing the sample is a visible edit to
+// the budget file rather than a silent re-measurement.
+function globToRe(g) {
+  const re = g
+    .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+    .replace(/\*\*\//g, '\u0000')
+    .replace(/\*\*/g, '\u0000')
+    .replace(/\*/g, '[^/]*')
+    .replace(/\?/g, '[^/]')
+    .replace(/\u0000/g, '.*')
+  return new RegExp('^' + re + '$')
+}
+
+function rulePaths(rel) {
+  const raw = read(rel)
+  if (raw == null) return null
+  const fm = /^---\n([\s\S]*?)\n---/.exec(raw)
+  if (!fm) return null
+  // The frontmatter capture stops BEFORE the closing `\n---`, so the last
+  // `paths:` entry has no trailing newline. A block pattern that requires one
+  // per line therefore drops it, and a rule with a single path matched zero
+  // lines and read as unscoped -- silently, because the run still printed a
+  // number. Restore the newline before matching.
+  const fmBody = fm[1] + '\n'
+  const block = /^paths:\n((?:[ \t]*-[ \t]*.*\n)+)/m.exec(fmBody)
+  if (!block) return null
+  return [...block[1].matchAll(/-\s*"([^"]+)"/g)].map((m) => m[1])
+}
+
+function roleTokens(rows, opens) {
+  let total = 0
+  for (const r of rows) {
+    if (r.always) { total += Math.round(r.bytes / 4); continue }
+    if (!RULE_FILE.test(r.file)) continue
+    const globs = rulePaths(r.file)
+    if (!globs) continue
+    if (globs.some((g) => opens.some((o) => globToRe(g).test(o)))) total += Math.round(r.bytes / 4)
+  }
+  return total
 }
 
 // ---------------------------------------------------------------------------
@@ -1081,6 +1195,23 @@ function assertAcceptance(derived) {
       rc = 1
     }
   }
+  // The rot fixtures cannot pin `rulePaths`, because a rule's `paths:` block
+  // decides which fixtures exist rather than what they say. Pin it against the
+  // real rules instead: the parsed list must have one entry per `- "..."` line
+  // in the frontmatter. This is the check that would have caught the parser
+  // dropping every list's LAST path -- and reading a single-path rule as
+  // unscoped, so it was charged to every session's floor -- while still
+  // printing a number for each role.
+  for (const f of policyFiles().filter((x) => RULE_FILE.test(x))) {
+    const raw = read(f)
+    const fm = /^---\n([\s\S]*?)\n---/.exec(raw)
+    if (!fm || !/^paths:/m.test(fm[1])) continue
+    const want = (fm[1].match(/^[ \t]*-[ \t]*"/gm) || []).length
+    const got = (rulePaths(f) || []).length
+    if (got === want) continue
+    console.log(`\nFIXTURE VACUOUS: rulePaths(${f}) parsed ${got} of ${want} declared path globs; a rule read as less scoped than it is lands in the always-loaded floor, and one read as more scoped is charged to no role at all`)
+    rc = 1
+  }
   if (!rc) console.log(`\nFIXTURE ok: ${found.length} error(s) hold ${pins} pins across ${Object.keys(REQUIRED_ROT).length} check classes on fixtures/policy-rot/`)
   return rc
 }
@@ -1305,6 +1436,13 @@ function cmdBudgets(files) {
     console.log(r.file.padEnd(46), String(r.lines).padStart(5), cap.padStart(4), String(Math.round(r.bytes / 4)).padStart(8), r.always ? '  yes' : '')
   }
   console.log(`\nalways-loaded: ~${alwaysTokens} tokens, cap ${b ? b.always_loaded_tokens : '-'}`)
+  // The floor alone reads as the corpus cost; printing the three together is
+  // what stops a re-record of one being mistaken for an improvement in all.
+  const corpusTokens = rows.reduce((n, r) => n + Math.round(r.bytes / 4), 0)
+  console.log(`corpus:        ~${corpusTokens} tokens, cap ${b ? b.corpus_tokens : '-'}`)
+  for (const [role, spec] of Object.entries((b && b.roles) || {})) {
+    console.log(`role ${role.padEnd(9)} ~${roleTokens(rows, spec.opens)} tokens, cap ${spec.cap}`)
+  }
 }
 
 function main() {
