@@ -23458,17 +23458,24 @@ R.section("apply_topology accepts every place the setup page draws (#546)")
 # `PLACE_LABELS`, which is a display-label map for the places EDGES connect
 # and has no `outdoor` in it, while the card sends `ed.positions` unfiltered.
 #
-# Two sets that must agree, so both directions are asserted, and the card's
-# half is read off its own source: a list of places repeated in this file
-# would be a third copy of exactly the thing the defect is made of.
+# Two sets that must agree, so both directions are asserted, and each side is
+# read off its own artifact: a list of places repeated in this file would be a
+# third copy of exactly the thing the defect is made of.
+#
+# Both directions are bounds rather than an equality, and that is the point of
+# #550. Which set is authoritative -- the slot table, or the smaller set of
+# places the card actually draws a box for -- is a design decision, and the
+# first version of this section smuggled one in: it required every slot place
+# to be accepted, so tightening the schema onto the card's box set would have
+# reddened it. What is not a design decision is the band. Nothing the card can
+# send may be refused, or the page will not save; nothing outside the
+# diagram's vocabulary may be accepted, or the schema admits a key that cannot
+# occur. Every fix that is plausible for #546 sits inside that band.
 import re as _t546_re  # noqa: E402
 import voluptuous as _t546_vol  # noqa: E402
 
 from heatpump_optimizer import const as _t546_const  # noqa: E402
 from heatpump_optimizer import topology as _t546_topo  # noqa: E402
-from heatpump_optimizer.services import (  # noqa: E402
-    SERVICE_SCHEMA_APPLY_TOPOLOGY as _t546_schema,
-)
 
 
 def _t546_install(two_zone, dhw, valve, wood):
@@ -23496,13 +23503,61 @@ _t546_drawn = sorted({
     for _slot in _t546_topo.describe_setup(_t546_install(*_flags))["slots"]
 })
 
+# The card's half, read off its own `box(col, title, [place, ...])` calls.
+# `places[0]` is the box's identity -- what a drag or Tidy files a position
+# under, and so the only place the save can ever send. The rest are slots
+# that ride the same physical box and can never be dragged on their own.
+_t546_box_calls = [
+    _places for _call in _t546_re.findall(
+        r"\bbox\(\s*\d+\s*,[^;]*?,\s*\[([^\]]*)\]", _card_src_cl, _t546_re.S
+    )
+    for _places in [_t546_re.findall(r'"([a-z_]+)"', _call)]
+    if _places
+]
+_t546_boxes = sorted({_places[0] for _places in _t546_box_calls})
+_t546_named = {_p for _places in _t546_box_calls for _p in _places}
+
+# This reader is the weak link, and it fails in the direction that hides the
+# bug: a card refactor that moved the call shape would match nothing, leave
+# `_t546_boxes` empty, and pass every check below vacuously. So it is floored
+# against the describer rather than against a hand-written list of names --
+# every place a sensor slot is homed at has to be findable in some box, since
+# a slot with no box has nowhere to render. A regex that reads none of the
+# calls fails this, and so does one that reads only some: the draft of this
+# check lost three boxes to titles written as template literals, and a
+# hand-written floor caught that only because the count happened to land
+# below it.
+_t546_unrendered = sorted(set(_t546_drawn) - _t546_named)
+R.check(
+    "every place the setup description homes a slot at is named in one of "
+    "the card's box() declarations (#546)",
+    len(_t546_box_calls) > 4 and not _t546_unrendered,
+    f"read {len(_t546_box_calls)} box() calls naming {sorted(_t546_named)}; "
+    f"homed but named in no box: {_t546_unrendered}",
+)
+
+# The schema half, read off the **registration** rather than off
+# `topology.POSITION_PLACES`. A check that reads the module constant cannot
+# see the schema borrowing something else -- which is the whole of #546, and
+# was still true of this section's own reverse-direction checks until #550:
+# re-adding `slab_shunt` and an arbitrary junk key to the schema passed every
+# check here, including the one named for refusing exactly that.
+# `tests/entities.py` reads service schemas the same way and for the same
+# stated reason.
+_t546_hass = FakeHass()
+_t546_entry = FakeEntry(data=_LC_DATA)
+_asyncio.run(_ha_setup_entry(_integ, _t546_hass, _t546_entry))
+_t546_registered = _t546_hass.services._schemas[
+    (_DOMAIN, _t546_const.SERVICE_APPLY_TOPOLOGY)
+]
+
 
 def _t546_refused(places):
-    """The places apply_topology's schema will not take a position for."""
+    """The places the registered schema will not take a position for."""
     out = []
     for _place in places:
         try:
-            _t546_schema(
+            _t546_registered(
                 {"layout": "no_valve", "positions": {_place: [12.0, 34.0]}}
             )
         except _t546_vol.Invalid:
@@ -23510,11 +23565,76 @@ def _t546_refused(places):
     return out
 
 
+def _t546_in_sets(node, depth=0):
+    """Every membership set a compiled schema node validates a key against.
+
+    Probing one place at a time answers "is this accepted", never "what else
+    is"; the accepted set has to be read out of the validator to see a member
+    nobody thought to probe for.
+    """
+    if depth > 8:
+        return []
+    if isinstance(node, _t546_vol.In):
+        return [set(node.container)]
+    if isinstance(node, _t546_vol.Schema):
+        return _t546_in_sets(node.schema, depth + 1)
+    if isinstance(node, (_t546_vol.All, _t546_vol.Any)):
+        return [_s for _n in node.validators for _s in _t546_in_sets(_n, depth + 1)]
+    if isinstance(node, dict):
+        return [
+            _s for _kv in node.items()
+            for _n in _kv for _s in _t546_in_sets(_n, depth + 1)
+        ]
+    if isinstance(node, (list, tuple, set, frozenset)):
+        return [_s for _n in node for _s in _t546_in_sets(_n, depth + 1)]
+    return []
+
+
+_t546_pos_node = next(
+    (
+        _v for _k, _v in _t546_registered.schema.items()
+        if getattr(_k, "schema", _k) == "positions"
+    ),
+    None,
+)
+_t546_in = _t546_in_sets(_t546_pos_node)
+_t546_accepts = sorted(set().union(*_t546_in)) if _t546_in else None
+
+# The schema reader needs its own floor for the same reason the card reader
+# does, and it gets a stronger one: what it reads is cross-checked against
+# what the schema actually does. Everything it reports as accepted has to be
+# accepted, and a key it does not report has to be refused -- so a schema that
+# stopped constraining `positions` at all cannot pass by yielding nothing.
+_t546_probe = "hpo550_not_a_place"
+_t546_unread = []
+if _t546_accepts is None:
+    _t546_unread.append(
+        "no membership set under the registered schema's `positions` key: "
+        "this reader cannot see what the schema accepts"
+    )
+else:
+    if _t546_disagree := _t546_refused(_t546_accepts):
+        _t546_unread.append(f"read as accepted but refused: {_t546_disagree}")
+    if _t546_refused([_t546_probe]) != [_t546_probe]:
+        _t546_unread.append(
+            f"{_t546_probe!r} is accepted: `positions` constrains nothing"
+        )
 R.check(
-    "every place the setup description homes a sensor slot at is a position "
+    "the positions apply_topology accepts are readable from the schema it "
+    "registered, and the reading agrees with what it refuses (#550)",
+    not _t546_unread,
+    "; ".join(_t546_unread),
+)
+
+# The direction that broke. Every box the card draws files its position under
+# `places[0]`, and one refused key fails the whole call -- so this is the
+# property that decides whether the setup page saves.
+R.check(
+    "every box the card draws files its position under a place "
     "apply_topology accepts (#546)",
-    len(_t546_drawn) > 4 and not _t546_refused(_t546_drawn),
-    f"described {_t546_drawn}; refused {_t546_refused(_t546_drawn)}",
+    _t546_boxes and not _t546_refused(_t546_boxes),
+    f"the card draws {_t546_boxes}; apply_topology refuses "
+    f"{_t546_refused(_t546_boxes)}",
 )
 
 # Sent together, the way the card sends `ed.positions`: one refused key fails
@@ -23524,73 +23644,42 @@ for _t546_key, _t546_layout in _t546_topo.LAYOUTS.items():
     if not _t546_layout.selectable:
         continue
     try:
-        _t546_schema({
+        _t546_registered({
             "layout": _t546_key,
-            "positions": {_p: [12.0, 34.0] for _p in _t546_drawn},
+            "positions": {_p: [12.0, 34.0] for _p in _t546_boxes},
         })
     except _t546_vol.Invalid as _t546_err:
         _t546_by_layout.append(f"{_t546_key}: {_t546_err}")
 R.check(
     "and accepts them all in one call, for every selectable layout (#546)",
-    len(_t546_drawn) > 4 and not _t546_by_layout,
+    bool(_t546_boxes) and not _t546_by_layout,
     "; ".join(_t546_by_layout) or "ok",
 )
 
-# The reverse half. `slab_shunt` was accepted and drawn nowhere -- the same
-# divergence pointing the other way, and the reason the accepted set has to
-# be derived from the description rather than kept beside it.
-_t546_accepts = getattr(_t546_topo, "POSITION_PLACES", None)
-R.check(
-    "the accepted set is its own derived set, not a label map the schema "
-    "borrows (#546)",
-    _t546_accepts is not None,
-    "topology.POSITION_PLACES is missing: positions are validated against "
-    "PLACE_LABELS, which names the endpoints of drawn edges",
-)
+# The reverse half, and the one #550 is about. `slab_shunt` was accepted and
+# drawn nowhere -- the same divergence pointing the other way, admitting a key
+# that cannot occur. Bounded by the describer rather than by the card's boxes,
+# because narrowing it to the boxes would decide the design question above.
 _t546_orphans = (
     None if _t546_accepts is None
     else sorted(set(_t546_accepts) - set(_t546_drawn))
 )
 R.check(
-    "and it holds no place the setup description never draws (#546)",
+    "and accepts no position the setup description never homes a slot at "
+    "(#546, #550)",
     _t546_orphans == [],
-    "no accepted set to check"
+    "the accepted positions could not be read"
     if _t546_orphans is None
     else f"accepted but never drawn: {_t546_orphans}",
 )
 
-# The card's half, read off its own `box(col, title, [place, ...])` calls:
-# `places[0]` is the box's identity, which is what a drag files a position
-# under and what the save then sends.
-_t546_boxes = sorted(set(_t546_re.findall(
-    r"\bbox\(\s*\d+\s*,(?:[^;]*?)\[\s*\"([a-z_]+)\"", _card_src_cl
-)))
-# The reader is the weak link here: a card refactor that moved the call shape
-# would match nothing and pass everything. These four boxes are drawn on every
-# install, so their absence means this reader broke, not that the card did.
-R.check(
-    "the card's box identities are readable from its source (#546)",
-    {"outdoor", "heat_pump", "buffer_tank", "upper_zone"} <= set(_t546_boxes),
-    f"read {_t546_boxes} from the card's box() calls",
-)
-R.check(
-    "every box the card draws files its position under a place "
-    "apply_topology accepts (#546)",
-    not _t546_refused(_t546_boxes),
-    f"the card draws {_t546_boxes}; apply_topology refuses "
-    f"{_t546_refused(_t546_boxes)}",
-)
-
 # The reported call end to end: the registered schema, the real handler, and
 # the options write the user was locked out of.
-_t546_hass = FakeHass()
-_t546_entry = FakeEntry(data=_LC_DATA)
-_asyncio.run(_ha_setup_entry(_integ, _t546_hass, _t546_entry))
 _t546_sent = {"outdoor": [12.0, 34.0], "heat_pump": [16.0, 90.0]}
 _t546_raised = None
 try:
     _asyncio.run(_t546_hass.services.async_call(
-        _DOMAIN, "apply_topology",
+        _DOMAIN, _t546_const.SERVICE_APPLY_TOPOLOGY,
         {"layout": "no_valve", "positions": dict(_t546_sent)},
     ))
 except Exception as _t546_exc:  # noqa: BLE001 -- "it raised at all" is the report

@@ -132,6 +132,11 @@
 # no fixture input and no solver parameter is touched, so every scenario is
 # byte-identical by construction.
 
+# #550 (the apply_topology set check pinned the reverse direction against a
+# module constant, not the schema): this branch claims NOTHING. tests/features.py
+# only -- no production file, no fixture input and no solver parameter is
+# touched, so every scenario is byte-identical by construction.
+
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum

@@ -68,5 +68,10 @@
 # auditors read): this branch claims NOTHING. No card source, template or
 # style is touched -- the diff is a shell generator, agent prompt strings
 # under .claude/workflows/ and audit prose.
+#
+#
+# #550 (the apply_topology set check pinned the reverse direction against a
+# module constant, not the schema): this branch claims NOTHING. tests/features.py
+# only; no card source, template, style or payload key is touched.
 # The claim-driver policy text, split out of #545 for approval: this branch
 # claims NOTHING. Two prose files only -- no card source is touched.
