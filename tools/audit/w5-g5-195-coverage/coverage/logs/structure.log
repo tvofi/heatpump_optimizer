@@ -2,7 +2,7 @@
   ok   14 counting rules hold
 ########## god classes (> 300 LOC) ##########
   custom_components/heatpump_optimizer/coordinator.py:1281-11366  10086 LOC  251 methods  175 self-attrs  HeatPumpOptimizerCoordinator
-  custom_components/heatpump_optimizer/optimizer.py:1256-6097  4842 LOC  57 methods  7 self-attrs  HeatPumpOptimizer
+  custom_components/heatpump_optimizer/optimizer.py:1256-6118  4863 LOC  58 methods  7 self-attrs  HeatPumpOptimizer
   custom_components/heatpump_optimizer/config_flow.py:1605-3320  1716 LOC  28 methods  1 self-attrs  HeatPumpOptimizerOptionsFlow
   custom_components/heatpump_optimizer/thermal_model.py:1293-2946  1654 LOC  26 methods  6 self-attrs  ThermalModel
   custom_components/heatpump_optimizer/thermal_model.py:146-999  854 LOC  24 methods  3 self-attrs  ThermalParameters
@@ -15,25 +15,25 @@
   custom_components/heatpump_optimizer/coordinator.py:1281  175 self-attrs  HeatPumpOptimizerCoordinator  <- top attr bag
 
 ########## monster methods: top 10 of 19 over 150 LOC ##########
-  custom_components/heatpump_optimizer/optimizer.py:2002-2525  524 LOC  optimize
-  custom_components/heatpump_optimizer/optimizer.py:4813-5301  489 LOC  _optimize_with_dhw
-  custom_components/heatpump_optimizer/optimizer.py:3582-4001  420 LOC  _build_dhw_requirements
+  custom_components/heatpump_optimizer/optimizer.py:4834-5322  489 LOC  _optimize_with_dhw
+  custom_components/heatpump_optimizer/optimizer.py:2002-2465  464 LOC  optimize
+  custom_components/heatpump_optimizer/optimizer.py:3603-4022  420 LOC  _build_dhw_requirements
   custom_components/heatpump_optimizer/thermal_model.py:2372-2752  381 LOC  simulate_trajectory_batch
   custom_components/heatpump_optimizer/coordinator.py:5165-5534  370 LOC  async_run_optimization
   custom_components/heatpump_optimizer/sysid.py:474-805  332 LOC  identify
   custom_components/heatpump_optimizer/thermal_model.py:1850-2136  287 LOC  _simulate_step_two_zone
   custom_components/heatpump_optimizer/coordinator.py:5704-5970  267 LOC  _update_current_state
-  custom_components/heatpump_optimizer/optimizer.py:2836-3092  257 LOC  _optimize_space_only
+  custom_components/heatpump_optimizer/optimizer.py:2857-3113  257 LOC  _optimize_space_only
   custom_components/heatpump_optimizer/coordinator.py:11152-11366  215 LOC  async_simulate
-  max_method_loc = 524 (the worst one, budgeted; a count over a threshold stops pricing growth)
+  max_method_loc = 489 (the worst one, budgeted; a count over a threshold stops pricing growth)
 
 ########## worst 5 cyclomatic (of 37 over 15) ##########
-  custom_components/heatpump_optimizer/optimizer.py:2002  cc=84  optimize
+  custom_components/heatpump_optimizer/optimizer.py:2002  cc=72  optimize
   custom_components/heatpump_optimizer/thermal_model.py:2372  cc=43  simulate_trajectory_batch
-  custom_components/heatpump_optimizer/optimizer.py:5963  cc=36  get_current_action
+  custom_components/heatpump_optimizer/optimizer.py:5984  cc=36  get_current_action
   custom_components/heatpump_optimizer/sysid.py:474  cc=35  identify
   custom_components/heatpump_optimizer/coordinator.py:5704  cc=35  _update_current_state
-  max_cc = 84 (the worst one, budgeted; sum_cc is refused -- see the module docstring)
+  max_cc = 72 (the worst one, budgeted; sum_cc is refused -- see the module docstring)
 
 ########## .const import fan-out (names imported per module) ##########
   custom_components/heatpump_optimizer/config_flow.py: 305  > 50
@@ -67,8 +67,8 @@
   custom_components/heatpump_optimizer/inputs.py:327  ImportFrom
   custom_components/heatpump_optimizer/optimizer.py:1599  Import
   custom_components/heatpump_optimizer/optimizer.py:2057  Import
-  custom_components/heatpump_optimizer/optimizer.py:2838  Import
-  custom_components/heatpump_optimizer/optimizer.py:4820  Import
+  custom_components/heatpump_optimizer/optimizer.py:2859  Import
+  custom_components/heatpump_optimizer/optimizer.py:4841  Import
 
 ########## dead top-level symbols ##########
 
@@ -91,10 +91,10 @@
   custom_components/heatpump_optimizer/config_flow.py:1313  async_step_thermal  norm 28-37  10 lines
   custom_components/heatpump_optimizer/coordinator.py:3871  _async_learn_house_heat_loss  norm 48-62  15 lines
   custom_components/heatpump_optimizer/coordinator.py:4070  _async_learn_lower_floor_loss  norm 43-57  15 lines
-  custom_components/heatpump_optimizer/optimizer.py:2873  _space_traj  norm 0-13  14 lines
-  custom_components/heatpump_optimizer/optimizer.py:4911  _space_traj  norm 0-13  14 lines
-  custom_components/heatpump_optimizer/optimizer.py:2932  objective_batch  norm 10-19  10 lines
-  custom_components/heatpump_optimizer/optimizer.py:4973  objective_batch  norm 12-21  10 lines
+  custom_components/heatpump_optimizer/optimizer.py:2894  _space_traj  norm 0-13  14 lines
+  custom_components/heatpump_optimizer/optimizer.py:4932  _space_traj  norm 0-13  14 lines
+  custom_components/heatpump_optimizer/optimizer.py:2953  objective_batch  norm 10-19  10 lines
+  custom_components/heatpump_optimizer/optimizer.py:4994  objective_batch  norm 12-21  10 lines
   custom_components/heatpump_optimizer/thermal_model.py:1850  _simulate_step_two_zone  norm 1-13  13 lines
   custom_components/heatpump_optimizer/thermal_model.py:2142  simulate_step  norm 1-13  13 lines
   custom_components/heatpump_optimizer/thermal_model.py:2250  simulate_trajectory  norm 69-87  19 lines
@@ -129,14 +129,14 @@ RESULT functions_cc_over_15=37 count
 RESULT functions_cc_over_25=10 count
 RESULT internal_call_edges=366 count
 RESULT local_imports=7 count
-RESULT max_cc=84 count
+RESULT max_cc=72 count
 RESULT max_class_loc=10086 count
-RESULT max_method_loc=524 count
+RESULT max_method_loc=489 count
 RESULT methods_over_150=19 count
 RESULT methods_over_200=11 count
 RESULT thread_factor=1.0 ratio
 
-########## ratchet vs structure_budgets.json (recorded_at 0f9eb71a4452) ##########
+########## ratchet vs structure_budgets.json (recorded_at 52d38d955e41) ##########
   ok   attrbag_classes_over_30 1 <= 1
   ok   classes_over_300 9 <= 9
   ok   const_modules_over_50 3 <= 3
@@ -156,9 +156,9 @@ RESULT thread_factor=1.0 ratio
   ok   functions_cc_over_25 10 <= 10
   ok   internal_call_edges 366 <= 366
   ok   local_imports 7 <= 7
-  ok   max_cc 84 <= 84
+  ok   max_cc 72 <= 72
   ok   max_class_loc 10086 <= 10086
-  ok   max_method_loc 524 <= 524
+  ok   max_method_loc 489 <= 489
   ok   methods_over_150 19 <= 19
   ok   methods_over_200 11 <= 11
 

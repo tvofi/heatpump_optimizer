@@ -439,7 +439,26 @@ External heat override sensor.flue has not reported for 600 min (limit 60); igno
   ok   a house already using its whole band is not evidence
   ok   the learned value stays inside sane bounds
 Learned house heat loss scale 1.000 (fitted against 0.0500 kW/°C, 300 samples) cannot be expressed against the newly configured 0.4000 kW/°C: resetting to the configuration
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration True (Invalid window 'True' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration True (Invalid window 'True' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
@@ -447,27 +466,8 @@ Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration True (Invalid window 'True' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 'not a time range' (Invalid window 'not a time range' (expected HH:MM-HH:MM)); falling back to always-available hot water
@@ -1991,6 +1991,11 @@ Compressor efficiency has drifted 0% below its own baseline (~0 SEK/month at cur
   ok   a hot-water block gets the numeric trace the space channel already had
   ok   and an unblocked plan carries none of the new keys at all
 
+-- #224 stage 2 — the breach report answers for itself, off optimize's tail
+  ok   an externally capped plan reports its worst planned floor shortfall
+  ok   a blocked tank reports its worst shortfall against its own requirement
+  ok   and an uncapped, unblocked plan is left byte-identical
+
 -- v5.3.0 review — the experiment obeys the mode gate too
   ok   the control: with no mode entity the experiment is untouched
   ok   a cooling mode aborts an armed experiment instead of commanding heat
@@ -2033,14 +2038,14 @@ Compressor efficiency has drifted 0% below its own baseline (~0 SEK/month at cur
   ok   a defrost spanning an interval boundary still keeps its second half
 
 -- v5.3.0 review 2 — a mode nobody can read stops acting
+The heat pump's operating mode entity has been unreadable for over 180 min; the mode it last reported (unknown) has stopped acting and the plan is back to assuming full capability
+DHW anti-legionella cycle reached only 54.0 °C against a 60 °C target; the tank is not being disinfected
+DHW anti-legionella cycle commanded but cannot be verified: no tank temperature sensor is configured, so nothing confirms the tank reached 60 °C
   ok   a mode read minutes ago still acts, one read hours ago does not
   ok   and the expiry is visible as its own source, not silence
   ok   an expired mode suppresses nothing and freezes nothing
   ok   the bound is longer than the reading's own horizon and shorter than six hours
   ok   the mode-unreadable notice is translated in strings.json
-The heat pump's operating mode entity has been unreadable for over 180 min; the mode it last reported (unknown) has stopped acting and the plan is back to assuming full capability
-DHW anti-legionella cycle reached only 54.0 °C against a 60 °C target; the tank is not being disinfected
-DHW anti-legionella cycle commanded but cannot be verified: no tank temperature sensor is configured, so nothing confirms the tank reached 60 °C
   ok   the mode-unreadable notice is translated in translations/en.json
   ok   the mode-unreadable notice is translated in translations/sv.json
   ok   a fresh coordinator starts with no pump-mode-unreadable issue and no notice latched
@@ -2153,12 +2158,6 @@ DHW anti-legionella cycle commanded but cannot be verified: no tank temperature 
   ok   a cycle at or below the limit says nothing
   ok   and disinfection switched off says nothing
   ok   the stored half of the pair still counts
-  ok   the coordinator raises the notice for a live 52/60 pair
-  ok   …and takes it down again once the pair no longer says anything
-
--- v5.1.10 — a due cycle actually reaches the disinfection temperature
-  ok   a due cycle reaches the disinfection temperature at every charge limit from 41 to 49 °C
-  ok   …and lands ON it rather than a fraction short
 DHW anti-legionella cycle commanded but cannot be verified: no tank temperature sensor is configured, so nothing confirms the tank reached 60 °C
 DHW anti-legionella cycle reached 59.2 °C but the completion could not be confirmed; it will be retried next interval
 DHW anti-legionella boost has been commanded for 12 h without completing; recording what it achieved
@@ -2166,6 +2165,12 @@ DHW anti-legionella cycle reached only 54.0 °C against a 60 °C target; the tan
 No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
 Error fetching weather forecast: weather integration broken. Plans continue on the last forecast, marked stale.
 Empty forecast returned for weather.home. Plans continue on the last forecast, marked stale.
+  ok   the coordinator raises the notice for a live 52/60 pair
+  ok   …and takes it down again once the pair no longer says anything
+
+-- v5.1.10 — a due cycle actually reaches the disinfection temperature
+  ok   a due cycle reaches the disinfection temperature at every charge limit from 41 to 49 °C
+  ok   …and lands ON it rather than a fraction short
   ok   the whole-tail bound reproduces the cycle that never reaches temperature (mutation check)
   ok   …on other tank and pump sizes too
   ok   the run-up is a ramp, not a day at the ceiling
@@ -2455,4 +2460,4 @@ Empty forecast returned for weather.home. Plans continue on the last forecast, m
   ok   and accepts no position the setup description never homes a slot at (#546, #550)
   ok   a setup page whose Outside box was dragged saves, and the position is the one that was sent (#546)
 
-ALL 2006 FEATURE CHECKS PASSED
+ALL 2009 FEATURE CHECKS PASSED

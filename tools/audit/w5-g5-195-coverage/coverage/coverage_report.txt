@@ -33,7 +33,7 @@ custom_components/heatpump_optimizer/manual_plan.py          115      8  93.0%
 custom_components/heatpump_optimizer/mixing_valve.py          30      2  93.3%
 custom_components/heatpump_optimizer/narrative.py             40      0 100.0%
 custom_components/heatpump_optimizer/open_meteo.py           201      0 100.0%
-custom_components/heatpump_optimizer/optimizer.py           1809     77  95.7%
+custom_components/heatpump_optimizer/optimizer.py           1811     77  95.7%
 custom_components/heatpump_optimizer/power_guard.py           65      0 100.0%
 custom_components/heatpump_optimizer/presets.py              116      4  96.6%
 custom_components/heatpump_optimizer/price_model.py          217     16  92.6%
@@ -55,4 +55,4 @@ custom_components/heatpump_optimizer/topology.py             115      2  98.3%
 custom_components/heatpump_optimizer/wear.py                  63      5  92.1%
 custom_components/heatpump_optimizer/wood_fuel.py            210     57  72.9%
 ------------------------------------------------------------------------------
-TOTAL                                                      14273   1153  91.9%
+TOTAL                                                      14275   1153  91.9%

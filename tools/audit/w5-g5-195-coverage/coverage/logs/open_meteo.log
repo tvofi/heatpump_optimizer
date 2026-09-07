@@ -41,9 +41,9 @@ Could not fetch solar irradiance from Open-Meteo; continuing with cached data
   ok   diagnostics report both series
 
 == small getters, and current_irradiance's forecast fallback ==
-  ok   forecast property mirrors the private series
-  ok   observed property mirrors the private series
-  ok   last_success property mirrors the private timestamp
+  ok   forecast property returns the forecast series, not the observed one
+  ok   observed property returns the observed series, not the forecast one
+  ok   last_success property returns the recorded timestamp, not None
   ok   current_irradiance falls back to the forecast when there is no observation
 
 == _parse_block edges not reached above ==
@@ -52,7 +52,7 @@ Could not fetch solar irradiance from Open-Meteo; continuing with cached data
 
 == HTTP fetch layer (fake aiohttp session) ==
   ok   _get_json returns the parsed body on HTTP 200
-  ok   _get_json returns None on a non-200 status
+  ok   _get_json returns None on a non-200 status carrying an otherwise-good body
   ok   _get_json swallows a transport exception rather than raising
   ok   _get_json rejects a non-dict body
   ok   _get_json rejects a body carrying Open-Meteo's own error flag
