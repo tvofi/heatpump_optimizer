@@ -135,7 +135,7 @@ has occurred.
 
 **Run `tools/audit/preflight.sh` over the squash body before you merge — as a
 filter, not as proof.** Its own header says so: it catches the common cases and
-is *"never a gate that proves the body is clean"*. Four reference forms are more
+is *"never as a gate that proves the body is clean"*. Four reference forms are more
 than the one a hand-written grep usually reaches, and **four is not all of them**
 — the script names seven further shapes that still pass, and it is line-oriented,
 so a keyword and a number split across a newline are invisible to it.
@@ -160,7 +160,8 @@ issues the merge actually closed. No pull-request-scoped field shows it
 beforehand, and on 2026-09-07 two issues were shut by merge commits and had to
 be reopened — `8bc4c661` shut #224 at 10:56:35 while its own text denied doing
 so, reopened 23 minutes later; `e072b2d` shut #195 at 04:25:54, reopened after
-six and a half hours. The gap is whatever it takes someone to notice. A pre-merge scan that asks *which form was
+six and a half hours. The gap is whatever it takes someone to notice. A pre-
+merge scan that asks *which form was
 used* rather than *whether every keyword binds an intended number* reports clean
 through exactly that.
 
