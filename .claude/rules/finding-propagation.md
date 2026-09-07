@@ -1,7 +1,9 @@
 ---
 description: A finding that changes how a later stage must work goes into that stage's own brief before the PR that produced it merges
-globs: tools/audit/briefs/**,.claude/workflows/*-groups.json,docs/plan*.md
-alwaysApply: true
+paths:
+  - "tools/audit/briefs/**"
+  - ".claude/workflows/*-groups.json"
+  - "docs/plan*.md"
 ---
 # Forward-carrying a finding
 

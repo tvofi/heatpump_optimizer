@@ -95,6 +95,11 @@ node .claude/workflows/policy_lint.mjs >/tmp/prepr-policy.$$ 2>&1
 step "policy_lint" $? "$(tail -2 /tmp/prepr-policy.$$ | tr '\n' ' ')"
 rm -f /tmp/prepr-policy.$$
 
+# --- 3b. the generated Cursor rules match their source.
+node .claude/workflows/rules_sync.mjs --check >/tmp/prepr-rules.$$ 2>&1
+step "rules_sync" $? "$(tail -1 /tmp/prepr-rules.$$)"
+rm -f /tmp/prepr-rules.$$
+
 # --- 4. the wave script's branching, when the branch touched it.
 if ! git diff --quiet "$BASE"...HEAD -- .claude/workflows/web-fix-wave.js; then
   node .claude/workflows/check-wave-script.mjs >/tmp/prepr-wave.$$ 2>&1

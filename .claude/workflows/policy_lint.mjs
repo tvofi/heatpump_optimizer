@@ -90,7 +90,7 @@ function symbolElsewhere(symbol, exceptRel) {
   if (!_policySpec) _policySpec = policyFiles().map((f) => `:!${f}`)
   const spec = _policySpec.includes(`:!${exceptRel}`) ? _policySpec : [..._policySpec, `:!${exceptRel}`]
   const out = git(
-    ['grep', '-I', '-l', '-w', '-F', symbol, '--', '.', ':!.claude', ':!tools/audit/round2', ...spec],
+    ['grep', '-I', '-l', '-w', '-F', symbol, '--', '.', ':!.claude', ':!.cursor', ':!tools/audit/round2', ...spec],
     { allowFail: true }
   )
   return !!(out && out.trim())
@@ -158,7 +158,11 @@ function read(rel) {
 
 const POLICY_GLOBS = [
   /^CLAUDE\.md$/,
-  /^\.cursor\/rules\/[a-z0-9-]+\.mdc$/,
+  // `.cursor/rules/*.mdc` is NOT here: it is generated from `.claude/rules/`
+  // by rules_sync.mjs, whose --check byte-compares it. Linting a generated copy
+  // reports every finding twice, doubles every ledger entry, and -- since the
+  // bodies are identical by construction -- makes `duplicates` refuse all five.
+  // The source is linted; the output is compared.
   /^\.claude\/rules\/[a-z0-9-]+\.md$/,
   /^tools\/audit\/briefs\/[A-Za-z0-9_.-]+\.md$/,
   /^tools\/audit\/README\.md$/,
@@ -172,7 +176,21 @@ const POLICY_GLOBS = [
 ]
 
 // Always loaded by a tool, so their size is charged to every session.
-const ALWAYS_LOADED = /^(CLAUDE\.md|\.claude\/rules\/[a-z0-9-]+\.md)$/
+//
+// `CLAUDE.md` always. A `.claude/rules/*.md` only when it has NO `paths:` key:
+// the harness loads an unscoped rule at session start and a scoped one when the
+// seat reads a file matching one of its globs. Charging a scoped rule to every
+// session would overstate the floor and make the cap refuse the very scoping
+// that lowers it.
+const RULE_FILE = /^\.claude\/rules\/[a-z0-9-]+\.md$/
+function isAlwaysLoaded(rel) {
+  if (rel === 'CLAUDE.md') return true
+  if (!RULE_FILE.test(rel)) return false
+  const raw = read(rel)
+  if (raw == null) return false
+  const fm = /^---\n([\s\S]*?)\n---/.exec(raw)
+  return !(fm && /^paths:/m.test(fm[1]))
+}
 
 // Every tracked file under a policy DIRECTORY has to be matched by a glob
 // above. A one-character gap is enough to lose one silently: the `.mdc` pattern
@@ -183,7 +201,12 @@ const ALWAYS_LOADED = /^(CLAUDE\.md|\.claude\/rules\/[a-z0-9-]+\.md)$/
 // nor deliberately excluded is an oversight, not a pass.
 const POLICY_DIRS = [/^\.cursor\/rules\//, /^\.claude\/rules\//, /^\.claude\/skills\//, /^tools\/audit\/briefs\//]
 // The one deliberate exclusion: write-once evidence committed under briefs/.
-const POLICY_DIR_EXCLUDE = [/^tools\/audit\/briefs\/.*\.(json|txt|png|svg)$/]
+const POLICY_DIR_EXCLUDE = [
+  /^tools\/audit\/briefs\/.*\.(json|txt|png|svg)$/,
+  // Generated from `.claude/rules/` and byte-compared by `rules_sync --check`,
+  // which is a stronger guarantee than linting it a second time would give.
+  /^\.cursor\/rules\/[a-z0-9-]+\.mdc$/,
+]
 
 // `files` is injectable for ONE reason: the acceptance. This check runs over
 // the tracked tree, where a healthy corpus produces nothing, so a fixture
@@ -545,7 +568,7 @@ function sizes(files) {
   for (const f of files) {
     const raw = read(f)
     if (raw == null) continue
-    rows.push({ file: f, lines: raw.split('\n').length, bytes: Buffer.byteLength(raw), always: ALWAYS_LOADED.test(f) })
+    rows.push({ file: f, lines: raw.split('\n').length, bytes: Buffer.byteLength(raw), always: isAlwaysLoaded(f) })
   }
   return rows
 }
@@ -936,7 +959,6 @@ function assertAcceptance(derived) {
   }
 
 
-
   found.push(...checkBudgets(rels))
   const indexFixture = rels.find((r) => r.endsWith('/index.md'))
   if (!indexFixture) {
@@ -1048,6 +1070,7 @@ function cmdRecord(findings) {
   )
   const counts = new Map()
   for (const f of findings) {
+    if (NEVER_SUPPRESSED.has(f.check)) continue
     const k = keyOf(f)
     counts.set(k, (counts.get(k) ?? 0) + 1)
   }

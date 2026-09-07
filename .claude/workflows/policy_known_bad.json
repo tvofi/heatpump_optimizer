@@ -1,17 +1,17 @@
 {
   "_comment": "Defects present when policy_lint landed, each with its recorded number of occurrences. A finding not listed here is an error; MORE occurrences of a listed one is an error; fewer is an error until re-recorded; an entry that no longer fires is an error. The list may only shrink. Regenerate with --record-known-bad; growing it is a deliberate edit a reviewer reads.",
-  "recorded_at": "a3dab2e250c31f5faf7792494e5845409f2553a5",
+  "recorded_at": "05c5b28d9a6d2f2f85fe71518061a5ac8fea5ba9",
   "entries": [
     {
-      "key": "citations|.cursor/rules/brief-citations.mdc|path `foo.py`: not in the tree, and no tag SHA is cited alon",
+      "key": "citations|.claude/rules/brief-citations.md|path `foo.py`: not in the tree, and no tag SHA is cited alon",
       "count": 2
     },
     {
-      "key": "citations|.cursor/rules/brief-citations.mdc|symbol `SCREAMING_SNAKE`: not found in the tracked tree, and",
+      "key": "citations|.claude/rules/brief-citations.md|symbol `SCREAMING_SNAKE`: not found in the tracked tree, and",
       "count": 1
     },
     {
-      "key": "citations|.cursor/rules/brief-citations.mdc|symbol `min_ink_gap`: not found in the tracked tree, and no ",
+      "key": "citations|.claude/rules/brief-citations.md|symbol `min_ink_gap`: not found in the tracked tree, and no ",
       "count": 1
     },
     {
@@ -39,15 +39,11 @@
       "count": 1
     },
     {
-      "key": "duplicates|CLAUDE.md|repeats 12 words from .cursor/rules/ci-autofix.mdc:N. State ",
+      "key": "duplicates|CLAUDE.md|repeats 12 words from .claude/rules/ci-autofix.md:N. State a",
       "count": 1
     },
     {
-      "key": "duplicates|CLAUDE.md|repeats 12 words from .cursor/rules/delivery-status-tracking",
-      "count": 1
-    },
-    {
-      "key": "duplicates|CLAUDE.md|repeats 12 words from .cursor/rules/finding-propagation.mdc:",
+      "key": "duplicates|CLAUDE.md|repeats 12 words from .claude/rules/finding-propagation.md:N",
       "count": 1
     },
     {
@@ -59,7 +55,7 @@
       "count": 1
     },
     {
-      "key": "duplicates|tools/audit/briefs/orchestrator.md|repeats 12 words from .cursor/rules/delivery-status-tracking",
+      "key": "duplicates|tools/audit/briefs/orchestrator.md|repeats 12 words from .claude/rules/delivery-status-tracking",
       "count": 1
     },
     {
@@ -71,7 +67,7 @@
       "count": 3
     },
     {
-      "key": "duplicates|tools/audit/briefs/root-cause.md|repeats 12 words from .cursor/rules/defect-root-cause.mdc:N.",
+      "key": "duplicates|tools/audit/briefs/root-cause.md|repeats 12 words from .claude/rules/defect-root-cause.md:N. ",
       "count": 1
     },
     {
@@ -87,7 +83,7 @@
       "count": 1
     },
     {
-      "key": "no-gh|.cursor/rules/delivery-status-tracking.mdc|names `gh pr`; no gh binary exists in the seat environment. ",
+      "key": "no-gh|.claude/rules/delivery-status-tracking.md|names `gh pr`; no gh binary exists in the seat environment. ",
       "count": 1
     },
     {
