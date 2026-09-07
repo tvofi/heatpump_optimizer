@@ -8267,7 +8267,12 @@ def _nightly_scan(text: str) -> tuple[list[str], dict]:
     return checks.failures(), checks.results
 
 
-def _nightly_report_probe(extra_outside: tuple = (), drop_outside: tuple = ()) -> list:
+def _nightly_report_probe(
+    extra_outside: tuple = (),
+    drop_outside: tuple = (),
+    markers: int = 1,
+    returncode: int = 0,
+) -> list:
     """`_report` over a synthetic complete, green run; its `run:all_checks_ran`.
 
     No container and no Docker: `_report` reads three attributes off the
@@ -8279,13 +8284,29 @@ def _nightly_report_probe(extra_outside: tuple = (), drop_outside: tuple = ()) -
     adds a name the run never emits -- which a demanded roster must report
     missing. `drop_outside` removes a name the run DOES emit -- which a demanded
     roster must report undeclared, and which `want <= ran` would not.
+
+    THE INPUT SHAPE IS PRODUCTION'S, not a convenient one. The config directory
+    carries a `LOG_NAME` file, and the clean log line lives in it rather than on
+    stdout, because that is where a real run puts it: `nightly_ha.py:544` sets
+    Home Assistant's `log_file` to `IN_CONFIG / LOG_NAME`, the very directory
+    `_report` is handed. Over an empty directory `log.is_file()` is False on
+    every probe call and True on every real run, so the probe exercised the
+    COMPLEMENT of production -- and a guard that skipped the roster comparison
+    whenever the log existed kept this suite green while `run:all_checks_ran`
+    was never evaluated in the container at all.
+
+    `markers` and `returncode` reach the other two shapes a real run takes: a
+    driver that reported twice or not at all, and a container that exited
+    non-zero. Those runs are already failing for other reasons, which is
+    precisely why the roster demand must survive them -- a red run that also
+    stops saying WHICH checks ran is #533's own silence one level up.
     """
     checks = _nightly.Checks()
     inside = {n: [True, "d"] for n in _nightly.INSIDE_CHECKS}
     completed = _types.SimpleNamespace(
-        stdout=_nightly.MARKER + json.dumps(inside) + "\n" + _NIGHTLY_CLEAN,
+        stdout=(_nightly.MARKER + json.dumps(inside) + "\n") * markers,
         stderr="",
-        returncode=0,
+        returncode=returncode,
     )
     _saved_roster = _nightly.OUTSIDE_CHECKS
     _nightly.OUTSIDE_CHECKS = tuple(
@@ -8294,11 +8315,18 @@ def _nightly_report_probe(extra_outside: tuple = (), drop_outside: tuple = ()) -
     _saved_stdout, sys.stdout = sys.stdout, _io.StringIO()
     try:
         with _tempfile.TemporaryDirectory() as _dir:
+            (Path(_dir) / _nightly.LOG_NAME).write_text(_NIGHTLY_CLEAN)
             _nightly._report(checks, completed, Path(_dir))
     finally:
         sys.stdout = _saved_stdout
         _nightly.OUTSIDE_CHECKS = _saved_roster
-    return checks.results["run:all_checks_ran"]
+    # ABSENT is not FAILING, and only the first of those is #533's own shape.
+    # A guard that reads `results["run:all_checks_ran"]` directly cannot tell a
+    # wrong verdict from a check that stopped existing -- it raises KeyError and
+    # the arm that was supposed to name the defect reports a traceback instead.
+    return checks.results.get(
+        "run:all_checks_ran", [None, "ABSENT -- _report never reached it"]
+    )
 
 
 # THE GENERATOR BEFORE THE ARTIFACT (`fixer.md` step 10). Re-recording the pin
@@ -8458,6 +8486,23 @@ R.check(
     _nightly_probe_clean[0],
     "the roster probe fails on the shipped roster too, so its sentinel arm "
     f"separates nothing (#533) [{_nightly_probe_clean[1]}]",
+)
+# The three arms above all drive a run that is already GREEN. A run that is
+# already red is where a roster check is cheapest to skip and least missed --
+# the reader is looking at a failure and does not notice that the list of what
+# ran went away with it. Both shapes a real red run takes, and in each the
+# demand must still be REACHED: `[0] is None` is the absent case, distinct from
+# a wrong verdict, and it is the one a verdict-only guard cannot see.
+_nightly_probe_red = _nightly_report_probe(returncode=1)
+_nightly_probe_twice = _nightly_report_probe(markers=2)
+R.check(
+    "and it demands the roster on a run that already failed",
+    _nightly_probe_red[0] is True and _nightly_probe_twice[0] is False,
+    "_report stops evaluating run:all_checks_ran once the run is red, so a "
+    "container that exited non-zero -- or a driver that reported twice -- says "
+    "WHICH checks failed and no longer says which never ran (#533) "
+    f"[non-zero exit: {_nightly_probe_red[1]}] "
+    f"[two markers: {_nightly_probe_twice[1]}]",
 )
 
 # tools/audit/preflight.sh refuses a closing keyword the orchestrator did not
