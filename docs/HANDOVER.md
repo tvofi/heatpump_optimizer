@@ -1,6 +1,6 @@
 # Handover — the open-issues programme
 
-updated-for: af47c96
+updated-for: b6a21f1
 
 This is the only handover. There is no dated series: a second
 `docs/handover-*.md` is refused by `tests/entities.py`, and the policy it
@@ -78,19 +78,40 @@ so it costs no extra pull request, and `updated-for:` names that merge.
 
 ### The UX programme
 
-Thirty-four items in five lanes, selected by the owner from a forty-two item
-survey. Three were **dropped**: a static icon override defeating `device_class`,
-config entities creating a second source of truth, and a hand-kept table of
-contents duplicating GitHub's outline. Two were **reshaped so they stop being
-breaking changes**: `ScheduleSensor` adds a numeric entity and deprecates rather
-than renames, and `DeviceInfo` gains `configuration_url` and a manufacturer with
-no rename.
+**Every item lives on #558**, with the *Optimizer UX Docket* artifact as source
+of record. This file deliberately does **not** restate them — it previously
+claimed to hold the "full accounting" and did not, which cost a session the
+conclusion that the list was unrecoverable when it was one artifact call away.
 
-Three sequencing rules, each of which costs something if ignored: the contrast
-witness runs **last** in the card lane — extended, it fails on four measured
-ratios below 3:1; the drift-state lane is **one** pull request, not four,
-because all four share a drift state list; and the docs lane's fifth item needs
-its fourth landed first.
+Thirty-four items in five lanes. Three dropped and two reshaped so they stop
+being breaking changes; both recorded on #558 with reasons.
+
+**Lanes run concurrently with the waves — but independence is by FILE, not
+only by budget.** The docket measured against the ratchet, which was true and
+incomplete. Measured 2026-09-07:
+
+| lane | collides with | on | sequence |
+|---|---|---|---|
+| B docs, C card | — | — | now |
+| D ha | W5-G2 | `sensor.py` | now — Wave 5 unstarted, W5-G2 re-measures |
+| E flow | **W4 S11 (#223)**, W5-G3 | `config_flow.py` | E1–E3 **after S11**; E4 (#516) now |
+| F post-W4 | S12/S13, W5-G4, W5-G7 | `coordinator.py` | **last work of the programme**, after #412 |
+
+**E1–E3 wait** because S11 rewrites `config_flow.py` as a settings registry:
+landing them first means S11 restructures work that just landed; after, each
+is one registry row instead of three separate edits.
+
+**F is last** because it is the only lane adding lines to `coordinator.py`,
+where `coordinator_loc` and `max_class_loc` sit at zero headroom.
+
+**Three in-lane rules**, each costing a red main or a wasted PR: C4 runs last
+(extended today it fails on four measured ratios); C1 is one PR, not four
+(same state list); B5 needs B4 landed.
+
+Issues exist for the items a lane is working now — #559–#563 (B1–B5), #564
+(C1), #565–#566 (D2–D3) — and #516 (E4). The rest stay as #558 rows until
+their lane reaches them, so the tracker holds work someone is doing rather
+than a backlog nobody has started.
 
 ## Corrections to the record
 
@@ -218,14 +239,24 @@ its fourth landed first.
 
 ## Owed
 
-- **The record pull request for #512**, carrying four corrections it is the
-  first thing able to make: the roster and Delivery-status entry that still
-  describes Wave 4 S1 as a 138-point cut drop, when #510 establishes it as an
-  attribute migration with no measured cut change; the S3 ruling text in
-  `.claude/workflows/wave-4-groups.json`, which names only `_helper(self, ...)`
-  as refused when the `getattr` and alias forms are now *counted* rather than
-  refused; W4-G5's halt premise, whose "23 of 115" is now 23 of 132 and
-  therefore stronger; and #516 sequenced as a follow-up gated on #514.
+- **The record pull request for #512** landed the four corrections this entry
+  used to ask for: the roster and Delivery-status entry naming Wave 4 S1's
+  138-point drop as instrument blindness (#510), not decoupling; the S3
+  ruling text in `.claude/workflows/wave-4-groups.json` extended so the
+  `getattr`/alias forms are *counted* rather than refused, for S6–S8 and S12;
+  W4-G5's halt-premise recount; and #516 sequenced as a follow-up gated on
+  #514. **One correction to this bullet itself**: the recount was guessed
+  here as "23 of 115 is now 23 of 132" without running the thing that
+  produces it (trap 6 below, caught by the same rule it names). Measured
+  directly against `tests/structure.py`'s own `seam_metrics` at head
+  `b6a21f1`: cut_fetch's addressable-from-inside share is **40 of 132**, not
+  23 — the whole +17 from #512's fix is fetch's own newly-visible reads of
+  attributes it does not own (17→34), not other seams reading more of
+  fetch's, so the "92 other-seams-reaching-in" share holds at 92 in absolute
+  count but drops from 80% to 70% of the (now larger) total. The halt's
+  actual basis — the judge's #193 finding that no component of size>1
+  detaches at any k — does not move either way; see the roster's W4-G5 note
+  for the full recount.
 - **A never-scoped CI job for `node .claude/workflows/check-wave-script.mjs`**,
   shaped like `tests.yml`'s `browser` and `briefs` jobs. It is the last file in
   that position still running by hand only.
