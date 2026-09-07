@@ -82,8 +82,10 @@
       "fixture": false,
       "after": ["W5-G4"],
       "resume": {
-        "stage": "pending",
-        "note": "#195 tranche 1: climate.py / open_meteo.py / frontend.py. Issue says start here. Do not Closes #195. Do not put coordinator modules in this group."
+        "stage": "in-review",
+        "open_pr": 573,
+        "head_sha": "e6e49ed727c01d3f453220663755e3afecfe009a",
+        "note": "Re-measured at merge base 8bc4c66 (brief's 58.6/67.2/80.5 are stale, from 4b6e0765): climate.py was already 86.0% (150 stmts, 21 missed) from W4's coordinator work; open_meteo.py 68.2% (201, 64); frontend.py unchanged 80.5% (82, 16). All three now 100.0% (0 missed) via tests/entities.py, tests/open_meteo.py, tests/frontend.py; test-only diff, custom_components/ empty. Mutation-proven one per module, all restored (md5-verified). pragma: no cover stays 8. MODE SCOPED, 3 scripts. closures job was UNDER-SCOPED on first push; closures-autofix landed ci: re-record closures at e6e49ed7, recheck in flight. Unrelated: found #195 had been accidentally re-closed by PR #543's squash-commit message (a different vector than the PR-body closingIssuesReferences bug already documented in COMMON.md) -- reopened and documented on the issue. Next seat W5-G6 after this merges."
       },
       "brief": "#195 tranche 1 (start here): climate.py 58.6 % (58 missed), open_meteo.py 67.2 % (66), frontend.py 80.5 % (16) at 4b6e0765 — re-measure. Do not put coordinator.py in this group (W5-G7, after #193 seams). Coverage gain from the named modules, not from adding end-to-end scripts (validate/edge/backtest/optimality/plan_view each move the total 0.0 pt). Track assertion density (config_flow_steps RESULT ledger pattern), not just percentage. Do not grow `# pragma: no cover` (8 sites). Script list from tests/run.sh, not the frozen round-2 D10 coverage harness. Do not use the stale 88.4 % tsv; before-figure is 89.7 % / 48 modules / 1338 missed. config_flow.py's 21 statements are #304 (Wave 4), not this issue. Do not Closes #195. Part of #201. Expected golden drift: none unless a test forces a key path — then claim, never re-record value goldens. claims-for 6.3.15. Do not stamp. Mutation-prove at least one new assertion per module."
     },
