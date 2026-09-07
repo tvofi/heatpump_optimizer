@@ -1532,7 +1532,7 @@
         },
         "wood_slots": {
           "name": "Wood slots",
-          "description": "What-if wood fires as a list of {start, end, liters} objects. Injected only into the shadow solve; never written to the config entry."
+          "description": "What-if wood fires as a list of objects each carrying a start, an end and a volume in liters. Injected only into the shadow solve; never written to the config entry."
         },
         "wood_type": {
           "name": "Wood type",
@@ -1624,11 +1624,11 @@
       "fields": {
         "space_slots": {
           "name": "Space heating slots",
-          "description": "When space heating should run, as a list of {start, end} objects with ISO 8601 datetimes. An empty list forces space heating off for the whole period; omit the field entirely to leave space heating fully automatic."
+          "description": "When space heating should run, as a list of objects each carrying a start and an end as ISO 8601 datetimes. An empty list forces space heating off for the whole period; omit the field entirely to leave space heating fully automatic."
         },
         "dhw_slots": {
           "name": "Hot water slots",
-          "description": "When hot water should run, as a list of {start, end} objects with ISO 8601 datetimes. An empty list forces hot water off for the whole period; omit the field entirely to leave hot water fully automatic."
+          "description": "When hot water should run, as a list of objects each carrying a start and an end as ISO 8601 datetimes. An empty list forces hot water off for the whole period; omit the field entirely to leave hot water fully automatic."
         },
         "expires_at": {
           "name": "Expires at",

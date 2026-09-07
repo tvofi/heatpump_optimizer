@@ -28,6 +28,7 @@ import asyncio
 import json
 import pathlib
 import re
+import string
 import sys
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -11046,6 +11047,48 @@ R.check(
     "the documented services are exactly the registered ones",
     set(services) == _registered,
     f"{sorted(set(services) ^ _registered)}",
+)
+
+# hassfest's TRANSLATIONS validator reads every string in these files and
+# treats any ``{...}`` as a PLACEHOLDER, so brace syntax that is merely prose
+# in services.yaml becomes an error once the same sentence moves into a
+# catalogue. Transcribed from script/hassfest/translations.py: it parses each
+# value with string.Formatter and requires every non-empty field_name to be
+# an identifier, and separately refuses a placeholder inside single quotes.
+# Ran in CI at about 30 seconds; runs here in milliseconds, which is why it is
+# here (#558 D5 turned `hassfest` red on exactly this).
+_RE_PLACEHOLDER_IN_SINGLE_QUOTES = re.compile(r"'{\w+}'")
+
+
+def _translation_placeholder_errors(node, where):
+    out = []
+    if isinstance(node, dict):
+        for _k, _v in node.items():
+            out += _translation_placeholder_errors(_v, f"{where}.{_k}")
+        return out
+    if not isinstance(node, str):
+        return out
+    try:
+        fields = [f for _, f, _, _ in string.Formatter().parse(node) if f]
+    except ValueError as err:
+        return [f"{where}: unparseable format string ({err})"]
+    for _field in fields:
+        if not _field.isidentifier():
+            out.append(f"{where}: {{{_field}}} is not a valid identifier")
+    if _RE_PLACEHOLDER_IN_SINGLE_QUOTES.search(node):
+        out.append(f"{where}: placeholder inside single quotes")
+    return out
+
+
+_placeholder_errors = [
+    _e
+    for _name, _data in _CATALOGUES.items()
+    for _e in _translation_placeholder_errors(_data, _name)
+]
+R.check(
+    "every translation string is a legal format string for hassfest",
+    not _placeholder_errors,
+    "; ".join(_placeholder_errors[:4]),
 )
 
 
