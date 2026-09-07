@@ -18358,6 +18358,98 @@ R.check(
 )
 
 
+R.section("#224 stage 2 — optimize's comfort envelope and power ceiling answer for themselves")
+
+# Two pure builders lifted verbatim out of optimize. Every figure below is
+# chosen so that the subtlety a careless re-write would drop returns a
+# DIFFERENT number rather than a coincidentally equal one.
+
+_cb_opt = _MbOpt(
+    ThermalModel(ThermalParameters.from_config(_mb_profiles.house())),
+    _MbCfg(horizon_hours=1, min_temp=19.0, max_temp=23.0),
+)
+# 12:00 is inside the day band (07-22) and 03:00 outside it, so the two steps
+# carry different bounds and a builder that ignores step_hours cannot pass.
+_cb_hours = np.array([12.0, 3.0])
+
+_cb_targets, _cb_min, _cb_max = _cb_opt._build_comfort_bounds(_cb_hours, 2, None, None)
+R.check(
+    "with neither adjustment the envelope is exactly the configured band",
+    list(_cb_targets) == [21.0, 19.5]
+    and list(_cb_min) == [19.0, 18.5]
+    and list(_cb_max) == [23.0, 23.0],
+    f"targets {list(_cb_targets)} min {list(_cb_min)} max {list(_cb_max)} — "
+    f"None for both must be byte-for-byte the previous bounds, or all 47 plan "
+    f"goldens move",
+)
+
+_, _cb_floor_min, _ = _cb_opt._build_comfort_bounds(
+    _cb_hours, 2, None, np.array([30.0, 30.0])
+)
+R.check(
+    "a floor above the ceiling is clamped, not left to squeeze the band shut",
+    list(_cb_floor_min) == [22.5, 22.5],
+    f"{list(_cb_floor_min)} — 30.0 means the floor was left above max_temp, "
+    f"which makes the solve infeasible and the comfort penalty unbounded",
+)
+
+_, _cb_neg_min, _ = _cb_opt._build_comfort_bounds(
+    _cb_hours, 2, np.array([-5.0, -5.0]), None
+)
+R.check(
+    "a negative margin cannot lower the comfort floor",
+    list(_cb_neg_min) == [19.0, 18.5],
+    f"{list(_cb_neg_min)} — [14.0, 13.5] means the clip at zero was dropped, so "
+    f"a mis-signed model error now relaxes the floor it exists to raise",
+)
+
+_, _cb_short_min, _ = _cb_opt._build_comfort_bounds(_cb_hours, 2, np.array([1.0]), None)
+R.check(
+    "a short margin series pads with zero rather than shortening the horizon",
+    list(_cb_short_min) == [20.0, 18.5],
+    f"{list(_cb_short_min)} — a one-entry margin raises step 0 only and leaves "
+    f"the rest of the horizon at its configured floor",
+)
+
+# The ceiling builder. 'none' is a non-throttling valve mode and this house's
+# max_electrical_power is 6.0 kW, so the first case is the no-valve, no-cap
+# install whose plan must stay byte-for-byte identical.
+_pc_throttling, _pc_caps, _pc_extra = _cb_opt._build_space_power_caps(3, None, False)
+R.check(
+    "a no-valve, no-cap, unblocked install builds no ceiling at all",
+    _pc_throttling is False and _pc_caps is None and _pc_extra is None,
+    f"throttling {_pc_throttling} caps {_pc_caps} — an array here puts a ceiling "
+    f"on every install that has never had one",
+)
+
+_, _pc_short_caps, _pc_short_extra = _cb_opt._build_space_power_caps(
+    3, np.array([2.0]), False
+)
+R.check(
+    "a short external cap pads with full power, never with zero",
+    list(_pc_short_caps) == [2.0, 6.0, 6.0]
+    and list(_pc_short_extra) == [2.0, 6.0, 6.0],
+    f"{list(_pc_short_caps)} — [2.0, 0.0, 0.0] means the pad was zeros, which "
+    f"silently forces the heat pump off for two thirds of the horizon",
+)
+
+_, _pc_blocked, _ = _cb_opt._build_space_power_caps(3, None, True)
+R.check(
+    "a blocked space channel pins the ceiling to zero",
+    list(_pc_blocked) == [0.0, 0.0, 0.0],
+    f"{list(_pc_blocked)} — 6.0 means the mode gate was dropped and a blocked "
+    f"channel would heat anyway",
+)
+
+_, _pc_both, _ = _cb_opt._build_space_power_caps(3, np.array([2.0, 2.0, 2.0]), True)
+R.check(
+    "and a block still composes with an external cap by minimum",
+    list(_pc_both) == [0.0, 0.0, 0.0],
+    f"{list(_pc_both)} — 2.0 means the zeroing was dropped and the external cap "
+    f"alone now decides a channel the mode gate had shut",
+)
+
+
 
 R.section("v5.3.0 review — the experiment obeys the mode gate too")
 
