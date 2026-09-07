@@ -88,7 +88,3 @@
 #
 # The README section on AI use: this branch claims NOTHING. README.md only
 # -- no card source is touched.
-# #524 / #525 (the solve worker's result channel, and two blocking calls in
-# the event loop): this branch claims NOTHING. No card source, no plan-view
-# payload and no numeric path is touched, so every rendered tree is
-# byte-identical by construction.
