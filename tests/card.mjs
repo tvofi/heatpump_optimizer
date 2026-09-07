@@ -6800,10 +6800,15 @@ const setupBox = (card, place) =>
   // What is measured: the S-cone blue-yellow axis survives deuteranopia, so
   // "lightness is the only axis a deuteranope keeps" is false -- among in-band
   // colours of EQUAL luminance to the solar series the separation reaches
-  // 140 dE. Colours far from price DO exist: 323,326 in-band colours clear
-  // 20 dE, and the best blue and the best green beat every warm hue by a wide
-  // margin. What is NOT measured, and must not be asserted here, is that they
-  // collide with something else: the best blue is 147 dE from dhw_slots.
+  // 140 dE. Colours far from price DO exist -- no count of them is given,
+  // because two earlier drafts of this comment quoted one and neither
+  // re-derived. What must NOT be asserted is that those colours collide with
+  // something else: the best blue is 147 dE from dhw_slots, not close to it.
+  // And "green would have done" is false under the metric this check uses:
+  // by MINIMUM separation to every series, green reaches only 19.6 -- below
+  // the 20 dE demanded, and inside the 2.3 dE just-noticeable difference of
+  // the warm best at 18.1. Blue does clear it (54.2); solar is warm by
+  // convention rather than by constraint.
   //
   // Solar is warm because a solar series is warm by convention, not because
   // the palette forbids the alternatives. Within the warm family the

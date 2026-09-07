@@ -1051,15 +1051,21 @@ const SERIES_DEFS = [
     // written here. It is NOT that lightness is the only axis a deuteranope
     // keeps -- the S-cone blue-yellow axis survives, and among in-band
     // colours of EQUAL luminance to #ed6900 the deuteranope separation
-    // reaches 140 dE (at #0093ff). The real constraint is that the
-    // alternatives beating a warm hue here are all pinks and blues, which
-    // this series may not be: solar is warm by convention, and moving it
-    // away from price pushes it toward dhw_slots. Maximising the MINIMUM
-    // separation to every other series is the well-posed objective, and it
-    // tops out around 18 dE for a warm hue -- the 15.0 above is #ed6900's
-    // own figure, not the family ceiling. Both are under the 20 dE this
-    // check demands, which is what makes the dash necessary rather than
-    // decorative. Price and solar are also the only pair drawn by the same
+    // reaches 140 dE (at #0093ff). So colours far from price DO exist, and
+    // no count of them is given here: two earlier drafts of this comment
+    // quoted one and neither re-derived.
+    //
+    // Solar is warm by CONVENTION, not because the palette forbids the
+    // alternatives. The objective that is well posed is the MINIMUM
+    // separation to every other series -- not the separation from price --
+    // because moving solar away from price pushes it toward the other
+    // series. Under that metric the warm family tops out at 18.1 dE, a
+    // plateau over hue 30-50 at C>=40, and the shipped #ed6900 sits at 15.0,
+    // which is its own figure and not the family's. Both are under the 20 dE
+    // this check demands, which is what makes the dash necessary rather than
+    // decorative. Blue clears it comfortably (54.2); green does NOT (19.6 --
+    // under the threshold, and inside the 2.3 dE just-noticeable difference
+    // of the warm best, so "green would have done" is false). Price and solar are also the only pair drawn by the same
     // `stepArea` branch of seriesPath, so shape did not tell them apart. The dash is the second channel, and unlike a
     // hue it survives monochrome and every other form of colour blindness.
     dash: "6 3",
