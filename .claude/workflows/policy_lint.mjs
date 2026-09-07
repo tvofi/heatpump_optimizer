@@ -165,6 +165,10 @@ const POLICY_GLOBS = [
   /^tests\/README\.md$/,
   /^docs\/HANDOVER\.md$/,
   /^\.claude\/workflows\/web-fragments\.md$/,
+  // A skill is seat-facing text loaded by the harness at the moment a pull
+  // request event arrives, which makes it policy with an unusually short path
+  // to acting on it. It is linted like the rest.
+  /^\.claude\/skills\/[a-z0-9-]+\/SKILL\.md$/,
 ]
 
 // Always loaded by a tool, so their size is charged to every session.
@@ -177,7 +181,7 @@ const ALWAYS_LOADED = /^(CLAUDE\.md|\.claude\/rules\/[a-z0-9-]+\.md)$/
 // would still have printed `TOTAL: 0`. This is the same argument
 // closure.orphan_files() makes about the gate -- a file that is neither matched
 // nor deliberately excluded is an oversight, not a pass.
-const POLICY_DIRS = [/^\.cursor\/rules\//, /^\.claude\/rules\//, /^tools\/audit\/briefs\//]
+const POLICY_DIRS = [/^\.cursor\/rules\//, /^\.claude\/rules\//, /^\.claude\/skills\//, /^tools\/audit\/briefs\//]
 // The one deliberate exclusion: write-once evidence committed under briefs/.
 const POLICY_DIR_EXCLUDE = [/^tools\/audit\/briefs\/.*\.(json|txt|png|svg)$/]
 
@@ -553,7 +557,16 @@ function checkIndex(files, indexRel = 'CLAUDE.md') {
   for (const re of [PATH_TOKEN_RE, MDC_PATH_RE]) {
     re.lastIndex = 0
     let m
-    while ((m = re.exec(text))) named.add(m[0])
+    while ((m = re.exec(text))) {
+      named.add(m[0])
+      // ...and its basename. PATH_TOKEN_RE cannot begin with a dot, so a path
+      // the index writes as `.claude/skills/steward/SKILL.md` is captured with
+      // the leading dot shorn off and matches neither the full path nor the
+      // bare-filename pattern below. The index would then report a file it
+      // plainly names as unnamed. Recording the basename is right on its own
+      // terms as well: naming `a/b.md` is naming `b.md`.
+      named.add(path.posix.basename(m[0]))
+    }
   }
   // Also catch bare brief names in the role-contract tables ("fixer.md").
   for (const b of text.match(/`[A-Za-z0-9_.-]+\.(?:md|mdc)`/g) || []) named.add(b.slice(1, -1))

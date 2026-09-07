@@ -4,6 +4,7 @@
   "always_loaded_tokens": 6800,
   "_always_loaded_target": 6000,
   "files": {
+    ".claude/skills/steward/SKILL.md": 100,
     ".claude/workflows/fixtures/policy-rot/budgets.md": 1,
     ".claude/workflows/web-fragments.md": 169,
     ".cursor/rules/brief-citations.mdc": 41,
@@ -11,7 +12,7 @@
     ".cursor/rules/defect-root-cause.mdc": 145,
     ".cursor/rules/delivery-status-tracking.mdc": 25,
     ".cursor/rules/finding-propagation.mdc": 101,
-    "CLAUDE.md": 465,
+    "CLAUDE.md": 468,
     "docs/HANDOVER.md": 278,
     "tests/README.md": 801,
     "tools/audit/README.md": 251,
