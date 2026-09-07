@@ -62,6 +62,20 @@ so it costs no extra pull request, and `updated-for:` names that merge.
   is a literal, not an environment override, because an override could be
   reached in CI without ever appearing in a pull-request body.
 
+- **Fix, then verify, then file** (owner, 2026-09-07). Each step is a fallback
+  for the one before, not an alternative. An issue propagates further than a
+  wrong pull request because nothing gates it: a pull request meets a reviewer,
+  an issue meets a seat that treats it as a brief. A **recurring** error is an
+  RCA, not a third issue — the trigger is roughly the third instance.
+- **The orchestrator is bound by every contract it enforces.**
+  `tools/audit/briefs/orchestrator.md` exists because it did not: every auditor
+  of the resumability review had to be *told* what to fetch.
+- **Every sentence earns its place** (owner-directed). Governs the development
+  record — pull-request bodies, issues, comments, commit messages, briefs,
+  roster entries, reports and this file — never `README.md` or the rest of
+  `docs/`. **Precision outranks concision**, and cutting evidence is never
+  compliance with it.
+
 ### The UX programme
 
 Thirty-four items in five lanes, selected by the owner from a forty-two item
@@ -105,6 +119,20 @@ its fourth landed first.
   floor — absent from that release's `helpers/selector.py`, present at
   2025.2.0. The park was correct, and it is #514 that unblocks it.
 
+- **The ratchet has 24 metrics.** `structure_budgets.json` keys less
+  `recorded_at`. `CLAUDE.md` said 22 for a long time and a pull-request body
+  said 29 — that 29 is the count of `ok` lines, which includes the counting-rule
+  check and four `const.py` symbol checks. **Derive it; never carry it.**
+- **The claim-file rule is conditional, and the flat form is wrong.** A branch
+  that claims **no** drift must not touch `claimed_drift.txt` /
+  `card_claimed_drift.txt` — GitHub cannot run the `claimnotes` merge driver, a
+  gratuitous note makes the pull request DIRTY, and CI then never queues
+  (absent, not failing). A branch that **does** move goldens must write its
+  claims, and those bare lines are then the correct state. The flat "always
+  byte-identical" form was briefed to every seat for a session before a reviewer
+  refused it by measuring: PR #600 carries 33 correct bare lines because it
+  moves 33 card states.
+
 ## Traps that cost a session
 
 1. **A killed agent never writes its own `state at stop:` comment.**
@@ -146,6 +174,39 @@ its fourth landed first.
 11. **Check `git rev-parse --is-shallow-repository` before believing a
     divergence figure.** A shallow clone silently turns every "commits ahead"
     count into fiction; four such figures once reached a handover.
+12. **A fix gets verified against the instance that was demonstrated, not the
+    property that was stated.** The demonstration displaces the specification,
+    the verification is built from the demonstrated instance's *form*, and any
+    sibling carrying the property in a different form survives — including one
+    the same commit creates. Established by root-cause analysis over #531, #569
+    and #591: **3.1% of reviewed pull requests, 11.2% of all review rounds.**
+    A check cannot close it — `tools/audit/preflight.sh`, written against this
+    very class, catches **0 of 3**, because it matches digit-shaped figures and
+    all three instances spell the quantity as a word. The countermeasure shared
+    the class's own defect.
+    The divider is **structural, not dispositional**: the class reaches no seat
+    pull request across all 154 review-round bodies, because a seat's production
+    fix is accepted by standing property-quantified instruments — CI, the
+    ratchet, closures, the mutation proof — and a record or policy artifact has
+    none, so its acceptance test is whatever its author wrote that minute.
+13. **"The pull request is open" is not a handoff.** The freeze starts at
+    handoff, and a seat that has opened its pull request may still be pushing
+    while it waits on CI. Six head-moves under review in one session.
+14. **A record pull request cannot converge while the merge queue runs.** #531
+    took 20 hours, 45 commits — 19 of them merges of main — 25 content edits and
+    11 blocked rounds, because 31 pull requests merged underneath it and each
+    invalidated part of its content. The rule already says *the same session or
+    an immediate record pull request*: one record per merge has a bounded truth
+    condition and cannot be overtaken. Live state belongs on #201, where a
+    comment cannot go stale under a merge.
+15. **`date -jf '%Y-%m-%dT%H:%M:%SZ'` parses a UTC stamp as local time.** Every
+    age computed that way is wrong by the offset; it once made a queue aged
+    8 minutes to 20 hours read as a flat "2h", hiding which pull request was
+    actually the outlier. Use Python's `datetime.fromisoformat` with an explicit
+    UTC now.
+16. **Backticks inside a double-quoted shell string are command substitution.**
+    Three review comments were posted with their SHAs silently missing. Write
+    the body to a file with a quoted heredoc and pass `-F body=@file`.
 
 ## Owed
 
