@@ -109,11 +109,11 @@ production lines. You work in your own worktree branched from `origin/main`.
    A root-cause analysis established this class over three pull requests where
    each fix was verified against the demonstrated instance's form while a
    sibling carrying the same property in a different form survived — one of them
-   created by the same commit. Its measurements are in that report rather than
-   quoted here: they are a share of a moving population and decay, which is what
-   step 3 above forbids. A check does not replace this step, and that was tested
-   rather than assumed — see the report for which detector was tried and why it
-   missed.
+   created by the same commit. That analysis, its cost test and the detector it
+   built and rejected are recorded on **#592**, which is where this step was
+   added. Its measurements are deliberately not quoted here: they are a share of
+   a moving population and decay, which is what step 3 above forbids — three
+   figures were quoted in a first draft and a reviewer refuted all three.
 
 9. **A claim should be true; if wrong, correct it — anchored to a lane,
    function, marker or SHA, never a bare line number — and delete only when
