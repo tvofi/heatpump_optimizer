@@ -23,7 +23,11 @@ while read -r kw num; do
     *" $num "*) say ok "closes #$num -- intended" ;;
     *) say REFUSE "'$kw #$num' closes #$num; not in the intended list"; rc=1 ;;
   esac
-#    FOUR reference forms, not one. A review found the first version caught only
+#    FOUR reference forms, not one -- and FOUR IS NOT ALL OF THEM. A review
+#    found seven further shapes that still pass, and this grep is line-oriented,
+#    so a keyword and a number split across a newline are not seen. Treat the
+#    output as a pre-flight that catches the common cases, never as a gate that
+#    proves the body is clean. A review found the first version caught only
 #    `#N` while GitHub acts on all of these -- so `Closes GH-224` passed clean:
 #      #224                                   bare
 #      GH-224                                 GH- prefix

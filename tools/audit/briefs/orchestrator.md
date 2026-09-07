@@ -185,6 +185,12 @@ landed by a pull request listed in its own evidence table.
 Out of scope is not a licence to file: a real finding you must not touch goes to
 that stage's brief under section 10.
 
+**This rule is stated here and again in `CLAUDE.md`.** The duplication is
+deliberate — it binds every seat, so it belongs where every seat reads, and it
+binds you hardest, so it belongs here. **If the two ever disagree, `CLAUDE.md`
+is the rule and this copy is the bug.** A precedence rule only one side can see
+is not one.
+
 ## 9. The record, and the one living handover
 
 `delivery-status-tracking.mdc`, at **each merge** and not at session end — the
@@ -248,8 +254,12 @@ only in markdown is unchecked, and putting one there is not carrying it.
 
 - **A backticked identifier is a symbol citation** and must exist in the tracked
   tree or at a cited tag. This has bitten three times in one session, each time
-  on a symbol a *planned* item exists to add — so a lane that adds UI symbols
-  will fight the rule, and the answer is a tag citation, not a weaker linter.
+  on a symbol a *planned* item exists to add. **The remedies are in
+  `brief-citations.mdc` and that rule is authoritative** — do not reach for a tag
+  citation by reflex: measurement shows the symbols that bit here exist at no
+  tag, so a tag citation does not rescue them. Do not backtick a symbol that does
+  not exist yet, or cite the artifact that does. Weakening the linter is not a
+  remedy.
 - **A literal metric value is always an error** (`coordinator_loc 10394 <= 10394`);
   the fixer re-measures at their own merge base. That is the same rule as
   section 1, enforced.

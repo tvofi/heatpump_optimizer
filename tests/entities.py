@@ -8053,7 +8053,7 @@ R.check(
     "other check still passed, so it needs its own arm",
 )
 R.check(
-    "and it refuses every reference form GitHub acts on, not only #N",
+    "and it refuses the four commonest reference forms, not only #N",
     _preflight.is_file()
     and all(
         subprocess.run(
@@ -8068,7 +8068,10 @@ R.check(
         )
     ),
     "GitHub closes on GH-N, owner/repo#N and a full issue URL as well as #N; "
-    "the first version of this script caught only #N and passed the rest",
+    "the first version caught only #N. This pins FOUR named forms, not the "
+    "universal its earlier name claimed -- a review found seven further shapes "
+    "that still pass, and the line-oriented grep cannot match a keyword and a "
+    "number separated by a newline. The script is a pre-flight, not a gate.",
 )
 R.check(
     "and passes a declared one, so it is not simply always-red",
