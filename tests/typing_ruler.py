@@ -11,7 +11,7 @@ this file lands before any annotation does, and it ratchets THREE numbers:
 
   errors        total mypy --strict errors under the pinned, stub-free ruler
   by_code       the same errors split by error code, ratcheted PER CODE
-  type_ignores  `# type: ignore` occurrences, a separate hard metric at 0
+  type_ignores  in-line suppression occurrences, a separate hard metric at 0
 
 The third is not a flag on the first. ``--warn-unused-ignores`` is in the
 command and does NOT prevent ignore-stuffing: the judge measured annotating
@@ -57,10 +57,39 @@ names the lever it exists to stop:
    emits a line or two and a naive counter reads that as a near-perfect score;
    guard 1 catches it too, from the other side, since the dying line's path is
    inside the stubs package rather than the integration.
-4. **The suppression-surface guard.** No mypy configuration may exist in the
-   tree. ``disable_error_code`` in a config file drives the count down with
-   zero improvement and neither the total nor the per-code table can see it
-   happen -- the same shape as ignore-stuffing, one level up.
+4. **The suppression-surface guard.** Nothing in the tree may suppress a
+   diagnostic. Stated as that property because an enumeration WAS the defect:
+   this guard shipped inspecting four repo-root config file *names*, and mypy's
+   inline per-module configuration comment is neither a config file nor a
+   ``# type: ignore``, so it passed. Under the pinned toolchain three
+   unannotated defs go 3 errors -> 0 with one such comment prepended, and all
+   three ratcheted numbers then move the APPROVING way -- ``errors`` falls,
+   ``by_code`` falls, ``type_ignores`` holds at 0 -- so ``ratchet()`` prints
+   IMPROVED and not yet recorded and invites the next tranche to write the
+   suppressed figure down. That is worse than missing a suppression: it rewards
+   one. The split between this guard and ``type_ignores`` is by shape, not by
+   kind: a suppression written INSIDE a source line is countable, so it is
+   counted into that metric and ratcheted; a suppression that IS a file is not
+   countable, so it is refused here.
+
+WHAT THE GUARD DELIBERATELY DOES NOT COVER, said out loud so that silence is
+not read as coverage:
+
+* A mypy configuration outside the tree -- ``~/.mypy.ini``,
+  ``$XDG_CONFIG_HOME/mypy/config``. No scan of the tree can see one; it cannot
+  travel in a pull request; and CI is authoritative for ``errors`` and
+  ``by_code``, so it can only mislead a local ``--mypy``. Closing it means
+  ``--config-file=`` on the pinned invocation, which does work (measured), but
+  that changes the command that produced the recorded census -- and the census
+  cannot be re-derived below Python 3.13.2 (#504). Recorded as an exclusion
+  rather than taken as an unverified flag.
+* A settings flag added to ``run_mypy`` itself. A guard cannot defend the file
+  it lives in; review does that.
+* ``Any``, ``object`` and ``cast``. They change what the code claims rather
+  than hiding what mypy said, and ``by_code`` already prices them -- see the
+  relabelling paragraph above.
+* Deleting or excluding a module. That changes what ships, guard 1 and the
+  ``by_module`` table both show it, and it is not a suppression.
 
 WHAT THIS DOES NOT DO. It does not annotate anything, and it does not close
 #303. It also cannot run on a box below Python 3.13.2: the pinned stubs will
@@ -71,11 +100,14 @@ something else. See #504 -- the ruler is authoritative in CI, and a local
 from __future__ import annotations
 
 import argparse
+import configparser
 import json
+import os
 import re
 import subprocess
 import sys
 import tempfile
+import tomllib
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -83,10 +115,26 @@ PACKAGE_REL = "custom_components/heatpump_optimizer"
 PACKAGE_DIR = REPO_ROOT / PACKAGE_REL
 BUDGET_FILE = REPO_ROOT / "tests" / "typing_budgets.json"
 
-# One `# type: ignore`, however spaced, and the module-level hammer that does
-# the same job for a whole file at once. Counted per OCCURRENCE, not per line:
-# `grep -c` counts lines, and two ignores on one line are two ignores.
-IGNORE_RE = re.compile(r"#\s*type:\s*ignore|#\s*mypy:\s*ignore-errors")
+# Every suppression that fits inside a source line. Counted per OCCURRENCE, not
+# per line: `grep -c` counts lines, and two on one line are two.
+#
+# `# mypy:` is matched WHOLE rather than by naming the settings that suppress,
+# because naming them is the mistake guard 4 was landed with. Measured under the
+# pinned mypy with the ruler's own flags, three unannotated defs go 3 errors -> 0
+# under each of `disable-error-code="..."`, `disable_error_code = ...`,
+# `allow-untyped-defs` and `ignore-errors`, and mypy honours the comment at
+# column 0 anywhere in the file rather than only above the code. This does not
+# model that column rule -- mypy ignores an indented one, measured, so refusing
+# it costs a false positive of exactly the shape a reader would misread anyway.
+#
+# `no_type_check` is here for the same reason and is not a comment: the
+# decorator makes mypy skip the function's body and signature outright
+# (measured, 3 -> 0), with no config file and no comment to find.
+SUPPRESSION_RE = re.compile(
+    r"#\s*type:\s*ignore"
+    r"|#\s*mypy:"
+    r"|\bno_type_check\b"
+)
 
 # `path:line: error: message  [code]`, with an optional column. `--no-error-summary`
 # removes the trailing total; `note:` lines are not errors and are not counted.
@@ -95,9 +143,13 @@ ERROR_RE = re.compile(
     r"(?:\s*\[(?P<code>[A-Za-z0-9_-]+)\])?$"
 )
 
-# Files mypy would read configuration from. None of these exist in this tree
-# and guard 4 keeps it that way.
-CONFIG_CANDIDATES = ("mypy.ini", ".mypy.ini", "setup.cfg", "pyproject.toml")
+# Basenames mypy reads configuration from. WHICH copy it reads depends on the
+# invocation's working directory, which is not a property of the tree, so guard
+# 4 looks for them everywhere rather than at the repository root only.
+CONFIG_BASENAMES = ("mypy.ini", ".mypy.ini", "setup.cfg", "pyproject.toml")
+
+# Not source, and large: `.git` alone is most of the walk.
+UNWALKED_DIRS = (".git", "__pycache__", "node_modules")
 
 
 class Report:
@@ -142,44 +194,80 @@ def head_sha() -> str:
 # source-only measurements: no toolchain, so the ordinary gate runs them
 
 
-def count_type_ignores() -> tuple[int, list[str]]:
-    """Occurrences of a type-ignore comment in the integration, with evidence.
+def count_suppressions() -> tuple[int, list[str]]:
+    """In-line suppression occurrences in the integration, with evidence.
 
     The rule, stated because a number without its rule is not re-derivable
-    (`fixer.md` step 8): every match of IGNORE_RE in every ``*.py`` under
-    ``custom_components/heatpump_optimizer``, counted per match rather than
-    per line, with no exclusions.
+    (`fixer.md` step 8): every match of SUPPRESSION_RE in every ``*.py`` under
+    ``custom_components/heatpump_optimizer``, counted per match rather than per
+    line, with no exclusions -- a match inside a string or a docstring counts,
+    because a rule with an exception is a rule with a hiding place.
+
+    The metric keeps the name ``type_ignores`` in the budget file: the recorded
+    value is 0 and every form counted here is 0, so widening what it counts
+    moves no number.
     """
     total = 0
     where: list[str] = []
     for path in sorted(PACKAGE_DIR.rglob("*.py")):
         rel = path.relative_to(REPO_ROOT)
         for lineno, line in enumerate(path.read_text().splitlines(), 1):
-            for _ in IGNORE_RE.finditer(line):
+            for _ in SUPPRESSION_RE.finditer(line):
                 total += 1
                 where.append(f"{rel}:{lineno}: {line.strip()}")
     return total, where
 
 
-def find_mypy_config() -> list[str]:
-    """Configuration files mypy would read, that carry mypy settings.
+def _carries_mypy_settings(path: Path) -> bool:
+    """Whether a candidate config file actually configures mypy.
 
-    ``setup.cfg`` and ``pyproject.toml`` are only a finding when they actually
-    carry a mypy section -- they have other jobs, and this check must not
-    become a reason nobody may add a ``pyproject.toml``.
+    Parsed, not substring-matched. ``[tool."mypy"]`` is the same TOML key as
+    ``[tool.mypy]`` and mypy honours it -- measured, 3 errors -> 0 -- while the
+    substring test this replaces returned no finding for it. A file that will
+    not parse falls back to the substring test rather than to silence.
     """
-    found = []
-    for name in CONFIG_CANDIDATES:
-        path = REPO_ROOT / name
-        if not path.exists():
-            continue
-        if name in ("mypy.ini", ".mypy.ini"):
-            found.append(name)
-            continue
-        text = path.read_text()
-        if "[mypy" in text or "[tool.mypy" in text:
-            found.append(name)
-    return found
+    if path.name in ("mypy.ini", ".mypy.ini"):
+        return True
+    text = path.read_text(errors="replace")
+    if path.name == "pyproject.toml":
+        try:
+            return "mypy" in tomllib.loads(text).get("tool", {})
+        except (tomllib.TOMLDecodeError, AttributeError):
+            return "[tool.mypy" in text
+    parser = configparser.ConfigParser()
+    try:
+        parser.read_string(text)
+    except configparser.Error:
+        return "[mypy" in text
+    return any(s == "mypy" or s.startswith("mypy-") for s in parser.sections())
+
+
+def find_suppression_surfaces() -> list[str]:
+    """Whole-file suppression surfaces, as repository-relative paths.
+
+    Two kinds, both file-shaped, which is why they are a guard rather than a
+    ratcheted count:
+
+    * a file mypy would take settings from, found anywhere in the tree.
+      Root-only would encode today's command line instead of the prohibition;
+      from the repository root mypy does not in fact read a nested one
+      (measured), so a nested hit is a latent surface rather than a live one,
+      and the guard's contract is that none exists. ``setup.cfg`` and
+      ``pyproject.toml`` count only where they carry a mypy section -- they have
+      other jobs, and this must not become a reason nobody may add one.
+    * a ``.pyi`` beside a package source. mypy checks the stub INSTEAD of the
+      module, so every error in that module disappears (measured, 3 -> 0) with
+      no comment and no configuration anywhere to find.
+    """
+    found: list[str] = []
+    for parent, dirs, names in os.walk(REPO_ROOT):
+        dirs[:] = [d for d in dirs if d not in UNWALKED_DIRS]
+        for name in names:
+            path = Path(parent, name)
+            if name in CONFIG_BASENAMES and _carries_mypy_settings(path):
+                found.append(str(path.relative_to(REPO_ROOT)))
+    found += [str(p.relative_to(REPO_ROOT)) for p in PACKAGE_DIR.rglob("*.pyi")]
+    return sorted(found)
 
 
 # ---------------------------------------------------------------------------
@@ -270,8 +358,6 @@ def run_mypy(budget: dict) -> tuple[int, list[str]]:
     every script it runs, and the whole point of this ruler is that the fake
     Home Assistant is not on the path.
     """
-    import os
-
     env = {k: v for k, v in os.environ.items() if k not in ("MYPYPATH", "PYTHONPATH")}
     with tempfile.TemporaryDirectory() as cache:
         proc = subprocess.run(
@@ -350,7 +436,7 @@ def measure(report: Report, budget: dict) -> dict | None:
         module = path[len(PACKAGE_REL) + 1:]
         by_module[module] = by_module.get(module, 0) + 1
 
-    ignores, _ = count_type_ignores()
+    ignores, _ = count_suppressions()
     return {
         "errors": len(under_package),
         "by_code": dict(sorted(by_code.items())),
@@ -432,16 +518,17 @@ def report_improvements(rows: list[tuple]) -> None:
 
 
 def source_checks(report: Report, budget: dict) -> None:
-    ignores, where = count_type_ignores()
+    ignores, where = count_suppressions()
     for line in where[:20]:
-        report.note("type-ignore", line)
+        report.note("suppression", line)
     budgeted = budget["type_ignores"]
     if ignores > budgeted:
         report.check(
             "type_ignores did not grow", False,
             f"recorded {budgeted}, measured {ignores} ({ignores - budgeted:+}). "
             "--warn-unused-ignores cannot catch this: a live ignore is a USED "
-            "ignore. Annotate instead, or record the increase deliberately",
+            "ignore, and it never sees a `# mypy:` directive or no_type_check "
+            "at all. Annotate instead, or record the increase deliberately",
         )
     else:
         report.check("type_ignores did not grow", True)
@@ -449,13 +536,13 @@ def source_checks(report: Report, budget: dict) -> None:
             report_improvements([("type_ignores", budgeted, ignores)])
 
     # Guard 4.
-    configs = find_mypy_config()
+    surfaces = find_suppression_surfaces()
     report.check(
         "no mypy configuration exists to suppress error codes from",
-        not configs,
-        f"found {', '.join(configs)}; disable_error_code there drives the count "
-        "down with zero improvement, and neither the total nor the per-code "
-        "table can see it happen",
+        not surfaces,
+        f"found {', '.join(surfaces)}; a mypy section or a stub shadowing a "
+        "module drives the count down with zero improvement, and errors, "
+        "by_code and type_ignores all move the approving way while it happens",
     )
 
     census = budget.get("census")
