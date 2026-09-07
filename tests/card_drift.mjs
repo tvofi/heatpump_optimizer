@@ -20,6 +20,21 @@
 // plan_view.py writes. Two cards rendered side by side in one process share
 // all of those, so what remains is the change's own footprint.
 //
+// If this script reports moved states, `docs/img/*.svg` may be stale too, and
+// NOTHING will tell you (#558 C2/C3, measured 2026-09-07). Some of those
+// figures are pictures of the chart, drawn by running the shipped card through
+// this same rig (`docs/img/make_card_figures.mjs`). `docs/` is INERT in
+// tests/closure.py, so a card change selects no script that reads them and the
+// committed figures silently stop matching what the card draws -- C2's axis
+// change alone dropped two time labels out of `chart-anatomy.svg`, and the
+// band envelope appeared in both card figures. Regenerate them in the same
+// pull request; the generator's header carries the two payload commands. The
+// control that establishes it: regenerate at the merge base and the figures
+// come back byte-identical, so the diff is the card change and nothing else.
+// A check is not available from here -- reading the generator would put
+// `docs/` in a measured closure, which is the classification decision INERT
+// exists to record and not something a card fix may change in passing.
+//
 // The comparison ref's card is read with `git show`; the card is one file, so
 // no worktree is needed. Both sides run in their own vm context from the
 // shared rig (tests/card_rig.mjs), each with its own module state, its own
