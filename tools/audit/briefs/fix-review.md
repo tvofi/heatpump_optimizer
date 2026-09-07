@@ -96,6 +96,17 @@ its bug. You are checking that the numbers are real.
     work** — say so and judge the authored diff. A conflict on any other path is
     yours to block on, because you cannot know the merged result is correct.
 
+    **The bare claim lines are the exception, and they stay yours to block on.**
+    `env_drift.py`'s `merge_claim_file` returns `None` — keeping git's markers —
+    only when **both sides rewrote the claim list**, because no rule says which
+    claim describes which diff. Union them and a claim the branch deliberately
+    deleted comes back carrying another branch's reason, ready to excuse a drift
+    this branch caused, where `inherited_claims_error` cannot see it: that check
+    fires only on a list *exactly* equal to the baseline's, and a unioned list
+    is not. So read the conflict, not just the path. A conflict confined to the
+    `#` comment notes is merge-prep; a conflict in the claim lines themselves is
+    a verdict.
+
     Blocking on the status field alone makes every review a race with `main`,
     which no branch can win.
 
