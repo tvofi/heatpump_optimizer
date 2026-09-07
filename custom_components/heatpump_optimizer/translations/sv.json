@@ -1198,6 +1198,9 @@
       "optimization_schedule": {
         "name": "Optimeringsschema"
       },
+      "optimization_schedule_steps": {
+        "name": "Optimeringsschema, antal steg"
+      },
       "optimization_score": {
         "name": "Optimeringsbetyg"
       },

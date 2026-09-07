@@ -138,6 +138,9 @@
       "optimization_schedule": {
         "default": "mdi:calendar-clock"
       },
+      "optimization_schedule_steps": {
+        "default": "mdi:format-list-numbered"
+      },
       "optimization_score": {
         "default": "mdi:speedometer"
       },

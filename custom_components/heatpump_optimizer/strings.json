@@ -1198,6 +1198,9 @@
       "optimization_schedule": {
         "name": "Optimization Schedule"
       },
+      "optimization_schedule_steps": {
+        "name": "Optimization Schedule Steps"
+      },
       "optimization_score": {
         "name": "Optimization Score"
       },

@@ -100,10 +100,14 @@ rules:
   icon-translations:
     status: done
     comment: >-
-      issue #189 (round 1, D10-13) — 60 icons in icons.json keyed by
-      translation key, the 4 that duplicated a device-class default removed,
-      zero _attr_icon pins left (tests/entities.py "Entity icons", harness
-      tools/audit/round2/D10/icons_harness.py)
+      issue #189 (round 1, D10-13) — every entity's icon in icons.json keyed
+      by translation key, the 4 that duplicated a device-class default
+      removed, zero _attr_icon pins left (tests/entities.py "Entity icons",
+      harness tools/audit/round2/D10/icons_harness.py). #558 D4 added state
+      sections for the three sensors #571 bounded with ENUM; the two it
+      refused stay bare, because a state icon is looked up by the state
+      string and theirs are unbounded. Counts are derived by that section,
+      not recorded here.
   reconfiguration-flow:
     status: todo
     comment: tracked in issue #196 (round 1, D10-14)

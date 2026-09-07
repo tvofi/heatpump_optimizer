@@ -368,7 +368,7 @@ Since v5.0.0 the display names are translated (English and Swedish) and follow
 your Home Assistant language; the tables below show the English names. Entity ids
 and history are unaffected by the language.
 
-### Sensors (56 total)
+### Sensors (57 total)
 
 `CUR` is your Home Assistant instance currency (SEK when the instance has none
 configured).
@@ -393,6 +393,7 @@ configured).
 | Last Optimization | — | When the last run finished | Diagnostic; timestamp |
 | Heat Pump Action | — | What the plan is doing now: `off`, `eco`, `normal`, `pre_heat` or `boost`, and `comfort` while comfort mode holds | |
 | Optimization Schedule | — | The whole 24 h schedule, in attributes | Diagnostic; not recorded |
+| Optimization Schedule Steps | — | How many steps that schedule has, as a number | Diagnostic; unknown until the first solve, 0 for an empty one |
 | Upper Floor Temperature | °C | The radiator zone | |
 | Lower Floor Temperature | °C | The slab zone | |
 | Floor Heating Return Temperature | °C | The return-water reading the slab estimate uses | |

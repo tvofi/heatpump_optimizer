@@ -4989,6 +4989,7 @@ _expected_diagnostic = {
     "next_optimization",
     "last_optimization",
     "schedule",
+    "schedule_steps",
     "predictive_insight",
     "ecl110_displace",
     "ecl110_effective_displace",
@@ -5793,8 +5794,8 @@ R.check(
     not [s for s in sensors if s._attr_unique_id.endswith("_solar_radiation")],
 )
 R.check(
-    "there are exactly 56 sensors after the merge",
-    len(sensors) == 56,
+    "there are exactly 57 sensors after the merge",
+    len(sensors) == 57,
     str(len(sensors)),
 )
 R.check(
