@@ -28,9 +28,13 @@ some of them and cite them by name; a summary is not the policy.
    opposite things.** Key on the mode line, never the count — but that line
    only exists on a branch; a push to `main` prints no mode line at all,
    because the forced `full` above never calls the code that prints it.
-2. **A structural ratchet refuses growth.** `tests/structure.py` measures 22
-   metrics against `tests/structure_budgets.json`, and every one may only move
-   down. Several sit at zero headroom, so a change that adds lines to the wrong
+2. **A structural ratchet refuses growth.** `tests/structure.py` measures every
+   metric in `tests/structure_budgets.json` — **derive the count, do not carry
+   one**: it is the budget file's keys less `recorded_at`, which is metadata
+   rather than a metric. This sentence said 22 for some time while the answer
+   was 24, and `structure.py`'s own `ok` lines are a third number again (they
+   include the counting-rule check and four `const.py` symbol checks). Every
+   metric may only move down. Several sit at zero headroom, so a change that adds lines to the wrong
    class fails — and the correct response is to pay for the lines, to re-record
    deliberately with the reason **in the commit message**, or, for a genuine new
    production feature, to **raise the budget with the repository owner's
@@ -56,6 +60,84 @@ some of them and cite them by name; a summary is not the policy.
 A new tracked file must be **deliberately classified** — put in a measured
 closure, or on `tests/closure.py`'s `INERT` list — or `tests/entities.py` fails
 with *"these force the FULL suite when touched"*.
+
+## Where the policy is — the whole set, and who each part binds
+
+This file is the root, not the whole. Four other places carry rules, and a
+session that reads only this one is missing three of them. **Read this section
+first and open what applies to you**; nothing below is optional reading that a
+seat may skip because a summary exists here.
+
+### Always in force, for every session and every seat
+
+`.cursor/rules/*.mdc` are `alwaysApply` project policies. **Cursor loaded them
+automatically; Claude Code does not** — it loads this file and nothing else — so
+they are reachable only by being opened deliberately. All five:
+
+| rule | what it binds |
+|---|---|
+| `brief-citations.mdc` | wave-brief citations must be resolvable by `brief_lint.mjs`; a literal metric value is always an error; extending the plan format extends the linter in the same pull request |
+| `ci-autofix.mdc` | `closures-autofix` and `claims-autofix` already repair `UNDER-SCOPED` and `INHERITED CLAIMS` — wait for the bot commit, do not duplicate |
+| `defect-root-cause.mdc` | a defect that reached a release, or turned a PR red on a check a cheaper detector could have run, owes a cause, a process state and a countermeasure or a recorded refusal |
+| `delivery-status-tracking.mdc` | Delivery-status, roster `resume`, and one #201 comment per state change — at each merge, not at session end |
+| `finding-propagation.mdc` | a finding that changes how a later stage must work goes into that stage's own brief before the producing pull request merges |
+
+### Role contracts — open the one you are
+
+Under `tools/audit/briefs/`. Each says what its role owes and what blocks it.
+
+| contract | the role |
+|---|---|
+| `orchestrator.md` | dispatches seats, merges, holds the freeze, writes the record, stamps, reports to the owner |
+| `fixer.md` | owns one fix: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim |
+| `fix-review.md` | reviews one fix adversarially, from a detached worktree at the head SHA, with the **finder's** harness and never the fixer's |
+| `root-cause.md` | runs beside a fix and never inside it; owes a named cause, a process state, a cost test and a countermeasure or a refusal |
+| `judge.md` | decides; a finding whose harness does not move under its own perturbation is **void**, whatever the votes said |
+| `verifier.md` | one of three on a panel, receiving findings with claim, evidence, harness, metric and perturbation |
+| `COMMON.md` | **the finder's contract** — every audit dimension. An argument is not a finding; a number you did not execute is not a finding |
+
+**There is exactly one `COMMON.md`, and it is the finder's contract.** A running
+session may also hand its seats an out-of-tree shared block; that file is named
+`SEAT-BLOCK.md` and is **not** policy — it is a convenience copy, and the tree is
+what survives the session. The two once shared a basename, which made "read
+COMMON.md" ambiguous between a policy document and a session scratch file; the
+out-of-tree one was renamed rather than the ambiguity documented, because a
+collision a reader must resolve is a defect and not a note.
+
+### Dimension briefs — the audit rounds
+
+One per dimension, under `tools/audit/briefs/`, each carrying the owner's own
+words for its scope. Named individually rather than as a range, because a range
+reads as complete while covering a fraction — the defect this repository has
+paid for more than once:
+
+| brief | dimension |
+|---|---|
+| `D0.md` | price optimality |
+| `D1.md` | robustness and stability — lifecycle, staleness, executor boundaries, store corruption, guards |
+| `D2.md` | mathematical and physical sanity |
+| `D3.md` | test-suite gaps |
+| `D4.md` | UI/UX |
+| `D5.md` | docs structure, flow and content; code comments |
+| `D6.md` | README and documentation claim verification |
+| `D7.md` | architecture and maintainability |
+| `D8.md` | sensor verification and ordering |
+| `D9.md` | CPU and memory efficiency, Raspberry-Pi-class target |
+| `D10.md` | Home Assistant integration quality scale |
+
+### The suite
+
+`tests/README.md` — what each script pins, how the scoped gate selects, and why
+a test that re-implements a production formula pins nothing.
+
+### Changing any of it
+
+Everything named in this section is **policy**: `CLAUDE.md`, every
+`.cursor/rules/*.mdc`, and everything under `tools/audit/briefs/`. The owner's
+approval is required before **merging** a change to any of them — not before
+drafting one, so open the pull request and surface it. Every rewrite looks like
+a correction from the inside; if the honest description is *"this changes what a
+seat must do"*, it is policy however small the diff.
 
 ## Programme tracking (#201)
 
@@ -266,6 +348,27 @@ Two limits, both measured. Git never clones config, so an uninstalled driver
 falls back to the ordinary text merge — the same conflict as today, never worse.
 And git reads `.gitattributes` from the branch being merged **into**, so a branch
 cut before it landed conflicts once more before it is covered.
+
+**GitHub is one of those uninstalled clones, and that one is not free (#570).**
+`mergeStateStatus` is computed on GitHub's side, where the driver cannot run, so
+every open pull request flips to `DIRTY` the moment `main` touches a claim file.
+GitHub will not build a merge commit for a `DIRTY` pull request, and the
+`pull_request` workflows never fire — such a PR does not go red, it **cannot
+run**. A run already in flight survives; no new one queues. Merge `main` locally,
+where the driver does run, and push. Before treating any conflict as real,
+confirm it:
+
+```
+git merge-tree --write-tree origin/main HEAD
+```
+
+**So a branch that claims nothing does not touch the claim files at all.** The
+note is a convention, not a requirement: `inherited_claims_error` compares the
+parsed claim map, an empty list always passes, and no check anywhere reads a
+note. A branch that leaves both files byte-identical to `main` cannot conflict,
+and inherits whatever `stamp.py` last wrote to `claims-for:` — which is also how
+you stop hand-editing that line wrong. Edit these files only when you are
+actually claiming drift; there a conflict is meaningful, and rare.
 
 **A third autofix job was measured and refused.** A merge conflict means CI never
 ran, so no job is red and there is no uniquely-detected failure of the kind the

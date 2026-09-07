@@ -192,6 +192,12 @@ by the trajectory simulation and by every terminal and deferred valuation:
   temperature;
 - the **DHW tank** charges at `compute_cop_dhw` at the tank's temperature.
 
+![Two plots of marginal COP against outdoor temperature: with the throttling-valve gate off the buffer-tank curve lies exactly on the building-mass curve and only the hot water tank sits lower, and with the gate on the buffer tank is derated below the building-mass curve](img/marginal-cop.svg)
+
+Both panels are `marginal_cop` asked directly over the same outdoor range. With
+the gate off, the buffer and building-mass curves are not merely close — the
+generator measures their largest difference and prints it, and it is zero.
+
 Before this was shared, the simulation charged a throttled buffer at the
 derated COP while the settlement terms paid every stored kWh back at the plain
 curve. Marginal value below marginal cost is systematic under-charging: the
@@ -445,12 +451,27 @@ Hot water is only *required* during the time frames you configure — for exampl
   drifts down, so no electricity is spent keeping water hot that nobody is going
   to use.
 
+![A 24-hour timeline of the tank under the optimizer's own plan: two shaded demand frames, the tank pre-heated as each opens and held above the 45 degree minimum inside it, drifting below between them, with the planned hot-water power underneath](img/dhw-demand-windows.svg)
+
+That figure is one the shipped optimizer produced rather than an illustration
+of it: `docs/img/make_model_figures.py` reads the plan `tests/plan_view.py`
+solved, shades the frames `dhw_schedule.parse_windows` returns for the spec
+above, and refuses to write the figure at all if the plan it read dips below
+the minimum inside a frame.
+
 Frames accept 24-hour times separated by commas and may wrap past midnight
 (`22:00-02:00`). Leave the field empty and the frames are derived from the
 learned hourly usage profile instead. Switch the schedule off entirely to
 require hot water around the clock.
 
 ### How the schedule is produced
+
+![A decay curve: degrees per thermal kWh still present in the hot water tank against how long ago the kWh was delivered, falling from 2.87 to about three quarters of that over 24 hours](img/dhw-store-decay.svg)
+
+The decay above is not the formula below plotted; it is the shipped tank
+simulation perturbed by one kWh and asked what is left. That distinction is the
+point — a figure drawn from the formula would agree with this text however the
+model behaved.
 
 Six passes, each fixing something the previous one cannot see:
 

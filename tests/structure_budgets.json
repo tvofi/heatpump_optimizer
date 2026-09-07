@@ -21,7 +21,7 @@
  "max_cc": 56,
  "max_class_loc": 10086,
  "max_method_loc": 489,
- "methods_over_150": 19,
+ "methods_over_150": 18,
  "methods_over_200": 11,
- "recorded_at": "8bc4c661c9544a10520cfdca1562caaf829ea7b4"
+ "recorded_at": "52c83d1c98182979eb0d042173ed3ba4266afbe7"
 }
