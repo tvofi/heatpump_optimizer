@@ -819,6 +819,47 @@ try {
 
   // D4-05 / D4-06: text contrast in real Chromium against HA's default light
   // theme and again with every HA token stripped (card fallbacks only).
+  //
+  // ---- Carried forward from #558 C1, for whoever extends this witness ----
+  //
+  // C1 fixed four GRAPHICAL objects and left this lane alone deliberately.
+  // Three findings constrain the extension, each measured by resolving the
+  // card's own tokens against HA's default themes (light #ffffff card /
+  // dark #1c1c1c card) and compositing in sRGB; the control on each is the
+  // perturbation named beside it.
+  //
+  // 1. NO FIXED COLOUR CLEARS 4.5:1 AGAINST BOTH #ffffff AND #1c1c1c. The
+  //    constraints have no overlap: 4.5:1 on white needs relative luminance
+  //    <= 0.1833, on #1c1c1c it needs >= 0.2273. So a dark-theme text lane
+  //    cannot be satisfied by choosing a better constant ANYWHERE -- only by
+  //    a theme token. Control: the same arithmetic at 3:1 does have an
+  //    overlap (0.1348..0.3000), which is why the SERIES palette can be
+  //    fixed constants and text cannot.
+  //
+  // 2. ADDING A DARK LANE HERE FAILS TODAY, on sites C1 did not own:
+  //      ACCENT_READABLE  #026aa8   5.79:1 light   2.95:1 dark   (7 sites)
+  //      MUTED_READABLE   #666666   5.74:1 light   2.97:1 dark   (.chip.off)
+  //    Both were chosen against a light card by this witness, which has only
+  //    ever run light. They are not C1 regressions -- C1 moved the "now"
+  //    label OFF ACCENT_READABLE onto --primary-text-color for exactly this
+  //    reason (16.10:1 light, 13.03:1 dark). Control: revert that label to
+  //    ACCENT_READABLE and the Node lane's dark check fails at 2.95:1
+  //    (mutation M2 of PR #558 C1).
+  //
+  // 3. THE FALLBACKS-ONLY LANE ALREADY FAILS 4.5:1 ON TEXT if extended past
+  //    the four REQUIRED names: axis tick labels, unit titles and the
+  //    estimated-prices label all draw var(--secondary-text-color,#888), and
+  //    #888 on white is 3.54:1. With the token present it is 4.81:1 light
+  //    and 6.13:1 dark, so this is a FALLBACK defect, not a token one.
+  //
+  // And one thing this witness must NOT assert. Gridlines are deliberately
+  // below 3:1 -- .grid is --secondary-text-color at opacity 0.3, which is
+  // 1.472:1 light and 1.698:1 dark. WCAG 1.4.11 asks 3:1 of graphics
+  // REQUIRED to understand content; the values are carried by the axis
+  // labels, and a grid at 3:1 drowns the series it exists to help read.
+  // Asserting 3:1 on .grid would red the lane for a measured design choice.
+  // The hooks C1 left for this lane: .now, .now-label, .estimated-edge,
+  // .grid.grid-v, .grid.grid-h, and path.series[data-key].
   const HA_LIGHT = `
     --primary-text-color:#212121; --secondary-text-color:#727272;
     --text-primary-color:#fff; --primary-color:#03a9f4;
