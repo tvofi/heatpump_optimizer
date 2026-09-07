@@ -33,7 +33,7 @@ rules:
       config_flow_steps, entities, golden, features and deployment_shape. The
       residual was 5 unreachable statements, not uncovered ones; #542 removed
       them and #543 covered the 21 reachable ones (#304). Control at the merge
-      base 8bc4c66: 672 statements, 5 missed at the two sites #542 names, 99.26%.
+      base 059881e: 672 statements, 5 missed at the two sites #542 names, 99.26%.
   dependency-transparency: done
   docs-actions: done
   docs-triggers:
