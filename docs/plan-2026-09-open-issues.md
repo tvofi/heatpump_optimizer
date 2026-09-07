@@ -197,9 +197,9 @@ against a fixed baseline, not the live file, and read every count the check
 produces as a **lower bound** on what is genuinely undispositioned.
 
 That gap is real, it predates this programme, and it is **#575**. Naming it is
-the point: a boundary that quietly reassigns 147 unrecorded merges to a
-document that does not contain them is the same defect as the prose range it
-replaced — something that reads as complete while covering a fraction.
+the point: a boundary that quietly reassigns unrecorded merges to a document
+that does not contain them is the same defect as the prose range it replaced —
+something that reads as complete while covering a fraction.
 
 | issue | disposition | carried by |
 |---|---|---|
