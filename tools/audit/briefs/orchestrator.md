@@ -133,42 +133,35 @@ open**", never the negated form. The same applies to roster text, which a seat
 will paraphrase into its own body — a third-hand path to the same outcome, and it
 has occurred.
 
-**Run `tools/audit/preflight.sh` over the squash body before you merge, and use
-`&&` so a refusal stops the merge.** Not a grep you write at the keyboard: GitHub
-acts on **four** forms and an ad-hoc pattern reaches two of them.
+**Run `tools/audit/preflight.sh` over the squash body before you merge — as a
+filter, not as proof.** Its own header says so: it catches the common cases and
+is *"never a gate that proves the body is clean"*. Four reference forms are more
+than the one a hand-written grep usually reaches, and **four is not all of them**
+— the script names seven further shapes that still pass, and it is line-oriented,
+so a keyword and a number split across a newline are invisible to it.
+
+It reads the body on **stdin** and takes the issues you *intend* to close as
+**arguments**:
 
 ```
-Clos..  #224                                             <- caught by both
-Clos..  GH-224                                           <- caught by both
-Clos..  tvofi/heatpump_optimizer#224                     <- ad-hoc grep MISSES
-Clos..  https://github.com/tvofi/.../issues/224          <- ad-hoc grep MISSES
+printf '%s\n' "$BODY" | tools/audit/preflight.sh <intended-numbers>
 ```
 
-Measured: the pattern an orchestrator reached for across a whole session of
-merges caught **2 of 4**; the pre-flight caught 4 of 4, and both stayed silent on
-`leaves #224 open` and `#224 may be closed only when …`. The exposure went
-unrealised only because no merge that session happened to use the other two
-forms — which is luck, not a check.
+Two ways it misleads, both worth knowing before you trust an exit code. **Empty
+stdin prints `clean` and exits 0 having read nothing** — which is what happens if
+you pass a filename as an argument. **Held-open stdin blocks silently** and
+reports 143 when killed. Neither looks like a failure. And the declared-argument
+escape is **per number, not per occurrence**: declare a number once and every
+armed keyword bound to it passes, including in a body that also quotes the
+incident — which §4 above encourages you to do.
 
-`GH-` is not hypothetical. A commit on #593's branch bound a closing keyword to the
-`GH-` form of an open issue, and a `#N` search over that branch reported clean.
-
-**It reads the body on stdin and takes the issues you *intend* to close as
-arguments**, so a declared number passes and an undeclared one refuses:
-
-```
-printf '%s\n' "$BODY" | tools/audit/preflight.sh <intended-numbers> && gh pr merge ...
-```
-
-Get that wrong and it does not fail loudly — passing a filename as an argument
-leaves stdin empty, the script blocks, and a killed process reports success.
-That is how this clause's author first "verified" it: three bodies scored clean,
-including a bare keyword bound to an open number. Run it correctly and all four forms refuse,
-`leaves #224 open` stays clean, and declaring the number as an argument prints
-`ok ... -- intended` for that same body.
-
-**Verify after the merge which issues actually closed.** No pull-request-scoped
-field shows it beforehand, so the merge is the first moment the answer exists.
+**So the load-bearing check is after the merge, not before it.** Read which
+issues the merge actually closed. No pull-request-scoped field shows it
+beforehand, and on 2026-09-07 two issues were shut by merge commits and reopened
+hours later — `8bc4c661` shut #224 at 10:56 while its own text denied doing so,
+and `e072b2d` shut #195 at 04:25. A pre-merge scan that asks *which form was
+used* rather than *whether every keyword binds an intended number* reports clean
+through exactly that.
 
 ## 5. Before dispatching a seat
 
