@@ -85,8 +85,31 @@ function git(args, { allowFail = false } = {}) {
 // each other's dead citation alive indefinitely. A policy file's symbol has to
 // resolve against production, tests or tooling -- prose citing prose is the
 // thing this check exists to catch.
+// The MCP mapping table in `web-fragments.md` is the registry of tools that
+// live OUTSIDE this repository, which is why the symbol pass already skips that
+// file entirely. A contract instructing one of those tools cites a real thing
+// that no tree grep can find, so the table is consulted as an allowlist.
+//
+// Deliberately an allowlist and not a directory exemption: `.claude/workflows/`
+// also holds the wave scripts, whose prompt strings are brief PROSE citing
+// production symbols. Widening the grep to that directory made five genuinely
+// dead citations resolve against prose that merely mentions them -- the same
+// prose-citing-prose trap the `.cursor/` exclusion exists for.
+let _mcpTools = null
+function isMcpTool(symbol) {
+  if (!_mcpTools) {
+    const raw = read('.claude/workflows/web-fragments.md') ?? ''
+    const block = /const GH = `([\s\S]*?)`/.exec(raw)
+    _mcpTools = new Set(
+      block ? [...block[1].matchAll(/\b([a-z][a-z0-9]*(?:_[a-z0-9]+)+)\b/g)].map((m) => m[1]) : []
+    )
+  }
+  return _mcpTools.has(symbol)
+}
+
 let _policySpec = null
 function symbolElsewhere(symbol, exceptRel) {
+  if (isMcpTool(symbol)) return true
   if (!_policySpec) _policySpec = policyFiles().map((f) => `:!${f}`)
   const spec = _policySpec.includes(`:!${exceptRel}`) ? _policySpec : [..._policySpec, `:!${exceptRel}`]
   const out = git(

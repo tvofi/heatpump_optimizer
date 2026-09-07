@@ -16,7 +16,7 @@ ToolSearch with "select:<tool>" first, then call it (owner tvofi, repo
 heatpump_optimizer): issue_read (get / get_comments), add_issue_comment,
 issue_write (update: labels, state, state_reason), create_pull_request,
 update_pull_request, pull_request_read (get, get_check_runs, get_comments,
-get_files, get_diff), merge_pull_request (squash), actions_list
+get_files, get_diff), list_pull_requests, merge_pull_request (squash), actions_list
 (list_workflow_runs on tests.yml, branch main), actions_get, get_job_logs
 (failed_only).`
 

@@ -21,4 +21,4 @@ After each programme merge — wave group, tooling the plan tracks, or a closed 
 
 Do **not** wait for a stamp to truth the table. Never touch `VERSION`, the manifest version, or the `RELEASE_NOTES.md` heading in a branch.
 
-Measure with `git fetch origin main`, `gh pr list --state merged`, `git log origin/main`, and closed issues — do not invent.
+Measure with `git fetch origin main`, `git log origin/main`, the merged set from `list_pull_requests`, and closed issues — do not invent.

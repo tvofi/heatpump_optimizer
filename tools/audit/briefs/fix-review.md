@@ -51,7 +51,7 @@ its bug. You are checking that the numbers are real.
 11. **A red check owes an answer.** `.cursor/rules/defect-root-cause.mdc`
     triggers on a defect that turned a check red where a cheaper detector could
     have run, and this step is where that trigger is checked. Read the PR's own
-    checks — `gh pr checks <n>` and the runs on the branch's commits — not the
+    checks — `pull_request_read` method `get_check_runs` — not the
     body's account of them. For each gate check that went red, the body names it
     and answers the question: the cheaper detector with its standing cost, or the
     finding that none exists. Both answers pass; silence does not, and that is
