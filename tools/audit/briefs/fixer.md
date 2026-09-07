@@ -101,6 +101,17 @@ production lines. You work in your own worktree branched from `origin/main`.
    need. PR #386 took four repair rounds to correct 17 citations; only its
    last two survivors — bare-line-number claims a later merge falsified, and
    by then unneeded — were settled by deletion.
+10. **If the wrong text is generated, fix the generator first, and run it.**
+    Correcting prose a script emits leaves the script emitting the old text on
+    its next run, so the correction is undone rather than kept — #539 found
+    `tools/audit/prepare_baseline.sh` writing the `mkdir` gate lock `CLAUDE.md`
+    forbids into every new auditor's `BASELINE.md`, alongside the same
+    instruction in agent prompt strings under `.claude/workflows/`. Grep for
+    the wrong form across the whole tree before deciding what to edit, because
+    a generator is rarely the only copy. **A generator fixed without being run
+    is a claim, not a fix**: run it and paste what it now emits, with the same
+    run at the merge base as the control. Distinguish text that *instructs*
+    from a record that *recounts* — a measurement record stays as written.
 
 **When a structural budget blocks the work.** A `tests/structure.py` failure is
 a decision point, not a wall, and it has three answers rather than two: pay for
