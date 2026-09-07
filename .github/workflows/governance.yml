@@ -1,0 +1,49 @@
+# The governance gate: the policy corpus's own refusal.
+#
+# WHY A SEPARATE WORKFLOW. `tests.yml` is the code gate, scoped from measured
+# closures. The policy corpus is INERT by prefix in tests/closure.py -- nothing
+# under tests/ reads CLAUDE.md, `.cursor/rules/` or `tools/audit/briefs/` --
+# so a policy-only pull request selects zero scripts and its whole mechanical
+# signal is four green ticks that measured nothing. This job is never scoped,
+# the same precedent as tests.yml's `briefs` job, which lints the wave rosters
+# from the same INERT directory.
+#
+# It is its own file rather than another job in tests.yml for one measured
+# reason: `pr-contract` (added later) must run on `pull_request: [edited]`, and
+# adding that type to tests.yml would re-run the whole forty-minute gate every
+# time a body is edited.
+
+name: Governance
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  policy-docs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The citation resolvers ask git whether a path or symbol exists at a
+          # cited tag; a shallow checkout answers "no" for every one of them.
+          fetch-depth: 0
+          fetch-tags: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Lint the policy corpus
+        run: node .claude/workflows/policy_lint.mjs
+
+      - name: Report what the linter found
+        if: always()
+        run: node .claude/workflows/policy_lint.mjs --report || true

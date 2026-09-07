@@ -52,16 +52,16 @@ import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
-const ROOT = path.resolve(HERE, '..', '..')
+export const ROOT = path.resolve(HERE, '..', '..')
 
 const CODE_EXTS = ['py', 'mjs', 'js', 'json', 'yaml', 'yml', 'md', 'sh', 'txt', 'patch', 'out']
-const EXT_RE = CODE_EXTS.join('|')
+export const EXT_RE = CODE_EXTS.join('|')
 const EXT_SET = new Set(CODE_EXTS)
 
 // ---------------------------------------------------------------------------
 // git plumbing -- every call reads objects already on disk; nothing fetches.
 
-function git(args, opts = {}) {
+export function git(args, opts = {}) {
   try {
     return execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], ...opts })
   } catch (e) {
@@ -81,7 +81,7 @@ function basenameMap(files) {
 }
 
 let _trackedFiles = null
-function trackedFiles() {
+export function trackedFiles() {
   if (_trackedFiles) return _trackedFiles
   const out = git(['ls-files'])
   const list = out.split('\n').filter(Boolean)
@@ -90,7 +90,7 @@ function trackedFiles() {
 }
 
 const _refResolveCache = new Map()
-function refResolves(ref) {
+export function refResolves(ref) {
   if (_refResolveCache.has(ref)) return _refResolveCache.get(ref)
   const out = git(['rev-parse', '--verify', '--quiet', `${ref}^{commit}`], { allowFail: true })
   const ok = !!(out && out.trim())
@@ -135,7 +135,7 @@ function shorthandCandidates(token) {
   return list.filter((f) => path.posix.basename(f).toLowerCase().includes(low)).slice(0, 5)
 }
 
-function resolvePathToken(token) {
+export function resolvePathToken(token) {
   return lookupPath(trackedFiles(), token)
 }
 
@@ -170,13 +170,13 @@ function symbolInRefTree(ref, symbol) {
 //                          being fixed.
 const SYMBOL_GREP_EXCLUDE = [':!.claude', ':!tools/audit/round2']
 
-function symbolInTree(symbol) {
+export function symbolInTree(symbol) {
   const out = git(['grep', '-I', '-l', '-w', '-F', symbol, '--', '.', ...SYMBOL_GREP_EXCLUDE], { allowFail: true })
   return !!(out && out.trim())
 }
 
 const _fileLinesCache = new Map()
-function fileLines(relPath) {
+export function fileLines(relPath) {
   if (_fileLinesCache.has(relPath)) return _fileLinesCache.get(relPath)
   let lines = null
   try {
@@ -198,7 +198,7 @@ function fileLines(relPath) {
 const SHA_RE = /\b(?=[0-9a-f]{7,40}\b)(?=[0-9a-f]*[a-f][0-9a-f]*\b)[0-9a-f]{7,40}\b/g
 const TAG_NAME_RE = /\baudit-round2-evidence\b/g
 
-function tagRefsIn(text) {
+export function tagRefsIn(text) {
   const refs = new Set()
   for (const m of text.matchAll(SHA_RE)) refs.add(m[0])
   for (const m of text.matchAll(TAG_NAME_RE)) refs.add(m[0])
@@ -212,7 +212,7 @@ function tagRefsIn(text) {
 //   'warn'  -- every cited ref is unresolvable locally (nothing to check
 //              without a fetch this script will not perform).
 //   'none'  -- no ref was cited at all.
-function checkAgainstTags(refs, checkFn) {
+export function checkAgainstTags(refs, checkFn) {
   if (refs.length === 0) return { status: 'none' }
   let sawResolvable = false
   for (const ref of refs) {
@@ -223,7 +223,7 @@ function checkAgainstTags(refs, checkFn) {
   return sawResolvable ? { status: 'error' } : { status: 'warn' }
 }
 
-function reportUnresolvedPath(add, kind, label, token, tagResult, refs) {
+export function reportUnresolvedPath(add, kind, label, token, tagResult, refs) {
   if (tagResult.status === 'warn') {
     add('warning', kind, `${label}: not in the tree; cited tag ref(s) [${refs.join(', ')}] not resolvable locally (no network attempted) -- accepting textual co-citation`)
   } else if (tagResult.status === 'error') {
@@ -244,8 +244,8 @@ function reportUnresolvedPath(add, kind, label, token, tagResult, refs) {
 // underscores allowed -- most production helpers here are private),
 // SCREAMING_SNAKE, dotted module.symbol, or a genuinely quoted phrase.
 
-const SNAKE_RE = /\b_*[a-z][a-z0-9]*(?:_[a-z0-9]+)+\b/g
-const SCREAM_RE = /\b[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+\b/g
+export const SNAKE_RE = /\b_*[a-z][a-z0-9]*(?:_[a-z0-9]+)+\b/g
+export const SCREAM_RE = /\b[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+\b/g
 const DOTTED_RE = /\b([a-z][a-z0-9_]*)\.([a-z_][a-z0-9_]*)\b/g
 // A single/double quote pair only counts as a quoted PHRASE when the opening
 // mark is preceded by whitespace/bracket/punctuation (or string start) and
@@ -258,14 +258,14 @@ const QUOTED_RE = /(?:^|[\s([{:,\u2014-])['"]([^'"\n]{3,60})['"](?=[\s.,;:)\]}!?
 // named-symbol check.
 const KEYWORD_ANCHORS = ['return', 'raise', 'assert', 'yield', 'except', 'elif', 'lambda', 'continue', 'break']
 
-function symbolCandidates(text) {
+export function symbolCandidates(text) {
   const out = new Set()
   for (const m of text.matchAll(SNAKE_RE)) out.add(m[0])
   for (const m of text.matchAll(SCREAM_RE)) out.add(m[0])
   return [...out]
 }
 
-function dottedCandidates(text) {
+export function dottedCandidates(text) {
   const out = []
   for (const m of text.matchAll(DOTTED_RE)) {
     if (EXT_SET.has(m[2])) continue // "card_geometry.mjs" is a path, not module.symbol
@@ -274,7 +274,7 @@ function dottedCandidates(text) {
   return out
 }
 
-function quotedPhrases(text) {
+export function quotedPhrases(text) {
   const out = new Set()
   for (const m of text.matchAll(QUOTED_RE)) {
     const p = m[1].trim()
@@ -287,7 +287,7 @@ function keywordsIn(text) {
   return KEYWORD_ANCHORS.filter((k) => new RegExp(`\\b${k}\\b`).test(text))
 }
 
-function resolveModuleFile(moduleName) {
+export function resolveModuleFile(moduleName) {
   const { byBase } = trackedFiles()
   for (const ext of ['py', 'mjs', 'js']) {
     const cands = byBase.get(`${moduleName}.${ext}`)
@@ -299,11 +299,11 @@ function resolveModuleFile(moduleName) {
 // ---------------------------------------------------------------------------
 // class 1 + 2 path tokens
 
-const PATH_TOKEN_RE = new RegExp(
+export const PATH_TOKEN_RE = new RegExp(
   `\\b(?:[A-Za-z0-9_][A-Za-z0-9_.-]*/)*[A-Za-z0-9_][A-Za-z0-9_.-]*\\.(?:${EXT_RE})\\b`,
   'g'
 )
-const PATHLINE_RE = new RegExp(
+export const PATHLINE_RE = new RegExp(
   `(?<pth>(?:[A-Za-z0-9_][A-Za-z0-9_.-]*/)*[A-Za-z0-9_][A-Za-z0-9_.-]*\\.(?:${EXT_RE}))` +
     `:(?<start>\\d+)(?:[-\u2013](?<end>\\d+))?\\+?`,
   'g'
@@ -317,7 +317,7 @@ const BARE_LINE_RE = /(?<!\w)(?<!\.\w{1,4}):(?<start>\d+)(?:[-\u2013](?<end>\d+)
 // documenting an ABSENCE on purpose (a fixer trap), not citing something it
 // expects to resolve. Skip those rather than reporting the rot the brief
 // already named.
-const NEGATION_RE = /\b(?:do not go looking for|must not exist|should not exist|never existed|does not exist|whose source is (?:only )?in)\s*$/i
+export const NEGATION_RE = /\b(?:do not go looking for|must not exist|should not exist|never existed|does not exist|whose source is (?:only )?in)\s*$/i
 
 const DEF_RE_PY = /^(\s*)(?:async\s+)?(?:def|class)\s+([A-Za-z_]\w*)/
 const DEF_RE_JS = /^(\s*)(?:export\s+)?(?:async\s+)?function\s+([A-Za-z_]\w*)/
@@ -378,7 +378,7 @@ function findCandidateElsewhere(lines, candidate) {
   return idx === -1 ? null : idx + 1
 }
 
-function checkPathLine(relPath, start, end, context, excludeStems, exact) {
+export function checkPathLine(relPath, start, end, context, excludeStems, exact) {
   const lines = fileLines(relPath)
   if (!lines) return { ok: false, reason: `${relPath} could not be read` }
   if (start > lines.length) return { ok: false, reason: `line ${start} is past end of file (${lines.length} lines)` }
@@ -408,13 +408,13 @@ function checkPathLine(relPath, start, end, context, excludeStems, exact) {
 // class 4: structure_budgets.json metrics
 
 let _budgets = null
-function budgets() {
+export function budgets() {
   if (_budgets) return _budgets
   _budgets = JSON.parse(fs.readFileSync(path.join(ROOT, 'tests', 'structure_budgets.json'), 'utf8'))
   return _budgets
 }
 
-function resolveMetricName(word) {
+export function resolveMetricName(word) {
   const b = budgets()
   if (word in b) return word
   const suffix = `_${word}`
@@ -425,7 +425,7 @@ function resolveMetricName(word) {
 }
 
 // `word NUMBER <comparator> NUMBER` -- the literal-figure shape #411 names.
-const METRIC_LITERAL_RE = /\b([a-z][a-z_]{2,})\s+(\d+(?:\.\d+)?)\s*(<=|>=|==|<|>)\s*(\d+(?:\.\d+)?)\b/g
+export const METRIC_LITERAL_RE = /\b([a-z][a-z_]{2,})\s+(\d+(?:\.\d+)?)\s*(<=|>=|==|<|>)\s*(\d+(?:\.\d+)?)\b/g
 
 // ---------------------------------------------------------------------------
 // class 3-narrow: VERSION drift. Checked against the live root VERSION file
@@ -433,7 +433,7 @@ const METRIC_LITERAL_RE = /\b([a-z][a-z_]{2,})\s+(\d+(?:\.\d+)?)\s*(<=|>=|==|<|>
 // asserting the current release, not instructing a re-measurement.
 
 let _liveVersion
-function liveVersion() {
+export function liveVersion() {
   if (_liveVersion !== undefined) return _liveVersion
   try {
     _liveVersion = fs.readFileSync(path.join(ROOT, 'VERSION'), 'utf8').trim()
@@ -823,4 +823,8 @@ function main() {
   process.exit(totalErrors > 0 || acceptanceRc ? 1 : 0)
 }
 
-main()
+// Import-safe: the CLI path runs only when this file IS the entry point, so
+// policy_lint.mjs can reuse the resolvers above without running the linter.
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main()
+}
