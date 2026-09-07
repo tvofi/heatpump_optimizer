@@ -30,16 +30,62 @@
     "aiohttp==3.14.3 and homeassistant-stubs because these package versions have",
     "conflicting dependencies`. The stubs decide; the ruler RECORDS what",
     "resolved, in the emitted census's `environment`, so drift is visible",
-    "without being a constraint that cannot hold."
+    "without being a constraint that cannot hold.",
+    "",
+    "Two `recorded_at` keys, describing two different measurements: the",
+    "top-level one is the tree `type_ignores` was recorded against, and the one",
+    "inside `census` is the commit whose CI run produced the error numbers.",
+    "They differ because only CI can measure the census (#504)."
   ],
   "ruler": {
     "mypy": "2.3.1",
     "homeassistant_stubs": "2026.2.3",
     "python_min": "3.13.2",
     "python_version_flag": "3.13",
-    "third_party": ["aiohttp", "numpy", "threadpoolctl", "voluptuous"]
+    "third_party": [
+      "aiohttp",
+      "numpy",
+      "threadpoolctl",
+      "voluptuous"
+    ]
   },
   "type_ignores": 0,
-  "census": null,
+  "census": {
+    "errors": 516,
+    "by_code": {
+      "arg-type": 25,
+      "assignment": 7,
+      "attr-defined": 5,
+      "call-overload": 1,
+      "dict-item": 1,
+      "import-untyped": 2,
+      "index": 3,
+      "list-item": 1,
+      "misc": 10,
+      "name-defined": 1,
+      "no-any-return": 57,
+      "no-redef": 3,
+      "no-untyped-call": 91,
+      "no-untyped-def": 151,
+      "operator": 12,
+      "override": 1,
+      "return-value": 9,
+      "type-arg": 123,
+      "type-var": 5,
+      "typeddict-item": 2,
+      "union-attr": 5,
+      "var-annotated": 1
+    },
+    "environment": {
+      "python": "3.13.15",
+      "mypy": "2.3.1",
+      "homeassistant-stubs": "2026.2.3",
+      "aiohttp": "3.13.3",
+      "numpy": "2.5.3",
+      "threadpoolctl": "3.6.0",
+      "voluptuous": "0.15.2"
+    },
+    "recorded_at": "6105399f90b1ee9f443a13d6ad2febf35ce7862a"
+  },
   "recorded_at": "52c83d1c98182979eb0d042173ed3ba4266afbe7"
 }
