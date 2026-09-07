@@ -18374,6 +18374,65 @@ R.check(
 )
 
 
+R.section("#224 stage 2 — the breach report answers for itself, off optimize's tail")
+
+from heatpump_optimizer.optimizer import (  # noqa: E402
+    OptimizationResult as _BrRes,
+)
+
+_br_params = ThermalParameters.from_config(_mb_profiles.house())
+_br_params.dhw_enabled = True
+_br_opt = _MbOpt(ThermalModel(_br_params), _MbCfg(horizon_hours=1))
+
+
+def _br_result(room, dhw):
+    return _BrRes(
+        power_schedule=[], room_temp_trajectory=list(room), slab_temp_trajectory=[],
+        timestamps=[], prices=[], predicted_cost=0.0, baseline_cost=0.0,
+        predicted_savings=0.0, savings_percentage=0.0, optimal_setpoints=[],
+        status="optimal", dhw_temp_trajectory=list(dhw),
+    )
+
+
+# Trajectories carry n+1 entries with index 0 the *initial* state. Both figures
+# below are chosen so that judging index 0 as if it were planned returns a
+# different, larger number — 6.0 instead of 2.0, and 40.0 instead of 5.0 — so a
+# helper that drops the slice fails rather than agreeing by coincidence.
+_br_space = _br_result([15.0, 20.5, 19.0, 21.0], [])
+_br_opt._dhw_requirement = None
+_br_opt._publish_breach_reports(
+    _br_space, np.array([1.0, 1.0, 1.0]), False, False, 3,
+    np.array([21.0, 21.0, 21.0]),
+)
+R.check(
+    "an externally capped plan reports its worst planned floor shortfall",
+    _br_space.predictive_info.get("power_cap_breach_c") == 2.0,
+    f"{_br_space.predictive_info.get('power_cap_breach_c')} — 6.0 means the "
+    f"initial state was judged against the cap, which blames the fuse for the "
+    f"weather",
+)
+
+_br_dhw = _br_result([21.0, 21.0, 21.0, 21.0], [10.0, 48.0, 45.0, 50.0])
+_br_opt._dhw_requirement = np.array([50.0, 50.0, 50.0])
+_br_opt._publish_breach_reports(_br_dhw, None, False, True, 3, np.array([21.0]))
+R.check(
+    "a blocked tank reports its worst shortfall against its own requirement",
+    _br_dhw.predictive_info.get("dhw_floor_breach_c") == 5.0
+    and _br_dhw.predictive_info.get("mode_blocked_dhw") is True,
+    f"{_br_dhw.predictive_info} — 40.0 means the initial tank temperature was "
+    f"counted as a planned step",
+)
+
+_br_quiet = _br_result([21.0, 21.0, 21.0, 21.0], [50.0, 50.0, 50.0, 50.0])
+_br_opt._publish_breach_reports(_br_quiet, None, False, False, 3, np.array([21.0]))
+R.check(
+    "and an uncapped, unblocked plan is left byte-identical",
+    _br_quiet.predictive_info == {},
+    f"{_br_quiet.predictive_info} — every golden fixture plans with no cap and "
+    f"no mode entity; a key added here moves all 47 of them",
+)
+
+
 
 R.section("v5.3.0 review — the experiment obeys the mode gate too")
 
