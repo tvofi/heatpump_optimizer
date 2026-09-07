@@ -139,6 +139,28 @@ drafting one, so open the pull request and surface it. Every rewrite looks like
 a correction from the inside; if the honest description is *"this changes what a
 seat must do"*, it is policy however small the diff.
 
+## Every sentence earns its place
+
+**Scope: the development record, not the product.** This governs what one agent
+writes for another — pull-request bodies, issues, comments, commit messages,
+briefs, roster entries, reports. It does **not** govern `README.md`, `docs/`, or
+anything a user reads. User-facing writing serves someone who did not run the
+command, cannot see the diff, and has no context to supply; it needs the
+explanation this rule cuts.
+
+A sentence stays only if it carries a **measurement**, a **decision and why**, a
+**constraint on someone downstream**, or a **refusal and what refused it**.
+Everything else is cut, not shortened: restating the ask, narrating the route,
+summarising your own diff, repeating a finding in a second place, preamble,
+recap, and any adjective whose deletion changes no fact.
+
+**This never licenses dropping evidence.** A number keeps the rule that produced
+it (`fixer.md` step 8); a claim keeps its control. A long artifact dense with
+measurement is correct; a short one missing a control is not.
+
+The test: **delete the sentence and ask what a reader can no longer check.**
+Nothing? It was filler.
+
 ## Programme tracking (#201)
 
 After each programme merge — wave group, tooling the plan tracks, or a closed
