@@ -96,11 +96,13 @@ Under `tools/audit/briefs/`. Each says what its role owes and what blocks it.
 | `verifier.md` | one of three on a panel, receiving findings with claim, evidence, harness, metric and perturbation |
 | `COMMON.md` | **the finder's contract** — every audit dimension. An argument is not a finding; a number you did not execute is not a finding |
 
-**A name collision worth knowing.** `tools/audit/briefs/COMMON.md` is the
-finder's contract. A running session may also hand its seats an *out-of-tree*
-`COMMON.md` shared block, which is a different document with the same basename
-and is **not** policy. When a brief says "read COMMON.md", check which one it
-means; the in-tree one is the one that survives the session.
+**There is exactly one `COMMON.md`, and it is the finder's contract.** A running
+session may also hand its seats an out-of-tree shared block; that file is named
+`SEAT-BLOCK.md` and is **not** policy — it is a convenience copy, and the tree is
+what survives the session. The two once shared a basename, which made "read
+COMMON.md" ambiguous between a policy document and a session scratch file; the
+out-of-tree one was renamed rather than the ambiguity documented, because a
+collision a reader must resolve is a defect and not a note.
 
 ### Dimension briefs — the audit rounds
 
