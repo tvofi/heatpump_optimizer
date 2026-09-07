@@ -51,7 +51,7 @@
   },
   "type_ignores": 0,
   "census": {
-    "errors": 516,
+    "errors": 518,
     "by_code": {
       "arg-type": 25,
       "assignment": 7,
@@ -65,8 +65,8 @@
       "name-defined": 1,
       "no-any-return": 57,
       "no-redef": 3,
-      "no-untyped-call": 91,
-      "no-untyped-def": 151,
+      "no-untyped-call": 92,
+      "no-untyped-def": 152,
       "operator": 12,
       "override": 1,
       "return-value": 9,
@@ -85,7 +85,7 @@
       "threadpoolctl": "3.6.0",
       "voluptuous": "0.15.2"
     },
-    "recorded_at": "6105399f90b1ee9f443a13d6ad2febf35ce7862a"
+    "recorded_at": "043796e7a1e5b93d5fd18b668b33e880f5bf0977"
   },
   "recorded_at": "52c83d1c98182979eb0d042173ed3ba4266afbe7"
 }
