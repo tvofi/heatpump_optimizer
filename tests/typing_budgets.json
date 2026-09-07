@@ -1,0 +1,39 @@
+{
+  "_comment": [
+    "The typing ruler's recorded numbers (#303). Read by tests/typing_ruler.py.",
+    "",
+    "`ruler` is the pinned toolchain, and it is the ONLY place those versions",
+    "are written down: the CI job installs from `--print-requirements` rather",
+    "than repeating them, so a workflow that disagrees with this file is not a",
+    "state that can exist. Both halves of the mypy/stubs pin are load-bearing",
+    "and they constrain each other -- homeassistant-stubs 2026.2.3 needs",
+    "Python >= 3.13.2, and mypy 1.19.1 cannot parse it (it fails on PEP 696",
+    "syntax and emits ONE line, which a count-the-error-lines harness reads as",
+    "success).",
+    "",
+    "`type_ignores` is measured from source alone, so the ordinary gate",
+    "enforces it on every pull request with no toolchain at all. `census` needs",
+    "the pinned toolchain and is therefore produced only by the `typing` job.",
+    "Until it is recorded it is null and that job refuses rather than passing.",
+    "",
+    "Every number here may only move DOWN. `by_code` ratchets per code, not",
+    "just in total: a total that holds still while the code mix churns is a",
+    "change that did nothing, and a code absent from this table has a budget of",
+    "zero, so relabelling errors into a fresh code fails instead of hiding."
+  ],
+  "ruler": {
+    "mypy": "2.3.1",
+    "homeassistant_stubs": "2026.2.3",
+    "python_min": "3.13.2",
+    "python_version_flag": "3.13",
+    "third_party": {
+      "numpy": "2.4.6",
+      "aiohttp": "3.14.3",
+      "voluptuous": "0.16.0",
+      "threadpoolctl": "3.6.0"
+    }
+  },
+  "type_ignores": 0,
+  "census": null,
+  "recorded_at": "52c83d1c98182979eb0d042173ed3ba4266afbe7"
+}

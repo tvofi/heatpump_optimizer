@@ -316,6 +316,14 @@ lane_units() {
   # closure is the whole integration; that is correct and deliberate: any
   # structural change puts this lane in scope.
   run "$PYTHON" tests/structure.py
+  # The typing ratchet's dependency-free half (#303). The error count and its
+  # per-code split need the pinned mypy/homeassistant-stubs pair, which no
+  # gate lane has, so the `typing` CI job owns those; the `# type: ignore`
+  # count is a source scan and belongs where it runs on every pull request.
+  # That is the guard `--warn-unused-ignores` does NOT provide -- a live
+  # ignore is a used ignore -- so it must not be the half that goes unchecked
+  # whenever a toolchain install fails.
+  run "$PYTHON" tests/typing_ruler.py
   # What tests/hastub owes Home Assistant (#536). Every lane here runs against
   # the stub, so a green test proves the code works against the STUB's
   # behaviour; this is the file that says what that behaviour is supposed to
