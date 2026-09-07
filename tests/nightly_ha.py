@@ -122,6 +122,13 @@ PACKAGE_REL = f"{CONFIG_DIR_NAME}/{PACKAGE_NAME}"
 IN_CONFIG = "/config"
 IN_DRIVER_DIR = "/opt/hpo"
 IN_SEED = f"{IN_DRIVER_DIR}/seed.json"
+# tests/hastub and tests/ha_contract.py, mounted beside the driver (#536). The
+# contract module is run TWICE here -- once with the stub on PYTHONPATH and once
+# without -- because this container is the only place in this repository where
+# both providers exist at all. Neither run is on the boot path: the stub is
+# never put on the interpreter's own sys.path, only into a subprocess env.
+IN_CONTRACT = f"{IN_DRIVER_DIR}/ha_contract.py"
+IN_HASTUB = f"{IN_DRIVER_DIR}/hastub"
 LOG_NAME = "home-assistant.log"
 
 TIBBER_HOST = "api.tibber.com"
@@ -147,6 +154,12 @@ INSIDE_CHECKS = (
     "plan:current_action_published",
     "plan:setpoints_non_empty",
     "plan:no_solve_repair",
+    # #536. The stub half runs here rather than in the gate for one reason: the
+    # comparison needs both providers in one process tree, and the gate has
+    # only ever had one.
+    "contract:real_provider",
+    "contract:stub_provider",
+    "contract:probes_agree",
 )
 
 # Judged by the outer half, over the container's combined output and the log
@@ -464,6 +477,60 @@ def _check_shape(checks: Checks) -> None:
     )
 
 
+def _check_contracts(checks: Checks) -> None:
+    """Run tests/ha_contract.py against BOTH providers and compare them (#536).
+
+    The gate runs that file with ``PYTHONPATH=tests/hastub`` and it can only
+    ever answer "the stub does what this file says". Here the same file runs
+    against the genuine package, which is what makes the saying honest -- a
+    contract that misreads upstream fails on ``contract:real_provider``, and a
+    transcribed roster that has drifted fails on ``contract:probes_agree``.
+
+    Run before Home Assistant boots: it costs a second, it needs nothing set
+    up, and a failure here explains any entity failure that follows.
+    """
+    work = Path(tempfile.mkdtemp(prefix="ha-contract-"))
+    real_env = {k: v for k, v in os.environ.items() if k != "PYTHONPATH"}
+    runs = {
+        "real": (real_env, work / "real.json", ["--contracts-only"]),
+        "stub": ({**real_env, "PYTHONPATH": IN_HASTUB}, work / "stub.json", []),
+    }
+    for provider, (env, out, extra) in runs.items():
+        completed = subprocess.run(
+            [sys.executable, IN_CONTRACT, "--emit-probes", str(out), *extra],
+            capture_output=True,
+            text=True,
+            env=env,
+        )
+        for line in completed.stdout.splitlines():
+            if line[:6] in ("  ok  ", "  FAIL", "  ..  "):
+                print("  " + line)
+        checks.check(
+            f"contract:{provider}_provider",
+            completed.returncode == 0 and out.is_file(),
+            f"exit {completed.returncode}; "
+            + (completed.stdout + completed.stderr).strip()[-600:],
+        )
+    compared = subprocess.run(
+        [
+            sys.executable,
+            IN_CONTRACT,
+            "--compare",
+            str(runs["stub"][1]),
+            str(runs["real"][1]),
+        ],
+        capture_output=True,
+        text=True,
+        env=real_env,
+    )
+    print(compared.stdout)
+    checks.check(
+        "contract:probes_agree",
+        compared.returncode == 0,
+        f"exit {compared.returncode}; " + (compared.stdout + compared.stderr).strip()[-600:],
+    )
+
+
 async def _boot(seed: dict):
     """Boot Home Assistant the way its own entry point does."""
     import dataclasses
@@ -640,6 +707,7 @@ async def _inside(seed: dict, budget: float) -> int:
 
     checks = Checks()
     _check_shape(checks)
+    _check_contracts(checks)
     hass = await _boot(seed)
     checks.check("ha:home_assistant_is_real", hass is not None, "bootstrap returned None")
     if hass is None:
@@ -860,6 +928,12 @@ def _stage(workdir: Path) -> tuple[Path, Path]:
     (config / "configuration.yaml").write_text(yaml)
     shutil.copy2(Path(__file__).resolve(), driver / "nightly_ha.py")
     (driver / "seed.json").write_text(json.dumps(_seed_payload(), indent=1))
+    # #536: the contract module and the stub it speaks about, mounted beside
+    # the driver rather than under /config -- nothing here may become a
+    # `tests/` sibling of the package, which is the branch of _worker_env no
+    # installation takes and which `shape:no_tests_sibling` exists to refuse.
+    shutil.copy2(ROOT / "tests" / "ha_contract.py", driver / "ha_contract.py")
+    shutil.copytree(ROOT / "tests" / "hastub", driver / "hastub")
     return config, driver
 
 

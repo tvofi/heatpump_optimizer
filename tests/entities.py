@@ -447,6 +447,49 @@ for label, count, pattern in (
         match is not None and int(match.group(1)) == count,
         f"README says {match.group(1) if match else '?'}, there are {count}",
     )
+
+# The sensor table is split into labelled `####` groups (#558 B10), so a count
+# of rows under the heading no longer pins it: a group boundary adds a table
+# header row, and a sensor dropped while a group was reshuffled would pay for
+# it. Compare the NAMES instead, as a set. That is strictly stronger -- it also
+# catches a rename, and a sensor documented twice under two groups -- and it is
+# indifferent to how many groups there are or where a row was moved to.
+#
+# `(?=^### )` and not `(?=^#### )`: the group headings are inside the section,
+# and stopping at the first of them would read one group and call the other
+# seven missing.
+_sensor_block = _re.search(
+    r"^### Sensors \(\d+ total\)\n(.*?)(?=^### )", readme, _re.M | _re.S
+)
+_documented = [
+    line.split("|")[1].strip()
+    for line in (_sensor_block.group(1).splitlines() if _sensor_block else [])
+    if line.startswith("|")
+    and not _re.fullmatch(r"\|[\s|:-]+\|", line.strip())
+    and line.split("|")[1].strip() != "Sensor"  # each group's own header row
+]
+_expected_names = {display_name("sensor", s) for s in sensors}
+R.check(
+    "every sensor the platform builds has a row in the README, and every row "
+    "is a sensor it builds",
+    set(_documented) == _expected_names,
+    f"documented not built: {sorted(set(_documented) - _expected_names)}; "
+    f"built not documented: {sorted(_expected_names - set(_documented))}",
+)
+R.check(
+    "no sensor is documented in two groups",
+    len(_documented) == len(set(_documented)),
+    f"repeated: {sorted({n for n in _documented if _documented.count(n) > 1})}",
+)
+_groups = (
+    _re.findall(r"^#### (.+)$", _sensor_block.group(1), _re.M) if _sensor_block else []
+)
+R.check(
+    "the sensor section is still split into labelled groups",
+    len(_groups) >= 2,
+    f"{len(_groups)} group heading(s): {_groups}",
+)
+
 R.check(
     "unique ids are unique",
     len({s._attr_unique_id for s in sensors}) == len(sensors),
@@ -2903,6 +2946,12 @@ for step in ("building_preset", "grid", "solar_pv", "away", "learning", "thermal
 # entry to render a form — and the two tuples partition it between the top
 # menu and the advanced submenu. A page in neither menu is unreachable; a
 # page in both renders twice.
+#
+# Since #223 all three are views of ``_OPTION_PAGES``'s ``menu`` column, so
+# the check below is true by construction and is kept as a guard against that
+# derivation being undone rather than as a live invariant. The one with teeth
+# moved to ``registry_drives_every_page`` in tests/config_flow_steps.py: a
+# page in the table with no handler, or a handler no menu offers.
 _top = set(options._TOP_MENU)
 _advanced = set(options._ADVANCED_MENU)
 R.check(
@@ -4673,6 +4722,131 @@ R.check(
     _hvac_none.hvac_action is None,
 )
 
+# hvac_mode: every mode MODE_TO_HVAC maps, plus the no-data fallback a
+# thermostat card reads before the first coordinator refresh completes.
+for _hvm_mode, _hvm_expect in (
+    (const.MODE_AUTO, climate_mod.HVACMode.AUTO),
+    (const.MODE_COMFORT, climate_mod.HVACMode.HEAT),
+    (const.MODE_ECONOMY, climate_mod.HVACMode.HEAT),
+    (const.MODE_OFF, climate_mod.HVACMode.OFF),
+    (const.MODE_BOOST, climate_mod.HVACMode.HEAT),
+):
+    _hvm_clim = climate_mod.HeatPumpOptimizerClimate(
+        FakeCoordinator({**DATA, "mode": _hvm_mode}), clim._entry
+    )
+    R.check(
+        f"hvac_mode maps {_hvm_mode!r} to {_hvm_expect}",
+        _hvm_clim.hvac_mode == _hvm_expect,
+        str(_hvm_clim.hvac_mode),
+    )
+_hvac_mode_none = climate_mod.HeatPumpOptimizerClimate(
+    FakeCoordinator(None), clim._entry
+)
+R.check(
+    "hvac_mode falls back to AUTO with no coordinator data",
+    _hvac_mode_none.hvac_mode == climate_mod.HVACMode.AUTO,
+    str(_hvac_mode_none.hvac_mode),
+)
+
+# preset_mode: "off" is a mode but deliberately not a preset -- reporting it
+# would leave the frontend selector holding a value outside
+# _attr_preset_modes -- and the no-data fallback mirrors hvac_mode's.
+_preset_off = climate_mod.HeatPumpOptimizerClimate(
+    FakeCoordinator({**DATA, "mode": const.MODE_OFF}), clim._entry
+)
+R.check(
+    "preset_mode reports None for the off mode rather than an invalid preset",
+    _preset_off.preset_mode is None,
+    str(_preset_off.preset_mode),
+)
+_preset_economy = climate_mod.HeatPumpOptimizerClimate(
+    FakeCoordinator({**DATA, "mode": const.MODE_ECONOMY}), clim._entry
+)
+R.check(
+    "preset_mode reports a real preset unchanged",
+    _preset_economy.preset_mode == const.MODE_ECONOMY,
+    str(_preset_economy.preset_mode),
+)
+_preset_none = climate_mod.HeatPumpOptimizerClimate(
+    FakeCoordinator(None), clim._entry
+)
+R.check(
+    "preset_mode falls back to auto with no coordinator data",
+    _preset_none.preset_mode == climate_mod.PRESET_AUTO,
+    str(_preset_none.preset_mode),
+)
+
+R.check(
+    "current_temperature is None with no coordinator data",
+    climate_mod.HeatPumpOptimizerClimate(
+        FakeCoordinator(None), clim._entry
+    ).current_temperature
+    is None,
+)
+
+# The MQTT publish that follows every mode change can fail (broker down,
+# device offline); it must not crash the mode change itself. async_set_mode
+# is left real so this proves the exception is caught around the publish
+# specifically, not that the whole method is a no-op try/except.
+_pub_fails = FakeCoordinator(DATA)
+
+
+async def _raise_publish(reason=None):
+    raise OSError("mqtt unreachable")
+
+
+_pub_fails.async_publish_current_action = _raise_publish
+_pub_fails_clim = climate_mod.HeatPumpOptimizerClimate(_pub_fails, clim._entry)
+try:
+    asyncio.run(_pub_fails_clim.async_turn_on())
+    _publish_failure_raised = False
+except OSError:
+    _publish_failure_raised = True
+R.check(
+    "a failed ECL110 publish is caught, not propagated, and the mode change still lands",
+    not _publish_failure_raised and _pub_fails.mode_calls == [const.MODE_AUTO],
+    f"raised={_publish_failure_raised}, mode_calls={_pub_fails.mode_calls}",
+)
+
+# async_set_hvac_mode: AUTO and HEAT branches (OFF is covered above). The
+# mutation-critical assertion is which coordinator mode landed, not just that
+# the call did not raise.
+_hvac_set_auto = climate_mod.HeatPumpOptimizerClimate(FakeCoordinator(DATA), clim._entry)
+asyncio.run(_hvac_set_auto.async_set_hvac_mode(climate_mod.HVACMode.AUTO))
+R.check(
+    "setting hvac AUTO reaches the coordinator as mode auto and publishes",
+    _hvac_set_auto.coordinator.mode_calls == [const.MODE_AUTO]
+    and _hvac_set_auto.coordinator.pressed == ["publish:manual_hvac_mode"],
+    f"mode_calls={_hvac_set_auto.coordinator.mode_calls}, pressed={_hvac_set_auto.coordinator.pressed}",
+)
+_hvac_set_heat = climate_mod.HeatPumpOptimizerClimate(FakeCoordinator(DATA), clim._entry)
+asyncio.run(_hvac_set_heat.async_set_hvac_mode(climate_mod.HVACMode.HEAT))
+R.check(
+    "setting hvac HEAT reaches the coordinator as mode comfort and publishes",
+    _hvac_set_heat.coordinator.mode_calls == [const.MODE_COMFORT]
+    and _hvac_set_heat.coordinator.pressed == ["publish:manual_hvac_mode"],
+    f"mode_calls={_hvac_set_heat.coordinator.mode_calls}",
+)
+
+# async_turn_on / async_turn_off: the HA base-class convenience methods a
+# dashboard's power toggle calls, distinct from async_set_hvac_mode.
+_turn_on_clim = climate_mod.HeatPumpOptimizerClimate(FakeCoordinator(DATA), clim._entry)
+asyncio.run(_turn_on_clim.async_turn_on())
+R.check(
+    "async_turn_on selects auto and publishes",
+    _turn_on_clim.coordinator.mode_calls == [const.MODE_AUTO]
+    and _turn_on_clim.coordinator.pressed == ["publish:manual_turn_on"],
+    f"mode_calls={_turn_on_clim.coordinator.mode_calls}",
+)
+_turn_off_clim = climate_mod.HeatPumpOptimizerClimate(FakeCoordinator(DATA), clim._entry)
+asyncio.run(_turn_off_clim.async_turn_off())
+R.check(
+    "async_turn_off selects off and publishes",
+    _turn_off_clim.coordinator.mode_calls == [const.MODE_OFF]
+    and _turn_off_clim.coordinator.pressed == ["publish:manual_turn_off"],
+    f"mode_calls={_turn_off_clim.coordinator.mode_calls}",
+)
+
 switches = collect(switch_mod)
 R.check("the switch platform adds the optimizer and away switches", len(switches) == 2)
 sw = next(
@@ -4721,6 +4895,29 @@ away_sw = next(
 )
 R.check("the away switch pins today's object id", away_sw.entity_id == "switch.heat_pump_optimizer_away")
 R.check("the away switch is off when the override is off", not away_sw.is_on)
+
+# --- #195 tranche 2: switch.py's remaining branches -------------------------------
+_no_data_switch = switch_mod.OptimizerEnableSwitch(FakeCoordinator(None), ENTRY)
+R.check(
+    "with no coordinator data at all the switch reads off, not crashes",
+    not _no_data_switch.is_on,
+)
+R.check(
+    "and its extra attributes degrade to empty rather than raising",
+    _no_data_switch.extra_state_attributes == {},
+)
+asyncio.run(away_sw.async_turn_on())
+R.check(
+    "turning the away switch on reaches the coordinator's away setter",
+    away_sw.coordinator.away_calls[-1] == {"active": True, "return_time": None},
+    str(away_sw.coordinator.away_calls),
+)
+asyncio.run(away_sw.async_turn_off())
+R.check(
+    "turning it back off reaches the same setter with the opposite flag",
+    away_sw.coordinator.away_calls[-1] == {"active": False, "return_time": None},
+    str(away_sw.coordinator.away_calls),
+)
 
 dt_entities = collect(datetime_mod)
 R.check("the datetime platform adds exactly one entity", len(dt_entities) == 1)

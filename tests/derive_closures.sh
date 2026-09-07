@@ -117,6 +117,13 @@ p1=$!
   rec tests/edge.py
   rec tests/validate.py
   rec tests/backtest.py
+  # What tests/hastub owes Home Assistant (#536), in run.sh's lane order. Its
+  # closure is the whole stub on purpose: any change there must put this in
+  # scope. Recorded HERE and not only with --single, because the closures job
+  # re-derives from these lanes, and a selectable script the lanes never ran
+  # fails it with "NO recording this run" however complete the committed table
+  # is -- the same trap card_drift.mjs and config_flow_steps.py hit above.
+  rec tests/ha_contract.py
   rec tests/manual_plan.py
   rec tests/open_meteo.py
   rec tests/solar_alignment.py

@@ -7750,6 +7750,98 @@ R.check(
     np.allclose(_ent.fee_vector([_winter_day, _july_noon], 0.4), 0.5)
     and abs(_ent.current_fee(_winter_day, None) - 0.1) < 1e-9,
 )
+R.check(
+    "an entity value that arrives non-finite prices as absent, not as NaN",
+    abs(_ent.current_fee(_winter_day, float("nan")) - 0.1) < 1e-9,
+    f"{_ent.current_fee(_winter_day, float('nan'))}",
+)
+
+# --- #195 tranche 2: grid_fee.py's remaining branches ------------------------
+_gf_month_exc = _try_exc(lambda: _gf.parse_month_range("Nov-Zzz"))
+R.check(
+    "an unknown month on either side of a range is refused by name",
+    isinstance(_gf_month_exc, _gf.GridFeeError),
+    f"{_gf_month_exc!r}",
+)
+_gf_day_exc = _try_exc(lambda: _gf.parse_day_range("Mon-Zzz"))
+R.check(
+    "an unknown weekday on either side of a range is refused the same way",
+    isinstance(_gf_day_exc, _gf.GridFeeError),
+    f"{_gf_day_exc!r}",
+)
+R.check(
+    "a lone weekday token (no range) parses to its one day",
+    _gf.parse_day_range("Sat") == frozenset({5}),
+    f"{_gf.parse_day_range('Sat')}",
+)
+_gf_lone_day_exc = _try_exc(lambda: _gf.parse_day_range("Notaday"))
+R.check(
+    "a lone weekday token that names nothing real is refused",
+    isinstance(_gf_lone_day_exc, _gf.GridFeeError),
+    f"{_gf_lone_day_exc!r}",
+)
+R.check(
+    "two month ranges in one rule are refused, not silently combined",
+    isinstance(
+        _try_exc(lambda: _gf.parse_rules("Nov Dec = 0.1")), _gf.GridFeeError
+    ),
+)
+R.check(
+    "two weekday ranges in one rule are refused the same way",
+    isinstance(
+        _try_exc(lambda: _gf.parse_rules("Mon Tue = 0.1")), _gf.GridFeeError
+    ),
+)
+R.check(
+    "two time ranges in one rule are refused: one active window per rule",
+    isinstance(
+        _try_exc(lambda: _gf.parse_rules("06:00-08:00 09:00-10:00 = 0.1")),
+        _gf.GridFeeError,
+    ),
+)
+_gf_badtime_exc = _try_exc(lambda: _gf.parse_rules("25:00-10:00 = 0.1"))
+R.check(
+    "a time range the DHW window grammar itself refuses is refused here too",
+    isinstance(_gf_badtime_exc, _gf.GridFeeError),
+    f"{_gf_badtime_exc!r}: DHWWindowError must be re-raised as GridFeeError",
+)
+
+R.check(
+    "from_config degrades an unknown mode string to none, not a crash",
+    _gf.GridFeeSchedule.from_config({hp_const.CONF_GRID_FEE_MODE: "bogus"}).mode
+    == _gf.MODE_NONE,
+)
+_gf_badfixed = _gf.GridFeeSchedule.from_config(
+    {hp_const.CONF_GRID_FEE_MODE: "rules", hp_const.CONF_GRID_FEE_FIXED: "not-a-number"}
+)
+R.check(
+    "an unparseable fixed component degrades to zero, not a crash",
+    _gf_badfixed.fixed == 0.0,
+)
+_gf_inffixed = _gf.GridFeeSchedule.from_config(
+    {hp_const.CONF_GRID_FEE_MODE: "rules", hp_const.CONF_GRID_FEE_FIXED: "inf"}
+)
+R.check(
+    "a non-finite fixed component (parses, but is not finite) also degrades to zero",
+    _gf_inffixed.fixed == 0.0,
+)
+_gf_badrules = _gf.GridFeeSchedule.from_config(
+    {hp_const.CONF_GRID_FEE_MODE: "rules", hp_const.CONF_GRID_FEE_RULES: "garbage"}
+)
+R.check(
+    "a hand-edited store with broken rules text prices with no ToU fees, not a crash",
+    _gf_badrules.mode == _gf.MODE_RULES and _gf_badrules.rules == [],
+)
+
+R.check(
+    "rules mode is active exactly when it has a rule or a nonzero fixed term",
+    _gf.GridFeeSchedule(mode=_gf.MODE_RULES, rules=_rules).active
+    and not _gf.GridFeeSchedule(mode=_gf.MODE_RULES, fixed=0.0, rules=[]).active,
+)
+R.check(
+    "entity mode is always active: the entity might report any value at any time",
+    _gf.GridFeeSchedule(mode=_gf.MODE_ENTITY).active,
+)
 
 # --- #13: masks on the capacity tariff ---------------------------------------
 _flat_ct = _CT(enabled=True, price_per_kw=30.0)
@@ -10842,6 +10934,65 @@ R.check(
     and CurveLearner.from_dict({"bias": -99}).bias == BIAS_MIN,
 )
 
+# --- #195 tranche 2: curve_learning.py's remaining branches ----------------------
+_cl5_t4 = CurveLearner()
+_cl5_t4.record_day(_d2, None)
+R.check(
+    "a day with no margin at all is not evidence, and books nothing",
+    _cl5_t4.comfortable_days == 0 and _cl5_t4.bias == 0.0,
+    "worst_margin_c is None when no zone bound could be computed that day",
+)
+
+_cl6_t4 = CurveLearner()
+_cl6_t4.record_miss(_d2, -0.1)
+R.check(
+    "a miss with the bias already at zero has nothing to surrender",
+    _cl6_t4.resets == 0,
+    f"resets={_cl6_t4.resets}: the early return must not count a reset "
+    "that changed nothing",
+)
+
+_cl7_t4 = CurveLearner()
+_cl7_t4._last_step_at = "not-a-timestamp"
+for d in range(DAYS_PER_STEP):
+    _cl7_t4.record_day(_d2 + timedelta(days=d), 1.0)
+R.check(
+    "an unparseable stored step timestamp falls back to one full notch",
+    abs(_cl7_t4.bias + STEP_K) < 1e-9,
+    f"bias {_cl7_t4.bias}: datetime.fromisoformat must have raised and been caught",
+)
+
+_cl8_t4 = CurveLearner()
+for d in range(DAYS_PER_STEP):
+    _cl8_t4.record_day(_d2 + timedelta(days=d), 1.0)
+_bias_after_first_step = _cl8_t4.bias
+# _step_down already reset comfortable_days to 0; re-arm it so a change
+# after the call below can only mean the zero-step branch did not return.
+_cl8_t4.comfortable_days = DAYS_PER_STEP
+_cl8_t4._step_down(_d2 + timedelta(days=DAYS_PER_STEP - 1))
+R.check(
+    "a second step at the same instant the first one landed moves nothing",
+    _cl8_t4.bias == _bias_after_first_step
+    and _cl8_t4.comfortable_days == DAYS_PER_STEP,
+    f"bias {_cl8_t4.bias} vs {_bias_after_first_step}, "
+    f"comfortable_days {_cl8_t4.comfortable_days}: zero elapsed time caps "
+    "the allowed movement at zero and must return before touching state",
+)
+
+R.check(
+    "from_dict degrades non-dict input to a fresh learner, not a crash",
+    CurveLearner.from_dict(None).bias == 0.0
+    and CurveLearner.from_dict([1, 2, 3]).bias == 0.0,
+)
+_cl9_t4 = CurveLearner.from_dict(
+    {"bias": "junk", "comfortable_days": "junk", "resets": "junk"}
+)
+R.check(
+    "a store with unparseable numeric fields degrades each one to its zero",
+    _cl9_t4.bias == 0.0 and _cl9_t4.comfortable_days == 0 and _cl9_t4.resets == 0,
+    f"{_cl9_t4.as_dict()}",
+)
+
 # The wiring: the bias joins the displace before the configured clamp,
 # only when the flag is on, and never moves the plan itself.
 _c2 = _t2_coord(curve_learning_enabled=True)
@@ -11964,6 +12115,126 @@ R.check(
     _cd_report is not None
     and _cd._last_diagnosis is _cd_report
     and _cd_report["interval_end"] == _T6.isoformat(),
+)
+
+# --- #195 tranche 2: diagnosis.py's remaining branches ----------------------------
+_dmodel_2z = ThermalModel(ThermalParameters(two_zone_enabled=True))
+_d2z_after = _dmodel_2z.simulate_step(
+    replace(_dstate),
+    electrical_power=float(_dplanned["electrical_power"]),
+    outdoor_temp=float(_dplanned["outdoor_temp"]),
+    wind_speed=float(_dplanned["wind_speed"]),
+    precipitation=0.0,
+    solar_radiation=float(_dplanned["solar_radiation"]),
+    dt_hours=float(_dplanned["dt_hours"]),
+    external_heat_kw=float(_dplanned["external_heat_kw"]),
+    humidity=_dplanned["humidity"],
+    hour_of_day=_dplanned["hour_of_day"],
+)
+R.check(
+    "a two-zone model attributes against the upper floor, never the slab room",
+    abs(
+        diagnosis_mod._room_after(_dmodel_2z, _dstate, _dplanned)
+        - float(_d2z_after.upper_floor_temperature)
+    )
+    < 1e-9
+    and float(_d2z_after.upper_floor_temperature)
+    != float(_d2z_after.room_temperature),
+    f"_room_after={diagnosis_mod._room_after(_dmodel_2z, _dstate, _dplanned)} "
+    f"upper={_d2z_after.upper_floor_temperature} room={_d2z_after.room_temperature}: "
+    "the two readings must actually differ or the branch would be vacuous",
+)
+
+R.check(
+    "a non-finite actual temperature makes attribution impossible, not a crash",
+    diagnosis_mod.attribute(_dmodel, _dstate, _dplanned, {}, float("nan")) is None,
+)
+
+
+class _DiagFakeState:
+    def __init__(self, room_temperature: float) -> None:
+        self.room_temperature = room_temperature
+        self.upper_floor_temperature = room_temperature
+
+
+class _DiagFakeParams:
+    two_zone_enabled = False
+
+
+class _DiagFakeModel:
+    """Duck model exercising diagnosis.py's own exception handling: only
+    what ``_room_after`` reads (``params.two_zone_enabled``, ``simulate_step``).
+    ``fail_on_call`` raises on that 1-indexed call and succeeds on every
+    other, so the baseline and one swap can be failed independently.
+    """
+
+    def __init__(self, fail_on_call: int) -> None:
+        self.params = _DiagFakeParams()
+        self._calls = 0
+        self._fail_on_call = fail_on_call
+
+    def simulate_step(self, *args, **kwargs):
+        self._calls += 1
+        if self._calls == self._fail_on_call:
+            raise RuntimeError("simulated model failure")
+        return _DiagFakeState(20.0)
+
+
+R.check(
+    "a baseline simulation that raises is diagnosed as 'nothing to report', not fatal",
+    diagnosis_mod.attribute(
+        _DiagFakeModel(fail_on_call=1), _dstate, _dplanned, {"outdoor_temp": -5.0}, 19.0
+    )
+    is None,
+)
+_dreport_swap_fail = diagnosis_mod.attribute(
+    _DiagFakeModel(fail_on_call=2), _dstate, _dplanned, {"outdoor_temp": -20.0}, 19.5,
+)
+R.check(
+    "a swap whose re-simulation raises is skipped, not fatal to the whole report",
+    _dreport_swap_fail is not None
+    and "outdoor_temp" not in _dreport_swap_fail["contributions"]
+    and abs(_dreport_swap_fail["unexplained"] - _dreport_swap_fail["residual"]) < 1e-9,
+    f"{_dreport_swap_fail}",
+)
+
+_dreport_badtype = diagnosis_mod.attribute(
+    _dmodel, _dstate, _dplanned, {"outdoor_temp": "warm"}, _dbase,
+)
+R.check(
+    "a realised value that will not parse as a float is skipped like a missing one",
+    _dreport_badtype is not None
+    and "outdoor_temp" not in _dreport_badtype["contributions"],
+)
+_dreport_nonfinite = diagnosis_mod.attribute(
+    _dmodel, _dstate, _dplanned, {"outdoor_temp": float("nan")}, _dbase,
+)
+R.check(
+    "a non-finite realised value is skipped, never handed to the swapped solve",
+    _dreport_nonfinite is not None
+    and "outdoor_temp" not in _dreport_nonfinite["contributions"],
+)
+_dreport_noop = diagnosis_mod.attribute(
+    _dmodel, _dstate, _dplanned, {"outdoor_temp": _dplanned["outdoor_temp"]}, _dbase,
+)
+R.check(
+    "a realised value identical to the planned one attributes nothing to it",
+    _dreport_noop is not None
+    and "outdoor_temp" not in _dreport_noop["contributions"],
+)
+
+_drecord_bad = {
+    "when": _T6.isoformat(),
+    "state": _dstate,
+    "planned": dict(_dplanned),
+    "realised": {"outdoor_temp": -10.0},
+    "actual": _dbase - 0.3,
+    # "dt_hours" deliberately missing: diagnose_record runs in a worker
+    # process, so a KeyError here must degrade, not be lost silently.
+}
+R.check(
+    "a malformed record degrades to no diagnosis rather than raising in the worker",
+    diagnosis_mod.diagnose_record(_drecord_bad, ThermalParameters()) is None,
 )
 
 # --- #39 the price tiles ---------------------------------------------------------
