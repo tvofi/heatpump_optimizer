@@ -32,9 +32,11 @@ at the nearest sample, plus **why** the plan is heating at that moment.
 
 ![The plan chart with every series, the now marker, the editable slot lanes and the time axis numbered, and a key naming each one](img/chart-anatomy.svg)
 
-Every figure on this page is generated from the card itself by
-`docs/img/make_card_figures.mjs`, against a plan `tests/plan_view.py` solved —
-so nothing here is a drawing of how the card used to look.
+Every figure on this page is the card's own drawing, not an artist's: the chart
+figures come from `docs/img/make_card_figures.mjs` and the schematics further
+down from `tests/setup_qa_render.mjs`, both run against a plan
+`tests/plan_view.py` solved. Nothing here is a picture of how the card used to
+look.
 
 ### The two kinds of dashed line
 
