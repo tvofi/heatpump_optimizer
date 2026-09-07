@@ -433,19 +433,128 @@ R.check("all sensors are constructible", len(sensors) > 30, str(len(sensors)))
 # Entity counts are published in the README, so they are a claim rather than a
 # detail. A count that quietly drifts makes the documentation wrong in the one
 # place a user checks before installing.
+#
+# Every number below is DERIVED, and the platform set comes from
+# ``PLATFORM_LIST`` rather than from a list written here. The version this
+# replaced compared the README's binary-sensor and button headings against the
+# literals 4 and 4 -- it supplied the value it then asserted, so when
+# ``wood_cheaper`` made five binary sensors the README kept saying four and
+# this check kept passing. Driving the census off ``PLATFORM_LIST`` closes the
+# other half: a platform nobody remembers to name here still enters the total.
+import importlib as _importlib
+import re as _re
+
 readme = Path("README.md").read_text()
-for label, count, pattern in (
-    ("sensors", len(sensors), r"### Sensors \((\d+) total\)"),
-    ("binary sensors", 4, r"### Binary Sensors \((\d+) total\)"),
-    ("buttons", 4, r"### Buttons \((\d+) total\)"),
-):
-    import re as _re
-    match = _re.search(pattern, readme)
-    R.check(
-        f"the README's {label} count is right",
-        match is not None and int(match.group(1)) == count,
-        f"README says {match.group(1) if match else '?'}, there are {count}",
+
+_platform_counts = {
+    str(_p): len(collect(_importlib.import_module(f"heatpump_optimizer.{_p}")))
+    for _p in integration.PLATFORM_LIST
+}
+_total_entities = sum(_platform_counts.values())
+
+
+def _readme_table_rows(heading: str) -> int:
+    """Data rows of the markdown table under one ``### heading``."""
+    block = _re.search(
+        rf"^### {_re.escape(heading)}[^\n]*\n(.*?)(?=^## |^### |\Z)",
+        readme,
+        _re.M | _re.S,
     )
+    if block is None:
+        return -1
+    rows = [
+        line for line in block.group(1).splitlines()
+        if line.startswith("|") and not _re.fullmatch(r"\|[\s|:-]+\|", line.strip())
+    ]
+    return max(len(rows) - 1, 0)  # less the header row
+
+
+for _label, _platform, _heading in (
+    ("sensors", "sensor", "Sensors"),
+    ("binary sensors", "binary_sensor", "Binary Sensors"),
+    ("buttons", "button", "Buttons"),
+):
+    _n = _platform_counts[_platform]
+    match = _re.search(rf"### {_re.escape(_heading)} \((\d+) total\)", readme)
+    R.check(
+        f"the README's {_label} count is right",
+        match is not None and int(match.group(1)) == _n,
+        f"README says {match.group(1) if match else '?'}, there are {_n}",
+    )
+    # The heading and the table drifted together for ``wood_cheaper``: the
+    # number said four and the table listed four while the platform added
+    # five, so correcting the heading alone would leave the entity
+    # undocumented and this check green.
+    _rows = _readme_table_rows(_heading)
+    R.check(
+        f"the README's {_label} table lists every one of them",
+        _rows == _n,
+        f"table has {_rows} row(s), there are {_n}",
+    )
+
+_total_claim = _re.search(r"All (\d+) entities", readme)
+R.check(
+    "the README's total entity count covers every registered platform",
+    _total_claim is not None and int(_total_claim.group(1)) == _total_entities,
+    f"README says {_total_claim.group(1) if _total_claim else '?'}, "
+    f"the platforms construct {_total_entities} ({_platform_counts})",
+)
+
+# HACS renders this README inside Home Assistant -- `hacs.json` asks for it,
+# and hacs/integration's `async_get_info_file_contents` reads README.md -- so
+# the README has a second renderer, and it is much weaker than GitHub's.
+# hacs/frontend's repository dashboard passes it to `<ha-markdown>` with no
+# `allow-svg`, which is home-assistant/frontend's markdown-worker: plain
+# `marked` plus js-xss over a whitelist carrying no `svg`. Rendering this file
+# through that exact pipeline (marked 15.0.4 + xss 1.0.15, the versions
+# hacs/frontend pins) established two things that no other check would notice:
+#
+#   * a ```mermaid fence comes out as a literal <pre><code> dump of its own
+#     source, and the `language-mermaid` class is stripped with it, so nothing
+#     downstream can even find it to render later. Wrapping each fence in
+#     <details> turns that dump into a labelled, collapsible block, and costs
+#     GitHub nothing -- GitHub's own /markdown API emits the same
+#     `data-type="mermaid"` enrichment section inside <details> as outside it.
+#   * js-xss blanks any `src` that is not absolute, `/`-rooted or `./`-rooted,
+#     and HACS's `markdownWithRepositoryContext` rewrites relative markdown
+#     `[..](..)` links only -- never an HTML `src=` attribute. So
+#     `![x](docs/img/x.svg)` reaches the user and `<img src="docs/img/x.svg">`
+#     renders with an empty src.
+#
+# Both are invisible on GitHub, which is where they would otherwise be
+# reviewed, so they are pinned here rather than left to be rediscovered.
+_fences = [m.start() for m in _re.finditer(r"^```mermaid$", readme, _re.M)]
+_details = [(m.start(), m.end()) for m in _re.finditer(r"<details\b.*?</details>", readme, _re.S)]
+_bare = [p for p in _fences if not any(s < p < e for s, e in _details)]
+R.check(
+    "every README mermaid fence sits inside <details>, so HACS shows a label "
+    "rather than raw diagram source",
+    not _bare,
+    f"{len(_bare)} of {len(_fences)} fence(s) outside <details>",
+)
+_relative_src = _re.findall(r'<img[^>]+src="(?!https?://|/|\./|\.\./)([^"]*)"', readme)
+R.check(
+    "no README <img> carries a relative src, which HACS blanks",
+    not _relative_src,
+    f"relative src: {_relative_src}",
+)
+# ...and the rewrite that saves the markdown form has a narrower reach than it
+# looks: `markdownWithRepositoryContext`'s link regex is built without the `s`
+# flag, so `.` never crosses a newline and an `![alt](path)` whose alt text
+# wraps is left un-rewritten -- after which js-xss blanks its relative src just
+# the same. Measured by rendering the two forms side by side: identical alt
+# text, one line versus two, and only the wrapped one comes out `<img src>`.
+# The hero this check was written for was wrapped, and would have shipped
+# blank in the one view it exists for.
+_wrapped_img = _re.findall(
+    r"!\[[^\]]*\n[^\]]*\]\((?!https?://)([^)]*)\)", readme
+)
+R.check(
+    "no README image with a relative target wraps its alt text across lines, "
+    "which stops HACS rewriting it and leaves the src blank",
+    not _wrapped_img,
+    f"wrapped: {_wrapped_img}",
+)
 R.check(
     "unique ids are unique",
     len({s._attr_unique_id for s in sensors}) == len(sensors),
