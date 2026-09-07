@@ -783,12 +783,25 @@ for (const hours of [12, 24, 48]) {
     const bad = collisions(labels);
     check(`the ${where} time axis labels do not overlap`, bad.length === 0,
       bad.join("; "));
-    // Making room by dropping the clamped label would pass the check above
-    // while losing the window boundary, which is the only reason the clamp
-    // exists. The edge label is the one that must survive.
-    check(`the ${where} time axis keeps the label it clamped to the edge`,
-      labels.length > 0 && labels[0].anchor === "start",
-      `first label ${labels[0] && `${labels[0].text}[${labels[0].anchor}]`}`);
+    // Making room by dropping the clamped label passes the check above while
+    // losing the window boundary, which is the only reason the clamp exists.
+    // Derived rather than hardcoded: a labelled tick is drawn as a heavier,
+    // less transparent gridline than an unlabelled one, so the ticks that
+    // were MEANT to carry a label are readable off the chart. The one at
+    // each end of the span must still have a label sitting over it -- which
+    // is also the invariant that a label names the tick it stands on, since
+    // a clamped label is moved but never past its own tick.
+    const labelledGrid = [...scoped.matchAll(
+      /<line x1="([-\d.]+)"[^>]*stroke-width="1" opacity="0.7"\/>/g)]
+      .map((m) => Number(m[1])).sort((a, b) => a - b);
+    const covered = (g) => labels.some((l) => l.left - 0.01 <= g && g <= l.right + 0.01);
+    check(`the ${where} time axis keeps a label over the tick at each end`,
+      labelledGrid.length > 1 &&
+        covered(labelledGrid[0]) && covered(labelledGrid[labelledGrid.length - 1]),
+      `${labelledGrid.length} labelled gridlines, ends at ` +
+      `${labelledGrid[0]} (${covered(labelledGrid[0]) ? "labelled" : "BARE"}) and ` +
+      `${labelledGrid[labelledGrid.length - 1]} ` +
+      `(${covered(labelledGrid[labelledGrid.length - 1]) ? "labelled" : "BARE"})`);
   }
 }
 
