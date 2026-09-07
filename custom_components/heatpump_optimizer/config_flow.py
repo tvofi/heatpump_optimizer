@@ -1154,6 +1154,13 @@ class _F(NamedTuple):
 #: as a map of the integration's internals. ``menu`` is the whole of that
 #: decision -- the two menus are a query over this column, in this order, and
 #: a page in neither would be unreachable.
+#:
+#: A submenu, not ``section()``: that groups fields inside one page and is a
+#: different question from this column. The reason it stays refused is no
+#: longer the golden capture, which #568 taught to recurse -- it is that the
+#: assertion layer still walks schemas one level, so a grouped page would stop
+#: being asserted rather than fail. Teaching the walks that cover a page to
+#: recurse is the precondition for grouping it.
 _TOP: Final = "top"
 _ADVANCED: Final = "advanced"
 
