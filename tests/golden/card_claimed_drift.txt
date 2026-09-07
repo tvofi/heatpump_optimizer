@@ -76,3 +76,6 @@
 # W4-G9 S8 (#193, the COP-health watch): this branch claims NOTHING. Two
 # coordinator initialisations move between init methods -- no card source, no
 # payload key and no published value is touched.
+# W4-G10 S9 (#224, optimize's breach-report tail): this branch claims NOTHING.
+# One optimizer method is split in two -- no card source, no payload key and no
+# published value is touched.
