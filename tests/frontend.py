@@ -63,18 +63,38 @@ def _load_frontend():
 class Resources:
     """Stand-in for Lovelace's resource collection."""
 
-    loaded = True
-
-    def __init__(self, items):
+    def __init__(self, items, loaded=True):
         self._items = items
         self.updated = []
         self.created = []
+        self.loaded = loaded
+        self.load_calls = 0
 
     def async_items(self):
         return self._items
 
+    async def async_load(self):
+        self.load_calls += 1
+        self.loaded = True
+
     async def async_update_item(self, item_id, data):
         self.updated.append((item_id, data))
+
+    async def async_create_item(self, data):
+        self.created.append(data)
+
+
+class DataOnlyResources:
+    """A resources collection exposing `.data` instead of `.async_items()`.
+
+    A second Home Assistant shape the real Lovelace store has used.
+    """
+
+    loaded = True
+
+    def __init__(self, items):
+        self.data = items
+        self.created = []
 
     async def async_create_item(self, data):
         self.created.append(data)
@@ -159,6 +179,158 @@ async def main() -> None:
     finally:
         logging.disable(logging.NOTSET)
     check("an unusable resource collection does not raise", not raised)
+
+    # Older Home Assistant exposes `lovelace` as a plain dict rather than an
+    # object with `.mode`/`.resources` attributes; both shapes must be read
+    # the same way.
+    res_dict_style = Resources([])
+    hass_dict_lovelace = types.SimpleNamespace(
+        data={"lovelace": {"mode": "storage", "resources": res_dict_style}}
+    )
+    await register(hass_dict_lovelace, URL)
+    check(
+        "dict-style lovelace data is read the same as object-style",
+        [d.get("url") for d in res_dict_style.created] == [URL],
+        f"created {res_dict_style.created}",
+    )
+
+    # Neither shape carries anything reachable as `resources` at all: must be
+    # a clean no-op, not a crash reaching into config-entry setup.
+    hass_no_resources = types.SimpleNamespace(
+        data={"lovelace": types.SimpleNamespace(mode="storage")}
+    )
+    try:
+        await register(hass_no_resources, URL)
+        no_resources_raised = False
+    except Exception:  # noqa: BLE001
+        no_resources_raised = True
+    check(
+        "lovelace with no resources collection at all is a clean no-op",
+        not no_resources_raised,
+    )
+
+    # A resources collection that has not loaded its items yet must be loaded
+    # before being read, or every item lookup below sees an empty list.
+    res_unloaded = Resources([], loaded=False)
+    await register(_hass(res_unloaded), URL)
+    check(
+        "an unloaded resource collection is loaded before being read",
+        res_unloaded.load_calls == 1 and res_unloaded.loaded,
+        f"load_calls={res_unloaded.load_calls} loaded={res_unloaded.loaded}",
+    )
+
+    # A resources object exposing `.data` instead of `async_items()` (the
+    # other shape seen in the wild). Also covers an existing entry with no
+    # `url` at all, which must be skipped rather than crash the shadow-copy
+    # scan.
+    res_data_only = DataOnlyResources(
+        [{"id": "y"}, {"id": "d", "url": "/local/heatpump-optimizer-card.js"}]
+    )
+    await register(_hass(res_data_only), URL)
+    check(
+        "a resources object without async_items() falls back to .data",
+        [d.get("url") for d in res_data_only.created] == [URL],
+        f"created {res_data_only.created}",
+    )
+
+    # A stale entry with no `id` cannot be updated in place (there is nothing
+    # to address the update to) and must be left alone rather than duplicated.
+    res_stale_no_id = Resources([{"url": f"{CARD_URL_BASE}?v=2.8.0"}])
+    await register(_hass(res_stale_no_id), URL)
+    check(
+        "a stale resource with no id is left alone, not duplicated",
+        not res_stale_no_id.updated and not res_stale_no_id.created,
+        f"updated={res_stale_no_id.updated} created={res_stale_no_id.created}",
+    )
+
+    # --- _register_static_path: serving the card's JS itself -------------
+    static = frontend._register_static_path
+
+    class _ModernHttp:
+        def __init__(self, raise_exc=None):
+            self.calls = []
+            self._raise = raise_exc
+
+        async def async_register_static_paths(self, configs):
+            self.calls.append(configs)
+            if self._raise:
+                raise self._raise
+
+    class _FakeStaticPathConfig:
+        def __init__(self, url_path, path, cache_headers):
+            self.url_path = url_path
+            self.path = path
+            self.cache_headers = cache_headers
+
+    fake_http_component = types.ModuleType("homeassistant.components.http")
+    fake_http_component.StaticPathConfig = _FakeStaticPathConfig
+    # tests/hastub has no homeassistant.components.http at all, which is what
+    # makes every OTHER Home Assistant release in this suite take the
+    # deprecated branch below -- injected here to reach the modern one too.
+    sys.modules["homeassistant.components.http"] = fake_http_component
+
+    modern_http = _ModernHttp()
+    await static(types.SimpleNamespace(http=modern_http), "/www/dir")
+    check(
+        "the modern async static-path API is used when it is available",
+        len(modern_http.calls) == 1
+        and modern_http.calls[0][0].url_path == frontend.URL_BASE
+        and modern_http.calls[0][0].path == "/www/dir"
+        and modern_http.calls[0][0].cache_headers is False,
+        str([vars(c[0]) for c in modern_http.calls]),
+    )
+
+    logging.disable(logging.CRITICAL)
+    try:
+        await static(
+            types.SimpleNamespace(http=_ModernHttp(raise_exc=RuntimeError("boom"))),
+            "/www/dir",
+        )
+        modern_broken_raised = False
+    except Exception:  # noqa: BLE001
+        modern_broken_raised = True
+    finally:
+        logging.disable(logging.NOTSET)
+    check(
+        "an unexpected error from the modern API is caught, not propagated",
+        not modern_broken_raised,
+    )
+
+    del sys.modules["homeassistant.components.http"]
+
+    class _LegacyHttp:
+        def __init__(self, raise_exc=None):
+            self.calls = []
+            self._raise = raise_exc
+
+        def register_static_path(self, url, path, cache_headers):
+            self.calls.append((url, path, cache_headers))
+            if self._raise:
+                raise self._raise
+
+    legacy_http = _LegacyHttp()
+    await static(types.SimpleNamespace(http=legacy_http), "/www/dir")
+    check(
+        "the deprecated sync call is used when the modern API is unavailable",
+        legacy_http.calls == [(frontend.URL_BASE, "/www/dir", False)],
+        str(legacy_http.calls),
+    )
+
+    logging.disable(logging.CRITICAL)
+    try:
+        await static(
+            types.SimpleNamespace(http=_LegacyHttp(raise_exc=OSError("disk full"))),
+            "/www/dir",
+        )
+        legacy_broken_raised = False
+    except Exception:  # noqa: BLE001
+        legacy_broken_raised = True
+    finally:
+        logging.disable(logging.NOTSET)
+    check(
+        "a failure in the deprecated sync call is caught, not propagated",
+        not legacy_broken_raised,
+    )
 
     # The card is served without long-lived cache headers. The ?v= query only
     # helps where we own the resource entry, which is not the case in YAML

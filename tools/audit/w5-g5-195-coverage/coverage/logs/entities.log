@@ -1,0 +1,1135 @@
+
+=== Entities and platforms ===
+
+-- Platform registration
+  ok   PLATFORMS and PLATFORM_LIST agree
+  ok   every member of the test stub's Platform exists in Home Assistant's own
+  ok   every entry of PLATFORMS is a real Home Assistant platform
+  ok   every entry of PLATFORM_LIST is a real Home Assistant platform
+  ok   diagnostics.py exists
+  ok   diagnostics is NOT forwarded as a platform
+  ok   the binary_sensor platform is registered
+  ok   the binary_sensor module exists and sets up entries
+  ok   the button platform is registered
+  ok   the button module exists and sets up entries
+  ok   the sensor platform declares PARALLEL_UPDATES = 0
+  ok   the binary_sensor platform declares PARALLEL_UPDATES = 0
+  ok   the button platform declares PARALLEL_UPDATES = 1
+  ok   the climate platform declares PARALLEL_UPDATES = 1
+  ok   the switch platform declares PARALLEL_UPDATES = 1
+  ok   the datetime platform declares PARALLEL_UPDATES = 1
+
+-- Sensors
+  ok   all sensors are constructible
+  ok   the README's sensors count is right
+  ok   the README's binary sensors count is right
+  ok   the README's buttons count is right
+  ok   unique ids are unique
+  ok   the README has a Removal section, under Installation
+  ok   it names the standard delete path
+  ok   it says the card's Lovelace resource stays behind, and where to remove it
+  ok   it says the code is uninstalled through HACS or by deleting the folder
+  ok   the store files it says are left under .storage are exactly the ones the coordinator keeps
+  ok   the README's requirement line states the Home Assistant floor hacs.json declares
+  ok   and the README badge agrees
+  ok   hacs.json's Home Assistant floor is at least 2025.2.0 (the first release whose own requires-python is >=3.13.0)
+  ok   the README states the lowest Python version CI actually tests
+  ok   the README names exactly the interpreters CI tests, neither more nor fewer
+  ok   the Python badge agrees with that floor
+  ok   the Measured Power sensor exists
+  ok   the Observed COP sensor exists
+  ok   the Space Heating Energy (lifetime) sensor exists
+  ok   the DHW Energy (lifetime) sensor exists
+  ok   the Total Energy (lifetime) sensor exists
+  ok   the Space Heating Cost (lifetime) sensor exists
+  ok   the DHW Cost (lifetime) sensor exists
+  ok   the Total Heating Cost (lifetime) sensor exists
+  ok   the Prediction Accuracy sensor exists
+  ok   the Monthly Peak Power sensor exists
+  ok   the Solar Surplus Forecast sensor exists
+  ok   the Thermal Battery Charge sensor exists
+  ok   the Thermal Battery Energy sensor exists
+  ok   the Comfort Weight sensor exists
+  ok   measured power is distinguishable from recommended power
+  ok   measured power reads the measurement
+  ok   measured power keeps the commanded value alongside
+  ok   observed COP is published
+  ok   Space Heating Energy (lifetime) is TOTAL_INCREASING
+  ok   DHW Energy (lifetime) is TOTAL_INCREASING
+  ok   Total Energy (lifetime) is TOTAL_INCREASING
+  ok   Space Heating Cost (lifetime) is a TOTAL in a currency
+  ok   DHW Cost (lifetime) is a TOTAL in a currency
+  ok   Total Heating Cost (lifetime) is a TOTAL in a currency
+  ok   the DHW/space split is described rather than implied
+  ok   the energy split reconciles with the total
+  ok   the accumulators state their period in words
+  ok   and carry this month's figures next to the lifetime state
+  ok   and the date they started counting, when the store has one
+  ok   the plan sensors say their numbers are projections, not history
+  ok   accuracy is published
+  ok   the accuracy bias is published alongside the magnitude
+  ok   the billed peak is published
+  ok   the free headroom threshold is explained
+  ok   the fuse advisor's monthly answer is published
+  ok   outage recovery is visible while it is active
+  ok   the Power Headroom sensor exists
+  ok   headroom is the state, in kW, ready for a charger automation
+  ok   the headroom sensor is available exactly when a limit exists
+  ok   the headroom attributes carry the limit, source and horizon
+  ok   the setpoint advisor recommends in °C with the sweep alongside
+  ok   the tank is translated into shower terms
+  ok   the heavy-day sensor reports the worst learned window
+  ok   PV surplus is published
+  ok   the battery reports state of charge
+  ok   the learned comfort weight is visible
+  ok   the solar sensor advertises a plan_kind marker
+  ok   the plan sensor publishes the manual-plan window for the card
+  ok   the plan sensor publishes its currency for the card
+  ok   and still publishes it before the first plan exists
+  ok   the plan sensor publishes the configured hot-water windows for the card
+  ok   and it differs from the plan's own reading of the windows
+  ok   and the plan branch really carries both, differing
+  ok   and publishes it before the first plan exists
+  ok   and keeps it out of the recorder, like the windows it explains
+  ok   the plan sensor publishes wood_fuel for the card (#463)
+  ok   and keeps wood_fuel out of the recorder
+  ok   the measured power sensor goes unavailable without an entity
+  ok   the observed COP sensor goes unavailable too
+  ok   the peak sensor is unavailable without a capacity tariff
+  ok   the PV sensor is unavailable without an array
+  ok   no sensor crashes before the first update
+  ok   the narrative sensor states the biggest non-idle reason
+  ok   the narrative's items and rendered lines ride in attributes
+  ok   the score sensor states the overall grade with the parts in attributes
+  ok   the score sensor is unavailable before any grade has evidence
+  ok   the starts sensor counts lifetime with the month and wear price along
+  ok   no power meter means no start counter, not a frozen zero
+  ok   the monthly receipt rides the contract comparison sensor
+  ok   the last diagnosis rides the prediction accuracy sensor
+  ok   the frequency advisor states the recommendation with the map along
+  ok   without a frequency entity the advisor is unavailable, not zero
+
+-- A published number is a reading or it is nothing
+
+-- S0 CoordinatorContext (#377)
+  ok   CoordinatorContext is importable from heatpump_optimizer.coordinator
+  ok   CoordinatorContext is a frozen dataclass over the five write-once hubs
+  ok   _current_action is not a CoordinatorContext field
+  ok   a real coordinator constructs _ctx in the existing assignment order
+  ok   _ctx holds the same write-once objects the coordinator still exposes
+  ok   CoordinatorContext rejects writes (frozen)
+  ok   _current_action stays a mutable slot on the coordinator
+  ok   the six hub names still resolve on the coordinator instance
+
+-- S1 hub refs via _ctx (#377)
+  ok   the four write-once hubs are not raw instance attributes
+  ok   coordinator methods read those hubs through _ctx, not raw self
+  ok   facade symbols stay importable from heatpump_optimizer.coordinator
+
+-- S2 zero-state helpers at module level (#193)
+  ok   _liquid_fraction is a module-level FunctionDef, not a class method
+  ok   _solve_anchor is a module-level FunctionDef, not a class method
+
+-- S5 thermal-learning state outside the dhw seam (#193)
+  ok   _init_thermal_learning exists, in the learning seam, and initialises state
+  ok   no dhw-seam method assigns house or buffer learning state (#193 S5)
+  ok   _effective_house_heat_loss is a module-level FunctionDef, not a class method
+
+-- S6 inverter-frequency state outside the grid seam (#193)
+  ok   _init_frequency exists, outside the grid seam, and initialises state
+  ok   no grid-seam method assigns inverter-frequency state (#193 S6)
+  ok   _grid_fee_entity_value is a module-level FunctionDef, not a class method
+
+-- S8 COP-health watch state outside the core seam (#193)
+  ok   the COP-health watch state is initialised in the learning seam (#193 S8)
+  ok   no core-seam method assigns COP-health watch state (#193 S8)
+  ok   with no tank sensor the published tank temperature is the model default
+  ok   with no buffer probe the published buffer temperature is the default too
+  ok   with no lower-floor sensor the lower floor IS the indoor temperature
+  ok   and the upper floor is the indoor temperature, always
+Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
+  ok   nothing reading the hot water tank means that sensor is unavailable
+  ok   nothing reading the buffer tank means that sensor is unavailable
+  ok   nothing reading the slab means that sensor is unavailable
+  ok   nothing reading the lower floor means that sensor is unavailable
+  ok   nothing reading the floor return means that sensor is unavailable
+  ok   the indoor sensor, which IS read, keeps reporting
+  ok   the upper floor is available exactly while the indoor thermometer reads
+  ok   and a stale indoor thermometer publishes the model default, as before
+  ok   the upper floor names where its number comes from
+  ok   DHWTemperatureSensor reports its sensor once one is configured
+  ok   BufferTankTempSensor reports its sensor once one is configured
+  ok   FloorReturnTempSensor reports its sensor once one is configured
+  ok   LowerFloorTempSensor reports its sensor once one is configured
+  ok   the slab estimate lives while the return temperature drives it
+  ok   a stale tank sensor still publishes its last number
+  ok   but the entity goes unavailable rather than holding it out as current
+  ok   mixed hot water follows the thermometer it is computed from
+  ok   and it is still available when the tank really is being read
+
+-- Constructor defaults on the install the flow actually produces
+  ok   the shipping flow, every form untouched, configures no thermometer at all
+  ok   and turns hot water on anyway, with the 200 L tank the page pre-fills
+  ok   at CYCLE 1 nothing in D8-01's entities publishes a constructor default except the Indoor pair the recorded decision keeps
+  ok   and at STEADY STATE (cycle 10, past the slab seed's decay) the residual is the same pair plus the solve-derived money
+  ok   the climate entity's dhw_temperature attribute is None where nothing reads it
+  ok   the climate entity's slab_temperature attribute is None where nothing reads it
+  ok   the climate entity's lower_floor_temperature attribute is None where nothing reads it
+  ok   the climate entity's upper_floor_temperature attribute is None where nothing reads it
+  ok   the climate entity's floor_return_temperature attribute is None where nothing reads it
+  ok   the outdoor attribute is the forecast the plan uses, not the 5.0 default
+  ok   the forecast step is the entry covering now, not the list's first
+  ok   and a forecast that has not started yet reads its first entry
+  ok   the Outdoor sensor follows the forecast rather than going unavailable
+  ok   and says so, so the number is never mistaken for a thermometer
+  ok   Estimated COP is the COP at that forecast, not at the 5.0 default
+  ok   ThermalBatterySensor is unavailable when no store is sensed at all
+  ok   ThermalBatteryEnergySensor is unavailable when no store is sensed at all
+  ok   the view names every store it only modelled, rather than dropping them
+  ok   and the figures themselves are left alone, so no recorded series is silently rescaled
+  ok   the energy sensor carries the same disclosure in its own attributes
+  ok   a stale floor return still publishes its last number in the payload
+  ok   but the climate attribute reports it as unknown, not as current
+  ok   a configured thermometer's live reading still reaches climate.dhw_temperature
+  ok   a configured thermometer's live reading still reaches climate.lower_floor_temperature
+  ok   a configured thermometer's live reading still reaches climate.upper_floor_temperature
+  ok   a configured thermometer's live reading still reaches climate.floor_return_temperature
+  ok   the slab estimate still reaches the climate entity while its return reads
+  ok   the Outdoor sensor prefers its thermometer over the forecast
+  ok   ThermalBatterySensor is available again once a store is sensed
+  ok   ThermalBatteryEnergySensor is available again once a store is sensed
+  ok   and the view reports every store as measured there
+  ok   an install with only an indoor thermometer keeps its thermal battery
+  ok   with the stores it only modelled named rather than dropped
+
+-- Hot water entities exist only where there is hot water
+  ok   a config with no hot water publishes dhw_enabled False
+  ok   DHWEnergySensor is unavailable with hot water switched off
+  ok   DHWCostSensor is unavailable with hot water switched off
+  ok   DHWTemperatureSensor is unavailable with hot water switched off
+  ok   DHWScheduleSensor is unavailable with hot water switched off
+  ok   DHWHeatingCostSensor is unavailable with hot water switched off
+  ok   DHWHeatingPlanSensor is unavailable with hot water switched off
+  ok   the Energy dashboard is offered a hot water meter only when there is one
+  ok   DHWEnergySensor is available again once hot water is configured
+  ok   DHWCostSensor is available again once hot water is configured
+  ok   DHWScheduleSensor is available again once hot water is configured
+  ok   DHWHeatingCostSensor is available again once hot water is configured
+  ok   DHWHeatingPlanSensor is available again once hot water is configured
+  ok   DHWTemperatureSensor is available again once hot water is configured
+
+-- Waiting for evidence is not the same as broken
+  ok   ObservedCOPSensor is unavailable while its evidence is missing
+  ok   ObservedCOPSensor names what it is waiting for
+  ok   ObservedCOPSensor is available, and waiting for nothing, once it lands
+  ok   FrequencyAdvisorSensor is unavailable while its evidence is missing
+  ok   FrequencyAdvisorSensor names what it is waiting for
+  ok   FrequencyAdvisorSensor is available, and waiting for nothing, once it lands
+  ok   ContractComparisonSensor is unavailable while its evidence is missing
+  ok   ContractComparisonSensor names what it is waiting for
+  ok   ContractComparisonSensor is available, and waiting for nothing, once it lands
+  ok   an unconfigured source is distinguished from a missing sample
+
+-- A failed refresh reaches every entity
+  ok   every entity is available against a payload that satisfies every gate
+  ok   and none of them is available after a failed coordinator refresh
+
+-- No published attribute is non-finite, in any configuration
+  ok   no entity publishes a non-finite state or attribute, in any configuration
+  ok   the sweep's fixtures really do feed non-finite numbers in
+  ok   the free headroom threshold is None, not +inf, when there is no reference
+  ok   and a real threshold still comes through untouched
+
+-- Power headroom survives the turn of the month
+  ok   the tracker really has no reference peak at the turn of the month
+  ok   the headroom entity still exists on the 1st with no fuse configured
+  ok   and answers 0 kW free, because the month's bill is set from zero
+  ok   the headroom sensor is available and numeric there
+  ok   and the measured threshold takes over once a window has closed
+  ok   with no fuse and no capacity tariff there is still nothing to report
+
+-- Device classes on the three that were bare
+  ok   DHW Setpoint Advisor declares device class temperature
+  ok   DHW Mixed Water declares device class volume_storage
+  ok   Thermal Battery Energy declares device class energy_storage
+  ok   no sensor pairs a device class with a state class HA forbids
+  ok   ECL110 Displace stays bare: it is a parallel shift, not a temperature
+  ok   Prediction Accuracy stays bare for the same reason: it is a mean error
+  ok   a device class with no state class is legal, so the valve target is fine
+  ok   Solar Surplus Forecast stays bare: a forecast is not a consumption meter
+  ok   DHW Heavy Day Demand stays bare: a learned p90 quantile is not a meter either
+
+-- The one device is a service device
+  ok   the shared device declares itself a service device
+  ok   and it is identified by the config entry, not by anything physical
+  ok   every sensor entity sits on the service device
+  ok   every binary_sensor entity sits on the service device
+  ok   every button entity sits on the service device
+  ok   every switch entity sits on the service device
+  ok   every climate entity sits on the service device
+  ok   every datetime entity sits on the service device
+
+-- Binary sensors
+  ok   five binary sensors are added
+  ok   a stale input raises the problem flag
+Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
+  ok   the problem names the input
+  ok   the frozen learners are reported with a reason
+  ok   a healthy install does not flag a problem
+  ok   the external heat sensor reflects the detector
+  ok   its evidence is published so a user can check the reasoning
+  ok   suppression is reported separately from detection
+  ok   away mode is reflected
+  ok   the return time is published
+  ok   the open-window sensor reflects the detector
+  ok   its evidence is published, same contract as external heat
+  ok   the open-window sensor stays quiet without the detector key
+  ok   the cheaper sensor is unavailable until fuel is ready
+  ok   and cheaper is false when not ready
+  ok   ready with a cheaper hour is on
+  ok   ready with an idle plan is off
+  ok   ready makes the cheaper sensor available
+  ok   cheaper attributes are sek_per_kwh and cheaper_hour_count
+  ok   no binary sensor crashes before the first update
+
+-- Buttons
+  ok   four buttons are added
+  ok   the Optimize Now button exists
+  ok   the Run System Identification button exists
+  ok   the Reset Learned Comfort Weight button exists
+  ok   the Diagnose Last Interval button exists
+  ok   the run button is available when idle
+  ok   pressing it forces a run
+  ok   the run button is unavailable while a run is in flight
+  ok   the experiment button is unavailable while one is running
+  ok   the reset button reaches the coordinator
+
+-- Options flow
+  ok   every menu entry has a handler behind it
+  ok   the building_preset page is offered in the menu
+  ok   the grid page is offered in the menu
+  ok   the solar_pv page is offered in the menu
+  ok   the away page is offered in the menu
+  ok   the learning page is offered in the menu
+  ok   the thermal_model page is offered in the menu
+  ok   the top and advanced menus partition the pages exactly
+  ok   'advanced' is a menu, not a page
+  ok   the top menu is the everyday pages plus Advanced
+  ok   the advanced submenu offers exactly the advanced pages
+  ok   heat_pump_power_entity can be cleared again once set
+  ok   heat_pump_energy_entity can be cleared again once set
+  ok   house_power_entity can be cleared again once set
+  ok   external_heat_entity can be cleared again once set
+  ok   pv_production_entity can be cleared again once set
+  ok   away_presence_entity can be cleared again once set
+  ok   grid_fee_entity can be cleared again once set
+  ok   saving the entities page leaves external_heat_entity alone
+  ok   saving the entities page leaves mixing_valve_target_entity alone
+  ok   saving the entities page leaves pv_production_entity alone
+  ok   saving the entities page leaves pv_export_price_entity alone
+  ok   saving the entities page leaves away_presence_entity alone
+  ok   saving the entities page leaves away_return_entity alone
+  ok   the entities page still clears its own absent fields
+  ok   heat_pump_mode_entity is offered on the entities_pump page
+  ok   heat_pump_mode_entity is optional
+  ok   heat_pump_mode_entity can be cleared again once set
+  ok   heat_pump_mode_entity is a topology slot, so the card and the service agree
+  ok   the picker for heat_pump_mode_entity offers exactly its slot's domains
+  ok   heat_pump_defrost_entity is offered on the entities_pump page
+  ok   heat_pump_defrost_entity is optional
+  ok   heat_pump_defrost_entity can be cleared again once set
+  ok   heat_pump_defrost_entity is a topology slot, so the card and the service agree
+  ok   the picker for heat_pump_defrost_entity offers exactly its slot's domains
+  ok   heat_pump_online_entity is offered on the entities_pump page
+  ok   heat_pump_online_entity is optional
+  ok   heat_pump_online_entity can be cleared again once set
+  ok   heat_pump_online_entity is a topology slot, so the card and the service agree
+  ok   the picker for heat_pump_online_entity offers exactly its slot's domains
+  ok   heat_pump_fault_entity is offered on the entities_pump page
+  ok   heat_pump_fault_entity is optional
+  ok   heat_pump_fault_entity can be cleared again once set
+  ok   heat_pump_fault_entity is a topology slot, so the card and the service agree
+  ok   the picker for heat_pump_fault_entity offers exactly its slot's domains
+  ok   the entities_pump page reaches a close-save
+  ok   heat_pump_mode_entity survives a save of the page it lives on
+  ok   heat_pump_defrost_entity survives a save of the page it lives on
+  ok   heat_pump_online_entity survives a save of the page it lives on
+  ok   heat_pump_fault_entity survives a save of the page it lives on
+  ok   a configured signal comes back as the field's default
+  ok   and clearing all four sticks
+  ok   an install that configures none of them stores none of them set
+  ok   and sees them as four empty slots on the heat pump, not as faults
+  ok   every slot says what it is asking for, even when the answer is nothing
+  ok   indoor_temp_entity asks for a temperature probe
+  ok   outdoor_temp_entity asks for a temperature probe
+  ok   dhw_temp_entity asks for a temperature probe
+  ok   buffer_tank_temp_entity asks for a temperature probe
+  ok   lower_floor_temp_entity asks for a temperature probe
+  ok   heat_pump_power_entity asks for a power probe
+  ok   heat_pump_energy_entity asks for a energy probe
+  ok   house_power_entity asks for a power probe
+  ok   solar_radiation_entity asks for a irradiance probe
+  ok   pv_production_entity asks for a power probe
+  ok   a slot with no narrower answer than its domains says so, not a guess
+  ok   and nothing asks for a class its own domains could never carry
+  ok   the building page clears its own absent mixing_valve_target_entity
+  ok   the building page clears its own absent wood_tank_top_entity
+  ok   an untouched thermal model form submits nothing at all
+  ok   an untouched save leaves a legacy entry single-zone
+  ok   and leaves hot water off too
+  ok   an edited number saves without touching the zone inference
+  ok   an explicit zone value is what turns two-zone on
+  ok   turning two-zone off reaches the save
+  ok   the mode select can turn two-zone off despite stored zone keys
+  ok   turning two-zone on reaches the save
+  ok   and can turn two-zone on for a legacy entry with no zone keys
+  ok   an untouched save of the entities page cannot flip two-zone
+  ok   an untouched save of the entities_metering page cannot flip two-zone
+  ok   an untouched save of the entities_pump page cannot flip two-zone
+  ok   an untouched save of the comfort page cannot flip two-zone
+  ok   an untouched save of the hot_water page cannot flip two-zone
+  ok   an untouched save of the hot_water_tank page cannot flip two-zone
+  ok   an untouched save of the hot_water_pumps page cannot flip two-zone
+  ok   an untouched save of the building page cannot flip two-zone
+  ok   an untouched save of the building_preset page cannot flip two-zone
+  ok   an untouched save of the thermal_model page cannot flip two-zone
+  ok   an untouched save of the thermal_model_zones page cannot flip two-zone
+  ok   an untouched save of the tuning page cannot flip two-zone
+  ok   an untouched save of the grid page cannot flip two-zone
+  ok   an untouched save of the grid_connection page cannot flip two-zone
+  ok   an untouched save of the grid_fees page cannot flip two-zone
+  ok   an untouched save of the solar_pv page cannot flip two-zone
+  ok   an untouched save of the away page cannot flip two-zone
+  ok   an untouched save of the learning page cannot flip two-zone
+  ok   an untouched save of the learning_features page cannot flip two-zone
+  ok   an untouched save of the heat_curve page cannot flip two-zone
+  ok   every options page answers an untouched submit with the menu
+  ok   and every saving page wrote its settings through before returning
+  ok   the untouched-save sweep exercised every page
+  ok   a stored value is suggested back rather than defaulted
+
+-- Option page schemas
+  ok   every menu page renders a schema
+  ok   the away page can be submitted untouched
+  ok   the building page can be submitted untouched
+  ok   the building_preset page can be submitted untouched
+  ok   the comfort page can be submitted untouched
+  ok   the entities page can be submitted untouched
+Hot water: the anti-legionella cycle at 60 °C is above the 52 °C charge limit, so the tank is taken above that limit every 7 days
+  ok   the entities_metering page can be submitted untouched
+  ok   the entities_pump page can be submitted untouched
+  ok   the grid page can be submitted untouched
+  ok   the grid_connection page can be submitted untouched
+  ok   the grid_fees page can be submitted untouched
+  ok   the heat_curve page can be submitted untouched
+  ok   the hot_water page can be submitted untouched
+  ok   the hot_water_pumps page can be submitted untouched
+  ok   the hot_water_tank page can be submitted untouched
+  ok   the learning page can be submitted untouched
+  ok   the learning_features page can be submitted untouched
+  ok   the setup_overview page can be submitted untouched
+  ok   the solar_pv page can be submitted untouched
+  ok   the thermal_model page can be submitted untouched
+  ok   the thermal_model_zones page can be submitted untouched
+  ok   the tuning page can be submitted untouched
+  ok   entity pickers use filter= rather than the legacy domain key
+  ok   every entity picker is narrowed to a domain
+  ok   the wood-furnace toggle is on the building page even when off
+  ok   toggle off hides the DHW wood-coil option
+  ok   the DHW wood-coil option is offered when the furnace is on
+  ok   and it is off unless asked for
+  ok   the wood-on building page can be submitted untouched
+
+-- Stored values and field ranges
+  ok   setup and the expert page agree on every shared field's range
+  ok   no thermal-mass field accepts a value the model would clamp away
+  ok   every value derivable for a 40-400 m² house fits its field (25,920 cases)
+  ok   any house the questionnaire can describe can still save the expert page (4,800 round trips)
+  ok   an expert edit sticks on a radiator house (slab mass 0.16, page floor was 1)
+  ok   and reaches the save rather than dying in the schema
+  ok   every options page accepts the values it displays, on a full configuration
+  ok   every setup page accepts the values it displays
+  ok   the field holding an out-of-range value (132.5) widens to admit it
+  ok   the widened field is named to the user, not silently patched
+  ok   a page with nothing out of range reports no error at all
+  ok   and no other field on the page moves
+  ok   a comfort value stored by apply_schedule can still be shown and saved
+  ok   an out-of-range stored comfort value is flagged on its own field
+  ok   and a band contradiction is still reported when one is submitted
+
+-- Derived values and the questionnaire
+  ok   the derived-key roster is exactly what presets.derive writes
+  ok   a no-op Submit leaves the derivation exactly as it was
+  ok   and changes nothing it wrote back
+  ok   re-typing a derived value unchanged is not an override
+  ok   editing a field the questionnaire does not own leaves it armed
+  ok   changing a derived value switches the derivation off, so the value keeps
+  ok   and the questionnaire still recalculates after a no-op Submit
+  ok   the expert page warns while the derivation is armed
+  ok   and says nothing when it is off
+  ok   strings.json gives the warning somewhere to appear
+  ok   strings.json does not carry the text as a step key
+  ok   en.json gives the warning somewhere to appear
+  ok   en.json does not carry the text as a step key
+  ok   sv.json gives the warning somewhere to appear
+  ok   sv.json does not carry the text as a step key
+  ok   the warning is carried in code, in both languages
+  ok   and an unknown language falls back to English rather than a KeyError
+  ok   strings.json config scales the house-mass advice by area
+  ok   strings.json options scales the house-mass advice by area
+  ok   en.json config scales the house-mass advice by area
+  ok   en.json options scales the house-mass advice by area
+  ok   sv.json config scales the house-mass advice by area
+  ok   sv.json options scales the house-mass advice by area
+  ok   strings.json points the derivation at the page it actually overwrites
+  ok   en.json points the derivation at the page it actually overwrites
+  ok   sv.json points the derivation at the page it actually overwrites
+
+-- Translations
+  ok   en.json matches strings.json exactly
+  ok   sv.json matches strings.json exactly
+  ok   the out-of-range warning has a config message
+  ok   and the Swedish config message is actually translated
+  ok   the out-of-range warning has a options message
+  ok   and the Swedish options message is actually translated
+  ok   the two menus in strings.json match the flow, in order
+  ok   the Swedish init menu is actually translated
+  ok   the Swedish advanced menu is actually translated
+  ok   every options field has a label translation
+  ok   every wood-block field has a building label translation
+  ok   the DHW wood-coil option has a data entry
+  ok   the DHW wood-coil option has a data_description entry
+  ok   and its Swedish data is a real translation
+  ok   and its Swedish data_description is a real translation
+  ok   the building_structure dropdown has labels
+  ok   the building_era dropdown has labels
+  ok   the building_foundation dropdown has labels
+  ok   the emitter dropdown has labels
+
+-- Services
+  ok   simulate_plan is documented
+  ok   its fields are documented for the UI
+  ok   the service schema accepts what the card sends
+  ok   apply_schedule is documented
+  ok   apply_schedule is registered under the name the card calls
+  ok   its schema covers both schedules and the comfort window
+  ok   every documented apply_schedule field exists in the schema
+  ok   apply_schedule accepts the hot water minimum the card now sends
+  ok   the hot water minimum is documented for the UI form too
+  ok   the deadband margin is a named constant, not a literal
+  ok   the default minimum still clears the default setpoint's deadband
+  ok   apply_schedule takes no required field, so a partial edit is allowed
+  ok   apply_manual_plan is documented
+  ok   apply_manual_plan is registered under the name the card calls
+  ok   its schema covers both channels, the expiry and the entry filter
+  ok   every documented apply_manual_plan field exists in the schema
+  ok   apply_manual_plan takes no required field, so an omitted channel is allowed
+  ok   the documented apply_manual_plan example passes the service's own schema
+  ok   and its slot examples are structured lists, not folded strings
+  ok   clear_manual_plan is documented
+  ok   clear_manual_plan is registered under the name the card calls
+  ok   clear_manual_plan takes no required field
+  ok   restore_learned_snapshot is documented
+  ok   restore_learned_snapshot is registered under the documented name
+  ok   diagnose_interval is documented
+  ok   diagnose_interval is registered under the documented name
+
+-- Climate and switch platforms
+  ok   the climate platform adds exactly one entity
+  ok   the climate unique id is prefixed with the entry id
+  ok   the climate entity is device-named (name None with has_entity_name)
+  ok   the climate entity pins the corrected object id for new installs
+  ok   the climate hvac modes are off, heat and auto
+  ok   the thermostat shows the user's target, not the per-step setpoint
+  ok   current temperature reads the published payload
+  ok   setting hvac off reaches the coordinator as mode off
+  ok   a preset selection maps onto the optimizer mode
+  ok   a target change is recorded as override evidence, then persisted
+  ok   the thermostat's slider stops at the comfort ceiling
+  ok   and starts at the comfort floor, not a degree below it
+  ok   every position the slider offers is one the band will accept
+  ok   a refused setpoint trains nothing
+  ok   hvac_action reports HEATING while the compressor runs at high power
+  ok   hvac_action reports IDLE while auto but the compressor is not running
+  ok   hvac_action reports OFF for the off mode even with a nonzero action
+  ok   hvac_action is None with no coordinator data at all
+  ok   hvac_mode maps 'auto' to auto
+  ok   hvac_mode maps 'comfort' to heat
+  ok   hvac_mode maps 'economy' to heat
+  ok   hvac_mode maps 'off' to off
+  ok   hvac_mode maps 'boost' to heat
+  ok   hvac_mode falls back to AUTO with no coordinator data
+  ok   preset_mode reports None for the off mode rather than an invalid preset
+Failed to publish ECL110 displace command: mqtt unreachable
+  ok   preset_mode reports a real preset unchanged
+  ok   preset_mode falls back to auto with no coordinator data
+  ok   current_temperature is None with no coordinator data
+  ok   a failed ECL110 publish is caught, not propagated, and the mode change still lands
+  ok   setting hvac AUTO reaches the coordinator as mode auto and publishes
+  ok   setting hvac HEAT reaches the coordinator as mode comfort and publishes
+  ok   async_turn_on selects auto and publishes
+  ok   async_turn_off selects off and publishes
+  ok   the switch platform adds the optimizer and away switches
+  ok   the switch unique id is prefixed with the entry id
+  ok   the switch entity is named through its translation key
+  ok   the switch pins today's object id for new installs
+  ok   the switch is on while the mode is not off
+  ok   turning on an already-on optimizer does not stomp the live mode
+  ok   turning it off reaches the coordinator
+  ok   the switch is off in mode off
+  ok   turning on from off selects auto
+  ok   the away switch pins today's object id
+  ok   the away switch is off when the override is off
+  ok   the datetime platform adds exactly one entity
+  ok   the return datetime pins today's object id
+
+-- Sensor metadata
+  ok   exactly the niche-hardware sensors are disabled by default
+
+-- Entity organisation and typing hygiene (audit B4)
+  ok   no numpy scalar leaves any sensor's state or attributes (#173)
+  ok   the schedule's solar gain is published as a plain float
+  ok   np.float64, a float subclass, is converted rather than waved through
+  ok   np.bool_ becomes a plain bool
+  ok   the hot-water domain is the nine dhw-keyed sensors
+  ok   every hot-water sensor suggests a dhw_ object id (#174)
+  ok   DHW Energy (lifetime) suggests sensor.heat_pump_optimizer_dhw_energy on new installs
+  ok   DHW Energy (lifetime) keeps unique id ..._dhw_energy, so existing installs keep their entity id
+  ok   DHW Cost (lifetime) suggests sensor.heat_pump_optimizer_dhw_cost on new installs
+  ok   DHW Cost (lifetime) keeps unique id ..._dhw_cost_total, so existing installs keep their entity id
+  ok   DHW Mixed Water suggests sensor.heat_pump_optimizer_dhw_mixed_water on new installs
+  ok   DHW Mixed Water keeps unique id ..._dhw_mixed_water, so existing installs keep their entity id
+  ok   the stat_kind headline family is four sensors
+  ok   the stat_kind family shares one entity_category (#175)
+  ok   and that category is primary, not Diagnostic: the card's headline is the product
+  ok   prediction accuracy is unavailable until an interval has been scored (#176)
+  ok   and names what it is waiting for
+  ok   a real fresh coordinator's accuracy sensor is unavailable, not Unknown
+  ok   with a scored interval it is available and waits for nothing
+  ok   exactly the machinery sensors are Diagnostic (#177, #179)
+  ok   every disabled-by-default sensor is Diagnostic (#177)
+  ok   MonthlySavingsSensor is unavailable before any booked month
+  ok   MonthlySavingsSensor names settled_savings_month while empty
+  ok   MonthlySavingsSensor state is the open month's estimated savings_sek
+  ok   every class that publishes attributes is in the pinned roster (#373)
+  ok   AwayModeBinarySensor publishes exactly its pinned attribute keys (#373)
+  ok   ComfortWeightSensor publishes exactly its pinned attribute keys (#373)
+  ok   CompressorStartsSensor publishes exactly its pinned attribute keys (#373)
+  ok   ContractComparisonSensor publishes exactly its pinned attribute keys (#373)
+  ok   CurrentSetpointSensor publishes exactly its pinned attribute keys (#373)
+  ok   DHWCostSensor publishes exactly its pinned attribute keys (#373)
+  ok   DHWEnergySensor publishes exactly its pinned attribute keys (#373)
+  ok   DHWHeatingPlanSensor publishes exactly its pinned attribute keys (#373)
+  ok   DHWHeavyDaySensor publishes exactly its pinned attribute keys (#373)
+  ok   DHWScheduleSensor publishes exactly its pinned attribute keys (#373)
+  ok   DHWSetpointAdvisorSensor publishes exactly its pinned attribute keys (#373)
+  ok   DHWTemperatureSensor publishes exactly its pinned attribute keys (#373)
+  ok   ECL110EffectiveDisplaceSensor publishes exactly its pinned attribute keys (#373)
+  ok   ExternalHeatBinarySensor publishes exactly its pinned attribute keys (#373)
+  ok   FrequencyAdvisorSensor publishes exactly its pinned attribute keys (#373)
+  ok   HeatPumpActionSensor publishes exactly its pinned attribute keys (#373)
+  ok   HeatPumpOptimizerClimate publishes exactly its pinned attribute keys (#373)
+  ok   InputHealthBinarySensor publishes exactly its pinned attribute keys (#373)
+  ok   MeasuredPowerSensor publishes exactly its pinned attribute keys (#373)
+  ok   MixedHotWaterSensor publishes exactly its pinned attribute keys (#373)
+  ok   MonthlyPeakSensor publishes exactly its pinned attribute keys (#373)
+  ok   MonthlySavingsSensor publishes exactly its pinned attribute keys (#373)
+  ok   ObservedCOPSensor publishes exactly its pinned attribute keys (#373)
+  ok   OptimizationScoreSensor publishes exactly its pinned attribute keys (#373)
+  ok   OptimizationStatusSensor publishes exactly its pinned attribute keys (#373)
+  ok   OptimizerEnableSwitch publishes exactly its pinned attribute keys (#373)
+  ok   OutdoorTempSensor publishes exactly its pinned attribute keys (#373)
+  ok   PVSurplusSensor publishes exactly its pinned attribute keys (#373)
+  ok   PlanNarrativeSensor publishes exactly its pinned attribute keys (#373)
+  ok   PowerHeadroomSensor publishes exactly its pinned attribute keys (#373)
+  ok   PredictedSavingsSensor publishes exactly its pinned attribute keys (#373)
+  ok   PredictionAccuracySensor publishes exactly its pinned attribute keys (#373)
+  ok   PredictiveInsightSensor publishes exactly its pinned attribute keys (#373)
+  ok   SavingsPercentageSensor publishes exactly its pinned attribute keys (#373)
+  ok   ScheduleSensor publishes exactly its pinned attribute keys (#373)
+  ok   SolarHeatGainSensor publishes exactly its pinned attribute keys (#373)
+  ok   SolarIrradianceSensor publishes exactly its pinned attribute keys (#373)
+  ok   SpaceCostSensor publishes exactly its pinned attribute keys (#373)
+  ok   SpaceEnergySensor publishes exactly its pinned attribute keys (#373)
+  ok   SpaceHeatingPlanSensor publishes exactly its pinned attribute keys (#373)
+  ok   ThermalBatteryEnergySensor publishes exactly its pinned attribute keys (#373)
+  ok   ThermalBatterySensor publishes exactly its pinned attribute keys (#373)
+  ok   TotalCostSensor publishes exactly its pinned attribute keys (#373)
+  ok   TotalEnergySensor publishes exactly its pinned attribute keys (#373)
+  ok   UpperFloorTempSensor publishes exactly its pinned attribute keys (#373)
+  ok   ValveTargetRecommendationSensor publishes exactly its pinned attribute keys (#373)
+  ok   VentilationBinarySensor publishes exactly its pinned attribute keys (#373)
+  ok   WoodCheaperBinarySensor publishes exactly its pinned attribute keys (#373)
+  ok   the pinned attribute surface is the whole measured one (#373)
+  ok   data-driven attribute publishers are named in the holes list (#405)
+  ok   data-driven attribute publishers are not exact-set pinned (#405)
+  ok   every predictive signal reaches the published attributes under its own name (#246)
+  ok   and the published set is exactly those signals, nothing dropped or added (#246)
+  ok   the state summarises the same signals, and says so when there are none (#246)
+  ok   SpaceHeatingPlanSensor publishes exactly the pinned EMPTY-plan key set (#395)
+  ok   SpaceHeatingPlanSensor publishes exactly the pinned POPULATED-plan key set (#395)
+  ok   DHWHeatingPlanSensor publishes exactly the pinned EMPTY-plan key set (#395)
+  ok   DHWHeatingPlanSensor publishes exactly the pinned POPULATED-plan key set (#395)
+  ok   config_flow._translated_text stays deleted (#178)
+  ok   const.ATTR_DHW_COOLING_RATE stays deleted (#178)
+  ok   const.ATTR_BUFFER_COOLING_RATE stays deleted (#178)
+  ok   presets._floor_heated_area stays deleted (#178)
+  ok   topology._CONDITIONAL_PLACES stays deleted (#178)
+
+-- Naming, translation keys and id stability (v5.0.0)
+  ok   every entity carries a translation key
+  ok   no entity carries a literal _attr_name any more
+  ok   the binary_sensor translation roster matches the entities exactly
+  ok   the button translation roster matches the entities exactly
+  ok   the datetime translation roster matches the entities exactly
+  ok   the sensor translation roster matches the entities exactly
+  ok   the switch translation roster matches the entities exactly
+  ok   the translation files carry no platforms without entities
+  ok   the Swedish entity names are actually translated
+  ok   every entity pre-assigns its suggested object id
+  ok   Solar Irradiance keeps its v4.x entity id on new installs
+  ok   Space Heating Plan (next 24 h) keeps its v4.x entity id on new installs
+  ok   DHW Heating Plan (next 24 h) keeps its v4.x entity id on new installs
+  ok   Predicted Savings keeps its v4.x entity id on new installs
+  ok   Monthly Savings keeps its v4.x entity id on new installs
+  ok   Savings Percentage keeps its v4.x entity id on new installs
+  ok   Optimization Score keeps its v4.x entity id on new installs
+  ok   Plan Narrative keeps its v4.x entity id on new installs
+  ok   Optimal Setpoint keeps its v4.x entity id on new installs
+  ok   Recommended Power keeps its v4.x entity id on new installs
+  ok   DHW Cost (lifetime) keeps its v4.x entity id on new installs
+  ok   the card's suffix derivation for _predicted_savings stays valid
+  ok   the card's suffix derivation for _monthly_savings stays valid
+  ok   the card's suffix derivation for _savings_percentage stays valid
+  ok   the card's suffix derivation for _optimization_score stays valid
+  ok   the card's suffix derivation for _plan_narrative stays valid
+  ok   Predicted Savings advertises stat_kind=predicted_savings
+  ok   Savings Percentage advertises stat_kind=savings_percentage
+  ok   Optimization Score advertises stat_kind=optimization_score
+  ok   Plan Narrative advertises stat_kind=plan_narrative
+  ok   the SolarRadiationSensor class no longer exists
+  ok   no sensor claims the retired solar_radiation unique id
+  ok   there are exactly 56 sensors after the merge
+  ok   the survivor still publishes the shared irradiance value
+  ok   the survivor keeps its own unique id, so history stays put
+  ok   setup removes the retired solar_radiation registry entry
+  ok   and leaves the surviving irradiance entry alone
+  ok   and never touches another config entry's entities
+  ok   the cleanup is idempotent across reloads
+  ok   monetary units follow the resolved currency
+  ok   unit prices follow it too
+  ok   an instance with no configured currency falls back to SEK
+  ok   the coordinator publishes the currency for the card
+  ok   Predicted Savings stays MEASUREMENT without a MONETARY device class
+  ok   Predicted Cost stays MEASUREMENT without a MONETARY device class
+  ok   Baseline Cost stays MEASUREMENT without a MONETARY device class
+  ok   DHW Heating Cost (next 24 h) stays MEASUREMENT without a MONETARY device class
+  ok   the mixed hot water sensor uses the volume unit constant
+  ok   every sensor with a numeric unit suggests a display precision
+
+-- Entity icons (icon translations, audit D10-13)
+  ok   icons.json exists in the integration root
+  ok   icons.json parses as JSON
+  ok   every icons.json entry is the hassfest shape with a valid mdi slug
+  ok   no entity class pins _attr_icon any more
+  ok   the sensor icon registry covers every translation key exactly
+  ok   the binary_sensor icon registry covers every translation key exactly
+  ok   the button icon registry covers every translation key exactly
+  ok   the switch icon registry covers every translation key exactly
+  ok   the datetime icon registry covers every translation key exactly
+  ok   every icon left out of the registry leans on a real device class
+  ok   sensor:optimal_setpoint keeps its temperature device class for the default icon
+  ok   sensor:outdoor_temperature_optimizer keeps its temperature device class for the default icon
+  ok   sensor:measured_power keeps its power device class for the default icon
+  ok   sensor:compressor_frequency_advisor keeps its frequency device class for the default icon
+
+-- Initial config flow
+  ok   the identity is the same for the same answers, whatever their order
+  ok   a different name is the same plant
+  ok   a different solar forecast source is the same plant
+  ok   a different heat pump switch is a different plant
+  ok   an extra sensor is a different plant
+  ok   a different Tibber account is a different plant
+  ok   the token cannot be read back out of the identity
+  ok   the first flow with these answers proceeds to the temperature step
+  ok   and carries the plant identity as its unique id
+  ok   the same answers a second time abort as already configured
+  ok   a second heat pump on the same Tibber account proceeds
+  ok   the abort reason has a string to show
+  ok   the first screen no longer carries the ECL110 MQTT fields
+  ok   the sensor step offers the four heat-pump signal slots too
+  ok   and offers them optionally, so setup still completes without a pump
+  ok   an untouched sensor step configures none of them
+  ok   the options heat-curve page still owns all eight ECL110 fields
+  ok   a valid temperature step leads to the building branch menu
+  ok   the questionnaire leads to the small heat-pump follow-up form
+  ok   the derived physics land where the thermal step would have written them
+  ok   the questionnaire answers themselves are stored for the options page
+  ok   the describe path never writes the two-zone presence keys
+  ok   the follow-up form continues into the DHW step
+  ok   the nameplate answers are stored
+  ok   the building menu offers the direct thermal path
+  ok   the direct path keeps the verbatim thermal-to-zones sequence
+
+-- Cross-field validation
+  ok   initial temperature step rejects min above target
+  ok   options comfort page rejects min above target
+  ok   initial temperature step rejects target above max
+  ok   options comfort page rejects target above max
+  ok   initial temperature step rejects night above day
+  ok   options comfort page rejects night above day
+  ok   initial temperature step rejects day window empty
+  ok   options comfort page rejects day window empty
+  ok   initial temperature step rejects a day comfort below the band floor
+  ok   options comfort page rejects a day comfort below the band floor
+  ok   initial temperature step rejects a day comfort above the band ceiling
+  ok   options comfort page rejects a day comfort above the band ceiling
+  ok   initial temperature step rejects a night comfort above the band ceiling
+  ok   options comfort page rejects a night comfort above the band ceiling
+  ok   initial temperature step rejects a night comfort below the band floor
+  ok   options comfort page rejects a night comfort below the band floor
+  ok   a consistent temperature step passes
+  ok   a band floor above the night selector still submits
+  ok   every floor/ceiling pair the sliders can produce has a submittable form
+  ok   an untouched comfort page still saves -- through the menu return
+
+-- Config-flow validation and currency (audit B3)
+  ok   the per-kWh money fields carry the instance currency as their unit
+  ok   and so does the compressor replacement cost
+  ok   the grid fees page hands the currency to its descriptions as a placeholder
+  ok   every placeholder the grid fees page's strings name is supplied by its render
+  ok   an unconfigured instance keeps the SEK every existing install has shown
+  ok   no field label, description or repair notice hardcodes SEK
+  ok   every translation names exactly the placeholders strings.json names
+  ok   a negative rule rate is refused with its own error
+  ok   a rate above the implausibility bound is refused too
+  ok   and the error message's bound and currency are supplied to it
+  ok   a rate at the bound still saves
+  ok   and the rule the grammar documents still saves
+  ok   an unreadable spec keeps its original error
+  ok   both new fee errors are translated in every language
+  ok   the setup day sliders can express every start<end schedule
+Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
+Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
+Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
+Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
+Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
+Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
+Hot water: the anti-legionella cycle at 60 °C is above the 50 °C charge limit, so the tank is taken above that limit every 7 days
+Hot water: the anti-legionella cycle at 60 °C is above the 50 °C charge limit, so the tank is taken above that limit every 7 days
+Config entry version 8 is newer than the supported version 7; downgrade is not supported
+  ok   and the setup sliders stop where no schedule exists
+  ok   the options day sliders can express every start<end schedule
+  ok   and the options sliders stop where no schedule exists
+  ok   an empty day reaches comfort_band on the options page as day_window_empty
+  ok   and on the setup flow
+  ok   an afternoon-only heating day, impossible before, saves
+  ok   the shortest accepted window is exactly one planning step
+  ok   a one-minute window is refused on both flows, by name
+  ok   and the error message's minimum is supplied to it
+  ok   a window of exactly one step saves on both
+  ok   a wrapping ten-minute window is measured across midnight, not as 23 hours
+  ok   a weekly spec is judged segment by segment
+  ok   an unreadable spec keeps its original error
+  ok   the default windows every install ships with still save
+  ok   the too-short error is translated on both flows in every language
+  ok   initial thermal step rejects a modulation floor above the ceiling
+  ok   the questionnaire's follow-up form enforces the same rule
+  ok   options thermal model rejects a floor above the stored ceiling
+  ok   and saves a floor that fits under it
+  ok   the setup flow rejects a DHW minimum inside the required margin
+  ok   a safely-spaced DHW minimum is accepted, so this is not a blanket rejector
+  ok   the options flow enforces the same deadband against the stored setpoint
+  ok   the options flow's boundary case still saves
+
+-- The options dialog stays open after a save
+  ok   a save returns to the section menu and writes through at once
+  ok   the after-save choice itself never persists
+  ok   an advanced page returns to the advanced menu
+  ok   the close choice ends the dialog with a create_entry, as before
+  ok   strings.json carries the config error texts
+  ok   strings.json carries the options error texts
+  ok   en.json carries the config error texts
+  ok   en.json carries the options error texts
+  ok   sv.json carries the config error texts
+  ok   sv.json carries the options error texts
+
+-- Config entry migration
+  ok   the current version is a no-op that reports success
+  ok   an old entry is stamped forward without touching its data
+  ok   a downgrade is refused rather than mangled
+
+-- Service registration (action-setup)
+  ok   the integration has an async_setup that succeeds without any entry
+  ok   async_setup registers every service services.yaml documents, with no entry loaded
+  ok   an entry's setup hands its coordinator to the entry as runtime_data
+  ok   an entry's setup registers nothing and replaces no handler
+  ok   every service is still registered after the last entry unloads
+  ok   a call with no loaded entry is refused, naming the reason
+
+-- Service handlers
+  ok   setup produced a live coordinator behind the services
+  ok   every documented service example passes the schema its service registered
+  ok   the set_thermal_parameters schema still rejects 0 for both fields
+  ok   services.yaml's selectors floor both fields at POSITIVE_PARAM_FLOOR, not 0
+  ok   all four config-flow forms floor the same two fields at POSITIVE_PARAM_FLOOR, not 0
+  ok   a ThermalParameters constructed with 0 for either field is clamped off it
+  ok   an untargeted call reaches every loaded entry
+  ok   an entry_id-targeted call reaches only that entry
+  ok   an entry_id nobody has is refused by name
+  ok   an entry that exists but is not loaded is refused as not loaded
+  ok   after the unload an untargeted call reaches only the entry still loaded
+  ok   run_optimization reaches the coordinator
+  ok   set_away reaches the coordinator
+  ok   set_mode changes the coordinator mode
+  ok   set_thermal_parameters lands on the live parameters
+  ok   simulate_plan returns per-entry results
+  ok   assign_entity writes the slot into the entry options
+  ok   apply_topology stores the validated layout
+  ok   apply_schedule persists the window into options
+  ok   apply_schedule refuses a daytime temperature below the stored night one
+  ok   and nothing was written when it refused
+  ok   a daytime temperature that clears the band still writes
+  ok   a call touching no band field survives a contradiction already stored
+  ok   and the write it asked for actually happened
+  ok   but a NEW violation is still refused on the same broken entry
+  ok   a stored contradiction raises a repair issue instead
+  ok   and correcting the band clears it across the reload
+  ok   the empty-day-window rule survived the move into the shared rules
+  ok   the climate entity cannot store a target above the comfort ceiling
+  ok   and the in-memory target is untouched by the refusal
+  ok   a target inside the band is stored as before
+  ok   apply_manual_plan reaches the coordinator
+  ok   clear_manual_plan reaches the coordinator
+  ok   restore_learned_snapshot reports what it restored
+  ok   diagnose_interval returns the per-entry report
+  ok   every registered service was invoked above
+
+-- Release metadata
+  ok   an expired lease is taken without forensics
+  ok   renew extends the lease past the original expiry
+  ok   a live agent between commands keeps the lock
+  ok   a crashed hold lets take('successor') steal
+  ok   an expired same-label take rewrites the lease
+  ok   same-label return clears holding
+  ok   the drift capture's closure excludes the bundled card
+  ok   and still covers every python file of the integration
+  ok   a card-only change does not select the drift capture
+  ok   an integration python change still does
+  ok   the widening rule itself leaves the card out
+  ok   while still widening to the rest of the integration
+  ok   the widening rule leaves the quality-scale register out too
+  ok   every tracked file is either measured or deliberately classified
+  ok   exactly one handover, with no date in its name
+  ok   the handover names the commit it reflects
+  ok   and that commit is reachable from HEAD
+  ok   repairs.py is imported so the dynamically loaded platform is classified
+  ok   setpoint_check.evaluate is the consistency detector
+  ok   a hand-run QA script does not drag the whole suite in
+  ok   but changing how the closures are derived still runs everything
+  ok   changing the portable node recorder invalidates every closure
+  ok   node recording works without strace
+  ok   the portable node recorder sees repo files the script opened
+closure: updated 1 closure(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmpbg5wgrkx/closures.json
+  tests/card.mjs                4 files
+  ok   a Darwin node re-record unions instead of replacing
+  ok   a docs-only change still costs the closures check nothing
+  ok   the (fixed) quality-scale contradiction is gone: INERT and in no closure now means skip, not scoped
+  ok   manufactured case: table presence outranks INERT regardless of which file it is
+  ok   no file is both INERT and inside a recorded closure
+  ok   a gate file re-derives everything, as it does for selection
+  ok   a file in no recorded closure re-derives everything, wherever it lives
+  ok   an empty diff re-derives everything rather than nothing
+  ok   a failed same-repo PR closures job may autofix
+  ok   autofix does not run on a push to main
+  ok   autofix does not run on a fork PR
+  ok   autofix does not run when closures passed
+  ok   autofix does not loop on its own commit
+  ok   UNDER-SCOPED recordings merge into the committed closure
+  ok   a recording that matches the committed list is not an autofix
+  ok   one failed recording beside a real under-approximation reddens, not skips
+  ok   a failed recording with nothing under-scoped stays quiet
+  ok   unreadable recordings do not rewrite closures.json
+  ok   a merge that still fails check is restored, not pushed
+  ok   a GITHUB_TOKEN autofix push must retrigger Tests
+  ok   a PAT autofix push must not also dispatch
+  ok   no retrigger when autofix did not push
+  ok   claims autofix may run after a closures autofix commit
+  ok   a closures autofix that attempted a repair and failed reddens its job
+  ok   a merge that changed no bytes between a failing and a passing check reddens
+  ok   the ordinary closures autofix no-ops stay quiet
+  ok   every status claims-autofix can return stays quiet
+Tibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)
+Tibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)
+  ok   an unrecognised status or job reddens rather than passing by default
+  ok   every status the two apply functions return is classified here
+  ok   closures-autofix reports its status to a human
+  ok   closures-autofix reports even when the repair step failed or was skipped
+  ok   closures-autofix reports after it has pushed, not before
+  ok   claims-autofix reports its status to a human
+  ok   claims-autofix reports even when the repair step failed or was skipped
+  ok   claims-autofix reports after it has pushed, not before
+  ok   a change to a subprocess-driven script re-derives everything
+  ok   a diff inside one closure re-derives one entry, not eighteen
+  ok   a scoped re-derive pulls in the producer of anything it selects
+  ok   the files the workflow reads carry the plan the predicate made
+  ok   a one-script re-derive is refused unless it says it is partial
+  ok   and is accepted when it does
+  ok   but a partial check still fails on a closure that under-approximates
+  ok   a selectable script with no closure forces the full re-derivation
+  ok   VERSION holds a plain X.Y.Z release number
+  ok   manifest.json carries the release version
+  ok   RELEASE_NOTES.md opens with this release
+  ok   the drift claim file is stamped for this release
+  ok   the card declares a valid CARD_VERSION
+  ok   CARD_VERSION does not run ahead of VERSION
+  ok   a claim file stamped for another release is rejected
+  ok   an unstamped claim file is rejected, prose mention and all
+  ok   a claims-for: value that is not a version is rejected, tree and all
+  ok   a claims-for: value that is not a version is named as malformed
+  ok   a claim file stamped for this release is accepted
+  ok   the stamp parses as a declaration, not as a claimed scenario
+  ok   a claim list identical to the baseline's is refused as inherited
+  ok   an inherited claim list names the ref it was inherited from
+  ok   claiming nothing, or claiming something else, is not inheritance
+  ok   inherited claim lines are dropped and may-drift is kept
+  ok   a rewritten reason is not an inherited-claims autofix
+  ok   an empty list is not an inherited-claims autofix
+  ok   both inherited claim files are emptied in one apply
+  ok   two branches' notes both survive a claim-file merge
+  ok   a merged claim file keeps its stamp, its header and its may-drift lines
+  ok   a comment-only merge claims nothing it was not given
+  ok   a claim list both sides rewrote is refused, not unioned
+  ok   the inherited-claims guard cannot catch a unioned claim list
+  ok   a claim list only one side touched is carried, not refused
+  ok   merging a file with itself returns it byte-identical
+  ok   a may-drift line added on one side survives the merge
+  ok   git resolves a real two-branch note conflict through the driver
+  ok   and it leaves a conflict for a claim list both sides rewrote
+  ok   the merge verification passes the file the merge actually produced
+  ok   the merge verification catches a lost stamp, a lost may-drift line, a smuggled claim and surviving markers
+  ok   .gitattributes routes both claim files to the merge driver
+  ok   a .gitattributes that routes only one claim file is refused
+  ok   #493-shaped roster-only still scopes card_drift and env_drift out
+  ok   roster-only #493 with copied card claims is refused
+  ok   empty claims on a roster-only three-dot pass
+  ok   a claim-bearing change that touches solver fixtures is not a record-PR violation
+  ok   a claim-bearing change that touches the card is not a record-PR violation
+  ok   a claim-bearing change to the capture code is not a record-PR violation
+  ok   a test file that is NOT a capture source still cannot justify a claim
+  ok   run.sh always runs env_drift.py --claims-only through run_always
+  ok   run_always never consults in_scope
+  ok   check_claims_hygiene replays #493 (roster-only + copied card claims vs 62799e4) and fails
+  ok   check_claims_hygiene accepts empty claims on a roster-only three-dot
+  ok   check_claims_hygiene accepts a real claim-bearing PR that moves solver fixtures
+  ok   a stamp that leaves claims behind is refused
+  ok   the stamped-with-claims message names both versions and the fixture
+  ok   a stamp claiming nothing is accepted
+  ok   a branch behind the baseline's version may still claim its own drift
+  ok   a malformed version is left to the rule that owns it
+  ok   may-drift accepts the fixtures the gate calls non-reproducible
+  ok   and refuses every fixture whose floats DO travel
+  ok   the refusal names both the stray entry and the category's real scope
+  ok   a scenario cannot be claimed and may-drift at once
+  ok   an empty may-drift list is always fine
+  ok   this tree's may-drift entries parse, with reasons
+  ok   and none of them leaks into the claim list
+  ok   this tree's own claim file passes the scope check
+  ok   may-drift judged keys are exactly the forecast and baseline fields
+  ok   may_drift_judged_diffs keeps baseline_cost and drops plan schedules
+  ok   may_drift_exempt_diffs is the complement on mixed diffs
+  ok   tools/release/stamp.py's --self-test passes
+  ok   stamp.py is no longer INERT: closure.py must classify it
+  ok   narrowing INERT moves exactly stamp.py into the must-classify set
+  ok   the committed table records stamp.py in tests/entities.py's own closure
+  ok   a change to stamp.py selects tests/entities.py
+
+-- Committed-fixture staleness (#347)
+  ok   a key the committed fixture lacks is structural staleness
+  ok   and so is a key the fixture has that the code no longer produces
+  ok   and so is a leaf whose JSON type changed
+  ok   a float that moved with the solver basin is not staleness
+  ok   nor is an integer that flipped with it
+  ok   nor is a boolean schedule that flipped
+  ok   nor is a plan-derived list whose LENGTH moved
+  ok   nor is a schedule this basin never populated at all
+  ok   a payload with a float anywhere is not exact-comparable
+  ok   the config-flow fixture is float-free, so the exact level covers it
+  ok   and a solver fixture is not, so the exact level leaves it alone
+  ok   a real fixture with every float, int and bool moved is not stale
+  ok   and every one of those moves is still counted for the nightly
+  ok   while the same payload with one key added IS stale
+  ok   the exact level catches a string-valued move the structure cannot see
+  ok   the gate fails on the float-free fixture's string move
+  ok   and on the fixture that grew a key
+  ok   and on a captured scenario with no committed fixture at all
+  ok   but NOT on the solver fixture whose floats merely moved
+  ok   which is still reported, because a nightly can act on it
+  ok   and the gate's verdict counts only what it fails on
+  ok   and the verdict NAMES every stale fixture
+  ok   and says how many, how to re-record, and which need care
+
+-- Reauthentication (D10-08)
+  ok   a refused token starts the reauth flow once, not per cycle
+  ok   recovery re-arms the flow for a future revocation
+  ok   the reauth flow opens a confirm form asking for the token
+  ok   a valid token is written through and the entry reloads
+
+-- Reconfigure (D10-14)
+  ok   an entry for this handler reports reconfigure support the way HA 2024.6 discovers it
+  ok   the config flow carries the reconfigure step
+  ok   reconfigure reopens the first screen rather than a fresh wizard
+  ok   the reopened screen is prefilled with this entry's answers
+  ok   the reopened sensor step carries this entry's picks
+  ok   a slot this entry leaves empty is not invented
+  ok   re-submitting this entry's own identity updates it instead of aborting
+  ok   the entry reloads on the new answers
+  ok   a rename is written through, title and all
+  ok   a slot the user cleared is dropped, not silently kept
+  ok   and the entry's unique id follows the picks, as a delete-and-recreate would
+  ok   reconfiguring into another entry's plant is refused
+  ok   the reconfigure success abort has a string to show
+
+-- Diagnostics (D10-12)
+  ok   the Tibber token never leaves the instance
+  ok   no precise coordinate leaves the instance, from data or from options
+  ok   the coordinate survives as a coarse cell rather than as a hole
+  ok   the documented coordinate precision is one decimal place
+  ok   the coarsening reaches a coordinate nested below the top level
+  ok   a coordinate that is not a number is redacted rather than published
+  ok   a non-coordinate member of the location dict is left alone
+  ok   the installation name the user typed never leaves the instance
+  ok   the entity ids and the MQTT topic survive redaction
+  ok   the payload is plain JSON and names the coordinator's state
+  ok   the learner summaries are present
+
+-- Entity base classes (D10-08)
+  ok   entity.py exists and defines HeatPumpOptimizerEntity
+  ok   the shared base is a CoordinatorEntity declaring the plumbing exactly once
+  ok   the sensor platform imports the shared base from .entity
+  ok   the binary_sensor platform imports the shared base from .entity
+  ok   the button platform imports the shared base from .entity
+  ok   the climate platform imports the shared base from .entity
+  ok   the switch platform imports the shared base from .entity
+  ok   the datetime platform imports the shared base from .entity
+  ok   no CoordinatorEntity base classes remain in the platform files
+  ok   sensor.HeatPumpOptimizerSensorBase still exists and builds on the shared base
+  ok   binary_sensor._OptimizerBinarySensorBase still exists and builds on the shared base
+  ok   button._OptimizerButtonBase still exists and builds on the shared base
+  ok   climate.HeatPumpOptimizerClimate still exists and builds on the shared base
+  ok   switch.OptimizerEnableSwitch still exists and builds on the shared base
+  ok   datetime.AwayReturnDateTime still exists and builds on the shared base
+  ok   an entity from sensor keeps has_entity_name and the coordinator's device_info
+  ok   an entity from binary_sensor keeps has_entity_name and the coordinator's device_info
+  ok   an entity from climate keeps has_entity_name and the coordinator's device_info
+  ok   an entity from switch keeps has_entity_name and the coordinator's device_info
+  ok   an entity from button keeps has_entity_name and the coordinator's device_info
+  ok   an entity from datetime keeps has_entity_name and the coordinator's device_info
+
+-- #284 singular schedule and plan states
+  ok   one DHW heating step is a period, not periods (#284)
+  ok   two DHW heating steps keep the plural (#284)
+  ok   one plan slot is a slot, not slots (#284)
+  ok   two plan slots keep the plural (#284)
+
+ALL 1026 ENTITY CHECKS PASSED

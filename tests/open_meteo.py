@@ -13,6 +13,7 @@ suite never fails because of someone's network.
 """
 from __future__ import annotations
 
+import asyncio
 import importlib.util
 import os
 import sys
@@ -370,6 +371,285 @@ check("coordinate matching rejects a different place", not client.matches(59.0, 
 
 d = client.diagnostics()
 check("diagnostics report both series", d["forecast_points"] == 5 and d["observed_points"] == 4)
+
+
+print("\n== small getters, and current_irradiance's forecast fallback ==")
+
+getter_client = om.OpenMeteoSolar(hass=None, latitude=1.0, longitude=2.0)
+check(
+    "forecast property mirrors the private series",
+    getter_client.forecast is getter_client._forecast,
+)
+check(
+    "observed property mirrors the private series",
+    getter_client.observed is getter_client._observed,
+)
+check(
+    "last_success property mirrors the private timestamp",
+    getter_client.last_success is getter_client._last_success,
+)
+getter_client._forecast = conv  # built above: hourly, 00:00-04:00, [0,0,0,400,800]
+check(
+    "current_irradiance falls back to the forecast when there is no observation",
+    # now=04:00, 15 min lookback [03:45,04:00) sits entirely inside the
+    # 03:00-04:00 sample (stamped 04:00, value 800.0) with full weight.
+    approx(getter_client.current_irradiance(datetime(2026, 8, 21, 4, 0, tzinfo=UTC)), 800.0),
+)
+
+
+print("\n== _parse_block edges not reached above ==")
+
+check(
+    "latest_before returns None when no sample is at or before the moment asked",
+    obs.latest_before(datetime(2026, 8, 21, 9, 0, tzinfo=UTC), timedelta(minutes=90)) is None,
+)
+check(
+    "duplicate timestamps with no positive gap yield an empty series",
+    not om._parse_block(
+        {"time": ["2026-08-21T00:00", "2026-08-21T00:00"], "shortwave_radiation": [1.0, 2.0]},
+        "shortwave_radiation",
+    ),
+)
+
+
+print("\n== HTTP fetch layer (fake aiohttp session) ==")
+
+
+class _FakeResponse:
+    """Duck-types aiohttp's response as an async context manager."""
+
+    def __init__(self, status=200, payload=None, json_exc=None):
+        self.status = status
+        self._payload = payload
+        self._json_exc = json_exc
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        return False
+
+    async def json(self, content_type=None):
+        if self._json_exc is not None:
+            raise self._json_exc
+        return self._payload
+
+
+class _FakeSession:
+    """Pops one canned response (or raises a canned exception) per .get()."""
+
+    def __init__(self, responses):
+        self._responses = list(responses)
+        self.calls = []
+
+    def get(self, url, params=None, timeout=None):
+        self.calls.append(url)
+        item = self._responses.pop(0)
+        if isinstance(item, BaseException):
+            raise item
+        return item
+
+
+def run(coro):
+    return asyncio.run(coro)
+
+
+fc = om.OpenMeteoSolar(hass=None, latitude=60.061, longitude=16.995)
+
+check(
+    "_get_json returns the parsed body on HTTP 200",
+    run(fc._get_json(_FakeSession([_FakeResponse(200, {"hourly": {}})]), "http://x", {}))
+    == {"hourly": {}},
+)
+check(
+    "_get_json returns None on a non-200 status",
+    run(fc._get_json(_FakeSession([_FakeResponse(500, None)]), "http://x", {})) is None,
+)
+check(
+    "_get_json swallows a transport exception rather than raising",
+    run(fc._get_json(_FakeSession([ConnectionError("dns failure")]), "http://x", {})) is None,
+)
+check(
+    "_get_json rejects a non-dict body",
+    run(fc._get_json(_FakeSession([_FakeResponse(200, [1, 2, 3])]), "http://x", {})) is None,
+)
+check(
+    "_get_json rejects a body carrying Open-Meteo's own error flag",
+    run(
+        fc._get_json(
+            _FakeSession([_FakeResponse(200, {"error": True, "reason": "bad params"})]),
+            "http://x",
+            {},
+        )
+    )
+    is None,
+)
+
+# _fetch_forecast: the request fails outright.
+check(
+    "_fetch_forecast returns the empty series when the request fails",
+    not run(fc._fetch_forecast(_FakeSession([_FakeResponse(500, None)]))),
+)
+
+# _fetch_forecast: hourly block only (no minutely_15). The humidity (#21) and
+# snowfall (#30) side series must land on the client from the SAME response
+# even though the caller only asked for irradiance.
+hourly_body = {
+    "time": [f"2026-08-21T{h:02d}:00" for h in range(6)],
+    "shortwave_radiation": [0.0, 0.0, 100.0, 300.0, 500.0, 400.0],
+    "relative_humidity_2m": [80.0, 80.0, 75.0, 70.0, 65.0, 68.0],
+    "snowfall": [0.0, 0.0, 0.0, 0.1, 0.0, 0.0],
+}
+fc2 = om.OpenMeteoSolar(hass=None, latitude=60.061, longitude=16.995)
+hourly_series = run(fc2._fetch_forecast(_FakeSession([_FakeResponse(200, {"hourly": hourly_body})])))
+check(
+    "_fetch_forecast falls back to the hourly block with no minutely_15",
+    len(hourly_series.times) == 6 and hourly_series.resolution == timedelta(hours=1),
+)
+check(
+    "_fetch_forecast parses the humidity side series onto the client (#21)",
+    len(fc2._humidity.times) == 6,
+)
+check(
+    "_fetch_forecast parses the snowfall side series onto the client (#30)",
+    len(fc2._snowfall.times) == 6,
+)
+
+# minutely_15 present and spanning close to the hourly block's own horizon:
+# the finer series must win.
+fine_times = [
+    (datetime(2026, 8, 21, 0, 0, tzinfo=UTC) + timedelta(minutes=15 * i)).strftime(
+        "%Y-%m-%dT%H:%M"
+    )
+    for i in range(24)
+]
+fc3 = om.OpenMeteoSolar(hass=None, latitude=60.061, longitude=16.995)
+fine_series = run(
+    fc3._fetch_forecast(
+        _FakeSession(
+            [
+                _FakeResponse(
+                    200,
+                    {
+                        "hourly": hourly_body,
+                        "minutely_15": {"time": fine_times, "shortwave_radiation": [50.0] * 24},
+                    },
+                )
+            ]
+        )
+    )
+)
+check(
+    "_fetch_forecast prefers the 15 minute series when it spans the horizon",
+    fine_series.resolution == timedelta(minutes=15),
+)
+
+# minutely_15 present but covering only the first 15 minutes of a 30 HOUR
+# hourly horizon -- far short of "close to the end" -- so the hourly block,
+# not the sparse fine one, must win.
+hourly_times_long = [
+    (datetime(2026, 8, 21, 0, 0, tzinfo=UTC) + timedelta(hours=h)).strftime("%Y-%m-%dT%H:%M")
+    for h in range(30)
+]
+hourly_body_long = {
+    "time": hourly_times_long,
+    "shortwave_radiation": [0.0] * 30,
+    "relative_humidity_2m": [70.0] * 30,
+    "snowfall": [0.0] * 30,
+}
+fc4 = om.OpenMeteoSolar(hass=None, latitude=60.061, longitude=16.995)
+short_series = run(
+    fc4._fetch_forecast(
+        _FakeSession(
+            [
+                _FakeResponse(
+                    200,
+                    {
+                        "hourly": hourly_body_long,
+                        "minutely_15": {"time": fine_times[:2], "shortwave_radiation": [50.0, 60.0]},
+                    },
+                )
+            ]
+        )
+    )
+)
+check(
+    "_fetch_forecast falls back to hourly when the 15 minute series is too short",
+    short_series.resolution == timedelta(hours=1),
+)
+
+# _fetch_observed: the request fails, and the happy path.
+check(
+    "_fetch_observed returns the empty series when the request fails",
+    not run(fc._fetch_observed(_FakeSession([_FakeResponse(500, None)]))),
+)
+obs_series = run(fc._fetch_observed(_FakeSession([_FakeResponse(200, {"hourly": hourly_body})])))
+check("_fetch_observed parses the satellite hourly block", len(obs_series.times) == 6)
+
+
+print("\n== async_refresh orchestration ==")
+
+_orig_get_session = om.async_get_clientsession
+
+
+class _StubHass:
+    pass
+
+
+def _patch_session(fake):
+    om.async_get_clientsession = lambda hass: fake
+
+
+good_body = {"hourly": hourly_body}
+now_refresh = datetime(2026, 8, 21, 12, 0, tzinfo=UTC)
+
+# Both endpoints succeed: last_success is set and a pre-existing failure
+# streak clears (the "recovered" log branch needs _failures already nonzero).
+_patch_session(_FakeSession([_FakeResponse(200, good_body), _FakeResponse(200, good_body)]))
+refresh_client = om.OpenMeteoSolar(hass=_StubHass(), latitude=60.061, longitude=16.995)
+refresh_client._failures = 2
+ok = run(refresh_client.async_refresh(now_refresh, force=True))
+check(
+    "a successful refresh reports available and clears a prior failure streak",
+    ok is True and refresh_client._failures == 0 and refresh_client._last_success == now_refresh,
+    f"available={ok} failures={refresh_client._failures} last_success={refresh_client._last_success}",
+)
+
+# Both endpoints fail, twice in a row: never raises, the previous series
+# survives untouched, and the streak counts 1 then 2 (the first-failure
+# warning and the subsequent-failure debug branches).
+_patch_session(_FakeSession([_FakeResponse(500, None), _FakeResponse(500, None)]))
+fail_client = om.OpenMeteoSolar(hass=_StubHass(), latitude=60.061, longitude=16.995)
+fail_client._forecast = hourly_series  # simulate a previously successful refresh
+first_ok = run(fail_client.async_refresh(now_refresh, force=True))
+check(
+    "a failed refresh does not raise and keeps the previous series",
+    first_ok is True and fail_client._forecast is hourly_series and fail_client._failures == 1,
+    f"ok={first_ok} failures={fail_client._failures}",
+)
+_patch_session(_FakeSession([_FakeResponse(500, None), _FakeResponse(500, None)]))
+run(fail_client.async_refresh(now_refresh + timedelta(minutes=25), force=True))
+check(
+    "a second consecutive failure keeps counting rather than resetting",
+    fail_client._failures == 2,
+    str(fail_client._failures),
+)
+
+# Throttling: a call inside the minimum refresh interval, without force,
+# must not touch the network at all.
+_patch_session(_FakeSession([_FakeResponse(200, good_body), _FakeResponse(200, good_body)]))
+throttle_client = om.OpenMeteoSolar(hass=_StubHass(), latitude=60.061, longitude=16.995)
+run(throttle_client.async_refresh(now_refresh, force=True))
+throttled_session = _FakeSession([])  # any .get() call here would IndexError
+_patch_session(throttled_session)
+throttle_result = run(throttle_client.async_refresh(now_refresh + timedelta(minutes=1), force=False))
+check(
+    "a refresh inside the minimum interval is skipped without touching the network",
+    throttle_result is True and throttled_session.calls == [],
+    f"result={throttle_result} calls={throttled_session.calls}",
+)
+
+om.async_get_clientsession = _orig_get_session
 
 
 if os.environ.get("HEATPUMP_LIVE"):

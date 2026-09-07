@@ -4672,6 +4672,131 @@ R.check(
     _hvac_none.hvac_action is None,
 )
 
+# hvac_mode: every mode MODE_TO_HVAC maps, plus the no-data fallback a
+# thermostat card reads before the first coordinator refresh completes.
+for _hvm_mode, _hvm_expect in (
+    (const.MODE_AUTO, climate_mod.HVACMode.AUTO),
+    (const.MODE_COMFORT, climate_mod.HVACMode.HEAT),
+    (const.MODE_ECONOMY, climate_mod.HVACMode.HEAT),
+    (const.MODE_OFF, climate_mod.HVACMode.OFF),
+    (const.MODE_BOOST, climate_mod.HVACMode.HEAT),
+):
+    _hvm_clim = climate_mod.HeatPumpOptimizerClimate(
+        FakeCoordinator({**DATA, "mode": _hvm_mode}), clim._entry
+    )
+    R.check(
+        f"hvac_mode maps {_hvm_mode!r} to {_hvm_expect}",
+        _hvm_clim.hvac_mode == _hvm_expect,
+        str(_hvm_clim.hvac_mode),
+    )
+_hvac_mode_none = climate_mod.HeatPumpOptimizerClimate(
+    FakeCoordinator(None), clim._entry
+)
+R.check(
+    "hvac_mode falls back to AUTO with no coordinator data",
+    _hvac_mode_none.hvac_mode == climate_mod.HVACMode.AUTO,
+    str(_hvac_mode_none.hvac_mode),
+)
+
+# preset_mode: "off" is a mode but deliberately not a preset -- reporting it
+# would leave the frontend selector holding a value outside
+# _attr_preset_modes -- and the no-data fallback mirrors hvac_mode's.
+_preset_off = climate_mod.HeatPumpOptimizerClimate(
+    FakeCoordinator({**DATA, "mode": const.MODE_OFF}), clim._entry
+)
+R.check(
+    "preset_mode reports None for the off mode rather than an invalid preset",
+    _preset_off.preset_mode is None,
+    str(_preset_off.preset_mode),
+)
+_preset_economy = climate_mod.HeatPumpOptimizerClimate(
+    FakeCoordinator({**DATA, "mode": const.MODE_ECONOMY}), clim._entry
+)
+R.check(
+    "preset_mode reports a real preset unchanged",
+    _preset_economy.preset_mode == const.MODE_ECONOMY,
+    str(_preset_economy.preset_mode),
+)
+_preset_none = climate_mod.HeatPumpOptimizerClimate(
+    FakeCoordinator(None), clim._entry
+)
+R.check(
+    "preset_mode falls back to auto with no coordinator data",
+    _preset_none.preset_mode == climate_mod.PRESET_AUTO,
+    str(_preset_none.preset_mode),
+)
+
+R.check(
+    "current_temperature is None with no coordinator data",
+    climate_mod.HeatPumpOptimizerClimate(
+        FakeCoordinator(None), clim._entry
+    ).current_temperature
+    is None,
+)
+
+# The MQTT publish that follows every mode change can fail (broker down,
+# device offline); it must not crash the mode change itself. async_set_mode
+# is left real so this proves the exception is caught around the publish
+# specifically, not that the whole method is a no-op try/except.
+_pub_fails = FakeCoordinator(DATA)
+
+
+async def _raise_publish(reason=None):
+    raise OSError("mqtt unreachable")
+
+
+_pub_fails.async_publish_current_action = _raise_publish
+_pub_fails_clim = climate_mod.HeatPumpOptimizerClimate(_pub_fails, clim._entry)
+try:
+    asyncio.run(_pub_fails_clim.async_turn_on())
+    _publish_failure_raised = False
+except OSError:
+    _publish_failure_raised = True
+R.check(
+    "a failed ECL110 publish is caught, not propagated, and the mode change still lands",
+    not _publish_failure_raised and _pub_fails.mode_calls == [const.MODE_AUTO],
+    f"raised={_publish_failure_raised}, mode_calls={_pub_fails.mode_calls}",
+)
+
+# async_set_hvac_mode: AUTO and HEAT branches (OFF is covered above). The
+# mutation-critical assertion is which coordinator mode landed, not just that
+# the call did not raise.
+_hvac_set_auto = climate_mod.HeatPumpOptimizerClimate(FakeCoordinator(DATA), clim._entry)
+asyncio.run(_hvac_set_auto.async_set_hvac_mode(climate_mod.HVACMode.AUTO))
+R.check(
+    "setting hvac AUTO reaches the coordinator as mode auto and publishes",
+    _hvac_set_auto.coordinator.mode_calls == [const.MODE_AUTO]
+    and _hvac_set_auto.coordinator.pressed == ["publish:manual_hvac_mode"],
+    f"mode_calls={_hvac_set_auto.coordinator.mode_calls}, pressed={_hvac_set_auto.coordinator.pressed}",
+)
+_hvac_set_heat = climate_mod.HeatPumpOptimizerClimate(FakeCoordinator(DATA), clim._entry)
+asyncio.run(_hvac_set_heat.async_set_hvac_mode(climate_mod.HVACMode.HEAT))
+R.check(
+    "setting hvac HEAT reaches the coordinator as mode comfort and publishes",
+    _hvac_set_heat.coordinator.mode_calls == [const.MODE_COMFORT]
+    and _hvac_set_heat.coordinator.pressed == ["publish:manual_hvac_mode"],
+    f"mode_calls={_hvac_set_heat.coordinator.mode_calls}",
+)
+
+# async_turn_on / async_turn_off: the HA base-class convenience methods a
+# dashboard's power toggle calls, distinct from async_set_hvac_mode.
+_turn_on_clim = climate_mod.HeatPumpOptimizerClimate(FakeCoordinator(DATA), clim._entry)
+asyncio.run(_turn_on_clim.async_turn_on())
+R.check(
+    "async_turn_on selects auto and publishes",
+    _turn_on_clim.coordinator.mode_calls == [const.MODE_AUTO]
+    and _turn_on_clim.coordinator.pressed == ["publish:manual_turn_on"],
+    f"mode_calls={_turn_on_clim.coordinator.mode_calls}",
+)
+_turn_off_clim = climate_mod.HeatPumpOptimizerClimate(FakeCoordinator(DATA), clim._entry)
+asyncio.run(_turn_off_clim.async_turn_off())
+R.check(
+    "async_turn_off selects off and publishes",
+    _turn_off_clim.coordinator.mode_calls == [const.MODE_OFF]
+    and _turn_off_clim.coordinator.pressed == ["publish:manual_turn_off"],
+    f"mode_calls={_turn_off_clim.coordinator.mode_calls}",
+)
+
 switches = collect(switch_mod)
 R.check("the switch platform adds the optimizer and away switches", len(switches) == 2)
 sw = next(
