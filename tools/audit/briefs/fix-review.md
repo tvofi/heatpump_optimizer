@@ -90,11 +90,12 @@ its bug. You are checking that the numbers are real.
     git merge-tree --write-tree origin/main <head>
     ```
 
-    A non-zero exit names the conflicting paths. If they are confined to
-    `tests/golden/claimed_drift.txt` and `tests/golden/card_claimed_drift.txt`,
-    that is merge-prep for the orchestrator and **not a verdict against the
-    work** — say so and judge the authored diff. A conflict on any other path is
-    yours to block on, because you cannot know the merged result is correct.
+    A non-zero exit names the conflicting paths. A conflict on any path other
+    than `tests/golden/claimed_drift.txt` and `tests/golden/card_claimed_drift.txt`
+    is yours to block on, because you cannot know the merged result is correct.
+    **For those two, the path is not the answer** — read the driver's verdict, as
+    below. The earlier form of this step disposed of them by path alone; that was
+    measured wrong and is the reason the paragraph below exists.
 
     **The driver's verdict is in that command's stderr. Read it; do not infer
     it from the paths, and do not classify the conflict by line shape.**
