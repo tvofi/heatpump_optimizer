@@ -70,6 +70,12 @@
 # under .claude/workflows/ and audit prose.
 # The claim-driver policy text, split out of #545 for approval: this branch
 # claims NOTHING. Two prose files only -- no card source is touched.
+# W4-G8 S7 (#193, the thermal-learning seam): this branch claims NOTHING.
+# One numeric helper moves out of two coordinator learners -- no card
+# source, no payload key and no published value is touched.
+# W4-G9 S8 (#193, the COP-health watch): this branch claims NOTHING. Two
+# coordinator initialisations move between init methods -- no card source, no
+# payload key and no published value is touched.
 # #547, the config-flow stored-value arm: this branch claims NOTHING. Two
 # test scripts, tests/golden.py and the config_flow golden fixture only --
 # no card source, template, style or payload key is touched, so every

@@ -1313,6 +1313,92 @@ R.check(
     f"class={'_grid_fee_entity_value' in _s2_cls_fns}",
 )
 
+# S8 of #193, the same lever on the COP-health watch. `_init_insurance` is
+# bucketed core by its name, so while it assigned the watch's two attributes
+# core *owned* them -- and core reads neither. Every `_observe_cop_health`,
+# `_learning_view` and `_async_load_thermal_learning` read was therefore
+# priced against learning as an inbound cross reference: 10 of cut_learning
+# for state whose only core contact was the assignment itself. Merging the
+# block back gives that 10 away with nothing else in the suite failing, which
+# is what these checks exist to stop.
+#
+# The state is derived from BOTH ends rather than listed here -- what
+# `_init_thermal_learning` assigns, intersected with what the watch method
+# `_observe_cop_health` references. A hand-kept list would stop covering an
+# attribute added later; deriving from the initialiser alone would over-fire,
+# because core's `_apply_house_heat_loss_scale` legitimately assigns other
+# state that initialiser owns.
+R.section("S8 COP-health watch state outside the core seam (#193)")
+_s8_init = next(
+    (
+        _n
+        for _n in _s1_cls.body
+        if isinstance(_n, (_ast_s1.FunctionDef, _ast_s1.AsyncFunctionDef))
+        and _n.name == "_init_thermal_learning"
+    ),
+    None,
+)
+_s8_watch = next(
+    (
+        _n
+        for _n in _s1_cls.body
+        if isinstance(_n, (_ast_s1.FunctionDef, _ast_s1.AsyncFunctionDef))
+        and _n.name == "_observe_cop_health"
+    ),
+    None,
+)
+_s8_assigned = (
+    {
+        _n.attr
+        for _n in _ast_s1.walk(_s8_init)
+        if isinstance(_n, _ast_s1.Attribute) and isinstance(_n.ctx, _ast_s1.Store)
+    }
+    if _s8_init is not None
+    else set()
+)
+_s8_read_by_watch = (
+    {
+        _n.attr
+        for _n in _ast_s1.walk(_s8_watch)
+        if isinstance(_n, _ast_s1.Attribute)
+    }
+    if _s8_watch is not None
+    else set()
+)
+_s8_state = _s8_assigned & _s8_read_by_watch
+
+# Non-emptiness is asserted, not assumed: deleting the relocated block rather
+# than moving it would leave the writer check below true over an empty set,
+# which is the shape this repository has shipped green before.
+R.check(
+    "the COP-health watch state is initialised in the learning seam (#193 S8)",
+    _s8_init is not None
+    and _s8_watch is not None
+    and _s5_seam("_init_thermal_learning") == "learning"
+    and len(_s8_state) == 2,
+    f"init={_s8_init is not None} watch={_s8_watch is not None} "
+    f"seam={_s5_seam('_init_thermal_learning')} state={sorted(_s8_state)}",
+)
+
+_s8_core_writers: dict[str, list[str]] = {}
+for _fn in _s1_cls.body:
+    if not isinstance(_fn, (_ast_s1.FunctionDef, _ast_s1.AsyncFunctionDef)):
+        continue
+    if _s5_seam(_fn.name) != "core":
+        continue
+    for _n in _ast_s1.walk(_fn):
+        if (
+            isinstance(_n, _ast_s1.Attribute)
+            and isinstance(_n.ctx, _ast_s1.Store)
+            and _n.attr in _s8_state
+        ):
+            _s8_core_writers.setdefault(_n.attr, []).append(_fn.name)
+R.check(
+    "no core-seam method assigns COP-health watch state (#193 S8)",
+    bool(_s8_state) and not _s8_core_writers,
+    f"core-seam assignments: { {k: sorted(set(v)) for k, v in _s8_core_writers.items()} }",
+)
+
 # The premise, stated in production's own terms: with nothing sensing the
 # tank, the buffer or the lower floor, what gets published IS the dataclass
 # default. No magic numbers here -- they are read off `ThermalState()`.
