@@ -88,12 +88,33 @@ What this binds:
   Home Assistant user is an image. `docs/*.md` is not rendered by HACS at all,
   so a mermaid figure there is a GitHub-only figure — legitimate, but state
   which audience it serves.
-- **Reference every image as single-line markdown, never raw HTML.** js-xss
-  blanks any `src` that is not absolute or `/`-, `./`-, `../`-rooted, and HACS's
-  `markdownWithRepositoryContext` rewrites markdown `[..](..)` links only. Its
-  link regex is also built without the `s` flag, so an `![alt](path)` whose alt
-  text **wraps across lines** is left un-rewritten and then blanked too. Both
-  failures are invisible on GitHub. `tests/entities.py` pins all three.
+- **Reference every image as single-line markdown, never raw HTML — but that
+  is necessary, not sufficient (corrected by #567's fix review, which
+  measured the two gaps below).** js-xss blanks any `src` that is not
+  absolute or `/`-, `./`-, `../`-rooted, and HACS's
+  `markdownWithRepositoryContext` rewrites markdown `[..](..)` links only,
+  never an HTML `src=`. Its link regex, `\[.*?\]\([^#](?!.*?:\/\/).*?\)`, is
+  also built without the `s` flag, so an `![alt](path)` whose alt text
+  **wraps across lines** is left un-rewritten and then blanked too.
+  `tests/entities.py` pins that case.
+  - **The negative lookahead `(?!.*?:\/\/)` scans the rest of the line, not
+    the link.** A line carrying a relative image *and* an absolute URL
+    anywhere after it — a trailing "see `<url>`", an adjacent absolute link —
+    fails the lookahead, is never rewritten, and js-xss blanks it exactly as
+    if it had been raw HTML. Control (measured against marked 15.0.4 + xss
+    1.0.15): `![x](docs/img/x.svg) see https://example.com` → blank `src`;
+    the identical image alone on its line → rewritten, survives. **An
+    image's line may carry no other `://`.**
+  - **A linked image (`[![alt](img)](target)`) has its *first* `(`
+    rewritten, so a relative `target` mangles the image's own `src` and
+    leaves `<a href>` empty.** This is the live, pre-existing `(LICENSE)`
+    badge defect — byte-identical at #567's merge base and head, so #567
+    neither introduced nor fixed it. Control:
+    `[![License: MIT](https://img.shields.io/badge/...)](LICENSE)` (relative
+    target) renders with a blank image inside a dead link, while
+    `[![HACS](https://img.shields.io/badge/...)](https://hacs.xyz)`
+    (absolute target) is fine. Not yet pinned; needs its own lane-B item.
+  Neither of these two failures is visible on GitHub.
 - **B12 should land after C1-C4.** A hero generated from the card's own renderer
   bakes in whatever the card looks like that day, and today that includes C2's
   colliding time-axis end labels and C1's low-contrast lane labels — both are
