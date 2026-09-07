@@ -144,10 +144,14 @@ refused with a reason — and the PR carrying it is named where one exists.
 pull requests are the obvious two, and checking only those is structurally
 blind to the largest set: **merged** pull requests, which by definition stop
 appearing in any "open" listing the moment they land. That blindness is not
-hypothetical — it hid twenty merges, #491 and #498 among them. A **range in
-prose is not a disposition** either: `#470–#500` reads as complete and absorbs
-thirty-one numbers while naming eight. The check is therefore per-number over
-all three sets:
+hypothetical — it hid #491 and #498 among others, #498 being the pull request
+that built `closures-autofix`, the job this repository makes load-bearing. **The
+count is deliberately not stated here**: the first attempt at it said "twenty",
+measured with `--limit 120`, and the re-derivation under the same rule gives a
+different answer again. Run the check rather than reading a number off this
+page. A **range in prose is not a disposition** either: `#470–#500` reads as
+complete and absorbs thirty-one numbers while naming eight. The check is
+therefore per-number over all three sets:
 
 ```
 gh pr list --state merged --limit 300 --json number -q '.[].number' |
@@ -171,12 +175,22 @@ that makes a check get quietly dropped rather than fixed.
 
 **The boundary is a limit on this document's scope. It is *not* a claim that
 the earlier work is recorded elsewhere, and an earlier draft of this paragraph
-said it was.** Measured: of the **157** merged pull requests below #375 with no
-disposition here, **10** appear in one of the three programme documents this
-file cites and **147 appear in none of them**. Those documents top out at #121
-(`plan-open-issues.md`) and #65 (`plan-v4.0.0-program.md`), and
-`audit-2026-08.md` carries no issue or pull-request reference at all — so this
-is not an artifact of citation style.
+said it was.** Measured against this file **as it stood on `origin/main` before
+this paragraph existed**: of the merged pull requests below #375 with no
+disposition here, **147 appear in none** of the three programme documents this
+file cites. Those documents reach only into the low hundreds and the double
+digits respectively, and `docs/audit-2026-08.md` carries no issue or
+pull-request reference at all — so this is not an artifact of citation style.
+
+**Why the baseline is named, and why two figures that used to be here are
+gone.** The check is a bare `grep -q "#$n\b"`, which cannot tell a disposition
+from an incidental mention. An earlier draft of this paragraph *cited the two
+highest-numbered references in those documents by number* — and that sentence
+put those tokens into this file, which handed both pull requests a
+"disposition" and moved them out of the miss set. The paragraph's own
+measurement of itself was destroyed by the act of recording it. So: measure
+against a fixed baseline, not the live file, and read every count the check
+produces as a **lower bound** on what is genuinely undispositioned.
 
 That gap is real, it predates this programme, and it is **#575**. Naming it is
 the point: a boundary that quietly reassigns 147 unrecorded merges to a
@@ -208,6 +222,15 @@ replaced — something that reads as complete while covering a fraction.
 | ~~**#546**~~ pressing **Tidy** made the setup page unsaveable | **DONE — closed by #548 (`137b6d5`), shipped in v6.3.17.** Released severity — `apply_topology` rejects `positions.outdoor`, which the card always emits. **Not drag-only**: the RCA ran the card's own `layoutArrange` and Tidy alone emits it on every configuration. **Shipped v3.16.0, 80 releases ago.** A stamp follows the merge | [#548](https://github.com/tvofi/heatpump_optimizer/pull/548) |
 | **#547** four config-flow pages have a stored-value arm that is executed but unpinned | **in flight — [#553](https://github.com/tvofi/heatpump_optimizer/pull/553).** The golden now seeds options and the arm went from **1-of-12 mutants killed to 11-of-12** (the twelfth is `learning`, dead code per #542, where a surviving mutant is correct). Mutating the arm on `building`, `hot_water`, `entities` or `comfort` leaves the whole scoped gate green, because `capture_config_flow()` seeds no options and only renders the *empty* arm. A registry dropping that arm re-creates #542's wipe on the page owning `CONF_EXTERNAL_HEAT_ENTITY` | folds into #195's W5-G5/G6, or its own PR |
 | **#539** `tools/audit` *generates* the forbidden `mkdir` gate lock | **scheduled, and ordered** — `prepare_baseline.sh:53` emits it into the text new auditors read, so **fix the generator first**; correcting the four prose sites while the generator stands means they come back. One section recounts the 113-minute incident that motivated #404 and then prescribes its cause | follows #534 |
+| **#577** nine measured divergences between `tests/hastub` and Home Assistant | **filed by the #536 seat, in the pass that built the mechanism.** Each measured against Home Assistant **2025.2.0** — the floor `hacs.json` declares — and recorded in `tests/ha_contract.py` as a `DIVERGENT` entry carrying an `expect="real"` contract: a statement of upstream behaviour that **must fail against the stub**, so each is pinned in both directions | #578 |
+| **#584** nightly A3: the published-state sweep | **filed by #533's seat, which asked for it by name.** The largest single unimplemented gap in the container lane — **15 past escapes, more than the four already-implemented assertions cover between them** | own PR |
+| **#585** nightly A10: the diagnostics privacy probe | **filed by #533's seat**, second priority after A3 because it pins an **open, still-shipping** defect directly: no token and no latitude/longitude beyond two decimals anywhere in the diagnostics payload | own PR |
+| **#587** nightly A5/A8/A9: options round-trip, service registration, reload | **filed by #533's seat.** One issue, three tranches, because all three need what the lane lacks — a **second** config entry and a reload rather than the single boot it does today. Split if a seat takes one alone | own PR |
+| **#588** the loop detector cannot tell "no blocking call" from "no log" | **filed by #533's seat as the residual its own fix left**, stated rather than left to be rediscovered. #533's fix made the pin a two-directional ratchet; this is the case the ratchet still cannot see | own PR |
+| **#580** a check earns its place once and is never asked again | **filed this session; under refutation.** Eight instances in one day of one class — an absent signal reading as a passing one. Three refutation seats and a judge are deciding whether it stays, stays modified, or closes | under review |
+| **#581** `brief_lint` refuses a literal metric but not a literal anything-else | **filed this session; under refutation.** Ten stale figures in one day. The issue **carries its own falsification test**: if no rule can separate an observation from a definition, it closes rather than being built | under review |
+| **#582** lanes B–F have no roster, so propagation has no destination | **filed this session; under refutation.** Two seats tried to comply with `finding-propagation.mdc` and had nowhere in-tree to write | under review |
+| **#583** stopping a seat mid-mutation leaves a production file broken | **filed this session; under refutation.** Measured once, harmed nothing — the resolver's dirty-tree guard held | under review |
 | **#574** two residues of #572 | **filed this session, unclaimed.** `fix-review.md` step 13 exempts a claim-file conflict from blocking, but omits the one case where such a conflict *is* meaningful — `merge_claim_file` deliberately refuses when both sides rewrote the bare claim list, which is the driver's entire safety argument. And `tests/features.py:21373` still says "all 22 metrics" where the derived count is 24. Part 1 is policy | own PR |
 | **#575** 147 merged PRs below #375 have no disposition anywhere | **filed this session, unclaimed.** #531's scope boundary originally asserted that pre-#375 work "is recorded there, not here" in three cited documents. Measured: of 157 such merges, **10** appear in one of them and **147 in none**; those documents top out at #121 and #65, and `audit-2026-08.md` carries no PR reference at all. The boundary stays — without it the check never returns clean and gets dropped — but it is a limit on this document's scope, not a claim about another's contents. Whether those 147 need a disposition at all is the owner's call | own PR |
 | **#570** GitHub cannot run the `claimnotes` merge driver | **CLOSED by [#572](https://github.com/tvofi/heatpump_optimizer/pull/572), merged `059881e`.** A merge driver's implementation is a `git config` entry and git never clones config, so GitHub — which computes `mergeStateStatus` — falls back to a plain text merge and calls every open PR `DIRTY` the moment `main` touches a claim file. GitHub then will not build a merge commit, so the `pull_request` workflows **never queue**: such a PR does not go red, it cannot run. Measured on #569 (CodeQL alone; `fast`, `closures`, `browser`, `briefs` absent). The fix is a subtraction — nothing requires a branch to write a note into a claim file, so a branch that claims nothing does not touch them | policy PR |
@@ -248,6 +271,11 @@ no wave:
 - [#572](https://github.com/tvofi/heatpump_optimizer/pull/572) — **merged `059881e`, closed #570.** Owner-approved and reviewed. GitHub cannot run the `claimnotes` driver, so a claim-file `DIRTY` blocks CI from queuing at all; a branch that claims nothing does not touch those files; the ratchet metric count is derived rather than stated (**24**, not the 22 the file had said); and `fix-review.md` gains step 13. Its own branch touched neither claim file, which is the rule it proposes. Residues in #574.
 - [#573](https://github.com/tvofi/heatpump_optimizer/pull/573) — **#195 coverage tranche 1**, `climate.py` / `open_meteo.py` / `frontend.py` to 100 % statement coverage. Leaves #195 open; the brief's figures were 204 commits stale and were re-derived rather than carried. In review.
 - [#540](https://github.com/tvofi/heatpump_optimizer/pull/540) — **merged `9da726a`, closed #524 and #525.** Home Assistant's loop detector fired twice on every install, at setup and at worker shutdown, both warnings telling the user to file against this repository; invisible to every lane in `tests/` because the stub has no loop protection. Reviewed at the fourth attempt — the first three blocked on process grounds and never reached the code, because the branch was `DIRTY` and its gate lanes had therefore never run (#570).
+- [#576](https://github.com/tvofi/heatpump_optimizer/pull/576) — **UX lane B, items B6–B11**: eight figures, none drawn by hand — B6/B7 from the shipped card, B9 reusing `setup_qa_render.mjs`, B8/B11 calling production. Establishes that **`docs/*.md` is not HACS-rendered at all**, so the image constraints are README-only. **Collides with #567**, and the shape is worse than "git will stop". It does stop — `merge-tree` exits 1 on `tests/entities.py` — **but the conflict hunk does not contain the colliding code.** #567's `_readme_table_rows` loop and `README.md` both auto-merge; the conflict is between two unrelated adjacent additions, so a resolver is never shown what breaks. Resolved the natural way (keep both sides), the check then fails: *table has 63 row(s), there are 56* — 63 = 56 + 8 tables − 1 header. **The merge instruction is explicit: remove `("sensors", "sensor", "Sensors")` from #567's row-count loop and keep this PR's name-set check.** Reviewed `merge`. 
+- [#578](https://github.com/tvofi/heatpump_optimizer/pull/578) — **#536, the hastub fidelity mechanism.** The highest blast radius in flight: every lane runs with `PYTHONPATH=tests/hastub`. In review.
+- [#579](https://github.com/tvofi/heatpump_optimizer/pull/579) — **`Closes #542`**, the options-page data-loss bug. The defect class was derived by AST rather than taken from the issue body: nine option pages clean an entity key, eight clean only keys they present, and `learning` was **the only one** cleaning a key its schema never shows. All six named statements fixed. In review.
+- [#586](https://github.com/tvofi/heatpump_optimizer/pull/586) — **W4-G10 / S9 continued**: `optimize`'s comfort envelope and power ceiling leave. In review.
+- [#589](https://github.com/tvofi/heatpump_optimizer/pull/589) — opened after this record's last sweep; disposition owed in the next record.
 - [#531](https://github.com/tvofi/heatpump_optimizer/pull/531) — this record. Blocked once: it claimed nine roster briefs had received a carried finding when only two had. The script used `str.replace`, which does not raise on no match, and printed success either way — the same shape as #523. The fix asserts the string changed and re-reads the file from disk.
 
 **A pattern worth naming**, since most of these were blocked for it: every one of those blocks was a document asserting something that was not true of the tree — a stale head, a count, an actor, a carry that did not land. None was a disagreement about the change itself.
