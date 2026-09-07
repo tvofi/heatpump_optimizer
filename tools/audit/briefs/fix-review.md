@@ -96,16 +96,33 @@ its bug. You are checking that the numbers are real.
     work** — say so and judge the authored diff. A conflict on any other path is
     yours to block on, because you cannot know the merged result is correct.
 
-    **The bare claim lines are the exception, and they stay yours to block on.**
-    `env_drift.py`'s `merge_claim_file` returns `None` — keeping git's markers —
-    only when **both sides rewrote the claim list**, because no rule says which
-    claim describes which diff. Union them and a claim the branch deliberately
-    deleted comes back carrying another branch's reason, ready to excuse a drift
-    this branch caused, where `inherited_claims_error` cannot see it: that check
-    fires only on a list *exactly* equal to the baseline's, and a unioned list
-    is not. So read the conflict, not just the path. A conflict confined to the
-    `#` comment notes is merge-prep; a conflict in the claim lines themselves is
-    a verdict.
+    **The driver's verdict is in that command's stderr. Read it; do not infer
+    it from the paths, and do not classify the conflict by line shape.**
+    Unlike GitHub, `merge-tree` *does* invoke the `claimnotes` driver —
+    measured, one invocation per conflicting claim file — but only if you
+    installed it, because it is git config and git never clones config:
+
+    ```
+    python3 tests/env_drift.py --install-merge-driver   # once per clone
+    ```
+
+    Every path through the driver prints one line: `MERGE-CLAIM: resolved
+    <path>` or `MERGE-CLAIM: refused <path>`. Key on that marker, not on the
+    wording after it — several distinct checks supply that wording, so a list
+    of messages goes stale. A `resolved` line settles that claim file, and a
+    non-zero exit alongside it is about some **other** path. A `refused` line
+    is the orchestrator's to resolve by hand, not a defect in the authored
+    work — but it is also not something to wave past silently: say which file
+    refused and why.
+
+    Classifying by line shape instead is what fails. `_comment_lines` and
+    `_is_may_drift` both test "everything before `#` is blank", so a
+    `may-drift` line **is** a `#` comment, and `merge_claim_defect` refuses
+    when one is lost. A rule of the form "a conflict confined to the `#`
+    comment notes is merge-prep" therefore waves through a real refusal, on a
+    file with no bare claim lines on any side. Read the marker instead. Why
+    the driver refuses at all is in `CLAUDE.md` under the `claimnotes` driver;
+    that is one rule and it lives there.
 
     Blocking on the status field alone makes every review a race with `main`,
     which no branch can win.
