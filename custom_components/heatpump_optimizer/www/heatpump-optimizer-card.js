@@ -5446,7 +5446,11 @@ class Legend {
     }
   }
 
-  html(series) {
+  /** `idPrefix` scopes the note ids to one COPY of the legend. The dialog
+   * renders a second legend beside the inline one in the same shadow root, so
+   * an id minted per series alone is minted twice -- and a duplicate id makes
+   * the aria-describedby that points at it ambiguous. */
+  html(series, idPrefix) {
     const isLowerModelled = () => this.host.plan.lowerFloorModelled();
     // Notes rescued out of `title=`, in chip order. A `title` renders on
     // hover and on nothing else: a keyboard user never reaches it and a
@@ -5492,7 +5496,7 @@ class Legend {
         .map((line) => lineNote(s || def, line))
         .filter(Boolean)
         .join(" ");
-      const noteId = notes ? `hpo-note-${def.key}` : "";
+      const noteId = notes ? `hpo-note-${idPrefix || ""}${def.key}` : "";
       if (notes) noteRows.push({ id: noteId, text: notes });
       const title = extras.length
         ? L("legend.multi_trace_title", {
@@ -9575,7 +9579,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     this.dialog.pickDefaultPage(anyData);
     const savingsTile =
       this.dialog.expanded && this.dialog.activePage() === "savings";
-    const legend = savingsTile ? "" : this.legend.html(this._series);
+    const legend = savingsTile ? "" : this.legend.html(this._series, "card-");
 
     // The setup page is drawn from configuration alone: `sensor.py` publishes
     // `setup_topology` with no plan at all, saying so in as many words --
@@ -9634,7 +9638,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
       ${this.plan.diagnose("dhw")}</div>`;
       dialog = this.dialog.html({
         title: this._title(),
-        legend: page === "plan" && anyData ? this.legend.html(this._series) : "",
+        legend: page === "plan" && anyData ? this.legend.html(this._series, "dlg-") : "",
         body,
       });
     }

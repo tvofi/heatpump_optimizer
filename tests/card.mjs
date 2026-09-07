@@ -5434,7 +5434,9 @@ const setupBox = (card, place) =>
   // the .legend-note the chip points at with aria-describedby (#558 C2).
   const legendNote = (dump, key) => {
     const m = legendOnly(dump).match(
-      new RegExp(`<p class="legend-note" id="hpo-note-${key}">([^<]*)</p>`));
+      // The id is scoped to the legend COPY (card-/dlg-), so match the
+      // series suffix rather than the whole id.
+      new RegExp(`<p class="legend-note" id="hpo-note-[^"]*${key}">([^<]*)</p>`));
     return m ? m[1] : "";
   };
   check("a broken band is still named once and reported once, not once per "
@@ -5896,7 +5898,7 @@ const setupBox = (card, place) =>
       winLoAt.get(Date.parse(p.t)) === p.dhw_temp_lo),
     `${outWinPub.length} outside-window plotted steps`);
   const winNote = (collect(winCard.shadowRoot).join("\n").match(
-    /<p class="legend-note" id="hpo-note-dhw_temp">([^<]*)<\/p>/) || ["", ""])[1];
+    /<p class="legend-note" id="hpo-note-[^"]*dhw_temp">([^<]*)<\/p>/) || ["", ""])[1];
   check("the floored-band legend names the window-minimum floor",
     /floored at the window minimum|window minimum/.test(winNote), winNote);
 }
@@ -6824,6 +6826,34 @@ const STOCK_THEMES = {
     `chip aria-describedby=${dhwChip && dhwChip.describedBy}, ` +
     `note id=${noteFor && noteFor.getAttribute("id")}`);
 
+  // The dialog renders a SECOND legend beside the inline one, in the same
+  // shadow root, so an id minted per series is minted twice. Duplicate ids
+  // make aria-describedby ambiguous -- the defect this item exists to remove,
+  // not to introduce -- and each chip has to point at the note in its own
+  // copy.
+  {
+    const two = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), { title: "c2-legend-two" });
+    two.legend.hidden = {};
+    two._sig = null;
+    two.dialog.open();
+    const d = collect(two.shadowRoot).join("\n");
+    const copies = d.split('class="legend"').slice(1);
+    check("the dialog really does render a second legend beside the inline one",
+      copies.length === 2, `${copies.length} legend container(s)`);
+    const ids = [...d.matchAll(/<p class="legend-note" id="([^"]+)"/g)].map((m) => m[1]);
+    check("every note id in the shadow root is unique",
+      ids.length === 2 && new Set(ids).size === ids.length, ids.join(", "));
+    check("and each chip describes the note in its own copy of the legend",
+      copies.every((copy) => {
+        const id = (/<p class="legend-note" id="([^"]+)"/.exec(copy) || [])[1];
+        const by = (/aria-describedby="([^"]+)"/.exec(copy) || [])[1];
+        return !!id && id === by;
+      }),
+      copies.map((copy) =>
+        `${(/aria-describedby="([^"]+)"/.exec(copy) || [])[1]} -> ` +
+        `${(/<p class="legend-note" id="([^"]+)"/.exec(copy) || [])[1]}`).join(" | "));
+  }
+
   // Null control. Strip the band's two fields and the note has nothing to
   // explain: no note element, and no chip pointing at one that is not there.
   const noBand = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
@@ -6939,6 +6969,11 @@ const STOCK_THEMES = {
     };
     return st;
   };
+  // Cells are read off the parsed DOM the card built, not by stripping tags
+  // out of its serialisation. A `.replace(/<[^>]*>/g, "")` is the shape of an
+  // HTML sanitiser and is flagged as one (CodeQL js/incomplete-multi-character
+  // -sanitization), which is fair: it is the wrong tool even here, where all
+  // that was wanted is the text a reader sees.
   const tableOf = (rows, title) => {
     const c = build(withMonths(rows), { title });
     c.dialog.open();
@@ -6947,18 +6982,19 @@ const STOCK_THEMES = {
     c._render();
     const dump = collect(c.shadowRoot).join("\n");
     const at = dump.indexOf('class="savings-table');
-    return { dump, table: at === -1 ? "" : dump.slice(at) };
+    const cellsOf = (tag) =>
+      [...c.shadowRoot.querySelectorAll(tag)].map((el) => ({
+        cls: el.getAttribute("class") || "",
+        text: (el.textContent || "").replace(/\u00a0/g, " ").trim(),
+        el,
+      }));
+    return {
+      dump, table: at === -1 ? "" : dump.slice(at),
+      cells: cellsOf("td"), heads: cellsOf("th"),
+    };
   };
 
-  const { dump, table } = tableOf(months, "c3-savings");
-  const cells = [...table.matchAll(/<td([^>]*)>([\s\S]*?)<\/td>/g)].map((m) => ({
-    attrs: m[1],
-    text: m[2].replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").trim(),
-  }));
-  const heads = [...table.matchAll(/<th([^>]*)>([\s\S]*?)<\/th>/g)].map((m) => ({
-    attrs: m[1],
-    text: m[2].replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").trim(),
-  }));
+  const { dump, table, cells, heads } = tableOf(months, "c3-savings");
   // "Numeric" by position, not by a regex over the rendered text: the month
   // column reads as digits too ("2025-11") and must NOT be right-aligned.
   const COLS = 5;
@@ -6969,16 +7005,16 @@ const STOCK_THEMES = {
     cells.length === months.length * COLS, `${cells.length} cells`);
   const css = dump.slice(0, dump.indexOf("</style>") + 8);
   check("every numeric cell is marked as a numeric column",
-    numeric.length > 0 && numeric.every((x) => /class="num"/.test(x.attrs)),
-    `${numeric.filter((x) => !/class="num"/.test(x.attrs)).length} of ${numeric.length} are not`);
+    numeric.length > 0 && numeric.every((x) => x.cls.split(/\s+/).includes("num")),
+    `${numeric.filter((x) => !x.cls.split(/\s+/).includes("num")).length} of ${numeric.length} are not`);
   // The control on the check above: marking every cell would pass it and
   // wreck the one column that is a label, not a quantity.
   check("and the month column is not",
-    monthCells.every((x) => !/class="num"/.test(x.attrs)));
+    monthCells.every((x) => !x.cls.split(/\s+/).includes("num")));
   check("the numeric headers are marked the same way",
-    heads.length === COLS && heads.slice(1).every((x) => /class="num"/.test(x.attrs)) &&
-      !/class="num"/.test(heads[0].attrs),
-    heads.map((x) => `${x.text}${/class="num"/.test(x.attrs) ? "[num]" : ""}`).join(" | "));
+    heads.length === COLS && heads.slice(1).every((x) => x.cls.split(/\s+/).includes("num")) &&
+      !heads[0].cls.split(/\s+/).includes("num"),
+    heads.map((x) => `${x.text}${x.cls.split(/\s+/).includes("num") ? "[num]" : ""}`).join(" | "));
   // The mark is only worth having if the stylesheet acts on it. Read the
   // rule, not the class: a class nothing styles is not an alignment.
   check("and the stylesheet right-aligns them, so the columns can be read down",
