@@ -6793,12 +6793,16 @@ const setupBox = (card, place) =>
     `${worst.pair} differ by dE ${worst.d.toFixed(1)} simulated deuteranope ` +
     `(just-noticeable is about 2.3)`);
 
-  // Colour cannot carry it alone here: every series must clear 3:1 against
-  // BOTH a light and a dark card (D4-08), which pins the whole palette into
-  // one narrow lightness band, and lightness is the only axis a deuteranope
-  // keeps. So two series drawn by the SAME branch of seriesPath -- same
-  // shape, same fill treatment -- must differ in stroke pattern unless
-  // their colours are far apart on their own. 20 is comfortably below every
+  // Colour cannot carry it alone here. Not because lightness is the only
+  // axis a deuteranope keeps -- it is not; the S-cone blue-yellow axis
+  // survives, and among in-band colours of EQUAL luminance to the solar
+  // series the deuteranope separation reaches 140 dE. The 3:1-against-both
+  // rule (D4-08) does pin the palette into one narrow lightness band, but
+  // what it costs is the WARM part of that band: everything that beats a
+  // warm hue against price is a pink or a blue, and solar cannot be either
+  // without colliding with dhw_slots. So two series drawn by the SAME
+  // branch of seriesPath -- same shape, same fill treatment -- must differ
+  // in stroke pattern unless their colours are far apart on their own. 20 is comfortably below every
   // same-style pair the palette already ships except the one this fixes.
   const byStyle = {};
   for (const d of defs) (byStyle[d.style] = byStyle[d.style] || []).push(d);

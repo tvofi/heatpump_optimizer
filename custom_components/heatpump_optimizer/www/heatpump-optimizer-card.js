@@ -1047,12 +1047,20 @@ const SERIES_DEFS = [
     color: "#ed6900",
     sensor: "solar",
     field: "ghi",
-    // That band is also the ceiling on colour alone: 3:1 against both cards
-    // pins the palette into one narrow lightness range, and lightness is the
-    // only axis a deuteranope keeps, so two warm colours cannot separate by
-    // much more than the 15 dE above. Price and solar are the only pair
-    // drawn by the same `stepArea` branch of seriesPath, so shape did not
-    // tell them apart either. The dash is the second channel, and unlike a
+    // Colour alone cannot finish the job, but not for the reason first
+    // written here. It is NOT that lightness is the only axis a deuteranope
+    // keeps -- the S-cone blue-yellow axis survives, and among in-band
+    // colours of EQUAL luminance to #ed6900 the deuteranope separation
+    // reaches 140 dE (at #0093ff). The real constraint is that the
+    // alternatives beating a warm hue here are all pinks and blues, which
+    // this series may not be: solar is warm by convention, and moving it
+    // away from price pushes it toward dhw_slots. Maximising the MINIMUM
+    // separation to every other series is the well-posed objective, and it
+    // tops out around 18 dE for a warm hue -- the 15.0 above is #ed6900's
+    // own figure, not the family ceiling. Both are under the 20 dE this
+    // check demands, which is what makes the dash necessary rather than
+    // decorative. Price and solar are also the only pair drawn by the same
+    // `stepArea` branch of seriesPath, so shape did not tell them apart. The dash is the second channel, and unlike a
     // hue it survives monochrome and every other form of colour blindness.
     dash: "6 3",
     style: "stepArea",
