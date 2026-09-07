@@ -56,6 +56,19 @@ def _lazy(module: str):
     return importlib.import_module(f".{module}", __package__)
 
 
+async def _async_lazy(hass: HomeAssistant, module: str):
+    """``_lazy`` off the event loop (#525).
+
+    ``import_module`` reads and compiles files, so Home Assistant's own
+    detector reports every one of these against this integration and asks the
+    user to file a bug. Its answer is the import executor, and the laziness
+    above costs nothing to keep: the closure argument for ``_LAZY_ATTRS``
+    survives intact. ``__getattr__`` stays synchronous because PEP 562 has no
+    other shape; nothing on a setup path reaches the package through it.
+    """
+    return await hass.async_add_import_executor_job(_lazy, module)
+
+
 def __getattr__(name: str) -> Any:
     """Resolve a re-export from the package root (PEP 562)."""
     module = _LAZY_ATTRS.get(name)
@@ -173,7 +186,7 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     is registered per entry and nothing is removed at unload: the services
     belong to the domain for the life of the process.
     """
-    _async_register_services(hass)
+    await _async_register_services(hass)
     return True
 
 
@@ -187,7 +200,12 @@ async def async_setup_entry(
     # not versioned by the config entry.
     _async_remove_retired_entities(hass, entry)
 
-    coordinator = _lazy("coordinator").HeatPumpOptimizerCoordinator(hass, entry)
+    coordinator_module = await _async_lazy(hass, "coordinator")
+    coordinator = coordinator_module.HeatPumpOptimizerCoordinator(hass, entry)
+    # The solve worker is a process global, so its reap belongs to the
+    # instance rather than to this entry; the listener is dropped with the
+    # entry all the same, so a reload does not stack them up (#525).
+    coordinator_module.async_register_worker_shutdown(hass, entry)
     try:
         integration = await async_get_integration(hass, DOMAIN)
         coordinator.integration_version = str(integration.version)
@@ -220,7 +238,7 @@ async def async_setup_entry(
     entry.runtime_data = coordinator
 
     # Serve and register the Lovelace dashboard card (idempotent; runs once).
-    await _lazy("frontend").async_register_frontend(
+    await (await _async_lazy(hass, "frontend")).async_register_frontend(
         hass, coordinator.integration_version
     )
 
@@ -247,7 +265,7 @@ async def async_setup_entry(
     return True
 
 
-def _async_register_services(hass: HomeAssistant) -> None:
+async def _async_register_services(hass: HomeAssistant) -> None:
     """Register the domain's services (the handlers live in ``services``).
 
     Thin seam since #222: schemas, the twelve handlers and the eleven
@@ -255,7 +273,7 @@ def _async_register_services(hass: HomeAssistant) -> None:
     forwards, so ``async_setup`` keeps one registration path and nothing is
     captured per entry.
     """
-    _lazy("services").async_register_services(hass)
+    (await _async_lazy(hass, "services")).async_register_services(hass)
 
 
 async def async_update_options(

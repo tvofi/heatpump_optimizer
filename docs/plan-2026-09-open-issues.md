@@ -53,7 +53,7 @@ Where this table and a wave body disagree, this table is the truth.
 | 1a | the stress ruler, alone on an idle box | #346 | v6.3.11 | **done** — W1-G7 merged PR #378 (`291ae76`), 0 unstamped |
 | triage B1 | read-only judges, run beside the ruler | #281 #225 closed; #303 #224 #193 re-scoped | — | **done** |
 | triage B2 | solver, suite, browser and timing judges | #304 #258 re-scoped; #242 weakened to a structural zero; **#291 closed** (keep `_MULTI_START_SOLVES=4`); **#232 scoped** (smooth top-k alone → W3-G1) | — | **done** |
-| 1b half I | gate instruments, suite gaps, ratchet, entity pins | 16 issues in 7 groups: #369 #370 (W1-G1), #350 #374 (W1-G2), #372 #357 (W1-G3), #373 (W1-G4), #334 (W1-G5), #247–#252 (W1-G10), #246 #251 #395 (W1-G11) | **v6.3.12** (tag `84a27b6`) | **done and released, 2026-09-04** — all seven groups merged, issues closed: PR #383, #406, #397, #384, #386, #385, #402 (merge SHAs in `.claude/workflows/wave-1b-groups.json`, each group's `resume.merge_sha`). `main` green after every merge, head `841fe0f`, stamped `84a27b6`. Five more PRs landed in the same run with no tracked issue of their own — #396 (roster/plan truth-up), #399 (the #387 coverage-floor backstop), #407 (operational docs), #409 (the ratchet-raise policy), #410 (claim priority) |
+| 1b half I | gate instruments, suite gaps, ratchet, entity pins | 16 issues in 7 groups: #369 #370 (W1-G1), #350 #374 (W1-G2), #372 #357 (W1-G3), #373 (W1-G4), #334 (W1-G5), #247 #248 #249 #250 #251 #252 (W1-G10), #246 #251 #395 (W1-G11) | **v6.3.12** (tag `84a27b6`) | **done and released, 2026-09-04** — all seven groups merged, issues closed: PR #383, #406, #397, #384, #386, #385, #402 (merge SHAs in `.claude/workflows/wave-1b-groups.json`, each group's `resume.merge_sha`). `main` green after every merge, head `841fe0f`, stamped `84a27b6`. Five more PRs landed in the same run with no tracked issue of their own — #396 (roster/plan truth-up), #399 (the #387 coverage-floor backstop), #407 (operational docs), #409 (the ratchet-raise policy), #410 (claim priority) |
 | 1b half II | card contrast/geometry, coordinator loaders, wood_share, may-drift partition, layout-editor recovery | 12 issues in 8 groups: #288 (W1-G6), #238 (W1-G8), #260 #261 #263 #266 (W1-G12), #262 #258 (W1-G13), #403 (W1-G16, added 2026-09-04), #265 (W1-G14), #254 (W1-G15), #245 (W1-G9) | **v6.3.13** (tag `f94ae13`) | **done and released, 2026-09-05** — all eight groups merged, issues closed: PR #419 (`7cc75a1`, W1-G6/#288), #421 (`a7c1e54`, W1-G8/#238), #424 (`47ded95`, W1-G14/#265), #427 (`598c83d`, W1-G15/#254), #431 (`cabcce1`, W1-G9/#245), #428 (`6bee53f`, W1-G12/#260 #261 #263 #266), #432 (`1801b76`, W1-G13/#262 #258), #433 (`ac35bf8`, W1-G16/#403). Record/tooling since v6.3.12 stamp: #414/#398, #415, #417, #418, #416/#411, #420, #426, #413; inherited-card-claims fix `7044a27` before stamp. Stamped `f94ae13`, 0 unstamped |
 | — | **#387, the blocker**: the basin coverage floor is runner-dependent | #387 | v6.3.12 | **fixed** — merged as `32f309f` (PR #388); sixth acceptance criterion ruled (comment 5541519696): the WORK-channel stale-cheap downgrade is kept as necessary to the `env_drift` shape, and the coverage floor's strictness is restored by a follow-up PR that hard-codes it |
 | 2 | coordinator lifecycle, learners, options grouping | #236 #237 #240 #239 #243 #283 #284 #277 #244 #325 #279 #278 #280 #198 | **v6.3.14** (tag `ef539be`) | **done and released, 2026-09-05** — seven groups merged, issues closed: PR #437 (`44a6351`, W2-G1/#236 #237 #240), #440 (`90c71c4`, W2-G2/#239 #243; duplicate #441 closed unmerged), #444 (`dc3bb8e`, W2-G3/#283 #284), #447 (`851c555`, W2-G4/#279 #278), #449 (`f492b1f`, W2-G5/#277), #451 (`efe5a27`, W2-G5 follow-up/#244 #325, review `merge` 5551113810: mid-step abort 36→0, 21 leftovers named), #438 (`e1a14f9`, W2-G6/#280), #436 (`3c141d7`, W2-G7/#198). Record/tooling since v6.3.13 stamp: #434, #435, #439, #442, #443, #446, #448, #450. Stamped `ef539be` as v6.3.14. Next seat **W3-G1** |
@@ -150,22 +150,38 @@ thirty-one numbers while naming eight. The check is therefore per-number over
 all three sets:
 
 ```
-gh pr list --state merged --limit 200 --json number -q '.[].number' |
-  while read n; do grep -q "#$n\b" docs/plan-2026-09-open-issues.md ||
-    echo "MERGED PR #$n has no disposition"; done
+gh pr list --state merged --limit 300 --json number -q '.[].number' |
+  while read n; do [ "$n" -ge 375 ] || continue
+    grep -q "#$n\b" docs/plan-2026-09-open-issues.md ||
+      echo "MERGED PR #$n has no disposition"; done
 ```
 
-and the same loop over `--state open` and over `gh issue list --state open`.
+and the same loop, without the `375` guard, over `--state open` and over
+`gh issue list --state open`. **Use a `--limit` that reaches past the oldest
+number you are checking** — a truncated listing under-reports silently, and a
+`--limit 120` run is what first reported this gap as twenty.
 
-**The scope boundary, stated so the check terminates.** This document is the
-plan of record for the #201 open-issues programme, created by **#375**
-(`8e99ad1`). It accounts for every pull request merged **from #375 onward**.
-Everything before that belongs to the programmes this file already cites —
-`docs/plan-open-issues.md`, `docs/plan-v4.0.0-program.md` and
-`docs/audit-2026-08.md` — and is recorded there, not here. Without the
-boundary the loop above demands this file account for the entire repository
-history and can never come back clean, which is the failure mode that makes a
-check get quietly dropped.
+**The scope boundary, stated so the check terminates — and what it does not
+claim.** This document is the plan of record for the #201 open-issues
+programme, created by **#375** (`8e99ad1`), and it accounts for every pull
+request merged **from #375 onward**. At this head that check returns **zero**.
+Without the boundary the loop demands this file account for the entire
+repository history and can never come back clean, which is the failure mode
+that makes a check get quietly dropped rather than fixed.
+
+**The boundary is a limit on this document's scope. It is *not* a claim that
+the earlier work is recorded elsewhere, and an earlier draft of this paragraph
+said it was.** Measured: of the **157** merged pull requests below #375 with no
+disposition here, **10** appear in one of the three programme documents this
+file cites and **147 appear in none of them**. Those documents top out at #121
+(`plan-open-issues.md`) and #65 (`plan-v4.0.0-program.md`), and
+`audit-2026-08.md` carries no issue or pull-request reference at all — so this
+is not an artifact of citation style.
+
+That gap is real, it predates this programme, and it is **#575**. Naming it is
+the point: a boundary that quietly reassigns 147 unrecorded merges to a
+document that does not contain them is the same defect as the prose range it
+replaced — something that reads as complete while covering a fraction.
 
 | issue | disposition | carried by |
 |---|---|---|
@@ -312,7 +328,7 @@ for the stored-value arm, and the capture work is in flight.
 
 ### Wave 1b, half I delivered 2026-09-04
 
-Twelve PRs merged in sequence, `main` green after each, ending at `841fe0f`: #383 (W1-G1, #369 #370), #385 (W1-G10, #247–#252), #396 (truth-up), #384 (W1-G4, #373), #386 (W1-G5, #334), #397 (W1-G3, #372 #357), #399 (the #387 coverage-floor backstop), #402 (W1-G11, #246 #251 #395), #407 (operational docs), #409 (the ratchet-raise policy), #410 (the claim priority), #406 (W1-G2, #350 #374). **Released**: `v6.3.12` is tagged at `84a27b6f21690edcd340c6d74ff303c8e0774180`, now `origin/main`.
+Twelve PRs merged in sequence, `main` green after each, ending at `841fe0f`: #383 (W1-G1, #369 #370), #385 (W1-G10, #247 #248 #249 #250 #251 #252), #396 (truth-up), #384 (W1-G4, #373), #386 (W1-G5, #334), #397 (W1-G3, #372 #357), #399 (the #387 coverage-floor backstop), #402 (W1-G11, #246 #251 #395), #407 (operational docs), #409 (the ratchet-raise policy), #410 (the claim priority), #406 (W1-G2, #350 #374). **Released**: `v6.3.12` is tagged at `84a27b6f21690edcd340c6d74ff303c8e0774180`, now `origin/main`.
 
 Half II (`.claude/workflows/wave-1b-groups.json`) started 2026-09-04 and completed 2026-09-05. **Released**: `v6.3.13` tagged at `f94ae13a75ed58ab53b70b5dbb13786c1c081a4c`, 2026-09-05. Eight fixer groups merged in sequence, `main` green after each; record PR #433 at `3bcea26`, inherited-card-claims fix `7044a27`, then stamp. Merge SHAs in the roster's `resume.merge_sha` fields. Record/tooling since v6.3.12: #414/#398, #415, #417, #418, #416/#411 (Wave 2 prerequisite), #420 (stress closure 64→22), #426 (W2-G2 citation re-anchor), #413 (brief corrections, W1-G16 added).
 

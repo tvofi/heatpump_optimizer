@@ -22548,6 +22548,280 @@ R.check(
 )
 
 # ---------------------------------------------------------------------------
+R.section("#524 — an unpicklable solve RESULT must raise, never become the plan")
+
+# #511 fixed the JOB side of this channel. The RESULT side still degraded on
+# ``payload[0]`` generically, so a reply the child could not pickle came back
+# as ("ok", RuntimeError(...)) and the parent handed that RuntimeError to the
+# coordinator AS THE PLAN -- published, ``_solve_failures`` reset, the
+# ``solve_failures`` notice withdrawn. A wrong plan the user acts on is worse
+# than a solve that failed, and before #515 this same case raised rc=1.
+import harness as _g524_harness  # noqa: E402
+
+_g524_pid_before = _g511_coord._run_in_process(_os.getpid, ())
+_g524_raised, _g524_returned = _g511_submit(
+    _g511_coord._run_in_process, _g524_harness.unpicklable_result_job, ()
+)
+R.check(
+    "a result the child cannot send home raises instead of being returned",
+    _g524_returned is None and isinstance(_g524_raised, Exception),
+    f"raised {_g524_raised!r}; returned {_g524_returned!r}",
+)
+R.check(
+    "and the error names both the value and why it would not pickle",
+    "UnpicklableResult" in str(_g524_raised)
+    and "refuses to pickle" in str(_g524_raised),
+    f"got {type(_g524_raised).__name__}: {_g524_raised}",
+)
+_g524_pid_after = _g511_coord._run_in_process(_os.getpid, ())
+R.check(
+    "guard: the worker survives it -- same child, no respawn, unlike a load-err",
+    _g524_pid_before == _g524_pid_after != _g3_parent,
+    f"parent={_g3_parent} before={_g524_pid_before} after={_g524_pid_after}",
+)
+
+
+def _g524_solve(optimizer):
+    """``_await_optimize``, keeping what it RAISED apart from what it RETURNED.
+
+    ``_g511_solve`` collapses the two into one value, which cannot see this
+    bug at all: the thing wrongly returned here IS a ``RuntimeError``, so any
+    check that only asks "is it an exception" passes with the bug present.
+    """
+    hass, sink = _G511Hass(), _G511LogSink()
+    logger = _g511_logging.getLogger(_g511_coord.__name__)
+    logger.addHandler(sink)
+    try:
+        try:
+            out = _asyncio.run(_g511_coord._await_optimize(hass, optimizer, "STATE"))
+            raised, returned = None, out
+        except Exception as err:  # noqa: BLE001
+            raised, returned = err, None
+    finally:
+        logger.removeHandler(sink)
+    return raised, returned, hass, [r for r in sink.records if r.levelno >= 30]
+
+
+_g524_err, _g524_plan, _g524_hass, _g524_warned = _g524_solve(
+    _g524_harness.UnpicklableResultOptimizer()
+)
+R.check(
+    "_await_optimize raises it as a solve failure instead of returning a plan",
+    _g524_plan is None and isinstance(_g524_err, Exception),
+    f"raised {_g524_err!r}; returned {_g524_plan!r}",
+)
+R.check(
+    "and it is not mistaken for an unusable worker: no second, in-process solve",
+    _g524_hass.jobs == [_g511_coord._run_in_process]
+    and not isinstance(_g524_err, _g511_unavailable)
+    and _g524_warned == []
+    and [i for i in _g524_hass.issues if i[1] == "solve_worker_fallback"] == [],
+    f"jobs={_g524_hass.jobs!r} raised={type(_g524_err).__name__} "
+    f"warned={len(_g524_warned)} issues={_g524_hass.issues!r}",
+)
+# Null control: the same route with a result that DOES pickle must still
+# return the plan and stay silent. A "fix" that raised on every reply would
+# pass every check above and break every solve.
+_g524_ok_err, _g524_ok_plan, _g524_ok_hass, _g524_ok_warned = _g524_solve(
+    _G511Probe()
+)
+R.check(
+    "null control: a picklable result still comes back as the plan, silently",
+    _g524_ok_err is None
+    and isinstance(_g524_ok_plan, tuple)
+    and _g524_ok_plan[0] != _g3_parent
+    and _g524_ok_plan[1] == "STATE"
+    and _g511_quiet(_g511_coord, _g524_ok_hass, _g524_ok_warned),
+    f"raised {_g524_ok_err!r}; returned {_g524_ok_plan!r}; "
+    f"jobs={_g524_ok_hass.jobs!r} issues={_g524_ok_hass.issues!r}",
+)
+
+# ---------------------------------------------------------------------------
+R.section("#525 — nothing blocking runs on Home Assistant's event loop")
+
+import subprocess as _g525_subprocess  # noqa: E402
+import threading as _g525_threading  # noqa: E402
+import time as _g525_time  # noqa: E402
+import importlib as _g525_importlib  # noqa: E402
+from homeassistant import const as _g525_ha_const  # noqa: E402
+
+# The real name once the stub carries it; the literal keeps this file
+# importable at the merge base, where the check below fails on the assertion
+# rather than on an ImportError that would take the whole script down.
+_G525_STOP = getattr(_g525_ha_const, "EVENT_HOMEASSISTANT_STOP", "homeassistant_stop")
+
+
+class _G525ImportSpy:
+    """Stands in for ``__init__``'s ``importlib``, recording the calling thread.
+
+    ``import_module`` reads and compiles files. Home Assistant's own detector
+    reports it from the loop; this records the same fact without needing a
+    Home Assistant install, which is why ``tests/hastub`` never saw #525.
+    """
+
+    def __init__(self, real) -> None:
+        self.real = real
+        self.threads = []
+
+    def import_module(self, name, package=None):
+        self.threads.append(_g525_threading.get_ident())
+        return self.real.import_module(name, package)
+
+
+class _G525Hass(FakeHass):
+    """Executor jobs run on a REAL other thread, the way Home Assistant's do.
+
+    ``FakeHass`` runs them inline, and an inline "executor" cannot tell a call
+    that left the loop from one that never did -- which is the whole of #525.
+    """
+
+    async def async_add_executor_job(self, func, *args):
+        return await _asyncio.get_running_loop().run_in_executor(None, func, *args)
+
+    async def async_add_import_executor_job(self, func, *args):
+        self.import_jobs.append(func)
+        return await _asyncio.get_running_loop().run_in_executor(None, func, *args)
+
+
+def _g525_setup_imports(hass):
+    """Drive HA's real setup path; return (import threads, the loop's thread)."""
+    spy = _G525ImportSpy(_g525_importlib)
+    loop_thread = []
+
+    async def _drive():
+        loop_thread.append(_g525_threading.get_ident())
+        await _ha_setup_entry(_integ, hass, FakeEntry(data=dict(_LC_DATA)))
+
+    saved = _integ.importlib
+    _integ.importlib = spy
+    try:
+        _asyncio.run(_drive())
+    finally:
+        _integ.importlib = saved
+    return spy.threads, loop_thread[0]
+
+
+_g525_hass = _G525Hass()
+_g525_threads, _g525_loop_id = _g525_setup_imports(_g525_hass)
+R.check(
+    "every lazy import a setup makes leaves the event loop (#525)",
+    len(_g525_threads) >= 3 and _g525_loop_id not in _g525_threads,
+    f"{len(_g525_threads)} imports on threads {sorted(set(_g525_threads))}; "
+    f"loop thread {_g525_loop_id}",
+)
+R.check(
+    "and each went through the IMPORT executor, not the general one",
+    len(_g525_hass.import_jobs) >= 3
+    and set(_g525_hass.import_jobs) == {_integ._lazy},
+    f"import jobs: {_g525_hass.import_jobs!r}",
+)
+# Null control for the meter itself: the same drive on a hass whose executor
+# is inline must record the loop thread. Without this, "no import on the loop
+# thread" would also be what a spy that recorded nothing reports.
+_g525_inline_threads, _g525_inline_loop = _g525_setup_imports(FakeHass())
+R.check(
+    "null control: an inline executor puts them back on the loop thread",
+    len(_g525_inline_threads) >= 3
+    and _g525_inline_loop in _g525_inline_threads,
+    f"{len(_g525_inline_threads)} imports on threads "
+    f"{sorted(set(_g525_inline_threads))}; loop thread {_g525_inline_loop}",
+)
+
+# -- the worker reap ---------------------------------------------------------
+# ``Popen.wait`` polls with ``time.sleep``. Measured, not asserted about: a
+# heartbeat ticks every 10 ms beside the reap, and what survives is the number
+# of ticks. Asserting that the code calls an executor wrapper would pass on a
+# wrapper that awaited nothing.
+_G525_STUBBORN = (
+    "import signal, time\n"
+    "signal.signal(signal.SIGTERM, signal.SIG_IGN)\n"
+    "time.sleep(30)\n"
+)
+
+
+async def _g525_ticks(shutdown):
+    """(ticks, seconds) -- 10 ms loop ticks that still happen while it runs."""
+    ticks = []
+
+    async def _beat():
+        while True:
+            ticks.append(1)
+            await _asyncio.sleep(0.01)
+
+    beat = _asyncio.ensure_future(_beat())
+    await _asyncio.sleep(0.05)
+    ticks.clear()
+    started = _g525_time.monotonic()
+    await shutdown()
+    elapsed = _g525_time.monotonic() - started
+    beat.cancel()
+    return len(ticks), elapsed
+
+
+# ``_PROCESS_WORKER`` is a module global, and the two spellings of this
+# package are two module objects with two of them (#511's own subject). The
+# listener below came from ``_integ``, so everything here works on the module
+# ``_integ`` reaches -- planting the child on the other one measures a
+# shutdown that has nothing to shut down, and reads as a pass.
+_g525_worker_mod = _g511_harness_coord
+assert _g525_worker_mod is _integ._lazy("coordinator")
+
+
+def _g525_measure(shutdown):
+    """Run ``shutdown`` against a child that ignores SIGTERM, and time the loop."""
+    child = _g525_subprocess.Popen(
+        [sys.executable, "-c", _G525_STUBBORN],
+        stdin=_g525_subprocess.PIPE,
+        stdout=_g525_subprocess.DEVNULL,
+    )
+    _g525_worker_mod._PROCESS_WORKER = child
+    try:
+        return _asyncio.run(_g525_ticks(shutdown))
+    finally:
+        _g525_worker_mod._PROCESS_WORKER = None
+        child.kill()
+        child.wait(timeout=5)
+
+
+# The live workers from the checks above must not be the ones under the axe.
+_g511_coord._shutdown_process_pool()
+_g525_worker_mod._shutdown_process_pool()
+
+
+async def _g525_inline_shutdown():
+    _g525_worker_mod._shutdown_process_pool()
+
+
+_g525_block_ticks, _g525_block_s = _g525_measure(_g525_inline_shutdown)
+_g525_stop_listeners = _g525_hass.bus.listeners_for(_G525_STOP)
+R.check(
+    "an entry's setup registers the worker reap on Home Assistant's stop (#525)",
+    len(_g525_stop_listeners) == 1,
+    f"listeners: {_g525_hass.bus.listeners!r}",
+)
+
+
+async def _g525_stop_shutdown():
+    await _g525_stop_listeners[0](None)
+
+
+if _g525_stop_listeners:
+    _g525_free_ticks, _g525_free_s = _g525_measure(_g525_stop_shutdown)
+else:
+    _g525_free_ticks, _g525_free_s = 0, 0.0
+R.check(
+    "the reap Home Assistant's stop fires keeps the loop running (#525)",
+    _g525_free_ticks >= 50 and _g525_free_s >= 1.5,
+    f"fixed {_g525_free_ticks} ticks in {_g525_free_s:.2f}s vs "
+    f"blocking {_g525_block_ticks} ticks in {_g525_block_s:.2f}s",
+)
+R.check(
+    "null control: reaping inline DOES stall it, so the heartbeat can see a stall",
+    _g525_block_ticks <= 5 and _g525_block_s >= 1.5,
+    f"blocking {_g525_block_ticks} ticks in {_g525_block_s:.2f}s",
+)
+
+# ---------------------------------------------------------------------------
 R.section("3L-G5 — DHW set-point consistency (#408)")
 
 from heatpump_optimizer.const import (  # noqa: E402
