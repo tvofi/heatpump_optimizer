@@ -1167,8 +1167,7 @@ def regression_rows(old: dict, new: dict) -> list[tuple[str, float, float]]:
     The direction is uniformly ``new > old`` and needs no metric-specific
     knowledge: ``ratchet`` below compares every metric in the budgets table
     the same way -- above the budget fails, below it is headroom -- so every
-    one of them is
-    lower-is-better. A per-metric direction table would be one more
+    one of them is lower-is-better. A per-metric direction table would be one more
     hand-maintained list to rot, which is the class of defect #364 and #304
     both turned out to be, so there deliberately is not one.
 
