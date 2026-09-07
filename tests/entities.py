@@ -8015,6 +8015,7 @@ R.check(
 # for `docs/HANDOVER.md`: it is what keeps the file out of INERT. What is
 # pinned is the lane's REPORTING, which is text and needs no container.
 import io as _io  # noqa: E402
+import types as _types  # noqa: E402
 
 import nightly_ha as _nightly  # noqa: E402
 
@@ -8060,6 +8061,40 @@ def _nightly_scan(text: str) -> tuple[list[str], dict]:
     finally:
         sys.stdout = _saved_stdout
     return checks.failures(), checks.results
+
+
+def _nightly_report_probe(extra_outside: tuple = (), drop_outside: tuple = ()) -> list:
+    """`_report` over a synthetic complete, green run; its `run:all_checks_ran`.
+
+    No container and no Docker: `_report` reads three attributes off the
+    finished process and is otherwise pure, so the roster comparison can be
+    driven directly.
+
+    The roster is perturbed in BOTH directions, because `ran == want` fails in
+    both and a probe that only adds names pins only half of it. `extra_outside`
+    adds a name the run never emits -- which a demanded roster must report
+    missing. `drop_outside` removes a name the run DOES emit -- which a demanded
+    roster must report undeclared, and which `want <= ran` would not.
+    """
+    checks = _nightly.Checks()
+    inside = {n: [True, "d"] for n in _nightly.INSIDE_CHECKS}
+    completed = _types.SimpleNamespace(
+        stdout=_nightly.MARKER + json.dumps(inside) + "\n" + _NIGHTLY_CLEAN,
+        stderr="",
+        returncode=0,
+    )
+    _saved_roster = _nightly.OUTSIDE_CHECKS
+    _nightly.OUTSIDE_CHECKS = tuple(
+        n for n in _saved_roster + tuple(extra_outside) if n not in drop_outside
+    )
+    _saved_stdout, sys.stdout = sys.stdout, _io.StringIO()
+    try:
+        with _tempfile.TemporaryDirectory() as _dir:
+            _nightly._report(checks, completed, Path(_dir))
+    finally:
+        sys.stdout = _saved_stdout
+        _nightly.OUTSIDE_CHECKS = _saved_roster
+    return checks.results["run:all_checks_ran"]
 
 
 # THE GENERATOR BEFORE THE ARTIFACT (`fixer.md` step 10). Re-recording the pin
@@ -8119,7 +8154,11 @@ _NIGHTLY_REPORT_FOREIGN = _NIGHTLY_REPORT_IMPORT.replace(
 R.check(
     "the nightly's loose anchor claims a real report blaming this package",
     bool(_nightly.BLOCKING_AT_OURS.search(_NIGHTLY_REPORT_IMPORT))
-    and bool(_nightly.BLOCKING_CALL.search(_NIGHTLY_REPORT_IMPORT)),
+    and bool(_nightly.BLOCKING_CALL.search(_NIGHTLY_REPORT_IMPORT))
+    # Both specimens, because they blame different files -- `__init__.py` and
+    # `coordinator.py`. Against the import report alone an anchor narrowed to
+    # one module still matches, and the narrowing goes unmeasured.
+    and bool(_nightly.BLOCKING_AT_OURS.search(_NIGHTLY_REPORT_SLEEP)),
     "tests/nightly_ha.py cannot read the report Home Assistant really emitted "
     "(job 101522529963); the pin measures an empty population and passes",
 )
@@ -8175,18 +8214,46 @@ R.check(
     "tests/nightly_ha.py _scan emits checks its own roster does not declare: "
     f"{sorted(set(_nightly_clean_results) - set(_nightly.OUTSIDE_CHECKS))}",
 )
-# Read the COMPILED code, not the source text. The first version of this check
-# searched _report's source for the word "OUTSIDE_CHECKS", and a mutant that
-# broke the behaviour while leaving the word in a comment survived every one of
-# this file's checks -- #580's shape inside the fix for #580's shape. A name a
-# function actually loads appears in its code object; a name in a comment does
-# not, so the comment mutant cannot pass this.
+# Perturb the roster and run it; do not inspect the function. Two structural
+# proxies stood here first and each was defeated by a mutant that kept its
+# shape: a source-text search for "OUTSIDE_CHECKS" (survived by leaving the
+# word in a comment), then `_report.__code__.co_names` (survived by a dead
+# `_unused = OUTSIDE_CHECKS`, and by reading the roster only for `len()`).
+# Both mutants degrade run:all_checks_ran to comparing the results with
+# themselves, which is #580's shape inside the fix for #580's shape. Loading a
+# name is not demanding a roster, and only running the comparison separates
+# them.
+#
+# Perturbed in BOTH directions because `ran == want` fails in both: an
+# added-and-never-emitted name, and a removed-but-still-emitted one. A single
+# added sentinel leaves `want <= ran` passing, which silently drops the
+# undeclared half of the comparison.
+_nightly_probe_clean = _nightly_report_probe()
+_nightly_probe_sentinel = _nightly_report_probe(
+    extra_outside=("run:SENTINEL_never_emitted",)
+)
+# Derived, not named: whichever roster entry `_scan` is actually observed to
+# emit. Hard-coding one would pin a check that may be renamed out from under it.
+_nightly_probe_dropped = _nightly_report_probe(
+    drop_outside=(sorted(set(_nightly_clean_results) & set(_nightly.OUTSIDE_CHECKS))[0],)
+)
 R.check(
     "and the lane demands that roster of itself",
     "run:all_checks_ran" in _nightly.OUTSIDE_CHECKS
-    and {"OUTSIDE_CHECKS", "INSIDE_CHECKS"} <= set(_nightly._report.__code__.co_names),
-    "_report must LOAD both rosters, not merely have them defined nearby; a "
-    "roster nothing consults cannot notice a check that stopped running (#533)",
+    and not _nightly_probe_sentinel[0]
+    and not _nightly_probe_dropped[0],
+    "_report does not DEMAND its roster in both directions, so a check "
+    "deleted or renamed out of the outer half, or emitted without being "
+    f"declared, passes unnoticed (#533) [missing arm: "
+    f"{_nightly_probe_sentinel[1]}] [undeclared arm: {_nightly_probe_dropped[1]}]",
+)
+# The null control on that probe: a check that fails whatever it is handed
+# demands nothing either. The unperturbed roster must still pass.
+R.check(
+    "and that demand is satisfiable, not simply always-red",
+    _nightly_probe_clean[0],
+    "the roster probe fails on the shipped roster too, so its sentinel arm "
+    f"separates nothing (#533) [{_nightly_probe_clean[1]}]",
 )
 
 # HA loads repairs.py dynamically, so a witness must import it or it is an
