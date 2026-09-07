@@ -30,10 +30,18 @@ at the nearest sample, plus **why** the plan is heating at that moment.
 
 ## Reading the chart
 
+![The plan chart with every series, the now marker, the editable slot lanes and the time axis numbered, and a key naming each one](img/chart-anatomy.svg)
+
+Every figure on this page is generated from the card itself by
+`docs/img/make_card_figures.mjs`, against a plan `tests/plan_view.py` solved —
+so nothing here is a drawing of how the card used to look.
+
 ### The two kinds of dashed line
 
 Two series draw a dashed pair beside their solid curve, and they mean entirely
 different things.
+
+![Two chart details side by side: the house temperature's dashed pair is the upper and lower floor, two real predicted temperatures with the whole-house curve between them; the hot-water tank's dashed pair is one symmetric expected-error band that widens with lead time](img/chart-dashed-lines.svg)
 
 The **house temperature**'s dashed lines are the **upper and lower floor**: two
 real predicted temperatures, one per zone, drawn whenever the house is
@@ -346,6 +354,27 @@ coil is drawn as a visible spring on the tank's upper-right wall with its
 own connector stubs, and the hot-water pipe departs from it. Pipes carry
 small connection dots at their endpoints and a chevron showing flow
 direction.
+
+These are three real layouts, drawn by the card's own renderer rather than by
+hand — `HPO_QA_OUTDIR=docs/img HPO_QA_PREFIX=hydronic- node tests/setup_qa_render.mjs`,
+the same script designers use to review the schematic.
+
+**One buffer, wood furnace feeding it.** The wood tank charges the buffer; the
+mixing valve serves both zones from there.
+
+![The setup schematic for a single buffer tank: heat pump and wood furnace tank both feed the buffer, a mixing valve feeds the upper floor and the slab, and the heat pump also feeds a separate hot water tank](img/hydronic-single-buffer.svg)
+
+**Two tanks on a four-way valve.** The wood tank feeds the valve directly
+instead of the buffer, so the valve blends two sources and gains its own target
+and outlet-temperature slots.
+
+![The same house with the wood furnace tank feeding the four-way mixing valve directly rather than the buffer, and the valve carrying target and outlet temperature slots](img/hydronic-two-tank.svg)
+
+**…and the wood tank pre-heating hot water through a coil.** The coil is drawn
+as a spring on the tank's upper-right wall with its own connector stubs, and
+the hot-water pipe departs from it.
+
+![The two-tank layout with an additional immersed coil connecting the wood furnace tank to the hot water tank, drawn as a spring on the tank wall](img/hydronic-coil.svg)
 
 Each shape stretches with the sensor rows inside it, and every row is the
 same assignment slot it always was: click a row — or tab to it and press

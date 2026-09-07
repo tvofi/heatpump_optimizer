@@ -1,0 +1,250 @@
+<svg class="setup-svg" viewBox="0 0 720 243"
+    xmlns="http://www.w3.org/2000/svg" role="group"
+    aria-label="Configured system"><style>svg { background: #fff; font-family: sans-serif; }
+.setup-page { padding: 0.5em 0.25em; }
+      .setup-svg { width: 100%; height: auto; display: block; }
+      /* The rect stays in the markup as the geometry carrier the tests
+         and the drag editor read; the contour paths draw the visible
+         outline (v4.3.0). */
+      .setup-box { fill: none; stroke: none; }
+      .setup-contour {
+        fill: none; stroke: #212121;
+        stroke-width: 2; opacity: 0.75;
+        stroke-linecap: round; stroke-linejoin: round;
+        pointer-events: none;
+      }
+      .setup-accent {
+        fill: none; stroke: #757575;
+        stroke-width: 1.25; opacity: 0.6;
+        stroke-linecap: round; pointer-events: none;
+      }
+      .setup-accent.divider { opacity: 0.5; }
+      .setup-accent.hub {
+        stroke: #03a9f4; opacity: 0.9;
+      }
+      .setup-coil {
+        fill: none; stroke: #03a9f4;
+        stroke-width: 2; opacity: 0.85;
+        stroke-linecap: round; pointer-events: none;
+      }
+      .setup-pipe-dot {
+        fill: #fff;
+        stroke: #888;
+        stroke-width: 1.5; opacity: 0.8; pointer-events: none;
+      }
+      .setup-flow {
+        fill: none; stroke: #888;
+        stroke-width: 1.5; opacity: 0.55; pointer-events: none;
+      }
+      .setup-pipe {
+        fill: none; stroke: #888;
+        stroke-width: 1.5; opacity: 0.55;
+      }
+      .setup-title {
+        font-size: 13px; font-weight: 600;
+        fill: #222;
+      }
+      .setup-slot { font-size: 12px; fill: #222; }
+      .setup-slot.empty {
+        fill: ${MUTED_READABLE};
+        font-style: italic;
+      }
+      .setup-slot.extra { fill: #888; }
+      .setup-value { font-weight: 600; }
+      .setup-hint {
+        color: #757575;
+        font-size: 0.85em; padding: 0.5em 0.25em;
+      }
+      .setup-result {
+        color: #757575;
+        font-size: 0.85em; padding: 0 0.25em 0.5em 0.25em;
+      }
+      .setup-hit { fill: transparent; cursor: pointer; }
+      /* fill-opacity, not opacity: element opacity would fade the focus
+         ring stroked on this same rect down to 12% as soon as the pointer
+         crossed a keyboard-focused row -- and :hover and :focus-visible
+         have equal specificity, so the later rule would win. Tinting only
+         the fill leaves the ring alone. */
+      .setup-hit:hover {
+        fill: #03a9f4; fill-opacity: 0.12;
+      }
+
+      /* The layout editor (v3.16.0, issue #40) */
+      .layout-bar {
+        display: flex; align-items: center; gap: 0.5em;
+        flex-wrap: wrap; padding: 0 0.25em 0.4em 0.25em;
+      }
+      .layout-bar button {
+        font: inherit; font-size: 0.85em; cursor: pointer;
+        border: 1px solid #e0e0e0;
+        background: transparent; color: #212121;
+        border-radius: 1em; padding: 0.2em 0.9em;
+      }
+      .layout-bar button:focus-visible {
+        outline: 2px solid #03a9f4;
+        outline-offset: 2px;
+      }
+      .layout-edit-toggle.on { border-color: #03a9f4; }
+      .layout-bar button[disabled] { opacity: 0.45; cursor: default; }
+      .layout-verdict {
+        flex: 1 1 100%; font-size: 0.85em;
+        color: #757575;
+      }
+      .layout-verdict.match { color: ${ACCENT_READABLE}; }
+      /* Editing widens the pipes: a 1.5-unit stroke is a hopeless click
+         target, and clicking a pipe is how one is removed. */
+      .setup-svg.editing .setup-pipe { stroke-width: 3.5; cursor: pointer; }
+      /* With stroke: none an unfilled rect catches no pointer, so the
+         move cursor needs pointer-events back on the surface; hit rects
+         painted later still win over their own rows, and drags themselves
+         are geometric via _layoutBoxAt either way. */
+      .setup-svg.editing .setup-box { cursor: move; pointer-events: all; }
+      /* Ornament off while editing: pipes widen into click targets and
+         ports appear, and dots or chevrons under the pointer would only
+         lie about what is clickable. */
+      .setup-svg.editing .setup-pipe-dot,
+      .setup-svg.editing .setup-flow { display: none; }
+      /* A drag on a touch screen must move the box, not scroll the page. */
+      .setup-svg.editing { touch-action: none; }
+      .setup-pipe.layout-match {
+        stroke: #03a9f4; opacity: 0.9;
+      }
+      .setup-pipe.invalid {
+        stroke: #db4437; opacity: 0.95;
+        stroke-dasharray: 6 4;
+      }</style><rect x="0" y="0" width="100%" height="100%" fill="#ffffff" /><path class="setup-pipe" data-edge="heat_pump>buffer_tank"
+      d="M 214 103.5
+      C 254 103.5,
+        222 95, 262 95" /><circle class="setup-pipe-dot" cx="214" cy="103.5" r="2" /><circle class="setup-pipe-dot" cx="262" cy="95" r="2" /><path class="setup-flow" d="M 238.129 103.491 L 239.371 97.794 L 233.759 99.379" /><path class="setup-pipe" data-edge="buffer_tank>mixing_valve"
+        d="M 284 46
+        L 284 66.5" /><circle class="setup-pipe-dot" cx="284" cy="46" r="2" /><circle class="setup-pipe-dot" cx="284" cy="66.5" r="2" /><path class="setup-pipe" data-edge="mixing_valve>upper_zone"
+      d="M 458 32
+      C 498 32,
+        466 40.5, 506 40.5" /><circle class="setup-pipe-dot" cx="458" cy="32" r="2" /><circle class="setup-pipe-dot" cx="506" cy="40.5" r="2" /><path class="setup-flow" d="M 477.759 36.121 L 483.371 37.706 L 482.129 32.009" /><path class="setup-pipe" data-edge="mixing_valve>lower_zone"
+      d="M 458 32
+      C 498 32,
+        466 103.5, 506 103.5" /><circle class="setup-pipe-dot" cx="458" cy="32" r="2" /><circle class="setup-pipe-dot" cx="506" cy="103.5" r="2" /><path class="setup-flow" d="M 478.685 65.102 L 482.222 69.738 L 484.648 64.435" /><path class="setup-pipe" data-edge="wood_tank>buffer_tank"
+      d="M 214 183.5
+      C 254 183.5,
+        222 95, 262 95" /><circle class="setup-pipe-dot" cx="214" cy="183.5" r="2" /><circle class="setup-pipe-dot" cx="262" cy="95" r="2" /><path class="setup-flow" d="M 240.718 142.508 L 238.18 137.258 L 234.742 141.968" /><path class="setup-pipe" data-edge="heat_pump>dhw_tank"
+      d="M 214 103.5
+      C 254 103.5,
+        222 158, 262 158" /><circle class="setup-pipe-dot" cx="214" cy="103.5" r="2" /><circle class="setup-pipe-dot" cx="262" cy="158" r="2" /><path class="setup-flow" d="M 234.596 128.218 L 238.29 132.729 L 240.532 127.346" />
+      <g>
+        <rect class="setup-box" x="16" y="16" width="200"
+          height="49" rx="8" />
+        <path class="setup-contour kind-outdoor"
+        d="M 18 57 A 6 6 0 0 0 24 63 H 208 A 6 6 0 0 0 214 57" /><path class="setup-contour" d="M 170 35 A 5.5 5.5 0 0 1 173 25.5 A 7 7 0 0 1 186 22.5 A 6 6 0 0 1 197 25 A 6 6 0 0 1 203 35 Z" />
+        <text class="setup-title" x="32"
+          y="33">Outside</text>
+        <text class="setup-slot" x="32" y="53">
+        <tspan>Outdoor tempe…</tspan>
+        <tspan class="setup-value" x="200"
+          text-anchor="end">unavailable</tspan></text><rect class="setup-hit" data-key="outdoor_temp_entity"
+        tabindex="0" role="button" aria-label="Outdoor temperature — click to assign"
+        x="20" y="41" width="192"
+        height="15" rx="3">
+        <title>Outdoor temperature — click to assign</title></rect>
+      </g>
+      <g>
+        <rect class="setup-box" x="16" y="79" width="200"
+          height="49" rx="8" />
+        <path class="setup-contour kind-heat_pump"
+        d="M 28 81 H 204 A 10 10 0 0 1 214 91 V 116 A 10 10 0 0 1 204 126 H 28 A 10 10 0 0 1 18 116 V 91 A 10 10 0 0 1 28 81 Z" /><path class="setup-accent" d="M 190 92 A 8 8 0 1 1 206 92 A 8 8 0 1 1 190 92" /><circle class="setup-accent hub" cx="198"
+                cy="92" r="1.6" /><path class="setup-accent" d="M 198 89.5 A 5 5 0 0 1 202.2 87 M 200.2 93.3 A 5 5 0 0 1 200.2 98.1 M 195.8 93.3 A 5 5 0 0 1 191.6 90.9" /><path class="setup-accent divider" d="M 32 100.5 L 186 100.5" />
+        <text class="setup-title" x="32"
+          y="96">Heat pump</text>
+        <text class="setup-slot empty" x="32" y="116">
+        <tspan>Heat pump…</tspan>
+        <tspan class="setup-value" x="200"
+          text-anchor="end">not configured</tspan></text><rect class="setup-hit" data-key="heat_pump_switch_entity"
+        tabindex="0" role="button" aria-label="Heat pump switch — click to assign"
+        x="20" y="104" width="192"
+        height="15" rx="3">
+        <title>Heat pump switch — click to assign</title></rect>
+      </g>
+      <g>
+        <rect class="setup-box" x="16" y="142" width="200"
+          height="83" rx="8" />
+        <path class="setup-contour kind-wood_tank"
+        d="M 18 151 A 98 7 0 0 1 214 151 L 214 216 A 98 7 0 0 1 18 216 Z" /><path class="setup-accent divider" d="M 32 163.5 L 200 163.5" />
+        <text class="setup-title" x="32"
+          y="159">Wood furnace tank (500 L)</text>
+        <text class="setup-slot empty" x="32" y="179">
+        <tspan>Wood tank t…</tspan>
+        <tspan class="setup-value" x="200"
+          text-anchor="end">not configured</tspan></text><rect class="setup-hit" data-key="wood_tank_top_entity"
+        tabindex="0" role="button" aria-label="Wood tank top — click to assign"
+        x="20" y="167" width="192"
+        height="15" rx="3">
+        <title>Wood tank top — click to assign</title></rect><text class="setup-slot extra" x="32"
+        y="196">modelled as heat into the</text><text class="setup-slot extra" x="32"
+        y="213">heat-pump tank</text>
+      </g>
+      <g>
+        <rect class="setup-box" x="260" y="16" width="200"
+          height="32" rx="8" />
+        <path class="setup-contour kind-mixing_valve"
+        d="M 272 18 H 448 L 458 28 V 36 L 448 46 H 272 L 262 36 V 28 Z" /><path class="setup-contour" d="M 278 38 H 290 L 284 46 Z M 284 46 L 278 54 H 290 Z" />
+        <text class="setup-title" x="276"
+          y="33">Mixing valve (manual)</text>
+        
+      </g>
+      <g>
+        <rect class="setup-box" x="260" y="62" width="200"
+          height="66" rx="8" />
+        <path class="setup-contour kind-buffer_tank"
+        d="M 262 71 A 98 7 0 0 1 458 71 L 458 119 A 98 7 0 0 1 262 119 Z" /><path class="setup-accent divider" d="M 276 83.5 L 444 83.5" />
+        <text class="setup-title" x="276"
+          y="79">Buffer tank (750 L)</text>
+        <text class="setup-slot" x="276" y="99">
+        <tspan>Buffer tank temper…</tspan>
+        <tspan class="setup-value" x="444"
+          text-anchor="end">47.5 °C</tspan></text><rect class="setup-hit" data-key="buffer_tank_temp_entity"
+        tabindex="0" role="button" aria-label="Buffer tank temperature — click to assign"
+        x="264" y="87" width="192"
+        height="15" rx="3">
+        <title>Buffer tank temperature — click to assign</title></rect><text class="setup-slot extra" x="276"
+        y="116">stores up to 70 °C</text>
+      </g>
+      <g>
+        <rect class="setup-box" x="260" y="142" width="200"
+          height="32" rx="8" />
+        <path class="setup-contour kind-dhw_tank"
+        d="M 262 151 A 98 7 0 0 1 458 151 L 458 165 A 98 7 0 0 1 262 165 Z" />
+        <text class="setup-title" x="276"
+          y="159">Hot water tank</text>
+        
+      </g>
+      <g>
+        <rect class="setup-box" x="504" y="16" width="200"
+          height="49" rx="8" />
+        <path class="setup-contour kind-upper_zone"
+        d="M 506 23.5 L 600 17.9 A 30 30 0 0 1 608 17.9 L 702 23.5 L 702 57 A 6 6 0 0 1 696 63 L 512 63 A 6 6 0 0 1 506 57 Z" /><path class="setup-contour" d="M 652 20.7 V 17 H 659 V 21.1" /><path class="setup-accent divider" d="M 520 37.5 L 688 37.5" />
+        <text class="setup-title" x="520"
+          y="33">Upper floor</text>
+        <text class="setup-slot" x="520" y="53">
+        <tspan>Indoor temperature</tspan>
+        <tspan class="setup-value" x="688"
+          text-anchor="end">21.3 °C</tspan></text><rect class="setup-hit" data-key="indoor_temp_entity"
+        tabindex="0" role="button" aria-label="Indoor temperature — click to assign"
+        x="508" y="41" width="192"
+        height="15" rx="3">
+        <title>Indoor temperature — click to assign</title></rect>
+      </g>
+      <g>
+        <rect class="setup-box" x="504" y="79" width="200"
+          height="49" rx="8" />
+        <path class="setup-contour kind-lower_zone"
+        d="M 510 81 H 698 A 4 4 0 0 1 702 85 V 122 A 4 4 0 0 1 698 126 H 510 A 4 4 0 0 1 506 122 V 85 A 4 4 0 0 1 510 81 Z" /><path class="setup-accent divider" d="M 520 100.5 L 688 100.5" /><path class="setup-accent" d="M 538 126 L 532 132" /><path class="setup-accent" d="M 560 126 L 554 132" /><path class="setup-accent" d="M 582 126 L 576 132" /><path class="setup-accent" d="M 604 126 L 598 132" /><path class="setup-accent" d="M 626 126 L 620 132" /><path class="setup-accent" d="M 648 126 L 642 132" /><path class="setup-accent" d="M 670 126 L 664 132" />
+        <text class="setup-title" x="520"
+          y="96">Lower floor (slab)</text>
+        <text class="setup-slot empty" x="520" y="116">
+        <tspan>Lower floor…</tspan>
+        <tspan class="setup-value" x="688"
+          text-anchor="end">not configured</tspan></text><rect class="setup-hit" data-key="lower_floor_temp_entity"
+        tabindex="0" role="button" aria-label="Lower floor temperature — click to assign"
+        x="508" y="104" width="192"
+        height="15" rx="3">
+        <title>Lower floor temperature — click to assign</title></rect>
+      </g></svg>
