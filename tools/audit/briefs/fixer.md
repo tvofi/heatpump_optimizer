@@ -102,17 +102,19 @@ production lines. You work in your own worktree branched from `origin/main`.
    59, 50, and 124/147/50, because each asked a subtly different question;
    only a count whose rule is written down is re-derivable by whoever reads
    the body next. Say what you counted, not only how many.
-8b. **Name the instrument you re-ran, and its scope.** If the block you are
-   clearing was demonstrated with an *instance*, your verification may not be
-   a search for that instance — it must check the *property* the block stated.
-   If no such instrument exists, say so rather than substituting a search.
-   Measured over #531, #569 and #591: those three are 3.1% of reviewed pull
-   requests and **11.2% of all review rounds**, because each fix was verified
-   against the demonstrated instance's form and a sibling carrying the same
-   property in a different form survived — including one the same commit
-   created. A check cannot replace this step: `tools/audit/preflight.sh`,
-   written against this very class, catches **0 of 3**, matching digit-shaped
-   figures while all three instances spell the quantity as a word.
+   **Name the instrument you re-ran, and its scope.** If the block you are
+   clearing was demonstrated with an *instance*, your verification may not be a
+   search for that instance — it must check the *property* the block stated. If
+   no such instrument exists, say so, and say what you did instead.
+   A root-cause analysis established this class over three pull requests where
+   each fix was verified against the demonstrated instance's form while a
+   sibling carrying the same property in a different form survived — one of them
+   created by the same commit. Its measurements are in that report rather than
+   quoted here: they are a share of a moving population and decay, which is what
+   step 3 above forbids. A check does not replace this step, and that was tested
+   rather than assumed — see the report for which detector was tried and why it
+   missed.
+
 9. **A claim should be true; if wrong, correct it — anchored to a lane,
    function, marker or SHA, never a bare line number — and delete only when
    no such correction exists.** Delete on sight, not as a last resort, when
