@@ -23536,14 +23536,16 @@ R.check(
     f"homed but named in no box: {_t546_unrendered}",
 )
 
-# The schema half, read off the **registration** rather than off
-# `topology.POSITION_PLACES`. A check that reads the module constant cannot
-# see the schema borrowing something else -- which is the whole of #546, and
-# was still true of this section's own reverse-direction checks until #550:
-# re-adding `slab_shunt` and an arbitrary junk key to the schema passed every
-# check here, including the one named for refusing exactly that.
-# `tests/entities.py` reads service schemas the same way and for the same
-# stated reason.
+# The schema half, read off the **registration** rather than off whichever
+# module constant the schema happens to be built from. A check that reads the
+# constant cannot see the schema borrowing something else -- which is the
+# whole of #546, and was still true of this section's own reverse-direction
+# checks until #550: re-adding `slab_shunt` and an arbitrary junk key to the
+# schema passed every check here, including the one named for refusing
+# exactly that. Reading the registration also means nothing below names the
+# constant, so tightening or replacing it is a production decision this
+# section does not have to be rewritten for. `tests/entities.py` reads
+# service schemas the same way and for the same stated reason.
 _t546_hass = FakeHass()
 _t546_entry = FakeEntry(data=_LC_DATA)
 _asyncio.run(_ha_setup_entry(_integ, _t546_hass, _t546_entry))
