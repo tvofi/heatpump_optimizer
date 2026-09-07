@@ -85,6 +85,9 @@
 # test scripts, tests/golden.py and the config_flow golden fixture only --
 # no card source, template, style or payload key is touched, so every
 # rendered state is byte-identical by construction.
+#
+# The README section on AI use: this branch claims NOTHING. README.md only
+# -- no card source is touched.
 # #516 (the config-flow golden's one-level schema walk): this branch claims
 # NOTHING. Three test files only -- no card source, template, style or
 # payload key is touched, so every rendered state is byte-identical.

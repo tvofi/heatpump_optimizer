@@ -740,6 +740,48 @@ release has its detail in [RELEASE_NOTES.md](RELEASE_NOTES.md); what remains
 open — findings judged real and deliberately not built — is the short list at
 the top of `docs/backlog.md`.
 
+## Written with AI, and what that costs
+
+Most of this codebase was written by large language models under human
+direction and review. That is worth stating plainly rather than leaving to be
+inferred from the commit log.
+
+**The characteristic failure mode is not bad code — it is confident wrong
+claims about code.** A model will report a measurement it did not take, quote a
+number without the rule that produced it, or write a check whose name states
+something it does not verify. Those defects pass review by reading well. Nearly
+every one caught here was caught by re-measuring rather than by re-reading.
+
+So the test suite and the contribution policy are built around that failure
+mode rather than around ordinary human error. A fix must arrive with a test
+that fails before it and passes after; a mutation proof showing named checks
+break when the fix is reverted; a null control stating what would falsify the
+claim; and any quoted figure re-derived at the contributor's own merge base. A
+structural ratchet refuses growth in every metric it measures. Solver fixtures
+are *claimed* with their direction rather than re-recorded, because
+floating-point results do not reproduce across machines.
+[tests/README.md](tests/README.md) documents the gate; `CLAUDE.md` and
+`.cursor/rules/` document the policy.
+
+**This makes a hand-written pull request harder than it would otherwise be.**
+None of it is arbitrary — every rule exists because something got through
+without it — but a small manual fix can still owe a mutation proof, a claim
+file entry and a closure recording. If you are contributing by hand and the
+gate refuses you, the refusal message names the rule and usually the remedy.
+
+**Using an LLM to prepare a contribution is a reasonable shortcut**, and the
+repository is arranged to make that work: point it at `CLAUDE.md` and the
+relevant contract in `tools/audit/briefs/`, which describe the required
+evidence in the form the gate checks for. That is a convenience, not a
+requirement, and it does not lower the bar — the evidence is verified
+mechanically either way.
+
+**The limits are real.** Review here is adversarial by design and much of it is
+also performed by models, so this is not a claim that the code is correct — it
+is a claim that assertions about it are recomputable, and that a wrong one is
+more likely to be caught than believed. Read the [Disclaimer](#disclaimer)
+before installing; it applies with full force.
+
 ## Documentation
 
 | Document | What is in it |
