@@ -23,11 +23,13 @@ What this catches that nothing else does:
 """
 from __future__ import annotations
 
+import subprocess
 import ast
 import asyncio
 import json
 import pathlib
 import re
+import string
 import sys
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -5163,6 +5165,7 @@ _expected_diagnostic = {
     "next_optimization",
     "last_optimization",
     "schedule",
+    "schedule_steps",
     "predictive_insight",
     "ecl110_displace",
     "ecl110_effective_displace",
@@ -5967,8 +5970,8 @@ R.check(
     not [s for s in sensors if s._attr_unique_id.endswith("_solar_radiation")],
 )
 R.check(
-    "there are exactly 56 sensors after the merge",
-    len(sensors) == 56,
+    "there are exactly 57 sensors after the merge",
+    len(sensors) == 57,
     str(len(sensors)),
 )
 R.check(
@@ -7370,9 +7373,13 @@ R.check(
 # following, and it is the registered schema Home Assistant dispatches through.
 _bad_examples = []
 for _svc_name, _svc_spec in services.items():
+    # A service with no fields is ``name:`` with nothing under it, which parses
+    # to None -- hassfest allows it (CUSTOM_INTEGRATION_SERVICE_SCHEMA ends in
+    # ``None``) and async_get_all_descriptions guards it with ``or {}``. This
+    # walked every service and only worked while each still carried a name.
     _svc_examples = {
         field: spec["example"]
-        for field, spec in (_svc_spec.get("fields") or {}).items()
+        for field, spec in ((_svc_spec or {}).get("fields") or {}).items()
         if "example" in spec
     }
     if not _svc_examples:
@@ -8451,6 +8458,100 @@ R.check(
     _nightly_probe_clean[0],
     "the roster probe fails on the shipped roster too, so its sentinel arm "
     f"separates nothing (#533) [{_nightly_probe_clean[1]}]",
+)
+
+# tools/audit/preflight.sh refuses a closing keyword the orchestrator did not
+# declare -- the defect that closed #224 from a merge message saying "does not
+# close #224", which closingIssuesReferences cannot see because it describes the
+# PR body and the merge message is a separate artifact.
+#
+# Pinned HERE rather than left to be run by hand, because tools/audit/ is INERT:
+# a check nothing reads is exactly what let the nightly lane's blocking pin go
+# stale in silence (#533). Both arms, so this cannot become a check that passes
+# whatever the script does.
+_preflight = Path("tools/audit/preflight.sh")
+R.check(
+    "the orchestrator pre-flight refuses an undeclared closing keyword",
+    _preflight.is_file()
+    and subprocess.run(
+        ["bash", str(_preflight)],
+        input="First split of #224. Does **not** close #224.\n",
+        capture_output=True, text=True,
+    ).returncode == 1,
+    "preflight.sh must exit 1 on the exact text that closed #224; a negated "
+    "closing keyword still closes the issue (GitHub discards the negation)",
+)
+R.check(
+    "the pre-flight refuses a conclusion echoed after ';'",
+    _preflight.is_file()
+    and subprocess.run(
+        ["bash", str(_preflight)],
+        input='diff a b; echo "(empty means identical)"\n',
+        capture_output=True, text=True,
+    ).returncode == 1,
+    "preflight.sh must exit 1 on the '; echo <conclusion>' shape, which prints "
+    "whether or not the command held; a review disarmed this refusal and every "
+    "other check still passed, so it needs its own arm",
+)
+R.check(
+    "and it refuses the four commonest reference forms, not only #N",
+    _preflight.is_file()
+    and all(
+        subprocess.run(
+            ["bash", str(_preflight)], input=f"Closes {ref}.\n",
+            capture_output=True, text=True,
+        ).returncode == 1
+        for ref in (
+            "#224",
+            "GH-224",
+            "tvofi/heatpump_optimizer#224",
+            "https://github.com/tvofi/heatpump_optimizer/issues/224",
+        )
+    ),
+    "GitHub closes on GH-N, owner/repo#N and a full issue URL as well as #N; "
+    "the first version caught only #N. This pins FOUR named forms, not the "
+    "universal its earlier name claimed -- a review found seven further shapes "
+    "that still pass, and the line-oriented grep cannot match a keyword and a "
+    "number separated by a newline. The script is a pre-flight, not a gate.",
+)
+R.check(
+    "and passes a declared one, so it is not simply always-red",
+    _preflight.is_file()
+    and subprocess.run(
+        ["bash", str(_preflight), "524"],
+        input="Closes #524. Coverage 86.0 to 100.0, derived at both ends.\n",
+        capture_output=True, text=True,
+    ).returncode == 0,
+    "preflight.sh must exit 0 when every closing keyword is declared; without "
+    "this arm the check above passes for a script that refuses everything",
+)
+# The '; echo' refusal is split: inline backticks in prose are advisory, a
+# fenced block is not. Both directions are pinned because the arms above feed
+# only single-line inputs, so widening the exemption to strip fenced blocks
+# removed the refusal that justifies the split and the suite stayed green.
+R.check(
+    "a transcript pasted in a fenced block refuses, backticks or not",
+    _preflight.is_file()
+    and subprocess.run(
+        ["bash", str(_preflight)],
+        input='```\n`$ diff a b; echo "(empty means identical)"`\n```\n',
+        capture_output=True, text=True,
+    ).returncode == 1,
+    "the inline-backtick exemption must not reach inside a fence: a review "
+    "smuggled a real transcript through by wrapping the pasted line in "
+    "backticks, so two characters turned the refusal into an advisory",
+)
+R.check(
+    "while the same shape quoted inline in prose stays advisory",
+    _preflight.is_file()
+    and subprocess.run(
+        ["bash", str(_preflight)],
+        input='A body may quote `diff a b; echo "(clean)"` as an example.\n',
+        capture_output=True, text=True,
+    ).returncode == 0,
+    "without this arm the check above passes for a script that refuses the "
+    "shape everywhere -- the over-fire that got #581 closed, and the reason "
+    "orchestrator.md section 1 can quote the anti-pattern it forbids",
 )
 
 # HA loads repairs.py dynamically, so a witness must import it or it is an
@@ -11152,6 +11253,440 @@ R.check(
     ),
     "if this stops being a formatted string, OptimizationStatusSensor can "
     "take ENUM and the pin above should go",
+)
+
+R.section("#558 D4 icon state translations")
+
+# D3 left icons.json with a "default" for every entity and no "state" anywhere,
+# so the icon never followed the value. Home Assistant looks a state icon up by
+# the STATE STRING, so only a sensor whose states are bounded can carry one --
+# which is the same three sensors ENUM bounded, and the reason D4 was sequenced
+# behind D3 rather than beside it.
+_icon_sensors = _icons.get("entity", {}).get("sensor", {})
+
+# D3's check was one-directional: it refused a state key outside the options.
+# The other direction is what makes the section worth having -- an option with
+# no icon falls back to "default" and the icon silently stops following the
+# value for that state alone, which is invisible until someone hits it.
+_missing_state_icons = []
+for _key, (_c, _states, _m) in _ENUM_SENSORS.items():
+    _have = set((_icon_sensors.get(_key) or {}).get("state") or {})
+    _short = set(_states) - _have
+    if _short:
+        _missing_state_icons.append(f"{_key}: {sorted(_short)}")
+R.check(
+    "every enum option has its own icon",
+    not _missing_state_icons,
+    "; ".join(_missing_state_icons),
+)
+
+# A "state" section on anything else is an icon nobody can reach: its keys are
+# matched against a state this integration never bounded. Stated as an equality
+# so the section cannot be added to an unbounded sensor later either.
+_stateful_icons = {_k for _k, _v in _icon_sensors.items() if "state" in _v}
+R.check(
+    "only the enum sensors carry a state section",
+    _stateful_icons == set(_ENUM_SENSORS),
+    f"{sorted(_stateful_icons)} != {sorted(_ENUM_SENSORS)}",
+)
+
+# A state icon equal to its own default changes nothing -- the shape a
+# mechanical fill produces. hassfest means to refuse it (icons.py
+# ensure_not_same_as_default, "the same as the default icon and thus can be
+# removed") but on the "entity" section it does not: the validator is applied
+# to {platform: {key: spec}} and reads "default" off the PLATFORM mapping,
+# which has none, so it iterates and finds nothing. It is applied at the right
+# depth on "entity_component", which is how the same function works there.
+# Enforced here at the depth hassfest intends, so this integration is already
+# right if that nesting is ever corrected upstream.
+_redundant_state_icons = sorted(
+    f"{_key}.{_state}"
+    for _key, _spec in _icon_sensors.items()
+    for _state, _icon in (_spec.get("state") or {}).items()
+    if _icon == _spec.get("default")
+)
+R.check(
+    "and no state icon merely repeats its own default",
+    not _redundant_state_icons,
+    ", ".join(_redundant_state_icons[:6]),
+)
+_flat_icon_sections = sorted(
+    _key
+    for _key, _spec in _icon_sensors.items()
+    if "state" in _spec and len(set(_spec["state"].values())) == 1
+)
+R.check(
+    "and each state section actually distinguishes states",
+    not _flat_icon_sections,
+    ", ".join(_flat_icon_sections),
+)
+
+# --- the producer gap D3 handed forward ------------------------------------
+#
+# D3 derived the action modes by scanning FOUR NAMED FUNCTIONS, so a producer
+# added anywhere else was invisible to it -- and D4's icon keys are now pinned
+# to that same list, which doubles what the gap costs. Derive the producer set
+# instead of naming it: start from every function that ASSIGNS the coordinator's
+# _current_action, then follow the call that assignment stores, and any call a
+# reached function returns. The seed is the write, so a fifth writer cannot hide.
+_PKG_TREES = {_p.name: ast.parse(_p.read_text()) for _p in sorted(ROOT.glob("*.py"))}
+
+
+def _pkg_functions(name):
+    return [
+        _fn
+        for _t in _PKG_TREES.values()
+        for _fn in ast.walk(_t)
+        if isinstance(_fn, (ast.FunctionDef, ast.AsyncFunctionDef)) and _fn.name == name
+    ]
+
+
+def _callee_name(node):
+    if isinstance(node, ast.Call):
+        if isinstance(node.func, ast.Attribute):
+            return node.func.attr
+        if isinstance(node.func, ast.Name):
+            return node.func.id
+    return None
+
+
+_action_producers, _pending = set(), []
+for _tree in _PKG_TREES.values():
+    for _fn in ast.walk(_tree):
+        if not isinstance(_fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        for _node in ast.walk(_fn):
+            # Assign covers ``self._current_action = ...``; AnnAssign covers the
+            # annotated first binding in the coordinator's state init, which an
+            # Assign-only scan misses entirely.
+            if isinstance(_node, ast.Assign):
+                _targets = _node.targets
+            elif isinstance(_node, (ast.AnnAssign, ast.AugAssign)):
+                _targets = [_node.target]
+            else:
+                continue
+            if not any(
+                isinstance(_t, ast.Attribute) and _t.attr == "_current_action"
+                for _t in _targets
+            ):
+                continue
+            _action_producers.add(_fn.name)
+            if (_c := _callee_name(_node.value)) is not None:
+                _pending.append(_c)
+while _pending:
+    _name = _pending.pop()
+    if _name in _action_producers:
+        continue
+    _action_producers.add(_name)
+    for _fn in _pkg_functions(_name):
+        for _node in ast.walk(_fn):
+            if isinstance(_node, ast.Return) and (
+                _c := _callee_name(_node.value)
+            ) is not None:
+                _pending.append(_c)
+
+# The derivation has to reach the four D3 named, or it is weaker than the thing
+# it replaces. It reaches five: async_run_optimization is the function that
+# performs the get_current_action write and D3's list does not contain it -- the
+# list was complete only because the value came from a function that was named.
+R.check(
+    "the derived producer set covers the four D3 named by hand",
+    {"get_current_action", "_idle_action", "_async_update_data", "_run_system_identification"}
+    <= _action_producers,
+    f"derived {sorted(_action_producers)}",
+)
+
+_derived_modes = set()
+for _name in _action_producers:
+    for _fn in _pkg_functions(_name):
+        for _node in ast.walk(_fn):
+            if (
+                isinstance(_node, ast.Assign)
+                and isinstance(_node.value, ast.Constant)
+                and isinstance(_node.value.value, str)
+                and any(
+                    isinstance(_t, ast.Name) and _t.id == "mode" for _t in _node.targets
+                )
+            ):
+                _derived_modes.add(_node.value.value)
+            if isinstance(_node, ast.Dict):
+                for _k, _v in zip(_node.keys, _node.values):
+                    if (
+                        isinstance(_k, ast.Constant)
+                        and _k.value == "mode"
+                        and isinstance(_v, ast.Constant)
+                        and isinstance(_v.value, str)
+                    ):
+                        _derived_modes.add(_v.value)
+R.check(
+    "and the action options cover every mode the derived producers write",
+    _derived_modes and _derived_modes <= set(const.HEAT_PUMP_ACTION_STATES),
+    f"uncovered: {sorted(_derived_modes - set(const.HEAT_PUMP_ACTION_STATES))}",
+)
+R.check(
+    "which is the same answer the named scan gave, so neither is doing it alone",
+    _derived_modes == _emitted_modes,
+    f"derived {sorted(_derived_modes)} vs named {sorted(_emitted_modes)}",
+)
+
+
+R.section("#558 D5 service translations")
+
+# services.yaml carried every name and description as English text, so the
+# service picker was untranslated for every non-English user -- while the same
+# integration translates every entity, option page and repair issue.
+# async_get_all_descriptions prefers
+# ``component.<domain>.services.<service>.name`` over the yaml value, so the
+# catalogue is what a user sees and the yaml is the fallback nobody reaches.
+_SERVICE_TEXT_KEYS = ("name", "description")
+_service_text_errors = []
+for _cat_name, _cat in _CATALOGUES.items():
+    _cat_services = _cat.get("services")
+    if not isinstance(_cat_services, dict):
+        _service_text_errors.append(f"{_cat_name}: no services section")
+        continue
+    if set(_cat_services) != set(services):
+        _service_text_errors.append(
+            f"{_cat_name}: {sorted(set(_cat_services) ^ set(services))}"
+        )
+    for _svc, _schema in services.items():
+        _entry = _cat_services.get(_svc)
+        if not isinstance(_entry, dict):
+            continue
+        for _k in _SERVICE_TEXT_KEYS:
+            if not (_entry.get(_k) or "").strip():
+                _service_text_errors.append(f"{_cat_name}: {_svc} has no {_k}")
+        _yaml_fields = set((_schema or {}).get("fields") or {})
+        _cat_fields = set(_entry.get("fields") or {})
+        if _cat_fields != _yaml_fields:
+            _service_text_errors.append(
+                f"{_cat_name}: {_svc} fields {sorted(_cat_fields ^ _yaml_fields)}"
+            )
+        for _fname, _fentry in (_entry.get("fields") or {}).items():
+            for _k in _SERVICE_TEXT_KEYS:
+                if not isinstance(_fentry, dict) or not (_fentry.get(_k) or "").strip():
+                    _service_text_errors.append(
+                        f"{_cat_name}: {_svc}.{_fname} has no {_k}"
+                    )
+R.check(
+    "every service and field is named and described in all three catalogues",
+    not _service_text_errors,
+    "; ".join(_service_text_errors[:6]),
+)
+
+# And the yaml no longer carries the text, so there is one source rather than
+# two that can disagree. hassfest permits both for a custom integration
+# (CUSTOM_INTEGRATION_EXTRA_SCHEMA_DICT), which is exactly why nothing else
+# would have caught the drift.
+_yaml_text_left = sorted(
+    f"{_svc}.{_k}"
+    for _svc, _schema in services.items()
+    for _k in _SERVICE_TEXT_KEYS
+    if (_schema or {}).get(_k) is not None
+) + sorted(
+    f"{_svc}.{_fname}.{_k}"
+    for _svc, _schema in services.items()
+    for _fname, _fschema in ((_schema or {}).get("fields") or {}).items()
+    for _k in _SERVICE_TEXT_KEYS
+    if (_fschema or {}).get(_k) is not None
+)
+R.check(
+    "and services.yaml keeps structure only, not text",
+    not _yaml_text_left,
+    ", ".join(_yaml_text_left[:6]),
+)
+
+# Placeholder English left in a translation is worse than no translation: it
+# looks translated. Applied to descriptions as well as names, because the
+# descriptions are the long text and the easiest half to skip.
+_sv_services = _CATALOGUES["sv.json"].get("services") or {}
+_en_services = _CATALOGUES["en.json"].get("services") or {}
+_untranslated = []
+for _svc in sorted(set(_sv_services) & set(_en_services)):
+    for _k in _SERVICE_TEXT_KEYS:
+        if _sv_services[_svc].get(_k) == _en_services[_svc].get(_k):
+            _untranslated.append(f"{_svc}.{_k}")
+    _sv_f = _sv_services[_svc].get("fields") or {}
+    _en_f = _en_services[_svc].get("fields") or {}
+    for _fname in sorted(set(_sv_f) & set(_en_f)):
+        for _k in _SERVICE_TEXT_KEYS:
+            if _sv_f[_fname].get(_k) == _en_f[_fname].get(_k):
+                _untranslated.append(f"{_svc}.{_fname}.{_k}")
+R.check(
+    "the Swedish service text is actually translated",
+    # Non-emptiness is part of the claim: with no services section at all this
+    # compares two empty mappings and passes while saying nothing, which is the
+    # shape of check this repository keeps having to refute.
+    bool(_sv_services) and bool(_en_services) and not _untranslated,
+    f"{len(_untranslated)} identical of {len(_sv_services)} services: "
+    f"{_untranslated[:4]}",
+)
+
+# The catalogue describes services that exist. A row for a service nothing
+# registers is text no user can reach; one registered with no row is the
+# untranslated state this item exists to remove.
+_registered = {
+    _v
+    for _n, _v in vars(const).items()
+    if _n.startswith("SERVICE_") and isinstance(_v, str)
+}
+R.check(
+    "the documented services are exactly the registered ones",
+    set(services) == _registered,
+    f"{sorted(set(services) ^ _registered)}",
+)
+
+# hassfest's TRANSLATIONS validator reads every string in these files and
+# treats any ``{...}`` as a PLACEHOLDER, so brace syntax that is merely prose
+# in services.yaml becomes an error once the same sentence moves into a
+# catalogue. Transcribed from script/hassfest/translations.py: it parses each
+# value with string.Formatter and requires every non-empty field_name to be
+# an identifier, and separately refuses a placeholder inside single quotes.
+# Ran in CI at about 30 seconds; runs here in milliseconds, which is why it is
+# here (#558 D5 turned `hassfest` red on exactly this).
+_RE_PLACEHOLDER_IN_SINGLE_QUOTES = re.compile(r"'{\w+}'")
+
+
+def _translation_placeholder_errors(node, where):
+    out = []
+    if isinstance(node, dict):
+        for _k, _v in node.items():
+            out += _translation_placeholder_errors(_v, f"{where}.{_k}")
+        return out
+    if not isinstance(node, str):
+        return out
+    try:
+        fields = [f for _, f, _, _ in string.Formatter().parse(node) if f]
+    except ValueError as err:
+        return [f"{where}: unparseable format string ({err})"]
+    for _field in fields:
+        if not _field.isidentifier():
+            out.append(f"{where}: {{{_field}}} is not a valid identifier")
+    if _RE_PLACEHOLDER_IN_SINGLE_QUOTES.search(node):
+        out.append(f"{where}: placeholder inside single quotes")
+    return out
+
+
+_placeholder_errors = [
+    _e
+    for _name, _data in _CATALOGUES.items()
+    for _e in _translation_placeholder_errors(_data, _name)
+]
+R.check(
+    "every translation string is a legal format string for hassfest",
+    not _placeholder_errors,
+    "; ".join(_placeholder_errors[:4]),
+)
+
+
+R.section("#558 D6 numeric schedule companion")
+
+# ScheduleSensor's state is an English sentence -- "24 steps" / "no schedule" --
+# so it cannot be translated, cannot be read as a number by a template, and
+# collapses "no data yet" and "a schedule with nothing in it" into one string.
+# D6 was reshaped to ADD a numeric entity rather than mutate this one, because
+# an automation may be sitting on the shipped value. So the first thing pinned
+# is that the shipped value did not move.
+_SHIPPED_SCHEDULE_STATES = (
+    (None, "no schedule"),
+    ({"schedule": []}, "no schedule"),
+    ({"schedule": [{"hour": 0}]}, "1 steps"),
+    ({"schedule": [{"hour": _h} for _h in range(24)]}, "24 steps"),
+)
+_shipped_moved = []
+for _data, _want in _SHIPPED_SCHEDULE_STATES:
+    _got = sensor.ScheduleSensor(FakeCoordinator(_data), ENTRY).native_value
+    if _got != _want:
+        _shipped_moved.append(f"{_data!r} -> {_got!r}, was {_want!r}")
+R.check(
+    "the deprecated sensor still publishes exactly what it shipped",
+    not _shipped_moved,
+    "; ".join(_shipped_moved),
+)
+# Including the ungrammatical singular. It is shipped text an automation may
+# compare against, so correcting it here would be the mutation D6 forbids.
+R.check(
+    "including the ungrammatical '1 steps', which is shipped and so is frozen",
+    sensor.ScheduleSensor(
+        FakeCoordinator({"schedule": [{"hour": 0}]}), ENTRY
+    ).native_value
+    == "1 steps",
+)
+
+_steps_cases = (
+    (None, None),
+    ({"schedule": []}, 0),
+    ({"schedule": [{"hour": 0}]}, 1),
+    ({"schedule": [{"hour": _h} for _h in range(24)]}, 24),
+)
+_steps_wrong = []
+for _data, _want in _steps_cases:
+    _got = sensor.ScheduleStepsSensor(FakeCoordinator(_data), ENTRY).native_value
+    if _got != _want or type(_got) is not type(_want):
+        _steps_wrong.append(f"{_data!r} -> {_got!r}, want {_want!r}")
+R.check(
+    "the companion publishes the step count as an integer",
+    not _steps_wrong,
+    "; ".join(_steps_wrong),
+)
+# The distinction the sentence loses, and the reason the companion is worth an
+# entity rather than an attribute: "no data yet" is unknown, an empty schedule
+# is zero, and the deprecated sensor says "no schedule" to both.
+R.check(
+    "and separates no-data from an empty schedule, which the sentence cannot",
+    sensor.ScheduleStepsSensor(FakeCoordinator(None), ENTRY).native_value is None
+    and sensor.ScheduleStepsSensor(
+        FakeCoordinator({"schedule": []}), ENTRY
+    ).native_value
+    == 0
+    and sensor.ScheduleSensor(FakeCoordinator(None), ENTRY).native_value
+    == sensor.ScheduleSensor(
+        FakeCoordinator({"schedule": []}), ENTRY
+    ).native_value,
+)
+
+# Both read the same coordinator key, so they cannot drift apart into two
+# answers about one schedule.
+_steps_entity = sensor.ScheduleStepsSensor(
+    FakeCoordinator({"schedule": [{"hour": _h} for _h in range(7)]}), ENTRY
+)
+R.check(
+    "the two sensors describe the same schedule",
+    f"{_steps_entity.native_value} steps"
+    == sensor.ScheduleSensor(
+        FakeCoordinator({"schedule": [{"hour": _h} for _h in range(7)]}), ENTRY
+    ).native_value,
+)
+# A count that is nearly always the horizon would write one identical
+# statistic an hour forever; D8-03 measured this state as constant across
+# 170/170 cycles. The value here is that a template can read an integer, not
+# that history needs it.
+R.check(
+    "the companion records no long-term statistics",
+    getattr(sensor.ScheduleStepsSensor, "_attr_state_class", None) is None
+    and getattr(sensor.ScheduleStepsSensor, "_attr_native_unit_of_measurement", None)
+    is None,
+    "a constant in the recorder is cost with no reader",
+)
+R.check(
+    "and stays diagnostic, beside the sensor it replaces",
+    sensor.ScheduleStepsSensor._attr_entity_category
+    == sensor.ScheduleSensor._attr_entity_category,
+)
+# The deprecation is documented rather than enforced: no repair issue fires,
+# because the entity is enabled for every install and a warning nobody asked
+# for is the UX defect this programme is removing, not adding.
+R.check(
+    "the deprecated sensor says so, and names its replacement",
+    "deprecated" in (sensor.ScheduleSensor.__doc__ or "").lower()
+    and "optimization_schedule_steps" in (sensor.ScheduleSensor.__doc__ or ""),
+    "a deprecation the next reader cannot find is not one",
+)
+R.check(
+    "and it is still registered, because removing it is the breaking change "
+    "D6 was reshaped to avoid",
+    "optimization_schedule"
+    in {_e._attr_translation_key for _p, _e in _named_entities if _p == "sensor"},
 )
 
 sys.exit(R.close("ENTITY CHECKS"))

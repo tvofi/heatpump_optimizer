@@ -1,5 +1,61 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.3.18
+
+**A fix that made the integration usable again, a decomposition wave, and the
+programme's own contracts.**
+
+### Fixes users see
+
+- **v6.3.15 could not produce a plan on any real install** (#540). The
+  process-solve worker could not unpickle a job under Home Assistant's module
+  naming, and setup blocked the event loop. The suite did not see it because it
+  ran a module name and a filesystem layout no installation uses.
+- **Saving the learning options page wiped `external_heat_entity`** (#579).
+- **The English narrative hard-coded Swedish currency** (#571). Money is now
+  priced in the instance currency; Swedish readers see `8.40 SEK` where they saw
+  `8.40 kr`.
+- **Three string-state sensors gained `SensorDeviceClass.ENUM`** (#571) and
+  **29 enum state icons plus 156 service translation strings** landed (#599),
+  with a numeric `ScheduleStepsSensor` deprecating rather than renaming the old
+  one. A state outside `options` makes Home Assistant raise, so two sensors were
+  deliberately refused: `OptimizationStatusSensor` publishes SciPy's own message
+  on a branch that fires routinely.
+- **The plan card** (#600): legend chips carry a real `aria-pressed` toggle, the
+  hot-water band is a filled envelope, time-axis end labels no longer collide in
+  any view, and the savings table is right-aligned on tabular figures.
+
+### Documentation
+
+Eight figures, each generated from the source it documents (#576); the AI use,
+its failure mode and what the gate costs a contributor stated in the README
+(#556); the architecture derivation moved out of the README (#571).
+
+### The #193 decomposition
+
+S7 (#551), S8 (#555) and S9 (#557, #586) — one bounded Newton step for both
+heat-loss learners, the COP-health watch state out of the core seam, and
+`optimize`'s breach report, comfort envelope and power ceiling extracted
+verbatim. **#223 closed** by one settings registry driving every option page
+(#597), verified across all 21 pages with 124 assertions and both arms
+null-controlled.
+
+### Tests and gate
+
+`tests/hastub` measured against Home Assistant rather than hoped at (#578);
+`#195` tranches 1 and 2 (#573, #589); the 21 named `config_flow.py` statements
+(#543); the config-flow golden taught to walk nested sections and see the
+stored-value arm (#553, #554, #568). A merge driver for the two claim files
+(#545), then the finding that **GitHub cannot run it**, so a claim note makes
+every pull request DIRTY and CI never queues — absent, not failing (#572).
+
+### Contracts
+
+The orchestrator gained a role contract and a pre-flight that refuses an armed
+closing keyword (#593); every policy document is indexed in `CLAUDE.md` by who
+it binds (#594); the full-derive prohibition, fix-verify-file and the
+symbol-citation remedy (#595, #549, #552).
+
 ## v6.3.17
 
 **The card's setup page could not be saved.** Pressing **Tidy** made every save

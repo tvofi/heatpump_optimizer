@@ -26,7 +26,9 @@
 //                            for one is ALWAYS an error (issue #411, class 4:
 //                            "not merely stale"), because the fixer is
 //                            supposed to re-measure at their own merge base.
-// Plus: every `after:` edge names a group in the same file.
+// Plus: every `after:` edge names a group in the same file, and every group
+// carries the fields a cold pickup needs -- a lintable `brief` and a `resume`
+// (#582). Those are checked for presence and type only; see `checkShape`.
 //
 // A brief whose `resume.stage` is "done" describes finished, merged work: no
 // fixer will read it again, so it is not linted -- checking it would only
@@ -37,9 +39,12 @@
 // failure -- a linter that cries wolf gets bypassed. Run:
 //   node .claude/workflows/brief_lint.mjs [files...]
 //
-// The no-arg (CI) path also lints fixtures/wave-1b-931dffe.json and REQUIRES
-// the ten #411 acceptance errors. Deleting the lintBrief calls otherwise
-// greens the job while catching nothing.
+// The no-arg (CI) path also runs three acceptances, because every rule here is
+// otherwise deletable in silence -- this job reports what the rules FOUND, and
+// finding nothing is what a clean tree and a gutted linter both look like.
+// fixtures/wave-1b-931dffe.json pins lintBrief, fixtures/shape-defects.json
+// pins checkShape, and a probe pins the driver guard. Each states the errors it
+// must still produce; see REQUIRED_931DFFE.
 
 import fs from 'node:fs'
 import path from 'node:path'
@@ -569,9 +574,11 @@ function lintBrief(groupName, brief, findings) {
 }
 
 function lintAfterEdges(groups, findings) {
-  const names = new Set(groups.map((g) => g.group))
+  const names = new Set(groups.filter((g) => typeof g?.group === 'string').map((g) => g.group))
   for (const g of groups) {
-    for (const dep of g.after ?? []) {
+    // `after` is iterated, so a string here would silently walk its characters.
+    if (!Array.isArray(g?.after)) continue
+    for (const dep of g.after) {
       if (!names.has(dep)) {
         findings.push({ group: g.group, severity: 'error', kind: 'after', message: `after: '${dep}' names no group in this file` })
       }
@@ -580,17 +587,118 @@ function lintAfterEdges(groups, findings) {
 }
 
 // ---------------------------------------------------------------------------
+// roster shape (#582)
+//
+// A roster promises two things to a seat picking a lane up cold: a `brief` this
+// script can check, and a `resume` saying where the lane restarts. Nothing
+// checked either. A group missing `brief` threw a TypeError out of lintBrief --
+// and because the no-arg run lints in sorted order with nothing catching, ONE
+// malformed roster suppressed every later roster's findings and the fixture
+// vacuity assertion with them. A group missing `resume` was accepted in
+// silence, which is the deficit #582 names.
+//
+// These check PRESENCE AND TYPE, never truthfulness. Deliberately no vocabulary
+// check on `stage`: only the exact string "done" skips a brief, so every
+// misspelling already fails safe by linting MORE, and a `stage` that simply
+// lies about a lane's state passes a vocabulary check anyway. A rule that
+// catches only the safe direction would look like protection and add none.
+//
+// TWO THINGS THIS MUST NOT DO, both found by the acceptance fixture below when
+// an earlier draft did them.
+//   * It does not gate lintBrief. A group missing `resume` still has its
+//     citations checked; the missing field is reported beside them. Letting a
+//     shape failure silence the citation check is one check disabling another,
+//     which is the defect class this repository keeps paying for -- the draft
+//     that did it removed all nine of the fixture's acceptance pins and the
+//     vacuity assertion is what caught it.
+//   * It does not run on the fixture, which is a FROZEN SNAPSHOT of the roster
+//     at 931dffe, when nine of its fifteen groups carried no `resume` at all.
+//     Those absences are the historical record and are not defects to repair;
+//     reporting them would invite a later seat to "fix" the fixture and destroy
+//     what it pins.
+const STAGE_SKIP = 'done'
+
+// Reports shape defects. Purely additive: it never decides what gets linted.
+function checkShape(groups, findings) {
+  const bad = (group, message) => findings.push({ group, severity: 'error', kind: 'shape', message })
+  if (groups.length === 0) {
+    findings.push({ group: '(file)', severity: 'warning', kind: 'shape', message: 'roster has no groups, so it asserts nothing' })
+  }
+  const seen = new Set()
+  groups.forEach((g, i) => {
+    const named = g && typeof g.group === 'string' && g.group.trim()
+    const label = named ? g.group : `(index ${i})`
+    if (!g || typeof g !== 'object' || Array.isArray(g)) {
+      bad(label, 'group entry is not an object')
+      return
+    }
+    if (!named) {
+      bad(label, '`group` is missing or is not a non-empty string')
+    } else if (seen.has(g.group)) {
+      bad(label, 'duplicate group id; an `after` edge and a resume both become ambiguous')
+    } else {
+      seen.add(g.group)
+    }
+    if (typeof g.brief !== 'string' || !g.brief.trim()) {
+      bad(label, '`brief` is missing or is not a non-empty string, so no citation in it can be checked')
+    }
+    if (!g.resume || typeof g.resume !== 'object' || Array.isArray(g.resume)) {
+      bad(label, '`resume` is missing or is not an object; the lane cannot be picked up cold without one')
+    } else if (typeof g.resume.stage !== 'string' || !g.resume.stage.trim()) {
+      bad(label, '`resume.stage` is missing or is not a non-empty string')
+    }
+    // lintAfterEdges skips a non-array `after` rather than walking its
+    // characters, so without this a string here would pass in silence.
+    if (g.after !== undefined && !Array.isArray(g.after)) {
+      bad(label, '`after` is present but is not an array')
+    }
+  })
+}
+
+// ---------------------------------------------------------------------------
 // driver
 
-function lintFile(file) {
-  const data = JSON.parse(fs.readFileSync(file, 'utf8'))
+// `shape` is off for the acceptance fixture only -- see checkShape's note.
+function lintFile(file, { shape = true } = {}) {
   const findings = []
+  let data
+  try {
+    data = JSON.parse(fs.readFileSync(file, 'utf8'))
+  } catch (e) {
+    findings.push({ group: '(file)', severity: 'error', kind: 'shape', message: `could not be read as JSON: ${e.message}` })
+    return findings
+  }
+  if (!data || typeof data !== 'object' || !Array.isArray(data.groups)) {
+    findings.push({ group: '(file)', severity: 'error', kind: 'shape', message: '`groups` is missing or is not an array' })
+    return findings
+  }
+  if (shape) checkShape(data.groups, findings)
   lintAfterEdges(data.groups, findings)
   for (const g of data.groups) {
-    if (g.resume?.stage === 'done') continue // merged work; brief will not be read again
-    lintBrief(g.group, g.brief, findings)
+    if (!g || typeof g !== 'object') continue
+    if (g.resume?.stage === STAGE_SKIP) continue // merged work; brief will not be read again
+    if (typeof g.brief !== 'string' || !g.brief.trim()) continue // absence already reported
+    lintBrief(typeof g.group === 'string' ? g.group : '(unnamed)', g.brief, findings)
   }
   return findings
+}
+
+// Every lint of a roster goes through here. An unexpected throw becomes that
+// roster's own error instead of aborting the run, which before #582 took every
+// later roster's findings and the acceptances below down with it.
+//
+// `lint` is injected by assertDriverGuard and by nothing else. checkShape and
+// lintFile's own field guards closed every throw a roster can now stage, so
+// what is left for this to catch comes from underneath -- `git ls-files`
+// refusing, tests/structure_budgets.json unparseable -- and no committed
+// fixture can produce that. Measured at aea7f86: with nothing driving it,
+// deleting this try/catch left the whole no-arg run byte-identical at rc=0.
+function lintFileGuarded(file, opts, lint = lintFile) {
+  try {
+    return lint(file, opts)
+  } catch (e) {
+    return [{ group: '(file)', severity: 'error', kind: 'shape', message: `lint aborted: ${e.message}` }]
+  }
 }
 
 function printReport(file, findings) {
@@ -603,6 +711,13 @@ function printReport(file, findings) {
   console.log(`  -- ${errors.length} error(s), ${warnings.length} warning(s)`)
   return errors.length
 }
+
+// ---------------------------------------------------------------------------
+// acceptances
+//
+// A frozen input, plus the errors it must still produce. A rule with no such
+// list is deletable in silence, because this job's only signal is what the
+// rules report and a deleted rule reports nothing.
 
 // #411 acceptance at 931dffe: the four half-II groups named in the issue.
 // min_ink_gap is not pinned: a later doc (#417 `.cursor/rules`) names it,
@@ -620,20 +735,64 @@ const REQUIRED_931DFFE = [
   { group: 'W1-G9', kind: 'symbol', needle: 'wood_share_vec_parity' },
 ]
 
-function assertAcceptanceFixture() {
-  const fixture = path.join(HERE, 'fixtures', 'wave-1b-931dffe.json')
-  const findings = lintFile(fixture)
+// checkShape acceptance: fixtures/shape-defects.json holds one group per rule,
+// so a deleted rule surfaces as its own missing pin rather than as a count that
+// moved. `no-resume` carries a rotted citation as well as its missing field,
+// which pins the property the first draft of checkShape broke -- it reports
+// beside lintBrief and never gates it. `edge-probe` pins lintAfterEdges still
+// running alongside. The fixture is linted with shape ON; wave-1b-931dffe.json
+// is the one linted with it off, for the reason checkShape's note gives.
+const REQUIRED_SHAPE_DEFECTS = [
+  { group: '(index 0)', kind: 'shape', needle: 'group entry is not an object' },
+  { group: '(index 1)', kind: 'shape', needle: '`group` is missing or is not a non-empty string' },
+  { group: 'no-brief', kind: 'shape', needle: '`brief` is missing or is not a non-empty string' },
+  { group: 'no-resume', kind: 'shape', needle: '`resume` is missing or is not an object' },
+  { group: 'no-resume', kind: 'path', needle: 'no_such_probe_file.py' },
+  { group: 'no-stage', kind: 'shape', needle: '`resume.stage` is missing or is not a non-empty string' },
+  { group: 'after-not-array', kind: 'shape', needle: '`after` is present but is not an array' },
+  { group: 'twin', kind: 'shape', needle: 'duplicate group id' },
+  { group: 'edge-probe', kind: 'after', needle: "'no-such-group' names no group in this file" },
+]
+
+function assertAcceptanceFixture(name, label, opts, required) {
+  const fixture = path.join(HERE, 'fixtures', name)
+  const findings = lintFileGuarded(fixture, opts)
   const errors = findings.filter((f) => f.severity === 'error')
   printReport(path.relative(ROOT, fixture), findings)
-  const missing = REQUIRED_931DFFE.filter(
+  const missing = required.filter(
     (r) => !errors.some((e) => e.group === r.group && e.kind === r.kind && e.message.includes(r.needle))
   )
   if (missing.length) {
-    console.log('\nFIXTURE VACUOUS: 931dffe acceptance pins missing:')
+    console.log(`\nFIXTURE VACUOUS: ${label} acceptance pins missing:`)
     for (const m of missing) console.log(`  [${m.group}] ${m.kind}: ${m.needle}`)
     return 1
   }
-  console.log(`\nFIXTURE ok: ${errors.length} error(s) pin the 931dffe acceptance (${REQUIRED_931DFFE.length} required)`)
+  console.log(`\nFIXTURE ok: ${errors.length} error(s) pin the ${label} acceptance (${required.length} required)`)
+  return 0
+}
+
+const GUARD_PROBE = 'driver-guard acceptance probe'
+
+// Driver-guard acceptance. No committed roster can throw any more, so the only
+// honest pin is to hand the guard a lint that does: what is being asserted is
+// that one roster's failure comes back as that roster's error, leaving the
+// loop and the fixtures above to finish.
+function assertDriverGuard() {
+  const thrower = () => {
+    throw new TypeError(GUARD_PROBE)
+  }
+  let findings
+  try {
+    findings = lintFileGuarded('(driver-guard probe)', {}, thrower)
+  } catch (e) {
+    console.log(`\nGUARD VACUOUS: a throw escaped lintFileGuarded (${e.message}); one bad roster would abort the run`)
+    return 1
+  }
+  if (!findings.some((f) => f.severity === 'error' && f.message.includes(GUARD_PROBE))) {
+    console.log('\nGUARD VACUOUS: lintFileGuarded swallowed a throw instead of reporting it')
+    return 1
+  }
+  console.log("\nGUARD ok: an unexpected throw is reported as that roster's own error")
   return 0
 }
 
@@ -650,12 +809,18 @@ function main() {
 
   let totalErrors = 0
   for (const f of files) {
-    const findings = lintFile(f)
-    totalErrors += printReport(path.relative(ROOT, f), findings)
+    totalErrors += printReport(path.relative(ROOT, f), lintFileGuarded(f))
   }
   console.log(`\nTOTAL: ${totalErrors} error(s) across ${files.length} file(s)`)
-  const fixtureRc = defaultRun ? assertAcceptanceFixture() : 0
-  process.exit(totalErrors > 0 || fixtureRc ? 1 : 0)
+  // Summed rather than short-circuited: a run that fails one acceptance still
+  // reports the other two, so a report names every rule that stopped holding.
+  let acceptanceRc = 0
+  if (defaultRun) {
+    acceptanceRc += assertAcceptanceFixture('wave-1b-931dffe.json', '931dffe', { shape: false }, REQUIRED_931DFFE)
+    acceptanceRc += assertAcceptanceFixture('shape-defects.json', 'shape-defects', {}, REQUIRED_SHAPE_DEFECTS)
+    acceptanceRc += assertDriverGuard()
+  }
+  process.exit(totalErrors > 0 || acceptanceRc ? 1 : 0)
 }
 
 main()

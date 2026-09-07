@@ -53,19 +53,21 @@ Where this table and a wave body disagree, this table is the truth.
 | 1a | the stress ruler, alone on an idle box | #346 | v6.3.11 | **done** — W1-G7 merged PR #378 (`291ae76`), 0 unstamped |
 | triage B1 | read-only judges, run beside the ruler | #281 #225 closed; #303 #224 #193 re-scoped | — | **done** |
 | triage B2 | solver, suite, browser and timing judges | #304 #258 re-scoped; #242 weakened to a structural zero; **#291 closed** (keep `_MULTI_START_SOLVES=4`); **#232 scoped** (smooth top-k alone → W3-G1) | — | **done** |
-| 1b half I | gate instruments, suite gaps, ratchet, entity pins | 16 issues in 7 groups: #369 #370 (W1-G1), #350 #374 (W1-G2), #372 #357 (W1-G3), #373 (W1-G4), #334 (W1-G5), #247–#252 (W1-G10), #246 #251 #395 (W1-G11) | **v6.3.12** (tag `84a27b6`) | **done and released, 2026-09-04** — all seven groups merged, issues closed: PR #383, #406, #397, #384, #386, #385, #402 (merge SHAs in `.claude/workflows/wave-1b-groups.json`, each group's `resume.merge_sha`). `main` green after every merge, head `841fe0f`, stamped `84a27b6`. Five more PRs landed in the same run with no tracked issue of their own — #396 (roster/plan truth-up), #399 (the #387 coverage-floor backstop), #407 (operational docs), #409 (the ratchet-raise policy), #410 (claim priority) |
+| 1b half I | gate instruments, suite gaps, ratchet, entity pins | 16 issues in 7 groups: #369 #370 (W1-G1), #350 #374 (W1-G2), #372 #357 (W1-G3), #373 (W1-G4), #334 (W1-G5), #247 #248 #249 #250 #251 #252 (W1-G10), #246 #251 #395 (W1-G11) | **v6.3.12** (tag `84a27b6`) | **done and released, 2026-09-04** — all seven groups merged, issues closed: PR #383, #406, #397, #384, #386, #385, #402 (merge SHAs in `.claude/workflows/wave-1b-groups.json`, each group's `resume.merge_sha`). `main` green after every merge, head `841fe0f`, stamped `84a27b6`. Five more PRs landed in the same run with no tracked issue of their own — #396 (roster/plan truth-up), #399 (the #387 coverage-floor backstop), #407 (operational docs), #409 (the ratchet-raise policy), #410 (claim priority) |
 | 1b half II | card contrast/geometry, coordinator loaders, wood_share, may-drift partition, layout-editor recovery | 12 issues in 8 groups: #288 (W1-G6), #238 (W1-G8), #260 #261 #263 #266 (W1-G12), #262 #258 (W1-G13), #403 (W1-G16, added 2026-09-04), #265 (W1-G14), #254 (W1-G15), #245 (W1-G9) | **v6.3.13** (tag `f94ae13`) | **done and released, 2026-09-05** — all eight groups merged, issues closed: PR #419 (`7cc75a1`, W1-G6/#288), #421 (`a7c1e54`, W1-G8/#238), #424 (`47ded95`, W1-G14/#265), #427 (`598c83d`, W1-G15/#254), #431 (`cabcce1`, W1-G9/#245), #428 (`6bee53f`, W1-G12/#260 #261 #263 #266), #432 (`1801b76`, W1-G13/#262 #258), #433 (`ac35bf8`, W1-G16/#403). Record/tooling since v6.3.12 stamp: #414/#398, #415, #417, #418, #416/#411, #420, #426, #413; inherited-card-claims fix `7044a27` before stamp. Stamped `f94ae13`, 0 unstamped |
 | — | **#387, the blocker**: the basin coverage floor is runner-dependent | #387 | v6.3.12 | **fixed** — merged as `32f309f` (PR #388); sixth acceptance criterion ruled (comment 5541519696): the WORK-channel stale-cheap downgrade is kept as necessary to the `env_drift` shape, and the coverage floor's strictness is restored by a follow-up PR that hard-codes it |
 | 2 | coordinator lifecycle, learners, options grouping | #236 #237 #240 #239 #243 #283 #284 #277 #244 #325 #279 #278 #280 #198 | **v6.3.14** (tag `ef539be`) | **done and released, 2026-09-05** — seven groups merged, issues closed: PR #437 (`44a6351`, W2-G1/#236 #237 #240), #440 (`90c71c4`, W2-G2/#239 #243; duplicate #441 closed unmerged), #444 (`dc3bb8e`, W2-G3/#283 #284), #447 (`851c555`, W2-G4/#279 #278), #449 (`f492b1f`, W2-G5/#277), #451 (`efe5a27`, W2-G5 follow-up/#244 #325, review `merge` 5551113810: mid-step abort 36→0, 21 leftovers named), #438 (`e1a14f9`, W2-G6/#280), #436 (`3c141d7`, W2-G7/#198). Record/tooling since v6.3.13 stamp: #434, #435, #439, #442, #443, #446, #448, #450. Stamped `ef539be` as v6.3.14. Next seat **W3-G1** |
-| 3 | solver, DHW planner, GIL process route | #232 #234 #289 #290 #199 | **v6.3.15** (tag `f0866c8`) | **done and released, 2026-09-06** — three groups merged, issues closed: PR #454 (`1585435`, W3-G1/#232 #234), #455 (`aa61130`, W3-G1 follow-up), #456 (`ebf7170`, W3-G2/#289), #461 (`8542e51`, W3-G3/#290 #199; review `merge` at `7076075`, comment 5554485684). Record/tooling since v6.3.14 stamp: #452, #458, #459, #468, #469. Stamped `f0866c8`. **W3-G4 is struck**. Unstamped on this tag include #467, #470–#500 (3L + records; #490 DHW band; #493/#494 Wave 4 roster prep; #495 inherited-claims guard `6699852`; #496 3L-G10 record; #497 W4-G1; #499 record; #500 W4-G2) |
-| **3L** | mid-programme leftovers, one burst | #400 #401 #404 #405 #408 #457 #460 #463 #465 | after Wave 3 | **done** — **3L-G1** #470 (`81aa0c3`). **3L-G2** #472 (`2abe2f7`). **3L-G3** #474 (`e8adfe4`) + #479 (`8ea27d4`) + #480 (`162e759`). **3L-G4** #477 (`531d8b7`). **3L-G5** #483 (`6f02b8a`) closed #408. **3L-G7** #485 (`bf08217`) closed #460. **3L-G8** #487 (`a19ba03`). **3L-G9** #489 (`b29fd1e`) closed #463. **3L-G10** #492 (`e4bc375`) closed #465. **3L-G6** (#457) never implemented: the seat returned NEEDS_CONTEXT (no production `conflict` symbol; nearest twins are read-only `setup_overview` and `reconfigure`), and the owner then closed #457 as `COMPLETED` by hand on 2026-09-06T03:40:23Z with no PR and no commits. Discharged, not blocked — do not reopen it and do not invent a backend. Next **W4-G6** (S5). Do not stamp. #481 leftover closed. #412 stays last of the programme |
-| 4 | the #193 decomposition programme, S0–S13 | #193 #223 #224 #225, and **#304 as S11's precursor** | one per stage | **W4-G1–G5 done; next W4-G6** — S0 #497 (`c197b01`), S1 #500 (`67e1cf3`, closed #377), S2 #502 (`d979110`, review `merge` 5558785350), S3 #506 (`5a4e6ff`, review `merge` 5559638736 at `258b245`: cut_views 94→85, coordinator_loc/max_class_loc 10305→10164, functions_cc_over_15 39→38, methods_over_150 21→20; earlier `blocked` 5559418212 at `341c596` cleared). **S4 (W4-G5, fetch) is a RECORDED HALT at `5a4e6ff` with no production change** (#508) — 92 of cut_fetch's 115 is other seams reading the 15 fetch-owned attrs (60) and calling into fetch (32), so the seam move is sequenced to S12/W4-G13, not banned. Do not Closes #193. Roster `.claude/workflows/wave-4-groups.json`. #225 stays closed. #412 not in this wave. Do not stamp |
+| 3 | solver, DHW planner, GIL process route | #232 #234 #289 #290 #199 | **v6.3.15** (tag `f0866c8`) | **done and released, 2026-09-06** — three groups merged, issues closed: PR #454 (`1585435`, W3-G1/#232 #234), #455 (`aa61130`, W3-G1 follow-up), #456 (`ebf7170`, W3-G2/#289), #461 (`8542e51`, W3-G3/#290 #199; review `merge` at `7076075`, comment 5554485684). Record/tooling since v6.3.14 stamp: #452, #458, #459, #468, #469. Stamped `f0866c8`. **W3-G4 is struck**. Everything after this tag was stamped by **v6.3.16** and **v6.3.17**; the individual PRs are named in the rows below and in the record-PR class, not summarised as a range here — a range reads as complete while naming a fraction of what it covers |
+| **3L** | mid-programme leftovers, one burst | #400 #401 #404 #405 #408 #457 #460 #463 #465 | after Wave 3 | **done** — **3L-G1** #470 (`81aa0c3`). **3L-G2** #472 (`2abe2f7`). **3L-G3** #474 (`e8adfe4`) + #479 (`8ea27d4`) + #480 (`162e759`). **3L-G4** #477 (`531d8b7`). **3L-G5** #483 (`6f02b8a`) closed #408. **3L-G7** #485 (`bf08217`) closed #460. **3L-G8** #487 (`a19ba03`). **3L-G9** #489 (`b29fd1e`) closed #463. **3L-G10** #492 (`e4bc375`) closed #465. **3L-G6** (#457) never implemented: the seat returned NEEDS_CONTEXT (no production `conflict` symbol; nearest twins are read-only `setup_overview` and `reconfigure`), and the owner then closed #457 as `COMPLETED` by hand on 2026-09-06T03:40:23Z with no PR and no commits. Discharged, not blocked — do not reopen it and do not invent a backend. **W4-G6** (S5) merged #529 (`8281f54`); **W4-G7** (S6) merged #537 (`d04ed89`); **W4-G8** (S7) merged #551 (`0f9eb71`); **W4-G9** (S8) merged #555 (`52d38d9`); **W4-G11** (S10) merged #543 (`e072b2d`, closed #304). Next is W4-G10 (S9, #224). Do not stamp. #481 leftover closed. #412 stays last of the programme |
+| 4 | the #193 decomposition programme, S0–S13 | #193 #223 #224 #225, and **#304 as S11's precursor** | one per stage | **S0–S8 and S10 done; next W4-G10 (S9, #224)** — S0 #497 (`c197b01`), S1 #500 (`67e1cf3`, closed #377; **corrected 2026-09-06**: the reported 138-point drop across all five cuts was `structure.py` losing sight of `getattr(self, "_ctx", self)` references S1 introduced 131 of, not decoupling — fixed by #512, S1's other results (`CoordinatorContext`, the attribute count, the facades) stand unchanged), S2 #502 (`d979110`, review `merge` 5558785350), S3 #506 (`5a4e6ff`, review `merge` 5559638736 at `258b245`: cut_views 94→85, coordinator_loc/max_class_loc 10305→10164, functions_cc_over_15 39→38, methods_over_150 21→20; earlier `blocked` 5559418212 at `341c596` cleared). **S4 (W4-G5, fetch) is a RECORDED HALT, merged as `e46fb15` (#508), with no production change** — measured then as 92 of cut_fetch's 115 being other seams reading the 15 fetch-owned attrs (60) and calling into fetch (32); **re-measured after #512**, cut_fetch is 132, not 115 (the whole +17 is fetch's own reads of attributes it does not own, previously invisible through the same idiom — see the roster note for the full recount), the other-seams-reaching-in share is unchanged in absolute count at 92, and the halt's actual basis — the judge's #193 finding that no component of size>1 detaches at any k — is untouched, so the seam move stays sequenced to S12/W4-G13, not banned. **S5 (W4-G6, dhw) merged as `8281f54` (#529, review `merge` 5561488083)**: cut_dhw 194→103 (-91, -47%), cut_learning 350→321, total cut across all five seams 1022→902 and `core` 15→14 (the control that distinguishes a real decoupling from moving points to a neighbouring seam). **The constraint S5 produced, carried into the W4-G7/G8/G9/G13 briefs:** the ownership lever is legitimate only where a seam's entire contact with an attribute is the assignment — no reads, no other writes — demonstrated per attribute, never assumed; `_helper(self, ...)` at S3 and `getattr(self, "_ctx", self)` at S1 were both refused on exactly that. Measured by moving twelve non-hot-water attributes `_init_dhw_learning` misplaced into a new `_init_thermal_learning` (learning seam). Do not Closes #193. Roster `.claude/workflows/wave-4-groups.json`. #225 stays closed. #412 not in this wave. Do not stamp |
+| R | reliability, instruments and harness — hotfixes and findings made alongside Wave 4, not wave work | #510 #511 #513 #518 closed | v6.3.16 (`#512`, `#515`); unstamped (`#517`, `#519`) | **delivered 2026-09-06** — #512 fixed `structure.py`'s cut-walk blindness to `getattr(self, "_ctx", self)`, closed #510; #515 fixed the release-critical unpickle failure (every install produced no plan), closed #511; #517 added `tests/deployment_shape.py`, closed #513; #519 consolidated the handover series into one file, closed #518. Detail below |
+| UX | the UX programme: **34 items in five lanes**, B/C/D/E concurrent with the waves, **F last of the whole programme** | tracking **#558**; items land under their own numbers (#509 done, #516 = E4) | B, C, D now; E1–E3 after S11; **F after Wave 5 and #412** | **lanes B, C, D started 2026-09-07.** Docket: the *Optimizer UX Docket* artifact. Independence is by **file**, not only by budget — see the collision table below |
 | 5 | typing lane, and the coverage deficit #195 raised | #303 #195 | per tranche | pending — roster `.claude/workflows/wave-5-groups.json` prepared; **seats not started**. After Wave 4. **#304 is Wave 4**, not here. #412 not in this wave |
-| last | CI Node majors | #412 | after Wave 5 | pending — owner: last task; do not pull into 3L or Wave 4/5 |
+| last | CI Node majors, then **UX lane F** | #412, then UX F1/F2 | after Wave 5 | pending — owner: #412 is the last *task*; **lane F is the last work of the programme**, because it is the only lane that adds lines to `coordinator.py` |
 
 ### Wave 3L — leftovers, after Wave 3, before Wave 4
 
-Every open issue that is not already in Waves 3–5 or #201, filed after the 2026-09-03 plan cut, plus #460 (monthly savings), #463 (wood furnace economics), and #465 (Plan-page away toggle). One burst so they are not lost again, and **before** Wave 4 because #400, #408, #463 and #465 are behaviour in the DHW/optimizer/config/card region a move PR would silently revert (principle 3). Wave 3 is released (`f0866c8`); 3L-G1–G5 and 3L-G7–G10 are done (`e4bc375`). **3L-G6** (#457) shipped nothing and #457 was closed `COMPLETED` by the owner on 2026-09-06 — discharged, not blocked. Next seat **W4-G6** (S5). Do not stamp. #465 is closed. #412 stays last of the programme and is not in this burst.
+Every open issue that is not already in Waves 3–5 or #201, filed after the 2026-09-03 plan cut, plus #460 (monthly savings), #463 (wood furnace economics), and #465 (Plan-page away toggle). One burst so they are not lost again, and **before** Wave 4 because #400, #408, #463 and #465 are behaviour in the DHW/optimizer/config/card region a move PR would silently revert (principle 3). Wave 3 is released (`f0866c8`); 3L-G1–G5 and 3L-G7–G10 are done (`e4bc375`). **3L-G6** (#457) shipped nothing and #457 was closed `COMPLETED` by the owner on 2026-09-06 — discharged, not blocked. **W4-G6** (S5) merged #529 (`8281f54`); **W4-G7** (S6) merged #537 (`d04ed89`); **W4-G8** (S7) merged #551 (`0f9eb71`); **W4-G9** (S8) merged #555 (`52d38d9`); **W4-G11** (S10) merged #543 (`e072b2d`, closed #304). Next is W4-G10 (S9, #224). Do not stamp. #465 is closed. #412 stays last of the programme and is not in this burst.
 
 | group | issues | model | after | scope |
 |---|---|---|---|---|
@@ -80,9 +82,9 @@ Every open issue that is not already in Waves 3–5 or #201, filed after the 202
 | **3L-G9** | #463 | Grok 4.6 extra high | 3L-G8 | Plan banner, Wood lane, what-if wood slots. `Closes #463`. Same spec/plan |
 | **3L-G10** | #465 | Grok 4.6 extra high | 3L-G9 | Plan-page Away toggle and return datetime. Service-backed store; published switch and datetime; optional person/calendar. `Closes #465`. Spec/plan `docs/superpowers/{specs,plans}/2026-09-05-away-plan-toggle*.md` |
 
-Do not fold 3L into a closed Wave 3. 3L-G10 merged as #492 (`e4bc375`); #465 closed. W4-G1 #497 (`c197b01`), W4-G2 #500 (`67e1cf3`), W4-G3 #502 (`d979110`) and W4-G4 #506 (`5a4e6ff`) merged; #377 closed. W4-G5 (S4, fetch) recorded a halt with no production change (#508). Next seat W4-G6. Do not stamp or start #412 from this record.
+Do not fold 3L into a closed Wave 3. 3L-G10 merged as #492 (`e4bc375`); #465 closed. W4-G1 #497 (`c197b01`), W4-G2 #500 (`67e1cf3`), W4-G3 #502 (`d979110`) and W4-G4 #506 (`5a4e6ff`) merged; #377 closed. W4-G5 (S4, fetch) recorded a halt with no production change, merged as `e46fb15` (#508). W4-G6 (S5) merged #529 (`8281f54`); W4-G7 (S6) merged #537 (`d04ed89`); W4-G8 (S7) merged #551 (`0f9eb71`); W4-G9 (S8) merged #555 (`52d38d9`); W4-G11 (S10) merged #543 (`e072b2d`). Next is W4-G10 (S9, #224). Do not stamp or start #412 from this record.
 
-### Wave 4 — #193 decomposition, S0–S13 (W4-G1–G5 done; next W4-G6)
+### Wave 4 — #193 decomposition, S0–S13 (S0–S8 and S10; next W4-G10)
 
 Roster: `.claude/workflows/wave-4-groups.json`. Serial, one group per stage. Worker briefs live out of tree under `/Users/timmalmstrom/wt/briefs/w4-gN-*.md` (same convention as 3L). **#223 issue text allows parallel with coordinator moves; this table does not authorize a second lane.** Plan numbers the registry as **S11**; #193 numbers it S10 — the issue number is the stable reference. **#304 is S11's precursor** (W4-G11), not Wave 5. **#225 is closed** (triage B1) — struck in the roster, do not reopen. **#412 is not in this wave.** **#457 / 3L-G6 is not Wave 4**, and #457 is closed `COMPLETED` (2026-09-06) with nothing shipped — do not go looking for that work. S2–S8 and plan S12 have no child issue: they track #193 and must not `Closes #193`. A survey stage **halts** (record only, no invented backend) when the named seam is not extractable at this merge-base, an open PR holds the region, or a ratchet metric would rise. The `model` column names Claude seats for groups not yet started and the model that actually ran for groups already delivered — see Model routing.
 
@@ -117,11 +119,265 @@ Roster: `.claude/workflows/wave-5-groups.json`. After Wave 4. Serial. **#304 is 
 | **W5-G6** | #195 | Sonnet 5 | W5-G5 | `diagnosis.py` / `curve_learning.py` / `grid_fee.py` / `switch.py`. Cleanup is not this tranche |
 | **W5-G7** | #195 | Opus 5 | W5-G6 | `coordinator.py` coverage (789 missed) after #193 seams. May `Closes #195` |
 
-v6.3.12 is stamped at the Wave-1b/half-I boundary as a **gate and test-hardening release** — not for the accumulated no-op merges alone, and not by waiting for a runtime fix that half I will not produce, because half I is entirely test, docs and tooling.
+### Reliability, instruments and harness — delivered 2026-09-06 (not a wave)
+
+The Delivery-status table above accounts for wave stages and their records.
+It does not, on its own, account for the other kind of work this session
+produced: hotfixes, an instrument repair and a harness gap, found while
+doing something else rather than surveyed into a stage. It is not Wave 4 work
+and is not forced into that table beyond the summary row above.
+
+| PR | what | issue | state |
+|---|---|---|---|
+| #512 | `structure.py`'s cut walk matched only `ast.Attribute` on `ast.Name("self")`, so a reference through `getattr(self, "_ctx", self)` — an idiom S1 (#500) introduced 131 times — had a `Call` as its value and was invisible. The walk now resolves that idiom, the direct `self._ctx` form, and local aliases bound to either. The five cut budgets are re-recorded upward to their true values: `cut_views` 85→112, `cut_fetch` 115→132, `cut_dhw` 160→194, `cut_grid` 209→234, `cut_learning` 315→350 — they rise only because the true number was always higher; no coupling is added | #510 | merged `af47c96`, released **v6.3.16** |
+| #515 | the process-solve worker could not unpickle its job on any Home Assistant install. A solve is shipped to the child by pickling a function, and pickle records it by qualified name; under Home Assistant that name begins `custom_components.`, a path the child's search path did not resolve, so every optimization on every v6.3.15 install failed, permanently and silently. Now an unloadable job is reported rather than killing the worker, and a worker fault falls back to an in-process solve | #511 | merged `98a7574`, released **v6.3.16** |
+| #517 | `tests/deployment_shape.py` runs the integration under an installation's real module name and directory layout — the gap #513 named as the reason no test caught #511: the suite imports the package under a different name and runs with a `tests/` directory no installation has | #513 | merged `6cd2c28`, **unstamped** (lands after v6.3.16) |
+| #519 | one living `docs/HANDOVER.md` replacing the dated handover series (`docs/handover-<date>.md`), with `tests/entities.py` refusing a second dated file from re-forming | #518 | merged `b6a21f1`, **unstamped** (lands after v6.3.16) |
+
+#510, #511, #513 and #518 are closed by the fixes above, not by wave work.
+
+**Every other open issue, with its disposition.** "Not mentioned" is not a
+disposition, so each open issue is scheduled, deferred with a reason, or
+refused with a reason — and the PR carrying it is named where one exists.
+
+**The completeness check covers three sets, not two.** Open issues and open
+pull requests are the obvious two, and checking only those is structurally
+blind to the largest set: **merged** pull requests, which by definition stop
+appearing in any "open" listing the moment they land. That blindness is not
+hypothetical — it hid #491 and #498 among others, #498 being the pull request
+that built `closures-autofix`, the job this repository makes load-bearing. **The
+count is deliberately not stated here**: the first attempt at it said "twenty",
+measured with `--limit 120`, and the re-derivation under the same rule gives a
+different answer again. Run the check rather than reading a number off this
+page. A **range in prose is not a disposition** either: `#470–#500` reads as
+complete and absorbs thirty-one numbers while naming eight. The check is
+therefore per-number over all three sets:
+
+```
+gh pr list --state merged --limit 300 --json number -q '.[].number' |
+  while read n; do [ "$n" -ge 375 ] || continue
+    grep -q "#$n\b" docs/plan-2026-09-open-issues.md ||
+      echo "MERGED PR #$n has no disposition"; done
+```
+
+and the same loop, without the `375` guard, over `--state open` and over
+`gh issue list --state open`. **Use a `--limit` that reaches past the oldest
+number you are checking** — a truncated listing under-reports silently, and a
+`--limit 120` run is what first reported this gap as twenty.
+
+**The scope boundary, stated so the check terminates — and what it does not
+claim.** This document is the plan of record for the #201 open-issues
+programme, created by **#375** (`8e99ad1`), and it accounts for every pull
+request merged **from #375 onward**. Run that check rather than reading its
+answer here: every number it names is a row this document owes, and the
+answer moves with every merge — which is why no answer is written down.
+Without the boundary the loop demands this file account for the entire
+repository history and can never come back clean, which is the failure mode
+that makes a check get quietly dropped rather than fixed.
+
+**The boundary is a limit on this document's scope. It is *not* a claim that
+the earlier work is recorded elsewhere, and an earlier draft of this paragraph
+said it was.** Measured against this file **as it stood on `origin/main` before
+this paragraph existed**: of the merged pull requests below #375 with no
+disposition here, **the great majority appear in none** of the three programme
+documents this file cites. No figure is given, for a second reason on top of the
+self-reference below: the check pages the listing with a `--limit`, which is a
+**sliding window**, so the oldest rows fall out as new work merges and any count
+decays by roughly one per merge. Two runs minutes apart disagree. Run it; do not
+read it off this page. Those documents reach only into the low hundreds and the double
+digits respectively, and `docs/audit-2026-08.md` carries no issue or
+pull-request reference at all — so this is not an artifact of citation style.
+
+**Why the baseline is named, and why two figures that used to be here are
+gone.** The check is a bare `grep -q "#$n\b"`, which cannot tell a disposition
+from an incidental mention. An earlier draft of this paragraph *cited the two
+highest-numbered references in those documents by number* — and that sentence
+put those tokens into this file, which handed both pull requests a
+"disposition" and moved them out of the miss set. The paragraph's own
+measurement of itself was destroyed by the act of recording it. So: measure
+against a fixed baseline, not the live file, and read every count the check
+produces as a **lower bound** on what is genuinely undispositioned.
+
+That gap is real, it predates this programme, and it is **#575**. Naming it is
+the point: a boundary that quietly reassigns unrecorded merges to a document
+that does not contain them is the same defect as the prose range it replaced —
+something that reads as complete while covering a fraction.
+
+| issue | disposition | carried by |
+|---|---|---|
+| **#504** ruler will not install (Python 3.13.1 < 3.13.2) | **scheduled — W5-G1, as a precondition of it.** The choice between raising the box, re-pinning, or CI-only is made *in* that PR, with its reason | W5-G1 |
+| **#505** #195 tranches miss nine below-bar modules | **scheduled — W5-G5 re-partitions before extending coverage.** `process_worker.py` at 0.0 % is a candidate to pull forward | W5-G5, inherited by G6/G7 |
+| **#509** diagnostics publish home latitude/longitude unredacted | **in flight** — coordinates coarsened to 1 dp rather than redacted, so a swapped lat/lon or wrong country still shows; `config.name` redacted. The "land it before #522" sequencing was **void**: #522's review measured that the lane never calls diagnostics and uploads no artifact | [#535](https://github.com/tvofi/heatpump_optimizer/pull/535) |
+| ~~**#514**~~ Python floor undeclared, 3.14 untested | **DONE** — closed by #520, merged `36b71dd` | [#520](https://github.com/tvofi/heatpump_optimizer/pull/520) |
+| **#516** config-flow options are ungrouped | **deferred to the UX programme, lane E.** Not blocked on HA version once #520 lands, but still blocked on the golden capture walking schemas one level deep — grouped fields would fall silently out of the fingerprint. That is the constraint to solve, not the HA floor | UX lane E |
+| ~~**#521**~~ no test runs the integration in a real HA install | **DONE** — closed by #522, merged `824fd84`. Residuals recorded, not swept: the lane reaches ~15 of the ~58 container-reachable escapes, and its incompleteness was silent → **#533** | [#522](https://github.com/tvofi/heatpump_optimizer/pull/522) |
+| **#523** `closures-autofix` reported success without repairing | **in flight, blocked once** — review measured a *residual* silent path: `any(rc != 0)` (a failed recording) is folded into the same quiet status, so one unrelated failure hides a real repair while the job exits 0. Being fixed | [#528](https://github.com/tvofi/heatpump_optimizer/pull/528) |
+| **#524** an unpicklable solve result is returned as the plan | **in flight** — and *worse than filed*: `_run_in_process` **returns** the `RuntimeError` rather than raising, so the chain publishes it as the plan, resets `_solve_failures` to 0 and deletes the repair notice. The bug erased its own evidence | [#540](https://github.com/tvofi/heatpump_optimizer/pull/540) |
+| **#525** two blocking calls in the event loop | **in flight** — the filed mechanism was **wrong**: `_shutdown_process_pool` is never reached from the loop, and `protect_loop` fires because it compares thread ids while `atexit` runs on the main thread. Also **three** loop-side `_lazy` imports, not two — `frontend` was missed | [#540](https://github.com/tvofi/heatpump_optimizer/pull/540) |
+| **#527** a full `derive_closures.sh` silently shrinks the node lanes | **scheduled — after #528 lands**, since the refusal message that tells you to run one is the same code path | follows #528 |
+
+| **#533** the nightly lane's incompleteness is silent | **scheduled — A3 first** (class 3, published state wrong or non-finite, is the largest reachable gap at 16 escapes), then A10, which would pin #509 directly | follow-up to #522 |
+| **#536** `tests/hastub` can diverge from Home Assistant | **scheduled — inventory first.** A green test can pin the stub instead of HA: the #509 fix was green while returning `None` on every real install, because upstream skips `None` before redacting and the stub did not | follow-up to #535 |
+| **#542** saving the learning options page **wipes `external_heat_entity`** | **scheduled as a hotfix, ahead of S11.** User-facing data loss on an ordinary action: `async_step_learning` cleans a key its own form never presents — the learning schema holds five booleans and one number and no entity field, so `cleaned.get(key)` is always falsy and the page always writes `None`, which `_save_or_menu` then merges over the real value set on the *building* page. Found by W4-G11 (S10) while covering #304 and **correctly filed rather than fixed** — a test-only stage may not touch production. Five unreachable statements ride along | its own fix PR |
+| **#559** B1, **#560** B2, **#561** B3, **#562** B4, **#563** B5 — UX lane B | **in flight.** B1 answers first because it decides B4–B7: whether HACS's in-app README view renders mermaid was never checked, and `hacs.json` sets `render_readme: true`. B5 needs B4 landed | lane B seat |
+| **#564** UX lane C, item C1 — four contrast fixes in one PR | **in flight.** 1.05:1, 1.089:1, 2.63:1 and 1.098:1, all invisible to the CI witness because it measures four *text* sites under a light theme only. One PR because all four claim drift over the same state list | lane C seat |
+| **#565** D2, **#566** D3 — UX lane D | **in flight.** D3 must land before D4 because the icon state keys must match its options — and `ENUM` **constrains what a sensor may publish**, so a missed state is a runtime error on a real install | lane D seat |
+| **#558** UX programme tracking — 34 items in five lanes | **scheduled, lanes B/C/D started 2026-09-07.** Carries every item, the three in-lane sequencing rules, and the collision table. **E1–E3 follow S11 (#223)**; **F1/F2 are the last work of the whole programme**, after Wave 5 and #412, because lane F is the only one adding lines to `coordinator.py` at zero headroom | #558, items under their own numbers |
+| **#550** the `apply_topology` set check pins the reverse direction against the module constant, not the schema | **scheduled — ~3 lines, after #548 lands.** Re-adding `slab_shunt` *plus an arbitrary junk key* to the schema passes all 2002 checks, while the check's own name claims it verifies exactly that. Probe the schema instead of reading the constant. Also records that `slab_shunt` was **re-tenanted, not eliminated** — `accepted − card_boxes` is `['slab_shunt']` at base and `['floor_loop']` at head, still one, disclosed and costed rather than missed | follows #548 |
+| ~~**#544**~~ every branch conflicts in the two claim files | **DONE — closed by #545, merged `4f6a8b1`.** Prevented, not repaired — a `claimnotes` merge driver unions the note comments and **refuses** a claim list both sides rewrote, since union reinstates a deleted claim past the `#495` guard. Five branches, ten conflicts, in one session | [#545](https://github.com/tvofi/heatpump_optimizer/pull/545) |
+| ~~**#546**~~ pressing **Tidy** made the setup page unsaveable | **DONE — closed by #548 (`137b6d5`), shipped in v6.3.17.** Released severity — `apply_topology` rejects `positions.outdoor`, which the card always emits. **Not drag-only**: the RCA ran the card's own `layoutArrange` and Tidy alone emits it on every configuration. **Shipped v3.16.0, 80 releases ago.** A stamp follows the merge | [#548](https://github.com/tvofi/heatpump_optimizer/pull/548) |
+| **#547** four config-flow pages have a stored-value arm that is executed but unpinned | **in flight — [#553](https://github.com/tvofi/heatpump_optimizer/pull/553).** The golden now seeds options and the arm went from **1-of-12 mutants killed to 11-of-12** (the twelfth is `learning`, dead code per #542, where a surviving mutant is correct). Mutating the arm on `building`, `hot_water`, `entities` or `comfort` leaves the whole scoped gate green, because `capture_config_flow()` seeds no options and only renders the *empty* arm. A registry dropping that arm re-creates #542's wipe on the page owning `CONF_EXTERNAL_HEAT_ENTITY` | folds into #195's W5-G5/G6, or its own PR |
+| **#539** `tools/audit` *generates* the forbidden `mkdir` gate lock | **scheduled, and ordered** — `prepare_baseline.sh:53` emits it into the text new auditors read, so **fix the generator first**; correcting the four prose sites while the generator stands means they come back. One section recounts the 113-minute incident that motivated #404 and then prescribes its cause | follows #534 |
+| **#590** upstream has drifted from the declared floor | **filed by the #536 seat, unclaimed.** Home Assistant changed `NumberSelector` and `add_suggested_values_to_schema` since the version `hacs.json` declares. **No production reach today — checked rather than assumed** — and the only thing preventing it is a `_number` convention nothing enforces | own PR |
+| **#577** nine measured divergences between `tests/hastub` and Home Assistant | **filed by the #536 seat, in the pass that built the mechanism.** Each measured against Home Assistant **2025.2.0** — the floor `hacs.json` declares — and recorded in `tests/ha_contract.py` as a `DIVERGENT` entry carrying an `expect="real"` contract: a statement of upstream behaviour that **must fail against the stub**, so each is pinned in both directions | #578 |
+| **#584** nightly A3: the published-state sweep | **filed by #533's seat, which asked for it by name.** The largest single unimplemented gap in the container lane — **15 past escapes, more than the four already-implemented assertions cover between them** | own PR |
+| **#585** nightly A10: the diagnostics privacy probe | **filed by #533's seat**, second priority after A3 because it pins an **open, still-shipping** defect directly: no token and no latitude/longitude beyond two decimals anywhere in the diagnostics payload | own PR |
+| **#587** nightly A5/A8/A9: options round-trip, service registration, reload | **filed by #533's seat.** One issue, three tranches, because all three need what the lane lacks — a **second** config entry and a reload rather than the single boot it does today. Split if a seat takes one alone | own PR |
+| **#588** the loop detector cannot tell "no blocking call" from "no log" | **filed by #533's seat as the residual its own fix left**, stated rather than left to be rediscovered. #533's fix made the pin a two-directional ratchet; this is the case the ratchet still cannot see | own PR |
+| **#580** a check earns its place once and is never asked again | **filed this session; under refutation.** Eight instances in one day of one class — an absent signal reading as a passing one. Three refutation seats and a judge are deciding whether it stays, stays modified, or closes | under review |
+| **#581** `brief_lint` refuses a literal metric but not a literal anything-else | **filed this session; under refutation.** Ten stale figures in one day. The issue **carries its own falsification test**: if no rule can separate an observation from a definition, it closes rather than being built | under review |
+| **#582** lanes B–F have no roster, so propagation has no destination | **filed this session; under refutation.** Two seats tried to comply with `finding-propagation.mdc` and had nowhere in-tree to write | under review |
+| **#583** stopping a seat mid-mutation leaves a production file broken | **filed this session; under refutation.** Measured once, harmed nothing — the resolver's dirty-tree guard held | under review |
+| **#574** two residues of #572 | **filed this session, unclaimed.** `fix-review.md` step 13 exempts a claim-file conflict from blocking, but omits the one case where such a conflict *is* meaningful — `merge_claim_file` deliberately refuses when both sides rewrote the bare claim list, which is the driver's entire safety argument. And `tests/features.py:21373` still says "all 22 metrics" where the derived count is 24. Part 1 is policy | own PR |
+| **#575** merged PRs below #375 have no disposition anywhere | **filed this session, unclaimed.** #531's scope boundary originally asserted that pre-#375 work "is recorded there, not here" in three cited documents. It is not: the great majority appear in none of them, two of the three stop far short of #375, and `audit-2026-08.md` carries no pull-request reference at all. **No count is given here, and that is deliberate — twice over.** First, this file is inside the set the check scans, so citing a pull-request number as *evidence* hands that number a "disposition" and moves it out of the miss set; an earlier draft of this row did exactly that with two of them. Second, the check pages the listing with a `--limit`, which is a **sliding window**: the oldest rows fall out as new merges land, so any figure decays by roughly one per merge and is wrong by the time it is read. Run the check against the baseline the boundary paragraph names and read the result as a lower bound. Whether these need a disposition at all is the owner's call | own PR |
+| **#570** GitHub cannot run the `claimnotes` merge driver | **CLOSED by [#572](https://github.com/tvofi/heatpump_optimizer/pull/572), merged `059881e`.** A merge driver's implementation is a `git config` entry and git never clones config, so GitHub — which computes `mergeStateStatus` — falls back to a plain text merge and calls every open PR `DIRTY` the moment `main` touches a claim file. GitHub then will not build a merge commit, so the `pull_request` workflows **never queue**: such a PR does not go red, it cannot run. Measured on #569 (CodeQL alone; `fast`, `closures`, `browser`, `briefs` absent). The fix is a subtraction — nothing requires a branch to write a note into a claim file, so a branch that claims nothing does not touch them | policy PR |
+| **#541** verifiable proof that a PR followed the *process* | **split three ways, not deferred wholesale** (disposition: comment 5562208736). **Mechanism 3** (GitHub as witness — 14 obligations, one API call, additive) **now**. **Mechanism 1** (replay the branch) at a **wave boundary**, since its value is concentrated in the fixer PRs of Wave 4 S7/S8/S12 and Wave 5 and a gate change is only cheap when nothing is in flight. **Mechanisms 2, 4, 5** as a new programme after #201, whose **first task is an independent re-derivation of the taxonomy** — 94 rows are one agent's judgement over a heuristic split, and if the class distribution moves the ranking moves with it | own programme |
+
+Policy and contract PRs this session opened, which close no issue and belong to
+no wave:
+
+- [#530](https://github.com/tvofi/heatpump_optimizer/pull/530) — **merged `f4ed26c`.** Tracking covers every PR and every open issue; and `finding-propagation.mdc`: a finding that changes how a later stage must work goes into that stage's own brief before the producing PR merges. Enforced at `fix-review.md`, verdict `blocked: finding not carried to <stage>`.
+- [#526](https://github.com/tvofi/heatpump_optimizer/pull/526) — root-cause doctrine. Blocked once for having **no enforcement point**; now trigger *red on a check a cheaper detector could have run*, checked at `fix-review.md` step 11, verdict `blocked: root-cause trigger unanswered for <check>`.
+- [#532](https://github.com/tvofi/heatpump_optimizer/pull/532) — the handoff to review freezes the branch. Blocked once for naming the **coordinator** where the tree means the **orchestrator** (`coordinator` is the production god-class Wave 4 is decomposing); verdict `blocked: head moved under review, measured <sha>`.
+- [#534](https://github.com/tvofi/heatpump_optimizer/pull/534) — three permanent documents that contradicted the code: `fixer.md` step 5 mandated the `mkdir` gate lock two other permanent files forbid, and prescribed an unconditional local gate. Blocked once on a null control that reproduced at **neither** head, with the false form committed to a claim file. Cleared; `merge`.
+- [#543](https://github.com/tvofi/heatpump_optimizer/pull/543) — **W4-G11 / S10, `Closes #304`.** `config_flow.py` 96.13 % → 99.26 %, all 21 named statements individually pinned. Blocked twice: a forward-carry that told S11 four pages were inert, and a body whose "Does not close #195" **parsed as a closing keyword**.
+- [#545](https://github.com/tvofi/heatpump_optimizer/pull/545) — the `claimnotes` merge driver (#544). `merge`. The seat was asked for a third autofix job and **refused it with arithmetic**, which is the right outcome.
+- [#548](https://github.com/tvofi/heatpump_optimizer/pull/548) — **`Closes #546`**, the released Tidy defect. In review; a stamp follows.
+- [#549](https://github.com/tvofi/heatpump_optimizer/pull/549) — the policy text split verbatim out of #545, **awaiting the owner's approval**. Split so a working fix does not wait behind a 46-line docs diff.
+- [#538](https://github.com/tvofi/heatpump_optimizer/pull/538) — **merged `17dc30a`.** `finding-propagation.mdc` routed cross-cutting findings to a destination `git grep` cannot find, *and made reaching it a merge blocker*. It also **deleted the clause deferring the in-tree carry to the record PR**, which retroactively bound #540 — a verdict correct when written stopped being correct without the code changing.
+- [#552](https://github.com/tvofi/heatpump_optimizer/pull/552) — **merged, closed #539.** `tools/audit/prepare_baseline.sh` was *generating* the forbidden `mkdir` gate lock into every new auditor's text; the generator is fixed first, because correcting the prose alone leaves it re-emitting. Wider than filed: the same instruction also sat in agent prompt strings under `.claude/workflows/`.
+- [#554](https://github.com/tvofi/heatpump_optimizer/pull/554) — `Closes #550`. Probes the registered schema instead of the module constant. Reviewed `merge`: fails on the junk-key reproduction that passed all 2002 shipped checks, and passes on **both** plausible fixes where the shipped check fails 4 of 7, because both directions became bounds rather than an equality.
+- [#556](https://github.com/tvofi/heatpump_optimizer/pull/556) — the README section on AI use, its failure mode and what the gate costs a human contributor. Reviewed `merge`; contains no digits, by regex.
+- [#557](https://github.com/tvofi/heatpump_optimizer/pull/557) — **W4-G10 / S9**, the first split of #224. Does not close it; five implementable pieces plus a design brief remain.
+- [#375](https://github.com/tvofi/heatpump_optimizer/pull/375) — **merged `8e99ad1`**, this document and the workflows that run it. The programme's own first commit, and the boundary the completeness check above uses.
+- [#379](https://github.com/tvofi/heatpump_optimizer/pull/379) / [#382](https://github.com/tvofi/heatpump_optimizer/pull/382) — **merged `db13fba` / `f7b5881`**, triage B1 and B2. B1 found the decomposition order **inverted** and its first stage overscoped, which is why Wave 4 runs S0→S13 in the order it does. B2 established the card residual is vertical and the coverage gap 21 statements.
+- [#381](https://github.com/tvofi/heatpump_optimizer/pull/381) — **merged `a2c4982`**, a blocked tag push is *reported*, not raised over an already-public commit. One of `stamp.py`'s refusals.
+- [#389](https://github.com/tvofi/heatpump_optimizer/pull/389) / [#390](https://github.com/tvofi/heatpump_optimizer/pull/390) — **merged `c06932a` / `81216e6`**. Everything a cold session needs is on `origin`, and the recorded resume state can be *executed* rather than only read. Together with #391–#393 these are why `resume` fields are machine-usable.
+- [#467](https://github.com/tvofi/heatpump_optimizer/pull/467) — **merged `2ba8367`**, production: the heat-pump switch turns off on DHW-only idle.
+- [#490](https://github.com/tvofi/heatpump_optimizer/pull/490) — **merged `62799e4`**, display-only DHW band: live probe σ(0) and an in-window lo floor.
+- [#493](https://github.com/tvofi/heatpump_optimizer/pull/493) / [#494](https://github.com/tvofi/heatpump_optimizer/pull/494) — **merged `ae97a65` / `a26bb76`**, the Wave 4 and Wave 5 rosters prepared with no seat started, and the inherited DHW card claims emptied behind them.
+- [#464](https://github.com/tvofi/heatpump_optimizer/pull/464) — **merged `7a233f7`**, seat 3L-G8/G9 wood furnace economics (#463). Seat work, not a record.
+- [#466](https://github.com/tvofi/heatpump_optimizer/pull/466) — **merged `186be0c`**, seat 3L-G10 plan-page away toggle (#465). Seat work, not a record.
+- [#498](https://github.com/tvofi/heatpump_optimizer/pull/498) — **merged `5234024`**, `closures-autofix`: the CI job that re-records `UNDER-SCOPED` closures from the failed job's own recordings. `CLAUDE.md` makes it load-bearing — *do not open a second PR, do not Darwin `--single`, wait for the bot commit.* Its successor #528 had a row; the job that introduced it did not.
+- **The doctrine PRs that predate the wave rows** — [#391](https://github.com/tvofi/heatpump_optimizer/pull/391) (a cold session is oriented by the repository, not by a programme — the ancestor of this `CLAUDE.md`), [#392](https://github.com/tvofi/heatpump_optimizer/pull/392) (the handover says where the session *stopped*), [#393](https://github.com/tvofi/heatpump_optimizer/pull/393) (the wave-resume machinery). All merged. They are why a resuming session needs no briefing.
+- **The record PRs — all of them, by rule.** A record PR carries one group's Delivery-status and roster update and closes nothing; its content is the rows above rather than a row of its own. Naming three of them and calling the enumeration complete is how #491 and #498 went 20 merges without a mention. The complete set, so the rule can be checked rather than trusted: waves 1–2 — [#422](https://github.com/tvofi/heatpump_optimizer/pull/422), [#423](https://github.com/tvofi/heatpump_optimizer/pull/423), [#425](https://github.com/tvofi/heatpump_optimizer/pull/425), [#429](https://github.com/tvofi/heatpump_optimizer/pull/429), [#430](https://github.com/tvofi/heatpump_optimizer/pull/430); wave 3L — [#471](https://github.com/tvofi/heatpump_optimizer/pull/471), [#473](https://github.com/tvofi/heatpump_optimizer/pull/473), [#476](https://github.com/tvofi/heatpump_optimizer/pull/476), [#478](https://github.com/tvofi/heatpump_optimizer/pull/478), [#482](https://github.com/tvofi/heatpump_optimizer/pull/482), [#484](https://github.com/tvofi/heatpump_optimizer/pull/484), [#486](https://github.com/tvofi/heatpump_optimizer/pull/486), [#488](https://github.com/tvofi/heatpump_optimizer/pull/488), [#491](https://github.com/tvofi/heatpump_optimizer/pull/491); wave 3L close-out — [#496](https://github.com/tvofi/heatpump_optimizer/pull/496), [#499](https://github.com/tvofi/heatpump_optimizer/pull/499); wave 1a — [#380](https://github.com/tvofi/heatpump_optimizer/pull/380); wave 4 — [#501](https://github.com/tvofi/heatpump_optimizer/pull/501), [#503](https://github.com/tvofi/heatpump_optimizer/pull/503), [#507](https://github.com/tvofi/heatpump_optimizer/pull/507).
+- [#567](https://github.com/tvofi/heatpump_optimizer/pull/567) — **UX lane B, items B1–B5** (#559–#563). Establishes by execution that **mermaid does not render in HACS's in-app README view**: the chain is `hacs/integration` → `<ha-markdown>` with no `allow-svg` → `home-assistant/frontend`'s plain `marked` + `js-xss` worker, and this README run through HACS's own pinned versions yields zero `<svg>`. The entity count re-derives to **69, not the docketed 66** — the old pin compared the README against the literals it supplied, so it never saw `wood_cheaper` make a fifth binary sensor. In review.
+- [#568](https://github.com/tvofi/heatpump_optimizer/pull/568) — **teaches the config-flow golden's fingerprint to recurse into `section()`**, the hard precondition for #223's registry. Corrects #516's body: `section` is in `homeassistant/data_entry_flow.py`, not `helpers/selector.py`, and has existed since 2024.7.0. The sharp finding: grouping moves the fixture **once**, then goes silent — field removal, addition and selector-bound rewrites all left it byte-identical afterwards. **33 one-level schema walks remain in the assertion layer** (`entities.py` 28, `config_flow_steps.py` 4, `features.py` 1) and fail the same way. In review.
+- [#569](https://github.com/tvofi/heatpump_optimizer/pull/569) — **UX lane C, item C1** (#564): the chart's four contrast defects, measured in both stock Home Assistant themes with WCAG relative luminance and, for the two colours that share lightness, CIE Lab ΔE76 through a deuteranope model — because a contrast ratio cannot see that defect at all. In review.
+- [#571](https://github.com/tvofi/heatpump_optimizer/pull/571) — **UX lane D, items D2/D3** (#565, #566): the English narrative priced in the instance currency rather than hardcoded Swedish, and `SensorDeviceClass.ENUM` with state translations for the string-state sensors. In review.
+- [#572](https://github.com/tvofi/heatpump_optimizer/pull/572) — **merged `059881e`, closed #570.** Owner-approved and reviewed. GitHub cannot run the `claimnotes` driver, so a claim-file `DIRTY` blocks CI from queuing at all; a branch that claims nothing does not touch those files; the ratchet metric count is derived rather than stated (**24**, not the 22 the file had said); and `fix-review.md` gains step 13. Its own branch touched neither claim file, which is the rule it proposes. Residues in #574.
+- [#573](https://github.com/tvofi/heatpump_optimizer/pull/573) — **#195 coverage tranche 1**, `climate.py` / `open_meteo.py` / `frontend.py` to 100 % statement coverage. Leaves #195 open; the brief's figures were 204 commits stale and were re-derived rather than carried. **Merged `9c1de0c`.**
+- [#540](https://github.com/tvofi/heatpump_optimizer/pull/540) — **merged `9da726a`, closed #524 and #525.** Home Assistant's loop detector fired twice on every install, at setup and at worker shutdown, both warnings telling the user to file against this repository; invisible to every lane in `tests/` because the stub has no loop protection. Reviewed at the fourth attempt — the first three blocked on process grounds and never reached the code, because the branch was `DIRTY` and its gate lanes had therefore never run (#570).
+- [#576](https://github.com/tvofi/heatpump_optimizer/pull/576) — **UX lane B, items B6–B11**: eight figures, none drawn by hand — B6/B7 from the shipped card, B9 reusing `setup_qa_render.mjs`, B8/B11 calling production. Establishes that **`docs/*.md` is not HACS-rendered at all**, so the image constraints are README-only. **Collides with #567**, and the shape is worse than "git will stop". It does stop — `merge-tree` exits 1 on `tests/entities.py` — **but the conflict hunk does not contain the colliding code.** #567's `_readme_table_rows` loop and `README.md` both auto-merge; the conflict is between two unrelated adjacent additions, so a resolver is never shown what breaks. Resolved the natural way (keep both sides), the check then fails: *table has 63 row(s), there are 56* — 63 = 56 + 8 tables − 1 header. **The merge instruction is explicit: remove `("sensors", "sensor", "Sensors")` from #567's row-count loop and keep this PR's name-set check.** Reviewed `merge`; **merged `5d73c38`**.
+- [#578](https://github.com/tvofi/heatpump_optimizer/pull/578) — **#536, the hastub fidelity mechanism.** The highest blast radius in flight: every lane runs with `PYTHONPATH=tests/hastub`. In review.
+- [#579](https://github.com/tvofi/heatpump_optimizer/pull/579) — **`Closes #542`**, the options-page data-loss bug. The defect class was derived by AST rather than taken from the issue body: nine option pages clean an entity key, eight clean only keys they present, and `learning` was **the only one** cleaning a key its schema never shows. All six named statements fixed. In review.
+- [#586](https://github.com/tvofi/heatpump_optimizer/pull/586) — **W4-G10 / S9 continued**: `optimize`'s comfort envelope and power ceiling leave. In review.
+- [#589](https://github.com/tvofi/heatpump_optimizer/pull/589) — opened after this record's last sweep; disposition owed in the next record.
+- [#591](https://github.com/tvofi/heatpump_optimizer/pull/591) — **#533's silent nightly pin.** At merge base a return of *either* #525 offender **passed** the lane — so a regression of the two bugs #540 fixed would have gone green in the only place that runs real Home Assistant. `Checks.check` blanked the detail on a pass, which is why nobody saw it: a stale pin *is* a pass. Also moves `tests/nightly_ha.py` off the INERT list, so the lane is gate-visible for the first time. In review.
+- [#592](https://github.com/tvofi/heatpump_optimizer/pull/592) — **policy, owner-approved**: `fixer.md` step 3's null control extends from "cost, gain or time" to **every quantified claim**. Written because twelve unmeasured claims were made in one day and **none was a cost, gain or time claim**, so the existing clause had no purchase on any of them. In review.
+- [#593](https://github.com/tvofi/heatpump_optimizer/pull/593) — **policy, awaiting owner approval**: `tools/audit/briefs/orchestrator.md` and `tools/audit/preflight.sh`, the latter pinned from `tests/entities.py` so the pre-flight cannot rot unnoticed. Leaves every issue open. In review.
+- [#594](https://github.com/tvofi/heatpump_optimizer/pull/594) — **merged `1cea960`.** Indexes every policy document in `CLAUDE.md` by who it binds. Merged into this branch before this record's own fix commit, which is how it reached the miss set: a record PR can absorb a merge and not record it, the failure mode #575 names.
+- [#595](https://github.com/tvofi/heatpump_optimizer/pull/595) — **policy, awaiting owner approval**: the full-derive prohibition, fix→verify→file, and the symbol-citation remedy — three of the five rules the mining seat recommended promoting out of the out-of-tree seat block; the other two are in #592. Leaves every issue open. In review.
+- [#596](https://github.com/tvofi/heatpump_optimizer/pull/596) — **Wave 5 / W5-G1, #303 tranche 1**: the pinned stub-free typing ruler and its ratchet, landing the instrument before any annotation. Annotates nothing; leaves #303 open. In review.
+- [#597](https://github.com/tvofi/heatpump_optimizer/pull/597) — **W4-G12 / Plan S11, #223**: two tables replace the options flow's three hand-listed field rosters, and every page becomes a query over them. The group whose brief this record unions on merge. **Merged `0323c5b`.**
+- [#598](https://github.com/tvofi/heatpump_optimizer/pull/598) — **policy, owner-approved**: `CLAUDE.md` gains a rule against filler prose, scoped to the development record rather than the product. Leaves every issue open. In review.
+- [#599](https://github.com/tvofi/heatpump_optimizer/pull/599) — **UX lane D, items D4-D6**: icons follow state, services are translated, and the schedule sentence carries a number. Part of #558, which stays open at 34 items across five lanes. In review.
+- [#600](https://github.com/tvofi/heatpump_optimizer/pull/600) — **UX lane C, items C2-C3**: chip toggles, colliding axis labels, the band drawn as an envelope, savings typography. Two of lane C's nine; #558 stays open. In review.
+- [#531](https://github.com/tvofi/heatpump_optimizer/pull/531) — this record. Blocked once: it claimed nine roster briefs had received a carried finding when only two had. The script used `str.replace`, which does not raise on no match, and printed success either way — the same shape as #523. The fix asserts the string changed and re-reads the file from disk.
+
+**A pattern worth naming**, since most of these were blocked for it: every one of those blocks was a document asserting something that was not true of the tree — a stale head, a count, an actor, a carry that did not land. None was a disagreement about the change itself.
+
+### The UX programme — 34 items, five lanes, tracking #558
+
+Thirty-four graphics and interface changes the owner selected from a
+forty-two item survey. **Tracking issue #558** carries every item; the
+*Optimizer UX Docket* artifact is the source of record. Three items were
+dropped and two reshaped so they stop being breaking changes — both recorded
+there with reasons.
+
+**The lanes run concurrently with the waves, and that is measured rather than
+assumed.** `docs/` is an INERT prefix, so lane B selects zero test scripts.
+`tests/structure.py` walks `*.py` only, so lane C moves no ratchet metric at
+all — its only cost is a golden drift claim. Lane D is Python outside the
+coordinator, so repo-wide budgets bind but `coordinator_loc` does not.
+
+**Independence by budget is not independence by file.** The docket's original
+claim was measured against the ratchet, which was true and incomplete: two
+lanes share files with remaining wave stages.
+
+| lane | items | collides with | on | sequence |
+|---|---|---|---|---|
+| **B** docs | 12 | — | — | **now**, concurrent |
+| **C** card | 9 | — | — | **now**, concurrent |
+| **D** ha | 6 | W5-G2 | `sensor.py` | **now** — Wave 5 has not started, so D lands first and W5-G2 re-measures |
+| **E** flow | 4 | **W4 S11 (#223)**, W5-G3 | `config_flow.py` | **E1–E3 after S11**; **E4 (#516) now**, because its blocker is in `golden.py` |
+| **F** post-W4 | 2 | S12/S13, W5-G4, W5-G7 | `coordinator.py` | **last work of the programme**, after #412 |
+
+**Why E1–E3 wait.** S11 rewrites `config_flow.py` as a settings registry.
+Landing the token masking, the finish-setup-now step and the `setup_overview`
+move first means S11 restructures work that has just landed; landing them
+after makes each one row in the registry instead of three separate edits.
+
+**Why F is last.** It is the only lane that adds lines to `coordinator.py`,
+where `coordinator_loc` and `max_class_loc` sit at zero headroom — three added
+lines would fail two budgets and eat the headroom the seam stages need. It
+therefore follows Wave 4, Wave 5 **and** #412, which makes it the final work
+of the whole programme rather than merely late.
+
+**How HACS eats an image, measured — this binds every figure lane B ships.**
+`hacs.json` sets `render_readme: true`, and HACS rewrites image sources before
+`<ha-markdown>` sees them. Three constraints, each established by running HACS's
+own pipeline rather than by reading its source:
+
+1. **A relative `src` is blanked** unless HACS rewrites it to an absolute URL.
+2. **The rewriter's regex has no `s` flag**, so an image whose alt text wraps
+   across lines is skipped — and then blanked. This caught the lane's own hero,
+   which was written wrapped and would have shipped broken in the one view B4
+   exists for.
+3. **The rewriter's lookahead `(?!.*?://)` scans the whole line, not the link.**
+   So a relative image that *shares a line with any absolute URL* is never
+   rewritten, and vanishes. The construct that matters is exactly the one a
+   figure lane reaches for — a figure linked to a larger version:
+
+   ```markdown
+   [![alt](docs/img/fig.svg)](https://example.com/full.svg)
+   ```
+
+   This is the same mechanism as the `(LICENSE)` badge defect, whose target has
+   no extension and which HACS therefore rewrites into a broken link. Rule 3 is
+   **not covered by the pin B1 landed**: all three such constructs pass it.
+
+Establish separately whether `docs/*.md` is subject to any of this. HACS renders
+the README; `docs/` may reach the reader only through GitHub, and a constraint
+applied where it does not hold costs quality for nothing.
+
+**Three sequencing rules inside the lanes**, each of which costs a red main or
+a wasted PR if ignored: **C4** (the contrast witness) runs **last** in its
+lane, because extended today it fails immediately on four measured ratios;
+**C1 is one pull request, not four**, since the four colour fixes claim drift
+over the same state list; and **B5 needs B4 landed**, or the README opens with
+nothing where the flowchart used to be.
+
+**#516 (E4)**'s original blocker is discharged — #520 raised the Home
+Assistant floor to 2025.2.0, where `section()` exists. Its real blocker
+survives and is sharper: `golden.py`'s `fingerprint` walks schemas one level
+deep, so grouped fields would fall **silently** out of the fingerprint and a
+byte-identical golden would prove nothing. That is the defect class #553 fixed
+for the stored-value arm, and the capture work is in flight.
 
 ### Wave 1b, half I delivered 2026-09-04
 
-Twelve PRs merged in sequence, `main` green after each, ending at `841fe0f`: #383 (W1-G1, #369 #370), #385 (W1-G10, #247–#252), #396 (truth-up), #384 (W1-G4, #373), #386 (W1-G5, #334), #397 (W1-G3, #372 #357), #399 (the #387 coverage-floor backstop), #402 (W1-G11, #246 #251 #395), #407 (operational docs), #409 (the ratchet-raise policy), #410 (the claim priority), #406 (W1-G2, #350 #374). **Released**: `v6.3.12` is tagged at `84a27b6f21690edcd340c6d74ff303c8e0774180`, now `origin/main`.
+Twelve PRs merged in sequence, `main` green after each, ending at `841fe0f`: #383 (W1-G1, #369 #370), #385 (W1-G10, #247 #248 #249 #250 #251 #252), #396 (truth-up), #384 (W1-G4, #373), #386 (W1-G5, #334), #397 (W1-G3, #372 #357), #399 (the #387 coverage-floor backstop), #402 (W1-G11, #246 #251 #395), #407 (operational docs), #409 (the ratchet-raise policy), #410 (the claim priority), #406 (W1-G2, #350 #374). **Released**: `v6.3.12` is tagged at `84a27b6f21690edcd340c6d74ff303c8e0774180`, now `origin/main`.
 
 Half II (`.claude/workflows/wave-1b-groups.json`) started 2026-09-04 and completed 2026-09-05. **Released**: `v6.3.13` tagged at `f94ae13a75ed58ab53b70b5dbb13786c1c081a4c`, 2026-09-05. Eight fixer groups merged in sequence, `main` green after each; record PR #433 at `3bcea26`, inherited-card-claims fix `7044a27`, then stamp. Merge SHAs in the roster's `resume.merge_sha` fields. Record/tooling since v6.3.12: #414/#398, #415, #417, #418, #416/#411 (Wave 2 prerequisite), #420 (stress closure 64→22), #426 (W2-G2 citation re-anchor), #413 (brief corrections, W1-G16 added).
 
@@ -449,62 +705,8 @@ The per-group briefs are committed too, not only the wave tables above:
 `web-fix-wave.js` consumes them, cut from the same fork. They are worth reading
 before re-deriving anything, because several exist only to stop a fixer redoing
 work a judge already refuted — W1-G13 names the measured fix for #258 and the
-harness that must not be used to check it. Wave 3L is `.claude/workflows/wave-3l-groups.json`. Wave 4 is `.claude/workflows/wave-4-groups.json` (W4-G1–G5 done; next W4-G6). Wave 5 roster is prepared at `.claude/workflows/wave-5-groups.json` (seats not started).
-
-## The UX programme (#558) — what lane B's figure items measured
-
-Carried here because lanes B–F have no roster JSON, so a later figure seat has
-no brief of its own to read. Every figure below re-measures at its own merge
-base; the numbers are snapshots.
-
-**`docs/*.md` is not rendered by HACS at all, so B1's three constraints are
-README-only.** HACS's `async_get_info_file_contents` builds its candidate list
-from one stem and returns the first match in the repository's root tree —
-`README.md`, `readme.md`, `readme.MD`, `README.MD`, `README`, `readme`. A path
-under `docs/` matches none of them, and nothing else in the panel fetches a
-second file, so `docs/` reaches a reader only through GitHub. Relative image
-paths, and alt text on more than one line, are therefore free in `docs/` and
-still forbidden in `README.md`. Control, executed against the pipeline
-(`marked@15.0.4` + `xss@1.0.15`) on the branch that added the figures: a
-single-line markdown image is rewritten to `raw.githubusercontent.com` and
-survives, while a wrapped alt and an HTML relative `src` both come out
-`<img src>` with the attribute empty. **Do not spend quality on the README
-constraints in a `docs/` figure** — but keep alt text on one line anyway, which
-costs nothing and survives the text being moved into the README later.
-
-**A card figure that needs the house's two zone dashes must ask for a two-zone
-payload.** A one-zone house publishes `upper` and `lower` as step-by-step copies
-of `room`, and the card drops a duplicate extra rather than labelling it — so
-the dashes cannot be rendered at all from the default payload, and no amount of
-configuration in the figure generator changes that. `tests/plan_view.py` takes
-`HPO_PLAN_TWO_ZONE=1` for this; its default is off, so the gate's payload is
-unchanged. Control: `docs/img/make_card_figures.mjs` exits non-zero when the
-two-zone render carries no dashed `house_temp` path, which is what a payload
-silently reverting to one zone would produce.
-
-**Where a figure's caption is a claim, the generator checks it.** The
-demand-window figure's caption says the tank is held above the minimum inside a
-frame; `docs/img/make_model_figures.py` refuses to write the figure if the plan
-it read dips below it, using `dhw_schedule.hour_in_windows` to decide what
-"inside" means. The measured values are printed beside the curve rather than
-left to the reader's eye, because the crossing sits within a few pixels of a
-frame edge. A figure whose caption cannot fail is a drawing, not evidence.
-
-**Figure generators live in `docs/img/`, beside their output.** `docs/` is on
-`tests/closure.py`'s `INERT` list, so a generator there needs no closure entry
-and editing one selects no gate script. Under `tools/` a generator is an orphan
-until `closure.py` names it, and `closure.py` is a `GATE_FILE`: classifying it
-would force `MODE: FULL` on every documentation branch that touched the list.
-
-**Still unfixed, and outside every lane item so far:** the `[![License: MIT]…](LICENSE)`
-badge. `markdownWithRepositoryContext` rewrites a link target with no `.md`
-extension against `raw.githubusercontent.com`, and the badge comes out of the
-HACS pipeline as
-`src="https://raw.githubusercontent.com/tvofi/heatpump_optimizer/6.3.17/https://img.shields.io/badge/License-MIT-green.svg"`
-— so the badge image itself does not load, not merely its link. Reproduced on
-2026-09-07 by rendering `README.md` through the pipeline. It needs a lane-B
-item; it is not one today.
-
-**Delivery-status row.** PR #567 (B1–B5) adds the `| UX |` row to the table
-above and its own section; this PR carries B6–B11 and deliberately does not add
-a second row. Whichever merges second should make the one row name both.
+harness that must not be used to check it. Wave 3L is `.claude/workflows/wave-3l-groups.json`.
+Wave 4 is `.claude/workflows/wave-4-groups.json` and Wave 5 is
+`.claude/workflows/wave-5-groups.json`. Each group's `resume.stage` says where that
+group stands and carries the merge SHA when it has landed; read that field rather
+than a progress note here, which is stale by the next merge.

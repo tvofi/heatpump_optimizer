@@ -189,6 +189,7 @@ async def async_setup_entry(
         LastOptimizationSensor(coordinator, entry),
         HeatPumpActionSensor(coordinator, entry),
         ScheduleSensor(coordinator, entry),
+        ScheduleStepsSensor(coordinator, entry),
         # Two-zone sensors
         UpperFloorTempSensor(coordinator, entry),
         LowerFloorTempSensor(coordinator, entry),
@@ -840,8 +841,24 @@ class HeatPumpActionSensor(HeatPumpOptimizerSensorBase):
 
 
 class ScheduleSensor(HeatPumpOptimizerSensorBase):
-    # The raw solve, step by step; the plan sensors are the product view of
-    # the same answer and stay primary (#179).
+    """The raw solve, step by step. **Deprecated**; use
+    ``optimization_schedule_steps`` (#558 D6).
+
+    Its state is an English sentence, so it cannot be translated, cannot be
+    read as a number, and says "no schedule" both when no solve has run and
+    when one produced nothing. ``ScheduleStepsSensor`` publishes the count
+    and separates those two.
+
+    Deprecated means documented, not changed: the state, the attributes and
+    the entity all stay exactly as shipped, because an automation may be
+    comparing against them. Nothing here raises a repair issue either -- the
+    entity is enabled on every install, so that would warn every user about
+    a sensor that still works, which is the kind of notice this programme is
+    removing rather than adding.
+    """
+
+    # The plan sensors are the product view of the same answer and stay
+    # primary (#179).
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     # The schedule is re-published every update and superseded history is of
     # no interest; recording it would write kilobytes per cycle, the same
@@ -865,6 +882,34 @@ class ScheduleSensor(HeatPumpOptimizerSensorBase):
                 "schedule": self.coordinator.data.get("schedule", []),
             }
         return {}
+
+
+class ScheduleStepsSensor(HeatPumpOptimizerSensorBase):
+    """How many steps the current schedule has, as a number (#558 D6).
+
+    The numeric half of ``ScheduleSensor``, added beside it rather than
+    replacing its state. ``None`` before the first solve and ``0`` for a
+    solve that produced nothing -- a distinction the sentence collapses into
+    one string.
+
+    No state class and no unit. The count is the planning horizon, which
+    D8-03 measured as constant across 170 of 170 cycles, so long-term
+    statistics would write one identical row an hour forever. What was
+    missing was an integer a template can read, not a history.
+    """
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator, entry):
+        super().__init__(
+            coordinator, entry, "schedule_steps", "optimization_schedule_steps"
+        )
+
+    @property
+    def native_value(self) -> int | None:
+        if self.coordinator.data is None:
+            return None
+        return len(self.coordinator.data.get("schedule") or [])
 
 
 # ---------------------------------------------------------------------------
