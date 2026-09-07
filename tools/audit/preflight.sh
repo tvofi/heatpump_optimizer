@@ -2,7 +2,7 @@
 # Pre-flight for ANYTHING the orchestrator publishes: a merge body, an issue
 # body, an issue comment, a dispatch brief, a roster edit.
 #
-# WHY A SCRIPT AND NOT A RESOLUTION. On 2026-09-07 the orchestrator made twelve
+# WHY A SCRIPT AND NOT A RESOLUTION. On 2026-09-07 the orchestrator made a run of
 # unmeasured claims, every one caught by a review seat and none by itself, while
 # actively writing the policy against them. Intentions did not bind. The one
 # mechanical check built that day (closing keywords) caught a real defect on the

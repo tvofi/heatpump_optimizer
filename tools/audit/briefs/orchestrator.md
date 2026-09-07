@@ -9,7 +9,7 @@ existed you had none.
 The gap was structural, not attitudinal. **Your pull requests are reviewed. Your
 process is not.** Most of what you produce never meets a reviewer: merge-commit
 messages, issue bodies and comments, dispatch briefs, roster edits, and what you
-tell the owner. On 2026-09-07 the orchestrator made twelve unmeasured claims in a
+tell the owner. On 2026-09-07 the orchestrator made a run of unmeasured claims in a
 day, each caught by a review seat and none by itself, while writing the policy
 against them. **Not one was in a pull-request body.**
 
@@ -36,7 +36,7 @@ returned 59, 50, and 124/147/50, because each asked a subtly different question.
 Only a count whose rule is written down is re-derivable by whoever reads it next.
 Say what you counted, not only how many.
 
-Generalised, because every one of the twelve failures was a form of it:
+Generalised, because every one of those failures was a form of it:
 
 **Nothing is asserted that has not been measured, and the measurement is the
 command, not the impression it left.** Before writing a claim, ask what exactly
@@ -321,7 +321,7 @@ Two things are the owner's:
   and `judge.md`'s void rule applies to it: *a finding whose harness does not
   move under its own perturbation is void, whatever the votes said.* Tools you
   run are encouraged — `tools/audit/preflight.sh` exists because intentions did
-  not bind twelve times and a script bound immediately — but the reviewer stays
+  not bind and a script bound immediately — but the reviewer stays
   the authority.
 - **Do not re-implement what CI already repairs** (`.cursor/rules/ci-autofix.mdc`). `closures-autofix` and
   `claims-autofix` handle `UNDER-SCOPED` and `INHERITED CLAIMS` on same-repo
