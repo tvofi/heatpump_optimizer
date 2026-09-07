@@ -157,9 +157,10 @@ incident — which §4 above encourages you to do.
 
 **So the load-bearing check is after the merge, not before it.** Read which
 issues the merge actually closed. No pull-request-scoped field shows it
-beforehand, and on 2026-09-07 two issues were shut by merge commits and reopened
-hours later — `8bc4c661` shut #224 at 10:56 while its own text denied doing so,
-and `e072b2d` shut #195 at 04:25. A pre-merge scan that asks *which form was
+beforehand, and on 2026-09-07 two issues were shut by merge commits and had to
+be reopened — `8bc4c661` shut #224 at 10:56:35 while its own text denied doing
+so, reopened 23 minutes later; `e072b2d` shut #195 at 04:25:54, reopened after
+six and a half hours. The gap is whatever it takes someone to notice. A pre-merge scan that asks *which form was
 used* rather than *whether every keyword binds an intended number* reports clean
 through exactly that.
 
