@@ -97,3 +97,57 @@
 # strings SAY without changing any card state this lane records; the sensor
 # device class and the state translations are Home Assistant surfaces the
 # card never reads. Measured: card_drift reports "identical in all 34 states".
+
+# #558 lane C, items C2 and C3. 33 of the 34 states move; the 34th,
+# editor_schema, is the card's own config editor and draws neither the legend,
+# the chart nor the card's style block -- the gate reports it identical.
+#
+# Direction, by what each state actually draws.
+#
+# All 33: MORE markup, never less, from two sources that render on every
+# page -- the style block gains the .legend-note, .savings-table and .sv-mag
+# rules, and every legend chip gains an aria-pressed attribute.
+#
+# The 31 that draw a chart also gain a .legend-note row carrying the
+# hot-water band's sentence, an aria-describedby on the chip that owns it,
+# and a class="series band" envelope path under the two dashed edges. They
+# are the only states with any SUBTRACTION: the same sentence leaves the
+# chip's title= attribute, and one or two time-axis labels are dropped per
+# chart, wherever a label clamped to the plot edge overlapped its neighbour.
+#
+# no_plan and no_plan_expanded draw the legend but no chart and no band, so
+# they move by the style block and aria-pressed alone -- purely additive.
+#
+no_plan  # style block + aria-pressed; no chart, no band, purely additive
+no_plan_expanded  # style block + aria-pressed; no chart, no band, purely additive
+plan_inline  # style block, aria-pressed, legend-note row, band envelope; title= note and 1-2 axis labels removed
+plan_inline_sv  # style block, aria-pressed, legend-note row, band envelope; title= note and 1-2 axis labels removed
+plan_short_window  # style block, aria-pressed, legend-note row, band envelope; title= note and 1-2 axis labels removed
+custom_title_currency  # style block, aria-pressed, legend-note row, band envelope; title= note and 1-2 axis labels removed
+hidden_series  # style block, aria-pressed, legend-note row, band envelope; title= note and 1-2 axis labels removed
+score_open  # style block, aria-pressed, legend-note row, band envelope; title= note and 1-2 axis labels removed
+expanded_plan  # style block, aria-pressed, legend-note row, band envelope; title= note and 1-2 axis labels removed
+what_if_off  # style block, aria-pressed, legend-note row, band envelope; title= note and 1-2 axis labels removed
+expanded_zoomed  # style block, aria-pressed, legend-note row, band envelope; title= note and 1-2 axis labels removed
+draft_dirty_menu_open  # style block, aria-pressed, legend-note row, band envelope; title= note and 1-2 axis labels removed
+draft_mid_drag  # style block, aria-pressed, legend-note row, band envelope; title= note and 1-2 axis labels removed
+whatif_edited  # style block, aria-pressed, legend-note row, band envelope; title= note and 1-2 axis labels removed
+whatif_weekly  # style block, aria-pressed, legend-note row, band envelope; title= note and 1-2 axis labels removed
+override_active  # style block, aria-pressed, legend-note row, band envelope; title= note and 1-2 axis labels removed
+shared_steps  # style block, aria-pressed, legend-note row, band envelope; title= note and 1-2 axis labels removed
+shared_steps_hover  # style block, aria-pressed, legend-note row, band envelope; title= note and 1-2 axis labels removed
+tooltip_hover  # style block, aria-pressed, legend-note row, band envelope; title= note and 1-2 axis labels removed
+coarse_pointer  # style block, aria-pressed, legend-note row, band envelope; title= note and 1-2 axis labels removed
+reduced_motion  # style block, aria-pressed, legend-note row, band envelope; title= note and 1-2 axis labels removed
+setup_single_buffer  # style block, aria-pressed, legend-note row, band envelope; title= note and 1-2 axis labels removed
+setup_two_tank  # style block, aria-pressed, legend-note row, band envelope; title= note and 1-2 axis labels removed
+setup_coil  # style block, aria-pressed, legend-note row, band envelope; title= note and 1-2 axis labels removed
+layout_editing_dragged  # style block, aria-pressed, legend-note row, band envelope; title= note and 1-2 axis labels removed
+layout_editing_tidy  # style block, aria-pressed, legend-note row, band envelope; title= note and 1-2 axis labels removed
+picker_open_filtered  # style block, aria-pressed, legend-note row, band envelope; title= note and 1-2 axis labels removed
+wood_alert  # style block, aria-pressed, legend-note row, band envelope; title= note and 1-2 axis labels removed
+wood_lane  # style block, aria-pressed, legend-note row, band envelope; title= note and 1-2 axis labels removed
+wood_whatif  # style block, aria-pressed, legend-note row, band envelope; title= note and 1-2 axis labels removed
+away_toggle  # style block, aria-pressed, legend-note row, band envelope; title= note and 1-2 axis labels removed
+away_return  # style block, aria-pressed, legend-note row, band envelope; title= note and 1-2 axis labels removed
+away_status  # style block, aria-pressed, legend-note row, band envelope; title= note and 1-2 axis labels removed
