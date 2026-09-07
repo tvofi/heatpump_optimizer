@@ -81,3 +81,19 @@ Do not automate golden drift, structure budgets, `no-copies`, orphan →
 `INERT`, or briefs lint. A new selectable script with **no** recording is
 not UNDER-SCOPED — add it to a derive lane or `--single` it; autofix cannot
 invent a trace.
+
+## The claim-file conflict is prevented, not autofixed
+
+A merge conflict in the two claim files is **not** a third autofix case. CI
+never runs, so no job is red and there is no uniquely-detected failure to key
+on; the trigger would have to be a push to `main` fanning out over every open
+PR, and the repair would push to branches frozen for review.
+
+`.gitattributes` routes both files to the `claimnotes` merge driver
+(`env_drift.merge_claim_file`), installed once per clone with
+`python3 tests/env_drift.py --install-merge-driver`. It unions the note
+comments and refuses a claim list both sides rewrote — a claim is
+value-bearing, and union reinstates a deleted one past
+`inherited_claims_error`, which fires only on a list exactly equal to the
+baseline's. Do not replace the refusal with `merge=union`, and do not add a job
+that pushes resolutions to open PR branches.
