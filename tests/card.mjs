@@ -6793,17 +6793,29 @@ const setupBox = (card, place) =>
     `${worst.pair} differ by dE ${worst.d.toFixed(1)} simulated deuteranope ` +
     `(just-noticeable is about 2.3)`);
 
-  // Colour cannot carry it alone here. Not because lightness is the only
-  // axis a deuteranope keeps -- it is not; the S-cone blue-yellow axis
-  // survives, and among in-band colours of EQUAL luminance to the solar
-  // series the deuteranope separation reaches 140 dE. The 3:1-against-both
-  // rule (D4-08) does pin the palette into one narrow lightness band, but
-  // what it costs is the WARM part of that band: everything that beats a
-  // warm hue against price is a pink or a blue, and solar cannot be either
-  // without colliding with dhw_slots. So two series drawn by the SAME
-  // branch of seriesPath -- same shape, same fill treatment -- must differ
-  // in stroke pattern unless their colours are far apart on their own. 20 is comfortably below every
-  // same-style pair the palette already ships except the one this fixes.
+  // Colour cannot carry it alone here, and the reason is a CONVENTION rather
+  // than a measurement -- stated that way because two earlier drafts of this
+  // comment gave contrast-shaped reasons that measurement refuted.
+  //
+  // What is measured: the S-cone blue-yellow axis survives deuteranopia, so
+  // "lightness is the only axis a deuteranope keeps" is false -- among in-band
+  // colours of EQUAL luminance to the solar series the separation reaches
+  // 140 dE. Colours far from price DO exist: 323,326 in-band colours clear
+  // 20 dE, and the best blue and the best green beat every warm hue by a wide
+  // margin. What is NOT measured, and must not be asserted here, is that they
+  // collide with something else: the best blue is 147 dE from dhw_slots.
+  //
+  // Solar is warm because a solar series is warm by convention, not because
+  // the palette forbids the alternatives. Within the warm family the
+  // deuteranope ceiling against price is 18.1 dE (a plateau over hue 30-50 at
+  // C>=40), and the shipped #ed6900 sits at 15.0 -- its own figure, not the
+  // family's. Both are under the 20 dE below, so the dash is necessary.
+  //
+  // So two series drawn by the SAME branch of seriesPath -- same shape, same
+  // fill treatment -- must differ in stroke pattern unless their colours are
+  // far apart on their own. 20 is comfortably below every same-style pair the
+  // palette already ships except the one this fixes: price/solar at 15.0 is
+  // the only pair under it, and the next lowest is 24.7.
   const byStyle = {};
   for (const d of defs) (byStyle[d.style] = byStyle[d.style] || []).push(d);
   const undistinguished = [];

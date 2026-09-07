@@ -196,11 +196,3 @@
 # the flow's steps and schemas, not entity.* translation keys -- so neither
 # fixture has a key path for any of it. Measured, not assumed:
 # card_drift reports "identical in all 34 states" at this head.
-# #558 C1, the chart's four contrast defects: this branch claims NOTHING here.
-# The diff is the card's own drawing (one .js file), its Node harness and
-# tests/golden/card_claimed_drift.txt -- no Python production module, no
-# payload key and no solver path is touched, so every scenario fixture is
-# byte-identical by construction. The #547 config_flow claim above was
-# main's, for main's diff; emptied per the rule env_drift.py states in its
-# own refusal, and pre-push rather than left for claims-autofix to repair a
-# red check this branch already knew about.
