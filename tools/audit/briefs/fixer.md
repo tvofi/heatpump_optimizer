@@ -135,6 +135,31 @@ production lines. You work in your own worktree branched from `origin/main`.
     opinion rather than a defect. Prejudging is legitimate — saying so is what
     stops the next seat reading a legitimate tightening as a bug.
 
+12. **The seam a method belongs to is decided by its NAME, first match wins.**
+    `tests/structure.py`'s `seam_bucket` walks `SEAM_REGEXES` in order and
+    returns on the first regex that matches the method name; anything matching
+    none is `core`. So a method whose name happens to match an earlier seam's
+    pattern is priced against **that** seam, not the one it belongs to — and a
+    cut measured on the wrong bucket is measured against state the seam does not
+    own. Before pricing an extraction, run the candidate method names through
+    the bucketing yourself and say which seam each landed in. A name collision
+    is silent: nothing fails, the number is simply about a different thing.
+
+13. **`tests/hastub` is not Home Assistant, and a green test may pin the stub.**
+    `tests/ha_contract.py` records what each stub symbol is — faithful,
+    divergent, simplified, unverified, or a holder — and runs its contracts
+    against both the stub and, nightly, the real package. **Before asserting
+    that a test proves a production property, check whether the stub is what
+    satisfied it.** Four separate seats hit this in one day: the stub had no
+    loop protection, no `section`, no `state` property on `SensorEntity`, and a
+    `NumberSelector` that validated nothing. Each made a real defect invisible
+    to every lane.
+
+    If your work depends on a symbol's upstream behaviour, add or read its
+    contract rather than assuming; if you must extend the stub, argue the
+    fidelity against upstream rather than shaping it to what your test needs —
+    that shape is exactly the one that agrees with a wrong implementation.
+
 **When a structural budget blocks the work.** A `tests/structure.py` failure is
 a decision point, not a wall, and it has three answers rather than two: pay for
 the lines elsewhere; re-record because the tree genuinely improved; or, for a
