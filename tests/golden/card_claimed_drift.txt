@@ -88,6 +88,3 @@
 #
 # The README section on AI use: this branch claims NOTHING. README.md only
 # -- no card source is touched.
-# The #529 record, the open-issue dispositions and the forward carries: this
-# branch claims NOTHING. The plan doc, the two wave rosters and
-# docs/HANDOVER.md only -- no card source is touched.
