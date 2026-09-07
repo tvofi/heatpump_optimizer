@@ -1403,24 +1403,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._immersion_clear_count: int = 0
         self._immersion_evidence: list[str] = []
         self._immersion_events: list[str] = []
-        # #12: a weeks-scale COP baseline per 3 °C bucket, fed only outside
-        # the frost band, and a slow CUSUM on the relative shortfall.
-        #
-        # v5.3.0: keyed by (bucket, which curve the sample was judged
-        # against), not by bucket alone. ``_cop_reference_curve`` made
-        # ``observed_cop`` curve-dependent — a hot-water interval is measured
-        # against the DHW curve, which the model itself prices 8-20 % below
-        # the space curve at the same outdoor temperature. Feeding both into
-        # one baseline compares two different quantities: the shortfall of a
-        # perfectly healthy pump then reads as the gap between the curves,
-        # the one-sided CUSUM accumulates it, and the owner is told his
-        # compressor has degraded. In the committed ``shoulder`` fixture 38
-        # of 96 steps are space-only and 30 are DHW-only, so this is the
-        # ordinary plan shape rather than an edge case.
-        self._cop_baseline: dict[tuple[int, bool], list[float]] = {}
-        self._cop_health_cusum = Cusum(
-            threshold=COP_HEALTH_THRESHOLD, drift=COP_HEALTH_DRIFT, side=1
-        )
         # #42: the weekly ring of learner snapshots.
         self._snapshot_ring = SnapshotRing()
         self._snapshot_store: Store = Store(
@@ -1619,7 +1601,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._pump_commanded: dict[str, bool] = {}
 
     def _init_thermal_learning(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
-        """House and buffer self-learned state; #193 S5 split it out of dhw."""
+        """House, buffer and COP-health learned state (#193 S5, S8)."""
         ctx = getattr(self, "_ctx", self)
         # Self-learned buffer tank standby cooling, in °C/h at the same
         # reference ΔT as the DHW rate. Only learned when a buffer tank
@@ -1652,6 +1634,24 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             hass,
             THERMAL_LEARNING_STORE_VERSION,
             f"{DOMAIN}_{entry.entry_id}_thermal_learning",
+        )
+        # #12: a weeks-scale COP baseline per 3 °C bucket, fed only outside
+        # the frost band, and a slow CUSUM on the relative shortfall.
+        #
+        # v5.3.0: keyed by (bucket, which curve the sample was judged
+        # against), not by bucket alone. ``_cop_reference_curve`` made
+        # ``observed_cop`` curve-dependent — a hot-water interval is measured
+        # against the DHW curve, which the model itself prices 8-20 % below
+        # the space curve at the same outdoor temperature. Feeding both into
+        # one baseline compares two different quantities: the shortfall of a
+        # perfectly healthy pump then reads as the gap between the curves,
+        # the one-sided CUSUM accumulates it, and the owner is told his
+        # compressor has degraded. In the committed ``shoulder`` fixture 38
+        # of 96 steps are space-only and 30 are DHW-only, so this is the
+        # ordinary plan shape rather than an edge case.
+        self._cop_baseline: dict[tuple[int, bool], list[float]] = {}
+        self._cop_health_cusum = Cusum(
+            threshold=COP_HEALTH_THRESHOLD, drift=COP_HEALTH_DRIFT, side=1
         )
     def _init_measurements(self) -> None:
         """Optional measured inputs and the COP correction they feed."""
