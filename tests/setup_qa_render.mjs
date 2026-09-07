@@ -49,7 +49,16 @@ const layoutCss = styleBlock
   .replace(/var\(--primary-text-color\)/g, "#212121")
   .replace(/var\(--secondary-text-color\)/g, "#757575");
 
-const outDir = path.resolve(process.cwd(), "../setup-qa");
+// Default: a scratch directory beside the checkout, for throwaway review.
+// `HPO_QA_OUTDIR` / `HPO_QA_PREFIX` aim the same three renders at a tracked
+// directory instead, so the hydronic figures in docs/dashboard-card.md are the
+// card's own drawing rather than a hand-made imitation of one. The renderer is
+// the only thing that knows what the setup page looks like, so a hand-drawn
+// copy is stale the first time the schematic changes (#558 B9).
+const outDir = process.env.HPO_QA_OUTDIR
+  ? path.resolve(process.env.HPO_QA_OUTDIR)
+  : path.resolve(process.cwd(), "../setup-qa");
+const outPrefix = process.env.HPO_QA_PREFIX || "";
 fs.mkdirSync(outDir, { recursive: true });
 
 function renderTopo(name, topo) {
@@ -76,7 +85,7 @@ function renderTopo(name, topo) {
     `<style>svg { background: #fff; font-family: sans-serif; }\n${layoutCss}</style>` +
     `<rect x="0" y="0" width="100%" height="100%" fill="#ffffff" />`;
   const withStyle = openEnd < 0 ? svg : svg.slice(0, openEnd + 1) + inject + svg.slice(openEnd + 1);
-  const file = path.join(outDir, `${name}.svg`);
+  const file = path.join(outDir, `${outPrefix}${name}.svg`);
   fs.writeFileSync(file, withStyle);
   console.log(`${name}: ${file}`);
   console.log(`  boxes: ${JSON.stringify(card.layoutEditor.boxes)}`);
