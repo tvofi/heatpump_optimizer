@@ -139,6 +139,34 @@ drafting one, so open the pull request and surface it. Every rewrite looks like
 a correction from the inside; if the honest description is *"this changes what a
 seat must do"*, it is policy however small the diff.
 
+## Every sentence earns its place
+
+**Scope: the development record, not the product.** This governs what one agent
+writes for another — pull-request bodies, issues, comments, commit messages,
+briefs, roster entries, reports, and `docs/HANDOVER.md`, whose reader is a
+resuming agent. It does **not** govern `README.md` or the rest of `docs/`: a
+user did not run the command, cannot see the diff, and has no context to
+supply, so they need the explanation this rule cuts.
+
+**Precision outranks concision, always.** Where the two pull against each
+other, precision wins and the artifact gets longer. **A short artifact missing
+a control is a defect; cutting evidence is never compliance with this rule.** If
+you are unsure whether something is filler, keep it — a redundant sentence costs
+a reader a second, a dropped control ships a defect.
+
+Given that: a sentence stays only if it carries a **measurement**, **the rule or
+control behind one** (`fixer.md` step 8), a **decision and why**, a **constraint
+on someone downstream**, or a **refusal and what refused it** — **and is the
+only place in the artifact that carries it**. Everything else is cut, not
+shortened: restating the ask, narrating the route, summarising your own diff,
+preamble, and any adjective whose deletion changes no fact.
+
+Uniqueness does the work a delete-and-see test cannot. A recap made of numbers
+carries measurements, so no list of banned shapes reaches it; it is cut because
+the numbers are already stated. An invariant whose terms are all on the page —
+`views < fetch < dhw < grid < learning` — survives, because a reader can derive
+the ordering and still not have been told it must hold.
+
 ## Programme tracking (#201)
 
 After each programme merge — wave group, tooling the plan tracks, or a closed
