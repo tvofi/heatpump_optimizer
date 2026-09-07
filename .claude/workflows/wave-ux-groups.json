@@ -1,0 +1,420 @@
+{
+  "_comment": [
+    "The UX programme's five lanes (#558), as a roster rather than a docket.",
+    "WHY THIS FILE EXISTS (#582). finding-propagation.mdc requires a verified finding that",
+    "constrains a later stage to be written into that stage's own brief, in the tree, and says an",
+    "issue comment is not propagation. Waves 1-5 have that destination; lanes B-F had none, so two",
+    "seats tried to comply and had nowhere to write. This is the destination.",
+    "Discovered by .claude/workflows/brief_lint.mjs through its wave-*-groups.json glob, which is",
+    "why the name carries the wave- prefix even though the lanes are not a wave.",
+    "NOT a wave: the five lanes run CONCURRENTLY and are picked up one item at a time. This file is",
+    "not launched by web-fix-wave.js as a single group list; `after` edges order items WITHIN a lane",
+    "only, and no edge crosses lanes.",
+    "Group ids are the docket's own (B1-B12, C1-C4, D1-D6, E1-E4, F1-F2): 28 pull-request units",
+    "covering the 34 items, because the docket rules C1 one PR rather than four and folds three",
+    "chart fixes into C2.",
+    "Per-lane cost, from the docket: docs/ is INERT so lane B selects no test script; structure.py",
+    "walks *.py only so lane C moves no ratchet metric; lane D is Python outside the coordinator",
+    "class; lane E coordinates with the settings registry; lane F is the only lane that adds lines",
+    "to coordinator.py, where coordinator_loc and max_class_loc sit at zero headroom.",
+    "Numbers in a brief are snapshots. Re-measure at your own merge base; #411 rule 4 refuses a",
+    "literal budget figure for exactly this reason."
+  ],
+  "session": "claude-web",
+  "repo": "tvofi/heatpump_optimizer",
+  "serial": false,
+  "groups": [
+    {
+      "group": "B1",
+      "issues": [559],
+      "fixerModel": "sonnet",
+      "reviewerModel": "sonnet",
+      "effort": "medium",
+      "fixture": false,
+      "after": [],
+      "resume": {
+        "stage": "in-review",
+        "note": "In PR #567 with B2-B5. Decides B4-B7."
+      },
+      "brief": "Verify mermaid rendering in the HACS in-app README view and degrade gracefully. Establish by rendering, not by reading: the HACS view and GitHub are different renderers and only one of them is the one users meet on install. Carry a bare-fence control in the same document so a zero-loss result is distinguishable from a renderer that dropped everything, which is the shape a check that supplies its own answer takes here. This item decides whether the figure items may rely on mermaid at all."
+      },
+    {
+      "group": "B2",
+      "issues": [560],
+      "fixerModel": "sonnet",
+      "reviewerModel": "sonnet",
+      "effort": "medium",
+      "fixture": false,
+      "after": [],
+      "resume": {
+        "stage": "in-review",
+        "note": "In PR #567. The docket's own count was wrong; see the brief."
+      },
+      "brief": "Fix the stale entity count in the README and extend the pin that let it drift. THE DOCKET'S FIGURE IS WRONG AND MUST NOT BE COPIED: #558 says 66, and PR #567's review measured the platforms constructing sixty-nine entities against a README stating sixty-eight, with the binary-sensor table one short as well. Re-derive at your own merge base by constructing the entities, never by reading either number. The root cause is the pin's shape rather than the figure: the old pin supplied the value it then asserted while another check in the same file already knew the true count, so the file disagreed with itself and stayed green. A pin that hard-codes the number it checks pins nothing."
+    },
+    {
+      "group": "B3",
+      "issues": [561],
+      "fixerModel": "sonnet",
+      "reviewerModel": "sonnet",
+      "effort": "low",
+      "fixture": false,
+      "after": [],
+      "resume": {
+        "stage": "in-review",
+        "note": "In PR #567. Version-floor derivation moved to docs/architecture.md."
+      },
+      "brief": "Move programme-internal prose out of user-facing sections. A reader arriving from HACS wants the integration, not the development record. Where a callout is kept in README.md, note that the HACS markdown element maps the GitHub alert syntax to a real alert element, so an important callout renders as an alert rather than a blockquote."
+    },
+    {
+      "group": "B4",
+      "issues": [562],
+      "fixerModel": "sonnet",
+      "reviewerModel": "sonnet",
+      "effort": "medium",
+      "fixture": false,
+      "after": [],
+      "resume": {
+        "stage": "in-review",
+        "note": "In PR #567. B12 later replaces this interim asset."
+      },
+      "brief": "A hero screenshot of the card, above the fold in README.md, where the README currently carries an apology in the image's place. THE HACS IMAGE CONSTRAINTS BIND THIS ITEM: see B12's brief, which carries them in full with their controls. The short form is that the hero must be single-line markdown, must not be raw HTML with a relative source attribute, and must not share its line with any absolute URL. Verify by rendering that the emitted image carries a non-empty source attribute; that check is the whole point, because every failure mode here is silent."
+    },
+    {
+      "group": "B5",
+      "issues": [563],
+      "fixerModel": "sonnet",
+      "reviewerModel": "sonnet",
+      "effort": "low",
+      "fixture": false,
+      "after": ["B4"],
+      "resume": {
+        "stage": "in-review",
+        "note": "In PR #567. Sequencing rule 3 of the docket: needs B4 landed."
+      },
+      "brief": "Demote the opening architecture flowchart below the hero. Ordered after B4 by the docket's third sequencing rule: demoting the flowchart before the hero exists opens README.md with nothing where the diagram used to be. Prefer removing the diagram's entity counts to correcting them, since a count inside a figure is a second copy of B2's number with no pin behind it."
+    },
+    {
+      "group": "B6",
+      "issues": [],
+      "fixerModel": "sonnet",
+      "reviewerModel": "sonnet",
+      "effort": "medium",
+      "fixture": false,
+      "after": [],
+      "resume": {
+        "stage": "done",
+        "note": "Merged in PR #576 with B7-B11: eight figures, each generated from the thing it depicts."
+      },
+      "brief": "An annotated anatomy-of-the-chart figure in docs/dashboard-card.md, which carried six hundred lines about a graphical component with no images. Delivered by PR #576."
+    },
+    {
+      "group": "B7",
+      "issues": [],
+      "fixerModel": "sonnet",
+      "reviewerModel": "sonnet",
+      "effort": "low",
+      "fixture": false,
+      "after": [],
+      "resume": {
+        "stage": "done",
+        "note": "Merged in PR #576."
+      },
+      "brief": "A paired figure for the two kinds of dashed line. Delivered by PR #576."
+    },
+    {
+      "group": "B8",
+      "issues": [],
+      "fixerModel": "sonnet",
+      "reviewerModel": "sonnet",
+      "effort": "low",
+      "fixture": false,
+      "after": [],
+      "resume": {
+        "stage": "done",
+        "note": "Merged in PR #576."
+      },
+      "brief": "A demand-window timeline figure for hot water. Delivered by PR #576."
+    },
+    {
+      "group": "B9",
+      "issues": [],
+      "fixerModel": "sonnet",
+      "reviewerModel": "sonnet",
+      "effort": "medium",
+      "fixture": false,
+      "after": [],
+      "resume": {
+        "stage": "done",
+        "note": "Merged in PR #576. Reuses the manual QA renderer."
+      },
+      "brief": "Generate the hydronic-layout figures from the card's own renderer, reusing setup_qa_render.mjs rather than drawing a second picture of the same thing by hand. Delivered by PR #576."
+    },
+    {
+      "group": "B10",
+      "issues": [],
+      "fixerModel": "sonnet",
+      "reviewerModel": "sonnet",
+      "effort": "medium",
+      "fixture": false,
+      "after": [],
+      "resume": {
+        "stage": "done",
+        "note": "Merged in PR #576. Changed how the sensor table is pinned; see B12 and B2."
+      },
+      "brief": "Break the wide sensor table into labelled groups. Delivered by PR #576, which also replaced sensor row-counting with a name-set check: the sensors now render as several tables under one heading, so counting rows across the whole heading double-counts each group's header row. A later seat that reinstates a row count over the sensors heading reintroduces that double-count."
+    },
+    {
+      "group": "B11",
+      "issues": [],
+      "fixerModel": "sonnet",
+      "reviewerModel": "sonnet",
+      "effort": "medium",
+      "fixture": false,
+      "after": [],
+      "resume": {
+        "stage": "done",
+        "note": "Merged in PR #576."
+      },
+      "brief": "Figures generated from the shipped model for the curve claims in how-it-works.md. Delivered by PR #576."
+    },
+    {
+      "group": "B12",
+      "issues": [],
+      "fixerModel": "sonnet",
+      "reviewerModel": "opus",
+      "effort": "medium",
+      "fixture": false,
+      "after": ["B4"],
+      "resume": {
+        "stage": "pending",
+        "note": "Not started. Replaces B4's interim asset with a screenshot regenerated by the existing Playwright lane. Carries the HACS image constraints for the whole programme."
+      },
+      "brief": "Regenerate the card screenshot from the existing browser lane, replacing B4's interim asset. THIS BRIEF CARRIES THE HACS IMAGE CONSTRAINTS FOR EVERY FIGURE ITEM IN LANE B. Established by PR #567's review by execution against the pinned markdown and sanitiser versions with HACS's own repository-context markdown helper; the regex behaviour below was re-derived independently for #582 by running the recorded expression, and the sanitiser and candidate-file halves are #567's measurement and were not re-derived. The rewriter's expression is a bracket-then-parenthesis match whose target must not begin with a fragment marker and must fail a negative lookahead for a scheme separator, and IT CARRIES NO DOTALL FLAG. Four consequences, each with the control that separates it from its imitation. First, wrapped alt text is skipped: an image whose alt text spans two lines is not rewritten, because the dot cannot cross a newline; the control is that a NEGATED CHARACTER CLASS CAN, so a reconstruction written with a negated class in place of the lazy dot matches this case, reproduces nothing, and wrongly concludes the constraint is not real. Second, the negative lookahead scans the REST OF THE LINE rather than the link, so a relative image sharing its line with any absolute URL is never rewritten and the sanitiser then blanks its source attribute; the control is that the identical image alone on its line is rewritten and survives. Third, a linked image has only its FIRST parenthesis rewritten, so a relative link target mangles the image's own source and empties the anchor; the control is that an absolute target leaves the anchor intact. Fourth, raw HTML with a relative source attribute is blanked outright; the control is that an absolute source attribute survives. PRECONDITION, NOT OPPORTUNITY: every image is single-line markdown, alone on its line, with no other absolute URL on that line, and never raw HTML with a relative source. These constraints are README-ONLY: #567's review established that the HACS integration builds its candidate files from a single README stem carrying no path separators, so files under docs/ are never rendered by it and reach the reader through GitHub instead. Do not silently widen these rules to docs/, and do not narrow them away from README.md. Re-verify by rendering rather than by reading this paragraph."
+    },
+    {
+      "group": "C1",
+      "issues": [564],
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "medium",
+      "fixture": false,
+      "after": [],
+      "resume": {
+        "stage": "in-review",
+        "note": "In PR #569. One PR, not four: docket sequencing rule 2."
+      },
+      "brief": "Four contrast defects in the chart, as ONE pull request. The docket's second sequencing rule is the reason: the four fixes claim golden drift over the same state list, so four PRs re-claim the same states four times. Separate the price series from solar; make the estimated-price region visible; draw the now-marker in the readable accent rather than the theme primary; invert the gridline scheme. Measure the ratios in both default themes. structure.py walks *.py only, so no ratchet metric moves and the cost is a golden drift claim; claim the drift with its direction rather than re-recording a value-bearing fixture on a developer box."
+    },
+    {
+      "group": "C2",
+      "issues": [],
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "high",
+      "fixture": false,
+      "after": [],
+      "resume": {
+        "stage": "in-review",
+        "note": "In PR #600 with C3. Carried the figure-staleness finding in-tree."
+      },
+      "brief": "Legend chips need a real pressed-state toggle and the note rescued from the title attribute; stop the time-axis end labels colliding; draw the hot-water confidence band as a filled envelope. TWO CHECKS HERE COULD NOT SEE THEIR OWN DEFECTS, established by PR #600: the time-axis collision reader keyed on the middle text anchor, which is the one anchor a clamped end label never has, and the pointer-inertness check matched a single series class exactly, so a filled body carrying a second class slipped past it. Both are the class where a check pins the artifact it reads rather than the one it is named for. Ask of any check you touch here what would pass it and should not."
+    },
+    {
+      "group": "C3",
+      "issues": [],
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "medium",
+      "fixture": false,
+      "after": [],
+      "resume": {
+        "stage": "in-review",
+        "note": "In PR #600 with C2."
+      },
+      "brief": "Savings-table numeric typography and in-cell magnitude. Card-only, so no ratchet metric moves; the cost is a golden drift claim."
+    },
+    {
+      "group": "C4",
+      "issues": [],
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "high",
+      "fixture": false,
+      "after": ["C1", "C2", "C3"],
+      "resume": {
+        "stage": "pending",
+        "note": "Not started. Runs LAST in lane C by docket sequencing rule 1."
+      },
+      "brief": "Extend the CI contrast witness to the dark theme and to graphical objects. RUNS LAST IN ITS LANE, by the docket's first sequencing rule: extended before the colour work lands it fails immediately on the four ratios C1 exists to fix, so it would be red for reasons that are not its own. Re-derive those ratios at your merge base rather than trusting the docket's four figures. FIGURES UNDER docs/ GO STALE SILENTLY WHEN THE CARD CHANGES, established by PR #600 with its control: docs/ is an INERT prefix in closure.py, so a card change selects no gate script that reads the committed pictures of the card, and regenerating with the merge base's card returned them byte-identical, which is what separates a real staleness from generator nondeterminism. PRECONDITION, NOT OPPORTUNITY: a check for this is not available from tests/, because reading the generator would pull docs/ into a measured closure, and that reclassification is a deliberate decision INERT exists to record rather than something a card fix may change in passing. The two in-tree headers that carry this to a card-changing seat are tests/card_drift.mjs and docs/img/make_card_figures.mjs; regenerate the figures in the same PR as the card change."
+    },
+    {
+      "group": "D1",
+      "issues": [509],
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "medium",
+      "fixture": false,
+      "after": [],
+      "resume": {
+        "stage": "done",
+        "note": "Delivered by PR #535 before the lanes were drawn; issue #509 closed."
+      },
+      "brief": "Diagnostics published the user's home coordinates unredacted. Delivered by PR #535: coarsen the coordinates and redact the entry name."
+    },
+    {
+      "group": "D2",
+      "issues": [565],
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "medium",
+      "fixture": false,
+      "after": [],
+      "resume": {
+        "stage": "done",
+        "note": "Merged in PR #571 with D3; issue #565 closed."
+      },
+      "brief": "The English narrative hardcoded Swedish currency. Delivered by PR #571, which made the currency a placeholder in both language tables rather than only the English one, kept the published item key unchanged because an automation may read it, and made the currency a required argument to the render call on the grounds that a default is what let the hardcoded unit stand unnoticed."
+    },
+    {
+      "group": "D3",
+      "issues": [566],
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "high",
+      "fixture": false,
+      "after": [],
+      "resume": {
+        "stage": "done",
+        "note": "Merged in PR #571; issue #566 closed. Landed THREE sensors, not the docket's five. D4 depends on this."
+      },
+      "brief": "Enumerated states and translations for the string-state sensors. Delivered by PR #571 as THREE sensors, not the five the docket asked for; the reasons and the controls are carried into D4's brief, which is the stage that depends on them."
+    },
+    {
+      "group": "D4",
+      "issues": [],
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "medium",
+      "fixture": false,
+      "after": ["D3"],
+      "resume": {
+        "stage": "in-review",
+        "note": "In PR #599 with D5 and D6. Depends on D3's delivered option lists, which are three sensors and not five."
+      },
+      "brief": "Icon translations are static: every entry is a default and none varies by state. THE STATE KEYS MUST MATCH D3'S DELIVERED OPTIONS, AND D3 DELIVERED THREE SENSORS RATHER THAN THE DOCKET'S FIVE. Established by PR #571's review, verified here by reading the tracked tree rather than the pull request: the enumerated-sensor table in tests/entities.py has three members, and the two that were refused are pinned bare in the same file with their reasons. The refusal is protective and its control is upstream's own behaviour at the floor declared in hacs.json: a sensor carrying an option list raises on EVERY state write whose value falls outside that list, so an option list is a whitelist and not documentation. The first refused sensor publishes the solver's own message text on a branch whose docstring says it fires routinely on a flat price curve, so enumerating it would have taken the entity down in ordinary operation rather than in an edge case; the second emits a two-word state containing a space, which cannot be a translation key at all. Both want the reshaped treatment D6 describes, a bounded companion sensor and a deprecation, never a mutated state. Write no state key for a sensor D3 did not enumerate; an in-tree check already refuses a key falling outside its sensor's options, so this is enforced rather than advised, and re-derive the three option lists at your merge base rather than copying them."
+    },
+    {
+      "group": "D5",
+      "issues": [],
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "medium",
+      "fixture": false,
+      "after": [],
+      "resume": {
+        "stage": "in-review",
+        "note": "In PR #599 with D4 and D6."
+      },
+      "brief": "Service names and descriptions are untranslated: strings.json carries no services section at all. Note what PR #571 measured about that file's shape before adding to it: every entity entry contained only a name, one single distinct inner key-set across all five platforms, so a section added here is the first of its kind and there is no local precedent to copy."
+    },
+    {
+      "group": "D6",
+      "issues": [],
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "high",
+      "fixture": false,
+      "after": [],
+      "resume": {
+        "stage": "in-review",
+        "note": "In PR #599 with D4 and D5. Reshaped by the owner: add and deprecate, do not mutate."
+      },
+      "brief": "A sensor publishes an English sentence as its state. RESHAPED, AND THE RESHAPING IS THE POINT: add a numeric companion sensor and deprecate the sentence, never mutate a shipped state. An automation may be sitting on the published value, so changing it in place is a breaking change made silently. This is the same reason PR #571 refused to enumerate two sensors rather than trimming their states to fit, and the same reason it kept a published item key whose name it disliked."
+    },
+    {
+      "group": "E1",
+      "issues": [],
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "medium",
+      "fixture": false,
+      "after": [],
+      "resume": {
+        "stage": "pending",
+        "note": "Not started."
+      },
+      "brief": "The Tibber token is plaintext on setup and reauth but masked in options: three surfaces for one secret, and two of them disagree with the third. Fix the two, and treat the disagreement itself as the defect rather than the masking."
+    },
+    {
+      "group": "E2",
+      "issues": [],
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "medium",
+      "fixture": false,
+      "after": [],
+      "resume": {
+        "stage": "pending",
+        "note": "Not started."
+      },
+      "brief": "Offer a finish-setup-now exit after the second screen: today nine steps run before an entry exists, so a user who stops at step eight has nothing. Any change to a form's SHAPE is subject to the constraint E4's brief carries about one-level schema walks in the assertion layer."
+    },
+    {
+      "group": "E3",
+      "issues": [],
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "medium",
+      "fixture": false,
+      "after": [],
+      "resume": {
+        "stage": "pending",
+        "note": "Not started."
+      },
+      "brief": "Show the setup overview as the last step of the CONFIG flow, not only in Options, so a user sees what was configured at the moment they finish configuring it. Any change to a form's shape is subject to the constraint E4's brief carries."
+    },
+    {
+      "group": "E4",
+      "issues": [516],
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "high",
+      "fixture": false,
+      "after": [],
+      "resume": {
+        "stage": "pending",
+        "note": "Not started. The fingerprint blocker is discharged by PR #568; issue #516 stays open. Carries the assertion-layer constraint for the whole of lane E."
+      },
+      "brief": "Group the wide options pages, using the grouping construct the flow library provides. TWO ASSUMPTIONS IN THE ORIGINAL FRAMING WERE WRONG AND ARE CORRECTED HERE. First, the construct does not live in the selector helpers; it is defined in data_entry_flow.py, and it has existed since well before the floor that was thought to gate it, so the version floor stopped binding earlier than the parking note assumed, although the original parking was correct against the floor current at the time. Second, THE LANE'S REAL COST IS IN THE ASSERTION LAYER RATHER THAN THE CAPTURE. PR #568 taught the config-flow golden's fingerprint to walk nested groups, so the fixture no longer goes silently blind; it groups no page, so #516 stays open. What remains is that the assertion layer walks schemas ONE LEVEL DEEP in many places, and every one of those stops asserting silently on a grouped page rather than failing. #558 counted those walks at a named commit under a stated rule, AST reads of a schema attribute that are iterated or subscripted, excluding schema construction and the getattr-with-default form; RE-DERIVE THE COUNT AT YOUR OWN MERGE BASE under that same rule rather than carrying the figure, and state the rule with whatever number you get. THE FOURTH SEQUENCING RULE, which #558 records alongside its three: a capture must be able to see a change before the change is made. Grouping and fixing the capture in one PR would have moved the fixture once and then silenced it forever, with nothing in the suite able to say so. Split capture from change."
+    },
+    {
+      "group": "F1",
+      "issues": [],
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "medium",
+      "fixture": false,
+      "after": [],
+      "resume": {
+        "stage": "pending",
+        "note": "Not started. Post-Wave-4 by design; see the brief for why this lane alone waits."
+      },
+      "brief": "Give the device registry entry a configuration_url and a real manufacturer. RESHAPED: the rename is dropped, because renaming a shipped device is a breaking change for the sake of a name, the same judgement D6 and D2 both made. THIS IS THE ONLY LANE THAT ADDS LINES TO coordinator.py, WHICH IS WHY IT WAITS AND NOTHING ELSE DOES. coordinator_loc and max_class_loc sit at or near zero headroom, so lines added inside the coordinator class must be paid for elsewhere in the same PR. Ask FIRST which class the budget you fear is measured on: several rows come from the single coordinator class and a method added outside that class moves none of them. Run the payment scan at your own merge base and state every clause you applied; do not carry a payment-pool figure from any brief, including this one, because that figure has been quoted wrongly more than once by seats that each omitted a different clause. An empty scan is a halt, not a budget raise: a raise needs the repository owner's explicit confirmation obtained BEFORE the branch is pushed."
+    },
+    {
+      "group": "F2",
+      "issues": [],
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "medium",
+      "fixture": false,
+      "after": [],
+      "resume": {
+        "stage": "pending",
+        "note": "Not started. Post-Wave-4 with F1."
+      },
+      "brief": "Sixteen repair notices ship without a documentation link, so a user meeting one has nowhere to read about it. The parameter that carries such a link IS NOT IN THIS TREE YET, and that is deliberate in this brief rather than an omission: brief_lint treats a named identifier as a claim that it exists in the tracked tree and refuses one that does not, which is correct, because a citation the next seat cannot grep for is the rot that linter exists to stop. So the mechanism is described rather than named, and this item exists to add it. The coordinator-budget warning in F1's brief applies here too wherever the notices are raised from inside the coordinator class."
+    }
+  ]
+}
