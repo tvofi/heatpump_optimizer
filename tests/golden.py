@@ -42,6 +42,7 @@ sys.path.insert(0, "tests")
 sys.path.insert(0, "custom_components")
 
 import numpy as np
+import voluptuous as vol
 
 from profiles import DT, house, prices, weather
 from heatpump_optimizer.optimizer import HeatPumpOptimizer, OptimizationConfig
@@ -989,6 +990,20 @@ def _capture_coordinator(config: dict) -> dict:
     }
 
 
+def _nested_schema(value):
+    """The inner ``vol.Schema`` of a ``section()``, or ``None`` for a leaf.
+
+    Keyed on the nesting itself rather than on ``isinstance(value, section)``,
+    because what hides fields from a capture is an inner schema, whatever the
+    class holding it is called. Every selector in ``helpers/selector.py``
+    carries a ``config`` dict and no ``schema``, so this separates the two
+    without naming either; an ``isinstance`` against the imported class would
+    put the blindness below one Home Assistant rename away from returning.
+    """
+    inner = getattr(value, "schema", None)
+    return inner if isinstance(inner, vol.Schema) else None
+
+
 def _presented_fields(schema):
     """``(key, validator)`` for every field a page presents, flattened.
 
@@ -997,7 +1012,11 @@ def _presented_fields(schema):
     stays flat while the fingerprint above keeps the nesting.
     """
     for key, value in (schema.schema.items() if schema else []):
-        yield key, value
+        inner = _nested_schema(value)
+        if inner is None:
+            yield key, value
+        else:
+            yield from _presented_fields(inner)
 
 
 def schema_fingerprint(schema) -> dict:
@@ -1023,7 +1042,12 @@ def schema_fingerprint(schema) -> dict:
     """
     fields = {}
     for key, value in (schema.schema.items() if schema else []):
-        config = getattr(value, "config", None)
+        inner = _nested_schema(value)
+        config = (
+            getattr(value, "options", None)
+            if inner is not None
+            else getattr(value, "config", None)
+        )
         try:
             default = repr(key.default())
         except Exception:
@@ -1038,6 +1062,11 @@ def schema_fingerprint(schema) -> dict:
             "default": default,
             "required": type(key).__name__,
         }
+        # Only sections gain ``fields``; a flat page's markers keep the exact
+        # four keys they had, which is what leaves the committed fixture
+        # unmoved by this change.
+        if inner is not None:
+            marker["fields"] = schema_fingerprint(inner)
         fields[str(key)] = marker
     return fields
 
