@@ -42,7 +42,7 @@ Metrics (definitions, one line each; the code is the authority):
   the worst function in the tree the cheapest place in the codebase to put new
   complexity, which is the agentic-complexity vector stated literally -- with
   methods_over_200 at 14 and functions_cc_over_25 at 11, ``optimize`` could go
-  540 -> 1,080 lines and CC 87 -> 174 with every budget in the table unmoved.
+  540 -> 1,080 lines and CC 87 -> 174 with all 22 budgets OF THE TIME unmoved.
   ``max_class_loc`` already did exactly this job for the one shape family that
   had it.
 
@@ -1163,7 +1163,8 @@ def regression_rows(old: dict, new: dict) -> list[tuple[str, float, float]]:
     """Every metric a re-record would move in the WORSENING direction.
 
     The direction is uniformly ``new > old`` and needs no metric-specific
-    knowledge: ``ratchet`` below compares all 22 counts the same way -- above
+    knowledge: ``ratchet`` below compares every metric in the budgets table the same way --
+    above
     the budget fails, below it is headroom -- so every one of them is
     lower-is-better. A per-metric direction table would be one more
     hand-maintained list to rot, which is the class of defect #364 and #304

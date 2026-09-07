@@ -22145,7 +22145,7 @@ R.check(
 # threshold: once a function is over the line it is already counted, so it can
 # grow without bound and no key in the table moves. With methods_over_200
 # pinned at 14 and functions_cc_over_25 at 11, `optimize` could go 540 -> 1,080
-# lines and CC 87 -> 174 with every budget in the table unchanged. max_class_loc already
+# lines and CC 87 -> 174 with all 22 budgets OF THE TIME unchanged. max_class_loc already
 # does exactly this job for the one shape family that has it.
 #
 # Driven through table_maxima() on rows shaped exactly as measure() builds
