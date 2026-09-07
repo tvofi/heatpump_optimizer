@@ -181,20 +181,28 @@ its fourth landed first.
     the same commit creates. Established by root-cause analysis over #531, #569
     and #591: **3.1% of reviewed pull requests, 11.2% of all review rounds.**
     A check cannot close it — `tools/audit/preflight.sh`, written against this
-    very class, catches **0 of 3**, because it matches digit-shaped figures and
-    all three instances spell the quantity as a word. The countermeasure shared
+    very class, catches **0 of 3**. The reason is not the shape of those figures —
+    rewriting all three with digits leaves them just as clean. A grep can only
+    ask *is there a figure here*, while the defect is *was the right thing
+    measured*. The countermeasure shared
     the class's own defect.
     The divider is **structural, not dispositional**: the class reaches no seat
-    pull request across all 154 review-round bodies, because a seat's production
+    pull request across every review-round body in the corpus at
+    the time (161 rounds over 97 reviewed pull requests — the population the two
+    percentages above come from, and it grows, so re-derive rather than quote), because a seat's production
     fix is accepted by standing property-quantified instruments — CI, the
     ratchet, closures, the mutation proof — and a record or policy artifact has
     none, so its acceptance test is whatever its author wrote that minute.
 13. **"The pull request is open" is not a handoff.** The freeze starts at
     handoff, and a seat that has opened its pull request may still be pushing
-    while it waits on CI. Six head-moves under review in one session.
+    while it waits on CI. Six pull requests had a head moved under a live review
+    in one session — more events than that, since #531 alone was moved four
+    times.
 14. **A record pull request cannot converge while the merge queue runs.** #531
-    took 20 hours, 45 commits — 19 of them merges of main — 25 content edits and
-    11 blocked rounds, because 31 pull requests merged underneath it and each
+    was still open after 20 hours, 45 commits — 19 of them merges of main —
+    25 content edits and 11 blocked rounds, with 31 pull requests merged
+    underneath it. Every one of those is a reading at that moment rather than
+    a final tally: it kept moving, which is the point and each
     invalidated part of its content. The rule already says *the same session or
     an immediate record pull request*: one record per merge has a bounded truth
     condition and cannot be overtaken. Live state belongs on #201, where a
