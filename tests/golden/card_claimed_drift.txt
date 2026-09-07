@@ -85,6 +85,9 @@
 # test scripts, tests/golden.py and the config_flow golden fixture only --
 # no card source, template, style or payload key is touched, so every
 # rendered state is byte-identical by construction.
+#
+# The README section on AI use: this branch claims NOTHING. README.md only
+# -- no card source is touched.
 # W4-G10 S9 (#224, optimize's breach-report tail): this branch claims NOTHING.
 # One optimizer method is split in two -- no card source, no payload key and no
 # published value is touched.
