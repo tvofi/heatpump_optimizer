@@ -2203,9 +2203,10 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
                 cleaned[CONF_DHW_INLET_ENTITY] = None
             return await self._save_or_menu(cleaned)
 
+        # No re-merge of user_input here: unlike comfort, hot_water, building,
+        # grid and grid_fees, this page's submit block returns unconditionally,
+        # so the render path only ever runs with user_input None (#542).
         current = self._current
-        if user_input is not None:
-            current = {**current, **user_input}
 
         def _entity_default(key: str) -> Any:
             existing = current.get(key)
@@ -3182,21 +3183,17 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
     async def async_step_learning(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Watchdogs and the opt-in learning features."""
+        """Watchdogs and the opt-in learning features.
+
+        Nothing is cleaned here. External-heat detection moved to
+        ``async_step_building``, which owns clearing its own entity; a
+        clearing loop left behind on this page wrote ``None`` over whatever
+        that page had stored, on every save (#542).
+        """
         if user_input is not None:
-            cleaned = dict(user_input)
-            for key in (CONF_EXTERNAL_HEAT_ENTITY,):
-                if not cleaned.get(key):
-                    cleaned[key] = None
-            return await self._save_or_menu(cleaned)
+            return await self._save_or_menu(user_input)
 
         current = self._current
-
-        def _entity(key: str) -> Any:
-            existing = current.get(key)
-            if existing:
-                return vol.Optional(key, default=existing)
-            return vol.Optional(key)
 
         return self.async_show_form(
             step_id="learning",
