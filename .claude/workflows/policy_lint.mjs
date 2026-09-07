@@ -1058,8 +1058,29 @@ function checkPrBody(bodyPath, { head = '', title = '', red = [] } = {}) {
   // signal nobody can count, so the histogram would silently under-report.
   const friction = (secs.get('Friction') ?? '').trim()
   if (friction && !isNone(friction)) {
-    for (const line of friction.split('\n').map((l) => l.trim()).filter(Boolean)) {
-      const m = /^[-*]?\s*([A-Za-z][A-Za-z0-9_.-]*)\s*:\s*([a-z-]+)\s*:\s*(.+)$/.exec(line)
+    // An entry may WRAP. This corpus wraps its prose at eighty columns, so any
+    // evidence sentence longer than a few words spans two lines -- and treating
+    // each physical line as its own entry refused the continuation, which is
+    // the second false refusal this parser produced on the first well-formed
+    // body it ever saw. A line that starts a new `id: event:` opens an entry;
+    // anything else continues the one above it. The first non-empty line must
+    // still open an entry, so a block of free prose is refused exactly as before.
+    const entryStart = /^[-*]?\s*`?[A-Za-z][A-Za-z0-9_.-]*`?\s*:\s*`?[a-z-]+`?\s*:/
+    const entries = []
+    for (const raw of friction.split('\n').map((l) => l.trim()).filter(Boolean)) {
+      if (entryStart.test(raw) || !entries.length) entries.push(raw)
+      else entries[entries.length - 1] += ' ' + raw
+    }
+    for (const line of entries) {
+      // Backticks around the id and the event are tolerated because every other
+      // policy file in this repository writes an identifier that way, so a seat
+      // reaching for `## Friction` writes `budgets`, not budgets. The first real
+      // body this check ever saw was refused for exactly that, and the refusal
+      // was the check's, not the body's: no fixture exercised a WELL-FORMED
+      // friction line, so the accept path had never run. Tolerating the marks
+      // removes a false refusal and no true one -- the event must still be in
+      // the closed vocabulary below, which is the half that carries meaning.
+      const m = /^[-*]?\s*`?([A-Za-z][A-Za-z0-9_.-]*)`?\s*:\s*`?([a-z-]+)`?\s*:\s*(.+)$/.exec(line)
       if (!m || !FRICTION_EVENTS.includes(m[2])) {
         out.push({ severity: 'error', check: 'pr-body', where: bodyPath,
           message: `\`## Friction\` line does not parse: ${JSON.stringify(line.slice(0, 50))}. Write \`none\`, or \`<rule_id>: <${FRICTION_EVENTS.join('|')}>: <evidence>\`.` })

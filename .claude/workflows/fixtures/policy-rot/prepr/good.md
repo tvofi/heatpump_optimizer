@@ -24,4 +24,6 @@ none
 
 ## Friction
 
-none
+`budgets`: `cost`: a one-sided cap is measured at head only, so two branches can
+each be honest and their merge red.
+gate-scoping: unenforced: a directory prefix reads as a safe over-approximation.

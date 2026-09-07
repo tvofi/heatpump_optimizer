@@ -37,14 +37,23 @@ if [ "${1:-}" = "--self-test" ]; then
   st() { if [ "$1" = "$2" ]; then st_pass=$((st_pass+1)); printf '  ok   %s\n' "$3";
          else st_fail=$((st_fail+1)); printf '  FAIL %s (rc %s, wanted %s)\n' "$3" "$1" "$2"; fi; }
 
-  for f in missing-section empty-section wrong-head dead-carry bad-friction; do
+  for f in missing-section empty-section wrong-head dead-carry bad-friction backtick-bad-event; do
     node .claude/workflows/policy_lint.mjs --pr-body "$D/$f.md" --head "$ZERO" >/dev/null 2>&1
     st $? 1 "a body with $f is refused"
   done
   node .claude/workflows/policy_lint.mjs --pr-body "$D/unnamed-red.md" --head "$ZERO" --red 'fast (3.14)' >/dev/null 2>&1
   st $? 1 "a body that does not name its red check is refused"
+  # TWO null controls, not one. `good-none.md` answers every section with the
+  # accepted WORD; `good.md` answers `## Friction` with a well-formed line. A
+  # single fixture covering only `none` left the friction parser's accept path
+  # unexercised, and the first real body written against this check was refused
+  # for writing its rule id the way every other file in this corpus writes an
+  # identifier. A rot fixture proves a check fires; only a healthy one that
+  # exercises the same code path proves it fires for the right reason.
   node .claude/workflows/policy_lint.mjs --pr-body "$D/good.md" --head "$ZERO" >/dev/null 2>&1
-  st $? 0 "the healthy body is silent (null control)"
+  st $? 0 "a healthy body with a well-formed friction line is silent (null control)"
+  node .claude/workflows/policy_lint.mjs --pr-body "$D/good-none.md" --head "$ZERO" >/dev/null 2>&1
+  st $? 0 "a healthy body answering every section with a word is silent (null control)"
 
   printf 'Closes #999\n' | bash tools/audit/preflight.sh >/dev/null 2>&1
   st $? 1 "preflight refuses an unintended closing keyword"
