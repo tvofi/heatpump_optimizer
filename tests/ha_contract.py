@@ -63,6 +63,42 @@ from pathlib import Path
 # integration claims to support.
 UPSTREAM = "2025.2.0"
 
+# Contracts that state FLOOR behaviour Home Assistant has since changed, keyed
+# by (symbol, contract name) and citing the change. The nightly lane runs two
+# images -- the floor and current stable -- and these three passed at 2025.2.0
+# and failed at stable on the run that discovered them.
+#
+# The discipline is the same as expect="real", one axis over: against a real
+# provider NEWER than the floor, a contract listed here MUST fail, and one that
+# starts passing again fails the check instead. So this cannot become a
+# suppression switch -- a drift that is reverted upstream, or a record that was
+# wrong, reddens the lane. A contract NOT listed here that fails at any version
+# is an ordinary failure.
+#
+# `hacs.json` declares 2025.2.0, so the floor is what the stub owes and what
+# these contracts are written from. The drift itself has production reach --
+# config_flow.py builds NumberSelectors and calls add_suggested_values_to_schema
+# -- and is tracked separately rather than absorbed here.
+UPSTREAM_DRIFT = {
+    (
+        "homeassistant.helpers.selector.NumberSelector",
+        "mode defaults to slider, so an unbounded selector is refused",
+    ): "validate_slider now INFERS the mode -- `data['mode'] = 'slider' if "
+       "has_min_max else 'box'` -- and CONF_MODE lost its slider default, so an "
+       "unbounded selector is silently a box instead of an error",
+    (
+        "homeassistant.helpers.selector.NumberSelector",
+        "a slider missing either bound is refused",
+    ): "same change: the refusal survives only when mode is given explicitly as "
+       "slider, which the config flow does not do",
+    (
+        "homeassistant.config_entries.ConfigFlow",
+        "an advanced marker is dropped unless the flow shows advanced options",
+    ): "the `# Exclude advanced field` branch is GONE from "
+       "add_suggested_values_to_schema, which now walks nested sections instead; "
+       "an advanced marker is no longer dropped",
+}
+
 
 # ---------------------------------------------------------------------------
 # reporting
@@ -1466,6 +1502,13 @@ def _p_units():
 # ---------------------------------------------------------------------------
 
 
+def upstream_version() -> str | None:
+    """The real package's version, or None when the stub is what was imported."""
+    from homeassistant import const
+
+    return getattr(const, "__version__", None)
+
+
 def provider_name() -> str:
     """Which Home Assistant is on the path.
 
@@ -1481,7 +1524,12 @@ def provider_name() -> str:
 
 
 def _run_contracts(report: Report, provider: str) -> None:
-    report.section(f"contracts against the {provider} provider")
+    version = upstream_version()
+    newer = provider == "real" and version is not None and version != UPSTREAM
+    report.section(
+        f"contracts against the {provider} provider"
+        + (f" (Home Assistant {version}, NEWER than the {UPSTREAM} floor)" if newer else "")
+    )
     for symbol, name, _cite, expect, fn in CONTRACTS:
         label = f"{symbol.split('homeassistant.')[-1]}: {name}"
         try:
@@ -1497,6 +1545,14 @@ def _run_contracts(report: Report, provider: str) -> None:
                 report.check(f"{label}  (stub-only)", passed, detail)
             else:
                 report.note(f"{label} -- not runnable against real Home Assistant")
+        elif expect == "both" and newer and (symbol, name) in UPSTREAM_DRIFT:
+            # Recorded drift: at a version past the floor this MUST fail, and a
+            # pass means the record is stale rather than that all is well.
+            report.check(
+                f"{label} -- still drifted at {version}",
+                not passed,
+                f"this now holds again at {version}: drop it from UPSTREAM_DRIFT",
+            )
         elif expect == "both":
             report.check(label, passed, detail)
         elif provider == "real":
