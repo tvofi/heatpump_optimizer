@@ -785,14 +785,24 @@ for (const hours of [12, 24, 48]) {
       bad.join("; "));
     // Making room by dropping the clamped label passes the check above while
     // losing the window boundary, which is the only reason the clamp exists.
-    // Derived rather than hardcoded: a labelled tick is drawn as a heavier,
-    // less transparent gridline than an unlabelled one, so the ticks that
-    // were MEANT to carry a label are readable off the chart. The one at
-    // each end of the span must still have a label sitting over it -- which
-    // is also the invariant that a label names the tick it stands on, since
-    // a clamped label is moved but never past its own tick.
+    // Derived rather than hardcoded: the ticks that were MEANT to carry a
+    // label are readable off the chart, so the one at each end of the span
+    // must still have a label sitting over it -- which is also the invariant
+    // that a label names the tick it stands on, since a clamped label is
+    // moved but never past its own tick.
+    //
+    // The derivation moved when #558 C1 landed on top of this check. It used
+    // to read heaviness -- `stroke-width="1" opacity="0.7"` against an
+    // unlabelled tick's 0.5/0.35 -- because both kinds of tick were drawn.
+    // C1 draws a vertical gridline ONLY inside `if (labelled)`, at one weight
+    // over `--secondary-text-color`, having measured `--divider-color` at
+    // 1.315:1 and unreadable. So `.grid.grid-v` IS the labelled set now, and
+    // matching on it is the same derivation against the markup that exists,
+    // not a relaxation. The old regex matched zero lines against C1's markup,
+    // which failed this check rather than passing it vacuously -- the
+    // `length > 1` arm below is what made the collision visible.
     const labelledGrid = [...scoped.matchAll(
-      /<line x1="([-\d.]+)"[^>]*stroke-width="1" opacity="0.7"\/>/g)]
+      /<line class="grid grid-v" x1="([-\d.]+)"[^>]*\/>/g)]
       .map((m) => Number(m[1])).sort((a, b) => a - b);
     const covered = (g) => labels.some((l) => l.left - 0.01 <= g && g <= l.right + 0.01);
     check(`the ${where} time axis keeps a label over the tick at each end`,
