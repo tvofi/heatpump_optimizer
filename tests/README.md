@@ -16,15 +16,12 @@ scripts, the characterization gate and the end-to-end scripts go in parallel,
 then `stress.py` runs **alone** on an otherwise idle box, because its
 solve-time guard measures this machine while it solves and the rest of the
 suite must not be part of what it measures. `plan_view.py` writes the payload
-`card.mjs` reads, so those two stay in one lane in that order. Every script
-still runs with the same arguments, and every failure still counts — and a
-script that is wired into `run.sh` but that no lane actually executes now
-fails the run, which the older "is it mentioned?" grep could not see. Output
-is captured per script and replayed whole, one script at a time, once the
-lanes finish — four scripts interleaving their output is not something anyone
-can read — with live start/finish lines while they run and a wall-clock table
-at the end. `GATE_JOBS=1` puts it back to one script at a time with streaming
-output, which is what to reach for when a failure needs watching as it happens.
+`card.mjs` reads, so those two stay in one lane in that order. A script that is
+wired into `run.sh` but that no lane actually executes fails the run, which the
+older "is it mentioned?" grep could not see. Output is captured per script and
+replayed whole, one script at a time, once the lanes finish; `GATE_JOBS=1` puts
+it back to one script at a time with streaming output, which is what to reach
+for when a failure needs watching as it happens.
 
 CI runs the same `run.sh` on every push and pull request
 (`.github/workflows/tests.yml`), with one difference: `GOLDEN_MODE=drift`
@@ -70,66 +67,43 @@ The owner file at `/tmp/hpo-gate.lock/owner` carries your label and an
 `expires_at` lease (30 minutes — above the longest observed full gate and
 stress lane). Every script `run.sh` runs under lock renews it. An expired
 lease, or an abandoned hold (`holding` marker, no live flock), may be taken
-without forensics. `run.sh` holds `flock` on `/tmp/hpo-gate.lock/flock` for
-the gate run so a crash drops flock and a waiter can take immediately; the
-lease covers the window between commands when nothing holds flock (#404).
-Take the lock only when `tests/closure.py select` reports `MODE: FULL` or names
-`tests/stress.py` — see `CLAUDE.md` "Running it".
+without forensics — the script decides that, you do not. `run.sh` holds `flock`
+on `/tmp/hpo-gate.lock/flock` for the gate run so a crash drops flock and a
+waiter can take immediately; the lease covers the window between commands when
+nothing holds flock (#404). Take the lock only when `tests/closure.py select`
+reports `MODE: FULL` or names `tests/stress.py`.
 
 ### How a closure is derived
 
-Never by hand. A hand-maintained table of "what does this test depend on"
-would rot on the first refactor and nobody would notice.
+Never by hand. `tests/closure.py`'s module docstring states how a record is
+taken, which two instruments it unions, and why a hand-maintained table cannot
+be trusted. Three things it does not say, because they are rules about *using*
+a recording rather than about taking one:
 
-`tests/derive_closures.sh` runs the whole suite once under instrumentation and
-rewrites `tests/closures.json`. A single closure that has gone stale does not
-need the whole suite: `./tests/derive_closures.sh --single tests/<script>.py`
-re-records just that one script and merges the result in — the same flag
-"Adding a test script" below uses for a brand-new script, and it is the
-cheap path for an existing one too. For each script, `tests/closure.py` runs
-it for real in a subprocess with a `sys.addaudithook` hook installed and then
-records the union of
-
-* every `open` the run performed — this is how the fixture and catalogue files
-  get in: `tests/golden/*.json`, `strings.json`, `services.yaml`,
-  `manifest.json`, `VERSION`, `translations/*.json`, `tests/harness.py`,
-  `tests/profiles.py`, the recorded Open-Meteo payloads;
-* every repo path that appeared on a subprocess command line — this is how
-  `features.py` reaches `tests/dst_checks.py`;
-* every entry in `sys.modules` whose `__file__` is inside the repo — the
-  integration modules and the `tests/hastub` stub.
-
-`card.mjs` has no Python audit hook. Linux CI records it under `strace`
-(`openat`, including children). Darwin has no `strace` (SIP blocks
-`dtruss`); `_record_node()` then uses `node --import tests/node_fs_trace.mjs`,
-which wraps `fs` / `child_process` and the ESM loader. That is Node's own
-opens, not a Linux syscall emulator. Python scripts still re-derive through
-the audit hook on every platform.
-
-A Darwin node recording is a **subset** of `strace -f`. `merge --partial`
-unions a `how: node-fs-trace` record into the committed list so `--single`
-can grow a node closure without dropping files only Linux `strace` saw.
-Do **not** use Darwin `--single` to repair a CI `UNDER-SCOPED` — that job
-already recorded under `strace`. Linux `closures` on `main` stays the
-completeness check.
-
-Three closures are then widened by rule, because a trace of *this* process
-cannot see what they depend on:
-
-* **`env_drift.py` and `golden.py`** compare *behaviour* between two
-  checkouts, in subprocesses, inside a worktree outside this repo. Their
-  closure is the entire integration plus every file in `tests/golden/`. On top
-  of that, `env_drift.py` **always runs whenever anything under
-  `custom_components/` changed**, whatever the closure says — file-name
-  reasoning cannot justify skipping a behavioural comparison.
-* **`card.mjs`** inherits `plan_view.py`'s whole closure, because
-  `plan_view.py` writes the payload the card is rendered against; anything
-  that changes the payload changes what the card is tested with. Selecting
-  `card.mjs` also selects `plan_view.py` to *run*, which is a different kind
-  of dependency — not "what can change this script's answer" but "what has to
-  run first for it to run at all". A scope that took the card without its
-  producer would leave it with no payload, or, on a developer's box, with a
-  stale one from an earlier run.
+* A single stale closure does not need a whole re-derivation:
+  `./tests/derive_closures.sh --single tests/<script>.py` re-records one script
+  and merges it in — the same flag "Adding a test script" below uses for a
+  brand-new script, and the cheap path for an existing one.
+* A Darwin node recording is a **subset** of `strace -f`. `merge --partial`
+  unions a `how: node-fs-trace` record into the committed list so `--single`
+  can grow a node closure without dropping files only Linux `strace` saw. Do
+  **not** use Darwin `--single` to repair a CI `UNDER-SCOPED` — that job already
+  recorded under `strace`, and Linux `closures` on `main` stays the
+  completeness check.
+* Three closures are widened by rule, because a trace of *this* process cannot
+  see what they depend on. **`env_drift.py` and `golden.py`** compare
+  *behaviour* between two checkouts, in subprocesses, inside a worktree outside
+  this repo, so their closure is the entire integration plus every file in
+  `tests/golden/` — and on top of that, `env_drift.py` **always runs whenever
+  anything under `custom_components/` changed**, whatever the closure says,
+  because file-name reasoning cannot justify skipping a behavioural comparison.
+  **`card.mjs`** inherits `plan_view.py`'s whole closure, because
+  `plan_view.py` writes the payload the card is rendered against; selecting
+  `card.mjs` also selects `plan_view.py` to *run*, which is a different kind of
+  dependency — not "what can change this script's answer" but "what has to run
+  first for it to run at all". A scope that took the card without its producer
+  would leave it with no payload, or, on a developer's box, with a stale one
+  from an earlier run.
 
 ### What it actually saves
 
@@ -149,38 +123,29 @@ Those are one CI run's numbers against the suite as it stood, kept as measured.
 Script counts move as lanes are added; the shape of each result is the point,
 and `tests/closure.py select` prints the live selection for your own diff.
 
-The last row is the point, not an embarrassment. A change to the solver can
-reach almost every script in the suite, the closures say so, and the gate
-runs almost the whole suite. A scoped gate that found a way to skip work
-there would be lying.
-
-The card row is worth reading twice, because it is not what anyone would have
-guessed. A card-only change does **not** cost five seconds: `features.py` and
-`entities.py` both open the card's JavaScript, and `features.py` alone is
-415 s. Meanwhile `frontend.py` — which sounds like the most card-adjacent
-script in the suite — is *not* run, because it checks how the card reaches the
-browser and never opens the card's code at all. Both of those are the
-measurement disagreeing with the intuition, and the measurement is what the
-gate uses.
+The last row is the point, not an embarrassment: a change to the solver can
+reach almost every script, the closures say so, and a scoped gate that found a
+way to skip work there would be lying. The card row is the measurement
+disagreeing with the intuition — a card-only change costs 430 s and not five,
+because `features.py` and `entities.py` both open the card's JavaScript, while
+`frontend.py` is *not* run, because it checks how the card reaches the browser
+and never opens the card's code at all.
 
 ### When it refuses to scope
 
-Scoping turns itself off and runs everything whenever it cannot be sure:
+Scoping turns itself off and runs everything whenever it cannot be sure: a
+missing `tests/closures.json`, a script in `tests/` with no closure or a
+closure naming a script that no longer exists, a changed file that no recorded
+closure mentions and no list classifies, a change to the gate itself, a
+`closure.py` failure of any kind, or a diff it cannot determine.
 
-* `tests/closures.json` is missing, or has no closure for some script in
-  `tests/`, or names a script that no longer exists;
-* a changed file is not mentioned by *any* recorded closure and is not on the
-  short, checked list of files no test can read (`docs/`, `tools/`, this
-  file, the licence files, `DISCLAIMER.md`, the quality-scale register). The
-  repository's top-level `README.md` and `RELEASE_NOTES.md` are not on this
-  list — `entities.py` reads both — and neither are the brand images, which
-  `env_drift.py` reads; a change to any of the three is closure-mapped, not
-  assumed safe. "No test reads it" is not something to assume about a file
-  nobody measured;
-* the change touches the gate itself — `run.sh`, `closure.py`,
-  `closures.json`, `requirements-ci.txt` or `.github/workflows/`;
-* `closure.py` fails for any reason at all;
-* the diff cannot be determined.
+The classifications are `closure.py`'s own `INERT`, `GATE_FILES` and
+`SLOW_GATED` tuples, each with its reason beside it — read them there, never
+from prose, because prose goes stale against a tuple that gets narrowed. The
+rule they encode: **"no test reads it" is not something to assume about a file
+nobody measured.** The repository's top-level `README.md`, `RELEASE_NOTES.md`
+and brand images all look unreadable by any test and are all closure-mapped
+rather than listed, because `entities.py` and `env_drift.py` do read them.
 
 ### Adding a test script
 
@@ -188,21 +153,12 @@ A new runnable script in `tests/` has no closure until one is recorded, and an
 unclosed script makes the gate above refuse to scope — silently, on every PR,
 with only a line in the run log. The `closures` job on main therefore **fails**
 when a selectable script went unrecorded: the omission costs one red main run
-instead of weeks of quiet full gates.
-
-Recording one script is deliberately cheap (a full re-derivation runs the
-whole suite and takes as long):
-
-```
-./tests/derive_closures.sh --single tests/<the-new-script>.py
-```
-
-which records just that script and merges the result into
-`tests/closures.json`. Commit both together. (`golden.py` and `env_drift.py`
-get their cheap recorded arguments automatically; `card.mjs` and
-`card_drift.mjs` record through `strace` on Linux or `--import` on Darwin.) If the script belongs in a
-lane permanently, add it to `tests/derive_closures.sh` as well, so full
-re-derivations keep it fresh.
+instead of weeks of quiet full gates. Record it with the `--single` form above
+and commit the script and `tests/closures.json` together; if it belongs in a
+lane permanently, add it to `tests/derive_closures.sh` too, so full
+re-derivations keep it fresh. (`golden.py` and `env_drift.py` get their cheap
+recorded arguments automatically; `card.mjs` and `card_drift.mjs` record
+through `strace` on Linux or `--import` on Darwin.)
 
 ### What you see when something is skipped
 
@@ -222,67 +178,34 @@ because it would look like a pass, so it is said twice and never in passing.
 
 ### What the post-merge gate guarantees
 
-Scoping applies to pull requests. `.github/workflows/tests.yml` forces
-`GATE_SCOPE=full` on **every push to `main`**, on the nightly, and on any
-manual dispatch, so the whole suite runs, unscoped, against every merged
-change regardless of what it touched. If a closure is ever wrong, the scoped
-PR gate may miss it — but the next gate, the unscoped one on `main`, does not.
-`main` goes red within one merge instead of never.
+`CLAUDE.md` rule 1 states the asymmetry — scoped on a branch, forced `full` on
+every push to `main`, and why keying on the mode line is the only safe reading.
+What that leaves for here is the second job.
 
-On a branch, key on the mode line (`MODE: SCOPED` vs `MODE: FULL`), never the
-count — see "What you see when something is skipped" above. On a push to
-`main` there is no mode line to key on: `GATE_SCOPE=full` reaches `run.sh`
-directly through the job environment, so the `if [ "$GATE_SCOPE" = "auto" ]`
-branch that calls `tests/closure.py` and prints the `########## scoped gate
-##########` banner never runs. The only evidence in that log is the env line
-`GATE_SCOPE: full`.
+`closures` runs beside the gate on `main` and on the nightly: it re-derives
+every closure from real instrumented runs and fails if `tests/closures.json`
+misses anything a run actually touched (`closure.py check`). A closure that
+lists *more* than a run touched only costs time and is reported rather than
+failed. So the closures cannot silently drift out of date behind a refactor;
+the run that would have caught the drift is the same run that reports it.
 
-A second job, `closures`, runs beside it on `main` and on the nightly: it
-re-derives every closure from real instrumented runs and fails if
-`tests/closures.json` misses anything a run actually touched
-(`closure.py check`). A closure that lists *more* than a run touched only
-costs time and is reported rather than failed. So the closures cannot silently
-drift out of date behind a refactor; the run that would have caught the drift
-is the same run that reports it.
+On a pull request, `closures` runs only when `closure-scope` says the diff can
+move a closure; a diff it judges `skip` — every changed file INERT — leaves the
+job **skipped**, not passed. Read that the way you read the mode line: a
+skipped `closures` means the table was **not checked on this PR at all**, and
+only the unscoped run after the merge re-derives and checks it. "Every check
+success or skipped" is a correct merge rule, because some jobs legitimately
+never run, and it is also how a clean-looking verification can be zero
+re-derivation work.
 
-On a pull request, `closures` runs only when `closure-scope` says the diff
-can move a closure; a diff it judges `skip` — every changed file INERT —
-leaves the job **skipped**, not passed. Read the two the same way you would
-read the mode line above: `merge_pull_request`'s "every check success or
-skipped" is correct because some jobs legitimately never run, but a skipped
-`closures` means the table was **not checked on this PR at all**, and only
-the unscoped run after the merge, on `main`, actually re-derives and checks
-it. PR #386's `closures` check showed exactly that skip; it looked like a
-clean verification and was zero re-derivation work.
-
-If that same-repo PR's `closures` job fails with `UNDER-SCOPED`,
-`closures-autofix` merges the recordings the failed job already took into
-`tests/closures.json` and pushes `ci: re-record closures`. It does not
-re-run the derive, and it does not push on no-copies, a failed recording,
-an INERT contradiction, or its own follow-up commit. **Do not open a
-second PR or run Darwin `--single` for that failure** — Linux CI already
-has the recordings.
-
-That wait holds only while the job reports that it is repairing. Both
-autofix jobs end by printing their status to the job summary, and
-`closures-autofix` reddens when UNDER-SCOPED was printed and the repair did
-not happen. **Key on the summary line, not the conclusion**: green covers
-"repaired and pushed" and "nothing was owed" alike, and two paths still end
-green with a repair unmade. `.cursor/rules/ci-autofix.mdc` states which, and
-what each one means for the wait.
-
-If `fast` fails because a claim list is identical to `origin/main`
-(`INHERITED CLAIMS`, the #493/#494/#496 case), `claims-autofix` deletes
-the bare claim lines, keeps `claims-for:` and `# may-drift:`, and pushes
-`ci: drop inherited claims`. **Do not hand-empty the files in a parallel
-PR** for that message.
-
-A `GITHUB_TOKEN` push does not fire `pull_request`. After either push the
-job dispatches Tests, Hassfest and Validate on the new SHA. Tests treats
-a `ci:` HEAD subject (or `workflow_dispatch` input `recheck`) as a
-PR-like run: fast/browser/briefs/closures, not slow. Optional repo
-secret `CLOSURES_PUSH_TOKEN` (PAT with `repo` and `workflow`) retriggers
-via synchronize instead; the dispatch is then skipped.
+Two CI jobs repair mechanical failures of this gate on same-repo pull requests:
+`closures-autofix` for `UNDER-SCOPED`, `claims-autofix` for `INHERITED CLAIMS`.
+**Do not open a second PR, run Darwin `--single`, or hand-empty a claim file
+for either** — wait for the bot commit and the dispatched recheck, and key on
+the job's summary line rather than its conclusion, because green covers both
+"repaired and pushed" and "nothing was owed". `.cursor/rules/ci-autofix.mdc` is
+the policy: which statuses mean a commit is coming, which mean none is, and
+what to do in each case.
 
 If you have changed what a test reaches — new fixture, new import, a script
 that starts reading a file it did not before — push the code change and
@@ -300,13 +223,121 @@ the gate" case above, so it runs the whole suite unscoped. The change that
 redefines what may be skipped is never validated by the definition it is
 introducing.
 
-Closures that have fallen behind the tree degrade towards *more* work, not
-less. A file that has appeared since they were recorded is in no closure, so
-it is unmapped and forces a full run; a test script that has appeared has no
-closure, so it forces a full run too. Stale closures make the gate slow before
-they make it wrong, and the `closures` job on `main` says so out loud.
+## The Home Assistant stub
 
-Or individually:
+`tests/hastub/` is a minimal stand-in for the parts of `homeassistant` the
+integration imports, so the suite runs without a Home Assistant install. It is
+deliberately small, and version-controlled: a fuller stub would drift from the
+real thing without anyone noticing, and the job here is to let the integration
+*import* and its entities be *constructed*, not to reimplement Home Assistant.
+
+### When your change depends on how a Home Assistant API behaves
+
+**Read that API's real upstream source and check the stub matches. If it does
+not, fix the stub in the same pull request.** Every lane here runs with
+`PYTHONPATH=tests/hastub`, so a green test proves your code works against *the
+stub's* behaviour — and the stub is written from what the code under test
+needs, which is exactly the shape that agrees with a wrong implementation.
+
+This is not hypothetical: four divergences were found the expensive way, one
+per seat, and each is now a `DIVERGENT` entry in `tests/ha_contract.py`'s
+inventory carrying the issue that found it and the upstream behaviour it
+misses.
+
+`tests/ha_contract.py` is where that reading gets written down (#536). Its
+docstring states what the file is for, what its three products are and what it
+deliberately does not cover; the disposition constants near the top state what
+each disposition obliges. What none of that machinery does is invent a contract
+nobody wrote, so the rule at the top of this section still stands.
+
+## A test must never re-implement what it is testing
+
+A test may build inputs and expected *values*. It must never contain its own
+copy of a production formula, constant or guard, and then assert against the
+copy.
+
+This is a distinct failure from a test that cannot fail, and it survives the
+review that catches those. The assertion *can* fail — it just fails when the
+test file's arithmetic changes rather than when production's does, so it looks
+convincing under a mutation proof while pinning nothing. It has been found
+twice, the second time in the round that was explicitly told to fix the first:
+a test with its own copy of the coordinator's confidence curve, and a test with
+its own copy of its materiality guard, whose epsilon assertions all ran against
+the copy — deleting the constant from the real guard left the whole suite green.
+
+The rule: **every assertion about a computed quantity imports and calls the
+production symbol.** If production is awkward to call from a test — the value
+is buried in a method, or needs a coordinator to exist — that is a finding
+about production's shape, not permission to copy the formula. Extract it and
+test the extraction.
+
+The corollary for reviewers: "name a single-line production mutation that
+kills this assertion" is necessary but not sufficient. Also ask *which file*
+the mutation has to be made in. If the answer is the test file, the assertion
+is measuring itself.
+
+## The two guards
+
+Most of these scripts ask "is the answer good?". Two ask something different,
+and between them they cover the failures that are otherwise invisible.
+
+**`golden.py` asks "has the answer changed?"** Its docstring says what it
+records and why the rest of the suite cannot see what it sees; `resolve_mode`'s
+docstring beside it says which comparison an environment gets and why an unset
+`GOLDEN_MODE` means `drift` rather than `strict`; `assert_invariants`' says why
+a physical-possibility layer runs on record as well as on check. Three facts
+that live nowhere in that file: it pins 55 fixtures (49 plan scenarios, 5
+coordinator captures and the config-flow schema); `run.sh` *exports* both
+variables, so when the suite picks a mode the child sees the same one; and
+`run.sh`'s own default is still `strict`, which is the only place the committed
+fixtures are compared at all.
+
+Five golden fixtures are non-convex valve/wood solves whose floats do not
+reproduce across BLAS builds, so their exact comparison is meaningless off the
+recording machine. **`env_drift.py`** is the answer: it captures scenarios
+twice in the *same* environment — working tree against a worktree of a
+reference commit — and requires byte-identity, so solver noise cancels and only
+the branch's own footprint remains. Its docstring names the five, and states
+the claim rules (`claims-for:` against `VERSION`, the refusal of a claim list
+inherited from the baseline, `--claims-only`, stale versus not-evaluated), the
+baseline cache and everything its key covers, and the refusal of a ref that
+resolves to `HEAD`.
+
+Two consequences of that refusal, for a run started by hand rather than by
+`run.sh`: a checkout that *is* `main` needs a real baseline —
+`GOLDEN_REF=HEAD^1 ./tests/run.sh` — because the default `origin/main` is there
+this same commit; and a cache hit changes only where one side of the comparison
+came from, never how a scenario is judged, so `DRIFT_NO_CACHE=1` must produce
+an identical verdict and does (checked cold against warm across all 55
+scenarios, the five sensitive ones included).
+
+**Are the committed fixtures still current?** Everything above compares
+computed against computed, so neither side of it is the committed file, and
+until #347 no CI job compared a committed fixture at all: the fixtures were
+guarded against *changing* and not at all against *being wrong*. `env_drift.py`
+now also judges its own branch capture against the committed files in three
+levels — exact, structural, values — and the comment block above `FIXTURE_DIR`
+carries each level's definition, what it fires on, which signals were cut from
+the structural projection and the measurement that decided each cut.
+
+What that comment cannot say, because it is a rule about when a person runs the
+script: `python tests/env_drift.py --fixtures` runs those three levels alone,
+with no reference tree and no baseline capture, and is **what to run before and
+after `golden.py --record`**. Given a capture file written earlier by
+`--capture` it re-reads that instead of solving again.
+
+`--record` re-records from current behaviour. **Read the diff before doing
+that.** A change here is either a bug or a deliberate decision that belongs in
+a commit message; the whole value of the file is that re-recording is a choice
+rather than a reflex.
+
+**`rolling.py` asks "does it hold up in the loop?"** Everything else solves
+once; its docstring states which classes of failure only appear in the
+re-planning loop.
+
+## Running one script at a time
+
+Every lane script also runs on its own:
 
 ```bash
 export PYTHONPATH=tests/hastub
@@ -335,377 +366,50 @@ node   tests/card_drift.mjs       # the card's markup gate: this tree vs GOLDEN_
 winter, summer and shoulder season, used by the end-to-end scripts.
 `harness.py` holds the fakes the unit-style scripts share.
 
-## The Home Assistant stub
-
-`tests/hastub/` is a minimal stand-in for the parts of `homeassistant` the
-integration imports, so the suite runs without a Home Assistant install. It is
-version-controlled: it used to live in `/tmp` and disappear on every reboot,
-which made the suite unreproducible.
-
-It is deliberately small. A fuller stub would drift from the real thing without
-anyone noticing, and the job here is to let the integration *import* and its
-entities be *constructed*, not to reimplement Home Assistant.
-
-### When your change depends on how a Home Assistant API behaves
-
-**Read that API's real upstream source and check the stub matches. If it does
-not, fix the stub in the same pull request.** Every lane here runs with
-`PYTHONPATH=tests/hastub`, so a green test proves your code works against *the
-stub's* behaviour — and the stub is written from what the code under test
-needs, which is exactly the shape that agrees with a wrong implementation.
-
-This is not hypothetical. A redaction fix derived its marker from
-`async_redact_data` and passed every check, while real Home Assistant skips
-`None` before redacting, so on any real install that path returned `None`
-(#509/#535). Three more were found the same way, one per seat: no loop
-protection at all, so Home Assistant's own detector fires twice on this
-integration and no lane here can see it (#525); no config-flow section class,
-so #516's grouping had nothing to group with; and a `NumberSelector` that
-accepted configurations the real one refuses on construction.
-
-`tests/ha_contract.py` is where that reading gets written down (#536). It holds
-an **inventory** — every public symbol the stub declares, with a disposition —
-and **contracts**, executable statements about Home Assistant's behaviour. The
-same file runs in two places, and that is the whole design:
-
-* the gate runs it with the stub on the path, so a stub that stops satisfying a
-  contract fails on your pull request;
-* the `nightly-ha` job runs it *inside the Home Assistant container*, against
-  the genuine package, so a contract that misreads upstream fails there.
-
-A contract is therefore executed against upstream rather than transcribed and
-hoped over. The same job compares the two runs' **probes**, which is how a
-transcribed roster is measured instead of remembered — `Platform` gained a
-member Home Assistant does not have in v6.3.1 and every gate stayed green.
-
-What none of it does is invent a contract nobody wrote, so the rule at the top
-of this section still stands.
-
-**Adding a symbol to the stub means giving it a disposition** — `FAITHFUL`
-(reproduces upstream; owes a contract that runs against both), `DIVERGENT`
-(measured mismatch; owes a contract stating upstream's behaviour, and the issue
-tracking it), `UNVERIFIED` (behaviour pinned against the stub only, because
-upstream's needs a running `hass`), `SIMPLIFIED` (deliberately does less; names
-the members whose absence *is* the divergence, and they are asserted still
-absent) or `HOLDER` (pure data, makes no decision). A new public symbol with no
-entry fails the completeness check, and so does a `SIMPLIFIED` entry whose
-declared-absent member has quietly appeared. That is the point: a convenience
-shape can no longer be added silently, and a stub that grows behaviour has to
-say so.
-
-## A test must never re-implement what it is testing
-
-A test may build inputs and expected *values*. It must never contain its own
-copy of a production formula, constant or guard, and then assert against the
-copy.
-
-This is a distinct failure from a test that cannot fail, and it survives the
-review that catches those. The assertion *can* fail — it just fails when the
-test file's arithmetic changes rather than when production's does, so it looks
-convincing under a mutation proof while pinning nothing. It has been found
-twice, the second time in the round that was explicitly told to fix the first:
-
-* a test defined its own `phi()` reproducing the coordinator's confidence
-  curve, and the check named "the weight is exactly 0 at no samples and
-  exactly 1 at convergence" asserted against that copy;
-* a test defined its own `material()` reproducing the coordinator's
-  materiality guard, and every epsilon assertion ran against it. Deleting the
-  constant from the coordinator's *real* guard left the whole suite green.
-
-The rule: **every assertion about a computed quantity imports and calls the
-production symbol.** If production is awkward to call from a test — the value
-is buried in a method, or needs a coordinator to exist — that is a finding
-about production's shape, not permission to copy the formula. Extract it and
-test the extraction.
-
-The corollary for reviewers: "name a single-line production mutation that
-kills this assertion" is necessary but not sufficient. Also ask *which file*
-the mutation has to be made in. If the answer is the test file, the assertion
-is measuring itself.
-
-## The two guards
-
-Most of these scripts ask "is the answer good?". Two ask something different,
-and between them they cover the failures that are otherwise invisible.
-
-**`golden.py` asks "has the answer changed?"** It records the complete output of
-55 fixtures (49 plan scenarios, 5 coordinator captures and the config-flow
-schema) — every schedule, trajectory, setpoint, cost, reason code and
-option-page field — and diffs byte for byte. The optimizer is deterministic, so
-any difference is real. This is what makes a refactor safe: the outcome-based
-scripts would happily pass a change that shifts a plan by one interval or drops
-a constraint in a rare branch, and this will not. Every capture also passes a
-physical-invariant layer (finite values, power within the compressor maximum,
-trajectories inside -40..120 °C, savings ≤ 100 %) on both record and check, so
-`--record` cannot bake an impossible plan into a fixture.
-
-`golden.py` reads `GOLDEN_MODE` and `GOLDEN_REF` itself, not only through
-`run.sh` (#341). Left to itself it used to *always* make the exact comparison,
-against fixtures recorded on another machine — and on a clean checkout of main
-that reports `34 of 55 GOLDEN SCENARIOS CHANGED` here, every time. A gate that
-always fires is not one: the thirty-fifth scenario, the one your diff moved, is
-indistinguishable from the thirty-four that always move, and `config_flow` —
-the fixture that went stale for two releases in #326 — is one of the
-thirty-four. So an unset `GOLDEN_MODE` now means `drift`, the comparison CI
-makes, and `golden.py` hands it straight to `env_drift.py --all`. Ask for the
-exact comparison by name — `GOLDEN_MODE=strict python tests/golden.py` — or by
-naming fixtures, since `--record` and `--only` read the committed files and so
-select strict on their own. `run.sh` *exports* both variables, so when the
-suite picks a mode the child sees the same one; its own default is still
-`strict`, which is the only place the committed fixtures are compared at all.
-
-Five fixtures (`valve_storage_smart_write`, `wood_two_tank`,
-`wood_two_tank_smart_write`, `wood_coil`, `valve_upper_direct_slab`) are the
-non-convex valve/wood solves and do not reproduce across BLAS builds. On such
-machines their exact comparison is meaningless, so **`env_drift.py`** captures
-them twice in the *same* environment — working tree vs a worktree of
-`origin/main` (or any ref) — and requires byte-identity; solver noise cancels
-and only the branch's own footprint remains. With `--all` it does this for
-every fixture, which is how CI checks goldens. A branch that deliberately
-moves fixtures lists them in `tests/golden/claimed_drift.txt` with a reason;
-claimed scenarios print their diffs without failing, and a claim that matched
-nothing fails as a *stale claim* — counted and reported separately from drift,
-since nothing regressed.
-
-That file is committed, so two rules stop a claim from outliving the diff it
-describes. It carries a `# claims-for: <version>` line that must equal the
-repo-root `VERSION` — checked by both `env_drift.py` (before any capture, in
-either mode) and `entities.py` — so a release that moves no goldens still
-bumps the line and empties the list. And under `--all`, the claim list must
-differ from the baseline's: identical names with identical reasons mean the
-list was written for the baseline's diff and carried forward, which the stamp
-alone cannot catch, because it only expires claims when `VERSION` *changes*
-and consecutive commits often share one. An empty list is always fine. A
-docs/roster/plan/workflow-only three-dot must leave both claim files empty
-(header `claims-for:` only); `tests/run.sh` always runs
-`env_drift.py --claims-only` so `GATE_SCOPE=auto` cannot skip that the way it
-skipped `card_drift.mjs` on #493.
-
-The comparison ref must not resolve to `HEAD`. A tree compared against itself
-is identical by construction, so nothing can ever drift and every claim is
-stale; `env_drift.py` refuses that instead of passing, and CI resolves the ref
-with no fallback to `HEAD`. So a run from a checkout that *is* `main` needs a
-real baseline — `GOLDEN_REF=HEAD^1 ./tests/run.sh` — rather than the default
-`origin/main`, which there is this same commit.
-
-Without `--all` only the five sensitive fixtures are captured, so claims
-naming any other scenario are reported there as *not evaluated* rather than
-stale; judging those is `--all`'s job, which is what CI runs.
-
-**Are the committed fixtures still current?** Everything above compares
-computed against computed, so neither side of it is the committed file — and
-because `run.sh` skips `golden.py` in drift mode, and drift is what both CI
-lanes set, until #347 no CI job compared a committed fixture at all. The
-fixtures were guarded against *changing* and not at all against *being wrong*.
-Worse, claiming drift never re-records: a claim excuses a diff between two
-trees and says nothing about the artefact, so every claimed change widened the
-gap for good. `config_flow.json` went two releases that way (#326).
-
-So `env_drift.py` now also judges its own branch capture against the committed
-files, in three levels. **Exact**, for fixtures with no float on either side —
-read off the payload, never a hand-kept list, because a list would rot the way
-the fixtures did; today that is `config_flow` alone. **Structural**, for all
-55: the set of key paths and the JSON type class at each. Both *fail* the
-gate, in the normal lane, because neither depends on the machine. **Values**
-are counted and printed and never failed — those are the runner's own numbers,
-and only the environment that records them all can honestly re-record one.
-The nightly sets `DRIFT_VALUE_REPORT=1` and gets them per fixture.
-
-The structural projection deliberately ignores scalar values *and container
-lengths*, and the second one is measured rather than assumed: at `2ab9b84`
-this machine's capture differs from the committed files in 34 fixtures, and
-key-paths-plus-type-class fires on exactly the six that are genuinely stale.
-Adding list lengths fires on nine — `narrow_band`'s planned DHW hours 18 → 17,
-`wood_coil`'s 13 → 18, `valve_storage_smart_write`'s valve target schedule
-96 → 0 — all of them the solver choosing another plan. List elements collapse
-onto one `[]` path for the same reason, and an empty array on either side
-takes its subtree out of the comparison rather than reading as "the types
-vanished".
-
-`python tests/env_drift.py --fixtures` runs those three levels alone, with no
-reference tree and no baseline capture: what to run before and after
-`golden.py --record`. Given a capture file written earlier by `--capture` it
-re-reads that instead of solving again.
-
-The baseline half of the comparison is the slowest step in the whole suite,
-and it is byte-identical for every branch forked from the same commit, so it
-is cached between runs in `~/.cache/heatpump_optimizer/drift-baseline`
-(outside the repository, so it is never committed; `DRIFT_CACHE_DIR` moves it,
-`DRIFT_NO_CACHE=1` turns it off, `DRIFT_CACHE_KEEP` bounds how many entries
-are kept). The key covers the baseline commit *and* its tree, the SHA-256 of
-`env_drift.py` itself — which is what decides which scenarios are captured and
-how — the capture mode, the interpreter, the full installed distribution
-inventory, numpy's build configuration, the environment variables the capture
-path reads, and a `numeric_probe`: a fixed seeded numpy/scipy workload hashed
-to the last bit, so a swapped BLAS or a rebuilt scipy invalidates the entry by
-measurement rather than by guesswork. A hit prints a banner naming the key and
-the entry it came from, so gate output always says when a baseline was reused.
-`python tests/env_drift.py --cache-key <ref> --all` prints the key a run would
-look up; CI keys `actions/cache` with it on pull requests, where the
-merge-base is stable across pushes.
-
-Reading a cache hit in gate output: the banner is the gate telling you it did
-*not* recompute the baseline. Everything after it — every `ok`, `DRIFT`,
-`CLAIMED` and `may-drift` line — was judged against bytes captured by an
-earlier run on this machine, not against a worktree built just now. The banner
-names the key, the entry file, the commit and tree it stands for, how long ago
-it was captured, and a digest per key component, so you can see what the reuse
-was conditional on. If a result looks wrong and you want the baseline rebuilt
-from scratch to be certain, re-run with `DRIFT_NO_CACHE=1`; the verdict must
-come out identical, and a cold and a warm run of `--all` against the same ref
-have been checked to agree across all 55 scenarios including the five sensitive
-ones. A cache hit never changes how a scenario is judged — it only changes
-where one side of the comparison came from. The branch half is always recaptured, so
-even if the environment moved without moving the key, a mismatched baseline
-shows up as drift — a loud, over-strict failure — rather than as a silent pass.
-
-`--record` re-records from current behaviour. **Read the diff before doing
-that.** A change here is either a bug or a deliberate decision that belongs in
-a commit message; the whole value of the file is that re-recording is a choice
-rather than a reflex.
-
-**`rolling.py` asks "does it hold up in the loop?"** Everything else solves
-once. The integration re-plans every half hour against a house that never quite
-matches its model, and feeds the outcome into learners that then change the
-model. Drift, oscillation and learner divergence only appear there.
-
 ## What each script is for
 
-- **features.py** drives the v2.8.0 feature modules directly: the staleness
-  watchdog, external heat detection, the learned price shape, the capacity
-  tariff, PV surplus pricing, away mode, closed-loop accuracy, the defrost
-  derate, building presets, system identification, comfort learning and the
-  virtual battery. These need mechanism-level tests because their failure mode
-  is a *plausible* plan: a detector that never fires, or a watchdog that lets a
-  flatline through, produces output that looks entirely normal.
-- **entities.py** constructs every entity through the real `async_setup_entry`,
-  so an entity that is written but never registered shows up as missing. It
-  also checks that `PLATFORMS` and `PLATFORM_LIST` agree, that every options
-  menu row has a handler behind it, that `strings.json` and both translations
-  have identical keys, and that the accumulating sensors are
-  `TOTAL_INCREASING` — a `MEASUREMENT` there silently keeps them out of the
-  Energy dashboard with no error anywhere.
-- **ha_contract.py** states what `tests/hastub` owes Home Assistant, and is the
-  only script here whose subject is the stub rather than the integration. It
-  inventories every public stub symbol with a disposition, and carries
-  executable contracts for the ones that make a decision — skipping, defaulting,
-  coercing, raising. The gate runs it against the stub; the `nightly-ha` job
-  runs the *same file* inside the Home Assistant container against the real
-  package and compares the two. See "The Home Assistant stub" above.
-- **validate.py** runs single-zone and two-zone houses through winter, summer
-  and shoulder conditions, with and without hot water, and checks solver
-  status, power bounds, per-step comfort bounds, savings range, hot water
-  availability during demand windows, how much energy lands in the most
-  expensive quarter of the day, that no heating step lacks a reason code, and
-  that plans do not chatter. It prints `NO ISSUES` when everything holds, and
-  reports compressor starts and projected peak per scenario.
-- **edge.py** covers single-step and 48 hour horizons, flat/zero/negative
-  prices, -25 °C and storm conditions, starting outside the comfort band, an
-  overdue legionella cycle, a 1500 L tank, and a collapsed comfort range.
-- **golden.py** pins exact behaviour; see above.
-- **stress.py** sweeps 48 combinations of season, building archetype, zoning
-  and feature flags, plus 17 edge conditions, and checks three families of
-  invariant: physical (power in bounds, tank not boiled, energy conserved),
-  economic (cheaper than a thermostat where there is spread to exploit, costs
-  reconcile with the schedule, the README's comfort-weight table still holds)
-  and comfort (the floor respected to within what the soft penalty allows, and
-  never worse than running flat out would achieve — an undersized pump in a
-  leaky house cannot hold the floor, and blaming the optimizer for that would
-  be blaming it for physics). This sweep found three real defects: a capacity
-  tariff that raised the peak it was meant to lower, a tariff term that dwarfed
-  the energy cost on a fresh install, and DHW planners that could push the tank
-  past its rating. Its solve-time guard is denominated in **CPU time**, not
-  wall clock, and normalised against a reference solve. An absolute wall-clock
-  budget cannot tell a slower solver from a busier machine, and on a shared box
-  it answers the second question — it produced five false failures in one day,
-  once on pristine `main` with worse timings than the branch under test, and a
-  clean run of this file recorded its dearest scenario at 87,977 ms against the
-  90,000 ms the release gate allows: two seconds of headroom on code that had
-  changed nothing. Measured here by adding three CPU hogs mid-run, a scenario's
-  wall time moved 3.08× while its CPU time moved 0.99×; only one of those is
-  about the code. A fixed reference solve (defined in `stress.py`, so no change
-  to the integration can move it) is timed beside every scenario and the ratio
-  of CPU times is budgeted: `STRESS_SOLVE_RATIO` per scenario, and
-  `STRESS_SWEEP_RATIO` for the sweep as a whole on a much tighter margin, which
-  is what catches a change that made everything moderately slower.
+Most scripts here carry a module docstring stating what they drive and why they
+exist. Read it in the file; what follows is only what a script does not say
+about itself.
 
-  Two things the run states out loud rather than assuming. `time.process_time()`
-  sums CPU over every thread, so a threaded BLAS inflates it; the ratio only
-  cancels that if the reference and the scenarios are parallelised alike, so the
-  run measures both thread factors and **fails** if they diverge, telling you to
-  pin `OMP_NUM_THREADS=1`/`OPENBLAS_NUM_THREADS=1` or recalibrate. And
-  `STRESS_SOLVE_CEILING_MS` stays on the *wall* clock and is not redundant: a
-  CPU budget is blind to a regression that makes the solver block rather than
-  compute — a lock, an I/O stall, a retry loop, a solve that never returns.
-  `STRESS_SOLVE_BUDGET_MS` is retired; a run that sets it says so.
-
-  Every budget here is checked from **both** sides. "Is the run slower than its
-  budget" is only half the question; the other half is "could this budget ever
-  notice", and for two releases the answer was no — the two global ratios were
-  sized when the dearest scenario cost 655× the reference, the batched jacobian
-  then made every combination 10–20× cheaper, and nobody brought the budgets
-  back down. An injected exact 2× regression tripped neither of them (#287). So
-  a run now also fails when no budget is within `STRESS_DETECTION_TARGET`
-  (default 2) of the cost it was **recorded** against, so widening a budget to
-  make a red run pass turns the run red somewhere else.
-
-  Recorded, not observed, and that was executed rather than reasoned: the first
-  version compared budgets to the run's own figures and false-failed on CI,
-  because the ratio does not travel. The same scenario costs 1.08× more on a
-  GitHub runner than on the M1 while the tiny reference solve costs 1.85× more,
-  so every ratio compresses by up to 1.7× there. A budget is a property of the
-  recording; an observation is a property of the machine. Both headrooms are
-  printed every run.
-
-  The **sweep** budget is what carries that 2× requirement, and the
-  per-scenario factor deliberately does not. CI ran `shoulder/tariff+cycle` at
-  352.7× its reference against a recorded 154.4× — 2.28× the *work*, on a
-  runner whose own reference solve was steady to a millisecond — so the
-  multi-start solver had landed in another basin. Some scenarios' cost is
-  bimodal across platforms, no per-scenario budget under about 2.3× is portable,
-  and totals average that away where a single scenario cannot.
-
-  The sweep also samples the **zero-range-bound** path (#286): three scenarios
-  pass a `power_caps_extra` fuse cap or a forced-off `space_pins` step, which is
-  what a fuse guard and a manual plan pass in production. Before those three,
-  nothing in `stress.py` or `optimality.py` had ever passed either argument, so
-  a whole class of regression was not under-budgeted but unsampled — measured
-  across #317, which fixed it, the same three scenarios cost 68.0×/34.5×/54.1×
-  their reference before and 7.4×/5.5×/4.3× after. They are what would notice
-  if that fix were ever reverted. `optimality.py` carries the quality half: a
-  plan built with a fixed variable in it must still meet the comfort floor,
-  honour its pin, and not be routed by a trivial challenger — a gradient that
-  returns NaN at a fixed variable makes the solver give up at iteration zero,
-  which is *faster*, so cost alone would never see it.
-- **rolling.py** drives the real re-planning cycle for several simulated days
-  against a plant deliberately mismatched from the optimizer's model, and is
-  the only test that exercises the self-learning heat-loss correction against a
-  house that genuinely differs from its model. It drives the coordinator's own
-  estimator rather than a copy of its arithmetic, because a test that
-  reimplements a learner only proves the reimplementation works.
-- **backtest.py** replays the same house, prices and weather through the
-  optimizer, an always-on thermostat, a hand-written night-tariff schedule and
-  a price-only greedy schedule, and scores each on cost *and* on degree-hours
-  below the comfort floor. It also reconciles the savings the integration
-  reports with the savings the replay measures, so the dashboard figure is the
-  same quantity a user would compute themselves. A cheaper strategy only counts
-  as a competitor if it is also comfortable.
-- **optimality.py** is a solution-quality floor. It compares the optimizer
-  against a greedy cheapest-hours schedule with the same total energy and
-  against 300 comfort-preserving random perturbations, and fails if either
-  finds a materially cheaper comfortable plan — the margin says "the solver
-  missed its basin", with headroom over the measured gap so solver noise
-  cannot trip it. The challengers price energy only, not the full objective
-  (comfort pull, cycling), so a small measured gap on the two-zone house is
-  expected and documented in the file.
-- **plan_view.py** runs a winter scenario and builds the payloads the two plan
-  sensors publish, checking that the slot summaries reconcile with the raw step
-  schedule and that every heating step carries a reason code and price
-  provenance. It writes the result to `HPO_PLANDATA`, which defaults to
-  `/tmp/plandata-<sha256(tests dir)[:12]>.json` (a per-checkout path, so two
-  worktrees never collide); `card.mjs` alone falls back to an unhashed
-  default under `/tmp` with a warning if the variable is unset, but every
-  other Node harness requires it.
+- **validate.py**, **edge.py** and **plan_view.py** carry no docstring, so this
+  is the only description of them. `validate.py` runs single-zone and two-zone
+  houses through winter, summer and shoulder conditions, with and without hot
+  water, and checks solver status, power bounds, per-step comfort bounds,
+  savings range, hot water availability during demand windows, how much energy
+  lands in the most expensive quarter of the day, that no heating step lacks a
+  reason code, and that plans do not chatter; it prints `NO ISSUES` when
+  everything holds, and reports compressor starts and projected peak per
+  scenario. `edge.py` covers single-step and 48 hour horizons,
+  flat/zero/negative prices, -25 °C and storm conditions, starting outside the
+  comfort band, an overdue legionella cycle, a 1500 L tank, and a collapsed
+  comfort range. `plan_view.py` runs a winter scenario and builds the payloads
+  the two plan sensors publish, checking that the slot summaries reconcile with
+  the raw step schedule and that every heating step carries a reason code and
+  price provenance; it writes the result to `HPO_PLANDATA`, which defaults to
+  `/tmp/plandata-<sha256(tests dir)[:12]>.json` — a per-checkout path, so two
+  worktrees never collide. `card.mjs` alone falls back to an unhashed default
+  under `/tmp` with a warning if the variable is unset; every other Node
+  harness requires it.
+- **stress.py**'s budgets and the reasoning behind every constant in them live
+  in the `#:` comments beside the constants: why the solve-time guard is
+  denominated in CPU time rather than wall clock, why `STRESS_SOLVE_CEILING_MS`
+  stays on the wall clock and is not redundant, why every budget is checked
+  from *both* sides against `STRESS_DETECTION_TARGET`, why a budget is a
+  property of the recording and an observation a property of the machine, why
+  the per-scenario factor is not portable under about 2.3× where the sweep
+  ratio is, and the zero-range-bound scenarios (#286/#287) that were unsampled
+  rather than under-budgeted. Read them there: a second copy of a budget's
+  rationale is how a budget gets widened without its reason being reread.
+  `optimality.py` carries the quality half of that sampling — a plan built with
+  a fixed variable in it must still meet the comfort floor, honour its pin, and
+  not be routed by a trivial challenger; a gradient that returns NaN at a fixed
+  variable makes the solver give up at iteration zero, which is *faster*, so
+  cost alone would never see it.
+- **backtest.py**'s docstring names its three baselines. Not there: it also
+  reconciles the savings the integration reports with the savings the replay
+  measures, so the dashboard figure is the same quantity a user would compute
+  themselves.
 - **frontend.py** checks how the card reaches the browser: that a missing
   resource is created, a stale cache-busting query is refreshed rather than
   left to serve a cached card, a duplicate copy installed elsewhere is
@@ -714,26 +418,14 @@ model. Drift, oscillation and learner divergence only appear there.
   payload written by `plan_view.py`. The stub *parses* `innerHTML` rather than
   merely storing it: the card queries its own output for the controls it then
   wires up, so a stub that keeps the markup as an opaque string skips every one
-  of those paths and reports a pass. It checks the seven series, entity
-  discovery by `plan_kind`, the expanded dialog, legend scaling in the popup,
-  reason codes in the tooltip, the shading of estimated prices, and the what-if
-  simulator's debounce and error handling.
-- **card_drift.mjs** is the card's markup gate, the `env_drift.py` idea
-  applied to the dashboard card. It runs the working tree's card and the
-  comparison ref's card (`git show`, the card is one file) through the same
-  twenty-odd states -- inline, expanded, zoomed, a dirty slot draft with its
-  menu open, an edited what-if draft, an override in force, the tooltip,
-  the three QA topologies' setup pages, a layout drag, a filtered entity
-  picker, the config editor's schema -- in one process, against the same
-  payload and the same frozen clock, and requires every rendered tree to be
-  byte-identical. A state that moves must be claimed, with a reason, in
-  `tests/golden/card_claimed_drift.txt`, whose `claims-for:` stamp must equal
-  `VERSION` (checked by `card.mjs` too, so a strict local run without a ref
-  still sees a stale stamp). Differential rather than golden-based because a
-  committed rendering would move with Node's ICU, the time zone and every
-  optimizer change; two cards in one process share all of those. `run.sh`
-  skips it when `GOLDEN_REF` is unreachable or is this commit, exactly as it
-  does for `env_drift.py`.
+  of those paths and reports a pass.
+- **card_drift.mjs** is the card's markup gate; its header states what it
+  renders, why it is differential rather than golden-based, and that a moved
+  state must be claimed in `tests/golden/card_claimed_drift.txt`. Not there:
+  `card.mjs` checks that file's `claims-for:` stamp too, so a strict local run
+  without a ref still sees a stale stamp, and `run.sh` skips `card_drift.mjs`
+  when `GOLDEN_REF` is unreachable or is this commit, exactly as it does for
+  `env_drift.py`.
 - **setup_qa_render.mjs** renders the three setup-page topologies to SVGs in
   `../setup-qa/`, outside the repository, for a designer to eyeball — but it
   is a wired check, not a manual errand. It is `run` from the card lane
@@ -745,46 +437,13 @@ model. Drift, oscillation and learner divergence only appear there.
 Some files in `tests/` are not tests at all and are excluded from the "every
 script must be wired into `run.sh`" accounting. The exclusion list lives in
 `tests/run.sh`'s `UNWIRED TEST` loop, with a reason on each entry — read it
-there rather than from the copy below, which is what any list here can only
-be. What the notable ones are for:
-
-- **dom_stub.mjs** is the DOM the Node card harnesses run against (#101),
-  and **card_rig.mjs** the rest of what they share: the vm context around
-  that stub, the plan-sensor states built from `plan_view.py`'s payload,
-  the three setup-page topologies, the frozen clock, and the claim-file
-  parser `card.mjs` and `card_drift.mjs` both use. One copy, three
-  importers, for the reason #101 records. **node_fs_trace.mjs** sits beside
-  them as the Darwin `--import` recorder, not a harness of its own.
-- **harness.py** and **profiles.py** are shared fixtures the unit-style and
-  end-to-end scripts import — fakes and price/weather profiles, not scripts
-  with assertions of their own; see "What each script is for" below for what
-  each holds.
-- **dst_checks.py** is a real check, but `features.py` runs it in a
-  subprocess: `HASTUB_TZ` must be set before the `dt` stub is imported, which
-  an in-process import cannot arrange. It is reached through `features.py`,
-  never wired on its own.
-- **card_browser.mjs** is a real test — the only one that exercises the card
-  in an actual browser rather than a DOM stub — but it runs in its own
-  `browser` CI job, not this gate's scoped selection; see "Note on browser
-  checks" below.
-- **nightly_ha.py** is the same shape (#521): a real test that runs the
-  integration inside a real Home Assistant container, in its own nightly job
-  that pulls the image. Docker is not available to this suite, and it must
-  never gate a pull request.
-- **closure.py** is the scoping instrument. It runs the tests in order to
-  measure what they touch, derives each one's dependency closure, folds the
-  records into `tests/closures.json`, decides what a given diff needs, and
-  (`closure.py check`) fails when the committed closures miss something a real
-  run touched. Wiring it into the suite would make the suite run itself.
-- **gate_lock.py** is the renewed-lease gate lock (#404): take, renew, release,
-  and status for `/tmp/hpo-gate.lock`. Expired and abandoned holds are stolen
-  so a waiter can take after crash or expiry. Agents invoke it directly;
-  `run.sh` renews the lease and holds `flock` when `HPO_GATE_LOCK_LABEL` is set.
-
-Not excluded, because it was never in scope for the check: **derive_closures.sh**
-drives `closure.py` across every script, in three lanes, and rewrites
-`tests/closures.json`. The loop globs `tests/*.py tests/*.mjs`, so a `.sh` is
-not a candidate for wiring in the first place. See "The scoped gate" above.
+there rather than from a copy. Two of those reasons constrain what you may do
+here rather than only explaining an exclusion: `card_browser.mjs` and
+`nightly_ha.py` are real tests that this gate must never run — Chromium and
+Docker are not available to it — and neither may gate a pull request; see "Note
+on browser checks" below for where the first one runs instead.
+`derive_closures.sh` is not excluded because it was never in scope: the loop
+globs `tests/*.py tests/*.mjs`, so a `.sh` is not a candidate for wiring.
 
 ## Note on browser checks
 
