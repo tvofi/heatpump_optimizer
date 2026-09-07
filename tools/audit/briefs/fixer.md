@@ -18,7 +18,15 @@ production lines. You work in your own worktree branched from `origin/main`.
    the closure, paste the failing check names, restore.
 3. **Re-execute the finding's harness on your branch**: before and after, with
    the head SHA measured, in the PR body. A cost, gain or time claim carries
-   its null control. A learner or guard change is measured at both ends of
+   its null control. **Every quantified claim carries one, not only cost, gain
+   and time**: a count, a percentage, a coverage figure, a population, an
+   "every" or a "none" is a measurement, owed the command that produced it and
+   the result that would have appeared had it been false. **Never print a
+   conclusion beside a command** — `diff a b && echo IDENTICAL`, never
+   `diff a b; echo "(empty means identical)"`, which prints either way. A figure
+   from a sliding window — a paged listing, a "top N" — decays after you write
+   it: state the rule that reproduces it, not the number. A learner or guard
+   change is measured at both ends of
    its input range — an install with zero evidence, and one sitting on the
    clamp — because a fix has been worse than its bug before, silently.
 4. **Goldens that move are claimed by whoever measured the drift**, in
