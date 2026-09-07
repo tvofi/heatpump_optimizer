@@ -65,9 +65,7 @@ its bug. You are checking that the numbers are real.
     verdict, and check it is still the head when you post it. A branch that
     moved under you means some of your numbers describe a tree that no longer
     exists: say which survive and which you re-took, rather than letting the
-    verdict imply all of them were taken at the head it names. Restricting the
-    three-dot diff to the production paths and comparing it across the two heads
-    is usually enough to show what moved.
+    verdict imply all of them were taken at the head it names.
 
     Step 7 is not this check. It compares the SHA in the body against what you
     measured, and a branch that moved after the body was written passes it. This
@@ -128,4 +126,6 @@ its bug. You are checking that the numbers are real.
     Blocking on the status field alone makes every review a race with `main`,
     which no branch can win.
 
-Return a verdict (`merge` / `blocked: <what>`) with your RESULT lines.
+Return a verdict with your RESULT lines, in the exact shape your dispatch
+prompt gives: `.claude/workflows/web-fix-wave.js` parses the comment's first
+line and routes on it, so one that does not parse is recorded blocked.

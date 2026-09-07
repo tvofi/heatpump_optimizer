@@ -149,9 +149,87 @@ if (!groups.length || !repo || !fork) throw new Error('args.groups, args.repo an
 // exists only in one orchestrator's head. groupsFile names it; Reconcile below
 // reads it from the repo and refuses if what was passed does not match.
 if (!groupsFile) throw new Error('args.groupsFile is required: a wave runs from a committed roster (e.g. .claude/workflows/wave-1b-groups.json), so the briefs survive the session that wrote them')
+// THE STAGE VOCABULARY, DEFINED ONCE. The committed rosters and this script had
+// drifted into two vocabularies sharing ONE word: the script branched on
+// fix/merge/review/done, the rosters carried pending/in-review/blocked/done, and
+// 29 of 84 groups therefore fell through to the fresh-fixer branch -- which
+// re-opens merged work and hands a reviewer a head nobody measured. `fix`,
+// `merge` and `review` appeared in no roster at all.
+//
+// Both spellings are accepted and normalised, rather than the rosters renamed:
+// a roster is a record of what happened, and rewriting one to suit the script is
+// how the record stops being evidence. `pending` normalises to null, which is
+// the fresh-fixer path -- the same outcome as before, but reached deliberately.
+const STAGE_ALIASES = { 'in-review': 'review', pending: null }
+const KNOWN_STAGES = ['done', 'merge', 'review', 'fix', 'blocked', 'in-review', 'pending']
+const normaliseStage = (raw) =>
+  raw == null ? null : raw in STAGE_ALIASES ? STAGE_ALIASES[raw] : raw
+
+// THE VERDICT GRAMMAR. `fix-review.md` told a reviewer to return
+// "Fix review: blocked - <why>", and no script read the reason: every non-merge
+// verdict was one undifferentiated "not merged", so an orchestrator could not
+// tell a vacuous mutation proof from a head that moved under the review, and
+// the root-cause seat both other contracts delegate to was dispatched by
+// nothing at all. A class is the smallest thing that makes a blocked verdict
+// actionable by a script rather than only by a reader.
+const VERDICT_CLASSES = [
+  'mutation-vacuous', 'harness', 'null-control', 'claims', 'version',
+  'head-moved', 'carry-missing', 'root-cause-unanswered', 'preflight-mismatch',
+  'conflict', 'other',
+]
+// A class that means the fix is sound but the PROCESS owes an answer. The
+// root-cause seat runs beside a fix and never inside it (root-cause.md), so it
+// is dispatched here rather than folded into the repair.
+const ROOT_CAUSE_CLASSES = ['root-cause-unanswered']
+
+const VERDICT_RE = new RegExp(
+  `^Fix review:\\s+(?:(merge)\\s+(\\S+)|(blocked)\\s+(\\S+)\\s+(${VERDICT_CLASSES.join('|')}):\\s*(.+))$`
+)
+
+// Throws on anything that does not parse. Called from inside the per-group
+// fan-out, where a throw is swallowed, so runGroup catches it and records the
+// raw text -- the failure mode to avoid is a verdict nobody can read being
+// treated as a merge, not a wave that stops.
+function parseVerdict(review) {
+  const raw = (review?.comment ?? review?.verdict ?? '').toString().trim().split('\n')[0]
+  const m = VERDICT_RE.exec(raw)
+  if (!m) {
+    throw new Error(
+      `verdict does not parse: ${JSON.stringify(raw.slice(0, 200))}. ` +
+        'Expected "Fix review: merge <sha>" or "Fix review: blocked <sha> <class>: <why>", ' +
+        `class one of ${VERDICT_CLASSES.join(', ')}.`
+    )
+  }
+  const parsed = m[1]
+    ? { verdict: 'merge', head_sha: m[2], class: null, why: null }
+    : { verdict: 'blocked', head_sha: m[4], class: m[5], why: m[6].trim() }
+  const field = review?.verdict
+  if (field && field !== parsed.verdict) {
+    throw new Error(
+      `verdict disagrees with itself: the schema field says ${JSON.stringify(field)} ` +
+        `and the comment's first line says ${JSON.stringify(parsed.verdict)}. ` +
+        'Neither is acted on; a reviewer whose two answers differ has not given one.'
+    )
+  }
+  return parsed
+}
+
 for (const g of groups) {
   if (!g.group || !g.issues?.length || !g.brief) throw new Error(`every group needs group, issues and brief (${g.group ?? '?'})`)
   if (!tierOk(g.fixerModel ?? 'opus', g.reviewerModel ?? 'opus')) throw new Error(`${g.group}: a reviewer below the fixer measures nothing`)
+  // Checked HERE, before Reconcile and before a single agent is spent, not
+  // inside the per-group function: parallel() settles its thunks, so a throw
+  // down there is swallowed into one null result and the wave carries on
+  // having silently skipped the group. An unrecognised stage has to fail the
+  // wave, because falling through to a fresh fixer is the one outcome that
+  // destroys work that already exists.
+  const raw = g.resume?.stage ?? null
+  if (raw !== null && !KNOWN_STAGES.includes(raw)) {
+    throw new Error(
+      `${g.group}: resume.stage "${raw}" is not one of ${KNOWN_STAGES.join(', ')}. ` +
+        'Refusing rather than starting a fresh fixer, which would duplicate or clobber the work this stage describes.'
+    )
+  }
 }
 
 const RESUMED = (g) => g.resume?.stage === 'fix' ? `THIS GROUP IS BEING RESUMED. An earlier fixer stopped after pushing ${g.resume.pushed_sha} to claude-web/${g.group.toLowerCase()}: ${g.resume.what}. That work is NOT lost and is NOT yours to redo -- the worktree command below re-attaches to that branch. Read the pushed diff first (git log origin/main..HEAD, git diff origin/main...HEAD) and continue from it. What is still missing: ${g.resume.missing}` : ''
@@ -166,7 +244,15 @@ Return {pr, head_sha, summary} where pr is the PR NUMBER as an integer. If you c
 
 const reviewerPrompt = (g, fix, round) => `You are the adversarial fix reviewer for PR #${fix.pr} (group ${g.group}, head ${fix.head_sha}), in a fresh context. ${GH} ${WT_REVIEW(g.group + '-' + round, fix.head_sha)}
 Read tools/audit/briefs/fix-review.md and follow it. You are not checking that the code looks right; four implementations on this project looked right and were wrong, one worse than its bug. Check that the numbers are real: re-run the mutation proof the body names and confirm those checks fail; measure with the FINDER's harness rather than the fixer's, at ${fork} and at ${fix.head_sha}, printing your own RESULT lines; re-run every null control and both-ends check the body claims; run env_drift.py --all (and card_drift.mjs for card changes) against the merge base and confirm every moved fixture is claimed, every claim moved, and no may-drift fixture is claimed; run python3 tests/structure.py against origin/main's budgets and require any loosened metric to be named and argued in the body; confirm VERSION, the manifest and the notes heading are untouched; attack the fix at other topologies, other price profiles and the zero-evidence install; confirm the head SHA in the body is the head you measured. ${GATE}
-Post your verdict as a PR comment beginning "Fix review: merge" or "Fix review: blocked — <why>", with your RESULT lines. Return {verdict, comment}.`
+Post your verdict as a PR comment whose FIRST LINE is exactly "Fix review: merge ${fix.head_sha}" or "Fix review: blocked ${fix.head_sha} <class>: <why>", where <class> is one of ${VERDICT_CLASSES.join(', ')}; your RESULT lines follow it. The class is read by a script, so a blocked verdict without one is unreadable and is treated as blocked with no route to a repair. Use root-cause-unanswered when the fix itself is sound but the branch turned a check red and the body does not name the cheaper detector or record that none exists -- that dispatches the root-cause seat rather than another repair round. Return {verdict, comment} where comment's first line is that same line.`
+
+// The root-cause seat: its own context, beside the fix and never inside it, per
+// tools/audit/briefs/root-cause.md. Until now the contracts named it and no
+// script started one.
+const rootCausePrompt = (g, fix, v) => `You are the root-cause seat for PR #${fix.pr} (group ${g.group}, head ${fix.head_sha}), in a fresh context. ${GH} ${WT_REVIEW(g.group + '-rootcause', fix.head_sha)}
+Read tools/audit/briefs/root-cause.md and .cursor/rules/defect-root-cause.mdc, then follow the contract. The reviewer blocked this PR as ${v.class}: ${v.why}
+You do not fix the defect and you do not review the fix. You owe: the named cause; which of the four process states it is in (the process did not exist, existed and was not followed, was followed and did not work, was sound and its preconditions changed); a cost test measuring the class's recurrence against the standing cost of the countermeasure; and either a countermeasure demonstrated failing on the defect it was written for, or a recorded refusal saying none pays for itself. A recorded refusal is a legitimate result.
+Post it as a PR comment beginning "Root cause:" and return {cause, state, countermeasure, comment}.`
 
 // ---------------------------------------------------------------------------
 // RECONCILE, and fail closed. A roster records what WAS true when someone wrote
@@ -258,7 +344,16 @@ const runGroup = async (g) => {
   const ef = g.effort ?? 'high'
   const FIX = { type: 'object', required: ['pr', 'head_sha'],
     properties: { pr: { type: ['integer', 'null'] }, head_sha: { type: ['string', 'null'] } } }
-  const VERDICT = { type: 'object', required: ['verdict'] }
+  // `pattern` on the verdict is the schema half; the grammar of the COMMENT's
+  // first line is the half a script actually reads, and parseVerdict enforces it.
+  const VERDICT = {
+    type: 'object',
+    required: ['verdict', 'comment'],
+    properties: {
+      verdict: { type: 'string', pattern: '^(merge|blocked)$' },
+      comment: { type: 'string' },
+    },
+  }
 
   // A group whose PR is already open -- because an earlier run of this wave was
   // killed after the fixer finished -- starts at the ADVERSARIAL REVIEWER. Re-running
@@ -268,7 +363,18 @@ const runGroup = async (g) => {
   // continuing from a pushed branch rather than starting clean.
   // stage 'done': already merged. It stays in the roster so the group list is
   // complete, but running it again would re-open finished work.
-  if (g.resume?.stage === 'done') {
+  const stage = normaliseStage(g.resume?.stage ?? null)
+
+  // stage 'blocked': a reviewer returned a blocked verdict and nobody has acted
+  // on it. A fresh fixer would not see the verdict, so this is the orchestrator's
+  // to resolve; the wave records it and moves on rather than guessing.
+  if (stage === 'blocked') {
+    log(`${g.group}: resume.stage is blocked -- ${g.resume.note ?? 'no note'} -- skipping, the orchestrator resolves a blocked group`)
+    return { group: g.group, issues: g.issues, pr: g.resume.pr ?? g.resume.open_pr ?? null,
+      head_sha: g.resume.head_sha ?? null, merged: false, skipped: 'blocked', reason: g.resume.note ?? 'blocked' }
+  }
+
+  if (stage === 'done') {
     log(`${g.group}: already merged as PR #${g.resume.merged_pr} (${g.resume.merge_sha}) -- skipping`)
     return { group: g.group, issues: g.issues, pr: g.resume.merged_pr, head_sha: g.resume.merge_sha,
       verdict: 'merge', merged: true, green: true, sha: g.resume.merge_sha, skipped: 'already merged' }
@@ -276,13 +382,15 @@ const runGroup = async (g) => {
   let fix
   // stage 'merge': a reviewer already returned merge at THIS head, so re-reviewing
   // spends a reviewer to re-derive a verdict that is already on the PR.
-  if (g.resume?.stage === 'merge') {
+  if (stage === 'merge') {
     fix = { pr: g.resume.pr, head_sha: g.resume.head_sha }
     log(`${g.group}: resuming at merge -- PR #${fix.pr} at ${fix.head_sha} is already reviewed`)
     return await mergeGroup(g, fix)
   }
-  if (g.resume?.stage === 'review') {
-    fix = { pr: g.resume.pr, head_sha: g.resume.head_sha }
+  if (stage === 'review') {
+    // wave-5 records the number under `open_pr`, wave-1b under `pr`. Reading
+    // only one of them handed the reviewer `pr: undefined`.
+    fix = { pr: g.resume.pr ?? g.resume.open_pr, head_sha: g.resume.head_sha }
     log(`${g.group}: resuming at review -- PR #${fix.pr} at ${fix.head_sha}`)
   } else {
     fix = await agent(fixerPrompt(g), { model: fm, effort: ef, label: `fix ${g.group}`, phase: 'Wave', schema: FIX })
@@ -296,17 +404,51 @@ const runGroup = async (g) => {
       merged: false, reason: `fixer opened no PR after one retry: ${JSON.stringify(fix?.pr ?? null).slice(0, 300)}` }
   }
 
+  // A blocked group leaves a roster patch behind it. The orchestrator applies it
+  // in the record PR, so the next wave resumes at `blocked` and does not spend a
+  // fresh fixer on work a reviewer has already ruled on.
+  const blockedResult = (v, note) => ({
+    group: g.group, issues: g.issues, pr: fix.pr, head_sha: fix.head_sha,
+    verdict: 'blocked', class: v?.class ?? 'other', why: v?.why ?? note ?? null, merged: false,
+    rosterPatch: { stage: 'blocked', pr: fix.pr, head_sha: fix.head_sha, class: v?.class ?? 'other', note: v?.why ?? note ?? null },
+  })
+
+  // An unparseable verdict is recorded, never merged and never retried as if it
+  // were a repair request: a reviewer whose verdict cannot be read has not
+  // approved anything, and guessing which it meant is how a bad head merges.
+  const readVerdict = (review, round) => {
+    try {
+      return parseVerdict(review)
+    } catch (e) {
+      log(`${g.group}: round ${round} verdict unreadable -- ${e.message}`)
+      return { verdict: 'blocked', class: 'other', why: `unparseable verdict: ${e.message}`, unparseable: true }
+    }
+  }
+
   let review = await agent(reviewerPrompt(g, fix, 1), { model: rm, effort: 'high', label: `review ${g.group}`, phase: 'Wave', schema: VERDICT })
-  if (review && review.verdict !== 'merge') {
-    const repaired = await agent(fixerPrompt(g, review.comment ?? review.verdict), { model: fm, effort: ef, label: `repair ${g.group}`, phase: 'Wave', schema: FIX })
+  let v = review ? readVerdict(review, 1) : { verdict: 'blocked', class: 'other', why: 'reviewer returned null' }
+
+  // A blocked class that names a PROCESS debt is not repaired by another fixer
+  // round; it is answered by the root-cause seat, which runs beside the fix.
+  if (v.verdict === 'blocked' && ROOT_CAUSE_CLASSES.includes(v.class)) {
+    const rc = await agent(rootCausePrompt(g, fix, v), { model: rm, effort: 'high', label: `root-cause ${g.group}`, phase: 'Wave',
+      schema: { type: 'object', required: ['cause', 'state'], properties: { cause: { type: 'string' }, state: { type: 'string' }, countermeasure: { type: ['string', 'null'] }, comment: { type: ['string', 'null'] } } } })
+    log(`${g.group}: root-cause seat returned ${rc ? `${rc.state}: ${rc.cause}` : 'nothing'}`)
+    return { ...blockedResult(v), rootCause: rc ?? null }
+  }
+
+  if (v.verdict === 'blocked' && !v.unparseable) {
+    const repaired = await agent(fixerPrompt(g, review?.comment ?? `${v.class}: ${v.why}`), { model: fm, effort: ef, label: `repair ${g.group}`, phase: 'Wave', schema: FIX })
     if (repaired?.head_sha) {
       fix = repaired
       review = await agent(reviewerPrompt(g, fix, 2), { model: rm, effort: 'high', label: `re-review ${g.group}`, phase: 'Wave', schema: VERDICT })
+      v = review ? readVerdict(review, 2) : { verdict: 'blocked', class: 'other', why: 'reviewer returned null' }
     }
   }
-  if (review?.verdict !== 'merge') {
-    log(`${g.group}: not merged -- ${review?.verdict ?? 'reviewer returned null'}`)
-    return { group: g.group, issues: g.issues, pr: fix.pr, head_sha: fix.head_sha, verdict: review?.verdict ?? null, merged: false }
+
+  if (v.verdict !== 'merge') {
+    log(`${g.group}: not merged -- ${v.class}: ${v.why}`)
+    return blockedResult(v)
   }
 
   return await mergeGroup(g, fix)

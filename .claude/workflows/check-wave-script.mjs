@@ -15,10 +15,9 @@
 // web-fix-wave.js -- the Reconcile gate and the resume stages are the machinery
 // a wave resume rests on, and both shipped once without ever having been run.
 //
-// Wiring it into CI is the honest follow-up: the precedent is tests/
-// card_browser.mjs, which is INERT and driven by its own never-scoped `browser`
-// job. A `roster` job in the same shape would make this enforced instead of
-// remembered.
+// It is now wired into CI as the `wave-script` job in .github/workflows/
+// governance.yml, on the tests/card_browser.mjs precedent: INERT, driven by a
+// never-scoped job. It was the last file in that position running by hand only.
 
 import fs from 'node:fs'
 import path from 'node:path'
@@ -49,7 +48,19 @@ async function run({ groups, groupsFile, reconResult, agentImpl }) {
 const G = (group, resume) => ({ group, issues: [1], brief: 'b', resume })
 const OK = { provenance_ok: true, groups: [{ group: 'g', matches: true, observed: 'x' }], mismatches: [], summary: 'ok' }
 let pass = 0, fail = 0
+// JSON.stringify(undefined) is undefined, not a string, so `.slice` on it
+// throws and kills the run at whichever assertion happened to be first -- and a
+// harness that stops reporting halfway is worse than one that reports a FAIL.
+// This is exactly how the control run for the verdict grammar died.
+const J = (x) => JSON.stringify(x ?? null) ?? 'undefined'
 const t = (n, c, d = '') => { c ? (pass++, console.log('  ok   ' + n)) : (fail++, console.log('  FAIL ' + n + ' ' + d)) }
+// A block that throws reports as a failure, never as a truncated run. Every
+// grouped assertion below runs inside it: without that the first unexpected
+// throw ends the process and the remaining assertions are silently unreported,
+// which is indistinguishable from their having passed.
+const block = async (label, fn) => {
+  try { await fn() } catch (e) { fail++; console.log(`  FAIL ${label} threw: ${e.message.slice(0, 120)}`) }
+}
 const throws = async (n, re, opts) => {
   try { await run(opts); t(n, false, 'did not throw') }
   catch (e) { t(n, re.test(e.message), e.message.slice(0, 90)) }
@@ -66,29 +77,159 @@ await throws('a reconciler that returns nothing stops the wave', /unverified ros
   { groups: [G('A')], groupsFile: 'r.json', reconResult: null })
 
 console.log('-- Resume stages')
-{
+await block('group 1', async () => {
   const { out, calls } = await run({ groups: [G('A', { stage: 'done', merged_pr: 383, merge_sha: 'b0703f7' })], groupsFile: 'r.json', reconResult: OK })
-  t('stage done reports merged and spends no agent', out.results[0].merged === true && out.results[0].pr === 383 && calls.filter((c) => !c.startsWith('reconcile')).length === 0, JSON.stringify(calls))
-}
-{
+  t('stage done reports merged and spends no agent', out.results[0].merged === true && out.results[0].pr === 383 && calls.filter((c) => !c.startsWith('reconcile')).length === 0, J(calls))
+})
+await block('group 2', async () => {
   const { calls } = await run({
     groups: [G('A', { stage: 'merge', pr: 385, head_sha: 'bf9bda6' })], groupsFile: 'r.json', reconResult: OK,
     agentImpl: async (p, o) => o.label.startsWith('merge') ? { merged: true, sha: 'm1' } : o.label.startsWith('main after') ? { green: true } : null })
-  t('stage merge skips fixer AND reviewer', !calls.some((c) => c.startsWith('fix ') || c.startsWith('review ')) && calls.some((c) => c.startsWith('merge ')), JSON.stringify(calls))
-}
-{
+  t('stage merge skips fixer AND reviewer', !calls.some((c) => c.startsWith('fix ') || c.startsWith('review ')) && calls.some((c) => c.startsWith('merge ')), J(calls))
+})
+await block('group 3', async () => {
   const { calls } = await run({
     groups: [G('A', { stage: 'review', pr: 384, head_sha: 'f1063e2' })], groupsFile: 'r.json', reconResult: OK,
-    agentImpl: async (p, o) => o.label.startsWith('review') ? { verdict: 'blocked: x' } : null })
-  t('stage review skips the fixer only', !calls.some((c) => c.startsWith('fix ')) && calls.some((c) => c.startsWith('review ')), JSON.stringify(calls))
-}
-{
+    agentImpl: async (p, o) => o.label.startsWith('review') ? { verdict: 'blocked', comment: 'Fix review: blocked a227743 harness: measured with the fixer\'s harness' } : null })
+  t('stage review skips the fixer only', !calls.some((c) => c.startsWith('fix ')) && calls.some((c) => c.startsWith('review ')), J(calls))
+})
+await block('group 4', async () => {
   const { out, calls } = await run({
     groups: [G('A')], groupsFile: 'r.json', reconResult: OK,
     agentImpl: async (p, o) => o.label.startsWith('fix') ? { pr: 'I ran out of budget', head_sha: 'abc' } : null })
   t('a fixer that returns prose in `pr` is refused, after one retry',
-    out.results[0].pr === null && calls.filter((c) => c.startsWith('fix ')).length === 2, JSON.stringify(calls))
-}
+    out.results[0].pr === null && calls.filter((c) => c.startsWith('fix ')).length === 2, J(calls))
+})
+
+console.log('-- The stage vocabulary the rosters actually use')
+await block('group 5', async () => {
+  // The defect this pins: the script and the committed rosters had drifted into
+  // two vocabularies sharing one word, so 29 of 84 groups reached the
+  // fresh-fixer branch. This asserts every stage a roster carries is one the
+  // script recognises -- measured from the rosters, never from a list here,
+  // because a list here would drift the same way.
+  const known = [...src.matchAll(/const KNOWN_STAGES = \[([^\]]*)\]/g)]
+    .flatMap((m) => [...m[1].matchAll(/'([a-z-]+)'/g)].map((x) => x[1]))
+  const used = new Map()
+  for (const f of fs.readdirSync(here).filter((f) => /^wave-.*-groups\.json$/.test(f))) {
+    for (const g of JSON.parse(fs.readFileSync(path.join(here, f), 'utf8')).groups ?? []) {
+      const st = g.resume?.stage
+      if (st) used.set(st, (used.get(st) ?? 0) + 1)
+    }
+  }
+  const unknown = [...used.keys()].filter((st) => !known.includes(st))
+  const atRisk = unknown.reduce((n, st) => n + used.get(st), 0)
+  t('every resume.stage in every committed roster is one the wave script branches on',
+    known.length > 0 && unknown.length === 0,
+    `known=[${known}] used=[${[...used.keys()]}] unknown=[${unknown}] groups=${atRisk}`)
+})
+await block('group 6', async () => {
+  const { out, calls } = await run({ groups: [G('A', { stage: 'in-review', open_pr: 573, head_sha: 'a227743' })], groupsFile: 'r.json', reconResult: OK,
+    agentImpl: async (p, o) => o.label.startsWith('review') ? { verdict: 'blocked', comment: 'Fix review: blocked a227743 harness: measured with the fixer\'s harness' } : null })
+  t("stage in-review is the review stage, and reads the roster's own open_pr key",
+    !calls.some((c) => c.startsWith('fix ')) && calls.some((c) => c.startsWith('review ')) &&
+      out.results[0]?.pr === 573, J(calls) + ' pr=' + J(out.results[0]?.pr))
+})
+await block('group 7', async () => {
+  const { out, calls } = await run({ groups: [G('A', { stage: 'pending' })], groupsFile: 'r.json', reconResult: OK,
+    agentImpl: async (p, o) => o.label.startsWith('fix') ? { pr: 1, head_sha: 'h' } : o.label.startsWith('review') ? { verdict: 'merge', comment: 'Fix review: merge h' } : o.label.startsWith('merge') ? { merged: true, sha: 'm' } : { green: true } })
+  t('stage pending starts a fixer, deliberately rather than by falling through',
+    calls.some((c) => c.startsWith('fix ')), J(calls))
+})
+await block('group 8', async () => {
+  const { out, calls } = await run({ groups: [G('A', { stage: 'blocked', note: '#457 stays open' })], groupsFile: 'r.json', reconResult: OK })
+  t('stage blocked spends no agent and is recorded for the orchestrator',
+    out.results[0].skipped === 'blocked' && !calls.some((c) => c.startsWith('fix ')), J(calls))
+})
+await throws('an unrecognised stage refuses instead of starting a fresh fixer', /is not one of/,
+  { groups: [G('A', { stage: 'halfway' })], groupsFile: 'r.json', reconResult: OK })
+
+
+console.log('-- The verdict grammar, and the seats it dispatches')
+// The reviewer's verdict was a free-text sentence and every non-merge outcome
+// collapsed to one undifferentiated "not merged". A class is what lets a script
+// route a blocked verdict instead of only a reader.
+const REVIEW = (comment, verdict) => async (p, o) =>
+  o.label.startsWith('fix') || o.label.startsWith('repair') ? { pr: 7, head_sha: 'h1' }
+    : o.label.startsWith('review') || o.label.startsWith('re-review') ? { verdict: verdict ?? (/blocked/.test(comment) ? 'blocked' : 'merge'), comment }
+    : o.label.startsWith('merge') ? { merged: true, sha: 'm' }
+    : o.label.startsWith('root-cause') ? { cause: 'c', state: 'the process did not exist', countermeasure: null, comment: 'Root cause: c' }
+    : { green: true }
+await block('group 9', async () => {
+  const { out } = await run({ groups: [G('A')], groupsFile: 'r.json', reconResult: OK,
+    agentImpl: REVIEW('Fix review: merge h1') })
+  t('a well-formed merge verdict merges', out.results[0].merged === true, J(out.results[0]))
+})
+await block('group 10', async () => {
+  const { out, calls } = await run({ groups: [G('A')], groupsFile: 'r.json', reconResult: OK,
+    agentImpl: REVIEW('Fix review: blocked h1 mutation-vacuous: the proof names no failing check') })
+  const r = out.results[0]
+  t('a blocked verdict carries its class through to the result',
+    r.merged === false && r.class === 'mutation-vacuous', J(r))
+  t('a blocked verdict leaves a roster patch the orchestrator can apply',
+    r.rosterPatch?.stage === 'blocked' && r.rosterPatch?.pr === 7 && r.rosterPatch?.class === 'mutation-vacuous', J(r.rosterPatch))
+  t('a blocked verdict is repaired once, then re-reviewed',
+    calls.filter((c) => c.startsWith('repair')).length === 1 && calls.some((c) => c.startsWith('re-review')), J(calls))
+})
+await block('group 11', async () => {
+  const { out, calls } = await run({ groups: [G('A')], groupsFile: 'r.json', reconResult: OK,
+    agentImpl: REVIEW('Fix review: blocked h1 root-cause-unanswered: the branch turned typing red and the body does not say why') })
+  t('a root-cause-unanswered verdict dispatches the root-cause seat, not another repair',
+    calls.some((c) => c.startsWith('root-cause')) && !calls.some((c) => c.startsWith('repair')), J(calls))
+  t('the root-cause seat returns beside the fix, and the group stays unmerged',
+    out.results[0].merged === false && out.results[0].rootCause?.state === 'the process did not exist', J(out.results[0]?.rootCause))
+})
+await block('group 12', async () => {
+  const { out, calls } = await run({ groups: [G('A')], groupsFile: 'r.json', reconResult: OK,
+    agentImpl: REVIEW('Fix review: nonsense', 'merge') })
+  const r = out.results[0]
+  t('an unreadable verdict never merges, whatever the schema field says',
+    r.merged === false && /unparseable/.test(r.why ?? ''), J(r.why).slice(0, 80))
+  t('an unreadable verdict is not retried as a repair request',
+    !calls.some((c) => c.startsWith('repair')), J(calls))
+})
+await block('group 13', async () => {
+  const { out } = await run({ groups: [G('A')], groupsFile: 'r.json', reconResult: OK,
+    agentImpl: REVIEW('Fix review: blocked h1 not-a-real-class: invented', 'blocked') })
+  t('a class outside the vocabulary is unreadable rather than silently accepted',
+    /unparseable/.test(out.results[0].why ?? ''), J(out.results[0].why).slice(0, 80))
+})
+
+console.log('-- Regressions a review found, pinned so they cannot come back')
+// A null agent return is documented runtime behaviour (a skipped agent, a
+// terminal API error). The merge base guarded it; the verdict refactor dropped
+// the guard, and parallel() swallowed the TypeError into "group threw" -- so the
+// group lost its PR number and a live wave would have reported nothing useful.
+await block('null reviewer', async () => {
+  const { out } = await run({ groups: [G('A')], groupsFile: 'r.json', reconResult: OK,
+    agentImpl: async (p, o) => (o.label.startsWith('fix') ? { pr: 7, head_sha: 'h1' } : null) })
+  const r = out.results[0]
+  t('a reviewer that returns nothing does not crash the group',
+    r.merged === false && r.pr === 7, J(r))
+  t('...and it is recorded as blocked, not as a thrown group',
+    r.verdict === 'blocked' && !/threw/.test(r.reason ?? ''), J(r.verdict) + ' ' + J(r.reason))
+})
+// The schema field and the comment's first line are two statements of one
+// thing. Nothing compared them, so a reviewer could return blocked in the field
+// and "Fix review: merge" in the comment, and the group merged.
+await block('verdict disagrees with itself', async () => {
+  const { out } = await run({ groups: [G('A')], groupsFile: 'r.json', reconResult: OK,
+    agentImpl: async (p, o) => o.label.startsWith('fix') ? { pr: 7, head_sha: 'h1' }
+      : o.label.startsWith('review') ? { verdict: 'blocked', comment: 'Fix review: merge h1' }
+      : o.label.startsWith('merge') ? { merged: true, sha: 'm' } : { green: true } })
+  t('a verdict whose field and comment disagree never merges',
+    out.results[0].merged === false, J(out.results[0]))
+})
+// The guard above is only worth having if it is actually called.
+await block('the harness guard is wired', async () => {
+  const before = fail
+  // The FAIL line this prints is the point: it is what a real throw would look
+  // like, and it is discounted below so the total stays honest.
+  await block('(probe, expected)', async () => { throw new Error('deliberate') })
+  t('a throwing block is reported as a failure rather than ending the run',
+    fail === before + 1, `fail ${before} -> ${fail}`)
+  fail -= 1   // discount the deliberate probe
+})
 
 console.log(`\n${pass} passed, ${fail} failed`)
 process.exit(fail ? 1 : 0)

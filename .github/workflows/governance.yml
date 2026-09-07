@@ -47,3 +47,22 @@ jobs:
       - name: Report what the linter found
         if: always()
         run: node .claude/workflows/policy_lint.mjs --report || true
+
+  wave-script:
+    # The control flow a wave resume rests on. `.claude/` is INERT in
+    # tests/closure.py -- and closure.py FAILS if an INERT path appears in a
+    # recorded closure -- so the gate structurally cannot select this. It ran by
+    # hand only, and the two defects it now pins (a stage vocabulary the rosters
+    # and the script did not share, a verdict class no script read) both shipped
+    # and stayed shipped. Never scoped, on the tests.yml `briefs` precedent.
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Drive the wave script's branching
+        run: node .claude/workflows/check-wave-script.mjs
