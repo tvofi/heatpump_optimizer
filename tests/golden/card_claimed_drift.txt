@@ -68,6 +68,11 @@
 # auditors read): this branch claims NOTHING. No card source, template or
 # style is touched -- the diff is a shell generator, agent prompt strings
 # under .claude/workflows/ and audit prose.
+#
+#
+# #550 (the apply_topology set check pinned the reverse direction against a
+# module constant, not the schema): this branch claims NOTHING. tests/features.py
+# only; no card source, template, style or payload key is touched.
 # The claim-driver policy text, split out of #545 for approval: this branch
 # claims NOTHING. Two prose files only -- no card source is touched.
 # W4-G8 S7 (#193, the thermal-learning seam): this branch claims NOTHING.
@@ -76,6 +81,10 @@
 # W4-G9 S8 (#193, the COP-health watch): this branch claims NOTHING. Two
 # coordinator initialisations move between init methods -- no card source, no
 # payload key and no published value is touched.
+# #547, the config-flow stored-value arm: this branch claims NOTHING. Two
+# test scripts, tests/golden.py and the config_flow golden fixture only --
+# no card source, template, style or payload key is touched, so every
+# rendered state is byte-identical by construction.
 # #524 / #525 (the solve worker's result channel, and two blocking calls in
 # the event loop): this branch claims NOTHING. No card source, no plan-view
 # payload and no numeric path is touched, so every rendered tree is
