@@ -8041,6 +8041,36 @@ R.check(
     "closing keyword still closes the issue (GitHub discards the negation)",
 )
 R.check(
+    "the pre-flight refuses a conclusion echoed after ';'",
+    _preflight.is_file()
+    and subprocess.run(
+        ["bash", str(_preflight)],
+        input='diff a b; echo "(empty means identical)"\n',
+        capture_output=True, text=True,
+    ).returncode == 1,
+    "preflight.sh must exit 1 on the '; echo <conclusion>' shape, which prints "
+    "whether or not the command held; a review disarmed this refusal and every "
+    "other check still passed, so it needs its own arm",
+)
+R.check(
+    "and it refuses every reference form GitHub acts on, not only #N",
+    _preflight.is_file()
+    and all(
+        subprocess.run(
+            ["bash", str(_preflight)], input=f"Closes {ref}.\n",
+            capture_output=True, text=True,
+        ).returncode == 1
+        for ref in (
+            "#224",
+            "GH-224",
+            "tvofi/heatpump_optimizer#224",
+            "https://github.com/tvofi/heatpump_optimizer/issues/224",
+        )
+    ),
+    "GitHub closes on GH-N, owner/repo#N and a full issue URL as well as #N; "
+    "the first version of this script caught only #N and passed the rest",
+)
+R.check(
     "and passes a declared one, so it is not simply always-red",
     _preflight.is_file()
     and subprocess.run(
