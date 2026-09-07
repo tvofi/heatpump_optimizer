@@ -316,6 +316,11 @@ lane_units() {
   # closure is the whole integration; that is correct and deliberate: any
   # structural change puts this lane in scope.
   run "$PYTHON" tests/structure.py
+  # What tests/hastub owes Home Assistant (#536). Every lane here runs against
+  # the stub, so a green test proves the code works against the STUB's
+  # behaviour; this is the file that says what that behaviour is supposed to
+  # be, and the nightly-ha job runs the same file against the real package.
+  run "$PYTHON" tests/ha_contract.py
   run "$PYTHON" tests/manual_plan.py
   run "$PYTHON" tests/open_meteo.py
   run "$PYTHON" tests/solar_alignment.py

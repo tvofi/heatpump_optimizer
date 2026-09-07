@@ -346,6 +346,53 @@ It is deliberately small. A fuller stub would drift from the real thing without
 anyone noticing, and the job here is to let the integration *import* and its
 entities be *constructed*, not to reimplement Home Assistant.
 
+### When your change depends on how a Home Assistant API behaves
+
+**Read that API's real upstream source and check the stub matches. If it does
+not, fix the stub in the same pull request.** Every lane here runs with
+`PYTHONPATH=tests/hastub`, so a green test proves your code works against *the
+stub's* behaviour — and the stub is written from what the code under test
+needs, which is exactly the shape that agrees with a wrong implementation.
+
+This is not hypothetical. A redaction fix derived its marker from
+`async_redact_data` and passed every check, while real Home Assistant skips
+`None` before redacting, so on any real install that path returned `None`
+(#509/#535). Three more were found the same way, one per seat: no loop
+protection at all, so Home Assistant's own detector fires twice on this
+integration and no lane here can see it (#525); no config-flow section class,
+so #516's grouping had nothing to group with; and a `NumberSelector` that
+accepted configurations the real one refuses on construction.
+
+`tests/ha_contract.py` is where that reading gets written down (#536). It holds
+an **inventory** — every public symbol the stub declares, with a disposition —
+and **contracts**, executable statements about Home Assistant's behaviour. The
+same file runs in two places, and that is the whole design:
+
+* the gate runs it with the stub on the path, so a stub that stops satisfying a
+  contract fails on your pull request;
+* the `nightly-ha` job runs it *inside the Home Assistant container*, against
+  the genuine package, so a contract that misreads upstream fails there.
+
+A contract is therefore executed against upstream rather than transcribed and
+hoped over. The same job compares the two runs' **probes**, which is how a
+transcribed roster is measured instead of remembered — `Platform` gained a
+member Home Assistant does not have in v6.3.1 and every gate stayed green.
+
+What none of it does is invent a contract nobody wrote, so the rule at the top
+of this section still stands.
+
+**Adding a symbol to the stub means giving it a disposition** — `FAITHFUL`
+(reproduces upstream; owes a contract that runs against both), `DIVERGENT`
+(measured mismatch; owes a contract stating upstream's behaviour, and the issue
+tracking it), `UNVERIFIED` (behaviour pinned against the stub only, because
+upstream's needs a running `hass`), `SIMPLIFIED` (deliberately does less; names
+the members whose absence *is* the divergence, and they are asserted still
+absent) or `HOLDER` (pure data, makes no decision). A new public symbol with no
+entry fails the completeness check, and so does a `SIMPLIFIED` entry whose
+declared-absent member has quietly appeared. That is the point: a convenience
+shape can no longer be added silently, and a stub that grows behaviour has to
+say so.
+
 ## A test must never re-implement what it is testing
 
 A test may build inputs and expected *values*. It must never contain its own
@@ -538,6 +585,13 @@ model. Drift, oscillation and learner divergence only appear there.
   have identical keys, and that the accumulating sensors are
   `TOTAL_INCREASING` — a `MEASUREMENT` there silently keeps them out of the
   Energy dashboard with no error anywhere.
+- **ha_contract.py** states what `tests/hastub` owes Home Assistant, and is the
+  only script here whose subject is the stub rather than the integration. It
+  inventories every public stub symbol with a disposition, and carries
+  executable contracts for the ones that make a decision — skipping, defaulting,
+  coercing, raising. The gate runs it against the stub; the `nightly-ha` job
+  runs the *same file* inside the Home Assistant container against the real
+  package and compares the two. See "The Home Assistant stub" above.
 - **validate.py** runs single-zone and two-zone houses through winter, summer
   and shoulder conditions, with and without hot water, and checks solver
   status, power bounds, per-step comfort bounds, savings range, hot water
