@@ -200,9 +200,18 @@ function parseVerdict(review) {
         `class one of ${VERDICT_CLASSES.join(', ')}.`
     )
   }
-  return m[1]
+  const parsed = m[1]
     ? { verdict: 'merge', head_sha: m[2], class: null, why: null }
     : { verdict: 'blocked', head_sha: m[4], class: m[5], why: m[6].trim() }
+  const field = review?.verdict
+  if (field && field !== parsed.verdict) {
+    throw new Error(
+      `verdict disagrees with itself: the schema field says ${JSON.stringify(field)} ` +
+        `and the comment's first line says ${JSON.stringify(parsed.verdict)}. ` +
+        'Neither is acted on; a reviewer whose two answers differ has not given one.'
+    )
+  }
+  return parsed
 }
 
 for (const g of groups) {
@@ -429,7 +438,7 @@ const runGroup = async (g) => {
   }
 
   if (v.verdict === 'blocked' && !v.unparseable) {
-    const repaired = await agent(fixerPrompt(g, review.comment ?? `${v.class}: ${v.why}`), { model: fm, effort: ef, label: `repair ${g.group}`, phase: 'Wave', schema: FIX })
+    const repaired = await agent(fixerPrompt(g, review?.comment ?? `${v.class}: ${v.why}`), { model: fm, effort: ef, label: `repair ${g.group}`, phase: 'Wave', schema: FIX })
     if (repaired?.head_sha) {
       fix = repaired
       review = await agent(reviewerPrompt(g, fix, 2), { model: rm, effort: 'high', label: `re-review ${g.group}`, phase: 'Wave', schema: VERDICT })
