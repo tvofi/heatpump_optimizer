@@ -267,6 +267,27 @@ falls back to the ordinary text merge — the same conflict as today, never wors
 And git reads `.gitattributes` from the branch being merged **into**, so a branch
 cut before it landed conflicts once more before it is covered.
 
+**GitHub is one of those uninstalled clones, and that one is not free (#570).**
+`mergeStateStatus` is computed on GitHub's side, where the driver cannot run, so
+every open pull request flips to `DIRTY` the moment `main` touches a claim file.
+GitHub will not build a merge commit for a `DIRTY` pull request, and the
+`pull_request` workflows never fire — such a PR does not go red, it **cannot
+run**. A run already in flight survives; no new one queues. Merge `main` locally,
+where the driver does run, and push. Before treating any conflict as real,
+confirm it:
+
+```
+git merge-tree --write-tree origin/main HEAD
+```
+
+**So a branch that claims nothing does not touch the claim files at all.** The
+note is a convention, not a requirement: `inherited_claims_error` compares the
+parsed claim map, an empty list always passes, and no check anywhere reads a
+note. A branch that leaves both files byte-identical to `main` cannot conflict,
+and inherits whatever `stamp.py` last wrote to `claims-for:` — which is also how
+you stop hand-editing that line wrong. Edit these files only when you are
+actually claiming drift; there a conflict is meaningful, and rare.
+
 **A third autofix job was measured and refused.** A merge conflict means CI never
 ran, so no job is red and there is no uniquely-detected failure of the kind the
 rule above demands; the trigger would have to be a push to `main` fanning out
