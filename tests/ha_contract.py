@@ -208,9 +208,18 @@ INVENTORY: dict[str, Entry] = {
     "homeassistant.components.repairs.RepairsFlow": H(
         "the three result builders return their kwargs; no flow manager exists here"
     ),
-    "homeassistant.components.repairs.ConfirmRepairFlow": F(
-        "upstream's confirm-only flow: async_step_init delegates to "
-        "async_step_confirm, which shows a form until user_input arrives"
+    "homeassistant.components.repairs.ConfirmRepairFlow": U(
+        "upstream's confirm-only flow. UNVERIFIABLE here, and DIVERGENT in one "
+        "place -- both measured by the nightly lane's first run of this file. "
+        "upstream's async_step_confirm reads the issue registry off self.hass "
+        "(`ir.async_get(self.hass)`) to fetch the issue's translation "
+        "placeholders, so the form path cannot run without a booted hass -- it "
+        "raised AttributeError against the real package. And upstream's "
+        "async_step_init calls `await self.async_step_confirm()` with NO "
+        "argument, discarding user_input so the confirm form always shows once; "
+        "the stub forwards it, so async_step_init({}) creates an entry here and "
+        "shows a form on a real install. Production repairs.py returns a "
+        "ConfirmRepairFlow, so this is reachable. Recorded on #577"
     ),
     # -- components.sensor --------------------------------------------------
     "homeassistant.components.sensor.SensorDeviceClass": H("string constants, probed"),
@@ -939,7 +948,8 @@ def _entity_registry_singleton():
 @contract(
     "homeassistant.components.repairs.ConfirmRepairFlow",
     "init shows a confirm form, and confirming creates the entry",
-    cite="components/repairs -- ConfirmRepairFlow delegates init to async_step_confirm",
+    cite="components/repairs/issue_handler.py -- ConfirmRepairFlow.async_step_confirm",
+    expect="stub",
 )
 def _confirm_repair_flow():
     import asyncio
