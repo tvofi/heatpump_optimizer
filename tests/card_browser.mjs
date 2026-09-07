@@ -838,7 +838,12 @@ try {
   //
   // 2. ADDING A DARK LANE HERE FAILS TODAY, on sites C1 did not own:
   //      ACCENT_READABLE  #026aa8   5.79:1 light   2.95:1 dark   (7 sites)
-  //      MUTED_READABLE   #666666   5.74:1 light   2.97:1 dark   (.chip.off)
+  //      MUTED_READABLE   #666666   5.74:1 light   2.97:1 dark   (2 sites)
+  //    A site is every reference to the constant in the card that is not its
+  //    definition and not inside a comment; re-derive both counts, do not
+  //    carry them. Naming instances instead is what made an earlier draft of
+  //    this line say (.chip.off) and hide .setup-slot.empty from the seat the
+  //    carry is written for.
   //    Both were chosen against a light card by this witness, which has only
   //    ever run light. They are not C1 regressions -- C1 moved the "now"
   //    label OFF ACCENT_READABLE onto --primary-text-color for exactly this
@@ -847,10 +852,13 @@ try {
   //    (mutation M2 of PR #558 C1).
   //
   // 3. THE FALLBACKS-ONLY LANE ALREADY FAILS 4.5:1 ON TEXT if extended past
-  //    the four REQUIRED names: axis tick labels, unit titles and the
-  //    estimated-prices label all draw var(--secondary-text-color,#888), and
-  //    #888 on white is 3.54:1. With the token present it is 4.81:1 light
-  //    and 6.13:1 dark, so this is a FALLBACK defect, not a token one.
+  //    the four REQUIRED names. The failing set is a RULE, not a list: every
+  //    <text> the chart emits whose fill is var(--secondary-text-color,#888).
+  //    Re-derive it. At this head that rule returns the axis tick labels, the
+  //    unit titles, the estimated-prices label AND the .lane-label runs --
+  //    the last of which the three-instance list this line used to carry did
+  //    not name. #888 on white is 3.54:1. With the token present it is 4.81:1
+  //    light and 6.13:1 dark, so this is a FALLBACK defect, not a token one.
   //
   // And one thing this witness must NOT assert. Gridlines are deliberately
   // below 3:1 -- .grid is --secondary-text-color at opacity 0.3, which is
@@ -859,7 +867,9 @@ try {
   // labels, and a grid at 3:1 drowns the series it exists to help read.
   // Asserting 3:1 on .grid would red the lane for a measured design choice.
   // The hooks C1 left for this lane: .now, .now-label, .estimated-edge,
-  // .grid.grid-v, .grid.grid-h, and path.series[data-key].
+  // .grid.grid-v, .grid.grid-h, and .series[data-key]. That last selector is
+  // deliberately NOT path-qualified: a one-point series draws a <circle
+  // class="series">, so path.series[data-key] silently drops it.
   const HA_LIGHT = `
     --primary-text-color:#212121; --secondary-text-color:#727272;
     --text-primary-color:#fff; --primary-color:#03a9f4;
