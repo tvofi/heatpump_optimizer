@@ -244,8 +244,17 @@ def is_handover(rel: str) -> bool:
     return first.startswith(HANDOVER_STEM)
 
 
+# tools/audit/ is INERT because it holds write-once evidence nothing in the gate
+# reads. preflight.sh is the exception: tests/entities.py executes it, so a
+# change to it must select that script. Left inside the prefix it would be
+# declared unread while being read -- the INERT-vs-recorded contradiction #357
+# exists to refuse, and the same shape that let tests/nightly_ha.py's blocking
+# pin go stale in silence (#533).
+INERT_EXCEPT = ("tools/audit/preflight.sh",)
+
+
 def is_inert(rel: str) -> bool:
-    if is_handover(rel):
+    if is_handover(rel) or rel in INERT_EXCEPT:
         return False
     return any(rel == p or (p.endswith("/") and rel.startswith(p)) for p in INERT)
 
