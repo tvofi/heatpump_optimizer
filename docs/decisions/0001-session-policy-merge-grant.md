@@ -21,7 +21,9 @@ ones do not yet bind.
 
 The owner granted this session complete and unconditional authority to merge
 policy changes and to perform GitHub-account actions where they are technically
-possible, scoped to this audit and to this session.
+possible, scoped to this audit and to this session — session
+`019DU5u9DvSdWdcqXQnEW3ga`, named here because "this session" is not a thing a
+later reader can resolve.
 
 ## Decision
 
@@ -43,7 +45,9 @@ Every such merge satisfies all of the following first.
 ## What the grant does not cover
 
 - **Release stamps.** `tools/release/stamp.py` assigns versions after a merge and
-  the audit takes no stamp. If one falls due the fact is posted for the owner.
+  the audit takes no stamp. That covers everything the stamp writes, not only
+  the three files a branch is told never to touch: the bundled card's version
+  constant and the `claims-for:` line in both claim files move with it.
 - **Structural budget raises.** `tests/structure_budgets.json` is the code
   ratchet, not policy. The audit raises no budget.
 - **Pull requests authored outside the audit**, except where landing or
@@ -72,12 +76,21 @@ question.
     GET /repos/tvofi/heatpump_optimizer/rulesets?includes_parents=true   -> 200 []
     GET /repos/tvofi/heatpump_optimizer/rules/branches/main              -> 200 []
 
-    # the paths that would let the audit close the gap itself
-    GET /repos/tvofi/heatpump_optimizer/branches/main/protection         -> 403
-    GET /repos/tvofi/heatpump_optimizer/actions/permissions              -> 403
-    GET /repos/tvofi/heatpump_optimizer/hooks                            -> 403
+    # the paths that would let the audit close the gap itself. Two different
+    # refusals, and the difference decides who can lift them:
+    GET .../branches/main/protection   -> 403 GitHub: "Resource not accessible
+                                                by integration" — a token scope
+    GET .../actions/permissions        -> 403 the agent proxy: "not permitted
+                                                through this proxy" — this
+                                                execution environment
+    GET .../hooks                      -> 403 the agent proxy, same
 
-Those first two answers are what the legacy `protected: false` flag could not
+The two `200 []` answers are what the legacy `protected: false` flag could not
 give: they close the "the flag may not reflect a modern ruleset" caveat, and
 they are why the audit treats the merge boundary as unguarded rather than as
 unknown.
+
+The 403s are recorded with their source because reading a proxy refusal as
+GitHub's would send a later reader to change a token scope that was never the
+obstacle. Only the first is a permissions answer about this repository; the
+other two say this container cannot ask.
