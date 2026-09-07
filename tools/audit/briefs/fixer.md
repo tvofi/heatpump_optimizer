@@ -112,6 +112,20 @@ production lines. You work in your own worktree branched from `origin/main`.
     is a claim, not a fix**: run it and paste what it now emits, with the same
     run at the merge base as the control. Distinguish text that *instructs*
     from a record that *recounts* — a measurement record stays as written.
+11. **A check pins the artifact it reads, not the one it is named for.** The
+    #546 set check was named for `apply_topology`'s schema and read the module
+    constant that schema is built from, so a schema that stopped agreeing with
+    the constant was invisible — `slab_shunt` plus a junk key passed all 2002
+    checks (#550). Read the registered artifact, as `tests/entities.py` does.
+    Then probe a key the read does **not** name: under `extra=vol.ALLOW_EXTRA`
+    the read set is still exactly right while the schema accepts anything, so
+    the probe is the reader's own null control.
+
+    **Say where a check encodes a design choice.** #546's required every slot
+    place to be accepted, settling which of two artifacts was authoritative;
+    under the other plausible fix it failed 4 of 7, and three were the test's
+    opinion rather than a defect. Prejudging is legitimate — saying so is what
+    stops the next seat reading a legitimate tightening as a bug.
 
 **When a structural budget blocks the work.** A `tests/structure.py` failure is
 a decision point, not a wall, and it has three answers rather than two: pay for
