@@ -2333,6 +2333,83 @@ async def options_seeded_prefill():
     )
 
 
+#: Entity keys configured on one page and reachable from every other, used to
+#: ask whether a page's save stays inside its own schema (#542). Each is a key
+#: some page's submit path cleans to ``None`` when absent, so a page that
+#: cleans one it never offered destroys it.
+CROSS_PAGE_SEED = {
+    const.CONF_EXTERNAL_HEAT_ENTITY: "binary_sensor.wood_stove",
+    const.CONF_AWAY_PRESENCE_ENTITY: "person.resident",
+    const.CONF_GRID_FEE_ENTITY: "sensor.grid_fee",
+    const.CONF_PV_PRODUCTION_ENTITY: "sensor.pv_production",
+    const.CONF_DHW_INLET_ENTITY: "sensor.dhw_inlet",
+    const.CONF_VVC_PUMP_ENTITY: "switch.vvc_pump",
+    const.CONF_INDOOR_HUMIDITY_ENTITY: "sensor.humidity",
+    const.CONF_DHW_SETPOINT_ENTITY: "number.dhw_setpoint",
+}
+
+
+async def options_cross_page_save_scope():
+    """A no-op save must not write keys the page never offered (#542).
+
+    Every option page is driven, and the page list is read from
+    ``_MENU_LABELS`` rather than named here. That derivation is the point:
+    #542 survived because both hand-written witnesses iterate hand-written
+    page lists, so a page absent from them is a page nothing asks about, and
+    ``learning`` was absent from both.
+
+    Each page is rendered over a seeded entry, then submitted with exactly
+    the values it rendered -- opening a page and pressing Save without
+    editing anything. Afterwards every seeded key the page did NOT offer must
+    still hold its seeded value. Pages that DO offer a key are excluded by
+    derivation, so no page has to be listed here as an exception; and a page
+    that legitimately derives a key it does not show writes a key the seed
+    does not carry, so it never trips this.
+
+    Two controls, because the assertion is a negative one. The save must
+    really have happened -- a page that refused to save would preserve every
+    key while proving nothing -- and the seed must really be on disk before
+    the save, or the comparison is against a value that was never there.
+    """
+    R.section("options: a page's save stays inside its own schema (#542)")
+    for page in config_flow.HeatPumpOptimizerOptionsFlow._MENU_LABELS:
+        flow, entry, _ = fresh_options(pre_options=dict(CROSS_PAGE_SEED))
+        form = await getattr(flow, f"async_step_{page}")(None)
+        if form.get("type") != "form":
+            continue
+        markers = list(form["data_schema"].schema if form.get("data_schema") else {})
+        offered = {str(getattr(marker, "schema", marker)) for marker in markers}
+        unseeded = {
+            key: entry.options.get(key)
+            for key, value in CROSS_PAGE_SEED.items()
+            if entry.options.get(key) != value
+        }
+        answers = {}
+        for marker in markers:
+            default = getattr(marker, "default", None)
+            if not callable(default):
+                continue
+            try:
+                answers[str(getattr(marker, "schema", marker))] = default()
+            except Exception:
+                pass
+        result = await submit(flow, page, answers)
+        clobbered = {
+            key: entry.options.get(key)
+            for key, value in CROSS_PAGE_SEED.items()
+            if key not in offered and entry.options.get(key) != value
+        }
+        check(
+            f"opt_{page}",
+            "happy",
+            f"a no-op save on the {page} page leaves keys it never offered alone",
+            result.get("type") == "menu" and not unseeded and not clobbered,
+            f"saved={result.get('type')}/{result.get('step_id')} "
+            f"offered={len(offered)} unseeded_before={unseeded} "
+            f"clobbered={clobbered}",
+        )
+
+
 # ---------------------------------------------------------------------------
 # #304: the widening machinery's refusals.
 #
@@ -2905,6 +2982,7 @@ async def main() -> int:
     await options_stored_entity_arm()
     await options_error_branches()
     await options_seeded_prefill()
+    await options_cross_page_save_scope()
     await widening_refusals()
     await menu_label_translations()
     await reconfigure_flow()
