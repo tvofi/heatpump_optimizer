@@ -2185,39 +2185,11 @@ class HeatPumpOptimizer:
             else None
         )
 
-        comfort_targets = np.array(
-            [self.config.get_comfort_temp(hour) for hour in step_hours]
-        )
-        bounds = [self.config.get_temp_bounds(hour) for hour in step_hours]
-        temp_min_bounds = np.array([low for low, _ in bounds])
-        temp_max_bounds = np.array([high for _, high in bounds])
-
-        # T5 (#16 #54): the comfort floor's two adjustments, both optional
-        # and both applied HERE — the single site where the bounds are
-        # built — so every consumer (objectives, safety releases, pin
-        # repair) sees the same effective floor. ``min_temp_margins`` is a
-        # per-step raise (the model's own expected error at that lead);
-        # ``min_temp_floors`` an absolute per-step floor (the mold guard).
-        # None for both is byte-for-byte the previous bounds.
-        if min_temp_margins is not None or min_temp_floors is not None:
-            if min_temp_margins is not None:
-                m = np.clip(np.asarray(min_temp_margins, dtype=float), 0.0, None)
-                if m.size < n_steps:
-                    m = np.concatenate([m, np.zeros(n_steps - m.size)])
-                temp_min_bounds = temp_min_bounds + m[:n_steps]
-            if min_temp_floors is not None:
-                f = np.asarray(min_temp_floors, dtype=float)
-                if f.size < n_steps:
-                    f = np.concatenate(
-                        [f, np.full(n_steps - f.size, -np.inf)]
-                    )
-                temp_min_bounds = np.maximum(temp_min_bounds, f[:n_steps])
-            # Whatever raised the floor, the band never squeezes shut: a
-            # floor at or above the ceiling makes the solve infeasible and
-            # the comfort penalty unbounded.
-            temp_min_bounds = np.minimum(
-                temp_min_bounds, temp_max_bounds - 0.5
+        comfort_targets, temp_min_bounds, temp_max_bounds = (
+            self._build_comfort_bounds(
+                step_hours, n_steps, min_temp_margins, min_temp_floors
             )
+        )
 
         # Per-step solar gain, and the wind/rain multiplier on heat loss. Both
         # use the *forecast* at each future step rather than current
@@ -2247,43 +2219,9 @@ class HeatPumpOptimizer:
         released_space: set[int] = set()
         released_dhw: set[int] = set()
 
-        # Per-step ceiling on space power, lowered by the buffer-cap loop
-        # below (valve installs) and by external per-step caps (T2's fuse
-        # guard and shadow solves). It exists only when a valve can charge
-        # the tank OR extra caps were supplied, so every no-valve, no-cap
-        # install stays byte-for-byte identical.
-        throttling = mixing_valve.is_throttling(
-            self.model.params.mixing_valve_mode
+        throttling, power_caps, caps_extra_arr = self._build_space_power_caps(
+            n_steps, power_caps_extra, space_blocked
         )
-        power_caps: np.ndarray | None = None
-        caps_extra_arr: np.ndarray | None = None
-        if throttling or power_caps_extra is not None or space_blocked:
-            power_caps = np.full(
-                n_steps, self.model.params.max_electrical_power
-            )
-        if space_blocked:
-            # The mode gate rides the space-heating ceiling rather than being
-            # a mechanism of its own: ``power_caps`` is already the one place
-            # that bounds space power on both solve paths, it composes with
-            # the fuse guard and the buffer cap by minimum, and — unlike a
-            # pin — nothing in this function can relax it.
-            power_caps = np.zeros(n_steps, dtype=float)
-        if power_caps_extra is not None:
-            extra = np.clip(
-                np.asarray(power_caps_extra, dtype=float), 0.0, None
-            )
-            if extra.size < n_steps:
-                extra = np.concatenate(
-                    [
-                        extra,
-                        np.full(
-                            n_steps - extra.size,
-                            self.model.params.max_electrical_power,
-                        ),
-                    ]
-                )
-            caps_extra_arr = extra[:n_steps]
-            power_caps = np.minimum(power_caps, caps_extra_arr)
 
         # Per-step valve target schedule, set by the hold-candidate pass below
         # and read by every solve and re-simulation through the closure.
@@ -2463,6 +2401,95 @@ class HeatPumpOptimizer:
             temp_min_bounds,
         )
         return result
+
+    def _build_comfort_bounds(
+        self,
+        step_hours: np.ndarray,
+        n_steps: int,
+        min_temp_margins: np.ndarray | None,
+        min_temp_floors: np.ndarray | None,
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """The per-step comfort target and the band the solve must stay in."""
+        comfort_targets = np.array(
+            [self.config.get_comfort_temp(hour) for hour in step_hours]
+        )
+        bounds = [self.config.get_temp_bounds(hour) for hour in step_hours]
+        temp_min_bounds = np.array([low for low, _ in bounds])
+        temp_max_bounds = np.array([high for _, high in bounds])
+
+        # T5 (#16 #54): the comfort floor's two adjustments, both optional
+        # and both applied HERE — the single site where the bounds are
+        # built — so every consumer (objectives, safety releases, pin
+        # repair) sees the same effective floor. ``min_temp_margins`` is a
+        # per-step raise (the model's own expected error at that lead);
+        # ``min_temp_floors`` an absolute per-step floor (the mold guard).
+        # None for both is byte-for-byte the previous bounds.
+        if min_temp_margins is not None or min_temp_floors is not None:
+            if min_temp_margins is not None:
+                m = np.clip(np.asarray(min_temp_margins, dtype=float), 0.0, None)
+                if m.size < n_steps:
+                    m = np.concatenate([m, np.zeros(n_steps - m.size)])
+                temp_min_bounds = temp_min_bounds + m[:n_steps]
+            if min_temp_floors is not None:
+                f = np.asarray(min_temp_floors, dtype=float)
+                if f.size < n_steps:
+                    f = np.concatenate(
+                        [f, np.full(n_steps - f.size, -np.inf)]
+                    )
+                temp_min_bounds = np.maximum(temp_min_bounds, f[:n_steps])
+            # Whatever raised the floor, the band never squeezes shut: a
+            # floor at or above the ceiling makes the solve infeasible and
+            # the comfort penalty unbounded.
+            temp_min_bounds = np.minimum(
+                temp_min_bounds, temp_max_bounds - 0.5
+            )
+        return comfort_targets, temp_min_bounds, temp_max_bounds
+
+    def _build_space_power_caps(
+        self,
+        n_steps: int,
+        power_caps_extra: np.ndarray | None,
+        space_blocked: bool,
+    ) -> tuple[bool, np.ndarray | None, np.ndarray | None]:
+        """The per-step space-power ceiling, and whether the valve throttles."""
+        # Per-step ceiling on space power, lowered by the buffer-cap loop
+        # below (valve installs) and by external per-step caps (T2's fuse
+        # guard and shadow solves). It exists only when a valve can charge
+        # the tank OR extra caps were supplied, so every no-valve, no-cap
+        # install stays byte-for-byte identical.
+        throttling = mixing_valve.is_throttling(
+            self.model.params.mixing_valve_mode
+        )
+        power_caps: np.ndarray | None = None
+        caps_extra_arr: np.ndarray | None = None
+        if throttling or power_caps_extra is not None or space_blocked:
+            power_caps = np.full(
+                n_steps, self.model.params.max_electrical_power
+            )
+        if space_blocked:
+            # The mode gate rides the space-heating ceiling rather than being
+            # a mechanism of its own: ``power_caps`` is already the one place
+            # that bounds space power on both solve paths, it composes with
+            # the fuse guard and the buffer cap by minimum, and — unlike a
+            # pin — nothing in this function can relax it.
+            power_caps = np.zeros(n_steps, dtype=float)
+        if power_caps_extra is not None:
+            extra = np.clip(
+                np.asarray(power_caps_extra, dtype=float), 0.0, None
+            )
+            if extra.size < n_steps:
+                extra = np.concatenate(
+                    [
+                        extra,
+                        np.full(
+                            n_steps - extra.size,
+                            self.model.params.max_electrical_power,
+                        ),
+                    ]
+                )
+            caps_extra_arr = extra[:n_steps]
+            power_caps = np.minimum(power_caps, caps_extra_arr)
+        return throttling, power_caps, caps_extra_arr
 
     def _publish_breach_reports(
         self,
