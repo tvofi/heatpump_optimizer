@@ -375,19 +375,50 @@ check("diagnostics report both series", d["forecast_points"] == 5 and d["observe
 
 print("\n== small getters, and current_irradiance's forecast fallback ==")
 
+# The three getters are asserted against three DISTINCT, non-default objects
+# planted in the client's private state. Comparing a getter to the private
+# attribute it reads pins nothing: __init__ assigns _forecast and _observed the
+# SAME module-level `_EMPTY` singleton and _last_success `None`, so
+# `client.forecast is client._forecast` is `_EMPTY is _EMPTY` and
+# `client.last_success is client._last_success` is `None is None` -- both true
+# whatever the property body returns. That is tests/README.md's "a test that
+# cannot fail" class. Naming the OTHER series in each check is what makes a
+# getter that returns the wrong series, or the untouched default, fail.
+ident_client = om.OpenMeteoSolar(hass=None, latitude=3.0, longitude=4.0)
+ident_forecast = om._parse_block(block(0, [0.0, 0.0, 0.0, 400.0, 800.0]), "shortwave_radiation")
+ident_observed = om._parse_block(block(0, [11.0, 22.0, 33.0, 44.0, 55.0]), "shortwave_radiation")
+ident_stamp = datetime(2026, 8, 21, 5, 0, tzinfo=UTC)
+# A fixture precondition, deliberately an assert and not a check(): it guards
+# the three checks below from silently degenerating back into tautologies if
+# _parse_block ever starts returning the _EMPTY singleton here. It is not a
+# check because no single-line production mutation can make it fail while
+# leaving it reachable -- such a mutation aborts this script 250 lines earlier
+# -- and a check whose firing cannot be demonstrated is the defect being fixed.
+assert (
+    ident_forecast is not ident_observed
+    and ident_forecast is not om._EMPTY
+    and ident_observed is not om._EMPTY
+), "getter fixture degenerated: the planted series are not distinct"
+ident_client._forecast = ident_forecast
+ident_client._observed = ident_observed
+ident_client._last_success = ident_stamp
+check(
+    "forecast property returns the forecast series, not the observed one",
+    ident_client.forecast is ident_forecast and ident_client.forecast is not ident_observed,
+    f"got {ident_client.forecast.values}",
+)
+check(
+    "observed property returns the observed series, not the forecast one",
+    ident_client.observed is ident_observed and ident_client.observed is not ident_forecast,
+    f"got {ident_client.observed.values}",
+)
+check(
+    "last_success property returns the recorded timestamp, not None",
+    ident_client.last_success is ident_stamp,
+    f"got {ident_client.last_success!r}",
+)
+
 getter_client = om.OpenMeteoSolar(hass=None, latitude=1.0, longitude=2.0)
-check(
-    "forecast property mirrors the private series",
-    getter_client.forecast is getter_client._forecast,
-)
-check(
-    "observed property mirrors the private series",
-    getter_client.observed is getter_client._observed,
-)
-check(
-    "last_success property mirrors the private timestamp",
-    getter_client.last_success is getter_client._last_success,
-)
 getter_client._forecast = conv  # built above: hourly, 00:00-04:00, [0,0,0,400,800]
 check(
     "current_irradiance falls back to the forecast when there is no observation",
@@ -462,8 +493,14 @@ check(
     == {"hourly": {}},
 )
 check(
-    "_get_json returns None on a non-200 status",
-    run(fc._get_json(_FakeSession([_FakeResponse(500, None)]), "http://x", {})) is None,
+    # The body is byte-for-byte the one the 200 check above proves _get_json
+    # ACCEPTS, so the status guard is the only thing left that can reject it.
+    # With `_FakeResponse(500, None)` the None body trips the later non-dict
+    # guard and this passes whether or not the status guard exists at all --
+    # the 500 is then never what makes it fail.
+    "_get_json returns None on a non-200 status carrying an otherwise-good body",
+    run(fc._get_json(_FakeSession([_FakeResponse(500, {"hourly": {}})]), "http://x", {}))
+    is None,
 )
 check(
     "_get_json swallows a transport exception rather than raising",

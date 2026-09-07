@@ -95,6 +95,10 @@ class DataOnlyResources:
     def __init__(self, items):
         self.data = items
         self.created = []
+        self.updated = []
+
+    async def async_update_item(self, item_id, data):
+        self.updated.append((item_id, data))
 
     async def async_create_item(self, data):
         self.created.append(data)
@@ -223,14 +227,43 @@ async def main() -> None:
     # other shape seen in the wild). Also covers an existing entry with no
     # `url` at all, which must be skipped rather than crash the shadow-copy
     # scan.
+    #
+    # The fixture carries a STALE entry for our own base URL, so reading
+    # `.data` and not reading it produce different outcomes: read, the stale
+    # entry is found and updated in place and nothing is created; not read,
+    # `existing` is empty, nothing matches and the card is CREATED. Asserting
+    # only that the resource was created -- as this check first did -- is an
+    # outcome that happens on both paths, so it pinned nothing.
+    warnings_seen: list[str] = []
+
+    class _Collect(logging.Handler):
+        def emit(self, record):
+            if record.levelno >= logging.WARNING:
+                warnings_seen.append(record.getMessage())
+
     res_data_only = DataOnlyResources(
-        [{"id": "y"}, {"id": "d", "url": "/local/heatpump-optimizer-card.js"}]
+        [
+            {"id": "y"},
+            {"id": "d", "url": "/local/heatpump-optimizer-card.js"},
+            {"id": "s", "url": f"{CARD_URL_BASE}?v=2.8.0"},
+        ]
     )
-    await register(_hass(res_data_only), URL)
+    collector = _Collect()
+    frontend._LOGGER.addHandler(collector)
+    try:
+        await register(_hass(res_data_only), URL)
+    finally:
+        frontend._LOGGER.removeHandler(collector)
     check(
         "a resources object without async_items() falls back to .data",
-        [d.get("url") for d in res_data_only.created] == [URL],
-        f"created {res_data_only.created}",
+        [(i, d.get("url")) for i, d in res_data_only.updated] == [("s", URL)]
+        and not res_data_only.created,
+        f"updated={res_data_only.updated} created={res_data_only.created}",
+    )
+    check(
+        "the shadowing copy found via .data is named in a warning",
+        any("/local/heatpump-optimizer-card.js" in m for m in warnings_seen),
+        f"warnings {warnings_seen}",
     )
 
     # A stale entry with no `id` cannot be updated in place (there is nothing
