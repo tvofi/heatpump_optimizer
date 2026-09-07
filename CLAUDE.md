@@ -143,10 +143,11 @@ seat must do"*, it is policy however small the diff.
 
 **Scope: the development record, not the product.** This governs what one agent
 writes for another — pull-request bodies, issues, comments, commit messages,
-briefs, roster entries, reports. It does **not** govern `README.md`, `docs/`, or
-anything a user reads. User-facing writing serves someone who did not run the
-command, cannot see the diff, and has no context to supply; it needs the
-explanation this rule cuts.
+briefs, roster entries, reports, and `docs/HANDOVER.md` — whose reader is a
+resuming agent, which is why `tests/closure.py`'s `INERT` list already carves it
+out of `docs/`. It does **not** govern `README.md` or the rest of `docs/`.
+User-facing writing serves someone who did not run the command, cannot see the
+diff, and has no context to supply; it needs the explanation this rule cuts.
 
 **Precision outranks concision, always.** Where the two pull against each other,
 precision wins and the artifact gets longer. A number keeps the rule that
@@ -160,11 +161,13 @@ reader's second, and the cost of a dropped control is a defect that ships.
 Given that: a sentence stays only if it carries a **measurement**, a **decision
 and why**, a **constraint on someone downstream**, or a **refusal and what
 refused it**. Everything else is cut, not shortened: restating the ask,
-narrating the route, summarising your own diff, repeating a finding in a second
-place, preamble, recap, and any adjective whose deletion changes no fact.
+narrating the route, summarising your own diff, preamble, recap, and any
+adjective whose deletion changes no fact.
 
-The test: **delete the sentence and ask what a reader can no longer check.**
-Nothing? It was filler.
+The test: **delete the sentence and ask what a reader can no longer check from
+this artifact.** Nothing? It was filler. Without *from this artifact* the test
+cuts anything re-derivable by re-running the gate, which here is everything —
+including the invariant that makes a future violation legible as one.
 
 ## Programme tracking (#201)
 
