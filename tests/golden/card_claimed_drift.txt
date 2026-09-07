@@ -64,6 +64,10 @@
 # NOTHING. Two test files only; no card source is touched.
 #
 #
+# #539 (tools/audit generated the forbidden mkdir gate lock into the text new
+# auditors read): this branch claims NOTHING. No card source, template or
+# style is touched -- the diff is a shell generator, agent prompt strings
+# under .claude/workflows/ and audit prose.
 # #524 / #525 (the solve worker's result channel, and two blocking calls in
 # the event loop): this branch claims NOTHING. No card source, no plan-view
 # payload and no numeric path is touched, so every rendered tree is
