@@ -148,8 +148,14 @@ ERROR_RE = re.compile(
 # 4 looks for them everywhere rather than at the repository root only.
 CONFIG_BASENAMES = ("mypy.ini", ".mypy.ini", "setup.cfg", "pyproject.toml")
 
-# Not source, and large: `.git` alone is most of the walk.
-UNWALKED_DIRS = (".git", "__pycache__", "node_modules")
+# Not this repository's source: `.git` alone is most of the walk, and an
+# installed dependency's own mypy section is not a configuration OF this tree.
+# A virtual environment is pruned by its `pyvenv.cfg` rather than by name --
+# tests.yml builds `.venv-typing` at the repository root and .gitignore does not
+# cover that name, so a source-lane run beside one found `[tool.mypy]` inside
+# site-packages and refused, naming a third-party package.
+UNWALKED_DIRS = (".git", "__pycache__", "node_modules", "site-packages")
+VENV_MARKER = "pyvenv.cfg"
 
 
 class Report:
@@ -254,13 +260,18 @@ def find_suppression_surfaces() -> list[str]:
       (measured), so a nested hit is a latent surface rather than a live one,
       and the guard's contract is that none exists. ``setup.cfg`` and
       ``pyproject.toml`` count only where they carry a mypy section -- they have
-      other jobs, and this must not become a reason nobody may add one.
+      other jobs, and this must not become a reason nobody may add one. An
+      installed dependency is not this tree, so a virtual environment is pruned
+      whole.
     * a ``.pyi`` beside a package source. mypy checks the stub INSTEAD of the
       module, so every error in that module disappears (measured, 3 -> 0) with
       no comment and no configuration anywhere to find.
     """
     found: list[str] = []
     for parent, dirs, names in os.walk(REPO_ROOT):
+        if VENV_MARKER in names:
+            dirs[:] = []
+            continue
         dirs[:] = [d for d in dirs if d not in UNWALKED_DIRS]
         for name in names:
             path = Path(parent, name)
