@@ -68,6 +68,22 @@ class NumberSelector(_Selector):
     exactly that class of bug.
     """
 
+    def __init__(self, config=None):
+        # Home Assistant defaults ``mode`` to slider and ``validate_slider``
+        # then refuses a slider missing either bound, so an unbounded number
+        # field exists only in box mode. Accepting the unbounded slider the
+        # real selector rejects would let a test build a field no install can
+        # have, and ``_widen_to_fit``'s "neither min nor max" branch is
+        # reachable only through that shape. Validated, never rewritten: real
+        # HA also fills ``step`` and ``mode`` defaults here, but
+        # ``tests/golden.py``'s ``fingerprint`` captures ``selector.config``
+        # verbatim, so injecting them would move every option-page fixture.
+        super().__init__(config)
+        if self.config.get("mode") != NumberSelectorMode.BOX and not (
+            "min" in self.config and "max" in self.config
+        ):
+            raise ValueError("min and max are required in slider mode")
+
     def __call__(self, value):
         try:
             value = float(value)
