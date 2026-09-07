@@ -18,7 +18,7 @@
  "functions_cc_over_25": 10,
  "internal_call_edges": 366,
  "local_imports": 7,
- "max_cc": 72,
+ "max_cc": 56,
  "max_class_loc": 10086,
  "max_method_loc": 489,
  "methods_over_150": 18,
