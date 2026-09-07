@@ -85,6 +85,9 @@
 # test scripts, tests/golden.py and the config_flow golden fixture only --
 # no card source, template, style or payload key is touched, so every
 # rendered state is byte-identical by construction.
+#
+# The README section on AI use: this branch claims NOTHING. README.md only
+# -- no card source is touched.
 
 # #558 C1, the chart's four contrast defects. 33 of 34 states move; the
 # 34th, editor_schema, is the card's own config editor and draws neither the
