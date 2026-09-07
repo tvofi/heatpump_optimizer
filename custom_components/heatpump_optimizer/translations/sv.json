@@ -1334,5 +1334,341 @@
         "name": "Förväntad hemkomst"
       }
     }
+  },
+  "services": {
+    "run_optimization": {
+      "name": "Kör optimering",
+      "description": "Starta kostnadsoptimeringen för värmepumpen manuellt. Integrationen hämtar de senaste elpriserna och väderprognosen och beräknar sedan det billigaste körschemat för de kommande 24 timmarna med prediktiv MPC, med hänsyn till sol, vind och regn samt samordning med varmvattnet. Anropet svarar med ett fel när optimeringen inte kan köras — till exempel när färre än fyra prissteg finns tillgängliga, eller när lösningen misslyckades — i stället för att svara som om en ny plan hade beräknats."
+    },
+    "set_away": {
+      "name": "Ställ in bortaläge",
+      "description": "Slå på eller av bortaläget från Plan-sidan och ange eller rensa eventuellt förväntad hemkomsttid. Minst ett fält måste anges. Att stänga av bortaläget rensar även hemkomsttiden.",
+      "fields": {
+        "active": {
+          "name": "Borta",
+          "description": "Slå på eller av bortaläget. Utelämna för att låta på/av vara oförändrat."
+        },
+        "return_time": {
+          "name": "Förväntad hemkomst",
+          "description": "ISO-datumtid, eller tomt för att rensa. Utelämna för att behålla den sparade tiden. Att ange en tid medan bortaläget är avstängt sparar tiden utan att slå på bortaläget."
+        }
+      }
+    },
+    "set_mode": {
+      "name": "Ställ in optimeringsläge",
+      "description": "Ställ in driftläget för värmepumpsoptimeringen.",
+      "fields": {
+        "mode": {
+          "name": "Läge",
+          "description": "Driftläget som ska ställas in. Tillgängliga lägen:\n- auto: fullständig MPC-optimering med prediktiv väderanpassning (rekommenderas)\n- comfort: håll komforttemperaturen, bortse från prisoptimering\n- economy: låter planen ta huset upp till 1,5 °C under ditt komfortgolv för att rida ut dyra timmar (aldrig under 15 °C)\n- boost: maximal värmeeffekt\n- off: stäng av optimeringen, värmepumpen lämnas i sitt normalläge"
+        }
+      }
+    },
+    "set_thermal_parameters": {
+      "name": "Ställ in termiska parametrar",
+      "description": "Uppdatera de parametrar för den termiska modellen som optimeringen använder. Användbart för att finjustera modellen så att den stämmer med husets verkliga termiska beteende. Stöder parametrar för en zon, två zoner, varmvatten och väderkänslighet.",
+      "fields": {
+        "house_thermal_mass": {
+          "name": "Husets värmetröghet",
+          "description": "Husets värmetröghet (luft och inredning) i kWh/°C. Högre värden ger långsammare temperaturändringar. Ungefär 0,02 kWh/°C per m² uppvärmd yta för ett trähus; tunga golv räknas i stället under slab_thermal_mass."
+        },
+        "house_heat_loss_coefficient": {
+          "name": "Värmeförlustkoefficient",
+          "description": "Total värmeförlustkoefficient i kW/°C. Lägre värden betyder bättre isolering."
+        },
+        "slab_thermal_mass": {
+          "name": "Värmetröghet i värmebäraren",
+          "description": "Värmetrögheten hos det som värmen levereras genom, i kWh/°C: betongplattan i ett golvvärmt hus, eller vattnet och stålet i en radiatorkrets, som är betydligt mindre."
+        },
+        "slab_heat_transfer": {
+          "name": "Värmeövergångstal för värmebäraren",
+          "description": "Värmeövergångstal mellan den lagringen och rummet, i kW/°C. Radiatorer ligger betydligt högre än en platta."
+        },
+        "heat_pump_cop_nominal": {
+          "name": "Värmepumpens nominella COP",
+          "description": "Värmepumpens nominella COP vid 7 °C utomhustemperatur."
+        },
+        "upper_floor_thermal_mass": {
+          "name": "Övre planets värmetröghet",
+          "description": "Värmetrögheten hos övre planet (radiatorzonen) i kWh/°C."
+        },
+        "lower_floor_thermal_mass": {
+          "name": "Nedre planets värmetröghet",
+          "description": "Värmetrögheten hos nedre planet (plattzonen) i kWh/°C."
+        },
+        "inter_zone_heat_transfer": {
+          "name": "Värmeöverföring mellan zoner",
+          "description": "Värmeövergångstal mellan övre och nedre planet i kW/°C. Högre värden för öppna planlösningar."
+        },
+        "radiator_power_fraction": {
+          "name": "Radiatorernas andel av effekten",
+          "description": "Andelen av värmepumpens effekt som går till radiatorerna (övre planet). 0,0 = enbart golvvärme, 1,0 = enbart radiatorer."
+        },
+        "window_area": {
+          "name": "Fönsteryta",
+          "description": "Total glasyta för beräkning av solinstrålningens värmetillskott, i m²."
+        },
+        "solar_heat_gain_coefficient": {
+          "name": "Solvärmefaktor (SHGC)",
+          "description": "Andelen solenergi som släpps igenom fönstren. Typiska värden: 0,3 (treglas med lågemissionsskikt) till 0,8 (enkelglas utan beläggning)."
+        },
+        "dhw_tank_volume": {
+          "name": "Varmvattenberedarens volym",
+          "description": "Varmvattenberedarens volym i liter."
+        },
+        "dhw_setpoint": {
+          "name": "Börvärde för varmvatten",
+          "description": "Måltemperatur för varmvattenberedaren i °C."
+        },
+        "dhw_min_temperature": {
+          "name": "Lägsta varmvattentemperatur",
+          "description": "Lägsta godtagbara temperatur i varmvattenberedaren i °C, som hålls under de inställda varmvattentiderna."
+        },
+        "dhw_daily_consumption": {
+          "name": "Daglig varmvattenförbrukning",
+          "description": "Uppskattad daglig varmvattenförbrukning i liter per dygn."
+        },
+        "dhw_cooling_rate": {
+          "name": "Varmvattenberedarens avsvalningstakt",
+          "description": "Hur snabbt beredaren svalnar utan tappning, i °C per timme vid 45 °C i beredaren och 20 °C omgivning. Lärs normalt in automatiskt från observerad avsvalning i vila; ange den för att så ett startvärde eller åsidosätta det inlärda."
+        },
+        "buffer_cooling_rate": {
+          "name": "Ackumulatortankens avsvalningstakt",
+          "description": "Hur snabbt ackumulatortanken svalnar med pumpen av, i °C per timme vid 25 °C över omgivningen. Lärs in automatiskt när en temperaturgivare för tanken är konfigurerad; att ange den här sår om det inlärda värdet och nollställer antalet mätvärden."
+        },
+        "dhw_schedule_enabled": {
+          "name": "Varmvattentider aktiverade",
+          "description": "När detta är på garanteras varmvatten endast under de inställda tiderna. När det är av krävs varmvatten dygnet runt."
+        },
+        "dhw_windows": {
+          "name": "Tider med varmvattenbehov",
+          "description": "Tider då varmvatten måste finnas tillgängligt, som klockslag i 24-timmarsformat separerade med komma. Tider får sträcka sig över midnatt. Lämna tomt för att härleda dem ur den inlärda förbrukningsprofilen. Tider som inte går att tolka avvisas i stället för att tyst ignoreras."
+        },
+        "dhw_idle_min_temperature": {
+          "name": "Lägsta varmvattentemperatur i vila",
+          "description": "Den lägsta temperatur i beredaren som optimeringen planerar för utanför tiderna med varmvattenbehov."
+        },
+        "dhw_legionella_enabled": {
+          "name": "Legionellacykel",
+          "description": "Värm beredaren till desinfektionstemperatur med jämna mellanrum."
+        },
+        "dhw_legionella_temperature": {
+          "name": "Legionellatemperatur",
+          "description": "Den temperatur beredaren når under en legionellacykel."
+        },
+        "dhw_legionella_interval_days": {
+          "name": "Legionellaintervall",
+          "description": "Största antal dygn mellan två legionellacykler."
+        },
+        "wind_sensitivity_factor": {
+          "name": "Vindkänslighetsfaktor",
+          "description": "Hur mycket vinden ökar värmeförlusten. 0,15 betyder 15 % större värmeförlust per m/s vindhastighet. Justerar den konvektiva värmeöverföringen."
+        },
+        "rain_heat_loss_multiplier": {
+          "name": "Regnfaktor för värmeförlust",
+          "description": "Multiplikator för värmeförlusten när det regnar. 1,15 betyder 15 % större värmeförlust under regn (effekten av ett blött klimatskal)."
+        },
+        "ecl110_pid_time_constant_hours": {
+          "name": "ECL110 PI/PID-tidskonstant",
+          "description": "Tidskonstant (timmar) för approximationen av ECL110:s PI/PID-svar. Lägre värden reagerar snabbare, högre värden ger jämnare gång."
+        },
+        "ecl110_displace_min": {
+          "name": "ECL110 minsta parallellförskjutning",
+          "description": "Den lägsta parallellförskjutning optimeringen får begära, i °C."
+        },
+        "ecl110_displace_max": {
+          "name": "ECL110 största parallellförskjutning",
+          "description": "Den högsta parallellförskjutning optimeringen får begära, i °C."
+        }
+      }
+    },
+    "simulate_plan": {
+      "name": "Simulera en plan",
+      "description": "Prissätt ett tänkt komfortval mot den aktuella prognosen utan att störa driften. Returnerar kostnadsskillnaden mot den plan som gäller. Ligger bakom instrumentpanelkortets tänk om-simulator; den underliggande beräkningen är hastighetsbegränsad, så täta upprepade anrop får förra svaret. Ett tänk om som inte kan köras — ingen plan ännu, för lite prisdata, varmvattentider som inte går att tolka — svarar med ett fel i stället för med en felpost inuti svaret.",
+      "fields": {
+        "target_temp": {
+          "name": "Måltemperatur",
+          "description": "Komfortmål att prova, i °C."
+        },
+        "min_temp": {
+          "name": "Lägsta temperatur",
+          "description": "Den lägsta godtagbara temperaturen att prova, i °C."
+        },
+        "max_temp": {
+          "name": "Högsta temperatur",
+          "description": "Den högsta godtagbara temperaturen att prova, i °C."
+        },
+        "comfort_weight": {
+          "name": "Komfortvikt",
+          "description": "Hur hårt priset ska jagas jämfört med att hålla temperaturen."
+        },
+        "comfort_temp_day": {
+          "name": "Komforttemperatur dagtid",
+          "description": "Komforttemperatur under värmedygnets dag, i °C."
+        },
+        "comfort_temp_night": {
+          "name": "Komforttemperatur nattetid",
+          "description": "Komforttemperatur utanför värmedygnets dag, i °C."
+        },
+        "dhw_setpoint": {
+          "name": "Börvärde för varmvatten",
+          "description": "Börvärde för beredaren att prova, i °C."
+        },
+        "dhw_min_temperature": {
+          "name": "Lägsta varmvatten",
+          "description": "Användbar lägstanivå inom tiderna med varmvattenbehov, i °C."
+        },
+        "day_start_hour": {
+          "name": "Värmedygnet börjar",
+          "description": "Den timme då dagens komforttemperatur tar över från nattens."
+        },
+        "day_end_hour": {
+          "name": "Värmedygnet slutar",
+          "description": "Den timme då nattsänkningen börjar."
+        },
+        "dhw_windows": {
+          "name": "Tider med varmvattenbehov",
+          "description": "Tider att prova, till exempel \"06:00-08:30, 17:00-22:00\". En tom sträng simulerar att inga tider med varmvattenbehov finns alls."
+        },
+        "wood_slots": {
+          "name": "Vedeldningstider",
+          "description": "Tänk om-vedeldning som en lista med objekt med start, slut och liter. Matas bara in i skuggberäkningen; skrivs aldrig till konfigurationen."
+        },
+        "wood_type": {
+          "name": "Vedslag",
+          "description": "Tänk om-värde för vedslag (björk, tall, blandat)."
+        },
+        "wood_packing": {
+          "name": "Vedens packning",
+          "description": "Tänk om-värde för packning (staplad eller löst)."
+        },
+        "wood_price_sek_m3": {
+          "name": "Vedpris",
+          "description": "Tänk om-värde för vedpriset i SEK per debiterad kubikmeter."
+        },
+        "wood_furnace_efficiency": {
+          "name": "Vedpannans verkningsgrad",
+          "description": "Tänk om-värde för pannans verkningsgrad i procent."
+        }
+      }
+    },
+    "assign_entity": {
+      "name": "Tilldela entitet",
+      "description": "Tilldela en av integrationens valfria givare, eller rensa den. Det här är vad inkopplingsschemat på instrumentpanelkortet anropar när du klickar på en plats, och det skriver samma konfiguration som inställningssidorna skriver. En ändrad konfiguration laddar om integrationen.",
+      "fields": {
+        "key": {
+          "name": "Inställning",
+          "description": "Vilken valfri givare som ska tilldelas, angiven med sin konfigurationsnyckel — till exempel buffer_tank_temp_entity."
+        },
+        "entity_id": {
+          "name": "Entitet",
+          "description": "Entiteten som ska tilldelas. Lämna tomt för att rensa platsen. Entiteten måste finnas och tillhöra en domän som platsen accepterar."
+        },
+        "entry_id": {
+          "name": "Konfigurationspost",
+          "description": "Begränsa ändringen till en värmepump. Utelämna för att tillämpa den på alla."
+        }
+      }
+    },
+    "apply_topology": {
+      "name": "Tillämpa systemlayout",
+      "description": "Spara den hydrauliska layout som inkopplingsschemats redigerare fäste mot, tillsammans med rutornas kosmetiska placering. Bara layouter ur den katalog som stöds accepteras, och bara när det här systemets konfiguration kan uppfylla dem — en layout med två tankar kräver en givare i vedtanken, en ventilerad layout kräver en ventil. En ändrad konfiguration laddar om integrationen.",
+      "fields": {
+        "layout": {
+          "name": "Systemlayout",
+          "description": "Layoutens katalognyckel — till exempel two_tank_4way eller valve_upper_direct_slab."
+        },
+        "positions": {
+          "name": "Rutornas placering",
+          "description": "Kosmetiska placeringar i schemat, som en avbildning från platsnamn till [x, y]. Påverkar aldrig fysiken."
+        },
+        "entry_id": {
+          "name": "Konfigurationspost",
+          "description": "Begränsa ändringen till en värmepump. Utelämna för att tillämpa den på alla."
+        }
+      }
+    },
+    "apply_schedule": {
+      "name": "Tillämpa schema",
+      "description": "Spara ett schema för värme och varmvatten i integrationens konfiguration, så att optimeringen planerar mot det från och med nu. Det här är den avsiktliga motsvarigheten till simulate_plan, som bara prissätter ett schema utan att spara det. En ändrad konfiguration laddar om integrationen.",
+      "fields": {
+        "day_start_hour": {
+          "name": "Värmedygnet börjar",
+          "description": "Den timme då dagens komforttemperatur tar över från nattens."
+        },
+        "day_end_hour": {
+          "name": "Värmedygnet slutar",
+          "description": "Den timme då nattsänkningen börjar."
+        },
+        "dhw_windows": {
+          "name": "Tider med varmvattenbehov",
+          "description": "Tider då varmvatten måste finnas tillgängligt, till exempel \"06:00-08:30, 17:00-22:00\". En tom sträng tar bort alla tider med varmvattenbehov och lämnar beredaren på sin lägstanivå i vila."
+        },
+        "comfort_temp_day": {
+          "name": "Komforttemperatur dagtid",
+          "description": "Önskad inomhustemperatur under värmedygnets dag."
+        },
+        "dhw_min_temperature": {
+          "name": "Lägsta varmvattentemperatur",
+          "description": "Den lägsta temperatur i beredaren som räknas som användbar inom en tid med varmvattenbehov. Den måste ligga några grader under börvärdet för varmvatten, annars skulle beredaren behöva ligga exakt på målet och pumpen skulle korttidscykla; ett värde som inte lämnar något dödband avvisas."
+        },
+        "entry_id": {
+          "name": "Konfigurationspost",
+          "description": "Begränsa ändringen till en konfigurationspost. Lämna tomt för att tillämpa den på varje konfigurerad värmepump, vilket är vad en installation med en enda värmepump vill ha."
+        }
+      }
+    },
+    "apply_manual_plan": {
+      "name": "Tillämpa manuell plan",
+      "description": "Lås exakt när värme och varmvatten körs de kommande 20 timmarna. Till skillnad från apply_schedule, som bara flyttar den ram optimeringen fortsätter fatta beslut inom, låser det här de faktiska körtiderna tills åsidosättningen löper ut. Säkerheten går ändå först: om beredaren faller under sin lägstanivå, en legionellacykel är på tur, eller huset sjunker under sitt komfortgolv, släpps den låsta frånslagningen och systemet kör ändå.",
+      "fields": {
+        "space_slots": {
+          "name": "Tider för värme",
+          "description": "När värmen ska köras, som en lista med objekt med start och slut i ISO 8601-format. En tom lista tvingar värmen av under hela perioden; utelämna fältet helt för att låta värmen vara helt automatisk."
+        },
+        "dhw_slots": {
+          "name": "Tider för varmvatten",
+          "description": "När varmvattnet ska köras, som en lista med objekt med start och slut i ISO 8601-format. En tom lista tvingar varmvattnet av under hela perioden; utelämna fältet helt för att låta varmvattnet vara helt automatiskt."
+        },
+        "expires_at": {
+          "name": "Löper ut",
+          "description": "Datumtid i ISO 8601-format när åsidosättningen slutar gälla och planeringen återgår till automatik. Standard är 20 timmar framåt, som startas om varje gång du tillämpar den. Den är medvetet kortare än optimeringens horisont på 24 timmar, så att det alltid finns en svans som optimeringen fortfarande äger."
+        },
+        "entry_id": {
+          "name": "Konfigurationspost",
+          "description": "Begränsa åsidosättningen till en konfigurationspost. Lämna tomt för att tillämpa den på varje konfigurerad värmepump."
+        }
+      }
+    },
+    "clear_manual_plan": {
+      "name": "Rensa manuell plan",
+      "description": "Ta bort eventuell manuell åsidosättning omedelbart, så att planeringen återgår till helt automatisk.",
+      "fields": {
+        "entry_id": {
+          "name": "Konfigurationspost",
+          "description": "Begränsa rensningen till en konfigurationspost. Lämna tomt för att rensa varje konfigurerad värmepump."
+        }
+      }
+    },
+    "restore_learned_snapshot": {
+      "name": "Återställ inlärd ögonblicksbild",
+      "description": "Rulla tillbaka varje inlärningsmodell till den senaste veckovisa ögonblicksbild som togs medan alla insignaler var friska och prognosträffsäkerheten låg inom sitt band. Använd detta om den inlärda modellen synbart har gått fel — till exempel efter att en givare matat skräp en tid. Driftvakten gör samma sak automatiskt när den kan bevisa att insignalerna var friska hela tiden; den här tjänsten är det manuella ingreppet för när du ser vad den inte kan se. Ingenting går förlorat permanent: inlärningen fortsätter helt enkelt från den återställda punkten. Anropet svarar med ett fel när ingen ögonblicksbild kvalificerar sig, i stället för att svara med en tom återställning.",
+      "fields": {
+        "entry_id": {
+          "name": "Konfigurationspost",
+          "description": "Begränsa återställningen till en konfigurationspost. Lämna tomt för att återställa varje konfigurerad värmepump."
+        }
+      }
+    },
+    "diagnose_interval": {
+      "name": "Diagnostisera senaste intervallet",
+      "description": "Förklara temperaturfelet i det senaste intervallet, insignal för insignal. Optimeringen kör om det intervall som just avslutats genom sin egen termiska modell och byter in en verklig insignal i taget i planens antaganden — uppmätt effekt i stället för beordrad, verklig utomhustemperatur i stället för prognostiserad, verklig sol i stället för antagen — och rapporterar hur mycket av felet varje byte förklarar. Det som inget byte förklarar är modellens eget residualfel, som rapporteras som \"unexplained\". Resultatet publiceras på givaren Prognosträffsäkerhet och returneras som tjänstens svar.",
+      "fields": {
+        "entry_id": {
+          "name": "Konfigurationspost",
+          "description": "Begränsa diagnosen till en konfigurationspost. Lämna tomt för att diagnostisera varje konfigurerad värmepump."
+        }
+      }
+    }
   }
 }

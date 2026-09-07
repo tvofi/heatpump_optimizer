@@ -7197,9 +7197,13 @@ R.check(
 # following, and it is the registered schema Home Assistant dispatches through.
 _bad_examples = []
 for _svc_name, _svc_spec in services.items():
+    # A service with no fields is ``name:`` with nothing under it, which parses
+    # to None -- hassfest allows it (CUSTOM_INTEGRATION_SERVICE_SCHEMA ends in
+    # ``None``) and async_get_all_descriptions guards it with ``or {}``. This
+    # walked every service and only worked while each still carried a name.
     _svc_examples = {
         field: spec["example"]
-        for field, spec in (_svc_spec.get("fields") or {}).items()
+        for field, spec in ((_svc_spec or {}).get("fields") or {}).items()
         if "example" in spec
     }
     if not _svc_examples:
