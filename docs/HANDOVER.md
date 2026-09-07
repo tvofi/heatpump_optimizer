@@ -1,6 +1,6 @@
 # Handover — the open-issues programme
 
-updated-for: c609b91
+updated-for: 6438406
 
 This is the only handover. There is no dated series: a second
 `docs/handover-*.md` is refused by `tests/entities.py`, and the policy it
@@ -70,11 +70,9 @@ so it costs no extra pull request, and `updated-for:` names that merge.
 - **The orchestrator is bound by every contract it enforces.**
   `tools/audit/briefs/orchestrator.md` exists because it did not: every auditor
   of the resumability review had to be *told* what to fetch.
-- **Every sentence earns its place** (owner-directed). Governs the development
-  record — pull-request bodies, issues, comments, commit messages, briefs,
-  roster entries, reports and this file — never `README.md` or the rest of
-  `docs/`. **Precision outranks concision**, and cutting evidence is never
-  compliance with it.
+- **Every sentence earns its place** (owner-directed, 2026-09-07). The rule,
+  its scope and its controls are in `CLAUDE.md`; recorded here so that the
+  decision to adopt it is not relitigated.
 
 ### The UX programme
 
@@ -83,35 +81,11 @@ of record. This file deliberately does **not** restate them — it previously
 claimed to hold the "full accounting" and did not, which cost a session the
 conclusion that the list was unrecoverable when it was one artifact call away.
 
-Thirty-four items in five lanes. Three dropped and two reshaped so they stop
-being breaking changes; both recorded on #558 with reasons.
-
-**Lanes run concurrently with the waves — but independence is by FILE, not
-only by budget.** The docket measured against the ratchet, which was true and
-incomplete. Measured 2026-09-07:
-
-| lane | collides with | on | sequence |
-|---|---|---|---|
-| B docs, C card | — | — | now |
-| D ha | W5-G2 | `sensor.py` | now — Wave 5 unstarted, W5-G2 re-measures |
-| E flow | **W4 S11 (#223)**, W5-G3 | `config_flow.py` | E1–E3 **after S11**; E4 (#516) now |
-| F post-W4 | S12/S13, W5-G4, W5-G7 | `coordinator.py` | **last work of the programme**, after #412 |
-
-**E1–E3 wait** because S11 rewrites `config_flow.py` as a settings registry:
-landing them first means S11 restructures work that just landed; after, each
-is one registry row instead of three separate edits.
-
-**F is last** because it is the only lane adding lines to `coordinator.py`,
-where `coordinator_loc` and `max_class_loc` sit at zero headroom.
-
-**Three in-lane rules**, each costing a red main or a wasted PR: C4 runs last
-(extended today it fails on four measured ratios); C1 is one PR, not four
-(same state list); B5 needs B4 landed.
-
-Issues exist for the items a lane is working now — #559–#563 (B1–B5), #564
-(C1), #565–#566 (D2–D3) — and #516 (E4). The rest stay as #558 rows until
-their lane reaches them, so the tracker holds work someone is doing rather
-than a backlog nobody has started.
+The lane collision table, the three in-lane sequencing rules and the reasons
+E1–E3 and F wait live in `docs/plan-2026-09-open-issues.md`, which is
+authoritative for delivery state; per-unit stage, `after` edges and carried
+findings are in `.claude/workflows/wave-ux-groups.json` (#601), the in-tree
+destination the lanes had none of and the only one a linter reads.
 
 ## Corrections to the record
 
@@ -140,19 +114,11 @@ than a backlog nobody has started.
   floor — absent from that release's `helpers/selector.py`, present at
   2025.2.0. The park was correct, and it is #514 that unblocks it.
 
-- **The ratchet has 24 metrics.** `structure_budgets.json` keys less
-  `recorded_at`. `CLAUDE.md` said 22 for a long time and a pull-request body
-  said 29 — that 29 is the count of `ok` lines, which includes the counting-rule
-  check and four `const.py` symbol checks. **Derive it; never carry it.**
-- **The claim-file rule is conditional, and the flat form is wrong.** A branch
-  that claims **no** drift must not touch `claimed_drift.txt` /
-  `card_claimed_drift.txt` — GitHub cannot run the `claimnotes` merge driver, a
-  gratuitous note makes the pull request DIRTY, and CI then never queues
-  (absent, not failing). A branch that **does** move goldens must write its
-  claims, and those bare lines are then the correct state. The flat "always
-  byte-identical" form was briefed to every seat for a session before a reviewer
-  refused it by measuring: PR #600 carries 33 correct bare lines because it
-  moves 33 card states.
+- **The claim-file rule is conditional, and the flat form is wrong.**
+  `CLAUDE.md` carries both halves and the mechanism behind them. The correction
+  is that the flat "always byte-identical" form was briefed to every seat for a
+  session before a reviewer refused it by measuring: PR #600 carries 33 correct
+  bare claim lines because it moves 33 card states.
 
 ## Traps that cost a session
 
@@ -254,27 +220,18 @@ than a backlog nobody has started.
 16. **Backticks inside a double-quoted shell string are command substitution.**
     Three review comments were posted with their SHAs silently missing. Write
     the body to a file with a quoted heredoc and pass `-F body=@file`.
+19. **A one-sided size cap and a growing document collide across branches, and
+    nothing branch-scoped holds both ends.** #608 recorded `docs/HANDOVER.md`'s
+    cap in `.claude/workflows/policy_budgets.json` at the length that file then
+    had; #607, cut from the same commit and already in review, added 43 lines to
+    it and merged 56 minutes later. Both prefixes are INERT, so the `Governance`
+    workflow is the only thing that measures this, and it was green on each
+    branch alone. `main` was red on `policy-docs` from `5018e31` until this
+    record paid the lines back. Trap 17's shape on a budget rather than a
+    citation.
 
 ## Owed
 
-- **The record pull request for #512** landed the four corrections this entry
-  used to ask for: the roster and Delivery-status entry naming Wave 4 S1's
-  138-point drop as instrument blindness (#510), not decoupling; the S3
-  ruling text in `.claude/workflows/wave-4-groups.json` extended so the
-  `getattr`/alias forms are *counted* rather than refused, for S6–S8 and S12;
-  W4-G5's halt-premise recount; and #516 sequenced as a follow-up gated on
-  #514. **One correction to this bullet itself**: the recount was guessed
-  here as "23 of 115 is now 23 of 132" without running the thing that
-  produces it (trap 6 below, caught by the same rule it names). Measured
-  directly against `tests/structure.py`'s own `seam_metrics` at head
-  `b6a21f1`: cut_fetch's addressable-from-inside share is **40 of 132**, not
-  23 — the whole +17 from #512's fix is fetch's own newly-visible reads of
-  attributes it does not own (17→34), not other seams reading more of
-  fetch's, so the "92 other-seams-reaching-in" share holds at 92 in absolute
-  count but drops from 80% to 70% of the (now larger) total. The halt's
-  actual basis — the judge's #193 finding that no component of size>1
-  detaches at any k — does not move either way; see the roster's W4-G5 note
-  for the full recount.
 - **A never-scoped CI job for `node .claude/workflows/check-wave-script.mjs`**,
   shaped like `tests.yml`'s `browser` and `briefs` jobs. It is the last file in
   that position still running by hand only.
