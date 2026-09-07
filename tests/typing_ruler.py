@@ -344,13 +344,24 @@ def measure(report: Report, budget: dict) -> dict | None:
         return None
 
     by_code: dict[str, int] = {}
-    for _, code in under_package:
+    by_module: dict[str, int] = {}
+    for path, code in under_package:
         by_code[code] = by_code.get(code, 0) + 1
+        module = path[len(PACKAGE_REL) + 1:]
+        by_module[module] = by_module.get(module, 0) + 1
 
     ignores, _ = count_type_ignores()
     return {
         "errors": len(under_package),
         "by_code": dict(sorted(by_code.items())),
+        # REPORTED, never ratcheted, and never stored in the budget file. The
+        # module tranches of #303 are scoped by module and would otherwise have
+        # no way to size themselves -- the pinned ruler does not run below
+        # Python 3.13.2, so they cannot measure it locally (#504). A stored
+        # snapshot would go stale between tranches and a ratchet on it would
+        # fail an honest move of code between modules, so it rides the emitted
+        # measurement and the job log, where it is always current.
+        "by_module": dict(sorted(by_module.items(), key=lambda kv: (-kv[1], kv[0]))),
         "type_ignores": ignores,
         # Provenance, not a constraint. The stubs choose these versions, so
         # recording them is how a resolution change becomes visible beside the
@@ -476,6 +487,13 @@ def mypy_checks(report: Report, budget: dict, emit: str | None) -> None:
         Path(emit).write_text(json.dumps(measured, indent=1) + "\n")
         print(f"\nmeasurement written to {emit}")
 
+    # Printed on every run, passing or failing. It is what a module tranche of
+    # #303 sizes itself against, and it is never recorded, so the log and the
+    # artifact are the only places it exists.
+    print("\n########## errors by module (reported, not ratcheted) ##########")
+    for module, n in measured["by_module"].items():
+        print("  %-32s %4d" % (module, n))
+
     census = budget.get("census")
     if census is None:
         report.check(
@@ -494,7 +512,9 @@ def mypy_checks(report: Report, budget: dict, emit: str | None) -> None:
         print('  "census", then commit. The ratchet enforces it from the next run:')
         print()
         block = dict(measured)
+        # type_ignores has its own top-level key; by_module is never stored.
         block.pop("type_ignores", None)
+        block.pop("by_module", None)
         block["recorded_at"] = head_sha()
         for line in json.dumps(block, indent=2).splitlines():
             print("    " + line)
