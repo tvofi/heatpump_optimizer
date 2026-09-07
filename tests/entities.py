@@ -2903,6 +2903,12 @@ for step in ("building_preset", "grid", "solar_pv", "away", "learning", "thermal
 # entry to render a form — and the two tuples partition it between the top
 # menu and the advanced submenu. A page in neither menu is unreachable; a
 # page in both renders twice.
+#
+# Since #223 all three are views of ``_OPTION_PAGES``'s ``menu`` column, so
+# the check below is true by construction and is kept as a guard against that
+# derivation being undone rather than as a live invariant. The one with teeth
+# moved to ``registry_drives_every_page`` in tests/config_flow_steps.py: a
+# page in the table with no handler, or a handler no menu offers.
 _top = set(options._TOP_MENU)
 _advanced = set(options._ADVANCED_MENU)
 R.check(
