@@ -2458,6 +2458,28 @@ class HeatPumpOptimizer:
         existing_info = result.predictive_info if result.predictive_info else {}
         result.predictive_info = {**forecast_analysis, **existing_info}
 
+        self._publish_breach_reports(
+            result, power_caps_extra, space_blocked, dhw_blocked, n_steps,
+            temp_min_bounds,
+        )
+        return result
+
+    def _publish_breach_reports(
+        self,
+        result: OptimizationResult,
+        power_caps_extra: np.ndarray | None,
+        space_blocked: bool,
+        dhw_blocked: bool,
+        n_steps: int,
+        temp_min_bounds: np.ndarray,
+    ) -> None:
+        """Publish the cap and mode-block breach figures onto ``result``.
+
+        Runs once, after the solve, so nothing here is in a per-solve hot
+        loop. Each key is added only when its cap or block is actually in
+        force, which is what leaves an ordinary install — and every golden
+        fixture — with byte-identical ``predictive_info``.
+        """
         if power_caps_extra is not None or space_blocked:
             # An externally capped plan must say when the cap made the floor
             # unreachable — a fuse guard that silently plans a cold house is
@@ -2522,7 +2544,6 @@ class HeatPumpOptimizer:
                         np.max(np.clip(req[:steps] - planned[:steps], 0.0, None))
                     )
             result.predictive_info["dhw_floor_breach_c"] = round(shortfall, 3)
-        return result
 
     @staticmethod
     def _normalise_pins(
