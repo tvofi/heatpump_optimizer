@@ -178,3 +178,8 @@
 # may-drift: wood_two_tank_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_coil -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: valve_upper_direct_slab -- machine-sensitive; the DHW plan can reach it, per local optimum
+# W4-G9 S8 (#193, the COP-health watch): this branch claims NOTHING. Two
+# initialisations move verbatim from `_init_insurance` into
+# `_init_thermal_learning` -- an earlier call in the same `__init__`, with
+# the same constants and no read between the two call sites -- so every
+# scenario fixture is byte-identical by construction.
