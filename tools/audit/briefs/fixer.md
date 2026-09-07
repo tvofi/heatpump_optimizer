@@ -18,7 +18,15 @@ production lines. You work in your own worktree branched from `origin/main`.
    the closure, paste the failing check names, restore.
 3. **Re-execute the finding's harness on your branch**: before and after, with
    the head SHA measured, in the PR body. A cost, gain or time claim carries
-   its null control. A learner or guard change is measured at both ends of
+   its null control. **Every quantified claim carries one, not only cost, gain
+   and time**: a count, a percentage, a coverage figure, a population, an
+   "every" or a "none" is a measurement, owed the command that produced it and
+   the result that would have appeared had it been false. **Never print a
+   conclusion beside a command** — `diff a b && echo IDENTICAL`, never
+   `diff a b; echo "(empty means identical)"`, which prints either way. A figure
+   from a sliding window — a paged listing, a "top N" — decays after you write
+   it: state the rule that reproduces it, not the number. A learner or guard
+   change is measured at both ends of
    its input range — an install with zero evidence, and one sitting on the
    clamp — because a fix has been worse than its bug before, silently.
 4. **Goldens that move are claimed by whoever measured the drift**, in
@@ -94,6 +102,19 @@ production lines. You work in your own worktree branched from `origin/main`.
    59, 50, and 124/147/50, because each asked a subtly different question;
    only a count whose rule is written down is re-derivable by whoever reads
    the body next. Say what you counted, not only how many.
+   **Name the instrument you re-ran, and its scope.** If the block you are
+   clearing was demonstrated with an *instance*, your verification may not be a
+   search for that instance — it must check the *property* the block stated. If
+   no such instrument exists, say so, and say what you did instead.
+   A root-cause analysis established this class over three pull requests where
+   each fix was verified against the demonstrated instance's form while a
+   sibling carrying the same property in a different form survived — one of them
+   created by the same commit. That analysis, its cost test and the detector it
+   built and rejected are recorded on **#592**, which is where this step was
+   added. Its measurements are deliberately not quoted here: they are a share of
+   a moving population and decay, which is what step 3 above forbids — three
+   figures were quoted in a first draft and a reviewer refuted all three.
+
 9. **A claim should be true; if wrong, correct it — anchored to a lane,
    function, marker or SHA, never a bare line number — and delete only when
    no such correction exists.** Delete on sight, not as a last resort, when
@@ -126,6 +147,31 @@ production lines. You work in your own worktree branched from `origin/main`.
     under the other plausible fix it failed 4 of 7, and three were the test's
     opinion rather than a defect. Prejudging is legitimate — saying so is what
     stops the next seat reading a legitimate tightening as a bug.
+
+12. **The seam a method belongs to is decided by its NAME, first match wins.**
+    `tests/structure.py`'s `seam_bucket` walks `SEAM_REGEXES` in order and
+    returns on the first regex that matches the method name; anything matching
+    none is `core`. So a method whose name happens to match an earlier seam's
+    pattern is priced against **that** seam, not the one it belongs to — and a
+    cut measured on the wrong bucket is measured against state the seam does not
+    own. Before pricing an extraction, run the candidate method names through
+    the bucketing yourself and say which seam each landed in. A name collision
+    is silent: nothing fails, the number is simply about a different thing.
+
+13. **`tests/hastub` is not Home Assistant, and a green test may pin the stub.**
+    `tests/ha_contract.py` records what each stub symbol is — faithful,
+    divergent, simplified, unverified, or a holder — and runs its contracts
+    against both the stub and, nightly, the real package. **Before asserting
+    that a test proves a production property, check whether the stub is what
+    satisfied it.** Four separate seats hit this in one day: the stub had no
+    loop protection, no `section`, no `state` property on `SensorEntity`, and a
+    `NumberSelector` that validated nothing. Each made a real defect invisible
+    to every lane.
+
+    If your work depends on a symbol's upstream behaviour, add or read its
+    contract rather than assuming; if you must extend the stub, argue the
+    fidelity against upstream rather than shaping it to what your test needs —
+    that shape is exactly the one that agrees with a wrong implementation.
 
 **When a structural budget blocks the work.** A `tests/structure.py` failure is
 a decision point, not a wall, and it has three answers rather than two: pay for

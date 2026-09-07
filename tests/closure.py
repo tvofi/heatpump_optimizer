@@ -198,11 +198,16 @@ INERT = (
     "tests/card_browser.mjs",
     # A manual QA render (writes ../setup-qa/). No gate script reads it.
     "tests/setup_qa_render.mjs",
-    # Driven by the `nightly-ha` CI job (#521), which pulls a Home Assistant
-    # image and runs the integration inside it. Like card_browser.mjs it is a
-    # real test that this gate cannot run -- Docker is not available to any
-    # gate lane -- so no gate script reads it and none ever will.
-    "tests/nightly_ha.py",
+    # tests/nightly_ha.py was here, on the argument that a lane needing Docker
+    # is one "no gate script reads and none ever will". The first half held and
+    # still does -- it stays on NOT_A_TEST above, and nothing in this gate runs
+    # it. The second half was the mistake (#533): its REPORTING is text, and
+    # `tests/entities.py` now reads it, so a stale pin or a check renamed out
+    # of it fails on the pull request rather than nowhere. Its two offenders
+    # from #525 stayed pinned through the #540 that removed them, every nightly
+    # green, precisely because no check could see the file. Unreadable by the
+    # gate and unread by the gate are different claims, and only the first was
+    # ever true here.
 )
 
 # Changing the gate itself, or how the closures are derived, invalidates every
