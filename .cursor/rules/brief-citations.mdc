@@ -21,6 +21,16 @@ alwaysApply: true
 
 **VERSION** — `VERSION x.y.z` or `VERSION a -> b` must match the live `VERSION` file (arrow checks `b`). Do not pin a version a later stamp will invalidate.
 
+**When the symbol you must name does not exist yet.** A backticked identifier is a symbol citation, so a brief that names what a *planned* item will add fails the linter for doing its job. This bit three times in one session — twice on symbols the lane existed to introduce, once on a Home Assistant name absent from this tree at any tag. A tag citation does not rescue those: there is no tag at which they exist.
+
+Three remedies, in order of preference, and **weakening the linter is not among them**:
+
+1. **Do not backtick it.** Name it in prose — *the configuration-URL field*, *the repair notice's learn-more link*. The citation rule exists to check claims about the tree, and a symbol that is not in the tree yet is not such a claim.
+2. **Cite the artifact that does exist** — the issue, the upstream document, the file the symbol will land in.
+3. **Where it genuinely exists at a tag, cite the tag**, which is what tag citations are for.
+
+The linter's ref path also resolves at the cited tag, so verify a tag citation actually carries the symbol rather than assuming the tag rescues it.
+
 ```
 # BAD — only in docs/plan-*.md, or a moved range with no live anchor
 tests/entities.py:6042-6062 "does not run ahead"

@@ -6,7 +6,11 @@
 //
 // Lives beside its output because `docs/` is INERT in tests/closure.py --
 // nothing under tests/ reads it -- so the generator needs no closure entry and
-// changing it selects no gate script. (A generator under tools/ would be an
+// changing it selects no gate script. The cost of that is that nothing re-runs
+// it either: a change to what the CARD draws leaves these figures stale and no
+// check anywhere says so, so the seat that changes the card is the one that
+// has to run this (#558 C2/C3). tests/card_drift.mjs says the same thing where
+// that seat will be reading. (A generator under tools/ would be an
 // orphan until tests/closure.py named it, and closure.py is a GATE_FILE.)
 //
 //   python3 tests/plan_view.py                                   # 1-zone payload
