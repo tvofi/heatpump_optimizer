@@ -130,6 +130,18 @@
 # auditors read): this branch claims NOTHING. A shell generator, agent prompt
 # strings under .claude/workflows/ and audit prose only -- no production file,
 # no fixture input and no solver parameter is touched, so every scenario is
+# #547, the stored-value arm the config-flow golden could not see: this
+# branch claims ONE fixture, config_flow, and the direction is ADD-ONLY.
+# capture_config_flow() gained a second render of every option page against
+# a derived, seeded set of options, recorded under two NEW top-level keys,
+# `_seed` and `_seeded`. Every key path the fixture already carried is
+# byte-identical -- the re-record is 1868 insertions and 0 deletions -- so
+# the claim is "two key paths appeared", never "a recorded value moved".
+# Recording as well as claiming is correct here and only here: config_flow
+# is the one fixture carries_floats() reports False for, so env_drift.py
+# compares it EXACTLY against the committed file at level 1, and a claim
+# alone would leave that level failing on a fixture the code no longer
+# produces. No production file is touched, so every other fixture is
 # byte-identical by construction.
 # W4-G8 S7 (#193, the thermal-learning seam): this branch claims NOTHING.
 # The shared Newton step, trust region, EWMA blend and rate limit move
@@ -139,6 +151,7 @@
 # assumed: ten saturated warm residuals through the real house learner land
 # on 0.8999999999999999 at the merge base and at this head, and deleting the
 # trust-region clip moves that to 0.5987369392383789.
+config_flow  # #547: gains the _seed and _seeded key paths; no existing path moves
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
