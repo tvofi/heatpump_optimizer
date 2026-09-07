@@ -113,6 +113,11 @@
 # NOTHING. Two test files only -- tests/config_flow_steps.py and the
 # tests/hastub selector stub -- and nothing under custom_components/ is
 # touched, so every fixture is byte-identical by construction.
+#
+#
+# The claim-driver policy text, split out of #545 for approval: this branch
+# claims NOTHING. CLAUDE.md and .cursor/rules/ci-autofix.mdc only -- no
+# production file, no test input and no solver parameter is touched.
 
 #
 # #509, the diagnostics privacy fix: this branch claims NOTHING. It touches
