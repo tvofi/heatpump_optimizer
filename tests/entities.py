@@ -9135,6 +9135,38 @@ R.check(
     ) is None,
     "a real card PR may claim the states it moves",
 )
+# #547: the capture code moves fixtures with no production line changed, and
+# the guard used to refuse the claim the drift comparison demanded -- two
+# checks contradicting each other on one diff. Every source is asserted, so a
+# tuple widened to silence some future failure has to survive the null
+# control below rather than passing quietly.
+R.check(
+    "a claim-bearing change to the capture code is not a record-PR violation",
+    callable(_rpr)
+    and bool(getattr(_env_drift, "CAPTURE_SOURCES", ()))
+    and all(
+        _rpr([source], {"config_flow": "this branch reseeded the capture"}, {})
+        is None
+        for source in getattr(_env_drift, "CAPTURE_SOURCES", ())
+    ),
+    "tests/golden.py and the modules it captures through can move a fixture "
+    "with no production file touched (#547). sources="
+    f"{getattr(_env_drift, 'CAPTURE_SOURCES', None)}",
+)
+R.check(
+    "a test file that is NOT a capture source still cannot justify a claim",
+    callable(_rpr)
+    and (
+        _rpr(
+            ["tests/config_flow_steps.py"],
+            {"config_flow": "this branch moved the fixture"},
+            {},
+        )
+        or ""
+    ).startswith("RECORD PR CLAIMS"),
+    "the null control on #547's widening: a driver that only reads the flow "
+    "captures nothing, so it may not carry a claim",
+)
 
 _runsh_text = Path("tests/run.sh").read_text()
 _claims_lines = [

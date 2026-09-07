@@ -1912,6 +1912,86 @@ async def options_advanced_pages():
     )
 
 
+#: Distinguishable from every value a field could legitimately default to,
+#: ``None`` included.
+NO_DEFAULT = object()
+
+#: The four option pages whose stored-value arm nothing asserted (#547).
+#: ``entities_pump`` was already pinned by ``tests/entities.py``; the arm on
+#: ``learning`` is dead code (#542). Measured at 137b6d5: rewriting
+#: ``return vol.Optional(key, default=existing)`` to ``return
+#: vol.Optional(key)`` on any of these four left this driver, ``entities.py``
+#: and the config-flow golden all green.
+STORED_ARM_PAGES = ("entities", "comfort", "hot_water", "building")
+
+
+def entity_field_defaults(result):
+    """Every entity picker on a form, mapped to its default or ``NO_DEFAULT``.
+
+    ``vol.Optional(key)`` carries ``vol.UNDEFINED``, which is not callable, so
+    calling the marker is what separates "offered with no default" from
+    "offered defaulted to something".
+    """
+    schema = result.get("data_schema")
+    out = {}
+    for key, value in (schema.schema.items() if schema else []):
+        if type(value).__name__ != "EntitySelector":
+            continue
+        name = str(getattr(key, "schema", key))
+        try:
+            out[name] = key.default()
+        except Exception:
+            out[name] = NO_DEFAULT
+    return out
+
+
+async def options_stored_entity_arm():
+    """The arm that renders a CONFIGURED install, on the pages nothing pinned.
+
+    Each page's entity helper has two arms -- ``vol.Optional(key,
+    default=existing)`` when something is stored, bare ``vol.Optional(key)``
+    when nothing is -- and every other check in this file drives the empty
+    one. #542 is what leaving the other unasserted costs: a page that forgets
+    what is configured writes a null over it on the next save.
+
+    The fields are DERIVED per page rather than named here, so a page that
+    gains an entity picker is covered without anyone remembering to add it.
+    The pair of checks is what makes that honest: a helper that returned a
+    default unconditionally would satisfy the second one alone.
+    """
+    R.section("options: the stored-value arm, on the four pages that had none")
+    for step in STORED_ARM_PAGES:
+        flow, _entry, _ = fresh_options()
+        unset = {
+            key
+            for key, default in entity_field_defaults(
+                await getattr(flow, f"async_step_{step}")(None)
+            ).items()
+            if default is NO_DEFAULT
+        }
+        check(
+            f"opt_{step}",
+            "happy",
+            f"an unconfigured {step} page offers its entity fields undefaulted",
+            bool(unset),
+            f"undefaulted entity fields={sorted(unset)}",
+        )
+
+        stored = {key: f"sensor.stored_{key}" for key in sorted(unset)}
+        flow, _entry, _ = fresh_options(pre_options=stored)
+        rendered = entity_field_defaults(
+            await getattr(flow, f"async_step_{step}")(None)
+        )
+        wrong = {k: rendered.get(k) for k in stored if rendered.get(k) != stored[k]}
+        check(
+            f"opt_{step}",
+            "happy",
+            f"the {step} page re-renders every stored entity as that field's default",
+            bool(stored) and not wrong,
+            f"{len(stored)} field(s) seeded; mismatches={wrong}",
+        )
+
+
 async def options_error_branches():
     """Every per-page validation error, each on a fresh flow that must not save."""
     R.section("options: every page's validation errors")
@@ -2822,6 +2902,7 @@ async def main() -> int:
     await options_menus()
     await options_walk()
     await options_advanced_pages()
+    await options_stored_entity_arm()
     await options_error_branches()
     await options_seeded_prefill()
     await widening_refusals()

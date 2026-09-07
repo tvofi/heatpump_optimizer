@@ -1552,13 +1552,33 @@ def run_merge_driver(base_path: str, ours_path: str, theirs_path: str,
     print(f"MERGE-CLAIM: resolved {label}", file=sys.stderr)
     return 0
 
+#: Test files whose contents decide what a capture PRODUCES, so a diff
+#: touching one of them can move a fixture with no production line changed.
+#: Derived from what ``capture_tree`` imports out of the tree under test --
+#: ``golden.py`` itself, the scenario inputs it reads at module level, and the
+#: fakes ``capture_config_flow`` builds the flow against -- rather than from a
+#: judgement about which tests matter.
+#:
+#: #547 is the measurement. Seeding options in ``capture_config_flow`` moved
+#: the ``config_flow`` fixture against the merge base while the three-dot
+#: touched no production file at all, and the two checks then contradicted
+#: each other: the drift comparison demanded a claim, and the record-PR guard
+#: below refused it. Extend this tuple the same way -- from an import that
+#: reaches a capture, with the drift actually measured -- never to quiet a
+#: failure.
+CAPTURE_SOURCES = (
+    "tests/golden.py",
+    "tests/profiles.py",
+    "tests/harness.py",
+)
+
 
 def justifies_solver_claim(path: str) -> bool:
     """Whether ``path`` can move a solver golden this claim file excuses."""
     return (
         path.startswith("custom_components/heatpump_optimizer/")
         and path.endswith(".py")
-    )
+    ) or path in CAPTURE_SOURCES
 
 
 def justifies_card_claim(path: str) -> bool:
