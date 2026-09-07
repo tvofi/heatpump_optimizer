@@ -122,6 +122,22 @@ that reason in the **commit** message, because the squash-merge keeps the commit
 and discards the branch). Paying for the lines is still the first question, and
 a raise is only for the case where the honest answer is that you cannot.
 
+**Ask which class the budget you fear is even measured on, before you go
+shopping for a payment.** `internal_call_edges`, `coordinator_methods`,
+`coordinator_attrs`, `coordinator_loc`, the `cut_*` rows and
+`cross_seam_fraction` are all computed over `structure.py`'s
+`COORDINATOR_CLASS_NAME` alone. A new method anywhere else in the integration
+moves none of them, so the payment question — which has cost several seats a
+scan, and once a near-halt — simply does not arise outside `coordinator.py`.
+Measured in #224's first split: an extraction in `optimizer.py` added one
+method and one `self.` call, and `internal_call_edges` read 366 at both ends;
+had the metric counted that class it would have read 367. What binds outside
+the coordinator is the integration-wide set — `methods_over_150`/`_200`,
+`functions_cc_over_15`/`_25`, `duplication_blocks`, `local_imports`, and the
+`max_cc` / `max_method_loc` maxima, which a split usually moves *down*. Run
+`python3 tests/structure.py` at your own merge base and let it say which rows
+are in play; an empty payment pool is a halt only where a payment was owed.
+
 A raise **requires the repository owner's explicit confirmation, obtained before
 you push.** It is not a judgement a fixer makes alone and it is not something a
 reviewer can wave through, so an agent that finds itself wanting one **stops and
