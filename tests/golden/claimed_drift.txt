@@ -171,3 +171,10 @@
 # `_init_thermal_learning` -- an earlier call in the same `__init__`, with
 # the same constants and no read between the two call sites -- so every
 # scenario fixture is byte-identical by construction.
+# W4-G10 S9 (#224, optimize's breach-report tail): this branch claims NOTHING.
+# The cap and mode-block breach report moves verbatim out of `optimize` into
+# `_publish_breach_reports`, called at the same point, before the same
+# `return result`; the moved body is byte-identical (md5
+# fe7a7d877fc73fdb7ccb54dfee968c88 at the merge base and at this head), so no
+# arithmetic is reordered. Both keys it writes are added only under a cap or a
+# mode block, and every scenario fixture plans with neither.

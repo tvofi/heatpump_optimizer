@@ -269,6 +269,33 @@ lines would fail two budgets and eat the headroom the seam stages need. It
 therefore follows Wave 4, Wave 5 **and** #412, which makes it the final work
 of the whole programme rather than merely late.
 
+**How HACS eats an image, measured — this binds every figure lane B ships.**
+`hacs.json` sets `render_readme: true`, and HACS rewrites image sources before
+`<ha-markdown>` sees them. Three constraints, each established by running HACS's
+own pipeline rather than by reading its source:
+
+1. **A relative `src` is blanked** unless HACS rewrites it to an absolute URL.
+2. **The rewriter's regex has no `s` flag**, so an image whose alt text wraps
+   across lines is skipped — and then blanked. This caught the lane's own hero,
+   which was written wrapped and would have shipped broken in the one view B4
+   exists for.
+3. **The rewriter's lookahead `(?!.*?://)` scans the whole line, not the link.**
+   So a relative image that *shares a line with any absolute URL* is never
+   rewritten, and vanishes. The construct that matters is exactly the one a
+   figure lane reaches for — a figure linked to a larger version:
+
+   ```markdown
+   [![alt](docs/img/fig.svg)](https://example.com/full.svg)
+   ```
+
+   This is the same mechanism as the `(LICENSE)` badge defect, whose target has
+   no extension and which HACS therefore rewrites into a broken link. Rule 3 is
+   **not covered by the pin B1 landed**: all three such constructs pass it.
+
+Establish separately whether `docs/*.md` is subject to any of this. HACS renders
+the README; `docs/` may reach the reader only through GitHub, and a constraint
+applied where it does not hold costs quality for nothing.
+
 **Three sequencing rules inside the lanes**, each of which costs a red main or
 a wasted PR if ignored: **C4** (the contrast witness) runs **last** in its
 lane, because extended today it fails immediately on four measured ratios;
