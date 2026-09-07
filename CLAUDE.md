@@ -148,15 +148,20 @@ anything a user reads. User-facing writing serves someone who did not run the
 command, cannot see the diff, and has no context to supply; it needs the
 explanation this rule cuts.
 
-A sentence stays only if it carries a **measurement**, a **decision and why**, a
-**constraint on someone downstream**, or a **refusal and what refused it**.
-Everything else is cut, not shortened: restating the ask, narrating the route,
-summarising your own diff, repeating a finding in a second place, preamble,
-recap, and any adjective whose deletion changes no fact.
+**Precision outranks concision, always.** Where the two pull against each other,
+precision wins and the artifact gets longer. A number keeps the rule that
+produced it (`fixer.md` step 8); a claim keeps its control; a figure from a
+sliding window states the rule instead of the number. A long artifact dense with
+measurement is correct. **A short one missing a control is a defect, and cutting
+evidence is never compliance with this rule** — if you are unsure whether
+something is filler, keep it, because the cost of a redundant sentence is a
+reader's second, and the cost of a dropped control is a defect that ships.
 
-**This never licenses dropping evidence.** A number keeps the rule that produced
-it (`fixer.md` step 8); a claim keeps its control. A long artifact dense with
-measurement is correct; a short one missing a control is not.
+Given that: a sentence stays only if it carries a **measurement**, a **decision
+and why**, a **constraint on someone downstream**, or a **refusal and what
+refused it**. Everything else is cut, not shortened: restating the ask,
+narrating the route, summarising your own diff, repeating a finding in a second
+place, preamble, recap, and any adjective whose deletion changes no fact.
 
 The test: **delete the sentence and ask what a reader can no longer check.**
 Nothing? It was filler.
