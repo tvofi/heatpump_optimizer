@@ -58,6 +58,10 @@ import {
 // Half this corpus's citations are `.cursor/rules/*.mdc`, so they are matched
 // here rather than by widening a regex the roster linter depends on.
 const MDC_PATH_RE = /(?<![\w./-])\.?(?:[A-Za-z0-9_][A-Za-z0-9_.-]*\/)*[A-Za-z0-9_][A-Za-z0-9_.-]*\.mdc\b/g
+// ...and the same for `file.mdc:120`, which PATHLINE_RE cannot see for the same
+// reason. Named groups match brief_lint's, so one loop handles both.
+const MDC_PATHLINE_RE =
+  /(?<![\w./-])(?<pth>\.?(?:[A-Za-z0-9_][A-Za-z0-9_.-]*\/)*[A-Za-z0-9_][A-Za-z0-9_.-]*\.mdc):(?<start>\d+)(?:[-\u2013](?<end>\d+))?\+?/g
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(HERE, '..', '..')
@@ -75,9 +79,17 @@ function git(args, { allowFail = false } = {}) {
 // is tracked, so a symbol invented in that file resolved against itself. That
 // inverted the check on 24 of 28 files: brief_lint is immune only because its
 // rosters live under the `.claude/` prefix it already excludes.
+// Excluding only the file under test was not enough: a symbol invented in two
+// policy files resolved against the other one, so a pair of briefs could keep
+// each other's dead citation alive indefinitely. A policy file's symbol has to
+// resolve against production, tests or tooling -- prose citing prose is the
+// thing this check exists to catch.
+let _policySpec = null
 function symbolElsewhere(symbol, exceptRel) {
+  if (!_policySpec) _policySpec = policyFiles().map((f) => `:!${f}`)
+  const spec = _policySpec.includes(`:!${exceptRel}`) ? _policySpec : [..._policySpec, `:!${exceptRel}`]
   const out = git(
-    ['grep', '-I', '-l', '-w', '-F', symbol, '--', '.', ':!.claude', ':!tools/audit/round2', `:!${exceptRel}`],
+    ['grep', '-I', '-l', '-w', '-F', symbol, '--', '.', ':!.claude', ':!tools/audit/round2', ...spec],
     { allowFail: true }
   )
   return !!(out && out.trim())
@@ -108,6 +120,26 @@ function pathAtRef(ref, token) {
 function symbolAtRef(ref, symbol) {
   const out = git(['grep', '-I', '-l', '-w', '-F', symbol, ref], { allowFail: true })
   return !!(out && out.trim())
+}
+
+// resolvePathToken resolves a bare basename against ANY tracked file sharing it,
+// which is right for "does this path exist" and wrong for "is line N inside it":
+// a citation like `README.md:400` would be measured against whichever same-named
+// file the listing happened to yield. A line range is only checked where the
+// basename is unambiguous.
+let _byBase = null
+function candidatesFor(token) {
+  if (!_byBase) {
+    _byBase = new Map()
+    for (const f of git(['ls-files']).split('\n').filter(Boolean)) {
+      const b = path.posix.basename(f)
+      if (!_byBase.has(b)) _byBase.set(b, [])
+      _byBase.get(b).push(f)
+    }
+  }
+  const exact = _byBase.get(path.posix.basename(token)) ?? []
+  if (exact.includes(token)) return [token]
+  return exact
 }
 
 function read(rel) {
@@ -276,6 +308,7 @@ function checkCitations(rel, text) {
   const lines = text.split('\n')
   const refs = tagRefsIn(text)
   const atSomeRef = (fn) => refs.some((r) => fn(r))
+  const prose = []
   let inFence = false
   lines.forEach((line, i) => {
     if (CODEFENCE.test(line)) {
@@ -283,16 +316,23 @@ function checkCitations(rel, text) {
       return
     }
     if (inFence || INDENTED_CODE.test(line)) return
+    prose.push(line)
     const where = `${rel}:${i + 1}`
 
     // path:line and path:start-end. A line number is the citation form most
     // likely to rot without the path rotting: brief-citations.mdc's own GOOD
     // example had drifted 1,577 lines by the time this audit measured it.
-    PATHLINE_RE.lastIndex = 0
     const pathLineSpans = []
-    let pl
-    while ((pl = PATHLINE_RE.exec(line))) {
-      pathLineSpans.push([pl.index, pl.index + pl[0].length])
+    const pathLines = []
+    for (const re of [PATHLINE_RE, MDC_PATHLINE_RE]) {
+      re.lastIndex = 0
+      let hit
+      while ((hit = re.exec(line))) {
+        pathLineSpans.push([hit.index, hit.index + hit[0].length])
+        pathLines.push(hit)
+      }
+    }
+    for (const pl of pathLines) {
       const tok = pl.groups.pth
       if (NEGATION_RE.test(line.slice(0, pl.index))) continue
       const resolved = resolvePathToken(tok)
@@ -306,16 +346,26 @@ function checkCitations(rel, text) {
         })
         continue
       }
-      const body = fileLines(resolved)
-      if (!body) continue
-      const last = Math.max(1, body.length - (body[body.length - 1] === '' ? 1 : 0))
+      // A bare basename can name several files (`README.md` names four here),
+      // and resolvePathToken hands back whichever the listing yielded. Measuring
+      // the line number against that one is arbitrary: it invents a failure when
+      // the cited file is the longer sibling. So the citation is out of range
+      // only when it is out of range for EVERY candidate -- which keeps the
+      // check on ambiguous names instead of dropping it.
+      const cands = candidatesFor(tok)
+      const lengths = cands
+        .map((c) => fileLines(c))
+        .filter(Boolean)
+        .map((b) => Math.max(1, b.length - (b[b.length - 1] === '' ? 1 : 0)))
+      if (!lengths.length) continue
+      const last = Math.max(...lengths)
       const want = Number(pl.groups.end || pl.groups.start)
       if (want > last) {
         out.push({
           severity: 'error',
           check: 'citations',
           where,
-          message: `line citation \`${tok}:${pl.groups.start}${pl.groups.end ? '-' + pl.groups.end : ''}\` runs past ${resolved}, which has ${last} lines. Cite a quoted phrase or a symbol; a line number rots on the next edit.`,
+          message: `line citation \`${tok}:${pl.groups.start}${pl.groups.end ? '-' + pl.groups.end : ''}\` runs past ${cands.length > 1 ? `every file named ${path.posix.basename(tok)}, the longest of which has` : `${resolved}, which has`} ${last} lines. Cite a quoted phrase or a symbol; a line number rots on the next edit.`,
         })
       }
     }
@@ -371,7 +421,11 @@ function checkCitations(rel, text) {
   // Named symbols: backticked identifiers that look like code. Reported once
   // per file per symbol, because a contract repeats its own nouns.
   const seen = new Set()
-  const backticked = text.match(/`[^`\n]{2,60}`/g) || []
+  // Prose only. Reading the whole file meant a shell variable inside a fenced
+  // command was a "symbol", while the path pass in the same function skipped
+  // exactly those lines -- two passes over one file disagreeing about what
+  // counts as text.
+  const backticked = prose.join('\n').match(/`[^`\n]{2,60}`/g) || []
   for (const b of backticked) {
     const inner = b.slice(1, -1)
     if (/[\s/]/.test(inner)) continue
@@ -577,29 +631,64 @@ function keyOf(f) {
 
 function applyKnownBad(findings) {
   const kb = knownBad()
-  const set = new Set(kb.entries)
-  const hit = new Set()
-  const live = []
-  let suppressed = 0
+  // Entries are {key, count}. A bare string is read as one occurrence, so an
+  // older file still parses rather than silently suppressing everything.
+  const recorded = new Map()
+  for (const e of kb.entries ?? []) {
+    if (typeof e === 'string') recorded.set(e, 1)
+    else recorded.set(e.key, e.count ?? 1)
+  }
+
+  const live = new Map()
   for (const f of findings) {
     const k = keyOf(f)
-    if (set.has(k)) {
-      hit.add(k)
-      suppressed++
+    if (!live.has(k)) live.set(k, [])
+    live.get(k).push(f)
+  }
+
+  const out = []
+  let suppressed = 0
+  let occurrences = 0
+  for (const [k, group] of live) {
+    if (!recorded.has(k)) {
+      out.push(...group)
       continue
     }
-    live.push(f)
+    const want = recorded.get(k)
+    const got = group.length
+    if (got > want) {
+      // THE POINT OF THE COUNT. Keys drop line numbers so an entry survives an
+      // edit above it -- but that also made every occurrence of one class in one
+      // file share an entry, so a NEW `gh pr` line in a file that already had one
+      // landed on a suppressed key and passed. The corpus could get worse in
+      // silence, which is the mirror of the defect the normalisation fixed.
+      out.push({
+        severity: 'error',
+        check: 'known-bad',
+        where: KNOWN_BAD_FILE,
+        message: `${got} occurrence(s) of a recorded defect, ${want} recorded: ${k}. The list may only shrink; fix the new one.`,
+      })
+    } else if (got < want) {
+      out.push({
+        severity: 'error',
+        check: 'known-bad',
+        where: KNOWN_BAD_FILE,
+        message: `${got} occurrence(s) left of ${want} recorded: ${k}. Re-record with --record-known-bad, or the headroom lets it come back unseen.`,
+      })
+    }
+    occurrences += Math.min(got, want)
+    suppressed++
   }
-  for (const k of set) {
-    if (hit.has(k)) continue
-    live.push({
+  for (const k of recorded.keys()) {
+    if (live.has(k)) continue
+    out.push({
       severity: 'error',
       check: 'known-bad',
       where: KNOWN_BAD_FILE,
       message: `entry no longer fires: ${k}. It was fixed, so delete the entry; the list may only shrink.`,
     })
   }
-  return { live, suppressed, hit: hit.size, total: set.size }
+  return { live: out, suppressed, occurrences, total: recorded.size }
 }
 
 const CHECKS = [
@@ -640,13 +729,38 @@ function printFindings(findings) {
 
 // The acceptance. Each fixture states the errors its class must still produce;
 // a class deleted in silence turns this red even on a clean tree.
+// A count per CLASS is not enough, and the first version of this file proved it:
+// `budgets: 2` was satisfied by two "no line cap recorded" errors alone, so the
+// over-cap refusal -- the half that actually ratchets prose -- could be deleted
+// with the acceptance still green. `citations: 3` was satisfied without any
+// fixture citing an out-of-range line, so the whole path:line remediation was
+// deletable too. Each entry may therefore also pin SUB-CLAIMS: a message
+// substring that must appear at least once.
 const REQUIRED_ROT = {
-  citations: 3,
-  counts: 2,
-  'no-gh': 1,
-  duplicates: 1,
-  budgets: 2,
-  index: 2,
+  citations: {
+    count: 4,
+    must: [
+      'not in the tree',                 // a path that does not resolve
+      'runs past',                       // path:line beyond the file's length
+    ],
+  },
+  counts: { count: 2 },
+  'no-gh': { count: 1 },
+  duplicates: { count: 1 },
+  budgets: {
+    count: 2,
+    must: [
+      'no line cap recorded',            // an unclassified policy file
+      'exceeds its cap',                 // the one-sided ratchet itself
+    ],
+  },
+  index: {
+    count: 2,
+    must: [
+      'which is not in the tree',        // the index names a file that is gone
+      'does not name',                   // a policy file the index omits
+    ],
+  },
 }
 
 function assertAcceptance(derived) {
@@ -673,36 +787,62 @@ function assertAcceptance(derived) {
   // fixtures have no cap at all (unclassified), and index.md names a file
   // that does not exist while omitting its neighbours.
   found.push(...checkBudgets(rels))
-  found.push(...checkIndex(rels.filter((r) => !r.endsWith('/index.md')), rels.find((r) => r.endsWith('/index.md'))))
+  const indexFixture = rels.find((r) => r.endsWith('/index.md'))
+  if (!indexFixture) {
+    console.log('\nFIXTURE VACUOUS: fixtures/policy-rot/index.md is missing, so the index check would fall back to the real CLAUDE.md and pin nothing')
+    return 1
+  }
+  found.push(...checkIndex(rels.filter((r) => r !== indexFixture), indexFixture))
   const got = {}
-  for (const f of found) got[f.check] = (got[f.check] || 0) + 1
+  const msgs = {}
+  for (const f of found) {
+    got[f.check] = (got[f.check] || 0) + 1
+    ;(msgs[f.check] ??= []).push(f.message)
+  }
   let rc = 0
-  for (const [cls, want] of Object.entries(REQUIRED_ROT)) {
+  let pins = 0
+  for (const [cls, spec] of Object.entries(REQUIRED_ROT)) {
     const n = got[cls] || 0
-    if (n < want) {
-      console.log(`\nFIXTURE VACUOUS: check '${cls}' produced ${n} error(s) on the rot fixtures, ${want} required`)
+    pins += 1 + (spec.must?.length ?? 0)
+    if (n < spec.count) {
+      console.log(`\nFIXTURE VACUOUS: check '${cls}' produced ${n} error(s) on the rot fixtures, ${spec.count} required`)
+      rc = 1
+    }
+    for (const sub of spec.must ?? []) {
+      if ((msgs[cls] ?? []).some((m) => m.includes(sub))) continue
+      console.log(`\nFIXTURE VACUOUS: check '${cls}' produced no error saying ${JSON.stringify(sub)}; that sub-claim refuses nothing the fixtures can produce`)
       rc = 1
     }
   }
-  if (!rc) console.log(`\nFIXTURE ok: ${found.length} error(s) pin ${Object.keys(REQUIRED_ROT).length} check classes on fixtures/policy-rot/`)
+  if (!rc) console.log(`\nFIXTURE ok: ${found.length} error(s) hold ${pins} pins across ${Object.keys(REQUIRED_ROT).length} check classes on fixtures/policy-rot/`)
   return rc
 }
 
 function cmdRecord(findings) {
   const raw = read(KNOWN_BAD_FILE)
   const doc = raw ? JSON.parse(raw) : {}
-  const before = new Set(doc.entries || [])
-  const after = [...new Set(findings.map(keyOf))].sort()
-  const added = after.filter((k) => !before.has(k))
-  const dropped = [...before].filter((k) => !after.includes(k))
+  const before = new Map(
+    (doc.entries ?? []).map((e) => (typeof e === 'string' ? [e, 1] : [e.key, e.count ?? 1]))
+  )
+  const counts = new Map()
+  for (const f of findings) {
+    const k = keyOf(f)
+    counts.set(k, (counts.get(k) ?? 0) + 1)
+  }
+  const after = [...counts.keys()].sort().map((key) => ({ key, count: counts.get(key) }))
+  const added = after.filter((e) => !before.has(e.key))
+  const dropped = [...before.keys()].filter((k) => !counts.has(k))
+  const moved = after.filter((e) => before.has(e.key) && before.get(e.key) !== e.count)
   doc._comment =
-    'Defects present when policy_lint landed. A finding not listed here is an error; an entry that no longer fires is also an error. The list may only shrink. Regenerate with --record-known-bad; growing it is a deliberate edit a reviewer reads.'
+    'Defects present when policy_lint landed, each with its recorded number of occurrences. A finding not listed here is an error; MORE occurrences of a listed one is an error; fewer is an error until re-recorded; an entry that no longer fires is an error. The list may only shrink. Regenerate with --record-known-bad; growing it is a deliberate edit a reviewer reads.'
   doc.recorded_at = git(['rev-parse', 'HEAD']).trim()
   doc.entries = after
   fs.writeFileSync(path.join(ROOT, KNOWN_BAD_FILE), JSON.stringify(doc, null, 2) + '\n')
-  console.log(`recorded ${after.length} entr(ies) to ${KNOWN_BAD_FILE}: +${added.length} -${dropped.length}`)
-  for (const k of added) console.log(`  + ${k}`)
+  const total = [...counts.values()].reduce((a, b) => a + b, 0)
+  console.log(`recorded ${after.length} entr(ies), ${total} occurrence(s), to ${KNOWN_BAD_FILE}: +${added.length} -${dropped.length} ~${moved.length}`)
+  for (const e of added) console.log(`  + ${e.count}x ${e.key}`)
   for (const k of dropped) console.log(`  - ${k}`)
+  for (const e of moved) console.log(`  ~ ${before.get(e.key)} -> ${e.count} ${e.key}`)
 }
 
 function cmdList() {
@@ -751,13 +891,13 @@ function main() {
   if (defaultRun) {
     const applied = applyKnownBad(findings)
     findings = applied.live
-    suppressed = applied.hit
-    occurrences = applied.suppressed
+    suppressed = applied.suppressed
+    occurrences = applied.occurrences
     known = applied.total
   }
   printFindings(findings)
   const errors = findings.filter((f) => f.severity === 'error').length
-  if (defaultRun) console.log(`\nKNOWN-BAD: ${suppressed} of ${known} recorded defect(s) still present, in ${occurrences} occurrence(s)`)
+  if (defaultRun) console.log(`\nKNOWN-BAD: ${suppressed} of ${known} recorded defect(s) still present, in ${occurrences} recorded occurrence(s)`)
   console.log(`\nTOTAL: ${errors} error(s) across ${files.length} policy file(s)`)
   if (args.includes('--report')) {
     const by = {}

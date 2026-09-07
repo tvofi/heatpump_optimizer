@@ -1,32 +1,110 @@
 {
-  "_comment": "Defects present when policy_lint landed. A finding not listed here is an error; an entry that no longer fires is also an error. The list may only shrink. Regenerate with --record-known-bad; growing it is a deliberate edit a reviewer reads.",
-  "recorded_at": "c6c5d6a1a79201dfb6aba4591f6475c4a71ab329",
+  "_comment": "Defects present when policy_lint landed, each with its recorded number of occurrences. A finding not listed here is an error; MORE occurrences of a listed one is an error; fewer is an error until re-recorded; an entry that no longer fires is an error. The list may only shrink. Regenerate with --record-known-bad; growing it is a deliberate edit a reviewer reads.",
+  "recorded_at": "9a317b4d6f1c90831a4795e910606c3948658623",
   "entries": [
-    "citations|.cursor/rules/brief-citations.mdc|path `foo.py`: not in the tree, and no tag SHA is cited alon",
-    "citations|.cursor/rules/brief-citations.mdc|symbol `SCREAMING_SNAKE`: not found in the tracked tree, and",
-    "citations|.cursor/rules/brief-citations.mdc|symbol `min_ink_gap`: not found in the tracked tree, and no ",
-    "citations|CLAUDE.md|path `SEAT-BLOCK.md`: not in the tree, and no tag SHA is cit",
-    "citations|tests/README.md|symbol `merge_pull_request`: not found in the tracked tree, ",
-    "citations|tools/audit/README.md|path `tmp/plandata.json`: not in the tree, and no tag SHA is",
-    "citations|tools/audit/briefs/D1.md|symbol `_async_save`: not found in the tracked tree, and no ",
-    "citations|tools/audit/briefs/D8.md|symbol `entity_registry_enabled_default`: not found in the t",
-    "counts|tools/audit/README.md|states 27 for entries in card_drift.mjs STATES; derived 34. ",
-    "duplicates|CLAUDE.md|repeats 12 words from .cursor/rules/ci-autofix.mdc:N. State ",
-    "duplicates|CLAUDE.md|repeats 12 words from .cursor/rules/delivery-status-tracking",
-    "duplicates|CLAUDE.md|repeats 12 words from .cursor/rules/finding-propagation.mdc:",
-    "duplicates|tools/audit/briefs/COMMON.md|repeats 12 words from CLAUDE.md:N. State an obligation once ",
-    "duplicates|tools/audit/briefs/fixer.md|repeats 12 words from CLAUDE.md:N. State an obligation once ",
-    "duplicates|tools/audit/briefs/fixer.md|repeats 12 words from tools/audit/briefs/fix-review.md:N. St",
-    "duplicates|tools/audit/briefs/orchestrator.md|repeats 12 words from .cursor/rules/delivery-status-tracking",
-    "duplicates|tools/audit/briefs/orchestrator.md|repeats 12 words from CLAUDE.md:N. State an obligation once ",
-    "duplicates|tools/audit/briefs/orchestrator.md|repeats 12 words from tools/audit/briefs/fixer.md:N. State a",
-    "duplicates|tools/audit/briefs/root-cause.md|repeats 12 words from .cursor/rules/defect-root-cause.mdc:N.",
-    "duplicates|tools/audit/briefs/root-cause.md|repeats 12 words from tools/audit/briefs/orchestrator.md:N. ",
-    "index|CLAUDE.md|does not name `.claude/workflows/web-fragments.md`. The inde",
-    "index|CLAUDE.md|names `SEAT-BLOCK.md`, which is not in the tree. A seat sent",
-    "no-gh|.cursor/rules/delivery-status-tracking.mdc|names `gh pr`; no gh binary exists in the seat environment. ",
-    "no-gh|tools/audit/briefs/fix-review.md|names `gh pr`; no gh binary exists in the seat environment. ",
-    "no-gh|tools/audit/briefs/fixer.md|names `gh pr`; no gh binary exists in the seat environment. ",
-    "no-gh|tools/audit/briefs/orchestrator.md|names `gh pr`; no gh binary exists in the seat environment. "
+    {
+      "key": "citations|.cursor/rules/brief-citations.mdc|path `foo.py`: not in the tree, and no tag SHA is cited alon",
+      "count": 2
+    },
+    {
+      "key": "citations|.cursor/rules/brief-citations.mdc|symbol `SCREAMING_SNAKE`: not found in the tracked tree, and",
+      "count": 1
+    },
+    {
+      "key": "citations|.cursor/rules/brief-citations.mdc|symbol `min_ink_gap`: not found in the tracked tree, and no ",
+      "count": 1
+    },
+    {
+      "key": "citations|CLAUDE.md|path `SEAT-BLOCK.md`: not in the tree, and no tag SHA is cit",
+      "count": 1
+    },
+    {
+      "key": "citations|tests/README.md|symbol `merge_pull_request`: not found in the tracked tree, ",
+      "count": 1
+    },
+    {
+      "key": "citations|tools/audit/README.md|path `tmp/plandata.json`: not in the tree, and no tag SHA is",
+      "count": 1
+    },
+    {
+      "key": "citations|tools/audit/briefs/D1.md|symbol `_async_save`: not found in the tracked tree, and no ",
+      "count": 1
+    },
+    {
+      "key": "citations|tools/audit/briefs/D8.md|symbol `entity_registry_enabled_default`: not found in the t",
+      "count": 1
+    },
+    {
+      "key": "counts|tools/audit/README.md|states 27 for entries in card_drift.mjs STATES; derived 34. ",
+      "count": 1
+    },
+    {
+      "key": "duplicates|CLAUDE.md|repeats 12 words from .cursor/rules/ci-autofix.mdc:N. State ",
+      "count": 1
+    },
+    {
+      "key": "duplicates|CLAUDE.md|repeats 12 words from .cursor/rules/delivery-status-tracking",
+      "count": 1
+    },
+    {
+      "key": "duplicates|CLAUDE.md|repeats 12 words from .cursor/rules/finding-propagation.mdc:",
+      "count": 2
+    },
+    {
+      "key": "duplicates|tools/audit/briefs/COMMON.md|repeats 12 words from CLAUDE.md:N. State an obligation once ",
+      "count": 1
+    },
+    {
+      "key": "duplicates|tools/audit/briefs/fixer.md|repeats 12 words from CLAUDE.md:N. State an obligation once ",
+      "count": 1
+    },
+    {
+      "key": "duplicates|tools/audit/briefs/fixer.md|repeats 12 words from tools/audit/briefs/fix-review.md:N. St",
+      "count": 1
+    },
+    {
+      "key": "duplicates|tools/audit/briefs/orchestrator.md|repeats 12 words from .cursor/rules/delivery-status-tracking",
+      "count": 1
+    },
+    {
+      "key": "duplicates|tools/audit/briefs/orchestrator.md|repeats 12 words from CLAUDE.md:N. State an obligation once ",
+      "count": 9
+    },
+    {
+      "key": "duplicates|tools/audit/briefs/orchestrator.md|repeats 12 words from tools/audit/briefs/fixer.md:N. State a",
+      "count": 3
+    },
+    {
+      "key": "duplicates|tools/audit/briefs/root-cause.md|repeats 12 words from .cursor/rules/defect-root-cause.mdc:N.",
+      "count": 1
+    },
+    {
+      "key": "duplicates|tools/audit/briefs/root-cause.md|repeats 12 words from tools/audit/briefs/orchestrator.md:N. ",
+      "count": 2
+    },
+    {
+      "key": "index|CLAUDE.md|does not name `.claude/workflows/web-fragments.md`. The inde",
+      "count": 1
+    },
+    {
+      "key": "index|CLAUDE.md|names `SEAT-BLOCK.md`, which is not in the tree. A seat sent",
+      "count": 1
+    },
+    {
+      "key": "no-gh|.cursor/rules/delivery-status-tracking.mdc|names `gh pr`; no gh binary exists in the seat environment. ",
+      "count": 1
+    },
+    {
+      "key": "no-gh|tools/audit/briefs/fix-review.md|names `gh pr`; no gh binary exists in the seat environment. ",
+      "count": 1
+    },
+    {
+      "key": "no-gh|tools/audit/briefs/fixer.md|names `gh pr`; no gh binary exists in the seat environment. ",
+      "count": 1
+    },
+    {
+      "key": "no-gh|tools/audit/briefs/orchestrator.md|names `gh pr`; no gh binary exists in the seat environment. ",
+      "count": 3
+    }
   ]
 }
