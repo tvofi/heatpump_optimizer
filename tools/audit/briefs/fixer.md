@@ -122,21 +122,25 @@ that reason in the **commit** message, because the squash-merge keeps the commit
 and discards the branch). Paying for the lines is still the first question, and
 a raise is only for the case where the honest answer is that you cannot.
 
-**Ask which class the budget you fear is even measured on, before you go
-shopping for a payment.** `internal_call_edges`, `coordinator_methods`,
-`coordinator_attrs`, `coordinator_loc`, the `cut_*` rows and
-`cross_seam_fraction` are all computed over `structure.py`'s
-`COORDINATOR_CLASS_NAME` alone. A new method anywhere else in the integration
-moves none of them, so the payment question — which has cost several seats a
-scan, and once a near-halt — simply does not arise outside `coordinator.py`.
-Measured in #224's first split: an extraction in `optimizer.py` added one
-method and one `self.` call, and `internal_call_edges` read 366 at both ends;
-had the metric counted that class it would have read 367. What binds outside
-the coordinator is the integration-wide set — `methods_over_150`/`_200`,
-`functions_cc_over_15`/`_25`, `duplication_blocks`, `local_imports`, and the
-`max_cc` / `max_method_loc` maxima, which a split usually moves *down*. Run
-`python3 tests/structure.py` at your own merge base and let it say which rows
-are in play; an empty payment pool is a halt only where a payment was owed.
+**Ask which class the budget you fear is even measured on.** Some rows come from
+the single class named by `COORDINATOR_CLASS_NAME`; the rest from every parsed
+module. A method added outside that **class** moves none of the first group, so
+the payment question -- which has cost several seats a scan and once a near-halt
+-- does not arise there. *Class*, not file: `coordinator.py` holds several, and
+adding a method, call and attribute to `CoordinatorContext` moves no row.
+
+**Derive the split, do not carry it.** The coordinator-scoped rows are the ones
+`measure()` selects or keys by `COORDINATOR_CLASS_NAME`. Re-derive at your merge
+base; a list here would be a carried number, which this file already refuses.
+
+**Read the expression, not the value.** `attrbag_classes_over_30` has the
+coordinator as its only member and a `top_is_coordinator` flag beside it, yet is
+tree-wide: enough attributes on a class in any other module move it.
+
+**An empty payment pool is a halt only where a payment was owed.** Let
+`python3 tests/structure.py` name what moved at your merge base. Outside the
+coordinator class a split usually moves the maxima *down* -- which the gate still
+refuses until you re-record them, with the reason in the commit.
 
 A raise **requires the repository owner's explicit confirmation, obtained before
 you push.** It is not a judgement a fixer makes alone and it is not something a
