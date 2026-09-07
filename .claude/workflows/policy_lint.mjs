@@ -33,6 +33,7 @@
 //   node .claude/workflows/policy_lint.mjs --report   # enforcement summary
 //   node .claude/workflows/policy_lint.mjs <files...> # lint just these
 //   node .claude/workflows/policy_lint.mjs --record-known-bad   # reseed the ratchet
+//   node .claude/workflows/policy_lint.mjs --pr-body <file> --head <sha> [--title t] [--red names]
 
 import fs from 'node:fs'
 import path from 'node:path'
@@ -698,6 +699,7 @@ const CHECKS = [
   { name: 'budgets', what: 'a policy file may shrink, never grow past its cap', fixture: 'fixtures/policy-rot/budgets.md' },
   { name: 'index', what: 'CLAUDE.md names every policy file, and every file it names exists', fixture: 'fixtures/policy-rot/index.md' },
   { name: 'duplicates', what: 'no 12-word run shared between two policy files', fixture: 'fixtures/policy-rot/dup-a.md' },
+  { name: 'pr-body', what: 'a body carries its evidence sections, at the head CI ran', fixture: 'fixtures/policy-rot/prepr/' },
 ]
 
 function lintFile(rel, derived) {
@@ -754,6 +756,17 @@ const REQUIRED_ROT = {
       'exceeds its cap',                 // the one-sided ratchet itself
     ],
   },
+  'pr-body': {
+    count: 6,
+    must: [
+      'section. Every one is content',   // a heading that is missing outright
+      'is empty. Write the evidence',    // a heading with nothing under it
+      'does not name',                   // the body's head is not the head CI ran
+      'is not in the tree. A carry',     // a forward-carry destination that is gone
+      'does not parse',                  // an unreadable friction line
+      'is red and',                      // a red check the body never names
+    ],
+  },
   index: {
     count: 2,
     must: [
@@ -786,6 +799,40 @@ function assertAcceptance(derived) {
   // fixtures/policy-rot/budgets.md at 1 line (over cap) while the other
   // fixtures have no cap at all (unclassified), and index.md names a file
   // that does not exist while omitting its neighbours.
+  // pr-body: six rotten bodies under prepr/, and one healthy one that must stay
+  // silent. Without the healthy fixture a check that refused EVERYTHING would
+  // pin just as well as one that refuses the right things, which is the shape
+  // this whole acceptance exists to rule out.
+  const prepr = path.join(dir, 'prepr')
+  if (!fs.existsSync(prepr)) {
+    console.log('\nFIXTURE VACUOUS: fixtures/policy-rot/prepr/ is missing; the pr-body check is deletable in silence')
+    return 1
+  }
+  const ZERO = '0000000000000000000000000000000000000000'
+  for (const f of fs.readdirSync(prepr).filter((x) => x.endsWith('.md')).sort()) {
+    const rel = path.relative(ROOT, path.join(prepr, f))
+    const errs = checkPrBody(rel, { head: ZERO, red: f === 'unnamed-red.md' ? ['fast (3.14)'] : [] })
+    if (f === 'good.md' && errs.length) {
+      console.log(`\nFIXTURE VACUOUS: the pr-body null control ${rel} produced ${errs.length} error(s); it must produce none`)
+      return 1
+    }
+    found.push(...errs)
+  }
+
+  // The template and the parser's required set drift apart the moment either is
+  // edited alone, and the seat that pays is one following a template that no
+  // longer satisfies the job. Linting the template as if it were a body ties
+  // them together: a heading the parser requires and the template omits fails
+  // here, on the pull request that removed it.
+  const TEMPLATE = '.github/PULL_REQUEST_TEMPLATE.md'
+  if (read(TEMPLATE) != null) {
+    const errs = checkPrBody(TEMPLATE)
+    if (errs.length) {
+      console.log(`\nFIXTURE VACUOUS: ${TEMPLATE} does not satisfy the contract it exists to state`)
+      found.push(...errs.map((e) => ({ ...e, check: '(template)' })))
+    }
+  }
+
   found.push(...checkBudgets(rels))
   const indexFixture = rels.find((r) => r.endsWith('/index.md'))
   if (!indexFixture) {
@@ -845,6 +892,136 @@ function cmdRecord(findings) {
   for (const e of moved) console.log(`  ~ ${before.get(e.key)} -> ${e.count} ${e.key}`)
 }
 
+// ---------------------------------------------------------------------------
+// pr-body. The evidence sections a pull request owes were honour-system, and on
+// one day seven policy and gate pull requests merged with no independent verdict
+// at their final head. Nothing at the merge boundary noticed, because the
+// repository has no required check and no code-owner rule. This is the half of
+// that gap a file in the repository can close: the body must SAY the things, in
+// a shape a script reads, and CI re-executes the parts that are re-executable.
+//
+// It refuses an empty section rather than accepting silence, and accepts an
+// explicit `n/a: <reason>` -- a reason a reviewer can disagree with beats a
+// heading with nothing under it.
+
+const REQUIRED_H2 = ['Head', 'Mutation proof', 'Null control', 'Red checks', 'Forward-carry', 'Friction']
+const POLICY_H2 = ['Approval']
+const FRICTION_EVENTS = ['unclear', 'contradiction', 'unenforced', 'stale', 'cost']
+// A body writing `none` in backticks means the same thing as one writing none,
+// and refusing the first would teach seats to write the second while meaning
+// neither. Leading list markers and emphasis are stripped for the same reason.
+const isNone = (text) => /^[-*\s`_"']*(none|n\/a\b|n\/a:)/i.test(text)
+
+function sections(body) {
+  const out = new Map()
+  let cur = null
+  let inFence = false
+  for (const line of body.split('\n')) {
+    if (CODEFENCE.test(line)) inFence = !inFence
+    const m = inFence ? null : /^##\s+(.+?)\s*$/.exec(line)
+    if (m) {
+      cur = m[1]
+      out.set(cur, [])
+      continue
+    }
+    if (cur) out.get(cur).push(line)
+  }
+  for (const [k, v] of out) out.set(k, v.join('\n').trim())
+  return out
+}
+
+function checkPrBody(bodyPath, { head = '', title = '', red = [] } = {}) {
+  const out = []
+  let body
+  try {
+    body = fs.readFileSync(bodyPath, 'utf8')
+  } catch {
+    return [{ severity: 'error', check: 'pr-body', where: bodyPath, message: 'unreadable' }]
+  }
+  const secs = sections(body)
+  const isPolicy = /^policy:/.test(title.trim())
+  const want = [...REQUIRED_H2, ...(isPolicy ? POLICY_H2 : [])]
+
+  for (const h of want) {
+    if (!secs.has(h)) {
+      out.push({ severity: 'error', check: 'pr-body', where: bodyPath,
+        message: `no \`## ${h}\` section. Every one is content or an explicit "n/a: <reason>"; a missing heading is neither.` })
+      continue
+    }
+    if (!secs.get(h)) {
+      out.push({ severity: 'error', check: 'pr-body', where: bodyPath,
+        message: `\`## ${h}\` is empty. Write the evidence, or "n/a: <reason>" a reviewer can disagree with.` })
+    }
+  }
+
+  // The head the body claims must be the head CI is running. A body describing
+  // an older head is the shape fix-review.md calls `head-moved`.
+  const headSec = secs.get('Head') ?? ''
+  if (head && headSec && !headSec.includes(head) && !headSec.includes(head.slice(0, 7))) {
+    out.push({ severity: 'error', check: 'pr-body', where: bodyPath,
+      message: `\`## Head\` does not name ${head.slice(0, 7)}, which is the head this ran on. Evidence measured at another head describes another tree.` })
+  }
+
+  // A carry destination that does not exist is a carry nobody receives, which is
+  // the failure .cursor/rules/finding-propagation.mdc was written for.
+  const carry = (secs.get('Forward-carry') ?? '').trim()
+  if (carry && !isNone(carry)) {
+    const toks = new Set()
+    for (const re of [PATH_TOKEN_RE, MDC_PATH_RE]) {
+      re.lastIndex = 0
+      let m
+      while ((m = re.exec(carry))) toks.add(m[0])
+    }
+    if (!toks.size) {
+      out.push({ severity: 'error', check: 'pr-body', where: bodyPath,
+        message: '`## Forward-carry` names no destination file. Write `none`, or the path of the brief, contract or roster the finding lands in.' })
+    }
+    for (const tok of toks) {
+      if (resolvePathToken(tok)) continue
+      out.push({ severity: 'error', check: 'pr-body', where: bodyPath,
+        message: `\`## Forward-carry\` names \`${tok}\`, which is not in the tree. A carry to a file that does not exist is not a carry.` })
+    }
+  }
+
+  // Friction is the input to the policy-evolution loop. An unparseable line is a
+  // signal nobody can count, so the histogram would silently under-report.
+  const friction = (secs.get('Friction') ?? '').trim()
+  if (friction && !isNone(friction)) {
+    for (const line of friction.split('\n').map((l) => l.trim()).filter(Boolean)) {
+      const m = /^[-*]?\s*([A-Za-z][A-Za-z0-9_.-]*)\s*:\s*([a-z-]+)\s*:\s*(.+)$/.exec(line)
+      if (!m || !FRICTION_EVENTS.includes(m[2])) {
+        out.push({ severity: 'error', check: 'pr-body', where: bodyPath,
+          message: `\`## Friction\` line does not parse: ${JSON.stringify(line.slice(0, 50))}. Write \`none\`, or \`<rule_id>: <${FRICTION_EVENTS.join('|')}>: <evidence>\`.` })
+      }
+    }
+  }
+
+  // A red check the body does not name is a red check nobody answered. The
+  // ANALYSIS stays honour -- a script cannot judge whether an answer is good --
+  // but naming it is mechanical, and naming it is what gets skipped.
+  const redSec = (secs.get('Red checks') ?? '').trim()
+  for (const name of red) {
+    if (redSec.includes(name)) continue
+    out.push({ severity: 'error', check: 'pr-body', where: bodyPath,
+      message: `check \`${name}\` is red and \`## Red checks\` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.` })
+  }
+
+  return out
+}
+
+function cmdPrBody(args) {
+  const val = (flag) => {
+    const i = args.indexOf(flag)
+    return i >= 0 ? args[i + 1] : null
+  }
+  const bodyPath = val('--pr-body')
+  const red = (val('--red') ?? '').split(',').map((x) => x.trim()).filter(Boolean)
+  const findings = checkPrBody(bodyPath, { head: val('--head') ?? '', title: val('--title') ?? '', red })
+  printFindings(findings)
+  console.log(`\nPR-BODY: ${findings.length} error(s) in ${bodyPath}`)
+  return findings.length ? 1 : 0
+}
+
 function cmdList() {
   console.log('policy_lint checks:\n')
   for (const c of CHECKS) console.log(`  ${c.name.padEnd(12)} ${c.what}\n${' '.repeat(16)}fixture: ${c.fixture}`)
@@ -876,6 +1053,7 @@ function main() {
   const defaultRun = !args.filter((a) => !a.startsWith('--')).length
 
   if (args.includes('--budgets')) return cmdBudgets(files), process.exit(0)
+  if (args.includes('--pr-body')) process.exit(cmdPrBody(args))
 
   let findings = []
   for (const f of files) findings.push(...lintFileGuarded(f, derived))
