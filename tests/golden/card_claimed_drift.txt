@@ -26,6 +26,10 @@
 #
 
 #
+
+#
+#
+
 # #521, the real-Home-Assistant nightly: this branch claims NOTHING. A new
 # test script, its two classification entries and one workflow job -- no
 # production file is touched, so every fixture is byte-identical by
@@ -52,6 +56,13 @@
 # #546, the unsaveable setup page: this branch claims NOTHING. The card's
 # only edit is a comment above its own PLACE_LABELS map; no box, position
 # or payload key is touched, so every rendered state is byte-identical.
+# Claim-file merge driver: this branch claims NOTHING. No card source, no
+# payload key and no published value is touched.
+#
+#
+# #304 (cover the 21 named config_flow.py statements): this branch claims
+# NOTHING. Two test files only; no card source is touched.
+#
 #
 # #524 / #525 (the solve worker's result channel, and two blocking calls in
 # the event loop): this branch claims NOTHING. No card source, no plan-view
