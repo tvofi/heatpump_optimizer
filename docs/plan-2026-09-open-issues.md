@@ -168,7 +168,9 @@ number you are checking** — a truncated listing under-reports silently, and a
 **The scope boundary, stated so the check terminates — and what it does not
 claim.** This document is the plan of record for the #201 open-issues
 programme, created by **#375** (`8e99ad1`), and it accounts for every pull
-request merged **from #375 onward**. At this head that check returns **zero**.
+request merged **from #375 onward**. Run that check rather than reading its
+answer here: every number it names is a row this document owes, and the
+answer moves with every merge — which is why no answer is written down.
 Without the boundary the loop demands this file account for the entire
 repository history and can never come back clean, which is the failure mode
 that makes a check get quietly dropped rather than fixed.
@@ -283,6 +285,12 @@ no wave:
 - [#589](https://github.com/tvofi/heatpump_optimizer/pull/589) — opened after this record's last sweep; disposition owed in the next record.
 - [#591](https://github.com/tvofi/heatpump_optimizer/pull/591) — **#533's silent nightly pin.** At merge base a return of *either* #525 offender **passed** the lane — so a regression of the two bugs #540 fixed would have gone green in the only place that runs real Home Assistant. `Checks.check` blanked the detail on a pass, which is why nobody saw it: a stale pin *is* a pass. Also moves `tests/nightly_ha.py` off the INERT list, so the lane is gate-visible for the first time. In review.
 - [#592](https://github.com/tvofi/heatpump_optimizer/pull/592) — **policy, owner-approved**: `fixer.md` step 3's null control extends from "cost, gain or time" to **every quantified claim**. Written because twelve unmeasured claims were made in one day and **none was a cost, gain or time claim**, so the existing clause had no purchase on any of them. In review.
+- [#593](https://github.com/tvofi/heatpump_optimizer/pull/593) — **policy, awaiting owner approval**: `tools/audit/briefs/orchestrator.md` and `tools/audit/preflight.sh`, the latter pinned from `tests/entities.py` so the pre-flight cannot rot unnoticed. Leaves every issue open. In review.
+- [#594](https://github.com/tvofi/heatpump_optimizer/pull/594) — **merged `1cea960`.** Indexes every policy document in `CLAUDE.md` by who it binds. Merged into this branch before this record's own fix commit, which is how it reached the miss set: a record PR can absorb a merge and not record it, the failure mode #575 names.
+- [#595](https://github.com/tvofi/heatpump_optimizer/pull/595) — **policy, awaiting owner approval**: the full-derive prohibition, fix→verify→file, and the symbol-citation remedy — three of the five rules the mining seat recommended promoting out of the out-of-tree seat block; the other two are in #592. Leaves every issue open. In review.
+- [#596](https://github.com/tvofi/heatpump_optimizer/pull/596) — **Wave 5 / W5-G1, #303 tranche 1**: the pinned stub-free typing ruler and its ratchet, landing the instrument before any annotation. Annotates nothing; leaves #303 open. In review.
+- [#597](https://github.com/tvofi/heatpump_optimizer/pull/597) — **W4-G12 / Plan S11, #223**: two tables replace the options flow's three hand-listed field rosters, and every page becomes a query over them. The group whose brief this record unions on merge. In review.
+- [#598](https://github.com/tvofi/heatpump_optimizer/pull/598) — **policy, owner-approved**: `CLAUDE.md` gains a rule against filler prose, scoped to the development record rather than the product. Leaves every issue open. In review.
 - [#531](https://github.com/tvofi/heatpump_optimizer/pull/531) — this record. Blocked once: it claimed nine roster briefs had received a carried finding when only two had. The script used `str.replace`, which does not raise on no match, and printed success either way — the same shape as #523. The fix asserts the string changed and re-reads the file from disk.
 
 **A pattern worth naming**, since most of these were blocked for it: every one of those blocks was a document asserting something that was not true of the tree — a stale head, a count, an actor, a carry that did not land. None was a disagreement about the change itself.
