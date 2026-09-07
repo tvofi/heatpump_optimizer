@@ -1,6 +1,6 @@
 # Handover — the open-issues programme
 
-updated-for: b6a21f1
+updated-for: c609b91
 
 This is the only handover. There is no dated series: a second
 `docs/handover-*.md` is refused by `tests/entities.py`, and the policy it
@@ -233,6 +233,24 @@ than a backlog nobody has started.
     8 minutes to 20 hours read as a flat "2h", hiding which pull request was
     actually the outlier. Use Python's `datetime.fromisoformat` with an explicit
     UTC now.
+17. **A citation and its referent can live on two branches, and the relation
+    between them is invisible to every branch-scoped check.** Two green branches
+    merged to a red `main` with no conflict and no shared file: one landed a
+    brief citing `configuration_url`, the other deleted the tracked tree's only
+    occurrence of that string, and git reported nothing because they touch
+    different files. Not the move-PR silent-revert shape — nothing was
+    overwritten and both changes survived intact; the failure is purely
+    relational. `CLAUDE.md` rule 1's asymmetry is what caught it: a push to
+    `main` forces `GATE_SCOPE=full`, and that argument, written about closures,
+    paid out for something nobody had in mind. **The preventable half is that
+    the citation was anchored to one English sentence. Prose is not a pin** —
+    restoring the sentence would have greened the gate and reproduced the
+    defect, so the repair was to re-anchor.
+18. **A clean merge is evidence of no textual overlap and nothing else.** Twice
+    in one session two sides appended at the same insertion point and shared a
+    trailing bracket, so `--ours` or `--theirs` would have dropped a whole block
+    with no marker and no failing test. Verify a merge by parsing the result and
+    naming the checks that run, never by reading the hunk.
 16. **Backticks inside a double-quoted shell string are command substitution.**
     Three review comments were posted with their SHAs silently missing. Write
     the body to a file with a quoted heredoc and pass `-F body=@file`.
@@ -260,6 +278,30 @@ than a backlog nobody has started.
 - **A never-scoped CI job for `node .claude/workflows/check-wave-script.mjs`**,
   shaped like `tests.yml`'s `browser` and `briefs` jobs. It is the last file in
   that position still running by hand only.
+
+## Owed — post-hoc reviews
+
+**Seven pull requests merged on 2026-09-07 without an independent verdict at
+their final head**, because the session's review capacity was exhausted by an
+account rate limit before the round could run: **#591, #592, #596, #602, #603,
+#605, #569**, and separately **#606**, merged with no review at all because
+`main` was red and it was the repair.
+
+Each squash body says so and names what a reviewer should start from. Every
+change since the last verdict answers a named block and was verified by
+measurement rather than assertion, but that is the author verifying his own
+work, which is the arrangement the fix-review contract exists to prevent.
+
+Two of these matter more than the rest. **#603** is policy whose owner-approved
+form changed twice after approval. **#596** introduces `tests/typing_budgets.json`
+with a bootstrap census of 518; that file does not exist on `main` beforehand,
+so nothing was loosened, but the number is the baseline four Wave 5 tranches
+will be ratcheted against and no reviewer has checked it.
+
+Also owed, and deliberately not landed because it is policy: a finding for
+`tools/audit/briefs/fixer.md` — **a probe that builds its own input can build
+the complement of production's input**. #591's seat drafted the text and
+flagged it rather than claiming a carry it had not made.
 
 ## The machine this runs on
 
