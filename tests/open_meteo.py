@@ -543,13 +543,37 @@ check(
     "_fetch_forecast falls back to the hourly block with no minutely_15",
     len(hourly_series.times) == 6 and hourly_series.resolution == timedelta(hours=1),
 )
+# The two side series must be told apart by VALUE, not by length. Both fixture
+# blocks carry six samples, so a check asserting only len(...) == 6 stays green
+# when production parses _humidity from the snowfall key -- and vice versa --
+# which is the "test that cannot fail" class again, and the same shape as the
+# forecast/observed getters repaired above: a name asserting WHICH series lands
+# on WHICH attribute, backed by a fixture that cannot tell the two apart.
+#
+# Each expectation is read back out of the fixture by the fixture's OWN literal
+# key rather than through om._VARIABLE_HUMIDITY / om._VARIABLE_SNOWFALL. Going
+# via the production constants would make the expectation follow production
+# into whichever block it read -- a check supplying the value it then asserts.
+# With literal keys, mutating either constant fails the check.
+expect_humidity = tuple(hourly_body["relative_humidity_2m"])
+expect_snowfall = tuple(hourly_body["snowfall"])
+# A fixture precondition, deliberately an assert and not a check(): it guards
+# the two checks below from degenerating back into an interchangeable pair if
+# the fixture is ever edited so the two series carry the same values. It is not
+# a check because no single-line production mutation can make it fail, and a
+# check whose firing cannot be demonstrated is the defect being fixed.
+assert (
+    expect_humidity != expect_snowfall
+), "side-series fixture degenerated: humidity and snowfall are indistinguishable"
 check(
     "_fetch_forecast parses the humidity side series onto the client (#21)",
-    len(fc2._humidity.times) == 6,
+    fc2._humidity.values == expect_humidity,
+    f"got {fc2._humidity.values}",
 )
 check(
     "_fetch_forecast parses the snowfall side series onto the client (#30)",
-    len(fc2._snowfall.times) == 6,
+    fc2._snowfall.values == expect_snowfall,
+    f"got {fc2._snowfall.values}",
 )
 
 # minutely_15 present and spanning close to the hourly block's own horizon:

@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
-"""Per-check mutation proofs and null controls for the five repaired checks.
+"""Per-check mutation proofs and null controls for the seven repaired checks.
 
 Round 1 of PR #573 was blocked because five new checks survived a production
 mutation: three were identity tautologies (`x.forecast is x._forecast`, with
 `_forecast` and `_observed` both initialised to the SAME `_EMPTY` singleton),
 one used a `None` body that a LATER guard rejected regardless of the status
 check it was named for, and one asserted an outcome that occurred on both
-branches. This script is the evidence that the repairs discriminate.
+branches. Round 2 found two more of the same class already in the original
+commit: the #21 humidity and #30 snowfall checks asserted only `len(...) == 6`
+over two fixture blocks that are both length 6, so the two side series were
+interchangeable. This script is the evidence that all seven discriminate.
 
 For every repaired check it runs, in order:
 
@@ -155,6 +158,30 @@ PROBES = [
         "frontend.py",
         "the shadowing copy found via .data is named in a warning",
         ["a resources object without async_items() falls back to .data"],
+    ),
+    # Round 2 found two more of the identical class, both from the ORIGINAL
+    # commit rather than the round-1 repair: the #21 humidity and #30 snowfall
+    # checks asserted only len(...) == 6 and both fixture blocks are length 6,
+    # so the two series were interchangeable. These two probes are each other's
+    # null control by construction -- each swaps one side series onto the other
+    # variable, and the check named for the UNMUTATED series must stay green.
+    (
+        "KILL 6  _humidity parsed from the snowfall block",
+        OPEN_METEO,
+        "        humidity = _parse_block(hourly_block, _VARIABLE_HUMIDITY, max_value=100.0)",
+        "        humidity = _parse_block(hourly_block, _VARIABLE_SNOWFALL, max_value=100.0)",
+        "open_meteo.py",
+        "_fetch_forecast parses the humidity side series onto the client (#21)",
+        ["_fetch_forecast parses the snowfall side series onto the client (#30)"],
+    ),
+    (
+        "KILL 7  _snowfall parsed from the humidity block",
+        OPEN_METEO,
+        "        snowfall = _parse_block(hourly_block, _VARIABLE_SNOWFALL, max_value=50.0)",
+        "        snowfall = _parse_block(hourly_block, _VARIABLE_HUMIDITY, max_value=100.0)",
+        "open_meteo.py",
+        "_fetch_forecast parses the snowfall side series onto the client (#30)",
+        ["_fetch_forecast parses the humidity side series onto the client (#21)"],
     ),
 ]
 
