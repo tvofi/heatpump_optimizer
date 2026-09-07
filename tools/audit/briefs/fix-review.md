@@ -80,4 +80,23 @@ its bug. You are checking that the numbers are real.
     absorbs silently costs the seat that committed it nothing, which is how it
     recurs.
 
+13. **A conflict is a measurement, not a status field.** `mergeStateStatus:
+    DIRTY` on a pull request is computed by GitHub, which cannot run this
+    repository's `claimnotes` merge driver — git never clones config. Every open
+    pull request therefore goes `DIRTY` the moment `main` touches a claim file,
+    whether or not it conflicts with anything. Confirm before you block:
+
+    ```
+    git merge-tree --write-tree origin/main <head>
+    ```
+
+    A non-zero exit names the conflicting paths. If they are confined to
+    `tests/golden/claimed_drift.txt` and `tests/golden/card_claimed_drift.txt`,
+    that is merge-prep for the orchestrator and **not a verdict against the
+    work** — say so and judge the authored diff. A conflict on any other path is
+    yours to block on, because you cannot know the merged result is correct.
+
+    Blocking on the status field alone makes every review a race with `main`,
+    which no branch can win.
+
 Return a verdict (`merge` / `blocked: <what>`) with your RESULT lines.
