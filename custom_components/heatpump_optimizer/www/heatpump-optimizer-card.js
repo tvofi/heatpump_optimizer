@@ -1052,8 +1052,9 @@ const SERIES_DEFS = [
     // keeps -- the S-cone blue-yellow axis survives, and among in-band
     // colours of EQUAL luminance to #ed6900 the deuteranope separation
     // reaches 140 dE (at #0093ff). So colours far from price DO exist, and
-    // no count of them is given here: two earlier drafts of this comment
-    // quoted one and neither re-derived.
+    // no count of them is given here: a count is only defined against a
+    // stated separation, and the one that governs is the MINIMUM to every
+    // series below, not the distance from price.
     //
     // Solar is warm by CONVENTION, not because the palette forbids the
     // alternatives. The objective that is well posed is the MINIMUM
@@ -1065,9 +1066,11 @@ const SERIES_DEFS = [
     // this check demands, which is what makes the dash necessary rather than
     // decorative. Blue clears it comfortably (54.2); green does NOT (19.6 --
     // under the threshold, and inside the 2.3 dE just-noticeable difference
-    // of the warm best, so "green would have done" is false). Price and solar are also the only pair drawn by the same
-    // `stepArea` branch of seriesPath, so shape did not tell them apart. The dash is the second channel, and unlike a
-    // hue it survives monochrome and every other form of colour blindness.
+    // of the warm best, so "green would have done" is false). Price and
+    // solar are also the only pair drawn by the same `stepArea` branch of
+    // seriesPath, so shape did not tell them apart. The dash is the second
+    // channel, and unlike a hue it survives monochrome and every other form
+    // of colour blindness.
     dash: "6 3",
     style: "stepArea",
   },

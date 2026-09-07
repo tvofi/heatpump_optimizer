@@ -6794,15 +6794,16 @@ const setupBox = (card, place) =>
     `(just-noticeable is about 2.3)`);
 
   // Colour cannot carry it alone here, and the reason is a CONVENTION rather
-  // than a measurement -- stated that way because two earlier drafts of this
+  // than a measurement -- stated that way because earlier drafts of this
   // comment gave contrast-shaped reasons that measurement refuted.
   //
   // What is measured: the S-cone blue-yellow axis survives deuteranopia, so
   // "lightness is the only axis a deuteranope keeps" is false -- among in-band
   // colours of EQUAL luminance to the solar series the separation reaches
   // 140 dE. Colours far from price DO exist -- no count of them is given,
-  // because two earlier drafts of this comment quoted one and neither
-  // re-derived. What must NOT be asserted is that those colours collide with
+  // because a count is only defined against a stated separation, and the
+  // one that governs here is the MINIMUM to every series, not the distance
+  // from price. What must NOT be asserted is that those colours collide with
   // something else: the best blue is 147 dE from dhw_slots, not close to it.
   // And "green would have done" is false under the metric this check uses:
   // by MINIMUM separation to every series, green reaches only 19.6 -- below
