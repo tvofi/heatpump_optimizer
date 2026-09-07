@@ -592,6 +592,31 @@ async def user_error_branches():
         str(result.get("errors")),
     )
 
+    # The fourth status class (#304): neither 200 nor 401/403. A server
+    # fault is the API failing, not the token being wrong, so it belongs
+    # with the transient failures -- calling it invalid_tibber_token would
+    # send the user off to replace a token that works.
+    server_fault = fresh_flow()
+    config_flow.async_get_clientsession = lambda hass, verify_ssl=True: FakeSession(
+        [(500, None)]
+    )
+    result = await submit(server_fault, "user", FIRST_SCREEN)
+    check(
+        "user",
+        "error",
+        "an HTTP 500 is cannot_connect, not invalid_tibber_token",
+        shows(result, "user")
+        and result.get("errors", {}).get(const.CONF_TIBBER_TOKEN) == "cannot_connect",
+        str(result.get("errors")),
+    )
+    check(
+        "user",
+        "error",
+        "a server fault stores nothing",
+        not server_fault._data,
+        str(sorted(server_fault._data)),
+    )
+
     # The errors payload Tibber answers a bad token with, on HTTP 200.
     errors_payload = fresh_flow()
     config_flow.async_get_clientsession = lambda hass, verify_ssl=True: FakeSession(
@@ -2066,6 +2091,358 @@ async def options_error_branches():
         f"_tariff_hours()={mask!r}, want ((7.0, 19.0),)",
     )
 
+    # grid: the window dropdown is a SelectSelector of strings, so what
+    # arrives is "60", not 60, and the page coerces it (#304). A value that
+    # will not coerce falls back to the documented default rather than
+    # storing the string -- the coordinator divides by this number, and a
+    # str would raise there, hours later and far from the form.
+    flow, entry, _ = fresh_options()
+    result = await submit(
+        flow,
+        "grid",
+        {**GRID_PEAK_ANSWERS, const.CONF_PEAK_TARIFF_WINDOW: "half an hour"},
+    )
+    stored_window = entry.options.get(const.CONF_PEAK_TARIFF_WINDOW)
+    check(
+        "opt_grid",
+        "happy",
+        "an uncoercible peak window falls back to the default, not the string",
+        shows_menu(result, "init")
+        and stored_window == const.DEFAULT_PEAK_TARIFF_WINDOW
+        and isinstance(stored_window, int),
+        f"stored={stored_window!r} want={const.DEFAULT_PEAK_TARIFF_WINDOW!r}",
+    )
+    # Null control: a coercible window is converted, NOT replaced by the
+    # default -- without this the check above would pass on a page that
+    # threw every submitted window away.
+    flow, entry, _ = fresh_options()
+    await submit(
+        flow,
+        "grid",
+        {**GRID_PEAK_ANSWERS, const.CONF_PEAK_TARIFF_WINDOW: "45"},
+    )
+    coerced = entry.options.get(const.CONF_PEAK_TARIFF_WINDOW)
+    check(
+        "opt_grid",
+        "happy",
+        "a coercible peak window is converted to int, not defaulted",
+        coerced == 45 and isinstance(coerced, int),
+        f"stored={coerced!r}",
+    )
+
+
+# ---------------------------------------------------------------------------
+# #304: the pages re-rendered over configuration that is already stored.
+#
+# Every options page builds its entity fields through a local ``_entity``
+# helper whose two arms differ only in whether a default is attached. Every
+# walk above starts from an entry with no options, so only the empty arm had
+# ever run -- and the arm that never ran is the one that carries the user's
+# saved sensor back onto the form. When it fails the field renders blank
+# over a stored value, and because the frontend submits the whole form, the
+# next save writes that blank back: the setting disappears without anyone
+# touching it. That is not hypothetical here -- the entities page shipped a
+# version of this wipe once already (see the module docstring).
+# ---------------------------------------------------------------------------
+_NO_DEFAULT = object()
+
+# Distinct from FakeConfig's home point (59.33, 18.07), so "the stored
+# location was kept" cannot be satisfied by the fallback.
+SEEDED_LOCATION = {"latitude": 55.605, "longitude": 13.003}
+
+# One stored value per entity field reached through a page's ``_entity``
+# helper. Keyed by the page that renders it, because the assertion is
+# per-page: each of these is a different closure in a different method.
+SEEDED_ENTITIES = {
+    "entities_metering": {
+        const.CONF_SOLAR_RADIATION_ENTITY: "sensor.solar_radiation",
+        const.CONF_POWER_ENTITY: "sensor.pump_power",
+        const.CONF_ENERGY_ENTITY: "sensor.pump_energy",
+        const.CONF_HOUSE_POWER_ENTITY: "sensor.house_power",
+        const.CONF_COMPRESSOR_FREQ_ENTITY: "number.compressor_freq",
+        const.CONF_COMPRESSOR_FREQ_SENSOR: "sensor.compressor_freq",
+    },
+    "hot_water_tank": {const.CONF_DHW_INLET_ENTITY: "sensor.dhw_inlet"},
+    "hot_water_pumps": {const.CONF_VVC_PUMP_ENTITY: "switch.vvc_pump"},
+    "grid_fees": {const.CONF_GRID_FEE_ENTITY: "sensor.grid_fee"},
+    "solar_pv": {
+        const.CONF_PV_EXPORT_PRICE_ENTITY: "sensor.export_price",
+        const.CONF_PV_PRODUCTION_ENTITY: "sensor.pv_production",
+    },
+    "away": {const.CONF_AWAY_PRESENCE_ENTITY: "person.resident"},
+}
+
+
+def schema_default(result, key):
+    """The default a rendered form's marker carries for one key.
+
+    ``_NO_DEFAULT`` when the marker has none: voluptuous parks its UNDEFINED
+    sentinel in ``default``, which is not callable, and that is exactly the
+    difference between the two arms of ``_entity`` -- so the sentinel has to
+    be distinguishable from a stored ``None``.
+    """
+    schema = result.get("data_schema")
+    for marker in schema.schema if schema else {}:
+        if str(getattr(marker, "schema", marker)) != key:
+            continue
+        default = getattr(marker, "default", None)
+        return default() if callable(default) else _NO_DEFAULT
+    return _NO_DEFAULT
+
+
+async def options_seeded_prefill():
+    """Every page re-rendered over stored values, and over none (#304)."""
+    R.section("options: pages re-rendered over configuration already stored")
+
+    seeded = {k: v for page in SEEDED_ENTITIES.values() for k, v in page.items()}
+    seeded[const.CONF_SOLAR_LOCATION] = dict(SEEDED_LOCATION)
+
+    for page, fields in SEEDED_ENTITIES.items():
+        stored_flow, _, _ = fresh_options(pre_options=dict(seeded))
+        empty_flow, _, _ = fresh_options()
+        stored_form = await getattr(stored_flow, f"async_step_{page}")(None)
+        empty_form = await getattr(empty_flow, f"async_step_{page}")(None)
+        carried = {key: schema_default(stored_form, key) for key in fields}
+        # The null control, and the reason this is two renders rather than
+        # one: an unseeded page must carry NO default for the same fields.
+        # Without it the check would pass just as well on a page that
+        # always attaches one, which would pin nothing about the stored
+        # value ever reaching the form.
+        unseeded = {key: schema_default(empty_form, key) for key in fields}
+        check(
+            f"opt_{page}",
+            "happy",
+            f"the {page} page re-renders its stored entities as defaults",
+            carried == fields,
+            f"carried={carried} want={fields}",
+        )
+        check(
+            f"opt_{page}",
+            "happy",
+            f"the {page} page carries no entity default when nothing is stored",
+            all(value is _NO_DEFAULT for value in unseeded.values()),
+            f"unseeded={ {k: (v is _NO_DEFAULT) for k, v in unseeded.items()} }",
+        )
+
+    # The map field is the same hazard in a different shape: a configured
+    # point must survive a re-render rather than snapping back to the HA
+    # home location, which is a silently wrong answer rather than an empty
+    # one -- the user cannot see that the map moved.
+    stored_flow, _, _ = fresh_options(pre_options=dict(seeded))
+    empty_flow, _, hass = fresh_options()
+    stored_form = await stored_flow.async_step_entities_metering(None)
+    empty_form = await empty_flow.async_step_entities_metering(None)
+    kept = schema_default(stored_form, const.CONF_SOLAR_LOCATION)
+    home = schema_default(empty_form, const.CONF_SOLAR_LOCATION)
+    check(
+        "opt_entities_metering",
+        "happy",
+        "a configured solar location is kept, not replaced by the HA home point",
+        kept == SEEDED_LOCATION,
+        f"kept={kept!r} want={SEEDED_LOCATION!r}",
+    )
+    check(
+        "opt_entities_metering",
+        "happy",
+        "with no configured location the map falls back to the HA home point",
+        home == {
+            "latitude": hass.config.latitude,
+            "longitude": hass.config.longitude,
+        },
+        f"home={home!r}",
+    )
+
+
+# ---------------------------------------------------------------------------
+# #304: the widening machinery's refusals.
+#
+# ``_fit_stored_values`` relaxes a bounded numeric field far enough to show
+# what is already on disk, because a stored value outside a field's range
+# makes the whole page un-submittable in silence. Its value is therefore
+# entirely in when it declines to move: widening on a value that is not a
+# number, or on an infinity, would replace a real bound with garbage or with
+# no bound at all, and the page would then accept anything. Each check below
+# pairs the refusal with the widening that must still happen, because a
+# function that returned None unconditionally would satisfy every refusal.
+# ---------------------------------------------------------------------------
+def _raising_default():
+    raise RuntimeError("a default that cannot be produced")
+
+
+async def widening_refusals():
+    R.section("schema widening: what must NOT move a field's bounds")
+    selector = config_flow.selector
+    bounded = selector.NumberSelector(
+        selector.NumberSelectorConfig(
+            min=0, max=10, step=1, mode=selector.NumberSelectorMode.BOX
+        )
+    )
+
+    # A marker whose default raises is a broken field, not a reason to fail
+    # the whole page: the suggested value it also carries must still be read.
+    marker = vol.Optional(
+        "field",
+        default=_raising_default,
+        description={"suggested_value": 7},
+    )
+    check(
+        "schema_widening",
+        "error",
+        "a default that raises is skipped, the suggested value still read",
+        config_flow._prefilled_values(marker) == [7],
+        str(config_flow._prefilled_values(marker)),
+    )
+    working = vol.Optional(
+        "field", default=lambda: 3, description={"suggested_value": 7}
+    )
+    check(
+        "schema_widening",
+        "happy",
+        "a default that works is read alongside the suggested value",
+        config_flow._prefilled_values(working) == [7, 3],
+        str(config_flow._prefilled_values(working)),
+    )
+
+    # An unbounded field has nothing to widen. Real Home Assistant only
+    # admits this shape in box mode (helpers/selector.py validate_slider),
+    # which is why the config says so.
+    unbounded = selector.NumberSelector(
+        selector.NumberSelectorConfig(mode=selector.NumberSelectorMode.BOX)
+    )
+    check(
+        "schema_widening",
+        "error",
+        "an unbounded number field is never rewritten",
+        config_flow._widen_to_fit(unbounded, [10_000]) is None,
+        repr(config_flow._widen_to_fit(unbounded, [10_000])),
+    )
+    for label, value in (
+        ("a non-numeric", "not a number"),
+        ("None", None),
+        ("NaN", float("nan")),
+        ("+inf", float("inf")),
+        ("-inf", float("-inf")),
+    ):
+        check(
+            "schema_widening",
+            "error",
+            f"{label} stored value leaves a bounded field's range alone",
+            config_flow._widen_to_fit(bounded, [value]) is None,
+            f"{label}: {config_flow._widen_to_fit(bounded, [value])!r}",
+        )
+    # The null control for all six refusals above: a finite out-of-range
+    # value DOES widen, and only as far as it has to. Without this, a
+    # ``_widen_to_fit`` that had stopped working entirely would pass every
+    # refusal check in this section.
+    widened = config_flow._widen_to_fit(bounded, [42.0])
+    check(
+        "schema_widening",
+        "happy",
+        "a finite out-of-range value widens the bound to exactly itself",
+        widened is not None
+        and widened.config["max"] == 42.0
+        and widened.config["min"] == 0,
+        repr(None if widened is None else dict(widened.config)),
+    )
+
+    # The whole-schema entry point: nothing to walk is not an error. The
+    # mixin applies it to every form result, including the menus and aborts
+    # that carry no schema at all.
+    for label, schema in (("None", None), ("a non-schema", object())):
+        fitted, widened_fields = config_flow._fit_stored_values(schema)
+        check(
+            "schema_widening",
+            "error",
+            f"{label} data_schema is returned untouched, with nothing widened",
+            fitted is schema and widened_fields == [],
+            f"{label}: fitted={fitted!r} widened={widened_fields!r}",
+        )
+    real_schema = vol.Schema({vol.Optional("field", default=lambda: 42.0): bounded})
+    fitted, widened_fields = config_flow._fit_stored_values(real_schema)
+    check(
+        "schema_widening",
+        "happy",
+        "a schema holding an out-of-range default is widened and named",
+        fitted is not real_schema and widened_fields == ["field"],
+        f"widened={widened_fields!r}",
+    )
+
+
+# ---------------------------------------------------------------------------
+# #304: the menu labels.
+#
+# The menu supplies its own labels because the frontend renders an empty row
+# when its own lookup comes back empty -- a menu of unreadable blank lines.
+# So both arms matter: a translation that resolves must be used, and a
+# lookup that fails must still leave a legible menu behind.
+# ---------------------------------------------------------------------------
+async def menu_label_translations():
+    R.section("options: menu labels, translated and not")
+    Flow = config_flow.HeatPumpOptimizerOptionsFlow
+    untranslated = {step: Flow._MENU_LABELS[step] for step in Flow._TOP_MENU}
+    untranslated["advanced"] = Flow._ADVANCED_LABEL
+    real = config_flow.async_get_translations
+
+    async def _stub(result):
+        async def _get(hass, language, category, integrations=None):
+            if isinstance(result, Exception):
+                raise result
+            return result
+
+        config_flow.async_get_translations = _get
+        try:
+            flow, _, _ = fresh_options()
+            return await flow.async_step_init(None)
+        finally:
+            config_flow.async_get_translations = real
+
+    menu = await _stub(RuntimeError("translations unavailable"))
+    check(
+        "opt_init",
+        "error",
+        "a failed translation lookup still renders every menu label",
+        menu.get("menu_options") == untranslated
+        and all(menu.get("menu_options", {}).values()),
+        str(menu.get("menu_options")),
+    )
+
+    # The resolving arm, keyed the way Home Assistant flattens translations:
+    # component.<domain>.<category>.<path>, so this is the key a real
+    # install would actually return for the options menu's comfort entry.
+    prefix = f"component.{config_flow.DOMAIN}.options.step.init.menu_options."
+    menu = await _stub({f"{prefix}comfort": "Komfort"})
+    labels = menu.get("menu_options", {})
+    check(
+        "opt_init",
+        "happy",
+        "a resolved translation replaces that entry's label and no other",
+        labels.get("comfort") == "Komfort"
+        and {k: v for k, v in labels.items() if k != "comfort"}
+        == {k: v for k, v in untranslated.items() if k != "comfort"},
+        str(labels),
+    )
+    # Two null controls for the key format. A translation filed under the
+    # INITIAL flow's category must not reach the options menu, and an empty
+    # string is not a translation -- taking it would blank the row this
+    # whole mechanism exists to keep legible.
+    wrong = f"component.{config_flow.DOMAIN}.config.step.init.menu_options.comfort"
+    menu = await _stub({wrong: "Wrong flow"})
+    check(
+        "opt_init",
+        "error",
+        "a translation from the other flow's category is not used",
+        menu.get("menu_options", {}).get("comfort") == untranslated["comfort"],
+        str(menu.get("menu_options", {}).get("comfort")),
+    )
+    menu = await _stub({f"{prefix}comfort": ""})
+    check(
+        "opt_init",
+        "error",
+        "an empty translation keeps the built-in label, not a blank row",
+        menu.get("menu_options", {}).get("comfort") == untranslated["comfort"],
+        str(menu.get("menu_options", {}).get("comfort")),
+    )
+
 
 # ---------------------------------------------------------------------------
 # Tranche 2 (#194): the reconfigure flow, end to end through the real
@@ -2446,6 +2823,9 @@ async def main() -> int:
     await options_walk()
     await options_advanced_pages()
     await options_error_branches()
+    await options_seeded_prefill()
+    await widening_refusals()
+    await menu_label_translations()
     await reconfigure_flow()
 
     print()
