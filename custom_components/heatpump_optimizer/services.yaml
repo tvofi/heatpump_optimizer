@@ -1,78 +1,35 @@
-run_optimization:
-  name: Run Optimization
-  description: >-
-    Manually trigger the heat pump cost optimization. This will fetch
-    the latest electricity prices and weather forecast, then compute
-    the optimal heat pump schedule for the next 24 hours using predictive
-    MPC with solar/wind/rain anticipation and DHW coordination. The call
-    fails with an error when the optimization cannot run — for example
-    fewer than four electricity price steps are available, or the solve
-    failed — instead of returning as if a new plan had been computed.
-
+# Structure only. Every name and description lives in the translation
+# catalogues (strings.json / translations/*.json) under "services", which
+# is what async_get_all_descriptions prefers over the value here (#558 D5).
+# hassfest allows a custom integration to keep them in either place, so
+# nothing upstream would catch the two copies drifting apart.
+run_optimization: null
 set_away:
-  name: Set Away
-  description: >-
-    Turn the Plan-page away override on or off, and optionally set or clear
-    the expected return time. At least one field is required. Turning the
-    override off also clears the return time.
   fields:
     active:
-      name: Away
-      description: Turn the override on or off. Omit to leave on/off unchanged.
       example: true
       selector:
-        boolean:
+        boolean: null
     return_time:
-      name: Expected return
-      description: >-
-        ISO datetime, or empty to clear. Omit to leave the stored time.
-        Setting a time while the override is off stores it without turning
-        away on.
-      example: "2026-09-06T18:00:00"
+      example: '2026-09-06T18:00:00'
       selector:
-        text:
-
+        text: null
 set_mode:
-  name: Set Optimizer Mode
-  description: >-
-    Set the operating mode of the heat pump optimizer.
   fields:
     mode:
-      name: Mode
-      description: >-
-        The operating mode to set. Available modes:
-        - auto: Full MPC optimization with predictive weather anticipation (recommended)
-        - comfort: Maintain comfort temperature, ignore price optimization
-        - economy: Lets the plan take the house up to 1.5 °C below your
-          comfort floor to ride out expensive hours (never below 15 °C)
-        - boost: Maximum heating power
-        - off: Disable optimizer, heat pump left in default state
       required: true
-      example: "auto"
+      example: auto
       selector:
         select:
           options:
-            - auto
-            - comfort
-            - economy
-            - boost
-            - "off"
-
+          - auto
+          - comfort
+          - economy
+          - boost
+          - 'off'
 set_thermal_parameters:
-  name: Set Thermal Parameters
-  description: >-
-    Update the thermal model parameters used by the optimizer.
-    Useful for fine-tuning the model to match your house's actual
-    thermal behavior. Supports single-zone, two-zone, DHW, and
-    weather sensitivity parameters.
   fields:
     house_thermal_mass:
-      name: House Thermal Mass
-      description: >-
-        Thermal mass of the house (air + furnishings) in kWh/°C.
-        Higher values mean slower temperature changes. Roughly
-        0.02 kWh/°C per m² of heated area for a timber house; heavy
-        floors are counted under slab_thermal_mass instead.
       required: false
       example: 10.0
       selector:
@@ -80,12 +37,8 @@ set_thermal_parameters:
           min: 0.5
           max: 80
           step: 0.5
-          unit_of_measurement: "kWh/°C"
+          unit_of_measurement: kWh/°C
     house_heat_loss_coefficient:
-      name: Heat Loss Coefficient
-      description: >-
-        Overall heat loss coefficient in kW/°C. Lower values
-        indicate better insulation.
       required: false
       example: 0.15
       selector:
@@ -93,13 +46,8 @@ set_thermal_parameters:
           min: 0.01
           max: 1.0
           step: 0.01
-          unit_of_measurement: "kW/°C"
+          unit_of_measurement: kW/°C
     slab_thermal_mass:
-      name: Slab Thermal Mass
-      description: >-
-        Thermal mass of whatever the heat is delivered through, in
-        kWh/°C: the concrete slab of a floor-heated house, or the water
-        and steel of a radiator circuit, which is far smaller.
       required: false
       example: 5.0
       selector:
@@ -107,12 +55,8 @@ set_thermal_parameters:
           min: 0.1
           max: 60
           step: 0.5
-          unit_of_measurement: "kWh/°C"
+          unit_of_measurement: kWh/°C
     slab_heat_transfer:
-      name: Slab Heat Transfer Coefficient
-      description: >-
-        Heat transfer coefficient between that store and the room, in
-        kW/°C. Radiators sit far higher than a slab.
       required: false
       example: 0.8
       selector:
@@ -120,11 +64,8 @@ set_thermal_parameters:
           min: 0.02
           max: 5.0
           step: 0.1
-          unit_of_measurement: "kW/°C"
+          unit_of_measurement: kW/°C
     heat_pump_cop_nominal:
-      name: Heat Pump Nominal COP
-      description: >-
-        Nominal COP of the heat pump at 7°C outdoor temperature.
       required: false
       example: 3.5
       selector:
@@ -133,9 +74,6 @@ set_thermal_parameters:
           max: 6.0
           step: 0.1
     upper_floor_thermal_mass:
-      name: Upper Floor Thermal Mass
-      description: >-
-        Thermal mass of the upper floor (radiator zone) in kWh/°C.
       required: false
       example: 3.0
       selector:
@@ -143,11 +81,8 @@ set_thermal_parameters:
           min: 0.25
           max: 60
           step: 0.5
-          unit_of_measurement: "kWh/°C"
+          unit_of_measurement: kWh/°C
     lower_floor_thermal_mass:
-      name: Lower Floor Thermal Mass
-      description: >-
-        Thermal mass of the lower floor (slab zone) in kWh/°C.
       required: false
       example: 8.0
       selector:
@@ -155,12 +90,8 @@ set_thermal_parameters:
           min: 0.25
           max: 60
           step: 0.5
-          unit_of_measurement: "kWh/°C"
+          unit_of_measurement: kWh/°C
     inter_zone_heat_transfer:
-      name: Inter-Zone Heat Transfer
-      description: >-
-        Heat transfer coefficient between upper and lower floors in kW/°C.
-        Higher values for open floor plans.
       required: false
       example: 0.5
       selector:
@@ -168,12 +99,8 @@ set_thermal_parameters:
           min: 0.01
           max: 3.0
           step: 0.1
-          unit_of_measurement: "kW/°C"
+          unit_of_measurement: kW/°C
     radiator_power_fraction:
-      name: Radiator Power Fraction
-      description: >-
-        Fraction of heat pump output going to radiators (upper floor).
-        0.0 = all floor heating, 1.0 = all radiators.
       required: false
       example: 0.4
       selector:
@@ -182,9 +109,6 @@ set_thermal_parameters:
           max: 1.0
           step: 0.05
     window_area:
-      name: Window Area
-      description: >-
-        Total glazing area for solar heat gain calculation in m².
       required: false
       example: 10.0
       selector:
@@ -192,12 +116,8 @@ set_thermal_parameters:
           min: 0.01
           max: 50
           step: 0.5
-          unit_of_measurement: "m²"
+          unit_of_measurement: m²
     solar_heat_gain_coefficient:
-      name: Solar Heat Gain Coefficient (SHGC)
-      description: >-
-        Fraction of solar energy transmitted through windows.
-        Typical values: 0.3 (triple low-e) to 0.8 (single clear).
       required: false
       example: 0.7
       selector:
@@ -206,9 +126,6 @@ set_thermal_parameters:
           max: 1.0
           step: 0.05
     dhw_tank_volume:
-      name: DHW Tank Volume
-      description: >-
-        Volume of the domestic hot water storage tank in liters.
       required: false
       example: 200
       selector:
@@ -216,11 +133,8 @@ set_thermal_parameters:
           min: 50
           max: 1500
           step: 10
-          unit_of_measurement: "L"
+          unit_of_measurement: L
     dhw_setpoint:
-      name: DHW Setpoint Temperature
-      description: >-
-        Target temperature for the domestic hot water tank in °C.
       required: false
       example: 55
       selector:
@@ -228,12 +142,8 @@ set_thermal_parameters:
           min: 40
           max: 65
           step: 1
-          unit_of_measurement: "°C"
+          unit_of_measurement: °C
     dhw_min_temperature:
-      name: DHW Minimum Temperature
-      description: >-
-        Minimum acceptable DHW tank temperature in °C, enforced during the
-        configured hot water time frames.
       required: false
       example: 45
       selector:
@@ -241,11 +151,8 @@ set_thermal_parameters:
           min: 35
           max: 55
           step: 1
-          unit_of_measurement: "°C"
+          unit_of_measurement: °C
     dhw_daily_consumption:
-      name: DHW Daily Consumption
-      description: >-
-        Estimated daily hot water consumption in liters/day.
       required: false
       example: 150
       selector:
@@ -253,13 +160,8 @@ set_thermal_parameters:
           min: 50
           max: 1500
           step: 10
-          unit_of_measurement: "L/day"
+          unit_of_measurement: L/day
     dhw_cooling_rate:
-      name: DHW Tank Cooling Rate
-      description: >-
-        How fast the tank cools with no draw, in °C per hour at 45 °C tank
-        temperature and 20 °C ambient. Normally learned automatically from
-        observed standby decay; set it to seed or override the learned value.
       required: false
       example: 0.3
       selector:
@@ -267,14 +169,8 @@ set_thermal_parameters:
           min: 0.05
           max: 3.0
           step: 0.05
-          unit_of_measurement: "°C/h"
+          unit_of_measurement: °C/h
     buffer_cooling_rate:
-      name: Buffer Tank Cooling Rate
-      description: >-
-        How fast the buffer tank cools with the pump off, in °C per hour at
-        25 °C above ambient. Learned automatically when a buffer tank
-        temperature sensor is configured; setting it here reseeds the learned
-        value and resets the sample count.
       required: false
       example: 6.0
       selector:
@@ -282,32 +178,18 @@ set_thermal_parameters:
           min: 0.5
           max: 30.0
           step: 0.5
-          unit_of_measurement: "°C/h"
+          unit_of_measurement: °C/h
     dhw_schedule_enabled:
-      name: DHW Time Frames Enabled
-      description: >-
-        When on, hot water is only guaranteed during the configured time
-        frames. When off, hot water is required around the clock.
       required: false
       example: true
       selector:
-        boolean:
+        boolean: null
     dhw_windows:
-      name: DHW Demand Time Frames
-      description: >-
-        Time frames when hot water must be available, as 24-hour times
-        separated by commas. Frames may wrap past midnight. Leave empty to
-        derive them from the learned usage profile. Unparseable frames are
-        rejected, not silently ignored.
       required: false
-      example: "06:00-08:30, 17:00-22:00"
+      example: 06:00-08:30, 17:00-22:00
       selector:
-        text:
+        text: null
     dhw_idle_min_temperature:
-      name: DHW Idle Minimum Temperature
-      description: >-
-        Lowest tank temperature the optimizer will plan for outside the
-        demand time frames.
       required: false
       example: 20
       selector:
@@ -315,19 +197,13 @@ set_thermal_parameters:
           min: 10
           max: 55
           step: 1
-          unit_of_measurement: "°C"
+          unit_of_measurement: °C
     dhw_legionella_enabled:
-      name: Anti-Legionella Cycle
-      description: >-
-        Periodically heat the tank to the disinfection temperature.
       required: false
       example: true
       selector:
-        boolean:
+        boolean: null
     dhw_legionella_temperature:
-      name: Anti-Legionella Temperature
-      description: >-
-        Tank temperature reached during an anti-legionella cycle.
       required: false
       example: 60
       selector:
@@ -335,11 +211,8 @@ set_thermal_parameters:
           min: 55
           max: 70
           step: 1
-          unit_of_measurement: "°C"
+          unit_of_measurement: °C
     dhw_legionella_interval_days:
-      name: Anti-Legionella Interval
-      description: >-
-        Maximum number of days between anti-legionella cycles.
       required: false
       example: 7
       selector:
@@ -347,12 +220,8 @@ set_thermal_parameters:
           min: 1
           max: 30
           step: 1
-          unit_of_measurement: "days"
+          unit_of_measurement: days
     wind_sensitivity_factor:
-      name: Wind Sensitivity Factor
-      description: >-
-        How much wind increases heat loss. 0.15 means 15% more heat
-        loss per m/s of wind speed. Adjusts convective heat transfer.
       required: false
       example: 0.03
       selector:
@@ -361,10 +230,6 @@ set_thermal_parameters:
           max: 0.5
           step: 0.01
     rain_heat_loss_multiplier:
-      name: Rain Heat Loss Multiplier
-      description: >-
-        Heat loss multiplier when raining. 1.15 means 15% more heat
-        loss during rain (wet building envelope effect).
       required: false
       example: 1.15
       selector:
@@ -373,10 +238,6 @@ set_thermal_parameters:
           max: 1.5
           step: 0.01
     ecl110_pid_time_constant_hours:
-      name: ECL110 PI/PID Time Constant
-      description: >-
-        Time constant (hours) for the ECL110 PI/PID response approximation.
-        Lower values react faster, higher values are smoother.
       required: false
       example: 1.5
       selector:
@@ -384,10 +245,8 @@ set_thermal_parameters:
           min: 0.25
           max: 6.0
           step: 0.25
-          unit_of_measurement: "h"
+          unit_of_measurement: h
     ecl110_displace_min:
-      name: ECL110 displace minimum
-      description: Lowest parallel shift the optimizer may command, in °C.
       required: false
       example: -20
       selector:
@@ -395,10 +254,8 @@ set_thermal_parameters:
           min: -30
           max: 0
           step: 1
-          unit_of_measurement: "°C"
+          unit_of_measurement: °C
     ecl110_displace_max:
-      name: ECL110 displace maximum
-      description: Highest parallel shift the optimizer may command, in °C.
       required: false
       example: 20
       selector:
@@ -406,380 +263,197 @@ set_thermal_parameters:
           min: 0
           max: 30
           step: 1
-          unit_of_measurement: "°C"
+          unit_of_measurement: °C
 simulate_plan:
-  name: Simulate a plan
-  description: >-
-    Price a hypothetical comfort choice against the current forecast without
-    disturbing operation. Returns the cost difference against the live plan.
-    Backs the dashboard card's what-if simulator; the underlying solve is
-    rate-limited, so rapid repeat calls return the previous answer. A what-if
-    that cannot run — no plan yet, not enough price data, unparseable hot
-    water windows — fails with an error rather than an error entry inside
-    the response.
   fields:
     target_temp:
-      name: Target temperature
-      description: Comfort target to test, in °C.
       selector:
         number:
           min: 5
           max: 30
           step: 0.5
-          unit_of_measurement: "°C"
+          unit_of_measurement: °C
     min_temp:
-      name: Minimum temperature
-      description: Lowest acceptable temperature to test, in °C.
       selector:
         number:
           min: 5
           max: 30
           step: 0.5
-          unit_of_measurement: "°C"
+          unit_of_measurement: °C
     max_temp:
-      name: Maximum temperature
-      description: Highest acceptable temperature to test, in °C.
       selector:
         number:
           min: 5
           max: 35
           step: 0.5
-          unit_of_measurement: "°C"
+          unit_of_measurement: °C
     comfort_weight:
-      name: Comfort weight
-      description: How hard to chase price versus hold temperature.
       selector:
         number:
           min: 1
           max: 40
           step: 0.5
     comfort_temp_day:
-      name: Daytime comfort temperature
-      description: Comfort temperature during the heating day, in °C.
       selector:
         number:
           min: 5
           max: 30
           step: 0.5
-          unit_of_measurement: "°C"
+          unit_of_measurement: °C
     comfort_temp_night:
-      name: Night comfort temperature
-      description: Comfort temperature outside the heating day, in °C.
       selector:
         number:
           min: 5
           max: 30
           step: 0.5
-          unit_of_measurement: "°C"
+          unit_of_measurement: °C
     dhw_setpoint:
-      name: Hot water setpoint
-      description: Tank setpoint to test, in °C.
       selector:
         number:
           min: 30
           max: 75
           step: 1
-          unit_of_measurement: "°C"
+          unit_of_measurement: °C
     dhw_min_temperature:
-      name: Hot water minimum
-      description: Usable minimum inside demand windows, in °C.
       selector:
         number:
           min: 20
           max: 70
           step: 1
-          unit_of_measurement: "°C"
+          unit_of_measurement: °C
     day_start_hour:
-      name: Heating day starts
-      description: >-
-        Hour at which the daytime comfort temperature takes over from the
-        night one.
       selector:
         number:
           min: 0
           max: 23
           step: 1
     day_end_hour:
-      name: Heating day ends
-      description: Hour at which the night setback begins.
       selector:
         number:
           min: 0
           max: 24
           step: 1
     dhw_windows:
-      name: Hot water demand windows
-      description: >-
-        Time frames to test, e.g. "06:00-08:30, 17:00-22:00". An empty string
-        simulates having no demand windows at all.
       selector:
-        text:
+        text: null
     wood_slots:
-      name: Wood slots
-      description: >-
-        What-if wood fires as a list of {start, end, liters} objects. Injected
-        only into the shadow solve; never written to the config entry.
       selector:
-        object:
+        object: null
     wood_type:
-      name: Wood type
-      description: What-if wood type override (birch, pine, mixed).
       selector:
-        text:
+        text: null
     wood_packing:
-      name: Wood packing
-      description: What-if packing override (packed or loose).
       selector:
-        text:
+        text: null
     wood_price_sek_m3:
-      name: Wood price
-      description: What-if firewood price in SEK per billed cubic metre.
       selector:
         number:
           min: 0
           max: 10000
           step: 1
-          unit_of_measurement: "SEK/m³"
+          unit_of_measurement: SEK/m³
     wood_furnace_efficiency:
-      name: Wood furnace efficiency
-      description: What-if furnace efficiency in percent.
       selector:
         number:
           min: 10
           max: 95
           step: 1
-          unit_of_measurement: "%"
-
+          unit_of_measurement: '%'
 assign_entity:
-  name: Assign Entity
-  description: >-
-    Assign one of the integration's optional sensors, or clear it. This is what
-    the setup diagram on the dashboard card calls when you click a slot, and it
-    writes the same configuration the options pages write. Changing the
-    configuration reloads the integration.
   fields:
     key:
-      name: Setting
-      description: >-
-        Which optional sensor to assign, by its configuration key - for example
-        buffer_tank_temp_entity.
       required: true
       example: buffer_tank_temp_entity
       selector:
-        text:
+        text: null
     entity_id:
-      name: Entity
-      description: >-
-        The entity to assign. Leave empty to clear the slot. The entity must
-        exist and its domain must be one the slot accepts.
       required: true
       example: sensor.buffer_tank
       selector:
-        text:
+        text: null
     entry_id:
-      name: Config entry
-      description: >-
-        Restrict the change to one heat pump. Omit to apply to all of them.
       selector:
-        text:
-
+        text: null
 apply_topology:
-  name: Apply Topology Layout
-  description: >-
-    Store the hydronic layout the setup diagram's editor snapped to, plus the
-    cosmetic box positions. Only layouts from the supported catalog are
-    accepted, and only when this system's configuration can honor them — a
-    two-tank layout needs a wood-tank probe, a valved layout needs a valve.
-    Changing the configuration reloads the integration.
   fields:
     layout:
-      name: Layout
-      description: >-
-        The catalog key of the layout - for example two_tank_4way or
-        valve_upper_direct_slab.
       required: true
       example: two_tank_4way
       selector:
-        text:
+        text: null
     positions:
-      name: Box positions
-      description: >-
-        Cosmetic diagram positions, as a mapping from place name to [x, y].
-        Never affects the physics.
       selector:
-        object:
+        object: null
     entry_id:
-      name: Config entry
-      description: >-
-        Restrict the change to one heat pump. Omit to apply to all of them.
       selector:
-        text:
-
+        text: null
 apply_schedule:
-  name: Apply Schedule
-  description: >-
-    Save a heating and hot water schedule into the integration's configuration,
-    so the optimizer plans against it from now on. This is the deliberate
-    counterpart to simulate_plan, which only prices a schedule without keeping
-    it. Changing the configuration reloads the integration.
   fields:
     day_start_hour:
-      name: Heating day starts
-      description: >-
-        Hour at which the daytime comfort temperature takes over from the
-        night one.
       selector:
         number:
           min: 0
           max: 23
           step: 1
     day_end_hour:
-      name: Heating day ends
-      description: Hour at which the night setback begins.
       selector:
         number:
           min: 0
           max: 24
           step: 1
     dhw_windows:
-      name: Hot water demand windows
-      description: >-
-        Time frames when hot water must be available, e.g.
-        "06:00-08:30, 17:00-22:00". An empty string removes all demand windows,
-        leaving the tank only at its idle minimum.
       selector:
-        text:
+        text: null
     comfort_temp_day:
-      name: Daytime comfort temperature
-      description: Target indoor temperature during the heating day.
       selector:
         number:
           min: 5
           max: 30
           step: 0.5
-          unit_of_measurement: "°C"
+          unit_of_measurement: °C
     dhw_min_temperature:
-      name: Minimum hot water temperature
-      description: >-
-        Lowest tank temperature considered usable inside a demand window. It
-        must stay a few degrees below the hot water setpoint, or the tank would
-        have to sit exactly at target and the pump would short-cycle; a value
-        that leaves no deadband is rejected.
       selector:
         number:
           min: 35
           max: 55
           step: 1
-          unit_of_measurement: "°C"
+          unit_of_measurement: °C
     entry_id:
-      name: Config entry
-      description: >-
-        Restrict the change to one config entry. Leave empty to apply to every
-        configured heat pump, which is what a single-heat-pump install wants.
       selector:
-        text:
-
+        text: null
 apply_manual_plan:
-  name: Apply Manual Plan
-  description: >-
-    Pin exactly when space heating and hot water run for the next 20 hours.
-    Unlike apply_schedule, which only shifts the envelope the optimizer keeps
-    re-deciding inside, this fixes the actual run slots until the override
-    expires. Safety still wins: if the tank falls below its minimum, a
-    legionella cycle is due, or the house drops below its comfort floor, the
-    pinned-off slot is released and the system runs anyway.
   fields:
     space_slots:
-      name: Space heating slots
-      description: >-
-        When space heating should run, as a list of {start, end} objects with
-        ISO 8601 datetimes. An empty list forces space heating off for the whole
-        period; omit the field entirely to leave space heating fully automatic.
       example:
-        - start: "2024-01-01T06:00:00+01:00"
-          end: "2024-01-01T08:00:00+01:00"
+      - start: '2024-01-01T06:00:00+01:00'
+        end: '2024-01-01T08:00:00+01:00'
       selector:
-        object:
+        object: null
     dhw_slots:
-      name: Hot water slots
-      description: >-
-        When hot water should run, as a list of {start, end} objects with ISO
-        8601 datetimes. An empty list forces hot water off for the whole period;
-        omit the field entirely to leave hot water fully automatic.
       example:
-        - start: "2024-01-01T17:00:00+01:00"
-          end: "2024-01-01T18:30:00+01:00"
+      - start: '2024-01-01T17:00:00+01:00'
+        end: '2024-01-01T18:30:00+01:00'
       selector:
-        object:
+        object: null
     expires_at:
-      name: Expires at
-      description: >-
-        ISO 8601 datetime when the override stops applying and planning reverts
-        to automatic. Defaults to 20 hours from now, restarted each time you
-        apply. It is deliberately shorter than the optimizer's 24-hour horizon,
-        so there is always a tail the optimizer still owns.
-      example: "2024-01-02T00:00:00+01:00"
+      example: '2024-01-02T00:00:00+01:00'
       selector:
-        text:
+        text: null
     entry_id:
-      name: Config entry
-      description: >-
-        Restrict the override to one config entry. Leave empty to apply to every
-        configured heat pump.
       selector:
-        text:
-
+        text: null
 clear_manual_plan:
-  name: Clear Manual Plan
-  description: >-
-    Remove any manual plan override immediately, so planning reverts to fully
-    automatic.
   fields:
     entry_id:
-      name: Config entry
-      description: >-
-        Restrict the clear to one config entry. Leave empty to clear every
-        configured heat pump.
       selector:
-        text:
-
+        text: null
 restore_learned_snapshot:
-  name: Restore Learned Snapshot
-  description: >-
-    Roll every learner back to the most recent weekly snapshot that was
-    captured while all inputs were healthy and prediction accuracy was in
-    band. Use this if the learned model has visibly gone wrong — after a
-    sensor fed garbage for a while, for example. The drift watchdog does the
-    same thing automatically when it can prove the inputs were healthy
-    throughout; this service is the manual override for when you can see
-    what it cannot. Nothing is lost permanently: learning simply continues
-    from the restored point. The call fails with an error when no snapshot
-    qualifies, instead of answering with an empty restore.
   fields:
     entry_id:
-      name: Config entry
-      description: >-
-        Restrict the restore to one config entry. Leave empty to restore every
-        configured heat pump.
       selector:
-        text:
-
+        text: null
 diagnose_interval:
-  name: Diagnose Last Interval
-  description: >-
-    Explain the last interval's temperature error, input by input. The
-    optimizer re-runs the interval that just settled through its own thermal
-    model, swapping one realised input at a time into the plan's assumptions
-    — measured power for commanded power, realised outdoor temperature for
-    the forecast, realised solar for the assumed — and reports how much of
-    the error each swap explains. What no swap explains is the model's own
-    residual, reported as "unexplained". The result is published on the
-    Prediction Accuracy sensor and returned as the service response.
   fields:
     entry_id:
-      name: Config entry
-      description: >-
-        Restrict the diagnosis to one config entry. Leave empty to diagnose
-        every configured heat pump.
       selector:
-        text:
+        text: null
