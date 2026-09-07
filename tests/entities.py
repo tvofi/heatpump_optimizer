@@ -8175,14 +8175,18 @@ R.check(
     "tests/nightly_ha.py _scan emits checks its own roster does not declare: "
     f"{sorted(set(_nightly_clean_results) - set(_nightly.OUTSIDE_CHECKS))}",
 )
+# Read the COMPILED code, not the source text. The first version of this check
+# searched _report's source for the word "OUTSIDE_CHECKS", and a mutant that
+# broke the behaviour while leaving the word in a comment survived every one of
+# this file's checks -- #580's shape inside the fix for #580's shape. A name a
+# function actually loads appears in its code object; a name in a comment does
+# not, so the comment mutant cannot pass this.
 R.check(
     "and the lane demands that roster of itself",
     "run:all_checks_ran" in _nightly.OUTSIDE_CHECKS
-    and "OUTSIDE_CHECKS" in Path("tests/nightly_ha.py").read_text().split(
-        "def _report("
-    )[1],
-    "OUTSIDE_CHECKS must be read by _report, not merely defined; a roster "
-    "nothing consults cannot notice a check that stopped running (#533)",
+    and {"OUTSIDE_CHECKS", "INSIDE_CHECKS"} <= set(_nightly._report.__code__.co_names),
+    "_report must LOAD both rosters, not merely have them defined nearby; a "
+    "roster nothing consults cannot notice a check that stopped running (#533)",
 )
 
 # HA loads repairs.py dynamically, so a witness must import it or it is an
