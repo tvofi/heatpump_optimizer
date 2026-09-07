@@ -103,6 +103,11 @@ import voluptuous as vol  # noqa: E402
 
 from harness import FakeEntry, FakeHass, Results  # noqa: E402
 
+# The capture itself, imported rather than re-implemented: a fingerprint
+# copied into this file would pin this file's opinion of the golden, not the
+# golden (#516, and ``tests/README.md`` on tests that re-implement).
+from golden import _presented_fields, schema_fingerprint  # noqa: E402
+
 from heatpump_optimizer import config_flow, const  # noqa: E402
 from heatpump_optimizer.presets import (  # noqa: E402
     EMITTER_FLOOR,
@@ -111,7 +116,8 @@ from heatpump_optimizer.presets import (  # noqa: E402
     FOUNDATION_NONE,
     STRUCTURE_TIMBER_SLAB,
 )
-from homeassistant.data_entry_flow import AbortFlow  # noqa: E402
+from homeassistant.data_entry_flow import AbortFlow, section  # noqa: E402
+from homeassistant.helpers import selector  # noqa: E402
 
 R = Results("Initial config flow, walked end to end")
 
@@ -1992,6 +1998,152 @@ async def options_stored_entity_arm():
         )
 
 
+async def section_nesting_is_captured():
+    """#516's surviving blocker: the golden capture walked schemas one level.
+
+    ``section()`` is the mechanism #516 groups the wide pages with, and it
+    nests the schema rather than flattening it. ``golden.py`` walked one
+    level, so a grouped page recorded the section marker and nothing beneath
+    it: grouping ``comfort`` dropped all eleven of its fields, and from then
+    on a field added inside that section, a field removed from it, or a
+    selector's bounds rewritten there each left ``config_flow.json``
+    byte-identical. "No drift" would have meant nothing on exactly the pages
+    being grouped -- #553's defect in a new place, a fixture too weak to see
+    what it exists to pin.
+
+    **The removal check is the load-bearing one.** A capture that notices
+    additions but not removals is the same blindness in a different hat, and
+    a silently shrinking surface is what grouping a page actually produces.
+
+    The stub is under test here as much as the capture is (#536): ``section``
+    is Home Assistant API surface this now depends on, and a stub that did
+    not match upstream would leave every check below pinning a fiction.
+    """
+    R.section("golden capture: section() nesting, added and removed fields")
+
+    # The stub against upstream's contract -- homeassistant/data_entry_flow.py
+    # ``class section`` at the declared 2025.2.0 floor. The third clause is
+    # the one the capture turned on: selectors carry ``config``, a section
+    # carries ``options``, and reading only the former is what made the
+    # nested fields invisible.
+    probe = section(vol.Schema({vol.Optional("x"): bool}), {"collapsed": True})
+    check(
+        "capture",
+        "happy",
+        "the section stub matches HA: a vol.Schema, options not config, "
+        "collapsed defaulting False, validating through the inner schema",
+        isinstance(probe.schema, vol.Schema)
+        and dict(probe.options) == {"collapsed": True}
+        and getattr(probe, "config", None) is None
+        and dict(section(vol.Schema({})).options) == {"collapsed": False}
+        and probe({"x": True}) == {"x": True},
+        "upstream: homeassistant/data_entry_flow.py, class section",
+    )
+
+    flow, _entry, _ = fresh_options()
+    flat = (await flow.async_step_comfort(None)).get("data_schema")
+    inner = dict(flat.schema)
+
+    def grouped(fields, collapsed=True):
+        """The #516 change and nothing else: the same fields, one section."""
+        return vol.Schema(
+            {
+                vol.Required("comfort_basics"): section(
+                    vol.Schema(fields), {"collapsed": collapsed}
+                )
+            }
+        )
+
+    full = schema_fingerprint(grouped(inner))
+    nested = full["comfort_basics"].get("fields", {})
+    check(
+        "capture",
+        "happy",
+        "grouping a page into a section keeps every field in the fingerprint",
+        set(nested) == {str(k) for k in inner} and len(inner) > 1,
+        f"{len(inner)} field(s) grouped, {len(nested)} captured",
+    )
+
+    dropped = sorted(str(k) for k in inner)[0]
+    minus = {k: v for k, v in inner.items() if str(k) != dropped}
+    check(
+        "capture",
+        "happy",
+        "removing a field from inside a section moves the fingerprint",
+        len(minus) == len(inner) - 1 and schema_fingerprint(grouped(minus)) != full,
+        f"removed {dropped!r} from inside the section",
+    )
+
+    added = dict(inner)
+    # A bare builtin, which is how the wood-furnace toggle is declared, so the
+    # addition is a shape the flow really produces rather than a synthetic one.
+    added[vol.Optional("section_probe_field")] = bool
+    check(
+        "capture",
+        "happy",
+        "adding a field inside a section moves the fingerprint",
+        schema_fingerprint(grouped(added)) != full,
+        "added 'section_probe_field' inside the section",
+    )
+
+    numeric = next(
+        (k for k, v in inner.items() if "max" in (getattr(v, "config", None) or {})),
+        None,
+    )
+    widened = dict(inner)
+    if numeric is not None:
+        widened[numeric] = selector.NumberSelector(
+            selector.NumberSelectorConfig(
+                min=-99, max=99, step=1, mode=selector.NumberSelectorMode.BOX
+            )
+        )
+    check(
+        "capture",
+        "happy",
+        "rewriting a selector's bounds inside a section moves the fingerprint",
+        numeric is not None and schema_fingerprint(grouped(widened)) != full,
+        f"widened {str(numeric)!r} to min=-99 max=99",
+    )
+
+    check(
+        "capture",
+        "happy",
+        "a section that silently changes its collapsed state moves the fingerprint",
+        schema_fingerprint(grouped(inner, collapsed=False)) != full,
+        "collapsed True -> False, same fields",
+    )
+
+    # #547's seed derives from this walk. Sections nest the form, never the
+    # option keys, so the walk must flatten or a grouped page would quietly
+    # stop being seeded -- leaving ``_seeded`` present and rendering the empty
+    # arm it was added to escape.
+    reached = {str(k) for k, _ in _presented_fields(grouped(inner))}
+    check(
+        "capture",
+        "happy",
+        "the option seed still reaches every field nested inside a section",
+        reached == {str(k) for k in inner},
+        f"{len(reached)} field(s) reached through the section",
+    )
+
+    # The null control on the recursion itself. ``_nested_schema`` must fire
+    # on a section and on nothing else: if it also matched ordinary selectors
+    # every marker in the committed fixture would gain a nested key and the
+    # whole of config_flow.json would move.
+    flat_markers = schema_fingerprint(flat)
+    check(
+        "capture",
+        "happy",
+        "an ungrouped page gains nothing: no marker outside a section nests",
+        bool(flat_markers)
+        and all(
+            set(m) == {"selector", "config", "default", "required"}
+            for m in flat_markers.values()
+        ),
+        f"{len(flat_markers)} marker(s) on the ungrouped comfort page",
+    )
+
+
 async def options_error_branches():
     """Every per-page validation error, each on a fresh flow that must not save."""
     R.section("options: every page's validation errors")
@@ -2980,6 +3132,7 @@ async def main() -> int:
     await options_walk()
     await options_advanced_pages()
     await options_stored_entity_arm()
+    await section_nesting_is_captured()
     await options_error_branches()
     await options_seeded_prefill()
     await options_cross_page_save_scope()

@@ -28,6 +28,9 @@ class Platform(str):
 
 CONF_NAME = "name"
 
+# Home Assistant's own value, verbatim: the worker reap listens for it (#525).
+EVENT_HOMEASSISTANT_STOP = "homeassistant_stop"
+
 
 class UnitOfSpeed:
     METERS_PER_SECOND = "m/s"
