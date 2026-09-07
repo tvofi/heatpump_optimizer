@@ -28,9 +28,13 @@ some of them and cite them by name; a summary is not the policy.
    opposite things.** Key on the mode line, never the count — but that line
    only exists on a branch; a push to `main` prints no mode line at all,
    because the forced `full` above never calls the code that prints it.
-2. **A structural ratchet refuses growth.** `tests/structure.py` measures 22
-   metrics against `tests/structure_budgets.json`, and every one may only move
-   down. Several sit at zero headroom, so a change that adds lines to the wrong
+2. **A structural ratchet refuses growth.** `tests/structure.py` measures every
+   metric in `tests/structure_budgets.json` — **derive the count, do not carry
+   one**: it is the budget file's keys less `recorded_at`, which is metadata
+   rather than a metric. This sentence said 22 for some time while the answer
+   was 24, and `structure.py`'s own `ok` lines are a third number again (they
+   include the counting-rule check and four `const.py` symbol checks). Every
+   metric may only move down. Several sit at zero headroom, so a change that adds lines to the wrong
    class fails — and the correct response is to pay for the lines, to re-record
    deliberately with the reason **in the commit message**, or, for a genuine new
    production feature, to **raise the budget with the repository owner's
