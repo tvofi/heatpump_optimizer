@@ -139,6 +139,34 @@ drafting one, so open the pull request and surface it. Every rewrite looks like
 a correction from the inside; if the honest description is *"this changes what a
 seat must do"*, it is policy however small the diff.
 
+## Every sentence earns its place
+
+**Scope: the development record, not the product.** This governs what one agent
+writes for another — pull-request bodies, issues, comments, commit messages,
+briefs, roster entries, reports, and `docs/HANDOVER.md`, whose reader is a
+resuming agent. It does **not** govern `README.md` or the rest of `docs/`: a
+user did not run the command, cannot see the diff, and has no context to
+supply, so they need the explanation this rule cuts.
+
+**Precision outranks concision, always.** Where the two pull against each
+other, precision wins and the artifact gets longer. **A short artifact missing
+a control is a defect; cutting evidence is never compliance with this rule.** If
+you are unsure whether something is filler, keep it — a redundant sentence costs
+a reader a second, a dropped control ships a defect.
+
+Given that: a sentence stays only if it carries a **measurement**, **the rule or
+control behind one** (`fixer.md` step 8), a **decision and why**, a **constraint
+on someone downstream**, or a **refusal and what refused it** — **and is the
+only place in the artifact that carries it**. Everything else is cut, not
+shortened: restating the ask, narrating the route, summarising your own diff,
+preamble, and any adjective whose deletion changes no fact.
+
+Uniqueness does the work a delete-and-see test cannot. A recap made of numbers
+carries measurements, so no list of banned shapes reaches it; it is cut because
+the numbers are already stated. An invariant whose terms are all on the page —
+`views < fetch < dhw < grid < learning` — survives, because a reader can derive
+the ordering and still not have been told it must hold.
+
 ## Programme tracking (#201)
 
 After each programme merge — wave group, tooling the plan tracks, or a closed
@@ -195,6 +223,34 @@ one selects that script and adding a second forces `MODE: FULL` — either way
 the refusal lands on the pull request rather than on the push to main. The
 count is by path segment, not filename, so `docs/handovers/` is a second
 handover too.
+
+## Fix it; if you cannot, verify it independently; only then file it
+
+The owner's ruling, and it binds **every seat**, not only the orchestrator. The
+order is a fallback chain rather than a menu.
+
+An issue is what you write when you cannot act, not a way of recording that you
+noticed. Filing is not neutral: an issue enters the Delivery-status table, needs
+a disposition, and is read by later seats as established fact — it propagates
+further than a wrong pull request, because nothing gates it. Four issues filed
+in one day needed three refutation seats and a judge to establish that one was
+largely false and that a mechanism another asked for was already in the tree,
+landed by a pull request listed in its own evidence table.
+
+**A recurring error is not a third issue.** At roughly the third instance it is
+`tools/audit/briefs/root-cause.md`, whose product is a named cause, a named
+process state, a cost test with numbers, and a countermeasure *or a recorded
+decision not to build one*.
+
+**Out of scope is not a licence to file.** A real finding you must not touch
+goes to that stage's own brief under "Carrying a finding forward" above; an
+issue is not the instrument for propagation.
+
+This rule is stated here and again in `tools/audit/briefs/orchestrator.md`
+section 8. That duplication is deliberate and is the owner's call: it binds every
+seat, so it belongs where every seat reads, and it binds the orchestrator
+hardest, so it belongs in that contract too. **If the two ever disagree, this
+one is the rule** and the other is the bug.
 
 ## Programme plans and the brief linter
 
@@ -275,6 +331,15 @@ or an abandoned hold (`holding` marker, no live flock) may be taken without
 forensics. `run.sh` holds `flock` for the gate run so a crash drops flock and
 a waiter can take immediately — the lease covers the window between commands
 when nothing holds flock (#404).
+
+**Never run a full `tests/derive_closures.sh` off Linux.** The union that lets a
+Darwin recording *grow* a node closure without dropping files only Linux
+`strace` saw lives inside `closure.py`'s `if partial:` branch — and `--single`
+is what passes `--partial`. The full path does not, so a full re-derivation on
+this box **replaces** the Linux recordings wholesale: `card_drift.mjs` measured
+**66 scripts → 6**. Worse, the refusal message you will be reading when you
+reach for it says *"Regenerate with tests/derive_closures.sh"*, with no
+`--single` and no platform caveat. Use `--single` on the one script.
 
 Node lanes (`tests/card.mjs`, `tests/card_drift.mjs`) record on Darwin via
 `node --import tests/node_fs_trace.mjs` (Node `fs` / loader, not `strace`).

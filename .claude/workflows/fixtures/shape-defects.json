@@ -1,0 +1,52 @@
+{
+  "_comment": [
+    "FROZEN ACCEPTANCE INPUT for checkShape (#582). Do not repair these groups:",
+    "each one is a defect the linter must keep reporting, and REQUIRED_SHAPE_DEFECTS",
+    "in brief_lint.mjs names the message it must produce. Repairing a group here",
+    "deletes a pin rather than fixing a roster.",
+    "Order is load-bearing: the first two entries are reported as '(index N)',",
+    "because a group with no usable id has no other label."
+  ],
+  "groups": [
+    null,
+    {
+      "brief": "shape probe: this group has no id.",
+      "resume": { "stage": "pending" }
+    },
+    {
+      "group": "no-brief",
+      "resume": { "stage": "pending" }
+    },
+    {
+      "group": "no-resume",
+      "brief": "shape probe: this group has no resume, and cites tests/no_such_probe_file.py, which is not in the tree. Both findings must be reported together -- checkShape is additive and never gates the citation check."
+    },
+    {
+      "group": "no-stage",
+      "brief": "shape probe: this group's resume is an object with no stage.",
+      "resume": {}
+    },
+    {
+      "group": "after-not-array",
+      "brief": "shape probe: this group's after is a string, which lintAfterEdges skips rather than walking its characters.",
+      "resume": { "stage": "pending" },
+      "after": "no-brief"
+    },
+    {
+      "group": "twin",
+      "brief": "shape probe: first of two groups sharing an id.",
+      "resume": { "stage": "pending" }
+    },
+    {
+      "group": "twin",
+      "brief": "shape probe: second of two groups sharing an id.",
+      "resume": { "stage": "pending" }
+    },
+    {
+      "group": "edge-probe",
+      "brief": "shape probe: a well-formed group whose after edge names nothing here, so the edge check is pinned to keep running beside the shape check.",
+      "resume": { "stage": "pending" },
+      "after": ["no-such-group"]
+    }
+  ]
+}
