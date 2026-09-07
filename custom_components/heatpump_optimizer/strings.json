@@ -1144,7 +1144,18 @@
         "name": "Floor Heating Return Temperature"
       },
       "heat_pump_action": {
-        "name": "Heat Pump Action"
+        "name": "Heat Pump Action",
+        "state": {
+          "boost": "Maximum output",
+          "comfort": "Comfort",
+          "eco": "Low output",
+          "idle": "Idle",
+          "normal": "Normal output",
+          "off": "Off",
+          "pre_heat": "Pre-heating",
+          "system_identification": "System identification",
+          "unknown": "Unknown"
+        }
       },
       "indoor_temperature_optimizer": {
         "name": "Indoor Temperature (Optimizer)"
@@ -1174,7 +1185,15 @@
         "name": "Optimal Setpoint"
       },
       "optimization_mode": {
-        "name": "Optimization Mode"
+        "name": "Optimization Mode",
+        "state": {
+          "auto": "Automatic",
+          "boost": "Boost",
+          "comfort": "Comfort",
+          "economy": "Economy",
+          "off": "Off",
+          "unknown": "Unknown"
+        }
       },
       "optimization_schedule": {
         "name": "Optimization Schedule"
@@ -1189,7 +1208,23 @@
         "name": "Outdoor Temperature (Optimizer)"
       },
       "plan_narrative": {
-        "name": "Plan Narrative"
+        "name": "Plan Narrative",
+        "state": {
+          "cheap_price": "Cheapest hours",
+          "comfort_floor": "Holding the minimum temperature",
+          "dhw_preheat": "Charging the tank while electricity is cheap",
+          "dhw_ready": "Getting the tank ready",
+          "dhw_window": "Hot water needed now",
+          "idle": "Idle",
+          "legionella": "Anti-legionella cycle",
+          "manual_plan": "Your own schedule",
+          "preheat_weather": "Pre-heating before colder weather",
+          "pump_mode": "Blocked by the heat pump's mode",
+          "scheduled": "Keeping the house at target",
+          "solar_surplus": "Covered by solar surplus",
+          "terminal_value": "Leaving the house warm",
+          "untagged": "Outside the plan"
+        }
       },
       "power_headroom": {
         "name": "Power Headroom"

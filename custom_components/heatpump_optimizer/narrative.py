@@ -3,8 +3,8 @@
 The reason codes (item 16) made each slot explicable one tooltip at a time;
 this module tells the whole day at once: group the plan's steps by reason,
 total each group's energy and money, and render one line per reason —
-"6.2 kWh in the cheapest hours for 8.40 kr", "holding the minimum
-temperature cost 2.10 kr", and so on, ordered by spend.
+"6.2 kWh in the cheapest hours for 8.40 SEK", "holding the minimum
+temperature cost 2.10 SEK", and so on, ordered by spend.
 
 Two contracts hold everything honest:
 
@@ -27,40 +27,49 @@ from __future__ import annotations
 from typing import Any
 
 #: One sentence per reason code, per language. Placeholders: {kwh} energy
-#: in the group, {sek} its cost, {hours} total duration in hours. Keys and
-#: placeholders MUST stay identical across languages — tests enforce it.
+#: in the group, {cost} its cost, {currency} the instance's currency code,
+#: {hours} total duration in hours. Keys and placeholders MUST stay identical
+#: across languages — tests enforce it.
+#:
+#: {currency} is a placeholder rather than a literal in EVERY table, Swedish
+#: included (#558 D2). The English table used to end twelve of its fourteen
+#: sentences in "kr", so an English reader on a Norwegian or euro instance was
+#: told the price in Swedish kronor; hard-coding "kr" in the Swedish table is
+#: the same defect one instance later. The published item key stays "sek" —
+#: that one is a shipped attribute an automation may read, and renaming it
+#: would be a breaking change for the sake of a name.
 TEMPLATES: dict[str, dict[str, str]] = {
     "en": {
-        "cheap_price": "{kwh} kWh in the cheapest hours for {sek} kr",
-        "comfort_floor": "holding the minimum temperature took {kwh} kWh ({sek} kr)",
-        "preheat_weather": "pre-heating {kwh} kWh before colder weather ({sek} kr)",
-        "scheduled": "keeping the house at target took {kwh} kWh ({sek} kr)",
-        "terminal_value": "leaving the house warm past the horizon: {kwh} kWh ({sek} kr)",
-        "solar_surplus": "{kwh} kWh covered by solar surplus ({sek} kr)",
-        "dhw_window": "hot water needed now: {kwh} kWh ({sek} kr)",
-        "dhw_ready": "getting the tank ready for a demand window: {kwh} kWh ({sek} kr)",
-        "dhw_preheat": "charging the tank while electricity is cheap: {kwh} kWh ({sek} kr)",
-        "legionella": "the anti-legionella cycle takes {kwh} kWh ({sek} kr)",
-        "manual_plan": "{kwh} kWh you scheduled yourself ({sek} kr)",
+        "cheap_price": "{kwh} kWh in the cheapest hours for {cost} {currency}",
+        "comfort_floor": "holding the minimum temperature took {kwh} kWh ({cost} {currency})",
+        "preheat_weather": "pre-heating {kwh} kWh before colder weather ({cost} {currency})",
+        "scheduled": "keeping the house at target took {kwh} kWh ({cost} {currency})",
+        "terminal_value": "leaving the house warm past the horizon: {kwh} kWh ({cost} {currency})",
+        "solar_surplus": "{kwh} kWh covered by solar surplus ({cost} {currency})",
+        "dhw_window": "hot water needed now: {kwh} kWh ({cost} {currency})",
+        "dhw_ready": "getting the tank ready for a demand window: {kwh} kWh ({cost} {currency})",
+        "dhw_preheat": "charging the tank while electricity is cheap: {kwh} kWh ({cost} {currency})",
+        "legionella": "the anti-legionella cycle takes {kwh} kWh ({cost} {currency})",
+        "manual_plan": "{kwh} kWh you scheduled yourself ({cost} {currency})",
         "idle": "idle for {hours} h",
         "pump_mode": "blocked by the heat pump's operating mode for {hours} h",
-        "untagged": "{kwh} kWh outside the plan ({sek} kr)",
+        "untagged": "{kwh} kWh outside the plan ({cost} {currency})",
     },
     "sv": {
-        "cheap_price": "{kwh} kWh under de billigaste timmarna för {sek} kr",
-        "comfort_floor": "att hålla minimitemperaturen tog {kwh} kWh ({sek} kr)",
-        "preheat_weather": "förvärmning med {kwh} kWh inför kallare väder ({sek} kr)",
-        "scheduled": "att hålla huset på önskad temperatur tog {kwh} kWh ({sek} kr)",
-        "terminal_value": "huset lämnas varmt bortom horisonten: {kwh} kWh ({sek} kr)",
-        "solar_surplus": "{kwh} kWh täckta av solöverskott ({sek} kr)",
-        "dhw_window": "varmvatten behövs nu: {kwh} kWh ({sek} kr)",
-        "dhw_ready": "tanken görs redo inför ett behovsfönster: {kwh} kWh ({sek} kr)",
-        "dhw_preheat": "tanken laddas medan elen är billig: {kwh} kWh ({sek} kr)",
-        "legionella": "legionellacykeln tar {kwh} kWh ({sek} kr)",
-        "manual_plan": "{kwh} kWh som du själv schemalagt ({sek} kr)",
+        "cheap_price": "{kwh} kWh under de billigaste timmarna för {cost} {currency}",
+        "comfort_floor": "att hålla minimitemperaturen tog {kwh} kWh ({cost} {currency})",
+        "preheat_weather": "förvärmning med {kwh} kWh inför kallare väder ({cost} {currency})",
+        "scheduled": "att hålla huset på önskad temperatur tog {kwh} kWh ({cost} {currency})",
+        "terminal_value": "huset lämnas varmt bortom horisonten: {kwh} kWh ({cost} {currency})",
+        "solar_surplus": "{kwh} kWh täckta av solöverskott ({cost} {currency})",
+        "dhw_window": "varmvatten behövs nu: {kwh} kWh ({cost} {currency})",
+        "dhw_ready": "tanken görs redo inför ett behovsfönster: {kwh} kWh ({cost} {currency})",
+        "dhw_preheat": "tanken laddas medan elen är billig: {kwh} kWh ({cost} {currency})",
+        "legionella": "legionellacykeln tar {kwh} kWh ({cost} {currency})",
+        "manual_plan": "{kwh} kWh som du själv schemalagt ({cost} {currency})",
         "idle": "viloläge i {hours} h",
         "pump_mode": "blockerat av värmepumpens driftläge i {hours} h",
-        "untagged": "{kwh} kWh utanför planen ({sek} kr)",
+        "untagged": "{kwh} kWh utanför planen ({cost} {currency})",
     },
 }
 
@@ -133,7 +142,7 @@ def build(
     for reason, entry in merged.items():
         # These two carry no energy by definition; every other zero-energy
         # group is noise (a reason that never actually drew) and a line
-        # saying "0.0 kWh for 0.00 kr" teaches the reader nothing.
+        # saying "0.0 kWh for 0.00 SEK" teaches the reader nothing.
         #
         # ``pump_mode`` is here for the same reason ``idle`` is, and it is
         # the more important of the two: a mode-blocked channel is empty by
@@ -156,12 +165,27 @@ def build(
     return items
 
 
-def render(items: list[dict[str, Any]], language: str) -> list[str]:
+def render(
+    items: list[dict[str, Any]], language: str, currency: str
+) -> list[str]:
     """The narrative lines in one language, unknown reasons skipped.
 
     Skipped rather than crashed or anglicised: a reason code added by a
     later version must degrade to a missing sentence, not break the sensor
     or leak English into a Swedish narrative.
+
+    ``currency`` is required rather than defaulted: a default is what let
+    "kr" stand in the English table unnoticed, and a caller that cannot say
+    which currency it means is a caller that should not be rendering money.
+
+    The coordinator resolves it per render (``resolve_currency`` over the
+    live instance config) rather than passing its own frozen
+    ``self.currency``. The two are the same decision — ``currency.py`` is
+    still the only place it is made — and they differ only in when it is
+    taken. ``self.currency`` is fixed at setup because it becomes
+    ``unit_of_measurement``, where a change would orphan the long-term
+    statistics already recorded under the old unit. A narrative line is
+    recorded nowhere, so it can simply follow the instance.
     """
     table = TEMPLATES.get(language) or TEMPLATES["en"]
     lines = []
@@ -172,7 +196,8 @@ def render(items: list[dict[str, Any]], language: str) -> list[str]:
         lines.append(
             template.format(
                 kwh=f"{item['kwh']:.1f}",
-                sek=f"{item['sek']:.2f}",
+                cost=f"{item['sek']:.2f}",
+                currency=currency,
                 hours=f"{item['hours']:.1f}",
             )
         )

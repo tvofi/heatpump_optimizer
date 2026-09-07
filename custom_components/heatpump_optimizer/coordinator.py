@@ -10500,16 +10500,16 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             },
             dt_hours,
         )
-        language = str(
-            getattr(getattr(self.hass, "config", None), "language", "en") or "en"
-        )
+        hass = self.hass
+        language = str(getattr(getattr(hass, "config", None), "language", "en") or "en")
         # The narrative speaks the languages it has parity for; anything
         # else falls back to English rather than to silence.
         short = language.split("-")[0].lower()
         chosen = short if short in narrative.TEMPLATES else "en"
         return {
             "items": items,
-            "lines": narrative.render(items, chosen),
+            # Resolved per render; narrative.render says why not self.currency.
+            "lines": narrative.render(items, chosen, resolve_currency(hass)),
             "language": chosen,
         }
 

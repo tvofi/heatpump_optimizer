@@ -1144,7 +1144,18 @@
         "name": "Golvvärmens returtemperatur"
       },
       "heat_pump_action": {
-        "name": "Värmepumpens åtgärd"
+        "name": "Värmepumpens åtgärd",
+        "state": {
+          "boost": "Maximal effekt",
+          "comfort": "Komfort",
+          "eco": "Låg effekt",
+          "idle": "Viloläge",
+          "normal": "Normal effekt",
+          "off": "Av",
+          "pre_heat": "Förvärmning",
+          "system_identification": "Systemidentifiering",
+          "unknown": "Okänt"
+        }
       },
       "indoor_temperature_optimizer": {
         "name": "Inomhustemperatur (optimeraren)"
@@ -1174,7 +1185,15 @@
         "name": "Optimalt börvärde"
       },
       "optimization_mode": {
-        "name": "Optimeringsläge"
+        "name": "Optimeringsläge",
+        "state": {
+          "auto": "Automatiskt",
+          "boost": "Forcering",
+          "comfort": "Komfort",
+          "economy": "Ekonomi",
+          "off": "Av",
+          "unknown": "Okänt"
+        }
       },
       "optimization_schedule": {
         "name": "Optimeringsschema"
@@ -1189,7 +1208,23 @@
         "name": "Utomhustemperatur (optimeraren)"
       },
       "plan_narrative": {
-        "name": "Planbeskrivning"
+        "name": "Planbeskrivning",
+        "state": {
+          "cheap_price": "Billigaste timmarna",
+          "comfort_floor": "Håller minimitemperaturen",
+          "dhw_preheat": "Laddar tanken medan elen är billig",
+          "dhw_ready": "Gör tanken redo",
+          "dhw_window": "Varmvatten behövs nu",
+          "idle": "Viloläge",
+          "legionella": "Legionellacykel",
+          "manual_plan": "Ditt eget schema",
+          "preheat_weather": "Förvärmning inför kallare väder",
+          "pump_mode": "Blockerat av värmepumpens driftläge",
+          "scheduled": "Håller huset på önskad temperatur",
+          "solar_surplus": "Täcks av solöverskott",
+          "terminal_value": "Lämnar huset varmt",
+          "untagged": "Utanför planen"
+        }
       },
       "power_headroom": {
         "name": "Effektmarginal"
