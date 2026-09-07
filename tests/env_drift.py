@@ -133,6 +133,10 @@ CLAIM_VERSION_MARKER = "claims-for:"
 #: per release. See `_may_drift` for why an ordinary claim cannot do this job.
 MAY_DRIFT_MARKER = "may-drift:"
 VERSION_FILE = "VERSION"
+#: The git merge driver `.gitattributes` routes both claim files to. See
+#: `merge_claim_file` for what it resolves and what it refuses.
+MERGE_DRIVER_NAME = "claimnotes"
+GITATTRIBUTES_FILE = ".gitattributes"
 
 # Payload keys fixed by the forecast and baseline reference, not by which local
 # optimum the solver reached. Measured 2026-09-04 (#254): committed vs local
@@ -1284,6 +1288,270 @@ def inherited_claims_error(
     )
 
 
+def _claim_lines(text: str) -> list[str]:
+    """Bare claim lines, in file order — the rule ``parse_claim_map`` uses."""
+    return [ln for ln in text.splitlines() if ln.partition("#")[0].strip()]
+
+
+def _comment_lines(text: str) -> list[str]:
+    """Everything a claim line is not: header prose, the stamp, notes, blanks."""
+    return [ln for ln in text.splitlines() if not ln.partition("#")[0].strip()]
+
+
+def _is_may_drift(line: str) -> bool:
+    body, _, note = line.partition("#")
+    return not body.strip() and note.strip().startswith(MAY_DRIFT_MARKER)
+
+
+def _union_comments(
+    base: list[str], ours: list[str], theirs: list[str]
+) -> list[str] | None:
+    """Three-way union of comment lines — theirs first, then ours.
+
+    Comment lines assert nothing: ``_parse_claims`` reads only the first
+    ``claims-for:`` out of them and ignores the rest, so keeping both sides
+    is always sound. ``theirs`` leads so main's accumulated notes stay in
+    their order and this branch's note lands last, which is the resolution
+    every seat here wrote by hand. Union is safe *here* and nowhere else in
+    this file — see ``merge_claim_file``.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        paths = []
+        for name, lines in (("theirs", theirs), ("base", base), ("ours", ours)):
+            path = os.path.join(td, name)
+            with open(path, "w") as handle:
+                handle.write("".join(ln + "\n" for ln in lines))
+            paths.append(path)
+        proc = subprocess.run(
+            ["git", "merge-file", "--union", "-L", "main", "-L", "base",
+             "-L", "branch", *paths],
+            capture_output=True, text=True,
+        )
+        if proc.returncode != 0:
+            return None
+        return open(paths[0]).read().splitlines()
+
+
+def _reassemble(comments: list[str], claims: list[str]) -> str:
+    """Put the resolved claim lines back where the file keeps them.
+
+    Claims sit after the note block and before the ``may-drift`` block, with
+    a blank line between. Rebuilding rather than patching is what makes the
+    round trip byte-exact when neither side moved a claim.
+    """
+    if not claims:
+        return "".join(ln + "\n" for ln in comments)
+    at = len(comments)
+    for index, line in enumerate(comments):
+        if _is_may_drift(line):
+            at = index
+            break
+    while at and not comments[at - 1].strip():
+        at -= 1
+    return "".join(ln + "\n" for ln in comments[:at] + claims + comments[at:])
+
+
+def merge_claim_file(base: str, ours: str, theirs: str) -> str | None:
+    """Resolve a three-way claim-file merge; None when it must refuse.
+
+    Every branch writes its note into the same place in both claim files, so
+    every branch that merges main after another one merged conflicts there.
+    The notes are comments and union cleanly. The claim list does not, and
+    that asymmetry is the whole design:
+
+    A bare claim line is value-bearing — it excuses a golden diff that would
+    otherwise fail the gate, and it is written for exactly one diff. Union a
+    branch's list with main's and a claim the branch deliberately deleted
+    comes back, carrying the other branch's reason, ready to excuse a drift
+    this branch caused. ``inherited_claims_error`` cannot catch it: the
+    unioned list is no longer *exactly* the baseline's, which is the only
+    shape that check fires on. Measured; `tests/entities.py` pins it.
+
+    So the claim list may change on at most one side. When both sides
+    rewrote it there is no rule that says which claim describes which diff,
+    and this returns None so git keeps the markers and a human decides.
+    """
+    base_claims = parse_claim_map(base)
+    our_claims = parse_claim_map(ours)
+    their_claims = parse_claim_map(theirs)
+    if our_claims == their_claims:
+        claims_from = ours
+    elif our_claims == base_claims:
+        claims_from = theirs
+    elif their_claims == base_claims:
+        claims_from = ours
+    else:
+        return None
+    if ours == theirs or base == theirs:
+        return ours
+    if base == ours:
+        return theirs
+    comments = _union_comments(
+        _comment_lines(base), _comment_lines(ours), _comment_lines(theirs)
+    )
+    if comments is None:
+        return None
+    merged = _reassemble(comments, _claim_lines(claims_from))
+    return None if merge_claim_defect(merged, claims_from, ours, theirs) else merged
+
+
+def merge_claim_defect(
+    merged: str, claims_from: str, ours: str, theirs: str
+) -> str | None:
+    """Why a resolved claim file may not be written — None when it may.
+
+    The driver checks its own output before writing it, because a resolver
+    that quietly produces the wrong file is the failure this repository
+    keeps re-buying (#523: a job that reported success while repairing
+    nothing). Every property here is one a hand resolution preserves.
+    """
+    if not merged or not merged.endswith("\n"):
+        return "the result is empty or does not end in a newline"
+    if "<<<<<<<" in merged or ">>>>>>>" in merged:
+        return "conflict markers survived into the result"
+    if parse_claim_map(merged) != parse_claim_map(claims_from):
+        return (
+            "the claim list in the result is not the one the merge decided: "
+            f"{sorted(parse_claim_map(merged))} vs "
+            f"{sorted(parse_claim_map(claims_from))}"
+        )
+    if _parse_claims(merged)[0] is None:
+        return f"the '{CLAIM_VERSION_MARKER}' stamp did not survive the merge"
+    kept = set(merged.splitlines())
+    for side in (ours, theirs):
+        for line in side.splitlines():
+            if _is_may_drift(line) and line not in kept:
+                return f"a may-drift line was lost: {line.strip()}"
+    return None
+
+
+def merge_claim_refusal(base: str, ours: str, theirs: str) -> str:
+    """The message the driver prints when it will not resolve a merge."""
+    base_claims = parse_claim_map(base)
+    our_claims = parse_claim_map(ours)
+    their_claims = parse_claim_map(theirs)
+    if base_claims not in (our_claims, their_claims) and our_claims != their_claims:
+        return (
+            "CONFLICTING CLAIMS: both sides rewrote the claim list -- this\n"
+            f"branch claims {sorted(our_claims) or '(nothing)'} and the merge\n"
+            f"brings in {sorted(their_claims) or '(nothing)'}. A claim excuses\n"
+            "one release's golden diff and is written for that diff alone, so\n"
+            "merging two lists would reinstate a claim one side deleted and\n"
+            "excuse a drift by accident. Resolve it by hand: keep the claims\n"
+            "that describe THIS branch's diff and delete the rest."
+        )
+    return (
+        "UNVERIFIED MERGE: the resolved claim file did not survive its own\n"
+        "checks, so it was not written. Resolve this merge by hand."
+    )
+
+
+def gitattributes_error(repo: str, text: str | None = None) -> str | None:
+    """Why ``.gitattributes`` does not route both claim files — None when it does."""
+    if text is None:
+        path = os.path.join(repo, GITATTRIBUTES_FILE)
+        text = open(path).read() if os.path.exists(path) else ""
+    routed = set()
+    for line in text.splitlines():
+        fields = line.strip().split()
+        if not fields or fields[0].startswith("#"):
+            continue
+        if f"merge={MERGE_DRIVER_NAME}" in fields[1:]:
+            routed.add(fields[0])
+    missing = [f for f in (CLAIM_FILE, CARD_CLAIM_FILE) if f not in routed]
+    if not missing:
+        return None
+    return (
+        f"UNROUTED CLAIM FILE: {GITATTRIBUTES_FILE} does not send\n"
+        + "".join(f"  {name}\n" for name in missing)
+        + f"to the '{MERGE_DRIVER_NAME}' merge driver, so every branch that\n"
+        "merges main after another branch merged conflicts there by hand.\n"
+        f"Add '<path> merge={MERGE_DRIVER_NAME}' for each file listed above."
+    )
+
+
+def install_merge_driver(repo: str) -> str:
+    """Configure the claim-file merge driver in ``repo``, and verify the write.
+
+    Git never clones config, so `.gitattributes` alone cannot carry a custom
+    driver. Two things make that tolerable. A worktree shares the checkout's
+    common `.git/config`, so one install covers every worktree cut from it;
+    and with no driver configured git falls back to its ordinary text merge,
+    which is exactly today's behaviour — committing `.gitattributes` can
+    therefore never make a clone worse than it already is.
+    """
+    want = {
+        f"merge.{MERGE_DRIVER_NAME}.name":
+            "union claim-file notes; refuse a claim list both sides rewrote",
+        f"merge.{MERGE_DRIVER_NAME}.driver":
+            "python3 tests/env_drift.py --merge-claim-file %O %A %B %L %P",
+    }
+
+    def _read(key: str) -> str:
+        return subprocess.run(
+            ["git", "config", "--get", key], cwd=repo,
+            capture_output=True, text=True,
+        ).stdout.strip()
+
+    already = True
+    for key, value in want.items():
+        if _read(key) == value:
+            continue
+        already = False
+        subprocess.run(
+            ["git", "config", key, value], cwd=repo,
+            capture_output=True, text=True, check=True,
+        )
+    # Read back rather than trust the writes. An installer that reports
+    # success while configuring nothing is the same defect as an autofix job
+    # that reports success while repairing nothing (#523).
+    for key, value in want.items():
+        got = _read(key)
+        if got != value:
+            raise RuntimeError(
+                f"install_merge_driver set {key} and git reports {got!r}, "
+                f"not {value!r}; the driver is NOT installed"
+            )
+    return "already-installed" if already else "installed"
+
+
+def run_merge_driver(base_path: str, ours_path: str, theirs_path: str,
+                     marker_size: str = "7", pathname: str = "") -> int:
+    """git merge driver: resolve into ``ours_path``, or leave a conflict there.
+
+    Git hands the driver ``ours`` in %A and expects the result there; on a
+    refusal it does *not* write markers itself, so this does, and the merge
+    then looks exactly as it does with no driver installed.
+    """
+    base = open(base_path).read()
+    ours = open(ours_path).read()
+    theirs = open(theirs_path).read()
+    label = pathname or ours_path
+    merged = merge_claim_file(base, ours, theirs)
+    if merged is None:
+        subprocess.run(
+            ["git", "merge-file", f"--marker-size={marker_size}",
+             "-L", f"{label} (this branch)", "-L", f"{label} (merge base)",
+             "-L", f"{label} (incoming)", ours_path, base_path, theirs_path],
+            capture_output=True, text=True,
+        )
+        print(f"MERGE-CLAIM: refused {label}\n{merge_claim_refusal(base, ours, theirs)}",
+              file=sys.stderr)
+        return 1
+    with open(ours_path, "w") as handle:
+        handle.write(merged)
+    # Verify the write itself. `apply_inherited_claims`' sibling defect was a
+    # rewrite that returned silently when it matched nothing; a driver that
+    # reports a clean merge it did not write is the same failure, one step
+    # closer to the tree.
+    written = open(ours_path).read()
+    if written != merged:
+        print(f"MERGE-CLAIM: refused {label}\nWRITE NOT VERIFIED: the resolved "
+              "file on disk is not the one that was merged.", file=sys.stderr)
+        return 1
+    print(f"MERGE-CLAIM: resolved {label}", file=sys.stderr)
+    return 0
+
 #: Test files whose contents decide what a capture PRODUCES, so a diff
 #: touching one of them can move a fixture with no production line changed.
 #: Derived from what ``capture_tree`` imports out of the tree under test --
@@ -1421,6 +1689,28 @@ def main() -> int:
         ref = sys.argv[2] if len(sys.argv) > 2 else "origin/main"
         status = apply_inherited_claims(repo, ref=ref)
         print(f"AUTOFIX: {status}")
+        return 0
+
+    if len(sys.argv) >= 2 and sys.argv[1] == "--merge-claim-file":
+        # git calls this with %O %A %B %L %P. Import-time cost is stdlib
+        # only, which is what makes env_drift.py usable as a merge driver.
+        rest = sys.argv[2:]
+        if len(rest) < 3:
+            print("--merge-claim-file needs %O %A %B [%L %P]", file=sys.stderr)
+            return 2
+        return run_merge_driver(
+            rest[0], rest[1], rest[2],
+            marker_size=rest[3] if len(rest) > 3 else "7",
+            pathname=rest[4] if len(rest) > 4 else "",
+        )
+
+    if len(sys.argv) >= 2 and sys.argv[1] == "--install-merge-driver":
+        repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        print(f"MERGE-CLAIM: {install_merge_driver(repo)}")
+        problem = gitattributes_error(repo)
+        if problem:
+            print(problem, file=sys.stderr)
+            return 1
         return 0
 
     if len(sys.argv) >= 2 and sys.argv[1] == "--claims-only":

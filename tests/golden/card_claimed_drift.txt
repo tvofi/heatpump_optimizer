@@ -24,6 +24,34 @@
 # v6.3.17: the card's setup page could not be saved. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
+# #521, the real-Home-Assistant nightly: this branch claims NOTHING. A new
+# test script, its two classification entries and one workflow job -- no
+# production file is touched, so every fixture is byte-identical by
+# construction.
+#
+# #509, the diagnostics privacy fix: this branch claims NOTHING. No card
+# source is touched; diagnostics.py is loaded by Home Assistant for
+# `Download diagnostics` and is not on any path that renders the card.
+#
+# #523 (an autofix job that reported success without repairing): this
+# branch claims NOTHING. Gate plumbing and CI only -- no card source is
+# touched.
+#
+#
+#
+# The finding-propagation destination fix: this branch claims NOTHING. Two
+# rules files and CLAUDE.md only -- no card source is touched.
+#
+# The document-contradiction fixes (tools/audit/briefs/fixer.md step 5,
+# tests/README.md exclusion list and script counts): this branch claims
+# NOTHING. Prose in two documents only -- no card source, template or style
+# is touched, so the rendered markup is byte-identical by construction.
+#
+# #546, the unsaveable setup page: this branch claims NOTHING. The card's
+# only edit is a comment above its own PLACE_LABELS map; no box, position
+# or payload key is touched, so every rendered state is byte-identical.
+# Claim-file merge driver: this branch claims NOTHING. No card source, no
+# payload key and no published value is touched.
 #
 # #547, the config-flow stored-value arm: this branch claims NOTHING. Two
 # test scripts, tests/golden.py and the config_flow golden fixture only --
