@@ -18,17 +18,18 @@ const CARD_VERSION = "6.3.17";
 // Used wherever the accent must be readable, not merely visible as a border
 // or chart stroke (D4-05). #0277bd cleared card.mjs but measured 4.38:1 in
 // Chromium's bgOf walk; #026aa8 clears the 4.5:1 browser witness.
+const ACCENT_READABLE = "#026aa8";
+
+// HA's --secondary-text-color (#727272) is 4.37:1 on a white card in real
+// Chromium — too light for an active toggle state (D4-06 / #261).
+const MUTED_READABLE = "#666666";
+
 // The savings table's in-cell magnitude bar, as an opacity over currentColor.
 // Bounded both ways, and both bounds swept rather than argued: below 0.133 the
 // bar stops clearing the 1.3:1 perceptibility floor (the light card binds;
 // 0.105 on dark), and above 0.368 the figure drawn over it stops clearing
 // 4.5:1 (the dark card binds; 0.538 on light).
 const SV_MAG_ALPHA = 0.16;
-const ACCENT_READABLE = "#026aa8";
-
-// HA's --secondary-text-color (#727272) is 4.37:1 on a white card in real
-// Chromium — too light for an active toggle state (D4-06 / #261).
-const MUTED_READABLE = "#666666";
 
 // The de-duplication key `_extraFields` files a confidence band's two
 // edges under, so the pair counts as the one named trace it is. A Symbol
