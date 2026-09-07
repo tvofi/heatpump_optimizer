@@ -184,7 +184,6 @@
 # assumed: ten saturated warm residuals through the real house learner land
 # on 0.8999999999999999 at the merge base and at this head, and deleting the
 # trust-region clip moves that to 0.5987369392383789.
-config_flow  # #547: gains the _seed and _seeded key paths; no existing path moves
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
