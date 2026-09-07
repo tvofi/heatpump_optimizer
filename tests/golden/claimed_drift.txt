@@ -178,6 +178,24 @@
 # fe7a7d877fc73fdb7ccb54dfee968c88 at the merge base and at this head), so no
 # arithmetic is reordered. Both keys it writes are added only under a cap or a
 # mode block, and every scenario fixture plans with neither.
+
+# #558 D2/D3 (lane D of the UX programme): this branch claims NOTHING.
+#
+# D2 changes narrative.py's template TEXT and threads the instance currency
+# into narrative.render. Every coordinator fixture records
+# insight.narrative as {"items": [], "language": "en", "lines": []} -- the
+# rendered lines are empty in all five -- so no recorded value can move.
+# _narrative_view's only other edit binds `hass = self.hass` once and calls
+# resolve_currency(hass) instead of reading self.currency; the resolved
+# value is identical (both go through currency.resolve_currency) and it is
+# not a recorded key.
+#
+# D3 adds a device class, an options list and state translations to three
+# sensors, plus two const.py tuples. capture_coordinator records
+# coordinator.data, not entity attributes, and capture_config_flow records
+# the flow's steps and schemas, not entity.* translation keys -- so neither
+# fixture has a key path for any of it. Measured, not assumed:
+# card_drift reports "identical in all 34 states" at this head.
 # #558 C1, the chart's four contrast defects: this branch claims NOTHING here.
 # The diff is the card's own drawing (one .js file), its Node harness and
 # tests/golden/card_claimed_drift.txt -- no Python production module, no
