@@ -82,7 +82,7 @@
    "rc": 1
   },
   "tests/ha_contract.py": {
-   "seconds": 0.1,
+   "seconds": 0.0,
    "rc": 0
   }
  },

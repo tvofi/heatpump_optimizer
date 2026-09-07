@@ -228,14 +228,22 @@ INVENTORY: dict[str, Entry] = {
         "a transcribed decision table; every declared pair is probed against "
         "upstream's own, which is the only thing that can keep it true"
     ),
-    "homeassistant.components.sensor.SensorEntity": S(
-        "attribute defaults only. Upstream's SensorEntity.state validates on "
-        "EVERY state write -- a non-numeric device class may carry no unit, and "
-        "a value outside `options` raises ValueError -- and none of that is "
-        "here, so a test asserting a sensor is correctly enumerated passes "
-        "vacuously. PR #571 adds the enum half; when it lands this entry is "
-        "wrong and the absence assertion below is what says so",
-        absent=("state", "options", "native_unit_of_measurement"),
+    "homeassistant.components.sensor.SensorEntity": U(
+        "the enum half of upstream's SensorEntity.state, which validates on "
+        "EVERY state write. Landed by #571 while this branch was open, and the "
+        "declared absence recorded here is what said so: `state`, `options` and "
+        "`native_unit_of_measurement` were asserted absent, the assertion fired "
+        "on the merge, and the entry was promoted. UNVERIFIED rather than "
+        "FAITHFUL because upstream's `state` evaluates `unit_of_measurement` "
+        "before anything else, and that property reaches the entity platform's "
+        "translations and the unit registry -- it cannot run in a bare process. "
+        "PROMOTION PATH: nightly_ha.py boots a real hass, so a later seat can "
+        "run the hass-dependent contracts after boot rather than before it, "
+        "which would promote this and the five below in one move. Upstream's "
+        "numeric conversion and its state-class warning are still not modelled"
+    ),
+    "homeassistant.components.sensor.NON_NUMERIC_DEVICE_CLASSES": H(
+        "a transcribed set; every member is probed against upstream's own"
     ),
     # -- components.switch --------------------------------------------------
     "homeassistant.components.switch.SwitchEntity": H("attribute defaults only"),
@@ -266,6 +274,11 @@ INVENTORY: dict[str, Entry] = {
         "exactly that in v6.3.1 -- so every member is probed against upstream's"
     ),
     "homeassistant.const.CONF_NAME": H("a constant, probed"),
+    "homeassistant.const.EVENT_HOMEASSISTANT_STOP": H(
+        "Home Assistant's own event string, probed for equality: the worker "
+        "reap listens for it (#525), and a stub that invented the value would "
+        "register a listener nothing ever fires"
+    ),
     "homeassistant.const.UnitOfSpeed": H("string constants, probed"),
     "homeassistant.const.UnitOfPower": H("string constants, probed"),
     "homeassistant.const.UnitOfEnergy": H("string constants, probed"),
@@ -300,6 +313,16 @@ INVENTORY: dict[str, Entry] = {
     # nothing about whether the mechanism can fail. #577 holds their
     # disposition, and four of them have production reach through services.py's
     # call schemas.
+    "homeassistant.data_entry_flow.SectionConfig": H(
+        "the options mapping a section is constructed with; upstream's is a "
+        "TypedDict and nothing here reads a type"
+    ),
+    "homeassistant.data_entry_flow.section": F(
+        "the collapsible field group #516 needed and #568 added. Presentation "
+        "config lives on `options`, NOT on `config` as every selector's does, "
+        "and it is VALIDATED -- so `collapsed` defaults to False and an unknown "
+        "key raises here exactly as on a real install"
+    ),
     "homeassistant.data_entry_flow.FlowError": D(
         "upstream is FlowError(HomeAssistantError); the stub's base is "
         "Exception, so code catching HomeAssistantError catches an aborted flow "
@@ -1140,6 +1163,121 @@ def _callback_tags():
     assert getattr(callback(_fn), "_hass_callback", False) is True
 
 
+# -- data_entry_flow.section -------------------------------------------------
+
+@contract(
+    "homeassistant.data_entry_flow.section",
+    "presentation config lands on options, not on config, and collapsed defaults to False",
+    cite="data_entry_flow.py -- `self.options = self.CONFIG_SCHEMA(options or {})`",
+)
+def _section_options():
+    import voluptuous as vol
+
+    from homeassistant.data_entry_flow import section
+
+    grouped = section(vol.Schema({vol.Optional("a"): str}))
+    assert grouped.options == {"collapsed": False}
+    # Every selector in helpers/selector.py exposes `config`; a section does
+    # not, which is what made a capture reading only `config` record None for a
+    # section and never look inside it (#516).
+    assert not hasattr(grouped, "config")
+    assert section(vol.Schema({}), {"collapsed": True}).options["collapsed"] is True
+
+
+@contract(
+    "homeassistant.data_entry_flow.section",
+    "the inner schema is kept as an attribute rather than merged into the parent",
+    cite="data_entry_flow.py -- `self.schema = schema`; section.__call__ validates through it",
+)
+def _section_schema():
+    import voluptuous as vol
+
+    from homeassistant.data_entry_flow import section
+
+    inner = vol.Schema({vol.Optional("a"): str})
+    grouped = section(inner)
+    assert grouped.schema is inner
+    assert grouped({"a": "x"}) == {"a": "x"}
+
+
+@contract(
+    "homeassistant.data_entry_flow.section",
+    "an unknown presentation option is refused",
+    cite="data_entry_flow.py -- CONFIG_SCHEMA allows `collapsed` alone",
+)
+def _section_unknown_option():
+    import voluptuous as vol
+
+    from homeassistant.data_entry_flow import section
+
+    assert raises(lambda: section(vol.Schema({}), {"collapsed": False, "nope": 1}))
+
+
+# -- components.sensor.SensorEntity ------------------------------------------
+# expect="stub": upstream's SensorEntity.state evaluates unit_of_measurement
+# before the enum block, and that property reaches the entity platform's
+# translations. See the inventory entry for the promotion path.
+
+@contract(
+    "homeassistant.components.sensor.SensorEntity",
+    "a state outside the declared options raises, on every read",
+    cite="components/sensor/__init__.py -- `if options and value not in options: raise ValueError`",
+    expect="stub",
+)
+def _sensor_enum_refuses():
+    from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
+
+    class _S(SensorEntity):
+        _attr_device_class = SensorDeviceClass.ENUM
+        _attr_options = ["idle", "heating"]
+        native_value = "heating"
+
+    assert _S().state == "heating"
+    _S.native_value = "melting"
+    assert raises(lambda: _S().state)
+
+
+@contract(
+    "homeassistant.components.sensor.SensorEntity",
+    "None short-circuits before the options check, so an unavailable enum sensor is unknown",
+    cite="components/sensor/__init__.py -- `if value is None: return None` precedes the enum block",
+    expect="stub",
+)
+def _sensor_enum_none():
+    from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
+
+    class _S(SensorEntity):
+        _attr_device_class = SensorDeviceClass.ENUM
+        _attr_options = ["idle"]
+        native_value = None
+
+    assert _S().state is None
+
+
+@contract(
+    "homeassistant.components.sensor.SensorEntity",
+    "options without the enum device class raise, and a unit on a non-numeric class raises",
+    cite="components/sensor/__init__.py -- the 'providing enum options, but' and unit refusals",
+    expect="stub",
+)
+def _sensor_enum_misdeclared():
+    from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
+
+    class _NoClass(SensorEntity):
+        _attr_options = ["idle"]
+        native_value = "idle"
+
+    assert raises(lambda: _NoClass().state)
+
+    class _United(SensorEntity):
+        _attr_device_class = SensorDeviceClass.ENUM
+        _attr_options = ["idle"]
+        _attr_native_unit_of_measurement = "kWh"
+        native_value = "idle"
+
+    assert raises(lambda: _United().state)
+
+
 # ---------------------------------------------------------------------------
 # probes
 # ---------------------------------------------------------------------------
@@ -1195,6 +1333,13 @@ def _p_device_class_state_classes():
     from homeassistant.components.sensor import DEVICE_CLASS_STATE_CLASSES
 
     return {str(k): sorted(str(v) for v in vals) for k, vals in DEVICE_CLASS_STATE_CLASSES.items()}
+
+
+@probe("components.sensor.NON_NUMERIC_DEVICE_CLASSES", rel="subset")
+def _p_non_numeric():
+    from homeassistant.components.sensor import NON_NUMERIC_DEVICE_CLASSES
+
+    return {str(v): str(v) for v in NON_NUMERIC_DEVICE_CLASSES}
 
 
 @probe("components.binary_sensor.BinarySensorDeviceClass", rel="subset")
@@ -1312,6 +1457,7 @@ def _p_units():
     out["PERCENTAGE"] = str(const.PERCENTAGE)
     out["ATTR_TEMPERATURE"] = str(const.ATTR_TEMPERATURE)
     out["CONF_NAME"] = str(const.CONF_NAME)
+    out["EVENT_HOMEASSISTANT_STOP"] = str(const.EVENT_HOMEASSISTANT_STOP)
     return out
 
 
