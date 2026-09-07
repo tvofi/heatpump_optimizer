@@ -23,6 +23,7 @@ What this catches that nothing else does:
 """
 from __future__ import annotations
 
+import subprocess
 import ast
 import asyncio
 import json
@@ -8196,6 +8197,100 @@ R.check(
     f"updated-for: {_uf.group(1) if _uf else '?'} is not an ancestor of HEAD -- "
     "re-point it at the merge this handover reflects (a shallow clone cannot "
     "answer this; the gate jobs check out with fetch-depth: 0)",
+)
+
+# tools/audit/preflight.sh refuses a closing keyword the orchestrator did not
+# declare -- the defect that closed #224 from a merge message saying "does not
+# close #224", which closingIssuesReferences cannot see because it describes the
+# PR body and the merge message is a separate artifact.
+#
+# Pinned HERE rather than left to be run by hand, because tools/audit/ is INERT:
+# a check nothing reads is exactly what let the nightly lane's blocking pin go
+# stale in silence (#533). Both arms, so this cannot become a check that passes
+# whatever the script does.
+_preflight = Path("tools/audit/preflight.sh")
+R.check(
+    "the orchestrator pre-flight refuses an undeclared closing keyword",
+    _preflight.is_file()
+    and subprocess.run(
+        ["bash", str(_preflight)],
+        input="First split of #224. Does **not** close #224.\n",
+        capture_output=True, text=True,
+    ).returncode == 1,
+    "preflight.sh must exit 1 on the exact text that closed #224; a negated "
+    "closing keyword still closes the issue (GitHub discards the negation)",
+)
+R.check(
+    "the pre-flight refuses a conclusion echoed after ';'",
+    _preflight.is_file()
+    and subprocess.run(
+        ["bash", str(_preflight)],
+        input='diff a b; echo "(empty means identical)"\n',
+        capture_output=True, text=True,
+    ).returncode == 1,
+    "preflight.sh must exit 1 on the '; echo <conclusion>' shape, which prints "
+    "whether or not the command held; a review disarmed this refusal and every "
+    "other check still passed, so it needs its own arm",
+)
+R.check(
+    "and it refuses the four commonest reference forms, not only #N",
+    _preflight.is_file()
+    and all(
+        subprocess.run(
+            ["bash", str(_preflight)], input=f"Closes {ref}.\n",
+            capture_output=True, text=True,
+        ).returncode == 1
+        for ref in (
+            "#224",
+            "GH-224",
+            "tvofi/heatpump_optimizer#224",
+            "https://github.com/tvofi/heatpump_optimizer/issues/224",
+        )
+    ),
+    "GitHub closes on GH-N, owner/repo#N and a full issue URL as well as #N; "
+    "the first version caught only #N. This pins FOUR named forms, not the "
+    "universal its earlier name claimed -- a review found seven further shapes "
+    "that still pass, and the line-oriented grep cannot match a keyword and a "
+    "number separated by a newline. The script is a pre-flight, not a gate.",
+)
+R.check(
+    "and passes a declared one, so it is not simply always-red",
+    _preflight.is_file()
+    and subprocess.run(
+        ["bash", str(_preflight), "524"],
+        input="Closes #524. Coverage 86.0 to 100.0, derived at both ends.\n",
+        capture_output=True, text=True,
+    ).returncode == 0,
+    "preflight.sh must exit 0 when every closing keyword is declared; without "
+    "this arm the check above passes for a script that refuses everything",
+)
+# The '; echo' refusal is split: inline backticks in prose are advisory, a
+# fenced block is not. Both directions are pinned because the arms above feed
+# only single-line inputs, so widening the exemption to strip fenced blocks
+# removed the refusal that justifies the split and the suite stayed green.
+R.check(
+    "a transcript pasted in a fenced block refuses, backticks or not",
+    _preflight.is_file()
+    and subprocess.run(
+        ["bash", str(_preflight)],
+        input='```\n`$ diff a b; echo "(empty means identical)"`\n```\n',
+        capture_output=True, text=True,
+    ).returncode == 1,
+    "the inline-backtick exemption must not reach inside a fence: a review "
+    "smuggled a real transcript through by wrapping the pasted line in "
+    "backticks, so two characters turned the refusal into an advisory",
+)
+R.check(
+    "while the same shape quoted inline in prose stays advisory",
+    _preflight.is_file()
+    and subprocess.run(
+        ["bash", str(_preflight)],
+        input='A body may quote `diff a b; echo "(clean)"` as an example.\n',
+        capture_output=True, text=True,
+    ).returncode == 0,
+    "without this arm the check above passes for a script that refuses the "
+    "shape everywhere -- the over-fire that got #581 closed, and the reason "
+    "orchestrator.md section 1 can quote the anti-pattern it forbids",
 )
 
 # HA loads repairs.py dynamically, so a witness must import it or it is an

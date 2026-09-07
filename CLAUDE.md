@@ -196,6 +196,34 @@ the refusal lands on the pull request rather than on the push to main. The
 count is by path segment, not filename, so `docs/handovers/` is a second
 handover too.
 
+## Fix it; if you cannot, verify it independently; only then file it
+
+The owner's ruling, and it binds **every seat**, not only the orchestrator. The
+order is a fallback chain rather than a menu.
+
+An issue is what you write when you cannot act, not a way of recording that you
+noticed. Filing is not neutral: an issue enters the Delivery-status table, needs
+a disposition, and is read by later seats as established fact — it propagates
+further than a wrong pull request, because nothing gates it. Four issues filed
+in one day needed three refutation seats and a judge to establish that one was
+largely false and that a mechanism another asked for was already in the tree,
+landed by a pull request listed in its own evidence table.
+
+**A recurring error is not a third issue.** At roughly the third instance it is
+`tools/audit/briefs/root-cause.md`, whose product is a named cause, a named
+process state, a cost test with numbers, and a countermeasure *or a recorded
+decision not to build one*.
+
+**Out of scope is not a licence to file.** A real finding you must not touch
+goes to that stage's own brief under "Carrying a finding forward" above; an
+issue is not the instrument for propagation.
+
+This rule is stated here and again in `tools/audit/briefs/orchestrator.md`
+section 8. That duplication is deliberate and is the owner's call: it binds every
+seat, so it belongs where every seat reads, and it binds the orchestrator
+hardest, so it belongs in that contract too. **If the two ever disagree, this
+one is the rule** and the other is the bug.
+
 ## Programme plans and the brief linter
 
 Load-bearing citations go in `.claude/workflows/wave-*-groups.json` in a form
@@ -275,6 +303,15 @@ or an abandoned hold (`holding` marker, no live flock) may be taken without
 forensics. `run.sh` holds `flock` for the gate run so a crash drops flock and
 a waiter can take immediately — the lease covers the window between commands
 when nothing holds flock (#404).
+
+**Never run a full `tests/derive_closures.sh` off Linux.** The union that lets a
+Darwin recording *grow* a node closure without dropping files only Linux
+`strace` saw lives inside `closure.py`'s `if partial:` branch — and `--single`
+is what passes `--partial`. The full path does not, so a full re-derivation on
+this box **replaces** the Linux recordings wholesale: `card_drift.mjs` measured
+**66 scripts → 6**. Worse, the refusal message you will be reading when you
+reach for it says *"Regenerate with tests/derive_closures.sh"*, with no
+`--single` and no platform caveat. Use `--single` on the one script.
 
 Node lanes (`tests/card.mjs`, `tests/card_drift.mjs`) record on Darwin via
 `node --import tests/node_fs_trace.mjs` (Node `fs` / loader, not `strace`).
