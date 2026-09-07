@@ -19,19 +19,25 @@
     "Every number here may only move DOWN. `by_code` ratchets per code, not",
     "just in total: a total that holds still while the code mix churns is a",
     "change that did nothing, and a code absent from this table has a budget of",
-    "zero, so relabelling errors into a fresh code fails instead of hiding."
+    "zero, so relabelling errors into a fresh code fails instead of hiding.",
+    "",
+    "`third_party` carries NAMES and no versions, and that is deliberate rather",
+    "than an omission. The integration's own requirements have to be present so",
+    "`import-not-found` is zero, but homeassistant-stubs pins its own dependency",
+    "ranges, so pinning these alongside it is not a tightening -- it is an",
+    "unsatisfiable resolution. Pinning them to the versions in",
+    "tests/requirements-ci.txt was tried and CI refused it: `Cannot install",
+    "aiohttp==3.14.3 and homeassistant-stubs because these package versions have",
+    "conflicting dependencies`. The stubs decide; the ruler RECORDS what",
+    "resolved, in the emitted census's `environment`, so drift is visible",
+    "without being a constraint that cannot hold."
   ],
   "ruler": {
     "mypy": "2.3.1",
     "homeassistant_stubs": "2026.2.3",
     "python_min": "3.13.2",
     "python_version_flag": "3.13",
-    "third_party": {
-      "numpy": "2.4.6",
-      "aiohttp": "3.14.3",
-      "voluptuous": "0.16.0",
-      "threadpoolctl": "3.6.0"
-    }
+    "third_party": ["aiohttp", "numpy", "threadpoolctl", "voluptuous"]
   },
   "type_ignores": 0,
   "census": null,

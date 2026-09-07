@@ -48,7 +48,11 @@ names the lever it exists to stop:
    ``PYTHONPATH=$PWD/tests/hastub``, so that is not a hypothetical.
 2. **The pin guard.** The installed mypy and homeassistant-stubs versions must
    equal the recorded pins, and the interpreter must meet ``python_min``. A
-   number from an unpinned tool is not the census.
+   number from an unpinned tool is not the census. The pin is that PAIR and
+   nothing more: the integration's own requirements are installed unpinned
+   because homeassistant-stubs constrains the same packages, so pinning them
+   beside it does not tighten anything -- it makes the install unsatisfiable.
+   Their resolution is recorded in the census rather than asserted.
 3. **The exit-status guard.** mypy must exit 0 or 1. A toolchain that dies
    emits a line or two and a naive counter reads that as a near-perfect score;
    guard 1 catches it too, from the other side, since the dying line's path is
@@ -192,17 +196,38 @@ def installed_version(dist: str) -> str | None:
 
 
 def requirement_lines(budget: dict) -> list[str]:
+    """The pins, as pip lines. The third-party names carry NO version.
+
+    They are the integration's own requirements, present so ``import-not-found``
+    is zero, and homeassistant-stubs pins its own dependency ranges over the
+    same packages. Pinning them beside it is therefore not a tightening but an
+    unsatisfiable resolution -- CI refused exactly that with ``Cannot install
+    aiohttp==3.14.3 and homeassistant-stubs because these package versions have
+    conflicting dependencies``. The stubs decide; ``environment`` below records
+    what they decided.
+    """
     ruler = budget["ruler"]
-    lines = [
+    return [
         f"mypy=={ruler['mypy']}",
         f"homeassistant-stubs=={ruler['homeassistant_stubs']}",
+        *sorted(ruler["third_party"]),
     ]
-    lines += [f"{name}=={ver}" for name, ver in sorted(ruler["third_party"].items())]
-    return lines
+
+
+def third_party_versions(budget: dict) -> dict[str, str]:
+    return {
+        name: installed_version(name) or "MISSING"
+        for name in sorted(budget["ruler"]["third_party"])
+    }
 
 
 def check_pins(report: Report, budget: dict) -> bool:
-    """Guard 2. The interpreter and the two load-bearing pins."""
+    """Guard 2. The interpreter and the two load-bearing pins.
+
+    The pin is a PAIR -- mypy and the stubs -- and only that pair is asserted.
+    The third-party resolution is reported rather than asserted, because the
+    stubs own it.
+    """
     ruler = budget["ruler"]
     minimum = tuple(int(p) for p in ruler["python_min"].split("."))
     running = sys.version_info[: len(minimum)]
@@ -221,11 +246,19 @@ def check_pins(report: Report, budget: dict) -> bool:
         ok &= report.check(
             f"{dist} is pinned at {pin}", got == pin, f"found {got or 'nothing'}"
         )
-    for name, pin in sorted(ruler["third_party"].items()):
-        got = installed_version(name)
-        ok &= report.check(
-            f"{name} is pinned at {pin}", got == pin, f"found {got or 'nothing'}"
-        )
+    resolved = third_party_versions(budget)
+    report.note(
+        "third-party resolution (chosen by the stubs, recorded not asserted)",
+        ", ".join(f"{n}=={v}" for n, v in resolved.items()),
+    )
+    # A missing requirement is not a style question: it turns into
+    # `import-not-found` errors, and the census stops describing this codebase.
+    # The per-code ratchet catches that too, from the other side.
+    missing = [n for n, v in resolved.items() if v == "MISSING"]
+    ok &= report.check(
+        "every third-party requirement is installed", not missing,
+        f"{', '.join(missing)} absent; import-not-found would be non-zero",
+    )
     return bool(ok)
 
 
@@ -319,6 +352,15 @@ def measure(report: Report, budget: dict) -> dict | None:
         "errors": len(under_package),
         "by_code": dict(sorted(by_code.items())),
         "type_ignores": ignores,
+        # Provenance, not a constraint. The stubs choose these versions, so
+        # recording them is how a resolution change becomes visible beside the
+        # number it moved instead of being invisible behind it.
+        "environment": {
+            "python": ".".join(str(p) for p in sys.version_info[:3]),
+            "mypy": installed_version("mypy"),
+            "homeassistant-stubs": installed_version("homeassistant-stubs"),
+            **third_party_versions(budget),
+        },
     }
 
 
