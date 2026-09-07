@@ -22143,9 +22143,11 @@ R.check(
 # ---- #374 ---------------------------------------------------------------
 # methods_over_150/200 and functions_cc_over_15/25 are counts over a
 # threshold: once a function is over the line it is already counted, so it can
-# grow without bound and no key in the table moves. With methods_over_200
-# pinned at 14 and functions_cc_over_25 at 11, `optimize` could go 540 -> 1,080
-# lines and CC 87 -> 174 with all 22 budgets OF THE TIME unchanged. max_class_loc already
+# grow without bound and no key in the table moves. The worked example that
+# follows is AS OF #374 (841fe0f^) and every number in it is that snapshot's,
+# not today's. With methods_over_200 pinned at 14 and functions_cc_over_25 at
+# 11, `optimize` could go 540 -> 1,080 lines and CC 87 -> 174 with all 22
+# budgets unchanged. max_class_loc already
 # does exactly this job for the one shape family that has it.
 #
 # Driven through table_maxima() on rows shaped exactly as measure() builds
