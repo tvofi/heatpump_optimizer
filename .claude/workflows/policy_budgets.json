@@ -4,6 +4,7 @@
   "always_loaded_tokens": 6800,
   "_always_loaded_target": 6000,
   "files": {
+    ".claude/workflows/fixtures/policy-rot/budgets.md": 1,
     ".claude/workflows/web-fragments.md": 169,
     ".cursor/rules/brief-citations.mdc": 41,
     ".cursor/rules/ci-autofix.mdc": 100,
@@ -32,5 +33,6 @@
     "tools/audit/briefs/orchestrator.md": 371,
     "tools/audit/briefs/root-cause.md": 89,
     "tools/audit/briefs/verifier.md": 40
-  }
+  },
+  "_acceptance": "fixtures/policy-rot/budgets.md is capped at 1 line on purpose: it is how the budgets check is shown refusing. The rest of that directory is deliberately uncapped, which is the check's other half."
 }

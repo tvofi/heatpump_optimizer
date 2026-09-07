@@ -32,6 +32,7 @@
 //   node .claude/workflows/policy_lint.mjs --budgets  # sizes vs caps
 //   node .claude/workflows/policy_lint.mjs --report   # enforcement summary
 //   node .claude/workflows/policy_lint.mjs <files...> # lint just these
+//   node .claude/workflows/policy_lint.mjs --record-known-bad   # reseed the ratchet
 
 import fs from 'node:fs'
 import path from 'node:path'
@@ -53,6 +54,11 @@ import {
   NEGATION_RE,
 } from './brief_lint.mjs'
 
+// brief_lint's CODE_EXTS has no `mdc`, because a wave roster never cites one.
+// Half this corpus's citations are `.cursor/rules/*.mdc`, so they are matched
+// here rather than by widening a regex the roster linter depends on.
+const MDC_PATH_RE = /(?<![\w./-])\.?(?:[A-Za-z0-9_][A-Za-z0-9_.-]*\/)*[A-Za-z0-9_][A-Za-z0-9_.-]*\.mdc\b/g
+
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(HERE, '..', '..')
 
@@ -63,6 +69,45 @@ function git(args, { allowFail = false } = {}) {
     if (allowFail) return ''
     throw e
   }
+}
+
+// symbolInTree greps the whole tracked tree, and the policy file being linted
+// is tracked, so a symbol invented in that file resolved against itself. That
+// inverted the check on 24 of 28 files: brief_lint is immune only because its
+// rosters live under the `.claude/` prefix it already excludes.
+function symbolElsewhere(symbol, exceptRel) {
+  const out = git(
+    ['grep', '-I', '-l', '-w', '-F', symbol, '--', '.', ':!.claude', ':!tools/audit/round2', `:!${exceptRel}`],
+    { allowFail: true }
+  )
+  return !!(out && out.trim())
+}
+
+// A path or symbol cited alongside a tag SHA is checked AT that tag, which is
+// what brief_lint's rule 1 does. The first draft skipped the whole FILE when
+// any hex token appeared anywhere in it, so one tag citation in a header
+// disabled every path and symbol check below it -- on six files, three of them
+// role contracts. The skip is now per token and has to resolve at the ref.
+const _refListing = new Map()
+function refListing(ref) {
+  if (_refListing.has(ref)) return _refListing.get(ref)
+  const out = git(['ls-tree', '-r', '--name-only', ref], { allowFail: true })
+  const list = out ? out.split('\n').filter(Boolean) : null
+  _refListing.set(ref, list)
+  return list
+}
+
+function pathAtRef(ref, token) {
+  const list = refListing(ref)
+  if (!list) return false
+  if (list.includes(token)) return true
+  const base = path.posix.basename(token)
+  return list.some((f) => path.posix.basename(f) === base)
+}
+
+function symbolAtRef(ref, symbol) {
+  const out = git(['grep', '-I', '-l', '-w', '-F', symbol, ref], { allowFail: true })
+  return !!(out && out.trim())
 }
 
 function read(rel) {
@@ -230,6 +275,7 @@ function checkCitations(rel, text) {
   const out = []
   const lines = text.split('\n')
   const refs = tagRefsIn(text)
+  const atSomeRef = (fn) => refs.some((r) => fn(r))
   let inFence = false
   lines.forEach((line, i) => {
     if (CODEFENCE.test(line)) {
@@ -239,35 +285,73 @@ function checkCitations(rel, text) {
     if (inFence || INDENTED_CODE.test(line)) return
     const where = `${rel}:${i + 1}`
 
+    // path:line and path:start-end. A line number is the citation form most
+    // likely to rot without the path rotting: brief-citations.mdc's own GOOD
+    // example had drifted 1,577 lines by the time this audit measured it.
     PATHLINE_RE.lastIndex = 0
     const pathLineSpans = []
     let pl
-    while ((pl = PATHLINE_RE.exec(line))) pathLineSpans.push([pl.index, pl.index + pl[0].length])
+    while ((pl = PATHLINE_RE.exec(line))) {
+      pathLineSpans.push([pl.index, pl.index + pl[0].length])
+      const tok = pl.groups.pth
+      if (NEGATION_RE.test(line.slice(0, pl.index))) continue
+      const resolved = resolvePathToken(tok)
+      if (!resolved) {
+        if (atSomeRef((r) => pathAtRef(r, tok))) continue
+        out.push({
+          severity: 'error',
+          check: 'citations',
+          where,
+          message: `path \`${tok}\`: not in the tree, and no tag SHA is cited alongside it`,
+        })
+        continue
+      }
+      const body = fileLines(resolved)
+      if (!body) continue
+      const last = Math.max(1, body.length - (body[body.length - 1] === '' ? 1 : 0))
+      const want = Number(pl.groups.end || pl.groups.start)
+      if (want > last) {
+        out.push({
+          severity: 'error',
+          check: 'citations',
+          where,
+          message: `line citation \`${tok}:${pl.groups.start}${pl.groups.end ? '-' + pl.groups.end : ''}\` runs past ${resolved}, which has ${last} lines. Cite a quoted phrase or a symbol; a line number rots on the next edit.`,
+        })
+      }
+    }
+    const inPathLine = (idx) => pathLineSpans.some(([a, b]) => idx >= a && idx < b)
 
-    PATH_TOKEN_RE.lastIndex = 0
-    let m
-    while ((m = PATH_TOKEN_RE.exec(line))) {
-      const tok = m[0]
-      if (NEGATION_RE.test(line.slice(0, m.index))) continue
-      if (tok === path.posix.basename(rel) || tok === rel) continue
-      // `mock.patch`, `foo.out`: a bare word.word with an ambiguous extension
-      // is a dotted symbol (module.attr), which the symbol pass already covers.
-      if (!tok.includes('/') && /\.(patch|out|txt)$/.test(tok)) continue
-      // A glob (`wave-*-groups.json`) leaves a fragment after the star. The
-      // pattern is the citation; the fragment never resolves and never should.
-      if (/[*?][A-Za-z0-9_.-]{0,12}$/.test(line.slice(0, m.index))) continue
-      if (resolvePathToken(tok)) continue
-      if (refs.length) continue // cited alongside a tag: brief_lint's rule 1
-      out.push({
-        severity: 'error',
-        check: 'citations',
-        where,
-        message: `path \`${tok}\`: not in the tree, and no tag SHA is cited alongside it`,
-      })
+    // Plain path tokens, plus `.mdc` -- brief_lint's extension list has no
+    // `mdc` because a wave roster never cites one, and half of THIS corpus's
+    // citations are `.cursor/rules/*.mdc`.
+    for (const re of [PATH_TOKEN_RE, MDC_PATH_RE]) {
+      re.lastIndex = 0
+      let m
+      while ((m = re.exec(line))) {
+        const tok = m[0]
+        if (inPathLine(m.index)) continue
+        if (NEGATION_RE.test(line.slice(0, m.index))) continue
+        if (tok === path.posix.basename(rel) || tok === rel) continue
+        // `mock.patch`, `foo.out`: a bare word.word with an ambiguous extension
+        // is a dotted symbol (module.attr), which the symbol pass already covers.
+        if (!tok.includes('/') && /\.(patch|out|txt)$/.test(tok)) continue
+        // A glob (`wave-*-groups.json`) leaves a fragment after the star. The
+        // pattern is the citation; the fragment never resolves and never should.
+        if (/[*?][A-Za-z0-9_.-]{0,12}$/.test(line.slice(0, m.index))) continue
+        if (resolvePathToken(tok)) continue
+        if (atSomeRef((r) => pathAtRef(r, tok))) continue
+        out.push({
+          severity: 'error',
+          check: 'citations',
+          where,
+          message: `path \`${tok}\`: not in the tree, and no tag SHA is cited alongside it`,
+        })
+      }
     }
 
     METRIC_LITERAL_RE.lastIndex = 0
     const isExample = /\b(?:always an error|# ?BAD|EXAMPLE BAD)\b/i.test(line)
+    let m
     while ((m = METRIC_LITERAL_RE.exec(line))) {
       if (!resolveMetricName(m[1])) continue
       if (isExample) continue
@@ -295,8 +379,12 @@ function checkCitations(rel, text) {
     if (!symbolCandidates(inner).length) continue
     if (seen.has(inner)) continue
     seen.add(inner)
-    if (symbolInTree(inner)) continue
-    if (refs.length) continue
+    // symbolInTree greps the whole tracked tree, and the file being linted IS
+    // tracked, so a symbol invented in a policy file resolved against its own
+    // citation. brief_lint is immune only because rosters live under the
+    // `.claude/` prefix its exclude list already carries.
+    if (symbolElsewhere(inner, rel)) continue
+    if (atSomeRef((r) => symbolAtRef(r, inner))) continue
     out.push({
       severity: 'error',
       check: 'citations',
@@ -373,19 +461,18 @@ function checkBudgets(files) {
 // in the tree is named. The audit found a role-contract row pointing at a file
 // that had never existed, and a first draft naming 8 of 24 policy documents.
 
-function checkIndex(files) {
-  const text = read('CLAUDE.md')
+function checkIndex(files, indexRel = 'CLAUDE.md') {
+  const text = read(indexRel)
   if (text == null) return []
   const out = []
   const named = new Set()
-  PATH_TOKEN_RE.lastIndex = 0
-  let m
-  while ((m = PATH_TOKEN_RE.exec(text))) named.add(m[0])
+  for (const re of [PATH_TOKEN_RE, MDC_PATH_RE]) {
+    re.lastIndex = 0
+    let m
+    while ((m = re.exec(text))) named.add(m[0])
+  }
   // Also catch bare brief names in the role-contract tables ("fixer.md").
   for (const b of text.match(/`[A-Za-z0-9_.-]+\.(?:md|mdc)`/g) || []) named.add(b.slice(1, -1))
-
-  const byBase = new Map()
-  for (const f of files) byBase.set(path.posix.basename(f), f)
 
   for (const tok of named) {
     if (!/\.(md|mdc)$/.test(tok)) continue
@@ -393,18 +480,18 @@ function checkIndex(files) {
     out.push({
       severity: 'error',
       check: 'index',
-      where: 'CLAUDE.md',
+      where: indexRel,
       message: `names \`${tok}\`, which is not in the tree. A seat sent to a file that does not exist cannot comply.`,
     })
   }
   for (const f of files) {
-    if (f === 'CLAUDE.md') continue
+    if (f === indexRel) continue
     const base = path.posix.basename(f)
     if (named.has(f) || named.has(base)) continue
     out.push({
       severity: 'error',
       check: 'index',
-      where: 'CLAUDE.md',
+      where: indexRel,
       message: `does not name \`${f}\`. The index is the only way a seat finds a policy file; an unnamed one binds nobody.`,
     })
   }
@@ -475,8 +562,17 @@ function knownBad() {
   return raw ? JSON.parse(raw) : { entries: [] }
 }
 
+// The key deliberately drops line numbers, in `where` and inside the message.
+// An entry keyed on one stops matching the moment a line is added above it,
+// and the ratchet then reports the entry as fixed while the defect is still
+// there -- the silent drain this list exists to prevent. The cost is that
+// several occurrences of one defect class in one file collapse to a single
+// entry, so the entry survives until the last is fixed. That errs toward
+// keeping an entry too long, never toward dropping a live defect.
 function keyOf(f) {
-  return `${f.check}|${f.where}|${f.message.slice(0, 60)}`
+  const where = f.where.replace(/:\d+$/, '')
+  const message = f.message.replace(/:\d+\b/g, ':N').slice(0, 60)
+  return `${f.check}|${where}|${message}`
 }
 
 function applyKnownBad(findings) {
@@ -503,7 +599,7 @@ function applyKnownBad(findings) {
       message: `entry no longer fires: ${k}. It was fixed, so delete the entry; the list may only shrink.`,
     })
   }
-  return { live, suppressed, total: set.size }
+  return { live, suppressed, hit: hit.size, total: set.size }
 }
 
 const CHECKS = [
@@ -511,7 +607,7 @@ const CHECKS = [
   { name: 'counts', what: 'a literal count matches its derivation', fixture: 'fixtures/policy-rot/counts.md' },
   { name: 'no-gh', what: 'no `gh <verb>` outside the MCP mapping table', fixture: 'fixtures/policy-rot/no-gh.md' },
   { name: 'budgets', what: 'a policy file may shrink, never grow past its cap', fixture: 'fixtures/policy-rot/budgets.md' },
-  { name: 'index', what: 'CLAUDE.md names every policy file, and every file it names exists', fixture: '(corpus)' },
+  { name: 'index', what: 'CLAUDE.md names every policy file, and every file it names exists', fixture: 'fixtures/policy-rot/index.md' },
   { name: 'duplicates', what: 'no 12-word run shared between two policy files', fixture: 'fixtures/policy-rot/dup-a.md' },
 ]
 
@@ -545,10 +641,12 @@ function printFindings(findings) {
 // The acceptance. Each fixture states the errors its class must still produce;
 // a class deleted in silence turns this red even on a clean tree.
 const REQUIRED_ROT = {
-  citations: 2,
+  citations: 3,
   counts: 2,
   'no-gh': 1,
   duplicates: 1,
+  budgets: 2,
+  index: 2,
 }
 
 function assertAcceptance(derived) {
@@ -568,6 +666,14 @@ function assertAcceptance(derived) {
     found.push(...checkCitations(rel, text), ...checkCounts(rel, text, derived), ...checkNoGh(rel, text))
   }
   found.push(...checkDuplicates(rels))
+  // budgets and index ran only over the real corpus, where a healthy tree
+  // produces nothing -- so deleting either function looked identical to a
+  // clean run. Both are pinned on fixtures instead: policy_budgets.json caps
+  // fixtures/policy-rot/budgets.md at 1 line (over cap) while the other
+  // fixtures have no cap at all (unclassified), and index.md names a file
+  // that does not exist while omitting its neighbours.
+  found.push(...checkBudgets(rels))
+  found.push(...checkIndex(rels.filter((r) => !r.endsWith('/index.md')), rels.find((r) => r.endsWith('/index.md'))))
   const got = {}
   for (const f of found) got[f.check] = (got[f.check] || 0) + 1
   let rc = 0
@@ -580,6 +686,23 @@ function assertAcceptance(derived) {
   }
   if (!rc) console.log(`\nFIXTURE ok: ${found.length} error(s) pin ${Object.keys(REQUIRED_ROT).length} check classes on fixtures/policy-rot/`)
   return rc
+}
+
+function cmdRecord(findings) {
+  const raw = read(KNOWN_BAD_FILE)
+  const doc = raw ? JSON.parse(raw) : {}
+  const before = new Set(doc.entries || [])
+  const after = [...new Set(findings.map(keyOf))].sort()
+  const added = after.filter((k) => !before.has(k))
+  const dropped = [...before].filter((k) => !after.includes(k))
+  doc._comment =
+    'Defects present when policy_lint landed. A finding not listed here is an error; an entry that no longer fires is also an error. The list may only shrink. Regenerate with --record-known-bad; growing it is a deliberate edit a reviewer reads.'
+  doc.recorded_at = git(['rev-parse', 'HEAD']).trim()
+  doc.entries = after
+  fs.writeFileSync(path.join(ROOT, KNOWN_BAD_FILE), JSON.stringify(doc, null, 2) + '\n')
+  console.log(`recorded ${after.length} entr(ies) to ${KNOWN_BAD_FILE}: +${added.length} -${dropped.length}`)
+  for (const k of added) console.log(`  + ${k}`)
+  for (const k of dropped) console.log(`  - ${k}`)
 }
 
 function cmdList() {
@@ -620,17 +743,21 @@ function main() {
     findings.push(...checkIndex(all), ...checkDuplicates(all), ...checkBudgets(all))
   }
 
+  if (args.includes('--record-known-bad')) return cmdRecord(findings), process.exit(0)
+
   let suppressed = 0
+  let occurrences = 0
   let known = 0
   if (defaultRun) {
     const applied = applyKnownBad(findings)
     findings = applied.live
-    suppressed = applied.suppressed
+    suppressed = applied.hit
+    occurrences = applied.suppressed
     known = applied.total
   }
   printFindings(findings)
   const errors = findings.filter((f) => f.severity === 'error').length
-  if (defaultRun) console.log(`\nKNOWN-BAD: ${suppressed} of ${known} recorded defect(s) still present`)
+  if (defaultRun) console.log(`\nKNOWN-BAD: ${suppressed} of ${known} recorded defect(s) still present, in ${occurrences} occurrence(s)`)
   console.log(`\nTOTAL: ${errors} error(s) across ${files.length} policy file(s)`)
   if (args.includes('--report')) {
     const by = {}

@@ -1,5 +1,6 @@
 # Rot fixture: budgets
 
-A policy file with no recorded cap is refused by the budgets check. This
-fixture is not in the policy set, so it is exercised through --budgets on a
-corpus run rather than by the acceptance.
+A policy file over its recorded cap is refused. This fixture is capped at one
+line in policy_budgets.json, which every line after the first exceeds, and its
+neighbours in this directory carry no cap at all, which is the other half of
+the same check: a new policy file is classified deliberately or not at all.
