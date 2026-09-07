@@ -144,32 +144,28 @@ seat must do"*, it is policy however small the diff.
 **Scope: the development record, not the product.** This governs what one agent
 writes for another — pull-request bodies, issues, comments, commit messages,
 briefs, roster entries, reports, and `docs/HANDOVER.md`, whose reader is a
-resuming agent. It does **not** govern `README.md` or the rest of `docs/`.
-User-facing writing serves someone who did not run the command, cannot see the
-diff, and has no context to supply; it needs the explanation this rule cuts.
+resuming agent. It does **not** govern `README.md` or the rest of `docs/`: a
+user did not run the command, cannot see the diff, and has no context to
+supply, so they need the explanation this rule cuts.
 
-**Precision outranks concision, always.** Where the two pull against each other,
-precision wins and the artifact gets longer. A number keeps the rule that
-produced it (`fixer.md` step 8); a claim keeps its control; a figure from a
-sliding window states the rule instead of the number. **A short artifact missing
-a control is a defect, and cutting
-evidence is never compliance with this rule** — if you are unsure whether
-something is filler, keep it, because the cost of a redundant sentence is a
-reader's second, and the cost of a dropped control is a defect that ships.
+**Precision outranks concision, always.** Where the two pull against each
+other, precision wins and the artifact gets longer. **A short artifact missing
+a control is a defect; cutting evidence is never compliance with this rule.** If
+you are unsure whether something is filler, keep it — a redundant sentence costs
+a reader a second, a dropped control ships a defect.
 
-Given that: a sentence stays only if it carries a **measurement**, a **decision
-and why**, a **constraint on someone downstream**, or a **refusal and what
-refused it**. Everything else is cut, not shortened: restating the ask,
-narrating the route, summarising your own diff, preamble, recap, and any
-adjective whose deletion changes no fact.
+Given that: a sentence stays only if it carries a **measurement**, **the rule or
+control behind one** (`fixer.md` step 8), a **decision and why**, a **constraint
+on someone downstream**, or a **refusal and what refused it** — **and is the
+only place in the artifact that carries it**. Everything else is cut, not
+shortened: restating the ask, narrating the route, summarising your own diff,
+preamble, and any adjective whose deletion changes no fact.
 
-The test, and it is subordinate to the four above: **delete the sentence and
-ask what a reader can no longer check.** Nothing? It was filler. A sentence
-carrying one of the four survives the test whatever the test says — the test
-finds filler, it does not overrule the rule. It has to be read that way because
-"can no longer check" cannot see an invariant: `views < fetch < dhw < grid <
-learning` is derivable by sorting five numbers already on the page, so the test
-cuts it, and it is a constraint on someone downstream, so the rule keeps it.
+Uniqueness does the work a delete-and-see test cannot. A recap made of numbers
+carries measurements, so no list of banned shapes reaches it; it is cut because
+the numbers are already stated. An invariant whose terms are all on the page —
+`views < fetch < dhw < grid < learning` — survives, because a reader can derive
+the ordering and still not have been told it must hold.
 
 ## Programme tracking (#201)
 
