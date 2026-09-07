@@ -9,7 +9,15 @@ from heatpump_optimizer.optimizer import HeatPumpOptimizer, OptimizationConfig
 from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator as Coord
 
 START = datetime(2026,1,15,0,0)
-cfg = house(two_zone=False, dhw=True)
+# Single-zone by default, which is what every gate lane wants: a one-zone house
+# publishes `upper` and `lower` as step-by-step copies of `room`, so the card
+# drops them and the payload exercises the duplicate rule. `HPO_PLAN_TWO_ZONE`
+# asks for the other house, whose zones genuinely diverge -- the only way to
+# render the card's house-zone dashes at all. It exists so a figure generator
+# does not have to keep its own copy of the `_build_plan_views` shim below;
+# that copy is exactly the drift #101 cost the card harnesses once already.
+_two_zone = os.environ.get("HPO_PLAN_TWO_ZONE") == "1"
+cfg = house(two_zone=_two_zone, dhw=True)
 p = ThermalParameters.from_config(cfg); p.dhw_enabled = True
 oc = OptimizationConfig(horizon_hours=24, time_step_minutes=15,
     target_temp=cfg["target_temperature"], min_temp=cfg["min_temperature"],

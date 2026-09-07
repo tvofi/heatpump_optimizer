@@ -7750,6 +7750,98 @@ R.check(
     np.allclose(_ent.fee_vector([_winter_day, _july_noon], 0.4), 0.5)
     and abs(_ent.current_fee(_winter_day, None) - 0.1) < 1e-9,
 )
+R.check(
+    "an entity value that arrives non-finite prices as absent, not as NaN",
+    abs(_ent.current_fee(_winter_day, float("nan")) - 0.1) < 1e-9,
+    f"{_ent.current_fee(_winter_day, float('nan'))}",
+)
+
+# --- #195 tranche 2: grid_fee.py's remaining branches ------------------------
+_gf_month_exc = _try_exc(lambda: _gf.parse_month_range("Nov-Zzz"))
+R.check(
+    "an unknown month on either side of a range is refused by name",
+    isinstance(_gf_month_exc, _gf.GridFeeError),
+    f"{_gf_month_exc!r}",
+)
+_gf_day_exc = _try_exc(lambda: _gf.parse_day_range("Mon-Zzz"))
+R.check(
+    "an unknown weekday on either side of a range is refused the same way",
+    isinstance(_gf_day_exc, _gf.GridFeeError),
+    f"{_gf_day_exc!r}",
+)
+R.check(
+    "a lone weekday token (no range) parses to its one day",
+    _gf.parse_day_range("Sat") == frozenset({5}),
+    f"{_gf.parse_day_range('Sat')}",
+)
+_gf_lone_day_exc = _try_exc(lambda: _gf.parse_day_range("Notaday"))
+R.check(
+    "a lone weekday token that names nothing real is refused",
+    isinstance(_gf_lone_day_exc, _gf.GridFeeError),
+    f"{_gf_lone_day_exc!r}",
+)
+R.check(
+    "two month ranges in one rule are refused, not silently combined",
+    isinstance(
+        _try_exc(lambda: _gf.parse_rules("Nov Dec = 0.1")), _gf.GridFeeError
+    ),
+)
+R.check(
+    "two weekday ranges in one rule are refused the same way",
+    isinstance(
+        _try_exc(lambda: _gf.parse_rules("Mon Tue = 0.1")), _gf.GridFeeError
+    ),
+)
+R.check(
+    "two time ranges in one rule are refused: one active window per rule",
+    isinstance(
+        _try_exc(lambda: _gf.parse_rules("06:00-08:00 09:00-10:00 = 0.1")),
+        _gf.GridFeeError,
+    ),
+)
+_gf_badtime_exc = _try_exc(lambda: _gf.parse_rules("25:00-10:00 = 0.1"))
+R.check(
+    "a time range the DHW window grammar itself refuses is refused here too",
+    isinstance(_gf_badtime_exc, _gf.GridFeeError),
+    f"{_gf_badtime_exc!r}: DHWWindowError must be re-raised as GridFeeError",
+)
+
+R.check(
+    "from_config degrades an unknown mode string to none, not a crash",
+    _gf.GridFeeSchedule.from_config({hp_const.CONF_GRID_FEE_MODE: "bogus"}).mode
+    == _gf.MODE_NONE,
+)
+_gf_badfixed = _gf.GridFeeSchedule.from_config(
+    {hp_const.CONF_GRID_FEE_MODE: "rules", hp_const.CONF_GRID_FEE_FIXED: "not-a-number"}
+)
+R.check(
+    "an unparseable fixed component degrades to zero, not a crash",
+    _gf_badfixed.fixed == 0.0,
+)
+_gf_inffixed = _gf.GridFeeSchedule.from_config(
+    {hp_const.CONF_GRID_FEE_MODE: "rules", hp_const.CONF_GRID_FEE_FIXED: "inf"}
+)
+R.check(
+    "a non-finite fixed component (parses, but is not finite) also degrades to zero",
+    _gf_inffixed.fixed == 0.0,
+)
+_gf_badrules = _gf.GridFeeSchedule.from_config(
+    {hp_const.CONF_GRID_FEE_MODE: "rules", hp_const.CONF_GRID_FEE_RULES: "garbage"}
+)
+R.check(
+    "a hand-edited store with broken rules text prices with no ToU fees, not a crash",
+    _gf_badrules.mode == _gf.MODE_RULES and _gf_badrules.rules == [],
+)
+
+R.check(
+    "rules mode is active exactly when it has a rule or a nonzero fixed term",
+    _gf.GridFeeSchedule(mode=_gf.MODE_RULES, rules=_rules).active
+    and not _gf.GridFeeSchedule(mode=_gf.MODE_RULES, fixed=0.0, rules=[]).active,
+)
+R.check(
+    "entity mode is always active: the entity might report any value at any time",
+    _gf.GridFeeSchedule(mode=_gf.MODE_ENTITY).active,
+)
 
 # --- #13: masks on the capacity tariff ---------------------------------------
 _flat_ct = _CT(enabled=True, price_per_kw=30.0)
@@ -10842,6 +10934,65 @@ R.check(
     and CurveLearner.from_dict({"bias": -99}).bias == BIAS_MIN,
 )
 
+# --- #195 tranche 2: curve_learning.py's remaining branches ----------------------
+_cl5_t4 = CurveLearner()
+_cl5_t4.record_day(_d2, None)
+R.check(
+    "a day with no margin at all is not evidence, and books nothing",
+    _cl5_t4.comfortable_days == 0 and _cl5_t4.bias == 0.0,
+    "worst_margin_c is None when no zone bound could be computed that day",
+)
+
+_cl6_t4 = CurveLearner()
+_cl6_t4.record_miss(_d2, -0.1)
+R.check(
+    "a miss with the bias already at zero has nothing to surrender",
+    _cl6_t4.resets == 0,
+    f"resets={_cl6_t4.resets}: the early return must not count a reset "
+    "that changed nothing",
+)
+
+_cl7_t4 = CurveLearner()
+_cl7_t4._last_step_at = "not-a-timestamp"
+for d in range(DAYS_PER_STEP):
+    _cl7_t4.record_day(_d2 + timedelta(days=d), 1.0)
+R.check(
+    "an unparseable stored step timestamp falls back to one full notch",
+    abs(_cl7_t4.bias + STEP_K) < 1e-9,
+    f"bias {_cl7_t4.bias}: datetime.fromisoformat must have raised and been caught",
+)
+
+_cl8_t4 = CurveLearner()
+for d in range(DAYS_PER_STEP):
+    _cl8_t4.record_day(_d2 + timedelta(days=d), 1.0)
+_bias_after_first_step = _cl8_t4.bias
+# _step_down already reset comfortable_days to 0; re-arm it so a change
+# after the call below can only mean the zero-step branch did not return.
+_cl8_t4.comfortable_days = DAYS_PER_STEP
+_cl8_t4._step_down(_d2 + timedelta(days=DAYS_PER_STEP - 1))
+R.check(
+    "a second step at the same instant the first one landed moves nothing",
+    _cl8_t4.bias == _bias_after_first_step
+    and _cl8_t4.comfortable_days == DAYS_PER_STEP,
+    f"bias {_cl8_t4.bias} vs {_bias_after_first_step}, "
+    f"comfortable_days {_cl8_t4.comfortable_days}: zero elapsed time caps "
+    "the allowed movement at zero and must return before touching state",
+)
+
+R.check(
+    "from_dict degrades non-dict input to a fresh learner, not a crash",
+    CurveLearner.from_dict(None).bias == 0.0
+    and CurveLearner.from_dict([1, 2, 3]).bias == 0.0,
+)
+_cl9_t4 = CurveLearner.from_dict(
+    {"bias": "junk", "comfortable_days": "junk", "resets": "junk"}
+)
+R.check(
+    "a store with unparseable numeric fields degrades each one to its zero",
+    _cl9_t4.bias == 0.0 and _cl9_t4.comfortable_days == 0 and _cl9_t4.resets == 0,
+    f"{_cl9_t4.as_dict()}",
+)
+
 # The wiring: the bias joins the displace before the configured clamp,
 # only when the flag is on, and never moves the plan itself.
 _c2 = _t2_coord(curve_learning_enabled=True)
@@ -11816,6 +11967,7 @@ R.check(
     narrative_mod.render(
         [{"reason": "from_the_future", "kwh": 1.0, "sek": 1.0, "hours": 1.0}],
         "sv",
+        "SEK",
     )
     == [],
 )
@@ -11825,6 +11977,80 @@ _n_view = _cn._narrative_view()
 R.check(
     "the coordinator's narrative view renders lines for the current plan",
     _n_view["items"] and _n_view["lines"] and _n_view["language"] == "en",
+)
+
+# --- #558 D2: the narrative said "kr" in every language ------------------------
+# The English table ended twelve of its fourteen sentences in the literal
+# "kr" -- Swedish kronor, in English, on an instance whose currency Home
+# Assistant already knows. (Twelve, not fourteen: `idle` and `pump_mode` are
+# the two ZERO_ENERGY_REASONS and carry no money at all. The rule counted is
+# "templates whose text matches the word-boundary regex \bkr\b".) Swedish
+# had the same twelve, correct only while the instance is Swedish.
+_kr = _re6.compile(r"\bkr\b")
+_hardcoded = sorted(
+    f"{_lang}.{_key}"
+    for _lang, _tbl in narrative_mod.TEMPLATES.items()
+    for _key, _text in _tbl.items()
+    if _kr.search(_text)
+)
+R.check(
+    "no narrative template hardcodes a currency word",
+    not _hardcoded,
+    f"{len(_hardcoded)} hardcoded: {_hardcoded[:4]}",
+)
+# The money-bearing templates must actually SAY the currency, or the fix is a
+# deletion rather than a substitution and the reader loses the unit entirely.
+_moneyed = {
+    _key
+    for _key, _text in narrative_mod.TEMPLATES["en"].items()
+    if "{cost}" in _text
+}
+R.check(
+    "every money-bearing template names the currency it is given",
+    _moneyed
+    and all(
+        "{currency}" in _tbl[_key]
+        for _tbl in narrative_mod.TEMPLATES.values()
+        for _key in _moneyed
+    )
+    and _moneyed == set(narrative_mod.TEMPLATES["en"]) - narrative_mod.ZERO_ENERGY_REASONS,
+    f"{sorted(_moneyed)}",
+)
+_cur_items = [{"reason": "cheap_price", "kwh": 6.2, "sek": 8.4, "hours": 3.0}]
+for _lang in narrative_mod.TEMPLATES:
+    _line = narrative_mod.render(_cur_items, _lang, "EUR")[0]
+    R.check(
+        f"render speaks the currency it is handed ({_lang})",
+        "EUR" in _line and not _kr.search(_line),
+        _line,
+    )
+# And the coordinator hands it the instance's currency rather than a constant.
+_eur_nh = _FakeHass(dict(_METER))
+_eur_nh.config.currency = "EUR"
+_eur_nc = _Coord(
+    _eur_nh,
+    _FakeEntry(
+        data={
+            "tibber_token": "x",
+            "weather_entity": "weather.home",
+            "indoor_temp_entity": "sensor.indoor",
+            "outdoor_temp_entity": "sensor.outdoor",
+        }
+    ),
+)
+_eur_nc._optimization_result = _r6
+_eur_lines = _eur_nc._narrative_view()["lines"]
+R.check(
+    "the narrative view prices the plan in the instance's currency",
+    _eur_lines and any("EUR" in _l for _l in _eur_lines),
+    str(_eur_lines[:2]),
+)
+# NULL CONTROL: an instance that configured nothing keeps the historical SEK
+# fallback, so the fix changes the WORD ("kr" -> "SEK") and never the unit.
+R.check(
+    "and an unconfigured instance still prices the plan in SEK",
+    any("SEK" in _l for _l in _n_view["lines"]),
+    str(_n_view["lines"][:2]),
 )
 
 # --- #52 the diagnosis -----------------------------------------------------------
@@ -11889,6 +12115,126 @@ R.check(
     _cd_report is not None
     and _cd._last_diagnosis is _cd_report
     and _cd_report["interval_end"] == _T6.isoformat(),
+)
+
+# --- #195 tranche 2: diagnosis.py's remaining branches ----------------------------
+_dmodel_2z = ThermalModel(ThermalParameters(two_zone_enabled=True))
+_d2z_after = _dmodel_2z.simulate_step(
+    replace(_dstate),
+    electrical_power=float(_dplanned["electrical_power"]),
+    outdoor_temp=float(_dplanned["outdoor_temp"]),
+    wind_speed=float(_dplanned["wind_speed"]),
+    precipitation=0.0,
+    solar_radiation=float(_dplanned["solar_radiation"]),
+    dt_hours=float(_dplanned["dt_hours"]),
+    external_heat_kw=float(_dplanned["external_heat_kw"]),
+    humidity=_dplanned["humidity"],
+    hour_of_day=_dplanned["hour_of_day"],
+)
+R.check(
+    "a two-zone model attributes against the upper floor, never the slab room",
+    abs(
+        diagnosis_mod._room_after(_dmodel_2z, _dstate, _dplanned)
+        - float(_d2z_after.upper_floor_temperature)
+    )
+    < 1e-9
+    and float(_d2z_after.upper_floor_temperature)
+    != float(_d2z_after.room_temperature),
+    f"_room_after={diagnosis_mod._room_after(_dmodel_2z, _dstate, _dplanned)} "
+    f"upper={_d2z_after.upper_floor_temperature} room={_d2z_after.room_temperature}: "
+    "the two readings must actually differ or the branch would be vacuous",
+)
+
+R.check(
+    "a non-finite actual temperature makes attribution impossible, not a crash",
+    diagnosis_mod.attribute(_dmodel, _dstate, _dplanned, {}, float("nan")) is None,
+)
+
+
+class _DiagFakeState:
+    def __init__(self, room_temperature: float) -> None:
+        self.room_temperature = room_temperature
+        self.upper_floor_temperature = room_temperature
+
+
+class _DiagFakeParams:
+    two_zone_enabled = False
+
+
+class _DiagFakeModel:
+    """Duck model exercising diagnosis.py's own exception handling: only
+    what ``_room_after`` reads (``params.two_zone_enabled``, ``simulate_step``).
+    ``fail_on_call`` raises on that 1-indexed call and succeeds on every
+    other, so the baseline and one swap can be failed independently.
+    """
+
+    def __init__(self, fail_on_call: int) -> None:
+        self.params = _DiagFakeParams()
+        self._calls = 0
+        self._fail_on_call = fail_on_call
+
+    def simulate_step(self, *args, **kwargs):
+        self._calls += 1
+        if self._calls == self._fail_on_call:
+            raise RuntimeError("simulated model failure")
+        return _DiagFakeState(20.0)
+
+
+R.check(
+    "a baseline simulation that raises is diagnosed as 'nothing to report', not fatal",
+    diagnosis_mod.attribute(
+        _DiagFakeModel(fail_on_call=1), _dstate, _dplanned, {"outdoor_temp": -5.0}, 19.0
+    )
+    is None,
+)
+_dreport_swap_fail = diagnosis_mod.attribute(
+    _DiagFakeModel(fail_on_call=2), _dstate, _dplanned, {"outdoor_temp": -20.0}, 19.5,
+)
+R.check(
+    "a swap whose re-simulation raises is skipped, not fatal to the whole report",
+    _dreport_swap_fail is not None
+    and "outdoor_temp" not in _dreport_swap_fail["contributions"]
+    and abs(_dreport_swap_fail["unexplained"] - _dreport_swap_fail["residual"]) < 1e-9,
+    f"{_dreport_swap_fail}",
+)
+
+_dreport_badtype = diagnosis_mod.attribute(
+    _dmodel, _dstate, _dplanned, {"outdoor_temp": "warm"}, _dbase,
+)
+R.check(
+    "a realised value that will not parse as a float is skipped like a missing one",
+    _dreport_badtype is not None
+    and "outdoor_temp" not in _dreport_badtype["contributions"],
+)
+_dreport_nonfinite = diagnosis_mod.attribute(
+    _dmodel, _dstate, _dplanned, {"outdoor_temp": float("nan")}, _dbase,
+)
+R.check(
+    "a non-finite realised value is skipped, never handed to the swapped solve",
+    _dreport_nonfinite is not None
+    and "outdoor_temp" not in _dreport_nonfinite["contributions"],
+)
+_dreport_noop = diagnosis_mod.attribute(
+    _dmodel, _dstate, _dplanned, {"outdoor_temp": _dplanned["outdoor_temp"]}, _dbase,
+)
+R.check(
+    "a realised value identical to the planned one attributes nothing to it",
+    _dreport_noop is not None
+    and "outdoor_temp" not in _dreport_noop["contributions"],
+)
+
+_drecord_bad = {
+    "when": _T6.isoformat(),
+    "state": _dstate,
+    "planned": dict(_dplanned),
+    "realised": {"outdoor_temp": -10.0},
+    "actual": _dbase - 0.3,
+    # "dt_hours" deliberately missing: diagnose_record runs in a worker
+    # process, so a KeyError here must degrade, not be lost silently.
+}
+R.check(
+    "a malformed record degrades to no diagnosis rather than raising in the worker",
+    diagnosis_mod.diagnose_record(_drecord_bad, ThermalParameters()) is None,
 )
 
 # --- #39 the price tiles ---------------------------------------------------------
@@ -18255,7 +18601,7 @@ R.check(
     f"filtering them out leaves silence where the explanation belongs",
 )
 for _lang in narrative_mod.TEMPLATES:  # every shipped language renders it
-    _nb_lines = narrative_mod.render(_nb_items, _lang)
+    _nb_lines = narrative_mod.render(_nb_items, _lang, "SEK")
     R.check(
         f"and it renders a real sentence in {_lang}",
         len(_nb_lines) == 1 and "4.0" in _nb_lines[0] and "{" not in _nb_lines[0],
@@ -18296,6 +18642,65 @@ R.check(
     ),
     f"{sorted(_mb_null.predictive_info)} — every golden fixture plans with no "
     f"mode entity, so this is what keeps them still",
+)
+
+
+R.section("#224 stage 2 — the breach report answers for itself, off optimize's tail")
+
+from heatpump_optimizer.optimizer import (  # noqa: E402
+    OptimizationResult as _BrRes,
+)
+
+_br_params = ThermalParameters.from_config(_mb_profiles.house())
+_br_params.dhw_enabled = True
+_br_opt = _MbOpt(ThermalModel(_br_params), _MbCfg(horizon_hours=1))
+
+
+def _br_result(room, dhw):
+    return _BrRes(
+        power_schedule=[], room_temp_trajectory=list(room), slab_temp_trajectory=[],
+        timestamps=[], prices=[], predicted_cost=0.0, baseline_cost=0.0,
+        predicted_savings=0.0, savings_percentage=0.0, optimal_setpoints=[],
+        status="optimal", dhw_temp_trajectory=list(dhw),
+    )
+
+
+# Trajectories carry n+1 entries with index 0 the *initial* state. Both figures
+# below are chosen so that judging index 0 as if it were planned returns a
+# different, larger number — 6.0 instead of 2.0, and 40.0 instead of 5.0 — so a
+# helper that drops the slice fails rather than agreeing by coincidence.
+_br_space = _br_result([15.0, 20.5, 19.0, 21.0], [])
+_br_opt._dhw_requirement = None
+_br_opt._publish_breach_reports(
+    _br_space, np.array([1.0, 1.0, 1.0]), False, False, 3,
+    np.array([21.0, 21.0, 21.0]),
+)
+R.check(
+    "an externally capped plan reports its worst planned floor shortfall",
+    _br_space.predictive_info.get("power_cap_breach_c") == 2.0,
+    f"{_br_space.predictive_info.get('power_cap_breach_c')} — 6.0 means the "
+    f"initial state was judged against the cap, which blames the fuse for the "
+    f"weather",
+)
+
+_br_dhw = _br_result([21.0, 21.0, 21.0, 21.0], [10.0, 48.0, 45.0, 50.0])
+_br_opt._dhw_requirement = np.array([50.0, 50.0, 50.0])
+_br_opt._publish_breach_reports(_br_dhw, None, False, True, 3, np.array([21.0]))
+R.check(
+    "a blocked tank reports its worst shortfall against its own requirement",
+    _br_dhw.predictive_info.get("dhw_floor_breach_c") == 5.0
+    and _br_dhw.predictive_info.get("mode_blocked_dhw") is True,
+    f"{_br_dhw.predictive_info} — 40.0 means the initial tank temperature was "
+    f"counted as a planned step",
+)
+
+_br_quiet = _br_result([21.0, 21.0, 21.0, 21.0], [50.0, 50.0, 50.0, 50.0])
+_br_opt._publish_breach_reports(_br_quiet, None, False, False, 3, np.array([21.0]))
+R.check(
+    "and an uncapped, unblocked plan is left byte-identical",
+    _br_quiet.predictive_info == {},
+    f"{_br_quiet.predictive_info} — every golden fixture plans with no cap and "
+    f"no mode entity; a key added here moves all 47 of them",
 )
 
 
@@ -22486,6 +22891,280 @@ R.check(
     and _g511_quiet(_g511_harness_coord, _g511_h_hass, _g511_h_warned),
     f"parent={_g3_parent} got {_g511_h!r} jobs={_g511_h_hass.jobs!r} "
     f"warned={len(_g511_h_warned)} issues={_g511_h_hass.issues!r}",
+)
+
+# ---------------------------------------------------------------------------
+R.section("#524 — an unpicklable solve RESULT must raise, never become the plan")
+
+# #511 fixed the JOB side of this channel. The RESULT side still degraded on
+# ``payload[0]`` generically, so a reply the child could not pickle came back
+# as ("ok", RuntimeError(...)) and the parent handed that RuntimeError to the
+# coordinator AS THE PLAN -- published, ``_solve_failures`` reset, the
+# ``solve_failures`` notice withdrawn. A wrong plan the user acts on is worse
+# than a solve that failed, and before #515 this same case raised rc=1.
+import harness as _g524_harness  # noqa: E402
+
+_g524_pid_before = _g511_coord._run_in_process(_os.getpid, ())
+_g524_raised, _g524_returned = _g511_submit(
+    _g511_coord._run_in_process, _g524_harness.unpicklable_result_job, ()
+)
+R.check(
+    "a result the child cannot send home raises instead of being returned",
+    _g524_returned is None and isinstance(_g524_raised, Exception),
+    f"raised {_g524_raised!r}; returned {_g524_returned!r}",
+)
+R.check(
+    "and the error names both the value and why it would not pickle",
+    "UnpicklableResult" in str(_g524_raised)
+    and "refuses to pickle" in str(_g524_raised),
+    f"got {type(_g524_raised).__name__}: {_g524_raised}",
+)
+_g524_pid_after = _g511_coord._run_in_process(_os.getpid, ())
+R.check(
+    "guard: the worker survives it -- same child, no respawn, unlike a load-err",
+    _g524_pid_before == _g524_pid_after != _g3_parent,
+    f"parent={_g3_parent} before={_g524_pid_before} after={_g524_pid_after}",
+)
+
+
+def _g524_solve(optimizer):
+    """``_await_optimize``, keeping what it RAISED apart from what it RETURNED.
+
+    ``_g511_solve`` collapses the two into one value, which cannot see this
+    bug at all: the thing wrongly returned here IS a ``RuntimeError``, so any
+    check that only asks "is it an exception" passes with the bug present.
+    """
+    hass, sink = _G511Hass(), _G511LogSink()
+    logger = _g511_logging.getLogger(_g511_coord.__name__)
+    logger.addHandler(sink)
+    try:
+        try:
+            out = _asyncio.run(_g511_coord._await_optimize(hass, optimizer, "STATE"))
+            raised, returned = None, out
+        except Exception as err:  # noqa: BLE001
+            raised, returned = err, None
+    finally:
+        logger.removeHandler(sink)
+    return raised, returned, hass, [r for r in sink.records if r.levelno >= 30]
+
+
+_g524_err, _g524_plan, _g524_hass, _g524_warned = _g524_solve(
+    _g524_harness.UnpicklableResultOptimizer()
+)
+R.check(
+    "_await_optimize raises it as a solve failure instead of returning a plan",
+    _g524_plan is None and isinstance(_g524_err, Exception),
+    f"raised {_g524_err!r}; returned {_g524_plan!r}",
+)
+R.check(
+    "and it is not mistaken for an unusable worker: no second, in-process solve",
+    _g524_hass.jobs == [_g511_coord._run_in_process]
+    and not isinstance(_g524_err, _g511_unavailable)
+    and _g524_warned == []
+    and [i for i in _g524_hass.issues if i[1] == "solve_worker_fallback"] == [],
+    f"jobs={_g524_hass.jobs!r} raised={type(_g524_err).__name__} "
+    f"warned={len(_g524_warned)} issues={_g524_hass.issues!r}",
+)
+# Null control: the same route with a result that DOES pickle must still
+# return the plan and stay silent. A "fix" that raised on every reply would
+# pass every check above and break every solve.
+_g524_ok_err, _g524_ok_plan, _g524_ok_hass, _g524_ok_warned = _g524_solve(
+    _G511Probe()
+)
+R.check(
+    "null control: a picklable result still comes back as the plan, silently",
+    _g524_ok_err is None
+    and isinstance(_g524_ok_plan, tuple)
+    and _g524_ok_plan[0] != _g3_parent
+    and _g524_ok_plan[1] == "STATE"
+    and _g511_quiet(_g511_coord, _g524_ok_hass, _g524_ok_warned),
+    f"raised {_g524_ok_err!r}; returned {_g524_ok_plan!r}; "
+    f"jobs={_g524_ok_hass.jobs!r} issues={_g524_ok_hass.issues!r}",
+)
+
+# ---------------------------------------------------------------------------
+R.section("#525 — nothing blocking runs on Home Assistant's event loop")
+
+import subprocess as _g525_subprocess  # noqa: E402
+import threading as _g525_threading  # noqa: E402
+import time as _g525_time  # noqa: E402
+import importlib as _g525_importlib  # noqa: E402
+from homeassistant import const as _g525_ha_const  # noqa: E402
+
+# The real name once the stub carries it; the literal keeps this file
+# importable at the merge base, where the check below fails on the assertion
+# rather than on an ImportError that would take the whole script down.
+_G525_STOP = getattr(_g525_ha_const, "EVENT_HOMEASSISTANT_STOP", "homeassistant_stop")
+
+
+class _G525ImportSpy:
+    """Stands in for ``__init__``'s ``importlib``, recording the calling thread.
+
+    ``import_module`` reads and compiles files. Home Assistant's own detector
+    reports it from the loop; this records the same fact without needing a
+    Home Assistant install, which is why ``tests/hastub`` never saw #525.
+    """
+
+    def __init__(self, real) -> None:
+        self.real = real
+        self.threads = []
+
+    def import_module(self, name, package=None):
+        self.threads.append(_g525_threading.get_ident())
+        return self.real.import_module(name, package)
+
+
+class _G525Hass(FakeHass):
+    """Executor jobs run on a REAL other thread, the way Home Assistant's do.
+
+    ``FakeHass`` runs them inline, and an inline "executor" cannot tell a call
+    that left the loop from one that never did -- which is the whole of #525.
+    """
+
+    async def async_add_executor_job(self, func, *args):
+        return await _asyncio.get_running_loop().run_in_executor(None, func, *args)
+
+    async def async_add_import_executor_job(self, func, *args):
+        self.import_jobs.append(func)
+        return await _asyncio.get_running_loop().run_in_executor(None, func, *args)
+
+
+def _g525_setup_imports(hass):
+    """Drive HA's real setup path; return (import threads, the loop's thread)."""
+    spy = _G525ImportSpy(_g525_importlib)
+    loop_thread = []
+
+    async def _drive():
+        loop_thread.append(_g525_threading.get_ident())
+        await _ha_setup_entry(_integ, hass, FakeEntry(data=dict(_LC_DATA)))
+
+    saved = _integ.importlib
+    _integ.importlib = spy
+    try:
+        _asyncio.run(_drive())
+    finally:
+        _integ.importlib = saved
+    return spy.threads, loop_thread[0]
+
+
+_g525_hass = _G525Hass()
+_g525_threads, _g525_loop_id = _g525_setup_imports(_g525_hass)
+R.check(
+    "every lazy import a setup makes leaves the event loop (#525)",
+    len(_g525_threads) >= 3 and _g525_loop_id not in _g525_threads,
+    f"{len(_g525_threads)} imports on threads {sorted(set(_g525_threads))}; "
+    f"loop thread {_g525_loop_id}",
+)
+R.check(
+    "and each went through the IMPORT executor, not the general one",
+    len(_g525_hass.import_jobs) >= 3
+    and set(_g525_hass.import_jobs) == {_integ._lazy},
+    f"import jobs: {_g525_hass.import_jobs!r}",
+)
+# Null control for the meter itself: the same drive on a hass whose executor
+# is inline must record the loop thread. Without this, "no import on the loop
+# thread" would also be what a spy that recorded nothing reports.
+_g525_inline_threads, _g525_inline_loop = _g525_setup_imports(FakeHass())
+R.check(
+    "null control: an inline executor puts them back on the loop thread",
+    len(_g525_inline_threads) >= 3
+    and _g525_inline_loop in _g525_inline_threads,
+    f"{len(_g525_inline_threads)} imports on threads "
+    f"{sorted(set(_g525_inline_threads))}; loop thread {_g525_inline_loop}",
+)
+
+# -- the worker reap ---------------------------------------------------------
+# ``Popen.wait`` polls with ``time.sleep``. Measured, not asserted about: a
+# heartbeat ticks every 10 ms beside the reap, and what survives is the number
+# of ticks. Asserting that the code calls an executor wrapper would pass on a
+# wrapper that awaited nothing.
+_G525_STUBBORN = (
+    "import signal, time\n"
+    "signal.signal(signal.SIGTERM, signal.SIG_IGN)\n"
+    "time.sleep(30)\n"
+)
+
+
+async def _g525_ticks(shutdown):
+    """(ticks, seconds) -- 10 ms loop ticks that still happen while it runs."""
+    ticks = []
+
+    async def _beat():
+        while True:
+            ticks.append(1)
+            await _asyncio.sleep(0.01)
+
+    beat = _asyncio.ensure_future(_beat())
+    await _asyncio.sleep(0.05)
+    ticks.clear()
+    started = _g525_time.monotonic()
+    await shutdown()
+    elapsed = _g525_time.monotonic() - started
+    beat.cancel()
+    return len(ticks), elapsed
+
+
+# ``_PROCESS_WORKER`` is a module global, and the two spellings of this
+# package are two module objects with two of them (#511's own subject). The
+# listener below came from ``_integ``, so everything here works on the module
+# ``_integ`` reaches -- planting the child on the other one measures a
+# shutdown that has nothing to shut down, and reads as a pass.
+_g525_worker_mod = _g511_harness_coord
+assert _g525_worker_mod is _integ._lazy("coordinator")
+
+
+def _g525_measure(shutdown):
+    """Run ``shutdown`` against a child that ignores SIGTERM, and time the loop."""
+    child = _g525_subprocess.Popen(
+        [sys.executable, "-c", _G525_STUBBORN],
+        stdin=_g525_subprocess.PIPE,
+        stdout=_g525_subprocess.DEVNULL,
+    )
+    _g525_worker_mod._PROCESS_WORKER = child
+    try:
+        return _asyncio.run(_g525_ticks(shutdown))
+    finally:
+        _g525_worker_mod._PROCESS_WORKER = None
+        child.kill()
+        child.wait(timeout=5)
+
+
+# The live workers from the checks above must not be the ones under the axe.
+_g511_coord._shutdown_process_pool()
+_g525_worker_mod._shutdown_process_pool()
+
+
+async def _g525_inline_shutdown():
+    _g525_worker_mod._shutdown_process_pool()
+
+
+_g525_block_ticks, _g525_block_s = _g525_measure(_g525_inline_shutdown)
+_g525_stop_listeners = _g525_hass.bus.listeners_for(_G525_STOP)
+R.check(
+    "an entry's setup registers the worker reap on Home Assistant's stop (#525)",
+    len(_g525_stop_listeners) == 1,
+    f"listeners: {_g525_hass.bus.listeners!r}",
+)
+
+
+async def _g525_stop_shutdown():
+    await _g525_stop_listeners[0](None)
+
+
+if _g525_stop_listeners:
+    _g525_free_ticks, _g525_free_s = _g525_measure(_g525_stop_shutdown)
+else:
+    _g525_free_ticks, _g525_free_s = 0, 0.0
+R.check(
+    "the reap Home Assistant's stop fires keeps the loop running (#525)",
+    _g525_free_ticks >= 50 and _g525_free_s >= 1.5,
+    f"fixed {_g525_free_ticks} ticks in {_g525_free_s:.2f}s vs "
+    f"blocking {_g525_block_ticks} ticks in {_g525_block_s:.2f}s",
+)
+R.check(
+    "null control: reaping inline DOES stall it, so the heartbeat can see a stall",
+    _g525_block_ticks <= 5 and _g525_block_s >= 1.5,
+    f"blocking {_g525_block_ticks} ticks in {_g525_block_s:.2f}s",
 )
 
 # ---------------------------------------------------------------------------

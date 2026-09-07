@@ -366,64 +366,104 @@ and history are unaffected by the language.
 `CUR` is your Home Assistant instance currency (SEK when the instance has none
 configured).
 
+The groups below are for reading. Home Assistant knows nothing about them:
+every sensor is created on every install regardless of which group it is in.
+
+#### What the plan is doing right now
+
 | Sensor | Unit | What it tells you | Notes |
 |---|---|---|---|
 | Optimization Mode | — | Current mode: auto, comfort, economy, boost or off | |
+| Heat Pump Action | — | What the plan is doing now: `off`, `eco`, `normal`, `pre_heat` or `boost`, and `comfort` while comfort mode holds | |
+| Optimal Setpoint | °C | The setpoint the current plan step asks for | |
+| Recommended Power | kW | The electrical power the current plan step asks for | |
+| Current Electricity Price | CUR/kWh | The price the plan is being made against right now | |
+| Plan Narrative | — | The plan told in sentences, grouped by reason | Card headline |
+| Optimization Score | — | Envelope, machine and operation graded 0–100 | Card headline; unavailable until the scores have evidence |
+| Predictive Optimization Insight | — | What the forecast is making the plan do | Diagnostic |
 | Optimization Status | — | Solver result for the current plan | Diagnostic |
+
+#### The whole plan, and when it was made
+
+| Sensor | Unit | What it tells you | Notes |
+|---|---|---|---|
+| Optimization Schedule | — | The whole 24 h schedule, in attributes | Diagnostic; not recorded |
+| Space Heating Plan (next 24 h) | — | Planned space-heating slots plus the full-horizon forecast | Backs the card; forecast not recorded |
+| DHW Heating Plan (next 24 h) | — | Planned hot-water slots plus the full-horizon forecast | Backs the card; forecast not recorded |
+| DHW Heating Schedule | — | The whole 24 h of planned hot-water heating periods | Not recorded |
+| Next Optimization | — | When the next run is due | Diagnostic; timestamp |
+| Last Optimization | — | When the last run finished | Diagnostic; timestamp |
+
+#### What it costs, and what it saves
+
+| Sensor | Unit | What it tells you | Notes |
+|---|---|---|---|
 | Predicted Savings | CUR | Saving over 24 h against a simulated conventional thermostat following the same comfort schedule | Only the hot-water half of the baseline is always-on |
 | Savings Percentage | % | The same saving as a percentage | |
 | Predicted Cost | CUR | Cost of the optimized 24 h plan | |
 | Baseline Cost | CUR | Cost of the baseline over the same 24 h | |
-| Current Electricity Price | CUR/kWh | The price the plan is being made against right now | |
-| Optimal Setpoint | °C | The setpoint the current plan step asks for | |
-| Recommended Power | kW | The electrical power the current plan step asks for | |
-| Estimated COP | — | Modelled COP at the current outdoor temperature | Follows the Outdoor Temperature sensor below, forecast fallback included |
-| Indoor Temperature (Optimizer) | °C | Indoor temperature as the optimizer sees it | |
-| Outdoor Temperature (Optimizer) | °C | Outdoor temperature as the optimizer sees it | Falls back to the forecast step the plan is solved on when no outdoor thermometer is configured; the `source` attribute says which |
-| Solar Irradiance | W/m² | The irradiance the plan uses, with the forecast horizon in attributes | Absorbed the former Solar Radiation sensor in v5.0.0 |
-| Slab Temperature (Estimated) | °C | Modelled slab temperature | |
-| Next Optimization | — | When the next run is due | Diagnostic; timestamp |
-| Last Optimization | — | When the last run finished | Diagnostic; timestamp |
-| Heat Pump Action | — | What the plan is doing now: `off`, `eco`, `normal`, `pre_heat` or `boost`, and `comfort` while comfort mode holds | |
-| Optimization Schedule | — | The whole 24 h schedule, in attributes | Diagnostic; not recorded |
-| Upper Floor Temperature | °C | The radiator zone | |
-| Lower Floor Temperature | °C | The slab zone | |
-| Floor Heating Return Temperature | °C | The return-water reading the slab estimate uses | |
-| Solar Heat Gain | kW | Passive solar gain through the windows right now | |
-| Buffer Tank Temperature (Model) | °C | Modelled buffer tank temperature | |
-| DHW Temperature | °C | Tank temperature, with the demand-window state and the learned cooling rate in attributes | |
-| DHW Heating Schedule | — | The whole 24 h of planned hot-water heating periods | Not recorded |
 | DHW Heating Cost (next 24 h) | CUR | Estimated cost of the planned hot water | |
-| Predictive Optimization Insight | — | What the forecast is making the plan do | Diagnostic |
-| ECL110 Displace | °C | The parallel shift commanded to an ECL110 heat curve | Diagnostic; disabled by default; ECL110 hardware |
-| ECL110 Effective Displace | °C | The shift the controller has actually reached, after its own lag | Diagnostic; disabled by default; ECL110 hardware |
-| Space Heating Plan (next 24 h) | — | Planned space-heating slots plus the full-horizon forecast | Backs the card; forecast not recorded |
-| DHW Heating Plan (next 24 h) | — | Planned hot-water slots plus the full-horizon forecast | Backs the card; forecast not recorded |
-| Measured Power | kW | Real electrical draw, with the commanded power alongside | Unavailable until a power or energy entity is configured |
-| Observed COP | — | Efficiency from measurement rather than the nameplate curve | Needs measured power |
-| Space Heating Energy (lifetime) | kWh | Accumulating, for the Energy dashboard | |
-| DHW Energy (lifetime) | kWh | Accumulating, for the Energy dashboard | Renamed from Hot Water Energy by #174; existing installs keep their entity id |
-| Total Energy (lifetime) | kWh | Accumulating, for the Energy dashboard | |
+| Monthly Savings | CUR | Estimated savings for the open month, with the settled and in-progress months in attributes | Unavailable until at least one month row exists |
+| Contract Comparison | CUR/kWh | How far below the month's flat-consumer average the shifting landed; the three settled totals — hourly spot, monthly-average spot, fixed price — ride in attributes | Diagnostic; disabled by default; needs a configured contract comparison |
 | Space Heating Cost (lifetime) | CUR | Accumulating cost | |
 | DHW Cost (lifetime) | CUR | Accumulating cost | Renamed from Hot Water Cost by #174; existing installs keep their entity id |
 | Total Heating Cost (lifetime) | CUR | Accumulating cost | |
-| Prediction Accuracy | °C | Mean indoor-temperature error, with the signed bias and the last diagnosis in attributes | Diagnostic; unavailable until an interval has been scored |
+
+#### The temperatures the optimizer works in
+
+| Sensor | Unit | What it tells you | Notes |
+|---|---|---|---|
+| Indoor Temperature (Optimizer) | °C | Indoor temperature as the optimizer sees it | |
+| Outdoor Temperature (Optimizer) | °C | Outdoor temperature as the optimizer sees it | Falls back to the forecast step the plan is solved on when no outdoor thermometer is configured; the `source` attribute says which |
+| Upper Floor Temperature | °C | The radiator zone | |
+| Lower Floor Temperature | °C | The slab zone | |
+| Floor Heating Return Temperature | °C | The return-water reading the slab estimate uses | |
+| Slab Temperature (Estimated) | °C | Modelled slab temperature | |
+| Buffer Tank Temperature (Model) | °C | Modelled buffer tank temperature | |
+| DHW Temperature | °C | Tank temperature, with the demand-window state and the learned cooling rate in attributes | |
+
+#### Energy, power and efficiency
+
+| Sensor | Unit | What it tells you | Notes |
+|---|---|---|---|
+| Estimated COP | — | Modelled COP at the current outdoor temperature | Follows the Outdoor Temperature sensor below, forecast fallback included |
+| Observed COP | — | Efficiency from measurement rather than the nameplate curve | Needs measured power |
+| Measured Power | kW | Real electrical draw, with the commanded power alongside | Unavailable until a power or energy entity is configured |
+| Space Heating Energy (lifetime) | kWh | Accumulating, for the Energy dashboard | |
+| DHW Energy (lifetime) | kWh | Accumulating, for the Energy dashboard | Renamed from Hot Water Energy by #174; existing installs keep their entity id |
+| Total Energy (lifetime) | kWh | Accumulating, for the Energy dashboard | |
 | Monthly Peak Power | kW | The peak the capacity tariff is billed on, and the headroom left | Unavailable unless the capacity tariff is enabled |
+| Power Headroom | kW | What the house can draw right now without new cost — a number an EV charger's dynamic limit can follow | Unavailable until it can be computed |
+| Compressor Starts | — | Realised starts counted from the meter, immersion events excluded | Diagnostic; needs measured power |
+| Compressor Frequency Advisor | Hz | The frequency the plan's power asks for, from the learned kW-per-Hz map | Diagnostic; disabled by default; needs a compressor frequency entity |
+
+#### The sun, and what the house is storing
+
+| Sensor | Unit | What it tells you | Notes |
+|---|---|---|---|
+| Solar Irradiance | W/m² | The irradiance the plan uses, with the forecast horizon in attributes | Absorbed the former Solar Radiation sensor in v5.0.0 |
+| Solar Heat Gain | kW | Passive solar gain through the windows right now | |
 | Solar Surplus Forecast | kWh | Forecast PV surplus the heat pump could absorb | Unavailable unless PV is enabled |
 | Thermal Battery Charge | % | State of charge of house and tanks against the comfort band | Unavailable when no store is sensed at all; `components[].measured` and `modelled_components` say which stores are estimated |
 | Thermal Battery Energy | kWh | Stored energy available above the comfort floor | Unavailable when no store is sensed at all; `modelled_components` says which are estimated |
-| Comfort Weight | — | The comfort weight in force, learned or configured | Diagnostic |
-| Contract Comparison | CUR/kWh | How far below the month's flat-consumer average the shifting landed; the three settled totals — hourly spot, monthly-average spot, fixed price — ride in attributes | Diagnostic; disabled by default; needs a configured contract comparison |
-| Monthly Savings | CUR | Estimated savings for the open month, with the settled and in-progress months in attributes | Unavailable until at least one month row exists |
-| Power Headroom | kW | What the house can draw right now without new cost — a number an EV charger's dynamic limit can follow | Unavailable until it can be computed |
+
+#### Hot water, beyond the tank temperature
+
+| Sensor | Unit | What it tells you | Notes |
+|---|---|---|---|
 | DHW Setpoint Advisor | °C | The cheapest hot-water setpoint that still covers your heavy days | Diagnostic; unavailable until there is a recommendation |
 | DHW Mixed Water | L | Litres of 40 °C water the tank holds now, with shower minutes alongside | Unavailable without mixed-water data; renamed from Mixed Hot Water by #174 |
 | DHW Heavy Day Demand | kWh | The learned 90th-percentile draw per demand window | Diagnostic; disabled by default; needs weeks of data |
+
+#### How well it is doing, and what it has learned
+
+| Sensor | Unit | What it tells you | Notes |
+|---|---|---|---|
+| Prediction Accuracy | °C | Mean indoor-temperature error, with the signed bias and the last diagnosis in attributes | Diagnostic; unavailable until an interval has been scored |
+| Comfort Weight | — | The comfort weight in force, learned or configured | Diagnostic |
+| ECL110 Displace | °C | The parallel shift commanded to an ECL110 heat curve | Diagnostic; disabled by default; ECL110 hardware |
+| ECL110 Effective Displace | °C | The shift the controller has actually reached, after its own lag | Diagnostic; disabled by default; ECL110 hardware |
 | Valve Target Recommendation | °C | What to set a manual mixing valve to, and why | Diagnostic; disabled by default; needs a mixing-valve mode |
-| Plan Narrative | — | The plan told in sentences, grouped by reason | Card headline |
-| Optimization Score | — | Envelope, machine and operation graded 0–100 | Card headline; unavailable until the scores have evidence |
-| Compressor Starts | — | Realised starts counted from the meter, immersion events excluded | Diagnostic; needs measured power |
-| Compressor Frequency Advisor | Hz | The frequency the plan's power asks for, from the learned kW-per-Hz map | Diagnostic; disabled by default; needs a compressor frequency entity |
 
 Disabled by default: ECL110 Displace, ECL110 Effective Displace, Contract
 Comparison, DHW Heavy Day Demand, Valve Target Recommendation and Compressor
