@@ -46,9 +46,18 @@ n=$(printf '%s' "$body" | grep -oE '\b[0-9]{1,3}(,[0-9]{3})+\b|\b[0-9]+ (of|out 
 [ -n "$n" ] && { say check "figures -- each needs the command that produced it"; printf '%s\n' "$n" | sed 's/^/             /'; }
 
 # 4. The echo-beside-command shape: prints its conclusion whether or not it holds.
-if printf '%s' "$body" | grep -qE ';[[:space:]]*echo .*(identical|clean|empty|untouched|passed|none)'; then
+#    BACKTICKED occurrences are advisory, not a refusal. A body explaining this
+#    very anti-pattern quotes it, and refusing that is an over-fire -- which is
+#    how a check gets disabled, and is what got #581 closed. A BARE occurrence is
+#    a pasted transcript claiming evidence, and that is the thing worth refusing.
+ECHO_SHAPE=';[[:space:]]*echo .*(identical|clean|empty|untouched|passed|none)'
+bare=$(printf '%s' "$body" | sed 's/`[^`]*`//g' | grep -cE "$ECHO_SHAPE")
+quoted=$(printf '%s' "$body" | grep -cE "$ECHO_SHAPE")
+if [ "$bare" -gt 0 ]; then
   say REFUSE "a conclusion echoed after ';' -- it prints either way; use '&& echo'"
   rc=1
+elif [ "$quoted" -gt 0 ]; then
+  say check "the '; echo' shape appears in backticks -- an example, not a claim?"
 fi
 
 [ $rc -eq 0 ] && say clean "no refusal (the 'check' lines above are yours to answer)"
