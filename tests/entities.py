@@ -471,12 +471,24 @@ def _readme_table_rows(heading: str) -> int:
     return max(len(rows) - 1, 0)  # less the header row
 
 
-# Sensors are excluded here: #558 B10 split the section into labelled
-# `####` groups under one `### Sensors` heading, so a row count over the
-# whole heading double-counts each group's own header row (measured: 63
-# rows over 56 sensors + 8 groups - 1). The name-set check below replaces
-# both the count and the row check for sensors; binary sensors and buttons
-# stay single tables, so counting their rows still pins them.
+# Sensors keep the heading count and lose only the ROW count: #558 B10 split
+# the section into labelled `####` groups under one `### Sensors` heading, so a
+# row count over the whole heading double-counts each group's own header row
+# (measured: 63 rows over 56 sensors + 8 groups - 1). The name-set check below
+# subsumes that row count and is strictly stronger -- but it never reads the
+# published number, so dropping this check alongside the row count would leave
+# `### Sensors (N total)` pinned by nothing at all.
+_sensors_n = _platform_counts["sensor"]
+_sensors_heading = _re.search(r"### Sensors \((\d+) total\)", readme)
+R.check(
+    "the README's sensors count is right",
+    _sensors_heading is not None and int(_sensors_heading.group(1)) == _sensors_n,
+    f"README says {_sensors_heading.group(1) if _sensors_heading else '?'}, "
+    f"there are {_sensors_n}",
+)
+
+# Binary sensors and buttons stay single tables, so counting their rows pins
+# them too.
 for _label, _platform, _heading in (
     ("binary sensors", "binary_sensor", "Binary Sensors"),
     ("buttons", "button", "Buttons"),
@@ -561,6 +573,77 @@ R.check(
     "which stops HACS rewriting it and leaves the src blank",
     not _wrapped_img,
     f"wrapped: {_wrapped_img}",
+)
+
+# The two checks above name shapes. This one names the MECHANISM they are
+# instances of, because a rule written as a list of the shapes found so far has
+# already been too narrow twice: `markdownWithRepositoryContext` matches
+# `\[.*?\]\([^#](?!.*?://).*?\)` and then calls `x.replace("(", <prefix>)`,
+# which rewrites the FIRST `(` of the matched span -- not the image's. So a
+# relative-src image reaches a Home Assistant user only when all of these hold,
+# and js-xss blanks or GitHub-blobs it otherwise:
+#
+#   * it is an INLINE `![alt](src)`. The rewriter touches `](...)` and nothing
+#     else, so a reference-style `![alt][ref]` is never rewritten at all.
+#   * the `(` opening its src is the first `(` in the span. A parenthetical
+#     caption -- `![Plan chart (24 hours)](docs/img/plan.svg)` -- takes the
+#     rewrite instead, and every rule the previous carry stated is still obeyed.
+#   * the span carries no `.md`/`.markdown`. `showGitHubWeb` tests the whole
+#     span, and flips the rewrite to `github.com/<repo>/blob/...`, which serves
+#     `text/html` inside an `<img src>`.
+#   * no `://` follows on the line. The negative lookahead scans to end of
+#     line, not to the end of the link.
+#   * the alt text does not wrap. The regex is built without the `s` flag.
+#
+# None of it is visible on GitHub, which is where it would otherwise be
+# reviewed. Measured 2026-09-07 against marked 15.0.4 + xss 1.0.15 -- the
+# versions hacs/frontend pins -- by rendering each shape and its minimal pair
+# through a transcription of the two upstream modules.
+#
+# Two scope choices, stated so the next seat does not read them as bugs. The
+# population is the image's OWN src, not the link target: the
+# `[![License: MIT](https://img.shields.io/...)](LICENSE)` badge is a real and
+# still-unfixed defect -- a relative link target mangles the img src -- but its
+# src is absolute, so it falls outside this check rather than being allowlisted
+# through it. And a reference-style image is refused even though one with an
+# absolute target does render (measured), because every image here is inline
+# and "write it inline" is always the available repair.
+_INLINE_IMG = _re.compile(r"!\[((?:[^\n]|\n(?![ \t]*\n))*?)\]\(")
+_prose = _re.sub(r"^```.*?^```", "", readme, flags=_re.M | _re.S)
+_img_offences = []
+_inline_at = set()
+for _m in _INLINE_IMG.finditer(_prose):
+    _inline_at.add(_m.start())
+    _alt = _m.group(1)
+    _src = _re.match(r"[^)\s]*", _prose[_m.end():]).group(0)
+    if _re.match(r"[a-z][a-z0-9+.-]*://", _src, _re.I):
+        continue  # absolute: never rewritten, so never blanked
+    _close = _prose.find(")", _m.end())
+    _span = _prose[_m.start():_close + 1]
+    _eol = _prose.find("\n", _close)
+    _tail = _prose[_m.end():_eol if _eol != -1 else len(_prose)]
+    if "\n" in _alt:
+        _why = "its alt text wraps across lines"
+    elif "(" in _alt:
+        _why = "a '(' in its alt text takes the rewrite instead of its src"
+    elif ".md" in _span.lower() or ".markdown" in _span.lower():
+        _why = "'.md' in the span sends the rewrite to github.com/blob"
+    elif "://" in _tail:
+        _why = "a later '://' on the line fails the rewriter's lookahead"
+    else:
+        continue
+    _img_offences.append((_src, _why))
+_img_offences += [
+    (_prose[_m.start():_m.start() + 40].replace("\n", " "),
+     "not an inline ![alt](src), so HACS never rewrites it")
+    for _m in _re.finditer(r"!\[", _prose)
+    if _m.start() not in _inline_at
+]
+R.check(
+    "every relative README image survives HACS's rewriter: inline, the src's "
+    "own '(' first in the span, no '.md' in the span, no later '://' on the line",
+    not _img_offences,
+    f"{len(_img_offences)} offence(s): {_img_offences}",
 )
 
 # The sensor table is split into labelled `####` groups (#558 B10), so a count

@@ -334,7 +334,7 @@ Every field and its range is documented in
 
 ### Your first week
 
-- **Immediately.** All 69 entities appear and the first plan is solved within one
+- **Immediately.** All 70 entities appear and the first plan is solved within one
   optimization interval (30 minutes by default). Add the dashboard card and you
   can see what it intends to do.
 - **Day one.** If you want the commissioning step test, first switch on *Allow a

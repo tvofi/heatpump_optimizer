@@ -88,33 +88,58 @@ What this binds:
   Home Assistant user is an image. `docs/*.md` is not rendered by HACS at all,
   so a mermaid figure there is a GitHub-only figure — legitimate, but state
   which audience it serves.
-- **Reference every image as single-line markdown, never raw HTML — but that
-  is necessary, not sufficient (corrected by #567's fix review, which
-  measured the two gaps below).** js-xss blanks any `src` that is not
-  absolute or `/`-, `./`-, `../`-rooted, and HACS's
-  `markdownWithRepositoryContext` rewrites markdown `[..](..)` links only,
-  never an HTML `src=`. Its link regex, `\[.*?\]\([^#](?!.*?:\/\/).*?\)`, is
-  also built without the `s` flag, so an `![alt](path)` whose alt text
-  **wraps across lines** is left un-rewritten and then blanked too.
-  `tests/entities.py` pins that case.
-  - **The negative lookahead `(?!.*?:\/\/)` scans the rest of the line, not
-    the link.** A line carrying a relative image *and* an absolute URL
-    anywhere after it — a trailing "see `<url>`", an adjacent absolute link —
-    fails the lookahead, is never rewritten, and js-xss blanks it exactly as
-    if it had been raw HTML. Control (measured against marked 15.0.4 + xss
-    1.0.15): `![x](docs/img/x.svg) see https://example.com` → blank `src`;
-    the identical image alone on its line → rewritten, survives. **An
-    image's line may carry no other `://`.**
-  - **A linked image (`[![alt](img)](target)`) has its *first* `(`
-    rewritten, so a relative `target` mangles the image's own `src` and
-    leaves `<a href>` empty.** This is the live, pre-existing `(LICENSE)`
-    badge defect — byte-identical at #567's merge base and head, so #567
-    neither introduced nor fixed it. Control:
-    `[![License: MIT](https://img.shields.io/badge/...)](LICENSE)` (relative
-    target) renders with a blank image inside a dead link, while
-    `[![HACS](https://img.shields.io/badge/...)](https://hacs.xyz)`
-    (absolute target) is fine. Not yet pinned; needs its own lane-B item.
-  Neither of these two failures is visible on GitHub.
+- **A README image must survive HACS's rewriter, and the rule below is the
+  rewriter's *behaviour*, not a list of the shapes that have broken so far.**
+  This constraint has been carried three times and stated too narrowly twice;
+  each restatement enumerated the shapes then known, and each time an ordinary
+  construct obeying every listed rule still shipped blank. So read the
+  mechanism and derive your own case, rather than matching your figure against
+  the examples.
+
+  Two lines of `markdownWithRepositoryContext` produce all of it. It matches
+  `\[.*?\]\([^#](?!.*?:\/\/).*?\)` and then calls `x.replace("(", <prefix>)`,
+  which rewrites **the first `(` of the matched span** — not the image's; and
+  `showGitHubWeb` tests **the whole span** for `.md`. Whatever is left relative
+  is then blanked by js-xss, which keeps a `src` only if it is absolute or
+  `/`-, `./`-, `../`-rooted. A relative-src image therefore reaches a Home
+  Assistant user only when **all** of the following hold:
+
+  - **It is an inline `![alt](src)`.** The rewriter touches `](…)` and nothing
+    else, so a reference-style `![alt][ref]` and an HTML `<img src=>` are never
+    rewritten at all. Control: `![m][r]` with `[r]: docs/img/a.svg` → blank;
+    the same with an absolute `[r]:` → renders.
+  - **The `(` opening its `src` is the first `(` in the span.** A parenthetical
+    caption takes the rewrite instead — and this is the case every earlier
+    statement of this bullet permitted. Control, a minimal pair:
+    `![Plan chart (24 hours)](docs/img/plan.svg)` → blank `src`, while
+    `![Plan chart 24 hours](docs/img/plan.svg)` → rewritten and survives.
+    The same clause explains the linked-image case: in
+    `[![License: MIT](https://img.shields.io/…)](LICENSE)` the span's first `(`
+    *is* the image's own, so the badge collects the prefix and its `src`
+    becomes `raw.githubusercontent.com/…/https://img.shields.io/…`. That badge
+    is live and still unfixed; it needs its own lane-B item.
+  - **The span carries no `.md`/`.markdown`.** The rewrite flips to
+    `github.com/<repo>/blob/…`, which serves `content-type=text/html` inside an
+    `<img src>` — broken rather than blank, and the lesser failure of the two.
+    Control: `![Module map — see docs/architecture.md](docs/img/arch.svg)` →
+    `github.com/…/blob/…`; the same alt without the `.md` →
+    `raw.githubusercontent.com/…`. Scoped to the **span**, not the line: an
+    image sharing its line with a `[docs/architecture.md](docs/architecture.md)`
+    link is fine, because that link is a separate match.
+  - **No `://` follows on the line.** The negative lookahead scans to the end
+    of the line rather than to the end of the link, so a trailing "see `<url>`"
+    — or an absolute link *target* wrapped around the image — leaves it
+    un-rewritten. Control: `![x](docs/img/x.svg) see https://example.com` →
+    blank; the identical image alone on its line → survives.
+  - **The alt text does not wrap.** The regex is built without the `s` flag.
+
+  None of these is visible on GitHub, which is where a figure is reviewed.
+  `tests/entities.py` now **executes** the whole rule rather than describing
+  it, scoped on the image's own `src` being relative — which is why the
+  `(LICENSE)` badge, whose `src` is absolute, falls outside the population
+  instead of needing an allowlist. Re-measure rather than quote: the pipeline
+  is two upstream repositories, and this was measured on 2026-09-07 against
+  marked 15.0.4 + xss 1.0.15.
 - **B12 should land after C1-C4.** A hero generated from the card's own renderer
   bakes in whatever the card looks like that day, and today that includes C2's
   colliding time-axis end labels and C1's low-contrast lane labels — both are
@@ -558,13 +583,25 @@ until `closure.py` names it, and `closure.py` is a `GATE_FILE`: classifying it
 would force `MODE: FULL` on every documentation branch that touched the list.
 
 **Still unfixed, and outside every lane item so far:** the `[![License: MIT]…](LICENSE)`
-badge. `markdownWithRepositoryContext` rewrites a link target with no `.md`
-extension against `raw.githubusercontent.com`, and the badge comes out of the
-HACS pipeline as
+badge. Its cause is the "first `(` of the matched span" clause above, not — as
+this paragraph said until #567's second review — a rule about link targets and
+`.md` extensions: the span the rewriter matches runs from the wrapping `[` to
+the *image's* closing `)`, so the first `(` in it is the image's own, and the
+badge comes out of the HACS pipeline as
 `src="https://raw.githubusercontent.com/tvofi/heatpump_optimizer/6.3.17/https://img.shields.io/badge/License-MIT-green.svg"`
-— so the badge image itself does not load, not merely its link. Reproduced on
-2026-09-07 by rendering `README.md` through the pipeline. It needs a lane-B
-item; it is not one today.
+— so the badge image itself does not load, not merely its link. Control: the
+same badge with an **absolute** target renders correctly, so it is the relative
+target that pulls the whole construct into one span. Reproduced on 2026-09-07
+by rendering `README.md` through the pipeline. It needs a lane-B item; it is
+not one today. A relative target also leaves the `<a>` with no `href` at all
+(measured), which is a second, smaller defect on the same construct.
+
+**Also stale, and also nobody's item:** `docs/architecture.md`'s outputs node
+still reads `65 entities / 55 sensors, 4 binary sensors, 4 buttons, 1 switch,
+1 climate`. It predates this programme (v5.1.0, #69), it is wrong at
+`origin/main` today, and no check reads it — `tests/entities.py`'s census
+covers `README.md` only. Extending that census to the architecture figure is
+the obvious repair and is a lane-B item, not a side-effect of one.
 
 **Delivery-status row.** PR #567 (B1–B5) adds the `| UX |` row to the table
 above and its own section; this PR carries B6–B11 and deliberately does not add
