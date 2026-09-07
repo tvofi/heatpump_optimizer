@@ -5912,7 +5912,7 @@ R.check(
 # signal the forecast produced rides alongside it, unwatched by golden.py
 # (which records ``_build_data_dict()``, one layer upstream) or the card.
 #
-# Re-anchored from ``tools/audit/round2/D3/verify3-assertions.patch``
+# Re-anchored from ``round2/D3/verify3-assertions.patch`` at ``d5d8c4a``
 # (seat 3's assertion, committed against the finding) rather than written
 # fresh -- the file has moved a great deal since that patch was cut, most
 # of it the #373/#384 roster this now sits beside. Panel-corrected count:

@@ -24,7 +24,7 @@
 //   /audit-wave with args {groups: [{group: "B3", issues: [168, 169], fixerModel: "opus", reviewerModel: "opus", after: []}, {group: "B4", issues: [170], fixerModel: "sonnet", reviewerModel: "opus", after: ["B3"]}], repo: "<abs path>", baseline: "<sha>"}
 export const meta = {
   name: 'audit-wave',
-  description: 'Fix and adversarially review many PR groups in parallel, honoring after-dependencies; merges stay a separate /audit-merge per PR',
+  description: 'RETIRED: Fix and adversarially review many PR groups in parallel, honoring after-dependencies; merges stay a separate /audit-merge per PR',
   phases: ['Fix and review'],
 }
 

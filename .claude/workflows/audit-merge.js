@@ -4,7 +4,7 @@
 //   /audit-merge with args {pr: 165, bump: "patch", title: "the closures lane and the stamp", repo: "<abs path>"}
 export const meta = {
   name: 'audit-merge',
-  description: 'Merge one reviewed PR, wait for the unscoped main gate, stamp and tag with tools/release/stamp.py',
+  description: 'RETIRED: Merge one reviewed PR, wait for the unscoped main gate, stamp and tag with tools/release/stamp.py',
   phases: ['Merge', 'Wait for main', 'Stamp'],
 }
 const { pr, bump = 'patch', title, repo } = args ?? {}

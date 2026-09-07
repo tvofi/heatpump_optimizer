@@ -7,7 +7,7 @@
 //   /audit-fix with args {group: "B3", issues: [168, 169], repo: "<abs path>", baseline: "<sha>", fixerModel: "opus", reviewerModel: "opus", effort: "high"}
 export const meta = {
   name: 'audit-fix',
-  description: 'Implement one PR group under the fix protocol, then review it adversarially',
+  description: 'RETIRED: Implement one PR group under the fix protocol, then review it adversarially',
   phases: ['Fix', 'Review'],
 }
 const { group, issues = [], repo, baseline, fixerModel = 'opus', reviewerModel = 'opus', effort = 'high' } = args ?? {}

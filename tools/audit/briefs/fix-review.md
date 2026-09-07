@@ -31,13 +31,13 @@ its bug. You are checking that the numbers are real.
 9. **When the finding has no committed harness, that is itself a finding.**
    Step 2 assumes one exists to measure with; twice it has not. #373's
    instrument was a shell `grep` in the issue's own body, nothing at tag
-   `audit-round2-evidence`; #258's proximity probe and #290's `j5_gil.py`
-   exist only inside judge comments and must be recreated from there. A
-   fixer who builds their own instrument in that case must disclose it as
-   its own construction, not the finder's, and you say the same in your
-   verdict if you had to build one to check the fix. Read the finding's own
-   judge ruling first — #290's brief still prescribes a harness its judge
-   already refused.
+   `audit-round2-evidence`; #258's proximity probe exists only inside a judge
+   comment and must be recreated from there. #290's no longer does: W3-G3
+   committed it, and `tools/audit/harnesses/j5_gil.py` is it. A fixer who
+   builds their own instrument must disclose it as their own construction, not
+   the finder's, and you say the same if you had to build one to check the fix.
+   Read the finding's own judge ruling first — #290's brief still prescribes a
+   harness its judge already refused.
 
 10. **Check the forward-carry before you return `merge`.** If the fixer's work
     produced a finding that changes how a later stage must work — a technique

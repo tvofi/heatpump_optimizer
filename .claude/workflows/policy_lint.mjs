@@ -338,7 +338,6 @@ const CORPUS_EXCLUDED = new Set([
   'docs/plan-2026-09-open-issues.md', // plan of record
   'DISCLAIMER.md',                    // user-facing, same ground as README.md
   'docs/backlog.md',                  // superseded record, kept for history
-  'tools/audit/round2/HARNESSES.md',  // write-once round-2 evidence
 ])
 
 // Widening the scan past `.md` brought in every `.txt` a policy file cites, and
@@ -358,10 +357,7 @@ const CORPUS_EXCLUDED = new Set([
 // none -- the healthy tree stays at TOTAL 0 with every fixture pin intact.
 const CORPUS_EXCLUDED_PREFIX = [
   'tests/',                            // suite data: fixtures, claim files, requirements
-  'tools/audit/round1/',               // write-once evidence
-  'tools/audit/round2/',
-  'tools/audit/round3/',
-  'tools/audit/w5-g5-195-coverage/',
+  'tools/audit/w5-g5-195-coverage/',   // wave-5 evidence, kept until that wave closes
 ]
 
 // A SECOND, DIFFERENT KIND OF EXCLUSION, and it must not be folded into the
@@ -403,8 +399,6 @@ const NOT_A_DOCUMENT = new Set([
   'json',
   'log',
   'mjs',
-  'out',
-  'patch',
   'png',
   'py',
   'sh',
@@ -1897,6 +1891,25 @@ function assertAcceptance(derived) {
   const treeExts = new Set(trackedFiles().list
     .map((f) => (f.includes('.') ? f.split('.').pop().toLowerCase() : ''))
     .filter(Boolean))
+  // AND THE TWO EXCLUSION LISTS, which had no such assertion at all. An entry
+  // naming a file the tree no longer has is not merely untidy: it is a standing
+  // hole, because a FUTURE file written at that exact path is excluded from the
+  // corpus with no diff to this file for a reviewer to see. This branch is what
+  // made the case live -- it deletes `tools/audit/round2/HARNESSES.md` and the
+  // three round trees, so without the assertion four entries would have stayed
+  // here naming nothing, and `round2/HARNESSES.md` would have become a
+  // ready-made destination for prose leaving every cap at once.
+  pins += 1
+  const { set: liveTree, list: liveList } = trackedFiles()
+  const deadExcluded = [
+    ...[...CORPUS_EXCLUDED].filter((f) => !liveTree.has(f)),
+    ...CORPUS_EXCLUDED_PREFIX.filter((p) => !liveList.some((f) => f.startsWith(p))),
+  ]
+  if (deadExcluded.length) {
+    console.log(`\nFIXTURE VACUOUS: ${JSON.stringify(deadExcluded)} in CORPUS_EXCLUDED or CORPUS_EXCLUDED_PREFIX match no tracked file. An exclusion that names nothing is a destination waiting to be used: a file written there later leaves every cap with no diff to this file.`)
+    return 1
+  }
+
   const deadWeight = [...NOT_A_DOCUMENT].filter((e) => !treeExts.has(e))
   if (deadWeight.length) {
     console.log(`\nFIXTURE VACUOUS: NOT_A_DOCUMENT lists ${deadWeight.length} extensions no tracked file has (${deadWeight.slice(0, 6).join(', ')}...). A blocklist that is not bounded by the tree is an allowlist wearing a different name.`)

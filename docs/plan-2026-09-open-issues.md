@@ -68,7 +68,7 @@ Where this table and a wave body disagree, this table is the truth.
 ### The UX programme (#558) — what B1 measured, and what it binds
 
 Lane B's first item asked a question this repository's own records left open
-(`tools/audit/round2/D5/REPORT.md`, "Whether HACS's in-app README view renders
+(`round2/D5/REPORT.md` at `d5d8c4a`, "Whether HACS's in-app README view renders
 mermaid was not checked"). It is answered, by execution rather than argument,
 and the answer constrains every later item that adds a figure.
 
@@ -517,11 +517,11 @@ for the stored-value arm, and the capture work is in flight.
 
 Twelve PRs merged in sequence, `main` green after each, ending at `841fe0f`: #383 (W1-G1, #369 #370), #385 (W1-G10, #247 #248 #249 #250 #251 #252), #396 (truth-up), #384 (W1-G4, #373), #386 (W1-G5, #334), #397 (W1-G3, #372 #357), #399 (the #387 coverage-floor backstop), #402 (W1-G11, #246 #251 #395), #407 (operational docs), #409 (the ratchet-raise policy), #410 (the claim priority), #406 (W1-G2, #350 #374). **Released**: `v6.3.12` is tagged at `84a27b6f21690edcd340c6d74ff303c8e0774180`, now `origin/main`.
 
-Half II (`.claude/workflows/wave-1b-groups.json`) started 2026-09-04 and completed 2026-09-05. **Released**: `v6.3.13` tagged at `f94ae13a75ed58ab53b70b5dbb13786c1c081a4c`, 2026-09-05. Eight fixer groups merged in sequence, `main` green after each; record PR #433 at `3bcea26`, inherited-card-claims fix `7044a27`, then stamp. Merge SHAs in the roster's `resume.merge_sha` fields. Record/tooling since v6.3.12: #414/#398, #415, #417, #418, #416/#411 (Wave 2 prerequisite), #420 (stress closure 64→22), #426 (W2-G2 citation re-anchor), #413 (brief corrections, W1-G16 added).
+Half II (`wave-1b-groups.json`, archived at `d5d8c4a`) started 2026-09-04 and completed 2026-09-05. **Released**: `v6.3.13` tagged at `f94ae13a75ed58ab53b70b5dbb13786c1c081a4c`, 2026-09-05. Eight fixer groups merged in sequence, `main` green after each; record PR #433 at `3bcea26`, inherited-card-claims fix `7044a27`, then stamp. Merge SHAs in the roster's `resume.merge_sha` fields. Record/tooling since v6.3.12: #414/#398, #415, #417, #418, #416/#411 (Wave 2 prerequisite), #420 (stress closure 64→22), #426 (W2-G2 citation re-anchor), #413 (brief corrections, W1-G16 added).
 
-Wave 2 (`.claude/workflows/wave-2-groups.json`) forked at `f94ae13` and completed 2026-09-05. **Released**: `v6.3.14` tagged at `ef539bec138392217bce7d51c96e4c49d0e456c2`, 2026-09-05. Seven fixer groups merged in sequence, `main` green after each; record PR #450 at `6cc3318`, then stamp. Merge SHAs in the roster's `resume.merge_sha` fields. Record/tooling since v6.3.13 stamp: #434, #435, #439, #442, #443, #446, #448, #450.
+Wave 2 (`wave-2-groups.json`, archived at `d5d8c4a`) forked at `f94ae13` and completed 2026-09-05. **Released**: `v6.3.14` tagged at `ef539bec138392217bce7d51c96e4c49d0e456c2`, 2026-09-05. Seven fixer groups merged in sequence, `main` green after each; record PR #450 at `6cc3318`, then stamp. Merge SHAs in the roster's `resume.merge_sha` fields. Record/tooling since v6.3.13 stamp: #434, #435, #439, #442, #443, #446, #448, #450.
 
-Wave 3 (`.claude/workflows/wave-3-groups.json`) forked at `ef539be` and completed 2026-09-06. **Released**: `v6.3.15` tagged at `f0866c8e5600902276fd0fb32e3e1d5f64f0a0c2`, 2026-09-06. Three fixer groups merged in sequence, `main` green after each; record PR #468 at `7f5b674`, then stamp. Merge SHAs in the roster's `resume.merge_sha` fields. Record/tooling since v6.3.14 stamp: #452, #458, #459, #468, #469. Unstamped #451 from v6.3.14 included in this stamp.
+Wave 3 (`wave-3-groups.json`, archived at `d5d8c4a`) forked at `ef539be` and completed 2026-09-06. **Released**: `v6.3.15` tagged at `f0866c8e5600902276fd0fb32e3e1d5f64f0a0c2`, 2026-09-06. Three fixer groups merged in sequence, `main` green after each; record PR #468 at `7f5b674`, then stamp. Merge SHAs in the roster's `resume.merge_sha` fields. Record/tooling since v6.3.14 stamp: #452, #458, #459, #468, #469. Unstamped #451 from v6.3.14 included in this stamp.
 
 ### The #387 blocker, 2026-09-04
 
@@ -838,12 +838,14 @@ So that an aborted session loses nothing:
 | a merge that settles a decision, corrects the record or leaves work owed | `docs/HANDOVER.md`, in that merge's own PR |
 | stand-down | a #201 comment — running seats, unpushed branches, next action. Durable state is already in `docs/HANDOVER.md` and is not repeated |
 
-The per-group briefs are committed too, not only the wave tables above:
-`.claude/workflows/wave-1b-groups.json` holds all fourteen Wave 1b groups as
-`web-fix-wave.js` consumes them, cut from the same fork. They are worth reading
-before re-deriving anything, because several exist only to stop a fixer redoing
-work a judge already refuted — W1-G13 names the measured fix for #258 and the
-harness that must not be used to check it. Wave 3L is `.claude/workflows/wave-3l-groups.json`.
+The per-group briefs are committed too, not only the wave tables above.
+The Wave 1b, 2 and 3 rosters closed every group and were archived out of the
+tree; they are at `d5d8c4a` (`git show
+d5d8c4a:.claude/workflows/wave-1b-groups.json`), and they are
+still worth reading before re-deriving anything, because several groups exist
+only to stop a fixer redoing work a judge already refuted — W1-G13 names the
+measured fix for #258 and the harness that must not be used to check it.
+Wave 3L is `.claude/workflows/wave-3l-groups.json`.
 Wave 4 is `.claude/workflows/wave-4-groups.json` and Wave 5 is
 `.claude/workflows/wave-5-groups.json`. Each group's `resume.stage` says where that
 group stands and carries the merge SHA when it has landed; read that field rather
