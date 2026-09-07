@@ -2562,6 +2562,260 @@ async def options_cross_page_save_scope():
         )
 
 
+
+
+# ---------------------------------------------------------------------------
+# #223: the settings registry, and the invariants it makes structural.
+#
+# Every list below is DERIVED -- pages from ``_MENU_LABELS``, fields from the
+# rendered schema -- so a page the registry gains is covered without anyone
+# remembering it. That is the property the two witnesses above lack: their
+# hand-written page lists are why #542 lived, and their union still does not
+# reach ``entities_pump``.
+#
+# The walks here go through ``_presented_fields``, which recurses into a
+# ``section()``. A one-level walk does not FAIL on a grouped page, it silently
+# stops asserting -- the same shape as a fixture that moves once and then goes
+# quiet -- so the recursion is proved below against a synthetically grouped
+# page, with the null control that an ungrouped page gains nothing.
+# ---------------------------------------------------------------------------
+
+#: The wood block is the only ``when``-gated block in the registry, and it is
+#: revealed by this toggle. Seeded so the pages below cover those rows too;
+#: without it eight of the building page's fields never render and the
+#: assertions pass over a smaller tree than the flow really has.
+REGISTRY_SEED = {const.CONF_WOOD_FURNACE_ENABLED: True}
+
+
+def bare_options(pre_options=None):
+    """An options flow over an entry with NO setup data at all.
+
+    ``fresh_options`` seeds ``BASE_ENTRY_DATA``, which already configures
+    ``indoor_temp_entity`` and ``heat_pump_switch_entity`` -- so those two
+    render defaulted there, and "offered undefaulted" would classify them as
+    ordinary fields. The empty arm is only observable on an entry that
+    genuinely holds nothing.
+    """
+    flow = config_flow.HeatPumpOptimizerOptionsFlow(
+        FakeEntry(data={}, options=dict(pre_options or {}))
+    )
+    flow.hass = FakeHass()
+    return flow
+
+
+def offered_entity_fields(result):
+    """``{key: default}`` for every entity picker a rendered page offers.
+
+    ``NO_DEFAULT`` where the marker has none: voluptuous parks an UNDEFINED
+    sentinel there, which is not callable, and that is exactly the difference
+    between the two arms of the registry's ``_STORED`` rule.
+    """
+    out = {}
+    for marker, value in _presented_fields(result.get("data_schema")):
+        if type(value).__name__ != "EntitySelector":
+            continue
+        default = getattr(marker, "default", None)
+        out[str(getattr(marker, "schema", marker))] = (
+            default() if callable(default) else NO_DEFAULT
+        )
+    return out
+
+
+def rendered_keys(result):
+    """Every option key a rendered page presents, section nesting included."""
+    schema = result.get("data_schema")
+    return {
+        str(getattr(marker, "schema", marker))
+        for marker, _value in _presented_fields(schema)
+    } - {const.CONF_AFTER_SAVE}
+
+
+async def registry_drives_every_page():
+    """#223: one table decides which fields a page has and which menu shows it.
+
+    Three declarations that used to be three hand-kept copies of one fact --
+    the page's markers, its clearable keys, and its menu membership -- and one
+    of them was wrong at the merge base without anything failing.
+    """
+    R.section("options: the settings registry drives every page (#223)")
+    Flow = config_flow.HeatPumpOptimizerOptionsFlow
+    pages = list(Flow._MENU_LABELS)
+    rows = getattr(config_flow, "_OPTION_FIELDS", ())
+    dynamic_rule = getattr(config_flow, "_DYNAMIC", None)
+
+    # The table against the code. Deriving the two menus from one column made
+    # "the menus partition the pages" true by construction, so the invariant
+    # with teeth is now this one: a page in the table with no handler, or a
+    # handler no menu offers, is unreachable either way.
+    handlers = {
+        name[len("async_step_") :]
+        for name in dir(Flow)
+        if name.startswith("async_step_")
+    } - {"init", "advanced"}
+    check(
+        "registry",
+        "happy",
+        "the page table and the step handlers describe the same pages",
+        handlers == set(pages) and len(pages) > 1,
+        f"listed with no handler {sorted(set(pages) - handlers)}, "
+        f"handled but unlisted {sorted(handlers - set(pages))}",
+    )
+
+    undeclared = {}
+    unrendered = {}
+    for page in pages:
+        flow = bare_options(REGISTRY_SEED)
+        form = await getattr(flow, f"async_step_{page}")(None)
+        rendered = rendered_keys(form)
+        declared = {row.key for row in rows if row.step == page}
+        declared.discard("")
+        for row in rows:
+            if row.step != page or row.default is not dynamic_rule:
+                continue
+            # A block a callable builds is still declared BY the table; its
+            # keys are read from the builder, not from the page, or this
+            # check would be comparing the page with itself.
+            declared |= {
+                str(getattr(marker, "schema", marker))
+                for marker in row.widget(dict(REGISTRY_SEED))
+            }
+        if rendered - declared:
+            undeclared[page] = sorted(rendered - declared)
+        if declared - rendered:
+            unrendered[page] = sorted(declared - rendered)
+    check(
+        "registry",
+        "happy",
+        "every field every page renders is a registry row for that page",
+        not undeclared and not unrendered,
+        f"rendered but not declared {undeclared}, declared but not rendered {unrendered}",
+    )
+
+    # The clearable roster. At the merge base this was a hand-kept tuple that
+    # named ``away_return_entity`` -- a key no option page has ever offered --
+    # and nothing failed, because its only reader is a seven-key hand list
+    # that does not mention it.
+    two_armed = {}
+    for page in pages:
+        flow = bare_options(REGISTRY_SEED)
+        offered = offered_entity_fields(await getattr(flow, f"async_step_{page}")(None))
+        for key, default in offered.items():
+            if default is NO_DEFAULT:
+                two_armed.setdefault(key, []).append(page)
+    roster = set(Flow._OPTIONAL_ENTITY_KEYS)
+    check(
+        "registry",
+        "happy",
+        "the clearable roster is exactly the slots some page offers undefaulted",
+        roster == set(two_armed) and len(two_armed) > 1,
+        f"named but never offered {sorted(roster - set(two_armed))}, "
+        f"offered but not named {sorted(set(two_armed) - roster)}",
+    )
+
+    # Both arms, on every page rather than on the ten the two hand-written
+    # witnesses reach between them. A registry that attached a default to
+    # every field would pass the second half and fail the first.
+    per_page = {}
+    for key, owners in two_armed.items():
+        for page in owners:
+            per_page.setdefault(page, {})[key] = f"sensor.registry_{key}"
+    not_carried = {}
+    for page, stored in sorted(per_page.items()):
+        flow = bare_options({**REGISTRY_SEED, **stored})
+        rendered = offered_entity_fields(
+            await getattr(flow, f"async_step_{page}")(None)
+        )
+        wrong = {k: rendered.get(k) for k, v in stored.items() if rendered.get(k) != v}
+        if wrong:
+            not_carried[page] = wrong
+    check(
+        "registry",
+        "happy",
+        "and every one of them re-renders its stored value as that field's default",
+        not not_carried and len(per_page) > 1,
+        f"{len(per_page)} page(s) carry a two-armed slot; wrong: {not_carried}",
+    )
+
+
+async def registry_walk_recurses():
+    """The registry's own walk survives a grouped page (#568's precondition).
+
+    ``section()`` nests the form without renaming the option keys, so a
+    one-level walk over a grouped page returns nothing and every assertion
+    built on it passes vacuously. Nothing in this branch groups a page -- the
+    assertion layer still holds one-level walks that would go quiet -- but the
+    checks added here are written recursive, and a recursion nobody has seen
+    fail is a claim rather than a mechanism.
+    """
+    R.section("options: the registry walk reaches fields inside a section()")
+    flow = bare_options(REGISTRY_SEED)
+    flat = (await flow.async_step_entities_pump(None)).get("data_schema")
+    inner = dict(flat.schema)
+
+    def grouped(fields):
+        """The grouping and nothing else: the same fields, one section."""
+        return {
+            "data_schema": vol.Schema(
+                {
+                    vol.Required("pump_signals"): section(
+                        vol.Schema(fields), {"collapsed": True}
+                    )
+                }
+            )
+        }
+
+    flat_fields = offered_entity_fields({"data_schema": flat})
+    # Named rather than counted, so the check cannot go vacuous on a page
+    # that stopped rendering its pickers: an empty set equals an empty set.
+    signals = {
+        const.CONF_HEAT_PUMP_MODE_ENTITY,
+        const.CONF_HEAT_PUMP_DEFROST_ENTITY,
+        const.CONF_HEAT_PUMP_ONLINE_ENTITY,
+        const.CONF_HEAT_PUMP_FAULT_ENTITY,
+    }
+    check(
+        "registry",
+        "happy",
+        "the four pump signals are reached through a section() too",
+        set(offered_entity_fields(grouped(inner))) == signals
+        and set(flat_fields) == signals,
+        f"flat {sorted(flat_fields)}, "
+        f"grouped {sorted(offered_entity_fields(grouped(inner)))}",
+    )
+
+    # The mutation an ungrouped page catches, still caught after grouping.
+    dropped = const.CONF_HEAT_PUMP_FAULT_ENTITY
+    minus = {
+        marker: value
+        for marker, value in inner.items()
+        if str(getattr(marker, "schema", marker)) != dropped
+    }
+    check(
+        "registry",
+        "happy",
+        "a field removed from inside the section leaves the walk's result",
+        set(offered_entity_fields(grouped(minus))) == signals - {dropped},
+        f"still reached: {sorted(offered_entity_fields(grouped(minus)))}",
+    )
+
+    # The over-fire control. #568's first recursion matched ordinary
+    # selectors as well as sections, which gave 411 markers a nested key and
+    # broke the committed fixture; here the same fault would report fields
+    # that are not entity pickers, or report them twice.
+    one_level = {
+        str(getattr(marker, "schema", marker))
+        for marker, value in flat.schema.items()
+        if type(value).__name__ == "EntitySelector"
+    }
+    check(
+        "registry",
+        "happy",
+        "and an ungrouped page reaches exactly what one level reaches",
+        set(flat_fields) == one_level and bool(one_level),
+        f"recursive {sorted(flat_fields)}, one level {sorted(one_level)}",
+    )
+
+
 # ---------------------------------------------------------------------------
 # #304: the widening machinery's refusals.
 #
@@ -3136,6 +3390,8 @@ async def main() -> int:
     await options_error_branches()
     await options_seeded_prefill()
     await options_cross_page_save_scope()
+    await registry_drives_every_page()
+    await registry_walk_recurses()
     await widening_refusals()
     await menu_label_translations()
     await reconfigure_flow()
