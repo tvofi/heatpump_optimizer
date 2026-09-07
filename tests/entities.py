@@ -8749,6 +8749,245 @@ R.check(
     f"status={_inh_status} solver={_inh_solver!r} card={_inh_card!r}",
 )
 
+# --- the claim-file merge driver -------------------------------------------
+#
+# Every branch writes its own note into both claim files at the same place, so
+# every branch that merges main after another one merged conflicts in both --
+# five branches and ten conflicts in the session that built this, and the hand
+# resolution was identical every time. Notes are comment lines and assert
+# nothing, so they union. A bare claim line does not: it excuses a golden diff.
+# Unioning two lists reinstates a claim this branch deleted, and
+# `inherited_claims_error` cannot see it, because the unioned list is no longer
+# exactly the baseline's -- `_CM_UNION_IS_SILENT` below measures that. So the
+# driver unions comments and REFUSES a claim list both sides rewrote.
+_CM_BASE = (
+    "# Scenarios this branch deliberately moves, one name per line.\n"
+    "#\n"
+    "# claims-for: 6.3.16\n"
+    "#\n"
+    "# #514: this branch claims NOTHING. Workflow and comment text only.\n"
+    "\n"
+    "# may-drift: wood_coil -- machine-sensitive\n"
+)
+_CM_OURS = (
+    "# Scenarios this branch deliberately moves, one name per line.\n"
+    "#\n"
+    "# claims-for: 6.3.16\n"
+    "#\n"
+    "# #514: this branch claims NOTHING. Workflow and comment text only.\n"
+    "#\n"
+    "# #541: this branch claims NOTHING. Gate tooling only.\n"
+    "\n"
+    "# may-drift: wood_coil -- machine-sensitive\n"
+)
+_CM_THEIRS = (
+    "# Scenarios this branch deliberately moves, one name per line.\n"
+    "#\n"
+    "# claims-for: 6.3.16\n"
+    "#\n"
+    "# W4-G7 S6 (#193, the grid seam): this branch claims NOTHING.\n"
+    "\n"
+    "# may-drift: wood_coil -- machine-sensitive\n"
+)
+_CM_MERGED = _env_drift.merge_claim_file(_CM_BASE, _CM_OURS, _CM_THEIRS)
+R.check(
+    "two branches' notes both survive a claim-file merge",
+    _CM_MERGED is not None
+    and "#541: this branch claims NOTHING" in _CM_MERGED
+    and "W4-G7 S6 (#193, the grid seam)" in _CM_MERGED
+    and "<<<<<<<" not in _CM_MERGED,
+    f"merged={_CM_MERGED!r}",
+)
+R.check(
+    "a merged claim file keeps its stamp, its header and its may-drift lines",
+    _CM_MERGED is not None
+    and _env_drift._parse_claims(_CM_MERGED)[0] == "6.3.16"
+    and _CM_MERGED.count("# claims-for: 6.3.16") == 1
+    and "# may-drift: wood_coil -- machine-sensitive" in _CM_MERGED
+    and _CM_MERGED.startswith("# Scenarios this branch"),
+    f"merged={_CM_MERGED!r}",
+)
+R.check(
+    "a comment-only merge claims nothing it was not given",
+    _CM_MERGED is not None and _env_drift.parse_claim_map(_CM_MERGED) == {},
+    f"claims={_env_drift.parse_claim_map(_CM_MERGED or '')!r}",
+)
+
+# The case that refuses union. Both sides rewrote the claim list, so no rule
+# can say which claim describes which diff; git keeps the markers.
+_CM_OURS_CLAIM = _CM_OURS.rstrip("\n") + "\neverything_on # this branch's own measured drift\n"
+_CM_THEIRS_CLAIM = (
+    _CM_THEIRS.rstrip("\n") + "\nvalve_storage_small_tank # the other branch's drift\n"
+)
+R.check(
+    "a claim list both sides rewrote is refused, not unioned",
+    _env_drift.merge_claim_file(_CM_BASE, _CM_OURS_CLAIM, _CM_THEIRS_CLAIM) is None,
+    "two branches' claim lists were merged; a claim excuses a golden diff and "
+    "cannot be inherited by a merge",
+)
+# Why refusing matters, measured rather than asserted: had the driver unioned,
+# the #495 inherited-claims guard would NOT have fired, because the unioned
+# list is not exactly the baseline's -- it carries this branch's claim too.
+_CM_UNION_IS_SILENT = _env_drift.inherited_claims_error(
+    {"everything_on": "ours", "valve_storage_small_tank": "theirs"},
+    {"valve_storage_small_tank": "theirs"},
+    "origin/main",
+)
+R.check(
+    "the inherited-claims guard cannot catch a unioned claim list",
+    _CM_UNION_IS_SILENT is None,
+    "if this ever fires, union stopped being silent and the refusal above "
+    "could be relaxed -- until then the driver is the only thing standing "
+    "between a merge and a silently reinstated claim",
+)
+R.check(
+    "a claim list only one side touched is carried, not refused",
+    _env_drift.parse_claim_map(
+        _env_drift.merge_claim_file(_CM_BASE, _CM_OURS_CLAIM, _CM_THEIRS) or ""
+    ) == {"everything_on": "this branch's own measured drift"}
+    and _env_drift.parse_claim_map(
+        _env_drift.merge_claim_file(_CM_BASE, _CM_OURS, _CM_THEIRS_CLAIM) or ""
+    ) == {"valve_storage_small_tank": "the other branch's drift"},
+    "a one-sided claim rewrite is an ordinary merge; only a two-sided one is "
+    "a value conflict",
+)
+R.check(
+    "merging a file with itself returns it byte-identical",
+    _env_drift.merge_claim_file(_CM_BASE, _CM_BASE, _CM_BASE) == _CM_BASE
+    and _env_drift.merge_claim_file(_CM_BASE, _CM_OURS, _CM_BASE) == _CM_OURS
+    and _env_drift.merge_claim_file(_CM_BASE, _CM_BASE, _CM_THEIRS) == _CM_THEIRS,
+    "a merge that rewrites an unchanged file would churn every claim file",
+)
+_CM_NEW_MD = _CM_THEIRS.replace(
+    "# may-drift: wood_coil -- machine-sensitive",
+    "# may-drift: wood_coil -- machine-sensitive\n# may-drift: wood_two_tank -- machine-sensitive",
+)
+assert _CM_NEW_MD != _CM_THEIRS, "may-drift fixture anchor missing"
+_CM_MD_MERGED = _env_drift.merge_claim_file(_CM_BASE, _CM_OURS, _CM_NEW_MD)
+R.check(
+    "a may-drift line added on one side survives the merge",
+    _CM_MD_MERGED is not None
+    and "# may-drift: wood_two_tank -- machine-sensitive" in _CM_MD_MERGED
+    and "# may-drift: wood_coil -- machine-sensitive" in _CM_MD_MERGED,
+    f"merged={_CM_MD_MERGED!r}",
+)
+
+# End to end: a real two-branch conflict, resolved by git calling the driver.
+# The unit checks above pin the resolution; this pins the wiring -- the
+# .gitattributes entry, the config, and the driver's own exit code.
+with _tempfile.TemporaryDirectory() as _cm_td:
+    _cm_repo = Path(_cm_td) / "repo"
+    (_cm_repo / "tests" / "golden").mkdir(parents=True)
+
+    def _cm_git(*args, **kw):
+        return _subprocess.run(
+            ["git", *args], cwd=str(_cm_repo), capture_output=True, text=True, **kw
+        )
+
+    _cm_git("init", "-q", "-b", "main")
+    _cm_git("config", "user.email", "t@example.invalid")
+    _cm_git("config", "user.name", "t")
+    _cm_claim = _cm_repo / _env_drift.CLAIM_FILE
+    _cm_claim.write_text(_CM_BASE)
+    # .gitattributes binds the driver to the path and ships in the tree; the
+    # configured command is repo-relative, so each worktree runs its own copy
+    # of the resolver rather than whichever one happened to install it.
+    _cm_root = Path(__file__).resolve().parent.parent
+    (_cm_repo / ".gitattributes").write_text((_cm_root / ".gitattributes").read_text())
+    (_cm_repo / "tests" / "env_drift.py").write_text(
+        (_cm_root / "tests" / "env_drift.py").read_text()
+    )
+    _cm_git("add", "-A")
+    _cm_git("commit", "-qm", "base")
+    _cm_git("checkout", "-qb", "side")
+    _cm_claim.write_text(_CM_OURS)
+    _cm_git("commit", "-qam", "our note")
+    _cm_git("checkout", "-q", "main")
+    _cm_claim.write_text(_CM_THEIRS)
+    _cm_git("commit", "-qam", "their note")
+    _cm_git("checkout", "-q", "side")
+    _cm_install = _env_drift.install_merge_driver(str(_cm_repo))
+    _cm_merge = _cm_git("merge", "main", "-m", "merge main")
+    _cm_after = _cm_claim.read_text()
+    # Same repo, second scenario: both sides rewrite the claim list. The
+    # driver must refuse and leave the markers a human resolves.
+    _cm_git("checkout", "-qb", "claimside", "main")
+    _cm_claim.write_text(_CM_OURS_CLAIM)
+    _cm_git("commit", "-qam", "our claim")
+    _cm_git("checkout", "-q", "main")
+    _cm_claim.write_text(_CM_THEIRS_CLAIM)
+    _cm_git("commit", "-qam", "their claim")
+    _cm_git("checkout", "-q", "claimside")
+    _cm_refused = _cm_git("merge", "main", "-m", "merge main")
+    _cm_refused_file = _cm_claim.read_text()
+R.check(
+    "git resolves a real two-branch note conflict through the driver",
+    _cm_install == "installed"
+    and _cm_merge.returncode == 0
+    and "<<<<<<<" not in _cm_after
+    and "#541: this branch claims NOTHING" in _cm_after
+    and "W4-G7 S6 (#193, the grid seam)" in _cm_after
+    and _env_drift.parse_claim_map(_cm_after) == {},
+    f"install={_cm_install} rc={_cm_merge.returncode} "
+    f"err={_cm_merge.stderr!r} file={_cm_after!r}",
+)
+R.check(
+    "and it leaves a conflict for a claim list both sides rewrote",
+    _cm_refused.returncode != 0
+    and "<<<<<<<" in _cm_refused_file
+    and ">>>>>>>" in _cm_refused_file
+    and "everything_on" in _cm_refused_file
+    and "valve_storage_small_tank" in _cm_refused_file
+    and "CONFLICTING CLAIMS" in _cm_refused.stderr,
+    "a refusal must look exactly like an unconfigured merge -- markers in the "
+    f"file, non-zero exit -- got rc={_cm_refused.returncode} "
+    f"err={_cm_refused.stderr!r} file={_cm_refused_file!r}",
+)
+# The driver checks its own output before writing it. These are that check's
+# null controls: each corrupts one property a hand resolution preserves, and
+# the verification must name it. Without them the verification is a branch
+# nothing ever takes, which is the shape #523 shipped.
+_CM_GOOD = _CM_MERGED
+R.check(
+    "the merge verification passes the file the merge actually produced",
+    _env_drift.merge_claim_defect(_CM_GOOD, _CM_OURS, _CM_OURS, _CM_THEIRS) is None,
+    _env_drift.merge_claim_defect(_CM_GOOD, _CM_OURS, _CM_OURS, _CM_THEIRS) or "",
+)
+R.check(
+    "the merge verification catches a lost stamp, a lost may-drift line, a "
+    "smuggled claim and surviving markers",
+    all(
+        (_env_drift.merge_claim_defect(bad, _CM_OURS, _CM_OURS, _CM_THEIRS) or "")
+        .startswith(head)
+        for bad, head in (
+            (_CM_GOOD.replace("# claims-for: 6.3.16\n", ""), "the 'claims-for:'"),
+            (_CM_GOOD.replace(
+                "# may-drift: wood_coil -- machine-sensitive\n", ""), "a may-drift"),
+            (_CM_GOOD + "everything_on # smuggled in\n", "the claim list"),
+            (_CM_GOOD + "<<<<<<< main\n", "conflict markers"),
+            ("", "the result is empty"),
+        )
+    ),
+    "a verification that cannot fail is not a verification",
+)
+
+R.check(
+    ".gitattributes routes both claim files to the merge driver",
+    _env_drift.gitattributes_error(str(Path(__file__).resolve().parent.parent))
+    is None,
+    _env_drift.gitattributes_error(str(Path(__file__).resolve().parent.parent)) or "",
+)
+_CM_HALF_ROUTED = _env_drift.gitattributes_error(
+    ".", text="tests/golden/claimed_drift.txt merge=claimnotes\n"
+)
+R.check(
+    "a .gitattributes that routes only one claim file is refused",
+    (_CM_HALF_ROUTED or "").startswith("UNROUTED CLAIM FILE")
+    and _env_drift.CARD_CLAIM_FILE in (_CM_HALF_ROUTED or ""),
+    "the card claim file conflicts as often as the solver's and must be "
+    f"routed too; got {_CM_HALF_ROUTED!r}",
+)
+
 # --- #493: inherited card claims on a roster-only three-dot -----------------
 #
 # PR #493 (squash ae97a65) touched only INERT roster/plan files. Claim files
