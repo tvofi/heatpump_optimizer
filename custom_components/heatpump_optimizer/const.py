@@ -1149,6 +1149,40 @@ OPERATION_MODES: Final = (
     MODE_BOOST,
 )
 
+#: The states Optimization Mode and Heat Pump Action may publish (#558 D3).
+#: These are SensorDeviceClass.ENUM option lists, so Home Assistant raises
+#: ValueError on every state write outside them -- a missing member is a dead
+#: entity on a real install, not a cosmetic gap. Both are the measured union
+#: of their producers, and the producers are named so the next reader
+#: re-derives rather than trusting the list.
+#:
+#: Optimization Mode publishes ``self._mode``, which only OPERATION_MODES can
+#: reach: the set_mode service schema is ``vol.In(OPERATION_MODES)``,
+#: climate.py and switch.py pass MODE_ constants, and the restore path admits
+#: a stored value only when it is already a member. "unknown" is the sensor's
+#: own no-data fallback.
+OPTIMIZATION_MODE_STATES: Final = (*OPERATION_MODES, "unknown")
+
+#: Heat Pump Action publishes ``current_action["mode"]``, written by four
+#: producers: optimizer.get_current_action's power-band ladder (off, eco,
+#: normal, pre_heat, boost), optimizer._idle_action (idle), the coordinator's
+#: fixed-rule branches when the plan is not what runs (comfort, boost, off),
+#: and _run_system_identification (system_identification). "unknown" is the
+#: sensor's no-data fallback. tests/entities.py re-derives this set from those
+#: four functions' source rather than from this tuple, so a fifth producer
+#: fails there instead of on an installation.
+HEAT_PUMP_ACTION_STATES: Final = (
+    "boost",
+    "comfort",
+    "eco",
+    "idle",
+    "normal",
+    "off",
+    "pre_heat",
+    "system_identification",
+    "unknown",
+)
+
 # Service names
 SERVICE_RUN_OPTIMIZATION: Final = "run_optimization"
 SERVICE_SET_MODE: Final = "set_mode"
