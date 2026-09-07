@@ -11,8 +11,12 @@ hours.
 [![Python: 3.13+](https://img.shields.io/badge/Python-3.13%2B-3776AB.svg)](https://www.python.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-<!-- Hero image: a screenshot of the dashboard card belongs here. None is
-     committed yet; see docs/dashboard-card.md for what the card looks like. -->
+![The dashboard card's plan chart: 24 hours of spot price, forecast temperature and solar, over the heating and hot-water slots the optimizer chose](docs/img/card-plan-chart.svg)
+
+*The next 24 hours as the optimizer sees them — price, forecast, solar, and the
+slots it picked for heating and for hot water. Rendered from the shipped card
+against a solved plan; [docs/dashboard-card.md](docs/dashboard-card.md) reads
+every mark on it.*
 
 ## Acknowledgement
 
@@ -27,52 +31,6 @@ in this fork. Both projects are MIT licensed. The formal attribution is recorded
 in [NOTICE](NOTICE), and [LICENSE](LICENSE) is kept as the verbatim MIT text.
 
 ## What it does
-
-```mermaid
-flowchart LR
-    subgraph inputs["Inputs"]
-        tibber["Tibber API<br/>hourly prices"]
-        weather["HA weather entity<br/>temperature, wind,<br/>rain, irradiance"]
-        meteo["Open-Meteo<br/>optional irradiance"]
-        ha["Your HA sensors<br/>temps, power, presence"]
-    end
-
-    subgraph brain["Coordinator (every interval)"]
-        pm["Price model<br/>learned prior + tariffs<br/>+ grid fees"]
-        tm["Thermal model<br/>house, slab, tanks,<br/>two zones, DHW"]
-        opt["Optimizer<br/>24 h MPC plan"]
-        guard["Safety layer<br/>peak guard, fuse,<br/>manual-plan pins"]
-    end
-
-    subgraph learn["Self-learning (background)"]
-        acc["Prediction accuracy<br/>+ drift watchdog"]
-        learners["Loss scale, COP,<br/>solar aperture, DHW draws,<br/>comfort weight, heat curve"]
-        snap["Weekly snapshots<br/>(last 8 kept)"]
-    end
-
-    subgraph out["Outputs"]
-        ent["66 entities<br/>56 sensors, 4 binary,<br/>4 buttons, switch, climate"]
-        card["Dashboard card<br/>plan chart + editor"]
-        ctl["Heat pump switch /<br/>ECL110 displace /<br/>frequency advisor"]
-    end
-
-    tibber --> pm
-    weather --> tm
-    meteo -. "irradiance override" .-> tm
-    ha --> tm
-    pm --> opt
-    tm --> opt
-    opt --> guard
-    guard --> ent
-    guard --> ctl
-    ent --> card
-    card -- "services:<br/>apply_manual_plan,<br/>simulate_plan, assign_entity" --> brain
-    acc --> learners
-    learners --> tm
-    learners --> snap
-    snap -- "restore on drift" --> learners
-    ha --> acc
-```
 
 **Plans ahead instead of reacting.** A 24-hour model-predictive plan is re-solved
 on every interval against the full forecast trajectory, not against the weather
@@ -136,6 +94,57 @@ tells you which.
 and Swedish) and follow your Home Assistant language, without touching entity ids
 or history. Monetary units follow your instance currency.
 
+<details open>
+<summary><b>How the pieces fit</b> — inputs, coordinator, self-learning, outputs</summary>
+
+```mermaid
+flowchart LR
+    subgraph inputs["Inputs"]
+        tibber["Tibber API<br/>hourly prices"]
+        weather["HA weather entity<br/>temperature, wind,<br/>rain, irradiance"]
+        meteo["Open-Meteo<br/>optional irradiance"]
+        ha["Your HA sensors<br/>temps, power, presence"]
+    end
+
+    subgraph brain["Coordinator (every interval)"]
+        pm["Price model<br/>learned prior + tariffs<br/>+ grid fees"]
+        tm["Thermal model<br/>house, slab, tanks,<br/>two zones, DHW"]
+        opt["Optimizer<br/>24 h MPC plan"]
+        guard["Safety layer<br/>peak guard, fuse,<br/>manual-plan pins"]
+    end
+
+    subgraph learn["Self-learning (background)"]
+        acc["Prediction accuracy<br/>+ drift watchdog"]
+        learners["Loss scale, COP,<br/>solar aperture, DHW draws,<br/>comfort weight, heat curve"]
+        snap["Weekly snapshots<br/>(last 8 kept)"]
+    end
+
+    subgraph out["Outputs"]
+        ent["Entities<br/>sensors, binary sensors,<br/>buttons, switches,<br/>climate, datetime"]
+        card["Dashboard card<br/>plan chart + editor"]
+        ctl["Heat pump switch /<br/>ECL110 displace /<br/>frequency advisor"]
+    end
+
+    tibber --> pm
+    weather --> tm
+    meteo -. "irradiance override" .-> tm
+    ha --> tm
+    pm --> opt
+    tm --> opt
+    opt --> guard
+    guard --> ent
+    guard --> ctl
+    ent --> card
+    card -- "services:<br/>apply_manual_plan,<br/>simulate_plan, assign_entity" --> brain
+    acc --> learners
+    learners --> tm
+    learners --> snap
+    snap -- "restore on drift" --> learners
+    ha --> acc
+```
+
+</details>
+
 ## Requirements
 
 - Home Assistant 2025.2.0 or newer (the first release whose own
@@ -190,32 +199,11 @@ all three live in [docs/configuration.md](docs/configuration.md).
 
 ## Installation
 
-### Minimum Home Assistant and Python versions
-
-**Home Assistant 2025.2.0 and Python 3.13 are the minimum, and this is a
-breaking change**: an installation on an older Home Assistant will stop being
-offered updates through HACS.
-
-Until issue #514 the floor was whatever the newest Home Assistant API the
-integration provably used demanded — `ConfigEntry.runtime_data`, which put it
-at 2024.6.0. That rule made the *Python* range something nobody declared and
-nothing tested: 2024.6.0 implied Python 3.12, CI ran only 3.13, and reported
-installations run 3.14, so neither end of the implied range was exercised.
-
-The floor is now chosen by the Python range instead, which reverses the
-inference. **2025.2.0 is the first Home Assistant release whose own
-`pyproject.toml` says `requires-python = ">=3.13.0"`** — 2024.12.0 and
-2025.1.0 both still say `>=3.12.0`, and 2025.8.0 says `>=3.13.2`. So 2025.2.0
-is the lowest Home Assistant that can guarantee the declared Python 3.13, and
-it is comfortably above the 2024.6.0 that `runtime_data` needs. The suite runs
-on 3.13 and 3.14; `tests/entities.py` holds this section, the badge and the
-`hacs.json` pin to the versions CI actually tests, so the claim cannot rot
-away from the measurement.
-
-One consequence worth recording: config-flow `section()` grouping was rejected
-in part because the floor predated it. At 2025.2.0 that objection is gone
-(issue #189 and the wide options pages). The compatibility shims written for
-older releases are left in place — removing them is a separate change.
+> [!IMPORTANT]
+> **Home Assistant 2025.2.0 and Python 3.13 are the minimum, and that was a
+> breaking change.** An installation on an older Home Assistant stops being
+> offered updates through HACS. Why the floor sits exactly there is in
+> [docs/architecture.md](docs/architecture.md).
 
 ### HACS (recommended)
 
@@ -277,6 +265,9 @@ integration.
 Have your Tibber token and the entity id of your weather integration to hand.
 Everything else can be added later from the options pages.
 
+<details open>
+<summary><b>The setup flow</b> — the nine screens, and which are optional</summary>
+
 ```mermaid
 flowchart TD
     A["1 · Basics<br/>name, Tibber token, weather entity<br/>+ optional sensors"] --> B["2 · Temperatures<br/>targets, day/night comfort, hours"]
@@ -290,6 +281,8 @@ flowchart TD
     H --> I["5 · Weather sensitivity<br/>wind, rain"]
     I --> J(["Done — first plan<br/>within one interval"])
 ```
+
+</details>
 
 **1 · Basics.** A name, your Tibber token (it is validated before the flow
 continues) and your weather entity are required. Everything else on this page is
@@ -341,7 +334,7 @@ Every field and its range is documented in
 
 ### Your first week
 
-- **Immediately.** All 65 entities appear and the first plan is solved within one
+- **Immediately.** All 70 entities appear and the first plan is solved within one
   optimization interval (30 minutes by default). Add the dashboard card and you
   can see what it intends to do.
 - **Day one.** If you want the commissioning step test, first switch on *Allow a
@@ -477,7 +470,7 @@ Disabled by default: ECL110 Displace, ECL110 Effective Displace, Contract
 Comparison, DHW Heavy Day Demand, Valve Target Recommendation and Compressor
 Frequency Advisor.
 
-### Binary Sensors (4 total)
+### Binary Sensors (5 total)
 
 | Binary sensor | On when | Notes |
 |---|---|---|
@@ -485,6 +478,7 @@ Frequency Advisor.
 | Open Window Detected | The house is losing heat as if a window were open | Diagnostic; learning pauses while it is on |
 | External Heat Source | Something other than the heat pump is heating the tanks | Evidence in attributes |
 | Away Mode | The away setback is active | Return time and recovery state in attributes |
+| Wood cheaper than heat pump | Burning wood costs less per kWh than running the heat pump | Unavailable until the wood tank is usable; price and cheaper-hour count in attributes |
 
 ### Buttons (4 total)
 
@@ -495,10 +489,14 @@ Frequency Advisor.
 | Reset Learned Comfort Weight | Undo the revealed-preference tuning |
 | Diagnose Last Interval | Explain the last interval's temperature error input by input, on the Prediction Accuracy sensor |
 
-### Switch and climate entity
+### Switches, climate and datetime entities
 
 **Optimizer Active** turns the optimizer on and off. Turning it on only acts from
 *off* — it never clobbers a comfort or economy mode you selected deliberately.
+
+**Away** turns the away setback on and off, and **Away Return** is the datetime
+entity holding when you expect to be back — the optimizer buys the recovery heat
+in the cheapest hours before it. Both are also driven by the `set_away` service.
 
 The **climate entity** is a virtual thermostat with HVAC modes (off, heat, auto)
 and presets (auto, comfort, economy, boost). Its target temperature is *your*
@@ -570,6 +568,9 @@ be released is reported in the `manual_override` attribute of the plan sensors.
 
 ## How it works
 
+<details open>
+<summary><b>One optimization interval</b> — what the coordinator does, in order</summary>
+
 ```mermaid
 sequenceDiagram
     autonumber
@@ -597,6 +598,8 @@ sequenceDiagram
     Note over C: between plans the peak guard folds power-meter events<br/>and flips a flag (2 agree to engage, 2 to clear).<br/>It never solves — the next solve only reads the flag
     Note over M: afterwards: compare prediction against reality,<br/>nudge the learned parameters
 ```
+
+</details>
 
 The prices come from Tibber, and the horizon is longer than the published one.
 For the unpublished tail the integration uses a diurnal shape learned from your
