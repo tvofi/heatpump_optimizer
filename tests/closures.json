@@ -26,7 +26,7 @@
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 13.7,
+   "seconds": 22.0,
    "rc": 0
   },
   "tests/env_drift.py": {
@@ -38,7 +38,7 @@
    "rc": 0
   },
   "tests/frontend.py": {
-   "seconds": 0.0,
+   "seconds": 0.1,
    "rc": 0
   },
   "tests/golden.py": {
@@ -698,6 +698,7 @@
    "custom_components/heatpump_optimizer/frontend.py",
    "tests/frontend.py",
    "tests/hastub/homeassistant/__init__.py",
+   "tests/hastub/homeassistant/components/__init__.py",
    "tests/hastub/homeassistant/core.py"
   ],
   "tests/golden.py": [
