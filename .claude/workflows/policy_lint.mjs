@@ -185,8 +185,14 @@ const POLICY_DIRS = [/^\.cursor\/rules\//, /^\.claude\/rules\//, /^\.claude\/ski
 // The one deliberate exclusion: write-once evidence committed under briefs/.
 const POLICY_DIR_EXCLUDE = [/^tools\/audit\/briefs\/.*\.(json|txt|png|svg)$/]
 
-function uncoveredPolicyFiles() {
-  const { list } = trackedFiles()
+// `files` is injectable for ONE reason: the acceptance. This check runs over
+// the tracked tree, where a healthy corpus produces nothing, so a fixture
+// directory cannot make it fire and the whole check was deletable in silence --
+// `--self-test` 11/11 and `FIXTURE ok` both stayed green with the call site
+// removed. Passing a synthetic file list is what lets the pin invoke the real
+// function instead of re-testing its regexes, which is a different change.
+function uncoveredPolicyFiles(files = null) {
+  const list = files ?? trackedFiles().list
   return list
     .filter((f) => POLICY_DIRS.some((re) => re.test(f)))
     .filter((f) => !POLICY_GLOBS.some((re) => re.test(f)))
@@ -194,8 +200,17 @@ function uncoveredPolicyFiles() {
     .sort()
 }
 
-function checkCoverage() {
-  return uncoveredPolicyFiles().map((f) => ({
+// The corpus-level checks, as a LIST rather than four calls inline. A check
+// reached only from an inline call site can be unwired without any pin
+// noticing: `checkCoverage` was pinned by the acceptance calling it directly,
+// so deleting it from the pipeline left `--self-test` and `FIXTURE ok` green
+// and the corpus unchecked. A list is a datum the acceptance can assert, which
+// is the difference between pinning a function and pinning that it runs.
+// `checkCoverage` ignores the argument; it takes one so the list is uniform.
+const CORPUS_CHECKS = []
+
+function checkCoverage(files = null) {
+  return uncoveredPolicyFiles(files).map((f) => ({
     severity: 'error',
     check: 'coverage',
     where: f,
@@ -672,6 +687,15 @@ function keyOf(f) {
   return `${f.check}|${where}|${message}`
 }
 
+// Classes the ledger may never suppress. The list freezes defects the corpus
+// already HAS, so they can be drained; these two are not that. A budget breach
+// is something the change in front of you just did, and a policy file no check
+// reads is not a state to record and live with. Recording either turns a
+// refusal into a note, which is the failure the whole ratchet is against --
+// measured: with both live, `--record-known-bad` then a re-run gave `TOTAL: 0`
+// and exit 0.
+const NEVER_SUPPRESSED = new Set(['budgets', 'coverage'])
+
 function applyKnownBad(findings) {
   const kb = knownBad()
   // Entries are {key, count}. A bare string is read as one occurrence, so an
@@ -683,13 +707,17 @@ function applyKnownBad(findings) {
   }
 
   const live = new Map()
+  const out = []
   for (const f of findings) {
+    if (NEVER_SUPPRESSED.has(f.check)) {
+      out.push(f)
+      continue
+    }
     const k = keyOf(f)
     if (!live.has(k)) live.set(k, [])
     live.get(k).push(f)
   }
 
-  const out = []
   let suppressed = 0
   let occurrences = 0
   for (const [k, group] of live) {
@@ -819,6 +847,8 @@ const REQUIRED_ROT = {
   },
 }
 
+CORPUS_CHECKS.push(checkIndex, checkDuplicates, checkBudgets, (files) => checkCoverage())
+
 function assertAcceptance(derived) {
   const dir = path.join(HERE, 'fixtures', 'policy-rot')
   if (!fs.existsSync(dir)) {
@@ -876,33 +906,7 @@ function assertAcceptance(derived) {
     }
   }
 
-  // coverage: written as a probe rather than a committed fixture, because the
-  // check's whole subject is a file the globs do not match -- and committing one
-  // would make every run report it. The probe is created, measured and removed.
-  const probe = path.join(ROOT, '.cursor', 'rules', 'zz-policy-lint-probe9.mdc')
-  let coverageErrs = []
-  try {
-    fs.mkdirSync(path.dirname(probe), { recursive: true })
-    fs.writeFileSync(probe, '# probe\n')
-    const before = uncoveredPolicyFiles()
-    // The probe is untracked, so it is invisible to git ls-files and therefore
-    // to the check. Measure the PATTERNS directly instead, which is the thing
-    // that can rot: a glob narrower than its directory.
-    const rel = '.cursor/rules/zz-policy-lint-probe9.mdc'
-    if (!POLICY_GLOBS.some((re) => re.test(rel))) {
-      coverageErrs.push({
-        severity: 'error', check: 'coverage', where: rel,
-        message: 'sits in a policy directory and matches no POLICY_GLOBS pattern, so no check in this file has ever read it.',
-      })
-    }
-    if (before.length !== uncoveredPolicyFiles().length) coverageErrs = []
-  } finally {
-    try { fs.unlinkSync(probe) } catch {}
-  }
-  if (coverageErrs.length) {
-    console.log(`\nFIXTURE VACUOUS: ${coverageErrs[0].where} matches no policy glob, so a rule file with a digit in its name would leave the corpus unread`)
-    return 1
-  }
+
 
   found.push(...checkBudgets(rels))
   const indexFixture = rels.find((r) => r.endsWith('/index.md'))
@@ -919,6 +923,47 @@ function assertAcceptance(derived) {
   }
   let rc = 0
   let pins = 0
+
+  // coverage: a probe rather than a committed fixture, because the check's whole
+  // subject is a file the globs do not match -- committing one would make every
+  // run report it.
+  //
+  // The probe used to write an UNTRACKED file, notice it was invisible to
+  // `git ls-files`, and then test the POLICY_GLOBS regexes directly. That pinned
+  // the patterns and not the check: deleting `checkCoverage` from the call site,
+  // or emptying its return, left `--self-test` 11/11 and this line green. It was
+  // the only entry in CHECKS with no class in REQUIRED_ROT, and `prepr.sh`'s own
+  // standard -- a check that cannot be shown failing does not merge -- is what it
+  // failed. Found by review, not by this harness.
+  //
+  // `checkCoverage` now takes an injectable file list, so the probe runs the real
+  // function. BOTH directions, because one of them is what was missing: a file in
+  // a policy directory that no glob matches must produce exactly one finding, and
+  // an ordinary rule file must produce none.
+  // The probe path must be genuinely uncovered. `zz-policy-lint-probe9.mdc` is
+  // NOT: this commit widened `[a-z-]` to `[a-z0-9-]`, which is what makes the
+  // digit case safe and the digit probe useless. A capital and an underscore
+  // are outside the class in both directions, so this path stays uncovered
+  // whichever way the glob is later widened for digits.
+  const rotPath = '.cursor/rules/Probe_9.mdc'
+  const okPath = '.cursor/rules/ci-autofix.mdc'
+  pins += 1
+  if (CORPUS_CHECKS.length !== 4) {
+    console.log(`\nFIXTURE VACUOUS: CORPUS_CHECKS holds ${CORPUS_CHECKS.length} of 4 corpus-level checks; one that is not in the list never runs on a default invocation, however well its own pin passes`)
+    return 1
+  }
+  const covRot = checkCoverage([rotPath, okPath])
+  const covOk = checkCoverage([okPath])
+  pins += 2
+  if (covRot.length !== 1 || covRot[0].where !== rotPath || covRot[0].check !== 'coverage') {
+    console.log(`\nFIXTURE VACUOUS: checkCoverage did not report ${rotPath}; a rule file with a digit in its name would leave the corpus unread, in silence`)
+    return 1
+  }
+  if (covOk.length) {
+    console.log(`\nFIXTURE OVER-FIRES: checkCoverage reported ${covOk.length} finding(s) on a covered file, e.g. ${JSON.stringify(covOk[0].where)}`)
+    return 1
+  }
+
   for (const [cls, spec] of Object.entries(REQUIRED_ROT)) {
     const n = got[cls] || 0
     pins += 1 + (spec.must?.length ?? 0)
@@ -981,7 +1026,19 @@ const FRICTION_EVENTS = ['unclear', 'contradiction', 'unenforced', 'stale', 'cos
 // A body writing `none` in backticks means the same thing as one writing none,
 // and refusing the first would teach seats to write the second while meaning
 // neither. Leading list markers and emphasis are stripped for the same reason.
-const isNone = (text) => /^[-*\s`_"']*(none|n\/a\b|n\/a:)/i.test(text)
+const STRIP = "[-*\\s`_\"']*"
+const isNone = (text) => new RegExp(`^${STRIP}(none|n/a)\\b`, 'i').test(text)
+// `n/a` and `none` are not the same answer. `none` IS the content -- there were
+// no red checks, nothing was carried. `n/a` says the section does not apply to
+// this change, which is a judgement, and the whole point of the section is that
+// a reviewer can disagree with it. A bare `n/a` gives them nothing to disagree
+// with: six of them plus the right SHA satisfied the entire contract, exit 0.
+const isBareNa = (text) => {
+  const t = text.trim()
+  if (!new RegExp(`^${STRIP}n/a\\b`, 'i').test(t)) return false
+  const after = t.replace(new RegExp(`^${STRIP}n/a\\b`, 'i'), '').replace(/^[:\-\s]+/, '')
+  return after.length < 3
+}
 
 function sections(body) {
   const out = new Map()
@@ -1022,6 +1079,11 @@ function checkPrBody(bodyPath, { head = '', title = '', red = [] } = {}) {
     if (!secs.get(h)) {
       out.push({ severity: 'error', check: 'pr-body', where: bodyPath,
         message: `\`## ${h}\` is empty. Write the evidence, or "n/a: <reason>" a reviewer can disagree with.` })
+      continue
+    }
+    if (isBareNa(secs.get(h))) {
+      out.push({ severity: 'error', check: 'pr-body', where: bodyPath,
+        message: `\`## ${h}\` is a bare "n/a". Say why it does not apply: "n/a: <reason>". \`none\` is an answer; \`n/a\` alone is a heading with the work left out.` })
     }
   }
 
@@ -1068,7 +1130,15 @@ function checkPrBody(bodyPath, { head = '', title = '', red = [] } = {}) {
     const entryStart = /^[-*]?\s*`?[A-Za-z][A-Za-z0-9_.-]*`?\s*:\s*`?[a-z-]+`?\s*:/
     const entries = []
     for (const raw of friction.split('\n').map((l) => l.trim()).filter(Boolean)) {
+      // A continuation is prose. A line shaped like `word: word:` is TRYING to
+      // be an entry and failing -- `index: Cost:` (capitalised) and
+      // `index: unenforced but no second colon` both folded silently into the
+      // entry above, so a malformed second entry cost nothing and the histogram
+      // under-reported exactly as an unparseable first entry would. Fold real
+      // prose; refuse a near-miss.
+      const nearMiss = /^[-*]?\s*`?[A-Za-z][A-Za-z0-9_.-]*`?\s*:/.test(raw)
       if (entryStart.test(raw) || !entries.length) entries.push(raw)
+      else if (nearMiss) entries.push(raw)
       else entries[entries.length - 1] += ' ' + raw
     }
     for (const line of entries) {
@@ -1150,7 +1220,7 @@ function main() {
   let findings = []
   for (const f of files) findings.push(...lintFileGuarded(f, derived))
   if (defaultRun) {
-    findings.push(...checkIndex(all), ...checkDuplicates(all), ...checkBudgets(all), ...checkCoverage())
+    for (const fn of CORPUS_CHECKS) findings.push(...fn(all))
   }
 
   if (args.includes('--record-known-bad')) return cmdRecord(findings), process.exit(0)

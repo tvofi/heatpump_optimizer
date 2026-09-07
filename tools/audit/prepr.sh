@@ -37,7 +37,7 @@ if [ "${1:-}" = "--self-test" ]; then
   st() { if [ "$1" = "$2" ]; then st_pass=$((st_pass+1)); printf '  ok   %s\n' "$3";
          else st_fail=$((st_fail+1)); printf '  FAIL %s (rc %s, wanted %s)\n' "$3" "$1" "$2"; fi; }
 
-  for f in missing-section empty-section wrong-head dead-carry bad-friction backtick-bad-event; do
+  for f in missing-section empty-section wrong-head dead-carry bad-friction backtick-bad-event bare-na folded-entry; do
     node .claude/workflows/policy_lint.mjs --pr-body "$D/$f.md" --head "$ZERO" >/dev/null 2>&1
     st $? 1 "a body with $f is refused"
   done
