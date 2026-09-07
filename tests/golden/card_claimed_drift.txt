@@ -145,36 +145,3 @@
 #
 # No payload key, published value or solver path is touched: this branch
 # changes the card's own drawing only.
-no_plan  # #558 C1: legend solar swatch
-no_plan_expanded  # #558 C1: legend solar swatch
-plan_inline  # #558 C1: legend solar swatch
-plan_inline_sv  # #558 C1: legend solar swatch
-plan_short_window  # #558 C1: legend solar swatch
-custom_title_currency  # #558 C1: legend solar swatch
-hidden_series  # #558 C1: legend solar swatch
-score_open  # #558 C1: legend solar swatch
-expanded_plan  # #558 C1: legend solar swatch
-what_if_off  # #558 C1: legend solar swatch
-expanded_zoomed  # #558 C1: legend solar swatch
-draft_dirty_menu_open  # #558 C1: legend solar swatch
-draft_mid_drag  # #558 C1: legend solar swatch
-whatif_edited  # #558 C1: legend solar swatch
-whatif_weekly  # #558 C1: legend solar swatch
-override_active  # #558 C1: legend solar swatch
-shared_steps  # #558 C1: legend solar swatch
-shared_steps_hover  # #558 C1: legend solar swatch
-tooltip_hover  # #558 C1: legend solar swatch
-coarse_pointer  # #558 C1: legend solar swatch
-reduced_motion  # #558 C1: legend solar swatch
-setup_single_buffer  # #558 C1: legend solar swatch
-setup_two_tank  # #558 C1: legend solar swatch
-setup_coil  # #558 C1: legend solar swatch
-layout_editing_dragged  # #558 C1: legend solar swatch
-layout_editing_tidy  # #558 C1: legend solar swatch
-picker_open_filtered  # #558 C1: legend solar swatch
-wood_alert  # #558 C1: legend solar swatch
-wood_lane  # #558 C1: legend solar swatch
-wood_whatif  # #558 C1: legend solar swatch
-away_toggle  # #558 C1: legend solar swatch
-away_return  # #558 C1: legend solar swatch
-away_status  # #558 C1: legend solar swatch
