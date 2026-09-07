@@ -46,12 +46,20 @@ n=$(printf '%s' "$body" | grep -oE '\b[0-9]{1,3}(,[0-9]{3})+\b|\b[0-9]+ (of|out 
 [ -n "$n" ] && { say check "figures -- each needs the command that produced it"; printf '%s\n' "$n" | sed 's/^/             /'; }
 
 # 4. The echo-beside-command shape: prints its conclusion whether or not it holds.
-#    BACKTICKED occurrences are advisory, not a refusal. A body explaining this
-#    very anti-pattern quotes it, and refusing that is an over-fire -- which is
-#    how a check gets disabled, and is what got #581 closed. A BARE occurrence is
-#    a pasted transcript claiming evidence, and that is the thing worth refusing.
+#    An INLINE-backticked occurrence in PROSE is advisory: a body explaining this
+#    anti-pattern quotes it, and refusing that is the over-fire that got #581
+#    closed. Inside a FENCED block the exemption does not apply. The earlier
+#    justification for the split -- "a BARE occurrence is a pasted transcript" --
+#    was refuted by a review that smuggled a real transcript through by wrapping
+#    the pasted line in backticks inside a fence: two characters turned the
+#    refusal into an advisory. Bareness does not identify a pasted transcript;
+#    the fence is what carries the evidence claim.
+#    LIMITS: ``` fences only, not ~~~. An unterminated fence treats the rest of
+#    the body as fenced, which refuses more rather than less.
 ECHO_SHAPE=';[[:space:]]*echo .*(identical|clean|empty|untouched|passed|none)'
-bare=$(printf '%s' "$body" | sed 's/`[^`]*`//g' | grep -cE "$ECHO_SHAPE")
+bare=$(printf '%s' "$body" \
+  | awk '/^[[:space:]]*```/ {f = !f; next} !f {gsub(/`[^`]*`/, "")} {print}' \
+  | grep -cE "$ECHO_SHAPE")
 quoted=$(printf '%s' "$body" | grep -cE "$ECHO_SHAPE")
 if [ "$bare" -gt 0 ]; then
   say REFUSE "a conclusion echoed after ';' -- it prints either way; use '&& echo'"

@@ -8084,6 +8084,34 @@ R.check(
     "preflight.sh must exit 0 when every closing keyword is declared; without "
     "this arm the check above passes for a script that refuses everything",
 )
+# The '; echo' refusal is split: inline backticks in prose are advisory, a
+# fenced block is not. Both directions are pinned because the arms above feed
+# only single-line inputs, so widening the exemption to strip fenced blocks
+# removed the refusal that justifies the split and the suite stayed green.
+R.check(
+    "a transcript pasted in a fenced block refuses, backticks or not",
+    _preflight.is_file()
+    and subprocess.run(
+        ["bash", str(_preflight)],
+        input='```\n`$ diff a b; echo "(empty means identical)"`\n```\n',
+        capture_output=True, text=True,
+    ).returncode == 1,
+    "the inline-backtick exemption must not reach inside a fence: a review "
+    "smuggled a real transcript through by wrapping the pasted line in "
+    "backticks, so two characters turned the refusal into an advisory",
+)
+R.check(
+    "while the same shape quoted inline in prose stays advisory",
+    _preflight.is_file()
+    and subprocess.run(
+        ["bash", str(_preflight)],
+        input='A body may quote `diff a b; echo "(clean)"` as an example.\n',
+        capture_output=True, text=True,
+    ).returncode == 0,
+    "without this arm the check above passes for a script that refuses the "
+    "shape everywhere -- the over-fire that got #581 closed, and the reason "
+    "orchestrator.md section 1 can quote the anti-pattern it forbids",
+)
 
 # HA loads repairs.py dynamically, so a witness must import it or it is an
 # orphan and forces MODE: FULL (#408).
