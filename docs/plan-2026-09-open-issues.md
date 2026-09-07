@@ -61,9 +61,9 @@ Where this table and a wave body disagree, this table is the truth.
 | **3L** | mid-programme leftovers, one burst | #400 #401 #404 #405 #408 #457 #460 #463 #465 | after Wave 3 | **done** — **3L-G1** #470 (`81aa0c3`). **3L-G2** #472 (`2abe2f7`). **3L-G3** #474 (`e8adfe4`) + #479 (`8ea27d4`) + #480 (`162e759`). **3L-G4** #477 (`531d8b7`). **3L-G5** #483 (`6f02b8a`) closed #408. **3L-G7** #485 (`bf08217`) closed #460. **3L-G8** #487 (`a19ba03`). **3L-G9** #489 (`b29fd1e`) closed #463. **3L-G10** #492 (`e4bc375`) closed #465. **3L-G6** (#457) never implemented: the seat returned NEEDS_CONTEXT (no production `conflict` symbol; nearest twins are read-only `setup_overview` and `reconfigure`), and the owner then closed #457 as `COMPLETED` by hand on 2026-09-06T03:40:23Z with no PR and no commits. Discharged, not blocked — do not reopen it and do not invent a backend. **W4-G6** (S5) merged #529 (`8281f54`); **W4-G7** (S6) merged #537 (`d04ed89`); **W4-G8** (S7) merged #551 (`0f9eb71`); **W4-G9** (S8) merged #555 (`52d38d9`); **W4-G11** (S10) merged #543 (`e072b2d`, closed #304). Next is W4-G10 (S9, #224). Do not stamp. #481 leftover closed. #412 stays last of the programme |
 | 4 | the #193 decomposition programme, S0–S13 | #193 #223 #224 #225, and **#304 as S11's precursor** | one per stage | **S0–S8 and S10 done; next W4-G10 (S9, #224)** — S0 #497 (`c197b01`), S1 #500 (`67e1cf3`, closed #377; **corrected 2026-09-06**: the reported 138-point drop across all five cuts was `structure.py` losing sight of `getattr(self, "_ctx", self)` references S1 introduced 131 of, not decoupling — fixed by #512, S1's other results (`CoordinatorContext`, the attribute count, the facades) stand unchanged), S2 #502 (`d979110`, review `merge` 5558785350), S3 #506 (`5a4e6ff`, review `merge` 5559638736 at `258b245`: cut_views 94→85, coordinator_loc/max_class_loc 10305→10164, functions_cc_over_15 39→38, methods_over_150 21→20; earlier `blocked` 5559418212 at `341c596` cleared). **S4 (W4-G5, fetch) is a RECORDED HALT, merged as `e46fb15` (#508), with no production change** — measured then as 92 of cut_fetch's 115 being other seams reading the 15 fetch-owned attrs (60) and calling into fetch (32); **re-measured after #512**, cut_fetch is 132, not 115 (the whole +17 is fetch's own reads of attributes it does not own, previously invisible through the same idiom — see the roster note for the full recount), the other-seams-reaching-in share is unchanged in absolute count at 92, and the halt's actual basis — the judge's #193 finding that no component of size>1 detaches at any k — is untouched, so the seam move stays sequenced to S12/W4-G13, not banned. **S5 (W4-G6, dhw) merged as `8281f54` (#529, review `merge` 5561488083)**: cut_dhw 194→103 (-91, -47%), cut_learning 350→321, total cut across all five seams 1022→902 and `core` 15→14 (the control that distinguishes a real decoupling from moving points to a neighbouring seam). **The constraint S5 produced, carried into the W4-G7/G8/G9/G13 briefs:** the ownership lever is legitimate only where a seam's entire contact with an attribute is the assignment — no reads, no other writes — demonstrated per attribute, never assumed; `_helper(self, ...)` at S3 and `getattr(self, "_ctx", self)` at S1 were both refused on exactly that. Measured by moving twelve non-hot-water attributes `_init_dhw_learning` misplaced into a new `_init_thermal_learning` (learning seam). Do not Closes #193. Roster `.claude/workflows/wave-4-groups.json`. #225 stays closed. #412 not in this wave. Do not stamp |
 | R | reliability, instruments and harness — hotfixes and findings made alongside Wave 4, not wave work | #510 #511 #513 #518 closed | v6.3.16 (`#512`, `#515`); unstamped (`#517`, `#519`) | **delivered 2026-09-06** — #512 fixed `structure.py`'s cut-walk blindness to `getattr(self, "_ctx", self)`, closed #510; #515 fixed the release-critical unpickle failure (every install produced no plan), closed #511; #517 added `tests/deployment_shape.py`, closed #513; #519 consolidated the handover series into one file, closed #518. Detail below |
-| UX | the UX programme: 34 owner-selected items from a 42-item survey, 3 dropped, 2 reshaped | no single tracking issue; items land under their own numbers, e.g. #516 | — | **selected 2026-09-06, lanes not yet started** — full item accounting and the sequencing rules are `docs/HANDOVER.md`'s "The UX programme" section; not relitigated here. #516 (group the wide options pages with `section()`) is sequenced as a follow-up gated on #514 (the Python 3.13+ / HA 2025.2.0 floor that makes `section()` available) |
+| UX | the UX programme: **34 items in five lanes**, B/C/D/E concurrent with the waves, **F last of the whole programme** | tracking **#558**; items land under their own numbers (#509 done, #516 = E4) | B, C, D now; E1–E3 after S11; **F after Wave 5 and #412** | **lanes B, C, D started 2026-09-07.** Docket: the *Optimizer UX Docket* artifact. Independence is by **file**, not only by budget — see the collision table below |
 | 5 | typing lane, and the coverage deficit #195 raised | #303 #195 | per tranche | pending — roster `.claude/workflows/wave-5-groups.json` prepared; **seats not started**. After Wave 4. **#304 is Wave 4**, not here. #412 not in this wave |
-| last | CI Node majors | #412 | after Wave 5 | pending — owner: last task; do not pull into 3L or Wave 4/5 |
+| last | CI Node majors, then **UX lane F** | #412, then UX F1/F2 | after Wave 5 | pending — owner: #412 is the last *task*; **lane F is the last work of the programme**, because it is the only lane that adds lines to `coordinator.py` |
 
 ### Wave 3L — leftovers, after Wave 3, before Wave 4
 
@@ -156,6 +156,7 @@ refused with a reason — and the PR carrying it is named where one exists.
 | **#533** the nightly lane's incompleteness is silent | **scheduled — A3 first** (class 3, published state wrong or non-finite, is the largest reachable gap at 16 escapes), then A10, which would pin #509 directly | follow-up to #522 |
 | **#536** `tests/hastub` can diverge from Home Assistant | **scheduled — inventory first.** A green test can pin the stub instead of HA: the #509 fix was green while returning `None` on every real install, because upstream skips `None` before redacting and the stub did not | follow-up to #535 |
 | **#542** saving the learning options page **wipes `external_heat_entity`** | **scheduled as a hotfix, ahead of S11.** User-facing data loss on an ordinary action: `async_step_learning` cleans a key its own form never presents — the learning schema holds five booleans and one number and no entity field, so `cleaned.get(key)` is always falsy and the page always writes `None`, which `_save_or_menu` then merges over the real value set on the *building* page. Found by W4-G11 (S10) while covering #304 and **correctly filed rather than fixed** — a test-only stage may not touch production. Five unreachable statements ride along | its own fix PR |
+| **#558** UX programme tracking — 34 items in five lanes | **scheduled, lanes B/C/D started 2026-09-07.** Carries every item, the three in-lane sequencing rules, and the collision table. **E1–E3 follow S11 (#223)**; **F1/F2 are the last work of the whole programme**, after Wave 5 and #412, because lane F is the only one adding lines to `coordinator.py` at zero headroom | #558, items under their own numbers |
 | **#550** the `apply_topology` set check pins the reverse direction against the module constant, not the schema | **scheduled — ~3 lines, after #548 lands.** Re-adding `slab_shunt` *plus an arbitrary junk key* to the schema passes all 2002 checks, while the check's own name claims it verifies exactly that. Probe the schema instead of reading the constant. Also records that `slab_shunt` was **re-tenanted, not eliminated** — `accepted − card_boxes` is `['slab_shunt']` at base and `['floor_loop']` at head, still one, disclosed and costed rather than missed | follows #548 |
 | ~~**#544**~~ every branch conflicts in the two claim files | **DONE — closed by #545, merged `4f6a8b1`.** Prevented, not repaired — a `claimnotes` merge driver unions the note comments and **refuses** a claim list both sides rewrote, since union reinstates a deleted claim past the `#495` guard. Five branches, ten conflicts, in one session | [#545](https://github.com/tvofi/heatpump_optimizer/pull/545) |
 | ~~**#546**~~ pressing **Tidy** made the setup page unsaveable | **DONE — closed by #548 (`137b6d5`), shipped in v6.3.17.** Released severity — `apply_topology` rejects `positions.outdoor`, which the card always emits. **Not drag-only**: the RCA ran the card's own `layoutArrange` and Tidy alone emits it on every configuration. **Shipped v3.16.0, 80 releases ago.** A stamp follows the merge | [#548](https://github.com/tvofi/heatpump_optimizer/pull/548) |
@@ -184,30 +185,56 @@ no wave:
 
 **A pattern worth naming**, since most of these were blocked for it: every one of those blocks was a document asserting something that was not true of the tree — a stale head, a count, an actor, a carry that did not land. None was a disagreement about the change itself.
 
-### The UX programme — selected 2026-09-06, not a wave
+### The UX programme — 34 items, five lanes, tracking #558
 
-Thirty-four items the owner selected from a forty-two item survey, in
-concurrent lanes (the card lane and the docs lane are named in the sequencing
-rules below; others sit under their own issue numbers as they are filed).
-Three items were dropped: a static icon override defeating `device_class`,
-config entities creating a second source of truth, and a hand-kept table of
-contents duplicating GitHub's outline. Two were reshaped so they stop being
-breaking changes: `ScheduleSensor` adds a numeric entity and deprecates
-rather than renames, and `DeviceInfo` gains `configuration_url` and a
-manufacturer with no rename.
+Thirty-four graphics and interface changes the owner selected from a
+forty-two item survey. **Tracking issue #558** carries every item; the
+*Optimizer UX Docket* artifact is the source of record. Three items were
+dropped and two reshaped so they stop being breaking changes — both recorded
+there with reasons.
 
-**Full accounting lives in `docs/HANDOVER.md`** ("The UX programme" section),
-not restated here per that file's own durable-vs-volatile split. Three
-sequencing rules apply once lanes start: the contrast witness runs last in
-the card lane; the drift-state lane is one pull request, not four; the docs
-lane's fifth item needs its fourth landed first.
+**The lanes run concurrently with the waves, and that is measured rather than
+assumed.** `docs/` is an INERT prefix, so lane B selects zero test scripts.
+`tests/structure.py` walks `*.py` only, so lane C moves no ratchet metric at
+all — its only cost is a golden drift claim. Lane D is Python outside the
+coordinator, so repo-wide budgets bind but `coordinator_loc` does not.
 
-No lane has started. The one named item so far, **#516** (group the wide
-options pages with `section()`), is sequenced as a follow-up gated on
-**#514** (declare Python 3.13+, raise the Home Assistant floor to 2025.2.0
-— `section()` is absent from `helpers/selector.py` below that floor).
+**Independence by budget is not independence by file.** The docket's original
+claim was measured against the ratchet, which was true and incomplete: two
+lanes share files with remaining wave stages.
 
-v6.3.12 is stamped at the Wave-1b/half-I boundary as a **gate and test-hardening release** — not for the accumulated no-op merges alone, and not by waiting for a runtime fix that half I will not produce, because half I is entirely test, docs and tooling.
+| lane | items | collides with | on | sequence |
+|---|---|---|---|---|
+| **B** docs | 12 | — | — | **now**, concurrent |
+| **C** card | 9 | — | — | **now**, concurrent |
+| **D** ha | 6 | W5-G2 | `sensor.py` | **now** — Wave 5 has not started, so D lands first and W5-G2 re-measures |
+| **E** flow | 4 | **W4 S11 (#223)**, W5-G3 | `config_flow.py` | **E1–E3 after S11**; **E4 (#516) now**, because its blocker is in `golden.py` |
+| **F** post-W4 | 2 | S12/S13, W5-G4, W5-G7 | `coordinator.py` | **last work of the programme**, after #412 |
+
+**Why E1–E3 wait.** S11 rewrites `config_flow.py` as a settings registry.
+Landing the token masking, the finish-setup-now step and the `setup_overview`
+move first means S11 restructures work that has just landed; landing them
+after makes each one row in the registry instead of three separate edits.
+
+**Why F is last.** It is the only lane that adds lines to `coordinator.py`,
+where `coordinator_loc` and `max_class_loc` sit at zero headroom — three added
+lines would fail two budgets and eat the headroom the seam stages need. It
+therefore follows Wave 4, Wave 5 **and** #412, which makes it the final work
+of the whole programme rather than merely late.
+
+**Three sequencing rules inside the lanes**, each of which costs a red main or
+a wasted PR if ignored: **C4** (the contrast witness) runs **last** in its
+lane, because extended today it fails immediately on four measured ratios;
+**C1 is one pull request, not four**, since the four colour fixes claim drift
+over the same state list; and **B5 needs B4 landed**, or the README opens with
+nothing where the flowchart used to be.
+
+**#516 (E4)**'s original blocker is discharged — #520 raised the Home
+Assistant floor to 2025.2.0, where `section()` exists. Its real blocker
+survives and is sharper: `golden.py`'s `fingerprint` walks schemas one level
+deep, so grouped fields would fall **silently** out of the fingerprint and a
+byte-identical golden would prove nothing. That is the defect class #553 fixed
+for the stored-value arm, and the capture work is in flight.
 
 ### Wave 1b, half I delivered 2026-09-04
 
