@@ -450,3 +450,61 @@ The per-group briefs are committed too, not only the wave tables above:
 before re-deriving anything, because several exist only to stop a fixer redoing
 work a judge already refuted — W1-G13 names the measured fix for #258 and the
 harness that must not be used to check it. Wave 3L is `.claude/workflows/wave-3l-groups.json`. Wave 4 is `.claude/workflows/wave-4-groups.json` (W4-G1–G5 done; next W4-G6). Wave 5 roster is prepared at `.claude/workflows/wave-5-groups.json` (seats not started).
+
+## The UX programme (#558) — what lane B's figure items measured
+
+Carried here because lanes B–F have no roster JSON, so a later figure seat has
+no brief of its own to read. Every figure below re-measures at its own merge
+base; the numbers are snapshots.
+
+**`docs/*.md` is not rendered by HACS at all, so B1's three constraints are
+README-only.** HACS's `async_get_info_file_contents` builds its candidate list
+from one stem and returns the first match in the repository's root tree —
+`README.md`, `readme.md`, `readme.MD`, `README.MD`, `README`, `readme`. A path
+under `docs/` matches none of them, and nothing else in the panel fetches a
+second file, so `docs/` reaches a reader only through GitHub. Relative image
+paths, and alt text on more than one line, are therefore free in `docs/` and
+still forbidden in `README.md`. Control, executed against the pipeline
+(`marked@15.0.4` + `xss@1.0.15`) on the branch that added the figures: a
+single-line markdown image is rewritten to `raw.githubusercontent.com` and
+survives, while a wrapped alt and an HTML relative `src` both come out
+`<img src>` with the attribute empty. **Do not spend quality on the README
+constraints in a `docs/` figure** — but keep alt text on one line anyway, which
+costs nothing and survives the text being moved into the README later.
+
+**A card figure that needs the house's two zone dashes must ask for a two-zone
+payload.** A one-zone house publishes `upper` and `lower` as step-by-step copies
+of `room`, and the card drops a duplicate extra rather than labelling it — so
+the dashes cannot be rendered at all from the default payload, and no amount of
+configuration in the figure generator changes that. `tests/plan_view.py` takes
+`HPO_PLAN_TWO_ZONE=1` for this; its default is off, so the gate's payload is
+unchanged. Control: `docs/img/make_card_figures.mjs` exits non-zero when the
+two-zone render carries no dashed `house_temp` path, which is what a payload
+silently reverting to one zone would produce.
+
+**Where a figure's caption is a claim, the generator checks it.** The
+demand-window figure's caption says the tank is held above the minimum inside a
+frame; `docs/img/make_model_figures.py` refuses to write the figure if the plan
+it read dips below it, using `dhw_schedule.hour_in_windows` to decide what
+"inside" means. The measured values are printed beside the curve rather than
+left to the reader's eye, because the crossing sits within a few pixels of a
+frame edge. A figure whose caption cannot fail is a drawing, not evidence.
+
+**Figure generators live in `docs/img/`, beside their output.** `docs/` is on
+`tests/closure.py`'s `INERT` list, so a generator there needs no closure entry
+and editing one selects no gate script. Under `tools/` a generator is an orphan
+until `closure.py` names it, and `closure.py` is a `GATE_FILE`: classifying it
+would force `MODE: FULL` on every documentation branch that touched the list.
+
+**Still unfixed, and outside every lane item so far:** the `[![License: MIT]…](LICENSE)`
+badge. `markdownWithRepositoryContext` rewrites a link target with no `.md`
+extension against `raw.githubusercontent.com`, and the badge comes out of the
+HACS pipeline as
+`src="https://raw.githubusercontent.com/tvofi/heatpump_optimizer/6.3.17/https://img.shields.io/badge/License-MIT-green.svg"`
+— so the badge image itself does not load, not merely its link. Reproduced on
+2026-09-07 by rendering `README.md` through the pipeline. It needs a lane-B
+item; it is not one today.
+
+**Delivery-status row.** PR #567 (B1–B5) adds the `| UX |` row to the table
+above and its own section; this PR carries B6–B11 and deliberately does not add
+a second row. Whichever merges second should make the one row name both.
