@@ -76,9 +76,11 @@ UPSTREAM = "2025.2.0"
 # is an ordinary failure.
 #
 # `hacs.json` declares 2025.2.0, so the floor is what the stub owes and what
-# these contracts are written from. The drift itself has production reach --
-# config_flow.py builds NumberSelectors and calls add_suggested_values_to_schema
-# -- and is tracked separately rather than absorbed here.
+# these contracts are written from. #590 holds the drift itself, including the
+# measured finding that NEITHER change reaches this integration today: every
+# numeric field goes through config_flow._number, which always passes both
+# bounds AND an explicit mode, and nothing marks a schema key advanced. What
+# protects it is that convention, which nothing enforces.
 UPSTREAM_DRIFT = {
     (
         "homeassistant.helpers.selector.NumberSelector",
