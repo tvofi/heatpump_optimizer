@@ -61,7 +61,47 @@ Where this table and a wave body disagree, this table is the truth.
 | **3L** | mid-programme leftovers, one burst | #400 #401 #404 #405 #408 #457 #460 #463 #465 | after Wave 3 | **done** — **3L-G1** #470 (`81aa0c3`). **3L-G2** #472 (`2abe2f7`). **3L-G3** #474 (`e8adfe4`) + #479 (`8ea27d4`) + #480 (`162e759`). **3L-G4** #477 (`531d8b7`). **3L-G5** #483 (`6f02b8a`) closed #408. **3L-G7** #485 (`bf08217`) closed #460. **3L-G8** #487 (`a19ba03`). **3L-G9** #489 (`b29fd1e`) closed #463. **3L-G10** #492 (`e4bc375`) closed #465. **3L-G6** (#457) never implemented: the seat returned NEEDS_CONTEXT (no production `conflict` symbol; nearest twins are read-only `setup_overview` and `reconfigure`), and the owner then closed #457 as `COMPLETED` by hand on 2026-09-06T03:40:23Z with no PR and no commits. Discharged, not blocked — do not reopen it and do not invent a backend. Next **W4-G6** (S5). Do not stamp. #481 leftover closed. #412 stays last of the programme |
 | 4 | the #193 decomposition programme, S0–S13 | #193 #223 #224 #225, and **#304 as S11's precursor** | one per stage | **W4-G1–G5 done; next W4-G6** — S0 #497 (`c197b01`), S1 #500 (`67e1cf3`, closed #377), S2 #502 (`d979110`, review `merge` 5558785350), S3 #506 (`5a4e6ff`, review `merge` 5559638736 at `258b245`: cut_views 94→85, coordinator_loc/max_class_loc 10305→10164, functions_cc_over_15 39→38, methods_over_150 21→20; earlier `blocked` 5559418212 at `341c596` cleared). **S4 (W4-G5, fetch) is a RECORDED HALT at `5a4e6ff` with no production change** (#508) — 92 of cut_fetch's 115 is other seams reading the 15 fetch-owned attrs (60) and calling into fetch (32), so the seam move is sequenced to S12/W4-G13, not banned. Do not Closes #193. Roster `.claude/workflows/wave-4-groups.json`. #225 stays closed. #412 not in this wave. Do not stamp |
 | 5 | typing lane, and the coverage deficit #195 raised | #303 #195 | per tranche | pending — roster `.claude/workflows/wave-5-groups.json` prepared; **seats not started**. After Wave 4. **#304 is Wave 4**, not here. #412 not in this wave |
+| UX | the 34-item UX programme, five concurrent lanes | #558 (tracking; 12 docs, 9 card, 6 HA, 4 flow, 2 post-W4) | per lane | **lane B started** — B1-B5 in PR (docs). Lanes B/C/D/E run concurrently and touch no coordinator budget; **lane F waits for Wave 4** because it is the only one that adds lines to `coordinator.py`. B1's measured rendering constraints bind B6-B12 and C-lane figure work — see the section below. Leaves #558 open |
 | last | CI Node majors | #412 | after Wave 5 | pending — owner: last task; do not pull into 3L or Wave 4/5 |
+
+### The UX programme (#558) — what B1 measured, and what it binds
+
+Lane B's first item asked a question this repository's own records left open
+(`tools/audit/round2/D5/REPORT.md`, "Whether HACS's in-app README view renders
+mermaid was not checked"). It is answered, by execution rather than argument,
+and the answer constrains every later item that adds a figure.
+
+**Mermaid does not render in HACS's in-app README view.** HACS reads `README.md`
+as `additional_info` and passes it to `<ha-markdown>` with no `allow-svg`; that
+is home-assistant/frontend's `markdown-worker`, which is plain `marked` plus
+js-xss over a whitelist carrying no `svg`. A fence comes out as a literal
+`<pre><code>` dump of its own source, and the `language-mermaid` class is
+stripped with it, so nothing downstream can find it either. Control: rendering
+the README through that exact pipeline (marked 15.0.4, xss 1.0.15 — the
+versions hacs/frontend pins) yields zero `<svg>` elements, while a GFM table in
+the same document is still wrapped by the worker's own `table` renderer, so the
+pipeline is demonstrably running.
+
+What this binds:
+
+- **B6-B8 may not ship a diagram as mermaid alone.** A figure that must reach a
+  Home Assistant user is an image. `docs/*.md` is not rendered by HACS at all,
+  so a mermaid figure there is a GitHub-only figure — legitimate, but state
+  which audience it serves.
+- **Reference every image as single-line markdown, never raw HTML.** js-xss
+  blanks any `src` that is not absolute or `/`-, `./`-, `../`-rooted, and HACS's
+  `markdownWithRepositoryContext` rewrites markdown `[..](..)` links only. Its
+  link regex is also built without the `s` flag, so an `![alt](path)` whose alt
+  text **wraps across lines** is left un-rewritten and then blanked too. Both
+  failures are invisible on GitHub. `tests/entities.py` pins all three.
+- **B12 should land after C1-C4.** A hero generated from the card's own renderer
+  bakes in whatever the card looks like that day, and today that includes C2's
+  colliding time-axis end labels and C1's low-contrast lane labels — both are
+  visible in the interim asset at `docs/img/card-plan-chart.svg`.
+
+Re-measure rather than quote: the pipeline is two upstream repositories that
+move independently of this one, and the versions above are what they pinned on
+2026-09-07.
 
 ### Wave 3L — leftovers, after Wave 3, before Wave 4
 
