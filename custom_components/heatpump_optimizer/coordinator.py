@@ -386,6 +386,7 @@ from .thermal_model import (
     ThermalModel,
     ThermalParameters,
     ThermalState,
+    learner_newton_step,
     mold_safe_room_floor,
 )
 from .dhw_schedule import (
@@ -4061,45 +4062,16 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         else:
             base_u = params.heat_loss_coefficient
             capacity = params.room_thermal_mass
-        if base_u <= 1e-6 or capacity <= 1e-6:
-            return
-
-        current_u = base_u * self._house_heat_loss_scale
-        # Warmer than predicted means the model is over-estimating the loss.
-        delta_u = -residual * capacity / (delta_t * dt_h)
-        target_scale = (current_u + delta_u) / base_u
-        if not np.isfinite(target_scale):
-            return
-        # Bound the target symmetrically about the current value rather than
-        # discarding or globally clamping it. Discarding was one-sided: a
-        # warm-side residual of just +0.13 °C (inside sensor noise) drove the
-        # target non-positive and threw the sample away, while cold-side
-        # residuals were kept to the full 1.0 °C guard — pure zero-mean noise
-        # ratcheted the scale upward, measured at 1.0 → 1.2 in 60 days at
-        # σ=0.1 °C. A clamp to fixed global bounds merely slows the same drift,
-        # because their midpoint is not the current value; a symmetric trust
-        # region makes noise-dominated samples exactly zero-mean, and the EWMA
-        # and step limit below still decide how fast genuine signal moves it.
-        target_scale = float(
-            np.clip(
-                target_scale,
-                self._house_heat_loss_scale - _LEARNER_TRUST_REGION,
-                self._house_heat_loss_scale + _LEARNER_TRUST_REGION,
-            )
+        step = learner_newton_step(
+            self._house_heat_loss_scale,
+            base_u, capacity, residual, delta_t, dt_h,
+            trust_region=_LEARNER_TRUST_REGION,
+            alpha=HOUSE_LOSS_ALPHA,
+            max_step_fraction=HOUSE_LOSS_MAX_STEP,
         )
-
-        new_scale = (
-            1.0 - HOUSE_LOSS_ALPHA
-        ) * self._house_heat_loss_scale + HOUSE_LOSS_ALPHA * target_scale
-        # Rate-limit so a single odd interval cannot jump the model.
-        max_step = self._house_heat_loss_scale * HOUSE_LOSS_MAX_STEP
-        new_scale = float(
-            np.clip(
-                new_scale,
-                self._house_heat_loss_scale - max_step,
-                self._house_heat_loss_scale + max_step,
-            )
-        )
+        if step is None:
+            return
+        target_scale, new_scale = step
         self._apply_house_heat_loss_scale(new_scale)
         self._house_heat_loss_samples += 1
 
@@ -4207,51 +4179,16 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
         base_u = params.lower_floor_heat_loss * self._house_heat_loss_scale
         capacity = params.lower_floor_thermal_mass
-        if base_u <= 1e-6 or capacity <= 1e-6:
-            return
-
-        current_u = base_u * self._lower_floor_loss_ratio
-        delta_u = -residual * capacity / (delta_t * dt_h)
-        target_ratio = (current_u + delta_u) / base_u
-        if not np.isfinite(target_ratio):
-            return
-        # Clamp the target rather than discarding it when it comes out
-        # implausible, because discarding is not symmetric here and would bias
-        # the fit one way.
-        #
-        # The lower zone's standalone time constant is `C / u` = 8.0 / 0.07,
-        # over a hundred hours, so its temperature barely moves and the Newton
-        # step is correspondingly enormous: a residual of only +0.12 K implies a
-        # ΔU larger than the whole coefficient, i.e. a *negative* target. Those
-        # are exactly the intervals where the house lost less heat than
-        # predicted. Rejecting them while accepting the cold-side ones -- whose
-        # targets stay positive -- would let the ratio ratchet upward on noise
-        # alone. And the clamp must be centred on the *current* estimate, not
-        # on the fixed [MIN, MAX] range: with the estimate sitting off-centre
-        # in that range, symmetric noise clips asymmetrically and drifts the
-        # ratio toward the range's midpoint. The trust region keeps both sides
-        # equally, and the EWMA and step limit below are what actually decide
-        # how fast the estimate moves. `_apply_lower_floor_loss_ratio` still
-        # holds the final value inside the global bounds.
-        target_ratio = float(
-            np.clip(
-                target_ratio,
-                self._lower_floor_loss_ratio - _LEARNER_TRUST_REGION,
-                self._lower_floor_loss_ratio + _LEARNER_TRUST_REGION,
-            )
+        step = learner_newton_step(
+            self._lower_floor_loss_ratio,
+            base_u, capacity, residual, delta_t, dt_h,
+            trust_region=_LEARNER_TRUST_REGION,
+            alpha=HOUSE_LOSS_ALPHA,
+            max_step_fraction=HOUSE_LOSS_MAX_STEP,
         )
-
-        new_ratio = (
-            1.0 - HOUSE_LOSS_ALPHA
-        ) * self._lower_floor_loss_ratio + HOUSE_LOSS_ALPHA * target_ratio
-        max_step = self._lower_floor_loss_ratio * HOUSE_LOSS_MAX_STEP
-        new_ratio = float(
-            np.clip(
-                new_ratio,
-                self._lower_floor_loss_ratio - max_step,
-                self._lower_floor_loss_ratio + max_step,
-            )
-        )
+        if step is None:
+            return
+        target_ratio, new_ratio = step
         self._apply_lower_floor_loss_ratio(new_ratio)
         self._lower_floor_loss_samples += 1
 
