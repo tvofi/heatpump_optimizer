@@ -11967,6 +11967,7 @@ R.check(
     narrative_mod.render(
         [{"reason": "from_the_future", "kwh": 1.0, "sek": 1.0, "hours": 1.0}],
         "sv",
+        "SEK",
     )
     == [],
 )
@@ -11976,6 +11977,80 @@ _n_view = _cn._narrative_view()
 R.check(
     "the coordinator's narrative view renders lines for the current plan",
     _n_view["items"] and _n_view["lines"] and _n_view["language"] == "en",
+)
+
+# --- #558 D2: the narrative said "kr" in every language ------------------------
+# The English table ended twelve of its fourteen sentences in the literal
+# "kr" -- Swedish kronor, in English, on an instance whose currency Home
+# Assistant already knows. (Twelve, not fourteen: `idle` and `pump_mode` are
+# the two ZERO_ENERGY_REASONS and carry no money at all. The rule counted is
+# "templates whose text matches the word-boundary regex \bkr\b".) Swedish
+# had the same twelve, correct only while the instance is Swedish.
+_kr = _re6.compile(r"\bkr\b")
+_hardcoded = sorted(
+    f"{_lang}.{_key}"
+    for _lang, _tbl in narrative_mod.TEMPLATES.items()
+    for _key, _text in _tbl.items()
+    if _kr.search(_text)
+)
+R.check(
+    "no narrative template hardcodes a currency word",
+    not _hardcoded,
+    f"{len(_hardcoded)} hardcoded: {_hardcoded[:4]}",
+)
+# The money-bearing templates must actually SAY the currency, or the fix is a
+# deletion rather than a substitution and the reader loses the unit entirely.
+_moneyed = {
+    _key
+    for _key, _text in narrative_mod.TEMPLATES["en"].items()
+    if "{cost}" in _text
+}
+R.check(
+    "every money-bearing template names the currency it is given",
+    _moneyed
+    and all(
+        "{currency}" in _tbl[_key]
+        for _tbl in narrative_mod.TEMPLATES.values()
+        for _key in _moneyed
+    )
+    and _moneyed == set(narrative_mod.TEMPLATES["en"]) - narrative_mod.ZERO_ENERGY_REASONS,
+    f"{sorted(_moneyed)}",
+)
+_cur_items = [{"reason": "cheap_price", "kwh": 6.2, "sek": 8.4, "hours": 3.0}]
+for _lang in narrative_mod.TEMPLATES:
+    _line = narrative_mod.render(_cur_items, _lang, "EUR")[0]
+    R.check(
+        f"render speaks the currency it is handed ({_lang})",
+        "EUR" in _line and not _kr.search(_line),
+        _line,
+    )
+# And the coordinator hands it the instance's currency rather than a constant.
+_eur_nh = _FakeHass(dict(_METER))
+_eur_nh.config.currency = "EUR"
+_eur_nc = _Coord(
+    _eur_nh,
+    _FakeEntry(
+        data={
+            "tibber_token": "x",
+            "weather_entity": "weather.home",
+            "indoor_temp_entity": "sensor.indoor",
+            "outdoor_temp_entity": "sensor.outdoor",
+        }
+    ),
+)
+_eur_nc._optimization_result = _r6
+_eur_lines = _eur_nc._narrative_view()["lines"]
+R.check(
+    "the narrative view prices the plan in the instance's currency",
+    _eur_lines and any("EUR" in _l for _l in _eur_lines),
+    str(_eur_lines[:2]),
+)
+# NULL CONTROL: an instance that configured nothing keeps the historical SEK
+# fallback, so the fix changes the WORD ("kr" -> "SEK") and never the unit.
+R.check(
+    "and an unconfigured instance still prices the plan in SEK",
+    any("SEK" in _l for _l in _n_view["lines"]),
+    str(_n_view["lines"][:2]),
 )
 
 # --- #52 the diagnosis -----------------------------------------------------------
@@ -18526,7 +18601,7 @@ R.check(
     f"filtering them out leaves silence where the explanation belongs",
 )
 for _lang in narrative_mod.TEMPLATES:  # every shipped language renders it
-    _nb_lines = narrative_mod.render(_nb_items, _lang)
+    _nb_lines = narrative_mod.render(_nb_items, _lang, "SEK")
     R.check(
         f"and it renders a real sentence in {_lang}",
         len(_nb_lines) == 1 and "4.0" in _nb_lines[0] and "{" not in _nb_lines[0],
