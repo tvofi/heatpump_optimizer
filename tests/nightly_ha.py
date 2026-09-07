@@ -43,14 +43,51 @@ its own limit:
   and the two ECL110 MQTT topics are blanked because the container has no
   broker, so ``_apply_action`` and its followers are reached but write
   nowhere. This lane observes that a plan exists, not that it was carried out.
-* **Home Assistant's own complaints.** Its loop protection fires twice on this
-  integration (#525). Those are pinned by ``log:no_new_blocking_call`` rather
-  than failed, so a THIRD offender is what turns this lane red; the two known
-  ones are tracked where they can be fixed.
+* **Home Assistant's own complaints.** Its loop protection fired twice on this
+  integration on this lane's first green run (#525); #540 moved both off the
+  loop, so ``KNOWN_BLOCKING`` is empty and ANY report against this package now
+  fails ``log:no_new_blocking_call``. What the pin cannot see is an upstream
+  reword of the report itself: ``log:blocking_report_parsed`` catches a reword
+  of the half naming the source line, and nothing here catches a reword of
+  ``Detected blocking call to``. Only a deliberate blocking call, provoked
+  inside the container, would (#588).
 * **The config flow.** The entry is seeded into ``.storage/core.config_entries``
   from the defaults recorded in ``tests/golden/config_flow.json``, so the nine
   setup steps are not driven here. ``tests/entities.py`` and the golden lane own
   the flow itself.
+
+AND MOST OF WHAT A CONTAINER COULD ASSERT, WHICH THE FOUR LIMITS ABOVE DO NOT
+SAY (#533). The programme's production-escape analysis derives fourteen
+assertions for this lane; the four above are not any of the ten missing ones,
+so a reader had to re-derive the gap to find it. Written down instead:
+
+===  ====================================================  ==========  =======
+A    what it asserts                                       escapes     state
+===  ====================================================  ==========  =======
+A1   the entry reaches ``loaded``, both image tags         6           done
+A2   a plan was actually produced                          4           done
+A3   the published-state sweep, judged by HA's machinery   15          #584
+A4   availability conjoins the coordinator (fault-inject)  6           none
+A5   the entry round-trips through its own 23 forms        9           #587
+A6   corrupt-store resilience                              4           none
+A7   the log carries none of this integration's failures   5           partial
+A8   services register once, deregister on unload          3           #587
+A9   reload without growth                                 3           #587
+A10  diagnostics leak no credential and no location        2           #585
+A11  a failing service raises, it does not no-op           3           none
+A12  an older schema version migrates                      1           none
+A13  the currency follows the instance                     1           none
+A14  setup does not block the event loop                   1           partial
+===  ====================================================  ==========  =======
+
+Roughly 15 of the ~58 escapes a container could reach. **A3 is worth more than
+the four implemented assertions combined** and is the one to build next. The
+counts are bullet-level, stable in ranking and about +/-15 in absolute terms;
+the two largest classes in the record -- solver numbers and card geometry, 68
+escapes between them -- are out of this lane's reach by construction, so this
+is the deployment-shape and HA-citizenship lane and not a general safety net.
+A4, A6, A11, A12 and A13 have no issue: they are recorded here and unscheduled,
+which is a different thing from unnoticed.
 
     python tests/nightly_ha.py --image homeassistant/home-assistant:2025.2.0
 
@@ -117,13 +154,22 @@ INSIDE_CHECKS = (
 # stderr (``coordinator._ensure_worker`` passes ``stderr=None``), so its
 # traceback lands on the container's stderr and never in home-assistant.log --
 # which is why both streams are scanned rather than the log alone.
+#
+# Demanded by name, exactly as ``INSIDE_CHECKS`` is, and for the same reason
+# its comment gives. Until #533 nothing referenced this tuple at all: it was a
+# roster the run never consulted, so a check deleted or renamed out here left
+# a shorter green run and no other trace. ``run:all_checks_ran`` is the demand
+# and names itself in its own roster.
 OUTSIDE_CHECKS = (
     "run:driver_reported",
     "run:exit_status",
+    "run:all_checks_ran",
     "log:no_module_not_found",
     "log:no_worker_exit",
     "log:no_integration_traceback",
+    "log:blocking_report_parsed",
     "log:no_new_blocking_call",
+    "log:blocking_pin_not_stale",
 )
 
 FORBIDDEN = {
@@ -145,32 +191,44 @@ SOLVE_REPAIRS = frozenset({"solve_failures", "solve_worker_fallback"})
 # Home Assistant's own loop protection, which no lane using tests/hastub can
 # see -- `homeassistant.util.loop` does not exist there. Its report carries a
 # stack, so it is picked out by its own rule instead of being counted as an
-# exception traceback, and the offenders are pinned: a THIRD one fails this
-# lane. The two below are #525, found by this lane's first green run.
+# exception traceback.
 #
-# Subset, not equality, and the reason is measured: `worker.wait` is only
-# reached when the worker is still alive, so a tree with #511 unfixed produces
-# one offender rather than two. An equality pin would fail there for a second,
-# unrelated reason, on exactly the trees this lane is already red for. The
-# detail line names both directions, so a pin that can shrink is still visible.
-BLOCKING_CALL = re.compile(
+# `BLOCKING_CALL` is built FROM `BLOCKING_AT_OURS` rather than beside it, so
+# the loose anchor and the strict pin cannot drift apart. The loose one asks
+# only whether Home Assistant blamed this package; the strict one also reads
+# the source line, which is the half an upstream reword would take away. A
+# report the loose regex claims and the strict one cannot parse is that
+# reword, and `log:blocking_report_parsed` is where it lands -- because
+# without it the pin degrades to always-pass and says nothing (#533).
+_BLOCKING_AT = (
     r"Detected blocking call to (\S+) .* at "
-    r"(custom_components/heatpump_optimizer/[\w./]+), line \d+: (.*?) \(offender:"
+    rf"({re.escape(PACKAGE_REL)}/[\w./]+)"
 )
-KNOWN_BLOCKING = frozenset(
-    {
-        (
-            "import_module",
-            "custom_components/heatpump_optimizer/__init__.py",
-            'return importlib.import_module(f".{module}", __package__)',
-        ),
-        (
-            "sleep",
-            "custom_components/heatpump_optimizer/coordinator.py",
-            "worker.wait(timeout=2)",
-        ),
-    }
-)
+BLOCKING_AT_OURS = re.compile(_BLOCKING_AT)
+BLOCKING_CALL = re.compile(_BLOCKING_AT + r", line \d+: (.*?) \(offender:")
+
+# A RATCHET, IN BOTH DIRECTIONS, AND BOTH DIRECTIONS FAIL.
+#
+# `log:no_new_blocking_call` refuses growth: an offender not listed here is a
+# new defect. `log:blocking_pin_not_stale` refuses decay: an offender listed
+# here that the run did not produce has been FIXED, and a pin outliving its
+# defect would pass while pinning nothing. #525's two entries stood here after
+# #540 removed both, and the run went green either way -- one check with a
+# subset test and a detail line cannot report the second direction, because a
+# shrunken pin is a pass and `Checks.check` blanked the detail on a pass.
+#
+# The two directions are separate checks rather than an equality test for the
+# reason the old comment measured: an offender on a conditional path (#525's
+# `worker.wait`, reached only while the worker is alive) is legitimately
+# absent from some runs. Equality would fail such a run for a second, unrelated
+# reason. Two checks name which direction moved, and a pinned entry whose path
+# is that conditional does not belong here in the first place.
+#
+# Empty since #540 (#533): the import went to `async_add_import_executor_job`
+# and the reap to `async_add_executor_job`, so ANY report against this package
+# now fails the lane -- the strongest form, and the one an empty pin cannot go
+# stale in. If #540's fix is incomplete, this lane says so by name.
+KNOWN_BLOCKING: frozenset[tuple[str, str, str]] = frozenset()
 BLOCKING_REPORT = "Detected blocking call to"
 
 
@@ -184,9 +242,18 @@ class Checks:
         self.results: dict[str, list] = {}
 
     def check(self, name: str, cond: object, detail: str = "") -> bool:
+        """Record a check. The detail is kept whether it passed or failed.
+
+        Blanking it on pass is how the stale ``KNOWN_BLOCKING`` pin stayed
+        invisible (#533): its detail names the offenders pinned but not seen,
+        and a pin that has gone stale *passes*, so the one line that would
+        have reported it was exactly the line thrown away. A detail is a
+        measurement, not an excuse for a failure -- write it to read in both
+        states, because it is only ever printed in one of them by accident.
+        """
         ok = bool(cond)
-        self.results[name] = [ok, detail if not ok else ""]
-        print(f"  {'ok  ' if ok else 'FAIL'} {name}" + (f"  [{detail}]" if detail and not ok else ""))
+        self.results[name] = [ok, detail]
+        print(f"  {'ok  ' if ok else 'FAIL'} {name}" + (f"  [{detail}]" if detail else ""))
         return ok
 
     def failures(self) -> list[str]:
@@ -815,7 +882,11 @@ def _docker(image: str, config: Path, driver: Path, budget: float, timeout: floa
 def _scan(checks: Checks, text: str) -> None:
     for name, needle in FORBIDDEN.items():
         hits = [line for line in text.splitlines() if needle in line]
-        checks.check(name, not hits, f"{len(hits)} line(s), first: {hits[0][:200]}" if hits else "")
+        checks.check(
+            name,
+            not hits,
+            f"{len(hits)} line(s)" + (f", first: {hits[0][:200]}" if hits else ""),
+        )
     # A blocking-call report is a WARNING that carries a stack, not an
     # exception, so the stack after one belongs to the pin below rather than
     # to this check -- otherwise #525 would read as an integration crash.
@@ -829,15 +900,32 @@ def _scan(checks: Checks, text: str) -> None:
     checks.check(
         "log:no_integration_traceback",
         not ours,
-        f"{len(ours)} traceback(s) naming {PACKAGE_NAME}; first:\n"
-        + (TRACEBACK_HEAD + ours[0][:600] if ours else ""),
+        f"{len(ours)} traceback(s) naming {PACKAGE_NAME}"
+        + (f"; first:\n{TRACEBACK_HEAD}{ours[0][:600]}" if ours else ""),
+    )
+    # The loose anchor's matches are the population the pin is computed over,
+    # so a line it claims and `BLOCKING_CALL` cannot parse silently shrinks
+    # that population to nothing -- which reads as "no offenders" (#533).
+    blamed = {line for line in text.splitlines() if BLOCKING_AT_OURS.search(line)}
+    unparsed = sorted(line for line in blamed if not BLOCKING_CALL.search(line))
+    checks.check(
+        "log:blocking_report_parsed",
+        not unparsed,
+        f"{len(blamed)} report(s) blame this package, {len(unparsed)} unparsed"
+        + (f"; first: {unparsed[0][:300]}" if unparsed else ""),
     )
     found = set(BLOCKING_CALL.findall(text))
     checks.check(
         "log:no_new_blocking_call",
         found <= KNOWN_BLOCKING,
-        f"new offenders: {sorted(found - KNOWN_BLOCKING)}; "
-        f"pinned but not seen this run: {sorted(KNOWN_BLOCKING - found)}",
+        f"{len(found)} offender(s) seen; "
+        f"new: {sorted(found - KNOWN_BLOCKING)}",
+    )
+    checks.check(
+        "log:blocking_pin_not_stale",
+        KNOWN_BLOCKING <= found,
+        f"{len(KNOWN_BLOCKING)} pinned; "
+        f"fixed but still pinned: {sorted(KNOWN_BLOCKING - found)}",
     )
 
 
@@ -872,6 +960,17 @@ def _report(checks: Checks, completed, config: Path) -> int:
         )
     log = config / LOG_NAME
     _scan(checks, completed.stdout + completed.stderr + (log.read_text(errors="replace") if log.is_file() else ""))
+    # Both rosters, by name. A driver that died after two checks already fails
+    # above; this is the other half -- a check that stopped being reached, or
+    # was renamed, on either side of the container boundary (#533).
+    ran = set(checks.results) | {"run:all_checks_ran"}
+    want = set(INSIDE_CHECKS) | set(OUTSIDE_CHECKS)
+    checks.check(
+        "run:all_checks_ran",
+        ran == want,
+        f"{len(ran)} of {len(want)} ran; missing: {sorted(want - ran)}; "
+        f"undeclared: {sorted(ran - want)}",
+    )
     failed = checks.failures()
     if failed:
         print("\n--- container output ---")
