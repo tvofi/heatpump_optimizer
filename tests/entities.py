@@ -8935,6 +8935,54 @@ R.check(
     f"rc={_un_rc} files={sorted(_un_got)}",
 )
 
+# --- which workflow files are the gate (#607 follow-up) ----------------------
+#
+# `GATE_FILES` used to carry the directory prefix `.github/workflows/`, so a
+# comment-only edit to `governance.yml` printed "changes the gate itself, so
+# every closure is suspect" and ran the unscoped suite -- `tests/stress.py`
+# with it -- on the pull request and again on the push to main. Only
+# `tests.yml` can do what a gate file means: it sets the job matrix, the
+# interpreter versions, the installed dependencies and `GATE_SCOPE`. These
+# checks pin that split so the prefix cannot come back by accident.
+
+R.check(
+    "the gate's own workflow is a gate file",
+    _closure.is_gate_file(".github/workflows/tests.yml"),
+    "tests.yml defines GATE_SCOPE and the matrix; a change to it invalidates "
+    "every recorded closure",
+)
+
+_NON_GATE_WORKFLOWS = [
+    ".github/workflows/governance.yml",
+    ".github/workflows/hassfest.yml",
+    ".github/workflows/release.yml",
+    ".github/workflows/validate.yml",
+]
+for _wf in _NON_GATE_WORKFLOWS:
+    R.check(
+        f"{_wf.split('/')[-1]} is not a gate file, and is classified",
+        (not _closure.is_gate_file(_wf)) and _closure.is_inert(_wf),
+        f"gate={_closure.is_gate_file(_wf)} inert={_closure.is_inert(_wf)}; "
+        "no recorded closure reads it, it sets no gate variable and runs no "
+        "gate script, so it neither forces FULL nor orphans",
+    )
+
+R.check(
+    "no directory prefix in GATE_FILES can swallow a non-gate workflow",
+    not any(
+        _p.endswith("/") and ".github/workflows/tests.yml".startswith(_p)
+        for _p in _closure.GATE_FILES
+    ),
+    "a prefix that matches tests.yml would also match the four beside it, "
+    "which is the regression this check exists to refuse",
+)
+
+R.check(
+    "a change to a non-gate workflow costs the closures check nothing",
+    _closure.affected([".github/workflows/governance.yml"])["case"] == "skip",
+    str(_closure.affected([".github/workflows/governance.yml"])),
+)
+
 # --- when the closures CHECK itself runs (#354) -----------------------------
 #
 # `select` above decides which tests a change needs. `affected` decides

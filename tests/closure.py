@@ -196,6 +196,18 @@ INERT = (
     # pull request regardless. It is a real test; it is simply not one of
     # THIS gate's scripts.
     "tests/card_browser.mjs",
+    # The four workflows that are not the gate. Each defines its own jobs,
+    # which run on every pull request regardless of what this gate selects --
+    # the same argument as `tests/card_browser.mjs` above, one directory over.
+    # No test script reads any of them, so a change to one needs no script
+    # selected; `tests.yml` is the exception and is a GATE_FILE below.
+    # Listed individually rather than as a `.github/workflows/` prefix,
+    # because that prefix would also swallow `tests.yml` and silently undo
+    # the forced-full rule that is this gate's safety argument.
+    ".github/workflows/governance.yml",
+    ".github/workflows/hassfest.yml",
+    ".github/workflows/release.yml",
+    ".github/workflows/validate.yml",
     # A manual QA render (writes ../setup-qa/). No gate script reads it.
     "tests/setup_qa_render.mjs",
     # tests/nightly_ha.py was here, on the argument that a lane needing Docker
@@ -217,7 +229,19 @@ GATE_FILES = (
     "tests/closure.py",
     "tests/closures.json",
     "tests/requirements-ci.txt",
-    ".github/workflows/",
+    # `tests.yml` ALONE, not the whole directory. This file defines the job
+    # matrix, the interpreter versions, the installed dependencies and the
+    # GATE_SCOPE the gate runs under, so a change to it can alter how every
+    # script behaves in a way no recorded closure can capture -- which is what
+    # a gate file means. The other four workflows cannot: none appears in any
+    # recorded closure (`tests/entities.py` reads this one and no other), none
+    # sets a gate variable, and none runs a gate script. Under the old
+    # directory prefix a documentation-only change to `governance.yml` printed
+    # "changes the gate itself, so every closure is suspect" and ran the full
+    # suite, `tests/stress.py` included -- about twenty-three minutes to
+    # measure a solver that no policy file can reach, on the pull request AND
+    # again on the push to main.
+    ".github/workflows/tests.yml",
     # How the closures are DERIVED is as load-bearing as the closures: change
     # a lane here and every recording that follows is taken differently.
     "tests/derive_closures.sh",
