@@ -118,21 +118,25 @@ The committed golden fixtures were recorded on another machine and the
 strict comparison does not reproduce here (`tests/README.md` says so; the
 first local run of this program failed `golden.py` on last-decimal solver
 differences in `winter_two_zone_dhw` while CI, in drift mode, was green).
-Run the gate the way CI runs it, against the merge base:
+Run the gate the way CI runs it, against the merge base. Take the lock only when
+`tests/closure.py select` reports `MODE: FULL` or names `tests/stress.py`, and
+take it with `tests/gate_lock.py` -- never `mkdir` and a shell pid (`CLAUDE.md`,
+"Running it"):
 
 ```
 BASE=$(git merge-base origin/main HEAD)
-mkdir /tmp/hpo-gate.lock && GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$BASE \
+python3 tests/gate_lock.py take --label <your-label>
+HPO_GATE_LOCK_LABEL=<your-label> GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$BASE \
   OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 \
-  ./tests/run.sh; rm -rf /tmp/hpo-gate.lock
+  ./tests/run.sh
+python3 tests/gate_lock.py renew --label <your-label>   # between commands
+python3 tests/gate_lock.py release --label <your-label>
 ```
 
-`rm -rf`, not `rmdir`, and this is not a stylistic preference: **once you write
-the owner file the section below asks for, `rmdir` cannot remove the lock** --
-it only removes empty directories, so it fails with `Directory not empty` and
-the lock survives your run. Take-with-owner and release-with-`rmdir` are
-individually reasonable and jointly unsatisfiable, which is how a session that
-followed both left a lock standing behind a green gate and blocked two others.
+`run.sh` renews the lease before every script and holds `flock` for the run, so a
+crash releases the box immediately; the lease covers the window between commands,
+when nothing holds flock (#404). `tests/README.md` ("The gate lock on a shared
+box") is the reference.
 
 
 A full run takes about three minutes on the M1 (CI: 40–90 minutes), so a
@@ -149,9 +153,9 @@ eleven agents share the box, so during a fan-out only contention-immune
 evidence counts: call counts, bytes, and CPU-time ratios against the stress
 reference solve. Every wall, CPU or RSS number is re-taken in the quiet
 window before it enters the register. One local full gate at a time, through
-`mkdir /tmp/hpo-gate.lock`; `stress.py` alone is not alone across worktrees.
+`tests/gate_lock.py`; `stress.py` alone is not alone across worktrees.
 
-## Two things the judge's round-2 run proved wrong about this file
+## What the judge's round-2 run proved wrong about this file
 
 **`load1 <= 1.5` is unattainable on this box, and demanding it produced nothing.**
 The ambient desktop floor with zero audit workload is **1.86**; over ten 60-second
@@ -161,46 +165,29 @@ not a safeguard, it is a stall. What actually protects a timing number here is a
 which is how the D9 numbers were taken, and why they are trustworthy despite a
 `load1` of 2.2-3.7. Quote the real `load1` and the control; do not wait for 1.5.
 
-**The gate lock needs an owner, or it cannot be reclaimed.** A `mkdir` lock records
-that someone holds it, never who. Round 2 lost 113 minutes to a lock created at
-22:33 with no process behind it: the judge could not remove it (rightly -- the rule
-is never remove a lock you did not create) and neither could any fixer, so every
-full gate queued behind a directory that was protecting nothing.
+**A hand-rolled lock cannot be reclaimed, and this file used to prescribe one.**
+Round 2 lost 113 minutes to a `mkdir` lock created at 22:33 with no process behind
+it: the judge could not remove it (rightly -- the rule is never remove a lock you
+did not create) and neither could any fixer, so every full gate queued behind a
+directory that was protecting nothing. Recording a pid does not settle it either.
+`$$` is the pid of the *shell* that ran the gate command, and that shell exits
+while the agent holding the lock is still working -- a coverage run held the lock
+correctly for forty minutes with its recorded `pid=98736` already gone.
 
-Take the lock with an owner file, and it becomes decidable:
-
-    mkdir /tmp/hpo-gate.lock && printf '%s pid=%s at=%s\n' \
-      "$AGENT_NAME" "$$" "$(date -u +%FT%TZ)" > /tmp/hpo-gate.lock/owner
-    # ... run the gate ...
-    rm -rf /tmp/hpo-gate.lock          # NOT rmdir: the owner file makes it non-empty
-
-Releasing your own lock is `rm -rf` for that reason, and it is the same command
-as reclaiming someone else's -- the difference is entirely in what you must
-prove first, not in what you type.
-
-**`$$` is the SHELL's pid, and that is not always the work's.** A run started
-with `nohup ... &` outlives the shell that launched it, so the owner file then
-names a dead process while the measurement it protects is still going. That
-happened within hours of this section being written: a coverage run held the
-lock correctly for forty minutes with its recorded `pid=98736` already gone.
-Record the work's pid where you can (`nohup cmd & echo $!`).
-
-Before reclaiming one you did not create, prove it is dead -- the owner pid is
-gone AND no test process is running out of the repository at all. The first
-version of this check grepped only for three names, and would have called that
-live coverage lock stale on both counts:
-
-    cat /tmp/hpo-gate.lock/owner
-    ps aux | grep -E "[t]ests/run\.sh|[s]tress\.py|[e]nv_drift\.py|[c]overage|[t]ests/[a-z_]+\.py"
-
-Only then `rm -rf /tmp/hpo-gate.lock`, and say in your report that you did and why.
-A lock with a live process behind it is never yours to take, however old it looks.
+`tests/gate_lock.py` (#404) answers both, and it is the only lock mechanism this
+repository documents. The owner file carries an agent **label** and an `expires_at`
+lease that every script under lock renews; `run.sh` holds `flock` for the run. An
+expired lease, or an abandoned hold (`holding` marker, no live flock), is taken
+without forensics -- **the script decides that, you do not**, so there is no `ps`
+pipeline to get right and no lock to remove by hand.
 
 ## `stress.py` always takes the lock, even run on its own
 
-The advice everywhere else in this file — run the scripts your diff selects
-directly, and take `/tmp/hpo-gate.lock` only for a full `tests/run.sh` — is
-wrong for exactly one script, and following it cost a whole measurement.
+The rule everywhere else in this file — run the scripts your diff selects
+directly, and take the lock only when the selection is `MODE: FULL` or names
+`tests/stress.py` — reads easily as "no lock when I run a script by hand". That
+reading is wrong for exactly one script, and following it cost a whole
+measurement.
 
 `tests/run.sh` runs `stress.py` **alone, after every other lane**, because its
 solve-time guard cannot tolerate a shared box. Running it "directly, without

@@ -121,6 +121,11 @@
 # or ordering changes, so every scenario fixture is byte-identical by
 # construction.
 
+# #539 (tools/audit generated the forbidden mkdir gate lock into the text new
+# auditors read): this branch claims NOTHING. A shell generator, agent prompt
+# strings under .claude/workflows/ and audit prose only -- no production file,
+# no fixture input and no solver parameter is touched, so every scenario is
+# byte-identical by construction.
 # W4-G8 S7 (#193, the thermal-learning seam): this branch claims NOTHING.
 # The shared Newton step, trust region, EWMA blend and rate limit move
 # verbatim from `_async_learn_house_heat_loss` and
