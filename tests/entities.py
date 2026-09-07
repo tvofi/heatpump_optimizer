@@ -446,6 +446,49 @@ for label, count, pattern in (
         match is not None and int(match.group(1)) == count,
         f"README says {match.group(1) if match else '?'}, there are {count}",
     )
+
+# The sensor table is split into labelled `####` groups (#558 B10), so a count
+# of rows under the heading no longer pins it: a group boundary adds a table
+# header row, and a sensor dropped while a group was reshuffled would pay for
+# it. Compare the NAMES instead, as a set. That is strictly stronger -- it also
+# catches a rename, and a sensor documented twice under two groups -- and it is
+# indifferent to how many groups there are or where a row was moved to.
+#
+# `(?=^### )` and not `(?=^#### )`: the group headings are inside the section,
+# and stopping at the first of them would read one group and call the other
+# seven missing.
+_sensor_block = _re.search(
+    r"^### Sensors \(\d+ total\)\n(.*?)(?=^### )", readme, _re.M | _re.S
+)
+_documented = [
+    line.split("|")[1].strip()
+    for line in (_sensor_block.group(1).splitlines() if _sensor_block else [])
+    if line.startswith("|")
+    and not _re.fullmatch(r"\|[\s|:-]+\|", line.strip())
+    and line.split("|")[1].strip() != "Sensor"  # each group's own header row
+]
+_expected_names = {display_name("sensor", s) for s in sensors}
+R.check(
+    "every sensor the platform builds has a row in the README, and every row "
+    "is a sensor it builds",
+    set(_documented) == _expected_names,
+    f"documented not built: {sorted(set(_documented) - _expected_names)}; "
+    f"built not documented: {sorted(_expected_names - set(_documented))}",
+)
+R.check(
+    "no sensor is documented in two groups",
+    len(_documented) == len(set(_documented)),
+    f"repeated: {sorted({n for n in _documented if _documented.count(n) > 1})}",
+)
+_groups = (
+    _re.findall(r"^#### (.+)$", _sensor_block.group(1), _re.M) if _sensor_block else []
+)
+R.check(
+    "the sensor section is still split into labelled groups",
+    len(_groups) >= 2,
+    f"{len(_groups)} group heading(s): {_groups}",
+)
+
 R.check(
     "unique ids are unique",
     len({s._attr_unique_id for s in sensors}) == len(sensors),
