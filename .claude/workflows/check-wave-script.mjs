@@ -241,6 +241,31 @@ await block('verdict disagrees with itself', async () => {
   t('a verdict whose field and comment disagree never merges',
     out.results[0].merged === false, J(out.results[0]))
 })
+// THE CONTRACT'S OWN EXAMPLES MUST PARSE UNDER THE SCRIPT'S OWN GRAMMAR.
+// fix-review.md tells a reviewer what to write; VERDICT_RE above decides what
+// the wave script will act on. For a whole session the contract said
+// `blocked: finding not carried to <stage>` -- no SHA, no class -- which the
+// regex rejects, so every reviewer following it to the letter wrote a verdict
+// that read as no verdict at all. Nothing compared the two. This does, by
+// extracting every backticked example that begins `blocked ` or `merge ` from
+// the contract and running it through the grammar rebuilt from `src` -- the
+// same source of truth the histogram uses -- rather than a copy kept here.
+// The floor is the null control: an extraction that finds nothing must not
+// pass, or deleting the examples would green this.
+await block('the contract\'s verdict examples parse under the script\'s own grammar', async () => {
+  const cls = [...src.matchAll(/const VERDICT_CLASSES = \[([^\]]*)\]/g)]
+  t('VERDICT_CLASSES is defined exactly once in the wave script', cls.length === 1, `found ${cls.length}`)
+  const classes = [...(cls[0]?.[1] ?? '').matchAll(/'([a-z-]+)'/g)].map((m) => m[1])
+  const re = new RegExp(`^Fix review:\\s+(?:(merge)\\s+(\\S+)|(blocked)\\s+(\\S+)\\s+(${classes.join('|')}):\\s*(.+))$`)
+  const contract = fs.readFileSync(path.join(here, '..', '..', 'tools', 'audit', 'briefs', 'fix-review.md'), 'utf8')
+  const examples = [...contract.matchAll(/`((?:blocked|merge) [^`]+)`/g)].map((m) => m[1])
+  t('the contract carries at least three verdict examples (floor, not a count)', examples.length >= 3, `found ${examples.length}`)
+  for (const ex of examples) t(`contract example parses: ${ex.slice(0, 60)}`, re.test('Fix review: ' + ex), 'rejected by VERDICT_RE')
+  t('the spelling the contract used for a session is refused (negative control)',
+    !re.test('Fix review: blocked: finding not carried to <stage>'), 'the old form parses, so this pin cannot fail')
+  t('a bare merge verdict with a SHA parses (null control)', re.test('Fix review: merge deadbeef'), 'rejected')
+})
+
 // The guard above is only worth having if it is actually called.
 await block('the harness guard is wired', async () => {
   const before = fail
