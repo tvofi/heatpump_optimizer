@@ -67,9 +67,9 @@ const MDC_PATHLINE_RE =
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(HERE, '..', '..')
 
-function git(args, { allowFail = false } = {}) {
+function git(args, { allowFail = false, env } = {}) {
   try {
-    return execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
+    return execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, ...(env ? { env } : {}) })
   } catch (e) {
     if (allowFail) return ''
     throw e
@@ -297,7 +297,7 @@ function uncoveredPolicyFiles(files = null) {
 // an earlier version of this comment openly invited, and it silently voids the
 // check, because the loop passes the POLICY FILE list and every policy file is
 // covered by definition. Hence the name, and hence asserting names.
-const CORPUS_CHECK_NAMES = ['checkIndex', 'checkDuplicates', 'checkBudgets', 'coverageOverTree', 'namedDocsOverTree', 'orphanCapsOverTree']
+const CORPUS_CHECK_NAMES = ['checkIndex', 'checkDuplicates', 'checkBudgets', 'coverageOverTree', 'namedDocsOverTree', 'orphanCapsOverTree', 'checkProvenance']
 
 // WHAT THIS PIN DOES NOT COVER, stated rather than implied. It compares the
 // wired list against the names above, so it catches a registered check that is
@@ -554,10 +554,27 @@ function lowerBaseMap(listing) {
   return listing._byBaseLower
 }
 
+// EXACT CASE FIRST, FOLD ONLY AS A FALLBACK. Asking the folded question first
+// cost one real file, and the #615 round-eight review measured it: `judge.md`
+// collides case-insensitively with `tools/audit/round2/JUDGE.md`, so
+// `tools/audit/briefs/judge.md` -- a capped policy file the corpus cites by
+// basename -- became ambiguous and left the named-docs set entirely (34 paths
+// before the fold, 33 after). Nothing else in the tree collides that way except
+// frozen round-2 evidence.
+//
+// Two questions in order, not one merged question. A spelling that matches
+// exactly one tracked file EXACTLY resolves to it; a spelling that matches
+// several exactly is ambiguous and resolves to nothing; only a spelling that
+// matches NONE exactly falls through to the fold, which is the `POLICY-NOTES.MD`
+// route and is unaffected. Both properties hold at once, which the single folded
+// lookup could not do.
 function resolveCited(token, listing) {
   if (listing.set.has(token)) return [token]
-  const cands = lowerBaseMap(listing).get(path.posix.basename(token).toLowerCase()) || []
-  return cands.length === 1 ? cands : []
+  const base = path.posix.basename(token)
+  const exact = listing.byBase.get(base) || []
+  if (exact.length) return exact.length === 1 ? exact : []
+  const folded = lowerBaseMap(listing).get(base.toLowerCase()) || []
+  return folded.length === 1 ? folded : []
 }
 
 // The SCAN AND ITS RESOLUTION, extracted so the acceptance can drive them with
@@ -1236,6 +1253,61 @@ function knownBad() {
   return raw ? JSON.parse(raw) : { entries: [] }
 }
 
+// #361 fixed exactly this defect in `tests/structure.py`: a re-record only ever
+// happens on a branch, and a branch commit is rewritten by the next amend and
+// deleted by the squash that lands it, so a HEAD stamp names a commit no later
+// reader can resolve. The countermeasure written for it -- an AST pin in
+// `tests/features.py` -- was aimed at THAT FILE rather than at the property, so
+// it did not travel, and this file reproduced the defect with the fix already in
+// the tree. The committed value was `513a4c1`, a branch head that reached main
+// in no form.
+//
+// The merge base is the fix in both files. It is on `origin/main` while the
+// branch is open and stays on it after the squash, which is the whole property:
+// a provenance SHA a reader can resolve.
+function recordedAtSha() {
+  return git(['merge-base', 'origin/main', 'HEAD'], { allowFail: true }).trim() || null
+}
+
+// Reachability from `origin/main`, not from HEAD. From HEAD is the assertion
+// that cannot fail at the moment the defect is made: a HEAD stamp is trivially
+// reachable from the HEAD that wrote it, and only stops resolving later, on
+// somebody else's clone. From main it fails on the pull request that stamped it.
+let provenanceShaSource = () => {
+  const raw = read(KNOWN_BAD_FILE)
+  return raw == null ? null : JSON.parse(raw).recorded_at
+}
+
+function checkProvenance() {
+  const sha = provenanceShaSource()
+  if (sha === null) return []
+  const f = (message) => [{ severity: 'error', check: 'provenance', where: KNOWN_BAD_FILE, message }]
+  if (!sha) return f('no `recorded_at`, so the ledger records no state it was measured against')
+  // A clone with no `origin/main` cannot answer, and answering "unreachable"
+  // there would refuse every pull request for the checkout's shape rather than
+  // for the file's content. Said out loud rather than returning silently: a
+  // check that skips without saying so reads exactly like one that passed.
+  if (!git(['rev-parse', '--verify', '--quiet', 'origin/main'], { allowFail: true }).trim()) {
+    console.log(`  skip     provenance             origin/main is not in this clone, so ${sha.slice(0, 7)} cannot be resolved`)
+    return []
+  }
+  // EXIT 1 IS THE ANSWER; ANYTHING ELSE IS THE ABSENCE OF ONE. `--is-ancestor`
+  // exits 1 for "no" and 128 when it cannot look -- an object the clone does
+  // not have, which is what a shallow clone reports for a perfectly good SHA.
+  // A bare catch read both as "no" and turned every shallow clone with an
+  // origin/main ref into a false refusal.
+  try {
+    execFileSync('git', ['merge-base', '--is-ancestor', sha, 'origin/main'], { cwd: ROOT, stdio: 'ignore' })
+    return []
+  } catch (e) {
+    if (e.status !== 1) {
+      console.log(`  skip     provenance             git could not say whether ${sha.slice(0, 7)} is an ancestor of origin/main (exit ${e.status}); a shallow clone cannot`)
+      return []
+    }
+    return f(`\`recorded_at\` is ${sha.slice(0, 7)}, which is not reachable from origin/main. A branch head is rewritten by the next amend and deleted by the squash that lands it; regenerate with --record-known-bad, which stamps the merge base`)
+  }
+}
+
 // The key deliberately drops line numbers, in `where` and inside the message.
 // An entry keyed on one stops matching the moment a line is added above it,
 // and the ratchet then reports the entry as fixed while the defect is still
@@ -1256,7 +1328,12 @@ function keyOf(f) {
 // refusal into a note, which is the failure the whole ratchet is against --
 // measured: with both live, `--record-known-bad` then a re-run gave `TOTAL: 0`
 // and exit 0.
-const NEVER_SUPPRESSED = new Set(['budgets', 'coverage'])
+// `provenance` joins them for the same reason: a ledger whose own recorded_at
+// resolves to nothing is not a defect to freeze and drain, and freezing it is
+// self-referential -- the ledger would be recording that the ledger is wrong.
+// The first `--record-known-bad` after this check landed did exactly that,
+// entering the finding one run before the re-record fixed it.
+const NEVER_SUPPRESSED = new Set(['budgets', 'coverage', 'provenance'])
 
 function applyKnownBad(findings) {
   const kb = knownBad()
@@ -1334,6 +1411,7 @@ const CHECKS = [
   { name: 'pr-body', what: 'a body carries its evidence sections, at the head CI ran', fixture: 'fixtures/policy-rot/prepr/' },
   { name: 'named-docs', what: 'a document the corpus names but no cap measures', fixture: '(driven in assertAcceptance)' },
   { name: 'coverage', what: 'every file in a policy directory is matched by a glob', fixture: '(a probe file, see assertAcceptance)' },
+  { name: 'provenance', what: "the known-bad ledger's recorded_at resolves from origin/main", fixture: '(driven in assertAcceptance)' },
 ]
 
 function lintFile(rel, derived) {
@@ -1410,7 +1488,7 @@ const REQUIRED_ROT = {
   },
 }
 
-CORPUS_CHECKS.push(checkIndex, checkDuplicates, checkBudgets, coverageOverTree, namedDocsOverTree, orphanCapsOverTree)
+CORPUS_CHECKS.push(checkIndex, checkDuplicates, checkBudgets, coverageOverTree, namedDocsOverTree, orphanCapsOverTree, checkProvenance)
 
 function assertAcceptance(derived) {
   const dir = path.join(HERE, 'fixtures', 'policy-rot')
@@ -1647,6 +1725,63 @@ function assertAcceptance(derived) {
     return 1
   }
 
+  // Provenance. Same shape as every other property here -- on a healthy tree the
+  // recorded SHA IS reachable, so the comparison is false and has no witness.
+  // Driven both ways: a commit main does not carry must be refused, and
+  // origin/main itself must be silent.
+  //
+  // THE WITNESS IS UNREACHABLE BY CONSTRUCTION, NOT BY CIRCUMSTANCE, and the
+  // first version got that wrong in the one run where it mattered. It used
+  // `HEAD`, which is unreachable from main only while a branch is unmerged, and
+  // skipped the assertion when the two were equal -- "a null control twice
+  // over", said the comment, which is true and beside the point. `governance.yml`
+  // ALSO runs on `push: branches: [main]`, where the pushed commit IS
+  // origin/main: the guard went false, the witness never ran, and an emptied
+  // `checkProvenance` passed. The mutation lane beside it then reports the check
+  // as deletable and exits 1, so `policy-docs` would have gone red on main at
+  // this pull request's own merge. The countermeasure caught the defect its own
+  // commit introduced, which is the whole argument for the lane.
+  //
+  // `commit-tree` with no `-p` builds a real, parentless commit carrying main's
+  // tree. It is a genuine object, so `--is-ancestor` gives a real answer rather
+  // than the exit-128 it gives for a bad SHA -- which is the path this check now
+  // treats as "no answer" -- and having no parents it can never be an ancestor
+  // of anything. Identity is passed in the environment because CI checkouts
+  // configure none, and `commit-tree` refuses without one.
+  const driveProv = (sha) => {
+    const prev = provenanceShaSource
+    provenanceShaSource = () => sha
+    try { return checkProvenance() } finally { provenanceShaSource = prev }
+  }
+  const mainSha = git(['rev-parse', 'origin/main'], { allowFail: true }).trim()
+  const IDENT = {
+    ...process.env,
+    GIT_AUTHOR_NAME: 'policy_lint', GIT_AUTHOR_EMAIL: 'policy_lint@invalid',
+    GIT_COMMITTER_NAME: 'policy_lint', GIT_COMMITTER_EMAIL: 'policy_lint@invalid',
+  }
+  const unreachable = mainSha
+    ? git(['commit-tree', `${mainSha}^{tree}`, '-m', 'policy_lint provenance witness'], { allowFail: true, env: IDENT }).trim()
+    : ''
+  if (!mainSha || !unreachable) {
+    // Said out loud, and NOT counted. A skipped drive that still added its pins
+    // would report a total the run did not earn.
+    console.log(`  skip     provenance-pin         ${mainSha ? 'git could not build a witness commit' : 'origin/main is not in this clone'}, so neither direction can be driven`)
+  } else {
+    pins += 3
+    if (driveProv(unreachable).length !== 1) {
+      console.log(`\nFIXTURE VACUOUS: checkProvenance did not refuse ${unreachable.slice(0, 7)}, a parentless commit that cannot be an ancestor of anything. A ledger stamped from HEAD names a SHA the squash deletes, which is #361 in a second file.`)
+      return 1
+    }
+    if (driveProv(mainSha).length) {
+      console.log(`\nFIXTURE OVER-FIRES: checkProvenance refused origin/main itself.`)
+      return 1
+    }
+    if (driveProv(null).length) {
+      console.log(`\nFIXTURE OVER-FIRES: checkProvenance reported on a tree with no ledger at all.`)
+      return 1
+    }
+  }
+
   // named-docs, driven both ways. Its property -- "a document the corpus names
   // that no cap measures" -- is FALSE on a healthy tree by construction, so it
   // has no witness there and would be deletable in silence exactly as the caps
@@ -1807,6 +1942,25 @@ function assertAcceptance(derived) {
     console.log(`\nFIXTURE OVER-FIRES: an AMBIGUOUS basename resolved (got ${JSON.stringify(cited)}). Driven that way on the real tree it reported sixteen frozen tools/audit/round2 reports through the generic names REPORT.md and BASELINE.md.`)
     return 1
   }
+  // Exact case WINS over a fold. The synthetic carries a pair that collides only
+  // when folded -- the shape `judge.md` and `tools/audit/round2/JUDGE.md` have in
+  // the real tree -- and the exact spelling must still resolve. Folding first
+  // made that pair ambiguous and dropped `tools/audit/briefs/judge.md`, a capped
+  // policy file the corpus cites by basename, out of the check entirely.
+  pins += 1
+  const foldPair = { set: new Set(['a/case.md', 'b/CASE.md', 'docs/only-here.md', 'docs/NOTES']) }
+  foldPair.byBase = new Map()
+  for (const f of foldPair.set) {
+    const b = f.split('/').pop()
+    if (!foldPair.byBase.has(b)) foldPair.byBase.set(b, [])
+    foldPair.byBase.get(b).push(f)
+  }
+  const exactWins = citedTrackedPaths('see `case.md` and `CASE.md`', foldPair)
+  if (!exactWins.includes('a/case.md') || !exactWins.includes('b/CASE.md')) {
+    console.log(`\nFIXTURE VACUOUS: a basename that matches exactly ONE tracked file exactly did not resolve to it (got ${JSON.stringify(exactWins)}), so a fold-only collision drops it. Measured on the real tree: asking the folded question first lost tools/audit/briefs/judge.md to tools/audit/round2/JUDGE.md, 34 named documents down to 33.`)
+    return 1
+  }
+
   const citedCase = citedTrackedPaths('see `ONLY-HERE.md`', synth)
   if (!citedCase.includes('docs/only-here.md')) {
     console.log(`\nFIXTURE VACUOUS: a basename resolved case-SENSITIVELY (got ${JSON.stringify(citedCase)}). namedDocMatches lowercases an extension before judging it, so \`POLICY-NOTES.MD\` survives the scan and must survive the resolution too; case-sensitive, it was dropped and the file went unreported at rc=0.`)
@@ -1910,7 +2064,12 @@ function cmdRecord(findings) {
   const moved = after.filter((e) => before.has(e.key) && before.get(e.key) !== e.count)
   doc._comment =
     'Defects present when policy_lint landed, each with its recorded number of occurrences. A finding not listed here is an error; MORE occurrences of a listed one is an error; fewer is an error until re-recorded; an entry that no longer fires is an error. The list may only shrink. Regenerate with --record-known-bad; growing it is a deliberate edit a reviewer reads.'
-  doc.recorded_at = git(['rev-parse', 'HEAD']).trim()
+  const at = recordedAtSha()
+  if (!at) {
+    console.log(`refusing to record: no merge base with origin/main, so ${KNOWN_BAD_FILE} would carry a provenance SHA nobody can resolve`)
+    process.exit(2)
+  }
+  doc.recorded_at = at
   doc.entries = after
   fs.writeFileSync(path.join(ROOT, KNOWN_BAD_FILE), JSON.stringify(doc, null, 2) + '\n')
   const total = [...counts.values()].reduce((a, b) => a + b, 0)
@@ -2167,6 +2326,15 @@ function main() {
   const rc = defaultRun ? assertAcceptance(derived) : 0
   process.exit(errors > 0 || rc ? 1 : 0)
 }
+
+// Exported for `policy_lint_mutants.mjs`, which empties one corpus check at a
+// time and demands this acceptance go red. The mutation lane must learn WHICH
+// checks exist from production rather than from a list of its own: a second
+// copy of the enumeration is the same defect one level up, and a regex over
+// this file's source would re-derive it from spelling. `CORPUS_CHECK_NAMES` is
+// the one enumeration, `assertAcceptance` is the thing under test, and
+// `derivations` is its only argument.
+export { CORPUS_CHECK_NAMES, assertAcceptance, derivations }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   main()

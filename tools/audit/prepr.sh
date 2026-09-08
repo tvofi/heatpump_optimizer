@@ -95,6 +95,14 @@ node .claude/workflows/policy_lint.mjs >/tmp/prepr-policy.$$ 2>&1
 step "policy_lint" $? "$(tail -2 /tmp/prepr-policy.$$ | tr '\n' ' ')"
 rm -f /tmp/prepr-policy.$$
 
+# --- 3a. no corpus check survives its own deletion.
+# 350ms, against 1.6s for the lint pass beside it: the lane runs the acceptance
+# only, never the corpus. Three checks reached main measuring nothing, so the
+# cheaper detector this answers to is this one.
+node .claude/workflows/policy_lint_mutants.mjs >/tmp/prepr-mutants.$$ 2>&1
+step "mutants" $? "$(tail -1 /tmp/prepr-mutants.$$)"
+rm -f /tmp/prepr-mutants.$$
+
 # --- 3b. the generated Cursor rules match their source.
 node .claude/workflows/rules_sync.mjs --check >/tmp/prepr-rules.$$ 2>&1
 step "rules_sync" $? "$(tail -1 /tmp/prepr-rules.$$)"
