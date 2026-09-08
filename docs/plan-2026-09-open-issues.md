@@ -950,22 +950,33 @@ judge comments on each issue and summarised on #201.
   and while this entry sat in review, `dda7193` (#635, rebased onto `a684cce`
   and autofixed) deleted all 33 of #633's — `main`'s claim list is now empty.
   The warning on #201 preceded it by about thirty minutes. Same path,
-  and `main` has merged **21** times since with no stamp between, every completed `Tests` run green — so the
-  gate is unaffected. A push to `main` measures drift computed-vs-computed at
+  and `main` merged **21** more times between `2b5e416` and `a684cce` with no stamp
+  between, every completed `Tests` run green — so the gate is unaffected. A
+  push to `main` measures drift computed-vs-computed at
   its own head (the #387 shape), and `stamp.py` deletes every bare claim at
   release anyway, counting them as it goes. **What is damaged is the record**:
   main's claim file stops saying which fixtures a lane claimed and why, and the
   stamp's `deleted_claims` count under-reports. **The fix is not in any branch's
   hands** — `ci-autofix.md` forbids hand-restoring, and restoring would only be
-  emptied again — it is in `inherited_claims_error`'s baseline semantics: a
-  list identical to the merge-base's because the branch **did not touch the
-  file** is not an inherited claim, it is the no-claim state the rule
-  prescribes, and the autofix should skip it. Carried rather than fixed here
+  emptied again. And the first draft of this entry prescribed a remedy that is
+  **not implementable as written**: "skip the file the branch did not touch"
+  names a git state indistinguishable from "carried forward", and
+  `inherited_claims_error`'s own docstring (`env_drift.py:1265–1270`) fires on
+  exactly that state. The discriminator the fix stage needs is not git's file
+  history but **the branch's own computed drift**: `env_drift.py --all` already
+  measures every fixture tree-vs-merge-base, so a claimed fixture that does not
+  move on this branch is a claim the branch is *carrying*, not *asserting*.
+  Such a branch should keep `main`'s list **unchanged** rather than empty it —
+  then the squash's three-way merge sees no change to the file and `main`'s
+  claims survive — and the check should refuse only a claim the branch asserts
+  for a fixture its own diff moves. "Excuses nothing" and "excuses by accident"
+  are separable by drift; they are not separable by `git diff`. Carried rather
+  than fixed here
   because `tests/env_drift.py` is shared with the parallel session's lane and
   the change needs its own mutation proof and rot fixture. Until then, every
-  branch rebased onto a claim-carrying `main` will do this on merge, and the
-  parallel session's open pull requests will do it to #633's claims exactly as
-  this one does.
+  branch rebased onto a claim-carrying `main` will do this on merge. #635
+  already did it to #633's; `main`'s list is empty now, an empty list inherits
+  nothing, and the window stays closed until the next claiming merge.
 
 ## Standing rules
 
