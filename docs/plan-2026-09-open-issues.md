@@ -949,7 +949,7 @@ judge comments on each issue and summarised on #201.
   never touched the card) deleted 33 lines #569 had added, by the same path;
   and while this entry sat in review, `dda7193` (#635, rebased onto `a684cce`
   and autofixed) deleted all 33 of #633's — `main`'s claim list is now empty.
-  The warning on #201 preceded it by about thirty minutes. Same path,
+  The warning on #201 preceded it by 9 minutes. Same path,
   and `main` merged **21** more times between `2b5e416` and `a684cce` with no stamp
   between, every completed `Tests` run green — so the gate is unaffected. A
   push to `main` measures drift computed-vs-computed at
@@ -970,7 +970,17 @@ judge comments on each issue and summarised on #201.
   then the squash's three-way merge sees no change to the file and `main`'s
   claims survive — and the check should refuse only a claim the branch asserts
   for a fixture its own diff moves. "Excuses nothing" and "excuses by accident"
-  are separable by drift; they are not separable by `git diff`. Carried rather
+  are separable by drift; they are not separable by `git diff`. Three
+  precisions for that stage, each from round 4 of #634: the remedy touches
+  **two** guards, not one — `record_pr_claims_error` (`env_drift.py:1589`) is
+  absolute-empty and fires next on exactly the docs-only branches both erasures
+  came from; the **card** list's instrument is `card_drift.mjs`, since
+  `env_drift.py --all`'s `capture_tree` has no card states, so the drift
+  predicate for `card_claimed_drift.txt` lives there; and `--claims-only`
+  cannot make the carried-versus-asserted judgment at all — it compares lists,
+  not drift — so the pre-push check is a smoke test, not the fix. The predicate
+  itself is already computed: `--all` reports `stale = judged - claimed_hits`
+  (`env_drift.py:1981`), 55 per-scenario verdicts against a merge base. Carried rather
   than fixed here
   because `tests/env_drift.py` is shared with the parallel session's lane and
   the change needs its own mutation proof and rot fixture. Until then, every
