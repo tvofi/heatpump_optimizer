@@ -87,11 +87,16 @@ b34af6b  10 outcomes held, 3 did not   instances 4, 5
 HEAD     13 outcomes held, 0 did not   null control
 ```
 
-**Cost test.** 8.4 s per run against 480 s for the cheapest measured
-review round that caught one. Break-even is 57 runs per catch; the observed
-rate is one instance per 9.6 governance runs, a margin of about 6×. Both sides
-are wall-clock, but the left is machine seconds and the right is agent seconds
-— weighting them equally is the conservative reading, and it never narrows.
+**Cost test.** Measured at #639's head: **15 s** for the `env-matrix` job in
+CI (`22:42:02Z → 22:42:17Z` at `497c4ca`) and **28–29 s** wall on a Darwin box,
+two runs. An earlier draft said 8.4 s, a figure reproduced in neither
+environment and now withdrawn. Against 480 s for the cheapest measured review
+round that caught an instance, break-even is **32 runs per catch in CI** and
+**17 on the Darwin box**; the observed rate from the earlier session's data is
+one instance per 9.6 governance runs, a margin of about **3× in CI and 2×
+locally**. Both sides are wall-clock, but the left is machine seconds and the
+right is agent seconds — weighting them equally is the conservative reading,
+and it never narrows.
 
 ## Consequences
 
