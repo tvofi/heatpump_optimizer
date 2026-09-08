@@ -689,6 +689,24 @@ R.check(
     f"{len(_img_offences)} offence(s): {_img_offences}",
 )
 
+# B12 replaces B4's interim chart SVG with a screenshot this repository's
+# Playwright lane writes (`HPO_HERO_OUT=docs/img/card-plan-chart.png node
+# tests/card_browser.mjs`). The path is the pin: reverting it to `.svg`
+# puts the interim asset back. The PNG lives under `docs/` (INERT);
+# this check reads README.md only, so it does not pull `docs/` into a
+# measured closure. The hero must stay a single-line `![alt](src)` —
+# the HACS rewriter checks above are why.
+_hero = _re.search(
+    r"^!\[[^\n]*\]\((docs/img/card-plan-chart\.[A-Za-z0-9]+)\)\s*$",
+    readme,
+    _re.M,
+)
+R.check(
+    "the README hero is the Playwright screenshot, not B4's interim SVG",
+    _hero is not None and _hero.group(1) == "docs/img/card-plan-chart.png",
+    f"hero src: {_hero.group(1) if _hero else None}",
+)
+
 # The sensor table is split into labelled `####` groups (#558 B10), so a count
 # of rows under the heading no longer pins it: a group boundary adds a table
 # header row, and a sensor dropped while a group was reshuffled would pay for

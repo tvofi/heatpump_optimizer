@@ -18,9 +18,15 @@
 // tests/closure.py's NOT_A_TEST for exactly that reason -- the closures
 // job would have to install Chromium to record it, which buys nothing:
 // its dependency closure is the card source, the payload and itself.
+//
+// B12 (#558): this lane also takes the README hero. CI never writes the
+// committed PNG (Chromium raster is not bit-stable across machines).
+// Regenerate after a card change that should move the picture:
+//
+//   HPO_HERO_OUT=docs/img/card-plan-chart.png node tests/card_browser.mjs
 import { strict as assert } from "node:assert";
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -1088,6 +1094,73 @@ try {
     check(`C4 every .series[data-key] clears 3:1 (${label})`,
       !g.series.missing && g.series.ok,
       g.series.missing ? "no .series[data-key]" : `worst ${g.series.ratio}:1`);
+  }
+
+  // B12: the README hero is a screenshot of this lane, not the card_rig
+  // SVG B4 committed as an interim. Frozen at the payload's first sample
+  // so the plot is the full horizon (same instant make_card_figures.mjs
+  // uses). A committed PNG is not bit-stable across Chromium builds, so
+  // CI never writes it; HPO_HERO_OUT is the generator. The check is that
+  // this lane can take the picture: PNG magic, and a box the first
+  // layout check already proved is a real tile.
+  const heroAt = Date.parse(plan.space_plan.forecast[0].t);
+  const heroPage = await browser.newPage({
+    viewport: { width: 1024, height: 800 },
+    deviceScaleFactor: 2,
+  });
+  try {
+    await heroPage.goto("about:blank");
+    await heroPage.addScriptTag({ path: CARD_SRC });
+    await heroPage.evaluate(([st, theme, frozen]) => {
+      const Real = Date;
+      class Frozen extends Real {
+        constructor(...a) { super(...(a.length ? a : [frozen])); }
+        static now() { return frozen; }
+      }
+      window.Date = Frozen;
+      const style = document.createElement("style");
+      style.textContent =
+        `body{margin:0;background:#fff;font-family:-apple-system,"Segoe UI",sans-serif}` +
+        `.hero{padding:16px;background:#fff;display:inline-block}` +
+        `heatpump-optimizer-card{display:block;width:900px;${theme}}`;
+      document.head.appendChild(style);
+      const wrap = document.createElement("div");
+      wrap.className = "hero";
+      const card = document.createElement("heatpump-optimizer-card");
+      wrap.appendChild(card);
+      document.body.appendChild(wrap);
+      card.setConfig({ type: "custom:heatpump-optimizer-card" });
+      card.hass = { states: st, language: "en" };
+      window.__card = card;
+    }, [states, HA_LIGHT, heroAt]);
+    await heroPage.waitForTimeout(250);
+    const heroBox = await heroPage.evaluate(() => {
+      const card = window.__card;
+      const svgs = card.shadowRoot ? [...card.shadowRoot.querySelectorAll("svg")] : [];
+      let best = null;
+      for (const svg of svgs) {
+        const b = svg.getBoundingClientRect();
+        if (!best || b.width * b.height > best.w * best.h) {
+          best = { w: b.width, h: b.height };
+        }
+      }
+      return best;
+    });
+    check("B12 hero card renders an svg with real size",
+      heroBox !== null && heroBox.w > 600 && heroBox.h > 200,
+      heroBox ? `${heroBox.w.toFixed(0)}x${heroBox.h.toFixed(0)} px` : "no svg");
+    const shot = await heroPage.locator(".hero").screenshot({ type: "png" });
+    check("B12 hero screenshot is a PNG of the dashboard tile",
+      shot[0] === 0x89 && shot[1] === 0x50 && shot[2] === 0x4e && shot[3] === 0x47
+        && shot.length > 20_000,
+      `${shot.length} bytes`);
+    const out = process.env.HPO_HERO_OUT;
+    if (out) {
+      writeFileSync(out, shot);
+      console.log(`  wrote hero ${shot.length} bytes -> ${out}`);
+    }
+  } finally {
+    await heroPage.close();
   }
 } finally {
   await browser.close();
