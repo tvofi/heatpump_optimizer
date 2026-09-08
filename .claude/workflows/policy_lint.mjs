@@ -1800,12 +1800,33 @@ function assertAcceptance(derived) {
     // that exists and is not an ancestor -- and the answer git gives for it is
     // exit 128, the same one it gives a shallow clone. The #616 review measured
     // the cost of taking those for the same thing: `recorded_at: deadbee`
-    // refused before that arm and skipped after it. This clone is not shallow,
-    // so here the refusal is the right answer and must still come.
+    // refused before that arm and skipped after it.
+    //
+    // WHETHER THIS ARM CAN RUN AT ALL IS AN ENVIRONMENT FACT, and the previous
+    // version of this comment asserted the environment instead of asking it:
+    // "This clone is not shallow, so here the refusal is the right answer."
+    // Nothing measured that. In a `--depth 1` clone `checkProvenance` DECLINES
+    // by design -- the arm directly above is what taught it to -- so demanding
+    // a refusal here asserts the opposite of what the same commit added, and
+    // the run printed `skip provenance ... this clone is shallow` two lines
+    // before failing with `and this clone is not shallow`. rc=1 for both lanes
+    // on any shallow seat; `governance.yml` uses fetch-depth: 0, so the
+    // exposure was local, which is exactly where a seat runs `prepr.sh`.
+    //
+    // NOT keyed `skip <name>-pin`, deliberately. That spelling tells
+    // `policy_lint_mutants.mjs` the check could not be driven AT ALL, and here
+    // the parentless-witness arm above still runs and still catches an emptied
+    // `checkProvenance`. Claiming less than the run earns is the same
+    // dishonesty as claiming more.
+    const shallowHere = git(['rev-parse', '--is-shallow-repository'], { allowFail: true }).trim() === 'true'
+    if (shallowHere) {
+      console.log(`  skip     provenance-deadbeef    this clone is shallow, so "no object carries this SHA" and "history this clone cannot walk" are the same exit 128; the witness arm above still drove the check`)
+    } else {
     pins += 1
     if (driveProv('deadbeefdeadbeefdeadbeefdeadbeefdeadbeef').length !== 1) {
-      console.log(`\nFIXTURE VACUOUS: checkProvenance did not refuse a SHA no object in this clone carries. git answers exit 128 for that AND for a shallow clone; reading both as "cannot look" loses the refusal a bogus stamp deserves, and this clone is not shallow.`)
+      console.log(`\nFIXTURE VACUOUS: checkProvenance did not refuse a SHA no object in this clone carries. git answers exit 128 for that AND for a shallow clone; reading both as "cannot look" loses the refusal a bogus stamp deserves, and this clone is measured non-shallow above.`)
       return 1
+    }
     }
     if (driveProv(mainSha).length) {
       console.log(`\nFIXTURE OVER-FIRES: checkProvenance refused origin/main itself.`)
