@@ -8806,9 +8806,15 @@ _a3_from_collect = sorted(
     if getattr(e, "entity_id", None)
 )
 _a3_from_file = _nightly.load_committed_roster()
-# The rule, with the number: len({e.entity_id for p in PLATFORM_LIST
-# for e in collect(module p) if e.entity_id}) — currently equal to
-# len(_a3_from_collect). Do not replace that with a literal.
+# The rule is len({e.entity_id for p in PLATFORM_LIST for e in collect(module p)
+# if e.entity_id}). Both sides are live collect() implementations, not a
+# literal this file also writes.
+R.check(
+    "the A3 roster is derived from collect() over PLATFORM_LIST, not a second literal",
+    "COMMITTED_ROSTER" not in Path("tests/nightly_ha.py").read_text()
+    and "_collect_entity_ids" in _inspect.getsource(_nightly.load_committed_roster),
+    "COMMITTED_ROSTER is a constant this repository also asserts (#560)",
+)
 R.check(
     "the committed A3 roster is the entity_id set collect() produces",
     _a3_from_file == _a3_from_collect,
@@ -8837,22 +8843,24 @@ R.check(
 )
 
 _a3_orjson_src = _inspect.getsource(_nightly.json_bytes_ha)
+_a3_orjson_check_src = _inspect.getsource(_nightly.check_a3_orjson)
 R.check(
     "a3:orjson serialises through Home Assistant's json_bytes",
-    "json_bytes" in _a3_orjson_src and "helpers.json" in _a3_orjson_src,
-    "the inside half must judge (b) by HA's orjson path, not stdlib json",
+    "json_bytes" in _a3_orjson_src
+    and "helpers.json" in _a3_orjson_src
+    and "json_bytes_ha" in _a3_orjson_check_src
+    and "orjson_like_dumps" not in _a3_orjson_check_src,
+    "the inside half must judge (b) by HA's orjson path, not a host reimplementation",
 )
 _a3_orjson_ok = _nightly.Checks()
 _nightly.check_a3_orjson(
     _a3_orjson_ok,
     [("sensor.x", {"state": "1", "attributes": {"n": 1.5}})],
-    dumps=_nightly.orjson_like_dumps,
 )
 _a3_orjson_bad = _nightly.Checks()
 _nightly.check_a3_orjson(
     _a3_orjson_bad,
     [("sensor.x", {"state": "1", "attributes": {"k": float("inf")}})],
-    dumps=_nightly.orjson_like_dumps,
 )
 R.check(
     "a3:orjson fails a payload orjson rejects, and passes a finite one",
@@ -8860,6 +8868,24 @@ R.check(
     and "a3:orjson" not in _a3_orjson_ok.failures(),
     f"bad={_a3_orjson_bad.results.get('a3:orjson')} "
     f"ok={_a3_orjson_ok.results.get('a3:orjson')}",
+)
+_saved_json_bytes_ha = _nightly.json_bytes_ha
+_nightly.json_bytes_ha = lambda obj: b"{}"
+_a3_orjson_noop = _nightly.Checks()
+try:
+    _nightly.check_a3_orjson(
+        _a3_orjson_noop,
+        [("sensor.x", {"state": "1", "attributes": {"k": float("inf")}})],
+    )
+finally:
+    _nightly.json_bytes_ha = _saved_json_bytes_ha
+R.check(
+    "json_bytes_ha returning b\"{}\" leaves a3:orjson green on an orjson-illegal payload",
+    "a3:orjson" not in _a3_orjson_noop.failures()
+    and "a3:orjson" in _a3_orjson_bad.failures(),
+    "a no-op json_bytes_ha must not satisfy A3(b); the real serializer must still refuse inf "
+    f"noop={_a3_orjson_noop.results.get('a3:orjson')} "
+    f"real={_a3_orjson_bad.results.get('a3:orjson')}",
 )
 
 _a3_finite_bad = _nightly.Checks()
@@ -8906,7 +8932,7 @@ _nightly.check_a3_no_constructor_defaults(
     [
         {
             "entity_id": "sensor.heat_pump_optimizer_indoor_temperature_optimizer",
-            "state": str(_a3_def.room_temperature),
+            "state": "unavailable",
             "attributes": {"device_class": "temperature"},
             "device_class": "temperature",
         },
@@ -8918,12 +8944,39 @@ _nightly.check_a3_no_constructor_defaults(
         },
         {
             "entity_id": "climate.heat_pump_optimizer",
-            "state": "heat",
+            "state": "unavailable",
             "attributes": {
-                "current_temperature": _a3_def.room_temperature,
+                "current_temperature": None,
                 "dhw_temperature": None,
-                "device_class": None,
             },
+            "device_class": None,
+        },
+    ],
+    defaults=_a3_def,
+    roster=_a3_from_file,
+)
+_a3e_indoor = _nightly.Checks()
+_nightly.check_a3_no_constructor_defaults(
+    _a3e_indoor,
+    [
+        {
+            "entity_id": "sensor.heat_pump_optimizer_indoor_temperature_optimizer",
+            "state": str(_a3_def.room_temperature),
+            "attributes": {"device_class": "temperature"},
+            "device_class": "temperature",
+        },
+    ],
+    defaults=_a3_def,
+    roster=_a3_from_file,
+)
+_a3e_climate = _nightly.Checks()
+_nightly.check_a3_no_constructor_defaults(
+    _a3e_climate,
+    [
+        {
+            "entity_id": "climate.heat_pump_optimizer",
+            "state": "heat",
+            "attributes": {"current_temperature": _a3_def.room_temperature},
             "device_class": None,
         },
     ],
@@ -8957,11 +9010,33 @@ _nightly.check_a3_no_constructor_defaults(
     roster=_a3_from_file,
 )
 R.check(
+    "a3:no_constructor_defaults passes empty and unavailable records",
+    "a3:no_constructor_defaults" not in _a3e_ok.failures()
+    and _a3e_ok.results["a3:no_constructor_defaults"][1],
+    _a3e_ok.results.get("a3:no_constructor_defaults", [None, "ABSENT"])[1],
+)
+R.check(
+    "a3:no_constructor_defaults fails available indoor at the constructor default",
+    "a3:no_constructor_defaults" in _a3e_indoor.failures(),
+    _a3e_indoor.results.get("a3:no_constructor_defaults", [None, "ABSENT"])[1],
+)
+R.check(
+    "a3:no_constructor_defaults fails climate current_temperature at the constructor default",
+    "a3:no_constructor_defaults" in _a3e_climate.failures(),
+    _a3e_climate.results.get("a3:no_constructor_defaults", [None, "ABSENT"])[1],
+)
+R.check(
     "a3:no_constructor_defaults fails an available ThermalState default",
     "a3:no_constructor_defaults" in _a3e_bad.failures()
     and "a3:no_constructor_defaults" not in _a3e_ok.failures(),
     f"bad={_a3e_bad.results.get('a3:no_constructor_defaults')} "
     f"ok={_a3e_ok.results.get('a3:no_constructor_defaults')}",
+)
+_a3_def_src = _inspect.getsource(_nightly._numeric_constructor_defaults)
+R.check(
+    "A3(e) numeric defaults are read from the ThermalState constructor fields",
+    "dataclasses.fields" in _a3_def_src,
+    "A3(e) must not hard-code a field list that drifts from ThermalState()",
 )
 _a3_inside_src = _inspect.getsource(_nightly._inside)
 _a3_a3e_src = _inspect.getsource(_nightly._inside_a3e)
@@ -8973,7 +9048,7 @@ R.check(
     and "thermometers=False" in _a3_out_src
     and "--a3e-only" in _a3_out_src,
     "A3(e) must boot a default install with no thermometer entities; "
-    "collapsing it into the 165-key seed hides the constructor-default leak",
+    "collapsing it into the thermometer-seeded boot hides the constructor-default leak",
 )
 R.check(
     "and a passing A3 check still keeps its detail",

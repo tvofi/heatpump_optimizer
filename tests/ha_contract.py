@@ -459,6 +459,11 @@ INVENTORY: dict[str, Entry] = {
         "listener leak is visible. Upstream needs hass.bus and an event loop, "
         "so what is pinned is the stub's own wiring"
     ),
+    # -- helpers.json -------------------------------------------------------
+    "homeassistant.helpers.json_bytes": F(
+        "refuses non-finite floats, as orjson.dumps does. Import path is "
+        "homeassistant.helpers.json.json_bytes, which json_bytes_ha uses"
+    ),
     # -- helpers.issue_registry ---------------------------------------------
     "homeassistant.helpers.issue_registry.IssueSeverity": H("string constants, probed"),
     "homeassistant.helpers.issue_registry.async_create_issue": U(
@@ -633,6 +638,29 @@ def raises(fn) -> bool:
     except Exception:  # noqa: BLE001 - the point is that anything counts
         return True
     return False
+
+
+@contract(
+    "homeassistant.helpers.json_bytes",
+    "a non-finite float is refused",
+    cite="helpers/json.py -- orjson.dumps rejects inf/nan",
+)
+def _json_bytes_nonfinite():
+    from homeassistant.helpers.json import json_bytes
+
+    assert raises(lambda: json_bytes({"k": float("inf")}))
+
+
+@contract(
+    "homeassistant.helpers.json_bytes",
+    "a finite mapping serialises to bytes",
+    cite="helpers/json.py -- orjson.dumps returns bytes",
+)
+def _json_bytes_finite():
+    from homeassistant.helpers.json import json_bytes
+
+    out = json_bytes({"n": 1.5})
+    assert isinstance(out, (bytes, bytearray)) and out
 
 
 # -- components.diagnostics.async_redact_data -------------------------------

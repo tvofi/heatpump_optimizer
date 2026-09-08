@@ -101,6 +101,9 @@ from __future__ import annotations
 
 import argparse
 import ast
+import asyncio
+import dataclasses
+import importlib
 import json
 import math
 import os
@@ -156,86 +159,6 @@ A3_INSIDE = (
     "a3:finite",
     "a3:device_class_state_class",
     "a3:no_constructor_defaults",
-)
-
-# Roster (a): Home Assistant's entity_registry vs this list. This list is
-# collect() over PLATFORM_LIST, frozen so the container (which has no
-# entities.py) can compare the registered artifact to it. tests/entities.py
-# refuses drift against live collect(). The rule is
-# len({e.entity_id for p in PLATFORM_LIST for e in collect(module p) if e.entity_id});
-# at this merge base that is 70 (57 sensor, 5 binary, 4 button, 1 climate,
-# 1 datetime, 2 switch). Do not type a second copy to assert against this one.
-COMMITTED_ROSTER = (
-    "binary_sensor.heat_pump_optimizer_away_mode",
-    "binary_sensor.heat_pump_optimizer_external_heat_source",
-    "binary_sensor.heat_pump_optimizer_input_problem",
-    "binary_sensor.heat_pump_optimizer_open_window_detected",
-    "binary_sensor.heat_pump_optimizer_wood_cheaper",
-    "button.heat_pump_optimizer_diagnose_last_interval",
-    "button.heat_pump_optimizer_optimize_now",
-    "button.heat_pump_optimizer_reset_learned_comfort_weight",
-    "button.heat_pump_optimizer_run_system_identification",
-    "climate.heat_pump_optimizer",
-    "datetime.heat_pump_optimizer_away_return",
-    "sensor.heat_pump_optimizer_baseline_cost",
-    "sensor.heat_pump_optimizer_buffer_tank_temperature_model",
-    "sensor.heat_pump_optimizer_comfort_weight",
-    "sensor.heat_pump_optimizer_compressor_frequency_advisor",
-    "sensor.heat_pump_optimizer_compressor_starts",
-    "sensor.heat_pump_optimizer_contract_comparison",
-    "sensor.heat_pump_optimizer_current_electricity_price",
-    "sensor.heat_pump_optimizer_dhw_cost",
-    "sensor.heat_pump_optimizer_dhw_energy",
-    "sensor.heat_pump_optimizer_dhw_heating_cost",
-    "sensor.heat_pump_optimizer_dhw_heating_plan",
-    "sensor.heat_pump_optimizer_dhw_heating_schedule",
-    "sensor.heat_pump_optimizer_dhw_heavy_day_demand",
-    "sensor.heat_pump_optimizer_dhw_mixed_water",
-    "sensor.heat_pump_optimizer_dhw_setpoint_advisor",
-    "sensor.heat_pump_optimizer_dhw_temperature",
-    "sensor.heat_pump_optimizer_ecl110_displace",
-    "sensor.heat_pump_optimizer_ecl110_effective_displace",
-    "sensor.heat_pump_optimizer_estimated_cop",
-    "sensor.heat_pump_optimizer_floor_heating_return_temperature",
-    "sensor.heat_pump_optimizer_heat_pump_action",
-    "sensor.heat_pump_optimizer_indoor_temperature_optimizer",
-    "sensor.heat_pump_optimizer_last_optimization",
-    "sensor.heat_pump_optimizer_lower_floor_temperature",
-    "sensor.heat_pump_optimizer_measured_power",
-    "sensor.heat_pump_optimizer_monthly_peak_power",
-    "sensor.heat_pump_optimizer_monthly_savings",
-    "sensor.heat_pump_optimizer_next_optimization",
-    "sensor.heat_pump_optimizer_observed_cop",
-    "sensor.heat_pump_optimizer_optimal_setpoint",
-    "sensor.heat_pump_optimizer_optimization_mode",
-    "sensor.heat_pump_optimizer_optimization_schedule",
-    "sensor.heat_pump_optimizer_optimization_schedule_steps",
-    "sensor.heat_pump_optimizer_optimization_score",
-    "sensor.heat_pump_optimizer_optimization_status",
-    "sensor.heat_pump_optimizer_outdoor_temperature_optimizer",
-    "sensor.heat_pump_optimizer_plan_narrative",
-    "sensor.heat_pump_optimizer_power_headroom",
-    "sensor.heat_pump_optimizer_predicted_cost",
-    "sensor.heat_pump_optimizer_predicted_savings",
-    "sensor.heat_pump_optimizer_prediction_accuracy",
-    "sensor.heat_pump_optimizer_predictive_optimization_insight",
-    "sensor.heat_pump_optimizer_recommended_power",
-    "sensor.heat_pump_optimizer_savings_percentage",
-    "sensor.heat_pump_optimizer_slab_temperature_estimated",
-    "sensor.heat_pump_optimizer_solar_heat_gain",
-    "sensor.heat_pump_optimizer_solar_irradiance",
-    "sensor.heat_pump_optimizer_solar_surplus_forecast",
-    "sensor.heat_pump_optimizer_space_heating_cost",
-    "sensor.heat_pump_optimizer_space_heating_energy",
-    "sensor.heat_pump_optimizer_space_heating_plan",
-    "sensor.heat_pump_optimizer_thermal_battery_charge",
-    "sensor.heat_pump_optimizer_thermal_battery_energy",
-    "sensor.heat_pump_optimizer_total_energy",
-    "sensor.heat_pump_optimizer_total_heating_cost",
-    "sensor.heat_pump_optimizer_upper_floor_temperature",
-    "sensor.heat_pump_optimizer_valve_target_recommendation",
-    "switch.heat_pump_optimizer_away",
-    "switch.heat_pump_optimizer_optimizer_active",
 )
 
 # What the container half must report. The outer half requires this set
@@ -390,15 +313,52 @@ class Checks:
         return [n for n, (ok, _) in self.results.items() if not ok]
 
 
+def _collect_entity_ids() -> list[str]:
+    """Entity ids ``async_setup_entry`` adds. Host only; container reads the staged copy.
+
+    Same rule as ``tests/entities.py`` ``collect()`` over ``PLATFORM_LIST``.
+    Does not import ``entities`` (that file is the suite).
+    """
+    tests_dir = str(Path(__file__).resolve().parent)
+    cc = str(ROOT / "custom_components")
+    stub = str(Path(tests_dir) / "hastub")
+    for path in (stub, tests_dir, cc):
+        if path not in sys.path:
+            sys.path.insert(0, path)
+    from harness import FakeCoordinator, FakeEntry, FakeHass
+    import heatpump_optimizer as integration
+
+    def collect(module):
+        added = []
+
+        def add_entities(entities):
+            added.extend(entities)
+
+        coordinator = FakeCoordinator({})
+        coordinator._month_totals = {"dhw": (41.5, 62.25), "space": (120.0, 180.0)}
+        hass = FakeHass()
+        entry = FakeEntry()
+        entry.runtime_data = coordinator
+        asyncio.run(module.async_setup_entry(hass, entry, add_entities))
+        return added
+
+    return sorted(
+        e.entity_id
+        for p in integration.PLATFORM_LIST
+        for e in collect(importlib.import_module(f"heatpump_optimizer.{str(p)}"))
+        if getattr(e, "entity_id", None)
+    )
+
+
 def load_committed_roster() -> list[str]:
-    """Expected entity ids. Container: the staged copy. Host: COMMITTED_ROSTER."""
+    """Expected entity ids. Container: the staged collect() copy. Host: collect()."""
     staged = Path(IN_ROSTER)
     if staged.is_file():
         data = json.loads(staged.read_text())
         if not isinstance(data, list) or not all(isinstance(x, str) for x in data):
             raise ValueError(f"{ROSTER_NAME} is not a JSON list of strings")
         return data
-    return list(COMMITTED_ROSTER)
+    return _collect_entity_ids()
 
 
 def json_bytes_ha(obj: object) -> bytes:
@@ -406,24 +366,6 @@ def json_bytes_ha(obj: object) -> bytes:
     from homeassistant.helpers.json import json_bytes
 
     return json_bytes(obj)
-
-
-def orjson_like_dumps(obj: object) -> bytes:
-    """Refusals orjson makes: non-finite floats, set, bytes. Host mutation probe."""
-    def walk(node: object) -> None:
-        if isinstance(node, float) and not math.isfinite(node):
-            raise ValueError("orjson rejects non-finite floats")
-        if isinstance(node, (set, bytes, bytearray)):
-            raise TypeError(f"orjson rejects {type(node).__name__}")
-        if isinstance(node, dict):
-            for value in node.values():
-                walk(value)
-        elif isinstance(node, (list, tuple)):
-            for value in node:
-                walk(value)
-
-    walk(obj)
-    return b"{}"
 
 
 def _state_dump_obj(state: object) -> object:
@@ -540,6 +482,19 @@ def _thermal_defaults():
     return ThermalState()
 
 
+def _numeric_constructor_defaults(state) -> list[float]:
+    """Finite numeric fields of a ThermalState instance, from the constructor."""
+    out: list[float] = []
+    for field in dataclasses.fields(type(state)):
+        value = getattr(state, field.name)
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            continue
+        if not math.isfinite(float(value)):
+            continue
+        out.append(float(value))
+    return out
+
+
 def check_a3_no_constructor_defaults(
     checks: Checks,
     records: list[dict],
@@ -547,60 +502,33 @@ def check_a3_no_constructor_defaults(
     defaults=None,
     roster: list[str] | None = None,
 ) -> None:
-    """Available temperature/climate/volume must not be a ThermalState default.
-
-    Indoor Temperature (and climate current_temperature, the same reading)
-    is the D8-01 recorded residual: it stays ungated. Everything else in
-    scope must not publish a constructor default as an available measurement.
-    """
+    """Available temperature/climate/volume must not be a ThermalState default."""
     state = defaults if defaults is not None else _thermal_defaults()
-    ids = roster if roster is not None else load_committed_roster()
-    indoor = [i for i in ids if i.endswith("_indoor_temperature_optimizer")]
-    climates = [i for i in ids if i.startswith("climate.")]
-    indoor_id = indoor[0] if len(indoor) == 1 else ""
-    climate_id = climates[0] if len(climates) == 1 else ""
-    climate_temps = {
-        "slab_temperature": state.slab_temperature,
-        "dhw_temperature": state.dhw_temperature,
-        "outdoor_temperature": state.outdoor_temperature,
-        "upper_floor_temperature": state.upper_floor_temperature,
-        "lower_floor_temperature": state.lower_floor_temperature,
-        "buffer_tank_temperature": state.buffer_tank_temperature,
-        "floor_return_temperature": state.floor_return_temperature,
-    }
-    numeric_defaults = [
-        v for v in (
-            state.room_temperature,
-            state.slab_temperature,
-            state.outdoor_temperature,
-            state.upper_floor_temperature,
-            state.lower_floor_temperature,
-            state.buffer_tank_temperature,
-            state.dhw_temperature,
-        ) if isinstance(v, (int, float)) and not isinstance(v, bool)
-    ]
+    numeric_defaults = _numeric_constructor_defaults(state)
     offenders = []
     for rec in records:
         entity_id = rec["entity_id"]
         published = rec.get("state")
-        if published in ("unavailable", "unknown", "none", None):
-            continue
         attrs = rec.get("attributes") or {}
+        unavailable = published in ("unavailable", "unknown", "none", None)
         device_class = rec.get("device_class") or attrs.get("device_class")
         if str(device_class) == "volume_storage":
-            offenders.append(f"{entity_id}:available volume_storage={published!r}")
+            if not unavailable:
+                offenders.append(f"{entity_id}:available volume_storage={published!r}")
             continue
-        if str(device_class) == "temperature" and entity_id != indoor_id:
+        if not unavailable and str(device_class) == "temperature":
             try:
                 value = float(published)
             except (TypeError, ValueError):
                 value = None
             if value is not None and any(_close(value, d) for d in numeric_defaults):
                 offenders.append(f"{entity_id}:temperature={value}")
-        if entity_id == climate_id:
-            for key, default in climate_temps.items():
-                if _close(attrs.get(key), default):
-                    offenders.append(f"{entity_id}.{key}={attrs.get(key)!r}")
+        if entity_id.startswith("climate.") and not unavailable:
+            for key, raw in attrs.items():
+                if "temperature" not in str(key).lower():
+                    continue
+                if any(_close(raw, d) for d in numeric_defaults):
+                    offenders.append(f"{entity_id}.{key}={raw!r}")
     checks.check(
         "a3:no_constructor_defaults",
         not offenders,
@@ -1189,7 +1117,7 @@ def _seed_payload(*, thermometers: bool = True) -> dict:
     cannot supply.
 
     ``thermometers=False`` is A3(e): the shipping flow's default install, no
-    thermometer entities. Do not collapse that seed into the 165-key wiring.
+    thermometer entities. Do not collapse that seed into the thermometer-seeded boot.
     """
     fixture = json.loads((ROOT / "tests" / "golden" / "config_flow.json").read_text())
     options_pages = {k: v for k, v in fixture.items() if not k.startswith("_")}
@@ -1351,7 +1279,7 @@ def _stage(workdir: Path, *, thermometers: bool = True) -> tuple[Path, Path]:
     (driver / "seed.json").write_text(
         json.dumps(_seed_payload(thermometers=thermometers), indent=1)
     )
-    (driver / ROSTER_NAME).write_text(json.dumps(list(COMMITTED_ROSTER)))
+    (driver / ROSTER_NAME).write_text(json.dumps(load_committed_roster()))
     # #536: the contract module and the stub it speaks about, mounted beside
     # the driver rather than under /config -- nothing here may become a
     # `tests/` sibling of the package, which is the branch of _worker_env no
