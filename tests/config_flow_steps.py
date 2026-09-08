@@ -86,6 +86,7 @@ for _var in (
 ):
     os.environ.setdefault(_var, "1")
 
+import ast  # noqa: E402
 import asyncio  # noqa: E402
 import logging  # noqa: E402
 import sys  # noqa: E402
@@ -3365,6 +3366,188 @@ async def self_check():
     return 0
 
 
+# ---------------------------------------------------------------------------
+# #590: `_number` always passes min/max/step/mode; no advanced schema keys.
+# Lives here because this script's recorded closure includes config_flow.py.
+# Do not import tests/ha_contract.py -- that would under-scope the table.
+# Walker snippets also run in ha_contract.py (in-memory; it must not open
+# this module). Keep the rules identical.
+# ---------------------------------------------------------------------------
+_NUMBER_BUILDERS = ("_number", "_widen_to_fit")
+_NUMBER_KEYS = frozenset({"min", "max", "step", "mode"})
+_WALKER_GOOD = """\
+def _number(minimum, maximum, step, unit=None, *, slider=False):
+    config = {"min": minimum, "max": maximum, "step": step, "mode": "box"}
+    return NumberSelector(NumberSelectorConfig(**config))
+
+def _widen_to_fit(number, values):
+    config = dict(number.config)
+    return NumberSelector(NumberSelectorConfig(**config))
+"""
+_WALKER_ROGUE = _WALKER_GOOD + """
+def _field():
+    return NumberSelector(NumberSelectorConfig(min=0, max=1, step=1))
+"""
+_WALKER_NO_MODE = """\
+def _number(minimum, maximum, step, unit=None, *, slider=False):
+    config = {"min": minimum, "max": maximum, "step": step}
+    return NumberSelector(NumberSelectorConfig(**config))
+"""
+_WALKER_ADVANCED = _WALKER_GOOD + """
+def _schema():
+    vol.Optional("x", description={"advanced": True})
+"""
+
+
+def _call_basename(func):
+    if isinstance(func, ast.Name):
+        return func.id
+    if isinstance(func, ast.Attribute):
+        return func.attr
+    return None
+
+
+def number_convention_failures_from_source(source):
+    tree = ast.parse(source)
+    failures = []
+    number_fn = next(
+        (
+            n
+            for n in ast.walk(tree)
+            if isinstance(n, ast.FunctionDef) and n.name == "_number"
+        ),
+        None,
+    )
+    constructs = []
+    stack = []
+
+    def visit(node):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            stack.append(node)
+            for child in ast.iter_child_nodes(node):
+                visit(child)
+            stack.pop()
+            return
+        if isinstance(node, ast.Call):
+            name = _call_basename(node.func)
+            if name in ("NumberSelector", "NumberSelectorConfig"):
+                fn = next(
+                    (
+                        n.name
+                        for n in reversed(stack)
+                        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    ),
+                    None,
+                )
+                constructs.append((fn, node.lineno, name))
+        for child in ast.iter_child_nodes(node):
+            visit(child)
+
+    visit(tree)
+    if number_fn is None:
+        failures.append("_number is missing")
+    else:
+        keys = set()
+        for node in ast.walk(number_fn):
+            if isinstance(node, ast.Dict):
+                for key in node.keys:
+                    if isinstance(key, ast.Constant) and isinstance(key.value, str):
+                        keys.add(key.value)
+            elif isinstance(node, ast.keyword) and node.arg:
+                keys.add(node.arg)
+        missing = _NUMBER_KEYS - keys
+        if missing:
+            failures.append(f"_number does not pass {sorted(missing)}")
+        if not any(fn == "_number" for fn, _, _ in constructs):
+            failures.append("_number does not construct NumberSelector")
+    for fn, lineno, name in constructs:
+        if fn not in _NUMBER_BUILDERS:
+            failures.append(
+                f"{name} at line {lineno} is in {fn or 'module'}, "
+                "not _number/_widen_to_fit"
+            )
+    seen = set()
+
+    def marks(node):
+        if not isinstance(node, ast.Dict):
+            return False
+        for key, value in zip(node.keys, node.values):
+            if (
+                isinstance(key, ast.Constant)
+                and key.value == "advanced"
+                and isinstance(value, ast.Constant)
+                and value.value is True
+            ):
+                return True
+        return False
+
+    for node in ast.walk(tree):
+        hit = None
+        if isinstance(node, ast.keyword) and node.arg == "description" and marks(
+            node.value
+        ):
+            hit = (node.lineno, "description=")
+        elif marks(node):
+            hit = (node.lineno, "dict")
+        if hit and hit[0] not in seen:
+            seen.add(hit[0])
+            failures.append(f"advanced: True at line {hit[0]} ({hit[1]})")
+    return failures
+
+
+def pin_number_selector_convention():
+    """#590: the `_number` convention, now a check rather than a habit."""
+    R.section("#590 NumberSelector / advanced convention")
+    rogue = number_convention_failures_from_source(_WALKER_ROGUE)
+    R.check(
+        "walker refuses a NumberSelector built outside _number",
+        any("not _number/_widen_to_fit" in f for f in rogue),
+        "; ".join(rogue) or "walker reported no failure",
+    )
+    good = number_convention_failures_from_source(_WALKER_GOOD)
+    R.check(
+        "walker accepts _number and _widen_to_fit",
+        not good,
+        "; ".join(good),
+    )
+    no_mode = number_convention_failures_from_source(_WALKER_NO_MODE)
+    R.check(
+        "walker refuses _number that omits mode",
+        any("does not pass" in f for f in no_mode),
+        "; ".join(no_mode) or "walker reported no failure",
+    )
+    advanced = number_convention_failures_from_source(_WALKER_ADVANCED)
+    R.check(
+        "walker refuses description={advanced: True}",
+        any("advanced: True" in f for f in advanced),
+        "; ".join(advanced) or "walker reported no failure",
+    )
+    production = number_convention_failures_from_source(
+        open(config_flow.__file__, encoding="utf-8").read()
+    )
+    R.check(
+        "production config_flow.py holds the #590 convention",
+        not production,
+        "; ".join(production),
+    )
+    box = config_flow._number(0, 10, 1)
+    cfg = dict(box.config)
+    R.check(
+        "_number runtime passes min/max/step and explicit BOX mode",
+        cfg.get("min") == 0
+        and cfg.get("max") == 10
+        and cfg.get("step") == 1
+        and str(cfg.get("mode")) == "box",
+        repr(cfg),
+    )
+    slider = config_flow._number(0, 10, 1, slider=True)
+    R.check(
+        "_number(slider=True) passes explicit SLIDER mode",
+        str(dict(slider.config).get("mode")) == "slider",
+        repr(dict(slider.config)),
+    )
+
+
 async def main() -> int:
     if "--self-check" in sys.argv:
         return await self_check()
@@ -3375,6 +3558,7 @@ async def main() -> int:
     sink.emit = lambda record: None
     logging.getLogger().addHandler(sink)
 
+    pin_number_selector_convention()
     await seed_base_entry()
     await duplicate_and_null_control()
     await user_error_branches()
