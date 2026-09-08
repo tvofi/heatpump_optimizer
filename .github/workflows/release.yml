@@ -30,12 +30,45 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Resolve the tag
+        env:
+          # Through the environment, never interpolated into the shell line.
+          # `inputs.tag` is caller-supplied text and `${{ }}` substitutes it
+          # before bash parses the script, so a tag containing a shell
+          # metacharacter would run as a command with `contents: write`. The
+          # same rule `governance.yml` states for a pull-request title. It was
+          # the only unconstrained caller-supplied string reaching a SHELL LINE
+          # here; `tests.yml`'s `recheck` reaches one too but is `type: boolean`,
+          # which GitHub constrains. Caller-supplied text does reach `env:` in
+          # two other workflows, which is safe for the same reason this line is.
+          DISPATCH_TAG: ${{ inputs.tag }}
+          EVENT_NAME: ${{ github.event_name }}
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "TAG=${{ inputs.tag }}" >> "$GITHUB_ENV"
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            TAG="$DISPATCH_TAG"
           else
-            echo "TAG=${GITHUB_REF_NAME}" >> "$GITHUB_ENV"
+            TAG="$GITHUB_REF_NAME"
           fi
+          # A tag this workflow would CREATE is worth one shape check: the
+          # dispatch path writes a ref at whatever commit it checked out, and a
+          # malformed name there is a ref nobody can delete through the UI.
+          # Bash's own `=~`, and the reason is measured. Two weaker guards were
+          # written first and both read stronger than they were:
+          #   case "$TAG" in v[0-9]*.[0-9]*.[0-9]*)   accepts "v1.2.3; rm -rf /"
+          #                                          -- a case glob is not anchored
+          #   printf %s "$TAG" | grep -Eq '^v...$'   accepts "v1.2.3\nv9.9.9"
+          #                                          -- ^ and $ anchor a LINE, and
+          #                                          grep succeeds on ANY matching
+          #                                          line, so a newline smuggles a
+          #                                          second one past it
+          # The second matters more than it looks: `TAG` is written to
+          # $GITHUB_ENV, whose format is line-based, so a newline in it defines
+          # arbitrary further variables for every later step in this job.
+          # `[[ =~ ]]` matches the whole string, newline included, in one process.
+          if ! [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "refusing to release '$TAG': not a vN.N.N tag name" >&2
+            exit 1
+          fi
+          echo "TAG=$TAG" >> "$GITHUB_ENV"
 
       - name: Extract the tag's section from RELEASE_NOTES.md
         run: |

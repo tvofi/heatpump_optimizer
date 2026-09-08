@@ -1607,8 +1607,24 @@ def record_pr_claims_error(
     )
 
 
+class GitAnswerMissing(RuntimeError):
+    """A git command this function needed did not answer."""
+
+
 def three_dot_files(repo: str, ref: str) -> list[str]:
-    """Paths in ``ref...HEAD`` plus uncommitted work, same shape as closure.py."""
+    """Paths in ``ref...HEAD`` plus uncommitted work, same shape as closure.py.
+
+    Raises ``GitAnswerMissing`` when a git command exits non-zero. Reading
+    ``stdout`` without ``returncode`` returned an EMPTY list for a failure and
+    for a genuinely unchanged tree alike, and the caller reads empty as "no file
+    needs a claim". Measured: a ref that RESOLVES but shares no history with
+    HEAD -- a shallow clone with graft roots is exactly that, and this
+    repository's own handover records the shape as trap 11 -- makes
+    ``git diff ref...HEAD`` exit 128 with "no merge base", and
+    ``check_claims_hygiene`` then returned None, which is its all-clear.
+    The caller's ``_rev`` guard does not cover it: ``_rev`` asks whether the ref
+    resolves, and this ref does.
+    """
     files: list[str] = []
     for args in (
         ["git", "diff", "--name-only", f"{ref}...HEAD"],
@@ -1616,6 +1632,11 @@ def three_dot_files(repo: str, ref: str) -> list[str]:
         ["git", "ls-files", "--others", "--exclude-standard"],
     ):
         proc = subprocess.run(args, cwd=repo, capture_output=True, text=True)
+        if proc.returncode != 0:
+            raise GitAnswerMissing(
+                f"{' '.join(args)} exited {proc.returncode}: "
+                f"{proc.stderr.strip().splitlines()[-1] if proc.stderr.strip() else 'no message'}"
+            )
         files += [line.strip() for line in proc.stdout.splitlines() if line.strip()]
     return sorted(set(files))
 
@@ -1636,7 +1657,18 @@ def check_claims_hygiene(repo: str, ref: str) -> str | None:
     )
     if inherited:
         return inherited
-    return record_pr_claims_error(three_dot_files(repo, ref), solver, card)
+    # An unanswerable comparison is not a clean one. Returning None here would
+    # be the gate reporting "no claim owed" about a tree it could not read.
+    try:
+        changed = three_dot_files(repo, ref)
+    except GitAnswerMissing as exc:
+        return (
+            f"CANNOT COMPARE: {exc}\n"
+            f"'{ref}' resolves, but the three-dot comparison against HEAD could\n"
+            "not be computed, so no statement about claims can be made from it.\n"
+            "A shallow clone is the usual cause: git fetch --unshallow origin."
+        )
+    return record_pr_claims_error(changed, solver, card)
 
 
 def self_comparison_error(ref: str, head: str) -> str:
