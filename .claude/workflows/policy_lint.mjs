@@ -414,6 +414,27 @@ const NOT_A_DOCUMENT = new Set([
   'yml',
 ])
 
+// THE BLOCKLIST NEEDS A FLOOR AS WELL AS A CEILING. `deadWeight` in the
+// acceptance bounds NOT_A_DOCUMENT from ABOVE -- no entry the tree does not
+// have -- and the round-six review measured what that leaves open: adding
+// `txt`, or `mdc`, to the set above reopened rounds three and five at rc=0 with
+// all 45 pins green, because an extension the tree DOES have passes the only
+// assertion guarding the list. So the extensions this branch has already
+// established are documents are named once, and the acceptance refuses their
+// appearance in the blocklist.
+//
+// THIS LIST DOES NOT HAVE TO BE COMPLETE, which is the whole reason it is not
+// the allowlist rounds one to five kept failing to finish one extension at a
+// time. An extension in NEITHER list still defaults to DOCUMENT -- the
+// inversion is untouched. This floor only refuses writing a KNOWN document
+// extension into the blocklist, so it can never be the thing that has to be
+// exhaustive. Its members are exactly the extensions the earlier rounds closed:
+// `.MD` and `.txt`, then `.rst`, then the eight-format widening, then `.mdc`.
+const NEVER_NOT_A_DOCUMENT = [
+  'md', 'mdc', 'markdown', 'mdown', 'mkd', 'txt', 'text',
+  'rst', 'rest', 'mdx', 'adoc', 'asciidoc', 'org',
+]
+
 const PATH_RE = /[A-Za-z0-9_./-]+\.[A-Za-z0-9]+\b/g
 
 // A DESTINATION WITH NO EXTENSION. Round four and round five both stated this as
@@ -477,6 +498,55 @@ function bareNameCandidates(text) {
   return [...text.matchAll(BARE_RE)].map((m) => m[0]).filter((n) => !NOT_A_DOCUMENT_NAME.has(n.split('/').pop()))
 }
 
+// A CITATION BY BASENAME IS A CITATION, and reading it as anything else was the
+// last way out of the corpus. `tracked.has` compares WHOLE PATHS, so
+// `POLICY-NOTES.md` -- prose moved into `docs/POLICY-NOTES.md` and cited the way
+// `CLAUDE.md` cites all thirty documents it indexes, the way this branch's own
+// `brief-citations.md` calls a resolvable citation -- matched no tracked path
+// and was dropped BEFORE any exclusion ran. Measured by the round-six review:
+// the same prose reported rc=0 cited as `POLICY-NOTES.md` and rc=1 cited as
+// `docs/POLICY-NOTES.md`, with 77 tokens leaving each of the five caps in
+// silence. The extension axis was closed while this one stood open.
+//
+// A UNIQUE basename only, and the alternative was measured rather than argued.
+// `lookupPath` in brief_lint.mjs answers "does this resolve" and returns the
+// first of several files sharing a basename; this check asks "is any
+// destination the corpus names uncapped", so returning the first would be
+// arbitrary and returning ALL of them over-fires: driven that way on this tree
+// it reported SIXTEEN findings, every one a frozen `tools/audit/round2/**`
+// report reached through the generic basenames `REPORT.md` and `BASELINE.md`
+// that `tools/audit/README.md` uses to describe a shape, not to name a file.
+//
+// THE LIMIT, stated with its size rather than left to be inferred: an ambiguous
+// basename resolves to nothing, so a destination whose basename collides with
+// another tracked file is not reached by THIS route. Reaching it costs the
+// sixteen false reports above until the round-2 evidence tree is deleted, and
+// the escape it leaves needs a deliberate two-file basename collision visible
+// in the same diff -- where the path spelling, which is always resolved, is one
+// character away. Cost measured, not asserted; the exact-path route is
+// unaffected either way.
+function resolveCited(token, listing) {
+  if (listing.set.has(token)) return [token]
+  const cands = listing.byBase.get(path.posix.basename(token)) || []
+  return cands.length === 1 ? cands : []
+}
+
+// The SCAN AND ITS RESOLUTION, extracted so the acceptance can drive them with
+// a SYNTHETIC listing. That seam is not tidiness either: with the resolution
+// inlined in `unmeasuredNamedDocs`, the bare pass could be deleted at its call
+// site with every pin still green, because the three extensionless tracked
+// files are exactly `VERSION`, `LICENSE` and `NOTICE` and all three are data --
+// so the bare route has NO true positive on a healthy tree and therefore no
+// witness there. A synthetic listing supplies the one the tree cannot.
+function citedTrackedPaths(text, listing) {
+  const l = listing || trackedFiles()
+  const out = []
+  for (const m of [...namedDocMatches(text), ...bareNameCandidates(text)]) {
+    for (const rel of resolveCited(m, l)) if (!out.includes(rel)) out.push(rel)
+  }
+  return out
+}
+
 function unmeasuredNamedDocs(budget) {
   const b = budget !== undefined ? budget : policyBudgets()
   if (!b) return []
@@ -486,7 +556,7 @@ function unmeasuredNamedDocs(budget) {
   // still drives the check -- which is where its witness comes from -- while a
   // capped-but-unmeasured destination stays a finding.
   const measured = new Set(policyFiles())
-  const { set: tracked } = trackedFiles()
+  const listing = trackedFiles()
   const out = new Map()
   for (const src of policyFiles()) {
     const raw = read(src)
@@ -497,13 +567,11 @@ function unmeasuredNamedDocs(budget) {
     // tokens through either. Prose extensions only: a destination that is not
     // a document is not this check's subject, and widening it to every
     // tracked extension would report data files a brief legitimately cites.
-    for (const m of [...namedDocMatches(raw), ...bareNameCandidates(raw)]) {
-      // `namedDocMatches` normalised it: `trackedFiles()` holds `git ls-files`
-      // output, which is always normalised, so a RAW `./docs/NOTES.md` failed
-      // `tracked.has` and went unreported everywhere.
-      const rel = m
+    // `namedDocMatches` normalised its matches and `resolveCited` resolves them
+    // against `git ls-files`, which is normalised too -- a RAW `./docs/NOTES.md`
+    // failed the tracked lookup and went unreported everywhere.
+    for (const rel of citedTrackedPaths(raw, listing)) {
       if ((capped.has(rel) && measured.has(rel)) || corpusExcluded(rel)) continue
-      if (!tracked.has(rel)) continue
       if (!out.has(rel)) out.set(rel, src)
     }
   }
@@ -1668,6 +1736,46 @@ function assertAcceptance(derived) {
   const deadWeight = [...NOT_A_DOCUMENT].filter((e) => !treeExts.has(e))
   if (deadWeight.length) {
     console.log(`\nFIXTURE VACUOUS: NOT_A_DOCUMENT lists ${deadWeight.length} extensions no tracked file has (${deadWeight.slice(0, 6).join(', ')}...). A blocklist that is not bounded by the tree is an allowlist wearing a different name.`)
+    return 1
+  }
+  // ... and the same list bounded from BELOW. Without this, `NOT_A_DOCUMENT`
+  // gaining `txt` or `mdc` -- extensions the tree HAS, so `deadWeight` stays
+  // silent -- reopens the route at rc=0 with every other pin green. Measured as
+  // an accepted mutant by the round-six review, which is why it is a pin and
+  // not a sentence.
+  pins += 1
+  const floorBreach = NEVER_NOT_A_DOCUMENT.filter((e) => NOT_A_DOCUMENT.has(e))
+  if (floorBreach.length) {
+    console.log(`\nFIXTURE VACUOUS: NOT_A_DOCUMENT contains ${JSON.stringify(floorBreach)}, which this corpus has already established are document formats. Blocklisting one carries every file with that extension out of every cap at once, and the dead-weight assertion above cannot see it because the tree HAS those extensions.`)
+    return 1
+  }
+
+  // THE RESOLUTION AND THE BARE PASS, driven against a SYNTHETIC listing. Both
+  // routes are invisible on a healthy tree -- the three extensionless tracked
+  // files are all data, and every basename the corpus cites resolves to a file
+  // that is capped or excluded -- so neither had a witness, and the round-six
+  // review measured the consequence: the bare pass could be unwired at its call
+  // site, and a basename citation carried prose out of all five caps at rc=0,
+  // both with the acceptance unchanged.
+  pins += 3
+  const synth = { set: new Set(['docs/NOTES', 'docs/only-here.md', 'a/dup.md', 'b/dup.md']) }
+  synth.byBase = new Map()
+  for (const f of synth.set) {
+    const b = f.split('/').pop()
+    if (!synth.byBase.has(b)) synth.byBase.set(b, [])
+    synth.byBase.get(b).push(f)
+  }
+  const cited = citedTrackedPaths('see `only-here.md` and `docs/NOTES` and `dup.md`', synth)
+  if (!cited.includes('docs/only-here.md')) {
+    console.log(`\nFIXTURE VACUOUS: a document cited by its UNIQUE basename did not resolve to its tracked path (got ${JSON.stringify(cited)}). CLAUDE.md cites all thirty documents it indexes that way, and brief-citations.md calls it a resolvable citation, so this is the spelling the escape uses.`)
+    return 1
+  }
+  if (!cited.includes('docs/NOTES')) {
+    console.log(`\nFIXTURE VACUOUS: an extensionless tracked document went unreported (got ${JSON.stringify(cited)}), so the bare pass is unwired at its call site. The tree's only extensionless files are LICENSE, NOTICE and VERSION -- all data -- so this route has no witness on a healthy tree and deleting it costs nothing that any other pin measures.`)
+    return 1
+  }
+  if (cited.includes('a/dup.md') || cited.includes('b/dup.md')) {
+    console.log(`\nFIXTURE OVER-FIRES: an AMBIGUOUS basename resolved (got ${JSON.stringify(cited)}). Driven that way on the real tree it reported sixteen frozen tools/audit/round2 reports through the generic names REPORT.md and BASELINE.md.`)
     return 1
   }
 
