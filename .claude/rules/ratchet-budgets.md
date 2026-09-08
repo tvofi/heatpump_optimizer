@@ -8,55 +8,55 @@ paths:
 # Three caps, because one of them can be gamed by moving a file
 
 `.claude/workflows/policy_budgets.json` holds one-sided caps on the governance
-corpus: a policy file may shrink freely and may never grow past its cap. They
-are deliberately not the two-sided ratchet `tests/structure.py` applies to code
-— an "improved and not yet recorded" refusal on prose would charge a seat for
-deleting a paragraph, and deletion is what this corpus most needs.
+corpus: a policy file may shrink freely and never grow past its cap. Deliberately
+not the two-sided ratchet `tests/structure.py` applies to code — an "improved and
+not yet recorded" refusal on prose would charge a seat for deleting a paragraph,
+and deletion is what this corpus most needs.
 
-That asymmetry has a hole, and it is only visible when three caps are read
-together.
+That asymmetry has a hole only visible when three caps are read together.
 
 **`always_loaded_tokens` measures a session that opens nothing.** `CLAUDE.md`
 plus any `.claude/rules/*.md` with no `paths:` key — what the harness loads
 before a seat has read anything. Moving prose out of `CLAUDE.md` into a
-`paths:`-scoped rule therefore lowers it **without deleting a line**. Measured
-across the split that made `CLAUDE.md` an index: the floor fell from 6800 to
-3198 while `corpus_tokens` moved from 57398 to 57325 — a 53% drop against 0.13%
-of actual deletion. Nothing about that is dishonest, and the scoping is a real
-improvement; what would be dishonest is recording the 53% as the ratchet, which
-hands the next pull request headroom nobody earned and prices a scoped rule at
-zero however far it grows.
+`paths:`-scoped rule therefore lowers it **without deleting a line**. Across the
+split that made `CLAUDE.md` an index the floor fell by more than half while
+`corpus_tokens` moved a fraction of a percent; run `--budgets` for both rather
+than carrying either here, which `brief-citations.md` calls an error outright.
+The scoping is a real improvement — what would be dishonest is recording that
+drop as the ratchet, which hands the next pull request headroom nobody earned and
+prices a scoped rule at zero however far it grows.
 
-**`corpus_tokens` does not move when prose moves.** It sums every capped policy
-file, scoped or not. A split leaves it flat; only a deletion lowers it and only
-new prose raises it. It is the cap that makes a re-record of the floor safe.
+**`corpus_tokens` does not move when prose moves — while every capped file is a
+measured one.** It sums the policy files the linter's globs match, scoped or not,
+so a split between two of them leaves it flat and only prose changes it. A cap on
+a file no glob matches measures nothing and its bytes never enter the sum, which
+made "give it a cap" a way OUT: measured on the pull request that added these
+caps, prose moved into a named, capped, tracked file bought headroom in **all
+five** at once with zero deletion. That cap is refused now, and a named document
+is answered by measuring it or by an exclusion entry a reviewer reads.
 
 **`roles` charges a seat for what it loads once it opens a file.** Each entry
 gives an `opens` list — one representative file per surface that role touches —
 and the cap is the floor plus every scoped rule whose globs match one of them.
-The floor is not the cost: measured at the same split, a fixer pays 5645 and a
-policy seat 9424 against a floor of 3198, and a record seat pays 6819, which is
-**above the 6800 floor cap that existed before the split**. A cap that only the
-empty session meets is not measuring the thing it is named for.
+The floor is not the cost: at the same split every role paid more than the floor,
+and the record seat more than the whole floor cap that preceded it. A cap only
+the empty session meets is not measuring the thing it is named for.
 
-`opens` is a fixed sample, not an exhaustive list. Widening it is an edit to the
-budget file that a reviewer sees, which is the point: it stops a cap being met
-by quietly re-measuring against fewer files.
+`opens` is a fixed sample, not an exhaustive list. Widening it is an edit a
+reviewer sees, which stops a cap being met by re-measuring against fewer files.
 
 ## Re-recording a cap
 
-Lowering one is free and needs no ceremony **when the prose was deleted**.
-Lowering `always_loaded_tokens` because prose moved is the case this rule
-exists for: record it, and check that `corpus_tokens` and every `roles` cap
-stayed flat in the same diff. If the floor fell and the corpus did not, the
-saving is a reclassification and the pull-request body says so in those words.
+Lowering one is free **when the prose was deleted**. Lowering
+`always_loaded_tokens` because prose moved is the case this rule exists for:
+record it, and check `corpus_tokens` and every `roles` cap stayed flat in the
+same diff. If the floor fell and the corpus did not, the saving is a
+reclassification and the body says so in those words.
 
 Raising any of the three is a deliberate edit visible in the diff, and the body
-carries the case. Raising one to make a change fit, rather than cutting, is the
-move `CLAUDE.md` rule 2 refuses for the structural ratchet and this rule refuses
-here.
+carries the case. Raising one to make a change fit rather than cutting is the
+move `CLAUDE.md` rule 2 refuses, and this rule refuses it too.
 
 `node .claude/workflows/policy_lint.mjs --budgets` prints every file against its
-cap, the floor, the corpus and each role. The refusal is the `budgets` check
-class, which `.claude/workflows/policy_lint.mjs` holds out of the known-bad
-ledger by name: a cap that can be recorded as a known defect is not a ratchet.
+cap, the floor, the corpus and each role. The `budgets` class is held out of the
+known-bad ledger by name: a cap recordable as a known defect is not a ratchet.

@@ -223,6 +223,13 @@ const POLICY_GLOBS = [
   // request event arrives, which makes it policy with an unusually short path
   // to acting on it. It is linted like the rest.
   /^\.claude\/skills\/[a-z0-9-]+\/SKILL\.md$/,
+  // The template states the contract `checkPrBody` enforces, so a seat follows
+  // it and CI grades against it. It was given a cap while it was outside this
+  // list, which compared it against nothing: measured at 539 lines with the cap
+  // recorded at 38, the run was still `TOTAL: 0`. A cap on an unmeasured file
+  // is the whole escape `checkOrphanCaps` now refuses, and the fix for THIS
+  // file is to measure it rather than to drop its cap.
+  /^\.github\/PULL_REQUEST_TEMPLATE\.md$/,
 ]
 
 // Always loaded by a tool, so their size is charged to every session.
@@ -290,7 +297,7 @@ function uncoveredPolicyFiles(files = null) {
 // an earlier version of this comment openly invited, and it silently voids the
 // check, because the loop passes the POLICY FILE list and every policy file is
 // covered by definition. Hence the name, and hence asserting names.
-const CORPUS_CHECK_NAMES = ['checkIndex', 'checkDuplicates', 'checkBudgets', 'coverageOverTree', 'namedDocsOverTree']
+const CORPUS_CHECK_NAMES = ['checkIndex', 'checkDuplicates', 'checkBudgets', 'coverageOverTree', 'namedDocsOverTree', 'orphanCapsOverTree']
 
 // WHAT THIS PIN DOES NOT COVER, stated rather than implied. It compares the
 // wired list against the names above, so it catches a registered check that is
@@ -334,6 +341,25 @@ const CORPUS_EXCLUDED = new Set([
   'tools/audit/round2/HARNESSES.md',  // write-once round-2 evidence
 ])
 
+// Widening the scan past `.md` brought in every `.txt` a policy file cites, and
+// in this tree every one of them is DATA rather than a document: the two claim
+// files, `tests/requirements-ci.txt`, and the round-2 and wave-5 evidence dumps.
+// A directory rule rather than seven more names, because the property is where
+// the repository keeps data, and a name list would go stale on the next fixture.
+// The residual limit, stated rather than left to be found: prose carried into a
+// `.txt` UNDER one of these prefixes would not be reported. That is a visibly
+// odd place to put policy, and narrowing further would report the data.
+const CORPUS_EXCLUDED_PREFIX = [
+  'tests/',                            // suite data: fixtures, claim files, requirements
+  'tools/audit/round1/',               // write-once evidence
+  'tools/audit/round2/',
+  'tools/audit/round3/',
+  'tools/audit/w5-g5-195-coverage/',
+]
+
+const corpusExcluded = (rel) =>
+  CORPUS_EXCLUDED.has(rel) || CORPUS_EXCLUDED_PREFIX.some((p) => rel.startsWith(p))
+
 // THE ESCAPE THIS CLOSES. `corpus_tokens` sums the CAPPED files, so prose moved
 // into a file that has no cap leaves the corpus and buys headroom in every cap
 // at once -- measured: 40 lines of CLAUDE.md into a new `docs/POLICY-NOTES.md`
@@ -348,14 +374,25 @@ function unmeasuredNamedDocs(budget) {
   const b = budget !== undefined ? budget : policyBudgets()
   if (!b) return []
   const capped = new Set(Object.keys(b.files || {}))
+  // A cap is not enough, and reading it as enough was the escape: a cap on a
+  // file outside POLICY_GLOBS is compared against nothing. Both, so the budget
+  // still drives the check -- which is where its witness comes from -- while a
+  // capped-but-unmeasured destination stays a finding.
+  const measured = new Set(policyFiles())
   const { set: tracked } = trackedFiles()
   const out = new Map()
   for (const src of policyFiles()) {
     const raw = read(src)
     if (raw == null) continue
-    for (const m of raw.matchAll(/[A-Za-z0-9_./-]+\.md\b/g)) {
+    // Case-insensitive, and past `.md`. The scan saw only lowercase `.md`, so
+    // `docs/NOTES.MD` and `docs/NOTES.txt` each carried the same prose out of
+    // the corpus in silence -- measured by the #615 review at about 1189
+    // tokens through either. Prose extensions only: a destination that is not
+    // a document is not this check's subject, and widening it to every
+    // tracked extension would report data files a brief legitimately cites.
+    for (const m of raw.matchAll(/[A-Za-z0-9_./-]+\.(?:md|markdown|rst|txt)\b/gi)) {
       const rel = m[0]
-      if (capped.has(rel) || CORPUS_EXCLUDED.has(rel)) continue
+      if ((capped.has(rel) && measured.has(rel)) || corpusExcluded(rel)) continue
       if (!tracked.has(rel)) continue
       if (!out.has(rel)) out.set(rel, src)
     }
@@ -386,8 +423,50 @@ function checkNamedDocs(budget) {
     severity: 'error',
     check: 'named-docs',
     where: rel,
-    message: `is named by ${src} but has no cap in ${BUDGET_FILE}, so prose moved into it leaves the corpus and buys headroom in every cap at once. Give it a cap, or add it to CORPUS_EXCLUDED with a reason.`,
+    message: `is named by ${src} but has no cap in ${BUDGET_FILE}, so prose moved into it leaves the corpus and buys headroom in every cap at once. Bring it under a POLICY_GLOBS pattern so a cap on it is actually compared, or add it to CORPUS_EXCLUDED with a reason. A cap alone does not do it: a cap on a file no glob matches is refused by checkOrphanCaps precisely because it measures nothing.`,
   }))
+}
+
+// A cap recorded for a file no glob matches is compared against nothing, and
+// its bytes are outside `corpus_tokens`. That made "give it a cap" -- the
+// remedy `checkNamedDocs` used to print -- a way OUT of the corpus rather than
+// into it: measured on this branch, 40 lines moved from CLAUDE.md into a named,
+// capped, tracked file bought 483 tokens of headroom in all five caps with zero
+// deletion, and 1189 tokens of new prose written into it afterwards raised
+// `corpus_tokens` by nothing. The branch had already used the door itself, on
+// `.github/PULL_REQUEST_TEMPLATE.md`, whose recorded cap of 38 sat unenforced
+// while the file measured 539 lines in the reviewer's probe.
+//
+// Found by the fix review of #615, not by this file's own acceptance: the
+// escape ran through a remedy the check recommends, which no mutation of the
+// check can reach.
+const FIXTURE_CAP_PREFIX = '.claude/workflows/fixtures/'
+
+let orphanCapBudgetSource = () => undefined
+
+function orphanCapsOverTree() {
+  return checkOrphanCaps(orphanCapBudgetSource())
+}
+
+function checkOrphanCaps(budget) {
+  const b = budget !== undefined ? budget : policyBudgets()
+  if (!b || !b.files) return []
+  // Against the TREE's policy files, never against a caller's list: the
+  // acceptance drives `checkBudgets` with the rot fixtures, and comparing the
+  // recorded caps against that list would report all 33 real files as orphans.
+  const measured = new Set(policyFiles())
+  return Object.keys(b.files)
+    // A rot fixture is an input to the acceptance and never a member of the
+    // corpus; `budgets.md` is capped at 1 so the fixture drive can produce an
+    // "exceeds its cap" finding at all. Exempting the directory is what keeps
+    // this check from refusing the harness that pins it.
+    .filter((k) => !measured.has(k) && !k.startsWith(FIXTURE_CAP_PREFIX))
+    .map((k) => ({
+      severity: 'error',
+      check: 'budgets',
+      where: k,
+      message: `has a cap in ${BUDGET_FILE} but is matched by no POLICY_GLOBS pattern, so the cap is compared against nothing and the file's bytes are outside corpus_tokens. Add a glob, or delete the cap -- a cap that measures nothing reads exactly like one that holds.`,
+    }))
 }
 
 function checkCoverage(files = null) {
@@ -1124,7 +1203,7 @@ const REQUIRED_ROT = {
   },
 }
 
-CORPUS_CHECKS.push(checkIndex, checkDuplicates, checkBudgets, coverageOverTree, namedDocsOverTree)
+CORPUS_CHECKS.push(checkIndex, checkDuplicates, checkBudgets, coverageOverTree, namedDocsOverTree, orphanCapsOverTree)
 
 function assertAcceptance(derived) {
   const dir = path.join(HERE, 'fixtures', 'policy-rot')
@@ -1292,6 +1371,75 @@ function assertAcceptance(derived) {
     return 1
   }
 
+  // The zero/huge pair pins that each comparison exists and has the right sign
+  // AT THE EXTREMES. It does not pin that it compares against the RECORDED
+  // number: the #615 review measured `> cap * 2` passing the whole acceptance
+  // on three of the four classes, rc=0, no VACUOUS line. A scale factor is a
+  // plausible edit and it silently triples the headroom.
+  //
+  // The boundary is what pins it, and the measured value comes from the check's
+  // own output rather than from a second implementation of the measurement --
+  // re-deriving it here would be the proxy substitution this acceptance keeps
+  // producing. At cap = measured the strict `>` must stay silent; at
+  // cap = measured - 1 it must fire. `> cap * 2` stays silent at both and is
+  // caught by the second.
+  const measuredFrom = (findings) => {
+    const m = {}
+    for (const f of findings) {
+      const n = /^(?:about )?(\d+) (?:tokens|lines)\b/.exec(f.message)
+      if (n) m[`${classOf(f)}|${f.where}`] = Number(n[1])
+    }
+    return m
+  }
+  const atMeasured = measuredFrom(checkBudgets(policyFiles(), tinyBudget))
+  const scaled = (delta) => {
+    const files = {}
+    for (const f of policyFiles()) files[f] = (atMeasured[`file|${f}`] ?? 0) + delta
+    return {
+      files,
+      always_loaded_tokens: (atMeasured['floor|(always-loaded set)'] ?? 0) + delta,
+      corpus_tokens: (atMeasured['corpus|(whole corpus)'] ?? 0) + delta,
+      roles: { probe: { opens: ['CLAUDE.md'], cap: (atMeasured['role|(role probe)'] ?? 0) + delta } },
+    }
+  }
+  pins += capClasses.length + 1
+  const exactHits = checkBudgets(policyFiles(), scaled(0))
+  if (exactHits.length) {
+    console.log(`\nFIXTURE OVER-FIRES: a cap set to exactly the measured value produced ${exactHits.length} finding(s); the comparison is not strict, e.g. ${JSON.stringify(exactHits[0].message.slice(0, 120))}`)
+    return 1
+  }
+  const underHits = new Set(checkBudgets(policyFiles(), scaled(-1)).map(classOf))
+  for (const cls of capClasses) {
+    if (underHits.has(cls)) continue
+    console.log(`\nFIXTURE VACUOUS: the '${cls}' comparison stayed silent against a cap one below the measured value, so it is not comparing against the recorded number. A constant factor or offset on that cap would pass every other pin here.`)
+    return 1
+  }
+
+  // Orphan caps. A cap on a file no POLICY_GLOBS pattern matches is compared
+  // against nothing, which made "give it a cap" a way out of the corpus. False
+  // on a healthy tree like every other budget property, so it is driven.
+  pins += 3
+  const driveOC = (budget) => {
+    const prev = orphanCapBudgetSource
+    orphanCapBudgetSource = () => budget
+    try { return orphanCapsOverTree() } finally { orphanCapBudgetSource = prev }
+  }
+  if (orphanCapBudgetSource() !== undefined) {
+    console.log(`\nFIXTURE VACUOUS: orphanCapBudgetSource's production default is not undefined, so the wired check reads a budget nobody recorded.`)
+    return 1
+  }
+  const ORPHAN = 'docs/a-file-no-glob-matches.md'
+  const ocRot = driveOC({ files: { ...Object.fromEntries(policyFiles().map((f) => [f, 1])), [ORPHAN]: 1 } })
+  if (ocRot.length !== 1 || ocRot[0].where !== ORPHAN) {
+    console.log(`\nFIXTURE VACUOUS: checkOrphanCaps did not report ${ORPHAN} exactly once (got ${JSON.stringify(ocRot.map((f) => f.where))}); a cap that measures nothing would read exactly like one that holds.`)
+    return 1
+  }
+  const ocOk = driveOC({ files: Object.fromEntries(policyFiles().map((f) => [f, 1])) })
+  if (ocOk.length) {
+    console.log(`\nFIXTURE OVER-FIRES: checkOrphanCaps reported ${ocOk.length} finding(s) with every cap on a measured file, e.g. ${JSON.stringify(ocOk[0].where)}`)
+    return 1
+  }
+
   // named-docs, driven both ways. Its property -- "a document the corpus names
   // that no cap measures" -- is FALSE on a healthy tree by construction, so it
   // has no witness there and would be deletable in silence exactly as the caps
@@ -1313,7 +1461,7 @@ function assertAcceptance(derived) {
     return 1
   }
   const ndFull = driveND({ files: Object.fromEntries(policyFiles().map((f) => [f, 1e9])) })
-  const stray = ndFull.filter((f) => !CORPUS_EXCLUDED.has(f.where))
+  const stray = ndFull.filter((f) => !corpusExcluded(f.where))
   if (stray.length && stray.length >= ndBare.length) {
     console.log(`\nFIXTURE OVER-FIRES: checkNamedDocs reported ${stray.length} finding(s) with the whole corpus capped, e.g. ${JSON.stringify(stray[0].where)}`)
     return 1
