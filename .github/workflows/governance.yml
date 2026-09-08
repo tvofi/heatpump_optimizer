@@ -60,6 +60,16 @@ jobs:
       - name: Refuse a corpus check that survives its own deletion
         run: node .claude/workflows/policy_lint_mutants.mjs
 
+      # A workflow script cannot import another, so the five web-*.js each carry
+      # their own copy of the shared prompt block and web-fragments.md said to
+      # keep them in sync by hand. The copy was not byte-identical in the commit
+      # that created it, and stayed that way.
+      - name: Refuse a prompt fragment that has drifted from its canonical text
+        run: node .claude/workflows/fragments_sync.mjs
+
+      - name: Show the fragment check refusing its own perturbation
+        run: node .claude/workflows/fragments_sync.mjs --self-test
+
       - name: Report what the linter found
         if: always()
         run: node .claude/workflows/policy_lint.mjs --report || true

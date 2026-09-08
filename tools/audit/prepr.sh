@@ -108,6 +108,11 @@ node .claude/workflows/rules_sync.mjs --check >/tmp/prepr-rules.$$ 2>&1
 step "rules_sync" $? "$(tail -1 /tmp/prepr-rules.$$)"
 rm -f /tmp/prepr-rules.$$
 
+# --- 3c. the five copies of the shared prompt block are the canonical text.
+node .claude/workflows/fragments_sync.mjs >/tmp/prepr-frag.$$ 2>&1
+step "fragments" $? "$(tail -1 /tmp/prepr-frag.$$)"
+rm -f /tmp/prepr-frag.$$
+
 # --- 4. the wave script's branching, when the branch touched it.
 if ! git diff --quiet "$BASE"...HEAD -- .claude/workflows/web-fix-wave.js; then
   node .claude/workflows/check-wave-script.mjs >/tmp/prepr-wave.$$ 2>&1

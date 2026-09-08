@@ -50,7 +50,7 @@ no measurement reason. Decide it, do not assume it:
 
 Taking the lock: python3 tests/gate_lock.py take --label <your-label>.
 If the lock exists, the lease has not expired, and the hold is not abandoned
-(holding marker, no live flock), wait and retry — never remove a lock you did
+(holding marker, no live flock), wait and retry -- never remove a lock you did
 not create. An expired lease or abandoned hold may be taken without forensics;
 a live agent between commands keeps the lock by renewing. Under it
 run HPO_GATE_LOCK_LABEL=<your-label> GATE_SCOPE=auto GOLDEN_MODE=drift
