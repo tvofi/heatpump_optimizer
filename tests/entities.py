@@ -10160,6 +10160,44 @@ R.check(
     callable(_hyg) and _h_empty_err is None,
     f"empty claims on docs-only should pass; got {_h_empty_err!r}",
 )
+# A ref that RESOLVES but shares no history with HEAD. `_rev` passes it -- it
+# asks whether the ref resolves, and this one does -- and `git diff ref...HEAD`
+# then exits 128 with "no merge base". `three_dot_files` read stdout without
+# returncode, so the failure and a genuinely unchanged tree produced the same
+# empty list, and `check_claims_hygiene` returned None, its all-clear. A shallow
+# clone with graft roots is exactly this shape; the handover records it as trap
+# 11, and the whole point of that trap is that the fiction is silent.
+#
+# Both directions, because "raises on a bad ref" alone would pass for a function
+# that raises on every ref: the orphan must be refused AND the ordinary
+# comparison in the same fixture must still answer.
+def _orphan_ref(root: str) -> str:
+    import subprocess as _sp
+
+    blob = _sp.run(["git", "hash-object", "-w", "--stdin"], cwd=root, input="",
+                   capture_output=True, text=True, check=True).stdout.strip()
+    tree = _sp.run(["git", "mktree"], cwd=root, input=f"100644 blob {blob}\tx\n",
+                   capture_output=True, text=True, check=True).stdout.strip()
+    commit = _sp.run(["git", "commit-tree", tree, "-m", "orphan"], cwd=root,
+                     capture_output=True, text=True, check=True).stdout.strip()
+    _sp.run(["git", "update-ref", "refs/probe/orphan", commit], cwd=root, check=True)
+    return "refs/probe/orphan"
+
+
+_h_orph_root, _h_orph_base = _hygiene_git("# claims-for: 6.3.15\n", {}, py_touch=False)
+_h_orph_ref = _orphan_ref(_h_orph_root)
+_h_orph_err = _hyg(_h_orph_root, _h_orph_ref) if callable(_hyg) else "missing"
+R.check(
+    "a comparison ref with no merge base is refused, not read as no claim owed",
+    callable(_hyg) and isinstance(_h_orph_err, str) and "CANNOT COMPARE" in _h_orph_err,
+    f"an unanswerable three-dot returned {_h_orph_err!r}; None is this check's all-clear",
+)
+R.check(
+    "and the same fixture still answers an ordinary comparison (null control)",
+    callable(_hyg) and _hyg(_h_orph_root, _h_orph_base) is None,
+    f"the resolvable base returned {_hyg(_h_orph_root, _h_orph_base)!r} in the tree that refused the orphan",
+)
+
 _h_real_root, _h_real_base = _hygiene_git(
     "# claims-for: 6.3.15\n",
     {},
