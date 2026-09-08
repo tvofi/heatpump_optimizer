@@ -11,10 +11,10 @@ hours.
 [![Python: 3.13+](https://img.shields.io/badge/Python-3.13%2B-3776AB.svg)](https://www.python.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-![The dashboard card's plan chart: 24 hours of spot price, forecast temperature and solar, over the heating and hot-water slots the optimizer chose](docs/img/card-plan-chart.svg)
+![The dashboard card's plan chart: 24 hours of spot price, forecast temperature and solar, over the heating and hot-water slots the optimizer chose](docs/img/card-plan-chart.png)
 
 *The next 24 hours as the optimizer sees them — price, forecast, solar, and the
-slots it picked for heating and for hot water. Rendered from the shipped card
+slots it picked for heating and for hot water. Screenshot of the shipped card
 against a solved plan; [docs/dashboard-card.md](docs/dashboard-card.md) reads
 every mark on it.*
 
