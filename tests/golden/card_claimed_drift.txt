@@ -145,3 +145,49 @@
 #
 # No payload key, published value or solver path is touched: this branch
 # changes the card's own drawing only.
+#
+# #558 C4, the dark-theme and graphics contrast witness. 33 of 34 states
+# move; editor_schema is the card's own config editor and draws neither the
+# stylesheet sites C4 retargets nor the chart.
+#
+# Every listed state moves for the same reason: text that sat on
+# ACCENT_READABLE (#026aa8, 2.95:1 on HA dark) or MUTED_READABLE
+# (#666666, 2.97:1 on HA dark) now uses var(--primary-text-color). No
+# fixed hex clears 4.5:1 on both #ffffff and #1c1c1c. Direction: colour
+# tokens in the style block (and one lane-more fill), never added or
+# removed markup. ACCENT_READABLE stays only on .wi-save's filled
+# border/background (white-on-fill, theme-independent). MUTED_READABLE
+# is gone. No payload key, published value or solver path is touched.
+no_plan  # #558 C4: ACCENT/MUTED text -> --primary-text-color
+no_plan_expanded  # #558 C4: ACCENT/MUTED text -> --primary-text-color
+plan_inline  # #558 C4: ACCENT/MUTED text -> --primary-text-color
+plan_inline_sv  # #558 C4: ACCENT/MUTED text -> --primary-text-color
+plan_short_window  # #558 C4: ACCENT/MUTED text -> --primary-text-color
+custom_title_currency  # #558 C4: ACCENT/MUTED text -> --primary-text-color
+hidden_series  # #558 C4: ACCENT/MUTED text -> --primary-text-color
+score_open  # #558 C4: ACCENT/MUTED text -> --primary-text-color
+expanded_plan  # #558 C4: ACCENT/MUTED text -> --primary-text-color
+what_if_off  # #558 C4: ACCENT/MUTED text -> --primary-text-color
+expanded_zoomed  # #558 C4: ACCENT/MUTED text -> --primary-text-color
+draft_dirty_menu_open  # #558 C4: ACCENT/MUTED text -> --primary-text-color
+draft_mid_drag  # #558 C4: ACCENT/MUTED text -> --primary-text-color
+whatif_edited  # #558 C4: ACCENT/MUTED text -> --primary-text-color
+whatif_weekly  # #558 C4: ACCENT/MUTED text -> --primary-text-color
+override_active  # #558 C4: ACCENT/MUTED text -> --primary-text-color
+shared_steps  # #558 C4: ACCENT/MUTED text -> --primary-text-color
+shared_steps_hover  # #558 C4: ACCENT/MUTED text -> --primary-text-color
+tooltip_hover  # #558 C4: ACCENT/MUTED text -> --primary-text-color
+coarse_pointer  # #558 C4: ACCENT/MUTED text -> --primary-text-color
+reduced_motion  # #558 C4: ACCENT/MUTED text -> --primary-text-color
+setup_single_buffer  # #558 C4: ACCENT/MUTED text -> --primary-text-color
+setup_two_tank  # #558 C4: ACCENT/MUTED text -> --primary-text-color
+setup_coil  # #558 C4: ACCENT/MUTED text -> --primary-text-color
+layout_editing_dragged  # #558 C4: ACCENT/MUTED text -> --primary-text-color
+layout_editing_tidy  # #558 C4: ACCENT/MUTED text -> --primary-text-color
+picker_open_filtered  # #558 C4: ACCENT/MUTED text -> --primary-text-color
+wood_alert  # #558 C4: ACCENT/MUTED text -> --primary-text-color
+wood_lane  # #558 C4: ACCENT/MUTED text -> --primary-text-color
+wood_whatif  # #558 C4: ACCENT/MUTED text -> --primary-text-color
+away_toggle  # #558 C4: ACCENT/MUTED text -> --primary-text-color
+away_return  # #558 C4: ACCENT/MUTED text -> --primary-text-color
+away_status  # #558 C4: ACCENT/MUTED text -> --primary-text-color

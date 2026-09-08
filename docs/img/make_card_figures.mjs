@@ -240,11 +240,14 @@ function keyRow(n, label, x, y) {
 function anatomy(svg) {
   const S = seriesPaths(svg);
   const need = (k) => {
-    if (!S[k] || !S[k].solid.length) {
+    // C1 draws solar with stroke-dasharray so it is not the price series.
+    // seriesPaths buckets that into dashed; the series is still present.
+    const pts = S[k] && (S[k].solid[0] || S[k].dashed[0]);
+    if (!pts) {
       console.error(`FAIL: the chart drew no "${k}" series; the anatomy figure would label nothing`);
       process.exit(1);
     }
-    return S[k].solid[0];
+    return pts;
   };
   // The now marker: the one full-height line the card draws that is neither a
   // gridline nor the hidden crosshair. Its x is where "now" is.

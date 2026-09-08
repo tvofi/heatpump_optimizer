@@ -46,7 +46,7 @@
       }
       .setup-slot { font-size: 12px; fill: #222; }
       .setup-slot.empty {
-        fill: ${MUTED_READABLE};
+        fill: #222;
         font-style: italic;
       }
       .setup-slot.extra { fill: #888; }
@@ -90,7 +90,7 @@
         flex: 1 1 100%; font-size: 0.85em;
         color: #757575;
       }
-      .layout-verdict.match { color: ${ACCENT_READABLE}; }
+      .layout-verdict.match { color: #212121; }
       /* Editing widens the pipes: a 1.5-unit stroke is a hopeless click
          target, and clicking a pipe is how one is removed. */
       .setup-svg.editing .setup-pipe { stroke-width: 3.5; cursor: pointer; }
