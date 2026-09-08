@@ -98,21 +98,27 @@ IF a terminal result already exists at this head, THEN it is the result. Re-run
 a job only under the narrow conditions the general rules allow, and never to
 see whether it comes out differently.
 
-## S10 Edit the body first, then push, then fix only the head line
+## S10 Create the commit, then write the body, then push
 
-IF a fix also needs the pull-request body corrected, THEN correct the body
-BEFORE pushing, and afterwards correct nothing but `## Head`.
+IF a fix also needs the pull-request body corrected, THEN create the commit
+first, write the body against the SHA it already has, and push last.
 
 `pr-contract` runs on `synchronize` and reads the body as it stood at push
-time, so pushing first leaves a failed run attached to the very commit that
-repaired it. The `edited` trigger produces a second, green run and the latest
-wins, but the red one stays in the listing for every later reader to resolve.
+time. Push before correcting the body and the job measures the stale one, so a
+fix leaves a failed run attached to the very commit that repaired it. The
+`edited` trigger then produces a second, green run and the latest wins, but the
+red one stays in the listing and leaves the pull request `unstable`.
 
-`## Head` is the exception and cannot be otherwise: where a branch is built by
-cherry-picking onto the pushable branch, the SHA does not exist until the push
-assigns it. Write the rest of the body first, push, then set that one line. A
-head correction is the smallest possible `edited` event; everything the check
-reads about evidence was already right on the `synchronize` run.
+The order above works because a commit's SHA is fixed when the commit is made,
+not when it is pushed -- including a cherry-pick onto the branch you push, which
+assigns the SHA locally. So `## Head` can always be written before the push;
+what cannot is writing it before the commit exists.
 
-Measured on this workflow's own first pull request: twice in one hour by
-pushing first, and once more by writing a head the cherry-pick then changed.
+Measured on this workflow's own first pull request, three times. Two earlier
+forms of this rule failed here: "edit the body first" named a commit the
+cherry-pick then renamed, and "correct only `## Head` afterwards" still leaves
+one red `synchronize` run on every push, because that is the section the stale
+body always gets wrong.
+
+EXAMPLE BAD: push, then update the body, then explain the red run.
+GOOD: commit, read the SHA, write the body, push. One run, and it is green.
