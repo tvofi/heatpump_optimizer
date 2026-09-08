@@ -842,6 +842,23 @@ judge comments on each issue and summarised on #201.
   ruleset, the programme's last act, so the record that names the floor names
   one that exists; the closing #201 comment lists every pull request merged
   under 0006 with its verdict and head SHA, as that plan asked.
+- **The verdict-example pin has two residuals its own reviewer drove, and one
+  is a hole rather than a limit.** #641 round 2 attacked the widened block in
+  `check-wave-script.mjs` and found three properties, two of which are left
+  standing deliberately. **(a) The `blocked:` refusal is backtick-anchored**:
+  the rejected spelling inside a fenced code block passes, while the same
+  spelling in inline backticks fails — so a brief can still document the old
+  form in a fence, and a brief warning *against* it inline cannot. The escape
+  hatch and the hole are the same hatch; closing it means deciding whether a
+  fence is documentation or instruction, which is a question about briefs and
+  not about this checker. **(b) The floor of three is directory-wide**, so
+  deleting one brief outright still passes at 36/0 — the floor guards the
+  empty extraction, not per-file coverage; a per-file floor would pin which
+  briefs must carry examples, which is the row-format mistake in another
+  costume. The third, a hard-wrapped example failing for the width of its
+  column, was **fixed** in that pull request rather than carried. Whoever
+  revisits (a) should note that the same fence question governs
+  `policy_lint`'s own prose checks.
 - **`pr-contract` red runs are hidden by `gh pr checks`, and the ones on this
   queue's heads were process state (b), not a defect in the check.** Two facts,
   and only the first is the check's.

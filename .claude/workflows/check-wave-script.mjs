@@ -262,7 +262,11 @@ await block('the contract\'s verdict examples parse under the script\'s own gram
   const briefsDir = path.join(here, '..', '..', 'tools', 'audit', 'briefs')
   const briefs = fs.readdirSync(briefsDir).filter((f) => f.endsWith('.md')).sort().map((f) => [f, fs.readFileSync(path.join(briefsDir, f), 'utf8')])
   t('the briefs directory is readable and non-empty', briefs.length > 0, `found ${briefs.length}`)
-  const examples = briefs.flatMap(([f, text]) => [...text.matchAll(/`((?:blocked|merge) [^`]+)`/g)].map((m) => [f, m[1]]))
+  // A brief is hard-wrapped, so an example can span a newline; `VERDICT_RE`'s `.+`
+  // cannot. Extract across the wrap and collapse the whitespace, or a correct
+  // example fails for the width of its column -- a check refusing the thing it
+  // exists to accept, which is worse than one that misses.
+  const examples = briefs.flatMap(([f, text]) => [...text.matchAll(/`((?:blocked|merge) [^`]+)`/g)].map((m) => [f, m[1].replace(/\s+/g, ' ').trim()]))
   t('the briefs carry at least three verdict examples (floor, not a count)', examples.length >= 3, `found ${examples.length}`)
   for (const [f, ex] of examples) t(`${f} example parses: ${ex.slice(0, 60)}`, re.test('Fix review: ' + ex), 'rejected by VERDICT_RE')
   const colonForm = briefs.filter(([, text]) => /`blocked:/.test(text)).map(([f]) => f)
