@@ -365,21 +365,29 @@ const CORPUS_EXCLUDED = new Set([
   // to learn what it must do. The corpus machinery is built for text that binds
   // someone: `checkIndex` refuses a policy file `CLAUDE.md` does not name,
   // because "the index is the only way a seat finds a policy file" -- and
-  // naming all five here would push the ALWAYS-LOADED set, the one number this
+  // naming them all here would push the ALWAYS-LOADED set, the one number this
   // audit exists to drive down, past its cap to carry documents nobody must
-  // read. Measured before choosing: bringing `docs/decisions/` under
-  // POLICY_GLOBS reports 14 errors -- one corpus overrun, five missing index
-  // entries, five missing caps, and three citations in 0003 that are correct
-  // BECAUSE it describes an experiment over files and symbols that do not
-  // exist. A check refusing a document for accurately describing a control is
-  // the check applied to the wrong kind of text.
+  // read. Measured before choosing, and RE-MEASURED here because the first
+  // reading was taken against five decisions and this list now names six:
+  // bringing `docs/decisions/` under POLICY_GLOBS reports 24 errors across 41
+  // policy files -- 7 [budgets], 6 [index], 6 [duplicates], 5 [citations] --
+  // where the first reading said 14. The shape is what decided it and the shape
+  // is unchanged: every ADR wants a cap and an index line it should not have,
+  // and the [citations] are 0003's, which are correct BECAUSE it describes an
+  // experiment over files and symbols that do not exist. A check refusing a
+  // document for accurately describing a control is the check applied to the
+  // wrong kind of text. The count grows with the directory, which is the other
+  // half of the argument: measuring ADRs makes the corpus pay per decision.
   //
   // THE RESIDUAL RISK, stated rather than left to be found: prose moved from a
   // capped file into an ADR leaves the corpus and buys headroom in every cap at
   // once, and nothing detects it. Only a reviewer reading the diff does. These
   // are named ONE BY ONE and not by prefix, deliberately -- a `.md` is never
-  // excused by location here, so a sixth ADR costs a line in this list, which
-  // is the same bar as raising a cap and is the point.
+  // excused by location here, so the NEXT ADR costs a line in this list, which
+  // is the same bar as raising a cap and is the point. It has already been paid
+  // once: this comment said "a sixth" while it was written against five, and
+  // 0006 landed on `main` before the branch did. A count in a comment goes
+  // stale on the next merge; the list is the count.
   'docs/decisions/0001-session-policy-merge-grant.md',
   'docs/decisions/0002-self-witnessed-proxy-assertion.md',
   'docs/decisions/0003-enumerate-what-you-may-ignore.md',
