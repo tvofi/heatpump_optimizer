@@ -1,7 +1,9 @@
 ---
 description: Keep programme Delivery-status and #201 current after each merge
-globs: docs/plan*.md,.claude/workflows/*-groups.json,docs/HANDOVER.md
-alwaysApply: true
+paths:
+  - "docs/plan*.md"
+  - ".claude/workflows/*-groups.json"
+  - "docs/HANDOVER.md"
 ---
 # Programme tracking discipline
 

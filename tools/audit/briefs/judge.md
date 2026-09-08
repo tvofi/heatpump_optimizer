@@ -6,9 +6,9 @@ the finders or the verifiers; you re-measure.
 Per surviving finding, and per kill that rested on a number:
 
 1. Re-run the harness command from its header. Record `reproduced` or
-   `not reproduced (got X)` against the stated tolerance, with your `load1`
-   and `thread_factor`. Reject any RESULT taken at `load1 > 1.5` or
-   `thread_factor > 1.05` and re-take it.
+   `not reproduced (got X)` against the tolerance, quoting your real `load1`
+   and `thread_factor`; re-take at `thread_factor > 1.05`. Never gate on
+   `load1` — `tools/audit/README.md` measured that bar unattainable here.
 2. Run the finding's perturbation. If the number does not move in the stated
    direction, the harness is **void**: the finding is `unreproduced` whatever
    the votes said.

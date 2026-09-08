@@ -58,7 +58,7 @@ cannot answer the second, you have not measured — you have expected.
 - **Never chain past a check with `;`.** `check; publish` publishes whether or
   not the check refused. Committed one line after the clause above was written:
   the pre-flight refused a body carrying a closing keyword, printed `REFUSE`, and
-  `gh pr create` ran anyway, arming the pull request to close the issue a merge
+  the pull request was opened anyway, arming it to close the issue a merge
   message had closed that morning. Use `check && publish`.
 - **A scripted edit that matches nothing reports success.** `str.replace` and
   `sed` both do. Read the destination back.
@@ -121,8 +121,8 @@ failing on the defect it was written for.
 
 ## 4. The merge message is a second closing surface
 
-`gh pr view N --json closingIssuesReferences` describes the **pull-request
-body**. The squash-merge message is a separate artifact, written by you at merge
+A pull request's closing references describe its **body**, and no method on
+the GitHub tool surface here exposes them at all. The squash-merge message is a separate artifact, written by you at merge
 time, and GitHub parses it too. A pull request can show `[]` forever while its
 merge commit shuts an issue — which is how #557's merge shut #224 while its text
 said the opposite. **GitHub discards the negation**; only the keyword and the
@@ -168,7 +168,7 @@ through exactly that.
 ## 5. Before dispatching a seat
 
 - **Establish the work is not already done or in flight.** One
-  `gh pr list --state open --search` and a look at the issue's comments. A seat
+  `list_pull_requests` over the open set, and the issue's comments. A seat
   was dispatched to fix what an open pull request already fixed; it cost a full
   seat to discover.
 - **Give it the constraints that already exist** rather than letting it

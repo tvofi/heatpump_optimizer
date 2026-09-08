@@ -46,6 +46,9 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Refuse a Cursor rule that is not the generated form of its source
+        run: node .claude/workflows/rules_sync.mjs --check
+
       - name: Lint the policy corpus
         run: node .claude/workflows/policy_lint.mjs
 

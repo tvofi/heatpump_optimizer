@@ -1,7 +1,10 @@
 ---
 description: CI already autofixes UNDER-SCOPED closures and inherited claims — do not duplicate
-globs: tests/closures.json,tests/golden/claimed_drift.txt,tests/golden/card_claimed_drift.txt,.github/workflows/**
-alwaysApply: true
+paths:
+  - "tests/closures.json"
+  - "tests/golden/claimed_drift.txt"
+  - "tests/golden/card_claimed_drift.txt"
+  - ".github/workflows/**"
 ---
 # Mechanical CI autofix (do not re-implement)
 

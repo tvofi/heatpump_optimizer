@@ -88,7 +88,7 @@ production lines. You work in your own worktree branched from `origin/main`.
 
    Landing a PR is never yours in any case — that is the orchestrator's, or a
    merge-and-release seat it starts. `git merge origin/main` into your own
-   branch and `gh pr merge` are different acts; only the first was ever yours,
+   branch and merging the pull request differ; only the first was ever yours,
    and only before the handoff.
 
    The seat is the **orchestrator** — the one the Model-routing table gives

@@ -85,12 +85,62 @@ function git(args, { allowFail = false } = {}) {
 // each other's dead citation alive indefinitely. A policy file's symbol has to
 // resolve against production, tests or tooling -- prose citing prose is the
 // thing this check exists to catch.
+// The MCP mapping table in `web-fragments.md` is the registry of tools that
+// live OUTSIDE this repository, which is why the symbol pass already skips that
+// file entirely. A contract instructing one of those tools cites a real thing
+// that no tree grep can find, so the table is consulted as an allowlist.
+//
+// Deliberately an allowlist and not a directory exemption: `.claude/workflows/`
+// also holds the wave scripts, whose prompt strings are brief PROSE citing
+// production symbols. Widening the grep to that directory made five genuinely
+// dead citations resolve against prose that merely mentions them -- the same
+// prose-citing-prose trap the `.cursor/` exclusion exists for.
+let _mcpTools = null
+function isMcpTool(symbol) {
+  if (!_mcpTools) {
+    const raw = read('.claude/workflows/web-fragments.md') ?? ''
+    const block = /const GH = `([\s\S]*?)`/.exec(raw)
+    _mcpTools = new Set(
+      block ? [...block[1].matchAll(/\b([a-z][a-z0-9]*(?:_[a-z0-9]+)+)\b/g)].map((m) => m[1]) : []
+    )
+  }
+  return _mcpTools.has(symbol)
+}
+
+// The budget file's own keys are the second allowlist. A rule that governs the
+// caps has to name them, and they live under `.claude/`, which the grep below
+// excludes wholesale for a reason the comment above states. Sourced FROM the
+// file rather than hand-listed, so it cannot drift: a key that is renamed stops
+// being citable in the same commit that renames it.
+//
+// Extending the grep to `.claude/workflows/*.mjs` instead was measured and
+// refused -- `SCREAMING_SNAKE` and `min_ink_gap`, two of the five dead
+// citations the wholesale exclusion keeps dead, resolve against COMMENTS in
+// `brief_lint.mjs` that name them precisely to say they are not pinned. The
+// known-bad ledger reported both as `entry no longer fires`. An extension is
+// prose or code by what it holds, not by its name.
+let _budgetKeys = null
+function isBudgetKey(symbol) {
+  if (!_budgetKeys) {
+    _budgetKeys = new Set()
+    try {
+      const b = JSON.parse(read(BUDGET_FILE) ?? '{}')
+      for (const k of Object.keys(b)) _budgetKeys.add(k)
+      for (const k of Object.keys(b.roles ?? {})) _budgetKeys.add(k)
+      for (const spec of Object.values(b.roles ?? {})) for (const k of Object.keys(spec)) _budgetKeys.add(k)
+    } catch {}
+  }
+  return _budgetKeys.has(symbol)
+}
+
 let _policySpec = null
 function symbolElsewhere(symbol, exceptRel) {
+  if (isMcpTool(symbol)) return true
+  if (isBudgetKey(symbol)) return true
   if (!_policySpec) _policySpec = policyFiles().map((f) => `:!${f}`)
   const spec = _policySpec.includes(`:!${exceptRel}`) ? _policySpec : [..._policySpec, `:!${exceptRel}`]
   const out = git(
-    ['grep', '-I', '-l', '-w', '-F', symbol, '--', '.', ':!.claude', ':!tools/audit/round2', ...spec],
+    ['grep', '-I', '-l', '-w', '-F', symbol, '--', '.', ':!.claude', ':!.cursor', ':!tools/audit/round2', ...spec],
     { allowFail: true }
   )
   return !!(out && out.trim())
@@ -158,7 +208,11 @@ function read(rel) {
 
 const POLICY_GLOBS = [
   /^CLAUDE\.md$/,
-  /^\.cursor\/rules\/[a-z0-9-]+\.mdc$/,
+  // `.cursor/rules/*.mdc` is NOT here: it is generated from `.claude/rules/`
+  // by rules_sync.mjs, whose --check byte-compares it. Linting a generated copy
+  // reports every finding twice, doubles every ledger entry, and -- since the
+  // bodies are identical by construction -- makes `duplicates` refuse all five.
+  // The source is linted; the output is compared.
   /^\.claude\/rules\/[a-z0-9-]+\.md$/,
   /^tools\/audit\/briefs\/[A-Za-z0-9_.-]+\.md$/,
   /^tools\/audit\/README\.md$/,
@@ -169,10 +223,31 @@ const POLICY_GLOBS = [
   // request event arrives, which makes it policy with an unusually short path
   // to acting on it. It is linted like the rest.
   /^\.claude\/skills\/[a-z0-9-]+\/SKILL\.md$/,
+  // The template states the contract `checkPrBody` enforces, so a seat follows
+  // it and CI grades against it. It was given a cap while it was outside this
+  // list, which compared it against nothing: measured at 539 lines with the cap
+  // recorded at 38, the run was still `TOTAL: 0`. A cap on an unmeasured file
+  // is the whole escape `checkOrphanCaps` now refuses, and the fix for THIS
+  // file is to measure it rather than to drop its cap.
+  /^\.github\/PULL_REQUEST_TEMPLATE\.md$/,
 ]
 
 // Always loaded by a tool, so their size is charged to every session.
-const ALWAYS_LOADED = /^(CLAUDE\.md|\.claude\/rules\/[a-z0-9-]+\.md)$/
+//
+// `CLAUDE.md` always. A `.claude/rules/*.md` only when it has NO `paths:` key:
+// the harness loads an unscoped rule at session start and a scoped one when the
+// seat reads a file matching one of its globs. Charging a scoped rule to every
+// session would overstate the floor and make the cap refuse the very scoping
+// that lowers it.
+const RULE_FILE = /^\.claude\/rules\/[a-z0-9-]+\.md$/
+function isAlwaysLoaded(rel) {
+  if (rel === 'CLAUDE.md') return true
+  if (!RULE_FILE.test(rel)) return false
+  const raw = read(rel)
+  if (raw == null) return false
+  const fm = /^---\n([\s\S]*?)\n---/.exec(raw)
+  return !(fm && /^paths:/m.test(fm[1]))
+}
 
 // Every tracked file under a policy DIRECTORY has to be matched by a glob
 // above. A one-character gap is enough to lose one silently: the `.mdc` pattern
@@ -183,7 +258,12 @@ const ALWAYS_LOADED = /^(CLAUDE\.md|\.claude\/rules\/[a-z0-9-]+\.md)$/
 // nor deliberately excluded is an oversight, not a pass.
 const POLICY_DIRS = [/^\.cursor\/rules\//, /^\.claude\/rules\//, /^\.claude\/skills\//, /^tools\/audit\/briefs\//]
 // The one deliberate exclusion: write-once evidence committed under briefs/.
-const POLICY_DIR_EXCLUDE = [/^tools\/audit\/briefs\/.*\.(json|txt|png|svg)$/]
+const POLICY_DIR_EXCLUDE = [
+  /^tools\/audit\/briefs\/.*\.(json|txt|png|svg)$/,
+  // Generated from `.claude/rules/` and byte-compared by `rules_sync --check`,
+  // which is a stronger guarantee than linting it a second time would give.
+  /^\.cursor\/rules\/[a-z0-9-]+\.mdc$/,
+]
 
 // `files` is injectable for ONE reason: the acceptance. This check runs over
 // the tracked tree, where a healthy corpus produces nothing, so a fixture
@@ -217,7 +297,15 @@ function uncoveredPolicyFiles(files = null) {
 // an earlier version of this comment openly invited, and it silently voids the
 // check, because the loop passes the POLICY FILE list and every policy file is
 // covered by definition. Hence the name, and hence asserting names.
-const CORPUS_CHECK_NAMES = ['checkIndex', 'checkDuplicates', 'checkBudgets', 'coverageOverTree']
+const CORPUS_CHECK_NAMES = ['checkIndex', 'checkDuplicates', 'checkBudgets', 'coverageOverTree', 'namedDocsOverTree', 'orphanCapsOverTree']
+
+// WHAT THIS PIN DOES NOT COVER, stated rather than implied. It compares the
+// wired list against the names above, so it catches a registered check that is
+// mis-wired -- removed, duplicated, replaced by a no-op or by an unwrapped
+// call. It CANNOT catch a check function that was never registered at all:
+// adding `checkNamedDocs` and forgetting both lists left every pin green, which
+// is how this comment came to exist. Detecting that needs a registry the
+// checks declare themselves into, and until one exists this is the floor.
 const CORPUS_CHECKS = []
 
 // Named, not an arrow, so removing the wrapper is a rename the acceptance sees.
@@ -236,6 +324,356 @@ let coverageFileSource = () => null
 
 function coverageOverTree() {
   return checkCoverage(coverageFileSource())
+}
+
+// Deliberately outside the corpus, each for a stated reason. CLAUDE.md's own
+// scope rule -- "it does not govern README.md or the rest of docs/" -- puts the
+// first two beyond it; the last two are programme records a seat reads as data
+// rather than as policy. Adding to this list is a visible edit in the diff a
+// reviewer reads, which is the same bar as raising a cap.
+const CORPUS_EXCLUDED = new Set([
+  'README.md',                        // user-facing
+  'RELEASE_NOTES.md',                 // user-facing
+  'docs/audit-2026-09.md',            // evidence register
+  'docs/plan-2026-09-open-issues.md', // plan of record
+  'DISCLAIMER.md',                    // user-facing, same ground as README.md
+  'docs/backlog.md',                  // superseded record, kept for history
+  'tools/audit/round2/HARNESSES.md',  // write-once round-2 evidence
+])
+
+// Widening the scan past `.md` brought in every `.txt` a policy file cites, and
+// in this tree every one of them is DATA rather than a document: the two claim
+// files, `tests/requirements-ci.txt`, and the round-2 and wave-5 evidence dumps.
+// A directory rule rather than seven more names, because the property is where
+// the repository keeps data, and a name list would go stale on the next fixture.
+//
+// MARKDOWN IS NEVER EXCUSED BY LOCATION. The first version of this list applied
+// to every extension, and that REOPENED the escape it was written beside: the
+// #615 round-two review moved ten lines of CLAUDE.md plus 4756 bytes of new
+// prose into `tests/POLICY-NOTES.md`, named it from CLAUDE.md, and measured
+// `rc=0` with 138 tokens freed in each of the five caps and a two-file diff.
+// The prefixes exist for `.txt` and its neighbours, which this repository keeps
+// under `tests/` and the evidence directories as data; a `.md` is a document
+// wherever it sits, so it is never excused here. Measured cost of the narrowing:
+// none -- the healthy tree stays at TOTAL 0 with every fixture pin intact.
+const CORPUS_EXCLUDED_PREFIX = [
+  'tests/',                            // suite data: fixtures, claim files, requirements
+  'tools/audit/round1/',               // write-once evidence
+  'tools/audit/round2/',
+  'tools/audit/round3/',
+  'tools/audit/w5-g5-195-coverage/',
+]
+
+// A SECOND, DIFFERENT KIND OF EXCLUSION, and it must not be folded into the
+// first. CORPUS_EXCLUDED_PREFIX says "this directory holds data, so a
+// location-dependent extension is data here" -- and round three established
+// that a DOCUMENT is never excused by location, so that list deliberately does
+// not apply to one. Generated output is the other case: `.cursor/rules/*.mdc`
+// is produced from `.claude/rules/` by rules_sync.mjs and byte-compared by
+// `--check`, so it cannot carry a word its source does not have, and its source
+// IS measured. Excluding it is not a hole; measuring it would double-count the
+// corpus. This applies whatever the extension, which is exactly why it is
+// separate -- writing `.cursor/rules/` into the list above would have silently
+// re-excused a document by location.
+const GENERATED_PREFIX = ['.cursor/rules/']
+
+// AN ALLOWLIST OF DOCUMENT EXTENSIONS CANNOT BE COMPLETE, and three review
+// rounds proved it one extension at a time: `.MD` and `.txt`, then `.rst`, then
+// `.mdx/.adoc/.org/.text/.mdown/.mkd/.rest/.asciidoc`, then `.mdc` -- which is
+// NINE real files in this tree. Each round closed the named ones and shipped a
+// body claiming the rest were covered. The list that must be complete is
+// therefore the other one.
+//
+// INVERTED. Any tracked path a policy file names is a document unless its
+// extension says otherwise. `NOT_A_DOCUMENT` is bounded by what this repository
+// actually contains -- `git ls-files | sed 's/.*\.//' | sort -u` -- so it is
+// checkable, and an extension nobody thought of now defaults to REPORTED rather
+// than to silent. The acceptance drives that default with an invented extension.
+//
+// Measured on the healthy tree: the inverted form reports 14 paths, TEN already
+// in CORPUS_EXCLUDED or under CORPUS_EXCLUDED_PREFIX, and the other four are
+// `.cursor/rules/*.mdc` -- generated by rules_sync.mjs and byte-compared by
+// `--check`, so they cannot carry prose their source does not have. One prefix
+// entry below, and the whole inversion costs nothing.
+const NOT_A_DOCUMENT = new Set([
+  'donotdelete',
+  'gitattributes',
+  'gitignore',
+  'js',
+  'json',
+  'log',
+  'mjs',
+  'out',
+  'patch',
+  'png',
+  'py',
+  'sh',
+  'svg',
+  'tsv',
+  'yaml',
+  'yml',
+])
+
+// THE BLOCKLIST NEEDS A FLOOR AS WELL AS A CEILING. `deadWeight` in the
+// acceptance bounds NOT_A_DOCUMENT from ABOVE -- no entry the tree does not
+// have -- and the round-six review measured what that leaves open: adding
+// `txt`, or `mdc`, to the set above reopened rounds three and five at rc=0 with
+// all 45 pins green, because an extension the tree DOES have passes the only
+// assertion guarding the list. So the extensions this branch has already
+// established are documents are named once, and the acceptance refuses their
+// appearance in the blocklist.
+//
+// THIS LIST DOES NOT HAVE TO BE COMPLETE, which is the whole reason it is not
+// the allowlist rounds one to five kept failing to finish one extension at a
+// time. An extension in NEITHER list still defaults to DOCUMENT -- the
+// inversion is untouched. This floor only refuses writing a KNOWN document
+// extension into the blocklist, so it can never be the thing that has to be
+// exhaustive. Its members are exactly the extensions the earlier rounds closed:
+// `.MD` and `.txt`, then `.rst`, then the eight-format widening, then `.mdc`.
+const NEVER_NOT_A_DOCUMENT = [
+  'md', 'mdc', 'markdown', 'mdown', 'mkd', 'txt', 'text',
+  'rst', 'rest', 'mdx', 'adoc', 'asciidoc', 'org',
+]
+
+const PATH_RE = /[A-Za-z0-9_./-]+\.[A-Za-z0-9]+\b/g
+
+// A DESTINATION WITH NO EXTENSION. Round four and round five both stated this as
+// a limit and I twice guessed its cost wrong -- "every backticked word in the
+// corpus" was the guess; the measurement is ONE. The tree has exactly three
+// extensionless tracked files, and the corpus cites exactly one of them:
+//
+//   extensionless tracked files          LICENSE, NOTICE, VERSION
+//   cited by a policy file               VERSION, from brief-citations.md
+//
+// So the route closes for three names, bounded by the tree the same way
+// NOT_A_DOCUMENT is, and the same dead-weight assertion covers both. A bare word
+// only reaches this at all if it IS a tracked file, so ordinary prose cannot
+// trip it: `docs` and `tests` are directories and fail the tracked lookup.
+const BARE_RE = /(?<![A-Za-z0-9_./-])[A-Za-z0-9_/-]{2,}(?![A-Za-z0-9_./-])/g
+const NOT_A_DOCUMENT_NAME = new Set(['LICENSE', 'NOTICE', 'VERSION'])
+
+// A `.txt` in THIS tree is data -- the two claim files, `requirements-ci`, the
+// round-2 and wave-5 dumps -- while `.txt` is a document format elsewhere. That
+// is the one extension whose answer depends on WHERE it sits, which is why the
+// exclusion is a directory prefix rather than another extension list, and why
+// `.txt` is the only extension this predicate treats as location-dependent.
+const ALWAYS_A_DOCUMENT = /\.(?!txt$)[A-Za-z0-9]+$/i
+
+const corpusExcluded = (rel) =>
+  CORPUS_EXCLUDED.has(rel) ||
+  GENERATED_PREFIX.some((p) => rel.startsWith(p)) ||
+  (!ALWAYS_A_DOCUMENT.test(rel) && CORPUS_EXCLUDED_PREFIX.some((p) => rel.startsWith(p)))
+
+// THE ESCAPE THIS CLOSES. `corpus_tokens` sums the CAPPED files, so prose moved
+// into a file that has no cap leaves the corpus and buys headroom in every cap
+// at once -- measured: 40 lines of CLAUDE.md into a new `docs/POLICY-NOTES.md`
+// freed 644 tokens across all four with zero deletion, and `coverage` misses it
+// because `docs/` is not a policy directory. `.claude/rules/ratchet-budgets.md`
+// asserts "only a deletion lowers it", and without this that sentence is false.
+//
+// The move has to stay REACHABLE to be worth making, so the corpus must name
+// its destination. Any `.md` the corpus names, that is tracked and has no cap
+// and is not excluded above, is that hole.
+// Extracted so the acceptance can drive the SCAN, which is the half that had no
+// witness: reverting `path.posix.normalize` here left every pin green while
+// `./docs/NOTES.md` went unreported. `matchAll` builds its own regex from this
+// one, so the shared `g` flag carries no `lastIndex` between calls -- driven in
+// the acceptance rather than trusted, because a stateful global regex would
+// silently skip every file after the first.
+function namedDocMatches(text) {
+  return [...text.matchAll(PATH_RE)]
+    .map((m) => path.posix.normalize(m[0]))
+    .filter((rel) => !NOT_A_DOCUMENT.has(rel.split('.').pop().toLowerCase()))
+}
+
+// The bare pass is a SEPARATE function with a separate contract, and keeping
+// them apart is not tidiness. `namedDocMatches` returns candidates that are
+// documents by extension, and the acceptance drives it with synthetic paths that
+// are not tracked -- so it cannot filter on the tree. A bare token cannot be
+// judged that way: every word in every policy file matches, and only
+// `tracked.has` in the caller separates `VERSION` from `and`. Folding the two
+// made `namedDocMatches` return ["see", "and", "and"], which its own over-fire
+// assertion refused -- the assertion doing exactly what it was written for.
+// CASE-FOLDED, and it has to be, because `resolveCited` folds. With the filter
+// case-sensitive and the resolution not, the ordinary English words " version "
+// and " notice' " in `brief-citations.md` prose resolved to the tracked files
+// `VERSION` and `NOTICE` and were reported as uncapped documents -- two findings
+// on a healthy tree, caught by the null control in the run that introduced them.
+// The three files are data whatever case a sentence spells them in.
+const notADocumentName = (n) => NOT_A_DOCUMENT_NAME.has(n.split('/').pop().toUpperCase())
+
+function bareNameCandidates(text) {
+  return [...text.matchAll(BARE_RE)].map((m) => m[0]).filter((n) => !notADocumentName(n))
+}
+
+// A CITATION BY BASENAME IS A CITATION, and reading it as anything else was the
+// last way out of the corpus. `tracked.has` compares WHOLE PATHS, so
+// `POLICY-NOTES.md` -- prose moved into `docs/POLICY-NOTES.md` and cited the way
+// `CLAUDE.md` cites all thirty documents it indexes, the way this branch's own
+// `brief-citations.md` calls a resolvable citation -- matched no tracked path
+// and was dropped BEFORE any exclusion ran. Measured by the round-six review:
+// the same prose reported rc=0 cited as `POLICY-NOTES.md` and rc=1 cited as
+// `docs/POLICY-NOTES.md`, with 77 tokens leaving each of the five caps in
+// silence. The extension axis was closed while this one stood open.
+//
+// A UNIQUE basename only, and the alternative was measured rather than argued.
+// `lookupPath` in brief_lint.mjs answers "does this resolve" and returns the
+// first of several files sharing a basename; this check asks "is any
+// destination the corpus names uncapped", so returning the first would be
+// arbitrary and returning ALL of them over-fires: driven that way on this tree
+// it reported SIXTEEN findings, every one a frozen `tools/audit/round2/**`
+// report reached through the generic basenames `REPORT.md` and `BASELINE.md`
+// that `tools/audit/README.md` uses to describe a shape, not to name a file.
+//
+// THE LIMIT, stated with its size rather than left to be inferred: an ambiguous
+// basename resolves to nothing, so a destination whose basename collides with
+// another tracked file is not reached by THIS route. Reaching it costs the
+// sixteen false reports above until the round-2 evidence tree is deleted, and
+// the escape it leaves needs a deliberate two-file basename collision visible
+// in the same diff -- where the path spelling, which is always resolved, is one
+// character away. Cost measured, not asserted; the exact-path route is
+// unaffected either way.
+// CASE-INSENSITIVELY, for the same reason round four put `/i` on the extension
+// test and round seven's review measured the half that was left: `namedDocMatches`
+// lowercases an extension before judging it, so `POLICY-NOTES.MD` survives the
+// scan -- and then resolved case-SENSITIVELY against `git ls-files` it matched
+// nothing and was dropped. Measured: `docs/POLICY-NOTES.md` cited as
+// `POLICY-NOTES.md` reported rc=1 and the same file cited as `POLICY-NOTES.MD`
+// reported rc=0 with TOTAL 0. Uniqueness is measured after folding too, so two
+// tracked files differing only in case are ambiguous and resolve to neither.
+function lowerBaseMap(listing) {
+  if (!listing._byBaseLower) {
+    const m = new Map()
+    for (const f of listing.set) {
+      const b = path.posix.basename(f).toLowerCase()
+      if (!m.has(b)) m.set(b, [])
+      m.get(b).push(f)
+    }
+    listing._byBaseLower = m
+  }
+  return listing._byBaseLower
+}
+
+function resolveCited(token, listing) {
+  if (listing.set.has(token)) return [token]
+  const cands = lowerBaseMap(listing).get(path.posix.basename(token).toLowerCase()) || []
+  return cands.length === 1 ? cands : []
+}
+
+// The SCAN AND ITS RESOLUTION, extracted so the acceptance can drive them with
+// a SYNTHETIC listing. That seam is not tidiness either: with the resolution
+// inlined in `unmeasuredNamedDocs`, the bare pass could be deleted at its call
+// site with every pin still green, because the three extensionless tracked
+// files are exactly `VERSION`, `LICENSE` and `NOTICE` and all three are data --
+// so the bare route has NO true positive on a healthy tree and therefore no
+// witness there. A synthetic listing supplies the one the tree cannot.
+function citedTrackedPaths(text, listing) {
+  const l = listing || trackedFiles()
+  const out = []
+  for (const m of [...namedDocMatches(text), ...bareNameCandidates(text)]) {
+    for (const rel of resolveCited(m, l)) if (!out.includes(rel)) out.push(rel)
+  }
+  return out
+}
+
+function unmeasuredNamedDocs(budget) {
+  const b = budget !== undefined ? budget : policyBudgets()
+  if (!b) return []
+  const capped = new Set(Object.keys(b.files || {}))
+  // A cap is not enough, and reading it as enough was the escape: a cap on a
+  // file outside POLICY_GLOBS is compared against nothing. Both, so the budget
+  // still drives the check -- which is where its witness comes from -- while a
+  // capped-but-unmeasured destination stays a finding.
+  const measured = new Set(policyFiles())
+  const listing = trackedFiles()
+  const out = new Map()
+  for (const src of policyFiles()) {
+    const raw = read(src)
+    if (raw == null) continue
+    // Case-insensitive, and past `.md`. The scan saw only lowercase `.md`, so
+    // `docs/NOTES.MD` and `docs/NOTES.txt` each carried the same prose out of
+    // the corpus in silence -- measured by the #615 review at about 1189
+    // tokens through either. Prose extensions only: a destination that is not
+    // a document is not this check's subject, and widening it to every
+    // tracked extension would report data files a brief legitimately cites.
+    // `namedDocMatches` normalised its matches and `resolveCited` resolves them
+    // against `git ls-files`, which is normalised too -- a RAW `./docs/NOTES.md`
+    // failed the tracked lookup and went unreported everywhere.
+    for (const rel of citedTrackedPaths(raw, listing)) {
+      if ((capped.has(rel) && measured.has(rel)) || corpusExcluded(rel)) continue
+      if (!out.has(rel)) out.set(rel, src)
+    }
+  }
+  return [...out].map(([rel, src]) => ({ rel, src }))
+}
+
+// A named doc with no cap is its OWN check, not another arm of `coverage`:
+// `coverage` is driven by an injected file list in the acceptance, and folding a
+// second property into it made that probe measure both and fail on the wrong one.
+// One function, one property.
+// Wired through a NAMED wrapper that ignores the loop's argument, exactly as
+// `coverageOverTree` is. Wiring `checkNamedDocs` directly made `CORPUS_CHECKS`'
+// `fn(all)` pass the FILE LIST as the budget: `b.files` was undefined, every
+// named document read as uncapped, and the production run reported ten. That is
+// attack G from #614 -- a wrapper forwarding the loop's argument -- reproduced
+// in the same file hours after it was fixed, which is the clearest evidence I
+// have for the root-cause seat's thesis: the model that writes the assertion
+// also writes the proof, so the proof inherits the model's blind spot.
+let namedDocsBudgetSource = () => undefined
+
+function namedDocsOverTree() {
+  return checkNamedDocs(namedDocsBudgetSource())
+}
+
+function checkNamedDocs(budget) {
+  return unmeasuredNamedDocs(budget).map(({ rel, src }) => ({
+    severity: 'error',
+    check: 'named-docs',
+    where: rel,
+    message: `is named by ${src} but has no cap in ${BUDGET_FILE}, so prose moved into it leaves the corpus and buys headroom in every cap at once. Bring it under a POLICY_GLOBS pattern so a cap on it is actually compared, or add it to CORPUS_EXCLUDED with a reason. A cap alone does not do it: a cap on a file no glob matches is refused by checkOrphanCaps precisely because it measures nothing.`,
+  }))
+}
+
+// A cap recorded for a file no glob matches is compared against nothing, and
+// its bytes are outside `corpus_tokens`. That made "give it a cap" -- the
+// remedy `checkNamedDocs` used to print -- a way OUT of the corpus rather than
+// into it: measured on this branch, 40 lines moved from CLAUDE.md into a named,
+// capped, tracked file bought 483 tokens of headroom in all five caps with zero
+// deletion, and 1189 tokens of new prose written into it afterwards raised
+// `corpus_tokens` by nothing. The branch had already used the door itself, on
+// `.github/PULL_REQUEST_TEMPLATE.md`, whose recorded cap of 38 sat unenforced
+// while the file measured 539 lines in the reviewer's probe.
+//
+// Found by the fix review of #615, not by this file's own acceptance: the
+// escape ran through a remedy the check recommends, which no mutation of the
+// check can reach.
+const FIXTURE_CAP_PREFIX = '.claude/workflows/fixtures/'
+
+let orphanCapBudgetSource = () => undefined
+
+function orphanCapsOverTree() {
+  return checkOrphanCaps(orphanCapBudgetSource())
+}
+
+function checkOrphanCaps(budget) {
+  const b = budget !== undefined ? budget : policyBudgets()
+  if (!b || !b.files) return []
+  // Against the TREE's policy files, never against a caller's list: the
+  // acceptance drives `checkBudgets` with the rot fixtures, and comparing the
+  // recorded caps against that list would report all 33 real files as orphans.
+  const measured = new Set(policyFiles())
+  return Object.keys(b.files)
+    // A rot fixture is an input to the acceptance and never a member of the
+    // corpus; `budgets.md` is capped at 1 so the fixture drive can produce an
+    // "exceeds its cap" finding at all. Exempting the directory is what keeps
+    // this check from refusing the harness that pins it.
+    .filter((k) => !measured.has(k) && !k.startsWith(FIXTURE_CAP_PREFIX))
+    .map((k) => ({
+      severity: 'error',
+      check: 'budgets',
+      where: k,
+      message: `has a cap in ${BUDGET_FILE} but is matched by no POLICY_GLOBS pattern, so the cap is compared against nothing and the file's bytes are outside corpus_tokens. Add a glob, or delete the cap -- a cap that measures nothing reads exactly like one that holds.`,
+    }))
 }
 
 function checkCoverage(files = null) {
@@ -540,18 +978,38 @@ function policyBudgets() {
   return raw ? JSON.parse(raw) : null
 }
 
+function countLines(raw) {
+  if (raw === '') return 0
+  const n = (raw.match(/\n/g) || []).length
+  return raw.endsWith('\n') ? n : n + 1
+}
+
 function sizes(files) {
   const rows = []
   for (const f of files) {
     const raw = read(f)
     if (raw == null) continue
-    rows.push({ file: f, lines: raw.split('\n').length, bytes: Buffer.byteLength(raw), always: ALWAYS_LOADED.test(f) })
+    // `split('\n').length` counts the empty string after a file's final
+    // newline, so every cap read one line higher than `wc -l` on the same file.
+    // A seat that cuts until `wc -l` matches its cap was still refused, and the
+    // error named a number no local command produced -- reported on #612 by a
+    // reviewer who noticed the control print 320 where `wc -l` said 319. Count
+    // what `wc -l` counts: newline-terminated lines, plus a trailing partial.
+    rows.push({ file: f, lines: countLines(raw), bytes: Buffer.byteLength(raw), always: isAlwaysLoaded(f) })
   }
   return rows
 }
 
-function checkBudgets(files) {
-  const b = policyBudgets()
+// `budget` is injectable for ONE reason: the acceptance. Every comparison below
+// is against the recorded caps, and on a healthy corpus every comparison is
+// FALSE -- so none of them has a witness, and each was independently deletable
+// in silence: `if (b.corpus_tokens != null && corpusTokens > b.corpus_tokens)`
+// -> `if (false)` left TOTAL 0, FIXTURE ok and exit 0, as did the same edit to
+// the floor and the per-role loop. A rot fixture cannot reach them either,
+// because the caps are recorded per real file. Driving the real function with a
+// deliberately impossible budget is what gives each comparison a witness.
+function checkBudgets(files, budget) {
+  const b = budget !== undefined ? budget : policyBudgets()
   if (!b) return []
   const out = []
   const rows = sizes(files)
@@ -584,7 +1042,82 @@ function checkBudgets(files) {
       message: `about ${alwaysTokens} tokens exceeds the cap of ${b.always_loaded_tokens}. Every seat pays this before its first productive read.`,
     })
   }
+
+  // The floor is not the cost. `always_loaded_tokens` measures a session that
+  // opens nothing, so moving prose out of `CLAUDE.md` into a `paths:`-scoped
+  // rule lowers it without deleting a line -- measured across the index split,
+  // the floor fell 6800 -> 3198 while the corpus moved 57398 -> 57325, a 53%
+  // drop against 0.13% of actual deletion. Recording that drop as the ratchet
+  // would hand a later pull request headroom nobody earned, and would price a
+  // scoped rule at zero however far it grew. Two more one-sided caps close it:
+  // the corpus, which a move does not change, and the per-role load, which is
+  // what a seat that opens a file actually pays.
+  const corpusTokens = rows.reduce((n, r) => n + Math.round(r.bytes / 4), 0)
+  if (b.corpus_tokens != null && corpusTokens > b.corpus_tokens) {
+    out.push({
+      severity: 'error',
+      check: 'budgets',
+      where: '(whole corpus)',
+      message: `about ${corpusTokens} tokens exceeds the cap of ${b.corpus_tokens}. Moving prose between policy files does not change this number, which is why it is here: cut it, or raise the cap in the diff a reviewer reads.`,
+    })
+  }
+
+  for (const [role, spec] of Object.entries(b.roles || {})) {
+    const t = roleTokens(rows, spec.opens)
+    if (spec.cap != null && t > spec.cap) {
+      out.push({
+        severity: 'error',
+        check: 'budgets',
+        where: `(role ${role})`,
+        message: `about ${t} tokens exceeds the cap of ${spec.cap}. This is what the seat loads once it opens ${spec.opens.join(', ')} -- the floor in always_loaded_tokens is what it pays before that.`,
+      })
+    }
+  }
   return out
+}
+
+// A rule's `paths:` globs decide when the harness loads it, so a role's real
+// load is the floor plus every rule whose globs match a file that role opens.
+// `opens` is a representative file per surface, not an exhaustive list: the cap
+// is a ratchet on a fixed sample, and changing the sample is a visible edit to
+// the budget file rather than a silent re-measurement.
+function globToRe(g) {
+  const re = g
+    .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+    .replace(/\*\*\//g, '\u0000')
+    .replace(/\*\*/g, '\u0000')
+    .replace(/\*/g, '[^/]*')
+    .replace(/\?/g, '[^/]')
+    .replace(/\u0000/g, '.*')
+  return new RegExp('^' + re + '$')
+}
+
+function rulePaths(rel) {
+  const raw = read(rel)
+  if (raw == null) return null
+  const fm = /^---\n([\s\S]*?)\n---/.exec(raw)
+  if (!fm) return null
+  // The frontmatter capture stops BEFORE the closing `\n---`, so the last
+  // `paths:` entry has no trailing newline. A block pattern that requires one
+  // per line therefore drops it, and a rule with a single path matched zero
+  // lines and read as unscoped -- silently, because the run still printed a
+  // number. Restore the newline before matching.
+  const fmBody = fm[1] + '\n'
+  const block = /^paths:\n((?:[ \t]*-[ \t]*.*\n)+)/m.exec(fmBody)
+  if (!block) return null
+  return [...block[1].matchAll(/-\s*"([^"]+)"/g)].map((m) => m[1])
+}
+
+function roleTokens(rows, opens) {
+  let total = 0
+  for (const r of rows) {
+    if (r.always) { total += Math.round(r.bytes / 4); continue }
+    if (!RULE_FILE.test(r.file)) continue
+    const globs = rulePaths(r.file)
+    if (!globs) continue
+    if (globs.some((g) => opens.some((o) => globToRe(g).test(o)))) total += Math.round(r.bytes / 4)
+  }
+  return total
 }
 
 // ---------------------------------------------------------------------------
@@ -799,6 +1332,7 @@ const CHECKS = [
   { name: 'index', what: 'CLAUDE.md names every policy file, and every file it names exists', fixture: 'fixtures/policy-rot/index.md' },
   { name: 'duplicates', what: 'no 12-word run shared between two policy files', fixture: 'fixtures/policy-rot/dup-a.md' },
   { name: 'pr-body', what: 'a body carries its evidence sections, at the head CI ran', fixture: 'fixtures/policy-rot/prepr/' },
+  { name: 'named-docs', what: 'a document the corpus names but no cap measures', fixture: '(driven in assertAcceptance)' },
   { name: 'coverage', what: 'every file in a policy directory is matched by a glob', fixture: '(a probe file, see assertAcceptance)' },
 ]
 
@@ -876,7 +1410,7 @@ const REQUIRED_ROT = {
   },
 }
 
-CORPUS_CHECKS.push(checkIndex, checkDuplicates, checkBudgets, coverageOverTree)
+CORPUS_CHECKS.push(checkIndex, checkDuplicates, checkBudgets, coverageOverTree, namedDocsOverTree, orphanCapsOverTree)
 
 function assertAcceptance(derived) {
   const dir = path.join(HERE, 'fixtures', 'policy-rot')
@@ -934,7 +1468,6 @@ function assertAcceptance(derived) {
       found.push(...errs.map((e) => ({ ...e, check: '(template)' })))
     }
   }
-
 
 
   found.push(...checkBudgets(rels))
@@ -1011,6 +1544,308 @@ function assertAcceptance(derived) {
     coverageFileSource = () => files
     try { return coverageOverTree() } finally { coverageFileSource = prev }
   }
+  // Every budget comparison, driven for real. On a healthy corpus each is FALSE
+  // and therefore witnessless, which is how all four came to be independently
+  // deletable in silence. An impossible budget gives each one a witness; a
+  // generous one proves none of them fires on a corpus that is fine.
+  const capClasses = ['file', 'floor', 'corpus', 'role']
+  const tinyBudget = {
+    files: Object.fromEntries(policyFiles().map((f) => [f, 0])),
+    always_loaded_tokens: 0,
+    corpus_tokens: 0,
+    roles: { probe: { opens: ['CLAUDE.md'], cap: 0 } },
+  }
+  const hugeBudget = {
+    files: Object.fromEntries(policyFiles().map((f) => [f, 1e9])),
+    always_loaded_tokens: 1e9,
+    corpus_tokens: 1e9,
+    roles: { probe: { opens: ['CLAUDE.md'], cap: 1e9 } },
+  }
+  const classOf = (f) =>
+    f.where === '(always-loaded set)' ? 'floor'
+      : f.where === '(whole corpus)' ? 'corpus'
+        : f.where.startsWith('(role ') ? 'role' : 'file'
+  const tinyHits = new Set(checkBudgets(policyFiles(), tinyBudget).map(classOf))
+  pins += capClasses.length + 1
+  for (const cls of capClasses) {
+    if (tinyHits.has(cls)) continue
+    console.log(`\nFIXTURE VACUOUS: the '${cls}' budget comparison produced nothing against a zero budget, so deleting it would change no output. Every cap is false on a healthy corpus and therefore has no witness unless one is driven.`)
+    return 1
+  }
+  const hugeHits = checkBudgets(policyFiles(), hugeBudget)
+  if (hugeHits.length) {
+    console.log(`\nFIXTURE OVER-FIRES: the budget check produced ${hugeHits.length} finding(s) against a budget nothing can exceed, e.g. ${JSON.stringify(hugeHits[0].message.slice(0, 120))}`)
+    return 1
+  }
+
+  // The zero/huge pair pins that each comparison exists and has the right sign
+  // AT THE EXTREMES. It does not pin that it compares against the RECORDED
+  // number: the #615 review measured `> cap * 2` passing the whole acceptance
+  // on three of the four classes, rc=0, no VACUOUS line. A scale factor is a
+  // plausible edit and it silently triples the headroom.
+  //
+  // The boundary is what pins it, and the measured value comes from the check's
+  // own output rather than from a second implementation of the measurement --
+  // re-deriving it here would be the proxy substitution this acceptance keeps
+  // producing. At cap = measured the strict `>` must stay silent; at
+  // cap = measured - 1 it must fire. `> cap * 2` stays silent at both and is
+  // caught by the second.
+  const measuredFrom = (findings) => {
+    const m = {}
+    for (const f of findings) {
+      const n = /^(?:about )?(\d+) (?:tokens|lines)\b/.exec(f.message)
+      if (n) m[`${classOf(f)}|${f.where}`] = Number(n[1])
+    }
+    return m
+  }
+  const atMeasured = measuredFrom(checkBudgets(policyFiles(), tinyBudget))
+  const scaled = (delta) => {
+    const files = {}
+    for (const f of policyFiles()) files[f] = (atMeasured[`file|${f}`] ?? 0) + delta
+    return {
+      files,
+      always_loaded_tokens: (atMeasured['floor|(always-loaded set)'] ?? 0) + delta,
+      corpus_tokens: (atMeasured['corpus|(whole corpus)'] ?? 0) + delta,
+      roles: { probe: { opens: ['CLAUDE.md'], cap: (atMeasured['role|(role probe)'] ?? 0) + delta } },
+    }
+  }
+  pins += capClasses.length + 1
+  const exactHits = checkBudgets(policyFiles(), scaled(0))
+  if (exactHits.length) {
+    console.log(`\nFIXTURE OVER-FIRES: a cap set to exactly the measured value produced ${exactHits.length} finding(s); the comparison is not strict, e.g. ${JSON.stringify(exactHits[0].message.slice(0, 120))}`)
+    return 1
+  }
+  const underHits = new Set(checkBudgets(policyFiles(), scaled(-1)).map(classOf))
+  for (const cls of capClasses) {
+    if (underHits.has(cls)) continue
+    console.log(`\nFIXTURE VACUOUS: the '${cls}' comparison stayed silent against a cap one below the measured value, so it is not comparing against the recorded number. A constant factor or offset on that cap would pass every other pin here.`)
+    return 1
+  }
+
+  // Orphan caps. A cap on a file no POLICY_GLOBS pattern matches is compared
+  // against nothing, which made "give it a cap" a way out of the corpus. False
+  // on a healthy tree like every other budget property, so it is driven.
+  pins += 3
+  const driveOC = (budget) => {
+    const prev = orphanCapBudgetSource
+    orphanCapBudgetSource = () => budget
+    try { return orphanCapsOverTree() } finally { orphanCapBudgetSource = prev }
+  }
+  if (orphanCapBudgetSource() !== undefined) {
+    console.log(`\nFIXTURE VACUOUS: orphanCapBudgetSource's production default is not undefined, so the wired check reads a budget nobody recorded.`)
+    return 1
+  }
+  const ORPHAN = 'docs/a-file-no-glob-matches.md'
+  const ocRot = driveOC({ files: { ...Object.fromEntries(policyFiles().map((f) => [f, 1])), [ORPHAN]: 1 } })
+  if (ocRot.length !== 1 || ocRot[0].where !== ORPHAN) {
+    console.log(`\nFIXTURE VACUOUS: checkOrphanCaps did not report ${ORPHAN} exactly once (got ${JSON.stringify(ocRot.map((f) => f.where))}); a cap that measures nothing would read exactly like one that holds.`)
+    return 1
+  }
+  const ocOk = driveOC({ files: Object.fromEntries(policyFiles().map((f) => [f, 1])) })
+  if (ocOk.length) {
+    console.log(`\nFIXTURE OVER-FIRES: checkOrphanCaps reported ${ocOk.length} finding(s) with every cap on a measured file, e.g. ${JSON.stringify(ocOk[0].where)}`)
+    return 1
+  }
+
+  // named-docs, driven both ways. Its property -- "a document the corpus names
+  // that no cap measures" -- is FALSE on a healthy tree by construction, so it
+  // has no witness there and would be deletable in silence exactly as the caps
+  // were. An empty budget makes every named doc uncapped; a budget capping the
+  // whole corpus makes none.
+  pins += 2
+  const driveND = (budget) => {
+    const prev = namedDocsBudgetSource
+    namedDocsBudgetSource = () => budget
+    try { return namedDocsOverTree() } finally { namedDocsBudgetSource = prev }
+  }
+  if (namedDocsBudgetSource() !== undefined) {
+    console.log(`\nFIXTURE VACUOUS: namedDocsBudgetSource's production default is not undefined, so the wired check reads a budget nobody recorded.`)
+    return 1
+  }
+  const ndBare = driveND({ files: {} })
+  if (!ndBare.length) {
+    console.log(`\nFIXTURE VACUOUS: checkNamedDocs reported nothing against an empty budget, where every document the corpus names is uncapped by definition. Prose moved into a named-but-uncapped file leaves the corpus and buys headroom in every cap at once.`)
+    return 1
+  }
+  // The prefix list is a hole in the check it sits beside unless markdown is
+  // exempt from it. Driven rather than argued, because the round-two review of
+  // #615 measured the argued version letting 1342 tokens out through
+  // `tests/POLICY-NOTES.md`. Both directions: a document under an excluded
+  // prefix must still be a document, and a data file under one must still be
+  // data -- an exemption that reported the .txt files back would be the
+  // over-fire that made the prefixes necessary.
+  pins += 2
+  const UNDER_PREFIX = CORPUS_EXCLUDED_PREFIX[0]
+  // Both spellings. The lowercase literal alone pinned the EXTENSION and not the
+  // case-insensitivity the property rests on: dropping the `/i` flag left all
+  // pins green and reopened the `.MD` route at 138 tokens per cap.
+  if (corpusExcluded(`${UNDER_PREFIX}a-policy-note.md`) ||
+      corpusExcluded(`${UNDER_PREFIX}A-POLICY-NOTE.MD`) ||
+      corpusExcluded(`${UNDER_PREFIX}a-policy-note.rst`)) {
+    console.log(`\nFIXTURE VACUOUS: a .md under the excluded prefix '${UNDER_PREFIX}' is treated as outside the corpus, so prose moved there leaves every cap at once. A directory says where data lives; it does not make a document into data.`)
+    return 1
+  }
+  if (!corpusExcluded(`${UNDER_PREFIX}some-fixture.txt`)) {
+    console.log(`\nFIXTURE OVER-FIRES: a .txt under the excluded prefix '${UNDER_PREFIX}' is reported, which is the data this repository keeps there and the reason the prefix list exists.`)
+    return 1
+  }
+
+  // The SCAN, driven directly. Three properties, none of which the budget seam
+  // can reach, and all three shipped unwitnessed at some point in this branch.
+  pins += 3
+  const scanned = namedDocMatches('see `./docs/a.md` and `docs/x/../b.rst` and `docs/c.mdx`')
+  if (!scanned.includes('docs/a.md') || !scanned.includes('docs/b.rst')) {
+    console.log(`\nFIXTURE VACUOUS: namedDocMatches did not normalise its matches (got ${JSON.stringify(scanned)}). trackedFiles() holds normalised git ls-files output, so a raw './docs/a.md' fails the tracked lookup and the destination goes unreported everywhere.`)
+    return 1
+  }
+  // AN EXTENSION NOBODY HAS THOUGHT OF. This is the assertion the inversion
+  // exists for: three rounds closed a named extension each and shipped a body
+  // claiming the rest were covered. `.zqx` is not in any list, is not a real
+  // format, and must still be seen -- because the scan no longer asks whether an
+  // extension is a document, it asks whether it is code or data.
+  if (!namedDocMatches('see `docs/invented.zqx`').includes('docs/invented.zqx')) {
+    console.log(`\nFIXTURE VACUOUS: namedDocMatches did not see an extension absent from every list. The scan is an allowlist again, and an allowlist of document extensions cannot be complete -- .MD, .txt, .rst, .mdx and .mdc each escaped one at a time.`)
+    return 1
+  }
+  // And the other direction: code and data must NOT be reported, or the check
+  // fires on every `.py` a brief legitimately cites.
+  const codeSeen = namedDocMatches('see `tests/entities.py` and `tests/closures.json` and `tests/run.sh`')
+  if (codeSeen.length) {
+    console.log(`\nFIXTURE OVER-FIRES: namedDocMatches returned ${JSON.stringify(codeSeen)} for code and data paths, which every brief cites by name.`)
+    return 1
+  }
+  // The generated-output exclusion is not the location one, and folding them
+  // together would re-excuse a document by location -- which was round three's
+  // blocker. A `.mdc` under the generated prefix is excluded; a `.md` under a
+  // DATA prefix is not.
+  if (!corpusExcluded('.cursor/rules/gate-scoping.mdc') || corpusExcluded('tests/a-policy-note.md')) {
+    console.log(`\nFIXTURE VACUOUS: the generated-output and data-directory exclusions have been folded together. Generated output is excluded whatever its extension; a document is never excused by location.`)
+    return 1
+  }
+  // A shared /g regex carries `lastIndex` between calls when it is used with
+  // `exec` or `test`. `matchAll` clones it, so it does not -- asserted rather
+  // than trusted, because if it did every file after the first would be scanned
+  // from an offset and the check would silently go quiet.
+  if (JSON.stringify(namedDocMatches('`docs/c.mdx`')) !== JSON.stringify(namedDocMatches('`docs/c.mdx`'))) {
+    console.log(`\nFIXTURE VACUOUS: DOCUMENT_RE is stateful across calls, so every file after the first is scanned from a stale lastIndex.`)
+    return 1
+  }
+  // The bare pass, driven both ways. Its property is not the extension one:
+  // every word matches, so what it must do is drop the three names the tree has
+  // and keep everything else for the caller's tracked lookup to judge.
+  pins += 2
+  const threeNames = bareNameCandidates('the VERSION and the LICENSE and the NOTICE')
+  if (['VERSION', 'LICENSE', 'NOTICE'].some((n) => threeNames.includes(n))) {
+    console.log(`\nFIXTURE VACUOUS: bareNameCandidates returned an extensionless name the tree classifies as data. VERSION, LICENSE and NOTICE are the three extensionless tracked files and none is a document.`)
+    return 1
+  }
+  if (!bareNameCandidates('see HANDOVER for the rest').includes('HANDOVER')) {
+    console.log(`\nFIXTURE VACUOUS: bareNameCandidates dropped an ordinary bare name, so a destination with no extension is unreported -- the route round four and round five both stated as a limit and I twice costed wrong.`)
+    return 1
+  }
+  // The three names must be exactly the tree's extensionless tracked files, or
+  // this is an allowlist that goes stale the moment a fourth appears.
+  const bareInTree = new Set(trackedFiles().list.filter((f) => !f.split('/').pop().includes('.')).map((f) => f.split('/').pop()))
+  const strayNames = [...NOT_A_DOCUMENT_NAME].filter((n) => !bareInTree.has(n))
+  if (strayNames.length) {
+    console.log(`\nFIXTURE VACUOUS: NOT_A_DOCUMENT_NAME lists ${JSON.stringify(strayNames)}, which no tracked file has. Bounded by the tree, or it is an allowlist wearing a different name.`)
+    return 1
+  }
+
+  // NOT_A_DOCUMENT is only bounded if it is checked against the tree it claims
+  // to describe. Every extension present in the tracked tree must be either code
+  // or data (in the set) or a document -- and a document that is neither capped
+  // nor excluded is a finding, which the null control above already proves is
+  // empty. So the assertion here is the one that can go stale: an extension in
+  // NOT_A_DOCUMENT that no tracked file has is dead weight to be deleted, and an
+  // extension in the tree that is a document is what the corpus must account for.
+  const treeExts = new Set(trackedFiles().list
+    .map((f) => (f.includes('.') ? f.split('.').pop().toLowerCase() : ''))
+    .filter(Boolean))
+  const deadWeight = [...NOT_A_DOCUMENT].filter((e) => !treeExts.has(e))
+  if (deadWeight.length) {
+    console.log(`\nFIXTURE VACUOUS: NOT_A_DOCUMENT lists ${deadWeight.length} extensions no tracked file has (${deadWeight.slice(0, 6).join(', ')}...). A blocklist that is not bounded by the tree is an allowlist wearing a different name.`)
+    return 1
+  }
+  // ... and the same list bounded from BELOW. Without this, `NOT_A_DOCUMENT`
+  // gaining `txt` or `mdc` -- extensions the tree HAS, so `deadWeight` stays
+  // silent -- reopens the route at rc=0 with every other pin green. Measured as
+  // an accepted mutant by the round-six review, which is why it is a pin and
+  // not a sentence.
+  pins += 1
+  const floorBreach = NEVER_NOT_A_DOCUMENT.filter((e) => NOT_A_DOCUMENT.has(e))
+  if (floorBreach.length) {
+    console.log(`\nFIXTURE VACUOUS: NOT_A_DOCUMENT contains ${JSON.stringify(floorBreach)}, which this corpus has already established are document formats. Blocklisting one carries every file with that extension out of every cap at once, and the dead-weight assertion above cannot see it because the tree HAS those extensions.`)
+    return 1
+  }
+
+  // THE RESOLUTION AND THE BARE PASS, driven against a SYNTHETIC listing. Both
+  // routes are invisible on a healthy tree -- the three extensionless tracked
+  // files are all data, and every basename the corpus cites resolves to a file
+  // that is capped or excluded -- so neither had a witness, and the round-six
+  // review measured the consequence: the bare pass could be unwired at its call
+  // site, and a basename citation carried prose out of all five caps at rc=0,
+  // both with the acceptance unchanged.
+  pins += 3
+  const synth = { set: new Set(['docs/NOTES', 'docs/only-here.md', 'a/dup.md', 'b/dup.md']) }
+  synth.byBase = new Map()
+  for (const f of synth.set) {
+    const b = f.split('/').pop()
+    if (!synth.byBase.has(b)) synth.byBase.set(b, [])
+    synth.byBase.get(b).push(f)
+  }
+  const cited = citedTrackedPaths('see `only-here.md` and `docs/NOTES` and `dup.md`', synth)
+  if (!cited.includes('docs/only-here.md')) {
+    console.log(`\nFIXTURE VACUOUS: a document cited by its UNIQUE basename did not resolve to its tracked path (got ${JSON.stringify(cited)}). CLAUDE.md cites all thirty documents it indexes that way, and brief-citations.md calls it a resolvable citation, so this is the spelling the escape uses.`)
+    return 1
+  }
+  if (!cited.includes('docs/NOTES')) {
+    console.log(`\nFIXTURE VACUOUS: an extensionless tracked document went unreported (got ${JSON.stringify(cited)}), so the bare pass is unwired at its call site. The tree's only extensionless files are LICENSE, NOTICE and VERSION -- all data -- so this route has no witness on a healthy tree and deleting it costs nothing that any other pin measures.`)
+    return 1
+  }
+  if (cited.includes('a/dup.md') || cited.includes('b/dup.md')) {
+    console.log(`\nFIXTURE OVER-FIRES: an AMBIGUOUS basename resolved (got ${JSON.stringify(cited)}). Driven that way on the real tree it reported sixteen frozen tools/audit/round2 reports through the generic names REPORT.md and BASELINE.md.`)
+    return 1
+  }
+  const citedCase = citedTrackedPaths('see `ONLY-HERE.md`', synth)
+  if (!citedCase.includes('docs/only-here.md')) {
+    console.log(`\nFIXTURE VACUOUS: a basename resolved case-SENSITIVELY (got ${JSON.stringify(citedCase)}). namedDocMatches lowercases an extension before judging it, so \`POLICY-NOTES.MD\` survives the scan and must survive the resolution too; case-sensitive, it was dropped and the file went unreported at rc=0.`)
+    return 1
+  }
+
+  // THE PRODUCTION CALL SITE, not the seam. Every assertion above drives
+  // `citedTrackedPaths` directly, and NONE of them says `unmeasuredNamedDocs`
+  // calls it: the round-seven review measured the call site reverted to its
+  // pre-r7 inline `listing.set.has(rel)` form with all 49 pins green and the
+  // basename escape reopened at rc=0. That is round six's own block re-created
+  // one level up by the fix for it, which is this branch's most repeated shape.
+  //
+  // Differential, and against the LIVE corpus rather than a fixture. The
+  // negative control is the exact-path-only scan -- the mutant itself, written
+  // out -- and the assertion is that production reports strictly more than it.
+  // A fixture could not pin this: the caller reads `policyFiles()`, so only the
+  // real corpus reaches it.
+  pins += 1
+  const live = trackedFiles()
+  const exactOnly = new Set()
+  for (const src of policyFiles()) {
+    const raw = read(src)
+    if (raw == null) continue
+    for (const m of [...namedDocMatches(raw), ...bareNameCandidates(raw)]) if (live.set.has(m)) exactOnly.add(m)
+  }
+  const viaBasename = driveND({ files: {} }).map((f) => f.where).filter((w) => !exactOnly.has(w))
+  if (!viaBasename.length) {
+    console.log(`\nFIXTURE VACUOUS: with every document uncapped, unmeasuredNamedDocs reported nothing that the exact-path scan alone would not have reported. Either the caller no longer resolves basenames -- the escape, reopened -- or this corpus has stopped citing documents that way, in which case the assertion is measuring nothing and must be replaced rather than deleted.`)
+    return 1
+  }
+
+  const ndFull = driveND({ files: Object.fromEntries(policyFiles().map((f) => [f, 1e9])) })
+  const stray = ndFull.filter((f) => !corpusExcluded(f.where))
+  if (stray.length && stray.length >= ndBare.length) {
+    console.log(`\nFIXTURE OVER-FIRES: checkNamedDocs reported ${stray.length} finding(s) with the whole corpus capped, e.g. ${JSON.stringify(stray[0].where)}`)
+    return 1
+  }
+
   const covRot = drive([rotPath, okPath])
   const covOk = drive([okPath])
   pins += 2
@@ -1036,6 +1871,23 @@ function assertAcceptance(derived) {
       rc = 1
     }
   }
+  // The rot fixtures cannot pin `rulePaths`, because a rule's `paths:` block
+  // decides which fixtures exist rather than what they say. Pin it against the
+  // real rules instead: the parsed list must have one entry per `- "..."` line
+  // in the frontmatter. This is the check that would have caught the parser
+  // dropping every list's LAST path -- and reading a single-path rule as
+  // unscoped, so it was charged to every session's floor -- while still
+  // printing a number for each role.
+  for (const f of policyFiles().filter((x) => RULE_FILE.test(x))) {
+    const raw = read(f)
+    const fm = /^---\n([\s\S]*?)\n---/.exec(raw)
+    if (!fm || !/^paths:/m.test(fm[1])) continue
+    const want = (fm[1].match(/^[ \t]*-[ \t]*"/gm) || []).length
+    const got = (rulePaths(f) || []).length
+    if (got === want) continue
+    console.log(`\nFIXTURE VACUOUS: rulePaths(${f}) parsed ${got} of ${want} declared path globs; a rule read as less scoped than it is lands in the always-loaded floor, and one read as more scoped is charged to no role at all`)
+    rc = 1
+  }
   if (!rc) console.log(`\nFIXTURE ok: ${found.length} error(s) hold ${pins} pins across ${Object.keys(REQUIRED_ROT).length} check classes on fixtures/policy-rot/`)
   return rc
 }
@@ -1048,6 +1900,7 @@ function cmdRecord(findings) {
   )
   const counts = new Map()
   for (const f of findings) {
+    if (NEVER_SUPPRESSED.has(f.check)) continue
     const k = keyOf(f)
     counts.set(k, (counts.get(k) ?? 0) + 1)
   }
@@ -1259,6 +2112,13 @@ function cmdBudgets(files) {
     console.log(r.file.padEnd(46), String(r.lines).padStart(5), cap.padStart(4), String(Math.round(r.bytes / 4)).padStart(8), r.always ? '  yes' : '')
   }
   console.log(`\nalways-loaded: ~${alwaysTokens} tokens, cap ${b ? b.always_loaded_tokens : '-'}`)
+  // The floor alone reads as the corpus cost; printing the three together is
+  // what stops a re-record of one being mistaken for an improvement in all.
+  const corpusTokens = rows.reduce((n, r) => n + Math.round(r.bytes / 4), 0)
+  console.log(`corpus:        ~${corpusTokens} tokens, cap ${b ? b.corpus_tokens : '-'}`)
+  for (const [role, spec] of Object.entries((b && b.roles) || {})) {
+    console.log(`role ${role.padEnd(9)} ~${roleTokens(rows, spec.opens)} tokens, cap ${spec.cap}`)
+  }
 }
 
 function main() {

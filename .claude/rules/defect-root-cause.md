@@ -1,7 +1,9 @@
 ---
 description: A defect that escapes to production, or that CI catches slowly, requires a root-cause countermeasure as well as a fix
-globs: tools/audit/briefs/**,.github/workflows/**,tests/**
-alwaysApply: true
+paths:
+  - "tools/audit/briefs/**"
+  - ".github/workflows/**"
+  - "tests/**"
 ---
 # Root-cause remediation
 
