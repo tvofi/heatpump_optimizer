@@ -2081,42 +2081,9 @@ class HeatPumpOptimizer:
         wind_speeds = wind_speeds[:n_steps]
         precipitation = precipitation[:n_steps]
         solar_radiation = solar_radiation[:n_steps]
-        price_known = np.asarray(price_known, dtype=bool)[:n_steps]
-        pv_surplus = np.asarray(pv_surplus, dtype=float)[:n_steps]
-        if price_known.size < n_steps:
-            price_known = np.concatenate(
-                [price_known, np.zeros(n_steps - price_known.size, dtype=bool)]
-            )
-        if pv_surplus.size < n_steps:
-            pv_surplus = np.concatenate(
-                [pv_surplus, np.zeros(n_steps - pv_surplus.size)]
-            )
-
-        self._price_known = price_known
-        self._initial_buffer_temp = (
-            float(initial_state.buffer_tank_temperature)
-            if self.model.params.buffer_is_store
-            and initial_state.buffer_tank_temperature is not None
-            else None
+        prices = self._stash_price_horizon(
+            initial_state, n_steps, price_known, price_sigma, prices, pv_surplus
         )
-        self._pv_surplus = pv_surplus
-
-        # Risk-adjusted pricing on the unpublished horizon (#34). The prior
-        # fills unknown steps with its mean, so the optimizer treats a
-        # guessed trough as bankable; the error is asymmetric — a trough
-        # that fails to appear forces buying at a peak, while charging
-        # slightly early costs only standby loss. Deferral into guessed
-        # steps therefore pays λ·sigma on top of the mean; known steps carry
-        # sigma 0 by construction and λ defaults to 0, which skips this
-        # entirely and leaves the array untouched.
-        if price_sigma is not None and self.config.price_risk_lambda > 0.0:
-            sig = np.clip(np.asarray(price_sigma, dtype=float), 0.0, None)
-            if sig.size < n_steps:
-                sig = np.concatenate([sig, np.zeros(n_steps - sig.size)])
-            risk = self.config.price_risk_lambda * sig[:n_steps]
-            risk = np.where(price_known, 0.0, risk)
-            if np.any(risk > 0.0):
-                prices = np.asarray(prices, dtype=float) + risk
 
         # Forecast humidity (#21), normalised to horizon length; short
         # series pad with NaN, which the model reads as "unknown, use the
@@ -2401,6 +2368,54 @@ class HeatPumpOptimizer:
             temp_min_bounds,
         )
         return result
+
+    def _stash_price_horizon(
+        self,
+        initial_state: ThermalState,
+        n_steps: int,
+        price_known: np.ndarray,
+        price_sigma: np.ndarray | None,
+        prices: np.ndarray,
+        pv_surplus: np.ndarray,
+    ) -> np.ndarray:
+        """Pad known-mask and surplus, stash the buffer seed, risk-adjust prices."""
+        price_known = np.asarray(price_known, dtype=bool)[:n_steps]
+        pv_surplus = np.asarray(pv_surplus, dtype=float)[:n_steps]
+        if price_known.size < n_steps:
+            price_known = np.concatenate(
+                [price_known, np.zeros(n_steps - price_known.size, dtype=bool)]
+            )
+        if pv_surplus.size < n_steps:
+            pv_surplus = np.concatenate(
+                [pv_surplus, np.zeros(n_steps - pv_surplus.size)]
+            )
+
+        self._price_known = price_known
+        self._initial_buffer_temp = (
+            float(initial_state.buffer_tank_temperature)
+            if self.model.params.buffer_is_store
+            and initial_state.buffer_tank_temperature is not None
+            else None
+        )
+        self._pv_surplus = pv_surplus
+
+        # Risk-adjusted pricing on the unpublished horizon (#34). The prior
+        # fills unknown steps with its mean, so the optimizer treats a
+        # guessed trough as bankable; the error is asymmetric — a trough
+        # that fails to appear forces buying at a peak, while charging
+        # slightly early costs only standby loss. Deferral into guessed
+        # steps therefore pays λ·sigma on top of the mean; known steps carry
+        # sigma 0 by construction and λ defaults to 0, which skips this
+        # entirely and leaves the array untouched.
+        if price_sigma is not None and self.config.price_risk_lambda > 0.0:
+            sig = np.clip(np.asarray(price_sigma, dtype=float), 0.0, None)
+            if sig.size < n_steps:
+                sig = np.concatenate([sig, np.zeros(n_steps - sig.size)])
+            risk = self.config.price_risk_lambda * sig[:n_steps]
+            risk = np.where(price_known, 0.0, risk)
+            if np.any(risk > 0.0):
+                prices = np.asarray(prices, dtype=float) + risk
+        return prices
 
     def _build_comfort_bounds(
         self,

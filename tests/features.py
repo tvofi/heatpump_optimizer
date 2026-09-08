@@ -18796,6 +18796,101 @@ R.check(
 )
 
 
+R.section("#224 stage 2 — optimize's unpublished-horizon stash answers for itself")
+
+# The 30-50 LOC minimum inside the refused truncate/stash region: pad the
+# known-mask and surplus, stash the buffer seed, risk-adjust unpublished
+# prices. Every figure below is chosen so the subtlety a careless rewrite
+# would drop returns a different number rather than a coincidentally equal
+# one.
+
+_ph_opt = _MbOpt(
+    ThermalModel(ThermalParameters.from_config(_mb_profiles.house())),
+    _MbCfg(horizon_hours=1),
+)
+_ph_state = ThermalState(buffer_tank_temperature=42.0)
+_ph_prices = np.array([1.0, 1.0, 1.0])
+_ph_out = _ph_opt._stash_price_horizon(
+    _ph_state, 3, np.array([True]), None, _ph_prices.copy(), np.array([0.5])
+)
+R.check(
+    "a short known-mask pads with False, never with True",
+    list(_ph_opt._price_known) == [True, False, False],
+    f"{list(_ph_opt._price_known)} — [True, True, True] means the tail was "
+    f"treated as published, so a risk premium would never land on it",
+)
+R.check(
+    "a short surplus pads with zero rather than shortening the horizon",
+    list(_ph_opt._pv_surplus) == [0.5, 0.0, 0.0],
+    f"{list(_ph_opt._pv_surplus)} — a one-entry surplus would price only the "
+    f"first step against PV and leave the rest of the horizon on the import "
+    f"price, or a zero-pad of the wrong length would crash the objective",
+)
+R.check(
+    "λ=0 leaves the price array untouched even when a sigma is supplied",
+    list(_ph_out) == [1.0, 1.0, 1.0],
+    f"{list(_ph_out)} — a default install must stay byte-identical; the "
+    f"goldens all ship at λ=0",
+)
+R.check(
+    "and a house that is not a store does not stash a buffer seed",
+    _ph_opt._initial_buffer_temp is None,
+    f"{_ph_opt._initial_buffer_temp} — 42.0 means the seed was taken from a "
+    f"tank the solver is not allowed to plan around",
+)
+
+_ph_opt.config.price_risk_lambda = 0.5
+_ph_risked = _ph_opt._stash_price_horizon(
+    _ph_state,
+    3,
+    np.array([True, False, False]),
+    np.array([9.0, 2.0, 4.0]),
+    np.array([1.0, 1.0, 1.0]),
+    np.array([0.0, 0.0, 0.0]),
+)
+R.check(
+    "a risk premium lands only on unpublished steps",
+    list(_ph_risked) == [1.0, 2.0, 3.0],
+    f"{list(_ph_risked)} — [5.5, 2.0, 3.0] means the known-step gate was "
+    f"dropped (λ·9 on a published hour); [1.0, 1.0, 1.0] means the premium "
+    f"never applied",
+)
+
+_ph_clipped = _ph_opt._stash_price_horizon(
+    _ph_state,
+    3,
+    np.array([False, False, False]),
+    np.array([-1.0, 4.0]),
+    np.array([1.0, 1.0, 1.0]),
+    np.zeros(3),
+)
+R.check(
+    "a negative sigma is clipped to zero and a short sigma pads with zero",
+    list(_ph_clipped) == [1.0, 3.0, 1.0],
+    f"{list(_ph_clipped)} — [0.5, 3.0, 1.0] means the clip was dropped so a "
+    f"negative sigma cheapens the guess; [1.0, 3.0, 3.0] means the pad was "
+    f"the last sigma rather than zero",
+)
+
+_ph_store_params = ThermalParameters.from_config(_mb_profiles.house())
+_ph_store_params.mixing_valve_mode = "smart_write"
+_ph_store_params.buffer_tank_volume = 200.0
+_ph_store_opt = _MbOpt(ThermalModel(_ph_store_params), _MbCfg(horizon_hours=1))
+_ph_store_opt._stash_price_horizon(
+    ThermalState(buffer_tank_temperature=47.5),
+    1,
+    np.array([True]),
+    None,
+    np.array([1.0]),
+    np.array([0.0]),
+)
+R.check(
+    "a real store stashes the buffer temperature the solve will see",
+    _ph_store_opt._initial_buffer_temp == 47.5,
+    f"{_ph_store_opt._initial_buffer_temp} — None means the seed was dropped "
+    f"on the one topology that reads it",
+)
+
 
 R.section("v5.3.0 review — the experiment obeys the mode gate too")
 
