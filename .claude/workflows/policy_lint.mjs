@@ -1808,7 +1808,13 @@ function assertAcceptance(derived) {
   if (!mainSha || !unreachable) {
     // Said out loud, and NOT counted. A skipped drive that still added its pins
     // would report a total the run did not earn.
-    console.log(`  skip     provenance-pin         ${mainSha ? 'git could not build a witness commit' : 'origin/main is not in this clone'}, so neither direction can be driven`)
+    // KEYED ON THE CHECK'S OWN NAME, and that spelling is load-bearing:
+    // `policy_lint_mutants.mjs` matches `skip <name>-pin` in this run's output
+    // to tell "this check survived its own deletion" from "this clone could not
+    // exercise it at all". Any other spelling would need a mapping table there,
+    // and two hand-kept lists that must agree are the defect generator
+    // decisions/0003 rule 4 is about.
+    console.log(`  skip     checkProvenance-pin    ${mainSha ? 'git could not build a witness commit' : 'origin/main is not in this clone'}, so neither direction can be driven`)
   } else {
     pins += 3
     if (driveProv(unreachable).length !== 1) {
