@@ -1,8 +1,8 @@
 """Stub ``homeassistant.helpers`` package.
 
-``json_bytes`` is upstream's ``homeassistant.helpers.json.json_bytes``. The
-module is injected so ``from homeassistant.helpers.json import json_bytes``
-resolves here without a second tracked file.
+``json_bytes`` is injected as ``homeassistant.helpers.json.json_bytes`` so
+the import path matches Home Assistant without a second tracked file or a
+public stub symbol for ha_contract's AST inventory.
 """
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ import sys
 import types
 
 
-def json_bytes(obj: object) -> bytes:
+def _json_bytes(obj: object) -> bytes:
     """orjson's refusals: non-finite floats, set, bytes.
 
     Upstream is ``orjson.dumps``. The default-encoder path for Home Assistant
@@ -42,5 +42,5 @@ def json_bytes(obj: object) -> bytes:
 
 
 _json_mod = types.ModuleType("homeassistant.helpers.json")
-_json_mod.json_bytes = json_bytes
+_json_mod.json_bytes = _json_bytes
 sys.modules["homeassistant.helpers.json"] = _json_mod

@@ -8842,15 +8842,30 @@ R.check(
     "a mutant that always-passes a3:roster would accept any HA registry",
 )
 
+from homeassistant.helpers.json import json_bytes as _ha_json_bytes
+
+try:
+    _ha_json_bytes({"k": float("inf")})
+    _ha_json_inf = "accepted"
+except Exception:
+    _ha_json_inf = "refused"
+try:
+    _nightly.json_bytes_ha({"k": float("inf")})
+    _jb_ha_inf = "accepted"
+except Exception:
+    _jb_ha_inf = "refused"
 _a3_orjson_src = _inspect.getsource(_nightly.json_bytes_ha)
 _a3_orjson_check_src = _inspect.getsource(_nightly.check_a3_orjson)
 R.check(
     "a3:orjson serialises through Home Assistant's json_bytes",
-    "json_bytes" in _a3_orjson_src
-    and "helpers.json" in _a3_orjson_src
+    "helpers.json" in _a3_orjson_src
+    and "orjson_like_dumps" not in _a3_orjson_src
+    and "orjson_like_dumps" not in _a3_orjson_check_src
     and "json_bytes_ha" in _a3_orjson_check_src
-    and "orjson_like_dumps" not in _a3_orjson_check_src,
-    "the inside half must judge (b) by HA's orjson path, not a host reimplementation",
+    and _ha_json_inf == "refused"
+    and _jb_ha_inf == "refused",
+    f"ha={_ha_json_inf} json_bytes_ha={_jb_ha_inf}; "
+    "host pin must execute helpers.json.json_bytes, not a local dumps",
 )
 _a3_orjson_ok = _nightly.Checks()
 _nightly.check_a3_orjson(
@@ -8883,25 +8898,10 @@ R.check(
     "json_bytes_ha returning b\"{}\" leaves a3:orjson green on an orjson-illegal payload",
     "a3:orjson" not in _a3_orjson_noop.failures()
     and "a3:orjson" in _a3_orjson_bad.failures(),
-    "a no-op json_bytes_ha must not satisfy A3(b); the real serializer must still refuse inf "
+    "a no-op json_bytes_ha must not satisfy A3(b); the default serializer "
+    "must still be json_bytes_ha so the real path refuses inf "
     f"noop={_a3_orjson_noop.results.get('a3:orjson')} "
     f"real={_a3_orjson_bad.results.get('a3:orjson')}",
-)
-try:
-    from homeassistant.helpers.json import json_bytes as _ha_json_bytes
-
-    try:
-        _ha_json_bytes({"k": float("inf")})
-        _ha_json_inf = "accepted"
-    except Exception:
-        _ha_json_inf = "refused"
-except ImportError:
-    _ha_json_inf = "absent"
-R.check(
-    "Home Assistant json_bytes refuses a non-finite float on this host",
-    _ha_json_inf == "refused",
-    f"json_bytes={_ha_json_inf}; A3(b) must execute helpers.json.json_bytes, "
-    "or fail when that module is absent",
 )
 
 _a3_finite_bad = _nightly.Checks()
