@@ -97,3 +97,22 @@ Naming the trigger is not the analysis. The analysis runs in its own seat.
 IF a terminal result already exists at this head, THEN it is the result. Re-run
 a job only under the narrow conditions the general rules allow, and never to
 see whether it comes out differently.
+
+## S10 Edit the body first, then push, then fix only the head line
+
+IF a fix also needs the pull-request body corrected, THEN correct the body
+BEFORE pushing, and afterwards correct nothing but `## Head`.
+
+`pr-contract` runs on `synchronize` and reads the body as it stood at push
+time, so pushing first leaves a failed run attached to the very commit that
+repaired it. The `edited` trigger produces a second, green run and the latest
+wins, but the red one stays in the listing for every later reader to resolve.
+
+`## Head` is the exception and cannot be otherwise: where a branch is built by
+cherry-picking onto the pushable branch, the SHA does not exist until the push
+assigns it. Write the rest of the body first, push, then set that one line. A
+head correction is the smallest possible `edited` event; everything the check
+reads about evidence was already right on the `synchronize` run.
+
+Measured on this workflow's own first pull request: twice in one hour by
+pushing first, and once more by writing a head the cherry-pick then changed.

@@ -200,14 +200,32 @@ function uncoveredPolicyFiles(files = null) {
     .sort()
 }
 
-// The corpus-level checks, as a LIST rather than four calls inline. A check
-// reached only from an inline call site can be unwired without any pin
-// noticing: `checkCoverage` was pinned by the acceptance calling it directly,
-// so deleting it from the pipeline left `--self-test` and `FIXTURE ok` green
-// and the corpus unchecked. A list is a datum the acceptance can assert, which
-// is the difference between pinning a function and pinning that it runs.
-// `checkCoverage` ignores the argument; it takes one so the list is uniform.
+// The corpus-level checks, as a LIST rather than four calls inline, so the
+// acceptance can assert what is in it. `checkCoverage` was pinned by the
+// acceptance calling it directly, which left it deletable from the pipeline
+// with every pin green.
+//
+// The list pins MEMBERSHIP AND IDENTITY, and that is all it pins. It does not
+// pin that the loop over it runs: truncating `main`'s own `for` line disables a
+// check with the list intact, and no assertion inside a program can pin its own
+// last call site. One unpinned hop, named here rather than claimed away.
+//
+// Membership alone was not enough either. `length === 4` is arity, and three
+// different edits keep the arity while disabling the check: a no-op arrow, a
+// duplicated entry, and -- the one that needs no malice -- replacing the
+// wrapper below with `checkCoverage` itself. That last is a ONE-TOKEN cleanup
+// an earlier version of this comment openly invited, and it silently voids the
+// check, because the loop passes the POLICY FILE list and every policy file is
+// covered by definition. Hence the name, and hence asserting names.
+const CORPUS_CHECK_NAMES = ['checkIndex', 'checkDuplicates', 'checkBudgets', 'coverageOverTree']
 const CORPUS_CHECKS = []
+
+// Named, not an arrow, so removing the wrapper is a rename the acceptance sees.
+// It discards the argument deliberately: the loop passes the policy file list,
+// and coverage's whole subject is a file that list does not contain.
+function coverageOverTree() {
+  return checkCoverage()
+}
 
 function checkCoverage(files = null) {
   return uncoveredPolicyFiles(files).map((f) => ({
@@ -847,7 +865,7 @@ const REQUIRED_ROT = {
   },
 }
 
-CORPUS_CHECKS.push(checkIndex, checkDuplicates, checkBudgets, (files) => checkCoverage())
+CORPUS_CHECKS.push(checkIndex, checkDuplicates, checkBudgets, coverageOverTree)
 
 function assertAcceptance(derived) {
   const dir = path.join(HERE, 'fixtures', 'policy-rot')
@@ -948,8 +966,9 @@ function assertAcceptance(derived) {
   const rotPath = '.cursor/rules/Probe_9.mdc'
   const okPath = '.cursor/rules/ci-autofix.mdc'
   pins += 1
-  if (CORPUS_CHECKS.length !== 4) {
-    console.log(`\nFIXTURE VACUOUS: CORPUS_CHECKS holds ${CORPUS_CHECKS.length} of 4 corpus-level checks; one that is not in the list never runs on a default invocation, however well its own pin passes`)
+  const wiredNames = CORPUS_CHECKS.map((f) => f.name || '(anonymous)').join(',')
+  if (wiredNames !== CORPUS_CHECK_NAMES.join(',')) {
+    console.log(`\nFIXTURE VACUOUS: CORPUS_CHECKS is wired as [${wiredNames}], expected [${CORPUS_CHECK_NAMES.join(',')}]. A check missing from the list never runs; one replaced by a no-op, a duplicate or an unwrapped \`checkCoverage\` runs and measures nothing. The count is derived from this list rather than carried, so adding a fifth check names it here once.`)
     return 1
   }
   const covRot = checkCoverage([rotPath, okPath])
