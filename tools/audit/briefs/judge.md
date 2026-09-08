@@ -25,5 +25,5 @@ Per surviving finding, and per kill that rested on a number:
 `unreproduced` is not a kill and not a pass: it blocks the round from being
 called dry until re-measured or refuted with a number.
 
-For fix PRs, the same stance: re-run the before/after the PR body names, at
-the head SHA it names, before the merge.
+On a fix PR, only from round 3 or a disputed verdict; below it the fix reviewer
+is the check. Re-run the body's before/after, at its head SHA, before the merge.
