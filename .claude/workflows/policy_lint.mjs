@@ -364,7 +364,14 @@ const CORPUS_EXCLUDED_PREFIX = [
   'tools/audit/w5-g5-195-coverage/',
 ]
 
-const ALWAYS_A_DOCUMENT = /\.(?:md|markdown)$/i
+// `.rst` belongs here and `.txt` does not, and the difference is measured
+// rather than argued: `git ls-files '*.rst'` returns NOTHING, so the prefixes
+// protect no reStructuredText in this tree, while `.txt` under them is three
+// real data files -- the two claim files and `tests/requirements-ci.txt` --
+// which exempting would report back as findings. The scan set beside this is
+// `md|markdown|rst|txt`; this list is that set less the extensions this
+// repository actually keeps data in.
+const ALWAYS_A_DOCUMENT = /\.(?:md|markdown|rst)$/i
 
 const corpusExcluded = (rel) =>
   CORPUS_EXCLUDED.has(rel) ||
@@ -401,7 +408,12 @@ function unmeasuredNamedDocs(budget) {
     // a document is not this check's subject, and widening it to every
     // tracked extension would report data files a brief legitimately cites.
     for (const m of raw.matchAll(/[A-Za-z0-9_./-]+\.(?:md|markdown|rst|txt)\b/gi)) {
-      const rel = m[0]
+      // Normalised before the tracked lookup. `trackedFiles()` holds
+      // `git ls-files` output, which is always normalised, so the RAW match
+      // `./docs/NOTES.md` failed `tracked.has` and the destination went
+      // unreported -- everywhere, not only under an excluded prefix. That is
+      // not an obfuscation; it is how a person writes a relative path.
+      const rel = path.posix.normalize(m[0])
       if ((capped.has(rel) && measured.has(rel)) || corpusExcluded(rel)) continue
       if (!tracked.has(rel)) continue
       if (!out.has(rel)) out.set(rel, src)
@@ -1479,7 +1491,12 @@ function assertAcceptance(derived) {
   // over-fire that made the prefixes necessary.
   pins += 2
   const UNDER_PREFIX = CORPUS_EXCLUDED_PREFIX[0]
-  if (corpusExcluded(`${UNDER_PREFIX}a-policy-note.md`)) {
+  // Both spellings. The lowercase literal alone pinned the EXTENSION and not the
+  // case-insensitivity the property rests on: dropping the `/i` flag left all
+  // pins green and reopened the `.MD` route at 138 tokens per cap.
+  if (corpusExcluded(`${UNDER_PREFIX}a-policy-note.md`) ||
+      corpusExcluded(`${UNDER_PREFIX}A-POLICY-NOTE.MD`) ||
+      corpusExcluded(`${UNDER_PREFIX}a-policy-note.rst`)) {
     console.log(`\nFIXTURE VACUOUS: a .md under the excluded prefix '${UNDER_PREFIX}' is treated as outside the corpus, so prose moved there leaves every cap at once. A directory says where data lives; it does not make a document into data.`)
     return 1
   }

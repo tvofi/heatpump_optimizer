@@ -27,13 +27,13 @@ drop as the ratchet, which hands the next pull request headroom nobody earned an
 prices a scoped rule at zero however far it grows.
 
 **`corpus_tokens` does not move when prose moves — while every capped file is a
-measured one.** It sums the policy files the linter's globs match, scoped or not,
-so a split between two of them leaves it flat and only prose changes it. A cap on
-a file no glob matches measures nothing and its bytes never enter the sum, which
-made "give it a cap" a way OUT: measured on the pull request that added these
-caps, prose moved into a named, capped, tracked file bought headroom in **all
-five** at once with zero deletion. That cap is refused now, and a named document
-is answered by measuring it or by an exclusion entry a reviewer reads.
+measured one.** It sums the policy files the linter's globs match, so a split
+between two leaves it flat and only prose changes it. A cap on a file no glob
+matches measures nothing and its bytes never enter the sum, which made "give it
+a cap" a way OUT: prose moved into a named, capped, tracked file bought headroom
+in **all five** at once with zero deletion. That cap is refused now; a named
+document is answered by measuring it or by an exclusion a reviewer reads. One
+exception, stated in the code: a `.txt` under a data directory is neither.
 
 **`roles` charges a seat for what it loads once it opens a file.** Each entry
 gives an `opens` list — one representative file per surface that role touches —
@@ -42,8 +42,8 @@ The floor is not the cost: at the same split every role paid more than the floor
 and the record seat more than the whole floor cap that preceded it. A cap only
 the empty session meets is not measuring the thing it is named for.
 
-`opens` is a fixed sample, not an exhaustive list. Widening it is an edit a
-reviewer sees, which stops a cap being met by re-measuring against fewer files.
+`opens` is a fixed sample. Widening it is an edit a reviewer sees, which stops a
+cap being met by re-measuring against fewer files.
 
 ## Re-recording a cap
 
@@ -59,4 +59,4 @@ move `CLAUDE.md` rule 2 refuses, and this rule refuses it too.
 
 `node .claude/workflows/policy_lint.mjs --budgets` prints every file against its
 cap, the floor, the corpus and each role. The `budgets` class is held out of the
-known-bad ledger by name: a cap recordable as a known defect is not a ratchet.
+known-bad ledger: a cap recordable as a known defect is not a ratchet.
