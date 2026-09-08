@@ -470,6 +470,7 @@ no wave:
 - [#633](https://github.com/tvofi/heatpump_optimizer/pull/633) — UX C4: dark-theme and graphics contrast witness. leaves #558 open.
 - [#635](https://github.com/tvofi/heatpump_optimizer/pull/635) — UX B12: README hero from the Playwright lane. leaves #558 open.
 - [#631](https://github.com/tvofi/heatpump_optimizer/pull/631) — **merged**, measured `_stash_price_horizon` extract, leaves #224 open.
+- [#634](https://github.com/tvofi/heatpump_optimizer/pull/634) — **merged under decision 0006**, without a merge SHA it cannot know: `--record`, `--stats` and `--sunset`, and the `record` CI job that runs the first of them on push to `main` — the only one of the three that can fail a job. Its mutation proof: emptying `checkRecord`'s return gives `FIXTURE VACUOUS: check 'record' produced 0 error(s) on the rot fixtures, 2 required`, rc=1 on both `policy_lint` and `policy_lint_mutants`, restored rc=0 — the acceptance pins the sub-claim, not just the count. Driven against the live window before opening: 34 merged pull requests in `v6.3.18..main`, **0 without a disposition** — #629 and #632 record themselves on the status rows of the issues they close, which is the Delivery-status table's own form, so an earlier note calling them undispositioned was wrong and is withdrawn. Lands the **handover graduation rule** as the fourth programme-closing item, with the detector-mode distinction driven at `d08a56a`: `session-start.sh:31` really does run `git rev-parse --is-shallow-repository`, but it reports rather than refuses, which suffices for trap 11 and would not for a silently-wrong-answer trap. Body written against its SHA before the push, per `steward/SKILL.md` § S10, because #628 spent four rounds learning what the other order costs.
 
 **A pattern worth naming**, since most of these were blocked for it: every one of those blocks was a document asserting something that was not true of the tree — a stale head, a count, an actor, a carry that did not land. None was a disagreement about the change itself.
 
@@ -865,6 +866,127 @@ judge comments on each issue and summarised on #201.
   should additionally skip a run whose only difference is a stale head SHA is a
   separate question that this row no longer asserts an answer to, because the
   premise it rested on is denied by S10.
+
+- **`docs/HANDOVER.md` cannot accept a new fact, and the fix is a graduation
+  rule rather than a higher cap.** The deadlock is structural and is recorded
+  under `## Standing rules`: the file is at its cap, the cap is one-sided by
+  design, and `writing-for-agents.md` — which governs that file — says
+  *precision outranks concision, always* and *cutting evidence is never
+  compliance*. Reflowing reclaims **0 lines** at its own width, derived
+  independently by a reviewer, so there is no formatting slack either. An
+  attempt to pay for three traps by compressing nine entries was blocked for
+  cutting evidence in five places, two of which inverted a trap's meaning.
+  **The rule:** *a trap whose failure mode has acquired a mechanical detector is
+  replaced by a one-line pointer to that detector.*
+  **Why this is not the cutting `writing-for-agents.md` forbids.** A trap
+  superseded by a working check has not lost its evidence; it has been
+  **promoted** — out of prose a reader must remember and into something that
+  fires on its own. That is this programme's whole thesis, stated in #625's own
+  title: *three rules that fired only in CI now fire at the moment they are
+  broken.* Retiring the prose copy completes the work rather than trading it
+  away.
+  **Runway, re-derived at this head — and re-derive it again at yours.** The
+  handover holds **twenty-five** traps. **Four** have a mechanical detector on
+  `main` today, each named with its file: trap 11 (a shallow clone answers "no
+  common ancestor" silently) by `.claude/hooks/session-start.sh`; trap 9
+  (orchestration scripts nobody runs) by `check-wave-script.mjs` and
+  `policy_lint --hooks`; trap 19 (a one-sided cap colliding across branches) by
+  the `policy-docs` job on `main`; trap 17 (a citation and its referent on two
+  branches) by `CLAUDE.md` rule 1's forced `GATE_SCOPE=full`. A **fifth**, trap
+  8 (one CI runner is not the fleet), gains `policy_lint_envmatrix.mjs` when
+  `08-envmatrix` lands and not before — an earlier draft of this entry counted
+  it as already present, and a reviewer refused that, correctly. Two more that
+  the same draft counted do **not** qualify: trap 23's "tip pin-count
+  invariant" is trap 23's own prose instruction, not a detector — nothing
+  refuses a mis-rebase by itself; and trap 10's `tools/audit/preflight.sh`
+  reads a pull-request *body* on stdin, never a commit message, so it does not
+  fire in the mode that trap needs. Trap 11 goes from three lines to one. The
+  set grows as the programme mechanises, so the document shrinks exactly as
+  fast as the honour system is replaced — which is the behaviour a ratchet
+  should have.
+  **Not every detector is the same kind, and the rule must say which suffices.**
+  Driven at `d08a56a`: trap 11's detector is real — `session-start.sh:31` runs
+  `git rev-parse --is-shallow-repository` and its self-test asserts *"the
+  shallow state is printed and is one of the three answers"* — but it **reports
+  rather than refuses**. That is enough here, because trap 11's instruction is
+  *check before believing a comparison*, and a report at session start fires at
+  exactly the moment the trap would bite. It would **not** be enough for a trap
+  whose failure is a silently wrong result with no reader present. So the test
+  is not "a detector exists" but **"a detector fires at the moment the trap
+  would bite, in the mode that trap needs"** — reporting for a trap that asks a
+  reader to look, refusing for one that produces a wrong answer unattended.
+  **Each graduation owes a mutation proof.** Break the detector, show the check
+  going red, restore it. Deleting prose on the strength of a check nobody drove
+  is the defect this corpus keeps finding, and it would be a bad way to lose a
+  trap permanently.
+  **The floor, and the only condition under which a raise is right.** Some traps
+  are permanently unmechanisable and trap 12 says so in its own text — a check
+  written against that very class catches **0 of 3**. Those stay forever. If the
+  irreducible floor ever exceeds the cap, a raise **is** warranted, and the case
+  writes itself because the irreducible entries can be named. That is a raise
+  that buys architecture; raising it now, to fit, is the thing `CLAUDE.md`
+  forbids and would move the wall by one session.
+  **Two alternatives rejected, with reasons.** Raising the cap now is
+  raise-to-fit. Splitting the traps into a second file under `docs/` is refused
+  mechanically: `tests/entities.py` asserts *"exactly one handover, with no date
+  in its name"*, checked rather than assumed.
+  **Ordering:** programme-closing work, after `10-adr-corpus`, beside the
+  record-check anchor rewrite and the ruleset. Not inside the queue — the
+  mutation proofs are per-trap and would stall it.
+- **`claims-autofix` erases an earlier lane's claims from `main` at squash-merge
+  time, and it has already done so once.** Measured on #634. `inherited_claims_error`
+  fires when a branch's parsed claim list equals its **merge-base's**; after a
+  rebase onto `a684cce` (#633, which added 46 lines to that file — **33** of them claims, the rest header and reasons) that is exactly
+  the state `claim-files.md:47` calls "cannot conflict" — byte-identical to
+  `main`. Both `fast` legs refused it and the bot repaired the branch by
+  **emptying** the list (`6e2dd81 ci: drop inherited claims`). A squash-merge
+  then three-way-merges base=33 claims, branch=0 onto main=33 and applies the
+  deletion: `git merge-tree --write-tree origin/main 6e2dd81` diffed against
+  `origin/main` is `card_claimed_drift.txt | 33 ---`, and `comm -12` over #633's
+  added lines and the bot's removed lines returns **33**. The `claimnotes`
+  merge driver that unions claim lists locally is per-clone config GitHub
+  cannot run. **Precedent, twice:** `2b5e416` (#608, a governance pull request that
+  never touched the card) deleted 33 lines #569 had added, by the same path;
+  and while this entry sat in review, `dda7193` (#635, rebased onto `a684cce`
+  and autofixed) deleted all 33 of #633's — `main`'s claim list is now empty.
+  The warning on #201 preceded it by 9 minutes. Same path,
+  and `main` merged **21** more times between `2b5e416` and `a684cce` with no stamp
+  between, every completed `Tests` run green — so the gate is unaffected. A
+  push to `main` measures drift computed-vs-computed at
+  its own head (the #387 shape), and `stamp.py` deletes every bare claim at
+  release anyway, counting them as it goes. **What is damaged is the record**:
+  main's claim file stops saying which fixtures a lane claimed and why, and the
+  stamp's `deleted_claims` count under-reports. **The fix is not in any branch's
+  hands** — `ci-autofix.md` forbids hand-restoring, and restoring would only be
+  emptied again. And the first draft of this entry prescribed a remedy that is
+  **not implementable as written**: "skip the file the branch did not touch"
+  names a git state indistinguishable from "carried forward", and
+  `inherited_claims_error`'s own docstring (`env_drift.py:1259–1271`) fires on
+  exactly that state. The discriminator the fix stage needs is not git's file
+  history but **the branch's own computed drift**: `env_drift.py --all` already
+  measures every fixture tree-vs-merge-base, so a claimed fixture that does not
+  move on this branch is a claim the branch is *carrying*, not *asserting*.
+  Such a branch should keep `main`'s list **unchanged** rather than empty it —
+  then the squash's three-way merge sees no change to the file and `main`'s
+  claims survive — and the check should refuse only a claim the branch asserts
+  for a fixture its own diff moves. "Excuses nothing" and "excuses by accident"
+  are separable by drift; they are not separable by `git diff`. Three
+  precisions for that stage, each from round 4 of #634: the remedy touches
+  **two** guards, not one — `record_pr_claims_error` (`env_drift.py:1589`) is
+  absolute-empty and fires next on exactly the docs-only branches both erasures
+  came from; the **card** list's instrument is `card_drift.mjs`, since
+  `env_drift.py --all`'s `capture_tree` has no card states, so the drift
+  predicate for `card_claimed_drift.txt` lives there; and `--claims-only`
+  cannot make the carried-versus-asserted judgment at all — it compares lists,
+  not drift — so the pre-push check is a smoke test, not the fix. The predicate
+  itself is already computed: `--all` reports `stale = judged - claimed_hits`
+  (`env_drift.py:2007` — an earlier draft cited `:1981`, a number carried from a review comment rather than read from the file; the fix stage will follow this pointer, so it is read here), 55 per-scenario verdicts against a merge base. Carried rather
+  than fixed here
+  because `tests/env_drift.py` is shared with the parallel session's lane and
+  the change needs its own mutation proof and rot fixture. Until then, every
+  branch rebased onto a claim-carrying `main` will do this on merge. #635
+  already did it to #633's; `main`'s list is empty now, an empty list inherits
+  nothing, and the window stays closed until the next claiming merge.
 
 ## Standing rules
 
