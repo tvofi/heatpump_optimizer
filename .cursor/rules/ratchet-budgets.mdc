@@ -29,9 +29,9 @@ measured one.** It sums the policy files the globs match, so a split between two
 leaves it flat and only prose changes it. A cap on a file no glob matches
 measures nothing, which made "give it a cap" a way OUT: prose moved into a
 named, capped, tracked file bought headroom in **all five** with zero deletion.
-That cap is refused now; a named document is answered by measuring it or by an
-exclusion a reviewer reads — bar one measured exception, a `.txt` under a data
-directory.
+That is refused now, and no extension escapes: the scan asks whether a path is
+CODE, a list bounded by the tree, rather than whether it is a document — a list
+that cannot be complete.
 
 **`roles` charges a seat for what it loads once it opens a file.** Each entry
 gives an `opens` list — one representative file per surface that role touches —
