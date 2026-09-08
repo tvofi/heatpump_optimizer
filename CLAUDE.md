@@ -84,16 +84,13 @@ they are reachable only by being opened deliberately. All five:
 
 ### Loaded when a pull-request event arrives
 
-`.claude/skills/steward/SKILL.md` is read by a Claude Code session before it
-acts on a CI failure or a review comment. It carries only the places where this
-repository's practice differs from a session's default, and two of those
-defaults would otherwise do damage: pushing a claim-file repair the autofix job
-is about to push, and waiting for a result on a conflicted pull request whose
-workflows never fired. Nothing in it loosens a rule stated here.
-
-There is no `babysit/` counterpart, deliberately: a session prefers `steward/`
-where both exist, so the second file would be a copy that binds nobody and
-drifts from the first.
+`.claude/skills/steward/SKILL.md` is read before a session acts on a CI failure
+or a review comment. It carries only where this repository's practice differs
+from a session's default, and two of those defaults would do damage: pushing a
+claim-file repair the autofix job is about to push, and waiting for a result on
+a conflicted pull request whose workflows never fired. Nothing in it loosens a
+rule stated here. There is no `babysit/` counterpart, deliberately: a session
+prefers `steward/` where both exist, so a second file would bind nobody.
 
 ### Role contracts — open the one you are
 

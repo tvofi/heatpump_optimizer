@@ -221,10 +221,21 @@ const CORPUS_CHECK_NAMES = ['checkIndex', 'checkDuplicates', 'checkBudgets', 'co
 const CORPUS_CHECKS = []
 
 // Named, not an arrow, so removing the wrapper is a rename the acceptance sees.
-// It discards the argument deliberately: the loop passes the policy file list,
-// and coverage's whole subject is a file that list does not contain.
+// It discards the loop's argument deliberately: the loop passes the POLICY FILE
+// list, and coverage's whole subject is a file that list does not contain.
+//
+// A name pin is not a behaviour pin. Asserting only the name left two silent
+// mutations -- a body of `return []`, and one forwarding the loop's argument as
+// `checkCoverage(files)` -- each of which keeps every pin green and stops the
+// check firing. `coverageFileSource` exists so the acceptance can drive this
+// wrapper for real: it returns null in production, which `checkCoverage` reads
+// as "the tracked tree", and the acceptance swaps it for a synthetic list. Both
+// mutations then fail, because `return []` reports nothing and a forwarded
+// `files` is undefined here and falls back to the tree.
+let coverageFileSource = () => null
+
 function coverageOverTree() {
-  return checkCoverage()
+  return checkCoverage(coverageFileSource())
 }
 
 function checkCoverage(files = null) {
@@ -971,8 +982,15 @@ function assertAcceptance(derived) {
     console.log(`\nFIXTURE VACUOUS: CORPUS_CHECKS is wired as [${wiredNames}], expected [${CORPUS_CHECK_NAMES.join(',')}]. A check missing from the list never runs; one replaced by a no-op, a duplicate or an unwrapped \`checkCoverage\` runs and measures nothing. The count is derived from this list rather than carried, so adding a fifth check names it here once.`)
     return 1
   }
-  const covRot = checkCoverage([rotPath, okPath])
-  const covOk = checkCoverage([okPath])
+  // Driven through the WRAPPER, not through `checkCoverage` directly, so what
+  // the wired function does is pinned and not merely what it is called.
+  const drive = (files) => {
+    const prev = coverageFileSource
+    coverageFileSource = () => files
+    try { return coverageOverTree() } finally { coverageFileSource = prev }
+  }
+  const covRot = drive([rotPath, okPath])
+  const covOk = drive([okPath])
   pins += 2
   if (covRot.length !== 1 || covRot[0].where !== rotPath || covRot[0].check !== 'coverage') {
     console.log(`\nFIXTURE VACUOUS: checkCoverage did not report ${rotPath}; a rule file with a digit in its name would leave the corpus unread, in silence`)
