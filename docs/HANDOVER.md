@@ -1,6 +1,6 @@
 # Handover — the open-issues programme
 
-updated-for: 118fcf2
+updated-for: 785963e
 
 This is the only handover. There is no dated series: a second
 `docs/handover-*.md` is refused by `tests/entities.py`, and the policy it
@@ -118,31 +118,35 @@ stage, `after` edges and carried findings are in
 
 ## Traps that cost a session
 
-1. **A killed agent never writes its own `state at stop:` comment.**
-   Reconciliation is therefore the orchestrator's job on every resume: walk the
-   session's branches and open pull requests and post the notes the dead agents
-   owed.
-2. **A stand-down note and a committed roster can disagree, and origin is the
-   tiebreak** — the pull request's own comments, not the roster and not the
-   note. One re-review was nearly spent re-deriving a verdict already posted.
-3. **A gate cannot be its own witness.** When the thing under test is the
-   test-selection machinery, the selection that runs is chosen by the machinery
-   being tested; #356 shipped a regression its own CI could not see, because
-   editing a gate file routed the change to the one path that could not
-   reproduce the fault.
-4. **A check whose failure is *visible* and a check whose failure is *blocking*
+1. **A killed agent never writes its own `state at stop:` comment.** On every
+   resume the orchestrator walks the session's branches and open pull requests
+   and posts the notes the dead agents owed.
+2. **A stand-down note and a committed roster can disagree; origin is the
+   tiebreak** — the pull request's own comments. One re-review was nearly spent
+   re-deriving a verdict already posted.
+3. **A gate cannot be its own witness.** When the subject is the selection
+   machinery, the selection that runs is chosen by what is under test; #356
+   shipped a regression its own CI could not see, because editing a gate file
+   routed the change to the one path that could not reproduce the fault.
+4. **A check whose failure is *visible* and one whose failure is *blocking*
    look identical in a passing run.** Two sessions each built the first
-   believing they had the second, and neither would have found it from a green
-   log.
-5. **Five of this project's own instruments reported rather than measured** —
-   #341, #347, #354, #350, #357 — each found by someone chasing something else.
-   The pattern is the finding, not the individual bugs. #510 above is the sixth.
+   believing they had the second; neither would have seen it in a green log.
+5. **Six of this project's own instruments reported rather than measured** —
+   #341, #347, #354, #350, #357 and #510 — each found by someone chasing
+   something else. The pattern is the finding, not the individual bugs.
 6. **A figure quoted from another artefact is not measured until you have run
    the thing that produced it.**
-7. **A branch can be stale against main in a way invisible in its own diff**:
-   a move pull request reverting a fix that landed inside the moved lines, or a
-   stale claim or budget table. Neither is catchable by reading the diff or
-   re-running CI — only by comparing against current main, three-dot.
+7. **A branch can be stale against main invisibly in its own diff**: a move
+   reverting a fix that landed inside the moved lines, or a stale claim or
+   budget table. Only a three-dot comparison against current main catches it.
+8. **A subagent does not survive a session restart; its report does.** Read
+   `tasks/<agentId>.output` before re-dispatching — `ListAgents` goes empty
+   with no notification, and an hour was nearly spent re-running finished work.
+9. **Re-pointing a branch chain by POSITION after a rebase drops a commit.**
+   Map by commit subject and verify the tip's pin count: by index once shifted
+   eight branches by one, and nothing but that count noticed.
+10. **A citation repointed to a commit that resolves but lacks the file is
+   worse than a dead one.** `git cat-file -e <sha>:<path>`, never per directory.
 8. **One CI runner is not the fleet.** #387 exists because a property was
    measured on a single runner and generalised, and the reviewer had asked
    exactly the right question.
