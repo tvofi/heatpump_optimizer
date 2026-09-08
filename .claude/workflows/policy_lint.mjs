@@ -1325,7 +1325,21 @@ function checkProvenance() {
     return []
   } catch (e) {
     if (e.status !== 1) {
-      console.log(`  skip     provenance             git could not say whether ${sha.slice(0, 7)} is an ancestor of origin/main (exit ${e.status}); a shallow clone cannot`)
+      // EXIT 128 IS TWO ANSWERS, and the first version of this arm took both
+      // for the same one. It means "this clone is shallow, so I cannot walk
+      // that far" AND "no object with that name exists here" -- and the second
+      // is a REFUSAL, not an absence of one: a ledger naming a SHA nothing ever
+      // carried is precisely the defect this check is for. Measured by the #616
+      // review: `recorded_at: deadbee` refused before that arm and skipped
+      // after it. `--is-shallow-repository` is the one call that separates them,
+      // and it is asked only on the error path, so it costs nothing on a healthy
+      // run. Rule 5 of decisions/0003 says report rather than go silent; the
+      // section under it says do not report a refusal you have not established.
+      const shallow = git(['rev-parse', '--is-shallow-repository'], { allowFail: true }).trim() === 'true'
+      if (!shallow) {
+        return f(`\`recorded_at\` is ${sha.slice(0, 7)}, which no object in this clone carries at all. A ledger stamped from a branch head names a SHA the squash deletes; regenerate with --record-known-bad, which stamps the merge base`)
+      }
+      console.log(`  skip     provenance             this clone is shallow, so git cannot say whether ${sha.slice(0, 7)} is an ancestor of origin/main`)
       return []
     }
     return f(`\`recorded_at\` is ${sha.slice(0, 7)}, which is not reachable from origin/main. A branch head is rewritten by the next amend and deleted by the squash that lands it; regenerate with --record-known-bad, which stamps the merge base`)
@@ -1799,6 +1813,17 @@ function assertAcceptance(derived) {
     pins += 3
     if (driveProv(unreachable).length !== 1) {
       console.log(`\nFIXTURE VACUOUS: checkProvenance did not refuse ${unreachable.slice(0, 7)}, a parentless commit that cannot be an ancestor of anything. A ledger stamped from HEAD names a SHA the squash deletes, which is #361 in a second file.`)
+      return 1
+    }
+    // A SHA NO OBJECT CARRIES, which is a different question from an object
+    // that exists and is not an ancestor -- and the answer git gives for it is
+    // exit 128, the same one it gives a shallow clone. The #616 review measured
+    // the cost of taking those for the same thing: `recorded_at: deadbee`
+    // refused before that arm and skipped after it. This clone is not shallow,
+    // so here the refusal is the right answer and must still come.
+    pins += 1
+    if (driveProv('deadbeefdeadbeefdeadbeefdeadbeefdeadbeef').length !== 1) {
+      console.log(`\nFIXTURE VACUOUS: checkProvenance did not refuse a SHA no object in this clone carries. git answers exit 128 for that AND for a shallow clone; reading both as "cannot look" loses the refusal a bogus stamp deserves, and this clone is not shallow.`)
       return 1
     }
     if (driveProv(mainSha).length) {
