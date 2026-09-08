@@ -15,9 +15,9 @@ permanently on `main`'s first-parent history:
     git show d5d8c4a:tools/audit/round2/JUDGE.md
     git checkout d5d8c4a -- tools/audit/round2/D5/REPORT.md
 
-Every citation in the tree names that SHA rather than a tag, because a SHA
-cannot move and needs nobody's permission to exist; the owner may add named
-tags at `d5d8c4a` for memorability, and nothing here depends on their doing so.
+Every citation names that SHA rather than a tag: a SHA cannot move and needs
+nobody's permission to exist. Named tags there would be a convenience, and
+nothing here depends on one.
 `audit-round2-evidence` is the counter-example: a real tag on the remote that
 has already been moved once, which is why `tools/audit/README.md` tells you to
 cite the SHA you actually ran.

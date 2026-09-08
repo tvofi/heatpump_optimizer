@@ -4,7 +4,7 @@
   "always_loaded_tokens": 3228,
   "_always_loaded_target": 6000,
   "_floor_is_not_the_cost": "always_loaded_tokens measures a session that opens nothing. Moving prose out of CLAUDE.md into a paths:-scoped rule lowers it without deleting a line: across the index split the floor fell by more than half while corpus_tokens moved a fraction of a percent. The two caps below are what stop that drop being recorded as headroom -- corpus_tokens does not move when prose moves, and roles charge a seat for what it loads once it opens a file. Policy: .claude/rules/ratchet-budgets.md.",
-  "corpus_tokens": 59022,
+  "corpus_tokens": 59912,
   "roles": {
     "fixer": {
       "opens": [
@@ -65,7 +65,8 @@
     "tools/audit/briefs/judge.md": 29,
     "tools/audit/briefs/orchestrator.md": 370,
     "tools/audit/briefs/root-cause.md": 88,
-    "tools/audit/briefs/verifier.md": 39
+    "tools/audit/briefs/verifier.md": 39,
+    "tools/audit/harnesses/README.md": 60
   },
   "_acceptance": "fixtures/policy-rot/budgets.md is capped at 1 line on purpose: it is how the budgets check is shown refusing. The rest of that directory is deliberately uncapped, which is the check's other half.",
   "_generated": "`.cursor/rules/*.mdc` carries no cap: it is generated from `.claude/rules/` and byte-compared by rules_sync --check, so its size is its source's."

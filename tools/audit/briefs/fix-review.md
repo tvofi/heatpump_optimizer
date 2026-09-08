@@ -32,10 +32,10 @@ its bug. You are checking that the numbers are real.
    Step 2 assumes one exists to measure with; twice it has not. #373's
    instrument was a shell `grep` in the issue's own body, nothing at tag
    `audit-round2-evidence`; #258's proximity probe exists only inside a judge
-   comment and must be recreated from there. #290's no longer does: W3-G3
-   committed it, and `tools/audit/harnesses/j5_gil.py` is it. A fixer who
-   builds their own instrument must disclose it as their own construction, not
-   the finder's, and you say the same if you had to build one to check the fix.
+   comment and must be recreated from there. #290's is committed: W3-G3 landed
+   it as `harnesses/j5_gil.py`. A fixer who builds their own instrument must
+   disclose it as their own, not the finder's, and you say the same if you had
+   to build one to check the fix.
    Read the finding's own judge ruling first — #290's brief still prescribes a
    harness its judge already refused.
 
