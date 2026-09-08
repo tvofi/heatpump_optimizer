@@ -33,6 +33,7 @@
 //   node .claude/workflows/policy_lint.mjs --report   # enforcement summary
 //   node .claude/workflows/policy_lint.mjs <files...> # lint just these
 //   node .claude/workflows/policy_lint.mjs --record-known-bad   # reseed the ratchet
+//   node .claude/workflows/policy_lint.mjs --pr-body <file> --head <sha> [--title t] [--red names]
 
 import fs from 'node:fs'
 import path from 'node:path'
@@ -157,17 +158,94 @@ function read(rel) {
 
 const POLICY_GLOBS = [
   /^CLAUDE\.md$/,
-  /^\.cursor\/rules\/[a-z-]+\.mdc$/,
+  /^\.cursor\/rules\/[a-z0-9-]+\.mdc$/,
   /^\.claude\/rules\/[a-z0-9-]+\.md$/,
   /^tools\/audit\/briefs\/[A-Za-z0-9_.-]+\.md$/,
   /^tools\/audit\/README\.md$/,
   /^tests\/README\.md$/,
   /^docs\/HANDOVER\.md$/,
   /^\.claude\/workflows\/web-fragments\.md$/,
+  // A skill is seat-facing text loaded by the harness at the moment a pull
+  // request event arrives, which makes it policy with an unusually short path
+  // to acting on it. It is linted like the rest.
+  /^\.claude\/skills\/[a-z0-9-]+\/SKILL\.md$/,
 ]
 
 // Always loaded by a tool, so their size is charged to every session.
 const ALWAYS_LOADED = /^(CLAUDE\.md|\.claude\/rules\/[a-z0-9-]+\.md)$/
+
+// Every tracked file under a policy DIRECTORY has to be matched by a glob
+// above. A one-character gap is enough to lose one silently: the `.mdc` pattern
+// allowed no digits while the `.claude/rules/` pattern beside it did, so a rule
+// file with a digit in its name would have left the corpus entirely and the run
+// would still have printed `TOTAL: 0`. This is the same argument
+// closure.orphan_files() makes about the gate -- a file that is neither matched
+// nor deliberately excluded is an oversight, not a pass.
+const POLICY_DIRS = [/^\.cursor\/rules\//, /^\.claude\/rules\//, /^\.claude\/skills\//, /^tools\/audit\/briefs\//]
+// The one deliberate exclusion: write-once evidence committed under briefs/.
+const POLICY_DIR_EXCLUDE = [/^tools\/audit\/briefs\/.*\.(json|txt|png|svg)$/]
+
+// `files` is injectable for ONE reason: the acceptance. This check runs over
+// the tracked tree, where a healthy corpus produces nothing, so a fixture
+// directory cannot make it fire and the whole check was deletable in silence --
+// `--self-test` 11/11 and `FIXTURE ok` both stayed green with the call site
+// removed. Passing a synthetic file list is what lets the pin invoke the real
+// function instead of re-testing its regexes, which is a different change.
+function uncoveredPolicyFiles(files = null) {
+  const list = files ?? trackedFiles().list
+  return list
+    .filter((f) => POLICY_DIRS.some((re) => re.test(f)))
+    .filter((f) => !POLICY_GLOBS.some((re) => re.test(f)))
+    .filter((f) => !POLICY_DIR_EXCLUDE.some((re) => re.test(f)))
+    .sort()
+}
+
+// The corpus-level checks, as a LIST rather than four calls inline, so the
+// acceptance can assert what is in it. `checkCoverage` was pinned by the
+// acceptance calling it directly, which left it deletable from the pipeline
+// with every pin green.
+//
+// The list pins MEMBERSHIP AND IDENTITY, and that is all it pins. It does not
+// pin that the loop over it runs: truncating `main`'s own `for` line disables a
+// check with the list intact, and no assertion inside a program can pin its own
+// last call site. One unpinned hop, named here rather than claimed away.
+//
+// Membership alone was not enough either. `length === 4` is arity, and three
+// different edits keep the arity while disabling the check: a no-op arrow, a
+// duplicated entry, and -- the one that needs no malice -- replacing the
+// wrapper below with `checkCoverage` itself. That last is a ONE-TOKEN cleanup
+// an earlier version of this comment openly invited, and it silently voids the
+// check, because the loop passes the POLICY FILE list and every policy file is
+// covered by definition. Hence the name, and hence asserting names.
+const CORPUS_CHECK_NAMES = ['checkIndex', 'checkDuplicates', 'checkBudgets', 'coverageOverTree']
+const CORPUS_CHECKS = []
+
+// Named, not an arrow, so removing the wrapper is a rename the acceptance sees.
+// It discards the loop's argument deliberately: the loop passes the POLICY FILE
+// list, and coverage's whole subject is a file that list does not contain.
+//
+// A name pin is not a behaviour pin. Asserting only the name left two silent
+// mutations -- a body of `return []`, and one forwarding the loop's argument as
+// `checkCoverage(files)` -- each of which keeps every pin green and stops the
+// check firing. `coverageFileSource` exists so the acceptance can drive this
+// wrapper for real: it returns null in production, which `checkCoverage` reads
+// as "the tracked tree", and the acceptance swaps it for a synthetic list. Both
+// mutations then fail, because `return []` reports nothing and a forwarded
+// `files` is undefined here and falls back to the tree.
+let coverageFileSource = () => null
+
+function coverageOverTree() {
+  return checkCoverage(coverageFileSource())
+}
+
+function checkCoverage(files = null) {
+  return uncoveredPolicyFiles(files).map((f) => ({
+    severity: 'error',
+    check: 'coverage',
+    where: f,
+    message: `sits in a policy directory and matches no POLICY_GLOBS pattern, so no check in this file has ever read it. Widen the glob, or exclude it deliberately.`,
+  }))
+}
 
 function policyFiles() {
   const { list } = trackedFiles()
@@ -523,7 +601,16 @@ function checkIndex(files, indexRel = 'CLAUDE.md') {
   for (const re of [PATH_TOKEN_RE, MDC_PATH_RE]) {
     re.lastIndex = 0
     let m
-    while ((m = re.exec(text))) named.add(m[0])
+    while ((m = re.exec(text))) {
+      named.add(m[0])
+      // ...and its basename. PATH_TOKEN_RE cannot begin with a dot, so a path
+      // the index writes as `.claude/skills/steward/SKILL.md` is captured with
+      // the leading dot shorn off and matches neither the full path nor the
+      // bare-filename pattern below. The index would then report a file it
+      // plainly names as unnamed. Recording the basename is right on its own
+      // terms as well: naming `a/b.md` is naming `b.md`.
+      named.add(path.posix.basename(m[0]))
+    }
   }
   // Also catch bare brief names in the role-contract tables ("fixer.md").
   for (const b of text.match(/`[A-Za-z0-9_.-]+\.(?:md|mdc)`/g) || []) named.add(b.slice(1, -1))
@@ -629,6 +716,15 @@ function keyOf(f) {
   return `${f.check}|${where}|${message}`
 }
 
+// Classes the ledger may never suppress. The list freezes defects the corpus
+// already HAS, so they can be drained; these two are not that. A budget breach
+// is something the change in front of you just did, and a policy file no check
+// reads is not a state to record and live with. Recording either turns a
+// refusal into a note, which is the failure the whole ratchet is against --
+// measured: with both live, `--record-known-bad` then a re-run gave `TOTAL: 0`
+// and exit 0.
+const NEVER_SUPPRESSED = new Set(['budgets', 'coverage'])
+
 function applyKnownBad(findings) {
   const kb = knownBad()
   // Entries are {key, count}. A bare string is read as one occurrence, so an
@@ -640,13 +736,17 @@ function applyKnownBad(findings) {
   }
 
   const live = new Map()
+  const out = []
   for (const f of findings) {
+    if (NEVER_SUPPRESSED.has(f.check)) {
+      out.push(f)
+      continue
+    }
     const k = keyOf(f)
     if (!live.has(k)) live.set(k, [])
     live.get(k).push(f)
   }
 
-  const out = []
   let suppressed = 0
   let occurrences = 0
   for (const [k, group] of live) {
@@ -698,6 +798,8 @@ const CHECKS = [
   { name: 'budgets', what: 'a policy file may shrink, never grow past its cap', fixture: 'fixtures/policy-rot/budgets.md' },
   { name: 'index', what: 'CLAUDE.md names every policy file, and every file it names exists', fixture: 'fixtures/policy-rot/index.md' },
   { name: 'duplicates', what: 'no 12-word run shared between two policy files', fixture: 'fixtures/policy-rot/dup-a.md' },
+  { name: 'pr-body', what: 'a body carries its evidence sections, at the head CI ran', fixture: 'fixtures/policy-rot/prepr/' },
+  { name: 'coverage', what: 'every file in a policy directory is matched by a glob', fixture: '(a probe file, see assertAcceptance)' },
 ]
 
 function lintFile(rel, derived) {
@@ -754,6 +856,17 @@ const REQUIRED_ROT = {
       'exceeds its cap',                 // the one-sided ratchet itself
     ],
   },
+  'pr-body': {
+    count: 6,
+    must: [
+      'section. Every one is content',   // a heading that is missing outright
+      'is empty. Write the evidence',    // a heading with nothing under it
+      'does not name',                   // the body's head is not the head CI ran
+      'is not in the tree. A carry',     // a forward-carry destination that is gone
+      'does not parse',                  // an unreadable friction line
+      'is red and',                      // a red check the body never names
+    ],
+  },
   index: {
     count: 2,
     must: [
@@ -762,6 +875,8 @@ const REQUIRED_ROT = {
     ],
   },
 }
+
+CORPUS_CHECKS.push(checkIndex, checkDuplicates, checkBudgets, coverageOverTree)
 
 function assertAcceptance(derived) {
   const dir = path.join(HERE, 'fixtures', 'policy-rot')
@@ -786,6 +901,42 @@ function assertAcceptance(derived) {
   // fixtures/policy-rot/budgets.md at 1 line (over cap) while the other
   // fixtures have no cap at all (unclassified), and index.md names a file
   // that does not exist while omitting its neighbours.
+  // pr-body: six rotten bodies under prepr/, and one healthy one that must stay
+  // silent. Without the healthy fixture a check that refused EVERYTHING would
+  // pin just as well as one that refuses the right things, which is the shape
+  // this whole acceptance exists to rule out.
+  const prepr = path.join(dir, 'prepr')
+  if (!fs.existsSync(prepr)) {
+    console.log('\nFIXTURE VACUOUS: fixtures/policy-rot/prepr/ is missing; the pr-body check is deletable in silence')
+    return 1
+  }
+  const ZERO = '0000000000000000000000000000000000000000'
+  for (const f of fs.readdirSync(prepr).filter((x) => x.endsWith('.md')).sort()) {
+    const rel = path.relative(ROOT, path.join(prepr, f))
+    const errs = checkPrBody(rel, { head: ZERO, red: f === 'unnamed-red.md' ? ['fast (3.14)'] : [] })
+    if (f === 'good.md' && errs.length) {
+      console.log(`\nFIXTURE VACUOUS: the pr-body null control ${rel} produced ${errs.length} error(s); it must produce none`)
+      return 1
+    }
+    found.push(...errs)
+  }
+
+  // The template and the parser's required set drift apart the moment either is
+  // edited alone, and the seat that pays is one following a template that no
+  // longer satisfies the job. Linting the template as if it were a body ties
+  // them together: a heading the parser requires and the template omits fails
+  // here, on the pull request that removed it.
+  const TEMPLATE = '.github/PULL_REQUEST_TEMPLATE.md'
+  if (read(TEMPLATE) != null) {
+    const errs = checkPrBody(TEMPLATE)
+    if (errs.length) {
+      console.log(`\nFIXTURE VACUOUS: ${TEMPLATE} does not satisfy the contract it exists to state`)
+      found.push(...errs.map((e) => ({ ...e, check: '(template)' })))
+    }
+  }
+
+
+
   found.push(...checkBudgets(rels))
   const indexFixture = rels.find((r) => r.endsWith('/index.md'))
   if (!indexFixture) {
@@ -801,6 +952,77 @@ function assertAcceptance(derived) {
   }
   let rc = 0
   let pins = 0
+
+  // coverage: a probe rather than a committed fixture, because the check's whole
+  // subject is a file the globs do not match -- committing one would make every
+  // run report it.
+  //
+  // The probe used to write an UNTRACKED file, notice it was invisible to
+  // `git ls-files`, and then test the POLICY_GLOBS regexes directly. That pinned
+  // the patterns and not the check: deleting `checkCoverage` from the call site,
+  // or emptying its return, left `--self-test` 11/11 and this line green. It was
+  // the only entry in CHECKS with no class in REQUIRED_ROT, and `prepr.sh`'s own
+  // standard -- a check that cannot be shown failing does not merge -- is what it
+  // failed. Found by review, not by this harness.
+  //
+  // `checkCoverage` now takes an injectable file list, so the probe runs the real
+  // function. BOTH directions, because one of them is what was missing: a file in
+  // a policy directory that no glob matches must produce exactly one finding, and
+  // an ordinary rule file must produce none.
+  // The probe path must be genuinely uncovered. `zz-policy-lint-probe9.mdc` is
+  // NOT: this commit widened `[a-z-]` to `[a-z0-9-]`, which is what makes the
+  // digit case safe and the digit probe useless. A capital and an underscore
+  // are outside the class in both directions, so this path stays uncovered
+  // whichever way the glob is later widened for digits.
+  const rotPath = '.cursor/rules/Probe_9.mdc'
+  const okPath = '.cursor/rules/ci-autofix.mdc'
+  pins += 1
+  const wiredNames = CORPUS_CHECKS.map((f) => f.name || '(anonymous)').join(',')
+  if (wiredNames !== CORPUS_CHECK_NAMES.join(',')) {
+    console.log(`\nFIXTURE VACUOUS: CORPUS_CHECKS is wired as [${wiredNames}], expected [${CORPUS_CHECK_NAMES.join(',')}]. A check missing from the list never runs; one replaced by a no-op, a duplicate or an unwrapped \`checkCoverage\` runs and measures nothing. The count is derived from this list rather than carried, so adding a fifth check names it here once.`)
+    return 1
+  }
+  // The harness below swaps `coverageFileSource`, so it cannot see that binding's
+  // PRODUCTION default -- and that default is production code. `() => []` there
+  // disables coverage completely and silently: `checkCoverage` coalesces on
+  // `files ?? trackedFiles().list`, and an empty array is neither null nor
+  // undefined, so the scan runs over nothing while every pin stays green. Pin
+  // the default before swapping it. This is the line the review's attack J
+  // named, and fixing a check by adding an untested line to production is the
+  // shape it exists to refuse.
+  pins += 1
+  // The property is "coalesces away", not "is spelled null". `checkCoverage`
+  // reads the tracked tree for anything `??` discards, so the test coalesces
+  // against a sentinel rather than comparing to a literal. Asserting `!== null`
+  // refused `() => {}` -- an arrow with an empty BLOCK body, the canonical
+  // no-op idiom -- while its detection stayed correct: a false refusal on a
+  // plausible edit, and the same substitution of spelling for property that the
+  // friction parser made against backticked identifiers two rounds earlier.
+  const TRACKED_TREE = Symbol('tracked-tree')
+  if ((coverageFileSource() ?? TRACKED_TREE) !== TRACKED_TREE) {
+    console.log(`\nFIXTURE VACUOUS: coverageFileSource's production default returned ${JSON.stringify(coverageFileSource())}, which \`??\` does not discard. Only a nullish default makes checkCoverage read the tracked tree; any other value is scanned instead, and an empty array scans nothing.`)
+    return 1
+  }
+
+  // Driven through the WRAPPER, not through `checkCoverage` directly, so what
+  // the wired function does is pinned and not merely what it is called.
+  const drive = (files) => {
+    const prev = coverageFileSource
+    coverageFileSource = () => files
+    try { return coverageOverTree() } finally { coverageFileSource = prev }
+  }
+  const covRot = drive([rotPath, okPath])
+  const covOk = drive([okPath])
+  pins += 2
+  if (covRot.length !== 1 || covRot[0].where !== rotPath || covRot[0].check !== 'coverage') {
+    console.log(`\nFIXTURE VACUOUS: checkCoverage did not report ${rotPath}; a rule file with a digit in its name would leave the corpus unread, in silence`)
+    return 1
+  }
+  if (covOk.length) {
+    console.log(`\nFIXTURE OVER-FIRES: checkCoverage reported ${covOk.length} finding(s) on a covered file, e.g. ${JSON.stringify(covOk[0].where)}`)
+    return 1
+  }
+
   for (const [cls, spec] of Object.entries(REQUIRED_ROT)) {
     const n = got[cls] || 0
     pins += 1 + (spec.must?.length ?? 0)
@@ -845,6 +1067,182 @@ function cmdRecord(findings) {
   for (const e of moved) console.log(`  ~ ${before.get(e.key)} -> ${e.count} ${e.key}`)
 }
 
+// ---------------------------------------------------------------------------
+// pr-body. The evidence sections a pull request owes were honour-system, and on
+// one day seven policy and gate pull requests merged with no independent verdict
+// at their final head. Nothing at the merge boundary noticed, because the
+// repository has no required check and no code-owner rule. This is the half of
+// that gap a file in the repository can close: the body must SAY the things, in
+// a shape a script reads, and CI re-executes the parts that are re-executable.
+//
+// It refuses an empty section rather than accepting silence, and accepts an
+// explicit `n/a: <reason>` -- a reason a reviewer can disagree with beats a
+// heading with nothing under it.
+
+const REQUIRED_H2 = ['Head', 'Mutation proof', 'Null control', 'Red checks', 'Forward-carry', 'Friction']
+const POLICY_H2 = ['Approval']
+const FRICTION_EVENTS = ['unclear', 'contradiction', 'unenforced', 'stale', 'cost']
+// A body writing `none` in backticks means the same thing as one writing none,
+// and refusing the first would teach seats to write the second while meaning
+// neither. Leading list markers and emphasis are stripped for the same reason.
+const STRIP = "[-*\\s`_\"']*"
+const isNone = (text) => new RegExp(`^${STRIP}(none|n/a)\\b`, 'i').test(text)
+// `n/a` and `none` are not the same answer. `none` IS the content -- there were
+// no red checks, nothing was carried. `n/a` says the section does not apply to
+// this change, which is a judgement, and the whole point of the section is that
+// a reviewer can disagree with it. A bare `n/a` gives them nothing to disagree
+// with: six of them plus the right SHA satisfied the entire contract, exit 0.
+const isBareNa = (text) => {
+  const t = text.trim()
+  if (!new RegExp(`^${STRIP}n/a\\b`, 'i').test(t)) return false
+  const after = t.replace(new RegExp(`^${STRIP}n/a\\b`, 'i'), '').replace(/^[:\-\s]+/, '')
+  return after.length < 3
+}
+
+function sections(body) {
+  const out = new Map()
+  let cur = null
+  let inFence = false
+  for (const line of body.split('\n')) {
+    if (CODEFENCE.test(line)) inFence = !inFence
+    const m = inFence ? null : /^##\s+(.+?)\s*$/.exec(line)
+    if (m) {
+      cur = m[1]
+      out.set(cur, [])
+      continue
+    }
+    if (cur) out.get(cur).push(line)
+  }
+  for (const [k, v] of out) out.set(k, v.join('\n').trim())
+  return out
+}
+
+function checkPrBody(bodyPath, { head = '', title = '', red = [] } = {}) {
+  const out = []
+  let body
+  try {
+    body = fs.readFileSync(bodyPath, 'utf8')
+  } catch {
+    return [{ severity: 'error', check: 'pr-body', where: bodyPath, message: 'unreadable' }]
+  }
+  const secs = sections(body)
+  const isPolicy = /^policy:/.test(title.trim())
+  const want = [...REQUIRED_H2, ...(isPolicy ? POLICY_H2 : [])]
+
+  for (const h of want) {
+    if (!secs.has(h)) {
+      out.push({ severity: 'error', check: 'pr-body', where: bodyPath,
+        message: `no \`## ${h}\` section. Every one is content or an explicit "n/a: <reason>"; a missing heading is neither.` })
+      continue
+    }
+    if (!secs.get(h)) {
+      out.push({ severity: 'error', check: 'pr-body', where: bodyPath,
+        message: `\`## ${h}\` is empty. Write the evidence, or "n/a: <reason>" a reviewer can disagree with.` })
+      continue
+    }
+    if (isBareNa(secs.get(h))) {
+      out.push({ severity: 'error', check: 'pr-body', where: bodyPath,
+        message: `\`## ${h}\` is a bare "n/a". Say why it does not apply: "n/a: <reason>". \`none\` is an answer; \`n/a\` alone is a heading with the work left out.` })
+    }
+  }
+
+  // The head the body claims must be the head CI is running. A body describing
+  // an older head is the shape fix-review.md calls `head-moved`.
+  const headSec = secs.get('Head') ?? ''
+  if (head && headSec && !headSec.includes(head) && !headSec.includes(head.slice(0, 7))) {
+    out.push({ severity: 'error', check: 'pr-body', where: bodyPath,
+      message: `\`## Head\` does not name ${head.slice(0, 7)}, which is the head this ran on. Evidence measured at another head describes another tree.` })
+  }
+
+  // A carry destination that does not exist is a carry nobody receives, which is
+  // the failure .cursor/rules/finding-propagation.mdc was written for.
+  const carry = (secs.get('Forward-carry') ?? '').trim()
+  if (carry && !isNone(carry)) {
+    const toks = new Set()
+    for (const re of [PATH_TOKEN_RE, MDC_PATH_RE]) {
+      re.lastIndex = 0
+      let m
+      while ((m = re.exec(carry))) toks.add(m[0])
+    }
+    if (!toks.size) {
+      out.push({ severity: 'error', check: 'pr-body', where: bodyPath,
+        message: '`## Forward-carry` names no destination file. Write `none`, or the path of the brief, contract or roster the finding lands in.' })
+    }
+    for (const tok of toks) {
+      if (resolvePathToken(tok)) continue
+      out.push({ severity: 'error', check: 'pr-body', where: bodyPath,
+        message: `\`## Forward-carry\` names \`${tok}\`, which is not in the tree. A carry to a file that does not exist is not a carry.` })
+    }
+  }
+
+  // Friction is the input to the policy-evolution loop. An unparseable line is a
+  // signal nobody can count, so the histogram would silently under-report.
+  const friction = (secs.get('Friction') ?? '').trim()
+  if (friction && !isNone(friction)) {
+    // An entry may WRAP. This corpus wraps its prose at eighty columns, so any
+    // evidence sentence longer than a few words spans two lines -- and treating
+    // each physical line as its own entry refused the continuation, which is
+    // the second false refusal this parser produced on the first well-formed
+    // body it ever saw. A line that starts a new `id: event:` opens an entry;
+    // anything else continues the one above it. The first non-empty line must
+    // still open an entry, so a block of free prose is refused exactly as before.
+    const entryStart = /^[-*]?\s*`?[A-Za-z][A-Za-z0-9_.-]*`?\s*:\s*`?[a-z-]+`?\s*:/
+    const entries = []
+    for (const raw of friction.split('\n').map((l) => l.trim()).filter(Boolean)) {
+      // A continuation is prose. A line shaped like `word: word:` is TRYING to
+      // be an entry and failing -- `index: Cost:` (capitalised) and
+      // `index: unenforced but no second colon` both folded silently into the
+      // entry above, so a malformed second entry cost nothing and the histogram
+      // under-reported exactly as an unparseable first entry would. Fold real
+      // prose; refuse a near-miss.
+      const nearMiss = /^[-*]?\s*`?[A-Za-z][A-Za-z0-9_.-]*`?\s*:/.test(raw)
+      if (entryStart.test(raw) || !entries.length) entries.push(raw)
+      else if (nearMiss) entries.push(raw)
+      else entries[entries.length - 1] += ' ' + raw
+    }
+    for (const line of entries) {
+      // Backticks around the id and the event are tolerated because every other
+      // policy file in this repository writes an identifier that way, so a seat
+      // reaching for `## Friction` writes `budgets`, not budgets. The first real
+      // body this check ever saw was refused for exactly that, and the refusal
+      // was the check's, not the body's: no fixture exercised a WELL-FORMED
+      // friction line, so the accept path had never run. Tolerating the marks
+      // removes a false refusal and no true one -- the event must still be in
+      // the closed vocabulary below, which is the half that carries meaning.
+      const m = /^[-*]?\s*`?([A-Za-z][A-Za-z0-9_.-]*)`?\s*:\s*`?([a-z-]+)`?\s*:\s*(.+)$/.exec(line)
+      if (!m || !FRICTION_EVENTS.includes(m[2])) {
+        out.push({ severity: 'error', check: 'pr-body', where: bodyPath,
+          message: `\`## Friction\` line does not parse: ${JSON.stringify(line.slice(0, 50))}. Write \`none\`, or \`<rule_id>: <${FRICTION_EVENTS.join('|')}>: <evidence>\`.` })
+      }
+    }
+  }
+
+  // A red check the body does not name is a red check nobody answered. The
+  // ANALYSIS stays honour -- a script cannot judge whether an answer is good --
+  // but naming it is mechanical, and naming it is what gets skipped.
+  const redSec = (secs.get('Red checks') ?? '').trim()
+  for (const name of red) {
+    if (redSec.includes(name)) continue
+    out.push({ severity: 'error', check: 'pr-body', where: bodyPath,
+      message: `check \`${name}\` is red and \`## Red checks\` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.` })
+  }
+
+  return out
+}
+
+function cmdPrBody(args) {
+  const val = (flag) => {
+    const i = args.indexOf(flag)
+    return i >= 0 ? args[i + 1] : null
+  }
+  const bodyPath = val('--pr-body')
+  const red = (val('--red') ?? '').split(',').map((x) => x.trim()).filter(Boolean)
+  const findings = checkPrBody(bodyPath, { head: val('--head') ?? '', title: val('--title') ?? '', red })
+  printFindings(findings)
+  console.log(`\nPR-BODY: ${findings.length} error(s) in ${bodyPath}`)
+  return findings.length ? 1 : 0
+}
+
 function cmdList() {
   console.log('policy_lint checks:\n')
   for (const c of CHECKS) console.log(`  ${c.name.padEnd(12)} ${c.what}\n${' '.repeat(16)}fixture: ${c.fixture}`)
@@ -876,11 +1274,12 @@ function main() {
   const defaultRun = !args.filter((a) => !a.startsWith('--')).length
 
   if (args.includes('--budgets')) return cmdBudgets(files), process.exit(0)
+  if (args.includes('--pr-body')) process.exit(cmdPrBody(args))
 
   let findings = []
   for (const f of files) findings.push(...lintFileGuarded(f, derived))
   if (defaultRun) {
-    findings.push(...checkIndex(all), ...checkDuplicates(all), ...checkBudgets(all))
+    for (const fn of CORPUS_CHECKS) findings.push(...fn(all))
   }
 
   if (args.includes('--record-known-bad')) return cmdRecord(findings), process.exit(0)

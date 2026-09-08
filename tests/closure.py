@@ -192,6 +192,14 @@ INERT = (
     # skips it for custom repos), and #229 shipped it without a
     # classification, failing the orphan check on main until this line.
     "custom_components/heatpump_optimizer/quality_scale.yaml",
+    # The pull-request template. GitHub renders it into a new body; no gate
+    # script reads it. It is NOT under `.github/workflows/`, so the GATE_FILES
+    # prefix above does not cover it, and an unclassified file forces the whole
+    # suite -- which is how a template edit would otherwise cost a full run.
+    # Its headings ARE checked, by policy_lint's pr-body class against the
+    # `pr-contract` job's required set, in the governance workflow rather than
+    # in this gate.
+    ".github/PULL_REQUEST_TEMPLATE.md",
     # Driven by the `browser` CI job, which is never scoped and runs on every
     # pull request regardless. It is a real test; it is simply not one of
     # THIS gate's scripts.

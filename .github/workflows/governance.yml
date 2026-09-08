@@ -20,6 +20,11 @@ on:
     branches:
       - main
   pull_request:
+    # `edited` is the point of this workflow being separate from tests.yml: a
+    # body edit must re-check the contract and must NOT re-run the forty-minute
+    # gate. The other two jobs here take about ten seconds, so re-running them
+    # on an edit costs nothing worth optimising.
+    types: [opened, edited, synchronize, reopened]
   workflow_dispatch:
 
 permissions:
@@ -66,3 +71,39 @@ jobs:
 
       - name: Drive the wave script's branching
         run: node .claude/workflows/check-wave-script.mjs
+
+  pr-contract:
+    # The evidence sections a body owes, checked at the head CI is running.
+    # `pull_request: [edited]` is why this workflow is separate from tests.yml:
+    # a body edit must re-run this and must NOT re-run the forty-minute gate.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Show the pre-PR self-check refusing its own fixtures
+        run: bash tools/audit/prepr.sh --self-test
+
+      - name: Write the body as the API returned it
+        env:
+          BODY: ${{ github.event.pull_request.body }}
+        run: printf '%s' "$BODY" > /tmp/pr-body.md
+
+      - name: Check the body against the contract
+        env:
+          # Interpolating a title into a shell line is script injection: the
+          # title is written by whoever opened the pull request.
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          node .claude/workflows/policy_lint.mjs \
+            --pr-body /tmp/pr-body.md --head "$PR_HEAD" --title "$PR_TITLE"
+
+      - name: Pre-flight the body for unmeasured claims
+        if: always()
+        run: bash tools/audit/preflight.sh < /tmp/pr-body.md || true

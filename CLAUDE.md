@@ -82,6 +82,16 @@ they are reachable only by being opened deliberately. All five:
 | `delivery-status-tracking.mdc` | Delivery-status, roster `resume`, and one #201 comment per state change — at each merge, not at session end |
 | `finding-propagation.mdc` | a finding that changes how a later stage must work goes into that stage's own brief before the producing pull request merges |
 
+### Loaded when a pull-request event arrives
+
+`.claude/skills/steward/SKILL.md` is read before a session acts on a CI failure
+or a review comment. It carries only where this repository's practice differs
+from a session's default, and two of those defaults would do damage: pushing a
+claim-file repair the autofix job is about to push, and waiting for a result on
+a conflicted pull request whose workflows never fired. Nothing in it loosens a
+rule stated here. There is no `babysit/` counterpart, deliberately: a session
+prefers `steward/` where both exist, so a second file would bind nobody.
+
 ### Role contracts — open the one you are
 
 Under `tools/audit/briefs/`. Each says what its role owes and what blocks it.
@@ -179,22 +189,12 @@ to truth the table. See `.cursor/rules/delivery-status-tracking.mdc`.
 
 ## Carrying a finding forward
 
-**A finding that changes how a later stage must work is written into that
-stage's own brief before the PR that produced it merges** — where the finding is
-measured, with the null control that establishes it, and it narrows what the
-later stage may do, invalidates an assumption it rests on, or removes an option
-it was expected to have.
-
-**A PR comment is not propagation.** The test is where the seat who needs this
-will be looking: its own brief, its roster entry, this file, its role
-contract — not the comments of a PR that merged several stages earlier. Carry
-the control as well as the claim, and state the precondition rather than the
-opportunity. A finding that constrains every seat goes in its role contract
-under `tools/audit/briefs/` once;
-one whose stage has no brief yet goes in the plan row that will become one, and
-creating that row is part of the finding.
-
-See `.cursor/rules/finding-propagation.mdc`.
+**A PR comment is not propagation.** Where the finding goes, what must travel
+with it, and which destination each kind of finding takes are in
+`.cursor/rules/finding-propagation.mdc`; the fixer's own steps are in
+`tools/audit/briefs/fixer.md`. This file carried a third copy of both and no
+longer does — a reader who needs the rule is one hop away, and three copies of
+one obligation is how they drift.
 
 ## One living handover
 
