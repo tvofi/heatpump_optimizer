@@ -248,19 +248,25 @@ await block('verdict disagrees with itself', async () => {
 // regex rejects, so every reviewer following it to the letter wrote a verdict
 // that read as no verdict at all. Nothing compared the two. This does, by
 // extracting every backticked example that begins `blocked ` or `merge ` from
-// the contract and running it through the grammar rebuilt from `src` -- the
+// every brief and running it through the grammar rebuilt from `src` -- the
 // same source of truth the histogram uses -- rather than a copy kept here.
 // The floor is the null control: an extraction that finds nothing must not
-// pass, or deleting the examples would green this.
+// pass, or deleting the examples would green this. And the old form is looked
+// for by its own shape, `blocked:` -- the extractor above skips it, which is
+// how two briefs kept it for a round after the contract was corrected.
 await block('the contract\'s verdict examples parse under the script\'s own grammar', async () => {
   const cls = [...src.matchAll(/const VERDICT_CLASSES = \[([^\]]*)\]/g)]
   t('VERDICT_CLASSES is defined exactly once in the wave script', cls.length === 1, `found ${cls.length}`)
   const classes = [...(cls[0]?.[1] ?? '').matchAll(/'([a-z-]+)'/g)].map((m) => m[1])
   const re = new RegExp(`^Fix review:\\s+(?:(merge)\\s+(\\S+)|(blocked)\\s+(\\S+)\\s+(${classes.join('|')}):\\s*(.+))$`)
-  const contract = fs.readFileSync(path.join(here, '..', '..', 'tools', 'audit', 'briefs', 'fix-review.md'), 'utf8')
-  const examples = [...contract.matchAll(/`((?:blocked|merge) [^`]+)`/g)].map((m) => m[1])
-  t('the contract carries at least three verdict examples (floor, not a count)', examples.length >= 3, `found ${examples.length}`)
-  for (const ex of examples) t(`contract example parses: ${ex.slice(0, 60)}`, re.test('Fix review: ' + ex), 'rejected by VERDICT_RE')
+  const briefsDir = path.join(here, '..', '..', 'tools', 'audit', 'briefs')
+  const briefs = fs.readdirSync(briefsDir).filter((f) => f.endsWith('.md')).sort().map((f) => [f, fs.readFileSync(path.join(briefsDir, f), 'utf8')])
+  t('the briefs directory is readable and non-empty', briefs.length > 0, `found ${briefs.length}`)
+  const examples = briefs.flatMap(([f, text]) => [...text.matchAll(/`((?:blocked|merge) [^`]+)`/g)].map((m) => [f, m[1]]))
+  t('the briefs carry at least three verdict examples (floor, not a count)', examples.length >= 3, `found ${examples.length}`)
+  for (const [f, ex] of examples) t(`${f} example parses: ${ex.slice(0, 60)}`, re.test('Fix review: ' + ex), 'rejected by VERDICT_RE')
+  const colonForm = briefs.filter(([, text]) => /`blocked:/.test(text)).map(([f]) => f)
+  t('no brief spells a verdict in the form the parser rejects (`blocked:`)', colonForm.length === 0, `found in ${colonForm.join(', ')}`)
   t('the spelling the contract used for a session is refused (negative control)',
     !re.test('Fix review: blocked: finding not carried to <stage>'), 'the old form parses, so this pin cannot fail')
   t('a bare merge verdict with a SHA parses (null control)', re.test('Fix review: merge deadbeef'), 'rejected')
