@@ -1,7 +1,7 @@
 # Home Assistant integration quality scale — rule-by-rule register.
 # Source: audit round 2, dimension D10 (baseline b39fc6f, 2026-09-02; verified
 # by three refutation verifiers and a judge; register: docs/audit-2026-09.md,
-# harnesses: tools/audit/round2/D10/ at d5d8c4a). Updated as fixes land.
+# harnesses: tools/audit/round2/D10/ at 757e164). Updated as fixes land.
 #
 # hassfest skips this file for custom integrations (validate_iqs_file returns
 # early for non-core repos), so nothing here is machine-enforced today — it is
@@ -103,7 +103,7 @@ rules:
       issue #189 (round 1, D10-13) — every entity's icon in icons.json keyed
       by translation key, the 4 that duplicated a device-class default
       removed, zero _attr_icon pins left (tests/entities.py "Entity icons",
-      harness tools/audit/round2/D10/icons_harness.py at d5d8c4a). #558 D4 added state
+      harness tools/audit/round2/D10/icons_harness.py at 757e164). #558 D4 added state
       sections for the three sensors #571 bounded with ENUM; the two it
       refused stay bare, because a state icon is looked up by the state
       string and theirs are unbounded. Counts are derived by that section,

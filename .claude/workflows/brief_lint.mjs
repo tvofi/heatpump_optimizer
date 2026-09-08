@@ -156,7 +156,7 @@ function symbolInRefTree(ref, symbol) {
   return !!(out && out.trim())
 }
 
-// Two directories are excluded from "does this symbol exist anywhere":
+// One directory is excluded from "does this symbol exist anywhere":
 //   .claude/            -- every wave-*-groups.json brief IS the text this
 //                          script is scanning, so a symbol it names would
 //                          otherwise "exist" by matching its own citation.
