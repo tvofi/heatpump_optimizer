@@ -55,6 +55,17 @@ if [ "${1:-}" = "--self-test" ]; then
   node .claude/workflows/policy_lint.mjs --pr-body "$D/good-none.md" --head "$ZERO" >/dev/null 2>&1
   st $? 0 "a healthy body answering every section with a word is silent (null control)"
 
+  # The hooks check, driven over one fixture per way a wiring can be wrong.
+  # `empty` and `broken` matter most: a settings file with no hooks, and one
+  # that does not parse, both read exactly like a working one to anybody who
+  # only looks at whether the file is there.
+  for f in missing empty unreadable broken self-test-fails; do
+    node .claude/workflows/policy_lint.mjs --hooks "$D/../hooks/$f.json" >/dev/null 2>&1
+    st $? 1 "a settings file whose hook is $f is refused"
+  done
+  node .claude/workflows/policy_lint.mjs --hooks >/dev/null 2>&1
+  st $? 0 "this repository's own three wired hooks pass (null control)"
+
   printf 'Closes #999\n' | bash tools/audit/preflight.sh >/dev/null 2>&1
   st $? 1 "preflight refuses an unintended closing keyword"
   printf 'Closes #999\n' | bash tools/audit/preflight.sh 999 >/dev/null 2>&1
@@ -112,6 +123,11 @@ rm -f /tmp/prepr-rules.$$
 node .claude/workflows/fragments_sync.mjs >/tmp/prepr-frag.$$ 2>&1
 step "fragments" $? "$(tail -1 /tmp/prepr-frag.$$)"
 rm -f /tmp/prepr-frag.$$
+
+# --- 3d. the hooks this repository wires are present and self-testing.
+node .claude/workflows/policy_lint.mjs --hooks >/tmp/prepr-hooks.$$ 2>&1
+step "hooks" $? "$(tail -1 /tmp/prepr-hooks.$$)"
+rm -f /tmp/prepr-hooks.$$
 
 # --- 4. the wave script's branching, when the branch touched it.
 if ! git diff --quiet "$BASE"...HEAD -- .claude/workflows/web-fix-wave.js; then

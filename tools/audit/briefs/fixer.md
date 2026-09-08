@@ -10,29 +10,29 @@ production lines. You work in your own worktree branched from `origin/main`.
    is empty — three-dot, never two-dot: a two-dot `git diff origin/main
    <branch>` during a PR #399 pre-merge check reported `tests/closures.json`
    as changed by the branch, when the difference was `main`'s own newer
-   commits the branch had not merged. Any branch-vs-main comparison is
-   three-dot for the same reason, not only this one.
+   commits the branch had not merged. Every branch-vs-main comparison is
+   three-dot for that reason.
 2. **Failing test first**, importing the production symbol (a test that
    re-implements a formula pins nothing; `tests/README.md`). Record the
    mutation proof in the PR body: delete the fix's production line(s), run
-   the closure, paste the failing check names, restore.
+   the closure, paste the failing check names, restore. **Mutate the predicate,
+   not the tail**: a line appended past a script's own return changes nothing,
+   and a vacuous mutation reads exactly like a passing check — `exit 3` on the
+   end of `.claude/hooks/pre-edit.sh` left `policy_lint --hooks` at rc=0.
 3. **Re-execute the finding's harness on your branch**: before and after, with
-   the head SHA measured, in the PR body. A cost, gain or time claim carries
-   its null control. **Every quantified claim carries one, not only cost, gain
-   and time**: a count, a percentage, a coverage figure, a population, an
+   the head SHA measured, in the PR body. **Every quantified claim carries a
+   null control, not only cost, gain and time**: a count, a percentage, an
    "every" or a "none" is a measurement, owed the command that produced it and
    the result that would have appeared had it been false. **Never print a
    conclusion beside a command** — `diff a b && echo IDENTICAL`, never
    `diff a b; echo "(empty means identical)"`, which prints either way. A figure
    from a sliding window — a paged listing, a "top N" — decays after you write
    it: state the rule that reproduces it, not the number. A learner or guard
-   change is measured at both ends of
-   its input range — an install with zero evidence, and one sitting on the
-   clamp — because a fix has been worse than its bug before, silently.
+   change is measured at both ends of its input range — an install with zero
+   evidence, and one on the clamp — a fix has been worse than its bug before.
 4. **Goldens that move are claimed by whoever measured the drift**, in
    `tests/golden/claimed_drift.txt` or `card_claimed_drift.txt`, with the
-   expected direction per fixture. `claims-for:` stays at the current
-   `VERSION`.
+   expected direction per fixture. `claims-for:` stays at the live `VERSION`.
 5. **Measure the gate's scope, then run what it names.** The gate is scoped
    from measured closures, so derive the selection rather than assume it:
 
