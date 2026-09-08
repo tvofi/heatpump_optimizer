@@ -290,7 +290,15 @@ function uncoveredPolicyFiles(files = null) {
 // an earlier version of this comment openly invited, and it silently voids the
 // check, because the loop passes the POLICY FILE list and every policy file is
 // covered by definition. Hence the name, and hence asserting names.
-const CORPUS_CHECK_NAMES = ['checkIndex', 'checkDuplicates', 'checkBudgets', 'coverageOverTree']
+const CORPUS_CHECK_NAMES = ['checkIndex', 'checkDuplicates', 'checkBudgets', 'coverageOverTree', 'namedDocsOverTree']
+
+// WHAT THIS PIN DOES NOT COVER, stated rather than implied. It compares the
+// wired list against the names above, so it catches a registered check that is
+// mis-wired -- removed, duplicated, replaced by a no-op or by an unwrapped
+// call. It CANNOT catch a check function that was never registered at all:
+// adding `checkNamedDocs` and forgetting both lists left every pin green, which
+// is how this comment came to exist. Detecting that needs a registry the
+// checks declare themselves into, and until one exists this is the floor.
 const CORPUS_CHECKS = []
 
 // Named, not an arrow, so removing the wrapper is a rename the acceptance sees.
@@ -309,6 +317,77 @@ let coverageFileSource = () => null
 
 function coverageOverTree() {
   return checkCoverage(coverageFileSource())
+}
+
+// Deliberately outside the corpus, each for a stated reason. CLAUDE.md's own
+// scope rule -- "it does not govern README.md or the rest of docs/" -- puts the
+// first two beyond it; the last two are programme records a seat reads as data
+// rather than as policy. Adding to this list is a visible edit in the diff a
+// reviewer reads, which is the same bar as raising a cap.
+const CORPUS_EXCLUDED = new Set([
+  'README.md',                        // user-facing
+  'RELEASE_NOTES.md',                 // user-facing
+  'docs/audit-2026-09.md',            // evidence register
+  'docs/plan-2026-09-open-issues.md', // plan of record
+  'DISCLAIMER.md',                    // user-facing, same ground as README.md
+  'docs/backlog.md',                  // superseded record, kept for history
+  'tools/audit/round2/HARNESSES.md',  // write-once round-2 evidence
+])
+
+// THE ESCAPE THIS CLOSES. `corpus_tokens` sums the CAPPED files, so prose moved
+// into a file that has no cap leaves the corpus and buys headroom in every cap
+// at once -- measured: 40 lines of CLAUDE.md into a new `docs/POLICY-NOTES.md`
+// freed 644 tokens across all four with zero deletion, and `coverage` misses it
+// because `docs/` is not a policy directory. `.claude/rules/ratchet-budgets.md`
+// asserts "only a deletion lowers it", and without this that sentence is false.
+//
+// The move has to stay REACHABLE to be worth making, so the corpus must name
+// its destination. Any `.md` the corpus names, that is tracked and has no cap
+// and is not excluded above, is that hole.
+function unmeasuredNamedDocs(budget) {
+  const b = budget !== undefined ? budget : policyBudgets()
+  if (!b) return []
+  const capped = new Set(Object.keys(b.files || {}))
+  const { set: tracked } = trackedFiles()
+  const out = new Map()
+  for (const src of policyFiles()) {
+    const raw = read(src)
+    if (raw == null) continue
+    for (const m of raw.matchAll(/[A-Za-z0-9_./-]+\.md\b/g)) {
+      const rel = m[0]
+      if (capped.has(rel) || CORPUS_EXCLUDED.has(rel)) continue
+      if (!tracked.has(rel)) continue
+      if (!out.has(rel)) out.set(rel, src)
+    }
+  }
+  return [...out].map(([rel, src]) => ({ rel, src }))
+}
+
+// A named doc with no cap is its OWN check, not another arm of `coverage`:
+// `coverage` is driven by an injected file list in the acceptance, and folding a
+// second property into it made that probe measure both and fail on the wrong one.
+// One function, one property.
+// Wired through a NAMED wrapper that ignores the loop's argument, exactly as
+// `coverageOverTree` is. Wiring `checkNamedDocs` directly made `CORPUS_CHECKS`'
+// `fn(all)` pass the FILE LIST as the budget: `b.files` was undefined, every
+// named document read as uncapped, and the production run reported ten. That is
+// attack G from #614 -- a wrapper forwarding the loop's argument -- reproduced
+// in the same file hours after it was fixed, which is the clearest evidence I
+// have for the root-cause seat's thesis: the model that writes the assertion
+// also writes the proof, so the proof inherits the model's blind spot.
+let namedDocsBudgetSource = () => undefined
+
+function namedDocsOverTree() {
+  return checkNamedDocs(namedDocsBudgetSource())
+}
+
+function checkNamedDocs(budget) {
+  return unmeasuredNamedDocs(budget).map(({ rel, src }) => ({
+    severity: 'error',
+    check: 'named-docs',
+    where: rel,
+    message: `is named by ${src} but has no cap in ${BUDGET_FILE}, so prose moved into it leaves the corpus and buys headroom in every cap at once. Give it a cap, or add it to CORPUS_EXCLUDED with a reason.`,
+  }))
 }
 
 function checkCoverage(files = null) {
@@ -635,8 +714,16 @@ function sizes(files) {
   return rows
 }
 
-function checkBudgets(files) {
-  const b = policyBudgets()
+// `budget` is injectable for ONE reason: the acceptance. Every comparison below
+// is against the recorded caps, and on a healthy corpus every comparison is
+// FALSE -- so none of them has a witness, and each was independently deletable
+// in silence: `if (b.corpus_tokens != null && corpusTokens > b.corpus_tokens)`
+// -> `if (false)` left TOTAL 0, FIXTURE ok and exit 0, as did the same edit to
+// the floor and the per-role loop. A rot fixture cannot reach them either,
+// because the caps are recorded per real file. Driving the real function with a
+// deliberately impossible budget is what gives each comparison a witness.
+function checkBudgets(files, budget) {
+  const b = budget !== undefined ? budget : policyBudgets()
   if (!b) return []
   const out = []
   const rows = sizes(files)
@@ -959,6 +1046,7 @@ const CHECKS = [
   { name: 'index', what: 'CLAUDE.md names every policy file, and every file it names exists', fixture: 'fixtures/policy-rot/index.md' },
   { name: 'duplicates', what: 'no 12-word run shared between two policy files', fixture: 'fixtures/policy-rot/dup-a.md' },
   { name: 'pr-body', what: 'a body carries its evidence sections, at the head CI ran', fixture: 'fixtures/policy-rot/prepr/' },
+  { name: 'named-docs', what: 'a document the corpus names but no cap measures', fixture: '(driven in assertAcceptance)' },
   { name: 'coverage', what: 'every file in a policy directory is matched by a glob', fixture: '(a probe file, see assertAcceptance)' },
 ]
 
@@ -1036,7 +1124,7 @@ const REQUIRED_ROT = {
   },
 }
 
-CORPUS_CHECKS.push(checkIndex, checkDuplicates, checkBudgets, coverageOverTree)
+CORPUS_CHECKS.push(checkIndex, checkDuplicates, checkBudgets, coverageOverTree, namedDocsOverTree)
 
 function assertAcceptance(derived) {
   const dir = path.join(HERE, 'fixtures', 'policy-rot')
@@ -1170,6 +1258,67 @@ function assertAcceptance(derived) {
     coverageFileSource = () => files
     try { return coverageOverTree() } finally { coverageFileSource = prev }
   }
+  // Every budget comparison, driven for real. On a healthy corpus each is FALSE
+  // and therefore witnessless, which is how all four came to be independently
+  // deletable in silence. An impossible budget gives each one a witness; a
+  // generous one proves none of them fires on a corpus that is fine.
+  const capClasses = ['file', 'floor', 'corpus', 'role']
+  const tinyBudget = {
+    files: Object.fromEntries(policyFiles().map((f) => [f, 0])),
+    always_loaded_tokens: 0,
+    corpus_tokens: 0,
+    roles: { probe: { opens: ['CLAUDE.md'], cap: 0 } },
+  }
+  const hugeBudget = {
+    files: Object.fromEntries(policyFiles().map((f) => [f, 1e9])),
+    always_loaded_tokens: 1e9,
+    corpus_tokens: 1e9,
+    roles: { probe: { opens: ['CLAUDE.md'], cap: 1e9 } },
+  }
+  const classOf = (f) =>
+    f.where === '(always-loaded set)' ? 'floor'
+      : f.where === '(whole corpus)' ? 'corpus'
+        : f.where.startsWith('(role ') ? 'role' : 'file'
+  const tinyHits = new Set(checkBudgets(policyFiles(), tinyBudget).map(classOf))
+  pins += capClasses.length + 1
+  for (const cls of capClasses) {
+    if (tinyHits.has(cls)) continue
+    console.log(`\nFIXTURE VACUOUS: the '${cls}' budget comparison produced nothing against a zero budget, so deleting it would change no output. Every cap is false on a healthy corpus and therefore has no witness unless one is driven.`)
+    return 1
+  }
+  const hugeHits = checkBudgets(policyFiles(), hugeBudget)
+  if (hugeHits.length) {
+    console.log(`\nFIXTURE OVER-FIRES: the budget check produced ${hugeHits.length} finding(s) against a budget nothing can exceed, e.g. ${JSON.stringify(hugeHits[0].message.slice(0, 120))}`)
+    return 1
+  }
+
+  // named-docs, driven both ways. Its property -- "a document the corpus names
+  // that no cap measures" -- is FALSE on a healthy tree by construction, so it
+  // has no witness there and would be deletable in silence exactly as the caps
+  // were. An empty budget makes every named doc uncapped; a budget capping the
+  // whole corpus makes none.
+  pins += 2
+  const driveND = (budget) => {
+    const prev = namedDocsBudgetSource
+    namedDocsBudgetSource = () => budget
+    try { return namedDocsOverTree() } finally { namedDocsBudgetSource = prev }
+  }
+  if (namedDocsBudgetSource() !== undefined) {
+    console.log(`\nFIXTURE VACUOUS: namedDocsBudgetSource's production default is not undefined, so the wired check reads a budget nobody recorded.`)
+    return 1
+  }
+  const ndBare = driveND({ files: {} })
+  if (!ndBare.length) {
+    console.log(`\nFIXTURE VACUOUS: checkNamedDocs reported nothing against an empty budget, where every document the corpus names is uncapped by definition. Prose moved into a named-but-uncapped file leaves the corpus and buys headroom in every cap at once.`)
+    return 1
+  }
+  const ndFull = driveND({ files: Object.fromEntries(policyFiles().map((f) => [f, 1e9])) })
+  const stray = ndFull.filter((f) => !CORPUS_EXCLUDED.has(f.where))
+  if (stray.length && stray.length >= ndBare.length) {
+    console.log(`\nFIXTURE OVER-FIRES: checkNamedDocs reported ${stray.length} finding(s) with the whole corpus capped, e.g. ${JSON.stringify(stray[0].where)}`)
+    return 1
+  }
+
   const covRot = drive([rotPath, okPath])
   const covOk = drive([okPath])
   pins += 2

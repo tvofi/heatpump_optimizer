@@ -4,7 +4,7 @@
   "always_loaded_tokens": 3228,
   "_always_loaded_target": 6000,
   "_floor_is_not_the_cost": "always_loaded_tokens measures a session that opens nothing. Moving prose out of CLAUDE.md into a paths:-scoped rule lowers it without deleting a line: across the index split the floor fell 6800 -> 3198 while corpus_tokens moved 57398 -> 57325, a 53% drop against 0.13% of deletion. The two caps below are what stop that drop being recorded as headroom -- corpus_tokens does not move when prose moves, and roles charge a seat for what it loads once it opens a file. Policy: .claude/rules/ratchet-budgets.md.",
-  "corpus_tokens": 58278,
+  "corpus_tokens": 58736,
   "roles": {
     "fixer": {
       "opens": [
@@ -40,9 +40,10 @@
     ".claude/rules/gate-scoping.md": 58,
     ".claude/rules/ratchet-budgets.md": 62,
     ".claude/rules/writing-for-agents.md": 65,
-    ".claude/skills/steward/SKILL.md": 99,
+    ".claude/skills/steward/SKILL.md": 135,
     ".claude/workflows/fixtures/policy-rot/budgets.md": 1,
     ".claude/workflows/web-fragments.md": 168,
+    ".github/PULL_REQUEST_TEMPLATE.md": 38,
     "CLAUDE.md": 197,
     "docs/HANDOVER.md": 276,
     "tests/README.md": 800,
