@@ -554,10 +554,27 @@ function lowerBaseMap(listing) {
   return listing._byBaseLower
 }
 
+// EXACT CASE FIRST, FOLD ONLY AS A FALLBACK. Asking the folded question first
+// cost one real file, and the #615 round-eight review measured it: `judge.md`
+// collides case-insensitively with `tools/audit/round2/JUDGE.md`, so
+// `tools/audit/briefs/judge.md` -- a capped policy file the corpus cites by
+// basename -- became ambiguous and left the named-docs set entirely (34 paths
+// before the fold, 33 after). Nothing else in the tree collides that way except
+// frozen round-2 evidence.
+//
+// Two questions in order, not one merged question. A spelling that matches
+// exactly one tracked file EXACTLY resolves to it; a spelling that matches
+// several exactly is ambiguous and resolves to nothing; only a spelling that
+// matches NONE exactly falls through to the fold, which is the `POLICY-NOTES.MD`
+// route and is unaffected. Both properties hold at once, which the single folded
+// lookup could not do.
 function resolveCited(token, listing) {
   if (listing.set.has(token)) return [token]
-  const cands = lowerBaseMap(listing).get(path.posix.basename(token).toLowerCase()) || []
-  return cands.length === 1 ? cands : []
+  const base = path.posix.basename(token)
+  const exact = listing.byBase.get(base) || []
+  if (exact.length) return exact.length === 1 ? exact : []
+  const folded = lowerBaseMap(listing).get(base.toLowerCase()) || []
+  return folded.length === 1 ? folded : []
 }
 
 // The SCAN AND ITS RESOLUTION, extracted so the acceptance can drive them with
@@ -1892,6 +1909,25 @@ function assertAcceptance(derived) {
     console.log(`\nFIXTURE OVER-FIRES: an AMBIGUOUS basename resolved (got ${JSON.stringify(cited)}). Driven that way on the real tree it reported sixteen frozen tools/audit/round2 reports through the generic names REPORT.md and BASELINE.md.`)
     return 1
   }
+  // Exact case WINS over a fold. The synthetic carries a pair that collides only
+  // when folded -- the shape `judge.md` and `tools/audit/round2/JUDGE.md` have in
+  // the real tree -- and the exact spelling must still resolve. Folding first
+  // made that pair ambiguous and dropped `tools/audit/briefs/judge.md`, a capped
+  // policy file the corpus cites by basename, out of the check entirely.
+  pins += 1
+  const foldPair = { set: new Set(['a/case.md', 'b/CASE.md', 'docs/only-here.md', 'docs/NOTES']) }
+  foldPair.byBase = new Map()
+  for (const f of foldPair.set) {
+    const b = f.split('/').pop()
+    if (!foldPair.byBase.has(b)) foldPair.byBase.set(b, [])
+    foldPair.byBase.get(b).push(f)
+  }
+  const exactWins = citedTrackedPaths('see `case.md` and `CASE.md`', foldPair)
+  if (!exactWins.includes('a/case.md') || !exactWins.includes('b/CASE.md')) {
+    console.log(`\nFIXTURE VACUOUS: a basename that matches exactly ONE tracked file exactly did not resolve to it (got ${JSON.stringify(exactWins)}), so a fold-only collision drops it. Measured on the real tree: asking the folded question first lost tools/audit/briefs/judge.md to tools/audit/round2/JUDGE.md, 34 named documents down to 33.`)
+    return 1
+  }
+
   const citedCase = citedTrackedPaths('see `ONLY-HERE.md`', synth)
   if (!citedCase.includes('docs/only-here.md')) {
     console.log(`\nFIXTURE VACUOUS: a basename resolved case-SENSITIVELY (got ${JSON.stringify(citedCase)}). namedDocMatches lowercases an extension before judging it, so \`POLICY-NOTES.MD\` survives the scan and must survive the resolution too; case-sensitive, it was dropped and the file went unreported at rc=0.`)
