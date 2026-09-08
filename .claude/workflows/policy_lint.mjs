@@ -364,14 +364,24 @@ const CORPUS_EXCLUDED_PREFIX = [
   'tools/audit/w5-g5-195-coverage/',
 ]
 
-// `.rst` belongs here and `.txt` does not, and the difference is measured
-// rather than argued: `git ls-files '*.rst'` returns NOTHING, so the prefixes
-// protect no reStructuredText in this tree, while `.txt` under them is three
-// real data files -- the two claim files and `tests/requirements-ci.txt` --
-// which exempting would report back as findings. The scan set beside this is
-// `md|markdown|rst|txt`; this list is that set less the extensions this
-// repository actually keeps data in.
-const ALWAYS_A_DOCUMENT = /\.(?:md|markdown|rst)$/i
+// ONE definition, two derived sets, because keeping them by hand drifted twice.
+// Round three widened the scan and not the exemption; round four widened the
+// exemption and not the scan, which left `.mdx`, `.adoc`, `.org`, `.text`,
+// `.mdown`, `.mkd`, `.rest` and `.asciidoc` unlooked-at ANYWHERE -- no excluded
+// prefix needed, 87 tokens freed in each of the five caps from an ordinary
+// `docs/` path. Two hand-kept lists that must agree are a defect generator.
+//
+// DATA_EXTENSIONS is the whole difference between them, and it is measured, not
+// argued: `git ls-files` returns 0 files for every extension below except
+// `txt`, which returns 18 -- the two claim files, `tests/requirements-ci.txt`
+// and the round-2 and wave-5 evidence. So exempting anything but `txt` from the
+// prefix list costs nothing, and exempting `txt` would report that data back.
+const DOCUMENT_EXTENSIONS = ['md', 'markdown', 'mdown', 'mkd', 'mdx', 'rst', 'rest', 'adoc', 'asciidoc', 'org', 'text', 'txt']
+const DATA_EXTENSIONS = ['txt']
+
+const DOCUMENT_RE = new RegExp(`[A-Za-z0-9_./-]+\\.(?:${DOCUMENT_EXTENSIONS.join('|')})\\b`, 'gi')
+const ALWAYS_A_DOCUMENT = new RegExp(
+  `\\.(?:${DOCUMENT_EXTENSIONS.filter((e) => !DATA_EXTENSIONS.includes(e)).join('|')})$`, 'i')
 
 const corpusExcluded = (rel) =>
   CORPUS_EXCLUDED.has(rel) ||
@@ -387,6 +397,16 @@ const corpusExcluded = (rel) =>
 // The move has to stay REACHABLE to be worth making, so the corpus must name
 // its destination. Any `.md` the corpus names, that is tracked and has no cap
 // and is not excluded above, is that hole.
+// Extracted so the acceptance can drive the SCAN, which is the half that had no
+// witness: reverting `path.posix.normalize` here left every pin green while
+// `./docs/NOTES.md` went unreported. `matchAll` builds its own regex from this
+// one, so the shared `g` flag carries no `lastIndex` between calls -- driven in
+// the acceptance rather than trusted, because a stateful global regex would
+// silently skip every file after the first.
+function namedDocMatches(text) {
+  return [...text.matchAll(DOCUMENT_RE)].map((m) => path.posix.normalize(m[0]))
+}
+
 function unmeasuredNamedDocs(budget) {
   const b = budget !== undefined ? budget : policyBudgets()
   if (!b) return []
@@ -407,13 +427,11 @@ function unmeasuredNamedDocs(budget) {
     // tokens through either. Prose extensions only: a destination that is not
     // a document is not this check's subject, and widening it to every
     // tracked extension would report data files a brief legitimately cites.
-    for (const m of raw.matchAll(/[A-Za-z0-9_./-]+\.(?:md|markdown|rst|txt)\b/gi)) {
-      // Normalised before the tracked lookup. `trackedFiles()` holds
-      // `git ls-files` output, which is always normalised, so the RAW match
-      // `./docs/NOTES.md` failed `tracked.has` and the destination went
-      // unreported -- everywhere, not only under an excluded prefix. That is
-      // not an obfuscation; it is how a person writes a relative path.
-      const rel = path.posix.normalize(m[0])
+    for (const m of namedDocMatches(raw)) {
+      // `namedDocMatches` normalised it: `trackedFiles()` holds `git ls-files`
+      // output, which is always normalised, so a RAW `./docs/NOTES.md` failed
+      // `tracked.has` and went unreported everywhere.
+      const rel = m
       if ((capped.has(rel) && measured.has(rel)) || corpusExcluded(rel)) continue
       if (!tracked.has(rel)) continue
       if (!out.has(rel)) out.set(rel, src)
@@ -1502,6 +1520,33 @@ function assertAcceptance(derived) {
   }
   if (!corpusExcluded(`${UNDER_PREFIX}some-fixture.txt`)) {
     console.log(`\nFIXTURE OVER-FIRES: a .txt under the excluded prefix '${UNDER_PREFIX}' is reported, which is the data this repository keeps there and the reason the prefix list exists.`)
+    return 1
+  }
+
+  // The SCAN, driven directly. Three properties, none of which the budget seam
+  // can reach, and all three shipped unwitnessed at some point in this branch.
+  pins += 3
+  const scanned = namedDocMatches('see `./docs/a.md` and `docs/x/../b.rst` and `docs/c.mdx`')
+  if (!scanned.includes('docs/a.md') || !scanned.includes('docs/b.rst')) {
+    console.log(`\nFIXTURE VACUOUS: namedDocMatches did not normalise its matches (got ${JSON.stringify(scanned)}). trackedFiles() holds normalised git ls-files output, so a raw './docs/a.md' fails the tracked lookup and the destination goes unreported everywhere.`)
+    return 1
+  }
+  if (!scanned.includes('docs/c.mdx')) {
+    console.log(`\nFIXTURE VACUOUS: namedDocMatches did not see a .mdx. The scan set and the exemption set are derived from one list precisely because keeping them by hand drifted twice; an extension in neither is unlooked-at anywhere, with no excluded prefix needed.`)
+    return 1
+  }
+  // A shared /g regex carries `lastIndex` between calls when it is used with
+  // `exec` or `test`. `matchAll` clones it, so it does not -- asserted rather
+  // than trusted, because if it did every file after the first would be scanned
+  // from an offset and the check would silently go quiet.
+  if (JSON.stringify(namedDocMatches('`docs/c.mdx`')) !== JSON.stringify(namedDocMatches('`docs/c.mdx`'))) {
+    console.log(`\nFIXTURE VACUOUS: DOCUMENT_RE is stateful across calls, so every file after the first is scanned from a stale lastIndex.`)
+    return 1
+  }
+  // The two derived sets must stay a strict subset relation. A data extension
+  // that is not a document extension would be scanned by nothing.
+  if (!DATA_EXTENSIONS.every((e) => DOCUMENT_EXTENSIONS.includes(e))) {
+    console.log(`\nFIXTURE VACUOUS: DATA_EXTENSIONS is not a subset of DOCUMENT_EXTENSIONS, so an extension excused from the prefix list is not scanned in the first place.`)
     return 1
   }
 

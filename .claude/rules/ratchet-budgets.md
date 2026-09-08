@@ -27,13 +27,13 @@ drop as the ratchet, which hands the next pull request headroom nobody earned an
 prices a scoped rule at zero however far it grows.
 
 **`corpus_tokens` does not move when prose moves — while every capped file is a
-measured one.** It sums the policy files the linter's globs match, so a split
-between two leaves it flat and only prose changes it. A cap on a file no glob
-matches measures nothing and its bytes never enter the sum, which made "give it
-a cap" a way OUT: prose moved into a named, capped, tracked file bought headroom
-in **all five** at once with zero deletion. That cap is refused now; a named
-document is answered by measuring it or by an exclusion a reviewer reads. One
-exception, stated in the code: a `.txt` under a data directory is neither.
+measured one.** It sums the policy files the globs match, so a split between two
+leaves it flat and only prose changes it. A cap on a file no glob matches
+measures nothing, which made "give it a cap" a way OUT: prose moved into a
+named, capped, tracked file bought headroom in **all five** with zero deletion.
+That cap is refused now; a named document is answered by measuring it or by an
+exclusion a reviewer reads — bar one measured exception, a `.txt` under a data
+directory.
 
 **`roles` charges a seat for what it loads once it opens a file.** Each entry
 gives an `opens` list — one representative file per surface that role touches —
