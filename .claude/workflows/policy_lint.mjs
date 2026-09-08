@@ -515,31 +515,15 @@ function bareNameCandidates(text) {
 // `docs/POLICY-NOTES.md`, with 77 tokens leaving each of the five caps in
 // silence. The extension axis was closed while this one stood open.
 //
-// A UNIQUE basename only, and the alternative was measured rather than argued.
-// `lookupPath` in brief_lint.mjs answers "does this resolve" and returns the
-// first of several files sharing a basename; this check asks "is any
-// destination the corpus names uncapped", so returning the first would be
-// arbitrary and returning ALL of them over-fires: driven that way on this tree
-// it reported SIXTEEN findings, every one a frozen `tools/audit/round2/**`
-// report reached through the generic basenames `REPORT.md` and `BASELINE.md`
-// that `tools/audit/README.md` uses to describe a shape, not to name a file.
-//
-// THE LIMIT, stated with its size rather than left to be inferred: an ambiguous
-// basename resolves to nothing, so a destination whose basename collides with
-// another tracked file is not reached by THIS route. Reaching it costs the
-// sixteen false reports above until the round-2 evidence tree is deleted, and
-// the escape it leaves needs a deliberate two-file basename collision visible
-// in the same diff -- where the path spelling, which is always resolved, is one
-// character away. Cost measured, not asserted; the exact-path route is
-// unaffected either way.
 // CASE-INSENSITIVELY, for the same reason round four put `/i` on the extension
 // test and round seven's review measured the half that was left: `namedDocMatches`
 // lowercases an extension before judging it, so `POLICY-NOTES.MD` survives the
 // scan -- and then resolved case-SENSITIVELY against `git ls-files` it matched
 // nothing and was dropped. Measured: `docs/POLICY-NOTES.md` cited as
 // `POLICY-NOTES.md` reported rc=1 and the same file cited as `POLICY-NOTES.MD`
-// reported rc=0 with TOTAL 0. Uniqueness is measured after folding too, so two
-// tracked files differing only in case are ambiguous and resolve to neither.
+// reported rc=0 with TOTAL 0. Folding decides which files COLLIDE; what a
+// collision then resolves to is `resolveCited`'s business, and it resolves to
+// all of them.
 function lowerBaseMap(listing) {
   if (!listing._byBaseLower) {
     const m = new Map()
@@ -553,20 +537,6 @@ function lowerBaseMap(listing) {
   return listing._byBaseLower
 }
 
-// EXACT CASE FIRST, FOLD ONLY AS A FALLBACK. Asking the folded question first
-// cost one real file, and the #615 round-eight review measured it: `judge.md`
-// collides case-insensitively with `tools/audit/round2/JUDGE.md`, so
-// `tools/audit/briefs/judge.md` -- a capped policy file the corpus cites by
-// basename -- became ambiguous and left the named-docs set entirely (34 paths
-// before the fold, 33 after). Nothing else in the tree collides that way except
-// frozen round-2 evidence.
-//
-// Two questions in order, not one merged question. A spelling that matches
-// exactly one tracked file EXACTLY resolves to it; a spelling that matches
-// several exactly is ambiguous and resolves to nothing; only a spelling that
-// matches NONE exactly falls through to the fold, which is the `POLICY-NOTES.MD`
-// route and is unaffected. Both properties hold at once, which the single folded
-// lookup could not do.
 // AN AMBIGUOUS BASENAME RESOLVES TO ALL OF THEM, NOT TO NOTHING, and resolving
 // it to nothing was a ONE-FILE escape rather than the two-file one the #615 body
 // claimed. The second file never had to be planted: it is the policy file
