@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 import math
 from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any, Callable
 
 import numpy as np
 
@@ -35,6 +35,11 @@ from .const import (
 from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
 from .entity import HeatPumpOptimizerEntity
 
+if TYPE_CHECKING:
+    _SensorMixinBase = HeatPumpOptimizerEntity
+else:
+    _SensorMixinBase = object
+
 _LOGGER = logging.getLogger(__name__)
 
 # Coordinator-fed and read-only: the coordinator serialises the one inbound
@@ -43,7 +48,27 @@ _LOGGER = logging.getLogger(__name__)
 PARALLEL_UPDATES = 0
 
 
-def _finite(value):
+def _as_str(value: Any, default: str | None = None) -> str | None:
+    return value if isinstance(value, str) else default
+
+
+def _as_float(value: Any) -> float | None:
+    return (
+        float(value)
+        if isinstance(value, (int, float)) and not isinstance(value, bool)
+        else None
+    )
+
+
+def _as_datetime(value: Any) -> datetime | None:
+    return value if isinstance(value, datetime) else None
+
+
+def _mapping(value: Any) -> dict[str, Any]:
+    return value if isinstance(value, dict) else {}
+
+
+def _finite(value: Any) -> Any:
     """Plain, finite Python for everything a sensor publishes, recursively.
 
     ``inf`` and ``nan`` are not JSON. orjson -- the serializer Home Assistant
@@ -132,7 +157,7 @@ def _effective_outdoor(coordinator: Any) -> tuple[float | None, str | None]:
     return None, None
 
 
-class _MeasuredStoreMixin:
+class _MeasuredStoreMixin(_SensorMixinBase):
     """A thermal-battery entity, gated on at least one store being sensed.
 
     The battery view is assembled entirely from `ThermalState`: the house
@@ -272,12 +297,15 @@ class HeatPumpOptimizerSensorBase(HeatPumpOptimizerEntity, SensorEntity):
             if getattr(prop.fget, "_finite_scrubbed", False):
                 continue
 
-            def scrubbed(self, _fget=prop.fget):
+            def scrubbed(
+                self: HeatPumpOptimizerSensorBase,
+                _fget: Callable[[Any], Any] = prop.fget,
+            ) -> Any:
                 return _finite(_fget(self))
 
             scrubbed.__name__ = name
             scrubbed.__doc__ = prop.fget.__doc__
-            scrubbed._finite_scrubbed = True
+            setattr(scrubbed, "_finite_scrubbed", True)
             setattr(cls, name, property(scrubbed, prop.fset, prop.fdel))
 
     def __init__(
@@ -304,7 +332,7 @@ class HeatPumpOptimizerSensorBase(HeatPumpOptimizerEntity, SensorEntity):
         self._key = key
 
 
-class _MeasuredTemperatureMixin:
+class _MeasuredTemperatureMixin(_SensorMixinBase):
     """A published temperature that is real only while its input reads OK.
 
     ``ThermalState`` is a dataclass with constructor defaults: 55.0 °C for the
@@ -333,7 +361,7 @@ class _MeasuredTemperatureMixin:
         )
 
 
-class _DHWEntityMixin:
+class _DHWEntityMixin(_SensorMixinBase):
     """A hot-water entity, gated on the install actually having hot water.
 
     Six entities were offered unconditionally, hot water configured or not.
@@ -354,7 +382,7 @@ class _DHWEntityMixin:
         )
 
 
-class _WaitsForEvidenceMixin:
+class _WaitsForEvidenceMixin(_SensorMixinBase):
     """An entity whose source is configured but whose evidence has not arrived.
 
     Three sensors were available the moment their *source* existed and then
@@ -399,13 +427,13 @@ class OptimizationModeSensor(HeatPumpOptimizerSensorBase):
     _attr_device_class = SensorDeviceClass.ENUM
     _attr_options = list(OPTIMIZATION_MODE_STATES)
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator, entry, "mode", "optimization_mode")
 
     @property
     def native_value(self) -> str | None:
         if self.coordinator.data:
-            return self.coordinator.data.get("mode", "unknown")
+            return _as_str(self.coordinator.data.get("mode", "unknown"), "unknown")
         return "unknown"
 
 
@@ -415,13 +443,16 @@ class OptimizationStatusSensor(HeatPumpOptimizerSensorBase):
     # The solver's own health, not a quantity about the house (#179).
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator, entry, "optimization_status", "optimization_status")
 
     @property
     def native_value(self) -> str | None:
         if self.coordinator.data:
-            return self.coordinator.data.get("optimization_status", "not_run")
+            return _as_str(
+                self.coordinator.data.get("optimization_status", "not_run"),
+                "not_run",
+            )
         return "not_run"
 
     @property
@@ -448,7 +479,7 @@ class PredictedSavingsSensor(HeatPumpOptimizerSensorBase):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_suggested_display_precision = 2
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator, entry, "predicted_savings", "predicted_savings")
         self._attr_native_unit_of_measurement = coordinator.currency
 
@@ -471,11 +502,11 @@ class MonthlySavingsSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_suggested_display_precision = 2
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator, entry, "monthly_savings", "monthly_savings")
         self._attr_native_unit_of_measurement = coordinator.currency
 
-    def _rows(self) -> list:
+    def _rows(self) -> list[Any]:
         rows = (self.coordinator.data or {}).get("savings_months")
         return rows if isinstance(rows, list) else []
 
@@ -505,7 +536,7 @@ class SavingsPercentageSensor(HeatPumpOptimizerSensorBase):
     _attr_native_unit_of_measurement = PERCENTAGE
     _attr_suggested_display_precision = 1
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator, entry, "savings_percentage", "savings_percentage")
 
     @property
@@ -534,7 +565,7 @@ class PredictedCostSensor(HeatPumpOptimizerSensorBase):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_suggested_display_precision = 2
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator, entry, "predicted_cost", "predicted_cost")
         self._attr_native_unit_of_measurement = coordinator.currency
 
@@ -550,7 +581,7 @@ class BaselineCostSensor(HeatPumpOptimizerSensorBase):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_suggested_display_precision = 2
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator, entry, "baseline_cost", "baseline_cost")
         self._attr_native_unit_of_measurement = coordinator.currency
 
@@ -569,7 +600,7 @@ class CurrentPriceSensor(HeatPumpOptimizerSensorBase):
     # Assistant only accepts state_class "total" for device_class "monetary",
     # so declaring it here made HA reject the sensor's statistics.
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator, entry, "current_price", "current_electricity_price")
         self._attr_native_unit_of_measurement = f"{coordinator.currency}/kWh"
 
@@ -587,14 +618,14 @@ class CurrentSetpointSensor(HeatPumpOptimizerSensorBase):
     _attr_device_class = SensorDeviceClass.TEMPERATURE
     _attr_suggested_display_precision = 1
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator, entry, "current_setpoint", "optimal_setpoint")
 
     @property
     def native_value(self) -> float | None:
         if self.coordinator.data:
-            action = self.coordinator.data.get("current_action", {})
-            return action.get("setpoint")
+            action = _mapping(self.coordinator.data.get("current_action", {}))
+            return _as_float(action.get("setpoint"))
         return None
 
     @property
@@ -616,7 +647,7 @@ class CurrentPowerSensor(HeatPumpOptimizerSensorBase):
     _attr_device_class = SensorDeviceClass.POWER
     _attr_suggested_display_precision = 2
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator, entry, "current_power", "recommended_power")
 
     @property
@@ -632,7 +663,7 @@ class CurrentCOPSensor(HeatPumpOptimizerSensorBase):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_suggested_display_precision = 2
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator, entry, "current_cop", "estimated_cop")
 
     @property
@@ -647,7 +678,7 @@ class CurrentCOPSensor(HeatPumpOptimizerSensorBase):
             if outdoor_temp is None:
                 return None
             cop = self.coordinator._thermal_model.compute_cop(outdoor_temp)
-            return round(cop, 2)
+            return round(cop, 2) if isinstance(cop, (int, float)) else None
         return None
 
 
@@ -657,7 +688,7 @@ class IndoorTempSensor(HeatPumpOptimizerSensorBase):
     _attr_device_class = SensorDeviceClass.TEMPERATURE
     _attr_suggested_display_precision = 1
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator, entry, "indoor_temp", "indoor_temperature_optimizer")
 
     @property
@@ -674,7 +705,7 @@ class OutdoorTempSensor(HeatPumpOptimizerSensorBase):
     _attr_device_class = SensorDeviceClass.TEMPERATURE
     _attr_suggested_display_precision = 1
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator, entry, "outdoor_temp", "outdoor_temperature_optimizer")
 
     @property
@@ -716,7 +747,7 @@ class SolarIrradianceSensor(HeatPumpOptimizerSensorBase):
     # update, and its history is of no interest once superseded.
     _unrecorded_attributes = frozenset({"forecast"})
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator, entry, "solar_irradiance", "solar_irradiance")
 
     @property
@@ -761,7 +792,7 @@ class SlabTempSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase):
     _attr_device_class = SensorDeviceClass.TEMPERATURE
     _attr_suggested_display_precision = 1
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator, entry, "slab_temp", "slab_temperature_estimated")
 
     @property
@@ -777,13 +808,13 @@ class NextOptimizationSensor(HeatPumpOptimizerSensorBase):
     # The integration's own cycle clock (#179).
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator, entry, "next_optimization", "next_optimization")
 
     @property
     def native_value(self) -> datetime | None:
         if self.coordinator.data:
-            return self.coordinator.data.get("next_optimization")
+            return _as_datetime(self.coordinator.data.get("next_optimization"))
         return None
 
 
@@ -792,13 +823,13 @@ class LastOptimizationSensor(HeatPumpOptimizerSensorBase):
     # The integration's own cycle clock (#179).
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator, entry, "last_optimization", "last_optimization")
 
     @property
     def native_value(self) -> datetime | None:
         if self.coordinator.data:
-            return self.coordinator.data.get("last_optimization")
+            return _as_datetime(self.coordinator.data.get("last_optimization"))
         return None
 
 
@@ -808,14 +839,14 @@ class HeatPumpActionSensor(HeatPumpOptimizerSensorBase):
     _attr_device_class = SensorDeviceClass.ENUM
     _attr_options = list(HEAT_PUMP_ACTION_STATES)
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator, entry, "heat_pump_action", "heat_pump_action")
 
     @property
     def native_value(self) -> str | None:
         if self.coordinator.data:
-            action = self.coordinator.data.get("current_action", {})
-            return action.get("mode", "unknown")
+            action = _mapping(self.coordinator.data.get("current_action", {}))
+            return _as_str(action.get("mode", "unknown"), "unknown")
         return "unknown"
 
     @property
@@ -865,7 +896,7 @@ class ScheduleSensor(HeatPumpOptimizerSensorBase):
     # reason the plan sensors keep their forecasts out of the recorder.
     _unrecorded_attributes = frozenset({"schedule"})
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator, entry, "schedule", "optimization_schedule")
 
     @property
@@ -900,7 +931,7 @@ class ScheduleStepsSensor(HeatPumpOptimizerSensorBase):
 
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(
             coordinator, entry, "schedule_steps", "optimization_schedule_steps"
         )
@@ -947,7 +978,7 @@ class UpperFloorTempSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBas
     _attr_device_class = SensorDeviceClass.TEMPERATURE
     _attr_suggested_display_precision = 1
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(
             coordinator, entry, "upper_floor_temp", "upper_floor_temperature"
         )
@@ -983,7 +1014,7 @@ class LowerFloorTempSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBas
     _attr_device_class = SensorDeviceClass.TEMPERATURE
     _attr_suggested_display_precision = 1
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(
             coordinator, entry, "lower_floor_temp", "lower_floor_temperature"
         )
@@ -1011,7 +1042,7 @@ class FloorReturnTempSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBa
     _attr_device_class = SensorDeviceClass.TEMPERATURE
     _attr_suggested_display_precision = 1
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(
             coordinator, entry, "floor_return_temp", "floor_heating_return_temperature"
         )
@@ -1032,7 +1063,7 @@ class SolarHeatGainSensor(HeatPumpOptimizerSensorBase):
     _attr_device_class = SensorDeviceClass.POWER
     _attr_suggested_display_precision = 2
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(
             coordinator, entry, "solar_heat_gain", "solar_heat_gain"
         )
@@ -1071,7 +1102,7 @@ class BufferTankTempSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBas
     _attr_device_class = SensorDeviceClass.TEMPERATURE
     _attr_suggested_display_precision = 1
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(
             coordinator, entry, "buffer_tank_temp", "buffer_tank_temperature_model"
         )
@@ -1106,7 +1137,7 @@ class DHWTemperatureSensor(
     _attr_device_class = SensorDeviceClass.TEMPERATURE
     _attr_suggested_display_precision = 1
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(
             coordinator, entry, "dhw_temperature", "dhw_temperature"
         )
@@ -1152,7 +1183,7 @@ class DHWScheduleSensor(_DHWEntityMixin, HeatPumpOptimizerSensorBase):
     # Superseded plans are of no interest; see ScheduleSensor.
     _unrecorded_attributes = frozenset({"dhw_schedule"})
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(
             coordinator, entry, "dhw_schedule", "dhw_heating_schedule"
         )
@@ -1195,7 +1226,7 @@ class DHWHeatingCostSensor(_DHWEntityMixin, HeatPumpOptimizerSensorBase):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_suggested_display_precision = 2
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(
             coordinator, entry, "dhw_heating_cost", "dhw_heating_cost"
         )
@@ -1226,7 +1257,7 @@ class PredictiveInsightSensor(HeatPumpOptimizerSensorBase):
     # The forecast analysis's internal factors, not a plan quantity (#179).
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(
             coordinator, entry, "predictive_insight", "predictive_optimization_insight"
         )
@@ -1295,7 +1326,7 @@ class ECL110DisplaceSensor(HeatPumpOptimizerSensorBase):
     # with the machinery, not the headline (#177).
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator, entry, "ecl110_displace", "ecl110_displace")
 
     @property
@@ -1316,7 +1347,7 @@ class ECL110EffectiveDisplaceSensor(HeatPumpOptimizerSensorBase):
     _attr_entity_registry_enabled_default = False
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(
             coordinator,
             entry,
@@ -1516,7 +1547,7 @@ class SpaceHeatingPlanSensor(_PlanSensorBase):
     _plan_key = "space_plan"
     _plan_kind = "space"
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(
             coordinator, entry, "space_heating_plan", "space_heating_plan"
         )
@@ -1528,7 +1559,7 @@ class DHWHeatingPlanSensor(_DHWEntityMixin, _PlanSensorBase):
     _plan_key = "dhw_plan"
     _plan_kind = "dhw"
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator, entry, "dhw_heating_plan", "dhw_heating_plan")
 
 
@@ -1551,7 +1582,7 @@ class MeasuredPowerSensor(HeatPumpOptimizerSensorBase):
     _attr_device_class = SensorDeviceClass.POWER
     _attr_suggested_display_precision = 2
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator, entry, "measured_power", "measured_power")
 
     @property
@@ -1586,14 +1617,15 @@ class ObservedCOPSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_suggested_display_precision = 2
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator, entry, "observed_cop", "observed_cop")
 
     def _modelled_cop(self, data: dict[str, Any]) -> float | None:
         model = getattr(self.coordinator, "_thermal_model", None)
         if model is None:
             return None
-        return round(model.compute_cop(data.get("outdoor_temperature", 5.0)), 2)
+        cop = model.compute_cop(data.get("outdoor_temperature", 5.0))
+        return round(cop, 2) if isinstance(cop, (int, float)) else None
 
     @property
     def _waiting_for(self) -> str | None:
@@ -1699,7 +1731,7 @@ class SpaceEnergySensor(_AccumulatingSensor):
     _data_key = "space_energy_kwh"
     _ledger_line = "space"
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(
             coordinator, entry, "space_energy", "space_heating_energy"
         )
@@ -1711,7 +1743,7 @@ class DHWEnergySensor(_DHWEntityMixin, _AccumulatingSensor):
     _data_key = "dhw_energy_kwh"
     _ledger_line = "dhw"
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         # Translation key (and so the suggested object id on new installs)
         # moved from hot_water_energy in #174; the unique id did not, so an
         # existing install keeps sensor.…_hot_water_energy and its history.
@@ -1723,7 +1755,7 @@ class TotalEnergySensor(_AccumulatingSensor):
     _attr_device_class = SensorDeviceClass.ENERGY
     _data_key = "total_energy_kwh"
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator, entry, "total_energy", "total_energy")
 
 
@@ -1739,7 +1771,7 @@ class _AccumulatingCostSensor(_AccumulatingSensor):
     _attr_device_class = SensorDeviceClass.MONETARY
     _attr_state_class = SensorStateClass.TOTAL
 
-    def __init__(self, coordinator, entry, key, translation_key):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry, key: str, translation_key: str) -> None:
         super().__init__(coordinator, entry, key, translation_key)
         self._attr_native_unit_of_measurement = coordinator.currency
 
@@ -1748,7 +1780,7 @@ class SpaceCostSensor(_AccumulatingCostSensor):
     _data_key = "space_cost"
     _ledger_line = "space"
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator, entry, "space_cost", "space_heating_cost")
 
 
@@ -1756,7 +1788,7 @@ class DHWCostSensor(_DHWEntityMixin, _AccumulatingCostSensor):
     _data_key = "dhw_cost"
     _ledger_line = "dhw"
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         # Moved from hot_water_cost in #174; see DHWEnergySensor.
         super().__init__(coordinator, entry, "dhw_cost_total", "dhw_cost")
 
@@ -1764,7 +1796,7 @@ class DHWCostSensor(_DHWEntityMixin, _AccumulatingCostSensor):
 class TotalCostSensor(_AccumulatingCostSensor):
     _data_key = "total_cost"
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator, entry, "total_cost", "total_heating_cost")
 
 
@@ -1791,7 +1823,7 @@ class PredictionAccuracySensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBa
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_suggested_display_precision = 2
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(
             coordinator, entry, "prediction_accuracy", "prediction_accuracy"
         )
@@ -1807,8 +1839,10 @@ class PredictionAccuracySensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBa
 
     @property
     def native_value(self) -> float | None:
-        return (self.coordinator.data or {}).get("accuracy", {}).get(
-            "temperature_mae"
+        return _as_float(
+            _mapping((self.coordinator.data or {}).get("accuracy", {})).get(
+                "temperature_mae"
+            )
         )
 
     @property
@@ -1838,7 +1872,7 @@ class MonthlyPeakSensor(HeatPumpOptimizerSensorBase):
     _attr_device_class = SensorDeviceClass.POWER
     _attr_suggested_display_precision = 2
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator, entry, "monthly_peak", "monthly_peak_power")
 
     @property
@@ -1895,7 +1929,7 @@ class PVSurplusSensor(HeatPumpOptimizerSensorBase):
     # stored energy) would be a lie told to silence a lint. The Gold rule
     # asks for device classes "where possible"; for a forecast it is not.
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator, entry, "pv_surplus", "solar_surplus_forecast")
 
     @property
@@ -1906,8 +1940,10 @@ class PVSurplusSensor(HeatPumpOptimizerSensorBase):
 
     @property
     def native_value(self) -> float | None:
-        return (self.coordinator.data or {}).get("pv", {}).get(
-            "forecast_surplus_kwh"
+        return _as_float(
+            _mapping((self.coordinator.data or {}).get("pv", {})).get(
+                "forecast_surplus_kwh"
+            )
         )
 
     @property
@@ -1936,15 +1972,17 @@ class ThermalBatterySensor(_MeasuredStoreMixin, HeatPumpOptimizerSensorBase):
     _attr_device_class = SensorDeviceClass.BATTERY
     _attr_suggested_display_precision = 1
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(
             coordinator, entry, "thermal_battery", "thermal_battery_charge"
         )
 
     @property
     def native_value(self) -> float | None:
-        return (self.coordinator.data or {}).get("battery", {}).get(
-            "state_of_charge_percent"
+        return _as_float(
+            _mapping((self.coordinator.data or {}).get("battery", {})).get(
+                "state_of_charge_percent"
+            )
         )
 
     @property
@@ -1963,15 +2001,17 @@ class ThermalBatteryEnergySensor(_MeasuredStoreMixin, HeatPumpOptimizerSensorBas
     _attr_device_class = SensorDeviceClass.ENERGY_STORAGE
     _attr_suggested_display_precision = 2
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(
             coordinator, entry, "thermal_battery_energy", "thermal_battery_energy"
         )
 
     @property
     def native_value(self) -> float | None:
-        return (self.coordinator.data or {}).get("battery", {}).get(
-            "stored_energy_kwh"
+        return _as_float(
+            _mapping((self.coordinator.data or {}).get("battery", {})).get(
+                "stored_energy_kwh"
+            )
         )
 
     @property
@@ -2015,7 +2055,7 @@ class ValveTargetRecommendationSensor(HeatPumpOptimizerSensorBase):
     # opt-in plumbing; disabled rather than eternally-unknown by default.
     _attr_entity_registry_enabled_default = False
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(
             coordinator, entry,
             "valve_target_recommendation", "valve_target_recommendation",
@@ -2052,7 +2092,7 @@ class ComfortWeightSensor(HeatPumpOptimizerSensorBase):
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_suggested_display_precision = 2
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator, entry, "comfort_weight", "comfort_weight")
 
     @property
@@ -2085,7 +2125,7 @@ class ContractComparisonSensor(
     # diagnostic most households never enable.
     _attr_entity_registry_enabled_default = False
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(
             coordinator, entry, "contract_comparison", "contract_comparison"
         )
@@ -2140,7 +2180,7 @@ class PowerHeadroomSensor(HeatPumpOptimizerSensorBase):
     _attr_device_class = SensorDeviceClass.POWER
     _attr_suggested_display_precision = 2
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(
             coordinator, entry, "power_headroom", "power_headroom"
         )
@@ -2184,7 +2224,7 @@ class DHWSetpointAdvisorSensor(HeatPumpOptimizerSensorBase):
     # The advisor sweeps whole-degree candidate setpoints.
     _attr_suggested_display_precision = 0
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(
             coordinator, entry, "dhw_setpoint_advisor", "dhw_setpoint_advisor"
         )
@@ -2235,7 +2275,7 @@ class MixedHotWaterSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase
     _attr_device_class = SensorDeviceClass.VOLUME_STORAGE
     _attr_suggested_display_precision = 0
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         # Moved from mixed_hot_water in #174; see DHWEnergySensor.
         super().__init__(
             coordinator, entry, "dhw_mixed_water", "dhw_mixed_water"
@@ -2281,7 +2321,7 @@ class DHWHeavyDaySensor(HeatPumpOptimizerSensorBase):
     # TOTAL/TOTAL_INCREASING) and not stored energy (ENERGY_STORAGE). Bare
     # kWh + MEASUREMENT is the honest declaration; tests/entities.py pins it.
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(
             coordinator, entry, "dhw_heavy_day", "dhw_heavy_day_demand"
         )
@@ -2337,7 +2377,7 @@ class PlanNarrativeSensor(HeatPumpOptimizerSensorBase):
     _attr_device_class = SensorDeviceClass.ENUM
     _attr_options = sorted(narrative.TEMPLATES["en"])
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator, entry, "plan_narrative", "plan_narrative")
 
     @property
@@ -2347,9 +2387,14 @@ class PlanNarrativeSensor(HeatPumpOptimizerSensorBase):
             .get("narrative", {})
             .get("items")
         ) or []
+        if not isinstance(items, list):
+            items = []
         for item in items:
-            if item.get("reason") != "idle":
-                return item.get("reason")
+            if not isinstance(item, dict):
+                continue
+            reason = item.get("reason")
+            if reason != "idle":
+                return reason if isinstance(reason, str) else None
         return "idle" if items else None
 
     @property
@@ -2380,7 +2425,7 @@ class OptimizationScoreSensor(HeatPumpOptimizerSensorBase):
     # Primary, not Diagnostic: a headline stat; see PlanNarrativeSensor (#175).
     _attr_suggested_display_precision = 1
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(
             coordinator, entry, "optimization_score", "optimization_score"
         )
@@ -2424,7 +2469,7 @@ class CompressorStartsSensor(HeatPumpOptimizerSensorBase):
     _attr_state_class = SensorStateClass.TOTAL_INCREASING
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(
             coordinator, entry, "compressor_starts", "compressor_starts"
         )
@@ -2473,7 +2518,7 @@ class FrequencyAdvisorSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase
     # everyone else, so disabled rather than shipped dead.
     _attr_entity_registry_enabled_default = False
 
-    def __init__(self, coordinator, entry):
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(
             coordinator, entry, "frequency_advisor", "compressor_frequency_advisor"
         )
