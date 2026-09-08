@@ -470,6 +470,7 @@ no wave:
 - [#633](https://github.com/tvofi/heatpump_optimizer/pull/633) — UX C4: dark-theme and graphics contrast witness. leaves #558 open.
 - [#635](https://github.com/tvofi/heatpump_optimizer/pull/635) — UX B12: README hero from the Playwright lane. leaves #558 open.
 - [#631](https://github.com/tvofi/heatpump_optimizer/pull/631) — **merged**, measured `_stash_price_horizon` extract, leaves #224 open.
+- [#634](https://github.com/tvofi/heatpump_optimizer/pull/634) — **merged under decision 0006**, without a merge SHA it cannot know: `--record`, `--stats` and `--sunset`, and the `record` CI job that runs the first of them on push to `main` — the only one of the three that can fail a job. Its mutation proof: emptying `checkRecord`'s return gives `FIXTURE VACUOUS: check 'record' produced 0 error(s) on the rot fixtures, 2 required`, rc=1 on both `policy_lint` and `policy_lint_mutants`, restored rc=0 — the acceptance pins the sub-claim, not just the count. Driven against the live window before opening: 34 merged pull requests in `v6.3.18..main`, **0 without a disposition** — #629 and #632 record themselves on the status rows of the issues they close, which is the Delivery-status table's own form, so an earlier note calling them undispositioned was wrong and is withdrawn. Lands the **handover graduation rule** as the fourth programme-closing item, with the detector-mode distinction driven at `d08a56a`: `session-start.sh:31` really does run `git rev-parse --is-shallow-repository`, but it reports rather than refuses, which suffices for trap 11 and would not for a silently-wrong-answer trap. Body written against its SHA before the push, per `steward/SKILL.md` § S10, because #628 spent four rounds learning what the other order costs.
 
 **A pattern worth naming**, since most of these were blocked for it: every one of those blocks was a document asserting something that was not true of the tree — a stale head, a count, an actor, a carry that did not land. None was a disagreement about the change itself.
 
@@ -866,6 +867,72 @@ judge comments on each issue and summarised on #201.
   separate question that this row no longer asserts an answer to, because the
   premise it rested on is denied by S10.
 
+- **`docs/HANDOVER.md` cannot accept a new fact, and the fix is a graduation
+  rule rather than a higher cap.** The deadlock is structural and is recorded
+  under `## Standing rules`: the file is at its cap, the cap is one-sided by
+  design, and `writing-for-agents.md` — which governs that file — says
+  *precision outranks concision, always* and *cutting evidence is never
+  compliance*. Reflowing reclaims **0 lines** at its own width, derived
+  independently by a reviewer, so there is no formatting slack either. An
+  attempt to pay for three traps by compressing nine entries was blocked for
+  cutting evidence in five places, two of which inverted a trap's meaning.
+  **The rule:** *a trap whose failure mode has acquired a mechanical detector is
+  replaced by a one-line pointer to that detector.*
+  **Why this is not the cutting `writing-for-agents.md` forbids.** A trap
+  superseded by a working check has not lost its evidence; it has been
+  **promoted** — out of prose a reader must remember and into something that
+  fires on its own. That is this programme's whole thesis, stated in #625's own
+  title: *three rules that fired only in CI now fire at the moment they are
+  broken.* Retiring the prose copy completes the work rather than trading it
+  away.
+  **Runway, re-derived at this head — and re-derive it again at yours.** The
+  handover holds **twenty-five** traps. **Four** have a mechanical detector on
+  `main` today, each named with its file: trap 11 (a shallow clone answers "no
+  common ancestor" silently) by `.claude/hooks/session-start.sh`; trap 9
+  (orchestration scripts nobody runs) by `check-wave-script.mjs` and
+  `policy_lint --hooks`; trap 19 (a one-sided cap colliding across branches) by
+  the `policy-docs` job on `main`; trap 17 (a citation and its referent on two
+  branches) by `CLAUDE.md` rule 1's forced `GATE_SCOPE=full`. A **fifth**, trap
+  8 (one CI runner is not the fleet), gains `policy_lint_envmatrix.mjs` when
+  `08-envmatrix` lands and not before — an earlier draft of this entry counted
+  it as already present, and a reviewer refused that, correctly. Two more that
+  the same draft counted do **not** qualify: trap 23's "tip pin-count
+  invariant" is trap 23's own prose instruction, not a detector — nothing
+  refuses a mis-rebase by itself; and trap 10's `tools/audit/preflight.sh`
+  reads a pull-request *body* on stdin, never a commit message, so it does not
+  fire in the mode that trap needs. Trap 11 goes from three lines to one. The
+  set grows as the programme mechanises, so the document shrinks exactly as
+  fast as the honour system is replaced — which is the behaviour a ratchet
+  should have.
+  **Not every detector is the same kind, and the rule must say which suffices.**
+  Driven at `d08a56a`: trap 11's detector is real — `session-start.sh:31` runs
+  `git rev-parse --is-shallow-repository` and its self-test asserts *"the
+  shallow state is printed and is one of the three answers"* — but it **reports
+  rather than refuses**. That is enough here, because trap 11's instruction is
+  *check before believing a comparison*, and a report at session start fires at
+  exactly the moment the trap would bite. It would **not** be enough for a trap
+  whose failure is a silently wrong result with no reader present. So the test
+  is not "a detector exists" but **"a detector fires at the moment the trap
+  would bite, in the mode that trap needs"** — reporting for a trap that asks a
+  reader to look, refusing for one that produces a wrong answer unattended.
+  **Each graduation owes a mutation proof.** Break the detector, show the check
+  going red, restore it. Deleting prose on the strength of a check nobody drove
+  is the defect this corpus keeps finding, and it would be a bad way to lose a
+  trap permanently.
+  **The floor, and the only condition under which a raise is right.** Some traps
+  are permanently unmechanisable and trap 12 says so in its own text — a check
+  written against that very class catches **0 of 3**. Those stay forever. If the
+  irreducible floor ever exceeds the cap, a raise **is** warranted, and the case
+  writes itself because the irreducible entries can be named. That is a raise
+  that buys architecture; raising it now, to fit, is the thing `CLAUDE.md`
+  forbids and would move the wall by one session.
+  **Two alternatives rejected, with reasons.** Raising the cap now is
+  raise-to-fit. Splitting the traps into a second file under `docs/` is refused
+  mechanically: `tests/entities.py` asserts *"exactly one handover, with no date
+  in its name"*, checked rather than assumed.
+  **Ordering:** programme-closing work, after `10-adr-corpus`, beside the
+  record-check anchor rewrite and the ruleset. Not inside the queue — the
+  mutation proofs are per-trap and would stall it.
 ## Standing rules
 
 Unchanged from the repository's own protocol; restated here because a fresh
