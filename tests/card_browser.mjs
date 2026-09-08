@@ -836,20 +836,14 @@ try {
   //    overlap (0.1348..0.3000), which is why the SERIES palette can be
   //    fixed constants and text cannot.
   //
-  // 2. ADDING A DARK LANE HERE FAILS TODAY, on sites C1 did not own:
-  //      ACCENT_READABLE  #026aa8   5.79:1 light   2.95:1 dark   (7 sites)
-  //      MUTED_READABLE   #666666   5.74:1 light   2.97:1 dark   (2 sites)
-  //    A site is every reference to the constant in the card that is not its
-  //    definition and not inside a comment; re-derive both counts, do not
-  //    carry them. Naming instances instead is what made an earlier draft of
-  //    this line say (.chip.off) and hide .setup-slot.empty from the seat the
-  //    carry is written for.
-  //    Both were chosen against a light card by this witness, which has only
-  //    ever run light. They are not C1 regressions -- C1 moved the "now"
-  //    label OFF ACCENT_READABLE onto --primary-text-color for exactly this
-  //    reason (16.10:1 light, 13.03:1 dark). Control: revert that label to
-  //    ACCENT_READABLE and the Node lane's dark check fails at 2.95:1
-  //    (mutation M2 of PR #558 C1).
+  // 2. C4 retargeted the text sites C1 did not own. Re-derived at the
+  //    merge base, not carried: ACCENT_READABLE had 7 non-definition
+  //    references (#026aa8, 5.79:1 light / 2.95:1 dark); MUTED_READABLE
+  //    had 2 (#666666, 5.74:1 / 2.97:1). Five CSS text colours plus the
+  //    lane-more fill now use --primary-text-color. ACCENT_READABLE
+  //    remains only on .wi-save's filled border/background (white on
+  //    #026aa8). MUTED_READABLE is gone. Control: restore .chip.off to
+  //    #666666 and the dark text check fails under 4.5:1.
   //
   // 3. THE FALLBACKS-ONLY LANE ALREADY FAILS 4.5:1 ON TEXT if extended past
   //    the four REQUIRED names. The failing set is a RULE, not a list: every
@@ -874,6 +868,13 @@ try {
     --primary-text-color:#212121; --secondary-text-color:#727272;
     --text-primary-color:#fff; --primary-color:#03a9f4;
     --card-background-color:#fff; --divider-color:rgba(0,0,0,.12);
+  `;
+  // Same tokens tests/card.mjs C1 uses. A dark lane cannot be a second
+  // constant: 4.5:1 on #ffffff and on #1c1c1c have no overlapping luminance.
+  const HA_DARK = `
+    --primary-text-color:#e1e1e1; --secondary-text-color:#9b9b9b;
+    --text-primary-color:#fff; --primary-color:#03a9f4;
+    --card-background-color:#1c1c1c; --divider-color:rgba(225,225,225,.12);
   `;
   const contrastOf = async (themeCss, dlgPage) => {
     await page.evaluate(async ([st, theme, tab]) => {
@@ -950,7 +951,14 @@ try {
         if (empty) {
           const raw = empty.getAttribute("fill") || "";
           const fg = parse(raw.startsWith("#") ? raw : getComputedStyle(empty).fill);
-          out.push({ name: "setup-slot.empty", ratio: fg ? +ratio(fg, [255, 255, 255]).toFixed(2) : 0, missing: false });
+          const rawBg = getComputedStyle(window.__card)
+            .getPropertyValue("--card-background-color").trim();
+          const cardBg = parse(rawBg) || [255, 255, 255];
+          out.push({
+            name: "setup-slot.empty",
+            ratio: fg ? +ratio(fg, cardBg).toFixed(2) : 0,
+            missing: false,
+          });
         } else {
           out.push({ name: "setup-slot.empty", missing: true });
         }
@@ -959,7 +967,11 @@ try {
     }, dlgPage);
   };
   const REQUIRED = ["wi-apply", "wi-save", "setup-slot.empty", "chip-off"];
-  for (const [label, theme] of [["HA light theme", HA_LIGHT], ["card fallbacks only", ""]]) {
+  for (const [label, theme] of [
+    ["HA light theme", HA_LIGHT],
+    ["HA dark theme", HA_DARK],
+    ["card fallbacks only", ""],
+  ]) {
     const planRows = await contrastOf(theme, "plan");
     const setupRows = await contrastOf(theme, "setup");
     const rows = [...planRows, ...setupRows];
@@ -969,6 +981,113 @@ try {
       reqMissing.length === 0 && bad.length === 0,
       `${bad.map((r) => `${r.name} ${r.ratio}:1`).join("; ") || `${rows.length} site(s) measured`}` +
       (reqMissing.length ? `; missing: ${reqMissing.join(", ")}` : ""));
+  }
+
+  // C4: Chromium composites of the C1 hooks, light and dark. Gridlines are
+  // perceptible only (1.3:1), never 3:1 — that would drown the series.
+  const graphicStates = {
+    ...states,
+    [SPACE_ID]: {
+      ...states[SPACE_ID],
+      attributes: {
+        ...states[SPACE_ID].attributes,
+        forecast: plan.space_plan.forecast.map((p, i) => ({
+          ...p,
+          price_known: i < Math.floor(plan.space_plan.forecast.length / 2),
+        })),
+      },
+    },
+  };
+  const graphicsOf = async (themeCss) => {
+    await page.evaluate(async ([st, theme]) => {
+      document.head.querySelectorAll("style.hpo-test").forEach((n) => n.remove());
+      document.body.innerHTML = "";
+      const style = document.createElement("style");
+      style.className = "hpo-test";
+      style.textContent =
+        `body{margin:0;font-family:-apple-system,"Segoe UI",sans-serif}` +
+        `heatpump-optimizer-card{display:block;width:900px;${theme}}`;
+      document.head.appendChild(style);
+      const card = document.createElement("heatpump-optimizer-card");
+      card.setConfig({ type: "custom:heatpump-optimizer-card", what_if: true });
+      card.hass = { states: st, language: "en" };
+      document.body.appendChild(card);
+      window.__card = card;
+      card._onCardClick({});
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      await new Promise((r) => setTimeout(r, 80));
+    }, [graphicStates, themeCss]);
+    return page.evaluate(() => {
+      const hex = (h) => {
+        const n = parseInt(h.slice(1), 16);
+        return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+      };
+      const parse = (s) => {
+        if (!s || s === "transparent" || s === "none") return null;
+        const m = s.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+        if (m) return [+m[1], +m[2], +m[3]];
+        if (s.startsWith("#")) return hex(s.length === 4
+          ? `#${s[1]}${s[1]}${s[2]}${s[2]}${s[3]}${s[3]}` : s);
+        return null;
+      };
+      const lum = (c) => {
+        const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+        return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]);
+      };
+      const ratio = (a, b) => {
+        const la = lum(a), lb = lum(b);
+        return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+      };
+      const over = (fg, bg, a) => fg.map((v, i) => Math.round(a * v + (1 - a) * bg[i]));
+      const host = window.__card;
+      const rawBg = getComputedStyle(host).getPropertyValue("--card-background-color").trim();
+      const bg = parse(rawBg) || parse(getComputedStyle(host).backgroundColor) || [255, 255, 255];
+      const root = host.shadowRoot;
+      const against = (el, prop, floor) => {
+        if (!el) return { missing: true, ratio: 0, floor };
+        const cs = getComputedStyle(el);
+        const color = parse(cs[prop]) || parse(el.getAttribute(prop));
+        const op = Number(cs.opacity);
+        if (!color || !Number.isFinite(op)) return { missing: true, ratio: 0, floor };
+        const r = ratio(over(color, bg, op), bg);
+        return { missing: false, ratio: +r.toFixed(3), floor, ok: r >= floor };
+      };
+      const series = [...root.querySelectorAll(".series[data-key]")];
+      const seriesWorst = series.reduce((w, el) => {
+        const cs = getComputedStyle(el);
+        const prop = (cs.stroke && cs.stroke !== "none") ? "stroke" : "fill";
+        const m = against(el, prop, 3);
+        return (!m.missing && m.ratio < w.ratio) ? { ...m, n: (w.n || 0) + 1 } : { ...w, n: (w.n || 0) + 1 };
+      }, { ratio: Infinity, missing: series.length === 0, floor: 3, n: 0 });
+      return {
+        now: against(root.querySelector("line.now"), "stroke", 3),
+        nowLabel: against(root.querySelector("text.now-label"), "fill", 4.5),
+        estimatedEdge: against(root.querySelector("line.estimated-edge"), "stroke", 3),
+        gridV: against(root.querySelector("line.grid.grid-v"), "stroke", 1.3),
+        gridH: against(root.querySelector("line.grid.grid-h"), "stroke", 1.3),
+        series: { ...seriesWorst, missing: series.length === 0 },
+      };
+    });
+  };
+  for (const [label, theme] of [["HA light theme", HA_LIGHT], ["HA dark theme", HA_DARK]]) {
+    const g = await graphicsOf(theme);
+    check(`C4 now marker clears 3:1 (${label})`,
+      !g.now.missing && g.now.ok, g.now.missing ? "missing .now" : `${g.now.ratio}:1`);
+    check(`C4 now label clears 4.5:1 (${label})`,
+      !g.nowLabel.missing && g.nowLabel.ok,
+      g.nowLabel.missing ? "missing .now-label" : `${g.nowLabel.ratio}:1`);
+    check(`C4 estimated-price edge clears 3:1 (${label})`,
+      !g.estimatedEdge.missing && g.estimatedEdge.ok,
+      g.estimatedEdge.missing ? "missing .estimated-edge" : `${g.estimatedEdge.ratio}:1`);
+    check(`C4 vertical gridline is perceptible, not 3:1 (${label})`,
+      !g.gridV.missing && g.gridV.ok && g.gridV.ratio < 3,
+      g.gridV.missing ? "missing .grid.grid-v" : `${g.gridV.ratio}:1`);
+    check(`C4 horizontal gridline is perceptible, not 3:1 (${label})`,
+      !g.gridH.missing && g.gridH.ok && g.gridH.ratio < 3,
+      g.gridH.missing ? "missing .grid.grid-h" : `${g.gridH.ratio}:1`);
+    check(`C4 every .series[data-key] clears 3:1 (${label})`,
+      !g.series.missing && g.series.ok,
+      g.series.missing ? "no .series[data-key]" : `worst ${g.series.ratio}:1`);
   }
 } finally {
   await browser.close();

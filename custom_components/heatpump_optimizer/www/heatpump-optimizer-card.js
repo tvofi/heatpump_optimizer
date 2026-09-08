@@ -20,10 +20,6 @@ const CARD_VERSION = "6.3.18";
 // Chromium's bgOf walk; #026aa8 clears the 4.5:1 browser witness.
 const ACCENT_READABLE = "#026aa8";
 
-// HA's --secondary-text-color (#727272) is 4.37:1 on a white card in real
-// Chromium — too light for an active toggle state (D4-06 / #261).
-const MUTED_READABLE = "#666666";
-
 // The savings table's in-cell magnitude bar, as an opacity over currentColor.
 // Bounded both ways, and both bounds swept rather than argued: below 0.133 the
 // bar stops clearing the 1.3:1 perceptibility floor (the light card binds;
@@ -2889,7 +2885,7 @@ function cardStyleBlock() {
         display: inline-block; flex: 0 0 auto;
       }
       .chip.off {
-        color: ${MUTED_READABLE};
+        color: var(--primary-text-color);
         background: var(--card-background-color, #fff);
         text-decoration: line-through;
       }
@@ -3156,7 +3152,7 @@ function cardStyleBlock() {
       }
       .setup-slot { font-size: 12px; fill: var(--primary-text-color, #222); }
       .setup-slot.empty {
-        fill: ${MUTED_READABLE};
+        fill: var(--primary-text-color, #222);
         font-style: italic;
       }
       .setup-slot.extra { fill: var(--secondary-text-color, #888); }
@@ -3200,7 +3196,7 @@ function cardStyleBlock() {
         flex: 1 1 100%; font-size: 0.85em;
         color: var(--secondary-text-color);
       }
-      .layout-verdict.match { color: ${ACCENT_READABLE}; }
+      .layout-verdict.match { color: var(--primary-text-color); }
       /* Editing widens the pipes: a 1.5-unit stroke is a hopeless click
          target, and clicking a pipe is how one is removed. */
       .setup-svg.editing .setup-pipe { stroke-width: 3.5; cursor: pointer; }
@@ -3323,7 +3319,7 @@ function cardStyleBlock() {
       }
       .whatif .wi-pin {
         border-color: var(--primary-color, #03a9f4);
-        color: ${ACCENT_READABLE};
+        color: var(--primary-text-color);
       }
       .whatif .wi-pin-result { margin-top: 0.4em; min-height: 1.2em; }
 
@@ -3413,7 +3409,7 @@ function cardStyleBlock() {
         border: 1px solid var(--divider-color, #e0e0e0);
         border-radius: 10px;
         background: none;
-        color: ${ACCENT_READABLE};
+        color: var(--primary-text-color);
         cursor: pointer;
       }
       .lane-more { pointer-events: none; font-weight: 700; }
@@ -3450,7 +3446,7 @@ function cardStyleBlock() {
       .whatif .wi-add { align-self: flex-start; font-size: 0.9em; }
       .whatif .wi-apply {
         border-color: var(--primary-color, #03a9f4);
-        color: ${ACCENT_READABLE};
+        color: var(--primary-text-color);
         background: var(--card-background-color, #fff);
         font-weight: 600;
       }
@@ -6595,7 +6591,7 @@ class LaneEditor {
         out.push(
           `<text class="lane-more" x="${plotR - 3}" y="${
             y + laneH - 3 * (laneH / LANE_H)
-          }" font-size="${font}" text-anchor="end" fill="${ACCENT_READABLE}">»</text>`
+          }" font-size="${font}" text-anchor="end" fill="var(--primary-text-color,#212121)">»</text>`
         );
       }
 
