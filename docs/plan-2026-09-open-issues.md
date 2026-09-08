@@ -51,9 +51,11 @@ Five principles decide it, each a measured fact rather than a preference.
    anchor rewrite runs **after `10-adr-corpus` closes the queue** — the check
    does not exist until `07-loop` lands, and `06b-record3` supplies the rows
    that let a stricter rule pass — **and before the next release stamp**.
-   Measured 2026-09-08: 30 merges in the window, 28 satisfying the current
-   rule, 26 satisfying an anchored one, and 0 failing an anchored one once
-   this pull request's rows land.
+   Measured at `d08a56a`, this branch's own merge base: **31** merges in the
+   window, 28 satisfying the current bare-token rule, 26 satisfying an anchored
+   one, and 0 failing an anchored one once this pull request's rows land. The
+   base is named because the window grows with every merge — an earlier draft
+   said 30, which was already stale when it was written.
 
 ## Delivery status
 
@@ -463,7 +465,7 @@ no wave:
 - [#623](https://github.com/tvofi/heatpump_optimizer/pull/623) — **merged `03af74b`**, `docs/HANDOVER.md` truthed and `docs/plan-2026-09-open-issues.md` given the carry it owed. The handover was eleven merges stale, its machine section described a box no session in it was running on, and three new traps were numbered 8, 9 and 10 — numbers the list already used — which shipped green through `policy-docs`, `prepr` and a review, because **nothing measures a numbered list's numbering**. Renumbered to the end rather than monotonically, because six sites across four files cite traps by number and renumbering would have killed all six to fix a cosmetic defect. Two review rounds. Round 1 blocked on a `## Forward-carry` naming a **branch** rather than a file `git grep` can find, and on the body reporting its distance from `118fcf2` — a value the branch had written in its own first commit and superseded twice — where the truth against `origin/main` was eleven.
 - [#624](https://github.com/tvofi/heatpump_optimizer/pull/624) — **merged `cc2efc9`**, `docs/decisions/0006-policy-merge-grant-regranted-to-the-local-session.md`. Decision 0001 scoped policy-merge authority to session `019DU5u9DvSdWdcqXQnEW3ga` and says in its own text that anything after it reverts to owner approval per pull request; that session ended with this queue built and unmerged, so the authority did not carry and was **re-granted by the owner before this session merged anything**. 0001's six preconditions carry forward unchanged, and 0006 does not supersede 0001 — a record of an authority that was held and is now spent does not become false when its session ends. It also corrects the outgoing handover's *"a sixth ADR costs a line"*: established by mutation, an ADR is free until a **policy document** cites it, and `docs/plan-2026-09-open-issues.md` is corpus-excluded, which is why ADR 0001 is already cited from this very list at #610's row and cost nothing. Branch deletion is measured in it rather than asserted — the four merged queue refs deleted, `ls-remote` as witness rather than the push's own output — and ruleset creation is deliberately left to last, because a required check absent from `main` blocks every merge permanently.
 - [#625](https://github.com/tvofi/heatpump_optimizer/pull/625) — **merged `d08a56a`**, `.claude/settings.json` and three hooks, which did not exist: SessionStart, PreToolUse and Stop, each standing in for a rule whose cheapest detector was minutes of CI or a forty-minute release stamp. `policy_lint --hooks` is what keeps them from becoming the claim they replace. **Two review rounds, and round 1 found the same defect class the change's own commit message names as its lesson**: `stop-selfcheck.sh`'s thirteen cases all drove helpers, none drove the wrapper, so replacing its final `exit 2` with `exit 0` left 13 of 13 passing and `--hooks` at rc=0 with the hook completely inert in production. Fixed for `pre-edit.sh` in the first draft and not for the second hook. Four end-to-end cases now drive the wrapper against a scratch repository with a stub linter whose exit status the test chooses, and the reviewer drove **five further wrapper mutations, all five caught**. Round 1 also refuted the body's unconditional fail-open claim on one of its four items: `git branch --show-current` returns an empty string both on a detached HEAD and when it cannot answer at all, and collapsing the two made the hook fail **closed** on `VERSION`, the manifest and `RELEASE_NOTES.md` whenever git was absent — **the same shape as #622**, a git command's `stdout` read without its `returncode`. Also closes two settings-level holes the review reported without blocking: deleting a hook entry left `HOOKS ok: 2 wired hook(s)` and rc=0, and repointing `PreToolUse` at another script left it green at three, so `REQUIRED` now pins the roster by **membership — event and script, not a count**, because a count is satisfied by a duplicate and by a swap. The forward-carry answer of `none` was rejected and the reviewer was right: the vacuous-mutation finding went to `tools/audit/briefs/fixer.md` step 2, **paid by cutting** — 257 lines in, 257 out, against a cap of 257, every cut line's rule verified still stated.
-- [#628](https://github.com/tvofi/heatpump_optimizer/pull/628) — **merged under decision 0006**, and deliberately **without a merge SHA**: GitHub creates the squash commit at merge time, so a row a pull request writes for itself cannot name one, and #612's row saying *"Its own row is this one"* was in fact written by #621 nine merges later. The rows `07-loop` needs before its `record` job can land — #621 through #625 — established by driving the detector rather than counting: 30 merged pull requests in the window, 2 without a disposition before, **0 after, rc=0**. Two of the five already satisfied the check and should not have, which is the hole the same change designs the fix for: principle 6 under `## Why this order` sequences it after the queue closes and before the next release stamp, and the entry under `## Carried findings awaiting a stage` carries the anchor design, its two prohibitions and its honest limit. Briefly filed as #627 and closed as wrong — an issue is not the instrument for propagation — and recorded instead as programme-closing work in `docs/HANDOVER.md`. That file was at **276 of 276**, so this session's traps were paid for by compressing nine entries; rewrapping the traps section reclaims zero lines, so the cost came out of content, and **only one of three traps fitted**, the other two being disclosed in the body rather than dropped in silence.
+- [#628](https://github.com/tvofi/heatpump_optimizer/pull/628) — **merged under decision 0006**, and deliberately **without a merge SHA**: GitHub creates the squash commit at merge time, so a row a pull request writes for itself cannot name one, and #612's row saying *"Its own row is this one"* was in fact written by #621 nine merges later. The rows `07-loop` needs before its `record` job can land — #621 through #625 — established by driving the detector rather than counting: **31** merged pull requests in `v6.3.18..main` at `d08a56a`, 3 without a disposition in a `07-loop` worktree's own tree, **0 with this branch's plan file, rc=0**. Two of the five already satisfied the check and should not have, which is the hole the same change designs the fix for: principle 6 sequences it after the queue closes and before the next release stamp, and the entry under `## Carried findings awaiting a stage` carries the anchor design, its two prohibitions and its honest limit. Briefly filed as #627 and closed as wrong — an issue is not the instrument for propagation. **Round 1 blocked this pull request and was right**: it had paid for three handover traps by compressing nine entries, and the compressions cut evidence — a path, a literal glob, a worked example, trap 17's control clause and half of trap 18's prescribed verification — which `writing-for-agents.md` forbids outright, *cutting evidence is never compliance*. `docs/HANDOVER.md` is now byte-identical to its merge base apart from `updated-for:`, and the traps landed in `## Standing rules` here instead. Two counts in round 1 also failed to re-derive, both stale rather than invented: 69 rows for what is 65 at the merge base and 71 at head, and 30 merges in a window that already held 31 when the sentence was written.
 
 **A pattern worth naming**, since most of these were blocked for it: every one of those blocks was a document asserting something that was not true of the tree — a stale head, a count, an actor, a carry that did not land. None was a disagreement about the change itself.
 
@@ -730,12 +732,15 @@ judge comments on each issue and summarised on #201.
   described #621's defect and named itself.
   **The design, and the two things it must not do.** Require an *anchor*, not a
   row shape: in the plan, the number must open a list item — `- [#NNN](…` —
-  which is how all 69 rows already read; in the handover, an explicit opt-in
+  which is how every row already reads — **65** of 65 at `d08a56a` and 71 of 71
+  with this branch's own, under the rule
+  `^- \[#N\]\(https://github\.com/tvofi/heatpump_optimizer/pull/N\)`, with no
+  odd-shaped row at either end; in the handover, an explicit opt-in
   marker, so prose keeps working and only a deliberate line counts. It must
   **not** demote `docs/HANDOVER.md` to a non-home: `DISPOSITION_FILES` names
   both, the error message promises both, and the handover exists to carry what
   the code cannot say — dropping it is a policy change needing the owner, not a
-  linter change. It must **not** pin a whole row format: 69 rows is a large
+  linter change. It must **not** pin a whole row format: 71 rows is a large
   surface, this corpus compresses documents as a matter of course, and a
   reformat would then redden `main` for cosmetic reasons.
   **What it does not fix, stated so the next seat does not overclaim.** An
@@ -746,9 +751,12 @@ judge comments on each issue and summarised on #201.
   "a statement about this merge", and nothing mechanical does.
   Re-derive the passing-by-accident set at your own merge base rather than
   quoting this one — it changes with every merge. **This is programme-closing work**,
-  sequenced beside O3 rather than filed: an issue is not the instrument for
-  propagation, and the destination that outlives this document is
-  `docs/HANDOVER.md`, not the tracker. #627 was opened for it and closed.
+  sequenced by principle 6 rather than filed: an issue is not the instrument for
+  propagation. #627 was opened for it and closed. It is carried **here** and not
+  in `docs/HANDOVER.md`: that file is at its cap, and `writing-for-agents.md`
+  forbids paying for an addition by cutting evidence, so at 276 of 276 it can
+  take nothing new. That is a real constraint on the living handover and is
+  itself owed work — see `## Standing rules`.
 - **A pull request cannot name its own squash-merge SHA.** GitHub creates the
   squash commit at merge time, so a row saying **merged `<sha>`** written in its
   own branch is either back-filled later or false: #612's row, which reads *"Its
@@ -758,11 +766,75 @@ judge comments on each issue and summarised on #201.
   is why the `record` job cannot be satisfied in advance and why each remaining
   queue branch carries its own row before merging.
 
+- **`main` is unguarded, and the ruleset that would guard it is the programme's
+  last act.** Measured 2026-09-08 and unchanged since #609 established it:
+  `GET /repos/.../rulesets?includes_parents=true` and
+  `GET /repos/.../rules/branches/main` both answer `200 []`, so every check in
+  this repository is **advisory at the merge boundary**. The payload is on #609
+  and stands, with four amendments this session measured rather than assumed.
+  **The capability is proven and reversible**: a probe ruleset targeting a branch
+  pattern matching nothing was created, `rules/branches/main` stayed `[]`, and a
+  `DELETE` removed it — rollback is one call.
+  **Amendment 1, the required set grows from ten contexts to sixteen.** #609
+  excluded `CodeQL` and the three `Analyze (…)` checks because their definition
+  was unreadable from that container; it reads now — `state: configured`,
+  languages `actions/javascript/javascript-typescript/python/typescript`, query
+  suite `extended`, threat model `remote` — so the reason is spent. `record` and
+  `env-matrix` join once `07-loop` and `08-envmatrix` have landed them on `main`.
+  **Amendment 2, #609's permission reading was a proxy artifact.** It reasoned
+  from `{admin: false, maintain: false, push: false, triage: false, pull: false}`
+  while pushes plainly worked, and suspected as much. This session reads
+  `admin: true`.
+  **Amendment 3, the one risk #609 disclosed and could not test is real.** It
+  warned that `closures` may report `skipped` rather than `success`, and that if
+  GitHub does not treat a skipped required check as satisfied, **every docs-only
+  pull request blocks forever**. Measured: `closures` is `SKIPPED` on #624 and
+  #625 and `SUCCESS` on #628, so the precondition holds. GitHub's response to it
+  is still unmeasured, and that is the whole reason for the ordering below.
+  **Amendment 4, nothing else in the payload changes.** The maintain-role bypass
+  stays, so `tools/release/stamp.py`'s direct push to `main` still lands.
+  `strict_required_status_checks_policy` stays **false**: "require branches to be
+  up to date" would force a merge commit onto every frozen review head whenever
+  `main` advances. And there is still **no required-approval or code-owner rule**,
+  because one identity authors and approves here, which decision 0005 measured as
+  a lock rather than enforcement.
+  **How to land it**: create it, then open a throwaway docs-only pull request and
+  read whether it is mergeable. If a skipped `closures` blocks it, drop that one
+  context — `closure-scope` always reports and already covers the scoping
+  decision — or `DELETE` the ruleset. Do not take the skipped-check behaviour on
+  trust; it is the only assumption left in the payload.
 ## Standing rules
 
 Unchanged from the repository's own protocol; restated here because a fresh
 session reads this file first.
 
+- **Measurement, three ways a command answers a question you did not ask.**
+  All three cost this session a wrong reading, and all three print a normal
+  result. `git push origin <branch>` from a **detached** worktree pushes the
+  branch ref rather than your HEAD — push `HEAD:refs/heads/<branch>` and read
+  `git ls-remote`, never the push's own output. A check script run from another
+  worktree measures **that** worktree, not the one you meant. And within
+  `policy_lint.mjs` the read models differ: the corpus checks read **tracked
+  files from git**, so moving a file aside leaves the error unchanged and reads
+  as "not the cause", while `--record` reads the **working tree**, so copying a
+  file in changes the answer — isolate with `git rm --cached`, and establish
+  which model a check uses before believing a negative result. These belong in
+  `docs/HANDOVER.md` and are here because that file is at its cap; see the
+  carried finding below.
+- **`docs/HANDOVER.md` is at 276 of 276 and cannot accept a new fact.**
+  `writing-for-agents.md` governs it — *precision outranks concision, always*,
+  and *cutting evidence is never compliance* — while the cap is one-sided and
+  only moves down. Together those two rules mean the living handover can take
+  nothing new once full. An attempt to pay for three traps by compressing nine
+  entries was reviewed and **blocked**: it lost the path in trap 12, the literal
+  vulnerable glob in trap 21, trap 25's worked example, trap 17's control clause
+  *"and reproduced the defect"* — without which the trap's lesson inverts — and
+  half of trap 18's prescribed verification. Reflowing the traps section
+  reclaims **0 lines** at the file's own width of 80–81, independently derived
+  by the reviewer, so there is no formatting slack either. **Resolving this is
+  owed work and needs the owner**: either the cap rises with a stated case, or
+  spent content graduates out of the file deliberately. Until then, a session's
+  durable findings land here.
 - **Fixer** (`tools/audit/briefs/fixer.md`): failing test first, importing the
   production symbol; mutation proof pasted into the PR body; the finding's own
   harness re-run before and after at the measured head SHA; a null control on

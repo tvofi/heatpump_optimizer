@@ -52,14 +52,15 @@ so it costs no extra pull request, and `updated-for:` names that merge.
   the gate evidence. Local runs exist for what CI structurally cannot produce:
   the mutation proof, the failing test at the merge base, and the finder's own
   harness at both ends.
-- **#387 was fixed with the `env_drift` shape**, not by growing `alt_basins`
-  and not by lowering the coverage floor. Solver work is captured twice in one
-  run — tree and merge base — computed against computed, so no cross-machine
-  assumption and no table to re-record. Two consequences ruled on separately:
-  the WORK channel's stale-cheap rule is a printed report rather than a failure,
-  because its baseline can no longer go stale and failing would redden a genuine
-  optimisation; and the coverage floor is a literal rather than an environment
-  override, which could be reached in CI without appearing in any body.
+- **#387 was fixed with the `env_drift` shape**, not by growing `alt_basins` and
+  not by lowering the coverage floor. Solver work is captured twice in one run —
+  tree and merge base — and computed is compared against computed, so there is
+  no cross-machine assumption and no table to re-record. Two consequences were
+  ruled on separately: the WORK channel's stale-cheap rule is a printed report
+  rather than a failure, because that channel's baseline can no longer go stale
+  and the failure would turn a genuine optimisation red; and the coverage floor
+  is a literal, not an environment override, because an override could be
+  reached in CI without ever appearing in a pull-request body.
 
 - **Fix, then verify, then file** (owner, 2026-09-07). Each step is a fallback
   for the one before, not an alternative. An issue propagates further than a
@@ -76,13 +77,13 @@ so it costs no extra pull request, and `updated-for:` names that merge.
 ### The UX programme
 
 **Every item lives on #558**, with the *Optimizer UX Docket* artifact as source
-of record. This file deliberately does **not** restate them: it once claimed a
-"full accounting" it did not hold, costing a session the conclusion that the
+of record. This file deliberately does **not** restate them — it once claimed a
+"full accounting" it did not hold, which cost a session the conclusion that the
 list was unrecoverable when it was one artifact call away. Lane collisions,
-sequencing and why E1–E3 and F wait are in `docs/plan-2026-09-open-issues.md`,
-authoritative for delivery state; per-unit stage, `after` edges and carried
-findings are in `.claude/workflows/wave-ux-groups.json` (#601), the only one a
-linter reads.
+sequencing and the reasons E1–E3 and F wait are in
+`docs/plan-2026-09-open-issues.md`, authoritative for delivery state; per-unit
+stage, `after` edges and carried findings are in
+`.claude/workflows/wave-ux-groups.json` (#601), the only one a linter reads.
 
 ## Corrections to the record
 
@@ -91,19 +92,19 @@ linter reads.
   enforced by `tests/features.py`'s symmetry check and the `coord_*` goldens,
   not by a count. Corrected on #193.
 - **#510 — a recorded cut drop that was blindness.** `tests/structure.py`
-  matched `ast.Attribute` on `ast.Name("self")`, so `getattr(self, "_ctx",
-  self).X` was invisible to it. Wave 4's S1 cut series is identical at both ends
-  under a counter that resolves the idiom. #500's other results stand —
-  `CoordinatorContext`, the attribute migration, the facades, #377 closed —
-  nothing is reverted, S2 is unaffected, S3's reduction is genuine.
+  matched `ast.Attribute` on `ast.Name("self")`, so `getattr(self, "_ctx", self).X`
+  was invisible to it. Wave 4's S1 cut series is identical at both ends under a
+  counter that resolves the idiom. #500's other results stand — `CoordinatorContext`
+  itself, the attribute migration, the facades, #377 closed — and nothing is
+  reverted. S2 is unaffected and S3's reduction is genuine.
 - **#511 — v6.3.15 cannot produce a plan on any install.** The process-solve
   worker cannot unpickle a job under Home Assistant's module naming.
   **#513 is why the suite did not see it**: the suite runs a module name and a
   filesystem layout that no installation uses.
 - **#457 / 3L-G6 was not spec-blocked.** Nothing shipped, and the owner closed
   it `COMPLETED` by hand on 2026-09-06. Recorded as discharged.
-- **A file reported missing was there** — filed as a programme defect after
-  listing a checkout that sat on a stale branch. **Check existence with
+- **A file reported missing was there.** A seat filed it as a programme defect
+  after listing a checkout that sat on a stale branch. **Check existence with
   `git show origin/main:<path>`, never by listing a working tree.**
 - **`section()` was genuinely unavailable** at the declared Home Assistant
   floor — absent from that release's `helpers/selector.py`, present at
@@ -143,9 +144,9 @@ linter reads.
    exactly the right question.
 9. **The machinery a handover depends on is code nobody ran.** `.claude/` is on
    `tests/closure.py`'s `INERT` list by design, so orchestration scripts ship
-   untested unless something pins them by hand. `node .claude/workflows/
-   check-wave-script.mjs` pins the resume control flow; **re-run it after any
-   edit to `web-fix-wave.js`**, because no CI job will.
+   untested unless something pins them by hand. `node
+   .claude/workflows/check-wave-script.mjs` pins the resume control flow;
+   **re-run it after any edit to `web-fix-wave.js`**, because no CI job will.
 10. **A closing keyword in a commit message links an issue just as a pull-request
     body does.** #503 acquired a false link to #457 that way and had to be
     corrected before it could merge.
@@ -156,18 +157,20 @@ linter reads.
     property that was stated.** The demonstration displaces the specification,
     the verification is built from the demonstrated instance's *form*, and any
     sibling carrying the property in a different form survives — including one
-    the same commit creates. Root-cause analysis over #531, #569 and #591:
-    **3.1% of reviewed pull requests, 11.2% of all review rounds**, from 161
-    rounds over 97 reviewed pull requests — a population that grows, so
-    re-derive rather than quote. A check cannot close it: `preflight.sh`,
-    written against this very class, catches **0 of 3**, and rewriting all three
-    with digits leaves them just as clean — a grep asks *is there a figure
-    here*, the defect is *was the right thing measured*. The divider is
-    **structural, not dispositional**: the class reached no seat's *production*
-    fix, because production fixes meet standing property-quantified instruments
-    (CI, the ratchet, closures, the mutation proof) and a record or policy
-    artifact meets none, so its acceptance test is whatever its author wrote.
-
+    the same commit creates. Established by root-cause analysis over #531, #569
+    and #591: **3.1% of reviewed pull requests, 11.2% of all review rounds.**
+    A check cannot close it — `tools/audit/preflight.sh`, written against this
+    very class, catches **0 of 3**. The reason is not the shape of those figures —
+    rewriting all three with digits leaves them just as clean. A grep can only
+    ask *is there a figure here*, while the defect is *was the right thing
+    measured*. The countermeasure shared the class's own defect.
+    The divider is **structural, not dispositional**: across every review-round
+    body in the corpus at the time — 161 rounds over 97 reviewed pull requests,
+    the population both percentages come from, and it grows, so re-derive rather
+    than quote — the class reached no seat's *production* fix. A production fix
+    is accepted by standing property-quantified instruments (CI, the ratchet,
+    closures, the mutation proof); a record or policy artifact has none, so its
+    acceptance test is whatever its author wrote that minute.
 13. **"The pull request is open" is not a handoff.** The freeze starts at
     handoff, and a seat that has opened its pull request may still be pushing
     while it waits on CI. Six pull requests had a head moved under a live review
@@ -175,39 +178,43 @@ linter reads.
     times.
 14. **A record pull request cannot converge while the merge queue runs.** #531
     stayed open 20 hours over 45 commits, 25 content edits and 11 blocked
-    rounds, with 31 pull requests merging underneath it — each a reading at one
-    moment, not a tally. One record per merge has a bounded truth condition;
-    live state belongs on #201, where no merge can stale it.
+    rounds, with 31 pull requests merging underneath it — each of those a
+    reading at one moment, not a tally, because every merge invalidated part of
+    its content. One record per merge has a bounded truth condition and cannot
+    be overtaken; live state belongs on #201, where no merge can stale it.
 15. **`date -jf '%Y-%m-%dT%H:%M:%SZ'` parses a UTC stamp as local time.** Every
-    age computed that way is wrong by the offset; it once made a queue aged 8
-    minutes to 20 hours read as a flat "2h", hiding the real outlier. Use
-    Python's `datetime.fromisoformat` with an explicit UTC now.
+    age computed that way is wrong by the offset; it once made a queue aged
+    8 minutes to 20 hours read as a flat "2h", hiding which pull request was
+    actually the outlier. Use Python's `datetime.fromisoformat` with an explicit
+    UTC now.
 17. **A citation and its referent can live on two branches, and the relation
     between them is invisible to every branch-scoped check.** Two green branches
     merged to a red `main` with no conflict and no shared file: one landed a
-    brief citing `configuration_url`, the other deleted the tree's only
-    occurrence of it. Not the move-PR silent-revert shape — nothing was
-    overwritten, both survived, the failure is purely relational. `CLAUDE.md`
-    rule 1's asymmetry caught it: a push to `main` forces `GATE_SCOPE=full`, an
-    argument written about closures paying out for something nobody foresaw.
-    **The preventable half is that the citation was anchored to one English
-    sentence. Prose is not a pin** — restoring it would have greened the gate,
-    so the repair was to re-anchor.
-
+    brief citing `configuration_url`, the other deleted the tracked tree's only
+    occurrence of that string, and git reported nothing because they touch
+    different files. Not the move-PR silent-revert shape — nothing was
+    overwritten and both changes survived intact; the failure is purely
+    relational. `CLAUDE.md` rule 1's asymmetry is what caught it: a push to
+    `main` forces `GATE_SCOPE=full`, and that argument, written about closures,
+    paid out for something nobody had in mind. **The preventable half is that
+    the citation was anchored to one English sentence. Prose is not a pin** —
+    restoring the sentence would have greened the gate and reproduced the
+    defect, so the repair was to re-anchor.
 18. **A clean merge is evidence of no textual overlap and nothing else.** Twice
     in one session two sides appended at the same insertion point and shared a
     trailing bracket, so `--ours` or `--theirs` would have dropped a whole block
-    with no marker and no failing test. Verify a merge by parsing the result,
-    never by reading the hunk.
+    with no marker and no failing test. Verify a merge by parsing the result and
+    naming the checks that run, never by reading the hunk.
 16. **Backticks inside a double-quoted shell string are command substitution.**
     Three review comments were posted with their SHAs silently missing. Write
     the body to a file with a quoted heredoc and pass `-F body=@file`.
 19. **A one-sided size cap and a growing document collide across branches, and
     nothing branch-scoped holds both ends.** #608 capped `docs/HANDOVER.md` at
-    its then length; #607, from the same commit and already in review, added 43
-    lines and merged 56 minutes later. Both prefixes are INERT, so only
-    `Governance` measures it and it was green on each branch alone: `main` was
-    red on `policy-docs` from `5018e31` until a record paid the lines back.
+    its then length; #607, cut from the same commit and already in review, added
+    43 lines and merged 56 minutes later. Both prefixes are INERT, so the
+    `Governance` workflow alone measures this and it was green on each branch
+    alone — `main` was red on `policy-docs` from `5018e31` until a record paid
+    the lines back. Trap 17's shape on a budget rather than a citation.
 20. **A comment bumps a pull request's `updated_at`, so it is not a body-edit
     clock.** Read as one, it had me date a body edit to what was in fact a
     reviewer's own comment timestamp. The clock is the `Governance` run list:
@@ -215,9 +222,9 @@ linter reads.
 21. **Assert a mutation's occurrence count before applying it.** A control here
     reported a cap mutant NOT CAUGHT: the replacement hit the string's first
     occurrence, inside a comment, so the run was the unmutated one. "I could not
-    find it" is a different result from "it is pinned". Same shape: an unanchored
-    `case` glob accepts `v1.2.3; rm -rf /`, and `git remote remove` in a
-    worktree strips it for every worktree.
+    find it" is a different result from "it is pinned". Same shape: a `case`
+    glob is not anchored, so `v[0-9]*.[0-9]*.[0-9]*` accepts `v1.2.3; rm -rf /`;
+    and `git remote remove` in a worktree strips it for every worktree.
 22. **A subagent does not survive a session restart; its report does.** Read
     `tasks/<agentId>.output` before re-dispatching — `ListAgents` goes empty
     with no notification, and an hour was nearly spent re-running finished work.
@@ -229,10 +236,9 @@ linter reads.
 25. **A body's count of its own diff must come from the diff.** #621's body
     said five disposition rows; the diff added nine — the author counted what
     they remembered writing, in the branch whose subject was a document whose
-    facts had gone stale for want of a second witness. Derive counts by mutating
-    the artefact and reading the detector.
-26. **`git push origin <branch>` from a DETACHED worktree pushes the branch
-    ref, not your HEAD, and prints a normal result.** Read `ls-remote`.
+    facts had gone stale for want of a second witness. Derive a body's counts
+    by mutating the artefact and reading the detector: here, removing all nine
+    rows and reading `--record`'s refusal.
 
 ## Owed — post-hoc reviews
 
@@ -255,19 +261,13 @@ Also owed, and deliberately not landed because it is policy: a finding for
 the complement of production's input**. #591's seat drafted the text and
 flagged it rather than claiming a carry it had not made.
 
-Also owed, and **programme-closing work** rather than a carried finding: the
-`record` check is satisfied by a bare `#NNN` anywhere, so #621 and #623 read as
-dispositioned with no row. Designed and sequenced in
-`docs/plan-2026-09-open-issues.md` — principle 6, and the entry under
-`## Carried findings awaiting a stage`. It runs after the queue closes and
-**before the next release stamp**, which empties the window it is proved on.
-
 ## The machine this runs on — measure it, do not read it
 
-Measure your own box (`nproc`, `command -v gh`, `python3 -V`); a section that
-describes one is false to every seat not on it. Repository facts: CI runs 3.13,
-#514 moves production to 3.14, CI is the authority for the browser lane, and
-`git branch --show-current` beats trusting a path.
+This section used to describe the owner's Mac; a container seat reads it and
+every line is false. Measure your own box (`nproc`, `command -v gh`, `python3
+-V`). The repository facts: CI runs 3.13, #514 moves production to 3.14, CI is
+the authority for the browser lane, and `git branch --show-current` beats
+trusting a path.
 
 **A 403 is not always the repository's answer.** Tag pushes and ref deletion
 work from some environments and are proxy-refused in others, and the message
