@@ -550,9 +550,14 @@ function lowerBaseMap(listing) {
 //
 // Any destination named after a capped policy file left every cap in silence.
 //
-// WHY IT COSTS NOTHING HERE AND NOT BEFORE. Driven this way on the previous
-// tree it reported sixteen extra findings, every one a `tools/audit/round2/**`
-// report reached through the generic names `REPORT.md` and `BASELINE.md`. Those
+// WHY IT COSTS NOTHING HERE AND NOT BEFORE. Driven this way on the base tree it
+// reported seventeen extra findings, all `tools/audit/round2/**`: sixteen
+// through the generic names `REPORT.md` and `BASELINE.md`, and a seventeenth --
+// `round2/JUDGE.md` -- through `judge.md` and the case fold. Both counts are
+// measured on `e4a388a`, the tree whose body wrote sixteen: an EXACT-CASE
+// resolve-to-all reports 16 there, the FOLDED one 17, and the one finding
+// between them is `round2/JUDGE.md`. So sixteen is the count from before the
+// fold -- which `e4a388a` itself carries -- and not a number #616 moved. Those
 // were never false positives -- they were frozen evidence documents that
 // genuinely had no cap and no exclusion, and the honest fix was to classify
 // them, which this commit does by deleting the tree. So the check is widened in
