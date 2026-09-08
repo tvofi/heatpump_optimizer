@@ -302,6 +302,9 @@ lane_units() {
   # Not a capture. Claim files unchanged => in_scope skips env_drift.py and
   # card_drift.mjs (#493); this line cannot be scoped out.
   run_always "$PYTHON" tests/env_drift.py --claims-only "$GOLDEN_REF"
+  # #527: a full merge used to shrink card_drift.mjs 66→6, and a partial
+  # merge aborted every sibling at the first shrink. Cheap, no recording.
+  run_always "$PYTHON" tests/closure.py selftest
   run "$PYTHON" tests/features.py
   run "$PYTHON" tests/entities.py
   # The initial config flow walked end to end (#194): every step's valid

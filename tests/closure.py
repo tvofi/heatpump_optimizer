@@ -44,6 +44,7 @@ Commands
                  [--workdir DIR]  decide whether THIS check must run for a change,
                                   and which closures it has to re-derive
   show                            print the committed closures
+  selftest                        pin merge() against a silent shrink (#527)
 
 Nothing here imports the integration; recording does, by running the tests.
 """
@@ -60,6 +61,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 
@@ -677,10 +679,17 @@ def _widen(closures: dict[str, set[str]]) -> None:
             closures[p] |= closures[c]
             del closures[c]
 
-    # plan_view.py writes the payload card.mjs reads: anything that can change
-    # the payload can change what the card is tested against.
-    if "tests/card.mjs" in closures and "tests/plan_view.py" in closures:
-        closures["tests/card.mjs"] |= closures["tests/plan_view.py"]
+    # PRODUCERS is "must run first" for selection, and the same edge is a
+    # closure rule: plan_view.py writes the payload card.mjs and
+    # card_drift.mjs read, so anything that can change the payload can
+    # change what they test. card_drift.mjs had no copy of this union, which
+    # is why a full fold of its 6-file raw trace silently replaced the
+    # committed 66 (#527).
+    for consumer, producers in PRODUCERS.items():
+        if consumer in closures:
+            for prod in producers:
+                if prod in closures:
+                    closures[consumer] |= closures[prod]
 
     # RULE: env_drift compares BEHAVIOUR between two checkouts, in a
     # subprocess, in a worktree outside this repo. No tracer in this process
@@ -734,6 +743,24 @@ def _fold(records: dict[str, dict]) -> dict[str, list[str]]:
 
     _widen(closures)
     return {k: sorted(v) for k, v in sorted(closures.items())}
+
+
+def _keep_committed_files(name: str, old: set[str], fresh: set[str]) -> list[str]:
+    """Never shrink a committed closure. Union, report, continue.
+
+    Under-approximation is the direction that makes the gate skip a script.
+    A shrinking sibling used to abort the whole merge, so one unreproducible
+    node lane vetoed an unrelated repair, and the refusal told you to run a
+    full derive -- the path that replaced 66 with 6 (#527).
+    """
+    dropped = sorted(old - fresh)
+    if not dropped:
+        return sorted(fresh)
+    print(f"closure: {name} would drop {len(dropped)} file(s) the committed "
+          f"closure listed; keeping them.", file=sys.stderr)
+    for d in dropped:
+        print(f"    {d}", file=sys.stderr)
+    return sorted(old | fresh)
 
 
 def merge(in_dir: Path, out: Path, allow_failures: bool = False,
@@ -803,24 +830,15 @@ def merge(in_dir: Path, out: Path, allow_failures: bool = False,
             if f"tests/{child}" in records:
                 touched.discard(f"tests/{child}")
                 touched.add(f"tests/{parent}")
-        if "tests/plan_view.py" in records and "tests/card.mjs" in overlay:
-            touched.add("tests/card.mjs")
+        for consumer, producers in PRODUCERS.items():
+            if consumer in overlay and any(p in records for p in producers):
+                touched.add(consumer)
         pair = {"tests/golden.py", "tests/env_drift.py"}
         if touched & pair:
             touched |= pair & set(overlay)
         for k in sorted(touched):
-            fresh = sorted(overlay[k])
             old = set(closures.get(k, ()))
-            dropped = sorted(old - set(fresh))
-            if dropped:
-                print(f"closure: {k} drops {len(dropped)} file(s) the committed "
-                      f"closure listed:")
-                for d in dropped:
-                    print(f"    {d}")
-                print("  Refusing: a partial update may not shrink a closure. "
-                      "Run a full re-derivation instead.", file=sys.stderr)
-                return 1
-            closures[k] = fresh
+            closures[k] = _keep_committed_files(k, old, set(overlay[k]))
             if k in records:
                 recorded[k] = {
                     "seconds": records[k].get("seconds", 0),
@@ -833,6 +851,10 @@ def merge(in_dir: Path, out: Path, allow_failures: bool = False,
             print(f"  {k:26s} {len(closures[k]):4d} files")
         return 0
     closures = _fold(records)
+    if out.exists():
+        prev = json.loads(out.read_text()).get("closures", {})
+        for k, fresh in list(closures.items()):
+            closures[k] = _keep_committed_files(k, set(prev.get(k, ())), set(fresh))
     bad = inert_closure_violations(closures)
     if bad:
         print("closure: files on the INERT list are actually read by tests:", file=sys.stderr)
@@ -1076,8 +1098,10 @@ def check(in_dir: Path, partial: bool = False) -> int:
                   f"touch (safe: over-scoped)")
     if failed:
         print()
-        print(f"{failed} closure(s) are stale. Regenerate with "
-              f"tests/derive_closures.sh and commit tests/closures.json.")
+        print(f"{failed} closure(s) are stale. Re-derive the named script:")
+        print("    ./tests/derive_closures.sh --single <script>")
+        print("and commit tests/closures.json. A full derive_closures.sh off")
+        print("Linux replaces node-lane recordings; --single cannot shrink them.")
         return 1
     print("closure: committed closures cover every file this run touched")
     return 0
@@ -1589,6 +1613,185 @@ def write_affected(plan: dict, workdir: Path) -> None:
     (workdir / "affected.txt").write_text(buf.getvalue())
 
 
+# ---------------------------------------------------------------------------
+# #527: a full merge used to replace tests/card_drift.mjs's committed 66 with
+# the raw 6-file trace, and the refusal that said "run a full re-derivation"
+# was the same path. A partial merge aborted the whole overlay at the first
+# shrink, so one unreproducible lane vetoed an unrelated repair.
+
+
+def _selftest_write_records(rec_dir: Path, mapping: dict[str, list[str]]) -> None:
+    rec_dir.mkdir(parents=True, exist_ok=True)
+    for script, files in mapping.items():
+        (rec_dir / f"{Path(script).name}.json").write_text(json.dumps({
+            "script": script, "rc": 0, "seconds": 0.1, "files": files,
+        }))
+
+
+def selftest() -> int:
+    """Drive merge() and check() against the #527 trap. No suite recording."""
+    failed = 0
+    n = 0
+
+    def pin(name: str, cond: bool, detail: str = "") -> None:
+        nonlocal failed, n
+        n += 1
+        if cond:
+            print(f"  ok   {name}")
+        else:
+            failed += 1
+            extra = f"  [{detail}]" if detail else ""
+            print(f"  FAIL {name}{extra}")
+
+    print("\n=== closure shrink guard (#527) ===")
+    committed = json.loads(CLOSURES.read_text())["closures"]
+    drift = "tests/card_drift.mjs"
+    raw_six = [
+        "VERSION",
+        "tests/card_drift.mjs",
+        "tests/card_rig.mjs",
+        "tests/dom_stub.mjs",
+        "tests/golden/card_claimed_drift.txt",
+        "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+    ]
+    old_drift = set(committed[drift])
+    pin(
+        "card_drift.mjs's committed closure covers plan_view.py",
+        set(committed["tests/plan_view.py"]) <= old_drift,
+        f"missing {sorted(set(committed['tests/plan_view.py']) - old_drift)}",
+    )
+    pin(
+        "the 6-file raw trace is a strict subset of that claim",
+        set(raw_six) < old_drift,
+        f"missing from committed: {sorted(set(raw_six) - old_drift)}",
+    )
+
+    expected = [s for s in test_scripts() if Path(s).name not in SLOW_GATED]
+    mapping = {}
+    for s in expected:
+        mapping[s] = list(committed[s]) if s in committed else [s]
+    mapping[drift] = raw_six
+
+    with tempfile.TemporaryDirectory() as td:
+        td_path = Path(td)
+        out = td_path / "closures.json"
+        out.write_text(CLOSURES.read_text())
+        rec = td_path / "rec"
+        _selftest_write_records(rec, mapping)
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(io.StringIO()):
+            rc = merge(rec, out, allow_failures=False, partial=False)
+        after = json.loads(out.read_text())["closures"][drift]
+        dropped = sorted(old_drift - set(after))
+        pin(
+            "a full merge does not drop files from card_drift.mjs",
+            rc == 0 and old_drift <= set(after),
+            f"rc={rc} after={len(after)} dropped={len(dropped)} "
+            f"first={dropped[:4]!r}",
+        )
+
+    grower = "tests/open_meteo.py"
+    grower_old = [grower]
+    grower_new = [grower, "tests/harness.py"]
+    shrinker = "tests/frontend.py"
+    shrinker_old = [shrinker, "tests/harness.py"]
+    shrinker_new = [shrinker]
+    with tempfile.TemporaryDirectory() as td:
+        td_path = Path(td)
+        out = td_path / "closures.json"
+        out.write_text(json.dumps({
+            "closures": {grower: grower_old, shrinker: shrinker_old},
+            "recorded": {},
+        }))
+        rec = td_path / "rec"
+        _selftest_write_records(rec, {grower: grower_new, shrinker: shrinker_new})
+        buf, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(err):
+            rc = merge(rec, out, allow_failures=False, partial=True)
+        payload = json.loads(out.read_text())["closures"]
+        log = buf.getvalue() + err.getvalue()
+        pin(
+            "a shrinking script does not abort an unrelated grow",
+            rc == 0
+            and "tests/harness.py" in payload[grower]
+            and "tests/harness.py" in payload[shrinker],
+            f"rc={rc} grower={payload.get(grower)!r} "
+            f"shrinker={payload.get(shrinker)!r}",
+        )
+        pin(
+            "the shrink path does not tell you to run a full derive",
+            "full re-derivation" not in log.lower(),
+            f"log={log[-400:]!r}",
+        )
+
+    with tempfile.TemporaryDirectory() as td:
+        td_path = Path(td)
+        out = td_path / "closures.json"
+        out.write_text(json.dumps({
+            "closures": {grower: grower_old},
+            "recorded": {},
+        }))
+        rec = td_path / "rec"
+        _selftest_write_records(rec, {grower: grower_new})
+        with contextlib.redirect_stdout(io.StringIO()), \
+                contextlib.redirect_stderr(io.StringIO()):
+            rc = merge(rec, out, allow_failures=False, partial=True)
+        payload = json.loads(out.read_text())["closures"]
+        pin(
+            "a grow-only partial merge still grows (null control)",
+            rc == 0 and payload[grower] == sorted(grower_new),
+            f"rc={rc} files={payload.get(grower)!r}",
+        )
+
+    widened = {
+        drift: {drift},
+        "tests/plan_view.py": {"tests/plan_view.py", "tests/profiles.py"},
+        "tests/card.mjs": {"tests/card.mjs"},
+    }
+    _widen(widened)
+    pin(
+        "card_drift.mjs inherits plan_view.py's closure the way card.mjs does",
+        "tests/profiles.py" in widened[drift]
+        and "tests/profiles.py" in widened["tests/card.mjs"],
+        f"drift={sorted(widened[drift])!r} card={sorted(widened['tests/card.mjs'])!r}",
+    )
+
+    crc, log = _selftest_stale_message()
+    pin(
+        "a stale-closure refusal names --single, not a bare full derive",
+        crc == 1
+        and "--single" in log
+        and "Regenerate with tests/derive_closures.sh and commit" not in log,
+        f"rc={crc} log={log[-400:]!r}",
+    )
+
+    if failed:
+        print(f"\n{failed} of {n} closure shrink pins FAILED")
+        return 1
+    print(f"\nALL {n} closure shrink pins PASSED")
+    return 0
+
+
+def _selftest_stale_message() -> tuple[int, str]:
+    grower = "tests/open_meteo.py"
+    global CLOSURES
+    with tempfile.TemporaryDirectory() as td:
+        td_path = Path(td)
+        fake = td_path / "closures.json"
+        fake.write_text(json.dumps({"closures": {grower: [grower]}}))
+        rec = td_path / "rec"
+        _selftest_write_records(rec, {grower: [grower, "tests/harness.py"]})
+        orig = CLOSURES
+        CLOSURES = fake
+        buf, err = io.StringIO(), io.StringIO()
+        try:
+            with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(err):
+                rc = check(rec, partial=True)
+        finally:
+            CLOSURES = orig
+        return rc, buf.getvalue() + err.getvalue()
+
+
 def main() -> int:
     if len(sys.argv) > 1 and sys.argv[1] == "--exec-record":
         return _exec_record(sys.argv[2], sys.argv[3], sys.argv[4:])
@@ -1628,6 +1831,7 @@ def main() -> int:
     f.add_argument("--workdir")
     sub.add_parser("show")
     sub.add_parser("no-copies")
+    sub.add_parser("selftest")
     a = ap.parse_args()
     if a.cmd == "record":
         return record(a.script, Path(a.out_dir), a.args)
@@ -1642,6 +1846,8 @@ def main() -> int:
         return _autofix_report_cmd(a.job, a.status)
     if a.cmd == "no-copies":
         return no_copies()
+    if a.cmd == "selftest":
+        return selftest()
     if a.cmd == "show":
         print(CLOSURES.read_text())
         return 0
