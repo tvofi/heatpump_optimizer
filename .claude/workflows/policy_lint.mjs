@@ -346,9 +346,16 @@ const CORPUS_EXCLUDED = new Set([
 // files, `tests/requirements-ci.txt`, and the round-2 and wave-5 evidence dumps.
 // A directory rule rather than seven more names, because the property is where
 // the repository keeps data, and a name list would go stale on the next fixture.
-// The residual limit, stated rather than left to be found: prose carried into a
-// `.txt` UNDER one of these prefixes would not be reported. That is a visibly
-// odd place to put policy, and narrowing further would report the data.
+//
+// MARKDOWN IS NEVER EXCUSED BY LOCATION. The first version of this list applied
+// to every extension, and that REOPENED the escape it was written beside: the
+// #615 round-two review moved ten lines of CLAUDE.md plus 4756 bytes of new
+// prose into `tests/POLICY-NOTES.md`, named it from CLAUDE.md, and measured
+// `rc=0` with 138 tokens freed in each of the five caps and a two-file diff.
+// The prefixes exist for `.txt` and its neighbours, which this repository keeps
+// under `tests/` and the evidence directories as data; a `.md` is a document
+// wherever it sits, so it is never excused here. Measured cost of the narrowing:
+// none -- the healthy tree stays at TOTAL 0 with every fixture pin intact.
 const CORPUS_EXCLUDED_PREFIX = [
   'tests/',                            // suite data: fixtures, claim files, requirements
   'tools/audit/round1/',               // write-once evidence
@@ -357,8 +364,11 @@ const CORPUS_EXCLUDED_PREFIX = [
   'tools/audit/w5-g5-195-coverage/',
 ]
 
+const ALWAYS_A_DOCUMENT = /\.(?:md|markdown)$/i
+
 const corpusExcluded = (rel) =>
-  CORPUS_EXCLUDED.has(rel) || CORPUS_EXCLUDED_PREFIX.some((p) => rel.startsWith(p))
+  CORPUS_EXCLUDED.has(rel) ||
+  (!ALWAYS_A_DOCUMENT.test(rel) && CORPUS_EXCLUDED_PREFIX.some((p) => rel.startsWith(p)))
 
 // THE ESCAPE THIS CLOSES. `corpus_tokens` sums the CAPPED files, so prose moved
 // into a file that has no cap leaves the corpus and buys headroom in every cap
@@ -1460,6 +1470,24 @@ function assertAcceptance(derived) {
     console.log(`\nFIXTURE VACUOUS: checkNamedDocs reported nothing against an empty budget, where every document the corpus names is uncapped by definition. Prose moved into a named-but-uncapped file leaves the corpus and buys headroom in every cap at once.`)
     return 1
   }
+  // The prefix list is a hole in the check it sits beside unless markdown is
+  // exempt from it. Driven rather than argued, because the round-two review of
+  // #615 measured the argued version letting 1342 tokens out through
+  // `tests/POLICY-NOTES.md`. Both directions: a document under an excluded
+  // prefix must still be a document, and a data file under one must still be
+  // data -- an exemption that reported the .txt files back would be the
+  // over-fire that made the prefixes necessary.
+  pins += 2
+  const UNDER_PREFIX = CORPUS_EXCLUDED_PREFIX[0]
+  if (corpusExcluded(`${UNDER_PREFIX}a-policy-note.md`)) {
+    console.log(`\nFIXTURE VACUOUS: a .md under the excluded prefix '${UNDER_PREFIX}' is treated as outside the corpus, so prose moved there leaves every cap at once. A directory says where data lives; it does not make a document into data.`)
+    return 1
+  }
+  if (!corpusExcluded(`${UNDER_PREFIX}some-fixture.txt`)) {
+    console.log(`\nFIXTURE OVER-FIRES: a .txt under the excluded prefix '${UNDER_PREFIX}' is reported, which is the data this repository keeps there and the reason the prefix list exists.`)
+    return 1
+  }
+
   const ndFull = driveND({ files: Object.fromEntries(policyFiles().map((f) => [f, 1e9])) })
   const stray = ndFull.filter((f) => !corpusExcluded(f.where))
   if (stray.length && stray.length >= ndBare.length) {
