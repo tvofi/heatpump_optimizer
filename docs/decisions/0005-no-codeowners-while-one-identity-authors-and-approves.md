@@ -1,6 +1,7 @@
 # 0005 — No CODEOWNERS while one identity authors and approves
 
-Status: accepted. Revisit when O1 is answered. "The plan", "PR-T4", "4.9" and
+Status: accepted; O1 was answered — declined — so this stands rather than waits
+(Consequences, below). "The plan", "PR-T4", "4.9" and
 "O1" below are the governance-audit plan's — `docs/plan-2026-09-governance-audit.md`,
 which is not on `main`: it is archived on `audit/session-evidence-2026-09-08`.
 
