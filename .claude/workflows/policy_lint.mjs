@@ -494,8 +494,16 @@ function namedDocMatches(text) {
 // `tracked.has` in the caller separates `VERSION` from `and`. Folding the two
 // made `namedDocMatches` return ["see", "and", "and"], which its own over-fire
 // assertion refused -- the assertion doing exactly what it was written for.
+// CASE-FOLDED, and it has to be, because `resolveCited` folds. With the filter
+// case-sensitive and the resolution not, the ordinary English words " version "
+// and " notice' " in `brief-citations.md` prose resolved to the tracked files
+// `VERSION` and `NOTICE` and were reported as uncapped documents -- two findings
+// on a healthy tree, caught by the null control in the run that introduced them.
+// The three files are data whatever case a sentence spells them in.
+const notADocumentName = (n) => NOT_A_DOCUMENT_NAME.has(n.split('/').pop().toUpperCase())
+
 function bareNameCandidates(text) {
-  return [...text.matchAll(BARE_RE)].map((m) => m[0]).filter((n) => !NOT_A_DOCUMENT_NAME.has(n.split('/').pop()))
+  return [...text.matchAll(BARE_RE)].map((m) => m[0]).filter((n) => !notADocumentName(n))
 }
 
 // A CITATION BY BASENAME IS A CITATION, and reading it as anything else was the
@@ -525,9 +533,30 @@ function bareNameCandidates(text) {
 // in the same diff -- where the path spelling, which is always resolved, is one
 // character away. Cost measured, not asserted; the exact-path route is
 // unaffected either way.
+// CASE-INSENSITIVELY, for the same reason round four put `/i` on the extension
+// test and round seven's review measured the half that was left: `namedDocMatches`
+// lowercases an extension before judging it, so `POLICY-NOTES.MD` survives the
+// scan -- and then resolved case-SENSITIVELY against `git ls-files` it matched
+// nothing and was dropped. Measured: `docs/POLICY-NOTES.md` cited as
+// `POLICY-NOTES.md` reported rc=1 and the same file cited as `POLICY-NOTES.MD`
+// reported rc=0 with TOTAL 0. Uniqueness is measured after folding too, so two
+// tracked files differing only in case are ambiguous and resolve to neither.
+function lowerBaseMap(listing) {
+  if (!listing._byBaseLower) {
+    const m = new Map()
+    for (const f of listing.set) {
+      const b = path.posix.basename(f).toLowerCase()
+      if (!m.has(b)) m.set(b, [])
+      m.get(b).push(f)
+    }
+    listing._byBaseLower = m
+  }
+  return listing._byBaseLower
+}
+
 function resolveCited(token, listing) {
   if (listing.set.has(token)) return [token]
-  const cands = listing.byBase.get(path.posix.basename(token)) || []
+  const cands = lowerBaseMap(listing).get(path.posix.basename(token).toLowerCase()) || []
   return cands.length === 1 ? cands : []
 }
 
@@ -1776,6 +1805,37 @@ function assertAcceptance(derived) {
   }
   if (cited.includes('a/dup.md') || cited.includes('b/dup.md')) {
     console.log(`\nFIXTURE OVER-FIRES: an AMBIGUOUS basename resolved (got ${JSON.stringify(cited)}). Driven that way on the real tree it reported sixteen frozen tools/audit/round2 reports through the generic names REPORT.md and BASELINE.md.`)
+    return 1
+  }
+  const citedCase = citedTrackedPaths('see `ONLY-HERE.md`', synth)
+  if (!citedCase.includes('docs/only-here.md')) {
+    console.log(`\nFIXTURE VACUOUS: a basename resolved case-SENSITIVELY (got ${JSON.stringify(citedCase)}). namedDocMatches lowercases an extension before judging it, so \`POLICY-NOTES.MD\` survives the scan and must survive the resolution too; case-sensitive, it was dropped and the file went unreported at rc=0.`)
+    return 1
+  }
+
+  // THE PRODUCTION CALL SITE, not the seam. Every assertion above drives
+  // `citedTrackedPaths` directly, and NONE of them says `unmeasuredNamedDocs`
+  // calls it: the round-seven review measured the call site reverted to its
+  // pre-r7 inline `listing.set.has(rel)` form with all 49 pins green and the
+  // basename escape reopened at rc=0. That is round six's own block re-created
+  // one level up by the fix for it, which is this branch's most repeated shape.
+  //
+  // Differential, and against the LIVE corpus rather than a fixture. The
+  // negative control is the exact-path-only scan -- the mutant itself, written
+  // out -- and the assertion is that production reports strictly more than it.
+  // A fixture could not pin this: the caller reads `policyFiles()`, so only the
+  // real corpus reaches it.
+  pins += 1
+  const live = trackedFiles()
+  const exactOnly = new Set()
+  for (const src of policyFiles()) {
+    const raw = read(src)
+    if (raw == null) continue
+    for (const m of [...namedDocMatches(raw), ...bareNameCandidates(raw)]) if (live.set.has(m)) exactOnly.add(m)
+  }
+  const viaBasename = driveND({ files: {} }).map((f) => f.where).filter((w) => !exactOnly.has(w))
+  if (!viaBasename.length) {
+    console.log(`\nFIXTURE VACUOUS: with every document uncapped, unmeasuredNamedDocs reported nothing that the exact-path scan alone would not have reported. Either the caller no longer resolves basenames -- the escape, reopened -- or this corpus has stopped citing documents that way, in which case the assertion is measuring nothing and must be replaced rather than deleted.`)
     return 1
   }
 
