@@ -131,13 +131,48 @@ if [ "$SELF_TEST" = 1 ]; then
   e2e 2 "{\"tool_input\":{\"file_path\":\"$R/.cursor/rules/gate-scoping.mdc\"}}" "END TO END: a generated Cursor rule exits 2"
   e2e 0 "{\"tool_input\":{\"file_path\":\"$R/custom_components/heatpump_optimizer/const.py\"}}" "END TO END: production code exits 0 (null control)"
 
+  # AND THE CASE THAT SAYS WHICH EMPTY ANSWER IT IS. A `git` that cannot answer
+  # is not a branch that is not `main`. Before the exit status was read, this
+  # case exited 2: the hook failed CLOSED on the stamped paths for anyone whose
+  # box could not run git, which is the reasoning this file's header rejects. A
+  # stub on PATH is used rather than emptying PATH, because `decide` needs
+  # python3 and an empty PATH would test something else.
+  G=$(mktemp -d)
+  if [ -n "$G" ]; then
+    printf '#!/bin/sh\nexit 127\n' >"$G/git"; chmod +x "$G/git"
+    printf '%s' "{\"tool_input\":{\"file_path\":\"$R/VERSION\"}}" \
+      | PATH="$G:$PATH" CLAUDE_PROJECT_DIR="$R" bash "$0" >/dev/null 2>&1
+    nogit_rc=$?
+    if [ "$nogit_rc" -eq 0 ]; then pass=$((pass+1))
+      printf '  ok   END TO END: a git that cannot answer fails OPEN, not as not-main\n'
+    else fail=$((fail+1))
+      printf '  FAIL END TO END: a git that cannot answer fails OPEN (rc %s, wanted 0)\n' "$nogit_rc"; fi
+    rm -rf "$G"
+  else
+    printf '  SKIP END TO END: no temporary directory for the git stub\n'
+  fi
+
   printf '\n%s passed, %s failed\n' "$pass" "$fail"
   [ "$fail" -eq 0 ] || exit 2
   exit 0
 fi
 
 cd "${CLAUDE_PROJECT_DIR:-.}" 2>/dev/null || exit 0
-BRANCH=$(git branch --show-current 2>/dev/null)
+# READ THE EXIT STATUS, not just the output. `git branch --show-current`
+# answers with an EMPTY string on a detached HEAD -- a real answer, and
+# "not main" is the right reading of it. It also produces an empty string
+# when it could not answer at all: no git on PATH, or not a repository. Those
+# are different facts, and collapsing them made this hook fail CLOSED on the
+# three stamped paths whenever git was absent, refusing an edit on the exact
+# reasoning this file's header rejects -- blocking a seat on a fact about its
+# box. Same shape as #622, where a git command's stdout was read without ever
+# reading its returncode. The stamp still refuses a branch that moved VERSION,
+# so failing open here loses no enforcement.
+if BRANCH=$(git branch --show-current 2>/dev/null); then
+  BRANCH=${BRANCH:-DETACHED}
+else
+  exit 0
+fi
 PAYLOAD=$(cat)
 # NO `|| exit 0` HERE, and that is not a style choice. `decide` exits 1 when it
 # has decided to refuse, so `MSG=$(decide ...) || exit 0` swallowed every
@@ -145,7 +180,7 @@ PAYLOAD=$(cat)
 # 13 passed -- the second time in this one file that the tested helper was
 # right and the untested wrapper around it was not. The verdict is the OUTPUT;
 # a crash produces none, which is the fail-open path.
-MSG=$(decide "${BRANCH:-DETACHED}" "$PAYLOAD")
+MSG=$(decide "$BRANCH" "$PAYLOAD")
 if [ -n "$MSG" ]; then
   printf 'pre-edit: %s\n' "$MSG" >&2
   exit 2

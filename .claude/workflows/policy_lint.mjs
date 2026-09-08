@@ -2380,8 +2380,16 @@ function cmdBudgets(files) {
 // it was written to catch never learns either way -- `defect-root-cause.md`
 // records that this corpus already claimed a hook it had never built.
 //
-// So this reads `.claude/settings.json`, and for every `command` in it: the
-// script exists, and `--self-test` exits 0. The self-test is the substance --
+// TWO HALVES, and the first was missing when this sentence was first written.
+// Iterating `.claude/settings.json` can only judge what is IN it: deleting an
+// entry left this reporting `HOOKS ok: 2 wired hook(s)` and rc=0, and pointing
+// `PreToolUse` at `session-start.sh` left it green at three. A check over a set
+// the defect can shrink is a check over an empty set in the limit. So REQUIRED
+// pins the roster by MEMBERSHIP -- event AND script, not a count, because a
+// count is satisfied by a duplicate and by a swap (#614 round 3).
+//
+// The second half: for every `command` in the file, the script exists, and
+// `--self-test` exits 0. The self-test is the substance --
 // existence alone would have passed the first draft of `pre-edit.sh`, whose
 // python read its own heredoc as the payload and fell open on every path it was
 // written to refuse. Nine ALLOW controls passed. Only the refusals caught it.
@@ -2423,10 +2431,21 @@ function cmdHooks(settingsPath) {
     console.log(`HOOKS: ${rel} wires no hooks at all. A settings file with an empty \`hooks\` key reads exactly like one that works.`)
     return 1
   }
+  // Each hook stands in for a rule whose cheaper detector this corpus otherwise
+  // pays CI or a release stamp for; losing one silently is losing that rule.
+  const REQUIRED = [
+    ['SessionStart', '.claude/hooks/session-start.sh'],
+    ['PreToolUse', '.claude/hooks/pre-edit.sh'],
+    ['Stop', '.claude/hooks/stop-selfcheck.sh'],
+  ]
+  const absent = REQUIRED.filter(([e, sc]) => !rows.some((r) => r.event === e && r.script === sc))
+  for (const [e, sc] of absent) {
+    rows.push({ event: e, script: sc, verdict: 'NOT WIRED', why: `${rel} wires no ${e} hook running this script, so the rule it stands in for is enforced nowhere before CI` })
+  }
   for (const r of rows) console.log(`  ${r.verdict.padEnd(17)} ${r.event.padEnd(13)} ${r.script}  ${r.why}`)
   const bad = rows.filter((r) => r.verdict !== 'ok')
   console.log(bad.length
-    ? `\nHOOKS REFUSED: ${bad.length} of ${rows.length} wired hook(s) is missing, unreadable, or fails its own --self-test`
+    ? `\nHOOKS REFUSED: ${bad.length} of ${rows.length} hook(s) checked is not wired, missing, unreadable, or fails its own --self-test`
     : `\nHOOKS ok: ${rows.length} wired hook(s) exist and pass their own --self-test`)
   return bad.length ? 1 : 0
 }

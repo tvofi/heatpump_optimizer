@@ -62,6 +62,50 @@ if [ "${1:-}" = "--self-test" ]; then
   st "$(active '{}')"                         no  "an absent flag reads as not-active"
   st "$(active 'not json')"                   no  "an unparseable payload reads as not-active (fail open, one refusal at most)"
 
+  # AND THE SCRIPT ITSELF, end to end. Every case above drives a helper; none
+  # touches the wrapper that reads the payload, asks git what changed and turns
+  # a red linter into an exit status -- and that wrapper is where pre-edit.sh
+  # was inert TWICE with its helpers all green. Without these four, replacing
+  # this file's final `exit 2` with `exit 0` leaves 13 of 13 passing and the
+  # hook completely inert in production.
+  #
+  # A scratch repository rather than a seam in production code: the linter is a
+  # stub whose exit status this test chooses, so the refusal path and the
+  # null-control path are both driven for real.
+  e2e() { # want-rc, project-dir, payload, label
+    printf '%s' "$3" | CLAUDE_PROJECT_DIR="$2" bash "$0" >/dev/null 2>&1
+    local got=$?
+    if [ "$got" -eq "$1" ]; then pass=$((pass+1)); printf '  ok   %s\n' "$4"
+    else fail=$((fail+1)); printf '  FAIL %s (rc %s, wanted %s)\n' "$4" "$got" "$1"; fi
+  }
+  T=$(mktemp -d)
+  if [ -n "$T" ] && git -C "$T" init -q 2>/dev/null; then
+    mkdir -p "$T/.claude/workflows"
+    printf 'seed\n' >"$T/CLAUDE.md"; printf 'seed\n' >"$T/prod.py"
+    git -C "$T" add -A >/dev/null 2>&1
+    git -C "$T" -c user.email=t@t -c user.name=t commit -qm seed >/dev/null 2>&1
+    git -C "$T" update-ref refs/remotes/origin/main HEAD
+    LINT="$T/.claude/workflows/policy_lint.mjs"
+
+    printf 'changed\n' >"$T/CLAUDE.md"           # a policy path, tracked and modified
+    printf 'process.exit(1)\n' >"$LINT"
+    e2e 2 "$T" '{}' "END TO END: a red corpus on a policy-touching turn exits 2"
+    e2e 0 "$T" '{"stop_hook_active":true}' "END TO END: the second pass exits 0 with the corpus still red"
+    printf 'process.exit(0)\n' >"$LINT"
+    e2e 0 "$T" '{}' "END TO END: a green corpus exits 0 (null control)"
+
+    printf 'seed\n' >"$T/CLAUDE.md"              # restore it; touch a non-policy path only
+    printf 'changed\n' >"$T/prod.py"
+    printf 'process.exit(1)\n' >"$LINT"
+    e2e 0 "$T" '{}' "END TO END: a production-only turn exits 0 without consulting the linter"
+    rm -rf "$T"
+  else
+    # A box without a working `git init` cannot drive these. Say so rather than
+    # counting four silent passes: a skipped drive that claims its pins is the
+    # defect decision 0004 is about.
+    printf '  SKIP END TO END: no scratch repository could be built on this box\n'
+  fi
+
   printf '\n%s passed, %s failed\n' "$pass" "$fail"
   [ "$fail" -eq 0 ] || exit 2
   exit 0
