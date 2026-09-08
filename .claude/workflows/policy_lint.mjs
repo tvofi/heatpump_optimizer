@@ -991,8 +991,16 @@ function assertAcceptance(derived) {
   // named, and fixing a check by adding an untested line to production is the
   // shape it exists to refuse.
   pins += 1
-  if (coverageFileSource() !== null) {
-    console.log(`\nFIXTURE VACUOUS: coverageFileSource's production default returned ${JSON.stringify(coverageFileSource())}, not null. Only null makes checkCoverage read the tracked tree; anything else scans that value instead, and an empty array scans nothing.`)
+  // The property is "coalesces away", not "is spelled null". `checkCoverage`
+  // reads the tracked tree for anything `??` discards, so the test coalesces
+  // against a sentinel rather than comparing to a literal. Asserting `!== null`
+  // refused `() => {}` -- an arrow with an empty BLOCK body, the canonical
+  // no-op idiom -- while its detection stayed correct: a false refusal on a
+  // plausible edit, and the same substitution of spelling for property that the
+  // friction parser made against backticked identifiers two rounds earlier.
+  const TRACKED_TREE = Symbol('tracked-tree')
+  if ((coverageFileSource() ?? TRACKED_TREE) !== TRACKED_TREE) {
+    console.log(`\nFIXTURE VACUOUS: coverageFileSource's production default returned ${JSON.stringify(coverageFileSource())}, which \`??\` does not discard. Only a nullish default makes checkCoverage read the tracked tree; any other value is scanned instead, and an empty array scans nothing.`)
     return 1
   }
 
