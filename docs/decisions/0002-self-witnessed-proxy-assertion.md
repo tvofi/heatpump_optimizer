@@ -76,10 +76,18 @@ mutation the author chooses is part of the model under test.
 `cost(countermeasure, recurring) < cost(defect) x P(recurrence)`, wall-clock per
 occurrence.
 
-    standing cost   0.35s per governance run, 0.35s per prepr.sh run, measured
-                    three times (342, 345, 366 ms). The lane runs the acceptance
-                    only, never the corpus, so it is CHEAPER than the lint pass
-                    beside it, which takes 1.605s.
+    standing cost   1.3s per governance run, 1.3s per prepr.sh run, measured
+                    five times (1.24, 1.32, 1.36, 1.38, 1.40 s) against 1.93,
+                    1.95, 2.05 s for the lint pass beside it. The lane runs the
+                    acceptance once per check and never the corpus, so it stays
+                    cheaper than that pass -- but it scales with the number of
+                    checks, and this number is four times an earlier one
+                    recorded here (342, 345, 366 ms) because the enumeration has
+                    grown from four checks to seven and the acceptance from 43
+                    pins to 54. The #616 review re-derived it and refused the
+                    old figure. Re-measure it rather than carrying it: that is
+                    what `brief-citations.md` says about every literal metric,
+                    and this file broke that rule about its own subject.
     maintenance     0. The enumeration is read from production's own
                     CORPUS_CHECK_NAMES, so a check added later is mutated by
                     this lane on the pull request that adds it, with no edit

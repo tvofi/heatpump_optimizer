@@ -67,9 +67,9 @@ const MDC_PATHLINE_RE =
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(HERE, '..', '..')
 
-function git(args, { allowFail = false } = {}) {
+function git(args, { allowFail = false, env } = {}) {
   try {
-    return execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
+    return execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, ...(env ? { env } : {}) })
   } catch (e) {
     if (allowFail) return ''
     throw e
@@ -1291,10 +1291,19 @@ function checkProvenance() {
     console.log(`  skip     provenance             origin/main is not in this clone, so ${sha.slice(0, 7)} cannot be resolved`)
     return []
   }
+  // EXIT 1 IS THE ANSWER; ANYTHING ELSE IS THE ABSENCE OF ONE. `--is-ancestor`
+  // exits 1 for "no" and 128 when it cannot look -- an object the clone does
+  // not have, which is what a shallow clone reports for a perfectly good SHA.
+  // A bare catch read both as "no" and turned every shallow clone with an
+  // origin/main ref into a false refusal.
   try {
     execFileSync('git', ['merge-base', '--is-ancestor', sha, 'origin/main'], { cwd: ROOT, stdio: 'ignore' })
     return []
-  } catch {
+  } catch (e) {
+    if (e.status !== 1) {
+      console.log(`  skip     provenance             git could not say whether ${sha.slice(0, 7)} is an ancestor of origin/main (exit ${e.status}); a shallow clone cannot`)
+      return []
+    }
     return f(`\`recorded_at\` is ${sha.slice(0, 7)}, which is not reachable from origin/main. A branch head is rewritten by the next amend and deleted by the squash that lands it; regenerate with --record-known-bad, which stamps the merge base`)
   }
 }
@@ -1718,25 +1727,49 @@ function assertAcceptance(derived) {
 
   // Provenance. Same shape as every other property here -- on a healthy tree the
   // recorded SHA IS reachable, so the comparison is false and has no witness.
-  // Driven both ways against real commits: a branch head that main never carried
-  // must be refused, and origin/main itself must be silent.
-  pins += 3
+  // Driven both ways: a commit main does not carry must be refused, and
+  // origin/main itself must be silent.
+  //
+  // THE WITNESS IS UNREACHABLE BY CONSTRUCTION, NOT BY CIRCUMSTANCE, and the
+  // first version got that wrong in the one run where it mattered. It used
+  // `HEAD`, which is unreachable from main only while a branch is unmerged, and
+  // skipped the assertion when the two were equal -- "a null control twice
+  // over", said the comment, which is true and beside the point. `governance.yml`
+  // ALSO runs on `push: branches: [main]`, where the pushed commit IS
+  // origin/main: the guard went false, the witness never ran, and an emptied
+  // `checkProvenance` passed. The mutation lane beside it then reports the check
+  // as deletable and exits 1, so `policy-docs` would have gone red on main at
+  // this pull request's own merge. The countermeasure caught the defect its own
+  // commit introduced, which is the whole argument for the lane.
+  //
+  // `commit-tree` with no `-p` builds a real, parentless commit carrying main's
+  // tree. It is a genuine object, so `--is-ancestor` gives a real answer rather
+  // than the exit-128 it gives for a bad SHA -- which is the path this check now
+  // treats as "no answer" -- and having no parents it can never be an ancestor
+  // of anything. Identity is passed in the environment because CI checkouts
+  // configure none, and `commit-tree` refuses without one.
   const driveProv = (sha) => {
     const prev = provenanceShaSource
     provenanceShaSource = () => sha
     try { return checkProvenance() } finally { provenanceShaSource = prev }
   }
   const mainSha = git(['rev-parse', 'origin/main'], { allowFail: true }).trim()
-  if (!mainSha) {
-    console.log('  skip     provenance-pin         origin/main is not in this clone, so neither direction can be driven')
+  const IDENT = {
+    ...process.env,
+    GIT_AUTHOR_NAME: 'policy_lint', GIT_AUTHOR_EMAIL: 'policy_lint@invalid',
+    GIT_COMMITTER_NAME: 'policy_lint', GIT_COMMITTER_EMAIL: 'policy_lint@invalid',
+  }
+  const unreachable = mainSha
+    ? git(['commit-tree', `${mainSha}^{tree}`, '-m', 'policy_lint provenance witness'], { allowFail: true, env: IDENT }).trim()
+    : ''
+  if (!mainSha || !unreachable) {
+    // Said out loud, and NOT counted. A skipped drive that still added its pins
+    // would report a total the run did not earn.
+    console.log(`  skip     provenance-pin         ${mainSha ? 'git could not build a witness commit' : 'origin/main is not in this clone'}, so neither direction can be driven`)
   } else {
-    const unreachable = git(['rev-parse', 'HEAD'], { allowFail: true }).trim()
-    const provRot = driveProv(unreachable)
-    // HEAD is unreachable from main only while this branch is unmerged, which is
-    // when the check matters. On main the two are equal and the probe would be a
-    // null control twice over, so it is skipped rather than inverted.
-    if (unreachable !== mainSha && provRot.length !== 1) {
-      console.log(`\nFIXTURE VACUOUS: checkProvenance did not refuse ${unreachable.slice(0, 7)}, a commit origin/main does not carry. A ledger stamped from HEAD names a SHA the squash deletes, which is #361 in a second file.`)
+    pins += 3
+    if (driveProv(unreachable).length !== 1) {
+      console.log(`\nFIXTURE VACUOUS: checkProvenance did not refuse ${unreachable.slice(0, 7)}, a parentless commit that cannot be an ancestor of anything. A ledger stamped from HEAD names a SHA the squash deletes, which is #361 in a second file.`)
       return 1
     }
     if (driveProv(mainSha).length) {
