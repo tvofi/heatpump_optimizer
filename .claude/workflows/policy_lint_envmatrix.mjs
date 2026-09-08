@@ -54,6 +54,18 @@ const pinsOf = (out) => {
   return m ? Number(m[1]) : null
 }
 
+// A FAIL that says nothing about why is the instrument's own defect: CI's first
+// run of this matrix failed `shallow / policy_lint rc=0` with `rc=1 ` and a blank
+// detail, because this slot quoted only a FIXTURE VACUOUS line and the run had
+// produced none. So: the vacuous line if there is one; otherwise every ERROR,
+// fatal and skip line; otherwise the last three lines of whatever it printed.
+const why = (out) => {
+  const vac = out.match(/^FIXTURE VACUOUS.*$/m)
+  if (vac) return vac[0].slice(0, 160)
+  const bad = out.split('\n').filter((l) => /ERROR|fatal:|^\s*skip\s|Error:|TypeError|ReferenceError/.test(l))
+  if (bad.length) return bad.slice(-3).join(' | ').slice(0, 240)
+  return out.trim().split('\n').slice(-3).join(' | ').slice(0, 240)
+}
 const rows = []
 const add = (name, ok, detail) => rows.push({ name, ok, detail })
 
@@ -132,7 +144,7 @@ if (shl.error) add('shallow / built', false, shl.error)
 else {
   const r = sh('node', ['.claude/workflows/policy_lint.mjs'], { cwd: shl.dir })
   const p = pinsOf(r.out)
-  add('shallow / policy_lint rc=0', r.rc === 0, `rc=${r.rc} ${(r.out.match(/^FIXTURE VACUOUS.*$/m)||[''])[0].slice(0,110)}`)
+  add('shallow / policy_lint rc=0', r.rc === 0, `rc=${r.rc} ${why(r.out)}`)
   // The property, not one spelling of it: an arm this shape cannot drive is
   // said out loud AND is not counted. Declaring the skip line's exact text
   // would test the fix rather than the property.
