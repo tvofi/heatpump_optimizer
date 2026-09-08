@@ -812,30 +812,56 @@ judge comments on each issue and summarised on #201.
   authenticate as the owner, GitHub refuses to let an author approve their own
   pull request, so such a rule would be a **lock** rather than weak enforcement.
   That measurement has its own decision record later in this queue, and is
-  deliberately not cited by number here — the decisions above 0003 are not on
-  `main` yet, and a citation that resolves to nothing is the defect this corpus
-  keeps finding.
+  deliberately not cited by number here — **0004 and 0005** are not on `main` yet — they land
+  with `08-envmatrix` and `09-verdicts` — and a citation that resolves to
+  nothing is the defect this corpus keeps finding. (0006 is above 0003 and *is*
+  on `main`; "everything above 0003" was the wrong rule and is corrected here.)
   **#609's permissions reading was a proxy artifact** — it recorded
   `{admin: false, maintain: false, push: false, triage: false, pull: false}`
   while pushes plainly worked, and suspected as much; this session reads
   `admin: true`, and create/update/delete of a ruleset all succeeded.
-- **`pr-contract` goes red once on almost every head push, and `gh pr checks`
-  hides it.** Structural, not a branch defect: the body cannot name a SHA before
-  that SHA exists, so pushing a commit to an open pull request fires
-  `pr-contract` against a body still naming the previous head; editing the body
-  turns it green seconds later. `docs/HANDOVER.md` already records that writing
-  the body first **relocates rather than removes** this. What is new is the
-  reporting hole: `gh pr checks` shows only the **latest** run per check, so the
-  failure is invisible there and a body can truthfully-looking say `## Red
-  checks: none` while the API shows one. Measured at `dbabd2a`: `pr-contract`
-  has two runs, `failure` at 20:02:23Z and `success` at 20:02:50Z. **#625 was
-  merged with the same hidden failure and a body saying `none`** — that body is
-  wrong and this row is the correction. Read
-  `/repos/.../commits/<sha>/check-runs` and filter on `conclusion=="failure"`,
-  not `gh pr checks`. **A check that reliably goes red once per push is a check
-  trained to be ignored**, which is the governance defect worth fixing: either
-  the job skips when the only difference is a stale head SHA, or the contract
-  stops requiring a body to predict its own commit.
+- **`pr-contract` red runs are hidden by `gh pr checks`, and the ones on this
+  queue's heads were process state (b), not a defect in the check.** Two facts,
+  and only the first is the check's.
+  **The reporting hole is real.** `gh pr checks` shows only the **latest** run
+  per check, so a check that fails and then succeeds reads as never-red. Read
+  `/repos/.../commits/<sha>/check-runs` filtered on `conclusion`. **#625 was
+  merged with a `pr-contract` failure at its head (`3b823f8`, 19:11:34Z) and a
+  body saying `## Red checks: none`.** That body is wrong and this row is the
+  correction; the merge stands.
+  **The cause was misdiagnosed, and the record refutes the diagnosis.** An
+  earlier draft of this row called the failure structural — *"a body cannot name
+  a SHA before that SHA exists"* — and cited `docs/HANDOVER.md`. That file
+  contains no `pr-contract` and no `relocat`; the sentence being remembered is
+  in the **out-of-tree** programme handover on `audit/handover-2026-09-08`, and
+  this is the **second** time in one session those two documents were conflated.
+  The in-tree record is `.claude/skills/steward/SKILL.md` **§ S10**, and it
+  denies the premise: a commit's SHA exists when the commit is *made*, so the
+  body can always be written against it before the push. S10 also says **both
+  orders leave exactly one failed run** — what the order controls is *where* it
+  lands: push-then-edit puts it on the commit that is your review head, while
+  edit-then-push fires the `edited` run against a head you are abandoning. S10
+  line 134 names the first order **`EXAMPLE BAD: push, then update the body,
+  then explain the red run on your head`** — which is what every head of #628
+  did, explanation included.
+  **So the generalisation was wrong too.** Measured across nine recent heads:
+  five carry a `pr-contract` failure — **four of four inside #628, one of five
+  outside it** — and the split tracks S10 compliance rather than a property of
+  the check. It is not "almost every head push"; it is almost every push that
+  used the order S10 marks bad.
+  **And one of the two failures at #628's fourth head was a different defect
+  entirely**: a body edit produced `## Forward-carry## Forward-carry`, and the
+  contract correctly refused a body with no such section. A cheaper detector
+  exists and was skipped — `policy_lint --pr-body <file> --head <sha>`, which is
+  step 7 of `tools/audit/prepr.sh`, whose own `--self-test` already carries
+  `missing-section` as a rot fixture. That one is not the check's fault in any
+  sense.
+  **What is actually owed**, therefore, is the reporting hole and not the
+  contract: a seat writing `## Red checks` must read the check-runs API, and
+  `gh pr checks` should not be the instrument. Whether the `pr-contract` job
+  should additionally skip a run whose only difference is a stale head SHA is a
+  separate question that this row no longer asserts an answer to, because the
+  premise it rested on is denied by S10.
 
 ## Standing rules
 
