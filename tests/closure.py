@@ -679,10 +679,17 @@ def _widen(closures: dict[str, set[str]]) -> None:
             closures[p] |= closures[c]
             del closures[c]
 
-    # plan_view.py writes the payload card.mjs reads: anything that can change
-    # the payload can change what the card is tested against.
-    if "tests/card.mjs" in closures and "tests/plan_view.py" in closures:
-        closures["tests/card.mjs"] |= closures["tests/plan_view.py"]
+    # PRODUCERS is "must run first" for selection, and the same edge is a
+    # closure rule: plan_view.py writes the payload card.mjs and
+    # card_drift.mjs read, so anything that can change the payload can
+    # change what they test. card_drift.mjs had no copy of this union, which
+    # is why a full fold of its 6-file raw trace silently replaced the
+    # committed 66 (#527).
+    for consumer, producers in PRODUCERS.items():
+        if consumer in closures:
+            for prod in producers:
+                if prod in closures:
+                    closures[consumer] |= closures[prod]
 
     # RULE: env_drift compares BEHAVIOUR between two checkouts, in a
     # subprocess, in a worktree outside this repo. No tracer in this process
@@ -736,6 +743,24 @@ def _fold(records: dict[str, dict]) -> dict[str, list[str]]:
 
     _widen(closures)
     return {k: sorted(v) for k, v in sorted(closures.items())}
+
+
+def _keep_committed_files(name: str, old: set[str], fresh: set[str]) -> list[str]:
+    """Never shrink a committed closure. Union, report, continue.
+
+    Under-approximation is the direction that makes the gate skip a script.
+    A shrinking sibling used to abort the whole merge, so one unreproducible
+    node lane vetoed an unrelated repair, and the refusal told you to run a
+    full derive -- the path that replaced 66 with 6 (#527).
+    """
+    dropped = sorted(old - fresh)
+    if not dropped:
+        return sorted(fresh)
+    print(f"closure: {name} would drop {len(dropped)} file(s) the committed "
+          f"closure listed; keeping them.", file=sys.stderr)
+    for d in dropped:
+        print(f"    {d}", file=sys.stderr)
+    return sorted(old | fresh)
 
 
 def merge(in_dir: Path, out: Path, allow_failures: bool = False,
@@ -805,24 +830,15 @@ def merge(in_dir: Path, out: Path, allow_failures: bool = False,
             if f"tests/{child}" in records:
                 touched.discard(f"tests/{child}")
                 touched.add(f"tests/{parent}")
-        if "tests/plan_view.py" in records and "tests/card.mjs" in overlay:
-            touched.add("tests/card.mjs")
+        for consumer, producers in PRODUCERS.items():
+            if consumer in overlay and any(p in records for p in producers):
+                touched.add(consumer)
         pair = {"tests/golden.py", "tests/env_drift.py"}
         if touched & pair:
             touched |= pair & set(overlay)
         for k in sorted(touched):
-            fresh = sorted(overlay[k])
             old = set(closures.get(k, ()))
-            dropped = sorted(old - set(fresh))
-            if dropped:
-                print(f"closure: {k} drops {len(dropped)} file(s) the committed "
-                      f"closure listed:")
-                for d in dropped:
-                    print(f"    {d}")
-                print("  Refusing: a partial update may not shrink a closure. "
-                      "Run a full re-derivation instead.", file=sys.stderr)
-                return 1
-            closures[k] = fresh
+            closures[k] = _keep_committed_files(k, old, set(overlay[k]))
             if k in records:
                 recorded[k] = {
                     "seconds": records[k].get("seconds", 0),
@@ -835,6 +851,10 @@ def merge(in_dir: Path, out: Path, allow_failures: bool = False,
             print(f"  {k:26s} {len(closures[k]):4d} files")
         return 0
     closures = _fold(records)
+    if out.exists():
+        prev = json.loads(out.read_text()).get("closures", {})
+        for k, fresh in list(closures.items()):
+            closures[k] = _keep_committed_files(k, set(prev.get(k, ())), set(fresh))
     bad = inert_closure_violations(closures)
     if bad:
         print("closure: files on the INERT list are actually read by tests:", file=sys.stderr)
@@ -1078,8 +1098,10 @@ def check(in_dir: Path, partial: bool = False) -> int:
                   f"touch (safe: over-scoped)")
     if failed:
         print()
-        print(f"{failed} closure(s) are stale. Regenerate with "
-              f"tests/derive_closures.sh and commit tests/closures.json.")
+        print(f"{failed} closure(s) are stale. Re-derive the named script:")
+        print("    ./tests/derive_closures.sh --single <script>")
+        print("and commit tests/closures.json. A full derive_closures.sh off")
+        print("Linux replaces node-lane recordings; --single cannot shrink them.")
         return 1
     print("closure: committed closures cover every file this run touched")
     return 0
@@ -1634,9 +1656,9 @@ def selftest() -> int:
     ]
     old_drift = set(committed[drift])
     pin(
-        "the committed card_drift.mjs closure is the 66-file widened claim",
-        len(old_drift) == 66,
-        f"len={len(old_drift)}",
+        "card_drift.mjs's committed closure covers plan_view.py",
+        set(committed["tests/plan_view.py"]) <= old_drift,
+        f"missing {sorted(set(committed['tests/plan_view.py']) - old_drift)}",
     )
     pin(
         "the 6-file raw trace is a strict subset of that claim",
