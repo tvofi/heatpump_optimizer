@@ -165,6 +165,16 @@ is not simply reporting that old trees fail:
     checkIndex       rc=1   check 'index' produced 0 error(s), 2 required
     checkDuplicates  rc=1   check 'duplicates' produced 0 error(s), 1 required
 
+## The claim that the enumeration costs nothing, tested by an event rather than asserted
+
+Two checks were added to `policy_lint.mjs` after this lane was written —
+`checkOrphanCaps`, closing an escape the #615 review found, and
+`checkProvenance`. Neither touched this file. The lane picked up both from
+`CORPUS_CHECK_NAMES` and reported `PIN` for each, so the zero-maintenance term in
+the cost test above is measured rather than argued. `checkProvenance` reached its
+first run WITHOUT a witness and the lane said `ACCEPTED`, which is what sent its
+author back to write the drive.
+
 ## Consequences
 
 A corpus check that survives its own deletion is named on the pull request that

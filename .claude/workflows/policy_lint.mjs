@@ -297,7 +297,7 @@ function uncoveredPolicyFiles(files = null) {
 // an earlier version of this comment openly invited, and it silently voids the
 // check, because the loop passes the POLICY FILE list and every policy file is
 // covered by definition. Hence the name, and hence asserting names.
-const CORPUS_CHECK_NAMES = ['checkIndex', 'checkDuplicates', 'checkBudgets', 'coverageOverTree', 'namedDocsOverTree', 'orphanCapsOverTree']
+const CORPUS_CHECK_NAMES = ['checkIndex', 'checkDuplicates', 'checkBudgets', 'coverageOverTree', 'namedDocsOverTree', 'orphanCapsOverTree', 'checkProvenance']
 
 // WHAT THIS PIN DOES NOT COVER, stated rather than implied. It compares the
 // wired list against the names above, so it catches a registered check that is
@@ -1236,6 +1236,52 @@ function knownBad() {
   return raw ? JSON.parse(raw) : { entries: [] }
 }
 
+// #361 fixed exactly this defect in `tests/structure.py`: a re-record only ever
+// happens on a branch, and a branch commit is rewritten by the next amend and
+// deleted by the squash that lands it, so a HEAD stamp names a commit no later
+// reader can resolve. The countermeasure written for it -- an AST pin in
+// `tests/features.py` -- was aimed at THAT FILE rather than at the property, so
+// it did not travel, and this file reproduced the defect with the fix already in
+// the tree. The committed value was `513a4c1`, a branch head that reached main
+// in no form.
+//
+// The merge base is the fix in both files. It is on `origin/main` while the
+// branch is open and stays on it after the squash, which is the whole property:
+// a provenance SHA a reader can resolve.
+function recordedAtSha() {
+  return git(['merge-base', 'origin/main', 'HEAD'], { allowFail: true }).trim() || null
+}
+
+// Reachability from `origin/main`, not from HEAD. From HEAD is the assertion
+// that cannot fail at the moment the defect is made: a HEAD stamp is trivially
+// reachable from the HEAD that wrote it, and only stops resolving later, on
+// somebody else's clone. From main it fails on the pull request that stamped it.
+let provenanceShaSource = () => {
+  const raw = read(KNOWN_BAD_FILE)
+  return raw == null ? null : JSON.parse(raw).recorded_at
+}
+
+function checkProvenance() {
+  const sha = provenanceShaSource()
+  if (sha === null) return []
+  const f = (message) => [{ severity: 'error', check: 'provenance', where: KNOWN_BAD_FILE, message }]
+  if (!sha) return f('no `recorded_at`, so the ledger records no state it was measured against')
+  // A clone with no `origin/main` cannot answer, and answering "unreachable"
+  // there would refuse every pull request for the checkout's shape rather than
+  // for the file's content. Said out loud rather than returning silently: a
+  // check that skips without saying so reads exactly like one that passed.
+  if (!git(['rev-parse', '--verify', '--quiet', 'origin/main'], { allowFail: true }).trim()) {
+    console.log(`  skip     provenance             origin/main is not in this clone, so ${sha.slice(0, 7)} cannot be resolved`)
+    return []
+  }
+  try {
+    execFileSync('git', ['merge-base', '--is-ancestor', sha, 'origin/main'], { cwd: ROOT, stdio: 'ignore' })
+    return []
+  } catch {
+    return f(`\`recorded_at\` is ${sha.slice(0, 7)}, which is not reachable from origin/main. A branch head is rewritten by the next amend and deleted by the squash that lands it; regenerate with --record-known-bad, which stamps the merge base`)
+  }
+}
+
 // The key deliberately drops line numbers, in `where` and inside the message.
 // An entry keyed on one stops matching the moment a line is added above it,
 // and the ratchet then reports the entry as fixed while the defect is still
@@ -1256,7 +1302,12 @@ function keyOf(f) {
 // refusal into a note, which is the failure the whole ratchet is against --
 // measured: with both live, `--record-known-bad` then a re-run gave `TOTAL: 0`
 // and exit 0.
-const NEVER_SUPPRESSED = new Set(['budgets', 'coverage'])
+// `provenance` joins them for the same reason: a ledger whose own recorded_at
+// resolves to nothing is not a defect to freeze and drain, and freezing it is
+// self-referential -- the ledger would be recording that the ledger is wrong.
+// The first `--record-known-bad` after this check landed did exactly that,
+// entering the finding one run before the re-record fixed it.
+const NEVER_SUPPRESSED = new Set(['budgets', 'coverage', 'provenance'])
 
 function applyKnownBad(findings) {
   const kb = knownBad()
@@ -1334,6 +1385,7 @@ const CHECKS = [
   { name: 'pr-body', what: 'a body carries its evidence sections, at the head CI ran', fixture: 'fixtures/policy-rot/prepr/' },
   { name: 'named-docs', what: 'a document the corpus names but no cap measures', fixture: '(driven in assertAcceptance)' },
   { name: 'coverage', what: 'every file in a policy directory is matched by a glob', fixture: '(a probe file, see assertAcceptance)' },
+  { name: 'provenance', what: "the known-bad ledger's recorded_at resolves from origin/main", fixture: '(driven in assertAcceptance)' },
 ]
 
 function lintFile(rel, derived) {
@@ -1410,7 +1462,7 @@ const REQUIRED_ROT = {
   },
 }
 
-CORPUS_CHECKS.push(checkIndex, checkDuplicates, checkBudgets, coverageOverTree, namedDocsOverTree, orphanCapsOverTree)
+CORPUS_CHECKS.push(checkIndex, checkDuplicates, checkBudgets, coverageOverTree, namedDocsOverTree, orphanCapsOverTree, checkProvenance)
 
 function assertAcceptance(derived) {
   const dir = path.join(HERE, 'fixtures', 'policy-rot')
@@ -1645,6 +1697,39 @@ function assertAcceptance(derived) {
   if (ocOk.length) {
     console.log(`\nFIXTURE OVER-FIRES: checkOrphanCaps reported ${ocOk.length} finding(s) with every cap on a measured file, e.g. ${JSON.stringify(ocOk[0].where)}`)
     return 1
+  }
+
+  // Provenance. Same shape as every other property here -- on a healthy tree the
+  // recorded SHA IS reachable, so the comparison is false and has no witness.
+  // Driven both ways against real commits: a branch head that main never carried
+  // must be refused, and origin/main itself must be silent.
+  pins += 3
+  const driveProv = (sha) => {
+    const prev = provenanceShaSource
+    provenanceShaSource = () => sha
+    try { return checkProvenance() } finally { provenanceShaSource = prev }
+  }
+  const mainSha = git(['rev-parse', 'origin/main'], { allowFail: true }).trim()
+  if (!mainSha) {
+    console.log('  skip     provenance-pin         origin/main is not in this clone, so neither direction can be driven')
+  } else {
+    const unreachable = git(['rev-parse', 'HEAD'], { allowFail: true }).trim()
+    const provRot = driveProv(unreachable)
+    // HEAD is unreachable from main only while this branch is unmerged, which is
+    // when the check matters. On main the two are equal and the probe would be a
+    // null control twice over, so it is skipped rather than inverted.
+    if (unreachable !== mainSha && provRot.length !== 1) {
+      console.log(`\nFIXTURE VACUOUS: checkProvenance did not refuse ${unreachable.slice(0, 7)}, a commit origin/main does not carry. A ledger stamped from HEAD names a SHA the squash deletes, which is #361 in a second file.`)
+      return 1
+    }
+    if (driveProv(mainSha).length) {
+      console.log(`\nFIXTURE OVER-FIRES: checkProvenance refused origin/main itself.`)
+      return 1
+    }
+    if (driveProv(null).length) {
+      console.log(`\nFIXTURE OVER-FIRES: checkProvenance reported on a tree with no ledger at all.`)
+      return 1
+    }
   }
 
   // named-docs, driven both ways. Its property -- "a document the corpus names
@@ -1910,7 +1995,12 @@ function cmdRecord(findings) {
   const moved = after.filter((e) => before.has(e.key) && before.get(e.key) !== e.count)
   doc._comment =
     'Defects present when policy_lint landed, each with its recorded number of occurrences. A finding not listed here is an error; MORE occurrences of a listed one is an error; fewer is an error until re-recorded; an entry that no longer fires is an error. The list may only shrink. Regenerate with --record-known-bad; growing it is a deliberate edit a reviewer reads.'
-  doc.recorded_at = git(['rev-parse', 'HEAD']).trim()
+  const at = recordedAtSha()
+  if (!at) {
+    console.log(`refusing to record: no merge base with origin/main, so ${KNOWN_BAD_FILE} would carry a provenance SHA nobody can resolve`)
+    process.exit(2)
+  }
+  doc.recorded_at = at
   doc.entries = after
   fs.writeFileSync(path.join(ROOT, KNOWN_BAD_FILE), JSON.stringify(doc, null, 2) + '\n')
   const total = [...counts.values()].reduce((a, b) => a + b, 0)
