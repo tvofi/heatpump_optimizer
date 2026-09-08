@@ -1,6 +1,6 @@
 # Handover — the open-issues programme
 
-updated-for: 6438406
+updated-for: d8dccd1
 
 This is the only handover. There is no dated series: a second
 `docs/handover-*.md` is refused by `tests/entities.py`, and the policy it
@@ -77,15 +77,13 @@ so it costs no extra pull request, and `updated-for:` names that merge.
 ### The UX programme
 
 **Every item lives on #558**, with the *Optimizer UX Docket* artifact as source
-of record. This file deliberately does **not** restate them — it previously
-claimed to hold the "full accounting" and did not, which cost a session the
-conclusion that the list was unrecoverable when it was one artifact call away.
-
-The lane collision table, the three in-lane sequencing rules and the reasons
-E1–E3 and F wait live in `docs/plan-2026-09-open-issues.md`, which is
-authoritative for delivery state; per-unit stage, `after` edges and carried
-findings are in `.claude/workflows/wave-ux-groups.json` (#601), the in-tree
-destination the lanes had none of and the only one a linter reads.
+of record. This file deliberately does **not** restate them — it once claimed a
+"full accounting" it did not hold, which cost a session the conclusion that the
+list was unrecoverable when it was one artifact call away. Lane collisions,
+sequencing and the reasons E1–E3 and F wait are in
+`docs/plan-2026-09-open-issues.md`, authoritative for delivery state; per-unit
+stage, `after` edges and carried findings are in
+`.claude/workflows/wave-ux-groups.json` (#601), the only one a linter reads.
 
 ## Corrections to the record
 
@@ -105,11 +103,9 @@ destination the lanes had none of and the only one a linter reads.
   filesystem layout that no installation uses.
 - **#457 / 3L-G6 was not spec-blocked.** Nothing shipped, and the owner closed
   it `COMPLETED` by hand on 2026-09-06. Recorded as discharged.
-- **`.cursor/rules/ci-autofix.mdc` exists.** A seat filed it as a programme
-  defect because the main checkout at `/Users/timmalmstrom/heatpump_optimizer`
-  sits on a stale branch and a directory listing there reports current files as
-  missing. **Check any file's existence with `git show origin/main:<path>`,
-  never by listing that checkout.**
+- **A file reported missing was there.** A seat filed it as a programme defect
+  after listing a checkout that sat on a stale branch. **Check existence with
+  `git show origin/main:<path>`, never by listing a working tree.**
 - **`section()` was genuinely unavailable** at the declared Home Assistant
   floor — absent from that release's `helpers/selector.py`, present at
   2025.2.0. The park was correct, and it is #514 that unblocks it.
@@ -122,31 +118,27 @@ destination the lanes had none of and the only one a linter reads.
 
 ## Traps that cost a session
 
-1. **A killed agent never writes its own `state at stop:` comment.**
-   Reconciliation is therefore the orchestrator's job on every resume: walk the
-   session's branches and open pull requests and post the notes the dead agents
-   owed.
-2. **A stand-down note and a committed roster can disagree, and origin is the
-   tiebreak** — the pull request's own comments, not the roster and not the
-   note. One re-review was nearly spent re-deriving a verdict already posted.
-3. **A gate cannot be its own witness.** When the thing under test is the
-   test-selection machinery, the selection that runs is chosen by the machinery
-   being tested; #356 shipped a regression its own CI could not see, because
-   editing a gate file routed the change to the one path that could not
-   reproduce the fault.
-4. **A check whose failure is *visible* and a check whose failure is *blocking*
+1. **A killed agent never writes its own `state at stop:` comment.** On every
+   resume the orchestrator walks the session's branches and open pull requests
+   and posts the notes the dead agents owed.
+2. **A stand-down note and a committed roster can disagree; origin is the
+   tiebreak** — the pull request's own comments. One re-review was nearly spent
+   re-deriving a verdict already posted.
+3. **A gate cannot be its own witness.** When the subject is the selection
+   machinery, the selection that runs is chosen by what is under test; #356
+   shipped a regression its own CI could not see, because editing a gate file
+   routed the change to the one path that could not reproduce the fault.
+4. **A check whose failure is *visible* and one whose failure is *blocking*
    look identical in a passing run.** Two sessions each built the first
-   believing they had the second, and neither would have found it from a green
-   log.
-5. **Five of this project's own instruments reported rather than measured** —
-   #341, #347, #354, #350, #357 — each found by someone chasing something else.
-   The pattern is the finding, not the individual bugs. #510 above is the sixth.
+   believing they had the second; neither would have seen it in a green log.
+5. **Six of this project's own instruments reported rather than measured** —
+   #341, #347, #354, #350, #357 and #510 — each found by someone chasing
+   something else. The pattern is the finding, not the individual bugs.
 6. **A figure quoted from another artefact is not measured until you have run
    the thing that produced it.**
-7. **A branch can be stale against main in a way invisible in its own diff**:
-   a move pull request reverting a fix that landed inside the moved lines, or a
-   stale claim or budget table. Neither is catchable by reading the diff or
-   re-running CI — only by comparing against current main, three-dot.
+7. **A branch can be stale against main invisibly in its own diff**: a move
+   reverting a fix that landed inside the moved lines, or a stale claim or
+   budget table. Only a three-dot comparison against current main catches it.
 8. **One CI runner is not the fleet.** #387 exists because a property was
    measured on a single runner and generalised, and the reviewer had asked
    exactly the right question.
@@ -171,29 +163,25 @@ destination the lanes had none of and the only one a linter reads.
     very class, catches **0 of 3**. The reason is not the shape of those figures —
     rewriting all three with digits leaves them just as clean. A grep can only
     ask *is there a figure here*, while the defect is *was the right thing
-    measured*. The countermeasure shared
-    the class's own defect.
-    The divider is **structural, not dispositional**: the class reaches no seat
-    pull request across every review-round body in the corpus at
-    the time (161 rounds over 97 reviewed pull requests — the population the two
-    percentages above come from, and it grows, so re-derive rather than quote), because a seat's production
-    fix is accepted by standing property-quantified instruments — CI, the
-    ratchet, closures, the mutation proof — and a record or policy artifact has
-    none, so its acceptance test is whatever its author wrote that minute.
+    measured*. The countermeasure shared the class's own defect.
+    The divider is **structural, not dispositional**: across every review-round
+    body in the corpus at the time — 161 rounds over 97 reviewed pull requests,
+    the population both percentages come from, and it grows, so re-derive rather
+    than quote — the class reached no seat's *production* fix. A production fix
+    is accepted by standing property-quantified instruments (CI, the ratchet,
+    closures, the mutation proof); a record or policy artifact has none, so its
+    acceptance test is whatever its author wrote that minute.
 13. **"The pull request is open" is not a handoff.** The freeze starts at
     handoff, and a seat that has opened its pull request may still be pushing
     while it waits on CI. Six pull requests had a head moved under a live review
     in one session — more events than that, since #531 alone was moved four
     times.
 14. **A record pull request cannot converge while the merge queue runs.** #531
-    was still open after 20 hours, 45 commits — 19 of them merges of main —
-    25 content edits and 11 blocked rounds, with 31 pull requests merged
-    underneath it. Every one of those is a reading at that moment rather than
-    a final tally: it kept moving, which is the point and each
-    invalidated part of its content. The rule already says *the same session or
-    an immediate record pull request*: one record per merge has a bounded truth
-    condition and cannot be overtaken. Live state belongs on #201, where a
-    comment cannot go stale under a merge.
+    stayed open 20 hours over 45 commits, 25 content edits and 11 blocked
+    rounds, with 31 pull requests merging underneath it — each of those a
+    reading at one moment, not a tally, because every merge invalidated part of
+    its content. One record per merge has a bounded truth condition and cannot
+    be overtaken; live state belongs on #201, where no merge can stale it.
 15. **`date -jf '%Y-%m-%dT%H:%M:%SZ'` parses a UTC stamp as local time.** Every
     age computed that way is wrong by the offset; it once made a queue aged
     8 minutes to 20 hours read as a flat "2h", hiding which pull request was
@@ -221,20 +209,36 @@ destination the lanes had none of and the only one a linter reads.
     Three review comments were posted with their SHAs silently missing. Write
     the body to a file with a quoted heredoc and pass `-F body=@file`.
 19. **A one-sided size cap and a growing document collide across branches, and
-    nothing branch-scoped holds both ends.** #608 recorded `docs/HANDOVER.md`'s
-    cap in `.claude/workflows/policy_budgets.json` at the length that file then
-    had; #607, cut from the same commit and already in review, added 43 lines to
-    it and merged 56 minutes later. Both prefixes are INERT, so the `Governance`
-    workflow is the only thing that measures this, and it was green on each
-    branch alone. `main` was red on `policy-docs` from `5018e31` until this
-    record paid the lines back. Trap 17's shape on a budget rather than a
-    citation.
-
-## Owed
-
-- **A never-scoped CI job for `node .claude/workflows/check-wave-script.mjs`**,
-  shaped like `tests.yml`'s `browser` and `briefs` jobs. It is the last file in
-  that position still running by hand only.
+    nothing branch-scoped holds both ends.** #608 capped `docs/HANDOVER.md` at
+    its then length; #607, cut from the same commit and already in review, added
+    43 lines and merged 56 minutes later. Both prefixes are INERT, so the
+    `Governance` workflow alone measures this and it was green on each branch
+    alone — `main` was red on `policy-docs` from `5018e31` until a record paid
+    the lines back. Trap 17's shape on a budget rather than a citation.
+20. **A comment bumps a pull request's `updated_at`, so it is not a body-edit
+    clock.** Read as one, it had me date a body edit to what was in fact a
+    reviewer's own comment timestamp. The clock is the `Governance` run list:
+    the job fires on `[edited]`, so a missing run means no edit happened.
+21. **Assert a mutation's occurrence count before applying it.** A control here
+    reported a cap mutant NOT CAUGHT: the replacement hit the string's first
+    occurrence, inside a comment, so the run was the unmutated one. "I could not
+    find it" is a different result from "it is pinned". Same shape: a `case`
+    glob is not anchored, so `v[0-9]*.[0-9]*.[0-9]*` accepts `v1.2.3; rm -rf /`;
+    and `git remote remove` in a worktree strips it for every worktree.
+22. **A subagent does not survive a session restart; its report does.** Read
+    `tasks/<agentId>.output` before re-dispatching — `ListAgents` goes empty
+    with no notification, and an hour was nearly spent re-running finished work.
+23. **Re-pointing a branch chain by POSITION after a rebase drops a commit.**
+    Map by commit subject and verify the tip's pin count: by index once shifted
+    eight branches by one, and nothing but that count noticed.
+24. **A citation repointed to a commit that resolves but lacks the file is
+    worse than a dead one.** `git cat-file -e <sha>:<path>`, never per directory.
+25. **A body's count of its own diff must come from the diff.** #621's body
+    said five disposition rows; the diff added nine — the author counted what
+    they remembered writing, in the branch whose subject was a document whose
+    facts had gone stale for want of a second witness. Derive a body's counts
+    by mutating the artefact and reading the detector: here, removing all nine
+    rows and reading `--record`'s refusal.
 
 ## Owed — post-hoc reviews
 
@@ -244,10 +248,7 @@ account rate limit before the round could run: **#591, #592, #596, #602, #603,
 #605, #569**, and separately **#606**, merged with no review at all because
 `main` was red and it was the repair.
 
-Each squash body says so and names what a reviewer should start from. Every
-change since the last verdict answers a named block and was verified by
-measurement rather than assertion, but that is the author verifying his own
-work, which is the arrangement the fix-review contract exists to prevent.
+Each squash body says so and names what a reviewer should start from.
 
 Two of these matter more than the rest. **#603** is policy whose owner-approved
 form changed twice after approval. **#596** introduces `tests/typing_budgets.json`
@@ -260,17 +261,16 @@ Also owed, and deliberately not landed because it is policy: a finding for
 the complement of production's input**. #591's seat drafted the text and
 flagged it rather than claiming a carry it had not made.
 
-## The machine this runs on
+## The machine this runs on — measure it, do not read it
 
-- The owner's Mac, with the `gh` CLI, 8 cores and 8.6 GB, shared with at most
-  one other gate-running agent. Branch pushes, tag pushes and branch deletion
-  all work here. The `refs/tags` and ref-deletion 403s an older container
-  recorded were properties of that container and are **not** properties of this
-  repository; do not plan around them.
-- Python 3.11.5 is the default interpreter (3.13.1 is also present), CI runs
-  3.13, and #514 moves the production target to 3.14.
-- Playwright is not installed, so `tests/card_browser.mjs` runs in CI only —
-  which is the authority for that lane anyway.
-- Worktrees live under `/Users/timmalmstrom/wt/<branch>`. Never commit in the
-  main checkout: it sits on a stale branch. `git merge origin/main`, never
-  rebase.
+This section used to describe the owner's Mac; a container seat reads it and
+every line is false. Measure your own box (`nproc`, `command -v gh`, `python3
+-V`). The repository facts: CI runs 3.13, #514 moves production to 3.14, CI is
+the authority for the browser lane, and `git branch --show-current` beats
+trusting a path.
+
+**A 403 is not always the repository's answer.** Tag pushes and ref deletion
+work from some environments and are proxy-refused in others, and the message
+separates them: "Resource not accessible by integration" is a token scope,
+"not permitted through this proxy" is the environment. Recording the second as
+the first sends a reader to change what was never the obstacle.

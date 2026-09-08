@@ -682,6 +682,18 @@ judge comments on each issue and summarised on #201.
   *different ruler* (non-strict) rather than a stale count, and #233's restart gap fails its
   own flat-price null at both 24 and 48 hours.
 
+## Carried findings awaiting a stage
+
+- **Nothing measures a numbered list's numbering.** Carried to the corpus-loop
+  work in `.claude/workflows/policy_lint.mjs`. #623 shipped `docs/HANDOVER.md`
+  with two entries numbered 8, two numbered 9 and two numbered 10, green through
+  `policy-docs`, `prepr.sh` and a review. **A numbering check must not
+  renumber**: six tracked sites cite traps by number — `tests/env_drift.py`,
+  `tools/audit/prepr.sh`, `tests/entities.py` and this file at three places,
+  naming traps 11, 12, 17 and 18 — so it refuses duplicates and gaps while
+  leaving existing numbers fixed, and the list is deliberately not ascending.
+  Re-derive that citer set at your own merge base rather than quoting this one.
+
 ## Standing rules
 
 Unchanged from the repository's own protocol; restated here because a fresh
