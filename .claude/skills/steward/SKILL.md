@@ -98,27 +98,38 @@ IF a terminal result already exists at this head, THEN it is the result. Re-run
 a job only under the narrow conditions the general rules allow, and never to
 see whether it comes out differently.
 
-## S10 Create the commit, then write the body, then push
+## S10 Create the commit, then write the body, then push, then confirm
 
 IF a fix also needs the pull-request body corrected, THEN create the commit
-first, write the body against the SHA it already has, and push last.
+first, write the body against the SHA it already has, push last, and check the
+head's own checks afterwards.
 
-`pr-contract` runs on `synchronize` and reads the body as it stood at push
-time. Push before correcting the body and the job measures the stale one, so a
-fix leaves a failed run attached to the very commit that repaired it. The
-`edited` trigger then produces a second, green run and the latest wins, but the
-red one stays in the listing and leaves the pull request `unstable`.
+`pr-contract` runs on `synchronize` and reads the body as it stood at push time.
+Push before correcting the body and the job measures the stale one.
 
-The order above works because a commit's SHA is fixed when the commit is made,
-not when it is pushed -- including a cherry-pick onto the branch you push, which
-assigns the SHA locally. So `## Head` can always be written before the push;
-what cannot is writing it before the commit exists.
+Both orders leave exactly one failed run. The difference is WHERE, and that is
+the whole reason for this order:
 
-Measured on this workflow's own first pull request, three times. Two earlier
-forms of this rule failed here: "edit the body first" named a commit the
-cherry-pick then renamed, and "correct only `## Head` afterwards" still leaves
-one red `synchronize` run on every push, because that is the section the stale
-body always gets wrong.
+* push, then edit — the failure lands on the commit that is your head, and the
+  pull request carries it while it is under review;
+* edit, then push — the body edit fires an `edited` run against the head of that
+  moment, which is the one you are abandoning, so the failure lands on a commit
+  that is never the head again.
 
-EXAMPLE BAD: push, then update the body, then explain the red run.
-GOOD: commit, read the SHA, write the body, push. One run, and it is green.
+Measured here at two heads: an `edited` run failing on the outgoing commit
+within seconds of a `synchronize` run passing on the incoming one.
+
+A commit's SHA is assigned when the commit is MADE, not when it is pushed --
+a cherry-pick assigns it locally too -- so `## Head` can always be written
+before the push. What cannot is writing it before the commit exists.
+
+The race is detectable, not preventable, so confirm rather than assume: read
+the check runs on the head you just pushed, not on the pull request as a whole.
+A failure on an earlier commit is expected and harmless; one on the head is not.
+
+The same applies to a push you did not make. An autofix commit (S1) is a
+`synchronize` event, and your body then names the head before the bot's commit.
+Correct `## Head` after the bot pushes, and confirm as above.
+
+EXAMPLE BAD: push, then update the body, then explain the red run on your head.
+GOOD: commit, read the SHA, write the body, push, then read that head's checks.

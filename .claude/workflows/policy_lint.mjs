@@ -982,6 +982,20 @@ function assertAcceptance(derived) {
     console.log(`\nFIXTURE VACUOUS: CORPUS_CHECKS is wired as [${wiredNames}], expected [${CORPUS_CHECK_NAMES.join(',')}]. A check missing from the list never runs; one replaced by a no-op, a duplicate or an unwrapped \`checkCoverage\` runs and measures nothing. The count is derived from this list rather than carried, so adding a fifth check names it here once.`)
     return 1
   }
+  // The harness below swaps `coverageFileSource`, so it cannot see that binding's
+  // PRODUCTION default -- and that default is production code. `() => []` there
+  // disables coverage completely and silently: `checkCoverage` coalesces on
+  // `files ?? trackedFiles().list`, and an empty array is neither null nor
+  // undefined, so the scan runs over nothing while every pin stays green. Pin
+  // the default before swapping it. This is the line the review's attack J
+  // named, and fixing a check by adding an untested line to production is the
+  // shape it exists to refuse.
+  pins += 1
+  if (coverageFileSource() !== null) {
+    console.log(`\nFIXTURE VACUOUS: coverageFileSource's production default returned ${JSON.stringify(coverageFileSource())}, not null. Only null makes checkCoverage read the tracked tree; anything else scans that value instead, and an empty array scans nothing.`)
+    return 1
+  }
+
   // Driven through the WRAPPER, not through `checkCoverage` directly, so what
   // the wired function does is pinned and not merely what it is called.
   const drive = (files) => {

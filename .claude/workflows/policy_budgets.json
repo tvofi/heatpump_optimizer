@@ -4,7 +4,7 @@
   "always_loaded_tokens": 6800,
   "_always_loaded_target": 6000,
   "files": {
-    ".claude/skills/steward/SKILL.md": 125,
+    ".claude/skills/steward/SKILL.md": 136,
     ".claude/workflows/fixtures/policy-rot/budgets.md": 1,
     ".claude/workflows/web-fragments.md": 169,
     ".cursor/rules/brief-citations.mdc": 41,
