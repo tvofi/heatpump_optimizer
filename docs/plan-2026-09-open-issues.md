@@ -936,18 +936,18 @@ judge comments on each issue and summarised on #201.
 - **`claims-autofix` erases an earlier lane's claims from `main` at squash-merge
   time, and it has already done so once.** Measured on #634. `inherited_claims_error`
   fires when a branch's parsed claim list equals its **merge-base's**; after a
-  rebase onto `a684cce` (#633, which claimed 46 card fixtures) that is exactly
+  rebase onto `a684cce` (#633, which added 46 lines to that file — **33** of them claims, the rest header and reasons) that is exactly
   the state `claim-files.md:47` calls "cannot conflict" — byte-identical to
   `main`. Both `fast` legs refused it and the bot repaired the branch by
   **emptying** the list (`6e2dd81 ci: drop inherited claims`). A squash-merge
-  then three-way-merges base=46, branch=0 onto main=46 and applies the
+  then three-way-merges base=33 claims, branch=0 onto main=33 and applies the
   deletion: `git merge-tree --write-tree origin/main 6e2dd81` diffed against
   `origin/main` is `card_claimed_drift.txt | 33 ---`, and `comm -12` over #633's
   added lines and the bot's removed lines returns **33**. The `claimnotes`
   merge driver that unions claim lists locally is per-clone config GitHub
   cannot run. **Precedent:** `2b5e416` (#608, a governance pull request that
   never touched the card) deleted 33 lines #569 had added, by the same path,
-  and `main` has merged green ~25 times since with no stamp between — so the
+  and `main` has merged **21** times since with no stamp between, every completed `Tests` run green — so the
   gate is unaffected. A push to `main` measures drift computed-vs-computed at
   its own head (the #387 shape), and `stamp.py` deletes every bare claim at
   release anyway, counting them as it goes. **What is damaged is the record**:
