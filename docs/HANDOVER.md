@@ -1,6 +1,6 @@
 # Handover — the open-issues programme
 
-updated-for: d8dccd1
+updated-for: d08a56a
 
 This is the only handover. There is no dated series: a second
 `docs/handover-*.md` is refused by `tests/entities.py`, and the policy it
