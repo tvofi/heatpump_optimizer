@@ -961,7 +961,7 @@ judge comments on each issue and summarised on #201.
   emptied again. And the first draft of this entry prescribed a remedy that is
   **not implementable as written**: "skip the file the branch did not touch"
   names a git state indistinguishable from "carried forward", and
-  `inherited_claims_error`'s own docstring (`env_drift.py:1265–1270`) fires on
+  `inherited_claims_error`'s own docstring (`env_drift.py:1259–1271`) fires on
   exactly that state. The discriminator the fix stage needs is not git's file
   history but **the branch's own computed drift**: `env_drift.py --all` already
   measures every fixture tree-vs-merge-base, so a claimed fixture that does not
@@ -980,7 +980,7 @@ judge comments on each issue and summarised on #201.
   cannot make the carried-versus-asserted judgment at all — it compares lists,
   not drift — so the pre-push check is a smoke test, not the fix. The predicate
   itself is already computed: `--all` reports `stale = judged - claimed_hits`
-  (`env_drift.py:1981`), 55 per-scenario verdicts against a merge base. Carried rather
+  (`env_drift.py:2007` — an earlier draft cited `:1981`, a number carried from a review comment rather than read from the file; the fix stage will follow this pointer, so it is read here), 55 per-scenario verdicts against a merge base. Carried rather
   than fixed here
   because `tests/env_drift.py` is shared with the parallel session's lane and
   the change needs its own mutation proof and rot fixture. Until then, every
