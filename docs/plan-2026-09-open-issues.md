@@ -474,6 +474,7 @@ no wave:
 - [#637](https://github.com/tvofi/heatpump_optimizer/pull/637) — W4-G13 S12 recorded halt: no subsystem API to migrate tests to. leaves #193 open.
 - [#636](https://github.com/tvofi/heatpump_optimizer/pull/636) — W5-G2: sensor.py annotations, ruler 518→371. leaves #303 open.
 - [#642](https://github.com/tvofi/heatpump_optimizer/pull/642) — W4-G10 S9 recorded halt: `optimize` 30–50 LOC verbatim has no remaining seam at `30a202e`. leaves #224 open.
+- [#639](https://github.com/tvofi/heatpump_optimizer/pull/639) — **merged under decision 0006**, without a merge SHA it cannot know: `policy_lint_envmatrix.mjs`, the declared-environment matrix that builds five shapes of this repository and fails a row whose run does not produce what the row declares — or a shape it cannot build — plus the `env-matrix` job, decision 0004 (*an assertion can be correct and never run*), and the `prepr.sh` widening. Mutation proof against production, not the harness, and via a temporary commit because the matrix clones from git objects: disabling the shallow-clone disclosure in `policy_lint.mjs` takes it to 11 held / 2 not, rc=1, both in the `shallow` shape; restored 13/13. A vacuous first attempt — a shell-form search string against an array-form call, zero occurrences, an empty WIP commit, 13/13 against an unmutated tree — is disclosed, because it read exactly like a pass until the occurrence assertion caught it. Trap 8 (*one CI runner is not the fleet*) gains its detector with this merge, the fifth in the graduation rule's runway; the ruleset's `env-matrix` context now exists on `main`. Body written against its SHA before the push, per S10; `--claims-only` at the merge base `ok`, because `main`'s claim list is empty and an empty list inherits nothing.
 
 **A pattern worth naming**, since most of these were blocked for it: every one of those blocks was a document asserting something that was not true of the tree — a stale head, a count, an actor, a carry that did not land. None was a disagreement about the change itself.
 
@@ -990,6 +991,20 @@ judge comments on each issue and summarised on #201.
   branch rebased onto a claim-carrying `main` will do this on merge. #635
   already did it to #633's; `main`'s list is empty now, an empty list inherits
   nothing, and the window stays closed until the next claiming merge.
+
+- **The environment matrix can lose a shape or a row without noticing.** Found
+  by #639's first review, reported rather than blocked on, carried here so the
+  matrix's next maintainer inherits it. `policy_lint_envmatrix.mjs`'s
+  `MATRIX VACUOUS` guard keys on the shape *directory* existing, so a shape
+  whose builder is deleted still passes as "13 held across 5 shapes" against a
+  reused work directory that holds the previous run's clone; and no declared
+  row *count* or row *name set* exists, so a deleted row is never noticed — 12
+  of 12 reads as fine. The precondition for the fix: pin the row set by
+  **name**, not by count (#614 round 3: a count is satisfied by a duplicate and
+  by a swap), and have `build` refuse a work directory that already holds the
+  shape rather than reuse it. Cost measured by the reviewer: none of the five
+  shapes as declared are affected today; the hole is in what the matrix would
+  say if one went missing.
 
 ## Standing rules
 

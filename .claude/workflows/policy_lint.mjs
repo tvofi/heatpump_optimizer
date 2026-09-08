@@ -1701,6 +1701,24 @@ function checkProvenance() {
     execFileSync('git', ['merge-base', '--is-ancestor', sha, 'origin/main'], { cwd: ROOT, stdio: 'ignore' })
     return []
   } catch (e) {
+    // EXIT 1 IS THE ANSWER ONLY IN A CLONE THAT CAN WALK THE WHOLE GRAPH. The
+    // env-matrix's first CI run found the case the arm below did not cover: a
+    // clone holding every object but marked shallow at a commit AT OR ABOVE
+    // origin/main, where the walk from origin/main stops at the boundary before
+    // reaching a perfectly good SHA and answers 1 -- "no" -- rather than 128.
+    // Where the boundary lands is the whole difference, not the git version: CI
+    // checks out the pull request's merge commit, whose first parent IS
+    // origin/main, so the matrix's HEAD~1 graft sits exactly there; a branch
+    // tip's HEAD~1 sits above origin/main and the walk succeeds. One git, both
+    // shapes, opposite answers -- reproduced on this box from a synthetic merge
+    // commit. So shallowness is asked on BOTH error paths: a "no" git could not
+    // have established is not a refusal, and rule 5 of decisions/0003 says to
+    // say so rather than go silent or -- worse -- refuse.
+    const shallowOnNo = e.status === 1 && git(['rev-parse', '--is-shallow-repository'], { allowFail: true }).trim() === 'true'
+    if (shallowOnNo) {
+      console.log(`  skip     provenance             this clone is shallow, so git's "not an ancestor" for ${sha.slice(0, 7)} may be the boundary, not the graph`)
+      return []
+    }
     if (e.status !== 1) {
       // EXIT 128 IS TWO ANSWERS, and the first version of this arm took both
       // for the same one. It means "this clone is shallow, so I cannot walk
@@ -2264,7 +2282,14 @@ function assertAcceptance(derived) {
   const unreachable = mainSha
     ? git(['commit-tree', `${mainSha}^{tree}`, '-m', 'policy_lint provenance witness'], { allowFail: true, env: IDENT }).trim()
     : ''
-  if (!mainSha || !unreachable) {
+  // A SHALLOW CLONE CANNOT DRIVE EITHER ARM. `checkProvenance` now treats a
+  // "not an ancestor" from a shallow clone as the boundary rather than the
+  // graph, so the parentless witness below would be skipped, not refused, and
+  // the drive would read VACUOUS for a check that is behaving as designed. The
+  // env-matrix's first CI run found the false refusal; its acceptance found the
+  // fix that was too blunt. Asked once here, before any pin is promised.
+  const shallowClone = git(['rev-parse', '--is-shallow-repository'], { allowFail: true }).trim() === 'true'
+  if (!mainSha || !unreachable || shallowClone) {
     // Said out loud, and NOT counted. A skipped drive that still added its pins
     // would report a total the run did not earn.
     // KEYED ON THE CHECK'S OWN NAME, and that spelling is load-bearing:
@@ -2273,7 +2298,7 @@ function assertAcceptance(derived) {
     // exercise it at all". Any other spelling would need a mapping table there,
     // and two hand-kept lists that must agree are the defect generator
     // decisions/0003 rule 4 is about.
-    console.log(`  skip     checkProvenance-pin    ${mainSha ? 'git could not build a witness commit' : 'origin/main is not in this clone'}, so neither direction can be driven`)
+    console.log(`  skip     checkProvenance-pin    ${shallowClone ? 'this clone is shallow, so a "no" from --is-ancestor may be the boundary rather than the graph' : mainSha ? 'git could not build a witness commit' : 'origin/main is not in this clone'}, so neither direction can be driven`)
   } else {
     pins += 3
     if (driveProv(unreachable).length !== 1) {
@@ -2298,10 +2323,12 @@ function assertAcceptance(derived) {
     // exposure was local, which is exactly where a seat runs `prepr.sh`.
     //
     // NOT keyed `skip <name>-pin`, deliberately. That spelling tells
-    // `policy_lint_mutants.mjs` the check could not be driven AT ALL, and here
-    // the parentless-witness arm above still runs and still catches an emptied
-    // `checkProvenance`. Claiming less than the run earns is the same
-    // dishonesty as claiming more.
+    // `policy_lint_mutants.mjs` the check could not be driven AT ALL. This arm
+    // is only reached in a clone that is not shallow -- the guard above the
+    // witness drive skips both arms otherwise, under exactly that key -- so a
+    // `shallowHere` true here would be a contradiction, kept as belt and
+    // braces. Claiming less than the run earns is the same dishonesty as
+    // claiming more.
     const shallowHere = git(['rev-parse', '--is-shallow-repository'], { allowFail: true }).trim() === 'true'
     if (shallowHere) {
       console.log(`  skip     provenance-deadbeef    this clone is shallow, so "no object carries this SHA" and "history this clone cannot walk" are the same exit 128; the witness arm above still drove the check`)

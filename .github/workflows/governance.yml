@@ -85,6 +85,44 @@ jobs:
         if: always()
         run: node .claude/workflows/policy_lint.mjs --report || true
 
+  # THE LANES ABOVE RUN IN ONE ENVIRONMENT. Five separate assertions in this
+  # repository were CORRECT and never RAN, because whether they run is decided
+  # by a fact about the clone -- shallow or not, origin/main present or not,
+  # HEAD equal to origin/main or not, the scanned population empty or not --
+  # and each run looked identical to one where they did. Two of the five were
+  # written by the very commits that landed the countermeasures for the
+  # previous class. See docs/decisions/0004.
+  #
+  # This job builds the environment shapes the repository declares it supports
+  # and requires each shape's declared outcome. It is the thing no author's
+  # single run can establish, so it is a separate job rather than another step
+  # above: `policy-docs` proves the checks are right, this proves they ran.
+  env-matrix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The matrix derives its baseline from origin/main and grafts a
+          # shallow shape from HEAD~1; both need real history.
+          fetch-depth: 0
+          fetch-tags: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # The matrix REFUSES when it cannot find a main ref, which is right --
+      # a baseline it had to guess at is the defect it exists to catch -- but
+      # `actions/checkout` gives no guarantee about remote-tracking refs, and a
+      # fail-closed matrix that cannot find its baseline is permanently red CI.
+      # Fetch it explicitly so the refusal only ever means what it says.
+      - name: Put origin/main where the matrix looks for it
+        run: git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
+
+      - name: Require each declared environment shape to produce its declared outcome
+        run: node .claude/workflows/policy_lint_envmatrix.mjs "$PWD" "${RUNNER_TEMP}/envmatrix" "$(git rev-parse HEAD)"
+
   wave-script:
     # The control flow a wave resume rests on. `.claude/` is INERT in
     # tests/closure.py -- and closure.py FAILS if an INERT path appears in a
