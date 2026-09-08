@@ -1,6 +1,6 @@
 {
   "_comment": "Defects present when policy_lint landed, each with its recorded number of occurrences. A finding not listed here is an error; MORE occurrences of a listed one is an error; fewer is an error until re-recorded; an entry that no longer fires is an error. The list may only shrink. Regenerate with --record-known-bad; growing it is a deliberate edit a reviewer reads.",
-  "recorded_at": "d7dc1423f0d4cfb79984d1fe2bf0e5289e8b6f6d",
+  "recorded_at": "6b71e85c540dc92078be1e145775d1f326662e56",
   "entries": [
     {
       "key": "citations|.claude/rules/brief-citations.md|path `foo.py`: not in the tree, and no tag SHA is cited alon",

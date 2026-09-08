@@ -76,8 +76,8 @@ leads that turned out to be harness gaps go here with the gap named.
 
 ## Output
 
-- `tools/audit/round<N>/D<k>/REPORT.md`: method, findings in full, non-findings,
-  harness list, what you could not finish and why, and your `exposure`.
+- `tools/audit/round<N>/D<k>/REPORT.md` (round 2's at `d5d8c4a`): method,
+  findings, non-findings, harnesses, what you could not finish, `exposure`.
 - The JSON report returned from your task, validating against
   `tools/audit/finding.schema.json`. The schema makes `evidence`,
   `instrumented_symbol`, `perturbation` and `metric_definition` required; a

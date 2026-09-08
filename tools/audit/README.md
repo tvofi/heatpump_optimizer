@@ -2,8 +2,8 @@
 
 Everything the eleven-dimension audit runs on, so that a finding can be
 re-measured by someone who was not there: the briefs each auditor receives,
-the schema every finding must satisfy, the harness contract, and the
-harnesses themselves, one directory per round and dimension. The register
+the schema every finding must satisfy, the harness contract, and the three
+harnesses a judge still re-runs (`harnesses/README.md`). The register
 that records what came of it is `docs/audit-2026-09.md`; the orchestration
 scripts are `.claude/workflows/audit-*.js`.
 
@@ -21,7 +21,7 @@ tools/audit/
   briefs/judge.md           the judge's contract: re-measure, void, classify
   briefs/fixer.md           the fix protocol as a checklist
   briefs/fix-review.md      the adversarial fix reviewer's contract
-  round<N>/D<k>/            harnesses and REPORT.md for that round and dimension
+  harnesses/README.md       the instruments kept live, and where rounds 1-3 went
 tools/release/stamp.py      the only way a version is assigned
 ```
 
@@ -239,9 +239,9 @@ you actually ran, not just the tag name -- a name-only citation stops meaning
 anything the next time the tag moves.
 
 The tag has been swept, and which harnesses run, which don't, and by which of
-three rot classes, is recorded in `tools/audit/round2/HARNESSES.md` -- read
-that file, not this paragraph, for the current state, including per-harness
-results at whatever `main` head last checked it. In short: `D6/claims.py` is
+three rot classes, is recorded in `round2/HARNESSES.md` at `d5d8c4a` -- read
+that file, not this paragraph. It is no longer on `main`, so its results are
+final at that commit, not tracking a head. In short: `D6/claims.py` is
 repaired (the B5 sweep landed at `757e164`); `D9/d9lib.py`'s marker-cut
 fragility is unrepaired and, run in the tag's own checkout, still gives the
 `IndentationError` `HARNESSES.md` records -- but do not assume that against a

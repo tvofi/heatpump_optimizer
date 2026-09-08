@@ -216,6 +216,11 @@ const POLICY_GLOBS = [
   /^\.claude\/rules\/[a-z0-9-]+\.md$/,
   /^tools\/audit\/briefs\/[A-Za-z0-9_.-]+\.md$/,
   /^tools\/audit\/README\.md$/,
+  // The live instruments' own README, which `tools/audit/README.md` names. It
+  // arrived with the archive pass and the widened basename resolution reported
+  // it immediately: a seat-facing document outside every cap is the corpus
+  // escape this check exists for, whether or not anyone meant it as one.
+  /^tools\/audit\/harnesses\/README\.md$/,
   /^tests\/README\.md$/,
   /^docs\/HANDOVER\.md$/,
   /^\.claude\/workflows\/web-fragments\.md$/,
@@ -338,7 +343,6 @@ const CORPUS_EXCLUDED = new Set([
   'docs/plan-2026-09-open-issues.md', // plan of record
   'DISCLAIMER.md',                    // user-facing, same ground as README.md
   'docs/backlog.md',                  // superseded record, kept for history
-  'tools/audit/round2/HARNESSES.md',  // write-once round-2 evidence
 ])
 
 // Widening the scan past `.md` brought in every `.txt` a policy file cites, and
@@ -358,10 +362,7 @@ const CORPUS_EXCLUDED = new Set([
 // none -- the healthy tree stays at TOTAL 0 with every fixture pin intact.
 const CORPUS_EXCLUDED_PREFIX = [
   'tests/',                            // suite data: fixtures, claim files, requirements
-  'tools/audit/round1/',               // write-once evidence
-  'tools/audit/round2/',
-  'tools/audit/round3/',
-  'tools/audit/w5-g5-195-coverage/',
+  'tools/audit/w5-g5-195-coverage/',   // wave-5 evidence, kept until that wave closes
 ]
 
 // A SECOND, DIFFERENT KIND OF EXCLUSION, and it must not be folded into the
@@ -403,8 +404,6 @@ const NOT_A_DOCUMENT = new Set([
   'json',
   'log',
   'mjs',
-  'out',
-  'patch',
   'png',
   'py',
   'sh',
@@ -516,31 +515,15 @@ function bareNameCandidates(text) {
 // `docs/POLICY-NOTES.md`, with 77 tokens leaving each of the five caps in
 // silence. The extension axis was closed while this one stood open.
 //
-// A UNIQUE basename only, and the alternative was measured rather than argued.
-// `lookupPath` in brief_lint.mjs answers "does this resolve" and returns the
-// first of several files sharing a basename; this check asks "is any
-// destination the corpus names uncapped", so returning the first would be
-// arbitrary and returning ALL of them over-fires: driven that way on this tree
-// it reported SIXTEEN findings, every one a frozen `tools/audit/round2/**`
-// report reached through the generic basenames `REPORT.md` and `BASELINE.md`
-// that `tools/audit/README.md` uses to describe a shape, not to name a file.
-//
-// THE LIMIT, stated with its size rather than left to be inferred: an ambiguous
-// basename resolves to nothing, so a destination whose basename collides with
-// another tracked file is not reached by THIS route. Reaching it costs the
-// sixteen false reports above until the round-2 evidence tree is deleted, and
-// the escape it leaves needs a deliberate two-file basename collision visible
-// in the same diff -- where the path spelling, which is always resolved, is one
-// character away. Cost measured, not asserted; the exact-path route is
-// unaffected either way.
 // CASE-INSENSITIVELY, for the same reason round four put `/i` on the extension
 // test and round seven's review measured the half that was left: `namedDocMatches`
 // lowercases an extension before judging it, so `POLICY-NOTES.MD` survives the
 // scan -- and then resolved case-SENSITIVELY against `git ls-files` it matched
 // nothing and was dropped. Measured: `docs/POLICY-NOTES.md` cited as
 // `POLICY-NOTES.md` reported rc=1 and the same file cited as `POLICY-NOTES.MD`
-// reported rc=0 with TOTAL 0. Uniqueness is measured after folding too, so two
-// tracked files differing only in case are ambiguous and resolve to neither.
+// reported rc=0 with TOTAL 0. Folding decides which files COLLIDE; what a
+// collision then resolves to is `resolveCited`'s business, and it resolves to
+// all of them.
 function lowerBaseMap(listing) {
   if (!listing._byBaseLower) {
     const m = new Map()
@@ -554,27 +537,43 @@ function lowerBaseMap(listing) {
   return listing._byBaseLower
 }
 
-// EXACT CASE FIRST, FOLD ONLY AS A FALLBACK. Asking the folded question first
-// cost one real file, and the #615 round-eight review measured it: `judge.md`
-// collides case-insensitively with `tools/audit/round2/JUDGE.md`, so
-// `tools/audit/briefs/judge.md` -- a capped policy file the corpus cites by
-// basename -- became ambiguous and left the named-docs set entirely (34 paths
-// before the fold, 33 after). Nothing else in the tree collides that way except
-// frozen round-2 evidence.
+// AN AMBIGUOUS BASENAME RESOLVES TO ALL OF THEM, NOT TO NOTHING, and resolving
+// it to nothing was a ONE-FILE escape rather than the two-file one the #615 body
+// claimed. The second file never had to be planted: it is the policy file
+// itself. Measured on that branch's head -- a new tracked `docs/X.md`, cited
+// from `CLAUDE.md` by basename:
 //
-// Two questions in order, not one merged question. A spelling that matches
-// exactly one tracked file EXACTLY resolves to it; a spelling that matches
-// several exactly is ambiguous and resolves to nothing; only a spelling that
-// matches NONE exactly falls through to the fold, which is the `POLICY-NOTES.MD`
-// route and is unaffected. Both properties hold at once, which the single folded
-// lookup could not do.
+//   docs/COMMON.md        cited as `COMMON.md`        0 findings   ESCAPED
+//   docs/fixer.md         cited as `fixer.md`         0            ESCAPED
+//   docs/gate-scoping.md  cited as `gate-scoping.md`  0            ESCAPED
+//   docs/Zednotes.md      cited as `Zednotes.md`      1            reported
+//
+// Any destination named after a capped policy file left every cap in silence.
+//
+// WHY IT COSTS NOTHING HERE AND NOT BEFORE. Driven this way on the base tree it
+// reported seventeen extra findings, all `tools/audit/round2/**`: sixteen
+// through the generic names `REPORT.md` and `BASELINE.md`, and a seventeenth --
+// `round2/JUDGE.md` -- through `judge.md` and the case fold. Both counts are
+// measured on `e4a388a`, the tree whose body wrote sixteen: an EXACT-CASE
+// resolve-to-all reports 16 there, the FOLDED one 17, and the one finding
+// between them is `round2/JUDGE.md`. So sixteen is the count from before the
+// fold -- which `e4a388a` itself carries -- and not a number #616 moved. Those
+// were never false positives -- they were frozen evidence documents that
+// genuinely had no cap and no exclusion, and the honest fix was to classify
+// them, which this commit does by deleting the tree. So the check is widened in
+// the same change that removes its cost, and the caller's own filter does the
+// rest: a candidate that is capped AND measured, or excluded, is dropped, so an
+// ambiguous basename reports only the destination that is neither.
+// ONE LOOKUP, NOT TWO. #616 gave the exact-case map precedence so a UNIQUE
+// exact match would win over a folded collision; resolving an ambiguous
+// basename to ALL of its candidates makes that precedence dead, because the
+// folded map is a superset of the exact one and the caller filters both the
+// same way. Driven: with the exact branch emptied, every pin stayed green and
+// the tree stayed at TOTAL 0 -- a branch with no witness left, which inside a
+// check reads exactly like a property. Removed rather than pinned.
 function resolveCited(token, listing) {
   if (listing.set.has(token)) return [token]
-  const base = path.posix.basename(token)
-  const exact = listing.byBase.get(base) || []
-  if (exact.length) return exact.length === 1 ? exact : []
-  const folded = lowerBaseMap(listing).get(base.toLowerCase()) || []
-  return folded.length === 1 ? folded : []
+  return lowerBaseMap(listing).get(path.posix.basename(token).toLowerCase()) || []
 }
 
 // The SCAN AND ITS RESOLUTION, extracted so the acceptance can drive them with
@@ -1301,7 +1300,21 @@ function checkProvenance() {
     return []
   } catch (e) {
     if (e.status !== 1) {
-      console.log(`  skip     provenance             git could not say whether ${sha.slice(0, 7)} is an ancestor of origin/main (exit ${e.status}); a shallow clone cannot`)
+      // EXIT 128 IS TWO ANSWERS, and the first version of this arm took both
+      // for the same one. It means "this clone is shallow, so I cannot walk
+      // that far" AND "no object with that name exists here" -- and the second
+      // is a REFUSAL, not an absence of one: a ledger naming a SHA nothing ever
+      // carried is precisely the defect this check is for. Measured by the #616
+      // review: `recorded_at: deadbee` refused before that arm and skipped
+      // after it. `--is-shallow-repository` is the one call that separates them,
+      // and it is asked only on the error path, so it costs nothing on a healthy
+      // run. Rule 5 of decisions/0003 says report rather than go silent; the
+      // section under it says do not report a refusal you have not established.
+      const shallow = git(['rev-parse', '--is-shallow-repository'], { allowFail: true }).trim() === 'true'
+      if (!shallow) {
+        return f(`\`recorded_at\` is ${sha.slice(0, 7)}, which no object in this clone carries at all. A ledger stamped from a branch head names a SHA the squash deletes; regenerate with --record-known-bad, which stamps the merge base`)
+      }
+      console.log(`  skip     provenance             this clone is shallow, so git cannot say whether ${sha.slice(0, 7)} is an ancestor of origin/main`)
       return []
     }
     return f(`\`recorded_at\` is ${sha.slice(0, 7)}, which is not reachable from origin/main. A branch head is rewritten by the next amend and deleted by the squash that lands it; regenerate with --record-known-bad, which stamps the merge base`)
@@ -1333,7 +1346,12 @@ function keyOf(f) {
 // self-referential -- the ledger would be recording that the ledger is wrong.
 // The first `--record-known-bad` after this check landed did exactly that,
 // entering the finding one run before the re-record fixed it.
-const NEVER_SUPPRESSED = new Set(['budgets', 'coverage', 'provenance'])
+// `named-docs` joins them for the reason `ratchet-budgets.md` gives about caps:
+// an ESCAPE recordable as a known defect is not a closure. The ledger is the
+// right instrument for a citation that has rotted; it is the wrong one for a
+// document sitting outside every cap, because recording it makes the corpus
+// smaller by agreement rather than by measurement.
+const NEVER_SUPPRESSED = new Set(['budgets', 'coverage', 'provenance', 'named-docs'])
 
 function applyKnownBad(findings) {
   const kb = knownBad()
@@ -1765,12 +1783,50 @@ function assertAcceptance(derived) {
   if (!mainSha || !unreachable) {
     // Said out loud, and NOT counted. A skipped drive that still added its pins
     // would report a total the run did not earn.
-    console.log(`  skip     provenance-pin         ${mainSha ? 'git could not build a witness commit' : 'origin/main is not in this clone'}, so neither direction can be driven`)
+    // KEYED ON THE CHECK'S OWN NAME, and that spelling is load-bearing:
+    // `policy_lint_mutants.mjs` matches `skip <name>-pin` in this run's output
+    // to tell "this check survived its own deletion" from "this clone could not
+    // exercise it at all". Any other spelling would need a mapping table there,
+    // and two hand-kept lists that must agree are the defect generator
+    // decisions/0003 rule 4 is about.
+    console.log(`  skip     checkProvenance-pin    ${mainSha ? 'git could not build a witness commit' : 'origin/main is not in this clone'}, so neither direction can be driven`)
   } else {
     pins += 3
     if (driveProv(unreachable).length !== 1) {
       console.log(`\nFIXTURE VACUOUS: checkProvenance did not refuse ${unreachable.slice(0, 7)}, a parentless commit that cannot be an ancestor of anything. A ledger stamped from HEAD names a SHA the squash deletes, which is #361 in a second file.`)
       return 1
+    }
+    // A SHA NO OBJECT CARRIES, which is a different question from an object
+    // that exists and is not an ancestor -- and the answer git gives for it is
+    // exit 128, the same one it gives a shallow clone. The #616 review measured
+    // the cost of taking those for the same thing: `recorded_at: deadbee`
+    // refused before that arm and skipped after it.
+    //
+    // WHETHER THIS ARM CAN RUN AT ALL IS AN ENVIRONMENT FACT, and the previous
+    // version of this comment asserted the environment instead of asking it:
+    // "This clone is not shallow, so here the refusal is the right answer."
+    // Nothing measured that. In a `--depth 1` clone `checkProvenance` DECLINES
+    // by design -- the arm directly above is what taught it to -- so demanding
+    // a refusal here asserts the opposite of what the same commit added, and
+    // the run printed `skip provenance ... this clone is shallow` two lines
+    // before failing with `and this clone is not shallow`. rc=1 for both lanes
+    // on any shallow seat; `governance.yml` uses fetch-depth: 0, so the
+    // exposure was local, which is exactly where a seat runs `prepr.sh`.
+    //
+    // NOT keyed `skip <name>-pin`, deliberately. That spelling tells
+    // `policy_lint_mutants.mjs` the check could not be driven AT ALL, and here
+    // the parentless-witness arm above still runs and still catches an emptied
+    // `checkProvenance`. Claiming less than the run earns is the same
+    // dishonesty as claiming more.
+    const shallowHere = git(['rev-parse', '--is-shallow-repository'], { allowFail: true }).trim() === 'true'
+    if (shallowHere) {
+      console.log(`  skip     provenance-deadbeef    this clone is shallow, so "no object carries this SHA" and "history this clone cannot walk" are the same exit 128; the witness arm above still drove the check`)
+    } else {
+    pins += 1
+    if (driveProv('deadbeefdeadbeefdeadbeefdeadbeefdeadbeef').length !== 1) {
+      console.log(`\nFIXTURE VACUOUS: checkProvenance did not refuse a SHA no object in this clone carries. git answers exit 128 for that AND for a shallow clone; reading both as "cannot look" loses the refusal a bogus stamp deserves, and this clone is measured non-shallow above.`)
+      return 1
+    }
     }
     if (driveProv(mainSha).length) {
       console.log(`\nFIXTURE OVER-FIRES: checkProvenance refused origin/main itself.`)
@@ -1897,6 +1953,25 @@ function assertAcceptance(derived) {
   const treeExts = new Set(trackedFiles().list
     .map((f) => (f.includes('.') ? f.split('.').pop().toLowerCase() : ''))
     .filter(Boolean))
+  // AND THE TWO EXCLUSION LISTS, which had no such assertion at all. An entry
+  // naming a file the tree no longer has is not merely untidy: it is a standing
+  // hole, because a FUTURE file written at that exact path is excluded from the
+  // corpus with no diff to this file for a reviewer to see. This branch is what
+  // made the case live -- it deletes `tools/audit/round2/HARNESSES.md` and the
+  // three round trees, so without the assertion four entries would have stayed
+  // here naming nothing, and `round2/HARNESSES.md` would have become a
+  // ready-made destination for prose leaving every cap at once.
+  pins += 1
+  const { set: liveTree, list: liveList } = trackedFiles()
+  const deadExcluded = [
+    ...[...CORPUS_EXCLUDED].filter((f) => !liveTree.has(f)),
+    ...CORPUS_EXCLUDED_PREFIX.filter((p) => !liveList.some((f) => f.startsWith(p))),
+  ]
+  if (deadExcluded.length) {
+    console.log(`\nFIXTURE VACUOUS: ${JSON.stringify(deadExcluded)} in CORPUS_EXCLUDED or CORPUS_EXCLUDED_PREFIX match no tracked file. An exclusion that names nothing is a destination waiting to be used: a file written there later leaves every cap with no diff to this file.`)
+    return 1
+  }
+
   const deadWeight = [...NOT_A_DOCUMENT].filter((e) => !treeExts.has(e))
   if (deadWeight.length) {
     console.log(`\nFIXTURE VACUOUS: NOT_A_DOCUMENT lists ${deadWeight.length} extensions no tracked file has (${deadWeight.slice(0, 6).join(', ')}...). A blocklist that is not bounded by the tree is an allowlist wearing a different name.`)
@@ -1938,16 +2013,16 @@ function assertAcceptance(derived) {
     console.log(`\nFIXTURE VACUOUS: an extensionless tracked document went unreported (got ${JSON.stringify(cited)}), so the bare pass is unwired at its call site. The tree's only extensionless files are LICENSE, NOTICE and VERSION -- all data -- so this route has no witness on a healthy tree and deleting it costs nothing that any other pin measures.`)
     return 1
   }
-  if (cited.includes('a/dup.md') || cited.includes('b/dup.md')) {
-    console.log(`\nFIXTURE OVER-FIRES: an AMBIGUOUS basename resolved (got ${JSON.stringify(cited)}). Driven that way on the real tree it reported sixteen frozen tools/audit/round2 reports through the generic names REPORT.md and BASELINE.md.`)
+  if (!cited.includes('a/dup.md') || !cited.includes('b/dup.md')) {
+    console.log(`\nFIXTURE VACUOUS: an AMBIGUOUS basename resolved to fewer than all its candidates (got ${JSON.stringify(cited)}). Resolving it to NOTHING was a one-file escape: the colliding second file is the policy file itself, so a destination named after one left every cap in silence. The caller drops a candidate that is capped and measured, so reporting all of them reports only the one that is neither.`)
     return 1
   }
-  // Exact case WINS over a fold. The synthetic carries a pair that collides only
-  // when folded -- the shape `judge.md` and `tools/audit/round2/JUDGE.md` have in
-  // the real tree -- and the exact spelling must still resolve. Folding first
-  // made that pair ambiguous and dropped `tools/audit/briefs/judge.md`, a capped
-  // policy file the corpus cites by basename, out of the check entirely.
-  pins += 1
+  // A listing carrying a pair that collides only when FOLDED -- the shape
+  // `judge.md` and `tools/audit/round2/JUDGE.md` had in the real tree until this
+  // branch deleted the second. No `pins` here: this builds the fixture, and the
+  // assertions that use it count themselves. The one that used to sit here
+  // pinned exact-case precedence, which resolving to all candidates made dead
+  // code; it went with the code, and the count went with it.
   const foldPair = { set: new Set(['a/case.md', 'b/CASE.md', 'docs/only-here.md', 'docs/NOTES']) }
   foldPair.byBase = new Map()
   for (const f of foldPair.set) {
@@ -1955,11 +2030,30 @@ function assertAcceptance(derived) {
     if (!foldPair.byBase.has(b)) foldPair.byBase.set(b, [])
     foldPair.byBase.get(b).push(f)
   }
-  const exactWins = citedTrackedPaths('see `case.md` and `CASE.md`', foldPair)
-  if (!exactWins.includes('a/case.md') || !exactWins.includes('b/CASE.md')) {
-    console.log(`\nFIXTURE VACUOUS: a basename that matches exactly ONE tracked file exactly did not resolve to it (got ${JSON.stringify(exactWins)}), so a fold-only collision drops it. Measured on the real tree: asking the folded question first lost tools/audit/briefs/judge.md to tools/audit/round2/JUDGE.md, 34 named documents down to 33.`)
+  // BOTH ambiguity branches, because they are separate code paths and only the
+  // exact one had a witness: a mutant restoring "resolve a folded collision to
+  // nothing" left all 55 pins green. `CaSe.md` matches no tracked file exactly,
+  // so it reaches the fold, where it matches two -- and must report both.
+  pins += 1
+  const foldAmbig = citedTrackedPaths('see `CaSe.md`', foldPair)
+  if (!foldAmbig.includes('a/case.md') || !foldAmbig.includes('b/CASE.md')) {
+    console.log(`\nFIXTURE VACUOUS: a basename ambiguous only AFTER folding resolved to fewer than all its candidates (got ${JSON.stringify(foldAmbig)}). That is the same one-file escape as the exact case, one spelling further out.`)
     return 1
   }
+
+  // `named-docs` must not be suppressible by the ledger, and nothing said so
+  // until a mutant took it off the list with every pin still green. An ESCAPE
+  // recorded as a known defect is not a closure -- the reason `budgets` and
+  // `coverage` are there. Asserted on the set rather than driven through
+  // `applyKnownBad`, because a synthetic finding's key is absent from the real
+  // ledger and would survive whatever the list said: the drive would be the
+  // vacuous one, and this is the honest cheap pin.
+  pins += 1
+  if (!NEVER_SUPPRESSED.has('named-docs')) {
+    console.log(`\nFIXTURE VACUOUS: named-docs is suppressible by policy_known_bad.json. A document sitting outside every cap would become a recorded defect, which makes the corpus smaller by agreement rather than by measurement.`)
+    return 1
+  }
+
 
   const citedCase = citedTrackedPaths('see `ONLY-HERE.md`', synth)
   if (!citedCase.includes('docs/only-here.md')) {

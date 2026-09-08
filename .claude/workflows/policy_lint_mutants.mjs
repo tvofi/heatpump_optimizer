@@ -92,7 +92,29 @@ async function main() {
     return 1
   }
 
+  // A CHECK THE CLONE CANNOT EXERCISE IS NOT A CHECK THAT SURVIVED ITS DELETION.
+  // In a clone with no `origin/main` the acceptance says so out loud and skips
+  // its provenance drive -- and this lane then emptied `checkProvenance`, saw
+  // the acceptance still pass, and reported ACCEPTED ... DELETABLE IN SILENCE,
+  // rc=1. That is a FALSE failure: nothing is deletable, the environment simply
+  // cannot ask. It is the same confusion the check beside it was just fixed for,
+  // one level up -- "no" and "I cannot look" are different answers.
+  //
+  // Read from the NULL CONTROL's own output rather than from a list here, and
+  // keyed on the check's own name, so a check whose drive learns to skip needs
+  // no edit in this file.
+  const skipped = new Set(
+    control.said.flatMap((l) => {
+      const m = l.match(/^\s*skip\s+(\w+)-pin\b/)
+      return m ? [m[1]] : []
+    }),
+  )
+
   for (const name of CORPUS_CHECK_NAMES) {
+    if (skipped.has(name)) {
+      rows.push({ name, verdict: 'SKIP', why: 'the acceptance could not drive this check in this clone, so emptying it proves nothing either way' })
+      continue
+    }
     // The anchor is asserted, not assumed. "I could not find it" and "it is
     // pinned" are opposite results, and a lane that reports the first as the
     // second is the defect it was written for. A check rewritten as
@@ -134,9 +156,21 @@ async function main() {
   // that let a check go missing from two lists at once; a reader who can see
   // the names can tell that the one they are looking for is absent.
   for (const r of rows) console.log(`  ${r.verdict.padEnd(8)} ${r.name.padEnd(20)} ${r.why}`)
-  const bad = rows.filter((r) => r.verdict !== 'PIN')
+  // SKIP DOES NOT FAIL, and that is the whole point of separating it from
+  // ACCEPTED. The clone could not ask the question; the code is not implicated,
+  // and failing here fails `prepr.sh` for a seat whose remote happens to be
+  // absent -- which is how this was found, after `git remote remove` in one
+  // worktree stripped it for every worktree sharing the .git. It is printed on
+  // its own line so an unmeasured check is never mistaken for a measured one,
+  // which is the same stance `checkProvenance` takes about its own skip.
+  const skips = rows.filter((r) => r.verdict === 'SKIP')
+  const bad = rows.filter((r) => r.verdict !== 'PIN' && r.verdict !== 'SKIP')
+  for (const r of skips) {
+    console.log(`\nMUTANTS: \`${r.name}\` was NOT measured -- ${r.why}. An unmeasured check is not a passing one; this run does not certify it either way.`)
+  }
   if (!bad.length) {
-    console.log(`\nMUTANTS ok: every corpus check in CORPUS_CHECK_NAMES turns the acceptance red when its return is emptied [${rows.map((r) => r.name).join(', ')}]`)
+    const pinned = rows.filter((r) => r.verdict === 'PIN').map((r) => r.name)
+    console.log(`\nMUTANTS ok: every corpus check this clone could drive turns the acceptance red when its return is emptied [${pinned.join(', ')}]${skips.length ? `; ${skips.length} not measured here` : ''}`)
     return 0
   }
   for (const r of bad) {

@@ -110,18 +110,39 @@ await block('group 5', async () => {
   // because a list here would drift the same way.
   const known = [...src.matchAll(/const KNOWN_STAGES = \[([^\]]*)\]/g)]
     .flatMap((m) => [...m[1].matchAll(/'([a-z-]+)'/g)].map((x) => x[1]))
+  // AND THE POPULATION IS AN OPERAND TOO. `known.length > 0` guarded the list
+  // read out of the script and left the side the ENVIRONMENT decides unguarded:
+  // the rosters are discovered by scanning this directory, so "every stage is
+  // recognised" is vacuously true over zero files and prints the identical
+  // verdict. Measured on this branch, which is what makes it live rather than
+  // theoretical -- the archive deletes three of the seven rosters:
+  //
+  //   7 roster(s), 84 group(s)   (main)     ok  26 passed
+  //   4 roster(s), 59 group(s)   (here)     ok  26 passed
+  //   0 roster(s),  0 group(s)   (probe)    ok  26 passed
+  //
+  // A 30% drop in what a check covers must not be invisible in its own output,
+  // so the counts are PRINTED as well as asserted: a floor catches the empty
+  // case, and the numbers let a reader see a shrinking one.
+  const rosters = fs.readdirSync(here).filter((f) => /^wave-.*-groups\.json$/.test(f))
   const used = new Map()
-  for (const f of fs.readdirSync(here).filter((f) => /^wave-.*-groups\.json$/.test(f))) {
+  let groupsSeen = 0
+  for (const f of rosters) {
     for (const g of JSON.parse(fs.readFileSync(path.join(here, f), 'utf8')).groups ?? []) {
+      groupsSeen += 1
       const st = g.resume?.stage
       if (st) used.set(st, (used.get(st) ?? 0) + 1)
     }
   }
   const unknown = [...used.keys()].filter((st) => !known.includes(st))
   const atRisk = unknown.reduce((n, st) => n + used.get(st), 0)
+  // `t` prints its detail only on FAILURE, so asserting the floor is not the
+  // same as disclosing the population -- the first draft of this fix claimed
+  // both and delivered one. The count goes to stdout unconditionally.
+  console.log(`  scope  ${rosters.length} roster(s), ${groupsSeen} group(s), ${used.size} distinct stage(s)`)
   t('every resume.stage in every committed roster is one the wave script branches on',
-    known.length > 0 && unknown.length === 0,
-    `known=[${known}] used=[${[...used.keys()]}] unknown=[${unknown}] groups=${atRisk}`)
+    known.length > 0 && rosters.length > 0 && groupsSeen > 0 && unknown.length === 0,
+    `rosters=${rosters.length} groups=${groupsSeen} known=[${known}] used=[${[...used.keys()]}] unknown=[${unknown}] at-risk=${atRisk}`)
 })
 await block('group 6', async () => {
   const { out, calls } = await run({ groups: [G('A', { stage: 'in-review', open_pr: 573, head_sha: 'a227743' })], groupsFile: 'r.json', reconResult: OK,
