@@ -79,8 +79,10 @@ UPSTREAM = "2025.2.0"
 # these contracts are written from. #590 holds the drift itself, including the
 # measured finding that NEITHER change reaches this integration today: every
 # numeric field goes through config_flow._number, which always passes both
-# bounds AND an explicit mode, and nothing marks a schema key advanced. What
-# protects it is that convention, which nothing enforces.
+# bounds AND an explicit mode, and nothing marks a schema key advanced. The
+# convention is pinned by tests/config_flow_steps.py (whose recorded closure
+# includes config_flow.py). This file must not open that module: doing so
+# would under-scope the recorded table.
 UPSTREAM_DRIFT = {
     (
         "homeassistant.helpers.selector.NumberSelector",
@@ -1783,6 +1785,188 @@ def _report_unmodelled(real: dict) -> None:
 
 
 # ---------------------------------------------------------------------------
+# #590: the `_number` convention, as in-memory snippets. Production is pinned
+# by tests/config_flow_steps.py -- this file must not open config_flow.py or
+# the recorded closure goes under-scoped.
+# ---------------------------------------------------------------------------
+
+_ALLOWED_NUMBER_BUILDERS = ("_number", "_widen_to_fit")
+_REQUIRED_NUMBER_KEYS = frozenset({"min", "max", "step", "mode"})
+
+_WALKER_GOOD = """\
+def _number(minimum, maximum, step, unit=None, *, slider=False):
+    config = {"min": minimum, "max": maximum, "step": step, "mode": "box"}
+    return NumberSelector(NumberSelectorConfig(**config))
+
+def _widen_to_fit(number, values):
+    config = dict(number.config)
+    return NumberSelector(NumberSelectorConfig(**config))
+"""
+
+_WALKER_ROGUE = _WALKER_GOOD + """
+def _field():
+    return NumberSelector(NumberSelectorConfig(min=0, max=1, step=1))
+"""
+
+_WALKER_NO_MODE = """\
+def _number(minimum, maximum, step, unit=None, *, slider=False):
+    config = {"min": minimum, "max": maximum, "step": step}
+    return NumberSelector(NumberSelectorConfig(**config))
+"""
+
+_WALKER_ADVANCED = _WALKER_GOOD + """
+def _schema():
+    vol.Optional("x", description={"advanced": True})
+"""
+
+
+def _call_basename(func: ast.AST) -> str | None:
+    if isinstance(func, ast.Name):
+        return func.id
+    if isinstance(func, ast.Attribute):
+        return func.attr
+    return None
+
+
+def _config_keys(fn: ast.FunctionDef) -> set[str]:
+    keys: set[str] = set()
+    for node in ast.walk(fn):
+        if isinstance(node, ast.Dict):
+            for key in node.keys:
+                if isinstance(key, ast.Constant) and isinstance(key.value, str):
+                    keys.add(key.value)
+        elif isinstance(node, ast.keyword) and node.arg:
+            keys.add(node.arg)
+    return keys
+
+
+def _selector_constructs(tree: ast.AST) -> list[tuple[str | None, int, str]]:
+    found: list[tuple[str | None, int, str]] = []
+    stack: list[ast.AST] = []
+
+    def visit(node: ast.AST) -> None:
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            stack.append(node)
+            for child in ast.iter_child_nodes(node):
+                visit(child)
+            stack.pop()
+            return
+        if isinstance(node, ast.Call):
+            name = _call_basename(node.func)
+            if name in ("NumberSelector", "NumberSelectorConfig"):
+                fn = next(
+                    (
+                        n.name
+                        for n in reversed(stack)
+                        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    ),
+                    None,
+                )
+                found.append((fn, node.lineno, name))
+        for child in ast.iter_child_nodes(node):
+            visit(child)
+
+    visit(tree)
+    return found
+
+
+def _advanced_markers(tree: ast.AST) -> list[tuple[int, str]]:
+    found: list[tuple[int, str]] = []
+
+    def marks(node: ast.AST) -> bool:
+        if not isinstance(node, ast.Dict):
+            return False
+        for key, value in zip(node.keys, node.values):
+            if (
+                isinstance(key, ast.Constant)
+                and key.value == "advanced"
+                and isinstance(value, ast.Constant)
+                and value.value is True
+            ):
+                return True
+        return False
+
+    seen: set[int] = set()
+    for node in ast.walk(tree):
+        hit = None
+        if isinstance(node, ast.keyword) and node.arg == "description" and marks(node.value):
+            hit = (node.lineno, "description=")
+        elif marks(node):
+            hit = (node.lineno, "dict")
+        if hit and hit[0] not in seen:
+            seen.add(hit[0])
+            found.append(hit)
+    return found
+
+
+def number_convention_failures_from_source(source: str) -> list[str]:
+    """What #590 pins, over one module's source. Empty means the convention holds."""
+    tree = ast.parse(source)
+    failures: list[str] = []
+    number_fn = next(
+        (
+            n
+            for n in ast.walk(tree)
+            if isinstance(n, ast.FunctionDef) and n.name == "_number"
+        ),
+        None,
+    )
+    constructs = _selector_constructs(tree)
+    if number_fn is None:
+        failures.append("_number is missing")
+    else:
+        missing = _REQUIRED_NUMBER_KEYS - _config_keys(number_fn)
+        if missing:
+            failures.append(f"_number does not pass {sorted(missing)}")
+        if not any(fn == "_number" for fn, _, _ in constructs):
+            failures.append("_number does not construct NumberSelector")
+    for fn, lineno, name in constructs:
+        if fn not in _ALLOWED_NUMBER_BUILDERS:
+            failures.append(
+                f"{name} at line {lineno} is in {fn or 'module'}, "
+                "not _number/_widen_to_fit"
+            )
+    for lineno, where in _advanced_markers(tree):
+        failures.append(f"advanced: True at line {lineno} ({where})")
+    return failures
+
+
+def convention_rows() -> list[tuple[str, bool, str]]:
+    """Walker self-check for #590. Production is pinned in config_flow_steps.py."""
+    rows: list[tuple[str, bool, str]] = []
+    rogue = number_convention_failures_from_source(_WALKER_ROGUE)
+    rows.append(
+        (
+            "walker refuses a NumberSelector built outside _number",
+            any("not _number/_widen_to_fit" in f for f in rogue),
+            "; ".join(rogue) or "walker reported no failure",
+        )
+    )
+    good = number_convention_failures_from_source(_WALKER_GOOD)
+    rows.append(
+        (
+            "walker accepts _number and _widen_to_fit",
+            not good,
+            "; ".join(good),
+        )
+    )
+    no_mode = number_convention_failures_from_source(_WALKER_NO_MODE)
+    rows.append(
+        (
+            "walker refuses _number that omits mode",
+            any("does not pass" in f for f in no_mode),
+            "; ".join(no_mode) or "walker reported no failure",
+        )
+    )
+    advanced = number_convention_failures_from_source(_WALKER_ADVANCED)
+    rows.append(
+        (
+            "walker refuses description={advanced: True}",
+            any("advanced: True" in f for f in advanced),
+            "; ".join(advanced) or "walker reported no failure",
+        )
+    )
+    return rows
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -1823,7 +2007,13 @@ def main(argv: list[str] | None = None) -> int:
     if args.emit_probes:
         Path(args.emit_probes).write_text(json.dumps(_run_probes(provider), indent=1))
         print(f"\nprobes written to {args.emit_probes}")
-    return report.close("contracts")
+    rc = report.close("contracts")
+    # Own report: a contract failure must not hide a convention failure, and
+    # the 51-contract count stays the stub-fidelity census.
+    convention = Report("#590 NumberSelector / advanced convention")
+    for name, ok, detail in convention_rows():
+        convention.check(name, ok, detail)
+    return rc or convention.close("convention checks")
 
 
 if __name__ == "__main__":
