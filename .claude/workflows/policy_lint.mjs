@@ -385,6 +385,7 @@ const CORPUS_EXCLUDED = new Set([
   'docs/decisions/0003-enumerate-what-you-may-ignore.md',
   'docs/decisions/0004-an-assertion-can-be-correct-and-never-run.md',
   'docs/decisions/0005-no-codeowners-while-one-identity-authors-and-approves.md',
+  'docs/decisions/0006-policy-merge-grant-regranted-to-the-local-session.md',
 ])
 
 // Widening the scan past `.md` brought in every `.txt` a policy file cites, and
