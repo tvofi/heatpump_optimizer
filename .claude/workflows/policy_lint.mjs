@@ -30,6 +30,7 @@
 //   node .claude/workflows/policy_lint.mjs            # lint + acceptance (CI)
 //   node .claude/workflows/policy_lint.mjs --list     # every check + fixture
 //   node .claude/workflows/policy_lint.mjs --budgets  # sizes vs caps
+//   node .claude/workflows/policy_lint.mjs --hooks [settings.json]  # wired and self-testing
 //   node .claude/workflows/policy_lint.mjs --report   # enforcement summary
 //   node .claude/workflows/policy_lint.mjs <files...> # lint just these
 //   node .claude/workflows/policy_lint.mjs --record-known-bad   # reseed the ratchet
@@ -2374,6 +2375,62 @@ function cmdBudgets(files) {
   }
 }
 
+// A HOOK THAT IS NOT WIRED, OR WIRED TO A FILE THAT IS NOT THERE, IS INDISTIN-
+// GUISHABLE FROM ONE THAT WORKS. It fires silently, or not at all, and the seat
+// it was written to catch never learns either way -- `defect-root-cause.md`
+// records that this corpus already claimed a hook it had never built.
+//
+// So this reads `.claude/settings.json`, and for every `command` in it: the
+// script exists, and `--self-test` exits 0. The self-test is the substance --
+// existence alone would have passed the first draft of `pre-edit.sh`, whose
+// python read its own heredoc as the payload and fell open on every path it was
+// written to refuse. Nine ALLOW controls passed. Only the refusals caught it.
+function cmdHooks(settingsPath) {
+  const rel = settingsPath || '.claude/settings.json'
+  const abs = path.join(ROOT, rel)
+  let parsed
+  try {
+    parsed = JSON.parse(fs.readFileSync(abs, 'utf8'))
+  } catch (e) {
+    console.log(`HOOKS: ${rel} does not parse: ${e.message}`)
+    return 1
+  }
+  const rows = []
+  for (const [event, groups] of Object.entries(parsed.hooks || {})) {
+    for (const g of groups || []) {
+      for (const h of g.hooks || []) {
+        // The command is a shell line with $CLAUDE_PROJECT_DIR and quoting in
+        // it. The SCRIPT is what this checks, so pull the one repository path
+        // out of the line rather than trying to run the line.
+        const m = String(h.command || '').match(/[.\w/-]*\.claude\/hooks\/[\w.-]+\.sh/)
+        if (!m) { rows.push({ event, script: h.command || '(none)', verdict: 'UNREADABLE', why: 'no .claude/hooks/*.sh path in the command line' }); continue }
+        const script = `.claude/hooks/${m[0].split('/').pop()}`
+        if (!fs.existsSync(path.join(ROOT, script))) { rows.push({ event, script, verdict: 'MISSING', why: 'the command names a file that is not in the tree' }); continue }
+        let out = ''
+        let code = 0
+        try {
+          out = execFileSync('bash', [script, '--self-test'], { cwd: ROOT, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] })
+        } catch (e) {
+          code = e.status === undefined ? 1 : e.status
+          out = `${e.stdout || ''}${e.stderr || ''}`
+        }
+        const tail = out.trim().split('\n').pop()
+        rows.push({ event, script, verdict: code === 0 ? 'ok' : 'SELF-TEST FAILED', why: tail })
+      }
+    }
+  }
+  if (!rows.length) {
+    console.log(`HOOKS: ${rel} wires no hooks at all. A settings file with an empty \`hooks\` key reads exactly like one that works.`)
+    return 1
+  }
+  for (const r of rows) console.log(`  ${r.verdict.padEnd(17)} ${r.event.padEnd(13)} ${r.script}  ${r.why}`)
+  const bad = rows.filter((r) => r.verdict !== 'ok')
+  console.log(bad.length
+    ? `\nHOOKS REFUSED: ${bad.length} of ${rows.length} wired hook(s) is missing, unreadable, or fails its own --self-test`
+    : `\nHOOKS ok: ${rows.length} wired hook(s) exist and pass their own --self-test`)
+  return bad.length ? 1 : 0
+}
+
 function main() {
   const args = process.argv.slice(2)
   const derived = derivations()
@@ -2387,6 +2444,7 @@ function main() {
   const defaultRun = !args.filter((a) => !a.startsWith('--')).length
 
   if (args.includes('--budgets')) return cmdBudgets(files), process.exit(0)
+  if (args.includes('--hooks')) process.exit(cmdHooks(args[args.indexOf('--hooks') + 1]))
   if (args.includes('--pr-body')) process.exit(cmdPrBody(args))
 
   let findings = []

@@ -70,6 +70,9 @@ jobs:
       - name: Show the fragment check refusing its own perturbation
         run: node .claude/workflows/fragments_sync.mjs --self-test
 
+      - name: Refuse a hook that is missing, unwired, or fails its own self-test
+        run: node .claude/workflows/policy_lint.mjs --hooks
+
       - name: Report what the linter found
         if: always()
         run: node .claude/workflows/policy_lint.mjs --report || true
