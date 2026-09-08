@@ -945,8 +945,11 @@ judge comments on each issue and summarised on #201.
   `origin/main` is `card_claimed_drift.txt | 33 ---`, and `comm -12` over #633's
   added lines and the bot's removed lines returns **33**. The `claimnotes`
   merge driver that unions claim lists locally is per-clone config GitHub
-  cannot run. **Precedent:** `2b5e416` (#608, a governance pull request that
-  never touched the card) deleted 33 lines #569 had added, by the same path,
+  cannot run. **Precedent, twice:** `2b5e416` (#608, a governance pull request that
+  never touched the card) deleted 33 lines #569 had added, by the same path;
+  and while this entry sat in review, `dda7193` (#635, rebased onto `a684cce`
+  and autofixed) deleted all 33 of #633's — `main`'s claim list is now empty.
+  The warning on #201 preceded it by about thirty minutes. Same path,
   and `main` has merged **21** times since with no stamp between, every completed `Tests` run green — so the
   gate is unaffected. A push to `main` measures drift computed-vs-computed at
   its own head (the #387 shape), and `stamp.py` deletes every bare claim at
