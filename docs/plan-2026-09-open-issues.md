@@ -46,8 +46,9 @@ Five principles decide it, each a measured fact rather than a preference.
    means it lands against almost no merges and goes green because there is
    nothing left to judge — a check over an empty set, which is the shape this
    programme keeps finding rather than a proof. Tightening it *before* the
-   next stamp means it lands against the thirty merges now in the window, two
-   of which are known to satisfy it only by accident. So the record check's
+   next stamp means it lands against every merge then in the window — 31 at
+   `d08a56a`, and growing — two of which are known to satisfy it only by
+   accident. So the record check's
    anchor rewrite runs **after `10-adr-corpus` closes the queue** — the check
    does not exist until `07-loop` lands, and `06b-record3` supplies the rows
    that let a stricter rule pass — **and before the next release stamp**.
@@ -767,42 +768,53 @@ judge comments on each issue and summarised on #201.
   queue branch carries its own row before merging.
 
 - **`main` is unguarded, and the ruleset that would guard it is the programme's
-  last act.** Measured 2026-09-08 and unchanged since #609 established it:
-  `GET /repos/.../rulesets?includes_parents=true` and
-  `GET /repos/.../rules/branches/main` both answer `200 []`, so every check in
-  this repository is **advisory at the merge boundary**. The payload is on #609
-  and stands, with four amendments this session measured rather than assumed.
-  **The capability is proven and reversible**: a probe ruleset targeting a branch
-  pattern matching nothing was created, `rules/branches/main` stayed `[]`, and a
-  `DELETE` removed it — rollback is one call.
-  **Amendment 1, the required set grows from ten contexts to sixteen.** #609
-  excluded `CodeQL` and the three `Analyze (…)` checks because their definition
-  was unreadable from that container; it reads now — `state: configured`,
-  languages `actions/javascript/javascript-typescript/python/typescript`, query
-  suite `extended`, threat model `remote` — so the reason is spent. `record` and
-  `env-matrix` join once `07-loop` and `08-envmatrix` have landed them on `main`.
-  **Amendment 2, #609's permission reading was a proxy artifact.** It reasoned
-  from `{admin: false, maintain: false, push: false, triage: false, pull: false}`
-  while pushes plainly worked, and suspected as much. This session reads
-  `admin: true`.
-  **Amendment 3, the one risk #609 disclosed and could not test is real.** It
-  warned that `closures` may report `skipped` rather than `success`, and that if
-  GitHub does not treat a skipped required check as satisfied, **every docs-only
-  pull request blocks forever**. Measured: `closures` is `SKIPPED` on #624 and
-  #625 and `SUCCESS` on #628, so the precondition holds. GitHub's response to it
-  is still unmeasured, and that is the whole reason for the ordering below.
-  **Amendment 4, nothing else in the payload changes.** The maintain-role bypass
-  stays, so `tools/release/stamp.py`'s direct push to `main` still lands.
-  `strict_required_status_checks_policy` stays **false**: "require branches to be
-  up to date" would force a merge commit onto every frozen review head whenever
-  `main` advances. And there is still **no required-approval or code-owner rule**,
-  because one identity authors and approves here, which decision 0005 measured as
-  a lock rather than enforcement.
-  **How to land it**: create it, then open a throwaway docs-only pull request and
-  read whether it is mergeable. If a skipped `closures` blocks it, drop that one
-  context — `closure-scope` always reports and already covers the scoping
-  decision — or `DELETE` the ruleset. Do not take the skipped-check behaviour on
-  trust; it is the only assumption left in the payload.
+  last act.** Both `GET /repos/.../rulesets?includes_parents=true` and
+  `GET /repos/.../rules/branches/main` answer `200 []`, so every check here is
+  **advisory at the merge boundary**. #609 carries **two** payloads and the
+  second retracts the first — *"the check list in the earlier payload was
+  written from the plan and is now wrong"* — so the operative baseline is its
+  **eleven** contexts, read from a real run: `fast (3.13)`, `fast (3.14)`,
+  `browser`, `briefs`, `closure-scope`, `closures`, `typing`, `hassfest`,
+  `validate-hacs`, `policy-docs`, `wave-script`. Take that list, not the first.
+  **The set to create is eighteen.** The eleven, plus `pr-contract`, which #614
+  landed after that comment was written and which reports green; plus `record`
+  and `env-matrix` once `07-loop` and `08-envmatrix` have landed them on `main`;
+  plus `CodeQL` and the three `Analyze (…)` checks, which the operative payload
+  excluded only because `code-scanning/default-setup` was one of its 403s — it
+  reads now (`state: configured`, languages
+  `actions/javascript/javascript-typescript/python/typescript`, query suite
+  `extended`, threat model `remote`), so the stated reason is spent.
+  **Two of the operative payload's premises are false, and both were measured
+  here rather than argued.** It says `closures` *"reports `success`, not
+  `skipped`, on a docs-only pull request … (verified on #612)"*: it reports
+  **`SKIPPED`** on #624 and #625, and `SUCCESS` on #628. And it says *"a
+  required check that reports `skipped` does not satisfy the rule"*, which is
+  the premise for excluding five jobs. **It does satisfy the rule.** Driven on
+  an isolated probe — a ruleset scoped to a throwaway branch, `main` left at
+  zero rules throughout — a pull request whose required `closures` was `SKIPPED`
+  and required `policy-docs` `SUCCESS` read `MERGEABLE / UNSTABLE`, not blocked.
+  The **negative control** is what makes that a result: adding a required
+  context that never reports flipped the same pull request to **`BLOCKED`**, and
+  removing it returned it to `UNSTABLE`. So blocking is reachable and the
+  skipped check genuinely passed. The probe ruleset, its branches and its pull
+  request were deleted; `rulesets` and `rules/branches/main` both read `[]`
+  afterwards.
+  That negative control is also the direct evidence for the ordering: **a
+  required context that never reports blocks forever**, which is exactly what
+  `record` and `env-matrix` would be if the ruleset were created before `07` and
+  `08` land them.
+  **Unchanged from the operative payload**, and each for its stated reason: the
+  maintain-role bypass, so `tools/release/stamp.py`'s direct push to `main`
+  still lands; `strict_required_status_checks_policy` **false**, because
+  "require branches to be up to date" would force a merge commit onto every
+  frozen review head whenever `main` advances; and **no required-approval or
+  code-owner rule**, because one identity authors and approves here, which
+  decision 0005 measured as a lock rather than enforcement.
+  **#609's permissions reading was a proxy artifact** — it recorded
+  `{admin: false, maintain: false, push: false, triage: false, pull: false}`
+  while pushes plainly worked, and suspected as much; this session reads
+  `admin: true`, and create/update/delete of a ruleset all succeeded.
+
 ## Standing rules
 
 Unchanged from the repository's own protocol; restated here because a fresh
