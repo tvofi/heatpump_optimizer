@@ -1,6 +1,6 @@
 # Handover — the open-issues programme
 
-updated-for: 785963e
+updated-for: d8dccd1
 
 This is the only handover. There is no dated series: a second
 `docs/handover-*.md` is refused by `tests/entities.py`, and the policy it
@@ -139,14 +139,6 @@ stage, `after` edges and carried findings are in
 7. **A branch can be stale against main invisibly in its own diff**: a move
    reverting a fix that landed inside the moved lines, or a stale claim or
    budget table. Only a three-dot comparison against current main catches it.
-8. **A subagent does not survive a session restart; its report does.** Read
-   `tasks/<agentId>.output` before re-dispatching — `ListAgents` goes empty
-   with no notification, and an hour was nearly spent re-running finished work.
-9. **Re-pointing a branch chain by POSITION after a rebase drops a commit.**
-   Map by commit subject and verify the tip's pin count: by index once shifted
-   eight branches by one, and nothing but that count noticed.
-10. **A citation repointed to a commit that resolves but lacks the file is
-   worse than a dead one.** `git cat-file -e <sha>:<path>`, never per directory.
 8. **One CI runner is not the fleet.** #387 exists because a property was
    measured on a single runner and generalised, and the reviewer had asked
    exactly the right question.
@@ -171,29 +163,25 @@ stage, `after` edges and carried findings are in
     very class, catches **0 of 3**. The reason is not the shape of those figures —
     rewriting all three with digits leaves them just as clean. A grep can only
     ask *is there a figure here*, while the defect is *was the right thing
-    measured*. The countermeasure shared
-    the class's own defect.
-    The divider is **structural, not dispositional**: the class reaches no seat
-    pull request across every review-round body in the corpus at
-    the time (161 rounds over 97 reviewed pull requests — the population the two
-    percentages above come from, and it grows, so re-derive rather than quote), because a seat's production
-    fix is accepted by standing property-quantified instruments — CI, the
-    ratchet, closures, the mutation proof — and a record or policy artifact has
-    none, so its acceptance test is whatever its author wrote that minute.
+    measured*. The countermeasure shared the class's own defect.
+    The divider is **structural, not dispositional**: across every review-round
+    body in the corpus at the time — 161 rounds over 97 reviewed pull requests,
+    the population both percentages come from, and it grows, so re-derive rather
+    than quote — the class reached no seat's *production* fix. A production fix
+    is accepted by standing property-quantified instruments (CI, the ratchet,
+    closures, the mutation proof); a record or policy artifact has none, so its
+    acceptance test is whatever its author wrote that minute.
 13. **"The pull request is open" is not a handoff.** The freeze starts at
     handoff, and a seat that has opened its pull request may still be pushing
     while it waits on CI. Six pull requests had a head moved under a live review
     in one session — more events than that, since #531 alone was moved four
     times.
 14. **A record pull request cannot converge while the merge queue runs.** #531
-    was still open after 20 hours, 45 commits — 19 of them merges of main —
-    25 content edits and 11 blocked rounds, with 31 pull requests merged
-    underneath it. Every one of those is a reading at that moment rather than
-    a final tally: it kept moving, which is the point and each
-    invalidated part of its content. The rule already says *the same session or
-    an immediate record pull request*: one record per merge has a bounded truth
-    condition and cannot be overtaken. Live state belongs on #201, where a
-    comment cannot go stale under a merge.
+    stayed open 20 hours over 45 commits, 25 content edits and 11 blocked
+    rounds, with 31 pull requests merging underneath it — each of those a
+    reading at one moment, not a tally, because every merge invalidated part of
+    its content. One record per merge has a bounded truth condition and cannot
+    be overtaken; live state belongs on #201, where no merge can stale it.
 15. **`date -jf '%Y-%m-%dT%H:%M:%SZ'` parses a UTC stamp as local time.** Every
     age computed that way is wrong by the offset; it once made a queue aged
     8 minutes to 20 hours read as a flat "2h", hiding which pull request was
@@ -221,14 +209,12 @@ stage, `after` edges and carried findings are in
     Three review comments were posted with their SHAs silently missing. Write
     the body to a file with a quoted heredoc and pass `-F body=@file`.
 19. **A one-sided size cap and a growing document collide across branches, and
-    nothing branch-scoped holds both ends.** #608 recorded `docs/HANDOVER.md`'s
-    cap in `.claude/workflows/policy_budgets.json` at the length that file then
-    had; #607, cut from the same commit and already in review, added 43 lines to
-    it and merged 56 minutes later. Both prefixes are INERT, so the `Governance`
-    workflow is the only thing that measures this, and it was green on each
-    branch alone. `main` was red on `policy-docs` from `5018e31` until this
-    record paid the lines back. Trap 17's shape on a budget rather than a
-    citation.
+    nothing branch-scoped holds both ends.** #608 capped `docs/HANDOVER.md` at
+    its then length; #607, cut from the same commit and already in review, added
+    43 lines and merged 56 minutes later. Both prefixes are INERT, so the
+    `Governance` workflow alone measures this and it was green on each branch
+    alone — `main` was red on `policy-docs` from `5018e31` until a record paid
+    the lines back. Trap 17's shape on a budget rather than a citation.
 20. **A comment bumps a pull request's `updated_at`, so it is not a body-edit
     clock.** Read as one, it had me date a body edit to what was in fact a
     reviewer's own comment timestamp. The clock is the `Governance` run list:
@@ -239,6 +225,20 @@ stage, `after` edges and carried findings are in
     find it" is a different result from "it is pinned". Same shape: a `case`
     glob is not anchored, so `v[0-9]*.[0-9]*.[0-9]*` accepts `v1.2.3; rm -rf /`;
     and `git remote remove` in a worktree strips it for every worktree.
+22. **A subagent does not survive a session restart; its report does.** Read
+    `tasks/<agentId>.output` before re-dispatching — `ListAgents` goes empty
+    with no notification, and an hour was nearly spent re-running finished work.
+23. **Re-pointing a branch chain by POSITION after a rebase drops a commit.**
+    Map by commit subject and verify the tip's pin count: by index once shifted
+    eight branches by one, and nothing but that count noticed.
+24. **A citation repointed to a commit that resolves but lacks the file is
+    worse than a dead one.** `git cat-file -e <sha>:<path>`, never per directory.
+25. **A body's count of its own diff must come from the diff.** #621's body
+    said five disposition rows; the diff added nine — the author counted what
+    they remembered writing, in the branch whose subject was a document whose
+    facts had gone stale for want of a second witness. Derive a body's counts
+    by mutating the artefact and reading the detector: here, removing all nine
+    rows and reading `--record`'s refusal.
 
 ## Owed — post-hoc reviews
 
