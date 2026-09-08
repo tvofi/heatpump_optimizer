@@ -829,6 +829,19 @@ judge comments on each issue and summarised on #201.
   `{admin: false, maintain: false, push: false, triage: false, pull: false}`
   while pushes plainly worked, and suspected as much; this session reads
   `admin: true`, and create/update/delete of a ruleset all succeeded.
+- **O3 is decided: after this session, a policy merge needs the owner's
+  approval per pull request, with a per-session grant as the option — to be
+  recorded as ADR 0007.** The governance-audit plan (archived on
+  `audit/session-evidence-2026-09-08`, not on `main`) left O3 as its closing
+  question: whether policy merges after the programme revert to owner approval
+  per pull request or stand on the ruleset plus `pr-contract`. The owner ruled
+  on 2026-09-09: **per-PR approval**, with the **option of a session grant**
+  of the 0001/0006 shape — a decision record naming the session, the six
+  preconditions, reverting at session end. The ruleset and `pr-contract` are
+  the floor either way, not the substitute. Lands as ADR 0007 beside the
+  ruleset, the programme's last act, so the record that names the floor names
+  one that exists; the closing #201 comment lists every pull request merged
+  under 0006 with its verdict and head SHA, as that plan asked.
 - **`pr-contract` red runs are hidden by `gh pr checks`, and the ones on this
   queue's heads were process state (b), not a defect in the check.** Two facts,
   and only the first is the check's.
