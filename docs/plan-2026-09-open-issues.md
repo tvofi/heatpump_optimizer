@@ -948,3 +948,5 @@ here dropped #567's older duplicate in its favour — the newer copy is the righ
 one, per `delivery-status-tracking.mdc`. This PR therefore adds **no** row, and
 carries B1–B5 and B6–B11 under that single existing row; a second one would be
 the duplication the merge just removed.
+
+<!-- ruleset probe, deleted immediately -->
