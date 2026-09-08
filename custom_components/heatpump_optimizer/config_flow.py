@@ -676,24 +676,33 @@ class _StoredValuesAlwaysFit:
         preview: str | None = None,
     ) -> ConfigFlowResult:
         """Show a form, first making sure it can be submitted at all."""
-        fitted, widened = _fit_stored_values(data_schema)
+        # Forward only the arguments the caller passed. The test stub (and the
+        # real manager) splat the kwargs into the result dict; a key whose
+        # value is None is not the same as an omitted key.
+        forwarded: dict[str, Any] = {
+            key: value
+            for key, value in (
+                ("step_id", step_id),
+                ("data_schema", data_schema),
+                ("errors", errors),
+                ("description_placeholders", description_placeholders),
+                ("last_step", last_step),
+                ("preview", preview),
+            )
+            if value is not None
+        }
+        fitted, widened = _fit_stored_values(forwarded.get("data_schema"))
         if widened:
-            data_schema = fitted
-            errors = dict(errors or {})
+            forwarded["data_schema"] = fitted
+            shown = dict(forwarded.get("errors") or {})
             for field in widened:
                 # A real validation error on the same field wins: it is about
                 # what the user just typed, which is more urgent than a value
                 # that has been sitting on disk for months.
-                errors.setdefault(field, ERROR_STORED_VALUE_OUT_OF_RANGE)
+                shown.setdefault(field, ERROR_STORED_VALUE_OUT_OF_RANGE)
+            forwarded["errors"] = shown
         parent = cast(_ShowFormParent, super())
-        return parent.async_show_form(
-            step_id=step_id,
-            data_schema=data_schema,
-            errors=errors,
-            description_placeholders=description_placeholders,
-            last_step=last_step,
-            preview=preview,
-        )
+        return parent.async_show_form(**forwarded)
 
 
 def _effective(
