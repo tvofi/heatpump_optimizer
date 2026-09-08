@@ -36,7 +36,11 @@ session, and both stand.
 
 Session `local_aa44f28c-7fa5-4008-9b2f-4e8095607fac` — named rather than called
 "this session", because "this session" is not a thing a later reader can
-resolve — merges the governance queue's policy pull requests.
+resolve — merges the governance queue's policy pull requests, and performs the
+GitHub-account actions that queue needs where they are technically possible.
+The second half is stated because this decision exercises it: branch deletion
+below is an account action, not a merge, and 0001's own grant was worded the
+same way for the same reason.
 
 The six preconditions of 0001 carry forward **unchanged**. Every such merge
 satisfies all of them first.
@@ -84,8 +88,13 @@ per-pull-request approvals, and the corpus does not sit half-converted, which
 
 The cost is unchanged from 0001 and is stated rather than hidden: the paper
 trail is the enforcement, because the identity that would make CODEOWNERS bind
-does not exist. Decision 0005 records that measurement and declines the second
-identity that would lift it.
+does not exist: there is one collaborator, every seat authenticates as that
+same identity, and GitHub refuses to let an author approve their own pull
+request. A required-approval rule today would therefore be a **lock** rather
+than weak enforcement. That measurement is recorded in its own decision later
+in this queue; it is deliberately not cited by number here, because the
+decisions numbered above 0003 do not exist on `main` yet and a citation that
+resolves to nothing is the defect this corpus keeps finding.
 
 One thing has changed, and it narrows the gap 0001 recorded. 0001's evidence
 listed three refusals and separated them by source: one from GitHub's token
@@ -102,6 +111,30 @@ deleted, by comparing the branch tip against `main` over exactly the files the
 branch's own three-dot diff touched. `ls-remote` is the witness rather than the
 push's own output, because a `git push --delete` has printed success while
 failing in this programme before.
+
+### What a decision record costs the corpus
+
+Written here because the next seat to add one will otherwise re-derive it, and
+because this file is the evidence for it.
+
+A file under `docs/decisions/` is matched by no `POLICY_GLOBS` pattern, so it is
+**free until a policy document names it**. The check that fires is `named-docs`:
+
+    docs/decisions/<new>.md added, cited by nothing   -> rc=0, 35 policy files
+    ... then cited from docs/HANDOVER.md              -> rc=1
+        ERROR [named-docs] is named by docs/HANDOVER.md but has no cap in
+        .claude/workflows/policy_budgets.json
+    ... then cited from docs/plan-2026-09-open-issues.md instead -> rc=0
+
+`docs/plan-2026-09-open-issues.md` is corpus-excluded, which is why decision
+0001 is already cited from it — in #610's disposition row — and cost nothing.
+So a new decision is cited from the plan of record, not from the handover,
+unless someone is willing to pay a cap for it.
+
+This corrects the outgoing programme handover, which said a sixth decision
+record costs a line in `CORPUS_EXCLUDED`. Driven at both `main` and the chain
+tip, it does not: the exclusion list matters only for a file the corpus has
+already pulled in, and an uncited decision is never pulled in.
 
 Ruleset creation, the third refusal, is deliberately **not** exercised yet. A
 required check that does not exist on `main` blocks every merge permanently,
