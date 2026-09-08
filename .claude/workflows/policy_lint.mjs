@@ -360,6 +360,31 @@ const CORPUS_EXCLUDED = new Set([
   'docs/plan-2026-09-open-issues.md', // plan of record
   'DISCLAIMER.md',                    // user-facing, same ground as README.md
   'docs/backlog.md',                  // superseded record, kept for history
+  // The architecture decision records. An ADR states a decision ALREADY TAKEN
+  // and the measurement behind it; it binds no seat and no seat is sent to one
+  // to learn what it must do. The corpus machinery is built for text that binds
+  // someone: `checkIndex` refuses a policy file `CLAUDE.md` does not name,
+  // because "the index is the only way a seat finds a policy file" -- and
+  // naming all five here would push the ALWAYS-LOADED set, the one number this
+  // audit exists to drive down, past its cap to carry documents nobody must
+  // read. Measured before choosing: bringing `docs/decisions/` under
+  // POLICY_GLOBS reports 14 errors -- one corpus overrun, five missing index
+  // entries, five missing caps, and three citations in 0003 that are correct
+  // BECAUSE it describes an experiment over files and symbols that do not
+  // exist. A check refusing a document for accurately describing a control is
+  // the check applied to the wrong kind of text.
+  //
+  // THE RESIDUAL RISK, stated rather than left to be found: prose moved from a
+  // capped file into an ADR leaves the corpus and buys headroom in every cap at
+  // once, and nothing detects it. Only a reviewer reading the diff does. These
+  // are named ONE BY ONE and not by prefix, deliberately -- a `.md` is never
+  // excused by location here, so a sixth ADR costs a line in this list, which
+  // is the same bar as raising a cap and is the point.
+  'docs/decisions/0001-session-policy-merge-grant.md',
+  'docs/decisions/0002-self-witnessed-proxy-assertion.md',
+  'docs/decisions/0003-enumerate-what-you-may-ignore.md',
+  'docs/decisions/0004-an-assertion-can-be-correct-and-never-run.md',
+  'docs/decisions/0005-no-codeowners-while-one-identity-authors-and-approves.md',
 ])
 
 // Widening the scan past `.md` brought in every `.txt` a policy file cites, and
