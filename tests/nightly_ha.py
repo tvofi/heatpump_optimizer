@@ -363,8 +363,12 @@ def load_committed_roster() -> list[str]:
 
 def json_bytes_ha(obj: object) -> bytes:
     """Home Assistant's serializer -- the orjson boundary this check exists for."""
-    from homeassistant.helpers.json import json_bytes
-
+    try:
+        from homeassistant.helpers.json import json_bytes
+    except ImportError as exc:
+        raise RuntimeError(
+            "homeassistant.helpers.json is absent; A3(b) cannot judge the orjson boundary"
+        ) from exc
     return json_bytes(obj)
 
 
@@ -502,7 +506,17 @@ def check_a3_no_constructor_defaults(
     defaults=None,
     roster: list[str] | None = None,
 ) -> None:
-    """Available temperature/climate/volume must not be a ThermalState default."""
+    """Available temperature/climate/volume must not be a ThermalState default.
+
+    An empty records list is a sweep that judged nothing, not a pass.
+    """
+    if not records:
+        checks.check(
+            "a3:no_constructor_defaults",
+            False,
+            "empty sweep: no published states were judged",
+        )
+        return
     state = defaults if defaults is not None else _thermal_defaults()
     numeric_defaults = _numeric_constructor_defaults(state)
     offenders = []

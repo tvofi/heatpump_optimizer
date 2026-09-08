@@ -8887,6 +8887,22 @@ R.check(
     f"noop={_a3_orjson_noop.results.get('a3:orjson')} "
     f"real={_a3_orjson_bad.results.get('a3:orjson')}",
 )
+try:
+    from homeassistant.helpers.json import json_bytes as _ha_json_bytes
+
+    try:
+        _ha_json_bytes({"k": float("inf")})
+        _ha_json_inf = "accepted"
+    except Exception:
+        _ha_json_inf = "refused"
+except ImportError:
+    _ha_json_inf = "absent"
+R.check(
+    "Home Assistant json_bytes refuses a non-finite float on this host",
+    _ha_json_inf == "refused",
+    f"json_bytes={_ha_json_inf}; A3(b) must execute helpers.json.json_bytes, "
+    "or fail when that module is absent",
+)
 
 _a3_finite_bad = _nightly.Checks()
 _nightly.check_a3_finite(
@@ -9009,8 +9025,18 @@ _nightly.check_a3_no_constructor_defaults(
     defaults=_a3_def,
     roster=_a3_from_file,
 )
+_a3e_empty = _nightly.Checks()
+_nightly.check_a3_no_constructor_defaults(
+    _a3e_empty, [], defaults=_a3_def, roster=_a3_from_file
+)
 R.check(
-    "a3:no_constructor_defaults passes empty and unavailable records",
+    "a3:no_constructor_defaults fails an empty sweep",
+    "a3:no_constructor_defaults" in _a3e_empty.failures(),
+    "a driver that collected no states must not pass A3(e) "
+    f"{_a3e_empty.results.get('a3:no_constructor_defaults', [None, 'ABSENT'])[1]}",
+)
+R.check(
+    "a3:no_constructor_defaults passes unavailable records",
     "a3:no_constructor_defaults" not in _a3e_ok.failures()
     and _a3e_ok.results["a3:no_constructor_defaults"][1],
     _a3e_ok.results.get("a3:no_constructor_defaults", [None, "ABSENT"])[1],
