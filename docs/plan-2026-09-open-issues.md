@@ -992,6 +992,20 @@ judge comments on each issue and summarised on #201.
   already did it to #633's; `main`'s list is empty now, an empty list inherits
   nothing, and the window stays closed until the next claiming merge.
 
+- **The environment matrix can lose a shape or a row without noticing.** Found
+  by #639's first review, reported rather than blocked on, carried here so the
+  matrix's next maintainer inherits it. `policy_lint_envmatrix.mjs`'s
+  `MATRIX VACUOUS` guard keys on the shape *directory* existing, so a shape
+  whose builder is deleted still passes as "13 held across 5 shapes" against a
+  reused work directory that holds the previous run's clone; and no declared
+  row *count* or row *name set* exists, so a deleted row is never noticed — 12
+  of 12 reads as fine. The precondition for the fix: pin the row set by
+  **name**, not by count (#614 round 3: a count is satisfied by a duplicate and
+  by a swap), and have `build` refuse a work directory that already holds the
+  shape rather than reuse it. Cost measured by the reviewer: none of the five
+  shapes as declared are affected today; the hole is in what the matrix would
+  say if one went missing.
+
 ## Standing rules
 
 Unchanged from the repository's own protocol; restated here because a fresh
