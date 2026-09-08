@@ -474,6 +474,7 @@ no wave:
 - [#637](https://github.com/tvofi/heatpump_optimizer/pull/637) — W4-G13 S12 recorded halt: no subsystem API to migrate tests to. leaves #193 open.
 - [#636](https://github.com/tvofi/heatpump_optimizer/pull/636) — W5-G2: sensor.py annotations, ruler 518→371. leaves #303 open.
 - [#642](https://github.com/tvofi/heatpump_optimizer/pull/642) — W4-G10 S9 recorded halt: `optimize` 30–50 LOC verbatim has no remaining seam at `30a202e`. leaves #224 open.
+- [#640](https://github.com/tvofi/heatpump_optimizer/pull/640) — W5-G3 first cut: wood_fuel.py annotations, ruler 371→341. leaves #303 open.
 
 **A pattern worth naming**, since most of these were blocked for it: every one of those blocks was a document asserting something that was not true of the tree — a stale head, a count, an actor, a carry that did not land. None was a disagreement about the change itself.
 
