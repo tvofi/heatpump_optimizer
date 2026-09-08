@@ -148,7 +148,7 @@ if (!groups.length || !repo || !fork) throw new Error('args.groups, args.repo an
 // runs from a roster committed to the repository -- never from an array that
 // exists only in one orchestrator's head. groupsFile names it; Reconcile below
 // reads it from the repo and refuses if what was passed does not match.
-if (!groupsFile) throw new Error('args.groupsFile is required: a wave runs from a committed roster (e.g. .claude/workflows/wave-1b-groups.json), so the briefs survive the session that wrote them')
+if (!groupsFile) throw new Error('args.groupsFile is required: a wave runs from a committed roster (e.g. .claude/workflows/wave-ux-groups.json), so the briefs survive the session that wrote them')
 // THE STAGE VOCABULARY, DEFINED ONCE. The committed rosters and this script had
 // drifted into two vocabularies sharing ONE word: the script branched on
 // fix/merge/review/done, the rosters carried pending/in-review/blocked/done, and
