@@ -808,12 +808,34 @@ judge comments on each issue and summarised on #201.
   still lands; `strict_required_status_checks_policy` **false**, because
   "require branches to be up to date" would force a merge commit onto every
   frozen review head whenever `main` advances; and **no required-approval or
-  code-owner rule**, because one identity authors and approves here, which
-  decision 0005 measured as a lock rather than enforcement.
+  code-owner rule**, because one identity authors and approves here: seats
+  authenticate as the owner, GitHub refuses to let an author approve their own
+  pull request, so such a rule would be a **lock** rather than weak enforcement.
+  That measurement has its own decision record later in this queue, and is
+  deliberately not cited by number here — the decisions above 0003 are not on
+  `main` yet, and a citation that resolves to nothing is the defect this corpus
+  keeps finding.
   **#609's permissions reading was a proxy artifact** — it recorded
   `{admin: false, maintain: false, push: false, triage: false, pull: false}`
   while pushes plainly worked, and suspected as much; this session reads
   `admin: true`, and create/update/delete of a ruleset all succeeded.
+- **`pr-contract` goes red once on almost every head push, and `gh pr checks`
+  hides it.** Structural, not a branch defect: the body cannot name a SHA before
+  that SHA exists, so pushing a commit to an open pull request fires
+  `pr-contract` against a body still naming the previous head; editing the body
+  turns it green seconds later. `docs/HANDOVER.md` already records that writing
+  the body first **relocates rather than removes** this. What is new is the
+  reporting hole: `gh pr checks` shows only the **latest** run per check, so the
+  failure is invisible there and a body can truthfully-looking say `## Red
+  checks: none` while the API shows one. Measured at `dbabd2a`: `pr-contract`
+  has two runs, `failure` at 20:02:23Z and `success` at 20:02:50Z. **#625 was
+  merged with the same hidden failure and a body saying `none`** — that body is
+  wrong and this row is the correction. Read
+  `/repos/.../commits/<sha>/check-runs` and filter on `conclusion=="failure"`,
+  not `gh pr checks`. **A check that reliably goes red once per push is a check
+  trained to be ignored**, which is the governance defect worth fixing: either
+  the job skips when the only difference is a stale head SHA, or the contract
+  stops requiring a body to predict its own commit.
 
 ## Standing rules
 
