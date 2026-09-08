@@ -2168,6 +2168,15 @@ function main() {
   process.exit(errors > 0 || rc ? 1 : 0)
 }
 
+// Exported for `policy_lint_mutants.mjs`, which empties one corpus check at a
+// time and demands this acceptance go red. The mutation lane must learn WHICH
+// checks exist from production rather than from a list of its own: a second
+// copy of the enumeration is the same defect one level up, and a regex over
+// this file's source would re-derive it from spelling. `CORPUS_CHECK_NAMES` is
+// the one enumeration, `assertAcceptance` is the thing under test, and
+// `derivations` is its only argument.
+export { CORPUS_CHECK_NAMES, assertAcceptance, derivations }
+
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   main()
 }

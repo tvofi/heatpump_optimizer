@@ -27,3 +27,10 @@ htmlcov/
 # Local Home Assistant runtime data (for local dev setups)
 config/
 .storage/
+
+# policy_lint_mutants.mjs writes one mutated copy of policy_lint.mjs at a time
+# beside the original -- it has to be beside it, because policy_lint resolves
+# fixtures/policy-rot/ from its own directory. The lane removes each copy in a
+# `finally` and sweeps the directory before it starts; this line is what keeps
+# an aborted run from leaving an untracked file in a policy directory.
+.claude/workflows/.policy_lint.mutant-*.mjs
