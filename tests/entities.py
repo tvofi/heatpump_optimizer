@@ -8762,6 +8762,230 @@ R.check(
     f"[two markers: {_nightly_probe_twice[1]}]",
 )
 
+# --- nightly A3 published-state sweep (#584) --------------------------------
+#
+# The container run is NOT_A_TEST. These pins are the visible failing test:
+# A3 names must be demanded, and a mutant that drops A3 or always-passes must
+# fail a named check here. A4 is a different issue and is not merged in.
+import inspect as _inspect  # noqa: E402
+
+R.check(
+    "A3 named escapes are unique E-identifiers counted at this merge base",
+    len(_nightly.A3_NAMED_ESCAPES) == len(set(_nightly.A3_NAMED_ESCAPES))
+    and all(
+        n.startswith("E") and n[1:].isdigit() for n in _nightly.A3_NAMED_ESCAPES
+    ),
+    f"A3_NAMED_ESCAPES={_nightly.A3_NAMED_ESCAPES}",
+)
+R.check(
+    "the nightly demands A3 published-state checks by name",
+    set(_nightly.A3_INSIDE) <= set(_nightly.INSIDE_CHECKS)
+    and set(_nightly.A3_INSIDE)
+    == {
+        "a3:roster",
+        "a3:orjson",
+        "a3:finite",
+        "a3:device_class_state_class",
+        "a3:no_constructor_defaults",
+    },
+    f"A3_INSIDE={_nightly.A3_INSIDE} INSIDE_CHECKS missing "
+    f"{sorted(set(_nightly.A3_INSIDE) - set(_nightly.INSIDE_CHECKS))}",
+)
+R.check(
+    "A3 is not merged with A4",
+    all(not n.startswith("a4:") for n in _nightly.INSIDE_CHECKS)
+    and all(not n.startswith("a4:") for n in _nightly.A3_INSIDE),
+    f"A4 leaked into the A3/inside roster: "
+    f"{[n for n in (*_nightly.A3_INSIDE, *_nightly.INSIDE_CHECKS) if n.startswith('a4:')]}",
+)
+
+_a3_from_collect = sorted(
+    e.entity_id
+    for _p in integration.PLATFORM_LIST
+    for e in collect(_importlib.import_module(f"heatpump_optimizer.{str(_p)}"))
+    if getattr(e, "entity_id", None)
+)
+_a3_from_file = _nightly.load_committed_roster()
+# The rule, with the number: len({e.entity_id for p in PLATFORM_LIST
+# for e in collect(module p) if e.entity_id}) — currently equal to
+# len(_a3_from_collect). Do not replace that with a literal.
+R.check(
+    "the committed A3 roster is the entity_id set collect() produces",
+    _a3_from_file == _a3_from_collect,
+    f"roster={len(_a3_from_file)} collect={len(_a3_from_collect)} "
+    f"only_roster={sorted(set(_a3_from_file) - set(_a3_from_collect))[:6]} "
+    f"only_collect={sorted(set(_a3_from_collect) - set(_a3_from_file))[:6]}",
+)
+_nightly_roster = _nightly.Checks()
+_nightly.check_a3_roster(
+    _nightly_roster, list(_a3_from_collect), expected=_a3_from_file
+)
+R.check(
+    "a3:roster passes when HA's registry matches collect()",
+    "a3:roster" not in _nightly_roster.failures()
+    and _nightly_roster.results["a3:roster"][1],
+    _nightly_roster.results.get("a3:roster", [None, "ABSENT"])[1],
+)
+_a3_roster_mut = _nightly.Checks()
+_nightly.check_a3_roster(
+    _a3_roster_mut, ["sensor.not_ours"], expected=_a3_from_file
+)
+R.check(
+    "a3:roster fails when the registered ids are not collect()'s set",
+    "a3:roster" in _a3_roster_mut.failures(),
+    "a mutant that always-passes a3:roster would accept any HA registry",
+)
+
+_a3_orjson_src = _inspect.getsource(_nightly.json_bytes_ha)
+R.check(
+    "a3:orjson serialises through Home Assistant's json_bytes",
+    "json_bytes" in _a3_orjson_src and "helpers.json" in _a3_orjson_src,
+    "the inside half must judge (b) by HA's orjson path, not stdlib json",
+)
+_a3_orjson_ok = _nightly.Checks()
+_nightly.check_a3_orjson(
+    _a3_orjson_ok,
+    [("sensor.x", {"state": "1", "attributes": {"n": 1.5}})],
+    dumps=_nightly.orjson_like_dumps,
+)
+_a3_orjson_bad = _nightly.Checks()
+_nightly.check_a3_orjson(
+    _a3_orjson_bad,
+    [("sensor.x", {"state": "1", "attributes": {"k": float("inf")}})],
+    dumps=_nightly.orjson_like_dumps,
+)
+R.check(
+    "a3:orjson fails a payload orjson rejects, and passes a finite one",
+    "a3:orjson" in _a3_orjson_bad.failures()
+    and "a3:orjson" not in _a3_orjson_ok.failures(),
+    f"bad={_a3_orjson_bad.results.get('a3:orjson')} "
+    f"ok={_a3_orjson_ok.results.get('a3:orjson')}",
+)
+
+_a3_finite_bad = _nightly.Checks()
+_nightly.check_a3_finite(
+    _a3_finite_bad, [("sensor.x", {"state": "1", "attributes": {"k": float("nan")}})]
+)
+_a3_finite_ok = _nightly.Checks()
+_nightly.check_a3_finite(
+    _a3_finite_ok, [("sensor.x", {"state": "1", "attributes": {"k": 1.0}})]
+)
+R.check(
+    "a3:finite fails a non-finite attribute and passes a finite one",
+    "a3:finite" in _a3_finite_bad.failures()
+    and "a3:finite" not in _a3_finite_ok.failures(),
+    f"bad={_a3_finite_bad.results.get('a3:finite')}",
+)
+
+_a3_dc_src = _inspect.getsource(_nightly.check_a3_device_class_state_class)
+R.check(
+    "a3:device_class_state_class reads DEVICE_CLASS_STATE_CLASSES",
+    "DEVICE_CLASS_STATE_CLASSES" in _a3_dc_src,
+    "the inside half must judge (d) by HA's table, not a local copy",
+)
+_a3_dc_bad = _nightly.Checks()
+_nightly.check_a3_device_class_state_class(
+    _a3_dc_bad, [("sensor.x", "energy", "measurement")]
+)
+_a3_dc_ok = _nightly.Checks()
+_nightly.check_a3_device_class_state_class(
+    _a3_dc_ok, [("sensor.x", "temperature", "measurement")]
+)
+R.check(
+    "a3:device_class_state_class fails a pair the HA table forbids",
+    "a3:device_class_state_class" in _a3_dc_bad.failures()
+    and "a3:device_class_state_class" not in _a3_dc_ok.failures(),
+    f"bad={_a3_dc_bad.results.get('a3:device_class_state_class')} "
+    f"(energy+measurement must be forbidden; temperature+measurement allowed)",
+)
+
+_a3_def = ThermalState()
+_a3e_ok = _nightly.Checks()
+_nightly.check_a3_no_constructor_defaults(
+    _a3e_ok,
+    [
+        {
+            "entity_id": "sensor.heat_pump_optimizer_indoor_temperature_optimizer",
+            "state": str(_a3_def.room_temperature),
+            "attributes": {"device_class": "temperature"},
+            "device_class": "temperature",
+        },
+        {
+            "entity_id": "sensor.heat_pump_optimizer_dhw_temperature",
+            "state": "unavailable",
+            "attributes": {"device_class": "temperature"},
+            "device_class": "temperature",
+        },
+        {
+            "entity_id": "climate.heat_pump_optimizer",
+            "state": "heat",
+            "attributes": {
+                "current_temperature": _a3_def.room_temperature,
+                "dhw_temperature": None,
+                "device_class": None,
+            },
+            "device_class": None,
+        },
+    ],
+    defaults=_a3_def,
+    roster=_a3_from_file,
+)
+_a3e_bad = _nightly.Checks()
+_nightly.check_a3_no_constructor_defaults(
+    _a3e_bad,
+    [
+        {
+            "entity_id": "sensor.heat_pump_optimizer_dhw_temperature",
+            "state": str(_a3_def.dhw_temperature),
+            "attributes": {"device_class": "temperature"},
+            "device_class": "temperature",
+        },
+        {
+            "entity_id": "sensor.heat_pump_optimizer_dhw_mixed_water",
+            "state": "270.0",
+            "attributes": {"device_class": "volume_storage"},
+            "device_class": "volume_storage",
+        },
+        {
+            "entity_id": "climate.heat_pump_optimizer",
+            "state": "heat",
+            "attributes": {"dhw_temperature": _a3_def.dhw_temperature},
+            "device_class": None,
+        },
+    ],
+    defaults=_a3_def,
+    roster=_a3_from_file,
+)
+R.check(
+    "a3:no_constructor_defaults fails an available ThermalState default",
+    "a3:no_constructor_defaults" in _a3e_bad.failures()
+    and "a3:no_constructor_defaults" not in _a3e_ok.failures(),
+    f"bad={_a3e_bad.results.get('a3:no_constructor_defaults')} "
+    f"ok={_a3e_ok.results.get('a3:no_constructor_defaults')}",
+)
+_a3_inside_src = _inspect.getsource(_nightly._inside)
+_a3_a3e_src = _inspect.getsource(_nightly._inside_a3e)
+_a3_out_src = _inspect.getsource(_nightly._run_outside)
+R.check(
+    "A3(e) is a second seed, not collapsed into the thermometer boot",
+    "constructor_defaults=False" in _a3_inside_src
+    and "constructor_defaults=True" in _a3_a3e_src
+    and "thermometers=False" in _a3_out_src
+    and "--a3e-only" in _a3_out_src,
+    "A3(e) must boot a default install with no thermometer entities; "
+    "collapsing it into the 165-key seed hides the constructor-default leak",
+)
+R.check(
+    "and a passing A3 check still keeps its detail",
+    all(
+        v[1]
+        for c in (_nightly_roster, _a3_orjson_ok, _a3_finite_ok, _a3_dc_ok, _a3e_ok)
+        for n, v in c.results.items()
+        if n.startswith("a3:")
+    ),
+    "A3 passing checks blanked their detail (#533)",
+)
+
 # tools/audit/preflight.sh refuses a closing keyword the orchestrator did not
 # declare -- the defect that closed #224 from a merge message saying "does not
 # close #224", which closingIssuesReferences cannot see because it describes the
