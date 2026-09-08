@@ -351,7 +351,7 @@ HEAT_CURVE_ANSWERS = {
 
 # ---------------------------------------------------------------------------
 # The Tibber session seam: the real validate_tibber_token, scripted HTTP.
-# Same shape as tools/audit/round2/D10/B/harness.py, so what this pins is
+# Same shape as tools/audit/round2/D10/B/harness.py at 757e164, so what this pins is
 # the production verdict logic (401/403 vs errors payload vs connect
 # failure), not a stub's.
 # ---------------------------------------------------------------------------
@@ -417,7 +417,7 @@ async def submit(flow, step, answers):
 
     There is no flow manager in the stub, so the exception the real manager
     converts into an abort result is caught here instead -- exactly what
-    tools/audit/round2/D10/B/harness.py and tests/entities.py do.
+    tools/audit/round2/D10/B/harness.py (at 757e164) and tests/entities.py do.
     """
     try:
         return await getattr(flow, f"async_step_{step}")(dict(answers))

@@ -7,13 +7,15 @@ harnesses a judge still re-runs (`harnesses/README.md`). The register
 that records what came of it is `docs/audit-2026-09.md`; the orchestration
 scripts are `.claude/workflows/audit-*.js`.
 
-Nothing here is a test. `tools/` is in `tests/closure.py`'s `INERT` list:
-no gate runs it, no test reads it, and the closures merge check proves that on
-every re-derivation.
+Almost nothing here is read by the gate. `tests/closure.py`'s `INERT` tuple and
+its `INERT_EXCEPT` record which paths under `tools/` that covers and which it
+does not, including the one file here a test executes. Do not restate them.
+
+`CLAUDE.md` tables every brief under `briefs/` and says which one binds which
+seat; this file does not repeat that list. The rest of the layout:
 
 ```
 tools/audit/
-  README.md                 this file: layout, contracts, the inventory of what to reuse
   finding.schema.json       what a finder must return; a finding without evidence cannot be returned
   briefs/COMMON.md          the contract every finder works under (read first)
   briefs/D0.md … D10.md     one dimension each: method, what to reuse, what has fooled people before
@@ -22,6 +24,7 @@ tools/audit/
   briefs/fixer.md           the fix protocol as a checklist
   briefs/fix-review.md      the adversarial fix reviewer's contract
   harnesses/README.md       the instruments kept live, and where rounds 1-3 went
+  preflight.sh              executed by tests/entities.py, so it is not INERT
 tools/release/stamp.py      the only way a version is assigned
 ```
 
@@ -50,9 +53,15 @@ without reading the finding, so it has to carry everything:
   a private `DRIFT_CACHE_DIR` only when it modifies `env_drift.py` itself.
 - It prints one `RESULT <name>=<value> <unit>` line per number, plus
   `RESULT thread_factor=<process_cpu/thread_cpu>`, `RESULT load1=<1-min load>`
-  and `RESULT swapins=<count>` taken at the end of the measurement. The judge
-  rejects a timing or memory RESULT whose `thread_factor` exceeds 1.05 or
-  whose `load1` exceeds 1.5.
+  and `RESULT swapins=<count>` taken at the end of the measurement. A timing or
+  memory RESULT whose `thread_factor` exceeds 1.05 is rejected and re-taken.
+  **`load1` is quoted, not gated.** The round-2 judge measured this box's
+  ambient floor at 1.86 with zero audit workload, and its best reading over ten
+  60-second retries at 1.55, so a `load1 <= 1.5` bar is a stall rather than a
+  safeguard. What protects a timing number here is a *ratio* metric and a null
+  control taken under the same load in the same session — which is how the D9
+  numbers were taken, and why they are trustworthy at a `load1` of 2.2–3.7.
+  Quote the real `load1` and the control; do not wait for 1.5.
 - It hooks a named production symbol (`instrumented_symbol` in the finding)
   and moves under a named `perturbation`: a config change or a one-line
   production edit under which the number must change in a stated direction.
@@ -77,7 +86,7 @@ moves.
 | Closed-loop days | `tests/rolling.py:run_rolling(...)` | `learn=True` drives the real coordinator's learner; `SLOW=1` only |
 | Challengers and null control | `tests/optimality.py` (`setup`, `evaluate`, `mock.patch.object`), `tests/backtest.py:score`, `tests/profiles.py` | price profiles `winter_typical`, `winter_extreme`, `summer_typical`, `summer_negative`, `shoulder`, `winter_narrow`, `winter_moderate`, `flat`; weather `winter_cold`, `winter_mild`, `summer_warm`, `summer_cool`, `shoulder` |
 | The card in Node | `tests/card_rig.mjs:buildCard`, `planStates`, `makeCardContext`, `qaTopologies` | the DOM stub returns a constant 900×400 rectangle: no geometry |
-| The card's 27 states | `tests/card_drift.mjs:STATES` (`--list`) | drive both a working-tree card and a `git show` card |
+| The card's drift states | `tests/card_drift.mjs:STATES` — run it with `--list` rather than carrying a count | drive both a working-tree card and a `git show` card |
 | Real geometry | `tests/card_browser.mjs` | Playwright resolved from `NODE_PATH`; Chromium under `PLAYWRIGHT_BROWSERS_PATH` |
 | Mutation-proof idioms | `tests/features.py` (search `_fl_orig = _FlOpt`: class-attribute swap, `try/finally`), `tests/features.py` (search `rail: {name}`: input-mutation rail over a `_SAFE` baseline dict), `tests/optimality.py` (`mock.patch.object`) | the third is the only `unittest.mock` use in the suite; the first two are cited by search text, not line number -- `features.py` is ~19,600 lines and grows every wave |
 
@@ -88,13 +97,12 @@ moves.
   measures nothing about the executor boundary; use a real loop and a
   `ThreadPoolExecutor`.
 - `golden.py`, `env_drift.py`, `closure.py`, `frontend.py`, `manual_plan.py`,
-  `stress.py` (`:1597`) and `structure.py` (`:1275`, there since it was
-  added, in `b38e079` -- #193 PR-0, #331) have `__main__` guards.
+  `stress.py` (`:1597`) and `structure.py` (`:1275`) have `__main__` guards.
   `entities.py`, `features.py`, `rolling.py`, `backtest.py` and
   `optimality.py` run every check at import and `sys.exit`.
-- `tests/plan_view.py` writes `/tmp/plandata-<sha256(tests dir)[:12]>.json`;
-  every Node harness reads it; `card.mjs` falls back to `/tmp/plandata.json`
-  with a warning, the others fail. Set `HPO_PLANDATA` per harness.
+- `tests/plan_view.py` writes a per-checkout plan payload under `/tmp` and
+  every Node harness reads it; `card.mjs` alone falls back to an unhashed
+  legacy path with a warning, the others fail. Set `HPO_PLANDATA` per harness.
 - `tests/setup_qa_render.mjs` writes SVGs to `../setup-qa/`, outside the
   repository.
 - `tests/env_drift.py` runs `git worktree add` in the repository it is run
@@ -114,14 +122,13 @@ moves.
 
 ## Running the gate on the audit box
 
-The committed golden fixtures were recorded on another machine and the
-strict comparison does not reproduce here (`tests/README.md` says so; the
-first local run of this program failed `golden.py` on last-decimal solver
-differences in `winter_two_zone_dhw` while CI, in drift mode, was green).
-Run the gate the way CI runs it, against the merge base. Take the lock only when
-`tests/closure.py select` reports `MODE: FULL` or names `tests/stress.py`, and
-take it with `tests/gate_lock.py` -- never `mkdir` and a shell pid (`CLAUDE.md`,
-"Running it"):
+The committed golden fixtures were recorded on another machine and the strict
+comparison does not reproduce here, so run the gate the way CI runs it, against
+the merge base. Take the lock only when `tests/closure.py select` reports
+`MODE: FULL` or names `tests/stress.py`, and take it with `tests/gate_lock.py`
+— never `mkdir` and a shell pid. `tests/README.md` ("The gate lock on a shared
+box") is the reference for the lease, the flock and what may be stolen without
+forensics.
 
 ```
 BASE=$(git merge-base origin/main HEAD)
@@ -133,72 +140,16 @@ python3 tests/gate_lock.py renew --label <your-label>   # between commands
 python3 tests/gate_lock.py release --label <your-label>
 ```
 
-`run.sh` renews the lease before every script and holds `flock` for the run, so a
-crash releases the box immediately; the lease covers the window between commands,
-when nothing holds flock (#404). `tests/README.md` ("The gate lock on a shared
-box") is the reference.
+### `stress.py` always takes the lock, even run on its own
 
-
-A full run takes about three minutes on the M1 (CI: 40–90 minutes), so a
-full local gate is never the bottleneck; the shared box is.
-
-## Running the fix wave
-
-One group at a time is `/audit-fix with args {group, issues, repo, baseline, fixerModel, reviewerModel, effort}`; many groups at once, honoring `after`-dependencies between them, is `/audit-wave with args {groups, repo, baseline}`; either way, a reviewed PR is merged with its own `/audit-merge with args {pr, bump, title, repo}` — merges are never batched. `fixerModel` and `reviewerModel` each default to `opus`, `effort` to `high`, and a reviewer whose tier ranks below its fixer's is refused before either agent runs. A session that has no Workflow tool available runs the same fixer and reviewer prompts (see `.claude/workflows/audit-fix.js`) through the Agent tool instead, passing the model explicitly per call.
-
-## Resource rules on the audit box
-
-8-core Apple M1, 8 GB, numpy on OpenBLAS. Timing is not measurable while
-eleven agents share the box, so during a fan-out only contention-immune
-evidence counts: call counts, bytes, and CPU-time ratios against the stress
-reference solve. Every wall, CPU or RSS number is re-taken in the quiet
-window before it enters the register. One local full gate at a time, through
-`tests/gate_lock.py`; `stress.py` alone is not alone across worktrees.
-
-## What the judge's round-2 run proved wrong about this file
-
-**`load1 <= 1.5` is unattainable on this box, and demanding it produced nothing.**
-The ambient desktop floor with zero audit workload is **1.86**; over ten 60-second
-retries the judge's best reading was **1.55**. A quiet window that never comes is
-not a safeguard, it is a stall. What actually protects a timing number here is a
-*ratio* metric and a null control taken under the same load in the same session --
-which is how the D9 numbers were taken, and why they are trustworthy despite a
-`load1` of 2.2-3.7. Quote the real `load1` and the control; do not wait for 1.5.
-
-**A hand-rolled lock cannot be reclaimed, and this file used to prescribe one.**
-Round 2 lost 113 minutes to a `mkdir` lock created at 22:33 with no process behind
-it: the judge could not remove it (rightly -- the rule is never remove a lock you
-did not create) and neither could any fixer, so every full gate queued behind a
-directory that was protecting nothing. Recording a pid does not settle it either.
-`$$` is the pid of the *shell* that ran the gate command, and that shell exits
-while the agent holding the lock is still working -- a coverage run held the lock
-correctly for forty minutes with its recorded `pid=98736` already gone.
-
-`tests/gate_lock.py` (#404) answers both, and it is the only lock mechanism this
-repository documents. The owner file carries an agent **label** and an `expires_at`
-lease that every script under lock renews; `run.sh` holds `flock` for the run. An
-expired lease, or an abandoned hold (`holding` marker, no live flock), is taken
-without forensics -- **the script decides that, you do not**, so there is no `ps`
-pipeline to get right and no lock to remove by hand.
-
-## `stress.py` always takes the lock, even run on its own
-
-The rule everywhere else in this file — run the scripts your diff selects
-directly, and take the lock only when the selection is `MODE: FULL` or names
+The rule above — take the lock only when the selection is `MODE: FULL` or names
 `tests/stress.py` — reads easily as "no lock when I run a script by hand". That
 reading is wrong for exactly one script, and following it cost a whole
-measurement.
-
-`tests/run.sh` runs `stress.py` **alone, after every other lane**, because its
-solve-time guard cannot tolerate a shared box. Running it "directly, without
-the lock" therefore defeats the one arrangement that makes its numbers mean
-anything. On 2026-09-03 three `stress.py` processes ran concurrently at
-load 6.5 — one of them recording the budget table that is the gate's entire
-reference — because three agents had each been told to run their selected
-scripts directly and all three selections included `stress.py`. The lock
-holder had the lock and still did not have the box.
-
-So:
+measurement: on 2026-09-03 three `stress.py` processes ran concurrently at load
+6.5, one of them recording the budget table that is the gate's entire
+reference, because three agents had each been told to run their selected
+scripts directly and all three selections included `stress.py`. The lock holder
+had the lock and still did not have the box.
 
 - **Taking the lock is required for `stress.py`**, whether you run it through
   `run.sh` or on its own.
@@ -218,6 +169,25 @@ So:
   Say which kind each number is; do not discard sound ratios along with
   contaminated absolutes.
 
+## Running the fix wave
+
+One group at a time is `/audit-fix`, many groups at once (honoring
+`after`-dependencies) is `/audit-wave`, and a reviewed PR is merged with its own
+`/audit-merge` — merges are never batched. The argument schema and defaults for
+each are in `.claude/workflows/audit-fix.js` and its siblings; a reviewer whose
+tier ranks below its fixer's is refused before either agent runs. A session with
+no Workflow tool available runs the same fixer and reviewer prompts from those
+files through the Agent tool instead, passing the model explicitly per call.
+
+## Resource rules on the audit box
+
+8-core Apple M1, 8 GB, numpy on OpenBLAS. Timing is not measurable while
+eleven agents share the box, so during a fan-out only contention-immune
+evidence counts: call counts, bytes, and CPU-time ratios against the stress
+reference solve. Every wall, CPU or RSS number is re-taken in the quiet
+window before it enters the register. One local full gate at a time, through
+`tests/gate_lock.py`; `stress.py` alone is not alone across worktrees.
+
 ## A harness at the evidence tag may measure the tag, not your tree
 
 The harnesses under `audit-round2-evidence` do not agree on how they find the
@@ -230,21 +200,16 @@ under review -- with plausible numbers and no error.
 **Copy a harness into the tree under test before running it**, and say in your
 report which root rule it used. Three reviewers have been caught by this.
 
-The tag has moved once already, and by name only. The round-2 numbers were
-**recorded** at `c398fc84` (which contains no `tools/audit/round2/` at all --
-that absence is why the two-tree recipe in `HARNESSES.md` exists),
-**archived** at `de668be`, and are **runnable** at `757e164`, which is where
-`audit-round2-evidence` points today; `de668be` stays reachable. Cite the SHA
-you actually ran, not just the tag name -- a name-only citation stops meaning
-anything the next time the tag moves.
+**Cite the SHA you actually ran, not the tag name.** The tag has moved once
+already, by name only: the round-2 numbers were recorded at `c398fc84`,
+archived at `de668be`, and are runnable at `757e164`, which is where
+`audit-round2-evidence` points today. A name-only citation stops meaning
+anything the next time it moves.
 
-The tag has been swept, and which harnesses run, which don't, and by which of
-three rot classes, is recorded in `round2/HARNESSES.md` at `d5d8c4a` -- read
-that file, not this paragraph. It is no longer on `main`, so its results are
-final at that commit, not tracking a head. In short: `D6/claims.py` is
-repaired (the B5 sweep landed at `757e164`); `D9/d9lib.py`'s marker-cut
-fragility is unrepaired and, run in the tag's own checkout, still gives the
-`IndentationError` `HARNESSES.md` records -- but do not assume that against a
-current `main` tree without checking, since the same cut has already stopped
-and started reproducing there once, coincidentally, as an unrelated file
-changed shape around it.
+Which harnesses at that commit still run, which do not, and by which of three
+rot classes, is recorded in `round2/HARNESSES.md` at `d5d8c4a`. It is no longer
+on `main`, so read that file rather than this paragraph and take its results as
+final at that commit. One caveat it cannot carry: `D9/d9lib.py`'s marker-cut
+fragility has already stopped and started reproducing once, coincidentally, as
+an unrelated file changed shape around it, so do not assume its recorded
+verdict against a current `main` tree without checking.

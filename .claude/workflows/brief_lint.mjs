@@ -156,19 +156,30 @@ function symbolInRefTree(ref, symbol) {
   return !!(out && out.trim())
 }
 
-// Two directories are excluded from "does this symbol exist anywhere":
+// One directory is excluded from "does this symbol exist anywhere":
 //   .claude/            -- every wave-*-groups.json brief IS the text this
 //                          script is scanning, so a symbol it names would
 //                          otherwise "exist" by matching its own citation.
-//   tools/audit/round2/ -- write-once evidence FROM the tag, committed as
-//                          prose about a finding, not resolvable current
-//                          state (it is on INERT for exactly this reason).
-//                          A symbol mentioned only there is the class-2
-//                          "lives at the tag, not in the tree" case, and
-//                          searching it would pass the check on the strength
-//                          of the report describing the rot, not the rot
-//                          being fixed.
-const SYMBOL_GREP_EXCLUDE = [':!.claude', ':!tools/audit/round2']
+//
+// `tools/audit/round2` was the second entry, for the same reason in a different
+// shape -- write-once evidence, prose ABOUT a finding rather than resolvable
+// current state, so a symbol mentioned only there would have passed the check
+// on the strength of the report describing the rot. That tree is archived and
+// no tracked file starts with the prefix any more, so the entry stopped
+// excluding anything and was deleted. IT WAS NOT NOTICED BY ANYTHING: the list
+// had no assertion, which is precisely the hole `policy_lint`'s
+// `CORPUS_EXCLUDED` assertion was written to close two rounds earlier -- an
+// exclusion that names nothing is a destination waiting to be used, because a
+// file written at that path later is excluded with no diff to this file for a
+// reviewer to see. `assertGrepExcludeBounded` below now bounds this list the
+// same way, in BOTH directions.
+const SYMBOL_GREP_EXCLUDE = [':!.claude']
+
+// The entries this list cannot lose without the check going quietly vacuous.
+// A ceiling alone is half the answer: deleting `.claude` would make every
+// symbol cited by a roster "exist" by matching its own citation, and nothing
+// downstream would report a thing.
+const SYMBOL_GREP_EXCLUDE_FLOOR = [':!.claude']
 
 export function symbolInTree(symbol) {
   const out = git(['grep', '-I', '-l', '-w', '-F', symbol, '--', '.', ...SYMBOL_GREP_EXCLUDE], { allowFail: true })
@@ -771,6 +782,30 @@ function assertAcceptanceFixture(name, label, opts, required) {
   return 0
 }
 
+// SYMBOL_GREP_EXCLUDE, bounded by the tree in both directions. The ceiling
+// refuses an entry that names nothing, which is the dead weight the archive
+// created and nothing caught. The floor refuses the deletion of an entry the
+// check needs to mean anything, which is the failure the ceiling cannot see:
+// an empty list passes every "names nothing" test there is.
+function assertGrepExcludeBounded() {
+  const tracked = git(['ls-files']).split('\n').filter(Boolean)
+  const dead = SYMBOL_GREP_EXCLUDE.filter((e) => {
+    const prefix = e.replace(/^:!/, '')
+    return !tracked.some((f) => f === prefix || f.startsWith(prefix.endsWith('/') ? prefix : prefix + '/'))
+  })
+  if (dead.length) {
+    console.log(`\nEXCLUDE VACUOUS: ${JSON.stringify(dead)} in SYMBOL_GREP_EXCLUDE match no tracked file. An exclusion that names nothing is a destination waiting to be used: a file written there later is invisible to symbolInTree with no diff to this file.`)
+    return 1
+  }
+  const missing = SYMBOL_GREP_EXCLUDE_FLOOR.filter((e) => !SYMBOL_GREP_EXCLUDE.includes(e))
+  if (missing.length) {
+    console.log(`\nEXCLUDE VACUOUS: SYMBOL_GREP_EXCLUDE has lost ${JSON.stringify(missing)}. Without it a symbol resolves against the rosters that cite it, so the citation proves itself.`)
+    return 1
+  }
+  console.log(`\nEXCLUDE ok: ${SYMBOL_GREP_EXCLUDE.length} symbol-search exclusion(s), each naming a prefix the tree has, none of the load-bearing ones dropped`)
+  return 0
+}
+
 const GUARD_PROBE = 'driver-guard acceptance probe'
 
 // Driver-guard acceptance. No committed roster can throw any more, so the only
@@ -819,6 +854,7 @@ function main() {
     acceptanceRc += assertAcceptanceFixture('wave-1b-931dffe.json', '931dffe', { shape: false }, REQUIRED_931DFFE)
     acceptanceRc += assertAcceptanceFixture('shape-defects.json', 'shape-defects', {}, REQUIRED_SHAPE_DEFECTS)
     acceptanceRc += assertDriverGuard()
+    acceptanceRc += assertGrepExcludeBounded()
   }
   process.exit(totalErrors > 0 || acceptanceRc ? 1 : 0)
 }

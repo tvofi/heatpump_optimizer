@@ -19,14 +19,6 @@
       "count": 1
     },
     {
-      "key": "citations|tools/audit/README.md|path `tmp/plandata.json`: not in the tree, and no tag SHA is",
-      "count": 1
-    },
-    {
-      "key": "counts|tools/audit/README.md|states 27 for entries in card_drift.mjs STATES; derived 34. ",
-      "count": 1
-    },
-    {
       "key": "duplicates|CLAUDE.md|repeats 12 words from .claude/rules/finding-propagation.md:N",
       "count": 1
     },
