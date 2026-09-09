@@ -1372,11 +1372,11 @@ function mergedPRs(subjects) {
 // shape the next lane must copy rather than a property it must satisfy.
 // Measured before choosing, and the count moves with the window
 // rather than being carried: at `e4f34c7` all 42 merged pull requests in the
-// window were linked from `## Delivery status` and from nowhere else; re-derived
-// at this head, where the window holds 57, all 57 are. The number moves with
-// every merge on `main`, which is why it is named with its head and re-derived
-// rather than carried -- a count written once is stale by the next merge, and
-// this one was.
+// window were linked from `## Delivery status` and from nowhere else, and EVERY
+// ONE still is at every head this has been re-derived at. The size of the window
+// is deliberately not restated: it grows with every merge on `main`, and three
+// copies of it went stale inside this one branch before the number was dropped.
+// What is stable is the property, not the count.
 //
 // AND THE HANDOVER IS NOT DEMOTED, which has a consequence worth stating rather
 // than leaving to be discovered: it contributes ALL of itself, so a pull request
@@ -2208,7 +2208,7 @@ function assertAcceptance(derived) {
   // AND THE REGION THE RECORD READS, which had no pin at all: `recordRegion`
   // could be emptied to `return { region: everything, sectionFound: out.length > 0 }` and
   // every count above would still hold, because the fixtures hand `checkRecord`
-  // its text directly. Six assertions, on synthetic input rather than on the
+  // its text directly. Assertions on synthetic input rather than on the
   // live plan, so a section renamed in the tree cannot make them pass:
   // a mention inside the section counts, the same mention outside it does not,
   // and a plan with no such heading reports the absence rather than an empty
@@ -2233,17 +2233,20 @@ function assertAcceptance(derived) {
   if (regNone.sectionFound) regFail.push('a plan with no section heading reported one')
   if (checkRecord([{ pr: '9102', subject: 's' }], regBoth.region).length !== 1) regFail.push('the region did not CLOSE at the next section heading')
   if (checkRecord([{ pr: '9101', subject: 's' }], regBoth.region).length !== 0) regFail.push('the region did not cover its own section when another follows')
-  // AND THE HANDOVER HALF, which five assertions did not reach: dropping
+  // AND THE HANDOVER HALF, which the assertions above did not reach: dropping
   // `handoverText` from the returned region passed every one of them and left
   // the live `--record` at 0 undispositioned, so the design property this
   // change states -- the handover contributes ALL of itself, which is why it is
   // not demoted -- was unpinned prose. #658's round 2 drove ten mutations and
   // this is the one that survived and mattered.
-  const regHand = recordRegion('## other\n', '- [#9103](x/pull/9103) merged in the handover\n')
+  // TWO lines, because one holds only "the handover contributes something":
+  // `handoverText.split('\n')[0]` passed a one-line fixture. #658's round 4
+  // drove the strengthened form with a null control and it costs no pin.
+  const regHand = recordRegion('## other\n', 'a first line\n- [#9103](x/pull/9103) merged in the handover\n')
   if (checkRecord([{ pr: '9103', subject: 's' }], regHand.region).length !== 0) regFail.push('a disposition in the handover did not count')
   // AND A THIRD-LEVEL HEADING MUST NOT CLOSE THE REGION. Widening the match to
-  // `^#{1,3}` is a plausible edit and survived all six assertions above, while
-  // taking the live count to 42 undispositioned: the plan keeps a
+  // `^#{1,3}` is a plausible edit and survived every assertion above it, while
+  // taking most of the window undispositioned: the plan keeps a
   // `### Governance queue` subsection INSIDE `## Delivery status`, and this
   // pull request writes its own row into it. Reported by #658's round 3 as the
   // one survivor of ten that a reader might actually write.

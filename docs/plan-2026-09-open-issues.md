@@ -783,7 +783,7 @@ judge comments on each issue and summarised on #201.
   are dispositioned inside Delivery-status TABLE CELLS, on the rows of the issues
   they close (`| **#527** … |`, `| **#590** … |`), which is a legitimate
   disposition this repository actually writes. Re-derived at this head, where the
-  window holds 57: **five fail**, and the two new kinds are worth naming. #653 is
+  window is larger: **five fail**, and the two new kinds are worth naming. #653 is
   a further table-cell disposition. **#585 and #587 are not pull requests at
   all** — both are issues, and the merge subjects that name them end in an issue
   number, which `MERGE_SUBJECT_RE` takes for a pull-request number. A rule that
@@ -795,7 +795,7 @@ judge comments on each issue and summarised on #201.
   than a property, which this entry itself forbids two paragraphs down.
   **The anchor is the SECTION.** A disposition must appear under the plan's
   `## Delivery status` heading, or anywhere in the handover. Measured at the head
-  that landed it, where the window holds 57: all 57
+  that landed it, and at every head since: all of them
   are linked from that section and from nowhere else, and the mentions that made
   the old check pass on nothing — a carried finding naming a pull request in
   passing, a standing rule using one as an example — are all outside it. The
