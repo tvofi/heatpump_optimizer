@@ -313,7 +313,7 @@ only in markdown is unchecked, and putting one there is not carrying it.
 - **Any red check on the branch is answered in the body** — the cheaper detector
   and its standing cost, or the finding that none exists. `CLAUDE.md` makes this
   the one enforced root-cause trigger, and an unanswered one is the reviewer's
-  `blocked: root-cause trigger unanswered for <check>`.
+  `blocked <sha> root-cause-unanswered: <check> went red, unanswered`.
 - The merge message passes section 4.
 - Then `main` is green after it. If a merge reddens main: a behaviour change in
   the merged diff → revert first and diagnose after; a failure the diff cannot
