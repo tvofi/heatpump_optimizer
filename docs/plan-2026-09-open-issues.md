@@ -520,6 +520,7 @@ inside it rather than after it.
 - [#662](https://github.com/tvofi/heatpump_optimizer/pull/662) — **merged `2d06e06`**: a branch that moves no fixture was told to EMPTY the claim files, and a squash applies that deletion to `main` — #608 carried 33 of #569's claim lines off, #635 the same to #633's, #658 was stopped on the way to #653's. The rule is now *leave both files exactly as you found them*, which is the same rule whenever the baseline claims nothing. Three routes closed: the record check, the autofix bot, and the stale-claim judgement. This row is written by the pull request AFTER it, because #662 merged before its own row existed — which is the defect `record` is for, caught by `record` itself.
 - [#659](https://github.com/tvofi/heatpump_optimizer/pull/659) — **merged under decision 0006**, without a merge SHA it cannot know: the environment matrix stops counting its shapes off the filesystem and counts what the run built, refuses a work directory it would otherwise reuse, and pins its thirteen outcomes by NAME and by COUNT — names catch a swap, the count catches a duplicate, and the first version had only the names, which round 1 measured. Null control: the previous script, with a shape deleted and a stale work directory, certifies five shapes and twelve outcomes at rc=0.
 - [#660](https://github.com/tvofi/heatpump_optimizer/pull/660) — **merged under decision 0006**, without a merge SHA it cannot know: the handover's cap deadlock is resolved by a GRADUATION rule — a trap whose failure mode has acquired a mechanical detector becomes a one-line pointer to it, and each graduation owes a mutation proof that breaking the detector turns a check red. Four graduate (8, 9, 11, 19); trap 17 does not, because its only proof is a push to `main` with two branches arranged to collide, and a detector nobody drove is what the rule forbids trading prose for. 276 → 273 lines and the cap ratchets down with them.
+- [#669](https://github.com/tvofi/heatpump_optimizer/pull/669) — **merged under decision 0006**, without a merge SHA it cannot know: the reporting hole that let #625 merge with a red `pr-contract` at its head and a body saying `## Red checks: none`. The listing that shows one run per check is refused in every policy file **including the MCP mapping table**, which is where a seat with no `gh` binary looks up what to run — an exemption there would have been the hole rather than an escape from it. The table and `fix-review.md` step 11 now name the commit's `check-runs` API. Three findings this queue closed are marked closed in the entries above.
 
 ### The UX programme — 34 items, five lanes, tracking #558
 
@@ -767,7 +768,7 @@ judge comments on each issue and summarised on #201.
   leaving existing numbers fixed, and the list is deliberately not ascending.
   Re-derive that citer set at your own merge base rather than quoting this one.
 
-- **The `record` check is satisfied by a bare token, not by a disposition — and
+- **CLOSED by #658 (`ac423c8`).** The `record` check was satisfied by a bare token, not by a disposition — and
   the replacement is an anchor, not a row format.** Scheduled by principle 6
   above: after `10-adr-corpus`, before the next release stamp. `checkRecord` is
   one line — `new RegExp("#"+pr+"(?![0-9])").test(text)` — over
@@ -947,7 +948,7 @@ judge comments on each issue and summarised on #201.
   which is what every caller that matters already passes. Until then, a seat
   running the check by hand should pass `$(git merge-base origin/main HEAD)`
   and not `origin/main`; #662's own body says so.
-- **`pr-contract` red runs are hidden by `gh pr checks`, and the ones on this
+- **CLOSED by this pull request.** `pr-contract` red runs were hidden by the listing that shows one run per check, and the ones on this
   queue's heads were process state (b), not a defect in the check.** Two facts,
   and only the first is the check's.
   **The reporting hole is real.** `gh pr checks` shows only the **latest** run
@@ -983,7 +984,7 @@ judge comments on each issue and summarised on #201.
   step 7 of `tools/audit/prepr.sh`, whose own `--self-test` already carries
   `missing-section` as a rot fixture. That one is not the check's fault in any
   sense.
-  **What is actually owed**, therefore, is the reporting hole and not the
+  **CLOSED here.** What was owed was the reporting hole and not the
   contract: a seat writing `## Red checks` must read the check-runs API, and
   `gh pr checks` should not be the instrument. Whether the `pr-contract` job
   should additionally skip a run whose only difference is a stale head SHA is a
@@ -1111,7 +1112,7 @@ judge comments on each issue and summarised on #201.
   already did it to #633's; `main`'s list is empty now, an empty list inherits
   nothing, and the window stays closed until the next claiming merge.
 
-- **The environment matrix can lose a shape or a row without noticing.** Found
+- **CLOSED by #659 (`e7a5433`).** The environment matrix could lose a shape or a row without noticing. Found
   by #639's first review, reported rather than blocked on, carried here so the
   matrix's next maintainer inherits it. `policy_lint_envmatrix.mjs`'s
   `MATRIX VACUOUS` guard keys on the shape *directory* existing, so a shape
