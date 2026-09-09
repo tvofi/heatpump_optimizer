@@ -513,7 +513,7 @@ does report it. The pull request after this one narrows that to the
 inside it rather than after it.
 
 - [#644](https://github.com/tvofi/heatpump_optimizer/pull/644) — **merged under decision 0006**, without a merge SHA it cannot know: `docs/decisions/` leaves the measured corpus, named one by one so a seventh decision costs a line; 0006 added to that list; 0005's status line stops waiting on the question the same file answers. Closes the queue 05–10; the ruleset's `record` and `env-matrix` contexts both exist on `main` from here.
-- [#658](https://github.com/tvofi/heatpump_optimizer/pull/658) — **merged under decision 0006**, without a merge SHA it cannot know: the record check's region narrows from both documents whole to `## Delivery status` plus the handover, so a pull request mentioned in passing is no longer dispositioned by that mention; the list-item anchor this plan proposed was refuted first (it refuses #629 and #632, dispositioned inside table cells); pinned by three acceptance assertions over synthetic input, tip invariant 76 → **79** pins across the same 10 classes; the handover's `updated-for` catches up; and the backticked-verdict finding is carried.
+- [#658](https://github.com/tvofi/heatpump_optimizer/pull/658) — **merged under decision 0006**, without a merge SHA it cannot know: the record check's region narrows from both documents whole to `## Delivery status` plus the handover, so a pull request mentioned in passing is no longer dispositioned by that mention; the list-item anchor this plan proposed was refuted first (it refuses #629 and #632, dispositioned inside table cells); pinned by six acceptance assertions over synthetic input, tip invariant 76 → **82** pins across the same 10 classes; the handover's `updated-for` catches up; and the backticked-verdict finding is carried.
 - [#662](https://github.com/tvofi/heatpump_optimizer/pull/662) — **merged `2d06e06`**: a branch that moves no fixture was told to EMPTY the claim files, and a squash applies that deletion to `main` — #608 carried 33 of #569's claim lines off, #635 the same to #633's, #658 was stopped on the way to #653's. The rule is now *leave both files exactly as you found them*, which is the same rule whenever the baseline claims nothing. Three routes closed: the record check, the autofix bot, and the stale-claim judgement. This row is written by the pull request AFTER it, because #662 merged before its own row existed — which is the defect `record` is for, caught by `record` itself.
 
 ### The UX programme — 34 items, five lanes, tracking #558
@@ -783,11 +783,14 @@ judge comments on each issue and summarised on #201.
   are dispositioned inside Delivery-status TABLE CELLS, on the rows of the issues
   they close (`| **#527** … |`, `| **#590** … |`), which is a legitimate
   disposition this repository actually writes. Re-derived at this head, where the
-  window holds 54: **five fail**, and the two new kinds are worth naming — #587
-  and #653 are further table-cell dispositions, and **#585 is not a pull request
-  at all**: the merge subject ends in an *issue* number, which `MERGE_SUBJECT_RE`
-  takes for a pull-request number. A rule that pins a row shape would have had to
-  refuse all five, and one of them has no row to write. A rule that refuses it
+  window holds 57: **five fail**, and the two new kinds are worth naming. #653 is
+  a further table-cell disposition. **#585 and #587 are not pull requests at
+  all** — both are issues, and the merge subjects that name them end in an issue
+  number, which `MERGE_SUBJECT_RE` takes for a pull-request number. A rule that
+  pins a row shape would have had to refuse all five, and **two** of them have no
+  row to write. (Checked against the API rather than inferred: #629, #632 and
+  #653 are pull requests; #585 and #587 are not. An earlier draft of this
+  sentence said one, and #658's round 2 counted them.) A rule that refuses it
   either loses two records or forces a duplicate row, and it pins a shape rather
   than a property, which this entry itself forbids two paragraphs down.
   **The anchor is the SECTION.** A disposition must appear under the plan's
@@ -799,9 +802,11 @@ judge comments on each issue and summarised on #201.
   record is its whole job. A renamed heading reports as its own error rather
   than as 42 identical ones, so fail-closed does not read as a mass defect.
   Landed with three acceptance pins over synthetic input — inside counts,
-  outside does not, a plan with no such heading says so — because the region is
+  outside does not, a plan with no such heading says so, the region CLOSES at the
+  next section, and a disposition written only in the handover still counts —
+  because the region is
   otherwise widenable back to the whole file with every other count unchanged;
-  the tip invariant moves from 76 pins to **79** across the same 10 classes.
+  the tip invariant moves from 76 pins to **82** across the same 10 classes.
   **What it does not fix, stated so the next seat does not overclaim.** An
   anchored row can still say nothing — `- [#NNN](…) — merged, see above` passes.
   (Written `#NNN` deliberately: a real number here would itself satisfy the

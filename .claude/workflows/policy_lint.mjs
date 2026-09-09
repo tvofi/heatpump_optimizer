@@ -1373,7 +1373,10 @@ function mergedPRs(subjects) {
 // Measured before choosing, and the count moves with the window
 // rather than being carried: at `e4f34c7` all 42 merged pull requests in the
 // window were linked from `## Delivery status` and from nowhere else; re-derived
-// at this head, all 54 are.
+// at this head, where the window holds 57, all 57 are. The number moves with
+// every merge on `main`, which is why it is named with its head and re-derived
+// rather than carried -- a count written once is stale by the next merge, and
+// this one was.
 //
 // AND THE HANDOVER IS NOT DEMOTED, which has a consequence worth stating rather
 // than leaving to be discovered: it contributes ALL of itself, so a pull request
@@ -2212,7 +2215,7 @@ function assertAcceptance(derived) {
   // region. The third is the one that keeps this fail-closed: an empty region
   // would otherwise read as "every merge undispositioned", which is a true
   // statement about the wrong thing.
-  pins += 5
+  pins += 6
   const regIn = recordRegion(`## ${RECORD_SECTION}\n- [#9101](x/pull/9101) merged\n`, '')
   const regOut = recordRegion(`## Carried findings\n- found by #9101 in passing\n`, '')
   const regNone = recordRegion('# plan\nno second-level heading at all\n', '')
@@ -2230,6 +2233,14 @@ function assertAcceptance(derived) {
   if (regNone.sectionFound) regFail.push('a plan with no section heading reported one')
   if (checkRecord([{ pr: '9102', subject: 's' }], regBoth.region).length !== 1) regFail.push('the region did not CLOSE at the next section heading')
   if (checkRecord([{ pr: '9101', subject: 's' }], regBoth.region).length !== 0) regFail.push('the region did not cover its own section when another follows')
+  // AND THE HANDOVER HALF, which five assertions did not reach: dropping
+  // `handoverText` from the returned region passed every one of them and left
+  // the live `--record` at 0 undispositioned, so the design property this
+  // change states -- the handover contributes ALL of itself, which is why it is
+  // not demoted -- was unpinned prose. #658's round 2 drove ten mutations and
+  // this is the one that survived and mattered.
+  const regHand = recordRegion('## other\n', '- [#9103](x/pull/9103) merged in the handover\n')
+  if (checkRecord([{ pr: '9103', subject: 's' }], regHand.region).length !== 0) regFail.push('a disposition in the handover did not count')
   if (regFail.length) {
     console.log(`\nFIXTURE VACUOUS: recordRegion ${JSON.stringify(regFail)}. The record's region is what makes a mention a disposition; unpinned, it can be widened back to the whole file with every other count unchanged.`)
     return 1
