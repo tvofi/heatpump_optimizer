@@ -56,7 +56,6 @@
 # claimed. Same class as #547. Solver fixtures and the card claim file are
 # untouched.
 
-config_flow # ten wide options pages nest fields under section(); fingerprint moves once
 #
 
 #
