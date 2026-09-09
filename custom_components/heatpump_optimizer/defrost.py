@@ -64,9 +64,11 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any
+from collections.abc import Callable
+from typing import Any, TypeVar
 
 _LOGGER = logging.getLogger(__name__)
+_T = TypeVar("_T")
 
 # Bucket edges in °C. The frosting band is resolved finely and everything
 # outside it coarsely, because that is where the physics actually varies.
@@ -135,7 +137,7 @@ def _bucket_index(value: float, edges: tuple[float, ...]) -> int:
     return len(edges) - 2 if value >= edges[-1] else 0
 
 
-def _grid(fill):
+def _grid(fill: _T) -> list[list[_T]]:
     return [
         [fill for _ in range(len(HUMIDITY_EDGES) - 1)]
         for _ in range(len(TEMP_EDGES) - 1)
@@ -347,7 +349,7 @@ class DefrostDerate:
 
     # -- persistence --------------------------------------------------------
 
-    def as_dict(self) -> dict:
+    def as_dict(self) -> dict[str, Any]:
         """The persisted form.
 
         ``factors``/``counts`` are still written, and still describe the
@@ -366,7 +368,7 @@ class DefrostDerate:
         }
 
     @classmethod
-    def from_dict(cls, data: dict | None) -> "DefrostDerate":
+    def from_dict(cls, data: dict[str, Any] | None) -> "DefrostDerate":
         """Load, tolerating both schema versions.
 
         A v1 store has no ``duty`` arrays. Its inferred ``factors``/``counts``
@@ -397,7 +399,7 @@ class DefrostDerate:
         n_t = len(TEMP_EDGES) - 1
         n_h = len(HUMIDITY_EDGES) - 1
 
-        def _grid_of(key, cast):
+        def _grid_of(key: str, cast: Callable[[Any], _T]) -> list[list[_T]] | None:
             raw = data.get(key)
             if (
                 isinstance(raw, list)
@@ -446,7 +448,7 @@ class DefrostDerate:
             instance.counts = counts
         return instance
 
-    def summary(self) -> list[dict]:
+    def summary(self) -> list[dict[str, Any]]:
         """Human-readable view for the diagnostics attributes.
 
         ``source`` says which estimator a bucket rests on, and ``events`` how
@@ -455,14 +457,14 @@ class DefrostDerate:
         cloud polls is a much weaker number than the same duty counted from
         MQTT transitions and nothing else on the row would show that.
         """
-        out = []
+        out: list[dict[str, Any]] = []
         for t in range(len(TEMP_EDGES) - 1):
             for h in range(len(HUMIDITY_EDGES) - 1):
                 source, value, count = self._decide(t, h)
                 if source is None:
                     continue
                 measured = source == "measured"
-                entry = {
+                entry: dict[str, Any] = {
                     "outdoor_range": [TEMP_EDGES[t], TEMP_EDGES[t + 1]],
                     "humidity_range": [
                         HUMIDITY_EDGES[h],
@@ -574,9 +576,12 @@ class DefrostWindow:
         duty computed from a fiction.
         """
         try:
-            return (now - then).total_seconds()
+            raw = (now - then).total_seconds()
         except TypeError:
             return None
+        if isinstance(raw, (int, float)) and not isinstance(raw, bool):
+            return float(raw)
+        return None
 
     def _accrue(self, now: Any) -> None:
         if self._state and self._since is not None:
