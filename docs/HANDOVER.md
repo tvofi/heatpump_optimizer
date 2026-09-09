@@ -1,6 +1,6 @@
 # Handover — the open-issues programme
 
-updated-for: a9d117c
+updated-for: 8f754c9
 
 This is the only handover. There is no dated series: a second
 `docs/handover-*.md` is refused by `tests/entities.py`, and the policy it
@@ -73,6 +73,32 @@ so it costs no extra pull request, and `updated-for:` names that merge.
 - **Every sentence earns its place** (owner-directed, 2026-09-07). The rule,
   its scope and its controls are in `CLAUDE.md`; recorded here so that the
   decision to adopt it is not relitigated.
+- **A policy merge needs the owner's approval, per pull request** (owner,
+  2026-09-09, ADR 0007). A **session grant** of the 0001/0006 shape is the
+  option, not the default: it names the session, restates the six
+  preconditions, and lapses when that session ends. Do not infer a standing
+  grant from the fact that one existed. The ruleset and `pr-contract` are the
+  floor either way, never the substitute — they check that a change is
+  well-formed, not that it is wanted.
+- **`main` is guarded, and this is the first thing about the merge boundary
+  that is enforced rather than asserted.** Ruleset **`main-protect`, id
+  `22628467`**, active on the default branch: deletion, non-fast-forward
+  and **18 required status checks**. GitHub refuses the merge rather than a
+  policy asking you not to. **It is not absolute, and do not read it as one**:
+  the ruleset carries an admin-role bypass with `always` mode so
+  `tools/release/stamp.py`'s direct push to `main` still lands, this session's
+  identity reports `admin: true`, and a two-armed probe confirmed the bypass
+  applies to it. That bypass and the rollback below are the owner's levers, not
+  a seat's, and a seat that reads the boundary as unbypassable will misdiagnose
+  the next release stamp. Deliberately absent: any required-approval or code-owner rule,
+  because one identity authors and approves here, so such a rule locks the
+  repository rather than protecting it (ADR 0005). One DELETE to
+  `/repos/<owner>/<repo>/rulesets/22628467` reverses the whole thing.
+  **Before adding a required context**, confirm it reports on a *pull-request
+  head*, not merely on a push to `main`: the two shapes differ, `CodeQL`
+  reports on one and not the other, and a context that never reports blocks
+  every merge permanently. A `skipped` or `neutral` required check satisfies
+  the rule; that was measured on an isolated probe, both arms.
 
 ### The UX programme
 
@@ -115,6 +141,43 @@ stage, `after` edges and carried findings are in
   is that the flat "always byte-identical" form was briefed to every seat for a
   session before a reviewer refused it by measuring: PR #600 carries 33 correct
   bare claim lines because it moves 33 card states.
+- **And the rule moved again: leave both claim files exactly as you found
+  them** (#662). The previous form demanded an *empty* claim list on a branch
+  that claims nothing, which is the same thing only when the baseline claims
+  nothing too. It is not: a squash then applies that deletion to `main` and
+  carries another lane's claims off with it. Measured on three precedents —
+  #608 took 33 of #569's lines, #635 the same to #633's, #658 was stopped on
+  the way to #653's. Three independent routes now enforce the new form: the
+  record check, the autofix bot, and the stale-claim judgement.
+- **The pull-request checks listing is not a faithful instrument** (#669). It
+  shows the latest run per check, so an earlier red behind a later green is
+  invisible —
+  and the mirror error is just as easy, reading "any failure" as "red" when a
+  later run passed. Read `/repos/<owner>/<repo>/commits/<sha>/check-runs`,
+  which returns every run. `web-fragments.md` carries the invocation; every
+  file that instructs a seat, that table included, is refused for naming the
+  lossy form — which is why this bullet describes it instead.
+- **The record check's enumerator misses merges AND invents them, and the two
+  errors hide each other.** `policy_lint`'s merge-subject regex is the
+  enumerator behind every "pull requests merged in this window" figure, and it
+  reads only a trailing `(#N)`. Over `a9d117c..8f754c9` it counts 24 where
+  GitHub's `/commits/<sha>/pulls` answers 25 — and **that gap of one is a net,
+  not a miss.** Three set differences, derived by comparing the two lists rather
+  than by trusting the totals:
+  **invisible** — #640, whose squash subject carries no suffix at all; and #655,
+  whose subject ends `(#587)`, so the enumerator records 587 and never 655.
+  **Phantom** — #587, which is not a pull request. The check demands a
+  disposition for a merge that never happened, and is satisfied by writing one.
+  So `24 = 25 - 2 + 1`, and a first reading of this defect blamed #640 alone
+  because the arithmetic looked confirmed. **Compare the sets, never the
+  totals**, and treat a suffix as a claim about a number rather than a fact.
+- **`GET /repos/.../rules/branches/<branch>` is not bypass-aware.** It lists
+  the rules configured for the branch, not the rules that would apply to you:
+  emptying the bypass-actors list and re-reading returns an identical list. Reading it
+  as "the bypass does not apply to me" nearly produced a false alarm that the
+  release stamp was about to break. The only honest test is a probe branch with
+  its own ruleset and **both** arms — with the admin bypass the push lands,
+  without it GitHub answers *push declined due to repository rule violations*.
 
 ## Traps that cost a session
 
@@ -236,6 +299,52 @@ in its own pull request.
     facts had gone stale for want of a second witness. Derive a body's counts
     by mutating the artefact and reading the detector: here, removing all nine
     rows and reading `--record`'s refusal.
+26. **A figure in prose whose referent is a function of `origin/main` is stale
+    by construction, not by neglect.** It was the single largest source of
+    blocked rounds under the 2026-09-09 grant, and `claims` outnumbered every
+    other block class together. **No count is given here, and that is the trap
+    demonstrating itself**: the first draft of this sentence carried one, and it
+    went stale on every round of the review that landed it, because its referent
+    was that review's own history — so the replacement carried a count of how
+    many times it had gone stale, and that went stale too. Derive it if you need
+    it — scrape `Fix review: blocked <sha> <class>:` across the grant's
+    pull requests and count the classes.
+    Partly graduated: `policy_lint`'s `counts` refuses prose disagreeing with
+    **eight** figures derived from the artefacts that answer them, and since
+    #672 it reads roster briefs as well as the policy corpus — seven of the
+    eight there, because the brief genre uses "N modules" for a subset. Nine
+    derivations exist and `jobs` is read by no rule, so do not quote nine. **The other half
+    does not graduate**, and #581 is the measurement that says so — a rule
+    refusing a *bare figure* was built and driven, and reported 20 on the live
+    briefs of which five were the defect. Three wrong reports for every right
+    one, on a corpus whose authors mostly did anchor. The remedy is the anchor,
+    not the linter: write `58.6 % at 4b6e0765`, never `58.6 %`.
+27. **A blank line ends a markdown table, and every row below it renders as
+    literal text while the source still looks like a table.** Not reduced to a
+    pointer, although its detector exists: the check catches the defect, and
+    what survives here is the method for settling a render question at all. 26 of the plan's
+    36 disposition rows were not in a table, for an unknown number of sessions,
+    in the most-read document here. Graduated: `policy_lint --record`'s
+    `table` check over both disposition documents. Ground truth for a render
+    question is GitHub's own `/markdown` endpoint, not the CommonMark spec.
+28. **A replacement that matches a prefix leaves both halves in one line, and
+    an anchor that matches the first occurrence lands your insertion in the
+    wrong section.** Both happened in one pull request. The row became five
+    cells wide in a three-column table with its old half still contradicting
+    the new one, and a governance-queue entry was appended under an earlier
+    heading of nearly the same name. Neither is visible to a check: `--record`
+    matches a number anywhere in its region and has no idea about placement.
+    Assert the *whole* construct you meant to replace, and anchor on a string
+    you have counted.
+29. **A verdict whose first line is wrapped in backticks does not parse.**
+    `web-fix-wave.js`'s `VERDICT_RE` anchors on `^Fix review:` and reads only
+    the first line, so the dispatcher reports no verdict on a pull request that
+    has one. Four of the fifteen grant merges carry one. Post the first line
+    bare; put the prose underneath.
+30. **In zsh, assigning to a variable named `path` destroys `PATH`.** A
+    `while read -r path branch` loop over `git worktree list` left the shell
+    unable to find `basename`, `git` or `df`. Same reserved-variable family as
+    `GID`. Rename the loop variable.
 
 ## Owed — post-hoc reviews
 
@@ -257,6 +366,30 @@ Also owed, and deliberately not landed because it is policy: a finding for
 `tools/audit/briefs/fixer.md` — **a probe that builds its own input can build
 the complement of production's input**. #591's seat drafted the text and
 flagged it rather than claiming a carry it had not made.
+
+**Owed from 2026-09-09, and none of it decidable by a seat.**
+
+- **Two one-clause policy edits carried out of #580's closure**, which the
+  judge merged into #588 leaving them named only in a comment on a closed
+  issue. First: `fix-review.md` has **no step for an ABSENT check** — step 11
+  obliges an answer for a check that went *red*, and a pull request whose
+  workflows never queued shows a reviewer no red checks at all. That is #669's
+  defect from the other side. Second: **the mutation proof is executed twice**,
+  by the fixer and by the reviewer, and lands in prose both times, so a proof
+  that a check can fail exists in two pull-request bodies and never where a
+  later seat could re-run it. Both need a cap raise or a graduation to pay for
+  their lines.
+- **Whether cloud seats get an identity distinct from the owner.** Everything
+  about review independence here is procedural until they do, and the ruleset
+  carries no approval rule for that reason.
+- **#575 and #541 were declined with the size of each measured**, not waved
+  off. #575: **184 of the 195 merges below #375** are mentioned in no programme
+  document, derived from `git log` over merge subjects, which enumerates
+  completely, rather than from a `--limit` listing, which pages silently. Read
+  it as a floor — the test is a bare grep and cannot tell a disposition from a
+  mention. #541: the governance programme mechanised **class 1 only**; class 2
+  has nothing, and class 4 cannot become mechanical while one identity authors
+  and approves. Both reasons are on the issues themselves.
 
 ## The machine this runs on — measure it, do not read it
 

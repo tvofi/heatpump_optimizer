@@ -528,6 +528,7 @@ inside it rather than after it.
 - [#672](https://github.com/tvofi/heatpump_optimizer/pull/672) — **merged under decision 0006**, without a merge SHA it cannot know: #581 asked for a literal figure of any kind to be refused in a brief; the rule that would do it was built, driven and **refused on its own issue's criterion** — 20 reports on the live briefs, five of them the defect, and the false ones are a sweep window repeated in prose and evidence from a completed measurement, which is what a brief is for. What lands is the resolving half: `policy_lint`'s eight derived counts had never read a `wave-*-groups.json`, and seven of them now do. `modules` is withheld because the brief genre uses that word for a subset; the shared enumeration moves to `counts.mjs`, a third module, because the linters' existing import direction makes any other arrangement a cycle.
 - [#673](https://github.com/tvofi/heatpump_optimizer/pull/673) — **merged under decision 0006**, without a merge SHA it cannot know: the Delivery-status table outranks anything that disagrees with it, so a row that stopped being true is worse than a missing one. #580 was closed `not planned` by judge ruling on 2026-09-07 and its row still had three seats deliberating; **two residuals of that ruling lived only in a comment on the closed issue** and are carried into the tree here — `fix-review.md` has no step for an ABSENT check, where a pull request whose workflows never queued shows a reviewer no red checks at all, and the mutation proof is executed twice and lands in prose both times. #575 and #541's rows described plans that this session declined. #581's row now says which half of its figure is independently reproducible, because the rule that produced it is deliberately not in the tree. `--record` was clean throughout, including while #672's own entry sat in the wrong section, and the reason is narrower than it looks: #658 already cut `checkRecord`'s region to `## Delivery status` plus the handover, and line 84 is **inside** that region. So the check saw the number and was satisfied. Placement is invisible *within* the region, by design — the region says where a disposition may live, not where it must sit.
 - [#674](https://github.com/tvofi/heatpump_optimizer/pull/674) — **merged under decision 0006**, without a merge SHA it cannot know: **26 of the Delivery-status table's 36 rows were not in a table.** A blank line ended it at 363, and everything below rendered as literal text with its pipes showing while the source still read as a table. Through GitHub's own `/markdown` endpoint at `7d8d271`: one table of 11 rows plus 104 loose pipe characters; without the blank line, one table of 37 rows and none. Found while reviewing #673, whose author and round-1 reviewer both explained a five-cell row's survival by saying GitHub truncates the extras — **the wrong explanation is what sent a seat looking for the real one**. The detector lives in the RECORD mode because `docs/` is not a policy directory and no corpus check has ever opened either disposition document; it tells a split apart from two adjacent tables by looking one line further for a delimiter row. Pinned in both directions, and the over-firing arm found that `table` was in the `silent` map but not in `REQUIRED_SILENT`, so that control was inert until this change. **Disclosed rather than papered over:** gutting the call site in `cmdRecordDispositions` leaves the acceptance green, which is the standing limit #614 recorded — no assertion inside a program pins its own last call site.
+- [#675](https://github.com/tvofi/heatpump_optimizer/pull/675) — **merged under decision 0006**, without a merge SHA it cannot know: `docs/HANDOVER.md` stopped at `a9d117c` and could not take a line, so 24 merges of durable findings went to *Carried findings* instead — correct under the deadlock note, and not where a cold session looks first. **The owner raised the cap for this, explicitly, before the branch was pushed**, and it is recorded at **whatever `wc -l` answers at the head that lands**, with one below it turning `policy_lint` red. **No number is given here, deliberately.** The cap moved on every round of this pull request's review — each round's corrections added lines — and each time it went stale in this row before it went stale anywhere else. **A count of how many times is not given either**, for the same reason: the first draft of this sentence carried one, and reviewing the sentence moved it. A figure that is a function of the file it describes belongs in the file's own budget entry and nowhere else; `policy_lint --budgets` prints it. The floor and all three role caps are untouched, because `roleTokens` counts the always-loaded set and the scoped rules a role opens, never the opened file. Plus the staleness sweep: this plan said **`main` is unguarded** and that a ruleset *would* guard it, now rewritten as what was created and measured; the closing #201 obligation it recorded as owed is **discharged**; ADRs 0001, 0005 and 0006 carry **dated status notes rather than rewrites**, because a decision record states what was true when it was taken. **CLAUDE.md and `orchestrator.md` are left silent about the merge boundary on purpose** — both sit at their caps, and because the index is always-loaded, two lines there overflow **five** caps at once (floor 3195 → 3245 against 3228). That is the owner's call, not a seat's.
 
 ### The UX programme — 34 items, five lanes, tracking #558
 
@@ -844,55 +845,48 @@ judge comments on each issue and summarised on #201.
   is why the `record` job cannot be satisfied in advance and why each remaining
   queue branch carries its own row before merging.
 
-- **`main` is unguarded, and the ruleset that would guard it is the programme's
-  last act.** Both `GET /repos/.../rulesets?includes_parents=true` and
-  `GET /repos/.../rules/branches/main` answer `200 []`, so every check here is
-  **advisory at the merge boundary**. #609 carries **two** payloads and the
-  second retracts the first — *"the check list in the earlier payload was
-  written from the plan and is now wrong"* — so the operative baseline is its
-  **eleven** contexts, read from a real run: `fast (3.13)`, `fast (3.14)`,
-  `browser`, `briefs`, `closure-scope`, `closures`, `typing`, `hassfest`,
-  `validate-hacs`, `policy-docs`, `wave-script`. Take that list, not the first.
-  **The set to create is eighteen.** The eleven, plus `pr-contract`, which #614
-  landed after that comment was written and which reports green; plus `record`
-  and `env-matrix` once `07-loop` and `08-envmatrix` have landed them on `main`;
-  plus `CodeQL` and the three `Analyze (…)` checks, which the operative payload
-  excluded only because `code-scanning/default-setup` was one of its 403s — it
-  reads now (`state: configured`, languages
-  `actions/javascript/javascript-typescript/python/typescript`, query suite
-  `extended`, threat model `remote`), so the stated reason is spent.
-  **Two of the operative payload's premises are false, and both were measured
-  here rather than argued.** It says `closures` *"reports `success`, not
-  `skipped`, on a docs-only pull request … (verified on #612)"*: it reports
-  **`SKIPPED`** on #624 and #625, and `SUCCESS` on #628. And it says *"a
-  required check that reports `skipped` does not satisfy the rule"*, which is
-  the premise for excluding five jobs. **It does satisfy the rule.** Driven on
-  an isolated probe — a ruleset scoped to a throwaway branch, `main` left at
-  zero rules throughout — a pull request whose required `closures` was `SKIPPED`
-  and required `policy-docs` `SUCCESS` read `MERGEABLE / UNSTABLE`, not blocked.
-  The **negative control** is what makes that a result: adding a required
-  context that never reports flipped the same pull request to **`BLOCKED`**, and
-  removing it returned it to `UNSTABLE`. So blocking is reachable and the
-  skipped check genuinely passed. The probe ruleset, its branches and its pull
-  request were deleted; `rulesets` and `rules/branches/main` both read `[]`
-  afterwards.
-  That negative control is also the direct evidence for the ordering: **a
-  required context that never reports blocks forever**, which is exactly what
-  `record` and `env-matrix` would be if the ruleset were created before `07` and
-  `08` land them.
-  **Unchanged from the operative payload**, and each for its stated reason: the
-  maintain-role bypass, so `tools/release/stamp.py`'s direct push to `main`
+- **CLOSED. `main` is guarded, and this was the programme's last act.** Ruleset
+  **`main-protect`, id `22628467`**, active on the default branch: deletion,
+  non-fast-forward, and **18 required status checks**. It replaces the two
+  `200 []` answers this entry used to report, under which every check here was
+  advisory at the merge boundary.
+  **The ordering was the whole argument, and it held.** A required context that
+  never reports blocks every merge permanently, so the set could not be created
+  until `record` and `env-matrix` existed on `main`. Before creation all 18 were
+  confirmed present on **every open pull-request head**, not on one convenient
+  head: a required check is evaluated on the pull request's head, and that shape
+  differs from a push — `CodeQL` reports on the first and not the second.
+  **A skipped required check satisfies the rule**, which is why five jobs an
+  earlier payload excluded for that reason are in the set. Driven on an isolated
+  probe, `main` at zero rules throughout: a pull request whose required
+  `closures` was `SKIPPED` and `policy-docs` `SUCCESS` read `MERGEABLE /
+  UNSTABLE`. The **negative control** is what makes that a result — adding a
+  context that never reports flipped the same pull request to `BLOCKED`, and
+  removing it returned it to `UNSTABLE`. That control is also the direct
+  evidence for the ordering above.
+  **Unchanged from the operative payload, each for its stated reason**: the
+  role bypass — recorded as `RepositoryRole` **5**, the admin role, not the
+  maintain role an earlier draft named — so `tools/release/stamp.py`'s direct push to `main`
   still lands; `strict_required_status_checks_policy` **false**, because
   "require branches to be up to date" would force a merge commit onto every
   frozen review head whenever `main` advances; and **no required-approval or
-  code-owner rule**, because one identity authors and approves here: seats
-  authenticate as the owner, GitHub refuses to let an author approve their own
-  pull request, so such a rule would be a **lock** rather than weak enforcement.
-  That measurement has its own decision record later in this queue, and is
-  deliberately not cited by number here — **0004 and 0005** are not on `main` yet — they land
-  with `08-envmatrix` and `09-verdicts` — and a citation that resolves to
-  nothing is the defect this corpus keeps finding. (0006 is above 0003 and *is*
-  on `main`; "everything above 0003" was the wrong rule and is corrected here.)
+  code-owner rule** (ADR 0005), because one identity authors and approves here,
+  so such a rule is a lock rather than weak enforcement.
+  **The bypass premise was tested rather than assumed, and the instrument that
+  looked like it answered does not.** `GET /repos/.../rules/branches/main`
+  returns the identical rule list with the bypass-actors list emptied, so it
+  reports the branch's configured rules and says nothing about the caller —
+  reading it as *"the bypass does not apply to me"* nearly produced a false
+  alarm that the release stamp was about to break. Probed properly on a
+  throwaway branch with its own ruleset: with the admin bypass the push lands,
+  without it GitHub answers *push declined due to repository rule violations*.
+  Two-sided, so it is a measurement. The probe ruleset and its branch are
+  deleted.
+  **What it did to the pull requests already open: nothing that was not already
+  true.** Five needed a rebase because `main` moved six times that night. #656
+  read `BLOCKED` on two required checks still running, and carried an earlier
+  `pr-contract` failure behind a later success at the same head — which does not
+  block, because required checks are evaluated on the latest run per name.
   **#609's permissions reading was a proxy artifact** — it recorded
   `{admin: false, maintain: false, push: false, triage: false, pull: false}`
   while pushes plainly worked, and suspected as much; this session reads
@@ -910,11 +904,13 @@ judge comments on each issue and summarised on #201.
   NOT wait on the ruleset: the decision dates what it says about the
   repository and stands whether or not a ruleset exists. An earlier draft of
   this entry said it lands beside the ruleset as the programme's last act;
-  0007 says otherwise and 0007 is the record. **Still owed, and stated here
-  because deleting that draft nearly deleted the obligation with it:** the
-  programme's closing #201 comment lists every **policy** pull request merged under the
+  0007 says otherwise and 0007 is the record. **DISCHARGED**, and stated here
+  because deleting that draft nearly deleted the obligation with it: the
+  programme's closing #201 comment lists every pull request merged under the
   grant — 0001's and then 0006's — with its verdict and head SHA, which is what
-  the governance-audit plan asked for.
+  the governance-audit plan asked for. Fifteen of them, **every verdict a
+  `merge` naming its own head exactly**, checked mechanically with a corrupted
+  head through the same comparison as the null control.
 - **The verdict-example pin has two residuals its own reviewer drove, and one
   is a hole rather than a limit.** #641 round 2 attacked the widened block in
   `check-wave-script.mjs` and found three properties, two of which are left
