@@ -15,7 +15,7 @@
 # that are re-executable in CI, so the PRE-PR line this prints is a claim and
 # the re-execution is the proof.
 #
-#   tools/audit/prepr.sh [body.md]
+#   tools/audit/prepr.sh [body.md] [intended-issue-numbers...]
 #
 # Self-test (used by the `pr-contract` job, and by anyone changing this file):
 #
@@ -180,7 +180,16 @@ fi
 # --- 7. the body, when one was passed.
 BODY="${1:-}"
 if [ -n "$BODY" ] && [ "$BODY" != "--self-test" ]; then
-  bash tools/audit/preflight.sh < "$BODY"
+  # THE INTENDED ISSUES ARE FORWARDED, and before they were, this step refused
+  # every body that closed one. `preflight.sh` refuses a closing keyword whose
+  # number is not in the list it was given, and this script gave it none -- so
+  # `Closes #N`, which `tools/audit/briefs/fixer.md` step 7 REQUIRES of a fix
+  # body, made the pre-PR gate exit non-zero with nothing wrong. CI does not
+  # catch that in either direction: `pr-contract` runs the same script as
+  # `preflight.sh ... || true`, so the check binds nowhere. Found by the first
+  # body in twenty merges to carry a closing keyword.
+  shift
+  bash tools/audit/preflight.sh "$@" < "$BODY"
   step "preflight" $?
   node .claude/workflows/policy_lint.mjs --pr-body "$BODY" --head "$(git rev-parse HEAD)" \
     --title "$(git log -1 --format=%s)" >/tmp/prepr-body.$$ 2>&1

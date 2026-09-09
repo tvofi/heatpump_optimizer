@@ -61,11 +61,13 @@ jobs:
         run: node .claude/workflows/policy_lint.mjs
 
       # Three corpus checks shipped measuring nothing, each with an acceptance
-      # its author believed pinned it. This lane empties one check's return at
-      # a time and demands the acceptance refuse it, so a check that survives
-      # its own removal is named on the pull request that lands it rather than
-      # by the next adversarial reader.
-      - name: Refuse a corpus check that survives its own deletion
+      # its author believed pinned it. This lane empties one check at a time --
+      # the corpus enumeration and the record mode's, and for the `caps` rule
+      # the regex list it scans as well as the check itself -- and demands the
+      # acceptance refuse it, so a check that survives its own removal is named
+      # on the pull request that lands it rather than by the next adversarial
+      # reader.
+      - name: Refuse a corpus or record-mode check that survives its own deletion
         run: node .claude/workflows/policy_lint_mutants.mjs
 
       # A workflow script cannot import another, so the five web-*.js each carry
