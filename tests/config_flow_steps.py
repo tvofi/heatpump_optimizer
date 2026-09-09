@@ -2047,7 +2047,9 @@ async def section_nesting_is_captured():
     )
 
     flow, _entry, _ = fresh_options()
-    flat = (await flow.async_step_comfort(None)).get("data_schema")
+    # Comfort is grouped in this branch. The synthetic wrap below needs a
+    # still-flat page so the inner mapping is fields, not sections.
+    flat = (await flow.async_step_thermal_model(None)).get("data_schema")
     inner = dict(flat.schema)
 
     def grouped(fields, collapsed=True):
@@ -2146,7 +2148,7 @@ async def section_nesting_is_captured():
             set(m) == {"selector", "config", "default", "required"}
             for m in flat_markers.values()
         ),
-        f"{len(flat_markers)} marker(s) on the ungrouped comfort page",
+        f"{len(flat_markers)} marker(s) on the ungrouped thermal_model page",
     )
 
 
@@ -2535,15 +2537,15 @@ async def options_cross_page_save_scope():
         form = await getattr(flow, f"async_step_{page}")(None)
         if form.get("type") != "form":
             continue
-        markers = list(form["data_schema"].schema if form.get("data_schema") else {})
-        offered = {str(getattr(marker, "schema", marker)) for marker in markers}
+        presented = list(_presented_fields(form.get("data_schema")))
+        offered = {str(getattr(marker, "schema", marker)) for marker, _ in presented}
         unseeded = {
             key: entry.options.get(key)
             for key, value in CROSS_PAGE_SEED.items()
             if entry.options.get(key) != value
         }
         answers = {}
-        for marker in markers:
+        for marker, _value in presented:
             default = getattr(marker, "default", None)
             if not callable(default):
                 continue
