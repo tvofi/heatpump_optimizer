@@ -863,6 +863,13 @@ def _valid_months_spec(spec: Any) -> bool:
     return True
 
 
+def _tibber_token_selector() -> selector.TextSelector:
+    """The masked token widget shared by setup, reauth and options."""
+    return selector.TextSelector(
+        selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)
+    )
+
+
 def _entity_of(
     domain: str | list[str], device_class: str | None = None
 ) -> selector.EntitySelector:
@@ -1063,7 +1070,7 @@ def _user_credentials_fields() -> dict[Any, Any]:
     """Name, token and weather — what every install must bring."""
     return {
         vol.Required(CONF_NAME, default="Heat Pump Optimizer"): str,
-        vol.Required(CONF_TIBBER_TOKEN): str,
+        vol.Required(CONF_TIBBER_TOKEN): _tibber_token_selector(),
         vol.Required(CONF_WEATHER_ENTITY): _entity_of("weather"),
     }
 
@@ -1243,7 +1250,7 @@ _OPTION_PAGES: Final[tuple[_P, ...]] = (
 #: Every field the options flow presents, in the order each page renders them.
 _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     # -- entities
-    _F("entities", CONF_TIBBER_TOKEN, '', selector.TextSelector(selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)), required=True, group="credentials"),
+    _F("entities", CONF_TIBBER_TOKEN, '', _tibber_token_selector(), required=True, group="credentials"),
     _F("entities", CONF_WEATHER_ENTITY, '', _entity_of('weather'), required=True, group="credentials"),
     _F("entities", CONF_INDOOR_TEMP_ENTITY, _STORED, _entity_of('sensor', 'temperature'), group="indoor"),
     _F("entities", CONF_OUTDOOR_TEMP_ENTITY, _STORED, _entity_of('sensor', 'temperature'), group="indoor"),
@@ -2095,7 +2102,9 @@ class HeatPumpOptimizerConfigFlow(
             )
         return self.async_show_form(
             step_id="reauth_confirm",
-            data_schema=vol.Schema({vol.Required(CONF_TIBBER_TOKEN): str}),
+            data_schema=vol.Schema(
+                {vol.Required(CONF_TIBBER_TOKEN): _tibber_token_selector()}
+            ),
             errors=errors,
         )
 
