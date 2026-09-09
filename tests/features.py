@@ -18892,6 +18892,113 @@ R.check(
 )
 
 
+R.section("#224 stage 3 — _optimize_with_dhw's always-hot DHW baseline answers for itself")
+
+# The non-hot block: standby-loss / COP economics plus the space/DHW cost
+# split. Square pricing so the DHW share is the *marginal* cost on top of
+# space, not energy(dhw) alone — linear pricing would make those the same
+# number and the pin would not see a rewrite.
+
+_de_opt = _MbOpt(
+    ThermalModel(ThermalParameters.from_config(_mb_profiles.house())),
+    _MbCfg(horizon_hours=1),
+)
+_de_price = lambda p: float(np.sum(p) ** 2)
+_de_out = np.array([-5.0, -5.0, -5.0])
+_de_bp = np.array([2.0, 2.0, 2.0])
+_de_sp = np.array([1.0, 1.0, 1.0])
+_de_dh = np.array([1.0, 1.0, 1.0])
+_de_set = float(_de_opt.model.params.dhw_setpoint)
+_de_state_wood = ThermalState(wood_tank_temperature=70.0)
+_de_bd, _de_bc, _de_pc, _de_dc = _de_opt._baseline_dhw_economics(
+    _de_state_wood, _de_out, 3, _de_set, _de_price, _de_bp, _de_sp, _de_dh,
+)
+_de_bd_none, _, _, _ = _de_opt._baseline_dhw_economics(
+    ThermalState(wood_tank_temperature=None),
+    _de_out, 3, _de_set, _de_price, _de_bp, _de_sp, _de_dh,
+)
+R.check(
+    "a house without the refill coil ignores a wood-tank temperature",
+    list(_de_bd) == list(_de_bd_none)
+    and abs(_de_bd[0] - 0.2823906705539359) < 1e-12,
+    f"{list(_de_bd)} vs {list(_de_bd_none)} — a drop here means the coil "
+    f"gate was skipped and a tank this house does not model cheapened the "
+    f"baseline",
+)
+R.check(
+    "DHW's share is the marginal cost on top of space, not energy(dhw)",
+    _de_pc == 36.0 and _de_dc == 27.0,
+    f"predicted {_de_pc} dhw {_de_dc} — 9.0 means energy(dhw) was priced "
+    f"alone; 36.0 as the share means the space subtraction was dropped",
+)
+R.check(
+    "the baseline cost prices space plus the always-hot tank, together",
+    abs(_de_bc - 46.88376455728481) < 1e-9,
+    f"{_de_bc} — 36.0 prices only the space baseline; a linear sum would "
+    f"be ~6.85 and would break the piecewise-in-PV contract",
+)
+
+_de_bd_idle, _, _, _ = _de_opt._baseline_dhw_economics(
+    _de_state_wood, _de_out, 3, 10.0, _de_price, _de_bp, _de_sp, _de_dh,
+)
+R.check(
+    "a setpoint at or below ambient contributes no standby loss",
+    abs(_de_bd_idle[0] - 0.1479591836734694) < 1e-12,
+    f"{_de_bd_idle[0]} — 0.282 means standby still used the 55 C configured "
+    f"setpoint, or the clip against ambient was dropped and a cold tank "
+    f"was charged for cooling",
+)
+
+_de_short, _, _, _ = _de_opt._baseline_dhw_economics(
+    _de_state_wood, _de_out, 2, _de_set, _de_price, _de_bp[:2], _de_sp[:2], _de_dh[:2],
+)
+R.check(
+    "the schedule is n_steps long, not outdoor_temps long",
+    len(_de_short) == 2,
+    f"len={len(_de_short)} — 3 means the helper sized the array from the "
+    f"weather series and would mis-align a shorter horizon",
+)
+
+_de_coil_params = ThermalParameters.from_config({
+    "upper_floor_thermal_mass": 2.0,
+    "mixing_valve_mode": "manual",
+    "wood_tank_top_entity": "sensor.wood_top",
+    "dhw_tank_volume": 200.0,
+    "dhw_wood_coil_enabled": True,
+})
+_de_coil_opt = _MbOpt(ThermalModel(_de_coil_params), _MbCfg(horizon_hours=1))
+_de_coil_70, _, _, _ = _de_coil_opt._baseline_dhw_economics(
+    ThermalState(wood_tank_temperature=70.0),
+    _de_out, 3, float(_de_coil_params.dhw_setpoint),
+    _de_price, _de_bp, _de_sp, _de_dh,
+)
+_de_coil_none, _, _, _ = _de_coil_opt._baseline_dhw_economics(
+    ThermalState(wood_tank_temperature=None),
+    _de_out, 3, float(_de_coil_params.dhw_setpoint),
+    _de_price, _de_bp, _de_sp, _de_dh,
+)
+R.check(
+    "the refill coil cheapens the always-hot baseline only when wood is known",
+    abs(_de_coil_70[0] - 0.10018950437317786) < 1e-12
+    and abs(_de_coil_none[0] - 0.20587463556851315) < 1e-12,
+    f"coil+70 {_de_coil_70[0]} coil+None {_de_coil_none[0]} — equal values "
+    f"mean the coil reduction was dropped; a 70 C tank that still prices "
+    f"the full electric draw invents savings",
+)
+
+_de_coil_arg, _, _, _ = _de_coil_opt._baseline_dhw_economics(
+    ThermalState(wood_tank_temperature=70.0),
+    _de_out, 3, 40.0, _de_price, _de_bp, _de_sp, _de_dh,
+)
+R.check(
+    "standby uses the passed setpoint; the coil still uses the configured one",
+    abs(_de_coil_arg[0] - 0.0699107142857143) < 1e-12,
+    f"{_de_coil_arg[0]} — 0.100 means standby ignored the 40 C argument; "
+    f"a different third figure means the coil used the argument instead of "
+    f"params.dhw_setpoint, which is the inlet identity the draw was built on",
+)
+
+
 R.section("v5.3.0 review — the experiment obeys the mode gate too")
 
 from pathlib import Path as _Path  # noqa: E402
