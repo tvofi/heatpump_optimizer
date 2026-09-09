@@ -513,6 +513,7 @@ does report it. The pull request after this one narrows that to the
 inside it rather than after it.
 
 - [#644](https://github.com/tvofi/heatpump_optimizer/pull/644) — **merged under decision 0006**, without a merge SHA it cannot know: `docs/decisions/` leaves the measured corpus, named one by one so a seventh decision costs a line; 0006 added to that list; 0005's status line stops waiting on the question the same file answers. Closes the queue 05–10; the ruleset's `record` and `env-matrix` contexts both exist on `main` from here.
+- [#658](https://github.com/tvofi/heatpump_optimizer/pull/658) — **merged under decision 0006**, without a merge SHA it cannot know: the record check's region narrows from both documents whole to `## Delivery status` plus the handover, so a pull request mentioned in passing is no longer dispositioned by that mention; the list-item anchor this plan proposed was refuted first (it refuses #629 and #632, dispositioned inside table cells); pinned by three acceptance assertions over synthetic input, tip invariant 76 → **79** pins across the same 10 classes; the handover's `updated-for` catches up; and the backticked-verdict finding is carried.
 
 ### The UX programme — 34 items, five lanes, tracking #558
 
