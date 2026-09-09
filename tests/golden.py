@@ -1143,6 +1143,7 @@ def capture_config_flow() -> dict:
     for step in (
         "user",
         "user_sensors",
+        "finish_setup",
         "temperature",
         "building",
         "building_describe",

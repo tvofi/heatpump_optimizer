@@ -355,8 +355,8 @@
       "fixture": false,
       "after": [],
       "resume": {
-        "stage": "pending",
-        "note": "Not started."
+        "stage": "in-review",
+        "note": "PR #665 drafts finish-setup-now after user_sensors. leaves #558 open."
       },
       "brief": "Offer a finish-setup-now exit after the second screen: today nine steps run before an entry exists, so a user who stops at step eight has nothing. Any change to a form's SHAPE is subject to the constraint E4's brief carries about one-level schema walks in the assertion layer."
     },
@@ -372,7 +372,7 @@
         "stage": "pending",
         "note": "Not started."
       },
-      "brief": "Show the setup overview as the last step of the CONFIG flow, not only in Options, so a user sees what was configured at the moment they finish configuring it. Any change to a form's shape is subject to the constraint E4's brief carries."
+      "brief": "Show the setup overview as the last step of the CONFIG flow, not only in Options, so a user sees what was configured at the moment they finish configuring it. E2's two create-entry terminals both call `_create_setup_entry` -- `finish_now` at config_flow.py:1711 and `weather_sensitivity` at config_flow.py:2059. Attach `setup_overview` to both terminals or to that helper; otherwise a finish-now user never sees it. Overview is still options-only. `setup_overview` is registered at config_flow.py:1227. `async_step_setup_overview` is on the options flow at config_flow.py:2271. Any change to a form's shape is subject to the constraint E4's brief carries."
     },
     {
       "group": "E4",
