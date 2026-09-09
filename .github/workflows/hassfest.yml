@@ -19,6 +19,55 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # The pinned action below is a *composite* action whose second step is a
+      # bare `docker run ghcr.io/home-assistant/hassfest` in a bash step, so its
+      # image pull is an implicit, unretried side effect -- one refused blob is
+      # exit 125 on a context `main-protect` requires, before the job has read a
+      # file of this tree. That is not hypothetical: 5 of 16 attempts in
+      # 2026-09-09 14:00-16:10Z died that way, at a measured mean of 11 min 36 s
+      # each to recover by hand (root-cause section on #201).
+      #
+      # ghcr's refusal is a burst limiter, not a block: its own `retry-after` in
+      # all five logs was sub-millisecond (1.9 us - 488 us), so a token is free
+      # almost immediately and the right response is simply to ask again. Hence
+      # a short backoff, not a long one.
+      #
+      # The reference below is byte-identical to the action's own `docker run`
+      # argument, deliberately: docker resolves both to
+      # `ghcr.io/home-assistant/hassfest:latest` (the failing logs say "Unable to
+      # find image 'ghcr.io/home-assistant/hassfest:latest' locally"), and a
+      # reference that differed in any way would leave the daemon cache cold and
+      # the warm-up doing nothing. Once it is cached, the action's `docker run`
+      # is a local hit, so the pull is *relocated* one step earlier rather than
+      # duplicated.
+      #
+      # The `validate-hacs` lane is the null control for the mechanism: it pulls
+      # from the same registry, anonymously, starting in the same second on every
+      # affected commit, and did not fail once -- because `hacs/action` is a
+      # docker *container* action, where the runner performs a managed pull.
+      # Same registry, same throttle, different retry behaviour.
+      #
+      # On total failure this step exits non-zero rather than falling through:
+      # the alternative hands control to a bare `docker run` that will fail
+      # anyway, as exit 125 with no annotation and no attempt count.
+      - name: Warm the hassfest image cache
+        run: |
+          image='ghcr.io/home-assistant/hassfest'
+          delay=2
+          for attempt in 1 2 3 4 5; do
+            if docker pull "$image"; then
+              echo "warm-up: $image is in the local cache (attempt $attempt)"
+              exit 0
+            fi
+            if [ "$attempt" -lt 5 ]; then
+              echo "warm-up: attempt $attempt failed; retrying in ${delay}s"
+              sleep "$delay"
+              delay=$((delay * 2))
+            fi
+          done
+          echo "::error::warm-up: docker pull $image failed 5 times; failing here rather than leaving the pinned action's unretried 'docker run' to report exit 125"
+          exit 1
+
       - name: Run Hassfest
         # Pinned by commit: this is a moving branch upstream.
         uses: home-assistant/actions/hassfest@a7c616ce81ccda50150bf1595786c71b1883fabb # master
