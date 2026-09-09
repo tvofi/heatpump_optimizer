@@ -71,6 +71,7 @@ import {
   METRIC_LITERAL_RE,
   NEGATION_RE,
 } from './brief_lint.mjs'
+import { checkCounts, derivations } from './counts.mjs'
 
 // brief_lint's CODE_EXTS has no `mdc`, because a wave roster never cites one.
 // Half this corpus's citations are `.cursor/rules/*.mdc`, so they are matched
@@ -360,6 +361,63 @@ const CORPUS_EXCLUDED = new Set([
   'docs/plan-2026-09-open-issues.md', // plan of record
   'DISCLAIMER.md',                    // user-facing, same ground as README.md
   'docs/backlog.md',                  // superseded record, kept for history
+  // The architecture decision records. An ADR states a decision ALREADY TAKEN
+  // and the measurement behind it; it binds no seat and no seat is sent to one
+  // to learn what it must do. The corpus machinery is built for text that binds
+  // someone: `checkIndex` refuses a policy file `CLAUDE.md` does not name,
+  // because "the index is the only way a seat finds a policy file" -- and
+  // naming them all here would push the ALWAYS-LOADED set, the one number this
+  // audit exists to drive down, past its cap to carry documents nobody must
+  // read. Measured before choosing, and stated as a SHAPE rather than a count,
+  // because the count is a function of how many decisions exist and this comment
+  // has already carried three stale readings -- 14, then 24, then 24 again after
+  // the list grew. Bringing `docs/decisions/` under POLICY_GLOBS reports, for
+  // every decision, one [budgets] error (no cap) and one [index] error (CLAUDE.md
+  // does not name it), plus [duplicates] between records that share a paragraph
+  // and [citations] below. The total therefore grows with the directory, which is
+  // itself half the argument. Re-derive it rather than reading it here: put the
+  // glob back, delete the exclusion entries, and run the linter.
+  // The five [citations] are named one by one rather than summarised, because
+  // the first version of this sentence said they were all 0003's and three of
+  // them are: `docs/Zednotes.md`, `NOT_A_DOCUMENT` and `NEVER_NOT_A_DOCUMENT`,
+  // correct BECAUSE 0003 describes an experiment over files and symbols that do
+  // not exist. The fourth is 0005 citing `docs/plan-2026-09-governance-audit.md`
+  // and is a TRUE positive: that plan is archived on a branch and is not in this
+  // tree. The fifth is 0006 citing `POLICY_GLOBS`, which exists a few lines
+  // above here. `git grep -w POLICY_GLOBS` finds three tracked files, and
+  // `symbolElsewhere` below excludes all three by three different clauses of
+  // its own inline list: this file by `:!.claude`, ADR 0002 by `...spec` (a
+  // policy file cannot satisfy a citation, and once ADRs are policy files --
+  // the state being measured -- 0002 is one), and 0006 itself by `exceptRel`.
+  // Two are independently sufficient: dropping `:!.claude` removes this error,
+  // and so does un-excluding 0002. Neither total is written here -- the previous
+  // two versions of this sentence carried one, both went stale, and the second
+  // went stale in the same commit that removed the count from the sentence above
+  // it. Named this precisely because the
+  // sentence has been wrong twice, once as "all five are 0003's" and once as
+  // `SYMBOL_GREP_EXCLUDE`, which this file imports and never calls on this
+  // path. So three of the five are a check applied to the wrong kind of text,
+  // one is the check working, and one is three exclusions meeting a document
+  // that cites into all of them. The count grows with the directory, which is
+  // the other half of the argument: measuring ADRs makes the corpus pay per
+  // decision.
+  //
+  // THE RESIDUAL RISK, stated rather than left to be found: prose moved from a
+  // capped file into an ADR leaves the corpus and buys headroom in every cap at
+  // once, and nothing detects it. Only a reviewer reading the diff does. These
+  // are named ONE BY ONE and not by prefix, deliberately -- a `.md` is never
+  // excused by location here, so the NEXT ADR costs a line in this list, which
+  // is the same bar as raising a cap and is the point. It has already been paid
+  // once: this comment said "a sixth" while it was written against five, and
+  // 0006 landed on `main` before the branch did. A count in a comment goes
+  // stale on the next merge; the list is the count.
+  'docs/decisions/0001-session-policy-merge-grant.md',
+  'docs/decisions/0002-self-witnessed-proxy-assertion.md',
+  'docs/decisions/0003-enumerate-what-you-may-ignore.md',
+  'docs/decisions/0004-an-assertion-can-be-correct-and-never-run.md',
+  'docs/decisions/0005-no-codeowners-while-one-identity-authors-and-approves.md',
+  'docs/decisions/0006-policy-merge-grant-regranted-to-the-local-session.md',
+  'docs/decisions/0007-after-this-session-owner-approval-per-pull-request.md',
 ])
 
 // Widening the scan past `.md` brought in every `.txt` a policy file cites, and
@@ -723,99 +781,6 @@ function policyFiles() {
   return list.filter((f) => POLICY_GLOBS.some((re) => re.test(f))).sort()
 }
 
-// ---------------------------------------------------------------------------
-// Derivations. Every count a policy file is allowed to state is computed here
-// from the artefact itself, never carried. CLAUDE.md's own rule: "derive the
-// count, do not carry one".
-
-function jsonKeys(rel, key) {
-  const raw = read(rel)
-  if (!raw) return null
-  const d = JSON.parse(raw)
-  return key ? Object.keys(d[key]).length : Object.keys(d).length
-}
-
-function countMatches(rel, re) {
-  const raw = read(rel)
-  if (!raw) return null
-  return (raw.match(re) || []).length
-}
-
-function derivations() {
-  const d = {}
-  const b = read('tests/structure_budgets.json')
-  if (b) d.budgets = Object.keys(JSON.parse(b)).filter((k) => k !== 'recorded_at').length
-  d.scripts = jsonKeys('tests/closures.json', 'closures')
-  d.rules = git(['ls-files', '.cursor/rules/*.mdc']).trim().split('\n').filter(Boolean).length
-  d.briefs = git(['ls-files', 'tools/audit/briefs/D*.md']).trim().split('\n').filter(Boolean).length
-  d.jobs = countMatches('.github/workflows/tests.yml', /^ {2}[a-z0-9-]+:$/gm)
-  const card = read('tests/card_drift.mjs')
-  if (card) {
-    const m = card.match(/const STATES = \[[\s\S]*?\n\]/)
-    d.states = m ? (m[0].match(/\bname:/g) || []).length : null
-  }
-  d.services = countMatches('custom_components/heatpump_optimizer/services.yaml', /^[a-z_]+:/gm)
-  d.modules = git(['ls-files', 'custom_components/heatpump_optimizer/']).trim().split('\n').filter((f) => f.endsWith('.py')).length
-  d.goldens = git(['ls-files', 'tests/golden/*.json']).trim().split('\n').filter(Boolean).length
-  return d
-}
-
-// Number words the corpus actually uses, so "fourteen of sixteen" is checked.
-const WORDS = {
-  two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
-  eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16,
-  seventeen: 17, eighteen: 18, nineteen: 19, twenty: 20, 'twenty-one': 21,
-  'twenty-two': 22, 'twenty-three': 23, 'twenty-four': 24,
-}
-const NUM = `(\\d+|${Object.keys(WORDS).join('|')})`
-function toNum(tok) {
-  return /^\d+$/.test(tok) ? Number(tok) : WORDS[tok.toLowerCase()]
-}
-
-// Each rule: a regex whose first group is the stated count, and the derivation
-// key it must equal. Deliberately narrow -- a rule that over-fires gets the
-// linter bypassed, which is the failure mode this whole script exists to stop.
-const COUNT_RULES = [
-  { key: 'budgets', re: new RegExp(`${NUM}\\s+(?:budgets|metrics)\\b`, 'gi'), what: 'metrics in tests/structure_budgets.json' },
-  { key: 'scripts', re: new RegExp(`(?:of|all)\\s+${NUM}\\s+scripts?\\b`, 'gi'), what: 'selectable scripts in tests/closures.json' },
-  { key: 'rules', re: new RegExp(`${NUM}\\s+(?:\`?alwaysApply\`?\\s+)?policies\\b`, 'gi'), what: '.cursor/rules/*.mdc files' },
-  { key: 'states', re: new RegExp(`(?:STATES\\s*\\(${NUM}\\)|card's\\s+${NUM}\\s+states)\\b`, 'gi'), what: 'entries in card_drift.mjs STATES' },
-  { key: 'services', re: new RegExp(`${NUM}\\s+services\\b`, 'gi'), what: 'keys in services.yaml' },
-  { key: 'modules', re: new RegExp(`${NUM}\\s+modules\\b`, 'gi'), what: 'modules in custom_components/heatpump_optimizer/' },
-  { key: 'goldens', re: new RegExp(`${NUM}\\s+GOLDEN\\s+SCENARIOS\\b|${NUM}\\s+golden\\s+fixtures\\b`, 'g'), what: 'fixtures in tests/golden/' },
-  { key: 'briefs', re: new RegExp(`${NUM}\\s+dimension\\s+briefs\\b`, 'gi'), what: 'tools/audit/briefs/D*.md' },
-]
-
-// A count inside a quotation, an example, or a passage the file itself marks
-// as history is a record of what was once measured, not a live claim.
-const HISTORY_LINE = /^\s*(?:>|\|?\s*BORN:|EXAMPLE|#{1,6}\s|.*\b(?:once|used to|at the time|was then|historical|superseded)\b)/i
-
-function checkCounts(rel, text, derived) {
-  const out = []
-  const lines = text.split('\n')
-  lines.forEach((line, i) => {
-    if (HISTORY_LINE.test(line)) return
-    for (const rule of COUNT_RULES) {
-      const want = derived[rule.key]
-      if (want == null) continue
-      rule.re.lastIndex = 0
-      let m
-      while ((m = rule.re.exec(line))) {
-        const tok = m[1] || m[2]
-        if (!tok) continue
-        const got = toNum(tok)
-        if (got == null || got === want) continue
-        out.push({
-          severity: 'error',
-          check: 'counts',
-          where: `${rel}:${i + 1}`,
-          message: `states ${tok} for ${rule.what}; derived ${want}. Derive the count, do not carry one.`,
-        })
-      }
-    }
-  })
-  return out
-}
 
 // ---------------------------------------------------------------------------
 // no-gh. The seats run in a container with no `gh` binary; web-fragments.md
@@ -824,9 +789,32 @@ function checkCounts(rel, text, derived) {
 const GH_RE = /\bgh\s+(pr|issue|run|api|release|secret|workflow)\b/g
 const GH_ALLOWED = /^\.claude\/workflows\/web-fragments\.md$/
 
+// AND ONE COMMAND IS REFUSED EVERYWHERE, the mapping table included, because it
+// answers a different question from the one it is offered for. `gh pr checks`
+// prints the LATEST run per check, so a check that failed and then succeeded
+// reads as never-red -- #625 merged with a `pr-contract` failure at its head and
+// a body saying `## Red checks: none`, and the body was not lying about what its
+// author saw. A seat writing that section must read
+// `/repos/<owner>/<repo>/commits/<sha>/check-runs`, which returns every run.
+// The mapping table is not exempt: it is where a seat with no `gh` binary looks
+// up what to run, so an exemption there is the hole rather than an escape from
+// it.
+const GH_LOSSY = /\bgh\s+pr\s+checks\b/g
+
 function checkNoGh(rel, text) {
-  if (GH_ALLOWED.test(rel)) return []
   const out = []
+  text.split('\n').forEach((line, i) => {
+    GH_LOSSY.lastIndex = 0
+    if (GH_LOSSY.test(line)) {
+      out.push({
+        severity: 'error',
+        check: 'no-gh',
+        where: `${rel}:${i + 1}`,
+        message: 'names `gh pr checks`, which prints only the LATEST run per check, so a check that failed and then succeeded reads as never-red. Read /repos/<owner>/<repo>/commits/<sha>/check-runs, which returns every run.',
+      })
+    }
+  })
+  if (GH_ALLOWED.test(rel)) return out
   text.split('\n').forEach((line, i) => {
     GH_RE.lastIndex = 0
     let m
@@ -1308,6 +1296,52 @@ function mergedPRs(subjects) {
   return rows
 }
 
+// The record's SEARCH REGION, and the reason it is not the whole file.
+//
+// `#<pr>` tested against the whole plan plus the handover is satisfied by
+// any mention at all: a carried finding that says "found by #639's first
+// review" dispositions #639, and a standing rule that names a pull request as
+// an example dispositions it too. The check could not tell its subject from its
+// prose, so it passed on text written before the merge it was accepting.
+//
+// The anchor is the SECTION, not the line and not the link. A row format was
+// the obvious fix and is the wrong one: it would refuse the dispositions
+// this repository actually writes inside Delivery-status TABLE CELLS, and pin a
+// shape the next lane must copy rather than a property it must satisfy.
+// Measured before choosing, and the count moves with the window
+// rather than being carried: at `e4f34c7` all 42 merged pull requests in the
+// window were linked from `## Delivery status` and from nowhere else, and EVERY
+// ONE still is at every head this has been re-derived at. The size of the window
+// is deliberately not restated: it grows with every merge on `main`, and three
+// copies of it went stale inside this one branch before the number was dropped.
+// What is stable is the property, not the count.
+//
+// AND THE HANDOVER IS NOT DEMOTED, which has a consequence worth stating rather
+// than leaving to be discovered: it contributes ALL of itself, so a pull request
+// named anywhere in it -- a trap citation, a correction -- is dispositioned by
+// that mention. At `cc2efc9` #621 was, and would be again. That is the price of
+// `DISPOSITION_FILES` naming both files and the error message promising both;
+// narrowing the handover too is a policy change about what that document is
+// for, and belongs to the owner rather than to a linter.
+//
+// The plan contributes that one section; the handover contributes all of
+// itself, because the handover IS the record and has no other job. If the
+// section is missing the region is empty, and that is reported as its own
+// failure rather than as one error per merge in the window -- a renamed heading is a different
+// defect from an unrecorded merge and reads nothing like it.
+const RECORD_SECTION = 'Delivery status'
+
+function recordRegion(planText, handoverText) {
+  const out = []
+  let inside = false
+  for (const line of planText.split('\n')) {
+    const h2 = /^##\s+(.*?)\s*$/.exec(line)
+    if (h2) inside = h2[1] === RECORD_SECTION
+    else if (inside) out.push(line)
+  }
+  return { region: out.join('\n') + '\n' + handoverText, sectionFound: out.length > 0 }
+}
+
 // --record. Pure over its two inputs so the acceptance can hand it a fixture
 // history and a fixture disposition text without a git repository or a network.
 //
@@ -1327,6 +1361,45 @@ function checkRecord(prs, dispositionText) {
       check: 'record',
       where: DISPOSITION_FILES[0],
       message: `no disposition in the plan of record or the living handover for merged pull request #${pr} (${subject.slice(0, 90)}). A merge nobody recorded is a merge no later seat can resume from.`,
+    })
+  }
+  return out
+}
+
+// ---------------------------------------------------------------------------
+// table. A blank line between two rows of one markdown table ends the table
+// there, and every row after it renders as literal text -- pipes and all --
+// while the source still looks like a table to whoever is editing it. Found
+// when a row of the plan's Delivery-status table was left FIVE cells wide in a
+// three-column table and the reviewer went looking for why nobody had noticed:
+// the row was not in a table at all. Measured through GitHub's own /markdown
+// endpoint at 7d8d271, the section rendered as one table of 11 rows plus 104
+// literal pipe characters loose in paragraphs; with the blank line removed it
+// renders as one table of 37 rows and no loose pipes.
+//
+// This runs in the RECORD mode rather than over the corpus because the two
+// documents it reads are the record's own, and `docs/` is not a policy
+// directory -- no corpus check has ever opened either of them.
+//
+// The one legitimate shape it must not refuse is two tables in a row, where the
+// blank line is the separator between them. That is told apart by looking one
+// line further: a new table's header is followed by a delimiter row, and a
+// continuation row is not.
+function checkTableSplit(rel, text) {
+  const out = []
+  const lines = text.split('\n')
+  const isRow = (l) => typeof l === 'string' && l.startsWith('|')
+  const isDelim = (l) => typeof l === 'string' && /^\|[\s|:-]+\|\s*$/.test(l)
+  for (let i = 1; i < lines.length - 1; i++) {
+    if (lines[i].trim() !== '') continue
+    if (!isRow(lines[i - 1]) || !isRow(lines[i + 1])) continue
+    if (isDelim(lines[i + 2])) continue // a new table starts here, not a split
+    out.push({
+      severity: 'error',
+      check: 'table',
+      where: `${rel}:${i + 1}`,
+      message:
+        'a blank line sits between two rows of one table, which ends the table here. Every row below renders as literal text with its pipes visible, while the source still reads as a table. Delete the blank line, or give the second half its own header and delimiter row.',
     })
   }
   return out
@@ -1908,6 +1981,7 @@ const REQUIRED_ROT = {
     ],
   },
   counts: { count: 2 },
+  table: { count: 1, must: ['ends the table here'] },
   'no-gh': { count: 1 },
   duplicates: { count: 1 },
   budgets: {
@@ -1981,7 +2055,7 @@ CORPUS_CHECKS.push(checkIndex, checkDuplicates, checkBudgets, coverageOverTree, 
 // refuse; it cannot prove the check is not refusing everything. Each loop mode
 // is therefore also run against a fixture that is healthy in exactly the way the
 // rot fixture is rotten, and must produce nothing.
-const REQUIRED_SILENT = ['record', 'stats', 'sunset']
+const REQUIRED_SILENT = ['record', 'stats', 'sunset', 'table']
 
 function assertAcceptance(derived) {
   const dir = path.join(HERE, 'fixtures', 'policy-rot')
@@ -2060,6 +2134,9 @@ function assertAcceptance(derived) {
   }
   const rotten = checkRecord(loop.prs, loop.dispositionsRotten)
   found.push(...rotten)
+  found.push(...checkTableSplit('fixtures/policy-loop/dispositions-rotten.md', loop.dispositionsRotten))
+
+
   found.push(...statsFindings({ prs: loop.prs, fetched: loop.fetched, fetchError: null, classes: loop.classes }))
   found.push(...statsFindings({ prs: loop.prs, fetched: new Map(), fetchError: 'fixture: the API was not reachable', classes: loop.classes }))
   found.push(...checkSunset(loop.sunsetRot, { friction: loop.friction, fires: loop.fires, today: loop.today }))
@@ -2071,6 +2148,7 @@ function assertAcceptance(derived) {
   // nothing.
   const silent = {
     record: checkRecord(loop.prs, loop.dispositionsHealthy),
+    table: checkTableSplit('fixtures/policy-loop/dispositions-healthy.md', loop.dispositionsHealthy),
     stats: statsFindings({ prs: loop.healthyPrs, fetched: loop.fetched, fetchError: null, classes: loop.classes }),
     sunset: checkSunset(loop.sunsetHealthy, { friction: loop.friction, fires: loop.fires, today: loop.today }),
   }
@@ -2107,6 +2185,59 @@ function assertAcceptance(derived) {
   // whichever way the glob is later widened for digits.
   const rotPath = '.cursor/rules/Probe_9.mdc'
   const okPath = '.cursor/rules/ci-autofix.mdc'
+  // AND THE REGION THE RECORD READS, which had no pin at all: `recordRegion`
+  // could be emptied to `return { region: everything, sectionFound: out.length > 0 }` and
+  // every count above would still hold, because the fixtures hand `checkRecord`
+  // its text directly. Assertions on synthetic input rather than on the
+  // live plan, so a section renamed in the tree cannot make them pass:
+  // a mention inside the section counts, the same mention outside it does not,
+  // and a plan with no such heading reports the absence rather than an empty
+  // region. The third is the one that keeps this fail-closed: an empty region
+  // would otherwise read as "every merge undispositioned", which is a true
+  // statement about the wrong thing.
+  pins += 7
+  const regIn = recordRegion(`## ${RECORD_SECTION}\n- [#9101](x/pull/9101) merged\n`, '')
+  const regOut = recordRegion(`## Carried findings\n- found by #9101 in passing\n`, '')
+  const regNone = recordRegion('# plan\nno second-level heading at all\n', '')
+  // The fourth fixture is TWO sections, and it is the one the first three could
+  // not stand in for: each of those is single-section, so a region that OPENS
+  // correctly and never CLOSES satisfies all three. One token does that --
+  // `if (h2) inside = …` becoming `if (h2 && …) inside = true` -- and the
+  // acceptance stayed green under it, with the whole plan back in the region.
+  // Found by #658's round 1, on the pin rather than on the code.
+  const regBoth = recordRegion(
+    `## ${RECORD_SECTION}\n- [#9101](x/pull/9101) merged\n\n## Carried findings\n- found by #9102 in passing\n`, '')
+  const regFail = []
+  if (checkRecord([{ pr: '9101', subject: 's' }], regIn.region).length !== 0) regFail.push('a disposition INSIDE the section did not count')
+  if (checkRecord([{ pr: '9101', subject: 's' }], regOut.region).length !== 1) regFail.push('a mention OUTSIDE the section counted as a disposition')
+  if (regNone.sectionFound) regFail.push('a plan with no section heading reported one')
+  if (checkRecord([{ pr: '9102', subject: 's' }], regBoth.region).length !== 1) regFail.push('the region did not CLOSE at the next section heading')
+  if (checkRecord([{ pr: '9101', subject: 's' }], regBoth.region).length !== 0) regFail.push('the region did not cover its own section when another follows')
+  // AND THE HANDOVER HALF, which the assertions above did not reach: dropping
+  // `handoverText` from the returned region passed every one of them and left
+  // the live `--record` at 0 undispositioned, so the design property this
+  // change states -- the handover contributes ALL of itself, which is why it is
+  // not demoted -- was unpinned prose. #658's round 2 drove ten mutations and
+  // this is the one that survived and mattered.
+  // TWO lines, because one holds only "the handover contributes something":
+  // `handoverText.split('\n')[0]` passed a one-line fixture. #658's round 4
+  // drove the strengthened form with a null control and it costs no pin.
+  const regHand = recordRegion('## other\n', 'a first line\n- [#9103](x/pull/9103) merged in the handover\n')
+  if (checkRecord([{ pr: '9103', subject: 's' }], regHand.region).length !== 0) regFail.push('a disposition in the handover did not count')
+  // AND A THIRD-LEVEL HEADING MUST NOT CLOSE THE REGION. Widening the match to
+  // `^#{1,3}` is a plausible edit and survived every assertion above it, while
+  // taking most of the window undispositioned: the plan keeps a
+  // `### Governance queue` subsection INSIDE `## Delivery status`, and this
+  // pull request writes its own row into it. Reported by #658's round 3 as the
+  // one survivor of ten that a reader might actually write.
+  const regSub = recordRegion(
+    `## ${RECORD_SECTION}\n### a subsection\n- [#9104](x/pull/9104) merged\n`, '')
+  if (checkRecord([{ pr: '9104', subject: 's' }], regSub.region).length !== 0) regFail.push('a third-level heading inside the section closed the region')
+  if (regFail.length) {
+    console.log(`\nFIXTURE VACUOUS: recordRegion ${JSON.stringify(regFail)}. The record's region is what makes a mention a disposition; unpinned, it can be widened back to the whole file with every other count unchanged.`)
+    return 1
+  }
+
   pins += 1
   const wiredNames = CORPUS_CHECKS.map((f) => f.name || '(anonymous)').join(',')
   if (wiredNames !== CORPUS_CHECK_NAMES.join(',')) {
@@ -3058,13 +3189,24 @@ function requireSince(since, mode) {
 
 function cmdRecordDispositions(since) {
   const prs = mergedPRs(mergedSubjects(since))
-  const text = DISPOSITION_FILES.map((f) => read(f) ?? '').join('\n')
-  const all = checkRecord(prs, text)
+  const { region, sectionFound } = recordRegion(read(DISPOSITION_FILES[0]) ?? '', read(DISPOSITION_FILES[1]) ?? '')
+  const all = sectionFound
+    ? checkRecord(prs, region)
+    : [{ severity: 'error', check: 'record', where: DISPOSITION_FILES[0],
+         message: `no \`## ${RECORD_SECTION}\` section, so the record has no region to read and every merge in the window would report as undispositioned. Restore the heading, or change RECORD_SECTION with it.` }]
   const applied = applyKnownBad(all, RECORD_KEY)
+  // Counted and printed apart from the record findings: `all.length` is the
+  // undispositioned-merge count and folding a different class into it would
+  // make that sentence false.
+  const split = DISPOSITION_FILES.flatMap((rel) => {
+    const t = read(rel)
+    return t ? checkTableSplit(rel, t) : []
+  })
   console.log(`RECORD: ${prs.length} merged pull request(s) in ${since}..${mainRef()}; ${all.length} without a disposition in ${DISPOSITION_FILES.join(' or ')}`)
-  printFindings(applied.live)
+  console.log(`TABLES: ${split.length} split table(s) across ${DISPOSITION_FILES.length} disposition document(s)`)
+  printFindings([...applied.live, ...split])
   console.log(`\nKNOWN-BAD: ${applied.suppressed} of ${applied.total} recorded record-class defect(s) still present, in ${applied.occurrences} recorded occurrence(s)`)
-  const errors = applied.live.filter((f) => f.severity === 'error').length
+  const errors = [...applied.live, ...split].filter((f) => f.severity === 'error').length
   console.log(`\nTOTAL: ${errors} error(s) over ${prs.length} merged pull request(s)`)
   process.exit(errors > 0 ? 1 : 0)
 }
@@ -3154,7 +3296,7 @@ function main() {
   if (has('--record-known-bad')) {
     // A reseed may also re-measure the record class, but only when it was given
     // a window: `--record-known-bad --since <ref>`.
-    if (since) findings.push(...checkRecord(mergedPRs(mergedSubjects(since)), DISPOSITION_FILES.map((f) => read(f) ?? '').join('\n')))
+    if (since) findings.push(...checkRecord(mergedPRs(mergedSubjects(since)), recordRegion(read(DISPOSITION_FILES[0]) ?? '', read(DISPOSITION_FILES[1]) ?? '').region))
     return cmdRecord(findings, { measuredRecord: !!since }), process.exit(0)
   }
 

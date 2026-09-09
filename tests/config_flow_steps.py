@@ -19,10 +19,12 @@ firing, the accumulated ``_data`` losing a page's answers on the way to
 
 This driver walks both paths through the flow, questionnaire and expert,
 
-    user -> temperature -> building (menu)
-      -> building_describe -> building_extras -> dhw -> weather_sensitivity
-      -> thermal -> zones -> dhw -> weather_sensitivity
-    -> create_entry
+    user -> user_sensors -> finish_setup (menu)
+      -> finish_now -> setup_overview -> create_entry
+      -> temperature -> building (menu)
+        -> building_describe -> building_extras -> dhw -> weather_sensitivity
+        -> thermal -> zones -> dhw -> weather_sensitivity
+      -> setup_overview -> create_entry
 
 asserting at every hop the next step_id and the data accumulated so far,
 then probes each step's INVALID inputs through the validation code that
@@ -107,9 +109,14 @@ from harness import FakeEntry, FakeHass, Results  # noqa: E402
 # The capture itself, imported rather than re-implemented: a fingerprint
 # copied into this file would pin this file's opinion of the golden, not the
 # golden (#516, and ``tests/README.md`` on tests that re-implement).
-from golden import _presented_fields, schema_fingerprint  # noqa: E402
+from golden import (  # noqa: E402
+    _nested_schema,
+    _presented_fields,
+    nest_flat,
+    schema_fingerprint,
+)
 
-from heatpump_optimizer import config_flow, const  # noqa: E402
+from heatpump_optimizer import config_flow, const, topology  # noqa: E402
 from heatpump_optimizer.presets import (  # noqa: E402
     EMITTER_FLOOR,
     EMITTER_RADIATORS,
@@ -466,6 +473,8 @@ class Ledger:
         for step in (
             "user",
             "user_sensors",
+            "finish_setup",
+            "finish_now",
             "temperature",
             "building",
             "building_describe",
@@ -474,6 +483,7 @@ class Ledger:
             "zones",
             "dhw",
             "weather_sensitivity",
+            "setup_overview",
             "reauth_confirm",
         ):
             row = steps.get(step)
@@ -541,8 +551,33 @@ def check(step, kind, name, condition, detail=""):
 def shows(result, step_id):
     """The result is a form for this step (or a menu, for menu steps)."""
     if result.get("type") == "menu":
-        return step_id == "building"
+        return result.get("step_id") == step_id
     return result.get("type") == "form" and result.get("step_id") == step_id
+
+
+FINISH_SETUP_OPTIONS = ("temperature", "finish_now")
+
+
+def offers_finish_setup(result):
+    """Second-screen submit opened the continue-or-finish menu (UX E2)."""
+    return (
+        shows_menu(result, "finish_setup")
+        and tuple(result.get("menu_options", {})) == FINISH_SETUP_OPTIONS
+    )
+
+
+def overview_summary(flow):
+    """Production overview text for this flow's collected answers (UX E3)."""
+    return topology.render_text_summary(topology.describe_setup(flow._data))
+
+
+def shows_config_overview(result, flow):
+    """The result is the config-flow setup overview of this flow's data."""
+    return (
+        shows(result, "setup_overview")
+        and result.get("description_placeholders", {}).get("setup_summary")
+        == overview_summary(flow)
+    )
 
 
 def shows_menu(result, step_id):
@@ -678,8 +713,8 @@ async def duplicate_and_null_control():
     check(
         "user",
         "happy",
-        "a valid first screen proceeds to the temperature step",
-        shows(result, "temperature"),
+        "a valid first screen offers finish-setup-now",
+        offers_finish_setup(result),
         str(result)[:120],
     )
     check(
@@ -716,7 +751,7 @@ async def duplicate_and_null_control():
         "user",
         "happy",
         "a second heat pump on the same account proceeds (null control)",
-        shows(distinct, "temperature"),
+        offers_finish_setup(distinct),
         str(distinct)[:120],
     )
 
@@ -734,12 +769,20 @@ async def walk_questionnaire():
 
     result = await submit_first_screen(flow, FIRST_SCREEN)
     check(
-        "temperature",
+        "finish_setup",
         "happy",
-        "the accepted first screen lands on temperature",
-        shows(result, "temperature")
+        "the accepted first screen offers finish-setup-now",
+        offers_finish_setup(result)
         and flow._data.get(const.CONF_TIBBER_TOKEN) == "tok-a"
         and flow._data.get(const.CONF_WEATHER_ENTITY) == "weather.home",
+        str(result.get("step_id")),
+    )
+    result = await flow.async_step_temperature(None)
+    check(
+        "temperature",
+        "happy",
+        "continuing setup lands on temperature",
+        shows(result, "temperature"),
         str(result.get("step_id")),
     )
 
@@ -882,6 +925,31 @@ async def walk_questionnaire():
     )
 
     result = await submit(flow, "weather_sensitivity", WEATHER_ANSWERS)
+    check(
+        "weather_sensitivity",
+        "happy",
+        "the last questionnaire page shows the setup overview",
+        shows_config_overview(result, flow),
+        f"{result.get('type')} {result.get('step_id')!r}",
+    )
+    if not hasattr(flow, "async_step_setup_overview"):
+        check(
+            "setup_overview",
+            "happy",
+            "confirming the questionnaire overview creates the entry",
+            False,
+            "async_step_setup_overview missing",
+        )
+        check(
+            "setup_overview",
+            "happy",
+            "the entry carries one answer from every page it walked",
+            False,
+            "async_step_setup_overview missing",
+        )
+        config_flow.async_get_clientsession = real
+        return
+    result = await submit(flow, "setup_overview", {})
     entry_data = result.get("data", {})
     from_every_page = [
         key
@@ -897,21 +965,111 @@ async def walk_questionnaire():
         if key not in entry_data
     ]
     check(
-        "weather_sensitivity",
+        "setup_overview",
         "happy",
-        "the last page creates the entry under the chosen name",
+        "confirming the questionnaire overview creates the entry",
         result.get("type") == "create_entry"
         and result.get("title") == "Heat Pump Optimizer",
         f"{result.get('type')} {result.get('title')!r}",
     )
     check(
-        "weather_sensitivity",
+        "setup_overview",
         "happy",
         "the entry carries one answer from every page it walked",
         result.get("type") == "create_entry" and not from_every_page,
         f"missing {from_every_page}",
     )
 
+    config_flow.async_get_clientsession = real
+
+
+# ---------------------------------------------------------------------------
+# UX E2 + E3: finish-setup-now after the second screen, then the overview.
+# ---------------------------------------------------------------------------
+async def walk_finish_now():
+    R.section("E2/E3: finish-setup-now shows the overview, then creates")
+    real = install_session(config_flow, FakeSession([TIBBER_VIEWER_OK]))
+    flow = fresh_flow()
+    result = await submit_first_screen(flow, FIRST_SCREEN)
+    check(
+        "finish_setup",
+        "happy",
+        "the second screen opens the finish-setup menu",
+        offers_finish_setup(result),
+        str(result)[:160],
+    )
+    finish = getattr(flow, "async_step_finish_now", None)
+    if finish is None:
+        check(
+            "finish_now",
+            "happy",
+            "finish-setup-now shows the setup overview",
+            False,
+            "async_step_finish_now missing",
+        )
+        check(
+            "setup_overview",
+            "happy",
+            "confirming the early overview creates the entry",
+            False,
+            "async_step_finish_now missing",
+        )
+        check(
+            "setup_overview",
+            "happy",
+            "the early entry carries the first two screens and no later page",
+            False,
+            "async_step_finish_now missing",
+        )
+        config_flow.async_get_clientsession = real
+        return
+    result = await finish(None)
+    check(
+        "finish_now",
+        "happy",
+        "finish-setup-now shows the setup overview",
+        shows_config_overview(result, flow),
+        f"{result.get('type')} {result.get('step_id')!r}",
+    )
+    overview = getattr(flow, "async_step_setup_overview", None)
+    if overview is None:
+        check(
+            "setup_overview",
+            "happy",
+            "confirming the early overview creates the entry",
+            False,
+            "async_step_setup_overview missing",
+        )
+        check(
+            "setup_overview",
+            "happy",
+            "the early entry carries the first two screens and no later page",
+            False,
+            "async_step_setup_overview missing",
+        )
+        config_flow.async_get_clientsession = real
+        return
+    result = await submit(flow, "setup_overview", {})
+    entry_data = result.get("data", {})
+    check(
+        "setup_overview",
+        "happy",
+        "confirming the early overview creates the entry",
+        result.get("type") == "create_entry"
+        and result.get("title") == "Heat Pump Optimizer",
+        f"{result.get('type')} {result.get('title')!r}",
+    )
+    check(
+        "setup_overview",
+        "happy",
+        "the early entry carries the first two screens and no later page",
+        result.get("type") == "create_entry"
+        and entry_data.get(const.CONF_TIBBER_TOKEN) == "tok-a"
+        and entry_data.get(const.CONF_WEATHER_ENTITY) == "weather.home"
+        and const.CONF_TARGET_TEMP not in entry_data
+        and const.CONF_DHW_TANK_VOLUME not in entry_data,
+        f"keys {sorted(entry_data)}",
+    )
     config_flow.async_get_clientsession = real
 
 
@@ -1002,7 +1160,25 @@ async def walk_expert():
     check(
         "weather_sensitivity",
         "happy",
-        "the expert path creates its entry with the thermal values",
+        "the expert path shows the setup overview",
+        shows_config_overview(result, flow),
+        f"{result.get('type')} {result.get('step_id')!r}",
+    )
+    if not hasattr(flow, "async_step_setup_overview"):
+        check(
+            "setup_overview",
+            "happy",
+            "confirming the expert overview creates the entry with the thermal values",
+            False,
+            "async_step_setup_overview missing",
+        )
+        config_flow.async_get_clientsession = real
+        return
+    result = await submit(flow, "setup_overview", {})
+    check(
+        "setup_overview",
+        "happy",
+        "confirming the expert overview creates the entry with the thermal values",
         result.get("type") == "create_entry"
         and result.get("data", {}).get(const.CONF_HOUSE_THERMAL_MASS) == 10.0
         and result.get("data", {}).get(const.CONF_INTER_ZONE_TRANSFER) == 0.1,
@@ -1185,6 +1361,8 @@ async def options_entry_data():
         await submit(flow, "building_extras", EXTRAS_ANSWERS)
         await submit(flow, "dhw", DHW_ANSWERS)
         result = await submit(flow, "weather_sensitivity", WEATHER_ANSWERS)
+        if result.get("type") != "create_entry":
+            result = await submit(flow, "setup_overview", {})
     finally:
         config_flow.async_get_clientsession = real
     assert result.get("type") == "create_entry", str(result)[:200]
@@ -1941,7 +2119,7 @@ def entity_field_defaults(result):
     """
     schema = result.get("data_schema")
     out = {}
-    for key, value in (schema.schema.items() if schema else []):
+    for key, value in _presented_fields(schema):
         if type(value).__name__ != "EntitySelector":
             continue
         name = str(getattr(key, "schema", key))
@@ -2042,7 +2220,9 @@ async def section_nesting_is_captured():
     )
 
     flow, _entry, _ = fresh_options()
-    flat = (await flow.async_step_comfort(None)).get("data_schema")
+    # Comfort is grouped in this branch. The synthetic wrap below needs a
+    # still-flat page so the inner mapping is fields, not sections.
+    flat = (await flow.async_step_thermal_model(None)).get("data_schema")
     inner = dict(flat.schema)
 
     def grouped(fields, collapsed=True):
@@ -2141,7 +2321,7 @@ async def section_nesting_is_captured():
             set(m) == {"selector", "config", "default", "required"}
             for m in flat_markers.values()
         ),
-        f"{len(flat_markers)} marker(s) on the ungrouped comfort page",
+        f"{len(flat_markers)} marker(s) on the ungrouped thermal_model page",
     )
 
 
@@ -2415,7 +2595,7 @@ def schema_default(result, key):
     be distinguishable from a stored ``None``.
     """
     schema = result.get("data_schema")
-    for marker in schema.schema if schema else {}:
+    for marker, _value in _presented_fields(schema):
         if str(getattr(marker, "schema", marker)) != key:
             continue
         default = getattr(marker, "default", None)
@@ -2530,15 +2710,15 @@ async def options_cross_page_save_scope():
         form = await getattr(flow, f"async_step_{page}")(None)
         if form.get("type") != "form":
             continue
-        markers = list(form["data_schema"].schema if form.get("data_schema") else {})
-        offered = {str(getattr(marker, "schema", marker)) for marker in markers}
+        presented = list(_presented_fields(form.get("data_schema")))
+        offered = {str(getattr(marker, "schema", marker)) for marker, _ in presented}
         unseeded = {
             key: entry.options.get(key)
             for key, value in CROSS_PAGE_SEED.items()
             if entry.options.get(key) != value
         }
         answers = {}
-        for marker in markers:
+        for marker, _value in presented:
             default = getattr(marker, "default", None)
             if not callable(default):
                 continue
@@ -2743,10 +2923,10 @@ async def registry_walk_recurses():
 
     ``section()`` nests the form without renaming the option keys, so a
     one-level walk over a grouped page returns nothing and every assertion
-    built on it passes vacuously. Nothing in this branch groups a page -- the
-    assertion layer still holds one-level walks that would go quiet -- but the
-    checks added here are written recursive, and a recursion nobody has seen
-    fail is a claim rather than a mechanism.
+    built on it passes vacuously. The wide pages are grouped in this branch;
+    this check still uses a synthetic wrap of the ungrouped pump page so the
+    recursion is proved against a known four-key set, not only against the
+    production grouping.
     """
     R.section("options: the registry walk reaches fields inside a section()")
     flow = bare_options(REGISTRY_SEED)
@@ -2814,6 +2994,90 @@ async def registry_walk_recurses():
         "and an ungrouped page reaches exactly what one level reaches",
         set(flat_fields) == one_level and bool(one_level),
         f"recursive {sorted(flat_fields)}, one level {sorted(one_level)}",
+    )
+
+
+WIDE_PAGES = (
+    "building",
+    "hot_water_tank",
+    "entities",
+    "building_preset",
+    "comfort",
+    "tuning",
+    "learning_features",
+    "hot_water",
+    "entities_metering",
+    "thermal_model_zones",
+)
+
+
+async def wide_pages_grouped():
+    """#516: the ten wide pages render ``section()`` blocks, and a nested
+    submit stores flat option keys.
+    """
+    R.section("options: the ten wide pages are sectioned (#516)")
+    missing = []
+    for page in WIDE_PAGES:
+        flow = bare_options(REGISTRY_SEED)
+        form = await getattr(flow, f"async_step_{page}")(None)
+        schema = form.get("data_schema")
+        sections = [
+            str(getattr(key, "schema", key))
+            for key, value in (schema.schema.items() if schema else [])
+            if _nested_schema(value) is not None
+        ]
+        if not sections:
+            missing.append(page)
+    check(
+        "e4",
+        "happy",
+        "each of the ten wide pages renders at least one section()",
+        not missing,
+        f"ungrouped: {missing}",
+    )
+
+    flow = bare_options()
+    form = await flow.async_step_comfort(None)
+    schema = form["data_schema"]
+    nested = nest_flat(
+        schema,
+        {
+            const.CONF_TARGET_TEMP: 21.5,
+            const.CONF_AFTER_SAVE: const.AFTER_SAVE_CLOSE,
+        },
+    )
+    result = await flow.async_step_comfort(nested)
+    stored = result.get("data") or {}
+    check(
+        "e4",
+        "happy",
+        "a nested comfort submit stores the option key, not the section name",
+        stored.get(const.CONF_TARGET_TEMP) == 21.5 and "band" not in stored,
+        f"stored keys={sorted(stored)}",
+    )
+
+    # Production widening must recurse: a stored out-of-range number inside
+    # a section is the same un-submittable page #304 fixed at one level.
+    bounded = config_flow.selector.NumberSelector(
+        config_flow.selector.NumberSelectorConfig(
+            min=0, max=10, step=1, mode=config_flow.selector.NumberSelectorMode.BOX
+        )
+    )
+    grouped = vol.Schema(
+        {
+            "band": section(
+                vol.Schema({vol.Optional("n", default=99): bounded}),
+                {"collapsed": True},
+            )
+        }
+    )
+    _fitted, widened = config_flow._fit_stored_values(grouped)
+    check(
+        "e4",
+        "happy",
+        "widening reaches a number nested inside a section()",
+        widened == ["n"],
+        f"widened={widened}",
     )
 
 
@@ -3061,7 +3325,9 @@ def schema_keys(result):
     schema = result.get("data_schema")
     if schema is None:
         return set()
-    return {str(getattr(key, "schema", key)) for key in schema.schema}
+    return {
+        str(getattr(key, "schema", key)) for key, _value in _presented_fields(schema)
+    }
 
 
 def rc_suggested(result):
@@ -3073,7 +3339,7 @@ def rc_suggested(result):
         str(getattr(key, "schema", key)): (getattr(key, "description", None) or {}).get(
             "suggested_value"
         )
-        for key in schema.schema
+        for key, _value in _presented_fields(schema)
     }
 
 
@@ -3495,6 +3761,78 @@ def number_convention_failures_from_source(source):
     return failures
 
 
+def _token_marker(fingerprint: dict) -> dict:
+    """The ``tibber_token`` marker inside a ``schema_fingerprint``.
+
+    Rule: the key itself, else recurse into each marker's ``fields`` (a
+    ``section()``). Config dicts are not walked. Missing → ``{}``.
+    """
+    if "tibber_token" in fingerprint:
+        return fingerprint["tibber_token"]
+    for marker in fingerprint.values():
+        inner = marker.get("fields") if isinstance(marker, dict) else None
+        if inner:
+            found = _token_marker(inner)
+            if found:
+                return found
+    return {}
+
+
+def _token_mask(schema) -> tuple:
+    """``(selector, config.type)`` for the rendered token field.
+
+    Instrument: ``schema_fingerprint`` (same walker as the config-flow
+    golden). ``config.type`` is ``repr``'d by that walker, so a password
+    TextSelector is ``("TextSelector", "'password'")``. A bare ``str`` is
+    ``("type", None)``.
+    """
+    marker = _token_marker(schema_fingerprint(schema))
+    config = marker.get("config") or {}
+    return (marker.get("selector"), config.get("type"))
+
+
+async def token_surfaces_agree():
+    """E1: three surfaces, one secret; disagreement is the defect."""
+    R.section("E1: setup, reauth and options share one token mask")
+    user = await fresh_flow().async_step_user(None)
+
+    hass = FakeHass()
+    entry = FakeEntry(
+        data={
+            const.CONF_TIBBER_TOKEN: "x",
+            const.CONF_WEATHER_ENTITY: "weather.home",
+        }
+    )
+    hass.config_entries.entries.append(entry)
+    reauth_flow = config_flow.HeatPumpOptimizerConfigFlow()
+    reauth_flow.hass = hass
+    reauth_flow.context = {"entry_id": entry.entry_id}
+    reauth = await reauth_flow.async_step_reauth(entry.data)
+
+    opt_flow = config_flow.HeatPumpOptimizerConfigFlow.async_get_options_flow(entry)
+    opt_flow.hass = hass
+    options = await opt_flow.async_step_entities(None)
+
+    masks = {
+        "user": _token_mask(user.get("data_schema")),
+        "reauth_confirm": _token_mask(reauth.get("data_schema")),
+        "entities": _token_mask(options.get("data_schema")),
+    }
+    password = ("TextSelector", repr(selector.TextSelectorType.PASSWORD))
+    check(
+        "token_surfaces",
+        "happy",
+        "the three tibber_token surfaces agree on the same mask",
+        len(set(masks.values())) == 1,
+    )
+    check(
+        "token_surfaces",
+        "happy",
+        "that shared mask is the password TextSelector",
+        set(masks.values()) == {password},
+    )
+
+
 def pin_number_selector_convention():
     """#590: the `_number` convention, now a check rather than a habit."""
     R.section("#590 NumberSelector / advanced convention")
@@ -3559,9 +3897,11 @@ async def main() -> int:
     logging.getLogger().addHandler(sink)
 
     pin_number_selector_convention()
+    await token_surfaces_agree()
     await seed_base_entry()
     await duplicate_and_null_control()
     await user_error_branches()
+    await walk_finish_now()
     await walk_questionnaire()
     await walk_expert()
     await temperature_error_branches()
@@ -3576,6 +3916,7 @@ async def main() -> int:
     await options_cross_page_save_scope()
     await registry_drives_every_page()
     await registry_walk_recurses()
+    await wide_pages_grouped()
     await widening_refusals()
     await menu_label_translations()
     await reconfigure_flow()

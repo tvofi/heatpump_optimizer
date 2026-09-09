@@ -1,6 +1,6 @@
 # Handover — the open-issues programme
 
-updated-for: d08a56a
+updated-for: a9d117c
 
 This is the only handover. There is no dated series: a second
 `docs/handover-*.md` is refused by `tests/entities.py`, and the policy it
@@ -118,6 +118,12 @@ stage, `after` edges and carried findings are in
 
 ## Traps that cost a session
 
+**A trap that has acquired a mechanical detector becomes a one-line pointer to
+it.** Promotion, not cutting. The detector must fire when the trap would bite,
+in that trap's mode — reporting where a reader is asked to look, refusing where
+a wrong answer would pass unattended — and each graduation owes a mutation proof
+in its own pull request.
+
 1. **A killed agent never writes its own `state at stop:` comment.** On every
    resume the orchestrator walks the session's branches and open pull requests
    and posts the notes the dead agents owed.
@@ -139,20 +145,15 @@ stage, `after` edges and carried findings are in
 7. **A branch can be stale against main invisibly in its own diff**: a move
    reverting a fix that landed inside the moved lines, or a stale claim or
    budget table. Only a three-dot comparison against current main catches it.
-8. **One CI runner is not the fleet.** #387 exists because a property was
-   measured on a single runner and generalised, and the reviewer had asked
-   exactly the right question.
-9. **The machinery a handover depends on is code nobody ran.** `.claude/` is on
-   `tests/closure.py`'s `INERT` list by design, so orchestration scripts ship
-   untested unless something pins them by hand. `node
-   .claude/workflows/check-wave-script.mjs` pins the resume control flow;
-   **re-run it after any edit to `web-fix-wave.js`**, because no CI job will.
+8. **One CI runner is not the fleet** (#387). Graduated:
+   `policy_lint_envmatrix.mjs`, five declared shapes and thirteen named rows.
+9. **The machinery a handover depends on is code nobody ran** — `.claude/` is
+   `INERT`. Graduated: `check-wave-script.mjs` and `policy_lint --hooks`.
 10. **A closing keyword in a commit message links an issue just as a pull-request
     body does.** #503 acquired a false link to #457 that way and had to be
     corrected before it could merge.
-11. **Check `git rev-parse --is-shallow-repository` before believing a
-    divergence figure.** A shallow clone silently turns every "commits ahead"
-    count into fiction; four such figures once reached a handover.
+11. **A shallow clone turns "commits ahead" into fiction**; four such figures
+    once reached a handover. Graduated: `.claude/hooks/session-start.sh`.
 12. **A fix gets verified against the instance that was demonstrated, not the
     property that was stated.** The demonstration displaces the specification,
     the verification is built from the demonstrated instance's *form*, and any
@@ -208,13 +209,9 @@ stage, `after` edges and carried findings are in
 16. **Backticks inside a double-quoted shell string are command substitution.**
     Three review comments were posted with their SHAs silently missing. Write
     the body to a file with a quoted heredoc and pass `-F body=@file`.
-19. **A one-sided size cap and a growing document collide across branches, and
-    nothing branch-scoped holds both ends.** #608 capped `docs/HANDOVER.md` at
-    its then length; #607, cut from the same commit and already in review, added
-    43 lines and merged 56 minutes later. Both prefixes are INERT, so the
-    `Governance` workflow alone measures this and it was green on each branch
-    alone — `main` was red on `policy-docs` from `5018e31` until a record paid
-    the lines back. Trap 17's shape on a budget rather than a citation.
+19. **A one-sided cap and a growing document collide across branches** — #608
+    capped this file, #607 added 43 lines 56 minutes later, `main` went red from
+    `5018e31`. Graduated: `policy-docs`'s `[budgets]`. Trap 17 on a budget.
 20. **A comment bumps a pull request's `updated_at`, so it is not a body-edit
     clock.** Read as one, it had me date a body edit to what was in fact a
     reviewer's own comment timestamp. The clock is the `Governance` run list:

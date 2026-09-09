@@ -57,6 +57,12 @@ from heatpump_optimizer import (
     sensor,
     topology,
 )
+from golden import (  # noqa: E402
+    _nested_schema,
+    _presented_fields,
+    empty_section_payload,
+    nest_flat,
+)
 
 R = Results("Entities and platforms")
 
@@ -3173,7 +3179,7 @@ def _defaults_survive_their_own_selectors(schema) -> tuple[bool, str]:
     the defaults, and nothing else.
     """
     try:
-        schema({})
+        schema(empty_section_payload(schema))
     except Exception as err:  # noqa: BLE001 - any rejection is a failure
         return False, f"{type(err).__name__}: {err}"
     return True, ""
@@ -3181,9 +3187,19 @@ def _defaults_survive_their_own_selectors(schema) -> tuple[bool, str]:
 
 def _entity_selectors(schema):
     """Yield ``(field, selector)`` for every entity picker on a page."""
-    for key, value in schema.schema.items():
+    for key, value in _presented_fields(schema):
         if isinstance(value, config_flow.selector.EntitySelector):
             yield getattr(key, "schema", key), value
+
+
+def _schema_keys(schema):
+    """Option-key names a page presents, section nesting included."""
+    return {str(getattr(key, "schema", key)) for key, _ in _presented_fields(schema)}
+
+
+def _schema_defaults(schema):
+    """``schema({})`` for a page that may contain ``section()`` blocks."""
+    return schema(empty_section_payload(schema))
 
 
 missing = [
@@ -3273,7 +3289,7 @@ _cross_page = {
 _flow = options(FakeEntry(options={const.CONF_TIBBER_TOKEN: "t", **_cross_page}))
 _flow.hass = FakeHass()
 _form = asyncio.run(_flow.async_step_entities(None))
-_untouched = _form["data_schema"]({})  # defaults only, as a real untouched save
+_untouched = _schema_defaults(_form["data_schema"])  # defaults only, as a real untouched save
 _saved = asyncio.run(
     _flow.async_step_entities({**_untouched, const.CONF_AFTER_SAVE: const.AFTER_SAVE_CLOSE})
 )["data"]
@@ -3402,7 +3418,7 @@ _bare = options(FakeEntry(options={const.CONF_TIBBER_TOKEN: "t"}))
 _bare.hass = FakeHass()
 _bare_result = asyncio.run(
     _bare.async_step_entities(
-        asyncio.run(_bare.async_step_entities(None))["data_schema"]({})
+        _schema_defaults(asyncio.run(_bare.async_step_entities(None))["data_schema"])
         | {const.CONF_AFTER_SAVE: const.AFTER_SAVE_CLOSE}
     )
 )
@@ -3677,7 +3693,11 @@ for _step in options._MENU_LABELS:
     if _sschema is None:
         _odd_outcomes.append(f"{_step}: rendered without a schema")
         continue
-    _sresult = asyncio.run(getattr(_sf, f"async_step_{_step}")(_sschema({})))
+    _sresult = asyncio.run(
+        getattr(_sf, f"async_step_{_step}")(
+            _sschema(empty_section_payload(_sschema))
+        )
+    )
     _kind = _sresult.get("type")
     if _kind == "create_entry":
         # The explicit close choice (#100). Untouched submissions default
@@ -3814,9 +3834,7 @@ R.check(
 # plumbing, not a detector setting, so the option lives beside the wood tank it
 # depends on -- since v4.0.0 that is the combined heating-system page. The
 # wood-furnace toggle (#463) hides the coil until the furnace is on.
-_building_fields = {
-    str(getattr(k, "schema", k)) for k in _pages["building"].schema
-}
+_building_fields = _schema_keys(_pages["building"])
 R.check(
     "the wood-furnace toggle is on the building page even when off",
     const.CONF_WOOD_FURNACE_ENABLED in _building_fields,
@@ -3832,9 +3850,7 @@ _wood_on_flow = options(
 )
 _wood_on_flow.hass = FakeHass()
 _wood_on_form = asyncio.run(_wood_on_flow.async_step_building(None))
-_wood_on_fields = {
-    str(getattr(k, "schema", k)) for k in _wood_on_form["data_schema"].schema
-}
+_wood_on_fields = _schema_keys(_wood_on_form["data_schema"])
 R.check(
     "the DHW wood-coil option is offered when the furnace is on",
     const.CONF_DHW_WOOD_COIL_ENABLED in _wood_on_fields,
@@ -3842,7 +3858,12 @@ R.check(
 )
 R.check(
     "and it is off unless asked for",
-    _wood_on_form["data_schema"]({}).get(const.CONF_DHW_WOOD_COIL_ENABLED) is False,
+    config_flow._flatten_section_input(
+        _wood_on_form["data_schema"](
+            empty_section_payload(_wood_on_form["data_schema"])
+        )
+    ).get(const.CONF_DHW_WOOD_COIL_ENABLED)
+    is False,
     "a new option that defaults on silently changes every existing install",
 )
 _wood_on_ok, _wood_on_detail = _defaults_survive_their_own_selectors(
@@ -3852,6 +3873,54 @@ R.check(
     "the wood-on building page can be submitted untouched",
     _wood_on_ok,
     _wood_on_detail,
+)
+
+# #516 / E4: the ten wide pages group with section(). A one-level walk of
+# schema.schema records the section marker and nothing underneath it, so
+# these pins use _presented_fields / _entity_selectors (which recurse) and
+# keep a one-level control that must stay empty on a grouped page.
+_WIDE_PAGES = (
+    "building",
+    "hot_water_tank",
+    "entities",
+    "building_preset",
+    "comfort",
+    "tuning",
+    "learning_features",
+    "hot_water",
+    "entities_metering",
+    "thermal_model_zones",
+)
+_ungrouped_wide = [
+    step
+    for step in _WIDE_PAGES
+    if not any(_nested_schema(value) for _key, value in _pages[step].schema.items())
+]
+R.check(
+    "the ten wide options pages group their fields with section()",
+    not _ungrouped_wide,
+    ", ".join(_ungrouped_wide),
+)
+_entities_nested = list(_entity_selectors(_pages["entities"]))
+_entities_one_level = [
+    (getattr(key, "schema", key), value)
+    for key, value in _pages["entities"].schema.items()
+    if isinstance(value, config_flow.selector.EntitySelector)
+]
+R.check(
+    "a one-level selector walk misses the entities page's pickers",
+    bool(_entities_nested) and not _entities_one_level,
+    f"recursive {len(_entities_nested)}, one-level {len(_entities_one_level)}",
+)
+R.check(
+    "and the recursive walk still names every entities picker",
+    {str(name) for name, _sel in _entities_nested}
+    >= {
+        const.CONF_WEATHER_ENTITY,
+        const.CONF_INDOOR_TEMP_ENTITY,
+        const.CONF_HEAT_PUMP_SWITCH_ENTITY,
+    },
+    sorted(str(name) for name, _sel in _entities_nested),
 )
 
 
@@ -3885,7 +3954,7 @@ def _submission(schema, **overrides):
     the two apart -- and a field with neither is left out.
     """
     payload = {}
-    for marker, _validator in schema.schema.items():
+    for marker, _validator in _presented_fields(schema):
         key = str(getattr(marker, "schema", marker))
         description = getattr(marker, "description", None)
         if isinstance(description, dict) and "suggested_value" in description:
@@ -3895,7 +3964,7 @@ def _submission(schema, **overrides):
         if callable(default):
             payload[key] = default()
     payload.update(overrides)
-    return payload
+    return nest_flat(schema, payload)
 
 
 def _drive(coro):
@@ -3918,7 +3987,7 @@ def _bounds(schema):
             validator.config.get("min"),
             validator.config.get("max"),
         )
-        for marker, validator in schema.schema.items()
+        for marker, validator in _presented_fields(schema)
         if isinstance(validator, config_flow.selector.NumberSelector)
     }
 
@@ -4069,8 +4138,12 @@ for _case in _matrix(_EXTREME_AREAS, (0.1, 0.5, 0.9)):
     _roundtrips += 1
     try:
         _accepted = {
-            **_thermal_schema(_submission(_thermal_schema)),
-            **_zones_schema(_submission(_zones_schema)),
+            **config_flow._flatten_section_input(
+                _thermal_schema(_submission(_thermal_schema))
+            ),
+            **config_flow._flatten_section_input(
+                _zones_schema(_submission(_zones_schema))
+            ),
         }
     except Exception as err:  # noqa: BLE001 - any rejection is the bug
         _unsubmittable.append(f"{_case}: {type(err).__name__}: {err}")
@@ -4189,9 +4262,12 @@ R.check(
 # range breaks first-run setup, which nobody can work around.
 _setup_rejected = []
 for _step in ("temperature", "building_describe", "building_extras", "thermal",
-              "zones", "dhw", "weather_sensitivity"):
+              "zones", "dhw", "weather_sensitivity", "setup_overview"):
     _sflow = config_flow.HeatPumpOptimizerConfigFlow()
     _sflow.hass = FakeHass()
+    if not hasattr(_sflow, f"async_step_{_step}"):
+        _setup_rejected.append(f"{_step}: no handler")
+        continue
     _sform = asyncio.run(getattr(_sflow, f"async_step_{_step}")(None))
     _sschema = _sform.get("data_schema")
     if _sschema is None:
@@ -4268,7 +4344,9 @@ _service_written.hass = FakeHass()
 _sw_form = asyncio.run(_service_written.async_step_comfort(None))
 _sw_bounds = _bounds(_sw_form["data_schema"])
 try:
-    _sw_valid = _sw_form["data_schema"](_submission(_sw_form["data_schema"]))
+    _sw_valid = config_flow._flatten_section_input(
+        _sw_form["data_schema"](_submission(_sw_form["data_schema"]))
+    )
     _sw_error = ""
 except Exception as err:  # noqa: BLE001
     _sw_valid = None
@@ -4593,7 +4671,7 @@ for _step_id, _base in (("init", menu), ("advanced", advanced_menu)):
 _unlabelled = sorted(
     f"{step}.{key}"
     for step, schema in _pages.items()
-    for key in (str(getattr(k, "schema", k)) for k in schema.schema)
+    for key in _schema_keys(schema)
     if key not in strings["options"]["step"].get(step, {}).get("data", {})
 )
 R.check(
@@ -4603,16 +4681,27 @@ R.check(
 )
 _wood_on_unlabelled = sorted(
     f"building.{key}"
-    for key in (
-        str(getattr(k, "schema", k))
-        for k in _wood_on_form["data_schema"].schema
-    )
+    for key in _schema_keys(_wood_on_form["data_schema"])
     if key not in strings["options"]["step"]["building"].get("data", {})
 )
 R.check(
     "every wood-block field has a building label translation",
     not _wood_on_unlabelled,
     ", ".join(_wood_on_unlabelled[:6]),
+)
+_unlabelled_sections = sorted(
+    f"{step}.{name}"
+    for step, schema in _pages.items()
+    for key, value in schema.schema.items()
+    for name in [str(getattr(key, "schema", key))]
+    if _nested_schema(value) is not None
+    and name
+    not in strings["options"]["step"].get(step, {}).get("sections", {})
+)
+R.check(
+    "every section has a name translation",
+    not _unlabelled_sections,
+    ", ".join(_unlabelled_sections[:6]),
 )
 
 # A boolean whose label is missing renders as the bare config key, which reads
@@ -6595,16 +6684,44 @@ try:
         _dup_first, _first_credentials, _first_sensors
     )
     R.check(
-        "the first flow with these answers proceeds to the temperature step",
-        _dup_first_result.get("type") == "form"
-        and _dup_first_result.get("step_id") == "temperature",
-        str(_dup_first_result)[:120],
+        "the first flow with these answers offers finish-setup-now",
+        _dup_first_result.get("type") == "menu"
+        and _dup_first_result.get("step_id") == "finish_setup"
+        and tuple(_dup_first_result.get("menu_options", {}))
+        == ("temperature", "finish_now"),
+        str(_dup_first_result)[:160],
     )
     R.check(
         "and carries the plant identity as its unique id",
         _dup_first.unique_id == _first_identity,
         f"flow unique_id {_dup_first.unique_id!r}",
     )
+    _overview = asyncio.run(_dup_first.async_step_finish_now(None))
+    R.check(
+        "finish-setup-now after the second screen shows the setup overview",
+        _overview.get("type") == "form"
+        and _overview.get("step_id") == "setup_overview"
+        and bool(_overview.get("description_placeholders", {}).get("setup_summary")),
+        str(_overview)[:160],
+    )
+    _create = getattr(_dup_first, "async_step_setup_overview", None)
+    if _create is None:
+        _early_entry = {}
+        R.check(
+            "confirming the overview creates the entry",
+            False,
+            "async_step_setup_overview missing",
+        )
+    else:
+        _early_entry = asyncio.run(_create({}))
+        R.check(
+            "confirming the overview creates the entry",
+            _early_entry.get("type") == "create_entry"
+            and _early_entry.get("data", {}).get(const.CONF_TIBBER_TOKEN)
+            == _first_credentials[const.CONF_TIBBER_TOKEN]
+            and const.CONF_TARGET_TEMP not in _early_entry.get("data", {}),
+            str(_early_entry)[:160],
+        )
     # What the flow manager does when that flow finishes: an entry that holds
     # the flow's unique id.
     _dup_hass.config_entries.entries.append(
@@ -6630,9 +6747,16 @@ try:
     )
     R.check(
         "a second heat pump on the same Tibber account proceeds",
-        _dup_other_result.get("type") == "form"
-        and _dup_other_result.get("step_id") == "temperature",
-        str(_dup_other_result)[:120],
+        _dup_other_result.get("type") == "menu"
+        and _dup_other_result.get("step_id") == "finish_setup",
+        str(_dup_other_result)[:160],
+    )
+    _continue_form = asyncio.run(_dup_other.async_step_temperature(None))
+    R.check(
+        "continuing setup after the menu lands on temperature",
+        _continue_form.get("type") == "form"
+        and _continue_form.get("step_id") == "temperature",
+        str(_continue_form)[:160],
     )
     R.check(
         "the abort reason has a string to show",
@@ -6967,7 +7091,7 @@ R.check(
 _okopt = options(FakeEntry())
 _okopt.hass = FakeHass()
 _okform = asyncio.run(_okopt.async_step_comfort(None))
-_oksaved = asyncio.run(_okopt.async_step_comfort(_okform["data_schema"]({})))
+_oksaved = asyncio.run(_okopt.async_step_comfort(_schema_defaults(_okform["data_schema"])))
 R.check(
     "an untouched comfort page still saves -- through the menu return",
     _oksaved.get("type") == "menu"
@@ -7008,7 +7132,17 @@ def _b3_submit(flow, step, overrides):
     handler = getattr(flow, f"async_step_{step}")
     schema = asyncio.run(handler(None))["data_schema"]
     try:
-        payload = schema({**schema({}), **overrides})
+        payload = schema(
+            nest_flat(
+                schema,
+                {
+                    **config_flow._flatten_section_input(
+                        schema(empty_section_payload(schema))
+                    ),
+                    **overrides,
+                },
+            )
+        )
     except Exception as err:  # noqa: BLE001 - the rejection is the datum
         # Reported as a result rather than raised, so a slider that refuses
         # the payload fails the check by name instead of ending the script.
@@ -7021,7 +7155,7 @@ def _b3_units(form):
         str(getattr(k, "schema", k)): (getattr(v, "config", None) or {}).get(
             "unit_of_measurement"
         )
-        for k, v in form["data_schema"].schema.items()
+        for k, v in _presented_fields(form["data_schema"])
     }
 
 
@@ -7175,7 +7309,7 @@ _valid_days = [(s, e) for s in range(24) for e in range(1, 25) if s < e]
 
 def _day_bounds(form):
     out = {}
-    for k, v in form["data_schema"].schema.items():
+    for k, v in _presented_fields(form["data_schema"]):
         key = str(getattr(k, "schema", k))
         if key in (const.CONF_DAY_START_HOUR, const.CONF_DAY_END_HOUR):
             out[key] = (v.config["min"], v.config["max"])
@@ -7698,7 +7832,7 @@ _preset_form2 = asyncio.run(_preset_flow.async_step_building_preset(None))[
 
 
 def _selector_min(schema, conf_key: str) -> float:
-    for key, validator in schema.schema.items():
+    for key, validator in _presented_fields(schema):
         if str(getattr(key, "schema", key)) == conf_key:
             return validator.config["min"]
     raise KeyError(conf_key)
@@ -8572,7 +8706,16 @@ def _nightly_report_probe(
     _saved_stdout, sys.stdout = sys.stdout, _io.StringIO()
     try:
         with _tempfile.TemporaryDirectory() as _dir:
-            (Path(_dir) / _nightly.LOG_NAME).write_text(_NIGHTLY_CLEAN)
+            (Path(_dir) / _nightly.LOG_NAME).write_text(
+                _NIGHTLY_CLEAN
+                + "\n"
+                + _nightly.BLOCKING_PROBE_BEGIN
+                + "\n"
+                + _NIGHTLY_REPORT_IMPORT
+                + "\n"
+                + _nightly.BLOCKING_PROBE_END
+                + "\n"
+            )
             _nightly._report(checks, completed, Path(_dir))
     finally:
         sys.stdout = _saved_stdout
@@ -8640,6 +8783,11 @@ R.check(
 _NIGHTLY_REPORT_FOREIGN = _NIGHTLY_REPORT_IMPORT.replace(
     "custom_components/heatpump_optimizer/", "custom_components/other_thing/"
 )
+_NIGHTLY_RATCHET = (
+    "log:blocking_report_parsed",
+    "log:no_new_blocking_call",
+    "log:blocking_pin_not_stale",
+)
 R.check(
     "the nightly's loose anchor claims a real report blaming this package",
     bool(_nightly.BLOCKING_AT_OURS.search(_NIGHTLY_REPORT_IMPORT))
@@ -8661,8 +8809,9 @@ R.check(
 R.check(
     "and another integration's blocking call fails nothing here",
     not [
-        f for f in _nightly_scan(_NIGHTLY_CLEAN + "\n" + _NIGHTLY_REPORT_FOREIGN)[0]
-        if "blocking" in f
+        f
+        for f in _nightly_scan(_NIGHTLY_CLEAN + "\n" + _NIGHTLY_REPORT_FOREIGN)[0]
+        if f in _NIGHTLY_RATCHET
     ],
     "the nightly went red on a loop-protection report naming another "
     "integration; this lane judges its own package",
@@ -8678,13 +8827,19 @@ R.check(
     "that (`HA variant with no '(offender:'  matched=0  pass=True`)",
 )
 
-# The null control on all four: the lane is not simply always-red. A clean log
-# is the real post-#540 world and must still pass.
+# The null control on the ratchet: the lane is not simply always-red. A clean
+# log is the real post-#540 world and must still pass those three. The
+# positive control must FAIL here -- no probe window is the #588 blindness.
 _nightly_clean_failures, _nightly_clean_results = _nightly_scan(_NIGHTLY_CLEAN)
 R.check(
-    "a clean log still passes every blocking check",
-    not [f for f in _nightly_clean_failures if "blocking" in f],
+    "a clean log still passes the blocking ratchet",
+    not [f for f in _nightly_clean_failures if f in _NIGHTLY_RATCHET],
     f"the nightly went red on a log with no offenders: {_nightly_clean_failures}",
+)
+R.check(
+    "a clean log without a probe window fails the positive control",
+    "log:blocking_positive_control" in _nightly_clean_failures,
+    "the detector still treats 'no report' as 'the regex can see'; #588",
 )
 R.check(
     "and a passing check still says what it measured",
@@ -8766,7 +8921,7 @@ R.check(
 #
 # The container run is NOT_A_TEST. These pins are the visible failing test:
 # A3 names must be demanded, and a mutant that drops A3 or always-passes must
-# fail a named check here. A4 is a different issue and is not merged in.
+# fail a named check here. A4 is a different assertion, pinned below.
 import inspect as _inspect  # noqa: E402
 
 R.check(
@@ -8793,10 +8948,10 @@ R.check(
 )
 R.check(
     "A3 is not merged with A4",
-    all(not n.startswith("a4:") for n in _nightly.INSIDE_CHECKS)
-    and all(not n.startswith("a4:") for n in _nightly.A3_INSIDE),
-    f"A4 leaked into the A3/inside roster: "
-    f"{[n for n in (*_nightly.A3_INSIDE, *_nightly.INSIDE_CHECKS) if n.startswith('a4:')]}",
+    all(not n.startswith("a4:") for n in _nightly.A3_INSIDE)
+    and all(not n.startswith("a3:") for n in _nightly.A4_INSIDE)
+    and set(_nightly.A4_INSIDE).isdisjoint(_nightly.A3_INSIDE),
+    f"A3={_nightly.A3_INSIDE} A4={_nightly.A4_INSIDE}",
 )
 
 _a3_from_collect = sorted(
@@ -9087,6 +9242,145 @@ R.check(
     "A3 passing checks blanked their detail (#533)",
 )
 
+# --- nightly A4 availability fault-injection (#533) -------------------------
+#
+# The container run stays NOT_A_TEST. These pins demand A4 by name and prove
+# each predicate can still fail. The walk breaks the Tibber counterparty
+# (HTTP 500); it does not poke last_update_success. The FakeCoordinator
+# sweep above is the conjunction half (E76/E30); this is the price-source
+# half (E57).
+R.check(
+    "A4 named escapes are the §4 A4 row, listed",
+    set(_nightly.A4_NAMED_ESCAPES)
+    == {"E57", "E76", "E30", "E77", "E75", "E72"}
+    and len(_nightly.A4_NAMED_ESCAPES) == len(set(_nightly.A4_NAMED_ESCAPES)),
+    f"A4_NAMED_ESCAPES={_nightly.A4_NAMED_ESCAPES}",
+)
+R.check(
+    "the nightly demands A4 fault-injection checks by name",
+    set(_nightly.A4_INSIDE) <= set(_nightly.INSIDE_CHECKS)
+    and set(_nightly.A4_INSIDE)
+    == {
+        "a4:failed",
+        "a4:unavailable",
+        "a4:buttons",
+        "a4:no_stale",
+        "a4:recovered",
+    },
+    f"A4_INSIDE={_nightly.A4_INSIDE} INSIDE_CHECKS missing "
+    f"{sorted(set(_nightly.A4_INSIDE) - set(_nightly.INSIDE_CHECKS))}",
+)
+_a4_walk_src = _inspect.getsource(_nightly._async_check_a4)
+_a4_serve_src = _inspect.getsource(_nightly._serve_prices)
+_a4_break_src = _inspect.getsource(_nightly.break_price_source)
+R.check(
+    "A4 breaks the price source; it does not poke last_update_success",
+    "break_price_source(True)" in _a4_walk_src
+    and "async_refresh" in _a4_walk_src
+    and "last_update_success =" not in _a4_walk_src
+    and "_PRICE_SOURCE_BROKEN" in _a4_break_src
+    and "_PRICE_SOURCE_BROKEN" in _a4_serve_src
+    and "send_response(500)" in _a4_serve_src
+    and "send_response(401)" not in _a4_serve_src,
+    "A4 must go through the Tibber counterparty (E57), not the FakeCoordinator poke",
+)
+_a4_failed_ok = _nightly.Checks()
+_nightly.check_a4_failed(_a4_failed_ok, False)
+_a4_failed_bad = _nightly.Checks()
+_nightly.check_a4_failed(_a4_failed_bad, True)
+R.check(
+    "a4:failed fails when last_update_success stayed True",
+    "a4:failed" in _a4_failed_bad.failures()
+    and "a4:failed" not in _a4_failed_ok.failures(),
+    f"bad={_a4_failed_bad.results.get('a4:failed')} "
+    f"ok={_a4_failed_ok.results.get('a4:failed')}",
+)
+_a4_before = (
+    {"entity_id": "sensor.heat_pump_optimizer_indoor_temperature_optimizer", "state": "21.2"},
+    {"entity_id": "button.heat_pump_optimizer_run_optimization", "state": "unknown"},
+)
+_a4_all_unavail = (
+    {"entity_id": "sensor.heat_pump_optimizer_indoor_temperature_optimizer", "state": "unavailable"},
+    {"entity_id": "button.heat_pump_optimizer_run_optimization", "state": "unavailable"},
+)
+_a4_button_up = (
+    {"entity_id": "sensor.heat_pump_optimizer_indoor_temperature_optimizer", "state": "unavailable"},
+    {"entity_id": "button.heat_pump_optimizer_run_optimization", "state": "unknown"},
+)
+_a4_stale = (
+    {"entity_id": "sensor.heat_pump_optimizer_indoor_temperature_optimizer", "state": "21.2"},
+    {"entity_id": "button.heat_pump_optimizer_run_optimization", "state": "unavailable"},
+)
+_a4_un_ok = _nightly.Checks()
+_nightly.check_a4_unavailable(_a4_un_ok, _a4_all_unavail)
+_a4_un_empty = _nightly.Checks()
+_nightly.check_a4_unavailable(_a4_un_empty, ())
+_a4_un_stale = _nightly.Checks()
+_nightly.check_a4_unavailable(_a4_un_stale, _a4_stale)
+R.check(
+    "a4:unavailable fails an empty sweep and a leftover available state",
+    "a4:unavailable" in _a4_un_empty.failures()
+    and "a4:unavailable" in _a4_un_stale.failures()
+    and "a4:unavailable" not in _a4_un_ok.failures(),
+    f"empty={_a4_un_empty.results.get('a4:unavailable')} "
+    f"stale={_a4_un_stale.results.get('a4:unavailable')}",
+)
+_a4_btn_ok = _nightly.Checks()
+_nightly.check_a4_buttons(_a4_btn_ok, _a4_all_unavail)
+_a4_btn_up = _nightly.Checks()
+_nightly.check_a4_buttons(_a4_btn_up, _a4_button_up)
+_a4_btn_none = _nightly.Checks()
+_nightly.check_a4_buttons(
+    _a4_btn_none,
+    ({"entity_id": "sensor.heat_pump_optimizer_indoor_temperature_optimizer", "state": "unavailable"},),
+)
+R.check(
+    "a4:buttons fails a clickable button and a roster with no button",
+    "a4:buttons" in _a4_btn_up.failures()
+    and "a4:buttons" in _a4_btn_none.failures()
+    and "a4:buttons" not in _a4_btn_ok.failures(),
+    f"up={_a4_btn_up.results.get('a4:buttons')} "
+    f"none={_a4_btn_none.results.get('a4:buttons')}",
+)
+_a4_ns_ok = _nightly.Checks()
+_nightly.check_a4_no_stale(_a4_ns_ok, _a4_before, _a4_all_unavail)
+_a4_ns_bad = _nightly.Checks()
+_nightly.check_a4_no_stale(_a4_ns_bad, _a4_before, _a4_stale)
+_a4_ns_empty = _nightly.Checks()
+_nightly.check_a4_no_stale(_a4_ns_empty, (), _a4_all_unavail)
+R.check(
+    "a4:no_stale fails a leftover pre-break value and an empty before-set",
+    "a4:no_stale" in _a4_ns_bad.failures()
+    and "a4:no_stale" in _a4_ns_empty.failures()
+    and "a4:no_stale" not in _a4_ns_ok.failures(),
+    f"stale={_a4_ns_bad.results.get('a4:no_stale')} "
+    f"empty={_a4_ns_empty.results.get('a4:no_stale')}",
+)
+_a4_rc_ok = _nightly.Checks()
+_nightly.check_a4_recovered(_a4_rc_ok, True, _a4_before, _a4_before)
+_a4_rc_stuck = _nightly.Checks()
+_nightly.check_a4_recovered(_a4_rc_stuck, True, _a4_before, _a4_all_unavail)
+_a4_rc_coord = _nightly.Checks()
+_nightly.check_a4_recovered(_a4_rc_coord, False, _a4_before, _a4_before)
+R.check(
+    "a4:recovered fails a stuck entity and a coordinator that stayed failed",
+    "a4:recovered" in _a4_rc_stuck.failures()
+    and "a4:recovered" in _a4_rc_coord.failures()
+    and "a4:recovered" not in _a4_rc_ok.failures(),
+    f"stuck={_a4_rc_stuck.results.get('a4:recovered')} "
+    f"coord={_a4_rc_coord.results.get('a4:recovered')}",
+)
+R.check(
+    "and passing A4 checks still keep their detail",
+    all(
+        v[1]
+        for c in (_a4_failed_ok, _a4_un_ok, _a4_btn_ok, _a4_ns_ok, _a4_rc_ok)
+        for n, v in c.results.items()
+        if n.startswith("a4:")
+    ),
+    "A4 passing checks blanked their detail (#533)",
+)
+
 # --- nightly A10 diagnostics privacy probe (#585) ---------------------------
 #
 # The container run stays NOT_A_TEST. These pins demand A10 by name and prove
@@ -9151,6 +9445,353 @@ R.check(
         if n.startswith("a10:")
     ),
     "A10 passing checks blanked their detail (#533)",
+)
+
+# --- nightly A5/A8/A9 options, services, reload (#587) ----------------------
+#
+# The container run stays NOT_A_TEST. These pins demand the ten checks by
+# name and prove each predicate can still fail. A4 is a different issue.
+# The byte-unchanged half is what a stub cannot judge live (#542); the
+# predicate is host-tested here. Service examples and bounds run against
+# the schemas this process registered.
+def _a589_escapes(names) -> bool:
+    return len(names) == len(set(names)) and all(
+        n.startswith("E") and n[1:].isdigit() for n in names
+    )
+
+
+R.check(
+    "A5/A8/A9 named escapes are unique E-identifiers",
+    _a589_escapes(_nightly.A5_NAMED_ESCAPES)
+    and _a589_escapes(_nightly.A8_NAMED_ESCAPES)
+    and _a589_escapes(_nightly.A9_NAMED_ESCAPES),
+    f"A5={_nightly.A5_NAMED_ESCAPES} A8={_nightly.A8_NAMED_ESCAPES} "
+    f"A9={_nightly.A9_NAMED_ESCAPES}",
+)
+R.check(
+    "the nightly demands A5/A8/A9 checks by name",
+    set(_nightly.A5_INSIDE) <= set(_nightly.INSIDE_CHECKS)
+    and set(_nightly.A8_INSIDE) <= set(_nightly.INSIDE_CHECKS)
+    and set(_nightly.A9_INSIDE) <= set(_nightly.INSIDE_CHECKS)
+    and set(_nightly.A5_INSIDE)
+    == {
+        "a5:pages_ok",
+        "a5:byte_unchanged",
+        "a5:service_examples",
+        "a5:service_bounds",
+    }
+    and set(_nightly.A8_INSIDE)
+    == {"a8:register_once", "a8:deregister", "a8:already_configured"}
+    and set(_nightly.A9_INSIDE)
+    == {"a9:reload_loaded", "a9:roster_unchanged", "a9:no_growth"},
+    f"A5={_nightly.A5_INSIDE} A8={_nightly.A8_INSIDE} A9={_nightly.A9_INSIDE} "
+    f"missing={sorted((set(_nightly.A5_INSIDE) | set(_nightly.A8_INSIDE) | set(_nightly.A9_INSIDE)) - set(_nightly.INSIDE_CHECKS))}",
+)
+R.check(
+    "A5/A8/A9 are not merged with A4",
+    all(
+        not n.startswith("a4:")
+        for n in (*_nightly.A5_INSIDE, *_nightly.A8_INSIDE, *_nightly.A9_INSIDE)
+    ),
+    f"{[n for n in (*_nightly.A5_INSIDE, *_nightly.A8_INSIDE, *_nightly.A9_INSIDE) if n.startswith('a4:')]}",
+)
+_a5_steps_src = _inspect.getsource(_nightly.option_step_ids)
+_a5_derived = _nightly.option_step_ids(config_flow._OPTION_PAGES)
+R.check(
+    "A5 walks _OPTION_PAGES plus the two menus, not a carried 23",
+    _a5_derived == ("init", "advanced") + tuple(p.step for p in config_flow._OPTION_PAGES)
+    and "23" not in _a5_steps_src,
+    f"steps={_a5_derived} src_has_23={'23' in _a5_steps_src}",
+)
+_a8_cat = _nightly.documented_service_names(services)
+_a8_once_src = _inspect.getsource(_nightly.check_a8_register_once)
+R.check(
+    "A8's catalog is services.yaml's keys, not a carried 11",
+    _a8_cat == frozenset(services) and "11" not in _a8_once_src,
+    f"catalog={sorted(_a8_cat)} src_has_11={'11' in _a8_once_src}",
+)
+
+_a5_pages_ok = _nightly.Checks()
+_nightly.check_a5_pages(
+    _a5_pages_ok,
+    [{"step": s, "kind": "menu" if s in ("init", "advanced") else "save"} for s in _a5_derived],
+    _a5_derived,
+)
+_a5_pages_bad = _nightly.Checks()
+_nightly.check_a5_pages(
+    _a5_pages_bad,
+    [{"step": "learning", "kind": "raise", "raised": True, "detail": "KeyError"}],
+    _a5_derived,
+)
+R.check(
+    "a5:pages_ok fails a raise or a short walk, and passes a complete save-or-menu walk",
+    "a5:pages_ok" in _a5_pages_bad.failures()
+    and "a5:pages_ok" not in _a5_pages_ok.failures(),
+    f"bad={_a5_pages_bad.results.get('a5:pages_ok')} "
+    f"ok={_a5_pages_ok.results.get('a5:pages_ok')}",
+)
+
+_a5_before = _nightly.stored_effective_bytes(
+    {"external_heat_entity": "sensor.seed_external_heat_entity", "x": 1},
+    {},
+)
+_a5_ok_bytes = _nightly.Checks()
+_nightly.check_a5_byte_unchanged(
+    _a5_ok_bytes,
+    _a5_before,
+    _nightly.stored_effective_bytes(
+        {"external_heat_entity": "sensor.seed_external_heat_entity", "x": 1},
+        {"empty_optional": None},
+    ),
+)
+_a5_wipe = _nightly.Checks()
+_nightly.check_a5_byte_unchanged(
+    _a5_wipe,
+    _a5_before,
+    _nightly.stored_effective_bytes(
+        {"x": 1},
+        {"external_heat_entity": None},
+    ),
+)
+R.check(
+    "a5:byte_unchanged fails the #542 wipe and ignores a new None optional",
+    "a5:byte_unchanged" in _a5_wipe.failures()
+    and "a5:byte_unchanged" not in _a5_ok_bytes.failures(),
+    f"wipe={_a5_wipe.results.get('a5:byte_unchanged')} "
+    f"ok={_a5_ok_bytes.results.get('a5:byte_unchanged')}",
+)
+
+_a5_schemas = {
+    name: _svc_hass.services._schemas[(const.DOMAIN, name)]
+    for name in services
+    if (const.DOMAIN, name) in getattr(_svc_hass.services, "_schemas", {})
+}
+_a5_ex_ok = _nightly.Checks()
+_nightly.check_a5_service_examples(_a5_ex_ok, _a5_schemas, services)
+_a5_ex_bad = _nightly.Checks()
+_nightly.check_a5_service_examples(
+    _a5_ex_bad,
+    {"set_mode": _a5_schemas.get("set_mode")},
+    {"set_mode": {"fields": {"mode": {"example": "not-a-mode"}}}},
+)
+R.check(
+    "a5:service_examples fails a rejected example and passes the registered catalog",
+    "a5:service_examples" in _a5_ex_bad.failures()
+    and "a5:service_examples" not in _a5_ex_ok.failures()
+    and _a5_ex_ok.results["a5:service_examples"][1],
+    f"bad={_a5_ex_bad.results.get('a5:service_examples')} "
+    f"ok={_a5_ex_ok.results.get('a5:service_examples')} "
+    f"schemas={len(_a5_schemas)}",
+)
+_a5_bd_ok = _nightly.Checks()
+_nightly.check_a5_service_bounds(_a5_bd_ok, _a5_schemas, services)
+_a5_bd_bad = _nightly.Checks()
+_nightly.check_a5_service_bounds(
+    _a5_bd_bad,
+    {"set_thermal_parameters": _a5_schemas.get("set_thermal_parameters")},
+    {
+        "set_thermal_parameters": {
+            "fields": {
+                "house_thermal_mass": {
+                    "example": 10.0,
+                    "selector": {"number": {"min": -1, "max": 80}},
+                }
+            }
+        }
+    },
+)
+R.check(
+    "a5:service_bounds fails an out-of-range bound and passes the yaml edges",
+    "a5:service_bounds" in _a5_bd_bad.failures()
+    and "a5:service_bounds" not in _a5_bd_ok.failures(),
+    f"bad={_a5_bd_bad.results.get('a5:service_bounds')} "
+    f"ok={_a5_bd_ok.results.get('a5:service_bounds')}",
+)
+
+_a8_ok = _nightly.Checks()
+_nightly.check_a8_register_once(_a8_ok, _a8_cat, _a8_cat)
+_a8_dup = _nightly.Checks()
+_nightly.check_a8_register_once(
+    _a8_dup, list(_a8_cat) + [f"{n}__dup" for n in list(_a8_cat)[:3]], _a8_cat
+)
+R.check(
+    "a8:register_once fails a doubled catalog and passes the yaml set",
+    "a8:register_once" in _a8_dup.failures()
+    and "a8:register_once" not in _a8_ok.failures(),
+    f"dup={_a8_dup.results.get('a8:register_once')} "
+    f"ok={_a8_ok.results.get('a8:register_once')}",
+)
+_a8_un_ok = _nightly.Checks()
+_nightly.check_a8_deregister(_a8_un_ok, _a8_cat, _a8_cat)
+_a8_un_zero = _nightly.Checks()
+_nightly.check_a8_deregister(_a8_un_zero, (), _a8_cat)
+_a8_un_extra = _nightly.Checks()
+_nightly.check_a8_deregister(_a8_un_extra, set(_a8_cat) | {"leftover"}, _a8_cat)
+R.check(
+    "a8:deregister fails an empty catalog and leftover names, and passes the yaml set",
+    "a8:deregister" in _a8_un_zero.failures()
+    and "a8:deregister" in _a8_un_extra.failures()
+    and "a8:deregister" not in _a8_un_ok.failures(),
+    f"zero={_a8_un_zero.results.get('a8:deregister')} "
+    f"extra={_a8_un_extra.results.get('a8:deregister')} "
+    f"ok={_a8_un_ok.results.get('a8:deregister')}",
+)
+_a8_cfg_ok = _nightly.Checks()
+_nightly.check_a8_already_configured(_a8_cfg_ok, "already_configured")
+_a8_cfg_bad = _nightly.Checks()
+_nightly.check_a8_already_configured(_a8_cfg_bad, None)
+R.check(
+    "a8:already_configured fails a missing abort and passes already_configured",
+    "a8:already_configured" in _a8_cfg_bad.failures()
+    and "a8:already_configured" not in _a8_cfg_ok.failures(),
+    f"bad={_a8_cfg_bad.results.get('a8:already_configured')}",
+)
+
+_a9_states_ok = _nightly.Checks()
+_nightly.check_a9_reload_loaded(_a9_states_ok, ["loaded"] * _nightly.A9_RELOADS)
+_a9_states_bad = _nightly.Checks()
+_nightly.check_a9_reload_loaded(_a9_states_bad, ["loaded", "setup_error"])
+R.check(
+    "a9:reload_loaded fails a short or not-loaded series",
+    "a9:reload_loaded" in _a9_states_bad.failures()
+    and "a9:reload_loaded" not in _a9_states_ok.failures()
+    and _nightly.A9_RELOADS == 5,
+    f"bad={_a9_states_bad.results.get('a9:reload_loaded')} "
+    f"reloads={_nightly.A9_RELOADS}",
+)
+_a9_ros_ok = _nightly.Checks()
+_nightly.check_a9_roster_unchanged(_a9_ros_ok, ["sensor.a"], ["sensor.a"])
+_a9_ros_bad = _nightly.Checks()
+_nightly.check_a9_roster_unchanged(_a9_ros_bad, ["sensor.a"], ["sensor.a", "sensor.b"])
+R.check(
+    "a9:roster_unchanged fails a grown roster",
+    "a9:roster_unchanged" in _a9_ros_bad.failures()
+    and "a9:roster_unchanged" not in _a9_ros_ok.failures(),
+    f"bad={_a9_ros_bad.results.get('a9:roster_unchanged')}",
+)
+_a9_g_shipped = _nightly.Checks()
+_nightly.check_a9_no_growth(_a9_g_shipped, [1, 0, 1, 1], [4, 4, 4, 4], [1, 0, 1, 1])
+_a9_g_neutered = _nightly.Checks()
+_nightly.check_a9_no_growth(_a9_g_neutered, [1, 1, 2, 3], [4, 4, 4, 4], [1, 1, 2, 3])
+_a9_g_zero = _nightly.Checks()
+_nightly.check_a9_no_growth(_a9_g_zero, [0, 0, 0], [0, 0, 0], [0, 0, 0])
+R.check(
+    "a9:no_growth fails the #540 neutered series and passes the shipped dip",
+    "a9:no_growth" in _a9_g_neutered.failures()
+    and "a9:no_growth" not in _a9_g_shipped.failures()
+    and "a9:no_growth" not in _a9_g_zero.failures(),
+    f"neutered={_a9_g_neutered.results.get('a9:no_growth')} "
+    f"shipped={_a9_g_shipped.results.get('a9:no_growth')}",
+)
+R.check(
+    "A9's growth ceiling is the first sample, not a hard zero",
+    "series[0]" in _inspect.getsource(_nightly.series_grew)
+    and "first sample" in _inspect.getsource(_nightly.check_a9_no_growth),
+    "A9 must not assert zero growth; that re-records whenever HA bookkeeping moves",
+)
+R.check(
+    "and passing A5/A8/A9 checks still keep their detail",
+    all(
+        v[1]
+        for c in (
+            _a5_pages_ok,
+            _a5_ok_bytes,
+            _a5_ex_ok,
+            _a5_bd_ok,
+            _a8_ok,
+            _a8_un_ok,
+            _a8_cfg_ok,
+            _a9_states_ok,
+            _a9_ros_ok,
+            _a9_g_shipped,
+        )
+        for n, v in c.results.items()
+        if n.startswith(("a5:", "a8:", "a9:"))
+    ),
+    "A5/A8/A9 passing checks blanked their detail (#533)",
+)
+
+# --- nightly loop-detector positive control (#588) --------------------------
+#
+# The container run stays NOT_A_TEST. These pins demand the check by name and
+# prove the begin/end split: the probe report must not fail the pin, a
+# leading-phrase reword after the window must fail the control, and a report
+# after END stays in the pin (shutdown, #525's second offender).
+R.check(
+    "the nightly demands the blocking positive control by name",
+    _nightly.BLOCKING_POSITIVE_CONTROL in _nightly.OUTSIDE_CHECKS
+    and _nightly.BLOCKING_POSITIVE_CONTROL == "log:blocking_positive_control",
+    f"OUTSIDE_CHECKS missing {_nightly.BLOCKING_POSITIVE_CONTROL}",
+)
+R.check(
+    "the blocking positive control is not A4 and not #587",
+    not _nightly.BLOCKING_POSITIVE_CONTROL.startswith(("a4:", "a5:", "a8:", "a9:"))
+    and all(not n.startswith(("a4:", "a5:", "a8:", "a9:")) for n in _nightly.OUTSIDE_CHECKS),
+    f"{[n for n in _nightly.OUTSIDE_CHECKS if n.startswith(('a4:', 'a5:', 'a8:', 'a9:'))]}",
+)
+
+def _nightly_window(inner: str, after: str = "") -> str:
+    return (
+        _NIGHTLY_CLEAN
+        + "\n"
+        + _nightly.BLOCKING_PROBE_BEGIN
+        + "\n"
+        + inner
+        + _nightly.BLOCKING_PROBE_END
+        + "\n"
+        + after
+    )
+
+_nightly_probe_ok, _ = _nightly_scan(_nightly_window(_NIGHTLY_REPORT_IMPORT + "\n"))
+R.check(
+    "a real report inside the probe window satisfies the positive control",
+    "log:blocking_positive_control" not in _nightly_probe_ok
+    and not [f for f in _nightly_probe_ok if f in _NIGHTLY_RATCHET],
+    f"windowed import report failures={_nightly_probe_ok}",
+)
+_nightly_probe_empty, _ = _nightly_scan(_nightly_window(""))
+R.check(
+    "an empty probe window fails the positive control and keeps the pin green",
+    "log:blocking_positive_control" in _nightly_probe_empty
+    and not [f for f in _nightly_probe_empty if f in _NIGHTLY_RATCHET],
+    f"empty window failures={_nightly_probe_empty}",
+)
+_nightly_probe_reword, _ = _nightly_scan(_nightly_window(_nightly_reword + "\n"))
+R.check(
+    "a leading-phrase reword inside the window fails the positive control",
+    "log:blocking_positive_control" in _nightly_probe_reword,
+    "the control accepted a report whose leading phrase the regex cannot see",
+)
+_nightly_probe_before, _ = _nightly_scan(
+    _NIGHTLY_CLEAN + "\n" + _NIGHTLY_REPORT_IMPORT + "\n" + _nightly_window("")
+)
+R.check(
+    "a report before the window fails the pin and not the control by itself",
+    "log:no_new_blocking_call" in _nightly_probe_before
+    and "log:blocking_positive_control" in _nightly_probe_before,
+    f"before-window failures={_nightly_probe_before}",
+)
+_nightly_probe_after_end, _ = _nightly_scan(
+    _nightly_window(_NIGHTLY_REPORT_IMPORT + "\n", after=_NIGHTLY_REPORT_SLEEP + "\n")
+)
+R.check(
+    "a report after END stays in the pin half",
+    "log:no_new_blocking_call" in _nightly_probe_after_end
+    and "log:blocking_positive_control" not in _nightly_probe_after_end,
+    f"after-END failures={_nightly_probe_after_end}",
+)
+_nightly_streams_pin, _nightly_streams_probe = _nightly.partition_blocking_probe(
+    (
+        _NIGHTLY_CLEAN + "\n" + _nightly.BLOCKING_PROBE_BEGIN + "\n"
+        + _NIGHTLY_REPORT_IMPORT + "\n" + _nightly.BLOCKING_PROBE_END + "\n",
+        _NIGHTLY_REPORT_SLEEP,
+    )
+)
+R.check(
+    "an unwindowed second stream stays in the pin (a3e log must not hide)",
+    bool(_nightly.BLOCKING_CALL.search(_nightly_streams_probe))
+    and bool(_nightly.BLOCKING_CALL.search(_nightly_streams_pin)),
+    "partition_blocking_probe folded an unmarked stream into the probe half",
 )
 
 # tools/audit/preflight.sh refuses a closing keyword the orchestrator did not
@@ -9742,12 +10383,6 @@ R.check(
 # not INHERITED CLAIMS -- that job never asks which it was, so reddening it
 # would redden every unrelated `fast` failure a second time.
 R.check(
-    "every status claims-autofix can return stays quiet",
-    not any(_closure.autofix_repair_failed("claims-autofix", s) for s in (
-        "changed", "skip-not-allowed", "skip-not-inherited")),
-    "a fast failure that was not INHERITED CLAIMS is not a skipped repair",
-)
-R.check(
     "an unrecognised status or job reddens rather than passing by default",
     _closure.autofix_repair_failed(_AFJ, "")
     and _closure.autofix_repair_failed(_AFJ, "skip-invented-later")
@@ -9772,6 +10407,22 @@ def _returned_statuses(fn) -> set[str]:
             if isinstance(n, _ast_af.Constant) and isinstance(n.value, str)}
 
 
+# The list this check used to carry was written by hand and went stale the
+# moment `apply_inherited_claims` gained a status: it kept passing while
+# claiming to cover "every status", and the job reddened in CI on a status the
+# check had never heard of. It now reads the returns out of the function, so
+# the two cannot disagree -- `_ac_returns` is derived below by AST and is the
+# same set the roster check pins.
+_ac_quiet_missing = sorted(
+    s for s in _returned_statuses(_env_drift.apply_inherited_claims)
+    if _closure.autofix_repair_failed("claims-autofix", s)
+)
+R.check(
+    "every status claims-autofix can return stays quiet",
+    not _ac_quiet_missing,
+    "a fast failure that was not INHERITED CLAIMS is not a skipped repair, and "
+    f"a refusal is not one either; unclassified: {_ac_quiet_missing}",
+)
 _af_returns = _returned_statuses(_closure.apply_under_scoped_recordings)
 _ac_returns = _returned_statuses(_env_drift.apply_inherited_claims)
 R.check(
@@ -9779,7 +10430,8 @@ R.check(
     _af_returns == {"changed", "skip-clean", "skip-not-under-scoped",
                     "skip-failed-recording", "skip-merge-failed",
                     "skip-still-fails", "skip-unchanged"}
-    and _ac_returns == {"changed", "skip-not-inherited"},
+    and _ac_returns == {"changed", "skip-not-inherited",
+                        "skip-moves-nothing-claimable", "skip-cannot-compare"},
     f"closures={sorted(_af_returns)} claims={sorted(_ac_returns)}",
 )
 # A correct predicate the workflow does not call is the green check this
@@ -10490,16 +11142,23 @@ R.check(
 _hyg = getattr(_env_drift, "check_claims_hygiene", None)
 
 
-def _hygiene_git(card_head: str, extra: dict[str, str], py_touch: bool):
-    """Two-commit repo: baseline has #493's card claims; HEAD applies extra."""
+def _hygiene_git(card_head: str, extra: dict[str, str], py_touch: bool,
+                 card_base: str | None = None):
+    """Two-commit repo: baseline has #493's card claims; HEAD applies extra.
+
+    `card_base` overrides the baseline's card claims -- the case where the
+    baseline claims NOTHING, under which "leave it alone" and "empty it"
+    are the same instruction.
+    """
     import subprocess as _sp
 
     root = _tempfile.mkdtemp(prefix="h493_")
-    card_base = (
-        "# claims-for: 6.3.15\n\n"
-        "whatif_edited  # in-window lo floored at the window min; floored band note\n"
-        "whatif_weekly  # weekly-spec in-window lo floor; floored band note\n"
-    )
+    if card_base is None:
+        card_base = (
+            "# claims-for: 6.3.15\n\n"
+            "whatif_edited  # in-window lo floored at the window min; floored band note\n"
+            "whatif_weekly  # weekly-spec in-window lo floor; floored band note\n"
+        )
     solver = "# claims-for: 6.3.15\n"
     (Path(root) / "tests" / "golden").mkdir(parents=True)
     (Path(root) / "custom_components" / "heatpump_optimizer").mkdir(parents=True)
@@ -10545,29 +11204,113 @@ _h493_root, _h493_base = _hygiene_git(
     },
     py_touch=False,
 )
+# THE RULE FOR A DOCS-ONLY THREE-DOT CHANGED, and these three cases are what
+# it changed to. It used to be "both lists must be empty", and emptying is a
+# DELETION applied to the baseline at squash-merge: #608 carried #569's claims
+# off `main` that way, #635 carried #633's, and #658 was stopped on the way to
+# carrying #653's. The rule is now "leave both files exactly as you found
+# them", which is the same rule whenever the baseline claims nothing -- the
+# case every earlier fixture here used, which is why the change was invisible
+# until a claim survived on `main` long enough to meet a documentation branch.
+#
+# #493's replay is the case that flipped: a roster-only three-dot whose card
+# claims EQUAL the baseline's is now correct, because it changes nothing. The
+# old expectation -- that it must fail -- was the defect wearing a test.
 _h493_err = _hyg(_h493_root, _h493_base) if callable(_hyg) else None
 R.check(
-    "check_claims_hygiene replays #493 (roster-only + copied card claims vs 62799e4) and fails",
-    callable(_hyg)
-    and isinstance(_h493_err, str)
-    and (
-        _h493_err.startswith("INHERITED CLAIMS")
-        or _h493_err.startswith("RECORD PR CLAIMS")
-    ),
+    "a roster-only three-dot that leaves the baseline's card claims alone passes",
+    callable(_hyg) and _h493_err is None,
     "missing check_claims_hygiene"
     if not callable(_hyg)
     else f"hygiene returned {_h493_err!r}",
 )
+# And the direction that must still fail, which is the one that costs a claim.
+_h493_del_root, _h493_del_base = _hygiene_git(
+    "# claims-for: 6.3.15\n",
+    {"docs/plan-2026-09-open-issues.md": "# plan\n"},
+    py_touch=False,
+)
+_h493_del_err = _hyg(_h493_del_root, _h493_del_base) if callable(_hyg) else "missing"
+R.check(
+    "a roster-only three-dot that DELETES the baseline's card claims is refused",
+    callable(_hyg)
+    and isinstance(_h493_del_err, str)
+    and _h493_del_err.startswith("RECORD PR CLAIMS"),
+    "emptying someone else's claim list is the deletion a squash applies to "
+    f"the baseline; got {_h493_del_err!r}",
+)
+# AND THE AUTOFIX ITSELF, which is the half that actually writes the deletion.
+# Correcting `check_claims_hygiene` alone leaves the bot emptying the file and
+# CI green on the result: the gate below was added, disabled, and the whole
+# suite still passed, which is why this check exists rather than being assumed.
+_ac_root, _ac_base = _hygiene_git(
+    "# claims-for: 6.3.15\n\n"
+    "whatif_edited  # in-window lo floored at the window min; floored band note\n"
+    "whatif_weekly  # weekly-spec in-window lo floor; floored band note\n",
+    {"docs/plan-2026-09-open-issues.md": "# plan\n"},
+    py_touch=False,
+)
+_ac_before = (Path(_ac_root) / "tests" / "golden" / "card_claimed_drift.txt").read_text()
+_ac_status = _env_drift.apply_inherited_claims(_ac_root, ref=_ac_base)
+_ac_after = (Path(_ac_root) / "tests" / "golden" / "card_claimed_drift.txt").read_text()
+R.check(
+    "the autofix refuses a three-dot that moves nothing claimable, and writes nothing",
+    _ac_status == "skip-moves-nothing-claimable" and _ac_after == _ac_before,
+    "a documentation branch's claim file is not the bot's to empty -- that "
+    f"deletion is what a squash applies to the baseline; status={_ac_status!r} "
+    f"changed={_ac_after != _ac_before}",
+)
+# The null control: the same bot on a branch that DID move a fixture still
+# empties an inherited list, which is the behaviour the gate must not have cost.
+_ac2_root, _ac2_base = _hygiene_git(
+    "# claims-for: 6.3.15\n\n"
+    "whatif_edited  # in-window lo floored at the window min; floored band note\n"
+    "whatif_weekly  # weekly-spec in-window lo floor; floored band note\n",
+    {},
+    py_touch=True,
+)
+_ac2_status = _env_drift.apply_inherited_claims(_ac2_root, ref=_ac2_base)
+R.check(
+    "the autofix still empties an inherited list on a branch that moved a fixture",
+    _ac2_status == "changed",
+    f"the gate must not have disabled the autofix outright; status={_ac2_status!r}",
+)
+
+# AND THE THIRD MECHANISM, which is the one that actually reddened #662's own
+# CI: `--all` calls a judged-but-unhit claim STALE and says "remove it". On a
+# documentation branch that is the same deletion by another route, so the
+# decision is extracted and pinned here rather than living inside `main()`.
+_sj_docs_root, _sj_docs_base = _hygiene_git(
+    "# claims-for: 6.3.15\n", {"docs/plan-2026-09-open-issues.md": "# plan\n"},
+    py_touch=False, card_base="# claims-for: 6.3.15\n")
+_sj_py_root, _sj_py_base = _hygiene_git(
+    "# claims-for: 6.3.15\n", {}, py_touch=True, card_base="# claims-for: 6.3.15\n")
+_sj = getattr(_env_drift, "stale_claims_judged", None)
+R.check(
+    "a stale claim is not judged on a branch that moves nothing claimable",
+    callable(_sj) and _sj(_sj_docs_root, _sj_docs_base) is False,
+    "a documentation branch neither caused a claim to go stale nor can cure "
+    "it, and its only remedy would be a deletion the squash carries onto the "
+    f"baseline; got {_sj and _sj(_sj_docs_root, _sj_docs_base)!r}",
+)
+R.check(
+    "and it IS judged on a branch that moved a fixture (null control)",
+    callable(_sj) and _sj(_sj_py_root, _sj_py_base) is True,
+    "the gate must not have stopped judging staleness altogether; got "
+    f"{_sj and _sj(_sj_py_root, _sj_py_base)!r}",
+)
+# The old case, unchanged where the baseline claims nothing: empty stays right.
 _h_empty_root, _h_empty_base = _hygiene_git(
     "# claims-for: 6.3.15\n",
     {"docs/plan-2026-09-open-issues.md": "# plan\n"},
     py_touch=False,
+    card_base="# claims-for: 6.3.15\n",
 )
 _h_empty_err = _hyg(_h_empty_root, _h_empty_base) if callable(_hyg) else "missing"
 R.check(
     "check_claims_hygiene accepts empty claims on a roster-only three-dot",
     callable(_hyg) and _h_empty_err is None,
-    f"empty claims on docs-only should pass; got {_h_empty_err!r}",
+    f"empty claims on docs-only with an empty baseline should pass; got {_h_empty_err!r}",
 )
 # A ref that RESOLVES but shares no history with HEAD. `_rev` passes it -- it
 # asks whether the ref resolves, and this one does -- and `git diff ref...HEAD`
@@ -10593,7 +11336,23 @@ def _orphan_ref(root: str) -> str:
     return "refs/probe/orphan"
 
 
-_h_orph_root, _h_orph_base = _hygiene_git("# claims-for: 6.3.15\n", {}, py_touch=False)
+# The baseline claims nothing here, so HEAD's empty list leaves it unchanged
+# and the null control below is measuring the orphan ref rather than the claim
+# rule: with the two-claim baseline this fixture used to carry, an emptied HEAD
+# is now a refused DELETION, and the control would have failed for the wrong
+# reason -- which is what it did until this line was written.
+R.check(
+    "an unanswerable three-dot still judges staleness, rather than quietly passing",
+    callable(_sj) and _sj(_sj_docs_root, _orphan_ref(_sj_docs_root)) is True,
+    "a gate that cannot read the diff must fail closed, or the refusal above "
+    "becomes a way to stop being judged at all",
+)
+_h_orph_root, _h_orph_base = _hygiene_git(
+    "# claims-for: 6.3.15\n",
+    {"docs/plan-2026-09-open-issues.md": "# plan\n"},
+    py_touch=False,
+    card_base="# claims-for: 6.3.15\n",
+)
 _h_orph_ref = _orphan_ref(_h_orph_root)
 _h_orph_err = _hyg(_h_orph_root, _h_orph_ref) if callable(_hyg) else "missing"
 R.check(

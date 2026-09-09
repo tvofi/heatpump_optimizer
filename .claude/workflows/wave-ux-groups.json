@@ -355,8 +355,8 @@
       "fixture": false,
       "after": [],
       "resume": {
-        "stage": "pending",
-        "note": "Not started."
+        "stage": "in-review",
+        "note": "PR #665 drafts finish-setup-now after user_sensors. leaves #558 open."
       },
       "brief": "Offer a finish-setup-now exit after the second screen: today nine steps run before an entry exists, so a user who stops at step eight has nothing. Any change to a form's SHAPE is subject to the constraint E4's brief carries about one-level schema walks in the assertion layer."
     },
@@ -369,10 +369,10 @@
       "fixture": false,
       "after": [],
       "resume": {
-        "stage": "pending",
-        "note": "Not started."
+        "stage": "in-review",
+        "note": "PR #668 drafts setup_overview on both config terminals. leaves #558 open."
       },
-      "brief": "Show the setup overview as the last step of the CONFIG flow, not only in Options, so a user sees what was configured at the moment they finish configuring it. Any change to a form's shape is subject to the constraint E4's brief carries."
+      "brief": "Show the setup overview as the last step of the CONFIG flow, not only in Options, so a user sees what was configured at the moment they finish configuring it. Both create-entry terminals hop to ConfigFlow `async_step_setup_overview` -- `finish_now` at config_flow.py:1729 \"return await self.async_step_setup_overview\" and `weather_sensitivity` at config_flow.py:2085 \"return await self.async_step_setup_overview\". Confirming that step calls `_create_setup_entry` at config_flow.py:1736 \"return self._create_setup_entry\". Shared render is `_setup_overview_form` at config_flow.py:1564. `setup_overview` is registered at config_flow.py:1227 \"Your system, as configured\". Options still has `async_step_setup_overview` at config_flow.py:2297. Any change to a form's shape is subject to the constraint E4's brief carries."
     },
     {
       "group": "E4",
@@ -383,8 +383,8 @@
       "fixture": false,
       "after": [],
       "resume": {
-        "stage": "pending",
-        "note": "Not started. The fingerprint blocker is discharged by PR #568; issue #516 stays open. Carries the assertion-layer constraint for the whole of lane E."
+        "stage": "in-review",
+        "note": "E4 grouping PR #653; fingerprint already on main (#568). Issue #516 closes with #653. leaves #558 open."
       },
       "brief": "Group the wide options pages, using the grouping construct the flow library provides. TWO ASSUMPTIONS IN THE ORIGINAL FRAMING WERE WRONG AND ARE CORRECTED HERE. First, the construct does not live in the selector helpers; it is defined in data_entry_flow.py, and it has existed since well before the floor that was thought to gate it, so the version floor stopped binding earlier than the parking note assumed, although the original parking was correct against the floor current at the time. Second, THE LANE'S REAL COST IS IN THE ASSERTION LAYER RATHER THAN THE CAPTURE. PR #568 taught the config-flow golden's fingerprint to walk nested groups, so the fixture no longer goes silently blind; it groups no page, so #516 stays open. What remains is that the assertion layer walks schemas ONE LEVEL DEEP in many places, and every one of those stops asserting silently on a grouped page rather than failing. #558 counted those walks at a named commit under a stated rule, AST reads of a schema attribute that are iterated or subscripted, excluding schema construction and the getattr-with-default form; RE-DERIVE THE COUNT AT YOUR OWN MERGE BASE under that same rule rather than carrying the figure, and state the rule with whatever number you get. THE FOURTH SEQUENCING RULE, which #558 records alongside its three: a capture must be able to see a change before the change is made. Grouping and fixing the capture in one PR would have moved the fixture once and then silenced it forever, with nothing in the suite able to say so. Split capture from change."
     },

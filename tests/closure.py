@@ -1140,7 +1140,15 @@ def retrigger_needed(*, pushed: bool, used_pat: bool) -> bool:
 AUTOFIX_QUIET = {
     "closures-autofix": (
         "changed", "skip-clean", "skip-not-allowed", "skip-not-under-scoped"),
-    "claims-autofix": ("changed", "skip-not-allowed", "skip-not-inherited"),
+    # `skip-moves-nothing-claimable` is a REFUSAL rather than a missed repair:
+    # the branch's three-dot cannot have moved a fixture, so its claim file is
+    # not the bot's to rewrite, and there is nothing for a human to wait for.
+    # `skip-cannot-compare` is quiet for the opposite reason -- the three-dot
+    # could not be computed, which `check_claims_hygiene` reports as
+    # CANNOT COMPARE on the same run, and two jobs shouting one fact is how
+    # the earlier three CI failures became unreadable.
+    "claims-autofix": ("changed", "skip-not-allowed", "skip-not-inherited",
+                       "skip-moves-nothing-claimable", "skip-cannot-compare"),
 }
 
 # Keyed by status where the job-wide remedy would misdirect. A failed

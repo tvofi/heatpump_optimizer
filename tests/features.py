@@ -2212,7 +2212,7 @@ def _weekly_requirement_hours(spec, start):
              for i in range(_n + 1)]),
     )
     _idle = min(_p.dhw_idle_min_temp, _p.dhw_min_temp)
-    _floors = np.asarray(_plan["floor_temps"])
+    _floors = np.asarray(_plan.floor_temps)
     _in = np.where(_floors > _idle + 1e-9)[0]
     return sorted(set(round(float(_hours[i]), 2) for i in _in))
 
@@ -7762,6 +7762,18 @@ R.check(
     "an unknown month on either side of a range is refused by name",
     isinstance(_gf_month_exc, _gf.GridFeeError),
     f"{_gf_month_exc!r}",
+)
+R.check(
+    "a lone month token (no range) parses to its one month",
+    _gf.parse_month_range("Jul") == frozenset({7}),
+    f"{_gf.parse_month_range('Jul')}",
+)
+_gf_lone_month_exc = _try_exc(lambda: _gf.parse_month_range("Notamonth"))
+R.check(
+    "a lone month token that names nothing real is refused",
+    isinstance(_gf_lone_month_exc, _gf.GridFeeError)
+    and "Unknown month 'notamonth'" in str(_gf_lone_month_exc),
+    f"{_gf_lone_month_exc!r}: must be the lone-token refusal, not the range form",
 )
 _gf_day_exc = _try_exc(lambda: _gf.parse_day_range("Mon-Zzz"))
 R.check(
@@ -18999,6 +19011,370 @@ R.check(
 )
 
 
+R.section("#224 stage 3 — solve_space answers for itself, off the hot loop")
+
+# The nested closure that priced space around a fixed DHW schedule. The
+# solver is stubbed so these pin the headroom / pin / warm-start envelope,
+# not a basin. Square-free dummy objective: the score is the sum, so a
+# rewrite that returns the unclipped solver vector is visible.
+
+from types import SimpleNamespace as _SsNS  # noqa: E402
+import heatpump_optimizer.optimizer as _ss_mod  # noqa: E402
+
+_ss_opt = _MbOpt(
+    ThermalModel(ThermalParameters.from_config(_mb_profiles.house())),
+    _MbCfg(horizon_hours=1),
+)
+_ss_pmax = 6.0
+_ss_n = 3
+_ss_dt = 1.0
+_ss_prices = np.array([1.0, 2.0, 3.0])
+_ss_init = np.array([3.0, 3.0, 3.0])
+_ss_obj = lambda x, dhw=None: float(np.sum(x))
+_ss_batch = lambda M, dhw=None: np.sum(M, axis=1)
+_ss_h = _SsNS(
+    power_caps=None, power_caps_extra=None, space_pins=None, extra_starts=None,
+)
+
+
+class _SsRes:
+    def __init__(self, x, success=True, message="ok"):
+        self.x = np.asarray(x, dtype=float)
+        self.success = success
+        self.message = message
+
+
+_ss_real = _ss_mod._multi_start_minimize
+_ss_calls = []
+
+
+def _ss_stub(objective, starts, bounds, args=(), **kw):
+    _ss_calls.append({"starts": starts, "bounds": bounds, "args": args})
+    return _SsRes(np.array([9.0, 9.0, 9.0]))
+
+
+def _ss_run(dhw, warm=None, h=None, stub=_ss_stub):
+    _ss_calls.clear()
+    _ss_mod._multi_start_minimize = stub
+    try:
+        return _ss_opt._solve_space(
+            np.asarray(dhw, dtype=float),
+            None if warm is None else np.asarray(warm, dtype=float),
+            h if h is not None else _ss_h,
+            _ss_pmax, _ss_n, _ss_dt, _ss_prices, _ss_init, _ss_obj, _ss_batch,
+        )
+    finally:
+        _ss_mod._multi_start_minimize = _ss_real
+
+
+_ss_zero, _ss_zero_st, _ss_zero_sc = _ss_run([0.0, 0.0, 0.0])
+R.check(
+    "without DHW the clip is the compressor ceiling, not the solver's 9 kW",
+    list(_ss_zero) == [6.0, 6.0, 6.0] and _ss_zero_sc == 18.0,
+    f"{list(_ss_zero)} score {_ss_zero_sc} — 9 kW means the headroom clip "
+    f"was dropped; a score other than 18.0 priced the unclipped vector",
+)
+
+_ss_dhw, _, _ = _ss_run([2.0, 0.0, 2.0])
+R.check(
+    "a DHW block eats the compressor; space cannot keep p_max there",
+    list(_ss_dhw) == [4.0, 6.0, 4.0],
+    f"{list(_ss_dhw)} — [6,6,6] ignored the schedule; [2,0,2] used the "
+    f"DHW vector as the space cap instead of subtracting it",
+)
+
+_ss_space_cap, _, _ = _ss_run(
+    [2.0, 0.0, 2.0],
+    h=_SsNS(
+        power_caps=np.array([3.0, 3.0, 3.0]),
+        power_caps_extra=None, space_pins=None, extra_starts=None,
+    ),
+)
+R.check(
+    "power_caps bound space alone and do not also subtract the DHW block",
+    list(_ss_space_cap) == [3.0, 3.0, 3.0],
+    f"{list(_ss_space_cap)} — [1,3,1] subtracted DHW from a space-only cap; "
+    f"[4,6,4] ignored power_caps",
+)
+
+_ss_extra, _, _ = _ss_run(
+    [2.0, 0.0, 2.0],
+    h=_SsNS(
+        power_caps=None,
+        power_caps_extra=np.array([5.0, 5.0, 5.0]),
+        space_pins=None, extra_starts=None,
+    ),
+)
+R.check(
+    "power_caps_extra is a total cap, so the DHW block is subtracted twice",
+    list(_ss_extra) == [3.0, 5.0, 3.0],
+    f"{list(_ss_extra)} — [4,6,4] skipped the extra cap; [5,5,5] treated "
+    f"it as a space-only ceiling",
+)
+
+_ss_none_extra, _, _ = _ss_run([2.0, 0.0, 2.0])
+R.check(
+    "the extra-cap arm is silent when power_caps_extra is None",
+    list(_ss_none_extra) == [4.0, 6.0, 4.0],
+    f"{list(_ss_none_extra)} — a None extra cap still tightened the "
+    f"headroom, so the fuse-guard branch lost its gate",
+)
+
+_ss_warm, _, _ = _ss_run([0.0, 0.0, 0.0], warm=[1.0, 1.0, 1.0])
+R.check(
+    "a warm start is the only candidate; the structural seeds stay off",
+    len(_ss_calls) == 1 and len(_ss_calls[0]["starts"]) == 1
+    and list(_ss_calls[0]["starts"][0]) == [1.0, 1.0, 1.0],
+    f"calls={_ss_calls} — more than one start means the initial-solve "
+    f"seeds ran on a warm start they were written not to",
+)
+
+_ss_cold, _, _ = _ss_run([0.0, 0.0, 0.0])
+R.check(
+    "the first solve (no warm start) adds the three structural seeds",
+    len(_ss_calls) == 1 and len(_ss_calls[0]["starts"]) == 4,
+    f"nstarts={len(_ss_calls[0]['starts']) if _ss_calls else 0} — 1 means "
+    f"the warm-start gate was inverted and the D0-01 seeds never ran",
+)
+
+_ss_pin_h = _SsNS(
+    power_caps=None, power_caps_extra=None,
+    space_pins=np.array([1.0, np.nan, 0.0]), extra_starts=None,
+)
+_ss_pin, _, _ = _ss_run([0.0, 0.0, 2.0], warm=[1.0, 1.0, 1.0], h=_ss_pin_h)
+_ss_on = _ss_opt._pin_on_power(_ss_pmax)
+R.check(
+    "a forced-on pin raises the lower bound; a forced-off pin shuts the step",
+    _ss_calls[0]["bounds"][0] == (_ss_on, 6.0)
+    and _ss_calls[0]["bounds"][1] == (0.0, 6.0)
+    and _ss_calls[0]["bounds"][2] == (0.0, 0.0),
+    f"bounds={_ss_calls[0]['bounds']} on_floor={_ss_on} — a free second "
+    f"step or a non-zero third means the pin rewrite was skipped",
+)
+
+def _ss_boom(*_a, **_k):
+    raise RuntimeError("no basin")
+
+
+_ss_fail, _ss_fail_st, _ = _ss_run(
+    [2.0, 0.0, 2.0], warm=[1.0, 1.5, 1.0], stub=_ss_boom,
+)
+R.check(
+    "a solver exception returns the clipped guess, not a raised error",
+    list(_ss_fail) == [1.0, 1.5, 1.0]
+    and _ss_fail_st.startswith("failed ("),
+    f"{list(_ss_fail)} {_ss_fail_st} — a raise escaped, or the failure "
+    f"path rebuilt the guess from init_base and dropped the warm start",
+)
+
+R.check(
+    "the stubbed solver is handed the DHW schedule as args, not as a bound",
+    _ss_run([2.0, 0.0, 2.0], warm=[1.0, 1.0, 1.0])
+    and list(_ss_calls[0]["args"][0]) == [2.0, 0.0, 2.0],
+    f"args={_ss_calls[0]['args'] if _ss_calls else None} — empty args "
+    f"means the space objective no longer sees the DHW schedule",
+)
+
+
+R.section("#224 stage 4 A-half — window floors answer for themselves")
+
+# Windows / floors / ready-temps. The parent still owns params and the
+# effective window list; this helper is the 3825-3920 span. Pins use
+# production hour_in_windows / _dhw_planner_draws, not a second formula.
+
+from heatpump_optimizer.dhw_schedule import (  # noqa: E402
+    hour_in_windows as _wf_in,
+    windows_for_day as _wf_day,
+)
+
+_wf_params = ThermalParameters.from_config(_mb_profiles.house())
+_wf_params.dhw_enabled = True
+_wf_opt = _MbOpt(ThermalModel(_wf_params), _MbCfg(horizon_hours=1))
+_wf_windows, _ = _wf_opt._effective_dhw_windows()
+_wf_hours = np.array([0.0, 1.0, 2.0, 6.0, 7.0, 17.0, 22.0])
+_wf_n = int(_wf_hours.size)
+_wf_dt = 1.0
+_wf_idle = min(_wf_params.dhw_idle_min_temp, _wf_params.dhw_min_temp)
+
+
+def _wf_run(weekdays=None, wood=None):
+    return _wf_opt._dhw_window_floors(
+        _wf_params, _wf_windows, _wf_hours, weekdays, _wf_dt, _wf_n, wood,
+    )
+
+
+_wf_c, _wf_hm, _wf_inw, _wf_raw, _wf_dr, _wf_fl, _wf_rdy = _wf_run()
+_wf_expect_in = np.array(
+    [
+        _wf_in(
+            float(h),
+            _wf_day(_wf_params.dhw_weekly_windows, None, _wf_windows),
+        )
+        for h in (_wf_hours % 24.0)
+    ],
+    dtype=bool,
+)
+R.check(
+    "in_window is hour_in_windows on the effective window list",
+    np.array_equal(_wf_inw, _wf_expect_in),
+    f"{list(_wf_inw)} vs {list(_wf_expect_in)} — a rewrite that built the "
+    f"mask from step index instead of the clock would miss 17:00",
+)
+R.check(
+    "floor_temps is the usable minimum inside a window and idle outside",
+    np.allclose(
+        _wf_fl,
+        np.where(_wf_inw, _wf_params.dhw_min_temp, _wf_idle),
+    ),
+    f"{list(_wf_fl)} in={list(_wf_inw)} min={_wf_params.dhw_min_temp} "
+    f"idle={_wf_idle} — a constant floor dropped the window edge",
+)
+
+_wf_starts = [
+    i
+    for i, h in enumerate(_wf_hm)
+    if bool(_wf_inw[i])
+    and not _wf_in(
+        float(h) - _wf_dt,
+        _wf_day(_wf_params.dhw_weekly_windows, None, _wf_windows),
+    )
+]
+_wf_ready_idx = {max(0, s - 1) for s in _wf_starts}
+R.check(
+    "ready_temps is raised only on the step before a window opens",
+    _wf_starts
+    and all(
+        (float(_wf_rdy[i]) >= _wf_params.dhw_min_temp)
+        if i in _wf_ready_idx
+        else float(_wf_rdy[i]) == 0.0
+        for i in range(_wf_n)
+    ),
+    f"starts={_wf_starts} ready={list(_wf_rdy)} — a raise on the window "
+    f"step itself, or a zero ready vector, dropped the pre-window floor",
+)
+R.check(
+    "without wood the planner draw equals the raw physics draw",
+    np.array_equal(_wf_dr, _wf_raw),
+    f"raw={list(_wf_raw)} plan={list(_wf_dr)} — a wood-less call still "
+    f"applied the coil reduction, or the raw array was discarded",
+)
+
+_wf_wood = np.full(_wf_n, 70.0)
+_wf_c2, _, _, _wf_raw2, _wf_dr2, _, _ = _wf_run(wood=_wf_wood)
+_wf_coil = _wf_opt._dhw_planner_draws(_wf_raw2, _wf_wood)
+R.check(
+    "wood_temps goes through the production planner-draw helper",
+    np.array_equal(_wf_dr2, _wf_coil) and not np.array_equal(_wf_dr2, _wf_raw2),
+    f"plan={list(_wf_dr2)} coil={list(_wf_coil)} raw={list(_wf_raw2)} — "
+    f"the coil path was skipped or re-implemented beside the helper",
+)
+
+
+R.section("#224 DhwPlan — 14-key return, frozen at the end")
+
+# The DHW tail already returns these fourteen keys. The object is that
+# return value, assembled at the `return`, not a state bag threaded
+# through the planner. Pins import the production symbol.
+
+from dataclasses import FrozenInstanceError, fields, is_dataclass  # noqa: E402
+from heatpump_optimizer.dhw_schedule import format_windows as _dp_fmt  # noqa: E402
+from heatpump_optimizer.optimizer import DhwPlan  # noqa: E402
+
+_DHW_PLAN_KEYS = (
+    "floor_temps",
+    "ready_temps",
+    "draw_rates",
+    "in_window",
+    "max_temp",
+    "schedule",
+    "windows_text",
+    "windows_learned",
+    "next_window_in_hours",
+    "legionella_due",
+    "legionella_hour",
+    "legionella_step",
+    "external_heat_suppressed_steps",
+    "max_lead_hours",
+)
+
+R.check(
+    "DhwPlan is a frozen dataclass of the 14 returned keys",
+    is_dataclass(DhwPlan)
+    and DhwPlan.__dataclass_params__.frozen
+    and tuple(f.name for f in fields(DhwPlan)) == _DHW_PLAN_KEYS,
+    f"fields={[f.name for f in fields(DhwPlan)]!r} frozen="
+    f"{getattr(DhwPlan, '__dataclass_params__', None)}",
+)
+
+_dp_state = ThermalState(
+    room_temperature=21.0,
+    slab_temperature=22.0,
+    outdoor_temperature=-5.0,
+    dhw_temperature=48.0,
+    dhw_hours_since_legionella=20.0,
+    buffer_tank_temperature=40.0,
+)
+_dp_plan = _wf_opt._build_dhw_requirements(
+    initial_state=_dp_state,
+    prices=np.full(_wf_n, 1.0),
+    outdoor_temps=np.full(_wf_n, -5.0),
+    step_hours=_wf_hours,
+    n_steps=_wf_n,
+    dt=_wf_dt,
+    p_max=4.0,
+)
+_dp_win, _dp_learned = _wf_opt._effective_dhw_windows()
+(
+    _,
+    _,
+    _dp_in,
+    _dp_raw,
+    _,
+    _dp_fl,
+    _dp_rdy,
+) = _wf_opt._dhw_window_floors(
+    _wf_params, _dp_win, _wf_hours, None, _wf_dt, _wf_n, None,
+)
+
+R.check(
+    "_build_dhw_requirements returns DhwPlan, not a dict",
+    isinstance(_dp_plan, DhwPlan) and not isinstance(_dp_plan, dict),
+    f"type={type(_dp_plan).__name__} — the tail still handed a dict, or "
+    f"a threaded state object that is not DhwPlan",
+)
+R.check(
+    "floors, ready, in_window and draw_rates are the window-floors arrays",
+    np.array_equal(_dp_plan.floor_temps, _dp_fl)
+    and np.array_equal(_dp_plan.ready_temps, _dp_rdy)
+    and np.array_equal(_dp_plan.in_window, _dp_in)
+    and np.array_equal(_dp_plan.draw_rates, _dp_raw),
+    "a rewrite that rebuilt the series beside _dhw_window_floors, or "
+    "published the credited draws as draw_rates, would diverge here",
+)
+R.check(
+    "max_temp and windows_text are the published ceiling and the formatter",
+    _dp_plan.max_temp == float(_wf_params.dhw_max_temp)
+    and _dp_plan.windows_text == _dp_fmt(_dp_win)
+    and _dp_plan.windows_learned == _dp_learned
+    and isinstance(_dp_plan.schedule, np.ndarray)
+    and _dp_plan.schedule.shape == (_wf_n,),
+    f"max={_dp_plan.max_temp} text={_dp_plan.windows_text!r} "
+    f"learned={_dp_plan.windows_learned} sched={getattr(_dp_plan.schedule, 'shape', None)}",
+)
+
+_dp_froze = False
+try:
+    _dp_plan.max_temp = _dp_plan.max_temp  # type: ignore[misc]
+except FrozenInstanceError:
+    _dp_froze = True
+R.check(
+    "a finished DhwPlan cannot be rewritten field by field",
+    _dp_froze,
+    "assignment succeeded — this is a threaded state object, not "
+    "frozen-at-the-end",
+)
+
+
 R.section("v5.3.0 review — the experiment obeys the mode gate too")
 
 from pathlib import Path as _Path  # noqa: E402
@@ -24729,6 +25105,170 @@ R.check(
     "the one that was sent (#546)",
     _t546_raised is None and _t546_stored == _t546_sent,
     f"raised {_t546_raised!r}; stored {_t546_stored!r}",
+)
+
+# --- process_worker.py in-process pins (#505) -------------------------------
+#
+# The module landed at 0.0% (36/36) and belongs to no #195 tranche. #511
+# already drives `_dump`'s unpicklable-error arm via the coordinator child.
+# These pins import the production symbols and drive the loop / bootstrap
+# here, so a statement the child process hides from coverage still has a
+# parent-process witness. Roster re-partition stays in `.claude` (leave-alone).
+# leaves #505 open. leaves #195 open.
+import io as _pw505_io  # noqa: E402
+import operator as _pw505_op  # noqa: E402
+import pickle as _pw505_pickle  # noqa: E402
+
+import custom_components.heatpump_optimizer.process_worker as _pw505  # noqa: E402
+
+R.section("process_worker.py (#505)")
+
+
+class _Pw505BadStr:
+    def __str__(self):
+        raise RuntimeError("str refused")
+
+
+class _Pw505Unpicklable:
+    def __reduce__(self):
+        raise TypeError("this value refuses to pickle")
+
+
+class _Pw505Std:
+    def __init__(self, raw):
+        self.buffer = raw
+
+
+R.check(
+    "_describe names a value that prints",
+    _pw505._describe(7) == "int: 7",
+    f"got {_pw505._describe(7)!r}",
+)
+try:
+    _pw505_badstr = _pw505._describe(_Pw505BadStr())
+    _pw505_badstr_err = None
+except Exception as _pw505_badstr_exc:  # noqa: BLE001 — a raise is the mutant
+    _pw505_badstr, _pw505_badstr_err = None, _pw505_badstr_exc
+R.check(
+    "_describe survives a __str__ that raises",
+    _pw505_badstr_err is None and _pw505_badstr == "_Pw505BadStr",
+    f"got {_pw505_badstr!r} err={_pw505_badstr_err!r}",
+)
+
+_pw505_ok = _pw505_io.BytesIO()
+_pw505._dump(_pw505_ok, ("ok", 42))
+_pw505_ok_payload = _pw505_pickle.loads(_pw505_ok.getvalue())
+R.check(
+    "_dump writes a picklable ok frame in one blob",
+    _pw505_ok_payload == ("ok", 42),
+    f"got {_pw505_ok_payload!r}",
+)
+
+_pw505_ok_bad = _pw505_io.BytesIO()
+_pw505._dump(_pw505_ok_bad, ("ok", _Pw505Unpicklable()))
+_pw505_ok_bad_payload = _pw505_pickle.loads(_pw505_ok_bad.getvalue())
+R.check(
+    "_dump degrades an unpicklable ok result to err, not a published plan (#524)",
+    (
+        isinstance(_pw505_ok_bad_payload, tuple)
+        and _pw505_ok_bad_payload[0] == "err"
+        and isinstance(_pw505_ok_bad_payload[1], RuntimeError)
+        and "_Pw505Unpicklable" in str(_pw505_ok_bad_payload[1])
+    ),
+    f"got {_pw505_ok_bad_payload!r}",
+)
+
+_pw505_here = _Path(_pw505.__file__).resolve().parent
+_pw505_parent = str(_pw505_here.parent)
+_pw505_saved_path = list(sys.path)
+sys.path[:0] = [str(_pw505_here)]
+if _pw505_parent in sys.path:
+    sys.path.remove(_pw505_parent)
+_pw505._bootstrap()
+_pw505_after = []
+for _pw505_entry in sys.path:
+    try:
+        _pw505_after.append(str(_Path(_pw505_entry).resolve()) if _pw505_entry else _pw505_entry)
+    except OSError:
+        _pw505_after.append(_pw505_entry)
+_pw505_boot_ok = (
+    str(_pw505_here) not in _pw505_after
+    and _pw505_parent in sys.path
+    and sys.path[0] == _pw505_parent
+)
+sys.path[:] = _pw505_saved_path
+R.check(
+    "_bootstrap drops the package directory so datetime is stdlib",
+    _pw505_boot_ok,
+    f"here={_pw505_here} path0={sys.path[0]!r}",
+)
+
+
+def _pw505_run(stdin_bytes: bytes) -> bytes:
+    _in, _out = sys.stdin, sys.stdout
+    _raw_out = _pw505_io.BytesIO()
+    sys.stdin = _Pw505Std(_pw505_io.BytesIO(stdin_bytes))
+    sys.stdout = _Pw505Std(_raw_out)
+    _path = list(sys.path)
+    try:
+        _pw505.run_worker()
+    finally:
+        sys.stdin, sys.stdout = _in, _out
+        sys.path[:] = _path
+    return _raw_out.getvalue()
+
+
+_pw505_eof = _pw505_run(b"")
+R.check(
+    "run_worker returns on EOF without writing",
+    _pw505_eof == b"",
+    f"wrote {len(_pw505_eof)} byte(s)",
+)
+
+_pw505_ok_job = _pw505_run(_pw505_pickle.dumps((_pw505_op.add, (2, 3))))
+_pw505_ok_job_payload = _pw505_pickle.loads(_pw505_ok_job)
+R.check(
+    "run_worker dumps ok and the function result",
+    _pw505_ok_job_payload == ("ok", 5),
+    f"got {_pw505_ok_job_payload!r}",
+)
+
+_pw505_err_job = _pw505_run(_pw505_pickle.dumps((int, ("x",))))
+_pw505_err_job_payload = _pw505_pickle.loads(_pw505_err_job)
+R.check(
+    "run_worker dumps err when the job raises",
+    (
+        _pw505_err_job_payload[0] == "err"
+        and isinstance(_pw505_err_job_payload[1], ValueError)
+    ),
+    f"got {_pw505_err_job_payload!r}",
+)
+
+_pw505_load = _pw505_run(b"\xff\xffnot-a-pickle")
+_pw505_load_payload = _pw505_pickle.loads(_pw505_load)
+R.check(
+    "run_worker dumps load-err and stops when the frame will not unpickle",
+    _pw505_load_payload[0] == "load-err",
+    f"got {_pw505_load_payload!r}",
+)
+
+_pw505_script = _subprocess.run(
+    [sys.executable, str(_Path(_pw505.__file__))],
+    input=_pw505_pickle.dumps((_pw505_op.add, (4, 5))),
+    capture_output=True,
+    check=False,
+)
+_pw505_script_payload = None
+if _pw505_script.returncode == 0 and _pw505_script.stdout:
+    try:
+        _pw505_script_payload = _pw505_pickle.loads(_pw505_script.stdout)
+    except Exception as _pw505_script_err:  # noqa: BLE001
+        _pw505_script_payload = _pw505_script_err
+R.check(
+    "python process_worker.py as __main__ runs the worker on stdin",
+    _pw505_script.returncode == 0 and _pw505_script_payload == ("ok", 9),
+    f"rc={_pw505_script.returncode} out={_pw505_script_payload!r} "
+    f"err={_pw505_script.stderr[:200]!r}",
 )
 
 sys.exit(R.close("FEATURE CHECKS"))
