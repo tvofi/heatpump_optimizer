@@ -1366,6 +1366,45 @@ function checkRecord(prs, dispositionText) {
   return out
 }
 
+// ---------------------------------------------------------------------------
+// table. A blank line between two rows of one markdown table ends the table
+// there, and every row after it renders as literal text -- pipes and all --
+// while the source still looks like a table to whoever is editing it. Found
+// when a row of the plan's Delivery-status table was left FIVE cells wide in a
+// three-column table and the reviewer went looking for why nobody had noticed:
+// the row was not in a table at all. Measured through GitHub's own /markdown
+// endpoint at 7d8d271, the section rendered as one table of 11 rows plus 104
+// literal pipe characters loose in paragraphs; with the blank line removed it
+// renders as one table of 37 rows and no loose pipes.
+//
+// This runs in the RECORD mode rather than over the corpus because the two
+// documents it reads are the record's own, and `docs/` is not a policy
+// directory -- no corpus check has ever opened either of them.
+//
+// The one legitimate shape it must not refuse is two tables in a row, where the
+// blank line is the separator between them. That is told apart by looking one
+// line further: a new table's header is followed by a delimiter row, and a
+// continuation row is not.
+function checkTableSplit(rel, text) {
+  const out = []
+  const lines = text.split('\n')
+  const isRow = (l) => typeof l === 'string' && l.startsWith('|')
+  const isDelim = (l) => typeof l === 'string' && /^\|[\s|:-]+\|\s*$/.test(l)
+  for (let i = 1; i < lines.length - 1; i++) {
+    if (lines[i].trim() !== '') continue
+    if (!isRow(lines[i - 1]) || !isRow(lines[i + 1])) continue
+    if (isDelim(lines[i + 2])) continue // a new table starts here, not a split
+    out.push({
+      severity: 'error',
+      check: 'table',
+      where: `${rel}:${i + 1}`,
+      message:
+        'a blank line sits between two rows of one table, which ends the table here. Every row below renders as literal text with its pipes visible, while the source still reads as a table. Delete the blank line, or give the second half its own header and delimiter row.',
+    })
+  }
+  return out
+}
+
 // --stats. The verdict vocabulary is READ from the wave script rather than
 // re-listed here, so the histogram cannot classify against a grammar the
 // reviewers were never given. It cannot be imported: web-fix-wave.js is a
@@ -1942,6 +1981,7 @@ const REQUIRED_ROT = {
     ],
   },
   counts: { count: 2 },
+  table: { count: 1, must: ['ends the table here'] },
   'no-gh': { count: 1 },
   duplicates: { count: 1 },
   budgets: {
@@ -2015,7 +2055,7 @@ CORPUS_CHECKS.push(checkIndex, checkDuplicates, checkBudgets, coverageOverTree, 
 // refuse; it cannot prove the check is not refusing everything. Each loop mode
 // is therefore also run against a fixture that is healthy in exactly the way the
 // rot fixture is rotten, and must produce nothing.
-const REQUIRED_SILENT = ['record', 'stats', 'sunset']
+const REQUIRED_SILENT = ['record', 'stats', 'sunset', 'table']
 
 function assertAcceptance(derived) {
   const dir = path.join(HERE, 'fixtures', 'policy-rot')
@@ -2094,6 +2134,7 @@ function assertAcceptance(derived) {
   }
   const rotten = checkRecord(loop.prs, loop.dispositionsRotten)
   found.push(...rotten)
+  found.push(...checkTableSplit('fixtures/policy-loop/dispositions-rotten.md', loop.dispositionsRotten))
 
 
   found.push(...statsFindings({ prs: loop.prs, fetched: loop.fetched, fetchError: null, classes: loop.classes }))
@@ -2107,6 +2148,7 @@ function assertAcceptance(derived) {
   // nothing.
   const silent = {
     record: checkRecord(loop.prs, loop.dispositionsHealthy),
+    table: checkTableSplit('fixtures/policy-loop/dispositions-healthy.md', loop.dispositionsHealthy),
     stats: statsFindings({ prs: loop.healthyPrs, fetched: loop.fetched, fetchError: null, classes: loop.classes }),
     sunset: checkSunset(loop.sunsetHealthy, { friction: loop.friction, fires: loop.fires, today: loop.today }),
   }
@@ -3153,10 +3195,18 @@ function cmdRecordDispositions(since) {
     : [{ severity: 'error', check: 'record', where: DISPOSITION_FILES[0],
          message: `no \`## ${RECORD_SECTION}\` section, so the record has no region to read and every merge in the window would report as undispositioned. Restore the heading, or change RECORD_SECTION with it.` }]
   const applied = applyKnownBad(all, RECORD_KEY)
+  // Counted and printed apart from the record findings: `all.length` is the
+  // undispositioned-merge count and folding a different class into it would
+  // make that sentence false.
+  const split = DISPOSITION_FILES.flatMap((rel) => {
+    const t = read(rel)
+    return t ? checkTableSplit(rel, t) : []
+  })
   console.log(`RECORD: ${prs.length} merged pull request(s) in ${since}..${mainRef()}; ${all.length} without a disposition in ${DISPOSITION_FILES.join(' or ')}`)
-  printFindings(applied.live)
+  console.log(`TABLES: ${split.length} split table(s) across ${DISPOSITION_FILES.length} disposition document(s)`)
+  printFindings([...applied.live, ...split])
   console.log(`\nKNOWN-BAD: ${applied.suppressed} of ${applied.total} recorded record-class defect(s) still present, in ${applied.occurrences} recorded occurrence(s)`)
-  const errors = applied.live.filter((f) => f.severity === 'error').length
+  const errors = [...applied.live, ...split].filter((f) => f.severity === 'error').length
   console.log(`\nTOTAL: ${errors} error(s) over ${prs.length} merged pull request(s)`)
   process.exit(errors > 0 ? 1 : 0)
 }
