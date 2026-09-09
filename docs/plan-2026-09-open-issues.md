@@ -490,6 +490,7 @@ no wave:
 - [#643](https://github.com/tvofi/heatpump_optimizer/pull/643) — W5-G3: config_flow.py annotations, ruler 297→271. leaves #303 open.
 - [#661](https://github.com/tvofi/heatpump_optimizer/pull/661) — nightly A4 availability fault-injection. leaves #533 open.
 - [#664](https://github.com/tvofi/heatpump_optimizer/pull/664) — UX E1: setup and reauth token fields use the same password selector as options. leaves #558 open.
+- [#665](https://github.com/tvofi/heatpump_optimizer/pull/665) — UX E2: finish-setup-now after the second screen. leaves #558 open.
 
 **A pattern worth naming**, since most of these were blocked for it: every one of those blocks was a document asserting something that was not true of the tree — a stale head, a count, an actor, a carry that did not land. None was a disagreement about the change itself.
 

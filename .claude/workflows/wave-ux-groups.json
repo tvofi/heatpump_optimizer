@@ -356,7 +356,7 @@
       "after": [],
       "resume": {
         "stage": "in-review",
-        "note": "Drafting finish-setup-now after user_sensors. leaves #558 open."
+        "note": "PR #665 drafts finish-setup-now after user_sensors. leaves #558 open."
       },
       "brief": "Offer a finish-setup-now exit after the second screen: today nine steps run before an entry exists, so a user who stops at step eight has nothing. Any change to a form's SHAPE is subject to the constraint E4's brief carries about one-level schema walks in the assertion layer."
     },
