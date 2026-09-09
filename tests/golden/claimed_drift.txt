@@ -50,6 +50,14 @@
 # v6.3.18: the plan works again, the #193 decomposition through S9, and the programme's own contracts. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
+# E4 / #516: grouping the ten wide options pages. config_flow is float-free
+# (`carries_floats` is False), so env_drift compares it exactly at level 1:
+# the committed fixture is re-recorded AND the drift vs the merge base is
+# claimed. Same class as #547. Solver fixtures and the card claim file are
+# untouched.
+
+config_flow # ten wide options pages nest fields under section(); fingerprint moves once
+#
 
 #
 # #509, the diagnostics privacy fix: this branch claims NOTHING. It touches
