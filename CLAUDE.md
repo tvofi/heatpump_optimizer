@@ -124,6 +124,7 @@ individually, because a range reads as complete while covering a fraction:
 | `D8.md` | sensor verification and ordering |
 | `D9.md` | CPU and memory efficiency, Raspberry-Pi-class target |
 | `D10.md` | Home Assistant integration quality scale |
+| `D11.md` | governance mechanisms and policy, against public standards |
 
 ### The suite, the register, the handover
 

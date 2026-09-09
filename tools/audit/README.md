@@ -1,6 +1,6 @@
 # The audit toolkit
 
-Everything the eleven-dimension audit runs on, so that a finding can be
+Everything the per-dimension audit runs on, so that a finding can be
 re-measured by someone who was not there: the briefs each auditor receives,
 the schema every finding must satisfy, the harness contract, and the three
 harnesses a judge still re-runs (`harnesses/README.md`). The register
@@ -18,7 +18,7 @@ seat; this file does not repeat that list. The rest of the layout:
 tools/audit/
   finding.schema.json       what a finder must return; a finding without evidence cannot be returned
   briefs/COMMON.md          the contract every finder works under (read first)
-  briefs/D0.md … D10.md     one dimension each: method, what to reuse, what has fooled people before
+  briefs/D0.md … D11.md     one dimension each: method, what to reuse, what has fooled people before
   briefs/verifier.md        the adversarial panel's contract
   briefs/judge.md           the judge's contract: re-measure, void, classify
   briefs/fixer.md           the fix protocol as a checklist
@@ -182,7 +182,7 @@ files through the Agent tool instead, passing the model explicitly per call.
 ## Resource rules on the audit box
 
 8-core Apple M1, 8 GB, numpy on OpenBLAS. Timing is not measurable while
-eleven agents share the box, so during a fan-out only contention-immune
+the finders share the box, so during a fan-out only contention-immune
 evidence counts: call counts, bytes, and CPU-time ratios against the stress
 reference solve. Every wall, CPU or RSS number is re-taken in the quiet
 window before it enters the register. One local full gate at a time, through

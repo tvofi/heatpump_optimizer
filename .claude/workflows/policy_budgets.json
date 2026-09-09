@@ -19,14 +19,14 @@
         "docs/HANDOVER.md",
         ".claude/workflows/wave-4-groups.json"
       ],
-      "cap": 6853
+      "cap": 6869
     },
     "policy": {
       "opens": [
         "tools/audit/briefs/fixer.md",
         ".github/workflows/tests.yml"
       ],
-      "cap": 9459
+      "cap": 9475
     }
   },
   "_roles": "opens is a representative file per surface, not an exhaustive list. The cap ratchets a fixed sample; widening the sample is a visible edit here rather than a silent re-measurement.",
@@ -44,7 +44,7 @@
     ".claude/workflows/fixtures/policy-rot/budgets.md": 1,
     ".claude/workflows/web-fragments.md": 168,
     ".github/PULL_REQUEST_TEMPLATE.md": 38,
-    "CLAUDE.md": 197,
+    "CLAUDE.md": 198,
     "docs/HANDOVER.md": 406,
     "tests/README.md": 800,
     "tools/audit/README.md": 250,
@@ -52,6 +52,7 @@
     "tools/audit/briefs/D0.md": 66,
     "tools/audit/briefs/D1.md": 58,
     "tools/audit/briefs/D10.md": 43,
+    "tools/audit/briefs/D11.md": 103,
     "tools/audit/briefs/D2.md": 51,
     "tools/audit/briefs/D3.md": 46,
     "tools/audit/briefs/D4.md": 48,
