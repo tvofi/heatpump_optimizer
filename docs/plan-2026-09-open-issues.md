@@ -905,8 +905,10 @@ judge comments on each issue and summarised on #201.
   NOT wait on the ruleset: the decision dates what it says about the
   repository and stands whether or not a ruleset exists. An earlier draft of
   this entry said it lands beside the ruleset as the programme's last act;
-  0007 says otherwise and 0007 is the record.
-  under 0006 with its verdict and head SHA, as that plan asked.
+  0007 says otherwise and 0007 is the record. **Still owed, and stated here
+  because deleting that draft nearly deleted the obligation with it:** the
+  programme's closing #201 comment lists every pull request merged under 0006
+  with its verdict and head SHA, as the governance-audit plan asked.
 - **The verdict-example pin has two residuals its own reviewer drove, and one
   is a hole rather than a limit.** #641 round 2 attacked the widened block in
   `check-wave-script.mjs` and found three properties, two of which are left

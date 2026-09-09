@@ -367,12 +367,15 @@ const CORPUS_EXCLUDED = new Set([
   // because "the index is the only way a seat finds a policy file" -- and
   // naming them all here would push the ALWAYS-LOADED set, the one number this
   // audit exists to drive down, past its cap to carry documents nobody must
-  // read. Measured before choosing, and RE-MEASURED here because the first
-  // reading was taken against five decisions and the list has grown since:
-  // bringing `docs/decisions/` under POLICY_GLOBS reports 24 errors across 41
-  // policy files -- 7 [budgets], 6 [index], 6 [duplicates], 5 [citations] --
-  // where the first reading said 14. The shape is what decided it and the shape
-  // is unchanged: every ADR wants a cap and an index line it should not have.
+  // read. Measured before choosing, and stated as a SHAPE rather than a count,
+  // because the count is a function of how many decisions exist and this comment
+  // has already carried three stale readings -- 14, then 24, then 24 again after
+  // the list grew. Bringing `docs/decisions/` under POLICY_GLOBS reports, for
+  // every decision, one [budgets] error (no cap) and one [index] error (CLAUDE.md
+  // does not name it), plus [duplicates] between records that share a paragraph
+  // and [citations] below. The total therefore grows with the directory, which is
+  // itself half the argument. Re-derive it rather than reading it here: put the
+  // glob back, delete the exclusion entries, and run the linter.
   // The five [citations] are named one by one rather than summarised, because
   // the first version of this sentence said they were all 0003's and three of
   // them are: `docs/Zednotes.md`, `NOT_A_DOCUMENT` and `NEVER_NOT_A_DOCUMENT`,
