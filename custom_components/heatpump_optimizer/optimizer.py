@@ -61,6 +61,7 @@ from .dhw_draws import window_label as draw_window_label
 from .thermal_model import (
     DHW_AMBIENT_TEMP,
     ThermalModel,
+    ThermalParameters,
     ThermalState,
     dhw_coil_draw_reduction,
     wood_share,
@@ -3790,7 +3791,7 @@ class HeatPumpOptimizer:
 
     def _dhw_window_floors(
         self,
-        params,
+        params: ThermalParameters,
         windows: list[Window],
         step_hours: np.ndarray,
         step_weekdays: np.ndarray | None,
