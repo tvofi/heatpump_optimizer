@@ -21,9 +21,10 @@ a margin before the stated return, and the estimate itself is rounded up.
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from dataclasses import dataclass, replace
 from datetime import datetime
-from typing import Any
+from typing import Any, Protocol
 
 from homeassistant.helpers.storage import Store
 
@@ -86,7 +87,7 @@ class AwayState:
     override_return_iso: str | None = None
     migrated_helpers: bool = False
 
-    def as_dict(self) -> dict:
+    def as_dict(self) -> dict[str, Any]:
         return {
             "away_active": self.active,
             "away_source": self.source,
@@ -111,6 +112,29 @@ class AwayState:
         }
 
 
+class _SetbackConfig(Protocol):
+    target_temp: float
+    min_temp: float
+    comfort_temp_day: float
+    comfort_temp_night: float
+
+
+class _SetbackThermal(Protocol):
+    dhw_min_temp: float
+    dhw_idle_min_temp: float
+
+
+class _AwayCoord(Protocol):
+    hass: Any
+    entry: Any
+    _away_state: AwayState
+    _config: Mapping[str, Any]
+
+    def _entity_state(
+        self, entity_id: str | None
+    ) -> tuple[str | None, dict[str, Any]]: ...
+
+
 # States that switch a toggle-style away entity OFF and ON respectively. Named
 # for the *toggle*, not the person: "on" for an ``input_boolean.away_mode``
 # means the house is empty.
@@ -126,7 +150,7 @@ _PRESENCE_DEVICE_CLASSES = ("presence", "occupancy")
 def interpret_presence(
     raw: str | None,
     entity_id: str | None,
-    attributes: dict | None = None,
+    attributes: dict[str, Any] | None = None,
 ) -> bool | None:
     """Map an entity state to "is the house empty?".
 
@@ -214,7 +238,9 @@ def estimate_recovery_hours(
     return MAX_RECOVERY_HOURS
 
 
-def expire_override(active, return_time, now):
+def expire_override(
+    active: bool, return_time: datetime | None, now: datetime
+) -> tuple[bool, datetime | None]:
     """Turn the service override off once ``now`` reaches the return instant."""
     if active and return_time is not None and now >= return_time:
         return False, None
@@ -222,8 +248,11 @@ def expire_override(active, return_time, now):
 
 
 def migrate_helper_override(
-    presence_entity, presence_raw, presence_attributes, return_raw
-):
+    presence_entity: str | None,
+    presence_raw: str | None,
+    presence_attributes: dict[str, Any] | None,
+    return_raw: str | None,
+) -> dict[str, Any]:
     """One-shot copy of the old helper pair into the service store."""
     drop_presence = bool(
         presence_entity and str(presence_entity).startswith("input_boolean.")
@@ -245,7 +274,7 @@ def empty_override() -> dict[str, Any]:
     return {"active": False, "return_time": None, "migrated_helpers": False}
 
 
-def config_from_mapping(config: dict) -> AwayConfig:
+def config_from_mapping(config: Mapping[str, Any]) -> AwayConfig:
     return AwayConfig(
         presence_entity=config.get(CONF_AWAY_PRESENCE_ENTITY),
         away_temperature=_as_num(
@@ -257,7 +286,9 @@ def config_from_mapping(config: dict) -> AwayConfig:
     )
 
 
-def apply_setback(state, opt_config, thermal_params) -> dict[str, float]:
+def apply_setback(
+    state: AwayState, opt_config: _SetbackConfig, thermal_params: _SetbackThermal
+) -> dict[str, float]:
     """Temporarily lower comfort targets while away. Returns the originals."""
     original = {
         "target_temp": opt_config.target_temp,
@@ -282,7 +313,11 @@ def apply_setback(state, opt_config, thermal_params) -> dict[str, float]:
     return original
 
 
-def restore_setback(original: dict[str, float], opt_config, thermal_params) -> None:
+def restore_setback(
+    original: dict[str, float],
+    opt_config: _SetbackConfig,
+    thermal_params: _SetbackThermal,
+) -> None:
     opt_config.target_temp = original["target_temp"]
     opt_config.min_temp = original["min_temp"]
     opt_config.comfort_temp_day = original["comfort_temp_day"]
@@ -291,7 +326,7 @@ def restore_setback(original: dict[str, float], opt_config, thermal_params) -> N
     thermal_params.dhw_idle_min_temp = original["dhw_idle_min_temp"]
 
 
-def _away_store(coord) -> Store:
+def _away_store(coord: _AwayCoord) -> Store[dict[str, Any]]:
     return Store(
         coord.hass,
         AWAY_STORE_VERSION,
@@ -314,14 +349,14 @@ def apply_override_payload(state: AwayState, payload: dict[str, Any]) -> None:
     state.migrated_helpers = bool(payload.get("migrated_helpers"))
 
 
-async def persist_override(coord) -> None:
+async def persist_override(coord: _AwayCoord) -> None:
     try:
         await _away_store(coord).async_save(_override_payload(coord._away_state))
     except Exception as err:  # noqa: BLE001
         _LOGGER.debug("Could not persist away override: %s", err)
 
 
-async def restore_override(coord) -> None:
+async def restore_override(coord: _AwayCoord) -> None:
     try:
         raw = await _away_store(coord).async_load()
     except Exception as err:  # noqa: BLE001
@@ -341,7 +376,9 @@ async def restore_override(coord) -> None:
     apply_override_payload(coord._away_state, payload)
 
 
-async def _migrate_helpers(coord, payload: dict[str, Any]) -> dict[str, Any]:
+async def _migrate_helpers(
+    coord: _AwayCoord, payload: dict[str, Any]
+) -> dict[str, Any]:
     presence = coord._config.get(CONF_AWAY_PRESENCE_ENTITY)
     presence_raw, presence_attrs = coord._entity_state(presence)
     return_raw, _ = coord._entity_state(coord._config.get(CONF_AWAY_RETURN_ENTITY))
@@ -367,11 +404,17 @@ async def _migrate_helpers(coord, payload: dict[str, Any]) -> dict[str, Any]:
     return payload
 
 
-def _as_num(value, default: float) -> float:
+def _as_num(value: object, default: float) -> float:
+    if value is None:
+        return default
     try:
-        return float(value)
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            return float(value)
+        if isinstance(value, str):
+            return float(value)
     except (TypeError, ValueError):
         return default
+    return default
 
 
 def _apply_return(
@@ -407,7 +450,7 @@ def resolve(
     *,
     now: datetime,
     presence_raw: str | None,
-    presence_attributes: dict | None,
+    presence_attributes: dict[str, Any] | None,
     return_raw: str | None,
     comfort_temp: float,
     model: Any,
