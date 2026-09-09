@@ -11,6 +11,10 @@ the reason the dated series was abolished are in
 path; `tests/entities.py` refuses a second handover. Delivery status is
 `docs/plan-2026-09-open-issues.md`'s table and authoritative there.
 
+**Name the metric, never its number.** Twenty-one out-of-tree briefs once
+carried a `coordinator_loc` stale by two hundred lines — the measurement this
+file's own figure rule was written from, and the only place it survives.
+
 ## Decisions taken — do not relitigate
 
 - **Model routing is Claude seats.** Opus 5: orchestrator, architectural fixer
@@ -311,6 +315,7 @@ in its own pull request.
     what survives here is the method for settling a render question at all. 26 of the plan's
     36 disposition rows were not in a table, for an unknown number of sessions,
     in the most-read document here. Graduated: `policy_lint --record`'s
+    `table` check over both disposition documents. Ground truth for a render
     question is GitHub's own `/markdown` endpoint, not the CommonMark spec —
     how #686 established that a row's *leading* pipe is optional in GFM, so
     deleting one is correctly not reported. The blank line is the defect.
