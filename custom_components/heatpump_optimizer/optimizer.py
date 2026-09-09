@@ -61,6 +61,7 @@ from .dhw_draws import window_label as draw_window_label
 from .thermal_model import (
     DHW_AMBIENT_TEMP,
     ThermalModel,
+    ThermalParameters,
     ThermalState,
     dhw_coil_draw_reduction,
     wood_share,
@@ -3788,40 +3789,19 @@ class HeatPumpOptimizer:
             )
         return out
 
-    def _build_dhw_requirements(
+    def _dhw_window_floors(
         self,
-        initial_state: ThermalState,
-        prices: np.ndarray,
-        outdoor_temps: np.ndarray,
+        params: ThermalParameters,
+        windows: list[Window],
         step_hours: np.ndarray,
-        n_steps: int,
+        step_weekdays: np.ndarray | None,
         dt: float,
-        p_max: float,
-        space_demand: np.ndarray | None = None,
-        dhw_pins: np.ndarray | None = None,
-        p_run_cap: float | None = None,
-        blocked: bool = False,
-        step_weekdays: np.ndarray | None = None,
-        wood_temps: np.ndarray | None = None,
-    ) -> dict[str, Any]:
-        """Build the DHW availability requirements and a cheapest-first plan.
-
-        The requirement is a per-step temperature *floor*, not a target to
-        track:
-
-        * inside a demand window the tank must stay at or above the usable
-          minimum temperature, and it must be "ready" (hot enough to cover the
-          window's expected draw) when the window opens;
-        * outside the windows only the idle floor applies, which defaults to
-          the tank's ambient temperature, i.e. no requirement at all.
-
-        Because nothing rewards a hot tank per se, the electricity cost term is
-        the only thing left to decide *when* the pump runs — so it runs at the
-        cheapest hours that still satisfy the windows.
-        """
-        params = self.model.params
-        windows, learned_windows = self._effective_dhw_windows()
-
+        n_steps: int,
+        wood_temps: np.ndarray | None,
+    ) -> tuple[
+        float, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray
+    ]:
+        """Window mask, floors, ready temps, and the planner draw series."""
         dhw_min_temp = params.dhw_min_temp
         dhw_setpoint = params.dhw_setpoint
         idle_min_temp = min(params.dhw_idle_min_temp, dhw_min_temp)
@@ -3918,6 +3898,66 @@ class HeatPumpOptimizer:
             # The tank must be ready by the END of the step before the window.
             ready_idx = max(0, start_idx - 1)
             ready_temps[ready_idx] = max(ready_temps[ready_idx], required_ready)
+        return (
+            c_dhw,
+            hours_mod,
+            in_window,
+            raw_draw_rates,
+            draw_rates,
+            floor_temps,
+            ready_temps,
+        )
+
+    def _build_dhw_requirements(
+        self,
+        initial_state: ThermalState,
+        prices: np.ndarray,
+        outdoor_temps: np.ndarray,
+        step_hours: np.ndarray,
+        n_steps: int,
+        dt: float,
+        p_max: float,
+        space_demand: np.ndarray | None = None,
+        dhw_pins: np.ndarray | None = None,
+        p_run_cap: float | None = None,
+        blocked: bool = False,
+        step_weekdays: np.ndarray | None = None,
+        wood_temps: np.ndarray | None = None,
+    ) -> dict[str, Any]:
+        """Build the DHW availability requirements and a cheapest-first plan.
+
+        The requirement is a per-step temperature *floor*, not a target to
+        track:
+
+        * inside a demand window the tank must stay at or above the usable
+          minimum temperature, and it must be "ready" (hot enough to cover the
+          window's expected draw) when the window opens;
+        * outside the windows only the idle floor applies, which defaults to
+          the tank's ambient temperature, i.e. no requirement at all.
+
+        Because nothing rewards a hot tank per se, the electricity cost term is
+        the only thing left to decide *when* the pump runs — so it runs at the
+        cheapest hours that still satisfy the windows.
+        """
+        params = self.model.params
+        windows, learned_windows = self._effective_dhw_windows()
+        (
+            c_dhw,
+            hours_mod,
+            in_window,
+            raw_draw_rates,
+            draw_rates,
+            floor_temps,
+            ready_temps,
+        ) = self._dhw_window_floors(
+            params,
+            windows,
+            step_hours,
+            step_weekdays,
+            dt,
+            n_steps,
+            wood_temps,
+        )
 
         # The pump serves DHW as an on/off block, not a trickle, so the planner
         # allocates at a realistic run power and never below the level at which
