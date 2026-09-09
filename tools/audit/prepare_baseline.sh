@@ -8,7 +8,9 @@
 # Run from any checkout of the repository. Creates, beside the repository's
 # worktrees directory:
 #   ../audit-r<round>-baseline        the export (D1, D2, D4, D5, D6, D7, D8, D10)
-#   ../audit-r<round>-D0 / -D3 / -D9  worktrees at the baseline (instrumenting finders)
+#   ../audit-r<round>-<dim>           a worktree per dimension in ISOLATED_DIMS below
+#                                     (the instrumenting finders, and D11, which audits
+#                                      the process and so needs .git and the API)
 # and writes tools/audit/round<round>/BASELINE.md into each with the paths the
 # finders need. Idempotent: refuses to overwrite an existing export.
 set -euo pipefail
@@ -29,7 +31,11 @@ mkdir -p "$EXPORT/tools/audit"
 cp -R "$SRC/tools/audit/." "$EXPORT/tools/audit/"     # current briefs, README, schema
 mkdir -p "$EXPORT/tools/audit/round${ROUND}"
 
-for dim in D0 D3 D9; do
+# One list, read three times below. audit-find.js's ISOLATED must agree with it;
+# they are separate files and a seat that edits one edits both.
+ISOLATED_DIMS="D0 D3 D9 D11"
+
+for dim in $ISOLATED_DIMS; do
   wt="$PARENT/audit-r${ROUND}-${dim}"
   [ -e "$wt" ] && { echo "refusing: $wt exists"; exit 2; }
   git worktree add --detach "$wt" "$FULL" >/dev/null
@@ -39,13 +45,14 @@ done
 
 NODE=$(command -v node || true)
 CHROMIUM=$(ls -d "$HOME"/.cache/pw-browsers/chromium-* 2>/dev/null | head -1 || true)
-for dir in "$EXPORT" "$PARENT/audit-r${ROUND}-D0" "$PARENT/audit-r${ROUND}-D3" "$PARENT/audit-r${ROUND}-D9"; do
+ISOLATED_DIRS=""; for dim in $ISOLATED_DIMS; do ISOLATED_DIRS="$ISOLATED_DIRS $PARENT/audit-r${ROUND}-${dim}"; done
+for dir in "$EXPORT" $ISOLATED_DIRS; do
   cat > "$dir/tools/audit/round${ROUND}/BASELINE.md" <<MD
 # Round ${ROUND} baseline
 
 - baseline: ${FULL}
 - export (read-only finders): ${EXPORT}
-- worktrees (instrumenting finders): D0 ${PARENT}/audit-r${ROUND}-D0, D3 ${PARENT}/audit-r${ROUND}-D3, D9 ${PARENT}/audit-r${ROUND}-D9
+- worktrees (isolated finders): $(for d in $ISOLATED_DIMS; do printf '%s %s/audit-r%s-%s, ' "$d" "$PARENT" "$ROUND" "$d"; done | sed 's/, $//')
 - python: ${PYTHON} (run from the directory root with PYTHONPATH=tests/hastub)
 - node: ${NODE:-not found}
 - chromium: ${CHROMIUM:-not found} (PLAYWRIGHT_BROWSERS_PATH=\$HOME/.cache/pw-browsers)

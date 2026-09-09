@@ -63,14 +63,14 @@ const prep = await agent(
 2. For each of ${[...ISOLATED].join(', ')} run \`git worktree add ../audit-r${round}-<dim> ${baseline}\` from ${repo}; copy tools/audit/ in the same way.
 3. Warm the shared drift cache once: from ${repo}, PYTHONPATH=tests/hastub python tests/env_drift.py --all ${baseline} with GOLDEN_REF pointing at a different commit is not needed — instead run \`python tests/env_drift.py --cache-key ${baseline} --all\` and, if the cache misses, capture the baseline with \`--capture\` as tests/README.md describes so later runs hit.
 4. Record the absolute paths, the python interpreter to use (a venv with numpy/scipy; ${repo}/../tvofi-claude/.venv/bin/python exists on the audit box), node, and the Chromium path under ~/.cache/pw-browsers in tools/audit/round${round}/BASELINE.md inside the export.
-Return JSON {exportDir, worktrees: {D0, D3, D9}, python, node}.`,
+Return JSON {exportDir, worktrees: {${[...ISOLATED].join(', ')}}, python, node}.`,
   { label: 'prepare', schema: { type: 'object', required: ['exportDir', 'worktrees', 'python'], properties: { exportDir: { type: 'string' }, worktrees: { type: 'object' }, python: { type: 'string' }, node: { type: 'string' } } } },
 )
 
 if (!prep) throw new Error('baseline preparation failed (agent returned null); relaunch')
 
 const finder = (dim) => agent(
-  `You are the ${dim} auditor of round ${round}. Work only in ${ISOLATED.has(dim) ? prep.worktrees[dim] : prep.exportDir} (an export/worktree of baseline ${baseline}; no earlier audit records are in it and you must not go looking for them; do not run gh). Use the interpreter ${prep.python} with PYTHONPATH=tests/hastub from that directory's root.
+  `You are the ${dim} auditor of round ${round}. Work only in ${ISOLATED.has(dim) ? prep.worktrees[dim] : prep.exportDir} (an export/worktree of baseline ${baseline}; no earlier audit records are in it and you must not go looking for them; ${dim === 'D11' ? 'your brief is the one exception to the GitHub wall -- read the history and the API it names, and record what you read under exposure' : 'do not run gh'}). Use the interpreter ${prep.python} with PYTHONPATH=tests/hastub from that directory's root.
 Read tools/audit/briefs/COMMON.md, then tools/audit/briefs/${dim}.md, then tools/audit/README.md, and follow them exactly. Write your harnesses under tools/audit/round${round}/${dim}/ and your report to tools/audit/round${round}/${dim}/REPORT.md. Every finding needs an executed number from a committed harness that hooks a named production symbol and moves under a named perturbation; a finding without those cannot be returned. Mark any wall/CPU/RSS number provisional: true — it will be re-taken on a quiet box.
 Return the JSON report described by tools/audit/finding.schema.json (fields: dimension, baseline_sha, report_path, exposure, findings, non_findings, harnesses).`,
   { label: dim, schema: reportSchema },

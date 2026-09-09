@@ -22,8 +22,8 @@ not a finding.
 - Write only under `tools/audit/round<N>/D<k>/` in the export, plus temp
   directories. Set a private `HPO_PLANDATA` under the temp root before any
   Node harness. Never modify production or tests in the export unless your
-  brief says you have an isolated worktree for that purpose (D3, and D0/D9
-  when instrumenting).
+  brief says you have an isolated worktree for that purpose (D3, D11, and
+  D0/D9 when instrumenting).
 - The box is shared with the other auditors. Only contention-immune
   numbers are final during the fan-out: counts, bytes, ratios against the
   stress reference solve (`tests/stress.py:reference_solve`). Every wall, CPU
