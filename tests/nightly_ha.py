@@ -66,7 +66,7 @@ A    what it asserts                                       escapes     state
 A1   the entry reaches ``loaded``, both image tags         6           done
 A2   a plan was actually produced                          4           done
 A3   the published-state sweep, judged by HA's machinery   named set   done
-A4   availability conjoins the coordinator (fault-inject)  6           none
+A4   availability conjoins the coordinator (fault-inject)  6           done
 A5   the entry round-trips through its own forms           9           done
 A6   corrupt-store resilience                              4           none
 A7   the log carries none of this integration's failures   5           partial
@@ -82,12 +82,14 @@ A14  setup does not block the event loop                   1           partial
 A3's named set is the §4 A3 row of the production-escape analysis, counted at
 this merge base by listing those identifiers (not by carrying a filed total):
 E71, E33, E19, E45, E6, E74, E73, E77, E47, E113, E137, E138, E78, E7, E119.
-A4 is a different issue and is not implemented here. The counts are
+A4's named set is the §4 A4 row, listed (not a carried total): E57, E76, E30,
+E77, E75, E72. It breaks the Tibber counterparty (HTTP 500, not 401 -- 401
+starts reauth) and does not poke ``last_update_success``. The counts are
 bullet-level, stable in ranking and about +/-15 in absolute terms; the two
 largest classes in the record -- solver numbers and card geometry, 68 escapes
 between them -- are out of this lane's reach by construction, so this is the
 deployment-shape and HA-citizenship lane and not a general safety net.
-A4, A6, A11, A12 and A13 have no issue: they are recorded here and unscheduled,
+A6, A11, A12 and A13 have no issue: they are recorded here and unscheduled,
 which is a different thing from unnoticed.
 A5/A8/A9 (#587): the form count is derived from ``_OPTION_PAGES`` plus the two
 menus, and the service catalog from ``services.yaml``, not from the filed 23/11.
@@ -147,6 +149,8 @@ IN_HASTUB = f"{IN_DRIVER_DIR}/hastub"
 LOG_NAME = "home-assistant.log"
 
 TIBBER_HOST = "api.tibber.com"
+# HTTP 500, not 401: 401 starts reauth (D10-08) and is a different path from E57.
+_PRICE_SOURCE_BROKEN = False
 
 MARKER = "<<<nightly-ha-json>>>"
 
@@ -157,14 +161,27 @@ A3_NAMED_ESCAPES = (
     "E113", "E137", "E138", "E78", "E7", "E119",
 )
 
-# Demanded by name from tests/entities.py. A4 is a different issue; these
-# names must not grow a fault-injection check.
+# Demanded by name from tests/entities.py. Must not grow a fault-injection
+# check: A4 is the other half of the #521 assertion-2 split.
 A3_INSIDE = (
     "a3:roster",
     "a3:orjson",
     "a3:finite",
     "a3:device_class_state_class",
     "a3:no_constructor_defaults",
+)
+
+# Demanded by name from tests/entities.py. A4 is the fault-injection half of
+# the #521 assertion-2 split; listed from the §4 A4 row, not a carried total.
+A4_NAMED_ESCAPES = (
+    "E57", "E76", "E30", "E77", "E75", "E72",
+)
+A4_INSIDE = (
+    "a4:failed",
+    "a4:unavailable",
+    "a4:buttons",
+    "a4:no_stale",
+    "a4:recovered",
 )
 
 # Demanded by name from tests/entities.py. #509 already closed (#535);
@@ -183,7 +200,7 @@ A5_NAMED_ESCAPES = (
 A8_NAMED_ESCAPES = ("E37", "E99", "E38")
 A9_NAMED_ESCAPES = ("E56", "E2", "E105")
 
-# Demanded by name from tests/entities.py. A4 is a different issue.
+# Demanded by name from tests/entities.py. A4 is a different assertion.
 A5_INSIDE = (
     "a5:pages_ok",
     "a5:byte_unchanged",
@@ -230,6 +247,7 @@ INSIDE_CHECKS = (
     "contract:stub_provider",
     "contract:probes_agree",
     *A3_INSIDE,
+    *A4_INSIDE,
     *A10_INSIDE,
     *A5_INSIDE,
     *A8_INSIDE,
@@ -981,6 +999,169 @@ def check_a9_roster_unchanged(
     )
 
 
+def break_price_source(broken: bool) -> None:
+    """Fault-inject the Tibber counterparty. URL, session and TLS stay real."""
+    global _PRICE_SOURCE_BROKEN
+    _PRICE_SOURCE_BROKEN = bool(broken)
+
+
+def _a4_records(hass, entry) -> list[dict]:
+    from homeassistant.helpers import entity_registry as er
+
+    registry = er.async_get(hass)
+    registered = er.async_entries_for_config_entry(registry, entry.entry_id)
+    records = []
+    for item in registered:
+        if item.disabled_by is not None:
+            continue
+        state = hass.states.get(item.entity_id)
+        records.append(
+            {
+                "entity_id": item.entity_id,
+                "state": None if state is None else state.state,
+            }
+        )
+    return records
+
+
+def _a4_published(records: list[dict] | tuple[dict, ...]) -> list[dict]:
+    # Buttons publish ``unknown`` while available. Only a missing or
+    # ``unavailable`` state is "not a value" for the stale/recovery halves.
+    return [r for r in records if r.get("state") not in (None, "unavailable")]
+
+
+def check_a4_failed(checks: Checks, last_update_success: object) -> None:
+    checks.check(
+        "a4:failed",
+        last_update_success is False,
+        f"last_update_success={last_update_success!r}",
+    )
+
+
+def check_a4_unavailable(checks: Checks, records: list[dict] | tuple[dict, ...]) -> None:
+    leftover = [r["entity_id"] for r in records if r.get("state") != "unavailable"]
+    checks.check(
+        "a4:unavailable",
+        bool(records) and not leftover,
+        (
+            f"{len(records)} unavailable"
+            if records and not leftover
+            else f"{len(leftover)} still published: {sorted(leftover)[:8]}"
+        ),
+    )
+
+
+def check_a4_buttons(checks: Checks, records: list[dict] | tuple[dict, ...]) -> None:
+    buttons = [r for r in records if str(r.get("entity_id", "")).startswith("button.")]
+    leftover = [r["entity_id"] for r in buttons if r.get("state") != "unavailable"]
+    checks.check(
+        "a4:buttons",
+        bool(buttons) and not leftover,
+        (
+            f"{len(buttons)} button(s) unavailable"
+            if buttons and not leftover
+            else (
+                "no button entity in the enabled roster"
+                if not buttons
+                else f"clickable after fail: {sorted(leftover)}"
+            )
+        ),
+    )
+
+
+def check_a4_no_stale(
+    checks: Checks,
+    before: list[dict] | tuple[dict, ...],
+    after: list[dict] | tuple[dict, ...],
+) -> None:
+    published = _a4_published(before)
+    after_by = {r["entity_id"]: r for r in after}
+    stale = [
+        r["entity_id"]
+        for r in published
+        if after_by.get(r["entity_id"], {}).get("state") == r["state"]
+    ]
+    checks.check(
+        "a4:no_stale",
+        bool(published) and not stale,
+        (
+            f"{len(published)} pre-break value(s) gone"
+            if published and not stale
+            else (
+                "no available value before the break"
+                if not published
+                else f"stale: {sorted(stale)[:8]}"
+            )
+        ),
+    )
+
+
+def check_a4_recovered(
+    checks: Checks,
+    last_update_success: object,
+    before: list[dict] | tuple[dict, ...],
+    after: list[dict] | tuple[dict, ...],
+) -> None:
+    published = _a4_published(before)
+    after_by = {r["entity_id"]: r for r in after}
+    stuck = [
+        r["entity_id"]
+        for r in published
+        if after_by.get(r["entity_id"], {}).get("state") in (None, "unavailable")
+    ]
+    checks.check(
+        "a4:recovered",
+        last_update_success is True and bool(published) and not stuck,
+        (
+            f"recovered {len(published)} after last_update_success={last_update_success!r}"
+            if last_update_success is True and published and not stuck
+            else (
+                f"last_update_success={last_update_success!r} "
+                f"stuck={sorted(stuck)[:8] or 'none-published-before'}"
+            )
+        ),
+    )
+
+
+async def _async_check_a4(checks: Checks, hass, entry) -> None:
+    """Break the price source, assert unavailability, restore, assert recovery."""
+    coordinator = getattr(entry, "runtime_data", None)
+    if coordinator is None:
+        for name in A4_INSIDE:
+            checks.check(name, False, "no runtime_data")
+        return
+    before = _a4_records(hass, entry)
+    break_price_source(True)
+    try:
+        try:
+            await coordinator.async_refresh()
+            await hass.async_block_till_done()
+            broken = _a4_records(hass, entry)
+            check_a4_failed(checks, getattr(coordinator, "last_update_success", True))
+            check_a4_unavailable(checks, broken)
+            check_a4_buttons(checks, broken)
+            check_a4_no_stale(checks, before, broken)
+        except Exception as err:  # noqa: BLE001 - a raise is the A4 failure
+            for name in A4_INSIDE:
+                if name == "a4:recovered" or name in checks.results:
+                    continue
+                checks.check(name, False, f"{type(err).__name__}: {err}")
+    finally:
+        break_price_source(False)
+        try:
+            await coordinator.async_refresh()
+            await hass.async_block_till_done()
+        except Exception as err:  # noqa: BLE001
+            check_a4_recovered(checks, False, before, [])
+            return
+    check_a4_recovered(
+        checks,
+        getattr(coordinator, "last_update_success", False),
+        before,
+        _a4_records(hass, entry),
+    )
+
+
 def series_grew(series: list[int] | tuple[int, ...]) -> bool:
     """Growth above the first sample. A dip is not growth (#540 shipped ``[1,0,1,1]``)."""
     if not series:
@@ -1440,6 +1621,11 @@ def _serve_prices(workdir: Path) -> None:
     class Handler(BaseHTTPRequestHandler):
         def do_POST(self) -> None:  # noqa: N802 - BaseHTTPRequestHandler's name
             self.rfile.read(int(self.headers.get("Content-Length") or 0))
+            if _PRICE_SOURCE_BROKEN:
+                self.send_response(500)
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+                return
             body = _tibber_body(datetime.now().astimezone())
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
@@ -1784,6 +1970,7 @@ async def _inside(seed: dict, budget: float) -> int:
         _check_a3_published(checks, hass, entry, constructor_defaults=False)
         await _async_check_a10_published(checks, hass, entry)
         _check_plan(checks, hass, entry)
+        await _async_check_a4(checks, hass, entry)
         await _async_check_a5(checks, hass, entry)
         entry = await _async_check_a9(checks, hass, entry)
         await _async_check_a8(checks, hass, seed, entry)
