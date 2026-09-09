@@ -51,28 +51,25 @@
   },
   "type_ignores": 0,
   "census": {
-    "errors": 274,
+    "errors": 271,
     "by_code": {
-      "arg-type": 20,
+      "arg-type": 23,
       "assignment": 7,
       "attr-defined": 1,
       "call-overload": 1,
+      "dict-item": 1,
       "import-untyped": 2,
       "index": 3,
-      "list-item": 1,
-      "misc": 6,
+      "misc": 2,
       "name-defined": 1,
-      "no-any-return": 39,
+      "no-any-return": 42,
       "no-redef": 3,
       "no-untyped-call": 7,
       "no-untyped-def": 69,
-      "operator": 4,
-      "override": 1,
-      "return-value": 9,
-      "type-arg": 89,
-      "type-var": 3,
-      "typeddict-item": 2,
-      "union-attr": 5,
+      "operator": 10,
+      "return-value": 2,
+      "type-arg": 91,
+      "type-var": 5,
       "var-annotated": 1
     },
     "environment": {
@@ -84,7 +81,7 @@
       "threadpoolctl": "3.6.0",
       "voluptuous": "0.15.2"
     },
-    "recorded_at": "8364f4ee28598d515e8bfc9a879dc221767cfc17"
+    "recorded_at": "cb1203f9c3a3e8322ccfac1046afe6443591e807"
   },
   "recorded_at": "52c83d1c98182979eb0d042173ed3ba4266afbe7"
 }

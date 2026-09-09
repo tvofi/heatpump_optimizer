@@ -4,7 +4,7 @@ from __future__ import annotations
 import hashlib
 import logging
 from collections.abc import Callable, Mapping
-from typing import Any, Final, NamedTuple
+from typing import TYPE_CHECKING, Any, Final, NamedTuple, Protocol, cast
 
 import aiohttp
 import voluptuous as vol
@@ -12,10 +12,26 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.data_entry_flow import FlowResult, section
+from homeassistant.data_entry_flow import section
 from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.translation import async_get_translations
+
+if TYPE_CHECKING:
+    from homeassistant.config_entries import ConfigFlowResult
+
+
+class _ShowFormParent(Protocol):
+    def async_show_form(
+        self,
+        *,
+        step_id: str | None = None,
+        data_schema: vol.Schema | None = None,
+        errors: dict[str, str] | None = None,
+        description_placeholders: Mapping[str, str] | None = None,
+        last_step: bool | None = None,
+        preview: str | None = None,
+    ) -> ConfigFlowResult: ...
 
 from .const import (
     DOMAIN,
@@ -432,7 +448,7 @@ def _number(
     readable line, so a form reads as a list of settings rather than as a wall
     of constructor calls.
     """
-    config: dict[str, Any] = {
+    config: selector.NumberSelectorConfig = {
         "min": minimum,
         "max": maximum,
         "step": step,
@@ -566,9 +582,8 @@ def _widen_to_fit(
     Returns None when nothing needs to move, so an untouched page keeps the
     very selector object it declared.
     """
-    config = dict(number.config)
-    low = config.get("min")
-    high = config.get("max")
+    low = number.config.get("min")
+    high = number.config.get("max")
     if low is None and high is None:
         return None
     fitted_low, fitted_high = low, high
@@ -588,6 +603,7 @@ def _widen_to_fit(
             fitted_high = number_value
     if fitted_low == low and fitted_high == high:
         return None
+    config: selector.NumberSelectorConfig = {**number.config}
     if fitted_low is not None:
         config["min"] = fitted_low
     if fitted_high is not None:
@@ -659,19 +675,44 @@ class _StoredValuesAlwaysFit:
     """
 
     @callback
-    def async_show_form(self, **kwargs: Any) -> FlowResult:
+    def async_show_form(
+        self,
+        *,
+        step_id: str | None = None,
+        data_schema: vol.Schema | None = None,
+        errors: dict[str, str] | None = None,
+        description_placeholders: Mapping[str, str] | None = None,
+        last_step: bool | None = None,
+        preview: str | None = None,
+    ) -> ConfigFlowResult:
         """Show a form, first making sure it can be submitted at all."""
-        fitted, widened = _fit_stored_values(kwargs.get("data_schema"))
+        # Forward only the arguments the caller passed. The test stub (and the
+        # real manager) splat the kwargs into the result dict; a key whose
+        # value is None is not the same as an omitted key.
+        forwarded: dict[str, Any] = {
+            key: value
+            for key, value in (
+                ("step_id", step_id),
+                ("data_schema", data_schema),
+                ("errors", errors),
+                ("description_placeholders", description_placeholders),
+                ("last_step", last_step),
+                ("preview", preview),
+            )
+            if value is not None
+        }
+        fitted, widened = _fit_stored_values(forwarded.get("data_schema"))
         if widened:
-            kwargs["data_schema"] = fitted
-            errors = dict(kwargs.get("errors") or {})
+            forwarded["data_schema"] = fitted
+            shown = dict(forwarded.get("errors") or {})
             for field in widened:
                 # A real validation error on the same field wins: it is about
                 # what the user just typed, which is more urgent than a value
                 # that has been sitting on disk for months.
-                errors.setdefault(field, ERROR_STORED_VALUE_OUT_OF_RANGE)
-            kwargs["errors"] = errors
-        return super().async_show_form(**kwargs)
+                shown.setdefault(field, ERROR_STORED_VALUE_OUT_OF_RANGE)
+            forwarded["errors"] = shown
+        parent = cast(_ShowFormParent, super())
+        return parent.async_show_form(**forwarded)
 
 
 def _effective(
@@ -835,7 +876,7 @@ def _entity_of(
     resolve a single helper domain, and submits the creation without a name —
     which surfaces to the user as "required key not provided @ data['name']".
     """
-    entity_filter: dict[str, Any] = {
+    entity_filter: selector.EntityFilterSelectorConfig = {
         "domain": [domain] if isinstance(domain, str) else list(domain)
     }
     if device_class is not None:
@@ -893,7 +934,7 @@ def _solar_location_selector() -> selector.LocationSelector:
     return selector.LocationSelector(selector.LocationSelectorConfig(radius=False))
 
 
-def _options_schema(fields: dict) -> vol.Schema:
+def _options_schema(fields: dict[Any, Any]) -> vol.Schema:
     """One options-page schema, with the after-save choice appended (#100).
 
     Every saving page in the options flow carries the same last field: what
@@ -1526,10 +1567,11 @@ class HeatPumpOptimizerConfigFlow(
         # Set by async_step_reconfigure (D10-14): the entry being
         # reconfigured, or None while this is a plain setup flow.
         self._reconfigure_entry: config_entries.ConfigEntry | None = None
+        self._reauth_entry: config_entries.ConfigEntry | None = None
 
     async def async_step_reconfigure(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Handle a reconfigure flow initialized by the user (D10-14).
 
         A rotated token, a renamed sensor, a second pump where the first
@@ -1550,7 +1592,7 @@ class HeatPumpOptimizerConfigFlow(
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Handle the initial step — API credentials and entity selection."""
         errors: dict[str, str] = {}
 
@@ -1582,7 +1624,7 @@ class HeatPumpOptimizerConfigFlow(
 
     async def async_step_user_sensors(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Optional entity pickers, after credentials (#198)."""
         if user_input is not None:
             self._data.update(user_input)
@@ -1608,9 +1650,10 @@ class HeatPumpOptimizerConfigFlow(
 
     async def _async_save_reconfigure(
         self, user_input: dict[str, Any]
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Write the first screen's answers back onto the entry they came from."""
         entry = self._reconfigure_entry
+        assert entry is not None
         data = dict(entry.data)
         for key in (
             str(getattr(marker, "schema", marker))
@@ -1634,7 +1677,7 @@ class HeatPumpOptimizerConfigFlow(
 
     async def async_step_temperature(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Handle temperature configuration step."""
         errors: dict[str, str] = {}
         if user_input is not None:
@@ -1683,7 +1726,7 @@ class HeatPumpOptimizerConfigFlow(
 
     async def async_step_building(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Choose how the thermal model gets its starting values.
 
         The raw ``thermal`` page asks for kWh/°C, which nobody knows; the
@@ -1707,7 +1750,7 @@ class HeatPumpOptimizerConfigFlow(
 
     async def async_step_building_describe(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """The questionnaire path: answerable questions instead of kWh/°C.
 
         Stores the answers themselves (so the options page shows them back),
@@ -1730,7 +1773,7 @@ class HeatPumpOptimizerConfigFlow(
 
     async def async_step_building_extras(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """What the questionnaire cannot derive: the heat pump itself.
 
         Three numbers off the nameplate. Everything else the skipped
@@ -1766,7 +1809,7 @@ class HeatPumpOptimizerConfigFlow(
 
     async def async_step_thermal(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Handle thermal model configuration step."""
         errors: dict[str, str] = {}
         if user_input is not None:
@@ -1819,7 +1862,7 @@ class HeatPumpOptimizerConfigFlow(
 
     async def async_step_zones(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Handle two-zone and solar configuration (optional step)."""
         if user_input is not None:
             self._data.update(user_input)
@@ -1878,7 +1921,7 @@ class HeatPumpOptimizerConfigFlow(
 
     async def async_step_dhw(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Handle DHW (Domestic Hot Water) configuration step."""
         errors: dict[str, str] = {}
         if user_input is not None:
@@ -1967,7 +2010,7 @@ class HeatPumpOptimizerConfigFlow(
 
     async def async_step_weather_sensitivity(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Handle weather sensitivity configuration step."""
         if user_input is not None:
             self._data.update(user_input)
@@ -2002,7 +2045,7 @@ class HeatPumpOptimizerConfigFlow(
 
     async def async_step_reauth(
         self, entry_data: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Reauthentication entry point (D10-08).
 
         The coordinator starts this flow when Tibber refuses the token
@@ -2031,7 +2074,7 @@ class HeatPumpOptimizerConfigFlow(
 
     async def async_step_reauth_confirm(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Ask for the one credential that can have gone bad."""
         errors: dict[str, str] = {}
         if user_input is not None:
@@ -2040,6 +2083,7 @@ class HeatPumpOptimizerConfigFlow(
             )
             if verdict == "ok":
                 entry = self._reauth_entry
+                assert entry is not None
                 self.hass.config_entries.async_update_entry(
                     entry,
                     data={**entry.data, CONF_TIBBER_TOKEN: user_input[CONF_TIBBER_TOKEN]},
@@ -2107,13 +2151,13 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         """Effective configuration: setup data with saved options applied."""
         return {**self._entry.data, **self._entry.options}
 
-    def _save(self, user_input: dict[str, Any]) -> FlowResult:
+    def _save(self, user_input: dict[str, Any]) -> ConfigFlowResult:
         """Persist one page without discarding settings from the other pages."""
         return self.async_create_entry(
             title="", data={**self._entry.options, **user_input}
         )
 
-    async def _save_or_menu(self, user_input: dict[str, Any]) -> FlowResult:
+    async def _save_or_menu(self, user_input: dict[str, Any]) -> ConfigFlowResult:
         """Persist one page, then stay in the dialog or close it (#100).
 
         The default is the section menu: changing settings in two sections
@@ -2146,7 +2190,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
 
     async def _try_thermal_model_save(
         self, user_input: dict[str, Any] | None
-    ) -> FlowResult | tuple[dict[str, str], dict[str, Any]]:
+    ) -> ConfigFlowResult | tuple[dict[str, str], dict[str, Any]]:
         """Shared submit path for the split thermal_model pages."""
         errors: dict[str, str] = {}
         current = self._current
@@ -2162,7 +2206,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Show the top-level options menu."""
         labels = {step: self._MENU_LABELS[step] for step in self._TOP_MENU}
         labels["advanced"] = self._ADVANCED_LABEL
@@ -2173,7 +2217,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
 
     async def async_step_advanced(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Show the advanced submenu of set-once pages."""
         labels = {step: self._MENU_LABELS[step] for step in self._ADVANCED_MENU}
         return self.async_show_menu(
@@ -2185,7 +2229,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
 
     async def async_step_setup_overview(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Item 32: a read-only picture of the configured system.
 
         Rendered from the same ``describe_setup`` the card's setup page uses,
@@ -2213,7 +2257,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
 
     async def async_step_entities(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Change which Home Assistant entities the optimizer reads."""
         errors: dict[str, str] = {}
         current = self._current
@@ -2241,7 +2285,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
 
     async def async_step_entities_metering(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Solar, power and compressor frequency sensors."""
         current = self._current
         if user_input is not None:
@@ -2255,7 +2299,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
 
     async def async_step_entities_pump(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """What the heat pump reports about itself."""
         current = self._current
         if user_input is not None:
@@ -2269,7 +2313,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
 
     async def async_step_comfort(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """How warm the house should be, and when."""
         errors: dict[str, str] = {}
         current = self._current
@@ -2291,7 +2335,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
 
     async def async_step_hot_water(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """When hot water is needed and how hot it has to be."""
         errors: dict[str, str] = {}
         current = self._current
@@ -2328,7 +2372,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
 
     async def async_step_hot_water_tank(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Tank size, inlet water and advanced DHW learning."""
         # No re-merge of user_input here: unlike comfort, hot_water, building,
         # grid and grid_fees, this page's submit block returns unconditionally,
@@ -2345,7 +2389,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
 
     async def async_step_hot_water_pumps(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Hot-water circulation pump scheduling."""
         current = self._current
         if user_input is not None:
@@ -2359,7 +2403,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
 
     async def async_step_building(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """The heating system's plumbing: valve, tanks, and the heat split.
 
         One page for everything between the heat sources and the emitters —
@@ -2413,7 +2457,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
 
     async def async_step_thermal_model(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """The raw numeric thermal model, previously settable only at setup.
 
         A wrong ``heat_pump_max_power`` or zone split could until now only be
@@ -2446,7 +2490,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
 
     async def async_step_thermal_model_zones(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Two-zone split and solar orientation."""
         outcome = await self._try_thermal_model_save(user_input)
         if not isinstance(outcome, tuple):
@@ -2464,7 +2508,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
 
     async def async_step_tuning(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Balance between saving money and holding the setpoint."""
         if user_input is not None:
             return await self._save_or_menu(user_input)
@@ -2475,7 +2519,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
 
     async def async_step_heat_curve(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Danfoss ECL110 heat-curve offset control over MQTT."""
         if user_input is not None:
             return await self._save_or_menu(user_input)
@@ -2490,7 +2534,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
 
     async def async_step_building_preset(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Describe the building in terms a homeowner can actually answer.
 
         The numeric thermal page asks for kWh/°C, which nobody knows. This page
@@ -2513,7 +2557,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
 
     async def async_step_grid(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Peak capacity tariff hours and pricing."""
         errors: dict[str, str] = {}
         current = self._current
@@ -2550,7 +2594,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
 
     async def async_step_grid_connection(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Main fuse and peak guards."""
         if user_input is not None:
             return await self._save_or_menu(user_input)
@@ -2561,7 +2605,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
 
     async def async_step_grid_fees(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Transfer fees and contract shadow price."""
         errors: dict[str, str] = {}
         current = self._current
@@ -2592,7 +2636,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
 
     async def async_step_solar_pv(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Photovoltaic array and export economics."""
         current = self._current
         if user_input is not None:
@@ -2606,7 +2650,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
 
     async def async_step_away(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Deep setback while the house is empty, with timed recovery."""
         current = self._current
         if user_input is not None:
@@ -2620,7 +2664,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
 
     async def async_step_learning(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Watchdogs and the opt-in learning features.
 
         Nothing is cleaned here, and nothing can be: this page declares no
@@ -2639,7 +2683,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
 
     async def async_step_learning_features(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Plan-affecting learning toggles."""
         if user_input is not None:
             return await self._save_or_menu(user_input)
