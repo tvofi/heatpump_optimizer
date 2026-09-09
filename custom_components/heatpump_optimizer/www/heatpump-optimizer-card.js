@@ -3257,7 +3257,7 @@ function cardStyleBlock() {
          built out of one rule: an input that did not inherit the card's
          colours would be unreadable on a dark theme, which is the sort of
          thing that only shows up on somebody else's screen. */
-      .sp-filter, .sp-select, .sp-setpoint {
+      .sp-filter, .sp-select {
         width: 100%; font: inherit; padding: 0.3em;
         color: var(--primary-text-color);
         background: var(--card-background-color, #fff);
@@ -3267,17 +3267,7 @@ function cardStyleBlock() {
       .sp-filter {
         box-sizing: border-box; margin-bottom: 0.4em;
       }
-      .sp-setpoint-label {
-        display: block; margin-top: 0.5em; font-size: 0.9em;
-      }
-      .sp-setpoint {
-        box-sizing: border-box; margin-top: 0.2em;
-      }
-      .sp-setpoint-hint {
-        font-size: 0.8em; opacity: 0.8; margin-top: 0.25em;
-      }
-      .sp-filter:focus-visible, .sp-select:focus-visible,
-      .sp-setpoint:focus-visible {
+      .sp-filter:focus-visible, .sp-select:focus-visible {
         outline: 2px solid var(--primary-color, #03a9f4);
         outline-offset: 1px;
       }
@@ -8052,23 +8042,29 @@ class SetupPage {
           )}" />
         <select class="sp-select" size="8" aria-label="${esc(
           L("setup.picker_aria", { slot: slot.label })
-        )}">${model.options}</select>
-        ${key === "mixing_valve_target_entity" ? `
-        <label class="sp-setpoint-label">${esc(L("setup.manual_setpoint"))}
-          <input class="sp-setpoint" type="number" min="0" max="30" step="0.5"
-            value="${esc(String(
-              slot.manual_setpoint == null ? 0 : slot.manual_setpoint
-            ))}"
-            aria-label="${esc(L("setup.manual_setpoint_aria"))}" />
-        </label>
-        <div class="sp-setpoint-hint">${esc(L("setup.manual_setpoint_hint"))}</div>
-        ` : ""}
+        )}">${model.options}</select>${this.setpointHtml(key, slot)}
         <div class="sp-actions">
           <button type="button" class="sp-save">${esc(L("setup.assign"))}</button>
           <button type="button" class="sp-cancel">${esc(L("setup.cancel"))}</button>
         </div>
         <div class="sp-note">${esc(model.note)}</div>
       </div>`;
+  }
+
+  /** Number field for a dumb mixing valve. Empty string on every other slot
+   * so the picker markup for those slots stays byte-identical. */
+  setpointHtml(key, slot) {
+    if (key !== "mixing_valve_target_entity") return "";
+    return `
+        <label class="sp-note">${esc(L("setup.manual_setpoint"))}
+          <input class="sp-filter sp-setpoint" type="number" min="0" max="30"
+            step="0.5"
+            value="${esc(String(
+              slot.manual_setpoint == null ? 0 : slot.manual_setpoint
+            ))}"
+            aria-label="${esc(L("setup.manual_setpoint_aria"))}" />
+        </label>
+        <div class="sp-note">${esc(L("setup.manual_setpoint_hint"))}</div>`;
   }
 
   /** The picker's option list and its footnote, for one slot.
