@@ -367,12 +367,15 @@ const CORPUS_EXCLUDED = new Set([
   // because "the index is the only way a seat finds a policy file" -- and
   // naming them all here would push the ALWAYS-LOADED set, the one number this
   // audit exists to drive down, past its cap to carry documents nobody must
-  // read. Measured before choosing, and RE-MEASURED here because the first
-  // reading was taken against five decisions and this list now names six:
-  // bringing `docs/decisions/` under POLICY_GLOBS reports 24 errors across 41
-  // policy files -- 7 [budgets], 6 [index], 6 [duplicates], 5 [citations] --
-  // where the first reading said 14. The shape is what decided it and the shape
-  // is unchanged: every ADR wants a cap and an index line it should not have.
+  // read. Measured before choosing, and stated as a SHAPE rather than a count,
+  // because the count is a function of how many decisions exist and this comment
+  // has already carried three stale readings -- 14, then 24, then 24 again after
+  // the list grew. Bringing `docs/decisions/` under POLICY_GLOBS reports, for
+  // every decision, one [budgets] error (no cap) and one [index] error (CLAUDE.md
+  // does not name it), plus [duplicates] between records that share a paragraph
+  // and [citations] below. The total therefore grows with the directory, which is
+  // itself half the argument. Re-derive it rather than reading it here: put the
+  // glob back, delete the exclusion entries, and run the linter.
   // The five [citations] are named one by one rather than summarised, because
   // the first version of this sentence said they were all 0003's and three of
   // them are: `docs/Zednotes.md`, `NOT_A_DOCUMENT` and `NEVER_NOT_A_DOCUMENT`,
@@ -385,8 +388,11 @@ const CORPUS_EXCLUDED = new Set([
   // its own inline list: this file by `:!.claude`, ADR 0002 by `...spec` (a
   // policy file cannot satisfy a citation, and once ADRs are policy files --
   // the state being measured -- 0002 is one), and 0006 itself by `exceptRel`.
-  // Two are independently sufficient: dropping `:!.claude` takes the total to
-  // 23, and so does un-excluding 0002. Named this precisely because the
+  // Two are independently sufficient: dropping `:!.claude` removes this error,
+  // and so does un-excluding 0002. Neither total is written here -- the previous
+  // two versions of this sentence carried one, both went stale, and the second
+  // went stale in the same commit that removed the count from the sentence above
+  // it. Named this precisely because the
   // sentence has been wrong twice, once as "all five are 0003's" and once as
   // `SYMBOL_GREP_EXCLUDE`, which this file imports and never calls on this
   // path. So three of the five are a check applied to the wrong kind of text,
@@ -410,6 +416,7 @@ const CORPUS_EXCLUDED = new Set([
   'docs/decisions/0004-an-assertion-can-be-correct-and-never-run.md',
   'docs/decisions/0005-no-codeowners-while-one-identity-authors-and-approves.md',
   'docs/decisions/0006-policy-merge-grant-regranted-to-the-local-session.md',
+  'docs/decisions/0007-after-this-session-owner-approval-per-pull-request.md',
 ])
 
 // Widening the scan past `.md` brought in every `.txt` a policy file cites, and
