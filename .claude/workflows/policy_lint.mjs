@@ -2208,14 +2208,14 @@ function assertAcceptance(derived) {
   // AND THE REGION THE RECORD READS, which had no pin at all: `recordRegion`
   // could be emptied to `return { region: everything, sectionFound: out.length > 0 }` and
   // every count above would still hold, because the fixtures hand `checkRecord`
-  // its text directly. Three assertions, on synthetic input rather than on the
+  // its text directly. Six assertions, on synthetic input rather than on the
   // live plan, so a section renamed in the tree cannot make them pass:
   // a mention inside the section counts, the same mention outside it does not,
   // and a plan with no such heading reports the absence rather than an empty
   // region. The third is the one that keeps this fail-closed: an empty region
   // would otherwise read as "every merge undispositioned", which is a true
   // statement about the wrong thing.
-  pins += 6
+  pins += 7
   const regIn = recordRegion(`## ${RECORD_SECTION}\n- [#9101](x/pull/9101) merged\n`, '')
   const regOut = recordRegion(`## Carried findings\n- found by #9101 in passing\n`, '')
   const regNone = recordRegion('# plan\nno second-level heading at all\n', '')
@@ -2241,6 +2241,15 @@ function assertAcceptance(derived) {
   // this is the one that survived and mattered.
   const regHand = recordRegion('## other\n', '- [#9103](x/pull/9103) merged in the handover\n')
   if (checkRecord([{ pr: '9103', subject: 's' }], regHand.region).length !== 0) regFail.push('a disposition in the handover did not count')
+  // AND A THIRD-LEVEL HEADING MUST NOT CLOSE THE REGION. Widening the match to
+  // `^#{1,3}` is a plausible edit and survived all six assertions above, while
+  // taking the live count to 42 undispositioned: the plan keeps a
+  // `### Governance queue` subsection INSIDE `## Delivery status`, and this
+  // pull request writes its own row into it. Reported by #658's round 3 as the
+  // one survivor of ten that a reader might actually write.
+  const regSub = recordRegion(
+    `## ${RECORD_SECTION}\n### a subsection\n- [#9104](x/pull/9104) merged\n`, '')
+  if (checkRecord([{ pr: '9104', subject: 's' }], regSub.region).length !== 0) regFail.push('a third-level heading inside the section closed the region')
   if (regFail.length) {
     console.log(`\nFIXTURE VACUOUS: recordRegion ${JSON.stringify(regFail)}. The record's region is what makes a mention a disposition; unpinned, it can be widened back to the whole file with every other count unchanged.`)
     return 1
