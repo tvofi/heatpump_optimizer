@@ -6,6 +6,13 @@ superseded-by: []
 
 # 0001 — The session policy-merge grant
 
+> **Status note, 2026-09-09.** The two `200 []` answers below are spent. Ruleset
+> `main-protect` (`22628467`) has since been created and the merge boundary is
+> enforced: deletion, non-fast-forward and 18 required status checks. The grant
+> this record describes has also lapsed with its session; ADR 0007 states what
+> replaced it. Nothing else here changes — the record stands as what was true
+> when the decision was taken.
+
 ## Context
 
 `CLAUDE.md` "Changing any of it" requires the owner's approval before **merging**

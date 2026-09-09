@@ -46,6 +46,7 @@ day-sets rather than by example (#329, #321).
 from __future__ import annotations
 
 import re
+from typing import Any
 
 # (start_hour, end_hour) as floats in [0, 24); end may be <= start when the
 # window wraps past midnight.
@@ -147,7 +148,7 @@ def _parse_time(token: str) -> float:
     return hour + minute / 60.0
 
 
-def parse_windows(spec: str | list | tuple | None) -> list[Window]:
+def parse_windows(spec: str | list[Any] | tuple[Any, ...] | None) -> list[Window]:
     """Parse a DHW window specification into normalized windows.
 
     Returns an empty list when the specification is empty, which callers should
@@ -159,7 +160,7 @@ def parse_windows(spec: str | list | tuple | None) -> list[Window]:
     return _normalize(_raw_windows(spec))
 
 
-def _spec_text(spec: str | list | tuple) -> str:
+def _spec_text(spec: str | list[Any] | tuple[Any, ...]) -> str:
     """A spec of any accepted shape as one normalised string.
 
     Lists and tuples are joined with the same comma the string form uses, and
@@ -220,7 +221,7 @@ def _segments(raw: str) -> list[str]:
     return segments
 
 
-def _raw_windows(spec: str | list | tuple | None) -> list[Window]:
+def _raw_windows(spec: str | list[Any] | tuple[Any, ...] | None) -> list[Window]:
     """The windows exactly as written, one per range, before normalisation.
 
     ``spec_problem`` judges each range on its own: normalisation merges an
@@ -276,7 +277,7 @@ def _parse_one_range(chunk: str) -> list[Window]:
 
 
 def parse_weekly_windows(
-    spec: str | list | tuple | None,
+    spec: str | list[Any] | tuple[Any, ...] | None,
 ) -> list[list[Window]] | None:
     """Parse a possibly day-aware window spec into seven day window lists.
 

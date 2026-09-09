@@ -35,7 +35,7 @@ from __future__ import annotations
 import logging
 import math
 from dataclasses import dataclass, field, replace
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 
@@ -287,7 +287,7 @@ class ThermalParameters:
     #: the step function asks `two_tank_modelled`/`slab_fed_direct` once
     #: per step, a few million times per solve, and re-deriving a constant
     #: there is the exact mistake the buffer-UA profiling found.
-    _layout_cache: tuple | None = field(
+    _layout_cache: tuple[tuple[str | None, str, bool, bool], str] | None = field(
         default=None, init=False, repr=False, compare=False
     )
 
@@ -500,7 +500,7 @@ class ThermalParameters:
     #: Memo for `buffer_tank_heat_loss_coefficient`, keyed on its own inputs.
     #: `init=False` and `compare=False` so it is neither a constructor argument
     #: nor part of equality -- it is a cache, not a parameter.
-    _buffer_ua_cache: tuple | None = field(
+    _buffer_ua_cache: tuple[tuple[float, float], float] | None = field(
         default=None, init=False, repr=False, compare=False
     )
 
@@ -546,7 +546,7 @@ class ThermalParameters:
         return value
 
     #: Memo for `wood_tank_heat_loss_coefficient`, same shape as the buffer's.
-    _wood_ua_cache: tuple | None = field(
+    _wood_ua_cache: tuple[float, float] | None = field(
         default=None, init=False, repr=False, compare=False
     )
 
@@ -1571,7 +1571,9 @@ class ThermalModel:
         """Vectorized draw rates (kW) for a sequence of hour-of-day values."""
         pattern = np.asarray(self.params.effective_dhw_draw_pattern(), dtype=float)
         indices = (np.asarray(step_hours, dtype=float).astype(int)) % 24
-        return self.params.dhw_draw_power * pattern[indices]
+        return np.asarray(
+            self.params.dhw_draw_power * pattern[indices], dtype=float
+        )
 
     def dhw_usage_intensity(self, hour_of_day: float) -> float:
         """Return normalized DHW usage intensity for a given hour (avg ~= 1.0)."""
@@ -1872,10 +1874,11 @@ class ThermalModel:
         # missing, everything below reduces byte-for-byte to the single-tank
         # abstraction, wood heat and all — which is also the stale-probe
         # fallback: free heat is routed into the HP tank rather than dropped.
+        wood_temp = state.wood_tank_temperature
         two_tank = (
             throttled
             and p.two_tank_modelled
-            and state.wood_tank_temperature is not None
+            and wood_temp is not None
         )
         # With a valve the pump is charging the tank, so the tank temperature is
         # the flow temperature and charging it hotter costs COP. That coupling is
@@ -1972,7 +1975,9 @@ class ThermalModel:
             # curve it saturates wide open. With two tanks the supply side is
             # whichever tank is hotter -- the 4-way valve draws on both.
             supply_temp = (
-                max(state.wood_tank_temperature, T_buf) if two_tank else T_buf
+                max(wood_temp, T_buf)
+                if two_tank and wood_temp is not None
+                else T_buf
             )
             t_mix = min(supply_temp, flow_set)
             q_rad_from_buf = mixing_valve.emitter_delivery(
@@ -2015,7 +2020,9 @@ class ThermalModel:
                 # bit-identical to it — one ulp of difference moved a
                 # 96-step solve into a different basin when this was first
                 # written with `* (1/dt)`.
-                T_w = state.wood_tank_temperature
+                T_w = wood_temp
+                if T_w is None:
+                    T_w = T_buf
                 C_w = p.wood_tank_thermal_mass
                 q_wood_loss = p.wood_tank_heat_loss_coefficient * (T_w - 20.0)
                 w = wood_share(T_w, T_buf, flow_set, floor_temp)
@@ -2058,7 +2065,7 @@ class ThermalModel:
             q_floor_from_buf = (1.0 - rad_fraction) * thermal_power
 
         new_wood = state.wood_tank_temperature
-        if two_tank:
+        if two_tank and wood_temp is not None:
             # The HP tank supplies what the emitters received minus the wood
             # side's contribution — written as the single-tank expression
             # plus `wood_draw` so that at w == 0 the bits are identical, and
@@ -2072,10 +2079,10 @@ class ThermalModel:
                 - q_buf_loss + wood_draw
             ) / max(C_buf, 0.01)
             dT_wood = (ext - wood_draw - q_wood_loss) / max(C_w, 0.01)
-            dT_wood_cap = max(0.0, WOOD_TANK_MAX_TEMP - T_w) / max(
+            dT_wood_cap = max(0.0, WOOD_TANK_MAX_TEMP - wood_temp) / max(
                 dt_hours, 1e-6
             )
-            new_wood = T_w + min(dT_wood, dT_wood_cap) * dt_hours
+            new_wood = wood_temp + min(dT_wood, dT_wood_cap) * dt_hours
         else:
             dT_buf = (thermal_power - q_rad_from_buf - q_floor_from_buf - q_buf_loss) / max(C_buf, 0.01)
         self._step_buffer_refused = 0.0
@@ -2346,7 +2353,7 @@ class ThermalModel:
                 ),
                 hour_of_day=(
                     (start_hour + i * dt_hours) % 24.0
-                    if hours_matter
+                    if start_hour is not None and hours_matter
                     else None
                 ),
             )
@@ -2488,7 +2495,7 @@ class ThermalModel:
             hum_i = float(humidity[i]) if humidity is not None else None
             hour_i = (
                 (start_hour + i * dt_hours) % 24.0
-                if hours_matter
+                if start_hour is not None and hours_matter
                 else None
             )
 
@@ -2566,7 +2573,9 @@ class ThermalModel:
                             emitter_ua=ua_rad + ua_floor,
                         )
                         supply = (
-                            np.maximum(T_wood, T_buf) if two_tank else T_buf
+                            np.maximum(T_wood, T_buf)
+                            if two_tank and T_wood is not None
+                            else T_buf
                         )
                         t_mix = np.minimum(supply, flow_set)
                         q_rad = np.maximum(0.0, ua_rad * (t_mix - T_upper))
@@ -2577,7 +2586,7 @@ class ThermalModel:
                         )
                         floor_temp = np.minimum(T_upper, T_slab)
                         drawn = q_rad + q_floor
-                        if two_tank:
+                        if two_tank and T_wood is not None:
                             q_wood_loss = p.wood_tank_heat_loss_coefficient * (
                                 T_wood - 20.0
                             )
@@ -2628,7 +2637,7 @@ class ThermalModel:
                         q_rad = rad_fraction * thermal_power
                         q_floor = (1.0 - rad_fraction) * thermal_power
 
-                    if two_tank:
+                    if two_tank and T_wood is not None:
                         # One expression, exactly as the scalar step writes it:
                         # the wood_draw joins the numerator before the division,
                         # never as a separate add of quotients -- that
@@ -2743,13 +2752,16 @@ class ThermalModel:
                     upper[:, i + 1] = T_room
                     lower[:, i + 1] = T_room
                     buf[:, i + 1] = T_buf
-                    if wood is not None:
+                    if wood is not None and T_wood is not None:
                         wood[:, i + 1] = T_wood
 
-        return {
-            "room": room, "slab": slab, "upper": upper, "lower": lower,
-            "buffer": buf, "wood": wood, "refused": refused,
-        }
+        return cast(
+            dict[str, np.ndarray],
+            {
+                "room": room, "slab": slab, "upper": upper, "lower": lower,
+                "buffer": buf, "wood": wood, "refused": refused,
+            },
+        )
 
     def simulate_trajectory_with_dhw(
         self,

@@ -14,14 +14,14 @@
  "cut_views": 112,
  "dead_top_level_symbols": 0,
  "duplication_blocks": 12,
- "functions_cc_over_15": 37,
- "functions_cc_over_25": 10,
+ "functions_cc_over_15": 35,
+ "functions_cc_over_25": 9,
  "internal_call_edges": 366,
  "local_imports": 7,
  "max_cc": 48,
  "max_class_loc": 10086,
- "max_method_loc": 455,
+ "max_method_loc": 393,
  "methods_over_150": 18,
  "methods_over_200": 11,
- "recorded_at": "e4f34c7fe1dd37a4977bd48090aa1a2869675080"
+ "recorded_at": "5ec32572fe1eb332dda45040b6e2e1c4162b83a9"
 }

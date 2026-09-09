@@ -1,8 +1,15 @@
 # 0005 — No CODEOWNERS while one identity authors and approves
 
-Status: accepted. Revisit when O1 is answered. "The plan", "PR-T4", "4.9" and
+Status: accepted; O1 was answered — declined — so this stands rather than waits
+(Consequences, below). "The plan", "PR-T4", "4.9" and
 "O1" below are the governance-audit plan's — `docs/plan-2026-09-governance-audit.md`,
 which is not on `main`: it is archived on `audit/session-evidence-2026-09-08`.
+
+> **Status note, 2026-09-09.** The decision stands and its reason is unchanged:
+> one identity authors and approves, so a code-owner rule would be a lock. One
+> premise is spent — "there is nothing to require it in". Ruleset `main-protect`
+> (`22628467`) now exists, and it deliberately carries no required-approval and
+> no code-owner rule, for exactly the reason this record gives.
 
 ## Context
 
@@ -50,14 +57,39 @@ decision.
 
 ## Consequences
 
-When **O1** is answered — a GitHub identity for cloud seats distinct from the
-owner, which every organisation and installation path in this environment
-refuses with 403 — this decision should be revisited in the same change that
-creates the identity, because the two are worth nothing apart. A CODEOWNERS
-file added before then buys a false signal; the identity added without
-CODEOWNERS leaves the reviewer requirement unstated.
+**O1 was put to the owner and declined**, so this decision stands rather than
+waiting on one. The measurement that settled it: the repository has exactly one
+collaborator — `tvofi`, role `admin` — and cloud seats authenticate as that same
+identity, so every pull request in this programme is authored by the owner. And
+GitHub refuses a self-approval. A required-approval rule today would therefore
+not be weak enforcement; it would be a **lock**, with the only eligible approver
+ineligible on every pull request. That, and not the 403s, is why the ruleset in
+this programme requests no approval rule.
 
-Nothing in the tree cites this file by name, deliberately: a capped policy file
-naming a document under `docs/decisions/` is refused by `named-docs` until that
-directory's corpus classification is decided, which is the owner's call and is
-not decided here.
+The alternative was costed rather than assumed impossible. A machine account is
+two clicks; what it does not buy on its own is the separation, because these
+seats take their credential from the Claude account's own GitHub authorization,
+which is account-wide — so switching it means every repository those seats reach
+must be shared with the machine account. The failure mode is silent in the worst
+direction: CODEOWNERS plus a required-approval rule added *before* the switch is
+verified locks the repository rather than guarding it. The order that avoids
+that: create the account, switch the authorization, **verify the authenticated
+login is the machine account**, and only then add CODEOWNERS and the rule.
+
+Revisit when that identity exists, in the same change that creates it, because
+the two are worth nothing apart: a CODEOWNERS file added before then buys a
+false signal, and the identity added without CODEOWNERS leaves the reviewer
+requirement unstated.
+
+What stays honour meanwhile is *who* reviews. The adversarial fix-review seat is
+not the author and does refuse — two of the three pull requests before this one
+were blocked on real defects, one of them a false claim that would otherwise
+have shipped permanently into a code comment. But it is another seat of the same
+kind rather than a human gate, and that is the gap this decision accepts rather
+than closes.
+
+This file may now be cited by name from a capped policy file. It could not be
+when it was written: `named-docs` refuses a document a capped file names but
+nothing measures, and `docs/decisions/` was then neither measured nor excluded.
+The commit carrying this edit settles that, by naming the ADRs in
+`CORPUS_EXCLUDED` one by one.
