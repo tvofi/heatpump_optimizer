@@ -774,19 +774,27 @@ judge comments on each issue and summarised on #201.
   one on a trap citation in the handover, one on a paragraph in this section —
   and **both mentions were written by a single commit, `03af74b`**, which
   described #621's defect and named itself.
-  **The design, and the two things it must not do.** Require an *anchor*, not a
-  row shape: in the plan, the number must open a list item — `- [#NNN](…` —
-  which is how every row already reads — **65** of 65 at `d08a56a` and 71 of 71
-  with this branch's own, under the rule
-  `^- \[#N\]\(https://github\.com/tvofi/heatpump_optimizer/pull/N\)`, with no
-  odd-shaped row at either end; in the handover, an explicit opt-in
-  marker, so prose keeps working and only a deliberate line counts. It must
-  **not** demote `docs/HANDOVER.md` to a non-home: `DISPOSITION_FILES` names
-  both, the error message promises both, and the handover exists to carry what
-  the code cannot say — dropping it is a policy change needing the owner, not a
-  linter change. It must **not** pin a whole row format: 71 rows is a large
-  surface, this corpus compresses documents as a matter of course, and a
-  reformat would then redden `main` for cosmetic reasons.
+  **The design that landed, and why it is not the one proposed here.** This
+  entry proposed a LIST-ITEM anchor — the number must open a list item,
+  `- [#NNN](…`, said to hold for 65 of 65 rows. Driven again before building it,
+  against the 42 pull requests merged in the window at `e4f34c7`: **two fail** —
+  #629 and #632 are dispositioned inside Delivery-status TABLE CELLS, on the
+  rows of the issues they close (`| **#527** … |`, `| **#590** … |`), which is a
+  legitimate disposition this repository actually writes. A rule that refuses it
+  either loses two records or forces a duplicate row, and it pins a shape rather
+  than a property, which this entry itself forbids two paragraphs down.
+  **The anchor is the SECTION.** A disposition must appear under the plan's
+  `## Delivery status` heading, or anywhere in the handover. Measured: all 42
+  are linked from that section and from nowhere else, and the mentions that made
+  the old check pass on nothing — a carried finding naming a pull request in
+  passing, a standing rule using one as an example — are all outside it. The
+  handover is not demoted: it contributes all of itself, because carrying the
+  record is its whole job. A renamed heading reports as its own error rather
+  than as 42 identical ones, so fail-closed does not read as a mass defect.
+  Landed with three acceptance pins over synthetic input — inside counts,
+  outside does not, a plan with no such heading says so — because the region is
+  otherwise widenable back to the whole file with every other count unchanged;
+  the tip invariant moves from 76 pins to **79** across the same 10 classes.
   **What it does not fix, stated so the next seat does not overclaim.** An
   anchored row can still say nothing — `- [#NNN](…) — merged, see above` passes.
   (Written `#NNN` deliberately: a real number here would itself satisfy the
