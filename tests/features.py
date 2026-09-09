@@ -18999,6 +18999,171 @@ R.check(
 )
 
 
+R.section("#224 stage 3 — solve_space answers for itself, off the hot loop")
+
+# The nested closure that priced space around a fixed DHW schedule. The
+# solver is stubbed so these pin the headroom / pin / warm-start envelope,
+# not a basin. Square-free dummy objective: the score is the sum, so a
+# rewrite that returns the unclipped solver vector is visible.
+
+from types import SimpleNamespace as _SsNS  # noqa: E402
+import heatpump_optimizer.optimizer as _ss_mod  # noqa: E402
+
+_ss_opt = _MbOpt(
+    ThermalModel(ThermalParameters.from_config(_mb_profiles.house())),
+    _MbCfg(horizon_hours=1),
+)
+_ss_pmax = 6.0
+_ss_n = 3
+_ss_dt = 1.0
+_ss_prices = np.array([1.0, 2.0, 3.0])
+_ss_init = np.array([3.0, 3.0, 3.0])
+_ss_obj = lambda x, dhw=None: float(np.sum(x))
+_ss_batch = lambda M, dhw=None: np.sum(M, axis=1)
+_ss_h = _SsNS(
+    power_caps=None, power_caps_extra=None, space_pins=None, extra_starts=None,
+)
+
+
+class _SsRes:
+    def __init__(self, x, success=True, message="ok"):
+        self.x = np.asarray(x, dtype=float)
+        self.success = success
+        self.message = message
+
+
+_ss_real = _ss_mod._multi_start_minimize
+_ss_calls = []
+
+
+def _ss_stub(objective, starts, bounds, args=(), **kw):
+    _ss_calls.append({"starts": starts, "bounds": bounds, "args": args})
+    return _SsRes(np.array([9.0, 9.0, 9.0]))
+
+
+def _ss_run(dhw, warm=None, h=None, stub=_ss_stub):
+    _ss_calls.clear()
+    _ss_mod._multi_start_minimize = stub
+    try:
+        return _ss_opt._solve_space(
+            np.asarray(dhw, dtype=float),
+            None if warm is None else np.asarray(warm, dtype=float),
+            h if h is not None else _ss_h,
+            _ss_pmax, _ss_n, _ss_dt, _ss_prices, _ss_init, _ss_obj, _ss_batch,
+        )
+    finally:
+        _ss_mod._multi_start_minimize = _ss_real
+
+
+_ss_zero, _ss_zero_st, _ss_zero_sc = _ss_run([0.0, 0.0, 0.0])
+R.check(
+    "without DHW the clip is the compressor ceiling, not the solver's 9 kW",
+    list(_ss_zero) == [6.0, 6.0, 6.0] and _ss_zero_sc == 18.0,
+    f"{list(_ss_zero)} score {_ss_zero_sc} — 9 kW means the headroom clip "
+    f"was dropped; a score other than 18.0 priced the unclipped vector",
+)
+
+_ss_dhw, _, _ = _ss_run([2.0, 0.0, 2.0])
+R.check(
+    "a DHW block eats the compressor; space cannot keep p_max there",
+    list(_ss_dhw) == [4.0, 6.0, 4.0],
+    f"{list(_ss_dhw)} — [6,6,6] ignored the schedule; [2,0,2] used the "
+    f"DHW vector as the space cap instead of subtracting it",
+)
+
+_ss_space_cap, _, _ = _ss_run(
+    [2.0, 0.0, 2.0],
+    h=_SsNS(
+        power_caps=np.array([3.0, 3.0, 3.0]),
+        power_caps_extra=None, space_pins=None, extra_starts=None,
+    ),
+)
+R.check(
+    "power_caps bound space alone and do not also subtract the DHW block",
+    list(_ss_space_cap) == [3.0, 3.0, 3.0],
+    f"{list(_ss_space_cap)} — [1,3,1] subtracted DHW from a space-only cap; "
+    f"[4,6,4] ignored power_caps",
+)
+
+_ss_extra, _, _ = _ss_run(
+    [2.0, 0.0, 2.0],
+    h=_SsNS(
+        power_caps=None,
+        power_caps_extra=np.array([5.0, 5.0, 5.0]),
+        space_pins=None, extra_starts=None,
+    ),
+)
+R.check(
+    "power_caps_extra is a total cap, so the DHW block is subtracted twice",
+    list(_ss_extra) == [3.0, 5.0, 3.0],
+    f"{list(_ss_extra)} — [4,6,4] skipped the extra cap; [5,5,5] treated "
+    f"it as a space-only ceiling",
+)
+
+_ss_none_extra, _, _ = _ss_run([2.0, 0.0, 2.0])
+R.check(
+    "the extra-cap arm is silent when power_caps_extra is None",
+    list(_ss_none_extra) == [4.0, 6.0, 4.0],
+    f"{list(_ss_none_extra)} — a None extra cap still tightened the "
+    f"headroom, so the fuse-guard branch lost its gate",
+)
+
+_ss_warm, _, _ = _ss_run([0.0, 0.0, 0.0], warm=[1.0, 1.0, 1.0])
+R.check(
+    "a warm start is the only candidate; the structural seeds stay off",
+    len(_ss_calls) == 1 and len(_ss_calls[0]["starts"]) == 1
+    and list(_ss_calls[0]["starts"][0]) == [1.0, 1.0, 1.0],
+    f"calls={_ss_calls} — more than one start means the initial-solve "
+    f"seeds ran on a warm start they were written not to",
+)
+
+_ss_cold, _, _ = _ss_run([0.0, 0.0, 0.0])
+R.check(
+    "the first solve (no warm start) adds the three structural seeds",
+    len(_ss_calls) == 1 and len(_ss_calls[0]["starts"]) == 4,
+    f"nstarts={len(_ss_calls[0]['starts']) if _ss_calls else 0} — 1 means "
+    f"the warm-start gate was inverted and the D0-01 seeds never ran",
+)
+
+_ss_pin_h = _SsNS(
+    power_caps=None, power_caps_extra=None,
+    space_pins=np.array([1.0, np.nan, 0.0]), extra_starts=None,
+)
+_ss_pin, _, _ = _ss_run([0.0, 0.0, 2.0], warm=[1.0, 1.0, 1.0], h=_ss_pin_h)
+_ss_on = _ss_opt._pin_on_power(_ss_pmax)
+R.check(
+    "a forced-on pin raises the lower bound; a forced-off pin shuts the step",
+    _ss_calls[0]["bounds"][0] == (_ss_on, 6.0)
+    and _ss_calls[0]["bounds"][1] == (0.0, 6.0)
+    and _ss_calls[0]["bounds"][2] == (0.0, 0.0),
+    f"bounds={_ss_calls[0]['bounds']} on_floor={_ss_on} — a free second "
+    f"step or a non-zero third means the pin rewrite was skipped",
+)
+
+def _ss_boom(*_a, **_k):
+    raise RuntimeError("no basin")
+
+
+_ss_fail, _ss_fail_st, _ = _ss_run(
+    [2.0, 0.0, 2.0], warm=[1.0, 1.5, 1.0], stub=_ss_boom,
+)
+R.check(
+    "a solver exception returns the clipped guess, not a raised error",
+    list(_ss_fail) == [1.0, 1.5, 1.0]
+    and _ss_fail_st.startswith("failed ("),
+    f"{list(_ss_fail)} {_ss_fail_st} — a raise escaped, or the failure "
+    f"path rebuilt the guess from init_base and dropped the warm start",
+)
+
+R.check(
+    "the stubbed solver is handed the DHW schedule as args, not as a bound",
+    _ss_run([2.0, 0.0, 2.0], warm=[1.0, 1.0, 1.0])
+    and list(_ss_calls[0]["args"][0]) == [2.0, 0.0, 2.0],
+    f"args={_ss_calls[0]['args'] if _ss_calls else None} — empty args "
+    f"means the space objective no longer sees the DHW schedule",
+)
+
+
 R.section("v5.3.0 review — the experiment obeys the mode gate too")
 
 from pathlib import Path as _Path  # noqa: E402
