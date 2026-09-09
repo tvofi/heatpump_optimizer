@@ -4262,9 +4262,12 @@ R.check(
 # range breaks first-run setup, which nobody can work around.
 _setup_rejected = []
 for _step in ("temperature", "building_describe", "building_extras", "thermal",
-              "zones", "dhw", "weather_sensitivity"):
+              "zones", "dhw", "weather_sensitivity", "setup_overview"):
     _sflow = config_flow.HeatPumpOptimizerConfigFlow()
     _sflow.hass = FakeHass()
+    if not hasattr(_sflow, f"async_step_{_step}"):
+        _setup_rejected.append(f"{_step}: no handler")
+        continue
     _sform = asyncio.run(getattr(_sflow, f"async_step_{_step}")(None))
     _sschema = _sform.get("data_schema")
     if _sschema is None:
@@ -6693,15 +6696,32 @@ try:
         _dup_first.unique_id == _first_identity,
         f"flow unique_id {_dup_first.unique_id!r}",
     )
-    _early_entry = asyncio.run(_dup_first.async_step_finish_now(None))
+    _overview = asyncio.run(_dup_first.async_step_finish_now(None))
     R.check(
-        "finish-setup-now after the second screen creates the entry",
-        _early_entry.get("type") == "create_entry"
-        and _early_entry.get("data", {}).get(const.CONF_TIBBER_TOKEN)
-        == _first_credentials[const.CONF_TIBBER_TOKEN]
-        and const.CONF_TARGET_TEMP not in _early_entry.get("data", {}),
-        str(_early_entry)[:160],
+        "finish-setup-now after the second screen shows the setup overview",
+        _overview.get("type") == "form"
+        and _overview.get("step_id") == "setup_overview"
+        and bool(_overview.get("description_placeholders", {}).get("setup_summary")),
+        str(_overview)[:160],
     )
+    _create = getattr(_dup_first, "async_step_setup_overview", None)
+    if _create is None:
+        _early_entry = {}
+        R.check(
+            "confirming the overview creates the entry",
+            False,
+            "async_step_setup_overview missing",
+        )
+    else:
+        _early_entry = asyncio.run(_create({}))
+        R.check(
+            "confirming the overview creates the entry",
+            _early_entry.get("type") == "create_entry"
+            and _early_entry.get("data", {}).get(const.CONF_TIBBER_TOKEN)
+            == _first_credentials[const.CONF_TIBBER_TOKEN]
+            and const.CONF_TARGET_TEMP not in _early_entry.get("data", {}),
+            str(_early_entry)[:160],
+        )
     # What the flow manager does when that flow finishes: an entry that holds
     # the flow's unique id.
     _dup_hass.config_entries.entries.append(

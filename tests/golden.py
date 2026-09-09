@@ -1152,6 +1152,7 @@ def capture_config_flow() -> dict:
         "zones",
         "dhw",
         "weather_sensitivity",
+        "setup_overview",
     ):
         result = asyncio.run(getattr(initial, f"async_step_{step}")())
         if result.get("type") == "menu":

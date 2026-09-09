@@ -229,6 +229,10 @@
           "temperature": "Continue setup",
           "finish_now": "Finish setup now"
         }
+      },
+      "setup_overview": {
+        "title": "Your system, as configured",
+        "description": "What the optimizer believes your system is, from the current configuration. An empty slot is shown as empty on purpose — it is a sensor this setup could use and does not have.\n\n{setup_summary}"
       }
     },
     "error": {

@@ -20,11 +20,11 @@ firing, the accumulated ``_data`` losing a page's answers on the way to
 This driver walks both paths through the flow, questionnaire and expert,
 
     user -> user_sensors -> finish_setup (menu)
-      -> finish_now -> create_entry
+      -> finish_now -> setup_overview -> create_entry
       -> temperature -> building (menu)
         -> building_describe -> building_extras -> dhw -> weather_sensitivity
         -> thermal -> zones -> dhw -> weather_sensitivity
-      -> create_entry
+      -> setup_overview -> create_entry
 
 asserting at every hop the next step_id and the data accumulated so far,
 then probes each step's INVALID inputs through the validation code that
@@ -116,7 +116,7 @@ from golden import (  # noqa: E402
     schema_fingerprint,
 )
 
-from heatpump_optimizer import config_flow, const  # noqa: E402
+from heatpump_optimizer import config_flow, const, topology  # noqa: E402
 from heatpump_optimizer.presets import (  # noqa: E402
     EMITTER_FLOOR,
     EMITTER_RADIATORS,
@@ -483,6 +483,7 @@ class Ledger:
             "zones",
             "dhw",
             "weather_sensitivity",
+            "setup_overview",
             "reauth_confirm",
         ):
             row = steps.get(step)
@@ -562,6 +563,20 @@ def offers_finish_setup(result):
     return (
         shows_menu(result, "finish_setup")
         and tuple(result.get("menu_options", {})) == FINISH_SETUP_OPTIONS
+    )
+
+
+def overview_summary(flow):
+    """Production overview text for this flow's collected answers (UX E3)."""
+    return topology.render_text_summary(topology.describe_setup(flow._data))
+
+
+def shows_config_overview(result, flow):
+    """The result is the config-flow setup overview of this flow's data."""
+    return (
+        shows(result, "setup_overview")
+        and result.get("description_placeholders", {}).get("setup_summary")
+        == overview_summary(flow)
     )
 
 
@@ -910,6 +925,31 @@ async def walk_questionnaire():
     )
 
     result = await submit(flow, "weather_sensitivity", WEATHER_ANSWERS)
+    check(
+        "weather_sensitivity",
+        "happy",
+        "the last questionnaire page shows the setup overview",
+        shows_config_overview(result, flow),
+        f"{result.get('type')} {result.get('step_id')!r}",
+    )
+    if not hasattr(flow, "async_step_setup_overview"):
+        check(
+            "setup_overview",
+            "happy",
+            "confirming the questionnaire overview creates the entry",
+            False,
+            "async_step_setup_overview missing",
+        )
+        check(
+            "setup_overview",
+            "happy",
+            "the entry carries one answer from every page it walked",
+            False,
+            "async_step_setup_overview missing",
+        )
+        config_flow.async_get_clientsession = real
+        return
+    result = await submit(flow, "setup_overview", {})
     entry_data = result.get("data", {})
     from_every_page = [
         key
@@ -925,15 +965,15 @@ async def walk_questionnaire():
         if key not in entry_data
     ]
     check(
-        "weather_sensitivity",
+        "setup_overview",
         "happy",
-        "the last page creates the entry under the chosen name",
+        "confirming the questionnaire overview creates the entry",
         result.get("type") == "create_entry"
         and result.get("title") == "Heat Pump Optimizer",
         f"{result.get('type')} {result.get('title')!r}",
     )
     check(
-        "weather_sensitivity",
+        "setup_overview",
         "happy",
         "the entry carries one answer from every page it walked",
         result.get("type") == "create_entry" and not from_every_page,
@@ -944,10 +984,10 @@ async def walk_questionnaire():
 
 
 # ---------------------------------------------------------------------------
-# UX E2: finish-setup-now after the second screen creates the entry.
+# UX E2 + E3: finish-setup-now after the second screen, then the overview.
 # ---------------------------------------------------------------------------
 async def walk_finish_now():
-    R.section("E2: finish-setup-now after user_sensors creates the entry")
+    R.section("E2/E3: finish-setup-now shows the overview, then creates")
     real = install_session(config_flow, FakeSession([TIBBER_VIEWER_OK]))
     flow = fresh_flow()
     result = await submit_first_screen(flow, FIRST_SCREEN)
@@ -963,12 +1003,19 @@ async def walk_finish_now():
         check(
             "finish_now",
             "happy",
-            "finish-setup-now creates the entry under the chosen name",
+            "finish-setup-now shows the setup overview",
             False,
             "async_step_finish_now missing",
         )
         check(
-            "finish_now",
+            "setup_overview",
+            "happy",
+            "confirming the early overview creates the entry",
+            False,
+            "async_step_finish_now missing",
+        )
+        check(
+            "setup_overview",
             "happy",
             "the early entry carries the first two screens and no later page",
             False,
@@ -977,17 +1024,43 @@ async def walk_finish_now():
         config_flow.async_get_clientsession = real
         return
     result = await finish(None)
-    entry_data = result.get("data", {})
     check(
         "finish_now",
         "happy",
-        "finish-setup-now creates the entry under the chosen name",
+        "finish-setup-now shows the setup overview",
+        shows_config_overview(result, flow),
+        f"{result.get('type')} {result.get('step_id')!r}",
+    )
+    overview = getattr(flow, "async_step_setup_overview", None)
+    if overview is None:
+        check(
+            "setup_overview",
+            "happy",
+            "confirming the early overview creates the entry",
+            False,
+            "async_step_setup_overview missing",
+        )
+        check(
+            "setup_overview",
+            "happy",
+            "the early entry carries the first two screens and no later page",
+            False,
+            "async_step_setup_overview missing",
+        )
+        config_flow.async_get_clientsession = real
+        return
+    result = await submit(flow, "setup_overview", {})
+    entry_data = result.get("data", {})
+    check(
+        "setup_overview",
+        "happy",
+        "confirming the early overview creates the entry",
         result.get("type") == "create_entry"
         and result.get("title") == "Heat Pump Optimizer",
         f"{result.get('type')} {result.get('title')!r}",
     )
     check(
-        "finish_now",
+        "setup_overview",
         "happy",
         "the early entry carries the first two screens and no later page",
         result.get("type") == "create_entry"
@@ -1087,7 +1160,25 @@ async def walk_expert():
     check(
         "weather_sensitivity",
         "happy",
-        "the expert path creates its entry with the thermal values",
+        "the expert path shows the setup overview",
+        shows_config_overview(result, flow),
+        f"{result.get('type')} {result.get('step_id')!r}",
+    )
+    if not hasattr(flow, "async_step_setup_overview"):
+        check(
+            "setup_overview",
+            "happy",
+            "confirming the expert overview creates the entry with the thermal values",
+            False,
+            "async_step_setup_overview missing",
+        )
+        config_flow.async_get_clientsession = real
+        return
+    result = await submit(flow, "setup_overview", {})
+    check(
+        "setup_overview",
+        "happy",
+        "confirming the expert overview creates the entry with the thermal values",
         result.get("type") == "create_entry"
         and result.get("data", {}).get(const.CONF_HOUSE_THERMAL_MASS) == 10.0
         and result.get("data", {}).get(const.CONF_INTER_ZONE_TRANSFER) == 0.1,
@@ -1270,6 +1361,8 @@ async def options_entry_data():
         await submit(flow, "building_extras", EXTRAS_ANSWERS)
         await submit(flow, "dhw", DHW_ANSWERS)
         result = await submit(flow, "weather_sensitivity", WEATHER_ANSWERS)
+        if result.get("type") != "create_entry":
+            result = await submit(flow, "setup_overview", {})
     finally:
         config_flow.async_get_clientsession = real
     assert result.get("type") == "create_entry", str(result)[:200]

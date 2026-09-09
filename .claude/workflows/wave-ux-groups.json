@@ -369,10 +369,10 @@
       "fixture": false,
       "after": [],
       "resume": {
-        "stage": "pending",
-        "note": "Not started."
+        "stage": "in-review",
+        "note": "PR drafts setup_overview on both config terminals. leaves #558 open."
       },
-      "brief": "Show the setup overview as the last step of the CONFIG flow, not only in Options, so a user sees what was configured at the moment they finish configuring it. E2's two create-entry terminals both call `_create_setup_entry` -- `finish_now` at config_flow.py:1711 and `weather_sensitivity` at config_flow.py:2059. Attach `setup_overview` to both terminals or to that helper; otherwise a finish-now user never sees it. Overview is still options-only. `setup_overview` is registered at config_flow.py:1227. `async_step_setup_overview` is on the options flow at config_flow.py:2271. Any change to a form's shape is subject to the constraint E4's brief carries."
+      "brief": "Show the setup overview as the last step of the CONFIG flow, not only in Options, so a user sees what was configured at the moment they finish configuring it. Both create-entry terminals hop to ConfigFlow `async_step_setup_overview` -- `finish_now` at config_flow.py:1729 \"return await self.async_step_setup_overview\" and `weather_sensitivity` at config_flow.py:2085 \"return await self.async_step_setup_overview\". Confirming that step calls `_create_setup_entry` at config_flow.py:1736 \"return self._create_setup_entry\". Shared render is `_setup_overview_form` at config_flow.py:1564. `setup_overview` is registered at config_flow.py:1227 \"Your system, as configured\". Options still has `async_step_setup_overview` at config_flow.py:2297. Any change to a form's shape is subject to the constraint E4's brief carries."
     },
     {
       "group": "E4",
