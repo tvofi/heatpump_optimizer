@@ -30,6 +30,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime
+from typing import Any
 
 import numpy as np
 
@@ -236,7 +237,7 @@ class GridFeeSchedule:
     rules: list[FeeRule] = field(default_factory=list)
 
     @classmethod
-    def from_config(cls, config: dict) -> "GridFeeSchedule":
+    def from_config(cls, config: dict[str, Any]) -> "GridFeeSchedule":
         """Build from the config entry; a broken spec degrades to no rules.
 
         Degrading is deliberate: the config flow validates on the way in, so

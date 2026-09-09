@@ -26,6 +26,7 @@ Kept free of Home Assistant imports so it can be unit-tested directly.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Any
 
 import numpy as np
 
@@ -64,7 +65,7 @@ class FrequencyMap:
     control's own feedback.
     """
 
-    buckets: dict[int, list] = field(default_factory=dict)
+    buckets: dict[int, list[float]] = field(default_factory=dict)
 
     def observe(
         self, hz: float, kw: float, hz_min: float, hz_max: float
@@ -152,7 +153,7 @@ class FrequencyMap:
             predicted < target_kw for _, predicted in candidates
         )
 
-    def summary(self, hz_min: float, hz_max: float) -> dict:
+    def summary(self, hz_min: float, hz_max: float) -> dict[str, Any]:
         """The map as published: per-bucket mid-Hz, ratio and count."""
         span = float(hz_max) - float(hz_min)
         out = {}
@@ -171,14 +172,14 @@ class FrequencyMap:
 
     # -- persistence --------------------------------------------------------
 
-    def as_dict(self) -> dict:
+    def as_dict(self) -> dict[str, Any]:
         return {
             str(decile): [round(float(entry[0]), 5), int(entry[1])]
             for decile, entry in self.buckets.items()
         }
 
     @classmethod
-    def from_dict(cls, data: dict | None) -> "FrequencyMap":
+    def from_dict(cls, data: dict[str, Any] | None) -> "FrequencyMap":
         fmap = cls()
         if not isinstance(data, dict):
             return fmap

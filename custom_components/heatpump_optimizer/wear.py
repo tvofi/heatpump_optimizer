@@ -20,6 +20,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
+from typing import Any
 
 import numpy as np
 
@@ -89,7 +90,7 @@ class StartCounter:
 
     # -- persistence --------------------------------------------------------
 
-    def as_dict(self) -> dict:
+    def as_dict(self) -> dict[str, Any]:
         return {
             "lifetime": int(self.lifetime),
             "months": {k: int(v) for k, v in self.months.items()},
@@ -97,7 +98,7 @@ class StartCounter:
         }
 
     @classmethod
-    def from_dict(cls, data: dict | None) -> "StartCounter":
+    def from_dict(cls, data: dict[str, Any] | None) -> "StartCounter":
         counter = cls()
         if not isinstance(data, dict):
             return counter
