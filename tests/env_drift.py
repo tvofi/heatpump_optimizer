@@ -1224,7 +1224,21 @@ def apply_inherited_claims(
 
     `baseline_dir` is a tree that already has both files (tests). `ref`
     is a git revision whose blobs are read with `git show` (CI).
+
+    Refuses outright when the three-dot against `ref` moves nothing a
+    claim excuses. Emptying such a branch's list is what carried #569's,
+    #633's and (nearly) #653's claims off `main` at squash-merge: the
+    branch had no business in that file, and "empty it" is a rewrite of
+    someone else's line. Only `ref` can be checked this way -- a
+    `baseline_dir` is a tree, not a revision, and the tests that use it
+    supply the diff's intent themselves.
     """
+    if ref:
+        try:
+            if not moves_claimable(three_dot_files(repo, ref)):
+                return "skip-moves-nothing-claimable"
+        except GitAnswerMissing:
+            return "skip-cannot-compare"
     changed = False
     for rel in (CLAIM_FILE, CARD_CLAIM_FILE):
         path = os.path.join(repo, rel)
@@ -1586,24 +1600,51 @@ def justifies_card_claim(path: str) -> bool:
     return path == CARD_JS
 
 
+def moves_claimable(changed: list[str]) -> bool:
+    """Could this three-dot have moved anything a claim excuses?"""
+    return any(justifies_solver_claim(p) or justifies_card_claim(p) for p in changed)
+
+
 def record_pr_claims_error(
     changed: list[str],
     solver_claims: dict[str, str],
     card_claims: dict[str, str],
+    baseline_solver: dict[str, str] | None = None,
+    baseline_card: dict[str, str] | None = None,
 ) -> str | None:
-    """Why a docs/roster three-dot still carries claims — None when it does not.
+    """Why a docs/roster three-dot changed a claim file — None when it did not.
 
     If the three-dot touches neither integration Python nor the bundled
-    card, it cannot have moved a claimed fixture, and both lists must be
-    empty. One-line fix: empty the lists.
+    card, it cannot have moved a claimed fixture, so it must leave both
+    files EXACTLY AS IT FOUND THEM -- in either direction.
+
+    The rule used to be "both lists must be empty", and that is the same
+    rule whenever the baseline claims nothing, which is why every existing
+    case still reads the same. It is wrong the moment the baseline claims
+    something: these files are shared state that outlives the branch, and
+    a squash-merge applies the branch's deletion to `main`. Measured three
+    times -- #608 deleted #569's claims, #635 deleted #633's, and #658
+    would have deleted #653's `config_flow` line, which is what stopped it.
+    A change that moves no fixture has nothing to say about anyone's claim.
     """
-    if any(justifies_solver_claim(p) or justifies_card_claim(p) for p in changed):
+    if moves_claimable(changed):
         return None
-    if not solver_claims and not card_claims:
+    base_solver = {} if baseline_solver is None else baseline_solver
+    base_card = {} if baseline_card is None else baseline_card
+    if solver_claims == base_solver and card_claims == base_card:
         return None
+    if not base_solver and not base_card:
+        return (
+            "RECORD PR CLAIMS: three-dot touches neither card nor solver "
+            "fixtures, so both claim lists must be empty. Empty the lists."
+        )
     return (
         "RECORD PR CLAIMS: three-dot touches neither card nor solver "
-        "fixtures, so both claim lists must be empty. Empty the lists."
+        "fixtures, so both claim files must be left exactly as this branch "
+        "found them. They differ from the baseline's, which means this "
+        "branch is about to add or DELETE a claim it did not write -- and a "
+        "squash-merge applies that deletion to the baseline. Restore the "
+        "files to the baseline's content."
     )
 
 
@@ -1647,18 +1688,15 @@ def check_claims_hygiene(repo: str, ref: str) -> str | None:
         return f"cannot resolve {ref}"
     _, solver = _claimed(repo, CLAIM_FILE)
     _, card = _claimed(repo, CARD_CLAIM_FILE)
-    inherited = inherited_claims_error(
-        solver, _claimed_at(repo, ref, CLAIM_FILE), ref, CLAIM_FILE
-    )
-    if inherited:
-        return inherited
-    inherited = inherited_claims_error(
-        card, _claimed_at(repo, ref, CARD_CLAIM_FILE), ref, CARD_CLAIM_FILE
-    )
-    if inherited:
-        return inherited
+    base_solver = _claimed_at(repo, ref, CLAIM_FILE)
+    base_card = _claimed_at(repo, ref, CARD_CLAIM_FILE)
     # An unanswerable comparison is not a clean one. Returning None here would
     # be the gate reporting "no claim owed" about a tree it could not read.
+    # It is computed FIRST because it decides which rule applies: a three-dot
+    # that moves nothing claimable owes the files unchanged, and "unchanged"
+    # is exactly what `inherited_claims_error` refuses. Running that check on
+    # such a branch is the contradiction that stopped #658 -- byte-identical
+    # is red, and emptied deletes another lane's line.
     try:
         changed = three_dot_files(repo, ref)
     except GitAnswerMissing as exc:
@@ -1668,7 +1706,15 @@ def check_claims_hygiene(repo: str, ref: str) -> str | None:
             "not be computed, so no statement about claims can be made from it.\n"
             "A shallow clone is the usual cause: git fetch --unshallow origin."
         )
-    return record_pr_claims_error(changed, solver, card)
+    if not moves_claimable(changed):
+        return record_pr_claims_error(changed, solver, card, base_solver, base_card)
+    inherited = inherited_claims_error(solver, base_solver, ref, CLAIM_FILE)
+    if inherited:
+        return inherited
+    inherited = inherited_claims_error(card, base_card, ref, CARD_CLAIM_FILE)
+    if inherited:
+        return inherited
+    return record_pr_claims_error(changed, solver, card, base_solver, base_card)
 
 
 def self_comparison_error(ref: str, head: str) -> str:
