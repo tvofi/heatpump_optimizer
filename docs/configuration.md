@@ -525,8 +525,10 @@ flowchart TB
 
 On every layout the heat pump also feeds the hot water tank directly whenever
 hot water is modelled; that pipe is left out above to keep the sketches
-readable. On a single-tank layout a wood tank, if you have one, is drawn
-feeding the buffer tank — its heat is folded in rather than stored separately.
+readable. The Setup tab can enable that tank without a wood furnace tank —
+wood is a separate pick, not a prerequisite. On a single-tank layout a wood
+tank, if you have one, is drawn feeding the buffer tank — its heat is folded
+in rather than stored separately.
 
 | Layout | What it is | Requires | Selectable |
 |---|---|---|---|
@@ -561,7 +563,7 @@ or is not loaded — fails with a validation error rather than doing nothing.
 | `simulate_plan` | 11 optional comfort fields | always |
 | `apply_schedule` | 5 optional schedule fields + `entry_id` | optional |
 | `assign_entity` | `key`, `entity_id` (both required) + `entry_id` | optional |
-| `apply_topology` | `layout` (required), `positions`, `entry_id` | optional |
+| `apply_topology` | `layout` (required), `positions`, `dhw`, `wood`, `entry_id` | optional |
 | `apply_manual_plan` | `space_slots`, `dhw_slots`, `expires_at`, `entry_id` | optional |
 | `clear_manual_plan` | `entry_id` | optional |
 | `restore_learned_snapshot` | `entry_id` | optional |
@@ -640,9 +642,11 @@ the card's Setup tab calls; it writes exactly what the options pages write.
 
 **`apply_topology`** stores the hydronic layout the setup editor snapped to:
 `layout` is one of the four selectable catalog keys above, and `positions` is an
-optional `{place: [x, y]}` map of cosmetic box coordinates. Free-form edge sets
-are never stored — the editor matches a drawing against the catalog and saves
-only the key.
+optional `{place: [x, y]}` map of cosmetic box coordinates. Optional `dhw` /
+`wood` persist tank presence independently (`dhw: true` writes a default tank
+volume if hot water is not already inferred; `wood` writes the furnace
+toggle). Free-form edge sets are never stored — the editor matches a drawing
+against the catalog and saves only the key.
 
 **`apply_manual_plan`** pins exact run slots. `space_slots` and `dhw_slots` are
 lists of `{start, end}` ISO datetimes; an empty list means *forced off* for that

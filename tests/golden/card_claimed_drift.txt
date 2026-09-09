@@ -21,6 +21,16 @@
 #
 # claims-for: 6.3.19
 #
+# DHW-tank-only setup: the Setup page grew independent Hot water / Wood
+# furnace picks. Plan-page states are unchanged.
+
+setup_single_buffer  # Setup page: independent DHW / wood tank picks
+setup_two_tank  # Setup page: independent DHW / wood tank picks
+setup_coil  # Setup page: independent DHW / wood tank picks
+layout_editing_dragged  # Setup page: independent DHW / wood tank picks
+layout_editing_tidy  # Setup page: independent DHW / wood tank picks
+picker_open_filtered  # Setup page: independent DHW / wood tank picks
+#
 # v6.3.19: the governance programme, three defects that were deleting work, and the interface changes that came with them. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
