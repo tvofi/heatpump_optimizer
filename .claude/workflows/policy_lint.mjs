@@ -1367,7 +1367,7 @@ function mergedPRs(subjects) {
 // prose, so it passed on text written before the merge it was accepting.
 //
 // The anchor is the SECTION, not the line and not the link. A row format was
-// the obvious fix and is the wrong one: it would refuse the two dispositions
+// the obvious fix and is the wrong one: it would refuse the dispositions
 // this repository actually writes inside Delivery-status TABLE CELLS, and pin a
 // shape the next lane must copy rather than a property it must satisfy.
 // Measured before choosing, and the count moves with the window
