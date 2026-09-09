@@ -21,6 +21,7 @@ import calendar
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime
+from typing import Any
 
 import numpy as np
 
@@ -56,9 +57,9 @@ def savings_pct(baseline_sek: float, savings_sek: float) -> float | None:
 class MonthlyLedger:
     """``months[month]["lines"][name] = {"kwh": …, "sek": …}`` plus meta."""
 
-    months: dict[str, dict] = field(default_factory=dict)
+    months: dict[str, dict[str, Any]] = field(default_factory=dict)
 
-    def _month(self, key: str) -> dict:
+    def _month(self, key: str) -> dict[str, Any]:
         month = self.months.get(key)
         if month is None:
             month = {"lines": {}, "meta": {}}
@@ -95,7 +96,7 @@ class MonthlyLedger:
         self,
         when: datetime,
         spot: float,
-        pending: dict,
+        pending: dict[str, float | None],
         actual_kwh: float,
         dt: float,
     ) -> None:
@@ -141,7 +142,7 @@ class MonthlyLedger:
     def settle_interval_savings(
         self,
         when: datetime,
-        pending: dict,
+        pending: dict[str, float | None],
         actual_kwh: float,
         spot: float,
         dt: float,
@@ -157,7 +158,7 @@ class MonthlyLedger:
 
     # -- reading ------------------------------------------------------------
 
-    def line(self, month: str, name: str) -> dict:
+    def line(self, month: str, name: str) -> dict[str, float]:
         """One line's totals, zeros when nothing was booked."""
         entry = self.months.get(month, {}).get("lines", {}).get(name)
         if not isinstance(entry, dict):
@@ -173,7 +174,7 @@ class MonthlyLedger:
             return None
         return float(entry["sum"]) / int(entry["count"])
 
-    def month_summary(self, month: str) -> dict:
+    def month_summary(self, month: str) -> dict[str, dict[str, float]]:
         """Every line of one month, rounded for publication."""
         data = self.months.get(month)
         if not isinstance(data, dict):
@@ -190,11 +191,11 @@ class MonthlyLedger:
             if isinstance(entry, dict)
         }
 
-    def savings_months(self, now: datetime) -> list[dict]:
+    def savings_months(self, now: datetime) -> list[dict[str, Any]]:
         """Published rows: months that booked savings_baseline, oldest first."""
         open_key = month_key(now)
         factor = pro_rata_factor(now)
-        rows: list[dict] = []
+        rows: list[dict[str, Any]] = []
         for key in sorted(self.months):
             lines = self.months[key].get("lines") or {}
             if "savings_baseline" not in lines:
@@ -220,17 +221,17 @@ class MonthlyLedger:
 
     # -- persistence --------------------------------------------------------
 
-    def as_dict(self) -> dict:
+    def as_dict(self) -> dict[str, Any]:
         return {"months": self.months}
 
     @classmethod
-    def from_dict(cls, data: dict | None) -> "MonthlyLedger":
+    def from_dict(cls, data: dict[str, Any] | None) -> "MonthlyLedger":
         ledger = cls()
         if not isinstance(data, dict):
             return ledger
         months = data.get("months")
         if isinstance(months, dict):
-            clean: dict[str, dict] = {}
+            clean: dict[str, dict[str, Any]] = {}
             dropped = 0
             for key, value in months.items():
                 if (
