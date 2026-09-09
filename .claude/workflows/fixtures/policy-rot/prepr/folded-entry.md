@@ -16,6 +16,10 @@ n/a: fixture.
 
 n/a: fixture.
 
+## Figures
+
+none
+
 ## Red checks
 
 none
