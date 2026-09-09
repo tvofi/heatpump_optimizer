@@ -360,6 +360,56 @@ const CORPUS_EXCLUDED = new Set([
   'docs/plan-2026-09-open-issues.md', // plan of record
   'DISCLAIMER.md',                    // user-facing, same ground as README.md
   'docs/backlog.md',                  // superseded record, kept for history
+  // The architecture decision records. An ADR states a decision ALREADY TAKEN
+  // and the measurement behind it; it binds no seat and no seat is sent to one
+  // to learn what it must do. The corpus machinery is built for text that binds
+  // someone: `checkIndex` refuses a policy file `CLAUDE.md` does not name,
+  // because "the index is the only way a seat finds a policy file" -- and
+  // naming them all here would push the ALWAYS-LOADED set, the one number this
+  // audit exists to drive down, past its cap to carry documents nobody must
+  // read. Measured before choosing, and RE-MEASURED here because the first
+  // reading was taken against five decisions and this list now names six:
+  // bringing `docs/decisions/` under POLICY_GLOBS reports 24 errors across 41
+  // policy files -- 7 [budgets], 6 [index], 6 [duplicates], 5 [citations] --
+  // where the first reading said 14. The shape is what decided it and the shape
+  // is unchanged: every ADR wants a cap and an index line it should not have.
+  // The five [citations] are named one by one rather than summarised, because
+  // the first version of this sentence said they were all 0003's and three of
+  // them are: `docs/Zednotes.md`, `NOT_A_DOCUMENT` and `NEVER_NOT_A_DOCUMENT`,
+  // correct BECAUSE 0003 describes an experiment over files and symbols that do
+  // not exist. The fourth is 0005 citing `docs/plan-2026-09-governance-audit.md`
+  // and is a TRUE positive: that plan is archived on a branch and is not in this
+  // tree. The fifth is 0006 citing `POLICY_GLOBS`, which exists a few lines
+  // above here. `git grep -w POLICY_GLOBS` finds three tracked files, and
+  // `symbolElsewhere` below excludes all three by three different clauses of
+  // its own inline list: this file by `:!.claude`, ADR 0002 by `...spec` (a
+  // policy file cannot satisfy a citation, and once ADRs are policy files --
+  // the state being measured -- 0002 is one), and 0006 itself by `exceptRel`.
+  // Two are independently sufficient: dropping `:!.claude` takes the total to
+  // 23, and so does un-excluding 0002. Named this precisely because the
+  // sentence has been wrong twice, once as "all five are 0003's" and once as
+  // `SYMBOL_GREP_EXCLUDE`, which this file imports and never calls on this
+  // path. So three of the five are a check applied to the wrong kind of text,
+  // one is the check working, and one is three exclusions meeting a document
+  // that cites into all of them. The count grows with the directory, which is
+  // the other half of the argument: measuring ADRs makes the corpus pay per
+  // decision.
+  //
+  // THE RESIDUAL RISK, stated rather than left to be found: prose moved from a
+  // capped file into an ADR leaves the corpus and buys headroom in every cap at
+  // once, and nothing detects it. Only a reviewer reading the diff does. These
+  // are named ONE BY ONE and not by prefix, deliberately -- a `.md` is never
+  // excused by location here, so the NEXT ADR costs a line in this list, which
+  // is the same bar as raising a cap and is the point. It has already been paid
+  // once: this comment said "a sixth" while it was written against five, and
+  // 0006 landed on `main` before the branch did. A count in a comment goes
+  // stale on the next merge; the list is the count.
+  'docs/decisions/0001-session-policy-merge-grant.md',
+  'docs/decisions/0002-self-witnessed-proxy-assertion.md',
+  'docs/decisions/0003-enumerate-what-you-may-ignore.md',
+  'docs/decisions/0004-an-assertion-can-be-correct-and-never-run.md',
+  'docs/decisions/0005-no-codeowners-while-one-identity-authors-and-approves.md',
+  'docs/decisions/0006-policy-merge-grant-regranted-to-the-local-session.md',
 ])
 
 // Widening the scan past `.md` brought in every `.txt` a policy file cites, and
