@@ -55,6 +55,14 @@
 # the committed fixture is re-recorded AND the drift vs the merge base is
 # claimed. Same class as #547. Solver fixtures and the card claim file are
 # untouched.
+#
+# E1: setup's tibber_token takes the same password TextSelector options
+# already used. Instrument: GOLDEN_MODE=strict tests/golden.py --only
+# config_flow. The only moved path is _initial.user.tibber_token
+# (selector type -> TextSelector, config None -> type password).
+# reauth_confirm is not in this fixture; config_flow_steps.py pins it.
+# Options entities is already password, so that half of the fixture
+# does not move. Solver fixtures and the card claim file are untouched.
 
 #
 

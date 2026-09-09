@@ -489,6 +489,7 @@ no wave:
 - [#640](https://github.com/tvofi/heatpump_optimizer/pull/640) — W5-G3 first cut: wood_fuel.py annotations, ruler 355→325. leaves #303 open.
 - [#643](https://github.com/tvofi/heatpump_optimizer/pull/643) — W5-G3: config_flow.py annotations, ruler 297→271. leaves #303 open.
 - [#661](https://github.com/tvofi/heatpump_optimizer/pull/661) — nightly A4 availability fault-injection. leaves #533 open.
+- [#664](https://github.com/tvofi/heatpump_optimizer/pull/664) — UX E1: setup and reauth token fields use the same password selector as options. leaves #558 open.
 - [#656](https://github.com/tvofi/heatpump_optimizer/pull/656) — W5-G3: thermal_model.py annotations, ruler 271→248. leaves #303 open.
 
 **A pattern worth naming**, since most of these were blocked for it: every one of those blocks was a document asserting something that was not true of the tree — a stale head, a count, an actor, a carry that did not land. None was a disagreement about the change itself.
