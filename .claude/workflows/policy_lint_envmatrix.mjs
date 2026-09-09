@@ -21,9 +21,21 @@ const sh = (cmd, args, opts = {}) => {
 }
 const git = (dir, args) => sh('git', ['-C', dir, ...args])
 
+// What this run actually built, recorded HERE rather than read off the disk
+// afterwards. `fs.existsSync(WORK/<name>/.git)` was the earlier test, and it
+// answers a question about the filesystem, not about this run: delete a shape's
+// `build(...)` call and its directory from the PREVIOUS run still satisfies it,
+// so the matrix reports five shapes while running four.
+const BUILT = new Set()
+
 function build(name, mutate) {
   const dir = path.join(WORK, name)
-  fs.rmSync(dir, { recursive: true, force: true })
+  // And a work directory that already holds this shape is refused rather than
+  // reused, because reuse is what makes the stale directory available at all.
+  if (fs.existsSync(dir)) {
+    return { dir, error: `work directory already holds ${name}: pass a fresh --work dir. Reusing one lets a deleted shape pass on the previous run's clone.` }
+  }
+  BUILT.add(name)
   const c = sh('git', ['clone', '-q', '--no-checkout', SRC, dir])
   if (c.rc) return { dir, error: `clone failed: ${c.out.slice(0,200)}` }
   const co = git(dir, ['checkout', '-q', '--detach', SHA])
@@ -170,12 +182,43 @@ else {
 }
 
 // ---- report --------------------------------------------------------------
+//
+// THE ROW ROSTER, named one by one. A count is satisfied by a duplicate and by
+// a swap -- #614's round 3 measured exactly that on another check -- so the
+// thirteen outcomes this matrix declares are listed, and a run whose row set is
+// not this set fails whichever way it differs. Deleting an `add(...)` call
+// leaves its name here with nothing to satisfy it, which is the point: the
+// roster cannot be maintained by the same edit that removes the row.
+const DECLARED_ROWS = [
+  'pr / policy_lint rc=0 and every pin earned',
+  'pr / nothing skipped in a full clone',
+  'pr / every corpus check measured and pinned',
+  'push-main / policy_lint rc=0',
+  'push-main / the same pins are earned as on a pull request',
+  'push-main / every corpus check still measured and pinned',
+  'no-remote / policy_lint rc=0',
+  'no-remote / the skipped drive is said out loud',
+  'no-remote / a skipped drive does not claim its pins',
+  'no-remote / the lane reports NOT MEASURED rather than failing',
+  'shallow / policy_lint rc=0',
+  'shallow / an undrivable arm is said out loud and not claimed',
+  'no-rosters / a roster scan over zero rosters does not report ok',
+]
 const EXPECTED_SHAPES = 5
-const built = ['pr','push-main','no-remote','shallow','no-rosters']
-  .filter((n) => fs.existsSync(path.join(WORK, n, '.git')))
+const built = ['pr','push-main','no-remote','shallow','no-rosters'].filter((n) => BUILT.has(n))
 console.log(`  baseline ${mainRef || '(no main ref found)'} = ${mainTip.slice(0, 7) || '-'}`)
 for (const r of rows) console.log(`  ${(r.ok ? 'ok' : 'FAIL').padEnd(5)} ${r.name}${r.ok ? '' : `  --  ${r.detail}`}`)
 const bad = rows.filter((r) => !r.ok)
+const seen = new Set(rows.map((r) => r.name))
+const missing = DECLARED_ROWS.filter((n) => !seen.has(n))
+// A `<shape> / built` row is only added when a shape failed to build, so it is
+// a permitted extra: it already fails on its own and saying it twice hides the
+// cause behind a roster complaint.
+const unexpected = [...seen].filter((n) => !DECLARED_ROWS.includes(n) && !n.endsWith('/ built'))
+if (missing.length || unexpected.length) {
+  console.log(`\nMATRIX ROSTER: ${missing.length} declared row(s) never ran ${JSON.stringify(missing)}; ${unexpected.length} row(s) ran that are not declared ${JSON.stringify(unexpected)}. A count would have passed either way.`)
+  process.exit(1)
+}
 if (built.length !== EXPECTED_SHAPES) {
   console.log(`\nMATRIX VACUOUS: built ${built.length} of ${EXPECTED_SHAPES} shapes [${built.join(', ')}]; a matrix that ran a subset certifies nothing`)
   process.exit(1)
