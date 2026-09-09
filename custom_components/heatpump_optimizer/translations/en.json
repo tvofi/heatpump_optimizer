@@ -221,6 +221,18 @@
           "heat_pump_online_entity": "Optional, and strongly recommended for a cloud-connected pump. On while the pump is actually reachable. A cloud integration can keep republishing its last known readings while the pump itself has dropped off the network, which leaves every other sensor looking perfectly fresh; this is the one signal that says otherwise. On a local (LAN) connection the sensors go unavailable by themselves and this adds little.",
           "heat_pump_fault_entity": "Optional. On while the pump is reporting a fault. Only whether there is a fault is used, never the code itself."
         }
+      },
+      "finish_setup": {
+        "title": "Finish setup now?",
+        "description": "An entry is created only when this flow finishes. You can stop here and start with shipped defaults — temperatures, the building, hot water and weather sensitivity can be set later in Options — or continue through those screens now.",
+        "menu_options": {
+          "temperature": "Continue setup",
+          "finish_now": "Finish setup now"
+        }
+      },
+      "setup_overview": {
+        "title": "Your system, as configured",
+        "description": "What the optimizer believes your system is, from the current configuration. An empty slot is shown as empty on purpose — it is a sensor this setup could use and does not have.\n\n{setup_summary}"
       }
     },
     "error": {
@@ -378,6 +390,17 @@
           "after_save": "Saving writes through immediately; this chooses where the dialog goes next.",
           "space_setpoint_entity": "Optional. A number, helper or climate entity that is the pump's space-heating set-point. Used only to notice when the entity cannot be read. The optimizer never writes a recommended space set-point.",
           "space_setpoint_unit": "Indoor temperature is correct for a room or thermostat set-point. Flow temperature is for a controller whose set-point is a water temperature. Pointing an indoor target at a flow entity would command roughly 21 °C to something expecting 35–45 °C and badly underheat the house. The unit is a declaration: this integration never recommends a space set-point."
+        },
+        "sections": {
+          "credentials": {
+            "name": "Account and weather"
+          },
+          "indoor": {
+            "name": "Room temperatures"
+          },
+          "plant": {
+            "name": "Heat pump and tanks"
+          }
         }
       },
       "comfort": {
@@ -408,6 +431,17 @@
           "indoor_humidity_entity": "A relative humidity sensor in the living space. Without one the mold guard stays off regardless of the switch.",
           "thermal_bridge_frsi": "How cold your worst surface gets, as a fraction: surface = outdoor + fRsi × (room − outdoor). 0.75 is the Swedish building-code guidance; lower means a colder worst spot and a more cautious guard.",
           "after_save": "Saving writes through immediately; this chooses where the dialog goes next."
+        },
+        "sections": {
+          "band": {
+            "name": "Comfort band"
+          },
+          "schedule": {
+            "name": "Day and night"
+          },
+          "mold": {
+            "name": "Mold guard"
+          }
         }
       },
       "hot_water": {
@@ -436,6 +470,17 @@
           "dhw_legionella_interval_days": "How often the disinfection heat-up runs. It is placed in the cheapest hour before each deadline.",
           "after_save": "Saving writes through immediately; this chooses where the dialog goes next.",
           "dhw_setpoint_entity": "Optional. The number, helper or climate entity that is the pump's own hot-water set-point. When it sits below the disinfection temperature or the hot-water minimum you configured here, a repair card offers to raise it to that figure."
+        },
+        "sections": {
+          "schedule": {
+            "name": "Demand windows"
+          },
+          "temperatures": {
+            "name": "Tank temperatures"
+          },
+          "legionella": {
+            "name": "Legionella"
+          }
         }
       },
       "building": {
@@ -490,6 +535,20 @@
           "wood_furnace_efficiency": "Share of the wood's energy that reaches the tank, percent.",
           "after_save": "Saving writes through immediately; this chooses where the dialog goes next.",
           "space_circulation_pump_entity": "A switch controlling the heating circulation pump. When set, the pump is paused only in slots that are provably idle and warm — it always runs when heat is planned, when it is freezing outside, or when any room is near its comfort floor."
+        },
+        "sections": {
+          "valve": {
+            "name": "Mixing valve"
+          },
+          "buffer": {
+            "name": "Buffer tank"
+          },
+          "wood": {
+            "name": "Wood furnace"
+          },
+          "circulation": {
+            "name": "Circulation pump"
+          }
         }
       },
       "tuning": {
@@ -520,6 +579,17 @@
           "wear_autotune_enabled": "When on, the wear price per start (replacement cost divided by rated starts) becomes a floor under the compressor cycling cost above, so plans stop understating a cost you have made explicit. This is the only insight feature that changes plans.",
           "price_tiles_enabled": "After each scheduled optimization, price one what-if tile — target one degree lower, one degree higher, and power capped at 75 %, in rotation. Off by default because each tile is a full extra solve of real CPU.",
           "after_save": "Saving writes through immediately; this chooses where the dialog goes next."
+        },
+        "sections": {
+          "weights": {
+            "name": "Savings vs comfort"
+          },
+          "wear": {
+            "name": "Compressor wear"
+          },
+          "risk": {
+            "name": "Price risk"
+          }
         }
       },
       "heat_curve": {
@@ -578,6 +648,17 @@
           "rain_heat_loss_multiplier": "Extra heat loss while it is raining. 1.0 means rain makes no difference.",
           "building_foundation": "A crawl space adds heat loss; a heated basement adds both loss area and thermal mass.",
           "after_save": "Saving writes through immediately; this chooses where the dialog goes next."
+        },
+        "sections": {
+          "questionnaire": {
+            "name": "Building description"
+          },
+          "derivation": {
+            "name": "Derive from building type"
+          },
+          "climate": {
+            "name": "Weather sensitivity"
+          }
         }
       },
       "thermal_model": {
@@ -714,6 +795,17 @@
           "compressor_freq_sensor": "A sensor carrying the compressor's ACTUAL frequency, if your integration exposes one separately. Many number entities are setpoint registers that simply echo the last written value — read from an echo, the watchdog can never see divergence and the learned map follows the setpoint instead of the machine. Leave empty only if the number entity's state genuinely tracks the real frequency.",
           "freq_control_mode": "Observe learns and recommends but never writes. Switch to control only after you have validated the entity against your real hardware: writes go via number.set_value, at most one per five minutes, clamped to the entity's own range, and a reported frequency diverging from the commanded one for three ticks stands the controller back down to observe.",
           "after_save": "Saving writes through immediately; this chooses where the dialog goes next."
+        },
+        "sections": {
+          "solar": {
+            "name": "Solar forecast"
+          },
+          "meters": {
+            "name": "Power and energy"
+          },
+          "compressor": {
+            "name": "Compressor frequency"
+          }
         }
       },
       "entities_pump": {
@@ -766,6 +858,20 @@
           "dhw_legionella_min_interval_days": "Never run anti-legionella cycles closer together than this, even on very cheap days.",
           "shower_flow_lpm": "Your shower head's flow. Only used to translate the tank's content into shower minutes on the DHW Mixed Water sensor.",
           "after_save": "Saving writes through immediately; this chooses where the dialog goes next."
+        },
+        "sections": {
+          "tank": {
+            "name": "Tank"
+          },
+          "inlet": {
+            "name": "Inlet water"
+          },
+          "recovery": {
+            "name": "Heat recovery"
+          },
+          "disinfection": {
+            "name": "Disinfection"
+          }
         }
       },
       "hot_water_pumps": {
@@ -848,6 +954,17 @@
           "internal_gains_learning_enabled": "People, cooking and appliances heat the house on a daily rhythm the flat constant cannot see. This learns a per-hour profile from dark-hour prediction errors, gently tethered to the configured value so it stays a refinement, not a rewrite.",
           "curve_learning_enabled": "Most heat curves were set once, conservatively, by an installer who never came back. This learns a standing correction from days that held comfort with room to spare — creeping cooler by at most half a degree per week, and snapping back to the installer's curve instantly on any comfort miss. It can only cool an over-hot curve, never heat.",
           "after_save": "Saving writes through immediately; this chooses where the dialog goes next."
+        },
+        "sections": {
+          "weather": {
+            "name": "Weather events"
+          },
+          "model": {
+            "name": "Model learning"
+          },
+          "plant": {
+            "name": "Plant feedback"
+          }
         }
       },
       "thermal_model_zones": {
@@ -876,6 +993,17 @@
           "upper_floor_area_ratio": "Share of the total floor area that sits upstairs. 0.5 means the two floors are the same size.",
           "solar_orientation_factor": "How well the windows face the sun over a day. 1.0 suits mostly south-facing glazing; lower it for east or west facing windows that only catch part of the day.",
           "after_save": "Saving writes through immediately; this chooses where the dialog goes next."
+        },
+        "sections": {
+          "mode": {
+            "name": "Two-zone mode"
+          },
+          "zones": {
+            "name": "Zone physics"
+          },
+          "split": {
+            "name": "Heat split"
+          }
         }
       }
     },

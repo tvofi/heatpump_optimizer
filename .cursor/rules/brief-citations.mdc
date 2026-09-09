@@ -16,7 +16,7 @@ alwaysApply: true
 1. **Paths** (`dir/file.ext` or a unique basename) — in the tree, or in the same brief as a tag SHA (7–40 hex, at least one `a-f`) or `audit-round2-evidence` that actually carries them. A tag-only path without its tag is an error. Negation ("does not exist") is skipped.
 2. **`path:line`** (`foo.py:123` or `foo.py:123-145`) — the range exists, and a quoted phrase, a keyword (`return`/`raise`/`assert`/…), or a nearby snake_case identifier is found there or in the enclosing `def`/`class`. No extractable anchor is only a warning. Bare `:123` works only next to a `module.symbol`.
 3. **Symbols** — `snake_case` (≥2 segments), `SCREAMING_SNAKE`, or `module.symbol`, found in the tracked tree (not `.claude/` or `tools/audit/round2/`) or at a cited tag. Probe-output names (`min_ink_gap`) fail unless tagged.
-4. **Metrics** — name a key from `tests/structure_budgets.json`. A literal (`coordinator_loc 10394 <= 10394`) is always an error; the fixer re-measures at their merge base.
+4. **Metrics and counts** — a metric names a key of `tests/structure_budgets.json`; a literal (`coordinator_loc 10394 <= 10394`) is always an error, and a stated count the tree answers must equal what it answers. Re-measure at your merge base; derive a count, never carry one (#581).
 
 **VERSION** — `VERSION x.y.z` or `VERSION a -> b` must match the live `VERSION` file (arrow checks `b`). Do not pin a version a later stamp will invalidate.
 

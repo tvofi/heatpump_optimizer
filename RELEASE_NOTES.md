@@ -1,5 +1,85 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.3.19
+
+**A governance programme that turned honour rules into checks, three defects that
+were quietly deleting other people's work, and the interface changes that came
+with them.**
+
+### Fixes and changes users see
+
+- **The ten wide options pages are grouped** (#653) with Home Assistant's
+  `section()`, so setup and reconfiguration read as a form rather than a wall.
+- **The Tibber token is masked** on setup and reauth (#664), and **setup can be
+  finished after the second screen** (#665) instead of walking every page.
+- **Four contrast and geometry defects** in the plan card (#569), a **dark-theme
+  and graphics contrast witness** so they cannot come back unseen (#633), and the
+  interim hero image replaced with a real screenshot (#635).
+- **Diagrams render on HACS** (#567): mermaid does not, so the documentation now
+  ships images and the check runs the rewriter's own scan.
+
+### Reliability and the suite
+
+- **`_optimize_with_dhw` decomposed in four steps** (#631, #646, #657, #663),
+  taking the longest method from 489 lines to 394 and the file's complexity ruler
+  from 56 to 48 — with two **recorded halts** where no seam remained (#642) and no
+  subsystem API existed to migrate tests to (#637).
+- **Typing annotations across five modules** (#636, #645, #647, #648, #643) for
+  the #303 programme, ratcheting the typing budget 518 → 271, on a **stub-free
+  ruler that is pinned rather than assumed** (#596).
+- **Nightly probes with production's input shape**: the roster guard became
+  behavioural (#591) and availability fault injection landed (#661), both for
+  #533; the published-state sweep for #584 (#626); diagnostics privacy (#585);
+  options, services and reload (#587); and a loop-detector positive control for
+  #588 (#651). With them, `process_worker.py` pinned in process for #505 (#654),
+  the `_number` convention that keeps `NumberSelector` drift unreachable (#632,
+  for #590), and `grid_fee.parse_month_range`'s lone-token refusal (#667).
+- **A full merge may no longer shrink a closure**, and one shrink may not veto the
+  rest (#629); only the gate's own workflow counts as a gate file (#613).
+
+### Three defects that were deleting work
+
+- **A branch that moved no fixture was told to empty the claim files** (#662), and
+  a squash applies that deletion to `main`. It had already carried one lane's
+  claims off twice. Three routes closed: the record check, the autofix bot, and
+  the stale-claim judgement.
+- **The record check searched the whole plan** (#658), so a pull request mentioned
+  in passing counted as dispositioned. Its region is now the Delivery-status
+  section plus the handover.
+- **The environment matrix counted its shapes off the disk** and never counted its
+  rows at all (#659) — a deleted shape passed on a stale directory, and a deleted
+  row simply vanished.
+
+### The governance programme
+
+The corpus became a measured thing rather than an honoured one. A linter for it
+with a ratchet that keeps it shrinking (#608); the harness loads the rules and
+`CLAUDE.md` became an index (#615); three caps hold what a split moves. Rules that
+fired only in CI now fire when they are broken (#625); the mutation a check must
+survive is not the one its author picks (#616); every quantified claim carries a
+null control (#592). The pre-PR self-check and the body contract (#614, #605),
+the stage vocabulary and verdict grammar with the seats they dispatch (#611), and
+the review contract corrected to a verdict its own parser accepts (#641). Three
+modes that measure the loop around the corpus and the record job that runs them
+(#634); the lanes now run in five declared environments rather than one (#639);
+an ADR is a decision already taken, so `docs/decisions/` leaves the corpus (#644).
+The handover's cap deadlock is resolved by a graduation rule (#660): a trap whose
+failure mode has acquired a mechanical detector becomes a one-line pointer to it,
+and each graduation owes a mutation proof.
+
+With them, the record itself: the session policy-merge grant (#610) and its
+re-grant (#624); every sentence earning its place (#598); three decisions, two
+corrections and five traps (#604); the plan truthed against the merges it had
+missed (#607, #612, #628, #531); a UX lane roster the citation linter can reach
+(#601); dead symbol citations and a judge nothing had seated (#617); rounds 1–3
+archived (#618) with the citations that left dangling (#619); five copies of a
+shared prompt block that were never byte-identical (#620); a lane table that was
+the only copy left and stale (#621); a git command that did not answer (#622); a
+handover eleven merges stale that then renumbered onto itself (#623); step 13
+waving through the one claim conflict that is a real block (#603); a ratchet
+comment asserting a metric count nobody derived (#602); and `main` red on a
+citation neither pull request broke alone (#606).
+
 ## v6.3.18
 
 **A fix that made the integration usable again, a decomposition wave, and the

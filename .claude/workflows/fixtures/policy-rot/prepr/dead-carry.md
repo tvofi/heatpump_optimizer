@@ -10,6 +10,10 @@ Reverting the guard turns the ratchet red.
 
 Clean.
 
+## Figures
+
+none
+
 ## Red checks
 
 none

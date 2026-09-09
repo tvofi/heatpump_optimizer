@@ -78,7 +78,7 @@ Where this table and a wave body disagree, this table is the truth.
 | **3L** | mid-programme leftovers, one burst | #400 #401 #404 #405 #408 #457 #460 #463 #465 | after Wave 3 | **done** — **3L-G1** #470 (`81aa0c3`). **3L-G2** #472 (`2abe2f7`). **3L-G3** #474 (`e8adfe4`) + #479 (`8ea27d4`) + #480 (`162e759`). **3L-G4** #477 (`531d8b7`). **3L-G5** #483 (`6f02b8a`) closed #408. **3L-G7** #485 (`bf08217`) closed #460. **3L-G8** #487 (`a19ba03`). **3L-G9** #489 (`b29fd1e`) closed #463. **3L-G10** #492 (`e4bc375`) closed #465. **3L-G6** (#457) never implemented: the seat returned NEEDS_CONTEXT (no production `conflict` symbol; nearest twins are read-only `setup_overview` and `reconfigure`), and the owner then closed #457 as `COMPLETED` by hand on 2026-09-06T03:40:23Z with no PR and no commits. Discharged, not blocked — do not reopen it and do not invent a backend. **W4-G6** (S5) merged #529 (`8281f54`); **W4-G7** (S6) merged #537 (`d04ed89`); **W4-G8** (S7) merged #551 (`0f9eb71`); **W4-G9** (S8) merged #555 (`52d38d9`); **W4-G11** (S10) merged #543 (`e072b2d`, closed #304). Next is W4-G10 (S9, #224). Do not stamp. #481 leftover closed. #412 stays last of the programme |
 | 4 | the #193 decomposition programme, S0–S13 | #193 #223 #224 #225, and **#304 as S11's precursor** | one per stage | **S0–S12 done or recorded-halted; #224 stays open** — S9 landed in three pull requests (#557, #586, #631) plus a recorded optimize 30–50 halt; **#224 stays open**; S11 #597 (`0323c5b`), which **shut #223** — it is CLOSED — S0 #497 (`c197b01`), S1 #500 (`67e1cf3`, closed #377; **corrected 2026-09-06**: the reported 138-point drop across all five cuts was `structure.py` losing sight of `getattr(self, "_ctx", self)` references S1 introduced 131 of, not decoupling — fixed by #512, S1's other results (`CoordinatorContext`, the attribute count, the facades) stand unchanged), S2 #502 (`d979110`, review `merge` 5558785350), S3 #506 (`5a4e6ff`, review `merge` 5559638736 at `258b245`: cut_views 94→85, coordinator_loc/max_class_loc 10305→10164, functions_cc_over_15 39→38, methods_over_150 21→20; earlier `blocked` 5559418212 at `341c596` cleared). **S4 (W4-G5, fetch) is a RECORDED HALT, merged as `e46fb15` (#508), with no production change** — measured then as 92 of cut_fetch's 115 being other seams reading the 15 fetch-owned attrs (60) and calling into fetch (32); **re-measured after #512**, cut_fetch is 132, not 115 (the whole +17 is fetch's own reads of attributes it does not own, previously invisible through the same idiom — see the roster note for the full recount), the other-seams-reaching-in share is unchanged in absolute count at 92, and the halt's actual basis — the judge's #193 finding that no component of size>1 detaches at any k — is untouched, so the seam move stays sequenced to S12/W4-G13, not banned. **S5 (W4-G6, dhw) merged as `8281f54` (#529, review `merge` 5561488083)**: cut_dhw 194→103 (-91, -47%), cut_learning 350→321, total cut across all five seams 1022→902 and `core` 15→14 (the control that distinguishes a real decoupling from moving points to a neighbouring seam). **The constraint S5 produced, carried into the W4-G7/G8/G9/G13 briefs:** the ownership lever is legitimate only where a seam's entire contact with an attribute is the assignment — no reads, no other writes — demonstrated per attribute, never assumed; `_helper(self, ...)` at S3 and `getattr(self, "_ctx", self)` at S1 were both refused on exactly that. Measured by moving twelve non-hot-water attributes `_init_dhw_learning` misplaced into a new `_init_thermal_learning` (learning seam). Do not Closes #193. Roster `.claude/workflows/wave-4-groups.json`. #225 stays closed. #412 not in this wave. Do not stamp |
 | R | reliability, instruments and harness — hotfixes and findings made alongside Wave 4, not wave work | #510 #511 #513 #518 closed | v6.3.16 (`#512`, `#515`); unstamped (`#517`, `#519`) | **delivered 2026-09-06** — #512 fixed `structure.py`'s cut-walk blindness to `getattr(self, "_ctx", self)`, closed #510; #515 fixed the release-critical unpickle failure (every install produced no plan), closed #511; #517 added `tests/deployment_shape.py`, closed #513; #519 consolidated the handover series into one file, closed #518. Detail below |
-| UX | the UX programme: **34 items in five lanes**, B/C/D/E concurrent with the waves, **F last of the whole programme** | tracking **#558**; items land under their own numbers (#509 done, #516 = E4) | B, C, D now; **E1–E3 unblocked — S11 landed as #597 (`0323c5b`)**; **F after Wave 5 and #412** | **lanes B, C, D started 2026-09-07.** Docket: the *Optimizer UX Docket* artifact. Independence is by **file**, not only by budget — see the collision table below |
+| UX | the UX programme: **34 items in five lanes**, B/C/D/E concurrent with the waves, **F last of the whole programme** | tracking **#558**; items land under their own numbers (#509 done, #516 = E4) | B, C, D now; **E1–E3 unblocked — S11 landed as #597 (`0323c5b`)**; **E4 (#516) in flight as #653**; **F after Wave 5 and #412** | **lanes B, C, D started 2026-09-07.** Docket: the *Optimizer UX Docket* artifact. Independence is by **file**, not only by budget — see the collision table below |
 | 5 | typing lane, and the coverage deficit #195 raised | #303 #195 | per tranche | **W5-G1 done** (#596, `e803d83`) — the pinned stub-free ruler, with #504 decided as CI-only. **The census is 518 errors across 22 codes, not the 427 the plan carried**, and `coordinator.py` is **92, not 59** (W5-G4's whole scope); `wood_fuel.py` 29 and `away.py` 15 appear in no tranche. #195 tranches 1–2 landed (#573, #589). After Wave 4. **#304 is Wave 4**, not here. #412 not in this wave |
 | last | CI Node majors, then **UX lane F** | #412, then UX F1/F2 | after Wave 5 | pending — owner: #412 is the last *task*; **lane F is the last work of the programme**, because it is the only lane that adds lines to `coordinator.py` |
 
@@ -244,7 +244,7 @@ Roster: `.claude/workflows/wave-4-groups.json`. Serial, one group per stage. Wor
 | **W4-G7** | S6 | #193 (tracking) | Opus 5 | W4-G6 | grid/bookkeeping. Survey-first; halt if not this seam |
 | **W4-G8** | S7 | #193 (tracking) | Opus 5 | W4-G7 | learning A (thermal). Survey-first; halt if not this seam |
 | **W4-G9** | S8 | #193 (tracking) | Opus 5 | W4-G8 | learning B (curve/comfort/drift-watch). Survey-first; halt if not this seam |
-| **W4-G10** | S9 | #224 | Opus 5 | W4-G9 | optimizer.py judge-corrected splits; `optimize` 30–50 verbatim halted at `30a202e`; next is `_optimize_with_dhw` non-hot |
+| **W4-G10** | S9 | #224 | Opus 5 | W4-G9 | optimizer.py judge-corrected splits; `optimize` 30–50 verbatim halted at `30a202e`; #646 non-hot; `solve_space` lifted (hot loop); A-half `_dhw_window_floors` landed; 14-key `DhwPlan` return landed; still open: schedule/suppression halves; stage 5 design-brief |
 | **W4-G11** | S10 | #304 | Sonnet 5 | W4-G10 | 21 named `config_flow.py` statements; test-only; before #223 |
 | **W4-G12** | S11 | #223 | Opus 5 | W4-G11 | config_flow settings registry; serial after #304 |
 | **W4-G13** | S12 | #193 (tracking) | Opus 5 | W4-G12 | Delegate seams / facade deletion (#193's S11). Halt if S3–S8 all halted. #195 coordinator half is Wave 5; #374 already done |
@@ -354,14 +354,13 @@ something that reads as complete while covering a fraction.
 | **#505** #195 tranches miss nine below-bar modules | **scheduled — W5-G5 re-partitions before extending coverage.** `process_worker.py` at 0.0 % is a candidate to pull forward | W5-G5, inherited by G6/G7 |
 | **#509** diagnostics publish home latitude/longitude unredacted | **in flight** — coordinates coarsened to 1 dp rather than redacted, so a swapped lat/lon or wrong country still shows; `config.name` redacted. The "land it before #522" sequencing was **void**: #522's review measured that the lane never calls diagnostics and uploads no artifact | [#535](https://github.com/tvofi/heatpump_optimizer/pull/535) |
 | ~~**#514**~~ Python floor undeclared, 3.14 untested | **DONE** — closed by #520, merged `36b71dd` | [#520](https://github.com/tvofi/heatpump_optimizer/pull/520) |
-| **#516** config-flow options are ungrouped | **deferred to the UX programme, lane E.** Not blocked on HA version once #520 lands, but still blocked on the golden capture walking schemas one level deep — grouped fields would fall silently out of the fingerprint. That is the constraint to solve, not the HA floor | UX lane E |
+| **#516** config-flow options are ungrouped | **in flight — E4.** Capture already on main (#568). [#653](https://github.com/tvofi/heatpump_optimizer/pull/653) groups the ten wide pages and teaches the assertion walks that cover them to recurse. leaves #558 open | [#653](https://github.com/tvofi/heatpump_optimizer/pull/653) |
 | ~~**#521**~~ no test runs the integration in a real HA install | **DONE** — closed by #522, merged `824fd84`. Residuals recorded, not swept: the lane reaches ~15 of the ~58 container-reachable escapes, and its incompleteness was silent → **#533** | [#522](https://github.com/tvofi/heatpump_optimizer/pull/522) |
 | **#523** `closures-autofix` reported success without repairing | **in flight, blocked once** — review measured a *residual* silent path: `any(rc != 0)` (a failed recording) is folded into the same quiet status, so one unrelated failure hides a real repair while the job exits 0. Being fixed | [#528](https://github.com/tvofi/heatpump_optimizer/pull/528) |
 | **#524** an unpicklable solve result is returned as the plan | **in flight** — and *worse than filed*: `_run_in_process` **returns** the `RuntimeError` rather than raising, so the chain publishes it as the plan, resets `_solve_failures` to 0 and deletes the repair notice. The bug erased its own evidence | [#540](https://github.com/tvofi/heatpump_optimizer/pull/540) |
 | **#525** two blocking calls in the event loop | **in flight** — the filed mechanism was **wrong**: `_shutdown_process_pool` is never reached from the loop, and `protect_loop` fires because it compares thread ids while `atexit` runs on the main thread. Also **three** loop-side `_lazy` imports, not two — `frontend` was missed | [#540](https://github.com/tvofi/heatpump_optimizer/pull/540) |
 | **#527** a full `derive_closures.sh` silently shrinks the node lanes | **in flight** — per-script shrink refusal and the lost `card_drift.mjs` `_widen`; #528 is on main | [#629](https://github.com/tvofi/heatpump_optimizer/pull/629) |
-
-| **#533** the nightly lane's incompleteness is silent | **scheduled — A3 first** (class 3, published state wrong or non-finite, is the largest reachable gap at 16 escapes), then A10, which would pin #509 directly | follow-up to #522 |
+| **#533** the nightly lane's incompleteness is silent | **in flight — A4.** A3/A10/A5/A8/A9/#588 are on main. Host pins demand the five inside checks by name. Container half breaks the Tibber counterparty (HTTP 500), asserts every enabled entity including buttons is unavailable and no pre-break value remains, then restores. leaves #533 open. Does not implement A6/A11/A12/A13. | this PR |
 | **#536** `tests/hastub` can diverge from Home Assistant | **scheduled — inventory first.** A green test can pin the stub instead of HA: the #509 fix was green while returning `None` on every real install, because upstream skips `None` before redacting and the stub did not | follow-up to #535 |
 | **#542** saving the learning options page **wipes `external_heat_entity`** | **scheduled as a hotfix, ahead of S11.** User-facing data loss on an ordinary action: `async_step_learning` cleans a key its own form never presents — the learning schema holds five booleans and one number and no entity field, so `cleaned.get(key)` is always falsy and the page always writes `None`, which `_save_or_menu` then merges over the real value set on the *building* page. Found by W4-G11 (S10) while covering #304 and **correctly filed rather than fixed** — a test-only stage may not touch production. Five unreachable statements ride along | its own fix PR |
 | **#559** B1, **#560** B2, **#561** B3, **#562** B4, **#563** B5 — UX lane B | **in flight.** B1 answers first because it decides B4–B7: whether HACS's in-app README view renders mermaid was never checked, and `hacs.json` sets `render_readme: true`. B5 needs B4 landed | lane B seat |
@@ -377,16 +376,25 @@ something that reads as complete while covering a fraction.
 | **#577** nine measured divergences between `tests/hastub` and Home Assistant | **filed by the #536 seat, in the pass that built the mechanism.** Each measured against Home Assistant **2025.2.0** — the floor `hacs.json` declares — and recorded in `tests/ha_contract.py` as a `DIVERGENT` entry carrying an `expect="real"` contract: a statement of upstream behaviour that **must fail against the stub**, so each is pinned in both directions | #578 |
 | **#584** nightly A3: the published-state sweep | **filed by #533's seat, which asked for it by name.** The largest single unimplemented gap in the container lane — **15 past escapes, more than the four already-implemented assertions cover between them** | own PR |
 | **#585** nightly A10: the diagnostics privacy probe | **filed by #533's seat**, second priority after A3 because it pins an **open, still-shipping** defect directly: no token and no latitude/longitude beyond two decimals anywhere in the diagnostics payload | own PR |
-| **#587** nightly A5/A8/A9: options round-trip, service registration, reload | **filed by #533's seat.** One issue, three tranches, because all three need what the lane lacks — a **second** config entry and a reload rather than the single boot it does today. Split if a seat takes one alone | own PR |
+| **#587** nightly A5/A8/A9: options round-trip, service registration, reload | **in flight — this PR.** Host pins demand the ten inside checks by name. Container half walks the derived options steps, two entries, five reloads. A8's "0 remain" is leftover per-entry handlers; the domain catalog stays (action-setup). A9 ceiling is the first sample, not zero. leaves #533 open. Does not implement A4. | this PR |
 | **#588** the loop detector cannot tell "no blocking call" from "no log" | **filed by #533's seat as the residual its own fix left**, stated rather than left to be rediscovered. #533's fix made the pin a two-directional ratchet; this is the case the ratchet still cannot see | own PR |
-| **#580** a check earns its place once and is never asked again | **filed this session; under refutation.** Eight instances in one day of one class — an absent signal reading as a passing one. Three refutation seats and a judge are deciding whether it stays, stays modified, or closes | under review |
-| **#581** `brief_lint` refuses a literal metric but not a literal anything-else | **filed this session; under refutation.** Ten stale figures in one day. The issue **carries its own falsification test**: if no rule can separate an observation from a definition, it closes rather than being built | under review |
+| **#580** a check earns its place once and is never asked again | **CLOSED `not planned` by judge ruling, 2026-09-07, and merged into [#588](https://github.com/tvofi/heatpump_optimizer/issues/588).** The mechanism it asked for was already in the tree — 45 committed, executing null controls across six test files — and the example it argued from had been landed as a committed control by #571 on the day it was filed. **Two residuals survive the closure and are carried below**, because a ruling in a comment on a closed issue is not propagation | closed; residuals carried |
+| **#581** `brief_lint` refuses a literal metric but not a literal anything-else | **ANSWERED IN BOTH DIRECTIONS by [#672](https://github.com/tvofi/heatpump_optimizer/pull/672).** Its own falsification test was executed rather than argued: the shape rule reports 20 figures on the live briefs at `244ea5f`, five of them the defect, and one `30-50 LOC` window accounts for five of the fifteen false ones — so shape matching is refused. **The rule that produced those figures is deliberately not in the tree, so read them as rule-dependent**: #672's reviewer rebuilt it from the description and got 12, 29 or 32 reports depending on the noun list, which brackets 20 rather than confirming it, and reproduced the sweep-window family at exactly five. The 5-in-20 split is one seat's classification against a stated rule and nobody has re-derived it. The derivation-backed `counts` check, which had never read a roster, now does | own PR |
 | **#582** lanes B–F have no roster, so propagation has no destination | **filed this session; under refutation.** Two seats tried to comply with `finding-propagation.mdc` and had nowhere in-tree to write | under review |
-| **#583** stopping a seat mid-mutation leaves a production file broken | **filed this session; under refutation.** Measured once, harmed nothing — the resolver's dirty-tree guard held | under review |
+| **#583** stopping a seat mid-mutation leaves a production file broken | **item 2 CLOSED by [#671](https://github.com/tvofi/heatpump_optimizer/pull/671), merged `19c85ac`; the issue stays open.** The Stop hook reports an uncommitted tracked file under `custom_components/`. Item 1, a `.mutation-active` marker the seat writes, is a **recorded decision not to build**: a guard whose accuracy depends on the cooperation of the process it guards against is not a guard | open for item 1 |
 | **#574** two residues of #572 | **filed this session, unclaimed.** `fix-review.md` step 13 exempts a claim-file conflict from blocking, but omits the one case where such a conflict *is* meaningful — `merge_claim_file` deliberately refuses when both sides rewrote the bare claim list, which is the driver's entire safety argument. And `tests/features.py:21373` still says "all 22 metrics" where the derived count is 24. Part 1 is policy | own PR |
-| **#575** merged PRs below #375 have no disposition anywhere | **filed this session, unclaimed.** #531's scope boundary originally asserted that pre-#375 work "is recorded there, not here" in three cited documents. It is not: the great majority appear in none of them, two of the three stop far short of #375, and `audit-2026-08.md` carries no pull-request reference at all. **No count is given here, and that is deliberate — twice over.** First, this file is inside the set the check scans, so citing a pull-request number as *evidence* hands that number a "disposition" and moves it out of the miss set; an earlier draft of this row did exactly that with two of them. Second, the check pages the listing with a `--limit`, which is a **sliding window**: the oldest rows fall out as new merges land, so any figure decays by roughly one per merge and is wrong by the time it is read. Run the check against the baseline the boundary paragraph names and read the result as a lower bound. Whether these need a disposition at all is the owner's call | own PR |
+| **#575** merged PRs below #375 have no disposition anywhere | **DECLINED this session, with the size measured rather than estimated** (comment 5598754296): 195 merge subjects on `main` name a pull request below #375, and **184 of them are mentioned nowhere** in this file or the handover. Derived from `git log` over every merge subject, which enumerates completely; the earlier refusal to state a figure here was right about the instrument it had — `gh pr list --limit`, a sliding window whose answer decays by roughly one per merge — and wrong that no honest figure existed. Read 184 as a floor, not a defect count: the test is a bare grep and cannot tell a disposition from a passing mention, which moves the true number up. #531's scope boundary asserted that pre-#375 work "is recorded there, not here" in three cited documents; it is not, and `audit-2026-08.md` carries no pull-request reference at all. Whether these need dispositions is the owner's call | declined |
 | **#570** GitHub cannot run the `claimnotes` merge driver | **CLOSED by [#572](https://github.com/tvofi/heatpump_optimizer/pull/572), merged `059881e`.** A merge driver's implementation is a `git config` entry and git never clones config, so GitHub — which computes `mergeStateStatus` — falls back to a plain text merge and calls every open PR `DIRTY` the moment `main` touches a claim file. GitHub then will not build a merge commit, so the `pull_request` workflows **never queue**: such a PR does not go red, it cannot run. Measured on #569 (CodeQL alone; `fast`, `closures`, `browser`, `briefs` absent). The fix is a subtraction — nothing requires a branch to write a note into a claim file, so a branch that claims nothing does not touch them | policy PR |
-| **#541** verifiable proof that a PR followed the *process* | **split three ways, not deferred wholesale** (disposition: comment 5562208736). **Mechanism 3** (GitHub as witness — 14 obligations, one API call, additive) **now**. **Mechanism 1** (replay the branch) at a **wave boundary**, since its value is concentrated in the fixer PRs of Wave 4 S7/S8/S12 and Wave 5 and a gate change is only cheap when nothing is in flight. **Mechanisms 2, 4, 5** as a new programme after #201, whose **first task is an independent re-derivation of the taxonomy** — 94 rows are one agent's judgement over a heuristic split, and if the class distribution moves the ranking moves with it | own programme |
+| **#541** verifiable proof that a PR followed the *process* | **NOT BUILT this session, mechanism 3 included** (comment 5598760607): the governance programme mechanised **class 1 only**. Class 2 has nothing — the mutation proof is still a paste nobody re-runs. Class 4 cannot become mechanical here at all while one identity authors and approves. The ranking below survives untouched, and its 94 sentences are now a floor: the corpus is nine rules and seven contracts, not five and four. Prior disposition, still the plan: **split three ways, not deferred wholesale** (comment 5562208736). **Mechanism 3** (GitHub as witness — 14 obligations, one API call, additive) **now**. **Mechanism 1** (replay the branch) at a **wave boundary**, since its value is concentrated in the fixer PRs of Wave 4 S7/S8/S12 and Wave 5 and a gate change is only cheap when nothing is in flight. **Mechanisms 2, 4, 5** as a new programme after #201, whose **first task is an independent re-derivation of the taxonomy** — 94 rows are one agent's judgement over a heuristic split, and if the class distribution moves the ranking moves with it | own programme |
+| **#677** the merge enumerator reads a free-text squash suffix | **filed this session, on the owner's instruction, with the measurement reproduced on two windows** — both in the body with the command. A rewritten subject drops the `(#N)` suffix and that merge is never asked for a disposition; a title ending in an issue reference keeps one that names the wrong number and a disposition is demanded for something that is not a pull request. The `record` job already holds `pull-requests: read`, so the fix is to ask the API per first-parent commit and keep the regex as a fallback that prints which mode it ran in. Policy under `CLAUDE.md`; unclaimed | governance, next session |
+| **#678** `push.sh` — contract-check the body at `HEAD`, then push and set the body in one command | **filed as the countermeasure of a root-cause finding, process state (c)**: the instruction to run `prepr.sh` before pushing is read and obeyed and still loses, because the check that binds lives in a job that exists only after the push. The cost test is in the body, from today's merged heads' `pr-contract` check runs. One script, plus a one-sentence change to `fixer.md` step 5 and `orchestrator.md`, hence the owner's approval | governance, next session |
+| **#679** `pr-contract` re-executes `## Figures` against an allowlist | **filed as the step after [#676](https://github.com/tvofi/heatpump_optimizer/pull/676)**: the section is required and is still a paste. The job would run each allowlisted instrument at the head and redden on disagreement, annotating per line what it could not re-execute. The allowlist is the decision the owner should see before a job runs text from bodies | governance, after #678 |
+| **#680** a seat identity distinct from the owner | **filed; the owner's action, not a seat's.** The live ruleset has no `pull_request` rule because one account cannot approve its own pull request, and there is no `CODEOWNERS`. A second identity — machine user or App — unlocks required approvals, code-owner review over the policy set so that decision 0007 becomes a check, and #541 class 4 | owner |
+| **#681** measure merge throughput before deciding on a merge queue | **filed as a measurement with a decision at the end, not as a request for a queue.** Today's merge cadence and the forced-full gate's duration are in the body with their commands; some merges landed inside the previous merge's gate window, counted there. Three assumptions a queue's rebase breaks — `## Head`, review at this SHA, the enumerator — each need an answer before one is turned on | governance, after a week of `main` |
+| **#682** render both disposition documents in the record job | **filed, small**: the `table` class sees one render defect from the source side and had to special-case adjacent tables to do it; the trap renumbering in #685 is the live instance nothing source-side can express. Baseline structure counts on `main` are in the body | governance, next session |
+| **#683** mutate the record mode's three outputs | **filed, small**: `policy_lint_mutants.mjs` imports `CORPUS_CHECK_NAMES` and mutates those alone, as its header says; `RECORD:`, `TABLES:` and `CAPS:` are driven by fixtures and never emptied under the lane. A second exported enumeration, plus one arm for an emptied `CAP_RES` because a rule with no regexes passes every drive while the check still runs | governance, next session |
+| **#684** a worktree collector | **filed, small and conservative**: detached, clean, not an open pull request's head, older than an hour; dry-run by default; a branch worktree is never touched, whatever its state | any seat |
+| **#685** handover traps 16–18 render under different numbers than their source | **filed only because the owner asked for the whole list as issues.** A line-neutral reorder of three items in `docs/HANDOVER.md` — it sits at its cap, and a reorder adds no line — fixes every citation; a `counts`-class rule that an ordered list's source numbers run `1..n` keeps it fixed. Policy file, so decision 0007's per-PR approval | any seat |
 
 Policy and contract PRs this session opened, which close no issue and belong to
 no wave:
@@ -451,7 +459,7 @@ no wave:
 - [#611](https://github.com/tvofi/heatpump_optimizer/pull/611) — **merged `6438406`**, the stage vocabulary and the verdict grammar. `web-fix-wave.js` recognised four `resume.stage` values against the six the rosters use, so a group at `pending` or `blocked` fell through every branch and was silently skipped; the verdict line was parsed by a prefix test that accepted anything beginning `Fix review: merge`, including a blocked verdict whose reason began with that word. Both are now one `STAGES` definition and one grammar with a closed class vocabulary, dispatching the root-cause seat on `root-cause-unanswered`. Two adversarial rounds; round 1 returned `blocked` on two regressions the change itself introduced — a null reviewer dereferenced, which `parallel()` swallowed so the group lost its pull-request number rather than throwing, and a truncation guard added, described in the commit message as the repair, and **never called**. The harness went **8 to 26 assertions** and the control moves **15 passed, 11 failed** to all passing.
 - [#612](https://github.com/tvofi/heatpump_optimizer/pull/612) — **merged `d5419fe`**, the repair for a `main` that had been red on `Governance / policy-docs` since `5018e31`. #608 recorded `docs/HANDOVER.md`'s cap at the length that file then had; #607, cut from the same base and already in review, added 43 lines to it and merged 56 minutes later. Both prefixes are INERT, so that workflow was the only thing measuring it and **each branch was green alone** — the relational shape of trap 17, on a budget rather than a citation. Repaired by cutting the file 319 → 276 against a cap of 278, never by raising the cap, with every cut line's content verified present at a named destination first. Also dispositioned the ten merges no record covered. Its own row is this one.
 - [#613](https://github.com/tvofi/heatpump_optimizer/pull/613) — **merged `bcba123`**, `GATE_FILES` narrowed from the directory prefix `.github/workflows/` to `tests.yml` alone, with the other four workflows classified `INERT`. Only `tests.yml` can do what a gate file means — it sets the job matrix, the interpreter versions, the dependencies and `GATE_SCOPE`; measured, **no recorded closure reads any of the other four**, none sets a gate variable, none runs a gate script. The prefix was already wrong for three of them and #608 widened its reach by adding `governance.yml` beside them. Cost, from this repository's own runs: `fast (3.13)` **1426s** on a workflow-touching pull request against **48s** on one that scopes normally, about 30×, and `tests/stress.py` is inside that job. Four pins in `tests/entities.py`, 1105 → 1112, including an anti-regression check that no directory prefix in `GATE_FILES` can match `tests.yml`. **The review found a second effect the body understated:** under the prefix a *new* workflow was `gate=True` and therefore never orphaned, so it entered unclassified and forced FULL forever — which is exactly how `governance.yml` got in. `CLAUDE.md`'s standing sentence that a new tracked file must be deliberately classified or `tests/entities.py` fails **was not true for workflow files** before this and is true after.
-- [#614](https://github.com/tvofi/heatpump_optimizer/pull/614) — **merged `118fcf2`**, the pre-PR self-check `tools/audit/prepr.sh`, the body contract `policy_lint --pr-body` with its required H2 set parsed **from** `.github/PULL_REQUEST_TEMPLATE.md` so the two cannot drift, the `pr-contract` job on `pull_request: [opened, edited, synchronize, reopened]`, the `coverage` check, and `.claude/skills/steward/SKILL.md`. **Seven `blocked` verdicts before `merge`, and five of the seven were defects in CHECKS rather than in production code** — a check that cannot refuse is worse than none, because it reads as enforcement. Round 1: the contract refused this pull request's own body, because no fixture had ever exercised its accept path, so backticked identifiers and wrapped evidence — the two things every policy file here does — were both false refusals. Round 2: `coverage` was **vacuous** (deleting its call site left `--self-test` 11/11 and `FIXTURE ok` green, because its probe tested the glob regexes and never invoked the function); `NEVER_SUPPRESSED` was claimed in the body and absent from the tree; a bare `n/a` satisfied the whole contract. Round 3: `CORPUS_CHECKS.length === 4` pins **arity, not membership** — a no-op arrow, a duplicate, or *removing the wrapper* all keep the count and disable the check, and the last is a one-token cleanup the comment itself invited. Round 4: the body claimed no existing cap moved while `CLAUDE.md`'s went 465 → 468, which decision 0001 disclaims unqualified — **paid by cutting three lines rather than raising it**; and the wrapper's name was pinned, its body was not. Round 5: the round-4 fix added **a line of production code nothing tested** — `coverageFileSource`'s default `() => []` disabled coverage entirely with every pin green, since `??` discards null and undefined but not an empty array. Round 6: the pin asserted **a spelling, not a property**, refusing `() => {}` — the canonical no-op idiom — while detection stayed correct. **Two attacks survive and are disclosed rather than papered over**: no assertion inside a program can pin its own last call site. The review also established what the author had not — that under the old gate prefix a *new* workflow was never orphaned, so `CLAUDE.md`'s standing sentence about deliberate classification **was not true for workflow files**; and it supplied the stopping rule that ends the regress, that a mutation of production code must be caught while a mutation of the acceptance is the floor. One measurement class bit three times here — #523's silent `str.replace`, a reviewer's `\n` crash, and an author's `$?` read through a pipe — each time **a harness that crashed was indistinguishable from one that passed**; the countermeasure is procedural, to report *how* a thing failed rather than whether a count moved.
+- [#614](https://github.com/tvofi/heatpump_optimizer/pull/614) — **merged `118fcf2`**, the pre-PR self-check `tools/audit/prepr.sh`, the body contract `policy_lint --pr-body` with its required H2 set parsed **from** `.github/PULL_REQUEST_TEMPLATE.md` so the two cannot drift, the `pr-contract` job on `pull_request: [opened, edited, synchronize, reopened]`, the `coverage` check, and `.claude/skills/steward/SKILL.md`. **Seven `blocked` verdicts before `merge`, and five of the seven were defects in CHECKS rather than in production code** — a check that cannot refuse is worse than none, because it reads as enforcement. Round 1: the contract refused this pull request's own body, because no fixture had ever exercised its accept path, so backticked identifiers and wrapped evidence — the two things every policy file here does — were both false refusals. Round 2: `coverage` was **vacuous** (deleting its call site left `--self-test` 11/11 and `FIXTURE ok` green, because its probe tested the glob regexes and never invoked the function); `NEVER_SUPPRESSED` was claimed in the body and absent from the tree; a bare `n/a` satisfied the whole contract. Round 3: `CORPUS_CHECKS.length === 4` pins **arity, not membership** — a no-op arrow, a duplicate, or *removing the wrapper* all keep the count and disable the check, and the last is a one-token cleanup the comment itself invited. Round 4: the body claimed no existing cap moved while `CLAUDE.md`'s went 465 → 468 at the time, which decision 0001 disclaims unqualified — **paid by cutting three lines rather than raising it**; and the wrapper's name was pinned, its body was not. Round 5: the round-4 fix added **a line of production code nothing tested** — `coverageFileSource`'s default `() => []` disabled coverage entirely with every pin green, since `??` discards null and undefined but not an empty array. Round 6: the pin asserted **a spelling, not a property**, refusing `() => {}` — the canonical no-op idiom — while detection stayed correct. **Two attacks survive and are disclosed rather than papered over**: no assertion inside a program can pin its own last call site. The review also established what the author had not — that under the old gate prefix a *new* workflow was never orphaned, so `CLAUDE.md`'s standing sentence about deliberate classification **was not true for workflow files**; and it supplied the stopping rule that ends the regress, that a mutation of production code must be caught while a mutation of the acceptance is the floor. One measurement class bit three times here — #523's silent `str.replace`, a reviewer's `\n` crash, and an author's `$?` read through a pipe — each time **a harness that crashed was indistinguishable from one that passed**; the countermeasure is procedural, to report *how* a thing failed rather than whether a count moved.
 
 - [#615](https://github.com/tvofi/heatpump_optimizer/pull/615) — **merged `e4a388a`**, `CLAUDE.md` becomes an index 464 → 197, the five `.cursor/rules/*.mdc` become nine `.claude/rules/*.md` the harness loads by `paths:`, `gh` leaves the role contracts, and one prose cap becomes three — because the always-loaded floor alone prices a session that opens nothing, so a split lowers it without deleting a line. **Eight adversarial rounds, and three of the eight blocks were introduced by the previous round's fix.** Rounds 1-5 each closed one named document extension and each shipped a body claiming the rest were covered; round 6's finding is that **an allowlist of document extensions cannot be completed**, so the list that must be complete is the other one — inverted to a blocklist of code and data bounded by `git ls-files`, where an extension nobody thought of defaults to *reported* rather than to silent. Round 7 found the axis beside it: a citation by **basename** left the corpus at rc=0, because `tracked.has` compares whole paths while `CLAUDE.md` cites all thirty documents it indexes by basename. Round 8 found that round 7's fix was witnessed at its seam and never at its call site — round 6's own block one level up — and is answered by a differential control over the live corpus. 45 → 50 pins. **Four things this body called "limits" were defects wearing a label**, each closed at zero or near-zero measured cost once a reviewer probed it, which is the argument for treating a stated limit as a claim to falsify first.
 
@@ -476,14 +484,65 @@ no wave:
 - [#636](https://github.com/tvofi/heatpump_optimizer/pull/636) — W5-G2: sensor.py annotations, ruler 518→371. leaves #303 open.
 - [#642](https://github.com/tvofi/heatpump_optimizer/pull/642) — W4-G10 S9 recorded halt: `optimize` 30–50 LOC verbatim has no remaining seam at `30a202e`. leaves #224 open.
 - [#646](https://github.com/tvofi/heatpump_optimizer/pull/646) — W4-G10 S9: `_optimize_with_dhw` always-hot DHW baseline extract, max_method_loc 489→455. leaves #224 open.
+- [#657](https://github.com/tvofi/heatpump_optimizer/pull/657) — W4-G10 S9: `_optimize_with_dhw` nested `solve_space` leaves (hot loop, stress lane). leaves #224 open.
+- [#663](https://github.com/tvofi/heatpump_optimizer/pull/663) — W4-G10 S9: `_build_dhw_requirements` stage-4 A-half leaves as `_dhw_window_floors`. leaves #224 open.
+- [#666](https://github.com/tvofi/heatpump_optimizer/pull/666) — W4-G10 S9: 14-key `DhwPlan` return. leaves #224 open.
 - [#639](https://github.com/tvofi/heatpump_optimizer/pull/639) — **merged under decision 0006**, without a merge SHA it cannot know: `policy_lint_envmatrix.mjs`, the declared-environment matrix that builds five shapes of this repository and fails a row whose run does not produce what the row declares — or a shape it cannot build — plus the `env-matrix` job, decision 0004 (*an assertion can be correct and never run*), and the `prepr.sh` widening. Mutation proof against production, not the harness, and via a temporary commit because the matrix clones from git objects: disabling the shallow-clone disclosure in `policy_lint.mjs` takes it to 11 held / 2 not, rc=1, both in the `shallow` shape; restored 13/13. A vacuous first attempt — a shell-form search string against an array-form call, zero occurrences, an empty WIP commit, 13/13 against an unmutated tree — is disclosed, because it read exactly like a pass until the occurrence assertion caught it. Trap 8 (*one CI runner is not the fleet*) gains its detector with this merge, the fifth in the graduation rule's runway; the ruleset's `env-matrix` context now exists on `main`. Body written against its SHA before the push, per S10; `--claims-only` at the merge base `ok`, because `main`'s claim list is empty and an empty list inherits nothing.
 - [#641](https://github.com/tvofi/heatpump_optimizer/pull/641) — **merged under decision 0006**, without a merge SHA it cannot know: `fix-review.md`'s verdict examples corrected to the grammar `web-fix-wave.js` actually parses — for a session the contract said `blocked: finding not carried to <stage>`, no SHA, no class, which `VERDICT_RE` rejects — plus `D7.md` truthed and decision 0005 recording why one identity authoring and approving makes a required-approval rule a lock. **The fix was unpinned and this branch pins it**: reversing the contract change left every detector green, so `check-wave-script.mjs` now extracts each backticked example beginning `blocked ` or `merge ` and runs it through the grammar rebuilt from the wave script's own text, with a floor of three so an empty extraction cannot pass — **37 passed at head**, the pin having since been widened to read every brief in `tools/audit/briefs/` rather than the contract alone. Driven, and stated as the assertions actually fire rather than as they did when this row was first written: **reversing one example is refused by the `blocked:` assertion**, 35/1 — the floor does NOT fire, because four examples across three files survive a floor of three; **deleting all three examples does fire the floor**, `found 2`, 33/1; a wrong class keeps its space and is refused by that file's own parse assertion, 36/1; and the negative control shows the grammar itself refuses the old form. The earlier reading of this row credited the floor with the reversal, which its own commit falsified two commits later — a row is a claim about the head it merges at, not about the head it was typed at. Body written against its SHA before the push, per S10; `--claims-only` at the merge base `ok`.
-
 - [#638](https://github.com/tvofi/heatpump_optimizer/pull/638) — nightly A10 diagnostics privacy probe. leaves #533 open.
+- [#645](https://github.com/tvofi/heatpump_optimizer/pull/645) — W5-G3: away.py annotations, ruler 371→354. leaves #303 open.
+- [#647](https://github.com/tvofi/heatpump_optimizer/pull/647) — W5-G3: ledger.py annotations, ruler 371→360. leaves #303 open.
 - [#648](https://github.com/tvofi/heatpump_optimizer/pull/648) — W5-G3: defrost.py annotations, ruler 371→355. leaves #303 open.
+- [#655](https://github.com/tvofi/heatpump_optimizer/pull/655) — nightly A5/A8/A9 options, services, reload. leaves #533 open.
+- [#651](https://github.com/tvofi/heatpump_optimizer/pull/651) — **merged**, the loop detector cannot tell "no blocking call" from "no log". leaves #533 open.
+- [#654](https://github.com/tvofi/heatpump_optimizer/pull/654) — W5-G6: process_worker.py in-process pins, 0.0%→92%. leaves #505 open. leaves #195 open.
+- [#640](https://github.com/tvofi/heatpump_optimizer/pull/640) — W5-G3 first cut: wood_fuel.py annotations, ruler 355→325. leaves #303 open.
+- [#643](https://github.com/tvofi/heatpump_optimizer/pull/643) — W5-G3: config_flow.py annotations, ruler 297→271. leaves #303 open.
+- [#661](https://github.com/tvofi/heatpump_optimizer/pull/661) — nightly A4 availability fault-injection. leaves #533 open.
+- [#664](https://github.com/tvofi/heatpump_optimizer/pull/664) — UX E1: setup and reauth token fields use the same password selector as options. leaves #558 open.
+- [#665](https://github.com/tvofi/heatpump_optimizer/pull/665) — UX E2: finish-setup-now after the second screen. leaves #558 open.
+- [#667](https://github.com/tvofi/heatpump_optimizer/pull/667) — W5-G6 leftover: grid_fee.py lone-month refusal. leaves #505 open. leaves #195 open.
+- [#668](https://github.com/tvofi/heatpump_optimizer/pull/668) — UX E3: setup overview as last config-flow step. leaves #558 open.
+- [#656](https://github.com/tvofi/heatpump_optimizer/pull/656) — W5-G3: thermal_model.py annotations, ruler 271→248. leaves #303 open.
+- [#649](https://github.com/tvofi/heatpump_optimizer/pull/649) — W5-G3: dhw_schedule.py annotations, ruler 247→239. leaves #303 open.
+- [#650](https://github.com/tvofi/heatpump_optimizer/pull/650) — W5-G3: price_model.py annotations, ruler 239→232. leaves #303 open.
 - [#652](https://github.com/tvofi/heatpump_optimizer/pull/652) — W5-G3: snapshots.py annotations, ruler 355→349. leaves #303 open.
 
 **A pattern worth naming**, since most of these were blocked for it: every one of those blocks was a document asserting something that was not true of the tree — a stale head, a count, an actor, a carry that did not land. None was a disagreement about the change itself.
+
+### Governance queue — where this lane's rows go from here
+
+Both lanes appended their disposition rows to the end of one list, so every
+merge on `main` conflicted the other lane's open branch at that seam: this pull
+request was rebased five times for it and #639 three, each rebase costing a
+fresh review round at a head whose code had not changed. The rows above stay
+where they are; **from here this lane appends below and every other lane appends
+there**, so the two insertion points are never adjacent and neither lane waits
+on the other. No pull-request number is named as the boundary: one was drafted
+into this sentence and taken by another lane four minutes later. **What reads this row, stated as it is
+today and not as it will be:** `checkRecord` tests `#<pr>` against the whole
+text of both disposition documents, so a row is read wherever it sits in either
+of them — driven by moving #648's row clean out of `## Delivery status` into
+`## Carried findings awaiting a stage`, which leaves `--record` at 47 merged, 0
+undispositioned, with masking that number in both files as the null control that
+does report it. The pull request after this one narrows that to the
+`## Delivery status` section alone, which is why this subsection is placed
+inside it rather than after it.
+
+- [#644](https://github.com/tvofi/heatpump_optimizer/pull/644) — **merged under decision 0006**, without a merge SHA it cannot know: `docs/decisions/` leaves the measured corpus, named one by one so a seventh decision costs a line; 0006 added to that list; 0005's status line stops waiting on the question the same file answers. Closes the queue 05–10; the ruleset's `record` and `env-matrix` contexts both exist on `main` from here.
+- [#658](https://github.com/tvofi/heatpump_optimizer/pull/658) — **merged under decision 0006**, without a merge SHA it cannot know: the record check's region narrows from both documents whole to `## Delivery status` plus the handover, so a pull request mentioned in passing is no longer dispositioned by that mention; the list-item anchor this plan proposed was refuted first (it refuses #629 and #632, dispositioned inside table cells); pinned by seven acceptance assertions over synthetic input, tip invariant 76 → **83** pins across the same 10 classes; the handover's `updated-for` catches up; and the backticked-verdict finding is carried.
+- [#662](https://github.com/tvofi/heatpump_optimizer/pull/662) — **merged `2d06e06`**: a branch that moves no fixture was told to EMPTY the claim files, and a squash applies that deletion to `main` — #608 carried 33 of #569's claim lines off, #635 the same to #633's, #658 was stopped on the way to #653's. The rule is now *leave both files exactly as you found them*, which is the same rule whenever the baseline claims nothing. Three routes closed: the record check, the autofix bot, and the stale-claim judgement. This row is written by the pull request AFTER it, because #662 merged before its own row existed — which is the defect `record` is for, caught by `record` itself.
+- [#659](https://github.com/tvofi/heatpump_optimizer/pull/659) — **merged under decision 0006**, without a merge SHA it cannot know: the environment matrix stops counting its shapes off the filesystem and counts what the run built, refuses a work directory it would otherwise reuse, and pins its thirteen outcomes by NAME and by COUNT — names catch a swap, the count catches a duplicate, and the first version had only the names, which round 1 measured. Null control: the previous script, with a shape deleted and a stale work directory, certifies five shapes and twelve outcomes at rc=0.
+- [#660](https://github.com/tvofi/heatpump_optimizer/pull/660) — **merged under decision 0006**, without a merge SHA it cannot know: the handover's cap deadlock is resolved by a GRADUATION rule — a trap whose failure mode has acquired a mechanical detector becomes a one-line pointer to it, and each graduation owes a mutation proof that breaking the detector turns a check red. Four graduate (8, 9, 11, 19); trap 17 does not, because its only proof is a push to `main` with two branches arranged to collide, and a detector nobody drove is what the rule forbids trading prose for. 276 → 273 lines and the cap ratchets down with them.
+- [#669](https://github.com/tvofi/heatpump_optimizer/pull/669) — **merged under decision 0006**, without a merge SHA it cannot know: the reporting hole that let #625 merge with a red `pr-contract` at its head and a body saying `## Red checks: none`. The listing that shows one run per check is refused in every file the corpus MEASURES — the plan of record is not one of them, so this entry may keep naming it while no document that instructs a seat can — in every policy file **including the MCP mapping table**, which is where a seat with no `gh` binary looks up what to run — an exemption there would have been the hole rather than an escape from it. The table and `fix-review.md` step 11 now name the commit's `check-runs` API. Three findings this queue closed are marked closed in the entries above.
+- [#670](https://github.com/tvofi/heatpump_optimizer/pull/670) — **merged under decision 0006**, without a merge SHA it cannot know: **decision 0007** records the owner's O3 ruling — after this session a policy merge needs approval per pull request, with a per-session grant of the 0001/0006 shape as the option. It DATES what it says about the repository — the ruleset did not exist when the decision was taken — and does not wait on it; the first draft wrote that in the present tense, which would have gone false the hour the ruleset is created. 0006's sentence calling O3 an open question is corrected rather than left to age, and the seventh ADR pays its line in the exclusion list, which is what that list is for.
+- [#671](https://github.com/tvofi/heatpump_optimizer/pull/671) — **merged under decision 0006**, without a merge SHA it cannot know: closes **item 2 of #583**, which stays open for item 1. A fixer proves a check by breaking the thing it checks and restoring it; a seat stopped between those steps leaves a production file altered, and the alteration reads as an edit. The Stop hook now names any uncommitted **tracked** production file under `custom_components/` at the moment the seat stops — **reported, never refused**, because a seat may legitimately be mid-edit and a Stop hook that blocks work in progress is a cage. Measured on this box while writing it: ten worktrees carried an uncommitted change at once, six of them a single production file in a mutation worktree. **What it does not watch**, named so nobody assumes otherwise: untracked files, deletions, and arms under `tests/`, `tools/` or `.claude/` — including the hook itself. Item 1 of the issue's cheap version, a `.mutation-active` marker written by the seat, is **not built**: it needs the seat to cooperate, and the whole point of a stopped seat is that it did not.
+- [#672](https://github.com/tvofi/heatpump_optimizer/pull/672) — **merged under decision 0006**, without a merge SHA it cannot know: #581 asked for a literal figure of any kind to be refused in a brief; the rule that would do it was built, driven and **refused on its own issue's criterion** — 20 reports on the live briefs, five of them the defect, and the false ones are a sweep window repeated in prose and evidence from a completed measurement, which is what a brief is for. What lands is the resolving half: `policy_lint`'s eight derived counts had never read a `wave-*-groups.json`, and seven of them did from #672. `modules` is withheld because the brief genre uses that word for a subset; the shared enumeration moves to `counts.mjs`, a third module, because the linters' existing import direction makes any other arrangement a cycle.
+- [#673](https://github.com/tvofi/heatpump_optimizer/pull/673) — **merged under decision 0006**, without a merge SHA it cannot know: the Delivery-status table outranks anything that disagrees with it, so a row that stopped being true is worse than a missing one. #580 was closed `not planned` by judge ruling on 2026-09-07 and its row still had three seats deliberating; **two residuals of that ruling lived only in a comment on the closed issue** and are carried into the tree here — `fix-review.md` has no step for an ABSENT check, where a pull request whose workflows never queued shows a reviewer no red checks at all, and the mutation proof is executed twice and lands in prose both times. #575 and #541's rows described plans that this session declined. #581's row now says which half of its figure is independently reproducible, because the rule that produced it is deliberately not in the tree. `--record` was clean throughout, including while #672's own entry sat in the wrong section, and the reason is narrower than it looks: #658 already cut `checkRecord`'s region to `## Delivery status` plus the handover, and line 84 is **inside** that region. So the check saw the number and was satisfied. Placement is invisible *within* the region, by design — the region says where a disposition may live, not where it must sit.
+- [#674](https://github.com/tvofi/heatpump_optimizer/pull/674) — **merged under decision 0006**, without a merge SHA it cannot know: **26 of the Delivery-status table's 36 rows were not in a table.** A blank line ended it at 363, and everything below rendered as literal text with its pipes showing while the source still read as a table. Through GitHub's own `/markdown` endpoint at `7d8d271`: one table of 11 rows plus 104 loose pipe characters; without the blank line, one table of 37 rows and none. Found while reviewing #673, whose author and round-1 reviewer both explained a five-cell row's survival by saying GitHub truncates the extras — **the wrong explanation is what sent a seat looking for the real one**. The detector lives in the RECORD mode because `docs/` is not a policy directory and no corpus check has ever opened either disposition document; it tells a split apart from two adjacent tables by looking one line further for a delimiter row. Pinned in both directions, and the over-firing arm found that `table` was in the `silent` map but not in `REQUIRED_SILENT`, so that control was inert until this change. **Disclosed rather than papered over:** gutting the call site in `cmdRecordDispositions` leaves the acceptance green, which is the standing limit #614 recorded — no assertion inside a program pins its own last call site.
+- [#675](https://github.com/tvofi/heatpump_optimizer/pull/675) — **merged under decision 0006**, without a merge SHA it cannot know: `docs/HANDOVER.md` stopped at `a9d117c` and could not take a line, so 24 merges of durable findings went to *Carried findings* instead — correct under the deadlock note, and not where a cold session looks first. **The owner raised the cap for this, explicitly, before the branch was pushed**, and it is recorded at **whatever `wc -l` answers at the head that lands**, with one below it turning `policy_lint` red. **No number is given here, deliberately.** The cap moved on every round of this pull request's review — each round's corrections added lines — and each time it went stale in this row before it went stale anywhere else. **A count of how many times is not given either**, for the same reason: the first draft of this sentence carried one, and reviewing the sentence moved it. A figure that is a function of the file it describes belongs in the file's own budget entry and nowhere else; `policy_lint --budgets` prints it. The floor and all three role caps are untouched, because `roleTokens` counts the always-loaded set and the scoped rules a role opens, never the opened file. Plus the staleness sweep: this plan said **`main` is unguarded** and that a ruleset *would* guard it, now rewritten as what was created and measured; the closing #201 obligation it recorded as owed is **discharged**; ADRs 0001, 0005 and 0006 carry **dated status notes rather than rewrites**, because a decision record states what was true when it was taken. **CLAUDE.md and `orchestrator.md` are left silent about the merge boundary on purpose** — both sit at their caps, and because the index is always-loaded, two lines there overflow **five** caps at once (floor 3195 → 3245 against 3228). That is the owner's call, not a seat's.
+- [#676](https://github.com/tvofi/heatpump_optimizer/pull/676) — **merged under decision 0006**, without a merge SHA it cannot know: three rules from one recommendation, applying to author and orchestrator alike. **Name the instrument, never the figure it prints** — generalised in `writing-for-agents.md` from a sentence it already carried, and landed as a clause in `fixer.md` step 3 and `orchestrator.md` section 1, each in its own words because `duplicates` refuses a repeat. **A cap stated beside its file's name is checked** by `counts`, resolved by unique suffix against the budget file rather than guessed, in the corpus, over roster briefs, and alone in `--record` over both disposition documents — the other eight rules were driven over this plan first and reported four quotations of history, so they stay out. Measured before wiring: one figure across every genre, and true. **A body has a `## Figures` section**, required by the same contract as `## Red checks`, so the cost of enumerating figures sits with the author and a reviewer reads a list. Every capped file this touches stays at its cap by reflowing the same words; no raise. **Side effect, stated**: the other lane's open pull requests carry no `## Figures` and `pr-contract` refuses them at their next push until one is added. Two sentences in this plan were anchored, not deleted, because the new rule read them as live claims. The `#` guard's healthy control was inert in its first form and the mutation arm found it.
+- [#686](https://github.com/tvofi/heatpump_optimizer/pull/686) — **merged, without a merge SHA it cannot know**: nine disposition rows for #677–#685, the issues filed on the owner's instruction from this session's closing recommendations, appended to the issues table after #541 so this list's insertion point is untouched. Its null control, as the review corrected it: a blank line before a row is reported by the `table` class at its line, and a row whose leading pipe is deleted is correctly not reported — GFM makes that pipe optional and the row still renders, checked against GitHub's own renderer rather than assumed.
 
 ### The UX programme — 34 items, five lanes, tracking #558
 
@@ -508,7 +567,7 @@ lanes share files with remaining wave stages.
 | **B** docs | 12 | — | — | **now**, concurrent |
 | **C** card | 9 | — | — | **now**, concurrent |
 | **D** ha | 6 | W5-G2 | `sensor.py` | **now** — **W5-G1 landed (#596), W5-G2 has not**, so D still lands first and W5-G2 re-measures against it |
-| **E** flow | 4 | **W4 S11 (#223)**, W5-G3 | `config_flow.py` | **E1–E3 unblocked: S11 landed as #597 (`0323c5b`) and shut #223**; **E4 (#516) now**, because its blocker is in `golden.py` |
+| **E** flow | 4 | **W4 S11 (#223)**, W5-G3 | `config_flow.py` | **E1–E3 unblocked: S11 landed as #597 (`0323c5b`) and shut #223**; **E4 (#516) in flight as [#653](https://github.com/tvofi/heatpump_optimizer/pull/653)** — capture on main (#568); grouping is #653 |
 | **F** post-W4 | 2 | S12/S13, W5-G4, W5-G7 | `coordinator.py` | **last work of the programme**, after #412 |
 
 **Why E1–E3 waited, and no longer do.** S11 rewrote `config_flow.py` as a
@@ -558,11 +617,10 @@ over the same state list; and **B5 needs B4 landed**, or the README opens with
 nothing where the flowchart used to be.
 
 **#516 (E4)**'s original blocker is discharged — #520 raised the Home
-Assistant floor to 2025.2.0, where `section()` exists. Its real blocker
-survives and is sharper: `golden.py`'s `fingerprint` walks schemas one level
-deep, so grouped fields would fall **silently** out of the fingerprint and a
-byte-identical golden would prove nothing. That is the defect class #553 fixed
-for the stored-value arm, and the capture work is in flight.
+Assistant floor to 2025.2.0, where `section()` exists. The capture blocker
+is discharged by #568: `golden.py`'s fingerprint recurses into `section()`.
+The remaining cost is the assertion layer, which [#653](https://github.com/tvofi/heatpump_optimizer/pull/653) teaches to reuse
+that same walker before grouping the ten wide pages.
 
 ### Wave 1b, half I delivered 2026-09-04
 
@@ -732,8 +790,8 @@ judge comments on each issue and summarised on #201.
   leaving existing numbers fixed, and the list is deliberately not ascending.
   Re-derive that citer set at your own merge base rather than quoting this one.
 
-- **The `record` check is satisfied by a bare token, not by a disposition — and
-  the replacement is an anchor, not a row format.** Scheduled by principle 6
+- **CLOSED by #658 (`ac423c8`).** The `record` check was satisfied by a bare token, not by a disposition — and
+  the replacement is an anchor, not a row format. Scheduled by principle 6
   above: after `10-adr-corpus`, before the next release stamp. `checkRecord` is
   one line — `new RegExp("#"+pr+"(?![0-9])").test(text)` — over
   `docs/plan-2026-09-open-issues.md` and `docs/HANDOVER.md` concatenated, so any
@@ -746,19 +804,38 @@ judge comments on each issue and summarised on #201.
   one on a trap citation in the handover, one on a paragraph in this section —
   and **both mentions were written by a single commit, `03af74b`**, which
   described #621's defect and named itself.
-  **The design, and the two things it must not do.** Require an *anchor*, not a
-  row shape: in the plan, the number must open a list item — `- [#NNN](…` —
-  which is how every row already reads — **65** of 65 at `d08a56a` and 71 of 71
-  with this branch's own, under the rule
-  `^- \[#N\]\(https://github\.com/tvofi/heatpump_optimizer/pull/N\)`, with no
-  odd-shaped row at either end; in the handover, an explicit opt-in
-  marker, so prose keeps working and only a deliberate line counts. It must
-  **not** demote `docs/HANDOVER.md` to a non-home: `DISPOSITION_FILES` names
-  both, the error message promises both, and the handover exists to carry what
-  the code cannot say — dropping it is a policy change needing the owner, not a
-  linter change. It must **not** pin a whole row format: 71 rows is a large
-  surface, this corpus compresses documents as a matter of course, and a
-  reformat would then redden `main` for cosmetic reasons.
+  **The design that landed, and why it is not the one proposed here.** This
+  entry proposed a LIST-ITEM anchor — the number must open a list item,
+  `- [#NNN](…`, said to hold for 65 of 65 rows. Driven again before building it,
+  against the 42 merged in the window at `e4f34c7`: **two fail** — #629 and #632
+  are dispositioned inside Delivery-status TABLE CELLS, on the rows of the issues
+  they close (`| **#527** … |`, `| **#590** … |`), which is a legitimate
+  disposition this repository actually writes. Re-derived at this head, where the
+  window is larger: **five fail**, and the two new kinds are worth naming. #653 is
+  a further table-cell disposition. **#585 and #587 are not pull requests at
+  all** — both are issues, and the merge subjects that name them end in an issue
+  number, which `MERGE_SUBJECT_RE` takes for a pull-request number. A rule that
+  pins a row shape would have had to refuse all five, and **two** of them have no
+  row to write. (Checked against the API rather than inferred: #629, #632 and
+  #653 are pull requests; #585 and #587 are not. An earlier draft of this
+  sentence said one, and #658's round 2 counted them.) A rule that refuses it
+  either loses those records or forces duplicate rows, and it pins a shape rather
+  than a property, which this entry itself forbids two paragraphs down.
+  **The anchor is the SECTION.** A disposition must appear under the plan's
+  `## Delivery status` heading, or anywhere in the handover. Measured at the head
+  that landed it, and at every head since: all of them
+  are linked from that section and from nowhere else, and the mentions that made
+  the old check pass on nothing — a carried finding naming a pull request in
+  passing, a standing rule using one as an example — are all outside it. The
+  handover is not demoted: it contributes all of itself, because carrying the
+  record is its whole job. A renamed heading reports as its own error rather
+  than as one error per merge in the window, so fail-closed does not read as a mass defect.
+  Landed with seven acceptance pins over synthetic input — inside counts,
+  outside does not, a plan with no such heading says so, the region CLOSES at the
+  next section, and a disposition written only in the handover still counts —
+  because the region is
+  otherwise widenable back to the whole file with every other count unchanged;
+  the tip invariant moves from 76 pins to **83** across the same 10 classes.
   **What it does not fix, stated so the next seat does not overclaim.** An
   anchored row can still say nothing — `- [#NNN](…) — merged, see above` passes.
   (Written `#NNN` deliberately: a real number here would itself satisfy the
@@ -770,7 +847,7 @@ judge comments on each issue and summarised on #201.
   sequenced by principle 6 rather than filed: an issue is not the instrument for
   propagation. #627 was opened for it and closed. It is carried **here** and not
   in `docs/HANDOVER.md`: that file is at its cap, and `writing-for-agents.md`
-  forbids paying for an addition by cutting evidence, so at 276 of 276 it can
+  forbids paying for an addition by cutting evidence, so at its cap it can
   take nothing new. That is a real constraint on the living handover and is
   itself owed work — see `## Standing rules`.
 - **A pull request cannot name its own squash-merge SHA.** GitHub creates the
@@ -782,72 +859,72 @@ judge comments on each issue and summarised on #201.
   is why the `record` job cannot be satisfied in advance and why each remaining
   queue branch carries its own row before merging.
 
-- **`main` is unguarded, and the ruleset that would guard it is the programme's
-  last act.** Both `GET /repos/.../rulesets?includes_parents=true` and
-  `GET /repos/.../rules/branches/main` answer `200 []`, so every check here is
-  **advisory at the merge boundary**. #609 carries **two** payloads and the
-  second retracts the first — *"the check list in the earlier payload was
-  written from the plan and is now wrong"* — so the operative baseline is its
-  **eleven** contexts, read from a real run: `fast (3.13)`, `fast (3.14)`,
-  `browser`, `briefs`, `closure-scope`, `closures`, `typing`, `hassfest`,
-  `validate-hacs`, `policy-docs`, `wave-script`. Take that list, not the first.
-  **The set to create is eighteen.** The eleven, plus `pr-contract`, which #614
-  landed after that comment was written and which reports green; plus `record`
-  and `env-matrix` once `07-loop` and `08-envmatrix` have landed them on `main`;
-  plus `CodeQL` and the three `Analyze (…)` checks, which the operative payload
-  excluded only because `code-scanning/default-setup` was one of its 403s — it
-  reads now (`state: configured`, languages
-  `actions/javascript/javascript-typescript/python/typescript`, query suite
-  `extended`, threat model `remote`), so the stated reason is spent.
-  **Two of the operative payload's premises are false, and both were measured
-  here rather than argued.** It says `closures` *"reports `success`, not
-  `skipped`, on a docs-only pull request … (verified on #612)"*: it reports
-  **`SKIPPED`** on #624 and #625, and `SUCCESS` on #628. And it says *"a
-  required check that reports `skipped` does not satisfy the rule"*, which is
-  the premise for excluding five jobs. **It does satisfy the rule.** Driven on
-  an isolated probe — a ruleset scoped to a throwaway branch, `main` left at
-  zero rules throughout — a pull request whose required `closures` was `SKIPPED`
-  and required `policy-docs` `SUCCESS` read `MERGEABLE / UNSTABLE`, not blocked.
-  The **negative control** is what makes that a result: adding a required
-  context that never reports flipped the same pull request to **`BLOCKED`**, and
-  removing it returned it to `UNSTABLE`. So blocking is reachable and the
-  skipped check genuinely passed. The probe ruleset, its branches and its pull
-  request were deleted; `rulesets` and `rules/branches/main` both read `[]`
-  afterwards.
-  That negative control is also the direct evidence for the ordering: **a
-  required context that never reports blocks forever**, which is exactly what
-  `record` and `env-matrix` would be if the ruleset were created before `07` and
-  `08` land them.
-  **Unchanged from the operative payload**, and each for its stated reason: the
-  maintain-role bypass, so `tools/release/stamp.py`'s direct push to `main`
+- **CLOSED. `main` is guarded, and this was the programme's last act.** Ruleset
+  **`main-protect`, id `22628467`**, active on the default branch: deletion,
+  non-fast-forward, and **18 required status checks**. It replaces the two
+  `200 []` answers this entry used to report, under which every check here was
+  advisory at the merge boundary.
+  **The ordering was the whole argument, and it held.** A required context that
+  never reports blocks every merge permanently, so the set could not be created
+  until `record` and `env-matrix` existed on `main`. Before creation all 18 were
+  confirmed present on **every open pull-request head**, not on one convenient
+  head: a required check is evaluated on the pull request's head, and that shape
+  differs from a push — `CodeQL` reports on the first and not the second.
+  **A skipped required check satisfies the rule**, which is why five jobs an
+  earlier payload excluded for that reason are in the set. Driven on an isolated
+  probe, `main` at zero rules throughout: a pull request whose required
+  `closures` was `SKIPPED` and `policy-docs` `SUCCESS` read `MERGEABLE /
+  UNSTABLE`. The **negative control** is what makes that a result — adding a
+  context that never reports flipped the same pull request to `BLOCKED`, and
+  removing it returned it to `UNSTABLE`. That control is also the direct
+  evidence for the ordering above.
+  **Unchanged from the operative payload, each for its stated reason**: the
+  role bypass — recorded as `RepositoryRole` **5**, the admin role, not the
+  maintain role an earlier draft named — so `tools/release/stamp.py`'s direct push to `main`
   still lands; `strict_required_status_checks_policy` **false**, because
   "require branches to be up to date" would force a merge commit onto every
   frozen review head whenever `main` advances; and **no required-approval or
-  code-owner rule**, because one identity authors and approves here: seats
-  authenticate as the owner, GitHub refuses to let an author approve their own
-  pull request, so such a rule would be a **lock** rather than weak enforcement.
-  That measurement has its own decision record later in this queue, and is
-  deliberately not cited by number here — **0004 and 0005** are not on `main` yet — they land
-  with `08-envmatrix` and `09-verdicts` — and a citation that resolves to
-  nothing is the defect this corpus keeps finding. (0006 is above 0003 and *is*
-  on `main`; "everything above 0003" was the wrong rule and is corrected here.)
+  code-owner rule** (ADR 0005), because one identity authors and approves here,
+  so such a rule is a lock rather than weak enforcement.
+  **The bypass premise was tested rather than assumed, and the instrument that
+  looked like it answered does not.** `GET /repos/.../rules/branches/main`
+  returns the identical rule list with the bypass-actors list emptied, so it
+  reports the branch's configured rules and says nothing about the caller —
+  reading it as *"the bypass does not apply to me"* nearly produced a false
+  alarm that the release stamp was about to break. Probed properly on a
+  throwaway branch with its own ruleset: with the admin bypass the push lands,
+  without it GitHub answers *push declined due to repository rule violations*.
+  Two-sided, so it is a measurement. The probe ruleset and its branch are
+  deleted.
+  **What it did to the pull requests already open: nothing that was not already
+  true.** Five needed a rebase because `main` moved six times that night. #656
+  read `BLOCKED` on two required checks still running, and carried an earlier
+  `pr-contract` failure behind a later success at the same head — which does not
+  block, because required checks are evaluated on the latest run per name.
   **#609's permissions reading was a proxy artifact** — it recorded
   `{admin: false, maintain: false, push: false, triage: false, pull: false}`
   while pushes plainly worked, and suspected as much; this session reads
   `admin: true`, and create/update/delete of a ruleset all succeeded.
-- **O3 is decided: after this session, a policy merge needs the owner's
-  approval per pull request, with a per-session grant as the option — to be
-  recorded as ADR 0007.** The governance-audit plan (archived on
+- **CLOSED by #670 as decision 0007.** O3 is decided: after this session, a policy merge needs the owner's
+  approval per pull request, with a per-session grant as the option, recorded as
+  ADR 0007. The governance-audit plan (archived on
   `audit/session-evidence-2026-09-08`, not on `main`) left O3 as its closing
   question: whether policy merges after the programme revert to owner approval
   per pull request or stand on the ruleset plus `pr-contract`. The owner ruled
   on 2026-09-09: **per-PR approval**, with the **option of a session grant**
   of the 0001/0006 shape — a decision record naming the session, the six
   preconditions, reverting at session end. The ruleset and `pr-contract` are
-  the floor either way, not the substitute. Lands as ADR 0007 beside the
-  ruleset, the programme's last act, so the record that names the floor names
-  one that exists; the closing #201 comment lists every pull request merged
-  under 0006 with its verdict and head SHA, as that plan asked.
+  the floor either way, not the substitute. **Landed as ADR 0007**, which does
+  NOT wait on the ruleset: the decision dates what it says about the
+  repository and stands whether or not a ruleset exists. An earlier draft of
+  this entry said it lands beside the ruleset as the programme's last act;
+  0007 says otherwise and 0007 is the record. **DISCHARGED**, and stated here
+  because deleting that draft nearly deleted the obligation with it: the
+  programme's closing #201 comment lists every pull request merged under the
+  grant — 0001's and then 0006's — with its verdict and head SHA, which is what
+  the governance-audit plan asked for. Fifteen of them, **every verdict a
+  `merge` naming its own head exactly**, checked mechanically with a corrupted
+  head through the same comparison as the null control.
 - **The verdict-example pin has two residuals its own reviewer drove, and one
   is a hole rather than a limit.** #641 round 2 attacked the widened block in
   `check-wave-script.mjs` and found three properties, two of which are left
@@ -865,8 +942,36 @@ judge comments on each issue and summarised on #201.
   column, was **fixed** in that pull request rather than carried. Whoever
   revisits (a) should note that the same fence question governs
   `policy_lint`'s own prose checks.
-- **`pr-contract` red runs are hidden by `gh pr checks`, and the ones on this
-  queue's heads were process state (b), not a defect in the check.** Two facts,
+- **A verdict comment whose first line is wrapped in backticks does not parse,
+  and every verdict this queue has received was wrapped.** Found by #644's
+  round 5 while reading the grammar it was reviewing. `web-fix-wave.js` reads
+  `body.split('\n')[0]` and anchors `VERDICT_RE` on `^Fix review:`, so a first
+  line of `` `Fix review: merge <sha>` `` fails to match and degrades to no
+  verdict — safely, never to a wrong merge, but silently. The queue's own
+  comments were unaffected because no wave script consumed them in this
+  session; a wave that did would have read every one of them as unparsed. The
+  pin #641 landed compares the contract's backticked EXAMPLES against the
+  grammar, which is the right thing to compare and not this: the examples are
+  backticked because they are examples, and the rendered comment must not be.
+  Two candidate fixes, neither obviously right: strip a single pair of
+  wrapping backticks before matching, which forgives a real formatting error;
+  or say in `fix-review.md` that the first line is unwrapped and pin THAT,
+  which needs a fixture comment rather than a brief. Whoever takes it should
+  decide which of those the contract means before writing either.
+- **`env_drift.py` reads the baseline at the ref's TIP while it takes the diff
+  at the merge base**, so a local run against `origin/main` and the same run
+  against the merge base can disagree — and the disagreement is exactly the
+  one #662 exists to prevent: `--claims-only <merge-base>` says `ok` while
+  `--claims-only origin/main` says *"Empty the lists"*. Found by #662's round
+  2, which hit it live because `main` moved twice during the review. **CI
+  never reaches it** — every workflow passes the merge base — and it predates
+  #662, so it was carried rather than folded in. The remedy is one line:
+  default the local ref to the merge base rather than to `origin/main`'s tip,
+  which is what every caller that matters already passes. Until then, a seat
+  running the check by hand should pass `$(git merge-base origin/main HEAD)`
+  and not `origin/main`; #662's own body says so.
+- **CLOSED by this pull request.** `pr-contract` red runs were hidden by the listing that shows one run per check, and the ones on this
+  queue's heads were process state (b), not a defect in the check. Two facts,
   and only the first is the check's.
   **The reporting hole is real.** `gh pr checks` shows only the **latest** run
   per check, so a check that fails and then succeeds reads as never-red. Read
@@ -901,7 +1006,7 @@ judge comments on each issue and summarised on #201.
   step 7 of `tools/audit/prepr.sh`, whose own `--self-test` already carries
   `missing-section` as a rot fixture. That one is not the check's fault in any
   sense.
-  **What is actually owed**, therefore, is the reporting hole and not the
+  **CLOSED here.** What was owed was the reporting hole and not the
   contract: a seat writing `## Red checks` must read the check-runs API, and
   `gh pr checks` should not be the instrument. Whether the `pr-contract` job
   should additionally skip a run whose only difference is a stale head SHA is a
@@ -974,8 +1079,8 @@ judge comments on each issue and summarised on #201.
   **Ordering:** programme-closing work, after `10-adr-corpus`, beside the
   record-check anchor rewrite and the ruleset. Not inside the queue — the
   mutation proofs are per-trap and would stall it.
-- **`claims-autofix` erases an earlier lane's claims from `main` at squash-merge
-  time, and it has already done so once.** Measured on #634. `inherited_claims_error`
+- **CLOSED by #662 (`2d06e06`).** `claims-autofix` erases an earlier lane's claims from `main` at squash-merge
+  time, and it has already done so once. Measured on #634. `inherited_claims_error`
   fires when a branch's parsed claim list equals its **merge-base's**; after a
   rebase onto `a684cce` (#633, which added 46 lines to that file — **33** of them claims, the rest header and reasons) that is exactly
   the state `claim-files.md:47` calls "cannot conflict" — byte-identical to
@@ -1029,7 +1134,7 @@ judge comments on each issue and summarised on #201.
   already did it to #633's; `main`'s list is empty now, an empty list inherits
   nothing, and the window stays closed until the next claiming merge.
 
-- **The environment matrix can lose a shape or a row without noticing.** Found
+- **CLOSED by #659 (`e7a5433`).** The environment matrix could lose a shape or a row without noticing. Found
   by #639's first review, reported rather than blocked on, carried here so the
   matrix's next maintainer inherits it. `policy_lint_envmatrix.mjs`'s
   `MATRIX VACUOUS` guard keys on the shape *directory* existing, so a shape
@@ -1042,6 +1147,24 @@ judge comments on each issue and summarised on #201.
   shape rather than reuse it. Cost measured by the reviewer: none of the five
   shapes as declared are affected today; the hole is in what the matrix would
   say if one went missing.
+
+- **#580's two residuals outlive it, and neither is in any contract.** The judge
+  closed #580 and merged it into #588, leaving two one-clause policy changes
+  named only in a comment on a closed issue. First: **`fix-review.md` has no step
+  for an ABSENT check.** Step 11 obliges an answer for a check that went *red*;
+  `grep -icE "absent|never ran|did not run|missing check|queue"` over that
+  contract returns **0**. A pull request whose workflows never queued — which
+  `claim-files.md` records as the ordinary consequence of a `DIRTY` merge state —
+  presents a reviewer with no red checks at all, and the contract tells them that
+  is fine. This is #669's defect approached from the other side: that one was a
+  red run hidden behind a later green, this one is no run at all. Second: **the
+  mutation proof is executed twice and lands in prose both times** — `fixer.md`
+  step 2 and `fix-review.md` step 1 — so a proof that a check can fail exists
+  only in two pull-request bodies and never in the tree, where a later seat could
+  re-run it. The remedy the ruling names is that a mutation proof terminates in a
+  committed control wherever one is constructible. Both are policy edits at zero
+  cap headroom, so both need either an owner-approved raise or a graduation to
+  pay for the lines.
 
 ## Standing rules
 
@@ -1061,7 +1184,7 @@ session reads this file first.
   which model a check uses before believing a negative result. These belong in
   `docs/HANDOVER.md` and are here because that file is at its cap; see the
   carried finding below.
-- **`docs/HANDOVER.md` is at 276 of 276 and cannot accept a new fact.**
+- **CLOSED by #660.** `docs/HANDOVER.md` was at its cap and could not accept a new fact.
   `writing-for-agents.md` governs it — *precision outranks concision, always*,
   and *cutting evidence is never compliance* — while the cap is one-sided and
   only moves down. Together those two rules mean the living handover can take

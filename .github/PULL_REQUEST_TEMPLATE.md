@@ -1,11 +1,6 @@
-<!--
-The headings below are the ones `pr-contract` requires. Each is content or an
-explicit `n/a: <reason>`; a heading with nothing under it is refused, because
-silence and "nothing to report" are not the same claim.
-
-Run `tools/audit/prepr.sh <this body>` before opening. The job re-executes what
-it can, so the PRE-PR line is a claim and the re-execution is the proof.
--->
+<!-- The headings below are what `pr-contract` requires: each is content or an
+explicit `n/a: <reason>`, since silence and "nothing to report" differ. Run
+`tools/audit/prepr.sh <this body>` before opening; the job re-executes what it can. -->
 
 Why this change, and what it measures.
 
@@ -21,6 +16,11 @@ failing check proves nothing.
 ## Null control
 
 What the unmodified tree does. Every cost, gain or timing claim needs one.
+
+## Figures
+
+`none`, or one line per figure the body states, with the command that printed
+it. A figure an instrument in the tree prints is not restated: name the instrument.
 
 ## Red checks
 

@@ -1,7 +1,9 @@
 """Firewood price and the cheaper-than-pump rule. Does not detect fires."""
 from __future__ import annotations
 
+from collections.abc import Callable, Iterable, Sequence
 from datetime import datetime, timedelta
+from typing import Any
 
 from .const import (
     CONF_DHW_WOOD_COIL_ENABLED,
@@ -24,6 +26,24 @@ WOOD_KWH_M3 = {
 PUMP_HOUR_KW = 0.05
 
 
+def _optional_float(value: object) -> float | None:
+    if value is None or value == "":
+        return None
+    try:
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            return float(value)
+        if isinstance(value, str):
+            return float(value)
+    except (TypeError, ValueError):
+        return None
+    return None
+
+
+def _force_float(value: object, default: float = 0.0) -> float:
+    got = _optional_float(value)
+    return default if got is None else got
+
+
 def useful_kwh_m3(wood_type: str, packing: str, efficiency: float) -> float:
     return WOOD_KWH_M3[wood_type][packing] * float(efficiency) / 100.0
 
@@ -43,7 +63,7 @@ def wood_sek_per_kwh(
     return float(price_sek_m3) / useful
 
 
-def wood_furnace_inferred(config: dict) -> bool:
+def wood_furnace_inferred(config: dict[str, Any]) -> bool:
     if config.get(CONF_WOOD_TANK_TOP_ENTITY) or config.get(
         CONF_WOOD_TANK_BOTTOM_ENTITY
     ):
@@ -57,13 +77,13 @@ def wood_furnace_inferred(config: dict) -> bool:
     return False
 
 
-def wood_furnace_on(config: dict) -> bool:
+def wood_furnace_on(config: dict[str, Any]) -> bool:
     if CONF_WOOD_FURNACE_ENABLED in config:
         return bool(config[CONF_WOOD_FURNACE_ENABLED])
     return wood_furnace_inferred(config)
 
 
-def wood_fuel_ready(config: dict) -> bool:
+def wood_fuel_ready(config: dict[str, Any]) -> bool:
     if not wood_furnace_on(config):
         return False
     if not (
@@ -91,30 +111,30 @@ def wood_fuel_ready(config: dict) -> bool:
 
 def cheaper_hour_count(
     wood_sek: float,
-    prices,
-    cops,
-    space_kw,
-    dhw_kw,
+    prices: Sequence[object],
+    cops: Sequence[object],
+    space_kw: Sequence[object],
+    dhw_kw: Sequence[object],
     threshold: float = PUMP_HOUR_KW,
 ) -> int:
     n = 0
     for price, cop, space, dhw in zip(prices, cops, space_kw, dhw_kw, strict=False):
-        if max(float(space or 0.0), float(dhw or 0.0)) <= threshold:
+        if max(_force_float(space), _force_float(dhw)) <= threshold:
             continue
-        cop_f = float(cop or 0.0)
+        cop_f = _force_float(cop)
         if cop_f <= 0.0:
             continue
-        if wood_sek < float(price) / cop_f:
+        if wood_sek < _force_float(price) / cop_f:
             n += 1
     return n
 
 
 def wood_cheaper(
     wood_sek: float,
-    prices,
-    cops,
-    space_kw,
-    dhw_kw,
+    prices: Sequence[object],
+    cops: Sequence[object],
+    space_kw: Sequence[object],
+    dhw_kw: Sequence[object],
     threshold: float = PUMP_HOUR_KW,
 ) -> bool:
     return cheaper_hour_count(
@@ -122,14 +142,14 @@ def wood_cheaper(
     ) > 0
 
 
-def _iso(ts) -> str:
+def _iso(ts: object) -> str:
     return ts.isoformat() if hasattr(ts, "isoformat") else str(ts)
 
 
-def _as_dt(raw, stamps):
+def _as_dt(raw: object, stamps: Sequence[datetime]) -> datetime | None:
     if raw is None:
         return None
-    if hasattr(raw, "tzinfo"):
+    if isinstance(raw, datetime):
         ts = raw
     else:
         try:
@@ -139,16 +159,16 @@ def _as_dt(raw, stamps):
     if not stamps:
         return ts
     ref = stamps[0]
-    if ts.tzinfo is None and getattr(ref, "tzinfo", None) is not None:
+    if ts.tzinfo is None and ref.tzinfo is not None:
         return ts.replace(tzinfo=ref.tzinfo)
-    if ts.tzinfo is not None and getattr(ref, "tzinfo", None) is None:
+    if ts.tzinfo is not None and ref.tzinfo is None:
         return ts.replace(tzinfo=None)
     return ts
 
 
 def wood_slots_to_kw(
-    slots: list[dict],
-    timestamps: list,
+    slots: list[dict[str, Any]],
+    timestamps: Sequence[datetime],
     dt_hours: float,
     wood_type: str,
     packing: str,
@@ -177,7 +197,7 @@ def wood_slots_to_kw(
     return out
 
 
-def _wood_slots_error(slots, stamps):
+def _wood_slots_error(slots: object, stamps: Sequence[datetime]) -> str | None:
     """``invalid_wood_slots`` or None. Empty list is allowed (no fires)."""
     if not isinstance(slots, list):
         return "invalid_wood_slots"
@@ -195,7 +215,9 @@ def _wood_slots_error(slots, stamps):
     return None
 
 
-def _wood_override_fuel(overrides, config):
+def _wood_override_fuel(
+    overrides: dict[str, Any], config: dict[str, Any]
+) -> tuple[str, str, float, float] | None:
     """Type, packing, price, efficiency — or None when not computable."""
     wtype = overrides.get(CONF_WOOD_TYPE, config.get(CONF_WOOD_TYPE))
     packing = overrides.get(CONF_WOOD_PACKING, config.get(CONF_WOOD_PACKING))
@@ -222,13 +244,19 @@ def _wood_override_fuel(overrides, config):
     return wtype, packing, price, eff
 
 
-def simulate_wood_slots(overrides, config, n_steps, dt_hours, anchor):
+def simulate_wood_slots(
+    overrides: dict[str, Any],
+    config: dict[str, Any],
+    n_steps: int,
+    dt_hours: float,
+    anchor: datetime,
+) -> tuple[str | None, list[float] | None, float]:
     """Shadow-only wood injection. Returns (error, kw_or_None, wood_sek)."""
     if "wood_slots" not in overrides:
         return None, None, 0.0
     slots = overrides.get("wood_slots")
     stamps = [
-        anchor + timedelta(hours=i * float(dt_hours)) for i in range(int(n_steps))
+        anchor + timedelta(hours=i * dt_hours) for i in range(n_steps)
     ]
     err = _wood_slots_error(slots, stamps)
     if err:
@@ -236,13 +264,18 @@ def simulate_wood_slots(overrides, config, n_steps, dt_hours, anchor):
     fuel = _wood_override_fuel(overrides, config)
     if fuel is None:
         return "wood_fuel_not_ready", None, 0.0
+    if not isinstance(slots, list):
+        return "invalid_wood_slots", None, 0.0
+    typed_slots = [slot for slot in slots if isinstance(slot, dict)]
     wtype, packing, price, eff = fuel
-    kw = wood_slots_to_kw(slots, stamps, float(dt_hours), wtype, packing, eff)
-    wood_sek = price * sum(float(s["liters"]) for s in slots) / 1000.0
+    kw = wood_slots_to_kw(typed_slots, stamps, dt_hours, wtype, packing, eff)
+    wood_sek = price * sum(_force_float(slot.get("liters")) for slot in typed_slots) / 1000.0
     return None, kw, wood_sek
 
 
-def detected_wood_slots(timestamps, forecast_kw) -> list[dict]:
+def detected_wood_slots(
+    timestamps: Sequence[datetime], forecast_kw: Sequence[object]
+) -> list[dict[str, Any]]:
     """Merge consecutive steps with ``forecast_kw > 0`` into detected slots."""
     if not timestamps:
         return []
@@ -252,11 +285,11 @@ def detected_wood_slots(timestamps, forecast_kw) -> list[dict]:
             dt = timestamps[1] - timestamps[0]
         except TypeError:
             dt = None
-    out: list[dict] = []
+    out: list[dict[str, Any]] = []
     run_start = None
     n = min(len(timestamps), len(forecast_kw))
     for i in range(n):
-        if float(forecast_kw[i] or 0.0) > 0.0:
+        if _force_float(forecast_kw[i]) > 0.0:
             if run_start is None:
                 run_start = i
         elif run_start is not None:
@@ -281,40 +314,31 @@ def detected_wood_slots(timestamps, forecast_kw) -> list[dict]:
     return out
 
 
-def _cops(outdoor, cop_at) -> list[float]:
+def _cops(outdoor: Iterable[object], cop_at: Callable[[float], object]) -> list[float]:
     out: list[float] = []
     for temp in outdoor:
         if temp is None:
             out.append(0.0)
             continue
         try:
-            out.append(float(cop_at(float(temp))))
+            out.append(_force_float(cop_at(_force_float(temp))))
         except (TypeError, ValueError):
             out.append(0.0)
     return out
 
 
-def _optional_float(value) -> float | None:
-    if value is None or value == "":
-        return None
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        return None
-
-
 def build_wood_fuel_view(
-    config: dict,
+    config: dict[str, Any],
     *,
     prices: list[float],
     outdoor: list[float],
     space_kw: list[float],
     dhw_kw: list[float],
-    cop_at,
-    timestamps: list,
+    cop_at: Callable[[float], object],
+    timestamps: Sequence[datetime],
     forecast_kw: list[float],
     suppressing: bool,
-) -> dict:
+) -> dict[str, Any]:
     """Ready/cheaper/slots. cheaper is False when not ready."""
     wtype = config.get(CONF_WOOD_TYPE)
     packing = config.get(CONF_WOOD_PACKING)
@@ -355,7 +379,7 @@ def build_wood_fuel_view(
     }
 
 
-def wood_fuel_from_coordinator(coord, result) -> dict:
+def wood_fuel_from_coordinator(coord: Any, result: Any) -> dict[str, Any]:
     """Publish helper so the coordinator does not grow a method (#463)."""
     n = len(result.timestamps) if result is not None else 0
     det = coord._external_heat

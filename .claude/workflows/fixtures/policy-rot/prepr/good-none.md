@@ -17,6 +17,10 @@ n/a: no production symbol changes.
 
 n/a: nothing quantified.
 
+## Figures
+
+none
+
 ## Red checks
 
 none

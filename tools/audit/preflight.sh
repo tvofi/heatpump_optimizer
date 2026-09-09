@@ -41,9 +41,14 @@ done < <(printf '%s' "$body" \
 q=$(printf '%s' "$body" | grep -onE '\b(every|all|each|both|none|never|always|no [a-z]+ (is|are|was|were))\b' | head -8)
 [ -n "$q" ] && { say check "quantifiers -- did you enumerate the SET, or sample it?"; printf '%s\n' "$q" | sed 's/^/             /'; }
 
-# 3. Bare figures. A count is a measurement; a sliding-window count decays.
+# 3. Bare figures. A count is a measurement; a sliding-window count decays; and a
+#    figure an instrument in the tree prints is stale the moment the tree moves.
+#    The body contract's `## Figures` section is where each one names the command
+#    that printed it, and writing-for-agents.md says name the instrument rather
+#    than restate its output. Advisory, not a refusal: a regex over prose cannot
+#    tell a measurement from a threshold, which is what #581 measured and closed on.
 n=$(printf '%s' "$body" | grep -oE '\b[0-9]{1,3}(,[0-9]{3})+\b|\b[0-9]+ (of|out of) [0-9]+\b|\b[0-9]+(\.[0-9]+)? ?%|\b[0-9]{2,} [a-z]' | head -8)
-[ -n "$n" ] && { say check "figures -- each needs the command that produced it"; printf '%s\n' "$n" | sed 's/^/             /'; }
+[ -n "$n" ] && { say check "figures -- each is in ## Figures with its command, or is an instrument's own output and not restated"; printf '%s\n' "$n" | sed 's/^/             /'; }
 
 # 4. The echo-beside-command shape: prints its conclusion whether or not it holds.
 #    An INLINE-backticked occurrence in PROSE is advisory: a body explaining this

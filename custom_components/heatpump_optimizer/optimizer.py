@@ -61,6 +61,7 @@ from .dhw_draws import window_label as draw_window_label
 from .thermal_model import (
     DHW_AMBIENT_TEMP,
     ThermalModel,
+    ThermalParameters,
     ThermalState,
     dhw_coil_draw_reduction,
     wood_share,
@@ -1253,6 +1254,30 @@ class _DhwLegionellaPlan(NamedTuple):
     runup_temps: "np.ndarray"
 
 
+@dataclass(frozen=True)
+class DhwPlan:
+    """The 14 keys ``_build_dhw_requirements`` already returns.
+
+    Assembled at that method's ``return`` — not a state object threaded
+    through the planner. Fields are exactly the published dict's keys.
+    """
+
+    floor_temps: np.ndarray
+    ready_temps: np.ndarray
+    draw_rates: np.ndarray
+    in_window: np.ndarray
+    max_temp: float
+    schedule: np.ndarray
+    windows_text: str
+    windows_learned: bool
+    next_window_in_hours: float | None
+    legionella_due: bool
+    legionella_hour: float | None
+    legionella_step: int | None
+    external_heat_suppressed_steps: int
+    max_lead_hours: float
+
+
 class HeatPumpOptimizer:
     """MPC-based heat pump cost optimizer with predictive weather anticipation and DHW."""
 
@@ -1697,7 +1722,6 @@ class HeatPumpOptimizer:
         self,
         h: _Horizon,
         *,
-        dhw_plan: dict,
         space_power: np.ndarray,
         dhw_power: np.ndarray,
         status: str,
@@ -1751,7 +1775,7 @@ class HeatPumpOptimizer:
                 ),
                 step_weekdays=h.step_weekdays,
                 wood_temps=wood_temps,
-            )["schedule"]
+            ).schedule
             if np.allclose(replanned, dhw_power, atol=1e-4):
                 return space_power, dhw_power, status
 
@@ -1759,7 +1783,6 @@ class HeatPumpOptimizer:
                 replanned, space_power
             )
             if score < best_score - 1e-9:
-                dhw_plan["schedule"] = replanned
                 return candidate_space, replanned, candidate_status
         except Exception as err:  # pragma: no cover - defensive
             _LOGGER.debug("DHW/space co-optimization pass skipped: %s", err)
@@ -2645,6 +2668,93 @@ class HeatPumpOptimizer:
         # the two attributions sum exactly to the total.
         dhw_cost = predicted_cost - energy_cost_of(optimal_space)
         return baseline_dhw, baseline_cost, predicted_cost, dhw_cost
+
+    def _solve_space(
+        self,
+        dhw_plan: np.ndarray,
+        warm_start: np.ndarray | None,
+        h: _Horizon,
+        p_max: float,
+        n_steps: int,
+        dt: float,
+        prices: np.ndarray,
+        init_base: np.ndarray,
+        objective: Callable[..., float],
+        objective_batch: Callable[..., np.ndarray],
+    ) -> tuple[np.ndarray, str, float]:
+        """Optimize space heating around a fixed DHW schedule."""
+        # The heat pump serves one circuit at a time, so a DHW block eats
+        # into the capacity available for space heating during that step.
+        headroom = np.maximum(0.0, p_max - dhw_plan)
+        if h.power_caps is not None:
+            headroom = np.minimum(headroom, h.power_caps)
+        if h.power_caps_extra is not None:
+            # power_caps bounds space heating alone, so during a DHW block
+            # space + DHW could still exceed an external *total* cap. The
+            # fuse guard's whole promise is that total draw stays under
+            # the limit, so subtract the block from the cap here too.
+            headroom = np.minimum(
+                headroom,
+                np.maximum(0.0, h.power_caps_extra - dhw_plan),
+            )
+        guess = init_base if warm_start is None else warm_start
+        guess = np.minimum(np.clip(guess, 0.0, p_max), headroom)
+        bounds = [(0.0, float(headroom[i])) for i in range(n_steps)]
+        # Manual space pins apply here just as in the DHW-free path. Forcing
+        # a step on raises its lower bound, but only as far as the headroom
+        # the DHW block left it — a slot the user pinned for both channels
+        # cannot demand more than the compressor has.
+        bounds = _apply_pins_to_bounds(
+            bounds, h.space_pins, self._pin_on_power(p_max)
+        )
+        guess = self._seed_pinned_guess(guess, bounds)
+        # A warm start is a genuinely good lead, so keep it first; the
+        # extra structural candidates only matter on the initial solve.
+        # The low-energy seed rides along for the same D0-01 reason as
+        # in the space-only path: without it every candidate anchors to
+        # the same total energy and arbitrage days refine into one basin.
+        starts = [guess]
+        if h.extra_starts:
+            starts = list(h.extra_starts) + starts
+        if warm_start is None:
+            energy = float(np.sum(np.minimum(init_base, headroom)) * dt)
+            starts.append(
+                np.minimum(
+                    _price_ranked_start(prices, energy, p_max, dt), headroom
+                )
+            )
+            starts.append(headroom * 0.5)
+            starts.append(
+                np.minimum(
+                    _price_ranked_start(
+                        prices,
+                        energy * _LOW_ENERGY_START_FRACTION,
+                        p_max,
+                        dt,
+                    ),
+                    headroom,
+                )
+            )
+        try:
+            res = _multi_start_minimize(
+                objective, starts, bounds, args=(dhw_plan,), maxiter=300,
+                batch_objective=objective_batch,
+            )
+            power = np.clip(res.x, 0.0, headroom)
+            return (
+                power,
+                _solver_status(
+                    res, lambda x: objective(x, dhw_plan), guess
+                ),
+                float(objective(power, dhw_plan)),
+            )
+        except Exception as e:
+            _LOGGER.error("Space heating optimization (with DHW) failed: %s", e)
+            return (
+                guess,
+                f"failed ({e})",
+                float(objective(guess, dhw_plan)),
+            )
 
     @staticmethod
     def _normalise_pins(
@@ -3701,40 +3811,19 @@ class HeatPumpOptimizer:
             )
         return out
 
-    def _build_dhw_requirements(
+    def _dhw_window_floors(
         self,
-        initial_state: ThermalState,
-        prices: np.ndarray,
-        outdoor_temps: np.ndarray,
+        params: ThermalParameters,
+        windows: list[Window],
         step_hours: np.ndarray,
-        n_steps: int,
+        step_weekdays: np.ndarray | None,
         dt: float,
-        p_max: float,
-        space_demand: np.ndarray | None = None,
-        dhw_pins: np.ndarray | None = None,
-        p_run_cap: float | None = None,
-        blocked: bool = False,
-        step_weekdays: np.ndarray | None = None,
-        wood_temps: np.ndarray | None = None,
-    ) -> dict[str, Any]:
-        """Build the DHW availability requirements and a cheapest-first plan.
-
-        The requirement is a per-step temperature *floor*, not a target to
-        track:
-
-        * inside a demand window the tank must stay at or above the usable
-          minimum temperature, and it must be "ready" (hot enough to cover the
-          window's expected draw) when the window opens;
-        * outside the windows only the idle floor applies, which defaults to
-          the tank's ambient temperature, i.e. no requirement at all.
-
-        Because nothing rewards a hot tank per se, the electricity cost term is
-        the only thing left to decide *when* the pump runs — so it runs at the
-        cheapest hours that still satisfy the windows.
-        """
-        params = self.model.params
-        windows, learned_windows = self._effective_dhw_windows()
-
+        n_steps: int,
+        wood_temps: np.ndarray | None,
+    ) -> tuple[
+        float, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray
+    ]:
+        """Window mask, floors, ready temps, and the planner draw series."""
         dhw_min_temp = params.dhw_min_temp
         dhw_setpoint = params.dhw_setpoint
         idle_min_temp = min(params.dhw_idle_min_temp, dhw_min_temp)
@@ -3831,6 +3920,66 @@ class HeatPumpOptimizer:
             # The tank must be ready by the END of the step before the window.
             ready_idx = max(0, start_idx - 1)
             ready_temps[ready_idx] = max(ready_temps[ready_idx], required_ready)
+        return (
+            c_dhw,
+            hours_mod,
+            in_window,
+            raw_draw_rates,
+            draw_rates,
+            floor_temps,
+            ready_temps,
+        )
+
+    def _build_dhw_requirements(
+        self,
+        initial_state: ThermalState,
+        prices: np.ndarray,
+        outdoor_temps: np.ndarray,
+        step_hours: np.ndarray,
+        n_steps: int,
+        dt: float,
+        p_max: float,
+        space_demand: np.ndarray | None = None,
+        dhw_pins: np.ndarray | None = None,
+        p_run_cap: float | None = None,
+        blocked: bool = False,
+        step_weekdays: np.ndarray | None = None,
+        wood_temps: np.ndarray | None = None,
+    ) -> DhwPlan:
+        """Build the DHW availability requirements and a cheapest-first plan.
+
+        The requirement is a per-step temperature *floor*, not a target to
+        track:
+
+        * inside a demand window the tank must stay at or above the usable
+          minimum temperature, and it must be "ready" (hot enough to cover the
+          window's expected draw) when the window opens;
+        * outside the windows only the idle floor applies, which defaults to
+          the tank's ambient temperature, i.e. no requirement at all.
+
+        Because nothing rewards a hot tank per se, the electricity cost term is
+        the only thing left to decide *when* the pump runs — so it runs at the
+        cheapest hours that still satisfy the windows.
+        """
+        params = self.model.params
+        windows, learned_windows = self._effective_dhw_windows()
+        (
+            c_dhw,
+            hours_mod,
+            in_window,
+            raw_draw_rates,
+            draw_rates,
+            floor_temps,
+            ready_temps,
+        ) = self._dhw_window_floors(
+            params,
+            windows,
+            step_hours,
+            step_weekdays,
+            dt,
+            n_steps,
+            wood_temps,
+        )
 
         # The pump serves DHW as an on/off block, not a trickle, so the planner
         # allocates at a realistic run power and never below the level at which
@@ -4097,30 +4246,30 @@ class HeatPumpOptimizer:
         self._dhw_requirement = requirement
         self._dhw_legionella_step = legionella_step
 
-        return {
-            "floor_temps": floor_temps,
-            "ready_temps": ready_temps,
-            "draw_rates": raw_draw_rates,
-            "in_window": in_window,
+        return DhwPlan(
+            floor_temps=floor_temps,
+            ready_temps=ready_temps,
+            draw_rates=raw_draw_rates,
+            in_window=in_window,
             # The everyday charge limit, as one number: this is the plan's
             # published ceiling, and a disinfection cycle is an exception to
             # it rather than a redefinition of it. The per-step array stays
             # internal to the planning stages above.
-            "max_temp": float(params.dhw_max_temp),
-            "schedule": schedule,
-            "windows_text": format_windows(windows),
-            "windows_learned": learned_windows,
-            "next_window_in_hours": (
+            max_temp=float(params.dhw_max_temp),
+            schedule=schedule,
+            windows_text=format_windows(windows),
+            windows_learned=learned_windows,
+            next_window_in_hours=(
                 round(next_window, 2) if next_window is not None else None
             ),
-            "legionella_due": legionella_due,
-            "legionella_hour": (
+            legionella_due=legionella_due,
+            legionella_hour=(
                 round(legionella_hour, 2) if legionella_hour is not None else None
             ),
-            "legionella_step": legionella_step,
-            "external_heat_suppressed_steps": suppress_steps,
-            "max_lead_hours": max_lead_hours,
-        }
+            legionella_step=legionella_step,
+            external_heat_suppressed_steps=suppress_steps,
+            max_lead_hours=max_lead_hours,
+        )
 
     def _dhw_cop_profile(
         self,
@@ -4993,11 +5142,11 @@ class HeatPumpOptimizer:
             wood_temps=self._dhw_coil_wood_forecast(h),
         )
 
-        dhw_floor_temps = dhw_plan["floor_temps"]
-        dhw_ready_temps = dhw_plan["ready_temps"]
-        dhw_draw_rates = dhw_plan["draw_rates"]
-        in_demand_window = dhw_plan["in_window"]
-        optimal_dhw = dhw_plan["schedule"]
+        dhw_floor_temps = dhw_plan.floor_temps
+        dhw_ready_temps = dhw_plan.ready_temps
+        dhw_draw_rates = dhw_plan.draw_rates
+        in_demand_window = dhw_plan.in_window
+        optimal_dhw = dhw_plan.schedule
 
         # Kept for reporting/back-compat: which hours the learned profile still
         # considers high-usage (restricted to the configured windows).
@@ -5150,79 +5299,18 @@ class HeatPumpOptimizer:
         def solve_space(
             dhw_plan: np.ndarray, warm_start: np.ndarray | None
         ) -> tuple[np.ndarray, str, float]:
-            """Optimize space heating around a fixed DHW schedule."""
-            # The heat pump serves one circuit at a time, so a DHW block eats
-            # into the capacity available for space heating during that step.
-            headroom = np.maximum(0.0, p_max - dhw_plan)
-            if h.power_caps is not None:
-                headroom = np.minimum(headroom, h.power_caps)
-            if h.power_caps_extra is not None:
-                # power_caps bounds space heating alone, so during a DHW block
-                # space + DHW could still exceed an external *total* cap. The
-                # fuse guard's whole promise is that total draw stays under
-                # the limit, so subtract the block from the cap here too.
-                headroom = np.minimum(
-                    headroom,
-                    np.maximum(0.0, h.power_caps_extra - dhw_plan),
-                )
-            guess = init_base if warm_start is None else warm_start
-            guess = np.minimum(np.clip(guess, 0.0, p_max), headroom)
-            bounds = [(0.0, float(headroom[i])) for i in range(n_steps)]
-            # Manual space pins apply here just as in the DHW-free path. Forcing
-            # a step on raises its lower bound, but only as far as the headroom
-            # the DHW block left it — a slot the user pinned for both channels
-            # cannot demand more than the compressor has.
-            bounds = _apply_pins_to_bounds(
-                bounds, h.space_pins, self._pin_on_power(p_max)
+            return self._solve_space(
+                dhw_plan,
+                warm_start,
+                h,
+                p_max,
+                n_steps,
+                dt,
+                prices,
+                init_base,
+                objective,
+                objective_batch,
             )
-            guess = self._seed_pinned_guess(guess, bounds)
-            # A warm start is a genuinely good lead, so keep it first; the
-            # extra structural candidates only matter on the initial solve.
-            # The low-energy seed rides along for the same D0-01 reason as
-            # in the space-only path: without it every candidate anchors to
-            # the same total energy and arbitrage days refine into one basin.
-            starts = [guess]
-            if h.extra_starts:
-                starts = list(h.extra_starts) + starts
-            if warm_start is None:
-                energy = float(np.sum(np.minimum(init_base, headroom)) * dt)
-                starts.append(
-                    np.minimum(
-                        _price_ranked_start(prices, energy, p_max, dt), headroom
-                    )
-                )
-                starts.append(headroom * 0.5)
-                starts.append(
-                    np.minimum(
-                        _price_ranked_start(
-                            prices,
-                            energy * _LOW_ENERGY_START_FRACTION,
-                            p_max,
-                            dt,
-                        ),
-                        headroom,
-                    )
-                )
-            try:
-                res = _multi_start_minimize(
-                    objective, starts, bounds, args=(dhw_plan,), maxiter=300,
-                    batch_objective=objective_batch,
-                )
-                power = np.clip(res.x, 0.0, headroom)
-                return (
-                    power,
-                    _solver_status(
-                        res, lambda x: objective(x, dhw_plan), guess
-                    ),
-                    float(objective(power, dhw_plan)),
-                )
-            except Exception as e:
-                _LOGGER.error("Space heating optimization (with DHW) failed: %s", e)
-                return (
-                    guess,
-                    f"failed ({e})",
-                    float(objective(guess, dhw_plan)),
-                )
 
         # The seam between the DHW LP stage above and the gradient space
         # stage below. Timing only: yield the GIL for a moment so the event
@@ -5233,7 +5321,6 @@ class HeatPumpOptimizer:
         optimal_space, status, best_score = solve_space(optimal_dhw, None)
         optimal_space, optimal_dhw, status = self._co_optimize(
             h,
-            dhw_plan=dhw_plan,
             space_power=optimal_space,
             dhw_power=optimal_dhw,
             status=status,
@@ -5314,7 +5401,7 @@ class HeatPumpOptimizer:
             "%d steps), baseline=%.2f, savings=%.1f%%, windows=%s",
             t_elapsed, predicted_cost, dhw_cost, dhw_active_steps, baseline_cost,
             _savings_percentage(savings, baseline_cost),
-            dhw_plan["windows_text"] or "always",
+            dhw_plan.windows_text or "always",
         )
 
         result = self._build_result(
@@ -5338,13 +5425,13 @@ class HeatPumpOptimizer:
                     int(step_hours[idx]) % 24
                     for idx in np.where(high_usage_mask)[0][:24].tolist()
                 ],
-                "dhw_preheat_lead_hours": round(dhw_plan["max_lead_hours"], 2),
+                "dhw_preheat_lead_hours": round(dhw_plan.max_lead_hours, 2),
                 "dhw_min_temperature": float(dhw_min_temp),
                 "dhw_target_temperature": float(dhw_setpoint),
                 "dhw_usage_intensity_now": float(usage_intensity[0]) if len(usage_intensity) else 1.0,
-                "dhw_windows": dhw_plan["windows_text"],
+                "dhw_windows": dhw_plan.windows_text,
                 "dhw_in_demand_window": bool(in_demand_window[0]) if n_steps else False,
-                "dhw_next_window_in_hours": dhw_plan["next_window_in_hours"],
+                "dhw_next_window_in_hours": dhw_plan.next_window_in_hours,
                 "dhw_required_temperature_now": (
                     float(max(dhw_floor_temps[0], dhw_ready_temps[0]))
                     if n_steps
@@ -5353,8 +5440,8 @@ class HeatPumpOptimizer:
                 "dhw_idle_min_temperature": float(
                     self.model.params.dhw_idle_min_temp
                 ),
-                "dhw_legionella_due": dhw_plan["legionella_due"],
-                "dhw_legionella_step_hour": dhw_plan["legionella_hour"],
+                "dhw_legionella_due": dhw_plan.legionella_due,
+                "dhw_legionella_step_hour": dhw_plan.legionella_hour,
                 "dhw_planned_heating_hours": [
                     round(float(step_hours[idx]), 2)
                     for idx in np.where(optimal_dhw > 0.1)[0][:48].tolist()
@@ -5379,7 +5466,7 @@ class HeatPumpOptimizer:
                     optimal_dhw,
                     in_demand_window,
                     dhw_ready_temps,
-                    dhw_plan.get("legionella_step"),
+                    dhw_plan.legionella_step,
                     n_steps,
                 ),
                 h.dhw_pins,

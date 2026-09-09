@@ -45,10 +45,26 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 6.3.18
+# claims-for: 6.3.19
 #
-# v6.3.18: the plan works again, the #193 decomposition through S9, and the programme's own contracts. The stamp empties the list; the
+# v6.3.19: the governance programme, three defects that were deleting work, and the interface changes that came with them. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
+#
+# E3: setup_overview as the last CONFIG-flow step. Instrument:
+# GOLDEN_MODE=strict tests/golden.py --only config_flow. The only moved
+# path vs this merge-base is _initial.setup_overview (absent → {}).
+# Empty schema, same fingerprint as options setup_overview. Existing
+# form fingerprints are byte-identical. Solver fixtures and the card
+# claim file are untouched.
+
+#
+
+# W4-G10 S9 (#224, DhwPlan 14-key return): this branch claims NOTHING.
+# `_build_dhw_requirements` returns the same 14 values as a frozen
+# dataclass instead of a dict. No solver arithmetic is reordered.
+# origin/main's config_flow # E2 claim is not inherited (optimizer.py
+# is claimable; this cut still moves no fixture).
+
 #
 
 #

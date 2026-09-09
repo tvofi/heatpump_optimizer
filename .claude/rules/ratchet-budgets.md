@@ -11,9 +11,8 @@ paths:
 corpus: a policy file may shrink freely and never grow past its cap. Deliberately
 not the two-sided ratchet `tests/structure.py` applies to code — an "improved and
 not yet recorded" refusal on prose would charge a seat for deleting a paragraph,
-and deletion is what this corpus most needs.
-
-That asymmetry has a hole only visible when three caps are read together.
+and deletion is what this corpus most needs. That asymmetry has a hole only
+visible when three caps are read together.
 
 **`always_loaded_tokens` measures a session that opens nothing.** `CLAUDE.md`
 plus any `.claude/rules/*.md` with no `paths:` key — what the harness loads
@@ -40,10 +39,9 @@ gives an `opens` list — one representative file per surface that role touches 
 and the cap is the floor plus every scoped rule whose globs match one of them.
 The floor is not the cost: at the same split every role paid more than the floor,
 and the record seat more than the whole floor cap that preceded it. A cap only
-the empty session meets is not measuring the thing it is named for.
-
-`opens` is a fixed sample. Widening it is an edit a reviewer sees, which stops a
-cap being met by re-measuring against fewer files.
+the empty session meets is not measuring the thing it is named for. `opens` is a
+fixed sample: widening it is an edit a reviewer sees, which stops a cap being met
+by re-measuring against fewer files.
 
 ## Re-recording a cap
 
@@ -58,5 +56,7 @@ carries the case. Raising one to make a change fit rather than cutting is the
 move `CLAUDE.md` rule 2 refuses, and this rule refuses it too.
 
 `node .claude/workflows/policy_lint.mjs --budgets` prints every file against its
-cap, the floor, the corpus and each role. The `budgets` class is held out of the
-known-bad ledger: a cap recordable as a known defect is not a ratchet.
+cap, the floor, the corpus and each role; write that, never a cap's value — one
+stated beside its file's name is checked by `counts` in the corpus and the
+record. The `budgets` class is held out of the known-bad ledger: a cap recordable
+as a known defect is not a ratchet.
