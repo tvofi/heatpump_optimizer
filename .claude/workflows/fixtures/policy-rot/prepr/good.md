@@ -14,6 +14,10 @@ Reverting the guard turns `tests/structure.py` red on `max_cc`.
 
 The unmodified tree passes.
 
+## Figures
+
+`37 passed`: `node .claude/workflows/check-wave-script.mjs`
+
 ## Red checks
 
 none

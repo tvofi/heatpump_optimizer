@@ -18,3 +18,5 @@ under the gap renders as literal text with its pipes showing.
 | first | recorded |
 
 | second | invisible |
+
+A stated cap, stale: the cap on `tools/audit/briefs/fixer.md` is 999 lines.

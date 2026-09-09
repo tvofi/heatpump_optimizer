@@ -46,7 +46,8 @@ cannot answer the second, you have not measured — you have expected.
 - **A sample is not a quantifier.** Five runs checked and reported as "every run"
   was false.
 - **A paged listing is a sliding window.** `--limit 120` truncated silently; a
-  count from it decays by roughly one per merge. State the rule, not the number.
+  count from it decays by roughly one per merge. State the rule, not the number,
+  and where an instrument prints the figure — `--budgets`, `--record` — name it.
 - **Describing another artifact without opening it is the same defect.** A
   boundary paragraph asserted that earlier work "is recorded" in three named
   documents. It is not, in the great majority of cases, and none of the three was
@@ -160,10 +161,9 @@ issues the merge actually closed. No pull-request-scoped field shows it
 beforehand, and on 2026-09-07 two issues were shut by merge commits and had to
 be reopened — `8bc4c661` shut #224 at 10:56:35 while its own text denied doing
 so, reopened 23 minutes later; `e072b2d` shut #195 at 04:25:54, reopened after
-six and a half hours. The gap is whatever it takes someone to notice. A pre-
-merge scan that asks *which form was
-used* rather than *whether every keyword binds an intended number* reports clean
-through exactly that.
+six and a half hours. The gap is whatever it takes someone to notice. A pre-merge
+scan that asks *which form was used* rather than *whether every keyword binds an
+intended number* reports clean through exactly that.
 
 ## 5. Before dispatching a seat
 

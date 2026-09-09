@@ -26,8 +26,8 @@ production lines. You work in your own worktree branched from `origin/main`.
    the result that would have appeared had it been false. **Never print a
    conclusion beside a command** — `diff a b && echo IDENTICAL`, never
    `diff a b; echo "(empty means identical)"`, which prints either way. A figure
-   from a sliding window — a paged listing, a "top N" — decays after you write
-   it: state the rule that reproduces it, not the number. A learner or guard
+   from a sliding window, or one an instrument prints, is stale after you write
+   it: state the rule or name the instrument, never the number. A learner or guard
    change is measured at both ends of its input range — an install with zero
    evidence, and one on the clamp — a fix has been worse than its bug before.
 4. **Goldens that move are claimed by whoever measured the drift**, in
@@ -96,7 +96,7 @@ production lines. You work in your own worktree branched from `origin/main`.
    `coordinator.py` and the `coordinator_loc` / `coordinator_attrs` budgets the
    ratchet section below measures. It is never the name of a seat.
 7. The PR body closes its issues (`Closes #N`), names the head SHA measured,
-   and carries every executed number.
+   and carries every executed number, each in `## Figures` with its command.
 8. **A quoted number states the rule that produced it, not just its value.**
    Three agents counting "the same" published-attribute census (#373) got
    59, 50, and 124/147/50, because each asked a subtly different question;

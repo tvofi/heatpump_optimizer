@@ -8,6 +8,10 @@
 
 Clean.
 
+## Figures
+
+none
+
 ## Red checks
 
 none

@@ -1980,7 +1980,7 @@ const REQUIRED_ROT = {
       'runs past',                       // path:line beyond the file's length
     ],
   },
-  counts: { count: 2 },
+  counts: { count: 13, must: ['for the cap on'] },  // two literal counts, one stated cap per regex shape, one per glue word, the number-first form, and one in the loop fixture
   table: { count: 1, must: ['ends the table here'] },
   'no-gh': { count: 1 },
   duplicates: { count: 1 },
@@ -1992,9 +1992,10 @@ const REQUIRED_ROT = {
     ],
   },
   'pr-body': {
-    count: 6,
+    count: 7,
     must: [
       'section. Every one is content',   // a heading that is missing outright
+      'no `## Figures` section',         // the figures section specifically, pinned by name
       'is empty. Write the evidence',    // a heading with nothing under it
       'does not name',                   // the body's head is not the head CI ran
       'is not in the tree. A carry',     // a forward-carry destination that is gone
@@ -2055,7 +2056,7 @@ CORPUS_CHECKS.push(checkIndex, checkDuplicates, checkBudgets, coverageOverTree, 
 // refuse; it cannot prove the check is not refusing everything. Each loop mode
 // is therefore also run against a fixture that is healthy in exactly the way the
 // rot fixture is rotten, and must produce nothing.
-const REQUIRED_SILENT = ['record', 'stats', 'sunset', 'table']
+const REQUIRED_SILENT = ['record', 'stats', 'sunset', 'table', 'caps']
 
 function assertAcceptance(derived) {
   const dir = path.join(HERE, 'fixtures', 'policy-rot')
@@ -2135,6 +2136,9 @@ function assertAcceptance(derived) {
   const rotten = checkRecord(loop.prs, loop.dispositionsRotten)
   found.push(...rotten)
   found.push(...checkTableSplit('fixtures/policy-loop/dispositions-rotten.md', loop.dispositionsRotten))
+  // The cap rule alone: handing checkCounts a derivations object with only
+  // `caps` runs only that rule, the same way brief_lint withholds `modules`.
+  found.push(...checkCounts('fixtures/policy-loop/dispositions-rotten.md', loop.dispositionsRotten, { caps: derived.caps }))
 
 
   found.push(...statsFindings({ prs: loop.prs, fetched: loop.fetched, fetchError: null, classes: loop.classes }))
@@ -2149,6 +2153,7 @@ function assertAcceptance(derived) {
   const silent = {
     record: checkRecord(loop.prs, loop.dispositionsHealthy),
     table: checkTableSplit('fixtures/policy-loop/dispositions-healthy.md', loop.dispositionsHealthy),
+    caps: checkCounts('fixtures/policy-loop/dispositions-healthy.md', loop.dispositionsHealthy, { caps: derived.caps }),
     stats: statsFindings({ prs: loop.healthyPrs, fetched: loop.fetched, fetchError: null, classes: loop.classes }),
     sunset: checkSunset(loop.sunsetHealthy, { friction: loop.friction, fires: loop.fires, today: loop.today }),
   }
@@ -2891,7 +2896,7 @@ function cmdRecord(findings, { measuredRecord = false } = {}) {
 // explicit `n/a: <reason>` -- a reason a reviewer can disagree with beats a
 // heading with nothing under it.
 
-const REQUIRED_H2 = ['Head', 'Mutation proof', 'Null control', 'Red checks', 'Forward-carry', 'Friction']
+const REQUIRED_H2 = ['Head', 'Mutation proof', 'Null control', 'Figures', 'Red checks', 'Forward-carry', 'Friction']
 const POLICY_H2 = ['Approval']
 const FRICTION_EVENTS = ['unclear', 'contradiction', 'unenforced', 'stale', 'cost']
 // A body writing `none` in backticks means the same thing as one writing none,
@@ -3202,11 +3207,20 @@ function cmdRecordDispositions(since) {
     const t = read(rel)
     return t ? checkTableSplit(rel, t) : []
   })
+  // Only the cap rule runs here. The other eight were driven over these two
+  // documents before this was wired and reported four figures, every one a
+  // quotation of history inside a disposition row -- the genre these files are
+  // made of. The cap rule reported one, and it was true.
+  const caps = DISPOSITION_FILES.flatMap((rel) => {
+    const t = read(rel)
+    return t ? checkCounts(rel, t, { caps: derivations().caps }) : []
+  })
   console.log(`RECORD: ${prs.length} merged pull request(s) in ${since}..${mainRef()}; ${all.length} without a disposition in ${DISPOSITION_FILES.join(' or ')}`)
   console.log(`TABLES: ${split.length} split table(s) across ${DISPOSITION_FILES.length} disposition document(s)`)
-  printFindings([...applied.live, ...split])
+  console.log(`CAPS: ${caps.length} stated cap(s) disagreeing with policy_budgets.json across ${DISPOSITION_FILES.length} disposition document(s)`)
+  printFindings([...applied.live, ...split, ...caps])
   console.log(`\nKNOWN-BAD: ${applied.suppressed} of ${applied.total} recorded record-class defect(s) still present, in ${applied.occurrences} recorded occurrence(s)`)
-  const errors = [...applied.live, ...split].filter((f) => f.severity === 'error').length
+  const errors = [...applied.live, ...split, ...caps].filter((f) => f.severity === 'error').length
   console.log(`\nTOTAL: ${errors} error(s) over ${prs.length} merged pull request(s)`)
   process.exit(errors > 0 ? 1 : 0)
 }
