@@ -46,7 +46,7 @@ its bug. You are checking that the numbers are real.
     carrying the control and stated as a precondition rather than an
     opportunity. A finding that exists only in this PR's comments has been
     recorded, not propagated, and that is
-    `blocked: finding not carried to <stage>`. See
+    `blocked <sha> carry-missing: not carried to <stage>`. See
     `.cursor/rules/finding-propagation.mdc`.
 11. **A red check owes an answer.** `.cursor/rules/defect-root-cause.mdc`
     triggers on a defect that turned a check red where a cheaper detector could
@@ -55,7 +55,7 @@ its bug. You are checking that the numbers are real.
     body's account of them. For each gate check that went red, the body names it
     and answers the question: the cheaper detector with its standing cost, or the
     finding that none exists. Both answers pass; silence does not, and that is
-    `blocked: root-cause trigger unanswered for <check>`. The failures
+    `blocked <sha> root-cause-unanswered: <check> went red, unanswered`. The failures
     `ci-autofix.mdc` already repairs — `UNDER-SCOPED`, `INHERITED CLAIMS` — are
     answered by naming them: their countermeasure is the autofix job that exists.
     You are checking that the trigger was answered, not adjudicating the answer
@@ -73,7 +73,7 @@ its bug. You are checking that the numbers are real.
 
     `fixer.md`'s **The handoff freezes the branch** makes the head yours from the
     handoff on, so one that moved under you is a broken rule rather than an
-    accident: `blocked: head moved under review, measured <sha>`. Re-measuring
+    accident: `blocked <sha> head-moved: measured <sha>, head is <other>`. Re-measuring
     instead is yours to offer and is never owed — a violation the reviewer
     absorbs silently costs the seat that committed it nothing, which is how it
     recurs.

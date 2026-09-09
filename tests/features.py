@@ -18892,6 +18892,113 @@ R.check(
 )
 
 
+R.section("#224 stage 3 — _optimize_with_dhw's always-hot DHW baseline answers for itself")
+
+# The non-hot block: standby-loss / COP economics plus the space/DHW cost
+# split. Square pricing so the DHW share is the *marginal* cost on top of
+# space, not energy(dhw) alone — linear pricing would make those the same
+# number and the pin would not see a rewrite.
+
+_de_opt = _MbOpt(
+    ThermalModel(ThermalParameters.from_config(_mb_profiles.house())),
+    _MbCfg(horizon_hours=1),
+)
+_de_price = lambda p: float(np.sum(p) ** 2)
+_de_out = np.array([-5.0, -5.0, -5.0])
+_de_bp = np.array([2.0, 2.0, 2.0])
+_de_sp = np.array([1.0, 1.0, 1.0])
+_de_dh = np.array([1.0, 1.0, 1.0])
+_de_set = float(_de_opt.model.params.dhw_setpoint)
+_de_state_wood = ThermalState(wood_tank_temperature=70.0)
+_de_bd, _de_bc, _de_pc, _de_dc = _de_opt._baseline_dhw_economics(
+    _de_state_wood, _de_out, 3, _de_set, _de_price, _de_bp, _de_sp, _de_dh,
+)
+_de_bd_none, _, _, _ = _de_opt._baseline_dhw_economics(
+    ThermalState(wood_tank_temperature=None),
+    _de_out, 3, _de_set, _de_price, _de_bp, _de_sp, _de_dh,
+)
+R.check(
+    "a house without the refill coil ignores a wood-tank temperature",
+    list(_de_bd) == list(_de_bd_none)
+    and abs(_de_bd[0] - 0.2823906705539359) < 1e-12,
+    f"{list(_de_bd)} vs {list(_de_bd_none)} — a drop here means the coil "
+    f"gate was skipped and a tank this house does not model cheapened the "
+    f"baseline",
+)
+R.check(
+    "DHW's share is the marginal cost on top of space, not energy(dhw)",
+    _de_pc == 36.0 and _de_dc == 27.0,
+    f"predicted {_de_pc} dhw {_de_dc} — 9.0 means energy(dhw) was priced "
+    f"alone; 36.0 as the share means the space subtraction was dropped",
+)
+R.check(
+    "the baseline cost prices space plus the always-hot tank, together",
+    abs(_de_bc - 46.88376455728481) < 1e-9,
+    f"{_de_bc} — 36.0 prices only the space baseline; a linear sum would "
+    f"be ~6.85 and would break the piecewise-in-PV contract",
+)
+
+_de_bd_idle, _, _, _ = _de_opt._baseline_dhw_economics(
+    _de_state_wood, _de_out, 3, 10.0, _de_price, _de_bp, _de_sp, _de_dh,
+)
+R.check(
+    "a setpoint at or below ambient contributes no standby loss",
+    abs(_de_bd_idle[0] - 0.1479591836734694) < 1e-12,
+    f"{_de_bd_idle[0]} — 0.282 means standby still used the 55 C configured "
+    f"setpoint, or the clip against ambient was dropped and a cold tank "
+    f"was charged for cooling",
+)
+
+_de_short, _, _, _ = _de_opt._baseline_dhw_economics(
+    _de_state_wood, _de_out, 2, _de_set, _de_price, _de_bp[:2], _de_sp[:2], _de_dh[:2],
+)
+R.check(
+    "the schedule is n_steps long, not outdoor_temps long",
+    len(_de_short) == 2,
+    f"len={len(_de_short)} — 3 means the helper sized the array from the "
+    f"weather series and would mis-align a shorter horizon",
+)
+
+_de_coil_params = ThermalParameters.from_config({
+    "upper_floor_thermal_mass": 2.0,
+    "mixing_valve_mode": "manual",
+    "wood_tank_top_entity": "sensor.wood_top",
+    "dhw_tank_volume": 200.0,
+    "dhw_wood_coil_enabled": True,
+})
+_de_coil_opt = _MbOpt(ThermalModel(_de_coil_params), _MbCfg(horizon_hours=1))
+_de_coil_70, _, _, _ = _de_coil_opt._baseline_dhw_economics(
+    ThermalState(wood_tank_temperature=70.0),
+    _de_out, 3, float(_de_coil_params.dhw_setpoint),
+    _de_price, _de_bp, _de_sp, _de_dh,
+)
+_de_coil_none, _, _, _ = _de_coil_opt._baseline_dhw_economics(
+    ThermalState(wood_tank_temperature=None),
+    _de_out, 3, float(_de_coil_params.dhw_setpoint),
+    _de_price, _de_bp, _de_sp, _de_dh,
+)
+R.check(
+    "the refill coil cheapens the always-hot baseline only when wood is known",
+    abs(_de_coil_70[0] - 0.10018950437317786) < 1e-12
+    and abs(_de_coil_none[0] - 0.20587463556851315) < 1e-12,
+    f"coil+70 {_de_coil_70[0]} coil+None {_de_coil_none[0]} — equal values "
+    f"mean the coil reduction was dropped; a 70 C tank that still prices "
+    f"the full electric draw invents savings",
+)
+
+_de_coil_arg, _, _, _ = _de_coil_opt._baseline_dhw_economics(
+    ThermalState(wood_tank_temperature=70.0),
+    _de_out, 3, 40.0, _de_price, _de_bp, _de_sp, _de_dh,
+)
+R.check(
+    "standby uses the passed setpoint; the coil still uses the configured one",
+    abs(_de_coil_arg[0] - 0.0699107142857143) < 1e-12,
+    f"{_de_coil_arg[0]} — 0.100 means standby ignored the 40 C argument; "
+    f"a different third figure means the coil used the argument instead of "
+    f"params.dhw_setpoint, which is the inlet identity the draw was built on",
+)
+
+
 R.section("v5.3.0 review — the experiment obeys the mode gate too")
 
 from pathlib import Path as _Path  # noqa: E402
@@ -24622,6 +24729,170 @@ R.check(
     "the one that was sent (#546)",
     _t546_raised is None and _t546_stored == _t546_sent,
     f"raised {_t546_raised!r}; stored {_t546_stored!r}",
+)
+
+# --- process_worker.py in-process pins (#505) -------------------------------
+#
+# The module landed at 0.0% (36/36) and belongs to no #195 tranche. #511
+# already drives `_dump`'s unpicklable-error arm via the coordinator child.
+# These pins import the production symbols and drive the loop / bootstrap
+# here, so a statement the child process hides from coverage still has a
+# parent-process witness. Roster re-partition stays in `.claude` (leave-alone).
+# leaves #505 open. leaves #195 open.
+import io as _pw505_io  # noqa: E402
+import operator as _pw505_op  # noqa: E402
+import pickle as _pw505_pickle  # noqa: E402
+
+import custom_components.heatpump_optimizer.process_worker as _pw505  # noqa: E402
+
+R.section("process_worker.py (#505)")
+
+
+class _Pw505BadStr:
+    def __str__(self):
+        raise RuntimeError("str refused")
+
+
+class _Pw505Unpicklable:
+    def __reduce__(self):
+        raise TypeError("this value refuses to pickle")
+
+
+class _Pw505Std:
+    def __init__(self, raw):
+        self.buffer = raw
+
+
+R.check(
+    "_describe names a value that prints",
+    _pw505._describe(7) == "int: 7",
+    f"got {_pw505._describe(7)!r}",
+)
+try:
+    _pw505_badstr = _pw505._describe(_Pw505BadStr())
+    _pw505_badstr_err = None
+except Exception as _pw505_badstr_exc:  # noqa: BLE001 — a raise is the mutant
+    _pw505_badstr, _pw505_badstr_err = None, _pw505_badstr_exc
+R.check(
+    "_describe survives a __str__ that raises",
+    _pw505_badstr_err is None and _pw505_badstr == "_Pw505BadStr",
+    f"got {_pw505_badstr!r} err={_pw505_badstr_err!r}",
+)
+
+_pw505_ok = _pw505_io.BytesIO()
+_pw505._dump(_pw505_ok, ("ok", 42))
+_pw505_ok_payload = _pw505_pickle.loads(_pw505_ok.getvalue())
+R.check(
+    "_dump writes a picklable ok frame in one blob",
+    _pw505_ok_payload == ("ok", 42),
+    f"got {_pw505_ok_payload!r}",
+)
+
+_pw505_ok_bad = _pw505_io.BytesIO()
+_pw505._dump(_pw505_ok_bad, ("ok", _Pw505Unpicklable()))
+_pw505_ok_bad_payload = _pw505_pickle.loads(_pw505_ok_bad.getvalue())
+R.check(
+    "_dump degrades an unpicklable ok result to err, not a published plan (#524)",
+    (
+        isinstance(_pw505_ok_bad_payload, tuple)
+        and _pw505_ok_bad_payload[0] == "err"
+        and isinstance(_pw505_ok_bad_payload[1], RuntimeError)
+        and "_Pw505Unpicklable" in str(_pw505_ok_bad_payload[1])
+    ),
+    f"got {_pw505_ok_bad_payload!r}",
+)
+
+_pw505_here = _Path(_pw505.__file__).resolve().parent
+_pw505_parent = str(_pw505_here.parent)
+_pw505_saved_path = list(sys.path)
+sys.path[:0] = [str(_pw505_here)]
+if _pw505_parent in sys.path:
+    sys.path.remove(_pw505_parent)
+_pw505._bootstrap()
+_pw505_after = []
+for _pw505_entry in sys.path:
+    try:
+        _pw505_after.append(str(_Path(_pw505_entry).resolve()) if _pw505_entry else _pw505_entry)
+    except OSError:
+        _pw505_after.append(_pw505_entry)
+_pw505_boot_ok = (
+    str(_pw505_here) not in _pw505_after
+    and _pw505_parent in sys.path
+    and sys.path[0] == _pw505_parent
+)
+sys.path[:] = _pw505_saved_path
+R.check(
+    "_bootstrap drops the package directory so datetime is stdlib",
+    _pw505_boot_ok,
+    f"here={_pw505_here} path0={sys.path[0]!r}",
+)
+
+
+def _pw505_run(stdin_bytes: bytes) -> bytes:
+    _in, _out = sys.stdin, sys.stdout
+    _raw_out = _pw505_io.BytesIO()
+    sys.stdin = _Pw505Std(_pw505_io.BytesIO(stdin_bytes))
+    sys.stdout = _Pw505Std(_raw_out)
+    _path = list(sys.path)
+    try:
+        _pw505.run_worker()
+    finally:
+        sys.stdin, sys.stdout = _in, _out
+        sys.path[:] = _path
+    return _raw_out.getvalue()
+
+
+_pw505_eof = _pw505_run(b"")
+R.check(
+    "run_worker returns on EOF without writing",
+    _pw505_eof == b"",
+    f"wrote {len(_pw505_eof)} byte(s)",
+)
+
+_pw505_ok_job = _pw505_run(_pw505_pickle.dumps((_pw505_op.add, (2, 3))))
+_pw505_ok_job_payload = _pw505_pickle.loads(_pw505_ok_job)
+R.check(
+    "run_worker dumps ok and the function result",
+    _pw505_ok_job_payload == ("ok", 5),
+    f"got {_pw505_ok_job_payload!r}",
+)
+
+_pw505_err_job = _pw505_run(_pw505_pickle.dumps((int, ("x",))))
+_pw505_err_job_payload = _pw505_pickle.loads(_pw505_err_job)
+R.check(
+    "run_worker dumps err when the job raises",
+    (
+        _pw505_err_job_payload[0] == "err"
+        and isinstance(_pw505_err_job_payload[1], ValueError)
+    ),
+    f"got {_pw505_err_job_payload!r}",
+)
+
+_pw505_load = _pw505_run(b"\xff\xffnot-a-pickle")
+_pw505_load_payload = _pw505_pickle.loads(_pw505_load)
+R.check(
+    "run_worker dumps load-err and stops when the frame will not unpickle",
+    _pw505_load_payload[0] == "load-err",
+    f"got {_pw505_load_payload!r}",
+)
+
+_pw505_script = _subprocess.run(
+    [sys.executable, str(_Path(_pw505.__file__))],
+    input=_pw505_pickle.dumps((_pw505_op.add, (4, 5))),
+    capture_output=True,
+    check=False,
+)
+_pw505_script_payload = None
+if _pw505_script.returncode == 0 and _pw505_script.stdout:
+    try:
+        _pw505_script_payload = _pw505_pickle.loads(_pw505_script.stdout)
+    except Exception as _pw505_script_err:  # noqa: BLE001
+        _pw505_script_payload = _pw505_script_err
+R.check(
+    "python process_worker.py as __main__ runs the worker on stdin",
+    _pw505_script.returncode == 0 and _pw505_script_payload == ("ok", 9),
+    f"rc={_pw505_script.returncode} out={_pw505_script_payload!r} "
+    f"err={_pw505_script.stderr[:200]!r}",
 )
 
 sys.exit(R.close("FEATURE CHECKS"))

@@ -78,7 +78,7 @@ Where this table and a wave body disagree, this table is the truth.
 | **3L** | mid-programme leftovers, one burst | #400 #401 #404 #405 #408 #457 #460 #463 #465 | after Wave 3 | **done** — **3L-G1** #470 (`81aa0c3`). **3L-G2** #472 (`2abe2f7`). **3L-G3** #474 (`e8adfe4`) + #479 (`8ea27d4`) + #480 (`162e759`). **3L-G4** #477 (`531d8b7`). **3L-G5** #483 (`6f02b8a`) closed #408. **3L-G7** #485 (`bf08217`) closed #460. **3L-G8** #487 (`a19ba03`). **3L-G9** #489 (`b29fd1e`) closed #463. **3L-G10** #492 (`e4bc375`) closed #465. **3L-G6** (#457) never implemented: the seat returned NEEDS_CONTEXT (no production `conflict` symbol; nearest twins are read-only `setup_overview` and `reconfigure`), and the owner then closed #457 as `COMPLETED` by hand on 2026-09-06T03:40:23Z with no PR and no commits. Discharged, not blocked — do not reopen it and do not invent a backend. **W4-G6** (S5) merged #529 (`8281f54`); **W4-G7** (S6) merged #537 (`d04ed89`); **W4-G8** (S7) merged #551 (`0f9eb71`); **W4-G9** (S8) merged #555 (`52d38d9`); **W4-G11** (S10) merged #543 (`e072b2d`, closed #304). Next is W4-G10 (S9, #224). Do not stamp. #481 leftover closed. #412 stays last of the programme |
 | 4 | the #193 decomposition programme, S0–S13 | #193 #223 #224 #225, and **#304 as S11's precursor** | one per stage | **S0–S12 done or recorded-halted; #224 stays open** — S9 landed in three pull requests (#557, #586, #631) plus a recorded optimize 30–50 halt; **#224 stays open**; S11 #597 (`0323c5b`), which **shut #223** — it is CLOSED — S0 #497 (`c197b01`), S1 #500 (`67e1cf3`, closed #377; **corrected 2026-09-06**: the reported 138-point drop across all five cuts was `structure.py` losing sight of `getattr(self, "_ctx", self)` references S1 introduced 131 of, not decoupling — fixed by #512, S1's other results (`CoordinatorContext`, the attribute count, the facades) stand unchanged), S2 #502 (`d979110`, review `merge` 5558785350), S3 #506 (`5a4e6ff`, review `merge` 5559638736 at `258b245`: cut_views 94→85, coordinator_loc/max_class_loc 10305→10164, functions_cc_over_15 39→38, methods_over_150 21→20; earlier `blocked` 5559418212 at `341c596` cleared). **S4 (W4-G5, fetch) is a RECORDED HALT, merged as `e46fb15` (#508), with no production change** — measured then as 92 of cut_fetch's 115 being other seams reading the 15 fetch-owned attrs (60) and calling into fetch (32); **re-measured after #512**, cut_fetch is 132, not 115 (the whole +17 is fetch's own reads of attributes it does not own, previously invisible through the same idiom — see the roster note for the full recount), the other-seams-reaching-in share is unchanged in absolute count at 92, and the halt's actual basis — the judge's #193 finding that no component of size>1 detaches at any k — is untouched, so the seam move stays sequenced to S12/W4-G13, not banned. **S5 (W4-G6, dhw) merged as `8281f54` (#529, review `merge` 5561488083)**: cut_dhw 194→103 (-91, -47%), cut_learning 350→321, total cut across all five seams 1022→902 and `core` 15→14 (the control that distinguishes a real decoupling from moving points to a neighbouring seam). **The constraint S5 produced, carried into the W4-G7/G8/G9/G13 briefs:** the ownership lever is legitimate only where a seam's entire contact with an attribute is the assignment — no reads, no other writes — demonstrated per attribute, never assumed; `_helper(self, ...)` at S3 and `getattr(self, "_ctx", self)` at S1 were both refused on exactly that. Measured by moving twelve non-hot-water attributes `_init_dhw_learning` misplaced into a new `_init_thermal_learning` (learning seam). Do not Closes #193. Roster `.claude/workflows/wave-4-groups.json`. #225 stays closed. #412 not in this wave. Do not stamp |
 | R | reliability, instruments and harness — hotfixes and findings made alongside Wave 4, not wave work | #510 #511 #513 #518 closed | v6.3.16 (`#512`, `#515`); unstamped (`#517`, `#519`) | **delivered 2026-09-06** — #512 fixed `structure.py`'s cut-walk blindness to `getattr(self, "_ctx", self)`, closed #510; #515 fixed the release-critical unpickle failure (every install produced no plan), closed #511; #517 added `tests/deployment_shape.py`, closed #513; #519 consolidated the handover series into one file, closed #518. Detail below |
-| UX | the UX programme: **34 items in five lanes**, B/C/D/E concurrent with the waves, **F last of the whole programme** | tracking **#558**; items land under their own numbers (#509 done, #516 = E4) | B, C, D now; **E1–E3 unblocked — S11 landed as #597 (`0323c5b`)**; **F after Wave 5 and #412** | **lanes B, C, D started 2026-09-07.** Docket: the *Optimizer UX Docket* artifact. Independence is by **file**, not only by budget — see the collision table below |
+| UX | the UX programme: **34 items in five lanes**, B/C/D/E concurrent with the waves, **F last of the whole programme** | tracking **#558**; items land under their own numbers (#509 done, #516 = E4) | B, C, D now; **E1–E3 unblocked — S11 landed as #597 (`0323c5b`)**; **E4 (#516) in flight as #653**; **F after Wave 5 and #412** | **lanes B, C, D started 2026-09-07.** Docket: the *Optimizer UX Docket* artifact. Independence is by **file**, not only by budget — see the collision table below |
 | 5 | typing lane, and the coverage deficit #195 raised | #303 #195 | per tranche | **W5-G1 done** (#596, `e803d83`) — the pinned stub-free ruler, with #504 decided as CI-only. **The census is 518 errors across 22 codes, not the 427 the plan carried**, and `coordinator.py` is **92, not 59** (W5-G4's whole scope); `wood_fuel.py` 29 and `away.py` 15 appear in no tranche. #195 tranches 1–2 landed (#573, #589). After Wave 4. **#304 is Wave 4**, not here. #412 not in this wave |
 | last | CI Node majors, then **UX lane F** | #412, then UX F1/F2 | after Wave 5 | pending — owner: #412 is the last *task*; **lane F is the last work of the programme**, because it is the only lane that adds lines to `coordinator.py` |
 
@@ -354,7 +354,7 @@ something that reads as complete while covering a fraction.
 | **#505** #195 tranches miss nine below-bar modules | **scheduled — W5-G5 re-partitions before extending coverage.** `process_worker.py` at 0.0 % is a candidate to pull forward | W5-G5, inherited by G6/G7 |
 | **#509** diagnostics publish home latitude/longitude unredacted | **in flight** — coordinates coarsened to 1 dp rather than redacted, so a swapped lat/lon or wrong country still shows; `config.name` redacted. The "land it before #522" sequencing was **void**: #522's review measured that the lane never calls diagnostics and uploads no artifact | [#535](https://github.com/tvofi/heatpump_optimizer/pull/535) |
 | ~~**#514**~~ Python floor undeclared, 3.14 untested | **DONE** — closed by #520, merged `36b71dd` | [#520](https://github.com/tvofi/heatpump_optimizer/pull/520) |
-| **#516** config-flow options are ungrouped | **deferred to the UX programme, lane E.** Not blocked on HA version once #520 lands, but still blocked on the golden capture walking schemas one level deep — grouped fields would fall silently out of the fingerprint. That is the constraint to solve, not the HA floor | UX lane E |
+| **#516** config-flow options are ungrouped | **in flight — E4.** Capture already on main (#568). [#653](https://github.com/tvofi/heatpump_optimizer/pull/653) groups the ten wide pages and teaches the assertion walks that cover them to recurse. leaves #558 open | [#653](https://github.com/tvofi/heatpump_optimizer/pull/653) |
 | ~~**#521**~~ no test runs the integration in a real HA install | **DONE** — closed by #522, merged `824fd84`. Residuals recorded, not swept: the lane reaches ~15 of the ~58 container-reachable escapes, and its incompleteness was silent → **#533** | [#522](https://github.com/tvofi/heatpump_optimizer/pull/522) |
 | **#523** `closures-autofix` reported success without repairing | **in flight, blocked once** — review measured a *residual* silent path: `any(rc != 0)` (a failed recording) is folded into the same quiet status, so one unrelated failure hides a real repair while the job exits 0. Being fixed | [#528](https://github.com/tvofi/heatpump_optimizer/pull/528) |
 | **#524** an unpicklable solve result is returned as the plan | **in flight** — and *worse than filed*: `_run_in_process` **returns** the `RuntimeError` rather than raising, so the chain publishes it as the plan, resets `_solve_failures` to 0 and deletes the repair notice. The bug erased its own evidence | [#540](https://github.com/tvofi/heatpump_optimizer/pull/540) |
@@ -377,7 +377,7 @@ something that reads as complete while covering a fraction.
 | **#577** nine measured divergences between `tests/hastub` and Home Assistant | **filed by the #536 seat, in the pass that built the mechanism.** Each measured against Home Assistant **2025.2.0** — the floor `hacs.json` declares — and recorded in `tests/ha_contract.py` as a `DIVERGENT` entry carrying an `expect="real"` contract: a statement of upstream behaviour that **must fail against the stub**, so each is pinned in both directions | #578 |
 | **#584** nightly A3: the published-state sweep | **filed by #533's seat, which asked for it by name.** The largest single unimplemented gap in the container lane — **15 past escapes, more than the four already-implemented assertions cover between them** | own PR |
 | **#585** nightly A10: the diagnostics privacy probe | **filed by #533's seat**, second priority after A3 because it pins an **open, still-shipping** defect directly: no token and no latitude/longitude beyond two decimals anywhere in the diagnostics payload | own PR |
-| **#587** nightly A5/A8/A9: options round-trip, service registration, reload | **filed by #533's seat.** One issue, three tranches, because all three need what the lane lacks — a **second** config entry and a reload rather than the single boot it does today. Split if a seat takes one alone | own PR |
+| **#587** nightly A5/A8/A9: options round-trip, service registration, reload | **in flight — this PR.** Host pins demand the ten inside checks by name. Container half walks the derived options steps, two entries, five reloads. A8's "0 remain" is leftover per-entry handlers; the domain catalog stays (action-setup). A9 ceiling is the first sample, not zero. leaves #533 open. Does not implement A4. | this PR |
 | **#588** the loop detector cannot tell "no blocking call" from "no log" | **filed by #533's seat as the residual its own fix left**, stated rather than left to be rediscovered. #533's fix made the pin a two-directional ratchet; this is the case the ratchet still cannot see | own PR |
 | **#580** a check earns its place once and is never asked again | **filed this session; under refutation.** Eight instances in one day of one class — an absent signal reading as a passing one. Three refutation seats and a judge are deciding whether it stays, stays modified, or closes | under review |
 | **#581** `brief_lint` refuses a literal metric but not a literal anything-else | **filed this session; under refutation.** Ten stale figures in one day. The issue **carries its own falsification test**: if no rule can separate an observation from a definition, it closes rather than being built | under review |
@@ -466,6 +466,7 @@ no wave:
 - [#623](https://github.com/tvofi/heatpump_optimizer/pull/623) — **merged `03af74b`**, `docs/HANDOVER.md` truthed and `docs/plan-2026-09-open-issues.md` given the carry it owed. The handover was eleven merges stale, its machine section described a box no session in it was running on, and three new traps were numbered 8, 9 and 10 — numbers the list already used — which shipped green through `policy-docs`, `prepr` and a review, because **nothing measures a numbered list's numbering**. Renumbered to the end rather than monotonically, because six sites across four files cite traps by number and renumbering would have killed all six to fix a cosmetic defect. Two review rounds. Round 1 blocked on a `## Forward-carry` naming a **branch** rather than a file `git grep` can find, and on the body reporting its distance from `118fcf2` — a value the branch had written in its own first commit and superseded twice — where the truth against `origin/main` was eleven.
 - [#624](https://github.com/tvofi/heatpump_optimizer/pull/624) — **merged `cc2efc9`**, `docs/decisions/0006-policy-merge-grant-regranted-to-the-local-session.md`. Decision 0001 scoped policy-merge authority to session `019DU5u9DvSdWdcqXQnEW3ga` and says in its own text that anything after it reverts to owner approval per pull request; that session ended with this queue built and unmerged, so the authority did not carry and was **re-granted by the owner before this session merged anything**. 0001's six preconditions carry forward unchanged, and 0006 does not supersede 0001 — a record of an authority that was held and is now spent does not become false when its session ends. It also corrects the outgoing handover's *"a sixth ADR costs a line"*: established by mutation, an ADR is free until a **policy document** cites it, and `docs/plan-2026-09-open-issues.md` is corpus-excluded, which is why ADR 0001 is already cited from this very list at #610's row and cost nothing. Branch deletion is measured in it rather than asserted — the four merged queue refs deleted, `ls-remote` as witness rather than the push's own output — and ruleset creation is deliberately left to last, because a required check absent from `main` blocks every merge permanently.
 - [#625](https://github.com/tvofi/heatpump_optimizer/pull/625) — **merged `d08a56a`**, `.claude/settings.json` and three hooks, which did not exist: SessionStart, PreToolUse and Stop, each standing in for a rule whose cheapest detector was minutes of CI or a forty-minute release stamp. `policy_lint --hooks` is what keeps them from becoming the claim they replace. **Two review rounds, and round 1 found the same defect class the change's own commit message names as its lesson**: `stop-selfcheck.sh`'s thirteen cases all drove helpers, none drove the wrapper, so replacing its final `exit 2` with `exit 0` left 13 of 13 passing and `--hooks` at rc=0 with the hook completely inert in production. Fixed for `pre-edit.sh` in the first draft and not for the second hook. Four end-to-end cases now drive the wrapper against a scratch repository with a stub linter whose exit status the test chooses, and the reviewer drove **five further wrapper mutations, all five caught**. Round 1 also refuted the body's unconditional fail-open claim on one of its four items: `git branch --show-current` returns an empty string both on a detached HEAD and when it cannot answer at all, and collapsing the two made the hook fail **closed** on `VERSION`, the manifest and `RELEASE_NOTES.md` whenever git was absent — **the same shape as #622**, a git command's `stdout` read without its `returncode`. Also closes two settings-level holes the review reported without blocking: deleting a hook entry left `HOOKS ok: 2 wired hook(s)` and rc=0, and repointing `PreToolUse` at another script left it green at three, so `REQUIRED` now pins the roster by **membership — event and script, not a count**, because a count is satisfied by a duplicate and by a swap. The forward-carry answer of `none` was rejected and the reviewer was right: the vacuous-mutation finding went to `tools/audit/briefs/fixer.md` step 2, **paid by cutting** — 257 lines in, 257 out, against a cap of 257, every cut line's rule verified still stated.
+- [#626](https://github.com/tvofi/heatpump_optimizer/pull/626) — adds nightly A3 published-state sweep.
 - [#628](https://github.com/tvofi/heatpump_optimizer/pull/628) — **merged under decision 0006**, and deliberately **without a merge SHA**: GitHub creates the squash commit at merge time, so a row a pull request writes for itself cannot name one, and #612's row saying *"Its own row is this one"* was in fact written by #621 nine merges later. The rows `07-loop` needs before its `record` job can land — #621 through #625 — established by driving the detector rather than counting: **31** merged pull requests in `v6.3.18..main` at `d08a56a`, 3 without a disposition in a `07-loop` worktree's own tree, **0 with this branch's plan file, rc=0**. Two of the five already satisfied the check and should not have, which is the hole the same change designs the fix for: principle 6 sequences it after the queue closes and before the next release stamp, and the entry under `## Carried findings awaiting a stage` carries the anchor design, its two prohibitions and its honest limit. Briefly filed as #627 and closed as wrong — an issue is not the instrument for propagation. **Round 1 blocked this pull request and was right**: it had paid for three handover traps by compressing nine entries, and the compressions cut evidence — a path, a literal glob, a worked example, trap 17's control clause and half of trap 18's prescribed verification — which `writing-for-agents.md` forbids outright, *cutting evidence is never compliance*. `docs/HANDOVER.md` is now byte-identical to its merge base apart from `updated-for:`, and the traps landed in `## Standing rules` here instead. Two counts in round 1 also failed to re-derive, both stale rather than invented: 69 rows for what is 65 at the merge base and 71 at head, and 30 merges in a window that already held 31 when the sentence was written.
 - [#633](https://github.com/tvofi/heatpump_optimizer/pull/633) — UX C4: dark-theme and graphics contrast witness. leaves #558 open.
 - [#635](https://github.com/tvofi/heatpump_optimizer/pull/635) — UX B12: README hero from the Playwright lane. leaves #558 open.
@@ -474,10 +475,41 @@ no wave:
 - [#637](https://github.com/tvofi/heatpump_optimizer/pull/637) — W4-G13 S12 recorded halt: no subsystem API to migrate tests to. leaves #193 open.
 - [#636](https://github.com/tvofi/heatpump_optimizer/pull/636) — W5-G2: sensor.py annotations, ruler 518→371. leaves #303 open.
 - [#642](https://github.com/tvofi/heatpump_optimizer/pull/642) — W4-G10 S9 recorded halt: `optimize` 30–50 LOC verbatim has no remaining seam at `30a202e`. leaves #224 open.
-- [#640](https://github.com/tvofi/heatpump_optimizer/pull/640) — W5-G3 first cut: wood_fuel.py annotations, ruler 371→341. leaves #303 open.
-- [#643](https://github.com/tvofi/heatpump_optimizer/pull/643) — W5-G3: config_flow.py annotations, ruler 341→315. leaves #303 open.
+- [#646](https://github.com/tvofi/heatpump_optimizer/pull/646) — W4-G10 S9: `_optimize_with_dhw` always-hot DHW baseline extract, max_method_loc 489→455. leaves #224 open.
+- [#639](https://github.com/tvofi/heatpump_optimizer/pull/639) — **merged under decision 0006**, without a merge SHA it cannot know: `policy_lint_envmatrix.mjs`, the declared-environment matrix that builds five shapes of this repository and fails a row whose run does not produce what the row declares — or a shape it cannot build — plus the `env-matrix` job, decision 0004 (*an assertion can be correct and never run*), and the `prepr.sh` widening. Mutation proof against production, not the harness, and via a temporary commit because the matrix clones from git objects: disabling the shallow-clone disclosure in `policy_lint.mjs` takes it to 11 held / 2 not, rc=1, both in the `shallow` shape; restored 13/13. A vacuous first attempt — a shell-form search string against an array-form call, zero occurrences, an empty WIP commit, 13/13 against an unmutated tree — is disclosed, because it read exactly like a pass until the occurrence assertion caught it. Trap 8 (*one CI runner is not the fleet*) gains its detector with this merge, the fifth in the graduation rule's runway; the ruleset's `env-matrix` context now exists on `main`. Body written against its SHA before the push, per S10; `--claims-only` at the merge base `ok`, because `main`'s claim list is empty and an empty list inherits nothing.
+- [#641](https://github.com/tvofi/heatpump_optimizer/pull/641) — **merged under decision 0006**, without a merge SHA it cannot know: `fix-review.md`'s verdict examples corrected to the grammar `web-fix-wave.js` actually parses — for a session the contract said `blocked: finding not carried to <stage>`, no SHA, no class, which `VERDICT_RE` rejects — plus `D7.md` truthed and decision 0005 recording why one identity authoring and approving makes a required-approval rule a lock. **The fix was unpinned and this branch pins it**: reversing the contract change left every detector green, so `check-wave-script.mjs` now extracts each backticked example beginning `blocked ` or `merge ` and runs it through the grammar rebuilt from the wave script's own text, with a floor of three so an empty extraction cannot pass — **37 passed at head**, the pin having since been widened to read every brief in `tools/audit/briefs/` rather than the contract alone. Driven, and stated as the assertions actually fire rather than as they did when this row was first written: **reversing one example is refused by the `blocked:` assertion**, 35/1 — the floor does NOT fire, because four examples across three files survive a floor of three; **deleting all three examples does fire the floor**, `found 2`, 33/1; a wrong class keeps its space and is refused by that file's own parse assertion, 36/1; and the negative control shows the grammar itself refuses the old form. The earlier reading of this row credited the floor with the reversal, which its own commit falsified two commits later — a row is a claim about the head it merges at, not about the head it was typed at. Body written against its SHA before the push, per S10; `--claims-only` at the merge base `ok`.
+- [#638](https://github.com/tvofi/heatpump_optimizer/pull/638) — nightly A10 diagnostics privacy probe. leaves #533 open.
+- [#645](https://github.com/tvofi/heatpump_optimizer/pull/645) — W5-G3: away.py annotations, ruler 371→354. leaves #303 open.
+- [#647](https://github.com/tvofi/heatpump_optimizer/pull/647) — W5-G3: ledger.py annotations, ruler 371→360. leaves #303 open.
+- [#648](https://github.com/tvofi/heatpump_optimizer/pull/648) — W5-G3: defrost.py annotations, ruler 371→355. leaves #303 open.
+- [#655](https://github.com/tvofi/heatpump_optimizer/pull/655) — nightly A5/A8/A9 options, services, reload. leaves #533 open.
+- [#651](https://github.com/tvofi/heatpump_optimizer/pull/651) — **merged**, the loop detector cannot tell "no blocking call" from "no log". leaves #533 open.
+- [#654](https://github.com/tvofi/heatpump_optimizer/pull/654) — W5-G6: process_worker.py in-process pins, 0.0%→92%. leaves #505 open. leaves #195 open.
+- [#640](https://github.com/tvofi/heatpump_optimizer/pull/640) — W5-G3 first cut: wood_fuel.py annotations, ruler 355→325. leaves #303 open.
+- [#643](https://github.com/tvofi/heatpump_optimizer/pull/643) — W5-G3: config_flow.py annotations, ruler 297→271. leaves #303 open.
 
 **A pattern worth naming**, since most of these were blocked for it: every one of those blocks was a document asserting something that was not true of the tree — a stale head, a count, an actor, a carry that did not land. None was a disagreement about the change itself.
+
+### Governance queue — where this lane's rows go from here
+
+Both lanes appended their disposition rows to the end of one list, so every
+merge on `main` conflicted the other lane's open branch at that seam: this pull
+request was rebased five times for it and #639 three, each rebase costing a
+fresh review round at a head whose code had not changed. The rows above stay
+where they are; **from here this lane appends below and every other lane appends
+there**, so the two insertion points are never adjacent and neither lane waits
+on the other. No pull-request number is named as the boundary: one was drafted
+into this sentence and taken by another lane four minutes later. **What reads this row, stated as it is
+today and not as it will be:** `checkRecord` tests `#<pr>` against the whole
+text of both disposition documents, so a row is read wherever it sits in either
+of them — driven by moving #648's row clean out of `## Delivery status` into
+`## Carried findings awaiting a stage`, which leaves `--record` at 47 merged, 0
+undispositioned, with masking that number in both files as the null control that
+does report it. The pull request after this one narrows that to the
+`## Delivery status` section alone, which is why this subsection is placed
+inside it rather than after it.
+
+- [#644](https://github.com/tvofi/heatpump_optimizer/pull/644) — **merged under decision 0006**, without a merge SHA it cannot know: `docs/decisions/` leaves the measured corpus, named one by one so a seventh decision costs a line; 0006 added to that list; 0005's status line stops waiting on the question the same file answers. Closes the queue 05–10; the ruleset's `record` and `env-matrix` contexts both exist on `main` from here.
 
 ### The UX programme — 34 items, five lanes, tracking #558
 
@@ -502,7 +534,7 @@ lanes share files with remaining wave stages.
 | **B** docs | 12 | — | — | **now**, concurrent |
 | **C** card | 9 | — | — | **now**, concurrent |
 | **D** ha | 6 | W5-G2 | `sensor.py` | **now** — **W5-G1 landed (#596), W5-G2 has not**, so D still lands first and W5-G2 re-measures against it |
-| **E** flow | 4 | **W4 S11 (#223)**, W5-G3 | `config_flow.py` | **E1–E3 unblocked: S11 landed as #597 (`0323c5b`) and shut #223**; **E4 (#516) now**, because its blocker is in `golden.py` |
+| **E** flow | 4 | **W4 S11 (#223)**, W5-G3 | `config_flow.py` | **E1–E3 unblocked: S11 landed as #597 (`0323c5b`) and shut #223**; **E4 (#516) in flight as [#653](https://github.com/tvofi/heatpump_optimizer/pull/653)** — capture on main (#568); grouping is #653 |
 | **F** post-W4 | 2 | S12/S13, W5-G4, W5-G7 | `coordinator.py` | **last work of the programme**, after #412 |
 
 **Why E1–E3 waited, and no longer do.** S11 rewrote `config_flow.py` as a
@@ -552,11 +584,10 @@ over the same state list; and **B5 needs B4 landed**, or the README opens with
 nothing where the flowchart used to be.
 
 **#516 (E4)**'s original blocker is discharged — #520 raised the Home
-Assistant floor to 2025.2.0, where `section()` exists. Its real blocker
-survives and is sharper: `golden.py`'s `fingerprint` walks schemas one level
-deep, so grouped fields would fall **silently** out of the fingerprint and a
-byte-identical golden would prove nothing. That is the defect class #553 fixed
-for the stored-value arm, and the capture work is in flight.
+Assistant floor to 2025.2.0, where `section()` exists. The capture blocker
+is discharged by #568: `golden.py`'s fingerprint recurses into `section()`.
+The remaining cost is the assertion layer, which [#653](https://github.com/tvofi/heatpump_optimizer/pull/653) teaches to reuse
+that same walker before grouping the ten wide pages.
 
 ### Wave 1b, half I delivered 2026-09-04
 
@@ -829,6 +860,36 @@ judge comments on each issue and summarised on #201.
   `{admin: false, maintain: false, push: false, triage: false, pull: false}`
   while pushes plainly worked, and suspected as much; this session reads
   `admin: true`, and create/update/delete of a ruleset all succeeded.
+- **O3 is decided: after this session, a policy merge needs the owner's
+  approval per pull request, with a per-session grant as the option — to be
+  recorded as ADR 0007.** The governance-audit plan (archived on
+  `audit/session-evidence-2026-09-08`, not on `main`) left O3 as its closing
+  question: whether policy merges after the programme revert to owner approval
+  per pull request or stand on the ruleset plus `pr-contract`. The owner ruled
+  on 2026-09-09: **per-PR approval**, with the **option of a session grant**
+  of the 0001/0006 shape — a decision record naming the session, the six
+  preconditions, reverting at session end. The ruleset and `pr-contract` are
+  the floor either way, not the substitute. Lands as ADR 0007 beside the
+  ruleset, the programme's last act, so the record that names the floor names
+  one that exists; the closing #201 comment lists every pull request merged
+  under 0006 with its verdict and head SHA, as that plan asked.
+- **The verdict-example pin has two residuals its own reviewer drove, and one
+  is a hole rather than a limit.** #641 round 2 attacked the widened block in
+  `check-wave-script.mjs` and found three properties, two of which are left
+  standing deliberately. **(a) The `blocked:` refusal is backtick-anchored**:
+  the rejected spelling inside a fenced code block passes, while the same
+  spelling in inline backticks fails — so a brief can still document the old
+  form in a fence, and a brief warning *against* it inline cannot. The escape
+  hatch and the hole are the same hatch; closing it means deciding whether a
+  fence is documentation or instruction, which is a question about briefs and
+  not about this checker. **(b) The floor of three is directory-wide**, so
+  deleting one brief outright still passes at 36/0 — the floor guards the
+  empty extraction, not per-file coverage; a per-file floor would pin which
+  briefs must carry examples, which is the row-format mistake in another
+  costume. The third, a hard-wrapped example failing for the width of its
+  column, was **fixed** in that pull request rather than carried. Whoever
+  revisits (a) should note that the same fence question governs
+  `policy_lint`'s own prose checks.
 - **`pr-contract` red runs are hidden by `gh pr checks`, and the ones on this
   queue's heads were process state (b), not a defect in the check.** Two facts,
   and only the first is the check's.
@@ -992,6 +1053,20 @@ judge comments on each issue and summarised on #201.
   branch rebased onto a claim-carrying `main` will do this on merge. #635
   already did it to #633's; `main`'s list is empty now, an empty list inherits
   nothing, and the window stays closed until the next claiming merge.
+
+- **The environment matrix can lose a shape or a row without noticing.** Found
+  by #639's first review, reported rather than blocked on, carried here so the
+  matrix's next maintainer inherits it. `policy_lint_envmatrix.mjs`'s
+  `MATRIX VACUOUS` guard keys on the shape *directory* existing, so a shape
+  whose builder is deleted still passes as "13 held across 5 shapes" against a
+  reused work directory that holds the previous run's clone; and no declared
+  row *count* or row *name set* exists, so a deleted row is never noticed — 12
+  of 12 reads as fine. The precondition for the fix: pin the row set by
+  **name**, not by count (#614 round 3: a count is satisfied by a duplicate and
+  by a swap), and have `build` refuse a work directory that already holds the
+  shape rather than reuse it. Cost measured by the reviewer: none of the five
+  shapes as declared are affected today; the hole is in what the matrix would
+  say if one went missing.
 
 ## Standing rules
 

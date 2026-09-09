@@ -254,4 +254,4 @@ fix review is not yours. What you owe is that the trigger is visible to a seat
 other than the one that tripped it.
 
 The reviewer reads your checks rather than your account of them, and an
-unanswered red check is `blocked: root-cause trigger unanswered for <check>`.
+unanswered red check is `blocked <sha> root-cause-unanswered: <check> went red, unanswered`.

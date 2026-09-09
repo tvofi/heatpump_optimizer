@@ -360,6 +360,56 @@ const CORPUS_EXCLUDED = new Set([
   'docs/plan-2026-09-open-issues.md', // plan of record
   'DISCLAIMER.md',                    // user-facing, same ground as README.md
   'docs/backlog.md',                  // superseded record, kept for history
+  // The architecture decision records. An ADR states a decision ALREADY TAKEN
+  // and the measurement behind it; it binds no seat and no seat is sent to one
+  // to learn what it must do. The corpus machinery is built for text that binds
+  // someone: `checkIndex` refuses a policy file `CLAUDE.md` does not name,
+  // because "the index is the only way a seat finds a policy file" -- and
+  // naming them all here would push the ALWAYS-LOADED set, the one number this
+  // audit exists to drive down, past its cap to carry documents nobody must
+  // read. Measured before choosing, and RE-MEASURED here because the first
+  // reading was taken against five decisions and this list now names six:
+  // bringing `docs/decisions/` under POLICY_GLOBS reports 24 errors across 41
+  // policy files -- 7 [budgets], 6 [index], 6 [duplicates], 5 [citations] --
+  // where the first reading said 14. The shape is what decided it and the shape
+  // is unchanged: every ADR wants a cap and an index line it should not have.
+  // The five [citations] are named one by one rather than summarised, because
+  // the first version of this sentence said they were all 0003's and three of
+  // them are: `docs/Zednotes.md`, `NOT_A_DOCUMENT` and `NEVER_NOT_A_DOCUMENT`,
+  // correct BECAUSE 0003 describes an experiment over files and symbols that do
+  // not exist. The fourth is 0005 citing `docs/plan-2026-09-governance-audit.md`
+  // and is a TRUE positive: that plan is archived on a branch and is not in this
+  // tree. The fifth is 0006 citing `POLICY_GLOBS`, which exists a few lines
+  // above here. `git grep -w POLICY_GLOBS` finds three tracked files, and
+  // `symbolElsewhere` below excludes all three by three different clauses of
+  // its own inline list: this file by `:!.claude`, ADR 0002 by `...spec` (a
+  // policy file cannot satisfy a citation, and once ADRs are policy files --
+  // the state being measured -- 0002 is one), and 0006 itself by `exceptRel`.
+  // Two are independently sufficient: dropping `:!.claude` takes the total to
+  // 23, and so does un-excluding 0002. Named this precisely because the
+  // sentence has been wrong twice, once as "all five are 0003's" and once as
+  // `SYMBOL_GREP_EXCLUDE`, which this file imports and never calls on this
+  // path. So three of the five are a check applied to the wrong kind of text,
+  // one is the check working, and one is three exclusions meeting a document
+  // that cites into all of them. The count grows with the directory, which is
+  // the other half of the argument: measuring ADRs makes the corpus pay per
+  // decision.
+  //
+  // THE RESIDUAL RISK, stated rather than left to be found: prose moved from a
+  // capped file into an ADR leaves the corpus and buys headroom in every cap at
+  // once, and nothing detects it. Only a reviewer reading the diff does. These
+  // are named ONE BY ONE and not by prefix, deliberately -- a `.md` is never
+  // excused by location here, so the NEXT ADR costs a line in this list, which
+  // is the same bar as raising a cap and is the point. It has already been paid
+  // once: this comment said "a sixth" while it was written against five, and
+  // 0006 landed on `main` before the branch did. A count in a comment goes
+  // stale on the next merge; the list is the count.
+  'docs/decisions/0001-session-policy-merge-grant.md',
+  'docs/decisions/0002-self-witnessed-proxy-assertion.md',
+  'docs/decisions/0003-enumerate-what-you-may-ignore.md',
+  'docs/decisions/0004-an-assertion-can-be-correct-and-never-run.md',
+  'docs/decisions/0005-no-codeowners-while-one-identity-authors-and-approves.md',
+  'docs/decisions/0006-policy-merge-grant-regranted-to-the-local-session.md',
 ])
 
 // Widening the scan past `.md` brought in every `.txt` a policy file cites, and
@@ -1701,6 +1751,24 @@ function checkProvenance() {
     execFileSync('git', ['merge-base', '--is-ancestor', sha, 'origin/main'], { cwd: ROOT, stdio: 'ignore' })
     return []
   } catch (e) {
+    // EXIT 1 IS THE ANSWER ONLY IN A CLONE THAT CAN WALK THE WHOLE GRAPH. The
+    // env-matrix's first CI run found the case the arm below did not cover: a
+    // clone holding every object but marked shallow at a commit AT OR ABOVE
+    // origin/main, where the walk from origin/main stops at the boundary before
+    // reaching a perfectly good SHA and answers 1 -- "no" -- rather than 128.
+    // Where the boundary lands is the whole difference, not the git version: CI
+    // checks out the pull request's merge commit, whose first parent IS
+    // origin/main, so the matrix's HEAD~1 graft sits exactly there; a branch
+    // tip's HEAD~1 sits above origin/main and the walk succeeds. One git, both
+    // shapes, opposite answers -- reproduced on this box from a synthetic merge
+    // commit. So shallowness is asked on BOTH error paths: a "no" git could not
+    // have established is not a refusal, and rule 5 of decisions/0003 says to
+    // say so rather than go silent or -- worse -- refuse.
+    const shallowOnNo = e.status === 1 && git(['rev-parse', '--is-shallow-repository'], { allowFail: true }).trim() === 'true'
+    if (shallowOnNo) {
+      console.log(`  skip     provenance             this clone is shallow, so git's "not an ancestor" for ${sha.slice(0, 7)} may be the boundary, not the graph`)
+      return []
+    }
     if (e.status !== 1) {
       // EXIT 128 IS TWO ANSWERS, and the first version of this arm took both
       // for the same one. It means "this clone is shallow, so I cannot walk
@@ -2264,7 +2332,14 @@ function assertAcceptance(derived) {
   const unreachable = mainSha
     ? git(['commit-tree', `${mainSha}^{tree}`, '-m', 'policy_lint provenance witness'], { allowFail: true, env: IDENT }).trim()
     : ''
-  if (!mainSha || !unreachable) {
+  // A SHALLOW CLONE CANNOT DRIVE EITHER ARM. `checkProvenance` now treats a
+  // "not an ancestor" from a shallow clone as the boundary rather than the
+  // graph, so the parentless witness below would be skipped, not refused, and
+  // the drive would read VACUOUS for a check that is behaving as designed. The
+  // env-matrix's first CI run found the false refusal; its acceptance found the
+  // fix that was too blunt. Asked once here, before any pin is promised.
+  const shallowClone = git(['rev-parse', '--is-shallow-repository'], { allowFail: true }).trim() === 'true'
+  if (!mainSha || !unreachable || shallowClone) {
     // Said out loud, and NOT counted. A skipped drive that still added its pins
     // would report a total the run did not earn.
     // KEYED ON THE CHECK'S OWN NAME, and that spelling is load-bearing:
@@ -2273,7 +2348,7 @@ function assertAcceptance(derived) {
     // exercise it at all". Any other spelling would need a mapping table there,
     // and two hand-kept lists that must agree are the defect generator
     // decisions/0003 rule 4 is about.
-    console.log(`  skip     checkProvenance-pin    ${mainSha ? 'git could not build a witness commit' : 'origin/main is not in this clone'}, so neither direction can be driven`)
+    console.log(`  skip     checkProvenance-pin    ${shallowClone ? 'this clone is shallow, so a "no" from --is-ancestor may be the boundary rather than the graph' : mainSha ? 'git could not build a witness commit' : 'origin/main is not in this clone'}, so neither direction can be driven`)
   } else {
     pins += 3
     if (driveProv(unreachable).length !== 1) {
@@ -2298,10 +2373,12 @@ function assertAcceptance(derived) {
     // exposure was local, which is exactly where a seat runs `prepr.sh`.
     //
     // NOT keyed `skip <name>-pin`, deliberately. That spelling tells
-    // `policy_lint_mutants.mjs` the check could not be driven AT ALL, and here
-    // the parentless-witness arm above still runs and still catches an emptied
-    // `checkProvenance`. Claiming less than the run earns is the same
-    // dishonesty as claiming more.
+    // `policy_lint_mutants.mjs` the check could not be driven AT ALL. This arm
+    // is only reached in a clone that is not shallow -- the guard above the
+    // witness drive skips both arms otherwise, under exactly that key -- so a
+    // `shallowHere` true here would be a contradiction, kept as belt and
+    // braces. Claiming less than the run earns is the same dishonesty as
+    // claiming more.
     const shallowHere = git(['rev-parse', '--is-shallow-repository'], { allowFail: true }).trim() === 'true'
     if (shallowHere) {
       console.log(`  skip     provenance-deadbeef    this clone is shallow, so "no object carries this SHA" and "history this clone cannot walk" are the same exit 128; the witness arm above still drove the check`)

@@ -129,13 +129,29 @@ node .claude/workflows/policy_lint.mjs --hooks >/tmp/prepr-hooks.$$ 2>&1
 step "hooks" $? "$(tail -1 /tmp/prepr-hooks.$$)"
 rm -f /tmp/prepr-hooks.$$
 
-# --- 4. the wave script's branching, when the branch touched it.
-if ! git diff --quiet "$BASE"...HEAD -- .claude/workflows/web-fix-wave.js; then
+# --- 4. the wave script's branching, when the branch touched any of its inputs.
+#
+# THREE THINGS DECIDE THIS CHECK'S OUTCOME and the gate watched one of them.
+# It keyed on `web-fix-wave.js`, the script under test, and so skipped itself
+# on a branch whose change was to `check-wave-script.mjs` -- the checker -- and
+# on one that deleted rosters, which are the population it measures. Both
+# happened: the archive branch dropped three of seven rosters and this file
+# printed `skip wave-script -- web-fix-wave.js untouched` while the roster
+# population fell 30%, and the branch that fixed the checker was skipped by the
+# gate meant to cover it. That is decisions/0004's class in a shell script: an
+# assertion that is correct, that did not run, and whose run looks identical to
+# one where it did. CI's `wave-script` job is unconditional, so nothing shipped
+# unmeasured -- but a local gate that skips exactly when the change is in scope
+# teaches a seat that the check is covered when it is not.
+if ! git diff --quiet "$BASE"...HEAD -- \
+     .claude/workflows/web-fix-wave.js \
+     .claude/workflows/check-wave-script.mjs \
+     '.claude/workflows/wave-*-groups.json'; then
   node .claude/workflows/check-wave-script.mjs >/tmp/prepr-wave.$$ 2>&1
   step "wave-script" $? "$(tail -1 /tmp/prepr-wave.$$)"
   rm -f /tmp/prepr-wave.$$
 else
-  say skip "wave-script" "web-fix-wave.js untouched"
+  say skip "wave-script" "no change to the script, the checker or the rosters"
 fi
 
 # --- 5. VERSION, the manifest and the notes heading are untouched.

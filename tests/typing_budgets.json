@@ -51,7 +51,7 @@
   },
   "type_ignores": 0,
   "census": {
-    "errors": 315,
+    "errors": 271,
     "by_code": {
       "arg-type": 23,
       "assignment": 7,
@@ -62,13 +62,13 @@
       "index": 3,
       "misc": 2,
       "name-defined": 1,
-      "no-any-return": 43,
+      "no-any-return": 42,
       "no-redef": 3,
-      "no-untyped-call": 20,
-      "no-untyped-def": 80,
+      "no-untyped-call": 7,
+      "no-untyped-def": 69,
       "operator": 10,
       "return-value": 2,
-      "type-arg": 110,
+      "type-arg": 91,
       "type-var": 5,
       "var-annotated": 1
     },
@@ -81,7 +81,7 @@
       "threadpoolctl": "3.6.0",
       "voluptuous": "0.15.2"
     },
-    "recorded_at": "4f38ffb5e2c2ad30b75337d385f6d75d2506a76d"
+    "recorded_at": "2f64ead82b23facf21fe7e17a689cf49a24d13f5"
   },
   "recorded_at": "52c83d1c98182979eb0d042173ed3ba4266afbe7"
 }
