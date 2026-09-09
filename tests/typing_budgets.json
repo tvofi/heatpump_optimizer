@@ -51,7 +51,7 @@
   },
   "type_ignores": 0,
   "census": {
-    "errors": 248,
+    "errors": 239,
     "by_code": {
       "arg-type": 18,
       "assignment": 7,
@@ -67,7 +67,7 @@
       "no-untyped-def": 69,
       "operator": 2,
       "return-value": 2,
-      "type-arg": 88,
+      "type-arg": 79,
       "type-var": 3,
       "var-annotated": 1
     },

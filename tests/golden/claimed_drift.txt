@@ -57,8 +57,6 @@
 # form fingerprints are byte-identical. Solver fixtures and the card
 # claim file are untouched.
 
-config_flow # E3: _initial.setup_overview empty form after both create-entry terminals
-
 #
 
 # W4-G10 S9 (#224, DhwPlan 14-key return): this branch claims NOTHING.
