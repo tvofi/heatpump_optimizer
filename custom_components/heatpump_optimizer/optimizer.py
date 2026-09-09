@@ -1254,6 +1254,30 @@ class _DhwLegionellaPlan(NamedTuple):
     runup_temps: "np.ndarray"
 
 
+@dataclass(frozen=True)
+class DhwPlan:
+    """The 14 keys ``_build_dhw_requirements`` already returns.
+
+    Assembled at that method's ``return`` — not a state object threaded
+    through the planner. Fields are exactly the published dict's keys.
+    """
+
+    floor_temps: np.ndarray
+    ready_temps: np.ndarray
+    draw_rates: np.ndarray
+    in_window: np.ndarray
+    max_temp: float
+    schedule: np.ndarray
+    windows_text: str
+    windows_learned: bool
+    next_window_in_hours: float | None
+    legionella_due: bool
+    legionella_hour: float | None
+    legionella_step: int | None
+    external_heat_suppressed_steps: int
+    max_lead_hours: float
+
+
 class HeatPumpOptimizer:
     """MPC-based heat pump cost optimizer with predictive weather anticipation and DHW."""
 
@@ -1698,7 +1722,6 @@ class HeatPumpOptimizer:
         self,
         h: _Horizon,
         *,
-        dhw_plan: dict,
         space_power: np.ndarray,
         dhw_power: np.ndarray,
         status: str,
@@ -1752,7 +1775,7 @@ class HeatPumpOptimizer:
                 ),
                 step_weekdays=h.step_weekdays,
                 wood_temps=wood_temps,
-            )["schedule"]
+            ).schedule
             if np.allclose(replanned, dhw_power, atol=1e-4):
                 return space_power, dhw_power, status
 
@@ -1760,7 +1783,6 @@ class HeatPumpOptimizer:
                 replanned, space_power
             )
             if score < best_score - 1e-9:
-                dhw_plan["schedule"] = replanned
                 return candidate_space, replanned, candidate_status
         except Exception as err:  # pragma: no cover - defensive
             _LOGGER.debug("DHW/space co-optimization pass skipped: %s", err)
@@ -3923,7 +3945,7 @@ class HeatPumpOptimizer:
         blocked: bool = False,
         step_weekdays: np.ndarray | None = None,
         wood_temps: np.ndarray | None = None,
-    ) -> dict[str, Any]:
+    ) -> DhwPlan:
         """Build the DHW availability requirements and a cheapest-first plan.
 
         The requirement is a per-step temperature *floor*, not a target to
@@ -4224,30 +4246,30 @@ class HeatPumpOptimizer:
         self._dhw_requirement = requirement
         self._dhw_legionella_step = legionella_step
 
-        return {
-            "floor_temps": floor_temps,
-            "ready_temps": ready_temps,
-            "draw_rates": raw_draw_rates,
-            "in_window": in_window,
+        return DhwPlan(
+            floor_temps=floor_temps,
+            ready_temps=ready_temps,
+            draw_rates=raw_draw_rates,
+            in_window=in_window,
             # The everyday charge limit, as one number: this is the plan's
             # published ceiling, and a disinfection cycle is an exception to
             # it rather than a redefinition of it. The per-step array stays
             # internal to the planning stages above.
-            "max_temp": float(params.dhw_max_temp),
-            "schedule": schedule,
-            "windows_text": format_windows(windows),
-            "windows_learned": learned_windows,
-            "next_window_in_hours": (
+            max_temp=float(params.dhw_max_temp),
+            schedule=schedule,
+            windows_text=format_windows(windows),
+            windows_learned=learned_windows,
+            next_window_in_hours=(
                 round(next_window, 2) if next_window is not None else None
             ),
-            "legionella_due": legionella_due,
-            "legionella_hour": (
+            legionella_due=legionella_due,
+            legionella_hour=(
                 round(legionella_hour, 2) if legionella_hour is not None else None
             ),
-            "legionella_step": legionella_step,
-            "external_heat_suppressed_steps": suppress_steps,
-            "max_lead_hours": max_lead_hours,
-        }
+            legionella_step=legionella_step,
+            external_heat_suppressed_steps=suppress_steps,
+            max_lead_hours=max_lead_hours,
+        )
 
     def _dhw_cop_profile(
         self,
@@ -5120,11 +5142,11 @@ class HeatPumpOptimizer:
             wood_temps=self._dhw_coil_wood_forecast(h),
         )
 
-        dhw_floor_temps = dhw_plan["floor_temps"]
-        dhw_ready_temps = dhw_plan["ready_temps"]
-        dhw_draw_rates = dhw_plan["draw_rates"]
-        in_demand_window = dhw_plan["in_window"]
-        optimal_dhw = dhw_plan["schedule"]
+        dhw_floor_temps = dhw_plan.floor_temps
+        dhw_ready_temps = dhw_plan.ready_temps
+        dhw_draw_rates = dhw_plan.draw_rates
+        in_demand_window = dhw_plan.in_window
+        optimal_dhw = dhw_plan.schedule
 
         # Kept for reporting/back-compat: which hours the learned profile still
         # considers high-usage (restricted to the configured windows).
@@ -5299,7 +5321,6 @@ class HeatPumpOptimizer:
         optimal_space, status, best_score = solve_space(optimal_dhw, None)
         optimal_space, optimal_dhw, status = self._co_optimize(
             h,
-            dhw_plan=dhw_plan,
             space_power=optimal_space,
             dhw_power=optimal_dhw,
             status=status,
@@ -5380,7 +5401,7 @@ class HeatPumpOptimizer:
             "%d steps), baseline=%.2f, savings=%.1f%%, windows=%s",
             t_elapsed, predicted_cost, dhw_cost, dhw_active_steps, baseline_cost,
             _savings_percentage(savings, baseline_cost),
-            dhw_plan["windows_text"] or "always",
+            dhw_plan.windows_text or "always",
         )
 
         result = self._build_result(
@@ -5404,13 +5425,13 @@ class HeatPumpOptimizer:
                     int(step_hours[idx]) % 24
                     for idx in np.where(high_usage_mask)[0][:24].tolist()
                 ],
-                "dhw_preheat_lead_hours": round(dhw_plan["max_lead_hours"], 2),
+                "dhw_preheat_lead_hours": round(dhw_plan.max_lead_hours, 2),
                 "dhw_min_temperature": float(dhw_min_temp),
                 "dhw_target_temperature": float(dhw_setpoint),
                 "dhw_usage_intensity_now": float(usage_intensity[0]) if len(usage_intensity) else 1.0,
-                "dhw_windows": dhw_plan["windows_text"],
+                "dhw_windows": dhw_plan.windows_text,
                 "dhw_in_demand_window": bool(in_demand_window[0]) if n_steps else False,
-                "dhw_next_window_in_hours": dhw_plan["next_window_in_hours"],
+                "dhw_next_window_in_hours": dhw_plan.next_window_in_hours,
                 "dhw_required_temperature_now": (
                     float(max(dhw_floor_temps[0], dhw_ready_temps[0]))
                     if n_steps
@@ -5419,8 +5440,8 @@ class HeatPumpOptimizer:
                 "dhw_idle_min_temperature": float(
                     self.model.params.dhw_idle_min_temp
                 ),
-                "dhw_legionella_due": dhw_plan["legionella_due"],
-                "dhw_legionella_step_hour": dhw_plan["legionella_hour"],
+                "dhw_legionella_due": dhw_plan.legionella_due,
+                "dhw_legionella_step_hour": dhw_plan.legionella_hour,
                 "dhw_planned_heating_hours": [
                     round(float(step_hours[idx]), 2)
                     for idx in np.where(optimal_dhw > 0.1)[0][:48].tolist()
@@ -5445,7 +5466,7 @@ class HeatPumpOptimizer:
                     optimal_dhw,
                     in_demand_window,
                     dhw_ready_temps,
-                    dhw_plan.get("legionella_step"),
+                    dhw_plan.legionella_step,
                     n_steps,
                 ),
                 h.dhw_pins,

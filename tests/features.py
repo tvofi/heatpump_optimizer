@@ -2212,7 +2212,7 @@ def _weekly_requirement_hours(spec, start):
              for i in range(_n + 1)]),
     )
     _idle = min(_p.dhw_idle_min_temp, _p.dhw_min_temp)
-    _floors = np.asarray(_plan["floor_temps"])
+    _floors = np.asarray(_plan.floor_temps)
     _in = np.where(_floors > _idle + 1e-9)[0]
     return sorted(set(round(float(_hours[i]), 2) for i in _in))
 
@@ -19267,6 +19267,111 @@ R.check(
     np.array_equal(_wf_dr2, _wf_coil) and not np.array_equal(_wf_dr2, _wf_raw2),
     f"plan={list(_wf_dr2)} coil={list(_wf_coil)} raw={list(_wf_raw2)} — "
     f"the coil path was skipped or re-implemented beside the helper",
+)
+
+
+R.section("#224 DhwPlan — 14-key return, frozen at the end")
+
+# The DHW tail already returns these fourteen keys. The object is that
+# return value, assembled at the `return`, not a state bag threaded
+# through the planner. Pins import the production symbol.
+
+from dataclasses import FrozenInstanceError, fields, is_dataclass  # noqa: E402
+from heatpump_optimizer.dhw_schedule import format_windows as _dp_fmt  # noqa: E402
+from heatpump_optimizer.optimizer import DhwPlan  # noqa: E402
+
+_DHW_PLAN_KEYS = (
+    "floor_temps",
+    "ready_temps",
+    "draw_rates",
+    "in_window",
+    "max_temp",
+    "schedule",
+    "windows_text",
+    "windows_learned",
+    "next_window_in_hours",
+    "legionella_due",
+    "legionella_hour",
+    "legionella_step",
+    "external_heat_suppressed_steps",
+    "max_lead_hours",
+)
+
+R.check(
+    "DhwPlan is a frozen dataclass of the 14 returned keys",
+    is_dataclass(DhwPlan)
+    and DhwPlan.__dataclass_params__.frozen
+    and tuple(f.name for f in fields(DhwPlan)) == _DHW_PLAN_KEYS,
+    f"fields={[f.name for f in fields(DhwPlan)]!r} frozen="
+    f"{getattr(DhwPlan, '__dataclass_params__', None)}",
+)
+
+_dp_state = ThermalState(
+    room_temperature=21.0,
+    slab_temperature=22.0,
+    outdoor_temperature=-5.0,
+    dhw_temperature=48.0,
+    dhw_hours_since_legionella=20.0,
+    buffer_tank_temperature=40.0,
+)
+_dp_plan = _wf_opt._build_dhw_requirements(
+    initial_state=_dp_state,
+    prices=np.full(_wf_n, 1.0),
+    outdoor_temps=np.full(_wf_n, -5.0),
+    step_hours=_wf_hours,
+    n_steps=_wf_n,
+    dt=_wf_dt,
+    p_max=4.0,
+)
+_dp_win, _dp_learned = _wf_opt._effective_dhw_windows()
+(
+    _,
+    _,
+    _dp_in,
+    _dp_raw,
+    _,
+    _dp_fl,
+    _dp_rdy,
+) = _wf_opt._dhw_window_floors(
+    _wf_params, _dp_win, _wf_hours, None, _wf_dt, _wf_n, None,
+)
+
+R.check(
+    "_build_dhw_requirements returns DhwPlan, not a dict",
+    isinstance(_dp_plan, DhwPlan) and not isinstance(_dp_plan, dict),
+    f"type={type(_dp_plan).__name__} — the tail still handed a dict, or "
+    f"a threaded state object that is not DhwPlan",
+)
+R.check(
+    "floors, ready, in_window and draw_rates are the window-floors arrays",
+    np.array_equal(_dp_plan.floor_temps, _dp_fl)
+    and np.array_equal(_dp_plan.ready_temps, _dp_rdy)
+    and np.array_equal(_dp_plan.in_window, _dp_in)
+    and np.array_equal(_dp_plan.draw_rates, _dp_raw),
+    "a rewrite that rebuilt the series beside _dhw_window_floors, or "
+    "published the credited draws as draw_rates, would diverge here",
+)
+R.check(
+    "max_temp and windows_text are the published ceiling and the formatter",
+    _dp_plan.max_temp == float(_wf_params.dhw_max_temp)
+    and _dp_plan.windows_text == _dp_fmt(_dp_win)
+    and _dp_plan.windows_learned == _dp_learned
+    and isinstance(_dp_plan.schedule, np.ndarray)
+    and _dp_plan.schedule.shape == (_wf_n,),
+    f"max={_dp_plan.max_temp} text={_dp_plan.windows_text!r} "
+    f"learned={_dp_plan.windows_learned} sched={getattr(_dp_plan.schedule, 'shape', None)}",
+)
+
+_dp_froze = False
+try:
+    _dp_plan.max_temp = _dp_plan.max_temp  # type: ignore[misc]
+except FrozenInstanceError:
+    _dp_froze = True
+R.check(
+    "a finished DhwPlan cannot be rewritten field by field",
+    _dp_froze,
+    "assignment succeeded — this is a threaded state object, not "
+    "frozen-at-the-end",
 )
 
 

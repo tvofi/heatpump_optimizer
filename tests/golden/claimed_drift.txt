@@ -51,6 +51,12 @@
 # next branch restates its own footprint, claims included.
 #
 
+# W4-G10 S9 (#224, DhwPlan 14-key return): this branch claims NOTHING.
+# `_build_dhw_requirements` returns the same 14 values as a frozen
+# dataclass instead of a dict. No solver arithmetic is reordered.
+# origin/main's config_flow # E2 claim is not inherited (optimizer.py
+# is claimable; this cut still moves no fixture).
+
 #
 
 #
