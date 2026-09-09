@@ -2212,7 +2212,7 @@ def _weekly_requirement_hours(spec, start):
              for i in range(_n + 1)]),
     )
     _idle = min(_p.dhw_idle_min_temp, _p.dhw_min_temp)
-    _floors = np.asarray(_plan["floor_temps"])
+    _floors = np.asarray(_plan.floor_temps)
     _in = np.where(_floors > _idle + 1e-9)[0]
     return sorted(set(round(float(_hours[i]), 2) for i in _in))
 
