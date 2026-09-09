@@ -166,6 +166,124 @@ await throws('an unrecognised stage refuses instead of starting a fresh fixer', 
   { groups: [G('A', { stage: 'halfway' })], groupsFile: 'r.json', reconResult: OK })
 
 
+console.log('-- The referent a keyed stage must carry, not only the stage word')
+// THE DEFECT THIS PINS. The vocabulary check above asserts that every stage a
+// roster carries is a word this script branches on. It says nothing about the
+// KEY that branch then reads. At origin/main 8b2a2e9 the UX roster carried
+// fourteen groups at `in-review` holding only `stage` and `note`, and the
+// review path reads `g.resume.pr ?? g.resume.open_pr` -- so a wave over that
+// roster dispatches fourteen adversarial reviewers at PR `undefined`, from a
+// worktree detached at head `undefined`. Nine more sat at `done` with no
+// `merged_pr`/`merge_sha`, which the done path returns as a merge whose number
+// and SHA are both undefined. The vocabulary check printed 37 passed, 0 failed
+// throughout, because every one of those stage words was in KNOWN_STAGES.
+//
+// THE RULE, READ OFF web-fix-wave.js RATHER THAN INVENTED HERE: a stage
+// requires a key exactly where that script dereferences `g.resume.<key>`
+// WITHOUT a `?? null` fallback and then hands the value to an agent or reports
+// it as fact. Each row is a list of alternatives, satisfied by any one member
+// -- which is why review asks for `pr` OR `open_pr`, the two spellings the
+// committed rosters actually use.
+//
+// `blocked` is EXEMPT ON THAT SAME RULE, and the exemption is a design choice
+// stated rather than an oversight: its branch reads
+// `g.resume.pr ?? g.resume.open_pr ?? null` and `g.resume.head_sha ?? null`,
+// spends no agent and dispatches nobody, so the script itself declares those
+// keys optional. Requiring them would fail the one committed blocked group,
+// whose roster is not defective. `pending` and a missing stage read no key at
+// all.
+//
+// `fix` requires `pushed_sha` only. Its prompt also interpolates `what` and
+// `missing`, but those are prose: an absent one degrades a sentence, while an
+// absent `pushed_sha` points a resuming fixer at a commit that does not exist.
+const STAGE_REFERENT = {
+  review: [['pr', 'open_pr'], ['head_sha']],
+  merge: [['pr'], ['head_sha']],
+  done: [['merged_pr'], ['merge_sha']],
+  fix: [['pushed_sha']],
+}
+const STAGE_NO_REFERENT = ['blocked']
+// ONE predicate, two callers: the roster scan below and the synthetic controls
+// beside it. A control that re-implements the rule tests the copy.
+const referentGaps = (resume, normalise) => {
+  const need = STAGE_REFERENT[normalise(resume?.stage)]
+  if (!need) return []
+  return need.filter((alts) => !alts.some((k) => resume[k] !== undefined && resume[k] !== null))
+}
+await block('the referent a keyed stage must carry', async () => {
+  const known = [...src.matchAll(/const KNOWN_STAGES = \[([^\]]*)\]/g)]
+    .flatMap((m) => [...m[1].matchAll(/'([a-z-]+)'/g)].map((x) => x[1]))
+  const aliasBody = /const STAGE_ALIASES = \{([^}]*)\}/.exec(src)?.[1] ?? ''
+  const alias = new Map(
+    [...aliasBody.matchAll(/'?([a-z-]+)'?:\s*(?:'([a-z-]+)'|(null))/g)].map((m) => [m[1], m[2] ?? null])
+  )
+  const normalise = (s) => (s == null ? null : alias.has(s) ? alias.get(s) : s)
+
+  // The map must cover every stage the script branches on. A stage added to
+  // web-fix-wave.js with no row here would be scanned for nothing and pass in
+  // silence -- which is the exact shape of the defect above, one level up.
+  const normalised = [...new Set(known.map(normalise).filter((s) => s !== null))]
+  const unmapped = normalised.filter((s) => !(s in STAGE_REFERENT) && !STAGE_NO_REFERENT.includes(s))
+  t('every stage the wave script branches on has a decided referent, or a recorded exemption',
+    known.length > 0 && alias.size > 0 && unmapped.length === 0,
+    `known=[${known}] normalised=[${normalised}] unmapped=[${unmapped}]`)
+
+  // ...and the map must not require a key the script has stopped reading,
+  // which would make this check the author of a convention rather than the
+  // reader of one.
+  const stale = [...new Set(Object.values(STAGE_REFERENT).flat(2))]
+    .filter((k) => !new RegExp(`resume(?:\\?)?\\.${k}\\b`).test(src))
+  t('every key required here is one web-fix-wave.js actually reads', stale.length === 0, `not read: [${stale}]`)
+
+  // THE POPULATION IS AN OPERAND, on the precedent of the vocabulary check
+  // above: "every keyed group carries its key" is vacuously true over zero
+  // rosters, zero groups, or zero groups in a keyed stage, and prints the same
+  // verdict. All three carry a floor, and all three are PRINTED -- a count that
+  // fell from fourteen to thirteen reads exactly like one that was always
+  // thirteen, so the misses are ENUMERATED rather than counted.
+  const rosters = fs.readdirSync(here).filter((f) => /^wave-.*-groups\.json$/.test(f)).sort()
+  const missing = []
+  let groupsSeen = 0, keyed = 0
+  for (const f of rosters) {
+    for (const g of JSON.parse(fs.readFileSync(path.join(here, f), 'utf8')).groups ?? []) {
+      groupsSeen += 1
+      const st = normalise(g?.resume?.stage)
+      if (!STAGE_REFERENT[st]) continue
+      keyed += 1
+      for (const alts of referentGaps(g.resume, normalise)) {
+        missing.push(`${f} ${g.group ?? '(unnamed)'} at ${st}: none of ${alts.join(' / ')}`)
+      }
+    }
+  }
+  console.log(`  scope  ${rosters.length} roster(s), ${groupsSeen} group(s), ${keyed} in a stage that reads a key`)
+  for (const m of missing) console.log(`  miss   ${m}`)
+  t('every group in a stage the wave script reads a key for carries that key',
+    rosters.length > 0 && groupsSeen > 0 && keyed > 0 && missing.length === 0,
+    `rosters=${rosters.length} groups=${groupsSeen} keyed=${keyed} missing=${missing.length}`)
+
+  // The scan is green on a repaired tree, and a scan that is green whatever it
+  // reads is the failure mode this whole file exists for. Both arms of the
+  // predicate are driven on synthetic groups, so the zero above is a
+  // measurement rather than an absence.
+  const gaps = (r) => referentGaps(r, normalise).length
+  t('the defect fires: `in-review` carrying only stage and note is refused',
+    gaps({ stage: 'in-review', note: 'In PR #567 with B2-B5. Decides B4-B7.' }) > 0,
+    'the check cannot see the defect it was written for')
+  t('the repair passes: `in-review` carrying open_pr and head_sha is accepted (null control)',
+    gaps({ stage: 'in-review', open_pr: 573, head_sha: 'a227743' }) === 0, 'a healthy group is refused')
+  t('`done` discriminates in both directions on merged_pr / merge_sha',
+    gaps({ stage: 'done', note: 'Merged in PR #576.' }) > 0 &&
+      gaps({ stage: 'done', merged_pr: 576, merge_sha: '5d73c38' }) === 0,
+    'the done row does not separate a recorded merge from a remembered one')
+  t('a stage the script reads no key for is not made to carry one (pending, blocked)',
+    gaps({ stage: 'pending', note: 'Not started.' }) === 0 &&
+      gaps({ stage: 'blocked', branch: 'b', note: 'n' }) === 0,
+    'an unkeyed stage is being required to carry a referent')
+  t('a null referent is a missing referent, not a present key',
+    gaps({ stage: 'in-review', pr: null, open_pr: null, head_sha: null }) > 0,
+    'an explicit null satisfies the check, which is how a roster patch writes one')
+})
+
 console.log('-- The verdict grammar, and the seats it dispatches')
 // The reviewer's verdict was a free-text sentence and every non-merge outcome
 // collapsed to one undifferentiated "not merged". A class is what lets a script
