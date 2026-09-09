@@ -76,9 +76,14 @@ who follows a pointer to find the exclusions is a reader who might not.
   non-policy issues in parallel and its pull requests are not covered here.
 - **Anything after this session.** Policy merges revert to owner approval per
   pull request, exactly as 0001 said they would after its own session. The
-  mechanical alternative 0001 proposed is unchanged and still unbuilt, and O3
-  — whether policy merges after this programme stand on the ruleset plus
-  `pr-contract` instead — is still the owner's open question.
+  mechanical alternative 0001 proposed is unchanged and still unbuilt. O3 —
+  whether policy merges after this programme stand on the ruleset plus
+  `pr-contract` instead — **was the owner's open question and is now answered**:
+  per pull request, with a per-session grant as the option, recorded as decision
+  0007. This sentence read "is still the owner's open question" until that
+  answer arrived; it is corrected here rather than left to age, because a record
+  that describes a settled question as open is the defect this corpus keeps
+  finding.
 
 ## Consequences
 
