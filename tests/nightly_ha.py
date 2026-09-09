@@ -46,11 +46,10 @@ its own limit:
 * **Home Assistant's own complaints.** Its loop protection fired twice on this
   integration on this lane's first green run (#525); #540 moved both off the
   loop, so ``KNOWN_BLOCKING`` is empty and ANY report against this package now
-  fails ``log:no_new_blocking_call``. What the pin cannot see is an upstream
-  reword of the report itself: ``log:blocking_report_parsed`` catches a reword
-  of the half naming the source line, and nothing here catches a reword of
-  ``Detected blocking call to``. Only a deliberate blocking call, provoked
-  inside the container, would (#588).
+  fails ``log:no_new_blocking_call``. ``log:blocking_report_parsed`` catches a
+  reword of the half naming the source line. A reword of ``Detected blocking
+  call to`` empties the loose anchor; ``log:blocking_positive_control`` is the
+  deliberate on-loop ``_lazy`` (#588) that must still match the same regex.
 * **The config flow.** The entry is seeded into ``.storage/core.config_entries``
   from the defaults recorded in ``tests/golden/config_flow.json``, so the nine
   setup steps are not driven here. ``tests/entities.py`` and the golden lane own
@@ -220,6 +219,7 @@ OUTSIDE_CHECKS = (
     "log:blocking_report_parsed",
     "log:no_new_blocking_call",
     "log:blocking_pin_not_stale",
+    "log:blocking_positive_control",
 )
 
 FORBIDDEN = {
@@ -280,6 +280,17 @@ BLOCKING_CALL = re.compile(_BLOCKING_AT + r", line \d+: (.*?) \(offender:")
 # stale in. If #540's fix is incomplete, this lane says so by name.
 KNOWN_BLOCKING: frozenset[tuple[str, str, str]] = frozenset()
 BLOCKING_REPORT = "Detected blocking call to"
+# The probe must not reach the pin. Home Assistant 2025.2.0 de-duplicates at
+# ``(integration, filename, lineno)`` (``homeassistant.util.loop``
+# ``_PREVIOUSLY_REPORTED``; a repeat is DEBUG). ``import_module`` is wrapped
+# ``strict=False`` and is skipped when ``args[0]`` is already in
+# ``sys.modules`` (``block_async_io._check_import_call_allowed``). ``_lazy``
+# passes a relative name, which is never a ``sys.modules`` key. A begin/end
+# window keeps shutdown (#525's second offender) in the pin half; one
+# sentinel after the probe would hide it.
+BLOCKING_PROBE_BEGIN = "<<<nightly-ha-blocking-probe-begin>>>"
+BLOCKING_PROBE_END = "<<<nightly-ha-blocking-probe-end>>>"
+BLOCKING_POSITIVE_CONTROL = "log:blocking_positive_control"
 
 # Config-option keys that seed a thermometer. Popped for A3(e)'s second seed.
 THERMOMETER_KEYS = (
@@ -1160,6 +1171,10 @@ async def _inside(seed: dict, budget: float) -> int:
         _check_a3_published(checks, hass, entry, constructor_defaults=False)
         await _async_check_a10_published(checks, hass, entry)
         _check_plan(checks, hass, entry)
+    _write_probe_marker(BLOCKING_PROBE_BEGIN)
+    _provoke_lazy_on_loop()
+    _flush_logs()
+    _write_probe_marker(BLOCKING_PROBE_END)
     await hass.async_stop()
     return _emit(checks)
 
@@ -1188,6 +1203,40 @@ async def _inside_a3e(seed: dict) -> int:
     _check_a3_published(checks, hass, entry, constructor_defaults=True)
     await hass.async_stop()
     return _emit(checks)
+
+
+def _write_probe_marker(mark: str) -> None:
+    """Write the probe window bound to stdout and the HA log file."""
+    print(mark, flush=True)
+    log = Path(IN_CONFIG) / LOG_NAME
+    with log.open("a", encoding="utf-8") as fh:
+        fh.write(mark + "\n")
+        fh.flush()
+        os.fsync(fh.fileno())
+
+
+def _flush_logs() -> None:
+    import logging
+
+    for name in ("", "homeassistant", "homeassistant.util.loop"):
+        for handler in logging.getLogger(name).handlers:
+            handler.flush()
+
+
+def _provoke_lazy_on_loop() -> None:
+    """The package's own synchronous ``_lazy``, via ``__getattr__`` (#588)."""
+    pkg = sys.modules.get("custom_components.heatpump_optimizer")
+    if pkg is None:
+        try:
+            import custom_components.heatpump_optimizer as pkg
+        except ImportError:
+            print("  ..   blocking probe: package not importable", flush=True)
+            return
+    try:
+        pkg.__dict__.pop("HeatPumpOptimizerCoordinator", None)
+        getattr(pkg, "HeatPumpOptimizerCoordinator")
+    except Exception as exc:
+        print(f"  ..   blocking probe raise: {type(exc).__name__}: {exc}", flush=True)
 
 
 def _emit(checks: Checks) -> int:
@@ -1470,7 +1519,45 @@ def _merge_completed(first, second):
     )
 
 
-def _scan(checks: Checks, text: str) -> None:
+def partition_blocking_probe(chunks: tuple[str, ...] | list[str]) -> tuple[str, str]:
+    """Pin half is outside the begin/end window; the probe half is inside.
+
+    Each stream is split on its own. Concatenating the a3e log onto the first
+    run's log before the split would put the second setup after the first
+    window and hide an a3e offender from the pin.
+    """
+    pin_parts: list[str] = []
+    probe_parts: list[str] = []
+    for chunk in chunks:
+        if BLOCKING_PROBE_BEGIN in chunk:
+            pre, rest = chunk.split(BLOCKING_PROBE_BEGIN, 1)
+            pin_parts.append(pre)
+            if BLOCKING_PROBE_END in rest:
+                mid, post = rest.split(BLOCKING_PROBE_END, 1)
+                probe_parts.append(mid)
+                pin_parts.append(post)
+            else:
+                probe_parts.append(rest)
+        else:
+            pin_parts.append(chunk)
+    return "\n".join(pin_parts), "\n".join(probe_parts)
+
+
+def check_blocking_positive_control(checks: Checks, probe_text: str) -> None:
+    found = set(BLOCKING_CALL.findall(probe_text))
+    checks.check(
+        BLOCKING_POSITIVE_CONTROL,
+        bool(found),
+        (
+            f"{len(found)} report(s) inside the probe window: {sorted(found)}"
+            if found
+            else "lane regex saw nothing inside the probe window; "
+            "cannot tell no-blocking-call from cannot-see (#588)"
+        ),
+    )
+
+
+def _scan_pin(checks: Checks, text: str) -> None:
     for name, needle in FORBIDDEN.items():
         hits = [line for line in text.splitlines() if needle in line]
         checks.check(
@@ -1520,7 +1607,22 @@ def _scan(checks: Checks, text: str) -> None:
     )
 
 
-def _report(checks: Checks, completed, config: Path) -> int:
+def _scan_streams(checks: Checks, *chunks: str) -> None:
+    pin, probe = partition_blocking_probe(chunks)
+    _scan_pin(checks, pin)
+    check_blocking_positive_control(checks, probe)
+
+
+def _scan(checks: Checks, text: str) -> None:
+    _scan_streams(checks, text)
+
+
+def _report(
+    checks: Checks,
+    completed,
+    config: Path,
+    extra_logs: tuple[str, ...] = (),
+) -> int:
     reported = [
         line[len(MARKER):]
         for line in completed.stdout.splitlines()
@@ -1550,7 +1652,14 @@ def _report(checks: Checks, completed, config: Path) -> int:
             f"the container exited {completed.returncode}",
         )
     log = config / LOG_NAME
-    _scan(checks, completed.stdout + completed.stderr + (log.read_text(errors="replace") if log.is_file() else ""))
+    log_text = log.read_text(errors="replace") if log.is_file() else ""
+    _scan_streams(
+        checks,
+        completed.stdout or "",
+        completed.stderr or "",
+        log_text,
+        *extra_logs,
+    )
     # Both rosters, by name. A driver that died after two checks already fails
     # above; this is the other half -- a check that stopped being reached, or
     # was renamed, on either side of the container boundary (#533).
@@ -1598,14 +1707,13 @@ def _run_outside(args: argparse.Namespace) -> int:
         except subprocess.TimeoutExpired:
             checks.check("run:driver_reported", False, f"no result after {args.timeout}s")
             return 1
+        extra_logs = ()
         log_e = config_e / LOG_NAME
         if log_e.is_file():
-            log = config / LOG_NAME
-            log.write_text(
-                (log.read_text(errors="replace") if log.is_file() else "")
-                + log_e.read_text(errors="replace")
-            )
-        return _report(checks, _merge_completed(first, second), config)
+            extra_logs = (log_e.read_text(errors="replace"),)
+        return _report(
+            checks, _merge_completed(first, second), config, extra_logs=extra_logs
+        )
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
         shutil.rmtree(tmp_default, ignore_errors=True)

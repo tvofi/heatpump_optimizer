@@ -8572,7 +8572,16 @@ def _nightly_report_probe(
     _saved_stdout, sys.stdout = sys.stdout, _io.StringIO()
     try:
         with _tempfile.TemporaryDirectory() as _dir:
-            (Path(_dir) / _nightly.LOG_NAME).write_text(_NIGHTLY_CLEAN)
+            (Path(_dir) / _nightly.LOG_NAME).write_text(
+                _NIGHTLY_CLEAN
+                + "\n"
+                + _nightly.BLOCKING_PROBE_BEGIN
+                + "\n"
+                + _NIGHTLY_REPORT_IMPORT
+                + "\n"
+                + _nightly.BLOCKING_PROBE_END
+                + "\n"
+            )
             _nightly._report(checks, completed, Path(_dir))
     finally:
         sys.stdout = _saved_stdout
@@ -8640,6 +8649,11 @@ R.check(
 _NIGHTLY_REPORT_FOREIGN = _NIGHTLY_REPORT_IMPORT.replace(
     "custom_components/heatpump_optimizer/", "custom_components/other_thing/"
 )
+_NIGHTLY_RATCHET = (
+    "log:blocking_report_parsed",
+    "log:no_new_blocking_call",
+    "log:blocking_pin_not_stale",
+)
 R.check(
     "the nightly's loose anchor claims a real report blaming this package",
     bool(_nightly.BLOCKING_AT_OURS.search(_NIGHTLY_REPORT_IMPORT))
@@ -8661,8 +8675,9 @@ R.check(
 R.check(
     "and another integration's blocking call fails nothing here",
     not [
-        f for f in _nightly_scan(_NIGHTLY_CLEAN + "\n" + _NIGHTLY_REPORT_FOREIGN)[0]
-        if "blocking" in f
+        f
+        for f in _nightly_scan(_NIGHTLY_CLEAN + "\n" + _NIGHTLY_REPORT_FOREIGN)[0]
+        if f in _NIGHTLY_RATCHET
     ],
     "the nightly went red on a loop-protection report naming another "
     "integration; this lane judges its own package",
@@ -8678,13 +8693,19 @@ R.check(
     "that (`HA variant with no '(offender:'  matched=0  pass=True`)",
 )
 
-# The null control on all four: the lane is not simply always-red. A clean log
-# is the real post-#540 world and must still pass.
+# The null control on the ratchet: the lane is not simply always-red. A clean
+# log is the real post-#540 world and must still pass those three. The
+# positive control must FAIL here -- no probe window is the #588 blindness.
 _nightly_clean_failures, _nightly_clean_results = _nightly_scan(_NIGHTLY_CLEAN)
 R.check(
-    "a clean log still passes every blocking check",
-    not [f for f in _nightly_clean_failures if "blocking" in f],
+    "a clean log still passes the blocking ratchet",
+    not [f for f in _nightly_clean_failures if f in _NIGHTLY_RATCHET],
     f"the nightly went red on a log with no offenders: {_nightly_clean_failures}",
+)
+R.check(
+    "a clean log without a probe window fails the positive control",
+    "log:blocking_positive_control" in _nightly_clean_failures,
+    "the detector still treats 'no report' as 'the regex can see'; #588",
 )
 R.check(
     "and a passing check still says what it measured",
@@ -9151,6 +9172,89 @@ R.check(
         if n.startswith("a10:")
     ),
     "A10 passing checks blanked their detail (#533)",
+)
+
+# --- nightly loop-detector positive control (#588) --------------------------
+#
+# The container run stays NOT_A_TEST. These pins demand the check by name and
+# prove the begin/end split: the probe report must not fail the pin, a
+# leading-phrase reword after the window must fail the control, and a report
+# after END stays in the pin (shutdown, #525's second offender).
+R.check(
+    "the nightly demands the blocking positive control by name",
+    _nightly.BLOCKING_POSITIVE_CONTROL in _nightly.OUTSIDE_CHECKS
+    and _nightly.BLOCKING_POSITIVE_CONTROL == "log:blocking_positive_control",
+    f"OUTSIDE_CHECKS missing {_nightly.BLOCKING_POSITIVE_CONTROL}",
+)
+R.check(
+    "the blocking positive control is not A4 and not #587",
+    not _nightly.BLOCKING_POSITIVE_CONTROL.startswith(("a4:", "a5:", "a8:", "a9:"))
+    and all(not n.startswith(("a4:", "a5:", "a8:", "a9:")) for n in _nightly.OUTSIDE_CHECKS),
+    f"{[n for n in _nightly.OUTSIDE_CHECKS if n.startswith(('a4:', 'a5:', 'a8:', 'a9:'))]}",
+)
+
+def _nightly_window(inner: str, after: str = "") -> str:
+    return (
+        _NIGHTLY_CLEAN
+        + "\n"
+        + _nightly.BLOCKING_PROBE_BEGIN
+        + "\n"
+        + inner
+        + _nightly.BLOCKING_PROBE_END
+        + "\n"
+        + after
+    )
+
+_nightly_probe_ok, _ = _nightly_scan(_nightly_window(_NIGHTLY_REPORT_IMPORT + "\n"))
+R.check(
+    "a real report inside the probe window satisfies the positive control",
+    "log:blocking_positive_control" not in _nightly_probe_ok
+    and not [f for f in _nightly_probe_ok if f in _NIGHTLY_RATCHET],
+    f"windowed import report failures={_nightly_probe_ok}",
+)
+_nightly_probe_empty, _ = _nightly_scan(_nightly_window(""))
+R.check(
+    "an empty probe window fails the positive control and keeps the pin green",
+    "log:blocking_positive_control" in _nightly_probe_empty
+    and not [f for f in _nightly_probe_empty if f in _NIGHTLY_RATCHET],
+    f"empty window failures={_nightly_probe_empty}",
+)
+_nightly_probe_reword, _ = _nightly_scan(_nightly_window(_nightly_reword + "\n"))
+R.check(
+    "a leading-phrase reword inside the window fails the positive control",
+    "log:blocking_positive_control" in _nightly_probe_reword,
+    "the control accepted a report whose leading phrase the regex cannot see",
+)
+_nightly_probe_before, _ = _nightly_scan(
+    _NIGHTLY_CLEAN + "\n" + _NIGHTLY_REPORT_IMPORT + "\n" + _nightly_window("")
+)
+R.check(
+    "a report before the window fails the pin and not the control by itself",
+    "log:no_new_blocking_call" in _nightly_probe_before
+    and "log:blocking_positive_control" in _nightly_probe_before,
+    f"before-window failures={_nightly_probe_before}",
+)
+_nightly_probe_after_end, _ = _nightly_scan(
+    _nightly_window(_NIGHTLY_REPORT_IMPORT + "\n", after=_NIGHTLY_REPORT_SLEEP + "\n")
+)
+R.check(
+    "a report after END stays in the pin half",
+    "log:no_new_blocking_call" in _nightly_probe_after_end
+    and "log:blocking_positive_control" not in _nightly_probe_after_end,
+    f"after-END failures={_nightly_probe_after_end}",
+)
+_nightly_streams_pin, _nightly_streams_probe = _nightly.partition_blocking_probe(
+    (
+        _NIGHTLY_CLEAN + "\n" + _nightly.BLOCKING_PROBE_BEGIN + "\n"
+        + _NIGHTLY_REPORT_IMPORT + "\n" + _nightly.BLOCKING_PROBE_END + "\n",
+        _NIGHTLY_REPORT_SLEEP,
+    )
+)
+R.check(
+    "an unwindowed second stream stays in the pin (a3e log must not hide)",
+    bool(_nightly.BLOCKING_CALL.search(_nightly_streams_probe))
+    and bool(_nightly.BLOCKING_CALL.search(_nightly_streams_pin)),
+    "partition_blocking_probe folded an unmarked stream into the probe half",
 )
 
 # tools/audit/preflight.sh refuses a closing keyword the orchestrator did not
