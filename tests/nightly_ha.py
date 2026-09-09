@@ -161,6 +161,15 @@ A3_INSIDE = (
     "a3:no_constructor_defaults",
 )
 
+# Demanded by name from tests/entities.py. #509 already closed (#535);
+# A10 pins the landed privacy rule, it does not re-open a red nightly.
+A10_INSIDE = (
+    "a10:no_credential",
+    "a10:no_precise_location",
+)
+A10_COORDINATE_KEYS = frozenset({"latitude", "longitude"})
+A10_MAX_COORDINATE_DECIMALS = 2
+
 # What the container half must report. The outer half requires this set
 # exactly: a driver that dies after two checks, or one whose checks were
 # quietly renamed away, fails here instead of looking like a pass. A no-op is
@@ -187,6 +196,7 @@ INSIDE_CHECKS = (
     "contract:stub_provider",
     "contract:probes_agree",
     *A3_INSIDE,
+    *A10_INSIDE,
 )
 
 # Judged by the outer half, over the container's combined output and the log
@@ -549,6 +559,108 @@ def check_a3_no_constructor_defaults(
         f"{len(offenders)} constructor default(s) published as available"
         + (f": {offenders[:8]}" if offenders else ""),
     )
+
+
+def _json_decimal_places(value: object) -> int | None:
+    """Decimal places in the JSON spelling, or None if ``value`` is not a number.
+
+    The #585 rule is about the published token, not float equality: 59.330
+    dumped as ``59.33`` is two places.
+    """
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        dumped = json.dumps(value)
+    elif isinstance(value, str):
+        try:
+            float(value)
+        except ValueError:
+            return None
+        dumped = value if "." in value else json.dumps(float(value))
+    else:
+        return None
+    if "." not in dumped:
+        return 0
+    return len(dumped.split(".", 1)[1])
+
+
+def _a10_coordinate_hits(node: object, path: str = "") -> list[str]:
+    hits: list[str] = []
+    if isinstance(node, dict):
+        for key, value in node.items():
+            here = f"{path}.{key}" if path else str(key)
+            if key in A10_COORDINATE_KEYS:
+                places = _json_decimal_places(value)
+                if places is not None and places > A10_MAX_COORDINATE_DECIMALS:
+                    hits.append(f"{here}={value!r} ({places} dp)")
+            hits.extend(_a10_coordinate_hits(value, here))
+    elif isinstance(node, list):
+        for i, value in enumerate(node):
+            hits.extend(_a10_coordinate_hits(value, f"{path}[{i}]"))
+    return hits
+
+
+def check_a10_no_credential(
+    checks: Checks, payload: object, tokens: tuple[str, ...] | list[str] = ()
+) -> None:
+    blob = json.dumps(payload, default=str)
+    found = [token for token in tokens if token and token in blob]
+    checks.check(
+        "a10:no_credential",
+        not found,
+        (
+            "token(s) in payload: " + ", ".join(found[:4])
+            if found
+            else "no demanded token in payload"
+        ),
+    )
+
+
+def check_a10_no_precise_location(checks: Checks, payload: object) -> None:
+    hits = _a10_coordinate_hits(payload)
+    checks.check(
+        "a10:no_precise_location",
+        not hits,
+        (
+            f"{len(hits)} coordinate(s) beyond {A10_MAX_COORDINATE_DECIMALS} dp"
+            + (f"; {hits[:4]}" if hits else "")
+        ),
+    )
+
+
+def check_a10_payload(
+    checks: Checks, payload: object, tokens: tuple[str, ...] | list[str] = ()
+) -> None:
+    check_a10_no_credential(checks, payload, tokens)
+    check_a10_no_precise_location(checks, payload)
+
+
+async def _async_check_a10_published(checks: Checks, hass, entry) -> None:
+    import importlib
+
+    diag = None
+    err = ""
+    for name in (
+        f"{PACKAGE_NAME}.diagnostics",
+        f"{CONFIG_DIR_NAME}.{PACKAGE_NAME}.diagnostics",
+    ):
+        try:
+            diag = importlib.import_module(name)
+            break
+        except ImportError as exc:
+            err = f"{name}: {exc}"
+            continue
+    if diag is None:
+        checks.check("a10:no_credential", False, err or "diagnostics module did not import")
+        checks.check(
+            "a10:no_precise_location", False, err or "diagnostics module did not import"
+        )
+        return
+    payload = await diag.async_get_config_entry_diagnostics(hass, entry)
+    data = getattr(entry, "data", {}) or {}
+    token = data.get("tibber_token")
+    tokens = tuple(t for t in (token, "nightly-ha-local") if t)
+    check_a10_payload(checks, payload, tokens)
 
 
 def _check_a3_published(checks: Checks, hass, entry, *, constructor_defaults: bool) -> None:
@@ -1046,6 +1158,7 @@ async def _inside(seed: dict, budget: float) -> int:
         await hass.async_block_till_done()
         _check_entities(checks, hass, entry)
         _check_a3_published(checks, hass, entry, constructor_defaults=False)
+        await _async_check_a10_published(checks, hass, entry)
         _check_plan(checks, hass, entry)
     await hass.async_stop()
     return _emit(checks)

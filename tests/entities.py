@@ -9087,6 +9087,72 @@ R.check(
     "A3 passing checks blanked their detail (#533)",
 )
 
+# --- nightly A10 diagnostics privacy probe (#585) ---------------------------
+#
+# The container run stays NOT_A_TEST. These pins demand A10 by name and prove
+# each check can still fail. #509 already closed (#535); A10 pins that rule.
+R.check(
+    "the nightly demands A10 privacy checks by name",
+    set(_nightly.A10_INSIDE) <= set(_nightly.INSIDE_CHECKS)
+    and set(_nightly.A10_INSIDE)
+    == {
+        "a10:no_credential",
+        "a10:no_precise_location",
+    },
+    f"A10_INSIDE={_nightly.A10_INSIDE} INSIDE_CHECKS missing "
+    f"{sorted(set(_nightly.A10_INSIDE) - set(_nightly.INSIDE_CHECKS))}",
+)
+R.check(
+    "A10 is not merged with A4",
+    all(not n.startswith("a4:") for n in _nightly.A10_INSIDE),
+    f"{[n for n in _nightly.A10_INSIDE if n.startswith('a4:')]}",
+)
+R.check(
+    "A10's location rule is the issue's two-decimal bound",
+    _nightly.A10_MAX_COORDINATE_DECIMALS == 2
+    and _nightly.A10_COORDINATE_KEYS == frozenset({"latitude", "longitude"}),
+    f"dp={_nightly.A10_MAX_COORDINATE_DECIMALS} keys={_nightly.A10_COORDINATE_KEYS}",
+)
+
+_a10_ok = _nightly.Checks()
+_nightly.check_a10_payload(
+    _a10_ok,
+    {"config": {"tibber_token": "**REDACTED**", "latitude": 59.33, "longitude": 18.07}},
+    tokens=("secret-token",),
+)
+_a10_tok = _nightly.Checks()
+_nightly.check_a10_no_credential(
+    _a10_tok, {"config": {"tibber_token": "secret-token"}}, tokens=("secret-token",)
+)
+R.check(
+    "a10:no_credential fails a payload that still carries the token",
+    "a10:no_credential" in _a10_tok.failures()
+    and "a10:no_credential" not in _a10_ok.failures(),
+    f"bad={_a10_tok.results.get('a10:no_credential')} "
+    f"ok={_a10_ok.results.get('a10:no_credential')}",
+)
+_a10_loc = _nightly.Checks()
+_nightly.check_a10_no_precise_location(
+    _a10_loc, {"config": {"solar": {"latitude": 59.331234, "longitude": 18.07}}}
+)
+R.check(
+    "a10:no_precise_location fails a coordinate beyond two decimals",
+    "a10:no_precise_location" in _a10_loc.failures()
+    and "a10:no_precise_location" not in _a10_ok.failures(),
+    f"bad={_a10_loc.results.get('a10:no_precise_location')} "
+    f"ok={_a10_ok.results.get('a10:no_precise_location')}",
+)
+R.check(
+    "and a passing A10 check still keeps its detail",
+    all(
+        v[1]
+        for c in (_a10_ok,)
+        for n, v in c.results.items()
+        if n.startswith("a10:")
+    ),
+    "A10 passing checks blanked their detail (#533)",
+)
+
 # tools/audit/preflight.sh refuses a closing keyword the orchestrator did not
 # declare -- the defect that closed #224 from a merge message saying "does not
 # close #224", which closingIssuesReferences cannot see because it describes the
