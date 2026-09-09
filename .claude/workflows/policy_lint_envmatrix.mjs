@@ -97,7 +97,7 @@ else {
   add('pr / nothing skipped in a full clone', !/^\s*skip\s/m.test(r.out),
       (r.out.match(/^\s*skip.*$/m) || ['none'])[0].trim())
   const m = sh('node', ['.claude/workflows/policy_lint_mutants.mjs'], { cwd: pr.dir })
-  add('pr / every corpus check measured and pinned',
+  add('pr / every corpus and record-mode check measured and pinned',
       m.rc === 0 && !/^\s*(SKIP|ACCEPTED|CRASH)\s/m.test(m.out), `rc=${m.rc}`)
 }
 
@@ -116,7 +116,7 @@ else {
   add('push-main / the same pins are earned as on a pull request',
       p !== null && p === basePins, `pins=${p} vs pr=${basePins}`)
   const m = sh('node', ['.claude/workflows/policy_lint_mutants.mjs'], { cwd: pm.dir })
-  add('push-main / every corpus check still measured and pinned',
+  add('push-main / every corpus and record-mode check still measured and pinned',
       m.rc === 0 && !/^\s*(SKIP|ACCEPTED|CRASH)\s/m.test(m.out),
       `rc=${m.rc} ${(m.out.match(/^\s*(SKIP|ACCEPTED|CRASH).*$/m) || [''])[0].trim()}`)
 }
@@ -192,10 +192,10 @@ else {
 const DECLARED_ROWS = [
   'pr / policy_lint rc=0 and every pin earned',
   'pr / nothing skipped in a full clone',
-  'pr / every corpus check measured and pinned',
+  'pr / every corpus and record-mode check measured and pinned',
   'push-main / policy_lint rc=0',
   'push-main / the same pins are earned as on a pull request',
-  'push-main / every corpus check still measured and pinned',
+  'push-main / every corpus and record-mode check still measured and pinned',
   'no-remote / policy_lint rc=0',
   'no-remote / the skipped drive is said out loud',
   'no-remote / a skipped drive does not claim its pins',
