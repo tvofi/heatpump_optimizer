@@ -5,6 +5,12 @@ Status: accepted; O1 was answered — declined — so this stands rather than wa
 "O1" below are the governance-audit plan's — `docs/plan-2026-09-governance-audit.md`,
 which is not on `main`: it is archived on `audit/session-evidence-2026-09-08`.
 
+> **Status note, 2026-09-09.** The decision stands and its reason is unchanged:
+> one identity authors and approves, so a code-owner rule would be a lock. One
+> premise is spent — "there is nothing to require it in". Ruleset `main-protect`
+> (`22628467`) now exists, and it deliberately carries no required-approval and
+> no code-owner rule, for exactly the reason this record gives.
+
 ## Context
 
 The plan's PR-T4 pairs `.github/PULL_REQUEST_TEMPLATE.md` with

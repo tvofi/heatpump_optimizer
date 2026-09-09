@@ -6,6 +6,12 @@ superseded-by: []
 
 # 0006 — The policy-merge grant, re-granted to the local session
 
+> **Status note, 2026-09-09.** Ruleset creation, which this record calls
+> "deliberately not exercised yet", has been exercised: `main-protect`
+> (`22628467`), created as the governance programme's last act once `record` and
+> `env-matrix` existed on `main`. This grant has lapsed with its session; ADR
+> 0007 states what replaced it.
+
 ## Context
 
 Decision 0001 granted policy-merge authority to session
