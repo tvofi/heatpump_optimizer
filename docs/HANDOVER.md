@@ -1,38 +1,31 @@
 # Handover — the open-issues programme
 
-updated-for: 8f754c9
+updated-for: a6e95ff
 
-This is the only handover. There is no dated series: a second
-`docs/handover-*.md` is refused by `tests/entities.py`, and the policy it
-enforces is in `CLAUDE.md` under "One living handover". The file that replaced
-the series existed because every copy but the newest gave confident, wrong
-instructions to the next session.
-
-**What lives here** is durable: decisions and the measurement behind them,
-corrections to the record, traps that cost a session, and owed work.
-
-**What does not**: which seats are running, which branches are unpushed, what a
-resumer does next. That is volatile, it goes on **#201** — whose newest comment
-is the live state — and it survives an abort, which an unpushed in-tree edit
-does not. Nothing belongs in both places.
-
-Two things are deliberately *not* restated here, because restating them is how
-they go wrong: delivery status, which is
-`docs/plan-2026-09-open-issues.md`'s Delivery-status table and authoritative
-there, and budget values, which are `tests/structure_budgets.json`. Name the
-metric, never its number — twenty-one out-of-tree briefs once carried a
-`coordinator_loc` that was stale by two hundred lines.
-
-This file is updated **in the same pull request as the merge it records**,
-riding the per-merge record obligation in `.cursor/rules/delivery-status-tracking.mdc`
-so it costs no extra pull request, and `updated-for:` names that merge.
+Durable state only: decisions and the measurement behind them, corrections to
+the record, traps that cost a session, owed work. Volatile state — which seats
+are running, which branches are unpushed, what a resumer does next — goes on
+**#201**, and nothing goes in both. The rule, the `updated-for:` obligation and
+the reason the dated series was abolished are in
+`.claude/rules/writing-for-agents.md`, which the harness loads on this very
+path; `tests/entities.py` refuses a second handover. Delivery status is
+`docs/plan-2026-09-open-issues.md`'s table and authoritative there.
 
 ## Decisions taken — do not relitigate
 
 - **Model routing is Claude seats.** Opus 5: orchestrator, architectural fixer
   and reviewer, survey, judge, production fixer. Sonnet 5: tests, tooling, docs,
-  records, read-only reporting, stamp drafting. Fable 5.1 is routed nowhere,
-  deliberately. The roster tokens `opus` / `sonnet` map literally.
+  records, read-only reporting, stamp drafting. **Fable 5.1 is routed on a rare,
+  exceptional basis — a very large, multi-layer refactoring where Opus 5 is
+  judged too risky** (the owner's rule, 2026-09-09). The roster tokens `opus` and
+  `sonnet` map literally and no `wave-*-groups.json` names a third.
+  **A Fable trailer on a merge or a release stamp is the session's own model, not
+  a routing event.** Those are different axes, and reading the trailer count as
+  routing manufactures a contradiction that is not there — an earlier form of this
+  bullet did exactly that. Scrape each with its own command rather than restating
+  a count: `git log --first-parent --format='%(trailers:key=Co-Authored-By,valueonly)'`
+  for the sessions, and the `fixerModel` / `reviewerModel` keys of the rosters for
+  the routing.
 - **The decomposition stage criterion (Wave 4, S3–S8).** A stage proceeds if it
   can reduce its own cut by inside-extraction **or** reduce `coordinator_loc`
   with nothing rising, and it records which. It halts when neither exists, and
@@ -61,18 +54,12 @@ so it costs no extra pull request, and `updated-for:` names that merge.
   and the failure would turn a genuine optimisation red; and the coverage floor
   is a literal, not an environment override, because an override could be
   reached in CI without ever appearing in a pull-request body.
-
-- **Fix, then verify, then file** (owner, 2026-09-07). Each step is a fallback
-  for the one before, not an alternative. An issue propagates further than a
-  wrong pull request because nothing gates it: a pull request meets a reviewer,
-  an issue meets a seat that treats it as a brief. A **recurring** error is an
-  RCA, not a third issue — the trigger is roughly the third instance.
 - **The orchestrator is bound by every contract it enforces.**
   `tools/audit/briefs/orchestrator.md` exists because it did not: every auditor
   of the resumability review had to be *told* what to fetch.
-- **Every sentence earns its place** (owner-directed, 2026-09-07). The rule,
-  its scope and its controls are in `CLAUDE.md`; recorded here so that the
-  decision to adopt it is not relitigated.
+- **Every sentence earns its place** (owner-directed, 2026-09-07). The rule, its
+  scope and its controls are in `.claude/rules/writing-for-agents.md`; recorded
+  here so that the decision to adopt it is not relitigated.
 - **A policy merge needs the owner's approval, per pull request** (owner,
   2026-09-09, ADR 0007). A **session grant** of the 0001/0006 shape is the
   option, not the default: it names the session, restates the six
@@ -99,6 +86,14 @@ so it costs no extra pull request, and `updated-for:` names that merge.
   reports on one and not the other, and a context that never reports blocks
   every merge permanently. A `skipped` or `neutral` required check satisfies
   the rule; that was measured on an isolated probe, both arms.
+- **A pull-request body carries `## Figures`** (#676): `none`, or one line per
+  figure with the command that printed it — the same `pr-contract` rule as
+  `## Red checks`, empty refused, and `pr-contract` is required by `main-protect`,
+  so a missing section blocks the merge. Its companion rule is **name the
+  instrument, never the figure it prints**. The detector shape that works
+  resolves a *file name* to an artefact; the looser one — any number near a file
+  name — was built and **refused in review** for reading a date and a line count
+  as caps, and `preflight.sh`'s figure advisory stays advisory for #581's reason.
 
 ### The UX programme
 
@@ -113,37 +108,28 @@ stage, `after` edges and carried findings are in
 
 ## Corrections to the record
 
-- **The "34-key `data` payload" is wrong.** Measured: **157** top-level keys. No
-  rule reproduces 34, and it traces to a lost session tool. The freeze is
-  enforced by `tests/features.py`'s symmetry check and the `coord_*` goldens,
-  not by a count. Corrected on #193.
+- **The "34-key `data` payload" is wrong**, and so is any count of it: no rule
+  reproduces 34, and it traces to a lost session tool. The freeze is enforced by
+  `tests/features.py`'s symmetry check and the `coord_*` goldens, never by a
+  number. Corrected on #193.
 - **#510 — a recorded cut drop that was blindness.** `tests/structure.py`
   matched `ast.Attribute` on `ast.Name("self")`, so `getattr(self, "_ctx", self).X`
   was invisible to it. Wave 4's S1 cut series is identical at both ends under a
   counter that resolves the idiom. #500's other results stand — `CoordinatorContext`
   itself, the attribute migration, the facades, #377 closed — and nothing is
   reverted. S2 is unaffected and S3's reduction is genuine.
-- **#511 — v6.3.15 cannot produce a plan on any install.** The process-solve
-  worker cannot unpickle a job under Home Assistant's module naming.
-  **#513 is why the suite did not see it**: the suite runs a module name and a
-  filesystem layout that no installation uses.
-- **#457 / 3L-G6 was not spec-blocked.** Nothing shipped, and the owner closed
-  it `COMPLETED` by hand on 2026-09-06. Recorded as discharged.
+- **#511 and #513 are closed and the shape outlived them**: the suite ran a
+  module name and a filesystem layout no installation uses. Graduated:
+  `tests/deployment_shape.py`, which is in `tests/closures.json`.
 - **A file reported missing was there.** A seat filed it as a programme defect
   after listing a checkout that sat on a stale branch. **Check existence with
   `git show origin/main:<path>`, never by listing a working tree.**
-- **`section()` was genuinely unavailable** at the declared Home Assistant
-  floor — absent from that release's `helpers/selector.py`, present at
-  2025.2.0. The park was correct, and it is #514 that unblocks it.
 
-- **The claim-file rule is conditional, and the flat form is wrong.**
-  `CLAUDE.md` carries both halves and the mechanism behind them. The correction
-  is that the flat "always byte-identical" form was briefed to every seat for a
-  session before a reviewer refused it by measuring: PR #600 carries 33 correct
-  bare claim lines because it moves 33 card states.
-- **And the rule moved again: leave both claim files exactly as you found
-  them** (#662). The previous form demanded an *empty* claim list on a branch
-  that claims nothing, which is the same thing only when the baseline claims
+- **Leave both claim files exactly as you found them** (#662). Two earlier forms
+  were each briefed to every seat for a session before a reviewer refused them by
+  measuring. "Always byte-identical": PR #600 carries 33 correct bare claim lines
+  because it moves 33 card states. Then one demanding an *empty* claim list on a
+  branch that claims nothing — the same thing only when the baseline claims
   nothing too. It is not: a squash then applies that deletion to `main` and
   carries another lane's claims off with it. Measured on three precedents —
   #608 took 33 of #569's lines, #635 the same to #633's, #658 was stopped on
@@ -251,6 +237,9 @@ in its own pull request.
     8 minutes to 20 hours read as a flat "2h", hiding which pull request was
     actually the outlier. Use Python's `datetime.fromisoformat` with an explicit
     UTC now.
+16. **Backticks inside a double-quoted shell string are command substitution.**
+    Three review comments were posted with their SHAs silently missing. Write
+    the body to a file with a quoted heredoc and pass `-F body=@file`.
 17. **A citation and its referent can live on two branches, and the relation
     between them is invisible to every branch-scoped check.** Two green branches
     merged to a red `main` with no conflict and no shared file: one landed a
@@ -269,9 +258,6 @@ in its own pull request.
     trailing bracket, so `--ours` or `--theirs` would have dropped a whole block
     with no marker and no failing test. Verify a merge by parsing the result and
     naming the checks that run, never by reading the hunk.
-16. **Backticks inside a double-quoted shell string are command substitution.**
-    Three review comments were posted with their SHAs silently missing. Write
-    the body to a file with a quoted heredoc and pass `-F body=@file`.
 19. **A one-sided cap and a growing document collide across branches** — #608
     capped this file, #607 added 43 lines 56 minutes later, `main` went red from
     `5018e31`. Graduated: `policy-docs`'s `[budgets]`. Trap 17 on a budget.
@@ -309,11 +295,11 @@ in its own pull request.
     many times it had gone stale, and that went stale too. Derive it if you need
     it — scrape `Fix review: blocked <sha> <class>:` across the grant's
     pull requests and count the classes.
-    Partly graduated: `policy_lint`'s `counts` refuses prose disagreeing with
-    **eight** figures derived from the artefacts that answer them, and since
-    #672 it reads roster briefs as well as the policy corpus — seven of the
-    eight there, because the brief genre uses "N modules" for a subset. Nine
-    derivations exist and `jobs` is read by no rule, so do not quote nine. **The other half
+    Partly graduated: `COUNT_RULES` in `.claude/workflows/counts.mjs` refuses
+    prose disagreeing with a figure derived from the artefact that answers it,
+    and `brief_lint.mjs` runs that set less `modules` over roster briefs (#672),
+    printing how many of how many. Quote neither count — #676 added a rule while
+    this sentence still said eight, which is this trap firing on itself. **The other half
     does not graduate**, and #581 is the measurement that says so — a rule
     refusing a *bare figure* was built and driven, and reported 20 on the live
     briefs of which five were the defect. Three wrong reports for every right
@@ -325,8 +311,9 @@ in its own pull request.
     what survives here is the method for settling a render question at all. 26 of the plan's
     36 disposition rows were not in a table, for an unknown number of sessions,
     in the most-read document here. Graduated: `policy_lint --record`'s
-    `table` check over both disposition documents. Ground truth for a render
-    question is GitHub's own `/markdown` endpoint, not the CommonMark spec.
+    question is GitHub's own `/markdown` endpoint, not the CommonMark spec —
+    how #686 established that a row's *leading* pipe is optional in GFM, so
+    deleting one is correctly not reported. The blank line is the defect.
 28. **A replacement that matches a prefix leaves both halves in one line, and
     an anchor that matches the first occurrence lands your insertion in the
     wrong section.** Both happened in one pull request. The row became five
@@ -345,6 +332,11 @@ in its own pull request.
     `while read -r path branch` loop over `git worktree list` left the shell
     unable to find `basename`, `git` or `df`. Same reserved-variable family as
     `GID`. Rename the loop variable.
+31. **A record's own fields are checked by almost nothing** (#687). An
+    unrecognised `resume.stage` is refused by `check-wave-script.mjs`, but a dead
+    path in `resume.note` is invisible to `brief_lint.mjs` while the same path in
+    `brief` is an error. A roster `resume` a record seat truths has one guarded
+    field and a reader for the rest.
 
 ## Owed — post-hoc reviews
 
@@ -358,9 +350,9 @@ Each squash body says so and names what a reviewer should start from.
 
 Two of these matter more than the rest. **#603** is policy whose owner-approved
 form changed twice after approval. **#596** introduces `tests/typing_budgets.json`
-with a bootstrap census of 518; that file does not exist on `main` beforehand,
-so nothing was loosened, but the number is the baseline four Wave 5 tranches
-will be ratcheted against and no reviewer has checked it.
+and its bootstrap census; the file does not exist on `main` beforehand, so
+nothing was loosened, but it is the baseline every Wave 5 tranche ratchets
+against and no reviewer has checked it. Read the census from the file.
 
 Also owed, and deliberately not landed because it is policy: a finding for
 `tools/audit/briefs/fixer.md` — **a probe that builds its own input can build
@@ -395,9 +387,9 @@ flagged it rather than claiming a carry it had not made.
 
 This section used to describe the owner's Mac; a container seat reads it and
 every line is false. Measure your own box (`nproc`, `command -v gh`, `python3
--V`). The repository facts: CI runs 3.13, #514 moves production to 3.14, CI is
-the authority for the browser lane, and `git branch --show-current` beats
-trusting a path.
+-V`). The repository facts: `tests.yml` matrixes both declared interpreters
+(#514, closed), CI is the authority for the browser lane, and `git branch
+--show-current` beats trusting a path.
 
 **A 403 is not always the repository's answer.** Tag pushes and ref deletion
 work from some environments and are proxy-refused in others, and the message
