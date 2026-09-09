@@ -51,7 +51,7 @@
   },
   "type_ignores": 0,
   "census": {
-    "errors": 371,
+    "errors": 363,
     "by_code": {
       "arg-type": 25,
       "assignment": 7,
@@ -70,7 +70,7 @@
       "operator": 12,
       "override": 1,
       "return-value": 9,
-      "type-arg": 122,
+      "type-arg": 114,
       "type-var": 5,
       "typeddict-item": 2,
       "union-attr": 5,
@@ -85,7 +85,7 @@
       "threadpoolctl": "3.6.0",
       "voluptuous": "0.15.2"
     },
-    "recorded_at": "043796e7a1e5b93d5fd18b668b33e880f5bf0977"
+    "recorded_at": "a9babf1b527d834574e57042425662b14610fb97"
   },
   "recorded_at": "52c83d1c98182979eb0d042173ed3ba4266afbe7"
 }
