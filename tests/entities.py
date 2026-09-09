@@ -3507,6 +3507,85 @@ R.check(
     "a flag that arrives as any of four domains has no class to rank on: "
     + str({_k: _dc_slots.get(_k, {}).get("device_class") for _k in _dc_unranked}),
 )
+
+# --- #703 Tibber Pulse auto-bind ----------------------------------------------
+R.section("Tibber Pulse auto-bind (#703)")
+_pulse_candidates = (
+    {
+        "entity_id": "sensor.pulse_power",
+        "name": "Tibber Pulse",
+        "unique_id": "pulse-live",
+        "manufacturer": "Tibber",
+        "device_class": "power",
+        "domain": "sensor",
+    },
+    {
+        "entity_id": "sensor.hp_power",
+        "name": "Heat pump power",
+        "device_class": "power",
+        "domain": "sensor",
+    },
+)
+R.check(
+    "an empty house_power_entity is suggested from a Pulse-shaped power sensor",
+    topology.suggest_house_power_entity(None, _pulse_candidates)
+    == "sensor.pulse_power",
+)
+R.check(
+    "a pre-set house_power_entity is left alone",
+    topology.suggest_house_power_entity("sensor.hp_power", _pulse_candidates)
+    == "sensor.hp_power",
+)
+R.check(
+    "a non-power Pulse-named sensor is not suggested",
+    topology.suggest_house_power_entity(
+        None,
+        (
+            {
+                "entity_id": "sensor.pulse_energy",
+                "name": "Tibber Pulse energy",
+                "device_class": "energy",
+                "domain": "sensor",
+            },
+        ),
+    )
+    is None,
+)
+_pulse_hass = FakeHass(
+    {
+        "sensor.pulse_power": FakeState(
+            "1200",
+            unit="W",
+            attributes={
+                "device_class": "power",
+                "friendly_name": "Tibber Pulse",
+            },
+        )
+    }
+)
+_pulse_row = next(
+    row
+    for row in config_flow._OPTION_FIELDS
+    if row.key == const.CONF_HOUSE_POWER_ENTITY
+)
+_pulse_empty = config_flow._field_marker(_pulse_row, {}, _pulse_hass)
+R.check(
+    "the metering page suggests Pulse when house_power_entity is empty",
+    getattr(_pulse_empty, "description", {}) == {"suggested_value": "sensor.pulse_power"},
+    str(getattr(_pulse_empty, "description", None)),
+)
+_pulse_kept = config_flow._field_marker(
+    _pulse_row, {const.CONF_HOUSE_POWER_ENTITY: "sensor.other_power"}, _pulse_hass
+)
+_pulse_kept_default = getattr(_pulse_kept, "default", None)
+_pulse_kept_value = (
+    _pulse_kept_default() if callable(_pulse_kept_default) else _pulse_kept_default
+)
+R.check(
+    "the metering page keeps a stored house_power_entity",
+    _pulse_kept_value == "sensor.other_power",
+    str(_pulse_kept_value),
+)
 R.check(
     "and nothing asks for a class its own domains could never carry",
     all(

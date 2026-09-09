@@ -1075,6 +1075,31 @@ def _user_credentials_fields() -> dict[Any, Any]:
     }
 
 
+def _house_power_candidates(hass: HomeAssistant) -> list[dict[str, Any]]:
+    """Power-shaped states the Pulse matcher can see (#703)."""
+    states = getattr(hass, "states", None)
+    if states is None or not hasattr(states, "keys"):
+        return []
+    candidates: list[dict[str, Any]] = []
+    for entity_id in list(states.keys()):
+        state = states.get(entity_id)
+        if state is None:
+            continue
+        attrs = getattr(state, "attributes", None) or {}
+        domain = str(entity_id).split(".", 1)[0]
+        candidates.append(
+            {
+                "entity_id": str(entity_id),
+                "name": str(attrs.get("friendly_name") or ""),
+                "unique_id": str(attrs.get("unique_id") or ""),
+                "manufacturer": str(attrs.get("manufacturer") or ""),
+                "device_class": attrs.get("device_class"),
+                "domain": domain,
+            }
+        )
+    return candidates
+
+
 def _user_sensors_fields(hass: HomeAssistant) -> dict[Any, Any]:
     """Optional telemetry pickers, separated from credentials (#198)."""
     return {
@@ -1439,6 +1464,14 @@ def _field_marker(row: _F, current: dict[str, Any], hass: HomeAssistant) -> Any:
         existing = current.get(row.key)
         if existing:
             return vol.Optional(row.key, default=existing)
+        if row.key == CONF_HOUSE_POWER_ENTITY:
+            suggestion = topology.suggest_house_power_entity(
+                None, _house_power_candidates(hass)
+            )
+            if suggestion:
+                return vol.Optional(
+                    row.key, description={"suggested_value": suggestion}
+                )
         return vol.Optional(row.key)
     if default is _SUGGESTED:
         return _options_suggested_numeric(current, row.key)

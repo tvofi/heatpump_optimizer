@@ -21,6 +21,7 @@ Kept free of Home Assistant imports so it can be unit-tested directly, like
 """
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
@@ -552,3 +553,51 @@ def render_text_summary(setup: dict[str, Any]) -> str:
 
     body = "\n\n".join(parts)
     return f"```\n{body}\n```"
+
+
+def looks_like_pulse_power(
+    entity_id: str,
+    *,
+    name: str = "",
+    unique_id: str = "",
+    manufacturer: str = "",
+    device_class: str | None = None,
+    domain: str = "",
+) -> bool:
+    """Whether this looks like Tibber Pulse live power (#703)."""
+    resolved_domain = domain or (entity_id.split(".", 1)[0] if "." in entity_id else "")
+    if resolved_domain != "sensor":
+        return False
+    if str(device_class or "").lower() != "power":
+        return False
+    blob = " ".join(
+        part.lower()
+        for part in (entity_id, name, unique_id, manufacturer)
+        if part
+    )
+    if "price" in blob:
+        return False
+    return "pulse" in blob or ("tibber" in blob and "power" in blob)
+
+
+def suggest_house_power_entity(
+    current: str | None,
+    candidates: Sequence[Mapping[str, Any]],
+) -> str | None:
+    """Keep a set house-power entity; otherwise propose Pulse live power."""
+    if current:
+        return current
+    for candidate in candidates:
+        entity_id = str(candidate.get("entity_id") or "")
+        if not entity_id:
+            continue
+        if looks_like_pulse_power(
+            entity_id,
+            name=str(candidate.get("name") or ""),
+            unique_id=str(candidate.get("unique_id") or ""),
+            manufacturer=str(candidate.get("manufacturer") or ""),
+            device_class=candidate.get("device_class"),
+            domain=str(candidate.get("domain") or ""),
+        ):
+            return entity_id
+    return None
