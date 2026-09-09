@@ -901,6 +901,22 @@ judge comments on each issue and summarised on #201.
   column, was **fixed** in that pull request rather than carried. Whoever
   revisits (a) should note that the same fence question governs
   `policy_lint`'s own prose checks.
+- **A verdict comment whose first line is wrapped in backticks does not parse,
+  and every verdict this queue has received was wrapped.** Found by #644's
+  round 5 while reading the grammar it was reviewing. `web-fix-wave.js` reads
+  `body.split('\n')[0]` and anchors `VERDICT_RE` on `^Fix review:`, so a first
+  line of `` `Fix review: merge <sha>` `` fails to match and degrades to no
+  verdict — safely, never to a wrong merge, but silently. The queue's own
+  comments were unaffected because no wave script consumed them in this
+  session; a wave that did would have read every one of them as unparsed. The
+  pin #641 landed compares the contract's backticked EXAMPLES against the
+  grammar, which is the right thing to compare and not this: the examples are
+  backticked because they are examples, and the rendered comment must not be.
+  Two candidate fixes, neither obviously right: strip a single pair of
+  wrapping backticks before matching, which forgives a real formatting error;
+  or say in `fix-review.md` that the first line is unwrapped and pin THAT,
+  which needs a fixture comment rather than a brief. Whoever takes it should
+  decide which of those the contract means before writing either.
 - **`pr-contract` red runs are hidden by `gh pr checks`, and the ones on this
   queue's heads were process state (b), not a defect in the check.** Two facts,
   and only the first is the check's.
