@@ -51,9 +51,9 @@
   },
   "type_ignores": 0,
   "census": {
-    "errors": 226,
+    "errors": 197,
     "by_code": {
-      "arg-type": 18,
+      "arg-type": 17,
       "assignment": 7,
       "attr-defined": 1,
       "call-overload": 1,
@@ -61,13 +61,13 @@
       "index": 3,
       "misc": 2,
       "name-defined": 1,
-      "no-any-return": 38,
+      "no-any-return": 37,
       "no-redef": 3,
       "no-untyped-call": 7,
-      "no-untyped-def": 69,
+      "no-untyped-def": 67,
       "operator": 2,
       "return-value": 2,
-      "type-arg": 66,
+      "type-arg": 41,
       "type-var": 3,
       "var-annotated": 1
     },
@@ -80,7 +80,7 @@
       "threadpoolctl": "3.6.0",
       "voluptuous": "0.15.2"
     },
-    "recorded_at": "92555b0f17f1caf09d4dfb8778293240c5decfc3"
+    "recorded_at": "666f198631bb9624bdb6045232a5ec98bf0544ac"
   },
   "recorded_at": "52c83d1c98182979eb0d042173ed3ba4266afbe7"
 }
