@@ -8762,6 +8762,397 @@ R.check(
     f"[two markers: {_nightly_probe_twice[1]}]",
 )
 
+# --- nightly A3 published-state sweep (#584) --------------------------------
+#
+# The container run is NOT_A_TEST. These pins are the visible failing test:
+# A3 names must be demanded, and a mutant that drops A3 or always-passes must
+# fail a named check here. A4 is a different issue and is not merged in.
+import inspect as _inspect  # noqa: E402
+
+R.check(
+    "A3 named escapes are unique E-identifiers counted at this merge base",
+    len(_nightly.A3_NAMED_ESCAPES) == len(set(_nightly.A3_NAMED_ESCAPES))
+    and all(
+        n.startswith("E") and n[1:].isdigit() for n in _nightly.A3_NAMED_ESCAPES
+    ),
+    f"A3_NAMED_ESCAPES={_nightly.A3_NAMED_ESCAPES}",
+)
+R.check(
+    "the nightly demands A3 published-state checks by name",
+    set(_nightly.A3_INSIDE) <= set(_nightly.INSIDE_CHECKS)
+    and set(_nightly.A3_INSIDE)
+    == {
+        "a3:roster",
+        "a3:orjson",
+        "a3:finite",
+        "a3:device_class_state_class",
+        "a3:no_constructor_defaults",
+    },
+    f"A3_INSIDE={_nightly.A3_INSIDE} INSIDE_CHECKS missing "
+    f"{sorted(set(_nightly.A3_INSIDE) - set(_nightly.INSIDE_CHECKS))}",
+)
+R.check(
+    "A3 is not merged with A4",
+    all(not n.startswith("a4:") for n in _nightly.INSIDE_CHECKS)
+    and all(not n.startswith("a4:") for n in _nightly.A3_INSIDE),
+    f"A4 leaked into the A3/inside roster: "
+    f"{[n for n in (*_nightly.A3_INSIDE, *_nightly.INSIDE_CHECKS) if n.startswith('a4:')]}",
+)
+
+_a3_from_collect = sorted(
+    e.entity_id
+    for _p in integration.PLATFORM_LIST
+    for e in collect(_importlib.import_module(f"heatpump_optimizer.{str(_p)}"))
+    if getattr(e, "entity_id", None)
+)
+_a3_from_file = _nightly.load_committed_roster()
+# The rule is len({e.entity_id for p in PLATFORM_LIST for e in collect(module p)
+# if e.entity_id}). Both sides are live collect() implementations, not a
+# literal this file also writes.
+R.check(
+    "the A3 roster is derived from collect() over PLATFORM_LIST, not a second literal",
+    "COMMITTED_ROSTER" not in Path("tests/nightly_ha.py").read_text()
+    and "_collect_entity_ids" in _inspect.getsource(_nightly.load_committed_roster),
+    "COMMITTED_ROSTER is a constant this repository also asserts (#560)",
+)
+R.check(
+    "the committed A3 roster is the entity_id set collect() produces",
+    _a3_from_file == _a3_from_collect,
+    f"roster={len(_a3_from_file)} collect={len(_a3_from_collect)} "
+    f"only_roster={sorted(set(_a3_from_file) - set(_a3_from_collect))[:6]} "
+    f"only_collect={sorted(set(_a3_from_collect) - set(_a3_from_file))[:6]}",
+)
+_nightly_roster = _nightly.Checks()
+_nightly.check_a3_roster(
+    _nightly_roster, list(_a3_from_collect), expected=_a3_from_file
+)
+R.check(
+    "a3:roster passes when HA's registry matches collect()",
+    "a3:roster" not in _nightly_roster.failures()
+    and _nightly_roster.results["a3:roster"][1],
+    _nightly_roster.results.get("a3:roster", [None, "ABSENT"])[1],
+)
+_a3_roster_mut = _nightly.Checks()
+_nightly.check_a3_roster(
+    _a3_roster_mut, ["sensor.not_ours"], expected=_a3_from_file
+)
+R.check(
+    "a3:roster fails when the registered ids are not collect()'s set",
+    "a3:roster" in _a3_roster_mut.failures(),
+    "a mutant that always-passes a3:roster would accept any HA registry",
+)
+
+from homeassistant.helpers.json import json_bytes as _ha_json_bytes
+
+try:
+    _ha_json_bytes({"k": float("inf")})
+    _ha_json_inf = "accepted"
+except Exception:
+    _ha_json_inf = "refused"
+try:
+    _nightly.json_bytes_ha({"k": float("inf")})
+    _jb_ha_inf = "accepted"
+except Exception:
+    _jb_ha_inf = "refused"
+_a3_orjson_src = _inspect.getsource(_nightly.json_bytes_ha)
+_a3_orjson_check_src = _inspect.getsource(_nightly.check_a3_orjson)
+R.check(
+    "a3:orjson serialises through Home Assistant's json_bytes",
+    "helpers.json" in _a3_orjson_src
+    and "orjson_like_dumps" not in _a3_orjson_src
+    and "orjson_like_dumps" not in _a3_orjson_check_src
+    and "json_bytes_ha" in _a3_orjson_check_src
+    and _ha_json_inf == "refused"
+    and _jb_ha_inf == "refused",
+    f"ha={_ha_json_inf} json_bytes_ha={_jb_ha_inf}; "
+    "host pin must execute helpers.json.json_bytes, not a local dumps",
+)
+_a3_orjson_ok = _nightly.Checks()
+_nightly.check_a3_orjson(
+    _a3_orjson_ok,
+    [("sensor.x", {"state": "1", "attributes": {"n": 1.5}})],
+)
+_a3_orjson_bad = _nightly.Checks()
+_nightly.check_a3_orjson(
+    _a3_orjson_bad,
+    [("sensor.x", {"state": "1", "attributes": {"k": float("inf")}})],
+)
+R.check(
+    "a3:orjson fails a payload orjson rejects, and passes a finite one",
+    "a3:orjson" in _a3_orjson_bad.failures()
+    and "a3:orjson" not in _a3_orjson_ok.failures(),
+    f"bad={_a3_orjson_bad.results.get('a3:orjson')} "
+    f"ok={_a3_orjson_ok.results.get('a3:orjson')}",
+)
+_saved_json_bytes_ha = _nightly.json_bytes_ha
+_nightly.json_bytes_ha = lambda obj: b"{}"
+_a3_orjson_noop = _nightly.Checks()
+try:
+    _nightly.check_a3_orjson(
+        _a3_orjson_noop,
+        [("sensor.x", {"state": "1", "attributes": {"k": float("inf")}})],
+    )
+finally:
+    _nightly.json_bytes_ha = _saved_json_bytes_ha
+R.check(
+    "json_bytes_ha returning b\"{}\" leaves a3:orjson green on an orjson-illegal payload",
+    "a3:orjson" not in _a3_orjson_noop.failures()
+    and "a3:orjson" in _a3_orjson_bad.failures(),
+    "a no-op json_bytes_ha must not satisfy A3(b); the default serializer "
+    "must still be json_bytes_ha so the real path refuses inf "
+    f"noop={_a3_orjson_noop.results.get('a3:orjson')} "
+    f"real={_a3_orjson_bad.results.get('a3:orjson')}",
+)
+
+_a3_finite_bad = _nightly.Checks()
+_nightly.check_a3_finite(
+    _a3_finite_bad, [("sensor.x", {"state": "1", "attributes": {"k": float("nan")}})]
+)
+_a3_finite_ok = _nightly.Checks()
+_nightly.check_a3_finite(
+    _a3_finite_ok, [("sensor.x", {"state": "1", "attributes": {"k": 1.0}})]
+)
+R.check(
+    "a3:finite fails a non-finite attribute and passes a finite one",
+    "a3:finite" in _a3_finite_bad.failures()
+    and "a3:finite" not in _a3_finite_ok.failures(),
+    f"bad={_a3_finite_bad.results.get('a3:finite')}",
+)
+
+_a3_dc_src = _inspect.getsource(_nightly.check_a3_device_class_state_class)
+R.check(
+    "a3:device_class_state_class reads DEVICE_CLASS_STATE_CLASSES",
+    "DEVICE_CLASS_STATE_CLASSES" in _a3_dc_src,
+    "the inside half must judge (d) by HA's table, not a local copy",
+)
+_a3_dc_bad = _nightly.Checks()
+_nightly.check_a3_device_class_state_class(
+    _a3_dc_bad, [("sensor.x", "energy", "measurement")]
+)
+_a3_dc_ok = _nightly.Checks()
+_nightly.check_a3_device_class_state_class(
+    _a3_dc_ok, [("sensor.x", "temperature", "measurement")]
+)
+R.check(
+    "a3:device_class_state_class fails a pair the HA table forbids",
+    "a3:device_class_state_class" in _a3_dc_bad.failures()
+    and "a3:device_class_state_class" not in _a3_dc_ok.failures(),
+    f"bad={_a3_dc_bad.results.get('a3:device_class_state_class')} "
+    f"(energy+measurement must be forbidden; temperature+measurement allowed)",
+)
+
+_a3_def = ThermalState()
+_a3e_ok = _nightly.Checks()
+_nightly.check_a3_no_constructor_defaults(
+    _a3e_ok,
+    [
+        {
+            "entity_id": "sensor.heat_pump_optimizer_indoor_temperature_optimizer",
+            "state": "unavailable",
+            "attributes": {"device_class": "temperature"},
+            "device_class": "temperature",
+        },
+        {
+            "entity_id": "sensor.heat_pump_optimizer_dhw_temperature",
+            "state": "unavailable",
+            "attributes": {"device_class": "temperature"},
+            "device_class": "temperature",
+        },
+        {
+            "entity_id": "climate.heat_pump_optimizer",
+            "state": "unavailable",
+            "attributes": {
+                "current_temperature": None,
+                "dhw_temperature": None,
+            },
+            "device_class": None,
+        },
+    ],
+    defaults=_a3_def,
+    roster=_a3_from_file,
+)
+_a3e_indoor = _nightly.Checks()
+_nightly.check_a3_no_constructor_defaults(
+    _a3e_indoor,
+    [
+        {
+            "entity_id": "sensor.heat_pump_optimizer_indoor_temperature_optimizer",
+            "state": str(_a3_def.room_temperature),
+            "attributes": {"device_class": "temperature"},
+            "device_class": "temperature",
+        },
+    ],
+    defaults=_a3_def,
+    roster=_a3_from_file,
+)
+_a3e_climate = _nightly.Checks()
+_nightly.check_a3_no_constructor_defaults(
+    _a3e_climate,
+    [
+        {
+            "entity_id": "climate.heat_pump_optimizer",
+            "state": "heat",
+            "attributes": {"current_temperature": _a3_def.room_temperature},
+            "device_class": None,
+        },
+    ],
+    defaults=_a3_def,
+    roster=_a3_from_file,
+)
+_a3e_bad = _nightly.Checks()
+_nightly.check_a3_no_constructor_defaults(
+    _a3e_bad,
+    [
+        {
+            "entity_id": "sensor.heat_pump_optimizer_dhw_temperature",
+            "state": str(_a3_def.dhw_temperature),
+            "attributes": {"device_class": "temperature"},
+            "device_class": "temperature",
+        },
+        {
+            "entity_id": "sensor.heat_pump_optimizer_dhw_mixed_water",
+            "state": "270.0",
+            "attributes": {"device_class": "volume_storage"},
+            "device_class": "volume_storage",
+        },
+        {
+            "entity_id": "climate.heat_pump_optimizer",
+            "state": "heat",
+            "attributes": {"dhw_temperature": _a3_def.dhw_temperature},
+            "device_class": None,
+        },
+    ],
+    defaults=_a3_def,
+    roster=_a3_from_file,
+)
+_a3e_empty = _nightly.Checks()
+_nightly.check_a3_no_constructor_defaults(
+    _a3e_empty, [], defaults=_a3_def, roster=_a3_from_file
+)
+R.check(
+    "a3:no_constructor_defaults fails an empty sweep",
+    "a3:no_constructor_defaults" in _a3e_empty.failures(),
+    "a driver that collected no states must not pass A3(e) "
+    f"{_a3e_empty.results.get('a3:no_constructor_defaults', [None, 'ABSENT'])[1]}",
+)
+R.check(
+    "a3:no_constructor_defaults passes unavailable records",
+    "a3:no_constructor_defaults" not in _a3e_ok.failures()
+    and _a3e_ok.results["a3:no_constructor_defaults"][1],
+    _a3e_ok.results.get("a3:no_constructor_defaults", [None, "ABSENT"])[1],
+)
+R.check(
+    "a3:no_constructor_defaults fails available indoor at the constructor default",
+    "a3:no_constructor_defaults" in _a3e_indoor.failures(),
+    _a3e_indoor.results.get("a3:no_constructor_defaults", [None, "ABSENT"])[1],
+)
+R.check(
+    "a3:no_constructor_defaults fails climate current_temperature at the constructor default",
+    "a3:no_constructor_defaults" in _a3e_climate.failures(),
+    _a3e_climate.results.get("a3:no_constructor_defaults", [None, "ABSENT"])[1],
+)
+R.check(
+    "a3:no_constructor_defaults fails an available ThermalState default",
+    "a3:no_constructor_defaults" in _a3e_bad.failures()
+    and "a3:no_constructor_defaults" not in _a3e_ok.failures(),
+    f"bad={_a3e_bad.results.get('a3:no_constructor_defaults')} "
+    f"ok={_a3e_ok.results.get('a3:no_constructor_defaults')}",
+)
+_a3_def_src = _inspect.getsource(_nightly._numeric_constructor_defaults)
+R.check(
+    "A3(e) numeric defaults are read from the ThermalState constructor fields",
+    "dataclasses.fields" in _a3_def_src,
+    "A3(e) must not hard-code a field list that drifts from ThermalState()",
+)
+_a3_inside_src = _inspect.getsource(_nightly._inside)
+_a3_a3e_src = _inspect.getsource(_nightly._inside_a3e)
+_a3_out_src = _inspect.getsource(_nightly._run_outside)
+R.check(
+    "A3(e) is a second seed, not collapsed into the thermometer boot",
+    "constructor_defaults=False" in _a3_inside_src
+    and "constructor_defaults=True" in _a3_a3e_src
+    and "thermometers=False" in _a3_out_src
+    and "--a3e-only" in _a3_out_src,
+    "A3(e) must boot a default install with no thermometer entities; "
+    "collapsing it into the thermometer-seeded boot hides the constructor-default leak",
+)
+R.check(
+    "and a passing A3 check still keeps its detail",
+    all(
+        v[1]
+        for c in (_nightly_roster, _a3_orjson_ok, _a3_finite_ok, _a3_dc_ok, _a3e_ok)
+        for n, v in c.results.items()
+        if n.startswith("a3:")
+    ),
+    "A3 passing checks blanked their detail (#533)",
+)
+
+# --- nightly A10 diagnostics privacy probe (#585) ---------------------------
+#
+# The container run stays NOT_A_TEST. These pins demand A10 by name and prove
+# each check can still fail. #509 already closed (#535); A10 pins that rule.
+R.check(
+    "the nightly demands A10 privacy checks by name",
+    set(_nightly.A10_INSIDE) <= set(_nightly.INSIDE_CHECKS)
+    and set(_nightly.A10_INSIDE)
+    == {
+        "a10:no_credential",
+        "a10:no_precise_location",
+    },
+    f"A10_INSIDE={_nightly.A10_INSIDE} INSIDE_CHECKS missing "
+    f"{sorted(set(_nightly.A10_INSIDE) - set(_nightly.INSIDE_CHECKS))}",
+)
+R.check(
+    "A10 is not merged with A4",
+    all(not n.startswith("a4:") for n in _nightly.A10_INSIDE),
+    f"{[n for n in _nightly.A10_INSIDE if n.startswith('a4:')]}",
+)
+R.check(
+    "A10's location rule is the issue's two-decimal bound",
+    _nightly.A10_MAX_COORDINATE_DECIMALS == 2
+    and _nightly.A10_COORDINATE_KEYS == frozenset({"latitude", "longitude"}),
+    f"dp={_nightly.A10_MAX_COORDINATE_DECIMALS} keys={_nightly.A10_COORDINATE_KEYS}",
+)
+
+_a10_ok = _nightly.Checks()
+_nightly.check_a10_payload(
+    _a10_ok,
+    {"config": {"tibber_token": "**REDACTED**", "latitude": 59.33, "longitude": 18.07}},
+    tokens=("secret-token",),
+)
+_a10_tok = _nightly.Checks()
+_nightly.check_a10_no_credential(
+    _a10_tok, {"config": {"tibber_token": "secret-token"}}, tokens=("secret-token",)
+)
+R.check(
+    "a10:no_credential fails a payload that still carries the token",
+    "a10:no_credential" in _a10_tok.failures()
+    and "a10:no_credential" not in _a10_ok.failures(),
+    f"bad={_a10_tok.results.get('a10:no_credential')} "
+    f"ok={_a10_ok.results.get('a10:no_credential')}",
+)
+_a10_loc = _nightly.Checks()
+_nightly.check_a10_no_precise_location(
+    _a10_loc, {"config": {"solar": {"latitude": 59.331234, "longitude": 18.07}}}
+)
+R.check(
+    "a10:no_precise_location fails a coordinate beyond two decimals",
+    "a10:no_precise_location" in _a10_loc.failures()
+    and "a10:no_precise_location" not in _a10_ok.failures(),
+    f"bad={_a10_loc.results.get('a10:no_precise_location')} "
+    f"ok={_a10_ok.results.get('a10:no_precise_location')}",
+)
+R.check(
+    "and a passing A10 check still keeps its detail",
+    all(
+        v[1]
+        for c in (_a10_ok,)
+        for n, v in c.results.items()
+        if n.startswith("a10:")
+    ),
+    "A10 passing checks blanked their detail (#533)",
+)
+
 # tools/audit/preflight.sh refuses a closing keyword the orchestrator did not
 # declare -- the defect that closed #224 from a merge message saying "does not
 # close #224", which closingIssuesReferences cannot see because it describes the
