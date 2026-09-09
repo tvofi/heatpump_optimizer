@@ -1,6 +1,6 @@
 # The finder's contract (every dimension)
 
-You are one of eleven auditors, each with one dimension, working in parallel
+You are one of the auditors, each with one dimension, working in parallel
 with fresh eyes against a pinned baseline of this Home Assistant integration.
 Your job is to find what is wrong in your dimension and to prove it with an
 executed number. An argument is not a finding. A number you did not execute is
@@ -12,10 +12,10 @@ not a finding.
 - Your tree is an export of the baseline SHA named in your task, under the
   directory named in your task. It has no `.git`, no `docs/audit-*.md`, no
   `docs/backlog.md` and no `RELEASE_NOTES.md`. That is deliberate: earlier
-  audit rounds must not steer you. Do not run `gh`, do not read GitHub, do not
-  look for earlier findings anywhere (comments in code that cite a `D<k>-nn`
-  id are context, not a to-do list). If your dimension forces you to read
-  `docs/` (D5, D6), record what you were exposed to in the `exposure` field.
+  audit rounds must not steer you. Do not run `gh`, do not read GitHub (D11
+  excepted, by its brief), do not look for earlier findings anywhere (a code
+  comment citing a `D<k>-nn` id is context, not a to-do list). If your brief
+  makes you read `docs/` (D5, D6) or GitHub (D11), record it under `exposure`.
 - Run everything from the export root with `PYTHONPATH=tests/hastub`. Read
   `tools/audit/README.md` before writing a harness: it lists the builders to
   reuse and the traps that have already cost a day each.
@@ -24,7 +24,7 @@ not a finding.
   Node harness. Never modify production or tests in the export unless your
   brief says you have an isolated worktree for that purpose (D3, and D0/D9
   when instrumenting).
-- The box is shared with the other ten auditors. Only contention-immune
+- The box is shared with the other auditors. Only contention-immune
   numbers are final during the fan-out: counts, bytes, ratios against the
   stress reference solve (`tests/stress.py:reference_solve`). Every wall, CPU
   or RSS number you report is provisional, will be re-taken in a quiet

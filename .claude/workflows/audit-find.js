@@ -1,4 +1,4 @@
-// The finder pass of the eleven-dimension audit: one fresh-eyes auditor per
+// The finder pass of the per-dimension audit: one fresh-eyes auditor per
 // dimension against a pinned baseline, a quiet-window re-measurement, then
 // dedup into the register. Sign-off happens between workflows, so this one
 // stops after dedup; verification is /audit-verify.
@@ -9,7 +9,7 @@
 // relaunch replays the same agent() calls; the register writer stamps dates.
 export const meta = {
   name: 'audit-find',
-  description: 'Eleven fresh-eyes auditors against a pinned baseline, quiet-window re-measurement, dedup into the register',
+  description: 'One fresh-eyes auditor per dimension against a pinned baseline, quiet-window re-measurement, dedup into the register',
   phases: ['Prepare the baseline', 'Finders', 'Quiet window', 'Dedup'],
 }
 
@@ -18,11 +18,12 @@ const baseline = args?.baseline
 const repo = args?.repo
 if (!baseline || !repo) throw new Error('args.baseline (sha) and args.repo (absolute path of a checkout) are required')
 
-const DIMS = ['D0', 'D1', 'D2', 'D3', 'D4', 'D5', 'D6', 'D7', 'D8', 'D9', 'D10']
+const DIMS = ['D0', 'D1', 'D2', 'D3', 'D4', 'D5', 'D6', 'D7', 'D8', 'D9', 'D10', 'D11']
 // Compute-heavy finders share a box with everyone else; at most three of them
 // run together and the Chromium one never beside them (tools/audit/README.md).
-const WAVES = [['D0', 'D2', 'D3', 'D1', 'D5', 'D6', 'D7', 'D10'], ['D9', 'D4', 'D8']]
-const ISOLATED = new Set(['D0', 'D3', 'D9'])
+const WAVES = [['D0', 'D2', 'D3', 'D1', 'D5', 'D6', 'D7', 'D10', 'D11'], ['D9', 'D4', 'D8']]
+// D11 audits the process itself, so it needs `.git` and the API: a worktree, not an export.
+const ISOLATED = new Set(['D0', 'D3', 'D9', 'D11'])
 
 const reportSchema = {
   type: 'object',
@@ -106,7 +107,7 @@ if (missing.length) {
 }
 if (!quiet) throw new Error('quiet window failed; relaunch to re-run it before dedup')
 const dedup = await agent(
-  `You are the dedup step of audit round ${round}. Read the eleven reports at ${DIMS.map((d) => reports[d].report_path).join(', ')} and ${quiet.quiet_path}, and the register docs/audit-2026-09.md in ${repo} (Round 1 section: its findings, verdicts, issue numbers). Validate every finding's JSON against tools/audit/finding.schema.json (pip install jsonschema into the venv if needed); a finding that fails validation is listed as "rejected at intake" with the reason.
+  `You are the dedup step of audit round ${round}. Read the ${DIMS.length} reports at ${DIMS.map((d) => reports[d].report_path).join(', ')} and ${quiet.quiet_path}, and the register docs/audit-2026-09.md in ${repo} (Round 1 section: its findings, verdicts, issue numbers). Validate every finding's JSON against tools/audit/finding.schema.json (pip install jsonschema into the venv if needed); a finding that fails validation is listed as "rejected at intake" with the reason.
 Merge same-phenomenon findings into M-ids. Classify each finding: new; corroborates open issue #N (say which); regression of a released D-id (which release); matches a round-1 refuted finding (attach the refutation as one argument for the panel). Replace provisional numbers with the quiet ones; D3 findings are only the confirmed mutants.
 Write the Round ${round} "Findings register" section of docs/audit-2026-09.md in ${repo} on a branch named claude/audit-r${round}-register (create it from origin/main; commit; do not push): the dimension status table, one table per dimension with id, severity, finding, status=reported, plus the dedup notes. Copy tools/audit/round${round}/ from the export and the worktrees into that branch and commit it too.
 Return JSON {branch, findings: [{id, dimension, severity, classification, title}], rejected: [{id, reason}], corroborations: [{id, issue}]}.`,
