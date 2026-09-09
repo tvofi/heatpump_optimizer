@@ -475,6 +475,7 @@ no wave:
 - [#636](https://github.com/tvofi/heatpump_optimizer/pull/636) — W5-G2: sensor.py annotations, ruler 518→371. leaves #303 open.
 - [#642](https://github.com/tvofi/heatpump_optimizer/pull/642) — W4-G10 S9 recorded halt: `optimize` 30–50 LOC verbatim has no remaining seam at `30a202e`. leaves #224 open.
 - [#639](https://github.com/tvofi/heatpump_optimizer/pull/639) — **merged under decision 0006**, without a merge SHA it cannot know: `policy_lint_envmatrix.mjs`, the declared-environment matrix that builds five shapes of this repository and fails a row whose run does not produce what the row declares — or a shape it cannot build — plus the `env-matrix` job, decision 0004 (*an assertion can be correct and never run*), and the `prepr.sh` widening. Mutation proof against production, not the harness, and via a temporary commit because the matrix clones from git objects: disabling the shallow-clone disclosure in `policy_lint.mjs` takes it to 11 held / 2 not, rc=1, both in the `shallow` shape; restored 13/13. A vacuous first attempt — a shell-form search string against an array-form call, zero occurrences, an empty WIP commit, 13/13 against an unmutated tree — is disclosed, because it read exactly like a pass until the occurrence assertion caught it. Trap 8 (*one CI runner is not the fleet*) gains its detector with this merge, the fifth in the graduation rule's runway; the ruleset's `env-matrix` context now exists on `main`. Body written against its SHA before the push, per S10; `--claims-only` at the merge base `ok`, because `main`'s claim list is empty and an empty list inherits nothing.
+- [#641](https://github.com/tvofi/heatpump_optimizer/pull/641) — **merged under decision 0006**, without a merge SHA it cannot know: `fix-review.md`'s verdict examples corrected to the grammar `web-fix-wave.js` actually parses — for a session the contract said `blocked: finding not carried to <stage>`, no SHA, no class, which `VERDICT_RE` rejects — plus `D7.md` truthed and decision 0005 recording why one identity authoring and approving makes a required-approval rule a lock. **The fix was unpinned and this branch pins it**: reversing the contract change left every detector green, so `check-wave-script.mjs` now extracts each backticked example beginning `blocked ` or `merge ` and runs it through the grammar rebuilt from the wave script's own text, with a floor of three so an empty extraction cannot pass — **37 passed at head**, the pin having since been widened to read every brief in `tools/audit/briefs/` rather than the contract alone. Driven, and stated as the assertions actually fire rather than as they did when this row was first written: **reversing one example is refused by the `blocked:` assertion**, 35/1 — the floor does NOT fire, because four examples across three files survive a floor of three; **deleting all three examples does fire the floor**, `found 2`, 33/1; a wrong class keeps its space and is refused by that file's own parse assertion, 36/1; and the negative control shows the grammar itself refuses the old form. The earlier reading of this row credited the floor with the reversal, which its own commit falsified two commits later — a row is a claim about the head it merges at, not about the head it was typed at. Body written against its SHA before the push, per S10; `--claims-only` at the merge base `ok`.
 
 **A pattern worth naming**, since most of these were blocked for it: every one of those blocks was a document asserting something that was not true of the tree — a stale head, a count, an actor, a carry that did not land. None was a disagreement about the change itself.
 
@@ -828,6 +829,36 @@ judge comments on each issue and summarised on #201.
   `{admin: false, maintain: false, push: false, triage: false, pull: false}`
   while pushes plainly worked, and suspected as much; this session reads
   `admin: true`, and create/update/delete of a ruleset all succeeded.
+- **O3 is decided: after this session, a policy merge needs the owner's
+  approval per pull request, with a per-session grant as the option — to be
+  recorded as ADR 0007.** The governance-audit plan (archived on
+  `audit/session-evidence-2026-09-08`, not on `main`) left O3 as its closing
+  question: whether policy merges after the programme revert to owner approval
+  per pull request or stand on the ruleset plus `pr-contract`. The owner ruled
+  on 2026-09-09: **per-PR approval**, with the **option of a session grant**
+  of the 0001/0006 shape — a decision record naming the session, the six
+  preconditions, reverting at session end. The ruleset and `pr-contract` are
+  the floor either way, not the substitute. Lands as ADR 0007 beside the
+  ruleset, the programme's last act, so the record that names the floor names
+  one that exists; the closing #201 comment lists every pull request merged
+  under 0006 with its verdict and head SHA, as that plan asked.
+- **The verdict-example pin has two residuals its own reviewer drove, and one
+  is a hole rather than a limit.** #641 round 2 attacked the widened block in
+  `check-wave-script.mjs` and found three properties, two of which are left
+  standing deliberately. **(a) The `blocked:` refusal is backtick-anchored**:
+  the rejected spelling inside a fenced code block passes, while the same
+  spelling in inline backticks fails — so a brief can still document the old
+  form in a fence, and a brief warning *against* it inline cannot. The escape
+  hatch and the hole are the same hatch; closing it means deciding whether a
+  fence is documentation or instruction, which is a question about briefs and
+  not about this checker. **(b) The floor of three is directory-wide**, so
+  deleting one brief outright still passes at 36/0 — the floor guards the
+  empty extraction, not per-file coverage; a per-file floor would pin which
+  briefs must carry examples, which is the row-format mistake in another
+  costume. The third, a hard-wrapped example failing for the width of its
+  column, was **fixed** in that pull request rather than carried. Whoever
+  revisits (a) should note that the same fence question governs
+  `policy_lint`'s own prose checks.
 - **`pr-contract` red runs are hidden by `gh pr checks`, and the ones on this
   queue's heads were process state (b), not a defect in the check.** Two facts,
   and only the first is the check's.
