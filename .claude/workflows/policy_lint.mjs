@@ -368,7 +368,7 @@ const CORPUS_EXCLUDED = new Set([
   // naming them all here would push the ALWAYS-LOADED set, the one number this
   // audit exists to drive down, past its cap to carry documents nobody must
   // read. Measured before choosing, and RE-MEASURED here because the first
-  // reading was taken against five decisions and this list now names six:
+  // reading was taken against five decisions and the list has grown since:
   // bringing `docs/decisions/` under POLICY_GLOBS reports 24 errors across 41
   // policy files -- 7 [budgets], 6 [index], 6 [duplicates], 5 [citations] --
   // where the first reading said 14. The shape is what decided it and the shape

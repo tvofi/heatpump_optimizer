@@ -522,6 +522,7 @@ inside it rather than after it.
 - [#660](https://github.com/tvofi/heatpump_optimizer/pull/660) — **merged under decision 0006**, without a merge SHA it cannot know: the handover's cap deadlock is resolved by a GRADUATION rule — a trap whose failure mode has acquired a mechanical detector becomes a one-line pointer to it, and each graduation owes a mutation proof that breaking the detector turns a check red. Four graduate (8, 9, 11, 19); trap 17 does not, because its only proof is a push to `main` with two branches arranged to collide, and a detector nobody drove is what the rule forbids trading prose for. 276 → 273 lines and the cap ratchets down with them.
 - [#669](https://github.com/tvofi/heatpump_optimizer/pull/669) — **merged under decision 0006**, without a merge SHA it cannot know: the reporting hole that let #625 merge with a red `pr-contract` at its head and a body saying `## Red checks: none`. The listing that shows one run per check is refused in every file the corpus MEASURES — the plan of record is not one of them, so this entry may keep naming it while no document that instructs a seat can — in every policy file **including the MCP mapping table**, which is where a seat with no `gh` binary looks up what to run — an exemption there would have been the hole rather than an escape from it. The table and `fix-review.md` step 11 now name the commit's `check-runs` API. Three findings this queue closed are marked closed in the entries above.
 - [#670](https://github.com/tvofi/heatpump_optimizer/pull/670) — **merged under decision 0006**, without a merge SHA it cannot know: **decision 0007** records the owner's O3 ruling — after this session a policy merge needs approval per pull request, with a per-session grant of the 0001/0006 shape as the option. It states that the ruleset does not exist yet and does not wait on it. 0006's sentence calling O3 an open question is corrected rather than left to age, and the seventh ADR pays its line in the exclusion list, which is what that list is for.
+- [#670](https://github.com/tvofi/heatpump_optimizer/pull/670) — **merged under decision 0006**, without a merge SHA it cannot know: **decision 0007** records the owner's O3 ruling — after this session a policy merge needs approval per pull request, with a per-session grant of the 0001/0006 shape as the option. It DATES what it says about the repository — the ruleset did not exist when the decision was taken — and does not wait on it; the first draft wrote that in the present tense, which would have gone false the hour the ruleset is created. 0006's sentence calling O3 an open question is corrected rather than left to age, and the seventh ADR pays its line in the exclusion list, which is what that list is for.
 
 ### The UX programme — 34 items, five lanes, tracking #558
 
@@ -892,17 +893,19 @@ judge comments on each issue and summarised on #201.
   while pushes plainly worked, and suspected as much; this session reads
   `admin: true`, and create/update/delete of a ruleset all succeeded.
 - **CLOSED by #670 as decision 0007.** O3 is decided: after this session, a policy merge needs the owner's
-  approval per pull request, with a per-session grant as the option — to be
-  recorded as ADR 0007.** The governance-audit plan (archived on
+  approval per pull request, with a per-session grant as the option, recorded as
+  ADR 0007. The governance-audit plan (archived on
   `audit/session-evidence-2026-09-08`, not on `main`) left O3 as its closing
   question: whether policy merges after the programme revert to owner approval
   per pull request or stand on the ruleset plus `pr-contract`. The owner ruled
   on 2026-09-09: **per-PR approval**, with the **option of a session grant**
   of the 0001/0006 shape — a decision record naming the session, the six
   preconditions, reverting at session end. The ruleset and `pr-contract` are
-  the floor either way, not the substitute. Lands as ADR 0007 beside the
-  ruleset, the programme's last act, so the record that names the floor names
-  one that exists; the closing #201 comment lists every pull request merged
+  the floor either way, not the substitute. **Landed as ADR 0007**, which does
+  NOT wait on the ruleset: the decision dates what it says about the
+  repository and stands whether or not a ruleset exists. An earlier draft of
+  this entry said it lands beside the ruleset as the programme's last act;
+  0007 says otherwise and 0007 is the record.
   under 0006 with its verdict and head SHA, as that plan asked.
 - **The verdict-example pin has two residuals its own reviewer drove, and one
   is a hole rather than a limit.** #641 round 2 attacked the widened block in
