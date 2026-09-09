@@ -36,9 +36,12 @@ from .const import (
     CONF_DAY_START_HOUR,
     CONF_DHW_MIN_TEMP,
     CONF_DHW_SETPOINT,
+    CONF_DHW_TANK_VOLUME,
     CONF_DHW_WINDOWS,
+    CONF_WOOD_FURNACE_ENABLED,
     MANUAL_PLAN_WINDOW_HOURS,
     DEFAULT_DHW_SETPOINT,
+    DEFAULT_DHW_TANK_VOLUME,
     DHW_MIN_TEMP_SETPOINT_MARGIN,
     CONF_TOPOLOGY_LAYOUT,
     CONF_TOPOLOGY_POSITIONS,
@@ -165,6 +168,8 @@ SERVICE_SCHEMA_APPLY_TOPOLOGY = vol.Schema(
                 ),
             }
         ),
+        vol.Optional("dhw"): cv.boolean,
+        vol.Optional("wood"): cv.boolean,
         vol.Optional("entry_id"): cv.string,
     }
 )
@@ -624,47 +629,71 @@ async def handle_apply_topology(hass: HomeAssistant, call: ServiceCall) -> dict[
     a wood probe, a valved layout needs a valve — so that is checked
     per entry here, and the rejection names the requirement so the
     editor can show it verbatim.
+
+    Optional ``dhw`` / ``wood`` persist tank presence independently:
+    DHW-on writes the default tank volume when hot water is not already
+    inferred; wood writes the furnace toggle. A tank change that makes
+    the named layout dishonest falls back to the derived default rather
+    than inventing a wood tank.
     """
     key = call.data["layout"]
     positions = call.data.get("positions")
+    dhw_flag = call.data.get("dhw")
+    wood_flag = call.data.get("wood")
+    tanks_changed = dhw_flag is not None or wood_flag is not None
     target_entry = call.data.get("entry_id")
 
     targets = _loaded_entries(hass, target_entry)
 
+    prepared: list[tuple[Any, dict[str, Any], str]] = []
     for entry in targets:
-        merged = {**entry.data, **entry.options}
+        options = {**dict(entry.options)}
+        if wood_flag is not None:
+            options[CONF_WOOD_FURNACE_ENABLED] = bool(wood_flag)
+        if dhw_flag is True:
+            preview = {**entry.data, **options}
+            if not ThermalParameters.from_config(preview).dhw_enabled:
+                options[CONF_DHW_TANK_VOLUME] = DEFAULT_DHW_TANK_VOLUME
+        merged = {**entry.data, **options}
         p = ThermalParameters.from_config(merged)
+        chosen = key
         if not topology_layout_valid(
-            key,
+            chosen,
             two_zone=p.two_zone_enabled,
             throttling=mixing_valve.is_throttling(p.mixing_valve_mode),
             wood_probe=p.wood_tank_configured,
         ):
-            raise ServiceValidationError(
-                f"This system cannot use the "
-                f"'{topology.LAYOUTS[key].label}' layout: it needs "
-                f"{topology.LAYOUTS[key].requirement}",
-                translation_domain=DOMAIN,
-                translation_key="apply_topology_unsupported",
-                translation_placeholders={
-                    "layout": topology.LAYOUTS[key].label,
-                    "requirement": topology.LAYOUTS[key].requirement,
-                },
-            )
-
-    for entry in targets:
-        options = {**dict(entry.options), CONF_TOPOLOGY_LAYOUT: key}
+            if not tanks_changed:
+                raise ServiceValidationError(
+                    f"This system cannot use the "
+                    f"'{topology.LAYOUTS[key].label}' layout: it needs "
+                    f"{topology.LAYOUTS[key].requirement}",
+                    translation_domain=DOMAIN,
+                    translation_key="apply_topology_unsupported",
+                    translation_placeholders={
+                        "layout": topology.LAYOUTS[key].label,
+                        "requirement": topology.LAYOUTS[key].requirement,
+                    },
+                )
+            chosen = ThermalParameters.from_config(
+                {k: v for k, v in merged.items() if k != CONF_TOPOLOGY_LAYOUT}
+            ).topology_layout
+        options[CONF_TOPOLOGY_LAYOUT] = chosen
         if positions is not None:
             options[CONF_TOPOLOGY_POSITIONS] = {
                 place: [float(x), float(y)]
                 for place, (x, y) in positions.items()
             }
+        prepared.append((entry, options, chosen))
+
+    for entry, options, _chosen in prepared:
         hass.config_entries.async_update_entry(entry, options=options)
 
+    stored = prepared[-1][2] if prepared else key
     _LOGGER.info(
-        "Topology layout %s stored on %d entry(ies)", key, len(targets)
+        "Topology layout %s stored on %d entry(ies)", stored, len(targets)
     )
-    return {"layout": key}
+    return {"layout": stored}
 
 async def handle_apply_schedule(hass: HomeAssistant, call: ServiceCall) -> dict[str, Any]:
     """Persist a schedule the user built in the what-if simulator.

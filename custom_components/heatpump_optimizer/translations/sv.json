@@ -1700,7 +1700,7 @@
     },
     "apply_topology": {
       "name": "Tillämpa systemlayout",
-      "description": "Spara den hydrauliska layout som inkopplingsschemats redigerare fäste mot, tillsammans med rutornas kosmetiska placering. Bara layouter ur den katalog som stöds accepteras, och bara när det här systemets konfiguration kan uppfylla dem — en layout med två tankar kräver en givare i vedtanken, en ventilerad layout kräver en ventil. En ändrad konfiguration laddar om integrationen.",
+      "description": "Spara den hydrauliska layout som inkopplingsschemats redigerare fäste mot, tillsammans med rutornas kosmetiska placering och vilka extra tankar som finns. Bara layouter ur den katalog som stöds accepteras, och bara när det här systemets konfiguration kan uppfylla dem — en layout med två tankar kräver en givare i vedtanken, en ventilerad layout kräver en ventil. En ändrad konfiguration laddar om integrationen.",
       "fields": {
         "layout": {
           "name": "Systemlayout",
@@ -1709,6 +1709,14 @@
         "positions": {
           "name": "Rutornas placering",
           "description": "Kosmetiska placeringar i schemat, som en avbildning från platsnamn till [x, y]. Påverkar aldrig fysiken."
+        },
+        "dhw": {
+          "name": "Varmvattentank",
+          "description": "Spara en varmvattentank utan att kräva en vedpannetank. På skriver standardvolymen när varmvatten inte redan är härlett."
+        },
+        "wood": {
+          "name": "Vedpannetank",
+          "description": "Spara vedpannebrytaren. Av döljer vedtanken även om gamla givare finns kvar; på visar den så att givarna kan tilldelas."
         },
         "entry_id": {
           "name": "Konfigurationspost",

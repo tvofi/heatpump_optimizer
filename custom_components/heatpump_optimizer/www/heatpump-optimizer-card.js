@@ -335,6 +335,10 @@ const STRINGS = {
     "setup.buffer_too_small": "too small to store",
     "setup.no_valve_caption": "no mixing valve: delivery is not throttled",
     "setup.box_dhw_tank": "Hot water tank",
+    "setup.tank_dhw": "Hot water",
+    "setup.tank_wood": "Wood furnace",
+    "setup.tanks_aria": "Tanks in this system",
+    "setup.saved_tanks_reloading": "Saved tanks. Reloading…",
     "setup.dhw_coil_caption": "refilled through a wood tank coil",
     "setup.box_upper_floor": "Upper floor",
     "setup.box_house": "House",
@@ -734,6 +738,10 @@ const STRINGS = {
     "setup.buffer_too_small": "för liten för att lagra",
     "setup.no_valve_caption": "ingen shuntventil: leveransen stryps inte",
     "setup.box_dhw_tank": "Varmvattentank",
+    "setup.tank_dhw": "Varmvatten",
+    "setup.tank_wood": "Vedpanna",
+    "setup.tanks_aria": "Tankar i det här systemet",
+    "setup.saved_tanks_reloading": "Sparade tankar. Laddar om…",
     "setup.dhw_coil_caption": "återfylls genom en slinga i vedtanken",
     "setup.box_upper_floor": "Övervåning",
     "setup.box_house": "Hus",
@@ -3191,6 +3199,21 @@ function cardStyleBlock() {
         outline-offset: 2px;
       }
       .layout-edit-toggle.on { border-color: var(--primary-color, #03a9f4); }
+      .tank-bar {
+        display: flex; align-items: center; gap: 0.5em;
+        flex-wrap: wrap; padding: 0 0.25em 0.4em 0.25em;
+      }
+      .tank-bar button {
+        font: inherit; font-size: 0.85em; cursor: pointer;
+        border: 1px solid var(--divider-color, #e0e0e0);
+        background: transparent; color: var(--primary-text-color);
+        border-radius: 1em; padding: 0.2em 0.9em;
+      }
+      .tank-bar button:focus-visible {
+        outline: 2px solid var(--primary-color, #03a9f4);
+        outline-offset: 2px;
+      }
+      .tank-toggle.on { border-color: var(--primary-color, #03a9f4); }
       .layout-bar button[disabled] { opacity: 0.45; cursor: default; }
       .layout-verdict {
         flex: 1 1 100%; font-size: 0.85em;
@@ -8270,10 +8293,58 @@ class SetupPage {
     }
   }
 
+  /** Independent tank picks: DHW and wood, each persistable without the other. */
+  tankBarHtml(topo) {
+    const dhw = !!topo.dhw;
+    const wood = !!(topo.wood && topo.wood.present);
+    return `
+      <div class="tank-bar" role="group" aria-label="${esc(L("setup.tanks_aria"))}">
+        <button type="button" class="tank-toggle tank-dhw${dhw ? " on" : ""}"
+          aria-pressed="${dhw}">${esc(L("setup.tank_dhw"))}</button>
+        <button type="button" class="tank-toggle tank-wood${wood ? " on" : ""}"
+          aria-pressed="${wood}">${esc(L("setup.tank_wood"))}</button>
+      </div>`;
+  }
+
+  async persistTanks({ dhw, wood, layout }) {
+    if (!this.host.hass || typeof this.host.hass.callService !== "function") {
+      return;
+    }
+    if (!layout) return;
+    const note = this.host.shadowRoot.querySelector(".setup-result");
+    try {
+      await this.host.hass.callService("heatpump_optimizer", "apply_topology", {
+        layout, dhw, wood,
+      });
+      this.note = L("setup.saved_tanks_reloading");
+    } catch (err) {
+      this.note = L("errors.could_not_save_layout", {
+        err: (err && err.message) || err,
+      });
+    }
+    this.host.render();
+    if (note) note.textContent = this.note || "";
+  }
+
   /** Wire the page's clickable slots and its picker. `layoutEditing()` says
    * whether the layout editor is open, in which case a click on a box is the
    * start of a drag, not a request to assign a sensor. */
   attach(root, { layoutEditing }) {
+    for (const btn of root.querySelectorAll(".tank-toggle")) {
+      btn.addEventListener("click", (ev) => {
+        stop(ev);
+        if (layoutEditing()) return;
+        const topo = this.host.plan.attrRaw("setup_topology", null) || {};
+        const on = btn.getAttribute("aria-pressed") !== "true";
+        const dhw = btn.classList.contains("tank-dhw")
+          ? on
+          : !!topo.dhw;
+        const wood = btn.classList.contains("tank-wood")
+          ? on
+          : !!(topo.wood && topo.wood.present);
+        return this.persistTanks({ dhw, wood, layout: topo.layout });
+      });
+    }
     const openPicker = (key, viaKeyboard) => {
       // While the layout editor is open a click on a box is the start of a
       // drag, not a request to assign a sensor. Opening the picker over the
@@ -9979,6 +10050,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // to the wrapper, and a drag that replaced its own listeners mid-gesture
     // would drop the pointer.
     return `<div class="setup-page${editing ? " editing" : ""}">
+      ${this.setup.tankBarHtml(topo)}
       ${this.layoutEditor.barHtml(topo)}
       <div class="setup-canvas">${drawn.html}</div>
       ${this.setup.pickerHtml(topo)}

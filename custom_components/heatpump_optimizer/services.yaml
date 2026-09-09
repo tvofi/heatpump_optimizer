@@ -384,6 +384,12 @@ apply_topology:
     positions:
       selector:
         object: null
+    dhw:
+      selector:
+        boolean: null
+    wood:
+      selector:
+        boolean: null
     entry_id:
       selector:
         text: null

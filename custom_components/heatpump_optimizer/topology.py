@@ -35,9 +35,7 @@ from .const import (
     topology_layout_valid,
     CONF_BUFFER_TANK_TEMP_ENTITY,
     CONF_DHW_TEMP_ENTITY,
-    CONF_DHW_WOOD_COIL_ENABLED,
     CONF_ENERGY_ENTITY,
-    CONF_EXTERNAL_HEAT_ENABLED,
     CONF_EXTERNAL_HEAT_ENTITY,
     CONF_FLOOR_RETURN_TEMP_ENTITY,
     CONF_HEAT_PUMP_DEFROST_ENTITY,
@@ -60,6 +58,7 @@ from .const import (
     DEFAULT_WOOD_TANK_VOLUME,
 )
 from .thermal_model import ThermalParameters
+from .wood_fuel import wood_furnace_on
 
 # Every sensor slot the diagram can show: (config key, place, label).
 # Places are stable ids both renderers key their drawing off; adding a place
@@ -351,13 +350,9 @@ def describe_setup(config: dict[str, Any]) -> dict[str, Any]:
     # heat-pump tank. Read from the model, never re-derived here, so a picture
     # cannot claim physics the model does not run (issue #40).
     two_tank = p.two_tank_modelled
-    wood = bool(
-        config.get(CONF_EXTERNAL_HEAT_ENABLED)
-        or config.get(CONF_WOOD_TANK_TOP_ENTITY)
-        or config.get(CONF_WOOD_TANK_BOTTOM_ENTITY)
-        or config.get(CONF_VALVE_OUTLET_TEMP_ENTITY)
-        or config.get(CONF_EXTERNAL_HEAT_ENTITY)
-    )
+    # Same gate as the model: leftover probes with the furnace toggle off
+    # must not draw a wood tank the optimizer is not running.
+    wood = wood_furnace_on(config)
     present = {
         "outdoor": True,
         "upper_zone": True,

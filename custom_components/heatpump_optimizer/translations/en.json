@@ -1700,7 +1700,7 @@
     },
     "apply_topology": {
       "name": "Apply Topology Layout",
-      "description": "Store the hydronic layout the setup diagram's editor snapped to, plus the cosmetic box positions. Only layouts from the supported catalog are accepted, and only when this system's configuration can honor them — a two-tank layout needs a wood-tank probe, a valved layout needs a valve. Changing the configuration reloads the integration.",
+      "description": "Store the hydronic layout the setup diagram's editor snapped to, plus the cosmetic box positions and which extra tanks are present. Only layouts from the supported catalog are accepted, and only when this system's configuration can honor them — a two-tank layout needs a wood-tank probe, a valved layout needs a valve. Changing the configuration reloads the integration.",
       "fields": {
         "layout": {
           "name": "Layout",
@@ -1709,6 +1709,14 @@
         "positions": {
           "name": "Box positions",
           "description": "Cosmetic diagram positions, as a mapping from place name to [x, y]. Never affects the physics."
+        },
+        "dhw": {
+          "name": "Hot water tank",
+          "description": "Persist a domestic hot-water tank without requiring a wood furnace tank. On writes the default tank volume when hot water is not already inferred."
+        },
+        "wood": {
+          "name": "Wood furnace tank",
+          "description": "Persist the wood-furnace toggle. Off hides the wood tank even if leftover probes remain; on shows it so those probes can be assigned."
         },
         "entry_id": {
           "name": "Config entry",

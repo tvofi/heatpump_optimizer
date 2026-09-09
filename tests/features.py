@@ -25107,6 +25107,94 @@ R.check(
     f"raised {_t546_raised!r}; stored {_t546_stored!r}",
 )
 
+R.section("DHW-tank-only topology (no wood tank)")
+
+# The model already plans hot water without a wood tank. The setup picture
+# did not: leftover wood keys still drew a wood box, and apply_topology
+# could not persist "DHW on, wood off". These pins are the save / load /
+# solve path the setup page needs.
+
+_dhw_only_cfg = {
+    "dhw_tank_volume": 200.0,
+    "wood_furnace_enabled": False,
+    "wood_tank_top_entity": "sensor.wood_top",
+    "mixing_valve_mode": "none",
+}
+_dhw_only = _topo.describe_setup(_dhw_only_cfg)
+_dhw_only_places = {s["place"] for s in _dhw_only["slots"]}
+R.check(
+    "DHW-only describe_setup keeps the hot water tank and drops the wood tank",
+    _dhw_only["dhw"]
+    and not _dhw_only["wood"]["present"]
+    and "dhw_tank" in _dhw_only_places
+    and "wood_tank" not in _dhw_only_places
+    and ["heat_pump", "dhw_tank"] in _dhw_only["edges"]
+    and all("wood_tank" not in e for e in _dhw_only["edges"]),
+    f"dhw={_dhw_only['dhw']} wood={_dhw_only['wood']} "
+    f"places={sorted(_dhw_only_places)} edges={_dhw_only['edges']}",
+)
+
+_dhw_only_params = ThermalParameters.from_config(_dhw_only_cfg)
+R.check(
+    "DHW-only loads without wood-tank entities or wood-fuel params",
+    _dhw_only_params.dhw_enabled
+    and not _dhw_only_params.wood_tank_configured
+    and not _dhw_only_params.dhw_coil_active,
+    f"dhw={_dhw_only_params.dhw_enabled} "
+    f"wood={_dhw_only_params.wood_tank_configured} "
+    f"coil={_dhw_only_params.dhw_coil_active}",
+)
+
+_dhw_only_temps = ThermalModel(_dhw_only_params).simulate_dhw_only(
+    48.0,
+    np.array([1.5, 1.5, 1.5, 1.5]),
+    np.array([-2.0, -2.0, -2.0, -2.0]),
+    np.array([0.0, 0.0, 0.0, 0.0]),
+)
+R.check(
+    "DHW-only solves without a wood tank",
+    float(_dhw_only_temps[-1]) > 48.0,
+    f"started 48.0 ended {float(_dhw_only_temps[-1])}",
+)
+
+_dhw_only_hass = FakeHass()
+_dhw_only_entry = FakeEntry(
+    data={"tibber_token": "x", "weather_entity": "weather.home"},
+    entry_id="dhw_only_entry",
+)
+_asyncio.run(_ha_setup_entry(_integ, _dhw_only_hass, _dhw_only_entry))
+_asyncio.run(_dhw_only_hass.services.async_call(
+    _DOMAIN, _t546_const.SERVICE_APPLY_TOPOLOGY,
+    {"layout": "no_valve", "dhw": True, "wood": False},
+))
+_dhw_only_opts = dict(_dhw_only_entry.options or {})
+_dhw_only_loaded = ThermalParameters.from_config(
+    {**_dhw_only_entry.data, **_dhw_only_opts}
+)
+R.check(
+    "apply_topology persists DHW-on / wood-off without inventing a wood tank",
+    _dhw_only_opts.get(_t546_const.CONF_WOOD_FURNACE_ENABLED) is False
+    and _dhw_only_opts.get(_t546_const.CONF_DHW_TANK_VOLUME)
+    and _dhw_only_loaded.dhw_enabled
+    and not _dhw_only_loaded.wood_tank_configured
+    and not _dhw_only_opts.get(_t546_const.CONF_WOOD_TANK_TOP_ENTITY)
+    and not _dhw_only_opts.get(_t546_const.CONF_WOOD_PRICE_SEK_M3),
+    f"options={_dhw_only_opts} dhw={_dhw_only_loaded.dhw_enabled} "
+    f"wood={_dhw_only_loaded.wood_tank_configured}",
+)
+
+_dhw_only_wood = _topo.describe_setup({
+    "wood_furnace_enabled": True,
+    "mixing_valve_mode": "none",
+})
+R.check(
+    "wood-only still grows a wood tank box once the furnace is on",
+    _dhw_only_wood["wood"]["present"]
+    and "wood_tank" in {s["place"] for s in _dhw_only_wood["slots"]}
+    and not _dhw_only_wood["dhw"],
+    f"wood={_dhw_only_wood['wood']} dhw={_dhw_only_wood['dhw']}",
+)
+
 # --- process_worker.py in-process pins (#505) -------------------------------
 #
 # The module landed at 0.0% (36/36) and belongs to no #195 tranche. #511

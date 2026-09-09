@@ -2299,6 +2299,73 @@ check("the hand-scheduled reason has a label",
   check("switching back restores the chart and the what-if panel",
     /chartwrap big/.test(backToPlan) && !/class="setup-svg"/.test(backToPlan));
 
+  {
+    // DHW tank without a wood furnace tank: the setup page must offer that
+    // pick and persist it. The published topology already draws the box when
+    // `dhw` is on and `wood.present` is off; the missing path was choosing
+    // that combination from the page.
+    const dhwOnly = JSON.parse(JSON.stringify(topo));
+    dhwOnly.wood = { present: false, volume_l: 0 };
+    dhwOnly.dhw = true;
+    dhwOnly.layout = "single_tank_valve";
+    dhwOnly.edges = [
+      ["heat_pump", "buffer_tank"],
+      ["buffer_tank", "mixing_valve"],
+      ["mixing_valve", "upper_zone"],
+      ["mixing_valve", "lower_zone"],
+      ["heat_pump", "dhw_tank"],
+    ];
+    dhwOnly.slots = topo.slots.filter((s) => s.place !== "wood_tank").concat([
+      { key: "dhw_temp_entity", label: "Hot water temperature",
+        place: "dhw_tank", entity: null, domains: TEMP },
+    ]);
+    const doStates = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    doStates[DEFAULT_SPACE].attributes.setup_topology = dhwOnly;
+    const only = build(doStates);
+    only._onCardClick({});
+    only.dialog.page = "setup";
+    only._render();
+    const onlyPage = collect(only.shadowRoot).join("\n");
+    check("a DHW-only topology draws the hot water tank and no wood tank",
+      /Hot water tank/.test(onlyPage) && !/Wood furnace tank/.test(onlyPage) &&
+      edges(onlyPage).includes("heat_pump>dhw_tank") &&
+      !edges(onlyPage).some((e) => e.includes("wood_tank")) &&
+      /tank-dhw/.test(onlyPage) && /tank-wood/.test(onlyPage),
+      `edges=${edges(onlyPage).join(", ")}`);
+    check("the setup page offers independent tank picks",
+      /tank-dhw/.test(onlyPage) && /tank-wood/.test(onlyPage) &&
+      only.shadowRoot.querySelector(".tank-dhw").getAttribute("aria-pressed") === "true" &&
+      only.shadowRoot.querySelector(".tank-wood").getAttribute("aria-pressed") === "false");
+
+    const none = JSON.parse(JSON.stringify(dhwOnly));
+    none.dhw = false;
+    none.edges = none.edges.filter((e) => e[1] !== "dhw_tank");
+    none.slots = none.slots.filter((s) => s.place !== "dhw_tank");
+    const noneStates = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    noneStates[DEFAULT_SPACE].attributes.setup_topology = none;
+    const bare = build(noneStates);
+    bare._onCardClick({});
+    bare.dialog.page = "setup";
+    bare._render();
+    const tankCalls = [];
+    bare._hass.callService = async (domain, service, data) => {
+      tankCalls.push([domain, service, data]);
+    };
+    const addDhw = bare.shadowRoot.querySelector(".tank-dhw");
+    check("a house with neither extra tank can still pick DHW",
+      addDhw && addDhw.getAttribute("aria-pressed") === "false");
+    if (addDhw) {
+      (addDhw._listeners.click || []).forEach((f) =>
+        f({ stopPropagation() {}, preventDefault() {} }));
+    }
+    check("picking DHW-only persists dhw on and wood off",
+      tankCalls.length === 1 && tankCalls[0][1] === "apply_topology" &&
+      tankCalls[0][2].dhw === true && tankCalls[0][2].wood === false &&
+      tankCalls[0][2].layout === "single_tank_valve" &&
+      !("edges" in tankCalls[0][2]),
+      JSON.stringify(tankCalls));
+  }
+
   // --- click-to-assign (item 32's second stage) ---------------------------
   su.dialog.page = "setup";
   su._render();
