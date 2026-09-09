@@ -380,11 +380,18 @@ const CORPUS_EXCLUDED = new Set([
   // not exist. The fourth is 0005 citing `docs/plan-2026-09-governance-audit.md`
   // and is a TRUE positive: that plan is archived on a branch and is not in this
   // tree. The fifth is 0006 citing `POLICY_GLOBS`, which exists a few lines
-  // above here -- unresolvable because `SYMBOL_GREP_EXCLUDE` is [':!.claude'],
-  // excluding this whole directory on purpose so that a roster cannot satisfy
-  // its own citation. So three of the five are a check applied to the wrong kind
-  // of text, one is the check working, and one is a known exclusion meeting a
-  // document that cites into it. The count grows with the directory, which is
+  // above here. `git grep -w POLICY_GLOBS` finds three tracked files, and
+  // `symbolElsewhere` below excludes all three by three different clauses of
+  // its own inline list: this file by `:!.claude`, ADR 0002 by `...spec` (a
+  // policy file cannot satisfy a citation, and once ADRs are policy files --
+  // the state being measured -- 0002 is one), and 0006 itself by `exceptRel`.
+  // Two are independently sufficient: dropping `:!.claude` takes the total to
+  // 23, and so does un-excluding 0002. Named this precisely because the
+  // sentence has been wrong twice, once as "all five are 0003's" and once as
+  // `SYMBOL_GREP_EXCLUDE`, which this file imports and never calls on this
+  // path. So three of the five are a check applied to the wrong kind of text,
+  // one is the check working, and one is three exclusions meeting a document
+  // that cites into all of them. The count grows with the directory, which is
   // the other half of the argument: measuring ADRs makes the corpus pay per
   // decision.
   //
