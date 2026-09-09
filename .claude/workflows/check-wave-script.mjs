@@ -178,24 +178,43 @@ console.log('-- The referent a keyed stage must carry, not only the stage word')
 // and SHA are both undefined. The vocabulary check printed 37 passed, 0 failed
 // throughout, because every one of those stage words was in KNOWN_STAGES.
 //
-// THE RULE, READ OFF web-fix-wave.js RATHER THAN INVENTED HERE: a stage
-// requires a key exactly where that script dereferences `g.resume.<key>`
-// WITHOUT a `?? null` fallback and then hands the value to an agent or reports
-// it as fact. Each row is a list of alternatives, satisfied by any one member
-// -- which is why review asks for `pr` OR `open_pr`, the two spellings the
-// committed rosters actually use.
+// THE RULE, READ OFF web-fix-wave.js RATHER THAN INVENTED HERE -- and, since
+// the #691 review, EXECUTED rather than only written down. A stage requires a
+// key exactly where that script dereferences `g.resume.<key>` IN THAT STAGE'S
+// OWN BRANCH, with no `??` fallback closing the chain, AND the value is a
+// POINTER: a commit, a pull request or a head. Keys sharing one `??` chain are
+// alternatives; separate chains are separate requirements -- which is why
+// review asks for `pr` OR `open_pr`, the two spellings the committed rosters
+// use, and ALSO for `head_sha`.
 //
-// `blocked` is EXEMPT ON THAT SAME RULE, and the exemption is a design choice
-// stated rather than an oversight: its branch reads
-// `g.resume.pr ?? g.resume.open_pr ?? null` and `g.resume.head_sha ?? null`,
-// spends no agent and dispatches nobody, so the script itself declares those
-// keys optional. Requiring them would fail the one committed blocked group,
-// whose roster is not defective. `pending` and a missing stage read no key at
-// all.
+// THE POINTER CLAUSE IS THE #691 REVIEW'S FIRST RESIDUAL, CLOSED HERE. The
+// earlier wording ended at "hands the value to an agent or reports it as fact",
+// which also covers `what` and `missing` -- the fix branch's RESUMED prompt
+// dereferences both bare and interpolates both into a prompt an agent is handed
+// -- while STAGE_REFERENT.fix required neither. Rule and map could be read
+// apart. The wording is tightened rather than the map widened, and the
+// discriminant is the script's own: `pushed_sha` names a git object the RESUMED
+// prompt tells a resuming fixer to re-attach to, and it is the one `fix` key
+// the Reconcile prompt checks against origin (`resume.stage is 'fix' but the
+// branch tip differs from resume.pushed_sha`). `what` and `missing` name no
+// object and origin holds no fact to reconcile them against; an absent one
+// degrades a sentence. Requiring them would make this check the author of a
+// prose convention rather than the reader of the script's -- the same failure
+// the stale-key guard below exists to prevent.
 //
-// `fix` requires `pushed_sha` only. Its prompt also interpolates `what` and
-// `missing`, but those are prose: an absent one degrades a sentence, while an
-// absent `pushed_sha` points a resuming fixer at a commit that does not exist.
+// AND THE TWO CANNOT DRIFT APART AGAIN, because the rule is now a predicate:
+// deriveReferents() re-derives the whole map -- rows, alternatives and the
+// blocked exemption -- from the branch source, and STAGE_REFERENT is asserted
+// equal to it. Edit the map without the script, or the script without the map,
+// and this goes red.
+//
+// `blocked` is EXEMPT, and the exemption is now DERIVED rather than asserted:
+// its branch reads `g.resume.pr ?? g.resume.open_pr ?? null` and
+// `g.resume.head_sha ?? null`, every chain closed by a fallback, so the rule
+// yields an empty row for it and the script itself declares those keys
+// optional. It spends no agent and dispatches nobody; requiring them would fail
+// the one committed blocked group, whose roster is not defective. `pending` and
+// a missing stage normalise to null, match no branch and read no key at all.
 const STAGE_REFERENT = {
   review: [['pr', 'open_pr'], ['head_sha']],
   merge: [['pr'], ['head_sha']],
@@ -210,6 +229,87 @@ const referentGaps = (resume, normalise) => {
   if (!need) return []
   return need.filter((alts) => !alts.some((k) => resume[k] !== undefined && resume[k] !== null))
 }
+
+// THE SECOND #691 RESIDUAL: the stale-key guard tested `resume.<key>` against
+// the WHOLE script, so a row naming a key some OTHER branch reads passed --
+// `merge: [['pr'], ['head_sha', 'merge_sha']]` was accepted because the done
+// branch reads `merge_sha`. Both guards below are scoped to the branch instead,
+// and a branch is a region of source rather than a whole file.
+//
+// The two shapes web-fix-wave.js tests a stage in: `if (stage === '<s>') { .. }`
+// and RESUMED's `g.resume?.stage === 'fix' ? `..` : ''`. Brace counting is
+// balanced across `${..}`, so the block form needs no template awareness; the
+// ternary form is one template literal and is taken backtick to backtick. An
+// unlocatable branch returns '' and is asserted against a floor below, because
+// an empty region derives an empty row, which reads exactly like an exemption.
+const branchSource = (stage) => {
+  const out = []
+  for (const m of src.matchAll(new RegExp(`===\\s*'${stage}'`, 'g'))) {
+    let i = m.index + m[0].length
+    while (i < src.length && /[\s)]/.test(src[i])) i += 1
+    if (src[i] === '{') {
+      let depth = 0, j = i
+      for (; j < src.length; j += 1) {
+        if (src[j] === '{') depth += 1
+        else if (src[j] === '}' && (depth -= 1) === 0) break
+      }
+      out.push(src.slice(i, j + 1))
+    } else if (src[i] === '?') {
+      const a = src.indexOf('`', i), b = src.indexOf('`', a + 1)
+      if (a > 0 && b > a) out.push(src.slice(a, b + 1))
+    }
+  }
+  return out.join('\n')
+}
+// Every `g.resume.<key>` in a region, grouped into its `??` chain. A chain
+// whose alternatives run out into anything that is not another resume key --
+// `null`, `'no note'` -- is GUARDED: the script has spelled the key optional
+// and asks the roster for nothing.
+const DEREF = /g\.resume\??\.([A-Za-z_][A-Za-z0-9_]*)/g
+const chainsIn = (text) => {
+  const chains = []
+  let i = 0
+  for (;;) {
+    DEREF.lastIndex = i
+    const m = DEREF.exec(text)
+    if (!m) return chains
+    const keys = [m[1]]
+    let j = m.index + m[0].length, guarded = false
+    for (;;) {
+      const link = /^\s*\?\?\s*/.exec(text.slice(j))
+      if (!link) break
+      const next = /^g\.resume\??\.([A-Za-z_][A-Za-z0-9_]*)/.exec(text.slice(j + link[0].length))
+      if (!next) { guarded = true; break }
+      keys.push(next[1])
+      j += link[0].length + next[0].length
+    }
+    chains.push({ keys, guarded })
+    i = j
+  }
+}
+// THE POINTER CLAUSE, AS A PREDICATE, AND IT IS A NAME TEST -- said plainly
+// because it is a design choice. web-fix-wave.js names every referent it reads
+// `pr`, `open_pr`, `merged_pr`, `head_sha`, `merge_sha`, `pushed_sha`, so the
+// shape is the script's own and not this file's invention. A pointer key named
+// against that convention would be invisible to the test, which is why the
+// leftovers are an assertion rather than a filter: a bare key that is neither
+// pointer-shaped nor on NON_POINTER_KEYS fails, and the next author decides
+// which it is instead of this check deciding by silence.
+const POINTER_KEY = /(^|_)(pr|sha)$/
+const NON_POINTER_KEYS = ['what', 'missing', 'note', 'stage']
+const deriveReferents = (stage) => {
+  const rows = [], mixed = [], unclassified = [], seen = new Set()
+  for (const chain of chainsIn(branchSource(stage))) {
+    if (chain.guarded) continue
+    const ptr = chain.keys.filter((k) => POINTER_KEY.test(k))
+    if (ptr.length && ptr.length !== chain.keys.length) { mixed.push(chain.keys.join(' / ')); continue }
+    if (!ptr.length) { unclassified.push(...chain.keys.filter((k) => !NON_POINTER_KEYS.includes(k))); continue }
+    const sig = ptr.join('|')
+    if (!seen.has(sig)) { seen.add(sig); rows.push(ptr) }
+  }
+  return { rows, mixed, unclassified }
+}
+const canonical = (rows) => (rows ?? []).map((r) => [...r].sort().join('/')).sort().join(' + ') || '(exempt)'
 await block('the referent a keyed stage must carry', async () => {
   const known = [...src.matchAll(/const KNOWN_STAGES = \[([^\]]*)\]/g)]
     .flatMap((m) => [...m[1].matchAll(/'([a-z-]+)'/g)].map((x) => x[1]))
@@ -228,12 +328,50 @@ await block('the referent a keyed stage must carry', async () => {
     known.length > 0 && alias.size > 0 && unmapped.length === 0,
     `known=[${known}] normalised=[${normalised}] unmapped=[${unmapped}]`)
 
-  // ...and the map must not require a key the script has stopped reading,
-  // which would make this check the author of a convention rather than the
-  // reader of one.
-  const stale = [...new Set(Object.values(STAGE_REFERENT).flat(2))]
-    .filter((k) => !new RegExp(`resume(?:\\?)?\\.${k}\\b`).test(src))
-  t('every key required here is one web-fix-wave.js actually reads', stale.length === 0, `not read: [${stale}]`)
+  // ...and the map must not require a key the script has stopped reading IN THE
+  // BRANCH THAT REQUIRES IT. Testing against the whole file accepted a row
+  // naming any key any branch reads, so a map rotting one row at a time --
+  // `merge` extended with the done branch's `merge_sha` -- passed in silence.
+  const region = Object.fromEntries(
+    [...Object.keys(STAGE_REFERENT), ...STAGE_NO_REFERENT].map((s) => [s, branchSource(s)]))
+  // The floor for the extractor itself: a branch this cannot locate yields no
+  // source, no chains and an empty row, which is indistinguishable from a
+  // stated exemption. Sizes are printed rather than only asserted, on the
+  // precedent of the scan below -- a region that shrank to a fragment still
+  // passes a non-empty test.
+  const noRegion = Object.entries(region).filter(([, text]) => text.length === 0).map(([s]) => s)
+  const derived = Object.fromEntries(Object.keys(region).map((s) => [s, deriveReferents(s)]))
+  for (const [s, text] of Object.entries(region)) {
+    console.log(`  rule   ${s.padEnd(8)} derived ${canonical(derived[s].rows).padEnd(28)} map ${canonical(STAGE_REFERENT[s])}   ${text.length} char(s) of branch source`)
+  }
+  t('every stage this map decides has a locatable branch in web-fix-wave.js',
+    Object.keys(region).length > 0 && noRegion.length === 0, `no branch source found for: [${noRegion}]`)
+
+  const stale = Object.entries(STAGE_REFERENT).flatMap(([s, rows]) =>
+    [...new Set(rows.flat())]
+      .filter((k) => !new RegExp(`resume\\??\\.${k}\\b`).test(region[s] ?? ''))
+      .map((k) => `${s}: ${k}`))
+  t('every key required here is one the branch that requires it actually reads',
+    stale.length === 0, `not read in its own branch: [${stale.join(', ')}]`)
+
+  // THE CONTROL THAT KEEPS THE RULE AND THE MAP FROM BEING READ APART. The
+  // paragraph above states a rule; this re-derives the map from it and compares.
+  // The map stays written out rather than replaced by the derivation, because a
+  // reviewer reads the map and because the AND/OR structure is a decision worth
+  // seeing -- but it is no longer allowed to say something the script does not.
+  const drift = Object.keys(region)
+    .map((s) => [s, canonical(derived[s].rows), canonical(STAGE_REFERENT[s])])
+    .filter(([, rule, mapped]) => rule !== mapped)
+    .map(([s, rule, mapped]) => `${s}: rule says ${rule}, map says ${mapped}`)
+  t('the map is exactly what the rule derives from the branch source',
+    Object.keys(region).length > 0 && drift.length === 0, drift.join('; '))
+
+  // ...and no bare key in a keyed branch is left undecided by the pointer
+  // clause, so a key the rule cannot classify halts instead of vanishing.
+  const odd = Object.keys(region).flatMap((s) =>
+    [...derived[s].mixed.map((c) => `${s}: pointer and prose in one chain (${c})`),
+      ...derived[s].unclassified.map((k) => `${s}: ${k} is neither pointer-shaped nor a recorded non-pointer`)])
+  t('every bare resume key in a decided branch is classified by the rule', odd.length === 0, odd.join('; '))
 
   // THE POPULATION IS AN OPERAND, on the precedent of the vocabulary check
   // above: "every keyed group carries its key" is vacuously true over zero
