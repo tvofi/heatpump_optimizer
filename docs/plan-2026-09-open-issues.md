@@ -481,6 +481,7 @@ no wave:
 
 - [#638](https://github.com/tvofi/heatpump_optimizer/pull/638) — nightly A10 diagnostics privacy probe. leaves #533 open.
 - [#648](https://github.com/tvofi/heatpump_optimizer/pull/648) — W5-G3: defrost.py annotations, ruler 371→355. leaves #303 open.
+- [#652](https://github.com/tvofi/heatpump_optimizer/pull/652) — W5-G3: snapshots.py annotations, ruler 355→349. leaves #303 open.
 
 **A pattern worth naming**, since most of these were blocked for it: every one of those blocks was a document asserting something that was not true of the tree — a stale head, a count, an actor, a carry that did not land. None was a disagreement about the change itself.
 
