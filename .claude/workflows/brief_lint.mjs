@@ -50,6 +50,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
+import { COUNT_RULES, checkCounts, derivations } from './counts.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 export const ROOT = path.resolve(HERE, '..', '..')
@@ -465,6 +466,67 @@ function versionLiteralsIn(text) {
 }
 
 // ---------------------------------------------------------------------------
+// class 5: derived counts (#581)
+//
+// #581 asked for the literal-metric rule of class 4 to be widened to "the other
+// kinds of number a brief asserts" -- coverage percentages, statement and file
+// counts, page and field counts, any `N of M` -- and set its own acceptance
+// test: how many of its ten stale figures would a rule catch WITHOUT flagging
+// something legitimate. That rule was built and driven before this one, over
+// the 29 briefs a `resume.stage` other than "done" leaves linted, at 244ea5f.
+// It reported 20 figures. Five were the defect, four figures between them.
+// Fifteen were not, and they fell into the two families #581 predicted: a
+// threshold repeated in prose (one `30-50 LOC` sweep window accounts for five
+// of them on its own) and evidence from a completed measurement, which is the
+// thing a brief exists to carry. Three wrong reports for every right one, on a
+// corpus written by seats who mostly did anchor -- four of the fifteen name
+// their anchor in the sentence the rule read, and the rule could not see it. #581's own criterion returns "close it", and shape matching is not
+// in this file for that reason.
+//
+// What is here instead is the half of #581 that resolves rather than guesses.
+// policy_lint.mjs already derives eight counts from the artefacts that answer
+// them and refuses a policy file that states a different one. Both of #581's
+// guards come free: a CORRECT figure passes, so provenance is never demanded,
+// and a figure whose name resolves to no derivation -- a threshold, a budget
+// ratio, an issue number -- is never looked at. That check had simply never
+// read a brief: POLICY_GLOBS matches CLAUDE.md, `.claude/rules/*.md` and the
+// role contracts, and matches no `wave-*-groups.json` at all. Rosters are where
+// #581 says the stale figures got carried.
+//
+// `modules` is left out, and that is a measurement rather than a taste. Driven
+// over all 59 briefs at 244ea5f it produced every hit the eight rules produced
+// -- four, every one about a subset or a coverage denominator. Policy prose
+// says "N modules" about the tree; brief prose says it about a subset ("do not
+// expand this group into those 15 modules") or about a coverage denominator
+// ("38 of 48 modules have errors").
+//
+// WHAT THIS REPORTS ON THE LIVE ROSTERS TODAY: nothing, and that is measured
+// rather than assumed. The seven rules match zero times across the 29 linted
+// briefs; adding a 25th key to tests/structure_budgets.json -- literally "the
+// day a budget is added" -- leaves this file at TOTAL 0 over all four rosters.
+// The one brief that states the ratchet's metric count is W5-G5, whose stage is
+// "done", so STAGE_SKIP passes over it, which is right: a merged brief will not
+// be read again and a stale count in it misleads nobody. So the class is held
+// ENTIRELY by its two fixtures until a live brief states one of the seven, and
+// a reader who takes the live silence for coverage has it backwards. An earlier
+// draft of this comment claimed that live figure and shipped the claim; the
+// review drove the budget-file mutation above and refuted it.
+const BRIEF_COUNT_KEYS = new Set(COUNT_RULES.map((r) => r.key).filter((k) => k !== 'modules'))
+
+let _briefDerived
+// checkCounts skips any rule whose derivation is absent, so deleting a key is
+// the whole mechanism for excluding its rule -- no second scanner, no forked
+// copy of the loop that would drift from the policy one.
+function briefDerivations() {
+  if (_briefDerived) return _briefDerived
+  _briefDerived = {}
+  for (const [k, v] of Object.entries(derivations())) {
+    if (BRIEF_COUNT_KEYS.has(k)) _briefDerived[k] = v
+  }
+  return _briefDerived
+}
+
+// ---------------------------------------------------------------------------
 // per-brief lint
 
 function lintBrief(groupName, brief, findings) {
@@ -581,6 +643,11 @@ function lintBrief(groupName, brief, findings) {
     for (const claim of versionLiteralsIn(brief)) {
       if (claim !== lv) add('error', 'version', `VERSION ${claim} cited; live VERSION is ${lv}`)
     }
+  }
+
+  // --- class 5: derived counts ---------------------------------------------
+  for (const f of checkCounts('brief', brief, briefDerivations())) {
+    add('error', 'counts', `${f.message} (brief line ${f.where.split(':').pop()})`)
   }
 }
 
@@ -744,6 +811,10 @@ const REQUIRED_931DFFE = [
   { group: 'W1-G9', kind: 'path', needle: 'model_sanity.py' },
   { group: 'W1-G9', kind: 'path:line (anchored)', needle: 'wood_share:1152' },
   { group: 'W1-G9', kind: 'symbol', needle: 'wood_share_vec_parity' },
+  // The snapshot states the ratchet's metric count as it stood at 931dffe.
+  // Pinned on the stated figure rather than the derived one: the message's
+  // second half moves whenever a budget is added, the first half does not.
+  { group: 'W1-G2', kind: 'counts', needle: 'states 22 for metrics' },
 ]
 
 // checkShape acceptance: fixtures/shape-defects.json holds one group per rule,
@@ -806,6 +877,42 @@ function assertGrepExcludeBounded() {
   return 0
 }
 
+// #581 acceptance: fixtures/count-drift.json, one group per case, positive and
+// negative in the same fixture. A count check is not in danger of failing to
+// shout -- the 931dffe pin above covers that -- it is in danger of shouting in
+// a genre where the same words mean something else, and only a fixture that
+// requires SILENCE from three briefs can hold that. So this asserts the exact
+// set: one error, from one group, and nothing else of any kind, which also
+// keeps the three control briefs from quietly citing something.
+const COUNT_DRIFT_EXPECTED = new Map([['stale-count', 'states 999 for metrics in tests/structure_budgets.json']])
+
+function assertCountDrift() {
+  const fixture = path.join(HERE, 'fixtures', 'count-drift.json')
+  const findings = lintFileGuarded(fixture, {})
+  printReport(path.relative(ROOT, fixture), findings)
+  const errors = findings.filter((f) => f.severity === 'error')
+  const problems = []
+  for (const [group, needle] of COUNT_DRIFT_EXPECTED) {
+    if (!errors.some((e) => e.kind === 'counts' && e.group === group && e.message.includes(needle))) {
+      problems.push(`[${group}] no counts error containing "${needle}"; the derived-count class reports nothing here`)
+    }
+  }
+  for (const e of errors) {
+    if (e.kind === 'counts' && COUNT_DRIFT_EXPECTED.has(e.group)) continue
+    problems.push(`[${e.group}] ${e.kind}: this fixture exists to be silent here -- ${e.message}`)
+  }
+  if (problems.length) {
+    console.log('\nFIXTURE VACUOUS: count-drift acceptance:')
+    for (const m of problems) console.log(`  ${m}`)
+    return 1
+  }
+  console.log(
+    `\nCOUNTS ok: ${COUNT_DRIFT_EXPECTED.size} error(s) and ${findings.length - errors.length} warning(s) on count-drift.json; ` +
+      `${BRIEF_COUNT_KEYS.size} of ${COUNT_RULES.length} shared rule(s) run over a brief`
+  )
+  return 0
+}
+
 const GUARD_PROBE = 'driver-guard acceptance probe'
 
 // Driver-guard acceptance. No committed roster can throw any more, so the only
@@ -853,6 +960,7 @@ function main() {
   if (defaultRun) {
     acceptanceRc += assertAcceptanceFixture('wave-1b-931dffe.json', '931dffe', { shape: false }, REQUIRED_931DFFE)
     acceptanceRc += assertAcceptanceFixture('shape-defects.json', 'shape-defects', {}, REQUIRED_SHAPE_DEFECTS)
+    acceptanceRc += assertCountDrift()
     acceptanceRc += assertDriverGuard()
     acceptanceRc += assertGrepExcludeBounded()
   }
