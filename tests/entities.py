@@ -8883,7 +8883,7 @@ R.check(
 #
 # The container run is NOT_A_TEST. These pins are the visible failing test:
 # A3 names must be demanded, and a mutant that drops A3 or always-passes must
-# fail a named check here. A4 is a different issue and is not merged in.
+# fail a named check here. A4 is a different assertion, pinned below.
 import inspect as _inspect  # noqa: E402
 
 R.check(
@@ -8910,10 +8910,10 @@ R.check(
 )
 R.check(
     "A3 is not merged with A4",
-    all(not n.startswith("a4:") for n in _nightly.INSIDE_CHECKS)
-    and all(not n.startswith("a4:") for n in _nightly.A3_INSIDE),
-    f"A4 leaked into the A3/inside roster: "
-    f"{[n for n in (*_nightly.A3_INSIDE, *_nightly.INSIDE_CHECKS) if n.startswith('a4:')]}",
+    all(not n.startswith("a4:") for n in _nightly.A3_INSIDE)
+    and all(not n.startswith("a3:") for n in _nightly.A4_INSIDE)
+    and set(_nightly.A4_INSIDE).isdisjoint(_nightly.A3_INSIDE),
+    f"A3={_nightly.A3_INSIDE} A4={_nightly.A4_INSIDE}",
 )
 
 _a3_from_collect = sorted(
@@ -9202,6 +9202,145 @@ R.check(
         if n.startswith("a3:")
     ),
     "A3 passing checks blanked their detail (#533)",
+)
+
+# --- nightly A4 availability fault-injection (#533) -------------------------
+#
+# The container run stays NOT_A_TEST. These pins demand A4 by name and prove
+# each predicate can still fail. The walk breaks the Tibber counterparty
+# (HTTP 500); it does not poke last_update_success. The FakeCoordinator
+# sweep above is the conjunction half (E76/E30); this is the price-source
+# half (E57).
+R.check(
+    "A4 named escapes are the §4 A4 row, listed",
+    set(_nightly.A4_NAMED_ESCAPES)
+    == {"E57", "E76", "E30", "E77", "E75", "E72"}
+    and len(_nightly.A4_NAMED_ESCAPES) == len(set(_nightly.A4_NAMED_ESCAPES)),
+    f"A4_NAMED_ESCAPES={_nightly.A4_NAMED_ESCAPES}",
+)
+R.check(
+    "the nightly demands A4 fault-injection checks by name",
+    set(_nightly.A4_INSIDE) <= set(_nightly.INSIDE_CHECKS)
+    and set(_nightly.A4_INSIDE)
+    == {
+        "a4:failed",
+        "a4:unavailable",
+        "a4:buttons",
+        "a4:no_stale",
+        "a4:recovered",
+    },
+    f"A4_INSIDE={_nightly.A4_INSIDE} INSIDE_CHECKS missing "
+    f"{sorted(set(_nightly.A4_INSIDE) - set(_nightly.INSIDE_CHECKS))}",
+)
+_a4_walk_src = _inspect.getsource(_nightly._async_check_a4)
+_a4_serve_src = _inspect.getsource(_nightly._serve_prices)
+_a4_break_src = _inspect.getsource(_nightly.break_price_source)
+R.check(
+    "A4 breaks the price source; it does not poke last_update_success",
+    "break_price_source(True)" in _a4_walk_src
+    and "async_refresh" in _a4_walk_src
+    and "last_update_success =" not in _a4_walk_src
+    and "_PRICE_SOURCE_BROKEN" in _a4_break_src
+    and "_PRICE_SOURCE_BROKEN" in _a4_serve_src
+    and "send_response(500)" in _a4_serve_src
+    and "send_response(401)" not in _a4_serve_src,
+    "A4 must go through the Tibber counterparty (E57), not the FakeCoordinator poke",
+)
+_a4_failed_ok = _nightly.Checks()
+_nightly.check_a4_failed(_a4_failed_ok, False)
+_a4_failed_bad = _nightly.Checks()
+_nightly.check_a4_failed(_a4_failed_bad, True)
+R.check(
+    "a4:failed fails when last_update_success stayed True",
+    "a4:failed" in _a4_failed_bad.failures()
+    and "a4:failed" not in _a4_failed_ok.failures(),
+    f"bad={_a4_failed_bad.results.get('a4:failed')} "
+    f"ok={_a4_failed_ok.results.get('a4:failed')}",
+)
+_a4_before = (
+    {"entity_id": "sensor.heat_pump_optimizer_indoor_temperature_optimizer", "state": "21.2"},
+    {"entity_id": "button.heat_pump_optimizer_run_optimization", "state": "unknown"},
+)
+_a4_all_unavail = (
+    {"entity_id": "sensor.heat_pump_optimizer_indoor_temperature_optimizer", "state": "unavailable"},
+    {"entity_id": "button.heat_pump_optimizer_run_optimization", "state": "unavailable"},
+)
+_a4_button_up = (
+    {"entity_id": "sensor.heat_pump_optimizer_indoor_temperature_optimizer", "state": "unavailable"},
+    {"entity_id": "button.heat_pump_optimizer_run_optimization", "state": "unknown"},
+)
+_a4_stale = (
+    {"entity_id": "sensor.heat_pump_optimizer_indoor_temperature_optimizer", "state": "21.2"},
+    {"entity_id": "button.heat_pump_optimizer_run_optimization", "state": "unavailable"},
+)
+_a4_un_ok = _nightly.Checks()
+_nightly.check_a4_unavailable(_a4_un_ok, _a4_all_unavail)
+_a4_un_empty = _nightly.Checks()
+_nightly.check_a4_unavailable(_a4_un_empty, ())
+_a4_un_stale = _nightly.Checks()
+_nightly.check_a4_unavailable(_a4_un_stale, _a4_stale)
+R.check(
+    "a4:unavailable fails an empty sweep and a leftover available state",
+    "a4:unavailable" in _a4_un_empty.failures()
+    and "a4:unavailable" in _a4_un_stale.failures()
+    and "a4:unavailable" not in _a4_un_ok.failures(),
+    f"empty={_a4_un_empty.results.get('a4:unavailable')} "
+    f"stale={_a4_un_stale.results.get('a4:unavailable')}",
+)
+_a4_btn_ok = _nightly.Checks()
+_nightly.check_a4_buttons(_a4_btn_ok, _a4_all_unavail)
+_a4_btn_up = _nightly.Checks()
+_nightly.check_a4_buttons(_a4_btn_up, _a4_button_up)
+_a4_btn_none = _nightly.Checks()
+_nightly.check_a4_buttons(
+    _a4_btn_none,
+    ({"entity_id": "sensor.heat_pump_optimizer_indoor_temperature_optimizer", "state": "unavailable"},),
+)
+R.check(
+    "a4:buttons fails a clickable button and a roster with no button",
+    "a4:buttons" in _a4_btn_up.failures()
+    and "a4:buttons" in _a4_btn_none.failures()
+    and "a4:buttons" not in _a4_btn_ok.failures(),
+    f"up={_a4_btn_up.results.get('a4:buttons')} "
+    f"none={_a4_btn_none.results.get('a4:buttons')}",
+)
+_a4_ns_ok = _nightly.Checks()
+_nightly.check_a4_no_stale(_a4_ns_ok, _a4_before, _a4_all_unavail)
+_a4_ns_bad = _nightly.Checks()
+_nightly.check_a4_no_stale(_a4_ns_bad, _a4_before, _a4_stale)
+_a4_ns_empty = _nightly.Checks()
+_nightly.check_a4_no_stale(_a4_ns_empty, (), _a4_all_unavail)
+R.check(
+    "a4:no_stale fails a leftover pre-break value and an empty before-set",
+    "a4:no_stale" in _a4_ns_bad.failures()
+    and "a4:no_stale" in _a4_ns_empty.failures()
+    and "a4:no_stale" not in _a4_ns_ok.failures(),
+    f"stale={_a4_ns_bad.results.get('a4:no_stale')} "
+    f"empty={_a4_ns_empty.results.get('a4:no_stale')}",
+)
+_a4_rc_ok = _nightly.Checks()
+_nightly.check_a4_recovered(_a4_rc_ok, True, _a4_before, _a4_before)
+_a4_rc_stuck = _nightly.Checks()
+_nightly.check_a4_recovered(_a4_rc_stuck, True, _a4_before, _a4_all_unavail)
+_a4_rc_coord = _nightly.Checks()
+_nightly.check_a4_recovered(_a4_rc_coord, False, _a4_before, _a4_before)
+R.check(
+    "a4:recovered fails a stuck entity and a coordinator that stayed failed",
+    "a4:recovered" in _a4_rc_stuck.failures()
+    and "a4:recovered" in _a4_rc_coord.failures()
+    and "a4:recovered" not in _a4_rc_ok.failures(),
+    f"stuck={_a4_rc_stuck.results.get('a4:recovered')} "
+    f"coord={_a4_rc_coord.results.get('a4:recovered')}",
+)
+R.check(
+    "and passing A4 checks still keep their detail",
+    all(
+        v[1]
+        for c in (_a4_failed_ok, _a4_un_ok, _a4_btn_ok, _a4_ns_ok, _a4_rc_ok)
+        for n, v in c.results.items()
+        if n.startswith("a4:")
+    ),
+    "A4 passing checks blanked their detail (#533)",
 )
 
 # --- nightly A10 diagnostics privacy probe (#585) ---------------------------
@@ -10206,12 +10345,6 @@ R.check(
 # not INHERITED CLAIMS -- that job never asks which it was, so reddening it
 # would redden every unrelated `fast` failure a second time.
 R.check(
-    "every status claims-autofix can return stays quiet",
-    not any(_closure.autofix_repair_failed("claims-autofix", s) for s in (
-        "changed", "skip-not-allowed", "skip-not-inherited")),
-    "a fast failure that was not INHERITED CLAIMS is not a skipped repair",
-)
-R.check(
     "an unrecognised status or job reddens rather than passing by default",
     _closure.autofix_repair_failed(_AFJ, "")
     and _closure.autofix_repair_failed(_AFJ, "skip-invented-later")
@@ -10236,6 +10369,22 @@ def _returned_statuses(fn) -> set[str]:
             if isinstance(n, _ast_af.Constant) and isinstance(n.value, str)}
 
 
+# The list this check used to carry was written by hand and went stale the
+# moment `apply_inherited_claims` gained a status: it kept passing while
+# claiming to cover "every status", and the job reddened in CI on a status the
+# check had never heard of. It now reads the returns out of the function, so
+# the two cannot disagree -- `_ac_returns` is derived below by AST and is the
+# same set the roster check pins.
+_ac_quiet_missing = sorted(
+    s for s in _returned_statuses(_env_drift.apply_inherited_claims)
+    if _closure.autofix_repair_failed("claims-autofix", s)
+)
+R.check(
+    "every status claims-autofix can return stays quiet",
+    not _ac_quiet_missing,
+    "a fast failure that was not INHERITED CLAIMS is not a skipped repair, and "
+    f"a refusal is not one either; unclassified: {_ac_quiet_missing}",
+)
 _af_returns = _returned_statuses(_closure.apply_under_scoped_recordings)
 _ac_returns = _returned_statuses(_env_drift.apply_inherited_claims)
 R.check(
@@ -10243,7 +10392,8 @@ R.check(
     _af_returns == {"changed", "skip-clean", "skip-not-under-scoped",
                     "skip-failed-recording", "skip-merge-failed",
                     "skip-still-fails", "skip-unchanged"}
-    and _ac_returns == {"changed", "skip-not-inherited"},
+    and _ac_returns == {"changed", "skip-not-inherited",
+                        "skip-moves-nothing-claimable", "skip-cannot-compare"},
     f"closures={sorted(_af_returns)} claims={sorted(_ac_returns)}",
 )
 # A correct predicate the workflow does not call is the green check this
@@ -10954,16 +11104,23 @@ R.check(
 _hyg = getattr(_env_drift, "check_claims_hygiene", None)
 
 
-def _hygiene_git(card_head: str, extra: dict[str, str], py_touch: bool):
-    """Two-commit repo: baseline has #493's card claims; HEAD applies extra."""
+def _hygiene_git(card_head: str, extra: dict[str, str], py_touch: bool,
+                 card_base: str | None = None):
+    """Two-commit repo: baseline has #493's card claims; HEAD applies extra.
+
+    `card_base` overrides the baseline's card claims -- the case where the
+    baseline claims NOTHING, under which "leave it alone" and "empty it"
+    are the same instruction.
+    """
     import subprocess as _sp
 
     root = _tempfile.mkdtemp(prefix="h493_")
-    card_base = (
-        "# claims-for: 6.3.15\n\n"
-        "whatif_edited  # in-window lo floored at the window min; floored band note\n"
-        "whatif_weekly  # weekly-spec in-window lo floor; floored band note\n"
-    )
+    if card_base is None:
+        card_base = (
+            "# claims-for: 6.3.15\n\n"
+            "whatif_edited  # in-window lo floored at the window min; floored band note\n"
+            "whatif_weekly  # weekly-spec in-window lo floor; floored band note\n"
+        )
     solver = "# claims-for: 6.3.15\n"
     (Path(root) / "tests" / "golden").mkdir(parents=True)
     (Path(root) / "custom_components" / "heatpump_optimizer").mkdir(parents=True)
@@ -11009,29 +11166,113 @@ _h493_root, _h493_base = _hygiene_git(
     },
     py_touch=False,
 )
+# THE RULE FOR A DOCS-ONLY THREE-DOT CHANGED, and these three cases are what
+# it changed to. It used to be "both lists must be empty", and emptying is a
+# DELETION applied to the baseline at squash-merge: #608 carried #569's claims
+# off `main` that way, #635 carried #633's, and #658 was stopped on the way to
+# carrying #653's. The rule is now "leave both files exactly as you found
+# them", which is the same rule whenever the baseline claims nothing -- the
+# case every earlier fixture here used, which is why the change was invisible
+# until a claim survived on `main` long enough to meet a documentation branch.
+#
+# #493's replay is the case that flipped: a roster-only three-dot whose card
+# claims EQUAL the baseline's is now correct, because it changes nothing. The
+# old expectation -- that it must fail -- was the defect wearing a test.
 _h493_err = _hyg(_h493_root, _h493_base) if callable(_hyg) else None
 R.check(
-    "check_claims_hygiene replays #493 (roster-only + copied card claims vs 62799e4) and fails",
-    callable(_hyg)
-    and isinstance(_h493_err, str)
-    and (
-        _h493_err.startswith("INHERITED CLAIMS")
-        or _h493_err.startswith("RECORD PR CLAIMS")
-    ),
+    "a roster-only three-dot that leaves the baseline's card claims alone passes",
+    callable(_hyg) and _h493_err is None,
     "missing check_claims_hygiene"
     if not callable(_hyg)
     else f"hygiene returned {_h493_err!r}",
 )
+# And the direction that must still fail, which is the one that costs a claim.
+_h493_del_root, _h493_del_base = _hygiene_git(
+    "# claims-for: 6.3.15\n",
+    {"docs/plan-2026-09-open-issues.md": "# plan\n"},
+    py_touch=False,
+)
+_h493_del_err = _hyg(_h493_del_root, _h493_del_base) if callable(_hyg) else "missing"
+R.check(
+    "a roster-only three-dot that DELETES the baseline's card claims is refused",
+    callable(_hyg)
+    and isinstance(_h493_del_err, str)
+    and _h493_del_err.startswith("RECORD PR CLAIMS"),
+    "emptying someone else's claim list is the deletion a squash applies to "
+    f"the baseline; got {_h493_del_err!r}",
+)
+# AND THE AUTOFIX ITSELF, which is the half that actually writes the deletion.
+# Correcting `check_claims_hygiene` alone leaves the bot emptying the file and
+# CI green on the result: the gate below was added, disabled, and the whole
+# suite still passed, which is why this check exists rather than being assumed.
+_ac_root, _ac_base = _hygiene_git(
+    "# claims-for: 6.3.15\n\n"
+    "whatif_edited  # in-window lo floored at the window min; floored band note\n"
+    "whatif_weekly  # weekly-spec in-window lo floor; floored band note\n",
+    {"docs/plan-2026-09-open-issues.md": "# plan\n"},
+    py_touch=False,
+)
+_ac_before = (Path(_ac_root) / "tests" / "golden" / "card_claimed_drift.txt").read_text()
+_ac_status = _env_drift.apply_inherited_claims(_ac_root, ref=_ac_base)
+_ac_after = (Path(_ac_root) / "tests" / "golden" / "card_claimed_drift.txt").read_text()
+R.check(
+    "the autofix refuses a three-dot that moves nothing claimable, and writes nothing",
+    _ac_status == "skip-moves-nothing-claimable" and _ac_after == _ac_before,
+    "a documentation branch's claim file is not the bot's to empty -- that "
+    f"deletion is what a squash applies to the baseline; status={_ac_status!r} "
+    f"changed={_ac_after != _ac_before}",
+)
+# The null control: the same bot on a branch that DID move a fixture still
+# empties an inherited list, which is the behaviour the gate must not have cost.
+_ac2_root, _ac2_base = _hygiene_git(
+    "# claims-for: 6.3.15\n\n"
+    "whatif_edited  # in-window lo floored at the window min; floored band note\n"
+    "whatif_weekly  # weekly-spec in-window lo floor; floored band note\n",
+    {},
+    py_touch=True,
+)
+_ac2_status = _env_drift.apply_inherited_claims(_ac2_root, ref=_ac2_base)
+R.check(
+    "the autofix still empties an inherited list on a branch that moved a fixture",
+    _ac2_status == "changed",
+    f"the gate must not have disabled the autofix outright; status={_ac2_status!r}",
+)
+
+# AND THE THIRD MECHANISM, which is the one that actually reddened #662's own
+# CI: `--all` calls a judged-but-unhit claim STALE and says "remove it". On a
+# documentation branch that is the same deletion by another route, so the
+# decision is extracted and pinned here rather than living inside `main()`.
+_sj_docs_root, _sj_docs_base = _hygiene_git(
+    "# claims-for: 6.3.15\n", {"docs/plan-2026-09-open-issues.md": "# plan\n"},
+    py_touch=False, card_base="# claims-for: 6.3.15\n")
+_sj_py_root, _sj_py_base = _hygiene_git(
+    "# claims-for: 6.3.15\n", {}, py_touch=True, card_base="# claims-for: 6.3.15\n")
+_sj = getattr(_env_drift, "stale_claims_judged", None)
+R.check(
+    "a stale claim is not judged on a branch that moves nothing claimable",
+    callable(_sj) and _sj(_sj_docs_root, _sj_docs_base) is False,
+    "a documentation branch neither caused a claim to go stale nor can cure "
+    "it, and its only remedy would be a deletion the squash carries onto the "
+    f"baseline; got {_sj and _sj(_sj_docs_root, _sj_docs_base)!r}",
+)
+R.check(
+    "and it IS judged on a branch that moved a fixture (null control)",
+    callable(_sj) and _sj(_sj_py_root, _sj_py_base) is True,
+    "the gate must not have stopped judging staleness altogether; got "
+    f"{_sj and _sj(_sj_py_root, _sj_py_base)!r}",
+)
+# The old case, unchanged where the baseline claims nothing: empty stays right.
 _h_empty_root, _h_empty_base = _hygiene_git(
     "# claims-for: 6.3.15\n",
     {"docs/plan-2026-09-open-issues.md": "# plan\n"},
     py_touch=False,
+    card_base="# claims-for: 6.3.15\n",
 )
 _h_empty_err = _hyg(_h_empty_root, _h_empty_base) if callable(_hyg) else "missing"
 R.check(
     "check_claims_hygiene accepts empty claims on a roster-only three-dot",
     callable(_hyg) and _h_empty_err is None,
-    f"empty claims on docs-only should pass; got {_h_empty_err!r}",
+    f"empty claims on docs-only with an empty baseline should pass; got {_h_empty_err!r}",
 )
 # A ref that RESOLVES but shares no history with HEAD. `_rev` passes it -- it
 # asks whether the ref resolves, and this one does -- and `git diff ref...HEAD`
@@ -11057,7 +11298,23 @@ def _orphan_ref(root: str) -> str:
     return "refs/probe/orphan"
 
 
-_h_orph_root, _h_orph_base = _hygiene_git("# claims-for: 6.3.15\n", {}, py_touch=False)
+# The baseline claims nothing here, so HEAD's empty list leaves it unchanged
+# and the null control below is measuring the orphan ref rather than the claim
+# rule: with the two-claim baseline this fixture used to carry, an emptied HEAD
+# is now a refused DELETION, and the control would have failed for the wrong
+# reason -- which is what it did until this line was written.
+R.check(
+    "an unanswerable three-dot still judges staleness, rather than quietly passing",
+    callable(_sj) and _sj(_sj_docs_root, _orphan_ref(_sj_docs_root)) is True,
+    "a gate that cannot read the diff must fail closed, or the refusal above "
+    "becomes a way to stop being judged at all",
+)
+_h_orph_root, _h_orph_base = _hygiene_git(
+    "# claims-for: 6.3.15\n",
+    {"docs/plan-2026-09-open-issues.md": "# plan\n"},
+    py_touch=False,
+    card_base="# claims-for: 6.3.15\n",
+)
 _h_orph_ref = _orphan_ref(_h_orph_root)
 _h_orph_err = _hyg(_h_orph_root, _h_orph_ref) if callable(_hyg) else "missing"
 R.check(
