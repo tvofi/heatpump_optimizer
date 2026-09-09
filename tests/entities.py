@@ -8883,7 +8883,7 @@ R.check(
 #
 # The container run is NOT_A_TEST. These pins are the visible failing test:
 # A3 names must be demanded, and a mutant that drops A3 or always-passes must
-# fail a named check here. A4 is a different issue and is not merged in.
+# fail a named check here. A4 is a different assertion, pinned below.
 import inspect as _inspect  # noqa: E402
 
 R.check(
@@ -8910,10 +8910,10 @@ R.check(
 )
 R.check(
     "A3 is not merged with A4",
-    all(not n.startswith("a4:") for n in _nightly.INSIDE_CHECKS)
-    and all(not n.startswith("a4:") for n in _nightly.A3_INSIDE),
-    f"A4 leaked into the A3/inside roster: "
-    f"{[n for n in (*_nightly.A3_INSIDE, *_nightly.INSIDE_CHECKS) if n.startswith('a4:')]}",
+    all(not n.startswith("a4:") for n in _nightly.A3_INSIDE)
+    and all(not n.startswith("a3:") for n in _nightly.A4_INSIDE)
+    and set(_nightly.A4_INSIDE).isdisjoint(_nightly.A3_INSIDE),
+    f"A3={_nightly.A3_INSIDE} A4={_nightly.A4_INSIDE}",
 )
 
 _a3_from_collect = sorted(
@@ -9202,6 +9202,145 @@ R.check(
         if n.startswith("a3:")
     ),
     "A3 passing checks blanked their detail (#533)",
+)
+
+# --- nightly A4 availability fault-injection (#533) -------------------------
+#
+# The container run stays NOT_A_TEST. These pins demand A4 by name and prove
+# each predicate can still fail. The walk breaks the Tibber counterparty
+# (HTTP 500); it does not poke last_update_success. The FakeCoordinator
+# sweep above is the conjunction half (E76/E30); this is the price-source
+# half (E57).
+R.check(
+    "A4 named escapes are the §4 A4 row, listed",
+    set(_nightly.A4_NAMED_ESCAPES)
+    == {"E57", "E76", "E30", "E77", "E75", "E72"}
+    and len(_nightly.A4_NAMED_ESCAPES) == len(set(_nightly.A4_NAMED_ESCAPES)),
+    f"A4_NAMED_ESCAPES={_nightly.A4_NAMED_ESCAPES}",
+)
+R.check(
+    "the nightly demands A4 fault-injection checks by name",
+    set(_nightly.A4_INSIDE) <= set(_nightly.INSIDE_CHECKS)
+    and set(_nightly.A4_INSIDE)
+    == {
+        "a4:failed",
+        "a4:unavailable",
+        "a4:buttons",
+        "a4:no_stale",
+        "a4:recovered",
+    },
+    f"A4_INSIDE={_nightly.A4_INSIDE} INSIDE_CHECKS missing "
+    f"{sorted(set(_nightly.A4_INSIDE) - set(_nightly.INSIDE_CHECKS))}",
+)
+_a4_walk_src = _inspect.getsource(_nightly._async_check_a4)
+_a4_serve_src = _inspect.getsource(_nightly._serve_prices)
+_a4_break_src = _inspect.getsource(_nightly.break_price_source)
+R.check(
+    "A4 breaks the price source; it does not poke last_update_success",
+    "break_price_source(True)" in _a4_walk_src
+    and "async_refresh" in _a4_walk_src
+    and "last_update_success =" not in _a4_walk_src
+    and "_PRICE_SOURCE_BROKEN" in _a4_break_src
+    and "_PRICE_SOURCE_BROKEN" in _a4_serve_src
+    and "send_response(500)" in _a4_serve_src
+    and "send_response(401)" not in _a4_serve_src,
+    "A4 must go through the Tibber counterparty (E57), not the FakeCoordinator poke",
+)
+_a4_failed_ok = _nightly.Checks()
+_nightly.check_a4_failed(_a4_failed_ok, False)
+_a4_failed_bad = _nightly.Checks()
+_nightly.check_a4_failed(_a4_failed_bad, True)
+R.check(
+    "a4:failed fails when last_update_success stayed True",
+    "a4:failed" in _a4_failed_bad.failures()
+    and "a4:failed" not in _a4_failed_ok.failures(),
+    f"bad={_a4_failed_bad.results.get('a4:failed')} "
+    f"ok={_a4_failed_ok.results.get('a4:failed')}",
+)
+_a4_before = (
+    {"entity_id": "sensor.heat_pump_optimizer_indoor_temperature_optimizer", "state": "21.2"},
+    {"entity_id": "button.heat_pump_optimizer_run_optimization", "state": "unknown"},
+)
+_a4_all_unavail = (
+    {"entity_id": "sensor.heat_pump_optimizer_indoor_temperature_optimizer", "state": "unavailable"},
+    {"entity_id": "button.heat_pump_optimizer_run_optimization", "state": "unavailable"},
+)
+_a4_button_up = (
+    {"entity_id": "sensor.heat_pump_optimizer_indoor_temperature_optimizer", "state": "unavailable"},
+    {"entity_id": "button.heat_pump_optimizer_run_optimization", "state": "unknown"},
+)
+_a4_stale = (
+    {"entity_id": "sensor.heat_pump_optimizer_indoor_temperature_optimizer", "state": "21.2"},
+    {"entity_id": "button.heat_pump_optimizer_run_optimization", "state": "unavailable"},
+)
+_a4_un_ok = _nightly.Checks()
+_nightly.check_a4_unavailable(_a4_un_ok, _a4_all_unavail)
+_a4_un_empty = _nightly.Checks()
+_nightly.check_a4_unavailable(_a4_un_empty, ())
+_a4_un_stale = _nightly.Checks()
+_nightly.check_a4_unavailable(_a4_un_stale, _a4_stale)
+R.check(
+    "a4:unavailable fails an empty sweep and a leftover available state",
+    "a4:unavailable" in _a4_un_empty.failures()
+    and "a4:unavailable" in _a4_un_stale.failures()
+    and "a4:unavailable" not in _a4_un_ok.failures(),
+    f"empty={_a4_un_empty.results.get('a4:unavailable')} "
+    f"stale={_a4_un_stale.results.get('a4:unavailable')}",
+)
+_a4_btn_ok = _nightly.Checks()
+_nightly.check_a4_buttons(_a4_btn_ok, _a4_all_unavail)
+_a4_btn_up = _nightly.Checks()
+_nightly.check_a4_buttons(_a4_btn_up, _a4_button_up)
+_a4_btn_none = _nightly.Checks()
+_nightly.check_a4_buttons(
+    _a4_btn_none,
+    ({"entity_id": "sensor.heat_pump_optimizer_indoor_temperature_optimizer", "state": "unavailable"},),
+)
+R.check(
+    "a4:buttons fails a clickable button and a roster with no button",
+    "a4:buttons" in _a4_btn_up.failures()
+    and "a4:buttons" in _a4_btn_none.failures()
+    and "a4:buttons" not in _a4_btn_ok.failures(),
+    f"up={_a4_btn_up.results.get('a4:buttons')} "
+    f"none={_a4_btn_none.results.get('a4:buttons')}",
+)
+_a4_ns_ok = _nightly.Checks()
+_nightly.check_a4_no_stale(_a4_ns_ok, _a4_before, _a4_all_unavail)
+_a4_ns_bad = _nightly.Checks()
+_nightly.check_a4_no_stale(_a4_ns_bad, _a4_before, _a4_stale)
+_a4_ns_empty = _nightly.Checks()
+_nightly.check_a4_no_stale(_a4_ns_empty, (), _a4_all_unavail)
+R.check(
+    "a4:no_stale fails a leftover pre-break value and an empty before-set",
+    "a4:no_stale" in _a4_ns_bad.failures()
+    and "a4:no_stale" in _a4_ns_empty.failures()
+    and "a4:no_stale" not in _a4_ns_ok.failures(),
+    f"stale={_a4_ns_bad.results.get('a4:no_stale')} "
+    f"empty={_a4_ns_empty.results.get('a4:no_stale')}",
+)
+_a4_rc_ok = _nightly.Checks()
+_nightly.check_a4_recovered(_a4_rc_ok, True, _a4_before, _a4_before)
+_a4_rc_stuck = _nightly.Checks()
+_nightly.check_a4_recovered(_a4_rc_stuck, True, _a4_before, _a4_all_unavail)
+_a4_rc_coord = _nightly.Checks()
+_nightly.check_a4_recovered(_a4_rc_coord, False, _a4_before, _a4_before)
+R.check(
+    "a4:recovered fails a stuck entity and a coordinator that stayed failed",
+    "a4:recovered" in _a4_rc_stuck.failures()
+    and "a4:recovered" in _a4_rc_coord.failures()
+    and "a4:recovered" not in _a4_rc_ok.failures(),
+    f"stuck={_a4_rc_stuck.results.get('a4:recovered')} "
+    f"coord={_a4_rc_coord.results.get('a4:recovered')}",
+)
+R.check(
+    "and passing A4 checks still keep their detail",
+    all(
+        v[1]
+        for c in (_a4_failed_ok, _a4_un_ok, _a4_btn_ok, _a4_ns_ok, _a4_rc_ok)
+        for n, v in c.results.items()
+        if n.startswith("a4:")
+    ),
+    "A4 passing checks blanked their detail (#533)",
 )
 
 # --- nightly A10 diagnostics privacy probe (#585) ---------------------------
