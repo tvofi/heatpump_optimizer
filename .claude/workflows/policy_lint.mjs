@@ -1358,6 +1358,52 @@ function mergedPRs(subjects) {
   return rows
 }
 
+// The record's SEARCH REGION, and the reason it is not the whole file.
+//
+// `#<pr>` tested against the whole plan plus the handover is satisfied by
+// any mention at all: a carried finding that says "found by #639's first
+// review" dispositions #639, and a standing rule that names a pull request as
+// an example dispositions it too. The check could not tell its subject from its
+// prose, so it passed on text written before the merge it was accepting.
+//
+// The anchor is the SECTION, not the line and not the link. A row format was
+// the obvious fix and is the wrong one: it would refuse the dispositions
+// this repository actually writes inside Delivery-status TABLE CELLS, and pin a
+// shape the next lane must copy rather than a property it must satisfy.
+// Measured before choosing, and the count moves with the window
+// rather than being carried: at `e4f34c7` all 42 merged pull requests in the
+// window were linked from `## Delivery status` and from nowhere else, and EVERY
+// ONE still is at every head this has been re-derived at. The size of the window
+// is deliberately not restated: it grows with every merge on `main`, and three
+// copies of it went stale inside this one branch before the number was dropped.
+// What is stable is the property, not the count.
+//
+// AND THE HANDOVER IS NOT DEMOTED, which has a consequence worth stating rather
+// than leaving to be discovered: it contributes ALL of itself, so a pull request
+// named anywhere in it -- a trap citation, a correction -- is dispositioned by
+// that mention. At `cc2efc9` #621 was, and would be again. That is the price of
+// `DISPOSITION_FILES` naming both files and the error message promising both;
+// narrowing the handover too is a policy change about what that document is
+// for, and belongs to the owner rather than to a linter.
+//
+// The plan contributes that one section; the handover contributes all of
+// itself, because the handover IS the record and has no other job. If the
+// section is missing the region is empty, and that is reported as its own
+// failure rather than as one error per merge in the window -- a renamed heading is a different
+// defect from an unrecorded merge and reads nothing like it.
+const RECORD_SECTION = 'Delivery status'
+
+function recordRegion(planText, handoverText) {
+  const out = []
+  let inside = false
+  for (const line of planText.split('\n')) {
+    const h2 = /^##\s+(.*?)\s*$/.exec(line)
+    if (h2) inside = h2[1] === RECORD_SECTION
+    else if (inside) out.push(line)
+  }
+  return { region: out.join('\n') + '\n' + handoverText, sectionFound: out.length > 0 }
+}
+
 // --record. Pure over its two inputs so the acceptance can hand it a fixture
 // history and a fixture disposition text without a git repository or a network.
 //
@@ -2110,6 +2156,8 @@ function assertAcceptance(derived) {
   }
   const rotten = checkRecord(loop.prs, loop.dispositionsRotten)
   found.push(...rotten)
+
+
   found.push(...statsFindings({ prs: loop.prs, fetched: loop.fetched, fetchError: null, classes: loop.classes }))
   found.push(...statsFindings({ prs: loop.prs, fetched: new Map(), fetchError: 'fixture: the API was not reachable', classes: loop.classes }))
   found.push(...checkSunset(loop.sunsetRot, { friction: loop.friction, fires: loop.fires, today: loop.today }))
@@ -2157,6 +2205,59 @@ function assertAcceptance(derived) {
   // whichever way the glob is later widened for digits.
   const rotPath = '.cursor/rules/Probe_9.mdc'
   const okPath = '.cursor/rules/ci-autofix.mdc'
+  // AND THE REGION THE RECORD READS, which had no pin at all: `recordRegion`
+  // could be emptied to `return { region: everything, sectionFound: out.length > 0 }` and
+  // every count above would still hold, because the fixtures hand `checkRecord`
+  // its text directly. Assertions on synthetic input rather than on the
+  // live plan, so a section renamed in the tree cannot make them pass:
+  // a mention inside the section counts, the same mention outside it does not,
+  // and a plan with no such heading reports the absence rather than an empty
+  // region. The third is the one that keeps this fail-closed: an empty region
+  // would otherwise read as "every merge undispositioned", which is a true
+  // statement about the wrong thing.
+  pins += 7
+  const regIn = recordRegion(`## ${RECORD_SECTION}\n- [#9101](x/pull/9101) merged\n`, '')
+  const regOut = recordRegion(`## Carried findings\n- found by #9101 in passing\n`, '')
+  const regNone = recordRegion('# plan\nno second-level heading at all\n', '')
+  // The fourth fixture is TWO sections, and it is the one the first three could
+  // not stand in for: each of those is single-section, so a region that OPENS
+  // correctly and never CLOSES satisfies all three. One token does that --
+  // `if (h2) inside = …` becoming `if (h2 && …) inside = true` -- and the
+  // acceptance stayed green under it, with the whole plan back in the region.
+  // Found by #658's round 1, on the pin rather than on the code.
+  const regBoth = recordRegion(
+    `## ${RECORD_SECTION}\n- [#9101](x/pull/9101) merged\n\n## Carried findings\n- found by #9102 in passing\n`, '')
+  const regFail = []
+  if (checkRecord([{ pr: '9101', subject: 's' }], regIn.region).length !== 0) regFail.push('a disposition INSIDE the section did not count')
+  if (checkRecord([{ pr: '9101', subject: 's' }], regOut.region).length !== 1) regFail.push('a mention OUTSIDE the section counted as a disposition')
+  if (regNone.sectionFound) regFail.push('a plan with no section heading reported one')
+  if (checkRecord([{ pr: '9102', subject: 's' }], regBoth.region).length !== 1) regFail.push('the region did not CLOSE at the next section heading')
+  if (checkRecord([{ pr: '9101', subject: 's' }], regBoth.region).length !== 0) regFail.push('the region did not cover its own section when another follows')
+  // AND THE HANDOVER HALF, which the assertions above did not reach: dropping
+  // `handoverText` from the returned region passed every one of them and left
+  // the live `--record` at 0 undispositioned, so the design property this
+  // change states -- the handover contributes ALL of itself, which is why it is
+  // not demoted -- was unpinned prose. #658's round 2 drove ten mutations and
+  // this is the one that survived and mattered.
+  // TWO lines, because one holds only "the handover contributes something":
+  // `handoverText.split('\n')[0]` passed a one-line fixture. #658's round 4
+  // drove the strengthened form with a null control and it costs no pin.
+  const regHand = recordRegion('## other\n', 'a first line\n- [#9103](x/pull/9103) merged in the handover\n')
+  if (checkRecord([{ pr: '9103', subject: 's' }], regHand.region).length !== 0) regFail.push('a disposition in the handover did not count')
+  // AND A THIRD-LEVEL HEADING MUST NOT CLOSE THE REGION. Widening the match to
+  // `^#{1,3}` is a plausible edit and survived every assertion above it, while
+  // taking most of the window undispositioned: the plan keeps a
+  // `### Governance queue` subsection INSIDE `## Delivery status`, and this
+  // pull request writes its own row into it. Reported by #658's round 3 as the
+  // one survivor of ten that a reader might actually write.
+  const regSub = recordRegion(
+    `## ${RECORD_SECTION}\n### a subsection\n- [#9104](x/pull/9104) merged\n`, '')
+  if (checkRecord([{ pr: '9104', subject: 's' }], regSub.region).length !== 0) regFail.push('a third-level heading inside the section closed the region')
+  if (regFail.length) {
+    console.log(`\nFIXTURE VACUOUS: recordRegion ${JSON.stringify(regFail)}. The record's region is what makes a mention a disposition; unpinned, it can be widened back to the whole file with every other count unchanged.`)
+    return 1
+  }
+
   pins += 1
   const wiredNames = CORPUS_CHECKS.map((f) => f.name || '(anonymous)').join(',')
   if (wiredNames !== CORPUS_CHECK_NAMES.join(',')) {
@@ -3108,8 +3209,11 @@ function requireSince(since, mode) {
 
 function cmdRecordDispositions(since) {
   const prs = mergedPRs(mergedSubjects(since))
-  const text = DISPOSITION_FILES.map((f) => read(f) ?? '').join('\n')
-  const all = checkRecord(prs, text)
+  const { region, sectionFound } = recordRegion(read(DISPOSITION_FILES[0]) ?? '', read(DISPOSITION_FILES[1]) ?? '')
+  const all = sectionFound
+    ? checkRecord(prs, region)
+    : [{ severity: 'error', check: 'record', where: DISPOSITION_FILES[0],
+         message: `no \`## ${RECORD_SECTION}\` section, so the record has no region to read and every merge in the window would report as undispositioned. Restore the heading, or change RECORD_SECTION with it.` }]
   const applied = applyKnownBad(all, RECORD_KEY)
   console.log(`RECORD: ${prs.length} merged pull request(s) in ${since}..${mainRef()}; ${all.length} without a disposition in ${DISPOSITION_FILES.join(' or ')}`)
   printFindings(applied.live)
@@ -3204,7 +3308,7 @@ function main() {
   if (has('--record-known-bad')) {
     // A reseed may also re-measure the record class, but only when it was given
     // a window: `--record-known-bad --since <ref>`.
-    if (since) findings.push(...checkRecord(mergedPRs(mergedSubjects(since)), DISPOSITION_FILES.map((f) => read(f) ?? '').join('\n')))
+    if (since) findings.push(...checkRecord(mergedPRs(mergedSubjects(since)), recordRegion(read(DISPOSITION_FILES[0]) ?? '', read(DISPOSITION_FILES[1]) ?? '').region))
     return cmdRecord(findings, { measuredRecord: !!since }), process.exit(0)
   }
 

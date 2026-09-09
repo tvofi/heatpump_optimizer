@@ -515,6 +515,8 @@ does report it. The pull request after this one narrows that to the
 inside it rather than after it.
 
 - [#644](https://github.com/tvofi/heatpump_optimizer/pull/644) — **merged under decision 0006**, without a merge SHA it cannot know: `docs/decisions/` leaves the measured corpus, named one by one so a seventh decision costs a line; 0006 added to that list; 0005's status line stops waiting on the question the same file answers. Closes the queue 05–10; the ruleset's `record` and `env-matrix` contexts both exist on `main` from here.
+- [#658](https://github.com/tvofi/heatpump_optimizer/pull/658) — **merged under decision 0006**, without a merge SHA it cannot know: the record check's region narrows from both documents whole to `## Delivery status` plus the handover, so a pull request mentioned in passing is no longer dispositioned by that mention; the list-item anchor this plan proposed was refuted first (it refuses #629 and #632, dispositioned inside table cells); pinned by seven acceptance assertions over synthetic input, tip invariant 76 → **83** pins across the same 10 classes; the handover's `updated-for` catches up; and the backticked-verdict finding is carried.
+- [#662](https://github.com/tvofi/heatpump_optimizer/pull/662) — **merged `2d06e06`**: a branch that moves no fixture was told to EMPTY the claim files, and a squash applies that deletion to `main` — #608 carried 33 of #569's claim lines off, #635 the same to #633's, #658 was stopped on the way to #653's. The rule is now *leave both files exactly as you found them*, which is the same rule whenever the baseline claims nothing. Three routes closed: the record check, the autofix bot, and the stale-claim judgement. This row is written by the pull request AFTER it, because #662 merged before its own row existed — which is the defect `record` is for, caught by `record` itself.
 
 ### The UX programme — 34 items, five lanes, tracking #558
 
@@ -776,19 +778,38 @@ judge comments on each issue and summarised on #201.
   one on a trap citation in the handover, one on a paragraph in this section —
   and **both mentions were written by a single commit, `03af74b`**, which
   described #621's defect and named itself.
-  **The design, and the two things it must not do.** Require an *anchor*, not a
-  row shape: in the plan, the number must open a list item — `- [#NNN](…` —
-  which is how every row already reads — **65** of 65 at `d08a56a` and 71 of 71
-  with this branch's own, under the rule
-  `^- \[#N\]\(https://github\.com/tvofi/heatpump_optimizer/pull/N\)`, with no
-  odd-shaped row at either end; in the handover, an explicit opt-in
-  marker, so prose keeps working and only a deliberate line counts. It must
-  **not** demote `docs/HANDOVER.md` to a non-home: `DISPOSITION_FILES` names
-  both, the error message promises both, and the handover exists to carry what
-  the code cannot say — dropping it is a policy change needing the owner, not a
-  linter change. It must **not** pin a whole row format: 71 rows is a large
-  surface, this corpus compresses documents as a matter of course, and a
-  reformat would then redden `main` for cosmetic reasons.
+  **The design that landed, and why it is not the one proposed here.** This
+  entry proposed a LIST-ITEM anchor — the number must open a list item,
+  `- [#NNN](…`, said to hold for 65 of 65 rows. Driven again before building it,
+  against the 42 merged in the window at `e4f34c7`: **two fail** — #629 and #632
+  are dispositioned inside Delivery-status TABLE CELLS, on the rows of the issues
+  they close (`| **#527** … |`, `| **#590** … |`), which is a legitimate
+  disposition this repository actually writes. Re-derived at this head, where the
+  window is larger: **five fail**, and the two new kinds are worth naming. #653 is
+  a further table-cell disposition. **#585 and #587 are not pull requests at
+  all** — both are issues, and the merge subjects that name them end in an issue
+  number, which `MERGE_SUBJECT_RE` takes for a pull-request number. A rule that
+  pins a row shape would have had to refuse all five, and **two** of them have no
+  row to write. (Checked against the API rather than inferred: #629, #632 and
+  #653 are pull requests; #585 and #587 are not. An earlier draft of this
+  sentence said one, and #658's round 2 counted them.) A rule that refuses it
+  either loses those records or forces duplicate rows, and it pins a shape rather
+  than a property, which this entry itself forbids two paragraphs down.
+  **The anchor is the SECTION.** A disposition must appear under the plan's
+  `## Delivery status` heading, or anywhere in the handover. Measured at the head
+  that landed it, and at every head since: all of them
+  are linked from that section and from nowhere else, and the mentions that made
+  the old check pass on nothing — a carried finding naming a pull request in
+  passing, a standing rule using one as an example — are all outside it. The
+  handover is not demoted: it contributes all of itself, because carrying the
+  record is its whole job. A renamed heading reports as its own error rather
+  than as one error per merge in the window, so fail-closed does not read as a mass defect.
+  Landed with seven acceptance pins over synthetic input — inside counts,
+  outside does not, a plan with no such heading says so, the region CLOSES at the
+  next section, and a disposition written only in the handover still counts —
+  because the region is
+  otherwise widenable back to the whole file with every other count unchanged;
+  the tip invariant moves from 76 pins to **83** across the same 10 classes.
   **What it does not fix, stated so the next seat does not overclaim.** An
   anchored row can still say nothing — `- [#NNN](…) — merged, see above` passes.
   (Written `#NNN` deliberately: a real number here would itself satisfy the
@@ -895,6 +916,34 @@ judge comments on each issue and summarised on #201.
   column, was **fixed** in that pull request rather than carried. Whoever
   revisits (a) should note that the same fence question governs
   `policy_lint`'s own prose checks.
+- **A verdict comment whose first line is wrapped in backticks does not parse,
+  and every verdict this queue has received was wrapped.** Found by #644's
+  round 5 while reading the grammar it was reviewing. `web-fix-wave.js` reads
+  `body.split('\n')[0]` and anchors `VERDICT_RE` on `^Fix review:`, so a first
+  line of `` `Fix review: merge <sha>` `` fails to match and degrades to no
+  verdict — safely, never to a wrong merge, but silently. The queue's own
+  comments were unaffected because no wave script consumed them in this
+  session; a wave that did would have read every one of them as unparsed. The
+  pin #641 landed compares the contract's backticked EXAMPLES against the
+  grammar, which is the right thing to compare and not this: the examples are
+  backticked because they are examples, and the rendered comment must not be.
+  Two candidate fixes, neither obviously right: strip a single pair of
+  wrapping backticks before matching, which forgives a real formatting error;
+  or say in `fix-review.md` that the first line is unwrapped and pin THAT,
+  which needs a fixture comment rather than a brief. Whoever takes it should
+  decide which of those the contract means before writing either.
+- **`env_drift.py` reads the baseline at the ref's TIP while it takes the diff
+  at the merge base**, so a local run against `origin/main` and the same run
+  against the merge base can disagree — and the disagreement is exactly the
+  one #662 exists to prevent: `--claims-only <merge-base>` says `ok` while
+  `--claims-only origin/main` says *"Empty the lists"*. Found by #662's round
+  2, which hit it live because `main` moved twice during the review. **CI
+  never reaches it** — every workflow passes the merge base — and it predates
+  #662, so it was carried rather than folded in. The remedy is one line:
+  default the local ref to the merge base rather than to `origin/main`'s tip,
+  which is what every caller that matters already passes. Until then, a seat
+  running the check by hand should pass `$(git merge-base origin/main HEAD)`
+  and not `origin/main`; #662's own body says so.
 - **`pr-contract` red runs are hidden by `gh pr checks`, and the ones on this
   queue's heads were process state (b), not a defect in the check.** Two facts,
   and only the first is the check's.
@@ -1004,7 +1053,7 @@ judge comments on each issue and summarised on #201.
   **Ordering:** programme-closing work, after `10-adr-corpus`, beside the
   record-check anchor rewrite and the ruleset. Not inside the queue — the
   mutation proofs are per-trap and would stall it.
-- **`claims-autofix` erases an earlier lane's claims from `main` at squash-merge
+- **CLOSED by #662 (`2d06e06`).** `claims-autofix` erases an earlier lane's claims from `main` at squash-merge
   time, and it has already done so once.** Measured on #634. `inherited_claims_error`
   fires when a branch's parsed claim list equals its **merge-base's**; after a
   rebase onto `a684cce` (#633, which added 46 lines to that file — **33** of them claims, the rest header and reasons) that is exactly
