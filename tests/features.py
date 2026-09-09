@@ -7763,6 +7763,18 @@ R.check(
     isinstance(_gf_month_exc, _gf.GridFeeError),
     f"{_gf_month_exc!r}",
 )
+R.check(
+    "a lone month token (no range) parses to its one month",
+    _gf.parse_month_range("Jul") == frozenset({7}),
+    f"{_gf.parse_month_range('Jul')}",
+)
+_gf_lone_month_exc = _try_exc(lambda: _gf.parse_month_range("Notamonth"))
+R.check(
+    "a lone month token that names nothing real is refused",
+    isinstance(_gf_lone_month_exc, _gf.GridFeeError)
+    and "Unknown month 'notamonth'" in str(_gf_lone_month_exc),
+    f"{_gf_lone_month_exc!r}: must be the lone-token refusal, not the range form",
+)
 _gf_day_exc = _try_exc(lambda: _gf.parse_day_range("Mon-Zzz"))
 R.check(
     "an unknown weekday on either side of a range is refused the same way",
