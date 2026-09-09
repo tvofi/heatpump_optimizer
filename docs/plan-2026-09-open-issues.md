@@ -791,7 +791,7 @@ judge comments on each issue and summarised on #201.
   row to write. (Checked against the API rather than inferred: #629, #632 and
   #653 are pull requests; #585 and #587 are not. An earlier draft of this
   sentence said one, and #658's round 2 counted them.) A rule that refuses it
-  either loses two records or forces a duplicate row, and it pins a shape rather
+  either loses those records or forces duplicate rows, and it pins a shape rather
   than a property, which this entry itself forbids two paragraphs down.
   **The anchor is the SECTION.** A disposition must appear under the plan's
   `## Delivery status` heading, or anywhere in the handover. Measured at the head

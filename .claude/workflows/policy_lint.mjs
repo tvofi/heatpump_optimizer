@@ -1360,7 +1360,7 @@ function mergedPRs(subjects) {
 
 // The record's SEARCH REGION, and the reason it is not the whole file.
 //
-// `#<pr>` tested against 1200 lines of plan plus the handover is satisfied by
+// `#<pr>` tested against the whole plan plus the handover is satisfied by
 // any mention at all: a carried finding that says "found by #639's first
 // review" dispositions #639, and a standing rule that names a pull request as
 // an example dispositions it too. The check could not tell its subject from its
