@@ -773,7 +773,7 @@ selected proposals, delivered as tranches T0 through T8 and recorded in
 [docs/plan-v4.0.0-program.md](docs/plan-v4.0.0-program.md)) followed, and every
 release since v4.0.0 has been an audit train on top of it: a full-codebase
 review (August 2026, [docs/audit-2026-08.md](docs/audit-2026-08.md)), then an
-eleven-dimension audit repeated round by round
+per-dimension audit repeated round by round
 ([docs/audit-2026-09.md](docs/audit-2026-09.md)) alongside the open-issues
 program ([docs/plan-open-issues.md](docs/plan-open-issues.md)) and the card
 decomposition program
