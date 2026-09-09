@@ -71,6 +71,7 @@ import {
   METRIC_LITERAL_RE,
   NEGATION_RE,
 } from './brief_lint.mjs'
+import { checkCounts, derivations } from './counts.mjs'
 
 // brief_lint's CODE_EXTS has no `mdc`, because a wave roster never cites one.
 // Half this corpus's citations are `.cursor/rules/*.mdc`, so they are matched
@@ -367,12 +368,15 @@ const CORPUS_EXCLUDED = new Set([
   // because "the index is the only way a seat finds a policy file" -- and
   // naming them all here would push the ALWAYS-LOADED set, the one number this
   // audit exists to drive down, past its cap to carry documents nobody must
-  // read. Measured before choosing, and RE-MEASURED here because the first
-  // reading was taken against five decisions and this list now names six:
-  // bringing `docs/decisions/` under POLICY_GLOBS reports 24 errors across 41
-  // policy files -- 7 [budgets], 6 [index], 6 [duplicates], 5 [citations] --
-  // where the first reading said 14. The shape is what decided it and the shape
-  // is unchanged: every ADR wants a cap and an index line it should not have.
+  // read. Measured before choosing, and stated as a SHAPE rather than a count,
+  // because the count is a function of how many decisions exist and this comment
+  // has already carried three stale readings -- 14, then 24, then 24 again after
+  // the list grew. Bringing `docs/decisions/` under POLICY_GLOBS reports, for
+  // every decision, one [budgets] error (no cap) and one [index] error (CLAUDE.md
+  // does not name it), plus [duplicates] between records that share a paragraph
+  // and [citations] below. The total therefore grows with the directory, which is
+  // itself half the argument. Re-derive it rather than reading it here: put the
+  // glob back, delete the exclusion entries, and run the linter.
   // The five [citations] are named one by one rather than summarised, because
   // the first version of this sentence said they were all 0003's and three of
   // them are: `docs/Zednotes.md`, `NOT_A_DOCUMENT` and `NEVER_NOT_A_DOCUMENT`,
@@ -385,8 +389,11 @@ const CORPUS_EXCLUDED = new Set([
   // its own inline list: this file by `:!.claude`, ADR 0002 by `...spec` (a
   // policy file cannot satisfy a citation, and once ADRs are policy files --
   // the state being measured -- 0002 is one), and 0006 itself by `exceptRel`.
-  // Two are independently sufficient: dropping `:!.claude` takes the total to
-  // 23, and so does un-excluding 0002. Named this precisely because the
+  // Two are independently sufficient: dropping `:!.claude` removes this error,
+  // and so does un-excluding 0002. Neither total is written here -- the previous
+  // two versions of this sentence carried one, both went stale, and the second
+  // went stale in the same commit that removed the count from the sentence above
+  // it. Named this precisely because the
   // sentence has been wrong twice, once as "all five are 0003's" and once as
   // `SYMBOL_GREP_EXCLUDE`, which this file imports and never calls on this
   // path. So three of the five are a check applied to the wrong kind of text,
@@ -410,6 +417,7 @@ const CORPUS_EXCLUDED = new Set([
   'docs/decisions/0004-an-assertion-can-be-correct-and-never-run.md',
   'docs/decisions/0005-no-codeowners-while-one-identity-authors-and-approves.md',
   'docs/decisions/0006-policy-merge-grant-regranted-to-the-local-session.md',
+  'docs/decisions/0007-after-this-session-owner-approval-per-pull-request.md',
 ])
 
 // Widening the scan past `.md` brought in every `.txt` a policy file cites, and
@@ -773,99 +781,6 @@ function policyFiles() {
   return list.filter((f) => POLICY_GLOBS.some((re) => re.test(f))).sort()
 }
 
-// ---------------------------------------------------------------------------
-// Derivations. Every count a policy file is allowed to state is computed here
-// from the artefact itself, never carried. CLAUDE.md's own rule: "derive the
-// count, do not carry one".
-
-function jsonKeys(rel, key) {
-  const raw = read(rel)
-  if (!raw) return null
-  const d = JSON.parse(raw)
-  return key ? Object.keys(d[key]).length : Object.keys(d).length
-}
-
-function countMatches(rel, re) {
-  const raw = read(rel)
-  if (!raw) return null
-  return (raw.match(re) || []).length
-}
-
-function derivations() {
-  const d = {}
-  const b = read('tests/structure_budgets.json')
-  if (b) d.budgets = Object.keys(JSON.parse(b)).filter((k) => k !== 'recorded_at').length
-  d.scripts = jsonKeys('tests/closures.json', 'closures')
-  d.rules = git(['ls-files', '.cursor/rules/*.mdc']).trim().split('\n').filter(Boolean).length
-  d.briefs = git(['ls-files', 'tools/audit/briefs/D*.md']).trim().split('\n').filter(Boolean).length
-  d.jobs = countMatches('.github/workflows/tests.yml', /^ {2}[a-z0-9-]+:$/gm)
-  const card = read('tests/card_drift.mjs')
-  if (card) {
-    const m = card.match(/const STATES = \[[\s\S]*?\n\]/)
-    d.states = m ? (m[0].match(/\bname:/g) || []).length : null
-  }
-  d.services = countMatches('custom_components/heatpump_optimizer/services.yaml', /^[a-z_]+:/gm)
-  d.modules = git(['ls-files', 'custom_components/heatpump_optimizer/']).trim().split('\n').filter((f) => f.endsWith('.py')).length
-  d.goldens = git(['ls-files', 'tests/golden/*.json']).trim().split('\n').filter(Boolean).length
-  return d
-}
-
-// Number words the corpus actually uses, so "fourteen of sixteen" is checked.
-const WORDS = {
-  two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
-  eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16,
-  seventeen: 17, eighteen: 18, nineteen: 19, twenty: 20, 'twenty-one': 21,
-  'twenty-two': 22, 'twenty-three': 23, 'twenty-four': 24,
-}
-const NUM = `(\\d+|${Object.keys(WORDS).join('|')})`
-function toNum(tok) {
-  return /^\d+$/.test(tok) ? Number(tok) : WORDS[tok.toLowerCase()]
-}
-
-// Each rule: a regex whose first group is the stated count, and the derivation
-// key it must equal. Deliberately narrow -- a rule that over-fires gets the
-// linter bypassed, which is the failure mode this whole script exists to stop.
-const COUNT_RULES = [
-  { key: 'budgets', re: new RegExp(`${NUM}\\s+(?:budgets|metrics)\\b`, 'gi'), what: 'metrics in tests/structure_budgets.json' },
-  { key: 'scripts', re: new RegExp(`(?:of|all)\\s+${NUM}\\s+scripts?\\b`, 'gi'), what: 'selectable scripts in tests/closures.json' },
-  { key: 'rules', re: new RegExp(`${NUM}\\s+(?:\`?alwaysApply\`?\\s+)?policies\\b`, 'gi'), what: '.cursor/rules/*.mdc files' },
-  { key: 'states', re: new RegExp(`(?:STATES\\s*\\(${NUM}\\)|card's\\s+${NUM}\\s+states)\\b`, 'gi'), what: 'entries in card_drift.mjs STATES' },
-  { key: 'services', re: new RegExp(`${NUM}\\s+services\\b`, 'gi'), what: 'keys in services.yaml' },
-  { key: 'modules', re: new RegExp(`${NUM}\\s+modules\\b`, 'gi'), what: 'modules in custom_components/heatpump_optimizer/' },
-  { key: 'goldens', re: new RegExp(`${NUM}\\s+GOLDEN\\s+SCENARIOS\\b|${NUM}\\s+golden\\s+fixtures\\b`, 'g'), what: 'fixtures in tests/golden/' },
-  { key: 'briefs', re: new RegExp(`${NUM}\\s+dimension\\s+briefs\\b`, 'gi'), what: 'tools/audit/briefs/D*.md' },
-]
-
-// A count inside a quotation, an example, or a passage the file itself marks
-// as history is a record of what was once measured, not a live claim.
-const HISTORY_LINE = /^\s*(?:>|\|?\s*BORN:|EXAMPLE|#{1,6}\s|.*\b(?:once|used to|at the time|was then|historical|superseded)\b)/i
-
-function checkCounts(rel, text, derived) {
-  const out = []
-  const lines = text.split('\n')
-  lines.forEach((line, i) => {
-    if (HISTORY_LINE.test(line)) return
-    for (const rule of COUNT_RULES) {
-      const want = derived[rule.key]
-      if (want == null) continue
-      rule.re.lastIndex = 0
-      let m
-      while ((m = rule.re.exec(line))) {
-        const tok = m[1] || m[2]
-        if (!tok) continue
-        const got = toNum(tok)
-        if (got == null || got === want) continue
-        out.push({
-          severity: 'error',
-          check: 'counts',
-          where: `${rel}:${i + 1}`,
-          message: `states ${tok} for ${rule.what}; derived ${want}. Derive the count, do not carry one.`,
-        })
-      }
-    }
-  })
-  return out
-}
 
 // ---------------------------------------------------------------------------
 // no-gh. The seats run in a container with no `gh` binary; web-fragments.md
@@ -874,9 +789,32 @@ function checkCounts(rel, text, derived) {
 const GH_RE = /\bgh\s+(pr|issue|run|api|release|secret|workflow)\b/g
 const GH_ALLOWED = /^\.claude\/workflows\/web-fragments\.md$/
 
+// AND ONE COMMAND IS REFUSED EVERYWHERE, the mapping table included, because it
+// answers a different question from the one it is offered for. `gh pr checks`
+// prints the LATEST run per check, so a check that failed and then succeeded
+// reads as never-red -- #625 merged with a `pr-contract` failure at its head and
+// a body saying `## Red checks: none`, and the body was not lying about what its
+// author saw. A seat writing that section must read
+// `/repos/<owner>/<repo>/commits/<sha>/check-runs`, which returns every run.
+// The mapping table is not exempt: it is where a seat with no `gh` binary looks
+// up what to run, so an exemption there is the hole rather than an escape from
+// it.
+const GH_LOSSY = /\bgh\s+pr\s+checks\b/g
+
 function checkNoGh(rel, text) {
-  if (GH_ALLOWED.test(rel)) return []
   const out = []
+  text.split('\n').forEach((line, i) => {
+    GH_LOSSY.lastIndex = 0
+    if (GH_LOSSY.test(line)) {
+      out.push({
+        severity: 'error',
+        check: 'no-gh',
+        where: `${rel}:${i + 1}`,
+        message: 'names `gh pr checks`, which prints only the LATEST run per check, so a check that failed and then succeeded reads as never-red. Read /repos/<owner>/<repo>/commits/<sha>/check-runs, which returns every run.',
+      })
+    }
+  })
+  if (GH_ALLOWED.test(rel)) return out
   text.split('\n').forEach((line, i) => {
     GH_RE.lastIndex = 0
     let m
@@ -1423,6 +1361,45 @@ function checkRecord(prs, dispositionText) {
       check: 'record',
       where: DISPOSITION_FILES[0],
       message: `no disposition in the plan of record or the living handover for merged pull request #${pr} (${subject.slice(0, 90)}). A merge nobody recorded is a merge no later seat can resume from.`,
+    })
+  }
+  return out
+}
+
+// ---------------------------------------------------------------------------
+// table. A blank line between two rows of one markdown table ends the table
+// there, and every row after it renders as literal text -- pipes and all --
+// while the source still looks like a table to whoever is editing it. Found
+// when a row of the plan's Delivery-status table was left FIVE cells wide in a
+// three-column table and the reviewer went looking for why nobody had noticed:
+// the row was not in a table at all. Measured through GitHub's own /markdown
+// endpoint at 7d8d271, the section rendered as one table of 11 rows plus 104
+// literal pipe characters loose in paragraphs; with the blank line removed it
+// renders as one table of 37 rows and no loose pipes.
+//
+// This runs in the RECORD mode rather than over the corpus because the two
+// documents it reads are the record's own, and `docs/` is not a policy
+// directory -- no corpus check has ever opened either of them.
+//
+// The one legitimate shape it must not refuse is two tables in a row, where the
+// blank line is the separator between them. That is told apart by looking one
+// line further: a new table's header is followed by a delimiter row, and a
+// continuation row is not.
+function checkTableSplit(rel, text) {
+  const out = []
+  const lines = text.split('\n')
+  const isRow = (l) => typeof l === 'string' && l.startsWith('|')
+  const isDelim = (l) => typeof l === 'string' && /^\|[\s|:-]+\|\s*$/.test(l)
+  for (let i = 1; i < lines.length - 1; i++) {
+    if (lines[i].trim() !== '') continue
+    if (!isRow(lines[i - 1]) || !isRow(lines[i + 1])) continue
+    if (isDelim(lines[i + 2])) continue // a new table starts here, not a split
+    out.push({
+      severity: 'error',
+      check: 'table',
+      where: `${rel}:${i + 1}`,
+      message:
+        'a blank line sits between two rows of one table, which ends the table here. Every row below renders as literal text with its pipes visible, while the source still reads as a table. Delete the blank line, or give the second half its own header and delimiter row.',
     })
   }
   return out
@@ -2004,6 +1981,7 @@ const REQUIRED_ROT = {
     ],
   },
   counts: { count: 2 },
+  table: { count: 1, must: ['ends the table here'] },
   'no-gh': { count: 1 },
   duplicates: { count: 1 },
   budgets: {
@@ -2077,7 +2055,7 @@ CORPUS_CHECKS.push(checkIndex, checkDuplicates, checkBudgets, coverageOverTree, 
 // refuse; it cannot prove the check is not refusing everything. Each loop mode
 // is therefore also run against a fixture that is healthy in exactly the way the
 // rot fixture is rotten, and must produce nothing.
-const REQUIRED_SILENT = ['record', 'stats', 'sunset']
+const REQUIRED_SILENT = ['record', 'stats', 'sunset', 'table']
 
 function assertAcceptance(derived) {
   const dir = path.join(HERE, 'fixtures', 'policy-rot')
@@ -2156,6 +2134,7 @@ function assertAcceptance(derived) {
   }
   const rotten = checkRecord(loop.prs, loop.dispositionsRotten)
   found.push(...rotten)
+  found.push(...checkTableSplit('fixtures/policy-loop/dispositions-rotten.md', loop.dispositionsRotten))
 
 
   found.push(...statsFindings({ prs: loop.prs, fetched: loop.fetched, fetchError: null, classes: loop.classes }))
@@ -2169,6 +2148,7 @@ function assertAcceptance(derived) {
   // nothing.
   const silent = {
     record: checkRecord(loop.prs, loop.dispositionsHealthy),
+    table: checkTableSplit('fixtures/policy-loop/dispositions-healthy.md', loop.dispositionsHealthy),
     stats: statsFindings({ prs: loop.healthyPrs, fetched: loop.fetched, fetchError: null, classes: loop.classes }),
     sunset: checkSunset(loop.sunsetHealthy, { friction: loop.friction, fires: loop.fires, today: loop.today }),
   }
@@ -3215,10 +3195,18 @@ function cmdRecordDispositions(since) {
     : [{ severity: 'error', check: 'record', where: DISPOSITION_FILES[0],
          message: `no \`## ${RECORD_SECTION}\` section, so the record has no region to read and every merge in the window would report as undispositioned. Restore the heading, or change RECORD_SECTION with it.` }]
   const applied = applyKnownBad(all, RECORD_KEY)
+  // Counted and printed apart from the record findings: `all.length` is the
+  // undispositioned-merge count and folding a different class into it would
+  // make that sentence false.
+  const split = DISPOSITION_FILES.flatMap((rel) => {
+    const t = read(rel)
+    return t ? checkTableSplit(rel, t) : []
+  })
   console.log(`RECORD: ${prs.length} merged pull request(s) in ${since}..${mainRef()}; ${all.length} without a disposition in ${DISPOSITION_FILES.join(' or ')}`)
-  printFindings(applied.live)
+  console.log(`TABLES: ${split.length} split table(s) across ${DISPOSITION_FILES.length} disposition document(s)`)
+  printFindings([...applied.live, ...split])
   console.log(`\nKNOWN-BAD: ${applied.suppressed} of ${applied.total} recorded record-class defect(s) still present, in ${applied.occurrences} recorded occurrence(s)`)
-  const errors = applied.live.filter((f) => f.severity === 'error').length
+  const errors = [...applied.live, ...split].filter((f) => f.severity === 'error').length
   console.log(`\nTOTAL: ${errors} error(s) over ${prs.length} merged pull request(s)`)
   process.exit(errors > 0 ? 1 : 0)
 }

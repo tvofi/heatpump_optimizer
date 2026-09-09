@@ -45,31 +45,10 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 6.3.18
+# claims-for: 6.3.19
 #
-# v6.3.18: the plan works again, the #193 decomposition through S9, and the programme's own contracts. The stamp empties the list; the
+# v6.3.19: the governance programme, three defects that were deleting work, and the interface changes that came with them. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
-#
-# E4 / #516: grouping the ten wide options pages. config_flow is float-free
-# (`carries_floats` is False), so env_drift compares it exactly at level 1:
-# the committed fixture is re-recorded AND the drift vs the merge base is
-# claimed. Same class as #547. Solver fixtures and the card claim file are
-# untouched.
-#
-# E1: setup's tibber_token takes the same password TextSelector options
-# already used. Instrument: GOLDEN_MODE=strict tests/golden.py --only
-# config_flow. The only moved path is _initial.user.tibber_token
-# (selector type -> TextSelector, config None -> type password).
-# reauth_confirm is not in this fixture; config_flow_steps.py pins it.
-# Options entities is already password, so that half of the fixture
-# does not move. Solver fixtures and the card claim file are untouched.
-#
-# E2: finish-setup-now menu after user_sensors. Instrument:
-# GOLDEN_MODE=strict tests/golden.py --only config_flow. The only moved
-# path vs this merge-base is _initial.finish_setup (absent → menu
-# [['temperature', 'Continue setup'], ['finish_now', 'Finish setup now']]).
-# Existing form fingerprints are byte-identical. Solver fixtures and
-# the card claim file are untouched.
 #
 # E3: setup_overview as the last CONFIG-flow step. Instrument:
 # GOLDEN_MODE=strict tests/golden.py --only config_flow. The only moved
@@ -79,6 +58,15 @@
 # claim file are untouched.
 
 config_flow # E3: _initial.setup_overview empty form after both create-entry terminals
+
+#
+
+# W4-G10 S9 (#224, DhwPlan 14-key return): this branch claims NOTHING.
+# `_build_dhw_requirements` returns the same 14 values as a frozen
+# dataclass instead of a dict. No solver arithmetic is reordered.
+# origin/main's config_flow # E2 claim is not inherited (optimizer.py
+# is claimable; this cut still moves no fixture).
+
 #
 
 #

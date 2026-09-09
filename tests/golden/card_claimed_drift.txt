@@ -19,9 +19,9 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 6.3.18
+# claims-for: 6.3.19
 #
-# v6.3.18: the plan works again, the #193 decomposition through S9, and the programme's own contracts. The stamp empties the list; the
+# v6.3.19: the governance programme, three defects that were deleting work, and the interface changes that came with them. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 
