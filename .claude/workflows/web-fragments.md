@@ -153,7 +153,7 @@ tools:
 | `issue_write` (labels, state) | `gh issue edit N --add-label X --remove-label Y`; `gh issue close N --reason completed\|"not planned"` |
 | `create_pull_request` | `gh pr create --base main --head <branch> --title ... --body-file <file>` |
 | `update_pull_request` | `gh pr edit N --body-file <file>` |
-| `pull_request_read` (get, get_check_runs, get_comments, get_files, get_diff) | `gh pr view N --json number,state,headRefOid,mergeable,mergeStateStatus,body,comments,files`; `gh pr diff N`; `gh pr checks N` |
+| `pull_request_read` (get, get_check_runs, get_comments, get_files, get_diff) | `gh pr view N --json number,state,headRefOid,mergeable,mergeStateStatus,body,comments,files`; `gh pr diff N`; `gh api /repos/<owner>/<repo>/commits/<sha>/check-runs` |
 | `merge_pull_request` (squash) | `gh pr merge N --squash --delete-branch` |
 | `actions_list` (list_workflow_runs) | `gh run list --branch <branch> --workflow tests.yml --json databaseId,headSha,status,conclusion,createdAt` |
 | `actions_get` | `gh run view <id> --json jobs` |
