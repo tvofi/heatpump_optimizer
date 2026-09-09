@@ -2379,7 +2379,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
             user_input = _flatten_section_input(user_input)
             if (
                 user_input.get(CONF_MIXING_VALVE_WRITE_TARGET_KIND)
-                == mixing_valve.WRITE_TARGET_FLOW)
+                == mixing_valve.WRITE_TARGET_FLOW
                 and not current.get(CONF_UPPER_FLOOR_THERMAL_MASS)
             ):
                 errors[CONF_MIXING_VALVE_WRITE_TARGET_KIND] = (
