@@ -487,6 +487,27 @@ no wave:
 
 **A pattern worth naming**, since most of these were blocked for it: every one of those blocks was a document asserting something that was not true of the tree — a stale head, a count, an actor, a carry that did not land. None was a disagreement about the change itself.
 
+### Governance queue — where this lane's rows go from here
+
+Both lanes appended their disposition rows to the end of one list, so every
+merge on `main` conflicted the other lane's open branch at that seam: this pull
+request was rebased five times for it and #639 three, each rebase costing a
+fresh review round at a head whose code had not changed. The rows above stay
+where they are; **from here this lane appends below and every other lane appends
+there**, so the two insertion points are never adjacent and neither lane waits
+on the other. No pull-request number is named as the boundary: one was drafted
+into this sentence and taken by another lane four minutes later. **What reads this row, stated as it is
+today and not as it will be:** `checkRecord` tests `#<pr>` against the whole
+text of both disposition documents, so a row is read wherever it sits in either
+of them — driven by moving #648's row clean out of `## Delivery status` into
+`## Carried findings awaiting a stage`, which leaves `--record` at 47 merged, 0
+undispositioned, with masking that number in both files as the null control that
+does report it. The pull request after this one narrows that to the
+`## Delivery status` section alone, which is why this subsection is placed
+inside it rather than after it.
+
+- [#644](https://github.com/tvofi/heatpump_optimizer/pull/644) — **merged under decision 0006**, without a merge SHA it cannot know: `docs/decisions/` leaves the measured corpus, named one by one so a seventh decision costs a line; 0006 added to that list; 0005's status line stops waiting on the question the same file answers. Closes the queue 05–10; the ruleset's `record` and `env-matrix` contexts both exist on `main` from here.
+
 ### The UX programme — 34 items, five lanes, tracking #558
 
 Thirty-four graphics and interface changes the owner selected from a
