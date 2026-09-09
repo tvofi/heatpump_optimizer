@@ -778,10 +778,15 @@ judge comments on each issue and summarised on #201.
   **The design that landed, and why it is not the one proposed here.** This
   entry proposed a LIST-ITEM anchor — the number must open a list item,
   `- [#NNN](…`, said to hold for 65 of 65 rows. Driven again before building it,
-  against the 42 pull requests merged in the window at `e4f34c7`: **two fail** —
-  #629 and #632 are dispositioned inside Delivery-status TABLE CELLS, on the
-  rows of the issues they close (`| **#527** … |`, `| **#590** … |`), which is a
-  legitimate disposition this repository actually writes. A rule that refuses it
+  against the 42 merged in the window at `e4f34c7`: **two fail** — #629 and #632
+  are dispositioned inside Delivery-status TABLE CELLS, on the rows of the issues
+  they close (`| **#527** … |`, `| **#590** … |`), which is a legitimate
+  disposition this repository actually writes. Re-derived at this head, where the
+  window holds 54: **five fail**, and the two new kinds are worth naming — #587
+  and #653 are further table-cell dispositions, and **#585 is not a pull request
+  at all**: the merge subject ends in an *issue* number, which `MERGE_SUBJECT_RE`
+  takes for a pull-request number. A rule that pins a row shape would have had to
+  refuse all five, and one of them has no row to write. A rule that refuses it
   either loses two records or forces a duplicate row, and it pins a shape rather
   than a property, which this entry itself forbids two paragraphs down.
   **The anchor is the SECTION.** A disposition must appear under the plan's

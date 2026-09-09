@@ -1370,8 +1370,18 @@ function mergedPRs(subjects) {
 // the obvious fix and is the wrong one: it would refuse the two dispositions
 // this repository actually writes inside Delivery-status TABLE CELLS, and pin a
 // shape the next lane must copy rather than a property it must satisfy.
-// Measured before choosing: all 42 merged pull requests in the window are
-// linked from `## Delivery status` and from nowhere else.
+// Measured before choosing, and the count moves with the window
+// rather than being carried: at `e4f34c7` all 42 merged pull requests in the
+// window were linked from `## Delivery status` and from nowhere else; re-derived
+// at this head, all 54 are.
+//
+// AND THE HANDOVER IS NOT DEMOTED, which has a consequence worth stating rather
+// than leaving to be discovered: it contributes ALL of itself, so a pull request
+// named anywhere in it -- a trap citation, a correction -- is dispositioned by
+// that mention. At `cc2efc9` #621 was, and would be again. That is the price of
+// `DISPOSITION_FILES` naming both files and the error message promising both;
+// narrowing the handover too is a policy change about what that document is
+// for, and belongs to the owner rather than to a linter.
 //
 // The plan contributes that one section; the handover contributes all of
 // itself, because the handover IS the record and has no other job. If the
@@ -2202,14 +2212,24 @@ function assertAcceptance(derived) {
   // region. The third is the one that keeps this fail-closed: an empty region
   // would otherwise read as "every merge undispositioned", which is a true
   // statement about the wrong thing.
-  pins += 3
+  pins += 5
   const regIn = recordRegion(`## ${RECORD_SECTION}\n- [#9101](x/pull/9101) merged\n`, '')
   const regOut = recordRegion(`## Carried findings\n- found by #9101 in passing\n`, '')
   const regNone = recordRegion('# plan\nno second-level heading at all\n', '')
+  // The fourth fixture is TWO sections, and it is the one the first three could
+  // not stand in for: each of those is single-section, so a region that OPENS
+  // correctly and never CLOSES satisfies all three. One token does that --
+  // `if (h2) inside = …` becoming `if (h2 && …) inside = true` -- and the
+  // acceptance stayed green under it, with the whole plan back in the region.
+  // Found by #658's round 1, on the pin rather than on the code.
+  const regBoth = recordRegion(
+    `## ${RECORD_SECTION}\n- [#9101](x/pull/9101) merged\n\n## Carried findings\n- found by #9102 in passing\n`, '')
   const regFail = []
   if (checkRecord([{ pr: '9101', subject: 's' }], regIn.region).length !== 0) regFail.push('a disposition INSIDE the section did not count')
   if (checkRecord([{ pr: '9101', subject: 's' }], regOut.region).length !== 1) regFail.push('a mention OUTSIDE the section counted as a disposition')
   if (regNone.sectionFound) regFail.push('a plan with no section heading reported one')
+  if (checkRecord([{ pr: '9102', subject: 's' }], regBoth.region).length !== 1) regFail.push('the region did not CLOSE at the next section heading')
+  if (checkRecord([{ pr: '9101', subject: 's' }], regBoth.region).length !== 0) regFail.push('the region did not cover its own section when another follows')
   if (regFail.length) {
     console.log(`\nFIXTURE VACUOUS: recordRegion ${JSON.stringify(regFail)}. The record's region is what makes a mention a disposition; unpinned, it can be widened back to the whole file with every other count unchanged.`)
     return 1
