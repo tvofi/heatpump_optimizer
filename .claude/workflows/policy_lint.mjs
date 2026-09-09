@@ -372,12 +372,21 @@ const CORPUS_EXCLUDED = new Set([
   // bringing `docs/decisions/` under POLICY_GLOBS reports 24 errors across 41
   // policy files -- 7 [budgets], 6 [index], 6 [duplicates], 5 [citations] --
   // where the first reading said 14. The shape is what decided it and the shape
-  // is unchanged: every ADR wants a cap and an index line it should not have,
-  // and the [citations] are 0003's, which are correct BECAUSE it describes an
-  // experiment over files and symbols that do not exist. A check refusing a
-  // document for accurately describing a control is the check applied to the
-  // wrong kind of text. The count grows with the directory, which is the other
-  // half of the argument: measuring ADRs makes the corpus pay per decision.
+  // is unchanged: every ADR wants a cap and an index line it should not have.
+  // The five [citations] are named one by one rather than summarised, because
+  // the first version of this sentence said they were all 0003's and three of
+  // them are: `docs/Zednotes.md`, `NOT_A_DOCUMENT` and `NEVER_NOT_A_DOCUMENT`,
+  // correct BECAUSE 0003 describes an experiment over files and symbols that do
+  // not exist. The fourth is 0005 citing `docs/plan-2026-09-governance-audit.md`
+  // and is a TRUE positive: that plan is archived on a branch and is not in this
+  // tree. The fifth is 0006 citing `POLICY_GLOBS`, which exists a few lines
+  // above here -- unresolvable because `SYMBOL_GREP_EXCLUDE` is [':!.claude'],
+  // excluding this whole directory on purpose so that a roster cannot satisfy
+  // its own citation. So three of the five are a check applied to the wrong kind
+  // of text, one is the check working, and one is a known exclusion meeting a
+  // document that cites into it. The count grows with the directory, which is
+  // the other half of the argument: measuring ADRs makes the corpus pay per
+  // decision.
   //
   // THE RESIDUAL RISK, stated rather than left to be found: prose moved from a
   // capped file into an ADR leaves the corpus and buys headroom in every cap at
