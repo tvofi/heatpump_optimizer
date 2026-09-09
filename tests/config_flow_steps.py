@@ -3651,14 +3651,12 @@ async def token_surfaces_agree():
         "happy",
         "the three tibber_token surfaces agree on the same mask",
         len(set(masks.values())) == 1,
-        str(masks),
     )
     check(
         "token_surfaces",
         "happy",
         "that shared mask is the password TextSelector",
         set(masks.values()) == {password},
-        f"{masks} want {password}",
     )
 
 
