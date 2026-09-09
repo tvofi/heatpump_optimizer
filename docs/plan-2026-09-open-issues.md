@@ -514,6 +514,7 @@ inside it rather than after it.
 
 - [#644](https://github.com/tvofi/heatpump_optimizer/pull/644) — **merged under decision 0006**, without a merge SHA it cannot know: `docs/decisions/` leaves the measured corpus, named one by one so a seventh decision costs a line; 0006 added to that list; 0005's status line stops waiting on the question the same file answers. Closes the queue 05–10; the ruleset's `record` and `env-matrix` contexts both exist on `main` from here.
 - [#658](https://github.com/tvofi/heatpump_optimizer/pull/658) — **merged under decision 0006**, without a merge SHA it cannot know: the record check's region narrows from both documents whole to `## Delivery status` plus the handover, so a pull request mentioned in passing is no longer dispositioned by that mention; the list-item anchor this plan proposed was refuted first (it refuses #629 and #632, dispositioned inside table cells); pinned by three acceptance assertions over synthetic input, tip invariant 76 → **79** pins across the same 10 classes; the handover's `updated-for` catches up; and the backticked-verdict finding is carried.
+- [#662](https://github.com/tvofi/heatpump_optimizer/pull/662) — **merged `2d06e06`**: a branch that moves no fixture was told to EMPTY the claim files, and a squash applies that deletion to `main` — #608 carried 33 of #569's claim lines off, #635 the same to #633's, #658 was stopped on the way to #653's. The rule is now *leave both files exactly as you found them*, which is the same rule whenever the baseline claims nothing. Three routes closed: the record check, the autofix bot, and the stale-claim judgement. This row is written by the pull request AFTER it, because #662 merged before its own row existed — which is the defect `record` is for, caught by `record` itself.
 
 ### The UX programme — 34 items, five lanes, tracking #558
 
@@ -923,6 +924,18 @@ judge comments on each issue and summarised on #201.
   or say in `fix-review.md` that the first line is unwrapped and pin THAT,
   which needs a fixture comment rather than a brief. Whoever takes it should
   decide which of those the contract means before writing either.
+- **`env_drift.py` reads the baseline at the ref's TIP while it takes the diff
+  at the merge base**, so a local run against `origin/main` and the same run
+  against the merge base can disagree — and the disagreement is exactly the
+  one #662 exists to prevent: `--claims-only <merge-base>` says `ok` while
+  `--claims-only origin/main` says *"Empty the lists"*. Found by #662's round
+  2, which hit it live because `main` moved twice during the review. **CI
+  never reaches it** — every workflow passes the merge base — and it predates
+  #662, so it was carried rather than folded in. The remedy is one line:
+  default the local ref to the merge base rather than to `origin/main`'s tip,
+  which is what every caller that matters already passes. Until then, a seat
+  running the check by hand should pass `$(git merge-base origin/main HEAD)`
+  and not `origin/main`; #662's own body says so.
 - **`pr-contract` red runs are hidden by `gh pr checks`, and the ones on this
   queue's heads were process state (b), not a defect in the check.** Two facts,
   and only the first is the check's.
@@ -1032,7 +1045,7 @@ judge comments on each issue and summarised on #201.
   **Ordering:** programme-closing work, after `10-adr-corpus`, beside the
   record-check anchor rewrite and the ruleset. Not inside the queue — the
   mutation proofs are per-trap and would stall it.
-- **`claims-autofix` erases an earlier lane's claims from `main` at squash-merge
+- **CLOSED by #662 (`2d06e06`).** `claims-autofix` erases an earlier lane's claims from `main` at squash-merge
   time, and it has already done so once.** Measured on #634. `inherited_claims_error`
   fires when a branch's parsed claim list equals its **merge-base's**; after a
   rebase onto `a684cce` (#633, which added 46 lines to that file — **33** of them claims, the rest header and reasons) that is exactly
