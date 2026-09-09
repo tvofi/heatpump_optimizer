@@ -479,12 +479,35 @@ no wave:
 - [#639](https://github.com/tvofi/heatpump_optimizer/pull/639) — **merged under decision 0006**, without a merge SHA it cannot know: `policy_lint_envmatrix.mjs`, the declared-environment matrix that builds five shapes of this repository and fails a row whose run does not produce what the row declares — or a shape it cannot build — plus the `env-matrix` job, decision 0004 (*an assertion can be correct and never run*), and the `prepr.sh` widening. Mutation proof against production, not the harness, and via a temporary commit because the matrix clones from git objects: disabling the shallow-clone disclosure in `policy_lint.mjs` takes it to 11 held / 2 not, rc=1, both in the `shallow` shape; restored 13/13. A vacuous first attempt — a shell-form search string against an array-form call, zero occurrences, an empty WIP commit, 13/13 against an unmutated tree — is disclosed, because it read exactly like a pass until the occurrence assertion caught it. Trap 8 (*one CI runner is not the fleet*) gains its detector with this merge, the fifth in the graduation rule's runway; the ruleset's `env-matrix` context now exists on `main`. Body written against its SHA before the push, per S10; `--claims-only` at the merge base `ok`, because `main`'s claim list is empty and an empty list inherits nothing.
 - [#641](https://github.com/tvofi/heatpump_optimizer/pull/641) — **merged under decision 0006**, without a merge SHA it cannot know: `fix-review.md`'s verdict examples corrected to the grammar `web-fix-wave.js` actually parses — for a session the contract said `blocked: finding not carried to <stage>`, no SHA, no class, which `VERDICT_RE` rejects — plus `D7.md` truthed and decision 0005 recording why one identity authoring and approving makes a required-approval rule a lock. **The fix was unpinned and this branch pins it**: reversing the contract change left every detector green, so `check-wave-script.mjs` now extracts each backticked example beginning `blocked ` or `merge ` and runs it through the grammar rebuilt from the wave script's own text, with a floor of three so an empty extraction cannot pass — **37 passed at head**, the pin having since been widened to read every brief in `tools/audit/briefs/` rather than the contract alone. Driven, and stated as the assertions actually fire rather than as they did when this row was first written: **reversing one example is refused by the `blocked:` assertion**, 35/1 — the floor does NOT fire, because four examples across three files survive a floor of three; **deleting all three examples does fire the floor**, `found 2`, 33/1; a wrong class keeps its space and is refused by that file's own parse assertion, 36/1; and the negative control shows the grammar itself refuses the old form. The earlier reading of this row credited the floor with the reversal, which its own commit falsified two commits later — a row is a claim about the head it merges at, not about the head it was typed at. Body written against its SHA before the push, per S10; `--claims-only` at the merge base `ok`.
 - [#638](https://github.com/tvofi/heatpump_optimizer/pull/638) — nightly A10 diagnostics privacy probe. leaves #533 open.
+- [#645](https://github.com/tvofi/heatpump_optimizer/pull/645) — W5-G3: away.py annotations, ruler 371→354. leaves #303 open.
 - [#647](https://github.com/tvofi/heatpump_optimizer/pull/647) — W5-G3: ledger.py annotations, ruler 371→360. leaves #303 open.
 - [#648](https://github.com/tvofi/heatpump_optimizer/pull/648) — W5-G3: defrost.py annotations, ruler 371→355. leaves #303 open.
-- [#651](https://github.com/tvofi/heatpump_optimizer/pull/651) — **merged**, the loop detector cannot tell "no blocking call" from "no log". leaves #533 open.
 - [#655](https://github.com/tvofi/heatpump_optimizer/pull/655) — nightly A5/A8/A9 options, services, reload. leaves #533 open.
+- [#651](https://github.com/tvofi/heatpump_optimizer/pull/651) — **merged**, the loop detector cannot tell "no blocking call" from "no log". leaves #533 open.
+- [#654](https://github.com/tvofi/heatpump_optimizer/pull/654) — W5-G6: process_worker.py in-process pins, 0.0%→92%. leaves #505 open. leaves #195 open.
 
 **A pattern worth naming**, since most of these were blocked for it: every one of those blocks was a document asserting something that was not true of the tree — a stale head, a count, an actor, a carry that did not land. None was a disagreement about the change itself.
+
+### Governance queue — where this lane's rows go from here
+
+Both lanes appended their disposition rows to the end of one list, so every
+merge on `main` conflicted the other lane's open branch at that seam: this pull
+request was rebased five times for it and #639 three, each rebase costing a
+fresh review round at a head whose code had not changed. The rows above stay
+where they are; **from here this lane appends below and every other lane appends
+there**, so the two insertion points are never adjacent and neither lane waits
+on the other. No pull-request number is named as the boundary: one was drafted
+into this sentence and taken by another lane four minutes later. **What reads this row, stated as it is
+today and not as it will be:** `checkRecord` tests `#<pr>` against the whole
+text of both disposition documents, so a row is read wherever it sits in either
+of them — driven by moving #648's row clean out of `## Delivery status` into
+`## Carried findings awaiting a stage`, which leaves `--record` at 47 merged, 0
+undispositioned, with masking that number in both files as the null control that
+does report it. The pull request after this one narrows that to the
+`## Delivery status` section alone, which is why this subsection is placed
+inside it rather than after it.
+
+- [#644](https://github.com/tvofi/heatpump_optimizer/pull/644) — **merged under decision 0006**, without a merge SHA it cannot know: `docs/decisions/` leaves the measured corpus, named one by one so a seventh decision costs a line; 0006 added to that list; 0005's status line stops waiting on the question the same file answers. Closes the queue 05–10; the ruleset's `record` and `env-matrix` contexts both exist on `main` from here.
 
 ### The UX programme — 34 items, five lanes, tracking #558
 
