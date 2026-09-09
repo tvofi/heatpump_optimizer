@@ -221,6 +221,14 @@
           "heat_pump_online_entity": "Valfritt, men varmt rekommenderat för en molnansluten pump. På medan pumpen faktiskt går att nå. En molnintegration kan fortsätta publicera sina senast kända värden medan pumpen själv har tappat nätverket, vilket får alla andra givare att se alldeles färska ut. Det här är den enda signal som avslöjar det. Vid lokal anslutning (LAN) blir givarna otillgängliga av sig själva och fältet tillför då lite.",
           "heat_pump_fault_entity": "Valfritt. På medan pumpen larmar om ett fel. Bara om det finns ett fel används, aldrig själva felkoden."
         }
+      },
+      "finish_setup": {
+        "title": "Avsluta installationen nu?",
+        "description": "En post skapas först när det här flödet är klart. Du kan stanna här och starta med de medföljande standardvärdena — temperaturer, byggnaden, varmvatten och väderkänslighet kan ställas in senare under Inställningar — eller gå igenom de skärmarna nu.",
+        "menu_options": {
+          "temperature": "Fortsätt installationen",
+          "finish_now": "Avsluta installationen nu"
+        }
       }
     },
     "error": {

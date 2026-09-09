@@ -19,10 +19,12 @@ firing, the accumulated ``_data`` losing a page's answers on the way to
 
 This driver walks both paths through the flow, questionnaire and expert,
 
-    user -> temperature -> building (menu)
-      -> building_describe -> building_extras -> dhw -> weather_sensitivity
-      -> thermal -> zones -> dhw -> weather_sensitivity
-    -> create_entry
+    user -> user_sensors -> finish_setup (menu)
+      -> finish_now -> create_entry
+      -> temperature -> building (menu)
+        -> building_describe -> building_extras -> dhw -> weather_sensitivity
+        -> thermal -> zones -> dhw -> weather_sensitivity
+      -> create_entry
 
 asserting at every hop the next step_id and the data accumulated so far,
 then probes each step's INVALID inputs through the validation code that
@@ -471,6 +473,8 @@ class Ledger:
         for step in (
             "user",
             "user_sensors",
+            "finish_setup",
+            "finish_now",
             "temperature",
             "building",
             "building_describe",
@@ -546,8 +550,19 @@ def check(step, kind, name, condition, detail=""):
 def shows(result, step_id):
     """The result is a form for this step (or a menu, for menu steps)."""
     if result.get("type") == "menu":
-        return step_id == "building"
+        return result.get("step_id") == step_id
     return result.get("type") == "form" and result.get("step_id") == step_id
+
+
+FINISH_SETUP_OPTIONS = ("temperature", "finish_now")
+
+
+def offers_finish_setup(result):
+    """Second-screen submit opened the continue-or-finish menu (UX E2)."""
+    return (
+        shows_menu(result, "finish_setup")
+        and tuple(result.get("menu_options", {})) == FINISH_SETUP_OPTIONS
+    )
 
 
 def shows_menu(result, step_id):
@@ -683,8 +698,8 @@ async def duplicate_and_null_control():
     check(
         "user",
         "happy",
-        "a valid first screen proceeds to the temperature step",
-        shows(result, "temperature"),
+        "a valid first screen offers finish-setup-now",
+        offers_finish_setup(result),
         str(result)[:120],
     )
     check(
@@ -721,7 +736,7 @@ async def duplicate_and_null_control():
         "user",
         "happy",
         "a second heat pump on the same account proceeds (null control)",
-        shows(distinct, "temperature"),
+        offers_finish_setup(distinct),
         str(distinct)[:120],
     )
 
@@ -739,12 +754,20 @@ async def walk_questionnaire():
 
     result = await submit_first_screen(flow, FIRST_SCREEN)
     check(
-        "temperature",
+        "finish_setup",
         "happy",
-        "the accepted first screen lands on temperature",
-        shows(result, "temperature")
+        "the accepted first screen offers finish-setup-now",
+        offers_finish_setup(result)
         and flow._data.get(const.CONF_TIBBER_TOKEN) == "tok-a"
         and flow._data.get(const.CONF_WEATHER_ENTITY) == "weather.home",
+        str(result.get("step_id")),
+    )
+    result = await flow.async_step_temperature(None)
+    check(
+        "temperature",
+        "happy",
+        "continuing setup lands on temperature",
+        shows(result, "temperature"),
         str(result.get("step_id")),
     )
 
@@ -917,6 +940,63 @@ async def walk_questionnaire():
         f"missing {from_every_page}",
     )
 
+    config_flow.async_get_clientsession = real
+
+
+# ---------------------------------------------------------------------------
+# UX E2: finish-setup-now after the second screen creates the entry.
+# ---------------------------------------------------------------------------
+async def walk_finish_now():
+    R.section("E2: finish-setup-now after user_sensors creates the entry")
+    real = install_session(config_flow, FakeSession([TIBBER_VIEWER_OK]))
+    flow = fresh_flow()
+    result = await submit_first_screen(flow, FIRST_SCREEN)
+    check(
+        "finish_setup",
+        "happy",
+        "the second screen opens the finish-setup menu",
+        offers_finish_setup(result),
+        str(result)[:160],
+    )
+    finish = getattr(flow, "async_step_finish_now", None)
+    if finish is None:
+        check(
+            "finish_now",
+            "happy",
+            "finish-setup-now creates the entry under the chosen name",
+            False,
+            "async_step_finish_now missing",
+        )
+        check(
+            "finish_now",
+            "happy",
+            "the early entry carries the first two screens and no later page",
+            False,
+            "async_step_finish_now missing",
+        )
+        config_flow.async_get_clientsession = real
+        return
+    result = await finish(None)
+    entry_data = result.get("data", {})
+    check(
+        "finish_now",
+        "happy",
+        "finish-setup-now creates the entry under the chosen name",
+        result.get("type") == "create_entry"
+        and result.get("title") == "Heat Pump Optimizer",
+        f"{result.get('type')} {result.get('title')!r}",
+    )
+    check(
+        "finish_now",
+        "happy",
+        "the early entry carries the first two screens and no later page",
+        result.get("type") == "create_entry"
+        and entry_data.get(const.CONF_TIBBER_TOKEN) == "tok-a"
+        and entry_data.get(const.CONF_WEATHER_ENTITY) == "weather.home"
+        and const.CONF_TARGET_TEMP not in entry_data
+        and const.CONF_DHW_TANK_VOLUME not in entry_data,
+        f"keys {sorted(entry_data)}",
+    )
     config_flow.async_get_clientsession = real
 
 
@@ -3728,6 +3808,7 @@ async def main() -> int:
     await seed_base_entry()
     await duplicate_and_null_control()
     await user_error_branches()
+    await walk_finish_now()
     await walk_questionnaire()
     await walk_expert()
     await temperature_error_branches()
