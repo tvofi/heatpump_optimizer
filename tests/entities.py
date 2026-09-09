@@ -6681,15 +6681,26 @@ try:
         _dup_first, _first_credentials, _first_sensors
     )
     R.check(
-        "the first flow with these answers proceeds to the temperature step",
-        _dup_first_result.get("type") == "form"
-        and _dup_first_result.get("step_id") == "temperature",
-        str(_dup_first_result)[:120],
+        "the first flow with these answers offers finish-setup-now",
+        _dup_first_result.get("type") == "menu"
+        and _dup_first_result.get("step_id") == "finish_setup"
+        and tuple(_dup_first_result.get("menu_options", {}))
+        == ("temperature", "finish_now"),
+        str(_dup_first_result)[:160],
     )
     R.check(
         "and carries the plant identity as its unique id",
         _dup_first.unique_id == _first_identity,
         f"flow unique_id {_dup_first.unique_id!r}",
+    )
+    _early_entry = asyncio.run(_dup_first.async_step_finish_now(None))
+    R.check(
+        "finish-setup-now after the second screen creates the entry",
+        _early_entry.get("type") == "create_entry"
+        and _early_entry.get("data", {}).get(const.CONF_TIBBER_TOKEN)
+        == _first_credentials[const.CONF_TIBBER_TOKEN]
+        and const.CONF_TARGET_TEMP not in _early_entry.get("data", {}),
+        str(_early_entry)[:160],
     )
     # What the flow manager does when that flow finishes: an entry that holds
     # the flow's unique id.
@@ -6716,9 +6727,16 @@ try:
     )
     R.check(
         "a second heat pump on the same Tibber account proceeds",
-        _dup_other_result.get("type") == "form"
-        and _dup_other_result.get("step_id") == "temperature",
-        str(_dup_other_result)[:120],
+        _dup_other_result.get("type") == "menu"
+        and _dup_other_result.get("step_id") == "finish_setup",
+        str(_dup_other_result)[:160],
+    )
+    _continue_form = asyncio.run(_dup_other.async_step_temperature(None))
+    R.check(
+        "continuing setup after the menu lands on temperature",
+        _continue_form.get("type") == "form"
+        and _continue_form.get("step_id") == "temperature",
+        str(_continue_form)[:160],
     )
     R.check(
         "the abort reason has a string to show",

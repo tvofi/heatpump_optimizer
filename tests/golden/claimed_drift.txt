@@ -63,8 +63,15 @@
 # reauth_confirm is not in this fixture; config_flow_steps.py pins it.
 # Options entities is already password, so that half of the fixture
 # does not move. Solver fixtures and the card claim file are untouched.
+#
+# E2: finish-setup-now menu after user_sensors. Instrument:
+# GOLDEN_MODE=strict tests/golden.py --only config_flow. The only moved
+# path vs this merge-base is _initial.finish_setup (absent → menu
+# [['temperature', 'Continue setup'], ['finish_now', 'Finish setup now']]).
+# Existing form fingerprints are byte-identical. Solver fixtures and
+# the card claim file are untouched.
 
-config_flow # E1: setup user.tibber_token is the options password TextSelector
+config_flow # E2: _initial.finish_setup menu after the second screen
 #
 
 #

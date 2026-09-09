@@ -1643,7 +1643,7 @@ class HeatPumpOptimizerConfigFlow(
                 self._abort_if_unique_id_configured()
             if self._reconfigure_entry is not None:
                 return await self._async_save_reconfigure(self._data)
-            return await self.async_step_temperature()
+            return await self.async_step_finish_setup()
 
         schema = vol.Schema(_user_sensors_fields(self.hass))
         if self._reconfigure_entry is not None:
@@ -1681,6 +1681,41 @@ class HeatPumpOptimizerConfigFlow(
         )
         await self.hass.config_entries.async_reload(entry.entry_id)
         return self.async_abort(reason="reconfigure_successful")
+
+    async def async_step_finish_setup(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Continue the wizard, or finish now with shipped defaults (UX E2).
+
+        The first two screens are the only required answers. Everything
+        after them already has a coordinator fallback, so a user who
+        stops here still gets an entry they can refine in Options.
+        """
+        return self.async_show_menu(
+            step_id="finish_setup",
+            menu_options=await _translated_menu(
+                self.hass,
+                "config",
+                "finish_setup",
+                {
+                    "temperature": "Continue setup",
+                    "finish_now": "Finish setup now",
+                },
+            ),
+        )
+
+    async def async_step_finish_now(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Create the entry from the first two screens' answers."""
+        return self._create_setup_entry()
+
+    def _create_setup_entry(self) -> ConfigFlowResult:
+        """Persist whatever the wizard has collected so far."""
+        return self.async_create_entry(
+            title=self._data.get(CONF_NAME, "Heat Pump Optimizer"),
+            data=self._data,
+        )
 
     async def async_step_temperature(
         self, user_input: dict[str, Any] | None = None
@@ -2021,10 +2056,7 @@ class HeatPumpOptimizerConfigFlow(
         """Handle weather sensitivity configuration step."""
         if user_input is not None:
             self._data.update(user_input)
-            return self.async_create_entry(
-                title=self._data.get(CONF_NAME, "Heat Pump Optimizer"),
-                data=self._data,
-            )
+            return self._create_setup_entry()
 
         return self.async_show_form(
             step_id="weather_sensitivity",

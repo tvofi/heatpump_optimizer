@@ -231,6 +231,18 @@
     "selector": "TextSelector"
    }
   },
+  "finish_setup": {
+   "menu": [
+    [
+     "temperature",
+     "Continue setup"
+    ],
+    [
+     "finish_now",
+     "Finish setup now"
+    ]
+   ]
+  },
   "temperature": {
    "comfort_temp_day": {
     "config": {

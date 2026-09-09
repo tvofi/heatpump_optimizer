@@ -221,6 +221,14 @@
           "heat_pump_online_entity": "Optional, and strongly recommended for a cloud-connected pump. On while the pump is actually reachable. A cloud integration can keep republishing its last known readings while the pump itself has dropped off the network, which leaves every other sensor looking perfectly fresh; this is the one signal that says otherwise. On a local (LAN) connection the sensors go unavailable by themselves and this adds little.",
           "heat_pump_fault_entity": "Optional. On while the pump is reporting a fault. Only whether there is a fault is used, never the code itself."
         }
+      },
+      "finish_setup": {
+        "title": "Finish setup now?",
+        "description": "An entry is created only when this flow finishes. You can stop here and start with shipped defaults — temperatures, the building, hot water and weather sensitivity can be set later in Options — or continue through those screens now.",
+        "menu_options": {
+          "temperature": "Continue setup",
+          "finish_now": "Finish setup now"
+        }
       }
     },
     "error": {
