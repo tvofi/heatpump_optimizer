@@ -1455,39 +1455,39 @@ def _page_schema(
 ) -> vol.Schema:
     """One option page's schema, queried from the registry.
 
-    Consecutive rows that share a ``group`` become one ``section()``. A
-    page whose rows carry no group stays flat. ``after_save`` is appended
-    outside every section so it is never nested.
+    Rows that share a ``group`` become one ``section()``, even when they
+    are not adjacent in the table -- a second write to the same section
+    key would otherwise drop the fields already collected. A page whose
+    rows carry no group stays flat. ``after_save`` is appended outside
+    every section so it is never nested. Sections emit in first-seen
+    group order; fields inside a section keep table order.
     """
-    fields: dict[Any, Any] = {}
-    current_group: str | None = None
-    bucket: dict[Any, Any] = {}
-    emitted_group = False
-
-    def flush() -> None:
-        nonlocal current_group, bucket, emitted_group
-        if not bucket:
-            return
-        if current_group is None:
-            fields.update(bucket)
-        else:
-            fields[current_group] = section(
-                vol.Schema(bucket),
-                {"collapsed": emitted_group},
-            )
-            emitted_group = True
-        bucket = {}
-
+    buckets: dict[str | None, dict[Any, Any]] = {}
+    order: list[str | None] = []
     for row in _page_rows(step, current):
-        if row.group != current_group:
-            flush()
-            current_group = row.group
+        group = row.group
+        if group not in buckets:
+            buckets[group] = {}
+            order.append(group)
         if row.default is _DYNAMIC:
-            bucket.update(row.widget(current))
+            buckets[group].update(row.widget(current))
             continue
         widget = row.widget.of(hass) if isinstance(row.widget, _ByHass) else row.widget
-        bucket[_field_marker(row, current, hass)] = widget
-    flush()
+        buckets[group][_field_marker(row, current, hass)] = widget
+    fields: dict[Any, Any] = {}
+    emitted_group = False
+    for group in order:
+        bucket = buckets[group]
+        if not bucket:
+            continue
+        if group is None:
+            fields.update(bucket)
+            continue
+        fields[group] = section(
+            vol.Schema(bucket),
+            {"collapsed": emitted_group},
+        )
+        emitted_group = True
     return _options_schema(fields)
 
 

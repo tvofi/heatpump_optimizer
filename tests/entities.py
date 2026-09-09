@@ -4138,8 +4138,12 @@ for _case in _matrix(_EXTREME_AREAS, (0.1, 0.5, 0.9)):
     _roundtrips += 1
     try:
         _accepted = {
-            **_thermal_schema(_submission(_thermal_schema)),
-            **_zones_schema(_submission(_zones_schema)),
+            **config_flow._flatten_section_input(
+                _thermal_schema(_submission(_thermal_schema))
+            ),
+            **config_flow._flatten_section_input(
+                _zones_schema(_submission(_zones_schema))
+            ),
         }
     except Exception as err:  # noqa: BLE001 - any rejection is the bug
         _unsubmittable.append(f"{_case}: {type(err).__name__}: {err}")
@@ -4337,7 +4341,9 @@ _service_written.hass = FakeHass()
 _sw_form = asyncio.run(_service_written.async_step_comfort(None))
 _sw_bounds = _bounds(_sw_form["data_schema"])
 try:
-    _sw_valid = _sw_form["data_schema"](_submission(_sw_form["data_schema"]))
+    _sw_valid = config_flow._flatten_section_input(
+        _sw_form["data_schema"](_submission(_sw_form["data_schema"]))
+    )
     _sw_error = ""
 except Exception as err:  # noqa: BLE001
     _sw_valid = None
