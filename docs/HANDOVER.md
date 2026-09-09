@@ -124,7 +124,6 @@ in that trap's mode — reporting where a reader is asked to look, refusing wher
 a wrong answer would pass unattended — and each graduation owes a mutation proof
 in its own pull request.
 
-
 1. **A killed agent never writes its own `state at stop:` comment.** On every
    resume the orchestrator walks the session's branches and open pull requests
    and posts the notes the dead agents owed.
