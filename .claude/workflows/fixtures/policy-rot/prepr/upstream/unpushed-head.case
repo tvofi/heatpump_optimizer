@@ -7,5 +7,5 @@
 # the healthy path from #691's; what separates them is whether a push follows,
 # which is the invariant the warning states.
 #
-# <upstream-sha or -> <behind> <ahead> <wanted rc> <what the assertion says>
-9f8e7d6c5b4a392817065f4e3d2c1b0a98765432 0 2 4 an unpushed head warns rather than refusing
+# <branch or -> <remote or -> <own-remote-ref sha or -> <behind> <ahead> <rc> <compared ref or -> <text>
+own-branch origin 9f8e7d6c5b4a392817065f4e3d2c1b0a98765432 0 2 4 origin/own-branch an unpushed head warns rather than refusing
