@@ -801,7 +801,7 @@ judge comments on each issue and summarised on #201.
   passing, a standing rule using one as an example — are all outside it. The
   handover is not demoted: it contributes all of itself, because carrying the
   record is its whole job. A renamed heading reports as its own error rather
-  than as 42 identical ones, so fail-closed does not read as a mass defect.
+  than as one error per merge in the window, so fail-closed does not read as a mass defect.
   Landed with seven acceptance pins over synthetic input — inside counts,
   outside does not, a plan with no such heading says so, the region CLOSES at the
   next section, and a disposition written only in the handover still counts —

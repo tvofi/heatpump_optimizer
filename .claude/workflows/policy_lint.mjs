@@ -1389,7 +1389,7 @@ function mergedPRs(subjects) {
 // The plan contributes that one section; the handover contributes all of
 // itself, because the handover IS the record and has no other job. If the
 // section is missing the region is empty, and that is reported as its own
-// failure rather than as 42 identical ones -- a renamed heading is a different
+// failure rather than as one error per merge in the window -- a renamed heading is a different
 // defect from an unrecorded merge and reads nothing like it.
 const RECORD_SECTION = 'Delivery status'
 
