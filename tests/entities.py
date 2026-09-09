@@ -8649,6 +8649,11 @@ R.check(
 _NIGHTLY_REPORT_FOREIGN = _NIGHTLY_REPORT_IMPORT.replace(
     "custom_components/heatpump_optimizer/", "custom_components/other_thing/"
 )
+_NIGHTLY_RATCHET = (
+    "log:blocking_report_parsed",
+    "log:no_new_blocking_call",
+    "log:blocking_pin_not_stale",
+)
 R.check(
     "the nightly's loose anchor claims a real report blaming this package",
     bool(_nightly.BLOCKING_AT_OURS.search(_NIGHTLY_REPORT_IMPORT))
@@ -8670,8 +8675,9 @@ R.check(
 R.check(
     "and another integration's blocking call fails nothing here",
     not [
-        f for f in _nightly_scan(_NIGHTLY_CLEAN + "\n" + _NIGHTLY_REPORT_FOREIGN)[0]
-        if "blocking" in f
+        f
+        for f in _nightly_scan(_NIGHTLY_CLEAN + "\n" + _NIGHTLY_REPORT_FOREIGN)[0]
+        if f in _NIGHTLY_RATCHET
     ],
     "the nightly went red on a loop-protection report naming another "
     "integration; this lane judges its own package",
@@ -8690,11 +8696,6 @@ R.check(
 # The null control on the ratchet: the lane is not simply always-red. A clean
 # log is the real post-#540 world and must still pass those three. The
 # positive control must FAIL here -- no probe window is the #588 blindness.
-_NIGHTLY_RATCHET = (
-    "log:blocking_report_parsed",
-    "log:no_new_blocking_call",
-    "log:blocking_pin_not_stale",
-)
 _nightly_clean_failures, _nightly_clean_results = _nightly_scan(_NIGHTLY_CLEAN)
 R.check(
     "a clean log still passes the blocking ratchet",
