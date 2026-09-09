@@ -30,7 +30,8 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
+from typing import Any
 
 import numpy as np
 
@@ -282,7 +283,7 @@ class PriceShapeModel:
 
     # -- persistence --------------------------------------------------------
 
-    def as_dict(self) -> dict:
+    def as_dict(self) -> dict[str, Any]:
         return {
             "shapes": self.shapes,
             "days": self.days,
@@ -292,7 +293,7 @@ class PriceShapeModel:
         }
 
     @classmethod
-    def from_dict(cls, data: dict | None) -> "PriceShapeModel":
+    def from_dict(cls, data: dict[str, Any] | None) -> "PriceShapeModel":
         model = cls()
         if not isinstance(data, dict):
             return model
@@ -348,7 +349,7 @@ class PriceShapeModel:
                 pass
         return model
 
-    def summary(self) -> dict:
+    def summary(self) -> dict[str, Any]:
         return {
             "weekday_days": self.days[PROFILE_WEEKDAY],
             "weekend_days": self.days[PROFILE_WEEKEND],
@@ -434,7 +435,7 @@ def extend_price_series(
     return np.asarray(prices[:n_steps], dtype=float), mask, sigma
 
 
-def _entries_by_day(entries: list[dict]) -> dict[str, dict[int, dict[int, float]]]:
+def _entries_by_day(entries: list[dict[str, Any]]) -> dict[str, dict[int, dict[int, float]]]:
     """Valid entries grouped as ``{day: {hour: {minute: value}}}``.
 
     Keyed by minute rather than kept as a list so quarter order never depends
@@ -454,7 +455,7 @@ def _entries_by_day(entries: list[dict]) -> dict[str, dict[int, dict[int, float]
     carry one offset (``None``) and degrade safely to "kept".
     """
     by_day: dict[str, dict[int, dict[int, float]]] = {}
-    offsets: dict[str, set] = {}
+    offsets: dict[str, set[timedelta | None]] = {}
     for entry in entries or []:
         starts_at = entry.get("starts_at") or entry.get("startsAt")
         total = entry.get("total")
@@ -477,7 +478,7 @@ def _entries_by_day(entries: list[dict]) -> dict[str, dict[int, dict[int, float]
     return by_day
 
 
-def hourly_from_entries(entries: list[dict]) -> dict[str, list[float]]:
+def hourly_from_entries(entries: list[dict[str, Any]]) -> dict[str, list[float]]:
     """Group Tibber-style price entries into complete days by local date.
 
     Only days with all 24 hours present are returned, since a partial day would
@@ -496,7 +497,7 @@ def hourly_from_entries(entries: list[dict]) -> dict[str, list[float]]:
     return complete
 
 
-def quarters_from_entries(entries: list[dict]) -> dict[str, list[float]]:
+def quarters_from_entries(entries: list[dict[str, Any]]) -> dict[str, list[float]]:
     """Complete quarter-resolution days, ``{day: [96 values]}`` (#19).
 
     A day only qualifies when every hour delivered all four quarter marks —
