@@ -1,0 +1,8 @@
+# A branch that has never been pushed. `git rev-parse @{u}` FAILS here, and this
+# is the commonest state in which a body is first written, so the verdict has to
+# be neither an error nor a silent pass. Nothing can be compared and nothing is
+# at risk: the push creates the upstream, and the body reaches the pull request
+# with `--body-file` at creation time, which is after it.
+#
+# <upstream-sha or -> <behind> <ahead> <wanted rc> <what the assertion says>
+- 0 0 3 a branch with no upstream reports that it cannot compare

@@ -1,0 +1,11 @@
+# #691's shape: local commits the remote does not carry. WARN, NOT REFUSE, and
+# the reason is policy rather than taste. steward S10 chooses "edit, then push"
+# over "push, then edit" precisely so the one refused run lands on a commit
+# being abandoned instead of on the head a reviewer reads -- so this state is
+# PRESCRIBED, and a gate that refuses it refuses the correct path, which is
+# worse than the defect it answers. Nothing observable at this moment separates
+# the healthy path from #691's; what separates them is whether a push follows,
+# which is the invariant the warning states.
+#
+# <upstream-sha or -> <behind> <ahead> <wanted rc> <what the assertion says>
+9f8e7d6c5b4a392817065f4e3d2c1b0a98765432 0 2 4 an unpushed head warns rather than refusing

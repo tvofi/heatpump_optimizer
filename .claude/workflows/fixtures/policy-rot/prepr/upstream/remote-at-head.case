@@ -1,0 +1,7 @@
+# THE NULL CONTROL. The remote is already at this head, so setting the body now
+# fires `edited` at exactly the head `## Head` names and the contract agrees.
+# Without this fixture a push_order that refused every shape would satisfy the
+# four refusing fixtures precisely as well as the right one does.
+#
+# <upstream-sha or -> <behind> <ahead> <wanted rc> <what the assertion says>
+9f8e7d6c5b4a392817065f4e3d2c1b0a98765432 0 0 0 a remote already at this head is silent (null control)

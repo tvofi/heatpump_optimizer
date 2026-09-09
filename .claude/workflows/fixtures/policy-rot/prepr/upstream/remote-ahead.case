@@ -1,0 +1,8 @@
+# The remote carries a commit this head does not. An autofix commit is exactly
+# this shape: the bot pushes, the branch's own head stops being the pull
+# request's head, and `## Head` now names a SHA no push will ever make current
+# -- there is nothing to push. Refused, and the refusal cannot fire on the
+# ordinary path, where a fresh commit always leaves HEAD ahead and never behind.
+#
+# <upstream-sha or -> <behind> <ahead> <wanted rc> <what the assertion says>
+9f8e7d6c5b4a392817065f4e3d2c1b0a98765432 1 0 1 a remote ahead of this head is refused

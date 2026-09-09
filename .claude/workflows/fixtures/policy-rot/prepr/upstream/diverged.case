@@ -1,0 +1,7 @@
+# Both sides moved. Refused for the reason remote-ahead is, plus one more: the
+# push would be rejected as a non-fast-forward, and the shortest way past that
+# is the force-push this repository forbids. The repair is a merge, never a
+# rebase, followed by rewriting `## Head` at the merge commit.
+#
+# <upstream-sha or -> <behind> <ahead> <wanted rc> <what the assertion says>
+9f8e7d6c5b4a392817065f4e3d2c1b0a98765432 1 3 1 a diverged branch is refused
