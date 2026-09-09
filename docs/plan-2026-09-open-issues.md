@@ -488,6 +488,7 @@ no wave:
 - [#654](https://github.com/tvofi/heatpump_optimizer/pull/654) — W5-G6: process_worker.py in-process pins, 0.0%→92%. leaves #505 open. leaves #195 open.
 - [#640](https://github.com/tvofi/heatpump_optimizer/pull/640) — W5-G3 first cut: wood_fuel.py annotations, ruler 355→325. leaves #303 open.
 - [#643](https://github.com/tvofi/heatpump_optimizer/pull/643) — W5-G3: config_flow.py annotations, ruler 297→271. leaves #303 open.
+- [#664](https://github.com/tvofi/heatpump_optimizer/pull/664) — UX E1: setup and reauth token fields use the same password selector as options. leaves #558 open.
 
 **A pattern worth naming**, since most of these were blocked for it: every one of those blocks was a document asserting something that was not true of the tree — a stale head, a count, an actor, a carry that did not land. None was a disagreement about the change itself.
 
