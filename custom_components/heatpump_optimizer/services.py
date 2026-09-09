@@ -40,6 +40,8 @@ from .const import (
     MANUAL_PLAN_WINDOW_HOURS,
     DEFAULT_DHW_SETPOINT,
     DHW_MIN_TEMP_SETPOINT_MARGIN,
+    CONF_MIXING_VALVE_TARGET,
+    CONF_MIXING_VALVE_TARGET_ENTITY,
     CONF_TOPOLOGY_LAYOUT,
     CONF_TOPOLOGY_POSITIONS,
     SERVICE_APPLY_SCHEDULE,
@@ -142,6 +144,11 @@ SERVICE_SCHEMA_ASSIGN_ENTITY = vol.Schema(
         vol.Required("key"): vol.In(sorted(topology.ASSIGNABLE_KEYS)),
         vol.Required("entity_id"): cv.string,
         vol.Optional("entry_id"): cv.string,
+        # Indoor °C the valve holds when no target entity is assigned.
+        # Same range as the config-flow field. Ignored on any other slot.
+        vol.Optional("manual_setpoint"): vol.All(
+            vol.Coerce(float), vol.Range(min=0, max=30)
+        ),
     }
 )
 
@@ -605,14 +612,23 @@ async def handle_assign_entity(hass: HomeAssistant, call: ServiceCall) -> dict[s
     # ``None`` rather than "" for a cleared slot: that is what the options
     # flow stores, and what every reader treats as absent.
     value = raw or None
+    setpoint = call.data.get("manual_setpoint")
+    write_setpoint = (
+        setpoint is not None and key == CONF_MIXING_VALVE_TARGET_ENTITY
+    )
     for entry in targets:
         options = {**dict(entry.options), key: value}
+        if write_setpoint:
+            options[CONF_MIXING_VALVE_TARGET] = float(setpoint)
         hass.config_entries.async_update_entry(entry, options=options)
 
     _LOGGER.info(
         "Assigned %s = %s on %d entry(ies)", key, value, len(targets)
     )
-    return {"key": key, "entity_id": value}
+    result: dict[str, Any] = {"key": key, "entity_id": value}
+    if write_setpoint:
+        result["manual_setpoint"] = float(setpoint)
+    return result
 
 async def handle_apply_topology(hass: HomeAssistant, call: ServiceCall) -> dict[str, Any]:
     """Store the layout the card's editor snapped to (v3.16.0).

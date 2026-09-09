@@ -6166,6 +6166,34 @@ R.check(
     "diagram makes easy, and it plans against nonsense rather than erroring",
 )
 
+_dumb_cfg = {
+    "indoor_temp_entity": "sensor.indoor",
+    "upper_floor_thermal_mass": 3.0,
+    "mixing_valve_mode": "manual",
+    "buffer_tank_volume": 750.0,
+    hp_const.CONF_MIXING_VALVE_TARGET: 21.0,
+}
+_dumb_setup = _topo.describe_setup(_dumb_cfg)
+_dumb_valve = next(
+    s
+    for s in _dumb_setup["slots"]
+    if s["key"] == hp_const.CONF_MIXING_VALVE_TARGET_ENTITY
+)
+R.check(
+    "a mixing valve without a target entity still publishes its place",
+    _dumb_valve["entity"] is None,
+    "the dumb-valve case is no entity, not a missing slot",
+)
+R.check(
+    "and the published slot carries the manual setpoint",
+    _dumb_valve.get("manual_setpoint") == 21.0,
+    f"manual_setpoint was {_dumb_valve.get('manual_setpoint')!r}",
+)
+R.check(
+    "ThermalParameters.from_config uses that number when no entity is set",
+    ThermalParameters.from_config(_dumb_cfg).mixing_valve_target == 21.0,
+)
+
 R.check(
     "the flow overview is a fenced monospaced block",
     _text.startswith("```\n") and _text.endswith("\n```"),

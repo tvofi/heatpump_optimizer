@@ -1695,6 +1695,10 @@
         "entry_id": {
           "name": "Konfigurationspost",
           "description": "Begränsa ändringen till en värmepump. Utelämna för att tillämpa den på alla."
+        },
+        "manual_setpoint": {
+          "name": "Manuellt börvärde",
+          "description": "Inomhustemperaturen ventilen håller när ingen målgivare är vald. Lämna på 0 för att använda toppen av komfortintervallet. Ignoreras för andra fält."
         }
       }
     },

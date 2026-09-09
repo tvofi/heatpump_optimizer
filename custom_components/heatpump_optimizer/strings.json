@@ -1695,6 +1695,10 @@
         "entry_id": {
           "name": "Config entry",
           "description": "Restrict the change to one heat pump. Omit to apply to all of them."
+        },
+        "manual_setpoint": {
+          "name": "Manual setpoint",
+          "description": "The indoor temperature the valve holds when no target sensor is assigned. Leave at 0 to use the top of the comfort band. Ignored for any other slot."
         }
       }
     },

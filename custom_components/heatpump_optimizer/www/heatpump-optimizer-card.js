@@ -363,6 +363,11 @@ const STRINGS = {
       "Press Assign again to confirm.",
     "setup.assigned_reloading": "Assigned {entity}. Reloading…",
     "setup.cleared_reloading": "Cleared. Reloading…",
+    "setup.manual_setpoint": "Manual setpoint (°C)",
+    "setup.manual_setpoint_aria": "Manual valve setpoint in degrees Celsius",
+    "setup.manual_setpoint_hint":
+      "Used when no target sensor is assigned. 0 uses the comfort-band top.",
+    "setup.setpoint_reloading": "Setpoint {n} °C. Reloading…",
 
     // errors and diagnostics
     "errors.not_connected": "Not connected to Home Assistant.",
@@ -760,6 +765,11 @@ const STRINGS = {
       "Tryck Tilldela igen för att bekräfta.",
     "setup.assigned_reloading": "Tilldelade {entity}. Laddar om…",
     "setup.cleared_reloading": "Rensat. Laddar om…",
+    "setup.manual_setpoint": "Manuellt börvärde (°C)",
+    "setup.manual_setpoint_aria": "Manuellt ventilbörvärde i grader Celsius",
+    "setup.manual_setpoint_hint":
+      "Används när ingen målgivare är vald. 0 använder toppen av komfortintervallet.",
+    "setup.setpoint_reloading": "Börvärde {n} °C. Laddar om…",
 
     "errors.not_connected": "Inte ansluten till Home Assistant.",
     "errors.invalid_window_time":
@@ -3247,7 +3257,7 @@ function cardStyleBlock() {
          built out of one rule: an input that did not inherit the card's
          colours would be unreadable on a dark theme, which is the sort of
          thing that only shows up on somebody else's screen. */
-      .sp-filter, .sp-select {
+      .sp-filter, .sp-select, .sp-setpoint {
         width: 100%; font: inherit; padding: 0.3em;
         color: var(--primary-text-color);
         background: var(--card-background-color, #fff);
@@ -3257,7 +3267,17 @@ function cardStyleBlock() {
       .sp-filter {
         box-sizing: border-box; margin-bottom: 0.4em;
       }
-      .sp-filter:focus-visible, .sp-select:focus-visible {
+      .sp-setpoint-label {
+        display: block; margin-top: 0.5em; font-size: 0.9em;
+      }
+      .sp-setpoint {
+        box-sizing: border-box; margin-top: 0.2em;
+      }
+      .sp-setpoint-hint {
+        font-size: 0.8em; opacity: 0.8; margin-top: 0.25em;
+      }
+      .sp-filter:focus-visible, .sp-select:focus-visible,
+      .sp-setpoint:focus-visible {
         outline: 2px solid var(--primary-color, #03a9f4);
         outline-offset: 1px;
       }
@@ -8033,6 +8053,16 @@ class SetupPage {
         <select class="sp-select" size="8" aria-label="${esc(
           L("setup.picker_aria", { slot: slot.label })
         )}">${model.options}</select>
+        ${key === "mixing_valve_target_entity" ? `
+        <label class="sp-setpoint-label">${esc(L("setup.manual_setpoint"))}
+          <input class="sp-setpoint" type="number" min="0" max="30" step="0.5"
+            value="${esc(String(
+              slot.manual_setpoint == null ? 0 : slot.manual_setpoint
+            ))}"
+            aria-label="${esc(L("setup.manual_setpoint_aria"))}" />
+        </label>
+        <div class="sp-setpoint-hint">${esc(L("setup.manual_setpoint_hint"))}</div>
+        ` : ""}
         <div class="sp-actions">
           <button type="button" class="sp-save">${esc(L("setup.assign"))}</button>
           <button type="button" class="sp-cancel">${esc(L("setup.cancel"))}</button>
@@ -8181,7 +8211,13 @@ class SetupPage {
 
   /** One live reading, formatted, or null for an empty slot. */
   slotLive(slot) {
-    if (!slot.entity) return null;
+    if (!slot.entity) {
+      if (slot.key === "mixing_valve_target_entity") {
+        const n = Number(slot.manual_setpoint);
+        if (Number.isFinite(n) && n > 0) return `${n} °C`;
+      }
+      return null;
+    }
     const st = this.host.hass && this.host.hass.states
       ? this.host.hass.states[slot.entity]
       : null;
@@ -8441,10 +8477,16 @@ class SetupPage {
         }
         this.cancelPendingClear();
         try {
+          const payload = { key, entity_id: entityId };
+          if (key === "mixing_valve_target_entity") {
+            const box = picker.querySelector(".sp-setpoint");
+            const n = box ? Number(box.value) : NaN;
+            if (Number.isFinite(n)) payload.manual_setpoint = n;
+          }
           await this.host.hass.callService(
             "heatpump_optimizer",
             "assign_entity",
-            { key, entity_id: entityId }
+            payload
           );
           this.closePicker();
           // The write reloads the integration, so the topology the card is
@@ -8452,7 +8494,9 @@ class SetupPage {
           // than leaving a diagram that has not caught up yet looking wrong.
           this.note = entityId
             ? L("setup.assigned_reloading", { entity: entityId })
-            : L("setup.cleared_reloading");
+            : payload.manual_setpoint !== undefined
+              ? L("setup.setpoint_reloading", { n: payload.manual_setpoint })
+              : L("setup.cleared_reloading");
         } catch (err) {
           this.note = L("errors.could_not_assign", {
             err: (err && err.message) || err,
