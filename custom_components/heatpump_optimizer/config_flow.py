@@ -626,7 +626,10 @@ def _fit_stored_values(schema: Any) -> tuple[Any, list[str]]:
         if inner is not None:
             inner_fitted, inner_widened = _fit_stored_values(inner)
             if inner_widened:
-                value = section(inner_fitted, dict(value.options))
+                value = section(
+                    inner_fitted,
+                    {"collapsed": bool(value.options.get("collapsed", False))},
+                )
                 widened.extend(inner_widened)
         elif isinstance(value, selector.NumberSelector):
             replacement = _widen_to_fit(value, _prefilled_values(marker))
