@@ -518,7 +518,7 @@ inside it rather than after it.
 - [#658](https://github.com/tvofi/heatpump_optimizer/pull/658) — **merged under decision 0006**, without a merge SHA it cannot know: the record check's region narrows from both documents whole to `## Delivery status` plus the handover, so a pull request mentioned in passing is no longer dispositioned by that mention; the list-item anchor this plan proposed was refuted first (it refuses #629 and #632, dispositioned inside table cells); pinned by seven acceptance assertions over synthetic input, tip invariant 76 → **83** pins across the same 10 classes; the handover's `updated-for` catches up; and the backticked-verdict finding is carried.
 - [#662](https://github.com/tvofi/heatpump_optimizer/pull/662) — **merged `2d06e06`**: a branch that moves no fixture was told to EMPTY the claim files, and a squash applies that deletion to `main` — #608 carried 33 of #569's claim lines off, #635 the same to #633's, #658 was stopped on the way to #653's. The rule is now *leave both files exactly as you found them*, which is the same rule whenever the baseline claims nothing. Three routes closed: the record check, the autofix bot, and the stale-claim judgement. This row is written by the pull request AFTER it, because #662 merged before its own row existed — which is the defect `record` is for, caught by `record` itself.
 - [#659](https://github.com/tvofi/heatpump_optimizer/pull/659) — **merged under decision 0006**, without a merge SHA it cannot know: the environment matrix stops counting its shapes off the filesystem and counts what the run built, refuses a work directory it would otherwise reuse, and pins its thirteen outcomes by NAME and by COUNT — names catch a swap, the count catches a duplicate, and the first version had only the names, which round 1 measured. Null control: the previous script, with a shape deleted and a stale work directory, certifies five shapes and twelve outcomes at rc=0.
-- [#660](https://github.com/tvofi/heatpump_optimizer/pull/660) — **merged under decision 0006**, without a merge SHA it cannot know: the handover's cap deadlock is resolved by a GRADUATION rule — a trap whose failure mode has acquired a mechanical detector becomes a one-line pointer to it, and each graduation owes a mutation proof that breaking the detector turns a check red. Four graduate (8, 9, 11, 19); trap 17 does not, because its only proof is a push to `main` with two branches arranged to collide, and a detector nobody drove is what the rule forbids trading prose for. 276 → 274 lines and the cap ratchets down with them.
+- [#660](https://github.com/tvofi/heatpump_optimizer/pull/660) — **merged under decision 0006**, without a merge SHA it cannot know: the handover's cap deadlock is resolved by a GRADUATION rule — a trap whose failure mode has acquired a mechanical detector becomes a one-line pointer to it, and each graduation owes a mutation proof that breaking the detector turns a check red. Four graduate (8, 9, 11, 19); trap 17 does not, because its only proof is a push to `main` with two branches arranged to collide, and a detector nobody drove is what the rule forbids trading prose for. 276 → 273 lines and the cap ratchets down with them.
 
 ### The UX programme — 34 items, five lanes, tracking #558
 
@@ -823,7 +823,7 @@ judge comments on each issue and summarised on #201.
   sequenced by principle 6 rather than filed: an issue is not the instrument for
   propagation. #627 was opened for it and closed. It is carried **here** and not
   in `docs/HANDOVER.md`: that file is at its cap, and `writing-for-agents.md`
-  forbids paying for an addition by cutting evidence, so at 276 of 276 it can
+  forbids paying for an addition by cutting evidence, so at its cap it can
   take nothing new. That is a real constraint on the living handover and is
   itself owed work — see `## Standing rules`.
 - **A pull request cannot name its own squash-merge SHA.** GitHub creates the
@@ -1142,7 +1142,7 @@ session reads this file first.
   which model a check uses before believing a negative result. These belong in
   `docs/HANDOVER.md` and are here because that file is at its cap; see the
   carried finding below.
-- **`docs/HANDOVER.md` is at 276 of 276 and cannot accept a new fact.**
+- **CLOSED by #660.** `docs/HANDOVER.md` was at its cap and could not accept a new fact.
   `writing-for-agents.md` governs it — *precision outranks concision, always*,
   and *cutting evidence is never compliance* — while the cap is one-sided and
   only moves down. Together those two rules mean the living handover can take
