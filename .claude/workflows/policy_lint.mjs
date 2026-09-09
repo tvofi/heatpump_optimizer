@@ -388,8 +388,11 @@ const CORPUS_EXCLUDED = new Set([
   // its own inline list: this file by `:!.claude`, ADR 0002 by `...spec` (a
   // policy file cannot satisfy a citation, and once ADRs are policy files --
   // the state being measured -- 0002 is one), and 0006 itself by `exceptRel`.
-  // Two are independently sufficient: dropping `:!.claude` takes the total to
-  // 23, and so does un-excluding 0002. Named this precisely because the
+  // Two are independently sufficient: dropping `:!.claude` removes this error,
+  // and so does un-excluding 0002. Neither total is written here -- the previous
+  // two versions of this sentence carried one, both went stale, and the second
+  // went stale in the same commit that removed the count from the sentence above
+  // it. Named this precisely because the
   // sentence has been wrong twice, once as "all five are 0003's" and once as
   // `SYMBOL_GREP_EXCLUDE`, which this file imports and never calls on this
   // path. So three of the five are a check applied to the wrong kind of text,
