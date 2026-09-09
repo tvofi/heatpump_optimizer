@@ -482,6 +482,7 @@ no wave:
 - [#647](https://github.com/tvofi/heatpump_optimizer/pull/647) — W5-G3: ledger.py annotations, ruler 371→360. leaves #303 open.
 - [#648](https://github.com/tvofi/heatpump_optimizer/pull/648) — W5-G3: defrost.py annotations, ruler 371→355. leaves #303 open.
 - [#651](https://github.com/tvofi/heatpump_optimizer/pull/651) — **merged**, the loop detector cannot tell "no blocking call" from "no log". leaves #533 open.
+- [#655](https://github.com/tvofi/heatpump_optimizer/pull/655) — nightly A5/A8/A9 options, services, reload. leaves #533 open.
 
 **A pattern worth naming**, since most of these were blocked for it: every one of those blocks was a document asserting something that was not true of the tree — a stale head, a count, an actor, a carry that did not land. None was a disagreement about the change itself.
 
