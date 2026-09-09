@@ -211,12 +211,18 @@ for (const r of rows) console.log(`  ${(r.ok ? 'ok' : 'FAIL').padEnd(5)} ${r.nam
 const bad = rows.filter((r) => !r.ok)
 const seen = new Set(rows.map((r) => r.name))
 const missing = DECLARED_ROWS.filter((n) => !seen.has(n))
+// A SET loses duplicates, so a row added twice satisfies both lists below while
+// the run reports fourteen outcomes against a thirteen-name roster -- the one
+// case a plain count would have caught, missed by the check whose comment says a
+// count is satisfied by a duplicate. #659's round 1 drove it. The length check
+// is what makes the pair complete: names for a swap, count for a duplicate.
+const dupes = rows.length !== new Set(rows.map((r) => r.name)).size
 // A `<shape> / built` row is only added when a shape failed to build, so it is
 // a permitted extra: it already fails on its own and saying it twice hides the
 // cause behind a roster complaint.
 const unexpected = [...seen].filter((n) => !DECLARED_ROWS.includes(n) && !n.endsWith('/ built'))
-if (missing.length || unexpected.length) {
-  console.log(`\nMATRIX ROSTER: ${missing.length} declared row(s) never ran ${JSON.stringify(missing)}; ${unexpected.length} row(s) ran that are not declared ${JSON.stringify(unexpected)}. A count would have passed either way.`)
+if (missing.length || unexpected.length || dupes) {
+  console.log(`\nMATRIX ROSTER: ${missing.length} declared row(s) never ran ${JSON.stringify(missing)}; ${unexpected.length} row(s) ran that are not declared ${JSON.stringify(unexpected)}; ${rows.length} row(s) ran against ${DECLARED_ROWS.length} declared${dupes ? ' -- a NAME APPEARS TWICE, which a set-difference cannot see' : ''}. Names catch a swap and the count catches a duplicate; neither alone is the roster.`)
   process.exit(1)
 }
 if (built.length !== EXPECTED_SHAPES) {
