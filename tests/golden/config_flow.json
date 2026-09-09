@@ -442,10 +442,12 @@
     "selector": "type"
    },
    "tibber_token": {
-    "config": null,
+    "config": {
+     "type": "'password'"
+    },
     "default": null,
     "required": "Required",
-    "selector": "type"
+    "selector": "TextSelector"
    },
    "weather_entity": {
     "config": {

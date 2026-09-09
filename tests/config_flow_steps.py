@@ -3588,6 +3588,78 @@ def number_convention_failures_from_source(source):
     return failures
 
 
+def _token_marker(fingerprint: dict) -> dict:
+    """The ``tibber_token`` marker inside a ``schema_fingerprint``.
+
+    Rule: the key itself, else recurse into each marker's ``fields`` (a
+    ``section()``). Config dicts are not walked. Missing → ``{}``.
+    """
+    if "tibber_token" in fingerprint:
+        return fingerprint["tibber_token"]
+    for marker in fingerprint.values():
+        inner = marker.get("fields") if isinstance(marker, dict) else None
+        if inner:
+            found = _token_marker(inner)
+            if found:
+                return found
+    return {}
+
+
+def _token_mask(schema) -> tuple:
+    """``(selector, config.type)`` for the rendered token field.
+
+    Instrument: ``schema_fingerprint`` (same walker as the config-flow
+    golden). ``config.type`` is ``repr``'d by that walker, so a password
+    TextSelector is ``("TextSelector", "'password'")``. A bare ``str`` is
+    ``("type", None)``.
+    """
+    marker = _token_marker(schema_fingerprint(schema))
+    config = marker.get("config") or {}
+    return (marker.get("selector"), config.get("type"))
+
+
+async def token_surfaces_agree():
+    """E1: three surfaces, one secret; disagreement is the defect."""
+    R.section("E1: setup, reauth and options share one token mask")
+    user = await fresh_flow().async_step_user(None)
+
+    hass = FakeHass()
+    entry = FakeEntry(
+        data={
+            const.CONF_TIBBER_TOKEN: "x",
+            const.CONF_WEATHER_ENTITY: "weather.home",
+        }
+    )
+    hass.config_entries.entries.append(entry)
+    reauth_flow = config_flow.HeatPumpOptimizerConfigFlow()
+    reauth_flow.hass = hass
+    reauth_flow.context = {"entry_id": entry.entry_id}
+    reauth = await reauth_flow.async_step_reauth(entry.data)
+
+    opt_flow = config_flow.HeatPumpOptimizerConfigFlow.async_get_options_flow(entry)
+    opt_flow.hass = hass
+    options = await opt_flow.async_step_entities(None)
+
+    masks = {
+        "user": _token_mask(user.get("data_schema")),
+        "reauth_confirm": _token_mask(reauth.get("data_schema")),
+        "entities": _token_mask(options.get("data_schema")),
+    }
+    password = ("TextSelector", repr(selector.TextSelectorType.PASSWORD))
+    check(
+        "token_surfaces",
+        "happy",
+        "the three tibber_token surfaces agree on the same mask",
+        len(set(masks.values())) == 1,
+    )
+    check(
+        "token_surfaces",
+        "happy",
+        "that shared mask is the password TextSelector",
+        set(masks.values()) == {password},
+    )
+
+
 def pin_number_selector_convention():
     """#590: the `_number` convention, now a check rather than a habit."""
     R.section("#590 NumberSelector / advanced convention")
@@ -3652,6 +3724,7 @@ async def main() -> int:
     logging.getLogger().addHandler(sink)
 
     pin_number_selector_convention()
+    await token_surfaces_agree()
     await seed_base_entry()
     await duplicate_and_null_control()
     await user_error_branches()
