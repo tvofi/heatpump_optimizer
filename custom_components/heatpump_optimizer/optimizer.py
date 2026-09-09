@@ -43,7 +43,7 @@ import math
 import time as _time_mod
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
-from typing import Any, NamedTuple
+from typing import Any, Callable, NamedTuple
 
 import numpy as np
 from scipy.optimize import linprog, minimize
@@ -2586,6 +2586,65 @@ class HeatPumpOptimizer:
                         np.max(np.clip(req[:steps] - planned[:steps], 0.0, None))
                     )
             result.predictive_info["dhw_floor_breach_c"] = round(shortfall, 3)
+
+    def _baseline_dhw_economics(
+        self,
+        initial_state: ThermalState,
+        outdoor_temps: np.ndarray,
+        n_steps: int,
+        dhw_setpoint: float,
+        energy_cost_of: Callable[[np.ndarray], float],
+        baseline_power: np.ndarray,
+        optimal_space: np.ndarray,
+        optimal_dhw: np.ndarray,
+    ) -> tuple[np.ndarray, float, float, float]:
+        """Always-hot DHW baseline, then the space/DHW cost split.
+
+        The baseline house keeps the tank at setpoint around the clock.
+        That costs draw plus standby, converted through COP. The three
+        money figures are piecewise in the PV surplus, like the objective.
+        """
+        # Baseline DHW: an always-hot tank held at the setpoint. That costs the
+        # energy drawn off as hot water plus the standby loss of keeping a tank
+        # at setpoint around the clock, which is exactly the behaviour the
+        # demand time frames exist to avoid.
+        p = self.model.params
+        cop_dhw = max(
+            self.model.compute_cop_dhw(float(np.mean(outdoor_temps)), dhw_setpoint),
+            1e-3,
+        )
+        standby_loss = p.dhw_tank_heat_loss_coefficient * max(
+            dhw_setpoint - DHW_AMBIENT_TEMP, 0.0
+        )
+        baseline_draw = p.dhw_draw_power
+        if (
+            p.dhw_coil_active
+            and initial_state.wood_tank_temperature is not None
+        ):
+            # The baseline house owns the same refill coil (v3.15.1) — the
+            # plumbing is not optimizer value. Held at the initial wood
+            # temperature for the whole day: the real coil weakens as the
+            # tank cools, so this makes the baseline at least as cheap as
+            # reality and the reported savings err low, never high.
+            baseline_draw, _ = dhw_coil_draw_reduction(
+                baseline_draw,
+                initial_state.wood_tank_temperature,
+                p.dhw_setpoint,
+                # The same inlet reference the draw itself was computed from;
+                # see dhw_coil_draw_reduction for why the two must agree.
+                inlet_temp=p.dhw_inlet_reference,
+            )
+        baseline_dhw = np.full(n_steps, (baseline_draw + standby_loss) / cop_dhw)
+        # All three figures are piecewise in the PV surplus, like the objective.
+        # The baseline house would self-consume the same sun, so pricing only
+        # the optimized plan that way would manufacture fictitious savings.
+        baseline_cost = energy_cost_of(baseline_power + baseline_dhw)
+        total_optimal_power = optimal_space + optimal_dhw
+        predicted_cost = energy_cost_of(total_optimal_power)
+        # Hot water's share is its marginal cost on top of space heating, so
+        # the two attributions sum exactly to the total.
+        dhw_cost = predicted_cost - energy_cost_of(optimal_space)
+        return baseline_dhw, baseline_cost, predicted_cost, dhw_cost
 
     @staticmethod
     def _normalise_pins(
@@ -5217,46 +5276,12 @@ class HeatPumpOptimizer:
             solar_radiation, dt, comfort_targets,
             external_heat_kw=h.external_heat_kw,
         )
-        # Baseline DHW: an always-hot tank held at the setpoint. That costs the
-        # energy drawn off as hot water plus the standby loss of keeping a tank
-        # at setpoint around the clock, which is exactly the behaviour the
-        # demand time frames exist to avoid.
-        p = self.model.params
-        cop_dhw = max(
-            self.model.compute_cop_dhw(float(np.mean(outdoor_temps)), dhw_setpoint),
-            1e-3,
-        )
-        standby_loss = p.dhw_tank_heat_loss_coefficient * max(
-            dhw_setpoint - DHW_AMBIENT_TEMP, 0.0
-        )
-        baseline_draw = p.dhw_draw_power
-        if (
-            p.dhw_coil_active
-            and initial_state.wood_tank_temperature is not None
-        ):
-            # The baseline house owns the same refill coil (v3.15.1) — the
-            # plumbing is not optimizer value. Held at the initial wood
-            # temperature for the whole day: the real coil weakens as the
-            # tank cools, so this makes the baseline at least as cheap as
-            # reality and the reported savings err low, never high.
-            baseline_draw, _ = dhw_coil_draw_reduction(
-                baseline_draw,
-                initial_state.wood_tank_temperature,
-                p.dhw_setpoint,
-                # The same inlet reference the draw itself was computed from;
-                # see dhw_coil_draw_reduction for why the two must agree.
-                inlet_temp=p.dhw_inlet_reference,
+        baseline_dhw, baseline_cost, predicted_cost, dhw_cost = (
+            self._baseline_dhw_economics(
+                initial_state, outdoor_temps, n_steps, dhw_setpoint,
+                energy_cost_of, baseline_power, optimal_space, optimal_dhw,
             )
-        baseline_dhw = np.full(n_steps, (baseline_draw + standby_loss) / cop_dhw)
-        # All three figures are piecewise in the PV surplus, like the objective.
-        # The baseline house would self-consume the same sun, so pricing only
-        # the optimized plan that way would manufacture fictitious savings.
-        baseline_cost = energy_cost_of(baseline_power + baseline_dhw)
-        total_optimal_power = optimal_space + optimal_dhw
-        predicted_cost = energy_cost_of(total_optimal_power)
-        # Hot water's share is its marginal cost on top of space heating, so
-        # the two attributions sum exactly to the total.
-        dhw_cost = predicted_cost - energy_cost_of(optimal_space)
+        )
 
         # Settle up the heat the optimized plan left unstored at the horizon end.
         # The baseline reference ends with a tank at setpoint, so compare against
