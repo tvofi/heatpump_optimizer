@@ -37,12 +37,14 @@ request, whether or not a human is in the loop. A grant rides on top of them.
 Removing approval and keeping only the checks would leave the corpus with no
 reader who is not also its author.
 
-`pr-contract` runs today. **The ruleset does not exist yet**: `main` carries no
-repository or inherited ruleset, so every check is advisory at the merge
-boundary, and creating one is this programme's last act — deliberately last,
-because a required context that never reports blocks every merge permanently and
-two of its eighteen contexts only began reporting when the pull requests that
-added them landed. This decision does not wait on it. What the floor is made of
+`pr-contract` runs today. **When this decision was taken the ruleset did not
+exist**: `main` carried no repository or inherited ruleset, so every check was
+advisory at the merge boundary, and creating one was this programme's last
+remaining act — deliberately last, because a required context that never reports
+blocks every merge permanently, and two of its eighteen contexts only began
+reporting when the pull requests that added them landed. Written in the past
+tense on purpose: a decision is dated, and this one must not go false the hour
+the ruleset is created. This decision does not wait on it. What the floor is made of
 can change; that a policy merge needs a reader who is not its author cannot.
 
 ## What this does not decide
