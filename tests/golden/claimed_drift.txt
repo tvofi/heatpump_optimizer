@@ -50,6 +50,16 @@
 # v6.3.19: the governance programme, three defects that were deleting work, and the interface changes that came with them. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
+# E3: setup_overview as the last CONFIG-flow step. Instrument:
+# GOLDEN_MODE=strict tests/golden.py --only config_flow. The only moved
+# path vs this merge-base is _initial.setup_overview (absent → {}).
+# Empty schema, same fingerprint as options setup_overview. Existing
+# form fingerprints are byte-identical. Solver fixtures and the card
+# claim file are untouched.
+
+config_flow # E3: _initial.setup_overview empty form after both create-entry terminals
+
+#
 
 # W4-G10 S9 (#224, DhwPlan 14-key return): this branch claims NOTHING.
 # `_build_dhw_requirements` returns the same 14 values as a frozen

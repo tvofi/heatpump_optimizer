@@ -1561,6 +1561,24 @@ def _clear_absent(
     return cleaned
 
 
+def _setup_overview_form(
+    flow: _ShowFormParent,
+    data: Mapping[str, Any],
+    *,
+    last_step: bool | None = None,
+) -> ConfigFlowResult:
+    """Read-only picture of ``data`` — the same text Options already shows."""
+    setup = topology.describe_setup(dict(data))
+    return flow.async_show_form(
+        step_id="setup_overview",
+        data_schema=vol.Schema({}),
+        description_placeholders={
+            "setup_summary": topology.render_text_summary(setup)
+        },
+        last_step=last_step,
+    )
+
+
 class HeatPumpOptimizerConfigFlow(
     _StoredValuesAlwaysFit, config_entries.ConfigFlow, domain=DOMAIN
 ):
@@ -1707,8 +1725,16 @@ class HeatPumpOptimizerConfigFlow(
     async def async_step_finish_now(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Create the entry from the first two screens' answers."""
-        return self._create_setup_entry()
+        """Show the overview of the first two screens, then create."""
+        return await self.async_step_setup_overview()
+
+    async def async_step_setup_overview(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Last config-flow step: show what will be created, then persist."""
+        if user_input is not None:
+            return self._create_setup_entry()
+        return _setup_overview_form(self, self._data, last_step=True)
 
     def _create_setup_entry(self) -> ConfigFlowResult:
         """Persist whatever the wizard has collected so far."""
@@ -2056,7 +2082,7 @@ class HeatPumpOptimizerConfigFlow(
         """Handle weather sensitivity configuration step."""
         if user_input is not None:
             self._data.update(user_input)
-            return self._create_setup_entry()
+            return await self.async_step_setup_overview()
 
         return self.async_show_form(
             step_id="weather_sensitivity",
@@ -2284,17 +2310,10 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         """
         if user_input is not None:
             return await self.async_step_init()
-        setup = topology.describe_setup(self._current)
         # Read-only: no after-save choice, because this page saves nothing
         # -- offering the choice here would be a button that lies. It carries
         # no registry rows for the same reason.
-        return self.async_show_form(
-            step_id="setup_overview",
-            data_schema=vol.Schema({}),
-            description_placeholders={
-                "setup_summary": topology.render_text_summary(setup)
-            },
-        )
+        return _setup_overview_form(self, self._current)
 
     async def async_step_entities(
         self, user_input: dict[str, Any] | None = None

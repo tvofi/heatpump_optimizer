@@ -493,6 +493,7 @@ no wave:
 - [#664](https://github.com/tvofi/heatpump_optimizer/pull/664) — UX E1: setup and reauth token fields use the same password selector as options. leaves #558 open.
 - [#665](https://github.com/tvofi/heatpump_optimizer/pull/665) — UX E2: finish-setup-now after the second screen. leaves #558 open.
 - [#667](https://github.com/tvofi/heatpump_optimizer/pull/667) — W5-G6 leftover: grid_fee.py lone-month refusal. leaves #505 open. leaves #195 open.
+- [#668](https://github.com/tvofi/heatpump_optimizer/pull/668) — UX E3: setup overview as last config-flow step. leaves #558 open.
 - [#656](https://github.com/tvofi/heatpump_optimizer/pull/656) — W5-G3: thermal_model.py annotations, ruler 271→248. leaves #303 open.
 
 **A pattern worth naming**, since most of these were blocked for it: every one of those blocks was a document asserting something that was not true of the tree — a stale head, a count, an actor, a carry that did not land. None was a disagreement about the change itself.

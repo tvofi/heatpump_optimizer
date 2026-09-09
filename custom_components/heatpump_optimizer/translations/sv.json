@@ -229,6 +229,10 @@
           "temperature": "Fortsätt installationen",
           "finish_now": "Avsluta installationen nu"
         }
+      },
+      "setup_overview": {
+        "title": "Ditt system, som det är inställt",
+        "description": "Vad optimeraren tror att ditt system är, utifrån nuvarande inställningar. En tom plats visas tom med avsikt — det är en givare den här anläggningen skulle kunna använda men inte har.\n\n{setup_summary}"
       }
     },
     "error": {
