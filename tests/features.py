@@ -19164,6 +19164,100 @@ R.check(
 )
 
 
+R.section("#224 stage 4 A-half — window floors answer for themselves")
+
+# Windows / floors / ready-temps. The parent still owns params and the
+# effective window list; this helper is the 3825-3920 span. Pins use
+# production hour_in_windows / _dhw_planner_draws, not a second formula.
+
+from heatpump_optimizer.dhw_schedule import (  # noqa: E402
+    hour_in_windows as _wf_in,
+    windows_for_day as _wf_day,
+)
+
+_wf_params = ThermalParameters.from_config(_mb_profiles.house())
+_wf_params.dhw_enabled = True
+_wf_opt = _MbOpt(ThermalModel(_wf_params), _MbCfg(horizon_hours=1))
+_wf_windows, _ = _wf_opt._effective_dhw_windows()
+_wf_hours = np.array([0.0, 1.0, 2.0, 6.0, 7.0, 17.0, 22.0])
+_wf_n = int(_wf_hours.size)
+_wf_dt = 1.0
+_wf_idle = min(_wf_params.dhw_idle_min_temp, _wf_params.dhw_min_temp)
+
+
+def _wf_run(weekdays=None, wood=None):
+    return _wf_opt._dhw_window_floors(
+        _wf_params, _wf_windows, _wf_hours, weekdays, _wf_dt, _wf_n, wood,
+    )
+
+
+_wf_c, _wf_hm, _wf_inw, _wf_raw, _wf_dr, _wf_fl, _wf_rdy = _wf_run()
+_wf_expect_in = np.array(
+    [
+        _wf_in(
+            float(h),
+            _wf_day(_wf_params.dhw_weekly_windows, None, _wf_windows),
+        )
+        for h in (_wf_hours % 24.0)
+    ],
+    dtype=bool,
+)
+R.check(
+    "in_window is hour_in_windows on the effective window list",
+    np.array_equal(_wf_inw, _wf_expect_in),
+    f"{list(_wf_inw)} vs {list(_wf_expect_in)} — a rewrite that built the "
+    f"mask from step index instead of the clock would miss 17:00",
+)
+R.check(
+    "floor_temps is the usable minimum inside a window and idle outside",
+    np.allclose(
+        _wf_fl,
+        np.where(_wf_inw, _wf_params.dhw_min_temp, _wf_idle),
+    ),
+    f"{list(_wf_fl)} in={list(_wf_inw)} min={_wf_params.dhw_min_temp} "
+    f"idle={_wf_idle} — a constant floor dropped the window edge",
+)
+
+_wf_starts = [
+    i
+    for i, h in enumerate(_wf_hm)
+    if bool(_wf_inw[i])
+    and not _wf_in(
+        float(h) - _wf_dt,
+        _wf_day(_wf_params.dhw_weekly_windows, None, _wf_windows),
+    )
+]
+_wf_ready_idx = {max(0, s - 1) for s in _wf_starts}
+R.check(
+    "ready_temps is raised only on the step before a window opens",
+    _wf_starts
+    and all(
+        (float(_wf_rdy[i]) >= _wf_params.dhw_min_temp)
+        if i in _wf_ready_idx
+        else float(_wf_rdy[i]) == 0.0
+        for i in range(_wf_n)
+    ),
+    f"starts={_wf_starts} ready={list(_wf_rdy)} — a raise on the window "
+    f"step itself, or a zero ready vector, dropped the pre-window floor",
+)
+R.check(
+    "without wood the planner draw equals the raw physics draw",
+    np.array_equal(_wf_dr, _wf_raw),
+    f"raw={list(_wf_raw)} plan={list(_wf_dr)} — a wood-less call still "
+    f"applied the coil reduction, or the raw array was discarded",
+)
+
+_wf_wood = np.full(_wf_n, 70.0)
+_wf_c2, _, _, _wf_raw2, _wf_dr2, _, _ = _wf_run(wood=_wf_wood)
+_wf_coil = _wf_opt._dhw_planner_draws(_wf_raw2, _wf_wood)
+R.check(
+    "wood_temps goes through the production planner-draw helper",
+    np.array_equal(_wf_dr2, _wf_coil) and not np.array_equal(_wf_dr2, _wf_raw2),
+    f"plan={list(_wf_dr2)} coil={list(_wf_coil)} raw={list(_wf_raw2)} — "
+    f"the coil path was skipped or re-implemented beside the helper",
+)
+
+
 R.section("v5.3.0 review — the experiment obeys the mode gate too")
 
 from pathlib import Path as _Path  # noqa: E402
