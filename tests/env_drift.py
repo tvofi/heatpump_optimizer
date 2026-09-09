@@ -1682,6 +1682,22 @@ def three_dot_files(repo: str, ref: str) -> list[str]:
     return sorted(set(files))
 
 
+def stale_claims_judged(repo: str, ref: str) -> bool:
+    """May THIS branch be failed for a stale claim it did not write?
+
+    Only if its three-dot could have moved something a claim excuses. A
+    claim goes stale between two commits that are both behind a
+    documentation branch; failing that branch leaves it one remedy --
+    delete the line -- and a squash applies the deletion to the baseline.
+    An unanswerable three-dot judges, because a gate that cannot read the
+    diff must not quietly stop failing.
+    """
+    try:
+        return moves_claimable(three_dot_files(repo, ref))
+    except GitAnswerMissing:
+        return True
+
+
 def check_claims_hygiene(repo: str, ref: str) -> str | None:
     """Inherited lists and the record-PR empty rule, or None when both hold."""
     if _rev(repo, ref) is None:
@@ -2093,7 +2109,24 @@ def main() -> int:
             print("A claim nothing uses would silently excuse the next")
             print("accidental drift, so it fails. Delete these lines; the")
             print("behaviour they describe is already gone or never came.")
-        if drifted or stale or rot.failed:
+        # WHOSE STALE CLAIM IS IT? A branch whose three-dot moves nothing a
+        # claim excuses did not make this one stale and cannot make it fresh:
+        # the claim describes drift between two commits that are both behind
+        # it. Failing such a branch leaves it one remedy -- delete the line --
+        # and a squash then applies that deletion to the baseline, which is how
+        # #569's and #633's claims left `main`. So it is REPORTED here and
+        # judged on a branch that could have caused it, or by the deliberate
+        # act that removes it. An unanswerable three-dot keeps failing closed.
+        stale_is_ours = stale_claims_judged(repo, ref) if stale else True
+        if stale:
+            if not stale_is_ours:
+                print("\nNOT THIS BRANCH'S TO REMOVE: the three-dot against")
+                print(f"{ref} touches neither card nor solver fixtures, so this")
+                print("branch neither caused these claims to go stale nor can")
+                print("cure them, and deleting them here would carry someone")
+                print("else's line onto the baseline at squash-merge. Reported,")
+                print("not judged; remove them in a change that owns the file.")
+        if drifted or (stale and stale_is_ours) or rot.failed:
             return 1
         n = len(set(branch) | set(baseline))
         print(f"\nNO UNCLAIMED DRIFT: {n} scenario(s) checked against {ref}")

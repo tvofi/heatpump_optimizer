@@ -10206,12 +10206,6 @@ R.check(
 # not INHERITED CLAIMS -- that job never asks which it was, so reddening it
 # would redden every unrelated `fast` failure a second time.
 R.check(
-    "every status claims-autofix can return stays quiet",
-    not any(_closure.autofix_repair_failed("claims-autofix", s) for s in (
-        "changed", "skip-not-allowed", "skip-not-inherited")),
-    "a fast failure that was not INHERITED CLAIMS is not a skipped repair",
-)
-R.check(
     "an unrecognised status or job reddens rather than passing by default",
     _closure.autofix_repair_failed(_AFJ, "")
     and _closure.autofix_repair_failed(_AFJ, "skip-invented-later")
@@ -10236,6 +10230,22 @@ def _returned_statuses(fn) -> set[str]:
             if isinstance(n, _ast_af.Constant) and isinstance(n.value, str)}
 
 
+# The list this check used to carry was written by hand and went stale the
+# moment `apply_inherited_claims` gained a status: it kept passing while
+# claiming to cover "every status", and the job reddened in CI on a status the
+# check had never heard of. It now reads the returns out of the function, so
+# the two cannot disagree -- `_ac_returns` is derived below by AST and is the
+# same set the roster check pins.
+_ac_quiet_missing = sorted(
+    s for s in _returned_statuses(_env_drift.apply_inherited_claims)
+    if _closure.autofix_repair_failed("claims-autofix", s)
+)
+R.check(
+    "every status claims-autofix can return stays quiet",
+    not _ac_quiet_missing,
+    "a fast failure that was not INHERITED CLAIMS is not a skipped repair, and "
+    f"a refusal is not one either; unclassified: {_ac_quiet_missing}",
+)
 _af_returns = _returned_statuses(_closure.apply_under_scoped_recordings)
 _ac_returns = _returned_statuses(_env_drift.apply_inherited_claims)
 R.check(
@@ -11089,6 +11099,29 @@ R.check(
     f"the gate must not have disabled the autofix outright; status={_ac2_status!r}",
 )
 
+# AND THE THIRD MECHANISM, which is the one that actually reddened #662's own
+# CI: `--all` calls a judged-but-unhit claim STALE and says "remove it". On a
+# documentation branch that is the same deletion by another route, so the
+# decision is extracted and pinned here rather than living inside `main()`.
+_sj_docs_root, _sj_docs_base = _hygiene_git(
+    "# claims-for: 6.3.15\n", {"docs/plan-2026-09-open-issues.md": "# plan\n"},
+    py_touch=False, card_base="# claims-for: 6.3.15\n")
+_sj_py_root, _sj_py_base = _hygiene_git(
+    "# claims-for: 6.3.15\n", {}, py_touch=True, card_base="# claims-for: 6.3.15\n")
+_sj = getattr(_env_drift, "stale_claims_judged", None)
+R.check(
+    "a stale claim is not judged on a branch that moves nothing claimable",
+    callable(_sj) and _sj(_sj_docs_root, _sj_docs_base) is False,
+    "a documentation branch neither caused a claim to go stale nor can cure "
+    "it, and its only remedy would be a deletion the squash carries onto the "
+    f"baseline; got {_sj and _sj(_sj_docs_root, _sj_docs_base)!r}",
+)
+R.check(
+    "and it IS judged on a branch that moved a fixture (null control)",
+    callable(_sj) and _sj(_sj_py_root, _sj_py_base) is True,
+    "the gate must not have stopped judging staleness altogether; got "
+    f"{_sj and _sj(_sj_py_root, _sj_py_base)!r}",
+)
 # The old case, unchanged where the baseline claims nothing: empty stays right.
 _h_empty_root, _h_empty_base = _hygiene_git(
     "# claims-for: 6.3.15\n",
@@ -11131,6 +11164,12 @@ def _orphan_ref(root: str) -> str:
 # rule: with the two-claim baseline this fixture used to carry, an emptied HEAD
 # is now a refused DELETION, and the control would have failed for the wrong
 # reason -- which is what it did until this line was written.
+R.check(
+    "an unanswerable three-dot still judges staleness, rather than quietly passing",
+    callable(_sj) and _sj(_sj_docs_root, _orphan_ref(_sj_docs_root)) is True,
+    "a gate that cannot read the diff must fail closed, or the refusal above "
+    "becomes a way to stop being judged at all",
+)
 _h_orph_root, _h_orph_base = _hygiene_git(
     "# claims-for: 6.3.15\n",
     {"docs/plan-2026-09-open-issues.md": "# plan\n"},
