@@ -12,7 +12,7 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.data_entry_flow import FlowResult
+from homeassistant.data_entry_flow import FlowResult, section
 from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.translation import async_get_translations
@@ -622,7 +622,16 @@ def _fit_stored_values(schema: Any) -> tuple[Any, list[str]]:
     fitted: dict[Any, Any] = {}
     widened: list[str] = []
     for marker, value in schema.schema.items():
-        if isinstance(value, selector.NumberSelector):
+        inner = _section_inner(value)
+        if inner is not None:
+            inner_fitted, inner_widened = _fit_stored_values(inner)
+            if inner_widened:
+                value = section(
+                    inner_fitted,
+                    {"collapsed": bool(value.options.get("collapsed", False))},
+                )
+                widened.extend(inner_widened)
+        elif isinstance(value, selector.NumberSelector):
             replacement = _widen_to_fit(value, _prefilled_values(marker))
             if replacement is not None:
                 value = replacement
@@ -1138,7 +1147,8 @@ class _F(NamedTuple):
     a bare builtin, or a ``_ByHass`` that builds one. Selectors are built once
     here rather than per render: nothing mutates them (``_widen_to_fit``
     returns a new one), so sharing is safe and the fingerprint reads the same
-    ``config`` either way.
+    ``config`` either way. ``group`` is the ``section()`` the field renders
+    inside; ``None`` leaves it at the page's top level.
     """
 
     step: str
@@ -1147,6 +1157,7 @@ class _F(NamedTuple):
     widget: Any
     required: bool = False
     when: Callable[[dict[str, Any]], bool] | None = None
+    group: str | None = None
 
 
 #: The pages a household actually revisits come first; everything else moves
@@ -1156,11 +1167,11 @@ class _F(NamedTuple):
 #: a page in neither would be unreachable.
 #:
 #: A submenu, not ``section()``: that groups fields inside one page and is a
-#: different question from this column. The reason it stays refused is no
-#: longer the golden capture, which #568 taught to recurse -- it is that the
-#: assertion layer still walks schemas one level, so a grouped page would stop
-#: being asserted rather than fail. Teaching the walks that cover a page to
-#: recurse is the precondition for grouping it.
+#: different question from this column. ``section()`` membership is the
+#: registry's ``group`` column, consumed by ``_page_schema``. The golden
+#: capture (#568) and the assertion walks that cover a grouped page both
+#: recurse, so a field inside a section stays visible to the fingerprint
+#: and to the selectors / bounds / submission helpers.
 _TOP: Final = "top"
 _ADVANCED: Final = "advanced"
 
@@ -1191,92 +1202,92 @@ _OPTION_PAGES: Final[tuple[_P, ...]] = (
 #: Every field the options flow presents, in the order each page renders them.
 _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     # -- entities
-    _F("entities", CONF_TIBBER_TOKEN, '', selector.TextSelector(selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)), required=True),
-    _F("entities", CONF_WEATHER_ENTITY, '', _entity_of('weather'), required=True),
-    _F("entities", CONF_INDOOR_TEMP_ENTITY, _STORED, _entity_of('sensor', 'temperature')),
-    _F("entities", CONF_OUTDOOR_TEMP_ENTITY, _STORED, _entity_of('sensor', 'temperature')),
-    _F("entities", CONF_HEAT_PUMP_SWITCH_ENTITY, _STORED, _entity_of('switch')),
-    _F("entities", CONF_DHW_TEMP_ENTITY, _STORED, _entity_of('sensor', 'temperature')),
-    _F("entities", CONF_BUFFER_TANK_TEMP_ENTITY, _STORED, _entity_of('sensor', 'temperature')),
-    _F("entities", CONF_FLOOR_RETURN_TEMP_ENTITY, _STORED, _entity_of('sensor', 'temperature')),
-    _F("entities", CONF_LOWER_FLOOR_TEMP_ENTITY, _STORED, _entity_of('sensor', 'temperature')),
-    _F("entities", CONF_SPACE_SETPOINT_ENTITY, _STORED, _entity_of(['number', 'input_number', 'climate'])),
-    _F("entities", CONF_SPACE_SETPOINT_UNIT, DEFAULT_SPACE_SETPOINT_UNIT, _select(list(SPACE_SETPOINT_UNITS), 'space_setpoint_unit')),
+    _F("entities", CONF_TIBBER_TOKEN, '', selector.TextSelector(selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)), required=True, group="credentials"),
+    _F("entities", CONF_WEATHER_ENTITY, '', _entity_of('weather'), required=True, group="credentials"),
+    _F("entities", CONF_INDOOR_TEMP_ENTITY, _STORED, _entity_of('sensor', 'temperature'), group="indoor"),
+    _F("entities", CONF_OUTDOOR_TEMP_ENTITY, _STORED, _entity_of('sensor', 'temperature'), group="indoor"),
+    _F("entities", CONF_HEAT_PUMP_SWITCH_ENTITY, _STORED, _entity_of('switch'), group="plant"),
+    _F("entities", CONF_DHW_TEMP_ENTITY, _STORED, _entity_of('sensor', 'temperature'), group="plant"),
+    _F("entities", CONF_BUFFER_TANK_TEMP_ENTITY, _STORED, _entity_of('sensor', 'temperature'), group="plant"),
+    _F("entities", CONF_FLOOR_RETURN_TEMP_ENTITY, _STORED, _entity_of('sensor', 'temperature'), group="plant"),
+    _F("entities", CONF_LOWER_FLOOR_TEMP_ENTITY, _STORED, _entity_of('sensor', 'temperature'), group="plant"),
+    _F("entities", CONF_SPACE_SETPOINT_ENTITY, _STORED, _entity_of(['number', 'input_number', 'climate']), group="indoor"),
+    _F("entities", CONF_SPACE_SETPOINT_UNIT, DEFAULT_SPACE_SETPOINT_UNIT, _select(list(SPACE_SETPOINT_UNITS), 'space_setpoint_unit'), group="indoor"),
     # -- entities_metering
-    _F("entities_metering", CONF_SOLAR_RADIATION_ENTITY, _STORED, _entity_of('sensor')),
-    _F("entities_metering", CONF_SOLAR_FORECAST_SOURCE, DEFAULT_SOLAR_FORECAST_SOURCE, _solar_source_selector()),
-    _F("entities_metering", CONF_SOLAR_LOCATION, _Computed(lambda cur, hass: _default_location(hass, cur)), _solar_location_selector()),
-    _F("entities_metering", CONF_POWER_ENTITY, _STORED, _entity_of('sensor', 'power')),
-    _F("entities_metering", CONF_ENERGY_ENTITY, _STORED, _entity_of('sensor', 'energy')),
-    _F("entities_metering", CONF_HOUSE_POWER_ENTITY, _STORED, _entity_of('sensor', 'power')),
-    _F("entities_metering", CONF_COMPRESSOR_FREQ_ENTITY, _STORED, _entity_of('number')),
-    _F("entities_metering", CONF_COMPRESSOR_FREQ_SENSOR, _STORED, _entity_of('sensor', 'frequency')),
-    _F("entities_metering", CONF_FREQ_CONTROL_MODE, DEFAULT_FREQ_CONTROL_MODE, _freq_mode_selector()),
+    _F("entities_metering", CONF_SOLAR_RADIATION_ENTITY, _STORED, _entity_of('sensor'), group="solar"),
+    _F("entities_metering", CONF_SOLAR_FORECAST_SOURCE, DEFAULT_SOLAR_FORECAST_SOURCE, _solar_source_selector(), group="solar"),
+    _F("entities_metering", CONF_SOLAR_LOCATION, _Computed(lambda cur, hass: _default_location(hass, cur)), _solar_location_selector(), group="solar"),
+    _F("entities_metering", CONF_POWER_ENTITY, _STORED, _entity_of('sensor', 'power'), group="meters"),
+    _F("entities_metering", CONF_ENERGY_ENTITY, _STORED, _entity_of('sensor', 'energy'), group="meters"),
+    _F("entities_metering", CONF_HOUSE_POWER_ENTITY, _STORED, _entity_of('sensor', 'power'), group="meters"),
+    _F("entities_metering", CONF_COMPRESSOR_FREQ_ENTITY, _STORED, _entity_of('number'), group="compressor"),
+    _F("entities_metering", CONF_COMPRESSOR_FREQ_SENSOR, _STORED, _entity_of('sensor', 'frequency'), group="compressor"),
+    _F("entities_metering", CONF_FREQ_CONTROL_MODE, DEFAULT_FREQ_CONTROL_MODE, _freq_mode_selector(), group="compressor"),
     # -- entities_pump
     _F("entities_pump", CONF_HEAT_PUMP_MODE_ENTITY, _STORED, _entity_of(list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_MODE_ENTITY]))),
     _F("entities_pump", CONF_HEAT_PUMP_DEFROST_ENTITY, _STORED, _entity_of(list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_DEFROST_ENTITY]))),
     _F("entities_pump", CONF_HEAT_PUMP_ONLINE_ENTITY, _STORED, _entity_of(list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_ONLINE_ENTITY]))),
     _F("entities_pump", CONF_HEAT_PUMP_FAULT_ENTITY, _STORED, _entity_of(list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_FAULT_ENTITY]))),
     # -- comfort
-    _F("comfort", CONF_TARGET_TEMP, DEFAULT_TARGET_TEMP, _number(15, 28, 0.5, '°C', slider=True), required=True),
-    _F("comfort", CONF_MIN_TEMP, DEFAULT_MIN_TEMP, _number(14, 25, 0.5, '°C', slider=True), required=True),
-    _F("comfort", CONF_MAX_TEMP, DEFAULT_MAX_TEMP, _number(18, 28, 0.5, '°C', slider=True), required=True),
-    _F("comfort", CONF_COMFORT_TEMP_DAY, DEFAULT_COMFORT_TEMP_DAY, _number(COMFORT_TEMP_DAY_SELECTOR_MIN, COMFORT_TEMP_DAY_SELECTOR_MAX, 0.5, '°C', slider=True), required=True),
-    _F("comfort", CONF_COMFORT_TEMP_NIGHT, DEFAULT_COMFORT_TEMP_NIGHT, _number(COMFORT_TEMP_NIGHT_SELECTOR_MIN, COMFORT_TEMP_NIGHT_SELECTOR_MAX, 0.5, '°C', slider=True), required=True),
-    _F("comfort", CONF_DAY_START_HOUR, DEFAULT_DAY_START_HOUR, _number(0, 23, 1, slider=True), required=True),
-    _F("comfort", CONF_DAY_END_HOUR, DEFAULT_DAY_END_HOUR, _number(1, 24, 1, slider=True), required=True),
-    _F("comfort", CONF_MOLD_GUARD_ENABLED, DEFAULT_MOLD_GUARD_ENABLED, bool),
-    _F("comfort", CONF_INDOOR_HUMIDITY_ENTITY, _STORED, _entity_of('sensor', 'humidity')),
-    _F("comfort", CONF_THERMAL_BRIDGE_FRSI, DEFAULT_THERMAL_BRIDGE_FRSI, _number(0.3, 0.98, 0.01)),
+    _F("comfort", CONF_TARGET_TEMP, DEFAULT_TARGET_TEMP, _number(15, 28, 0.5, '°C', slider=True), required=True, group="band"),
+    _F("comfort", CONF_MIN_TEMP, DEFAULT_MIN_TEMP, _number(14, 25, 0.5, '°C', slider=True), required=True, group="band"),
+    _F("comfort", CONF_MAX_TEMP, DEFAULT_MAX_TEMP, _number(18, 28, 0.5, '°C', slider=True), required=True, group="band"),
+    _F("comfort", CONF_COMFORT_TEMP_DAY, DEFAULT_COMFORT_TEMP_DAY, _number(COMFORT_TEMP_DAY_SELECTOR_MIN, COMFORT_TEMP_DAY_SELECTOR_MAX, 0.5, '°C', slider=True), required=True, group="schedule"),
+    _F("comfort", CONF_COMFORT_TEMP_NIGHT, DEFAULT_COMFORT_TEMP_NIGHT, _number(COMFORT_TEMP_NIGHT_SELECTOR_MIN, COMFORT_TEMP_NIGHT_SELECTOR_MAX, 0.5, '°C', slider=True), required=True, group="schedule"),
+    _F("comfort", CONF_DAY_START_HOUR, DEFAULT_DAY_START_HOUR, _number(0, 23, 1, slider=True), required=True, group="schedule"),
+    _F("comfort", CONF_DAY_END_HOUR, DEFAULT_DAY_END_HOUR, _number(1, 24, 1, slider=True), required=True, group="schedule"),
+    _F("comfort", CONF_MOLD_GUARD_ENABLED, DEFAULT_MOLD_GUARD_ENABLED, bool, group="mold"),
+    _F("comfort", CONF_INDOOR_HUMIDITY_ENTITY, _STORED, _entity_of('sensor', 'humidity'), group="mold"),
+    _F("comfort", CONF_THERMAL_BRIDGE_FRSI, DEFAULT_THERMAL_BRIDGE_FRSI, _number(0.3, 0.98, 0.01), group="mold"),
     # -- hot_water
-    _F("hot_water", CONF_DHW_SCHEDULE_ENABLED, DEFAULT_DHW_SCHEDULE_ENABLED, selector.BooleanSelector()),
-    _F("hot_water", CONF_DHW_WINDOWS, DEFAULT_DHW_WINDOWS, selector.TextSelector(selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT))),
-    _F("hot_water", CONF_DHW_MIN_TEMP, DEFAULT_DHW_MIN_TEMP, _number(35, 55, 1, '°C', slider=True)),
-    _F("hot_water", CONF_DHW_IDLE_MIN_TEMP, DEFAULT_DHW_IDLE_MIN_TEMP, _number(10, 55, 1, '°C', slider=True)),
-    _F("hot_water", CONF_DHW_SETPOINT, DEFAULT_DHW_SETPOINT, _number(40, 65, 1, '°C', slider=True)),
-    _F("hot_water", CONF_DHW_SETPOINT_ENTITY, _STORED, _entity_of(['number', 'input_number', 'climate'])),
-    _F("hot_water", CONF_DHW_LEGIONELLA_ENABLED, DEFAULT_DHW_LEGIONELLA_ENABLED, selector.BooleanSelector()),
-    _F("hot_water", CONF_DHW_LEGIONELLA_TEMP, DEFAULT_DHW_LEGIONELLA_TEMP, _number(55, 70, 1, '°C', slider=True)),
-    _F("hot_water", CONF_DHW_LEGIONELLA_INTERVAL_DAYS, DEFAULT_DHW_LEGIONELLA_INTERVAL_DAYS, _number(1, 30, 1, 'days', slider=True)),
+    _F("hot_water", CONF_DHW_SCHEDULE_ENABLED, DEFAULT_DHW_SCHEDULE_ENABLED, selector.BooleanSelector(), group="schedule"),
+    _F("hot_water", CONF_DHW_WINDOWS, DEFAULT_DHW_WINDOWS, selector.TextSelector(selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT)), group="schedule"),
+    _F("hot_water", CONF_DHW_MIN_TEMP, DEFAULT_DHW_MIN_TEMP, _number(35, 55, 1, '°C', slider=True), group="temperatures"),
+    _F("hot_water", CONF_DHW_IDLE_MIN_TEMP, DEFAULT_DHW_IDLE_MIN_TEMP, _number(10, 55, 1, '°C', slider=True), group="temperatures"),
+    _F("hot_water", CONF_DHW_SETPOINT, DEFAULT_DHW_SETPOINT, _number(40, 65, 1, '°C', slider=True), group="temperatures"),
+    _F("hot_water", CONF_DHW_SETPOINT_ENTITY, _STORED, _entity_of(['number', 'input_number', 'climate']), group="temperatures"),
+    _F("hot_water", CONF_DHW_LEGIONELLA_ENABLED, DEFAULT_DHW_LEGIONELLA_ENABLED, selector.BooleanSelector(), group="legionella"),
+    _F("hot_water", CONF_DHW_LEGIONELLA_TEMP, DEFAULT_DHW_LEGIONELLA_TEMP, _number(55, 70, 1, '°C', slider=True), group="legionella"),
+    _F("hot_water", CONF_DHW_LEGIONELLA_INTERVAL_DAYS, DEFAULT_DHW_LEGIONELLA_INTERVAL_DAYS, _number(1, 30, 1, 'days', slider=True), group="legionella"),
     # -- hot_water_tank
-    _F("hot_water_tank", CONF_DHW_TANK_VOLUME, DEFAULT_DHW_TANK_VOLUME, _number(50, 1500, 10, 'L')),
-    _F("hot_water_tank", CONF_DHW_DAILY_CONSUMPTION, DEFAULT_DHW_DAILY_CONSUMPTION, _number(50, 1500, 10, 'L/day')),
-    _F("hot_water_tank", CONF_DHW_COOLING_RATE, DEFAULT_DHW_COOLING_RATE, _number(0.05, 3.0, 0.05, '°C/h')),
-    _F("hot_water_tank", CONF_DHW_INLET_TEMP, DEFAULT_DHW_INLET_TEMP, _number(2, 25, 0.5, '°C')),
-    _F("hot_water_tank", CONF_DHW_INLET_SEASONAL_AMPLITUDE, DEFAULT_DHW_INLET_SEASONAL_AMPLITUDE, _number(0, 8, 0.5, '°C')),
-    _F("hot_water_tank", CONF_DHW_INLET_ENTITY, _STORED, _entity_of('sensor', 'temperature')),
-    _F("hot_water_tank", CONF_GREYWATER_RECOVERY, DEFAULT_GREYWATER_RECOVERY, _number(0, 0.9, 0.05, None, slider=True)),
-    _F("hot_water_tank", CONF_DHW_QUANTILE_TARGETS_ENABLED, DEFAULT_DHW_QUANTILE_TARGETS_ENABLED, selector.BooleanSelector()),
-    _F("hot_water_tank", CONF_DHW_FREE_DISINFECTION_ENABLED, DEFAULT_DHW_FREE_DISINFECTION_ENABLED, selector.BooleanSelector()),
-    _F("hot_water_tank", CONF_DHW_ELASTIC_LEGIONELLA_ENABLED, DEFAULT_DHW_ELASTIC_LEGIONELLA_ENABLED, selector.BooleanSelector()),
-    _F("hot_water_tank", CONF_DHW_LEGIONELLA_MIN_INTERVAL_DAYS, DEFAULT_DHW_LEGIONELLA_MIN_INTERVAL_DAYS, _number(1, 14, 1, 'days', slider=True)),
-    _F("hot_water_tank", CONF_SHOWER_FLOW_LPM, DEFAULT_SHOWER_FLOW_LPM, _number(4, 20, 0.5, 'L/min')),
+    _F("hot_water_tank", CONF_DHW_TANK_VOLUME, DEFAULT_DHW_TANK_VOLUME, _number(50, 1500, 10, 'L'), group="tank"),
+    _F("hot_water_tank", CONF_DHW_DAILY_CONSUMPTION, DEFAULT_DHW_DAILY_CONSUMPTION, _number(50, 1500, 10, 'L/day'), group="tank"),
+    _F("hot_water_tank", CONF_DHW_COOLING_RATE, DEFAULT_DHW_COOLING_RATE, _number(0.05, 3.0, 0.05, '°C/h'), group="tank"),
+    _F("hot_water_tank", CONF_DHW_INLET_TEMP, DEFAULT_DHW_INLET_TEMP, _number(2, 25, 0.5, '°C'), group="inlet"),
+    _F("hot_water_tank", CONF_DHW_INLET_SEASONAL_AMPLITUDE, DEFAULT_DHW_INLET_SEASONAL_AMPLITUDE, _number(0, 8, 0.5, '°C'), group="inlet"),
+    _F("hot_water_tank", CONF_DHW_INLET_ENTITY, _STORED, _entity_of('sensor', 'temperature'), group="inlet"),
+    _F("hot_water_tank", CONF_GREYWATER_RECOVERY, DEFAULT_GREYWATER_RECOVERY, _number(0, 0.9, 0.05, None, slider=True), group="recovery"),
+    _F("hot_water_tank", CONF_DHW_QUANTILE_TARGETS_ENABLED, DEFAULT_DHW_QUANTILE_TARGETS_ENABLED, selector.BooleanSelector(), group="disinfection"),
+    _F("hot_water_tank", CONF_DHW_FREE_DISINFECTION_ENABLED, DEFAULT_DHW_FREE_DISINFECTION_ENABLED, selector.BooleanSelector(), group="disinfection"),
+    _F("hot_water_tank", CONF_DHW_ELASTIC_LEGIONELLA_ENABLED, DEFAULT_DHW_ELASTIC_LEGIONELLA_ENABLED, selector.BooleanSelector(), group="disinfection"),
+    _F("hot_water_tank", CONF_DHW_LEGIONELLA_MIN_INTERVAL_DAYS, DEFAULT_DHW_LEGIONELLA_MIN_INTERVAL_DAYS, _number(1, 14, 1, 'days', slider=True), group="disinfection"),
+    _F("hot_water_tank", CONF_SHOWER_FLOW_LPM, DEFAULT_SHOWER_FLOW_LPM, _number(4, 20, 0.5, 'L/min'), group="tank"),
     # -- hot_water_pumps
     _F("hot_water_pumps", CONF_VVC_PUMP_ENTITY, _STORED, _entity_of(['switch', 'input_boolean'])),
     _F("hot_water_pumps", CONF_VVC_LEAD_MINUTES, DEFAULT_VVC_LEAD_MINUTES, _number(0, 120, 5, 'min', slider=True)),
     # -- building
-    _F("building", CONF_MIXING_VALVE_MODE, mixing_valve.MODE_NONE, _select(list(mixing_valve.SELECTABLE_MODES), 'mixing_valve_mode')),
-    _F("building", CONF_MIXING_VALVE_TARGET, DEFAULT_MIXING_VALVE_TARGET, _number(0, 30, 0.5, '°C')),
-    _F("building", CONF_MIXING_VALVE_TARGET_ENTITY, _STORED, _entity_of('sensor', 'temperature')),
-    _F("building", CONF_MIXING_VALVE_WRITE_ENTITY, _STORED, _entity_of(['number', 'input_number', 'climate'])),
-    _F("building", CONF_MIXING_VALVE_WRITE_TARGET_KIND, DEFAULT_MIXING_VALVE_WRITE_TARGET_KIND, _select(list(mixing_valve.WRITE_TARGET_KINDS), 'mixing_valve_write_target_kind')),
-    _F("building", CONF_BUFFER_TANK_VOLUME, DEFAULT_BUFFER_TANK_VOLUME, _number(10, 1500, 5, 'L')),
-    _F("building", CONF_BUFFER_MAX_TEMP, DEFAULT_BUFFER_MAX_TEMP, _number(40, 90, 1, '°C', slider=True)),
-    _F("building", CONF_WOOD_FURNACE_ENABLED, _Computed(lambda cur, hass: wood_furnace_on(cur)), bool),
-    _F("building", CONF_VALVE_OUTLET_TEMP_ENTITY, _STORED, _entity_of(['sensor']), when=wood_furnace_on),
-    _F("building", CONF_WOOD_TANK_TOP_ENTITY, _STORED, _entity_of(['sensor']), when=wood_furnace_on),
-    _F("building", CONF_WOOD_TANK_BOTTOM_ENTITY, _STORED, _entity_of(['sensor']), when=wood_furnace_on),
-    _F("building", CONF_WOOD_TANK_VOLUME, DEFAULT_WOOD_TANK_VOLUME, _number(50, 3000, 50, 'L', slider=True), when=wood_furnace_on),
-    _F("building", CONF_DHW_WOOD_COIL_ENABLED, DEFAULT_DHW_WOOD_COIL_ENABLED, bool, when=wood_furnace_on),
-    _F("building", CONF_EXTERNAL_HEAT_ENABLED, DEFAULT_EXTERNAL_HEAT_ENABLED, bool, when=wood_furnace_on),
-    _F("building", CONF_EXTERNAL_HEAT_ENTITY, _STORED, _entity_of(['binary_sensor', 'switch', 'input_boolean', 'sensor']), when=wood_furnace_on),
-    _F("building", CONF_EXTERNAL_HEAT_MIN_RISE, DEFAULT_EXTERNAL_HEAT_MIN_RISE, _number(0.5, 10, 0.1, '°C/h'), when=wood_furnace_on),
-    _F("building", CONF_EXTERNAL_HEAT_DECAY_MINUTES, DEFAULT_EXTERNAL_HEAT_DECAY_MINUTES, _number(15, 360, 15, 'min', slider=True), when=wood_furnace_on),
-    _F("building", CONF_WOOD_TYPE, DEFAULT_WOOD_TYPE, _select(list(WOOD_TYPES), 'wood_type'), when=wood_furnace_on),
-    _F("building", CONF_WOOD_PACKING, DEFAULT_WOOD_PACKING, _select(list(WOOD_PACKINGS), 'wood_packing'), when=wood_furnace_on),
-    _F("building", CONF_WOOD_PRICE_SEK_M3, _SUGGESTED, _number(0, 10000, 10, 'SEK/m³'), when=wood_furnace_on),
-    _F("building", CONF_WOOD_FURNACE_EFFICIENCY, DEFAULT_WOOD_FURNACE_EFFICIENCY, _number(10, 95, 1, '%', slider=True), when=wood_furnace_on),
-    _F("building", CONF_SPACE_PUMP_ENTITY, _STORED, _entity_of(['switch', 'input_boolean'])),
+    _F("building", CONF_MIXING_VALVE_MODE, mixing_valve.MODE_NONE, _select(list(mixing_valve.SELECTABLE_MODES), 'mixing_valve_mode'), group="valve"),
+    _F("building", CONF_MIXING_VALVE_TARGET, DEFAULT_MIXING_VALVE_TARGET, _number(0, 30, 0.5, '°C'), group="valve"),
+    _F("building", CONF_MIXING_VALVE_TARGET_ENTITY, _STORED, _entity_of('sensor', 'temperature'), group="valve"),
+    _F("building", CONF_MIXING_VALVE_WRITE_ENTITY, _STORED, _entity_of(['number', 'input_number', 'climate']), group="valve"),
+    _F("building", CONF_MIXING_VALVE_WRITE_TARGET_KIND, DEFAULT_MIXING_VALVE_WRITE_TARGET_KIND, _select(list(mixing_valve.WRITE_TARGET_KINDS), 'mixing_valve_write_target_kind'), group="valve"),
+    _F("building", CONF_BUFFER_TANK_VOLUME, DEFAULT_BUFFER_TANK_VOLUME, _number(10, 1500, 5, 'L'), group="buffer"),
+    _F("building", CONF_BUFFER_MAX_TEMP, DEFAULT_BUFFER_MAX_TEMP, _number(40, 90, 1, '°C', slider=True), group="buffer"),
+    _F("building", CONF_WOOD_FURNACE_ENABLED, _Computed(lambda cur, hass: wood_furnace_on(cur)), bool, group="wood"),
+    _F("building", CONF_VALVE_OUTLET_TEMP_ENTITY, _STORED, _entity_of(['sensor']), when=wood_furnace_on, group="wood"),
+    _F("building", CONF_WOOD_TANK_TOP_ENTITY, _STORED, _entity_of(['sensor']), when=wood_furnace_on, group="wood"),
+    _F("building", CONF_WOOD_TANK_BOTTOM_ENTITY, _STORED, _entity_of(['sensor']), when=wood_furnace_on, group="wood"),
+    _F("building", CONF_WOOD_TANK_VOLUME, DEFAULT_WOOD_TANK_VOLUME, _number(50, 3000, 50, 'L', slider=True), when=wood_furnace_on, group="wood"),
+    _F("building", CONF_DHW_WOOD_COIL_ENABLED, DEFAULT_DHW_WOOD_COIL_ENABLED, bool, when=wood_furnace_on, group="wood"),
+    _F("building", CONF_EXTERNAL_HEAT_ENABLED, DEFAULT_EXTERNAL_HEAT_ENABLED, bool, when=wood_furnace_on, group="wood"),
+    _F("building", CONF_EXTERNAL_HEAT_ENTITY, _STORED, _entity_of(['binary_sensor', 'switch', 'input_boolean', 'sensor']), when=wood_furnace_on, group="wood"),
+    _F("building", CONF_EXTERNAL_HEAT_MIN_RISE, DEFAULT_EXTERNAL_HEAT_MIN_RISE, _number(0.5, 10, 0.1, '°C/h'), when=wood_furnace_on, group="wood"),
+    _F("building", CONF_EXTERNAL_HEAT_DECAY_MINUTES, DEFAULT_EXTERNAL_HEAT_DECAY_MINUTES, _number(15, 360, 15, 'min', slider=True), when=wood_furnace_on, group="wood"),
+    _F("building", CONF_WOOD_TYPE, DEFAULT_WOOD_TYPE, _select(list(WOOD_TYPES), 'wood_type'), when=wood_furnace_on, group="wood"),
+    _F("building", CONF_WOOD_PACKING, DEFAULT_WOOD_PACKING, _select(list(WOOD_PACKINGS), 'wood_packing'), when=wood_furnace_on, group="wood"),
+    _F("building", CONF_WOOD_PRICE_SEK_M3, _SUGGESTED, _number(0, 10000, 10, 'SEK/m³'), when=wood_furnace_on, group="wood"),
+    _F("building", CONF_WOOD_FURNACE_EFFICIENCY, DEFAULT_WOOD_FURNACE_EFFICIENCY, _number(10, 95, 1, '%', slider=True), when=wood_furnace_on, group="wood"),
+    _F("building", CONF_SPACE_PUMP_ENTITY, _STORED, _entity_of(['switch', 'input_boolean']), group="circulation"),
     # -- thermal_model
     _F("thermal_model", CONF_HOUSE_THERMAL_MASS, _SUGGESTED, _number(*RANGE_HOUSE_THERMAL_MASS, 0.5, 'kWh/°C')),
     _F("thermal_model", CONF_HOUSE_HEAT_LOSS_COEFFICIENT, _SUGGESTED, _number(*RANGE_HOUSE_HEAT_LOSS, 0.01, 'kW/°C')),
@@ -1286,26 +1297,26 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("thermal_model", CONF_HEAT_PUMP_MAX_POWER, _SUGGESTED, _number(1, 20, 0.5, 'kW')),
     _F("thermal_model", CONF_HEAT_PUMP_MIN_POWER, _SUGGESTED, _number(0, 10, 0.5, 'kW')),
     # -- thermal_model_zones
-    _F("thermal_model_zones", CONF_TWO_ZONE_MODE, _Suggested(TWO_ZONE_MODE_AUTO), _select(list(TWO_ZONE_MODES), 'two_zone_mode')),
-    _F("thermal_model_zones", CONF_UPPER_FLOOR_THERMAL_MASS, _SUGGESTED, _number(*RANGE_ZONE_THERMAL_MASS, 0.5, 'kWh/°C')),
-    _F("thermal_model_zones", CONF_LOWER_FLOOR_THERMAL_MASS, _SUGGESTED, _number(*RANGE_ZONE_THERMAL_MASS, 0.5, 'kWh/°C')),
-    _F("thermal_model_zones", CONF_UPPER_FLOOR_HEAT_LOSS, _SUGGESTED, _number(*RANGE_ZONE_HEAT_LOSS, 0.01, 'kW/°C')),
-    _F("thermal_model_zones", CONF_LOWER_FLOOR_HEAT_LOSS, _SUGGESTED, _number(*RANGE_ZONE_HEAT_LOSS, 0.01, 'kW/°C')),
-    _F("thermal_model_zones", CONF_INTER_ZONE_TRANSFER, _SUGGESTED, _number(POSITIVE_PARAM_FLOOR, 3.0, 0.1, 'kW/°C')),
-    _F("thermal_model_zones", CONF_RADIATOR_POWER_FRACTION, _SUGGESTED, _number(0.0, 1.0, 0.05, slider=True)),
-    _F("thermal_model_zones", CONF_UPPER_FLOOR_AREA_RATIO, _SUGGESTED, _number(0.1, 0.9, 0.05, slider=True)),
-    _F("thermal_model_zones", CONF_SOLAR_ORIENTATION_FACTOR, _SUGGESTED, _number(0.0, 1.0, 0.05, slider=True)),
+    _F("thermal_model_zones", CONF_TWO_ZONE_MODE, _Suggested(TWO_ZONE_MODE_AUTO), _select(list(TWO_ZONE_MODES), 'two_zone_mode'), group="mode"),
+    _F("thermal_model_zones", CONF_UPPER_FLOOR_THERMAL_MASS, _SUGGESTED, _number(*RANGE_ZONE_THERMAL_MASS, 0.5, 'kWh/°C'), group="zones"),
+    _F("thermal_model_zones", CONF_LOWER_FLOOR_THERMAL_MASS, _SUGGESTED, _number(*RANGE_ZONE_THERMAL_MASS, 0.5, 'kWh/°C'), group="zones"),
+    _F("thermal_model_zones", CONF_UPPER_FLOOR_HEAT_LOSS, _SUGGESTED, _number(*RANGE_ZONE_HEAT_LOSS, 0.01, 'kW/°C'), group="zones"),
+    _F("thermal_model_zones", CONF_LOWER_FLOOR_HEAT_LOSS, _SUGGESTED, _number(*RANGE_ZONE_HEAT_LOSS, 0.01, 'kW/°C'), group="zones"),
+    _F("thermal_model_zones", CONF_INTER_ZONE_TRANSFER, _SUGGESTED, _number(POSITIVE_PARAM_FLOOR, 3.0, 0.1, 'kW/°C'), group="zones"),
+    _F("thermal_model_zones", CONF_RADIATOR_POWER_FRACTION, _SUGGESTED, _number(0.0, 1.0, 0.05, slider=True), group="split"),
+    _F("thermal_model_zones", CONF_UPPER_FLOOR_AREA_RATIO, _SUGGESTED, _number(0.1, 0.9, 0.05, slider=True), group="split"),
+    _F("thermal_model_zones", CONF_SOLAR_ORIENTATION_FACTOR, _SUGGESTED, _number(0.0, 1.0, 0.05, slider=True), group="split"),
     # -- tuning
-    _F("tuning", CONF_PRICE_WEIGHT, DEFAULT_PRICE_WEIGHT, _number(0.1, 10, 0.1), required=True),
-    _F("tuning", CONF_COMFORT_WEIGHT, DEFAULT_COMFORT_WEIGHT, _number(0.1, 20, 0.1), required=True),
-    _F("tuning", CONF_OPTIMIZATION_INTERVAL, DEFAULT_OPTIMIZATION_INTERVAL, _number(10, 120, 5, 'min', slider=True), required=True),
-    _F("tuning", CONF_CYCLING_COST, DEFAULT_CYCLING_COST, _number(0, 10, 0.05)),
-    _F("tuning", CONF_PRICE_RISK_LAMBDA, DEFAULT_PRICE_RISK_LAMBDA, _number(0.0, 2.0, 0.05)),
-    _F("tuning", CONF_CONFIDENCE_MARGINS_ENABLED, DEFAULT_CONFIDENCE_MARGINS_ENABLED, bool),
-    _F("tuning", CONF_COMPRESSOR_REPLACEMENT_COST, DEFAULT_COMPRESSOR_REPLACEMENT_COST, _ByHass(lambda hass: _number(0, 100000, 100, resolve_currency(hass)))),
-    _F("tuning", CONF_COMPRESSOR_RATED_STARTS, DEFAULT_COMPRESSOR_RATED_STARTS, _number(1000, 1000000, 1000)),
-    _F("tuning", CONF_WEAR_AUTOTUNE_ENABLED, DEFAULT_WEAR_AUTOTUNE_ENABLED, bool),
-    _F("tuning", CONF_PRICE_TILES_ENABLED, DEFAULT_PRICE_TILES_ENABLED, bool),
+    _F("tuning", CONF_PRICE_WEIGHT, DEFAULT_PRICE_WEIGHT, _number(0.1, 10, 0.1), required=True, group="weights"),
+    _F("tuning", CONF_COMFORT_WEIGHT, DEFAULT_COMFORT_WEIGHT, _number(0.1, 20, 0.1), required=True, group="weights"),
+    _F("tuning", CONF_OPTIMIZATION_INTERVAL, DEFAULT_OPTIMIZATION_INTERVAL, _number(10, 120, 5, 'min', slider=True), required=True, group="weights"),
+    _F("tuning", CONF_CYCLING_COST, DEFAULT_CYCLING_COST, _number(0, 10, 0.05), group="wear"),
+    _F("tuning", CONF_PRICE_RISK_LAMBDA, DEFAULT_PRICE_RISK_LAMBDA, _number(0.0, 2.0, 0.05), group="risk"),
+    _F("tuning", CONF_CONFIDENCE_MARGINS_ENABLED, DEFAULT_CONFIDENCE_MARGINS_ENABLED, bool, group="risk"),
+    _F("tuning", CONF_COMPRESSOR_REPLACEMENT_COST, DEFAULT_COMPRESSOR_REPLACEMENT_COST, _ByHass(lambda hass: _number(0, 100000, 100, resolve_currency(hass))), group="wear"),
+    _F("tuning", CONF_COMPRESSOR_RATED_STARTS, DEFAULT_COMPRESSOR_RATED_STARTS, _number(1000, 1000000, 1000), group="wear"),
+    _F("tuning", CONF_WEAR_AUTOTUNE_ENABLED, DEFAULT_WEAR_AUTOTUNE_ENABLED, bool, group="wear"),
+    _F("tuning", CONF_PRICE_TILES_ENABLED, DEFAULT_PRICE_TILES_ENABLED, bool, group="risk"),
     # -- heat_curve
     _F("heat_curve", CONF_ECL110_DISPLACE_SET_TOPIC, DEFAULT_ECL110_DISPLACE_SET_TOPIC, str),
     _F("heat_curve", CONF_ECL110_COMMAND_TOPIC, DEFAULT_ECL110_COMMAND_TOPIC, str),
@@ -1316,12 +1327,12 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("heat_curve", CONF_ECL110_DISPLACE_MAX, DEFAULT_ECL110_DISPLACE_MAX, _number(0, 30, 0.5, '°C')),
     _F("heat_curve", CONF_ECL110_PID_TIME_CONSTANT, DEFAULT_ECL110_PID_TIME_CONSTANT, _number(0.25, 6.0, 0.25, 'h')),
     # -- building_preset
-    _F("building_preset", "", _DYNAMIC, _questionnaire_fields),
-    _F("building_preset", CONF_BUILDING_PRESET_ENABLED, DEFAULT_BUILDING_PRESET_ENABLED, bool),
-    _F("building_preset", CONF_WINDOW_AREA, DEFAULT_WINDOW_AREA, _number(POSITIVE_PARAM_FLOOR, 50, 0.5, 'm²')),
-    _F("building_preset", CONF_SOLAR_HEAT_GAIN_COEFF, DEFAULT_SOLAR_HEAT_GAIN_COEFF, _number(0.1, 1.0, 0.05, slider=True)),
-    _F("building_preset", CONF_WIND_SENSITIVITY, DEFAULT_WIND_SENSITIVITY, _number(0.0, 0.5, 0.01)),
-    _F("building_preset", CONF_RAIN_HEAT_LOSS_MULTIPLIER, DEFAULT_RAIN_HEAT_LOSS_MULTIPLIER, _number(1.0, 1.5, 0.01)),
+    _F("building_preset", "", _DYNAMIC, _questionnaire_fields, group="questionnaire"),
+    _F("building_preset", CONF_BUILDING_PRESET_ENABLED, DEFAULT_BUILDING_PRESET_ENABLED, bool, group="derivation"),
+    _F("building_preset", CONF_WINDOW_AREA, DEFAULT_WINDOW_AREA, _number(POSITIVE_PARAM_FLOOR, 50, 0.5, 'm²'), group="climate"),
+    _F("building_preset", CONF_SOLAR_HEAT_GAIN_COEFF, DEFAULT_SOLAR_HEAT_GAIN_COEFF, _number(0.1, 1.0, 0.05, slider=True), group="climate"),
+    _F("building_preset", CONF_WIND_SENSITIVITY, DEFAULT_WIND_SENSITIVITY, _number(0.0, 0.5, 0.01), group="climate"),
+    _F("building_preset", CONF_RAIN_HEAT_LOSS_MULTIPLIER, DEFAULT_RAIN_HEAT_LOSS_MULTIPLIER, _number(1.0, 1.5, 0.01), group="climate"),
     # -- grid
     _F("grid", CONF_PEAK_TARIFF_ENABLED, DEFAULT_PEAK_TARIFF_ENABLED, bool),
     _F("grid", CONF_PEAK_TARIFF_PRICE, DEFAULT_PEAK_TARIFF_PRICE, _number(0, 500, 1)),
@@ -1361,15 +1372,15 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("learning", CONF_SYSID_ENABLED, DEFAULT_SYSID_ENABLED, bool),
     _F("learning", CONF_PRICE_PRIOR_ENABLED, DEFAULT_PRICE_PRIOR_ENABLED, bool),
     # -- learning_features
-    _F("learning_features", CONF_OUTAGE_RECOVERY_ENABLED, DEFAULT_OUTAGE_RECOVERY_ENABLED, bool),
-    _F("learning_features", CONF_OPEN_WINDOW_RELAX_ENABLED, DEFAULT_OPEN_WINDOW_RELAX_ENABLED, bool),
-    _F("learning_features", CONF_IMMERSION_FEEDBACK_ENABLED, DEFAULT_IMMERSION_FEEDBACK_ENABLED, bool),
-    _F("learning_features", CONF_PRECIP_TYPE_ENABLED, DEFAULT_PRECIP_TYPE_ENABLED, bool),
-    _F("learning_features", CONF_SNOW_ROOF_FACTOR_ENABLED, DEFAULT_SNOW_ROOF_FACTOR_ENABLED, bool),
-    _F("learning_features", CONF_CAPACITY_CURVE_ENABLED, DEFAULT_CAPACITY_CURVE_ENABLED, bool),
-    _F("learning_features", CONF_SOLAR_APERTURE_LEARNING_ENABLED, DEFAULT_SOLAR_APERTURE_LEARNING_ENABLED, bool),
-    _F("learning_features", CONF_INTERNAL_GAINS_LEARNING_ENABLED, DEFAULT_INTERNAL_GAINS_LEARNING_ENABLED, bool),
-    _F("learning_features", CONF_CURVE_LEARNING_ENABLED, DEFAULT_CURVE_LEARNING_ENABLED, bool),
+    _F("learning_features", CONF_OUTAGE_RECOVERY_ENABLED, DEFAULT_OUTAGE_RECOVERY_ENABLED, bool, group="weather"),
+    _F("learning_features", CONF_OPEN_WINDOW_RELAX_ENABLED, DEFAULT_OPEN_WINDOW_RELAX_ENABLED, bool, group="weather"),
+    _F("learning_features", CONF_IMMERSION_FEEDBACK_ENABLED, DEFAULT_IMMERSION_FEEDBACK_ENABLED, bool, group="plant"),
+    _F("learning_features", CONF_PRECIP_TYPE_ENABLED, DEFAULT_PRECIP_TYPE_ENABLED, bool, group="weather"),
+    _F("learning_features", CONF_SNOW_ROOF_FACTOR_ENABLED, DEFAULT_SNOW_ROOF_FACTOR_ENABLED, bool, group="weather"),
+    _F("learning_features", CONF_CAPACITY_CURVE_ENABLED, DEFAULT_CAPACITY_CURVE_ENABLED, bool, group="model"),
+    _F("learning_features", CONF_SOLAR_APERTURE_LEARNING_ENABLED, DEFAULT_SOLAR_APERTURE_LEARNING_ENABLED, bool, group="model"),
+    _F("learning_features", CONF_INTERNAL_GAINS_LEARNING_ENABLED, DEFAULT_INTERNAL_GAINS_LEARNING_ENABLED, bool, group="model"),
+    _F("learning_features", CONF_CURVE_LEARNING_ENABLED, DEFAULT_CURVE_LEARNING_ENABLED, bool, group="model"),
 )
 
 
@@ -1413,17 +1424,73 @@ def _page_rows(step: str, current: dict[str, Any]) -> list[_F]:
     ]
 
 
+def _section_inner(value: Any) -> vol.Schema | None:
+    """The inner ``vol.Schema`` of a ``section()``, or ``None`` for a leaf.
+
+    Keyed on the nesting itself rather than on ``isinstance(value, section)``,
+    matching ``tests.golden._nested_schema``: what hides a field from a
+    one-level walk is an inner schema, whatever the class holding it is called.
+    """
+    inner = getattr(value, "schema", None)
+    return inner if isinstance(inner, vol.Schema) else None
+
+
+def _flatten_section_input(user_input: dict[str, Any]) -> dict[str, Any]:
+    """Lift ``section()`` payloads to option keys.
+
+    The form nests; stored options do not. A payload that is already flat
+    (tests, and any page with no groups) is unchanged. Dict-valued option
+    keys such as ``solar_location`` are not section names -- only registry
+    ``group`` values are lifted.
+    """
+    groups = {row.group for row in _OPTION_FIELDS if row.group}
+    flat: dict[str, Any] = {}
+    for key, value in user_input.items():
+        if key in groups and isinstance(value, dict):
+            flat.update(value)
+        else:
+            flat[key] = value
+    return flat
+
+
 def _page_schema(
     step: str, current: dict[str, Any], hass: HomeAssistant
 ) -> vol.Schema:
-    """One option page's schema, queried from the registry."""
-    fields: dict[Any, Any] = {}
+    """One option page's schema, queried from the registry.
+
+    Rows that share a ``group`` become one ``section()``, even when they
+    are not adjacent in the table -- a second write to the same section
+    key would otherwise drop the fields already collected. A page whose
+    rows carry no group stays flat. ``after_save`` is appended outside
+    every section so it is never nested. Sections emit in first-seen
+    group order; fields inside a section keep table order.
+    """
+    buckets: dict[str | None, dict[Any, Any]] = {}
+    order: list[str | None] = []
     for row in _page_rows(step, current):
+        group = row.group
+        if group not in buckets:
+            buckets[group] = {}
+            order.append(group)
         if row.default is _DYNAMIC:
-            fields.update(row.widget(current))
+            buckets[group].update(row.widget(current))
             continue
         widget = row.widget.of(hass) if isinstance(row.widget, _ByHass) else row.widget
-        fields[_field_marker(row, current, hass)] = widget
+        buckets[group][_field_marker(row, current, hass)] = widget
+    fields: dict[Any, Any] = {}
+    emitted_group = False
+    for group in order:
+        bucket = buckets[group]
+        if not bucket:
+            continue
+        if group is None:
+            fields.update(bucket)
+            continue
+        fields[group] = section(
+            vol.Schema(bucket),
+            {"collapsed": emitted_group},
+        )
+        emitted_group = True
     return _options_schema(fields)
 
 
@@ -1439,7 +1506,7 @@ def _clear_absent(
     outlived the fields it was written for, and the one the entities page
     broke earlier by nulling the whole roster instead of its own.
     """
-    cleaned = dict(user_input)
+    cleaned = dict(_flatten_section_input(user_input))
     for row in _page_rows(step, current):
         if row.default is _STORED and not cleaned.get(row.key):
             cleaned[row.key] = None
@@ -2065,7 +2132,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         to come back to, so the advanced pages return to the advanced
         menu rather than the top one.
         """
-        user_input = dict(user_input)
+        user_input = _flatten_section_input(dict(user_input))
         choice = user_input.pop(CONF_AFTER_SAVE, AFTER_SAVE_MENU)
         if choice == AFTER_SAVE_CLOSE:
             return self._save(user_input)
@@ -2084,6 +2151,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         errors: dict[str, str] = {}
         current = self._current
         if user_input is not None:
+            user_input = _flatten_section_input(user_input)
             errors = _power_errors(user_input, self._current)
             if not errors:
                 saved = dict(user_input)
@@ -2151,6 +2219,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         current = self._current
 
         if user_input is not None:
+            user_input = _flatten_section_input(user_input)
             token = user_input.get(CONF_TIBBER_TOKEN)
             if token and token != current.get(CONF_TIBBER_TOKEN):
                 verdict = await validate_tibber_token(self.hass, token)
@@ -2205,6 +2274,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         errors: dict[str, str] = {}
         current = self._current
         if user_input is not None:
+            user_input = _flatten_section_input(user_input)
             errors = _band_errors(user_input, current)
             if not errors:
                 return await self._save_or_menu(
@@ -2226,6 +2296,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         errors: dict[str, str] = {}
         current = self._current
         if user_input is not None:
+            user_input = _flatten_section_input(user_input)
             window_problem = dhw_spec_problem(user_input.get(CONF_DHW_WINDOWS, ""))
             if window_problem is not None:
                 errors[CONF_DHW_WINDOWS] = window_problem
@@ -2308,6 +2379,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         errors: dict[str, str] = {}
         current = self._current
         if user_input is not None:
+            user_input = _flatten_section_input(user_input)
             if (
                 user_input.get(CONF_MIXING_VALVE_WRITE_TARGET_KIND)
                 == mixing_valve.WRITE_TARGET_FLOW
@@ -2429,6 +2501,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         """
         current = self._current
         if user_input is not None:
+            user_input = _flatten_section_input(user_input)
             saved = dict(user_input)
             if saved.get(CONF_BUILDING_PRESET_ENABLED):
                 saved.update(_derive_preset(saved, current))
@@ -2445,6 +2518,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         errors: dict[str, str] = {}
         current = self._current
         if user_input is not None:
+            user_input = _flatten_section_input(user_input)
             if not _valid_months_spec(
                 user_input.get(CONF_PEAK_TARIFF_MONTHS, "")
             ):
@@ -2492,6 +2566,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         errors: dict[str, str] = {}
         current = self._current
         if user_input is not None:
+            user_input = _flatten_section_input(user_input)
             fee_problem = grid_fee.spec_problem(
                 user_input.get(CONF_GRID_FEE_RULES, "")
             )

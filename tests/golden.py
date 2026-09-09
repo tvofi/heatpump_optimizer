@@ -1019,6 +1019,42 @@ def _presented_fields(schema):
             yield from _presented_fields(inner)
 
 
+def empty_section_payload(schema):
+    """The nested empty dicts that make ``schema(...)`` apply inner defaults.
+
+    An ungrouped page yields ``{}``, so ``schema({})`` stays the control.
+    A grouped page yields ``{group: {}}`` per section; voluptuous then
+    substitutes each inner field's default the same way it does at top level.
+    """
+    payload = {}
+    for key, value in (schema.schema.items() if schema else []):
+        inner = _nested_schema(value)
+        if inner is not None:
+            payload[str(getattr(key, "schema", key))] = empty_section_payload(inner)
+    return payload
+
+
+def nest_flat(schema, flat: dict) -> dict:
+    """Place flat option keys into the section shape the frontend posts."""
+    remaining = dict(flat)
+    nested = _pack_sections(schema, remaining)
+    nested.update(remaining)
+    return nested
+
+
+def _pack_sections(schema, remaining: dict) -> dict:
+    nested = {}
+    for key, value in (schema.schema.items() if schema else []):
+        name = str(getattr(key, "schema", key))
+        inner = _nested_schema(value)
+        if inner is None:
+            if name in remaining:
+                nested[name] = remaining.pop(name)
+        else:
+            nested[name] = _pack_sections(inner, remaining)
+    return nested
+
+
 def schema_fingerprint(schema) -> dict:
     """Every field a page presents, section nesting included (#516).
 
