@@ -24896,4 +24896,168 @@ R.check(
     f"raised {_t546_raised!r}; stored {_t546_stored!r}",
 )
 
+# --- process_worker.py in-process pins (#505) -------------------------------
+#
+# The module landed at 0.0% (36/36) and belongs to no #195 tranche. #511
+# already drives `_dump`'s unpicklable-error arm via the coordinator child.
+# These pins import the production symbols and drive the loop / bootstrap
+# here, so a statement the child process hides from coverage still has a
+# parent-process witness. Roster re-partition stays in `.claude` (leave-alone).
+# leaves #505 open. leaves #195 open.
+import io as _pw505_io  # noqa: E402
+import operator as _pw505_op  # noqa: E402
+import pickle as _pw505_pickle  # noqa: E402
+
+import custom_components.heatpump_optimizer.process_worker as _pw505  # noqa: E402
+
+R.section("process_worker.py (#505)")
+
+
+class _Pw505BadStr:
+    def __str__(self):
+        raise RuntimeError("str refused")
+
+
+class _Pw505Unpicklable:
+    def __reduce__(self):
+        raise TypeError("this value refuses to pickle")
+
+
+class _Pw505Std:
+    def __init__(self, raw):
+        self.buffer = raw
+
+
+R.check(
+    "_describe names a value that prints",
+    _pw505._describe(7) == "int: 7",
+    f"got {_pw505._describe(7)!r}",
+)
+try:
+    _pw505_badstr = _pw505._describe(_Pw505BadStr())
+    _pw505_badstr_err = None
+except Exception as _pw505_badstr_exc:  # noqa: BLE001 — a raise is the mutant
+    _pw505_badstr, _pw505_badstr_err = None, _pw505_badstr_exc
+R.check(
+    "_describe survives a __str__ that raises",
+    _pw505_badstr_err is None and _pw505_badstr == "_Pw505BadStr",
+    f"got {_pw505_badstr!r} err={_pw505_badstr_err!r}",
+)
+
+_pw505_ok = _pw505_io.BytesIO()
+_pw505._dump(_pw505_ok, ("ok", 42))
+_pw505_ok_payload = _pw505_pickle.loads(_pw505_ok.getvalue())
+R.check(
+    "_dump writes a picklable ok frame in one blob",
+    _pw505_ok_payload == ("ok", 42),
+    f"got {_pw505_ok_payload!r}",
+)
+
+_pw505_ok_bad = _pw505_io.BytesIO()
+_pw505._dump(_pw505_ok_bad, ("ok", _Pw505Unpicklable()))
+_pw505_ok_bad_payload = _pw505_pickle.loads(_pw505_ok_bad.getvalue())
+R.check(
+    "_dump degrades an unpicklable ok result to err, not a published plan (#524)",
+    (
+        isinstance(_pw505_ok_bad_payload, tuple)
+        and _pw505_ok_bad_payload[0] == "err"
+        and isinstance(_pw505_ok_bad_payload[1], RuntimeError)
+        and "_Pw505Unpicklable" in str(_pw505_ok_bad_payload[1])
+    ),
+    f"got {_pw505_ok_bad_payload!r}",
+)
+
+_pw505_here = _Path(_pw505.__file__).resolve().parent
+_pw505_parent = str(_pw505_here.parent)
+_pw505_saved_path = list(sys.path)
+sys.path[:0] = [str(_pw505_here)]
+if _pw505_parent in sys.path:
+    sys.path.remove(_pw505_parent)
+_pw505._bootstrap()
+_pw505_after = []
+for _pw505_entry in sys.path:
+    try:
+        _pw505_after.append(str(_Path(_pw505_entry).resolve()) if _pw505_entry else _pw505_entry)
+    except OSError:
+        _pw505_after.append(_pw505_entry)
+_pw505_boot_ok = (
+    str(_pw505_here) not in _pw505_after
+    and _pw505_parent in sys.path
+    and sys.path[0] == _pw505_parent
+)
+sys.path[:] = _pw505_saved_path
+R.check(
+    "_bootstrap drops the package directory so datetime is stdlib",
+    _pw505_boot_ok,
+    f"here={_pw505_here} path0={sys.path[0]!r}",
+)
+
+
+def _pw505_run(stdin_bytes: bytes) -> bytes:
+    _in, _out = sys.stdin, sys.stdout
+    _raw_out = _pw505_io.BytesIO()
+    sys.stdin = _Pw505Std(_pw505_io.BytesIO(stdin_bytes))
+    sys.stdout = _Pw505Std(_raw_out)
+    _path = list(sys.path)
+    try:
+        _pw505.run_worker()
+    finally:
+        sys.stdin, sys.stdout = _in, _out
+        sys.path[:] = _path
+    return _raw_out.getvalue()
+
+
+_pw505_eof = _pw505_run(b"")
+R.check(
+    "run_worker returns on EOF without writing",
+    _pw505_eof == b"",
+    f"wrote {len(_pw505_eof)} byte(s)",
+)
+
+_pw505_ok_job = _pw505_run(_pw505_pickle.dumps((_pw505_op.add, (2, 3))))
+_pw505_ok_job_payload = _pw505_pickle.loads(_pw505_ok_job)
+R.check(
+    "run_worker dumps ok and the function result",
+    _pw505_ok_job_payload == ("ok", 5),
+    f"got {_pw505_ok_job_payload!r}",
+)
+
+_pw505_err_job = _pw505_run(_pw505_pickle.dumps((int, ("x",))))
+_pw505_err_job_payload = _pw505_pickle.loads(_pw505_err_job)
+R.check(
+    "run_worker dumps err when the job raises",
+    (
+        _pw505_err_job_payload[0] == "err"
+        and isinstance(_pw505_err_job_payload[1], ValueError)
+    ),
+    f"got {_pw505_err_job_payload!r}",
+)
+
+_pw505_load = _pw505_run(b"\xff\xffnot-a-pickle")
+_pw505_load_payload = _pw505_pickle.loads(_pw505_load)
+R.check(
+    "run_worker dumps load-err and stops when the frame will not unpickle",
+    _pw505_load_payload[0] == "load-err",
+    f"got {_pw505_load_payload!r}",
+)
+
+_pw505_script = _subprocess.run(
+    [sys.executable, str(_Path(_pw505.__file__))],
+    input=_pw505_pickle.dumps((_pw505_op.add, (4, 5))),
+    capture_output=True,
+    check=False,
+)
+_pw505_script_payload = None
+if _pw505_script.returncode == 0 and _pw505_script.stdout:
+    try:
+        _pw505_script_payload = _pw505_pickle.loads(_pw505_script.stdout)
+    except Exception as _pw505_script_err:  # noqa: BLE001
+        _pw505_script_payload = _pw505_script_err
+R.check(
+    "python process_worker.py as __main__ runs the worker on stdin",
+    _pw505_script.returncode == 0 and _pw505_script_payload == ("ok", 9),
+    f"rc={_pw505_script.returncode} out={_pw505_script_payload!r} "
+    f"err={_pw505_script.stderr[:200]!r}",
+)
+
 sys.exit(R.close("FEATURE CHECKS"))
