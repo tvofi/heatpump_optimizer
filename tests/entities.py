@@ -57,6 +57,12 @@ from heatpump_optimizer import (
     sensor,
     topology,
 )
+from golden import (  # noqa: E402
+    _nested_schema,
+    _presented_fields,
+    empty_section_payload,
+    nest_flat,
+)
 
 R = Results("Entities and platforms")
 
@@ -3173,7 +3179,7 @@ def _defaults_survive_their_own_selectors(schema) -> tuple[bool, str]:
     the defaults, and nothing else.
     """
     try:
-        schema({})
+        schema(empty_section_payload(schema))
     except Exception as err:  # noqa: BLE001 - any rejection is a failure
         return False, f"{type(err).__name__}: {err}"
     return True, ""
@@ -3181,9 +3187,19 @@ def _defaults_survive_their_own_selectors(schema) -> tuple[bool, str]:
 
 def _entity_selectors(schema):
     """Yield ``(field, selector)`` for every entity picker on a page."""
-    for key, value in schema.schema.items():
+    for key, value in _presented_fields(schema):
         if isinstance(value, config_flow.selector.EntitySelector):
             yield getattr(key, "schema", key), value
+
+
+def _schema_keys(schema):
+    """Option-key names a page presents, section nesting included."""
+    return {str(getattr(key, "schema", key)) for key, _ in _presented_fields(schema)}
+
+
+def _schema_defaults(schema):
+    """``schema({})`` for a page that may contain ``section()`` blocks."""
+    return schema(empty_section_payload(schema))
 
 
 missing = [
@@ -3273,7 +3289,7 @@ _cross_page = {
 _flow = options(FakeEntry(options={const.CONF_TIBBER_TOKEN: "t", **_cross_page}))
 _flow.hass = FakeHass()
 _form = asyncio.run(_flow.async_step_entities(None))
-_untouched = _form["data_schema"]({})  # defaults only, as a real untouched save
+_untouched = _schema_defaults(_form["data_schema"])  # defaults only, as a real untouched save
 _saved = asyncio.run(
     _flow.async_step_entities({**_untouched, const.CONF_AFTER_SAVE: const.AFTER_SAVE_CLOSE})
 )["data"]
@@ -3402,7 +3418,7 @@ _bare = options(FakeEntry(options={const.CONF_TIBBER_TOKEN: "t"}))
 _bare.hass = FakeHass()
 _bare_result = asyncio.run(
     _bare.async_step_entities(
-        asyncio.run(_bare.async_step_entities(None))["data_schema"]({})
+        _schema_defaults(asyncio.run(_bare.async_step_entities(None))["data_schema"])
         | {const.CONF_AFTER_SAVE: const.AFTER_SAVE_CLOSE}
     )
 )
@@ -3677,7 +3693,11 @@ for _step in options._MENU_LABELS:
     if _sschema is None:
         _odd_outcomes.append(f"{_step}: rendered without a schema")
         continue
-    _sresult = asyncio.run(getattr(_sf, f"async_step_{_step}")(_sschema({})))
+    _sresult = asyncio.run(
+        getattr(_sf, f"async_step_{_step}")(
+            _sschema(empty_section_payload(_sschema))
+        )
+    )
     _kind = _sresult.get("type")
     if _kind == "create_entry":
         # The explicit close choice (#100). Untouched submissions default
@@ -3814,9 +3834,7 @@ R.check(
 # plumbing, not a detector setting, so the option lives beside the wood tank it
 # depends on -- since v4.0.0 that is the combined heating-system page. The
 # wood-furnace toggle (#463) hides the coil until the furnace is on.
-_building_fields = {
-    str(getattr(k, "schema", k)) for k in _pages["building"].schema
-}
+_building_fields = _schema_keys(_pages["building"])
 R.check(
     "the wood-furnace toggle is on the building page even when off",
     const.CONF_WOOD_FURNACE_ENABLED in _building_fields,
@@ -3832,9 +3850,7 @@ _wood_on_flow = options(
 )
 _wood_on_flow.hass = FakeHass()
 _wood_on_form = asyncio.run(_wood_on_flow.async_step_building(None))
-_wood_on_fields = {
-    str(getattr(k, "schema", k)) for k in _wood_on_form["data_schema"].schema
-}
+_wood_on_fields = _schema_keys(_wood_on_form["data_schema"])
 R.check(
     "the DHW wood-coil option is offered when the furnace is on",
     const.CONF_DHW_WOOD_COIL_ENABLED in _wood_on_fields,
@@ -3842,7 +3858,12 @@ R.check(
 )
 R.check(
     "and it is off unless asked for",
-    _wood_on_form["data_schema"]({}).get(const.CONF_DHW_WOOD_COIL_ENABLED) is False,
+    config_flow._flatten_section_input(
+        _wood_on_form["data_schema"](
+            empty_section_payload(_wood_on_form["data_schema"])
+        )
+    ).get(const.CONF_DHW_WOOD_COIL_ENABLED)
+    is False,
     "a new option that defaults on silently changes every existing install",
 )
 _wood_on_ok, _wood_on_detail = _defaults_survive_their_own_selectors(
@@ -3852,6 +3873,54 @@ R.check(
     "the wood-on building page can be submitted untouched",
     _wood_on_ok,
     _wood_on_detail,
+)
+
+# #516 / E4: the ten wide pages group with section(). A one-level walk of
+# schema.schema records the section marker and nothing underneath it, so
+# these pins use _presented_fields / _entity_selectors (which recurse) and
+# keep a one-level control that must stay empty on a grouped page.
+_WIDE_PAGES = (
+    "building",
+    "hot_water_tank",
+    "entities",
+    "building_preset",
+    "comfort",
+    "tuning",
+    "learning_features",
+    "hot_water",
+    "entities_metering",
+    "thermal_model_zones",
+)
+_ungrouped_wide = [
+    step
+    for step in _WIDE_PAGES
+    if not any(_nested_schema(value) for _key, value in _pages[step].schema.items())
+]
+R.check(
+    "the ten wide options pages group their fields with section()",
+    not _ungrouped_wide,
+    ", ".join(_ungrouped_wide),
+)
+_entities_nested = list(_entity_selectors(_pages["entities"]))
+_entities_one_level = [
+    (getattr(key, "schema", key), value)
+    for key, value in _pages["entities"].schema.items()
+    if isinstance(value, config_flow.selector.EntitySelector)
+]
+R.check(
+    "a one-level selector walk misses the entities page's pickers",
+    bool(_entities_nested) and not _entities_one_level,
+    f"recursive {len(_entities_nested)}, one-level {len(_entities_one_level)}",
+)
+R.check(
+    "and the recursive walk still names every entities picker",
+    {str(name) for name, _sel in _entities_nested}
+    >= {
+        const.CONF_WEATHER_ENTITY,
+        const.CONF_INDOOR_TEMP_ENTITY,
+        const.CONF_HEAT_PUMP_SWITCH_ENTITY,
+    },
+    sorted(str(name) for name, _sel in _entities_nested),
 )
 
 
@@ -3885,7 +3954,7 @@ def _submission(schema, **overrides):
     the two apart -- and a field with neither is left out.
     """
     payload = {}
-    for marker, _validator in schema.schema.items():
+    for marker, _validator in _presented_fields(schema):
         key = str(getattr(marker, "schema", marker))
         description = getattr(marker, "description", None)
         if isinstance(description, dict) and "suggested_value" in description:
@@ -3895,7 +3964,7 @@ def _submission(schema, **overrides):
         if callable(default):
             payload[key] = default()
     payload.update(overrides)
-    return payload
+    return nest_flat(schema, payload)
 
 
 def _drive(coro):
@@ -3918,7 +3987,7 @@ def _bounds(schema):
             validator.config.get("min"),
             validator.config.get("max"),
         )
-        for marker, validator in schema.schema.items()
+        for marker, validator in _presented_fields(schema)
         if isinstance(validator, config_flow.selector.NumberSelector)
     }
 
@@ -4069,8 +4138,12 @@ for _case in _matrix(_EXTREME_AREAS, (0.1, 0.5, 0.9)):
     _roundtrips += 1
     try:
         _accepted = {
-            **_thermal_schema(_submission(_thermal_schema)),
-            **_zones_schema(_submission(_zones_schema)),
+            **config_flow._flatten_section_input(
+                _thermal_schema(_submission(_thermal_schema))
+            ),
+            **config_flow._flatten_section_input(
+                _zones_schema(_submission(_zones_schema))
+            ),
         }
     except Exception as err:  # noqa: BLE001 - any rejection is the bug
         _unsubmittable.append(f"{_case}: {type(err).__name__}: {err}")
@@ -4268,7 +4341,9 @@ _service_written.hass = FakeHass()
 _sw_form = asyncio.run(_service_written.async_step_comfort(None))
 _sw_bounds = _bounds(_sw_form["data_schema"])
 try:
-    _sw_valid = _sw_form["data_schema"](_submission(_sw_form["data_schema"]))
+    _sw_valid = config_flow._flatten_section_input(
+        _sw_form["data_schema"](_submission(_sw_form["data_schema"]))
+    )
     _sw_error = ""
 except Exception as err:  # noqa: BLE001
     _sw_valid = None
@@ -4593,7 +4668,7 @@ for _step_id, _base in (("init", menu), ("advanced", advanced_menu)):
 _unlabelled = sorted(
     f"{step}.{key}"
     for step, schema in _pages.items()
-    for key in (str(getattr(k, "schema", k)) for k in schema.schema)
+    for key in _schema_keys(schema)
     if key not in strings["options"]["step"].get(step, {}).get("data", {})
 )
 R.check(
@@ -4603,16 +4678,27 @@ R.check(
 )
 _wood_on_unlabelled = sorted(
     f"building.{key}"
-    for key in (
-        str(getattr(k, "schema", k))
-        for k in _wood_on_form["data_schema"].schema
-    )
+    for key in _schema_keys(_wood_on_form["data_schema"])
     if key not in strings["options"]["step"]["building"].get("data", {})
 )
 R.check(
     "every wood-block field has a building label translation",
     not _wood_on_unlabelled,
     ", ".join(_wood_on_unlabelled[:6]),
+)
+_unlabelled_sections = sorted(
+    f"{step}.{name}"
+    for step, schema in _pages.items()
+    for key, value in schema.schema.items()
+    for name in [str(getattr(key, "schema", key))]
+    if _nested_schema(value) is not None
+    and name
+    not in strings["options"]["step"].get(step, {}).get("sections", {})
+)
+R.check(
+    "every section has a name translation",
+    not _unlabelled_sections,
+    ", ".join(_unlabelled_sections[:6]),
 )
 
 # A boolean whose label is missing renders as the bare config key, which reads
@@ -6967,7 +7053,7 @@ R.check(
 _okopt = options(FakeEntry())
 _okopt.hass = FakeHass()
 _okform = asyncio.run(_okopt.async_step_comfort(None))
-_oksaved = asyncio.run(_okopt.async_step_comfort(_okform["data_schema"]({})))
+_oksaved = asyncio.run(_okopt.async_step_comfort(_schema_defaults(_okform["data_schema"])))
 R.check(
     "an untouched comfort page still saves -- through the menu return",
     _oksaved.get("type") == "menu"
@@ -7008,7 +7094,17 @@ def _b3_submit(flow, step, overrides):
     handler = getattr(flow, f"async_step_{step}")
     schema = asyncio.run(handler(None))["data_schema"]
     try:
-        payload = schema({**schema({}), **overrides})
+        payload = schema(
+            nest_flat(
+                schema,
+                {
+                    **config_flow._flatten_section_input(
+                        schema(empty_section_payload(schema))
+                    ),
+                    **overrides,
+                },
+            )
+        )
     except Exception as err:  # noqa: BLE001 - the rejection is the datum
         # Reported as a result rather than raised, so a slider that refuses
         # the payload fails the check by name instead of ending the script.
@@ -7021,7 +7117,7 @@ def _b3_units(form):
         str(getattr(k, "schema", k)): (getattr(v, "config", None) or {}).get(
             "unit_of_measurement"
         )
-        for k, v in form["data_schema"].schema.items()
+        for k, v in _presented_fields(form["data_schema"])
     }
 
 
@@ -7175,7 +7271,7 @@ _valid_days = [(s, e) for s in range(24) for e in range(1, 25) if s < e]
 
 def _day_bounds(form):
     out = {}
-    for k, v in form["data_schema"].schema.items():
+    for k, v in _presented_fields(form["data_schema"]):
         key = str(getattr(k, "schema", k))
         if key in (const.CONF_DAY_START_HOUR, const.CONF_DAY_END_HOUR):
             out[key] = (v.config["min"], v.config["max"])
@@ -7698,7 +7794,7 @@ _preset_form2 = asyncio.run(_preset_flow.async_step_building_preset(None))[
 
 
 def _selector_min(schema, conf_key: str) -> float:
-    for key, validator in schema.schema.items():
+    for key, validator in _presented_fields(schema):
         if str(getattr(key, "schema", key)) == conf_key:
             return validator.config["min"]
     raise KeyError(conf_key)
@@ -9172,6 +9268,270 @@ R.check(
         if n.startswith("a10:")
     ),
     "A10 passing checks blanked their detail (#533)",
+)
+
+# --- nightly A5/A8/A9 options, services, reload (#587) ----------------------
+#
+# The container run stays NOT_A_TEST. These pins demand the ten checks by
+# name and prove each predicate can still fail. A4 is a different issue.
+# The byte-unchanged half is what a stub cannot judge live (#542); the
+# predicate is host-tested here. Service examples and bounds run against
+# the schemas this process registered.
+def _a589_escapes(names) -> bool:
+    return len(names) == len(set(names)) and all(
+        n.startswith("E") and n[1:].isdigit() for n in names
+    )
+
+
+R.check(
+    "A5/A8/A9 named escapes are unique E-identifiers",
+    _a589_escapes(_nightly.A5_NAMED_ESCAPES)
+    and _a589_escapes(_nightly.A8_NAMED_ESCAPES)
+    and _a589_escapes(_nightly.A9_NAMED_ESCAPES),
+    f"A5={_nightly.A5_NAMED_ESCAPES} A8={_nightly.A8_NAMED_ESCAPES} "
+    f"A9={_nightly.A9_NAMED_ESCAPES}",
+)
+R.check(
+    "the nightly demands A5/A8/A9 checks by name",
+    set(_nightly.A5_INSIDE) <= set(_nightly.INSIDE_CHECKS)
+    and set(_nightly.A8_INSIDE) <= set(_nightly.INSIDE_CHECKS)
+    and set(_nightly.A9_INSIDE) <= set(_nightly.INSIDE_CHECKS)
+    and set(_nightly.A5_INSIDE)
+    == {
+        "a5:pages_ok",
+        "a5:byte_unchanged",
+        "a5:service_examples",
+        "a5:service_bounds",
+    }
+    and set(_nightly.A8_INSIDE)
+    == {"a8:register_once", "a8:deregister", "a8:already_configured"}
+    and set(_nightly.A9_INSIDE)
+    == {"a9:reload_loaded", "a9:roster_unchanged", "a9:no_growth"},
+    f"A5={_nightly.A5_INSIDE} A8={_nightly.A8_INSIDE} A9={_nightly.A9_INSIDE} "
+    f"missing={sorted((set(_nightly.A5_INSIDE) | set(_nightly.A8_INSIDE) | set(_nightly.A9_INSIDE)) - set(_nightly.INSIDE_CHECKS))}",
+)
+R.check(
+    "A5/A8/A9 are not merged with A4",
+    all(
+        not n.startswith("a4:")
+        for n in (*_nightly.A5_INSIDE, *_nightly.A8_INSIDE, *_nightly.A9_INSIDE)
+    ),
+    f"{[n for n in (*_nightly.A5_INSIDE, *_nightly.A8_INSIDE, *_nightly.A9_INSIDE) if n.startswith('a4:')]}",
+)
+_a5_steps_src = _inspect.getsource(_nightly.option_step_ids)
+_a5_derived = _nightly.option_step_ids(config_flow._OPTION_PAGES)
+R.check(
+    "A5 walks _OPTION_PAGES plus the two menus, not a carried 23",
+    _a5_derived == ("init", "advanced") + tuple(p.step for p in config_flow._OPTION_PAGES)
+    and "23" not in _a5_steps_src,
+    f"steps={_a5_derived} src_has_23={'23' in _a5_steps_src}",
+)
+_a8_cat = _nightly.documented_service_names(services)
+_a8_once_src = _inspect.getsource(_nightly.check_a8_register_once)
+R.check(
+    "A8's catalog is services.yaml's keys, not a carried 11",
+    _a8_cat == frozenset(services) and "11" not in _a8_once_src,
+    f"catalog={sorted(_a8_cat)} src_has_11={'11' in _a8_once_src}",
+)
+
+_a5_pages_ok = _nightly.Checks()
+_nightly.check_a5_pages(
+    _a5_pages_ok,
+    [{"step": s, "kind": "menu" if s in ("init", "advanced") else "save"} for s in _a5_derived],
+    _a5_derived,
+)
+_a5_pages_bad = _nightly.Checks()
+_nightly.check_a5_pages(
+    _a5_pages_bad,
+    [{"step": "learning", "kind": "raise", "raised": True, "detail": "KeyError"}],
+    _a5_derived,
+)
+R.check(
+    "a5:pages_ok fails a raise or a short walk, and passes a complete save-or-menu walk",
+    "a5:pages_ok" in _a5_pages_bad.failures()
+    and "a5:pages_ok" not in _a5_pages_ok.failures(),
+    f"bad={_a5_pages_bad.results.get('a5:pages_ok')} "
+    f"ok={_a5_pages_ok.results.get('a5:pages_ok')}",
+)
+
+_a5_before = _nightly.stored_effective_bytes(
+    {"external_heat_entity": "sensor.seed_external_heat_entity", "x": 1},
+    {},
+)
+_a5_ok_bytes = _nightly.Checks()
+_nightly.check_a5_byte_unchanged(
+    _a5_ok_bytes,
+    _a5_before,
+    _nightly.stored_effective_bytes(
+        {"external_heat_entity": "sensor.seed_external_heat_entity", "x": 1},
+        {"empty_optional": None},
+    ),
+)
+_a5_wipe = _nightly.Checks()
+_nightly.check_a5_byte_unchanged(
+    _a5_wipe,
+    _a5_before,
+    _nightly.stored_effective_bytes(
+        {"x": 1},
+        {"external_heat_entity": None},
+    ),
+)
+R.check(
+    "a5:byte_unchanged fails the #542 wipe and ignores a new None optional",
+    "a5:byte_unchanged" in _a5_wipe.failures()
+    and "a5:byte_unchanged" not in _a5_ok_bytes.failures(),
+    f"wipe={_a5_wipe.results.get('a5:byte_unchanged')} "
+    f"ok={_a5_ok_bytes.results.get('a5:byte_unchanged')}",
+)
+
+_a5_schemas = {
+    name: _svc_hass.services._schemas[(const.DOMAIN, name)]
+    for name in services
+    if (const.DOMAIN, name) in getattr(_svc_hass.services, "_schemas", {})
+}
+_a5_ex_ok = _nightly.Checks()
+_nightly.check_a5_service_examples(_a5_ex_ok, _a5_schemas, services)
+_a5_ex_bad = _nightly.Checks()
+_nightly.check_a5_service_examples(
+    _a5_ex_bad,
+    {"set_mode": _a5_schemas.get("set_mode")},
+    {"set_mode": {"fields": {"mode": {"example": "not-a-mode"}}}},
+)
+R.check(
+    "a5:service_examples fails a rejected example and passes the registered catalog",
+    "a5:service_examples" in _a5_ex_bad.failures()
+    and "a5:service_examples" not in _a5_ex_ok.failures()
+    and _a5_ex_ok.results["a5:service_examples"][1],
+    f"bad={_a5_ex_bad.results.get('a5:service_examples')} "
+    f"ok={_a5_ex_ok.results.get('a5:service_examples')} "
+    f"schemas={len(_a5_schemas)}",
+)
+_a5_bd_ok = _nightly.Checks()
+_nightly.check_a5_service_bounds(_a5_bd_ok, _a5_schemas, services)
+_a5_bd_bad = _nightly.Checks()
+_nightly.check_a5_service_bounds(
+    _a5_bd_bad,
+    {"set_thermal_parameters": _a5_schemas.get("set_thermal_parameters")},
+    {
+        "set_thermal_parameters": {
+            "fields": {
+                "house_thermal_mass": {
+                    "example": 10.0,
+                    "selector": {"number": {"min": -1, "max": 80}},
+                }
+            }
+        }
+    },
+)
+R.check(
+    "a5:service_bounds fails an out-of-range bound and passes the yaml edges",
+    "a5:service_bounds" in _a5_bd_bad.failures()
+    and "a5:service_bounds" not in _a5_bd_ok.failures(),
+    f"bad={_a5_bd_bad.results.get('a5:service_bounds')} "
+    f"ok={_a5_bd_ok.results.get('a5:service_bounds')}",
+)
+
+_a8_ok = _nightly.Checks()
+_nightly.check_a8_register_once(_a8_ok, _a8_cat, _a8_cat)
+_a8_dup = _nightly.Checks()
+_nightly.check_a8_register_once(
+    _a8_dup, list(_a8_cat) + [f"{n}__dup" for n in list(_a8_cat)[:3]], _a8_cat
+)
+R.check(
+    "a8:register_once fails a doubled catalog and passes the yaml set",
+    "a8:register_once" in _a8_dup.failures()
+    and "a8:register_once" not in _a8_ok.failures(),
+    f"dup={_a8_dup.results.get('a8:register_once')} "
+    f"ok={_a8_ok.results.get('a8:register_once')}",
+)
+_a8_un_ok = _nightly.Checks()
+_nightly.check_a8_deregister(_a8_un_ok, _a8_cat, _a8_cat)
+_a8_un_zero = _nightly.Checks()
+_nightly.check_a8_deregister(_a8_un_zero, (), _a8_cat)
+_a8_un_extra = _nightly.Checks()
+_nightly.check_a8_deregister(_a8_un_extra, set(_a8_cat) | {"leftover"}, _a8_cat)
+R.check(
+    "a8:deregister fails an empty catalog and leftover names, and passes the yaml set",
+    "a8:deregister" in _a8_un_zero.failures()
+    and "a8:deregister" in _a8_un_extra.failures()
+    and "a8:deregister" not in _a8_un_ok.failures(),
+    f"zero={_a8_un_zero.results.get('a8:deregister')} "
+    f"extra={_a8_un_extra.results.get('a8:deregister')} "
+    f"ok={_a8_un_ok.results.get('a8:deregister')}",
+)
+_a8_cfg_ok = _nightly.Checks()
+_nightly.check_a8_already_configured(_a8_cfg_ok, "already_configured")
+_a8_cfg_bad = _nightly.Checks()
+_nightly.check_a8_already_configured(_a8_cfg_bad, None)
+R.check(
+    "a8:already_configured fails a missing abort and passes already_configured",
+    "a8:already_configured" in _a8_cfg_bad.failures()
+    and "a8:already_configured" not in _a8_cfg_ok.failures(),
+    f"bad={_a8_cfg_bad.results.get('a8:already_configured')}",
+)
+
+_a9_states_ok = _nightly.Checks()
+_nightly.check_a9_reload_loaded(_a9_states_ok, ["loaded"] * _nightly.A9_RELOADS)
+_a9_states_bad = _nightly.Checks()
+_nightly.check_a9_reload_loaded(_a9_states_bad, ["loaded", "setup_error"])
+R.check(
+    "a9:reload_loaded fails a short or not-loaded series",
+    "a9:reload_loaded" in _a9_states_bad.failures()
+    and "a9:reload_loaded" not in _a9_states_ok.failures()
+    and _nightly.A9_RELOADS == 5,
+    f"bad={_a9_states_bad.results.get('a9:reload_loaded')} "
+    f"reloads={_nightly.A9_RELOADS}",
+)
+_a9_ros_ok = _nightly.Checks()
+_nightly.check_a9_roster_unchanged(_a9_ros_ok, ["sensor.a"], ["sensor.a"])
+_a9_ros_bad = _nightly.Checks()
+_nightly.check_a9_roster_unchanged(_a9_ros_bad, ["sensor.a"], ["sensor.a", "sensor.b"])
+R.check(
+    "a9:roster_unchanged fails a grown roster",
+    "a9:roster_unchanged" in _a9_ros_bad.failures()
+    and "a9:roster_unchanged" not in _a9_ros_ok.failures(),
+    f"bad={_a9_ros_bad.results.get('a9:roster_unchanged')}",
+)
+_a9_g_shipped = _nightly.Checks()
+_nightly.check_a9_no_growth(_a9_g_shipped, [1, 0, 1, 1], [4, 4, 4, 4], [1, 0, 1, 1])
+_a9_g_neutered = _nightly.Checks()
+_nightly.check_a9_no_growth(_a9_g_neutered, [1, 1, 2, 3], [4, 4, 4, 4], [1, 1, 2, 3])
+_a9_g_zero = _nightly.Checks()
+_nightly.check_a9_no_growth(_a9_g_zero, [0, 0, 0], [0, 0, 0], [0, 0, 0])
+R.check(
+    "a9:no_growth fails the #540 neutered series and passes the shipped dip",
+    "a9:no_growth" in _a9_g_neutered.failures()
+    and "a9:no_growth" not in _a9_g_shipped.failures()
+    and "a9:no_growth" not in _a9_g_zero.failures(),
+    f"neutered={_a9_g_neutered.results.get('a9:no_growth')} "
+    f"shipped={_a9_g_shipped.results.get('a9:no_growth')}",
+)
+R.check(
+    "A9's growth ceiling is the first sample, not a hard zero",
+    "series[0]" in _inspect.getsource(_nightly.series_grew)
+    and "first sample" in _inspect.getsource(_nightly.check_a9_no_growth),
+    "A9 must not assert zero growth; that re-records whenever HA bookkeeping moves",
+)
+R.check(
+    "and passing A5/A8/A9 checks still keep their detail",
+    all(
+        v[1]
+        for c in (
+            _a5_pages_ok,
+            _a5_ok_bytes,
+            _a5_ex_ok,
+            _a5_bd_ok,
+            _a8_ok,
+            _a8_un_ok,
+            _a8_cfg_ok,
+            _a9_states_ok,
+            _a9_ros_ok,
+            _a9_g_shipped,
+        )
+        for n, v in c.results.items()
+        if n.startswith(("a5:", "a8:", "a9:"))
+    ),
+    "A5/A8/A9 passing checks blanked their detail (#533)",
 )
 
 # --- nightly loop-detector positive control (#588) --------------------------

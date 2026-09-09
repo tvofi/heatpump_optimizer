@@ -378,6 +378,17 @@
           "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst.",
           "space_setpoint_entity": "Valfritt. En number-, helper- eller climate-enhet som är pumpens börvärde för rumsuppvärmning. Används bara för att märka när enheten inte går att läsa. Optimeringen skriver aldrig ett rekommenderat rumsuppvärmningsbörvärde.",
           "space_setpoint_unit": "Inomhustemperatur är rätt för ett rums- eller termostatbörvärde. Framledningstemperatur är för en styrenhet vars börvärde är en vattentemperatur. Att peka ett inomhusmål mot en framledningsenhet skulle kommendera ungefär 21 °C till något som förväntar sig 35–45 °C och undervärma huset kraftigt. Enheten är en deklaration: den här integrationen rekommenderar aldrig ett rumsuppvärmningsbörvärde."
+        },
+        "sections": {
+          "credentials": {
+            "name": "Konto och väder"
+          },
+          "indoor": {
+            "name": "Rumstemperaturer"
+          },
+          "plant": {
+            "name": "Värmepump och tankar"
+          }
         }
       },
       "comfort": {
@@ -408,6 +419,17 @@
           "indoor_humidity_entity": "En relativ fuktsensor i bostadsutrymmet. Utan en förblir mögelvakten av oavsett omkopplaren.",
           "thermal_bridge_frsi": "Hur kall din sämsta yta blir, som andel: yta = ute + fRsi × (rum − ute). 0,75 är svenska byggreglernas riktvärde; lägre betyder en kallare värsta punkt och en försiktigare vakt.",
           "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst."
+        },
+        "sections": {
+          "band": {
+            "name": "Komfortspann"
+          },
+          "schedule": {
+            "name": "Dag och natt"
+          },
+          "mold": {
+            "name": "Mögelvakt"
+          }
         }
       },
       "hot_water": {
@@ -436,6 +458,17 @@
           "dhw_legionella_interval_days": "Hur ofta desinficeringen körs. Den läggs på den billigaste timmen före varje deadline.",
           "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst.",
           "dhw_setpoint_entity": "Valfritt. Number-, helper- eller climate-enheten som är pumpens eget varmvattenbörvärde. När det ligger under desinfektionstemperaturen eller varmvattenminimum du ställt in här erbjuder ett reparationskort att höja det till den siffran."
+        },
+        "sections": {
+          "schedule": {
+            "name": "Behovsperioder"
+          },
+          "temperatures": {
+            "name": "Tanktemperaturer"
+          },
+          "legionella": {
+            "name": "Legionella"
+          }
         }
       },
       "building": {
@@ -490,6 +523,20 @@
           "wood_furnace_efficiency": "Andel av vedens energi som når tanken, i procent.",
           "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst.",
           "space_circulation_pump_entity": "En brytare som styr värmesystemets cirkulationspump. Om satt pausas pumpen bara i stunder som bevisligen är sysslolösa och varma — den går alltid när värme är planerad, när det är minusgrader ute eller när något rum är nära sin komfortgräns."
+        },
+        "sections": {
+          "valve": {
+            "name": "Shuntventil"
+          },
+          "buffer": {
+            "name": "Ackumulatortank"
+          },
+          "wood": {
+            "name": "Vedpanna"
+          },
+          "circulation": {
+            "name": "Cirkulationspump"
+          }
         }
       },
       "tuning": {
@@ -520,6 +567,17 @@
           "wear_autotune_enabled": "När detta är på blir slitagepriset per start (byteskostnad delat med märkantal starter) ett golv under kompressorns cyklingskostnad ovan, så att planerna inte underskattar en kostnad du gjort explicit. Detta är den enda insiktsfunktionen som påverkar planerna.",
           "price_tiles_enabled": "Efter varje schemalagd optimering prissätts en tänk-om-platta — måltemperatur en grad lägre, en grad högre och effekten begränsad till 75 %, i tur och ordning. Av som standard eftersom varje platta är en hel extra optimering av riktig CPU-tid.",
           "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst."
+        },
+        "sections": {
+          "weights": {
+            "name": "Besparing kontra komfort"
+          },
+          "wear": {
+            "name": "Kompressorslitage"
+          },
+          "risk": {
+            "name": "Prisrisk"
+          }
         }
       },
       "heat_curve": {
@@ -578,6 +636,17 @@
           "rain_heat_loss_multiplier": "Extra värmeförlust när det regnar. 1,0 betyder att regn inte spelar någon roll.",
           "building_foundation": "En krypgrund ökar värmeförlusterna; en uppvärmd källare ger både mer förlustyta och mer termisk massa.",
           "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst."
+        },
+        "sections": {
+          "questionnaire": {
+            "name": "Husbeskrivning"
+          },
+          "derivation": {
+            "name": "Härled från hustyp"
+          },
+          "climate": {
+            "name": "Väderkänslighet"
+          }
         }
       },
       "thermal_model": {
@@ -714,6 +783,17 @@
           "compressor_freq_sensor": "En sensor som bär kompressorns FAKTISKA frekvens, om din integration exponerar en separat. Många number-entiteter är börvärdesregister som bara ekar det senast skrivna värdet — läst från ett eko kan väktaren aldrig se någon avvikelse och den inlärda kartan följer börvärdet i stället för maskinen. Lämna tomt bara om number-entitetens tillstånd verkligen följer den riktiga frekvensen.",
           "freq_control_mode": "Observera lär sig och rekommenderar men skriver aldrig. Byt till styrning först när du har validerat entiteten mot din verkliga hårdvara: skrivningar går via number.set_value, högst en per fem minuter, begränsade till entitetens eget intervall, och en rapporterad frekvens som avviker från den kommenderade i tre cykler ställer ner styrningen till observation igen.",
           "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst."
+        },
+        "sections": {
+          "solar": {
+            "name": "Solprognos"
+          },
+          "meters": {
+            "name": "Effekt och energi"
+          },
+          "compressor": {
+            "name": "Kompressorfrekvens"
+          }
         }
       },
       "entities_pump": {
@@ -766,6 +846,20 @@
           "dhw_legionella_min_interval_days": "Kör aldrig legionellacykler tätare än så här, även på mycket billiga dagar.",
           "shower_flow_lpm": "Ditt duschmunstyckes flöde. Används bara för att räkna om tankens innehåll till duschminuter på sensorn DHW Mixed Water.",
           "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst."
+        },
+        "sections": {
+          "tank": {
+            "name": "Tank"
+          },
+          "inlet": {
+            "name": "Inkommande vatten"
+          },
+          "recovery": {
+            "name": "Värmeåtervinning"
+          },
+          "disinfection": {
+            "name": "Desinfektion"
+          }
         }
       },
       "hot_water_pumps": {
@@ -848,6 +942,17 @@
           "internal_gains_learning_enabled": "Människor, matlagning och apparater värmer huset i en dygnsrytm som den platta konstanten inte ser. Detta lär en timprofil ur mörkertimmarnas prognosfel, varsamt förankrad i det konfigurerade värdet så att den förblir en förfining, inte en omskrivning.",
           "curve_learning_enabled": "De flesta värmekurvor ställdes in en gång, försiktigt, av en installatör som aldrig kom tillbaka. Detta lär en stående korrigering ur dagar som höll komforten med marginal — kryper svalare med högst en halv grad per vecka, och återgår omedelbart till installatörens kurva vid varje komfortmiss. Den kan bara kyla en för het kurva, aldrig värma.",
           "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst."
+        },
+        "sections": {
+          "weather": {
+            "name": "Vädermönster"
+          },
+          "model": {
+            "name": "Modellinlärning"
+          },
+          "plant": {
+            "name": "Återkoppling från anläggningen"
+          }
         }
       },
       "thermal_model_zones": {
@@ -876,6 +981,17 @@
           "upper_floor_area_ratio": "Andel av total golvyta som ligger på övre planet. 0,5 betyder att planen är lika stora.",
           "solar_orientation_factor": "Hur väl fönstren möter solen över dagen. 1,0 passar mest södervända fönster; sänk för öster- eller västerläge som bara får sol en del av dagen.",
           "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst."
+        },
+        "sections": {
+          "mode": {
+            "name": "Tvåzonsläge"
+          },
+          "zones": {
+            "name": "Zonernas fysik"
+          },
+          "split": {
+            "name": "Värmefördelning"
+          }
         }
       }
     },

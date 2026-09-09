@@ -2646,6 +2646,93 @@ class HeatPumpOptimizer:
         dhw_cost = predicted_cost - energy_cost_of(optimal_space)
         return baseline_dhw, baseline_cost, predicted_cost, dhw_cost
 
+    def _solve_space(
+        self,
+        dhw_plan: np.ndarray,
+        warm_start: np.ndarray | None,
+        h: _Horizon,
+        p_max: float,
+        n_steps: int,
+        dt: float,
+        prices: np.ndarray,
+        init_base: np.ndarray,
+        objective: Callable[..., float],
+        objective_batch: Callable[..., np.ndarray],
+    ) -> tuple[np.ndarray, str, float]:
+        """Optimize space heating around a fixed DHW schedule."""
+        # The heat pump serves one circuit at a time, so a DHW block eats
+        # into the capacity available for space heating during that step.
+        headroom = np.maximum(0.0, p_max - dhw_plan)
+        if h.power_caps is not None:
+            headroom = np.minimum(headroom, h.power_caps)
+        if h.power_caps_extra is not None:
+            # power_caps bounds space heating alone, so during a DHW block
+            # space + DHW could still exceed an external *total* cap. The
+            # fuse guard's whole promise is that total draw stays under
+            # the limit, so subtract the block from the cap here too.
+            headroom = np.minimum(
+                headroom,
+                np.maximum(0.0, h.power_caps_extra - dhw_plan),
+            )
+        guess = init_base if warm_start is None else warm_start
+        guess = np.minimum(np.clip(guess, 0.0, p_max), headroom)
+        bounds = [(0.0, float(headroom[i])) for i in range(n_steps)]
+        # Manual space pins apply here just as in the DHW-free path. Forcing
+        # a step on raises its lower bound, but only as far as the headroom
+        # the DHW block left it — a slot the user pinned for both channels
+        # cannot demand more than the compressor has.
+        bounds = _apply_pins_to_bounds(
+            bounds, h.space_pins, self._pin_on_power(p_max)
+        )
+        guess = self._seed_pinned_guess(guess, bounds)
+        # A warm start is a genuinely good lead, so keep it first; the
+        # extra structural candidates only matter on the initial solve.
+        # The low-energy seed rides along for the same D0-01 reason as
+        # in the space-only path: without it every candidate anchors to
+        # the same total energy and arbitrage days refine into one basin.
+        starts = [guess]
+        if h.extra_starts:
+            starts = list(h.extra_starts) + starts
+        if warm_start is None:
+            energy = float(np.sum(np.minimum(init_base, headroom)) * dt)
+            starts.append(
+                np.minimum(
+                    _price_ranked_start(prices, energy, p_max, dt), headroom
+                )
+            )
+            starts.append(headroom * 0.5)
+            starts.append(
+                np.minimum(
+                    _price_ranked_start(
+                        prices,
+                        energy * _LOW_ENERGY_START_FRACTION,
+                        p_max,
+                        dt,
+                    ),
+                    headroom,
+                )
+            )
+        try:
+            res = _multi_start_minimize(
+                objective, starts, bounds, args=(dhw_plan,), maxiter=300,
+                batch_objective=objective_batch,
+            )
+            power = np.clip(res.x, 0.0, headroom)
+            return (
+                power,
+                _solver_status(
+                    res, lambda x: objective(x, dhw_plan), guess
+                ),
+                float(objective(power, dhw_plan)),
+            )
+        except Exception as e:
+            _LOGGER.error("Space heating optimization (with DHW) failed: %s", e)
+            return (
+                guess,
+                f"failed ({e})",
+                float(objective(guess, dhw_plan)),
+            )
+
     @staticmethod
     def _normalise_pins(
         pins: np.ndarray | None, n_steps: int
@@ -5150,79 +5237,18 @@ class HeatPumpOptimizer:
         def solve_space(
             dhw_plan: np.ndarray, warm_start: np.ndarray | None
         ) -> tuple[np.ndarray, str, float]:
-            """Optimize space heating around a fixed DHW schedule."""
-            # The heat pump serves one circuit at a time, so a DHW block eats
-            # into the capacity available for space heating during that step.
-            headroom = np.maximum(0.0, p_max - dhw_plan)
-            if h.power_caps is not None:
-                headroom = np.minimum(headroom, h.power_caps)
-            if h.power_caps_extra is not None:
-                # power_caps bounds space heating alone, so during a DHW block
-                # space + DHW could still exceed an external *total* cap. The
-                # fuse guard's whole promise is that total draw stays under
-                # the limit, so subtract the block from the cap here too.
-                headroom = np.minimum(
-                    headroom,
-                    np.maximum(0.0, h.power_caps_extra - dhw_plan),
-                )
-            guess = init_base if warm_start is None else warm_start
-            guess = np.minimum(np.clip(guess, 0.0, p_max), headroom)
-            bounds = [(0.0, float(headroom[i])) for i in range(n_steps)]
-            # Manual space pins apply here just as in the DHW-free path. Forcing
-            # a step on raises its lower bound, but only as far as the headroom
-            # the DHW block left it — a slot the user pinned for both channels
-            # cannot demand more than the compressor has.
-            bounds = _apply_pins_to_bounds(
-                bounds, h.space_pins, self._pin_on_power(p_max)
+            return self._solve_space(
+                dhw_plan,
+                warm_start,
+                h,
+                p_max,
+                n_steps,
+                dt,
+                prices,
+                init_base,
+                objective,
+                objective_batch,
             )
-            guess = self._seed_pinned_guess(guess, bounds)
-            # A warm start is a genuinely good lead, so keep it first; the
-            # extra structural candidates only matter on the initial solve.
-            # The low-energy seed rides along for the same D0-01 reason as
-            # in the space-only path: without it every candidate anchors to
-            # the same total energy and arbitrage days refine into one basin.
-            starts = [guess]
-            if h.extra_starts:
-                starts = list(h.extra_starts) + starts
-            if warm_start is None:
-                energy = float(np.sum(np.minimum(init_base, headroom)) * dt)
-                starts.append(
-                    np.minimum(
-                        _price_ranked_start(prices, energy, p_max, dt), headroom
-                    )
-                )
-                starts.append(headroom * 0.5)
-                starts.append(
-                    np.minimum(
-                        _price_ranked_start(
-                            prices,
-                            energy * _LOW_ENERGY_START_FRACTION,
-                            p_max,
-                            dt,
-                        ),
-                        headroom,
-                    )
-                )
-            try:
-                res = _multi_start_minimize(
-                    objective, starts, bounds, args=(dhw_plan,), maxiter=300,
-                    batch_objective=objective_batch,
-                )
-                power = np.clip(res.x, 0.0, headroom)
-                return (
-                    power,
-                    _solver_status(
-                        res, lambda x: objective(x, dhw_plan), guess
-                    ),
-                    float(objective(power, dhw_plan)),
-                )
-            except Exception as e:
-                _LOGGER.error("Space heating optimization (with DHW) failed: %s", e)
-                return (
-                    guess,
-                    f"failed ({e})",
-                    float(objective(guess, dhw_plan)),
-                )
 
         # The seam between the DHW LP stage above and the gradient space
         # stage below. Timing only: yield the GIL for a moment so the event

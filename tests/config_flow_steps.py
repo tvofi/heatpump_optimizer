@@ -107,7 +107,12 @@ from harness import FakeEntry, FakeHass, Results  # noqa: E402
 # The capture itself, imported rather than re-implemented: a fingerprint
 # copied into this file would pin this file's opinion of the golden, not the
 # golden (#516, and ``tests/README.md`` on tests that re-implement).
-from golden import _presented_fields, schema_fingerprint  # noqa: E402
+from golden import (  # noqa: E402
+    _nested_schema,
+    _presented_fields,
+    nest_flat,
+    schema_fingerprint,
+)
 
 from heatpump_optimizer import config_flow, const  # noqa: E402
 from heatpump_optimizer.presets import (  # noqa: E402
@@ -1941,7 +1946,7 @@ def entity_field_defaults(result):
     """
     schema = result.get("data_schema")
     out = {}
-    for key, value in (schema.schema.items() if schema else []):
+    for key, value in _presented_fields(schema):
         if type(value).__name__ != "EntitySelector":
             continue
         name = str(getattr(key, "schema", key))
@@ -2042,7 +2047,9 @@ async def section_nesting_is_captured():
     )
 
     flow, _entry, _ = fresh_options()
-    flat = (await flow.async_step_comfort(None)).get("data_schema")
+    # Comfort is grouped in this branch. The synthetic wrap below needs a
+    # still-flat page so the inner mapping is fields, not sections.
+    flat = (await flow.async_step_thermal_model(None)).get("data_schema")
     inner = dict(flat.schema)
 
     def grouped(fields, collapsed=True):
@@ -2141,7 +2148,7 @@ async def section_nesting_is_captured():
             set(m) == {"selector", "config", "default", "required"}
             for m in flat_markers.values()
         ),
-        f"{len(flat_markers)} marker(s) on the ungrouped comfort page",
+        f"{len(flat_markers)} marker(s) on the ungrouped thermal_model page",
     )
 
 
@@ -2415,7 +2422,7 @@ def schema_default(result, key):
     be distinguishable from a stored ``None``.
     """
     schema = result.get("data_schema")
-    for marker in schema.schema if schema else {}:
+    for marker, _value in _presented_fields(schema):
         if str(getattr(marker, "schema", marker)) != key:
             continue
         default = getattr(marker, "default", None)
@@ -2530,15 +2537,15 @@ async def options_cross_page_save_scope():
         form = await getattr(flow, f"async_step_{page}")(None)
         if form.get("type") != "form":
             continue
-        markers = list(form["data_schema"].schema if form.get("data_schema") else {})
-        offered = {str(getattr(marker, "schema", marker)) for marker in markers}
+        presented = list(_presented_fields(form.get("data_schema")))
+        offered = {str(getattr(marker, "schema", marker)) for marker, _ in presented}
         unseeded = {
             key: entry.options.get(key)
             for key, value in CROSS_PAGE_SEED.items()
             if entry.options.get(key) != value
         }
         answers = {}
-        for marker in markers:
+        for marker, _value in presented:
             default = getattr(marker, "default", None)
             if not callable(default):
                 continue
@@ -2743,10 +2750,10 @@ async def registry_walk_recurses():
 
     ``section()`` nests the form without renaming the option keys, so a
     one-level walk over a grouped page returns nothing and every assertion
-    built on it passes vacuously. Nothing in this branch groups a page -- the
-    assertion layer still holds one-level walks that would go quiet -- but the
-    checks added here are written recursive, and a recursion nobody has seen
-    fail is a claim rather than a mechanism.
+    built on it passes vacuously. The wide pages are grouped in this branch;
+    this check still uses a synthetic wrap of the ungrouped pump page so the
+    recursion is proved against a known four-key set, not only against the
+    production grouping.
     """
     R.section("options: the registry walk reaches fields inside a section()")
     flow = bare_options(REGISTRY_SEED)
@@ -2814,6 +2821,90 @@ async def registry_walk_recurses():
         "and an ungrouped page reaches exactly what one level reaches",
         set(flat_fields) == one_level and bool(one_level),
         f"recursive {sorted(flat_fields)}, one level {sorted(one_level)}",
+    )
+
+
+WIDE_PAGES = (
+    "building",
+    "hot_water_tank",
+    "entities",
+    "building_preset",
+    "comfort",
+    "tuning",
+    "learning_features",
+    "hot_water",
+    "entities_metering",
+    "thermal_model_zones",
+)
+
+
+async def wide_pages_grouped():
+    """#516: the ten wide pages render ``section()`` blocks, and a nested
+    submit stores flat option keys.
+    """
+    R.section("options: the ten wide pages are sectioned (#516)")
+    missing = []
+    for page in WIDE_PAGES:
+        flow = bare_options(REGISTRY_SEED)
+        form = await getattr(flow, f"async_step_{page}")(None)
+        schema = form.get("data_schema")
+        sections = [
+            str(getattr(key, "schema", key))
+            for key, value in (schema.schema.items() if schema else [])
+            if _nested_schema(value) is not None
+        ]
+        if not sections:
+            missing.append(page)
+    check(
+        "e4",
+        "happy",
+        "each of the ten wide pages renders at least one section()",
+        not missing,
+        f"ungrouped: {missing}",
+    )
+
+    flow = bare_options()
+    form = await flow.async_step_comfort(None)
+    schema = form["data_schema"]
+    nested = nest_flat(
+        schema,
+        {
+            const.CONF_TARGET_TEMP: 21.5,
+            const.CONF_AFTER_SAVE: const.AFTER_SAVE_CLOSE,
+        },
+    )
+    result = await flow.async_step_comfort(nested)
+    stored = result.get("data") or {}
+    check(
+        "e4",
+        "happy",
+        "a nested comfort submit stores the option key, not the section name",
+        stored.get(const.CONF_TARGET_TEMP) == 21.5 and "band" not in stored,
+        f"stored keys={sorted(stored)}",
+    )
+
+    # Production widening must recurse: a stored out-of-range number inside
+    # a section is the same un-submittable page #304 fixed at one level.
+    bounded = config_flow.selector.NumberSelector(
+        config_flow.selector.NumberSelectorConfig(
+            min=0, max=10, step=1, mode=config_flow.selector.NumberSelectorMode.BOX
+        )
+    )
+    grouped = vol.Schema(
+        {
+            "band": section(
+                vol.Schema({vol.Optional("n", default=99): bounded}),
+                {"collapsed": True},
+            )
+        }
+    )
+    _fitted, widened = config_flow._fit_stored_values(grouped)
+    check(
+        "e4",
+        "happy",
+        "widening reaches a number nested inside a section()",
+        widened == ["n"],
+        f"widened={widened}",
     )
 
 
@@ -3061,7 +3152,9 @@ def schema_keys(result):
     schema = result.get("data_schema")
     if schema is None:
         return set()
-    return {str(getattr(key, "schema", key)) for key in schema.schema}
+    return {
+        str(getattr(key, "schema", key)) for key, _value in _presented_fields(schema)
+    }
 
 
 def rc_suggested(result):
@@ -3073,7 +3166,7 @@ def rc_suggested(result):
         str(getattr(key, "schema", key)): (getattr(key, "description", None) or {}).get(
             "suggested_value"
         )
-        for key in schema.schema
+        for key, _value in _presented_fields(schema)
     }
 
 
@@ -3576,6 +3669,7 @@ async def main() -> int:
     await options_cross_page_save_scope()
     await registry_drives_every_page()
     await registry_walk_recurses()
+    await wide_pages_grouped()
     await widening_refusals()
     await menu_label_translations()
     await reconfigure_flow()

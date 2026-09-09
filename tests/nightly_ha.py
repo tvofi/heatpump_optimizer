@@ -67,11 +67,11 @@ A1   the entry reaches ``loaded``, both image tags         6           done
 A2   a plan was actually produced                          4           done
 A3   the published-state sweep, judged by HA's machinery   named set   done
 A4   availability conjoins the coordinator (fault-inject)  6           none
-A5   the entry round-trips through its own 23 forms        9           #587
+A5   the entry round-trips through its own forms           9           done
 A6   corrupt-store resilience                              4           none
 A7   the log carries none of this integration's failures   5           partial
-A8   services register once, deregister on unload          3           #587
-A9   reload without growth                                 3           #587
+A8   services register once; no leftover per-entry handlers 3          done
+A9   reload without growth                                 3           done (partial)
 A10  diagnostics leak no credential and no location        2           #585
 A11  a failing service raises, it does not no-op           3           none
 A12  an older schema version migrates                      1           none
@@ -89,6 +89,13 @@ between them -- are out of this lane's reach by construction, so this is the
 deployment-shape and HA-citizenship lane and not a general safety net.
 A4, A6, A11, A12 and A13 have no issue: they are recorded here and unscheduled,
 which is a different thing from unnoticed.
+A5/A8/A9 (#587): the form count is derived from ``_OPTION_PAGES`` plus the two
+menus, and the service catalog from ``services.yaml``, not from the filed 23/11.
+A8's "0 remain" is leftover *per-entry* handlers after both entries unload;
+the domain catalog stays, because action-setup registers once on ``async_setup``.
+A9 stays partial: the ceiling is the first sample, not zero, because a standing
+STOP reap and update listener are load-bearing (#540); leaks only visible as
+long-horizon growth (debouncer, in-flight refresh, MQTT) are outside it.
 
     python tests/nightly_ha.py --image homeassistant/home-assistant:2025.2.0
 
@@ -169,6 +176,34 @@ A10_INSIDE = (
 A10_COORDINATE_KEYS = frozenset({"latitude", "longitude"})
 A10_MAX_COORDINATE_DECIMALS = 2
 
+# A5/A8/A9 named identifiers, listed from #587. Do not substitute a carried total.
+A5_NAMED_ESCAPES = (
+    "E85", "E116", "E117", "E26", "E44", "E42", "E43", "E41", "E31",
+)
+A8_NAMED_ESCAPES = ("E37", "E99", "E38")
+A9_NAMED_ESCAPES = ("E56", "E2", "E105")
+
+# Demanded by name from tests/entities.py. A4 is a different issue.
+A5_INSIDE = (
+    "a5:pages_ok",
+    "a5:byte_unchanged",
+    "a5:service_examples",
+    "a5:service_bounds",
+)
+A8_INSIDE = (
+    "a8:register_once",
+    "a8:deregister",
+    "a8:already_configured",
+)
+A9_INSIDE = (
+    "a9:reload_loaded",
+    "a9:roster_unchanged",
+    "a9:no_growth",
+)
+# The issue's trial count, not a derived population.
+A9_RELOADS = 5
+A8_SECOND_ENTRY_ID = "01JHPA9NGHTHACNTNR00000002"
+
 # What the container half must report. The outer half requires this set
 # exactly: a driver that dies after two checks, or one whose checks were
 # quietly renamed away, fails here instead of looking like a pass. A no-op is
@@ -196,6 +231,9 @@ INSIDE_CHECKS = (
     "contract:probes_agree",
     *A3_INSIDE,
     *A10_INSIDE,
+    *A5_INSIDE,
+    *A8_INSIDE,
+    *A9_INSIDE,
 )
 
 # Judged by the outer half, over the container's combined output and the log
@@ -674,6 +712,581 @@ async def _async_check_a10_published(checks: Checks, hass, entry) -> None:
     check_a10_payload(checks, payload, tokens)
 
 
+def _prod_mod(name: str):
+    """The installed package, then the host ``heatpump_optimizer`` import."""
+    for prefix in (f"{CONFIG_DIR_NAME}.{PACKAGE_NAME}", PACKAGE_NAME):
+        try:
+            return importlib.import_module(f"{prefix}.{name}")
+        except ImportError:
+            continue
+    raise ImportError(name)
+
+
+def option_step_ids(pages=None) -> tuple[str, ...]:
+    """``init``, ``advanced``, then every ``_OPTION_PAGES`` step. Derived."""
+    if pages is None:
+        pages = _prod_mod("config_flow")._OPTION_PAGES
+    return ("init", "advanced") + tuple(page.step for page in pages)
+
+
+def load_services_catalog(path: Path | None = None) -> dict:
+    import yaml
+
+    if path is None:
+        staged = Path(IN_CONFIG) / PACKAGE_REL / "services.yaml"
+        path = staged if staged.is_file() else ROOT / PACKAGE_REL / "services.yaml"
+    data = yaml.safe_load(path.read_text())
+    return data if isinstance(data, dict) else {}
+
+
+def documented_service_names(catalog: dict | None = None) -> frozenset[str]:
+    return frozenset((catalog if catalog is not None else load_services_catalog()))
+
+
+def service_example_payloads(catalog: dict) -> list[tuple[str, dict]]:
+    out: list[tuple[str, dict]] = []
+    for name, spec in catalog.items():
+        fields = ((spec or {}).get("fields") or {})
+        payload = {
+            field: fspec["example"]
+            for field, fspec in fields.items()
+            if isinstance(fspec, dict) and "example" in fspec
+        }
+        if payload:
+            out.append((name, payload))
+    return out
+
+
+def service_bound_payloads(catalog: dict) -> list[tuple[str, dict]]:
+    """Each number selector's min and max, on top of that service's examples."""
+    examples = {name: payload for name, payload in service_example_payloads(catalog)}
+    out: list[tuple[str, dict]] = []
+    for name, spec in catalog.items():
+        fields = ((spec or {}).get("fields") or {})
+        base = dict(examples.get(name) or {})
+        for field, fspec in fields.items():
+            number = ((fspec or {}).get("selector") or {}).get("number")
+            if not isinstance(number, dict):
+                continue
+            for edge in ("min", "max"):
+                if edge in number:
+                    out.append((name, {**base, field: number[edge]}))
+    return out
+
+
+def apply_schema(schema, payload) -> tuple[bool, str]:
+    if schema is None:
+        return True, "no schema"
+    try:
+        schema(dict(payload))
+    except Exception as err:  # noqa: BLE001 - any rejection is the finding
+        return False, f"{type(err).__name__}: {err}"
+    return True, "accepted"
+
+
+def _schema_failures(
+    schema_by_name: dict, payloads: list[tuple[str, dict]]
+) -> list[str]:
+    bad: list[str] = []
+    for name, payload in payloads:
+        if name not in schema_by_name:
+            bad.append(f"{name}: not registered")
+            continue
+        ok, why = apply_schema(schema_by_name[name], payload)
+        if not ok:
+            bad.append(f"{name}: {why}")
+    return bad
+
+
+def check_a5_service_examples(checks: Checks, schema_by_name: dict, catalog: dict) -> None:
+    payloads = service_example_payloads(catalog)
+    if not payloads:
+        checks.check("a5:service_examples", False, "catalog has no examples")
+        return
+    bad = _schema_failures(schema_by_name, payloads)
+    checks.check(
+        "a5:service_examples",
+        not bad,
+        (
+            f"{len(payloads)} example(s) accepted"
+            if not bad
+            else f"{len(bad)} example(s) rejected: {bad[:4]}"
+        ),
+    )
+
+
+def check_a5_service_bounds(checks: Checks, schema_by_name: dict, catalog: dict) -> None:
+    payloads = service_bound_payloads(catalog)
+    if not payloads:
+        checks.check("a5:service_bounds", False, "catalog has no number bounds")
+        return
+    bad = _schema_failures(schema_by_name, payloads)
+    checks.check(
+        "a5:service_bounds",
+        not bad,
+        (
+            f"{len(payloads)} bound(s) accepted"
+            if not bad
+            else f"{len(bad)} bound(s) rejected: {bad[:4]}"
+        ),
+    )
+
+
+def stored_effective_bytes(data, options) -> bytes:
+    """Effective config, None treated as absent -- so a first save that writes
+    ``None`` onto an empty optional slot is not a wipe, and #542's wipe of a
+    stored ``external_heat_entity`` still moves the bytes.
+    """
+    merged = {**dict(data or {}), **dict(options or {})}
+    cleaned = {key: value for key, value in merged.items() if value is not None}
+    return json.dumps(
+        cleaned, sort_keys=True, default=str, separators=(",", ":")
+    ).encode()
+
+
+def check_a5_byte_unchanged(checks: Checks, before: bytes, after: bytes) -> None:
+    checks.check(
+        "a5:byte_unchanged",
+        before == after,
+        (
+            f"{len(before)}B identical"
+            if before == after
+            else f"stored bytes moved: before={len(before)}B after={len(after)}B"
+        ),
+    )
+
+
+def check_a5_pages(checks: Checks, results: list, expected: tuple[str, ...] | list[str]) -> None:
+    """Every walked step saved or returned a menu; none raised; the set is complete."""
+    kinds = []
+    raised = []
+    walked = []
+    for row in results:
+        step = row.get("step")
+        kind = row.get("kind")
+        walked.append(step)
+        kinds.append(f"{step}:{kind}")
+        if kind == "raise" or row.get("raised"):
+            raised.append(f"{step}:{row.get('detail') or kind}")
+    missing = [step for step in expected if step not in walked]
+    extra = [step for step in walked if step not in expected]
+    bad_kind = [item for item in kinds if not item.endswith(":save") and not item.endswith(":menu")]
+    checks.check(
+        "a5:pages_ok",
+        bool(results)
+        and not raised
+        and not missing
+        and not extra
+        and not bad_kind,
+        (
+            f"{len(walked)} step(s) save-or-menu"
+            if results and not raised and not missing and not extra and not bad_kind
+            else (
+                f"raised={raised[:3]} missing={missing[:6]} extra={extra[:4]} "
+                f"not-save-or-menu={bad_kind[:4]}"
+            )
+        ),
+    )
+
+
+def option_resubmit(step: str, current: dict) -> dict:
+    """Untouched values this page owns. ``setup_overview`` saves nothing."""
+    if step == "setup_overview":
+        return {}
+    cf = _prod_mod("config_flow")
+    const = _prod_mod("const")
+    out: dict = {}
+    for row in cf._page_rows(step, current):
+        if row.default is cf._DYNAMIC:
+            continue
+        value = current.get(row.key)
+        if value is not None:
+            out[row.key] = value
+    out[const.CONF_AFTER_SAVE] = const.AFTER_SAVE_CLOSE
+    return out
+
+
+def check_a8_register_once(
+    checks: Checks, registered: list[str] | set[str] | tuple[str, ...], catalog: set[str] | frozenset[str]
+) -> None:
+    names = set(registered)
+    want = set(catalog)
+    checks.check(
+        "a8:register_once",
+        names == want,
+        f"{len(names)} registered after two entries; catalog {len(want)}; "
+        f"extra={sorted(names - want)}; missing={sorted(want - names)}",
+    )
+
+
+def check_a8_deregister(
+    checks: Checks, registered: list[str] | set[str] | tuple[str, ...], catalog: set[str] | frozenset[str]
+) -> None:
+    """After both entries unload: no leftover per-entry names; catalog remains.
+
+    Literal 0 would refuse action-setup. ``registered == catalog`` is the
+    issue's "0 remain" for extras, not a domain teardown this integration
+    does not have.
+    """
+    names = set(registered)
+    want = set(catalog)
+    checks.check(
+        "a8:deregister",
+        names == want,
+        f"{len(names)} registered after unload; catalog {len(want)}; "
+        f"extra={sorted(names - want)}; missing={sorted(want - names)}",
+    )
+
+
+def check_a8_already_configured(checks: Checks, reason: str | None) -> None:
+    checks.check(
+        "a8:already_configured",
+        reason == "already_configured",
+        f"duplicate setup aborted as {reason!r}",
+    )
+
+
+def _is_loaded(state) -> bool:
+    if state is None:
+        return False
+    name = getattr(state, "value", None) or getattr(state, "name", None) or state
+    return str(name).split(".")[-1].lower() == "loaded"
+
+
+def check_a9_reload_loaded(checks: Checks, states: list) -> None:
+    loaded = [_is_loaded(state) for state in states]
+    checks.check(
+        "a9:reload_loaded",
+        len(states) >= A9_RELOADS and all(loaded),
+        f"{sum(loaded)} of {len(states)} reload(s) loaded (need {A9_RELOADS})",
+    )
+
+
+def check_a9_roster_unchanged(
+    checks: Checks, before: list[str] | tuple[str, ...], after: list[str] | tuple[str, ...]
+) -> None:
+    left, right = list(before), list(after)
+    checks.check(
+        "a9:roster_unchanged",
+        left == right,
+        (
+            f"{len(left)} id(s) unchanged"
+            if left == right
+            else (
+                f"before={len(left)} after={len(right)} "
+                f"only_before={sorted(set(left) - set(right))[:4]} "
+                f"only_after={sorted(set(right) - set(left))[:4]}"
+            )
+        ),
+    )
+
+
+def series_grew(series: list[int] | tuple[int, ...]) -> bool:
+    """Growth above the first sample. A dip is not growth (#540 shipped ``[1,0,1,1]``)."""
+    if not series:
+        return True
+    return max(series) > series[0]
+
+
+def check_a9_no_growth(
+    checks: Checks,
+    tasks: list[int] | tuple[int, ...],
+    listeners: list[int] | tuple[int, ...],
+    stop: list[int] | tuple[int, ...],
+) -> None:
+    """Ceiling is the first sample, not zero.
+
+    Zero would re-record whenever HA's own bookkeeping or the standing STOP
+    reap (#540) moves. A9 stays partial for leaks only visible as long-horizon
+    growth (debouncer, in-flight refresh, MQTT). The #540 neutered series
+    ``[1,1,2,3]`` fails; shipped ``[1,0,1,1]`` does not.
+    """
+    grew = (
+        not tasks
+        or not listeners
+        or not stop
+        or series_grew(tasks)
+        or series_grew(listeners)
+        or series_grew(stop)
+    )
+    ceiling = (
+        f"ceiling tasks={tasks[0] if tasks else None} "
+        f"listeners={listeners[0] if listeners else None} "
+        f"stop={stop[0] if stop else None}; "
+        f"max t/l/s="
+        f"{max(tasks) if tasks else None}/"
+        f"{max(listeners) if listeners else None}/"
+        f"{max(stop) if stop else None}"
+    )
+    checks.check("a9:no_growth", not grew, ceiling)
+
+
+def _flow_mapping(result) -> dict:
+    if isinstance(result, dict):
+        return result
+    return {
+        "type": getattr(result, "type", None),
+        "flow_id": getattr(result, "flow_id", None),
+        "reason": getattr(result, "reason", None),
+        "step_id": getattr(result, "step_id", None),
+    }
+
+
+def _flow_kind(result) -> str:
+    raw = _flow_mapping(result).get("type")
+    name = getattr(raw, "value", None) or getattr(raw, "name", None) or raw
+    name = str(name).split(".")[-1].lower()
+    if name in ("create_entry", "createentry"):
+        return "save"
+    if name in ("menu", "form", "abort", "raise"):
+        return name
+    return name
+
+
+def _flow_id(result) -> str:
+    return _flow_mapping(result)["flow_id"]
+
+
+def _flow_reason(result) -> str | None:
+    return _flow_mapping(result).get("reason")
+
+
+def domain_service_names(hass) -> list[str]:
+    services = hass.services.async_services()
+    return sorted(services.get(PACKAGE_NAME, {}) or {})
+
+
+def domain_service_schemas(hass) -> dict:
+    services = hass.services.async_services().get(PACKAGE_NAME, {}) or {}
+    return {name: getattr(svc, "schema", None) for name, svc in services.items()}
+
+
+def _bus_listener_count(hass, event: str | None = None) -> int:
+    listeners = hass.bus.async_listeners()
+    if event is not None:
+        value = listeners.get(event, 0)
+        return value if isinstance(value, int) else len(value)
+    total = 0
+    for value in listeners.values():
+        total += value if isinstance(value, int) else len(value)
+    return total
+
+
+def _tracked_task_count(hass) -> int:
+    loop = getattr(hass, "loop", None)
+    try:
+        tasks = asyncio.all_tasks(loop) if loop is not None else asyncio.all_tasks()
+    except RuntimeError:
+        return 0
+    return sum(1 for task in tasks if not task.done())
+
+
+def _owned_roster(hass, entry) -> list[str]:
+    from homeassistant.helpers import entity_registry as er
+
+    registry = er.async_get(hass)
+    return sorted(
+        item.entity_id
+        for item in er.async_entries_for_config_entry(registry, entry.entry_id)
+    )
+
+
+def _growth_snapshot(hass) -> tuple[int, int, int]:
+    from homeassistant.const import EVENT_HOMEASSISTANT_STOP
+
+    return (
+        _tracked_task_count(hass),
+        _bus_listener_count(hass),
+        _bus_listener_count(hass, EVENT_HOMEASSISTANT_STOP),
+    )
+
+
+async def _async_open_options_step(hass, entry, step: str, advanced: frozenset[str]):
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    if step == "init":
+        return result
+    if step == "advanced" or step in advanced:
+        result = await hass.config_entries.options.async_configure(
+            _flow_id(result), {"next_step_id": "advanced"}
+        )
+        if step == "advanced":
+            return result
+    return await hass.config_entries.options.async_configure(
+        _flow_id(result), {"next_step_id": step}
+    )
+
+
+async def _async_check_a5_options(checks: Checks, hass, entry) -> None:
+    cf = _prod_mod("config_flow")
+    expected = option_step_ids(cf._OPTION_PAGES)
+    advanced = frozenset(page.step for page in cf._OPTION_PAGES if page.menu == cf._ADVANCED)
+    before = stored_effective_bytes(entry.data, entry.options)
+    results = []
+    for step in expected:
+        try:
+            result = await _async_open_options_step(hass, entry, step, advanced)
+            kind = _flow_kind(result)
+            if step not in ("init", "advanced") and kind == "form":
+                current = {**dict(entry.data), **dict(entry.options)}
+                result = await hass.config_entries.options.async_configure(
+                    _flow_id(result), option_resubmit(step, current)
+                )
+                kind = _flow_kind(result)
+                await hass.async_block_till_done()
+                entry = hass.config_entries.async_get_entry(entry.entry_id) or entry
+            results.append({"step": step, "kind": kind})
+        except Exception as err:  # noqa: BLE001 - a raise is the A5 failure
+            results.append(
+                {"step": step, "kind": "raise", "raised": True, "detail": type(err).__name__}
+            )
+    check_a5_pages(checks, results, expected)
+    after = stored_effective_bytes(entry.data, entry.options)
+    check_a5_byte_unchanged(checks, before, after)
+
+
+def _fail_a5_services(checks: Checks, detail: str) -> None:
+    checks.check("a5:service_examples", False, detail)
+    checks.check("a5:service_bounds", False, detail)
+
+
+async def _async_check_a5_services(checks: Checks, hass) -> None:
+    try:
+        catalog = load_services_catalog()
+        schemas = domain_service_schemas(hass)
+    except Exception as err:  # noqa: BLE001
+        _fail_a5_services(checks, f"{type(err).__name__}: {err}")
+        return
+    check_a5_service_examples(checks, schemas, catalog)
+    check_a5_service_bounds(checks, schemas, catalog)
+
+
+async def _async_check_a5(checks: Checks, hass, entry) -> None:
+    await _async_check_a5_options(checks, hass, entry)
+    await _async_check_a5_services(checks, hass)
+
+
+async def _async_check_a9(checks: Checks, hass, entry):
+    tasks = []
+    listeners = []
+    stop = []
+    states = []
+    before = _owned_roster(hass, entry)
+    snap = _growth_snapshot(hass)
+    tasks.append(snap[0])
+    listeners.append(snap[1])
+    stop.append(snap[2])
+    for _ in range(A9_RELOADS):
+        await hass.config_entries.async_reload(entry.entry_id)
+        await hass.async_block_till_done()
+        entry = hass.config_entries.async_get_entry(entry.entry_id)
+        states.append(getattr(entry, "state", None) if entry is not None else None)
+        snap = _growth_snapshot(hass)
+        tasks.append(snap[0])
+        listeners.append(snap[1])
+        stop.append(snap[2])
+    check_a9_reload_loaded(checks, states)
+    check_a9_roster_unchanged(checks, before, _owned_roster(hass, entry) if entry else [])
+    check_a9_no_growth(checks, tasks, listeners, stop)
+    return entry
+
+
+async def _async_duplicate_user_flow(hass, seed) -> str | None:
+    data = seed["data"]
+    cf = _prod_mod("config_flow")
+    result = await hass.config_entries.flow.async_init(
+        PACKAGE_NAME, context={"source": "user"}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        _flow_id(result),
+        {
+            "name": "Duplicate",
+            "tibber_token": data["tibber_token"],
+            "weather_entity": data["weather_entity"],
+        },
+    )
+    sensors = {key: data[key] for key in cf._IDENTITY_ENTITY_KEYS if data.get(key)}
+    result = await hass.config_entries.flow.async_configure(_flow_id(result), sensors)
+    return _flow_reason(result)
+
+
+async def _async_add_second_entry(hass, seed):
+    from homeassistant.config_entries import ConfigEntry
+
+    data = dict(seed["data"])
+    options = dict(seed["options"])
+    if data.get("indoor_temp_entity"):
+        data["indoor_temp_entity"] = (
+            data.get("outdoor_temp_entity") or "sensor.ci_indoor_temperature_b"
+        )
+    else:
+        data["indoor_temp_entity"] = "sensor.ci_indoor_temperature"
+    unique_id = _prod_mod("config_flow").entry_identity(data)
+    kwargs = {
+        "version": seed["version"],
+        "minor_version": 1,
+        "domain": PACKAGE_NAME,
+        "title": "Nightly second",
+        "data": data,
+        "options": options,
+        "source": "user",
+        "unique_id": unique_id,
+        "entry_id": A8_SECOND_ENTRY_ID,
+    }
+    try:
+        extra = ConfigEntry(**kwargs)
+    except TypeError:
+        extra = ConfigEntry(
+            entry_id=kwargs["entry_id"],
+            version=kwargs["version"],
+            domain=kwargs["domain"],
+            title=kwargs["title"],
+            data=kwargs["data"],
+            source=kwargs["source"],
+            unique_id=kwargs["unique_id"],
+            options=kwargs["options"],
+        )
+    adder = getattr(hass.config_entries, "async_add", None) or getattr(
+        hass.config_entries, "async_add_entry", None
+    )
+    if adder is None:
+        raise RuntimeError("config_entries has no async_add")
+    await adder(extra)
+    await hass.async_block_till_done()
+    return hass.config_entries.async_get_entry(A8_SECOND_ENTRY_ID)
+
+
+def _fail_a8(checks: Checks, detail: str) -> None:
+    checks.check("a8:register_once", False, detail)
+    checks.check("a8:deregister", False, detail)
+    checks.check("a8:already_configured", False, detail)
+
+
+async def _async_check_a8(checks: Checks, hass, seed, entry) -> None:
+    catalog = documented_service_names()
+    try:
+        reason = await _async_duplicate_user_flow(hass, seed)
+    except Exception as err:  # noqa: BLE001
+        reason = f"{type(err).__name__}: {err}"
+    check_a8_already_configured(
+        checks, reason if reason == "already_configured" else reason
+    )
+    try:
+        second = await _async_add_second_entry(hass, seed)
+        if second is None:
+            raise RuntimeError("second entry did not register")
+        check_a8_register_once(checks, domain_service_names(hass), catalog)
+        first_id = seed["entry_id"]
+        await hass.config_entries.async_unload(first_id)
+        await hass.config_entries.async_unload(A8_SECOND_ENTRY_ID)
+        await hass.async_block_till_done()
+        check_a8_deregister(checks, domain_service_names(hass), catalog)
+    except Exception as err:  # noqa: BLE001
+        if "a8:register_once" not in checks.results:
+            checks.check("a8:register_once", False, f"{type(err).__name__}: {err}")
+        if "a8:deregister" not in checks.results:
+            checks.check("a8:deregister", False, f"{type(err).__name__}: {err}")
+
+
 def _check_a3_published(checks: Checks, hass, entry, *, constructor_defaults: bool) -> None:
     from homeassistant.helpers import entity_registry as er
 
@@ -872,7 +1485,7 @@ def _write_config_entries(seed: dict) -> None:
         "source": "user",
         "subentries": [],
         "title": seed["title"],
-        "unique_id": None,
+        "unique_id": seed.get("unique_id"),
         "version": seed["version"],
     }
     store = Path(IN_CONFIG) / ".storage"
@@ -1171,6 +1784,9 @@ async def _inside(seed: dict, budget: float) -> int:
         _check_a3_published(checks, hass, entry, constructor_defaults=False)
         await _async_check_a10_published(checks, hass, entry)
         _check_plan(checks, hass, entry)
+        await _async_check_a5(checks, hass, entry)
+        entry = await _async_check_a9(checks, hass, entry)
+        await _async_check_a8(checks, hass, seed, entry)
     _write_probe_marker(BLOCKING_PROBE_BEGIN)
     _provoke_lazy_on_loop()
     _flush_logs()
@@ -1344,7 +1960,21 @@ def _seed_payload(*, thermometers: bool = True) -> dict:
         "version": int(version.group(1)),
         "data": data,
         "options": options,
+        "unique_id": _seed_unique_id(data),
     }
+
+
+def _seed_unique_id(data: dict) -> str:
+    """``entry_identity`` of the seed; A8's already-configured abort needs it."""
+    tests_dir = str(Path(__file__).resolve().parent)
+    cc = str(ROOT / "custom_components")
+    stub = str(Path(tests_dir) / "hastub")
+    for path in (stub, tests_dir, cc):
+        if path not in sys.path:
+            sys.path.insert(0, path)
+    from heatpump_optimizer.config_flow import entry_identity
+
+    return entry_identity(data)
 
 
 def _forecast_literal(now: datetime) -> str:
