@@ -874,9 +874,32 @@ function checkCounts(rel, text, derived) {
 const GH_RE = /\bgh\s+(pr|issue|run|api|release|secret|workflow)\b/g
 const GH_ALLOWED = /^\.claude\/workflows\/web-fragments\.md$/
 
+// AND ONE COMMAND IS REFUSED EVERYWHERE, the mapping table included, because it
+// answers a different question from the one it is offered for. `gh pr checks`
+// prints the LATEST run per check, so a check that failed and then succeeded
+// reads as never-red -- #625 merged with a `pr-contract` failure at its head and
+// a body saying `## Red checks: none`, and the body was not lying about what its
+// author saw. A seat writing that section must read
+// `/repos/<owner>/<repo>/commits/<sha>/check-runs`, which returns every run.
+// The mapping table is not exempt: it is where a seat with no `gh` binary looks
+// up what to run, so an exemption there is the hole rather than an escape from
+// it.
+const GH_LOSSY = /\bgh\s+pr\s+checks\b/g
+
 function checkNoGh(rel, text) {
-  if (GH_ALLOWED.test(rel)) return []
   const out = []
+  text.split('\n').forEach((line, i) => {
+    GH_LOSSY.lastIndex = 0
+    if (GH_LOSSY.test(line)) {
+      out.push({
+        severity: 'error',
+        check: 'no-gh',
+        where: `${rel}:${i + 1}`,
+        message: 'names `gh pr checks`, which prints only the LATEST run per check, so a check that failed and then succeeded reads as never-red. Read /repos/<owner>/<repo>/commits/<sha>/check-runs, which returns every run.',
+      })
+    }
+  })
+  if (GH_ALLOWED.test(rel)) return out
   text.split('\n').forEach((line, i) => {
     GH_RE.lastIndex = 0
     let m
