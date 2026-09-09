@@ -9174,6 +9174,270 @@ R.check(
     "A10 passing checks blanked their detail (#533)",
 )
 
+# --- nightly A5/A8/A9 options, services, reload (#587) ----------------------
+#
+# The container run stays NOT_A_TEST. These pins demand the ten checks by
+# name and prove each predicate can still fail. A4 is a different issue.
+# The byte-unchanged half is what a stub cannot judge live (#542); the
+# predicate is host-tested here. Service examples and bounds run against
+# the schemas this process registered.
+def _a589_escapes(names) -> bool:
+    return len(names) == len(set(names)) and all(
+        n.startswith("E") and n[1:].isdigit() for n in names
+    )
+
+
+R.check(
+    "A5/A8/A9 named escapes are unique E-identifiers",
+    _a589_escapes(_nightly.A5_NAMED_ESCAPES)
+    and _a589_escapes(_nightly.A8_NAMED_ESCAPES)
+    and _a589_escapes(_nightly.A9_NAMED_ESCAPES),
+    f"A5={_nightly.A5_NAMED_ESCAPES} A8={_nightly.A8_NAMED_ESCAPES} "
+    f"A9={_nightly.A9_NAMED_ESCAPES}",
+)
+R.check(
+    "the nightly demands A5/A8/A9 checks by name",
+    set(_nightly.A5_INSIDE) <= set(_nightly.INSIDE_CHECKS)
+    and set(_nightly.A8_INSIDE) <= set(_nightly.INSIDE_CHECKS)
+    and set(_nightly.A9_INSIDE) <= set(_nightly.INSIDE_CHECKS)
+    and set(_nightly.A5_INSIDE)
+    == {
+        "a5:pages_ok",
+        "a5:byte_unchanged",
+        "a5:service_examples",
+        "a5:service_bounds",
+    }
+    and set(_nightly.A8_INSIDE)
+    == {"a8:register_once", "a8:deregister", "a8:already_configured"}
+    and set(_nightly.A9_INSIDE)
+    == {"a9:reload_loaded", "a9:roster_unchanged", "a9:no_growth"},
+    f"A5={_nightly.A5_INSIDE} A8={_nightly.A8_INSIDE} A9={_nightly.A9_INSIDE} "
+    f"missing={sorted((set(_nightly.A5_INSIDE) | set(_nightly.A8_INSIDE) | set(_nightly.A9_INSIDE)) - set(_nightly.INSIDE_CHECKS))}",
+)
+R.check(
+    "A5/A8/A9 are not merged with A4",
+    all(
+        not n.startswith("a4:")
+        for n in (*_nightly.A5_INSIDE, *_nightly.A8_INSIDE, *_nightly.A9_INSIDE)
+    ),
+    f"{[n for n in (*_nightly.A5_INSIDE, *_nightly.A8_INSIDE, *_nightly.A9_INSIDE) if n.startswith('a4:')]}",
+)
+_a5_steps_src = _inspect.getsource(_nightly.option_step_ids)
+_a5_derived = _nightly.option_step_ids(config_flow._OPTION_PAGES)
+R.check(
+    "A5 walks _OPTION_PAGES plus the two menus, not a carried 23",
+    _a5_derived == ("init", "advanced") + tuple(p.step for p in config_flow._OPTION_PAGES)
+    and "23" not in _a5_steps_src,
+    f"steps={_a5_derived} src_has_23={'23' in _a5_steps_src}",
+)
+_a8_cat = _nightly.documented_service_names(services)
+_a8_once_src = _inspect.getsource(_nightly.check_a8_register_once)
+R.check(
+    "A8's catalog is services.yaml's keys, not a carried 11",
+    _a8_cat == frozenset(services) and "11" not in _a8_once_src,
+    f"catalog={sorted(_a8_cat)} src_has_11={'11' in _a8_once_src}",
+)
+
+_a5_pages_ok = _nightly.Checks()
+_nightly.check_a5_pages(
+    _a5_pages_ok,
+    [{"step": s, "kind": "menu" if s in ("init", "advanced") else "save"} for s in _a5_derived],
+    _a5_derived,
+)
+_a5_pages_bad = _nightly.Checks()
+_nightly.check_a5_pages(
+    _a5_pages_bad,
+    [{"step": "learning", "kind": "raise", "raised": True, "detail": "KeyError"}],
+    _a5_derived,
+)
+R.check(
+    "a5:pages_ok fails a raise or a short walk, and passes a complete save-or-menu walk",
+    "a5:pages_ok" in _a5_pages_bad.failures()
+    and "a5:pages_ok" not in _a5_pages_ok.failures(),
+    f"bad={_a5_pages_bad.results.get('a5:pages_ok')} "
+    f"ok={_a5_pages_ok.results.get('a5:pages_ok')}",
+)
+
+_a5_before = _nightly.stored_effective_bytes(
+    {"external_heat_entity": "sensor.seed_external_heat_entity", "x": 1},
+    {},
+)
+_a5_ok_bytes = _nightly.Checks()
+_nightly.check_a5_byte_unchanged(
+    _a5_ok_bytes,
+    _a5_before,
+    _nightly.stored_effective_bytes(
+        {"external_heat_entity": "sensor.seed_external_heat_entity", "x": 1},
+        {"empty_optional": None},
+    ),
+)
+_a5_wipe = _nightly.Checks()
+_nightly.check_a5_byte_unchanged(
+    _a5_wipe,
+    _a5_before,
+    _nightly.stored_effective_bytes(
+        {"x": 1},
+        {"external_heat_entity": None},
+    ),
+)
+R.check(
+    "a5:byte_unchanged fails the #542 wipe and ignores a new None optional",
+    "a5:byte_unchanged" in _a5_wipe.failures()
+    and "a5:byte_unchanged" not in _a5_ok_bytes.failures(),
+    f"wipe={_a5_wipe.results.get('a5:byte_unchanged')} "
+    f"ok={_a5_ok_bytes.results.get('a5:byte_unchanged')}",
+)
+
+_a5_schemas = {
+    name: _svc_hass.services._schemas[(const.DOMAIN, name)]
+    for name in services
+    if (const.DOMAIN, name) in getattr(_svc_hass.services, "_schemas", {})
+}
+_a5_ex_ok = _nightly.Checks()
+_nightly.check_a5_service_examples(_a5_ex_ok, _a5_schemas, services)
+_a5_ex_bad = _nightly.Checks()
+_nightly.check_a5_service_examples(
+    _a5_ex_bad,
+    {"set_mode": _a5_schemas.get("set_mode")},
+    {"set_mode": {"fields": {"mode": {"example": "not-a-mode"}}}},
+)
+R.check(
+    "a5:service_examples fails a rejected example and passes the registered catalog",
+    "a5:service_examples" in _a5_ex_bad.failures()
+    and "a5:service_examples" not in _a5_ex_ok.failures()
+    and _a5_ex_ok.results["a5:service_examples"][1],
+    f"bad={_a5_ex_bad.results.get('a5:service_examples')} "
+    f"ok={_a5_ex_ok.results.get('a5:service_examples')} "
+    f"schemas={len(_a5_schemas)}",
+)
+_a5_bd_ok = _nightly.Checks()
+_nightly.check_a5_service_bounds(_a5_bd_ok, _a5_schemas, services)
+_a5_bd_bad = _nightly.Checks()
+_nightly.check_a5_service_bounds(
+    _a5_bd_bad,
+    {"set_thermal_parameters": _a5_schemas.get("set_thermal_parameters")},
+    {
+        "set_thermal_parameters": {
+            "fields": {
+                "house_thermal_mass": {
+                    "example": 10.0,
+                    "selector": {"number": {"min": -1, "max": 80}},
+                }
+            }
+        }
+    },
+)
+R.check(
+    "a5:service_bounds fails an out-of-range bound and passes the yaml edges",
+    "a5:service_bounds" in _a5_bd_bad.failures()
+    and "a5:service_bounds" not in _a5_bd_ok.failures(),
+    f"bad={_a5_bd_bad.results.get('a5:service_bounds')} "
+    f"ok={_a5_bd_ok.results.get('a5:service_bounds')}",
+)
+
+_a8_ok = _nightly.Checks()
+_nightly.check_a8_register_once(_a8_ok, _a8_cat, _a8_cat)
+_a8_dup = _nightly.Checks()
+_nightly.check_a8_register_once(
+    _a8_dup, list(_a8_cat) + [f"{n}__dup" for n in list(_a8_cat)[:3]], _a8_cat
+)
+R.check(
+    "a8:register_once fails a doubled catalog and passes the yaml set",
+    "a8:register_once" in _a8_dup.failures()
+    and "a8:register_once" not in _a8_ok.failures(),
+    f"dup={_a8_dup.results.get('a8:register_once')} "
+    f"ok={_a8_ok.results.get('a8:register_once')}",
+)
+_a8_un_ok = _nightly.Checks()
+_nightly.check_a8_deregister(_a8_un_ok, _a8_cat, _a8_cat)
+_a8_un_zero = _nightly.Checks()
+_nightly.check_a8_deregister(_a8_un_zero, (), _a8_cat)
+_a8_un_extra = _nightly.Checks()
+_nightly.check_a8_deregister(_a8_un_extra, set(_a8_cat) | {"leftover"}, _a8_cat)
+R.check(
+    "a8:deregister fails an empty catalog and leftover names, and passes the yaml set",
+    "a8:deregister" in _a8_un_zero.failures()
+    and "a8:deregister" in _a8_un_extra.failures()
+    and "a8:deregister" not in _a8_un_ok.failures(),
+    f"zero={_a8_un_zero.results.get('a8:deregister')} "
+    f"extra={_a8_un_extra.results.get('a8:deregister')} "
+    f"ok={_a8_un_ok.results.get('a8:deregister')}",
+)
+_a8_cfg_ok = _nightly.Checks()
+_nightly.check_a8_already_configured(_a8_cfg_ok, "already_configured")
+_a8_cfg_bad = _nightly.Checks()
+_nightly.check_a8_already_configured(_a8_cfg_bad, None)
+R.check(
+    "a8:already_configured fails a missing abort and passes already_configured",
+    "a8:already_configured" in _a8_cfg_bad.failures()
+    and "a8:already_configured" not in _a8_cfg_ok.failures(),
+    f"bad={_a8_cfg_bad.results.get('a8:already_configured')}",
+)
+
+_a9_states_ok = _nightly.Checks()
+_nightly.check_a9_reload_loaded(_a9_states_ok, ["loaded"] * _nightly.A9_RELOADS)
+_a9_states_bad = _nightly.Checks()
+_nightly.check_a9_reload_loaded(_a9_states_bad, ["loaded", "setup_error"])
+R.check(
+    "a9:reload_loaded fails a short or not-loaded series",
+    "a9:reload_loaded" in _a9_states_bad.failures()
+    and "a9:reload_loaded" not in _a9_states_ok.failures()
+    and _nightly.A9_RELOADS == 5,
+    f"bad={_a9_states_bad.results.get('a9:reload_loaded')} "
+    f"reloads={_nightly.A9_RELOADS}",
+)
+_a9_ros_ok = _nightly.Checks()
+_nightly.check_a9_roster_unchanged(_a9_ros_ok, ["sensor.a"], ["sensor.a"])
+_a9_ros_bad = _nightly.Checks()
+_nightly.check_a9_roster_unchanged(_a9_ros_bad, ["sensor.a"], ["sensor.a", "sensor.b"])
+R.check(
+    "a9:roster_unchanged fails a grown roster",
+    "a9:roster_unchanged" in _a9_ros_bad.failures()
+    and "a9:roster_unchanged" not in _a9_ros_ok.failures(),
+    f"bad={_a9_ros_bad.results.get('a9:roster_unchanged')}",
+)
+_a9_g_shipped = _nightly.Checks()
+_nightly.check_a9_no_growth(_a9_g_shipped, [1, 0, 1, 1], [4, 4, 4, 4], [1, 0, 1, 1])
+_a9_g_neutered = _nightly.Checks()
+_nightly.check_a9_no_growth(_a9_g_neutered, [1, 1, 2, 3], [4, 4, 4, 4], [1, 1, 2, 3])
+_a9_g_zero = _nightly.Checks()
+_nightly.check_a9_no_growth(_a9_g_zero, [0, 0, 0], [0, 0, 0], [0, 0, 0])
+R.check(
+    "a9:no_growth fails the #540 neutered series and passes the shipped dip",
+    "a9:no_growth" in _a9_g_neutered.failures()
+    and "a9:no_growth" not in _a9_g_shipped.failures()
+    and "a9:no_growth" not in _a9_g_zero.failures(),
+    f"neutered={_a9_g_neutered.results.get('a9:no_growth')} "
+    f"shipped={_a9_g_shipped.results.get('a9:no_growth')}",
+)
+R.check(
+    "A9's growth ceiling is the first sample, not a hard zero",
+    "series[0]" in _inspect.getsource(_nightly.series_grew)
+    and "first sample" in _inspect.getsource(_nightly.check_a9_no_growth),
+    "A9 must not assert zero growth; that re-records whenever HA bookkeeping moves",
+)
+R.check(
+    "and passing A5/A8/A9 checks still keep their detail",
+    all(
+        v[1]
+        for c in (
+            _a5_pages_ok,
+            _a5_ok_bytes,
+            _a5_ex_ok,
+            _a5_bd_ok,
+            _a8_ok,
+            _a8_un_ok,
+            _a8_cfg_ok,
+            _a9_states_ok,
+            _a9_ros_ok,
+            _a9_g_shipped,
+        )
+        for n, v in c.results.items()
+        if n.startswith(("a5:", "a8:", "a9:"))
+    ),
+    "A5/A8/A9 passing checks blanked their detail (#533)",
+)
+
 # --- nightly loop-detector positive control (#588) --------------------------
 #
 # The container run stays NOT_A_TEST. These pins demand the check by name and
