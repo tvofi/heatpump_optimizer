@@ -31,6 +31,7 @@ import json
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime
+from typing import Any
 
 import numpy as np
 
@@ -51,7 +52,7 @@ class SnapshotRing:
     """The ring buffer plus the daily bias watch."""
 
     #: Oldest first. Each: {"taken_at", "healthy", "accuracy", "learners"}.
-    snapshots: list[dict] = field(default_factory=list)
+    snapshots: list[dict[str, Any]] = field(default_factory=list)
     #: Consecutive out-of-band days, and the last day counted.
     _bias_days: int = 0
     _last_day: str = ""
@@ -78,8 +79,8 @@ class SnapshotRing:
     def take(
         self,
         now: datetime,
-        learners: dict[str, dict],
-        accuracy: dict,
+        learners: dict[str, dict[str, Any]],
+        accuracy: dict[str, Any],
         healthy: bool,
     ) -> None:
         # Deep-copied via the same JSON round trip the real Store applies
@@ -154,7 +155,7 @@ class SnapshotRing:
 
     # -- restore -----------------------------------------------------------------
 
-    def best_restore(self) -> dict | None:
+    def best_restore(self) -> dict[str, Any] | None:
         """The newest snapshot worth restoring to.
 
         Healthy inputs at capture time AND in-band accuracy — restoring to
@@ -200,7 +201,7 @@ class SnapshotRing:
 
     # -- persistence ---------------------------------------------------------------
 
-    def as_dict(self) -> dict:
+    def as_dict(self) -> dict[str, Any]:
         return {
             "snapshots": list(self.snapshots),
             "bias_days": self._bias_days,
@@ -211,7 +212,7 @@ class SnapshotRing:
         }
 
     @classmethod
-    def from_dict(cls, data: dict | None) -> "SnapshotRing":
+    def from_dict(cls, data: dict[str, Any] | None) -> "SnapshotRing":
         ring = cls()
         if not isinstance(data, dict):
             return ring
