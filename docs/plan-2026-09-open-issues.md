@@ -485,6 +485,7 @@ no wave:
 - [#655](https://github.com/tvofi/heatpump_optimizer/pull/655) — nightly A5/A8/A9 options, services, reload. leaves #533 open.
 - [#651](https://github.com/tvofi/heatpump_optimizer/pull/651) — **merged**, the loop detector cannot tell "no blocking call" from "no log". leaves #533 open.
 - [#654](https://github.com/tvofi/heatpump_optimizer/pull/654) — W5-G6: process_worker.py in-process pins, 0.0%→92%. leaves #505 open. leaves #195 open.
+- [#640](https://github.com/tvofi/heatpump_optimizer/pull/640) — W5-G3 first cut: wood_fuel.py annotations, ruler 355→325. leaves #303 open.
 
 **A pattern worth naming**, since most of these were blocked for it: every one of those blocks was a document asserting something that was not true of the tree — a stale head, a count, an actor, a carry that did not land. None was a disagreement about the change itself.
 
