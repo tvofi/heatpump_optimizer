@@ -47,6 +47,8 @@
 #
 # claims-for: 6.3.19
 #
+config_flow  # first-screen price_source/entity; weekend/holiday comfort; DSO catalog select. Schema-only; no solver fixture moved.
+#
 # v6.3.19: the governance programme, three defects that were deleting work, and the interface changes that came with them. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #

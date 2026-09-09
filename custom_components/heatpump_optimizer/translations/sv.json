@@ -3,16 +3,20 @@
     "step": {
       "user": {
         "title": "Värmepumpsoptimering - Konfiguration",
-        "description": "Din Tibber-token och väderprognos krävs. Valfria givare kommer på nästa skärm.",
+        "description": "Välj priskälla och väderprognos. Tibber-token krävs bara när priserna kommer från Tibber. Valfria sensorer kommer på nästa skärm.",
         "data": {
           "name": "Namn på den här integrationen",
           "tibber_token": "Tibber API-token",
-          "weather_entity": "Väderprognos"
+          "weather_entity": "Väderprognos",
+          "price_source": "Elpriskälla",
+          "price_entity": "Prissensor (Nord Pool eller liknande)"
         },
         "data_description": {
           "name": "Visas framför alla sensorer som integrationen skapar.",
-          "tibber_token": "Används för att läsa dina timpriser på el. Skapa en på developer.tibber.com. Lämna som den är om den inte har ändrats.",
-          "weather_entity": "Härifrån hämtas prognos för utomhustemperatur, vind och regn. Optimeringen planerar 24 timmar framåt och kräver därför en prognos."
+          "tibber_token": "Används för att läsa dina timpriser på el. Skapa en på developer.tibber.com. Lämna som den är om den inte har ändrats. Krävs inte när priskällan är en entitet.",
+          "weather_entity": "Härifrån hämtas prognos för utomhustemperatur, vind och regn. Optimeringen planerar 24 timmar framåt och kräver därför en prognos.",
+          "price_source": "Tibber använder din API-token. Entitet läser en Home Assistant-prissensor, till exempel Nord Pool.",
+          "price_entity": "Krävs när priskällan är en entitet. Typiska attribut är raw_today och raw_tomorrow."
         }
       },
       "temperature": {
@@ -164,7 +168,8 @@
           "dhw_cooling_rate": "Hur snabbt beredaren svalnar när ingen använder varmvatten, mätt vid 45 C i ett 20-gradigt rum. Detta är bara en startpunkt: integrationen mäter beredarens faktiska avsvalning och justerar värdet automatiskt. En beredare som håller värmen väl kan laddas längre i förväg, så att mer av uppvärmningen hamnar på billiga timmar.",
           "dhw_legionella_enabled": "Eftersom beredaren nu får stå sval under långa perioder värms den regelbundet tillräckligt hett för att döda legionellabakterier. Rekommenderas starkt.",
           "dhw_legionella_temperature": "60 C är den vanliga rekommendationen.",
-          "dhw_legionella_interval_days": "Hur ofta desinficeringen körs. Den läggs på den billigaste timmen före varje deadline."
+          "dhw_legionella_interval_days": "Hur ofta desinficeringen körs. Den läggs på den billigaste timmen före varje deadline.",
+          "holiday_dhw_windows": "Same grammar as the ordinary windows. Used on days the holiday calendar is on, instead of weekday/weekend. Leave empty to keep the ordinary schedule."
         }
       },
       "weather_sensitivity": {
@@ -247,7 +252,9 @@
       "day_window_empty": "Dagen skulle sluta innan den börjar, så ingen dagperiod blir kvar alls.",
       "comfort_outside_band": "Dag- och nattkomforttemperaturer måste ligga inom komfortbandet",
       "min_power_above_max": "Värmepumpens lägsta effekt ligger över dess högsta.",
-      "stored_value_out_of_range": "Det här värdet ligger utanför det intervall fältet normalt godtar. Intervallet har vidgats så att sidan ändå går att spara – kontrollera värdet och ändra det om det ser fel ut."
+      "stored_value_out_of_range": "Det här värdet ligger utanför det intervall fältet normalt godtar. Intervallet har vidgats så att sidan ändå går att spara – kontrollera värdet och ändra det om det ser fel ut.",
+      "tibber_token_required": "En Tibber-token krävs när priskällan är Tibber.",
+      "price_entity_required": "En prissensor krävs när priskällan är en entitet."
     },
     "abort": {
       "already_configured": "Den här integrationen är redan konfigurerad.",
@@ -375,10 +382,14 @@
           "lower_floor_temp_entity": "Givare för temperaturen på nedre plan",
           "after_save": "Efter sparande",
           "space_setpoint_entity": "Börvärdesenhet för rumsuppvärmning (valfritt)",
-          "space_setpoint_unit": "Vad den börvärdesenheten förväntar sig"
+          "space_setpoint_unit": "Vad den börvärdesenheten förväntar sig",
+          "price_source": "Elpriskälla",
+          "price_entity": "Prissensor (Nord Pool eller liknande)",
+          "price_vat": "Momsfaktor",
+          "price_surcharge": "Påslag per kWh"
         },
         "data_description": {
-          "tibber_token": "Används för att läsa dina timpriser på el. Skapa en på developer.tibber.com. Lämna som den är om den inte har ändrats.",
+          "tibber_token": "Används för att läsa dina timpriser på el. Skapa en på developer.tibber.com. Lämna som den är om den inte har ändrats. Krävs inte när priskällan är en entitet.",
           "weather_entity": "Härifrån hämtas prognos för utomhustemperatur, vind och regn. Optimeringen planerar 24 timmar framåt och kräver därför en prognos.",
           "indoor_temp_entity": "Valfritt. Den verkliga rumstemperaturen. Utan den litar optimeringen på sin egen modell, som glider med tiden.",
           "outdoor_temp_entity": "Valfritt. En egen utegivare är mer exakt än prognosen för den aktuella timmen.",
@@ -389,7 +400,11 @@
           "lower_floor_temp_entity": "Valfritt, endast tvåzonsläge. En riktig givare på nedre plan. Utan en sådan planeras och ritas nedre plan efter vad rumsgivaren visar, så ett nedre plan som är varmare eller kallare än övre plan syns inte.",
           "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst.",
           "space_setpoint_entity": "Valfritt. En number-, helper- eller climate-enhet som är pumpens börvärde för rumsuppvärmning. Används bara för att märka när enheten inte går att läsa. Optimeringen skriver aldrig ett rekommenderat rumsuppvärmningsbörvärde.",
-          "space_setpoint_unit": "Inomhustemperatur är rätt för ett rums- eller termostatbörvärde. Framledningstemperatur är för en styrenhet vars börvärde är en vattentemperatur. Att peka ett inomhusmål mot en framledningsenhet skulle kommendera ungefär 21 °C till något som förväntar sig 35–45 °C och undervärma huset kraftigt. Enheten är en deklaration: den här integrationen rekommenderar aldrig ett rumsuppvärmningsbörvärde."
+          "space_setpoint_unit": "Inomhustemperatur är rätt för ett rums- eller termostatbörvärde. Framledningstemperatur är för en styrenhet vars börvärde är en vattentemperatur. Att peka ett inomhusmål mot en framledningsenhet skulle kommendera ungefär 21 °C till något som förväntar sig 35–45 °C och undervärma huset kraftigt. Enheten är en deklaration: den här integrationen rekommenderar aldrig ett rumsuppvärmningsbörvärde.",
+          "price_source": "Tibber använder din API-token. Entitet läser en Home Assistant-prissensor, till exempel Nord Pool.",
+          "price_entity": "Krävs när priskällan är en entitet. Typiska attribut är raw_today och raw_tomorrow.",
+          "price_vat": "Beräknas som värde × moms + påslag. 1,0 lämnar sensorns värden orörda.",
+          "price_surcharge": "Läggs på efter moms, i samma valuta som priserna."
         },
         "sections": {
           "credentials": {
@@ -417,7 +432,15 @@
           "mold_guard_enabled": "Håll kalla ytor under mögelfuktighet",
           "indoor_humidity_entity": "Inomhusfuktsensor (valfri)",
           "thermal_bridge_frsi": "Sämsta köldbryggans faktor (fRsi)",
-          "after_save": "Efter sparande"
+          "after_save": "Efter sparande",
+          "comfort_temp_day_weekend": "Helg, dagtidskomfort",
+          "comfort_temp_night_weekend": "Helg, nattkomfort",
+          "day_start_hour_weekend": "Helg, dagen börjar",
+          "day_end_hour_weekend": "Helg, dagen slutar",
+          "holiday_comfort_temp_day": "Lov, dagtidskomfort",
+          "holiday_comfort_temp_night": "Lov, nattkomfort",
+          "holiday_day_start_hour": "Lov, dagen börjar",
+          "holiday_day_end_hour": "Lov, dagen slutar"
         },
         "data_description": {
           "target_temperature": "Vad du faktiskt vill att huset ska ligga på. Optimeringen siktar hit och avviker bara för att undvika dyra timmar.",
@@ -430,7 +453,15 @@
           "mold_guard_enabled": "Husets kallaste punkt — en fönstersmyg, ett hörn bakom en garderob — ligger långt under rumstemperaturen, och mögel börjar växa där ytans fuktighet stannar över 80 %. Med detta på låter optimeraren inte huset svalna under den temperatur som håller den punkten säker, beräknad ur uppmätt inomhusfukt och utomhusprognosen. Kräver fuktsensorn nedan; den värmer aldrig förbi ditt komfortmål — ihållande hög fukt är ett ventilationsproblem, inte ett värmeproblem.",
           "indoor_humidity_entity": "En relativ fuktsensor i bostadsutrymmet. Utan en förblir mögelvakten av oavsett omkopplaren.",
           "thermal_bridge_frsi": "Hur kall din sämsta yta blir, som andel: yta = ute + fRsi × (rum − ute). 0,75 är svenska byggreglernas riktvärde; lägre betyder en kallare värsta punkt och en försiktigare vakt.",
-          "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst."
+          "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst.",
+          "comfort_temp_day_weekend": "Önskad temperatur på helger dagtid. Standard är vardagens dagsvärde.",
+          "comfort_temp_night_weekend": "Önskad temperatur på helgnätter. Standard är vardagens nattvärde.",
+          "day_start_hour_weekend": "Timme på morgonen när helgens dagtemperatur tar över.",
+          "day_end_hour_weekend": "Timme på kvällen när helgens natttemperatur tar över.",
+          "holiday_comfort_temp_day": "Dagtidskomfort de dagar lovkalendern är på. Bortasänkning vinner om bortaläget är aktivt.",
+          "holiday_comfort_temp_night": "Nattkomfort på lovkalenderdagar.",
+          "holiday_day_start_hour": "Timme på morgonen när lovets dagtemperatur tar över.",
+          "holiday_day_end_hour": "Timme på kvällen när lovets natttemperatur tar över."
         },
         "sections": {
           "band": {
@@ -441,6 +472,12 @@
           },
           "mold": {
             "name": "Mögelvakt"
+          },
+          "weekend": {
+            "name": "Helg"
+          },
+          "holiday": {
+            "name": "Lovprofil"
           }
         }
       },
@@ -457,7 +494,8 @@
           "dhw_legionella_temperature": "Legionellatemperatur",
           "dhw_legionella_interval_days": "Intervall för legionellaskydd",
           "after_save": "Efter sparande",
-          "dhw_setpoint_entity": "Värmepumpens börvärdesenhet för varmvatten (valfritt)"
+          "dhw_setpoint_entity": "Värmepumpens börvärdesenhet för varmvatten (valfritt)",
+          "holiday_dhw_windows": "Lov, varmvattenfönster"
         },
         "data_description": {
           "dhw_schedule_enabled": "På: varmvatten garanteras bara under tiderna nedan, och beredaren får svalna däremellan. Av: beredaren hålls varm dygnet runt, vilket kostar märkbart mer.",
@@ -469,7 +507,8 @@
           "dhw_legionella_temperature": "60 C är den vanliga rekommendationen.",
           "dhw_legionella_interval_days": "Hur ofta desinficeringen körs. Den läggs på den billigaste timmen före varje deadline.",
           "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst.",
-          "dhw_setpoint_entity": "Valfritt. Number-, helper- eller climate-enheten som är pumpens eget varmvattenbörvärde. När det ligger under desinfektionstemperaturen eller varmvattenminimum du ställt in här erbjuder ett reparationskort att höja det till den siffran."
+          "dhw_setpoint_entity": "Valfritt. Number-, helper- eller climate-enheten som är pumpens eget varmvattenbörvärde. När det ligger under desinfektionstemperaturen eller varmvattenminimum du ställt in här erbjuder ett reparationskort att höja det till den siffran.",
+          "holiday_dhw_windows": "Samma grammatik som de vanliga fönstren. Används de dagar lovkalendern är på, i stället för vardag/helg. Lämna tomt för att behålla det vanliga schemat."
         },
         "sections": {
           "schedule": {
@@ -740,13 +779,15 @@
           "away_presence_entity": "Indikator för bortavaro (valfritt)",
           "away_temperature": "Temperatur när ingen är hemma",
           "away_dhw_min_temperature": "Lägsta varmvattentemperatur vid bortavaro",
-          "after_save": "Efter sparande"
+          "after_save": "Efter sparande",
+          "holiday_calendar_entity": "Lovprofilkalender (valfritt)"
         },
         "data_description": {
           "away_presence_entity": "En person, enhetsspårare, kalender eller närvarosensor. Plan-sidans brytare vinner tills den slås av. Att en person är 'inte hemma' betyder fortfarande bortavaro när brytaren är av.",
           "away_dhw_min_temperature": "Legionellacykeln körs fortfarande, och tidsätts så att den hinner bli klar innan du är tillbaka.",
           "away_temperature": "Temperaturen som hålls under bortavaron. Låg nog att spara, hög nog att skydda hus och rör.",
-          "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst."
+          "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst.",
+          "holiday_calendar_entity": "När den här kalendern är på ersätter lovets komfort och varmvattenfönster vardag/helg för den dagen. Bortasänkning vinner om bortaläget är aktivt."
         }
       },
       "learning": {
@@ -917,7 +958,8 @@
           "grid_fee_rules": "Tidsdifferentierade avgiftsregler",
           "grid_fee_entity": "Sensor för aktuell avgift (valfri)",
           "contract_fixed_price": "Fastprisavtal att jämföra med",
-          "after_save": "Efter sparande"
+          "after_save": "Efter sparande",
+          "dso_product": "Svensk nättariff (skriver fälten nedan)"
         },
         "data_description": {
           "grid_fee_mode": "Avgiften ditt elnätsbolag lägger på varje överförd kWh. Tibbers pris innehåller den inte, så med den inställd ser planen äntligen hela marginalpriset. \"Tidsregler\" använder schemat nedan; \"Sensor\" följer en entitet.",
@@ -925,7 +967,8 @@
           "grid_fee_rules": "En regel per rad, till exempel \"Nov-Mar Mån-Fre 06:00-22:00 = 0.25\". Månads-, veckodags- och tidsdelarna är valfria var för sig; överlappande regler adderas, vilket motsvarar grundavgift plus höglastpåslag.",
           "grid_fee_entity": "En sensor som anger aktuell avgift i {currency}/kWh, för nät med dynamiska avgifter. Värdet läggs på varje planerad timme.",
           "contract_fixed_price": "Om du kunde ha ett fastprisavtal, dess {currency}/kWh. Sensorn Avtalsjämförelse visar då vad denna månad hade kostat med det. 0 utelämnar den kolumnen.",
-          "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst."
+          "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst.",
+          "dso_product": "En daterad tabell bara för Sverige. Ett val skriver överföringsavgifter och effekttariff som du sedan kan redigera. Kontrollera mot fakturan. Okända eller inaktuella produkter skriver inget."
         }
       },
       "learning_features": {
@@ -1025,7 +1068,9 @@
       "comfort_outside_band": "Dag- och nattkomforttemperaturer måste ligga inom komfortbandet",
       "min_power_above_max": "Värmepumpens lägsta effekt ligger över dess högsta.",
       "stored_value_out_of_range": "Det här värdet ligger utanför det intervall fältet normalt godtar. Intervallet har vidgats så att sidan ändå går att spara – kontrollera värdet och ändra det om det ser fel ut.",
-      "flow_target_needs_two_zone": "\"Framledningstemperatur\" beräknas från tvåzonsmodellens egen flödeskurva, som denna anläggning inte har konfigurerad. Konfigurera tvåzonsmodellen först, eller lämna detta på \"Inomhustemperatur\"."
+      "flow_target_needs_two_zone": "\"Framledningstemperatur\" beräknas från tvåzonsmodellens egen flödeskurva, som denna anläggning inte har konfigurerad. Konfigurera tvåzonsmodellen först, eller lämna detta på \"Inomhustemperatur\".",
+      "tibber_token_required": "En Tibber-token krävs när priskällan är Tibber.",
+      "price_entity_required": "En prissensor krävs när priskällan är en entitet."
     }
   },
   "selector": {
@@ -1128,6 +1173,21 @@
       "options": {
         "indoor": "Inomhustemperatur",
         "flow": "Framledningstemperatur"
+      }
+    },
+    "price_source": {
+      "options": {
+        "tibber": "Tibber",
+        "entity": "Prisentitet (Nord Pool eller liknande)"
+      }
+    },
+    "dso_product": {
+      "options": {
+        "none": "Ingen — behåll mina inskrivna regler",
+        "ellevio_villa_effekt_2026": "Ellevio — villa effekt (2026)",
+        "vattenfall_eldistribution_effekt_2026": "Vattenfall Eldistribution — effekt (2026)",
+        "eon_energidistribution_effekt_2026": "E.ON Energidistribution — effekt (2026)",
+        "goteborg_energi_effekt_2026": "Göteborg Energi — effekt (2026)"
       }
     }
   },
@@ -1416,6 +1476,12 @@
       },
       "valve_target_recommendation": {
         "name": "Rekommenderat läge för shuntventil"
+      },
+      "sensor_gap_advisor": {
+        "name": "Sensorlucka i euro"
+      },
+      "wood_burn_advisor": {
+        "name": "Vedeldning, natt råd"
       }
     },
     "binary_sensor": {

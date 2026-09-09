@@ -184,6 +184,9 @@
       "recommended_power": {
         "default": "mdi:lightning-bolt"
       },
+      "sensor_gap_advisor": {
+        "default": "mdi:gauge-empty"
+      },
       "savings_percentage": {
         "default": "mdi:percent"
       },
@@ -225,6 +228,9 @@
       },
       "valve_target_recommendation": {
         "default": "mdi:valve"
+      },
+      "wood_burn_advisor": {
+        "default": "mdi:fireplace"
       }
     },
     "switch": {

@@ -3603,6 +3603,312 @@ R.check(
     ),
 )
 
+# --- #701 Nord Pool / price entity -------------------------------------------
+R.section("Nord Pool / price entity (#701)")
+from heatpump_optimizer.price_model import (
+    apply_price_adjustments,
+    prices_from_entity_attributes,
+    prices_from_entity_state,
+    pull_prices as _pull_prices,
+)
+
+def _np_block(day, n, minutes=60):
+    return [
+        {
+            "start": datetime(2026, 1, 14 + day, 0, 0)
+            + timedelta(minutes=minutes * i),
+            "value": 0.40 + 0.01 * i,
+        }
+        for i in range(n)
+    ]
+
+_np24 = prices_from_entity_attributes(
+    {"raw_today": _np_block(0, 24), "raw_tomorrow": _np_block(1, 24)}
+)
+R.check(
+    "a Nord Pool entity with 24+24 hourly rows parses",
+    isinstance(_np24, list) and len(_np24) == 48,
+    repr(type(_np24).__name__ if not isinstance(_np24, list) else len(_np24)),
+)
+_np96 = prices_from_entity_attributes(
+    {"raw_today": _np_block(0, 96, 15), "raw_tomorrow": _np_block(1, 96, 15)}
+)
+R.check(
+    "a Nord Pool entity with 96+96 quarter-hour rows parses",
+    isinstance(_np96, list) and len(_np96) == 192,
+    repr(type(_np96).__name__ if not isinstance(_np96, list) else len(_np96)),
+)
+_np_adj = apply_price_adjustments(
+    [{"total": 1.0, "starts_at": "t", "level": "NORMAL"}], 1.25, 0.05
+)
+R.check(
+    "VAT and surcharge are value × VAT + surcharge",
+    _np_adj and abs(_np_adj[0]["total"] - 1.30) < 1e-9,
+    repr(_np_adj),
+)
+R.check(
+    "an empty price entity is a failed fetch, not a guess",
+    prices_from_entity_state(None) == "Price entity is empty",
+)
+_np_fail = asyncio.run(
+    _pull_prices(
+        None,
+        {
+            const.CONF_PRICE_SOURCE: const.PRICE_SOURCE_ENTITY,
+            const.CONF_PRICE_ENTITY: "sensor.nordpool",
+        },
+        None,
+    )
+)
+R.check(
+    "the entity source never asks for Tibber reauth",
+    _np_fail[0] == "fail" and _np_fail[1] == "Price entity is empty",
+    repr(_np_fail),
+)
+
+_np_hass = FakeHass()
+_np_hass.states.set(
+    "sensor.nordpool",
+    FakeState(
+        "0.42",
+        attributes={
+            "raw_today": [
+                {"start": "2026-01-14T00:00:00+01:00", "value": 0.42 + 0.01 * i}
+                for i in range(24)
+            ],
+            "raw_tomorrow": [
+                {"start": "2026-01-15T00:00:00+01:00", "value": 0.50 + 0.01 * i}
+                for i in range(24)
+            ],
+        },
+    ),
+)
+from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator as _NpCoord
+
+_np_coord = _NpCoord(
+    _np_hass,
+    FakeEntry(
+        data={
+            const.CONF_PRICE_SOURCE: const.PRICE_SOURCE_ENTITY,
+            const.CONF_PRICE_ENTITY: "sensor.nordpool",
+            const.CONF_WEATHER_ENTITY: "weather.home",
+        }
+    ),
+)
+asyncio.run(_np_coord._fetch_tibber_prices())
+R.check(
+    "a 24+24 entity series becomes coordinator prices",
+    len(_np_coord._prices) == 48
+    and abs(float(_np_coord._prices[0]["total"]) - 0.42) < 1e-9,
+    f"n={len(_np_coord._prices)} first={_np_coord._prices[:1]!r}",
+)
+_np_empty = _NpCoord(
+    FakeHass(),
+    FakeEntry(
+        data={
+            const.CONF_PRICE_SOURCE: const.PRICE_SOURCE_ENTITY,
+            const.CONF_PRICE_ENTITY: "sensor.gone",
+            const.CONF_WEATHER_ENTITY: "weather.home",
+        }
+    ),
+)
+_np_empty_err = None
+try:
+    asyncio.run(_np_empty._fetch_tibber_prices())
+except Exception as _np_empty_exc:  # noqa: BLE001
+    _np_empty_err = _np_empty_exc
+R.check(
+    "an empty entity source raises UpdateFailed and does not start reauth",
+    type(_np_empty_err).__name__ == "UpdateFailed"
+    and not _np_empty._tibber_reauth_started,
+    f"raised {type(_np_empty_err).__name__}: {_np_empty_err}; "
+    f"reauth={_np_empty._tibber_reauth_started}",
+)
+
+# --- #698 DSO catalog --------------------------------------------------------
+R.section("DSO tariff catalog (#698)")
+from heatpump_optimizer import grid_fee as _dso_gf
+
+for _dso_id, _dso_row in _dso_gf.SWEDEN_CATALOG.items():
+    _dso_rules = _dso_gf.parse_rules(_dso_row["grid_fee_rules"])
+    _dso_applied = _dso_gf.apply_catalog(_dso_id)
+    R.check(
+        f"{_dso_id} round-trips parse_rules and writes peak keys",
+        bool(_dso_rules)
+        and _dso_applied is not None
+        and _dso_applied[const.CONF_GRID_FEE_RULES] == _dso_row["grid_fee_rules"]
+        and _dso_applied[const.CONF_PEAK_TARIFF_WINDOW]
+        == _dso_row["peak_tariff_window_minutes"],
+        repr(_dso_applied),
+    )
+R.check(
+    "an unknown catalog id writes nothing",
+    _dso_gf.apply_catalog("not_a_swedish_dso_2026") is None,
+)
+R.check(
+    "none writes nothing",
+    _dso_gf.apply_catalog(_dso_gf.DSO_PRODUCT_NONE) is None,
+)
+
+# --- #700 weekend / holiday profiles -----------------------------------------
+R.section("Weekend and holiday comfort/DHW (#700)")
+from heatpump_optimizer.comfort_band import violations as _band_violations
+from heatpump_optimizer.dhw_schedule import (
+    parse_windows as _dhw_parse,
+    parse_weekly_windows as _dhw_weekly,
+    windows_for_day as _dhw_for_day,
+)
+from heatpump_optimizer.optimizer import OptimizationConfig as _OptCfg
+
+_sat = datetime(2026, 1, 17, 14, 0)  # Saturday
+_thu = datetime(2026, 1, 15, 14, 0)  # Thursday
+_opt_we = _OptCfg.from_mapping(
+    {
+        const.CONF_COMFORT_TEMP_DAY: 21.0,
+        const.CONF_COMFORT_TEMP_NIGHT: 19.0,
+        const.CONF_COMFORT_TEMP_DAY_WEEKEND: 20.0,
+        const.CONF_COMFORT_TEMP_NIGHT_WEEKEND: 17.5,
+    }
+)
+R.check(
+    "Saturday uses the weekend daytime comfort",
+    _opt_we.get_comfort_temp(14.0, _sat) == 20.0,
+    str(_opt_we.get_comfort_temp(14.0, _sat)),
+)
+R.check(
+    "Thursday still uses the weekday daytime comfort",
+    _opt_we.get_comfort_temp(14.0, _thu) == 21.0,
+    str(_opt_we.get_comfort_temp(14.0, _thu)),
+)
+_opt_we.holiday_dates = frozenset({_thu.date()})
+_opt_we.holiday_comfort_day = 18.0
+R.check(
+    "a holiday date uses the holiday comfort pair",
+    _opt_we.get_comfort_temp(14.0, _thu) == 18.0,
+    str(_opt_we.get_comfort_temp(14.0, _thu)),
+)
+_weekly = _dhw_weekly("weekdays 06:00-08:00, weekend 08:00-10:00")
+_holiday_wins = _dhw_parse("10:00-12:00")
+_fallback = _dhw_parse("06:00-08:00")
+R.check(
+    "a calendar-on day uses holiday DHW windows",
+    _dhw_for_day(
+        _weekly, 5, _fallback, holiday_windows=_holiday_wins, holiday=True
+    )
+    == _holiday_wins,
+)
+R.check(
+    "Saturday without holiday keeps the weekend DHW windows",
+    _dhw_for_day(
+        _weekly, 5, _fallback, holiday_windows=_holiday_wins, holiday=False
+    )
+    == _weekly[5],
+)
+_we_bad = _band_violations(
+    {
+        const.CONF_COMFORT_TEMP_DAY_WEEKEND: 19.0,
+        const.CONF_COMFORT_TEMP_NIGHT_WEEKEND: 21.0,
+    },
+    {},
+)
+R.check(
+    "comfort_band.violations rejects a weekend night above day",
+    any(
+        v.field == const.CONF_COMFORT_TEMP_NIGHT_WEEKEND
+        and v.code == "night_above_day"
+        for v in _we_bad
+    ),
+    str(_we_bad),
+)
+_hol_bad = _band_violations(
+    {
+        const.CONF_HOLIDAY_COMFORT_DAY: 19.0,
+        const.CONF_HOLIDAY_COMFORT_NIGHT: 21.0,
+    },
+    {},
+)
+R.check(
+    "comfort_band.violations rejects a holiday night above day",
+    any(
+        v.field == const.CONF_HOLIDAY_COMFORT_NIGHT
+        and v.code == "night_above_day"
+        for v in _hol_bad
+    ),
+    str(_hol_bad),
+)
+
+# --- #699 sensor-gap euro advisor --------------------------------------------
+R.section("Sensor-gap euro advisor (#699)")
+_gap_house = [2.0, 2.0, 2.0, 10.0]
+_gap_hp = [2.0, 2.0, 2.0, 2.0]
+_gap_peak = topology.peak_miss_sek(
+    _gap_house, _gap_hp, price_per_kw=90.0, window_minutes=60, dt_hours=0.25, count=3
+)
+_gap_cop = topology.outdoor_cop_miss_sek(2.0, 120.0, 1.0, 3.2, 2.6)
+_gap_dhw = topology.dhw_coast_miss_sek(8.0, 1.5)
+_gap_ranked = topology.rank_sensor_gaps(
+    {},
+    house_kw=_gap_house,
+    hp_kw=_gap_hp,
+    peak_price=90.0,
+    peak_window=60,
+    peak_count=3,
+    outdoor_load_kw=2.0,
+    outdoor_hours=120.0,
+    outdoor_price=1.0,
+    cop_true=3.2,
+    cop_guess=2.6,
+    dhw_extra_kwh=8.0,
+    dhw_price=1.5,
+)
+_gap_by = {row["key"]: row["sek_per_month"] for row in _gap_ranked}
+R.check(
+    "an empty house meter ranks the peak-term miss from metering_windows",
+    abs(_gap_by[const.CONF_HOUSE_POWER_ENTITY] - _gap_peak) < 1e-9
+    and _gap_peak > 0,
+    f"peak={_gap_peak} ranked={_gap_by}",
+)
+R.check(
+    "an empty outdoor slot ranks the COP miss",
+    abs(_gap_by[const.CONF_OUTDOOR_TEMP_ENTITY] - round(_gap_cop, 2)) < 1e-9
+    and _gap_cop > 0,
+    f"cop={_gap_cop}",
+)
+R.check(
+    "an empty DHW probe ranks the coasting miss",
+    abs(_gap_by[const.CONF_DHW_TEMP_ENTITY] - _gap_dhw) < 1e-9
+    and _gap_dhw > 0,
+    f"dhw={_gap_dhw}",
+)
+_gap_filled = topology.rank_sensor_gaps(
+    {
+        const.CONF_HOUSE_POWER_ENTITY: "sensor.house",
+        const.CONF_OUTDOOR_TEMP_ENTITY: "sensor.out",
+        const.CONF_DHW_TEMP_ENTITY: "sensor.dhw",
+    },
+    house_kw=_gap_house,
+    hp_kw=_gap_hp,
+    peak_price=90.0,
+    outdoor_load_kw=2.0,
+    outdoor_hours=120.0,
+    outdoor_price=1.0,
+    dhw_extra_kwh=8.0,
+    dhw_price=1.5,
+)
+R.check(
+    "a configured slot ranks 0 extra (null control)",
+    all(row["sek_per_month"] == 0.0 for row in _gap_filled)
+    and all(not row["empty"] for row in _gap_filled),
+    repr(_gap_filled),
+)
+_gap_sensor = next(s for s in sensors if s._key == "sensor_gap_advisor")
+R.check(
+    "the sensor-gap advisor is a diagnostic sensor",
+    _gap_sensor._key == "sensor_gap_advisor"
+    and _gap_sensor.native_value == 0.0,
+    f"value={_gap_sensor.native_value}",
+)
+
 # The building page owns the valve and wood entities (v4.0.0 merged the
 # mixing-valve page and the learning page's wood block into it), so it has to
 # clear them itself — it used to lean on the entities page's global nulling,
@@ -5602,6 +5908,8 @@ _expected_diagnostic = {
     "valve_target_recommendation",
     "compressor_starts",
     "frequency_advisor",
+    "sensor_gap_advisor",
+    "wood_burn_advisor",
 }
 _actually_diagnostic = {
     s._key
@@ -5996,6 +6304,7 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
         "stat_kind"
     }),
     "ScheduleSensor": frozenset({"schedule"}),
+    "SensorGapAdvisorSensor": frozenset({"gaps", "top_slot"}),
     "SolarHeatGainSensor": frozenset({
         "orientation_factor", "shgc", "solar_radiation_wm2", "window_area_m2"
     }),
@@ -6042,6 +6351,7 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
     "WoodCheaperBinarySensor": frozenset({
         "cheaper_hour_count", "sek_per_kwh"
     }),
+    "WoodBurnAdvisorSensor": frozenset({"action", "reason", "when"}),
 }
 
 R.check(
@@ -6395,8 +6705,8 @@ R.check(
     not [s for s in sensors if s._attr_unique_id.endswith("_solar_radiation")],
 )
 R.check(
-    "there are exactly 57 sensors after the merge",
-    len(sensors) == 57,
+    "there are exactly 59 sensors after the merge",
+    len(sensors) == 59,
     str(len(sensors)),
 )
 R.check(

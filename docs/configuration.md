@@ -86,6 +86,8 @@ the wider it is, the further the house may coast through an expensive hour.
 | Night-time comfort temperature | 19.5 °C | 15–24 | Preferred temperature overnight. A degree or two lower saves money and usually sleeps better. |
 | Day starts at | 07 | 00–23 | Hour the daytime temperature takes over. |
 | Day ends at | 22 | 01–24 | Hour the night temperature takes over. Must be after the start; 24 keeps the daytime temperature until midnight. |
+| Weekend daytime / night comfort | same as weekday | same ranges | Saturday and Sunday use this pair. Leave them at the weekday values if you do not want a weekend schedule. |
+| Holiday daytime / night comfort | same as weekday | same ranges | Used on days the holiday-profile calendar is on. Away setback still wins if away is active. |
 
 The form refuses four combinations that would leave the plan permanently in
 violation: a minimum above the target, a maximum below it, a night temperature
@@ -287,7 +289,8 @@ heating into the same cheap hour can cost more than it saves.
 | My grid bill has a capacity charge | off | on/off | Adds the monthly power-peak fee to the objective, so flattening peaks is worth actual money. |
 | Capacity charge per kW per month | 45 | 0–500 | Take it from your grid invoice; it varies a lot between companies. |
 | Number of peak hours averaged | 3 | 1–10 | Most Swedish tariffs average the three highest hours of the month. |
-| Measurement window | 1 hour | 15 minutes / 1 hour | Some newer tariffs measure every 15 minutes, which is much less forgiving. |
+| Swedish DSO tariff | None | Ellevio / Vattenfall / E.ON / Göteborg Energi (2026) | Writes transfer-fee rules and the peak-tariff fields below. You can still edit the generated text. Dated Sweden-only table — verify against your bill. |
+| Measurement window | 1 hour | 15 minutes / 1 hour | Swedish DSOs move to 15-minute settlement through 2026–27. Pick 15 when your bill averages the highest 15-minute windows; 60 keeps the older hourly clock. Hourly prices are smeared evenly across the four quarters — a 15-minute sauna spike is billed in full only when the window is 15. |
 | Months the capacity tariff applies | empty | e.g. `Nov-Mar` | Empty means every month. Outside these months a peak contributes nothing, and the plan knows it. |
 | Peak hours | empty | e.g. `07:00-19:00` | Empty means every hour counts in full. Outside these hours a peak counts at the factor below. |
 | Weekends are off-peak | off | on/off | Many tariffs only bill weekday peaks. |
@@ -316,6 +319,7 @@ beforehand instead of at whatever the price is when you walk in.
 |---|---|---|---|
 | Enable away mode | off | on/off | Deep setback while the house is empty, with recovery timed to your return. |
 | Away indicator | none | `input_boolean`, `person`, `device_tracker`, `calendar`, `binary_sensor` | Polarity is handled for you: a person being *not home* and a holiday toggle being *on* both mean away. |
+| Holiday-profile calendar | none | a `calendar` | When this calendar is on, holiday comfort and holiday hot-water windows replace the weekday/weekend pair for that day. Away setback still wins if away is active. |
 | Expected return time | none | `input_datetime` or a sensor | Without it the house stays at the setback until you switch back manually. |
 | Temperature while away | 16.0 °C | 5–21, 0.5 steps | Low enough to save, high enough to protect the house and its plumbing. |
 | Hot water minimum while away | 20.0 °C | 10–55 | The anti-legionella cycle still runs, timed to finish before you get back. |
@@ -329,7 +333,10 @@ compressor-frequency path.
 
 | Setting | Default | Range | What it means |
 |---|---|---|---|
-| Tibber API token | from setup | required | Re-validated against Tibber whenever you change it. |
+| Electricity price source | Tibber | Tibber / Price entity | Tibber uses the API token. Entity reads a Home Assistant price sensor (Nord Pool, ENTSO-E, similar) with `raw_today` / `raw_tomorrow`. |
+| Tibber API token | from setup | required when source is Tibber | Re-validated against Tibber whenever you change it. Not required for an entity source. |
+| Price sensor | none | a price sensor | Required when the source is an entity. Typical attributes are `raw_today` and `raw_tomorrow`. |
+| VAT multiplier / surcharge | 1.0 / 0 | 0–2 | Applied as value × VAT + surcharge. 1.0 and 0 leave the sensor values unchanged. |
 | Weather forecast | from setup | required | The forecast source. |
 | Indoor / outdoor temperature | from setup | temperature sensors | See setup step 1. |
 | Solar radiation sensor, source, location | from setup | — | See setup step 1. |

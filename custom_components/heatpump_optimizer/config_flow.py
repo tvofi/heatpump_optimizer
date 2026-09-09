@@ -37,6 +37,16 @@ from .const import (
     DOMAIN,
     CONFIG_ENTRY_VERSION,
     CONF_TIBBER_TOKEN,
+    CONF_PRICE_SOURCE,
+    CONF_PRICE_ENTITY,
+    CONF_PRICE_VAT,
+    CONF_PRICE_SURCHARGE,
+    DEFAULT_PRICE_SOURCE,
+    DEFAULT_PRICE_VAT,
+    DEFAULT_PRICE_SURCHARGE,
+    PRICE_SOURCE_ENTITY,
+    PRICE_SOURCE_TIBBER,
+    PRICE_SOURCES,
     CONF_WEATHER_ENTITY,
     CONF_INDOOR_TEMP_ENTITY,
     CONF_OUTDOOR_TEMP_ENTITY,
@@ -76,6 +86,16 @@ from .const import (
     CONF_MAX_TEMP,
     CONF_COMFORT_TEMP_DAY,
     CONF_COMFORT_TEMP_NIGHT,
+    CONF_COMFORT_TEMP_DAY_WEEKEND,
+    CONF_COMFORT_TEMP_NIGHT_WEEKEND,
+    CONF_DAY_START_HOUR_WEEKEND,
+    CONF_DAY_END_HOUR_WEEKEND,
+    CONF_HOLIDAY_CALENDAR_ENTITY,
+    CONF_HOLIDAY_DHW_WINDOWS,
+    CONF_HOLIDAY_COMFORT_DAY,
+    CONF_HOLIDAY_COMFORT_NIGHT,
+    CONF_HOLIDAY_DAY_START_HOUR,
+    CONF_HOLIDAY_DAY_END_HOUR,
     AFTER_SAVE_CLOSE,
     AFTER_SAVE_MENU,
     CONF_AFTER_SAVE,
@@ -249,6 +269,8 @@ from .const import (
     CONF_GRID_FEE_ENTITY,
     CONF_GRID_FEE_FIXED,
     DEFAULT_GRID_FEE_FIXED,
+    CONF_DSO_PRODUCT,
+    DEFAULT_DSO_PRODUCT,
     CONF_PEAK_TARIFF_MONTHS,
     DEFAULT_PEAK_TARIFF_MONTHS,
     CONF_PEAK_TARIFF_HOURS,
@@ -425,6 +447,8 @@ def entry_identity(user_input: Mapping[str, Any]) -> str:
     out of it. An empty slot and an absent one are the same slot.
     """
     parts = [f"{CONF_TIBBER_TOKEN}={user_input.get(CONF_TIBBER_TOKEN, '')}"]
+    if user_input.get(CONF_PRICE_ENTITY):
+        parts.append(f"{CONF_PRICE_ENTITY}={user_input[CONF_PRICE_ENTITY]}")
     parts.extend(
         f"{key}={user_input[key]}"
         for key in sorted(_IDENTITY_ENTITY_KEYS)
@@ -1067,10 +1091,14 @@ async def _translated_menu(
 
 
 def _user_credentials_fields() -> dict[Any, Any]:
-    """Name, token and weather — what every install must bring."""
+    """Name, price source and weather — token only when the source is Tibber."""
     return {
         vol.Required(CONF_NAME, default="Heat Pump Optimizer"): str,
-        vol.Required(CONF_TIBBER_TOKEN): _tibber_token_selector(),
+        vol.Optional(
+            CONF_PRICE_SOURCE, default=DEFAULT_PRICE_SOURCE
+        ): _select(list(PRICE_SOURCES), "price_source"),
+        vol.Optional(CONF_TIBBER_TOKEN, default=""): _tibber_token_selector(),
+        vol.Optional(CONF_PRICE_ENTITY): _entity_of("sensor"),
         vol.Required(CONF_WEATHER_ENTITY): _entity_of("weather"),
     }
 
@@ -1275,7 +1303,11 @@ _OPTION_PAGES: Final[tuple[_P, ...]] = (
 #: Every field the options flow presents, in the order each page renders them.
 _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     # -- entities
-    _F("entities", CONF_TIBBER_TOKEN, '', _tibber_token_selector(), required=True, group="credentials"),
+    _F("entities", CONF_PRICE_SOURCE, DEFAULT_PRICE_SOURCE, _select(list(PRICE_SOURCES), "price_source"), group="credentials"),
+    _F("entities", CONF_TIBBER_TOKEN, '', _tibber_token_selector(), required=False, group="credentials"),
+    _F("entities", CONF_PRICE_ENTITY, _STORED, _entity_of('sensor'), group="credentials"),
+    _F("entities", CONF_PRICE_VAT, DEFAULT_PRICE_VAT, _number(0.0, 2.0, 0.01), group="credentials"),
+    _F("entities", CONF_PRICE_SURCHARGE, DEFAULT_PRICE_SURCHARGE, _number(0.0, 2.0, 0.01), group="credentials"),
     _F("entities", CONF_WEATHER_ENTITY, '', _entity_of('weather'), required=True, group="credentials"),
     _F("entities", CONF_INDOOR_TEMP_ENTITY, _STORED, _entity_of('sensor', 'temperature'), group="indoor"),
     _F("entities", CONF_OUTDOOR_TEMP_ENTITY, _STORED, _entity_of('sensor', 'temperature'), group="indoor"),
@@ -1309,12 +1341,21 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("comfort", CONF_COMFORT_TEMP_NIGHT, DEFAULT_COMFORT_TEMP_NIGHT, _number(COMFORT_TEMP_NIGHT_SELECTOR_MIN, COMFORT_TEMP_NIGHT_SELECTOR_MAX, 0.5, '°C', slider=True), required=True, group="schedule"),
     _F("comfort", CONF_DAY_START_HOUR, DEFAULT_DAY_START_HOUR, _number(0, 23, 1, slider=True), required=True, group="schedule"),
     _F("comfort", CONF_DAY_END_HOUR, DEFAULT_DAY_END_HOUR, _number(1, 24, 1, slider=True), required=True, group="schedule"),
+    _F("comfort", CONF_COMFORT_TEMP_DAY_WEEKEND, _Computed(lambda cur, hass: cur.get(CONF_COMFORT_TEMP_DAY, DEFAULT_COMFORT_TEMP_DAY)), _number(COMFORT_TEMP_DAY_SELECTOR_MIN, COMFORT_TEMP_DAY_SELECTOR_MAX, 0.5, '°C', slider=True), group="weekend"),
+    _F("comfort", CONF_COMFORT_TEMP_NIGHT_WEEKEND, _Computed(lambda cur, hass: cur.get(CONF_COMFORT_TEMP_NIGHT, DEFAULT_COMFORT_TEMP_NIGHT)), _number(COMFORT_TEMP_NIGHT_SELECTOR_MIN, COMFORT_TEMP_NIGHT_SELECTOR_MAX, 0.5, '°C', slider=True), group="weekend"),
+    _F("comfort", CONF_DAY_START_HOUR_WEEKEND, _Computed(lambda cur, hass: cur.get(CONF_DAY_START_HOUR, DEFAULT_DAY_START_HOUR)), _number(0, 23, 1, slider=True), group="weekend"),
+    _F("comfort", CONF_DAY_END_HOUR_WEEKEND, _Computed(lambda cur, hass: cur.get(CONF_DAY_END_HOUR, DEFAULT_DAY_END_HOUR)), _number(1, 24, 1, slider=True), group="weekend"),
+    _F("comfort", CONF_HOLIDAY_COMFORT_DAY, _Computed(lambda cur, hass: cur.get(CONF_COMFORT_TEMP_DAY, DEFAULT_COMFORT_TEMP_DAY)), _number(COMFORT_TEMP_DAY_SELECTOR_MIN, COMFORT_TEMP_DAY_SELECTOR_MAX, 0.5, '°C', slider=True), group="holiday"),
+    _F("comfort", CONF_HOLIDAY_COMFORT_NIGHT, _Computed(lambda cur, hass: cur.get(CONF_COMFORT_TEMP_NIGHT, DEFAULT_COMFORT_TEMP_NIGHT)), _number(COMFORT_TEMP_NIGHT_SELECTOR_MIN, COMFORT_TEMP_NIGHT_SELECTOR_MAX, 0.5, '°C', slider=True), group="holiday"),
+    _F("comfort", CONF_HOLIDAY_DAY_START_HOUR, _Computed(lambda cur, hass: cur.get(CONF_DAY_START_HOUR, DEFAULT_DAY_START_HOUR)), _number(0, 23, 1, slider=True), group="holiday"),
+    _F("comfort", CONF_HOLIDAY_DAY_END_HOUR, _Computed(lambda cur, hass: cur.get(CONF_DAY_END_HOUR, DEFAULT_DAY_END_HOUR)), _number(1, 24, 1, slider=True), group="holiday"),
     _F("comfort", CONF_MOLD_GUARD_ENABLED, DEFAULT_MOLD_GUARD_ENABLED, bool, group="mold"),
     _F("comfort", CONF_INDOOR_HUMIDITY_ENTITY, _STORED, _entity_of('sensor', 'humidity'), group="mold"),
     _F("comfort", CONF_THERMAL_BRIDGE_FRSI, DEFAULT_THERMAL_BRIDGE_FRSI, _number(0.3, 0.98, 0.01), group="mold"),
     # -- hot_water
     _F("hot_water", CONF_DHW_SCHEDULE_ENABLED, DEFAULT_DHW_SCHEDULE_ENABLED, selector.BooleanSelector(), group="schedule"),
     _F("hot_water", CONF_DHW_WINDOWS, DEFAULT_DHW_WINDOWS, selector.TextSelector(selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT)), group="schedule"),
+    _F("hot_water", CONF_HOLIDAY_DHW_WINDOWS, '', selector.TextSelector(selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT)), group="schedule"),
     _F("hot_water", CONF_DHW_MIN_TEMP, DEFAULT_DHW_MIN_TEMP, _number(35, 55, 1, '°C', slider=True), group="temperatures"),
     _F("hot_water", CONF_DHW_IDLE_MIN_TEMP, DEFAULT_DHW_IDLE_MIN_TEMP, _number(10, 55, 1, '°C', slider=True), group="temperatures"),
     _F("hot_water", CONF_DHW_SETPOINT, DEFAULT_DHW_SETPOINT, _number(40, 65, 1, '°C', slider=True), group="temperatures"),
@@ -1422,6 +1463,7 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("grid_connection", CONF_PEAK_GUARD_ENABLED, DEFAULT_PEAK_GUARD_ENABLED, bool),
     _F("grid_connection", CONF_PEAK_GUARD_MARGIN_KW, DEFAULT_PEAK_GUARD_MARGIN_KW, _number(0.0, 3.0, 0.1, 'kW', slider=True)),
     # -- grid_fees
+    _F("grid_fees", CONF_DSO_PRODUCT, DEFAULT_DSO_PRODUCT, _select(grid_fee.catalog_choices(), 'dso_product')),
     _F("grid_fees", CONF_GRID_FEE_MODE, DEFAULT_GRID_FEE_MODE, _select(list(grid_fee.MODES), 'grid_fee_mode')),
     _F("grid_fees", CONF_GRID_FEE_FIXED, DEFAULT_GRID_FEE_FIXED, _ByHass(lambda hass: _number(0, 5, 0.01, f'{resolve_currency(hass)}/kWh'))),
     _F("grid_fees", CONF_GRID_FEE_RULES, DEFAULT_GRID_FEE_RULES, selector.TextSelector(selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT, multiline=True))),
@@ -1436,6 +1478,7 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("solar_pv", CONF_PV_PRODUCTION_ENTITY, _STORED, _entity_of('sensor', 'power')),
     # -- away
     _F("away", CONF_AWAY_PRESENCE_ENTITY, _STORED, _entity_of(['person', 'device_tracker', 'calendar', 'binary_sensor'])),
+    _F("away", CONF_HOLIDAY_CALENDAR_ENTITY, _STORED, _entity_of('calendar')),
     _F("away", CONF_AWAY_TEMPERATURE, DEFAULT_AWAY_TEMPERATURE, _number(5, 21, 0.5, '°C', slider=True)),
     _F("away", CONF_AWAY_DHW_MIN_TEMP, DEFAULT_AWAY_DHW_MIN_TEMP, _number(10, 55, 1, '°C', slider=True)),
     # -- learning
@@ -1655,16 +1698,26 @@ class HeatPumpOptimizerConfigFlow(
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            verdict = await validate_tibber_token(
-                self.hass, user_input[CONF_TIBBER_TOKEN]
-            )
-            if verdict == "invalid_auth":
-                errors[CONF_TIBBER_TOKEN] = "invalid_tibber_token"
-            elif verdict != "ok":
-                errors[CONF_TIBBER_TOKEN] = "cannot_connect"
+            source = user_input.get(CONF_PRICE_SOURCE, DEFAULT_PRICE_SOURCE)
+            if source == PRICE_SOURCE_ENTITY:
+                if not user_input.get(CONF_PRICE_ENTITY):
+                    errors[CONF_PRICE_ENTITY] = "price_entity_required"
+                else:
+                    self._data.update(user_input)
+                    return await self.async_step_user_sensors()
             else:
-                self._data.update(user_input)
-                return await self.async_step_user_sensors()
+                token = user_input.get(CONF_TIBBER_TOKEN)
+                if not token:
+                    errors[CONF_TIBBER_TOKEN] = "tibber_token_required"
+                else:
+                    verdict = await validate_tibber_token(self.hass, token)
+                    if verdict == "invalid_auth":
+                        errors[CONF_TIBBER_TOKEN] = "invalid_tibber_token"
+                    elif verdict != "ok":
+                        errors[CONF_TIBBER_TOKEN] = "cannot_connect"
+                    else:
+                        self._data.update(user_input)
+                        return await self.async_step_user_sensors()
 
         schema = vol.Schema(_user_credentials_fields())
         if self._reconfigure_entry is not None:
@@ -2357,13 +2410,29 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
 
         if user_input is not None:
             user_input = _flatten_section_input(user_input)
-            token = user_input.get(CONF_TIBBER_TOKEN)
-            if token and token != current.get(CONF_TIBBER_TOKEN):
-                verdict = await validate_tibber_token(self.hass, token)
-                if verdict == "invalid_auth":
-                    errors[CONF_TIBBER_TOKEN] = "invalid_tibber_token"
-                elif verdict != "ok":
-                    errors[CONF_TIBBER_TOKEN] = "cannot_connect"
+            source = user_input.get(
+                CONF_PRICE_SOURCE, current.get(CONF_PRICE_SOURCE, DEFAULT_PRICE_SOURCE)
+            )
+            if source == PRICE_SOURCE_ENTITY:
+                entity = user_input.get(CONF_PRICE_ENTITY) or current.get(
+                    CONF_PRICE_ENTITY
+                )
+                if not entity:
+                    errors[CONF_PRICE_ENTITY] = "price_entity_required"
+            else:
+                token = user_input.get(CONF_TIBBER_TOKEN) or current.get(
+                    CONF_TIBBER_TOKEN
+                )
+                if not token:
+                    errors[CONF_TIBBER_TOKEN] = "tibber_token_required"
+                else:
+                    submitted = user_input.get(CONF_TIBBER_TOKEN)
+                    if submitted and submitted != current.get(CONF_TIBBER_TOKEN):
+                        verdict = await validate_tibber_token(self.hass, submitted)
+                        if verdict == "invalid_auth":
+                            errors[CONF_TIBBER_TOKEN] = "invalid_tibber_token"
+                        elif verdict != "ok":
+                            errors[CONF_TIBBER_TOKEN] = "cannot_connect"
             if not errors:
                 return await self._save_or_menu(
                     _clear_absent(user_input, "entities", current)
@@ -2437,9 +2506,14 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
             window_problem = dhw_spec_problem(user_input.get(CONF_DHW_WINDOWS, ""))
             if window_problem is not None:
                 errors[CONF_DHW_WINDOWS] = window_problem
-            elif _dhw_min_too_close(user_input, current):
+            holiday_spec = user_input.get(CONF_HOLIDAY_DHW_WINDOWS, "")
+            if holiday_spec:
+                holiday_problem = dhw_spec_problem(holiday_spec)
+                if holiday_problem is not None:
+                    errors[CONF_HOLIDAY_DHW_WINDOWS] = holiday_problem
+            if not errors and _dhw_min_too_close(user_input, current):
                 errors[CONF_DHW_MIN_TEMP] = "dhw_min_too_close"
-            else:
+            if not errors:
                 # Warned, never blocked — see the setup flow's DHW step.
                 warning = _dhw_legionella_warning(user_input, current)
                 if warning is not None:
@@ -2710,9 +2784,11 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
             if fee_problem is not None:
                 errors[CONF_GRID_FEE_RULES] = fee_problem
             if not errors:
-                return await self._save_or_menu(
-                    _clear_absent(user_input, "grid_fees", current)
-                )
+                cleaned = _clear_absent(user_input, "grid_fees", current)
+                applied = grid_fee.apply_catalog(user_input.get(CONF_DSO_PRODUCT))
+                if applied:
+                    cleaned.update(applied)
+                return await self._save_or_menu(cleaned)
             current = {**current, **user_input}
             if not user_input.get(CONF_GRID_FEE_ENTITY):
                 current.pop(CONF_GRID_FEE_ENTITY, None)

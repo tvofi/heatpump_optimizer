@@ -454,12 +454,30 @@
     "required": "Required",
     "selector": "type"
    },
+   "price_entity": {
+    "config": {
+     "filter": "[{'domain': ['sensor']}]"
+    },
+    "default": null,
+    "required": "Optional",
+    "selector": "EntitySelector"
+   },
+   "price_source": {
+    "config": {
+     "mode": "'dropdown'",
+     "options": "['tibber', 'entity']",
+     "translation_key": "'price_source'"
+    },
+    "default": "'tibber'",
+    "required": "Optional",
+    "selector": "SelectSelector"
+   },
    "tibber_token": {
     "config": {
      "type": "'password'"
     },
-    "default": null,
-    "required": "Required",
+    "default": "''",
+    "required": "Optional",
     "selector": "TextSelector"
    },
    "weather_entity": {
@@ -868,6 +886,7 @@
   "heat_pump_online_entity": "sensor.seed_heat_pump_online_entity",
   "heat_pump_power_entity": "sensor.seed_heat_pump_power_entity",
   "heat_pump_switch_entity": "sensor.seed_heat_pump_switch_entity",
+  "holiday_calendar_entity": "sensor.seed_holiday_calendar_entity",
   "house_power_entity": "sensor.seed_house_power_entity",
   "immersion_feedback_enabled": true,
   "indoor_humidity_entity": "sensor.seed_indoor_humidity_entity",
@@ -884,6 +903,7 @@
   "peak_tariff_enabled": true,
   "peak_tariff_weekdays_only": true,
   "precip_type_enabled": true,
+  "price_entity": "sensor.seed_price_entity",
   "price_prior_enabled": true,
   "price_tiles_enabled": true,
   "pv_enabled": true,
@@ -947,6 +967,14 @@
     "default": "16.0",
     "required": "Optional",
     "selector": "NumberSelector"
+   },
+   "holiday_calendar_entity": {
+    "config": {
+     "filter": "[{'domain': ['calendar']}]"
+    },
+    "default": "'sensor.seed_holiday_calendar_entity'",
+    "required": "Optional",
+    "selector": "EntitySelector"
    }
   },
   "building": {
@@ -1423,6 +1451,62 @@
     "required": "str",
     "selector": "section"
    },
+   "holiday": {
+    "config": {
+     "collapsed": "True"
+    },
+    "default": null,
+    "fields": {
+     "holiday_comfort_temp_day": {
+      "config": {
+       "max": "26",
+       "min": "16",
+       "mode": "'slider'",
+       "step": "0.5",
+       "unit_of_measurement": "'\u00b0C'"
+      },
+      "default": "21.0",
+      "required": "Optional",
+      "selector": "NumberSelector"
+     },
+     "holiday_comfort_temp_night": {
+      "config": {
+       "max": "24",
+       "min": "15",
+       "mode": "'slider'",
+       "step": "0.5",
+       "unit_of_measurement": "'\u00b0C'"
+      },
+      "default": "19.5",
+      "required": "Optional",
+      "selector": "NumberSelector"
+     },
+     "holiday_day_end_hour": {
+      "config": {
+       "max": "24",
+       "min": "1",
+       "mode": "'slider'",
+       "step": "1"
+      },
+      "default": "22",
+      "required": "Optional",
+      "selector": "NumberSelector"
+     },
+     "holiday_day_start_hour": {
+      "config": {
+       "max": "23",
+       "min": "0",
+       "mode": "'slider'",
+       "step": "1"
+      },
+      "default": "7",
+      "required": "Optional",
+      "selector": "NumberSelector"
+     }
+    },
+    "required": "str",
+    "selector": "section"
+   },
    "mold": {
     "config": {
      "collapsed": "True"
@@ -1513,6 +1597,62 @@
     },
     "required": "str",
     "selector": "section"
+   },
+   "weekend": {
+    "config": {
+     "collapsed": "True"
+    },
+    "default": null,
+    "fields": {
+     "comfort_temp_day_weekend": {
+      "config": {
+       "max": "26",
+       "min": "16",
+       "mode": "'slider'",
+       "step": "0.5",
+       "unit_of_measurement": "'\u00b0C'"
+      },
+      "default": "21.0",
+      "required": "Optional",
+      "selector": "NumberSelector"
+     },
+     "comfort_temp_night_weekend": {
+      "config": {
+       "max": "24",
+       "min": "15",
+       "mode": "'slider'",
+       "step": "0.5",
+       "unit_of_measurement": "'\u00b0C'"
+      },
+      "default": "19.5",
+      "required": "Optional",
+      "selector": "NumberSelector"
+     },
+     "day_end_hour_weekend": {
+      "config": {
+       "max": "24",
+       "min": "1",
+       "mode": "'slider'",
+       "step": "1"
+      },
+      "default": "22",
+      "required": "Optional",
+      "selector": "NumberSelector"
+     },
+     "day_start_hour_weekend": {
+      "config": {
+       "max": "23",
+       "min": "0",
+       "mode": "'slider'",
+       "step": "1"
+      },
+      "default": "7",
+      "required": "Optional",
+      "selector": "NumberSelector"
+     }
+    },
+    "required": "str",
+    "selector": "section"
    }
   },
   "entities": {
@@ -1532,12 +1672,52 @@
     },
     "default": null,
     "fields": {
+     "price_entity": {
+      "config": {
+       "filter": "[{'domain': ['sensor']}]"
+      },
+      "default": "'sensor.seed_price_entity'",
+      "required": "Optional",
+      "selector": "EntitySelector"
+     },
+     "price_source": {
+      "config": {
+       "mode": "'dropdown'",
+       "options": "['tibber', 'entity']",
+       "translation_key": "'price_source'"
+      },
+      "default": "'tibber'",
+      "required": "Optional",
+      "selector": "SelectSelector"
+     },
+     "price_surcharge": {
+      "config": {
+       "max": "2.0",
+       "min": "0.0",
+       "mode": "'box'",
+       "step": "0.01"
+      },
+      "default": "0.0",
+      "required": "Optional",
+      "selector": "NumberSelector"
+     },
+     "price_vat": {
+      "config": {
+       "max": "2.0",
+       "min": "0.0",
+       "mode": "'box'",
+       "step": "0.01"
+      },
+      "default": "1.0",
+      "required": "Optional",
+      "selector": "NumberSelector"
+     },
      "tibber_token": {
       "config": {
        "type": "'password'"
       },
       "default": "'x'",
-      "required": "Required",
+      "required": "Optional",
       "selector": "TextSelector"
      },
      "weather_entity": {
@@ -1974,6 +2154,16 @@
     "required": "Optional",
     "selector": "NumberSelector"
    },
+   "dso_product": {
+    "config": {
+     "mode": "'dropdown'",
+     "options": "['none', 'ellevio_villa_effekt_2026', 'vattenfall_eldistribution_effekt_2026', 'eon_energidistribution_effekt_2026', 'goteborg_energi_effekt_2026']",
+     "translation_key": "'dso_product'"
+    },
+    "default": "'none'",
+    "required": "Optional",
+    "selector": "SelectSelector"
+   },
    "grid_fee_entity": {
     "config": {
      "filter": "[{'domain': ['sensor']}]"
@@ -2165,6 +2355,14 @@
        "type": "'text'"
       },
       "default": "'06:00-08:30, 17:00-22:00'",
+      "required": "Optional",
+      "selector": "TextSelector"
+     },
+     "holiday_dhw_windows": {
+      "config": {
+       "type": "'text'"
+      },
+      "default": "''",
       "required": "Optional",
       "selector": "TextSelector"
      }
@@ -3066,6 +3264,14 @@
    "default": "16.0",
    "required": "Optional",
    "selector": "NumberSelector"
+  },
+  "holiday_calendar_entity": {
+   "config": {
+    "filter": "[{'domain': ['calendar']}]"
+   },
+   "default": null,
+   "required": "Optional",
+   "selector": "EntitySelector"
   }
  },
  "building": {
@@ -3418,6 +3624,62 @@
    "required": "str",
    "selector": "section"
   },
+  "holiday": {
+   "config": {
+    "collapsed": "True"
+   },
+   "default": null,
+   "fields": {
+    "holiday_comfort_temp_day": {
+     "config": {
+      "max": "26",
+      "min": "16",
+      "mode": "'slider'",
+      "step": "0.5",
+      "unit_of_measurement": "'\u00b0C'"
+     },
+     "default": "21.0",
+     "required": "Optional",
+     "selector": "NumberSelector"
+    },
+    "holiday_comfort_temp_night": {
+     "config": {
+      "max": "24",
+      "min": "15",
+      "mode": "'slider'",
+      "step": "0.5",
+      "unit_of_measurement": "'\u00b0C'"
+     },
+     "default": "19.5",
+     "required": "Optional",
+     "selector": "NumberSelector"
+    },
+    "holiday_day_end_hour": {
+     "config": {
+      "max": "24",
+      "min": "1",
+      "mode": "'slider'",
+      "step": "1"
+     },
+     "default": "22",
+     "required": "Optional",
+     "selector": "NumberSelector"
+    },
+    "holiday_day_start_hour": {
+     "config": {
+      "max": "23",
+      "min": "0",
+      "mode": "'slider'",
+      "step": "1"
+     },
+     "default": "7",
+     "required": "Optional",
+     "selector": "NumberSelector"
+    }
+   },
+   "required": "str",
+   "selector": "section"
+  },
   "mold": {
    "config": {
     "collapsed": "True"
@@ -3508,6 +3770,62 @@
    },
    "required": "str",
    "selector": "section"
+  },
+  "weekend": {
+   "config": {
+    "collapsed": "True"
+   },
+   "default": null,
+   "fields": {
+    "comfort_temp_day_weekend": {
+     "config": {
+      "max": "26",
+      "min": "16",
+      "mode": "'slider'",
+      "step": "0.5",
+      "unit_of_measurement": "'\u00b0C'"
+     },
+     "default": "21.0",
+     "required": "Optional",
+     "selector": "NumberSelector"
+    },
+    "comfort_temp_night_weekend": {
+     "config": {
+      "max": "24",
+      "min": "15",
+      "mode": "'slider'",
+      "step": "0.5",
+      "unit_of_measurement": "'\u00b0C'"
+     },
+     "default": "19.5",
+     "required": "Optional",
+     "selector": "NumberSelector"
+    },
+    "day_end_hour_weekend": {
+     "config": {
+      "max": "24",
+      "min": "1",
+      "mode": "'slider'",
+      "step": "1"
+     },
+     "default": "22",
+     "required": "Optional",
+     "selector": "NumberSelector"
+    },
+    "day_start_hour_weekend": {
+     "config": {
+      "max": "23",
+      "min": "0",
+      "mode": "'slider'",
+      "step": "1"
+     },
+     "default": "7",
+     "required": "Optional",
+     "selector": "NumberSelector"
+    }
+   },
+   "required": "str",
+   "selector": "section"
   }
  },
  "entities": {
@@ -3527,12 +3845,52 @@
    },
    "default": null,
    "fields": {
+    "price_entity": {
+     "config": {
+      "filter": "[{'domain': ['sensor']}]"
+     },
+     "default": null,
+     "required": "Optional",
+     "selector": "EntitySelector"
+    },
+    "price_source": {
+     "config": {
+      "mode": "'dropdown'",
+      "options": "['tibber', 'entity']",
+      "translation_key": "'price_source'"
+     },
+     "default": "'tibber'",
+     "required": "Optional",
+     "selector": "SelectSelector"
+    },
+    "price_surcharge": {
+     "config": {
+      "max": "2.0",
+      "min": "0.0",
+      "mode": "'box'",
+      "step": "0.01"
+     },
+     "default": "0.0",
+     "required": "Optional",
+     "selector": "NumberSelector"
+    },
+    "price_vat": {
+     "config": {
+      "max": "2.0",
+      "min": "0.0",
+      "mode": "'box'",
+      "step": "0.01"
+     },
+     "default": "1.0",
+     "required": "Optional",
+     "selector": "NumberSelector"
+    },
     "tibber_token": {
      "config": {
       "type": "'password'"
      },
      "default": "'x'",
-     "required": "Required",
+     "required": "Optional",
      "selector": "TextSelector"
     },
     "weather_entity": {
@@ -3969,6 +4327,16 @@
    "required": "Optional",
    "selector": "NumberSelector"
   },
+  "dso_product": {
+   "config": {
+    "mode": "'dropdown'",
+    "options": "['none', 'ellevio_villa_effekt_2026', 'vattenfall_eldistribution_effekt_2026', 'eon_energidistribution_effekt_2026', 'goteborg_energi_effekt_2026']",
+    "translation_key": "'dso_product'"
+   },
+   "default": "'none'",
+   "required": "Optional",
+   "selector": "SelectSelector"
+  },
   "grid_fee_entity": {
    "config": {
     "filter": "[{'domain': ['sensor']}]"
@@ -4160,6 +4528,14 @@
       "type": "'text'"
      },
      "default": "'06:00-08:30, 17:00-22:00'",
+     "required": "Optional",
+     "selector": "TextSelector"
+    },
+    "holiday_dhw_windows": {
+     "config": {
+      "type": "'text'"
+     },
+     "default": "''",
      "required": "Optional",
      "selector": "TextSelector"
     }

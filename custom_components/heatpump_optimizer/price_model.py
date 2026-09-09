@@ -33,7 +33,20 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any
 
+import aiohttp
 import numpy as np
+
+from .const import (
+    CONF_PRICE_ENTITY,
+    CONF_PRICE_SOURCE,
+    CONF_PRICE_SURCHARGE,
+    CONF_PRICE_VAT,
+    CONF_TIBBER_TOKEN,
+    DEFAULT_PRICE_SOURCE,
+    DEFAULT_PRICE_SURCHARGE,
+    DEFAULT_PRICE_VAT,
+    PRICE_SOURCE_ENTITY,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -517,3 +530,250 @@ def quarters_from_entries(entries: list[dict[str, Any]]) -> dict[str, list[float
                 for mark in quarter_marks
             ]
     return complete
+
+
+TIBBER_API_URL = "https://api.tibber.com/v1-beta/gql"
+TIBBER_PRICE_QUERY = """
+{
+  viewer {
+    homes {
+      currentSubscription {
+        priceInfo {
+          current {
+            total
+            startsAt
+            level
+          }
+          today {
+            total
+            startsAt
+            level
+          }
+          tomorrow {
+            total
+            startsAt
+            level
+          }
+        }
+      }
+    }
+  }
+}
+"""
+TIBBER_PRICE_QUERY_QUARTER = """
+{
+  viewer {
+    homes {
+      currentSubscription {
+        priceInfo(resolution: QUARTER_HOURLY) {
+          current {
+            total
+            startsAt
+            level
+          }
+          today {
+            total
+            startsAt
+            level
+          }
+          tomorrow {
+            total
+            startsAt
+            level
+          }
+        }
+      }
+    }
+  }
+}
+"""
+
+
+def tibber_query_body(query: str) -> str:
+    return (
+        '{"query": "'
+        + query.replace("\n", " ").replace('"', '\\"')
+        + '"}'
+    )
+
+
+def prices_from_tibber_payload(data: dict[str, Any] | None) -> list[dict[str, Any]] | str:
+    """Tibber JSON to `{total, starts_at, level}` rows, or a failure reason."""
+    if not isinstance(data, dict):
+        return "Tibber API returned no data"
+    if "errors" in data:
+        return f"Tibber API errors: {data['errors']}"
+    homes = data.get("data", {}).get("viewer", {}).get("homes", [])
+    if not homes:
+        return "No homes found in Tibber data"
+    price_info = (homes[0].get("currentSubscription") or {}).get("priceInfo") or {}
+    prices: list[dict[str, Any]] = []
+    for period in ("today", "tomorrow"):
+        for row in price_info.get(period) or []:
+            if not isinstance(row, dict):
+                continue
+            prices.append(
+                {
+                    "total": row.get("total", 0),
+                    "starts_at": row.get("startsAt") or row.get("starts_at") or "",
+                    "level": row.get("level", "NORMAL"),
+                }
+            )
+    return prices
+
+
+def _raw_start(item: dict[str, Any]) -> str | None:
+    start = item.get("start") or item.get("starts_at") or item.get("startsAt")
+    if start is None:
+        return None
+    if hasattr(start, "isoformat"):
+        return str(start.isoformat())
+    text = str(start).strip()
+    return text or None
+
+
+def _raw_value(item: dict[str, Any]) -> float | None:
+    raw = item.get("value")
+    if raw is None:
+        raw = item.get("total")
+    if raw is None:
+        raw = item.get("price")
+    try:
+        value = float(raw)
+    except (TypeError, ValueError):
+        return None
+    if not np.isfinite(value):
+        return None
+    return value
+
+
+def apply_price_adjustments(
+    entries: list[dict[str, Any]], vat: float, surcharge: float
+) -> list[dict[str, Any]]:
+    factor = float(vat) if np.isfinite(vat) else 1.0
+    extra = float(surcharge) if np.isfinite(surcharge) else 0.0
+    out: list[dict[str, Any]] = []
+    for entry in entries:
+        try:
+            total = float(entry.get("total", 0.0)) * factor + extra
+        except (TypeError, ValueError):
+            continue
+        if not np.isfinite(total):
+            continue
+        out.append({**entry, "total": total})
+    return out
+
+
+def prices_from_entity_attributes(
+    attrs: dict[str, Any] | None,
+    vat: float = 1.0,
+    surcharge: float = 0.0,
+) -> list[dict[str, Any]] | str:
+    """Nord Pool / ENTSO-E-style `raw_today` / `raw_tomorrow` into price rows."""
+    if not isinstance(attrs, dict) or not attrs:
+        return "Price entity published no today/tomorrow series"
+    rows: list[dict[str, Any]] = []
+    for key in ("raw_today", "raw_tomorrow", "today", "tomorrow"):
+        block = attrs.get(key)
+        if not isinstance(block, list):
+            continue
+        for item in block:
+            if not isinstance(item, dict):
+                continue
+            start = _raw_start(item)
+            value = _raw_value(item)
+            if start is None or value is None:
+                continue
+            rows.append(
+                {"total": value, "starts_at": start, "level": "NORMAL"}
+            )
+    if not rows:
+        return "Price entity published no today/tomorrow series"
+    return apply_price_adjustments(rows, vat, surcharge)
+
+
+def prices_from_entity_state(
+    state: Any,
+    vat: float = 1.0,
+    surcharge: float = 0.0,
+) -> list[dict[str, Any]] | str:
+    """Read one HA price sensor. Empty / missing is a failed fetch."""
+    if state is None:
+        return "Price entity is empty"
+    raw = str(getattr(state, "state", "")).strip().lower()
+    attrs = getattr(state, "attributes", None)
+    if raw in {"unknown", "unavailable", ""} and not (
+        isinstance(attrs, dict) and attrs
+    ):
+        return "Price entity is empty"
+    return prices_from_entity_attributes(
+        attrs if isinstance(attrs, dict) else {}, vat, surcharge
+    )
+
+
+async def _tibber_post(session: Any, token: str, body: str) -> tuple[int, Any]:
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+    }
+    async with session.post(
+        TIBBER_API_URL,
+        data=body,
+        headers=headers,
+        timeout=aiohttp.ClientTimeout(total=15),
+    ) as resp:
+        if resp.status != 200:
+            return resp.status, None
+        return resp.status, await resp.json()
+
+
+async def pull_prices(
+    session: Any, config: dict[str, Any], entity_state: Any = None
+) -> tuple[str, Any]:
+    """`('ok', rows)` / `('fail', reason)` / `('reauth', reason)`."""
+    source = config.get(CONF_PRICE_SOURCE, DEFAULT_PRICE_SOURCE)
+    if source == PRICE_SOURCE_ENTITY:
+        if not config.get(CONF_PRICE_ENTITY):
+            return "fail", "Price entity is empty"
+        try:
+            vat = float(config.get(CONF_PRICE_VAT, DEFAULT_PRICE_VAT) or 1.0)
+            extra = float(
+                config.get(CONF_PRICE_SURCHARGE, DEFAULT_PRICE_SURCHARGE) or 0.0
+            )
+        except (TypeError, ValueError):
+            vat, extra = 1.0, 0.0
+        parsed = prices_from_entity_state(entity_state, vat, extra)
+        if isinstance(parsed, str):
+            return "fail", parsed
+        return "ok", parsed
+
+    token = config.get(CONF_TIBBER_TOKEN)
+    if not token:
+        return "fail", "No Tibber token configured"
+    status, payload = await _tibber_post(
+        session, token, tibber_query_body(TIBBER_PRICE_QUERY_QUARTER)
+    )
+    if status in (401, 403):
+        return (
+            "reauth",
+            f"Tibber refused the token (HTTP {status}); reauthentication started",
+        )
+    if status != 200:
+        return "fail", f"Tibber API error: {status}"
+    parsed = prices_from_tibber_payload(payload)
+    if isinstance(parsed, str):
+        status, payload = await _tibber_post(
+            session, token, tibber_query_body(TIBBER_PRICE_QUERY)
+        )
+        if status in (401, 403):
+            return (
+                "reauth",
+                f"Tibber refused the token (HTTP {status}); "
+                "reauthentication started",
+            )
+        if status != 200:
+            return "fail", parsed
+        parsed = prices_from_tibber_payload(payload)
+        if isinstance(parsed, str):
+            return "fail", parsed
+    return "ok", parsed

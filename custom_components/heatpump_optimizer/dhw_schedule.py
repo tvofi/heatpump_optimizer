@@ -359,15 +359,21 @@ def format_weekly_windows(weekly: list[list[Window]]) -> str:
 
 
 def windows_for_day(
-    weekly: list[list[Window]] | None, weekday: int, fallback: list[Window]
+    weekly: list[list[Window]] | None,
+    weekday: int,
+    fallback: list[Window],
+    holiday_windows: list[Window] | None = None,
+    holiday: bool = False,
 ) -> list[Window]:
     """The window list in force on one weekday.
 
     ``fallback`` is the flat/every-day set from ``parse_windows``, used when
     no weekly structure exists; it is also what a ``None`` weekday (a caller
     with an hour but no date) gets, so hour-only consumers are untouched by
-    the whole feature.
+    the whole feature. A holiday overlay replaces both when ``holiday``.
     """
+    if holiday and holiday_windows is not None:
+        return holiday_windows
     if weekly is None or weekday is None:
         return fallback
     return weekly[max(0, min(6, int(weekday)))]
