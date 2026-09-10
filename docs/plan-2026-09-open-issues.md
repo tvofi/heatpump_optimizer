@@ -552,6 +552,7 @@ no wave:
 - [#726](https://github.com/tvofi/heatpump_optimizer/pull/726) — **merged `6baa0ce`**: leftover #677 and #682 still said in review after #720 and #721 landed. leaves #201 open.
 - [#727](https://github.com/tvofi/heatpump_optimizer/pull/727) — **merged `6799ef4`**: leftover #683 still said filed after #695 landed, and leftover #697-#703 still said the issues were open after they were marked completed. leaves #201 open.
 - [#729](https://github.com/tvofi/heatpump_optimizer/pull/729) — **merged `cd2e663`**: leftover #582 still said under refutation; #713 still said in review; #707 still said the issues were open; #724 still said do not merge. leaves #201 open.
+- [#730](https://github.com/tvofi/heatpump_optimizer/pull/730) — **row written before the merge**: leftover #574 still said unclaimed; leftover issue-table cells still said scheduled, in flight, filed, or this PR after those issues closed. leaves #201 open.
 
 **Why a disposition may precede its merge, and exactly how far that goes.**
 `checkRecord` tests that `#N` appears in a disposition document; it does not require the merge to
