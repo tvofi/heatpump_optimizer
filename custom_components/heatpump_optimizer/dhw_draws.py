@@ -35,8 +35,11 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime
+from typing import Any
 
 import numpy as np
+
+from .dhw_schedule import Window
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -104,7 +107,7 @@ class DrawStats:
 
     # -- persistence -----------------------------------------------------------
 
-    def as_dict(self) -> dict:
+    def as_dict(self) -> dict[str, Any]:
         return {
             "reservoirs": {k: list(v) for k, v in self.reservoirs.items()},
             "open_label": self._open_label,
@@ -113,7 +116,7 @@ class DrawStats:
         }
 
     @classmethod
-    def from_dict(cls, data: dict | None) -> "DrawStats":
+    def from_dict(cls, data: dict[str, Any] | None) -> "DrawStats":
         stats = cls()
         if not isinstance(data, dict):
             return stats
@@ -135,7 +138,7 @@ class DrawStats:
         return stats
 
 
-def window_label(hour: float, windows) -> str:
+def window_label(hour: float, windows: list[Window]) -> str:
     """The label of the demand window ``hour`` falls in, or ""."""
     for start, end in windows:
         if end > start:
@@ -147,7 +150,7 @@ def window_label(hour: float, windows) -> str:
     return ""
 
 
-def labels_for(windows) -> list[str]:
+def labels_for(windows: list[Window]) -> list[str]:
     return [f"{_fmt(s)}-{_fmt(e)}" for s, e in windows]
 
 

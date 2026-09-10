@@ -29,6 +29,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Any
 
 import numpy as np
 
@@ -77,7 +78,7 @@ def _predict_step_excursion(
 
     def _end(temp: float, q: float, hours: float) -> float:
         t_ss = outdoor + (q + gains) / ua
-        return t_ss + (temp - t_ss) * np.exp(-hours / tau)
+        return float(t_ss + (temp - t_ss) * np.exp(-hours / tau))
 
     after_step = _end(baseline, step_thermal_kw, step_hours)
     after_relax = _end(after_step, 0.0, relax_hours)
@@ -176,7 +177,7 @@ class SysIdResult:
     confidence: float = 0.0
     reason: str = ""
 
-    def as_dict(self) -> dict:
+    def as_dict(self) -> dict[str, Any]:
         return {
             "completed": self.completed,
             "time_constant_hours": (
@@ -804,7 +805,7 @@ class SystemIdentification:
             reason="ok",
         )
 
-    def as_dict(self) -> dict:
+    def as_dict(self) -> dict[str, Any]:
         return {
             "phase": self.phase,
             "active": self.active,
