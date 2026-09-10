@@ -192,7 +192,7 @@ production lines. You work in your own worktree branched from `origin/main`.
     in place: grepping the report's own call, file and snippet finds them
     unchanged and reads the defect as open, and grepping for their absence
     finds nothing and reads the same. The line is no help either — not in the
-    key, and #714's own docstring moved that call 24 lines. Anchor the claim to
+    key, and #714's own fix moved that call 24 lines. Anchor the claim to
     what moved: branch, registration, frame count.
 
 **When a structural budget blocks the work.** A `tests/structure.py` failure is
