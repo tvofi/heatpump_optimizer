@@ -539,7 +539,22 @@ jobs:
   # Nightly and on demand, never on a pull request. It costs minutes, needs
   # Docker, and is the first lane here that can go red for a reason outside
   # this repository -- a registry outage, or a Home Assistant release
-  # changing setup behaviour. It reports loudly and blocks nothing.
+  # changing setup behaviour. It blocks nothing, and it is not one of the
+  # required contexts on the main-protect ruleset.
+  #
+  # "It reports loudly" is what this comment used to say next, and it was
+  # measured false. What it does is attach its conclusion to whatever commit
+  # was main's head when the schedule fired, as a check run beside that
+  # commit's own `nightly-ha skipped` from the push event. Nothing notifies,
+  # and the NEXT merge moves the head and strands the red on a commit no one
+  # re-reads: two consecutive nights of both matrix arms failing in `_stage`
+  # were found by a seat sent looking, not by the lane telling anyone. That is
+  # a known and accepted property -- the whole reason it is unrequired is that
+  # it can go red for the outside-this-repository reasons above, and a lane
+  # that files an issue for a registry outage is worse than a quiet one. What
+  # follows from it is that a defect reaching THIS lane is expensive to
+  # notice, so the cheap checks that keep it runnable belong in the PR gate
+  # instead: `tests/entities.py` pins the wiring of the step below.
   nightly-ha:
     if: >-
       github.event_name == 'schedule'
@@ -559,6 +574,23 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
+
+      # The driver has a HOST half as well as a container half, and the host
+      # half imports the production package: `_seed_unique_id` calls
+      # `config_flow.entry_identity` for the seed's unique_id, and
+      # `load_committed_roster` imports every platform module for the A3
+      # roster. That import resolves `homeassistant` from tests/hastub, which
+      # imports voluptuous, and the package imports aiohttp -- so a bare
+      # `setup-python` runner dies inside `_stage`, before Docker is reached
+      # at all. It did, on both matrix arms, on two consecutive nights.
+      # The same pinned set `fast`, `slow`, `browser` and `closures` install --
+      # four of the eleven jobs here, not all of them; `typing`, `closure-scope`
+      # and the two autofix jobs run Python and install nothing, because what
+      # they run imports neither the package nor the stub. The host only stages
+      # files, so nothing about these versions reaches the container, which
+      # uses Home Assistant's own.
+      - name: Install pinned test dependencies
+        run: pip install -r tests/requirements-ci.txt
 
       # Its own step so a registry failure is an unmistakable red here,
       # rather than a timeout somewhere inside the lane.
