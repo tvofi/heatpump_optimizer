@@ -34,9 +34,13 @@ from .const import (
     CONF_COMFORT_TEMP_DAY,
     CONF_DAY_END_HOUR,
     CONF_DAY_START_HOUR,
+    CONF_DHW_ENABLED,
     CONF_DHW_MIN_TEMP,
     CONF_DHW_SETPOINT,
+    CONF_DHW_TANK_VOLUME,
     CONF_DHW_WINDOWS,
+    CONF_WOOD_FURNACE_ENABLED,
+    DEFAULT_DHW_TANK_VOLUME,
     MANUAL_PLAN_WINDOW_HOURS,
     DEFAULT_DHW_SETPOINT,
     DHW_MIN_TEMP_SETPOINT_MARGIN,
@@ -166,6 +170,8 @@ SERVICE_SCHEMA_APPLY_TOPOLOGY = vol.Schema(
             }
         ),
         vol.Optional("entry_id"): cv.string,
+        vol.Optional("dhw"): cv.boolean,
+        vol.Optional("wood"): cv.boolean,
     }
 )
 
@@ -659,6 +665,14 @@ async def handle_apply_topology(hass: HomeAssistant, call: ServiceCall) -> dict[
                 place: [float(x), float(y)]
                 for place, (x, y) in positions.items()
             }
+        if "dhw" in call.data:
+            options[CONF_DHW_ENABLED] = bool(call.data["dhw"])
+            if call.data["dhw"] and options.get(CONF_DHW_TANK_VOLUME) is None:
+                merged = {**entry.data, **options}
+                if merged.get(CONF_DHW_TANK_VOLUME) is None:
+                    options[CONF_DHW_TANK_VOLUME] = DEFAULT_DHW_TANK_VOLUME
+        if "wood" in call.data:
+            options[CONF_WOOD_FURNACE_ENABLED] = bool(call.data["wood"])
         hass.config_entries.async_update_entry(entry, options=options)
 
     _LOGGER.info(
