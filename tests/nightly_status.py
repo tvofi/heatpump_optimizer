@@ -408,9 +408,16 @@ def _jobs(repo: str, run_id: int, token: str | None) -> list[dict]:
     never compared to what arrived -- so a run with more than 100 jobs would
     have had its overflow dropped in silence, and a dropped failing job is a
     PASS. Comparing the two numbers is cheaper than pagination and removes the
-    silent case rather than the limit: the largest run of this workflow has 12
-    jobs, so the refusal is unreachable today and the day it becomes reachable
-    it says so instead of lying. If that day comes, follow `Link` here.
+    silent case rather than the limit.
+
+    The property that makes the refusal unreachable today is that no run of
+    this workflow comes near a hundred jobs -- not a specific count, which
+    moves every time a job is added or a matrix arm changes. The rule, so a
+    later reader re-derives rather than trusts: take the N most recent runs of
+    `tests.yml` and read `.total_count` from
+    `/repos/<repo>/actions/runs/<id>/jobs`; the maximum is what matters. It is
+    an order of magnitude below the page size. The day it is not, this raises
+    `Unreadable` instead of lying, and that is the day to follow `Link` here.
     """
     payload = _get(f"{API}/repos/{repo}/actions/runs/{run_id}/jobs?per_page=100",
                    token)

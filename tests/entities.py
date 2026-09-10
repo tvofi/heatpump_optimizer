@@ -13980,11 +13980,13 @@ R.check(
 # `_jobs` requests `per_page=100` and follows no `Link` header, and it received
 # `total_count` without ever comparing it to `len(jobs)`. A run with more than
 # 100 jobs would have had its overflow -- including every failing job in it --
-# silently dropped, and a dropped failing job is a PASS. The maximum observed
-# job count in any run of this workflow is 12, so it is unreachable today;
-# comparing the two numbers is cheaper than pagination and removes the silent
-# case outright. `_get` is the one collaborator, stubbed; `_jobs` itself is the
-# production function under test.
+# silently dropped, and a dropped failing job is a PASS. No run of this
+# workflow comes near a hundred jobs, so the refusal is unreachable today --
+# the rule for re-deriving that, rather than a count that moves whenever a job
+# or a matrix arm is added, is in `_jobs`'s own docstring. Comparing the two
+# numbers is cheaper than pagination and removes the silent case outright.
+# `_get` is the one collaborator, stubbed; `_jobs` itself is the production
+# function under test.
 _ns_paging_real_get = _nstatus._get
 try:
     _nstatus._get = lambda _u, _t: {
