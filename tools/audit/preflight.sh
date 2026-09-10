@@ -193,23 +193,23 @@ else
 #  same asymmetry (c) above rests on. A PROXY, not a measurement: it says when to
 #  distrust the lines above, and it cannot say they are wrong.
   when=$(git reflog show refs/remotes/origin/main --date=unix --format=%gd 2>/dev/null | head -1 | sed 's/.*@{\([0-9]*\)}.*/\1/')
-  what="last moved in this clone"
+  what="last moved in this clone"; caveat=""
   case "$when" in
     ''|*[!0-9]*)
-      # No reflog for the ref: a --shared or --mirror clone, or
-      # core.logAllRefUpdates off. Falling back is what stops the proxy
-      # vanishing in silence on exactly the clones a review seat runs in --
-      # and the line says which measure it fell back to, because the two
-      # answer different questions.
+      # No reflog for the ref: a --mirror clone, or core.logAllRefUpdates off.
+      # Falling back is what stops the proxy vanishing in silence on exactly the
+      # clones a review seat runs in -- and the line says which measure it fell
+      # back to, because the two answer different questions.
       when=$(git log -1 --format=%ct refs/remotes/origin/main 2>/dev/null)
-      what="tip was committed upstream -- no reflog for the ref in this clone, so this is main's age and not the mirror's"
+      what="tip was committed"
+      caveat=" (No reflog for the ref in this clone, so that is main's own age and not this mirror's.)"
       ;;
   esac
   case "$when" in
     ''|*[!0-9]*) ;;
     *)
       age=$(( ( $(date +%s) - when ) / 3600 ))
-      [ "$age" -ge 24 ] && say check "policy corpus -- refs/remotes/origin/main $what ${age}h ago and nothing here fetches. If that is not main's real tip, everything above compared against a stale mirror and under-reports. \`git fetch origin\`, then re-run."
+      [ "$age" -ge 24 ] && say check "policy corpus -- refs/remotes/origin/main $what ${age}h ago and nothing here fetches. If that is not main's real tip, everything above compared against a stale mirror and under-reports. \`git fetch origin\`, then re-run.$caveat"
       ;;
   esac
 fi
