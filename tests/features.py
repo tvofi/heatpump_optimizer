@@ -19,6 +19,7 @@ from harness import FakeHass, FakeState, Results, UTC, minutes_ago
 import numpy as np
 
 from heatpump_optimizer import away as away_mode
+from heatpump_optimizer import boost as boost_mod
 from heatpump_optimizer import battery as battery_view
 from heatpump_optimizer import presets, pv
 from heatpump_optimizer.accuracy import (
@@ -1603,6 +1604,58 @@ cal = away_mode.resolve(
 R.check(
     "a calendar event supplies its own return time",
     cal.return_time is not None and cal.recovery_active,
+)
+
+R.section("Two-hour boost overlays")
+_boost_now = datetime(2026, 7, 1, 12, 0, tzinfo=UTC)
+_boost_dhw = boost_mod.BoostState()
+_boost_dhw.set("dhw", True, _boost_now)
+R.check(
+    "a DHW boost is live for two hours and then expires",
+    _boost_dhw.active("dhw", _boost_now)
+    and _boost_dhw.active("dhw", _boost_now + timedelta(hours=1, minutes=59))
+    and not _boost_dhw.active("dhw", _boost_now + timedelta(hours=2))
+    and not _boost_dhw.active("space", _boost_now),
+)
+_boost_dhw.expire(_boost_now + timedelta(hours=2))
+R.check("expiry drops the channel", "dhw" not in _boost_dhw.until)
+_boost_dhw.set("dhw", True, _boost_now)
+_boost_space = boost_mod.BoostState()
+_boost_space.set("space", True, _boost_now)
+_dhw_action = {
+    "power": 1.0,
+    "dhw_power": 0.0,
+    "dhw_heating_active": False,
+    "heat_pump_on": False,
+}
+boost_mod.overlay(
+    _dhw_action, _boost_dhw, max_power=6.0, max_temp=24.0, ecl_max=8.0,
+)
+R.check(
+    "DHW boost maxes hot water without rewriting space power",
+    _dhw_action["dhw_heating_active"] is True
+    and abs(_dhw_action["dhw_power"] - 4.8) < 1e-9
+    and _dhw_action["power"] == 1.0
+    and _dhw_action["heat_pump_on"] is True,
+    str(_dhw_action),
+)
+_space_action = {
+    "power": 1.0,
+    "dhw_power": 0.2,
+    "dhw_heating_active": False,
+    "heat_pump_on": False,
+}
+boost_mod.overlay(
+    _space_action, _boost_space, max_power=6.0, max_temp=24.0, ecl_max=8.0,
+)
+R.check(
+    "space boost maxes space heat without rewriting DHW power",
+    _space_action["power"] == 6.0
+    and _space_action["setpoint"] == 24.0
+    and _space_action["displace_value"] == 8.0
+    and _space_action["dhw_power"] == 0.2
+    and _space_action["heat_pump_on"] is True,
+    str(_space_action),
 )
 
 

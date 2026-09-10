@@ -5609,7 +5609,7 @@ R.check(
 )
 
 switches = collect(switch_mod)
-R.check("the switch platform adds the optimizer and away switches", len(switches) == 2)
+R.check("the switch platform adds the optimizer, away and boost switches", len(switches) == 4)
 sw = next(
     s for s in switches
     if getattr(s, "entity_id", "") == "switch.heat_pump_optimizer_optimizer_active"
@@ -5656,6 +5656,52 @@ away_sw = next(
 )
 R.check("the away switch pins today's object id", away_sw.entity_id == "switch.heat_pump_optimizer_away")
 R.check("the away switch is off when the override is off", not away_sw.is_on)
+dhw_boost_sw = next(
+    s for s in switches
+    if getattr(s, "entity_id", "") == "switch.heat_pump_optimizer_boost_dhw"
+)
+space_boost_sw = next(
+    s for s in switches
+    if getattr(s, "entity_id", "") == "switch.heat_pump_optimizer_boost_space"
+)
+R.check(
+    "the DHW boost switch pins today's object id",
+    dhw_boost_sw.entity_id == "switch.heat_pump_optimizer_boost_dhw",
+)
+R.check(
+    "the space boost switch pins today's object id",
+    space_boost_sw.entity_id == "switch.heat_pump_optimizer_boost_space",
+)
+R.check(
+    "the DHW boost switch is named through its translation key",
+    display_name("switch", dhw_boost_sw) == "Boost hot water",
+    display_name("switch", dhw_boost_sw),
+)
+R.check(
+    "the space boost switch is named through its translation key",
+    display_name("switch", space_boost_sw) == "Boost space heating",
+    display_name("switch", space_boost_sw),
+)
+R.check("both boost switches are off when no overlay is live",
+    not dhw_boost_sw.is_on and not space_boost_sw.is_on)
+asyncio.run(dhw_boost_sw.async_turn_on())
+R.check(
+    "turning DHW boost on reaches the coordinator",
+    dhw_boost_sw.coordinator.boost_calls[-1] == {"channel": "dhw", "active": True},
+    str(dhw_boost_sw.coordinator.boost_calls),
+)
+asyncio.run(space_boost_sw.async_turn_on())
+R.check(
+    "turning space boost on reaches the coordinator",
+    space_boost_sw.coordinator.boost_calls[-1] == {"channel": "space", "active": True},
+    str(space_boost_sw.coordinator.boost_calls),
+)
+asyncio.run(dhw_boost_sw.async_turn_off())
+R.check(
+    "turning DHW boost off reaches the coordinator",
+    dhw_boost_sw.coordinator.boost_calls[-1] == {"channel": "dhw", "active": False},
+    str(dhw_boost_sw.coordinator.boost_calls),
+)
 
 # --- #195 tranche 2: switch.py's remaining branches -------------------------------
 _no_data_switch = switch_mod.OptimizerEnableSwitch(FakeCoordinator(None), ENTRY)

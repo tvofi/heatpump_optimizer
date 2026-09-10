@@ -312,6 +312,7 @@ class FakeCoordinator:
         self.configured_windows = "weekdays 06:00-08:30, weekend 08:00-09:30"
         self.mode_calls: list[str] = []
         self.away_calls: list[dict] = []
+        self.boost_calls: list[dict] = []
         # The month figures the accumulators publish (#4): None until a test
         # sets them, mirroring "no bookings this month yet" on a real
         # coordinator at month start.
@@ -328,6 +329,9 @@ class FakeCoordinator:
 
     async def async_set_away(self, active=None, return_time=None):
         self.away_calls.append({"active": active, "return_time": return_time})
+
+    async def async_set_boost(self, channel, active):
+        self.boost_calls.append({"channel": channel, "active": active})
 
     async def async_set_target_temperature(self, temp):
         self.target_temperature = float(temp)
