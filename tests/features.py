@@ -19,6 +19,7 @@ from harness import FakeHass, FakeState, Results, UTC, minutes_ago
 import numpy as np
 
 from heatpump_optimizer import away as away_mode
+from heatpump_optimizer import boost as boost_mod
 from heatpump_optimizer import battery as battery_view
 from heatpump_optimizer import presets, pv
 from heatpump_optimizer.accuracy import (
@@ -1603,6 +1604,58 @@ cal = away_mode.resolve(
 R.check(
     "a calendar event supplies its own return time",
     cal.return_time is not None and cal.recovery_active,
+)
+
+R.section("Two-hour boost overlays")
+_boost_now = datetime(2026, 7, 1, 12, 0, tzinfo=UTC)
+_boost_dhw = boost_mod.BoostState()
+_boost_dhw.set("dhw", True, _boost_now)
+R.check(
+    "a DHW boost is live for two hours and then expires",
+    _boost_dhw.active("dhw", _boost_now)
+    and _boost_dhw.active("dhw", _boost_now + timedelta(hours=1, minutes=59))
+    and not _boost_dhw.active("dhw", _boost_now + timedelta(hours=2))
+    and not _boost_dhw.active("space", _boost_now),
+)
+_boost_dhw.expire(_boost_now + timedelta(hours=2))
+R.check("expiry drops the channel", "dhw" not in _boost_dhw.until)
+_boost_dhw.set("dhw", True, _boost_now)
+_boost_space = boost_mod.BoostState()
+_boost_space.set("space", True, _boost_now)
+_dhw_action = {
+    "power": 1.0,
+    "dhw_power": 0.0,
+    "dhw_heating_active": False,
+    "heat_pump_on": False,
+}
+boost_mod.overlay(
+    _dhw_action, _boost_dhw, max_power=6.0, max_temp=24.0, ecl_max=8.0,
+)
+R.check(
+    "DHW boost maxes hot water without rewriting space power",
+    _dhw_action["dhw_heating_active"] is True
+    and abs(_dhw_action["dhw_power"] - 4.8) < 1e-9
+    and _dhw_action["power"] == 1.0
+    and _dhw_action["heat_pump_on"] is True,
+    str(_dhw_action),
+)
+_space_action = {
+    "power": 1.0,
+    "dhw_power": 0.2,
+    "dhw_heating_active": False,
+    "heat_pump_on": False,
+}
+boost_mod.overlay(
+    _space_action, _boost_space, max_power=6.0, max_temp=24.0, ecl_max=8.0,
+)
+R.check(
+    "space boost maxes space heat without rewriting DHW power",
+    _space_action["power"] == 6.0
+    and _space_action["setpoint"] == 24.0
+    and _space_action["displace_value"] == 8.0
+    and _space_action["dhw_power"] == 0.2
+    and _space_action["heat_pump_on"] is True,
+    str(_space_action),
 )
 
 
@@ -4108,7 +4161,7 @@ runtime_only = {
     "dhw_weekly_windows",       # parsed with it (#3): the same spec's day view
     "dhw_holiday_windows",      # parsed from CONF_HOLIDAY_DHW_WINDOWS (#700)
     "two_zone_enabled",         # inferred from presence, overridable by mode
-    "dhw_enabled",              # inferred from which keys are present
+    # dhw_enabled is overridable via CONF_DHW_ENABLED; inferred when absent.
     "cop_flow_carnot",          # follows the mixing valve mode
     "cop_flow_reference_temp",  # a property of the COP curve, not the house
     "emitter_design_delta_t",   # a sizing convention, not a per-house setting
@@ -4308,6 +4361,23 @@ R.check(
         {hp_const.CONF_DHW_TANK_VOLUME: 200.0}
     ).dhw_enabled
     and not ThermalParameters.from_config({}).dhw_enabled,
+)
+R.check(
+    "an explicit dhw_enabled False wins over leftover volume",
+    ThermalParameters.from_config(
+        {
+            hp_const.CONF_DHW_TANK_VOLUME: 200.0,
+            hp_const.CONF_DHW_ENABLED: False,
+        }
+    ).dhw_enabled
+    is False,
+)
+R.check(
+    "an explicit dhw_enabled True enables hot water with no other keys",
+    ThermalParameters.from_config(
+        {hp_const.CONF_DHW_ENABLED: True}
+    ).dhw_enabled
+    is True,
 )
 R.check(
     "a boolean stored as a string is still a boolean",
@@ -6154,6 +6224,18 @@ R.check(
     "a minimal setup does not grow places it does not have",
     not ({"lower_zone", "dhw_tank", "wood_tank", "wood_valve"} & _min_places),
     f"got {sorted(_min_places)}",
+)
+_off_wood = _topo.describe_setup({**_full_cfg, "wood_furnace_enabled": False})
+R.check(
+    "an explicit wood-off flag hides the wood tank despite leftover probes",
+    not _off_wood["wood"]["present"]
+    and "wood_tank" not in {s["place"] for s in _off_wood["slots"]},
+)
+_off_dhw = _topo.describe_setup({**_full_cfg, "dhw_enabled": False})
+R.check(
+    "an explicit DHW-off flag hides the hot-water tank despite leftover volume",
+    not _off_dhw["dhw"]
+    and "dhw_tank" not in {s["place"] for s in _off_dhw["slots"]},
 )
 
 _text = _topo.render_text_summary(_full)
@@ -11981,20 +12063,45 @@ R.check(
     "0.2 saved fraction",
 )
 _ctiny = _t2_coord()
-_ctiny._fold_score_sample(_T6, 0.1, 0.2, 2.0, 1.0, True)
+_ctiny._fold_score_sample(_T6, 0.05, 0.1, 2.0, 1.0, True)
 _ctiny._fold_score_sample(_apr, 0.0, 0.0, 2.0, 1.0, True)
 R.check(
     "a day with too little energy teaches nothing and is skipped",
     _ctiny._operation_score is None,
 )
+_cdhw = _t2_coord()
+# A summer DHW-only day: 0.8 kWh in the cheapest hours (below the old
+# 1 kWh floor that skipped every such day and left overall = envelope).
+for _spot_dhw in (0.4, 0.4, 2.0, 2.0):
+    _paid = 0.16 if _spot_dhw < 1.0 else 0.0
+    _kwh = 0.4 if _spot_dhw < 1.0 else 0.0
+    _cdhw._fold_score_sample(_T6, _kwh, _paid, _spot_dhw, 0.25, True)
+_cdhw._fold_score_sample(_apr, 0.0, 0.0, 1.2, 0.25, True)
+R.check(
+    "a DHW-only cheap day under 1 kWh still grades operation",
+    _cdhw._operation_score is not None
+    and abs(_cdhw._operation_score - 100.0) < 1e-6,
+    "0.8 kWh at 0.40 against a 1.20 flat-consumer mean is >= 20% below",
+)
 _fresh6 = _t2_coord()._scores_view()
 R.check(
-    "a fresh install grades only what it has: the configured envelope",
+    "a fresh install does not publish the house grade as overall",
     _fresh6["machine"] is None
     and _fresh6["operation"] is None
-    and _fresh6["overall"] == _fresh6["envelope"],
-    "machine and operation need measurements; the envelope is the house "
-    "as configured until the learners move its loss scale",
+    and _fresh6["overall"] is None
+    and _fresh6["envelope"] is not None,
+    "envelope stays in the breakdown; overall needs driving evidence",
+)
+_ce._operation_score = None
+_ce._cop_baseline.clear()
+_ce._thermal_params.heat_loss_coefficient = 0.417
+_ce._thermal_params.house_heat_loss_scale = 1.0
+_leaky = _ce._scores_view()
+R.check(
+    "a ~24 h house is not 5/100 overall while nothing has been driven",
+    _leaky["overall"] is None
+    and _leaky["envelope"] is not None
+    and _leaky["envelope"] < 10.0,
 )
 
 # --- #29 the narrative -----------------------------------------------------------
@@ -16551,6 +16658,47 @@ async def _uninterrupted_cycle() -> tuple:
     )
 
 
+async def _shutdown_after_completed_refresh(*, light: bool = False) -> dict:
+    """#533: the handle ``async_shutdown`` cancels must not outlive its refresh.
+
+    ``_async_update_data`` records ``asyncio.current_task()``, and on the
+    inline path -- ``await coordinator.async_refresh()`` -- that task is the
+    CALLER's, not one the coordinator created. Kept past the refresh, the
+    handle makes the entry's next unload cancel whatever the caller went on
+    to do. The caller here is parked on a gate the shutdown does not touch,
+    which is the shape the nightly container lane died in: its driver had
+    driven a refresh, the A5 options save reloaded the entry, and the
+    driver's own task was cancelled before it could emit its results.
+    """
+    coord = _solve_coord()
+    coord._skip_solve_once = light
+    hass = coord.hass
+    refreshed = _asyncio.Event()
+    gate = _asyncio.Event()
+    survived = []
+
+    async def caller():
+        await coord._async_update_data()
+        refreshed.set()
+        await gate.wait()
+        survived.append(True)
+
+    task = hass.async_create_task(caller())
+    await refreshed.wait()
+    handle_after_refresh = coord._refresh_task
+    await coord.async_shutdown()
+    gate.set()
+    try:
+        await task
+    except _asyncio.CancelledError:
+        pass
+    return {
+        "survived": bool(survived),
+        "cancelled": task.cancelled(),
+        "handle_kept": handle_after_refresh is not None,
+    }
+
+
 _lc_real_publish = _lc_mqtt.async_publish
 _lc_mqtt.async_publish = _mqtt_publish_recording
 try:
@@ -16561,6 +16709,8 @@ try:
     _rl_cancel = _asyncio.run(_reload_midsolve(hold_the_solve=False))
     _sa_status, _sa_result = _asyncio.run(_solve_after_shutdown())
     _uc_calls, _uc_saves = _asyncio.run(_uninterrupted_cycle())
+    _sc = _asyncio.run(_shutdown_after_completed_refresh())
+    _sc_light = _asyncio.run(_shutdown_after_completed_refresh(light=True))
 finally:
     _lc_mqtt.async_publish = _lc_real_publish
 
@@ -16584,6 +16734,23 @@ R.check(
     "base class to have done it (#237)",
     _rl_cancel["cancelled"],
     "the refresh task survived shutdown",
+)
+R.check(
+    "and a refresh that already FINISHED leaves no handle behind, so the "
+    "task that drove it survives the unload (#533)",
+    _sc["survived"] and not _sc["cancelled"] and not _sc["handle_kept"],
+    f"caller survived={_sc['survived']}, cancelled={_sc['cancelled']}, "
+    f"handle kept past the refresh={_sc['handle_kept']}",
+)
+R.check(
+    "and the setup-time light refresh -- which runs in the SETUP task and "
+    "never solves -- records no handle at all (#533)",
+    _sc_light["survived"]
+    and not _sc_light["cancelled"]
+    and not _sc_light["handle_kept"],
+    f"caller survived={_sc_light['survived']}, "
+    f"cancelled={_sc_light['cancelled']}, "
+    f"handle kept past the refresh={_sc_light['handle_kept']}",
 )
 R.check(
     "and when nothing cancels the refresh at all -- the ownership question "

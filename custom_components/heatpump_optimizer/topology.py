@@ -43,6 +43,7 @@ from .const import (
     CONF_ENERGY_ENTITY,
     CONF_EXTERNAL_HEAT_ENABLED,
     CONF_EXTERNAL_HEAT_ENTITY,
+    CONF_WOOD_FURNACE_ENABLED,
     CONF_FLOOR_RETURN_TEMP_ENTITY,
     CONF_HEAT_PUMP_DEFROST_ENTITY,
     CONF_HEAT_PUMP_FAULT_ENTITY,
@@ -341,6 +342,19 @@ def layout_edges(
     return edges
 
 
+def _wood_tank_shown(config: dict[str, Any]) -> bool:
+    """Wood tank on the picture: explicit flag, else the leftover-entity trio."""
+    if CONF_WOOD_FURNACE_ENABLED in config:
+        return bool(config[CONF_WOOD_FURNACE_ENABLED])
+    return bool(
+        config.get(CONF_EXTERNAL_HEAT_ENABLED)
+        or config.get(CONF_WOOD_TANK_TOP_ENTITY)
+        or config.get(CONF_WOOD_TANK_BOTTOM_ENTITY)
+        or config.get(CONF_VALVE_OUTLET_TEMP_ENTITY)
+        or config.get(CONF_EXTERNAL_HEAT_ENTITY)
+    )
+
+
 def describe_setup(config: dict[str, Any]) -> dict[str, Any]:
     """The configured system as one structured description.
 
@@ -355,13 +369,7 @@ def describe_setup(config: dict[str, Any]) -> dict[str, Any]:
     # heat-pump tank. Read from the model, never re-derived here, so a picture
     # cannot claim physics the model does not run (issue #40).
     two_tank = p.two_tank_modelled
-    wood = bool(
-        config.get(CONF_EXTERNAL_HEAT_ENABLED)
-        or config.get(CONF_WOOD_TANK_TOP_ENTITY)
-        or config.get(CONF_WOOD_TANK_BOTTOM_ENTITY)
-        or config.get(CONF_VALVE_OUTLET_TEMP_ENTITY)
-        or config.get(CONF_EXTERNAL_HEAT_ENTITY)
-    )
+    wood = _wood_tank_shown(config)
     present = {
         "outdoor": True,
         "upper_zone": True,
