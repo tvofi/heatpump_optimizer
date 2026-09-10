@@ -140,29 +140,94 @@ approval_prefix_agrees() { # title, commit subject
   [ "$a" = "$b" ]
 }
 
-# Replaces the WHOLE `## Head` section with the SHA, rather than substituting
-# the hex token inside it: a section that names two SHAs has no single token to
-# substitute, and #678's step 1 offers to WRITE the head, not to edit prose
-# around it. Refused when the heading is absent -- a body with no `## Head` is
+# Does a declared SHA name a given commit? Either may be an abbreviation, so the
+# comparison is a prefix in both directions rather than equality -- `dcea170`
+# and its 40-character form are the same head, and treating them as different
+# rewrites a body that was already right.
+sha_names() { # declared token, sha -> 0 when the token names that commit
+  local a b
+  a=$(printf '%s' "${1:-}" | tr 'A-Z' 'a-z')
+  b=$(printf '%s' "${2:-}" | tr 'A-Z' 'a-z')
+  [ -n "$a" ] && [ -n "$b" ] || return 1
+  case "$b" in "$a"*) return 0 ;; esac
+  case "$a" in "$b"*) return 0 ;; esac
+  return 1
+}
+
+# Does the `## Head` section still NAME a SHA, by the contract check's own rule?
+# `checkPrBody` tests `headSec.includes(head) || headSec.includes(head.slice(0,
+# 7))`, so this mirrors that substring rather than inventing a second rule the
+# two could disagree about.
+head_section_names() { # body file, sha
+  local pfx
+  pfx=$(printf '%s' "${2:-}" | cut -c1-7)
+  [ -n "$pfx" ] || return 1
+  awk '/^##[[:space:]]/ { insec = ($0 ~ /^##[[:space:]]+Head[[:space:]]*$/); next } insec' \
+    "${1:-/dev/null}" | grep -qiF "$pfx"
+}
+
+# SETS THE SHA AND LEAVES THE SECTION ALONE. It replaced the WHOLE `## Head`
+# section until #715 round twelve, on the reading that a section naming two SHAs
+# has no single token to substitute. That reading cost the record: `## Head` in
+# this programme carries the round-by-round history beside the SHA, and the
+# section's every line but the declaration went with it -- so a push through
+# this script deleted the provenance the script exists to protect. It was never what the contract asked for either:
+# `policy_lint --pr-body --head` tests the section with `includes`, a substring,
+# so naming the SHA is sufficient and the prose may stay.
+#
+# WHAT IS SUBSTITUTED IS THE DECLARATION LINE, not every hex token in the
+# section. A declaration line is one whose whole content, backticks and space
+# stripped, is a single 7-40 hex token -- the shape every body in this programme
+# writes, and the shape `head_section_sha` already reads. Prose that CITES a
+# commit is a different thing and is left standing, which is the whole point.
+# When the section declares no SHA at all the declaration is inserted under the
+# heading instead, because there is then nothing to substitute.
+#
+# THE RESIDUAL IS WARNED, NOT REFUSED. If the prose also cites the superseded
+# SHA it survives the substitution, and the contract check -- a substring --
+# would then still be satisfied at that old head. Refusing there would refuse
+# the prescribed order on a body that is doing nothing wrong, and this file's
+# own `approval_prefix_agrees` already settles that trade: a check that blocks
+# the legitimate path is one a seat routes around. So it states the invariant on
+# stderr and leaves the seat to act on it.
+#
+# Refused when the heading is absent -- a body with no `## Head` is
 # `missing-section`, which the contract check refuses with a better message than
 # this could -- and when the section holds a code fence, because this reader
 # does not track fences and `policy_lint`'s does.
 write_head() { # body file, sha
-  local body="$1" sha="$2" tmp
+  local body="$1" sha="$2" tmp was
   grep -qE '^##[[:space:]]+Head[[:space:]]*$' "$body" || return 1
-  head_section_sha "$body" >/dev/null
   awk '/^##[[:space:]]/ { insec = ($0 ~ /^##[[:space:]]+Head[[:space:]]*$/); next } insec' \
     "$body" | grep -qE '^[[:space:]]*```' && return 2
+  was=$(head_section_sha "$body")
+  sha_names "$was" "$sha" && return 0
   tmp="$body.push.$$"
+  # Two passes over the same file: the first finds the declaration line, the
+  # second rewrites it. `{7,40}` is not used -- interval expressions are not
+  # portable across the awks this runs on -- so the token is measured with
+  # `length()` instead.
   awk -v sha="$sha" '
-    /^##[[:space:]]/ {
-      if ($0 ~ /^##[[:space:]]+Head[[:space:]]*$/) { print; print ""; print "`" sha "`"; print ""; insec = 1; next }
-      insec = 0
+    function isdecl(l,   t) {
+      t = l; gsub(/[[:space:]]/, "", t); gsub(/`/, "", t)
+      return (t ~ /^[0-9a-fA-F]+$/ && length(t) >= 7 && length(t) <= 40)
     }
-    insec { next }
-    { print }
-  ' "$body" > "$tmp" || { rm -f "$tmp"; return 3; }
-  mv "$tmp" "$body"
+    FNR == 1 { insec = 0 }
+    /^##[[:space:]]/ { insec = ($0 ~ /^##[[:space:]]+Head[[:space:]]*$/) }
+    FNR == NR { if (insec && $0 !~ /^##[[:space:]]/ && !decl && isdecl($0)) decl = FNR; next }
+    {
+      if (FNR == decl) { print "`" sha "`"; next }
+      if (pend) { pend = 0; if ($0 !~ /^[[:space:]]*$/) print "" }
+      print
+      if (!decl && $0 ~ /^##[[:space:]]+Head[[:space:]]*$/) { print ""; print "`" sha "`"; pend = 1 }
+    }
+  ' "$body" "$body" > "$tmp" || { rm -f "$tmp"; return 3; }
+  mv "$tmp" "$body" || return 3
+  if [ -n "$was" ] && head_section_names "$body" "$was"; then
+    printf 'push.sh: WARN     `## Head` still names the superseded %s in its prose, so the contract check -- a substring -- is satisfied at that old head too. Left as written, because it is the record; edit it by hand if the sentence is not history.\n' \
+      "$(printf '%s' "$was" | cut -c1-7)" >&2
+  fi
+  return 0
 }
 
 # --- self-test ---------------------------------------------------------------
@@ -274,6 +339,89 @@ if [ "${1:-}" = "--self-test" ]; then
   printf 'no head section here\n' > "$W/nohead.md"
   write_head "$W/nohead.md" "$ZERO"; st $? 1 "write_head refuses a body with no \`## Head\` heading"
   st "$(cat "$W/nohead.md")" "no head section here" "and leaves that body untouched"
+
+  # THE SECTION IS A RECORD, NOT A SLOT. `## Head` in this programme carries the
+  # round-by-round history beside the SHA, and a repair that replaces the WHOLE
+  # section deletes that history every time a seat pushes, which is the tool
+  # destroying the record it exists to protect.
+  # The contract it serves never asked for that: `checkPrBody`'s head test is
+  # `headSec.includes(head) || headSec.includes(head.slice(0, 7))`, a SUBSTRING
+  # over the section, so naming the SHA is enough and the rest may stay.
+  #
+  # The stale direction is the hard one, and it is driven against `policy_lint`
+  # itself rather than against this file's reader, both ways round: the new head
+  # must be named and the old one must NOT, or a section that named both would
+  # satisfy the check at either and the "does not name" refusal would stop
+  # refusing anything.
+  OLD=1111111111111111111111111111111111111111
+  KEEP=abc1234
+  mk_body() { # file, the `## Head` section's content
+    printf '## Head\n\n%s\n\n## Mutation proof\n\nm\n\n## Null control\n\nn\n\n## Figures\n\nf\n\n## Red checks\n\nnone\n\n## Forward-carry\n\nnone\n\n## Friction\n\nnone\n' "$2" > "$1"
+  }
+  mk_body "$W/prose.md" "\`$OLD\`
+
+Round one was measured at \`$KEEP\` and the prose says why."
+  cp "$W/prose.md" "$W/prose.before"
+  WARN=$(write_head "$W/prose.md" "$ZERO" 2>&1 >/dev/null)
+  st $? 0 "write_head succeeds on a \`## Head\` section carrying prose beside the SHA"
+  st "$(head_section_sha "$W/prose.md")" "$ZERO" "and the section names the head it was given"
+  st "$(grep -c 'the prose says why' "$W/prose.md")" "1" \
+     "AND THE PROSE SURVIVED -- the section is the record, not a slot for one token"
+  st "$(wc -l < "$W/prose.md" | tr -d ' ')" "$(wc -l < "$W/prose.before" | tr -d ' ')" \
+     "the repair substitutes one line rather than truncating the section (line count unchanged)"
+  st "$(grep -c "$KEEP" "$W/prose.md")" "1" \
+     "an unrelated SHA the record cites is left where it stands"
+  node .claude/workflows/policy_lint.mjs --pr-body "$W/prose.md" --head "$ZERO" >/dev/null 2>&1
+  st $? 0 "the repaired body passes the contract check at the new head"
+  node .claude/workflows/policy_lint.mjs --pr-body "$W/prose.md" --head "$OLD" >/dev/null 2>&1
+  st $? 1 "AND IS REFUSED AT THE SUPERSEDED ONE -- naming both would empty the \`does not name\` refusal"
+  st "$WARN" "" \
+     "nothing warned: the superseded SHA is gone from the section (null control on the warn below)"
+  # The null control on the repair itself: a body that already names the head is
+  # not rewritten at all. A repair that reformats on every run would still pass
+  # every assertion above and would churn the record once per push.
+  cp "$W/prose.md" "$W/again.md"
+  write_head "$W/again.md" "$ZERO"; st $? 0 "write_head succeeds on a body that already names the head"
+  if cmp -s "$W/again.md" "$W/prose.md"; then IDENT=same; else IDENT=differs; fi
+  st "$IDENT" "same" "and leaves it BYTE-IDENTICAL rather than rewriting it"
+  # THE SAME NULL CONTROL WITH THE DECLARATION ABBREVIATED, which is the one that
+  # is not vacuous. Rewriting a 40-character SHA over itself is byte-identical
+  # whether or not the no-write path exists, so the assertion above passes even
+  # with that path deleted; over `0000000` it does not, and only `sha_names`
+  # reading the abbreviation as the same commit keeps the body untouched.
+  mk_body "$W/abbrev.md" "\`$(printf '%s' "$ZERO" | cut -c1-7)\`
+
+Round one, and this sentence is the record."
+  cp "$W/abbrev.md" "$W/abbrev.before"
+  write_head "$W/abbrev.md" "$ZERO"; st $? 0 "write_head succeeds on a section declaring an ABBREVIATED head"
+  if cmp -s "$W/abbrev.md" "$W/abbrev.before"; then IDENT=same; else IDENT=differs; fi
+  st "$IDENT" "same" "and leaves THAT byte-identical too: an abbreviation names the same commit"
+  node .claude/workflows/policy_lint.mjs --pr-body "$W/abbrev.md" --head "$ZERO" >/dev/null 2>&1
+  st $? 0 "which the contract check accepts, because its test is a substring of the 7-prefix"
+  # No SHA in the section at all: there is nothing to substitute, so the SHA is
+  # inserted under the heading and the prose still stays.
+  mk_body "$W/nosha.md" "This section has prose and names no commit at all."
+  write_head "$W/nosha.md" "$ZERO"; st $? 0 "write_head succeeds on a section that names no SHA"
+  st "$(head_section_sha "$W/nosha.md")" "$ZERO" "and inserts the head under the heading"
+  st "$(grep -c 'names no commit at all' "$W/nosha.md")" "1" "leaving that section's prose in place"
+  node .claude/workflows/policy_lint.mjs --pr-body "$W/nosha.md" --head "$ZERO" >/dev/null 2>&1
+  st $? 0 "and the inserted body passes the contract check"
+  # THE RESIDUAL, STATED AND PINNED. Preserving the section means a superseded
+  # SHA the PROSE also cites survives, and `includes` would then be satisfied at
+  # that old head. It is warned rather than refused, on this file's own
+  # `approval_prefix_agrees` precedent: rewriting the record to satisfy a
+  # substring check is the defect, and a check that blocks the legitimate path
+  # is one a seat routes around.
+  mk_body "$W/echoed.md" "\`$OLD\`
+
+The third round was measured at \`$OLD\`, which is what this sentence is about."
+  WARN=$(write_head "$W/echoed.md" "$ZERO" 2>&1 >/dev/null)
+  st $? 0 "a section whose PROSE also cites the superseded SHA is still repaired"
+  st "$(head_section_sha "$W/echoed.md")" "$ZERO" "and still names the new head first"
+  case "$WARN" in *1111111*) WSEEN=named ;; *) WSEEN="$WARN" ;; esac
+  st "$WSEEN" "named" "and it WARNS, naming the superseded SHA still standing in the prose"
+  st "$(grep -c 'what this sentence is about' "$W/echoed.md")" "1" \
+     "rather than editing the record to suit the check"
   rm -rf "$W"
 
   printf '\n%s passed, %s failed\n' "$st_pass" "$st_fail"
@@ -333,7 +481,7 @@ if [ "$WRITE_HEAD" = "1" ]; then
   WAS=$(head_section_sha "$BODY")
   write_head "$BODY" "$HEAD_SHA"
   case $? in
-    0) if [ "$WAS" = "$HEAD_SHA" ]; then say ok "head" "already $(git rev-parse --short HEAD)"
+    0) if sha_names "$WAS" "$HEAD_SHA"; then say ok "head" "already $(git rev-parse --short HEAD), and nothing was rewritten"
        else say wrote "head" "\`## Head\` now names $(git rev-parse --short HEAD) (was ${WAS:-nothing})"; fi ;;
     1) say REFUSE "head" "no \`## Head\` heading to write into"; exit 3 ;;
     2) say REFUSE "head" "the \`## Head\` section holds a code fence; this reader does not track fences, so write the SHA by hand"; exit 3 ;;
