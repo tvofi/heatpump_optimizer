@@ -10888,6 +10888,36 @@ for _job in ("closures-autofix", "claims-autofix"):
         bool(_rep) and _steps[-1] is _rep[0],
         "a reporting step that preempts the push destroys the repair",
     )
+# The nightly-ha job runs `tests/nightly_ha.py` on the RUNNER, not only in the
+# container, and its host half imports the production package to derive what it
+# stages: `_seed_unique_id` needs `config_flow.entry_identity` for the seed's
+# unique_id, and `load_committed_roster` needs the platform modules for the A3
+# roster. That import resolves `homeassistant` from tests/hastub, which imports
+# voluptuous, and the package itself imports aiohttp -- so a runner with a bare
+# `setup-python` cannot stage at all. #626 added the first such host-side import
+# to a job that installed nothing, and both matrix arms died in `_stage` on two
+# consecutive nights before anything ran inside Home Assistant. This pins the
+# WIRING, not the general class: it says that the one job whose driver imports
+# production on the host installs the dependency set that makes that possible,
+# and it would not notice a DIFFERENT job acquiring the same shape. `typing`,
+# `closure-scope` and both autofix jobs run Python here and install nothing,
+# legitimately, because the scripts they run import neither the package nor the
+# stub -- which is why the derived form of this check ("every job that runs a
+# tests/ script installs the requirements") was measured, over-fired on four
+# jobs, and rejected.
+_NHA_JOB = _workflow_job(_TESTS_YML, "nightly-ha")
+_NHA_STEPS = _NHA_JOB.split("\n      - ")
+_NHA_INSTALL = [i for i, s in enumerate(_NHA_STEPS)
+                if "tests/requirements-ci.txt" in s]
+_NHA_RUN = [i for i, s in enumerate(_NHA_STEPS) if "tests/nightly_ha.py" in s]
+R.check(
+    "nightly-ha installs the dependencies its host-side driver imports",
+    len(_NHA_INSTALL) == 1 and len(_NHA_RUN) == 1
+    and _NHA_INSTALL[0] < _NHA_RUN[0],
+    f"install step(s) at {_NHA_INSTALL}, driver step(s) at {_NHA_RUN}: "
+    "the driver stages the seed and the roster by importing the package on "
+    "the runner, so a bare interpreter cannot reach Docker",
+)
 # A script another script drives in a subprocess reaches the table only
 # through its driver's fold, and --single cannot record it.
 R.check(
