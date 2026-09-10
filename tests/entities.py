@@ -8470,6 +8470,46 @@ R.check(
     and _assigned["entity_id"] == "sensor.hp_power",
 )
 
+from heatpump_optimizer.thermal_model import ThermalParameters as _MVParams  # noqa: E402
+
+_svc_hass.states.set(
+    "sensor.valve_target", FakeState(22.0, unit="°C")
+)
+_ent_assigned = _svc_call(
+    const.SERVICE_ASSIGN_ENTITY,
+    {
+        "key": const.CONF_MIXING_VALVE_TARGET_ENTITY,
+        "entity_id": "sensor.valve_target",
+    },
+)
+R.check(
+    "assign_entity still writes a valve-target entity when one is given",
+    _svc_entry.options.get(const.CONF_MIXING_VALVE_TARGET_ENTITY)
+    == "sensor.valve_target"
+    and _ent_assigned["entity_id"] == "sensor.valve_target",
+)
+
+_man_assigned = _svc_call(
+    const.SERVICE_ASSIGN_ENTITY,
+    {
+        "key": const.CONF_MIXING_VALVE_TARGET_ENTITY,
+        "entity_id": "",
+        "manual_setpoint": 21.0,
+    },
+)
+R.check(
+    "a dumb mixing valve persists the manual setpoint without an entity",
+    _svc_entry.options.get(const.CONF_MIXING_VALVE_TARGET) == 21.0
+    and _svc_entry.options.get(const.CONF_MIXING_VALVE_TARGET_ENTITY) is None
+    and _man_assigned.get("manual_setpoint") == 21.0,
+    f"options={dict(_svc_entry.options)} response={_man_assigned}",
+)
+_merged = {**_svc_entry.data, **_svc_entry.options}
+R.check(
+    "and from_config uses that persisted number as the valve target",
+    _MVParams.from_config(_merged).mixing_valve_target == 21.0,
+)
+
 _svc_call(const.SERVICE_APPLY_TOPOLOGY, {"layout": "no_valve"})
 R.check(
     "apply_topology stores the validated layout",
@@ -11301,6 +11341,73 @@ R.check(
     "an empty list claims nothing and a changed reason is a rewrite; "
     "neither is an inherited list",
 )
+
+# The guard is asked PER FILE KIND, never per branch (2026-09-10). `main`
+# legitimately carries card claims between a card merge and the next stamp,
+# so the first solver branch after one inherits a card list it did not write
+# and cannot have moved -- #735's six, refused on W5-G9 with the one remedy
+# #662 forbids (empty it, and a squash applies the deletion to main). The
+# verdict is a pure function of the three-dot and the four parsed lists, so
+# the live case is pinned here without a repository, with its null control.
+_PK_CO = "custom_components/heatpump_optimizer/coordinator.py"
+_PK_CARD = {"setup_coil": "tank bar on Setup", "setup_two_tank": "tank bar on Setup"}
+R.check(
+    "a solver-only three-dot can move a solver golden and not a card state, "
+    "and the card the reverse",
+    _env_drift.moves_solver_claimable([_PK_CO])
+    and not _env_drift.moves_card_claimable([_PK_CO])
+    and _env_drift.moves_card_claimable([_env_drift.CARD_JS])
+    and not _env_drift.moves_solver_claimable([_env_drift.CARD_JS])
+    and _env_drift.claim_kinds([_PK_CO]) == {
+        _env_drift.CLAIM_FILE: True, _env_drift.CARD_CLAIM_FILE: False
+    },
+    "the two claim files excuse different fixtures moved by different paths",
+)
+R.check(
+    "a solver-only branch that leaves main's card claims exactly as found is "
+    "not refused for them",
+    _env_drift.claims_hygiene_verdict(
+        [_PK_CO], {}, dict(_PK_CARD), {}, dict(_PK_CARD), "origin/main"
+    ) is None,
+    "the card list was written for another diff and this branch cannot move "
+    "a card state; judging it as the branch's own is the W5-G9 refusal",
+)
+_pk_card_branch = _env_drift.claims_hygiene_verdict(
+    [_env_drift.CARD_JS], {}, dict(_PK_CARD), {}, dict(_PK_CARD), "origin/main"
+) or ""
+R.check(
+    "null control: a branch that CAN move a card state is still refused an "
+    "inherited card list",
+    _pk_card_branch.startswith("INHERITED CLAIMS")
+    and _env_drift.CARD_CLAIM_FILE in _pk_card_branch,
+    "the per-kind rule must not have loosened the guard where it bites",
+)
+_pk_foreign = _env_drift.claims_hygiene_verdict(
+    [_PK_CO], {}, {}, {}, dict(_PK_CARD), "origin/main"
+) or ""
+R.check(
+    "a solver-only branch that DELETED main's card claims is refused",
+    _pk_foreign.startswith("RECORD PR CLAIMS")
+    and _env_drift.CARD_CLAIM_FILE in _pk_foreign,
+    "that deletion is exactly what a squash applies to main (#608, #635)",
+)
+R.check(
+    "a solver-only branch with an inherited SOLVER list is still refused",
+    (_env_drift.claims_hygiene_verdict(
+        [_PK_CO], {"wood_coil": "r"}, {}, {"wood_coil": "r"}, {}, "origin/main"
+    ) or "").startswith("INHERITED CLAIMS"),
+    "the kind the branch can move keeps the inherited guard",
+)
+R.check(
+    "a three-dot that can move neither keeps the record-PR rule and message",
+    (_env_drift.claims_hygiene_verdict(
+        ["docs/HANDOVER.md"], {}, {}, {}, dict(_PK_CARD), "origin/main"
+    ) or "").startswith("RECORD PR CLAIMS")
+    and _env_drift.claims_hygiene_verdict(
+        ["docs/HANDOVER.md"], {}, dict(_PK_CARD), {}, dict(_PK_CARD), "origin/main"
+    ) is None,
+    "#662's rule for a record pull request is unchanged",
+)
 _INH_HDR = "# claims-for: 6.3.15\n#\n"
 _INH_FILE = _INH_HDR + "wood_coil  # copied from baseline\n\n# may-drift: wood_coil -- keep\n"
 _INH_DROPPED = _env_drift.drop_inherited_claim_lines(_INH_FILE, _INH_FILE)
@@ -11820,18 +11927,41 @@ R.check(
 )
 # The null control: the same bot on a branch that DID move a fixture still
 # empties an inherited list, which is the behaviour the gate must not have cost.
+# Per FILE KIND (2026-09-10): the bot empties an inherited list only where the
+# branch could have written it. This pin's earlier form gave a SOLVER branch an
+# inherited CARD list and expected "changed" -- which is #608's shape exactly, a
+# card list another lane wrote, emptied and squashed off main by a branch that
+# never touched the card. The positive case is a branch that moved the card.
 _ac2_root, _ac2_base = _hygiene_git(
+    "# claims-for: 6.3.15\n\n"
+    "whatif_edited  # in-window lo floored at the window min; floored band note\n"
+    "whatif_weekly  # weekly-spec in-window lo floor; floored band note\n",
+    {_env_drift.CARD_JS: "// this branch moved the card\n"},
+    py_touch=False,
+)
+_ac2_status = _env_drift.apply_inherited_claims(_ac2_root, ref=_ac2_base)
+R.check(
+    "the autofix still empties an inherited card list on a branch that moved the card",
+    _ac2_status == "changed",
+    f"the gate must not have disabled the autofix outright; status={_ac2_status!r}",
+)
+_ac3_root, _ac3_base = _hygiene_git(
     "# claims-for: 6.3.15\n\n"
     "whatif_edited  # in-window lo floored at the window min; floored band note\n"
     "whatif_weekly  # weekly-spec in-window lo floor; floored band note\n",
     {},
     py_touch=True,
 )
-_ac2_status = _env_drift.apply_inherited_claims(_ac2_root, ref=_ac2_base)
+_ac3_before = (Path(_ac3_root) / "tests" / "golden" / "card_claimed_drift.txt").read_text()
+_ac3_status = _env_drift.apply_inherited_claims(_ac3_root, ref=_ac3_base)
+_ac3_after = (Path(_ac3_root) / "tests" / "golden" / "card_claimed_drift.txt").read_text()
 R.check(
-    "the autofix still empties an inherited list on a branch that moved a fixture",
-    _ac2_status == "changed",
-    f"the gate must not have disabled the autofix outright; status={_ac2_status!r}",
+    "the autofix leaves an inherited CARD list alone on a branch that moved only solver "
+    "files, and writes nothing",
+    _ac3_status == "skip-not-inherited" and _ac3_after == _ac3_before,
+    "a solver branch cannot have written the card list, and emptying it is the "
+    f"deletion a squash applies to main (#608); status={_ac3_status!r} "
+    f"changed={_ac3_after != _ac3_before}",
 )
 
 # AND THE THIRD MECHANISM, which is the one that actually reddened #662's own
@@ -11924,8 +12054,12 @@ R.check(
     f"the resolvable base returned {_hyg(_h_orph_root, _h_orph_base)!r} in the tree that refused the orphan",
 )
 
+# Per FILE KIND (2026-09-10): a solver branch rewrites the solver list and leaves
+# the card list exactly as found. This pin's earlier form emptied the card list on
+# the same branch and expected a pass -- #608's shape, which the per-kind rule
+# refuses (the twin below).
 _h_real_root, _h_real_base = _hygiene_git(
-    "# claims-for: 6.3.15\n",
+    _h493_card,
     {},
     py_touch=True,
 )
@@ -11943,6 +12077,27 @@ R.check(
     "check_claims_hygiene accepts a real claim-bearing PR that moves solver fixtures",
     callable(_hyg) and _h_real_err is None,
     f"optimizer.py + rewritten claims should pass; got {_h_real_err!r}",
+)
+_h_real2_root, _h_real2_base = _hygiene_git(
+    "# claims-for: 6.3.15\n",
+    {},
+    py_touch=True,
+)
+Path(_h_real2_root, "tests/golden/claimed_drift.txt").write_text(
+    "# claims-for: 6.3.15\n\nwinter_single_dhw  # this branch moved the fixture\n"
+)
+_subprocess.run(["git", "add", "-A"], cwd=_h_real2_root, check=True, capture_output=True)
+_subprocess.run(
+    ["git", "commit", "--amend", "--no-edit"],
+    cwd=_h_real2_root, check=True, capture_output=True,
+)
+_h_real2_err = _hyg(_h_real2_root, _h_real2_base) if callable(_hyg) else "missing"
+R.check(
+    "the same solver PR that also EMPTIED the baseline's card list is refused for the card file",
+    callable(_hyg) and isinstance(_h_real2_err, str)
+    and _h_real2_err.startswith("RECORD PR CLAIMS")
+    and _env_drift.CARD_CLAIM_FILE in _h_real2_err,
+    f"a solver branch cannot have written the card list (#608); got {_h_real2_err!r}",
 )
 
 # The other end of the same rule (v6.3.3). The inherited-claims check fires

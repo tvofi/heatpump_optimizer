@@ -2364,10 +2364,36 @@ check("the hand-scheduled reason has a label",
     JSON.stringify(calls));
   check("and sends the slot key and the chosen entity",
     calls.length === 1 && calls[0][2].key === "lower_floor_temp_entity"
-    && calls[0][2].entity_id === "sensor.tank",
+    && calls[0][2].entity_id === "sensor.tank"
+    && calls[0][2].manual_setpoint === undefined,
     JSON.stringify(calls[0] && calls[0][2]));
   check("the picker closes once the assignment is away",
     su.setup.pickerKey === null);
+
+  // Dumb mixing valve: no entity, a typed setpoint.
+  topo.slots.push(
+    { key: "mixing_valve_target_entity", label: "Valve target",
+      place: "mixing_valve", entity: null, domains: TEMP });
+  su.setup.pickerKey = "mixing_valve_target_entity";
+  su._render();
+  const spInput = su.shadowRoot.querySelector(".sp-setpoint");
+  check("the valve-target picker offers a manual setpoint", !!spInput);
+  if (spInput) spInput.value = "21";
+  const callsMv = [];
+  su._hass.callService = async (domain, service, data) => {
+    callsMv.push([domain, service, data]);
+    return true;
+  };
+  const saveMv = su.shadowRoot.querySelector(".sp-save");
+  if (saveMv) await Promise.all(
+    (saveMv._listeners.click || []).map((f) => f({ stopPropagation() {} })));
+  check("saving a dumb valve sends the manual setpoint and no entity",
+    callsMv.length === 1
+    && callsMv[0][1] === "assign_entity"
+    && callsMv[0][2].key === "mixing_valve_target_entity"
+    && callsMv[0][2].entity_id === ""
+    && callsMv[0][2].manual_setpoint === 21,
+    JSON.stringify(callsMv[0] && callsMv[0][2]));
 
   // A failed call must say so rather than looking like it worked.
   su.setup.pickerKey = "lower_floor_temp_entity";

@@ -1,0 +1,17 @@
+{
+  "_comment": "Probe roster for rosterIssues(), which every other acceptance bypasses: the carry fixtures inject CARRY_FIXTURE_ROSTER as a Map, so the function that reads the real wave-*-groups.json files was pinned by nothing. 990010 is the int every roster uses today. \"990011\" and \"990012\" are the numeric strings a typo produces, and reading only ints let one hand that stage a second destination in silence; there are TWO of them so the over-fire control cannot be met by a reader that maps every string to one constant. \"NA\" is that control: a non-numeric entry must index nothing, or the widening became a rule claiming every roster covers every issue.",
+  "groups": [
+    {
+      "group": "PROBE-INT",
+      "issues": [990010],
+      "brief": "Probe group. Not dispatched; read only by assertRosterIssues in brief_lint.mjs.",
+      "resume": { "stage": "done" }
+    },
+    {
+      "group": "PROBE-STR",
+      "issues": ["990011", "990012", "NA"],
+      "brief": "Probe group. Not dispatched; read only by assertRosterIssues in brief_lint.mjs.",
+      "resume": { "stage": "done" }
+    }
+  ]
+}

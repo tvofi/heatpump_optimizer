@@ -8,7 +8,7 @@ paths:
 ---
 # Brief-linter citations
 
-`node .claude/workflows/brief_lint.mjs` (path #416 lands) lints each group's `brief` in `.claude/workflows/wave-*-groups.json`. It does not read `docs/plan-*.md`, `docs/HANDOVER.md`, or `tools/audit/briefs/`.
+`node .claude/workflows/brief_lint.mjs` (path #416 lands) lints each group's `brief` in `.claude/workflows/wave-*-groups.json` and each carry in `.claude/workflows/carry-<N>.json`. It does not read `docs/plan-*.md`, `docs/HANDOVER.md`, or `tools/audit/briefs/`.
 
 **Where they go.** New programme plans and wave briefs put load-bearing citations in `wave-*-groups.json` (or the linter's input set) in a form that script can resolve. Do not leave critical citations only in free-form markdown. Extending the plan format means extending the linter in the same PR. Do not weaken the linter to fit a citation.
 

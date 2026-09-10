@@ -21,15 +21,9 @@
 #
 # claims-for: 6.3.20
 #
-# Setup page now draws add/remove tank toggles (and the away strip when
-# Away is on). The stylesheet is unchanged, so plan and collapsed states
-# stay byte-identical.
-setup_single_buffer  # tank bar on Setup
-setup_two_tank  # tank bar on Setup
-setup_coil  # tank bar on Setup
-layout_editing_dragged  # tank bar on Setup
-layout_editing_tidy  # tank bar on Setup
-picker_open_filtered  # tank bar on Setup
+# This branch claims NOTHING. The valve-target picker gains a number field;
+# picker_open_filtered opens wood_tank_top_entity, so every recorded state
+# stays byte-identical. The six tank-bar claims on main are not this diff.
 #
 # v6.3.20: Seven leftover product features, W5-G3 typing, and the disposition-before-merge record. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
