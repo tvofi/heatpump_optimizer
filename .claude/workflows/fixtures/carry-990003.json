@@ -1,0 +1,15 @@
+{
+  "_comment": [
+    "Acceptance fixture: the destination file EXISTS and holds nothing. That is",
+    "the empty-array arm, and it is the only missing-carry arm a tree scan can",
+    "have: a carry file that was never created is not in the scan, so nothing",
+    "here can report it. Its absence is refused one layer up, by policy_lint's",
+    "--pr-body check on `## Forward-carry`, which errors on a destination not in",
+    "the tree. What neither layer can decide is a pull request that OWED a carry",
+    "and wrote `none`; that needs knowing a finding existed, and stays with the",
+    "fix reviewer."
+  ],
+  "issue": 990003,
+  "stage": "acceptance probe standing in for a destination nobody wrote to",
+  "carries": []
+}

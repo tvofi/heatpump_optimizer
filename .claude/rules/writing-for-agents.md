@@ -45,7 +45,7 @@ rather than asking one file to be both.
 no second copy. Decisions and the measurement behind them, corrections to the
 record, traps, owed work. It is updated **in the same pull request as the merge
 it records**, riding the per-merge record obligation in
-`delivery-status-tracking.md` so it costs no extra pull request, and its
+`delivery-status-tracking.md`, whose cost is that pull request, and its
 `updated-for:` line names that merge. It links to the
 Delivery-status table rather than restating it, and it names an instrument — a
 metric, a cap, `--budgets` — never the figure that instrument prints.

@@ -225,9 +225,9 @@ is not one.
 
 ## 9. The record, and the one living handover
 
-`delivery-status-tracking.mdc`, at **each merge** and not at session end — the
-record pull request that carries a merge carries this too, so it costs no extra
-pull request, and batching to the end is how an abort loses it.
+`delivery-status-tracking.mdc`, at **each merge** and not at session end, and
+batching to the end is how an abort loses it. A merge whose own pull request is
+frozen by the handoff costs a record pull request; that is the price, not zero.
 
 - The **Delivery-status table**, authoritative where it and a wave body disagree.
 - The roster **`resume` fields**, matched against measured `origin/main`.
