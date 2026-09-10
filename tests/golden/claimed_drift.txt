@@ -47,6 +47,14 @@
 #
 # claims-for: 6.3.20
 #
+# Overall is machine and operation only. Fresh coordinator captures have
+# neither, so insight.scores.overall is null instead of the house grade.
+coord_all_features  # overall is null until machine or operation has evidence
+coord_dhw  # overall is null until machine or operation has evidence
+coord_grid_fee  # overall is null until machine or operation has evidence
+coord_minimal  # overall is null until machine or operation has evidence
+coord_two_zone  # overall is null until machine or operation has evidence
+#
 # v6.3.20: Seven leftover product features, W5-G3 typing, and the disposition-before-merge record. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
