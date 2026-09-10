@@ -183,17 +183,17 @@ production lines. You work in your own worktree branched from `origin/main`.
     risk. #714 declined an entry in `tests/nightly_ha.py`'s `KNOWN_BLOCKING`,
     keyed on (call, file, source snippet): its report was legitimate only
     because the caller was `atexit`, running after the loop was gone, and no
-    field of that key carries a caller, so the entry would equally have matched
-    that line reached from a coroutine — #525's class, at the one site the pin
-    exists to watch.
+    field of that key carries a caller — so the entry would equally have
+    matched that line reached from a coroutine, #525's class at the one site
+    the pin exists to watch.
 
     **A fix that changes the route leaves the reported text where it was, so
-    name the route.** #714 rerouted the caller and left `coordinator.py`'s
-    `worker.wait(timeout=2)` at the line number the warning had printed, so a
-    reader who greps the report's own call, file, line and snippet finds all
-    four unchanged and reads the defect as open, and one who greps for their
-    absence finds nothing and reads the same. Anchor the claim to what moved —
-    the branch, the registration, the frame count — not to the snippet.
+    name the route.** #714 rerouted the caller and left `worker.wait(timeout=2)`
+    in place: grepping the report's own call, file and snippet finds them
+    unchanged and reads the defect as open, and grepping for their absence
+    finds nothing and reads the same. The line is no help either — not in the
+    key, and #714's own docstring moved that call 24 lines. Anchor the claim to
+    what moved: branch, registration, frame count.
 
 **When a structural budget blocks the work.** A `tests/structure.py` failure is
 a decision point, not a wall, and it has three answers rather than two: pay for
@@ -230,8 +230,9 @@ reviewer can wave through, so an agent that finds itself wanting one **stops and
 asks** rather than proceeding and explaining afterwards. A metric sitting at
 zero headroom is not a veto on new functionality, and asking is an available
 move — #398 was refused in part because `coordinator_attrs` stood at 176/176
-and a new attribute was read as costing the deletion of an existing one. `cross_seam_fraction` is exempt from
-all of this: it is a tolerance metric and is **never** re-recorded.
+and a new attribute was read as costing the deletion of an existing one.
+`cross_seam_fraction` is exempt from all of this: it is a tolerance metric and
+is **never** re-recorded.
 
 ## Before you hand off: carry what you found forward
 
