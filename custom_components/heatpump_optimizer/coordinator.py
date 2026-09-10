@@ -25,6 +25,7 @@ from bisect import bisect_right
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from collections.abc import Callable
 from typing import Any, NamedTuple
 
 import aiohttp
@@ -33,12 +34,12 @@ import numpy as np
 from homeassistant.components import mqtt
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EVENT_HOMEASSISTANT_STOP, UnitOfSpeed
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import DeviceEntryType
 from homeassistant.helpers.entity import DeviceInfo
-from homeassistant.helpers.event import async_track_state_change_event
+from homeassistant.helpers.event import EventStateChangedData, async_track_state_change_event
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
@@ -334,6 +335,7 @@ from .comfort_learning import ComfortLearner, OverrideEvent
 from .defrost import DefrostDerate, DefrostWindow, in_frost_band
 from . import pump_signals
 from . import setpoint_check
+from .pump_mode import ModeCapability
 from .pump_signals import PumpSignals
 from .manual_plan import (
     CHANNEL_DHW,
@@ -511,7 +513,7 @@ def _comparable_ts(raw: Any, reference: datetime) -> datetime | None:
     return ts
 
 
-def forecast_outdoor_now(forecast: list[dict], now: datetime) -> float | None:
+def forecast_outdoor_now(forecast: list[dict[str, Any]], now: datetime) -> float | None:
     """The outdoor temperature the solve horizon starts on, °C.
 
     The plan is solved on the forecast, not on the outdoor thermometer, and
@@ -711,7 +713,7 @@ COP_LEARNING_MAX_STEP = 0.05
 
 
 _PROCESS_LOCK = threading.Lock()
-_PROCESS_WORKER: subprocess.Popen | None = None
+_PROCESS_WORKER: "subprocess.Popen[bytes] | None" = None
 _PROCESS_ATEXIT = False
 _WORKER_FALLBACK_CAUSE: str | None = None
 
@@ -749,7 +751,7 @@ def _worker_env() -> dict[str, str]:
     return env
 
 
-def _ensure_worker() -> subprocess.Popen:
+def _ensure_worker() -> "subprocess.Popen[bytes]":
     """Persistent child interpreter. Not multiprocessing: spawn reimports __main__."""
     global _PROCESS_WORKER, _PROCESS_ATEXIT
     worker = _PROCESS_WORKER
@@ -813,7 +815,7 @@ def _shutdown_process_pool(*, at_exit: bool = False) -> None:
 
 
 @callback
-def async_register_worker_shutdown(hass, entry) -> None:
+def async_register_worker_shutdown(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Reap the solve worker at Home Assistant's stop, on the executor (#525).
 
     ``Popen.wait`` polls with ``time.sleep``, and the ``atexit`` backstop
@@ -824,7 +826,7 @@ def async_register_worker_shutdown(hass, entry) -> None:
     up one-shot listeners.
     """
 
-    async def _stop(_event) -> None:
+    async def _stop(_event: Event) -> None:
         await hass.async_add_executor_job(_shutdown_process_pool)
 
     entry.async_on_unload(
@@ -832,7 +834,7 @@ def async_register_worker_shutdown(hass, entry) -> None:
     )
 
 
-def _run_in_process(fn, args):
+def _run_in_process(fn: Callable[..., Any], args: tuple[Any, ...]) -> Any:
     """Run ``fn(*args)`` in the process worker. ``fn`` must be picklable."""
     global _PROCESS_WORKER
     with _PROCESS_LOCK:
@@ -865,12 +867,12 @@ def _run_in_process(fn, args):
     return payload
 
 
-async def _await_process(hass, fn, *args):
+async def _await_process(hass: HomeAssistant, fn: Callable[..., Any], *args: Any) -> Any:
     """Park on HA's executor; the CPU work is in another interpreter."""
     return await hass.async_add_executor_job(_run_in_process, fn, args)
 
 
-def _note_worker_fallback(hass, err) -> None:
+def _note_worker_fallback(hass: HomeAssistant, err: BaseException) -> None:
     """Say that the plan came from the slow route, and why (#511).
 
     Silence here is what let a worker that could unpickle nothing ship in
@@ -902,7 +904,7 @@ def _note_worker_fallback(hass, err) -> None:
     )
 
 
-def _clear_worker_fallback(hass) -> None:
+def _clear_worker_fallback(hass: HomeAssistant) -> None:
     """The process route carried a solve again; withdraw the notice."""
     global _WORKER_FALLBACK_CAUSE
     if _WORKER_FALLBACK_CAUSE is None:
@@ -911,7 +913,13 @@ def _clear_worker_fallback(hass) -> None:
     ir.async_delete_issue(hass, DOMAIN, "solve_worker_fallback")
 
 
-async def _await_optimize(hass, optimizer, state, *positional, **keywords):
+async def _await_optimize(
+    hass: HomeAssistant,
+    optimizer: Any,
+    state: ThermalState,
+    *positional: Any,
+    **keywords: Any,
+) -> Any:
     """Submit ``optimizer.optimize`` through the process pool (#199 #290).
 
     A worker that cannot carry the job degrades to an in-process solve rather
@@ -932,7 +940,7 @@ async def _await_optimize(hass, optimizer, state, *positional, **keywords):
     return result
 
 
-def _diagnose_payload(coord) -> tuple:
+def _diagnose_payload(coord: "HeatPumpOptimizerCoordinator") -> tuple[Any, ...]:
     """Picklable diagnose args; the coordinator itself is not picklable."""
     record = coord._last_interval_record
     if record is None:
@@ -940,12 +948,12 @@ def _diagnose_payload(coord) -> tuple:
     return record, copy.deepcopy(coord._thermal_params)
 
 
-def _store_diagnosis(coord, report) -> None:
+def _store_diagnosis(coord: "HeatPumpOptimizerCoordinator", report: dict[str, Any] | None) -> None:
     if report is not None:
         coord._last_diagnosis = report
 
 
-def _sim_coldest(plan) -> float | None:
+def _sim_coldest(plan: OptimizationResult) -> float | None:
     """Lowest temperature the plan actually reaches, in either zone."""
     series = [
         s
@@ -959,7 +967,7 @@ def _sim_coldest(plan) -> float | None:
     return round(min(min(s) for s in series), 2) if series else None
 
 
-def _sim_dhw_low(plan) -> float | None:
+def _sim_dhw_low(plan: OptimizationResult) -> float | None:
     if not plan.dhw_temp_trajectory:
         return None
     return round(float(min(plan.dhw_temp_trajectory)), 2)
@@ -976,17 +984,17 @@ class CoordinatorContext:
     _opt_config: OptimizationConfig
 
 
-def _hub(name: str):
+def _hub(name: str) -> property:
     """Facade for a write-once hub. Tests that ``object.__new__`` a
     coordinator and duck-typed harnesses without ``_ctx`` still resolve."""
 
-    def get(self, n=name):
+    def get(self: Any, n: str = name) -> Any:
         ctx = self.__dict__.get("_ctx")
         if ctx is not None:
             return getattr(ctx, n)
         return self.__dict__[n]
 
-    def set(self, value, n=name):
+    def set(self: Any, value: Any, n: str = name) -> None:
         ctx = self.__dict__.get("_ctx")
         if ctx is not None:
             self.__dict__["_ctx"] = replace(ctx, **{n: value})
@@ -996,7 +1004,7 @@ def _hub(name: str):
     return property(get, set)
 
 
-def _grid_fee_entity_value(hass, config: dict[str, Any]) -> float | None:
+def _grid_fee_entity_value(hass: HomeAssistant, config: dict[str, Any]) -> float | None:
     """The live SEK/kWh fee entity's value, when one is configured."""
     entity_id = config.get(CONF_GRID_FEE_ENTITY)
     if not entity_id:
@@ -1212,7 +1220,7 @@ def _ecl110_legacy_payload(
 
 
 async def _publish_ecl110_topics(
-    hass,
+    hass: HomeAssistant,
     set_topic: str | None,
     command_topic: str | None,
     qos: Any,
@@ -1373,7 +1381,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             if unsub is not None:
                 unsub()
 
-    def _spawn(self, coro) -> Any:
+    def _spawn(self, coro: Any) -> Any:
         """Fire-and-forget a coroutine, but keep the task until it lands.
 
         Home Assistant tracks tasks itself; this set exists so
@@ -1412,7 +1420,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._immersion_events: list[str] = []
         # #42: the weekly ring of learner snapshots.
         self._snapshot_ring = SnapshotRing()
-        self._snapshot_store: Store = Store(
+        self._snapshot_store: Store[dict[str, Any]] = Store(
             hass, 1, f"{DOMAIN}_{entry.entry_id}_snapshots"
         )
         self._rollback_done_for_alarm: bool = False
@@ -1452,7 +1460,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
     # -- construction, one concern at a time ---------------------------------
 
-    def _init_model(self, config: dict[str, Any]):
+    def _init_model(self, config: dict[str, Any]) -> tuple[ThermalParameters, OptimizationConfig]:
         """The thermal model, the optimizer, and the configuration between."""
         thermal_params = ThermalParameters.from_config(config)
         self._thermal_model = ThermalModel(thermal_params)
@@ -1479,8 +1487,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # repair issue all key off it and off the last success time.
         self._solve_failures: int = 0
         self._next_optimization: datetime | None = None
-        self._prices: list[dict] = []
-        self._weather_forecast: list[dict] = []
+        self._prices: list[dict[str, Any]] = []
+        self._weather_forecast: list[dict[str, Any]] = []
         # Weather staleness (M2): a failed or empty fetch marks the forecast
         # stale from that moment; the payload publishes the age so a plan
         # built on stale weather can say so. None means fresh.
@@ -1495,7 +1503,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # The lifecycle seam (#236, #237): one latch for "this entry is gone",
         # and the refresh handle shutdown cancels -- HA cancels an entry's
         # BACKGROUND tasks, and the scheduled refresh may not be one.
-        self._entry_released: bool = False
+        self._entry_released = False
         self._refresh_task: Any = None
         self._tibber_outage_cycles: int = 0
         # One reauth flow per auth outage (D10-08): re-armed on recovery.
@@ -1545,7 +1553,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             ),
         )
         self._dhw_last_legionella: datetime | None = None
-        self._dhw_legionella_store: Store = Store(
+        self._dhw_legionella_store: Store[dict[str, Any]] = Store(
             hass,
             DHW_PROFILE_STORE_VERSION,
             f"{DOMAIN}_{entry.entry_id}_dhw_legionella",
@@ -1602,7 +1610,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._lower_floor_loss_ratio: float = DEFAULT_LOWER_FLOOR_LOSS_RATIO
         self._lower_floor_loss_samples: int = 0
 
-        self._thermal_learning_store: Store = Store(
+        self._thermal_learning_store: Store[dict[str, Any]] = Store(
             hass,
             THERMAL_LEARNING_STORE_VERSION,
             f"{DOMAIN}_{entry.entry_id}_thermal_learning",
@@ -1663,7 +1671,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._price_model = PriceShapeModel()
         self._price_days_seen: set[str] = set()
         self._price_known_steps: int = 0
-        self._price_model_store: Store = Store(
+        self._price_model_store: Store[dict[str, Any]] = Store(
             hass,
             PRICE_MODEL_STORE_VERSION,
             f"{DOMAIN}_{entry.entry_id}_price_model",
@@ -1672,7 +1680,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._price_qdays_seen: set[str] = set()
 
         # --- Grid transfer fees and the monthly ledger (v4.0.0 T1) ---------
-        self._grid_fee_cache: tuple | None = None
+        self._grid_fee_cache: "tuple[Any, GridFeeSchedule] | None" = None
         # The fee magnitude the standing "grid_fee_magnitude" repair issue
         # was raised for; None = no issue. Re-raising every cycle would
         # refresh the issue's timestamp and bury when the bad value first
@@ -1688,7 +1696,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # was raised for; None = no issue.
         self._band_issue_problem: str | None = None
         self._ledger = MonthlyLedger()
-        self._ledger_store: Store = Store(
+        self._ledger_store: Store[dict[str, Any]] = Store(
             hass,
             1,
             f"{DOMAIN}_{entry.entry_id}_ledger",
@@ -1702,13 +1710,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # #40: receipts frozen at month rollover. Frozen rather than
         # recomputed on read, so a receipt never changes after the month it
         # describes has closed.
-        self._month_reports: dict[str, dict] = {}
+        self._month_reports: dict[str, dict[str, Any]] = {}
         # #65: the operation score's day book (today's settled kWh, SEK and
         # spot samples) plus the smoothed score, persisted with the ledger.
         self._score_day: dict[str, Any] = {}
         self._operation_score: float | None = None
         # #39: the price tiles, refreshed one per scheduled solve.
-        self._price_tiles: dict[str, dict] = {}
+        self._price_tiles: dict[str, dict[str, Any]] = {}
         self._price_tile_cursor = 0
         # #52: the last settled interval's (planned, realised, actual)
         # triple, and the latest attribution run over one. In memory only:
@@ -1721,7 +1729,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
         # --- Live peak guard, fuse and outage recovery (v4.0.0 T2) ---------
         self._peak_guard = GuardState()
-        self._unsub_peak_guard = None
+        self._unsub_peak_guard: Callable[[], None] | None = None
         self._guard_last_fold: datetime | None = None
         self._fuse_advisor: dict[str, Any] = {}
         self._fuse_advisor_at: datetime | None = None
@@ -1771,7 +1779,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # not the tank's.
         self._dhw_accuracy = AccuracyTracker()
         self._pending_prediction: dict[str, Any] | None = None
-        self._accuracy_store: Store = Store(
+        self._accuracy_store: Store[dict[str, Any]] = Store(
             hass,
             ACCURACY_STORE_VERSION,
             f"{DOMAIN}_{entry.entry_id}_accuracy",
@@ -1800,7 +1808,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # The last operating mode that was actually recognised, kept so a mode
         # entity that drops out falls back to what the pump last said rather
         # than to "it can do everything". None until one is seen.
-        self._pump_mode_last_good = None
+        self._pump_mode_last_good: ModeCapability | None = None
         # When that mode was actually read. The fallback is bounded by it:
         # see MODE_LAST_GOOD_MAX_AGE_MINUTES for why an unbounded one made
         # the mode entity's freshness horizon do nothing at all.
@@ -1831,7 +1839,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         #: The date the lifetime accumulators started, restored from the
         #: energy store; set on first publish when the store has none.
         self._energy_totals_since: str | None = None
-        self._energy_store: Store = Store(
+        self._energy_store: Store[dict[str, Any]] = Store(
             hass,
             ENERGY_STORE_VERSION,
             f"{DOMAIN}_{entry.entry_id}_energy",
@@ -1843,7 +1851,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # options reloads the whole entry) so a plan survives a restart within
         # the day it was set for.
         self._manual_override: ManualOverride | None = None
-        self._manual_plan_store: Store = Store(
+        self._manual_plan_store: Store[dict[str, Any]] = Store(
             hass,
             MANUAL_PLAN_STORE_VERSION,
             f"{DOMAIN}_{entry.entry_id}_manual_plan",
@@ -2003,12 +2011,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         flow rewrites the options dict on every page it leaves, so only a
         save that changes the effective config earns a reload.
         """
-        return getattr(self, "_ctx", self)._config
+        config: dict[str, Any] = getattr(self, "_ctx", self)._config
+        return config
 
     @property
     def target_temperature(self) -> float:
         """The comfort target the user configured."""
-        return getattr(self, "_ctx", self)._opt_config.target_temp
+        return float(getattr(self, "_ctx", self)._opt_config.target_temp)
 
     async def async_set_target_temperature(self, temperature: float) -> None:
         """Change the comfort target and persist it across restarts.
@@ -2044,7 +2053,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             options={**self.entry.options, CONF_TARGET_TEMP: temperature},
         )
     @property
-    def prices(self) -> list[dict]:
+    def prices(self) -> list[dict[str, Any]]:
         return self._prices
 
     @property
@@ -2521,7 +2530,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             )
         self._load_t4b_learners(stored)
 
-    def _load_t4b_learners(self, stored: dict) -> None:
+    def _load_t4b_learners(self, stored: dict[str, Any]) -> None:
         """Parse the T4b learners' additive keys (#17 #36 #53 #2).
 
         One parser for both the store loader and the snapshot restore, so
@@ -2776,7 +2785,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             hi.append(round(float(value) + sigma, 2))
         return lo, hi
 
-    def _build_plan_views(self, result) -> dict[str, Any]:
+    def _build_plan_views(self, result: OptimizationResult) -> dict[str, Any]:
         """Full-resolution space heating and DHW plans for the plan sensors.
 
         Same horizon as ``schedule`` / ``dhw_schedule`` (those keys used to
@@ -2790,7 +2799,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if not n:
             return {"space_plan": {}, "dhw_plan": {}}
 
-        def series(values, offset: int = 0, fill: float | None = None):
+        def series(values: Any, offset: int = 0, fill: float | None = None) -> list[float | None]:
             out: list[float | None] = []
             for i in range(n):
                 idx = i + offset
@@ -3083,7 +3092,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             capacity = params.buffer_tank_thermal_mass
         if capacity <= 1e-6:
             return None
-        return thermal_kw / capacity
+        return float(thermal_kw / capacity)
     def _external_heat_override(self, reader: InputReader) -> bool | None:
         """State of a user-provided stove/flue entity, if one is configured.
 
@@ -3165,13 +3174,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         params = ctx._thermal_params
         state = ctx._current_state
         if params.two_zone_enabled:
-            u = params.upper_floor_heat_loss + params.lower_floor_heat_loss
+            u = float(params.upper_floor_heat_loss + params.lower_floor_heat_loss)
         else:
-            u = params.heat_loss_coefficient
-        return max(
-            0.0,
-            u * (state.room_temperature - state.outdoor_temperature),
-        )
+            u = float(params.heat_loss_coefficient)
+        return max(0.0, float(u * (state.room_temperature - state.outdoor_temperature)))
     def _update_external_heat_detection(self) -> None:
         """Fold this interval's observation into the external-heat detector."""
         ctx = getattr(self, "_ctx", self)
@@ -3520,11 +3526,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         """
         p = getattr(self, "_ctx", self)._thermal_params
         if p.two_zone_enabled:
-            return (
+            return float(
                 p.upper_floor_heat_loss
                 + p.lower_floor_heat_loss * self._lower_floor_loss_ratio
             )
-        return p.heat_loss_coefficient
+        return float(p.heat_loss_coefficient)
 
     def _reanchor_house_heat_loss_scale(self, anchor: float | None) -> bool:
         """Re-express the learned scale against the UA now configured.
@@ -4447,7 +4453,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         since = self._dhw_hours_since_legionella()
         if since is None:
             return None
-        return round(params.dhw_legionella_interval_days * 24.0 - since, 1)
+        return float(round(params.dhw_legionella_interval_days * 24.0 - since, 1))
 
     def _check_pump_mode_expired(self) -> None:
         """Say so when the mode entity has gone quiet long enough to stop acting.
@@ -4563,7 +4569,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         now = dt_util.now()
         return now.hour + now.minute / 60.0
 
-    def _dhw_effective_windows(self) -> list:
+    def _dhw_effective_windows(self) -> list[Any]:
         """Demand windows the optimizer is actually planning against."""
         result = self._optimization_result
         planned = (result.predictive_info or {}).get("dhw_windows") if result else None
@@ -4572,7 +4578,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 return parse_windows(planned)
             except DHWWindowError:
                 pass
-        return getattr(self, "_ctx", self)._thermal_params.dhw_demand_windows
+        windows: list[Any] = getattr(self, "_ctx", self)._thermal_params.dhw_demand_windows
+        return windows
 
     def _dhw_in_demand_window(self) -> bool:
         """Whether hot water is required right now."""
@@ -5362,9 +5369,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._floor_return_temp = floor_return.value
             ctx._current_state.floor_return_temperature = self._floor_return_temp
             # Update slab temperature estimate from return temp
-            self._thermal_model.update_slab_from_return_temp(
-                ctx._current_state, self._floor_return_temp
-            )
+            if (floor_temp := self._floor_return_temp) is not None:
+                self._thermal_model.update_slab_from_return_temp(
+                    ctx._current_state, floor_temp
+                )
 
         # The lower zone's room temperature, best source first.
         #
@@ -5403,8 +5411,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # throttling -- and therefore whether surplus heat can reach the tank
         # at all -- so charging cannot be planned without it.
         valve_target = reader.read(CONF_MIXING_VALVE_TARGET_ENTITY)
-        if valve_target.ok:
-            ctx._thermal_params.mixing_valve_target = float(valve_target.value)
+        if valve_target.ok and (valve_value := valve_target.value) is not None:
+            ctx._thermal_params.mixing_valve_target = float(valve_value)
 
         # Measured electrical draw. Optional, and everything downstream has to
         # degrade cleanly without it, because most installs will not have one.
@@ -5425,9 +5433,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # configured or the sensor is not reporting.
         solar = reader.read(CONF_SOLAR_RADIATION_ENTITY)
         solar_from_sensor = False
-        if solar.ok:
-            self._solar_radiation = solar.value
-            ctx._current_state.solar_radiation = self._solar_radiation
+        if solar.ok and (solar_value := solar.value) is not None:
+            self._solar_radiation = solar_value
+            ctx._current_state.solar_radiation = solar_value
             solar_from_sensor = True
 
         if not solar_from_sensor and self._open_meteo is not None:
@@ -5518,11 +5526,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # need to know that rather than quietly absorbing it.
         self._update_external_heat_detection()
 
-        if dhw.ok:
-            frozen = await self._dhw_learner.async_learn_dynamics(dhw.value)
+        if dhw.ok and (dhw_value := dhw.value) is not None:
+            frozen = await self._dhw_learner.async_learn_dynamics(dhw_value)
             if frozen:
                 self._learner_freeze_reason = frozen
-            await self._async_track_dhw_legionella(dhw.value)
+            await self._async_track_dhw_legionella(dhw_value)
 
         # Deliberately NOT gated on `dhw.ok`: the observer above is the only
         # reset path there was, and it cannot run without a tank reading —
@@ -5539,8 +5547,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._dhw_hours_since_legionella()
         )
 
-        if buffer_reading.ok:
-            await self._async_learn_buffer_cooling(buffer_reading.value)
+        if buffer_reading.ok and (buffer_value := buffer_reading.value) is not None:
+            await self._async_learn_buffer_cooling(buffer_value)
 
         # Refine the building fabric model from how the last interval actually
         # went. Runs last so it sees the fully populated state.
@@ -5874,8 +5882,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
     def _solar_forecast_source(self) -> str:
         """Configured irradiance source."""
-        return getattr(self, "_ctx", self)._config.get(
-            CONF_SOLAR_FORECAST_SOURCE, DEFAULT_SOLAR_FORECAST_SOURCE
+        return str(
+            getattr(self, "_ctx", self)._config.get(
+                CONF_SOLAR_FORECAST_SOURCE, DEFAULT_SOLAR_FORECAST_SOURCE
+            )
         )
 
     def _solar_location(self) -> tuple[float, float] | None:
@@ -6128,10 +6138,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             )
             parsed.append((ts, (temp, gust, rain, irradiance, rh)))
 
-        timed = sorted(
-            (item for item in parsed if item[0] is not None),
-            key=lambda item: item[0],
-        )
+        datable = [(ts, values) for ts, values in parsed if ts is not None]
+        timed = sorted(datable, key=lambda item: item[0])
         outdoor: list[float] = []
         wind: list[float] = []
         precipitation: list[float] = []
@@ -6361,7 +6369,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     if ts.tzinfo is None:
                         ts = ts.replace(tzinfo=timezone.utc)
                     if ts <= now < ts + timedelta(hours=1):
-                        return price_entry.get("total", 0)
+                        return float(price_entry.get("total", 0))
                 except (ValueError, TypeError):
                     continue
 
@@ -6381,11 +6389,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         )
         cache = self._grid_fee_cache
         if cache is None or cache[0] != key:
-            self._grid_fee_cache = (
-                key,
-                GridFeeSchedule.from_config(ctx._config),
-            )
-        return self._grid_fee_cache[1]
+            cache = (key, GridFeeSchedule.from_config(ctx._config))
+            self._grid_fee_cache = cache
+        return cache[1]
     def _fee_series(self, step_starts: list[datetime]) -> np.ndarray:
         schedule = self._grid_fee_schedule()
         entity_value = _grid_fee_entity_value(
@@ -7248,17 +7254,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             # of the day. A day book is one day of evidence — dropping a
             # corrupt one costs one operation sample, never the loop.
             try:
-                cleaned = {
-                    "day": str(day.get("day") or ""),
-                    "kwh": float(day.get("kwh", 0.0)),
-                    "sek": float(day.get("sek", 0.0)),
-                    "spot_sum": float(day.get("spot_sum", 0.0)),
-                    "spot_h": float(day.get("spot_h", 0.0)),
+                numbers = {
+                    key: float(day.get(key, 0.0))
+                    for key in ("kwh", "sek", "spot_sum", "spot_h")
                 }
+                cleaned = {"day": str(day.get("day") or ""), **numbers}
                 if cleaned["day"] and all(
-                    np.isfinite(v)
-                    for k, v in cleaned.items()
-                    if k != "day"
+                    np.isfinite(v) for v in numbers.values()
                 ):
                     self._score_day = cleaned
             except (TypeError, ValueError, OverflowError):
@@ -7316,7 +7318,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         )
         self._apply_comfort_weight()
     async def _async_save_if_changed(
-        self, name: str, store: Store, payload: dict[str, Any]
+        self, name: str, store: Store[dict[str, Any]], payload: dict[str, Any]
     ) -> None:
         """Write ``payload`` unless the store already holds exactly it.
 
@@ -7682,7 +7684,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             return frozenset()
         return frozenset(months)
 
-    def _tariff_hours(self) -> tuple:
+    def _tariff_hours(self) -> tuple[Any, ...]:
         """The #13 peak-hour windows, empty (= every hour) when unset."""
         spec = str(
             getattr(self, "_ctx", self)._config.get(CONF_PEAK_TARIFF_HOURS, DEFAULT_PEAK_TARIFF_HOURS)
@@ -7746,7 +7748,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         _LOGGER.info("Defrost duty measured from %s", entity)
 
     @callback
-    def _on_defrost_event(self, event) -> None:
+    def _on_defrost_event(self, event: Event[EventStateChangedData]) -> None:
         """One defrost flag transition: accrue on-time. Arithmetic only.
 
         ``@callback`` for the same reason as ``_on_power_event``: without it
@@ -7794,7 +7796,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         )
         _LOGGER.info("Peak guard listening on %s", entity)
     @callback
-    def _on_power_event(self, event) -> None:
+    def _on_power_event(self, event: Event[EventStateChangedData]) -> None:
         """One meter reading: fold, project, and flip the flag on crossings.
 
         Never solves, never blocks: the only work here is arithmetic on the
@@ -7819,7 +7821,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if not tariff.enabled and fuse is None:
             return
         try:
-            raw = float(getattr(new_state, "state", None))
+            raw_state: Any = getattr(new_state, "state", None)
+            raw = float(raw_state)
         except (TypeError, ValueError):
             return
         attrs = getattr(new_state, "attributes", {}) or {}
@@ -8338,7 +8341,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 ctx._config.get(CONF_TARGET_TEMP), DEFAULT_TARGET_TEMP
             )
         )
-        return np.minimum(floors, cap)
+        return np.asarray(np.minimum(floors, cap))
     def _track_curve_comfort(self, now: datetime) -> None:
         """#2's evidence: the day's worst (zone − comfort floor) margin.
 
@@ -8701,7 +8704,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
     # -- #42: the weekly snapshots and the drift alarm ---------------------
 
-    def _learner_snapshot_payloads(self) -> dict[str, dict]:
+    def _learner_snapshot_payloads(self) -> dict[str, dict[str, Any]]:
         """Every learner's persisted shape, by the stores' own producers."""
         return {
             "thermal_learning": self._thermal_learning_payload(),
@@ -8715,7 +8718,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             # billed facts, not learned state — see _apply_learner_payloads.
         }
 
-    def _apply_learner_payloads(self, learners: dict) -> None:
+    def _apply_learner_payloads(self, learners: dict[str, Any]) -> None:
         """Restore learners from a snapshot, via the loaders' own parsing."""
         ctx = getattr(self, "_ctx", self)
         thermal = learners.get("thermal_learning")
@@ -9034,7 +9037,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     # Away / holiday mode (item 13)
     # ==================================================================
 
-    def _entity_state(self, entity_id: str | None) -> tuple[str | None, dict]:
+    def _entity_state(self, entity_id: str | None) -> tuple[str | None, dict[str, Any]]:
         if not entity_id:
             return None, {}
         state = self.hass.states.get(entity_id)
@@ -9423,7 +9426,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         return value
 
     def _file_dhw_lead_predictions(
-        self, result, solve_time: datetime, dt_h: float
+        self, result: OptimizationResult, solve_time: datetime, dt_h: float
     ) -> None:
         """v5.2.0: the plan's tank-temperature promises, per lead bucket.
 
@@ -9447,7 +9450,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     float(trajectory[idx]),
                 )
 
-    def _file_lead_predictions(self, result, solve_time: datetime) -> None:
+    def _file_lead_predictions(self, result: OptimizationResult, solve_time: datetime) -> None:
         """T5 #16: file the plan's room-temperature promises per lead bucket.
 
         Same mode gate and same trajectory convention as the one-step
@@ -9711,7 +9714,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             costs["fixed"] = fixed_cost
             out["fixed_sek"] = round(fixed_cost, 2)
         if kwh > 0 and len(costs) > 1:
-            out["cheapest"] = min(costs, key=costs.get)
+            out["cheapest"] = min(costs, key=lambda name: costs[name])
         return out
 
     # ==================================================================
