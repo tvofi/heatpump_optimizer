@@ -75,6 +75,9 @@ const STRINGS = {
     "away.toggle": "Away",
     "away.return": "Return",
     "away.status_presence": "Away (presence)",
+    "setup.tanks": "Tanks",
+    "setup.tank_dhw": "DHW tank",
+    "setup.tank_wood": "Wood tank",
     // The extra traces inside the house-temperature series. They are drawn
     // dashed in the same colour, and before v5.1.7 nothing named them: one
     // legend chip and one tooltip row said "House temperature" for all
@@ -500,6 +503,9 @@ const STRINGS = {
     "away.toggle": "Borta",
     "away.return": "Hemkomst",
     "away.status_presence": "Borta (närvaro)",
+    "setup.tanks": "Tankar",
+    "setup.tank_dhw": "Varmvattentank",
+    "setup.tank_wood": "Vedtank",
     "series.upper_floor": "Övre plan",
     "series.lower_floor": "Nedre plan",
     "series.lower_floor_modelled": "Nedre plan (modellerad)",
@@ -3176,11 +3182,11 @@ function cardStyleBlock() {
       }
 
       /* The layout editor (v3.16.0, issue #40) */
-      .layout-bar {
+      .layout-bar, .tank-bar {
         display: flex; align-items: center; gap: 0.5em;
         flex-wrap: wrap; padding: 0 0.25em 0.4em 0.25em;
       }
-      .layout-bar button {
+      .layout-bar button, .tank-bar button {
         font: inherit; font-size: 0.85em; cursor: pointer;
         border: 1px solid var(--divider-color, #e0e0e0);
         background: transparent; color: var(--primary-text-color);
@@ -3190,7 +3196,9 @@ function cardStyleBlock() {
         outline: 2px solid var(--primary-color, #03a9f4);
         outline-offset: 2px;
       }
-      .layout-edit-toggle.on { border-color: var(--primary-color, #03a9f4); }
+      .layout-edit-toggle.on, .tank-bar button.on {
+        border-color: var(--primary-color, #03a9f4);
+      }
       .layout-bar button[disabled] { opacity: 0.45; cursor: default; }
       .layout-verdict {
         flex: 1 1 100%; font-size: 0.85em;
@@ -3837,7 +3845,11 @@ class PlanSource {
   }
 
   awayStripHtml() {
-    if (!this.host.dialog.expanded || this.host.dialog.activePage() !== "plan") {
+    const page = this.host.dialog.activePage();
+    if (
+      !this.host.dialog.expanded ||
+      (page !== "plan" && page !== "setup")
+    ) {
       return "";
     }
     const swId = this._findPinnedEntity(
@@ -8270,6 +8282,39 @@ class SetupPage {
     }
   }
 
+  tankBarHtml(topo) {
+    const dhw = !!(topo && topo.dhw);
+    const wood = !!(topo && topo.wood && topo.wood.present);
+    return `
+      <div class="layout-bar tank-bar" role="group" aria-label="${esc(L("setup.tanks"))}">
+        <button type="button" class="${dhw ? "on" : ""}" data-tank="dhw"
+          aria-pressed="${dhw}">${esc(L("setup.tank_dhw"))}</button>
+        <button type="button" class="${wood ? "on" : ""}" data-tank="wood"
+          aria-pressed="${wood}">${esc(L("setup.tank_wood"))}</button>
+      </div>`;
+  }
+
+  async persistTanks(dhw, wood) {
+    const hass = this.host.hass;
+    if (!hass || typeof hass.callService !== "function") return;
+    const topo = this.host.plan.attrRaw("setup_topology", null) || {};
+    try {
+      await hass.callService("heatpump_optimizer", "apply_topology", {
+        layout: topo.layout || "single_tank_valve",
+        dhw,
+        wood,
+      });
+      this.note = L("setup.saved_reloading", { label: L("setup.tanks") });
+    } catch (err) {
+      this.note = L("errors.could_not_save_layout", {
+        err: (err && err.message) || err,
+      });
+    }
+    this.host.render();
+    const note = this.host.shadowRoot && this.host.shadowRoot.querySelector(".setup-result");
+    if (note) note.textContent = this.note || "";
+  }
+
   /** Wire the page's clickable slots and its picker. `layoutEditing()` says
    * whether the layout editor is open, in which case a click on a box is the
    * start of a drag, not a request to assign a sensor. */
@@ -8301,6 +8346,16 @@ class SetupPage {
       const t = ev && ev.target;
       if (t && t.classList && t.classList.contains("setup-hit")) return;
       this.blurRow();
+    });
+    root.querySelectorAll("[data-tank]").forEach((btn) => {
+      btn.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        const topo = this.host.plan.attrRaw("setup_topology", null) || {};
+        const dhw = !!topo.dhw;
+        const wood = !!(topo.wood && topo.wood.present);
+        if (btn.dataset.tank === "dhw") this.persistTanks(!dhw, wood);
+        else this.persistTanks(dhw, !wood);
+      });
     });
     for (const hit of root.querySelectorAll(".setup-hit")) {
       hit.addEventListener("click", (ev) => {
@@ -9967,8 +10022,9 @@ class HeatpumpOptimizerCard extends HTMLElement {
 
   _setupPageHtml() {
     const topo = this.plan.attrRaw("setup_topology", null);
+    const away = this.plan.awayStripHtml();
     if (!topo || !Array.isArray(topo.slots)) {
-      return `<div class="setup-page"><div class="empty">
+      return `<div class="setup-page">${away}<div class="empty">
         ${L("setup.not_published")}</div></div>`;
     }
     const editing = this.layoutEditor.editing();
@@ -9979,7 +10035,9 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // to the wrapper, and a drag that replaced its own listeners mid-gesture
     // would drop the pointer.
     return `<div class="setup-page${editing ? " editing" : ""}">
+      ${away}
       ${this.layoutEditor.barHtml(topo)}
+      ${this.setup.tankBarHtml(topo)}
       <div class="setup-canvas">${drawn.html}</div>
       ${this.setup.pickerHtml(topo)}
       <div class="setup-hint">${

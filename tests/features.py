@@ -4108,7 +4108,7 @@ runtime_only = {
     "dhw_weekly_windows",       # parsed with it (#3): the same spec's day view
     "dhw_holiday_windows",      # parsed from CONF_HOLIDAY_DHW_WINDOWS (#700)
     "two_zone_enabled",         # inferred from presence, overridable by mode
-    "dhw_enabled",              # inferred from which keys are present
+    # dhw_enabled is overridable via CONF_DHW_ENABLED; inferred when absent.
     "cop_flow_carnot",          # follows the mixing valve mode
     "cop_flow_reference_temp",  # a property of the COP curve, not the house
     "emitter_design_delta_t",   # a sizing convention, not a per-house setting
@@ -4308,6 +4308,23 @@ R.check(
         {hp_const.CONF_DHW_TANK_VOLUME: 200.0}
     ).dhw_enabled
     and not ThermalParameters.from_config({}).dhw_enabled,
+)
+R.check(
+    "an explicit dhw_enabled False wins over leftover volume",
+    ThermalParameters.from_config(
+        {
+            hp_const.CONF_DHW_TANK_VOLUME: 200.0,
+            hp_const.CONF_DHW_ENABLED: False,
+        }
+    ).dhw_enabled
+    is False,
+)
+R.check(
+    "an explicit dhw_enabled True enables hot water with no other keys",
+    ThermalParameters.from_config(
+        {hp_const.CONF_DHW_ENABLED: True}
+    ).dhw_enabled
+    is True,
 )
 R.check(
     "a boolean stored as a string is still a boolean",
@@ -6154,6 +6171,18 @@ R.check(
     "a minimal setup does not grow places it does not have",
     not ({"lower_zone", "dhw_tank", "wood_tank", "wood_valve"} & _min_places),
     f"got {sorted(_min_places)}",
+)
+_off_wood = _topo.describe_setup({**_full_cfg, "wood_furnace_enabled": False})
+R.check(
+    "an explicit wood-off flag hides the wood tank despite leftover probes",
+    not _off_wood["wood"]["present"]
+    and "wood_tank" not in {s["place"] for s in _off_wood["slots"]},
+)
+_off_dhw = _topo.describe_setup({**_full_cfg, "dhw_enabled": False})
+R.check(
+    "an explicit DHW-off flag hides the hot-water tank despite leftover volume",
+    not _off_dhw["dhw"]
+    and "dhw_tank" not in {s["place"] for s in _off_dhw["slots"]},
 )
 
 _text = _topo.render_text_summary(_full)

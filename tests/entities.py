@@ -8429,6 +8429,26 @@ R.check(
     "apply_topology stores the validated layout",
     _svc_entry.options.get(const.CONF_TOPOLOGY_LAYOUT) == "no_valve",
 )
+_svc_call(
+    const.SERVICE_APPLY_TOPOLOGY,
+    {"layout": "no_valve", "dhw": True, "wood": False},
+)
+R.check(
+    "apply_topology stores tank flags and seeds a missing DHW volume",
+    _svc_entry.options.get(const.CONF_DHW_ENABLED) is True
+    and _svc_entry.options.get(const.CONF_WOOD_FURNACE_ENABLED) is False
+    and _svc_entry.options.get(const.CONF_DHW_TANK_VOLUME)
+    == const.DEFAULT_DHW_TANK_VOLUME,
+)
+_svc_call(
+    const.SERVICE_APPLY_TOPOLOGY,
+    {"layout": "no_valve", "dhw": False, "wood": True},
+)
+R.check(
+    "apply_topology can turn DHW off and wood on",
+    _svc_entry.options.get(const.CONF_DHW_ENABLED) is False
+    and _svc_entry.options.get(const.CONF_WOOD_FURNACE_ENABLED) is True,
+)
 
 _svc_call(
     const.SERVICE_APPLY_SCHEDULE, {"day_start_hour": 6, "day_end_hour": 21}
