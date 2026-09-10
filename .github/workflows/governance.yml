@@ -88,7 +88,7 @@ jobs:
       # is a program seats call instead of a bit seats remember, and its own
       # refusals are the thing that must not rot: a fail-closed check that goes
       # green when it cannot look converts an open defect into a closed one.
-      # This step drives all thirty-four refusals offline, by name, on every
+      # This step drives all thirty-five named arms offline on every
       # pull request -- the same argument as the fragment self-test above.
       - name: Show the comment poster refusing every body it cannot vouch for
         run: python3 .claude/workflows/gh_comment.py self-test
