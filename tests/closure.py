@@ -93,6 +93,14 @@ NOT_A_TEST = {
     # is NOT_A_TEST and is NOT inert: `tests/entities.py` imports it and drives
     # its four states, so a change to how it classifies selects a script.
     "nightly_status.py",
+    # The disposition gate's reporter (#678, CM-2 of the #541 root cause):
+    # its own `record-status` job runs it on every pull request. Same shape as
+    # `nightly_status.py` above -- it needs the GitHub Checks API, which this
+    # suite has neither the network nor the token for, and its verdict is about
+    # `main`'s CI history rather than about this tree. NOT_A_TEST and NOT inert:
+    # `tests/entities.py` imports it and drives its states, so a change to how
+    # it classifies selects a script.
+    "record_status.py",
     # The shared DOM stub (#101) and the rig around it, imported by the three
     # Node harnesses (card.mjs, setup_qa_render.mjs, card_drift.mjs): libraries,
     # never run. dom_stub.mjs was missing from this set from v6.1.2 to v6.2.7,
