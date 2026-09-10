@@ -93,6 +93,14 @@ pr_head_ref() { # branch name ('' or '-' when detached), remote ('' or '-' -> or
   esac
 }
 
+# Step 7a's whole body, so `--self-test` drives the code the step runs rather
+# than a second copy of the command. A step wired into the run and demonstrated
+# by a sibling command is a step nothing pins: the assertion passes while the
+# call site names the wrong file, or no longer exists.
+figures_check() { # body file
+  node .claude/workflows/figure_lint.mjs --pr-body "$1"
+}
+
 push_order() { # own remote branch's sha ('' or '-' for none), behind, ahead
   case "${1:-}" in ''|-) return 3 ;; esac   # 3 no remote branch: nothing to compare
   if [ "${2:-0}" -gt 0 ]; then
@@ -166,6 +174,24 @@ if [ "${1:-}" = "--self-test" ]; then
     push_order "$up" "$behind" "$ahead"
     st $? "${want:-?}" "${why:-$f}"
   done
+
+  # Step 7a, driven through `figures_check` -- the function the step calls, so
+  # a call site that stops calling it fails here. The rot fixture is the #715
+  # defect itself, `--arg` passed to `gh api`; the null control is the same
+  # fixture set's healthy body, whose figure names an in-tree instrument.
+  # The exit status alone does not pin WHICH instrument the step runs: another
+  # body check refuses the same rot fixture and passes the same healthy one, so
+  # a `figures_check` rewired to it would satisfy a status-only assertion. Each
+  # arm therefore also reads a string only this instrument prints.
+  figures_check .claude/workflows/fixtures/figures/gh-arg.md >/tmp/prepr-figst.$$ 2>&1
+  st $? 1 "a body whose figure command cannot resolve is refused"
+  grep -q -- 'has no `--arg` flag' /tmp/prepr-figst.$$
+  st $? 0 "and the step's own output names the flag, so the step runs the figure check"
+  figures_check "$D/good.md" >/tmp/prepr-figst.$$ 2>&1
+  st $? 0 "a body whose figure command resolves is silent (null control)"
+  grep -q '0 refused' /tmp/prepr-figst.$$
+  st $? 0 "and it reached a verdict rather than examining nothing (null control)"
+  rm -f /tmp/prepr-figst.$$
 
   printf 'Closes #999\n' | bash tools/audit/preflight.sh >/dev/null 2>&1
   st $? 1 "preflight refuses an unintended closing keyword"
@@ -302,7 +328,7 @@ if [ -n "$BODY" ] && [ "$BODY" != "--self-test" ]; then
   # so this is the cheaper detector rather than a second opinion: the #715
   # defect it answers cost a review round to find, and finding it here costs one
   # node spawn on a body a seat is about to open.
-  node .claude/workflows/figure_lint.mjs --pr-body "$BODY" >/tmp/prepr-fig.$$ 2>&1
+  figures_check "$BODY" >/tmp/prepr-fig.$$ 2>&1
   step "figures" $? "$(tail -1 /tmp/prepr-fig.$$)"
   rm -f /tmp/prepr-fig.$$
 

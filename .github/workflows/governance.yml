@@ -191,6 +191,14 @@ jobs:
         if: always()
         run: node .claude/workflows/figure_lint.mjs --self-test
 
+      # The enumerator behind the two quantities that header argues from. It is
+      # run here for its self-test only -- no `gh`, no network: an enumerator
+      # nobody executes rots into the false figure it exists to prevent, which
+      # is the #715 defect one level up.
+      - name: Show the figure census pinning its counting rule
+        if: always()
+        run: node .claude/workflows/figure_census.mjs --self-test
+
       - name: Every figure's command resolves at this head
         if: always()
         run: node .claude/workflows/figure_lint.mjs --pr-body /tmp/pr-body.md
