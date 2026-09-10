@@ -387,6 +387,12 @@ apply_topology:
     entry_id:
       selector:
         text: null
+    dhw:
+      selector:
+        boolean: null
+    wood:
+      selector:
+        boolean: null
 apply_schedule:
   fields:
     day_start_hour:
