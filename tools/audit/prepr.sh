@@ -24,6 +24,85 @@
 set -uo pipefail
 cd "$(git rev-parse --show-toplevel)" || exit 2
 
+# --- the push-order verdict --------------------------------------------------
+# WHY THIS EXISTS. Step 7 below gates `## Head` against the LOCAL head, the one
+# head that is certain at the moment a body is written. `pr-contract` gates it
+# against the PULL REQUEST's head, which is the remote tip. The two disagree for
+# exactly as long as a commit sits unpushed, and #691 spent that window in it: at
+# head b2cfbc9 a `synchronize` run passed at 19:53:33Z and the `edited` run that
+# setting the body fired failed 54 seconds later -- "`## Head` does not name
+# b2cfbc9, which is the head this ran on" -- because the body named the newer
+# local commit. This script was green in between. The check that exists to refuse
+# a stale head could not see the one staleness that reaches CI.
+#
+# WARN RATHER THAN REFUSE on an unpushed head, and the reason is policy, not
+# taste. .claude/skills/steward/SKILL.md S10 PRESCRIBES passing through this
+# state: of the two available orders it chooses "edit, then push", precisely so
+# that the one refused run lands on a commit being abandoned rather than on the
+# head a reviewer will read. #691 is that arm working -- head b2cfbc9 carries a
+# green run at 19:53:33Z and a refused one 54 seconds later, and 99ee4b9 became
+# the head. A refusal here would refuse the prescribed order, which is worse
+# than the defect it answers. So the warning states the INVARIANT the two arms
+# turn on -- a push must follow this body edit, or the refusal stays on your
+# head -- rather than an order that contradicts the skill.
+#
+# What IS refused is the state no push repairs: the branch's own remote branch
+# already carrying commits this head does not, where `## Head` names a SHA that
+# pushing will not make current, because there is nothing to push. An autofix
+# commit (S1) is exactly that shape -- S10's closing paragraph says to correct
+# `## Head` after the bot pushes, and nothing checked it.
+#
+# THE ARM'S PREMISE IS THE RELATIONSHIP; WHAT VARIES IS WHICH REF IS COMPARED.
+# A fresh local commit leaves HEAD ahead of the branch's own remote branch and
+# never behind it, so on the ordinary path the refusing arm has nothing to fire
+# on -- and that holds only because the compared ref is
+# `refs/remotes/<remote>/<branch>`, derived from the branch's OWN name, which is
+# the local mirror of `refs/heads/<branch>`, which is the pull request's head
+# ref. The first version of this check read `@{u}` instead, and `@{u}` is not
+# that ref: `git checkout -b foo origin/main` with `branch.autoSetupMerge` unset
+# -- git's own default -- sets `branch.foo.merge = refs/heads/main`, so `@{u}`
+# is `origin/main`, `behind` counts MAIN's own new commits, and the arm refused
+# branches with nothing wrong with them while telling them "no push makes
+# `## Head` the pull request's head" -- false there, because a push to
+# `refs/heads/foo` is exactly the thing that does. The #694 review measured the
+# configuration live in this repository's own clone; re-derive rather than carry
+# a count, because it moves whenever a seat pushes with `-u`, and the rule is
+# `git config --get branch.<name>.merge` not equal to `refs/heads/<name>`.
+# `pr_head_ref` below is the repair and `main-tracking.case` pins it.
+#
+# NO NETWORK, EVER. The counts come from `refs/remotes/<remote>/<branch>`, a
+# local mirror; nothing here fetches, because a check that hangs or fails
+# offline is run with `|| true` inside a week. The cost is stated rather than
+# hidden: a mirror not updated since somebody else pushed makes this too QUIET,
+# never too loud -- it can report `ok` where the remote has since moved on, and
+# it cannot invent an unpushed commit. A mirror that was never fetched at all is
+# quiet in the same direction: the branch reads as never pushed and reaches the
+# skip arm rather than a refusal. `git fetch origin "$(git branch
+# --show-current)"` beforehand is what buys certainty, and the ok line names the
+# ref it compared so that line is not read as CI's agreement.
+#
+# Arguments are DATA, not a repository: the compared ref is a function of the
+# branch's name and its remote, the verdict a function of that ref's sha and the
+# two counts, and of nothing else -- so --self-test drives both from fixtures
+# that need no commits built and no refs written.
+pr_head_ref() { # branch name ('' or '-' when detached), remote ('' or '-' -> origin)
+  case "${1:-}" in ''|-) return 1 ;; esac   # a detached HEAD is nobody's head ref
+  case "${2:-}" in
+    ''|-) printf 'origin/%s\n' "$1" ;;
+    *)    printf '%s/%s\n' "$2" "$1" ;;
+  esac
+}
+
+push_order() { # own remote branch's sha ('' or '-' for none), behind, ahead
+  case "${1:-}" in ''|-) return 3 ;; esac   # 3 no remote branch: nothing to compare
+  if [ "${2:-0}" -gt 0 ]; then
+    if [ "${3:-0}" -gt 0 ]; then return 5; fi # 5 both moved: a non-fast-forward
+    return 1                                  # 1 it holds commits HEAD lacks
+  fi
+  if [ "${3:-0}" -gt 0 ]; then return 4; fi # 4 HEAD is not on it yet
+  return 0                                  # 0 it is at this head
+}
+
 # --- self-test ---------------------------------------------------------------
 # A check that cannot be shown failing does not merge. This drives the two steps
 # that are pure functions of their input -- the body checks -- against the rot
@@ -34,8 +113,10 @@ if [ "${1:-}" = "--self-test" ]; then
   D=.claude/workflows/fixtures/policy-rot/prepr
   ZERO=0000000000000000000000000000000000000000
   st_pass=0; st_fail=0
+  # `$1` is a return code for most assertions and a ref NAME for the push-order
+  # fixtures' first one, so the failure line says `got`, not `rc`.
   st() { if [ "$1" = "$2" ]; then st_pass=$((st_pass+1)); printf '  ok   %s\n' "$3";
-         else st_fail=$((st_fail+1)); printf '  FAIL %s (rc %s, wanted %s)\n' "$3" "$1" "$2"; fi; }
+         else st_fail=$((st_fail+1)); printf '  FAIL %s (got %s, wanted %s)\n' "$3" "$1" "$2"; fi; }
 
   for f in missing-section no-figures empty-section wrong-head dead-carry bad-friction backtick-bad-event bare-na folded-entry; do
     node .claude/workflows/policy_lint.mjs --pr-body "$D/$f.md" --head "$ZERO" >/dev/null 2>&1
@@ -66,6 +147,26 @@ if [ "${1:-}" = "--self-test" ]; then
   node .claude/workflows/policy_lint.mjs --hooks >/dev/null 2>&1
   st $? 0 "this repository's own three wired hooks pass (null control)"
 
+  # The push-order verdict, one fixture per branch shape. Named in a list rather
+  # than globbed, for the same reason the two loops above are: a glob that
+  # matches nothing runs no assertions and prints the same "0 failed" a passing
+  # set does. A missing file is a FAIL, not a skip.
+  #
+  # TWO assertions per fixture, because the #694 review found the defect in the
+  # half that had none: the verdict function was right and the CALL SITE fed it
+  # the wrong ref. So each fixture states which ref the shape must be compared
+  # against as well as what the comparison must return, and `@{u}` is not among
+  # the fields -- removing it from the input set is the repair.
+  for f in detached no-upstream remote-at-head unpushed-head remote-ahead diverged main-tracking; do
+    c="$D/upstream/$f.case"
+    if [ ! -f "$c" ]; then st 1 0 "the $f push-order fixture is present"; continue; fi
+    IFS=' ' read -r br rem up behind ahead want wantref why < <(grep -vE '^#|^[[:space:]]*$' "$c" | head -1)
+    got=$(pr_head_ref "$br" "$rem") || got='-'
+    st "$got" "${wantref:-?}" "${why:-$f} -- compared against ${wantref:-?}"
+    push_order "$up" "$behind" "$ahead"
+    st $? "${want:-?}" "${why:-$f}"
+  done
+
   printf 'Closes #999\n' | bash tools/audit/preflight.sh >/dev/null 2>&1
   st $? 1 "preflight refuses an unintended closing keyword"
   printf 'Closes #999\n' | bash tools/audit/preflight.sh 999 >/dev/null 2>&1
@@ -78,6 +179,7 @@ fi
 
 rc=0
 digest=""
+ORDER=""
 say() { printf '  %-8s %-22s %s\n' "$1" "$2" "${3:-}"; }
 step() { # name, rc, detail
   digest="${digest}$2"
@@ -195,8 +297,47 @@ if [ -n "$BODY" ] && [ "$BODY" != "--self-test" ]; then
     --title "$(git log -1 --format=%s)" >/tmp/prepr-body.$$ 2>&1
   step "pr-body" $? "$(tail -1 /tmp/prepr-body.$$)"
   rm -f /tmp/prepr-body.$$
+
+  # --- 7b. and is the head it names one the REMOTE already has? push_order above
+  # carries the reasoning; this derives the branch's OWN remote branch -- the
+  # local mirror of the ref a pull request's head points at -- and prints the
+  # verdict. Never `@{u}`: that names whatever the branch was cut from, which on
+  # git's default `git checkout -b foo origin/main` is `origin/main`.
+  BR=$(git branch --show-current 2>/dev/null)
+  UPREF=$(pr_head_ref "$BR" "$(git config --get "branch.$BR.remote" 2>/dev/null)") || UPREF=""
+  UPSHA=""
+  [ -n "$UPREF" ] && UPSHA=$(git rev-parse --verify --quiet "refs/remotes/$UPREF")
+  BEHIND=0; AHEAD=0
+  if [ -n "$UPSHA" ]; then
+    read -r BEHIND AHEAD < <(git rev-list --left-right --count "$UPSHA...HEAD" 2>/dev/null)
+    BEHIND=${BEHIND:-0}; AHEAD=${AHEAD:-0}
+  fi
+  push_order "$UPSHA" "$BEHIND" "$AHEAD"
+  case $? in
+    0) step "push order" 0 "$UPREF is at $(git rev-parse --short HEAD) -- local mirror, unfetched" ;;
+    3) if [ -z "$UPREF" ]; then
+         say skip "push order" "HEAD is detached, so no branch of this repository is the pull request's head"
+       else
+         say skip "push order" "no $UPREF yet; the push creates it, so pass $BODY to --body-file after it"
+       fi ;;
+    4) ORDER="HEAD is $AHEAD commit(s) ahead of $UPREF"
+       say WARN "push order" "$ORDER -- A PUSH MUST FOLLOW THIS BODY EDIT" ;;
+    1) step "push order" 1 "$UPREF -- this branch's own remote branch, which is the pull request's head ref -- holds $BEHIND commit(s) HEAD does not, so no push makes \`## Head\` the pull request's head -- merge $UPREF, then rewrite it" ;;
+    5) step "push order" 1 "$UPREF and HEAD have diverged, $BEHIND commit(s) there against $AHEAD here: the push is refused as a non-fast-forward and the force-push past it is forbidden -- merge $UPREF, then rewrite \`## Head\` at the merge commit" ;;
+    *) step "push order" 1 "$UPREF: unknown push-order verdict" ;;
+  esac
 else
   say skip "body" "no body passed"
+fi
+
+if [ -n "$ORDER" ]; then
+  printf '\n  !!! %s, so `pr-contract` -- which reads\n' "$ORDER"
+  printf '  !!! the PULL REQUEST head, not this one -- refuses this body on any run that\n'
+  printf '  !!! fires before the push, the `edited` run setting it fires included.\n'
+  printf '  !!! steward S10 ACCEPTS that on one condition: the push follows immediately, so\n'
+  printf '  !!! the refusal lands on a commit you abandon. #691 head b2cfbc9 is that pair --\n'
+  printf '  !!! green 19:53:33Z, refused 54s later, and 99ee4b9 became the head.\n'
+  printf '  !!! If setting the body is your LAST action, the refusal stays on your head.\n'
 fi
 
 echo
