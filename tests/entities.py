@@ -5122,6 +5122,34 @@ import yaml
 
 services = yaml.safe_load((ROOT / "services.yaml").read_text())
 
+# #692: the user-visible catalog is services.yaml's keys, not a carried
+# "eleven". README.md is already in this script's closure; configuration.md
+# stays under docs/ (INERT) so this pin does not pull it in.
+def _readme_service_names(text: str) -> set[str]:
+    block = _re.search(r"^## Services\n(.*?)(?=^## |\Z)", text, _re.M | _re.S)
+    if block is None:
+        return set()
+    return {
+        m.group(1)
+        for line in block.group(1).splitlines()
+        if (m := _re.match(r"\| `([a-z_]+)` \|", line))
+    }
+
+
+_readme_svc = _readme_service_names(readme)
+R.check(
+    "the README Services table is services.yaml's keys, not a carried count",
+    _readme_svc == frozenset(services),
+    f"README={sorted(_readme_svc)} yaml={sorted(services)}",
+)
+_readme_svc_n = _re.search(r"^(\d+) services are registered", readme, _re.M)
+R.check(
+    "the README's registered-service count is derived from services.yaml",
+    _readme_svc_n is not None and int(_readme_svc_n.group(1)) == len(services),
+    f"README says {_readme_svc_n.group(1) if _readme_svc_n else '?'}, "
+    f"services.yaml has {len(services)}",
+)
+
 R.check("simulate_plan is documented", "simulate_plan" in services)
 R.check(
     "its fields are documented for the UI",
