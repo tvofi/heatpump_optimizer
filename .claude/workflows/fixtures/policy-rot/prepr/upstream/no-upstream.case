@@ -1,0 +1,14 @@
+# A branch that has never been pushed. This is the commonest state in which a
+# body is first written, so the verdict has to be neither an error nor a silent
+# pass. The ref is DERIVABLE -- `origin/<branch>` -- it simply does not exist
+# yet, and nothing is at risk: the push creates it, and the body reaches the
+# pull request with `--body-file` at creation time, which is after it.
+#
+# BEFORE THE #694 REVIEW THIS SHAPE DID NOT REACH THIS ARM AT ALL. A branch cut
+# with `git checkout -b foo origin/main` has an upstream from the moment it
+# exists -- `origin/main` -- so a check reading `@{u}` compared a
+# never-pushed branch against main rather than reporting that it could not
+# compare. Deriving the ref from the branch's own name is what puts it here.
+#
+# <branch or -> <remote or -> <own-remote-ref sha or -> <behind> <ahead> <rc> <compared ref or -> <text>
+never-pushed origin - 0 0 3 origin/never-pushed a branch with no remote branch yet reports that it cannot compare
