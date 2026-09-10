@@ -1,0 +1,22 @@
+# The policy set, owned by the repository owner (decision 0008, #680).
+#
+# GitHub reads this file for two things. Always: it auto-requests the owner's
+# review on a pull request touching a path below. Only once `main-protect`
+# carries a `pull_request` rule with `require_code_owner_review`: such a pull
+# request cannot merge without the owner's approval on GitHub. Until that rule
+# exists this file claims nothing, which is why it may merge before the rule --
+# and why the rule must NOT be added before the seats author as an identity
+# other than the owner: GitHub does not count an author's approval of their own
+# pull request. The order is in docs/decisions/0008 and is 0005's.
+#
+# Nothing in the test gate opens this file (tests/closure.py lists it INERT).
+
+/CLAUDE.md                     @tvofi
+/.claude/rules/                @tvofi
+/.cursor/rules/                @tvofi
+/tools/audit/briefs/           @tvofi
+# COMMON.md is the finder's contract and is not policy (CLAUDE.md says so);
+# a line with a path and no owner un-owns it.
+/tools/audit/briefs/COMMON.md
+/docs/decisions/               @tvofi
+/.github/CODEOWNERS            @tvofi

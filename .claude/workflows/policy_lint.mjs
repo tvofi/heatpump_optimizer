@@ -458,6 +458,7 @@ const CORPUS_EXCLUDED = new Set([
   'docs/decisions/0005-no-codeowners-while-one-identity-authors-and-approves.md',
   'docs/decisions/0006-policy-merge-grant-regranted-to-the-local-session.md',
   'docs/decisions/0007-after-this-session-owner-approval-per-pull-request.md',
+  'docs/decisions/0008-a-seat-identity-distinct-from-the-owner.md',
 ])
 
 // Widening the scan past `.md` brought in every `.txt` a policy file cites, and
