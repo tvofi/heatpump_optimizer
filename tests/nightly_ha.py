@@ -899,28 +899,65 @@ def check_a5_service_bounds(checks: Checks, schema_by_name: dict, catalog: dict)
     )
 
 
-def stored_effective_bytes(data, options) -> bytes:
+def stored_effective(data, options) -> dict:
     """Effective config, None treated as absent -- so a first save that writes
     ``None`` onto an empty optional slot is not a wipe, and #542's wipe of a
     stored ``external_heat_entity`` still moves the bytes.
     """
     merged = {**dict(data or {}), **dict(options or {})}
-    cleaned = {key: value for key, value in merged.items() if value is not None}
+    return {key: value for key, value in merged.items() if value is not None}
+
+
+def stored_effective_bytes(data, options) -> bytes:
+    """``stored_effective`` as the canonical bytes the check compares."""
     return json.dumps(
-        cleaned, sort_keys=True, default=str, separators=(",", ":")
+        stored_effective(data, options),
+        sort_keys=True,
+        default=str,
+        separators=(",", ":"),
     ).encode()
 
 
-def check_a5_byte_unchanged(checks: Checks, before: bytes, after: bytes) -> None:
-    checks.check(
-        "a5:byte_unchanged",
-        before == after,
-        (
-            f"{len(before)}B identical"
-            if before == after
-            else f"stored bytes moved: before={len(before)}B after={len(after)}B"
-        ),
+def _effective_diff(before: dict, after: dict) -> tuple[list[str], list[str], list[str]]:
+    """(added, changed, dropped) keys between two effective configurations."""
+    added = sorted(key for key in after if key not in before)
+    dropped = sorted(key for key in before if key not in after)
+    changed = sorted(
+        key for key in after if key in before and before[key] != after[key]
     )
+    return added, changed, dropped
+
+
+def check_a5_byte_unchanged(checks: Checks, before: dict, after: dict) -> None:
+    """An options walk that saves every page must not move the stored config.
+
+    Takes the two effective CONFIGURATIONS rather than their bytes, because
+    two sizes cannot locate a defect: the first real failure of this check
+    read `before=4135B after=4416B` and no reader -- with no Docker to hand --
+    could tell which keys those 281 bytes were, so the detail now names them.
+    The verdict is still the canonical bytes, so what it accepts and refuses
+    is unchanged; only what a failure says is different.
+    """
+    before_bytes = stored_effective_bytes(before, {})
+    after_bytes = stored_effective_bytes(after, {})
+    if before_bytes == after_bytes:
+        checks.check("a5:byte_unchanged", True, f"{len(before_bytes)}B identical")
+        return
+    before_map = stored_effective(before, {})
+    after_map = stored_effective(after, {})
+    added, changed, dropped = _effective_diff(before_map, after_map)
+    # A changed key carries its two values: `peak_tariff_window_minutes` moved
+    # on the lane's first named run and the name alone does not say whether a
+    # number became a string, which is the difference between a save that
+    # re-typed a value and one that re-priced it.
+    moved = [
+        f"{key}: {before_map[key]!r}->{after_map[key]!r}" for key in changed[:4]
+    ]
+    detail = (
+        f"stored bytes moved: before={len(before_bytes)}B after={len(after_bytes)}B; "
+        f"added={added[:8]} changed={moved} dropped={dropped[:8]}"
+    )
+    checks.check("a5:byte_unchanged", False, detail)
 
 
 def check_a5_pages(checks: Checks, results: list, expected: tuple[str, ...] | list[str]) -> None:
@@ -1526,7 +1563,7 @@ async def _async_check_a5_options(checks: Checks, hass, entry) -> None:
     cf = _prod_mod("config_flow")
     expected = option_step_ids(cf._OPTION_PAGES)
     advanced = frozenset(page.step for page in cf._OPTION_PAGES if page.menu == cf._ADVANCED)
-    before = stored_effective_bytes(entry.data, entry.options)
+    before = stored_effective(entry.data, entry.options)
     results = []
     for step in expected:
         try:
@@ -1546,7 +1583,7 @@ async def _async_check_a5_options(checks: Checks, hass, entry) -> None:
                 {"step": step, "kind": "raise", "raised": True, "detail": type(err).__name__}
             )
     check_a5_pages(checks, results, expected)
-    after = stored_effective_bytes(entry.data, entry.options)
+    after = stored_effective(entry.data, entry.options)
     check_a5_byte_unchanged(checks, before, after)
 
 
@@ -2238,7 +2275,8 @@ async def _inside(seed: dict, budget: float) -> int:
         await _async_check_a8(checks, hass, seed, entry)
     _write_probe_marker(BLOCKING_PROBE_BEGIN)
     _provoke_lazy_on_loop()
-    _flush_logs()
+    # `_write_probe_marker` flushes, so the END marker's own flush is the one
+    # that puts the provoked report on disk.
     _write_probe_marker(BLOCKING_PROBE_END)
     await hass.async_stop()
     return _emit(checks)
@@ -2271,13 +2309,31 @@ async def _inside_a3e(seed: dict) -> int:
 
 
 def _write_probe_marker(mark: str) -> None:
-    """Write the probe window bound to stdout and the HA log file."""
+    """Put the probe window bound in the log THROUGH Home Assistant's handler.
+
+    An earlier form appended to ``home-assistant.log`` with its own handle and
+    fsynced it. That is not where the marker ended up. Home Assistant owns that
+    file through a handler with its OWN file offset, so bytes appended behind
+    its back are overwritten by its next records: run 34537901814 dumped the
+    whole log with neither marker anywhere in it, `partition_blocking_probe`
+    therefore found no window, and the two checks that read the halves both
+    failed in opposite directions at once -- the probe's own provoked
+    ``import_module`` counted as a NEW offender in the pin half, while the
+    probe half was empty and reported "cannot tell no-blocking-call from
+    cannot-see". A marker that is not in the file cannot bound a window.
+
+    Emitted as a log record instead: the marker and the reports it brackets now
+    pass through the same handler in emission order, which is what the split
+    needs -- ordering, not flushing. ``_flush_logs`` still runs so the file is
+    on disk before the host reads it. It also removes a report this lane caused
+    itself: the raw ``open`` on the event loop was reported by
+    ``homeassistant.util.loop`` in the same words as a real defect.
+    """
+    import logging
+
     print(mark, flush=True)
-    log = Path(IN_CONFIG) / LOG_NAME
-    with log.open("a", encoding="utf-8") as fh:
-        fh.write(mark + "\n")
-        fh.flush()
-        os.fsync(fh.fileno())
+    logging.getLogger("homeassistant").warning(mark)
+    _flush_logs()
 
 
 def _flush_logs() -> None:
