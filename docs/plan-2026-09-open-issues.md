@@ -551,6 +551,7 @@ no wave:
 - [#721](https://github.com/tvofi/heatpump_optimizer/pull/721) — **merged `8db8abe`**, closing #682: both disposition documents are walked as rendered tokens and compared back to source — cell count vs header, table count vs source pipe-blocks, ordered-list source number vs rendered ordinal, and a `#NNN` link that is not an issue or pull. markdown-it is vendored; `governance.yml` is untouched. leaves #201 open.
 - [#725](https://github.com/tvofi/heatpump_optimizer/pull/725) — **merged `52b9eb6`**: #720 and #721 had no disposition row, and both heads were frozen under decision 0007, so the rows were written here rather than into the branches they describe. leaves #201 open.
 - [#726](https://github.com/tvofi/heatpump_optimizer/pull/726) — **row written before the merge**: leftover #677 and #682 still said in review after #720 and #721 landed. leaves #201 open.
+- [#727](https://github.com/tvofi/heatpump_optimizer/pull/727) — **row written before the merge**: leftover #683 still said filed after #695 landed, and leftover #697-#703 still said the issues were open after they were marked completed. leaves #201 open.
 
 **Why a disposition may precede its merge, and exactly how far that goes.**
 `checkRecord` tests that `#N` appears in a disposition document; it does not require the merge to
