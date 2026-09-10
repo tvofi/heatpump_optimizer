@@ -15,6 +15,20 @@
 #                 or the other, never both, so including both double-counts
 #   rolling    -- SLOW=1 only, so it is not in the default gate
 #
+# THE PATTERN ALSO DROPS ONE SCRIPT SILENTLY, named here so the next reader does
+# not have to re-measure to learn it: tests/run.sh invokes
+#   run_always "$PYTHON" tests/closure.py selftest
+# and the substring `run "` does not occur in `run_always "`, so closure.py is in
+# the default gate and not in DERIVED. Re-derive the dropped set with
+#   grep -nE 'run_always "\$PYTHON" tests/' tests/run.sh
+# which returns env_drift (already excluded above, symmetrically) and closure.
+# Harmless here, measured rather than argued: run tests/closure.py selftest alone
+# under this file's own coveragerc and `coverage report` shows every statement of
+# custom_components/heatpump_optimizer still missed -- it covers none of them, so
+# no module gains a covered line and the partition is unchanged by the drop. It
+# is a gate-scoping selftest, not a package exercise, so widening the pattern to
+# catch it would add a script and no coverage.
+#
 # WHAT THIS INSTRUMENT CANNOT MEASURE, established at both ends rather than argued:
 # a timing check. tests/features.py passes every check at 44f914a when run bare, and
 # reports two failures under this harness -- the #525 heartbeat pair, which reads ZERO
