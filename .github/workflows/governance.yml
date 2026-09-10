@@ -93,6 +93,25 @@ jobs:
       - name: Show the comment poster refusing every body it cannot vouch for
         run: python3 .claude/workflows/gh_comment.py self-test
 
+      # The `record` predicate was narrowed (#752) only because a sweep measured
+      # what each candidate would refuse, and that sweep stays in the tree so the
+      # next seat proposing a narrowing reads its numbers instead of re-deriving
+      # them. It lives under `tools/audit/`, which is INERT in tests/closure.py,
+      # so the gate never selects it -- the same position `prepr.sh` and
+      # `push.sh` are in, and the same answer: an explicit step in a job that is
+      # never scoped. #762's fix review is why this is here rather than nowhere.
+      # The instrument's own null control had been vacuous since it was written,
+      # and nothing in CI could have said so.
+      #
+      # ONLY `--self-test`, which is pure over its fixtures: no network, no `gh`,
+      # no repository state. The range sweep is deliberately NOT wired. It needs
+      # a bulk API listing, takes tens of seconds, and prints a table with no
+      # pass condition -- its figures slide with the window by design, so a job
+      # asserting any of them would be asserting the calendar. A check that
+      # cannot fail for a reason is the defect this step exists to catch.
+      - name: Show the record-predicate sweep refusing its own perturbations
+        run: node tools/audit/record-predicate/sweep.mjs --self-test
+
       - name: Report what the linter found
         if: always()
         run: node .claude/workflows/policy_lint.mjs --report || true

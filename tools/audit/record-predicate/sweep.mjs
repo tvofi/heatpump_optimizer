@@ -16,10 +16,22 @@
 // candidate does not recognise. READING THEM IS THE SEAT'S JOB. What the script
 // guarantees is that the list is complete for the range it was given.
 //
-// `today` is in the table as the instrument's OWN null control: it is the
-// shipped predicate measured by the same code, and a run in which it reports
-// anything at all means the harness disagrees with `policy_lint` about what the
-// region is, so no other row in that run can be believed.
+// `today` is in the table as the instrument's OWN null control, and it is read
+// in the ABSOLUTE column, never the difference column. This is a correction:
+// the difference column is `newlyRefused`, which is defined AGAINST the shipped
+// predicate, and `today` IS the shipped predicate -- so `today`'s difference is
+// `[]` for every possible input, whatever the region is. A fix review blocked
+// this file for advertising that empty row as a control (#762): it replaced the
+// region body with a three-line truncation, keeping `sectionFound` true, and the
+// whole table still printed zeros with the "control" green beside it. A
+// destroyed corpus read as a clean run.
+//
+// The absolute column asks a question that has an answer: which pull requests in
+// this window does the SHIPPED predicate find no disposition for. That is
+// `policy_lint --record`'s own figure, recomputed through this harness's own
+// region reader, so it can be compared against `--record` at the newest head --
+// and it goes non-zero the moment the harness stops seeing the region, which is
+// the failure the empty difference row could not report.
 //
 //   tools/audit/record-predicate/sweep.mjs --range v6.3.16..origin/main
 //   tools/audit/record-predicate/sweep.mjs --range <a..b> --verify
@@ -144,7 +156,8 @@ function shaToPr(slug) {
 function sweep(range, map) {
   const heads = git('log', '--first-parent', '--format=%H', range).trim().split('\n').filter(Boolean)
   const newly = {}
-  for (const k of Object.keys(PREDICATES)) newly[k] = {}
+  const abs = {}
+  for (const k of Object.keys(PREDICATES)) { newly[k] = {}; abs[k] = {} }
   let noRegion = 0, unmapped = 0, windows = 0, observations = 0
   for (const H of heads) {
     const since = git('describe', '--tags', '--abbrev=0', '--match', 'v*', H).trim()
@@ -161,9 +174,10 @@ function sweep(range, map) {
     observations += prs.length
     for (const [name, p] of Object.entries(PREDICATES)) {
       for (const pr of newlyRefused(lines, prs, p)) (newly[name][pr] ??= []).push(H.slice(0, 7))
+      for (const pr of newlyRefusedAbsolute(lines, prs, p)) (abs[name][pr] ??= []).push(H.slice(0, 7))
     }
   }
-  return { heads: heads.length, windows, noRegion, unmapped, observations, newly }
+  return { heads: heads.length, windows, noRegion, unmapped, observations, newly, abs }
 }
 
 // `--verify`: the bulk map against the per-commit enumerator `--record` uses.
@@ -233,7 +247,8 @@ function contents(slug, p, ref) {
 
 function selfTest() {
   const fails = []
-  const eq = (what, got, want) => { if (JSON.stringify(got) !== JSON.stringify(want)) fails.push(`${what}: got ${JSON.stringify(got)}, want ${JSON.stringify(want)}`) }
+  let checked = 0
+  const eq = (what, got, want) => { checked += 1; if (JSON.stringify(got) !== JSON.stringify(want)) fails.push(`${what}: got ${JSON.stringify(got)}, want ${JSON.stringify(want)}`) }
   // The live #741 shape: the only occurrence is prose inside another row.
   const live = recordRegion(`## ${SECTION}\n- [#748](x/pull/748) 2 without (#746 and #741). This dispositions #746. #741 stays #745's.\n`, '').lines
   eq('cand refuses the mention-only number', newlyRefused(live, ['741'], PREDICATES.cand), ['741'])
@@ -246,7 +261,19 @@ function selfTest() {
   // the remedy is the row the rule asks for anyway.
   eq('and refuses one dispositioned ONLY from inside that row -- the stated cost', newlyRefused(live, ['746'], PREDICATES.cand), ['746'])
   eq('cand accepts the row it is anchored to', newlyRefused(live, ['748'], PREDICATES.cand), [])
-  eq('today refuses nothing here', newlyRefused(live, ['741', '746', '748'], PREDICATES.today), [])
+  // THE INSTRUMENT'S OWN CONTROL, in the form that can fail. Asserting
+  // `newlyRefused(..., today) === []` is vacuous: `newlyRefused` is a difference
+  // against the shipped predicate and `today` IS that predicate, so it holds for
+  // every input including a region this reader destroyed. #762's fix review
+  // demonstrated exactly that. The absolute form asks whether the region reader
+  // actually produced these lines, so both arms are driven here: intact, and
+  // truncated to a section heading with `sectionFound` still true -- the shape
+  // the review used to make the old table print zeros.
+  eq('the control finds all three numbers in an intact region', newlyRefusedAbsolute(live, ['741', '746', '748'], PREDICATES.today), [])
+  const destroyed = recordRegion(`## ${SECTION}\n`, '')
+  eq('a destroyed region still reports sectionFound -- which is why the control cannot rest on it', destroyed.sectionFound, true)
+  eq('and the control reports all three over that destroyed region', newlyRefusedAbsolute(destroyed.lines, ['741', '746', '748'], PREDICATES.today), ['741', '746', '748'])
+  eq('while the difference form reports nothing over it, which is the vacuity', newlyRefused(destroyed.lines, ['741', '746', '748'], PREDICATES.today), [])
   // The three shapes a plainer candidate refuses, which is why it was rejected.
   const cell = recordRegion(`## ${SECTION}\n| linter | landed as #9001 |\n`, '').lines
   eq('cand accepts a table cell', newlyRefused(cell, ['9001'], PREDICATES.cand), [])
@@ -265,9 +292,12 @@ function selfTest() {
   eq('the absolute form reports an unmentioned number', newlyRefusedAbsolute(live, ['9999'], PREDICATES.cand), ['9999'])
   // No section, no region -- reported as absence rather than as an empty region.
   eq('a plan with no such heading reports the absence', recordRegion('# plan\nnothing\n', '').sectionFound, false)
-  eq('and the handover still contributes when the plan section is missing', newlyRefused(hand, ['9004'], PREDICATES.today), [])
+  // Absolute, not the difference form, for the same reason as above: the
+  // difference form holds even if the handover contributed no lines at all,
+  // which is the property this assertion is named for.
+  eq('and the handover still contributes when the plan section is missing', newlyRefusedAbsolute(hand, ['9004'], PREDICATES.today), [])
   for (const f of fails) console.log(`FAIL ${f}`)
-  console.log(`\nSWEEP SELF-TEST: ${fails.length} failure(s) over 14 assertion(s)`)
+  console.log(`\nSWEEP SELF-TEST: ${fails.length} failure(s) over ${checked} assertion(s)`)
   return fails.length ? 1 : 0
 }
 
@@ -298,12 +328,19 @@ function main(argv) {
   const map = shaToPr(slug)
   const r = sweep(range, map)
   console.log(`range=${range} heads=${r.heads} windows_measured=${r.windows} heads_with_no_region=${r.noRegion} unmapped_first_parent_commits=${r.unmapped} pr_window_observations=${r.observations}`)
-  for (const name of Object.keys(PREDICATES)) {
-    const b = r.newly[name]
-    const prs = Object.keys(b).sort((a, c) => a - c)
-    const obs = Object.values(b).reduce((s, v) => s + v.length, 0)
-    console.log(`${name.padEnd(12)} newly_refused_prs=${String(prs.length).padStart(3)} pr_window_observations_refused=${String(obs).padStart(4)}  ${prs.map((p) => '#' + p).join(' ')}`)
+  const tally = (bag) => {
+    const prs = Object.keys(bag).sort((a, c) => a - c)
+    return { prs, obs: Object.values(bag).reduce((s, v) => s + v.length, 0) }
   }
+  for (const name of Object.keys(PREDICATES)) {
+    const A = tally(r.abs[name]), N = tally(r.newly[name])
+    console.log(`${name.padEnd(12)} absolute_refused_prs=${String(A.prs.length).padStart(3)} obs=${String(A.obs).padStart(4)}   newly_refused_prs=${String(N.prs.length).padStart(3)} obs=${String(N.obs).padStart(4)}`)
+    console.log(`${' '.repeat(12)}   absolute: ${A.prs.map((p) => '#' + p).join(' ') || '(none)'}`)
+    console.log(`${' '.repeat(12)}   newly:    ${N.prs.map((p) => '#' + p).join(' ') || '(none)'}`)
+  }
+  console.log('the control is `today`\'s ABSOLUTE column -- `policy_lint --record`\'s own figure through this')
+  console.log('harness\'s region reader. `today`\'s NEWLY column is [] by construction, a difference with itself,')
+  console.log('and carries no information about the region; see the header comment and #762.')
   if (argv.includes('--verify')) {
     const v = verifyNewest(range, map, slug)
     console.log(`VERIFY ${v.window}: bulk_listing=${v.map} per_commit_api=${v.api} only_in_listing=[${v.onlyMap.join(' ')}] only_in_api=[${v.onlyApi.join(' ')}]`)
