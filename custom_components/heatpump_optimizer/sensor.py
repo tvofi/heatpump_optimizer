@@ -685,7 +685,18 @@ class CurrentCOPSensor(HeatPumpOptimizerSensorBase):
         return None
 
 
-class IndoorTempSensor(HeatPumpOptimizerSensorBase):
+class IndoorTempSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase):
+    """Indoor temperature — unavailable while the thermometer does not read.
+
+    The coordinator still writes ``ThermalState.room_temperature``'s 21.0 °C
+    constructor default into the payload when no indoor entity is configured
+    (A3(e)). Publishing that number as an available temperature sensor is
+    indistinguishable from a room that really is at 21.0 °C. Availability
+    follows the same ``reading_ok`` key as the upper-floor sensor: both are
+    the indoor thermometer.
+    """
+
+    _reading_key = "upper_floor_temperature"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_device_class = SensorDeviceClass.TEMPERATURE
