@@ -23,7 +23,17 @@
 //
 //   tools/audit/record-predicate/sweep.mjs --range v6.3.16..origin/main
 //   tools/audit/record-predicate/sweep.mjs --range <a..b> --verify
+//   tools/audit/record-predicate/sweep.mjs --in-flight --since <tag>
 //   tools/audit/record-predicate/sweep.mjs --self-test
+//
+// HISTORY IS NOT THE WHOLE FALSE-REFUSAL SURFACE. A range sweep says what the
+// candidate would have refused; `--in-flight` says what it refuses NOW, for work
+// that has not landed -- every open pull request, read at its own head with that
+// pull request added to the window. It is deliberately NOT a merge simulation: a
+// branch behind `main` is read as it stands, which over-reports rather than
+// under-reports, and it moves no ref. Moving `refs/remotes/origin/main` to
+// simulate a merge is what a scratch clone is for; a git worktree shares the
+// repository's refs with every sibling worktree and must never be used for it.
 //
 // `--verify` re-enumerates the NEWEST window one commit at a time through
 // `/commits/<sha>/pulls`, which is the enumerator `policy_lint --record` itself
@@ -173,6 +183,54 @@ function verifyNewest(range, map, slug) {
     onlyMap: only(fromMap, fromApi), onlyApi: only(fromApi, fromMap) }
 }
 
+// --in-flight. The two disposition files are read over the API at each open pull
+// request's head, so nothing is fetched into the caller's repository and no ref
+// moves. A refusal on any call is counted and that pull request is reported as
+// unread rather than as clean -- an unread file is not evidence of anything.
+function inFlight(slug, since) {
+  const listing = gh(`repos/${slug}/pulls?state=open&per_page=100`, '.[] | [.number, .head.sha] | @tsv')
+  if (listing === null) return null
+  const openPrs = listing.trim().split('\n').filter(Boolean).map((l) => l.split('\t'))
+  const windowPrs = []
+  for (const line of git('log', '--first-parent', '--format=%s', `${since}..${mainRef()}`).trim().split('\n')) {
+    const m = /\(#(\d+)\)\s*$/.exec(line)
+    if (m && !windowPrs.includes(m[1])) windowPrs.push(m[1])
+  }
+  const rows = []
+  for (const [pr, sha] of openPrs) {
+    const plan = contents(slug, PLAN, sha)
+    const hand = contents(slug, HAND, sha)
+    if (plan === null || hand === null) { rows.push({ pr, unread: true }); continue }
+    const { lines, sectionFound } = recordRegion(plan, hand)
+    if (!sectionFound) { rows.push({ pr, unread: true }); continue }
+    const prs = windowPrs.includes(pr) ? windowPrs : [...windowPrs, pr]
+    rows.push({ pr,
+      shipped: newlyRefusedAbsolute(lines, prs, PREDICATES.today),
+      candidate: newlyRefusedAbsolute(lines, prs, PREDICATES.cand) })
+  }
+  return rows
+}
+
+// The ABSOLUTE answer `--record` gives -- every pull request the predicate finds
+// no disposition for -- as opposed to `newlyRefused`, which is the difference
+// against the shipped predicate.
+export function newlyRefusedAbsolute(lines, prs, predicate) {
+  return prs.filter((pr) => {
+    const re = new RegExp(`#${pr}(?![0-9])`)
+    return !lines.some((l) => re.test(l) && predicate(l, pr))
+  })
+}
+
+function mainRef() {
+  try { git('rev-parse', '--verify', '--quiet', 'origin/main'); return 'origin/main' } catch { return 'HEAD' }
+}
+
+function contents(slug, p, ref) {
+  const b64 = gh(`repos/${slug}/contents/${p}?ref=${ref}`, '.content')
+  if (b64 === null) return null
+  try { return Buffer.from(b64.replace(/\s+/g, ''), 'base64').toString('utf8') } catch { return null }
+}
+
 function selfTest() {
   const fails = []
   const eq = (what, got, want) => { if (JSON.stringify(got) !== JSON.stringify(want)) fails.push(`${what}: got ${JSON.stringify(got)}, want ${JSON.stringify(want)}`) }
@@ -200,25 +258,43 @@ function selfTest() {
   eq('cand accepts the handover prose bullet', newlyRefused(hand, ['9004'], PREDICATES.cand), [])
   eq('rowanchor refuses it', newlyRefused(hand, ['9004'], PREDICATES.rowanchor), ['9004'])
   // A number nothing mentions is not this candidate's doing, in either direction.
-  eq('an unmentioned number is not reported as newly refused', newlyRefused(live, ['9999'], PREDICATES.cand), [])
+  eq('an unmentioned number is not reported as newly refused', newlyRefused(live, ['9999'], PREDICATES.cand), ['9999'].slice(1))
+  // ... and the ABSOLUTE form does report it, which is the difference between
+  // the two and the reason both exist. A run where they agree on an unmentioned
+  // number means one of them is not the function it is named for.
+  eq('the absolute form reports an unmentioned number', newlyRefusedAbsolute(live, ['9999'], PREDICATES.cand), ['9999'])
   // No section, no region -- reported as absence rather than as an empty region.
   eq('a plan with no such heading reports the absence', recordRegion('# plan\nnothing\n', '').sectionFound, false)
   eq('and the handover still contributes when the plan section is missing', newlyRefused(hand, ['9004'], PREDICATES.today), [])
   for (const f of fails) console.log(`FAIL ${f}`)
-  console.log(`\nSWEEP SELF-TEST: ${fails.length} failure(s) over 13 assertion(s)`)
+  console.log(`\nSWEEP SELF-TEST: ${fails.length} failure(s) over 14 assertion(s)`)
   return fails.length ? 1 : 0
 }
 
 function main(argv) {
   if (argv.includes('--self-test')) return selfTest()
   const range = argv[argv.indexOf('--range') + 1]
-  if (!argv.includes('--range') || !range || range.startsWith('--')) {
-    console.log('usage: sweep.mjs --range <since>..<ref> [--verify] | --self-test')
+  const since = argv[argv.indexOf('--since') + 1]
+  const wantFlight = argv.includes('--in-flight')
+  if (!wantFlight && (!argv.includes('--range') || !range || range.startsWith('--'))) {
+    console.log('usage: sweep.mjs --range <since>..<ref> [--verify] | --in-flight --since <tag> | --self-test')
     return 2
   }
   const remote = git('remote', 'get-url', 'origin').trim()
   const slug = (remote.match(/github\.com[:/](.+?)(?:\.git)?$/) ?? [])[1]
   if (!slug) { console.log('no github remote on origin; the enumerator needs one'); return 2 }
+  if (wantFlight) {
+    if (!since || since.startsWith('--')) { console.log('--in-flight needs --since <tag>'); return 2 }
+    const rows = inFlight(slug, since)
+    if (!rows) { console.log(`the open-pull-request listing was refused; API_REFUSALS=${refusals}`); return 1 }
+    console.log(`open pull requests read at their own head, window ${since}..${mainRef()} plus the pull request itself`)
+    for (const r of rows) {
+      if (r.unread) { console.log(`#${r.pr.padEnd(5)} UNREAD -- a disposition file could not be read at this head`); continue }
+      console.log(`#${r.pr.padEnd(5)} shipped_reports=[${r.shipped.map((x) => '#' + x).join(' ')}]  candidate_reports=[${r.candidate.map((x) => '#' + x).join(' ')}]`)
+    }
+    console.log(`API_REFUSALS=${refusals}`)
+    return 0
+  }
   const map = shaToPr(slug)
   const r = sweep(range, map)
   console.log(`range=${range} heads=${r.heads} windows_measured=${r.windows} heads_with_no_region=${r.noRegion} unmapped_first_parent_commits=${r.unmapped} pr_window_observations=${r.observations}`)
