@@ -87,6 +87,12 @@ NOT_A_TEST = {
     "harness.py", "profiles.py", "closure.py", "gate_lock.py",
     "setup_qa_render.mjs",
     "card_browser.mjs", "nightly_ha.py",
+    # The nightly's reporter (#533): its own `nightly-status` job runs it on
+    # every pull request, and it needs the GitHub Actions API, which this suite
+    # has neither the network nor the token for. Like `nightly_ha.py` above it
+    # is NOT_A_TEST and is NOT inert: `tests/entities.py` imports it and drives
+    # its four states, so a change to how it classifies selects a script.
+    "nightly_status.py",
     # The shared DOM stub (#101) and the rig around it, imported by the three
     # Node harnesses (card.mjs, setup_qa_render.mjs, card_drift.mjs): libraries,
     # never run. dom_stub.mjs was missing from this set from v6.1.2 to v6.2.7,
