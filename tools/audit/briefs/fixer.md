@@ -50,10 +50,10 @@ production lines. You work in your own worktree branched from `origin/main`.
    doc — not an instruction to spend forty minutes reproducing CI.
 
    **Running locally does not discharge CI.** What `scope.run` names is green
-   locally before you push, and the PR's own checks are green before the
-   handoff in step 6 — `fix-review.md` step 11 reads those checks rather than
-   the body's account of them, and a check that went red owes an answer in the
-   body.
+   locally, then you push the branch with `tools/audit/push.sh`, handing it the
+   body: it refuses before it pushes anything if that body fails the contract
+   check (#678). The PR's own checks are green before the handoff in step 6 —
+   `fix-review.md` step 11 reads those rather than the body's account of them.
 
    **Take the gate lease only when `MODE: FULL` or `scope.run` names
    `tests/stress.py`**, the one script the lock exists for (`CLAUDE.md`
@@ -210,8 +210,8 @@ accommodating sloppiness, an unexamined refactor, or a feature that has not been
 measured. But a metric sitting at zero headroom is not a veto on new
 functionality, and asking is an available move — #398 was refused in part
 because `coordinator_attrs` stood at 176/176 and a new attribute was read as
-costing the deletion of an existing one. `cross_seam_fraction` is exempt from
-all of this: it is a tolerance metric and is **never** re-recorded.
+costing the deletion of an existing one. No metric is exempt from this since
+2026-09-10: `cross_seam_edges` replaced the one tolerance-banded ratio.
 
 ## Before you hand off: carry what you found forward
 

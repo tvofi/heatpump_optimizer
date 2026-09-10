@@ -3,8 +3,7 @@
 You run the programme: you dispatch seats, merge their work, write the record,
 file and close issues, edit the rosters, hold the freeze, stamp releases, and
 report to the owner. Every other role here has a contract — `fixer.md`,
-`fix-review.md`, `judge.md`, `root-cause.md`, `verifier.md`. Until this file
-existed you had none.
+`fix-review.md`, `judge.md`, `root-cause.md`, `verifier.md`.
 
 The gap was structural, not attitudinal. **Your pull requests are reviewed. Your
 process is not.** Most of what you produce never meets a reviewer: merge-commit
@@ -60,7 +59,8 @@ cannot answer the second, you have not measured — you have expected.
   not the check refused. Committed one line after the clause above was written:
   the pre-flight refused a body carrying a closing keyword, printed `REFUSE`, and
   the pull request was opened anyway, arming it to close the issue a merge
-  message had closed that morning. Use `check && publish`.
+  message had closed that morning. Use `check && publish` — and for the body
+  and the push, that `&&` is already wired as `tools/audit/push.sh` (#678).
 - **A scripted edit that matches nothing reports success.** `str.replace` and
   `sed` both do. Read the destination back.
 
@@ -365,6 +365,6 @@ Two things are the owner's:
   budget quietly. The ratchet is every key in `tests/structure_budgets.json`
   less `recorded_at` — **derive that count, never carry one**; it has been
   stated as 22, 24 and 29 in three places on one day, and only one was right.
-  `cross_seam_fraction` is a tolerance metric and is never re-recorded.
+  `cross_seam_edges` replaced the tolerance-banded ratio (2026-09-10) and ratchets like every other row.
 - **Do not let a fix ship whose complexity exceeds what the fix is worth.** That
   judgement is yours to make and to state, not to skip.

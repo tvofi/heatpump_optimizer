@@ -6,7 +6,7 @@
  "coordinator_loc": 9604,
  "coordinator_methods": 239,
  "coordinator_multiassigned_attrs": 126,
- "cross_seam_fraction": 0.4289,
+ "cross_seam_edges": 145,
  "cut_dhw": 81,
  "cut_fetch": 132,
  "cut_grid": 205,
@@ -23,5 +23,5 @@
  "max_method_loc": 393,
  "methods_over_150": 18,
  "methods_over_200": 11,
- "recorded_at": "4e7d7834fe4597bda268d931b1d6b372b10cf50e"
+ "recorded_at": "697810764c1f314b1c376fe16d55feae96934771"
 }
