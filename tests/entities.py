@@ -10318,6 +10318,144 @@ R.check(
     "A5/A8/A9 passing checks blanked their detail (#533)",
 )
 
+# Leftover #533 after #751: A6/A11/A12/A13. Sibling #754 owns the
+# leftover A5/A8/A14 nightly production reds; those pins live there.
+R.section("Nightly leftover A6/A11/A12/A13")
+
+R.check(
+    "the nightly demands A6/A11/A12/A13 checks by name",
+    set(_nightly.A6_INSIDE) <= set(_nightly.INSIDE_CHECKS)
+    and set(_nightly.A11_INSIDE) <= set(_nightly.INSIDE_CHECKS)
+    and set(_nightly.A12_INSIDE) <= set(_nightly.INSIDE_CHECKS)
+    and set(_nightly.A13_INSIDE) <= set(_nightly.INSIDE_CHECKS)
+    and set(_nightly.A6_INSIDE)
+    == {"a6:list", "a6:string", "a6:number", "a6:loaded"}
+    and set(_nightly.A11_INSIDE)
+    == {"a11:no_entry", "a11:invalid", "a11:run_failed"}
+    and set(_nightly.A12_INSIDE) == {"a12:migrates"}
+    and set(_nightly.A13_INSIDE) == {"a13:currency"},
+    f"A6={getattr(_nightly, 'A6_INSIDE', None)} "
+    f"A11={getattr(_nightly, 'A11_INSIDE', None)} "
+    f"A12={getattr(_nightly, 'A12_INSIDE', None)} "
+    f"A13={getattr(_nightly, 'A13_INSIDE', None)}",
+)
+R.check(
+    "A6/A11/A12/A13 are not merged with A4",
+    all(
+        not n.startswith("a4:")
+        for n in (
+            *_nightly.A6_INSIDE,
+            *_nightly.A11_INSIDE,
+            *_nightly.A12_INSIDE,
+            *_nightly.A13_INSIDE,
+        )
+    ),
+)
+
+_a6_ok = _nightly.Checks()
+_nightly.check_a6_corrupt(_a6_ok, "a6:list", raised=False, applied=False)
+_a6_raise = _nightly.Checks()
+_nightly.check_a6_corrupt(_a6_raise, "a6:list", raised=True, applied=False)
+_a6_apply = _nightly.Checks()
+_nightly.check_a6_corrupt(_a6_apply, "a6:list", raised=False, applied=True)
+_a6_load_ok = _nightly.Checks()
+_nightly.check_a6_loaded(_a6_load_ok, True)
+_a6_load_bad = _nightly.Checks()
+_nightly.check_a6_loaded(_a6_load_bad, False)
+R.check(
+    "a6:list fails a raise or an applied corrupt payload, and a6:loaded fails a down entry",
+    "a6:list" in _a6_raise.failures()
+    and "a6:list" in _a6_apply.failures()
+    and "a6:list" not in _a6_ok.failures()
+    and "a6:loaded" in _a6_load_bad.failures()
+    and "a6:loaded" not in _a6_load_ok.failures(),
+    f"ok={_a6_ok.results} raise={_a6_raise.results} apply={_a6_apply.results}",
+)
+R.check(
+    "A6 stages four corrupt stores, not a carried anecdote",
+    len(_nightly.A6_STORE_CASES) == 4
+    and {case[0] for case in _nightly.A6_STORE_CASES}
+    == {"accuracy", "thermal_learning", "energy", "price_model"},
+    f"cases={_nightly.A6_STORE_CASES}",
+)
+
+_a11_ok = _nightly.Checks()
+_nightly.check_a11_raised(_a11_ok, "a11:invalid", True)
+_a11_noop = _nightly.Checks()
+_nightly.check_a11_raised(_a11_noop, "a11:invalid", False)
+R.check(
+    "a11:invalid fails a silent no-op and passes a raise",
+    "a11:invalid" in _a11_noop.failures()
+    and "a11:invalid" not in _a11_ok.failures(),
+    f"ok={_a11_ok.results} noop={_a11_noop.results}",
+)
+
+_a12_ok = _nightly.Checks()
+_nightly.check_a12_migrates(_a12_ok, const.CONFIG_ENTRY_VERSION, const.CONFIG_ENTRY_VERSION)
+_a12_stale = _nightly.Checks()
+_nightly.check_a12_migrates(_a12_stale, 1, const.CONFIG_ENTRY_VERSION)
+R.check(
+    "a12:migrates fails an unstamped older version and passes the current stamp",
+    "a12:migrates" in _a12_stale.failures()
+    and "a12:migrates" not in _a12_ok.failures(),
+    f"ok={_a12_ok.results} stale={_a12_stale.results}",
+)
+_a12_seed = _nightly._seed_payload()
+R.check(
+    "A12 seeds an older schema version than CONFIG_ENTRY_VERSION",
+    int(_a12_seed["version"]) < const.CONFIG_ENTRY_VERSION,
+    f"seed={_a12_seed['version']} current={const.CONFIG_ENTRY_VERSION}",
+)
+
+_a13_ok = _nightly.Checks()
+_nightly.check_a13_currency(_a13_ok, "EUR", "EUR")
+_a13_sek = _nightly.Checks()
+_nightly.check_a13_currency(_a13_sek, "SEK", "EUR")
+R.check(
+    "a13:currency fails a hardcoded SEK on an EUR instance",
+    "a13:currency" in _a13_sek.failures()
+    and "a13:currency" not in _a13_ok.failures(),
+    f"ok={_a13_ok.results} sek={_a13_sek.results}",
+)
+R.check(
+    "A13's instance currency is not the SEK fallback",
+    "currency: EUR" in _nightly.CONFIGURATION_YAML
+    and "currency: SEK" not in _nightly.CONFIGURATION_YAML,
+    "SEK on the instance cannot tell follow-the-instance from the fallback",
+)
+_a6_dir = Path(_tempfile.mkdtemp(prefix="a6-stores-"))
+_a6_entry = "01JHPA9NGHTHACNTNR00000001"
+_nightly.write_corrupt_stores(_a6_dir, _a6_entry)
+_a6_prefix = f"{_nightly.PACKAGE_NAME}_{_a6_entry}_"
+_a6_written = {
+    p.name[len(_a6_prefix) :]
+    for p in (_a6_dir / ".storage").iterdir()
+    if p.name.startswith(_a6_prefix)
+}
+R.check(
+    "write_corrupt_stores emits one HA store file per A6 case",
+    _a6_written == {"accuracy", "thermal_learning", "energy", "price_model"},
+    f"written={sorted(_a6_written)}",
+)
+_inside_src = _inspect.getsource(_nightly._inside)
+_boot_src = _inspect.getsource(_nightly._boot)
+R.check(
+    "A6 writes corrupt stores at boot; A11 runs before A8 unload",
+    "write_corrupt_stores" in _boot_src
+    and "_async_check_a11" in _inside_src
+    and "_async_check_a8" in _inside_src
+    and _inside_src.index("_async_check_a11") < _inside_src.index("_async_check_a8"),
+    "A6/A11 must execute, and A11 before A8 unloads the entry the services need",
+)
+R.check(
+    "A12 and A13 run on the loaded entry, not after A8 unload",
+    "_check_a12" in _inside_src
+    and "_check_a13" in _inside_src
+    and _inside_src.index("_check_a12") < _inside_src.index("_async_check_a8")
+    and _inside_src.index("_check_a13") < _inside_src.index("_async_check_a8"),
+    f"inside has a12={'_check_a12' in _inside_src} a13={'_check_a13' in _inside_src}",
+)
+
 # --- nightly loop-detector positive control (#588) --------------------------
 #
 # The container run stays NOT_A_TEST. These pins demand the check by name and

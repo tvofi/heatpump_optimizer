@@ -29,8 +29,8 @@ file is.
    production feature, **raise the budget with the repository owner's explicit
    confirmation, obtained before the branch is pushed** — never loosen one
    quietly, never delete working functionality merely to fit, and stop and ask
-   rather than push and explain. `cross_seam_fraction` is a tolerance metric and
-   is never re-recorded.
+   rather than push and explain. `cross_seam_edges`, the count that replaced the
+   tolerance-banded ratio on 2026-09-10, ratchets like every other row.
 3. **Value-bearing golden fixtures are claimed, not re-recorded.** Solver floats
    do not reproduce across BLAS builds, so only a canonical environment can
    honestly record one. Drift is declared in `tests/golden/claimed_drift.txt` (or
