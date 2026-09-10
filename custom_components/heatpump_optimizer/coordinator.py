@@ -10361,7 +10361,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._score_day = {}
         kwh = _as_float(book.get("kwh"), 0.0)
         hours = _as_float(book.get("spot_h"), 0.0)
-        if kwh < 1.0 or hours < 1.0:
+        if kwh < 0.2 or hours < 1.0:
             return
         mean_spot = _as_float(book.get("spot_sum"), 0.0) / hours
         if mean_spot <= 0.01:
@@ -10382,10 +10382,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     def _scores_view(self) -> dict[str, Any]:
         """#65: envelope, machine and operation on one 0–100 scale.
 
-        Each score answers a different question — how good is the house,
-        how healthy is the machine, how well is it being driven — so a low
-        overall points at its own cause. None means "no evidence yet",
-        never "zero": a fresh install has no grades, not failing ones.
+        Envelope is the house; it stays in the breakdown. Overall is
+        machine and operation only — averaging the house in is how a
+        DHW-only cheap-hour plan reads as 5/100. None is no evidence.
         """
         ctx = getattr(self, "_ctx", self)
         envelope = None
@@ -10422,7 +10421,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             ) * 100.0
 
         operation = self._operation_score
-        available = [s for s in (envelope, machine, operation) if s is not None]
+        available = [s for s in (machine, operation) if s is not None]
         return {
             "envelope": round(envelope, 1) if envelope is not None else None,
             "machine": round(machine, 1) if machine is not None else None,
