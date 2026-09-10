@@ -102,9 +102,9 @@
       "fixture": false,
       "after": ["3L-G5"],
       "resume": {
-        "stage": "done",
+        "stage": "blocked",
         "branch": "cursor/3l-g6-setup-conflict-btn-3c04",
-        "note": "DONE BY CLOSURE, NOT BY DELIVERY. NEEDS_CONTEXT at 6f02b8a: no conflict flow in production -- no symbol, step or service named `conflict` on main, the nearest twins being the read-only options `setup_overview` and config `reconfigure`. This note said `#457 stays open`, true when written and false from 2026-09-06T03:40:23Z, when the owner closed #457 `completed`. The spec this group waited on never arrived; the issue was closed rather than specified, so no card work is owed and the group does not reopen. 3L-G7 sits after 3L-G5."
+        "note": "TERMINAL, NOT DELIVERED -- stage stays `blocked`, which here means spends no agent and is recorded for the orchestrator, because this group has no pull request and no merge SHA and `done` in this roster means merged. NEEDS_CONTEXT at 6f02b8a: no conflict flow in production -- no symbol, step or service named `conflict` on main, the nearest twins being the read-only options `setup_overview` and config `reconfigure`. This note said `#457 stays open`, true when written and false from 2026-09-06T03:40:23Z, when the owner closed #457 `completed`. The spec this group waited on never arrived; the issue was closed rather than specified, so no card work is owed and the group does not reopen. 3L-G7 sits after 3L-G5."
       },
       "brief": "Card setup-page button that opens the conflict flow. Card-only. If still blocked on the conflict-flow spec, 3L-G7 sits after 3L-G5 instead."
     },
