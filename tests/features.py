@@ -22664,20 +22664,21 @@ R.check(
 # tell locking in a gain from laundering a regression. The direction is
 # uniformly `new > old` -- ratchet() compares every metric in the budgets table
 # the same way, so
-# there is no per-metric direction table to maintain -- and FRACTION_METRICS
-# is skipped: a tolerance metric inside its band has nothing to record, and
-# outside it a failure is a decision, not bookkeeping.
+# there is no per-metric direction table to maintain. (2026-09-10: the one
+# tolerance metric, cross_seam_fraction, was retired for the count
+# cross_seam_edges, so every row now ratchets the same way; the pins below
+# that once exercised the skipped category exercise the uniform rule instead.)
 _hpo_g_old = {
     "coordinator_loc": 10394,
     "methods_over_150": 23,
     "duplication_blocks": 13,
-    "cross_seam_fraction": 0.4289,
+    "cross_seam_edges": 157,
     "recorded_at": "4b6e076517431bd8658530c5ac751f2b7ddb7ef6",
 }
 _hpo_g_base = {k: v for k, v in _hpo_g_old.items() if k != "recorded_at"}
 _hpo_g_worse = dict(_hpo_g_base, coordinator_loc=10420, methods_over_150=22)
-_hpo_g_better = dict(_hpo_g_base, coordinator_loc=10380, cross_seam_fraction=0.4301)
-_hpo_g_frac = dict(_hpo_g_base, cross_seam_fraction=0.4301)
+_hpo_g_better = dict(_hpo_g_base, coordinator_loc=10380, cross_seam_edges=152)
+_hpo_g_edges_up = dict(_hpo_g_base, cross_seam_edges=160)
 
 
 def _hpo_g_rows(old: dict, new: dict):
@@ -22694,10 +22695,11 @@ R.check(
     "re-record that carries one row along with another",
 )
 R.check(
-    "cross_seam_fraction moving up is NOT a regression row: FRACTION_METRICS is skipped",
-    _hpo_g_rows(_hpo_g_old, _hpo_g_frac) == [],
-    f"regression_rows = {_hpo_g_rows(_hpo_g_old, _hpo_g_frac)}; FRACTION_METRICS = "
-    f"{sorted(getattr(_hpo_st, 'FRACTION_METRICS', ()))}",
+    "cross_seam_edges moving up IS a regression row: the retired ratio's band is gone",
+    _hpo_g_rows(_hpo_g_old, _hpo_g_edges_up) == [("cross_seam_edges", 157, 160)],
+    f"regression_rows = {_hpo_g_rows(_hpo_g_old, _hpo_g_edges_up)}; a cohesive "
+    "extraction lowers this count and a tangle raises it, which is the polarity "
+    "the ratio it replaced inverted (2026-09-10)",
 )
 
 
@@ -22755,13 +22757,14 @@ R.check(
     f"recorded_at = {_hpo_g_tight[1].get('recorded_at')!r}",
 )
 R.check(
-    "cross_seam_fraction is carried forward, never re-recorded (#370)",
-    _hpo_g_tight[1].get("cross_seam_fraction") == 0.4289
-    and _hpo_g_record(_hpo_g_frac)[1].get("cross_seam_fraction") == 0.4289,
-    "a tolerance metric passing inside its band has nothing to record and failing "
-    "outside it is a decision, so re-recording one can only ever loosen the band. "
-    f"Got {_hpo_g_tight[1].get('cross_seam_fraction')!r} and "
-    f"{_hpo_g_record(_hpo_g_frac)[1].get('cross_seam_fraction')!r}",
+    "cross_seam_edges is recorded like every other row -- a tightening lands",
+    _hpo_g_tight[1].get("cross_seam_edges") == 152
+    and _hpo_g_record(_hpo_g_edges_up)[0] == 1
+    and _hpo_g_record(_hpo_g_edges_up)[1].get("cross_seam_edges") == 157,
+    "the count moved down in _hpo_g_better and must be written; moved up in "
+    "_hpo_g_edges_up and --record must refuse the whole table. Got "
+    f"{_hpo_g_tight[1].get('cross_seam_edges')!r} and "
+    f"{_hpo_g_record(_hpo_g_edges_up)!r}",
 )
 R.check(
     "--allow-regression is a flag that demands a reason, not a bare switch",
@@ -22786,7 +22789,6 @@ R.section("#350/#374 — an improvement must be recorded, and the worst method h
 
 # Same rule as the section above: these drive tests/structure.py's own
 # symbols. `structure as _hpo_st` is already imported there.
-_hpo_h_never = getattr(_hpo_st, "NEVER_RERECORDED", None)
 _hpo_h_imp = getattr(_hpo_st, "improvement_rows", None)
 _hpo_h_report = getattr(_hpo_st, "report_improvements", None)
 
@@ -22801,7 +22803,7 @@ _hpo_h_budgets = {
     "max_class_loc": 10394,
     "internal_call_edges": 379,
     "methods_over_150": 23,
-    "cross_seam_fraction": 0.4289,
+    "cross_seam_edges": 157,
     "recorded_at": "4b6e076517431bd8658530c5ac751f2b7ddb7ef6",
 }
 _hpo_h_better = {
@@ -22809,7 +22811,7 @@ _hpo_h_better = {
     "max_class_loc": 10365,
     "internal_call_edges": 372,
     "methods_over_150": 23,
-    "cross_seam_fraction": 0.4220,
+    "cross_seam_edges": 157,
 }
 _hpo_h_worse = dict(_hpo_h_better, methods_over_150=24)
 _hpo_h_level = {k: v for k, v in _hpo_h_budgets.items() if k != "recorded_at"}
@@ -22853,36 +22855,28 @@ R.check(
     f"regression_rows = {_hpo_g_rows(_hpo_h_budgets, _hpo_h_level)}",
 )
 
-# The category #370's fourth comment asked for. Without it, `tvofi-claude-09`'s
-# two correct decisions to decline re-recording cross_seam_fraction become two
-# gate violations the moment re-recording is mandatory.
+# The categories #370's fourth comment asked for -- a tolerance band and a
+# never-re-recorded set -- had one member, cross_seam_fraction, and retired
+# with it on 2026-09-10: a ratio whose denominator every cohesive extraction
+# shrinks rose on the very move it was built to price. Its numerator,
+# cross_seam_edges, is a plain count under the uniform rule, and these two
+# pins hold that no exemption came back with it.
 R.check(
-    "NEVER_RERECORDED exists and holds cross_seam_fraction (#350, #370)",
-    isinstance(_hpo_h_never, (set, frozenset)) and "cross_seam_fraction" in _hpo_h_never,
-    f"NEVER_RERECORDED = {_hpo_h_never!r}; a tolerance metric passing inside its "
-    "band has nothing to record and failing outside it is a decision, so there is "
-    "no third case and a re-record could only ever loosen the band",
+    "no metric is exempt from the ratchet: the two retired categories are gone",
+    not hasattr(_hpo_st, "NEVER_RERECORDED") and not hasattr(_hpo_st, "FRACTION_METRICS"),
+    "a set that exempts a row from --record is what let a ratio sit on the table "
+    "for five re-records while it priced cohesion backwards",
 )
 R.check(
-    "improvement_rows skips it, so declining to re-record it can never be a failure",
+    "improvement_rows names cross_seam_edges like any other row when it falls",
     _hpo_h_rows(
-        {"cross_seam_fraction": 0.4289, "coordinator_loc": 10394},
-        {"cross_seam_fraction": 0.4220, "coordinator_loc": 10394},
+        {"cross_seam_edges": 157, "coordinator_loc": 10394},
+        {"cross_seam_edges": 152, "coordinator_loc": 10394},
     )
-    == [],
-    "cross_seam_fraction reads 0.4220 against a recorded 0.4289 on this fork, which "
-    "is headroom by any comparison; demanding a re-record there would loosen the "
-    "0.4339 ceiling for nothing. Got "
-    f"{_hpo_h_rows({'cross_seam_fraction': 0.4289, 'coordinator_loc': 10394}, {'cross_seam_fraction': 0.4220, 'coordinator_loc': 10394})}",
-)
-R.check(
-    "every tolerance metric is in the category -- a ratchet on a band is a contradiction",
-    _hpo_h_never is not None
-    and set(getattr(_hpo_st, "FRACTION_METRICS", set())) <= set(_hpo_h_never),
-    f"FRACTION_METRICS = {sorted(getattr(_hpo_st, 'FRACTION_METRICS', ()))}, "
-    f"NEVER_RERECORDED = {sorted(_hpo_h_never or ())}; a metric with both a "
-    "tolerance band and a re-record demand is carrying two mechanisms for one job "
-    "and they disagree",
+    == [("cross_seam_edges", 157, 152)],
+    "the legionella guard's extraction reads 157 -> 152 on this count; the gate "
+    "must ask for that gain to be written down, where the ratio read a breach. Got "
+    f"{_hpo_h_rows({'cross_seam_edges': 157, 'coordinator_loc': 10394}, {'cross_seam_edges': 152, 'coordinator_loc': 10394})}",
 )
 
 
@@ -22935,7 +22929,7 @@ R.check(
         k in _hpo_h_block
         for k in ("coordinator_loc", "internal_call_edges", "max_class_loc")
     )
-    and "cross_seam_fraction" not in _hpo_h_block,
+    and "cross_seam_edges" not in _hpo_h_block,
     f"the block after the IMPROVED header was:\n{_hpo_h_block}",
 )
 R.check(
@@ -22967,17 +22961,19 @@ R.check(
     and "BREACHED" in _hpo_h_run_worse[1],
     f"ratchet returned {_hpo_h_run_worse[0]!r}. Output:\n{_hpo_h_run_worse[1]}",
 )
-_hpo_h_run_frac = _hpo_h_ratchet(
-    {"cross_seam_fraction": 0.4289, "coordinator_loc": 10394,
+_hpo_h_run_edges = _hpo_h_ratchet(
+    {"cross_seam_edges": 157, "coordinator_loc": 10394,
      "recorded_at": _hpo_h_budgets["recorded_at"]},
-    {"cross_seam_fraction": 0.4220, "coordinator_loc": 10394},
+    {"cross_seam_edges": 152, "coordinator_loc": 10394},
 )
 R.check(
-    "headroom on a never-re-recorded metric alone leaves the run green",
-    _hpo_h_run_frac[0] == 0,
-    f"ratchet returned {_hpo_h_run_frac[0]!r} for a tree whose only movement is "
-    "cross_seam_fraction inside its own category. Output:\n"
-    f"{_hpo_h_run_frac[1]}",
+    "headroom on cross_seam_edges alone is an unrecorded improvement, so the run fails",
+    _hpo_h_run_edges[0] == 1 and "IMPROVED" in _hpo_h_run_edges[1]
+    and "cross_seam_edges" in _hpo_h_run_edges[1],
+    f"ratchet returned {_hpo_h_run_edges[0]!r} for a tree whose only movement is "
+    "cross_seam_edges falling; under the retired ratio this same move read as "
+    "'inside its own category' and stayed silent. Output:\n"
+    f"{_hpo_h_run_edges[1]}",
 )
 if _hpo_h_report is not None:
     _hpo_h_mixed_out = _hpo_g_io.StringIO()
@@ -23081,16 +23077,14 @@ R.check(
 )
 R.check(
     "both are plain counts, so the existing current > budget arm handles them",
-    "max_method_loc" not in _hpo_st.FRACTION_METRICS
-    and "max_cc" not in _hpo_st.FRACTION_METRICS
+    not hasattr(_hpo_st, "FRACTION_METRICS")
     and _hpo_h_ratchet(
         {"max_cc": 87, "recorded_at": _hpo_h_budgets["recorded_at"]}, {"max_cc": 88}
     )[0] == 1
     and "FAIL max_cc 88 > 87" in _hpo_h_ratchet(
         {"max_cc": 87, "recorded_at": _hpo_h_budgets["recorded_at"]}, {"max_cc": 88}
     )[1],
-    "no tolerance, no new polarity, nothing that touches the FRACTION_METRICS "
-    "exemption. Output:\n"
+    "no tolerance, no new polarity, no exemption. Output:\n"
     f"{_hpo_h_ratchet({'max_cc': 87, 'recorded_at': _hpo_h_budgets['recorded_at']}, {'max_cc': 88})[1]}",
 )
 R.check(
