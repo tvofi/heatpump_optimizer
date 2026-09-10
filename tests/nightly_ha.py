@@ -68,14 +68,14 @@ A2   a plan was actually produced                          4           done
 A3   the published-state sweep, judged by HA's machinery   named set   done
 A4   availability conjoins the coordinator (fault-inject)  6           done
 A5   the entry round-trips through its own forms           9           done
-A6   corrupt-store resilience                              4           none
+A6   corrupt-store resilience                              4           done
 A7   the log carries none of this integration's failures   5           partial
 A8   services register once; no leftover per-entry handlers 3          done
 A9   reload without growth                                 3           done (partial)
 A10  diagnostics leak no credential and no location        2           #585
-A11  a failing service raises, it does not no-op           3           none
-A12  an older schema version migrates                      1           none
-A13  the currency follows the instance                     1           none
+A11  a failing service raises, it does not no-op           3           done
+A12  an older schema version migrates                      1           done
+A13  the currency follows the instance                     1           done
 A14  setup does not block the event loop                   1           partial
 ===  ====================================================  ==========  =======
 
@@ -89,8 +89,7 @@ bullet-level, stable in ranking and about +/-15 in absolute terms; the two
 largest classes in the record -- solver numbers and card geometry, 68 escapes
 between them -- are out of this lane's reach by construction, so this is the
 deployment-shape and HA-citizenship lane and not a general safety net.
-A6, A11, A12 and A13 have no issue: they are recorded here and unscheduled,
-which is a different thing from unnoticed.
+A6/A11/A12/A13 are demanded by name in ``INSIDE_CHECKS`` the same way A4 is.
 A5/A8/A9 (#587): the form count is derived from ``_OPTION_PAGES`` plus the two
 menus, and the service catalog from ``services.yaml``, not from the filed 23/11.
 A8's "0 remain" is leftover *per-entry* handlers after both entries unload;
@@ -217,6 +216,28 @@ A9_INSIDE = (
     "a9:roster_unchanged",
     "a9:no_growth",
 )
+# Demanded by name from tests/entities.py. A4 is a different assertion.
+A6_INSIDE = (
+    "a6:list",
+    "a6:string",
+    "a6:number",
+    "a6:loaded",
+)
+A11_INSIDE = (
+    "a11:no_entry",
+    "a11:invalid",
+    "a11:run_failed",
+)
+A12_INSIDE = ("a12:migrates",)
+A13_INSIDE = ("a13:currency",)
+# Four stores, four type-wrong payloads. The dict case must not take
+# the entry down; list/string/number are the named corrupt checks.
+A6_STORE_CASES = (
+    ("accuracy", [1, 2, 3]),
+    ("thermal_learning", "nonsense"),
+    ("energy", 7),
+    ("price_model", {"samples": "x"}),
+)
 # The issue's trial count, not a derived population.
 A9_RELOADS = 5
 A8_SECOND_ENTRY_ID = "01JHPA9NGHTHACNTNR00000002"
@@ -252,6 +273,10 @@ INSIDE_CHECKS = (
     *A5_INSIDE,
     *A8_INSIDE,
     *A9_INSIDE,
+    *A6_INSIDE,
+    *A11_INSIDE,
+    *A12_INSIDE,
+    *A13_INSIDE,
 )
 
 # Judged by the outer half, over the container's combined output and the log
@@ -1240,6 +1265,168 @@ def check_a9_no_growth(
     checks.check("a9:no_growth", not grew, ceiling)
 
 
+def check_a6_corrupt(
+    checks: Checks, name: str, *, raised: bool, applied: bool
+) -> None:
+    """A corrupt store may not raise out or become live state."""
+    checks.check(
+        name,
+        not raised and not applied,
+        (
+            "corrupt payload dropped"
+            if not raised and not applied
+            else f"raised={raised} applied={applied}"
+        ),
+    )
+
+
+def check_a6_loaded(checks: Checks, loaded: bool) -> None:
+    checks.check(
+        "a6:loaded",
+        loaded,
+        "entry loaded after corrupt stores" if loaded else "entry down after corrupt stores",
+    )
+
+
+def check_a11_raised(checks: Checks, name: str, raised: bool) -> None:
+    checks.check(
+        name,
+        raised,
+        "service raised" if raised else "service no-op",
+    )
+
+
+def check_a12_migrates(checks: Checks, after, expected) -> None:
+    checks.check(
+        "a12:migrates",
+        after == expected,
+        f"after={after} expected={expected}",
+    )
+
+
+def check_a13_currency(checks: Checks, got, want) -> None:
+    checks.check(
+        "a13:currency",
+        got == want,
+        f"coordinator={got!r} instance={want!r}",
+    )
+
+
+def write_corrupt_stores(config_dir: Path, entry_id: str) -> None:
+    """HA Store files the four A6 loaders will read on boot."""
+    store_dir = Path(config_dir) / ".storage"
+    store_dir.mkdir(parents=True, exist_ok=True)
+    for suffix, payload in A6_STORE_CASES:
+        key = f"{PACKAGE_NAME}_{entry_id}_{suffix}"
+        (store_dir / key).write_text(
+            json.dumps(
+                {
+                    "version": 1,
+                    "minor_version": 1,
+                    "key": key,
+                    "data": payload,
+                }
+            )
+        )
+
+
+def _a6_check_name(payload) -> str | None:
+    if isinstance(payload, list):
+        return "a6:list"
+    if isinstance(payload, str):
+        return "a6:string"
+    if isinstance(payload, (int, float)) and not isinstance(payload, bool):
+        return "a6:number"
+    return None
+
+
+def _a6_payload_applied(coord, suffix: str, payload) -> bool:
+    if coord is None:
+        return False
+    if suffix == "accuracy":
+        acc = getattr(coord, "_accuracy", None)
+        return acc is payload or acc == payload
+    if suffix == "thermal_learning":
+        return payload in (
+            getattr(coord, "_buffer_cooling_rate", None),
+            getattr(coord, "_house_heat_loss_scale", None),
+        )
+    if suffix == "energy":
+        totals = getattr(coord, "_energy_totals", None)
+        return totals is payload or totals == payload
+    if suffix == "price_model":
+        model = getattr(coord, "_price_model", None)
+        return model is payload or model == payload
+    return False
+
+
+def _check_a6(checks: Checks, entry) -> None:
+    coord = getattr(entry, "runtime_data", None) if entry is not None else None
+    loaded = coord is not None and _is_loaded(getattr(entry, "state", None))
+    check_a6_loaded(checks, loaded)
+    for suffix, payload in A6_STORE_CASES:
+        name = _a6_check_name(payload)
+        if name is None:
+            continue
+        check_a6_corrupt(
+            checks,
+            name,
+            raised=coord is None,
+            applied=_a6_payload_applied(coord, suffix, payload),
+        )
+
+
+def _check_a12(checks: Checks, entry) -> None:
+    const = _prod_mod("const")
+    after = getattr(entry, "version", None) if entry is not None else None
+    check_a12_migrates(checks, after, const.CONFIG_ENTRY_VERSION)
+
+
+def _check_a13(checks: Checks, hass, entry) -> None:
+    coord = getattr(entry, "runtime_data", None) if entry is not None else None
+    got = getattr(coord, "currency", None)
+    want = getattr(getattr(hass, "config", None), "currency", None)
+    check_a13_currency(checks, got, want)
+
+
+async def _async_service_raised(hass, service: str, data: dict) -> bool:
+    try:
+        await hass.services.async_call(PACKAGE_NAME, service, data, blocking=True)
+    except Exception:  # noqa: BLE001 - a raise is the A11 pass
+        return True
+    return False
+
+
+async def _async_check_a11(checks: Checks, hass) -> None:
+    check_a11_raised(
+        checks,
+        "a11:invalid",
+        await _async_service_raised(hass, "set_mode", {"mode": "not-a-mode"}),
+    )
+    check_a11_raised(
+        checks,
+        "a11:no_entry",
+        await _async_service_raised(
+            hass,
+            "assign_entity",
+            {
+                "key": "indoor_temp_entity",
+                "entity_id": "sensor.ci_indoor_temperature",
+                "entry_id": "not-an-entry",
+            },
+        ),
+    )
+    check_a11_raised(
+        checks,
+        "a11:run_failed",
+        await _async_service_raised(
+            hass,
+            "set_thermal_parameters",
+            {"dhw_windows": "not-a-window"},
+        ),
+    )
+
+
 def _flow_mapping(result) -> dict:
     if isinstance(result, dict):
         return result
@@ -1827,7 +2014,7 @@ def _check_contracts(checks: Checks) -> None:
     )
 
 
-async def _boot(seed: dict):
+async def _boot(seed: dict, *, corrupt_stores: bool = False):
     """Boot Home Assistant the way its own entry point does."""
     import dataclasses
 
@@ -1847,6 +2034,8 @@ async def _boot(seed: dict):
     names = {f.name for f in dataclasses.fields(runner.RuntimeConfig)}
     config = runner.RuntimeConfig(**{k: v for k, v in wanted.items() if k in names})
     _write_config_entries(seed)
+    if corrupt_stores:
+        write_corrupt_stores(Path(IN_CONFIG), seed["entry_id"])
     hass = await bootstrap.async_setup_hass(config)
     if hass is not None:
         await hass.async_start()
@@ -2004,7 +2193,7 @@ async def _inside(seed: dict, budget: float) -> int:
     checks = Checks()
     _check_shape(checks)
     _check_contracts(checks)
-    hass = await _boot(seed)
+    hass = await _boot(seed, corrupt_stores=True)
     checks.check("ha:home_assistant_is_real", hass is not None, "bootstrap returned None")
     if hass is None:
         return _emit(checks)
@@ -2016,6 +2205,9 @@ async def _inside(seed: dict, budget: float) -> int:
         f"core state is {hass.state}",
     )
     entry = _check_entry(checks, hass, seed)
+    _check_a6(checks, entry)
+    _check_a12(checks, entry)
+    _check_a13(checks, hass, entry)
     if getattr(entry, "runtime_data", None) is not None:
         await _await_plan(entry.runtime_data, time.monotonic() + budget)
         await hass.async_block_till_done()
@@ -2026,6 +2218,7 @@ async def _inside(seed: dict, budget: float) -> int:
         await _async_check_a4(checks, hass, entry)
         await _async_check_a5(checks, hass, entry)
         entry = await _async_check_a9(checks, hass, entry)
+        await _async_check_a11(checks, hass)
         await _async_check_a8(checks, hass, seed, entry)
     _write_probe_marker(BLOCKING_PROBE_BEGIN)
     _provoke_lazy_on_loop()
@@ -2197,7 +2390,7 @@ def _seed_payload(*, thermometers: bool = True) -> dict:
         # a stray I, L, O or U here is a shape no installation has.
         "entry_id": "01JHPA9NGHTHACNTNR00000001",
         "title": "Heat Pump Optimizer",
-        "version": int(version.group(1)),
+        "version": max(1, int(version.group(1)) - 1),
         "data": data,
         "options": options,
         "unique_id": _seed_unique_id(data),
@@ -2242,7 +2435,7 @@ homeassistant:
   elevation: 20
   unit_system: metric
   time_zone: Europe/Stockholm
-  currency: SEK
+  currency: EUR
 
 http:
 
