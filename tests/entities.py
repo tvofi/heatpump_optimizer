@@ -800,9 +800,13 @@ _removal_coord = _Coord(
     ),
 )
 _store_prefix = f"{const.DOMAIN}_{_removal_coord.entry.entry_id}_"
+# W5-G9: the DHW profile and draw stores live in the learner the coordinator
+# constructs, so the census walks the coordinator and its subsystems.
+_store_holders = (_removal_coord, _removal_coord._dhw_learner)
 _store_suffixes = {
     value._key.removeprefix(_store_prefix)
-    for value in vars(_removal_coord).values()
+    for holder in _store_holders
+    for value in vars(holder).values()
     if isinstance(value, _Store) and value._key.startswith(_store_prefix)
 }
 _listed_suffixes = set(
@@ -1768,9 +1772,26 @@ R.check(
 R.check(
     "and a stale indoor thermometer publishes the model default, as before",
     _indoor_stale["indoor_temperature"] == _DEFAULTS.room_temperature,
-    "Indoor Temperature is deliberately left ungated here: it is the "
-    "integration's primary entity and its staleness already has a home in "
-    "the Input Problem binary sensor and the repair issues",
+    "the coordinator data still carries the constructor default; the "
+    "published sensor must not claim it is a measurement",
+)
+_a3e_pub = dict(_blind)
+_a3e_pub["indoor_temperature"] = _DEFAULTS.room_temperature
+_a3e_ok_map = dict(_a3e_pub.get("reading_ok") or {})
+_a3e_ok_map["upper_floor_temperature"] = False
+_a3e_pub["reading_ok"] = _a3e_ok_map
+_a3e_fake = FakeCoordinator(_a3e_pub)
+R.check(
+    "without an indoor reading the indoor sensor is unavailable, not 21.0 available",
+    not sensor.IndoorTempSensor(_a3e_fake, ENTRY).available,
+    f"available={sensor.IndoorTempSensor(_a3e_fake, ENTRY).available} "
+    f"value={sensor.IndoorTempSensor(_a3e_fake, ENTRY).native_value!r}",
+)
+_a3e_clim = _climate_platform.HeatPumpOptimizerClimate(_a3e_fake, ENTRY)
+R.check(
+    "without an indoor reading climate does not publish the constructor default",
+    (not _a3e_clim.available) and _a3e_clim.current_temperature is None,
+    f"available={_a3e_clim.available} current={_a3e_clim.current_temperature!r}",
 )
 R.check(
     "the upper floor names where its number comes from",
@@ -2176,18 +2197,19 @@ def _d801_differs(a, b):
     return a != b
 
 
-# The Indoor sensor is deliberately left in the residual: the decision above
-# ("Indoor Temperature is deliberately left ungated here") is a recorded one
-# and this fix honours it rather than overturning it in passing. The climate
-# entity's own state is the same reading under another name.
-_D801_RETAINED = {
-    "IndoorTempSensor|state",
-    "HeatPumpOptimizerClimate|state",
-}
-# Solve-derived money, which moves because the same defaults are the MPC's
-# initial conditions, not because a temperature is published as a
-# measurement. Out of this finding's five paths, and named here so the
-# residual is a list rather than a tolerance.
+# D8-01 recorded the Indoor pair as *retained* without a thermometer
+# (ThermalState 21.0) on 2026-09-03. A3(e) / leftover #533 overturns that:
+# published indoor must not claim a measurement the config never attached,
+# so IndoorTempSensor and HeatPumpOptimizerClimate both gate on
+# reading_ok["upper_floor_temperature"]. Cycle 1 residual is now empty.
+# Cycle 10 residual is empty too: the money attrs below live on climate,
+# and an unavailable climate is skipped by _d801_publications. Named so a
+# revert that re-publishes the Indoor pair (or makes climate available
+# again) fails these two equalities — that is the recorded decision
+# moving, not a silent miss.
+_D801_RETAINED = set()
+# What climate would publish at cycle 10 if it stayed available. Not in
+# the residual while A3(e) keeps the entity unavailable.
 _D801_SOLVE_DERIVED = {
     "HeatPumpOptimizerClimate|attrs.predicted_savings",
     "HeatPumpOptimizerClimate|attrs.savings_percentage",
@@ -2199,8 +2221,7 @@ _d801_first_scope = {
     key for key in _d801_first_moved if key.split("|")[0] in _D801_IN_SCOPE
 }
 R.check(
-    "at CYCLE 1 nothing in D8-01's entities publishes a constructor default "
-    "except the Indoor pair the recorded decision keeps",
+    "at CYCLE 1 nothing in D8-01's entities publishes a constructor default",
     _d801_first_scope == _D801_RETAINED,
     f"unexpected: {sorted(_d801_first_scope - _D801_RETAINED)}",
 )
@@ -2211,9 +2232,10 @@ _d801_steady_scope = {
 }
 R.check(
     "and at STEADY STATE (cycle 10, past the slab seed's decay) the residual "
-    "is the same pair plus the solve-derived money",
-    _d801_steady_scope == _D801_RETAINED | _D801_SOLVE_DERIVED,
-    f"unexpected: {sorted(_d801_steady_scope - _D801_RETAINED - _D801_SOLVE_DERIVED)}",
+    "stays empty: climate is gated, so the solve-derived money is not published",
+    _d801_steady_scope == _D801_RETAINED,
+    f"unexpected: {sorted(_d801_steady_scope - _D801_RETAINED)}; "
+    f"named-if-climate-available={sorted(_D801_SOLVE_DERIVED)}",
 )
 
 # --- path by path, so a revert of any one line is named --------------------
@@ -10053,6 +10075,56 @@ R.check(
     f"bad={_a5_pages_bad.results.get('a5:pages_ok')} "
     f"ok={_a5_pages_ok.results.get('a5:pages_ok')}",
 )
+_a5_comfort_cur = {
+    const.CONF_TARGET_TEMP: const.DEFAULT_TARGET_TEMP,
+    const.CONF_MIN_TEMP: const.DEFAULT_MIN_TEMP,
+    const.CONF_MAX_TEMP: const.DEFAULT_MAX_TEMP,
+    const.CONF_COMFORT_TEMP_DAY: const.DEFAULT_COMFORT_TEMP_DAY,
+    const.CONF_COMFORT_TEMP_NIGHT: const.DEFAULT_COMFORT_TEMP_NIGHT,
+    const.CONF_DAY_START_HOUR: const.DEFAULT_DAY_START_HOUR,
+    const.CONF_DAY_END_HOUR: const.DEFAULT_DAY_END_HOUR,
+}
+_a5_comfort_schema = config_flow._page_schema("comfort", _a5_comfort_cur, FakeHass())
+_a5_comfort_posted = _nightly.option_resubmit("comfort", _a5_comfort_cur)
+try:
+    _a5_comfort_schema(_a5_comfort_posted)
+    _a5_comfort_err = ""
+except Exception as _a5_comfort_exc:  # noqa: BLE001 - the A5 failure is any raise
+    _a5_comfort_err = f"{type(_a5_comfort_exc).__name__}: {_a5_comfort_exc}"
+R.check(
+    "option_resubmit posts the sectioned shape the comfort schema validates",
+    not _a5_comfort_err,
+    _a5_comfort_err or "accepted",
+)
+_a5_entities_cur = {
+    const.CONF_PRICE_SOURCE: const.DEFAULT_PRICE_SOURCE,
+    const.CONF_TIBBER_TOKEN: "nightly-ha-local",
+    const.CONF_WEATHER_ENTITY: "weather.ci_weather",
+}
+_a5_entities_schema = config_flow._page_schema(
+    "entities", _a5_entities_cur, FakeHass()
+)
+_a5_entities_posted = _nightly.option_resubmit("entities", _a5_entities_cur)
+try:
+    _a5_entities_schema(_a5_entities_posted)
+    _a5_entities_err = ""
+except Exception as _a5_entities_exc:  # noqa: BLE001 - the A5 failure is any raise
+    _a5_entities_err = f"{type(_a5_entities_exc).__name__}: {_a5_entities_exc}"
+R.check(
+    "option_resubmit nests weather_entity under the credentials section",
+    isinstance(_a5_entities_posted.get("credentials"), dict)
+    and _a5_entities_posted["credentials"].get(const.CONF_WEATHER_ENTITY)
+    == "weather.ci_weather"
+    and const.CONF_WEATHER_ENTITY not in _a5_entities_posted
+    and "indoor" in _a5_entities_posted
+    and "plant" in _a5_entities_posted,
+    f"posted={_a5_entities_posted!r}",
+)
+R.check(
+    "option_resubmit posts the sectioned shape the entities schema validates",
+    not _a5_entities_err,
+    _a5_entities_err or "accepted",
+)
 
 _a5_before = _nightly.stored_effective_bytes(
     {"external_heat_entity": "sensor.seed_external_heat_entity", "x": 1},
@@ -10169,6 +10241,50 @@ R.check(
     and "a8:already_configured" not in _a8_cfg_ok.failures(),
     f"bad={_a8_cfg_bad.results.get('a8:already_configured')}",
 )
+_a8_entry_src = _inspect.getsource(_nightly._async_add_second_entry)
+R.check(
+    "A8's ConfigEntry construction names discovery_keys and subentries_data",
+    "discovery_keys" in _a8_entry_src and "subentries_data" in _a8_entry_src,
+    "stable HA's ConfigEntry.__init__ requires both; the fallback omitted them",
+)
+_a8_check_src = _inspect.getsource(_nightly._async_check_a8)
+R.check(
+    "A8 surfaces InvalidData.schema_errors instead of the path-only message",
+    "schema_errors" in _a8_check_src,
+    "HA wraps the inner vol.Invalid; the path-only str hid why weather_entity failed",
+)
+_a8_sensor_posted = _nightly.a8_sensors_payload(
+    {
+        "weather_entity": "weather.ci_weather",
+        "indoor_temp_entity": "sensor.ci_indoor_temperature",
+        "tibber_token": "nightly-ha-local",
+    },
+    ("weather_entity", "indoor_temp_entity"),
+)
+R.check(
+    "A8 sensors payload omits weather_entity; that key belongs to step user",
+    _a8_sensor_posted == {"indoor_temp_entity": "sensor.ci_indoor_temperature"},
+    f"posted={_a8_sensor_posted!r}",
+)
+_a5_seed_opts = _nightly._seed_payload()["options"]
+_a5_seed_missing = [
+    row.key
+    for row in config_flow._OPTION_FIELDS
+    if row.default
+    not in (
+        config_flow._STORED,
+        config_flow._DYNAMIC,
+        config_flow._SUGGESTED,
+    )
+    and not isinstance(row.default, (config_flow._Computed, config_flow._Suggested))
+    and row.default is not None
+    and row.key not in _a5_seed_opts
+]
+R.check(
+    "the nightly seed stores every concrete option-field default",
+    not _a5_seed_missing,
+    f"missing={_a5_seed_missing[:8]}",
+)
 
 _a9_states_ok = _nightly.Checks()
 _nightly.check_a9_reload_loaded(_a9_states_ok, ["loaded"] * _nightly.A9_RELOADS)
@@ -10232,6 +10348,144 @@ R.check(
         if n.startswith(("a5:", "a8:", "a9:"))
     ),
     "A5/A8/A9 passing checks blanked their detail (#533)",
+)
+
+# Leftover #533 after #751: A6/A11/A12/A13. Sibling #754 owns the
+# leftover A5/A8/A14 nightly production reds; those pins live there.
+R.section("Nightly leftover A6/A11/A12/A13")
+
+R.check(
+    "the nightly demands A6/A11/A12/A13 checks by name",
+    set(_nightly.A6_INSIDE) <= set(_nightly.INSIDE_CHECKS)
+    and set(_nightly.A11_INSIDE) <= set(_nightly.INSIDE_CHECKS)
+    and set(_nightly.A12_INSIDE) <= set(_nightly.INSIDE_CHECKS)
+    and set(_nightly.A13_INSIDE) <= set(_nightly.INSIDE_CHECKS)
+    and set(_nightly.A6_INSIDE)
+    == {"a6:list", "a6:string", "a6:number", "a6:loaded"}
+    and set(_nightly.A11_INSIDE)
+    == {"a11:no_entry", "a11:invalid", "a11:run_failed"}
+    and set(_nightly.A12_INSIDE) == {"a12:migrates"}
+    and set(_nightly.A13_INSIDE) == {"a13:currency"},
+    f"A6={getattr(_nightly, 'A6_INSIDE', None)} "
+    f"A11={getattr(_nightly, 'A11_INSIDE', None)} "
+    f"A12={getattr(_nightly, 'A12_INSIDE', None)} "
+    f"A13={getattr(_nightly, 'A13_INSIDE', None)}",
+)
+R.check(
+    "A6/A11/A12/A13 are not merged with A4",
+    all(
+        not n.startswith("a4:")
+        for n in (
+            *_nightly.A6_INSIDE,
+            *_nightly.A11_INSIDE,
+            *_nightly.A12_INSIDE,
+            *_nightly.A13_INSIDE,
+        )
+    ),
+)
+
+_a6_ok = _nightly.Checks()
+_nightly.check_a6_corrupt(_a6_ok, "a6:list", raised=False, applied=False)
+_a6_raise = _nightly.Checks()
+_nightly.check_a6_corrupt(_a6_raise, "a6:list", raised=True, applied=False)
+_a6_apply = _nightly.Checks()
+_nightly.check_a6_corrupt(_a6_apply, "a6:list", raised=False, applied=True)
+_a6_load_ok = _nightly.Checks()
+_nightly.check_a6_loaded(_a6_load_ok, True)
+_a6_load_bad = _nightly.Checks()
+_nightly.check_a6_loaded(_a6_load_bad, False)
+R.check(
+    "a6:list fails a raise or an applied corrupt payload, and a6:loaded fails a down entry",
+    "a6:list" in _a6_raise.failures()
+    and "a6:list" in _a6_apply.failures()
+    and "a6:list" not in _a6_ok.failures()
+    and "a6:loaded" in _a6_load_bad.failures()
+    and "a6:loaded" not in _a6_load_ok.failures(),
+    f"ok={_a6_ok.results} raise={_a6_raise.results} apply={_a6_apply.results}",
+)
+R.check(
+    "A6 stages four corrupt stores, not a carried anecdote",
+    len(_nightly.A6_STORE_CASES) == 4
+    and {case[0] for case in _nightly.A6_STORE_CASES}
+    == {"accuracy", "thermal_learning", "energy", "price_model"},
+    f"cases={_nightly.A6_STORE_CASES}",
+)
+
+_a11_ok = _nightly.Checks()
+_nightly.check_a11_raised(_a11_ok, "a11:invalid", True)
+_a11_noop = _nightly.Checks()
+_nightly.check_a11_raised(_a11_noop, "a11:invalid", False)
+R.check(
+    "a11:invalid fails a silent no-op and passes a raise",
+    "a11:invalid" in _a11_noop.failures()
+    and "a11:invalid" not in _a11_ok.failures(),
+    f"ok={_a11_ok.results} noop={_a11_noop.results}",
+)
+
+_a12_ok = _nightly.Checks()
+_nightly.check_a12_migrates(_a12_ok, const.CONFIG_ENTRY_VERSION, const.CONFIG_ENTRY_VERSION)
+_a12_stale = _nightly.Checks()
+_nightly.check_a12_migrates(_a12_stale, 1, const.CONFIG_ENTRY_VERSION)
+R.check(
+    "a12:migrates fails an unstamped older version and passes the current stamp",
+    "a12:migrates" in _a12_stale.failures()
+    and "a12:migrates" not in _a12_ok.failures(),
+    f"ok={_a12_ok.results} stale={_a12_stale.results}",
+)
+_a12_seed = _nightly._seed_payload()
+R.check(
+    "A12 seeds an older schema version than CONFIG_ENTRY_VERSION",
+    int(_a12_seed["version"]) < const.CONFIG_ENTRY_VERSION,
+    f"seed={_a12_seed['version']} current={const.CONFIG_ENTRY_VERSION}",
+)
+
+_a13_ok = _nightly.Checks()
+_nightly.check_a13_currency(_a13_ok, "EUR", "EUR")
+_a13_sek = _nightly.Checks()
+_nightly.check_a13_currency(_a13_sek, "SEK", "EUR")
+R.check(
+    "a13:currency fails a hardcoded SEK on an EUR instance",
+    "a13:currency" in _a13_sek.failures()
+    and "a13:currency" not in _a13_ok.failures(),
+    f"ok={_a13_ok.results} sek={_a13_sek.results}",
+)
+R.check(
+    "A13's instance currency is not the SEK fallback",
+    "currency: EUR" in _nightly.CONFIGURATION_YAML
+    and "currency: SEK" not in _nightly.CONFIGURATION_YAML,
+    "SEK on the instance cannot tell follow-the-instance from the fallback",
+)
+_a6_dir = Path(_tempfile.mkdtemp(prefix="a6-stores-"))
+_a6_entry = "01JHPA9NGHTHACNTNR00000001"
+_nightly.write_corrupt_stores(_a6_dir, _a6_entry)
+_a6_prefix = f"{_nightly.PACKAGE_NAME}_{_a6_entry}_"
+_a6_written = {
+    p.name[len(_a6_prefix) :]
+    for p in (_a6_dir / ".storage").iterdir()
+    if p.name.startswith(_a6_prefix)
+}
+R.check(
+    "write_corrupt_stores emits one HA store file per A6 case",
+    _a6_written == {"accuracy", "thermal_learning", "energy", "price_model"},
+    f"written={sorted(_a6_written)}",
+)
+_inside_src = _inspect.getsource(_nightly._inside)
+_boot_src = _inspect.getsource(_nightly._boot)
+R.check(
+    "A6 writes corrupt stores at boot; A11 runs before A8 unload",
+    "write_corrupt_stores" in _boot_src
+    and "_async_check_a11" in _inside_src
+    and "_async_check_a8" in _inside_src
+    and _inside_src.index("_async_check_a11") < _inside_src.index("_async_check_a8"),
+    "A6/A11 must execute, and A11 before A8 unloads the entry the services need",
+)
+R.check(
+    "A12 and A13 run on the loaded entry, not after A8 unload",
+    "_check_a12" in _inside_src
+    and "_check_a13" in _inside_src
+    and _inside_src.index("_check_a12") < _inside_src.index("_async_check_a8")
+    and _inside_src.index("_check_a13") < _inside_src.index("_async_check_a8"),
+    f"inside has a12={'_check_a12' in _inside_src} a13={'_check_a13' in _inside_src}",
 )
 
 # --- nightly loop-detector positive control (#588) --------------------------
@@ -10315,6 +10569,43 @@ R.check(
     bool(_nightly.BLOCKING_CALL.search(_nightly_streams_probe))
     and bool(_nightly.BLOCKING_CALL.search(_nightly_streams_pin)),
     "partition_blocking_probe folded an unmarked stream into the probe half",
+)
+_a4_tb = (
+    _nightly.TRACEBACK_HEAD + "\n"
+    "  File \"/usr/src/homeassistant/homeassistant/helpers/update_coordinator.py\","
+    " line 441, in _async_refresh\n"
+    "    self.data = await self._async_update_data()\n"
+    "  File \"/config/custom_components/heatpump_optimizer/coordinator.py\","
+    " line 6030, in _fetch_tibber_prices\n"
+    "    self._tibber_fetch_failed(str(payload))\n"
+    "homeassistant.helpers.update_coordinator.UpdateFailed: HTTP 500\n"
+)
+_crash_tb = (
+    _nightly.TRACEBACK_HEAD + "\n"
+    "  File \"/config/custom_components/heatpump_optimizer/sensor.py\","
+    " line 1, in native_value\n"
+    "    raise RuntimeError('boom')\n"
+    "RuntimeError: boom\n"
+)
+_a4_tb_fail, _ = _nightly_scan(_NIGHTLY_CLEAN + "\n" + _a4_tb)
+_crash_tb_fail, _ = _nightly_scan(_NIGHTLY_CLEAN + "\n" + _crash_tb)
+R.check(
+    "A4's UpdateFailed traceback is not log:no_integration_traceback",
+    "log:no_integration_traceback" not in _a4_tb_fail
+    and "log:no_integration_traceback" in _crash_tb_fail,
+    f"a4={_a4_tb_fail} crash={_crash_tb_fail}",
+)
+R.check(
+    "HeatPumpOptimizerConfigEntry is bound on the package, not via _lazy",
+    "HeatPumpOptimizerConfigEntry" in integration.__dict__,
+    "HA 2026 get_type_hints looks the name up on the setup path and _lazy is a blocking import_module",
+)
+_async_lazy_src = _inspect.getsource(integration._async_lazy)
+R.check(
+    "_async_lazy offloads import_module itself, not the _lazy wrapper",
+    "import_module" in _async_lazy_src
+    and "async_add_import_executor_job(_lazy" not in _async_lazy_src,
+    "wrapping import_module in _lazy ran the import on the loop (A14)",
 )
 
 # tools/audit/preflight.sh refuses a closing keyword the orchestrator did not
@@ -10525,8 +10816,16 @@ R.check(
     "every recorded closure",
 )
 
+# `governance.yml` left this list when `record-status` landed. It is still not
+# a gate file -- it sets no `GATE_SCOPE`, no matrix and no interpreter -- but it
+# is no longer INERT either, because this script now READS it to pin that job's
+# wiring and its permission widening. Unread by the gate and unreadable by the
+# gate are different claims, and the first stopped being true; it is in this
+# script's recorded closure instead, so an edit to it selects this script rather
+# than skipping. Its own check is below, and it is the third classification a
+# workflow file can have -- neither gate nor inert -- which is why the loop
+# could not simply gain a member.
 _NON_GATE_WORKFLOWS = [
-    ".github/workflows/governance.yml",
     ".github/workflows/hassfest.yml",
     ".github/workflows/release.yml",
     ".github/workflows/validate.yml",
@@ -10540,6 +10839,28 @@ for _wf in _NON_GATE_WORKFLOWS:
         "gate script, so it neither forces FULL nor orphans",
     )
 
+# The third classification, and the one that has to be checked rather than
+# asserted: read by the gate, so not INERT; not the gate, so not a gate file.
+# Getting it wrong in either direction is silent. Left on INERT it would be a
+# file this script reads while declaring nothing reads it -- `closure.py`'s
+# `merge` refuses that pair, which is what makes this a check and not an
+# opinion. Made a gate file it would run `tests/stress.py` on a comment edit,
+# which is the regression the block above exists to prevent.
+_GOV_WF = ".github/workflows/governance.yml"
+_GOV_CASE = _closure.affected([_GOV_WF])
+R.check(
+    "governance.yml is read by the gate, so it is scoped rather than inert or "
+    "full",
+    (not _closure.is_gate_file(_GOV_WF))
+    and (not _closure.is_inert(_GOV_WF))
+    and _GOV_CASE["case"] == "scoped"
+    and _GOV_WF in json.loads(
+        _closure.CLOSURES.read_text())["closures"]["tests/entities.py"],
+    f"gate={_closure.is_gate_file(_GOV_WF)} inert={_closure.is_inert(_GOV_WF)} "
+    f"case={_GOV_CASE['case']}; this script reads it to pin `record-status`, "
+    "so an edit to that job must select this script and must not force FULL",
+)
+
 R.check(
     "no directory prefix in GATE_FILES can swallow a non-gate workflow",
     not any(
@@ -10550,10 +10871,25 @@ R.check(
     "which is the regression this check exists to refuse",
 )
 
+# The instance moved from `governance.yml` to `hassfest.yml` when
+# `record-status` landed: this script now READS governance.yml, so it is scoped
+# rather than skipped, and its own case is checked above. The PROPERTY this
+# check was written for is unchanged and is the one that matters -- a non-gate
+# workflow must never print `full`, which is what ran `tests/stress.py` on a
+# comment edit. So the property is asserted over ALL FOUR non-gate workflows
+# rather than over the one that happened to be the example, and the `skip` arm
+# keeps an instance that is still inert.
 R.check(
     "a change to a non-gate workflow costs the closures check nothing",
-    _closure.affected([".github/workflows/governance.yml"])["case"] == "skip",
-    str(_closure.affected([".github/workflows/governance.yml"])),
+    _closure.affected([".github/workflows/hassfest.yml"])["case"] == "skip",
+    str(_closure.affected([".github/workflows/hassfest.yml"])),
+)
+R.check(
+    "and no non-gate workflow forces the FULL suite, whatever else it does",
+    all(_closure.affected([_wf])["case"] != "full"
+        for _wf in [*_NON_GATE_WORKFLOWS, _GOV_WF]),
+    str({_wf: _closure.affected([_wf])["case"]
+         for _wf in [*_NON_GATE_WORKFLOWS, _GOV_WF]}),
 )
 
 # --- when the closures CHECK itself runs (#354) -----------------------------
@@ -14287,6 +14623,551 @@ R.check(
     f"nights-ago -> state {_ns_ages}, MAX_AGE_NIGHTS="
     f"{_nstatus.MAX_AGE_NIGHTS}; the comment defends 3 as the first age that "
     "is neither timezone slack nor the #533 incident",
+)
+
+
+# --- main's disposition gate, told to the pull request (#678, CM-2) ---------
+#
+# `record` in governance.yml refuses a merged pull request with no
+# Delivery-status row. Its `if: github.event_name != 'pull_request'` is CORRECT
+# -- all three modes read `<ref>..origin/main` and a pull_request checkout is
+# not in main's history -- and the defect is one level out: `record` is one of
+# `main-protect`'s 18 required contexts while reporting `skipped` on the only
+# event a seat reads it at, so the rule is enforced only after a merge and the
+# red lands on whoever pushes next. `tests/record_status.py` is the telling,
+# and the `record-status` job runs it on every pull request.
+#
+# Two different things are pinned. The WIRING -- the job exists, runs on pull
+# requests, and passes no argument that could pin its answer -- is read out of
+# the YAML, because a correct classifier the workflow does not call is the
+# silent-green shape this whole class is about. The CLASSIFIER is driven
+# against REAL captured API payloads, which is the section after it.
+import record_status as _rstatus  # noqa: E402
+
+_RS_GOV_YML = (pathlib.Path(__file__).resolve().parents[1]
+               / ".github" / "workflows" / "governance.yml").read_text()
+_RS_JOB = _workflow_job(_RS_GOV_YML, "record-status")
+_RS_RUNS = [
+    _l.strip() for _l in _RS_JOB.splitlines()
+    if "tests/record_status.py" in _l and _l.strip().startswith("run:")
+]
+R.check(
+    "the disposition reporter is wired into a job that runs on pull requests",
+    "github.event_name == 'pull_request'" in _RS_JOB and len(_RS_RUNS) == 1,
+    f"if-line present={'pull_request' in _RS_JOB} run lines={_RS_RUNS}",
+)
+# The null control for the demonstration knob. `--sha` classifies one named
+# commit; pointed at a commit that passed it reports PASSED forever, which is
+# the always-green check this repository keeps catching. CI must never pass it.
+R.check(
+    "and passes it no argument that would pin its answer",
+    bool(_RS_RUNS) and _RS_RUNS[0] == "run: python tests/record_status.py",
+    f"the invocation is {_RS_RUNS[0] if _RS_RUNS else '(absent)'!r}",
+)
+# The permission widening, as a PROPERTY rather than as its instance: the whole
+# set of jobs in governance.yml that override the workflow's `contents: read`
+# floor. A job-level block REPLACES the floor for that job and is inherited by
+# none, so the set IS the blast radius. `record` has needed `pull-requests:
+# read` since it was written; a third override should have to be argued for.
+_RS_OVERRIDES = sorted(
+    _m.group(1) for _m in re.finditer(
+        r"^  ([A-Za-z][\w-]*):\n(?:(?!^  [A-Za-z]).)*?^    permissions:",
+        _RS_GOV_YML, re.M | re.S)
+)
+R.check(
+    "exactly two governance jobs override the workflow's read-only floor",
+    _RS_OVERRIDES == ["record", "record-status"],
+    f"jobs with a permissions block: {_RS_OVERRIDES}",
+)
+_RS_PERMS = re.search(r"^    permissions:\n((?:^      .*\n)+)", _RS_JOB, re.M)
+R.check(
+    "and the disposition reporter's own widening is read-only",
+    bool(_RS_PERMS)
+    and sorted(_RS_PERMS.group(1).split()) == sorted(
+        ["checks:", "read", "contents:", "read"]),
+    f"record-status permissions: {_RS_PERMS.group(1).split() if _RS_PERMS else None}",
+)
+# `WATCHED_JOB` is a coupling to one job name, so the coupling is DERIVED here
+# rather than restated: the reporter must watch a job of governance.yml that a
+# pull request cannot see for itself -- one whose `if:` excludes the
+# `pull_request` event. A rename, or a later decision to let `record` run on a
+# pull request, is refused on the pull request that makes it instead of turning
+# this reporter permanently ABSENT where nobody reads the reason.
+_RS_HEADS = {
+    _n: _workflow_job(_RS_GOV_YML, _n).split("\n    steps:")[0]
+    for _n in re.findall(r"^  ([A-Za-z][\w-]*):$", _RS_GOV_YML, re.M)
+    if f"\n  {_n}:\n    " in _RS_GOV_YML and "runs-on:" in _workflow_job(
+        _RS_GOV_YML, _n)
+}
+_RS_PR_BLIND = sorted(
+    _n for _n, _h in _RS_HEADS.items()
+    if "if:" in _h and "!= 'pull_request'" in _h
+)
+R.check(
+    "the reporter watches a job a pull request structurally cannot see",
+    _rstatus.WATCHED_JOB in _RS_PR_BLIND
+    and _rstatus.WATCHED_WORKFLOW == ".github/workflows/governance.yml",
+    f"WATCHED_JOB={_rstatus.WATCHED_JOB!r} governance jobs gated off "
+    f"pull_request={_RS_PR_BLIND}",
+)
+
+# --- the three arms, from real captured payloads ----------------------------
+#
+# Every field below was read from the live Checks API at the SHA named, by the
+# root-cause seat on #541 and again on this branch:
+#
+#   gh api "repos/tvofi/heatpump_optimizer/commits/<sha>/check-runs\
+#           ?filter=all&per_page=100" -q '.check_runs[]|select(.name=="record")'
+#
+# ARM 1 is the defect present -- #734 merged with no row and `main` went red.
+# ARM 2 is the NULL CONTROL, `main` one merge earlier, where the same reader
+# must exit 0 or it is a check that refuses everything. ARM 3 is the one that
+# matters: `main` before the job existed, where a check that went green by
+# finding nothing would be worse than no check, and "green by skipping" is this
+# repository's signature failure. ARM 4 is that same failure one level down and
+# is why this file is not `nightly_status.py` with a different constant:
+# `record` reports `skipped` at a pull-request head BY DESIGN, so a reader that
+# accepted a skip as a pass would go green on exactly the vacuum it was built
+# to report.
+def _rs_run(cid, sha, conclusion, at, status="completed"):
+    return {"id": cid, "name": "record", "status": status,
+            "conclusion": conclusion, "completed_at": at,
+            "head_sha": sha,
+            "html_url": f"https://github.com/tvofi/heatpump_optimizer/"
+                        f"actions/runs/0/job/{cid}"}
+
+
+_RS_OTHER = [{"id": 1, "name": "pr-contract", "status": "completed",
+              "conclusion": "success", "completed_at": "2026-09-10T15:50:00Z",
+              "html_url": ""}]
+_RS_A1 = "a94bbaf1a2e875c8430fa3d3dca690998365d3a5"
+_RS_A2 = "36c649d5a5c4f2c985ff9441df2451b9d607e22e"
+_RS_A3 = "284437ec03b6db5d7620554dabd263fe578be3f9"
+_RS_A4 = "b63470bda78ba637042e6276d45bced2793b9a4d"
+_RS_ARMS = {
+    "ARM 1 defect present": (
+        [(_RS_A1, [*_RS_OTHER, _rs_run(102943398074, _RS_A1, "failure",
+                                       "2026-09-10T15:54:32Z")])],
+        "FAILED", _rstatus.EXIT_RED,
+        "RECORD FAILED on main a94bbaf: conclusion 'failure' at "
+        "2026-09-10T15:54:32Z"),
+    "ARM 2 null control": (
+        [(_RS_A2, [*_RS_OTHER, _rs_run(102917672591, _RS_A2, "success",
+                                       "2026-09-10T14:45:55Z")])],
+        "PASSED", _rstatus.EXIT_GREEN,
+        "RECORD PASSED on main 36c649d: conclusion 'success' at "
+        "2026-09-10T14:45:55Z"),
+    "ARM 3 before the job existed": (
+        [(_RS_A3, [])],
+        "ABSENT", _rstatus.EXIT_RED,
+        "RECORD ABSENT on main 284437e: no completed `record` run. Absence is "
+        "not a pass."),
+    "ARM 4 concluded and judged nothing": (
+        [(_RS_A4, [*_RS_OTHER, _rs_run(102938451768, _RS_A4, "skipped",
+                                       "2026-09-10T15:40:21Z")])],
+        "ABSENT", _rstatus.EXIT_RED,
+        "RECORD ABSENT on main b63470b: the `record` run concluded 'skipped' "
+        "at 2026-09-10T15:40:21Z, so it judged nothing. Absence is not a "
+        "pass."),
+}
+_rs_wrong = []
+for _arm, (_cands, _want, _code, _headline) in _RS_ARMS.items():
+    _got, _rc, _lines = _rstatus.verdict(_cands)
+    if (_got, _rc) != (_want, _code) or _lines[0] != _headline:
+        _rs_wrong.append(f"{_arm}: {_got} exit={_rc} / {_lines[0]!r}")
+R.check(
+    "the three demonstrated arms and the skipped one classify as they did "
+    "against the live API",
+    not _rs_wrong,
+    "; ".join(_rs_wrong) or "four arms, three headlines byte-for-byte from "
+    "the #541 root-cause report and one from this branch",
+)
+# The reader's own null control on the accepted set: it is a WHITELIST, so a
+# conclusion string GitHub has not invented yet arrives as FAILED and cannot
+# become a silent pass. Every value in GitHub's current vocabulary is driven,
+# not only the one CI has produced, plus a missing one and an invented one.
+_RS_NOT_PASSING = ("failure", "cancelled", "timed_out", "action_required",
+                   "stale", "startup_failure", None, "quantum_ambiguous")
+_rs_novel = {
+    _c: _rstatus.verdict([(_RS_A1, [_rs_run(9, _RS_A1, _c,
+                                            "2026-09-10T15:54:32Z")])])[:2]
+    for _c in _RS_NOT_PASSING
+}
+R.check(
+    "every conclusion outside the passing and vacuous sets is FAILED, "
+    "including ones GitHub has not invented",
+    all(_v == ("FAILED", _rstatus.EXIT_RED) for _v in _rs_novel.values()),
+    f"conclusion -> (state, exit): {_rs_novel}",
+)
+R.check(
+    "and `skipped` and `neutral` are refused as ABSENT rather than as a pass",
+    all(_rstatus.verdict(
+        [(_RS_A4, [_rs_run(9, _RS_A4, _c, "2026-09-10T15:40:21Z")])])[:2]
+        == ("ABSENT", _rstatus.EXIT_RED)
+        for _c in ("skipped", "neutral"))
+    # The two words are NAMED, not iterated out of the constant under test. A
+    # loop over `VACUOUS_CONCLUSIONS` alone passes on a mutant that empties the
+    # set and moves `skipped` into the passing one -- which is not a
+    # hypothetical mutation but the copy this file's own source made:
+    # `nightly_status.py`'s OK_CONCLUSIONS contains `skipped`, correctly for a
+    # nightly whose green jobs skip by design and fatally here.
+    and "skipped" not in _rstatus.PASSING_CONCLUSIONS
+    and "skipped" in _rstatus.VACUOUS_CONCLUSIONS,
+    f"PASSING={sorted(_rstatus.PASSING_CONCLUSIONS)} "
+    f"VACUOUS={sorted(_rstatus.VACUOUS_CONCLUSIONS)}; `record` reports "
+    "'skipped' at a pull-request head, so accepting one is this check going "
+    "green on the vacuum it exists to report",
+)
+# The window is in COMMITS, and it has two ends. A verdict one commit back is
+# main's current answer with the distance stated; a tip whose own run has not
+# concluded is not "no answer" until the whole window is exhausted; and a
+# window with a run still in flight and nothing concluded is RUNNING, which is
+# red, not a pass.
+_RS_PENDING = _rs_run(7, _RS_A1, None, None, status="in_progress")
+_RS_PASS = _rs_run(102917672591, _RS_A2, "success", "2026-09-10T14:45:55Z")
+_rs_behind = _rstatus.verdict([(_RS_A1, [_RS_PENDING]), (_RS_A2, [_RS_PASS])])
+_rs_running = _rstatus.verdict([(_RS_A1, [_RS_PENDING]), (_RS_A3, [])])
+_rs_empty = _rstatus.verdict([])
+R.check(
+    "an in-flight tip falls back to the newest CONCLUDED verdict and says how "
+    "far back it is",
+    _rs_behind[:2] == ("PASSED", _rstatus.EXIT_GREEN)
+    and any("moved 1 commit" in _l for _l in _rs_behind[2])
+    and any("still in_progress" in _l for _l in _rs_behind[2]),
+    f"state={_rs_behind[0]} lines={_rs_behind[2]}",
+)
+R.check(
+    "and a window with nothing concluded is RUNNING or ABSENT, never a pass",
+    _rs_running[:2] == ("RUNNING", _rstatus.EXIT_RED)
+    and _rs_empty[:2] == ("ABSENT", _rstatus.EXIT_RED),
+    f"in-flight-only={_rs_running[0]} empty-window={_rs_empty[0]}; a reader "
+    "whose only answer is 'ask again later' is a dark lane",
+)
+# A re-run leaves both attempts on the commit under `filter=all`. The newest
+# is the answer, and asserting the order is the point: the API's own order is
+# documented and not guaranteed, and a reader that took the first element would
+# report a stale PASS over a fresh failure. Driven in BOTH directions so the
+# check cannot pass on a reader that simply takes the last element.
+_RS_OLD_FAIL = _rs_run(1, _RS_A1, "failure", "2026-09-10T15:54:32Z")
+_RS_NEW_PASS = _rs_run(2, _RS_A1, "success", "2026-09-10T16:10:00Z")
+_rs_reruns = [
+    _rstatus.verdict([(_RS_A1, [_RS_OLD_FAIL, _RS_NEW_PASS])])[0],
+    _rstatus.verdict([(_RS_A1, [_RS_NEW_PASS, _RS_OLD_FAIL])])[0],
+    _rstatus.verdict([(_RS_A1, [_RS_NEW_PASS, _rs_run(
+        3, _RS_A1, "failure", "2026-09-10T16:20:00Z")])])[0],
+]
+R.check(
+    "a re-run is judged by its NEWEST attempt, whatever order the API listed "
+    "them in",
+    _rs_reruns == ["PASSED", "PASSED", "FAILED"],
+    f"[old-first, new-first, newest-is-a-failure] -> {_rs_reruns}",
+)
+# A completed check run with no clock cannot be ordered against another, so it
+# is UNREADABLE (2) -- not a KeyError, and not exit 1, which is this reporter's
+# word for "`record` is red".
+try:
+    _rstatus.verdict([(_RS_A1, [{"id": 5, "name": "record",
+                                 "status": "completed",
+                                 "conclusion": "success"}])])
+except _rstatus.Unreadable:
+    _rs_noclock = "Unreadable"
+except Exception as _exc:  # noqa: BLE001 -- the point is what class it is
+    _rs_noclock = type(_exc).__name__
+else:
+    _rs_noclock = "a verdict"
+R.check(
+    "a completed check run carrying no completed_at is UNREADABLE, not a "
+    "verdict and not a traceback",
+    _rs_noclock == "Unreadable",
+    f"a clockless completed run produced {_rs_noclock}; exit "
+    f"{_rstatus.EXIT_UNREADABLE} is 'could not look' and exit "
+    f"{_rstatus.EXIT_RED} is 'record is red'",
+)
+# `check_runs` requests per_page=100 and follows no `Link`. A dropped page is a
+# dropped check run, and a dropped `record` is an ABSENT -- or, if the dropped
+# one was the failing attempt, a PASS. `_get` is the one collaborator, stubbed;
+# `check_runs` itself is the production function under test.
+_rs_real_get = _rstatus._get
+try:
+    _rstatus._get = lambda _u, _t: {
+        "total_count": 140,
+        "check_runs": [_rs_run(_i, _RS_A1, "success", "2026-09-10T15:00:00Z")
+                       for _i in range(100)]}
+    try:
+        _rstatus.check_runs("o/r", _RS_A1, None)
+    except _rstatus.Unreadable as _exc:
+        _rs_truncated = "140" in str(_exc) and "100" in str(_exc)
+    else:
+        _rs_truncated = False
+    # The null control: a page that DOES carry every check run is read, not
+    # refused. Without it the check above passes on a reader that refuses
+    # everything.
+    _rstatus._get = lambda _u, _t: {"total_count": len(_RS_OTHER),
+                                    "check_runs": _RS_OTHER}
+    _rs_whole = _rstatus.check_runs("o/r", _RS_A1, None) == _RS_OTHER
+    # And the whole discovery path, composed: the commit listing plus one
+    # check-runs read per commit, driven with ARM 1's real payload. Pins that
+    # `collect` asks for the branch it was given and orders newest-first, which
+    # `verdict` relies on and which no arm above reaches.
+    _rs_seen = []
+
+    def _rs_stub(url, _t):
+        _rs_seen.append(url)
+        if "/check-runs" in url:
+            _sha = url.split("/commits/")[1].split("/")[0]
+            _runs = [*_RS_OTHER, _rs_run(102943398074, _RS_A1, "failure",
+                                         "2026-09-10T15:54:32Z")] \
+                if _sha == _RS_A1 else []
+            return {"total_count": len(_runs), "check_runs": _runs}
+        return [{"sha": _RS_A1}, {"sha": _RS_A3}]
+
+    _rstatus._get = _rs_stub
+    _rs_end_to_end = (
+        _rstatus.verdict(_rstatus.collect("o/r", "main", None, None, 2))[:2],
+        sum("/check-runs" in _u for _u in _rs_seen),
+        any("sha=main" in _u for _u in _rs_seen),
+    )
+    # The null control for the stop, and the half that stops it being a walk
+    # that never walks: with the tip's own run still in flight, the second
+    # commit IS fetched. The listing is reversed so ARM 1 is now the second
+    # commit and the tip carries no concluded run.
+    _rs_seen.clear()
+
+    def _rs_stub_pending(url, _t):
+        _rs_seen.append(url)
+        if "/check-runs" in url:
+            _sha = url.split("/commits/")[1].split("/")[0]
+            _runs = [*_RS_OTHER, _rs_run(102943398074, _RS_A1, "failure",
+                                         "2026-09-10T15:54:32Z")] \
+                if _sha == _RS_A1 else [_RS_PENDING]
+            return {"total_count": len(_runs), "check_runs": _runs}
+        return [{"sha": _RS_A3}, {"sha": _RS_A1}]
+
+    _rstatus._get = _rs_stub_pending
+    _rs_walked = (
+        _rstatus.verdict(_rstatus.collect("o/r", "main", None, None, 2))[:2],
+        sum("/check-runs" in _u for _u in _rs_seen),
+    )
+finally:
+    _rstatus._get = _rs_real_get
+R.check(
+    "a check-runs page that does not carry every run of the commit is "
+    "UNREADABLE, not a partial answer",
+    _rs_truncated and _rs_whole,
+    f"total_count 140 against a 100-run page refused={_rs_truncated}; "
+    f"complete page read={_rs_whole}",
+)
+R.check(
+    "the discovery path asks for the named branch, stops at the tip's own "
+    "answer, and walks on only when there is none",
+    _rs_end_to_end == (("FAILED", _rstatus.EXIT_RED), 1, True)
+    and _rs_walked == (("FAILED", _rstatus.EXIT_RED), 2),
+    f"tip answers: state/reads/branch-query={_rs_end_to_end}; tip in flight: "
+    f"state={_rs_walked[0]} check-runs reads={_rs_walked[1]}; the walk costs "
+    "a GET per commit, so one that never stops is a rate-limit exposure and "
+    "one that never walks is RUNNING after every merge",
+)
+# --- the binary, end to end: the one function CI actually executes ----------
+#
+# Everything above drives `verdict`, `check_runs`, `collect` and `parse_ts`.
+# `main` is what the workflow's `run:` line executes, and nothing drove it. The
+# docstring gives its behaviour its own heading -- ITS OWN FAILURE MODE, "the
+# check exits UNREADABLE (2) and says so. It does not pass" -- and the only
+# check that looked like it covered that compared two CONSTANTS,
+# `EXIT_UNREADABLE != EXIT_GREEN`. Editing the `except Unreadable` handler to
+# `EXIT_GREEN` leaves 2 != 0 true, so the binary printed "Failing closed on
+# purpose" and exited 0 with all 1271 checks green: the summary line and the
+# tick misleading in opposite directions. Four behaviours live only in `main`
+# and all four are driven here -- the Unreadable-to-exit-code mapping, the
+# report assembly that appends NOT_REQUIRED, the step summary (the only place
+# the state NAME is observable at all, since the report lines spell it from the
+# module constant), and the exit code, which is the only thing CI reads.
+def _rs_binary(get, sha):
+    """`main` with one stubbed GET. -> (exit code, stdout, step summary)."""
+    _real, _cap, _out = _rstatus._get, _io.StringIO(), sys.stdout
+    with _tempfile.TemporaryDirectory() as _td:
+        _sum = pathlib.Path(_td) / "step-summary.md"
+        _was = _os.environ.get("GITHUB_STEP_SUMMARY")
+        _os.environ["GITHUB_STEP_SUMMARY"] = str(_sum)
+        try:
+            _rstatus._get, sys.stdout = get, _cap
+            _rc = _rstatus.main(["--sha", sha])
+        finally:
+            _rstatus._get, sys.stdout = _real, _out
+            if _was is None:
+                _os.environ.pop("GITHUB_STEP_SUMMARY", None)
+            else:
+                _os.environ["GITHUB_STEP_SUMMARY"] = _was
+        return _rc, _cap.getvalue(), _sum.read_text(encoding="utf-8")
+
+
+def _rs_cannot_look(_u, _t):
+    raise _rstatus.Unreadable("HTTP 401 from https://api.github.com (stub)")
+
+
+_rs_dead = _rs_binary(_rs_cannot_look, _RS_A1)
+# The null control, on the SAME invocation: ARM 2's captured payload, where the
+# same binary must exit 0. Without it the check below passes on a `main` that
+# refuses everything, which is a check nobody can tell from a working one until
+# the day it matters.
+_rs_alive = _rs_binary(
+    lambda _u, _t: {"total_count": 2,
+                    "check_runs": _RS_ARMS["ARM 2 null control"][0][0][1]},
+    _RS_A2)
+R.check(
+    "the binary exits UNREADABLE (2) on an API it could not read, and GREEN "
+    "only on a real pass",
+    (_rs_dead[0], _rs_alive[0]) == (_rstatus.EXIT_UNREADABLE,
+                                    _rstatus.EXIT_GREEN)
+    and "### record-status: UNREADABLE" in _rs_dead[2]
+    and "### record-status: PASSED" in _rs_alive[2],
+    f"a transport that could not look -> exit {_rs_dead[0]}, state "
+    f"{[_l for _l in _rs_dead[2].splitlines() if _l.startswith('###')]}; "
+    f"ARM 2's payload -> exit {_rs_alive[0]}, state "
+    f"{[_l for _l in _rs_alive[2].splitlines() if _l.startswith('###')]}. "
+    f"Exit codes are the answer, not {_rstatus.EXIT_UNREADABLE} != "
+    f"{_rstatus.EXIT_GREEN}: a check that goes green when it could not look "
+    "converts an open defect into a closed one, and CI reads only the code",
+)
+
+
+def _rs_refuses(fn):
+    """Did this refuse with `Unreadable`, or produce something else?"""
+    try:
+        fn()
+    except _rstatus.Unreadable:
+        return "Unreadable"
+    except Exception as _exc:  # noqa: BLE001 -- the point is what class it is
+        return type(_exc).__name__
+    return "a value"
+
+
+# The same shape one function over. `main` was the only function nothing drove
+# at all, but the truncated page above was the only one of this module's nine
+# `raise Unreadable` sites that was EXECUTED; the rest were docstring promises
+# with nothing behind them, in the same way. One table rather than one check
+# each, because the property is identical at every site and a reader should see
+# the set. Their null controls already exist and are not duplicated: `_rs_whole`
+# reads a complete page, `_rs_end_to_end` walks a real listing, and the four
+# arms classify real timestamps -- so none of these can pass on a reader that
+# refuses everything.
+_rs_sites = {}
+_rs_real_get2 = _rstatus._get
+try:
+    for _rs_name, _rs_payload in (
+        ("a check-runs page that is not an object", ["not", "a", "dict"]),
+        ("a check-runs page carrying no array", {"total_count": 0}),
+    ):
+        _rstatus._get = lambda _u, _t, _p=_rs_payload: _p
+        _rs_sites[_rs_name] = _rs_refuses(
+            lambda: _rstatus.check_runs("o/r", _RS_A1, None))
+    for _rs_name, _rs_payload in (
+        ("an empty commit listing", []),
+        ("a commit listing that is not an array", {"message": "Not Found"}),
+        ("a commit in the listing carrying no sha", [{"commit": {}}]),
+    ):
+        _rstatus._get = lambda _u, _t, _p=_rs_payload: _p
+        _rs_sites[_rs_name] = _rs_refuses(
+            lambda: _rstatus.collect("o/r", "main", None, None, 5))
+finally:
+    _rstatus._get = _rs_real_get2
+# And the clock: `parse_ts` refuses a value it cannot PARSE as well as a
+# missing one, which the clockless check above does not reach.
+_rs_sites["a completed_at that is not a timestamp"] = _rs_refuses(
+    lambda: _rstatus.verdict(
+        [(_RS_A1, [_rs_run(6, _RS_A1, "success", "half past four")])]))
+R.check(
+    "every place this module says it could not look raises Unreadable, not a "
+    "verdict and not a traceback",
+    set(_rs_sites.values()) == {"Unreadable"},
+    "; ".join(f"{_k} -> {_v}" for _k, _v in sorted(_rs_sites.items()))
+    + f" ({len(_rs_sites)} refusal sites; exit "
+    f"{_rstatus.EXIT_RED} is this reporter's word for '`record` is red' and a "
+    "traceback must not be able to say that)",
+)
+
+
+class _RsResp:
+    """A urlopen response, for driving `_get`'s own handlers."""
+
+    def __init__(self, body):
+        self.body = body
+
+    def read(self):
+        return self.body
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_a):
+        return False
+
+
+# `_get` is the other half of the same promise: it is what turns a transport
+# failure INTO the `Unreadable` that `main` maps to exit 2, and it is STUBBED at
+# every site above, so its three handlers had never run either. Here urlopen is
+# the collaborator and `_get` is the production function under test. A readable
+# page is the null control, in the same table.
+_rs_real_urlopen = _rstatus.urllib.request.urlopen
+_rs_transport = {}
+try:
+    for _rs_name, _rs_outcome in (
+        ("an HTTP error", _rstatus.urllib.error.HTTPError(
+            "https://api.github.com/x", 401, "Unauthorized", None, None)),
+        ("an unreachable host", _rstatus.urllib.error.URLError("no route")),
+        ("a body that is not JSON", _RsResp(b"<html>rate limited</html>")),
+        ("a page that IS JSON", _RsResp(b'{"total_count": 0, '
+                                        b'"check_runs": []}')),
+    ):
+        def _rs_urlopen(_req, timeout=0, _o=_rs_outcome):
+            if isinstance(_o, BaseException):
+                raise _o
+            return _o
+
+        _rstatus.urllib.request.urlopen = _rs_urlopen
+        _rs_transport[_rs_name] = _rs_refuses(
+            lambda: _rstatus._get("https://api.github.com/x", None))
+finally:
+    _rstatus.urllib.request.urlopen = _rs_real_urlopen
+R.check(
+    "and the transport turns every failure into Unreadable, while a page it "
+    "CAN read is still read",
+    all(_v == "Unreadable" for _k, _v in _rs_transport.items()
+        if _k != "a page that IS JSON")
+    and _rs_transport["a page that IS JSON"] == "a value",
+    "; ".join(f"{_k} -> {_v}" for _k, _v in _rs_transport.items())
+    + " -- the last is the null control, and without it this passes on a "
+    "transport that refuses everything",
+)
+# Every report says the check does not block, on green as well as on red, and
+# names the repair. A reader meeting the first red one must learn both from the
+# report rather than from a policy file they have not opened -- and the repair
+# for a red `record` is a Delivery-status row, never a re-run of this check.
+# Asserted against what the binary PRINTED on both arms above, not against the
+# constant: `main` is where the report is assembled, and a constant no report
+# carries is a promise the docstring makes alone.
+R.check(
+    "and every state says in the report that it blocks nothing, and what does "
+    "fix it",
+    all("does not block this merge" in _r and "Delivery-status row" in _r
+        and "never a re-run" in _r
+        for _r in (_rs_dead[1], _rs_alive[1]))
+    and "Failing closed on purpose" in _rs_dead[1]
+    and _rstatus.NOT_REQUIRED in _rs_dead[1],
+    f"NOT_REQUIRED in the report the binary PRINTED: unreadable arm="
+    f"{_rstatus.NOT_REQUIRED in _rs_dead[1]}, green arm="
+    f"{_rstatus.NOT_REQUIRED in _rs_alive[1]}; 'Failing closed on purpose' on "
+    f"the unreadable arm={'Failing closed on purpose' in _rs_dead[1]}. `main` "
+    "is where the report is assembled, so a constant that no report carries "
+    "is a promise the docstring makes alone",
+)
+# The classification the ratchet demands of any new tracked file: not
+# selectable (it needs the Checks API), not INERT (this script imports it).
+R.check(
+    "the disposition reporter is classified: NOT_A_TEST, and not on INERT",
+    "record_status.py" in _closure.NOT_A_TEST
+    and not _closure.is_inert("tests/record_status.py"),
+    "a file that is neither in a closure nor on a list forces the FULL suite",
 )
 
 sys.exit(R.close("ENTITY CHECKS"))

@@ -161,6 +161,13 @@ jobs:
       - name: Show the pre-PR self-check refusing its own fixtures
         run: bash tools/audit/prepr.sh --self-test
 
+      # The push script's own decisions, driven over the same fixtures. It runs
+      # here rather than in the gate because `tools/audit/` is INERT in
+      # tests/closure.py -- nothing under tests/ reads it -- and this job is
+      # never scoped, the same argument prepr.sh's line above rests on.
+      - name: Show the push script's decisions refusing their own fixtures
+        run: bash tools/audit/push.sh --self-test
+
       - name: Write the body as the API returned it
         env:
           BODY: ${{ github.event.pull_request.body }}
@@ -278,3 +285,61 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node .claude/workflows/policy_lint.mjs --sunset --since "${{ steps.window.outputs.since }}" || true
+
+  # `main`'s CURRENT `record` conclusion, reported as a red check on every pull
+  # request. #713's construction (`nightly-status`, `tests/nightly_status.py`)
+  # pointed at `record` instead of the nightly, because #533 and this are the
+  # same shape: a conclusion that lands on a commit nobody re-reads.
+  #
+  # WHY IT IS NEEDED WHILE `record` ABOVE IS CORRECT. `record`'s `if:` is right
+  # and the job above says why. The defect is that `record` is one of
+  # `main-protect`'s 18 required contexts while reporting `skipped` on the only
+  # event a seat reads it at -- 17 `success` and `record` alone `skipped` at
+  # #734's head `b63470b`. So the disposition rule is enforced only after a
+  # merge and the red lands on whoever pushes next: seven red-`main` events in
+  # the five days to 2026-09-10, the last of them #734 merging with no row nine
+  # hours after #708 landed the protocol saying the row precedes the merge.
+  # This does not prevent that merge. It converts "`main` is red and nobody
+  # looks" into "every open pull request says so". Root cause on #541 comment
+  # 5622000848; its home for the record is #678, where (c) is already recorded
+  # for the identical cause on a different surface.
+  #
+  # It must NOT be added to `main-protect`'s required contexts. That is a
+  # ruleset change and a separate owner decision, and requiring it would make
+  # one lane's unfixed red refuse every unrelated merge in the repository -- for
+  # a condition the pull request's author did not cause and usually cannot fix.
+  # The report says so on every run, green as well as red.
+  #
+  # Pull requests only. A lane reporting on `main`'s own state must not be able
+  # to turn `main` red: that would put the reporter inside the thing it reports
+  # on, and one unfixed row would redden every subsequent push.
+  record-status:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # Check runs are Checks metadata, which this workflow's `contents: read`
+    # floor cannot see. This is a widening of that floor and is written down as
+    # one. It is read-only, and it is declared at JOB level: a job-level
+    # `permissions:` block REPLACES the workflow default for this job alone and
+    # is inherited by no other job, so `policy-docs`, `pr-contract` and `record`
+    # are untouched. `tests/entities.py` pins the whole set of jobs in this file
+    # that override the floor -- `record` and this one -- and that this one's
+    # block carries no `write` at all, so a third override has to be argued for
+    # rather than land.
+    permissions:
+      contents: read
+      checks: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      # No `pip install`, the same reason `nightly-status` has none: a check
+      # whose job is to notice that something went dark must not be breakable by
+      # the dependency set, and it costs seconds beside a forty-minute gate.
+      - name: Report main's current `record` conclusion
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python tests/record_status.py

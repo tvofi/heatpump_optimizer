@@ -105,13 +105,11 @@ from .const import (
     CONF_BUFFER_COOLING_RATE,
     CONF_BUFFER_TANK_TEMP_ENTITY,
     DEFAULT_HOUSE_HEAT_LOSS_SCALE,
-    DHW_COOLING_RATE_MIN,
     HOUSE_HEAT_LOSS_SCALE_MAX,
     HOUSE_HEAT_LOSS_SCALE_MIN,
     DEFAULT_LOWER_FLOOR_LOSS_RATIO,
     LOWER_FLOOR_LOSS_RATIO_MAX,
     LOWER_FLOOR_LOSS_RATIO_MIN,
-    DHW_COOLING_RATE_MAX,
     DHW_COOLING_REFERENCE_DELTA,
     DEFAULT_ECL110_COMMAND_TOPIC,
     DEFAULT_ECL110_DISPLACE_SET_TOPIC,
@@ -239,7 +237,6 @@ from .const import (
     CONF_SPACE_PUMP_ENTITY,
     DHW_LEGIONELLA_BOOST_MAX_HOURS,
     DHW_LEGIONELLA_HOLD_MINUTES,
-    DHW_DAYTYPE_BLEND_K,
     SPACE_PUMP_FLOOR_MARGIN_C,
     CONF_OPEN_WINDOW_RELAX_ENABLED,
     DEFAULT_OPEN_WINDOW_RELAX_ENABLED,
@@ -362,7 +359,8 @@ from .grid_fee import (
     max_abs_component as grid_fee_max_abs_component,
     parse_month_range as grid_fee_parse_month_range,
 )
-from .dhw_draws import DrawStats, labels_for, window_label as draw_window_label
+from .dhw_draws import labels_for
+from .dhw_learning import DHW_PROFILE_STORE_VERSION, DhwProfileLearner
 from .curve_learning import CurveLearner
 from .currency import resolve_currency
 from .drift import Cusum
@@ -644,27 +642,6 @@ class ForecastArrays(NamedTuple):
             blank,
         )
 
-
-DHW_PROFILE_STORE_VERSION = 1
-DHW_PROFILE_EWMA_ALPHA = 0.12
-DHW_PROFILE_MIN_INTENSITY = 0.2
-DHW_PROFILE_MAX_INTENSITY = 3.5
-
-# Learning rates for the tank cooling model. Every observation is an upper
-# bound on the true standby loss — an unnoticed draw can only make the tank
-# look leakier than it is, never tighter. So the estimate follows the lower
-# envelope of what is observed: it drops quickly towards a quieter reading and
-# only creeps upward, which keeps a single shower from convincing the model
-# that the tank is badly insulated.
-DHW_COOLING_ALPHA_DOWN = 0.25
-DHW_COOLING_ALPHA_UP = 0.02
-# Sample intervals outside this range are useless: too short and sensor
-# quantisation dominates, too long and the tank was almost certainly used.
-DHW_COOLING_MIN_SAMPLE_HOURS = 0.25
-DHW_COOLING_MAX_SAMPLE_HOURS = 6.0
-# The tank has to be meaningfully warmer than its surroundings for the decay
-# to carry any information about the loss coefficient.
-DHW_COOLING_MIN_DELTA = 5.0
 
 # The buffer tank is learned with the same lower-envelope estimator as the DHW
 # tank, but it is a much smaller vessel that is charged frequently, so quiet
@@ -1363,8 +1340,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # hass becomes after unload; tracking costs one set entry.
         self._spawn(self._async_setup_ecl110_state_subscription())
         for load in (
-            self._async_load_dhw_profile,
-            self._async_load_dhw_draws,
+            self._dhw_learner.async_load_profile,
+            self._dhw_learner.async_load_draws,
             self._async_load_dhw_legionella,
             self._async_load_thermal_learning,
             self._async_load_price_model,
@@ -1487,6 +1464,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     def _init_runtime_state(self) -> None:
         """What the current update cycle is working with."""
         self._mode: str = MODE_AUTO
+        # #6: last commanded pump states, so actuation is transitions-only.
+        # Initialised here since W5-G9: it is core state and was misplaced in
+        # the dhw init, which is the S5 finding once more.
+        self._pump_commanded: dict[str, bool] = {}
         # Populated during setup from the manifest so the device registry
         # reports the real integration version.
         self.integration_version: str | None = None
@@ -1539,27 +1520,29 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._reload_handover: dict[str, Any] | None = None
 
     def _init_dhw_learning(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
-        """Hot water: usage profile, cooling rate and the legionella timer."""
+        """Hot water: the profile/draw learner, the tank reading and the legionella timer."""
         ctx = getattr(self, "_ctx", self)
         # DHW state
         self._dhw_temperature: float | None = None
-        self._last_dhw_temp_sample: float | None = None
-        self._last_dhw_sample_time: datetime | None = None
-        self._dhw_hourly_profile: list[float] = (
-            ctx._thermal_params.dhw_hourly_draw_pattern.copy()
-        )
-        # Self-learned standby cooling of the tank, in °C/h at the reference
-        # condition (45 °C tank, 20 °C ambient). Seeded from the configured
-        # default until enough quiet decay has been observed.
-        self._dhw_cooling_rate: float = float(
-            ctx._thermal_params.dhw_cooling_rate
-        )
-        self._dhw_cooling_samples: int = 0
-        self._dhw_heating_since_sample: bool = False
-        self._dhw_profile_store: Store = Store(
+        # W5-G9: the usage profile, day-type profiles, draw statistics and
+        # cooling rate live in their own subsystem. It learns into the shared
+        # ThermalParameters and observes three coordinator facts through
+        # callables; it never holds the coordinator.
+        self._dhw_learner = DhwProfileLearner(
             hass,
-            DHW_PROFILE_STORE_VERSION,
-            f"{DOMAIN}_{entry.entry_id}_dhw_profile",
+            entry.entry_id,
+            ctx._thermal_params,
+            frozen=self._learning_frozen,
+            heating_active=lambda: bool(
+                self._current_action.get("dhw_heating_active", False)
+            ),
+            external_heat_active=lambda: bool(
+                getattr(
+                    getattr(self, "_ctx", self)._current_state,
+                    "external_heat_active",
+                    False,
+                )
+            ),
         )
         self._dhw_last_legionella: datetime | None = None
         self._dhw_legionella_store: Store = Store(
@@ -1568,25 +1551,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             f"{DOMAIN}_{entry.entry_id}_dhw_legionella",
         )
 
-        # --- Hot water, v4.0.0 T3 -----------------------------------------
-        # #18: day-type profiles learned BESIDE the pooled one, blended
-        # toward pooled by their own evidence. A store that has only ever
-        # seen the pooled profile loads with zero day-type samples, which
-        # blends to exactly the pooled answer.
-        self._dhw_profile_weekday: list[float] = self._dhw_hourly_profile.copy()
-        self._dhw_profile_weekend: list[float] = self._dhw_hourly_profile.copy()
-        #: Distinct DAYS with draw evidence per day type — the blend's
-        #: trust must measure days lived, not sensor ticks survived.
-        self._dhw_daytype_samples: list[int] = [0, 0]  # [weekday, weekend]
-        self._dhw_daytype_last_day: list[str] = ["", ""]
-        # #32/#20: per-window draw-occurrence statistics, own store.
-        self._draw_stats = DrawStats()
-        self._dhw_draws_store: Store = Store(
-            hass,
-            DHW_PROFILE_STORE_VERSION,
-            f"{DOMAIN}_{entry.entry_id}_dhw_draws",
-        )
-        self._dhw_draws_dirty: bool = False
         # #24: minutes the tank has HELD the disinfection temperature.
         self._legionella_hold_minutes: float = 0.0
         self._legionella_hold_last: datetime | None = None
@@ -1607,8 +1571,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         #: The (disinfection temp, charge limit, interval) the ceiling notice
         #: was last raised for, so it is only rewritten when the pair changes.
         self._legionella_ceiling_notice: tuple[float, float, float] | None = None
-        # #6: last commanded pump states, so actuation is transitions-only.
-        self._pump_commanded: dict[str, bool] = {}
 
     def _init_thermal_learning(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         """House, buffer and COP-health learned state (#193 S5, S8)."""
@@ -2100,147 +2062,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         """Current DHW temperature."""
         return self._dhw_temperature
 
-    def _normalize_dhw_profile(self, profile: list[float]) -> list[float]:
-        """Normalize and clamp DHW hourly profile (average ~= 1.0)."""
-        default = getattr(self, "_ctx", self)._thermal_params.dhw_hourly_draw_pattern.copy()
-        if len(profile) != 24:
-            return default
-        try:
-            cleaned = [float(np.clip(v, DHW_PROFILE_MIN_INTENSITY, DHW_PROFILE_MAX_INTENSITY)) for v in profile]
-            avg = float(np.mean(cleaned))
-        except (TypeError, ValueError):
-            return default
-        if avg <= 0:
-            return default
-        return [float(np.clip(v / avg, DHW_PROFILE_MIN_INTENSITY, DHW_PROFILE_MAX_INTENSITY)) for v in cleaned]
-
-    async def _async_load_dhw_profile(self) -> None:
-        """Load the persisted DHW usage profile and tank cooling rate."""
-        try:
-            stored = dict(await self._dhw_profile_store.async_load() or {})
-        except Exception as err:
-            _LOGGER.debug("Could not load learned DHW profile: %s", err)
-            return
-
-        profile = stored.get("hourly_profile")
-        if isinstance(profile, list) and len(profile) == 24:
-            self._dhw_hourly_profile = self._normalize_dhw_profile(profile)
-            getattr(self, "_ctx", self)._thermal_params.dhw_hourly_draw_pattern = (
-                self._dhw_hourly_profile.copy()
-            )
-            _LOGGER.info("Loaded learned DHW usage profile from storage")
-
-        # #18: day-type profiles are additive keys. A pooled-only store —
-        # every store written before T3 — leaves both arrays at the pooled
-        # profile with zero samples, and the blend below then answers
-        # exactly the pooled pattern.
-        for attr, key, count_idx in (
-            ("_dhw_profile_weekday", "profile_weekday", 0),
-            ("_dhw_profile_weekend", "profile_weekend", 1),
-        ):
-            arr = stored.get(key)
-            if isinstance(arr, list) and len(arr) == 24:
-                setattr(self, attr, self._normalize_dhw_profile(arr))
-            else:
-                setattr(self, attr, self._dhw_hourly_profile.copy())
-            try:
-                self._dhw_daytype_samples[count_idx] = max(
-                    0, int(stored.get(f"{key}_samples", 0))
-                )
-            except (TypeError, ValueError, OverflowError):
-                self._dhw_daytype_samples[count_idx] = 0
-
-        rate = stored.get("cooling_rate")
-        if rate is None:
-            return
-        try:
-            self._apply_dhw_cooling_rate(float(rate))
-            self._dhw_cooling_samples = int(stored.get("cooling_samples", 0))
-        except (TypeError, ValueError, OverflowError) as err:
-            _LOGGER.debug("Could not load learned DHW cooling rate: %s", err)
-            return
-        _LOGGER.info(
-            "Loaded learned DHW tank cooling rate %.2f °C/h (%d samples)",
-            self._dhw_cooling_rate,
-            self._dhw_cooling_samples,
-        )
-
-    def _apply_dhw_cooling_rate(self, rate: float) -> None:
-        """Clamp a cooling rate to a plausible range and push it to the model."""
-        self._dhw_cooling_rate = float(
-            np.clip(rate, DHW_COOLING_RATE_MIN, DHW_COOLING_RATE_MAX)
-        )
-        getattr(self, "_ctx", self)._thermal_params.dhw_cooling_rate = self._dhw_cooling_rate
-
-    def _dhw_profile_payload(self) -> dict[str, Any]:
-        """The DHW profile store's exact save shape.
-
-        One producer for both the store and the weekly snapshot (#42),
-        same contract as ``_thermal_learning_payload``: a second
-        hand-built copy is how formats drift.
-        """
-        return {
-            "hourly_profile": self._dhw_hourly_profile,
-            "cooling_rate": self._dhw_cooling_rate,
-            "cooling_samples": self._dhw_cooling_samples,
-            # #18: additive — old loaders ignore these keys.
-            "profile_weekday": self._dhw_profile_weekday,
-            "profile_weekend": self._dhw_profile_weekend,
-            "profile_weekday_samples": self._dhw_daytype_samples[0],
-            "profile_weekend_samples": self._dhw_daytype_samples[1],
-        }
-
-    async def _async_save_dhw_profile(self) -> None:
-        """Persist learned DHW profile to Home Assistant storage."""
-        try:
-            await self._dhw_profile_store.async_save(
-                {
-                    **self._dhw_profile_payload(),
-                    "updated_at": dt_util.now().isoformat(),
-                }
-            )
-        except Exception as err:
-            _LOGGER.debug("Could not persist DHW profile: %s", err)
-
-    async def _async_load_dhw_draws(self) -> None:
-        """Load the per-window draw statistics (#32)."""
-        try:
-            stored = await self._dhw_draws_store.async_load()
-        except Exception as err:  # noqa: BLE001
-            _LOGGER.debug("Could not load DHW draw statistics: %s", err)
-            return
-        if isinstance(stored, dict):
-            self._draw_stats = DrawStats.from_dict(stored)
-
-    async def _async_save_dhw_draws(self) -> None:
-        try:
-            await self._dhw_draws_store.async_save(self._draw_stats.as_dict())
-            self._dhw_draws_dirty = False
-        except Exception as err:  # noqa: BLE001
-            _LOGGER.debug("Could not persist DHW draw statistics: %s", err)
-
-    def _dhw_pattern_for(self, weekend: bool) -> list[float]:
-        """The #18 blended pattern for one day type, volume-preserving.
-
-        ``w = n/(n+K)`` leans on the pooled profile until the day type has
-        real evidence of its own; the result is re-normalised so each day
-        type still budgets the same daily volume — the profile decides
-        *when*, never *how much*.
-        """
-        idx = 1 if weekend else 0
-        daytype = (
-            self._dhw_profile_weekend if weekend else self._dhw_profile_weekday
-        )
-        n = float(self._dhw_daytype_samples[idx])
-        w = n / (n + DHW_DAYTYPE_BLEND_K) if n > 0 else 0.0
-        if w <= 0.0:
-            return self._dhw_hourly_profile.copy()
-        blended = [
-            (1.0 - w) * pooled + w * day
-            for pooled, day in zip(self._dhw_hourly_profile, daytype)
-        ]
-        return self._normalize_dhw_profile(blended)
-
     def _prepare_dhw_inputs(self, now: datetime) -> None:
         """Refresh everything the hot-water plan reads, before each solve.
 
@@ -2254,7 +2075,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
         # #18: today's blended pattern. With no day-type evidence this IS
         # the pooled profile, byte for byte.
-        params.dhw_hourly_draw_pattern = self._dhw_pattern_for(
+        params.dhw_hourly_draw_pattern = self._dhw_learner.pattern_for(
             now.weekday() >= 5
         )
 
@@ -2297,8 +2118,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         ):
             table: dict[str, tuple[float, int]] = {}
             for label in labels_for(params.dhw_demand_windows):
-                count = self._draw_stats.count(label)
-                p90 = self._draw_stats.quantile(label, 0.9)
+                count = self._dhw_learner.draw_stats.count(label)
+                p90 = self._dhw_learner.draw_stats.quantile(label, 0.9)
                 if count > 0 and p90 is not None:
                     table[label] = (p90, count)
             params.dhw_window_ready_energy = table or None
@@ -2401,7 +2222,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         pattern = params.effective_dhw_draw_pattern()
         windows = params.dhw_demand_windows
         for window, label in zip(windows, labels_for(windows)):
-            p90 = self._draw_stats.quantile(label, 0.9)
+            p90 = self._dhw_learner.draw_stats.quantile(label, 0.9)
             if p90 is None:
                 p90 = sum(
                     params.dhw_draw_power
@@ -4766,220 +4587,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         )
         return round(hours, 2) if hours is not None else None
 
-    async def _async_learn_dhw_dynamics(self, dhw_temp: float) -> None:
-        """Learn the tank's usage profile and its standby cooling rate.
-
-        Both models are fed by the same observation — how far the tank
-        temperature moved since the previous sample — so they are derived
-        together from a single consistent measurement.
-        """
-        now = dt_util.now()
-        heating = bool(self._current_action.get("dhw_heating_active", False))
-
-        previous_temp = self._last_dhw_temp_sample
-        previous_time = self._last_dhw_sample_time
-        heated_during_interval = self._dhw_heating_since_sample or heating
-
-        self._last_dhw_temp_sample = dhw_temp
-        self._last_dhw_sample_time = now
-        self._dhw_heating_since_sample = heating
-
-        frozen = self._learning_frozen(CONF_DHW_TEMP_ENTITY)
-        if frozen:
-            self._learner_freeze_reason = frozen
-            return
-
-        if previous_temp is None or previous_time is None:
-            return
-
-        dt_h = (now - previous_time).total_seconds() / 3600.0
-        if dt_h <= 0.02 or dt_h > DHW_COOLING_MAX_SAMPLE_HOURS:
-            return
-
-        temp_drop = previous_temp - dhw_temp
-
-        if not heated_during_interval:
-            await self._async_learn_dhw_cooling(previous_temp, dhw_temp, dt_h)
-        await self._async_learn_dhw_usage(
-            previous_temp,
-            temp_drop,
-            dt_h,
-            now.hour,
-            heated_during_interval,
-            weekend=now.weekday() >= 5,
-        )
-        await self._async_fold_draw_stats(now, previous_temp, temp_drop, dt_h)
-
-    async def _async_fold_draw_stats(
-        self, now: datetime, previous_temp: float, temp_drop: float, dt_h: float
-    ) -> None:
-        """Fold one interval's beyond-standby draw energy into #32's stats.
-
-        External heat is the one contamination the freeze guard upstream
-        does not cover: a wood burn drives the tank temperature and every
-        drop-based attribution with it, so those intervals are skipped
-        outright. Heated intervals ARE folded — heating makes the drop
-        smaller, so the attributed energy is a lower bound of the true
-        draw, which can only make the learned heavy-day target
-        conservative relative to reality, never inflated.
-        """
-        ctx = getattr(self, "_ctx", self)
-        if getattr(ctx._current_state, "external_heat_active", False):
-            return
-        params = ctx._thermal_params
-        if not params.dhw_enabled:
-            return
-        standby_rate = (
-            self._dhw_cooling_rate
-            * max(0.0, previous_temp - DHW_AMBIENT_TEMP)
-            / DHW_COOLING_REFERENCE_DELTA
-        )
-        intensity = max(0.0, temp_drop / dt_h - standby_rate)  # °C/h beyond standby
-        energy_kwh = (
-            intensity * dt_h * max(params.dhw_tank_thermal_mass, 0.05)
-        )
-        windows = params.dhw_demand_windows
-        label = draw_window_label(
-            now.hour + now.minute / 60.0, windows
-        )
-        self._draw_stats.prune(labels_for(windows))
-        before = {k: len(v) for k, v in self._draw_stats.reservoirs.items()}
-        self._draw_stats.fold(now, label, energy_kwh)
-        after = {k: len(v) for k, v in self._draw_stats.reservoirs.items()}
-        # Persist when an occurrence closes, and also whenever real energy
-        # was folded into the OPEN occurrence — as_dict carries it, and
-        # saving only at close time meant a restart mid-shower silently
-        # dropped everything since the last close, dragging the p90 down.
-        # Zero-energy ticks (most of the day) still cause no churn.
-        if before != after or energy_kwh > 1e-4:
-            await self._async_save_dhw_draws()
-    async def _async_learn_dhw_cooling(
-        self, previous_temp: float, dhw_temp: float, dt_h: float
-    ) -> None:
-        """Refine the tank cooling model from an interval with no heating.
-
-        Standby decay follows ``C·dT/dt = -UA·(T - T_ambient)``, so a pair of
-        temperatures bracketing an idle interval pins down the time constant:
-
-            UA/C = -ln((T_end - T_amb) / (T_start - T_amb)) / Δt
-
-        Scaled to the reference condition that gives a cooling rate in °C/h
-        directly comparable to the configured default.
-
-        Any hot water drawn during the interval inflates the estimate, which is
-        why the result is folded in as a lower envelope rather than a plain
-        average — see the alpha constants.
-        """
-        if dt_h < DHW_COOLING_MIN_SAMPLE_HOURS:
-            return
-        # A rise means the tank was heated or refilled from a hotter source;
-        # either way it says nothing about standby loss.
-        if dhw_temp > previous_temp:
-            return
-
-        start_delta = previous_temp - DHW_AMBIENT_TEMP
-        end_delta = dhw_temp - DHW_AMBIENT_TEMP
-        if start_delta < DHW_COOLING_MIN_DELTA or end_delta < DHW_COOLING_MIN_DELTA:
-            return
-
-        time_constant = -np.log(end_delta / start_delta) / dt_h  # 1/h
-        observed = float(time_constant * DHW_COOLING_REFERENCE_DELTA)
-        if not np.isfinite(observed):
-            return
-        if observed < DHW_COOLING_RATE_MIN or observed > DHW_COOLING_RATE_MAX:
-            return
-
-        alpha = (
-            DHW_COOLING_ALPHA_DOWN
-            if observed < self._dhw_cooling_rate
-            else DHW_COOLING_ALPHA_UP
-        )
-        self._apply_dhw_cooling_rate(
-            (1.0 - alpha) * self._dhw_cooling_rate + alpha * observed
-        )
-        self._dhw_cooling_samples += 1
-
-        _LOGGER.debug(
-            "Learned DHW cooling: %.2f°C→%.2f°C over %.2fh gives %.2f °C/h, "
-            "model now %.2f °C/h (%d samples)",
-            previous_temp,
-            dhw_temp,
-            dt_h,
-            observed,
-            self._dhw_cooling_rate,
-            self._dhw_cooling_samples,
-        )
-        await self._async_save_dhw_profile()
-
-    async def _async_learn_dhw_usage(
-        self,
-        previous_temp: float,
-        temp_drop: float,
-        dt_h: float,
-        hour: int,
-        heated: bool,
-        weekend: bool = False,
-    ) -> None:
-        """Learn hourly DHW usage profile from observed temperature drops."""
-        # Learn only while DHW is not actively heated, and only from the part
-        # of the drop that standby loss cannot explain. The tank cools all the
-        # time — roughly 0.4 °C/h for a 55 °C tank at the default rate — and
-        # attributing that to usage taught a phantom draw into every idle
-        # hour, washing the real morning/evening pattern towards flat.
-        if temp_drop < 0.15 or heated:
-            return
-
-        standby_rate = (
-            self._dhw_cooling_rate
-            * max(0.0, previous_temp - DHW_AMBIENT_TEMP)
-            / DHW_COOLING_REFERENCE_DELTA
-        )
-        draw_intensity = temp_drop / dt_h - standby_rate
-        if draw_intensity <= 0.05:
-            return
-
-        profile = self._dhw_hourly_profile.copy()
-        profile[hour] = (
-            (1.0 - DHW_PROFILE_EWMA_ALPHA) * profile[hour]
-            + DHW_PROFILE_EWMA_ALPHA * draw_intensity
-        )
-        self._dhw_hourly_profile = self._normalize_dhw_profile(profile)
-        getattr(self, "_ctx", self)._thermal_params.dhw_hourly_draw_pattern = self._dhw_hourly_profile.copy()
-
-        # #18: the same observation also teaches this day type's own
-        # profile. Both are normalised independently, so each day type
-        # preserves the daily volume on its own — the invariant the ready
-        # targets stand on.
-        idx = 1 if weekend else 0
-        daytype = (
-            self._dhw_profile_weekend if weekend else self._dhw_profile_weekday
-        ).copy()
-        daytype[hour] = (
-            (1.0 - DHW_PROFILE_EWMA_ALPHA) * daytype[hour]
-            + DHW_PROFILE_EWMA_ALPHA * draw_intensity
-        )
-        normalized = self._normalize_dhw_profile(daytype)
-        if weekend:
-            self._dhw_profile_weekend = normalized
-        else:
-            self._dhw_profile_weekday = normalized
-        # Trust counts distinct days, not ticks: at a five-minute sample
-        # cadence a tick counter would reach half-trust inside one
-        # Saturday morning.
-        day = dt_util.now().date().isoformat()
-        if self._dhw_daytype_last_day[idx] != day:
-            self._dhw_daytype_last_day[idx] = day
-            self._dhw_daytype_samples[idx] += 1
-
-        _LOGGER.debug(
-            "Learned DHW usage hour=%d drop=%.2f°C dt=%.2fh intensity=%.2f",
-            hour,
-            temp_drop,
-            dt_h,
-            draw_intensity,
-        )
-        await self._async_save_dhw_profile()
-
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch data and run optimization."""
         ctx = getattr(self, "_ctx", self)
@@ -5618,9 +5225,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if CONF_DHW_COOLING_RATE in params:
             # An explicit value replaces the learned one and resets the sample
             # count, so the learner treats it as the new starting point.
-            self._apply_dhw_cooling_rate(float(params[CONF_DHW_COOLING_RATE]))
-            self._dhw_cooling_samples = 0
-            await self._async_save_dhw_profile()
+            await self._dhw_learner.async_set_cooling_rate(
+                float(params[CONF_DHW_COOLING_RATE])
+            )
 
         # The displace limits are mirrored on the coordinator because the MQTT
         # publisher clamps against them without going through the model.
@@ -5912,7 +5519,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._update_external_heat_detection()
 
         if dhw.ok:
-            await self._async_learn_dhw_dynamics(dhw.value)
+            frozen = await self._dhw_learner.async_learn_dynamics(dhw.value)
+            if frozen:
+                self._learner_freeze_reason = frozen
             await self._async_track_dhw_legionella(dhw.value)
 
         # Deliberately NOT gated on `dhw.ok`: the observer above is the only
@@ -7239,7 +6848,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             ),
             "dhw_setpoint": params.dhw_setpoint,
             "dhw_min_temperature": params.dhw_min_temp,
-            "dhw_usage_profile": self._dhw_hourly_profile,
+            "dhw_usage_profile": self._dhw_learner.hourly_profile,
             "dhw_hold_hours": round(self._thermal_model.dhw_hold_hours(), 1),
             "dhw_windows": planned_windows
             or format_windows(params.dhw_demand_windows),
@@ -7257,9 +6866,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             "dhw_advisor": self._dhw_setpoint_sweep(),
             "dhw_draw_stats": {
                 label: {
-                    "events": self._draw_stats.count(label),
+                    "events": self._dhw_learner.draw_stats.count(label),
                     "p90_kwh": round(p90, 2)
-                    if (p90 := self._draw_stats.quantile(label, 0.9))
+                    if (p90 := self._dhw_learner.draw_stats.quantile(label, 0.9))
                     is not None
                     else None,
                 }
@@ -7277,9 +6886,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         """
         ctx = getattr(self, "_ctx", self)
         return {
-            "dhw_cooling_rate": round(self._dhw_cooling_rate, 3),
-            "dhw_cooling_samples": self._dhw_cooling_samples,
-            "dhw_cooling_rate_learned": self._dhw_cooling_samples > 0,
+            "dhw_cooling_rate": round(self._dhw_learner.cooling_rate, 3),
+            "dhw_cooling_samples": self._dhw_learner.cooling_samples,
+            "dhw_cooling_rate_learned": self._dhw_learner.cooling_samples > 0,
             "buffer_cooling_rate": self._buffer_cooling_rate,
             "buffer_cooling_samples": self._buffer_cooling_samples,
             "buffer_cooling_rate_learned": self._buffer_cooling_samples > 0,
@@ -9096,8 +8705,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         """Every learner's persisted shape, by the stores' own producers."""
         return {
             "thermal_learning": self._thermal_learning_payload(),
-            "dhw_profile": self._dhw_profile_payload(),
-            "dhw_draws": self._draw_stats.as_dict(),
+            "dhw_profile": self._dhw_learner.payload(),
+            "dhw_draws": self._dhw_learner.draw_stats.as_dict(),
             "price_model": self._price_model.as_dict(),
             "accuracy": self._accuracy.as_dict(),
             "comfort": self._comfort_learner.as_dict(),
@@ -9151,37 +8760,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             )
         profile = learners.get("dhw_profile")
         if isinstance(profile, dict):
-            hourly = profile.get("hourly_profile")
-            if isinstance(hourly, list) and len(hourly) == 24:
-                self._dhw_hourly_profile = self._normalize_dhw_profile(hourly)
-                ctx._thermal_params.dhw_hourly_draw_pattern = (
-                    self._dhw_hourly_profile.copy()
-                )
-            # The day-type profiles restore alongside the pooled one, or a
-            # rollback would blend a rolled-back pool with un-rolled-back
-            # day shapes — half of one week, half of another.
-            for attr, key, count_idx in (
-                ("_dhw_profile_weekday", "profile_weekday", 0),
-                ("_dhw_profile_weekend", "profile_weekend", 1),
-            ):
-                arr = profile.get(key)
-                if isinstance(arr, list) and len(arr) == 24:
-                    setattr(self, attr, self._normalize_dhw_profile(arr))
-                    try:
-                        self._dhw_daytype_samples[count_idx] = max(
-                            0, int(profile.get(f"{key}_samples", 0))
-                        )
-                    except (TypeError, ValueError):
-                        self._dhw_daytype_samples[count_idx] = 0
-            rate = profile.get("cooling_rate")
-            if rate is not None:
-                try:
-                    self._apply_dhw_cooling_rate(float(rate))
-                except (TypeError, ValueError):
-                    pass
+            self._dhw_learner.apply_payload(profile)
         draws = learners.get("dhw_draws")
         if isinstance(draws, dict):
-            self._draw_stats = DrawStats.from_dict(draws)
+            self._dhw_learner.apply_draws(draws)
         prices = learners.get("price_model")
         if isinstance(prices, dict):
             self._price_model = PriceShapeModel.from_dict(prices)
@@ -9296,8 +8878,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     snap.get("taken_at"),
                 )
                 await self._async_save_thermal_learning()
-                await self._async_save_dhw_profile()
-                await self._async_save_dhw_draws()
+                await self._dhw_learner.async_save_profile()
+                await self._dhw_learner.async_save_draws()
                 await self._async_save_price_model()
                 await self._async_save_accuracy()
         ir.async_create_issue(
@@ -9332,8 +8914,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             snap.get("taken_at"),
         )
         await self._async_save_thermal_learning()
-        await self._async_save_dhw_profile()
-        await self._async_save_dhw_draws()
+        await self._dhw_learner.async_save_profile()
+        await self._dhw_learner.async_save_draws()
         await self._async_save_price_model()
         await self._async_save_accuracy()
         self.async_update_listeners()
@@ -9822,7 +9404,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         3. This interval must not be one the learners would refuse. That is
            the v5.1.3 discipline — freeze on ANY unusable configured input,
            not only a stale one — reached through the same predicate
-           ``_async_learn_dhw_dynamics`` uses, so the accuracy record and the
+           the learner's ``async_learn_dynamics`` uses, so the accuracy record and the
            tank's own learners admit exactly the same intervals.
         """
         if not getattr(self, "_ctx", self)._config.get(CONF_DHW_TEMP_ENTITY):

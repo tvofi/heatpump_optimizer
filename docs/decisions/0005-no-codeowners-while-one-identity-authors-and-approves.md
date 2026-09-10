@@ -10,6 +10,11 @@ which is not on `main`: it is archived on `audit/session-evidence-2026-09-08`.
 > premise is spent — "there is nothing to require it in". Ruleset `main-protect`
 > (`22628467`) now exists, and it deliberately carries no required-approval and
 > no code-owner rule, for exactly the reason this record gives.
+>
+> **Status note, 2026-09-10.** O1 was re-put with the live ruleset (#680) and
+> the owner accepted. `0008` carries the machinery and this record's order;
+> this decision is superseded once `0008`'s step 3(c) is verified, and stands
+> until then.
 
 ## Context
 

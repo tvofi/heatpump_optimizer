@@ -6,15 +6,15 @@
    "rc": 0
   },
   "tests/card.mjs": {
-   "seconds": 8.6,
+   "seconds": 8.1,
    "rc": 0
   },
   "tests/card_drift.mjs": {
-   "seconds": 3.0,
+   "seconds": 2.8,
    "rc": 0
   },
   "tests/config_flow_steps.py": {
-   "seconds": 0.7,
+   "seconds": 0.9,
    "rc": 0
   },
   "tests/dst_checks.py": {
@@ -26,15 +26,15 @@
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 24.4,
+   "seconds": 30.1,
    "rc": 0
   },
   "tests/env_drift.py": {
-   "seconds": 0.5,
+   "seconds": 0.7,
    "rc": 0
   },
   "tests/features.py": {
-   "seconds": 117.0,
+   "seconds": 94.1,
    "rc": 0
   },
   "tests/frontend.py": {
@@ -46,7 +46,7 @@
    "rc": 0
   },
   "tests/manual_plan.py": {
-   "seconds": 7.3,
+   "seconds": 6.6,
    "rc": 0
   },
   "tests/open_meteo.py": {
@@ -58,11 +58,11 @@
    "rc": 0
   },
   "tests/plan_view.py": {
-   "seconds": 0.9,
+   "seconds": 1.2,
    "rc": 0
   },
   "tests/solar_alignment.py": {
-   "seconds": 0.6,
+   "seconds": 1.2,
    "rc": 0
   },
   "tests/stress.py": {
@@ -70,7 +70,7 @@
    "rc": 0
   },
   "tests/structure.py": {
-   "seconds": 1.9,
+   "seconds": 3.7,
    "rc": 0
   },
   "tests/validate.py": {
@@ -78,7 +78,7 @@
    "rc": 0
   },
   "tests/deployment_shape.py": {
-   "seconds": 1.6,
+   "seconds": 2.3,
    "rc": 0
   },
   "tests/ha_contract.py": {
@@ -129,6 +129,7 @@
    "custom_components/heatpump_optimizer/curve_learning.py",
    "custom_components/heatpump_optimizer/defrost.py",
    "custom_components/heatpump_optimizer/dhw_draws.py",
+   "custom_components/heatpump_optimizer/dhw_learning.py",
    "custom_components/heatpump_optimizer/dhw_schedule.py",
    "custom_components/heatpump_optimizer/diagnosis.py",
    "custom_components/heatpump_optimizer/drift.py",
@@ -200,6 +201,7 @@
    "custom_components/heatpump_optimizer/curve_learning.py",
    "custom_components/heatpump_optimizer/defrost.py",
    "custom_components/heatpump_optimizer/dhw_draws.py",
+   "custom_components/heatpump_optimizer/dhw_learning.py",
    "custom_components/heatpump_optimizer/dhw_schedule.py",
    "custom_components/heatpump_optimizer/diagnosis.py",
    "custom_components/heatpump_optimizer/drift.py",
@@ -271,6 +273,7 @@
    "custom_components/heatpump_optimizer/curve_learning.py",
    "custom_components/heatpump_optimizer/defrost.py",
    "custom_components/heatpump_optimizer/dhw_draws.py",
+   "custom_components/heatpump_optimizer/dhw_learning.py",
    "custom_components/heatpump_optimizer/dhw_schedule.py",
    "custom_components/heatpump_optimizer/diagnosis.py",
    "custom_components/heatpump_optimizer/drift.py",
@@ -373,6 +376,7 @@
    "custom_components/heatpump_optimizer/datetime.py",
    "custom_components/heatpump_optimizer/defrost.py",
    "custom_components/heatpump_optimizer/dhw_draws.py",
+   "custom_components/heatpump_optimizer/dhw_learning.py",
    "custom_components/heatpump_optimizer/dhw_schedule.py",
    "custom_components/heatpump_optimizer/diagnosis.py",
    "custom_components/heatpump_optimizer/diagnostics.py",
@@ -460,6 +464,8 @@
    "tests/hastub/homeassistant/util/dt.py",
    "tests/nightly_ha.py",
    "tests/nightly_status.py",
+   ".github/workflows/governance.yml",
+   "tests/record_status.py",
    "tests/profiles.py",
    "tests/run.sh",
    "tests/structure.py",
@@ -487,6 +493,7 @@
    "custom_components/heatpump_optimizer/datetime.py",
    "custom_components/heatpump_optimizer/defrost.py",
    "custom_components/heatpump_optimizer/dhw_draws.py",
+   "custom_components/heatpump_optimizer/dhw_learning.py",
    "custom_components/heatpump_optimizer/dhw_schedule.py",
    "custom_components/heatpump_optimizer/diagnosis.py",
    "custom_components/heatpump_optimizer/diagnostics.py",
@@ -637,6 +644,7 @@
    "custom_components/heatpump_optimizer/curve_learning.py",
    "custom_components/heatpump_optimizer/defrost.py",
    "custom_components/heatpump_optimizer/dhw_draws.py",
+   "custom_components/heatpump_optimizer/dhw_learning.py",
    "custom_components/heatpump_optimizer/dhw_schedule.py",
    "custom_components/heatpump_optimizer/diagnosis.py",
    "custom_components/heatpump_optimizer/drift.py",
@@ -738,6 +746,7 @@
    "custom_components/heatpump_optimizer/datetime.py",
    "custom_components/heatpump_optimizer/defrost.py",
    "custom_components/heatpump_optimizer/dhw_draws.py",
+   "custom_components/heatpump_optimizer/dhw_learning.py",
    "custom_components/heatpump_optimizer/dhw_schedule.py",
    "custom_components/heatpump_optimizer/diagnosis.py",
    "custom_components/heatpump_optimizer/diagnostics.py",
@@ -888,6 +897,7 @@
    "custom_components/heatpump_optimizer/curve_learning.py",
    "custom_components/heatpump_optimizer/defrost.py",
    "custom_components/heatpump_optimizer/dhw_draws.py",
+   "custom_components/heatpump_optimizer/dhw_learning.py",
    "custom_components/heatpump_optimizer/dhw_schedule.py",
    "custom_components/heatpump_optimizer/diagnosis.py",
    "custom_components/heatpump_optimizer/drift.py",
@@ -981,6 +991,7 @@
    "custom_components/heatpump_optimizer/curve_learning.py",
    "custom_components/heatpump_optimizer/defrost.py",
    "custom_components/heatpump_optimizer/dhw_draws.py",
+   "custom_components/heatpump_optimizer/dhw_learning.py",
    "custom_components/heatpump_optimizer/dhw_schedule.py",
    "custom_components/heatpump_optimizer/diagnosis.py",
    "custom_components/heatpump_optimizer/drift.py",
@@ -1045,6 +1056,7 @@
    "custom_components/heatpump_optimizer/curve_learning.py",
    "custom_components/heatpump_optimizer/defrost.py",
    "custom_components/heatpump_optimizer/dhw_draws.py",
+   "custom_components/heatpump_optimizer/dhw_learning.py",
    "custom_components/heatpump_optimizer/dhw_schedule.py",
    "custom_components/heatpump_optimizer/diagnosis.py",
    "custom_components/heatpump_optimizer/drift.py",
@@ -1138,6 +1150,7 @@
    "custom_components/heatpump_optimizer/datetime.py",
    "custom_components/heatpump_optimizer/defrost.py",
    "custom_components/heatpump_optimizer/dhw_draws.py",
+   "custom_components/heatpump_optimizer/dhw_learning.py",
    "custom_components/heatpump_optimizer/dhw_schedule.py",
    "custom_components/heatpump_optimizer/diagnosis.py",
    "custom_components/heatpump_optimizer/diagnostics.py",
@@ -1220,6 +1233,7 @@
    "custom_components/heatpump_optimizer/datetime.py",
    "custom_components/heatpump_optimizer/defrost.py",
    "custom_components/heatpump_optimizer/dhw_draws.py",
+   "custom_components/heatpump_optimizer/dhw_learning.py",
    "custom_components/heatpump_optimizer/dhw_schedule.py",
    "custom_components/heatpump_optimizer/diagnosis.py",
    "custom_components/heatpump_optimizer/diagnostics.py",
@@ -1320,6 +1334,7 @@
    "custom_components/heatpump_optimizer/datetime.py",
    "custom_components/heatpump_optimizer/defrost.py",
    "custom_components/heatpump_optimizer/dhw_draws.py",
+   "custom_components/heatpump_optimizer/dhw_learning.py",
    "custom_components/heatpump_optimizer/dhw_schedule.py",
    "custom_components/heatpump_optimizer/diagnosis.py",
    "custom_components/heatpump_optimizer/diagnostics.py",
