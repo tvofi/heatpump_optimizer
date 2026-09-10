@@ -4985,13 +4985,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch data and run optimization."""
         ctx = getattr(self, "_ctx", self)
-        # #237: the handle ``async_shutdown`` cancels.
-        self._refresh_task = asyncio.current_task()
         if self._skip_solve_once:
             # Consume the flag FIRST: no exception below may leave it
             # latched, or every later cycle would skip its solve too.
             self._skip_solve_once = False
             return await self._async_first_refresh_light()
+        # #237: the handle ``async_shutdown`` cancels; dropped in the finally
+        # below, because on the inline path it is the CALLER's task (#533).
+        self._refresh_task = asyncio.current_task()
         try:
             # Update current state from sensors
             await self._update_current_state()
@@ -5051,7 +5052,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 _LOGGER.debug("Shutdown requested mid-cycle; not actuating")
                 return self._build_data_dict()
 
-            # Apply current action to heat pump
             await self._apply_action()
 
             # T7 #61 (control stage only): translate the commanded kW into
@@ -5092,7 +5092,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             )
 
             return self._build_data_dict()
-
         except UpdateFailed:
             # #216 (D10-09): the raiser — the Tibber outage latch — already
             # logged this failure once, at the severity its state machine
@@ -5105,6 +5104,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 "Error updating Heat Pump Optimizer: %s", err, exc_info=True
             )
             raise UpdateFailed(f"Error updating data: {err}") from err
+        finally:
+            self._refresh_task = None
     async def _async_first_refresh_light(self) -> dict[str, Any]:
         """The setup-time refresh: publish something valid without solving.
 
@@ -5683,9 +5684,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
         The latch is set before anything is awaited, so every point that
         would command the pump or write a store declines from here on (#237).
-        The in-flight refresh is then cancelled, which the base class does
-        NOT do: it cancels the SCHEDULED timer and the debouncer, and a
-        refresh already running is a task somebody else owns.
+        A refresh still IN FLIGHT is then cancelled -- the base class cancels
+        the SCHEDULED timer and the debouncer, never a running one (#237).
 
         The base class's shutdown still runs (D10-06): an override that skips
         it leaks the debouncer and the timer on every unload/reload. Then our

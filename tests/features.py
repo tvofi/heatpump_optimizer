@@ -16551,6 +16551,47 @@ async def _uninterrupted_cycle() -> tuple:
     )
 
 
+async def _shutdown_after_completed_refresh(*, light: bool = False) -> dict:
+    """#533: the handle ``async_shutdown`` cancels must not outlive its refresh.
+
+    ``_async_update_data`` records ``asyncio.current_task()``, and on the
+    inline path -- ``await coordinator.async_refresh()`` -- that task is the
+    CALLER's, not one the coordinator created. Kept past the refresh, the
+    handle makes the entry's next unload cancel whatever the caller went on
+    to do. The caller here is parked on a gate the shutdown does not touch,
+    which is the shape the nightly container lane died in: its driver had
+    driven a refresh, the A5 options save reloaded the entry, and the
+    driver's own task was cancelled before it could emit its results.
+    """
+    coord = _solve_coord()
+    coord._skip_solve_once = light
+    hass = coord.hass
+    refreshed = _asyncio.Event()
+    gate = _asyncio.Event()
+    survived = []
+
+    async def caller():
+        await coord._async_update_data()
+        refreshed.set()
+        await gate.wait()
+        survived.append(True)
+
+    task = hass.async_create_task(caller())
+    await refreshed.wait()
+    handle_after_refresh = coord._refresh_task
+    await coord.async_shutdown()
+    gate.set()
+    try:
+        await task
+    except _asyncio.CancelledError:
+        pass
+    return {
+        "survived": bool(survived),
+        "cancelled": task.cancelled(),
+        "handle_kept": handle_after_refresh is not None,
+    }
+
+
 _lc_real_publish = _lc_mqtt.async_publish
 _lc_mqtt.async_publish = _mqtt_publish_recording
 try:
@@ -16561,6 +16602,8 @@ try:
     _rl_cancel = _asyncio.run(_reload_midsolve(hold_the_solve=False))
     _sa_status, _sa_result = _asyncio.run(_solve_after_shutdown())
     _uc_calls, _uc_saves = _asyncio.run(_uninterrupted_cycle())
+    _sc = _asyncio.run(_shutdown_after_completed_refresh())
+    _sc_light = _asyncio.run(_shutdown_after_completed_refresh(light=True))
 finally:
     _lc_mqtt.async_publish = _lc_real_publish
 
@@ -16584,6 +16627,23 @@ R.check(
     "base class to have done it (#237)",
     _rl_cancel["cancelled"],
     "the refresh task survived shutdown",
+)
+R.check(
+    "and a refresh that already FINISHED leaves no handle behind, so the "
+    "task that drove it survives the unload (#533)",
+    _sc["survived"] and not _sc["cancelled"] and not _sc["handle_kept"],
+    f"caller survived={_sc['survived']}, cancelled={_sc['cancelled']}, "
+    f"handle kept past the refresh={_sc['handle_kept']}",
+)
+R.check(
+    "and the setup-time light refresh -- which runs in the SETUP task and "
+    "never solves -- records no handle at all (#533)",
+    _sc_light["survived"]
+    and not _sc_light["cancelled"]
+    and not _sc_light["handle_kept"],
+    f"caller survived={_sc_light['survived']}, "
+    f"cancelled={_sc_light['cancelled']}, "
+    f"handle kept past the refresh={_sc_light['handle_kept']}",
 )
 R.check(
     "and when nothing cancels the refresh at all -- the ownership question "
