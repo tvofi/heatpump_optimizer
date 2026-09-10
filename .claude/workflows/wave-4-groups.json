@@ -6,7 +6,7 @@
     "#304 is S11's precursor (this roster's S10 / W4-G11), not Wave 5.",
     "#225 is closed (triage B1) — struck, do not reopen, do not implement.",
     "#377 was the S0/S1 child. S2–S8 and S12 had no child issue; their seats tracked #193 without closing it.",
-    "WAVE 4 IS CLOSED by W4-G14 (S13, 2026-09-10): every group is done or a recorded halt (S4 #508, S12 #637). #193 is closed by the W4-G14 pull request. Do not cut another Wave 4 branch from this roster and do not start Wave 5 from this file.",
+    "WAVE 4 IS CLOSED by W4-G14 (S13, 2026-09-10): every group is done or a recorded halt (S4 #508, S12 #637). #193 is closed by #740 (W4-G14). Do not cut another Wave 4 branch from this roster and do not start Wave 5 from this file.",
     "#412 stays last of the programme, after Wave 5 — not in this roster.",
     "#457 / 3L-G6 is not Wave 4. Do not invent a setup conflict flow.",
     "Consumed by .claude/workflows/web-fix-wave.js as its `groups` argument.",
@@ -302,8 +302,10 @@
         "W4-G13"
       ],
       "resume": {
-        "stage": "pending",
-        "note": "S13 close-out, in progress on branch claude/w4-g14-s13-closeout (owner's session, 2026-09-10). Docs/roster/#201 only. Carries Closes #193: S0-S12 are done or recorded-halted (S4 #508, S12 #637) and #377/#224/#223 are closed. The flip of this entry to done, with the squash SHA, follows in its own record pull request. Do not stamp. #195/#303/#412 are not this seat."
+        "stage": "in-review",
+        "open_pr": 740,
+        "head_sha": "7c5ec0fb2b50d2d195b209aeccb9392dad4b860f",
+        "note": "S13 close-out in review as #740 (branch claude/w4-g14-s13-closeout, owner's session, 2026-09-10). head_sha names the head at the moment this field was written; a field cannot name the commit that carries it, so read the reviewed head from the pull request. Carries Closes #193: S0-S12 done or recorded-halted (S4 #508, S12 #637) and #377/#224/#223 closed. The flip to done with the squash SHA follows in its own record pull request. Do not stamp. #195/#303/#412 are not this seat."
       },
       "brief": "S13 close-out of #193. Docs and roster only: Delivery-status, roster resume/fork, #201 comment, audit register status cells. Empty both claim files. #193 may be closed by this PR -- ONLY if S0–S12 are merged or recorded-halted and #377/#224/#223 are closed. If any implementable child remains, Leaves #193 open — record remaining work. Do not stamp (not from a wave seat; never hand-edit VERSION / RELEASE_NOTES heading). Do not implement #195, #303, or #412. Do not start Wave 5. do not re-close these: #232/#234/#400/#401/#404/#405/#408/#460/#463. Do not list #453 or #462 on a stamp. Part of #201. coordinator_loc ceiling unchanged. S8 CARRY (measured at this stage's own merge base; re-measure at yours). S8 did NOT halt: it landed the ownership relocation of the COP-health watch state, so 'S3-S8 all recorded-halted' is false and only S4 is a recorded halt. Close-out must describe S5, S6, S7 and S8 as merged extractions and S4 alone as a halt. The roster resume fields in this file were measurably STALE while S8 ran -- W4-G6 and W4-G7 still read 'pending' and W4-G8 'in-review' after their pull requests had merged -- so truth them against merged pull requests and origin/main rather than reading them as state. Do not quote cut_learning or coordinator_loc from any brief, plan row or handover: every one of them was stale by at least one stage when S8 checked, and the ratchet is judged against your own merge base. Re-measure with tests/structure.py. A closing keyword binds wherever it appears INCLUDING inside a denial, so if #193 is not to be closed, write 'leaves #193 open' and verify with 'gh pr view <n> --json closingIssuesReferences' rather than by re-reading the body. claims-for = the repo-root VERSION at your merge base, never a literal from here."
     }
