@@ -75,6 +75,15 @@ name: Tests
 #   Asserts that a PLAN CAME OUT, which is what #511 broke and what every
 #   other lane structurally could not see. Never gates a pull request.
 #
+# * nightly-status — every pull request, seconds, stdlib only. Reads the
+#   last CONCLUDED scheduled run of this workflow and goes RED if any of
+#   its jobs failed, if none concluded recently, or if it could not look.
+#   The schedule-only lanes above are `skipped` on every push and pull
+#   request and are not required contexts, so their conclusions land on a
+#   commit nobody re-reads and the next merge strands them: #533's lane
+#   was red on both arms for two nights and nothing said so. This is the
+#   telling. It is deliberately NOT a required context either.
+#
 # * closures-autofix / claims-autofix — same-repo PRs only. Merge
 #   UNDER-SCOPED recordings, or empty an inherited claim list, then
 #   retrigger Tests. Do not re-implement; see .cursor/rules/ci-autofix.mdc.
@@ -539,7 +548,22 @@ jobs:
   # Nightly and on demand, never on a pull request. It costs minutes, needs
   # Docker, and is the first lane here that can go red for a reason outside
   # this repository -- a registry outage, or a Home Assistant release
-  # changing setup behaviour. It reports loudly and blocks nothing.
+  # changing setup behaviour. It blocks nothing, and it is not one of the
+  # required contexts on the main-protect ruleset.
+  #
+  # "It reports loudly" is what this comment used to say next, and it was
+  # measured false. What it does is attach its conclusion to whatever commit
+  # was main's head when the schedule fired, as a check run beside that
+  # commit's own `nightly-ha skipped` from the push event. Nothing notifies,
+  # and the NEXT merge moves the head and strands the red on a commit no one
+  # re-reads: two consecutive nights of both matrix arms failing in `_stage`
+  # were found by a seat sent looking, not by the lane telling anyone. That is
+  # a known and accepted property -- the whole reason it is unrequired is that
+  # it can go red for the outside-this-repository reasons above, and a lane
+  # that files an issue for a registry outage is worse than a quiet one. What
+  # follows from it is that a defect reaching THIS lane is expensive to
+  # notice, so the cheap checks that keep it runnable belong in the PR gate
+  # instead: `tests/entities.py` pins the wiring of the step below.
   nightly-ha:
     if: >-
       github.event_name == 'schedule'
@@ -560,6 +584,23 @@ jobs:
         with:
           python-version: "3.13"
 
+      # The driver has a HOST half as well as a container half, and the host
+      # half imports the production package: `_seed_unique_id` calls
+      # `config_flow.entry_identity` for the seed's unique_id, and
+      # `load_committed_roster` imports every platform module for the A3
+      # roster. That import resolves `homeassistant` from tests/hastub, which
+      # imports voluptuous, and the package imports aiohttp -- so a bare
+      # `setup-python` runner dies inside `_stage`, before Docker is reached
+      # at all. It did, on both matrix arms, on two consecutive nights.
+      # The same pinned set `fast`, `slow`, `browser` and `closures` install --
+      # four of the eleven jobs here, not all of them; `typing`, `closure-scope`
+      # and the two autofix jobs run Python and install nothing, because what
+      # they run imports neither the package nor the stub. The host only stages
+      # files, so nothing about these versions reaches the container, which
+      # uses Home Assistant's own.
+      - name: Install pinned test dependencies
+        run: pip install -r tests/requirements-ci.txt
+
       # Its own step so a registry failure is an unmistakable red here,
       # rather than a timeout somewhere inside the lane.
       - name: Pull the Home Assistant image
@@ -569,6 +610,68 @@ jobs:
         run: |
           python tests/nightly_ha.py \
             --image "homeassistant/home-assistant:${{ matrix.image }}"
+
+  # The telling. `nightly-ha` and `slow` run on `schedule` alone, are `skipped`
+  # on every push and pull request, and are not required contexts -- so a
+  # scheduled run's conclusion attaches to whatever commit was main's head when
+  # the cron fired, beside that same commit's own `skipped` from the push, and
+  # the next merge moves the head and strands it. Nothing notifies. Both
+  # `nightly-ha` arms failed on the 2026-09-09 and 2026-09-10 schedules and a
+  # seat sent looking found it two nights later (#533).
+  #
+  # It is its own RED CHECK and not a warning printed inside one of the green
+  # jobs above, deliberately. `.cursor/rules/ci-autofix.mdc` says read the
+  # summary line and not the tick, and `.cursor/rules/brief-citations.mdc`
+  # names `FIXTURE ok: N error(s)` as the shape "designed to print beside a
+  # clean exit, which is exactly the shape that lets a real error be waved
+  # through". A warning inside a passing job IS that shape, and the defect
+  # being fixed is that nobody looked.
+  #
+  # It must NOT be added to the required contexts on `main-protect`. The
+  # property that makes `nightly-ha` unrequired is real -- a registry outage or
+  # a Home Assistant release can redden it, and neither is a reason to refuse
+  # an unrelated merge -- and requiring this would transfer that to every pull
+  # request in the repository. The report itself says so on every run.
+  #
+  # Pull requests only, not pushes to main: a lane that can go red for reasons
+  # outside this repository must not be able to turn `main` red, which is the
+  # signal the forced-full gate above exists to keep meaningful.
+  nightly-status:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # Actions metadata -- which runs exist and how they concluded -- is not
+    # repository content, and the workflow's `contents: read` floor cannot see
+    # it. This is a widening of that floor and is written down as one. It is
+    # read-only, and it is far narrower than the `issues: write` the auto-filing
+    # countermeasure would have needed, which is why that one was rejected and
+    # this one is not. Declared at JOB level: a job-level `permissions:` block
+    # REPLACES the workflow default for this job alone and is inherited by no
+    # other job, so every other job in this file still runs on `contents: read`.
+    # `tests/entities.py` pins the whole set of jobs that override the floor --
+    # this one and the two autofix jobs, which push a commit and retrigger this
+    # workflow and so carry `contents: write` and `actions: write` -- and that
+    # this one's block carries no `write` at all. A fourth override then has to
+    # be argued for rather than land.
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      # No `pip install` step, unlike the jobs that install
+      # `tests/requirements-ci.txt`: the reporter is stdlib-only on purpose. A
+      # check whose job is to notice that a lane went dark must not be
+      # breakable by the same dependency set that darkened it -- which is
+      # exactly how #533's lane went dark -- and it costs seconds this way.
+      - name: Report the last scheduled run's conclusion
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python tests/nightly_status.py
 
   # The closures the scoped PR gate trusts, re-derived from real runs and
   # compared against what is committed. A closure that MISSES a file a run
