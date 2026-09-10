@@ -464,6 +464,8 @@
    "tests/hastub/homeassistant/util/dt.py",
    "tests/nightly_ha.py",
    "tests/nightly_status.py",
+   ".github/workflows/governance.yml",
+   "tests/record_status.py",
    "tests/profiles.py",
    "tests/run.sh",
    "tests/structure.py",
