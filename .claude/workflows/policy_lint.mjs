@@ -1334,6 +1334,77 @@ function mergedPRs(subjects) {
   return rows
 }
 
+// First-parent commits in the record window. `--first-parent` is load-bearing
+// on a history that is not squash-only: a merge commit's second parent is
+// another pull request's branch, and asking the API for that SHA would
+// double-count. Squash-only `main` is the same set either way.
+function firstParentCommits(since) {
+  const out = git(
+    ['log', '--first-parent', '--format=%H%x09%s', `${since}..${mainRef()}`],
+    { allowFail: true },
+  )
+  if (!out) return []
+  const rows = []
+  for (const line of out.split('\n')) {
+    if (!line) continue
+    const tab = line.indexOf('\t')
+    if (tab < 0) continue
+    rows.push({ sha: line.slice(0, tab), subject: line.slice(tab + 1) })
+  }
+  return rows
+}
+
+// THE ENUMERATOR. Pure over its two inputs so the acceptance can drive the
+// two shapes #677 named — a suffix-less subject, and a suffix that names an
+// issue — without a network. `pullsBySha` present is API mode: the number
+// comes from the commit-to-PR map, and a commit with no entry is a stamp
+// (or any other first-parent that is not a pull request) and is skipped.
+// `pullsBySha` null is the offline fallback: the trailing `(#N)` of the
+// subject, the function `mergedPRs` already is. The two modes must print
+// different words. A reader who cannot tell them apart is the same defect
+// as `MODE: SCOPED` against `MODE: FULL`.
+function enumerateMerges(commits, pullsBySha) {
+  const mode = pullsBySha ? 'api' : 'subject'
+  const seen = new Set()
+  const prs = []
+  for (const { sha, subject } of commits) {
+    let pr = null
+    if (pullsBySha) {
+      const raw = pullsBySha.get(sha)
+      if (raw == null || raw === '') continue
+      pr = String(raw)
+    } else {
+      const m = String(subject).match(MERGE_SUBJECT_RE)
+      if (!m) continue
+      pr = m[1]
+    }
+    if (seen.has(pr)) continue
+    seen.add(pr)
+    prs.push({ pr, subject, sha })
+  }
+  return { mode, prs }
+}
+
+function fetchPullsBySha(commits) {
+  const slug = repoSlug()
+  if (!slug) return { ok: false, why: 'no github remote on origin' }
+  const map = new Map()
+  for (const { sha } of commits) {
+    const res = ghGet(`/repos/${slug}/commits/${sha}/pulls`)
+    if (!res.ok) return { ok: false, why: res.why }
+    const rows = Array.isArray(res.data) ? res.data : []
+    if (rows.length) map.set(sha, rows[0].number)
+  }
+  return { ok: true, map }
+}
+
+function mergedPRsFromWindow(since) {
+  const commits = firstParentCommits(since)
+  const fetched = fetchPullsBySha(commits)
+  if (fetched.ok) return { ...enumerateMerges(commits, fetched.map), why: null }
+  return { ...enumerateMerges(commits, null), why: fetched.why }
+}
+
 // The record's SEARCH REGION, and the reason it is not the whole file.
 //
 // `#<pr>` tested against the whole plan plus the handover is satisfied by
@@ -2278,6 +2349,41 @@ function assertAcceptance(derived) {
   if (checkRecord([{ pr: '9104', subject: 's' }], regSub.region).length !== 0) regFail.push('a third-level heading inside the section closed the region')
   if (regFail.length) {
     console.log(`\nFIXTURE VACUOUS: recordRegion ${JSON.stringify(regFail)}. The record's region is what makes a mention a disposition; unpinned, it can be widened back to the whole file with every other count unchanged.`)
+    return 1
+  }
+
+  // #677. The enumerator is the API's pull-request number, not the subject's
+  // trailing `(#N)`. Two shapes, both silent in the shipped regex: a
+  // suffix-less subject, and a suffix that names an issue. The subject-mode
+  // fallback must still exhibit both defects and must still say it is the
+  // fallback — that is how a reader tells the two modes apart.
+  pins += 8
+  const enumFail = []
+  const enumCommits = [
+    { sha: 'a'.repeat(40), subject: 'typing: snapshots.py annotations' },
+    { sha: 'b'.repeat(40), subject: 'feat: something (#587)' },
+    { sha: 'c'.repeat(40), subject: 'v6.3.19: stamp Seven leftover product features' },
+    { sha: 'd'.repeat(40), subject: 'fix: the shipped catalog said eleven (#710)' },
+  ]
+  const enumApi = new Map([
+    [enumCommits[0].sha, 656],
+    [enumCommits[1].sha, 655],
+    [enumCommits[3].sha, 710],
+  ])
+  const apiEnum = enumerateMerges(enumCommits, enumApi)
+  if (apiEnum.mode !== 'api') enumFail.push('api mode not reported')
+  if (!apiEnum.prs.some((p) => p.pr === '656')) enumFail.push('suffix-less subject invisible under api')
+  if (apiEnum.prs.some((p) => p.pr === '587')) enumFail.push('issue suffix collected under api')
+  if (!apiEnum.prs.some((p) => p.pr === '655')) enumFail.push('real PR for the issue-suffix subject missing under api')
+  if (apiEnum.prs.some((p) => p.sha === enumCommits[2].sha)) enumFail.push('a stamp collected under api')
+  if (!apiEnum.prs.some((p) => p.pr === '710')) enumFail.push('healthy suffix dropped under api')
+  const subEnum = enumerateMerges(enumCommits, null)
+  if (subEnum.mode !== 'subject') enumFail.push('subject mode not reported')
+  if (subEnum.prs.some((p) => p.pr === '656')) enumFail.push('suffix-less collected under subject fallback')
+  if (!subEnum.prs.some((p) => p.pr === '587')) enumFail.push('issue-suffix phantom not produced by subject fallback')
+  if (subEnum.prs.some((p) => p.pr === '655')) enumFail.push('subject fallback invented the API number')
+  if (enumFail.length) {
+    console.log(`\nFIXTURE VACUOUS: enumerateMerges ${JSON.stringify(enumFail)}. The record's window is the API's pull-request set; unpinned, a suffix-less squash is invisible and a title ending in an issue number is demanded.`)
     return 1
   }
 
@@ -3231,7 +3337,9 @@ function requireSince(since, mode) {
 }
 
 function cmdRecordDispositions(since) {
-  const prs = mergedPRs(mergedSubjects(since))
+  const enumerated = mergedPRsFromWindow(since)
+  const prs = enumerated.prs
+  console.log(`RECORD_ENUM: ${enumerated.mode}${enumerated.why ? ` (${enumerated.why})` : ''}`)
   const { region, sectionFound } = recordRegion(read(DISPOSITION_FILES[0]) ?? '', read(DISPOSITION_FILES[1]) ?? '')
   const all = sectionFound
     ? checkRecord(prs, region)
@@ -3264,7 +3372,7 @@ function cmdRecordDispositions(since) {
 }
 
 function cmdStats(since) {
-  const prs = mergedPRs(mergedSubjects(since))
+  const prs = mergedPRsFromWindow(since).prs
   const classes = verdictClasses()
   if (!classes) {
     console.log(`STATS: could not read the verdict grammar from ${WAVE_SCRIPT}; classifying nothing rather than against a list typed here.`)
@@ -3289,7 +3397,7 @@ function cmdStats(since) {
 }
 
 function cmdSunset(since) {
-  const prs = mergedPRs(mergedSubjects(since))
+  const prs = mergedPRsFromWindow(since).prs
   const classes = verdictClasses()
   const { fetched, fetchError } = fetchWindow(prs)
   const friction = fetchError || !classes ? null : statsHistogram(prs, fetched, classes).friction
@@ -3348,7 +3456,7 @@ function main() {
   if (has('--record-known-bad')) {
     // A reseed may also re-measure the record class, but only when it was given
     // a window: `--record-known-bad --since <ref>`.
-    if (since) findings.push(...checkRecord(mergedPRs(mergedSubjects(since)), recordRegion(read(DISPOSITION_FILES[0]) ?? '', read(DISPOSITION_FILES[1]) ?? '').region))
+    if (since) findings.push(...checkRecord(mergedPRsFromWindow(since).prs, recordRegion(read(DISPOSITION_FILES[0]) ?? '', read(DISPOSITION_FILES[1]) ?? '').region))
     return cmdRecord(findings, { measuredRecord: !!since }), process.exit(0)
   }
 
