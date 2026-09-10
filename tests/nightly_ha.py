@@ -943,12 +943,19 @@ def check_a5_byte_unchanged(checks: Checks, before: dict, after: dict) -> None:
     if before_bytes == after_bytes:
         checks.check("a5:byte_unchanged", True, f"{len(before_bytes)}B identical")
         return
-    added, changed, dropped = _effective_diff(
-        stored_effective(before, {}), stored_effective(after, {})
-    )
+    before_map = stored_effective(before, {})
+    after_map = stored_effective(after, {})
+    added, changed, dropped = _effective_diff(before_map, after_map)
+    # A changed key carries its two values: `peak_tariff_window_minutes` moved
+    # on the lane's first named run and the name alone does not say whether a
+    # number became a string, which is the difference between a save that
+    # re-typed a value and one that re-priced it.
+    moved = [
+        f"{key}: {before_map[key]!r}->{after_map[key]!r}" for key in changed[:4]
+    ]
     detail = (
         f"stored bytes moved: before={len(before_bytes)}B after={len(after_bytes)}B; "
-        f"added={added[:8]} changed={changed[:8]} dropped={dropped[:8]}"
+        f"added={added[:8]} changed={moved} dropped={dropped[:8]}"
     )
     checks.check("a5:byte_unchanged", False, detail)
 

@@ -10171,7 +10171,7 @@ R.check(
     "a5:byte_unchanged names the keys that moved, in all three directions",
     "a5:byte_unchanged" in _a5_named.failures()
     and "added=['fresh']" in _a5_named_detail
-    and "changed=['moved']" in _a5_named_detail
+    and "changed=[\"moved: 'before'->'after'\"]" in _a5_named_detail
     and "dropped=['gone']" in _a5_named_detail,
     f"detail={_a5_named_detail!r}",
 )
