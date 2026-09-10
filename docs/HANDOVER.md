@@ -1,6 +1,6 @@
 # Handover — the open-issues programme
 
-updated-for: c08528b
+updated-for: 6a6a5e5
 
 The rule that governs this file is `.claude/rules/writing-for-agents.md`, which
 the harness loads on this very path. Delivery status is
@@ -92,8 +92,7 @@ the harness loads on this very path. Delivery status is
 of record. This file deliberately does **not** restate them — it once claimed a
 "full accounting" it did not hold, which cost a session the conclusion that the
 list was unrecoverable when it was one artifact call away. Per-unit stage,
-`after` edges and carried findings are in `.claude/workflows/wave-ux-groups.json`
-(#601), the only one a linter reads.
+`after` edges and carried findings are in `.claude/workflows/wave-ux-groups.json` (#601).
 
 ## Corrections to the record
 
@@ -346,8 +345,11 @@ in its own pull request.
     `tools/audit/worktree_gc.sh --apply` removes a detached, clean worktree over
     an hour old that is not an open pull request's head. A fix-review seat is
     protected by that last criterion; a root-cause or audit seat detached at
-    `main` is not. Criterion 2 keeps anything not clean, untracked included, so
-    an untracked marker file is the claim mechanism that already exists.
+    `main` is not. **Claim it with `git worktree lock`**: `classify()` keeps
+    `locked` before all four criteria, as it does `main`, `current` and
+    `missing`, none of which its header names — but no `--self-test` case pins
+    that. **Not an untracked marker at the root**: criterion 2 keeps it, and
+    `closure.py select` then turns `MODE: SCOPED` into `MODE: FULL` naming it.
 
 ## Owed — post-hoc reviews
 
