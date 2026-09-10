@@ -1,6 +1,6 @@
 # Handover — the open-issues programme
 
-updated-for: 0f0cfb8
+updated-for: 83b1645
 
 The rule that governs this file is `.claude/rules/writing-for-agents.md`, which
 the harness loads on this very path. Delivery status is
@@ -21,19 +21,16 @@ the harness loads on this very path. Delivery status is
   a count: `git log --first-parent --format='%(trailers:key=Co-Authored-By,valueonly)'`
   for the sessions, and the `fixerModel` / `reviewerModel` keys of the rosters for
   the routing.
-- **The decomposition stage criterion (Wave 4, S3–S8).** A stage proceeds if it
-  can reduce its own cut by inside-extraction **or** reduce `coordinator_loc`
-  with nothing rising, and it records which. It halts when neither exists, and
-  every halt records the cut's decomposition — owned versus read-by-others — so
-  S12 inherits a measured brief rather than a fresh survey.
-- **A seam move was sequenced to S12, and S12 halted (#637).** No stage created
-  an API to move to, so the S0/S1 facades stay and, with Wave 4 closed, no stage
-  owes a seam move; a later programme starts from a new judge measurement. The
-  judge's #193 measurement still stands: no component of size greater than one
-  detaches at any k. Never write "forbidden" without that number behind it.
-- **`_helper(self, ...)` is refused** — it erases moved references at zero cost,
-  which is a measurement artefact rather than a decomposition. A
-  supplied-literal check pins nothing; that was proven with a null control.
+- **The decomposition stage criterion (Wave 4, S3–S8):** proceed only by cutting
+  the stage's own cut by inside-extraction or `coordinator_loc` with nothing
+  rising; halt otherwise, recording the cut's owned-versus-read-by-others split.
+- **A seam move was sequenced to S12, S12 halted (#637); W5-G9/W5-G10 own it now**
+  (owner, 2026-09-10): the dhw profile learner first, the only candidate a
+  `seam_metrics` simulation lowers on every budget row; the legionella guard after
+  R1 swaps `cross_seam_fraction` for the absolute cross-edge count, since a cohesive
+  extraction removes more intra- than cross-seam edges and a ratio cannot see that.
+- **`_helper(self, ...)` is refused** — it erases moved references at zero cost, a
+  measurement artefact, not a decomposition; a supplied-literal check pins nothing.
 - **A ratchet raise may be proposed, never worked around** (owner, 2026-09-06).
   The order — pay, re-record with the reason, then ask — is `CLAUDE.md` rule 2's.
 - **Never re-gate an unchanged head.** A terminal CI result at that head *is*
