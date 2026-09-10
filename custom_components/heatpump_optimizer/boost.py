@@ -88,7 +88,7 @@ class BoostState:
 _STATES: WeakKeyDictionary[Any, BoostState] = WeakKeyDictionary()
 
 
-def state(coord: Any) -> BoostState:
+def held_for(coord: Any) -> BoostState:
     """In-memory boost state for this coordinator, created on first use."""
     held = _STATES.get(coord)
     if held is None:
@@ -124,7 +124,7 @@ def overlay(
 def apply(coord: _BoostCoord) -> None:
     """Expire, then overlay the live action the cycle is about to write."""
     now = dt_util.now()
-    held = state(coord)
+    held = held_for(coord)
     held.expire(now)
     action = coord._current_action
     if not action:
@@ -164,7 +164,7 @@ async def persist(coord: _BoostCoord) -> None:
         await _store(coord).async_save(
             {
                 channel: {"until": end.isoformat()}
-                for channel, end in state(coord).until.items()
+                for channel, end in held_for(coord).until.items()
             }
         )
     except Exception as err:  # noqa: BLE001
@@ -180,7 +180,7 @@ async def restore(coord: Any) -> None:
     if not isinstance(raw, dict):
         return
     now = dt_util.now()
-    held = state(coord)
+    held = held_for(coord)
     for channel in CHANNELS:
         payload = raw.get(channel)
         if not isinstance(payload, Mapping):
@@ -197,7 +197,7 @@ async def restore_session(coord: Any) -> None:
 
 
 async def set_channel(coord: Any, channel: str, active: bool) -> None:
-    state(coord).set(channel, active, dt_util.now())
+    held_for(coord).set(channel, active, dt_util.now())
     recorder = getattr(coord, "boost_calls", None)
     if recorder is not None:
         recorder.append({"channel": channel, "active": active})

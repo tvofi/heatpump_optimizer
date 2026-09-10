@@ -138,7 +138,7 @@ class BoostDhwSwitch(HeatPumpOptimizerEntity, SwitchEntity):
 
     @property
     def is_on(self) -> bool:
-        return boost.state(self.coordinator).active("dhw", dt_util.now())
+        return boost.held_for(self.coordinator).active("dhw", dt_util.now())
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         await boost.set_channel(self.coordinator, "dhw", True)
@@ -164,7 +164,7 @@ class BoostSpaceSwitch(HeatPumpOptimizerEntity, SwitchEntity):
 
     @property
     def is_on(self) -> bool:
-        return boost.state(self.coordinator).active("space", dt_util.now())
+        return boost.held_for(self.coordinator).active("space", dt_util.now())
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         await boost.set_channel(self.coordinator, "space", True)
