@@ -366,6 +366,11 @@ const STRINGS = {
       "Press Assign again to confirm.",
     "setup.assigned_reloading": "Assigned {entity}. Reloading…",
     "setup.cleared_reloading": "Cleared. Reloading…",
+    "setup.manual_setpoint": "Manual setpoint (°C)",
+    "setup.manual_setpoint_aria": "Manual valve setpoint in degrees Celsius",
+    "setup.manual_setpoint_hint":
+      "Used when no target sensor is assigned. 0 uses the comfort-band top.",
+    "setup.setpoint_reloading": "Setpoint {n} °C. Reloading…",
 
     // errors and diagnostics
     "errors.not_connected": "Not connected to Home Assistant.",
@@ -766,6 +771,11 @@ const STRINGS = {
       "Tryck Tilldela igen för att bekräfta.",
     "setup.assigned_reloading": "Tilldelade {entity}. Laddar om…",
     "setup.cleared_reloading": "Rensat. Laddar om…",
+    "setup.manual_setpoint": "Manuellt börvärde (°C)",
+    "setup.manual_setpoint_aria": "Manuellt ventilbörvärde i grader Celsius",
+    "setup.manual_setpoint_hint":
+      "Används när ingen målgivare är vald. 0 använder toppen av komfortintervallet.",
+    "setup.setpoint_reloading": "Börvärde {n} °C. Laddar om…",
 
     "errors.not_connected": "Inte ansluten till Home Assistant.",
     "errors.invalid_window_time":
@@ -8042,13 +8052,29 @@ class SetupPage {
           )}" />
         <select class="sp-select" size="8" aria-label="${esc(
           L("setup.picker_aria", { slot: slot.label })
-        )}">${model.options}</select>
+        )}">${model.options}</select>${this.setpointHtml(key, slot)}
         <div class="sp-actions">
           <button type="button" class="sp-save">${esc(L("setup.assign"))}</button>
           <button type="button" class="sp-cancel">${esc(L("setup.cancel"))}</button>
         </div>
         <div class="sp-note">${esc(model.note)}</div>
       </div>`;
+  }
+
+  /** Number field for a dumb mixing valve. Empty string on every other slot
+   * so the picker markup for those slots stays byte-identical. */
+  setpointHtml(key, slot) {
+    if (key !== "mixing_valve_target_entity") return "";
+    return `
+        <label class="sp-note">${esc(L("setup.manual_setpoint"))}
+          <input class="sp-filter sp-setpoint" type="number" min="0" max="30"
+            step="0.5"
+            value="${esc(String(
+              slot.manual_setpoint == null ? 0 : slot.manual_setpoint
+            ))}"
+            aria-label="${esc(L("setup.manual_setpoint_aria"))}" />
+        </label>
+        <div class="sp-note">${esc(L("setup.manual_setpoint_hint"))}</div>`;
   }
 
   /** The picker's option list and its footnote, for one slot.
@@ -8494,10 +8520,16 @@ class SetupPage {
         }
         this.cancelPendingClear();
         try {
+          const payload = { key, entity_id: entityId };
+          if (key === "mixing_valve_target_entity") {
+            const box = picker.querySelector(".sp-setpoint");
+            const n = box ? Number(box.value) : NaN;
+            if (Number.isFinite(n)) payload.manual_setpoint = n;
+          }
           await this.host.hass.callService(
             "heatpump_optimizer",
             "assign_entity",
-            { key, entity_id: entityId }
+            payload
           );
           this.closePicker();
           // The write reloads the integration, so the topology the card is
@@ -8505,7 +8537,9 @@ class SetupPage {
           // than leaving a diagram that has not caught up yet looking wrong.
           this.note = entityId
             ? L("setup.assigned_reloading", { entity: entityId })
-            : L("setup.cleared_reloading");
+            : payload.manual_setpoint !== undefined
+              ? L("setup.setpoint_reloading", { n: payload.manual_setpoint })
+              : L("setup.cleared_reloading");
         } catch (err) {
           this.note = L("errors.could_not_assign", {
             err: (err && err.message) || err,
