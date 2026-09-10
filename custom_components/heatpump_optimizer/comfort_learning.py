@@ -27,6 +27,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime
+from typing import Any
 
 import numpy as np
 
@@ -88,7 +89,7 @@ class ComfortLearner:
     evidence: float = 0.0
     overrides: int = 0
     last_update: datetime | None = None
-    history: list[dict] = field(default_factory=list)
+    history: list[dict[str, Any]] = field(default_factory=list)
 
     # -- evidence -----------------------------------------------------------
 
@@ -185,7 +186,7 @@ class ComfortLearner:
             np.clip(self.learned_weight, COMFORT_WEIGHT_MIN, COMFORT_WEIGHT_MAX)
         )
 
-    def summary(self) -> dict:
+    def summary(self) -> dict[str, Any]:
         return {
             "configured": round(self.configured_weight, 2),
             "learned": round(self.learned_weight, 2),
@@ -194,7 +195,7 @@ class ComfortLearner:
             "recent_overrides": self.history[-10:],
         }
 
-    def as_dict(self) -> dict:
+    def as_dict(self) -> dict[str, Any]:
         return {
             "configured_weight": self.configured_weight,
             "learned_weight": self.learned_weight,
@@ -207,17 +208,36 @@ class ComfortLearner:
         }
 
     @classmethod
-    def from_dict(cls, data: dict | None, configured_weight: float) -> "ComfortLearner":
+    def from_dict(
+        cls, data: dict[str, Any] | None, configured_weight: float
+    ) -> "ComfortLearner":
         learner = cls(
             configured_weight=configured_weight, learned_weight=configured_weight
         )
         if not isinstance(data, dict):
             return learner
-        stored_configured = data.get("configured_weight")
-        try:
-            stored_configured = float(stored_configured)
-        except (TypeError, ValueError, OverflowError):
-            stored_configured = None
+        raw_configured = data.get("configured_weight")
+        stored_configured: float | None = None
+        # Narrowing first is not the same function as converting and catching:
+        # the two differ on EVERY object `float()` accepts that is not an
+        # int/float/str -- buffer types, `Decimal`, `Fraction`, anything with
+        # `__float__`, and every numpy scalar bar `np.float64`, which survives
+        # only by subclassing `float` (`np.int32` does not subclass `int`).
+        # That set is a rule, not a list; do not try to enumerate it.
+        # Neither caller reaches it, for two different reasons. The stored one
+        # comes back through `json.loads`, whose value domain is
+        # dict/list/str/int/float/bool/None, and over that domain the two agree
+        # member for member. The snapshot one hands `as_dict()` straight back
+        # with no JSON round trip, and is covered instead by
+        # `configured_weight` only ever being written from `_as_float` -- a
+        # plain `float`. So the precondition that would make these two forms
+        # diverge is a numpy scalar reaching that FIELD, not an in-memory
+        # caller: that caller already exists and is fine.
+        if isinstance(raw_configured, (int, float, str)):
+            try:
+                stored_configured = float(raw_configured)
+            except (TypeError, ValueError, OverflowError):
+                stored_configured = None
         # If the user has since changed the configured weight, everything
         # learned against the old one is about a different question.
         if stored_configured is None or abs(stored_configured - configured_weight) > 1e-6:

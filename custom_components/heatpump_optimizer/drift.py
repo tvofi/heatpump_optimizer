@@ -18,6 +18,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from typing import Any
 
 import numpy as np
 
@@ -117,7 +118,7 @@ class Cusum:
         self.evidence.append(f"{when.isoformat(timespec='seconds')}: {text}")
         del self.evidence[:-6]
 
-    def as_dict(self) -> dict:
+    def as_dict(self) -> dict[str, Any]:
         return {
             "stat": round(self.stat, 4),
             "tripped": self.tripped,
@@ -127,7 +128,7 @@ class Cusum:
             ),
         }
 
-    def load(self, data: dict | None) -> None:
+    def load(self, data: dict[str, Any] | None) -> None:
         """Restore state; thresholds stay code-owned, never persisted."""
         if not isinstance(data, dict):
             return
