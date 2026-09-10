@@ -1,6 +1,6 @@
 # Handover — the open-issues programme
 
-updated-for: 6a6a5e5
+updated-for: 6250ea9
 
 The rule that governs this file is `.claude/rules/writing-for-agents.md`, which
 the harness loads on this very path. Delivery status is
@@ -346,7 +346,7 @@ in its own pull request.
     an hour old that is not an open pull request's head. A fix-review seat is
     protected by that last criterion; a root-cause or audit seat detached at
     `main` is not. **Claim it with `git worktree lock`**: `classify()` keeps
-    `locked` before all four criteria, as it does `main`, `current` and
+    `locked` ahead of every criterion, as it does `main`, `current` and
     `missing`, none of which its header names — but no `--self-test` case pins
     that. **Not an untracked marker at the root**: criterion 2 keeps it, and
     `closure.py select` then turns `MODE: SCOPED` into `MODE: FULL` naming it.
