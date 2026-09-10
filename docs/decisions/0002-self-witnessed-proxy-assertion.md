@@ -76,23 +76,34 @@ mutation the author chooses is part of the model under test.
 `cost(countermeasure, recurring) < cost(defect) x P(recurrence)`, wall-clock per
 occurrence.
 
-    standing cost   1.3s per governance run, 1.3s per prepr.sh run, measured
-                    five times (1.24, 1.32, 1.36, 1.38, 1.40 s) against 1.93,
-                    1.95, 2.05 s for the lint pass beside it. The lane runs the
-                    acceptance once per check and never the corpus, so it stays
-                    cheaper than that pass -- but it scales with the number of
-                    checks, and this number is four times an earlier one
-                    recorded here (342, 345, 366 ms) because the enumeration has
-                    grown from four checks to seven and the acceptance from 43
-                    pins to 54. The #616 review re-derived it and refused the
-                    old figure. Re-measure it rather than carrying it: that is
-                    what `brief-citations.md` says about every literal metric,
-                    and this file broke that rule about its own subject.
-    maintenance     0. The enumeration is read from production's own
-                    CORPUS_CHECK_NAMES, so a check added later is mutated by
-                    this lane on the pull request that adds it, with no edit
-                    here. A second copy of that list would be this same defect
-                    one level up.
+    standing cost   ONE ACCEPTANCE PER MUTATION, and the mutation count is the
+                    two enumerations added together. That rule is what to carry;
+                    the seconds are not. Re-derive them with `time node
+                    .claude/workflows/policy_lint_mutants.mjs` beside `time node
+                    .claude/workflows/policy_lint.mjs`, on your own box, before
+                    quoting a figure anywhere. #683 added the record mode's four
+                    mutations to the corpus's seven and re-measured both ends
+                    interleaved, five runs each, on one box that was running
+                    three other seats at the time: median 4.69 s at the merge
+                    base against 7.25 s with the record lane, and 6.95 s for the
+                    lint pass beside it. 1.55x, against the 1.57x the
+                    enumeration itself grew by -- so the cost is linear in the
+                    enumeration and in nothing else, which is the part worth
+                    keeping. The absolute figures are not: that box was loaded,
+                    and the 1.3 s recorded here before it (1.24, 1.32, 1.36,
+                    1.38, 1.40 s, against 1.93, 1.95, 2.05 s for the lint pass)
+                    was a different machine on a different day, as was the 342,
+                    345, 366 ms before that. The #616 review re-derived this
+                    line and refused the figure it found; #683 re-derived it
+                    again. Re-measure rather than carry -- what
+                    `brief-citations.md` says about every literal metric, and
+                    what this file has now got wrong about its own subject
+                    twice.
+    maintenance     0. BOTH enumerations are read from production --
+                    CORPUS_CHECK_NAMES, and LOOP_CHECK_NAMES since #683 -- so a
+                    check added to either is mutated by this lane on the pull
+                    request that adds it, with no edit here. A second copy of
+                    either list would be this same defect one level up.
     cost(defect)    one adversarial review round each, seven times in two days.
                     The branch that produced four of them ran seven rounds.
     P(recurrence)   measured, not estimated: 7 in 2 days, and the corpus check
@@ -103,7 +114,11 @@ occurrence.
 
 Build `.claude/workflows/policy_lint_mutants.mjs`: for each name in production's
 `CORPUS_CHECK_NAMES`, empty that function's return, run the REAL acceptance, and
-demand a refusal. The mutation is not the author's choice — it is the same
+demand a refusal. #683 added a second enumeration on the same terms --
+`LOOP_CHECK_NAMES`, the record mode's checks -- and with it one arm that is not
+an emptied return: `CAP_RES`, the regex list the `caps` rule scans, because a
+rule whose pattern list is empty reports nothing while the check around it still
+runs. The mutation is not the author's choice — it is the same
 mutation for every check, and it is the one every instance above turned out to
 survive.
 
@@ -121,6 +136,13 @@ where the acceptance is already red, every mutant is "detected" for free.
 Its granularity is the wired entry point, so it covers a check that reports
 nothing. Emptying `coverageOverTree` subsumes emptying `checkCoverage`, because
 a wrapper returns what its implementation returns — delegation is covered.
+
+One arm is finer than that, and it is an exception rather than a widening:
+`CAP_RES` is a data structure inside `checkCounts`, mutated because the `caps`
+rule reaches it through a table and an empty pattern list is silent while the
+check around it still runs. This is not a general sub-function facility, and
+`assertAcceptance`'s `capClasses` loop is still what covers a comparison inside
+a check.
 
 Three of the seven are outside it and keep the witnesses that were built for
 them: `90d7779` is a production binding's default rather than a check;

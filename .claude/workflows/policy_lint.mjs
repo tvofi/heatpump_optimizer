@@ -322,6 +322,44 @@ function uncoveredPolicyFiles(files = null) {
 // covered by definition. Hence the name, and hence asserting names.
 const CORPUS_CHECK_NAMES = ['checkIndex', 'checkDuplicates', 'checkBudgets', 'coverageOverTree', 'namedDocsOverTree', 'orphanCapsOverTree', 'checkProvenance']
 
+// THE RECORD MODE'S CHECKS, enumerated HERE beside the corpus list rather than
+// in the mutation lane, for the reason the corpus list gives about itself: a
+// second copy is the same defect one level up, and a regex over this file's
+// source re-derives the enumeration from spelling.
+//
+// `cmdRecordDispositions` prints three lines -- `RECORD:`, `TABLES:` and
+// `CAPS:` -- and each is driven inside `assertAcceptance` against a fixture
+// under fixtures/policy-loop/, so a check emptied outright is already refused
+// THERE. That is not the question this list is for. The corpus lane's whole
+// argument is that an acceptance cannot derive its own drive loop, and the
+// argument does not weaken one mode over: nothing established that the drive
+// which is supposed to catch an emptied `checkTableSplit` is the drive that
+// runs. #683.
+//
+// An entry carries its FILE and its mutation KIND, because two of the four are
+// not functions in this module:
+//
+//   - `checkCounts` and the regex list its `caps` rule scans both live in
+//     counts.mjs, so mutating them means mutating that file and pointing this
+//     one's import at the copy.
+//   - `CAP_RES` is not a function at all, and emptying it is a DIFFERENT
+//     mutation from emptying the check: `checkCounts` still runs, still walks
+//     COUNT_RULES, and the `caps` rule simply scans every line with no regex.
+//     Silent, and on a corpus that states no cap it is indistinguishable from
+//     a correct run -- which is the shape decisions/0002 is about.
+//
+// WHAT THIS DOES NOT COVER, on the same terms as the corpus list above: it is a
+// list, not a registry, so a check the record mode grows and nobody adds here
+// is mutated by nothing and this file cannot tell. The converse IS covered, and
+// by the lane rather than by an assertion here: an entry the record mode has
+// stopped driving survives its own emptying and is reported `ACCEPTED`.
+const LOOP_CHECK_NAMES = [
+  { name: 'checkRecord', file: 'policy_lint.mjs', kind: 'return' },
+  { name: 'checkTableSplit', file: 'policy_lint.mjs', kind: 'return' },
+  { name: 'checkCounts', file: 'counts.mjs', kind: 'return' },
+  { name: 'CAP_RES', file: 'counts.mjs', kind: 'array' },
+]
+
 // WHAT THIS PIN DOES NOT COVER, stated rather than implied. It compares the
 // wired list against the names above, so it catches a registered check that is
 // mis-wired -- removed, duplicated, replaced by a no-op or by an unwrapped
@@ -3338,14 +3376,15 @@ function main() {
   process.exit(errors > 0 || rc ? 1 : 0)
 }
 
-// Exported for `policy_lint_mutants.mjs`, which empties one corpus check at a
-// time and demands this acceptance go red. The mutation lane must learn WHICH
-// checks exist from production rather than from a list of its own: a second
-// copy of the enumeration is the same defect one level up, and a regex over
-// this file's source would re-derive it from spelling. `CORPUS_CHECK_NAMES` is
-// the one enumeration, `assertAcceptance` is the thing under test, and
+// Exported for `policy_lint_mutants.mjs`, which empties one check at a time and
+// demands this acceptance go red. The mutation lane must learn WHICH checks
+// exist from production rather than from a list of its own: a second copy of
+// either enumeration is the same defect one level up, and a regex over this
+// file's source would re-derive it from spelling. `CORPUS_CHECK_NAMES` and
+// `LOOP_CHECK_NAMES` are the two enumerations -- the corpus checks and the
+// record mode's -- `assertAcceptance` is the thing under test, and
 // `derivations` is its only argument.
-export { CORPUS_CHECK_NAMES, assertAcceptance, derivations }
+export { CORPUS_CHECK_NAMES, LOOP_CHECK_NAMES, assertAcceptance, derivations }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   main()

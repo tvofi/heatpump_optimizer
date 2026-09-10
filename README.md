@@ -334,7 +334,7 @@ Every field and its range is documented in
 
 ### Your first week
 
-- **Immediately.** All 70 entities appear and the first plan is solved within one
+- **Immediately.** All 72 entities appear and the first plan is solved within one
   optimization interval (30 minutes by default). Add the dashboard card and you
   can see what it intends to do.
 - **Day one.** If you want the commissioning step test, first switch on *Allow a
@@ -361,7 +361,7 @@ Since v5.0.0 the display names are translated (English and Swedish) and follow
 your Home Assistant language; the tables below show the English names. Entity ids
 and history are unaffected by the language.
 
-### Sensors (57 total)
+### Sensors (59 total)
 
 `CUR` is your Home Assistant instance currency (SEK when the instance has none
 configured).
@@ -465,6 +465,8 @@ every sensor is created on every install regardless of which group it is in.
 | ECL110 Displace | °C | The parallel shift commanded to an ECL110 heat curve | Diagnostic; disabled by default; ECL110 hardware |
 | ECL110 Effective Displace | °C | The shift the controller has actually reached, after its own lag | Diagnostic; disabled by default; ECL110 hardware |
 | Valve Target Recommendation | °C | What to set a manual mixing valve to, and why | Diagnostic; disabled by default; needs a mixing-valve mode |
+| Sensor-gap euro advisor | CUR | Estimated extra €/month from the highest-value empty sensor slot | Diagnostic; outdoor, house meter, DHW probe |
+| Wood-burn night advisor | — | 48 h light/skip advice when the wood furnace is on | Diagnostic; advisory only — never lights the stove |
 
 Disabled by default: ECL110 Displace, ECL110 Effective Displace, Contract
 Comparison, DHW Heavy Day Demand, Valve Target Recommendation and Compressor
@@ -535,7 +537,7 @@ that deliver them.
 
 ## Services
 
-Eleven services are registered under the `heatpump_optimizer` domain. Field-level
+12 services are registered under the `heatpump_optimizer` domain. Field-level
 detail for each — including all 28 fields of `set_thermal_parameters` — is in
 [docs/configuration.md](docs/configuration.md). Worked automation examples — an
 EV charger following the Power Headroom sensor, mode switching on price — are in
@@ -544,6 +546,7 @@ EV charger following the Power Headroom sensor, mode switching on price — are 
 | Service | What it does | Returns |
 |---|---|---|
 | `run_optimization` | Fetch prices and weather and re-solve the 24 h plan now | — |
+| `set_away` | Turn the Plan-page away override on or off, and optionally set or clear the expected return | — |
 | `set_mode` | Set the operating mode: auto, comfort, economy, boost or off | — |
 | `set_thermal_parameters` | Tune the thermal model directly at runtime | — |
 | `simulate_plan` | Price a hypothetical comfort choice against the current forecast without disturbing operation. Rate-limited, so rapid repeats return the previous answer | Always |

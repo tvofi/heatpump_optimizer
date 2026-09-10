@@ -28,9 +28,13 @@ htmlcov/
 config/
 .storage/
 
-# policy_lint_mutants.mjs writes one mutated copy of policy_lint.mjs at a time
-# beside the original -- it has to be beside it, because policy_lint resolves
-# fixtures/policy-rot/ from its own directory. The lane removes each copy in a
-# `finally` and sweeps the directory before it starts; this line is what keeps
-# an aborted run from leaving an untracked file in a policy directory.
-.claude/workflows/.policy_lint.mutant-*.mjs
+# policy_lint_mutants.mjs writes one mutated module at a time beside the
+# original -- it has to be beside it, because policy_lint resolves
+# fixtures/policy-rot/ from its own directory, and counts.mjs resolves the
+# repository root from its own. The record lane mutates counts.mjs as well as
+# policy_lint.mjs (and writes a policy_lint copy pointing at it), so the pattern
+# is keyed on the `.mutant-` infix rather than on one module's name. The lane
+# removes each copy in a `finally` and sweeps the directory before it starts;
+# this line is what keeps an aborted run from leaving an untracked file in a
+# policy directory.
+.claude/workflows/.*.mutant-*.mjs

@@ -4106,6 +4106,7 @@ runtime_only = {
     "internal_gains",           # not exposed in the config flow
     "dhw_windows",              # parsed separately from a string spec
     "dhw_weekly_windows",       # parsed with it (#3): the same spec's day view
+    "dhw_holiday_windows",      # parsed from CONF_HOLIDAY_DHW_WINDOWS (#700)
     "two_zone_enabled",         # inferred from presence, overridable by mode
     "dhw_enabled",              # inferred from which keys are present
     "cop_flow_carnot",          # follows the mixing valve mode
@@ -4321,6 +4322,13 @@ R.check(
         {hp_const.CONF_DHW_WINDOWS: "not a time range"}
     ).dhw_windows
     == [],
+)
+R.check(
+    "holiday DHW windows parse from CONF_HOLIDAY_DHW_WINDOWS",
+    ThermalParameters.from_config(
+        {hp_const.CONF_HOLIDAY_DHW_WINDOWS: "10:00-12:00"}
+    ).dhw_holiday_windows
+    == [(10.0, 12.0)],
 )
 
 
@@ -7929,6 +7937,65 @@ R.check(
     "default to 1.0",
     _pt_round._window_factor == _pt_night._window_factor
     and _PT.from_dict({"month": "2026-01", "peaks": [5.0]})._window_factor == 1.0,
+)
+
+# --- #697 15-minute billed clock ---------------------------------------------
+_sauna = np.array([2.0, 2.0, 2.0, 10.0], dtype=float)
+_w15 = _mwindows(_sauna, 15, 0.25)
+_w60 = _mwindows(_sauna, 60, 0.25)
+R.check(
+    "a 15-min 10 kW spike bills 10 kW; the same hour at 60 min bills 4 kW",
+    abs(float(_w15.max()) - 10.0) < 1e-9
+    and abs(float(_w60.max()) - 4.0) < 1e-9
+    and float(_w15.max()) > float(_w60.max()),
+    f"15={_w15} 60={_w60}",
+)
+
+from heatpump_optimizer.optimizer import _utc_step_starts as _usteps
+from zoneinfo import ZoneInfo as _ClkZone
+
+_clk_tz = _ClkZone("Europe/Stockholm")
+_spring = datetime(2026, 3, 29, 1, 30, tzinfo=_clk_tz)
+_spring_steps = _usteps(_spring, 8, 0.25)
+_spring_utc = [
+    (b.astimezone(UTC) - a.astimezone(UTC)).total_seconds()
+    for a, b in zip(_spring_steps, _spring_steps[1:])
+]
+R.check(
+    "DST spring-forward 15-min steps stay 900 s apart in UTC",
+    len(_spring_steps) == 8 and all(abs(d - 900.0) < 1e-9 for d in _spring_utc),
+    f"deltas={_spring_utc} local={[s.isoformat() for s in _spring_steps]}",
+)
+_autumn = datetime(2026, 10, 25, 1, 30, tzinfo=_clk_tz)
+_autumn_steps = _usteps(_autumn, 8, 0.25)
+_autumn_utc = [
+    (b.astimezone(UTC) - a.astimezone(UTC)).total_seconds()
+    for a, b in zip(_autumn_steps, _autumn_steps[1:])
+]
+R.check(
+    "DST autumn-back 15-min steps stay 900 s apart in UTC",
+    len(_autumn_steps) == 8 and all(abs(d - 900.0) < 1e-9 for d in _autumn_utc),
+    f"deltas={_autumn_utc}",
+)
+
+_smear_coord = Coord(
+    _FakeHass(),
+    _FakeEntry(data={"tibber_token": "x", "weather_entity": "weather.home"}),
+)
+_smear_coord._prices = [
+    {"total": 1.0 + h, "starts_at": f"2026-01-14T{h:02d}:00:00+00:00"}
+    for h in range(4)
+]
+_smear_steps = [
+    datetime(2026, 1, 14, 0, 0, tzinfo=UTC) + timedelta(minutes=15 * i)
+    for i in range(16)
+]
+_smeared = _smear_coord._known_prices_for(_smear_steps)
+R.check(
+    "an hourly price smears across four 15-min steps, not four peaks",
+    _smeared[:4] == [1.0, 1.0, 1.0, 1.0]
+    and _smeared[4:8] == [2.0, 2.0, 2.0, 2.0],
+    repr(_smeared[:8]),
 )
 
 # --- #19: the quarter refinement ----------------------------------------------
@@ -24410,6 +24477,42 @@ R.check(
 R.check(
     "that hour counts",
     _wf_count(1.0, [4.0], [2.0], [0.2], [0.0]) == 1,
+)
+
+from heatpump_optimizer.wood_fuel import night_advice as _wf_night
+
+_wf_thu = datetime(2026, 1, 15, 12, 0)
+_wf_stamps = [_wf_thu + timedelta(hours=i) for i in range(48)]
+_wf_cops = [3.0] * 48
+_wf_cheap_night = [0.30] * 48
+_wf_cheap_night[6] = 3.0  # Thursday 18:00: pump 1.0 vs wood 0.5
+_wf_light = _wf_night(
+    now=_wf_thu,
+    prices=_wf_cheap_night,
+    timestamps=_wf_stamps,
+    cops=_wf_cops,
+    wood_sek=0.5,
+    tank_soc=0.2,
+)
+R.check(
+    "cheap night and an empty tank advises light",
+    _wf_light["action"] == "light"
+    and "Thu 18:00" in _wf_light["text"],
+    repr(_wf_light),
+)
+_wf_skip_prices = [0.30] * 48
+_wf_skip = _wf_night(
+    now=_wf_thu,
+    prices=_wf_skip_prices,
+    timestamps=_wf_stamps,
+    cops=_wf_cops,
+    wood_sek=1.0,
+    tank_soc=0.9,
+)
+R.check(
+    "expensive next day and a full tank advises skip",
+    _wf_skip["action"] == "skip" and "Fri" in _wf_skip["text"],
+    repr(_wf_skip),
 )
 
 from heatpump_optimizer.thermal_model import ThermalParameters as _WfTP

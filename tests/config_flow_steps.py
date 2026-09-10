@@ -675,15 +675,15 @@ async def user_error_branches():
         str(result.get("errors")),
     )
 
-    # The declared schema refuses a first screen with no token / no weather
-    # entity at all: the entity pickers are optional, the identity fields
-    # are not. In Home Assistant voluptuous runs this before the handler.
+    # Weather stays Required. The token is Optional in the schema: Tibber
+    # still needs one, but that is a handler error so an entity price
+    # source can skip it (#701).
     form = await fresh_flow().async_step_user(None)
     try:
         form["data_schema"]({"name": "x", "weather_entity": "weather.home"})
-        rejected = False
+        token_schema_rejected = False
     except vol.Invalid:
-        rejected = True
+        token_schema_rejected = True
     try:
         form["data_schema"]({"name": "x", "tibber_token": "t"})
         weather_rejected = False
@@ -692,9 +692,59 @@ async def user_error_branches():
     check(
         "user",
         "error",
-        "the first-screen schema requires the token and the weather entity",
-        rejected and weather_rejected,
-        f"token={rejected} weather={weather_rejected}",
+        "the first-screen schema requires the weather entity, not the token",
+        (not token_schema_rejected) and weather_rejected,
+        f"token={token_schema_rejected} weather={weather_rejected}",
+    )
+    missing_token = await submit(
+        fresh_flow(),
+        "user",
+        {"name": "x", "weather_entity": "weather.home"},
+    )
+    check(
+        "user",
+        "error",
+        "Tibber without a token is tibber_token_required",
+        shows(missing_token, "user")
+        and missing_token.get("errors", {}).get(const.CONF_TIBBER_TOKEN)
+        == "tibber_token_required",
+        str(missing_token.get("errors")),
+    )
+    missing_entity = await submit(
+        fresh_flow(),
+        "user",
+        {
+            "name": "x",
+            const.CONF_WEATHER_ENTITY: "weather.home",
+            const.CONF_PRICE_SOURCE: const.PRICE_SOURCE_ENTITY,
+        },
+    )
+    check(
+        "user",
+        "error",
+        "an entity source without a price sensor is price_entity_required",
+        shows(missing_entity, "user")
+        and missing_entity.get("errors", {}).get(const.CONF_PRICE_ENTITY)
+        == "price_entity_required",
+        str(missing_entity.get("errors")),
+    )
+    entity_ok = await submit(
+        fresh_flow(),
+        "user",
+        {
+            "name": "x",
+            const.CONF_WEATHER_ENTITY: "weather.home",
+            const.CONF_PRICE_SOURCE: const.PRICE_SOURCE_ENTITY,
+            const.CONF_PRICE_ENTITY: "sensor.nordpool",
+        },
+    )
+    check(
+        "user",
+        "happy",
+        "an entity price source proceeds without a Tibber token",
+        entity_ok.get("type") == "form"
+        and entity_ok.get("step_id") == "user_sensors",
+        f"type={entity_ok.get('type')} step={entity_ok.get('step_id')}",
     )
 
     config_flow.async_get_clientsession = real

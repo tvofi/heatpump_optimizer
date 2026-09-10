@@ -3,15 +3,19 @@
     "step": {
       "user": {
         "title": "Heat Pump Optimizer Setup",
-        "description": "Your Tibber token and weather forecast are required. Optional sensors come on the next screen.",
+        "description": "Choose a price source and a weather forecast. A Tibber token is required only when prices come from Tibber. Optional sensors come on the next screen.",
         "data": {
           "name": "Name for this integration",
+          "price_source": "Electricity price source",
           "tibber_token": "Tibber API token",
+          "price_entity": "Price sensor (Nord Pool or similar)",
           "weather_entity": "Weather forecast"
         },
         "data_description": {
           "name": "Shown in front of every sensor this integration creates.",
-          "tibber_token": "Used to read your hourly electricity prices. Create one at developer.tibber.com. Leave as-is unless it has changed.",
+          "price_source": "Tibber uses your API token. Entity reads a Home Assistant price sensor such as Nord Pool.",
+          "tibber_token": "Used to read your hourly electricity prices. Create one at developer.tibber.com. Leave as-is unless it has changed. Not required when the price source is an entity.",
+          "price_entity": "Required when the price source is an entity. Typical attributes are raw_today and raw_tomorrow.",
           "weather_entity": "Where the outdoor temperature, wind and rain forecast comes from. The optimizer plans 24 hours ahead, so a forecast is required."
         }
       },
@@ -237,6 +241,8 @@
     },
     "error": {
       "invalid_tibber_token": "That Tibber token was not accepted. Check it at developer.tibber.com and try again.",
+      "tibber_token_required": "A Tibber token is required when the price source is Tibber.",
+      "price_entity_required": "A price sensor is required when the price source is an entity.",
       "cannot_connect": "Could not reach Tibber to check the token. Check the internet connection and try again.",
       "invalid_dhw_windows": "Those time frames could not be read. Use 24-hour times separated by commas, for example \"06:00-08:30, 17:00-22:00\".",
       "dhw_window_too_short": "A hot water time frame is shorter than {min_window_minutes} minutes. The plan is made in {min_window_minutes}-minute steps, so a shorter frame can fall between two steps and never take effect.",
@@ -364,7 +370,11 @@
         "title": "Sensors and entities",
         "description": "Choose which Home Assistant entities the optimizer reads. Clear a field to stop using that sensor. Only the price token and weather forecast are required; every other sensor makes the model more accurate but is optional.",
         "data": {
+          "price_source": "Electricity price source",
           "tibber_token": "Tibber API token",
+          "price_entity": "Price sensor (Nord Pool or similar)",
+          "price_vat": "VAT multiplier",
+          "price_surcharge": "Surcharge per kWh",
           "weather_entity": "Weather forecast",
           "indoor_temp_entity": "Indoor temperature sensor",
           "outdoor_temp_entity": "Outdoor temperature sensor",
@@ -378,7 +388,11 @@
           "space_setpoint_unit": "What that set-point entity expects"
         },
         "data_description": {
-          "tibber_token": "Used to read your hourly electricity prices. Create one at developer.tibber.com. Leave as-is unless it has changed.",
+          "price_source": "Tibber uses your API token. Entity reads a Home Assistant price sensor such as Nord Pool.",
+          "tibber_token": "Used to read your hourly electricity prices. Create one at developer.tibber.com. Leave as-is unless it has changed. Not required when the price source is an entity.",
+          "price_entity": "Required when the price source is an entity. Typical attributes are raw_today and raw_tomorrow.",
+          "price_vat": "Applied as value × VAT + surcharge. 1.0 leaves the sensor values unchanged.",
+          "price_surcharge": "Added after VAT, in the same currency as the prices.",
           "weather_entity": "Where the outdoor temperature, wind and rain forecast comes from. The optimizer plans 24 hours ahead, so a forecast is required.",
           "indoor_temp_entity": "Optional. The actual room temperature. Without it the optimizer trusts its own model, which drifts over time.",
           "outdoor_temp_entity": "Optional. A local outdoor thermometer is more accurate than the forecast for the current hour.",
@@ -414,6 +428,14 @@
           "comfort_temp_night": "Night-time comfort temperature",
           "day_start_hour": "Day starts at",
           "day_end_hour": "Day ends at",
+          "comfort_temp_day_weekend": "Weekend daytime comfort",
+          "comfort_temp_night_weekend": "Weekend night-time comfort",
+          "day_start_hour_weekend": "Weekend day starts at",
+          "day_end_hour_weekend": "Weekend day ends at",
+          "holiday_comfort_temp_day": "Holiday daytime comfort",
+          "holiday_comfort_temp_night": "Holiday night-time comfort",
+          "holiday_day_start_hour": "Holiday day starts at",
+          "holiday_day_end_hour": "Holiday day ends at",
           "mold_guard_enabled": "Keep cold surfaces below mold humidity",
           "indoor_humidity_entity": "Indoor humidity sensor (optional)",
           "thermal_bridge_frsi": "Worst thermal bridge factor (fRsi)",
@@ -427,6 +449,14 @@
           "comfort_temp_night": "Preferred temperature overnight. Setting this a degree or two lower saves money and usually improves sleep.",
           "day_start_hour": "Hour of the morning when the daytime temperature takes over.",
           "day_end_hour": "Hour of the evening when the night-time temperature takes over.",
+          "comfort_temp_day_weekend": "Preferred temperature during weekend waking hours. Defaults to the weekday daytime value.",
+          "comfort_temp_night_weekend": "Preferred temperature during weekend nights. Defaults to the weekday night value.",
+          "day_start_hour_weekend": "Hour of the morning when weekend daytime temperature takes over.",
+          "day_end_hour_weekend": "Hour of the evening when weekend night-time temperature takes over.",
+          "holiday_comfort_temp_day": "Daytime comfort on days the holiday calendar is on. Away setback still wins if away is active.",
+          "holiday_comfort_temp_night": "Night-time comfort on holiday-calendar days.",
+          "holiday_day_start_hour": "Hour of the morning when holiday daytime temperature takes over.",
+          "holiday_day_end_hour": "Hour of the evening when holiday night-time temperature takes over.",
           "mold_guard_enabled": "The coldest spot in the house — a window reveal, a corner behind a wardrobe — sits well below room temperature, and mold starts growing where its surface humidity stays above 80%. With this on, the optimizer will not coast the house below the temperature that keeps that spot safe, computed from the measured indoor humidity and the outdoor forecast. Needs the humidity sensor below; it never heats past your comfort target — persistent high humidity is a ventilation problem, not a heating one.",
           "indoor_humidity_entity": "A relative humidity sensor in the living space. Without one the mold guard stays off regardless of the switch.",
           "thermal_bridge_frsi": "How cold your worst surface gets, as a fraction: surface = outdoor + fRsi × (room − outdoor). 0.75 is the Swedish building-code guidance; lower means a colder worst spot and a more cautious guard.",
@@ -439,6 +469,12 @@
           "schedule": {
             "name": "Day and night"
           },
+          "weekend": {
+            "name": "Weekend"
+          },
+          "holiday": {
+            "name": "Holiday profile"
+          },
           "mold": {
             "name": "Mold guard"
           }
@@ -450,6 +486,7 @@
         "data": {
           "dhw_schedule_enabled": "Only guarantee hot water at set times",
           "dhw_windows": "When you need hot water",
+          "holiday_dhw_windows": "Holiday hot-water windows",
           "dhw_min_temperature": "Hot water temperature you need",
           "dhw_idle_min_temperature": "Let the tank cool to",
           "dhw_setpoint": "Highest tank temperature to charge to",
@@ -462,6 +499,7 @@
         "data_description": {
           "dhw_schedule_enabled": "On: hot water is guaranteed only during the times below, and the tank may cool down in between. Off: the tank is kept hot around the clock, which costs noticeably more.",
           "dhw_windows": "Times hot water must be available, e.g. 06:00-08:30, 17:00-22:00. Different days can get different times with a day selector: 'weekdays 06:00-08:30, weekend 08:00-09:30', or specific days: 'Mo 05:30-07:00, Tu-Fr 06:00-08:00, Sa,Su 08:00-09:30'. Without a selector the times apply every day.",
+          "holiday_dhw_windows": "Same grammar as the ordinary windows. Used on days the holiday calendar is on, instead of weekday/weekend. Leave empty to keep the ordinary schedule.",
           "dhw_min_temperature": "The temperature the tank is guaranteed to reach during the periods above. Around 45 C is enough for a normal shower.",
           "dhw_idle_min_temperature": "How cold the tank is allowed to get outside those periods. Lower saves more. The default is roughly room temperature, meaning no energy is spent at all.",
           "dhw_setpoint": "An upper limit on charging, not a target. The tank is only filled this high when storing extra cheap heat pays off. It is never heated to this just for the sake of it.",
@@ -738,12 +776,14 @@
         "description": "A week away is the biggest single saving a heating system can offer. If you also say when you are coming back, the heat needed to warm the house again is bought in the cheapest hours beforehand instead of at whatever the price happens to be when you walk in.",
         "data": {
           "away_presence_entity": "Away indicator (optional)",
+          "holiday_calendar_entity": "Holiday-profile calendar (optional)",
           "away_temperature": "Temperature while away",
           "away_dhw_min_temperature": "Hot water minimum while away",
           "after_save": "After saving"
         },
         "data_description": {
           "away_presence_entity": "A person, device tracker, calendar, or occupancy sensor. The Plan-page toggle wins until it is turned off. A person being 'not home' still means away when the toggle is off.",
+          "holiday_calendar_entity": "When this calendar is on, holiday comfort and holiday hot-water windows replace the weekday/weekend pair for that day. Away setback still wins if away is active.",
           "away_dhw_min_temperature": "The anti-legionella cycle still runs, and is timed to finish before you get back.",
           "away_temperature": "The hold temperature while away. Low enough to save, high enough to protect the house and its plumbing.",
           "after_save": "Saving writes through immediately; this chooses where the dialog goes next."
@@ -912,6 +952,7 @@
         "title": "Transfer fees and contract",
         "description": "Time-of-use transfer fees and the contract shadow price.",
         "data": {
+          "dso_product": "Swedish DSO tariff (writes the fields below)",
           "grid_fee_mode": "Grid transfer fee",
           "grid_fee_fixed": "Fixed transfer fee",
           "grid_fee_rules": "Time-of-use fee rules",
@@ -920,6 +961,7 @@
           "after_save": "After saving"
         },
         "data_description": {
+          "dso_product": "A dated Sweden-only table. Selecting a product writes transfer-fee rules and peak-tariff fields you can still edit. Verify against your bill. Unknown or stale products write nothing.",
           "grid_fee_mode": "The fee your grid company adds per kWh transferred. Tibber's price does not include it, so with it configured the plan finally sees the whole marginal price. \"Rules\" uses the schedule below; \"Live sensor\" follows an entity.",
           "grid_fee_fixed": "A flat fee added in every hour, on top of any rules. Take it from your grid invoice.",
           "grid_fee_rules": "One rule per line, for example \"Nov-Mar Mon-Fri 06:00-22:00 = 0.25\". Month, weekday and time parts are each optional; overlapping rules add together, which matches a base fee plus a high-load surcharge.",
@@ -1009,6 +1051,8 @@
     },
     "error": {
       "invalid_tibber_token": "That Tibber token was not accepted. Check it at developer.tibber.com and try again.",
+      "tibber_token_required": "A Tibber token is required when the price source is Tibber.",
+      "price_entity_required": "A price sensor is required when the price source is an entity.",
       "cannot_connect": "Could not reach Tibber to check the token. Check the internet connection and try again.",
       "invalid_dhw_windows": "Those time frames could not be read. Use 24-hour times separated by commas, for example \"06:00-08:30, 17:00-22:00\".",
       "dhw_window_too_short": "A hot water time frame is shorter than {min_window_minutes} minutes. The plan is made in {min_window_minutes}-minute steps, so a shorter frame can fall between two steps and never take effect.",
@@ -1097,6 +1141,21 @@
         "none": "None",
         "rules": "Time-of-use rules",
         "entity": "Live sensor"
+      }
+    },
+    "price_source": {
+      "options": {
+        "tibber": "Tibber",
+        "entity": "Price entity (Nord Pool or similar)"
+      }
+    },
+    "dso_product": {
+      "options": {
+        "none": "None — keep my typed rules",
+        "ellevio_villa_effekt_2026": "Ellevio — villa effekt (2026)",
+        "vattenfall_eldistribution_effekt_2026": "Vattenfall Eldistribution — effekt (2026)",
+        "eon_energidistribution_effekt_2026": "E.ON Energidistribution — effekt (2026)",
+        "goteborg_energi_effekt_2026": "Göteborg Energi — effekt (2026)"
       }
     },
     "freq_control_mode": {
@@ -1375,6 +1434,9 @@
       "recommended_power": {
         "name": "Recommended Power"
       },
+      "sensor_gap_advisor": {
+        "name": "Sensor-gap euro advisor"
+      },
       "savings_percentage": {
         "name": "Savings Percentage"
       },
@@ -1416,6 +1478,9 @@
       },
       "valve_target_recommendation": {
         "name": "Valve Target Recommendation"
+      },
+      "wood_burn_advisor": {
+        "name": "Wood-burn night advisor"
       }
     },
     "binary_sensor": {
