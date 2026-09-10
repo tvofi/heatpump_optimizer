@@ -10126,7 +10126,11 @@ R.check(
     _a5_entities_err or "accepted",
 )
 
-_a5_before = _nightly.stored_effective_bytes(
+# The check takes the two effective CONFIGURATIONS now, not their bytes, so a
+# failure can name the keys that moved. Its verdict is still the canonical
+# bytes, which is what these two pins hold: the #542 wipe fails, and a newly
+# stored None on an empty optional does not.
+_a5_before = _nightly.stored_effective(
     {"external_heat_entity": "sensor.seed_external_heat_entity", "x": 1},
     {},
 )
@@ -10134,7 +10138,7 @@ _a5_ok_bytes = _nightly.Checks()
 _nightly.check_a5_byte_unchanged(
     _a5_ok_bytes,
     _a5_before,
-    _nightly.stored_effective_bytes(
+    _nightly.stored_effective(
         {"external_heat_entity": "sensor.seed_external_heat_entity", "x": 1},
         {"empty_optional": None},
     ),
@@ -10143,10 +10147,7 @@ _a5_wipe = _nightly.Checks()
 _nightly.check_a5_byte_unchanged(
     _a5_wipe,
     _a5_before,
-    _nightly.stored_effective_bytes(
-        {"x": 1},
-        {"external_heat_entity": None},
-    ),
+    _nightly.stored_effective({"x": 1}, {"external_heat_entity": None}),
 )
 R.check(
     "a5:byte_unchanged fails the #542 wipe and ignores a new None optional",
@@ -10154,6 +10155,61 @@ R.check(
     and "a5:byte_unchanged" not in _a5_ok_bytes.failures(),
     f"wipe={_a5_wipe.results.get('a5:byte_unchanged')} "
     f"ok={_a5_ok_bytes.results.get('a5:byte_unchanged')}",
+)
+# A DETECTOR THAT CANNOT LOCATE THE DEFECT IS HALF A DETECTOR. The first real
+# failure of the check above reported two sizes and nothing else, and the keys
+# behind those 281 bytes could not be named without a container. So the detail
+# is pinned, not just the verdict: every direction appears, by key name.
+_a5_named = _nightly.Checks()
+_nightly.check_a5_byte_unchanged(
+    _a5_named,
+    _nightly.stored_effective({"kept": 1, "moved": "before", "gone": True}, {}),
+    _nightly.stored_effective({"kept": 1, "moved": "after"}, {"fresh": 2}),
+)
+_a5_named_detail = str(_a5_named.results.get("a5:byte_unchanged", ["", ""])[1])
+R.check(
+    "a5:byte_unchanged names the keys that moved, in all three directions",
+    "a5:byte_unchanged" in _a5_named.failures()
+    and "added=['fresh']" in _a5_named_detail
+    and "changed=['moved']" in _a5_named_detail
+    and "dropped=['gone']" in _a5_named_detail,
+    f"detail={_a5_named_detail!r}",
+)
+# THE PROBE MARKER GOES THROUGH THE LOG HANDLER, NEVER BEHIND ITS BACK. Home
+# Assistant owns `home-assistant.log` through a handler with its own file
+# offset, so bytes appended by a second handle are overwritten by its next
+# records: run 34537901814 dumped the log with neither marker in it, the window
+# did not exist, and `log:no_new_blocking_call` and
+# `log:blocking_positive_control` failed in opposite directions on the same
+# provoked report. Pinned at the source, because the failure mode is a write
+# that succeeds and is then lost -- nothing this suite can execute reproduces
+# it, and an assertion on the file would pass.
+# The docstring names the defect it replaced, so the pin reads the CODE: an
+# earlier form of this check failed on the word "fsynced" in the prose.
+import textwrap as _textwrap  # noqa: E402
+
+_probe_writer_ast = ast.parse(
+    _textwrap.dedent(_inspect.getsource(_nightly._write_probe_marker))
+).body[0]
+_probe_writer_body = ast.unparse(
+    ast.Module(
+        body=[
+            node
+            for node in _probe_writer_ast.body
+            if not (
+                isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant)
+            )
+        ],
+        type_ignores=[],
+    )
+)
+R.check(
+    "the probe marker is emitted as a log record, not appended to the log file",
+    "logging.getLogger" in _probe_writer_body
+    and ".warning(mark)" in _probe_writer_body
+    and "open(" not in _probe_writer_body
+    and "fsync" not in _probe_writer_body,
+    f"body={_probe_writer_body!r}",
 )
 
 _a5_schemas = {
