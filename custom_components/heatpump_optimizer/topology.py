@@ -53,6 +53,7 @@ from .const import (
     CONF_HOUSE_POWER_ENTITY,
     CONF_INDOOR_TEMP_ENTITY,
     CONF_LOWER_FLOOR_TEMP_ENTITY,
+    CONF_MIXING_VALVE_TARGET,
     CONF_MIXING_VALVE_TARGET_ENTITY,
     CONF_OUTDOOR_TEMP_ENTITY,
     CONF_POWER_ENTITY,
@@ -153,6 +154,20 @@ _SLOTS: tuple[tuple[str, str, str, tuple[str, ...], str | None], ...] = (
 ASSIGNABLE_KEYS: dict[str, tuple[str, ...]] = {
     key: domains for key, _place, _label, domains, _class in _SLOTS
 }
+
+
+def _slot_extras(key: str, config: dict[str, Any]) -> dict[str, Any]:
+    """Fields the card needs on one slot that the table row does not carry.
+
+    The indoor °C a dumb mixing valve holds lives on the config, not on an
+    entity. Publishing it here is what lets the picker edit the number
+    without inventing a fake sensor.
+    """
+    if key != CONF_MIXING_VALVE_TARGET_ENTITY:
+        return {}
+    return {
+        "manual_setpoint": float(config.get(CONF_MIXING_VALVE_TARGET) or 0.0)
+    }
 
 
 def _place_home(place: str, *, two_tank: bool) -> str:
@@ -394,6 +409,7 @@ def describe_setup(config: dict[str, Any]) -> dict[str, Any]:
             # domains, which the picker ranks by. None where the slot has no
             # narrower answer than its domains already give.
             "device_class": device_class,
+            **_slot_extras(key, config),
         }
         for key, place, label, domains, device_class in _SLOTS
         if present.get(_place_home(place, two_tank=two_tank), True)
@@ -481,7 +497,10 @@ def _slot_lines(setup: dict[str, Any], place: str) -> list[str]:
         if slot["place"] != place:
             continue
         mark = "*" if slot["entity"] else "-"
-        value = slot["entity"] or "not configured"
+        if not slot["entity"] and slot.get("manual_setpoint") is not None:
+            value = f"{slot['manual_setpoint']:g} °C"
+        else:
+            value = slot["entity"] or "not configured"
         lines.append(f"  {mark} {slot['label']}: {value}")
     return lines
 
