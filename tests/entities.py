@@ -13732,7 +13732,14 @@ _NS_NOW = datetime(2026, 9, 10, 12, 0, tzinfo=UTC)
 
 
 def _ns_run(rid: int, when: str, status: str = "completed",
-            conclusion: str | None = "failure") -> dict:
+            conclusion: str | None = "success") -> dict:
+    # The default is the ORDINARY nightly: a run that concluded `success`. It
+    # was `failure` until the review of this pull request, and that is not a
+    # detail -- under the classifier as first written, `verdict` never read the
+    # run's own conclusion at all, so every fixture below was silently a run
+    # that had FAILED and every one of them still read PASSED. The fixture
+    # encoded the defect, which is why no check here caught it. Each case now
+    # varies ONE property and leaves the rest ordinary.
     return {"id": rid, "created_at": when, "status": status,
             "conclusion": conclusion, "head_sha": "0" * 40,
             "html_url": f"https://example.invalid/{rid}"}
@@ -13753,6 +13760,7 @@ _NS_CASES = {
     "RUNNING": (None, _ns_run(2, "2026-09-10T02:17:00Z", "in_progress", None), []),
     "ABSENT": (None, None, []),
 }
+_NS_STALE_RUN = _ns_run(3, "2026-09-01T02:17:00Z")
 _ns_wrong = []
 for _want, (_c, _f, _j) in _NS_CASES.items():
     _got, _code, _lines = _nstatus.verdict(_c, _f, _j, _NS_NOW)
@@ -13768,8 +13776,7 @@ R.check(
 # shapes of absence, and the one that is absence one level down.
 _ns_absent = [
     _nstatus.verdict(None, None, [], _NS_NOW)[0],
-    _nstatus.verdict(_ns_run(3, "2026-09-01T02:17:00Z", conclusion="success"),
-                     None, _NS_LIVE, _NS_NOW)[0],
+    _nstatus.verdict(_NS_STALE_RUN, None, _NS_LIVE, _NS_NOW)[0],
     _nstatus.verdict(_NS_LAST_NIGHT, None,
                      [_ns_job("nightly-ha (stable)", "skipped"),
                       _ns_job("slow", "skipped"),
@@ -13847,6 +13854,186 @@ R.check(
     _NS_RAN and _NS_RAN == _NS_WIRED,
     f"only in the ran-check: {sorted(_NS_RAN - _NS_WIRED)}; "
     f"only in the wired-check: {sorted(_NS_WIRED - _NS_RAN)}",
+)
+
+# --- the run's OWN conclusion, which is one level above its job list --------
+#
+# THE DEFECT THIS BLOCK EXISTS TO REFUSE, and it is the exact failure this
+# whole module was written against. `verdict` classified a concluded run from
+# `failing_jobs(jobs)` alone and never read `concluded["conclusion"]`, so a run
+# that GitHub concluded `failure` -- while every job the jobs endpoint listed
+# read `success` or `skipped` -- printed
+# `NIGHTLY PASSED ... run conclusion 'failure'` and exited 0. A warning beside
+# a clean exit is the shape this reporter's own docstring argues against by
+# name, and here it was printing one about itself.
+#
+# DESIGN CHOICE, stated because a later reader will meet it as a tightening.
+# The run's own conclusion is AUTHORITATIVE and the job list refines it, not
+# the other way round. Every non-passing conclusion in GitHub's vocabulary is
+# pinned, not only the ones CI has produced: backtests over 15 scheduled runs
+# and 100 recent runs found `failure` and nothing else -- `cancelled`,
+# `timed_out`, `action_required` and `stale` are absent from the observed
+# population entirely. Untested is not cleared. A hole no current input reaches
+# is still a hole in a check whose entire job is to not lie.
+_NS_BAD_RUN_CONCLUSIONS = ("failure", "cancelled", "timed_out",
+                           "action_required", "stale", "startup_failure",
+                           None, "quantum_ambiguous")
+_ns_runlevel = {
+    _c: _nstatus.verdict(
+        _ns_run(40, "2026-09-10T02:17:00Z", conclusion=_c),
+        None, _NS_LIVE, _NS_NOW)[:2]
+    for _c in _NS_BAD_RUN_CONCLUSIONS
+}
+R.check(
+    "a run whose OWN conclusion is not a passing one is FAILED, whatever its "
+    "jobs say",
+    all(_v == ("FAILED", _nstatus.EXIT_RED) for _v in _ns_runlevel.values()),
+    f"run conclusion -> (state, exit): {_ns_runlevel}; every job of every case "
+    "reads success or skipped, so the job list alone says PASSED",
+)
+# The NULL CONTROL for the check above, and it is the half that stops it being
+# a check that fails everything: the same jobs under a passing run conclusion
+# must still be PASSED, or the reporter has simply gone red permanently.
+_ns_runlevel_ok = {
+    _c: _nstatus.verdict(
+        _ns_run(41, "2026-09-10T02:17:00Z", conclusion=_c),
+        None, _NS_LIVE, _NS_NOW)[:2]
+    for _c in sorted(_nstatus.OK_CONCLUSIONS)
+}
+R.check(
+    "and the same jobs under a passing run conclusion are still PASSED",
+    all(_v == ("PASSED", _nstatus.EXIT_GREEN)
+        for _v in _ns_runlevel_ok.values()),
+    f"run conclusion -> (state, exit): {_ns_runlevel_ok}",
+)
+# "The nightly failed" trains blindness. When NO job failed, the report has to
+# say what did, or a reader opens the run, sees a clean job list and concludes
+# the check is broken.
+_ns_runlevel_says = _nstatus.verdict(
+    _ns_run(42, "2026-09-10T02:17:00Z", conclusion="failure"),
+    None, _NS_LIVE, _NS_NOW)[2]
+R.check(
+    "and when no job failed the report names the run's conclusion as the "
+    "evidence",
+    any("'failure'" in _l for _l in _ns_runlevel_says)
+    and any("no job" in _l.lower() for _l in _ns_runlevel_says),
+    "report lines: " + " | ".join(_ns_runlevel_says),
+)
+
+# --- the ordering `pick_runs` exists for ------------------------------------
+#
+# Its docstring justifies the sort loudly -- "an order that is documented but
+# not asserted is one an API change silently reverses" -- and nothing drove it:
+# replacing `sorted(...)` with `list(runs)` left every check in this suite
+# passing. Driven here with the listing in ASCENDING created_at order, which is
+# the only arrangement the sort is for, and with an in-flight run on each side
+# of the newest concluded one so both return values are pinned.
+_NS_ORDER_IN = [
+    _ns_run(11, "2026-09-08T02:17:00Z"),
+    _ns_run(12, "2026-09-09T02:17:00Z", "in_progress", None),
+    _ns_run(13, "2026-09-10T02:17:00Z"),
+    _ns_run(14, "2026-09-10T11:00:00Z", "in_progress", None),
+]
+_ns_conc, _ns_fly = _nstatus.pick_runs(_NS_ORDER_IN)
+R.check(
+    "pick_runs picks the newest concluded and newest in-flight by created_at, "
+    "not by listing order",
+    (_ns_conc or {}).get("id") == 13 and (_ns_fly or {}).get("id") == 14,
+    f"input ids {[_r['id'] for _r in _NS_ORDER_IN]} in ASCENDING created_at "
+    f"order -> concluded={(_ns_conc or {}).get('id')} "
+    f"in_flight={(_ns_fly or {}).get('id')}; without the sort this returns "
+    "11 and 12, i.e. a two-night-old run reported as last night's",
+)
+
+# --- a run with no clock is "could not look", not a crash and not a verdict --
+#
+# `parse_ts(r["created_at"])` raised KeyError straight through `main`'s
+# `except Unreadable`, so `sys.exit(main())` printed a traceback and exited 1.
+# Red rather than falsely green, so not urgent -- but exit 1 is this check's
+# word for "the nightly FAILED", and the truth was "this could not look", which
+# is what exit 2 exists for. Three call sites read a run's clock; all three.
+_ns_noclock = []
+for _label, _call in (
+    ("pick_runs", lambda: _nstatus.pick_runs([{"id": 5, "status": "completed"}])),
+    ("verdict/concluded", lambda: _nstatus.verdict(
+        {"id": 5, "conclusion": "success"}, None, _NS_LIVE, _NS_NOW)),
+    ("verdict/in_flight", lambda: _nstatus.verdict(
+        None, {"id": 5, "status": "in_progress"}, [], _NS_NOW)),
+):
+    try:
+        _call()
+    except _nstatus.Unreadable:
+        pass
+    except Exception as _exc:  # noqa: BLE001 -- the point is what class it is
+        _ns_noclock.append(f"{_label} raised {type(_exc).__name__}")
+    else:
+        _ns_noclock.append(f"{_label} returned a verdict")
+R.check(
+    "a run carrying no created_at is UNREADABLE, not a KeyError and not a "
+    "verdict",
+    not _ns_noclock,
+    "; ".join(_ns_noclock) or "three clock-reading call sites, all Unreadable",
+)
+
+# --- a truncated jobs page is not a clean run -------------------------------
+#
+# `_jobs` requests `per_page=100` and follows no `Link` header, and it received
+# `total_count` without ever comparing it to `len(jobs)`. A run with more than
+# 100 jobs would have had its overflow -- including every failing job in it --
+# silently dropped, and a dropped failing job is a PASS. The maximum observed
+# job count in any run of this workflow is 12, so it is unreachable today;
+# comparing the two numbers is cheaper than pagination and removes the silent
+# case outright. `_get` is the one collaborator, stubbed; `_jobs` itself is the
+# production function under test.
+_ns_paging_real_get = _nstatus._get
+try:
+    _nstatus._get = lambda _u, _t: {
+        "total_count": 140,
+        "jobs": [_ns_job(f"j{_i}", "success") for _i in range(100)]}
+    try:
+        _nstatus._jobs("o/r", 1, None)
+    except _nstatus.Unreadable as _exc:
+        _ns_truncated = "140" in str(_exc) and "100" in str(_exc)
+    else:
+        _ns_truncated = False
+    # The null control: a page that DOES carry every job is read, not refused.
+    # Without this the check above passes on a `_jobs` that refuses everything.
+    _nstatus._get = lambda _u, _t: {"total_count": len(_NS_LIVE),
+                                    "jobs": _NS_LIVE}
+    _ns_whole = _nstatus._jobs("o/r", 1, None) == _NS_LIVE
+finally:
+    _nstatus._get = _ns_paging_real_get
+R.check(
+    "a jobs page that does not carry every job of the run is UNREADABLE, not a "
+    "partial answer",
+    _ns_truncated and _ns_whole,
+    f"total_count 140 against a 100-job page refused={_ns_truncated}; "
+    f"complete page read={_ns_whole}",
+)
+
+# --- the staleness boundary, where its own constant says it is --------------
+#
+# `MAX_AGE_NIGHTS`'s comment said "three is the first age that cannot be either
+# of those" -- those being one night of timezone slack and the two consecutive
+# misses of the #533 incident -- while the code was `nights > 3`, which needs
+# FOUR nights of silence and reads a three-night gap as PASSED. Executed, both
+# ends of the range rather than the boundary alone.
+_ns_ages = {
+    _n: _nstatus.verdict(
+        _ns_run(50 + _n,
+                (_NS_NOW - timedelta(days=_n, hours=1)).isoformat().replace(
+                    "+00:00", "Z")),
+        None, _NS_LIVE, _NS_NOW)[0]
+    for _n in range(0, 6)
+}
+R.check(
+    "the staleness boundary is the one the constant's comment defends",
+    _ns_ages == {0: "PASSED", 1: "PASSED", 2: "PASSED",
+                 3: "ABSENT", 4: "ABSENT", 5: "ABSENT"}
+    and _nstatus.MAX_AGE_NIGHTS == 2,
+    f"nights-ago -> state {_ns_ages}, MAX_AGE_NIGHTS="
+    f"{_nstatus.MAX_AGE_NIGHTS}; the comment defends 3 as the first age that "
+    "is neither timezone slack nor the #533 incident",
 )
 
 sys.exit(R.close("ENTITY CHECKS"))

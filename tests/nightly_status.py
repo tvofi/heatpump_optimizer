@@ -45,11 +45,19 @@ reported as an extra line, never as the verdict.
 
 THE FOUR STATES, AND WHY EACH DOES WHAT IT DOES
 -----------------------------------------------
-FAILED   at least one job of that run has a conclusion outside
-         {success, skipped, neutral}. RED. Names every failing job, the age in
+FAILED   the run's OWN conclusion is outside {success, skipped, neutral}, or at
+         least one job of it is. RED. Names every failing job, the age in
          nights, the run id and its URL: "the nightly failed" trains blindness,
          "nightly-ha (stable) failed 2 nights ago, run 34449494849" does not.
-PASSED   that run exists, is recent enough, and no job of it failed. GREEN.
+         Both halves are needed and the run's half is authoritative: a run can
+         conclude `failure`, `cancelled`, `timed_out`, `action_required`,
+         `stale` or `startup_failure` while every job the jobs endpoint lists
+         reads `success` or `skipped`, and reading only the jobs printed
+         `NIGHTLY PASSED ... run conclusion 'failure'` beside exit 0 -- a
+         warning next to a clean exit, which is the shape this file argues
+         against three paragraphs down.
+PASSED   that run exists, is recent enough, its own conclusion is a passing one
+         and no job of it failed. GREEN.
 RUNNING  no scheduled run has concluded inside the window, and one is in
          flight. RED, and worded as "no concluded result", because a lane whose
          only answer is "ask again later" is a dark lane. It is a distinct
@@ -118,10 +126,18 @@ API = "https://api.github.com"
 DEFAULT_REPO = "tvofi/heatpump_optimizer"
 DEFAULT_WORKFLOW = "tests.yml"
 
-# One missed night is timezone slack or a rescheduled cron; two consecutive
-# misses is exactly the #533 incident. Three is the first age that cannot be
-# either of those.
-MAX_AGE_NIGHTS = 3
+# The oldest age still ACCEPTED, which is what "max age" says. One missed night
+# is timezone slack or a rescheduled cron; two consecutive misses is exactly the
+# #533 incident. Three is the first age that cannot be either of those, so the
+# window ends at two and `nights > MAX_AGE_NIGHTS` puts three outside it.
+#
+# It was 3 against the same `>` comparison, which needed FOUR nights of silence
+# and read a three-night gap as a pass -- the constant, its comment and the
+# comparison disagreed, and the comment was the one defending a boundary. The
+# constant moved rather than the comparison: `> max_age_nights` is the reading
+# the flag name `--max-age-nights` already promises, and changing the operator
+# instead would have left the flag meaning "the first age refused".
+MAX_AGE_NIGHTS = 2
 
 # Conclusions that are not this repository saying no. `skipped` matters: a
 # scheduled run of this workflow skips `fast`, `browser`, `typing`,
@@ -162,8 +178,20 @@ class Unreadable(Exception):
     """The instrument could not look. Distinct from anything it might see."""
 
 
-def parse_ts(value: str) -> dt.datetime:
-    """GitHub's ISO-8601 Zulu timestamps, as aware UTC datetimes."""
+def parse_ts(value: str | None) -> dt.datetime:
+    """GitHub's ISO-8601 Zulu timestamps, as aware UTC datetimes.
+
+    A run with no `created_at` is the instrument unable to look, not a nightly
+    with a verdict: every caller reads the key with `.get`, so an absent one
+    arrives here as None and leaves as `Unreadable`. It used to arrive as a
+    KeyError from `r["created_at"]`, which is not what `main` catches -- so the
+    check exited 1 with a traceback, and exit 1 is this reporter's word for
+    "the nightly FAILED". Exit 2 is what "could not look" is for.
+    """
+    if value is None:
+        raise Unreadable(
+            "a run carried no 'created_at'; this reporter's whole answer is "
+            "which run is newest, so a run with no clock cannot be classified")
     try:
         return dt.datetime.fromisoformat(value.replace("Z", "+00:00"))
     except (AttributeError, ValueError) as exc:
@@ -194,7 +222,7 @@ def pick_runs(runs: list[dict]) -> tuple[dict | None, dict | None]:
     check depends on which run is newest, and an order that is documented but
     not asserted is one an API change silently reverses.
     """
-    ordered = sorted(runs, key=lambda r: parse_ts(r["created_at"]), reverse=True)
+    ordered = sorted(runs, key=lambda r: parse_ts(r.get("created_at")), reverse=True)
     concluded = next((r for r in ordered if r.get("status") == "completed"), None)
     in_flight = next((r for r in ordered if r.get("status") != "completed"), None)
     return concluded, in_flight
@@ -239,7 +267,7 @@ def verdict(
     """
     if concluded is None:
         if in_flight is not None:
-            started = parse_ts(in_flight["created_at"])
+            started = parse_ts(in_flight.get("created_at"))
             return RUNNING, EXIT_RED, [
                 f"NIGHTLY {RUNNING}: no scheduled run has CONCLUDED; run "
                 f"{in_flight['id']} started {started.isoformat()} and is still "
@@ -255,7 +283,7 @@ def verdict(
             "not a pass.",
         ]
 
-    started = parse_ts(concluded["created_at"])
+    started = parse_ts(concluded.get("created_at"))
     nights = nights_ago(started, now)
     where = [
         f"  scheduled run {concluded['id']}, {started.isoformat()}, "
@@ -279,19 +307,55 @@ def verdict(
             "old does not describe the tree, whatever it said.",
         ]
 
+    # THE RUN'S OWN CONCLUSION IS AUTHORITATIVE; the job list refines it.
+    #
+    # This block did not exist. `verdict` classified from `failing_jobs(jobs)`
+    # alone, so a run GitHub concluded `failure` -- while every job the jobs
+    # endpoint listed read `success` or `skipped` -- printed
+    # `NIGHTLY PASSED ... run conclusion 'failure'` and exited 0. All nine
+    # non-`success` run conclusions did. That is a warning beside a clean exit,
+    # the shape this module's docstring argues against by name, printed about
+    # itself. A run can conclude non-`success` with no failing job in the
+    # listing: a `startup_failure` before any job exists, a cancellation, a
+    # required-approval stall, a job the listing does not carry.
+    #
+    # DESIGN CHOICE, said out loud so a later reader reads it as a tightening
+    # rather than a defect: the whole vocabulary is refused, not only what has
+    # been observed. Backtests over 15 scheduled and 100 recent runs produced
+    # `failure` and nothing else -- `cancelled`, `timed_out`, `action_required`
+    # and `stale` are absent from the observed population entirely. Untested is
+    # not cleared, and a hole no current input reaches is still a hole in a
+    # check whose whole job is to not lie.
+    run_conclusion = concluded.get("conclusion")
+    run_failed = run_conclusion not in OK_CONCLUSIONS
     bad = failing_jobs(jobs)
-    if bad:
-        names = ", ".join(sorted(j.get("name", "?") for j in bad))
-        return FAILED, EXIT_RED, [
-            f"NIGHTLY {FAILED}: {names} failed {phrase_age(nights)}.",
-            *where,
-            "  failing jobs:",
-            *[
-                f"    {j.get('name', '?')}  {j.get('conclusion') or 'unknown'}  "
-                f"{j.get('html_url', '')}"
-                for j in sorted(bad, key=lambda j: j.get("name", ""))
-            ],
+    if bad or run_failed:
+        if bad:
+            names = ", ".join(sorted(j.get("name", "?") for j in bad))
+            headline = f"NIGHTLY {FAILED}: {names} failed {phrase_age(nights)}."
+        else:
+            # "The nightly failed" trains blindness, so when the job list is
+            # clean the report has to say what the evidence actually is --
+            # otherwise a reader opens the run, sees every job green, and
+            # concludes the check is broken.
+            headline = (
+                f"NIGHTLY {FAILED}: the scheduled run itself concluded "
+                f"{run_conclusion!r} {phrase_age(nights)}, and no job of it "
+                "reported a failure."
+            )
+        detail = ["  failing jobs:", *[
+            f"    {j.get('name', '?')}  {j.get('conclusion') or 'unknown'}  "
+            f"{j.get('html_url', '')}"
+            for j in sorted(bad, key=lambda j: j.get("name", ""))
+        ]] if bad else [
+            "  No job in the listing failed, so the run's own conclusion is "
+            "the evidence: a run can conclude outside "
+            f"{sorted(OK_CONCLUSIONS)} with no failing job listed -- a "
+            "startup failure before any job exists, a cancellation, a "
+            "required approval, or a job this listing does not carry.",
+            f"  {len(jobs)} job(s) were listed and judged.",
         ]
+        return FAILED, EXIT_RED, [headline, *where, *detail]
 
     gone = missing_lanes(jobs)
     if gone:
@@ -338,11 +402,28 @@ def _get(url: str, token: str | None) -> dict:
 
 
 def _jobs(repo: str, run_id: int, token: str | None) -> list[dict]:
+    """Every job of one run, or Unreadable. Never a partial list.
+
+    One page of 100 and no `Link` following, and the received `total_count` was
+    never compared to what arrived -- so a run with more than 100 jobs would
+    have had its overflow dropped in silence, and a dropped failing job is a
+    PASS. Comparing the two numbers is cheaper than pagination and removes the
+    silent case rather than the limit: the largest run of this workflow has 12
+    jobs, so the refusal is unreachable today and the day it becomes reachable
+    it says so instead of lying. If that day comes, follow `Link` here.
+    """
     payload = _get(f"{API}/repos/{repo}/actions/runs/{run_id}/jobs?per_page=100",
                    token)
     jobs = payload.get("jobs")
     if not isinstance(jobs, list) or not jobs:
         raise Unreadable(f"run {run_id} reported no jobs")
+    total = payload.get("total_count")
+    if isinstance(total, int) and total != len(jobs):
+        raise Unreadable(
+            f"run {run_id} reports {total} job(s) and this page carried "
+            f"{len(jobs)}: the listing is not the whole run, and a job this "
+            "never saw cannot be judged"
+        )
     return jobs
 
 
