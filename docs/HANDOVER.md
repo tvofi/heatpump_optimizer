@@ -1,6 +1,6 @@
 # Handover — the open-issues programme
 
-updated-for: 6978107
+updated-for: a801d7c
 
 The rule that governs this file is `.claude/rules/writing-for-agents.md`, which
 the harness loads on this very path. Delivery status is
@@ -388,8 +388,8 @@ flagged it rather than claiming a carry it had not made.
   holds the producing pull request from merging until the carry is in the tree.
   Two branches owing a carry to the same contract therefore cannot both comply.
   Raised on #201; no seat may decide it.
-- **#680 (decision 0008): machine account with write, authorization switch, a
-  seat's verified login — then the rule, never first; 0005 says why.**
+- **#680 (0008, #756): account, switch, a seat's verified login, then the rule —
+  never first (0005). #558's lane F is next after Wave 5 and #412 (owner).**
 
 ## The machine this runs on — measure it, do not read it
 
