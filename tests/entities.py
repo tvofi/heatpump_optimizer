@@ -10485,8 +10485,16 @@ R.check(
     "every recorded closure",
 )
 
+# `governance.yml` left this list when `record-status` landed. It is still not
+# a gate file -- it sets no `GATE_SCOPE`, no matrix and no interpreter -- but it
+# is no longer INERT either, because this script now READS it to pin that job's
+# wiring and its permission widening. Unread by the gate and unreadable by the
+# gate are different claims, and the first stopped being true; it is in this
+# script's recorded closure instead, so an edit to it selects this script rather
+# than skipping. Its own check is below, and it is the third classification a
+# workflow file can have -- neither gate nor inert -- which is why the loop
+# could not simply gain a member.
 _NON_GATE_WORKFLOWS = [
-    ".github/workflows/governance.yml",
     ".github/workflows/hassfest.yml",
     ".github/workflows/release.yml",
     ".github/workflows/validate.yml",
@@ -10500,6 +10508,28 @@ for _wf in _NON_GATE_WORKFLOWS:
         "gate script, so it neither forces FULL nor orphans",
     )
 
+# The third classification, and the one that has to be checked rather than
+# asserted: read by the gate, so not INERT; not the gate, so not a gate file.
+# Getting it wrong in either direction is silent. Left on INERT it would be a
+# file this script reads while declaring nothing reads it -- `closure.py`'s
+# `merge` refuses that pair, which is what makes this a check and not an
+# opinion. Made a gate file it would run `tests/stress.py` on a comment edit,
+# which is the regression the block above exists to prevent.
+_GOV_WF = ".github/workflows/governance.yml"
+_GOV_CASE = _closure.affected([_GOV_WF])
+R.check(
+    "governance.yml is read by the gate, so it is scoped rather than inert or "
+    "full",
+    (not _closure.is_gate_file(_GOV_WF))
+    and (not _closure.is_inert(_GOV_WF))
+    and _GOV_CASE["case"] == "scoped"
+    and _GOV_WF in json.loads(
+        _closure.CLOSURES.read_text())["closures"]["tests/entities.py"],
+    f"gate={_closure.is_gate_file(_GOV_WF)} inert={_closure.is_inert(_GOV_WF)} "
+    f"case={_GOV_CASE['case']}; this script reads it to pin `record-status`, "
+    "so an edit to that job must select this script and must not force FULL",
+)
+
 R.check(
     "no directory prefix in GATE_FILES can swallow a non-gate workflow",
     not any(
@@ -10510,10 +10540,25 @@ R.check(
     "which is the regression this check exists to refuse",
 )
 
+# The instance moved from `governance.yml` to `hassfest.yml` when
+# `record-status` landed: this script now READS governance.yml, so it is scoped
+# rather than skipped, and its own case is checked above. The PROPERTY this
+# check was written for is unchanged and is the one that matters -- a non-gate
+# workflow must never print `full`, which is what ran `tests/stress.py` on a
+# comment edit. So the property is asserted over ALL FOUR non-gate workflows
+# rather than over the one that happened to be the example, and the `skip` arm
+# keeps an instance that is still inert.
 R.check(
     "a change to a non-gate workflow costs the closures check nothing",
-    _closure.affected([".github/workflows/governance.yml"])["case"] == "skip",
-    str(_closure.affected([".github/workflows/governance.yml"])),
+    _closure.affected([".github/workflows/hassfest.yml"])["case"] == "skip",
+    str(_closure.affected([".github/workflows/hassfest.yml"])),
+)
+R.check(
+    "and no non-gate workflow forces the FULL suite, whatever else it does",
+    all(_closure.affected([_wf])["case"] != "full"
+        for _wf in [*_NON_GATE_WORKFLOWS, _GOV_WF]),
+    str({_wf: _closure.affected([_wf])["case"]
+         for _wf in [*_NON_GATE_WORKFLOWS, _GOV_WF]}),
 )
 
 # --- when the closures CHECK itself runs (#354) -----------------------------

@@ -228,7 +228,16 @@ INERT = (
     # Listed individually rather than as a `.github/workflows/` prefix,
     # because that prefix would also swallow `tests.yml` and silently undo
     # the forced-full rule that is this gate's safety argument.
-    ".github/workflows/governance.yml",
+    # `.github/workflows/governance.yml` was here, on the claim that nothing
+    # in the gate reads it. That stopped being true when `tests/entities.py`
+    # began reading it to pin the `record-status` job's wiring and its
+    # permission widening -- the same correction `nightly_ha.py` needed one
+    # entry down, and for the same reason: unreadable by the gate and unread
+    # by the gate are different claims, and only the first was ever true. It
+    # is now in `tests/entities.py`'s recorded closure, so an edit to it
+    # selects that script instead of skipping. A file cannot be both INERT
+    # and inside a recorded closure; `closure.py` refuses that pair, which is
+    # what turned this from a judgement into a check.
     ".github/workflows/hassfest.yml",
     ".github/workflows/release.yml",
     ".github/workflows/validate.yml",
