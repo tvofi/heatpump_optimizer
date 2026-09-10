@@ -1,6 +1,6 @@
 # Handover — the open-issues programme
 
-updated-for: 4e28724
+updated-for: 44f914a
 
 The rule that governs this file is `.claude/rules/writing-for-agents.md`, which
 the harness loads on this very path. Delivery status is
@@ -78,10 +78,10 @@ the harness loads on this very path. Delivery status is
   the rule; that was measured on an isolated probe, both arms. A **scheduled**
   context is the other half of the same trap: make a nightly required and one
   failing night blocks every merge, the merge that repairs the nightly included.
-- **A pull-request body carries `## Figures`** (#676), whose companion rule is
-  **name the instrument, never the figure it prints** — twenty-one out-of-tree
-  briefs once carried a `coordinator_loc` stale by two hundred lines, and that
-  is the measurement the rule was written from. The detector shape that works
+- **A pull-request body carries `## Figures`** (#676). Its companion rule left
+  this file for `writing-for-agents.md` at #724; the measurement it was written
+  from stays, since that file lacks it: twenty-one out-of-tree briefs held a
+  `coordinator_loc` stale by two hundred lines. The detector shape that works
   resolves a *file name* to an artefact; the looser one — any number near a file
   name — was built and **refused in review** for reading a date and a line count
   as caps, and `preflight.sh`'s figure advisory stays advisory for #581's reason.
