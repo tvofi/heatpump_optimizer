@@ -1618,6 +1618,61 @@ def _page_schema(
     return _options_schema(fields)
 
 
+def _omit_unstored_computed(
+    user_input: dict[str, Any],
+    current: dict[str, Any],
+    hass: HomeAssistant,
+) -> dict[str, Any]:
+    """Drop ``_Computed`` defaults the entry never stored.
+
+    ``section()`` fills ``Optional(..., default=)`` on an empty group.
+    Weekend/holiday comfort and ``wood_furnace_enabled`` are derived, not
+    answers; writing them on a no-op options walk moves the stored bytes
+    (A5) the same way a default on ``two_zone_enabled`` would. A key that
+    is already stored, or whose posted value differs from the computed
+    default, is kept.
+
+    A posted value that equals the stored one keeps the stored type:
+    voluptuous ``_number`` widgets coerce ``7`` to ``7.0``, and a
+    ``_select(['15', '60'])`` on real Home Assistant retypes ``'60'``
+    to ``60``. Options win the effective merge, so either rewrite moves
+    JSON bytes without changing the setting.
+    """
+    cleaned = dict(user_input)
+    for row in _OPTION_FIELDS:
+        if not isinstance(row.default, _Computed):
+            continue
+        if row.key in current or row.key not in cleaned:
+            continue
+        try:
+            computed = row.default.of(current, hass)
+        except Exception:  # noqa: BLE001 - leave a value we cannot recompute
+            continue
+        if cleaned[row.key] == computed:
+            del cleaned[row.key]
+    for key, value in list(cleaned.items()):
+        if key in current and _same_setting(current[key], value):
+            cleaned[key] = current[key]
+    return cleaned
+
+
+def _same_setting(stored: Any, posted: Any) -> bool:
+    """True when a form rewrite did not change the setting, only its type."""
+    if stored == posted:
+        return True
+    if isinstance(stored, str) and isinstance(posted, (int, float)):
+        try:
+            return stored == str(posted) or type(posted)(stored) == posted
+        except (TypeError, ValueError):
+            return False
+    if isinstance(posted, str) and isinstance(stored, (int, float)):
+        try:
+            return posted == str(stored) or type(stored)(posted) == stored
+        except (TypeError, ValueError):
+            return False
+    return False
+
+
 def _clear_absent(
     user_input: dict[str, Any], step: str, current: dict[str, Any]
 ) -> dict[str, Any]:
@@ -2329,7 +2384,11 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         to come back to, so the advanced pages return to the advanced
         menu rather than the top one.
         """
-        user_input = _flatten_section_input(dict(user_input))
+        user_input = _omit_unstored_computed(
+            _flatten_section_input(dict(user_input)),
+            self._current,
+            self.hass,
+        )
         choice = user_input.pop(CONF_AFTER_SAVE, AFTER_SAVE_MENU)
         if choice == AFTER_SAVE_CLOSE:
             return self._save(user_input)
