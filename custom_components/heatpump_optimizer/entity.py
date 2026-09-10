@@ -29,4 +29,5 @@ class HeatPumpOptimizerEntity(CoordinatorEntity):
     @property
     def device_info(self) -> DeviceInfo:
         """Return device info."""
-        return self.coordinator.device_info
+        info: DeviceInfo = self.coordinator.device_info
+        return info

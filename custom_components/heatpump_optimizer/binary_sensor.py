@@ -85,7 +85,9 @@ class InputHealthBinarySensor(_OptimizerBinarySensorBase):
 
     _attr_device_class = BinarySensorDeviceClass.PROBLEM
     _attr_entity_category = EntityCategory.DIAGNOSTIC
-    def __init__(self, coordinator, entry) -> None:
+    def __init__(
+        self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry
+    ) -> None:
         super().__init__(coordinator, entry, "input_health", "input_problem")
 
     @property
@@ -120,7 +122,9 @@ class VentilationBinarySensor(_OptimizerBinarySensorBase):
     _attr_device_class = BinarySensorDeviceClass.WINDOW
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
-    def __init__(self, coordinator, entry) -> None:
+    def __init__(
+        self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry
+    ) -> None:
         super().__init__(
             coordinator, entry, "ventilation", "open_window_detected"
         )
@@ -145,7 +149,9 @@ class ExternalHeatBinarySensor(_OptimizerBinarySensorBase):
     """
 
     _attr_device_class = BinarySensorDeviceClass.HEAT
-    def __init__(self, coordinator, entry) -> None:
+    def __init__(
+        self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry
+    ) -> None:
         super().__init__(coordinator, entry, "external_heat", "external_heat_source")
 
     @property
@@ -176,7 +182,9 @@ class AwayModeBinarySensor(_OptimizerBinarySensorBase):
     is the inverse of this sensor, so the UI showed "Home" while away.
     """
 
-    def __init__(self, coordinator, entry) -> None:
+    def __init__(
+        self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry
+    ) -> None:
         super().__init__(coordinator, entry, "away_mode", "away_mode")
 
     @property
@@ -197,7 +205,9 @@ class AwayModeBinarySensor(_OptimizerBinarySensorBase):
 
 
 class WoodCheaperBinarySensor(_OptimizerBinarySensorBase):
-    def __init__(self, coordinator, entry) -> None:
+    def __init__(
+        self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry
+    ) -> None:
         super().__init__(coordinator, entry, "wood_cheaper", "wood_cheaper")
 
     @property

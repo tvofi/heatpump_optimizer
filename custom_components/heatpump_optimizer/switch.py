@@ -66,7 +66,7 @@ class OptimizerEnableSwitch(HeatPumpOptimizerEntity, SwitchEntity):
     def is_on(self) -> bool:
         """Return true if the optimizer is active."""
         if self.coordinator.data:
-            return self.coordinator.data.get("mode", MODE_OFF) != MODE_OFF
+            return bool(self.coordinator.data.get("mode", MODE_OFF) != MODE_OFF)
         return False
 
     @property

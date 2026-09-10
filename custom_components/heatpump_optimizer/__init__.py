@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import importlib
 import logging
+from types import ModuleType
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
@@ -55,12 +56,12 @@ _LAZY_ATTRS = {
 }
 
 
-def _lazy(module: str):
+def _lazy(module: str) -> ModuleType:
     """A sibling module, imported on first use. See ``_LAZY_ATTRS``."""
     return importlib.import_module(f".{module}", __package__)
 
 
-async def _async_lazy(hass: HomeAssistant, module: str):
+async def _async_lazy(hass: HomeAssistant, module: str) -> ModuleType:
     """``_lazy`` off the event loop (#525).
 
     ``import_module`` reads and compiles files, so Home Assistant's own
@@ -116,7 +117,8 @@ _PLAN_HANDOVER_KEY = f"{DOMAIN}_plan_handover"
 
 def _plan_handovers(hass: HomeAssistant) -> dict[str, Any]:
     """The reload handovers by entry id, created on first use."""
-    return hass.data.setdefault(_PLAN_HANDOVER_KEY, {})
+    handovers: dict[str, Any] = hass.data.setdefault(_PLAN_HANDOVER_KEY, {})
+    return handovers
 
 
 async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -264,7 +266,13 @@ async def async_setup_entry(
     else:
         task = hass.async_create_task(coordinator.async_request_refresh())
         if task is not None and hasattr(task, "cancel"):
-            entry.async_on_unload(task.cancel)
+            # Named rather than the bound method: `async_on_unload` takes a
+            # zero-argument callable returning None, and `Task.cancel`
+            # takes an optional message and returns bool.
+            def _cancel_first_solve() -> None:
+                task.cancel()
+
+            entry.async_on_unload(_cancel_first_solve)
 
     return True
 
