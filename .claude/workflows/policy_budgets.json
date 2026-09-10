@@ -35,7 +35,7 @@
     ".claude/rules/ci-autofix.md": 102,
     ".claude/rules/claim-files.md": 53,
     ".claude/rules/defect-root-cause.md": 146,
-    ".claude/rules/delivery-status-tracking.md": 26,
+    ".claude/rules/delivery-status-tracking.md": 38,
     ".claude/rules/finding-propagation.md": 101,
     ".claude/rules/gate-scoping.md": 58,
     ".claude/rules/ratchet-budgets.md": 62,

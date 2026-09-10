@@ -1,0 +1,11 @@
+{
+  "_comment": [
+    "Acceptance fixture: the destination exists and holds nothing.",
+    "This is the MISSING-carry arm. A carry deleted from a file, and a carry",
+    "never written into it, leave the same tree; silence here is the state the",
+    "check exists to refuse."
+  ],
+  "issue": 990003,
+  "stage": "acceptance probe standing in for a destination nobody wrote to",
+  "carries": []
+}

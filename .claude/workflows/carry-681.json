@@ -1,0 +1,18 @@
+{
+  "_comment": [
+    "Carry destination for issue #681, which has no wave-roster group.",
+    "Shape and required fields: .claude/rules/finding-propagation.md.",
+    "Linted by .claude/workflows/brief_lint.mjs (the `briefs` CI job)."
+  ],
+  "issue": 681,
+  "stage": "measure merge throughput against the forced-full gate before deciding on a merge queue",
+  "carries": [
+    {
+      "from": "the pull request that introduced carry files (this file is its own first carry)",
+      "effect": "invalidates",
+      "control": "The perturbation that would have refuted it: if the latency of those four pull requests came from the gate, their changed file would select gate scripts. It does not. Their one file lives under a prefix tests/closure.py declares inert, so a scoped run over them selects nothing and the mode line, not the script count, is what says so. A record pull request that did touch production code would be a counter-example and there is none in that set.",
+      "remeasure": "Re-enumerate at your own merge base rather than reusing this set: for each merged record pull request since #700, read its changed files and count the ones whose entire diff is that document. This pull request removes one of the two reasons such a pull request is opened, so the honest prediction is that the count falls; if it does not, this carry is wrong about the cause and the remaining reason is the disposition obligation, not the carry.",
+      "brief": "Merge throughput here has a second serialisation point besides the gate, and it costs no gate time at all. Four pull requests merged in one day -- #708, #711, #717 and #718 -- each change exactly one file, docs/plan-2026-09-open-issues.md, and nothing else. That document is a single shared destination two branches cannot both write, so pull requests queue on it rather than on any test. Measuring throughput only against the forced-full gate would attribute their latency to the gate and find nothing there to explain it, because a change confined to that prefix is scoped out of every script by tests/closure.py. Before deciding on a merge queue, separate the two: latency spent waiting for a gate, and latency spent waiting for a turn at a shared document. A merge queue serialises the first and does nothing for the second."
+    }
+  ]
+}

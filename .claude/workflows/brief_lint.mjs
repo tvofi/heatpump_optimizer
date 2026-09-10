@@ -38,13 +38,20 @@
 // ambiguous shorthand, no tag object present locally) is a WARNING, not a
 // failure -- a linter that cries wolf gets bypassed. Run:
 //   node .claude/workflows/brief_lint.mjs [files...]
+// A named file is linted as a carry when its basename matches CARRY_FILE_RE
+// and as a roster otherwise, so re-running one file reproduces CI's verdict.
 //
-// The no-arg (CI) path also runs three acceptances, because every rule here is
-// otherwise deletable in silence -- this job reports what the rules FOUND, and
-// finding nothing is what a clean tree and a gutted linter both look like.
-// fixtures/wave-1b-931dffe.json pins lintBrief, fixtures/shape-defects.json
-// pins checkShape, and a probe pins the driver guard. Each states the errors it
-// must still produce; see REQUIRED_931DFFE.
+// The same four classes lint a CARRY file, `.claude/workflows/carry-<N>.json`
+// -- the brief of a stage that has no roster group. See the block above
+// `checkCarryShape` for why that shape exists and what each field pays for.
+//
+// The no-arg (CI) path also runs an acceptance per rule family, because every
+// rule here is otherwise deletable in silence -- this job reports what the
+// rules FOUND, and finding nothing is what a clean tree and a gutted linter
+// both look like. fixtures/wave-1b-931dffe.json pins lintBrief,
+// fixtures/shape-defects.json pins checkShape, fixtures/carry-99000*.json pin
+// the carry rules in both directions, and a probe pins the driver guard. Each
+// states the errors it must still produce; see REQUIRED_931DFFE.
 
 import fs from 'node:fs'
 import path from 'node:path'
@@ -733,6 +740,158 @@ function checkShape(groups, findings) {
   })
 }
 
+
+// ---------------------------------------------------------------------------
+// carry files (.claude/workflows/carry-<N>.json)
+//
+// WHY A SECOND SHAPE. `.claude/rules/finding-propagation.md` sends a finding
+// that constrains a later stage to that stage's own brief. A stage with a
+// wave-roster group has one -- the group's `brief` string, linted above. A
+// stage with NO roster group had no destination but
+// `docs/plan-2026-09-open-issues.md`, one document every such carry had to
+// queue on: #708, #711, #717 and #718 each touch that file and nothing else.
+// A carry file is that stage's brief, one file per destination issue, so two
+// branches carrying to two stages never write the same file.
+//
+// The required fields are not a schema someone liked. Each one is a sentence
+// of the rule that a reviewer would otherwise have to take on trust:
+//   from      -- the producing pull request ("its body names the file and the
+//                stage that received it").
+//   effect    -- which of the rule's THREE effects this is. Free text here
+//                would let "worth knowing" back in, which is the adjective the
+//                rule refuses by name.
+//   control   -- "established by measurement with its null control"; a carry
+//                without the perturbation cannot be re-checked after a rebase.
+//   remeasure -- "give the numbers a re-measurement instruction"; figures in a
+//                brief are snapshots.
+//   brief     -- the carry text, linted for citations exactly like a roster's.
+//
+// TWO DESTINATIONS IS THE FAILURE THIS REPLACES, so it is refused: a carry
+// file for an issue a roster group already covers is an error naming the
+// group, because the group's brief is that stage's destination and a reader
+// who finds two trusts neither (the rule says so about role contracts, and it
+// is the same argument).
+//
+// An EMPTY `carries` array is an error, not a pass. A destination that exists
+// and holds nothing is what a deleted carry looks like, and silence there is
+// the state this whole file is built to refuse.
+export const CARRY_FILE_RE = /^carry-(\d+)\.json$/
+const CARRY_EFFECTS = new Set(['narrows', 'invalidates', 'removes'])
+const CARRY_FIELDS = ['from', 'effect', 'control', 'remeasure', 'brief']
+
+// Every issue number any roster group claims. Read from the same files the
+// no-arg run lints, so a group added tomorrow closes its own destination.
+export function rosterIssues(dir) {
+  const base = dir || path.join(ROOT, '.claude', 'workflows')
+  const out = new Map()
+  let names
+  try {
+    names = fs.readdirSync(base).filter((f) => /^wave-.*-groups\.json$/.test(f))
+  } catch {
+    return out
+  }
+  for (const n of names.sort()) {
+    let data
+    try {
+      data = JSON.parse(fs.readFileSync(path.join(base, n), 'utf8'))
+    } catch {
+      continue // that roster's own parse error is reported by lintFile
+    }
+    for (const g of data?.groups ?? []) {
+      for (const num of g?.issues ?? []) {
+        if (typeof num === 'number' && !out.has(num)) out.set(num, `${n} ${g.group}`)
+      }
+    }
+  }
+  return out
+}
+
+// Reports shape defects in one carry file. Like checkShape, purely additive:
+// a carry whose fields are wrong still has its `brief` citations checked, so
+// one defect never hides another.
+export function checkCarryShape(file, data, findings, roster) {
+  const label = path.posix.basename(file)
+  const bad = (message, kind = 'carry') => findings.push({ group: label, severity: 'error', kind, message })
+  const m = CARRY_FILE_RE.exec(label)
+  const fromName = m ? Number(m[1]) : null
+
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    bad('carry file is not a JSON object')
+    return
+  }
+  if (typeof data.issue !== 'number' || !Number.isInteger(data.issue) || data.issue <= 0) {
+    bad('`issue` is missing or is not a positive integer; nothing says which stage this carries to')
+  } else if (fromName !== null && data.issue !== fromName) {
+    bad(`\`issue\` is ${data.issue} but the filename says ${fromName}; a seat looking for its own stage opens the filename`)
+  } else if (roster.has(data.issue)) {
+    bad(
+      `issue ${data.issue} already has a roster group (${roster.get(data.issue)}), whose \`brief\` is that stage's destination. ` +
+        'Two destinations is the failure this file replaces: carry it to the group instead.'
+    )
+  }
+  if (typeof data.stage !== 'string' || !data.stage.trim()) {
+    bad('`stage` is missing or is not a non-empty string; the issue number alone does not say what the stage is')
+  }
+  if (!Array.isArray(data.carries)) {
+    bad('`carries` is missing or is not an array')
+    return
+  }
+  if (data.carries.length === 0) {
+    bad('`carries` is empty; a destination that exists and holds nothing reads exactly like a carry that was never written')
+  }
+  data.carries.forEach((c, i) => {
+    if (!c || typeof c !== 'object' || Array.isArray(c)) {
+      bad(`carry ${i} is not an object`)
+      return
+    }
+    for (const f of CARRY_FIELDS) {
+      if (typeof c[f] !== 'string' || !c[f].trim()) {
+        bad(`carry ${i}: \`${f}\` is missing or is not a non-empty string`)
+      }
+    }
+    if (typeof c.effect === 'string' && c.effect.trim() && !CARRY_EFFECTS.has(c.effect)) {
+      bad(
+        `carry ${i}: \`effect\` is ${JSON.stringify(c.effect)}, not one of ${[...CARRY_EFFECTS].join('/')}. ` +
+          'The rule carries a finding on those three effects and refuses a threshold of importance; free text here is that threshold.'
+      )
+    }
+  })
+}
+
+export function lintCarryFile(file, { roster } = {}) {
+  const findings = []
+  const label = path.posix.basename(file)
+  let data
+  try {
+    data = JSON.parse(fs.readFileSync(file, 'utf8'))
+  } catch (e) {
+    findings.push({ group: label, severity: 'error', kind: 'carry', message: `could not be read as JSON: ${e.message}` })
+    return findings
+  }
+  checkCarryShape(file, data, findings, roster || rosterIssues())
+  const carries = Array.isArray(data?.carries) ? data.carries : []
+  carries.forEach((c, i) => {
+    if (!c || typeof c !== 'object') return
+    if (typeof c.brief !== 'string' || !c.brief.trim()) return // absence already reported
+    lintBrief(`${label} carry ${i}`, c.brief, findings)
+  })
+  return findings
+}
+
+export function carryFiles(dir) {
+  const base = dir || path.join(ROOT, '.claude', 'workflows')
+  let names
+  try {
+    names = fs.readdirSync(base)
+  } catch {
+    return []
+  }
+  return names
+    .filter((f) => CARRY_FILE_RE.test(f))
+    .sort()
+    .map((f) => path.join(base, f))
+}
+
 // ---------------------------------------------------------------------------
 // driver
 
@@ -913,6 +1072,60 @@ function assertCountDrift() {
   return 0
 }
 
+// Carry acceptance: fixtures/carry-99000*.json, the positive and the negative
+// in one set. `carry-990001.json` is a CORRECT carry and must produce NOTHING
+// -- errors and warnings both -- because a check that only ever shouts is a
+// check nobody can tell apart from a check that always shouts.
+// `carry-990002.json` is malformed in one way per rule, `carry-990003.json`
+// carries nothing at all, and `carry-990004.json` is filed at an issue a
+// roster group already covers. The roster is injected so the last of those
+// pins the rule rather than the current contents of wave-5-groups.json.
+const CARRY_FIXTURE_ROSTER = new Map([[990004, 'wave-probe-groups.json PROBE-G1']])
+const REQUIRED_CARRY = [
+  { file: 'carry-990002.json', kind: 'carry', needle: '`issue` is 990009 but the filename says 990002' },
+  { file: 'carry-990002.json', kind: 'carry', needle: '`stage` is missing' },
+  { file: 'carry-990002.json', kind: 'carry', needle: 'carry 0: `from` is missing' },
+  { file: 'carry-990002.json', kind: 'carry', needle: 'carry 0: `control` is missing' },
+  { file: 'carry-990002.json', kind: 'carry', needle: 'carry 0: `remeasure` is missing' },
+  { file: 'carry-990002.json', kind: 'carry', needle: 'carry 1: `brief` is missing' },
+  { file: 'carry-990002.json', kind: 'carry', needle: '`effect` is "worth knowing"' },
+  // The citation lint runs on a carry whose shape is already broken: one
+  // defect never hides another, the property checkShape's note protects.
+  { file: 'carry-990002.json', kind: 'path', needle: 'no_such_carry_probe.py' },
+  { file: 'carry-990003.json', kind: 'carry', needle: '`carries` is empty' },
+  { file: 'carry-990004.json', kind: 'carry', needle: 'already has a roster group (wave-probe-groups.json PROBE-G1)' },
+]
+
+function assertCarryFixtures() {
+  const dir = path.join(HERE, 'fixtures')
+  let problems = []
+  for (const name of ['carry-990001.json', 'carry-990002.json', 'carry-990003.json', 'carry-990004.json']) {
+    const file = path.join(dir, name)
+    const findings = lintFileGuarded(file, { roster: CARRY_FIXTURE_ROSTER }, lintCarryFile)
+    printReport(path.relative(ROOT, file), findings)
+    if (name === 'carry-990001.json') {
+      for (const f of findings) problems.push(`[${name}] ${f.severity} ${f.kind}: a correct carry must lint clean -- ${f.message}`)
+      continue
+    }
+    const errors = findings.filter((f) => f.severity === 'error')
+    for (const r of REQUIRED_CARRY.filter((r) => r.file === name)) {
+      if (!errors.some((e) => e.kind === r.kind && e.message.includes(r.needle))) {
+        problems.push(`[${name}] ${r.kind}: no error containing "${r.needle}"`)
+      }
+    }
+  }
+  if (problems.length) {
+    console.log('\nFIXTURE VACUOUS: carry acceptance:')
+    for (const m of problems) console.log(`  ${m}`)
+    return 1
+  }
+  console.log(
+    `\nCARRY ok: ${REQUIRED_CARRY.length} error(s) pin the carry acceptance across three malformed fixtures, ` +
+      'and the correct one produces no finding of any severity'
+  )
+  return 0
+}
+
 const GUARD_PROBE = 'driver-guard acceptance probe'
 
 // Driver-guard acceptance. No committed roster can throw any more, so the only
@@ -949,11 +1162,25 @@ function main() {
         .sort()
     : args
 
+  // A carry file is linted with the carry rules whether it arrives from the
+  // default scan or is named on the command line -- a reviewer re-running one
+  // file must get the same verdict CI got.
+  const isCarry = (f) => CARRY_FILE_RE.test(path.posix.basename(f))
+  const carries = defaultRun ? carryFiles() : files.filter(isCarry)
+  const rosters = defaultRun ? files : files.filter((f) => !isCarry(f))
+  const roster = rosterIssues()
+
   let totalErrors = 0
-  for (const f of files) {
+  for (const f of rosters) {
     totalErrors += printReport(path.relative(ROOT, f), lintFileGuarded(f))
   }
-  console.log(`\nTOTAL: ${totalErrors} error(s) across ${files.length} file(s)`)
+  for (const f of carries) {
+    totalErrors += printReport(path.relative(ROOT, f), lintFileGuarded(f, { roster }, lintCarryFile))
+  }
+  // Printed even at zero, and named: a destination nobody has written to is a
+  // fact a reviewer should read, not an absence they have to infer.
+  console.log(`\nCARRY: ${carries.length} carry file(s) (.claude/workflows/carry-<issue>.json)`)
+  console.log(`\nTOTAL: ${totalErrors} error(s) across ${rosters.length + carries.length} file(s)`)
   // Summed rather than short-circuited: a run that fails one acceptance still
   // reports the other two, so a report names every rule that stopped holding.
   let acceptanceRc = 0
@@ -963,6 +1190,7 @@ function main() {
     acceptanceRc += assertCountDrift()
     acceptanceRc += assertDriverGuard()
     acceptanceRc += assertGrepExcludeBounded()
+    acceptanceRc += assertCarryFixtures()
   }
   process.exit(totalErrors > 0 || acceptanceRc ? 1 : 0)
 }
