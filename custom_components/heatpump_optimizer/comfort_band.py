@@ -28,15 +28,24 @@ be imported from anywhere in the integration without dragging the config flow
 """
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
 from .const import (
     COMFORT_TEMP_NIGHT_SELECTOR_MAX,
     CONF_COMFORT_TEMP_DAY,
+    CONF_COMFORT_TEMP_DAY_WEEKEND,
     CONF_COMFORT_TEMP_NIGHT,
+    CONF_COMFORT_TEMP_NIGHT_WEEKEND,
     CONF_DAY_END_HOUR,
+    CONF_DAY_END_HOUR_WEEKEND,
     CONF_DAY_START_HOUR,
+    CONF_DAY_START_HOUR_WEEKEND,
+    CONF_HOLIDAY_COMFORT_DAY,
+    CONF_HOLIDAY_COMFORT_NIGHT,
+    CONF_HOLIDAY_DAY_END_HOUR,
+    CONF_HOLIDAY_DAY_START_HOUR,
     CONF_MAX_TEMP,
     CONF_MIN_TEMP,
     CONF_TARGET_TEMP,
@@ -74,6 +83,72 @@ def effective(
     can still create a contradiction with the stored other half.
     """
     return float(candidate.get(key, current.get(key, default)))
+
+
+def _pair_violations(
+    found: list[BandViolation],
+    eff: Callable[[str, Any], float],
+    candidate: dict[str, Any],
+    current: dict[str, Any],
+    minimum: float,
+    maximum: float,
+    day_key: str,
+    night_key: str,
+    start_key: str,
+    end_key: str,
+    day_default: float,
+    night_default: float,
+    start_default: float,
+    end_default: float,
+) -> None:
+    if not any(
+        key in candidate or key in current
+        for key in (day_key, night_key, start_key, end_key)
+    ):
+        return
+    pair_day = eff(day_key, day_default)
+    pair_night = eff(night_key, night_default)
+    pair_start = int(eff(start_key, start_default))
+    pair_end = int(eff(end_key, end_default))
+    if pair_night > pair_day:
+        found.append(
+            BandViolation(
+                night_key,
+                "night_above_day",
+                f"A night-time comfort temperature of {pair_night:g} °C "
+                f"is above the {pair_day:g} °C daytime one",
+            )
+        )
+    if pair_start >= pair_end:
+        found.append(
+            BandViolation(
+                end_key,
+                "day_window_empty",
+                f"The heating day would start at {pair_start}:00 and end "
+                f"at {pair_end}:00, leaving no daytime period at all",
+            )
+        )
+    if pair_day < minimum or pair_day > maximum:
+        found.append(
+            BandViolation(
+                day_key,
+                "comfort_outside_band",
+                f"A daytime comfort temperature of {pair_day:g} °C is "
+                f"outside the {minimum:g}-{maximum:g} °C comfort band",
+            )
+        )
+    pair_night_low = (
+        pair_night < minimum and minimum <= COMFORT_TEMP_NIGHT_SELECTOR_MAX
+    )
+    if pair_night_low or pair_night > maximum:
+        found.append(
+            BandViolation(
+                night_key,
+                "comfort_outside_band",
+                f"A night-time comfort temperature of {pair_night:g} °C "
+                f"is outside the {minimum:g}-{maximum:g} °C comfort band",
+            )
+        )
 
 
 def violations(
@@ -161,6 +236,39 @@ def violations(
                 f"outside the {minimum:g}-{maximum:g} °C comfort band",
             )
         )
+
+    _pair_violations(
+        found,
+        eff,
+        candidate,
+        current,
+        minimum,
+        maximum,
+        CONF_COMFORT_TEMP_DAY_WEEKEND,
+        CONF_COMFORT_TEMP_NIGHT_WEEKEND,
+        CONF_DAY_START_HOUR_WEEKEND,
+        CONF_DAY_END_HOUR_WEEKEND,
+        day,
+        night,
+        start,
+        end,
+    )
+    _pair_violations(
+        found,
+        eff,
+        candidate,
+        current,
+        minimum,
+        maximum,
+        CONF_HOLIDAY_COMFORT_DAY,
+        CONF_HOLIDAY_COMFORT_NIGHT,
+        CONF_HOLIDAY_DAY_START_HOUR,
+        CONF_HOLIDAY_DAY_END_HOUR,
+        day,
+        night,
+        start,
+        end,
+    )
     return found
 
 

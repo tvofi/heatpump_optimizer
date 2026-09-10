@@ -21,10 +21,14 @@ Kept free of Home Assistant imports so it can be unit-tested directly, like
 """
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
+import numpy as np
+
 from . import mixing_valve
+from .tariff import metering_windows
 from .const import (
     CONF_TOPOLOGY_POSITIONS,
     TOPOLOGY_NO_VALVE,
@@ -459,6 +463,7 @@ def describe_setup(config: dict[str, Any]) -> dict[str, Any]:
             ),
         },
         "slots": slots,
+        "sensor_gaps": rank_sensor_gaps(config),
     }
 
 
@@ -470,6 +475,17 @@ def _slot_lines(setup: dict[str, Any], place: str) -> list[str]:
         mark = "*" if slot["entity"] else "-"
         value = slot["entity"] or "not configured"
         lines.append(f"  {mark} {slot['label']}: {value}")
+    return lines
+
+
+def _sensor_gap_lines(setup: dict[str, Any]) -> list[str] | None:
+    gaps = setup.get("sensor_gaps") or []
+    ranked = [g for g in gaps if float(g.get("sek_per_month") or 0) > 0]
+    if not ranked:
+        return None
+    lines = ["Sensor-gap € (empty slots, estimated extra / month)"]
+    for gap in ranked[:5]:
+        lines.append(f"  - {gap['label']}: {gap['sek_per_month']:.0f}")
     return lines
 
 
@@ -550,5 +566,165 @@ def render_text_summary(setup: dict[str, Any]) -> str:
     outside += _slot_lines(setup, "outdoor")
     parts.append("\n".join(outside))
 
+    gap_lines = _sensor_gap_lines(setup)
+    if gap_lines:
+        parts.append("\n".join(gap_lines))
+
     body = "\n\n".join(parts)
     return f"```\n{body}\n```"
+
+
+def _window_peak(
+    series: Sequence[float], window_minutes: int, dt_hours: float
+) -> float:
+    if not series:
+        return 0.0
+    windows = metering_windows(
+        np.asarray(list(series), dtype=float), int(window_minutes), float(dt_hours)
+    )
+    if windows.size == 0:
+        return 0.0
+    return float(windows.max())
+
+
+def peak_miss_sek(
+    house_kw: Sequence[float],
+    hp_kw: Sequence[float],
+    price_per_kw: float,
+    window_minutes: int,
+    dt_hours: float = 0.25,
+    count: int = 3,
+) -> float:
+    """€/month the peak term misses when the house meter is absent."""
+    true_peak = _window_peak(house_kw, window_minutes, dt_hours)
+    blind_peak = _window_peak(hp_kw, window_minutes, dt_hours)
+    return max(0.0, (true_peak - blind_peak) * float(price_per_kw) / max(int(count), 1))
+
+
+def outdoor_cop_miss_sek(
+    load_kw: float,
+    hours: float,
+    price: float,
+    cop_true: float,
+    cop_guess: float,
+) -> float:
+    """€ from a COP miss when the outdoor probe is absent."""
+    if cop_true <= 0.0 or cop_guess <= 0.0:
+        return 0.0
+    extra_kwh = float(load_kw) * float(hours) * (1.0 / cop_guess - 1.0 / cop_true)
+    return max(0.0, extra_kwh * float(price))
+
+
+def dhw_coast_miss_sek(extra_kwh: float, price: float) -> float:
+    """€ from extra DHW reheat when the tank probe is absent."""
+    return max(0.0, float(extra_kwh) * float(price))
+
+
+def rank_sensor_gaps(
+    config: Mapping[str, Any],
+    *,
+    house_kw: Sequence[float] = (),
+    hp_kw: Sequence[float] = (),
+    peak_price: float = 45.0,
+    peak_window: int = 60,
+    peak_count: int = 3,
+    outdoor_load_kw: float = 0.0,
+    outdoor_hours: float = 0.0,
+    outdoor_price: float = 0.0,
+    cop_true: float = 3.2,
+    cop_guess: float = 2.6,
+    dhw_extra_kwh: float = 0.0,
+    dhw_price: float = 0.0,
+) -> list[dict[str, Any]]:
+    """Rank empty topology slots by estimated extra €/month (#699).
+
+    A configured slot ranks 0. Peak euros come from ``metering_windows``.
+    """
+    labels = {key: label for key, _place, label, _domains, _class in _SLOTS}
+    rows = (
+        (
+            CONF_HOUSE_POWER_ENTITY,
+            0.0
+            if config.get(CONF_HOUSE_POWER_ENTITY)
+            else peak_miss_sek(
+                house_kw, hp_kw, peak_price, peak_window, count=peak_count
+            ),
+        ),
+        (
+            CONF_OUTDOOR_TEMP_ENTITY,
+            0.0
+            if config.get(CONF_OUTDOOR_TEMP_ENTITY)
+            else outdoor_cop_miss_sek(
+                outdoor_load_kw,
+                outdoor_hours,
+                outdoor_price,
+                cop_true,
+                cop_guess,
+            ),
+        ),
+        (
+            CONF_DHW_TEMP_ENTITY,
+            0.0
+            if config.get(CONF_DHW_TEMP_ENTITY)
+            else dhw_coast_miss_sek(dhw_extra_kwh, dhw_price),
+        ),
+    )
+    ranked: list[dict[str, Any]] = [
+        {
+            "key": key,
+            "label": labels.get(key, key),
+            "sek_per_month": round(float(sek), 2),
+            "empty": not bool(config.get(key)),
+        }
+        for key, sek in rows
+    ]
+    ranked.sort(key=lambda row: float(row["sek_per_month"]), reverse=True)
+    return ranked
+
+
+def looks_like_pulse_power(
+    entity_id: str,
+    *,
+    name: str = "",
+    unique_id: str = "",
+    manufacturer: str = "",
+    device_class: str | None = None,
+    domain: str = "",
+) -> bool:
+    """Whether this looks like Tibber Pulse live power (#703)."""
+    resolved_domain = domain or (entity_id.split(".", 1)[0] if "." in entity_id else "")
+    if resolved_domain != "sensor":
+        return False
+    if str(device_class or "").lower() != "power":
+        return False
+    blob = " ".join(
+        part.lower()
+        for part in (entity_id, name, unique_id, manufacturer)
+        if part
+    )
+    if "price" in blob:
+        return False
+    return "pulse" in blob or ("tibber" in blob and "power" in blob)
+
+
+def suggest_house_power_entity(
+    current: str | None,
+    candidates: Sequence[Mapping[str, Any]],
+) -> str | None:
+    """Keep a set house-power entity; otherwise propose Pulse live power."""
+    if current:
+        return current
+    for candidate in candidates:
+        entity_id = str(candidate.get("entity_id") or "")
+        if not entity_id:
+            continue
+        if looks_like_pulse_power(
+            entity_id,
+            name=str(candidate.get("name") or ""),
+            unique_id=str(candidate.get("unique_id") or ""),
+            manufacturer=str(candidate.get("manufacturer") or ""),
+            device_class=candidate.get("device_class"),
+            domain=str(candidate.get("domain") or ""),
+        ):
+            return entity_id
+    return None
