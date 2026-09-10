@@ -11981,20 +11981,45 @@ R.check(
     "0.2 saved fraction",
 )
 _ctiny = _t2_coord()
-_ctiny._fold_score_sample(_T6, 0.1, 0.2, 2.0, 1.0, True)
+_ctiny._fold_score_sample(_T6, 0.05, 0.1, 2.0, 1.0, True)
 _ctiny._fold_score_sample(_apr, 0.0, 0.0, 2.0, 1.0, True)
 R.check(
     "a day with too little energy teaches nothing and is skipped",
     _ctiny._operation_score is None,
 )
+_cdhw = _t2_coord()
+# A summer DHW-only day: 0.8 kWh in the cheapest hours (below the old
+# 1 kWh floor that skipped every such day and left overall = envelope).
+for _spot_dhw in (0.4, 0.4, 2.0, 2.0):
+    _paid = 0.16 if _spot_dhw < 1.0 else 0.0
+    _kwh = 0.4 if _spot_dhw < 1.0 else 0.0
+    _cdhw._fold_score_sample(_T6, _kwh, _paid, _spot_dhw, 0.25, True)
+_cdhw._fold_score_sample(_apr, 0.0, 0.0, 1.2, 0.25, True)
+R.check(
+    "a DHW-only cheap day under 1 kWh still grades operation",
+    _cdhw._operation_score is not None
+    and abs(_cdhw._operation_score - 100.0) < 1e-6,
+    "0.8 kWh at 0.40 against a 1.20 flat-consumer mean is >= 20% below",
+)
 _fresh6 = _t2_coord()._scores_view()
 R.check(
-    "a fresh install grades only what it has: the configured envelope",
+    "a fresh install does not publish the house grade as overall",
     _fresh6["machine"] is None
     and _fresh6["operation"] is None
-    and _fresh6["overall"] == _fresh6["envelope"],
-    "machine and operation need measurements; the envelope is the house "
-    "as configured until the learners move its loss scale",
+    and _fresh6["overall"] is None
+    and _fresh6["envelope"] is not None,
+    "envelope stays in the breakdown; overall needs driving evidence",
+)
+_ce._operation_score = None
+_ce._cop_baseline.clear()
+_ce._thermal_params.heat_loss_coefficient = 0.417
+_ce._thermal_params.house_heat_loss_scale = 1.0
+_leaky = _ce._scores_view()
+R.check(
+    "a ~24 h house is not 5/100 overall while nothing has been driven",
+    _leaky["overall"] is None
+    and _leaky["envelope"] is not None
+    and _leaky["envelope"] < 10.0,
 )
 
 # --- #29 the narrative -----------------------------------------------------------

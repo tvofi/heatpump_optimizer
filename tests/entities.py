@@ -290,7 +290,7 @@ DATA = {
             "envelope": 75.0,
             "machine": 100.0,
             "operation": None,
-            "overall": 87.5,
+            "overall": 100.0,
         },
         "compressor_starts": {
             "lifetime": 412,
@@ -1224,7 +1224,7 @@ R.check(
 score = sensor.OptimizationScoreSensor(FakeCoordinator(DATA), ENTRY)
 R.check(
     "the score sensor states the overall grade with the parts in attributes",
-    score.native_value == 87.5
+    score.native_value == 100.0
     and score.extra_state_attributes.get("machine") == 100.0
     and "price_tiles" in score.extra_state_attributes,
 )
