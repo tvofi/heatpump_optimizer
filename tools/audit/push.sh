@@ -213,6 +213,15 @@ if [ "${1:-}" = "--self-test" ]; then
      "exit 0 and nothing printed did not answer either -- gh's --jq does exactly this"
   st "$(pr_from_listing 0 'GraphQL: Could not resolve to a Repository')" "unknown" \
      "prose on stdout is not a listing (null control on the two array cases)"
+  # An array-shaped listing carrying no `"number"` field at all. This is the one
+  # direction that fails OPEN: the fallthrough must answer `unknown`, and a later
+  # edit returning any digit string here would select the body-then-push arm for
+  # a pull request that was never identified. Nothing pinned it until a reviewer
+  # replaced that fallthrough with a bare number and the suite still passed.
+  st "$(pr_from_listing 0 '[{"headRefOid":"deadbeef"}]')" "unknown" \
+     "an array with no number field is unknown, not a number"
+  st "$(pr_arm "$(pr_from_listing 0 '[{"headRefOid":"deadbeef"}]')")" "refuse" \
+     "and that answer refuses rather than pushing"
 
   st "$(pr_arm none)" "push-then-create" "no pull request: the opened run is the first pr-contract run there is"
   st "$(pr_arm 704)" "body-then-push" "a pull request exists: the body is set before the push, per S10"
@@ -255,6 +264,13 @@ if [ "${1:-}" = "--self-test" ]; then
   # would take the headings with it. Compare the two directly.
   st "$(grep -c '^## ' "$W/b.md")" "$(grep -c '^## ' "$D/wrong-head.md")" \
      "the rewrite kept every other heading (null control on the repair)"
+  # The code-fence guard, which nothing pinned until a reviewer mutated it away
+  # and the suite still printed a clean pass. A `## Head` section containing a
+  # fenced block is refused rather than rewritten, because `awk` would drop the
+  # fence's contents along with the section and the loss is silent.
+  printf '## Head\n\n```\ngit rev-parse HEAD\n```\n\n## Figures\n' > "$W/fenced.md"
+  write_head "$W/fenced.md" "$ZERO"; st $? 2 "write_head refuses a \`## Head\` section containing a code fence"
+  st "$(grep -c '^```' "$W/fenced.md")" "2" "and leaves the fenced body untouched (null control on the refusal)"
   printf 'no head section here\n' > "$W/nohead.md"
   write_head "$W/nohead.md" "$ZERO"; st $? 1 "write_head refuses a body with no \`## Head\` heading"
   st "$(cat "$W/nohead.md")" "no head section here" "and leaves that body untouched"
