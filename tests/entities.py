@@ -10253,6 +10253,38 @@ R.check(
     "schema_errors" in _a8_check_src,
     "HA wraps the inner vol.Invalid; the path-only str hid why weather_entity failed",
 )
+_a8_sensor_posted = _nightly.a8_sensors_payload(
+    {
+        "weather_entity": "weather.ci_weather",
+        "indoor_temp_entity": "sensor.ci_indoor_temperature",
+        "tibber_token": "nightly-ha-local",
+    },
+    ("weather_entity", "indoor_temp_entity"),
+)
+R.check(
+    "A8 sensors payload omits weather_entity; that key belongs to step user",
+    _a8_sensor_posted == {"indoor_temp_entity": "sensor.ci_indoor_temperature"},
+    f"posted={_a8_sensor_posted!r}",
+)
+_a5_seed_opts = _nightly._seed_payload()["options"]
+_a5_seed_missing = [
+    row.key
+    for row in config_flow._OPTION_FIELDS
+    if row.default
+    not in (
+        config_flow._STORED,
+        config_flow._DYNAMIC,
+        config_flow._SUGGESTED,
+    )
+    and not isinstance(row.default, (config_flow._Computed, config_flow._Suggested))
+    and row.default is not None
+    and row.key not in _a5_seed_opts
+]
+R.check(
+    "the nightly seed stores every concrete option-field default",
+    not _a5_seed_missing,
+    f"missing={_a5_seed_missing[:8]}",
+)
 
 _a9_states_ok = _nightly.Checks()
 _nightly.check_a9_reload_loaded(_a9_states_ok, ["loaded"] * _nightly.A9_RELOADS)
@@ -10429,6 +10461,13 @@ R.check(
     "HeatPumpOptimizerConfigEntry is bound on the package, not via _lazy",
     "HeatPumpOptimizerConfigEntry" in integration.__dict__,
     "HA 2026 get_type_hints looks the name up on the setup path and _lazy is a blocking import_module",
+)
+_async_lazy_src = _inspect.getsource(integration._async_lazy)
+R.check(
+    "_async_lazy offloads import_module itself, not the _lazy wrapper",
+    "import_module" in _async_lazy_src
+    and "async_add_import_executor_job(_lazy" not in _async_lazy_src,
+    "wrapping import_module in _lazy ran the import on the loop (A14)",
 )
 
 # tools/audit/preflight.sh refuses a closing keyword the orchestrator did not

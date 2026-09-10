@@ -1409,6 +1409,22 @@ async def _async_check_a9(checks: Checks, hass, entry):
     return entry
 
 
+def a8_sensors_payload(
+    data: dict, identity_keys: tuple[str, ...] | list[str] | frozenset[str]
+) -> dict:
+    """Second-step answers: identity entities the sensors form owns.
+
+    ``weather_entity`` is a user-step key. Posting it again on
+    ``user_sensors`` is ``InvalidData`` (2025.2.0: extra keys; stable:
+    not a valid option, did you mean a sensors-step key).
+    """
+    return {
+        key: data[key]
+        for key in identity_keys
+        if data.get(key) and key != "weather_entity"
+    }
+
+
 async def _async_duplicate_user_flow(hass, seed) -> str | None:
     data = seed["data"]
     cf = _prod_mod("config_flow")
@@ -1423,7 +1439,7 @@ async def _async_duplicate_user_flow(hass, seed) -> str | None:
             "weather_entity": data["weather_entity"],
         },
     )
-    sensors = {key: data[key] for key in cf._IDENTITY_ENTITY_KEYS if data.get(key)}
+    sensors = a8_sensors_payload(data, cf._IDENTITY_ENTITY_KEYS)
     result = await hass.config_entries.flow.async_configure(_flow_id(result), sensors)
     return _flow_reason(result)
 
@@ -2137,6 +2153,33 @@ def _fixture_defaults(pages: dict) -> dict:
     return out
 
 
+def _live_option_defaults() -> dict:
+    """Concrete ``_F.default`` values the golden may have omitted.
+
+    ``section()`` fills ``Optional(..., default=)`` on an empty group.
+    If the seed never stored that key, a no-op options walk writes it
+    and ``a5:byte_unchanged`` sees the stored bytes move.
+    """
+    tests_dir = str(Path(__file__).resolve().parent)
+    cc = str(ROOT / "custom_components")
+    stub = str(Path(tests_dir) / "hastub")
+    for path in (stub, tests_dir, cc):
+        if path not in sys.path:
+            sys.path.insert(0, path)
+    from heatpump_optimizer import config_flow as cf
+
+    skip = {cf._STORED, cf._DYNAMIC, cf._SUGGESTED}
+    out: dict = {}
+    for row in cf._OPTION_FIELDS:
+        default = row.default
+        if default in skip or isinstance(default, (cf._Computed, cf._Suggested)):
+            continue
+        if default is None:
+            continue
+        out[row.key] = default
+    return out
+
+
 def _seed_payload(*, thermometers: bool = True) -> dict:
     """The config entry, from the flow's own recorded defaults.
 
@@ -2187,7 +2230,11 @@ def _seed_payload(*, thermometers: bool = True) -> dict:
     data = _fixture_defaults(initial_pages)
     data.update({"name": "CI"})
     data.update(wiring)
-    options = {**_fixture_defaults(options_pages), **wiring}
+    options = {
+        **_fixture_defaults(options_pages),
+        **_live_option_defaults(),
+        **wiring,
+    }
     if not thermometers:
         for key in THERMOMETER_KEYS:
             data.pop(key, None)
