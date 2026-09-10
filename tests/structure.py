@@ -100,10 +100,16 @@ Metrics (definitions, one line each; the code is the authority):
                               on every run (``DYNAMIC_REFERENCES``)
   internal_call_edges         ``self.m(...)`` call occurrences inside the
                               coordinator where ``m`` is one of its own methods
-  cross_seam_fraction         the fraction of those edges whose endpoints sit
-                              in different name-regex seam buckets (dhw /
-                              learning / fetch / grid / views, first regex
-                              wins, everything else is core)
+  cross_seam_edges            those edges whose endpoints sit in different
+                              name-regex seam buckets (dhw / learning / fetch /
+                              grid / views, first regex wins, everything else
+                              is core). A COUNT, since 2026-09-10: it replaced
+                              the ratio cross_edges / internal_call_edges,
+                              whose denominator every cohesive extraction
+                              shrinks faster than its numerator, so the ratio
+                              rose on exactly the moves it was meant to price
+                              (the legionella guard: 17 edges out, 6 of them
+                              cross, ratio up, count down)
   cut_<seam>                  per-seam cut cost: cross attr refs + cross
                               method refs the extraction would have to make
                               explicit -- attribute references on self
@@ -115,16 +121,13 @@ Metrics (definitions, one line each; the code is the authority):
 Run:
 
     python tests/structure.py             ratchet: metrics vs budgets, FAIL on
-                                          any worsening (floats tolerate
-                                          +-0.005) AND on any improvement that
-                                          is not yet recorded (#350), except
-                                          for NEVER_RERECORDED metrics
+                                          any worsening AND on any improvement
+                                          that is not yet recorded (#350)
     python tests/structure.py --record    recompute and WRITE the budget table
                                           (run this on a clean tree, at the
                                           SHA recorded in ``recorded_at``).
                                           REFUSES if any metric would move the
-                                          wrong way; tolerance metrics are
-                                          carried forward, never re-recorded
+                                          wrong way; every metric is
 
     python tests/structure.py --record --allow-regression="<reason>"
                                           record anyway, for a stated reason
@@ -273,41 +276,16 @@ DYNAMIC_REFERENCES: dict[tuple[str, str], tuple[str, str, str, str]] = {
     ),
 }
 
-# Metrics that are fractions, not counts: they compare with a tolerance
-# instead of "must not exceed", because a one-method change moves them by
-# less than the noise of rounding. Everything else must be <= its budget.
-FRACTION_METRICS = {"cross_seam_fraction"}
-FRACTION_TOLERANCE = 0.005
-
-# Metrics that are DELIBERATELY never re-recorded (#350, and #370's fourth
-# comment, which is where the category comes from). ``ratchet`` below fails an
-# improvement that has not been written down; without this category the two
-# correct decisions already taken on ``cross_seam_fraction`` -- declining to
-# record it in #352 and again in #360 -- become gate violations the moment
-# re-recording is mandatory.
-#
-# Membership rule, and it is structural rather than a matter of taste: a
-# tolerance metric passing INSIDE its band has nothing to record, and failing
-# OUTSIDE it is a decision to be made rather than bookkeeping to be locked in.
-# There is no third case, so the operation is never bookkeeping for this class.
-# Which way it moves the gate depends on the drift and both directions are a
-# reason to keep it out of a bulk re-record: an UPWARD drift loosens the fail
-# ceiling (budget 0.4289, TOL 0.005, ceiling 0.4339; recording a measured
-# 0.4301 moves it to 0.4351 while buying nothing -- the case #352 and #360 both
-# correctly declined), and a DOWNWARD one tightens it (recording today's 0.4220
-# moves the ceiling to 0.4270). A tightening is not free either: it changes
-# what the gate permits, so it belongs in a deliberate edit that says so, not
-# in a table written by a command the gate told somebody to run.
-#
-# So every FRACTION_METRIC belongs here, which ``ratchet`` asserts rather than
-# assumes: a metric carrying both a tolerance band and a re-record demand is
-# carrying two mechanisms for one job and they disagree. The two sets are kept
-# separate because they mean different things -- FRACTION_METRICS decides how a
-# value is COMPARED and printed, this decides whether it is ever WRITTEN -- and
-# a count could in principle join this one for a reason of its own. Correcting
-# a member is a deliberate edit with its own reason, which is what makes it
-# visible when it happens.
-NEVER_RERECORDED = {"cross_seam_fraction"}
+# Every metric is a count that only moves down. There used to be two more
+# categories here -- FRACTION_METRICS, compared inside a +-0.005 band, and
+# NEVER_RERECORDED, carried forward untouched by --record -- with one member
+# between them, cross_seam_fraction. Both retired on 2026-09-10 with that
+# metric: a ratio of cross-seam call edges to all call edges falls when a
+# class tangles and RISES when a cohesive part leaves it (the legionella guard
+# removes 17 edges of which 6 cross a seam), so it refused the one move it was
+# built to price. cross_seam_edges, the ratio's own numerator, ratchets like
+# every other row and falls on that move. The seam table still prints the
+# ratio as evidence; nothing budgets it.
 
 
 # ---------------------------------------------------------------------------
@@ -737,7 +715,7 @@ def seam_metrics(coord_class: ast.ClassDef) -> dict:
             # The call-edge arm below stays keyed on a literal ``self``: no
             # ctx-rooted reference in coordinator.py names a coordinator
             # method, and widening it would move internal_call_edges and
-            # cross_seam_fraction, which this change must not touch.
+            # cross_seam_edges, which this change must not touch.
             if (
                 isinstance(node, ast.Attribute)
                 and id(node) not in hops
@@ -977,7 +955,7 @@ def measure() -> dict:
         "local_imports": len(local_imports),
         "dead_top_level_symbols": len(dead_symbols),
         "internal_call_edges": seam["internal_call_edges"],
-        "cross_seam_fraction": round(seam["cross_seam_fraction"], 4),
+        "cross_seam_edges": seam["cross_edges"],
         **coordinator,
         **seam["cut_costs"],
     }
@@ -995,6 +973,7 @@ def measure() -> dict:
         "duplication": sorted(duplication),
         "seam_rows": seam["seam_rows"],
         "cross_edges": seam["cross_edges"],
+        "cross_seam_fraction": round(seam["cross_seam_fraction"], 4),
     }
     return {"metrics": metrics, "tables": tables}
 
@@ -1074,8 +1053,8 @@ def print_report(result: dict) -> None:
 
     print()
     print("########## coordinator seam table ##########")
-    print("  internal self-method call occurrences: %d, crossing a seam: %d"
-          % (metrics["internal_call_edges"], tables["cross_edges"]))
+    print("  internal self-method call occurrences: %d, crossing a seam: %d (ratio %.4f, evidence only)"
+          % (metrics["internal_call_edges"], tables["cross_edges"], tables["cross_seam_fraction"]))
     print("  %-8s %8s %6s %6s %6s %6s" % ("seam", "methods", "attrs", "xattr", "xmeth", "cut"))
     for label, methods, owned, xattr, xmeth, cut in tables["seam_rows"]:
         print("  %-8s %8d %6d %6d %6d %6d" % (label, methods, owned, xattr, xmeth, cut))
@@ -1083,8 +1062,7 @@ def print_report(result: dict) -> None:
     print()
     print("########## RESULT lines ##########")
     for key in sorted(metrics):
-        unit = "fraction" if key in FRACTION_METRICS else "count"
-        print(f"RESULT {key}={metrics[key]} {unit}")
+        print(f"RESULT {key}={metrics[key]} count")
     thread_factor = 1.0
     if time.thread_time() > 0 and time.process_time() > 0:
         thread_factor = round(time.process_time() / max(time.thread_time(), 1e-9), 3)
@@ -1171,10 +1149,6 @@ def regression_rows(old: dict, new: dict) -> list[tuple[str, float, float]]:
     hand-maintained list to rot, which is the class of defect #364 and #304
     both turned out to be, so there deliberately is not one.
 
-    ``NEVER_RERECORDED`` metrics are skipped, and that is not an oversight (it
-    reverses #370's issue body). ``record_budgets`` does not rewrite them at
-    all -- see that category's own comment for why the operation is meaningless
-    for the class -- which leaves this check nothing to check there.
 
     Keys absent from either side are not rows: a metric that appeared or
     disappeared is already a FAIL in ``ratchet`` ("measured but not in the
@@ -1182,7 +1156,7 @@ def regression_rows(old: dict, new: dict) -> list[tuple[str, float, float]]:
     """
     rows = []
     for key in sorted(set(old) & set(new)):
-        if key == "recorded_at" or key in NEVER_RERECORDED:
+        if key == "recorded_at":
             continue
         if new[key] > old[key]:
             rows.append((key, old[key], new[key]))
@@ -1212,17 +1186,14 @@ def improvement_rows(budgets: dict, metrics: dict) -> list[tuple[str, float, flo
     silent across the first eleven. The tree improves rarely, which is exactly
     why the improvement is worth capturing when it happens.
 
-    Same two exclusions as ``regression_rows``, for the same reasons:
-    ``recorded_at`` is provenance rather than a metric, and
-    ``NEVER_RERECORDED`` is a category whose members must never be written --
-    demanding a re-record there would turn two correct decisions into gate
-    violations; see that category's comment. A key present on one
+    Same exclusion as ``regression_rows``, for the same reason:
+    ``recorded_at`` is provenance rather than a metric. A key present on one
     side only is not a row either: it is already a FAIL in ``ratchet``
     ("measured but not in the budget table"), and it has no pair to compare.
     """
     rows = []
     for key in sorted(set(budgets) & set(metrics)):
-        if key == "recorded_at" or key in NEVER_RERECORDED:
+        if key == "recorded_at":
             continue
         if metrics[key] < budgets[key]:
             rows.append((key, budgets[key], metrics[key]))
@@ -1308,15 +1279,6 @@ def record_budgets(result: dict, allow_regression: str | None = None) -> int:
     if BUDGET_FILE.exists():
         previous = json.loads(BUDGET_FILE.read_text())
 
-    # A NEVER_RERECORDED metric is exactly that: carry the recorded value
-    # forward untouched. Correcting one is a deliberate edit of its own, with
-    # its own reason, which is what makes it visible.
-    carried = []
-    for key in sorted(NEVER_RERECORDED & set(previous) & set(payload)):
-        if payload[key] != previous[key]:
-            carried.append((key, previous[key], payload[key]))
-        payload[key] = previous[key]
-
     rows = regression_rows(previous, payload)
     if rows:
         print()
@@ -1342,14 +1304,6 @@ def record_budgets(result: dict, allow_regression: str | None = None) -> int:
         print("ALLOWED: %s" % allow_regression.strip())
         print("Repeat this reason in the commit message -- the squash-merge keeps")
         print("the commit and discards the branch.")
-
-    for key, kept, measured in carried:
-        print()
-        print("  keeping recorded %s = %s (tree measures %s): this metric"
-              % (key, kept, measured))
-        print("  is never re-recorded -- inside its band there is nothing to record,")
-        print("  outside it a failure is a decision, and either way a re-record can")
-        print("  only loosen the band. Correct it deliberately, on its own (#370).")
 
     payload["recorded_at"] = recorded_at_sha()
     BUDGET_FILE.write_text(json.dumps(payload, indent=1, sort_keys=True) + "\n")
@@ -1380,14 +1334,6 @@ def ratchet(result: dict) -> int:
     print()
     print("########## ratchet vs %s (recorded_at %s) ##########"
           % (BUDGET_FILE.name, budgets.get("recorded_at", "?")[:12]))
-    stray = sorted(FRACTION_METRICS - NEVER_RERECORDED)
-    if stray:
-        print("FAIL %s carries a tolerance band AND a re-record demand;"
-              % ", ".join(stray))
-        print("  those are two mechanisms for one job and they disagree. A metric")
-        print("  that passes inside a band has nothing to record and fails outside")
-        print("  it as a decision, so it belongs in NEVER_RERECORDED (#350, #370).")
-        failures += 1
     why = recorded_at_unreachable(budgets.get("recorded_at", ""))
     if why is not None:
         print(f"FAIL {why};")
@@ -1408,29 +1354,14 @@ def ratchet(result: dict) -> int:
             failures += 1
             continue
         budget, current = budget_keys[key], metrics[key]
-        if key in FRACTION_METRICS:
-            if current > budget + FRACTION_TOLERANCE:
-                print(f"FAIL {key} {current:.4f} > {budget + FRACTION_TOLERANCE:.4f} "
-                      f"(budget {budget}, +{current - budget:+.4f})")
-                failures += 1
-            elif current < budget - FRACTION_TOLERANCE:
-                print(f"  ok   {key} {current:.4f} <= {budget} "
-                      f"({current - budget:+.4f}, and NEVER re-recorded:"
-                      " correcting it is a deliberate edit of its own)")
-            else:
-                print(f"  ok   {key} {current:.4f} <= {budget}")
+        if current > budget:
+            print(f"FAIL {key} {current} > {budget} (+{current - budget})")
+            failures += 1
+        elif key in improved:
+            print(f"  gain {key} {current} (budget {budget},"
+                  f" {current - budget:+d}; not yet recorded -- see below)")
         else:
-            if current > budget:
-                print(f"FAIL {key} {current} > {budget} (+{current - budget})")
-                failures += 1
-            elif key in improved:
-                print(f"  gain {key} {current} (budget {budget},"
-                      f" {current - budget:+d}; not yet recorded -- see below)")
-            elif current < budget:
-                print(f"  ok   {key} {current} <= {budget}"
-                      f" ({current - budget:+d}, and NEVER re-recorded)")
-            else:
-                print(f"  ok   {key} {current} <= {budget}")
+            print(f"  ok   {key} {current} <= {budget}")
     if improvements:
         # Not `bool(failures)`: what suppresses the command is precisely what
         # --record would refuse, which is a row over its budget. A key-set
@@ -1449,7 +1380,7 @@ def ratchet(result: dict) -> int:
         print("question; a raise is for when the honest answer is that you")
         print("cannot. A raise needs the repository OWNER'S EXPLICIT CONFIRMATION")
         print("before the branch is pushed -- stop and ask, do not push and")
-        print("explain -- and it never applies to cross_seam_fraction.")
+        print("explain.")
         print("A budget may only be re-recorded deliberately, on a clean tree,")
         print("with the reason in the COMMIT -- never to make a failure go away.")
         print("--record refuses any row that moves the wrong way unless you pass")

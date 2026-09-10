@@ -76,6 +76,7 @@ from heatpump_optimizer.tariff import (
     realised_peak,
 )
 from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator as Coord
+from heatpump_optimizer.dhw_learning import DhwProfileLearner
 from heatpump_optimizer.thermal_model import ThermalModel, ThermalParameters, ThermalState
 
 R = Results("Feature modules")
@@ -3552,41 +3553,47 @@ R.check(
 import asyncio as _aio
 
 
-class _DhwUsage:
-    _async_learn_dhw_usage = Coord._async_learn_dhw_usage
-    _normalize_dhw_profile = Coord._normalize_dhw_profile
+class _DhwUsage(DhwProfileLearner):
+    """The learner itself (W5-G9), with persistence stubbed out."""
 
     def __init__(self) -> None:
-        self._dhw_cooling_rate = 0.3
-        self._dhw_hourly_profile = [1.0] * 24
+        super().__init__(
+            FakeHass(),
+            "dhw-usage",
+            ThermalParameters(),
+            frozen=lambda *_: None,
+            heating_active=lambda: False,
+            external_heat_active=lambda: False,
+        )
+        self.cooling_rate = 0.3
+        self.hourly_profile = [1.0] * 24
         # v4.0.0 T3 (#18): the learner also teaches the day-type arrays.
-        self._dhw_profile_weekday = [1.0] * 24
-        self._dhw_profile_weekend = [1.0] * 24
-        self._dhw_daytype_samples = [0, 0]
-        self._dhw_daytype_last_day = ["", ""]
-        self._thermal_params = ThermalParameters()
+        self.profile_weekday = [1.0] * 24
+        self.profile_weekend = [1.0] * 24
+        self.daytype_samples = [0, 0]
+        self.daytype_last_day = ["", ""]
 
-    async def _async_save_dhw_profile(self) -> None:
+    async def async_save_profile(self) -> None:
         pass
 
 
 _standby_only = _DhwUsage()
 _aio.run(
-    _standby_only._async_learn_dhw_usage(
+    _standby_only.async_learn_usage(
         55.0, 0.42, 1.0, 3, False  # exactly the expected standby drop at 55 °C
     )
 )
 R.check(
     "a pure standby drop teaches no draw",
-    _standby_only._dhw_hourly_profile == [1.0] * 24,
+    _standby_only.hourly_profile == [1.0] * 24,
     "0.42 °C/h at 55 °C is the tank cooling, not a shower at 3 am",
 )
 _real_draw = _DhwUsage()
-_aio.run(_real_draw._async_learn_dhw_usage(55.0, 2.0, 1.0, 7, False))
+_aio.run(_real_draw.async_learn_usage(55.0, 2.0, 1.0, 7, False))
 R.check(
     "a genuine draw still reinforces its hour",
-    _real_draw._dhw_hourly_profile[7] > 1.0
-    and _real_draw._dhw_hourly_profile[7] > _real_draw._dhw_hourly_profile[3],
+    _real_draw.hourly_profile[7] > 1.0
+    and _real_draw.hourly_profile[7] > _real_draw.hourly_profile[3],
 )
 
 # --- A stale plan is not a prediction -------------------------------------
@@ -3767,8 +3774,15 @@ R.check(
 from harness import FakeEntry as _StoreFakeEntry, FakeHass as _StoreFakeHass
 from homeassistant.helpers.storage import _reset_store_disk as _reset_stores
 
+def _store_path(obj, dotted):
+    """Resolve ``a.b.c`` on ``obj`` -- the DHW stores moved into the learner (W5-G9)."""
+    for part in dotted.split("."):
+        obj = getattr(obj, part)
+    return obj
+
+
 _STORE_LOADERS = (
-    ("_dhw_profile_store", "_async_load_dhw_profile"),
+    ("_dhw_learner.profile_store", "_dhw_learner.async_load_profile"),
     ("_thermal_learning_store", "_async_load_thermal_learning"),
     ("_price_model_store", "_async_load_price_model"),
     ("_ledger_store", "_async_load_ledger"),
@@ -3797,9 +3811,9 @@ def _store_coord():
 for _store_attr, _loader_name in _STORE_LOADERS:
     for _junk in ([1, 2, 3], "nonsense", 7):
         _coord = _store_coord()
-        _aio.run(getattr(_coord, _store_attr).async_save(_junk))
+        _aio.run(_store_path(_coord, _store_attr).async_save(_junk))
         try:
-            _aio.run(getattr(_coord, _loader_name)())
+            _aio.run(_store_path(_coord, _loader_name)())
             _ok = True
             _detail = ""
         except Exception as _err:  # noqa: BLE001
@@ -3812,9 +3826,9 @@ for _store_attr, _loader_name in _STORE_LOADERS:
         )
 
 _dhw_junk = _store_coord()
-_aio.run(_dhw_junk._dhw_profile_store.async_save({"hourly_profile": ["x"] * 24}))
+_aio.run(_dhw_junk._dhw_learner.profile_store.async_save({"hourly_profile": ["x"] * 24}))
 try:
-    _aio.run(_dhw_junk._async_load_dhw_profile())
+    _aio.run(_dhw_junk._dhw_learner.async_load_profile())
     _dhw_ok = True
     _dhw_detail = ""
 except Exception as _err:  # noqa: BLE001
@@ -6256,6 +6270,34 @@ R.check(
     "diagram makes easy, and it plans against nonsense rather than erroring",
 )
 
+_dumb_cfg = {
+    "indoor_temp_entity": "sensor.indoor",
+    "upper_floor_thermal_mass": 3.0,
+    "mixing_valve_mode": "manual",
+    "buffer_tank_volume": 750.0,
+    hp_const.CONF_MIXING_VALVE_TARGET: 21.0,
+}
+_dumb_setup = _topo.describe_setup(_dumb_cfg)
+_dumb_valve = next(
+    s
+    for s in _dumb_setup["slots"]
+    if s["key"] == hp_const.CONF_MIXING_VALVE_TARGET_ENTITY
+)
+R.check(
+    "a mixing valve without a target entity still publishes its place",
+    _dumb_valve["entity"] is None,
+    "the dumb-valve case is no entity, not a missing slot",
+)
+R.check(
+    "and the published slot carries the manual setpoint",
+    _dumb_valve.get("manual_setpoint") == 21.0,
+    f"manual_setpoint was {_dumb_valve.get('manual_setpoint')!r}",
+)
+R.check(
+    "ThermalParameters.from_config uses that number when no entity is set",
+    ThermalParameters.from_config(_dumb_cfg).mixing_valve_target == 21.0,
+)
+
 R.check(
     "the flow overview is a fenced monospaced block",
     _text.startswith("```\n") and _text.endswith("\n```"),
@@ -6764,12 +6806,12 @@ asyncio.run(
     param_coord.async_update_thermal_params({"dhw_windows": "07:00-09:00"})
 )
 
-param_coord._dhw_cooling_samples = 30
+param_coord._dhw_learner.cooling_samples = 30
 asyncio.run(param_coord.async_update_thermal_params({"dhw_cooling_rate": 0.5}))
 R.check(
     "an explicit cooling rate restarts the learner from it",
-    abs(param_coord._dhw_cooling_rate - 0.5) < 1e-9
-    and param_coord._dhw_cooling_samples == 0,
+    abs(param_coord._dhw_learner.cooling_rate - 0.5) < 1e-9
+    and param_coord._dhw_learner.cooling_samples == 0,
 )
 
 R.check(
@@ -9336,14 +9378,14 @@ R.check(
 _c18 = _t2_coord()
 R.check(
     "with no day-type evidence the blend IS the pooled profile",
-    _c18._dhw_pattern_for(True) == _c18._dhw_hourly_profile,
+    _c18._dhw_learner.pattern_for(True) == _c18._dhw_learner.hourly_profile,
 )
-_c18._dhw_profile_weekend = [2.0 if h in (9, 10) else 0.5 for h in range(24)]
-_c18._dhw_daytype_samples[1] = 28  # two weekends of evidence -> w = 2/3
-_blend = _c18._dhw_pattern_for(True)
+_c18._dhw_learner.profile_weekend = [2.0 if h in (9, 10) else 0.5 for h in range(24)]
+_c18._dhw_learner.daytype_samples[1] = 28  # two weekends of evidence -> w = 2/3
+_blend = _c18._dhw_learner.pattern_for(True)
 R.check(
     "weekend evidence moves the weekend pattern toward late mornings",
-    _blend != _c18._dhw_hourly_profile and _blend[9] > _c18._dhw_hourly_profile[9],
+    _blend != _c18._dhw_learner.hourly_profile and _blend[9] > _c18._dhw_learner.hourly_profile[9],
 )
 R.check(
     "and the blend still budgets the same daily volume",
@@ -9352,7 +9394,7 @@ R.check(
 )
 R.check(
     "weekday evidence does not leak into the weekend answer",
-    _c18._dhw_pattern_for(False) == _c18._dhw_hourly_profile,
+    _c18._dhw_learner.pattern_for(False) == _c18._dhw_learner.hourly_profile,
 )
 
 # --- #28 mixed litres, by hand -----------------------------------------------------
@@ -9402,7 +9444,7 @@ R.check(
     _sweep["candidates"][-1]["cost_per_day"]
     > _sweep["candidates"][0]["cost_per_day"],
 )
-_c9._draw_stats.reservoirs["06:00-08:30"] = [8.0] * 10
+_c9._dhw_learner.draw_stats.reservoirs["06:00-08:30"] = [8.0] * 10
 _sweep2 = _c9._dhw_setpoint_sweep()
 R.check(
     "a heavy learned window pushes the recommendation up",
@@ -10605,14 +10647,14 @@ R.check(
 )
 _cr._apply_house_heat_loss_scale(1.0)
 # Profiles are mean-1 weight vectors; this shape survives normalization.
-_cr._dhw_profile_weekend = [1.5] * 12 + [0.5] * 12
-_cr._dhw_daytype_samples[1] = 9
+_cr._dhw_learner.profile_weekend = [1.5] * 12 + [0.5] * 12
+_cr._dhw_learner.daytype_samples[1] = 9
 _cr._snapshot_ring.take(
     NOW, _cr._learner_snapshot_payloads(), {"temperature_bias": 0.1}, True
 )
 _cr._apply_house_heat_loss_scale(1.5)
-_cr._dhw_daytype_samples[1] = 0
-_cr._dhw_profile_weekend = [0.5] * 12 + [1.5] * 12
+_cr._dhw_learner.daytype_samples[1] = 0
+_cr._dhw_learner.profile_weekend = [0.5] * 12 + [1.5] * 12
 R.check(
     "the service applies the newest qualifying snapshot",
     _asyncio.run(_cr.async_restore_learned_snapshot()) is True
@@ -10620,8 +10662,8 @@ R.check(
 )
 R.check(
     "the day-type profiles restore with the pool, samples included",
-    _cr._dhw_daytype_samples[1] == 9
-    and abs(_cr._dhw_profile_weekend[0] - 1.5) < 1e-9,
+    _cr._dhw_learner.daytype_samples[1] == 9
+    and abs(_cr._dhw_learner.profile_weekend[0] - 1.5) < 1e-9,
     "half a rollback would blend one week's pool with another's shapes",
 )
 R.check(
@@ -10631,10 +10673,10 @@ R.check(
 )
 R.check(
     "the snapshot serialises the DHW profile through the store's own producer",
-    "profile_weekday" in inspect.getsource(_Coord._dhw_profile_payload)
-    and "_dhw_profile_payload"
-    in inspect.getsource(_Coord._async_save_dhw_profile)
-    and "_dhw_profile_payload"
+    "profile_weekday" in inspect.getsource(DhwProfileLearner.payload)
+    and "self.payload()"
+    in inspect.getsource(DhwProfileLearner.async_save_profile)
+    and "_dhw_learner.payload()"
     in inspect.getsource(_Coord._learner_snapshot_payloads),
     "a second hand-built copy is how formats drift",
 )
@@ -22622,20 +22664,21 @@ R.check(
 # tell locking in a gain from laundering a regression. The direction is
 # uniformly `new > old` -- ratchet() compares every metric in the budgets table
 # the same way, so
-# there is no per-metric direction table to maintain -- and FRACTION_METRICS
-# is skipped: a tolerance metric inside its band has nothing to record, and
-# outside it a failure is a decision, not bookkeeping.
+# there is no per-metric direction table to maintain. (2026-09-10: the one
+# tolerance metric, cross_seam_fraction, was retired for the count
+# cross_seam_edges, so every row now ratchets the same way; the pins below
+# that once exercised the skipped category exercise the uniform rule instead.)
 _hpo_g_old = {
     "coordinator_loc": 10394,
     "methods_over_150": 23,
     "duplication_blocks": 13,
-    "cross_seam_fraction": 0.4289,
+    "cross_seam_edges": 157,
     "recorded_at": "4b6e076517431bd8658530c5ac751f2b7ddb7ef6",
 }
 _hpo_g_base = {k: v for k, v in _hpo_g_old.items() if k != "recorded_at"}
 _hpo_g_worse = dict(_hpo_g_base, coordinator_loc=10420, methods_over_150=22)
-_hpo_g_better = dict(_hpo_g_base, coordinator_loc=10380, cross_seam_fraction=0.4301)
-_hpo_g_frac = dict(_hpo_g_base, cross_seam_fraction=0.4301)
+_hpo_g_better = dict(_hpo_g_base, coordinator_loc=10380, cross_seam_edges=152)
+_hpo_g_edges_up = dict(_hpo_g_base, cross_seam_edges=160)
 
 
 def _hpo_g_rows(old: dict, new: dict):
@@ -22652,10 +22695,11 @@ R.check(
     "re-record that carries one row along with another",
 )
 R.check(
-    "cross_seam_fraction moving up is NOT a regression row: FRACTION_METRICS is skipped",
-    _hpo_g_rows(_hpo_g_old, _hpo_g_frac) == [],
-    f"regression_rows = {_hpo_g_rows(_hpo_g_old, _hpo_g_frac)}; FRACTION_METRICS = "
-    f"{sorted(getattr(_hpo_st, 'FRACTION_METRICS', ()))}",
+    "cross_seam_edges moving up IS a regression row: the retired ratio's band is gone",
+    _hpo_g_rows(_hpo_g_old, _hpo_g_edges_up) == [("cross_seam_edges", 157, 160)],
+    f"regression_rows = {_hpo_g_rows(_hpo_g_old, _hpo_g_edges_up)}; a cohesive "
+    "extraction lowers this count and a tangle raises it, which is the polarity "
+    "the ratio it replaced inverted (2026-09-10)",
 )
 
 
@@ -22713,13 +22757,14 @@ R.check(
     f"recorded_at = {_hpo_g_tight[1].get('recorded_at')!r}",
 )
 R.check(
-    "cross_seam_fraction is carried forward, never re-recorded (#370)",
-    _hpo_g_tight[1].get("cross_seam_fraction") == 0.4289
-    and _hpo_g_record(_hpo_g_frac)[1].get("cross_seam_fraction") == 0.4289,
-    "a tolerance metric passing inside its band has nothing to record and failing "
-    "outside it is a decision, so re-recording one can only ever loosen the band. "
-    f"Got {_hpo_g_tight[1].get('cross_seam_fraction')!r} and "
-    f"{_hpo_g_record(_hpo_g_frac)[1].get('cross_seam_fraction')!r}",
+    "cross_seam_edges is recorded like every other row -- a tightening lands",
+    _hpo_g_tight[1].get("cross_seam_edges") == 152
+    and _hpo_g_record(_hpo_g_edges_up)[0] == 1
+    and _hpo_g_record(_hpo_g_edges_up)[1].get("cross_seam_edges") == 157,
+    "the count moved down in _hpo_g_better and must be written; moved up in "
+    "_hpo_g_edges_up and --record must refuse the whole table. Got "
+    f"{_hpo_g_tight[1].get('cross_seam_edges')!r} and "
+    f"{_hpo_g_record(_hpo_g_edges_up)!r}",
 )
 R.check(
     "--allow-regression is a flag that demands a reason, not a bare switch",
@@ -22744,7 +22789,6 @@ R.section("#350/#374 — an improvement must be recorded, and the worst method h
 
 # Same rule as the section above: these drive tests/structure.py's own
 # symbols. `structure as _hpo_st` is already imported there.
-_hpo_h_never = getattr(_hpo_st, "NEVER_RERECORDED", None)
 _hpo_h_imp = getattr(_hpo_st, "improvement_rows", None)
 _hpo_h_report = getattr(_hpo_st, "report_improvements", None)
 
@@ -22759,7 +22803,7 @@ _hpo_h_budgets = {
     "max_class_loc": 10394,
     "internal_call_edges": 379,
     "methods_over_150": 23,
-    "cross_seam_fraction": 0.4289,
+    "cross_seam_edges": 157,
     "recorded_at": "4b6e076517431bd8658530c5ac751f2b7ddb7ef6",
 }
 _hpo_h_better = {
@@ -22767,7 +22811,7 @@ _hpo_h_better = {
     "max_class_loc": 10365,
     "internal_call_edges": 372,
     "methods_over_150": 23,
-    "cross_seam_fraction": 0.4220,
+    "cross_seam_edges": 157,
 }
 _hpo_h_worse = dict(_hpo_h_better, methods_over_150=24)
 _hpo_h_level = {k: v for k, v in _hpo_h_budgets.items() if k != "recorded_at"}
@@ -22811,36 +22855,28 @@ R.check(
     f"regression_rows = {_hpo_g_rows(_hpo_h_budgets, _hpo_h_level)}",
 )
 
-# The category #370's fourth comment asked for. Without it, `tvofi-claude-09`'s
-# two correct decisions to decline re-recording cross_seam_fraction become two
-# gate violations the moment re-recording is mandatory.
+# The categories #370's fourth comment asked for -- a tolerance band and a
+# never-re-recorded set -- had one member, cross_seam_fraction, and retired
+# with it on 2026-09-10: a ratio whose denominator every cohesive extraction
+# shrinks rose on the very move it was built to price. Its numerator,
+# cross_seam_edges, is a plain count under the uniform rule, and these two
+# pins hold that no exemption came back with it.
 R.check(
-    "NEVER_RERECORDED exists and holds cross_seam_fraction (#350, #370)",
-    isinstance(_hpo_h_never, (set, frozenset)) and "cross_seam_fraction" in _hpo_h_never,
-    f"NEVER_RERECORDED = {_hpo_h_never!r}; a tolerance metric passing inside its "
-    "band has nothing to record and failing outside it is a decision, so there is "
-    "no third case and a re-record could only ever loosen the band",
+    "no metric is exempt from the ratchet: the two retired categories are gone",
+    not hasattr(_hpo_st, "NEVER_RERECORDED") and not hasattr(_hpo_st, "FRACTION_METRICS"),
+    "a set that exempts a row from --record is what let a ratio sit on the table "
+    "for five re-records while it priced cohesion backwards",
 )
 R.check(
-    "improvement_rows skips it, so declining to re-record it can never be a failure",
+    "improvement_rows names cross_seam_edges like any other row when it falls",
     _hpo_h_rows(
-        {"cross_seam_fraction": 0.4289, "coordinator_loc": 10394},
-        {"cross_seam_fraction": 0.4220, "coordinator_loc": 10394},
+        {"cross_seam_edges": 157, "coordinator_loc": 10394},
+        {"cross_seam_edges": 152, "coordinator_loc": 10394},
     )
-    == [],
-    "cross_seam_fraction reads 0.4220 against a recorded 0.4289 on this fork, which "
-    "is headroom by any comparison; demanding a re-record there would loosen the "
-    "0.4339 ceiling for nothing. Got "
-    f"{_hpo_h_rows({'cross_seam_fraction': 0.4289, 'coordinator_loc': 10394}, {'cross_seam_fraction': 0.4220, 'coordinator_loc': 10394})}",
-)
-R.check(
-    "every tolerance metric is in the category -- a ratchet on a band is a contradiction",
-    _hpo_h_never is not None
-    and set(getattr(_hpo_st, "FRACTION_METRICS", set())) <= set(_hpo_h_never),
-    f"FRACTION_METRICS = {sorted(getattr(_hpo_st, 'FRACTION_METRICS', ()))}, "
-    f"NEVER_RERECORDED = {sorted(_hpo_h_never or ())}; a metric with both a "
-    "tolerance band and a re-record demand is carrying two mechanisms for one job "
-    "and they disagree",
+    == [("cross_seam_edges", 157, 152)],
+    "the legionella guard's extraction reads 157 -> 152 on this count; the gate "
+    "must ask for that gain to be written down, where the ratio read a breach. Got "
+    f"{_hpo_h_rows({'cross_seam_edges': 157, 'coordinator_loc': 10394}, {'cross_seam_edges': 152, 'coordinator_loc': 10394})}",
 )
 
 
@@ -22893,7 +22929,7 @@ R.check(
         k in _hpo_h_block
         for k in ("coordinator_loc", "internal_call_edges", "max_class_loc")
     )
-    and "cross_seam_fraction" not in _hpo_h_block,
+    and "cross_seam_edges" not in _hpo_h_block,
     f"the block after the IMPROVED header was:\n{_hpo_h_block}",
 )
 R.check(
@@ -22925,17 +22961,19 @@ R.check(
     and "BREACHED" in _hpo_h_run_worse[1],
     f"ratchet returned {_hpo_h_run_worse[0]!r}. Output:\n{_hpo_h_run_worse[1]}",
 )
-_hpo_h_run_frac = _hpo_h_ratchet(
-    {"cross_seam_fraction": 0.4289, "coordinator_loc": 10394,
+_hpo_h_run_edges = _hpo_h_ratchet(
+    {"cross_seam_edges": 157, "coordinator_loc": 10394,
      "recorded_at": _hpo_h_budgets["recorded_at"]},
-    {"cross_seam_fraction": 0.4220, "coordinator_loc": 10394},
+    {"cross_seam_edges": 152, "coordinator_loc": 10394},
 )
 R.check(
-    "headroom on a never-re-recorded metric alone leaves the run green",
-    _hpo_h_run_frac[0] == 0,
-    f"ratchet returned {_hpo_h_run_frac[0]!r} for a tree whose only movement is "
-    "cross_seam_fraction inside its own category. Output:\n"
-    f"{_hpo_h_run_frac[1]}",
+    "headroom on cross_seam_edges alone is an unrecorded improvement, so the run fails",
+    _hpo_h_run_edges[0] == 1 and "IMPROVED" in _hpo_h_run_edges[1]
+    and "cross_seam_edges" in _hpo_h_run_edges[1],
+    f"ratchet returned {_hpo_h_run_edges[0]!r} for a tree whose only movement is "
+    "cross_seam_edges falling; under the retired ratio this same move read as "
+    "'inside its own category' and stayed silent. Output:\n"
+    f"{_hpo_h_run_edges[1]}",
 )
 if _hpo_h_report is not None:
     _hpo_h_mixed_out = _hpo_g_io.StringIO()
@@ -23039,16 +23077,14 @@ R.check(
 )
 R.check(
     "both are plain counts, so the existing current > budget arm handles them",
-    "max_method_loc" not in _hpo_st.FRACTION_METRICS
-    and "max_cc" not in _hpo_st.FRACTION_METRICS
+    not hasattr(_hpo_st, "FRACTION_METRICS")
     and _hpo_h_ratchet(
         {"max_cc": 87, "recorded_at": _hpo_h_budgets["recorded_at"]}, {"max_cc": 88}
     )[0] == 1
     and "FAIL max_cc 88 > 87" in _hpo_h_ratchet(
         {"max_cc": 87, "recorded_at": _hpo_h_budgets["recorded_at"]}, {"max_cc": 88}
     )[1],
-    "no tolerance, no new polarity, nothing that touches the FRACTION_METRICS "
-    "exemption. Output:\n"
+    "no tolerance, no new polarity, no exemption. Output:\n"
     f"{_hpo_h_ratchet({'max_cc': 87, 'recorded_at': _hpo_h_budgets['recorded_at']}, {'max_cc': 88})[1]}",
 )
 R.check(
@@ -23965,7 +24001,8 @@ R.check(
 R.check(
     "and each went through the IMPORT executor, not the general one",
     len(_g525_hass.import_jobs) >= 3
-    and set(_g525_hass.import_jobs) == {_integ._lazy},
+    and {getattr(job, "__name__", None) for job in _g525_hass.import_jobs}
+    == {"import_module"},
     f"import jobs: {_g525_hass.import_jobs!r}",
 )
 # Null control for the meter itself: the same drive on a hass whose executor

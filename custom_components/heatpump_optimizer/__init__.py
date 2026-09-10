@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import importlib
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
@@ -26,8 +26,13 @@ from homeassistant.loader import async_get_integration
 
 from .const import DOMAIN, CONFIG_ENTRY_VERSION
 
-if TYPE_CHECKING:
-    from .coordinator import HeatPumpOptimizerConfigEntry
+# Bound here, not via ``_lazy``. Home Assistant 2026 evaluates
+# ``async_setup_entry``'s annotations with ``get_type_hints``, which looks
+# this name up on the package during setup. ``_lazy`` is ``import_module``
+# of a relative name (never a ``sys.modules`` key), so that lookup was a
+# blocking call on the event loop and silenced the #588 probe by
+# de-duplicating at ``(integration, file, lineno)``.
+HeatPumpOptimizerConfigEntry = ConfigEntry
 
 # Importing this package must not execute the coordinator's module graph.
 # ``coordinator`` and ``services`` reach 40 of the integration's modules
@@ -39,7 +44,6 @@ if TYPE_CHECKING:
 # run the change could not affect. Home Assistant reaches everything below
 # through ``async_setup``/``async_setup_entry``, which run long after import.
 _LAZY_ATTRS = {
-    "HeatPumpOptimizerConfigEntry": "coordinator",
     "HeatPumpOptimizerCoordinator": "coordinator",
     # The four service schemas the test suite pokes through the package root
     # (the facade rule): they are defined in -- and re-exported from --
@@ -57,16 +61,17 @@ def _lazy(module: str):
 
 
 async def _async_lazy(hass: HomeAssistant, module: str):
-    """``_lazy`` off the event loop (#525).
+    """``import_module`` off the event loop (#525).
 
-    ``import_module`` reads and compiles files, so Home Assistant's own
-    detector reports every one of these against this integration and asks the
-    user to file a bug. Its answer is the import executor, and the laziness
-    above costs nothing to keep: the closure argument for ``_LAZY_ATTRS``
-    survives intact. ``__getattr__`` stays synchronous because PEP 562 has no
-    other shape; nothing on a setup path reaches the package through it.
+    The job target is ``import_module`` itself. Passing ``_lazy`` made
+    Home Assistant's import executor treat the callable as ordinary work
+    and run it on the loop -- the A14 report at ``_lazy``'s
+    ``import_module`` line, which then de-duplicated the #588 probe on
+    2025.2.0.
     """
-    return await hass.async_add_import_executor_job(_lazy, module)
+    return await hass.async_add_import_executor_job(
+        importlib.import_module, f".{module}", __package__
+    )
 
 
 def __getattr__(name: str) -> Any:

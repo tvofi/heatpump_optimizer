@@ -1,6 +1,6 @@
 # Handover — the open-issues programme
 
-updated-for: 83b1645
+updated-for: 6978107
 
 The rule that governs this file is `.claude/rules/writing-for-agents.md`, which
 the harness loads on this very path. Delivery status is
@@ -27,7 +27,7 @@ the harness loads on this very path. Delivery status is
 - **A seam move was sequenced to S12, S12 halted (#637); W5-G9/W5-G10 own it now**
   (owner, 2026-09-10): the dhw profile learner first, the only candidate a
   `seam_metrics` simulation lowers on every budget row; the legionella guard after
-  R1 swaps `cross_seam_fraction` for the absolute cross-edge count, since a cohesive
+  #753 swaps `cross_seam_fraction` for the count `cross_seam_edges`, since a cohesive
   extraction removes more intra- than cross-seam edges and a ratio cannot see that.
 - **`_helper(self, ...)` is refused** — it erases moved references at zero cost, a
   measurement artefact, not a decomposition; a supplied-literal check pins nothing.
@@ -116,10 +116,10 @@ list was unrecoverable when it was one artifact call away. Per-unit stage,
   because it moves 33 card states. Then one demanding an *empty* claim list on a
   branch that claims nothing — the same thing only when the baseline claims
   nothing too. It is not: a squash then applies that deletion to `main` and
-  carries another lane's claims off with it. Measured on three precedents —
-  #608 took 33 of #569's lines, #635 the same to #633's, #658 was stopped on
-  the way to #653's. Three independent routes now enforce the new form: the
-  record check, the autofix bot, and the stale-claim judgement.
+  carries another lane's claims off with it. Measured four times — #608 took
+  33 of #569's lines, #635 the same to #633's, #658 was stopped on the way to
+  #653's, #746 took #735's six. Since #747 the guard, the bot and the stale-claim
+  judgement ask per file kind: never write a list for a kind you cannot move.
 - **The pull-request checks listing is not a faithful instrument** (#669). It
   shows the latest run per check, so an earlier red behind a later green is
   invisible —
@@ -356,9 +356,8 @@ in its own pull request.
 their final head**, because the session's review capacity was exhausted by an
 account rate limit before the round could run: **#591, #592, #596, #602, #603,
 #605, #569**, and separately **#606**, merged with no review at all because
-`main` was red and it was the repair.
-
-Each squash body says so and names what a reviewer should start from.
+`main` was red and it was the repair. Each squash body says so and names what a
+reviewer should start from.
 
 Two of these matter more than the rest. **#603** is policy whose owner-approved
 form changed twice after approval. **#596** introduces `tests/typing_budgets.json`
@@ -389,6 +388,8 @@ flagged it rather than claiming a carry it had not made.
   holds the producing pull request from merging until the carry is in the tree.
   Two branches owing a carry to the same contract therefore cannot both comply.
   Raised on #201; no seat may decide it.
+- **#680 (decision 0008): machine account with write, authorization switch, a
+  seat's verified login — then the rule, never first; 0005 says why.**
 
 ## The machine this runs on — measure it, do not read it
 

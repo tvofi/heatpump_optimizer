@@ -1233,14 +1233,21 @@ def apply_inherited_claims(
     `baseline_dir` is a tree, not a revision, and the tests that use it
     supply the diff's intent themselves.
     """
+    kinds = {CLAIM_FILE: True, CARD_CLAIM_FILE: True}
     if ref:
         try:
-            if not moves_claimable(three_dot_files(repo, ref)):
-                return "skip-moves-nothing-claimable"
+            kinds = claim_kinds(three_dot_files(repo, ref))
         except GitAnswerMissing:
             return "skip-cannot-compare"
+        if not any(kinds.values()):
+            return "skip-moves-nothing-claimable"
     changed = False
     for rel in (CLAIM_FILE, CARD_CLAIM_FILE):
+        # A list this branch cannot have written is not its to empty: the
+        # emptied file squashes onto the baseline and deletes another lane's
+        # claims (#608, #635). Per file kind, the same rule as the guard.
+        if not kinds[rel]:
+            continue
         path = os.path.join(repo, rel)
         if not os.path.exists(path):
             continue
@@ -1600,9 +1607,90 @@ def justifies_card_claim(path: str) -> bool:
     return path == CARD_JS
 
 
+def moves_solver_claimable(changed: list[str]) -> bool:
+    """Could this three-dot have moved a solver golden ``CLAIM_FILE`` excuses?"""
+    return any(justifies_solver_claim(p) for p in changed)
+
+
+def moves_card_claimable(changed: list[str]) -> bool:
+    """Could this three-dot have moved a card state ``CARD_CLAIM_FILE`` excuses?"""
+    return any(justifies_card_claim(p) for p in changed)
+
+
 def moves_claimable(changed: list[str]) -> bool:
     """Could this three-dot have moved anything a claim excuses?"""
-    return any(justifies_solver_claim(p) or justifies_card_claim(p) for p in changed)
+    return moves_solver_claimable(changed) or moves_card_claimable(changed)
+
+
+def claim_kinds(changed: list[str]) -> dict[str, bool]:
+    """Which claim file this three-dot may have written for: file -> bool.
+
+    The two files excuse different fixtures moved by different paths, so
+    the question is asked per file, never per branch. A branch that moves a
+    solver file and no card file can have written the solver list and cannot
+    have written the card list -- and `main` legitimately carries card claims
+    between a card merge and the next stamp, so the first solver branch after
+    one inherits a card list it must leave exactly as found. Judging that
+    list as the branch's own is what refused W5-G9 for #735's six claims and
+    offered it the one remedy #662 exists to refuse: empty a list someone
+    else wrote, which a squash then applies to `main`.
+    """
+    return {
+        CLAIM_FILE: moves_solver_claimable(changed),
+        CARD_CLAIM_FILE: moves_card_claimable(changed),
+    }
+
+
+def foreign_claim_file_error(
+    claim_file: str, claims: dict[str, str], baseline: dict[str, str], cannot: str
+) -> str | None:
+    """Why a three-dot that cannot move what ``claim_file`` excuses changed it.
+
+    None when the file's parsed list is the baseline's. Same rule as
+    `record_pr_claims_error`, per file: the branch has nothing to say about
+    that file, so it leaves it as found -- in either direction.
+    """
+    if claims == baseline:
+        return None
+    return (
+        f"RECORD PR CLAIMS: {claim_file} differs from the baseline's list, but "
+        f"this branch's three-dot cannot move {cannot}, so it cannot have "
+        "written that list for this diff. It is about to add or DELETE a claim "
+        "it did not write -- and a squash-merge applies that deletion to the "
+        "baseline. Restore the file to the baseline's content."
+    )
+
+
+def claims_hygiene_verdict(
+    changed: list[str],
+    solver: dict[str, str],
+    card: dict[str, str],
+    base_solver: dict[str, str],
+    base_card: dict[str, str],
+    ref: str,
+) -> str | None:
+    """The claim-file rule for one three-dot, per file kind. None when it holds.
+
+    For each claim file: if the three-dot can move what that file excuses, an
+    inherited list -- the baseline's, name for name and reason for reason --
+    is refused, because it was written for another diff; if it cannot, the
+    file must be exactly as found. A three-dot that can move neither is the
+    record-PR case and keeps its own rule and message.
+    """
+    kinds = claim_kinds(changed)
+    if not any(kinds.values()):
+        return record_pr_claims_error(changed, solver, card, base_solver, base_card)
+    for claim_file, claims, baseline, cannot in (
+        (CLAIM_FILE, solver, base_solver, "a solver golden"),
+        (CARD_CLAIM_FILE, card, base_card, "a card state"),
+    ):
+        if kinds[claim_file]:
+            inherited = inherited_claims_error(claims, baseline, ref, claim_file)
+        else:
+            inherited = foreign_claim_file_error(claim_file, claims, baseline, cannot)
+        if inherited:
+            return inherited
+    return None
 
 
 def record_pr_claims_error(
@@ -1693,7 +1781,7 @@ def stale_claims_judged(repo: str, ref: str) -> bool:
     diff must not quietly stop failing.
     """
     try:
-        return moves_claimable(three_dot_files(repo, ref))
+        return moves_solver_claimable(three_dot_files(repo, ref))
     except GitAnswerMissing:
         return True
 
@@ -1722,15 +1810,7 @@ def check_claims_hygiene(repo: str, ref: str) -> str | None:
             "not be computed, so no statement about claims can be made from it.\n"
             "A shallow clone is the usual cause: git fetch --unshallow origin."
         )
-    if not moves_claimable(changed):
-        return record_pr_claims_error(changed, solver, card, base_solver, base_card)
-    inherited = inherited_claims_error(solver, base_solver, ref, CLAIM_FILE)
-    if inherited:
-        return inherited
-    inherited = inherited_claims_error(card, base_card, ref, CARD_CLAIM_FILE)
-    if inherited:
-        return inherited
-    return record_pr_claims_error(changed, solver, card, base_solver, base_card)
+    return claims_hygiene_verdict(changed, solver, card, base_solver, base_card, ref)
 
 
 def self_comparison_error(ref: str, head: str) -> str:
