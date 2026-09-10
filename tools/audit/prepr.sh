@@ -298,6 +298,14 @@ if [ -n "$BODY" ] && [ "$BODY" != "--self-test" ]; then
   step "pr-body" $? "$(tail -1 /tmp/prepr-body.$$)"
   rm -f /tmp/prepr-body.$$
 
+  # --- 7a. every figure's command resolves. `pr-contract` runs the same script,
+  # so this is the cheaper detector rather than a second opinion: the #715
+  # defect it answers cost a review round to find, and finding it here costs one
+  # node spawn on a body a seat is about to open.
+  node .claude/workflows/figure_lint.mjs --pr-body "$BODY" >/tmp/prepr-fig.$$ 2>&1
+  step "figures" $? "$(tail -1 /tmp/prepr-fig.$$)"
+  rm -f /tmp/prepr-fig.$$
+
   # --- 7b. and is the head it names one the REMOTE already has? push_order above
   # carries the reasoning; this derives the branch's OWN remote branch -- the
   # local mirror of the ref a pull request's head points at -- and prints the
