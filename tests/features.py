@@ -24007,7 +24007,8 @@ R.check(
 R.check(
     "and each went through the IMPORT executor, not the general one",
     len(_g525_hass.import_jobs) >= 3
-    and set(_g525_hass.import_jobs) == {_integ._lazy},
+    and {getattr(job, "__name__", None) for job in _g525_hass.import_jobs}
+    == {"import_module"},
     f"import jobs: {_g525_hass.import_jobs!r}",
 )
 # Null control for the meter itself: the same drive on a hass whose executor
