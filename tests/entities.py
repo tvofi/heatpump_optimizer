@@ -290,7 +290,7 @@ DATA = {
             "envelope": 75.0,
             "machine": 100.0,
             "operation": None,
-            "overall": 87.5,
+            "overall": 100.0,
         },
         "compressor_starts": {
             "lifetime": 412,
@@ -1224,7 +1224,7 @@ R.check(
 score = sensor.OptimizationScoreSensor(FakeCoordinator(DATA), ENTRY)
 R.check(
     "the score sensor states the overall grade with the parts in attributes",
-    score.native_value == 87.5
+    score.native_value == 100.0
     and score.extra_state_attributes.get("machine") == 100.0
     and "price_tiles" in score.extra_state_attributes,
 )
@@ -5609,7 +5609,7 @@ R.check(
 )
 
 switches = collect(switch_mod)
-R.check("the switch platform adds the optimizer and away switches", len(switches) == 2)
+R.check("the switch platform adds the optimizer, away and boost switches", len(switches) == 4)
 sw = next(
     s for s in switches
     if getattr(s, "entity_id", "") == "switch.heat_pump_optimizer_optimizer_active"
@@ -5656,6 +5656,52 @@ away_sw = next(
 )
 R.check("the away switch pins today's object id", away_sw.entity_id == "switch.heat_pump_optimizer_away")
 R.check("the away switch is off when the override is off", not away_sw.is_on)
+dhw_boost_sw = next(
+    s for s in switches
+    if getattr(s, "entity_id", "") == "switch.heat_pump_optimizer_boost_dhw"
+)
+space_boost_sw = next(
+    s for s in switches
+    if getattr(s, "entity_id", "") == "switch.heat_pump_optimizer_boost_space"
+)
+R.check(
+    "the DHW boost switch pins today's object id",
+    dhw_boost_sw.entity_id == "switch.heat_pump_optimizer_boost_dhw",
+)
+R.check(
+    "the space boost switch pins today's object id",
+    space_boost_sw.entity_id == "switch.heat_pump_optimizer_boost_space",
+)
+R.check(
+    "the DHW boost switch is named through its translation key",
+    display_name("switch", dhw_boost_sw) == "Boost hot water",
+    display_name("switch", dhw_boost_sw),
+)
+R.check(
+    "the space boost switch is named through its translation key",
+    display_name("switch", space_boost_sw) == "Boost space heating",
+    display_name("switch", space_boost_sw),
+)
+R.check("both boost switches are off when no overlay is live",
+    not dhw_boost_sw.is_on and not space_boost_sw.is_on)
+asyncio.run(dhw_boost_sw.async_turn_on())
+R.check(
+    "turning DHW boost on reaches the coordinator",
+    dhw_boost_sw.coordinator.boost_calls[-1] == {"channel": "dhw", "active": True},
+    str(dhw_boost_sw.coordinator.boost_calls),
+)
+asyncio.run(space_boost_sw.async_turn_on())
+R.check(
+    "turning space boost on reaches the coordinator",
+    space_boost_sw.coordinator.boost_calls[-1] == {"channel": "space", "active": True},
+    str(space_boost_sw.coordinator.boost_calls),
+)
+asyncio.run(dhw_boost_sw.async_turn_off())
+R.check(
+    "turning DHW boost off reaches the coordinator",
+    dhw_boost_sw.coordinator.boost_calls[-1] == {"channel": "dhw", "active": False},
+    str(dhw_boost_sw.coordinator.boost_calls),
+)
 
 # --- #195 tranche 2: switch.py's remaining branches -------------------------------
 _no_data_switch = switch_mod.OptimizerEnableSwitch(FakeCoordinator(None), ENTRY)
@@ -8428,6 +8474,26 @@ _svc_call(const.SERVICE_APPLY_TOPOLOGY, {"layout": "no_valve"})
 R.check(
     "apply_topology stores the validated layout",
     _svc_entry.options.get(const.CONF_TOPOLOGY_LAYOUT) == "no_valve",
+)
+_svc_call(
+    const.SERVICE_APPLY_TOPOLOGY,
+    {"layout": "no_valve", "dhw": True, "wood": False},
+)
+R.check(
+    "apply_topology stores tank flags and seeds a missing DHW volume",
+    _svc_entry.options.get(const.CONF_DHW_ENABLED) is True
+    and _svc_entry.options.get(const.CONF_WOOD_FURNACE_ENABLED) is False
+    and _svc_entry.options.get(const.CONF_DHW_TANK_VOLUME)
+    == const.DEFAULT_DHW_TANK_VOLUME,
+)
+_svc_call(
+    const.SERVICE_APPLY_TOPOLOGY,
+    {"layout": "no_valve", "dhw": False, "wood": True},
+)
+R.check(
+    "apply_topology can turn DHW off and wood on",
+    _svc_entry.options.get(const.CONF_DHW_ENABLED) is False
+    and _svc_entry.options.get(const.CONF_WOOD_FURNACE_ENABLED) is True,
 )
 
 _svc_call(

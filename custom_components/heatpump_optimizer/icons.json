@@ -237,6 +237,12 @@
       "away": {
         "default": "mdi:walk"
       },
+      "boost_dhw": {
+        "default": "mdi:water-boiler"
+      },
+      "boost_space": {
+        "default": "mdi:radiator"
+      },
       "optimizer_active": {
         "default": "mdi:robot"
       }

@@ -3,7 +3,10 @@ import vm from "vm";
 import path from "path";
 import crypto from "crypto";
 import { fileURLToPath } from "url";
-import { makeCardContext, CLAIM_FILE, parseClaims, claimVersionError, frozenDateClass } from "./card_rig.mjs";
+import { makeCardContext, CLAIM_FILE, parseClaims, claimVersionError, frozenDateClass,
+         CARD_PATH as CLAIMED_CARD_PATH, CAPTURE_SOURCES,
+         justifiesSolverClaim, justifiesCardClaim, movesClaimable,
+         threeDotFiles, claimsAreThisBranchs } from "./card_rig.mjs";
 
 // Plan payload written by tests/plan_view.py earlier in the run. The path is
 // argv[2], or HPO_PLANDATA, or a default derived from this checkout's tests/
@@ -1965,6 +1968,22 @@ check("the hand-scheduled reason has a label",
   const setupPage = collect(su.shadowRoot).join("\n");
   check("the setup page draws the system", /setup-svg/.test(setupPage) &&
     /Buffer tank \(750 L\)/.test(setupPage) && /Wood furnace tank/.test(setupPage));
+  check("the setup page offers add/remove tank toggles",
+    /data-tank="dhw"/.test(setupPage) && /data-tank="wood"/.test(setupPage)
+    && /aria-pressed="true"/.test(setupPage));
+  const tankCalls = [];
+  su._hass.callService = async (domain, service, data) => {
+    tankCalls.push([domain, service, data]);
+  };
+  const dhwBtn = su.shadowRoot.querySelector('[data-tank="dhw"]');
+  if (dhwBtn) await Promise.all(
+    (dhwBtn._listeners.click || []).map((f) => f({ stopPropagation() {} })));
+  check("toggling the DHW tank calls apply_topology",
+    tankCalls.length === 1 && tankCalls[0][0] === "heatpump_optimizer"
+    && tankCalls[0][1] === "apply_topology"
+    && tankCalls[0][2].dhw === false
+    && tankCalls[0][2].wood === true,
+    JSON.stringify(tankCalls));
   check("live values are read straight from hass states",
     /21\.3 °C/.test(setupPage) && /47\.5 °C/.test(setupPage));
   check("an unavailable sensor says so instead of a stale number",
@@ -7016,6 +7035,14 @@ const setupBox = (card, place) =>
   awayOn._onCardClick({});
   check("return datetime is shown while the switch is on",
     /data-away-return/.test(collect(awayOn.shadowRoot).join("\n")));
+  const awaySetup = build(withAway(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), { sw: true }));
+  awaySetup._onCardClick({});
+  awaySetup.dialog.page = "setup";
+  awaySetup._render();
+  check("setup page shows return datetime while the switch is on",
+    /data-away-return/.test(collect(awaySetup.shadowRoot).join("\n")));
+  check("collapsed card still has no away toggle after the setup-page strip",
+    !/data-away-toggle/.test(collect(build(withAway(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), { sw: true })).shadowRoot).join("\n")));
   const awayPerson = build(withAway(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), { resolved: true }));
   awayPerson._onCardClick({});
   check("person-away while the switch is off shows a status line",
@@ -7429,6 +7456,72 @@ const STOCK_THEMES = {
   const { declared } = parseClaims(fs.readFileSync(CLAIM_FILE, "utf8"));
   const err = claimVersionError(declared, version);
   check(`the card markup gate's claim file is stamped for v${version}`, !err, err || "");
+}
+
+// --- Whose claim is it? the judgement card_drift.mjs gates its two claim ----
+// failures on. Ported from tests/env_drift.py's `stale_claims_judged`, which
+// #658 added there and card_drift.mjs never received: on the tree that merged
+// #735's six card claims, `env_drift.py --claims-only` printed
+// "claims hygiene: ok" while card_drift.mjs failed the same branch with one
+// INHERITED CLAIMS and six STALE CLAIMs. Two gates reading one file must not
+// answer differently about it, so these assert the SIBLING's rule -- the union
+// over both claim files -- and not a card-shaped approximation of it.
+{
+  check("a docs-only three-dot moves nothing a claim excuses",
+    movesClaimable(["docs/HANDOVER.md", "README.md", ".github/workflows/tests.yml"]) === false);
+  check("the card source moves something a claim excuses",
+    movesClaimable(["docs/HANDOVER.md", CLAIMED_CARD_PATH]) === true);
+  check("justifiesCardClaim names the card and nothing beside it",
+    justifiesCardClaim(CLAIMED_CARD_PATH) === true
+    && justifiesCardClaim(CLAIMED_CARD_PATH + ".map") === false
+    && justifiesCardClaim("custom_components/heatpump_optimizer/www/other.js") === false);
+  // The union, deliberately: env_drift.py runs `inherited_claims_error`
+  // against the CARD claim file gated on this same predicate, so a branch
+  // touching only integration Python is judged for its card claims there.
+  // Narrowing it here would re-open the disagreement the other way round.
+  check("integration Python moves something a claim excuses (the union)",
+    justifiesSolverClaim("custom_components/heatpump_optimizer/coordinator.py") === true
+    && movesClaimable(["custom_components/heatpump_optimizer/coordinator.py"]) === true);
+  check("a capture source moves something a claim excuses",
+    CAPTURE_SOURCES.every((p) => justifiesSolverClaim(p) === true)
+    && movesClaimable(["tests/golden.py"]) === true);
+  check("a non-Python file under the integration does not, on its own",
+    justifiesSolverClaim("custom_components/heatpump_optimizer/manifest.json") === false);
+  check("a test script that is not a capture source does not",
+    justifiesSolverClaim("tests/card.mjs") === false
+    && movesClaimable(["tests/card.mjs", "tests/card_drift.mjs"]) === false);
+
+  // three_dot_files' three commands, in order, and the uncommitted work the
+  // third and second add. A stub runner records what it was asked.
+  {
+    const asked = [];
+    const stub = (...a) => {
+      asked.push(a.join(" "));
+      if (a[1] === "--name-only" && a[2] === "REF...HEAD") return "docs/HANDOVER.md\n";
+      if (a[1] === "--name-only" && a[2] === "HEAD") return " \ndocs/HANDOVER.md\n";
+      return "notes.txt\n";
+    };
+    const files = threeDotFiles(stub, "REF");
+    check("threeDotFiles runs the sibling's three commands in order",
+      asked.length === 3
+      && asked[0] === "diff --name-only REF...HEAD"
+      && asked[1] === "diff --name-only HEAD"
+      && asked[2] === "ls-files --others --exclude-standard", asked.join(" | "));
+    check("threeDotFiles de-duplicates, drops blanks and sorts",
+      files.join(",") === "docs/HANDOVER.md,notes.txt", files.join(","));
+    check("an untracked card makes the three-dot claimable",
+      claimsAreThisBranchs((...a) =>
+        a[0] === "ls-files" ? CLAIMED_CARD_PATH + "\n" : "", "REF") === true);
+    check("a docs-only three-dot is NOT this branch's claim to judge",
+      claimsAreThisBranchs(() => "docs/HANDOVER.md\n", "REF") === false);
+  }
+
+  // Fail closed. A git command that did not answer must judge: a guard that
+  // silences everything is worse than the bug it fixes, and reading stdout
+  // without the exit status returns the same empty list for a failure as for
+  // an unchanged tree.
+  check("an unanswerable three-dot judges (fail closed)",
+    claimsAreThisBranchs(() => { throw new Error("exit 128: no merge base"); }, "REF") === true);
 }
 
 console.log(fails ? `\n${fails} CARD CHECK(S) FAILED` : "\nALL CARD CHECKS PASSED");

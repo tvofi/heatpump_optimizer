@@ -1518,6 +1518,12 @@
       "away": {
         "name": "Away"
       },
+      "boost_dhw": {
+        "name": "Boost hot water"
+      },
+      "boost_space": {
+        "name": "Boost space heating"
+      },
       "optimizer_active": {
         "name": "Optimizer Active"
       }
@@ -1778,6 +1784,14 @@
         "entry_id": {
           "name": "Config entry",
           "description": "Restrict the change to one heat pump. Omit to apply to all of them."
+        },
+        "dhw": {
+          "name": "DHW tank",
+          "description": "When set, add or remove the domestic hot water tank from this system's picture. True seeds a default volume if none is stored yet. Omit to leave the tank as it is."
+        },
+        "wood": {
+          "name": "Wood tank",
+          "description": "When set, add or remove the wood / external-heat tank from this system's picture. Omit to leave the tank as it is."
         }
       }
     },

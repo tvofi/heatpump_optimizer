@@ -1518,6 +1518,12 @@
       "away": {
         "name": "Borta"
       },
+      "boost_dhw": {
+        "name": "Forcera varmvatten"
+      },
+      "boost_space": {
+        "name": "Forcera rumsvärme"
+      },
       "optimizer_active": {
         "name": "Optimeraren aktiv"
       }
@@ -1778,6 +1784,14 @@
         "entry_id": {
           "name": "Konfigurationspost",
           "description": "Begränsa ändringen till en värmepump. Utelämna för att tillämpa den på alla."
+        },
+        "dhw": {
+          "name": "Varmvattentank",
+          "description": "När fältet anges, lägg till eller ta bort varmvattentanken från systembilden. True sätter en standardvolym om ingen redan är sparad. Utelämna för att lämna tanken som den är."
+        },
+        "wood": {
+          "name": "Vedtank",
+          "description": "När fältet anges, lägg till eller ta bort ved-/externvärmetanken från systembilden. Utelämna för att lämna tanken som den är."
         }
       }
     },

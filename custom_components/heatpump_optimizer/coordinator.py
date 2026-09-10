@@ -321,6 +321,7 @@ from .external_heat import (
     wood_mean_temperature,
 )
 from . import away as away_mode
+from . import boost
 from . import battery as battery_view
 from . import comfort_band
 from . import mixing_valve
@@ -1358,10 +1359,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             on_unload(self._release_registrations)
 
         # Deferred: MQTT may not be up yet, and the stores are on disk.
-        # Tracked (D1-02 hygiene): the panel's refuted leak does not
-        # reproduce through the config-entry state machine, but an
-        # untracked task still runs against whatever hass becomes after
-        # unload, and tracking costs one set entry.
+        # Tracked (D1-02): an untracked task still runs against whatever
+        # hass becomes after unload; tracking costs one set entry.
         self._spawn(self._async_setup_ecl110_state_subscription())
         for load in (
             self._async_load_dhw_profile,
@@ -1378,7 +1377,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._async_load_manual_plan,
         ):
             self._spawn(load())
-        self._spawn(away_mode.restore_override(self))
+        self._spawn(boost.restore_session(self))
 
     @callback
     def _release_registrations(self) -> None:
@@ -1793,7 +1792,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # Last valve target actually written in smart_write mode, so identical
         # answers on consecutive cycles do not re-command the device.
         self._valve_commanded_target: float | None = None
-        # --- Away mode (item 13) -------------------------------------------
         self._away_state = away_mode.AwayState()
 
         # --- Closed-loop accuracy (item 11) --------------------------------
@@ -4985,15 +4983,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch data and run optimization."""
         ctx = getattr(self, "_ctx", self)
-        # #237: the handle ``async_shutdown`` cancels.
-        self._refresh_task = asyncio.current_task()
         if self._skip_solve_once:
             # Consume the flag FIRST: no exception below may leave it
             # latched, or every later cycle would skip its solve too.
             self._skip_solve_once = False
             return await self._async_first_refresh_light()
+        # #237: the handle ``async_shutdown`` cancels; dropped in the finally
+        # below, because on the inline path it is the CALLER's task (#533).
+        self._refresh_task = asyncio.current_task()
         try:
-            # Update current state from sensors
             await self._update_current_state()
 
             # Raises UpdateFailed on any failure -- see _fetch_tibber_prices.
@@ -5051,7 +5049,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 _LOGGER.debug("Shutdown requested mid-cycle; not actuating")
                 return self._build_data_dict()
 
-            # Apply current action to heat pump
+            boost.apply(self)
             await self._apply_action()
 
             # T7 #61 (control stage only): translate the commanded kW into
@@ -5092,7 +5090,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             )
 
             return self._build_data_dict()
-
         except UpdateFailed:
             # #216 (D10-09): the raiser — the Tibber outage latch — already
             # logged this failure once, at the severity its state machine
@@ -5105,6 +5102,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 "Error updating Heat Pump Optimizer: %s", err, exc_info=True
             )
             raise UpdateFailed(f"Error updating data: {err}") from err
+        finally:
+            self._refresh_task = None
     async def _async_first_refresh_light(self) -> dict[str, Any]:
         """The setup-time refresh: publish something valid without solving.
 
@@ -5683,9 +5682,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
         The latch is set before anything is awaited, so every point that
         would command the pump or write a store declines from here on (#237).
-        The in-flight refresh is then cancelled, which the base class does
-        NOT do: it cancels the SCHEDULED timer and the debouncer, and a
-        refresh already running is a task somebody else owns.
+        A refresh still IN FLIGHT is then cancelled -- the base class cancels
+        the SCHEDULED timer and the debouncer, never a running one (#237).
 
         The base class's shutdown still runs (D10-06): an override that skips
         it leaks the debouncer and the timer on every unload/reload. Then our
@@ -9533,10 +9531,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         await away_mode.persist_override(self)
         await self.async_request_refresh()
 
-    # ==================================================================
     # Closed-loop accuracy and the defrost derate (items 11, 14)
-    # ==================================================================
-
     def _current_humidity(self) -> float | None:
         """Outdoor relative humidity, from the forecast entry covering now.
 
@@ -10361,7 +10356,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._score_day = {}
         kwh = _as_float(book.get("kwh"), 0.0)
         hours = _as_float(book.get("spot_h"), 0.0)
-        if kwh < 1.0 or hours < 1.0:
+        if kwh < 0.2 or hours < 1.0:
             return
         mean_spot = _as_float(book.get("spot_sum"), 0.0) / hours
         if mean_spot <= 0.01:
@@ -10382,10 +10377,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     def _scores_view(self) -> dict[str, Any]:
         """#65: envelope, machine and operation on one 0–100 scale.
 
-        Each score answers a different question — how good is the house,
-        how healthy is the machine, how well is it being driven — so a low
-        overall points at its own cause. None means "no evidence yet",
-        never "zero": a fresh install has no grades, not failing ones.
+        Envelope is the house; it stays in the breakdown. Overall is
+        machine and operation only — averaging the house in is how a
+        DHW-only cheap-hour plan reads as 5/100. None is no evidence.
         """
         ctx = getattr(self, "_ctx", self)
         envelope = None
@@ -10422,7 +10416,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             ) * 100.0
 
         operation = self._operation_score
-        available = [s for s in (envelope, machine, operation) if s is not None]
+        available = [s for s in (machine, operation) if s is not None]
         return {
             "envelope": round(envelope, 1) if envelope is not None else None,
             "machine": round(machine, 1) if machine is not None else None,
