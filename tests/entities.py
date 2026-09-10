@@ -10391,6 +10391,20 @@ R.check(
     and type(_a5_typed[const.CONF_DAY_START_HOUR]) is int,
     f"typed={_a5_typed!r}",
 )
+# Dispatch 34542155868: HA's select retyped the seed's ``'60'`` to ``60``.
+# ``'60' == 60`` is false, so the int/float arm above did not keep the
+# stored string and a5:byte_unchanged moved 4135B → 4133B.
+_a5_peak = config_flow._omit_unstored_computed(
+    {const.CONF_PEAK_TARIFF_WINDOW: 60},
+    {const.CONF_PEAK_TARIFF_WINDOW: "60"},
+    FakeHass(),
+)
+R.check(
+    "a select that retypes a stored digit string keeps the stored type",
+    _a5_peak.get(const.CONF_PEAK_TARIFF_WINDOW) == "60"
+    and type(_a5_peak[const.CONF_PEAK_TARIFF_WINDOW]) is str,
+    f"peak={_a5_peak!r}",
+)
 _a5_opts = dict(_a5_seed["options"])
 _a5_data = dict(_a5_seed["data"])
 _a5_walk = {**_a5_data, **_a5_opts}

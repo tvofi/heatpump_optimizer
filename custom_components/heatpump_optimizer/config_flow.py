@@ -1633,9 +1633,10 @@ def _omit_unstored_computed(
     default, is kept.
 
     A posted value that equals the stored one keeps the stored type:
-    voluptuous ``_number`` widgets coerce ``7`` to ``7.0``, and options
-    win the effective merge, so rewriting the int as a float moves JSON
-    bytes without changing the setting.
+    voluptuous ``_number`` widgets coerce ``7`` to ``7.0``, and a
+    ``_select(['15', '60'])`` on real Home Assistant retypes ``'60'``
+    to ``60``. Options win the effective merge, so either rewrite moves
+    JSON bytes without changing the setting.
     """
     cleaned = dict(user_input)
     for row in _OPTION_FIELDS:
@@ -1650,9 +1651,26 @@ def _omit_unstored_computed(
         if cleaned[row.key] == computed:
             del cleaned[row.key]
     for key, value in list(cleaned.items()):
-        if key in current and current[key] == value:
+        if key in current and _same_setting(current[key], value):
             cleaned[key] = current[key]
     return cleaned
+
+
+def _same_setting(stored: Any, posted: Any) -> bool:
+    """True when a form rewrite did not change the setting, only its type."""
+    if stored == posted:
+        return True
+    if isinstance(stored, str) and isinstance(posted, (int, float)):
+        try:
+            return stored == str(posted) or type(posted)(stored) == posted
+        except (TypeError, ValueError):
+            return False
+    if isinstance(posted, str) and isinstance(stored, (int, float)):
+        try:
+            return posted == str(stored) or type(stored)(posted) == stored
+        except (TypeError, ValueError):
+            return False
+    return False
 
 
 def _clear_absent(
