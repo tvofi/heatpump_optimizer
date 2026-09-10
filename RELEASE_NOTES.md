@@ -1,5 +1,63 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.3.20
+
+**Seven leftover product features, the W5-G3 typing tranche, and the
+governance record that stopped `main` going red on a missing disposition.**
+
+### Fixes and changes users see
+
+- **Tibber Pulse auto-bind** (#703) (#707): when `house_power_entity` is empty,
+  setup suggests a Pulse-shaped live-power sensor and leaves a stored entity
+  alone.
+- **Nord Pool / entity prices** (#701) (#707): `price_source` is `tibber` or
+  `entity`; the entity path never starts Tibber reauth and never needs a token.
+- **15-minute DSO effekt clock** (#697) (#707): the existing 15/60 peak window
+  is the billed clock; Tibber tries a quarter-hour query and smears hourly
+  stamps.
+- **Sweden DSO catalog** (#698) (#707): a versioned in-tree table writes the
+  existing fee and peak keys; the user can still edit the generated text.
+- **Weekend and holiday comfort / DHW** (#700) (#707): weekend pairs, a holiday
+  calendar overlay, and holiday hot-water windows. Away setback still wins.
+- **Sensor-gap euro advisor** (#699) (#707): empty topology slots ranked by
+  estimated extra per month, as a diagnostic.
+- **Wood-burn night advisor** (#702) (#707): 48-hour light/skip advice on a
+  diagnostic sensor. Advisory only.
+- **Setup overview is the last config-flow step** (#668).
+
+### Reliability and the suite
+
+- **Typing annotations** for #303: `dhw_schedule.py` (#649), `price_model.py`
+  (#650), `snapshots.py` (#652), and the census ratchet that followed.
+- **A seat that stops mid-proof no longer leaves a production file altered**
+  (#671).
+- **Hassfest image pulls retry** (#689), so a required context does not rest
+  on one anonymous fetch.
+- **`prepr.sh` compares the body's Head against the remote head** (#694), not
+  the local one.
+- **The services catalog matches the twelve registered actions** (#710),
+  including `set_away`'s `active` and `return_time`.
+
+### The governance programme
+
+The record check enumerates every merge on `main`. A disposition may precede
+its merge (#708), which is how (#694) and (#707) can land without reddening
+`record` — and how (#693) and (#695) reddened it twice when the row came
+after. The mutation lane now mutates the record mode's outputs as well as the
+corpus checks (#695). A check whose stated rule and executed map could be
+read apart is derived from one source (#693). The wave roster asserts a
+stage's referent, not only its vocabulary (#691). A stated count in a brief
+is checked against the artefact (#672). The listing that shows one run per
+check is the instrument the contract prescribed (#669). Decision 0007 records
+the owner's O3 ruling (#670). D11 names governance mechanisms against public
+standards (#688). Figures are named by the instrument that prints them
+(#676). The handover cap was raised when it could not take a line (#675). A
+blank line ending the plan table is visible (#674). Three dispositions that
+had stopped being true were corrected (#673) (#690). Roster `resume` fields
+and the Wave 5 cell were truthed against measured `origin/main` (#687). Nine
+issues from the governance closing recommendations received rows (#686).
+`main`'s missing dispositions were written rather than merged without (#696).
+
 ## v6.3.19
 
 **A governance programme that turned honour rules into checks, three defects that
