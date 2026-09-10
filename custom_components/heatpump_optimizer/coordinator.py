@@ -26,7 +26,7 @@ from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from collections.abc import Callable
-from typing import Any, NamedTuple
+from typing import TYPE_CHECKING, Any, NamedTuple
 
 import aiohttp
 import numpy as np
@@ -34,12 +34,12 @@ import numpy as np
 from homeassistant.components import mqtt
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EVENT_HOMEASSISTANT_STOP, UnitOfSpeed
-from homeassistant.core import Event, HomeAssistant, callback
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import DeviceEntryType
 from homeassistant.helpers.entity import DeviceInfo
-from homeassistant.helpers.event import EventStateChangedData, async_track_state_change_event
+from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
@@ -415,6 +415,10 @@ from .optimizer import (
     optimize_in_process,
     slab_settlement_cap,
 )
+
+if TYPE_CHECKING:  # annotations only; tests/hastub carries neither name
+    from homeassistant.core import Event
+    from homeassistant.helpers.event import EventStateChangedData
 
 _LOGGER = logging.getLogger(__name__)
 
