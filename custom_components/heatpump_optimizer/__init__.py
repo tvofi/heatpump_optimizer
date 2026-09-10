@@ -62,16 +62,17 @@ def _lazy(module: str) -> ModuleType:
 
 
 async def _async_lazy(hass: HomeAssistant, module: str) -> ModuleType:
-    """``_lazy`` off the event loop (#525).
+    """``import_module`` off the event loop (#525).
 
-    ``import_module`` reads and compiles files, so Home Assistant's own
-    detector reports every one of these against this integration and asks the
-    user to file a bug. Its answer is the import executor, and the laziness
-    above costs nothing to keep: the closure argument for ``_LAZY_ATTRS``
-    survives intact. ``__getattr__`` stays synchronous because PEP 562 has no
-    other shape; nothing on a setup path reaches the package through it.
+    The job target is ``import_module`` itself. Passing ``_lazy`` made
+    Home Assistant's import executor treat the callable as ordinary work
+    and run it on the loop -- the A14 report at ``_lazy``'s
+    ``import_module`` line, which then de-duplicated the #588 probe on
+    2025.2.0.
     """
-    return await hass.async_add_import_executor_job(_lazy, module)
+    return await hass.async_add_import_executor_job(
+        importlib.import_module, f".{module}", __package__
+    )
 
 
 def __getattr__(name: str) -> Any:

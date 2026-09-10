@@ -216,6 +216,9 @@ INERT = (
     # `pr-contract` job's required set, in the governance workflow rather than
     # in this gate.
     ".github/PULL_REQUEST_TEMPLATE.md",
+    # GitHub reads it -- for review requests always, for the code-owner check
+    # once decision 0008's rule is live; nothing in this gate opens it.
+    ".github/CODEOWNERS",
     # Driven by the `browser` CI job, which is never scoped and runs on every
     # pull request regardless. It is a real test; it is simply not one of
     # THIS gate's scripts.

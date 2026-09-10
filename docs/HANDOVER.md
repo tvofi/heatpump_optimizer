@@ -1,6 +1,6 @@
 # Handover — the open-issues programme
 
-updated-for: 6978107
+updated-for: a801d7c
 
 The rule that governs this file is `.claude/rules/writing-for-agents.md`, which
 the harness loads on this very path. Delivery status is
@@ -356,9 +356,8 @@ in its own pull request.
 their final head**, because the session's review capacity was exhausted by an
 account rate limit before the round could run: **#591, #592, #596, #602, #603,
 #605, #569**, and separately **#606**, merged with no review at all because
-`main` was red and it was the repair.
-
-Each squash body says so and names what a reviewer should start from.
+`main` was red and it was the repair. Each squash body says so and names what a
+reviewer should start from.
 
 Two of these matter more than the rest. **#603** is policy whose owner-approved
 form changed twice after approval. **#596** introduces `tests/typing_budgets.json`
@@ -389,6 +388,8 @@ flagged it rather than claiming a carry it had not made.
   holds the producing pull request from merging until the carry is in the tree.
   Two branches owing a carry to the same contract therefore cannot both comply.
   Raised on #201; no seat may decide it.
+- **#680 (0008, #756): account, switch, a seat's verified login, then the rule —
+  never first (0005). #558's lane F is next after Wave 5 and #412 (owner).**
 
 ## The machine this runs on — measure it, do not read it
 
