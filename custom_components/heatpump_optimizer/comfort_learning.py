@@ -221,8 +221,8 @@ class ComfortLearner:
         # The payload comes back through `json.loads`, so the value domain is
         # dict/list/str/int/float/bool/None and this covers every member of it
         # `float()` would have converted -- the rest reached the TypeError arm
-        # before and reach `None` here. `bytes` is the only value that parts
-        # company, and JSON does not produce one.
+        # before and reach `None` here. The buffer types part company --
+        # `bytes`, `bytearray`, `memoryview` -- and JSON produces none of them.
         if isinstance(raw_configured, (int, float, str)):
             try:
                 stored_configured = float(raw_configured)
