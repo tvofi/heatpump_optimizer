@@ -47,7 +47,7 @@ import { execFileSync } from "child_process";
 import { fileURLToPath } from "url";
 import {
   CARD_PATH, EDITOR_TAG, DEFAULT_SPACE, DEFAULT_DHW, HOUR,
-  CLAIM_FILE, parseClaims, claimVersionError,
+  CLAIM_FILE, parseClaims, claimVersionError, claimsAreThisBranchs,
   makeCardContext, loadCard, collect, frozenDateClass, buildCard,
   planStates, setupSensorStates, qaTopologies, layoutCatalogTopo,
 } from "./card_rig.mjs";
@@ -567,6 +567,14 @@ const claimPath = path.join(repo, CLAIM_FILE);
 const treeClaims = parseClaims(fs.existsSync(claimPath) ? fs.readFileSync(claimPath, "utf8") : "");
 const baseClaims = parseClaims(showAt(sha, CLAIM_FILE) || "");
 
+// WHOSE CLAIM IS IT? tests/env_drift.py's `stale_claims_judged`, ported in
+// card_rig.mjs. False when this branch's three-dot moves nothing a claim
+// excuses: it neither wrote the list nor can cure it, and its only remedy --
+// delete the line -- lands on the baseline at squash-merge. The stamp check
+// above is NOT gated on it; `claims-for:` is about the release the file is
+// stamped for, not about who wrote which line, and stamp.py owns that line.
+const claimsAreOurs = claimsAreThisBranchs(git, refName);
+
 let fails = 0;
 const stampError = claimVersionError(treeClaims.declared, version);
 if (stampError) {
@@ -583,13 +591,22 @@ const sameClaims =
   treeClaims.claims.size > 0 &&
   treeClaims.claims.size === baseClaims.claims.size &&
   [...treeClaims.claims].every(([k, v]) => baseClaims.claims.get(k) === v);
-if (sameClaims) {
+if (sameClaims && claimsAreOurs) {
   console.log(
     `INHERITED CLAIMS: ${CLAIM_FILE} claims exactly what ${refName} already claims -- ` +
     `the same ${treeClaims.claims.size} state(s), with the same reasons: ` +
     `${[...treeClaims.claims.keys()].sort().join(", ")}. Rewrite the list for THIS diff.`
   );
   fails += 1;
+} else if (sameClaims) {
+  console.log(
+    `NOT THIS BRANCH'S LIST: ${CLAIM_FILE} is byte-for-byte the list ${refName} ` +
+    `already claims (${treeClaims.claims.size} state(s)), but this branch's three-dot ` +
+    `against ${refName} touches neither the card source nor a solver fixture, so it ` +
+    "did not write that list. Failing it here leaves one remedy -- empty the file -- " +
+    "and a squash-merge applies that deletion to the baseline (#569, #633). Reported, " +
+    "not judged; rewrite it in a change that moves a claimed state."
+  );
 }
 
 function makeSide(src, label) {
@@ -689,7 +706,19 @@ for (const name of stale) {
   console.log(
     `  STALE CLAIM ${name} -- ${known ? "listed in " + CLAIM_FILE + " but this change does not move it" : "not a state this gate renders (see --list)"}`
   );
-  fails += 1;
+  // Reported above either way; judged only against a branch that could have
+  // caused it. env_drift.py prints the same distinction beside its own stale
+  // list, for the same reason and in the same words.
+  if (claimsAreOurs) fails += 1;
+}
+if (stale.length && !claimsAreOurs) {
+  console.log(
+    `  NOT THIS BRANCH'S TO REMOVE: the three-dot against ${refName} touches neither ` +
+    "the card source nor a solver fixture, so this branch neither caused these claims " +
+    "to go stale nor can cure them, and deleting them here would carry someone else's " +
+    "line onto the baseline at squash-merge. Reported, not judged; remove them in a " +
+    "change that owns the file."
+  );
 }
 
 console.log();
