@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import importlib
 import logging
+import sys
 from types import ModuleType
 from typing import Any
 
@@ -76,11 +77,19 @@ async def _async_lazy(hass: HomeAssistant, module: str) -> ModuleType:
 
 
 def __getattr__(name: str) -> Any:
-    """Resolve a re-export from the package root (PEP 562)."""
+    """Resolve a re-export from the package root (PEP 562).
+
+    When the sibling is already in ``sys.modules`` (setup's ``_async_lazy``),
+    do not call ``import_module``. ``_lazy`` passes a relative name, which
+    is never a ``sys.modules`` key, so Home Assistant reports that call on
+    the loop even for a cached module and then de-duplicates the #588 probe.
+    """
     module = _LAZY_ATTRS.get(name)
     if module is None:
         raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
-    value = getattr(_lazy(module), name)
+    loaded = sys.modules.get(f"{__package__}.{module}")
+    source = loaded if loaded is not None else _lazy(module)
+    value = getattr(source, name)
     globals()[name] = value
     return value
 
