@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import importlib
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
@@ -26,8 +26,13 @@ from homeassistant.loader import async_get_integration
 
 from .const import DOMAIN, CONFIG_ENTRY_VERSION
 
-if TYPE_CHECKING:
-    from .coordinator import HeatPumpOptimizerConfigEntry
+# Bound here, not via ``_lazy``. Home Assistant 2026 evaluates
+# ``async_setup_entry``'s annotations with ``get_type_hints``, which looks
+# this name up on the package during setup. ``_lazy`` is ``import_module``
+# of a relative name (never a ``sys.modules`` key), so that lookup was a
+# blocking call on the event loop and silenced the #588 probe by
+# de-duplicating at ``(integration, file, lineno)``.
+HeatPumpOptimizerConfigEntry = ConfigEntry
 
 # Importing this package must not execute the coordinator's module graph.
 # ``coordinator`` and ``services`` reach 40 of the integration's modules
@@ -39,7 +44,6 @@ if TYPE_CHECKING:
 # run the change could not affect. Home Assistant reaches everything below
 # through ``async_setup``/``async_setup_entry``, which run long after import.
 _LAZY_ATTRS = {
-    "HeatPumpOptimizerConfigEntry": "coordinator",
     "HeatPumpOptimizerCoordinator": "coordinator",
     # The four service schemas the test suite pokes through the package root
     # (the facade rule): they are defined in -- and re-exported from --

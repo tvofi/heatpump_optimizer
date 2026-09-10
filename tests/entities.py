@@ -1768,9 +1768,26 @@ R.check(
 R.check(
     "and a stale indoor thermometer publishes the model default, as before",
     _indoor_stale["indoor_temperature"] == _DEFAULTS.room_temperature,
-    "Indoor Temperature is deliberately left ungated here: it is the "
-    "integration's primary entity and its staleness already has a home in "
-    "the Input Problem binary sensor and the repair issues",
+    "the coordinator data still carries the constructor default; the "
+    "published sensor must not claim it is a measurement",
+)
+_a3e_pub = dict(_blind)
+_a3e_pub["indoor_temperature"] = _DEFAULTS.room_temperature
+_a3e_ok_map = dict(_a3e_pub.get("reading_ok") or {})
+_a3e_ok_map["upper_floor_temperature"] = False
+_a3e_pub["reading_ok"] = _a3e_ok_map
+_a3e_fake = FakeCoordinator(_a3e_pub)
+R.check(
+    "without an indoor reading the indoor sensor is unavailable, not 21.0 available",
+    not sensor.IndoorTempSensor(_a3e_fake, ENTRY).available,
+    f"available={sensor.IndoorTempSensor(_a3e_fake, ENTRY).available} "
+    f"value={sensor.IndoorTempSensor(_a3e_fake, ENTRY).native_value!r}",
+)
+_a3e_clim = _climate_platform.HeatPumpOptimizerClimate(_a3e_fake, ENTRY)
+R.check(
+    "without an indoor reading climate does not publish the constructor default",
+    (not _a3e_clim.available) and _a3e_clim.current_temperature is None,
+    f"available={_a3e_clim.available} current={_a3e_clim.current_temperature!r}",
 )
 R.check(
     "the upper floor names where its number comes from",
@@ -2176,18 +2193,19 @@ def _d801_differs(a, b):
     return a != b
 
 
-# The Indoor sensor is deliberately left in the residual: the decision above
-# ("Indoor Temperature is deliberately left ungated here") is a recorded one
-# and this fix honours it rather than overturning it in passing. The climate
-# entity's own state is the same reading under another name.
-_D801_RETAINED = {
-    "IndoorTempSensor|state",
-    "HeatPumpOptimizerClimate|state",
-}
-# Solve-derived money, which moves because the same defaults are the MPC's
-# initial conditions, not because a temperature is published as a
-# measurement. Out of this finding's five paths, and named here so the
-# residual is a list rather than a tolerance.
+# D8-01 recorded the Indoor pair as *retained* without a thermometer
+# (ThermalState 21.0) on 2026-09-03. A3(e) / leftover #533 overturns that:
+# published indoor must not claim a measurement the config never attached,
+# so IndoorTempSensor and HeatPumpOptimizerClimate both gate on
+# reading_ok["upper_floor_temperature"]. Cycle 1 residual is now empty.
+# Cycle 10 residual is empty too: the money attrs below live on climate,
+# and an unavailable climate is skipped by _d801_publications. Named so a
+# revert that re-publishes the Indoor pair (or makes climate available
+# again) fails these two equalities — that is the recorded decision
+# moving, not a silent miss.
+_D801_RETAINED = set()
+# What climate would publish at cycle 10 if it stayed available. Not in
+# the residual while A3(e) keeps the entity unavailable.
 _D801_SOLVE_DERIVED = {
     "HeatPumpOptimizerClimate|attrs.predicted_savings",
     "HeatPumpOptimizerClimate|attrs.savings_percentage",
@@ -2199,8 +2217,7 @@ _d801_first_scope = {
     key for key in _d801_first_moved if key.split("|")[0] in _D801_IN_SCOPE
 }
 R.check(
-    "at CYCLE 1 nothing in D8-01's entities publishes a constructor default "
-    "except the Indoor pair the recorded decision keeps",
+    "at CYCLE 1 nothing in D8-01's entities publishes a constructor default",
     _d801_first_scope == _D801_RETAINED,
     f"unexpected: {sorted(_d801_first_scope - _D801_RETAINED)}",
 )
@@ -2211,9 +2228,10 @@ _d801_steady_scope = {
 }
 R.check(
     "and at STEADY STATE (cycle 10, past the slab seed's decay) the residual "
-    "is the same pair plus the solve-derived money",
-    _d801_steady_scope == _D801_RETAINED | _D801_SOLVE_DERIVED,
-    f"unexpected: {sorted(_d801_steady_scope - _D801_RETAINED - _D801_SOLVE_DERIVED)}",
+    "stays empty: climate is gated, so the solve-derived money is not published",
+    _d801_steady_scope == _D801_RETAINED,
+    f"unexpected: {sorted(_d801_steady_scope - _D801_RETAINED)}; "
+    f"named-if-climate-available={sorted(_D801_SOLVE_DERIVED)}",
 )
 
 # --- path by path, so a revert of any one line is named --------------------
@@ -10053,6 +10071,56 @@ R.check(
     f"bad={_a5_pages_bad.results.get('a5:pages_ok')} "
     f"ok={_a5_pages_ok.results.get('a5:pages_ok')}",
 )
+_a5_comfort_cur = {
+    const.CONF_TARGET_TEMP: const.DEFAULT_TARGET_TEMP,
+    const.CONF_MIN_TEMP: const.DEFAULT_MIN_TEMP,
+    const.CONF_MAX_TEMP: const.DEFAULT_MAX_TEMP,
+    const.CONF_COMFORT_TEMP_DAY: const.DEFAULT_COMFORT_TEMP_DAY,
+    const.CONF_COMFORT_TEMP_NIGHT: const.DEFAULT_COMFORT_TEMP_NIGHT,
+    const.CONF_DAY_START_HOUR: const.DEFAULT_DAY_START_HOUR,
+    const.CONF_DAY_END_HOUR: const.DEFAULT_DAY_END_HOUR,
+}
+_a5_comfort_schema = config_flow._page_schema("comfort", _a5_comfort_cur, FakeHass())
+_a5_comfort_posted = _nightly.option_resubmit("comfort", _a5_comfort_cur)
+try:
+    _a5_comfort_schema(_a5_comfort_posted)
+    _a5_comfort_err = ""
+except Exception as _a5_comfort_exc:  # noqa: BLE001 - the A5 failure is any raise
+    _a5_comfort_err = f"{type(_a5_comfort_exc).__name__}: {_a5_comfort_exc}"
+R.check(
+    "option_resubmit posts the sectioned shape the comfort schema validates",
+    not _a5_comfort_err,
+    _a5_comfort_err or "accepted",
+)
+_a5_entities_cur = {
+    const.CONF_PRICE_SOURCE: const.DEFAULT_PRICE_SOURCE,
+    const.CONF_TIBBER_TOKEN: "nightly-ha-local",
+    const.CONF_WEATHER_ENTITY: "weather.ci_weather",
+}
+_a5_entities_schema = config_flow._page_schema(
+    "entities", _a5_entities_cur, FakeHass()
+)
+_a5_entities_posted = _nightly.option_resubmit("entities", _a5_entities_cur)
+try:
+    _a5_entities_schema(_a5_entities_posted)
+    _a5_entities_err = ""
+except Exception as _a5_entities_exc:  # noqa: BLE001 - the A5 failure is any raise
+    _a5_entities_err = f"{type(_a5_entities_exc).__name__}: {_a5_entities_exc}"
+R.check(
+    "option_resubmit nests weather_entity under the credentials section",
+    isinstance(_a5_entities_posted.get("credentials"), dict)
+    and _a5_entities_posted["credentials"].get(const.CONF_WEATHER_ENTITY)
+    == "weather.ci_weather"
+    and const.CONF_WEATHER_ENTITY not in _a5_entities_posted
+    and "indoor" in _a5_entities_posted
+    and "plant" in _a5_entities_posted,
+    f"posted={_a5_entities_posted!r}",
+)
+R.check(
+    "option_resubmit posts the sectioned shape the entities schema validates",
+    not _a5_entities_err,
+    _a5_entities_err or "accepted",
+)
 
 _a5_before = _nightly.stored_effective_bytes(
     {"external_heat_entity": "sensor.seed_external_heat_entity", "x": 1},
@@ -10168,6 +10236,18 @@ R.check(
     "a8:already_configured" in _a8_cfg_bad.failures()
     and "a8:already_configured" not in _a8_cfg_ok.failures(),
     f"bad={_a8_cfg_bad.results.get('a8:already_configured')}",
+)
+_a8_entry_src = _inspect.getsource(_nightly._async_add_second_entry)
+R.check(
+    "A8's ConfigEntry construction names discovery_keys and subentries_data",
+    "discovery_keys" in _a8_entry_src and "subentries_data" in _a8_entry_src,
+    "stable HA's ConfigEntry.__init__ requires both; the fallback omitted them",
+)
+_a8_check_src = _inspect.getsource(_nightly._async_check_a8)
+R.check(
+    "A8 surfaces InvalidData.schema_errors instead of the path-only message",
+    "schema_errors" in _a8_check_src,
+    "HA wraps the inner vol.Invalid; the path-only str hid why weather_entity failed",
 )
 
 _a9_states_ok = _nightly.Checks()
@@ -10315,6 +10395,36 @@ R.check(
     bool(_nightly.BLOCKING_CALL.search(_nightly_streams_probe))
     and bool(_nightly.BLOCKING_CALL.search(_nightly_streams_pin)),
     "partition_blocking_probe folded an unmarked stream into the probe half",
+)
+_a4_tb = (
+    _nightly.TRACEBACK_HEAD + "\n"
+    "  File \"/usr/src/homeassistant/homeassistant/helpers/update_coordinator.py\","
+    " line 441, in _async_refresh\n"
+    "    self.data = await self._async_update_data()\n"
+    "  File \"/config/custom_components/heatpump_optimizer/coordinator.py\","
+    " line 6030, in _fetch_tibber_prices\n"
+    "    self._tibber_fetch_failed(str(payload))\n"
+    "homeassistant.helpers.update_coordinator.UpdateFailed: HTTP 500\n"
+)
+_crash_tb = (
+    _nightly.TRACEBACK_HEAD + "\n"
+    "  File \"/config/custom_components/heatpump_optimizer/sensor.py\","
+    " line 1, in native_value\n"
+    "    raise RuntimeError('boom')\n"
+    "RuntimeError: boom\n"
+)
+_a4_tb_fail, _ = _nightly_scan(_NIGHTLY_CLEAN + "\n" + _a4_tb)
+_crash_tb_fail, _ = _nightly_scan(_NIGHTLY_CLEAN + "\n" + _crash_tb)
+R.check(
+    "A4's UpdateFailed traceback is not log:no_integration_traceback",
+    "log:no_integration_traceback" not in _a4_tb_fail
+    and "log:no_integration_traceback" in _crash_tb_fail,
+    f"a4={_a4_tb_fail} crash={_crash_tb_fail}",
+)
+R.check(
+    "HeatPumpOptimizerConfigEntry is bound on the package, not via _lazy",
+    "HeatPumpOptimizerConfigEntry" in integration.__dict__,
+    "HA 2026 get_type_hints looks the name up on the setup path and _lazy is a blocking import_module",
 )
 
 # tools/audit/preflight.sh refuses a closing keyword the orchestrator did not
