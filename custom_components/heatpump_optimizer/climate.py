@@ -119,10 +119,30 @@ class HeatPumpOptimizerClimate(HeatPumpOptimizerEntity, ClimateEntity):
         self._attr_max_temp = self._config.get(CONF_MAX_TEMP, DEFAULT_MAX_TEMP)
 
     @property
+    def available(self) -> bool:
+        """Unavailable while the indoor thermometer has not read.
+
+        ``current_temperature`` used to return ``ThermalState.room_temperature``
+        (21.0 °C) on a default install with no indoor entity, and the climate
+        entity stayed available, so the thermostat card published that
+        constructor default as a measurement (A3(e)).
+        """
+        flags = (self.coordinator.data or {}).get("reading_ok") or {}
+        return bool(super().available and flags.get("upper_floor_temperature"))
+
+    @property
     def current_temperature(self) -> float | None:
-        """Return the current indoor temperature (weighted avg for two-zone)."""
-        if self.coordinator.data:
-            return self.coordinator.data.get("indoor_temperature")
+        """Return the current indoor temperature, or None if nothing measured it."""
+        if not self.coordinator.data:
+            return None
+        measured = self._measured("upper_floor_temperature")
+        if isinstance(measured, (int, float)) and not isinstance(measured, bool):
+            return float(measured)
+        flags = self.coordinator.data.get("reading_ok") or {}
+        if flags.get("upper_floor_temperature"):
+            indoor = self.coordinator.data.get("indoor_temperature")
+            if isinstance(indoor, (int, float)) and not isinstance(indoor, bool):
+                return float(indoor)
         return None
 
     @property

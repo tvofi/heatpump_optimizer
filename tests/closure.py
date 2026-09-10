@@ -93,6 +93,14 @@ NOT_A_TEST = {
     # is NOT_A_TEST and is NOT inert: `tests/entities.py` imports it and drives
     # its four states, so a change to how it classifies selects a script.
     "nightly_status.py",
+    # The disposition gate's reporter (#678, CM-2 of the #541 root cause):
+    # its own `record-status` job runs it on every pull request. Same shape as
+    # `nightly_status.py` above -- it needs the GitHub Checks API, which this
+    # suite has neither the network nor the token for, and its verdict is about
+    # `main`'s CI history rather than about this tree. NOT_A_TEST and NOT inert:
+    # `tests/entities.py` imports it and drives its states, so a change to how
+    # it classifies selects a script.
+    "record_status.py",
     # The shared DOM stub (#101) and the rig around it, imported by the three
     # Node harnesses (card.mjs, setup_qa_render.mjs, card_drift.mjs): libraries,
     # never run. dom_stub.mjs was missing from this set from v6.1.2 to v6.2.7,
@@ -220,7 +228,16 @@ INERT = (
     # Listed individually rather than as a `.github/workflows/` prefix,
     # because that prefix would also swallow `tests.yml` and silently undo
     # the forced-full rule that is this gate's safety argument.
-    ".github/workflows/governance.yml",
+    # `.github/workflows/governance.yml` was here, on the claim that nothing
+    # in the gate reads it. That stopped being true when `tests/entities.py`
+    # began reading it to pin the `record-status` job's wiring and its
+    # permission widening -- the same correction `nightly_ha.py` needed one
+    # entry down, and for the same reason: unreadable by the gate and unread
+    # by the gate are different claims, and only the first was ever true. It
+    # is now in `tests/entities.py`'s recorded closure, so an edit to it
+    # selects that script instead of skipping. A file cannot be both INERT
+    # and inside a recorded closure; `closure.py` refuses that pair, which is
+    # what turned this from a judgement into a check.
     ".github/workflows/hassfest.yml",
     ".github/workflows/release.yml",
     ".github/workflows/validate.yml",
@@ -295,7 +312,15 @@ def is_handover(rel: str) -> bool:
 # declared unread while being read -- the INERT-vs-recorded contradiction #357
 # exists to refuse, and the same shape that let tests/nightly_ha.py's blocking
 # pin go stale in silence (#533).
-INERT_EXCEPT = ("tools/audit/preflight.sh",)
+# .gitignore left INERT while a gate script reads it is the same contradiction.
+# #743 gave tests/card_drift.mjs a `git` call -- claimsAreThisBranchs, the guard
+# that stopped it failing branches for another lane's claims -- and every git
+# invocation reads .gitignore. CI said so itself: "UNDER-SCOPED: tests/card_drift.mjs
+# really reads 1 file(s) the committed closure does not list: .gitignore". It was
+# declared unread while being read, so `closures` went red on main and
+# closures-autofix could not repair it: merging the recording produces the
+# INERT-and-recorded pair #357 exists to refuse, so the bot returns skip-still-fails.
+INERT_EXCEPT = ("tools/audit/preflight.sh", ".gitignore")
 
 
 def is_inert(rel: str) -> bool:

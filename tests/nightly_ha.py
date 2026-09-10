@@ -932,18 +932,32 @@ def check_a5_pages(checks: Checks, results: list, expected: tuple[str, ...] | li
 
 
 def option_resubmit(step: str, current: dict) -> dict:
-    """Untouched values this page owns. ``setup_overview`` saves nothing."""
+    """Untouched values this page owns, nested the way the frontend posts.
+
+    The form schema is sectioned (``group`` → ``section()``); stored options
+    are flat. Home Assistant validates the shown schema before the handler
+    runs, so a flat resubmit is ``InvalidData`` on every grouped page.
+    ``setup_overview`` saves nothing.
+    """
     if step == "setup_overview":
         return {}
     cf = _prod_mod("config_flow")
     const = _prod_mod("const")
+    nested: dict[str, dict] = {}
     out: dict = {}
     for row in cf._page_rows(step, current):
+        if row.group:
+            nested.setdefault(row.group, {})
         if row.default is cf._DYNAMIC:
             continue
         value = current.get(row.key)
-        if value is not None:
+        if value is None:
+            continue
+        if row.group:
+            nested[row.group][row.key] = value
+        else:
             out[row.key] = value
+    out.update(nested)
     out[const.CONF_AFTER_SAVE] = const.AFTER_SAVE_CLOSE
     return out
 
@@ -1436,20 +1450,32 @@ async def _async_add_second_entry(hass, seed):
         "source": "user",
         "unique_id": unique_id,
         "entry_id": A8_SECOND_ENTRY_ID,
+        "discovery_keys": {},
+        "subentries_data": {},
     }
-    try:
-        extra = ConfigEntry(**kwargs)
-    except TypeError:
-        extra = ConfigEntry(
-            entry_id=kwargs["entry_id"],
-            version=kwargs["version"],
-            domain=kwargs["domain"],
-            title=kwargs["title"],
-            data=kwargs["data"],
-            source=kwargs["source"],
-            unique_id=kwargs["unique_id"],
-            options=kwargs["options"],
-        )
+    extra = None
+    attempt = dict(kwargs)
+    while extra is None:
+        try:
+            extra = ConfigEntry(**attempt)
+        except TypeError:
+            dropped = False
+            for key in ("subentries_data", "discovery_keys", "minor_version"):
+                if key in attempt:
+                    attempt.pop(key)
+                    dropped = True
+                    break
+            if not dropped:
+                extra = ConfigEntry(
+                    entry_id=kwargs["entry_id"],
+                    version=kwargs["version"],
+                    domain=kwargs["domain"],
+                    title=kwargs["title"],
+                    data=kwargs["data"],
+                    source=kwargs["source"],
+                    unique_id=kwargs["unique_id"],
+                    options=kwargs["options"],
+                )
     adder = getattr(hass.config_entries, "async_add", None) or getattr(
         hass.config_entries, "async_add_entry", None
     )
@@ -1471,7 +1497,10 @@ async def _async_check_a8(checks: Checks, hass, seed, entry) -> None:
     try:
         reason = await _async_duplicate_user_flow(hass, seed)
     except Exception as err:  # noqa: BLE001
+        extra = getattr(err, "schema_errors", None)
         reason = f"{type(err).__name__}: {err}"
+        if extra:
+            reason = f"{reason} schema_errors={extra!r}"
     check_a8_already_configured(
         checks, reason if reason == "already_configured" else reason
     )
@@ -2398,6 +2427,19 @@ def check_blocking_positive_control(checks: Checks, probe_text: str) -> None:
     )
 
 
+def _a4_update_failed_traceback(block: str) -> bool:
+    """A4 breaks Tibber with HTTP 500; UpdateFailed is the designed raise.
+
+    Newer Home Assistant logs that raise with a traceback naming this
+    package. That is the coordinator doing its job, not an integration
+    crash, and counting it made ``log:no_integration_traceback`` fail
+    only on ``stable`` after A4 landed.
+    """
+    return "UpdateFailed" in block and (
+        "_tibber_fetch_failed" in block or "_fetch_tibber_prices" in block
+    )
+
+
 def _scan_pin(checks: Checks, text: str) -> None:
     for name, needle in FORBIDDEN.items():
         hits = [line for line in text.splitlines() if needle in line]
@@ -2415,6 +2457,7 @@ def _scan_pin(checks: Checks, text: str) -> None:
         for before, block in zip(parts, parts[1:])
         if PACKAGE_NAME in "\n".join(block.splitlines()[:40])
         and BLOCKING_REPORT not in before[-2000:]
+        and not _a4_update_failed_traceback(block)
     ]
     checks.check(
         "log:no_integration_traceback",
