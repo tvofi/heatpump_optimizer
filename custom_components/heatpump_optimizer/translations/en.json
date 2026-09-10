@@ -1518,6 +1518,12 @@
       "away": {
         "name": "Away"
       },
+      "boost_dhw": {
+        "name": "Boost hot water"
+      },
+      "boost_space": {
+        "name": "Boost space heating"
+      },
       "optimizer_active": {
         "name": "Optimizer Active"
       }

@@ -1518,6 +1518,12 @@
       "away": {
         "name": "Borta"
       },
+      "boost_dhw": {
+        "name": "Forcera varmvatten"
+      },
+      "boost_space": {
+        "name": "Forcera rumsvärme"
+      },
       "optimizer_active": {
         "name": "Optimeraren aktiv"
       }
