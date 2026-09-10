@@ -321,6 +321,7 @@ from .external_heat import (
     wood_mean_temperature,
 )
 from . import away as away_mode
+from . import boost
 from . import battery as battery_view
 from . import comfort_band
 from . import mixing_valve
@@ -1358,10 +1359,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             on_unload(self._release_registrations)
 
         # Deferred: MQTT may not be up yet, and the stores are on disk.
-        # Tracked (D1-02 hygiene): the panel's refuted leak does not
-        # reproduce through the config-entry state machine, but an
-        # untracked task still runs against whatever hass becomes after
-        # unload, and tracking costs one set entry.
+        # Tracked (D1-02): an untracked task still runs against whatever
+        # hass becomes after unload; tracking costs one set entry.
         self._spawn(self._async_setup_ecl110_state_subscription())
         for load in (
             self._async_load_dhw_profile,
@@ -1378,7 +1377,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._async_load_manual_plan,
         ):
             self._spawn(load())
-        self._spawn(away_mode.restore_override(self))
+        self._spawn(boost.restore_session(self))
 
     @callback
     def _release_registrations(self) -> None:
@@ -1793,7 +1792,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # Last valve target actually written in smart_write mode, so identical
         # answers on consecutive cycles do not re-command the device.
         self._valve_commanded_target: float | None = None
-        # --- Away mode (item 13) -------------------------------------------
         self._away_state = away_mode.AwayState()
 
         # --- Closed-loop accuracy (item 11) --------------------------------
@@ -5051,7 +5049,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 _LOGGER.debug("Shutdown requested mid-cycle; not actuating")
                 return self._build_data_dict()
 
-            # Apply current action to heat pump
+            boost.apply(self)
             await self._apply_action()
 
             # T7 #61 (control stage only): translate the commanded kW into
@@ -9533,10 +9531,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         await away_mode.persist_override(self)
         await self.async_request_refresh()
 
-    # ==================================================================
     # Closed-loop accuracy and the defrost derate (items 11, 14)
-    # ==================================================================
-
     def _current_humidity(self) -> float | None:
         """Outdoor relative humidity, from the forecast entry covering now.
 

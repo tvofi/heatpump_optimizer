@@ -334,7 +334,7 @@ Every field and its range is documented in
 
 ### Your first week
 
-- **Immediately.** All 72 entities appear and the first plan is solved within one
+- **Immediately.** All 74 entities appear and the first plan is solved within one
   optimization interval (30 minutes by default). Add the dashboard card and you
   can see what it intends to do.
 - **Day one.** If you want the commissioning step test, first switch on *Allow a
@@ -499,6 +499,11 @@ Frequency Advisor.
 **Away** turns the away setback on and off, and **Away Return** is the datetime
 entity holding when you expect to be back — the optimizer buys the recovery heat
 in the cheapest hours before it. Both are also driven by the `set_away` service.
+
+**Boost hot water** and **Boost space heating** each apply maximum heat on that
+channel for two hours: the planner's DHW ceiling, or nameplate space heat with
+the comfort ceiling and full curve displace. They expire on their own and do
+not switch the optimizer into the global boost mode.
 
 The **climate entity** is a virtual thermostat with HVAC modes (off, heat, auto)
 and presets (auto, comfort, economy, boost). Its target temperature is *your*

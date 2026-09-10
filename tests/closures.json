@@ -467,6 +467,7 @@
    "custom_components/heatpump_optimizer/away.py",
    "custom_components/heatpump_optimizer/battery.py",
    "custom_components/heatpump_optimizer/binary_sensor.py",
+   "custom_components/heatpump_optimizer/boost.py",
    "custom_components/heatpump_optimizer/brand/icon.png",
    "custom_components/heatpump_optimizer/brand/logo.png",
    "custom_components/heatpump_optimizer/button.py",
