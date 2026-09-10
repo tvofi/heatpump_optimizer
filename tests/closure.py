@@ -295,7 +295,15 @@ def is_handover(rel: str) -> bool:
 # declared unread while being read -- the INERT-vs-recorded contradiction #357
 # exists to refuse, and the same shape that let tests/nightly_ha.py's blocking
 # pin go stale in silence (#533).
-INERT_EXCEPT = ("tools/audit/preflight.sh",)
+# .gitignore left INERT while a gate script reads it is the same contradiction.
+# #743 gave tests/card_drift.mjs a `git` call -- claimsAreThisBranchs, the guard
+# that stopped it failing branches for another lane's claims -- and every git
+# invocation reads .gitignore. CI said so itself: "UNDER-SCOPED: tests/card_drift.mjs
+# really reads 1 file(s) the committed closure does not list: .gitignore". It was
+# declared unread while being read, so `closures` went red on main and
+# closures-autofix could not repair it: merging the recording produces the
+# INERT-and-recorded pair #357 exists to refuse, so the bot returns skip-still-fails.
+INERT_EXCEPT = ("tools/audit/preflight.sh", ".gitignore")
 
 
 def is_inert(rel: str) -> bool:
