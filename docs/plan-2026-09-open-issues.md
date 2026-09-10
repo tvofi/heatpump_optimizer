@@ -538,14 +538,31 @@ no wave:
 - [#707](https://github.com/tvofi/heatpump_optimizer/pull/707) — **row written before the merge**, same reason: the owner's Pulse bind, Nord Pool entity and 15-minute clock work, against #697, #701 and #703. Outside #201. leaves #697 open. leaves #701 open. leaves #703 open.
 - [#705](https://github.com/tvofi/heatpump_optimizer/pull/705) — **row written before the merge**: W5-G3's tail, whose deliverable is a batching rule rather than a cut — whole modules grouped by the protocol they implement, with the size cap derived from the nine merged tranches rather than chosen. Its review refuted the premise under that rule with a one-line perturbation: a parameter type consumed elsewhere moves its error to the consumer, so a module is **not** closed by construction and the per-module control is mandatory rather than confirmatory. The rule survives; the reason under it did not. leaves #303 open.
 
-**Why #694's row is written before its merge, and why that is the fix rather than a shortcut.**
-`checkRecord` tests that `#N` appears in a disposition document; it does not require the merge to have
-happened. Twice in this session `main` went red because a pull request merged before its row existed —
-#693 and #695 — both times because four seats had been told not to write plan rows, to avoid a
-four-way collision at one anchor. That instruction was right about **concurrent writers** and wrong as
-applied to **merging**, which is serial: a row added at merge time collides with nothing. The `record`
-job is post-merge only, so the cost of getting this wrong is never a refused pull request, always a red
-`main`. Writing the row first closes the window entirely.
+**Why a disposition may precede its merge, and exactly how far that goes.**
+`checkRecord` tests that `#N` appears in a disposition document; it does not require the merge to
+have happened, and it enumerates every merge on `main` regardless of who opened the pull request.
+Twice in one evening `main` went red because a pull request merged before its row existed — #693
+and #695 — both times because four seats had been told not to write plan rows, to avoid four rows
+colliding at one anchor.
+
+That instruction was right about **concurrent writers**. It was wrong as applied to **merging** — but
+the correction is narrower than it first reads, and three limits belong with it:
+
+- **A row is added by a branch that must itself merge**, so it *is* a concurrent writer at that anchor.
+  Two record pull requests open together still collide. What makes this work is **one serialising
+  writer**, not the ordering alone.
+- **Writing the row first closes the window for that pull request and for no other.** It is not a
+  general fix. Any pull request merging without a row reddens `record` the same way.
+- **The set is enumerated at writing time and decays.** Rows written here cover the pull requests open
+  when this branch was written; the serialising writer re-enumerates immediately before merging rather
+  than trusting this paragraph.
+
+And one cost, stated because nothing detects it: **a pre-emptive row for a pull request that is closed
+unmerged becomes a permanent false disposition**, and `checkRecord` cannot see it — the check asks
+whether the number is mentioned, never whether the mention is true. #704 and #706 were drafts when
+their rows were written. The trade is deliberate: a false row is a reader's problem, a missing row is
+a red `main`, and the `record` job is post-merge only, so the cost of the second is never a refused
+pull request and always a broken default branch.
 
 
 **A pattern worth naming**, since most of these were blocked for it: every one of those blocks was a document asserting something that was not true of the tree — a stale head, a count, an actor, a carry that did not land. None was a disagreement about the change itself.
