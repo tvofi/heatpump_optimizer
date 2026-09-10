@@ -136,11 +136,13 @@ class HeatPumpOptimizerClimate(HeatPumpOptimizerEntity, ClimateEntity):
         if not self.coordinator.data:
             return None
         measured = self._measured("upper_floor_temperature")
-        if measured is not None:
-            return measured
+        if isinstance(measured, (int, float)) and not isinstance(measured, bool):
+            return float(measured)
         flags = self.coordinator.data.get("reading_ok") or {}
         if flags.get("upper_floor_temperature"):
-            return self.coordinator.data.get("indoor_temperature")
+            indoor = self.coordinator.data.get("indoor_temperature")
+            if isinstance(indoor, (int, float)) and not isinstance(indoor, bool):
+                return float(indoor)
         return None
 
     @property
