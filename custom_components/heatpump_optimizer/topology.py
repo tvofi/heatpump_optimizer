@@ -669,7 +669,7 @@ def rank_sensor_gaps(
             else dhw_coast_miss_sek(dhw_extra_kwh, dhw_price),
         ),
     )
-    ranked = [
+    ranked: list[dict[str, Any]] = [
         {
             "key": key,
             "label": labels.get(key, key),
@@ -678,7 +678,7 @@ def rank_sensor_gaps(
         }
         for key, sek in rows
     ]
-    ranked.sort(key=lambda row: row["sek_per_month"], reverse=True)
+    ranked.sort(key=lambda row: float(row["sek_per_month"]), reverse=True)
     return ranked
 
 

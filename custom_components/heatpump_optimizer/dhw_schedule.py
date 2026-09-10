@@ -360,7 +360,7 @@ def format_weekly_windows(weekly: list[list[Window]]) -> str:
 
 def windows_for_day(
     weekly: list[list[Window]] | None,
-    weekday: int,
+    weekday: int | None,
     fallback: list[Window],
     holiday_windows: list[Window] | None = None,
     holiday: bool = False,

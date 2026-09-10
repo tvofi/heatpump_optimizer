@@ -42,7 +42,7 @@ import logging
 import math
 import time as _time_mod
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Any, Callable, NamedTuple
 
 import numpy as np
@@ -113,7 +113,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 def _holiday_flags_for(
-    step_datetimes: list[datetime], holiday_dates: frozenset
+    step_datetimes: list[datetime], holiday_dates: frozenset[date]
 ) -> np.ndarray | None:
     if not holiday_dates:
         return None
@@ -960,7 +960,7 @@ class OptimizationConfig:
     holiday_comfort_night: float | None = None
     holiday_day_start_hour: int | None = None
     holiday_day_end_hour: int | None = None
-    holiday_dates: frozenset = field(default_factory=frozenset)
+    holiday_dates: frozenset[date] = field(default_factory=frozenset)
 
     # Optimization parameters
     horizon_hours: float = 24.0

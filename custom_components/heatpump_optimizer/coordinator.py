@@ -1275,7 +1275,7 @@ def _effective_house_heat_loss(
 
 
 def _entity_price_source(cfg: dict[str, Any]) -> bool:
-    return cfg.get(CONF_PRICE_SOURCE, DEFAULT_PRICE_SOURCE) == PRICE_SOURCE_ENTITY
+    return str(cfg.get(CONF_PRICE_SOURCE, DEFAULT_PRICE_SOURCE)) == PRICE_SOURCE_ENTITY
 
 
 def _price_entity_state(hass: Any, cfg: dict[str, Any]) -> Any:

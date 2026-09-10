@@ -638,6 +638,8 @@ def _raw_value(item: dict[str, Any]) -> float | None:
         raw = item.get("total")
     if raw is None:
         raw = item.get("price")
+    if raw is None:
+        return None
     try:
         value = float(raw)
     except (TypeError, ValueError):

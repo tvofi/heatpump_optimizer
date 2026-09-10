@@ -168,8 +168,7 @@
           "dhw_cooling_rate": "Hur snabbt beredaren svalnar när ingen använder varmvatten, mätt vid 45 C i ett 20-gradigt rum. Detta är bara en startpunkt: integrationen mäter beredarens faktiska avsvalning och justerar värdet automatiskt. En beredare som håller värmen väl kan laddas längre i förväg, så att mer av uppvärmningen hamnar på billiga timmar.",
           "dhw_legionella_enabled": "Eftersom beredaren nu får stå sval under långa perioder värms den regelbundet tillräckligt hett för att döda legionellabakterier. Rekommenderas starkt.",
           "dhw_legionella_temperature": "60 C är den vanliga rekommendationen.",
-          "dhw_legionella_interval_days": "Hur ofta desinficeringen körs. Den läggs på den billigaste timmen före varje deadline.",
-          "holiday_dhw_windows": "Same grammar as the ordinary windows. Used on days the holiday calendar is on, instead of weekday/weekend. Leave empty to keep the ordinary schedule."
+          "dhw_legionella_interval_days": "Hur ofta desinficeringen körs. Den läggs på den billigaste timmen före varje deadline."
         }
       },
       "weather_sensitivity": {
