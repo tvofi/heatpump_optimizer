@@ -287,6 +287,11 @@ for f in tests/*.py tests/*.mjs; do
     # container image and runs the integration inside it. Docker is not
     # available to this suite, and it must never gate a pull request.
     nightly_ha.py) continue ;;
+    # The nightly's reporter (#533): the `nightly-status` job runs it on every
+    # pull request. It reads the GitHub Actions API, which this suite has no
+    # network and no token for, and its verdict is about CI's history rather
+    # than about this tree. tests/entities.py drives its classifier instead.
+    nightly_status.py) continue ;;
   esac
   if ! grep -Eq '^[[:space:]]*run .*tests/'"$base"'( |$)' tests/run.sh; then
     echo "UNWIRED TEST: tests/$base is not referenced by tests/run.sh"
@@ -471,7 +476,7 @@ done
 for f in tests/*.py tests/*.mjs; do
   base=$(basename "$f")
   case "$base" in
-    harness.py|profiles.py|dst_checks.py|closure.py|gate_lock.py|dom_stub.mjs|card_rig.mjs|card_browser.mjs|node_fs_trace.mjs|nightly_ha.py) continue ;;
+    harness.py|profiles.py|dst_checks.py|closure.py|gate_lock.py|dom_stub.mjs|card_rig.mjs|card_browser.mjs|node_fs_trace.mjs|nightly_ha.py|nightly_status.py) continue ;;
   esac
   if ! cat "$WORKDIR"/*.manifest 2>/dev/null | grep -Fq "tests/$base"; then
     echo "TEST NEVER RAN: tests/$base is wired into tests/run.sh but no lane"

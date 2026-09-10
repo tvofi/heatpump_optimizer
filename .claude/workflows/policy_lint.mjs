@@ -72,6 +72,7 @@ import {
   NEGATION_RE,
 } from './brief_lint.mjs'
 import { checkCounts, derivations } from './counts.mjs'
+import { inspectRender } from './render_md.mjs'
 
 // brief_lint's CODE_EXTS has no `mdc`, because a wave roster never cites one.
 // Half this corpus's citations are `.cursor/rules/*.mdc`, so they are matched
@@ -327,16 +328,16 @@ const CORPUS_CHECK_NAMES = ['checkIndex', 'checkDuplicates', 'checkBudgets', 'co
 // second copy is the same defect one level up, and a regex over this file's
 // source re-derives the enumeration from spelling.
 //
-// `cmdRecordDispositions` prints three lines -- `RECORD:`, `TABLES:` and
-// `CAPS:` -- and each is driven inside `assertAcceptance` against a fixture
-// under fixtures/policy-loop/, so a check emptied outright is already refused
-// THERE. That is not the question this list is for. The corpus lane's whole
-// argument is that an acceptance cannot derive its own drive loop, and the
-// argument does not weaken one mode over: nothing established that the drive
-// which is supposed to catch an emptied `checkTableSplit` is the drive that
-// runs. #683.
+// `cmdRecordDispositions` prints four lines -- `RECORD:`, `TABLES:`, `CAPS:`
+// and `RENDER:` -- and each is driven inside `assertAcceptance` against a
+// fixture under fixtures/policy-loop/, so a check emptied outright is already
+// refused THERE. That is not the question this list is for. The corpus lane's
+// whole argument is that an acceptance cannot derive its own drive loop, and
+// the argument does not weaken one mode over: nothing established that the
+// drive which is supposed to catch an emptied `checkTableSplit` is the drive
+// that runs. #683. `checkRender` is the fourth (#682).
 //
-// An entry carries its FILE and its mutation KIND, because two of the four are
+// An entry carries its FILE and its mutation KIND, because two of the five are
 // not functions in this module:
 //
 //   - `checkCounts` and the regex list its `caps` rule scans both live in
@@ -356,6 +357,7 @@ const CORPUS_CHECK_NAMES = ['checkIndex', 'checkDuplicates', 'checkBudgets', 'co
 const LOOP_CHECK_NAMES = [
   { name: 'checkRecord', file: 'policy_lint.mjs', kind: 'return' },
   { name: 'checkTableSplit', file: 'policy_lint.mjs', kind: 'return' },
+  { name: 'checkRender', file: 'policy_lint.mjs', kind: 'return' },
   { name: 'checkCounts', file: 'counts.mjs', kind: 'return' },
   { name: 'CAP_RES', file: 'counts.mjs', kind: 'array' },
 ]
@@ -1334,6 +1336,77 @@ function mergedPRs(subjects) {
   return rows
 }
 
+// First-parent commits in the record window. `--first-parent` is load-bearing
+// on a history that is not squash-only: a merge commit's second parent is
+// another pull request's branch, and asking the API for that SHA would
+// double-count. Squash-only `main` is the same set either way.
+function firstParentCommits(since) {
+  const out = git(
+    ['log', '--first-parent', '--format=%H%x09%s', `${since}..${mainRef()}`],
+    { allowFail: true },
+  )
+  if (!out) return []
+  const rows = []
+  for (const line of out.split('\n')) {
+    if (!line) continue
+    const tab = line.indexOf('\t')
+    if (tab < 0) continue
+    rows.push({ sha: line.slice(0, tab), subject: line.slice(tab + 1) })
+  }
+  return rows
+}
+
+// THE ENUMERATOR. Pure over its two inputs so the acceptance can drive the
+// two shapes #677 named — a suffix-less subject, and a suffix that names an
+// issue — without a network. `pullsBySha` present is API mode: the number
+// comes from the commit-to-PR map, and a commit with no entry is a stamp
+// (or any other first-parent that is not a pull request) and is skipped.
+// `pullsBySha` null is the offline fallback: the trailing `(#N)` of the
+// subject, the function `mergedPRs` already is. The two modes must print
+// different words. A reader who cannot tell them apart is the same defect
+// as `MODE: SCOPED` against `MODE: FULL`.
+function enumerateMerges(commits, pullsBySha) {
+  const mode = pullsBySha ? 'api' : 'subject'
+  const seen = new Set()
+  const prs = []
+  for (const { sha, subject } of commits) {
+    let pr = null
+    if (pullsBySha) {
+      const raw = pullsBySha.get(sha)
+      if (raw == null || raw === '') continue
+      pr = String(raw)
+    } else {
+      const m = String(subject).match(MERGE_SUBJECT_RE)
+      if (!m) continue
+      pr = m[1]
+    }
+    if (seen.has(pr)) continue
+    seen.add(pr)
+    prs.push({ pr, subject, sha })
+  }
+  return { mode, prs }
+}
+
+function fetchPullsBySha(commits) {
+  const slug = repoSlug()
+  if (!slug) return { ok: false, why: 'no github remote on origin' }
+  const map = new Map()
+  for (const { sha } of commits) {
+    const res = ghGet(`/repos/${slug}/commits/${sha}/pulls`)
+    if (!res.ok) return { ok: false, why: res.why }
+    const rows = Array.isArray(res.data) ? res.data : []
+    if (rows.length) map.set(sha, rows[0].number)
+  }
+  return { ok: true, map }
+}
+
+function mergedPRsFromWindow(since) {
+  const commits = firstParentCommits(since)
+  const fetched = fetchPullsBySha(commits)
+  if (fetched.ok) return { ...enumerateMerges(commits, fetched.map), why: null }
+  return { ...enumerateMerges(commits, null), why: fetched.why }
+}
+
 // The record's SEARCH REGION, and the reason it is not the whole file.
 //
 // `#<pr>` tested against the whole plan plus the handover is satisfied by
@@ -1441,6 +1514,19 @@ function checkTableSplit(rel, text) {
     })
   }
   return out
+}
+
+// --record, fourth output. The two disposition documents are read as source
+// by every other class; this walks the rendered token stream and compares
+// structure back to the source. markdown-it lives in render_md.mjs so this
+// file's signature stays the single-line form the mutation lane rewrites.
+function checkRender(rel, text) {
+  return inspectRender(text).findings.map((f) => ({
+    severity: 'error',
+    check: 'render',
+    where: `${rel}:${f.line}`,
+    message: f.message,
+  }))
 }
 
 // --stats. The verdict vocabulary is READ from the wave script rather than
@@ -1970,6 +2056,7 @@ const CHECKS = [
   { name: 'coverage', what: 'every file in a policy directory is matched by a glob', fixture: '(a probe file, see assertAcceptance)' },
   { name: 'provenance', what: "the known-bad ledger's recorded_at resolves from origin/main", fixture: '(driven in assertAcceptance)' },
   { name: 'record', what: 'every merged pull request has a disposition (refuses)', fixture: 'fixtures/policy-loop/merged-subjects.txt' },
+  { name: 'render', what: 'disposition documents render with the same structure as their source', fixture: 'fixtures/policy-loop/render-cells-rotten.md' },
   { name: 'stats', what: 'verdict and friction histograms, and what they would open', fixture: 'fixtures/policy-loop/pr-payloads.json' },
   { name: 'sunset', what: 'rules that have outlived the reason they were written', fixture: 'fixtures/policy-loop/sunset-rules.md' },
 ]
@@ -2020,6 +2107,15 @@ const REQUIRED_ROT = {
   },
   counts: { count: 13, must: ['for the cap on'] },  // two literal counts, one stated cap per regex shape, one per glue word, the number-first form, and one in the loop fixture
   table: { count: 1, must: ['ends the table here'] },
+  render: {
+    count: 4,
+    must: [
+      'different cell count from its header',
+      'pipe-block(s) with a delimiter',
+      'renders as ordinal',
+      'does not resolve to a pull request or issue',
+    ],
+  },
   'no-gh': { count: 1 },
   duplicates: { count: 1 },
   budgets: {
@@ -2094,7 +2190,7 @@ CORPUS_CHECKS.push(checkIndex, checkDuplicates, checkBudgets, coverageOverTree, 
 // refuse; it cannot prove the check is not refusing everything. Each loop mode
 // is therefore also run against a fixture that is healthy in exactly the way the
 // rot fixture is rotten, and must produce nothing.
-const REQUIRED_SILENT = ['record', 'stats', 'sunset', 'table', 'caps']
+const REQUIRED_SILENT = ['record', 'stats', 'sunset', 'table', 'caps', 'render']
 
 function assertAcceptance(derived) {
   const dir = path.join(HERE, 'fixtures', 'policy-rot')
@@ -2177,6 +2273,22 @@ function assertAcceptance(derived) {
   // The cap rule alone: handing checkCounts a derivations object with only
   // `caps` runs only that rule, the same way brief_lint withholds `modules`.
   found.push(...checkCounts('fixtures/policy-loop/dispositions-rotten.md', loop.dispositionsRotten, { caps: derived.caps }))
+  // One rotten fixture per render shape (#682). A single combined file would
+  // let three of the four comparisons be deleted as long as one still fired.
+  const RENDER_SHAPES = ['cells', 'tables', 'lists', 'links']
+  const renderSilent = []
+  for (const shape of RENDER_SHAPES) {
+    const rotRel = `fixtures/policy-loop/render-${shape}-rotten.md`
+    const okRel = `fixtures/policy-loop/render-${shape}-healthy.md`
+    const rot = read(`.claude/workflows/${rotRel}`)
+    const ok = read(`.claude/workflows/${okRel}`)
+    if (rot == null || ok == null) {
+      console.log(`\nFIXTURE VACUOUS: render fixture for ${shape} is missing; that comparison is deletable in silence`)
+      return 1
+    }
+    found.push(...checkRender(rotRel, rot))
+    renderSilent.push(...checkRender(okRel, ok))
+  }
 
 
   found.push(...statsFindings({ prs: loop.prs, fetched: loop.fetched, fetchError: null, classes: loop.classes }))
@@ -2192,6 +2304,10 @@ function assertAcceptance(derived) {
     record: checkRecord(loop.prs, loop.dispositionsHealthy),
     table: checkTableSplit('fixtures/policy-loop/dispositions-healthy.md', loop.dispositionsHealthy),
     caps: checkCounts('fixtures/policy-loop/dispositions-healthy.md', loop.dispositionsHealthy, { caps: derived.caps }),
+    render: [
+      ...checkRender('fixtures/policy-loop/dispositions-healthy.md', loop.dispositionsHealthy),
+      ...renderSilent,
+    ],
     stats: statsFindings({ prs: loop.healthyPrs, fetched: loop.fetched, fetchError: null, classes: loop.classes }),
     sunset: checkSunset(loop.sunsetHealthy, { friction: loop.friction, fires: loop.fires, today: loop.today }),
   }
@@ -2278,6 +2394,41 @@ function assertAcceptance(derived) {
   if (checkRecord([{ pr: '9104', subject: 's' }], regSub.region).length !== 0) regFail.push('a third-level heading inside the section closed the region')
   if (regFail.length) {
     console.log(`\nFIXTURE VACUOUS: recordRegion ${JSON.stringify(regFail)}. The record's region is what makes a mention a disposition; unpinned, it can be widened back to the whole file with every other count unchanged.`)
+    return 1
+  }
+
+  // #677. The enumerator is the API's pull-request number, not the subject's
+  // trailing `(#N)`. Two shapes, both silent in the shipped regex: a
+  // suffix-less subject, and a suffix that names an issue. The subject-mode
+  // fallback must still exhibit both defects and must still say it is the
+  // fallback — that is how a reader tells the two modes apart.
+  pins += 8
+  const enumFail = []
+  const enumCommits = [
+    { sha: 'a'.repeat(40), subject: 'typing: snapshots.py annotations' },
+    { sha: 'b'.repeat(40), subject: 'feat: something (#587)' },
+    { sha: 'c'.repeat(40), subject: 'v6.3.19: stamp Seven leftover product features' },
+    { sha: 'd'.repeat(40), subject: 'fix: the shipped catalog said eleven (#710)' },
+  ]
+  const enumApi = new Map([
+    [enumCommits[0].sha, 656],
+    [enumCommits[1].sha, 655],
+    [enumCommits[3].sha, 710],
+  ])
+  const apiEnum = enumerateMerges(enumCommits, enumApi)
+  if (apiEnum.mode !== 'api') enumFail.push('api mode not reported')
+  if (!apiEnum.prs.some((p) => p.pr === '656')) enumFail.push('suffix-less subject invisible under api')
+  if (apiEnum.prs.some((p) => p.pr === '587')) enumFail.push('issue suffix collected under api')
+  if (!apiEnum.prs.some((p) => p.pr === '655')) enumFail.push('real PR for the issue-suffix subject missing under api')
+  if (apiEnum.prs.some((p) => p.sha === enumCommits[2].sha)) enumFail.push('a stamp collected under api')
+  if (!apiEnum.prs.some((p) => p.pr === '710')) enumFail.push('healthy suffix dropped under api')
+  const subEnum = enumerateMerges(enumCommits, null)
+  if (subEnum.mode !== 'subject') enumFail.push('subject mode not reported')
+  if (subEnum.prs.some((p) => p.pr === '656')) enumFail.push('suffix-less collected under subject fallback')
+  if (!subEnum.prs.some((p) => p.pr === '587')) enumFail.push('issue-suffix phantom not produced by subject fallback')
+  if (subEnum.prs.some((p) => p.pr === '655')) enumFail.push('subject fallback invented the API number')
+  if (enumFail.length) {
+    console.log(`\nFIXTURE VACUOUS: enumerateMerges ${JSON.stringify(enumFail)}. The record's window is the API's pull-request set; unpinned, a suffix-less squash is invisible and a title ending in an issue number is demanded.`)
     return 1
   }
 
@@ -3231,7 +3382,9 @@ function requireSince(since, mode) {
 }
 
 function cmdRecordDispositions(since) {
-  const prs = mergedPRs(mergedSubjects(since))
+  const enumerated = mergedPRsFromWindow(since)
+  const prs = enumerated.prs
+  console.log(`RECORD_ENUM: ${enumerated.mode}${enumerated.why ? ` (${enumerated.why})` : ''}`)
   const { region, sectionFound } = recordRegion(read(DISPOSITION_FILES[0]) ?? '', read(DISPOSITION_FILES[1]) ?? '')
   const all = sectionFound
     ? checkRecord(prs, region)
@@ -3253,18 +3406,33 @@ function cmdRecordDispositions(since) {
     const t = read(rel)
     return t ? checkCounts(rel, t, { caps: derivations().caps }) : []
   })
+  const rendered = DISPOSITION_FILES.flatMap((rel) => {
+    const t = read(rel)
+    return t ? checkRender(rel, t) : []
+  })
+  const rCounts = DISPOSITION_FILES.reduce((acc, rel) => {
+    const t = read(rel)
+    if (!t) return acc
+    const s = inspectRender(t)
+    acc.tables += s.tables
+    acc.rows += s.rows
+    acc.lists += s.lists
+    acc.items += s.items
+    return acc
+  }, { tables: 0, rows: 0, lists: 0, items: 0 })
   console.log(`RECORD: ${prs.length} merged pull request(s) in ${since}..${mainRef()}; ${all.length} without a disposition in ${DISPOSITION_FILES.join(' or ')}`)
   console.log(`TABLES: ${split.length} split table(s) across ${DISPOSITION_FILES.length} disposition document(s)`)
   console.log(`CAPS: ${caps.length} stated cap(s) disagreeing with policy_budgets.json across ${DISPOSITION_FILES.length} disposition document(s)`)
-  printFindings([...applied.live, ...split, ...caps])
+  console.log(`RENDER: ${rCounts.tables} table(s), ${rCounts.rows} row(s), ${rCounts.lists} list(s), ${rCounts.items} item(s) across ${DISPOSITION_FILES.length} disposition document(s)`)
+  printFindings([...applied.live, ...split, ...caps, ...rendered])
   console.log(`\nKNOWN-BAD: ${applied.suppressed} of ${applied.total} recorded record-class defect(s) still present, in ${applied.occurrences} recorded occurrence(s)`)
-  const errors = [...applied.live, ...split, ...caps].filter((f) => f.severity === 'error').length
+  const errors = [...applied.live, ...split, ...caps, ...rendered].filter((f) => f.severity === 'error').length
   console.log(`\nTOTAL: ${errors} error(s) over ${prs.length} merged pull request(s)`)
   process.exit(errors > 0 ? 1 : 0)
 }
 
 function cmdStats(since) {
-  const prs = mergedPRs(mergedSubjects(since))
+  const prs = mergedPRsFromWindow(since).prs
   const classes = verdictClasses()
   if (!classes) {
     console.log(`STATS: could not read the verdict grammar from ${WAVE_SCRIPT}; classifying nothing rather than against a list typed here.`)
@@ -3289,7 +3457,7 @@ function cmdStats(since) {
 }
 
 function cmdSunset(since) {
-  const prs = mergedPRs(mergedSubjects(since))
+  const prs = mergedPRsFromWindow(since).prs
   const classes = verdictClasses()
   const { fetched, fetchError } = fetchWindow(prs)
   const friction = fetchError || !classes ? null : statsHistogram(prs, fetched, classes).friction
@@ -3348,7 +3516,7 @@ function main() {
   if (has('--record-known-bad')) {
     // A reseed may also re-measure the record class, but only when it was given
     // a window: `--record-known-bad --since <ref>`.
-    if (since) findings.push(...checkRecord(mergedPRs(mergedSubjects(since)), recordRegion(read(DISPOSITION_FILES[0]) ?? '', read(DISPOSITION_FILES[1]) ?? '').region))
+    if (since) findings.push(...checkRecord(mergedPRsFromWindow(since).prs, recordRegion(read(DISPOSITION_FILES[0]) ?? '', read(DISPOSITION_FILES[1]) ?? '').region))
     return cmdRecord(findings, { measuredRecord: !!since }), process.exit(0)
   }
 

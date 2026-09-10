@@ -230,6 +230,8 @@ jobs:
       # the Delivery-status table is what a resuming seat reads, and a merge
       # missing from it is work no later session can find.
       - name: Every merged pull request has a disposition
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node .claude/workflows/policy_lint.mjs --record --since "${{ steps.window.outputs.since }}"
 
       # Reporting only, and deliberately unable to fail the job: a histogram and
