@@ -13644,4 +13644,209 @@ R.check(
     in {_e._attr_translation_key for _p, _e in _named_entities if _p == "sensor"},
 )
 
+# --- the nightly's own telling (#533) ---------------------------------------
+#
+# `nightly-ha` and `slow` run on `schedule` alone, are `skipped` on every push
+# and pull request, and are not required contexts on `main-protect`. So a
+# scheduled run's conclusion lands on whatever commit was main's head when the
+# cron fired and the next merge strands it: both `nightly-ha` arms failed on
+# two consecutive nights and a seat sent looking found it, not the lane.
+# `tests/nightly_status.py` is the telling, and the `nightly-status` job runs
+# it on every pull request.
+#
+# Two things are pinned here and they are different things. The WIRING -- that
+# the job exists, runs on pull requests, and invokes the reporter with no
+# argument that could pin it green -- is read out of the YAML, because a
+# correct classifier the workflow does not call is exactly the silent-green
+# shape this whole issue is about. The CLASSIFIER's four states are driven
+# directly, because they are pure functions of data and need no network.
+import nightly_status as _nstatus  # noqa: E402
+
+_NS_JOB = _workflow_job(_TESTS_YML, "nightly-status")
+_NS_RUNS = [
+    _l.strip() for _l in _NS_JOB.splitlines()
+    if "tests/nightly_status.py" in _l and _l.strip().startswith("run:")
+]
+R.check(
+    "the nightly reporter is wired into a job that runs on pull requests",
+    "github.event_name == 'pull_request'" in _NS_JOB and len(_NS_RUNS) == 1,
+    f"if-line present={'pull_request' in _NS_JOB} run lines={_NS_RUNS}",
+)
+# The null control for the demonstration knob. `--run` classifies one named
+# run; pointed at a run that passed it reports PASSED forever, which is the
+# always-green check this repository keeps catching. CI must never pass it.
+R.check(
+    "and passes it no argument that would pin its answer",
+    bool(_NS_RUNS) and _NS_RUNS[0] == "run: python tests/nightly_status.py",
+    f"the invocation is {_NS_RUNS[0] if _NS_RUNS else '(absent)'!r}",
+)
+# The permission widening, checked as a PROPERTY rather than as its instance:
+# the whole set of jobs that override the workflow's `contents: read` floor.
+# A job-level block REPLACES the floor for that job and is inherited by none,
+# so the set IS the blast radius. The two autofix jobs have needed writes since
+# #523; a fourth override should have to be argued for.
+_NS_OVERRIDES = sorted(
+    _m.group(1) for _m in re.finditer(
+        r"^  ([A-Za-z][\w-]*):\n(?:(?!^  [A-Za-z]).)*?^    permissions:",
+        _TESTS_YML, re.M | re.S)
+)
+R.check(
+    "exactly three jobs override the workflow's read-only floor",
+    _NS_OVERRIDES == ["claims-autofix", "closures-autofix", "nightly-status"],
+    f"jobs with a permissions block: {_NS_OVERRIDES}",
+)
+_NS_PERMS = re.search(r"^    permissions:\n((?:^      .*\n)+)", _NS_JOB, re.M)
+R.check(
+    "and the nightly reporter's own widening is read-only",
+    bool(_NS_PERMS)
+    and sorted(_NS_PERMS.group(1).split()) == sorted(
+        ["actions:", "read", "contents:", "read"]),
+    f"nightly-status permissions: {_NS_PERMS.group(1).split() if _NS_PERMS else None}",
+)
+
+# `REQUIRED_LANES` is the reporter's answer to "the run concluded and the lane
+# inside it was skipped", which is absence one level down from "no run". Naming
+# two jobs is a coupling, so the coupling is DERIVED here rather than restated:
+# a job is schedule-only when its own `if:` admits `'schedule'` and neither
+# `'push'` nor `'pull_request'`, and those are exactly the jobs a pull request
+# cannot see for itself. A future lane added to the nightly is therefore
+# refused by this gate until it is registered, instead of being watched by
+# nobody -- which is the silence #533 is about, one level further out.
+_NS_HEADS = {
+    _n: _workflow_job(_TESTS_YML, _n).split("\n    steps:")[0]
+    for _n in re.findall(r"^  ([A-Za-z][\w-]*):$", _TESTS_YML, re.M)
+}
+_NS_SCHEDULE_ONLY = sorted(
+    _n for _n, _h in _NS_HEADS.items()
+    if "'schedule'" in _h and "'push'" not in _h and "'pull_request'" not in _h
+)
+R.check(
+    "the reporter watches exactly the lanes a pull request cannot see",
+    sorted(_nstatus.REQUIRED_LANES) == _NS_SCHEDULE_ONLY,
+    f"REQUIRED_LANES={sorted(_nstatus.REQUIRED_LANES)} "
+    f"schedule-only jobs in tests.yml={_NS_SCHEDULE_ONLY}",
+)
+
+# --- the four states --------------------------------------------------------
+_NS_NOW = datetime(2026, 9, 10, 12, 0, tzinfo=UTC)
+
+
+def _ns_run(rid: int, when: str, status: str = "completed",
+            conclusion: str | None = "failure") -> dict:
+    return {"id": rid, "created_at": when, "status": status,
+            "conclusion": conclusion, "head_sha": "0" * 40,
+            "html_url": f"https://example.invalid/{rid}"}
+
+
+def _ns_job(name: str, conclusion: str | None) -> dict:
+    return {"name": name, "conclusion": conclusion, "html_url": ""}
+
+
+_NS_LIVE = [_ns_job("nightly-ha (stable)", "success"),
+            _ns_job("nightly-ha (2025.2.0)", "success"),
+            _ns_job("slow", "success"), _ns_job("fast", "skipped")]
+_NS_LAST_NIGHT = _ns_run(1, "2026-09-10T02:17:00Z")
+_NS_CASES = {
+    "FAILED": (_NS_LAST_NIGHT, None,
+               [*_NS_LIVE[1:], _ns_job("nightly-ha (stable)", "failure")]),
+    "PASSED": (_NS_LAST_NIGHT, None, _NS_LIVE),
+    "RUNNING": (None, _ns_run(2, "2026-09-10T02:17:00Z", "in_progress", None), []),
+    "ABSENT": (None, None, []),
+}
+_ns_wrong = []
+for _want, (_c, _f, _j) in _NS_CASES.items():
+    _got, _code, _lines = _nstatus.verdict(_c, _f, _j, _NS_NOW)
+    _green = _code == 0
+    if _got != _want or _green != (_want == "PASSED"):
+        _ns_wrong.append(f"{_want} -> {_got} exit={_code}")
+R.check(
+    "the reporter separates failed, passed, still-running and never-ran",
+    not _ns_wrong,
+    "; ".join(_ns_wrong) or "four states, one exit code each",
+)
+# The state this exists to refuse: absence must not read as a pass. Both
+# shapes of absence, and the one that is absence one level down.
+_ns_absent = [
+    _nstatus.verdict(None, None, [], _NS_NOW)[0],
+    _nstatus.verdict(_ns_run(3, "2026-09-01T02:17:00Z", conclusion="success"),
+                     None, _NS_LIVE, _NS_NOW)[0],
+    _nstatus.verdict(_NS_LAST_NIGHT, None,
+                     [_ns_job("nightly-ha (stable)", "skipped"),
+                      _ns_job("slow", "skipped"),
+                      _ns_job("fast", "success")], _NS_NOW)[0],
+]
+R.check(
+    "no run, a stale run and a run whose lanes were skipped are all ABSENT",
+    _ns_absent == ["ABSENT", "ABSENT", "ABSENT"],
+    f"no-run/stale/lane-skipped -> {_ns_absent}; a check that reads missing "
+    "evidence as good evidence is the shape this issue exists for",
+)
+# Fails closed on a conclusion string GitHub has not invented yet, which is
+# the reader's own null control: the accepted set is a whitelist, so a new
+# value cannot arrive as a silent pass.
+_ns_novel = _nstatus.verdict(
+    _NS_LAST_NIGHT, None,
+    [*_NS_LIVE[1:], _ns_job("nightly-ha (stable)", "quantum_ambiguous")],
+    _NS_NOW)
+R.check(
+    "an unrecognised job conclusion is reported, not waved through",
+    _ns_novel[0] == "FAILED" and "quantum_ambiguous" in "\n".join(_ns_novel[2]),
+    f"state={_ns_novel[0]}",
+)
+# The verdict is the last CONCLUDED run, so it does not flip to "no answer"
+# for the forty-five minutes the lane takes every night.
+_ns_flight = _nstatus.verdict(
+    _NS_LAST_NIGHT, _ns_run(9, "2026-09-10T11:00:00Z", "in_progress", None),
+    _NS_LIVE, _NS_NOW)
+R.check(
+    "a newer in-flight run annotates the verdict and does not become it",
+    _ns_flight[0] == "PASSED" and any("in flight" in _l for _l in _ns_flight[2]),
+    f"state={_ns_flight[0]}",
+)
+# Every report says the check does not block, on green as well as on red. A
+# reader meeting the first red one has to learn that from the report itself.
+R.check(
+    "and every state says in the report that it blocks nothing",
+    "does not block a merge" in _nstatus.NOT_REQUIRED
+    and _nstatus.EXIT_UNREADABLE != _nstatus.EXIT_GREEN,
+    "an unreadable API must not exit green: "
+    f"UNREADABLE={_nstatus.EXIT_UNREADABLE} GREEN={_nstatus.EXIT_GREEN}",
+)
+# The classification the ratchet demands of any new tracked file: not
+# selectable (it needs the Actions API), not INERT (this script reads it).
+R.check(
+    "the reporter is classified: NOT_A_TEST, and not on INERT",
+    "nightly_status.py" in _closure.NOT_A_TEST
+    and not _closure.is_inert("tests/nightly_status.py"),
+    "a file that is neither in a closure nor on a list forces the FULL suite",
+)
+# `run.sh` accounts for its scripts TWICE -- once asking "is there a `run`
+# line?" and once, after the lanes, asking "did one actually execute?" -- and
+# each has its own `case` list of the scripts that legitimately do neither.
+# Excluding a script from one and not the other is silent locally and costs a
+# full `fast` job to discover: it is what `nightly_status.py` did on this
+# branch's first push, `TEST NEVER RAN` after 23 minutes. The lists are the
+# same claim written twice, so they are pinned equal here, which is seconds.
+_NS_RUNSH = (pathlib.Path(__file__).resolve().parents[1]
+             / "tests" / "run.sh").read_text()
+_NS_SPLIT = _NS_RUNSH.index("# The grep above proves")
+_NS_WIRED = {
+    _b
+    for _arm in re.findall(r"^    ([\w.|]+\.(?:py|mjs))\) continue ;;",
+                           _NS_RUNSH[:_NS_SPLIT], re.M)
+    for _b in _arm.split("|")
+}
+_NS_RAN = {
+    _b
+    for _arm in re.findall(r"^    ([\w.|]+\.(?:py|mjs))\) continue ;;",
+                           _NS_RUNSH[_NS_SPLIT:], re.M)
+    for _b in _arm.split("|")
+}
+R.check(
+    "run.sh's two script-accounting exclusion lists name the same scripts",
+    _NS_RAN and _NS_RAN == _NS_WIRED,
+    f"only in the ran-check: {sorted(_NS_RAN - _NS_WIRED)}; "
+    f"only in the wired-check: {sorted(_NS_WIRED - _NS_RAN)}",
+)
+
 sys.exit(R.close("ENTITY CHECKS"))
