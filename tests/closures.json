@@ -26,7 +26,7 @@
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 17.1,
+   "seconds": 21.1,
    "rc": 0
   },
   "tests/env_drift.py": {
@@ -346,6 +346,12 @@
    "tests/profiles.py"
   ],
   "tests/entities.py": [
+   ".claude/workflows/brief_lint.mjs",
+   ".claude/workflows/counts.mjs",
+   ".claude/workflows/policy_lint.mjs",
+   ".claude/workflows/render_md.mjs",
+   ".claude/workflows/vendor/markdown-it.LICENSE",
+   ".claude/workflows/vendor/markdown-it.min.js",
    ".gitattributes",
    ".github/workflows/tests.yml",
    "README.md",

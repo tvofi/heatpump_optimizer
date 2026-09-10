@@ -10349,8 +10349,30 @@ def _stale_corpus_fixture():
         # The real instruments, so the fixture drives POLICY_GLOBS itself and
         # not a copy of it -- a second definition of "what is policy" inside a
         # test is the same defect as a second one in production.
-        for f in ("policy_lint.mjs", "brief_lint.mjs", "counts.mjs"):
-            shutil.copy(Path(".claude/workflows") / f, d / ".claude/workflows" / f)
+        #
+        # WALKED FROM policy_lint.mjs'S OWN IMPORT LINES, NOT LISTED HERE. A
+        # hand-kept list of its dependencies is a second copy of its dependency
+        # graph, and it went stale the first time it was tested against a moving
+        # main: #721 added `render_md.mjs` to policy_lint.mjs, the list did not
+        # have it, node raised ERR_MODULE_NOT_FOUND, and four arms of this
+        # fixture fell into the `NOT compared` arm at once. Loud rather than
+        # silent -- that is the sentinel probe below working -- but broken all
+        # the same, and the walk is what stops it recurring.
+        wf = Path(".claude/workflows")
+        need, seen = ["policy_lint.mjs"], set()
+        while need:
+            f = need.pop()
+            if f in seen:
+                continue
+            seen.add(f)
+            need += re.findall(
+                r"""from ['"]\./([\w.-]+\.mjs)['"]""", (wf / f).read_text()
+            )
+        for f in sorted(seen):
+            shutil.copy(wf / f, d / ".claude/workflows" / f)
+        # render_md.mjs reaches its vendored markdown-it through `createRequire`,
+        # which no import line names, so the walk above cannot see it.
+        shutil.copytree(wf / "vendor", d / ".claude/workflows/vendor")
         shutil.copy(_preflight, d / "tools/audit/preflight.sh")
         for f in ("fix-review.md", "fixer.md", "orchestrator.md"):
             (d / "tools/audit/briefs" / f).write_text("v1\n")

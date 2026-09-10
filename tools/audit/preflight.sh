@@ -121,9 +121,13 @@ fi
 #
 #    WHERE IT DOES NOT REACH, stated rather than left to be discovered: this
 #    script runs before a PUSH. A fix reviewer never pushes, and the reviewer is
-#    the seat this defect actually hurt. Closing that needs a second home in the
-#    review seat's own start-up -- fix-review.md's detached-worktree step -- and
-#    that is a policy edit, so it is the owner's call, not this script's.
+#    the seat this defect actually hurt. So the second home is the review seat's
+#    own start-up, and it is carried there rather than left open:
+#    tools/audit/briefs/fix-review.md, the paragraph under the detached-worktree
+#    preamble, which states the precondition and gives the same comparison as a
+#    command a reviewer runs by hand. That edit is a policy change and is
+#    surfaced for the owner's approval on the pull request, not folded in
+#    silently -- CLAUDE.md wants it opened and surfaced, not withheld.
 set_of() { printf '%s\n' "$1" | sed '/^$/d' | sort -u; }
 n_of() { set_of "$1" | wc -l | tr -d ' '; }
 minus() { comm -23 <(set_of "$1") <(set_of "$2"); }
@@ -172,14 +176,42 @@ else
 #  the failure mode that produced the incident in the first place. It cannot be
 #  fixed here (a check that hangs or fails offline is run with `|| true` inside a
 #  week), so it is made visible instead, by the one offline proxy there is: main
-#  moves several times a day in this repository, so a mirror tip older than a day
-#  is more likely unfetched than quiet. A PROXY, not a measurement -- it says
-#  when to distrust the lines above, and it cannot say they are wrong.
-  tip=$(git log -1 --format=%ct refs/remotes/origin/main 2>/dev/null)
-  if [ -n "$tip" ]; then
-    age=$(( ( $(date +%s) - tip ) / 3600 ))
-    [ "$age" -ge 24 ] && say check "policy corpus -- refs/remotes/origin/main last moved ${age}h ago and nothing here fetches. If that is not main's real tip, everything above compared against a stale mirror and under-reports. \`git fetch origin\`, then re-run."
-  fi
+#  moves several times a day in this repository, so a mirror that has not moved
+#  in a day is more likely unfetched than quiet.
+#
+#  WHAT IS MEASURED IS THE REFLOG ENTRY, NOT THE COMMIT DATE, and the difference
+#  is the difference between a local fact and an upstream one. `git log -1
+#  --format=%ct` reads when main's tip was COMMITTED, somewhere else, by someone
+#  else; a worktree created this minute from a mirror fetched this minute reports
+#  30h on a tip committed yesterday, and the line fires on a checkout that is
+#  perfectly current. The reflog records when THIS clone last moved the ref.
+#
+#  It is still an upper bound on "time since fetch" and never a measurement of
+#  it: git writes a reflog entry only when the ref MOVES, so a fetch that finds
+#  main unchanged leaves the age climbing. That direction is the safe one -- it
+#  over-reports age, so the line is too loud and never too quiet, which is the
+#  same asymmetry (c) above rests on. A PROXY, not a measurement: it says when to
+#  distrust the lines above, and it cannot say they are wrong.
+  when=$(git reflog show refs/remotes/origin/main --date=unix --format=%gd 2>/dev/null | head -1 | sed 's/.*@{\([0-9]*\)}.*/\1/')
+  what="last moved in this clone"
+  case "$when" in
+    ''|*[!0-9]*)
+      # No reflog for the ref: a --shared or --mirror clone, or
+      # core.logAllRefUpdates off. Falling back is what stops the proxy
+      # vanishing in silence on exactly the clones a review seat runs in --
+      # and the line says which measure it fell back to, because the two
+      # answer different questions.
+      when=$(git log -1 --format=%ct refs/remotes/origin/main 2>/dev/null)
+      what="tip was committed upstream -- no reflog for the ref in this clone, so this is main's age and not the mirror's"
+      ;;
+  esac
+  case "$when" in
+    ''|*[!0-9]*) ;;
+    *)
+      age=$(( ( $(date +%s) - when ) / 3600 ))
+      [ "$age" -ge 24 ] && say check "policy corpus -- refs/remotes/origin/main $what ${age}h ago and nothing here fetches. If that is not main's real tip, everything above compared against a stale mirror and under-reports. \`git fetch origin\`, then re-run."
+      ;;
+  esac
 fi
 
 [ $rc -eq 0 ] && say clean "no refusal (the 'check' lines above are yours to answer)"
