@@ -3182,11 +3182,11 @@ function cardStyleBlock() {
       }
 
       /* The layout editor (v3.16.0, issue #40) */
-      .layout-bar, .tank-bar {
+      .layout-bar {
         display: flex; align-items: center; gap: 0.5em;
         flex-wrap: wrap; padding: 0 0.25em 0.4em 0.25em;
       }
-      .layout-bar button, .tank-bar button {
+      .layout-bar button {
         font: inherit; font-size: 0.85em; cursor: pointer;
         border: 1px solid var(--divider-color, #e0e0e0);
         background: transparent; color: var(--primary-text-color);
@@ -3196,9 +3196,7 @@ function cardStyleBlock() {
         outline: 2px solid var(--primary-color, #03a9f4);
         outline-offset: 2px;
       }
-      .layout-edit-toggle.on, .tank-bar button.on {
-        border-color: var(--primary-color, #03a9f4);
-      }
+      .layout-edit-toggle.on { border-color: var(--primary-color, #03a9f4); }
       .layout-bar button[disabled] { opacity: 0.45; cursor: default; }
       .layout-verdict {
         flex: 1 1 100%; font-size: 0.85em;
@@ -8287,9 +8285,9 @@ class SetupPage {
     const wood = !!(topo && topo.wood && topo.wood.present);
     return `
       <div class="layout-bar tank-bar" role="group" aria-label="${esc(L("setup.tanks"))}">
-        <button type="button" class="${dhw ? "on" : ""}" data-tank="dhw"
+        <button type="button" class="${dhw ? "layout-edit-toggle on" : ""}" data-tank="dhw"
           aria-pressed="${dhw}">${esc(L("setup.tank_dhw"))}</button>
-        <button type="button" class="${wood ? "on" : ""}" data-tank="wood"
+        <button type="button" class="${wood ? "layout-edit-toggle on" : ""}" data-tank="wood"
           aria-pressed="${wood}">${esc(L("setup.tank_wood"))}</button>
       </div>`;
   }
