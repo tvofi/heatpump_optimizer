@@ -218,11 +218,21 @@ class ComfortLearner:
             return learner
         raw_configured = data.get("configured_weight")
         stored_configured: float | None = None
-        # The payload comes back through `json.loads`, so the value domain is
-        # dict/list/str/int/float/bool/None and this covers every member of it
-        # `float()` would have converted -- the rest reached the TypeError arm
-        # before and reach `None` here. The buffer types part company --
-        # `bytes`, `bytearray`, `memoryview` -- and JSON produces none of them.
+        # Narrowing first is not the same function as converting and catching:
+        # the two differ on EVERY object `float()` accepts that is not an
+        # int/float/str -- buffer types, `Decimal`, `Fraction`, anything with
+        # `__float__`, and every numpy scalar bar `np.float64`, which survives
+        # only by subclassing `float` (`np.int32` does not subclass `int`).
+        # That set is a rule, not a list; do not try to enumerate it.
+        # Neither caller reaches it, for two different reasons. The stored one
+        # comes back through `json.loads`, whose value domain is
+        # dict/list/str/int/float/bool/None, and over that domain the two agree
+        # member for member. The snapshot one hands `as_dict()` straight back
+        # with no JSON round trip, and is covered instead by
+        # `configured_weight` only ever being written from `_as_float` -- a
+        # plain `float`. So the precondition that would make these two forms
+        # diverge is a numpy scalar reaching that FIELD, not an in-memory
+        # caller: that caller already exists and is fine.
         if isinstance(raw_configured, (int, float, str)):
             try:
                 stored_configured = float(raw_configured)
