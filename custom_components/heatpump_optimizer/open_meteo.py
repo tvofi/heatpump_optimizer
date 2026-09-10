@@ -36,6 +36,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
+from typing import Any
 
 import aiohttp
 from homeassistant.core import HomeAssistant
@@ -166,7 +167,7 @@ _EMPTY = IrradianceSeries(times=(), values=(), resolution=timedelta(hours=1))
 
 
 def _parse_block(
-    block: dict, variable: str, max_value: float = _MAX_PLAUSIBLE_GHI
+    block: dict[str, Any], variable: str, max_value: float = _MAX_PLAUSIBLE_GHI
 ) -> IrradianceSeries:
     """Build a series from one Open-Meteo time block, skipping null samples.
 
@@ -363,8 +364,8 @@ class OpenMeteoSolar:
         return self.available
 
     async def _get_json(
-        self, session: aiohttp.ClientSession, url: str, params: dict
-    ) -> dict | None:
+        self, session: aiohttp.ClientSession, url: str, params: dict[str, Any]
+    ) -> dict[str, Any] | None:
         try:
             async with session.get(
                 url,
@@ -463,7 +464,7 @@ class OpenMeteoSolar:
             return _EMPTY
         return _parse_block(data.get("hourly") or {}, _VARIABLE)
 
-    def diagnostics(self) -> dict:
+    def diagnostics(self) -> dict[str, Any]:
         """Small summary for sensor attributes and troubleshooting."""
         return {
             "latitude": round(self.latitude, 5),

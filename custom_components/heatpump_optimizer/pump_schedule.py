@@ -23,9 +23,10 @@ transitions, and only for entities the user explicitly configured.
 from __future__ import annotations
 
 import logging
+from collections.abc import Sequence
 
 from .const import SPACE_PUMP_FLOOR_MARGIN_C
-from .dhw_schedule import hour_in_windows, hours_until_next_window
+from .dhw_schedule import Window, hour_in_windows, hours_until_next_window
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -34,7 +35,7 @@ _PLAN_ACTIVE_KW = 0.05
 
 
 def vvc_should_run(
-    hour_of_day: float, windows, lead_minutes: float
+    hour_of_day: float, windows: list[Window], lead_minutes: float
 ) -> tuple[bool, str]:
     """Whether the hot-water circulation loop should run right now.
 
@@ -94,7 +95,9 @@ def space_pump_should_run(
     return False, "provably idle and warm; trimming pump losses"
 
 
-def plan_commands_heat(power_schedule, step_index: int) -> tuple[bool, bool]:
+def plan_commands_heat(
+    power_schedule: Sequence[float], step_index: int
+) -> tuple[bool, bool]:
     """(heat now, heat next step) read from the plan's power schedule."""
     if not power_schedule:
         return True, True  # no plan yet — the rails treat unknown as ON

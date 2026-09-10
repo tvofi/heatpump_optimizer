@@ -106,8 +106,8 @@ def group_by_reason(
 
 
 def build(
-    space: dict[str, list],
-    dhw: dict[str, list],
+    space: dict[str, list[Any]],
+    dhw: dict[str, list[Any]],
     dt_hours: float,
 ) -> list[dict[str, Any]]:
     """The structured narrative: one item per reason, biggest spend first.
@@ -138,7 +138,7 @@ def build(
             # visible on every zero-energy line, which is the only kind of
             # line whose hours are the whole message.
             into["hours"] = max(into["hours"], entry["hours"])
-    items = []
+    items: list[dict[str, Any]] = []
     for reason, entry in merged.items():
         # These two carry no energy by definition; every other zero-energy
         # group is noise (a reason that never actually drew) and a line

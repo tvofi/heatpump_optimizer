@@ -35,6 +35,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+from collections.abc import Callable
 from typing import Any
 
 from .const import (
@@ -318,7 +319,7 @@ class InputReader:
         self.config = config
         self.enabled = bool(enabled)
         self.scale = float(scale)
-        self._now = now
+        self._now: Callable[[], datetime] | None = now
         self.health = InputHealth()
 
     def _utcnow(self) -> datetime:
@@ -326,7 +327,8 @@ class InputReader:
             return self._now()
         from homeassistant.util import dt as dt_util
 
-        return dt_util.utcnow()
+        utc_now: datetime = dt_util.utcnow()
+        return utc_now
 
     def _age_minutes(self, state: Any) -> float | None:
         """Minutes since the sensor last reported, or ``None`` if not knowable.
@@ -370,7 +372,10 @@ class InputReader:
         and return it as-is.
         """
         entity_id = entity_id if entity_id is not None else self.config.get(key)
-        if max_age_minutes is UNBOUNDED:
+        # `isinstance` rather than `is UNBOUNDED`: identical for a private
+        # sentinel with one instance, and it is what narrows the union so
+        # the `float()` below is checked rather than suppressed.
+        if isinstance(max_age_minutes, _Unbounded):
             # Recorded as "no limit" rather than as a very large one, so the
             # diagnostics say what is actually true about this read.
             limit: float | None = None
@@ -433,7 +438,8 @@ class InputReader:
             return self.health.record(reading)
 
         try:
-            value = float(getattr(state, "state", None))
+            raw_state: Any = getattr(state, "state", None)
+            value = float(raw_state)
         except (TypeError, ValueError):
             reading.problem = "not_numeric"
             return self.health.record(reading)
