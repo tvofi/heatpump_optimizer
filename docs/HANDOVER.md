@@ -2,18 +2,9 @@
 
 updated-for: 0f0cfb8
 
-Durable state only: decisions and the measurement behind them, corrections to
-the record, traps that cost a session, owed work. Volatile state — which seats
-are running, which branches are unpushed, what a resumer does next — goes on
-**#201**, and nothing goes in both. The rule, the `updated-for:` obligation and
-the reason the dated series was abolished are in
-`.claude/rules/writing-for-agents.md`, which the harness loads on this very
-path; `tests/entities.py` refuses a second handover. Delivery status is
-`docs/plan-2026-09-open-issues.md`'s table and authoritative there.
-
-**Name the metric, never its number.** Twenty-one out-of-tree briefs once
-carried a `coordinator_loc` stale by two hundred lines — the measurement this
-file's own figure rule was written from, and the only place it survives.
+The rule that governs this file is `.claude/rules/writing-for-agents.md`, which
+the harness loads on this very path. Delivery status is
+`docs/plan-2026-09-open-issues.md`'s table, linked from here and never restated.
 
 ## Decisions taken — do not relitigate
 
@@ -44,9 +35,7 @@ file's own figure rule was written from, and the only place it survives.
   which is a measurement artefact rather than a decomposition. A
   supplied-literal check pins nothing; that was proven with a null control.
 - **A ratchet raise may be proposed, never worked around** (owner, 2026-09-06).
-  The order is: pay for the lines elsewhere, then a deliberate re-record with
-  the reason in the commit message, then ask. An agent that wants a raise stops
-  and asks before pushing.
+  The order — pay, re-record with the reason, then ask — is `CLAUDE.md` rule 2's.
 - **Never re-gate an unchanged head.** A terminal CI result at that head *is*
   the gate evidence. Local runs exist for what CI structurally cannot produce:
   the mutation proof, the failing test at the merge base, and the finder's own
@@ -60,9 +49,6 @@ file's own figure rule was written from, and the only place it survives.
   and the failure would turn a genuine optimisation red; and the coverage floor
   is a literal, not an environment override, because an override could be
   reached in CI without ever appearing in a pull-request body.
-- **The orchestrator is bound by every contract it enforces.**
-  `tools/audit/briefs/orchestrator.md` exists because it did not: every auditor
-  of the resumability review had to be *told* what to fetch.
 - **Every sentence earns its place** (owner-directed, 2026-09-07). The rule, its
   scope and its controls are in `.claude/rules/writing-for-agents.md`; recorded
   here so that the decision to adopt it is not relitigated.
@@ -91,12 +77,13 @@ file's own figure rule was written from, and the only place it survives.
   head*, not merely on a push to `main`: the two shapes differ, `CodeQL`
   reports on one and not the other, and a context that never reports blocks
   every merge permanently. A `skipped` or `neutral` required check satisfies
-  the rule; that was measured on an isolated probe, both arms.
-- **A pull-request body carries `## Figures`** (#676): `none`, or one line per
-  figure with the command that printed it — the same `pr-contract` rule as
-  `## Red checks`, empty refused, and `pr-contract` is required by `main-protect`,
-  so a missing section blocks the merge. Its companion rule is **name the
-  instrument, never the figure it prints**. The detector shape that works
+  the rule; that was measured on an isolated probe, both arms. A **scheduled**
+  context is the other half of the same trap: make a nightly required and one
+  failing night blocks every merge, the merge that repairs the nightly included.
+- **A pull-request body carries `## Figures`** (#676). Its companion rule left
+  this file for `writing-for-agents.md` at #724; the measurement it was written
+  from stays, since that file lacks it: twenty-one out-of-tree briefs held a
+  `coordinator_loc` stale by two hundred lines. The detector shape that works
   resolves a *file name* to an artefact; the looser one — any number near a file
   name — was built and **refused in review** for reading a date and a line count
   as caps, and `preflight.sh`'s figure advisory stays advisory for #581's reason.
@@ -106,11 +93,8 @@ file's own figure rule was written from, and the only place it survives.
 **Every item lives on #558**, with the *Optimizer UX Docket* artifact as source
 of record. This file deliberately does **not** restate them — it once claimed a
 "full accounting" it did not hold, which cost a session the conclusion that the
-list was unrecoverable when it was one artifact call away. Lane collisions,
-sequencing and the reasons E1–E3 and F wait are in
-`docs/plan-2026-09-open-issues.md`, authoritative for delivery state; per-unit
-stage, `after` edges and carried findings are in
-`.claude/workflows/wave-ux-groups.json` (#601), the only one a linter reads.
+list was unrecoverable when it was one artifact call away. Per-unit stage,
+`after` edges and carried findings are in `.claude/workflows/wave-ux-groups.json` (#601).
 
 ## Corrections to the record
 
@@ -118,19 +102,17 @@ stage, `after` edges and carried findings are in
   reproduces 34, and it traces to a lost session tool. The freeze is enforced by
   `tests/features.py`'s symmetry check and the `coord_*` goldens, never by a
   number. Corrected on #193.
-- **#510 — a recorded cut drop that was blindness.** `tests/structure.py`
-  matched `ast.Attribute` on `ast.Name("self")`, so `getattr(self, "_ctx", self).X`
-  was invisible to it. Wave 4's S1 cut series is identical at both ends under a
-  counter that resolves the idiom. #500's other results stand — `CoordinatorContext`
-  itself, the attribute migration, the facades, #377 closed — and nothing is
-  reverted. S2 is unaffected and S3's reduction is genuine.
+- **#510 — a recorded cut drop that was blindness**, not decoupling.
+  `tests/structure.py` matched `ast.Attribute` on `ast.Name("self")`, so
+  `getattr(self, "_ctx", self).X` was invisible to it; under a counter that
+  resolves the idiom Wave 4's S1 cut series is identical at both ends. Fixed by
+  #512, nothing is reverted, and what still stands is the Wave 4 row's to say.
 - **#511 and #513 are closed and the shape outlived them**: the suite ran a
   module name and a filesystem layout no installation uses. Graduated:
-  `tests/deployment_shape.py`, which is in `tests/closures.json`.
+  `tests/deployment_shape.py`, in `tests/closures.json`.
 - **A file reported missing was there.** A seat filed it as a programme defect
   after listing a checkout that sat on a stale branch. **Check existence with
   `git show origin/main:<path>`, never by listing a working tree.**
-
 - **Leave both claim files exactly as you found them** (#662). Two earlier forms
   were each briefed to every seat for a session before a reviewer refused them by
   measuring. "Always byte-identical": PR #600 carries 33 correct bare claim lines
@@ -163,6 +145,13 @@ stage, `after` edges and carried findings are in
   So `24 = 25 - 2 + 1`, and a first reading of this defect blamed #640 alone
   because the arithmetic looked confirmed. **Compare the sets, never the
   totals**, and treat a suffix as a claim about a number rather than a fact.
+- **The red-check refusal has never once fired.** `policy_lint`'s `checkPrBody`
+  refuses a body whose `## Red checks` does not name a red check by iterating
+  the `--red` list, and `governance.yml`'s body-contract step passes
+  `--pr-body`, `--head` and `--title` and no `--red` — so that list is empty on
+  every pull request this repository has run. `CLAUDE.md`'s "only the red-check
+  trigger is enforced" states an intent, not a measurement: it is honour-only,
+  enforced by whichever reviewer looks.
 - **`GET /repos/.../rules/branches/<branch>` is not bypass-aware.** It lists
   the rules configured for the branch, not the rules that would apply to you:
   emptying the bypass-actors list and re-reading returns an identical list. Reading it
@@ -219,8 +208,7 @@ in its own pull request.
     very class, catches **0 of 3**. The reason is not the shape of those figures —
     rewriting all three with digits leaves them just as clean. A grep can only
     ask *is there a figure here*, while the defect is *was the right thing
-    measured*. The countermeasure shared the class's own defect.
-    The divider is **structural, not dispositional**: across every review-round
+    measured*. The divider is **structural, not dispositional**: across every review-round
     body in the corpus at the time — 161 rounds over 97 reviewed pull requests,
     the population both percentages come from, and it grows, so re-derive rather
     than quote — the class reached no seat's *production* fix. A production fix
@@ -275,8 +263,7 @@ in its own pull request.
     reported a cap mutant NOT CAUGHT: the replacement hit the string's first
     occurrence, inside a comment, so the run was the unmutated one. "I could not
     find it" is a different result from "it is pinned". Same shape: a `case`
-    glob is not anchored, so `v[0-9]*.[0-9]*.[0-9]*` accepts `v1.2.3; rm -rf /`;
-    and `git remote remove` in a worktree strips it for every worktree.
+    glob is not anchored, so `v[0-9]*.[0-9]*.[0-9]*` accepts `v1.2.3; rm -rf /`.
 22. **A subagent does not survive a session restart; its report does.** Read
     `tasks/<agentId>.output` before re-dispatching — `ListAgents` goes empty
     with no notification, and an hour was nearly spent re-running finished work.
@@ -330,11 +317,17 @@ in its own pull request.
     matches a number anywhere in its region and has no idea about placement.
     Assert the *whole* construct you meant to replace, and anchor on a string
     you have counted.
-29. **A verdict whose first line is wrapped in backticks does not parse.**
-    `web-fix-wave.js`'s `VERDICT_RE` anchors on `^Fix review:` and reads only
-    the first line, so the dispatcher reports no verdict on a pull request that
-    has one. Four of the fifteen grant merges carry one. Post the first line
-    bare; put the prose underneath.
+29. **A verdict that does not parse loses its routing class, not just its text.**
+    `web-fix-wave.js`'s `VERDICT_RE` anchors on `^Fix review:`, reads only the
+    first line, and takes `<class>` from the closed `VERDICT_CLASSES` list — so
+    backticks around that line and an invented class both make the dispatcher
+    report no verdict on a pull request that has one, and the result is recorded
+    as an undifferentiated non-merge. The class is what dispatches a repair
+    round rather than a root-cause seat, so losing it costs the routing. Both
+    halves have fired: four of the fifteen grant merges were wrapped, and
+    `revise` — which is not a class — was written into every review brief and
+    cost six verdicts before it was caught. Post the first line bare, and read
+    the class list out of the file rather than from memory.
 30. **In zsh, assigning to a variable named `path` destroys `PATH`.** A
     `while read -r path branch` loop over `git worktree list` left the shell
     unable to find `basename`, `git` or `df`. Same reserved-variable family as
@@ -344,6 +337,21 @@ in its own pull request.
     path in `resume.note` is invisible to `brief_lint.mjs` while the same path in
     `brief` is an error. A roster `resume` a record seat truths has one guarded
     field and a reader for the rest.
+32. **A worktree shares the repository's config and its refs with every other
+    worktree.** A seat ran `git remote remove origin` inside one while building
+    a test fixture; the main checkout's `origin` was repointed at a local path
+    and every remote-tracking ref went with it. Restored, and the restoration
+    verified. A throwaway git experiment goes in a standalone clone under the
+    seat's own `mktemp -d`, never in a worktree of this repository.
+33. **A detached worktree can be collected while a seat is still using it.**
+    `tools/audit/worktree_gc.sh --apply` removes a detached, clean worktree over
+    an hour old that is not an open pull request's head. A fix-review seat is
+    protected by that last criterion; a root-cause or audit seat detached at
+    `main` is not. **Claim it with `git worktree lock`**: `classify()` keeps
+    `locked` ahead of every criterion, as it does `main`, `current` and
+    `missing`, none of which its header names — but no `--self-test` case pins
+    that. **Not an untracked marker at the root**: criterion 2 keeps it, and
+    `closure.py select` then turns `MODE: SCOPED` into `MODE: FULL` naming it.
 
 ## Owed — post-hoc reviews
 
@@ -378,23 +386,18 @@ flagged it rather than claiming a carry it had not made.
   that a check can fail exists in two pull-request bodies and never where a
   later seat could re-run it. Both need a cap raise or a graduation to pay for
   their lines.
-- **Whether cloud seats get an identity distinct from the owner.** Everything
-  about review independence here is procedural until they do, and the ruleset
-  carries no approval rule for that reason.
-- **#575 and #541 were declined with the size of each measured**, not waved
-  off. #575: **184 of the 195 merges below #375** are mentioned in no programme
-  document, derived from `git log` over merge subjects, which enumerates
-  completely, rather than from a `--limit` listing, which pages silently. Read
-  it as a floor — the test is a bare grep and cannot tell a disposition from a
-  mention. #541: the governance programme mechanised **class 1 only**; class 2
-  has nothing, and class 4 cannot become mechanical while one identity authors
-  and approves. Both reasons are on the issues themselves.
+- **Two rules are jointly unsatisfiable under concurrency, and the owner has to
+  break the tie.** `finding-propagation.md` sends a finding that constrains
+  every seat to its role contract under `tools/audit/briefs/` **once**, and
+  holds the producing pull request from merging until the carry is in the tree.
+  Two branches owing a carry to the same contract therefore cannot both comply.
+  Raised on #201; no seat may decide it.
 
 ## The machine this runs on — measure it, do not read it
 
-This section used to describe the owner's Mac; a container seat reads it and
-every line is false. Measure your own box (`nproc`, `command -v gh`, `python3
--V`). The repository facts: `tests.yml` matrixes both declared interpreters
+A seat's box is not the owner's, and a container seat reading a description of
+someone else's reads a page of false lines. Measure your own (`nproc`,
+`command -v gh`, `python3 -V`). The repository facts: `tests.yml` matrixes both declared interpreters
 (#514, closed), CI is the authority for the browser lane, and `git branch
 --show-current` beats trusting a path.
 
