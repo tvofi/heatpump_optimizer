@@ -23,7 +23,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping
 from dataclasses import dataclass, replace
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from typing import Any, Protocol
 
 from homeassistant.helpers.storage import Store
@@ -504,6 +504,49 @@ def resolve(
         state, return_time, now, comfort_temp, model, thermal_state, outdoor_temp
     )
     return state
+
+
+def _holiday_span(attrs: Mapping[str, Any], now: datetime) -> tuple[date, date]:
+    start = _parse_return_time(
+        str(attrs.get("start_time") or attrs.get("start") or "")
+    )
+    end = _parse_return_time(str(attrs.get("end_time") or attrs.get("end") or ""))
+    if start is None:
+        start = now
+    if end is None:
+        end = now
+    first = start.date()
+    last = end.date()
+    if end.time() == datetime.min.time() and end > start:
+        last = last - timedelta(days=1)
+    if last < first:
+        last = first
+    return first, last
+
+
+def holiday_dates(
+    hass: Any, entity_id: str | None, now: datetime
+) -> frozenset[date]:
+    """Dates a dedicated holiday calendar covers. Empty when it is off."""
+    if not entity_id or hass is None:
+        return frozenset()
+    states = getattr(hass, "states", None)
+    if states is None:
+        return frozenset()
+    state = states.get(entity_id)
+    if state is None:
+        return frozenset()
+    if str(getattr(state, "state", "")).strip().lower() != "on":
+        return frozenset()
+    first, last = _holiday_span(getattr(state, "attributes", None) or {}, now)
+    days: set[date] = set()
+    cursor = first
+    while cursor <= last:
+        days.add(cursor)
+        cursor += timedelta(days=1)
+        if len(days) > 31:
+            break
+    return frozenset(days)
 
 
 def _parse_return_time(raw: str | None) -> datetime | None:

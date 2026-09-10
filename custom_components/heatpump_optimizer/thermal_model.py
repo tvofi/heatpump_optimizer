@@ -142,6 +142,16 @@ THERMAL_MASS_FLOOR: float = 0.1
 EULER_STABILITY_MAX_RATIO: float = 1.5
 
 
+def _holiday_dhw_windows(config: dict[str, Any]) -> list[Window] | None:
+    spec = config.get(const.CONF_HOLIDAY_DHW_WINDOWS)
+    if not spec:
+        return None
+    try:
+        return parse_windows(spec)
+    except DHWWindowError:
+        return None
+
+
 @dataclass
 class ThermalParameters:
     """Parameters for the two-zone thermal model with DHW."""
@@ -401,6 +411,8 @@ class ThermalParameters:
     #: existing consumer keeps working unchanged; day-aware consumers ask
     #: this instead.
     dhw_weekly_windows: list[list[Window]] | None = None
+    #: Holiday-profile windows (#700). None unless the user stored a spec.
+    dhw_holiday_windows: list[Window] | None = None
     dhw_idle_min_temp: float = DEFAULT_DHW_IDLE_MIN_TEMP  # °C outside windows
 
     # Anti-legionella cycle
@@ -995,6 +1007,7 @@ class ThermalParameters:
             )
             values["dhw_windows"] = []
             values["dhw_weekly_windows"] = None
+        values["dhw_holiday_windows"] = _holiday_dhw_windows(config)
 
         return cls(**values)
 

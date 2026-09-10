@@ -42,7 +42,7 @@ import logging
 import math
 import time as _time_mod
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Any, Callable, NamedTuple
 
 import numpy as np
@@ -50,8 +50,34 @@ from scipy.optimize import linprog, minimize
 
 from . import mixing_valve, pv
 from .const import (
+    CONF_COMFORT_TEMP_DAY,
+    CONF_COMFORT_TEMP_DAY_WEEKEND,
+    CONF_COMFORT_TEMP_NIGHT,
+    CONF_COMFORT_TEMP_NIGHT_WEEKEND,
+    CONF_COMFORT_WEIGHT,
+    CONF_DAY_END_HOUR,
+    CONF_DAY_END_HOUR_WEEKEND,
+    CONF_DAY_START_HOUR,
+    CONF_DAY_START_HOUR_WEEKEND,
+    CONF_HOLIDAY_COMFORT_DAY,
+    CONF_HOLIDAY_COMFORT_NIGHT,
+    CONF_HOLIDAY_DAY_END_HOUR,
+    CONF_HOLIDAY_DAY_START_HOUR,
+    CONF_MAX_TEMP,
+    CONF_MIN_TEMP,
+    CONF_PRICE_WEIGHT,
+    CONF_TARGET_TEMP,
+    DEFAULT_COMFORT_TEMP_DAY,
+    DEFAULT_COMFORT_TEMP_NIGHT,
+    DEFAULT_COMFORT_WEIGHT,
     DEFAULT_CYCLING_COST,
+    DEFAULT_DAY_END_HOUR,
+    DEFAULT_DAY_START_HOUR,
+    DEFAULT_MAX_TEMP,
+    DEFAULT_MIN_TEMP,
     DEFAULT_PRICE_RISK_LAMBDA,
+    DEFAULT_PRICE_WEIGHT,
+    DEFAULT_TARGET_TEMP,
     DHW_COOLING_REFERENCE_AMBIENT_TEMP,
     DHW_MIXED_USE_TEMP,
     DHW_QUANTILE_MIN_EVENTS,
@@ -84,6 +110,37 @@ from .dhw_schedule import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _holiday_flags_for(
+    step_datetimes: list[datetime], holiday_dates: frozenset[date]
+) -> np.ndarray | None:
+    if not holiday_dates:
+        return None
+    return np.array(
+        [False] + [d.date() in holiday_dates for d in step_datetimes]
+    )
+
+
+def _dhw_windows_at(
+    weekly: list[list[Window]] | None,
+    step_weekdays: np.ndarray | None,
+    index: int,
+    windows: list[Window],
+    holiday_windows: list[Window] | None,
+    holiday_flags: np.ndarray | None,
+) -> list[Window]:
+    weekday = None if step_weekdays is None else int(step_weekdays[index])
+    holiday = False
+    if holiday_flags is not None and index < len(holiday_flags):
+        holiday = bool(holiday_flags[index])
+    return windows_for_day(
+        weekly,
+        weekday,
+        windows,
+        holiday_windows=holiday_windows,
+        holiday=holiday,
+    )
 
 
 def _utc_step_starts(start: datetime, n: int, dt_hours: float) -> list[datetime]:
@@ -895,6 +952,15 @@ class OptimizationConfig:
     comfort_temp_night: float = 19.5
     day_start_hour: int = 7
     day_end_hour: int = 22
+    comfort_temp_day_weekend: float | None = None
+    comfort_temp_night_weekend: float | None = None
+    day_start_hour_weekend: int | None = None
+    day_end_hour_weekend: int | None = None
+    holiday_comfort_day: float | None = None
+    holiday_comfort_night: float | None = None
+    holiday_day_start_hour: int | None = None
+    holiday_day_end_hour: int | None = None
+    holiday_dates: frozenset[date] = field(default_factory=frozenset)
 
     # Optimization parameters
     horizon_hours: float = 24.0
@@ -964,15 +1030,97 @@ class OptimizationConfig:
         """Time step in hours."""
         return self.time_step_minutes / 60.0
 
-    def get_comfort_temp(self, hour: float) -> float:
-        """Get comfort temperature for a given hour of day."""
-        if self.day_start_hour <= hour < self.day_end_hour:
-            return self.comfort_temp_day
-        return self.comfort_temp_night
+    @classmethod
+    def from_mapping(cls, config: dict[str, Any]) -> "OptimizationConfig":
+        """Build from an entry mapping so the coordinator stays a caller."""
 
-    def get_temp_bounds(self, hour: float) -> tuple[float, float]:
+        def _opt_float(key: str) -> float | None:
+            raw = config.get(key)
+            if raw is None or raw == "":
+                return None
+            try:
+                return float(raw)
+            except (TypeError, ValueError):
+                return None
+
+        def _opt_int(key: str) -> int | None:
+            raw = config.get(key)
+            if raw is None or raw == "":
+                return None
+            try:
+                return int(raw)
+            except (TypeError, ValueError):
+                return None
+
+        return cls(
+            target_temp=config.get(CONF_TARGET_TEMP, DEFAULT_TARGET_TEMP),
+            min_temp=config.get(CONF_MIN_TEMP, DEFAULT_MIN_TEMP),
+            max_temp=config.get(CONF_MAX_TEMP, DEFAULT_MAX_TEMP),
+            comfort_temp_day=config.get(
+                CONF_COMFORT_TEMP_DAY, DEFAULT_COMFORT_TEMP_DAY
+            ),
+            comfort_temp_night=config.get(
+                CONF_COMFORT_TEMP_NIGHT, DEFAULT_COMFORT_TEMP_NIGHT
+            ),
+            day_start_hour=int(
+                config.get(CONF_DAY_START_HOUR, DEFAULT_DAY_START_HOUR)
+            ),
+            day_end_hour=int(config.get(CONF_DAY_END_HOUR, DEFAULT_DAY_END_HOUR)),
+            comfort_temp_day_weekend=_opt_float(CONF_COMFORT_TEMP_DAY_WEEKEND),
+            comfort_temp_night_weekend=_opt_float(CONF_COMFORT_TEMP_NIGHT_WEEKEND),
+            day_start_hour_weekend=_opt_int(CONF_DAY_START_HOUR_WEEKEND),
+            day_end_hour_weekend=_opt_int(CONF_DAY_END_HOUR_WEEKEND),
+            holiday_comfort_day=_opt_float(CONF_HOLIDAY_COMFORT_DAY),
+            holiday_comfort_night=_opt_float(CONF_HOLIDAY_COMFORT_NIGHT),
+            holiday_day_start_hour=_opt_int(CONF_HOLIDAY_DAY_START_HOUR),
+            holiday_day_end_hour=_opt_int(CONF_HOLIDAY_DAY_END_HOUR),
+            price_weight=config.get(CONF_PRICE_WEIGHT, DEFAULT_PRICE_WEIGHT),
+            comfort_weight=config.get(CONF_COMFORT_WEIGHT, DEFAULT_COMFORT_WEIGHT),
+        )
+
+    def _comfort_pair(
+        self, when: datetime | None
+    ) -> tuple[float, float, int, int]:
+        day = self.comfort_temp_day
+        night = self.comfort_temp_night
+        start = self.day_start_hour
+        end = self.day_end_hour
+        if when is not None and when.date() in self.holiday_dates:
+            if self.holiday_comfort_day is not None:
+                day = self.holiday_comfort_day
+            if self.holiday_comfort_night is not None:
+                night = self.holiday_comfort_night
+            if self.holiday_day_start_hour is not None:
+                start = self.holiday_day_start_hour
+            if self.holiday_day_end_hour is not None:
+                end = self.holiday_day_end_hour
+            return day, night, start, end
+        if when is not None and when.weekday() >= 5:
+            if self.comfort_temp_day_weekend is not None:
+                day = self.comfort_temp_day_weekend
+            if self.comfort_temp_night_weekend is not None:
+                night = self.comfort_temp_night_weekend
+            if self.day_start_hour_weekend is not None:
+                start = self.day_start_hour_weekend
+            if self.day_end_hour_weekend is not None:
+                end = self.day_end_hour_weekend
+        return day, night, start, end
+
+    def get_comfort_temp(
+        self, hour: float, when: datetime | None = None
+    ) -> float:
+        """Get comfort temperature for a given hour of day."""
+        day, night, start, end = self._comfort_pair(when)
+        if start <= hour < end:
+            return day
+        return night
+
+    def get_temp_bounds(
+        self, hour: float, when: datetime | None = None
+    ) -> tuple[float, float]:
         """Get temperature bounds for a given hour."""
-        if self.day_start_hour <= hour < self.day_end_hour:
+        _day, _night, start, end = self._comfort_pair(when)
+        if start <= hour < end:
             return (self.min_temp, self.max_temp)
         return (self.min_temp - 0.5, self.max_temp)
 
@@ -1053,6 +1201,9 @@ class _Horizon:
     #: Weekday lookup for weekly DHW windows (#3), n+1 entries (entry i is
     #: the weekday of the step before step i), or None on a flat spec.
     step_weekdays: np.ndarray | None = None
+    #: Parallel to ``step_weekdays``: True when that step's date is a
+    #: holiday-profile day. None when no holiday calendar is on.
+    holiday_flags: np.ndarray | None = None
     #: Optional per-step ceiling on space-heating power, kW. The pin encoding
     #: can force a step on or off but cannot say "at most this much", which is
     #: what the buffer tank's hard temperature cap needs: the tighten-and-
@@ -1774,6 +1925,7 @@ class HeatPumpOptimizer:
                     else None
                 ),
                 step_weekdays=h.step_weekdays,
+                holiday_flags=h.holiday_flags,
                 wood_temps=wood_temps,
             ).schedule
             if np.allclose(replanned, dhw_power, atol=1e-4):
@@ -2174,10 +2326,14 @@ class HeatPumpOptimizer:
             if self.model.params.dhw_weekly_windows is not None
             else None
         )
+        holiday_flags = _holiday_flags_for(
+            step_datetimes, self.config.holiday_dates
+        )
 
         comfort_targets, temp_min_bounds, temp_max_bounds = (
             self._build_comfort_bounds(
-                step_hours, n_steps, min_temp_margins, min_temp_floors
+                step_hours, n_steps, min_temp_margins, min_temp_floors,
+                step_datetimes,
             )
         )
 
@@ -2240,6 +2396,7 @@ class HeatPumpOptimizer:
                 temp_max_bounds=temp_max_bounds,
                 step_hours=step_hours,
                 step_weekdays=step_weekdays,
+                holiday_flags=holiday_flags,
                 solar_gains=solar_gains_per_step,
                 heat_loss_factors=forecast_heat_loss_factors,
                 forecast=forecast_analysis,
@@ -2446,12 +2603,24 @@ class HeatPumpOptimizer:
         n_steps: int,
         min_temp_margins: np.ndarray | None,
         min_temp_floors: np.ndarray | None,
+        step_times: list[datetime] | None = None,
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """The per-step comfort target and the band the solve must stay in."""
+        times = list(step_times) if step_times is not None else []
         comfort_targets = np.array(
-            [self.config.get_comfort_temp(hour) for hour in step_hours]
+            [
+                self.config.get_comfort_temp(
+                    hour, when=times[i] if i < len(times) else None
+                )
+                for i, hour in enumerate(step_hours)
+            ]
         )
-        bounds = [self.config.get_temp_bounds(hour) for hour in step_hours]
+        bounds = [
+            self.config.get_temp_bounds(
+                hour, when=times[i] if i < len(times) else None
+            )
+            for i, hour in enumerate(step_hours)
+        ]
         temp_min_bounds = np.array([low for low, _ in bounds])
         temp_max_bounds = np.array([high for _, high in bounds])
 
@@ -3820,6 +3989,7 @@ class HeatPumpOptimizer:
         dt: float,
         n_steps: int,
         wood_temps: np.ndarray | None,
+        holiday_flags: np.ndarray | None = None,
     ) -> tuple[
         float, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray
     ]:
@@ -3836,14 +4006,18 @@ class HeatPumpOptimizer:
         # already has, and `windows_for_day` then returns the fallback
         # unchanged -- the every-day behaviour, bit for bit.
         weekly = params.dhw_weekly_windows
+        holiday_windows = getattr(params, "dhw_holiday_windows", None)
         in_window = np.array(
             [
                 hour_in_windows(
                     float(h),
-                    windows_for_day(
+                    _dhw_windows_at(
                         weekly,
-                        None if step_weekdays is None else int(step_weekdays[i + 1]),
+                        step_weekdays,
+                        i + 1,
                         windows,
+                        holiday_windows,
+                        holiday_flags,
                     ),
                 )
                 for i, h in enumerate(hours_mod)
@@ -3854,10 +4028,13 @@ class HeatPumpOptimizer:
             [
                 hour_in_windows(
                     float(h) - dt,
-                    windows_for_day(
+                    _dhw_windows_at(
                         weekly,
-                        None if step_weekdays is None else int(step_weekdays[i]),
+                        step_weekdays,
+                        i,
                         windows,
+                        holiday_windows,
+                        holiday_flags,
                     ),
                 )
                 for i, h in enumerate(hours_mod)
@@ -3945,6 +4122,7 @@ class HeatPumpOptimizer:
         blocked: bool = False,
         step_weekdays: np.ndarray | None = None,
         wood_temps: np.ndarray | None = None,
+        holiday_flags: np.ndarray | None = None,
     ) -> DhwPlan:
         """Build the DHW availability requirements and a cheapest-first plan.
 
@@ -3979,6 +4157,7 @@ class HeatPumpOptimizer:
             dt,
             n_steps,
             wood_temps,
+            holiday_flags,
         )
 
         # The pump serves DHW as an on/off block, not a trickle, so the planner
@@ -5089,7 +5268,6 @@ class HeatPumpOptimizer:
         constrained by max capacity.
         """
         import time
-
         # See ``_optimize_space_only`` for why the context is unpacked.
         initial_state, prices, dt, n_steps = (
             h.initial_state, h.prices, h.dt, h.n_steps
@@ -5139,6 +5317,7 @@ class HeatPumpOptimizer:
             ),
             blocked=h.dhw_blocked,
             step_weekdays=h.step_weekdays,
+            holiday_flags=h.holiday_flags,
             wood_temps=self._dhw_coil_wood_forecast(h),
         )
 

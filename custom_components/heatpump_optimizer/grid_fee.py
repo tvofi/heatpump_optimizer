@@ -30,9 +30,21 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime
+from typing import Any
 
 import numpy as np
 
+from .const import (
+    CONF_GRID_FEE_MODE,
+    CONF_GRID_FEE_RULES,
+    CONF_PEAK_TARIFF_COUNT,
+    CONF_PEAK_TARIFF_ENABLED,
+    CONF_PEAK_TARIFF_HOURS,
+    CONF_PEAK_TARIFF_MONTHS,
+    CONF_PEAK_TARIFF_PRICE,
+    CONF_PEAK_TARIFF_WEEKDAYS_ONLY,
+    CONF_PEAK_TARIFF_WINDOW,
+)
 from .dhw_schedule import DHWWindowError, Window, hour_in_windows, parse_windows
 
 _LOGGER = logging.getLogger(__name__)
@@ -366,3 +378,89 @@ def min_component(
     ):
         lowest, source = float(entity_value), "entity"
     return lowest, source
+
+
+#: Static Sweden v1 catalog. Dated rows; verify against the bill.
+#: Unknown / unparseable product → ``apply_catalog`` returns None (no write).
+CATALOG_VERSION = 1
+DSO_PRODUCT_NONE = "none"
+SWEDEN_CATALOG: dict[str, dict[str, Any]] = {
+    "ellevio_villa_effekt_2026": {
+        "label": "Ellevio — villa effekt (2026)",
+        "dated": "2026-01-01",
+        "grid_fee_rules": "= 0.18, Nov-Mar Mon-Fri 06:00-22:00 = 0.27",
+        "peak_tariff_months": "Nov-Mar",
+        "peak_tariff_hours": "07:00-19:00",
+        "peak_tariff_weekdays_only": True,
+        "peak_tariff_window_minutes": 15,
+        "peak_tariff_price_per_kw": 81.25,
+        "peak_tariff_peaks_averaged": 3,
+    },
+    "vattenfall_eldistribution_effekt_2026": {
+        "label": "Vattenfall Eldistribution — effekt (2026)",
+        "dated": "2026-01-01",
+        "grid_fee_rules": "= 0.16, Nov-Mar Mon-Fri 06:00-22:00 = 0.31",
+        "peak_tariff_months": "Nov-Mar",
+        "peak_tariff_hours": "07:00-19:00",
+        "peak_tariff_weekdays_only": True,
+        "peak_tariff_window_minutes": 15,
+        "peak_tariff_price_per_kw": 59.0,
+        "peak_tariff_peaks_averaged": 3,
+    },
+    "eon_energidistribution_effekt_2026": {
+        "label": "E.ON Energidistribution — effekt (2026)",
+        "dated": "2026-01-01",
+        "grid_fee_rules": "= 0.17, Nov-Mar Mon-Fri 06:00-22:00 = 0.29",
+        "peak_tariff_months": "Nov-Mar",
+        "peak_tariff_hours": "07:00-20:00",
+        "peak_tariff_weekdays_only": True,
+        "peak_tariff_window_minutes": 15,
+        "peak_tariff_price_per_kw": 64.0,
+        "peak_tariff_peaks_averaged": 3,
+    },
+    "goteborg_energi_effekt_2026": {
+        "label": "Göteborg Energi — effekt (2026)",
+        "dated": "2026-01-01",
+        "grid_fee_rules": "= 0.19, Nov-Mar Mon-Fri 06:00-22:00 = 0.22",
+        "peak_tariff_months": "Jan-Dec",
+        "peak_tariff_hours": "07:00-19:00",
+        "peak_tariff_weekdays_only": True,
+        "peak_tariff_window_minutes": 15,
+        "peak_tariff_price_per_kw": 47.5,
+        "peak_tariff_peaks_averaged": 3,
+    },
+}
+
+
+def catalog_choices() -> list[str]:
+    return [DSO_PRODUCT_NONE, *SWEDEN_CATALOG]
+
+
+def apply_catalog(product_id: str | None) -> dict[str, Any] | None:
+    """Fields to write for a catalog row, or None when unknown/stale."""
+    if not product_id or product_id == DSO_PRODUCT_NONE:
+        return None
+    row = SWEDEN_CATALOG.get(str(product_id))
+    if row is None:
+        _LOGGER.warning("Unknown DSO catalog product %s; not writing", product_id)
+        return None
+    rules = str(row["grid_fee_rules"])
+    try:
+        parse_rules(rules)
+    except GridFeeError:
+        _LOGGER.warning(
+            "Stale DSO catalog row %s failed parse; not writing", product_id
+        )
+        return None
+    _LOGGER.debug("Applying DSO catalog v%s product %s", CATALOG_VERSION, product_id)
+    return {
+        CONF_GRID_FEE_RULES: rules,
+        CONF_GRID_FEE_MODE: MODE_RULES,
+        CONF_PEAK_TARIFF_ENABLED: True,
+        CONF_PEAK_TARIFF_MONTHS: row["peak_tariff_months"],
+        CONF_PEAK_TARIFF_HOURS: row["peak_tariff_hours"],
+        CONF_PEAK_TARIFF_WEEKDAYS_ONLY: row["peak_tariff_weekdays_only"],
+        CONF_PEAK_TARIFF_WINDOW: row["peak_tariff_window_minutes"],
+        CONF_PEAK_TARIFF_PRICE: row["peak_tariff_price_per_kw"],
+        CONF_PEAK_TARIFF_COUNT: row["peak_tariff_peaks_averaged"],
+    }

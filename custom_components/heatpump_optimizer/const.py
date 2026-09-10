@@ -17,6 +17,16 @@ CONFIG_ENTRY_VERSION: Final = 7
 
 # Configuration keys
 CONF_TIBBER_TOKEN: Final = "tibber_token"
+CONF_PRICE_SOURCE: Final = "price_source"
+PRICE_SOURCE_TIBBER: Final = "tibber"
+PRICE_SOURCE_ENTITY: Final = "entity"
+PRICE_SOURCES: Final = (PRICE_SOURCE_TIBBER, PRICE_SOURCE_ENTITY)
+DEFAULT_PRICE_SOURCE: Final = PRICE_SOURCE_TIBBER
+CONF_PRICE_ENTITY: Final = "price_entity"
+CONF_PRICE_VAT: Final = "price_vat"
+DEFAULT_PRICE_VAT: Final = 1.0
+CONF_PRICE_SURCHARGE: Final = "price_surcharge"
+DEFAULT_PRICE_SURCHARGE: Final = 0.0
 CONF_WEATHER_ENTITY: Final = "weather_entity"
 CONF_INDOOR_TEMP_ENTITY: Final = "indoor_temp_entity"
 CONF_OUTDOOR_TEMP_ENTITY: Final = "outdoor_temp_entity"
@@ -346,6 +356,8 @@ DEFAULT_GRID_FEE_RULES: Final = ""
 CONF_GRID_FEE_ENTITY: Final = "grid_fee_entity"  # SEK/kWh sensor
 CONF_GRID_FEE_FIXED: Final = "grid_fee_fixed"  # SEK/kWh always added
 DEFAULT_GRID_FEE_FIXED: Final = 0.0
+CONF_DSO_PRODUCT: Final = "dso_product"
+DEFAULT_DSO_PRODUCT: Final = "none"
 
 # Windowed and seasonal effekttariff structures (#13). Empty month/hour
 # masks mean every hour counts, and factor 1.0 means off-peak hours count
@@ -513,6 +525,16 @@ CONF_COMFORT_TEMP_DAY: Final = "comfort_temp_day"
 CONF_COMFORT_TEMP_NIGHT: Final = "comfort_temp_night"
 CONF_DAY_START_HOUR: Final = "day_start_hour"
 CONF_DAY_END_HOUR: Final = "day_end_hour"
+CONF_COMFORT_TEMP_DAY_WEEKEND: Final = "comfort_temp_day_weekend"
+CONF_COMFORT_TEMP_NIGHT_WEEKEND: Final = "comfort_temp_night_weekend"
+CONF_DAY_START_HOUR_WEEKEND: Final = "day_start_hour_weekend"
+CONF_DAY_END_HOUR_WEEKEND: Final = "day_end_hour_weekend"
+CONF_HOLIDAY_CALENDAR_ENTITY: Final = "holiday_calendar_entity"
+CONF_HOLIDAY_DHW_WINDOWS: Final = "holiday_dhw_windows"
+CONF_HOLIDAY_COMFORT_DAY: Final = "holiday_comfort_temp_day"
+CONF_HOLIDAY_COMFORT_NIGHT: Final = "holiday_comfort_temp_night"
+CONF_HOLIDAY_DAY_START_HOUR: Final = "holiday_day_start_hour"
+CONF_HOLIDAY_DAY_END_HOUR: Final = "holiday_day_end_hour"
 
 # Options-flow dialog behaviour (#100): after saving a page, return to the
 # section menu (the default -- changing settings in two sections used to

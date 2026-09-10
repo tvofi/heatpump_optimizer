@@ -46,6 +46,11 @@ from homeassistant.util import dt as dt_util
 from .const import (
     DOMAIN,
     CONF_TIBBER_TOKEN,
+    CONF_PRICE_ENTITY,
+    CONF_PRICE_SOURCE,
+    DEFAULT_PRICE_SOURCE,
+    PRICE_SOURCE_ENTITY,
+    CONF_HOLIDAY_CALENDAR_ENTITY,
     CONF_WEATHER_ENTITY,
     CONF_INDOOR_TEMP_ENTITY,
     CONF_OUTDOOR_TEMP_ENTITY,
@@ -340,8 +345,10 @@ from .manual_plan import (
 )
 from .price_model import (
     PriceShapeModel,
+    TIBBER_API_URL,
     extend_price_series,
     hourly_from_entries,
+    pull_prices,
     quarters_from_entries,
 )
 from .sysid import SysIdConfig, SystemIdentification
@@ -409,8 +416,6 @@ from .optimizer import (
 )
 
 _LOGGER = logging.getLogger(__name__)
-
-TIBBER_API_URL = "https://api.tibber.com/v1-beta/gql"
 
 # Forecast wind speed arrives in whatever unit the user's Home Assistant is
 # configured for, so it has to be converted explicitly rather than guessed.
@@ -725,35 +730,6 @@ THERMAL_LEARNING_STORE_VERSION = 1
 # defrost cycles and any auxiliary heater all land in the measurement.
 COP_LEARNING_ALPHA = 0.03
 COP_LEARNING_MAX_STEP = 0.05
-
-# Tibber GraphQL query for price data
-TIBBER_PRICE_QUERY = """
-{
-  viewer {
-    homes {
-      currentSubscription {
-        priceInfo {
-          current {
-            total
-            startsAt
-            level
-          }
-          today {
-            total
-            startsAt
-            level
-          }
-          tomorrow {
-            total
-            startsAt
-            level
-          }
-        }
-      }
-    }
-  }
-}
-"""
 
 
 _PROCESS_LOCK = threading.Lock()
@@ -1298,6 +1274,17 @@ def _effective_house_heat_loss(
     return round(base * scale, 4)
 
 
+def _entity_price_source(cfg: dict[str, Any]) -> bool:
+    return str(cfg.get(CONF_PRICE_SOURCE, DEFAULT_PRICE_SOURCE)) == PRICE_SOURCE_ENTITY
+
+
+def _price_entity_state(hass: Any, cfg: dict[str, Any]) -> Any:
+    entity_id = cfg.get(CONF_PRICE_ENTITY)
+    if not entity_id:
+        return None
+    return hass.states.get(entity_id)
+
+
 class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     """Coordinator for Heat Pump Cost Optimizer."""
 
@@ -1470,27 +1457,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         thermal_params = ThermalParameters.from_config(config)
         self._thermal_model = ThermalModel(thermal_params)
 
-        opt_config = OptimizationConfig(
-            target_temp=config.get(CONF_TARGET_TEMP, DEFAULT_TARGET_TEMP),
-            min_temp=config.get(CONF_MIN_TEMP, DEFAULT_MIN_TEMP),
-            max_temp=config.get(CONF_MAX_TEMP, DEFAULT_MAX_TEMP),
-            comfort_temp_day=config.get(
-                CONF_COMFORT_TEMP_DAY, DEFAULT_COMFORT_TEMP_DAY
-            ),
-            comfort_temp_night=config.get(
-                CONF_COMFORT_TEMP_NIGHT, DEFAULT_COMFORT_TEMP_NIGHT
-            ),
-            day_start_hour=int(
-                config.get(CONF_DAY_START_HOUR, DEFAULT_DAY_START_HOUR)
-            ),
-            day_end_hour=int(
-                config.get(CONF_DAY_END_HOUR, DEFAULT_DAY_END_HOUR)
-            ),
-            price_weight=config.get(CONF_PRICE_WEIGHT, DEFAULT_PRICE_WEIGHT),
-            comfort_weight=config.get(
-                CONF_COMFORT_WEIGHT, DEFAULT_COMFORT_WEIGHT
-            ),
-        )
+        opt_config = OptimizationConfig.from_mapping(config)
         self._optimizer = HeatPumpOptimizer(self._thermal_model, opt_config)
         return thermal_params, opt_config
 
@@ -5279,6 +5246,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             # Away mode is applied around the solve and unwound afterwards, so
             # a setback can never leak past the end of the holiday.
             self._resolve_away()
+            ctx._opt_config.holiday_dates = away_mode.holiday_dates(
+                self.hass,
+                ctx._config.get(CONF_HOLIDAY_CALENDAR_ENTITY),
+                dt_util.now(),
+            )
             away_original = away_mode.apply_setback(
                 self._away_state, ctx._opt_config, ctx._thermal_params
             )
@@ -6056,97 +6028,32 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         return None
 
     async def _fetch_tibber_prices(self) -> None:
-        """Fetch electricity prices from Tibber API.
+        """Fetch electricity prices (Tibber or a price entity).
 
-        A failed fetch raises :class:`UpdateFailed` (D10-07): the update
-        cycle then reports failure through the coordinator base, which
-        flips ``last_update_success`` and takes the entities unavailable --
-        the honest signal that no fresh data arrived, instead of a silent
-        eternity of stale prices behind a green integration. The outage is
-        logged once (D10-09), not on every cycle; recovery logs the
-        outage's length.
+        A failed fetch raises :class:`UpdateFailed` (D10-07). Entity
+        sources never start reauthentication. The outage latch (D10-09)
+        is unchanged.
         """
-        token = getattr(self, "_ctx", self)._config.get(CONF_TIBBER_TOKEN)
-        if not token:
-            self._tibber_fetch_failed("No Tibber token configured")
-            return
-
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json",
-        }
-
-        query_data = (
-            '{"query": "'
-            + TIBBER_PRICE_QUERY.replace("\n", " ").replace('"', '\\"')
-            + '"}'
-        )
-
+        cfg = getattr(self, "_ctx", self)._config
+        hass = self.hass
         try:
-            # Home Assistant's shared session — a fresh ClientSession per
-            # update leaked a connection pool every cycle. Shared, so it is
-            # never closed here. Resolved inside the try: environments
-            # without an HTTP session (the test stub) degrade exactly as a
-            # failed fetch does.
-            session = async_get_clientsession(self.hass)
-            async with session.post(
-                TIBBER_API_URL,
-                data=query_data,
-                headers=headers,
-                timeout=aiohttp.ClientTimeout(total=15),
-            ) as resp:
-                if resp.status in (401, 403):
-                    # The token itself was refused: a retry cannot fix it.
-                    # Start the reauthentication flow (D10-08) so Repairs
-                    # offers to fix the credential instead of the
-                    # integration sitting unavailable until the entry is
-                    # deleted and recreated.
-                    self._tibber_start_reauth()
-                    self._tibber_fetch_failed(
-                        f"Tibber refused the token (HTTP {resp.status}); "
-                        "reauthentication started"
-                    )
-                    return
-                if resp.status != 200:
-                    self._tibber_fetch_failed(f"Tibber API error: {resp.status}")
-                    return
-                data = await resp.json()
-
-            if "errors" in data:
-                self._tibber_fetch_failed(f"Tibber API errors: {data['errors']}")
-                return
-
-            homes = data.get("data", {}).get("viewer", {}).get("homes", [])
-            if not homes:
-                self._tibber_fetch_failed("No homes found in Tibber data")
-                return
-
-            price_info = (
-                homes[0].get("currentSubscription", {}).get("priceInfo", {})
+            session = (
+                None
+                if _entity_price_source(cfg)
+                else async_get_clientsession(hass)
             )
-
-            prices = []
-            for period in ["today", "tomorrow"]:
-                period_prices = price_info.get(period, [])
-                if period_prices:
-                    for p in period_prices:
-                        prices.append(
-                            {
-                                "total": p.get("total", 0),
-                                "starts_at": p.get("startsAt", ""),
-                                "level": p.get("level", "NORMAL"),
-                            }
-                        )
-
-            self._prices = prices
+            verdict, payload = await pull_prices(
+                session, cfg, _price_entity_state(hass, cfg)
+            )
+            if verdict == "reauth":
+                self._tibber_start_reauth()
+            if verdict != "ok":
+                self._tibber_fetch_failed(payload if verdict == "reauth" else str(payload))
+                return
+            self._prices = payload
             self._tibber_fetch_recovered()
-            _LOGGER.debug("Fetched %d price entries from Tibber", len(prices))
-
+            _LOGGER.debug("Fetched %d price entries", len(payload))
         except UpdateFailed:
-            # #216 (D10-09): _tibber_fetch_failed already latched, logged
-            # and raised. Re-catching it here entered the latch a SECOND
-            # time per poll (the count doubled; recovery reported twice the
-            # outage's length). Let it propagate.
             raise
         except aiohttp.ClientError as err:
             self._tibber_fetch_failed(f"Error fetching Tibber prices: {err}")

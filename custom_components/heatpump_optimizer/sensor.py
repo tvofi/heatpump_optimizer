@@ -26,6 +26,7 @@ from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import narrative
+from . import topology
 from .const import (
     DHW_MIN_TEMP_SETPOINT_MARGIN,
     HEAT_PUMP_ACTION_STATES,
@@ -266,6 +267,8 @@ async def async_setup_entry(
         CompressorStartsSensor(coordinator, entry),
         # Inverter frequency (v4.0.0 T7)
         FrequencyAdvisorSensor(coordinator, entry),
+        SensorGapAdvisorSensor(coordinator, entry),
+        WoodBurnAdvisorSensor(coordinator, entry),
     ]
 
     async_add_entities(entities)
@@ -2544,3 +2547,77 @@ class FrequencyAdvisorSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase
         attrs = dict((self.coordinator.data or {}).get("freq_control", {}) or {})
         attrs["waiting_for"] = self._waiting_for
         return attrs
+
+
+class SensorGapAdvisorSensor(HeatPumpOptimizerSensorBase):
+    """Rank empty topology slots by estimated extra €/month (#699)."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_suggested_display_precision = 0
+
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
+        super().__init__(
+            coordinator, entry, "sensor_gap_advisor", "sensor_gap_advisor"
+        )
+
+    def _gaps(self) -> list[dict[str, Any]]:
+        config = getattr(self.coordinator, "_config", None) or {}
+        data = self.coordinator.data or {}
+        house = data.get("house_power_series") or ()
+        hp = data.get("heat_pump_power_series") or ()
+        peak = data.get("peak_tariff") or {}
+        return topology.rank_sensor_gaps(
+            config,
+            house_kw=house,
+            hp_kw=hp,
+            peak_price=float(peak.get("price_per_kw") or 45.0),
+            peak_window=int(peak.get("window_minutes") or 60),
+            peak_count=int(peak.get("peaks_averaged") or 3),
+        )
+
+    @property
+    def native_value(self) -> float | None:
+        gaps = [g for g in self._gaps() if g.get("empty") and g.get("sek_per_month")]
+        if not gaps:
+            return 0.0
+        return float(gaps[0]["sek_per_month"])
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        gaps = self._gaps()
+        top = next((g for g in gaps if g.get("empty") and g.get("sek_per_month")), None)
+        return {"gaps": gaps, "top_slot": None if top is None else top.get("key")}
+
+
+class WoodBurnAdvisorSensor(HeatPumpOptimizerSensorBase):
+    """48 h light/skip advice when the wood furnace is on (#702)."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
+        super().__init__(
+            coordinator, entry, "wood_burn_advisor", "wood_burn_advisor"
+        )
+
+    def _advice(self) -> dict[str, Any]:
+        return dict(
+            ((self.coordinator.data or {}).get("wood_fuel") or {}).get(
+                "night_advice"
+            )
+            or {}
+        )
+
+    @property
+    def native_value(self) -> str | None:
+        text = self._advice().get("text")
+        return text if text else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        advice = self._advice()
+        return {
+            "action": advice.get("action") or "none",
+            "when": advice.get("when"),
+            "reason": advice.get("reason") or "",
+        }

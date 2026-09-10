@@ -129,6 +129,74 @@ def cheaper_hour_count(
     return n
 
 
+def _scan_wood_night(
+    now: datetime,
+    prices: Sequence[object],
+    timestamps: Sequence[datetime],
+    cops: Sequence[object],
+    wood_sek: float,
+    n: int,
+) -> tuple[int | None, bool]:
+    horizon_end = timestamps[0] + timedelta(hours=48)
+    best_i: int | None = None
+    best_margin = 0.0
+    expensive_next = False
+    for i in range(n):
+        when = timestamps[i]
+        if when < now or when >= horizon_end:
+            continue
+        cop = _force_float(cops[i] if i < len(cops) else 0.0)
+        if cop <= 0.0:
+            continue
+        pump = _force_float(prices[i]) / cop
+        margin = pump - float(wood_sek)
+        hour = when.hour + when.minute / 60.0
+        if (hour >= 18.0 or hour < 6.0) and margin > best_margin:
+            best_margin = margin
+            best_i = i
+        if when.date() > now.date() and margin < -0.05:
+            expensive_next = True
+    return best_i, expensive_next
+
+
+def night_advice(
+    *,
+    now: datetime,
+    prices: Sequence[object],
+    timestamps: Sequence[datetime],
+    cops: Sequence[object],
+    wood_sek: float,
+    tank_soc: float,
+) -> dict[str, Any]:
+    """48 h light/skip advice. Advisory only — never lights the stove."""
+    if wood_sek <= 0.0 or not prices or not timestamps:
+        return {"action": "none", "text": "", "when": None, "reason": ""}
+    cop_n = len(cops) if cops else len(prices)
+    n = min(len(prices), len(timestamps), cop_n)
+    if n <= 0:
+        return {"action": "none", "text": "", "when": None, "reason": ""}
+    best_i, expensive_next = _scan_wood_night(
+        now, prices, timestamps, cops, wood_sek, n
+    )
+    if tank_soc < 0.4 and best_i is not None:
+        stamp = timestamps[best_i]
+        return {
+            "action": "light",
+            "text": f"light {stamp.strftime('%a %H:%M')}",
+            "when": stamp.isoformat(),
+            "reason": "cheap night and a low tank",
+        }
+    if tank_soc > 0.8 and expensive_next:
+        nxt = now + timedelta(days=1)
+        return {
+            "action": "skip",
+            "text": f"skip {nxt.strftime('%a')}",
+            "when": nxt.date().isoformat(),
+            "reason": "expensive next day and a full tank",
+        }
+    return {"action": "none", "text": "", "when": None, "reason": ""}
+
+
 def wood_cheaper(
     wood_sek: float,
     prices: Sequence[object],
@@ -365,7 +433,7 @@ def build_wood_fuel_view(
         count = cheaper_hour_count(sek, prices, cops, space_kw, dhw_kw)
         cheaper = wood_cheaper(sek, prices, cops, space_kw, dhw_kw)
     slots = detected_wood_slots(timestamps, forecast_kw) if suppressing else []
-    return {
+    view = {
         "ready": ready,
         "cheaper": cheaper,
         "show_whatif": wood_furnace_on(config),
@@ -377,6 +445,35 @@ def build_wood_fuel_view(
         "cheaper_hour_count": count,
         "slots": slots,
     }
+    _attach_night_advice(view, config, prices, timestamps, outdoor, cop_at, sek)
+    return view
+
+
+def _attach_night_advice(
+    view: dict[str, Any],
+    config: dict[str, Any],
+    prices: list[float],
+    timestamps: Sequence[datetime],
+    outdoor: list[float],
+    cop_at: Callable[[float], object],
+    sek: float | None,
+) -> None:
+    if not wood_furnace_on(config) or sek is None or not prices or not timestamps:
+        return
+    soc = _optional_float(config.get("wood_tank_soc"))
+    if soc is None:
+        soc = 0.5
+    cops = _cops(outdoor, cop_at) if outdoor else [3.0] * len(prices)
+    advice = night_advice(
+        now=timestamps[0],
+        prices=prices,
+        timestamps=timestamps,
+        cops=cops,
+        wood_sek=sek,
+        tank_soc=soc,
+    )
+    if advice.get("action") in {"light", "skip"}:
+        view["night_advice"] = advice
 
 
 def wood_fuel_from_coordinator(coord: Any, result: Any) -> dict[str, Any]:
