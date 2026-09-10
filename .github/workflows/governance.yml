@@ -161,6 +161,13 @@ jobs:
       - name: Show the pre-PR self-check refusing its own fixtures
         run: bash tools/audit/prepr.sh --self-test
 
+      # The push script's own decisions, driven over the same fixtures. It runs
+      # here rather than in the gate because `tools/audit/` is INERT in
+      # tests/closure.py -- nothing under tests/ reads it -- and this job is
+      # never scoped, the same argument prepr.sh's line above rests on.
+      - name: Show the push script's decisions refusing their own fixtures
+        run: bash tools/audit/push.sh --self-test
+
       - name: Write the body as the API returned it
         env:
           BODY: ${{ github.event.pull_request.body }}
