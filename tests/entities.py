@@ -14521,19 +14521,199 @@ R.check(
     "a GET per commit, so one that never stops is a rate-limit exposure and "
     "one that never walks is RUNNING after every merge",
 )
+# --- the binary, end to end: the one function CI actually executes ----------
+#
+# Everything above drives `verdict`, `check_runs`, `collect` and `parse_ts`.
+# `main` is what the workflow's `run:` line executes, and nothing drove it. The
+# docstring gives its behaviour its own heading -- ITS OWN FAILURE MODE, "the
+# check exits UNREADABLE (2) and says so. It does not pass" -- and the only
+# check that looked like it covered that compared two CONSTANTS,
+# `EXIT_UNREADABLE != EXIT_GREEN`. Editing the `except Unreadable` handler to
+# `EXIT_GREEN` leaves 2 != 0 true, so the binary printed "Failing closed on
+# purpose" and exited 0 with all 1271 checks green: the summary line and the
+# tick misleading in opposite directions. Four behaviours live only in `main`
+# and all four are driven here -- the Unreadable-to-exit-code mapping, the
+# report assembly that appends NOT_REQUIRED, the step summary (the only place
+# the state NAME is observable at all, since the report lines spell it from the
+# module constant), and the exit code, which is the only thing CI reads.
+def _rs_binary(get, sha):
+    """`main` with one stubbed GET. -> (exit code, stdout, step summary)."""
+    _real, _cap, _out = _rstatus._get, _io.StringIO(), sys.stdout
+    with _tempfile.TemporaryDirectory() as _td:
+        _sum = pathlib.Path(_td) / "step-summary.md"
+        _was = _os.environ.get("GITHUB_STEP_SUMMARY")
+        _os.environ["GITHUB_STEP_SUMMARY"] = str(_sum)
+        try:
+            _rstatus._get, sys.stdout = get, _cap
+            _rc = _rstatus.main(["--sha", sha])
+        finally:
+            _rstatus._get, sys.stdout = _real, _out
+            if _was is None:
+                _os.environ.pop("GITHUB_STEP_SUMMARY", None)
+            else:
+                _os.environ["GITHUB_STEP_SUMMARY"] = _was
+        return _rc, _cap.getvalue(), _sum.read_text(encoding="utf-8")
+
+
+def _rs_cannot_look(_u, _t):
+    raise _rstatus.Unreadable("HTTP 401 from https://api.github.com (stub)")
+
+
+_rs_dead = _rs_binary(_rs_cannot_look, _RS_A1)
+# The null control, on the SAME invocation: ARM 2's captured payload, where the
+# same binary must exit 0. Without it the check below passes on a `main` that
+# refuses everything, which is a check nobody can tell from a working one until
+# the day it matters.
+_rs_alive = _rs_binary(
+    lambda _u, _t: {"total_count": 2,
+                    "check_runs": _RS_ARMS["ARM 2 null control"][0][0][1]},
+    _RS_A2)
+R.check(
+    "the binary exits UNREADABLE (2) on an API it could not read, and GREEN "
+    "only on a real pass",
+    (_rs_dead[0], _rs_alive[0]) == (_rstatus.EXIT_UNREADABLE,
+                                    _rstatus.EXIT_GREEN)
+    and "### record-status: UNREADABLE" in _rs_dead[2]
+    and "### record-status: PASSED" in _rs_alive[2],
+    f"a transport that could not look -> exit {_rs_dead[0]}, state "
+    f"{[_l for _l in _rs_dead[2].splitlines() if _l.startswith('###')]}; "
+    f"ARM 2's payload -> exit {_rs_alive[0]}, state "
+    f"{[_l for _l in _rs_alive[2].splitlines() if _l.startswith('###')]}. "
+    f"Exit codes are the answer, not {_rstatus.EXIT_UNREADABLE} != "
+    f"{_rstatus.EXIT_GREEN}: a check that goes green when it could not look "
+    "converts an open defect into a closed one, and CI reads only the code",
+)
+
+
+def _rs_refuses(fn):
+    """Did this refuse with `Unreadable`, or produce something else?"""
+    try:
+        fn()
+    except _rstatus.Unreadable:
+        return "Unreadable"
+    except Exception as _exc:  # noqa: BLE001 -- the point is what class it is
+        return type(_exc).__name__
+    return "a value"
+
+
+# The same shape one function over. `main` was the only function nothing drove
+# at all, but the truncated page above was the only one of this module's nine
+# `raise Unreadable` sites that was EXECUTED; the rest were docstring promises
+# with nothing behind them, in the same way. One table rather than one check
+# each, because the property is identical at every site and a reader should see
+# the set. Their null controls already exist and are not duplicated: `_rs_whole`
+# reads a complete page, `_rs_end_to_end` walks a real listing, and the four
+# arms classify real timestamps -- so none of these can pass on a reader that
+# refuses everything.
+_rs_sites = {}
+_rs_real_get2 = _rstatus._get
+try:
+    for _rs_name, _rs_payload in (
+        ("a check-runs page that is not an object", ["not", "a", "dict"]),
+        ("a check-runs page carrying no array", {"total_count": 0}),
+    ):
+        _rstatus._get = lambda _u, _t, _p=_rs_payload: _p
+        _rs_sites[_rs_name] = _rs_refuses(
+            lambda: _rstatus.check_runs("o/r", _RS_A1, None))
+    for _rs_name, _rs_payload in (
+        ("an empty commit listing", []),
+        ("a commit listing that is not an array", {"message": "Not Found"}),
+        ("a commit in the listing carrying no sha", [{"commit": {}}]),
+    ):
+        _rstatus._get = lambda _u, _t, _p=_rs_payload: _p
+        _rs_sites[_rs_name] = _rs_refuses(
+            lambda: _rstatus.collect("o/r", "main", None, None, 5))
+finally:
+    _rstatus._get = _rs_real_get2
+# And the clock: `parse_ts` refuses a value it cannot PARSE as well as a
+# missing one, which the clockless check above does not reach.
+_rs_sites["a completed_at that is not a timestamp"] = _rs_refuses(
+    lambda: _rstatus.verdict(
+        [(_RS_A1, [_rs_run(6, _RS_A1, "success", "half past four")])]))
+R.check(
+    "every place this module says it could not look raises Unreadable, not a "
+    "verdict and not a traceback",
+    set(_rs_sites.values()) == {"Unreadable"},
+    "; ".join(f"{_k} -> {_v}" for _k, _v in sorted(_rs_sites.items()))
+    + f" ({len(_rs_sites)} refusal sites; exit "
+    f"{_rstatus.EXIT_RED} is this reporter's word for '`record` is red' and a "
+    "traceback must not be able to say that)",
+)
+
+
+class _RsResp:
+    """A urlopen response, for driving `_get`'s own handlers."""
+
+    def __init__(self, body):
+        self.body = body
+
+    def read(self):
+        return self.body
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_a):
+        return False
+
+
+# `_get` is the other half of the same promise: it is what turns a transport
+# failure INTO the `Unreadable` that `main` maps to exit 2, and it is STUBBED at
+# every site above, so its three handlers had never run either. Here urlopen is
+# the collaborator and `_get` is the production function under test. A readable
+# page is the null control, in the same table.
+_rs_real_urlopen = _rstatus.urllib.request.urlopen
+_rs_transport = {}
+try:
+    for _rs_name, _rs_outcome in (
+        ("an HTTP error", _rstatus.urllib.error.HTTPError(
+            "https://api.github.com/x", 401, "Unauthorized", None, None)),
+        ("an unreachable host", _rstatus.urllib.error.URLError("no route")),
+        ("a body that is not JSON", _RsResp(b"<html>rate limited</html>")),
+        ("a page that IS JSON", _RsResp(b'{"total_count": 0, '
+                                        b'"check_runs": []}')),
+    ):
+        def _rs_urlopen(_req, timeout=0, _o=_rs_outcome):
+            if isinstance(_o, BaseException):
+                raise _o
+            return _o
+
+        _rstatus.urllib.request.urlopen = _rs_urlopen
+        _rs_transport[_rs_name] = _rs_refuses(
+            lambda: _rstatus._get("https://api.github.com/x", None))
+finally:
+    _rstatus.urllib.request.urlopen = _rs_real_urlopen
+R.check(
+    "and the transport turns every failure into Unreadable, while a page it "
+    "CAN read is still read",
+    all(_v == "Unreadable" for _k, _v in _rs_transport.items()
+        if _k != "a page that IS JSON")
+    and _rs_transport["a page that IS JSON"] == "a value",
+    "; ".join(f"{_k} -> {_v}" for _k, _v in _rs_transport.items())
+    + " -- the last is the null control, and without it this passes on a "
+    "transport that refuses everything",
+)
 # Every report says the check does not block, on green as well as on red, and
 # names the repair. A reader meeting the first red one must learn both from the
 # report rather than from a policy file they have not opened -- and the repair
 # for a red `record` is a Delivery-status row, never a re-run of this check.
+# Asserted against what the binary PRINTED on both arms above, not against the
+# constant: `main` is where the report is assembled, and a constant no report
+# carries is a promise the docstring makes alone.
 R.check(
     "and every state says in the report that it blocks nothing, and what does "
     "fix it",
-    "does not block this merge" in _rstatus.NOT_REQUIRED
-    and "Delivery-status row" in _rstatus.NOT_REQUIRED
-    and "never a re-run" in _rstatus.NOT_REQUIRED
-    and _rstatus.EXIT_UNREADABLE != _rstatus.EXIT_GREEN,
-    "an unreadable API must not exit green: "
-    f"UNREADABLE={_rstatus.EXIT_UNREADABLE} GREEN={_rstatus.EXIT_GREEN}",
+    all("does not block this merge" in _r and "Delivery-status row" in _r
+        and "never a re-run" in _r
+        for _r in (_rs_dead[1], _rs_alive[1]))
+    and "Failing closed on purpose" in _rs_dead[1]
+    and _rstatus.NOT_REQUIRED in _rs_dead[1],
+    f"NOT_REQUIRED in the report the binary PRINTED: unreadable arm="
+    f"{_rstatus.NOT_REQUIRED in _rs_dead[1]}, green arm="
+    f"{_rstatus.NOT_REQUIRED in _rs_alive[1]}; 'Failing closed on purpose' on "
+    f"the unreadable arm={'Failing closed on purpose' in _rs_dead[1]}. `main` "
+    "is where the report is assembled, so a constant that no report carries "
+    "is a promise the docstring makes alone",
 )
 # The classification the ratchet demands of any new tracked file: not
 # selectable (it needs the Checks API), not INERT (this script imports it).
