@@ -34,12 +34,17 @@ CHANNEL_SPACE = "space"
 CHANNELS = (CHANNEL_DHW, CHANNEL_SPACE)
 
 
+class _BoostOpt(Protocol):
+    max_temp: float
+
+
 class _BoostCoord(Protocol):
     hass: Any
     entry: Any
     _current_action: dict[str, Any]
     _thermal_model: Any
     _ecl110_displace_max: float
+    _opt_config: _BoostOpt
     _ctx: Any
 
     async def async_request_refresh(self) -> None: ...
@@ -125,7 +130,7 @@ def apply(coord: _BoostCoord) -> None:
     if not action:
         coord._current_action = {}
         action = coord._current_action
-    ctx = getattr(coord, "_ctx", coord)
+    ctx: Any = getattr(coord, "_ctx", coord)
     overlay(
         action,
         held,
@@ -135,7 +140,7 @@ def apply(coord: _BoostCoord) -> None:
     )
 
 
-def _store(coord: _BoostCoord) -> Store:
+def _store(coord: _BoostCoord) -> Store[dict[str, Any]]:
     return Store(
         coord.hass,
         BOOST_STORE_VERSION,
