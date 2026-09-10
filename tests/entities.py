@@ -10285,6 +10285,85 @@ R.check(
     not _a5_seed_missing,
     f"missing={_a5_seed_missing[:8]}",
 )
+# A5's no-op walk posts the schema. ``section()`` fills ``_Computed``
+# defaults (weekend/holiday comfort, wood_furnace_enabled) that the seed
+# never stored -- 4135B → 4416B on dispatch 34537901814. Drop those on
+# save only when the key was absent and the value is the computed default;
+# a stored or edited value still persists.
+_a5_seed = _nightly._seed_payload()
+_a5_cur = {**_a5_seed["data"], **_a5_seed["options"]}
+_a5_grown = []
+for _a5_step in ("comfort", "building"):
+    _a5_schema = config_flow._page_schema(_a5_step, _a5_cur, FakeHass())
+    _a5_flat = config_flow._flatten_section_input(
+        _a5_schema(_nightly.option_resubmit(_a5_step, _a5_cur))
+    )
+    _a5_flat.pop(const.CONF_AFTER_SAVE, None)
+    _a5_saved = config_flow._omit_unstored_computed(_a5_flat, _a5_cur, FakeHass())
+    _a5_grown.extend(sorted(k for k in _a5_saved if k not in _a5_cur))
+R.check(
+    "a no-op options walk does not persist computed defaults the seed never stored",
+    not _a5_grown,
+    f"grown={_a5_grown}",
+)
+_a5_keep_cur = {**_a5_cur, const.CONF_COMFORT_TEMP_DAY_WEEKEND: 18.0}
+_a5_keep = config_flow._omit_unstored_computed(
+    {const.CONF_COMFORT_TEMP_DAY_WEEKEND: 18.0, const.CONF_COMFORT_TEMP_DAY: 21.0},
+    _a5_keep_cur,
+    FakeHass(),
+)
+_a5_edit = config_flow._omit_unstored_computed(
+    {const.CONF_COMFORT_TEMP_DAY_WEEKEND: 18.0},
+    _a5_cur,
+    FakeHass(),
+)
+R.check(
+    "an already-stored or edited computed value is not dropped on save",
+    _a5_keep.get(const.CONF_COMFORT_TEMP_DAY_WEEKEND) == 18.0
+    and _a5_keep.get(const.CONF_COMFORT_TEMP_DAY) == 21.0
+    and _a5_edit.get(const.CONF_COMFORT_TEMP_DAY_WEEKEND) == 18.0,
+    f"keep={_a5_keep!r} edit={_a5_edit!r}",
+)
+_a5_typed = config_flow._omit_unstored_computed(
+    {const.CONF_DAY_START_HOUR: 7.0},
+    {const.CONF_DAY_START_HOUR: 7},
+    FakeHass(),
+)
+R.check(
+    "a no-op write keeps the stored type so effective JSON does not move",
+    _a5_typed.get(const.CONF_DAY_START_HOUR) == 7
+    and type(_a5_typed[const.CONF_DAY_START_HOUR]) is int,
+    f"typed={_a5_typed!r}",
+)
+_a5_opts = dict(_a5_seed["options"])
+_a5_data = dict(_a5_seed["data"])
+_a5_walk = {**_a5_data, **_a5_opts}
+_a5_before_b = _nightly.stored_effective_bytes(_a5_data, _a5_opts)
+for _a5_step in _nightly.option_step_ids(config_flow._OPTION_PAGES):
+    if _a5_step in ("init", "advanced", "setup_overview"):
+        continue
+    _a5_flat = config_flow._flatten_section_input(
+        config_flow._page_schema(_a5_step, _a5_walk, FakeHass())(
+            _nightly.option_resubmit(_a5_step, _a5_walk)
+        )
+    )
+    _a5_flat.pop(const.CONF_AFTER_SAVE, None)
+    _a5_opts.update(
+        config_flow._omit_unstored_computed(_a5_flat, _a5_walk, FakeHass())
+    )
+    _a5_walk = {**_a5_data, **_a5_opts}
+_a5_after_b = _nightly.stored_effective_bytes(_a5_data, _a5_opts)
+R.check(
+    "a full no-op options walk leaves stored effective bytes unchanged",
+    _a5_before_b == _a5_after_b,
+    f"before={len(_a5_before_b)}B after={len(_a5_after_b)}B",
+)
+R.check(
+    "_save_or_menu omits unstored computed defaults before persist",
+    "_omit_unstored_computed"
+    in _inspect.getsource(config_flow.HeatPumpOptimizerOptionsFlow._save_or_menu),
+    "schema fill still writes the keys if the save path does not drop them",
+)
 
 _a9_states_ok = _nightly.Checks()
 _nightly.check_a9_reload_loaded(_a9_states_ok, ["loaded"] * _nightly.A9_RELOADS)
@@ -10606,6 +10685,34 @@ R.check(
     "import_module" in _async_lazy_src
     and "async_add_import_executor_job(_lazy" not in _async_lazy_src,
     "wrapping import_module in _lazy ran the import on the loop (A14)",
+)
+# Setup already imported coordinator via ``_async_lazy``. A later
+# ``__getattr__`` that still calls ``import_module(".coordinator")`` is
+# reported on the loop (relative name is never a ``sys.modules`` key) and
+# de-duplicates the #588 probe on 2025.2.0. The probe itself must keep
+# calling ``_lazy`` so a cached sibling still trips the detector.
+_a14_mod_names: list[str] = []
+_a14_import = integration.importlib.import_module
+
+def _a14_spy(name, package=None):
+    _a14_mod_names.append(name)
+    return _a14_import(name, package)
+
+integration.__dict__.pop("HeatPumpOptimizerCoordinator", None)
+integration.importlib.import_module = _a14_spy
+try:
+    getattr(integration, "HeatPumpOptimizerCoordinator")
+finally:
+    integration.importlib.import_module = _a14_import
+R.check(
+    "__getattr__ does not import_module a sibling already in sys.modules",
+    ".coordinator" not in _a14_mod_names,
+    f"import_module names={_a14_mod_names[:8]}",
+)
+R.check(
+    "the blocking probe calls _lazy so a cached sibling still trips the detector",
+    "_lazy(" in _inspect.getsource(_nightly._provoke_lazy_on_loop),
+    "getattr of a cached re-export is silent; the probe must call _lazy",
 )
 
 # tools/audit/preflight.sh refuses a closing keyword the orchestrator did not

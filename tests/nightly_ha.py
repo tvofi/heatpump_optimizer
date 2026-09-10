@@ -2289,7 +2289,13 @@ def _flush_logs() -> None:
 
 
 def _provoke_lazy_on_loop() -> None:
-    """The package's own synchronous ``_lazy``, via ``__getattr__`` (#588)."""
+    """The package's own synchronous ``_lazy`` (#588).
+
+    ``__getattr__`` no longer calls ``import_module`` once the sibling is
+    in ``sys.modules``, so popping a re-export and ``getattr``-ing it is
+    silent. ``_lazy`` still passes a relative name, which is never a
+    ``sys.modules`` key, so this stays a detector-visible on-loop call.
+    """
     pkg = sys.modules.get("custom_components.heatpump_optimizer")
     if pkg is None:
         try:
@@ -2298,8 +2304,7 @@ def _provoke_lazy_on_loop() -> None:
             print("  ..   blocking probe: package not importable", flush=True)
             return
     try:
-        pkg.__dict__.pop("HeatPumpOptimizerCoordinator", None)
-        getattr(pkg, "HeatPumpOptimizerCoordinator")
+        pkg._lazy("coordinator")
     except Exception as exc:
         print(f"  ..   blocking probe raise: {type(exc).__name__}: {exc}", flush=True)
 
