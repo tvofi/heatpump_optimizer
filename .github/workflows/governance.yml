@@ -183,10 +183,13 @@ jobs:
       # of the world. A fix reviewer found it by running it.
       #
       # This does NOT execute the body. #679 proposed re-executing an allowlist
-      # and comparing values; figure_lint.mjs's header records the four measured
-      # reasons that is refused, the shortest being that this job checks out at
-      # depth 1 with no origin/main and most figure commands are templates over
-      # a live API. What it checks is that each command RESOLVES.
+      # and comparing values; figure_lint.mjs's header records the reasons that
+      # is refused and which of them were withdrawn under measurement. The
+      # shortest surviving one is that this job checks out at depth 1 with no
+      # origin/main. Do NOT restate a quantity here: two of the original four
+      # reasons were counts, both were wrong, and this copy is where the wrong
+      # ones survived a sweep of the body, the header and both plan rows.
+      # What the check does is confirm that each command RESOLVES.
       - name: Show the figure check refusing its own fixtures
         if: always()
         run: node .claude/workflows/figure_lint.mjs --self-test
