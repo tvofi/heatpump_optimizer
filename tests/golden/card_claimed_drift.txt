@@ -19,9 +19,9 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 6.3.19
+# claims-for: 6.3.20
 #
-# v6.3.19: the governance programme, three defects that were deleting work, and the interface changes that came with them. The stamp empties the list; the
+# v6.3.20: Seven leftover product features, W5-G3 typing, and the disposition-before-merge record. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 
