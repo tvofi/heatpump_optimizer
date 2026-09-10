@@ -43,10 +43,13 @@
 #     `synchronize` run that the push fires reads the checked body at the new
 #     head. Reversing this pair is the defect: the `synchronize` run reads the
 #     STALE body at the head a reviewer will read.
+#   * the query did not answer  ->  refuse, before the push. Which arm is right
+#     is not knowable, and the arm that guesses is the one that pushes.
 #
-# NO GITHUB CLIENT, NO PUSH. Step 4 needs the pull-request surface, and pushing
-# without being able to write the body is the defect this exists to prevent, so
-# the missing-client arm refuses before the push rather than after it. A seat
+# NO ANSWER, NO PUSH -- and a client on `PATH` is not an answer. Step 4 needs the
+# pull-request surface, and pushing without being able to write the body is the
+# defect this exists to prevent, so the missing-client arm refuses before the
+# push rather than after it, and the QUERY arm refuses the same way. A seat
 # whose environment has no such binary drives the same two arms by hand; the
 # mapping from those actions to the tools it does have is in
 # `.claude/workflows/web-fragments.md`, which is the only file allowed to name
@@ -68,10 +71,51 @@ head_section_sha() { # body file -> the first 7-40 hex token under `## Head`
   ' "${1:-/dev/null}" 2>/dev/null | grep -oiE '[0-9a-f]{7,40}' | head -1
 }
 
-pr_arm() { # pull-request number ('' or '-' for none) -> the arm's name
+# THE QUERY HAS THREE OUTCOMES, NOT TWO, and the third is a refusal. A pull
+# request exists; none exists; or the query did not answer. Reading the first
+# two out of an empty string -- which is what a discarded stderr and an unread
+# exit status leave behind -- makes "I could not ask" answer `push-then-create`,
+# so the branch reaches the remote while an open pull request keeps its stale
+# body. That is the defect this whole script exists to prevent, reached through
+# the script itself; a fix review returned `blocked` on exactly it.
+#
+# READING THE EXIT STATUS IS NECESSARY AND NOT SUFFICIENT, which is why the arm
+# is decided from the listing TEXT and not from an absence of error. Measured on
+# gh 2.98.0 against this repository:
+#
+#   gh pr list --head <a branch with an open PR> --state open \
+#              --json number --jq '.[0].nosuch'     ->  rc 0, stdout ''
+#   gh pr list --head <a branch with no PR>    --state open \
+#              --json number --jq '.[0].number'     ->  rc 0, stdout ''
+#
+# byte-identical, both succeeding. So a filter that is silently wrong about the
+# schema -- a renamed field, a typo -- is indistinguishable from "no pull
+# request" even to a caller that reads the status. The filter is therefore gone
+# and the whole listing is classified: `[]` is a POSITIVE statement that none is
+# open, an array naming a number names one, and anything else is `unknown`.
+pr_from_listing() { # query rc, listing text -> a pull-request number, 'none', 'unknown'
+  local txt n
+  [ "${1:-1}" = "0" ] || { printf 'unknown\n'; return 0; }
+  txt=$(printf '%s' "${2:-}" | tr -d '[:space:]')
+  case "$txt" in
+    '[]')    printf 'none\n'; return 0 ;;
+    '['*']') ;;
+    *)       printf 'unknown\n'; return 0 ;;
+  esac
+  n=$(printf '%s' "$txt" | grep -oE '"number":[0-9]+' | head -1 | grep -oE '[0-9]+')
+  if [ -n "$n" ]; then printf '%s\n' "$n"; else printf 'unknown\n'; fi
+}
+
+# FAIL-CLOSED BY CONSTRUCTION. Only the literal `none` selects the push arm and
+# only an all-digit number selects the body arm; every other string -- `unknown`,
+# the empty string, a word, a sentinel a later edit invents -- refuses. Written
+# this way round so that a caller which stops classifying, or a new caller that
+# never started, cannot fall through to a push.
+pr_arm() { # pr_from_listing's answer -> the arm's name
   case "${1:-}" in
-    ''|-) printf 'push-then-create\n' ;;
-    *)    printf 'body-then-push\n' ;;
+    none)        printf 'push-then-create\n' ;;
+    ''|*[!0-9]*) printf 'refuse\n' ;;
+    *)           printf 'body-then-push\n' ;;
   esac
 }
 
@@ -138,6 +182,10 @@ if [ "${1:-}" = "--self-test" ]; then
   D=.claude/workflows/fixtures/policy-rot/prepr
   ZERO=0000000000000000000000000000000000000000
   STALE=deadbeefdeadbeefdeadbeefdeadbeefdeadbeef
+  # The two listings `gh pr list --json number` actually prints, as literals, so
+  # the fixtures are the observed bytes rather than this file's idea of them.
+  ONE='[{"number":715}]'
+  TWO='[{"number":715},{"number":716}]'
   st_pass=0; st_fail=0
   st() { if [ "$1" = "$2" ]; then st_pass=$((st_pass+1)); printf '  ok   %s\n' "$3";
          else st_fail=$((st_fail+1)); printf '  FAIL %s (got %s, wanted %s)\n' "$3" "$1" "$2"; fi; }
@@ -147,9 +195,40 @@ if [ "${1:-}" = "--self-test" ]; then
   st "$(head_section_sha "$D/no-figures.md")" "$ZERO" "a body missing a LATER section still has its head read"
   st "$(head_section_sha /dev/null)" "" "a body with no head section yields no SHA"
 
-  st "$(pr_arm '')" "push-then-create" "no pull request: the opened run is the first pr-contract run there is"
-  st "$(pr_arm '-')" "push-then-create" "an absent number reads as no pull request, not as one"
+  # The query's three outcomes, classified from the listing TEXT. The pairing
+  # rule this block is built on: every refusal sits beside the healthy input it
+  # must NOT refuse, because a classifier that answers `unknown` to everything
+  # would satisfy the refusals alone.
+  st "$(pr_from_listing 0 '[]')" "none" \
+     "an empty listing is a POSITIVE statement that no pull request is open"
+  st "$(pr_from_listing 0 "$ONE")" "715" \
+     "a listing naming one pull request yields its number"
+  st "$(pr_from_listing 0 "$TWO")" "715" \
+     "two open pull requests on one head: the first is taken, as the old --jq did"
+  st "$(pr_from_listing 1 '')" "unknown" \
+     "A QUERY THAT FAILED IS unknown, NOT none -- the shape the fix review blocked on"
+  st "$(pr_from_listing 1 '[]')" "unknown" \
+     "and a failing status outranks even a well-formed listing (rc is read first)"
+  st "$(pr_from_listing 0 '')" "unknown" \
+     "exit 0 and nothing printed did not answer either -- gh's --jq does exactly this"
+  st "$(pr_from_listing 0 'GraphQL: Could not resolve to a Repository')" "unknown" \
+     "prose on stdout is not a listing (null control on the two array cases)"
+
+  st "$(pr_arm none)" "push-then-create" "no pull request: the opened run is the first pr-contract run there is"
   st "$(pr_arm 704)" "body-then-push" "a pull request exists: the body is set before the push, per S10"
+  st "$(pr_arm unknown)" "refuse" "an unanswered query picks no arm; the arm that guesses is the one that pushes"
+  st "$(pr_arm '')" "refuse" "AN EMPTY ANSWER REFUSES -- it used to read as no pull request, which is the defect"
+  st "$(pr_arm '-')" "refuse" "and so does any other non-number: only the literal none selects the push arm"
+
+  # End to end over both functions, because each is right alone only if the
+  # composition is. The second line is the null control on the first: the same
+  # path still reaches the push arm when the query positively answers `none`.
+  st "$(pr_arm "$(pr_from_listing 1 '')")" "refuse" \
+     "a query that failed while a pull request exists does NOT select push-then-create"
+  st "$(pr_arm "$(pr_from_listing 0 '[]')")" "push-then-create" \
+     "and a query that answered none still does (null control on the refusal above)"
+  st "$(pr_arm "$(pr_from_listing 0 "$ONE")")" "body-then-push" \
+     "and a query that named one still sets the body first"
 
   approval_prefix_agrees "policy: x" "policy: x"; st $? 0 "a policy title over a policy subject agrees"
   approval_prefix_agrees "fix: x" "fix: x";       st $? 0 "a non-policy pair agrees (null control)"
@@ -263,9 +342,15 @@ if ! command -v gh >/dev/null 2>&1; then
   exit 4
 fi
 
-PR=$(gh pr list --head "$BR" --state open --json number --jq '.[0].number' 2>/dev/null)
+PR_LISTING=$(gh pr list --head "$BR" --state open --json number 2>/dev/null); PR_RC=$?
+PR=$(pr_from_listing "$PR_RC" "$PR_LISTING")
 ARM=$(pr_arm "$PR")
-say arm "$ARM" "${PR:+#$PR }branch $BR"
+if [ "$ARM" = "refuse" ]; then
+  say REFUSE "pr query" "the pull-request query neither named an open pull request on $BR nor stated that none is open (it exited $PR_RC and returned <<$PR_LISTING>>), so which arm is correct is not known and NOTHING was pushed. Pushing on a guess is the defect this script exists to prevent: if one is in fact open, the push writes its \`synchronize\` run against whatever stale body it carries. Re-run when the pull-request surface answers, or drive the arm by hand -- see .claude/workflows/web-fragments.md."
+  exit 4
+fi
+if [ "$PR" = "none" ]; then say arm "$ARM" "no pull request is open on $BR"
+else say arm "$ARM" "#$PR on branch $BR"; fi
 
 push_branch() {
   git push --set-upstream origin "$BR" || { say REFUSE "push" "git push failed"; exit 5; }
@@ -277,7 +362,7 @@ if [ "$NO_PR" = "1" ]; then
   # first. It is refused once one does, because at that point skipping the body
   # write IS the defect: the `synchronize` run would read whatever body the
   # pull request happens to carry.
-  if [ -n "$PR" ]; then
+  if [ "$PR" != "none" ]; then
     say REFUSE "--no-pr" "#$PR is open on $BR, so a push writes its \`synchronize\` run against the body already there. Run without --no-pr."
     exit 3
   fi
@@ -294,7 +379,14 @@ if [ "$ARM" = "body-then-push" ]; then
 else
   push_branch
   URL=$(gh pr create --base main --head "$BR" --title "$TITLE" --body-file "$BODY") || {
-    say REFUSE "create" "the branch is pushed and no pull request was opened -- open one with $BODY, and do not let a stub body reach it"; exit 5; }
+    # This message asserts nothing about whether a pull request exists. It used
+    # to say "open one", which was wrong on the path a fix review actually hit:
+    # the query had failed while a pull request WAS open, the push arm ran, and
+    # the create step then refused -- telling the seat to open a pull request
+    # that was already open, and saying nothing about the stale body now sitting
+    # at the pushed head. The query arm above closes that path; the message is
+    # repaired anyway, because `gh pr create` has other ways to fail.
+    say REFUSE "create" "the branch reached the remote and \`gh pr create\` failed, so no pull request was opened FROM HERE. If one is already open on $BR its body is now STALE at the pushed head -- set it from $BODY. If none is open, open one with $BODY. Either way, do not let a stub body reach it"; exit 5; }
   say ok "create" "$URL"
   say ok "order" "the \`opened\` run is the first \`pr-contract\` run on this branch and reads the body checked above"
 fi
