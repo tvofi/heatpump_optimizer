@@ -10324,6 +10324,34 @@ R.check(
 # orchestrator.md, which main also moved, alongside fixer.md, which it did not,
 # and the assertion reads all three outcomes off one run: fix-review.md stale,
 # orchestrator.md reported as authored-and-moved instead, fixer.md nowhere.
+def _copy_policy_lint_tree(dst):
+    """`policy_lint.mjs` and everything its import lines reach, into `dst`.
+
+    WALKED FROM ITS OWN IMPORT LINES, NOT LISTED HERE. A hand-kept list of a
+    script's dependencies is a second copy of its dependency graph, and this one
+    went stale the first time it met a moving main: #721 added `render_md.mjs`
+    to `policy_lint.mjs`, the list did not have it, node raised
+    ERR_MODULE_NOT_FOUND, and four arms below fell into the `NOT compared` arm
+    at once. Loud rather than silent -- that is the sentinel probe working --
+    but broken all the same, and the walk is what stops it recurring.
+    """
+    import shutil
+
+    wf = Path(".claude/workflows")
+    need, seen = ["policy_lint.mjs"], set()
+    while need:
+        f = need.pop()
+        if f in seen:
+            continue
+        seen.add(f)
+        need += re.findall(r"""from ['"]\./([\w.-]+\.mjs)['"]""", (wf / f).read_text())
+    for f in sorted(seen):
+        shutil.copy(wf / f, dst / f)
+    # render_md.mjs reaches its vendored markdown-it through `createRequire`,
+    # which no import line names, so the walk above cannot see it.
+    shutil.copytree(wf / "vendor", dst / "vendor")
+
+
 def _stale_corpus_fixture():
     import os
     import shutil
@@ -10349,30 +10377,7 @@ def _stale_corpus_fixture():
         # The real instruments, so the fixture drives POLICY_GLOBS itself and
         # not a copy of it -- a second definition of "what is policy" inside a
         # test is the same defect as a second one in production.
-        #
-        # WALKED FROM policy_lint.mjs'S OWN IMPORT LINES, NOT LISTED HERE. A
-        # hand-kept list of its dependencies is a second copy of its dependency
-        # graph, and it went stale the first time it was tested against a moving
-        # main: #721 added `render_md.mjs` to policy_lint.mjs, the list did not
-        # have it, node raised ERR_MODULE_NOT_FOUND, and four arms of this
-        # fixture fell into the `NOT compared` arm at once. Loud rather than
-        # silent -- that is the sentinel probe below working -- but broken all
-        # the same, and the walk is what stops it recurring.
-        wf = Path(".claude/workflows")
-        need, seen = ["policy_lint.mjs"], set()
-        while need:
-            f = need.pop()
-            if f in seen:
-                continue
-            seen.add(f)
-            need += re.findall(
-                r"""from ['"]\./([\w.-]+\.mjs)['"]""", (wf / f).read_text()
-            )
-        for f in sorted(seen):
-            shutil.copy(wf / f, d / ".claude/workflows" / f)
-        # render_md.mjs reaches its vendored markdown-it through `createRequire`,
-        # which no import line names, so the walk above cannot see it.
-        shutil.copytree(wf / "vendor", d / ".claude/workflows/vendor")
+        _copy_policy_lint_tree(d / ".claude/workflows")
         shutil.copy(_preflight, d / "tools/audit/preflight.sh")
         for f in ("fix-review.md", "fixer.md", "orchestrator.md"):
             (d / "tools/audit/briefs" / f).write_text("v1\n")
@@ -10462,6 +10467,75 @@ R.check(
     and "origin/main moved" not in _sc_current,
     "a checkout at main's own tip has nothing stale; an arm that fires here "
     "would make the check unreadable and it would be disabled",
+)
+# The mirror-age proxy, at both ends of the measure it reads. The whole
+# comparison above rests on a LOCAL mirror nothing fetches, so a worktree whose
+# `refs/remotes/origin/main` was never re-fetched compares a ref against itself
+# and reports `ok` -- the one false negative, and the same class as the incident.
+# The proxy makes it visible, and WHICH clock it reads decides whether the line
+# is signal or noise: the tip COMMIT's date is an upstream fact, true of main
+# wherever it is read, while the reflog entry is a local one -- when THIS clone
+# last moved the ref. Both arms below run on the same checkout and differ only
+# in which of the two is old.
+def _mirror_age_fixture():
+    import os
+    import shutil
+    import tempfile
+
+    def build(commit_age_h, fetch_age_h):
+        d = Path(tempfile.mkdtemp(prefix="hpo-mirror-age-"))
+        try:
+            (d / ".claude/workflows").mkdir(parents=True)
+            (d / "tools/audit/briefs").mkdir(parents=True)
+            _copy_policy_lint_tree(d / ".claude/workflows")
+            shutil.copy(_preflight, d / "tools/audit/preflight.sh")
+            (d / "tools/audit/briefs/fix-review.md").write_text("v1\n")
+            now = int(datetime.now(UTC).timestamp())
+
+            def g(*a, ago=0):
+                when = f"@{now - ago * 3600} +0000"
+                return subprocess.run(
+                    ["git", "-C", str(d), *a], capture_output=True, text=True,
+                    env={**os.environ,
+                         "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@e",
+                         "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@e",
+                         "GIT_AUTHOR_DATE": when, "GIT_COMMITTER_DATE": when},
+                )
+
+            g("init", "-q", "-b", "trunk")
+            g("add", "-A")
+            g("commit", "-q", "-m", "base", ago=commit_age_h)
+            sha = g("rev-parse", "HEAD").stdout.strip()
+            # git stamps a reflog entry with the committer date, so this is what
+            # sets "when the mirror last moved" independently of the commit.
+            g("update-ref", "refs/remotes/origin/main", sha, ago=fetch_age_h)
+            return subprocess.run(
+                ["bash", "tools/audit/preflight.sh"], cwd=str(d), input="a body\n",
+                capture_output=True, text=True,
+            ).stdout
+        finally:
+            shutil.rmtree(d, ignore_errors=True)
+
+    return build(30, 0), build(0, 30)
+
+
+_ma_fetched_now, _ma_fetched_long_ago = _mirror_age_fixture()
+R.check(
+    "the mirror-age proxy is silent on a fresh fetch of a day-old tip",
+    "nothing here fetches" not in _ma_fetched_now,
+    "the tip commit is 30h old and the ref was moved into this clone a second "
+    "ago -- a worktree cut this minute from a mirror fetched this minute. "
+    "`git log -1 --format=%ct refs/remotes/origin/main` fires here, on a "
+    "checkout that is exactly current, because it reads when main's tip was "
+    "committed somewhere else. This arm is the null control for the reflog",
+)
+R.check(
+    "and fires where the ref itself has not moved in this clone for a day",
+    "nothing here fetches" in _ma_fetched_long_ago
+    and "last moved in this clone" in _ma_fetched_long_ago,
+    "the positive arm, and without it the null control above is also passed by "
+    "a proxy that was simply deleted. The tip commit here is seconds old, so "
+    "the only clock that can fire is the reflog entry",
 )
 R.check(
     "and says it could not compare where policy_lint.mjs predates the mode",
