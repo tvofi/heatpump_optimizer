@@ -597,6 +597,8 @@ CONF_SOLAR_HEAT_GAIN_COEFF: Final = "solar_heat_gain_coefficient"  # SHGC 0-1
 CONF_SOLAR_UPPER_FRACTION: Final = "solar_upper_fraction"  # fraction going to upper floor
 
 # DHW (Domestic Hot Water) parameters
+# Explicit override of the volume/probe/windows presence trio. Absent: infer.
+CONF_DHW_ENABLED: Final = "dhw_enabled"
 CONF_DHW_TANK_VOLUME: Final = "dhw_tank_volume"  # liters
 CONF_DHW_SETPOINT: Final = "dhw_setpoint"  # °C
 CONF_DHW_MIN_TEMP: Final = "dhw_min_temperature"  # °C
