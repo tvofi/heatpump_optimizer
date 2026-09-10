@@ -1,6 +1,6 @@
 # Handover — the open-issues programme
 
-updated-for: a6e95ff
+updated-for: 0f0cfb8
 
 Durable state only: decisions and the measurement behind them, corrections to
 the record, traps that cost a session, owed work. Volatile state — which seats
@@ -35,9 +35,11 @@ file's own figure rule was written from, and the only place it survives.
   with nothing rising, and it records which. It halts when neither exists, and
   every halt records the cut's decomposition — owned versus read-by-others — so
   S12 inherits a measured brief rather than a fresh survey.
-- **A seam move is sequenced to S12, not forbidden.** The judge's #193
-  measurement is the reason: no component of size greater than one detaches at
-  any k. Never write "forbidden" without that number behind it.
+- **A seam move was sequenced to S12, and S12 halted (#637).** No stage created
+  an API to move to, so the S0/S1 facades stay and, with Wave 4 closed, no stage
+  owes a seam move; a later programme starts from a new judge measurement. The
+  judge's #193 measurement still stands: no component of size greater than one
+  detaches at any k. Never write "forbidden" without that number behind it.
 - **`_helper(self, ...)` is refused** — it erases moved references at zero cost,
   which is a measurement artefact rather than a decomposition. A
   supplied-literal check pins nothing; that was proven with a null control.
