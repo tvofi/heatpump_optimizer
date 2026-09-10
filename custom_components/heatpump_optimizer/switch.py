@@ -13,7 +13,9 @@ from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.util import dt as dt_util
 
+from . import boost
 from .const import MODE_AUTO, MODE_OFF
 from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
 from .entity import HeatPumpOptimizerEntity
@@ -37,6 +39,8 @@ async def async_setup_entry(
         [
             OptimizerEnableSwitch(coordinator, entry),
             AwaySwitch(coordinator, entry),
+            BoostDhwSwitch(coordinator, entry),
+            BoostSpaceSwitch(coordinator, entry),
         ]
     )
 
@@ -115,3 +119,55 @@ class AwaySwitch(HeatPumpOptimizerEntity, SwitchEntity):
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         await self.coordinator.async_set_away(active=False)
+
+
+class BoostDhwSwitch(HeatPumpOptimizerEntity, SwitchEntity):
+    """Two-hour maximum hot-water heat."""
+
+    _attr_translation_key = "boost_dhw"
+
+    def __init__(
+        self,
+        coordinator: HeatPumpOptimizerCoordinator,
+        entry: ConfigEntry,
+    ) -> None:
+        super().__init__(coordinator)
+        self._entry = entry
+        self._attr_unique_id = f"{entry.entry_id}_boost_dhw"
+        self.entity_id = "switch.heat_pump_optimizer_boost_dhw"
+
+    @property
+    def is_on(self) -> bool:
+        return boost.held_for(self.coordinator).active("dhw", dt_util.now())
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        await boost.set_channel(self.coordinator, "dhw", True)
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        await boost.set_channel(self.coordinator, "dhw", False)
+
+
+class BoostSpaceSwitch(HeatPumpOptimizerEntity, SwitchEntity):
+    """Two-hour maximum space heat."""
+
+    _attr_translation_key = "boost_space"
+
+    def __init__(
+        self,
+        coordinator: HeatPumpOptimizerCoordinator,
+        entry: ConfigEntry,
+    ) -> None:
+        super().__init__(coordinator)
+        self._entry = entry
+        self._attr_unique_id = f"{entry.entry_id}_boost_space"
+        self.entity_id = "switch.heat_pump_optimizer_boost_space"
+
+    @property
+    def is_on(self) -> bool:
+        return boost.held_for(self.coordinator).active("space", dt_util.now())
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        await boost.set_channel(self.coordinator, "space", True)
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        await boost.set_channel(self.coordinator, "space", False)
