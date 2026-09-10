@@ -1,6 +1,6 @@
 # Handover — the open-issues programme
 
-updated-for: 83b1645
+updated-for: 0e43448
 
 The rule that governs this file is `.claude/rules/writing-for-agents.md`, which
 the harness loads on this very path. Delivery status is
@@ -116,10 +116,10 @@ list was unrecoverable when it was one artifact call away. Per-unit stage,
   because it moves 33 card states. Then one demanding an *empty* claim list on a
   branch that claims nothing — the same thing only when the baseline claims
   nothing too. It is not: a squash then applies that deletion to `main` and
-  carries another lane's claims off with it. Measured on three precedents —
-  #608 took 33 of #569's lines, #635 the same to #633's, #658 was stopped on
-  the way to #653's. Three independent routes now enforce the new form: the
-  record check, the autofix bot, and the stale-claim judgement.
+  carries another lane's claims off with it. Measured four times — #608 took
+  33 of #569's lines, #635 the same to #633's, #658 was stopped on the way to
+  #653's, #746 took #735's six. Since #747 the guard, the bot and the stale-claim
+  judgement ask per file kind: never write a list for a kind you cannot move.
 - **The pull-request checks listing is not a faithful instrument** (#669). It
   shows the latest run per check, so an earlier red behind a later green is
   invisible —
