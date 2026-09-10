@@ -1,6 +1,6 @@
 # Handover — the open-issues programme
 
-updated-for: 0e43448
+updated-for: 6978107
 
 The rule that governs this file is `.claude/rules/writing-for-agents.md`, which
 the harness loads on this very path. Delivery status is
@@ -27,7 +27,7 @@ the harness loads on this very path. Delivery status is
 - **A seam move was sequenced to S12, S12 halted (#637); W5-G9/W5-G10 own it now**
   (owner, 2026-09-10): the dhw profile learner first, the only candidate a
   `seam_metrics` simulation lowers on every budget row; the legionella guard after
-  R1 swaps `cross_seam_fraction` for the absolute cross-edge count, since a cohesive
+  #753 swaps `cross_seam_fraction` for the count `cross_seam_edges`, since a cohesive
   extraction removes more intra- than cross-seam edges and a ratio cannot see that.
 - **`_helper(self, ...)` is refused** — it erases moved references at zero cost, a
   measurement artefact, not a decomposition; a supplied-literal check pins nothing.

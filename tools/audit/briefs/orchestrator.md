@@ -365,6 +365,6 @@ Two things are the owner's:
   budget quietly. The ratchet is every key in `tests/structure_budgets.json`
   less `recorded_at` — **derive that count, never carry one**; it has been
   stated as 22, 24 and 29 in three places on one day, and only one was right.
-  `cross_seam_fraction` is a tolerance metric and is never re-recorded.
+  `cross_seam_edges` replaced the tolerance-banded ratio (2026-09-10) and ratchets like every other row.
 - **Do not let a fix ship whose complexity exceeds what the fix is worth.** That
   judgement is yours to make and to state, not to skip.
