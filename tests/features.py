@@ -19,6 +19,7 @@ from harness import FakeHass, FakeState, Results, UTC, minutes_ago
 import numpy as np
 
 from heatpump_optimizer import away as away_mode
+from heatpump_optimizer import boost as boost_mod
 from heatpump_optimizer import battery as battery_view
 from heatpump_optimizer import presets, pv
 from heatpump_optimizer.accuracy import (
@@ -1603,6 +1604,58 @@ cal = away_mode.resolve(
 R.check(
     "a calendar event supplies its own return time",
     cal.return_time is not None and cal.recovery_active,
+)
+
+R.section("Two-hour boost overlays")
+_boost_now = datetime(2026, 7, 1, 12, 0, tzinfo=UTC)
+_boost_dhw = boost_mod.BoostState()
+_boost_dhw.set("dhw", True, _boost_now)
+R.check(
+    "a DHW boost is live for two hours and then expires",
+    _boost_dhw.active("dhw", _boost_now)
+    and _boost_dhw.active("dhw", _boost_now + timedelta(hours=1, minutes=59))
+    and not _boost_dhw.active("dhw", _boost_now + timedelta(hours=2))
+    and not _boost_dhw.active("space", _boost_now),
+)
+_boost_dhw.expire(_boost_now + timedelta(hours=2))
+R.check("expiry drops the channel", "dhw" not in _boost_dhw.until)
+_boost_dhw.set("dhw", True, _boost_now)
+_boost_space = boost_mod.BoostState()
+_boost_space.set("space", True, _boost_now)
+_dhw_action = {
+    "power": 1.0,
+    "dhw_power": 0.0,
+    "dhw_heating_active": False,
+    "heat_pump_on": False,
+}
+boost_mod.overlay(
+    _dhw_action, _boost_dhw, max_power=6.0, max_temp=24.0, ecl_max=8.0,
+)
+R.check(
+    "DHW boost maxes hot water without rewriting space power",
+    _dhw_action["dhw_heating_active"] is True
+    and abs(_dhw_action["dhw_power"] - 4.8) < 1e-9
+    and _dhw_action["power"] == 1.0
+    and _dhw_action["heat_pump_on"] is True,
+    str(_dhw_action),
+)
+_space_action = {
+    "power": 1.0,
+    "dhw_power": 0.2,
+    "dhw_heating_active": False,
+    "heat_pump_on": False,
+}
+boost_mod.overlay(
+    _space_action, _boost_space, max_power=6.0, max_temp=24.0, ecl_max=8.0,
+)
+R.check(
+    "space boost maxes space heat without rewriting DHW power",
+    _space_action["power"] == 6.0
+    and _space_action["setpoint"] == 24.0
+    and _space_action["displace_value"] == 8.0
+    and _space_action["dhw_power"] == 0.2
+    and _space_action["heat_pump_on"] is True,
+    str(_space_action),
 )
 
 
@@ -11981,20 +12034,45 @@ R.check(
     "0.2 saved fraction",
 )
 _ctiny = _t2_coord()
-_ctiny._fold_score_sample(_T6, 0.1, 0.2, 2.0, 1.0, True)
+_ctiny._fold_score_sample(_T6, 0.05, 0.1, 2.0, 1.0, True)
 _ctiny._fold_score_sample(_apr, 0.0, 0.0, 2.0, 1.0, True)
 R.check(
     "a day with too little energy teaches nothing and is skipped",
     _ctiny._operation_score is None,
 )
+_cdhw = _t2_coord()
+# A summer DHW-only day: 0.8 kWh in the cheapest hours (below the old
+# 1 kWh floor that skipped every such day and left overall = envelope).
+for _spot_dhw in (0.4, 0.4, 2.0, 2.0):
+    _paid = 0.16 if _spot_dhw < 1.0 else 0.0
+    _kwh = 0.4 if _spot_dhw < 1.0 else 0.0
+    _cdhw._fold_score_sample(_T6, _kwh, _paid, _spot_dhw, 0.25, True)
+_cdhw._fold_score_sample(_apr, 0.0, 0.0, 1.2, 0.25, True)
+R.check(
+    "a DHW-only cheap day under 1 kWh still grades operation",
+    _cdhw._operation_score is not None
+    and abs(_cdhw._operation_score - 100.0) < 1e-6,
+    "0.8 kWh at 0.40 against a 1.20 flat-consumer mean is >= 20% below",
+)
 _fresh6 = _t2_coord()._scores_view()
 R.check(
-    "a fresh install grades only what it has: the configured envelope",
+    "a fresh install does not publish the house grade as overall",
     _fresh6["machine"] is None
     and _fresh6["operation"] is None
-    and _fresh6["overall"] == _fresh6["envelope"],
-    "machine and operation need measurements; the envelope is the house "
-    "as configured until the learners move its loss scale",
+    and _fresh6["overall"] is None
+    and _fresh6["envelope"] is not None,
+    "envelope stays in the breakdown; overall needs driving evidence",
+)
+_ce._operation_score = None
+_ce._cop_baseline.clear()
+_ce._thermal_params.heat_loss_coefficient = 0.417
+_ce._thermal_params.house_heat_loss_scale = 1.0
+_leaky = _ce._scores_view()
+R.check(
+    "a ~24 h house is not 5/100 overall while nothing has been driven",
+    _leaky["overall"] is None
+    and _leaky["envelope"] is not None
+    and _leaky["envelope"] < 10.0,
 )
 
 # --- #29 the narrative -----------------------------------------------------------
