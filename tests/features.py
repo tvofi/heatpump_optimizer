@@ -4161,7 +4161,7 @@ runtime_only = {
     "dhw_weekly_windows",       # parsed with it (#3): the same spec's day view
     "dhw_holiday_windows",      # parsed from CONF_HOLIDAY_DHW_WINDOWS (#700)
     "two_zone_enabled",         # inferred from presence, overridable by mode
-    "dhw_enabled",              # inferred from which keys are present
+    # dhw_enabled is overridable via CONF_DHW_ENABLED; inferred when absent.
     "cop_flow_carnot",          # follows the mixing valve mode
     "cop_flow_reference_temp",  # a property of the COP curve, not the house
     "emitter_design_delta_t",   # a sizing convention, not a per-house setting
@@ -4361,6 +4361,23 @@ R.check(
         {hp_const.CONF_DHW_TANK_VOLUME: 200.0}
     ).dhw_enabled
     and not ThermalParameters.from_config({}).dhw_enabled,
+)
+R.check(
+    "an explicit dhw_enabled False wins over leftover volume",
+    ThermalParameters.from_config(
+        {
+            hp_const.CONF_DHW_TANK_VOLUME: 200.0,
+            hp_const.CONF_DHW_ENABLED: False,
+        }
+    ).dhw_enabled
+    is False,
+)
+R.check(
+    "an explicit dhw_enabled True enables hot water with no other keys",
+    ThermalParameters.from_config(
+        {hp_const.CONF_DHW_ENABLED: True}
+    ).dhw_enabled
+    is True,
 )
 R.check(
     "a boolean stored as a string is still a boolean",
@@ -6207,6 +6224,18 @@ R.check(
     "a minimal setup does not grow places it does not have",
     not ({"lower_zone", "dhw_tank", "wood_tank", "wood_valve"} & _min_places),
     f"got {sorted(_min_places)}",
+)
+_off_wood = _topo.describe_setup({**_full_cfg, "wood_furnace_enabled": False})
+R.check(
+    "an explicit wood-off flag hides the wood tank despite leftover probes",
+    not _off_wood["wood"]["present"]
+    and "wood_tank" not in {s["place"] for s in _off_wood["slots"]},
+)
+_off_dhw = _topo.describe_setup({**_full_cfg, "dhw_enabled": False})
+R.check(
+    "an explicit DHW-off flag hides the hot-water tank despite leftover volume",
+    not _off_dhw["dhw"]
+    and "dhw_tank" not in {s["place"] for s in _off_dhw["slots"]},
 )
 
 _text = _topo.render_text_summary(_full)
@@ -16629,6 +16658,47 @@ async def _uninterrupted_cycle() -> tuple:
     )
 
 
+async def _shutdown_after_completed_refresh(*, light: bool = False) -> dict:
+    """#533: the handle ``async_shutdown`` cancels must not outlive its refresh.
+
+    ``_async_update_data`` records ``asyncio.current_task()``, and on the
+    inline path -- ``await coordinator.async_refresh()`` -- that task is the
+    CALLER's, not one the coordinator created. Kept past the refresh, the
+    handle makes the entry's next unload cancel whatever the caller went on
+    to do. The caller here is parked on a gate the shutdown does not touch,
+    which is the shape the nightly container lane died in: its driver had
+    driven a refresh, the A5 options save reloaded the entry, and the
+    driver's own task was cancelled before it could emit its results.
+    """
+    coord = _solve_coord()
+    coord._skip_solve_once = light
+    hass = coord.hass
+    refreshed = _asyncio.Event()
+    gate = _asyncio.Event()
+    survived = []
+
+    async def caller():
+        await coord._async_update_data()
+        refreshed.set()
+        await gate.wait()
+        survived.append(True)
+
+    task = hass.async_create_task(caller())
+    await refreshed.wait()
+    handle_after_refresh = coord._refresh_task
+    await coord.async_shutdown()
+    gate.set()
+    try:
+        await task
+    except _asyncio.CancelledError:
+        pass
+    return {
+        "survived": bool(survived),
+        "cancelled": task.cancelled(),
+        "handle_kept": handle_after_refresh is not None,
+    }
+
+
 _lc_real_publish = _lc_mqtt.async_publish
 _lc_mqtt.async_publish = _mqtt_publish_recording
 try:
@@ -16639,6 +16709,8 @@ try:
     _rl_cancel = _asyncio.run(_reload_midsolve(hold_the_solve=False))
     _sa_status, _sa_result = _asyncio.run(_solve_after_shutdown())
     _uc_calls, _uc_saves = _asyncio.run(_uninterrupted_cycle())
+    _sc = _asyncio.run(_shutdown_after_completed_refresh())
+    _sc_light = _asyncio.run(_shutdown_after_completed_refresh(light=True))
 finally:
     _lc_mqtt.async_publish = _lc_real_publish
 
@@ -16662,6 +16734,23 @@ R.check(
     "base class to have done it (#237)",
     _rl_cancel["cancelled"],
     "the refresh task survived shutdown",
+)
+R.check(
+    "and a refresh that already FINISHED leaves no handle behind, so the "
+    "task that drove it survives the unload (#533)",
+    _sc["survived"] and not _sc["cancelled"] and not _sc["handle_kept"],
+    f"caller survived={_sc['survived']}, cancelled={_sc['cancelled']}, "
+    f"handle kept past the refresh={_sc['handle_kept']}",
+)
+R.check(
+    "and the setup-time light refresh -- which runs in the SETUP task and "
+    "never solves -- records no handle at all (#533)",
+    _sc_light["survived"]
+    and not _sc_light["cancelled"]
+    and not _sc_light["handle_kept"],
+    f"caller survived={_sc_light['survived']}, "
+    f"cancelled={_sc_light['cancelled']}, "
+    f"handle kept past the refresh={_sc_light['handle_kept']}",
 )
 R.check(
     "and when nothing cancels the refresh at all -- the ownership question "

@@ -1965,6 +1965,22 @@ check("the hand-scheduled reason has a label",
   const setupPage = collect(su.shadowRoot).join("\n");
   check("the setup page draws the system", /setup-svg/.test(setupPage) &&
     /Buffer tank \(750 L\)/.test(setupPage) && /Wood furnace tank/.test(setupPage));
+  check("the setup page offers add/remove tank toggles",
+    /data-tank="dhw"/.test(setupPage) && /data-tank="wood"/.test(setupPage)
+    && /aria-pressed="true"/.test(setupPage));
+  const tankCalls = [];
+  su._hass.callService = async (domain, service, data) => {
+    tankCalls.push([domain, service, data]);
+  };
+  const dhwBtn = su.shadowRoot.querySelector('[data-tank="dhw"]');
+  if (dhwBtn) await Promise.all(
+    (dhwBtn._listeners.click || []).map((f) => f({ stopPropagation() {} })));
+  check("toggling the DHW tank calls apply_topology",
+    tankCalls.length === 1 && tankCalls[0][0] === "heatpump_optimizer"
+    && tankCalls[0][1] === "apply_topology"
+    && tankCalls[0][2].dhw === false
+    && tankCalls[0][2].wood === true,
+    JSON.stringify(tankCalls));
   check("live values are read straight from hass states",
     /21\.3 °C/.test(setupPage) && /47\.5 °C/.test(setupPage));
   check("an unavailable sensor says so instead of a stale number",
@@ -7016,6 +7032,14 @@ const setupBox = (card, place) =>
   awayOn._onCardClick({});
   check("return datetime is shown while the switch is on",
     /data-away-return/.test(collect(awayOn.shadowRoot).join("\n")));
+  const awaySetup = build(withAway(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), { sw: true }));
+  awaySetup._onCardClick({});
+  awaySetup.dialog.page = "setup";
+  awaySetup._render();
+  check("setup page shows return datetime while the switch is on",
+    /data-away-return/.test(collect(awaySetup.shadowRoot).join("\n")));
+  check("collapsed card still has no away toggle after the setup-page strip",
+    !/data-away-toggle/.test(collect(build(withAway(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), { sw: true })).shadowRoot).join("\n")));
   const awayPerson = build(withAway(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), { resolved: true }));
   awayPerson._onCardClick({});
   check("person-away while the switch is off shows a status line",
