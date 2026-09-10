@@ -176,6 +176,36 @@ jobs:
           node .claude/workflows/policy_lint.mjs \
             --pr-body /tmp/pr-body.md --head "$PR_HEAD" --title "$PR_TITLE"
 
+      # #679: `## Figures` asks for the command that printed each figure, and
+      # nothing looked at it. The section was a paste. #715 round seven is the
+      # defect: an enumerator passing `--arg` to `gh api`, which has no such
+      # flag, so it errored client-side and printed `0` for every possible state
+      # of the world. A fix reviewer found it by running it.
+      #
+      # This does NOT execute the body. #679 proposed re-executing an allowlist
+      # and comparing values; figure_lint.mjs's header records the reasons that
+      # is refused and which of them were withdrawn under measurement. The
+      # shortest surviving one is that this job checks out at depth 1 with no
+      # origin/main. Do NOT restate a quantity here: two of the original four
+      # reasons were counts, both were wrong, and this copy is where the wrong
+      # ones survived a sweep of the body, the header and both plan rows.
+      # What the check does is confirm that each command RESOLVES.
+      - name: Show the figure check refusing its own fixtures
+        if: always()
+        run: node .claude/workflows/figure_lint.mjs --self-test
+
+      # The enumerator behind the two quantities that header argues from. It is
+      # run here for its self-test only -- no `gh`, no network: an enumerator
+      # nobody executes rots into the false figure it exists to prevent, which
+      # is the #715 defect one level up.
+      - name: Show the figure census pinning its counting rule
+        if: always()
+        run: node .claude/workflows/figure_census.mjs --self-test
+
+      - name: Every figure's command resolves at this head
+        if: always()
+        run: node .claude/workflows/figure_lint.mjs --pr-body /tmp/pr-body.md
+
       - name: Pre-flight the body for unmeasured claims
         if: always()
         run: bash tools/audit/preflight.sh < /tmp/pr-body.md || true

@@ -1,6 +1,6 @@
 <!-- The headings below are what `pr-contract` requires: each is content or an
 explicit `n/a: <reason>`, since silence and "nothing to report" differ. Run
-`tools/audit/prepr.sh <this body>` before opening; the job re-executes what it can. -->
+`tools/audit/prepr.sh <this body>` before opening; the job re-checks what it can. -->
 
 Why this change, and what it measures.
 
@@ -10,8 +10,7 @@ The SHA you measured everything below at. CI compares it with the head it ran.
 
 ## Mutation proof
 
-Break the fix and paste the checks that go red. A proof that does not name a
-failing check proves nothing.
+Break the fix and paste the checks that go red. Naming none proves nothing.
 
 ## Null control
 
@@ -19,8 +18,9 @@ What the unmodified tree does. Every cost, gain or timing claim needs one.
 
 ## Figures
 
-`none`, or one line per figure the body states, with the command that printed
-it. A figure an instrument in the tree prints is not restated: name the instrument.
+`none`, or one line per figure the body states, with the command that printed it;
+name the instrument rather than restate what it prints. `pr-contract` refuses a
+command that does not resolve, and never re-runs one.
 
 ## Red checks
 
