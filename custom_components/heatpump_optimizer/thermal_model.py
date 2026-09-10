@@ -979,14 +979,7 @@ class ThermalParameters:
         # None, and counting that as "configured" phantom-enabled hot water
         # on entries that never had it. An empty string still counts — an
         # empty ``dhw_windows`` legitimately means "learned windows".
-        values["dhw_enabled"] = bool(config[const.CONF_DHW_ENABLED]) if const.CONF_DHW_ENABLED in config else any(
-            config.get(key) is not None
-            for key in (
-                const.CONF_DHW_TANK_VOLUME,
-                const.CONF_DHW_TEMP_ENTITY,
-                const.CONF_DHW_WINDOWS,
-            )
-        )
+        values["dhw_enabled"] = _dhw_enabled_from_config(config)
 
         # Demand windows: fall back to the default schedule when the stored
         # value is missing, and to "always available" when it cannot be parsed.
@@ -1011,6 +1004,13 @@ class ThermalParameters:
 
         return cls(**values)
 
+def _dhw_enabled_from_config(config: dict[str, Any]) -> bool:
+    if const.CONF_DHW_ENABLED in config:
+        return bool(config[const.CONF_DHW_ENABLED])
+    return any(
+        config.get(key) is not None
+        for key in (const.CONF_DHW_TANK_VOLUME, const.CONF_DHW_TEMP_ENTITY, const.CONF_DHW_WINDOWS)
+    )
 
 @dataclass
 class ThermalState:
