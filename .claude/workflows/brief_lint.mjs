@@ -775,15 +775,42 @@ function checkShape(groups, findings) {
 // An EMPTY `carries` array is an error, not a pass: a destination that exists
 // and holds nothing is what a deleted carry looks like.
 //
-// WHAT THIS SCAN CANNOT SEE, stated so nobody reads more into it. A carry file
-// that was never created is not in the scan, so no rule here reports it; `CARRY:
-// N` printing zero is a fact for a reader, not a check. That arm lives one layer
-// up, in policy_lint.mjs's --pr-body rule on `## Forward-carry`, which errors on
-// a destination not in the tree -- and it is a required check, so a body naming
-// a carry it did not write is refused. Neither layer can decide the third case:
-// a pull request that OWED a carry and wrote `none`. That needs knowing a
-// finding existed, which no file in the tree knows, and it stays with the fix
-// reviewer (fix-review.md step 10) by design rather than by omission.
+// WHAT THIS SCAN CANNOT SEE, stated so nobody reads more into it. There are
+// FOUR cases, and a check decides two of them:
+//
+//   1. A carry file that was never created is not in the scan, so no rule here
+//      reports it; `CARRY: N` printing zero is a fact for a reader, not a
+//      check.
+//   2. A body naming a destination NOT IN THE TREE is refused one layer up, by
+//      policy_lint.mjs's --pr-body rule on `## Forward-carry`, and that is a
+//      required check.
+//   3. A body naming a destination that IS in the tree and received nothing
+//      this round PASSES BOTH LAYERS. The rule tests EXISTENCE, NOT
+//      AUTHORSHIP: it asks resolvePathToken whether the file is there, never
+//      whether this branch wrote it. Do not read case 2 as "a body naming a
+//      carry it did not write is refused" -- that sentence stood here, and it
+//      was false by exactly this margin.
+//   4. A pull request that OWED a carry and wrote `none` is decided by neither
+//      layer. That needs knowing a finding existed, which no file in the tree
+//      knows.
+//
+// Cases 3 and 4 stay with the fix reviewer (fix-review.md step 10) by design
+// rather than by omission, and case 3 is the one that looks like an oversight,
+// so here is why it is not. It reads as tree-decidable -- the named path either
+// is or is not in this branch's three-dot diff -- but the section is prose and
+// the rule collects EVERY path token in it, so that predicate tests the
+// citations too. Measured before being refused, on the 11 pull requests open on
+// 2026-09-10: of the 6 whose `## Forward-carry` was not `none`, 6 name at least
+// one path that is not in their own diff, and every one of the 6 is legitimate
+// -- a mechanism cited as context, a destination named as OWED but deliberately
+// unwritten because it is policy the owner must approve, a `none` whose prose
+// says which rule it is `none` under. Re-measure rather than trusting that
+// count: gh pr list --state open --json number,body,files, tokens by
+// PATH_TOKEN_RE and MDC_PATH_RE over the section. A predicate that reddens 6 of
+// 6 is one every seat learns to route around, which is worse than the gap it
+// closes. Soundness needs a section grammar that separates the destination from
+// the citation; absent that grammar, case 3 collapses into case 4's judgement
+// and belongs where case 4 already is.
 export const CARRY_FILE_RE = /^carry-(\d+)\.json$/
 const CARRY_EFFECTS = new Set(['narrows', 'invalidates', 'removes'])
 const CARRY_FIELDS = ['from', 'effect', 'control', 'remeasure', 'brief']
