@@ -8474,6 +8474,46 @@ R.check(
     and _assigned["entity_id"] == "sensor.hp_power",
 )
 
+from heatpump_optimizer.thermal_model import ThermalParameters as _MVParams  # noqa: E402
+
+_svc_hass.states.set(
+    "sensor.valve_target", FakeState(22.0, unit="°C")
+)
+_ent_assigned = _svc_call(
+    const.SERVICE_ASSIGN_ENTITY,
+    {
+        "key": const.CONF_MIXING_VALVE_TARGET_ENTITY,
+        "entity_id": "sensor.valve_target",
+    },
+)
+R.check(
+    "assign_entity still writes a valve-target entity when one is given",
+    _svc_entry.options.get(const.CONF_MIXING_VALVE_TARGET_ENTITY)
+    == "sensor.valve_target"
+    and _ent_assigned["entity_id"] == "sensor.valve_target",
+)
+
+_man_assigned = _svc_call(
+    const.SERVICE_ASSIGN_ENTITY,
+    {
+        "key": const.CONF_MIXING_VALVE_TARGET_ENTITY,
+        "entity_id": "",
+        "manual_setpoint": 21.0,
+    },
+)
+R.check(
+    "a dumb mixing valve persists the manual setpoint without an entity",
+    _svc_entry.options.get(const.CONF_MIXING_VALVE_TARGET) == 21.0
+    and _svc_entry.options.get(const.CONF_MIXING_VALVE_TARGET_ENTITY) is None
+    and _man_assigned.get("manual_setpoint") == 21.0,
+    f"options={dict(_svc_entry.options)} response={_man_assigned}",
+)
+_merged = {**_svc_entry.data, **_svc_entry.options}
+R.check(
+    "and from_config uses that persisted number as the valve target",
+    _MVParams.from_config(_merged).mixing_valve_target == 21.0,
+)
+
 _svc_call(const.SERVICE_APPLY_TOPOLOGY, {"layout": "no_valve"})
 R.check(
     "apply_topology stores the validated layout",
