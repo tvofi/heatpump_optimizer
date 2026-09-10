@@ -537,7 +537,7 @@ that deliver them.
 
 ## Services
 
-Eleven services are registered under the `heatpump_optimizer` domain. Field-level
+12 services are registered under the `heatpump_optimizer` domain. Field-level
 detail for each — including all 28 fields of `set_thermal_parameters` — is in
 [docs/configuration.md](docs/configuration.md). Worked automation examples — an
 EV charger following the Power Headroom sensor, mode switching on price — are in
@@ -546,6 +546,7 @@ EV charger following the Power Headroom sensor, mode switching on price — are 
 | Service | What it does | Returns |
 |---|---|---|
 | `run_optimization` | Fetch prices and weather and re-solve the 24 h plan now | — |
+| `set_away` | Turn the Plan-page away override on or off, and optionally set or clear the expected return | — |
 | `set_mode` | Set the operating mode: auto, comfort, economy, boost or off | — |
 | `set_thermal_parameters` | Tune the thermal model directly at runtime | — |
 | `simulate_plan` | Price a hypothetical comfort choice against the current forecast without disturbing operation. Rate-limited, so rapid repeats return the previous answer | Always |

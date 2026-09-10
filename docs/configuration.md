@@ -547,13 +547,13 @@ feeding the buffer tank — its heat is folded in rather than stored separately.
 
 ## Services
 
-Eleven services are registered under the `heatpump_optimizer` domain. The seven
+12 services are registered under the `heatpump_optimizer` domain. The seven
 that act on a specific config entry also accept an optional `entry_id`; omitting
 it applies the call to every loaded entry, which is what a single-heat-pump
 install wants. Of those seven, only `assign_entity`, `apply_topology` and
 `apply_schedule` write configuration back into the entry — the other four act on
-the running coordinator. `run_optimization`, `set_mode`, `set_thermal_parameters`
-and `simulate_plan` always act on every loaded entry.
+the running coordinator. `run_optimization`, `set_away`, `set_mode`,
+`set_thermal_parameters` and `simulate_plan` always act on every loaded entry.
 
 The services are registered when the integration loads and stay registered
 while every entry is unloaded, so an automation that names one still validates.
@@ -563,6 +563,7 @@ or is not loaded — fails with a validation error rather than doing nothing.
 | Service | Fields | Returns |
 |---|---|---|
 | `run_optimization` | none | — |
+| `set_away` | `active`, `return_time` (at least one required) | — |
 | `set_mode` | `mode` (required) | — |
 | `set_thermal_parameters` | 28 optional model fields | — |
 | `simulate_plan` | 11 optional comfort fields | always |
@@ -578,6 +579,13 @@ or is not loaded — fails with a validation error rather than doing nothing.
 immediately. The **Optimize Now** button does the same thing. A run that cannot
 happen fails with an error — too few price steps available, or the solve
 itself failed — instead of acknowledging the call while the old plan stands.
+
+**`set_away`** writes the Plan-page away override. At least one field is
+required. `active` turns the override on or off; omit it to leave on/off
+unchanged. Turning it off also clears the return time. `return_time` is an ISO
+datetime, or empty to clear; omit it to leave the stored time. Setting a time
+while the override is off stores it without turning away on. The Away switch
+and Away Return datetime call this service; they are not a second store.
 
 **`set_mode`** takes `mode`: `auto` (full optimization), `comfort` (hold the
 comfort temperature and ignore prices), `economy` (allow up to 1.5 °C below your
