@@ -1464,10 +1464,51 @@ function recordRegion(planText, handoverText) {
 // would mean a new ledger entry for every merge that lands undispositioned and a
 // stale one for every merge that ages out of the `--since` window, so the ledger
 // would churn on the calendar rather than on the defect.
+//
+// A DISPOSITION IS NOT A MENTION, and the region alone could not tell them apart
+// (#752). `#N` tested against the whole region is satisfied by a sentence inside
+// somebody else's row, including one that says in terms it is NOT dispositioning
+// that number: on `main` the single occurrence of #741 was "#741 stays #745's",
+// written inside #748's row, and `record` reported zero without a disposition
+// while #741 had no row at all. The control that showed the check was not simply
+// inert: at the same head it correctly reported #749, which no text mentioned.
+//
+// So one shape is subtracted and one only: a line that ANCHORS a pull request --
+// `- [#M](.../pull/M)`, the governance-queue row format -- speaks for #M, and a
+// different number named inside it is that row's prose. Everything else in the
+// region still counts, which is the whole reason the predicate is this narrow
+// rather than a row anchor.
+//
+// WHY NOT A ROW ANCHOR, which is the obvious shape and was measured before being
+// rejected rather than argued away. Swept over every first-parent head on `main`
+// in v6.3.16..origin/main, rebuilding each head's window the way governance.yml
+// does and enumerating through the API: `^- [#N]` newly refuses eleven pull
+// requests, ten of them legitimate dispositions written as table cells, as rows
+// anchored to an ISSUE number, or in the handover's prose; extending the anchor
+// to table rows newly refuses five, four of them legitimate. The predicate below
+// newly refuses exactly one, #741, which is the gap. The counts are the sweep's
+// and move with the window; the harness is in the pull request that added this.
+// All three shapes the sweep cleared are pinned in `assertAcceptance`.
+//
+// THE ANCHOR MUST NAME ITS OWN PULL REQUEST. `[#M](...)` with a link that does
+// not resolve to `/pull/M` is not read as a row: the plan writes rows anchored to
+// ISSUE numbers whose cells disposition the pull request that closed them, and
+// suppressing those is the four-false-refusal arm above.
+const ROW_ANCHOR_RE = /^\s*[-*]\s+\[#(\d+)\]\((?:[^()\s]*\/pull\/)(\d+)\)/
+
+// The pull request a line SPEAKS FOR, or null when it speaks for nobody and
+// every number on it is therefore a disposition, as before.
+function rowAnchor(line) {
+  const m = ROW_ANCHOR_RE.exec(line)
+  return m && m[1] === m[2] ? m[1] : null
+}
+
 function checkRecord(prs, dispositionText) {
   const out = []
+  const lines = String(dispositionText ?? '').split('\n')
   for (const { pr, subject } of prs) {
-    if (new RegExp(`#${pr}(?![0-9])`).test(dispositionText)) continue
+    const re = new RegExp(`#${pr}(?![0-9])`)
+    if (lines.some((l) => re.test(l) && (rowAnchor(l) ?? pr) === pr)) continue
     out.push({
       severity: 'error',
       check: 'record',
@@ -2355,7 +2396,7 @@ function assertAcceptance(derived) {
   // region. The third is the one that keeps this fail-closed: an empty region
   // would otherwise read as "every merge undispositioned", which is a true
   // statement about the wrong thing.
-  pins += 7
+  pins += 14
   const regIn = recordRegion(`## ${RECORD_SECTION}\n- [#9101](x/pull/9101) merged\n`, '')
   const regOut = recordRegion(`## Carried findings\n- found by #9101 in passing\n`, '')
   const regNone = recordRegion('# plan\nno second-level heading at all\n', '')
@@ -2393,6 +2434,42 @@ function assertAcceptance(derived) {
   const regSub = recordRegion(
     `## ${RECORD_SECTION}\n### a subsection\n- [#9104](x/pull/9104) merged\n`, '')
   if (checkRecord([{ pr: '9104', subject: 's' }], regSub.region).length !== 0) regFail.push('a third-level heading inside the section closed the region')
+  // AND A MENTION INSIDE ANOTHER PULL REQUEST'S OWN ROW IS NOT A DISPOSITION
+  // (#752). The region test was `#N` anywhere in the text, so a row that
+  // DISCLAIMS responsibility for a number discharged the obligation for it: on
+  // `main` the only occurrence of #741 was the sentence "#741 stays #745's",
+  // written inside #748's row, and `record` reported 0 without a disposition.
+  // The first arm is that live shape. The second is its null control on the same
+  // line -- the row's own number is still dispositioned by the row it anchors,
+  // which is what stops the fix from refusing the format it is defending.
+  const regMention = recordRegion(
+    `## ${RECORD_SECTION}\n- [#9105](x/pull/9105) merged. This dispositions #9105. #9106 stays #9107's.\n`, '')
+  if (checkRecord([{ pr: '9106', subject: 's' }], regMention.region).length !== 1) regFail.push('a mention inside another pull request\'s anchored row counted as a disposition')
+  if (checkRecord([{ pr: '9105', subject: 's' }], regMention.region).length !== 0) regFail.push('an anchored row stopped dispositioning its own pull request')
+  // AND THE THREE SHAPES THE NARROWING MUST NOT REFUSE, each measured over the
+  // window before the predicate was chosen and each the reason a plainer
+  // predicate was rejected. A row anchor (`^- [#N]`) refuses all three; an
+  // anchor extended to table rows refuses the last two.
+  //   - a Delivery-status TABLE CELL, which is how the wave rows disposition;
+  //   - a table row anchored to an ISSUE number, which is how the nightly rows
+  //     disposition the pull request that closed them;
+  //   - the handover's own format, a prose bullet that anchors nothing.
+  const regCell = recordRegion(
+    `## ${RECORD_SECTION}\n| item | state |\n|---|---|\n| linter | landed as #9108 |\n`, '')
+  if (checkRecord([{ pr: '9108', subject: 's' }], regCell.region).length !== 0) regFail.push('a disposition written in a table cell was refused')
+  const regIssueRow = recordRegion(
+    `## ${RECORD_SECTION}\n| **#9109** the nightly probe | **CLOSED by [#9110](x/pull/9110), merged \`abc1234\`** |\n`, '')
+  if (checkRecord([{ pr: '9110', subject: 's' }], regIssueRow.region).length !== 0) regFail.push('a disposition inside a row anchored to an ISSUE number was refused')
+  const regHandProse = recordRegion('## other\n', '- **A seam move was sequenced to S12, S12 halted (#9111)** (owner)\n')
+  if (checkRecord([{ pr: '9111', subject: 's' }], regHandProse.region).length !== 0) regFail.push("the handover's own prose-bullet disposition was refused")
+  // AND THE ANCHOR MUST NAME ITS OWN PULL REQUEST. Dropping that identity test
+  // is a one-token cleanup with no witness above it: a row whose anchor text and
+  // link disagree would then speak for the text, and suppress every other number
+  // on the line. Ambiguous rows speak for nobody, which is the arm that favours
+  // accepting a disposition over refusing honest work.
+  const regCrossLink = recordRegion(
+    `## ${RECORD_SECTION}\n- [#9112](x/pull/9113) the anchor text and the link disagree. #9114 landed here.\n`, '')
+  if (checkRecord([{ pr: '9114', subject: 's' }], regCrossLink.region).length !== 0) regFail.push('a row whose anchor text and link name different pull requests suppressed a mention')
   if (regFail.length) {
     console.log(`\nFIXTURE VACUOUS: recordRegion ${JSON.stringify(regFail)}. The record's region is what makes a mention a disposition; unpinned, it can be widened back to the whole file with every other count unchanged.`)
     return 1
