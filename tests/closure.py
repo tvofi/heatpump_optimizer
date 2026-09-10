@@ -309,8 +309,18 @@ def is_handover(rel: str) -> bool:
 # later is copied, read, and then refused here as the #357 contradiction, by
 # name. That refusal is the intended degradation -- one line to add, and never
 # a file silently declared unread.
+
+# .gitignore left INERT while a gate script reads it is the same contradiction.
+# #743 gave tests/card_drift.mjs a `git` call -- claimsAreThisBranchs, the guard
+# that stopped it failing branches for another lane's claims -- and every git
+# invocation reads .gitignore. CI said so itself: "UNDER-SCOPED: tests/card_drift.mjs
+# really reads 1 file(s) the committed closure does not list: .gitignore". It was
+# declared unread while being read, so `closures` went red on main and
+# closures-autofix could not repair it: merging the recording produces the
+# INERT-and-recorded pair #357 exists to refuse, so the bot returns skip-still-fails.
 INERT_EXCEPT = (
     "tools/audit/preflight.sh",
+    ".gitignore",
     ".claude/workflows/policy_lint.mjs",
     ".claude/workflows/brief_lint.mjs",
     ".claude/workflows/counts.mjs",

@@ -63,6 +63,10 @@ Before step 1: `git diff $(git merge-base origin/main HEAD)...origin/main -- too
     answered by naming them: their countermeasure is the autofix job that exists.
     You are checking that the trigger was answered, not adjudicating the answer
     — the analysis is a separate seat, `tools/audit/briefs/root-cause.md`.
+    **A red `nightly-status` is not this pull request's** unless its diff reaches
+    the nightly lane: #713 attached the check to every pull request and it
+    reports `main`'s cron, not this head. The control, re-run at your own base —
+    heads pushed after #713 carry the same red, heads pushed before carry none.
 
 12. **Re-read the head before you post.** Name the SHA you measured in the
     verdict, and check it is still the head when you post it. A branch that
@@ -94,15 +98,11 @@ Before step 1: `git diff $(git merge-base origin/main HEAD)...origin/main -- too
     A non-zero exit names the conflicting paths. A conflict on any path other
     than `tests/golden/claimed_drift.txt` and `tests/golden/card_claimed_drift.txt`
     is yours to block on, because you cannot know the merged result is correct.
-    **For those two, the path is not the answer** — read the driver's verdict, as
-    below. The earlier form of this step disposed of them by path alone; that was
-    measured wrong and is the reason the paragraph below exists.
 
-    **The driver's verdict is in that command's stderr. Read it; do not infer
-    it from the paths, and do not classify the conflict by line shape.**
-    Unlike GitHub, `merge-tree` *does* invoke the `claimnotes` driver —
-    measured, one invocation per conflicting claim file — but only if you
-    installed it, because it is git config and git never clones config:
+    **The driver's verdict is in that command's stderr. Read it; do not infer it
+    from the paths, and do not classify the conflict by line shape.** Unlike
+    GitHub, `merge-tree` *does* invoke the `claimnotes` driver — measured, one
+    invocation per conflicting claim file — but only if you installed it:
 
     ```
     python3 tests/env_drift.py --install-merge-driver   # once per clone

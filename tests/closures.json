@@ -185,6 +185,7 @@
    "tests/profiles.py"
   ],
   "tests/card_drift.mjs": [
+   ".gitignore",
    "VERSION",
    "custom_components/heatpump_optimizer/__init__.py",
    "custom_components/heatpump_optimizer/accuracy.py",

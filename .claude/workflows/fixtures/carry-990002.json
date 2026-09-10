@@ -1,0 +1,24 @@
+{
+  "_comment": [
+    "Acceptance fixture: malformed in one way per rule, so a deleted rule",
+    "surfaces as its own missing pin rather than as a count that moved.",
+    "`issue` disagrees with the filename; `stage` is absent; carry 0 is missing",
+    "three required fields and states an effect outside the rule's three; carry",
+    "1 is missing its brief. Carry 0 also carries a rotted citation, which pins",
+    "the property checkShape's note protects: the citation lint runs beside a",
+    "shape defect and is never gated by one."
+  ],
+  "issue": 990009,
+  "carries": [
+    {
+      "effect": "worth knowing",
+      "brief": "This carry cites tests/no_such_carry_probe.py, which is not in the tree and is not cited at any tag."
+    },
+    {
+      "from": "no pull request; this entry is a fixture",
+      "effect": "removes",
+      "control": "stated so the missing field below is the only defect in this entry",
+      "remeasure": "stated so the missing field below is the only defect in this entry"
+    }
+  ]
+}

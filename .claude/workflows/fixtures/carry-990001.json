@@ -1,0 +1,20 @@
+{
+  "_comment": [
+    "Acceptance fixture for brief_lint.mjs: a CORRECT carry file.",
+    "It must produce no finding of any severity. A check that only ever shouts",
+    "cannot be told apart from a check that always shouts, and the malformed",
+    "fixtures beside it cannot make that distinction on their own.",
+    "Issue 990001 does not exist and is not in any roster; that is deliberate."
+  ],
+  "issue": 990001,
+  "stage": "acceptance probe standing in for a stage with no roster group",
+  "carries": [
+    {
+      "from": "no pull request; this entry is a fixture",
+      "effect": "narrows",
+      "control": "the null control this fixture stands for: with the probe reverted, the same run reports nothing",
+      "remeasure": "a real carry names the command the next stage re-runs at its own merge base; figures here are snapshots",
+      "brief": "A correct carry, cited so the resolvable classes actually run over it rather than finding nothing to check: tests/closures.json is in the tree, and the linter resolves it there."
+    }
+  ]
+}
