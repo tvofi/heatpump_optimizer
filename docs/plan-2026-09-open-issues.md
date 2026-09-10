@@ -555,6 +555,7 @@ no wave:
 - [#730](https://github.com/tvofi/heatpump_optimizer/pull/730) — **row written before the merge**: leftover #574 still said unclaimed; leftover issue-table cells still said scheduled, in flight, filed, or this PR after those issues closed. leaves #201 open.
 - [#733](https://github.com/tvofi/heatpump_optimizer/pull/733) — **merged `07bdc55`**. Two-hour DHW and space-heat boost switches. Overlay lives in `boost.py`; lookup is `held_for`. **Row written after the merge, not before** — the merge landed without one and `record` went red on `main`. leaves #201 open.
 - [#735](https://github.com/tvofi/heatpump_optimizer/pull/735) — **merged `8dc7813`**. Setup can add and remove the DHW and wood tanks; return time shows on Setup when Away is on; collapsed card still has no away strip. **Row written after the merge, not before**. leaves #201 open.
+- [#739](https://github.com/tvofi/heatpump_optimizer/pull/739) — **row written before the merge**, and it is this pull request: #733 and #735 merged without a disposition and `record` went red on `main`. `checkRecord` enumerates every merge regardless of author, so a record branch names itself or reddens on its own merge. leaves #201 open.
 
 **Why a disposition may precede its merge, and exactly how far that goes.**
 `checkRecord` tests that `#N` appears in a disposition document; it does not require the merge to
