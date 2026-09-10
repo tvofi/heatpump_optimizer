@@ -1490,6 +1490,15 @@ function recordRegion(planText, handoverText) {
 // and move with the window; the harness is in the pull request that added this.
 // All three shapes the sweep cleared are pinned in `assertAcceptance`.
 //
+// THE COST, stated rather than left to be discovered. This cannot tell "this
+// dispositions #746", written inside #748's row, from "#741 stays #745's"
+// written in the same place. It refuses both, so a merge dispositioned ONLY from
+// inside another pull request's row is now reported -- and the remedy is the row
+// the rule asks for in the first place, which the error message already names.
+// Over the swept range that cost nothing: every pull request dispositioned
+// inside another's row also had a row of its own. Re-run the sweep rather than
+// trusting that sentence at a later head.
+//
 // THE ANCHOR MUST NAME ITS OWN PULL REQUEST. `[#M](...)` with a link that does
 // not resolve to `/pull/M` is not read as a row: the plan writes rows anchored to
 // ISSUE numbers whose cells disposition the pull request that closed them, and
