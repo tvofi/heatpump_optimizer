@@ -28,6 +28,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Any
 
 import numpy as np
 
@@ -122,14 +123,14 @@ class CurveLearner:
         self._last_step_at = now.isoformat()
         _LOGGER.info("Curve bias stepped to %.2f K", self.bias)
 
-    def summary(self) -> dict:
+    def summary(self) -> dict[str, Any]:
         return {
             "bias_k": round(self.bias, 2),
             "comfortable_days": self.comfortable_days,
             "resets": self.resets,
         }
 
-    def as_dict(self) -> dict:
+    def as_dict(self) -> dict[str, Any]:
         return {
             "bias": round(self.bias, 3),
             "comfortable_days": self.comfortable_days,
@@ -139,7 +140,7 @@ class CurveLearner:
         }
 
     @classmethod
-    def from_dict(cls, data: dict | None) -> "CurveLearner":
+    def from_dict(cls, data: dict[str, Any] | None) -> "CurveLearner":
         learner = cls()
         if not isinstance(data, dict):
             return learner

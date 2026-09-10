@@ -26,6 +26,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime
+from typing import Any
 
 from .const import (
     EXTERNAL_HEAT_FORECAST_MAX_HOURS,
@@ -141,7 +142,7 @@ class ExternalHeatState:
     #: ``None`` when the tank pair is not sensed.
     wood_energy_kwh: float | None = None
 
-    def as_dict(self) -> dict:
+    def as_dict(self) -> dict[str, Any]:
         return {
             "active": self.active,
             "confidence": round(self.confidence, 2),
@@ -161,14 +162,14 @@ class ExternalHeatState:
             ),
         } | self._displacement_dict()
 
-    def _displacement_dict(self) -> dict:
+    def _displacement_dict(self) -> dict[str, Any]:
         """The item-28 fields, present only when the topology produces them.
 
         Conditional so that a configuration without the wood-furnace sensors
         publishes exactly the dictionary it always did — the golden captures
         of the coordinator's data hold every existing install to that.
         """
-        out: dict = {}
+        out: dict[str, Any] = {}
         if self.displacement > 0.0 or self.free_heat_kw > 0.0:
             out["displacement"] = round(self.displacement, 2)
             out["free_heat_kw"] = round(self.free_heat_kw, 2)

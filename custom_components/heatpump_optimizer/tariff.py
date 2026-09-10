@@ -30,6 +30,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+from typing import Any
 
 import numpy as np
 
@@ -307,7 +308,7 @@ class PeakTracker:
             return float(self.peaks[-1])
         return float(self.peaks[n - 1])
 
-    def as_dict(self) -> dict:
+    def as_dict(self) -> dict[str, Any]:
         return {
             "month": self.month,
             "peaks": [round(p, 3) for p in self.peaks],
@@ -320,7 +321,7 @@ class PeakTracker:
         }
 
     @classmethod
-    def from_dict(cls, data: dict | None) -> "PeakTracker":
+    def from_dict(cls, data: dict[str, Any] | None) -> "PeakTracker":
         tracker = cls()
         if not isinstance(data, dict):
             return tracker
