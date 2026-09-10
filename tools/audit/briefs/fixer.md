@@ -173,6 +173,28 @@ production lines. You work in your own worktree branched from `origin/main`.
     fidelity against upstream rather than shaping it to what your test needs —
     that shape is exactly the one that agrees with a wrong implementation.
 
+14. **An allow-list is keyed on something, and your entry silences everything
+    that key matches.** Before adding a case to a pin, a baseline or a
+    suppression list, name the key's fields, name the property that makes your
+    own occurrence legitimate, then key the occurrence the pin exists to catch
+    and compare the two. Equal keys mean the entry blinds the pin at the site
+    it watches, and the answer is to change the route until no entry is needed,
+    or to widen the key until the two separate — never to add it and note the
+    risk. #714 declined an entry in `tests/nightly_ha.py`'s `KNOWN_BLOCKING`,
+    keyed on (call, file, source snippet): its report was legitimate only
+    because the caller was `atexit`, running after the loop was gone, and no
+    field of that key carries a caller, so the entry would equally have matched
+    that line reached from a coroutine — #525's class, at the one site the pin
+    exists to watch.
+
+    **A fix that changes the route leaves the reported text where it was, so
+    name the route.** #714 rerouted the caller and left `coordinator.py`'s
+    `worker.wait(timeout=2)` at the line number the warning had printed, so a
+    reader who greps the report's own call, file, line and snippet finds all
+    four unchanged and reads the defect as open, and one who greps for their
+    absence finds nothing and reads the same. Anchor the claim to what moved —
+    the branch, the registration, the frame count — not to the snippet.
+
 **When a structural budget blocks the work.** A `tests/structure.py` failure is
 a decision point, not a wall, and it has three answers rather than two: pay for
 the lines elsewhere; re-record because the tree genuinely improved; or, for a
@@ -205,12 +227,10 @@ refuses until you re-record them, with the reason in the commit.
 A raise **requires the repository owner's explicit confirmation, obtained before
 you push.** It is not a judgement a fixer makes alone and it is not something a
 reviewer can wave through, so an agent that finds itself wanting one **stops and
-asks** rather than proceeding and explaining afterwards. This is not a route for
-accommodating sloppiness, an unexamined refactor, or a feature that has not been
-measured. But a metric sitting at zero headroom is not a veto on new
-functionality, and asking is an available move — #398 was refused in part
-because `coordinator_attrs` stood at 176/176 and a new attribute was read as
-costing the deletion of an existing one. `cross_seam_fraction` is exempt from
+asks** rather than proceeding and explaining afterwards. A metric sitting at
+zero headroom is not a veto on new functionality, and asking is an available
+move — #398 was refused in part because `coordinator_attrs` stood at 176/176
+and a new attribute was read as costing the deletion of an existing one. `cross_seam_fraction` is exempt from
 all of this: it is a tolerance metric and is **never** re-recorded.
 
 ## Before you hand off: carry what you found forward
