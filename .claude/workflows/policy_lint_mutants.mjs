@@ -31,9 +31,9 @@
 //
 // TWO LANES, TWO ENUMERATIONS (#683). The paragraph above was written when the
 // only enumeration was `CORPUS_CHECK_NAMES`. The RECORD mode has since grown
-// three outputs of its own -- `RECORD:` (`checkRecord`), `TABLES:`
-// (`checkTableSplit`) and `CAPS:` (the `caps` rule of `checkCounts`, over both
-// disposition documents) -- each driven by a fixture under
+// four outputs of its own -- `RECORD:` (`checkRecord`), `TABLES:`
+// (`checkTableSplit`), `CAPS:` (the `caps` rule of `checkCounts`, over both
+// disposition documents) and `RENDER:` (`checkRender`) -- each driven by a fixture under
 // fixtures/policy-loop/ inside the same acceptance. An emptied record check is
 // therefore caught THERE; that is exactly the position the corpus checks were
 // in before this lane existed, and it was not the question. The question is
