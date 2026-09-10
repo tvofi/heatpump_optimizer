@@ -800,9 +800,13 @@ _removal_coord = _Coord(
     ),
 )
 _store_prefix = f"{const.DOMAIN}_{_removal_coord.entry.entry_id}_"
+# W5-G9: the DHW profile and draw stores live in the learner the coordinator
+# constructs, so the census walks the coordinator and its subsystems.
+_store_holders = (_removal_coord, _removal_coord._dhw_learner)
 _store_suffixes = {
     value._key.removeprefix(_store_prefix)
-    for value in vars(_removal_coord).values()
+    for holder in _store_holders
+    for value in vars(holder).values()
     if isinstance(value, _Store) and value._key.startswith(_store_prefix)
 }
 _listed_suffixes = set(

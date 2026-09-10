@@ -30,7 +30,7 @@
    "rc": 0
   },
   "tests/env_drift.py": {
-   "seconds": 0.5,
+   "seconds": 0.7,
    "rc": 0
   },
   "tests/features.py": {
@@ -486,6 +486,7 @@
    "custom_components/heatpump_optimizer/datetime.py",
    "custom_components/heatpump_optimizer/defrost.py",
    "custom_components/heatpump_optimizer/dhw_draws.py",
+   "custom_components/heatpump_optimizer/dhw_learning.py",
    "custom_components/heatpump_optimizer/dhw_schedule.py",
    "custom_components/heatpump_optimizer/diagnosis.py",
    "custom_components/heatpump_optimizer/diagnostics.py",
@@ -737,6 +738,7 @@
    "custom_components/heatpump_optimizer/datetime.py",
    "custom_components/heatpump_optimizer/defrost.py",
    "custom_components/heatpump_optimizer/dhw_draws.py",
+   "custom_components/heatpump_optimizer/dhw_learning.py",
    "custom_components/heatpump_optimizer/dhw_schedule.py",
    "custom_components/heatpump_optimizer/diagnosis.py",
    "custom_components/heatpump_optimizer/diagnostics.py",
