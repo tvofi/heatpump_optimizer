@@ -381,3 +381,90 @@ export function claimVersionError(declared, version) {
   }
   return `${head} A claim describes one release's diff and does not carry forward. Rewrite the file for this release -- bump the '${CLAIM_MARKER}' line and delete claims this release does not move (an empty list is the right answer for a release that moves nothing).`;
 }
+
+// --- Whose claim is it? ------------------------------------------------------
+// A port of tests/env_drift.py's judgement, and deliberately the SAME answer
+// on the same tree rather than a card-shaped approximation of it.
+//
+// The contradiction it resolves is env_drift.py's own, recorded at the
+// `stale_is_ours` call site there: for a branch whose three-dot moves nothing
+// a claim excuses, byte-identical claim files are red (INHERITED CLAIMS) and
+// an emptied list deletes another lane's line at squash-merge (#569, #633).
+// #658 gave env_drift.py `stale_claims_judged`; card_drift.mjs never received
+// it, so on the tree that merged #735's six card claims the two instruments
+// returned opposite verdicts -- `--claims-only` printed "claims hygiene: ok"
+// while card_drift.mjs failed the same branch seven times.
+//
+// The predicate is the UNION over both claim files, exactly as
+// `moves_claimable` is there, and not narrowed to the card. Narrowing it
+// would re-open the disagreement in the other direction: env_drift.py runs
+// `inherited_claims_error` against the CARD claim file too, gated on this
+// same union, so a branch touching only integration Python or a capture
+// source is judged for its card claims by that instrument. Two gates reading
+// one file must not answer differently about it.
+//
+// The lists below mirror `justifies_solver_claim`, `justifies_card_claim` and
+// `CAPTURE_SOURCES` in tests/env_drift.py. They are a second copy, kept
+// because the alternative -- a node gate shelling out to Python -- would put
+// env_drift.py and everything it imports into card_drift.mjs's closure.
+
+/** tests/env_drift.py's CAPTURE_SOURCES: test files whose contents decide
+ * what a capture PRODUCES. */
+export const CAPTURE_SOURCES = [
+  "tests/golden.py",
+  "tests/profiles.py",
+  "tests/harness.py",
+];
+
+/** Whether `p` can move a solver golden the solver claim file excuses. */
+export function justifiesSolverClaim(p) {
+  return (
+    (p.startsWith("custom_components/heatpump_optimizer/") && p.endsWith(".py")) ||
+    CAPTURE_SOURCES.includes(p)
+  );
+}
+
+/** Whether `p` can move a card state the card claim file excuses. */
+export function justifiesCardClaim(p) {
+  return p === CARD_PATH;
+}
+
+/** Could this three-dot have moved anything a claim excuses? */
+export function movesClaimable(changed) {
+  return changed.some((p) => justifiesSolverClaim(p) || justifiesCardClaim(p));
+}
+
+/** Paths in `ref...HEAD` plus uncommitted work -- env_drift.py's
+ * `three_dot_files`, same three commands in the same order.
+ *
+ * `runGit(...args)` returns stdout and THROWS when git exits non-zero; the
+ * throw is the point. Reading stdout without the exit status returns an empty
+ * list both for a failure and for a genuinely unchanged tree, and the caller
+ * reads empty as "nothing claimable moved", which is the all-clear. */
+export function threeDotFiles(runGit, ref) {
+  const out = [];
+  for (const args of [
+    ["diff", "--name-only", `${ref}...HEAD`],
+    ["diff", "--name-only", "HEAD"],
+    ["ls-files", "--others", "--exclude-standard"],
+  ]) {
+    for (const line of String(runGit(...args)).split("\n")) {
+      const p = line.trim();
+      if (p) out.push(p);
+    }
+  }
+  return [...new Set(out)].sort();
+}
+
+/** May THIS branch be failed for a claim it may not have written?
+ *
+ * env_drift.py's `stale_claims_judged`, including its fail-closed tail: an
+ * unanswerable three-dot judges, because a gate that cannot read the diff
+ * must not quietly stop failing. */
+export function claimsAreThisBranchs(runGit, ref) {
+  try {
+    return movesClaimable(threeDotFiles(runGit, ref));
+  } catch (e) {
+    return true;
+  }
+}
