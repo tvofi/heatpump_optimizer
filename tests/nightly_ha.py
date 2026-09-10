@@ -334,6 +334,30 @@ BLOCKING_CALL = re.compile(_BLOCKING_AT + r", line \d+: (.*?) \(offender:")
 # and the reap to `async_add_executor_job`, so ANY report against this package
 # now fails the lane -- the strongest form, and the one an empty pin cannot go
 # stale in. If #540's fix is incomplete, this lane says so by name.
+#
+# It said so, and the correction belongs where the next pin is decided. #540
+# moved ONE of the reap's two routes; the `atexit` backstop kept a polling
+# `Popen.wait(timeout=2)`, and this lane reported it (run 34453886319).
+#
+# A REPORT IS NOT BY ITSELF AN ON-LOOP CALL. `homeassistant.util.loop`'s
+# `protect_loop` fires on `threading.get_ident() == loop_thread_id` -- the id
+# `block_async_io.enable` recorded at startup -- and never asks whether a loop
+# is still RUNNING. So a handler `atexit` invokes, on that same thread after the
+# loop is gone, is reported in the same words as a genuine on-loop call, while a
+# call offloaded with `async_add_executor_job` is on another thread and is never
+# reported at all. The log carries the discriminator: the warning ends with
+# `traceback.format_stack(f=integration_frame.frame)`, which prints the
+# offender's CALLERS, so one frame means no Python caller -- the C-level
+# `atexit` -- and the record's thread is `MainThread` for that and for a real
+# on-loop call but not for an executor job. Read those before naming the defect:
+# the fix the `atexit` route needs differs in kind from the one the on-loop
+# reading implies, and #533's report named a line whose two call sites were
+# both already correct.
+#
+# Establish the caller before adding an entry below, and add none for a line an
+# on-loop route could also reach: the key is (call, file, source snippet), so
+# such an entry is indistinguishable from the same line reached from a coroutine
+# and would mask the #525 class at the site this pin exists to watch.
 KNOWN_BLOCKING: frozenset[tuple[str, str, str]] = frozenset()
 BLOCKING_REPORT = "Detected blocking call to"
 # The probe must not reach the pin. Home Assistant 2025.2.0 de-duplicates at

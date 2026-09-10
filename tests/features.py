@@ -23908,6 +23908,150 @@ R.check(
 )
 
 # ---------------------------------------------------------------------------
+R.section("#533 — the atexit backstop reaps without polling the loop thread")
+
+# The nightly-ha lane read Home Assistant's own loop-protection report against
+# `coordinator.py`'s `worker.wait(timeout=2)`, and the stack it printed had ONE
+# frame -- `_shutdown_process_pool` with no Python caller, on MainThread, after
+# `asyncio.run` had already unwound. That is the `atexit` backstop, not the
+# `EVENT_HOMEASSISTANT_STOP` offload above.
+#
+# It is reported because `homeassistant.util.loop.protect_loop` fires on
+# `threading.get_ident() == loop_thread_id` -- the id recorded when
+# `block_async_io.enable()` ran -- and never asks whether a loop is still
+# RUNNING. `atexit` handlers run on that same thread, so a `Popen.wait(timeout)`
+# there, which polls with `time.sleep`, is reported as a blocking call in the
+# event loop and tells the user to open a bug against this repository.
+#
+# The probe below is that wrapper and nothing else: it records `time.sleep`
+# calls made on this thread while the reap runs. `tests/hastub` has no loop
+# protection (#513), so this is the only shape in which a lane here can see it.
+
+_G533_STUBBORN = (
+    "import signal, sys, time\n"
+    "signal.signal(signal.SIGTERM, signal.SIG_IGN)\n"
+    "sys.stdout.write('ready\\n')\n"
+    "sys.stdout.flush()\n"
+    "time.sleep(30)\n"
+)
+
+
+class _G533SleepProbe:
+    """Home Assistant's ``protect_loop``, reduced to what it observes."""
+
+    def __init__(self) -> None:
+        self.calls = []
+        self.saved = None
+
+    def __enter__(self):
+        self.saved = _g525_time.sleep
+        mine = _g525_threading.get_ident()
+        saved = self.saved
+
+        def _sleep(seconds):
+            if _g525_threading.get_ident() == mine:
+                self.calls.append(seconds)
+            return saved(seconds)
+
+        _g525_time.sleep = _sleep
+        return self
+
+    def __exit__(self, *exc):
+        _g525_time.sleep = self.saved
+        return False
+
+
+class _G533AtexitSpy:
+    """Records what ``_ensure_worker`` hands ``atexit.register``."""
+
+    def __init__(self) -> None:
+        self.registered = []
+
+    def register(self, func, *args, **kwargs):
+        self.registered.append((func, args, kwargs))
+        return func
+
+
+def _g533_reap(run):
+    """Run ``run`` against a child that ignores SIGTERM; report what it cost.
+
+    Returns (the sleeps seen, the child's returncode afterwards, whether it
+    was still alive when the reap began). The last one is not decoration: a
+    child that had already died would make "no sleeps" true of a reap that
+    reaped nothing.
+    """
+    child = _g525_subprocess.Popen(
+        [sys.executable, "-c", _G533_STUBBORN],
+        stdin=_g525_subprocess.PIPE,
+        stdout=_g525_subprocess.PIPE,
+    )
+    child.stdout.readline()  # the handler is installed only after this
+    _g525_worker_mod._PROCESS_WORKER = child
+    alive = child.poll() is None
+    try:
+        with _G533SleepProbe() as probe:
+            run()
+        return list(probe.calls), child.poll(), alive
+    finally:
+        _g525_worker_mod._PROCESS_WORKER = None
+        child.kill()
+        child.wait(timeout=5)
+        child.stdout.close()
+
+
+_g525_worker_mod._shutdown_process_pool()
+_g533_spy = _G533AtexitSpy()
+_g533_saved_atexit = _g525_worker_mod.atexit
+_g533_saved_flag = _g525_worker_mod._PROCESS_ATEXIT
+_g525_worker_mod.atexit = _g533_spy
+_g525_worker_mod._PROCESS_ATEXIT = False
+try:
+    _g525_worker_mod._ensure_worker()
+finally:
+    _g525_worker_mod.atexit = _g533_saved_atexit
+    _g525_worker_mod._PROCESS_ATEXIT = _g533_saved_flag
+_g525_worker_mod._shutdown_process_pool()
+
+R.check(
+    "starting the worker still registers an atexit backstop (#533)",
+    len(_g533_spy.registered) == 1 and callable(_g533_spy.registered[0][0]),
+    f"registered: {_g533_spy.registered!r}",
+)
+
+
+def _g533_run_registered():
+    func, args, kwargs = _g533_spy.registered[0]
+    func(*args, **kwargs)
+
+
+_g533_sleeps, _g533_rc, _g533_alive = _g533_reap(_g533_run_registered)
+R.check(
+    "what atexit will call reaps without a polling wait (#533)",
+    _g533_alive and _g533_sleeps == [],
+    f"child alive at the start: {_g533_alive}; {len(_g533_sleeps)} time.sleep "
+    f"call(s) totalling {sum(_g533_sleeps):.3f}s",
+)
+R.check(
+    "and the child is dead and reaped, not abandoned (#533)",
+    _g533_rc is not None and _g533_rc < 0,
+    f"returncode after the backstop ran: {_g533_rc!r}",
+)
+# Null control for the probe. The same measurement over the loop-side reap --
+# which keeps its graceful terminate-and-wait, and must -- has to SEE the
+# polling wait. Without this, "no sleeps" is also what a probe that never
+# looked reports, and a reap that had quietly stopped running would pass.
+_g533_ctl_sleeps, _g533_ctl_rc, _g533_ctl_alive = _g533_reap(
+    _g525_worker_mod._shutdown_process_pool
+)
+R.check(
+    "null control: the graceful reap DOES poll, so the probe can see polling",
+    _g533_ctl_alive and len(_g533_ctl_sleeps) > 0,
+    f"child alive at the start: {_g533_ctl_alive}; {len(_g533_ctl_sleeps)} "
+    f"time.sleep call(s) totalling {sum(_g533_ctl_sleeps):.3f}s; "
+    f"returncode {_g533_ctl_rc!r}",
+)
+
+# ---------------------------------------------------------------------------
 R.section("3L-G5 — DHW set-point consistency (#408)")
 
 from heatpump_optimizer.const import (  # noqa: E402

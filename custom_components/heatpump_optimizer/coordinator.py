@@ -786,12 +786,29 @@ def _ensure_worker() -> subprocess.Popen:
         env=_worker_env(),
     )
     if not _PROCESS_ATEXIT:
-        atexit.register(_shutdown_process_pool)
+        atexit.register(_shutdown_process_pool, at_exit=True)
         _PROCESS_ATEXIT = True
     return _PROCESS_WORKER
 
 
-def _shutdown_process_pool() -> None:
+def _shutdown_process_pool(*, at_exit: bool = False) -> None:
+    """Reap the solve worker. ``at_exit`` is the ``atexit`` backstop's route.
+
+    ``Popen.wait(timeout=...)`` polls with ``time.sleep``, and ``atexit``
+    handlers run on the thread that started the interpreter -- under Home
+    Assistant, the loop thread. ``homeassistant.util.loop.protect_loop`` fires
+    on ``threading.get_ident() == loop_thread_id`` alone and never asks whether
+    a loop is still running, so that wait is reported as a blocking call in the
+    event loop although the loop has already gone, and the report tells the
+    user to open a bug here (#533). Nothing is being served by then, so the
+    stall is not the harm; the report is.
+
+    ``SIGKILL`` and a timeout-less ``wait`` reap the child through
+    ``os.waitpid``, which blocks in C without ``time.sleep``. Nothing is lost
+    by not asking politely at that point: stdin is closed above, which is the
+    worker's own clean exit (``process_worker.run_worker`` returns on EOF), and
+    it holds no file, lock or buffer that a ``SIGTERM`` would let it flush.
+    """
     global _PROCESS_WORKER
     with _PROCESS_LOCK:
         worker, _PROCESS_WORKER = _PROCESS_WORKER, None
@@ -803,6 +820,13 @@ def _shutdown_process_pool() -> None:
     except Exception:  # noqa: BLE001 - shutdown must not raise
         pass
     if worker.poll() is None:
+        if at_exit:
+            try:
+                worker.kill()
+                worker.wait()
+            except Exception:  # noqa: BLE001 - shutdown must not raise
+                pass
+            return
         worker.terminate()
         try:
             worker.wait(timeout=2)
