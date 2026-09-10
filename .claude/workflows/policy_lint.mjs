@@ -40,6 +40,7 @@
 //   node .claude/workflows/policy_lint.mjs --budgets  # sizes vs caps
 //   node .claude/workflows/policy_lint.mjs --hooks [settings.json]  # wired and self-testing
 //   node .claude/workflows/policy_lint.mjs --report   # enforcement summary
+//   ... | node .claude/workflows/policy_lint.mjs --corpus-filter  # keep the policy paths
 //   node .claude/workflows/policy_lint.mjs <files...> # lint just these
 //   node .claude/workflows/policy_lint.mjs --record-known-bad   # reseed the ratchet
 //   node .claude/workflows/policy_lint.mjs --pr-body <file> --head <sha> [--title t] [--red names]
@@ -3103,6 +3104,35 @@ function cmdList() {
   for (const c of CHECKS) console.log(`  ${c.name.padEnd(12)} ${c.what}\n${' '.repeat(16)}fixture: ${c.fixture}`)
 }
 
+// Reads one path per line on stdin and prints back the subset POLICY_GLOBS
+// matches. `tools/audit/preflight.sh` is the consumer: it needs to know whether
+// a path `git diff` named is policy, and CLAUDE.md's "a fourth definition of
+// what is policy is its own defect" makes copying the globs into a shell regex
+// the wrong answer.
+//
+// WHY A FILTER RATHER THAN A LIST. `policyFiles()` resolves the globs against
+// the TRACKED tree, so a policy file that exists on origin/main and not in this
+// checkout -- which is exactly the shape of a corpus that has fallen behind --
+// is absent from it, and a consumer intersecting with that list would go quiet
+// on the case it most needs to see. A filter is a pure function of the path.
+//
+// ALWAYS READS STDIN, never a filename. A mode that reads stdin only sometimes
+// blocks when it is handed a filename instead, the process is killed, and the
+// kill reports success: that is how three merge bodies were once "verified"
+// clean against preflight.sh (#605). One input channel, no branch to get wrong.
+function cmdCorpusFilter() {
+  let raw = ''
+  try {
+    raw = fs.readFileSync(0, 'utf8')
+  } catch {
+    raw = ''
+  }
+  for (const line of raw.split('\n')) {
+    const f = line.trim()
+    if (f && POLICY_GLOBS.some((re) => re.test(f))) console.log(f)
+  }
+}
+
 function cmdBudgets(files) {
   const b = policyBudgets()
   const rows = sizes(files)
@@ -3315,6 +3345,7 @@ function main() {
   const derived = derivations()
 
   if (argv[0] === '--list') return cmdList(), process.exit(0)
+  if (argv[0] === '--corpus-filter') return cmdCorpusFilter(), process.exit(0)
 
   // Exact-string, and --record-known-bad is tested FIRST, so the reseed can
   // never be reached by a typo of --record or the other way round.

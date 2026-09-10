@@ -26,8 +26,8 @@
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 24.0,
-   "rc": 0
+   "seconds": 21.0,
+   "rc": 1
   },
   "tests/env_drift.py": {
    "seconds": 0.5,
@@ -346,6 +346,9 @@
    "tests/profiles.py"
   ],
   "tests/entities.py": [
+   ".claude/workflows/brief_lint.mjs",
+   ".claude/workflows/counts.mjs",
+   ".claude/workflows/policy_lint.mjs",
    ".gitattributes",
    ".github/workflows/tests.yml",
    "README.md",

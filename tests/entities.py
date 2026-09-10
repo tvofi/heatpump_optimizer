@@ -10305,6 +10305,152 @@ R.check(
     "orchestrator.md section 1 can quote the anti-pattern it forbids",
 )
 
+# The stale-policy-corpus check, driven over a purpose-built repository rather
+# than over this one. It has to be: the check reads HEAD, origin/main and the
+# merge base, and this checkout's own three are whatever the runner last
+# fetched, so an assertion against them states nothing and would flip with the
+# clone. The fixture fixes all three.
+#
+# ONE REPOSITORY, THREE HEADS, because the separation IS the check. A predicate
+# that fires on "differs from origin/main" fires on every branch doing
+# intentional policy work; the one that has to hold is stale MINUS authored.
+#
+# THE FIXTURE'S SHAPE IS WHAT PINS THE SUBTRACTION, and the first version of it
+# did not. It gave the branch an edit to a file main had NOT moved, so the two
+# sets were disjoint, `stale = moved - mine` and `stale = moved` returned the
+# same answer, and replacing the subtraction with `stale="$moved"` -- the exact
+# predicate that blocks #715 -- left all three arms green. A set difference is
+# only pinned by an input where the sets OVERLAP. So arm 1's branch edits
+# orchestrator.md, which main also moved, alongside fixer.md, which it did not,
+# and the assertion reads all three outcomes off one run: fix-review.md stale,
+# orchestrator.md reported as authored-and-moved instead, fixer.md nowhere.
+def _stale_corpus_fixture():
+    import os
+    import shutil
+    import tempfile
+
+    def g(d, *a):
+        return subprocess.run(
+            ["git", "-C", str(d), *a], capture_output=True, text=True,
+            env={**os.environ, "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@e",
+                 "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@e"},
+        )
+
+    def run(d):
+        return subprocess.run(
+            ["bash", "tools/audit/preflight.sh"], cwd=str(d), input="a body\n",
+            capture_output=True, text=True,
+        ).stdout
+
+    d = Path(tempfile.mkdtemp(prefix="hpo-stale-corpus-"))
+    try:
+        (d / ".claude/workflows").mkdir(parents=True)
+        (d / "tools/audit/briefs").mkdir(parents=True)
+        # The real instruments, so the fixture drives POLICY_GLOBS itself and
+        # not a copy of it -- a second definition of "what is policy" inside a
+        # test is the same defect as a second one in production.
+        for f in ("policy_lint.mjs", "brief_lint.mjs", "counts.mjs"):
+            shutil.copy(Path(".claude/workflows") / f, d / ".claude/workflows" / f)
+        shutil.copy(_preflight, d / "tools/audit/preflight.sh")
+        for f in ("fix-review.md", "fixer.md", "orchestrator.md"):
+            (d / "tools/audit/briefs" / f).write_text("v1\n")
+        g(d, "init", "-q", "-b", "trunk")
+        g(d, "add", "-A")
+        g(d, "commit", "-q", "-m", "base")
+        base = g(d, "rev-parse", "HEAD").stdout.strip()
+        # main moves fix-review.md, exactly as 58aec5f and 43d3e93 did, and
+        # orchestrator.md beside it so the branch below can overlap on one file
+        # and not the other.
+        (d / "tools/audit/briefs/fix-review.md").write_text("v2 -- the verdict grammar\n")
+        (d / "tools/audit/briefs/orchestrator.md").write_text("v2\n")
+        g(d, "commit", "-qam", "main moves the review contract")
+        tip = g(d, "rev-parse", "HEAD").stdout.strip()
+        g(d, "update-ref", "refs/remotes/origin/main", tip)
+        # Arm 1: cut at the base; authors one file main also moved and one it
+        # did not, so the moved and authored sets overlap in exactly one place.
+        g(d, "checkout", "-q", "-b", "stale", base)
+        (d / "tools/audit/briefs/fixer.md").write_text("v1 + this branch's own edit\n")
+        (d / "tools/audit/briefs/orchestrator.md").write_text("v1 + this branch's own edit\n")
+        g(d, "commit", "-qam", "author fixer.md and orchestrator.md")
+        stale = run(d)
+        # Arm 2: cut at the tip, authoring an edit to the file main moved --
+        # #715's shape, the branch a "differs from main" predicate would block.
+        g(d, "checkout", "-q", "-b", "authored", tip)
+        (d / "tools/audit/briefs/fix-review.md").write_text("v2 + this branch's own edit\n")
+        g(d, "commit", "-qam", "author fix-review.md")
+        authored = run(d)
+        # Arm 3: at the tip, nothing authored.
+        g(d, "checkout", "-q", "--detach", tip)
+        current = run(d)
+        # Arm 4: back at the stale head, but with the policy_lint.mjs an OLD
+        # checkout has -- one that does not know --corpus-filter, treats it as a
+        # no-op and prints its ordinary lint output. Read as a path list that is
+        # zero policy files, and zero reads exactly like "nothing is stale". The
+        # check has to say it could not compare instead.
+        g(d, "checkout", "-q", "stale")
+        (d / ".claude/workflows/policy_lint.mjs").write_text(
+            "console.log('TOTAL: 0 error(s)')\n"
+        )
+        old_lint = run(d)
+        return stale, authored, current, old_lint
+    finally:
+        shutil.rmtree(d, ignore_errors=True)
+
+
+_sc_stale, _sc_authored, _sc_current, _sc_old_lint = _stale_corpus_fixture()
+_sc_stale_block = _sc_stale.split("authored here AND moved")[0]
+R.check(
+    "the pre-flight names a policy file main moved and this branch did not touch",
+    "policy corpus -- 1 file(s) origin/main moved" in _sc_stale
+    and "briefs/fix-review.md" in _sc_stale_block,
+    "an orchestrator worktree 69 commits behind main dispatched a review seat "
+    "into a fix-review.md predating 58aec5f and 43d3e93; the seat would have "
+    "written a verdict web-fix-wave.js cannot parse and read checks with a call "
+    "that reports pr-contract green where it was red",
+)
+R.check(
+    "and reports a policy file it authored as authored, not as stale",
+    "briefs/orchestrator.md" not in _sc_stale_block
+    and "briefs/orchestrator.md" in _sc_stale.split("authored here AND moved")[-1],
+    "orchestrator.md is in BOTH sets -- main moved it and this branch edited "
+    "it -- which is the only input a set difference is pinned by. Replacing "
+    "`stale = moved - authored` with `stale = moved`, the predicate that blocks "
+    "#715, leaves every disjoint fixture green; this arm is what fails",
+)
+R.check(
+    "and does not mention a policy file only this branch touched",
+    "briefs/fixer.md" not in _sc_stale,
+    "fixer.md is authored here and untouched on main: it is neither stale nor "
+    "a rebase conflict, so naming it anywhere is the over-fire that would send "
+    "a seat looking for a staleness that does not exist",
+)
+R.check(
+    "and stays silent on a branch that authors a policy edit (null control)",
+    "current with origin/main" in _sc_authored
+    and "origin/main moved" not in _sc_authored,
+    "#715 edits fixer.md and orchestrator.md, #722 edits three rule files. A "
+    "predicate keyed on 'differs from origin/main' fires on exactly those "
+    "branches, and one that blocks the legitimate path is routed around inside "
+    "a day -- without this arm the check above passes for a predicate that "
+    "fires on every branch",
+)
+R.check(
+    "and on a checkout level with origin/main (second null control)",
+    "current with origin/main" in _sc_current
+    and "origin/main moved" not in _sc_current,
+    "a checkout at main's own tip has nothing stale; an arm that fires here "
+    "would make the check unreadable and it would be disabled",
+)
+R.check(
+    "and says it could not compare where policy_lint.mjs predates the mode",
+    "NOT compared" in _sc_old_lint and "current with origin/main" not in _sc_old_lint,
+    "an old checkout's policy_lint.mjs treats --corpus-filter as a no-op and "
+    "prints lint output, which as a path list is zero policy files -- "
+    "indistinguishable from nothing being stale. Without the sentinel probe the "
+    "check reports `ok` on precisely the stale checkouts it exists to catch, "
+    "and this run is the same stale head that fires in the first arm",
+)
+
 # HA loads repairs.py dynamically, so a witness must import it or it is an
 # orphan and forces MODE: FULL (#408).
 from heatpump_optimizer import repairs as _repairs_mod  # noqa: E402

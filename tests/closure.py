@@ -289,7 +289,20 @@ def is_handover(rel: str) -> bool:
 # declared unread while being read -- the INERT-vs-recorded contradiction #357
 # exists to refuse, and the same shape that let tests/nightly_ha.py's blocking
 # pin go stale in silence (#533).
-INERT_EXCEPT = ("tools/audit/preflight.sh",)
+#
+# The same argument reaches three files under `.claude/workflows/`. The
+# stale-policy-corpus pins copy `policy_lint.mjs` and the two modules it imports
+# into a fixture repository and drive `preflight.sh` against them, because
+# POLICY_GLOBS is this repository's one definition of "what is policy" and a
+# second copy inside a test is the defect CLAUDE.md names. Copying it is reading
+# it: left inside the `.claude/` prefix these would be declared unread while
+# tests/entities.py opens them on every run.
+INERT_EXCEPT = (
+    "tools/audit/preflight.sh",
+    ".claude/workflows/policy_lint.mjs",
+    ".claude/workflows/brief_lint.mjs",
+    ".claude/workflows/counts.mjs",
+)
 
 
 def is_inert(rel: str) -> bool:

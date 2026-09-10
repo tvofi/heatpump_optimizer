@@ -73,5 +73,114 @@ elif [ "$quoted" -gt 0 ]; then
   say check "the '; echo' shape appears in backticks -- an example, not a claim?"
 fi
 
+# 5. A STALE POLICY CORPUS. A branch may legitimately carry an old TREE -- one
+#    under review is frozen, and a detached review worktree must stay at its head
+#    SHA -- but no seat should read an old POLICY corpus. An orchestrator
+#    worktree 69 commits behind main dispatched a review seat into a
+#    `tools/audit/briefs/fix-review.md` that predated 58aec5f (the verdict
+#    grammar) and 43d3e93 (paginated check-runs). Under that text the seat would
+#    have written a verdict `web-fix-wave.js` cannot parse and read checks with a
+#    call that reports `pr-contract` GREEN at a commit where it was red. It
+#    noticed; nothing was corrupted by luck rather than by design.
+#
+#    STALE, NOT DIFFERENT. "differs from origin/main" fires on exactly the
+#    branches doing intentional policy work -- #715 edits fixer.md and
+#    orchestrator.md, #722 edits three rule files -- and a predicate that blocks
+#    the legitimate path is one a seat routes around. The separation is the whole
+#    check: a file origin/main moved since the merge base MINUS the files this
+#    branch authored, both three-dot from that base.
+#
+#    THE RESIDUE IS NAMED, NOT HIDDEN. A file in BOTH sets is based on the old
+#    text and is not reported as stale, because reporting it is the false
+#    positive above. It gets its own line instead: a rebase has to reconcile it,
+#    which is a thing git will say too.
+#
+#    THE CORPUS IS POLICY_GLOBS, read from policy_lint.mjs rather than copied.
+#    CLAUDE.md: a fourth definition of "what is policy" is its own defect. The
+#    filter mode is a pure function of the path, so a policy file ADDED on main
+#    and absent from this checkout is still classified.
+#
+#    CHECK, NOT REFUSE, and the reason is structural rather than lenient.
+#    (a) Every refusal above is a property of the TEXT ON STDIN -- the author's
+#        own artifact, fixable in seconds by editing it. Staleness is a property
+#        of the CHECKOUT: no edit to the body clears it, so a refusal here
+#        refuses a body that is correct.
+#    (b) The repair is `git merge origin/main`, and fixer.md step 6 then
+#        re-executes steps 2-4 -- failing test, mutation proof, both harness
+#        ends. Blocking a week-old branch on unrelated work to buy that is the
+#        shape prepr.sh's push-order comment refuses: "a refusal here would
+#        refuse the prescribed order, which is worse than the defect it answers."
+#    (c) NO NETWORK, EVER, as prepr.sh states it: the comparison is against the
+#        LOCAL mirror refs/remotes/origin/main. That makes this check too QUIET
+#        and never too loud -- an unfetched mirror under-reports, it cannot
+#        invent staleness. A refusal resting on evidence that may be stale is
+#        dishonest; a warning resting on it is not.
+#    (d) tests/entities.py executes this script in CI and asserts exit codes. A
+#        refusal arm keyed on repository state would make those pins depend on
+#        how recently the runner fetched.
+#
+#    WHERE IT DOES NOT REACH, stated rather than left to be discovered: this
+#    script runs before a PUSH. A fix reviewer never pushes, and the reviewer is
+#    the seat this defect actually hurt. Closing that needs a second home in the
+#    review seat's own start-up -- fix-review.md's detached-worktree step -- and
+#    that is a policy edit, so it is the owner's call, not this script's.
+set_of() { printf '%s\n' "$1" | sed '/^$/d' | sort -u; }
+n_of() { set_of "$1" | wc -l | tr -d ' '; }
+minus() { comm -23 <(set_of "$1") <(set_of "$2"); }
+inter() { comm -12 <(set_of "$1") <(set_of "$2"); }
+corpus_filter() { node "$1/.claude/workflows/policy_lint.mjs" --corpus-filter 2>/dev/null; }
+
+why=""; root=""; base=""
+if ! root=$(git rev-parse --show-toplevel 2>/dev/null) || [ -z "$root" ]; then
+  why="not a git checkout"
+elif ! git rev-parse --verify --quiet refs/remotes/origin/main >/dev/null 2>&1; then
+  why="no refs/remotes/origin/main in this clone, so there is nothing to compare against"
+elif ! base=$(git merge-base refs/remotes/origin/main HEAD 2>/dev/null) || [ -z "$base" ]; then
+  why="no common ancestor with origin/main (shallow clone? git fetch --unshallow origin)"
+elif ! command -v node >/dev/null 2>&1; then
+  why="no node, so POLICY_GLOBS cannot be read and the corpus is undefined here"
+#  THE FILTER IS PROBED, NOT ASSUMED. An old checkout's policy_lint.mjs does not
+#  know --corpus-filter: it treats the flag as a no-op, lints the whole corpus,
+#  and prints FINDINGS on stdout. Read as a path list that is silence, and
+#  silence here reads as "current" -- a check that goes green precisely on the
+#  stale checkouts it exists to catch. So one sentinel pair decides it: a policy
+#  path must come back and a non-policy path must not.
+elif [ "$(printf 'CLAUDE.md\ntools/audit/not-a-policy-path.zzz\n' | corpus_filter "$root")" != "CLAUDE.md" ]; then
+  why="policy_lint.mjs here does not answer --corpus-filter, so the corpus is undefined (a checkout predating it?)"
+fi
+if [ -n "$why" ]; then
+  say check "policy corpus -- NOT compared: $why"
+else
+  moved=$(git diff --name-only "$base...refs/remotes/origin/main" 2>/dev/null)
+  mine=$(git diff --name-only "$base...HEAD" 2>/dev/null)
+  pol=$(printf '%s\n%s\n' "$moved" "$mine" | sed '/^$/d' | sort -u | corpus_filter "$root")
+  moved=$(inter "$moved" "$pol")
+  mine=$(inter "$mine" "$pol")
+  stale=$(minus "$moved" "$mine")
+  both=$(inter "$moved" "$mine")
+  if [ -n "$stale" ]; then
+    say check "policy corpus -- $(n_of "$stale") file(s) origin/main moved since your merge base and this branch does not touch: the copy every seat here reads is not the current contract. Re-read them, or update the branch."
+    printf '%s\n' "$stale" | sed 's/^/             /'
+  else
+    say ok "policy corpus -- current with origin/main ($(n_of "$mine") file(s) authored here, not stale)"
+  fi
+  [ -n "$both" ] && { say check "policy corpus -- authored here AND moved on origin/main; a rebase reconciles these, so they are not counted stale:"; printf '%s\n' "$both" | sed 's/^/             /'; }
+#  THE ONE FALSE NEGATIVE, MADE VISIBLE. Nothing above fetches, so the whole
+#  comparison rests on a LOCAL mirror. A worktree that is 59 commits stale and
+#  whose mirror was never re-fetched compares e4f34c7 against e4f34c7 and this
+#  check reports `ok` -- green on exactly the shape it was written for, which is
+#  the failure mode that produced the incident in the first place. It cannot be
+#  fixed here (a check that hangs or fails offline is run with `|| true` inside a
+#  week), so it is made visible instead, by the one offline proxy there is: main
+#  moves several times a day in this repository, so a mirror tip older than a day
+#  is more likely unfetched than quiet. A PROXY, not a measurement -- it says
+#  when to distrust the lines above, and it cannot say they are wrong.
+  tip=$(git log -1 --format=%ct refs/remotes/origin/main 2>/dev/null)
+  if [ -n "$tip" ]; then
+    age=$(( ( $(date +%s) - tip ) / 3600 ))
+    [ "$age" -ge 24 ] && say check "policy corpus -- refs/remotes/origin/main last moved ${age}h ago and nothing here fetches. If that is not main's real tip, everything above compared against a stale mirror and under-reports. \`git fetch origin\`, then re-run."
+  fi
+fi
+
 [ $rc -eq 0 ] && say clean "no refusal (the 'check' lines above are yours to answer)"
 exit $rc
