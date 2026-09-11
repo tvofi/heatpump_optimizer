@@ -73,8 +73,14 @@ production lines. You work in your own worktree branched from `origin/main`.
    the detail. `python3 tests/structure.py` is seconds and runs before every
    push regardless.
 6. Hand off to the adversarial fix reviewer. **After any rebase or merge,
-   steps 2–4 are re-executed**: the evidence describes one tree, and either
-   makes a new one.
+   steps 2–8 are re-executed**: the evidence describes one tree, and either
+   makes a new one. 2–4 because the harness moved; **5–8 because the body is
+   evidence too.** Every figure that is a function of `origin/main`'s tip is
+   false the moment `main` moves, and re-taking only the figures a reviewer
+   named leaves the rest of the class standing — that is what one day's
+   measurement found behind seventeen of thirty-one blocked verdicts, none of
+   which was about a fix. Stamp such a figure with the tip it was taken at and
+   `date -u` rather than asserting it in the present tense.
 
    **The handoff freezes the branch.** Until then, update it from `origin/main`
    whenever you need to — `git merge origin/main`, never rebase. After it, the
@@ -255,3 +261,24 @@ other than the one that tripped it.
 
 The reviewer reads your checks rather than your account of them, and an
 unanswered red check is `blocked <sha> root-cause-unanswered: <check> went red, unanswered`.
+
+## Past three rounds, re-cut rather than repair
+
+The owner's rule. At the **fourth** review round, stop repairing the body and
+replace it.
+
+- **Re-cut it.** Write a new body from the tree: the headings
+  `.github/PULL_REQUEST_TEMPLATE.md` requires, the arms that fire, and only
+  figures you re-take in that one pass, each stamped with the tip and `date -u`.
+  Delete every narrative paragraph, round history and account of what an earlier
+  version got wrong — none of it is load-bearing and all of it goes stale.
+- **A re-cut body blocked on `claims` again is a signal about the fix, not the
+  prose.** Split the branch or close it; a fifth repair push is not a strategy.
+- **The round count is the orchestrator's to act on** — it decides the split or
+  the close, as it decides every merge.
+
+Why a rule and not advice: the rounds it prevents were never about the fix. A
+body long enough to carry a dozen `origin/main`-dependent figures cannot survive
+one merge interval, so each repair round manufactures the next block. #715
+reached twelve rounds and #723 ten; neither was ever blocked on its code.
+

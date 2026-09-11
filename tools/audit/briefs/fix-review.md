@@ -129,3 +129,9 @@ its bug. You are checking that the numbers are real.
 Return a verdict with your RESULT lines, in the exact shape your dispatch
 prompt gives: `.claude/workflows/web-fix-wave.js` parses the comment's first
 line and routes on it, so one that does not parse is recorded blocked.
+
+**Say which round this is.** From the fourth, the fixer owes a re-cut body
+rather than a repair (`fixer.md`). Blocking a re-cut body on `claims` again says
+the fix is suspect, not the prose — say that in the verdict rather than naming
+another figure.
+
