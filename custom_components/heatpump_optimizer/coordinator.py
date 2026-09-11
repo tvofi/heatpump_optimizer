@@ -6782,6 +6782,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     "month_reports": self._month_reports,
                     "score_day": self._score_day,
                     "operation_score": self._operation_score,
+                    "fuse_advisor": dict(self._fuse_advisor),
+                    "fuse_advisor_at": (
+                        self._fuse_advisor_at.isoformat()
+                        if self._fuse_advisor_at is not None
+                        else None
+                    ),
                 }
             )
         except Exception as err:  # noqa: BLE001
@@ -6797,11 +6803,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if not isinstance(stored, dict):
             return
         self._accuracy = AccuracyTracker.from_dict(stored.get("accuracy"))
-        # v5.2.0, additive key. A store written by an older build has no
-        # "dhw_accuracy"; `from_dict(None)` answers an empty tracker and the
-        # band simply stays absent until the record fills. In the other
-        # direction an older build ignores a key it never reads, so a
-        # downgrade loads this store without error too.
+        # Additive keys: an older store has none; an older build ignores extras.
         self._dhw_accuracy = AccuracyTracker.from_dict(
             stored.get("dhw_accuracy")
         )
@@ -6848,11 +6850,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     "defrost": self._defrost.as_dict(),
                     "peaks": self._peak_tracker.as_dict(),
                     "comfort": self._comfort_learner.as_dict(),
-                    # Persisted because `_init_runtime_state` resets it to
-                    # `auto` on every reload, and writing any option reloads the
-                    # entry -- so dragging the thermostat card's temperature, or
-                    # simply restarting Home Assistant, silently dropped the
-                    # user out of the mode they had selected.
+                    # Mode resets to auto on every reload; persist it.
                     "mode": self._mode,
                 },
             )
@@ -7543,13 +7541,16 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         )
         if smaller is None:
             return
-        # v5.3.0: a month in which the pump's mode stopped it heating is not
-        # evidence about how many amperes the house needs. Passing the block
-        # into the shadow solve above makes the comparison honest, but an
-        # honest comparison of two crippled plans still answers the wrong
-        # question -- "would a smaller fuse do" is about the house's real
-        # demand, and while a channel is blocked the plan is not showing it.
-        # The last real verdict, if there is one, stays published untouched.
+        if self._fuse_advisor_at is None:
+            try:
+                stored = await self._ledger_store.async_load() or {}
+                self._fuse_advisor = dict(stored["fuse_advisor"])
+                self._fuse_advisor_at = datetime.fromisoformat(
+                    str(stored["fuse_advisor_at"])
+                )
+            except Exception:  # noqa: BLE001
+                pass
+        # A blocked channel is not evidence about the house's real demand.
         if self._pump_signals.space_blocked or self._pump_signals.dhw_blocked:
             _LOGGER.debug(
                 "Skipping the fuse advisor: the heat pump's mode (%s) is "
@@ -7575,9 +7576,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         candidate_kw = smaller * max(1, phases) * 230.0 / 1000.0
         baseline_now = float(self._baseline_house_load(1)[0])
         cap_kw = max(0.0, candidate_kw - baseline_now)
-        # The advisor borrows the card's simulate harness but must not
-        # spend its rate-limit slot or leave a fuse-capped payload in the
-        # cache the card's next drag would read back.
+        # Borrow simulate; do not spend its rate-limit or poison the card cache.
         cache_snapshot = (self._last_simulation, self._simulation_cache)
         try:
             simulated = await self.async_simulate({"power_cap_kw": cap_kw})
@@ -7589,12 +7588,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             or simulated.get("rate_limited")
             or echoed != cap_kw
         ):
-            # Retry tomorrow rather than in a week: a rate-limited or failed
-            # what-if is not an answer, and a month of "error" would be. A
-            # rate-limited call returns the card's *cached* payload — a
-            # different what-if entirely — which is why the overrides echo
-            # is checked rather than trusted. Last month's real verdict, if
-            # any, stays published; an error dict is not an upgrade.
+            # Failed / rate-limited what-if: retry tomorrow, keep last verdict.
             self._fuse_advisor_at = now - timedelta(days=6)
             if "candidate_kw" not in self._fuse_advisor:
                 self._fuse_advisor = {
@@ -7605,12 +7599,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             return
         self._fuse_advisor_at = now
         breach = float(simulated.get("power_cap_breach_c") or 0.0)
-        # The breach the solver reports is absolute: "the capped plan dips
-        # this far below the floor". On a cold-snap morning the *uncapped*
-        # plan dips too, and blaming the candidate fuse for weather would
-        # tell the user their house needs amperes it does not. What the cap
-        # itself costs is bounded by how much colder the capped plan gets
-        # than the baseline it was differenced against.
+        # Blame the cap only for extra cold vs the uncapped baseline.
         base_cold = simulated.get("baseline_min_room_temperature")
         sim_cold = simulated.get("min_room_temperature")
         if breach > 0.0 and base_cold is not None and sim_cold is not None:

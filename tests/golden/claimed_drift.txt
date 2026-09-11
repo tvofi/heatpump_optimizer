@@ -140,11 +140,6 @@
 # module constant, not the schema): this branch claims NOTHING. tests/features.py
 # only -- no production file, no fixture input and no solver parameter is
 # touched, so every scenario is byte-identical by construction.
-coord_minimal            # coordinator captures record sensor native_value and extra_state_attributes (#806)
-coord_dhw                # coordinator captures record sensor native_value and extra_state_attributes (#806)
-coord_two_zone           # coordinator captures record sensor native_value and extra_state_attributes (#806)
-coord_grid_fee           # coordinator captures record sensor native_value and extra_state_attributes (#806)
-coord_all_features       # coordinator captures record sensor native_value and extra_state_attributes (#806)
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
