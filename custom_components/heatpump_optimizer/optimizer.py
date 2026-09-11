@@ -2469,17 +2469,22 @@ class HeatPumpOptimizer:
                 )
                 if not rel_s and not rel_d:
                     break
-                # Both pin arrays exist on this path: `_normalise_pins`
-                # returned them above and `rel_s`/`rel_d` index into
-                # them, so the release loop cannot run against None.
-                # Costs two max_cc points, raised for it on 2026-09-11.
-                assert space_pins is not None and dhw_pins is not None
-                for i in rel_s:
-                    space_pins[i] = float("nan")
-                    released_space.add(i)
-                for i in rel_d:
-                    dhw_pins[i] = float("nan")
-                    released_dhw.add(i)
+                # PER CHANNEL, because the two are independent: a caller may
+                # pin space and leave hot water unpinned, which
+                # tests/manual_plan.py does -- an earlier form of this
+                # narrowing asserted both existed and that test failed on it.
+                # `rel_s` is empty whenever `release_space` is None, so the
+                # guard changes nothing it runs; it is what lets the writes
+                # below be checked rather than suppressed. Two decision
+                # points, the raise the owner granted on 2026-09-11.
+                if space_pins is not None:
+                    for i in rel_s:
+                        space_pins[i] = float("nan")
+                        released_space.add(i)
+                if dhw_pins is not None:
+                    for i in rel_d:
+                        dhw_pins[i] = float("nan")
+                        released_dhw.add(i)
                 result = _solve()
             else:
                 # Out of repair rounds. If anything is still breaching, abandon
