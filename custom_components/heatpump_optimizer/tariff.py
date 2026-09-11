@@ -421,11 +421,12 @@ def window_factors(
     inertness: ``peak_cost`` with ``None`` runs the exact pre-#13 arithmetic.
     Windows are keyed by the aligned start instant the horizon's *real* clock
     reaches, matching how ``PeakTracker.observe`` attributes a live window, so
-    the plan's cost term and the realised tracker can never disagree about
-    which hour a window bills under. Sharing ``sample_factor`` is not what buys
-    that — until #777 this walked the wall clock instead, and on the two DST
-    days a year it disagreed from the transition onwards. The walk below is the
-    load-bearing part.
+    for every ``window_minutes`` that DIVIDES the hour the plan's cost term and
+    the realised tracker cannot disagree about which hour a window bills under.
+    Sharing ``sample_factor`` is not what buys that — until #777 this walked the
+    wall clock instead, and on the two DST days a year it disagreed from the
+    transition onwards. The walk below is the load-bearing part, and the
+    divides-the-hour qualifier on it is not decoration; see there.
     """
     if start_time is None or n_windows <= 0 or not mask_active(tariff):
         return None
@@ -440,6 +441,20 @@ def window_factors(
     # disagreement the docstring above says cannot occur. ``slot0`` carries
     # ``_window_slot``'s ``fold``, which is what picks the real pass to start
     # from, and ``astimezone`` honours it.
+    #
+    # WHY THE DOCSTRING SAYS "divides the hour". Above an hour the plan and the
+    # meter are genuinely different PARTITIONS on a transition day, and no
+    # per-window label reconciles two partitions. The power array this labels is
+    # bucketed by STEP INDEX (``metering_windows``), so bucket i holds
+    # ``window`` minutes of REAL time; ``_window_slot`` deliberately keeps a
+    # window longer than an hour wall-anchored, which lets the autumn fold's
+    # repeated hour stretch one metered window to three real hours. Driving
+    # ``PeakTracker.observe`` over these instants disagrees once per transition
+    # day at 90 and at 120 minutes — measured, and not fixable from this side.
+    # Labelling bucket i by its real start is still the half that matches the
+    # power the bucket actually holds. No shipped install reaches it: the four
+    # catalog rows set 15 and the options selector offers 15 and 60, which is
+    # also the pair ``tests/dst_checks.py`` drives across both transitions.
     tz = slot0.tzinfo
     base = slot0 if tz is None else slot0.astimezone(timezone.utc)
     starts = [base + timedelta(minutes=window * i) for i in range(n_windows)]
