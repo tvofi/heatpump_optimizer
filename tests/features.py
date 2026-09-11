@@ -26419,13 +26419,18 @@ R.check(
     f"samples {_t2_buf_warm._buffer_cooling_samples} over 48.0 -> 50.0, "
     f"implying -1.72 C/h against a {_T2_LOW:.4f} C/h floor",
 )
+# SUBSUMED, like the warming guard: on a cooling interval the end delta is
+# always the smaller of the two, so `start_delta < 4` implies `end_delta < 4`
+# and the end guard rejects every interval this one would. Deleting it fails
+# no check and cannot be made to -- measured, and reported in the pull
+# request rather than dressed up with an input that only looks decisive.
 _t2_buf_start = _t2_buffer(23.9, 23.5, 3.0)
 R.check(
     "a tank starting within 4 K of ambient carries too little signal",
     _t2_buf_start._buffer_cooling_samples == 0,
     f"samples {_t2_buf_start._buffer_cooling_samples} from a 3.9 K start "
-    "delta implying 0.90 C/h -- inside the bounds, so the start guard is "
-    "the only arm that can reject it",
+    "delta implying 0.90 C/h, which clears the bounds -- but the 3.5 K end "
+    "delta clears nothing, and that is the arm that actually rejects",
 )
 _t2_buf_end = _t2_buffer(24.5, 23.9, 3.0)
 R.check(
@@ -26585,33 +26590,57 @@ R.check(
     "both of them",
 )
 
-_t2_store_snow = _t2_load(dict(_T2_GOOD_STORE, snow_accum_cm="nope"))
+# Each of the next three arms WRITES a value, and each writes the value the
+# attribute already holds at startup. Asserting the value alone therefore
+# passes against an `except` body deleted outright -- measured: three
+# mutations replacing these bodies with `pass` failed nothing. So each is
+# driven over a coordinator carrying a different value first, which is also
+# the realistic case: a snapshot restore runs this loader over live state.
+def _t2_load_over(preset, payload, **config):
+    """Load `payload` over a coordinator already holding `preset`."""
+    c = _t2_coord(**config)
+    for name, value in preset.items():
+        setattr(c, name, value)
+    c._thermal_learning_store = _T2Store(payload)
+    _asyncio.run(c._async_load_thermal_learning())
+    return c
+
+
+_t2_store_snow = _t2_load_over(
+    {"_snow_accum_cm": 7.5}, dict(_T2_GOOD_STORE, snow_accum_cm="nope")
+)
 R.check(
-    "a non-numeric snow accumulation resets to zero rather than raising",
+    "a non-numeric snow accumulation is reset to zero, not left standing",
     _t2_store_snow._snow_accum_cm == 0.0
     and _t2_store_snow._last_heavy_snow == datetime(2026, 1, 2, 3, 4, 5),
-    f"snow {_t2_store_snow._snow_accum_cm!r} "
+    f"snow 7.5 -> {_t2_store_snow._snow_accum_cm!r} "
     f"heavy {_t2_store_snow._last_heavy_snow!r} -- resetting the depth but "
     "keeping the date is deliberate: a roof with no measured depth damps "
     "nothing, while the date still gates the next accumulation",
 )
 
-_t2_store_heavy = _t2_load(dict(_T2_GOOD_STORE, last_heavy_snow="not-a-date"))
+_t2_store_heavy = _t2_load_over(
+    {"_last_heavy_snow": datetime(2020, 1, 1)},
+    dict(_T2_GOOD_STORE, last_heavy_snow="not-a-date"),
+)
 R.check(
-    "an unparseable last-heavy-snow date reads as never, not as now",
+    "an unparseable last-heavy-snow date is cleared, not left standing",
     _t2_store_heavy._last_heavy_snow is None
     and _t2_store_heavy._snow_accum_cm == 5.0,
-    f"heavy {_t2_store_heavy._last_heavy_snow!r} "
+    f"2020-01-01 -> {_t2_store_heavy._last_heavy_snow!r} "
     f"snow {_t2_store_heavy._snow_accum_cm!r}",
 )
 
-_t2_store_last = _t2_load(dict(_T2_GOOD_STORE, snow_accum_last="not-a-date"))
+_t2_store_last = _t2_load_over(
+    {"_snow_accum_last": datetime(2020, 1, 1)},
+    dict(_T2_GOOD_STORE, snow_accum_last="not-a-date"),
+)
 R.check(
-    "an unparseable accumulator clock reads as absent, not as now",
+    "an unparseable accumulator clock is cleared, not left standing",
     _t2_store_last._snow_accum_last is None
     and _t2_store_last._last_heavy_snow == datetime(2026, 1, 2, 3, 4, 5),
-    f"last {_t2_store_last._snow_accum_last!r} "
-    f"heavy {_t2_store_last._last_heavy_snow!r} -- a clock read as now "
+    f"2020-01-01 -> {_t2_store_last._snow_accum_last!r} "
+    f"heavy {_t2_store_last._last_heavy_snow!r} -- a clock read as stale "
     "would skip the downtime's decay after an outage, which is the bug the "
     "key was added for",
 )
@@ -26740,6 +26769,10 @@ R.check(
     "and one set would then lock the refinement out",
 )
 
+# GUARDED TWICE, independently: `hourly_from_entries` only returns days with
+# all 24 hours, and `observe_day` refuses a list that is not 24 long. Either
+# alone rejects this day, so removing one leaves the check green -- the
+# mutation that fails it has to remove both, and the table says so.
 _t2_price_part = _t2_prices(_t2_hourly("2026-02-04")[:23])
 R.check(
     "a 23-hour day trains neither shape and is not marked seen",
@@ -26797,11 +26830,22 @@ _T2_QUIET_TRAJ = [21.0, 21.05, 21.02]
 
 
 def _t2_quiet(prices, power, trajectory, *, enabled=True, periods=1, **config):
-    """Record `periods` quiet stretches against one solved plan."""
+    """Record `periods` quiet stretches against one solved plan.
+
+    The escape is captured rather than allowed out: a guard removed here
+    makes numpy raise on an empty or zero-mean array, and an escaping
+    exception ends the whole script instead of failing the check that is
+    named for the guard.
+    """
     c = _t2_coord(comfort_learning_enabled=enabled, **config)
     c._optimization_result = _T2Result(prices, power, trajectory)
+    c._t2_escaped = None
     for _ in range(periods):
-        c._record_quiet_comfort_period()
+        try:
+            c._record_quiet_comfort_period()
+        except Exception as err:  # noqa: BLE001
+            c._t2_escaped = err
+            break
     return c
 
 
@@ -26870,22 +26914,28 @@ R.check(
 _t2_quiet_notraj = _t2_quiet(_T2_PEAKY, _T2_POWER, [])
 R.check(
     "a plan that solved with no room trajectory records nothing",
-    _t2_quiet_notraj._comfort_learner.evidence == 0.0,
-    f"evidence {_t2_quiet_notraj._comfort_learner.evidence!r}",
+    _t2_quiet_notraj._comfort_learner.evidence == 0.0
+    and _t2_quiet_notraj._t2_escaped is None,
+    f"evidence {_t2_quiet_notraj._comfort_learner.evidence!r} "
+    f"escaped {_t2_quiet_notraj._t2_escaped!r}",
 )
 
 _t2_quiet_noprice = _t2_quiet([], _T2_POWER, _T2_QUIET_TRAJ)
 R.check(
     "a plan solved without prices cannot say whether flatness was free",
-    _t2_quiet_noprice._comfort_learner.evidence == 0.0,
-    f"evidence {_t2_quiet_noprice._comfort_learner.evidence!r}",
+    _t2_quiet_noprice._comfort_learner.evidence == 0.0
+    and _t2_quiet_noprice._t2_escaped is None,
+    f"evidence {_t2_quiet_noprice._comfort_learner.evidence!r} "
+    f"escaped {_t2_quiet_noprice._t2_escaped!r}",
 )
 
 _t2_quiet_zero = _t2_quiet([0.0] * 24, _T2_POWER, _T2_QUIET_TRAJ)
 R.check(
     "a zero-mean price curve is not a spread worth trading comfort against",
-    _t2_quiet_zero._comfort_learner.evidence == 0.0,
-    f"evidence {_t2_quiet_zero._comfort_learner.evidence!r} -- the spread is "
+    _t2_quiet_zero._comfort_learner.evidence == 0.0
+    and _t2_quiet_zero._t2_escaped is None,
+    f"evidence {_t2_quiet_zero._comfort_learner.evidence!r} "
+    f"escaped {_t2_quiet_zero._t2_escaped!r} -- the spread is "
     "relative to the mean, so a zero mean makes the ratio meaningless "
     "rather than infinite",
 )
@@ -26975,6 +27025,16 @@ def _t2_house(
     return c
 
 
+def _t2_drive(coord, method):
+    """Run one learner and capture anything that escapes it."""
+    coord._t2_escaped = None
+    try:
+        _asyncio.run(getattr(coord, method)())
+    except Exception as err:  # noqa: BLE001
+        coord._t2_escaped = err
+    return coord
+
+
 def _t2_raise_model(coord):
     """Make the one-step simulation fail, the shape a bad fit takes."""
 
@@ -26986,7 +27046,7 @@ def _t2_raise_model(coord):
 
 
 _t2_hl_ok = _t2_house()
-_asyncio.run(_t2_hl_ok._async_learn_house_heat_loss())
+_t2_drive(_t2_hl_ok, "_async_learn_house_heat_loss")
 R.check(
     "a replayable interval corrects the house heat loss scale (null control)",
     _t2_hl_ok._house_heat_loss_samples == 1
@@ -26997,39 +27057,58 @@ R.check(
     "against a learner that rejected everything",
 )
 
-# The two-zone fit takes its Newton step about the UPPER floor's UA and
-# mass, not the whole-house pair. Two runs differing only in the upper
-# floor's thermal mass must therefore land on different scales -- the same
-# residual over a heavier zone implies a smaller correction.
+# The two-zone fit takes its Newton step about the UPPER floor's UA and mass,
+# not the whole-house pair. Two facts follow and the SECOND is the one a
+# mutation can see: varying the upper mass must move the fit, and varying the
+# whole-house mass must not. A first version asserted only the first half and
+# survived a mutation that reads the whole-house pair, because the
+# simulation's own residual moves with the upper mass as well, so the two
+# runs stayed ordered the way the check expected.
 _t2_hl_light = _t2_house(two_zone=True, upper_floor_thermal_mass=3.0)
-_asyncio.run(_t2_hl_light._async_learn_house_heat_loss())
+_t2_drive(_t2_hl_light, "_async_learn_house_heat_loss")
 _t2_hl_heavy = _t2_house(two_zone=True, upper_floor_thermal_mass=9.0)
-_asyncio.run(_t2_hl_heavy._async_learn_house_heat_loss())
+_t2_drive(_t2_hl_heavy, "_async_learn_house_heat_loss")
+_t2_hl_rtm_small = _t2_house(two_zone=True, room_thermal_mass=5.0)
+_t2_drive(_t2_hl_rtm_small, "_async_learn_house_heat_loss")
+_t2_hl_rtm_big = _t2_house(two_zone=True, room_thermal_mass=50.0)
+_t2_drive(_t2_hl_rtm_big, "_async_learn_house_heat_loss")
 R.check(
-    "the two-zone fit is taken about the upper zone's own mass",
+    "the two-zone fit moves with the upper zone's mass and not the house's",
     _t2_hl_light._house_heat_loss_samples == 1
     and _t2_hl_heavy._house_heat_loss_samples == 1
     and _t2_hl_light._house_heat_loss_scale
-    < _t2_hl_heavy._house_heat_loss_scale,
-    f"3.0 kWh/K -> {_t2_hl_light._house_heat_loss_scale!r}, "
-    f"9.0 kWh/K -> {_t2_hl_heavy._house_heat_loss_scale!r} -- reading the "
-    "whole-house mass here would make the two identical",
+    < _t2_hl_heavy._house_heat_loss_scale
+    and abs(
+        _t2_hl_rtm_small._house_heat_loss_scale
+        - _t2_hl_rtm_big._house_heat_loss_scale
+    )
+    < 1e-6,
+    f"upper 3.0 -> {_t2_hl_light._house_heat_loss_scale!r}, upper 9.0 -> "
+    f"{_t2_hl_heavy._house_heat_loss_scale!r}; whole-house 5.0 -> "
+    f"{_t2_hl_rtm_small._house_heat_loss_scale!r}, 50.0 -> "
+    f"{_t2_hl_rtm_big._house_heat_loss_scale!r} -- a tenfold whole-house "
+    "change must not reach a fit taken about the upper zone",
 )
 
 _t2_hl_nopower = _t2_house()
 _t2_hl_nopower._interval_space_power = lambda: None
-_asyncio.run(_t2_hl_nopower._async_learn_house_heat_loss())
+_t2_drive(_t2_hl_nopower, "_async_learn_house_heat_loss")
 R.check(
     "no trustworthy interval power means no sample, not a replay at zero",
     _t2_hl_nopower._house_heat_loss_samples == 0
     and _t2_hl_nopower._house_heat_loss_scale == 1.0,
-    f"samples {_t2_hl_nopower._house_heat_loss_samples} scale "
+    f"samples {_t2_hl_nopower._house_heat_loss_samples} escaped "
+    f"{_t2_hl_nopower._t2_escaped!r} scale "
     f"{_t2_hl_nopower._house_heat_loss_scale!r} -- replaying a stale meter "
-    "blames the delivery shortfall on the heat loss coefficient",
+    "blames the delivery shortfall on the heat loss coefficient. SUBSUMED "
+    "for the outcome: `simulate_step(None)` raises TypeError and the "
+    "`except Exception` arm returns anyway, so the mutation passes -- what "
+    "the guard buys is the CAUSE, since without it a stale meter is logged "
+    "as a simulation failure",
 )
 
 _t2_hl_mild = _t2_house(outdoor=16.0)
-_asyncio.run(_t2_hl_mild._async_learn_house_heat_loss())
+_t2_drive(_t2_hl_mild, "_async_learn_house_heat_loss")
 R.check(
     "a 5 K indoor-outdoor difference is too small to identify a UA from",
     _t2_hl_mild._house_heat_loss_samples == 0,
@@ -27039,40 +27118,46 @@ R.check(
 )
 
 _t2_hl_blown = _t2_raise_model(_t2_house())
-_asyncio.run(_t2_hl_blown._async_learn_house_heat_loss())
+_t2_drive(_t2_hl_blown, "_async_learn_house_heat_loss")
 R.check(
     "a simulation that raises costs the sample and nothing else",
     _t2_hl_blown._house_heat_loss_samples == 0
+    and _t2_hl_blown._t2_escaped is None
     and _t2_hl_blown._house_heat_loss_scale == 1.0,
-    f"samples {_t2_hl_blown._house_heat_loss_samples} -- the learner runs "
+    f"samples {_t2_hl_blown._house_heat_loss_samples} escaped {_t2_hl_blown._t2_escaped!r} -- the learner runs "
     "inside the update cycle, so letting this out would take the "
     "coordinator down over one unlucky interval",
 )
 
 _t2_hl_nan = _t2_house(observed=float("nan"))
-_asyncio.run(_t2_hl_nan._async_learn_house_heat_loss())
+_t2_drive(_t2_hl_nan, "_async_learn_house_heat_loss")
 R.check(
     "a non-finite residual is rejected before it reaches the Newton step",
     _t2_hl_nan._house_heat_loss_samples == 0
+    and _t2_hl_nan._t2_escaped is None
     and _t2_hl_nan._house_heat_loss_scale == 1.0,
-    f"samples {_t2_hl_nan._house_heat_loss_samples} scale "
-    f"{_t2_hl_nan._house_heat_loss_scale!r}",
+    f"samples {_t2_hl_nan._house_heat_loss_samples} escaped "
+    f"{_t2_hl_nan._t2_escaped!r} scale "
+    f"{_t2_hl_nan._house_heat_loss_scale!r} -- SUBSUMED: "
+    "`learner_newton_step` returns None on a non-finite residual, so "
+    "deleting this guard changes no outcome and its mutation passes",
 )
 
 _t2_hl_nostep = _t2_house()
 _t2_hl_nostep._thermal_params.heat_loss_coefficient = 0.0
-_asyncio.run(_t2_hl_nostep._async_learn_house_heat_loss())
+_t2_drive(_t2_hl_nostep, "_async_learn_house_heat_loss")
 R.check(
     "a zero heat loss coefficient yields no step rather than a division",
     _t2_hl_nostep._house_heat_loss_samples == 0
+    and _t2_hl_nostep._t2_escaped is None
     and _t2_hl_nostep._house_heat_loss_scale == 1.0,
-    f"samples {_t2_hl_nostep._house_heat_loss_samples}",
+    f"samples {_t2_hl_nostep._house_heat_loss_samples} escaped {_t2_hl_nostep._t2_escaped!r}",
 )
 
 # The lower-floor learner owns the split and is fitted from the lower zone,
 # which is what keeps it identifiable against the scale above.
 _t2_lf_ok = _t2_house(two_zone=True, lower=19.9)
-_asyncio.run(_t2_lf_ok._async_learn_lower_floor_loss())
+_t2_drive(_t2_lf_ok, "_async_learn_lower_floor_loss")
 R.check(
     "a replayable interval corrects the lower floor split (null control)",
     _t2_lf_ok._lower_floor_loss_samples == 1
@@ -27083,25 +27168,48 @@ R.check(
 
 _t2_lf_nopower = _t2_house(two_zone=True, lower=19.9)
 _t2_lf_nopower._interval_space_power = lambda: None
-_asyncio.run(_t2_lf_nopower._async_learn_lower_floor_loss())
+_t2_drive(_t2_lf_nopower, "_async_learn_lower_floor_loss")
 R.check(
     "the lower floor learner skips an interval with no trustworthy power too",
     _t2_lf_nopower._lower_floor_loss_samples == 0
     and _t2_lf_nopower._lower_floor_loss_ratio == 1.0,
-    f"samples {_t2_lf_nopower._lower_floor_loss_samples}",
+    f"samples {_t2_lf_nopower._lower_floor_loss_samples} escaped "
+    f"{_t2_lf_nopower._t2_escaped!r} -- SUBSUMED for the outcome by the "
+    "`except Exception` arm, as in the house learner, and kept for the "
+    "cause it reports",
 )
 
-_t2_lf_long = _t2_house(two_zone=True, lower=19.9, hours=2.0)
-_asyncio.run(_t2_lf_long._async_learn_lower_floor_loss())
+# The observed temperature is the model's OWN 2 h prediction, so the residual
+# is zero and every downstream guard passes. A round value left the residual
+# at -1.23 against a 1.0 bar, so the bar rejected the sample and the length
+# bound decided nothing -- measured: with the bound made one-sided that
+# version of this check still passed.
+_t2_lf_long = _t2_house(two_zone=True, hours=2.0)
+_t2_lf_long._current_state = replace(
+    _t2_lf_long._current_state,
+    lower_floor_temperature=_t2_lf_long._thermal_model.simulate_step(
+        _t2_lf_long._last_house_sample,
+        2.0,
+        _T2_HOUSE_STATE.outdoor_temperature,
+        wind_speed=0.0,
+        precipitation=0.0,
+        solar_radiation=_T2_HOUSE_STATE.solar_radiation,
+        dt_hours=2.0,
+        hour_of_day=float(_t2_lf_long._last_house_sample_time.hour),
+    ).lower_floor_temperature,
+)
+_t2_drive(_t2_lf_long, "_async_learn_lower_floor_loss")
 R.check(
     "an interval outside 0.15-1.5 h is rejected on one combined bound",
-    _t2_lf_long._lower_floor_loss_samples == 0,
-    f"samples {_t2_lf_long._lower_floor_loss_samples} at 2.00 h -- the house "
-    "learner splits the same test into two branches; both reject",
+    _t2_lf_long._lower_floor_loss_samples == 0
+    and _t2_lf_long._t2_escaped is None,
+    f"samples {_t2_lf_long._lower_floor_loss_samples} at 2.00 h over a zero "
+    "residual, so the length bound is the only arm that can reject it -- the "
+    "house learner splits the same test into two branches",
 )
 
 _t2_lf_mild = _t2_house(two_zone=True, lower=19.9, outdoor=16.0)
-_asyncio.run(_t2_lf_mild._async_learn_lower_floor_loss())
+_t2_drive(_t2_lf_mild, "_async_learn_lower_floor_loss")
 R.check(
     "the lower floor's own minimum difference is measured from the lower zone",
     _t2_lf_mild._lower_floor_loss_samples == 0
@@ -27112,31 +27220,36 @@ R.check(
 )
 
 _t2_lf_blown = _t2_raise_model(_t2_house(two_zone=True, lower=19.9))
-_asyncio.run(_t2_lf_blown._async_learn_lower_floor_loss())
+_t2_drive(_t2_lf_blown, "_async_learn_lower_floor_loss")
 R.check(
     "a lower floor simulation that raises costs the sample and nothing else",
     _t2_lf_blown._lower_floor_loss_samples == 0
+    and _t2_lf_blown._t2_escaped is None
     and _t2_lf_blown._lower_floor_loss_ratio == 1.0,
-    f"samples {_t2_lf_blown._lower_floor_loss_samples}",
+    f"samples {_t2_lf_blown._lower_floor_loss_samples} escaped {_t2_lf_blown._t2_escaped!r}",
 )
 
 _t2_lf_nan = _t2_house(two_zone=True, lower=float("nan"))
-_asyncio.run(_t2_lf_nan._async_learn_lower_floor_loss())
+_t2_drive(_t2_lf_nan, "_async_learn_lower_floor_loss")
 R.check(
     "a non-finite lower floor residual is rejected before the Newton step",
     _t2_lf_nan._lower_floor_loss_samples == 0
+    and _t2_lf_nan._t2_escaped is None
     and _t2_lf_nan._lower_floor_loss_ratio == 1.0,
-    f"samples {_t2_lf_nan._lower_floor_loss_samples}",
+    f"samples {_t2_lf_nan._lower_floor_loss_samples} escaped "
+    f"{_t2_lf_nan._t2_escaped!r} -- SUBSUMED by the Newton step's own "
+    "non-finite return, exactly as in the house learner",
 )
 
 _t2_lf_nostep = _t2_house(two_zone=True, lower=19.9)
 _t2_lf_nostep._thermal_params.lower_floor_heat_loss = 0.0
-_asyncio.run(_t2_lf_nostep._async_learn_lower_floor_loss())
+_t2_drive(_t2_lf_nostep, "_async_learn_lower_floor_loss")
 R.check(
     "a zero lower floor UA yields no step rather than a division",
     _t2_lf_nostep._lower_floor_loss_samples == 0
+    and _t2_lf_nostep._t2_escaped is None
     and _t2_lf_nostep._lower_floor_loss_ratio == 1.0,
-    f"samples {_t2_lf_nostep._lower_floor_loss_samples}",
+    f"samples {_t2_lf_nostep._lower_floor_loss_samples} escaped {_t2_lf_nostep._t2_escaped!r}",
 )
 
 # Both replay learners persist on every tenth accepted sample, not on each
