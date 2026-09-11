@@ -191,7 +191,7 @@ Boundaries worth knowing before you pick a path:
   drew power while the house got colder "is not a noisy heating sample, it is
   a sign-inverted one".
 
-Each path in full: [Switch and climate entity](#switch-and-climate-entity),
+Each path in full: [Switch and climate entity](#switches-climate-and-datetime-entities),
 [Inverter frequency: observe first, control if you say
 so](#inverter-frequency-observe-first-control-if-you-say-so),
 [ECL110 heat-curve control](#ecl110-heat-curve-control); the setup fields for
@@ -783,7 +783,9 @@ release since v4.0.0 has been an audit train on top of it: a full-codebase
 review (August 2026, [docs/audit-2026-08.md](docs/audit-2026-08.md)), then an
 per-dimension audit repeated round by round
 ([docs/audit-2026-09.md](docs/audit-2026-09.md)) alongside the open-issues
-program ([docs/plan-open-issues.md](docs/plan-open-issues.md)) and the card
+program ([docs/plan-2026-09-open-issues.md](docs/plan-2026-09-open-issues.md),
+which supersedes the complete [docs/plan-open-issues.md](docs/plan-open-issues.md))
+and the card
 decomposition program
 ([docs/plan-card-decomposition.md](docs/plan-card-decomposition.md)), each
 finding fixed and released one PR at a time under the standing gate protocol

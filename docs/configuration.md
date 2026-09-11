@@ -188,7 +188,7 @@ the saving comes from.
 | Wind sensitivity | 0.03 | 0.0–0.5, 0.01 steps | Extra heat loss per m/s of wind — 0.03 means 3 % more loss per m/s. Raise it if the house noticeably cools on windy days. |
 | Rain sensitivity | 1.15 | 1.0–1.5, 0.01 steps | Loss multiplier while it is raining. 1.0 means rain makes no difference. |
 
-Saving this page creates the entry. All 65 entities appear at once and the
+Saving this page creates the entry. All 74 entities appear at once and the
 first plan is solved within one optimization interval.
 
 ---
@@ -566,10 +566,10 @@ or is not loaded — fails with a validation error rather than doing nothing.
 | `set_away` | `active`, `return_time` (at least one required) | — |
 | `set_mode` | `mode` (required) | — |
 | `set_thermal_parameters` | 28 optional model fields | — |
-| `simulate_plan` | 11 optional comfort fields | always |
+| `simulate_plan` | 16 optional comfort and wood fields | always |
 | `apply_schedule` | 5 optional schedule fields + `entry_id` | optional |
-| `assign_entity` | `key`, `entity_id` (both required) + `entry_id` | optional |
-| `apply_topology` | `layout` (required), `positions`, `entry_id` | optional |
+| `assign_entity` | `key`, `entity_id` (both required) + `manual_setpoint`, `entry_id` | optional |
+| `apply_topology` | `layout` (required), `positions`, `dhw`, `wood`, `entry_id` | optional |
 | `apply_manual_plan` | `space_slots`, `dhw_slots`, `expires_at`, `entry_id` | optional |
 | `clear_manual_plan` | `entry_id` | optional |
 | `restore_learned_snapshot` | `entry_id` | optional |
