@@ -6,14 +6,19 @@ export const meta = {
   description: 'Stamp main once for everything merged since the last tag, then record the wave on #201 and in the plan of record',
   phases: [{ title: 'Stamp' }, { title: 'Record' }],
 }
-const GH = `No gh CLI exists in this environment. For every GitHub action run
+const GH_READ = `No gh CLI exists in this environment. For every GitHub read run
 ToolSearch with "select:<tool>" first, then call it (owner tvofi, repo
-heatpump_optimizer): issue_read (get / get_comments), add_issue_comment,
-issue_write (update: labels, state, state_reason), create_pull_request,
-update_pull_request, pull_request_read (get, get_check_runs, get_comments,
-get_files, get_diff), list_pull_requests, merge_pull_request (squash), actions_list
-(list_workflow_runs on tests.yml, branch main), actions_get, get_job_logs
-(failed_only).`
+heatpump_optimizer): issue_read (get / get_comments), pull_request_read
+(get, get_check_runs, get_comments, get_files, get_diff), list_pull_requests,
+actions_list (list_workflow_runs on tests.yml, branch main), actions_get,
+get_job_logs (failed_only). This grant is read-only.`
+
+const GH_WRITE = `Write grant, not merge: add_issue_comment, issue_write
+(update: labels, state, state_reason), create_pull_request, update_pull_request.
+Hold only in a phase that writes. Never together with the merge grant.`
+
+const GH_MERGE = `Merge grant: merge_pull_request (squash). Hold only in the
+merge phase. Do not hold the read grant here.`
 
 const GATE = `Gate rules on this 4-core box. The shell's working directory
 resets between calls: pin cd in every command. PYTHONPATH=tests/hastub for
@@ -95,7 +100,7 @@ const RANK = { haiku: 0, sonnet: 1, opus: 2 }
 const tierOk = (f, r) => RANK[f] !== undefined && RANK[r] !== undefined && RANK[r] >= RANK[f]
 
 const MERGE = { type: 'object', required: ['merged'] }
-const mergePrompt = (pr, head) => `${GH} Merge PR #${pr} only if ALL of:
+const mergePrompt = (pr, head) => `${GH_READ} ${GH_WRITE} ${GH_MERGE} Merge PR #${pr} only if ALL of:
 pull_request_read get shows mergeable_state clean and head sha ${head};
 get_check_runs shows every check success or skipped; the newest "Fix review:"
 comment says merge and post-dates that head; the diff touches neither VERSION
@@ -105,7 +110,7 @@ If mergeable_state is dirty, return {merged: false, reason: "needs repair"} --
 do not merge main into the branch yourself, the fixer must, because a rebase
 invalidates the evidence. Otherwise {merged: false, reason}.`
 
-const waitMainPrompt = (sha) => `${GH} Poll actions_list (workflow tests.yml,
+const waitMainPrompt = (sha) => `${GH_READ} Poll actions_list (workflow tests.yml,
 branch main) until the run for ${sha} completes; check every three minutes,
 give up after two hours. Require both fast and closures to be success. On a
 red run, fetch the failing job log (get_job_logs, failed_only) and return
@@ -148,7 +153,7 @@ const stamp = await agent(stampPrompt(repo, bump, title), { model: 'opus', effor
 if (!stamp?.stamped) log(`not stamped: ${stamp?.reason ?? 'stamp agent returned null'}`)
 
 phase('Record')
-const record = await agent(`Record wave ${wave} of the open-issues program. ${GH} ${WT('claude-web/record-wave-' + wave, 'origin/main')}
+const record = await agent(`Record wave ${wave} of the open-issues program. ${GH_READ} ${GH_WRITE} ${WT('claude-web/record-wave-' + wave, 'origin/main')}
 These groups merged: ${JSON.stringify(merged)}. The release is ${stamp?.version ? 'v' + stamp.version : 'not stamped yet'}.
 Update docs/plan-2026-09-open-issues.md's Delivery status table (each wave row gets its release and a status; add a per-issue line where the row is now partly delivered). Update docs/audit-2026-09.md: set each finding's status cell to "fixed (PR #N)" or "released (vX.Y.Z)" -- where a status cell and a body paragraph disagree, the cell is the truth, so change the cell. Open the pull request (docs are INERT, so the gate scopes to almost nothing; still run PYTHONPATH=tests/hastub python3 tests/entities.py, which checks that no tracked file is unclassified) and merge it once its checks are green.
 Then post one comment on issue #201: a table of group, issues, PR, verdict and release for this wave, and one paragraph on anything that surprised you -- a correction to a brief, a number that did not reproduce, a rule that bit. Return {pr, comment_url}.`,
