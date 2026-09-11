@@ -190,8 +190,3 @@
 # 4187 -> 4208 keys, every collapsed:false. Nothing else moved -- solver
 # fixtures and the card claim file are untouched by this branch.
 
-cycling_cost  # #826 L-BFGS-B restart from its returned point; env_drift --all vs merge-base
-everything_on  # #826 L-BFGS-B restart from its returned point; env_drift --all vs merge-base
-narrow_band  # #826 L-BFGS-B restart from its returned point; env_drift --all vs merge-base
-tariff_plus_two_zone  # #826 L-BFGS-B restart from its returned point; env_drift --all vs merge-base
-

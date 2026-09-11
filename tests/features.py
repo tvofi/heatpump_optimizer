@@ -2673,7 +2673,7 @@ _d0_restart_from_returned_point()
 
 
 def _d0_restart_keeps_only_a_real_drop():
-    """#826: an ftol tick is not a new plan; a 1e-2 relative drop is."""
+    """#826: an ftol tick is not a new plan; a 5e-2 relative drop is."""
 
     class _Res:
         def __init__(self, x: np.ndarray) -> None:
@@ -2686,7 +2686,7 @@ def _d0_restart_keeps_only_a_real_drop():
         if np.allclose(x, 1.0):
             return 99.9999
         if np.allclose(x, 2.0):
-            return 99.0
+            return 95.0
         raise AssertionError(x)
 
     real = _grad_optmod._scoped_minimize
@@ -2712,7 +2712,7 @@ def _d0_restart_keeps_only_a_real_drop():
             best, obj, bounds, (), 20, None, 1e-4,
         )
         R.check(
-            "a 1e-2 relative drop is adopted",
+            "a 5e-2 relative drop is adopted",
             drop is not best and bool(np.allclose(drop.x, 2.0)),
             f"kept {getattr(drop, 'x', None)}",
         )
