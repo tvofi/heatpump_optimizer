@@ -685,6 +685,7 @@ inside it rather than after it.
 - [#831](https://github.com/tvofi/heatpump_optimizer/pull/831) — **merged `cfed184`, row written after the merge**: coordinator goldens instantiate the sensor platform and record each sensor's `native_value` and `extra_state_attributes`. Closed #806. `node .claude/workflows/policy_lint.mjs --record --since v6.4.0` at `origin/main` `cfed184` named this pull request. leaves #201 open.
 - [#838](https://github.com/tvofi/heatpump_optimizer/pull/838) — **row written before the merge, and it is this pull request**: leftover-row for #831 `cfed184`. `node .claude/workflows/policy_lint.mjs --record --since v6.4.0` at `origin/main` `cfed184` named #831. #745's #759/#761/#764 stay #745's. leaves #201 open.
 - [#832](https://github.com/tvofi/heatpump_optimizer/pull/832) — **merged `be3a723`, row written after the merge**: sysid step sized on the two-state plant. Closed #779. `node .claude/workflows/policy_lint.mjs --record --since v6.4.0` at `origin/main` `be3a723` named this pull request. leaves #201 open.
+- [#839](https://github.com/tvofi/heatpump_optimizer/pull/839) — **row written before the merge, and it is this pull request**: leftover-row for #832 `be3a723`. `node .claude/workflows/policy_lint.mjs --record --since v6.4.0` at `origin/main` `be3a723` named #832. #745's #759/#761/#764 stay #745's. leaves #201 open.
 
 ### The UX programme — 34 items, five lanes, tracking #558
 
