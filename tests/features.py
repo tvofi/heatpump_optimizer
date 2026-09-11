@@ -23168,7 +23168,7 @@ def _hpo_h_ratchet(budgets: dict, metrics: dict):
 _hpo_h_run_better = _hpo_h_ratchet(_hpo_h_budgets, _hpo_h_better)
 R.check(
     "the ratchet FAILS on an improvement instead of printing a note (#350)",
-    _hpo_h_run_better[0] == 1,
+    _hpo_h_run_better[0] == 2,
     f"ratchet returned {_hpo_h_run_better[0]!r} for a tree three metrics better than "
     "its budgets. A failing gate would have fired on 2 of the last 18 commits on "
     f"main (~11%). Output:\n{_hpo_h_run_better[1]}",
@@ -23223,12 +23223,19 @@ _hpo_h_run_edges = _hpo_h_ratchet(
 )
 R.check(
     "headroom on cross_seam_edges alone is an unrecorded improvement, so the run fails",
-    _hpo_h_run_edges[0] == 1 and "IMPROVED" in _hpo_h_run_edges[1]
+    _hpo_h_run_edges[0] == 2 and "IMPROVED" in _hpo_h_run_edges[1]
     and "cross_seam_edges" in _hpo_h_run_edges[1],
     f"ratchet returned {_hpo_h_run_edges[0]!r} for a tree whose only movement is "
     "cross_seam_edges falling; under the retired ratio this same move read as "
     "'inside its own category' and stayed silent. Output:\n"
     f"{_hpo_h_run_edges[1]}",
+)
+R.check(
+    "an unrecorded improvement is not a violation at the exit code (#808)",
+    _hpo_h_run_better[0] == 2 and _hpo_h_run_worse[0] == 1,
+    f"improvement rc={_hpo_h_run_better[0]!r} breach rc={_hpo_h_run_worse[0]!r}; "
+    "the same 1 for both is how deleting a production line looked like the "
+    "gate catching a defect",
 )
 if _hpo_h_report is not None:
     _hpo_h_mixed_out = _hpo_g_io.StringIO()

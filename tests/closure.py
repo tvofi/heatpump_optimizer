@@ -165,6 +165,10 @@ PRODUCERS = {
 #     an inconsistency waiting to be believed.
 INERT = (
     "LICENSE",
+    # The private-advisory pointer (#801). GitHub renders it; no gate script
+    # reads it. Same class as LICENSE / DISCLAIMER.md: an unclassified root
+    # file forced the FULL suite and failed the orphan check on #819.
+    "SECURITY.md",
     "NOTICE",
     "icon.png",
     "docs/",  # except the handover -- see HANDOVER_DIR below
