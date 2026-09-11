@@ -31671,4 +31671,486 @@ R.check(
     "stale notice on screen for a problem that has been fixed",
 )
 
+
+# -- W5-G8 block C: away and boost, the two user-facing overrides -----------
+# The two largest holders in the residual, and they hold for the same reason:
+# both are mostly PERSISTENCE AND MIGRATION, and neither store is written by
+# any existing check. Between them, a dedicated holiday calendar, the one-shot
+# helper migration, the away set-back and both boost channels had never been
+# driven at all -- which for the migration means the code that runs exactly
+# once per installation, on upgrade, had never run anywhere.
+R.section("W5-G8 c: away and boost (#195)")
+
+from datetime import date as _g8_date  # noqa: E402
+from heatpump_optimizer import away as _g8_away  # noqa: E402
+from heatpump_optimizer import boost as _g8_boost  # noqa: E402
+from heatpump_optimizer.const import (  # noqa: E402
+    CONF_AWAY_ENABLED as _G8_AWAY_ON,
+    CONF_AWAY_PRESENCE_ENTITY as _G8_AWAY_PRES,
+    CONF_AWAY_RETURN_ENTITY as _G8_AWAY_RET,
+    DEFAULT_AWAY_TEMPERATURE as _G8_AWAY_T,
+    DEFAULT_AWAY_DHW_MIN_TEMP as _G8_AWAY_DHW,
+)
+
+_G8_NOW = datetime(2026, 7, 10, 9, 0, tzinfo=UTC)
+
+
+class _G8CalState:
+    def __init__(self, state, **attrs):
+        self.state = state
+        self.attributes = dict(attrs)
+
+
+class _G8CalHass:
+    def __init__(self, mapping=None):
+        self._m = mapping or {}
+        self.states = self
+
+    def get(self, entity_id):
+        return self._m.get(entity_id)
+
+
+# -- away.holiday_dates: a calendar that says which days are holiday --------
+_G8_CAL = "calendar.family_holiday"
+
+
+def _g8_holiday(state=None, **attrs):
+    hass = _G8CalHass({_G8_CAL: state} if state is not None else {})
+    return _g8_away.holiday_dates(hass, _G8_CAL, _G8_NOW)
+
+
+_g8_hol_span = _g8_holiday(
+    _G8CalState("on", start_time="2026-07-10T00:00:00+00:00",
+                end_time="2026-07-13T00:00:00+00:00")
+)
+_g8_hol_off = _g8_holiday(_G8CalState("off", start_time="2026-07-10T00:00:00+00:00"))
+_g8_hol_absent = _g8_holiday()
+_g8_hol_unset = _g8_away.holiday_dates(_G8CalHass(), None, _G8_NOW)
+_g8_hol_nohass = _g8_away.holiday_dates(None, _G8_CAL, _G8_NOW)
+R.check(
+    "a midnight end is the day the holiday ENDS, not a day it covers",
+    _g8_hol_span == frozenset({_g8_date(2026, 7, 10), _g8_date(2026, 7, 11),
+                               _g8_date(2026, 7, 12)}),
+    f"{sorted(_g8_hol_span)!r} from 10 Jul 00:00 to 13 Jul 00:00 -- a calendar "
+    "event that ends at midnight ends the night BEFORE, and counting the 13th "
+    "would hold the house at holiday setback through the day everybody came "
+    "home",
+)
+R.check(
+    "and the calendar has to be ON, present, and configured at all",
+    _g8_hol_off == frozenset()
+    and _g8_hol_absent == frozenset()
+    and _g8_hol_unset == frozenset()
+    and _g8_hol_nohass == frozenset(),
+    f"off -> {len(_g8_hol_off)}; missing from the bus -> {len(_g8_hol_absent)}; "
+    f"no entity configured -> {len(_g8_hol_unset)}; no bus -> "
+    f"{len(_g8_hol_nohass)}. Four separate refusals, each its own return: an "
+    "empty set is 'no holiday', and every one of these is a case where the "
+    "answer is unknown rather than no",
+)
+_g8_hol_long = _g8_holiday(
+    _G8CalState("on", start_time="2026-01-01T00:00:00+00:00",
+                end_time="2026-12-31T00:00:00+00:00")
+)
+_g8_hol_backwards = _g8_holiday(
+    _G8CalState("on", start_time="2026-07-10T00:00:00+00:00",
+                end_time="2026-07-01T00:00:00+00:00")
+)
+_g8_hol_nospan = _g8_holiday(_G8CalState("on"))
+R.check(
+    "a year-long event is capped, and a backwards one collapses to its start",
+    len(_g8_hol_long) == 32
+    and _g8_hol_backwards == frozenset({_g8_date(2026, 7, 10)})
+    and _g8_hol_nospan == frozenset({_G8_NOW.date()}),
+    f"a whole year -> {len(_g8_hol_long)} days; end before start -> "
+    f"{sorted(_g8_hol_backwards)!r}; no times at all -> "
+    f"{sorted(_g8_hol_nospan)!r}. The cap is what keeps a misconfigured "
+    "calendar from building a set per day forever, and the collapse is what "
+    "keeps a backwards span from producing an EMPTY set, which would read as "
+    "'not on holiday' rather than as the bad input it is",
+)
+
+
+# -- away.apply_setback: the comfort floor while the house is empty ---------
+class _G8Opt:
+    def __init__(self):
+        self.target_temp = 21.0
+        self.min_temp = 19.0
+        self.comfort_temp_day = 21.0
+        self.comfort_temp_night = 19.5
+
+
+class _G8Therm:
+    def __init__(self):
+        self.dhw_min_temp = 45.0
+        self.dhw_idle_min_temp = 42.0
+
+
+def _g8_setback(**state_kw):
+    st = _g8_away.AwayState(**state_kw)
+    opt, th = _G8Opt(), _G8Therm()
+    original = _g8_away.apply_setback(st, opt, th)
+    return original, opt, th
+
+
+_g8_sb_orig, _g8_sb_opt, _g8_sb_th = _g8_setback(active=True, target_temperature=16.0,
+                                                 dhw_min_temperature=35.0)
+_g8_sb_off_o, _g8_sb_off_c, _g8_sb_off_t = _g8_setback(active=False)
+_g8_sb_rec_o, _g8_sb_rec_c, _g8_sb_rec_t = _g8_setback(
+    active=True, recovery_active=True, target_temperature=16.0)
+_g8_sb_dflt_o, _g8_sb_dflt_c, _g8_sb_dflt_t = _g8_setback(active=True)
+R.check(
+    "the away set-back lowers all four comfort numbers and both DHW floors",
+    (_g8_sb_opt.target_temp, _g8_sb_opt.min_temp, _g8_sb_opt.comfort_temp_day,
+     _g8_sb_opt.comfort_temp_night) == (16.0, 16.0, 16.0, 16.0)
+    and (_g8_sb_th.dhw_min_temp, _g8_sb_th.dhw_idle_min_temp) == (35.0, 35.0)
+    and _g8_sb_orig["target_temp"] == 21.0
+    and _g8_sb_orig["dhw_idle_min_temp"] == 42.0,
+    f"config now target {_g8_sb_opt.target_temp!r} min {_g8_sb_opt.min_temp!r} "
+    f"day {_g8_sb_opt.comfort_temp_day!r} night "
+    f"{_g8_sb_opt.comfort_temp_night!r}, DHW {_g8_sb_th.dhw_min_temp!r}/"
+    f"{_g8_sb_th.dhw_idle_min_temp!r}; originals returned "
+    f"{_g8_sb_orig!r}. The originals are the whole contract: the caller "
+    "restores from this dict, so a key missing here is a set-back that never "
+    "comes back off",
+)
+R.check(
+    "and RECOVERY ends it, because recovery is the plan buying heat back",
+    (_g8_sb_rec_c.target_temp, _g8_sb_rec_c.comfort_temp_day) == (21.0, 21.0)
+    and (_g8_sb_off_c.target_temp, _g8_sb_off_c.comfort_temp_day) == (21.0, 21.0)
+    and _g8_sb_rec_o == _g8_sb_off_o,
+    f"recovering -> target {_g8_sb_rec_c.target_temp!r}; not away -> "
+    f"{_g8_sb_off_c.target_temp!r}. Both arms leave the config untouched and "
+    "both still return the originals, so a caller that restores "
+    "unconditionally is safe -- and holding the set-back through recovery "
+    "would fight the very warm-up it was scheduled for",
+)
+R.check(
+    "an away state with no temperatures of its own falls back to the defaults",
+    _g8_sb_dflt_c.comfort_temp_day == _G8_AWAY_T
+    and _g8_sb_dflt_t.dhw_min_temp == min(45.0, _G8_AWAY_DHW),
+    f"day {_g8_sb_dflt_c.comfort_temp_day!r} against the default "
+    f"{_G8_AWAY_T!r}; DHW {_g8_sb_dflt_t.dhw_min_temp!r} -- `or` on a float is "
+    "the tell here: a configured 0.0 would take the default too, which is "
+    "right for a temperature nobody sets to zero and worth pinning as the "
+    "behaviour rather than the accident",
+)
+
+
+# -- away._as_num and _parse_return_time -----------------------------------
+_g8_nums = {
+    "None": _g8_away._as_num(None, 7.0),
+    "int": _g8_away._as_num(3, 7.0),
+    "bool": _g8_away._as_num(True, 7.0),
+    "numeric string": _g8_away._as_num("3.5", 7.0),
+    "text": _g8_away._as_num("warm", 7.0),
+    "list": _g8_away._as_num([1], 7.0),
+}
+R.check(
+    "a configured number takes the default unless it really is one",
+    _g8_nums["int"] == 3.0
+    and _g8_nums["numeric string"] == 3.5
+    and all(_g8_nums[k] == 7.0 for k in ("None", "bool", "text", "list")),
+    "; ".join(f"{k}={_g8_nums[k]!r}" for k in sorted(_g8_nums))
+    + " -- True is excluded deliberately: `isinstance(True, int)` is true in "
+    "Python, so a checkbox left where a temperature belongs would otherwise "
+    "set the away target to 1 °C",
+)
+_g8_rt = {
+    "iso": _g8_away._parse_return_time("2026-07-12T18:00:00+00:00"),
+    "unknown": _g8_away._parse_return_time("unknown"),
+    "unavailable": _g8_away._parse_return_time("unavailable"),
+    "empty": _g8_away._parse_return_time(""),
+    "None": _g8_away._parse_return_time(None),
+    "rubbish": _g8_away._parse_return_time("next tuesday"),
+}
+R.check(
+    "a return time parses, or reads as absent -- never as a raise",
+    _g8_rt["iso"] == datetime(2026, 7, 12, 18, 0, tzinfo=UTC)
+    and all(_g8_rt[k] is None for k in
+            ("unknown", "unavailable", "empty", "None", "rubbish")),
+    "; ".join(f"{k}={_g8_rt[k]!r}" for k in sorted(_g8_rt))
+    + " -- `unknown` and `unavailable` are what a Home Assistant entity reads "
+    "between restarts, so they arrive on the happy path rather than as "
+    "corruption, and a raise here would break the update that reads them",
+)
+
+
+# -- away persistence and the one-shot helper migration --------------------
+class _G8AwayStore:
+    """A Store that can refuse either direction."""
+
+    payload: Any = None
+    raise_save = False
+    raise_load = False
+    saved: list = []
+
+    def __init__(self, *a, **k):
+        pass
+
+    async def async_save(self, data):
+        _G8AwayStore.saved.append(data)
+        if _G8AwayStore.raise_save:
+            raise RuntimeError("store is read-only")
+
+    async def async_load(self):
+        if _G8AwayStore.raise_load:
+            raise RuntimeError("store file is corrupt")
+        return _G8AwayStore.payload
+
+
+class _G8Entries:
+    def __init__(self):
+        self.updates = []
+
+    def async_update_entry(self, entry, **kw):
+        self.updates.append(kw)
+
+
+class _G8AwayHass:
+    def __init__(self):
+        self.config_entries = _G8Entries()
+
+
+class _G8AwayEntry:
+    entry_id = "g8"
+
+    def __init__(self, options=None):
+        self.options = dict(options or {})
+
+
+class _G8AwayCoord:
+    def __init__(self, config=None, options=None, entity_states=None):
+        self.hass = _G8AwayHass()
+        self.entry = _G8AwayEntry(options)
+        self._config = dict(config or {})
+        self._away_state = _g8_away.AwayState()
+        self._entity_states = entity_states or {}
+
+    def _entity_state(self, entity_id):
+        return self._entity_states.get(entity_id, (None, {}))
+
+
+_g8_away_real_store = _g8_away.Store
+try:
+    _g8_away.Store = _G8AwayStore
+
+    # A store that refuses to save must not break the service call.
+    _G8AwayStore.saved = []
+    _G8AwayStore.raise_save = True
+    _g8_save_coord = _G8AwayCoord()
+    _g8_save_coord._away_state.override_active = True
+    _g8_save_err = _t6_call(_asyncio.run, _g8_away.persist_override(_g8_save_coord))
+    _g8_save_attempted = list(_G8AwayStore.saved)
+    _G8AwayStore.raise_save = False
+
+    # A store that refuses to load restores an EMPTY override, and then the
+    # migration runs because nothing has recorded that it already did.
+    _G8AwayStore.saved = []
+    _G8AwayStore.raise_load = True
+    _g8_load_coord = _G8AwayCoord(config={_G8_AWAY_PRES: "input_boolean.away_mode"},
+                                  options={_G8_AWAY_ON: True, _G8_AWAY_RET: "x"},
+                                  entity_states={"input_boolean.away_mode": ("on", {})})
+    _g8_load_err = _t6_call(_asyncio.run, _g8_away.restore_override(_g8_load_coord))
+    _g8_load_saved = list(_G8AwayStore.saved)
+    _G8AwayStore.raise_load = False
+
+    # A payload that has ALREADY migrated is applied and migrates no further.
+    _G8AwayStore.saved = []
+    _G8AwayStore.payload = {
+        "active": True, "return_time": "2026-07-12T18:00:00+00:00",
+        "migrated_helpers": True,
+    }
+    _g8_done_coord = _G8AwayCoord(options={_G8_AWAY_ON: True})
+    _t6_call(_asyncio.run, _g8_away.restore_override(_g8_done_coord))
+    _g8_done_saved = list(_G8AwayStore.saved)
+    _G8AwayStore.payload = None
+finally:
+    _g8_away.Store = _g8_away_real_store
+
+R.check(
+    "a store that refuses the save is logged, and the save was attempted",
+    _g8_save_err is None and len(_g8_save_attempted) == 1
+    and _g8_save_attempted[0]["active"] is True,
+    f"returned {_g8_save_err!r} after attempting {_g8_save_attempted!r} -- "
+    "asserting the attempt as well as the swallow, because a persist that "
+    "never called the store would also return None and would lose the "
+    "override at the next restart with nothing in the log",
+)
+R.check(
+    "a store that refuses the LOAD still runs the one-shot helper migration",
+    _g8_load_err is None
+    and _g8_load_coord._away_state.migrated_helpers is True
+    and _g8_load_coord._away_state.override_active is True
+    and len(_g8_load_saved) == 1,
+    f"escaped {_g8_load_err!r}; migrated "
+    f"{_g8_load_coord._away_state.migrated_helpers!r}, active "
+    f"{_g8_load_coord._away_state.override_active!r}, saved "
+    f"{len(_g8_load_saved)} time(s). This is the code that runs ONCE per "
+    "installation, on upgrade: an unreadable store is exactly the state a "
+    "half-finished upgrade leaves, and skipping the migration there would "
+    "strand the user's old helper settings with nothing to read them again",
+)
+R.check(
+    "and the old helper options are dropped, once, in the same write",
+    _g8_load_coord.hass.config_entries.updates
+    and _G8_AWAY_ON not in _g8_load_coord.hass.config_entries.updates[0]["options"]
+    and _G8_AWAY_RET not in _g8_load_coord.hass.config_entries.updates[0]["options"]
+    and _G8_AWAY_PRES not in _g8_load_coord.hass.config_entries.updates[0]["options"],
+    f"entry options rewritten to "
+    f"{_g8_load_coord.hass.config_entries.updates!r} -- the presence entity "
+    "goes too because it was an `input_boolean.`, which the migration treats "
+    "as the user's own helper rather than as a real presence sensor",
+)
+R.check(
+    "an already-migrated payload is applied and writes nothing back",
+    _g8_done_coord._away_state.override_active is True
+    and _g8_done_coord._away_state.override_return_iso is not None
+    and _g8_done_saved == []
+    and _g8_done_coord.hass.config_entries.updates == [],
+    f"active {_g8_done_coord._away_state.override_active!r}, return "
+    f"{_g8_done_coord._away_state.override_return_iso!r}, saves "
+    f"{len(_g8_done_saved)}, entry writes "
+    f"{len(_g8_done_coord.hass.config_entries.updates)} -- the null control "
+    "for the two checks above: the migration flag is what makes this "
+    "one-shot, so a loader that ignored it would rewrite the user's options "
+    "on every single restart",
+)
+
+
+# -- boost: two channels, a two-hour expiry, and a store ---------------------
+_G8_B0 = datetime(2026, 7, 10, 9, 0, tzinfo=UTC)
+_g8_b_state = _g8_boost.BoostState()
+_g8_b_bad = _t6_call(_g8_b_state.set, "radiators", True, _G8_B0)
+_g8_b_state.set(_g8_boost.CHANNEL_DHW, True, _G8_B0)
+_g8_b_on = _g8_b_state.active(_g8_boost.CHANNEL_DHW, _G8_B0 + timedelta(hours=1))
+_g8_b_expired = _g8_b_state.active(
+    _g8_boost.CHANNEL_DHW, _G8_B0 + timedelta(hours=_g8_boost.BOOST_HOURS, minutes=1))
+_g8_b_state.set(_g8_boost.CHANNEL_DHW, False, _G8_B0)
+R.check(
+    "a boost runs for its two hours on the channel asked for, and no other",
+    isinstance(_g8_b_bad, ValueError)
+    and _g8_b_on is True
+    and _g8_b_expired is False
+    and _g8_b_state.until == {},
+    f"an unknown channel -> {_g8_b_bad!r}; within the window -> {_g8_b_on!r}; "
+    f"past it -> {_g8_b_expired!r}; after clearing -> {_g8_b_state.until!r}. "
+    "The unknown channel RAISES rather than silently doing nothing, because "
+    "the caller is a switch entity and a typo there would leave a control "
+    "that looks wired and does nothing",
+)
+_g8_b_pub = _g8_boost.BoostState()
+_g8_b_pub.until[_g8_boost.CHANNEL_SPACE] = dt_util.now() + timedelta(hours=1)
+_g8_b_pub.until[_g8_boost.CHANNEL_DHW] = dt_util.now() - timedelta(hours=1)
+_g8_b_view = _g8_b_pub.as_dict()
+R.check(
+    "the published view expires a stale channel rather than advertising it",
+    _g8_b_view["boost_space_active"] is True
+    and _g8_b_view["boost_space_until"] is not None
+    and _g8_b_view["boost_dhw_active"] is False
+    and _g8_b_view["boost_dhw_until"] is None,
+    f"{_g8_b_view!r} -- the expiry runs INSIDE the view, so a coordinator that "
+    "never called `expire` still publishes the truth; without it a boost that "
+    "ended an hour ago keeps its switch on screen until something else "
+    "happens to sweep it",
+)
+_g8_b_parsed = {
+    "datetime": _g8_boost._parse_until(_G8_B0),
+    "iso": _g8_boost._parse_until("2026-07-10T09:00:00+00:00"),
+    "rubbish": _g8_boost._parse_until("soon"),
+    "None": _g8_boost._parse_until(None),
+    "empty": _g8_boost._parse_until(""),
+}
+R.check(
+    "a stored boost end parses from either a datetime or its isoformat",
+    _g8_b_parsed["datetime"] is _G8_B0
+    and _g8_b_parsed["iso"] == _G8_B0
+    and all(_g8_b_parsed[k] is None for k in ("rubbish", "None", "empty")),
+    "; ".join(f"{k}={_g8_b_parsed[k]!r}" for k in sorted(_g8_b_parsed))
+    + " -- the datetime arm is identity, not equality: `restore` passes "
+    "whatever the store handed back, and a Store that already decoded the "
+    "timestamp must not be re-parsed through `str()`",
+)
+
+
+class _G8BoostStore:
+    payload: Any = None
+    raise_save = False
+    raise_load = False
+    saved: list = []
+
+    def __init__(self, *a, **k):
+        pass
+
+    async def async_save(self, data):
+        _G8BoostStore.saved.append(data)
+        if _G8BoostStore.raise_save:
+            raise RuntimeError("read-only")
+
+    async def async_load(self):
+        if _G8BoostStore.raise_load:
+            raise RuntimeError("corrupt")
+        return _G8BoostStore.payload
+
+
+class _G8BoostCoord:
+    def __init__(self):
+        self.hass = _G8AwayHass()
+        self.entry = _G8AwayEntry()
+
+
+_g8_boost_real_store = _g8_boost.Store
+try:
+    _g8_boost.Store = _G8BoostStore
+    _G8BoostStore.saved = []
+    _G8BoostStore.raise_save = True
+    _g8_bp_coord = _G8BoostCoord()
+    _g8_boost.held_for(_g8_bp_coord).until[_g8_boost.CHANNEL_DHW] = (
+        dt_util.now() + timedelta(hours=1))
+    _g8_bp_err = _t6_call(_asyncio.run, _g8_boost.persist(_g8_bp_coord))
+    _g8_bp_saved = list(_G8BoostStore.saved)
+    _G8BoostStore.raise_save = False
+
+    _G8BoostStore.raise_load = True
+    _g8_br_coord = _G8BoostCoord()
+    _g8_br_err = _t6_call(_asyncio.run, _g8_boost.restore(_g8_br_coord))
+    _g8_br_held = dict(_g8_boost.held_for(_g8_br_coord).until)
+    _G8BoostStore.raise_load = False
+
+    _G8BoostStore.payload = {
+        "dhw": {"until": (dt_util.now() + timedelta(hours=1)).isoformat()},
+        "space": {"until": (dt_util.now() - timedelta(hours=1)).isoformat()},
+        "bogus": "not a mapping",
+    }
+    _g8_bl_coord = _G8BoostCoord()
+    _t6_call(_asyncio.run, _g8_boost.restore(_g8_bl_coord))
+    _g8_bl_held = dict(_g8_boost.held_for(_g8_bl_coord).until)
+    _G8BoostStore.payload = "not a dict"
+    _g8_bn_coord = _G8BoostCoord()
+    _t6_call(_asyncio.run, _g8_boost.restore(_g8_bn_coord))
+    _g8_bn_held = dict(_g8_boost.held_for(_g8_bn_coord).until)
+    _G8BoostStore.payload = None
+finally:
+    _g8_boost.Store = _g8_boost_real_store
+
+R.check(
+    "a boost store that refuses either direction costs the boost, not the setup",
+    _g8_bp_err is None and len(_g8_bp_saved) == 1
+    and _g8_br_err is None and _g8_br_held == {},
+    f"persist escaped {_g8_bp_err!r} after attempting {len(_g8_bp_saved)} "
+    f"save(s); restore escaped {_g8_br_err!r} leaving {_g8_br_held!r} -- "
+    "restore runs during setup, so a raise here is a config entry that will "
+    "not start over a two-hour convenience switch",
+)
+R.check(
+    "restore keeps a live boost, drops an expired one and steps over a malformed entry",
+    set(_g8_bl_held) == {_g8_boost.CHANNEL_DHW}
+    and _g8_bn_held == {},
+    f"from a payload with one live, one expired and one malformed channel -> "
+    f"{sorted(_g8_bl_held)!r}; from a payload that is not a mapping at all -> "
+    f"{_g8_bn_held!r}. Restoring an EXPIRED boost is the failure that matters: "
+    "it would come back on across a restart and hold the tank hot for two "
+    "hours nobody asked for",
+)
+
 sys.exit(R.close("FEATURE CHECKS"))
