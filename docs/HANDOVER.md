@@ -1,6 +1,6 @@
 # Handover — the open-issues programme
 
-updated-for: 4da4ccec36254b57ec9c7b3f1f9eba37aeb579d0
+updated-for: eb4d5b7ac6dfb87b9db2681abc43e8969aeba532
 
 The rule that governs this file is `.claude/rules/writing-for-agents.md`, which
 the harness loads on this very path. Delivery status is
@@ -164,22 +164,22 @@ in that trap's mode — reporting where a reader is asked to look, refusing wher
 a wrong answer would pass unattended — and each graduation owes a mutation proof
 in its own pull request.
 
-1. **A killed agent never writes its own `state at stop:` comment.** On every
-   resume the orchestrator walks the session's branches and open pull requests
-   and posts the notes the dead agents owed.
+1. **A killed agent never writes its own `state at stop:` comment.** On resume
+   the orchestrator walks the session's branches and open pull requests and
+   posts the notes the dead agents owed.
 2. **A stand-down note and a committed roster can disagree; origin is the
-   tiebreak** — the pull request's own comments. One re-review was nearly spent
-   re-deriving a verdict already posted.
+   tiebreak** — the pull request's own comments. One re-review nearly
+   re-derived a verdict already posted.
 3. **A gate cannot be its own witness.** When the subject is the selection
    machinery, the selection that runs is chosen by what is under test; #356
    shipped a regression its own CI could not see, because editing a gate file
-   routed the change to the one path that could not reproduce the fault.
+   routed it to the one path that could not reproduce the fault.
 4. **A check whose failure is *visible* and one whose failure is *blocking*
    look identical in a passing run.** Two sessions each built the first
-   believing they had the second; neither would have seen it in a green log.
+   believing they had the second.
 5. **Six of this project's own instruments reported rather than measured** —
-   #341, #347, #354, #350, #357 and #510 — each found by someone chasing
-   something else. The pattern is the finding, not the individual bugs.
+   #341, #347, #354, #350, #357, #510 — each found by someone chasing something
+   else. The pattern is the finding, not the individual bugs.
 6. **A figure quoted from another artefact is not measured until you have run
    the thing that produced it.**
 7. **A branch can be stale against main invisibly in its own diff**: a move
@@ -201,16 +201,14 @@ in its own pull request.
     the same commit creates. Established by root-cause analysis over #531, #569
     and #591: **3.1% of reviewed pull requests, 11.2% of all review rounds.**
     A check cannot close it — `tools/audit/preflight.sh`, written against this
-    very class, catches **0 of 3**. The reason is not the shape of those figures —
-    rewriting all three with digits leaves them just as clean. A grep can only
-    ask *is there a figure here*, while the defect is *was the right thing
-    measured*. The divider is **structural, not dispositional**: across every review-round
-    body in the corpus at the time — 161 rounds over 97 reviewed pull requests,
-    the population both percentages come from, and it grows, so re-derive rather
-    than quote — the class reached no seat's *production* fix. A production fix
+    very class, catches **0 of 3**: a grep asks *is there a figure here* while
+    the defect is *was the right thing measured*. The divider is **structural,
+    not dispositional**: across every review-round body in the corpus at the
+    time — 161 rounds over 97 reviewed pull requests, the population both
+    percentages come from, and it grows, so re-derive rather than quote — the
+    class reached no seat's *production* fix. A production fix
     is accepted by standing property-quantified instruments (CI, the ratchet,
-    closures, the mutation proof); a record or policy artifact has none, so its
-    acceptance test is whatever its author wrote that minute.
+    closures, the mutation proof); a record or policy artifact has none.
 13. **"The pull request is open" is not a handoff.** The freeze starts at
     handoff, and a seat that has opened its pull request may still be pushing
     while it waits on CI. Six pull requests had a head moved under a live review
@@ -218,15 +216,14 @@ in its own pull request.
     times.
 14. **A record pull request cannot converge while the merge queue runs.** #531
     stayed open 20 hours over 45 commits, 25 content edits and 11 blocked
-    rounds, with 31 pull requests merging underneath it — each of those a
-    reading at one moment, not a tally, because every merge invalidated part of
-    its content. One record per merge has a bounded truth condition and cannot
-    be overtaken; live state belongs on #201, where no merge can stale it.
+    rounds, with 31 pull requests merging underneath it, each merge
+    invalidating part of its content. One record per merge has a bounded truth
+    condition and cannot be overtaken; live state belongs on #201, where no
+    merge can stale it.
 15. **`date -jf '%Y-%m-%dT%H:%M:%SZ'` parses a UTC stamp as local time.** Every
     age computed that way is wrong by the offset; it once made a queue aged
-    8 minutes to 20 hours read as a flat "2h", hiding which pull request was
-    actually the outlier. Use Python's `datetime.fromisoformat` with an explicit
-    UTC now.
+    8 minutes to 20 hours read as a flat "2h". Use Python's
+    `datetime.fromisoformat` with an explicit UTC now.
 16. **Backticks inside a double-quoted shell string are command substitution.**
     Three review comments were posted with their SHAs silently missing. Write
     the body to a file with a quoted heredoc and pass `-F body=@file`.
@@ -235,9 +232,9 @@ in its own pull request.
     merged to a red `main` with no conflict and no shared file: one landed a
     brief citing `configuration_url`, the other deleted the tracked tree's only
     occurrence of that string, and git reported nothing because they touch
-    different files. Not the move-PR silent-revert shape — nothing was
-    overwritten and both changes survived intact; the failure is purely
-    relational. `CLAUDE.md` rule 1's asymmetry is what caught it: a push to
+    different files. Nothing was overwritten and both changes survived intact;
+    the failure is purely relational. `CLAUDE.md` rule 1's asymmetry caught it:
+    a push to
     `main` forces `GATE_SCOPE=full`, and that argument, written about closures,
     paid out for something nobody had in mind. **The preventable half is that
     the citation was anchored to one English sentence. Prose is not a pin** —
@@ -245,9 +242,8 @@ in its own pull request.
     defect, so the repair was to re-anchor.
 18. **A clean merge is evidence of no textual overlap and nothing else.** Twice
     in one session two sides appended at the same insertion point and shared a
-    trailing bracket, so `--ours` or `--theirs` would have dropped a whole block
-    with no marker and no failing test. Verify a merge by parsing the result and
-    naming the checks that run, never by reading the hunk.
+    trailing bracket, so `--ours` would have dropped a whole block silently.
+    Verify a merge by parsing the result and naming the checks that run.
 19. **A one-sided cap and a growing document collide across branches** — #608
     capped this file, #607 added 43 lines 56 minutes later, `main` went red from
     `5018e31`. Graduated: `policy-docs`'s `[budgets]`. Trap 17 on a budget.
@@ -258,42 +254,40 @@ in its own pull request.
 21. **Assert a mutation's occurrence count before applying it.** A control here
     reported a cap mutant NOT CAUGHT: the replacement hit the string's first
     occurrence, inside a comment, so the run was the unmutated one. "I could not
-    find it" is a different result from "it is pinned". Same shape: a `case`
-    glob is not anchored, so `v[0-9]*.[0-9]*.[0-9]*` accepts `v1.2.3; rm -rf /`.
+    find it" is a different result from "it is pinned". Same shape: an
+    unanchored `case` glob accepts `v1.2.3; rm -rf /`.
 22. **A subagent does not survive a session restart; its report does.** Read
     `tasks/<agentId>.output` before re-dispatching — `ListAgents` goes empty
     with no notification, and an hour was nearly spent re-running finished work.
 23. **Re-pointing a branch chain by POSITION after a rebase drops a commit.**
     Map by commit subject and verify the tip's pin count: by index once shifted
-    eight branches by one, and nothing but that count noticed.
+    eight branches by one, and only that count noticed.
 24. **A citation repointed to a commit that resolves but lacks the file is
     worse than a dead one.** `git cat-file -e <sha>:<path>`, never per directory.
 25. **A body's count of its own diff must come from the diff.** #621's body
-    said five disposition rows; the diff added nine — the author counted what
-    they remembered writing, in the branch whose subject was a document whose
-    facts had gone stale for want of a second witness. Derive a body's counts
-    by mutating the artefact and reading the detector: here, removing all nine
-    rows and reading `--record`'s refusal.
+    said five disposition rows; the diff added nine, because the author counted
+    what they remembered writing. Derive a body's counts by mutating the
+    artefact and reading the detector: here, removing all nine rows and reading
+    `--record`'s refusal.
 26. **A figure in prose whose referent is a function of `origin/main` is stale
     by construction, not by neglect.** It was the single largest source of
     blocked rounds under the 2026-09-09 grant, and `claims` outnumbered every
     other block class together. **No count is given here, and that is the trap
-    demonstrating itself**: the first draft of this sentence carried one, and it
-    went stale on every round of the review that landed it, because its referent
-    was that review's own history — so the replacement carried a count of how
-    many times it had gone stale, and that went stale too. Derive it if you need
-    it — scrape `Fix review: blocked <sha> <class>:` across the grant's
-    pull requests and count the classes.
+    demonstrating itself**: the first draft carried one, it went stale on every
+    round of the review that landed it because its referent was that review's
+    own history, and the replacement count of how many times it had gone stale
+    went stale too. Derive it — scrape `Fix review: blocked <sha> <class>:`
+    across the grant's pull requests and count the classes.
     Partly graduated: `COUNT_RULES` in `.claude/workflows/counts.mjs` refuses
     prose disagreeing with a figure derived from the artefact that answers it,
-    and `brief_lint.mjs` runs that set less `modules` over roster briefs (#672),
-    printing how many of how many. Quote neither count — #676 added a rule while
-    this sentence still said eight, which is this trap firing on itself. **The other half
-    does not graduate**, and #581 is the measurement that says so — a rule
+    and `brief_lint.mjs` runs that set less `modules` over roster briefs (#672).
+    Quote neither count — #676 added a rule while this sentence still said
+    eight, which is this trap firing on itself. **The other half does not
+    graduate**, and #581 is the measurement that says so — a rule
     refusing a *bare figure* was built and driven, and reported 20 on the live
-    briefs of which five were the defect. Three wrong reports for every right
-    one, on a corpus whose authors mostly did anchor. The remedy is the anchor,
-    not the linter: write `58.6 % at 4b6e0765`, never `58.6 %`.
+    briefs of which five were the defect — three wrong reports for every right
+    one, on a corpus whose authors mostly did anchor. The remedy is the anchor:
+    write `58.6 % at 4b6e0765`, never `58.6 %`.
 27. **A blank line ends a markdown table, and every row below it renders as
     literal text while the source still looks like a table.** Not reduced to a
     pointer, although its detector exists: the check catches the defect, and
@@ -348,6 +342,12 @@ in its own pull request.
     `missing`, none of which its header names — but no `--self-test` case pins
     that. **Not an untracked marker at the root**: criterion 2 keeps it, and
     `closure.py select` then turns `MODE: SCOPED` into `MODE: FULL` naming it.
+34. **A coverage check can run a guard's line and pin nothing, because an
+    EARLIER guard rejected the input.** Four W5-G7 t2 buffer-cooling checks used
+    round temperatures whose implied rate falls outside the volume bounds, so
+    deleting the guard under test failed no check while all four read green and
+    its line ran either way. **Choose the input so that guard is the only arm
+    which can reject, and say in the detail why the others cannot fire.**
 
 ## Owed — post-hoc reviews
 

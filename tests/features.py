@@ -3784,6 +3784,45 @@ R.check(
     _wrap_detail,
 )
 
+import json as _json773
+
+# #773: the JSON *string* "nan" is RFC 8259 / orjson-clean and reaches
+# float(); a bare NaN token does not. The finite sibling control is 0.
+_nan773 = _json773.loads(
+    '{"solar_aperture":{"n":"nan","mx":0.0,"my":0.0,"cov":0.0,"var":0.0,"scale":1.0}}'
+)
+_inf773 = _json773.loads(
+    '{"solar_aperture":{"n":"Infinity","mx":0.0,"my":0.0,"cov":0.0,"var":0.0,"scale":1.0}}'
+)
+_fin773 = _json773.loads(
+    '{"solar_aperture":{"n":"12","mx":0.0,"my":0.0,"cov":0.0,"var":0.0,"scale":1.0}}'
+)
+for _label773, _payload773, _want_n773 in (
+    ("JSON-string nan", _nan773, 0.0),
+    ("JSON-string Infinity", _inf773, 0.0),
+    ("JSON-string finite n", _fin773, 12.0),
+):
+    _store773 = _FakeLearnStore()
+    _store773.saved = _payload773
+    _holder773 = _LearnPersist(_store773)
+    try:
+        _aio.run(_holder773._async_load_thermal_learning())
+        _ok773 = True
+        _detail773 = ""
+    except Exception as _err773:  # noqa: BLE001
+        _ok773 = False
+        _detail773 = f"{type(_err773).__name__}: {_err773}"
+    R.check(
+        f"thermal_learning {_label773} does not raise",
+        _ok773,
+        _detail773,
+    )
+    R.check(
+        f"thermal_learning {_label773} leaves aperture n at {_want_n773}",
+        _holder773._solar_aperture["n"] == _want_n773,
+        repr(_holder773._solar_aperture),
+    )
+
 from harness import FakeEntry as _StoreFakeEntry, FakeHass as _StoreFakeHass
 from homeassistant.helpers.storage import _reset_store_disk as _reset_stores
 
@@ -3819,6 +3858,49 @@ def _store_coord():
             }
         ),
     )
+
+
+# #773: _learning_view's unguarded int() over learner state. The store
+# route is the JSON string; in-memory nan is what that load used to leave.
+_view773 = _store_coord()
+try:
+    _view773._solar_aperture["n"] = float(_json773.loads('"nan"'))
+    _view773._capacity_envelope[0] = [1.0, float(_json773.loads('"nan"'))]
+    _view773._cop_baseline[(0, False)] = [3.0, float(_json773.loads('"nan"'))]
+    _pub773 = _view773._learning_view()
+    _view773_ok = True
+    _view773_detail = ""
+except Exception as _err773:  # noqa: BLE001
+    _pub773 = {}
+    _view773_ok = False
+    _view773_detail = f"{type(_err773).__name__}: {_err773}"
+R.check(
+    "a non-finite aperture n does not wedge _learning_view",
+    _view773_ok and _pub773.get("solar_aperture", {}).get("samples") == 0,
+    _view773_detail or repr(_pub773.get("solar_aperture")),
+)
+_load773 = _store_coord()
+
+
+async def _fake_nan773(_p=_nan773):
+    return _p
+
+
+_load773._thermal_learning_store.async_load = _fake_nan773
+try:
+    _aio.run(_load773._async_load_thermal_learning())
+    _cycle773 = _load773._learning_view()
+    _cycle773_ok = True
+    _cycle773_detail = ""
+except Exception as _err773:  # noqa: BLE001
+    _cycle773 = {}
+    _cycle773_ok = False
+    _cycle773_detail = f"{type(_err773).__name__}: {_err773}"
+R.check(
+    "JSON-string nan in the thermal store does not wedge the learning view",
+    _cycle773_ok and _cycle773.get("solar_aperture", {}).get("samples") == 0,
+    _cycle773_detail or repr(_cycle773.get("solar_aperture")),
+)
 
 
 for _store_attr, _loader_name in _STORE_LOADERS:
@@ -26332,6 +26414,1088 @@ R.check(
     f"overrides={_t1_ov_tiny._comfort_learner.overrides!r} "
     f"last={_t1_ov_tiny._last_manual_setpoint!r} -- the setpoint is still "
     "remembered, because the climate entity reads it back",
+)
+
+
+
+# ---------------------------------------------------------------------------
+# W5-G7 tranche 2 of 4 (#195): the learning seam's guards and store arms.
+#
+# Every learner in this seam writes a parameter that is PERSISTED. A guard
+# that stops rejecting therefore does not cost one interval of convergence;
+# it writes a wrong value to disk that the planner reloads on every restart
+# until a user notices the bills. That is why each guard below gets its own
+# check and its own mutation, rather than one "a bad sample is rejected"
+# check standing in for nine of them.
+#
+# NOT covered here, and reported as a finding rather than tested: the two
+# `except ValueError: continue` arms around `datetime.fromisoformat` in
+# `_async_learn_price_shape`. Their keys come from `_entries_by_day`, which
+# builds every key as `when.date().isoformat()` from an already-parsed
+# datetime, so no price payload can reach either arm. Four lines; the pull
+# request proposes deleting them rather than reaching them by calling a
+# private helper with a key the tree cannot produce.
+R.section("W5-G7 t2: the learning seam's guards and store arms (#195)")
+
+_T2_DATA = {"tibber_token": "x", "weather_entity": "weather.home"}
+# A fixed wall clock, because several guards below are threshold checks on
+# the interval length and an unfrozen clock measures the interval plus
+# however long the constructor took.
+_T2_BASE = datetime(2026, 2, 1, 3, 0, 0)
+
+
+def _t2_coord(**config):
+    """A live coordinator over the fake bus, with config overrides applied."""
+    return HeatPumpOptimizerCoordinator(
+        FakeHass(), FakeEntry(data=dict(_T2_DATA, **config))
+    )
+
+
+def _t2_count_saves(coord):
+    """Record every thermal-learning save, so "it persisted" is observable."""
+    coord._t2_saves = []
+    inner = coord._async_save_thermal_learning
+
+    async def counted():
+        coord._t2_saves.append(coord._buffer_cooling_rate)
+        return await inner()
+
+    coord._async_save_thermal_learning = counted
+
+
+def _t2_buffer(previous_temp, buffer_temp, dt_h, **config):
+    """One buffer-cooling interval, `previous_temp` then `buffer_temp` dt_h later."""
+    c = _t2_coord(**config)
+    _t2_count_saves(c)
+    c._last_buffer_temp_sample = previous_temp
+    c._last_buffer_sample_time = _T2_BASE
+    c._buffer_heating_since_sample = False
+    dt_util.freeze(_T2_BASE + timedelta(hours=dt_h))
+    try:
+        _asyncio.run(c._async_learn_buffer_cooling(buffer_temp))
+    finally:
+        dt_util.freeze(None)
+    return c
+
+
+# The prior at the default 35 L tank, and the bounds that prior sits inside.
+# Read off a fresh coordinator rather than restated, because both are derived
+# from the configured volume and a literal here would pin the arithmetic of
+# `buffer_cooling_rate_bounds` a second time in a worse place.
+_T2_RATE0 = _t2_coord()._buffer_cooling_rate
+_T2_LOW, _T2_HIGH = _t2_coord()._buffer_cooling_bounds()
+
+
+def _t2_temp_for(observed, previous_temp=50.0, dt_h=1.0):
+    """The end temperature that makes the learner observe exactly `observed`.
+
+    Inverts `observed = -ln(Δend/Δstart)/Δt · 25` about a 20 °C ambient. Both
+    numbers are written out rather than imported: a test that derives its
+    expectation from the constant it is pinning cannot notice the constant
+    changing, which is the whole thing this check is for.
+    """
+    start_delta = previous_temp - 20.0
+    return 20.0 + start_delta * float(np.exp(-observed * dt_h / 25.0))
+
+
+# -- the accepted sample, and what it writes ------------------------------
+_t2_buf_ok = _t2_buffer(50.0, 48.0, 1.0)
+R.check(
+    "an accepted buffer-cooling sample moves the rate, counts, and persists",
+    _t2_buf_ok._buffer_cooling_rate > _T2_RATE0
+    and _t2_buf_ok._buffer_cooling_samples == 1
+    and len(_t2_buf_ok._t2_saves) == 1,
+    f"rate {_T2_RATE0:.4f} -> {_t2_buf_ok._buffer_cooling_rate:.4f}, "
+    f"samples {_t2_buf_ok._buffer_cooling_samples}, "
+    f"saves {len(_t2_buf_ok._t2_saves)}",
+)
+R.check(
+    "the learned rate reaches the thermal parameters the optimizer reads",
+    _t2_buf_ok._thermal_params.buffer_cooling_rate
+    == _t2_buf_ok._buffer_cooling_rate,
+    f"params {_t2_buf_ok._thermal_params.buffer_cooling_rate!r} "
+    f"attr {_t2_buf_ok._buffer_cooling_rate!r} -- a learner that only "
+    "updates its own attribute changes no plan",
+)
+
+# -- the alpha asymmetry, which is the learner's whole safety argument ----
+# A leakier-looking interval can be a space-heating draw the guards did not
+# catch, so it is absorbed at 0.02; a tighter-looking one cannot be
+# contaminated upward and is taken at 0.25. Two observations the same
+# distance either side of the current rate therefore move it by very
+# different amounts, and the ratio is exactly the ratio of the two alphas.
+_t2_buf_down = _t2_buffer(50.0, _t2_temp_for(_T2_RATE0 - 0.2), 1.0)
+_t2_buf_up = _t2_buffer(50.0, _t2_temp_for(_T2_RATE0 + 0.2), 1.0)
+_t2_down_step = _t2_buf_down._buffer_cooling_rate - _T2_RATE0
+_t2_up_step = _t2_buf_up._buffer_cooling_rate - _T2_RATE0
+R.check(
+    "a tighter-looking interval is taken 12.5x harder than a leakier one",
+    abs(_t2_down_step + 0.05) < 1e-9
+    and abs(_t2_up_step - 0.004) < 1e-9
+    and abs(abs(_t2_down_step / _t2_up_step) - 12.5) < 1e-6,
+    f"down {_t2_down_step:+.6f} up {_t2_up_step:+.6f} "
+    f"ratio {abs(_t2_down_step / _t2_up_step):.4f} -- 0.25 against 0.02",
+)
+
+# -- the freeze arm, and the sample it still stores -----------------------
+_t2_buf_frozen = _t2_coord()
+_t2_buf_frozen._external_heat_active = True
+_t2_buf_frozen._last_buffer_temp_sample = 50.0
+_t2_buf_frozen._last_buffer_sample_time = _T2_BASE
+_t2_buf_frozen._buffer_heating_since_sample = False
+dt_util.freeze(_T2_BASE + timedelta(hours=1.0))
+try:
+    _asyncio.run(_t2_buf_frozen._async_learn_buffer_cooling(48.0))
+finally:
+    dt_util.freeze(None)
+R.check(
+    "a frozen learner records why it froze and learns nothing",
+    _t2_buf_frozen._learner_freeze_reason == "external_heat_source"
+    and _t2_buf_frozen._buffer_cooling_samples == 0
+    and _t2_buf_frozen._buffer_cooling_rate == _T2_RATE0,
+    f"reason {_t2_buf_frozen._learner_freeze_reason!r} "
+    f"samples {_t2_buf_frozen._buffer_cooling_samples}",
+)
+R.check(
+    "the freeze still advances the sample, so the next interval is not stale",
+    _t2_buf_frozen._last_buffer_temp_sample == 48.0
+    and _t2_buf_frozen._last_buffer_sample_time == _T2_BASE + timedelta(hours=1.0),
+    f"stored {_t2_buf_frozen._last_buffer_temp_sample!r} at "
+    f"{_t2_buf_frozen._last_buffer_sample_time!r} -- storing before the "
+    "guards is what keeps a frozen hour out of the next interval's window",
+)
+
+# -- the mixing-valve arm: with a throttling valve there is no quiet decay -
+_t2_buf_valve = _t2_buffer(50.0, 48.0, 1.0, mixing_valve_mode="smart_read")
+R.check(
+    "a throttling mixing valve rejects every interval, not just noisy ones",
+    _t2_buf_valve._buffer_cooling_samples == 0
+    and _t2_buf_valve._buffer_cooling_rate == _T2_RATE0,
+    f"samples {_t2_buf_valve._buffer_cooling_samples} rate "
+    f"{_t2_buf_valve._buffer_cooling_rate:.4f} -- a pump-off interval is the "
+    "house drawing on the tank, and reading that as standby loss prices "
+    "storage off the table",
+)
+
+# -- the six sample-quality guards ---------------------------------------
+_t2_buf_first = _t2_coord()
+dt_util.freeze(_T2_BASE)
+try:
+    _asyncio.run(_t2_buf_first._async_learn_buffer_cooling(48.0))
+finally:
+    dt_util.freeze(None)
+R.check(
+    "the first reading after a restart is a baseline, not a sample",
+    _t2_buf_first._buffer_cooling_samples == 0
+    and _t2_buf_first._last_buffer_temp_sample == 48.0,
+    f"samples {_t2_buf_first._buffer_cooling_samples} stored "
+    f"{_t2_buf_first._last_buffer_temp_sample!r}",
+)
+
+_t2_buf_heated = _t2_coord()
+_t2_buf_heated._last_buffer_temp_sample = 50.0
+_t2_buf_heated._last_buffer_sample_time = _T2_BASE
+_t2_buf_heated._buffer_heating_since_sample = True
+dt_util.freeze(_T2_BASE + timedelta(hours=1.0))
+try:
+    _asyncio.run(_t2_buf_heated._async_learn_buffer_cooling(48.0))
+finally:
+    dt_util.freeze(None)
+R.check(
+    "an interval the pump heated part-way through is rejected, not absorbed",
+    _t2_buf_heated._buffer_cooling_samples == 0,
+    f"samples {_t2_buf_heated._buffer_cooling_samples} -- a partly heated "
+    "interval looks like a tank that cooled slowly, which the 0.02 alpha "
+    "would take rather than reject",
+)
+
+# Each of the next four intervals is chosen so its implied rate lands
+# INSIDE the volume-derived bounds. Pick a rounder interval and the bounds
+# reject it first, the guard under test never runs, and its mutation passes
+# -- which is how a coverage check ends up pinning nothing.
+_t2_buf_short = _t2_buffer(50.0, 49.6, 0.14)
+R.check(
+    "an interval under 0.15 h is too short to read a decay from",
+    _t2_buf_short._buffer_cooling_samples == 0,
+    f"samples {_t2_buf_short._buffer_cooling_samples} at 0.14 h, whose "
+    "implied 2.40 C/h is inside this tank's bounds -- so the length guard "
+    "is the only arm that can reject it",
+)
+_t2_buf_long = _t2_buffer(50.0, 48.0, 3.5)
+R.check(
+    "an interval over 3 h is too long to have stayed quiet throughout",
+    _t2_buf_long._buffer_cooling_samples == 0,
+    f"samples {_t2_buf_long._buffer_cooling_samples} at 3.50 h, implying "
+    "0.49 C/h -- inside the bounds, so only the length guard rejects it",
+)
+# No interval makes this guard load-bearing: a tank that warmed implies a
+# NEGATIVE rate, and the floor is positive at every volume, so the bounds
+# reject every warming interval on their own. Deleting the guard fails no
+# check, which the pull request reports as a finding rather than dressing
+# up. The check stays because it pins the behaviour, not the branch.
+_t2_buf_warm = _t2_buffer(48.0, 50.0, 1.0)
+R.check(
+    "a tank that got warmer is not a cooling sample",
+    _t2_buf_warm._buffer_cooling_samples == 0,
+    f"samples {_t2_buf_warm._buffer_cooling_samples} over 48.0 -> 50.0, "
+    f"implying -1.72 C/h against a {_T2_LOW:.4f} C/h floor",
+)
+# SUBSUMED, like the warming guard: on a cooling interval the end delta is
+# always the smaller of the two, so `start_delta < 4` implies `end_delta < 4`
+# and the end guard rejects every interval this one would. Deleting it fails
+# no check and cannot be made to -- measured, and reported in the pull
+# request rather than dressed up with an input that only looks decisive.
+_t2_buf_start = _t2_buffer(23.9, 23.5, 3.0)
+R.check(
+    "a tank starting within 4 K of ambient carries too little signal",
+    _t2_buf_start._buffer_cooling_samples == 0,
+    f"samples {_t2_buf_start._buffer_cooling_samples} from a 3.9 K start "
+    "delta implying 0.90 C/h, which clears the bounds -- but the 3.5 K end "
+    "delta clears nothing, and that is the arm that actually rejects",
+)
+_t2_buf_end = _t2_buffer(24.5, 23.9, 3.0)
+R.check(
+    "a tank that ended within 4 K of ambient is rejected on the end delta",
+    _t2_buf_end._buffer_cooling_samples == 0,
+    f"samples {_t2_buf_end._buffer_cooling_samples} -- a 4.5 K start delta "
+    "clears the start guard and the implied 1.19 C/h clears the bounds, so "
+    "the end guard is the only arm left",
+)
+
+# -- the volume-derived bounds, both arms ---------------------------------
+_t2_buf_high = _t2_buffer(60.0, 25.0, 0.2)
+R.check(
+    "a rate above this tank's worst plausible insulation is discarded",
+    _t2_buf_high._buffer_cooling_samples == 0
+    and _t2_buf_high._buffer_cooling_rate == _T2_RATE0,
+    f"samples {_t2_buf_high._buffer_cooling_samples}, ceiling "
+    f"{_T2_HIGH:.4f} C/h -- clamping instead of rejecting would pin the "
+    "learner at its ceiling after one bad interval",
+)
+_t2_buf_low = _t2_buffer(50.0, _t2_temp_for(_T2_LOW * 0.9, dt_h=3.0), 3.0)
+R.check(
+    "a rate below this tank's best plausible insulation is discarded too",
+    _t2_buf_low._buffer_cooling_samples == 0
+    and _t2_buf_low._buffer_cooling_rate == _T2_RATE0,
+    f"samples {_t2_buf_low._buffer_cooling_samples}, floor {_T2_LOW:.4f} C/h",
+)
+
+# Null control over every rejecting arm at once: none of them persisted, so
+# a guard that silently let a sample through would also have written it.
+_t2_buf_rejected = (
+    _t2_buf_valve, _t2_buf_short, _t2_buf_long, _t2_buf_warm,
+    _t2_buf_start, _t2_buf_end, _t2_buf_high, _t2_buf_low,
+)
+R.check(
+    "no rejected buffer-cooling sample reached the store (null control)",
+    all(c._t2_saves == [] for c in _t2_buf_rejected)
+    and _t2_buf_ok._t2_saves == [_t2_buf_ok._buffer_cooling_rate],
+    f"rejected saves {[len(c._t2_saves) for c in _t2_buf_rejected]} "
+    f"accepted saves {len(_t2_buf_ok._t2_saves)}",
+)
+
+
+# -- `_async_load_thermal_learning`: one corrupt key must not cost the rest --
+# The store is a single JSON blob written by this integration and read back
+# at every startup, so a key that fails to parse is a key some earlier
+# version wrote differently -- and the whole point of parsing each one in
+# its own `try` is that a v4 payload still loads its v5 neighbours. A check
+# per arm, because an `except` that silently widened to cover the block
+# would pass a single "corrupt payload survives" check while losing every
+# value after the first bad one.
+class _T2Store:
+    """A thermal-learning store standing in for one JSON file on disk."""
+
+    def __init__(self, payload):
+        self.payload = payload
+        self.saved = []
+
+    async def async_load(self):
+        return self.payload
+
+    async def async_save(self, data):
+        self.saved.append(data)
+
+
+def _t2_load(payload, **config):
+    """Start a coordinator and load `payload` as its thermal-learning store."""
+    c = _t2_coord(**config)
+    c._thermal_learning_store = _T2Store(payload)
+    _asyncio.run(c._async_load_thermal_learning())
+    return c
+
+
+# Every learned key, well formed. This is the null control for the eight
+# corrupt-arm checks below: each of them asserts a value is absent, and
+# without this one they would all pass against a loader that read nothing.
+_T2_GOOD_STORE = {
+    "lower_floor_loss_ratio": 1.1,
+    "lower_floor_loss_samples": 6,
+    "cop_scale": 1.05,
+    "cop_samples": 9,
+    "house_heat_loss_scale": 1.2,
+    "house_heat_loss_samples": 11,
+    "buffer_cooling_rate": 1.0,
+    "buffer_cooling_samples": 4,
+    "snow_accum_cm": 5.0,
+    "last_heavy_snow": "2026-01-02T03:04:05",
+    "snow_accum_last": "2026-01-03T04:05:06",
+    "cop_baseline": {"4": [3.0, 7], "5:dhw": [2.0, 3]},
+}
+_t2_store_good = _t2_load(dict(_T2_GOOD_STORE))
+R.check(
+    "a well-formed thermal-learning payload loads every key (null control)",
+    _t2_store_good._lower_floor_loss_ratio == 1.1
+    and _t2_store_good._lower_floor_loss_samples == 6
+    and _t2_store_good._cop_scale == 1.05
+    and _t2_store_good._cop_samples == 9
+    and _t2_store_good._house_heat_loss_samples == 11
+    and _t2_store_good._buffer_cooling_samples == 4
+    and _t2_store_good._snow_accum_cm == 5.0
+    and _t2_store_good._last_heavy_snow == datetime(2026, 1, 2, 3, 4, 5)
+    and _t2_store_good._snow_accum_last == datetime(2026, 1, 3, 4, 5, 6)
+    and dict(_t2_store_good._cop_baseline)
+    == {(4, False): [3.0, 7], (5, True): [2.0, 3]},
+    f"ratio {_t2_store_good._lower_floor_loss_ratio!r} "
+    f"cop {_t2_store_good._cop_scale!r}/{_t2_store_good._cop_samples!r} "
+    f"hhl_samples {_t2_store_good._house_heat_loss_samples!r} "
+    f"snow {_t2_store_good._snow_accum_cm!r} "
+    f"heavy {_t2_store_good._last_heavy_snow!r} "
+    f"baseline {dict(_t2_store_good._cop_baseline)!r}",
+)
+
+_t2_store_hhl = _t2_load(dict(_T2_GOOD_STORE, house_heat_loss_scale="nope"))
+R.check(
+    "a non-numeric house heat loss scale drops that key and keeps the rest",
+    _t2_store_hhl._house_heat_loss_samples == 0
+    and _t2_store_hhl._lower_floor_loss_ratio == 1.1
+    and _t2_store_hhl._cop_scale == 1.05,
+    f"hhl_samples {_t2_store_hhl._house_heat_loss_samples} "
+    f"ratio {_t2_store_hhl._lower_floor_loss_ratio!r} "
+    f"cop {_t2_store_hhl._cop_scale!r} -- the sample count is the observable "
+    "because the scale itself is re-anchored against the live UA on load",
+)
+
+_t2_store_lfl = _t2_load(dict(_T2_GOOD_STORE, lower_floor_loss_ratio="nope"))
+R.check(
+    "a non-numeric lower floor split leaves the configured one standing",
+    _t2_store_lfl._lower_floor_loss_ratio == 1.0
+    and _t2_store_lfl._lower_floor_loss_samples == 0
+    and _t2_store_lfl._cop_scale == 1.05,
+    f"ratio {_t2_store_lfl._lower_floor_loss_ratio!r} "
+    f"samples {_t2_store_lfl._lower_floor_loss_samples} "
+    f"cop {_t2_store_lfl._cop_scale!r}",
+)
+
+_t2_store_cop = _t2_load(dict(_T2_GOOD_STORE, cop_scale="nope"))
+R.check(
+    "a non-numeric COP scale leaves the nameplate figure uncorrected",
+    _t2_store_cop._cop_scale == 1.0
+    and _t2_store_cop._cop_samples == 0
+    and _t2_store_cop._lower_floor_loss_ratio == 1.1,
+    f"cop {_t2_store_cop._cop_scale!r}/{_t2_store_cop._cop_samples} "
+    f"ratio {_t2_store_cop._lower_floor_loss_ratio!r}",
+)
+
+# Insertion order matters and is the point: the good bucket sits BETWEEN the
+# two corrupt ones. With it first, `continue` and `break` are
+# indistinguishable and the break mutation passed this check.
+_t2_store_base = _t2_load(
+    dict(
+        _T2_GOOD_STORE,
+        cop_baseline={"nope": [1.0, 1], "4": [3.0, 7], "6": "x"},
+    )
+)
+R.check(
+    "a corrupt COP baseline bucket is skipped one entry at a time",
+    dict(_t2_store_base._cop_baseline) == {(4, False): [3.0, 7]},
+    f"{dict(_t2_store_base._cop_baseline)!r} -- an unparseable bucket key "
+    "precedes the good bucket and an unindexable entry follows it, so only "
+    "a per-entry skip keeps the middle one",
+)
+
+# Each of the next three arms WRITES a value, and each writes the value the
+# attribute already holds at startup. Asserting the value alone therefore
+# passes against an `except` body deleted outright -- measured: three
+# mutations replacing these bodies with `pass` failed nothing. So each is
+# driven over a coordinator carrying a different value first, which is also
+# the realistic case: a snapshot restore runs this loader over live state.
+def _t2_load_over(preset, payload, **config):
+    """Load `payload` over a coordinator already holding `preset`."""
+    c = _t2_coord(**config)
+    for name, value in preset.items():
+        setattr(c, name, value)
+    c._thermal_learning_store = _T2Store(payload)
+    _asyncio.run(c._async_load_thermal_learning())
+    return c
+
+
+_t2_store_snow = _t2_load_over(
+    {"_snow_accum_cm": 7.5}, dict(_T2_GOOD_STORE, snow_accum_cm="nope")
+)
+R.check(
+    "a non-numeric snow accumulation is reset to zero, not left standing",
+    _t2_store_snow._snow_accum_cm == 0.0
+    and _t2_store_snow._last_heavy_snow == datetime(2026, 1, 2, 3, 4, 5),
+    f"snow 7.5 -> {_t2_store_snow._snow_accum_cm!r} "
+    f"heavy {_t2_store_snow._last_heavy_snow!r} -- resetting the depth but "
+    "keeping the date is deliberate: a roof with no measured depth damps "
+    "nothing, while the date still gates the next accumulation",
+)
+
+_t2_store_heavy = _t2_load_over(
+    {"_last_heavy_snow": datetime(2020, 1, 1)},
+    dict(_T2_GOOD_STORE, last_heavy_snow="not-a-date"),
+)
+R.check(
+    "an unparseable last-heavy-snow date is cleared, not left standing",
+    _t2_store_heavy._last_heavy_snow is None
+    and _t2_store_heavy._snow_accum_cm == 5.0,
+    f"2020-01-01 -> {_t2_store_heavy._last_heavy_snow!r} "
+    f"snow {_t2_store_heavy._snow_accum_cm!r}",
+)
+
+_t2_store_last = _t2_load_over(
+    {"_snow_accum_last": datetime(2020, 1, 1)},
+    dict(_T2_GOOD_STORE, snow_accum_last="not-a-date"),
+)
+R.check(
+    "an unparseable accumulator clock is cleared, not left standing",
+    _t2_store_last._snow_accum_last is None
+    and _t2_store_last._last_heavy_snow == datetime(2026, 1, 2, 3, 4, 5),
+    f"2020-01-01 -> {_t2_store_last._snow_accum_last!r} "
+    f"heavy {_t2_store_last._last_heavy_snow!r} -- a clock read as stale "
+    "would skip the downtime's decay after an outage, which is the bug the "
+    "key was added for",
+)
+
+
+class _T2RaisingStore:
+    """A store whose read fails, the shape a corrupt or missing file takes."""
+
+    async def async_load(self):
+        raise RuntimeError("store unreadable")
+
+
+_t2_store_boom = _t2_coord()
+_t2_store_boom._thermal_learning_store = _T2RaisingStore()
+_asyncio.run(_t2_store_boom._async_load_thermal_learning())
+R.check(
+    "a thermal-learning store that cannot be read starts the priors, not an error",
+    _t2_store_boom._buffer_cooling_rate == _T2_RATE0
+    and _t2_store_boom._cop_scale == 1.0
+    and _t2_store_boom._buffer_cooling_samples == 0,
+    f"rate {_t2_store_boom._buffer_cooling_rate:.4f} "
+    f"cop {_t2_store_boom._cop_scale!r} -- the exception is swallowed here "
+    "because a reload that raises would abort setup over a learned value "
+    "the integration can always relearn",
+)
+
+# The frequency watchdog's stand-down latch, parsed strictly on purpose: a
+# corrupt payload that latched it would disable frequency control with no
+# repair issue and no visible cause.
+_t2_store_freq = _t2_load(
+    dict(_T2_GOOD_STORE, freq_fallback=True), freq_control_mode="control"
+)
+R.check(
+    "a stored frequency stand-down is restored and warns in control mode",
+    _t2_store_freq._freq_fallback is True,
+    f"{_t2_store_freq._freq_fallback!r}",
+)
+_t2_store_truthy = _t2_load(
+    dict(_T2_GOOD_STORE, freq_fallback=1), freq_control_mode="control"
+)
+R.check(
+    "a truthy-but-not-True stand-down does not latch, so garbage cannot arm it",
+    _t2_store_truthy._freq_fallback is False,
+    f"{_t2_store_truthy._freq_fallback!r} from a stored 1 -- `is True` is "
+    "the pin, and truthiness here would let store corruption disable "
+    "frequency control silently",
+)
+
+
+# -- `_async_learn_price_shape`: the seen-sets are the idempotence ---------
+# This runs on every refresh over the whole price list, so the two seen-sets
+# are the only thing stopping the same day being folded into the shape on
+# every cycle -- which would weight one day as heavily as a month and then
+# persist the result. Each check below is about what does and does not enter
+# those sets.
+def _t2_hourly(day, base=1.0):
+    """One complete 24-hour day, priced with real intra-day structure."""
+    return [
+        {"starts_at": f"{day}T{h:02d}:00:00", "total": base + 0.5 * (h % 6)}
+        for h in range(24)
+    ]
+
+
+def _t2_quarterly(day, base=1.0):
+    """The same day at 15-minute resolution, all 96 marks present."""
+    return [
+        {
+            "starts_at": f"{day}T{h:02d}:{15 * q:02d}:00",
+            "total": base + 0.5 * (h % 6) + 0.1 * q,
+        }
+        for h in range(24)
+        for q in range(4)
+    ]
+
+
+def _t2_prices(entries, **config):
+    """Fold `entries` into the learned price shape, counting the saves."""
+    c = _t2_coord(**config)
+    c._prices = entries
+    c._t2_price_saves = []
+
+    async def counted():
+        c._t2_price_saves.append(sorted(c._price_days_seen))
+
+    c._async_save_price_model = counted
+    _asyncio.run(c._async_learn_price_shape())
+    return c
+
+
+_t2_price_day = _t2_prices(_t2_hourly("2026-02-02"))
+R.check(
+    "a complete hourly day is folded into the shape and persisted once",
+    _t2_price_day._price_days_seen == {"2026-02-02"}
+    and _t2_price_day._price_qdays_seen == set()
+    and _t2_price_day._t2_price_saves == [["2026-02-02"]],
+    f"days {sorted(_t2_price_day._price_days_seen)} "
+    f"qdays {sorted(_t2_price_day._price_qdays_seen)} "
+    f"saves {_t2_price_day._t2_price_saves} -- hourly data says nothing "
+    "about intra-hour structure, so the quarter set stays empty",
+)
+_asyncio.run(_t2_price_day._async_learn_price_shape())
+R.check(
+    "the same prices on the next refresh are folded in again zero times",
+    _t2_price_day._t2_price_saves == [["2026-02-02"]],
+    f"saves {_t2_price_day._t2_price_saves} after a second pass -- without "
+    "the seen-set this method would re-weight one day on every refresh and "
+    "persist the result",
+)
+
+_t2_price_q = _t2_prices(_t2_quarterly("2026-02-03"))
+R.check(
+    "a 15-minute day trains the hourly shape and the quarter factors both",
+    _t2_price_q._price_days_seen == {"2026-02-03"}
+    and _t2_price_q._price_qdays_seen == {"2026-02-03"},
+    f"days {sorted(_t2_price_q._price_days_seen)} "
+    f"qdays {sorted(_t2_price_q._price_qdays_seen)}",
+)
+
+_asyncio.run(_t2_price_q._async_learn_price_shape())
+R.check(
+    "the quarter seen-set has its own skip, checked separately from the hourly one",
+    _t2_price_q._price_qdays_seen == {"2026-02-03"}
+    and _t2_price_q._price_days_seen == {"2026-02-03"},
+    f"qdays {sorted(_t2_price_q._price_qdays_seen)} after a second pass -- two "
+    "sets, because a day can arrive hourly and be refined to quarters later, "
+    "and one set would then lock the refinement out",
+)
+
+# GUARDED TWICE, independently: `hourly_from_entries` only returns days with
+# all 24 hours, and `observe_day` refuses a list that is not 24 long. Either
+# alone rejects this day, so removing one leaves the check green -- the
+# mutation that fails it has to remove both, and the table says so.
+_t2_price_part = _t2_prices(_t2_hourly("2026-02-04")[:23])
+R.check(
+    "a 23-hour day trains neither shape and is not marked seen",
+    _t2_price_part._price_days_seen == set()
+    and _t2_price_part._t2_price_saves == [],
+    f"days {sorted(_t2_price_part._price_days_seen)} "
+    f"saves {len(_t2_price_part._t2_price_saves)} -- a partial day missing "
+    "its cheap night hours would bias every hour of the shape upward",
+)
+
+_t2_price_zero = _t2_prices(
+    [{"starts_at": f"2026-02-05T{h:02d}:00:00", "total": 0.0} for h in range(24)]
+)
+R.check(
+    "a day averaging zero is rejected AND left unseen, so it can be retried",
+    _t2_price_zero._price_days_seen == set()
+    and _t2_price_zero._t2_price_saves == [],
+    f"days {sorted(_t2_price_zero._price_days_seen)} -- marking a rejected "
+    "day seen is the bug this pins: the set is written only where the model "
+    "says it used the observation",
+)
+
+_t2_price_off = _t2_prices(_t2_hourly("2026-02-02"), price_prior_enabled=False)
+R.check(
+    "with the price prior off nothing is learned and nothing is written",
+    _t2_price_off._price_days_seen == set()
+    and _t2_price_off._t2_price_saves == [],
+    f"days {sorted(_t2_price_off._price_days_seen)} "
+    f"saves {len(_t2_price_off._t2_price_saves)}",
+)
+
+
+# -- `_record_quiet_comfort_period`: the only half that lowers the weight --
+# An override is the only evidence a user ever produces, and every override
+# pushes the comfort weight UP. Without this method the learner is a
+# one-way ratchet. But counting every quiet stretch as evidence took the
+# weight to its floor over mild spells, because flatness is free when
+# prices are flat -- so the guards below are what make the negative half
+# safe, and each of them is a way the learner could resume ratcheting down.
+class _T2Result:
+    """The three fields the quiet-period recorder reads off a solved plan."""
+
+    def __init__(self, prices, power_schedule, room_temp_trajectory):
+        self.prices = prices
+        self.power_schedule = power_schedule
+        self.room_temp_trajectory = room_temp_trajectory
+
+
+# A price curve with real structure (a 3x peak six times a day) and a flat
+# one at the same mean. The pair is the null control for the flatness guard.
+_T2_PEAKY = [1.0 + (2.0 if h % 6 == 0 else 0.0) for h in range(24)]
+_T2_FLAT = [1.0] * 24
+_T2_POWER = [2.0] * 24
+_T2_QUIET_TRAJ = [21.0, 21.05, 21.02]
+
+
+def _t2_quiet(prices, power, trajectory, *, enabled=True, periods=1, **config):
+    """Record `periods` quiet stretches against one solved plan.
+
+    The escape is captured rather than allowed out: a guard removed here
+    makes numpy raise on an empty or zero-mean array, and an escaping
+    exception ends the whole script instead of failing the check that is
+    named for the guard.
+    """
+    c = _t2_coord(comfort_learning_enabled=enabled, **config)
+    c._optimization_result = _T2Result(prices, power, trajectory)
+    c._t2_escaped = None
+    for _ in range(periods):
+        try:
+            c._record_quiet_comfort_period()
+        except Exception as err:  # noqa: BLE001
+            c._t2_escaped = err
+            break
+    return c
+
+
+_t2_quiet_ok = _t2_quiet(_T2_PEAKY, _T2_POWER, _T2_QUIET_TRAJ)
+R.check(
+    "a quiet stretch under swinging prices banks negative evidence",
+    _t2_quiet_ok._comfort_learner.evidence < 0.0,
+    f"evidence {_t2_quiet_ok._comfort_learner.evidence!r} -- this is the "
+    "only path in the tree that can move the comfort weight down",
+)
+
+# Evidence just under the threshold, so one accepted period tips it and the
+# weight actually moves. Asserting the evidence alone would pass against a
+# learner whose adjustment no longer reached the optimizer's configuration.
+_t2_quiet_tip = _t2_coord(comfort_learning_enabled=True)
+_t2_quiet_tip._optimization_result = _T2Result(
+    _T2_PEAKY, _T2_POWER, _T2_QUIET_TRAJ
+)
+_t2_quiet_tip._comfort_learner.evidence = -1.995
+_t2_tip_before = _t2_quiet_tip._opt_config.comfort_weight
+_t2_quiet_tip._record_quiet_comfort_period()
+R.check(
+    "the tipping quiet period lowers the weight the optimizer actually solves with",
+    _t2_quiet_tip._opt_config.comfort_weight < _t2_tip_before
+    and _t2_quiet_tip._opt_config.comfort_weight
+    == _t2_quiet_tip._comfort_learner.effective_weight,
+    f"weight {_t2_tip_before!r} -> "
+    f"{_t2_quiet_tip._opt_config.comfort_weight!r} "
+    f"effective {_t2_quiet_tip._comfort_learner.effective_weight!r}",
+)
+
+# The regression the flatness guard exists for, at the scale it appeared:
+# a mild spell of flat prices, every cycle a quiet period.
+_t2_quiet_many_peaky = _t2_quiet(
+    _T2_PEAKY, _T2_POWER, _T2_QUIET_TRAJ, periods=300
+)
+_t2_quiet_many_flat = _t2_quiet(_T2_FLAT, _T2_POWER, _T2_QUIET_TRAJ, periods=300)
+R.check(
+    "300 flat-price quiet periods move the weight nowhere, 300 swinging ones do",
+    _t2_quiet_many_flat._opt_config.comfort_weight
+    == _t2_quiet_many_flat._comfort_learner.configured_weight
+    and _t2_quiet_many_peaky._opt_config.comfort_weight
+    < _t2_quiet_many_flat._opt_config.comfort_weight,
+    f"flat {_t2_quiet_many_flat._opt_config.comfort_weight!r} "
+    f"peaky {_t2_quiet_many_peaky._opt_config.comfort_weight!r} -- with the "
+    "guard removed the flat arm ratchets to the floor over a mild spell, "
+    "which is what this pair measures",
+)
+
+_t2_quiet_off = _t2_quiet(_T2_PEAKY, _T2_POWER, _T2_QUIET_TRAJ, enabled=False)
+R.check(
+    "with comfort learning off a quiet stretch is not evidence of anything",
+    _t2_quiet_off._comfort_learner.evidence == 0.0,
+    f"evidence {_t2_quiet_off._comfort_learner.evidence!r}",
+)
+
+_t2_quiet_noplan = _t2_coord(comfort_learning_enabled=True)
+_t2_quiet_noplan._optimization_result = None
+_t2_quiet_noplan._record_quiet_comfort_period()
+R.check(
+    "before the first solve there is no trajectory to call quiet",
+    _t2_quiet_noplan._comfort_learner.evidence == 0.0,
+    f"evidence {_t2_quiet_noplan._comfort_learner.evidence!r}",
+)
+
+_t2_quiet_notraj = _t2_quiet(_T2_PEAKY, _T2_POWER, [])
+R.check(
+    "a plan that solved with no room trajectory records nothing",
+    _t2_quiet_notraj._comfort_learner.evidence == 0.0
+    and _t2_quiet_notraj._t2_escaped is None,
+    f"evidence {_t2_quiet_notraj._comfort_learner.evidence!r} "
+    f"escaped {_t2_quiet_notraj._t2_escaped!r}",
+)
+
+_t2_quiet_noprice = _t2_quiet([], _T2_POWER, _T2_QUIET_TRAJ)
+R.check(
+    "a plan solved without prices cannot say whether flatness was free",
+    _t2_quiet_noprice._comfort_learner.evidence == 0.0
+    and _t2_quiet_noprice._t2_escaped is None,
+    f"evidence {_t2_quiet_noprice._comfort_learner.evidence!r} "
+    f"escaped {_t2_quiet_noprice._t2_escaped!r}",
+)
+
+_t2_quiet_zero = _t2_quiet([0.0] * 24, _T2_POWER, _T2_QUIET_TRAJ)
+R.check(
+    "a zero-mean price curve is not a spread worth trading comfort against",
+    _t2_quiet_zero._comfort_learner.evidence == 0.0
+    and _t2_quiet_zero._t2_escaped is None,
+    f"evidence {_t2_quiet_zero._comfort_learner.evidence!r} "
+    f"escaped {_t2_quiet_zero._t2_escaped!r} -- the spread is "
+    "relative to the mean, so a zero mean makes the ratio meaningless "
+    "rather than infinite",
+)
+
+_t2_quiet_flat1 = _t2_quiet(_T2_FLAT, _T2_POWER, _T2_QUIET_TRAJ)
+R.check(
+    "flat prices are not evidence, because holding flat cost nothing",
+    _t2_quiet_flat1._comfort_learner.evidence == 0.0,
+    f"evidence {_t2_quiet_flat1._comfort_learner.evidence!r} -- the bar is a "
+    "15 % peak-to-trough spread against the mean",
+)
+
+_t2_quiet_idle = _t2_quiet(_T2_PEAKY, [0.0] * 24, _T2_QUIET_TRAJ)
+R.check(
+    "a plan with no heating in it holds nothing flat at any cost",
+    _t2_quiet_idle._comfort_learner.evidence == 0.0,
+    f"evidence {_t2_quiet_idle._comfort_learner.evidence!r} -- under 1 kWh "
+    "planned, so there is no comfort being bought to over-weight",
+)
+
+_t2_quiet_swing = _t2_quiet(_T2_PEAKY, _T2_POWER, [18.0, 23.0])
+R.check(
+    "a 5 K indoor swing is not a quiet period however flat the complaints",
+    _t2_quiet_swing._comfort_learner.evidence == 0.0,
+    f"evidence {_t2_quiet_swing._comfort_learner.evidence!r} -- the learner's "
+    "own band guard rejects a span over a quarter of the comfort band, and "
+    "it is reached through this method rather than duplicated in it",
+)
+
+
+# -- the two replay learners: the arms that reject an interval -------------
+# `_async_learn_house_heat_loss` and `_async_learn_lower_floor_loss` replay
+# the elapsed interval through the optimizer's own model and attribute the
+# residual to a heat-loss term. Both persist what they conclude, so the
+# rejecting arms below are the difference between "one sample skipped" and
+# "a wrong coefficient on disk". The two methods are deliberately the same
+# shape, and each arm is checked on whichever of them owns it.
+_T2_HOUSE_CFG = {
+    "indoor_temp_entity": "sensor.indoor",
+    "outdoor_temp_entity": "sensor.outdoor",
+}
+# Two-zone is inferred from the presence of zone settings, so a bare
+# `two_zone_enabled` flag would silently do nothing here.
+_T2_TWO_ZONE_CFG = {
+    "upper_floor_thermal_mass": 3.0,
+    "lower_floor_thermal_mass": 8.0,
+    "lower_floor_temp_entity": "sensor.lower",
+}
+_T2_HOUSE_STATE = ThermalState(
+    room_temperature=21.0,
+    upper_floor_temperature=21.0,
+    lower_floor_temperature=20.0,
+    slab_temperature=27.0,
+    outdoor_temperature=-5.0,
+)
+
+
+def _t2_house(
+    *,
+    observed=20.9,
+    lower=None,
+    hours=0.5,
+    power=2.0,
+    outdoor=-5.0,
+    two_zone=False,
+    **config,
+):
+    """A coordinator holding one replayable interval, not yet learned from."""
+    cfg = dict(_T2_HOUSE_CFG)
+    if two_zone:
+        cfg.update(_T2_TWO_ZONE_CFG)
+    cfg.update(config)
+    c = _t2_coord(**cfg)
+    _t2_count_saves(c)
+    previous = replace(_T2_HOUSE_STATE, outdoor_temperature=outdoor)
+    c._last_house_sample = previous
+    c._last_house_sample_time = dt_util.now() - timedelta(hours=hours)
+    c._current_state = replace(
+        previous,
+        room_temperature=observed,
+        upper_floor_temperature=observed,
+        lower_floor_temperature=(
+            previous.lower_floor_temperature if lower is None else lower
+        ),
+    )
+    c._current_action = {"power": power}
+    return c
+
+
+def _t2_drive(coord, method):
+    """Run one learner and capture anything that escapes it."""
+    coord._t2_escaped = None
+    try:
+        _asyncio.run(getattr(coord, method)())
+    except Exception as err:  # noqa: BLE001
+        coord._t2_escaped = err
+    return coord
+
+
+def _t2_raise_model(coord):
+    """Make the one-step simulation fail, the shape a bad fit takes."""
+
+    def blown(*args, **kwargs):
+        raise RuntimeError("simulate_step blew up")
+
+    coord._thermal_model.simulate_step = blown
+    return coord
+
+
+_t2_hl_ok = _t2_house()
+_t2_drive(_t2_hl_ok, "_async_learn_house_heat_loss")
+R.check(
+    "a replayable interval corrects the house heat loss scale (null control)",
+    _t2_hl_ok._house_heat_loss_samples == 1
+    and _t2_hl_ok._house_heat_loss_scale > 1.0,
+    f"samples {_t2_hl_ok._house_heat_loss_samples} scale "
+    f"{_t2_hl_ok._house_heat_loss_scale!r} -- the seven rejecting arms below "
+    "all assert a count of zero, and without this one they would pass "
+    "against a learner that rejected everything",
+)
+
+# The two-zone fit takes its Newton step about the UPPER floor's UA and mass,
+# not the whole-house pair. Two facts follow and the SECOND is the one a
+# mutation can see: varying the upper mass must move the fit, and varying the
+# whole-house mass must not. A first version asserted only the first half and
+# survived a mutation that reads the whole-house pair, because the
+# simulation's own residual moves with the upper mass as well, so the two
+# runs stayed ordered the way the check expected.
+_t2_hl_light = _t2_house(two_zone=True, upper_floor_thermal_mass=3.0)
+_t2_drive(_t2_hl_light, "_async_learn_house_heat_loss")
+_t2_hl_heavy = _t2_house(two_zone=True, upper_floor_thermal_mass=9.0)
+_t2_drive(_t2_hl_heavy, "_async_learn_house_heat_loss")
+_t2_hl_rtm_small = _t2_house(two_zone=True)
+_t2_hl_rtm_small._thermal_params.room_thermal_mass = 10.0
+_t2_hl_rtm_small._thermal_params.heat_loss_coefficient = 0.15
+_t2_drive(_t2_hl_rtm_small, "_async_learn_house_heat_loss")
+_t2_hl_rtm_big = _t2_house(two_zone=True)
+_t2_hl_rtm_big._thermal_params.room_thermal_mass = 100.0
+_t2_hl_rtm_big._thermal_params.heat_loss_coefficient = 0.15
+_t2_drive(_t2_hl_rtm_big, "_async_learn_house_heat_loss")
+R.check(
+    "the two-zone fit moves with the upper zone's mass and not the house's",
+    _t2_hl_light._house_heat_loss_samples == 1
+    and _t2_hl_heavy._house_heat_loss_samples == 1
+    and _t2_hl_light._house_heat_loss_scale
+    < _t2_hl_heavy._house_heat_loss_scale
+    and abs(
+        _t2_hl_rtm_small._house_heat_loss_scale
+        - _t2_hl_rtm_big._house_heat_loss_scale
+    )
+    < 1e-8,
+    f"upper 3.0 -> {_t2_hl_light._house_heat_loss_scale!r}, upper 9.0 -> "
+    f"{_t2_hl_heavy._house_heat_loss_scale!r}; whole-house mass 10.0 -> "
+    f"{_t2_hl_rtm_small._house_heat_loss_scale!r}, 100.0 -> "
+    f"{_t2_hl_rtm_big._house_heat_loss_scale!r} -- a tenfold whole-house "
+    "change at a fixed whole-house UA must not reach a fit taken about the "
+    "upper zone, and the residual's own dependence on it is 2.3e-10",
+)
+
+_t2_hl_nopower = _t2_house()
+_t2_hl_nopower._interval_space_power = lambda: None
+_t2_drive(_t2_hl_nopower, "_async_learn_house_heat_loss")
+R.check(
+    "no trustworthy interval power means no sample, not a replay at zero",
+    _t2_hl_nopower._house_heat_loss_samples == 0
+    and _t2_hl_nopower._house_heat_loss_scale == 1.0,
+    f"samples {_t2_hl_nopower._house_heat_loss_samples} escaped "
+    f"{_t2_hl_nopower._t2_escaped!r} scale "
+    f"{_t2_hl_nopower._house_heat_loss_scale!r} -- replaying a stale meter "
+    "blames the delivery shortfall on the heat loss coefficient. SUBSUMED "
+    "for the outcome: `simulate_step(None)` raises TypeError and the "
+    "`except Exception` arm returns anyway, so the mutation passes -- what "
+    "the guard buys is the CAUSE, since without it a stale meter is logged "
+    "as a simulation failure",
+)
+
+_t2_hl_mild = _t2_house(outdoor=16.0)
+_t2_drive(_t2_hl_mild, "_async_learn_house_heat_loss")
+R.check(
+    "a 5 K indoor-outdoor difference is too small to identify a UA from",
+    _t2_hl_mild._house_heat_loss_samples == 0,
+    f"samples {_t2_hl_mild._house_heat_loss_samples} -- the Newton step "
+    "divides by this difference, so a mild day amplifies sensor noise into "
+    "the learned scale",
+)
+
+_t2_hl_blown = _t2_raise_model(_t2_house())
+_t2_drive(_t2_hl_blown, "_async_learn_house_heat_loss")
+R.check(
+    "a simulation that raises costs the sample and nothing else",
+    _t2_hl_blown._house_heat_loss_samples == 0
+    and _t2_hl_blown._t2_escaped is None
+    and _t2_hl_blown._house_heat_loss_scale == 1.0,
+    f"samples {_t2_hl_blown._house_heat_loss_samples} escaped {_t2_hl_blown._t2_escaped!r} -- the learner runs "
+    "inside the update cycle, so letting this out would take the "
+    "coordinator down over one unlucky interval",
+)
+
+_t2_hl_nan = _t2_house(observed=float("nan"))
+_t2_drive(_t2_hl_nan, "_async_learn_house_heat_loss")
+R.check(
+    "a non-finite residual is rejected before it reaches the Newton step",
+    _t2_hl_nan._house_heat_loss_samples == 0
+    and _t2_hl_nan._t2_escaped is None
+    and _t2_hl_nan._house_heat_loss_scale == 1.0,
+    f"samples {_t2_hl_nan._house_heat_loss_samples} escaped "
+    f"{_t2_hl_nan._t2_escaped!r} scale "
+    f"{_t2_hl_nan._house_heat_loss_scale!r} -- SUBSUMED: "
+    "`learner_newton_step` returns None on a non-finite residual, so "
+    "deleting this guard changes no outcome and its mutation passes",
+)
+
+_t2_hl_nostep = _t2_house()
+_t2_hl_nostep._thermal_params.heat_loss_coefficient = 0.0
+_t2_drive(_t2_hl_nostep, "_async_learn_house_heat_loss")
+R.check(
+    "a zero heat loss coefficient yields no step rather than a division",
+    _t2_hl_nostep._house_heat_loss_samples == 0
+    and _t2_hl_nostep._t2_escaped is None
+    and _t2_hl_nostep._house_heat_loss_scale == 1.0,
+    f"samples {_t2_hl_nostep._house_heat_loss_samples} escaped {_t2_hl_nostep._t2_escaped!r}",
+)
+
+# The lower-floor learner owns the split and is fitted from the lower zone,
+# which is what keeps it identifiable against the scale above.
+_t2_lf_ok = _t2_house(two_zone=True, lower=19.9)
+_t2_drive(_t2_lf_ok, "_async_learn_lower_floor_loss")
+R.check(
+    "a replayable interval corrects the lower floor split (null control)",
+    _t2_lf_ok._lower_floor_loss_samples == 1
+    and _t2_lf_ok._lower_floor_loss_ratio > 1.0,
+    f"samples {_t2_lf_ok._lower_floor_loss_samples} ratio "
+    f"{_t2_lf_ok._lower_floor_loss_ratio!r}",
+)
+
+_t2_lf_nopower = _t2_house(two_zone=True, lower=19.9)
+_t2_lf_nopower._interval_space_power = lambda: None
+_t2_drive(_t2_lf_nopower, "_async_learn_lower_floor_loss")
+R.check(
+    "the lower floor learner skips an interval with no trustworthy power too",
+    _t2_lf_nopower._lower_floor_loss_samples == 0
+    and _t2_lf_nopower._lower_floor_loss_ratio == 1.0,
+    f"samples {_t2_lf_nopower._lower_floor_loss_samples} escaped "
+    f"{_t2_lf_nopower._t2_escaped!r} -- SUBSUMED for the outcome by the "
+    "`except Exception` arm, as in the house learner, and kept for the "
+    "cause it reports",
+)
+
+# The observed temperature is the model's OWN 2 h prediction, so the residual
+# is zero and every downstream guard passes. A round value left the residual
+# at -1.23 against a 1.0 bar, so the bar rejected the sample and the length
+# bound decided nothing -- measured: with the bound made one-sided that
+# version of this check still passed.
+_t2_lf_long = _t2_house(two_zone=True, hours=2.0)
+_t2_lf_long._current_state = replace(
+    _t2_lf_long._current_state,
+    lower_floor_temperature=_t2_lf_long._thermal_model.simulate_step(
+        _t2_lf_long._last_house_sample,
+        2.0,
+        _T2_HOUSE_STATE.outdoor_temperature,
+        wind_speed=0.0,
+        precipitation=0.0,
+        solar_radiation=_T2_HOUSE_STATE.solar_radiation,
+        dt_hours=2.0,
+        hour_of_day=float(_t2_lf_long._last_house_sample_time.hour),
+    ).lower_floor_temperature,
+)
+_t2_drive(_t2_lf_long, "_async_learn_lower_floor_loss")
+R.check(
+    "an interval outside 0.15-1.5 h is rejected on one combined bound",
+    _t2_lf_long._lower_floor_loss_samples == 0
+    and _t2_lf_long._t2_escaped is None,
+    f"samples {_t2_lf_long._lower_floor_loss_samples} at 2.00 h over a zero "
+    "residual, so the length bound is the only arm that can reject it -- the "
+    "house learner splits the same test into two branches",
+)
+
+_t2_lf_mild = _t2_house(two_zone=True, lower=19.9, outdoor=16.0)
+_t2_drive(_t2_lf_mild, "_async_learn_lower_floor_loss")
+R.check(
+    "the lower floor's own minimum difference is measured from the lower zone",
+    _t2_lf_mild._lower_floor_loss_samples == 0
+    and _t2_lf_mild._lower_floor_loss_ratio == 1.0,
+    f"samples {_t2_lf_mild._lower_floor_loss_samples} at a 4 K lower-zone "
+    "difference -- the house learner reads the driving zone for the same test, "
+    "so its check cannot reach this one",
+)
+
+_t2_lf_blown = _t2_raise_model(_t2_house(two_zone=True, lower=19.9))
+_t2_drive(_t2_lf_blown, "_async_learn_lower_floor_loss")
+R.check(
+    "a lower floor simulation that raises costs the sample and nothing else",
+    _t2_lf_blown._lower_floor_loss_samples == 0
+    and _t2_lf_blown._t2_escaped is None
+    and _t2_lf_blown._lower_floor_loss_ratio == 1.0,
+    f"samples {_t2_lf_blown._lower_floor_loss_samples} escaped {_t2_lf_blown._t2_escaped!r}",
+)
+
+_t2_lf_nan = _t2_house(two_zone=True, lower=float("nan"))
+_t2_drive(_t2_lf_nan, "_async_learn_lower_floor_loss")
+R.check(
+    "a non-finite lower floor residual is rejected before the Newton step",
+    _t2_lf_nan._lower_floor_loss_samples == 0
+    and _t2_lf_nan._t2_escaped is None
+    and _t2_lf_nan._lower_floor_loss_ratio == 1.0,
+    f"samples {_t2_lf_nan._lower_floor_loss_samples} escaped "
+    f"{_t2_lf_nan._t2_escaped!r} -- SUBSUMED by the Newton step's own "
+    "non-finite return, exactly as in the house learner",
+)
+
+_t2_lf_nostep = _t2_house(two_zone=True, lower=19.9)
+_t2_lf_nostep._thermal_params.lower_floor_heat_loss = 0.0
+_t2_drive(_t2_lf_nostep, "_async_learn_lower_floor_loss")
+R.check(
+    "a zero lower floor UA yields no step rather than a division",
+    _t2_lf_nostep._lower_floor_loss_samples == 0
+    and _t2_lf_nostep._t2_escaped is None
+    and _t2_lf_nostep._lower_floor_loss_ratio == 1.0,
+    f"samples {_t2_lf_nostep._lower_floor_loss_samples} escaped {_t2_lf_nostep._t2_escaped!r}",
+)
+
+# Both replay learners persist on every tenth accepted sample, not on each
+# one: the store is a disk write inside the update cycle.
+_t2_lf_ten = _t2_house(two_zone=True, lower=19.9)
+for _t2_lf_i in range(10):
+    _t2_lf_ten._last_house_sample = replace(_T2_HOUSE_STATE)
+    _t2_lf_ten._last_house_sample_time = dt_util.now() - timedelta(hours=0.5)
+    _asyncio.run(_t2_lf_ten._async_learn_lower_floor_loss())
+R.check(
+    "ten accepted lower floor samples reach the store exactly once",
+    _t2_lf_ten._lower_floor_loss_samples == 10
+    and len(_t2_lf_ten._t2_saves) == 1,
+    f"samples {_t2_lf_ten._lower_floor_loss_samples} saves "
+    f"{len(_t2_lf_ten._t2_saves)} -- persisting each one is a disk write per "
+    "update cycle, and losing at most nine samples to a restart is the "
+    "trade this pins",
 )
 
 sys.exit(R.close("FEATURE CHECKS"))
