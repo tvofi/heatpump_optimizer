@@ -15022,6 +15022,39 @@ R.check(
     f"only in the wired-check: {sorted(_NS_WIRED - _NS_RAN)}",
 )
 
+# That pin compares run.sh with ITSELF. The same question is asked a third time
+# one file over, as `tests/closure.py`'s `NOT_A_TEST`, and nothing compared the
+# two until this check -- which is how #195's two instruments went onto
+# `NOT_A_TEST` alone and cost four red lines on a runner, twenty minutes into a
+# full suite, for a fact both files already held locally.
+_NS_NOT_TESTS = _closure.NOT_A_TEST | set(_closure.DRIVEN_BY_OTHERS)
+R.check(
+    "every script run.sh skips is one closure.py already refuses to select",
+    _NS_WIRED <= _NS_NOT_TESTS,
+    f"skipped by run.sh but selectable by the gate: "
+    f"{sorted(_NS_WIRED - _NS_NOT_TESTS)} -- the scoped gate would choose a "
+    "script no lane runs, which reads as a green scope rather than as a "
+    "script that went missing",
+)
+# The other direction, and deliberately NOT equality: a NOT_A_TEST script may
+# be one run.sh runs anyway. setup_qa_render.mjs is wired into the card lane
+# while still being a thing no gate scopes, and closure.py says so in place.
+_NS_RUNSH_RUNS = {
+    _m.group(1) for _m in re.finditer(
+        r"^\s*run(?:_always)? .*tests/([\w.]+\.(?:py|mjs))(?: |$)",
+        _NS_RUNSH, re.M)
+}
+R.check(
+    "and a script closure.py will not select is either skipped by run.sh or run by it",
+    not (_NS_NOT_TESTS - _NS_WIRED - _NS_RUNSH_RUNS),
+    f"neither skipped nor run: "
+    f"{sorted(_NS_NOT_TESTS - _NS_WIRED - _NS_RUNSH_RUNS)}; the ones run.sh "
+    f"DOES run: {sorted(_NS_NOT_TESTS & _NS_RUNSH_RUNS)} -- a script in "
+    "neither set is one the suite has quietly stopped running and the gate "
+    "has quietly stopped scoping, which is how optimality.py sat dormant for "
+    "a year",
+)
+
 # --- the run's OWN conclusion, which is one level above its job list --------
 #
 # THE DEFECT THIS BLOCK EXISTS TO REFUSE, and it is the exact failure this
