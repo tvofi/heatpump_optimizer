@@ -25812,13 +25812,19 @@ R.check(
 
 _t1_ecl_bad = _t1_coord()
 _t1_ecl_bad._ecl110_current_displace = 7.0
-_t1_ecl_bad._async_handle_ecl110_state_message(_T1Msg("not json at all"))
-_t1_ecl_bad._async_handle_ecl110_state_message(_T1Msg('{"displace": "NaN-ish"}'))
+_t1_ecl_raised = []
+for _t1_bad_payload in ("not json at all", '{"displace": "NaN-ish"}', b"\xff\xfe"):
+    try:
+        _t1_ecl_bad._async_handle_ecl110_state_message(_T1Msg(_t1_bad_payload))
+    except Exception as _t1_exc:  # noqa: BLE001 - the point of the check
+        _t1_ecl_raised.append(f"{_t1_bad_payload!r}: {type(_t1_exc).__name__}")
 R.check(
     "a malformed payload leaves the last good displace standing and raises nothing",
-    _t1_ecl_bad._ecl110_current_displace == 7.0,
-    f"{_t1_ecl_bad._ecl110_current_displace!r} -- the handler is a callback on "
-    "the event loop, so a raise here would surface as an unhandled task error",
+    not _t1_ecl_raised and _t1_ecl_bad._ecl110_current_displace == 7.0,
+    f"raised={_t1_ecl_raised!r} displace={_t1_ecl_bad._ecl110_current_displace!r} -- "
+    "the handler is a @callback on the event loop, so a raise here surfaces as "
+    "an unhandled task error and the exception is caught HERE so this check "
+    "fails by name rather than taking the lane down",
 )
 
 # -- the live PV production reading, unit by unit ---------------------------
@@ -25848,6 +25854,13 @@ R.check(
     _t1_pv("2500") == 2.5,
     f"{_t1_pv('2500')!r} -- 2500 W is 2.5 kW and the solver plans in kW",
 )
+# MEASURED, AND THE MEASUREMENT IS WHY THIS CHECK IS WORDED AS AN OUTCOME AND
+# NOT AS A GUARD: deleting the `in ("unknown", "unavailable", "")` clause from
+# production leaves this check green, because `float("unknown")` raises and the
+# except arm below returns None anyway. So the clause is redundant for all
+# three strings -- it documents intent and buys nothing the next line does not
+# already buy. This check pins the OUTCOME, which is what a caller depends on;
+# the redundancy is recorded in the pull-request body for a production seat.
 R.check(
     "an absent entity, and the three non-values Home Assistant publishes, read as None",
     _t1_pv(None) is None
@@ -25883,17 +25896,24 @@ R.check(
     f"return={_t1_away_on._away_state.override_return_iso!r}",
 )
 
+# A SPACE-SEPARATED local time is what the frontend's picker posts, and it is
+# not an ISO instant: storing it verbatim would leave the store holding a
+# string `_parse_return_time` has to re-interpret on every read, and the
+# expiry sweep three lines below would compare against None.
 _t1_away_str = _t1_coord()
-_asyncio.run(
-    _t1_away_str.async_set_away(
-        True, (dt_util.now() + timedelta(hours=3)).isoformat()
-    )
-)
+_t1_away_target = (dt_util.now() + timedelta(hours=3)).replace(microsecond=0)
+_t1_away_posted = _t1_away_target.strftime("%Y-%m-%d %H:%M:%S")
+_asyncio.run(_t1_away_str.async_set_away(True, _t1_away_posted))
+_t1_away_stored = _t1_away_str._away_state.override_return_iso
 R.check(
-    "a return time arriving as an ISO string is parsed, not stored verbatim",
-    _t1_away_str._away_state.override_return_iso is not None
-    and _t1_away_str._away_state.override_active is True,
-    f"{_t1_away_str._away_state.override_return_iso!r}",
+    "a return time arriving as a picker string is parsed, not stored verbatim",
+    _t1_away_str._away_state.override_active is True
+    and _t1_away_stored is not None
+    and _t1_away_stored != _t1_away_posted
+    and away_mode._parse_return_time(_t1_away_stored) is not None,
+    f"posted={_t1_away_posted!r} stored={_t1_away_stored!r} -- the stored form "
+    "must round-trip through _parse_return_time, which the posted one only does "
+    "by accident of the parser's tolerance",
 )
 
 _t1_away_off = _t1_coord()
@@ -25940,11 +25960,17 @@ class _T1RaisingStore:
 
 _t1_acc_before = _t1_acc_raise._accuracy
 _t1_acc_raise._accuracy_store = _T1RaisingStore()
-_asyncio.run(_t1_acc_raise._async_load_accuracy())
+_t1_acc_escaped = None
+try:
+    _asyncio.run(_t1_acc_raise._async_load_accuracy())
+except Exception as _t1_acc_exc:  # noqa: BLE001 - the point of the check
+    _t1_acc_escaped = type(_t1_acc_exc).__name__
 R.check(
-    "a store that raises leaves the in-memory trackers untouched",
-    _t1_acc_raise._accuracy is _t1_acc_before,
-    "a corrupt store must cost the history, never the running entry",
+    "a store that raises is swallowed here and leaves the trackers untouched",
+    _t1_acc_escaped is None and _t1_acc_raise._accuracy is _t1_acc_before,
+    f"escaped={_t1_acc_escaped!r} -- a corrupt store must cost the history and "
+    "never the running entry, and the exception is caught HERE so a narrowed "
+    "except clause in production fails this check by name",
 )
 
 _t1_acc_nondict = _t1_coord()
