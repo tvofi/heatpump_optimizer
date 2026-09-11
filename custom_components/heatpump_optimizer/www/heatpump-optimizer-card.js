@@ -2770,7 +2770,9 @@ function cardStyleBlock() {
         .expand, .close, .viewctl button, .chip, .dlg-tab,
         .layout-bar button, .whatif button, .whatif input[type="time"],
         .whatif .wi-win-days, .whatif .wi-viewreset, .sp-actions button,
-        .slot-menu button {
+        .slot-menu button,
+        .away-strip label, .away-strip input[type="checkbox"],
+        .away-strip input[type="datetime-local"] {
           min-height: ${TARGET_MIN_PX}px;
           min-width: ${TARGET_MIN_PX}px;
           box-sizing: border-box;
@@ -3479,6 +3481,26 @@ function cardStyleBlock() {
       @media (pointer: coarse) {${coarseHtmlTargets}
       }
       ${_coarsePointer() ? coarseHtmlTargets : ""}
+      /* #823: .away-strip shipped with no rule matching it at all -- a 13px
+         checkbox, a 14px label and a 0px gap, so the two labels rendered as
+         "AwayReturn". Every other control block clears the card's own 24px
+         coarse-pointer floor; this one was simply never added to that rule
+         set (see coarseHtmlTargets below). */
+      .away-strip {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.75em;
+      }
+      .away-strip label {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4em;
+      }
+      .away-strip [data-away-status] {
+        flex: 1 1 100%;
+        color: var(--secondary-text-color);
+      }
       .whatif .wi-result {
         flex: 1 1 100%; min-height: 1.4em; line-height: 1.5em;
         color: var(--secondary-text-color);
