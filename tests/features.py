@@ -33038,4 +33038,243 @@ R.check(
     "about water safety on screen after the problem was fixed",
 )
 
+
+# -- W5-G8 block G: five more loaders, and the window arithmetic -----------
+# The tail of the residual, and it is the same two shapes one last time: a
+# `from_dict` that has to survive a payload an older or newer version wrote,
+# and the pure arithmetic that decides which hours a window covers. Nothing
+# here needs a coordinator.
+R.section("W5-G8 g: the last loaders and the window arithmetic (#195)")
+
+from heatpump_optimizer import dhw_schedule as _g8_sched  # noqa: E402
+from heatpump_optimizer.tariff import PeakTracker as _G8Peak  # noqa: E402
+from heatpump_optimizer.accuracy import AccuracySample as _G8Sample  # noqa: E402
+from heatpump_optimizer.freq_control import FrequencyMap as _G8Fmap  # noqa: E402
+from heatpump_optimizer import manual_plan as _g8_mp  # noqa: E402
+
+
+# -- dhw_schedule: a window spec of any accepted shape ---------------------
+_g8_spec = {
+    "plain string": _g8_sched._spec_text("06:00-08:30"),
+    "semicolons": _g8_sched._spec_text("06:00-08:30;17:00-22:00"),
+    "newlines": _g8_sched._spec_text("06:00-08:30\n17:00-22:00"),
+    "list of strings": _g8_sched._spec_text(["06:00-08:30", "17:00-22:00"]),
+    "list of pairs": _g8_sched._spec_text([("06:00", "08:30"), ["17:00", "22:00"]]),
+    "tuple": _g8_sched._spec_text(("06:00-08:30",)),
+    "padded": _g8_sched._spec_text("  06:00-08:30  "),
+}
+R.check(
+    "every accepted spelling of a window spec normalises to the same string",
+    len({_g8_spec[k] for k in
+         ("plain string", "tuple", "padded")}) == 1
+    and _g8_spec["semicolons"] == _g8_spec["newlines"]
+    == _g8_spec["list of strings"] == _g8_spec["list of pairs"]
+    == "06:00-08:30,17:00-22:00",
+    "; ".join(f"{k}={_g8_spec[k]!r}" for k in sorted(_g8_spec))
+    + " -- one normaliser shared by both parsers ON PURPOSE, so the two can "
+    "never be looking at a different string; the pair form is what the card's "
+    "editor posts and the semicolon form is what a YAML user writes",
+)
+_g8_days = {
+    "single": _g8_sched._parse_day_selector("mo"),
+    "list": _g8_sched._parse_day_selector("mo,we,fr"),
+    "range": _g8_sched._parse_day_selector("mo-we"),
+    "wrapping range": _g8_sched._parse_day_selector("sa-mo"),
+    "spaced": _g8_sched._parse_day_selector(" mo - we "),
+    "uppercase": _g8_sched._parse_day_selector("MO-WE"),
+    "named groups": (_g8_sched._parse_day_selector("weekdays"),
+                     _g8_sched._parse_day_selector("weekend"),
+                     _g8_sched._parse_day_selector("daily")),
+    "bad range end": _g8_sched._parse_day_selector("mo-xx"),
+    "bad member": _g8_sched._parse_day_selector("mo,xx"),
+}
+R.check(
+    "a weekday selector accepts a list or a range, and wraps the week",
+    _g8_days["single"] == [0]
+    and _g8_days["list"] == [0, 2, 4]
+    and _g8_days["range"] == [0, 1, 2]
+    and _g8_days["wrapping range"] == [0, 5, 6]
+    and _g8_days["spaced"] == [0, 1, 2]
+    and _g8_days["uppercase"] == [0, 1, 2]
+    and _g8_days["named groups"] == ([0, 1, 2, 3, 4], [5, 6], list(range(7)))
+    and _g8_days["bad range end"] == []
+    and _g8_days["bad member"] == [],
+    "; ".join(f"{k}={_g8_days[k]!r}" for k in sorted(_g8_days))
+    + " -- `sa-mo` wrapping to Saturday, Sunday and Monday is the case a "
+    "modulo-free implementation gets wrong, and an unknown token yields the "
+    "EMPTY set rather than the days it did recognise: a schedule that "
+    "silently applied to Monday alone because the user misspelled Wednesday "
+    "is worse than one that visibly applies to nothing",
+)
+_g8_win = _g8_sched.parse_windows("06:00-08:30,22:00-24:00")
+_g8_wrap = _g8_sched.parse_windows("22:00-02:00")
+R.check(
+    "a full-day window's 24:00 end includes the last hour, and a wrap includes both sides",
+    _g8_sched.hour_in_windows(7.0, _g8_win) is True
+    and _g8_sched.hour_in_windows(23.5, _g8_win) is True
+    and _g8_sched.hour_in_windows(12.0, _g8_win) is False
+    and _g8_sched.hour_in_windows(5.0, []) is False
+    and _g8_sched.hour_in_windows(23.0, _g8_wrap) is True
+    and _g8_sched.hour_in_windows(1.0, _g8_wrap) is True
+    and _g8_sched.hour_in_windows(12.0, _g8_wrap) is False,
+    f"in 06-08:30/22-24: 07:00={_g8_sched.hour_in_windows(7.0, _g8_win)}, "
+    f"23:30={_g8_sched.hour_in_windows(23.5, _g8_win)}, "
+    f"12:00={_g8_sched.hour_in_windows(12.0, _g8_win)}; across 22-02: "
+    f"23:00={_g8_sched.hour_in_windows(23.0, _g8_wrap)}, "
+    f"01:00={_g8_sched.hour_in_windows(1.0, _g8_wrap)}. The 24:00 guard is "
+    "separate from the ordinary comparison because `start <= h < end` with "
+    "end == 24.0 already covers it -- what it actually rescues is a window "
+    "normalised to end AT or past 24.0 while h is the wrapped hour",
+)
+_g8_ov = {
+    "wholly inside": _g8_sched.overlap_fraction(6.5, 7.5, _g8_win),
+    "wholly outside": _g8_sched.overlap_fraction(12.0, 13.0, _g8_win),
+    "half in": _g8_sched.overlap_fraction(8.0, 9.0, _g8_win),
+    "no windows": _g8_sched.overlap_fraction(6.0, 7.0, []),
+    "zero length": _g8_sched.overlap_fraction(6.0, 6.0, _g8_win),
+    "backwards": _g8_sched.overlap_fraction(7.0, 6.0, _g8_win),
+}
+R.check(
+    "the overlap of a step with the demand windows is a fraction of the step",
+    _g8_ov["wholly inside"] == 1.0
+    and _g8_ov["wholly outside"] == 0.0
+    and abs(_g8_ov["half in"] - 0.5) < 1e-9
+    and _g8_ov["no windows"] == 0.0
+    and _g8_ov["zero length"] == 0.0
+    and _g8_ov["backwards"] == 0.0,
+    "; ".join(f"{k}={_g8_ov[k]!r}" for k in sorted(_g8_ov))
+    + " -- the zero-length and backwards arms both return 0.0 rather than "
+    "dividing by a non-positive length; the solver calls this per step, so a "
+    "ZeroDivisionError here is a plan that does not exist rather than one "
+    "that is slightly wrong",
+)
+
+
+# -- tariff.PeakTracker.from_dict: a restart in the middle of a window -----
+_g8_pk_full = _G8Peak.from_dict({
+    "peaks": [3.0, "x", 5.0, 4.0], "window_key": "2026-01-15T09:00",
+    "window_sum": 6.0, "window_samples": 3, "window_factor": 0.5,
+    "window_wsum": 3.0, "window_weight": 2.0,
+})
+_g8_pk_junk = _G8Peak.from_dict({
+    "peaks": "not a list", "window_sum": "x", "window_samples": "x",
+    "window_factor": "x", "window_wsum": "x", "window_weight": "x",
+})
+_g8_pk_old = _G8Peak.from_dict({"peaks": [5.0]})
+R.check(
+    "a peak tracker reloads mid-window, and a pre-v4 payload loads unmasked",
+    _g8_pk_full.peaks == [5.0, 4.0, 3.0]
+    and _g8_pk_full._window_factor == 0.5
+    and (_g8_pk_full._window_wsum, _g8_pk_full._window_weight) == (3.0, 2.0)
+    and _g8_pk_junk.peaks == []
+    and _g8_pk_junk._window_factor == 1.0
+    and (_g8_pk_junk._window_wsum, _g8_pk_junk._window_weight) == (0.0, 0.0)
+    and _g8_pk_old._window_factor == 1.0,
+    f"a full payload -> peaks {_g8_pk_full.peaks!r} (sorted descending, the "
+    f"non-numeric one dropped), factor {_g8_pk_full._window_factor!r}, "
+    f"weighted ({_g8_pk_full._window_wsum!r}, {_g8_pk_full._window_weight!r}); "
+    f"an unreadable one -> {_g8_pk_junk.peaks!r} and factor "
+    f"{_g8_pk_junk._window_factor!r}; a pre-v4 one -> "
+    f"{_g8_pk_old._window_factor!r}. The weighted pair is the load-bearing "
+    "one: a restart mid-window that fell back to the unweighted mean would "
+    "close the window on exactly the phantom chatty-meter peak the weighted "
+    "fold exists to keep out, and 1.0 is 'unmasked', which is what an old "
+    "payload had",
+)
+
+
+# -- accuracy.AccuracySample.from_dict -------------------------------------
+_g8_as_ok = _G8Sample.from_dict({"t": "2026-01-15T09:00:00+00:00", "pc": 1.0})
+_g8_as_notime = _G8Sample.from_dict({"pc": 1.0})
+_g8_as_badtime = _G8Sample.from_dict({"t": "whenever"})
+_g8_as_nan = _G8Sample.from_dict({"t": "2026-01-15T09:00:00+00:00",
+                                  "pc": float("nan"), "ac": "text", "pk": None})
+R.check(
+    "an accuracy sample needs a readable instant, and each field falls back alone",
+    _g8_as_ok is not None
+    and _g8_as_notime is None
+    and _g8_as_badtime is None
+    and _g8_as_nan is not None
+    and _g8_as_nan.predicted_cost is None,
+    f"good -> {_g8_as_ok is not None}; no timestamp -> {_g8_as_notime!r}; "
+    f"unreadable timestamp -> {_g8_as_badtime!r}; NaN and text fields -> a "
+    f"sample with predicted_cost {_g8_as_nan.predicted_cost!r}. The whole "
+    "sample is refused only for the TIME, because a sample that cannot be "
+    "placed on the clock cannot be scored against anything; a single field "
+    "that will not float is simply one number nobody measured",
+)
+
+
+# -- freq_control.FrequencyMap.from_dict and its evidence test -------------
+_g8_fm = _G8Fmap.from_dict({
+    "0": [0.01, 12], "1": ["x", 5], "2": [0.02], "3": [-0.01, 4],
+    "4": [0.03, -1], "not-a-decile": [0.04, 9], "5": [float("nan"), 9],
+})
+_g8_fm_none = _G8Fmap.from_dict(None)
+R.check(
+    "a frequency map keeps the buckets that are whole and plausible, one by one",
+    _g8_fm.buckets == {0: [0.01, 12]}
+    and _g8_fm_none.buckets == {},
+    f"seven entries in, {sorted(_g8_fm.buckets)!r} out; from None -> "
+    f"{_g8_fm_none.buckets!r}. Six separate rejections -- a non-numeric "
+    "ratio, a one-element entry, a negative ratio, a negative count, a key "
+    "that is not a decile and a NaN -- and each `continue`s rather than "
+    "abandoning the map, because the map is what keeps the frequency advisor "
+    "from extrapolating and one bad bucket should not send it back to zero "
+    "evidence",
+)
+
+
+# -- manual_plan: parsing an override written by a browser ------------------
+_G8_MP_REF = datetime(2026, 1, 15, 9, 0, tzinfo=UTC)
+_g8_mp_naive_ref = _G8_MP_REF.replace(tzinfo=None)
+_g8_mp_coerce = {
+    "aware into naive": _g8_mp._coerce_awareness(_G8_MP_REF, _g8_mp_naive_ref),
+    "naive into aware": _g8_mp._coerce_awareness(_g8_mp_naive_ref, _G8_MP_REF),
+    "aware into aware": _g8_mp._coerce_awareness(_G8_MP_REF, _G8_MP_REF),
+    "naive into naive": _g8_mp._coerce_awareness(_g8_mp_naive_ref, _g8_mp_naive_ref),
+}
+R.check(
+    "a slot's awareness is matched to the reference before anything compares them",
+    _g8_mp_coerce["aware into naive"].tzinfo is None
+    and _g8_mp_coerce["naive into aware"].tzinfo is UTC
+    and _g8_mp_coerce["aware into aware"] is _G8_MP_REF
+    and _g8_mp_coerce["naive into naive"] is _g8_mp_naive_ref,
+    "; ".join(f"{k}={_g8_mp_coerce[k]!r}" for k in sorted(_g8_mp_coerce))
+    + " -- all four directions, because the reference is the override's own "
+    "expiry and the slots come from a browser: mixing the two raises "
+    "TypeError deep inside an ordering check, which is the failure this "
+    "function exists to move to the front door",
+)
+_g8_mp_parse = {
+    "datetime": _t6_call(_g8_mp._parse_dt, _G8_MP_REF, _G8_MP_REF),
+    "iso": _t6_call(_g8_mp._parse_dt, "2026-01-15T09:00:00+00:00", _G8_MP_REF),
+    "number": _t6_call(_g8_mp._parse_dt, 1736931600, _G8_MP_REF),
+    "rubbish": _t6_call(_g8_mp._parse_dt, "tomorrow", _G8_MP_REF),
+}
+_g8_mp_store = {
+    "no expiry": _t6_call(_g8_mp.ManualOverride.from_dict, {}),
+    "bad expiry": _t6_call(_g8_mp.ManualOverride.from_dict,
+                           {"expires_at": "whenever"}),
+    "bad created": _t6_call(
+        _g8_mp.ManualOverride.from_dict,
+        {"expires_at": "2026-01-15T12:00:00+00:00", "created_at": "whenever"}),
+}
+R.check(
+    "a stored override is refused on its expiry and forgiving about the rest",
+    isinstance(_g8_mp_parse["number"], _g8_mp.ManualPlanError)
+    and isinstance(_g8_mp_parse["rubbish"], _g8_mp.ManualPlanError)
+    and _g8_mp_parse["iso"] == _G8_MP_REF
+    and isinstance(_g8_mp_store["no expiry"], _g8_mp.ManualPlanError)
+    and isinstance(_g8_mp_store["bad expiry"], _g8_mp.ManualPlanError)
+    and not isinstance(_g8_mp_store["bad created"], Exception)
+    and _g8_mp_store["bad created"].created_at is None,
+    "; ".join(f"{k}={_g8_mp_parse[k]!r}" for k in sorted(_g8_mp_parse))
+    + f"; stored: {sorted((k, type(v).__name__) for k, v in _g8_mp_store.items())!r}"
+    + " -- the expiry is the one field an override cannot do without, since "
+    "`is_expired` is what stops a pinned plan running for ever; `created_at` "
+    "is provenance, so an unreadable one costs the timestamp and not the "
+    "user's plan",
+)
+
 sys.exit(R.close("FEATURE CHECKS"))
