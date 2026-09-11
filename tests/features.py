@@ -33495,4 +33495,194 @@ R.check(
     "would feed öre/kWh into the load model as if it were kilowatts",
 )
 
+
+# -- W5-G8 i: the system-identification experiment -------------------------
+# The last module below the bar, and the only one in the residual that is a
+# STATE MACHINE rather than a loader. It runs a real experiment on a real
+# house -- it injects power overnight and watches the room move -- so what is
+# uncovered here is every way the experiment refuses to start, and every way
+# it stops once it has. Those are the paths that protect the occupant.
+R.section("W5-G8 i: the system-identification experiment (#195)")
+
+from heatpump_optimizer import sysid as _g8_sid  # noqa: E402
+from heatpump_optimizer.sysid import (  # noqa: E402
+    SysIdConfig as _G8SidCfg,
+    SystemIdentification as _G8Sid,
+)
+
+_G8_SID_T0 = datetime(2026, 1, 15, 23, 30, tzinfo=UTC)
+_G8_SID_FLAT = np.full(24, 1.0)
+
+
+def _g8_sid_new(**cfg):
+    return _G8Sid(_G8SidCfg(enabled=True, **cfg))
+
+
+def _g8_sid_step(sid, when, room=21.0, outdoor=0.0, **kw):
+    return sid.step(
+        when, room, outdoor, kw.pop("price", 0.5),
+        kw.pop("price_horizon", _G8_SID_FLAT), kw.pop("learner_samples", 0),
+        kw.pop("max_power_kw", 6.0), **kw)
+
+
+# -- the two sizing predictors, refusing a house with no physics ------------
+_g8_sid_one = _g8_sid._predict_step_excursion(
+    baseline=21.0, outdoor=0.0, ua=0.0, capacity=10.0, gains=0.3,
+    step_thermal_kw=3.0, step_hours=2.0, relax_hours=2.0)
+_g8_sid_plant = _g8_sid._predict_step_excursion_plant(
+    baseline=21.0, outdoor=0.0, ua=0.2, capacity=0.0, gains=0.3,
+    step_thermal_kw=3.0, step_hours=2.0, relax_hours=2.0)
+R.check(
+    "a house with no loss or no mass predicts an INFINITE excursion, not a small one",
+    _g8_sid_one == (float("inf"), float("inf"))
+    and _g8_sid_plant == (float("inf"), float("inf")),
+    f"one-state with ua=0 -> {_g8_sid_one!r}; plant with capacity=0 -> "
+    f"{_g8_sid_plant!r}. Infinity is the safe direction and zero would be the "
+    "dangerous one: the caller sizes the step so the predicted excursion "
+    "stays inside the comfort bound, so a degenerate house predicting 0.0 "
+    "would authorise the largest step there is and run it overnight",
+)
+
+
+# -- conditions_met: five independent reasons not to start tonight ----------
+_g8_sid_gate = {
+    "converged": _g8_sid_new().conditions_met(
+        _G8_SID_T0, 0.0, 0.5, _G8_SID_FLAT, 500),
+    "too cold": _g8_sid_new().conditions_met(
+        _G8_SID_T0, -30.0, 0.5, _G8_SID_FLAT, 0),
+    "too warm": _g8_sid_new().conditions_met(
+        _G8_SID_T0, 30.0, 0.5, _G8_SID_FLAT, 0),
+    "daytime": _g8_sid_new().conditions_met(
+        _G8_SID_T0.replace(hour=14), 0.0, 0.5, _G8_SID_FLAT, 0),
+    "in window": _g8_sid_new().conditions_met(
+        _G8_SID_T0, 0.0, 0.5, _G8_SID_FLAT, 0),
+}
+R.check(
+    "the experiment starts only in its own window, in a safe temperature band",
+    _g8_sid_gate["in window"][0] is True
+    and all(_g8_sid_gate[k][0] is False for k in
+            ("converged", "too cold", "too warm", "daytime"))
+    and len({_g8_sid_gate[k][1] for k in
+             ("converged", "too cold", "daytime")}) == 3,
+    "; ".join(f"{k}={_g8_sid_gate[k]!r}" for k in sorted(_g8_sid_gate))
+    + " -- the reason is returned beside the verdict and is not decoration: "
+    "`step` reads it, and a refusal whose reason contains 'converged' retires "
+    "the experiment for good rather than re-arming it tomorrow night. The "
+    "window wraps midnight, which is the normal case and the one an "
+    "unwrapped comparison gets wrong",
+)
+_g8_sid_conv = _g8_sid_new()
+_g8_sid_conv.arm(_G8_SID_T0)
+_g8_sid_conv_out = _g8_sid_step(_g8_sid_conv, _G8_SID_T0, learner_samples=500)
+_g8_sid_wait = _g8_sid_new()
+_g8_sid_wait.arm(_G8_SID_T0)
+_g8_sid_wait_out = _g8_sid_step(_g8_sid_wait, _G8_SID_T0, outdoor=-30.0)
+R.check(
+    "a converged house RETIRES the experiment; a cold night merely postpones it",
+    _g8_sid_conv_out is None
+    and _g8_sid_conv.phase == _g8_sid.PHASE_IDLE
+    and _g8_sid_conv.result.completed is False
+    and "converged" in _g8_sid_conv.result.reason
+    and _g8_sid_wait_out is None
+    and _g8_sid_wait.phase == _g8_sid.PHASE_ARMED
+    and _g8_sid_wait.result.reason == "",
+    f"converged -> phase {_g8_sid_conv.phase!r}, reason "
+    f"{_g8_sid_conv.result.reason!r}; too cold -> phase "
+    f"{_g8_sid_wait.phase!r}, reason {_g8_sid_wait.result.reason!r}. The "
+    "REASON is what separates them, not the presence of a result: a fresh "
+    "`SystemIdentification` already carries an empty one, so 'is not None' "
+    "would pass on both. Two refusals "
+    "that look the same from the return value and are not: the house that has "
+    "already learned enough should never be asked again, while the one that "
+    "is merely too cold tonight must stay armed for the next night that is "
+    "not",
+)
+
+
+# -- the run itself, and the excursion guard that stops it ------------------
+_g8_sid_run = _g8_sid_new(settle_hours=1.0, step_hours=2.0, relax_hours=1.0)
+_g8_sid_run.arm(_G8_SID_T0)
+_g8_sid_trace = []
+for _h in (0.0, 0.5, 1.0, 1.5, 2.5, 3.0, 3.5, 4.5):
+    _g8_sid_trace.append((
+        _h,
+        _g8_sid_step(_g8_sid_run, _G8_SID_T0 + timedelta(hours=_h),
+                     house_ua=0.25, house_capacity=12.0, house_gains=0.3),
+        _g8_sid_run.phase,
+    ))
+_g8_sid_phases = [p for _, _, p in _g8_sid_trace]
+_g8_sid_powers = [v for _, v, _ in _g8_sid_trace]
+R.check(
+    "the experiment settles, injects a sized step, relaxes and finishes",
+    _g8_sid_phases[0] == _g8_sid.PHASE_SETTLING
+    and _g8_sid.PHASE_STEP in _g8_sid_phases
+    and _g8_sid.PHASE_RELAX in _g8_sid_phases
+    and _g8_sid_phases[-1] == _g8_sid.PHASE_DONE
+    and any(v is not None and v > 0.0 for v in _g8_sid_powers)
+    and _g8_sid_powers[0] is None,
+    f"phases {_g8_sid_phases!r}; power overrides "
+    f"{[None if v is None else round(v, 2) for v in _g8_sid_powers]!r}. "
+    "`None` means the optimizer's own plan stands and a number overrides it, "
+    "so the settle phase returning None is what keeps the house on its "
+    "ordinary plan while the experiment waits for a steady baseline",
+)
+_g8_sid_drift = _g8_sid_new(max_excursion_c=0.5, settle_hours=1.0)
+_g8_sid_drift.arm(_G8_SID_T0)
+_g8_sid_step(_g8_sid_drift, _G8_SID_T0, room=21.0)
+_g8_sid_drift_out = _g8_sid_step(
+    _g8_sid_drift, _G8_SID_T0 + timedelta(minutes=30), room=25.0)
+_g8_sid_drift_later = _g8_sid_step(
+    _g8_sid_drift, _G8_SID_T0 + timedelta(hours=1), room=21.0)
+R.check(
+    "a room that drifts past the comfort bound aborts the run, and it stays aborted",
+    _g8_sid_drift_out is None
+    and _g8_sid_drift.phase == _g8_sid.PHASE_ABORTED
+    and _g8_sid_drift.result is not None
+    and _g8_sid_drift.result.completed is False
+    and "excursion" in _g8_sid_drift.result.reason
+    and _g8_sid_drift_later is None
+    and _g8_sid_drift.phase == _g8_sid.PHASE_ABORTED,
+    f"phase {_g8_sid_drift.phase!r}, reason "
+    f"{_g8_sid_drift.result.reason!r}; a later comfortable tick returned "
+    f"{_g8_sid_drift_later!r} and left the phase {_g8_sid_drift.phase!r}. "
+    "This is the guard that protects the occupant: the experiment is running "
+    "overnight in an occupied house, and the room recovering afterwards is "
+    "not a reason to resume a run whose measurements are already spoiled",
+)
+_g8_sid_abort_twice = _g8_sid_new()
+_g8_sid_abort_twice.abort("nothing is running")
+R.check(
+    "and aborting an experiment that was never armed records nothing",
+    _g8_sid_abort_twice.phase == _g8_sid.PHASE_IDLE
+    and _g8_sid_abort_twice.result.reason == "",
+    f"phase {_g8_sid_abort_twice.phase!r}, reason "
+    f"{_g8_sid_abort_twice.result.reason!r} -- the early return keeps a stray "
+    "abort from stamping a REASON onto the empty result the user's sensor "
+    "publishes, which would read as a run that was attempted and did not "
+    "work. The empty result itself is always there, which is why this asserts "
+    "the reason rather than the object",
+)
+_g8_sid_nofit = _g8_sid_new(max_excursion_c=0.001, settle_hours=0.0)
+_g8_sid_nofit.arm(_G8_SID_T0)
+_g8_sid_nofit_out = _g8_sid_step(
+    _g8_sid_nofit, _G8_SID_T0, house_ua=0.25, house_capacity=12.0,
+    house_gains=0.3)
+_g8_sid_blind = _g8_sid_new(settle_hours=0.0)
+_g8_sid_blind.arm(_G8_SID_T0)
+_g8_sid_blind_out = _g8_sid_step(_g8_sid_blind, _G8_SID_T0, max_power_kw=6.0)
+R.check(
+    "no step that fits the comfort bound aborts; no house physics falls back to 30 %",
+    _g8_sid_nofit.phase == _g8_sid.PHASE_ABORTED
+    and "no step fits" in _g8_sid_nofit.result.reason
+    and _g8_sid_nofit_out is None
+    and _g8_sid_blind.phase == _g8_sid.PHASE_STEP
+    and abs(_g8_sid_blind._step_power - 6.0 * 0.3) < 1e-9,
+    f"a 0.001 C bound -> {_g8_sid_nofit.phase!r} because "
+    f"{_g8_sid_nofit.result.reason!r}; no UA or capacity passed -> "
+    f"{_g8_sid_blind._step_power!r} kW of 6.0. The two are the sized and "
+    "unsized paths: with house physics the step is chosen so the PREDICTED "
+    "excursion stays inside the bound and refuses when none does, and without "
+    "it 30 % of the pump is the conservative guess that has to stand in",
+)
+
 sys.exit(R.close("FEATURE CHECKS"))
