@@ -2,7 +2,7 @@
  "_comment": "MEASURED, not written by hand. Regenerate with tests/derive_closures.sh; the post-merge gate on main re-records these and fails if this file misses anything a real run touched.",
  "recorded": {
   "tests/backtest.py": {
-   "seconds": 35.5,
+   "seconds": 27.4,
    "rc": 0
   },
   "tests/card.mjs": {
@@ -22,7 +22,7 @@
    "rc": 0
   },
   "tests/edge.py": {
-   "seconds": 38.2,
+   "seconds": 28.9,
    "rc": 0
   },
   "tests/entities.py": {
@@ -46,7 +46,7 @@
    "rc": 0
   },
   "tests/manual_plan.py": {
-   "seconds": 4.8,
+   "seconds": 5.9,
    "rc": 0
   },
   "tests/open_meteo.py": {
@@ -54,7 +54,7 @@
    "rc": 0
   },
   "tests/optimality.py": {
-   "seconds": 82.4,
+   "seconds": 51.6,
    "rc": 0
   },
   "tests/plan_view.py": {
@@ -66,7 +66,7 @@
    "rc": 0
   },
   "tests/stress.py": {
-   "seconds": 586.6,
+   "seconds": 576.8,
    "rc": 0
   },
   "tests/structure.py": {
@@ -74,7 +74,7 @@
    "rc": 0
   },
   "tests/validate.py": {
-   "seconds": 36.7,
+   "seconds": 24.7,
    "rc": 0
   },
   "tests/deployment_shape.py": {
@@ -112,6 +112,8 @@
    "tests/hastub/homeassistant/helpers/config_validation.py",
    "tests/hastub/homeassistant/helpers/entity_registry.py",
    "tests/hastub/homeassistant/loader.py",
+   "tests/hastub/homeassistant/util/__init__.py",
+   "tests/hastub/homeassistant/util/dt.py",
    "tests/profiles.py"
   ],
   "tests/card.mjs": [
@@ -353,6 +355,8 @@
    "tests/hastub/homeassistant/helpers/config_validation.py",
    "tests/hastub/homeassistant/helpers/entity_registry.py",
    "tests/hastub/homeassistant/loader.py",
+   "tests/hastub/homeassistant/util/__init__.py",
+   "tests/hastub/homeassistant/util/dt.py",
    "tests/profiles.py"
   ],
   "tests/entities.py": [
@@ -916,6 +920,7 @@
    "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/external_heat.py",
    "custom_components/heatpump_optimizer/freq_control.py",
+   "custom_components/heatpump_optimizer/frontend.py",
    "custom_components/heatpump_optimizer/grid_fee.py",
    "custom_components/heatpump_optimizer/inputs.py",
    "custom_components/heatpump_optimizer/ledger.py",
@@ -931,6 +936,7 @@
    "custom_components/heatpump_optimizer/pump_schedule.py",
    "custom_components/heatpump_optimizer/pump_signals.py",
    "custom_components/heatpump_optimizer/pv.py",
+   "custom_components/heatpump_optimizer/services.py",
    "custom_components/heatpump_optimizer/setpoint_check.py",
    "custom_components/heatpump_optimizer/snapshots.py",
    "custom_components/heatpump_optimizer/sysid.py",
@@ -988,6 +994,8 @@
    "tests/hastub/homeassistant/helpers/config_validation.py",
    "tests/hastub/homeassistant/helpers/entity_registry.py",
    "tests/hastub/homeassistant/loader.py",
+   "tests/hastub/homeassistant/util/__init__.py",
+   "tests/hastub/homeassistant/util/dt.py",
    "tests/optimality.py",
    "tests/profiles.py"
   ],
@@ -1144,6 +1152,8 @@
    "tests/hastub/homeassistant/helpers/config_validation.py",
    "tests/hastub/homeassistant/helpers/entity_registry.py",
    "tests/hastub/homeassistant/loader.py",
+   "tests/hastub/homeassistant/util/__init__.py",
+   "tests/hastub/homeassistant/util/dt.py",
    "tests/profiles.py",
    "tests/stress.py",
    "tests/stress_budgets.json"
@@ -1227,6 +1237,8 @@
    "tests/hastub/homeassistant/helpers/config_validation.py",
    "tests/hastub/homeassistant/helpers/entity_registry.py",
    "tests/hastub/homeassistant/loader.py",
+   "tests/hastub/homeassistant/util/__init__.py",
+   "tests/hastub/homeassistant/util/dt.py",
    "tests/profiles.py",
    "tests/validate.py"
   ],
