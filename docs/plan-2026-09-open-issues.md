@@ -616,16 +616,19 @@ merge on `main` conflicted the other lane's open branch at that seam: this pull
 request was rebased five times for it and #639 three, each rebase costing a
 fresh review round at a head whose code had not changed. The rows above stay
 where they are; this section was opened by **#644** (`3a29035`) so **that lane appends below
-and every other lane appends there**, putting the two insertion points 119 lines apart —
-far enough that git does not conflict on them. That figure is the distance
-between the last row of each list and moves as either grows, so re-derive it
-rather than carrying it: it was measured at `main` `b8731c3`. No pull-request number is named
+and every other lane appends there**, putting the two insertion points far enough apart
+that git does not conflict on them: the distance between the last row of each
+list was 119 lines at `main` `b8731c3` and 128 at `30b8a88`, seven merges later.
+It is a gap between two ends that both grow, so re-derive it rather than
+carrying it. No pull-request number is named
 as the boundary: one was drafted into this sentence and taken by another lane
 four minutes later.
 
 **That separation never happened, and the sentence above is kept only as the
-statement of what was tried.** Measured on 2026-09-11: **every one of the 39 rows
-numbered above the upper list's highest (#767) is in this section**,
+statement of what was tried.** Measured on 2026-09-11: **every row numbered
+above the upper list's highest (#767) is in this section** — 39 of 39 at `main`
+`b8731c3` and 48 of 48 at `30b8a88`, so the count churns and the ratio does
+not —
 and the seam conflicted one lane's branches **thirteen times in a night, never
 once about content** — every resolution the same union with `main`'s rows first, and
 `main`'s numbers lost `[]` every time. Derivation, and its limit: it was taken per
@@ -734,7 +737,7 @@ inside it rather than after it.
 - [#854](https://github.com/tvofi/heatpump_optimizer/pull/854) — **merged `8640321`, row written after the merge**: the uninstall list names the away and boost stores. Closed #837. `node .claude/workflows/policy_lint.mjs --record --since v6.4.0` at `origin/main` `8640321` named this pull request. leaves #201 open.
 - [#844](https://github.com/tvofi/heatpump_optimizer/pull/844) — **merged `17d9405`, row written after the merge**: the reauth token field points at developer.tibber.com. Closed #828. `node .claude/workflows/policy_lint.mjs --record --since v6.4.0` at `origin/main` `17d9405` named this pull request. leaves #201 open.
 - [#855](https://github.com/tvofi/heatpump_optimizer/pull/855) — **row written before the merge, and it is this pull request**: leftover-row for #854 `8640321`, #844 `17d9405`. `node .claude/workflows/policy_lint.mjs --record --since v6.4.0` at `origin/main` `cfa60f6` named those two. #857 already holds #843, #849, #850, #851 and #852. #745's #759/#761/#764 stay #745's. leaves #201 open.
-- [#856](https://github.com/tvofi/heatpump_optimizer/pull/856) — **row written before the merge**, and it is this pull request: two residuals from merged work, measured before being touched and **corrected three times under review**: the attribution, the count, and a stated derivation that could not be re-run. **The governance-queue split is #644's** (`3a29035`), not #723's — an earlier form of this row, of the paragraph it describes and of this pull request's title all named the wrong number; #723 added one line to this document, its own row. The split is **geometrically sound and unadopted**: the two insertion points are 119 lines apart, and every row numbered above the upper list's highest sits in the queue. The paragraph now carries that and says not to read the two points as a mechanism. **#818's wiring pin is improved and still defeatable**, five ways a reviewer drove; the body states exactly what it catches rather than claiming soundness. Not policy: this document is `CORPUS_EXCLUDED` and the other change is an acceptance check. leaves #201 open.
+- [#856](https://github.com/tvofi/heatpump_optimizer/pull/856) — **row written before the merge**, and it is this pull request: two residuals from merged work, measured before being touched and **corrected three times under review**: the attribution, the count, and a stated derivation that could not be re-run. **The governance-queue split is #644's** (`3a29035`), not #723's — an earlier form of this row, of the paragraph it describes and of this pull request's title all named the wrong number; #723 added one line to this document, its own row. The split is **geometrically sound and unadopted**: the two insertion points are over a hundred lines apart at every commit measured, and every row numbered above the upper list's highest sits in the queue — 39 of 39 at `b8731c3`, 48 of 48 at `30b8a88`. The paragraph now carries that and says not to read the two points as a mechanism. **#818's wiring pin is improved and still defeatable**, five ways a reviewer drove; the body states exactly what it catches rather than claiming soundness. Not policy: this document is `CORPUS_EXCLUDED` and the other change is an acceptance check. leaves #201 open.
 
 ### The UX programme — 34 items, five lanes, tracking #558
 
