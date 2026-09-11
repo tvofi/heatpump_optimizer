@@ -13250,6 +13250,41 @@ R.check(
     "#11 owns resistive draw; folding it would teach the map that some "
     "frequency draws the element's kilowatts",
 )
+_ccool = _freq_coord()
+_ccool._pump_signals = PumpSignals(freeze_reason="pump_cooling")
+_ccool._observe_frequency(_T6)
+R.check(
+    "reverse-cycle cooling never teaches the frequency map",
+    not _ccool._freq_map.buckets,
+    "#781: the map is keyed by decile only; a cooling fold is inherited "
+    "when the user later switches to control",
+)
+_cflat = _freq_coord()
+_cflat._input_health = _NS(
+    readings={
+        "heat_pump_power_entity": InputReading(
+            key="heat_pump_power_entity",
+            entity_id="sensor.hp_power",
+            value=2.0,
+            problem="stale",
+        )
+    }
+)
+_cflat._observe_frequency(_T6)
+R.check(
+    "a pinned stale power reading never teaches the frequency map",
+    not _cflat._freq_map.buckets,
+    "#781: _update_current_state pins the last good kW, so the fold "
+    "would teach a wrong ratio in every bucket",
+)
+_cextf = _freq_coord()
+_cextf._external_heat_active = True
+_cextf._observe_frequency(_T6)
+R.check(
+    "external heat still folds: the map is a compressor curve, not a house learner",
+    bool(_cextf._freq_map.buckets),
+    "#781: do not gate the fold on _learning_frozen wholesale",
+)
 R.check(
     "without the entity the stage is unconfigured and the view says so",
     _t2_coord()._freq_view()["mode"] == "unconfigured"

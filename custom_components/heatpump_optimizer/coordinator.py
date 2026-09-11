@@ -584,6 +584,14 @@ def _republish_handover_ages(coord: Any, handover: dict[str, Any]) -> dict[str, 
     handover["plan_stale"] = coord._plan_is_stale()
     return handover
 
+
+def _freq_fold_blocked(coord: Any) -> bool:
+    """Cooling or a pinned unusable power reading must not teach the map."""
+    if coord._pump_signals.freeze_reason == pump_signals.FREEZE_COOLING:
+        return True
+    frozen = coord._learning_frozen(CONF_POWER_ENTITY)
+    return bool(frozen and ":" in frozen)
+
 #: Which configured entity backs each published temperature -- the table
 #: `_thermal_view` builds its ``reading_ok`` map from. ``ThermalState`` has
 #: constructor defaults (55.0 tank, 40.0 buffer, 22.0 slab, 21.0 either
@@ -9825,7 +9833,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     translation_key="freq_watchdog",
                     translation_placeholders={"entity": entity_id},
                 )
-        if self._measured_power is None or self._immersion_active:
+        if self._measured_power is None or self._immersion_active or _freq_fold_blocked(self):
             return
         self._freq_map.observe(
             reported, float(self._measured_power), hz_min, hz_max
