@@ -2310,6 +2310,26 @@ function assertAcceptance(derived) {
       return 1
     }
     found.push(...onPolicy)
+
+    // The refusals are the headline property, so they are pinned rather than
+    // trusted: an unreadable list and an empty one must each produce an error,
+    // and a real list must produce none. Without these three, deleting either
+    // refusal leaves this acceptance green and the empty case fail-open.
+    const missing = pathsFromFile(path.join(prepr, 'no-such-list.txt'))
+    const empty = pathsFromFile(path.join(prepr, 'paths-empty.txt'))
+    const real = pathsFromFile(path.join(prepr, 'paths-real.txt'))
+    if (!missing.error || !/unreadable/.test(missing.error)) {
+      console.log('\nFIXTURE VACUOUS: an unreadable --paths-file did not refuse; the approval gate would read a failed derivation as an empty diff')
+      return 1
+    }
+    if (!empty.error || !/is empty/.test(empty.error)) {
+      console.log('\nFIXTURE VACUOUS: an empty --paths-file did not refuse; a pull request changes at least one file')
+      return 1
+    }
+    if (real.error || !real.paths.includes('CLAUDE.md')) {
+      console.log(`\nFIXTURE VACUOUS: a real --paths-file did not read back (${real.error ?? real.paths.join(',')}); a refusal that fires on everything pins nothing`)
+      return 1
+    }
   }
 
   // The template and the parser's required set drift apart the moment either is
@@ -3236,6 +3256,25 @@ function sections(body) {
   return out
 }
 
+// Reading the path list is separated from using it so the REFUSALS can be
+// pinned. They are the fix's headline property -- a list that cannot be derived
+// must not read as "touches no policy file" -- and round one found them
+// unpinned: deleting the empty-list refusal left the acceptance green and turned
+// the empty case fail-open, which is the defect this keying exists to close.
+function pathsFromFile(pathsFile) {
+  let raw
+  try {
+    raw = fs.readFileSync(pathsFile, 'utf8')
+  } catch {
+    return { error: `--paths-file ${pathsFile}: unreadable. The approval gate reads the diff; a list that cannot be read is not an empty diff.` }
+  }
+  const paths = raw.split('\n').map((x) => x.trim()).filter(Boolean)
+  if (!paths.length) {
+    return { error: `--paths-file ${pathsFile} is empty. A pull request changes at least one file; an empty list means the derivation failed.` }
+  }
+  return { paths }
+}
+
 // `## Approval` is keyed on the DIFF, not on the title. It was keyed on
 // `/^policy:/` against `github.event.pull_request.title` -- a string written by
 // the same seat the section exists to constrain, so a one-word title change
@@ -3378,18 +3417,12 @@ function cmdPrBody(args) {
   const pathsFile = val('--paths-file')
   let paths = []
   if (pathsFile != null) {
-    let raw
-    try {
-      raw = fs.readFileSync(pathsFile, 'utf8')
-    } catch {
-      console.log(`  ERROR   [pr-body] --paths-file ${pathsFile}: unreadable. The approval gate reads the diff; a list that cannot be read is not an empty diff.`)
+    const got = pathsFromFile(pathsFile)
+    if (got.error) {
+      console.log(`  ERROR   [pr-body] ${got.error}`)
       return 1
     }
-    paths = raw.split('\n').map((x) => x.trim()).filter(Boolean)
-    if (!paths.length) {
-      console.log(`  ERROR   [pr-body] --paths-file ${pathsFile} is empty. A pull request changes at least one file; an empty list means the derivation failed.`)
-      return 1
-    }
+    paths = got.paths
   }
   const findings = checkPrBody(bodyPath, { head: val('--head') ?? '', title: val('--title') ?? '', red, paths })
   printFindings(findings)
