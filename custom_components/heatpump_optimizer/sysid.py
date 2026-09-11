@@ -794,6 +794,30 @@ class SystemIdentification:
                 completed=False, reason="fitted parameters outside plausible bounds"
             )
 
+        # R3-D2-03: the drift ridge shrinks d to ~0 at 0.02 °C of noise,
+        # below a typical sensor's quantisation, and the ΔT column then
+        # carries the ramp into UA. Rate residuals of that biased house
+        # look clean. The tell is a settle long enough to have a
+        # (Q+G)/ΔT instantaneous UA, disagreeing with the fit. A
+        # two-row settle (the existing noise-free unbiasedness plant)
+        # is skipped — that window never had the comparison.
+        if (
+            drift_c_per_h is not None
+            and abs(drift_c_per_h) < self.config.sensor_drift_prior_c_per_h
+            and gains_kw is not None
+        ):
+            settle = [s for s in usable if s.phase == PHASE_SETTLING]
+            if len(settle) >= 3:
+                last = settle[-1]
+                den = last.room_temp - last.outdoor_temp
+                if abs(den) > 1e-6:
+                    ua_ss = (last.power_kw + gains_kw) / den
+                    if ua_ss > 0.0 and abs(ua_ss - ua) / ua > 0.10:
+                        return SysIdResult(
+                            completed=False,
+                            reason="sensor drift collapsed into heat-loss",
+                        )
+
         return SysIdResult(
             completed=True,
             time_constant_hours=tau,
