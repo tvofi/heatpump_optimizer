@@ -356,6 +356,12 @@
    "tests/profiles.py"
   ],
   "tests/entities.py": [
+   ".claude/workflows/brief_lint.mjs",
+   ".claude/workflows/counts.mjs",
+   ".claude/workflows/policy_lint.mjs",
+   ".claude/workflows/render_md.mjs",
+   ".claude/workflows/vendor/markdown-it.LICENSE",
+   ".claude/workflows/vendor/markdown-it.min.js",
    ".gitattributes",
    ".github/workflows/governance.yml",
    ".github/workflows/tests.yml",
