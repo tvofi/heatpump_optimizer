@@ -2907,7 +2907,21 @@ function cardStyleBlock() {
         background: var(--card-background-color, #fff);
         text-decoration: line-through;
       }
-      .chip.nodata { cursor: not-allowed; opacity: 0.3; }
+      /* #822: this chip used to be cursor: not-allowed; opacity: 0.3, which
+         was wrong twice. The opacity put the label at 1.90:1 in the light
+         theme and 2.36:1 in dark, against a 4.5:1 floor -- the same defect
+         #261 fixed on .chip.off, and fixed there by expressing the state
+         with a colour and a line rather than with opacity. And the cursor
+         claimed the chip was inert while a click on it toggles
+         this.hidden[key] and persists, exactly like every other chip: all
+         seven chips are the card's only tab stops.
+         So the state is carried by the DOT, which is a graphic and answers to
+         WCAG 1.4.11's 3:1, and by italics -- never by fading the text. */
+      .chip.nodata {
+        font-style: italic;
+        border-style: dashed;
+      }
+      .chip.nodata .dot { opacity: 0.35; }
       /* The sentence a chip's title attribute used to be the only home for.
          Drawn in --primary-text-color rather than the --secondary-text-color
          the rest of the card's small print uses: that token's #888 fallback

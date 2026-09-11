@@ -164,6 +164,21 @@
 # no card source, template, style or payload key is touched, so every
 # rendered state is byte-identical by construction.
 
+# #822 and #823, both in the card's one stylesheet.
+#
+# #822: .chip.nodata was `cursor: not-allowed; opacity: 0.3`, which was wrong
+# twice. The opacity put the label at 1.90:1 light and 2.36:1 dark against a
+# 4.5:1 floor; the cursor claimed the chip was inert while a click on it
+# toggles and persists like every other chip -- and all seven chips are the
+# card's only tab stops, so that is the whole keyboard surface. The state now
+# rides on the dot (a graphic, 3:1 under WCAG 1.4.11) and italics, never on
+# fading the text. This is the fix #261 already applied to .chip.off.
+#
+#   chip_nodata_contrast_light   1.90 -> 16.10
+#   chip_nodata_contrast_dark    2.36 -> 13.03
+#   chip_nodata_opacity          0.3  -> 1
+#   chip_nodata_cursor           not-allowed -> pointer
+#
 # #823: .away-strip had no CSS rule matching it at all -- a 13px checkbox,
 # a 14px label and a 0px visual gap, so the two labels rendered as
 # "AwayReturn". This branch adds base .away-strip rules and adds the strip's
