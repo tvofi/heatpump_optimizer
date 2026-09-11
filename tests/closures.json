@@ -1100,6 +1100,7 @@
    "custom_components/heatpump_optimizer/topology.py",
    "custom_components/heatpump_optimizer/wear.py",
    "custom_components/heatpump_optimizer/wood_fuel.py",
+   "tests/harness.py",
    "tests/hastub/homeassistant/__init__.py",
    "tests/hastub/homeassistant/components/__init__.py",
    "tests/hastub/homeassistant/components/mqtt.py",

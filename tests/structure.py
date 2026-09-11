@@ -120,9 +120,11 @@ Metrics (definitions, one line each; the code is the authority):
 
 Run:
 
-    python tests/structure.py             ratchet: metrics vs budgets, FAIL on
-                                          any worsening AND on any improvement
-                                          that is not yet recorded (#350)
+    python tests/structure.py             ratchet: metrics vs budgets, exit 1
+                                          on any worsening, exit 2 on any
+                                          improvement that is not yet recorded
+                                          (#350 / #808). Those are not the
+                                          same report.
     python tests/structure.py --record    recompute and WRITE the budget table
                                           (run this on a clean tree, at the
                                           SHA recorded in ``recorded_at``).
@@ -1390,11 +1392,12 @@ def ratchet(result: dict) -> int:
     if improvements:
         # Deliberately not counted with the breaches above and deliberately not
         # worded like one. This run failed because the tree got BETTER, and the
-        # only thing missing is the record of it (#350).
+        # only thing missing is the record of it (#350). Exit 2, not 1: a
+        # violation and an unrecorded gain are not the same report (#808).
         print("%d STRUCTURE BUDGET(S) IMPROVED AND NOT YET RECORDED" % len(improvements))
         print("Nothing here is a violation. Run the command above, commit the")
         print("table with this change, and say in the commit which rows moved.")
-        return 1
+        return 2
     print("STRUCTURE RATCHET PASSED")
     return 0
 
