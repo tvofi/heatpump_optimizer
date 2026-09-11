@@ -106,8 +106,8 @@ fi
 #        of the CHECKOUT: no edit to the body clears it, so a refusal here
 #        refuses a body that is correct.
 #    (b) The repair is `git merge origin/main`, and fixer.md step 6 then
-#        re-executes steps 2-4 -- failing test, mutation proof, both harness
-#        ends. Blocking a week-old branch on unrelated work to buy that is the
+#        re-executes steps 2-8 -- failing test, mutation proof, both harness
+#        ends, and the body, whose figures move with origin/main too. Blocking a week-old branch on unrelated work to buy that is the
 #        shape prepr.sh's push-order comment refuses: "a refusal here would
 #        refuse the prescribed order, which is worse than the defect it answers."
 #    (c) NO NETWORK, EVER, as prepr.sh states it: the comparison is against the

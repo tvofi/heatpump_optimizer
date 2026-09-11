@@ -1343,7 +1343,7 @@ session reads this file first.
   every cost, gain or time claim; a learner or guard measured at both ends of
   its range; claims only for drift you measured; the scoped gate green locally
   through the gate lock; never `VERSION`, the manifest version or the
-  `RELEASE_NOTES.md` heading. **After any rebase, steps 2–4 are re-executed** —
+  `RELEASE_NOTES.md` heading. **After any rebase, steps 2–8 are re-executed** —
   the evidence describes one tree and a rebase makes a new one.
 - **Reviewer** (`tools/audit/briefs/fix-review.md`): a fresh worktree at the
   head SHA, the mutation proof re-run, the measurement taken with the
