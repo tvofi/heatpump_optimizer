@@ -7543,10 +7543,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             return
         if self._fuse_advisor_at is None:
             try:
-                stored = await self._ledger_store.async_load()
+                stored = await self._ledger_store.async_load() or {}
                 self._fuse_advisor = dict(stored["fuse_advisor"])
                 self._fuse_advisor_at = datetime.fromisoformat(
-                    stored["fuse_advisor_at"]
+                    str(stored["fuse_advisor_at"])
                 )
             except Exception:  # noqa: BLE001
                 pass
