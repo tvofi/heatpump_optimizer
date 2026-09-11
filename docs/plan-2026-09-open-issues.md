@@ -615,10 +615,29 @@ Both lanes appended their disposition rows to the end of one list, so every
 merge on `main` conflicted the other lane's open branch at that seam: this pull
 request was rebased five times for it and #639 three, each rebase costing a
 fresh review round at a head whose code had not changed. The rows above stay
-where they are; **from here this lane appends below and every other lane appends
-there**, so the two insertion points are never adjacent and neither lane waits
-on the other. No pull-request number is named as the boundary: one was drafted
-into this sentence and taken by another lane four minutes later. **What reads this row, stated as it is
+where they are; this section was opened so **this lane appends below and every
+other lane appends there**, putting the two insertion points 119 lines apart —
+far enough that git does not conflict on them. No pull-request number is named
+as the boundary: one was drafted into this sentence and taken by another lane
+four minutes later.
+
+**That separation never happened, and the sentence above is kept only as the
+statement of what was tried.** Measured on 2026-09-11: **of the twenty
+newest rows, twenty are in this section and none is in the upper list**, and
+the seam conflicted one lane's branches **twelve times in a night, never once
+about content** — every resolution the same union with `main`'s rows first, and
+`main`'s numbers lost `[]` every time. The geometry was right and the adoption
+was zero, because nothing routes a row anywhere and this paragraph is the only
+thing that asks.
+
+**So do not read the two insertion points as a mechanism.** There is no
+mechanical notion of a lane here to enforce one with — branch prefixes name
+sessions, not lanes, and one session uses several. **Append wherever the
+document reads best and expect to resolve the seam by hand**, per row against
+your merge base, `main`'s rows first, verified position-by-position as an
+ordered list of `(number, sha256(row))`: a byte-identical row that merely
+*moved* passes a comparison over row text, and that near-miss has happened
+here. **What reads this row, stated as it is
 today and not as it will be:** `checkRecord` tests `#<pr>` against the whole
 text of both disposition documents, so a row is read wherever it sits in either
 of them — driven by moving #648's row clean out of `## Delivery status` into

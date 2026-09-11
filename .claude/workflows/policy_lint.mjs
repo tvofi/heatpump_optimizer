@@ -2348,9 +2348,31 @@ function assertAcceptance(derived) {
   // `wf.includes(flag)` and passed while the flag survived only in a comment
   // eight lines above the command. A pin satisfied by prose about the thing is
   // not a pin on the thing.
-  const runLines = wf.split('\n').filter((l) => !/^\s*#/.test(l))
-  const bodyCheck = runLines.filter((l) => /policy_lint\.mjs|--pr-body|--head|--title|--paths-file/.test(l)).join('\n')
-  const pathsDerive = runLines.filter((l) => /git diff .*--name-only/.test(l)).join('\n')
+  // Anchored to the step's own `run:` block, and that is the third attempt.
+  // The first asserted `wf.includes(flag)` and passed while the flag survived in
+  // a comment. The second selected lines matching a regex that CONTAINED the
+  // flag, so the flag text surviving in a trailing shell comment or in the
+  // step's `name:` defeated it -- a reviewer drove both. Selecting by what a
+  // line mentions cannot work when the needle is what is being looked for, so
+  // this cuts the block first and strips comments second.
+  const runBlocks = []
+  {
+    const lines = wf.split('\n')
+    for (let i = 0; i < lines.length; i++) {
+      const m = /^(\s*)run:\s*\|?\s*$/.exec(lines[i])
+      if (!m) continue
+      const indent = m[1].length
+      const body = []
+      for (let j = i + 1; j < lines.length; j++) {
+        const l = lines[j]
+        if (l.trim() && (l.length - l.trimStart().length) <= indent) break
+        body.push(l.replace(/#.*$/, ''))
+      }
+      runBlocks.push(body.join('\n'))
+    }
+  }
+  const bodyCheck = runBlocks.filter((b) => /policy_lint\.mjs/.test(b) && /--pr-body/.test(b)).join('\n')
+  const pathsDerive = runBlocks.filter((b) => /git diff/.test(b) && /--name-only/.test(b)).join('\n')
   for (const [where, hay, flag, why] of [
     ['the body-check invocation', bodyCheck, '--paths-file', 'the approval gate would fall back to the title alone, which is R3-D11-03 restored'],
     ['the path derivation', pathsDerive, '--no-renames', 'a rename is reported by its destination only, so moving a policy file out of the glob set would not fire the gate'],
