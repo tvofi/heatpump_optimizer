@@ -181,7 +181,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      # fetch-depth 0 because `## Approval` is keyed on the DIFF (R3-D11-03):
+      # the base commit has to be in the clone for `git diff base...head` to
+      # answer. The default depth-1 checkout has neither the base nor any
+      # history, and a diff that cannot run would read as "touches no policy
+      # file" -- the fail-open this keying exists to close.
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v5
         with:
@@ -202,15 +209,35 @@ jobs:
           BODY: ${{ github.event.pull_request.body }}
         run: printf '%s' "$BODY" > /tmp/pr-body.md
 
+      # The paths decide whether `## Approval` is owed, so this runs WITHOUT
+      # `|| true` and with `set -o pipefail`: a derivation that fails must fail
+      # the step. policy_lint refuses an unreadable or empty list for the same
+      # reason -- an empty diff is not a thing a pull request has.
+      - name: List the paths this pull request changes
+        env:
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          # --no-renames, and it is not cosmetic: a rename is reported by its
+          # DESTINATION only, so moving CLAUDE.md to RENAMED.md yields a list
+          # matching no glob and the approval gate would not fire on the change
+          # that removed a policy file. Measured both ways before wiring it.
+          git diff --no-renames --name-only "$PR_BASE...$PR_HEAD" > /tmp/pr-files.txt
+          wc -l < /tmp/pr-files.txt
+
       - name: Check the body against the contract
         env:
           # Interpolating a title into a shell line is script injection: the
-          # title is written by whoever opened the pull request.
+          # title is written by whoever opened the pull request. The same is
+          # true of the title as EVIDENCE, which is R3-D11-03: `## Approval` is
+          # keyed on --paths-file below, and the title only adds to it.
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_HEAD: ${{ github.event.pull_request.head.sha }}
         run: |
           node .claude/workflows/policy_lint.mjs \
-            --pr-body /tmp/pr-body.md --head "$PR_HEAD" --title "$PR_TITLE"
+            --pr-body /tmp/pr-body.md --head "$PR_HEAD" --title "$PR_TITLE" \
+            --paths-file /tmp/pr-files.txt
 
       # #679: `## Figures` asks for the command that printed each figure, and
       # nothing looked at it. The section was a paste. #715 round seven is the
@@ -221,8 +248,10 @@ jobs:
       # This does NOT execute the body. #679 proposed re-executing an allowlist
       # and comparing values; figure_lint.mjs's header records the reasons that
       # is refused and which of them were withdrawn under measurement. The
-      # shortest surviving one is that this job checks out at depth 1 with no
-      # origin/main. Do NOT restate a quantity here: two of the original four
+      # shortest surviving one WAS that this job checks out at depth 1 with no
+      # origin/main -- and #818 falsified it by setting fetch-depth: 0 above, so
+      # reason 4 in figure_lint.mjs's header is the one that still stands. Do NOT
+      # restate a quantity here: two of the original four
       # reasons were counts, both were wrong, and this copy is where the wrong
       # ones survived a sweep of the body, the header and both plan rows.
       # What the check does is confirm that each command RESOLVES.
