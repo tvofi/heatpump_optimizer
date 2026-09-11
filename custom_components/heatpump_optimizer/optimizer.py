@@ -369,6 +369,71 @@ def _bounds_supported_by_batch(bounds: list[tuple[float, float]]) -> bool:
     return True
 
 
+def _lbfgs_from_guess(
+    fun: Callable[..., float],
+    guess: np.ndarray,
+    bounds: list[tuple[float, float]],
+    args: tuple[Any, ...],
+    maxiter: int,
+    batch_objective: Callable[..., Any] | None,
+    fd_eps: float,
+) -> Any:
+    """One L-BFGS-B run from ``guess`` with production's jac and tolerances.
+
+    The batched jac (#97, widened by D9-01) serves NON-UNIFORM bounds, which
+    is where the cost actually is: DHW is on by default, and any DHW block
+    or per-step power cap pins the space bounds unevenly, so the old
+    uniform-bounds-only gate left 38 of 39 DHW-enabled golden scenarios on
+    the scalar scipy-FD path -- the batched gradient effectively never
+    reached real users (winter_two_zone_dhw: 941,472 simulate_step per
+    solve, x40).
+
+    ``_batch_fd_gradient`` replicates scipy's own 2-point
+    ``approx_derivative`` (abs_step=eps, the exact settings L-BFGS-B
+    passes) PER VARIABLE, including the one-sided bounds rule and the
+    zero-step fallback, so where it serves a solve the iterate path does
+    not move: asserted per-variable by tests/features.py::_grad_parity
+    (uniform, capped and DHW-pinned-headroom bounds) and raced end-to-end
+    by tests/optimality.py on DHW-enabled solves. A FIXED variable
+    (lb == ub) is served too, since D9-01: it gets an exact 0.0 rather
+    than scipy's 0/0 NaN, which is the only entry that ever differs and
+    the only one whose value the bounds already decide. It used to
+    disqualify the whole vector, which is what put a fuse-guarded install
+    on the scalar path at 31.5x. The CI drift gate on Linux is the final
+    arbiter.
+    """
+    jac = None
+    if batch_objective is not None and _bounds_supported_by_batch(bounds):
+        # The batched-FD jac (#97): scipy calls the gradient at every
+        # trial point, so a supplied jac removes 96/97 of ALL evaluations,
+        # not just of the gradient's own. It reproduces scipy's own
+        # 2-point estimate to the bit -- same eps, same bounds rule -- so
+        # on bounds with no fixed variable the iterate path, and therefore
+        # the plan, does not move.
+        def jac(x: np.ndarray, *a: Any) -> np.ndarray:
+            return _batch_fd_gradient(
+                batch_objective, a, x,
+                float(fun(x, *a)), fd_eps, bounds,
+            )
+    return _scoped_minimize(
+        fun,
+        guess,
+        args=args,
+        jac=jac,
+        method="L-BFGS-B",
+        bounds=bounds,
+        options={"maxiter": maxiter, "ftol": 1e-6, "eps": 1e-4},
+    )
+
+
+def _prefer_lower_solve(
+    res: Any, score: float, best: Any, best_score: float,
+) -> tuple[Any, float]:
+    if np.isfinite(score) and score < best_score:
+        return res, score
+    return best, best_score
+
+
 def _multi_start_minimize(
     objective: Callable[..., float],
     candidates: list[np.ndarray],
@@ -397,6 +462,12 @@ def _multi_start_minimize(
     over 103 of 103 ``_batch_fd_gradient`` calls, so the second evaluation is
     waste, not a different point. ``args`` is fixed for this call, so the key
     is ``x`` alone.
+
+    After the starts, L-BFGS-B is restarted once from the winning returned
+    point (#826). Same objective, bounds, jac, maxiter and ``ftol``; no new
+    seed. The limited-memory history is what ``ftol`` stopped on, and a
+    fresh one descends further. A failed restart keeps the unpolished
+    winner.
     """
     _raw_objective = objective
     _memo_key = None
@@ -435,60 +506,28 @@ def _multi_start_minimize(
             # breathing. No effect on any numerical result.
             _time_mod.sleep(0.002)
         try:
-            jac = None
-            # The batched jac (#97, widened by D9-01) serves NON-UNIFORM
-            # bounds, which is where the cost actually is: DHW is on by
-            # default, and any DHW block or per-step power cap pins the space
-            # bounds unevenly, so the old uniform-bounds-only gate left 38 of
-            # 39 DHW-enabled golden scenarios on the scalar scipy-FD path --
-            # the batched gradient effectively never reached real users
-            # (winter_two_zone_dhw: 941,472 simulate_step per solve, x40).
-            #
-            # ``_batch_fd_gradient`` replicates scipy's own 2-point
-            # ``approx_derivative`` (abs_step=eps, the exact settings
-            # L-BFGS-B passes) PER VARIABLE, including the one-sided bounds
-            # rule and the zero-step fallback, so where it serves a solve the
-            # iterate path does not move: asserted per-variable by
-            # tests/features.py::_grad_parity (uniform, capped and
-            # DHW-pinned-headroom bounds) and raced end-to-end by
-            # tests/optimality.py on DHW-enabled solves. A FIXED variable
-            # (lb == ub) is served too, since D9-01: it gets an exact 0.0
-            # rather than scipy's 0/0 NaN, which is the only entry that ever
-            # differs and the only one whose value the bounds already decide.
-            # It used to disqualify the whole vector, which is what put a
-            # fuse-guarded install on the scalar path at 31.5x. The CI drift
-            # gate on Linux is the final arbiter.
-            can_batch = _bounds_supported_by_batch(bounds)
-            if batch_objective is not None and can_batch:
-                # The batched-FD jac (#97): scipy calls the gradient at
-                # every trial point, so a supplied jac removes 96/97 of
-                # ALL evaluations, not just of the gradient's own. It
-                # reproduces scipy's own 2-point estimate to the bit --
-                # same eps, same bounds rule -- so on bounds with no fixed
-                # variable the iterate path, and therefore the plan, does
-                # not move.
-                def jac(x: np.ndarray, *a: Any) -> np.ndarray:
-                    return _batch_fd_gradient(
-                        batch_objective, a, x,
-                        float(memoized(x, *a)), fd_eps, bounds,
-                    )
-            res = _scoped_minimize(
-                memoized,
-                guess,
-                args=args,
-                jac=jac,
-                method="L-BFGS-B",
-                bounds=bounds,
-                options={"maxiter": maxiter, "ftol": 1e-6, "eps": 1e-4},
+            res = _lbfgs_from_guess(
+                memoized, guess, bounds, args, maxiter,
+                batch_objective, fd_eps,
             )
         except Exception as err:  # pragma: no cover - solver blow-up
             last_error = err
             continue
         score = float(memoized(res.x, *args))
-        if np.isfinite(score) and score < best_score:
-            best, best_score = res, score
+        best, best_score = _prefer_lower_solve(res, score, best, best_score)
     if best is None:
         raise last_error or ValueError("all starting points failed")
+    try:
+        polished = _lbfgs_from_guess(
+            memoized, np.asarray(best.x, dtype=float), bounds, args,
+            maxiter, batch_objective, fd_eps,
+        )
+        score = float(memoized(polished.x, *args))
+        best, best_score = _prefer_lower_solve(
+            polished, score, best, best_score,
+        )
+    except Exception:  # pragma: no cover - polish blow-up keeps the winner
+        pass
     return best
 
 

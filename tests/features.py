@@ -2632,6 +2632,73 @@ def _d903_jac_f0_reuses_fun():
 
 _d903_jac_f0_reuses_fun()
 
+
+def _r3d0_826_restarts_from_returned_point():
+    """#826: one L-BFGS-B restart from the returned point, no new seed."""
+    recorded = []
+    real = _grad_optmod._scoped_minimize
+
+    def spy(fun, x0, *a, **k):
+        res = real(fun, x0, *a, **k)
+        recorded.append({
+            "x0": np.asarray(x0, dtype=float).copy(),
+            "x": np.asarray(res.x, dtype=float).copy(),
+            "options": dict(k.get("options") or {}),
+            "method": k.get("method"),
+        })
+        return res
+
+    n = 6
+    bounds = [(-2.0, 2.0)] * n
+    target = 0.35
+
+    def obj(x, *_a):
+        d = np.asarray(x, dtype=float) - target
+        return float(np.dot(d, d))
+
+    def batch_obj(mat, *_a):
+        d = np.asarray(mat, dtype=float) - target
+        return np.einsum("ij,ij->i", d, d)
+
+    guesses = [np.zeros(n), np.full(n, -0.5)]
+    _grad_optmod._scoped_minimize = spy
+    try:
+        res = _grad_optmod._multi_start_minimize(
+            obj, guesses, bounds, maxiter=25,
+            batch_objective=batch_obj, fd_eps=1e-4,
+        )
+    finally:
+        _grad_optmod._scoped_minimize = real
+
+    n_starts = min(len(guesses), _grad_optmod._MULTI_START_SOLVES)
+    R.check(
+        "L-BFGS-B is restarted once from a returned point (#826)",
+        len(recorded) == n_starts + 1
+        and any(
+            np.allclose(recorded[-1]["x0"], rec["x"], atol=1e-12)
+            for rec in recorded[:-1]
+        ),
+        f"{len(recorded)} scoped-minimize calls for {n_starts} refined starts; "
+        f"last x0 was not a prior result.x",
+    )
+    R.check(
+        "the restart keeps production ftol, maxiter and method (#826)",
+        bool(recorded)
+        and recorded[-1]["method"] == "L-BFGS-B"
+        and recorded[-1]["options"].get("ftol") == 1e-6
+        and recorded[-1]["options"].get("maxiter") == 25,
+        f"method={recorded[-1]['method'] if recorded else None} "
+        f"options={recorded[-1]['options'] if recorded else None}",
+    )
+    R.check(
+        "the restarted solve still reaches the quadratic minimizer (#826)",
+        bool(np.allclose(res.x, target, atol=1e-3)),
+        f"x={res.x[:4]} fun={float(res.fun)}",
+    )
+
+
+_r3d0_826_restarts_from_returned_point()
+
 # Space-only, uniform bounds (the historical five, unchanged).
 _grad_parity(False, label="single-zone")
 _grad_parity(True, label="two-zone")
