@@ -1324,8 +1324,6 @@ class ThermalModel:
     #: scaling. Recorded so energy accounting outside the model can balance
     #: the step exactly instead of assuming the nominal demand was met.
     _step_dhw_draw_kw: float = 0.0
-    #: Per-step refused DHW heat of the last `simulate_trajectory_with_dhw`.
-    last_dhw_refused: np.ndarray | None = None
 
     def __init__(self, params: ThermalParameters) -> None:
         """Initialize the thermal model."""
@@ -2830,7 +2828,6 @@ class ThermalModel:
         lower_temps = np.zeros(n_steps + 1)
         dhw_temps = np.zeros(n_steps + 1)
         buffer_temps = np.zeros(n_steps + 1)
-        dhw_refused = np.zeros(n_steps)
 
         room_temps[0] = initial_state.room_temperature
         slab_temps[0] = initial_state.slab_temperature
@@ -2922,7 +2919,6 @@ class ThermalModel:
                 draw_power=draw_i,
             )
             state.dhw_temperature = new_dhw
-            dhw_refused[i] = self._step_dhw_refused
 
             room_temps[i + 1] = state.room_temperature
             slab_temps[i + 1] = state.slab_temperature
@@ -2935,7 +2931,6 @@ class ThermalModel:
 
             current_hour += dt_hours
 
-        self.last_dhw_refused = dhw_refused
         return (
             room_temps,
             slab_temps,
