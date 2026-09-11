@@ -25834,4 +25834,378 @@ R.check(
     f"err={_pw505_script.stderr[:200]!r}",
 )
 
+
+# ---------------------------------------------------------------------------
+# W5-G7 tranche 1 of 4 (#195): the core seam's lifecycle and error paths.
+#
+# THE BOUNDARIES TESTED HERE ARE THE LIVE ONES. Wave 4 closed with S12
+# recording a halt (#637), so the S0/S1 facades stay and no coordinator move
+# is pending from #193; W5-G9 and W5-G10 have since taken the two subsystems
+# that were going to move. So these methods are where they will stay, and a
+# test bolted onto them is not about to be relocated.
+#
+# Each check names the decision it pins, because a coverage test that asserts
+# "it ran" is how W5-G5 was blocked twice: the mutation that must fail it is
+# in the pull-request body, one per check.
+R.section("W5-G7 t1: the coordinator's core lifecycle and error paths (#195)")
+
+_T1_DATA = {"tibber_token": "x", "weather_entity": "weather.home"}
+
+
+def _t1_coord(**config):
+    """A live coordinator over the fake bus, with config overrides applied."""
+    c = HeatPumpOptimizerCoordinator(
+        FakeHass(), FakeEntry(data=dict(_T1_DATA, **config))
+    )
+    return c
+
+
+class _T1Msg:
+    """The one attribute the ECL110 state handler reads off an MQTT message."""
+
+    def __init__(self, payload):
+        self.payload = payload
+
+
+# -- ECL110 state payloads: four shapes on the wire, and the malformed arm ---
+# The handler is the only reader of that topic, and every shape below has
+# been seen from a real installation: the legacy dict, the nested command
+# dict a firmware update introduced, the scalar the direct topic publishes,
+# and bytes because paho hands bytes through unless a codec is configured.
+_t1_ecl_legacy = _t1_coord()
+_t1_ecl_legacy._async_handle_ecl110_state_message(_T1Msg('{"displace": -2.5}'))
+R.check(
+    "an ECL110 state payload's displace lands on both the attribute and the state",
+    _t1_ecl_legacy._ecl110_current_displace == -2.5
+    and _t1_ecl_legacy._current_state.ecl110_displace_command == -2.5,
+    f"attr={_t1_ecl_legacy._ecl110_current_displace!r} "
+    f"state={_t1_ecl_legacy._current_state.ecl110_displace_command!r}",
+)
+
+_t1_ecl_nested = _t1_coord()
+_t1_ecl_nested._async_handle_ecl110_state_message(
+    _T1Msg('{"command": {"displace": 1.5}}')
+)
+R.check(
+    "a nested command.displace is read when the top-level key is absent",
+    _t1_ecl_nested._ecl110_current_displace == 1.5,
+    f"{_t1_ecl_nested._ecl110_current_displace!r}",
+)
+
+_t1_ecl_both = _t1_coord()
+_t1_ecl_both._async_handle_ecl110_state_message(
+    _T1Msg('{"displace": -1.0, "command": {"displace": 9.0}}')
+)
+R.check(
+    "the top-level displace wins over the nested one, never the other way",
+    _t1_ecl_both._ecl110_current_displace == -1.0,
+    f"{_t1_ecl_both._ecl110_current_displace!r} -- the nested key is a fallback",
+)
+
+_t1_ecl_eff = _t1_coord()
+_t1_ecl_eff._async_handle_ecl110_state_message(
+    _T1Msg('{"effective_displace": -3.25}')
+)
+R.check(
+    "effective_displace is published without a command displace beside it",
+    _t1_ecl_eff._current_state.ecl110_effective_displace == -3.25
+    and _t1_ecl_eff._current_state.ecl110_displace_command != -3.25,
+    f"effective={_t1_ecl_eff._current_state.ecl110_effective_displace!r} "
+    f"command={_t1_ecl_eff._current_state.ecl110_displace_command!r}",
+)
+
+_t1_ecl_scalar = _t1_coord()
+_t1_ecl_scalar._async_handle_ecl110_state_message(_T1Msg(b"-4"))
+R.check(
+    "a bytes payload carrying a bare JSON number is the direct topic's shape",
+    _t1_ecl_scalar._ecl110_current_displace == -4.0,
+    f"{_t1_ecl_scalar._ecl110_current_displace!r}",
+)
+
+_t1_ecl_bad = _t1_coord()
+_t1_ecl_bad._ecl110_current_displace = 7.0
+_t1_ecl_raised = []
+for _t1_bad_payload in ("not json at all", '{"displace": "NaN-ish"}', b"\xff\xfe"):
+    try:
+        _t1_ecl_bad._async_handle_ecl110_state_message(_T1Msg(_t1_bad_payload))
+    except Exception as _t1_exc:  # noqa: BLE001 - the point of the check
+        _t1_ecl_raised.append(f"{_t1_bad_payload!r}: {type(_t1_exc).__name__}")
+R.check(
+    "a malformed payload leaves the last good displace standing and raises nothing",
+    not _t1_ecl_raised and _t1_ecl_bad._ecl110_current_displace == 7.0,
+    f"raised={_t1_ecl_raised!r} displace={_t1_ecl_bad._ecl110_current_displace!r} -- "
+    "the handler is a @callback on the event loop, so a raise here surfaces as "
+    "an unhandled task error and the exception is caught HERE so this check "
+    "fails by name rather than taking the lane down",
+)
+
+# -- the live PV production reading, unit by unit ---------------------------
+_t1_pv_cfg_off = pv.PVConfig(production_entity=None)
+_t1_pv_none = _t1_coord()
+R.check(
+    "no production entity configured reads as no measurement, not as zero",
+    _t1_pv_none._pv_measured_production(_t1_pv_cfg_off) is None,
+    "zero would be a real reading and would enter the surplus arithmetic",
+)
+
+_T1_PV_ENTITY = "sensor.pv_now"
+_t1_pv_cfg = pv.PVConfig(production_entity=_T1_PV_ENTITY)
+
+
+def _t1_pv(state_value, unit="W"):
+    c = _t1_coord()
+    if state_value is not None:
+        c.hass.states.set(
+            _T1_PV_ENTITY, FakeState(state_value, attributes={"unit_of_measurement": unit})
+        )
+    return c._pv_measured_production(_t1_pv_cfg)
+
+
+R.check(
+    "a watt reading is converted to kW rather than trusted as kW",
+    _t1_pv("2500") == 2.5,
+    f"{_t1_pv('2500')!r} -- 2500 W is 2.5 kW and the solver plans in kW",
+)
+# MEASURED, AND THE MEASUREMENT IS WHY THIS CHECK IS WORDED AS AN OUTCOME AND
+# NOT AS A GUARD: deleting the `in ("unknown", "unavailable", "")` clause from
+# production leaves this check green, because `float("unknown")` raises and the
+# except arm below returns None anyway. So the clause is redundant for all
+# three strings -- it documents intent and buys nothing the next line does not
+# already buy. This check pins the OUTCOME, which is what a caller depends on;
+# the redundancy is recorded in the pull-request body for a production seat.
+R.check(
+    "an absent entity, and the three non-values Home Assistant publishes, read as None",
+    _t1_pv(None) is None
+    and _t1_pv("unknown") is None
+    and _t1_pv("unavailable") is None
+    and _t1_pv("") is None,
+    f"absent={_t1_pv(None)!r} unknown={_t1_pv('unknown')!r} "
+    f"unavailable={_t1_pv('unavailable')!r} empty={_t1_pv('')!r}",
+)
+R.check(
+    "a non-numeric state and an unrecognised unit both read as None, not as a guess",
+    _t1_pv("warm") is None and _t1_pv("2500", unit="bananas") is None,
+    f"text={_t1_pv('warm')!r} bad_unit={_t1_pv('2500', unit='bananas')!r} -- "
+    "a wrongly scaled power is worse than no power (inputs.normalize_power_kw)",
+)
+R.check(
+    "a negative production reading is clamped to zero, not propagated",
+    _t1_pv("-500") == 0.0,
+    f"{_t1_pv('-500')!r} -- an array cannot produce negative power, and a "
+    "negative surplus would credit the plan for exporting",
+)
+
+# -- the away override: the only writer of that store ----------------------
+_t1_away_on = _t1_coord()
+_asyncio.run(
+    _t1_away_on.async_set_away(True, dt_util.now() + timedelta(hours=6))
+)
+R.check(
+    "setting away with a future return stores the override and its parsed instant",
+    _t1_away_on._away_state.override_active is True
+    and _t1_away_on._away_state.override_return_iso is not None,
+    f"active={_t1_away_on._away_state.override_active!r} "
+    f"return={_t1_away_on._away_state.override_return_iso!r}",
+)
+
+# A SPACE-SEPARATED local time is what the frontend's picker posts, and it is
+# not an ISO instant: storing it verbatim would leave the store holding a
+# string `_parse_return_time` has to re-interpret on every read, and the
+# expiry sweep three lines below would compare against None.
+_t1_away_str = _t1_coord()
+_t1_away_target = (dt_util.now() + timedelta(hours=3)).replace(microsecond=0)
+_t1_away_posted = _t1_away_target.strftime("%Y-%m-%d %H:%M:%S")
+_asyncio.run(_t1_away_str.async_set_away(True, _t1_away_posted))
+_t1_away_stored = _t1_away_str._away_state.override_return_iso
+R.check(
+    "a return time arriving as a picker string is parsed, not stored verbatim",
+    _t1_away_str._away_state.override_active is True
+    and _t1_away_stored is not None
+    and _t1_away_stored != _t1_away_posted
+    and away_mode._parse_return_time(_t1_away_stored) is not None,
+    f"posted={_t1_away_posted!r} stored={_t1_away_stored!r} -- the stored form "
+    "must round-trip through _parse_return_time, which the posted one only does "
+    "by accident of the parser's tolerance",
+)
+
+_t1_away_off = _t1_coord()
+_asyncio.run(_t1_away_off.async_set_away(True, dt_util.now() + timedelta(hours=6)))
+_asyncio.run(_t1_away_off.async_set_away(False))
+R.check(
+    "clearing away drops the return time with it, so a later enable starts clean",
+    _t1_away_off._away_state.override_active is False
+    and _t1_away_off._away_state.override_return_iso is None,
+    f"active={_t1_away_off._away_state.override_active!r} "
+    f"return={_t1_away_off._away_state.override_return_iso!r}",
+)
+
+_t1_away_past = _t1_coord()
+_asyncio.run(
+    _t1_away_past.async_set_away(True, dt_util.now() - timedelta(minutes=1))
+)
+R.check(
+    "a return time already in the past expires the override on the spot",
+    _t1_away_past._away_state.override_active is False,
+    f"active={_t1_away_past._away_state.override_active!r} -- expire_override "
+    "runs on every write, so a stale return never leaves the house away",
+)
+
+_t1_away_keep = _t1_coord()
+_asyncio.run(_t1_away_keep.async_set_away(True, dt_util.now() + timedelta(hours=4)))
+_t1_away_kept = _t1_away_keep._away_state.override_return_iso
+_asyncio.run(_t1_away_keep.async_set_away(True))
+R.check(
+    "omitting the return time leaves the stored one alone",
+    _t1_away_keep._away_state.override_return_iso == _t1_away_kept,
+    f"before={_t1_away_kept!r} after={_t1_away_keep._away_state.override_return_iso!r} "
+    "-- away_mode.OMIT is the sentinel that distinguishes 'unchanged' from None",
+)
+
+# -- the accuracy store: a corrupt read must not unseat what is in memory --
+_t1_acc_raise = _t1_coord()
+
+
+class _T1RaisingStore:
+    async def async_load(self):
+        raise RuntimeError("accuracy store is corrupt")
+
+
+_t1_acc_before = _t1_acc_raise._accuracy
+_t1_acc_raise._accuracy_store = _T1RaisingStore()
+_t1_acc_escaped = None
+try:
+    _asyncio.run(_t1_acc_raise._async_load_accuracy())
+except Exception as _t1_acc_exc:  # noqa: BLE001 - the point of the check
+    _t1_acc_escaped = type(_t1_acc_exc).__name__
+R.check(
+    "a store that raises is swallowed here and leaves the trackers untouched",
+    _t1_acc_escaped is None and _t1_acc_raise._accuracy is _t1_acc_before,
+    f"escaped={_t1_acc_escaped!r} -- a corrupt store must cost the history and "
+    "never the running entry, and the exception is caught HERE so a narrowed "
+    "except clause in production fails this check by name",
+)
+
+_t1_acc_nondict = _t1_coord()
+
+
+class _T1ListStore:
+    async def async_load(self):
+        return ["not", "a", "dict"]
+
+
+_t1_acc_nondict._accuracy_store = _T1ListStore()
+_t1_nondict_before = _t1_acc_nondict._accuracy
+_asyncio.run(_t1_acc_nondict._async_load_accuracy())
+R.check(
+    "a store holding the wrong type is refused as firmly as one that raises",
+    _t1_acc_nondict._accuracy is _t1_nondict_before,
+    "isinstance is the guard; a list would raise on .get() one line later",
+)
+
+_t1_acc_ok = _t1_coord()
+
+
+class _T1DictStore:
+    def __init__(self, payload):
+        self._payload = payload
+
+    async def async_load(self):
+        return self._payload
+
+
+_t1_acc_ok._accuracy_store = _T1DictStore(
+    {"mode": "boost", "defrost": None, "peaks": None, "comfort": None}
+)
+_asyncio.run(_t1_acc_ok._async_load_accuracy())
+R.check(
+    "a stored optimization mode is adopted, and the defrost derate reaches the params",
+    _t1_acc_ok._mode == "boost"
+    and _t1_acc_ok._thermal_params.defrost_derate is _t1_acc_ok._defrost,
+    f"mode={_t1_acc_ok._mode!r} derate_wired="
+    f"{_t1_acc_ok._thermal_params.defrost_derate is _t1_acc_ok._defrost}",
+)
+
+_t1_acc_bad_mode = _t1_coord()
+_t1_acc_bad_mode._accuracy_store = _T1DictStore({"mode": "teleport"})
+_t1_bad_mode_before = _t1_acc_bad_mode._mode
+_asyncio.run(_t1_acc_bad_mode._async_load_accuracy())
+R.check(
+    "a mode the tree does not define is left on the floor, not published",
+    _t1_acc_bad_mode._mode == _t1_bad_mode_before,
+    f"{_t1_acc_bad_mode._mode!r} -- Optimization Mode publishes this, and the "
+    "service schema is vol.In(OPERATION_MODES), so an unknown value would be "
+    "a state no entity option covers",
+)
+
+# -- the setpoint override, which is the comfort learner's only evidence ---
+_t1_ov_off = _t1_coord(comfort_learning_enabled=False)
+_t1_ov_off._current_action = {"setpoint": 21.0}
+_t1_ov_off_before = _t1_ov_off._comfort_learner.evidence
+_t1_ov_off.record_setpoint_override(23.0)
+R.check(
+    "with comfort learning disabled an override records nothing at all",
+    _t1_ov_off._comfort_learner.evidence == _t1_ov_off_before
+    and _t1_ov_off._last_manual_setpoint is None,
+    f"evidence={_t1_ov_off._comfort_learner.evidence!r} "
+    f"last={_t1_ov_off._last_manual_setpoint!r}",
+)
+
+# A CHEAP-HOUR override is worth half: the spot is 1.0 against a 2.0 mean, so
+# the relative price is 0.5 and the 2 C complaint contributes 1.0 -- under the
+# threshold, so the evidence accumulates and the weight does not move yet.
+_t1_ov_on = _t1_coord(comfort_learning_enabled=True)
+_t1_ov_on._current_action = {"setpoint": 21.0}
+_t1_ov_on._prices = [{"total": 1.0}, {"total": 3.0}]
+_t1_ov_on_weight = _t1_ov_on._comfort_learner.learned_weight
+_t1_ov_on.record_setpoint_override(23.0)
+R.check(
+    "a cheap-hour override is recorded at half weight and banked, not spent",
+    _t1_ov_on._comfort_learner.overrides == 1
+    and _t1_ov_on._comfort_learner.evidence == 1.0
+    and _t1_ov_on._comfort_learner.learned_weight == _t1_ov_on_weight
+    and _t1_ov_on._last_manual_setpoint == 23.0,
+    f"overrides={_t1_ov_on._comfort_learner.overrides!r} "
+    f"evidence={_t1_ov_on._comfort_learner.evidence!r} "
+    f"weight={_t1_ov_on._comfort_learner.learned_weight!r} "
+    f"last={_t1_ov_on._last_manual_setpoint!r}",
+)
+
+# A ZERO-MEAN curve has no relative price to learn from, so the override is
+# recorded NEUTRAL -- weight 1.0, not 0.5 -- and 2 C at full weight reaches the
+# threshold, so the learner spends it immediately and the evidence returns to
+# zero. Asserting "evidence != 0" here would have been asserting the wrong
+# observable: the learner consumed it by design.
+_t1_ov_flat = _t1_coord(comfort_learning_enabled=True)
+_t1_ov_flat._current_action = {"setpoint": 21.0}
+_t1_ov_flat._prices = [{"total": 0.0}, {"total": 0.0}]
+_t1_ov_flat_weight = _t1_ov_flat._comfort_learner.learned_weight
+_t1_ov_flat.record_setpoint_override(23.0)
+R.check(
+    "a zero-mean price curve records the override neutral, and that is worth more",
+    _t1_ov_flat._comfort_learner.overrides == 1
+    and _t1_ov_flat._comfort_learner.learned_weight != _t1_ov_flat_weight
+    and _t1_ov_flat._comfort_learner.evidence == 0.0,
+    f"overrides={_t1_ov_flat._comfort_learner.overrides!r} "
+    f"weight={_t1_ov_flat_weight!r} -> {_t1_ov_flat._comfort_learner.learned_weight!r} "
+    f"evidence={_t1_ov_flat._comfort_learner.evidence!r} -- a negative "
+    "denominator would file an expensive-hour override as a cheap-hour "
+    "complaint, so the guard records 1.0 rather than a ratio",
+)
+
+# A DELTA UNDER THE FLOOR is not evidence at all: 0.2 C is noise, and
+# record_override returns before it touches the counter.
+_t1_ov_tiny = _t1_coord(comfort_learning_enabled=True)
+_t1_ov_tiny._current_action = {"setpoint": 21.0}
+_t1_ov_tiny._prices = [{"total": 1.0}, {"total": 3.0}]
+_t1_ov_tiny.record_setpoint_override(21.2)
+R.check(
+    "a sub-threshold nudge is not recorded as a complaint",
+    _t1_ov_tiny._comfort_learner.overrides == 0
+    and _t1_ov_tiny._comfort_learner.evidence == 0.0
+    and _t1_ov_tiny._last_manual_setpoint == 21.2,
+    f"overrides={_t1_ov_tiny._comfort_learner.overrides!r} "
+    f"last={_t1_ov_tiny._last_manual_setpoint!r} -- the setpoint is still "
+    "remembered, because the climate entity reads it back",
+)
+
 sys.exit(R.close("FEATURE CHECKS"))
