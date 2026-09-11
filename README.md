@@ -149,7 +149,7 @@ flowchart LR
 
 - Home Assistant 2025.2.0 or newer (the first release whose own
   `requires-python` is `>=3.13.0`)
-- Python 3.13 or newer. The suite is tested on 3.13 and 3.14.
+- Python 3.13 or newer. The suite is tested on 3.14.
 - A Tibber account with API access ([developer.tibber.com](https://developer.tibber.com))
 - A weather integration with hourly forecasts (Met.no or similar)
 - `numpy` and `scipy`, installed automatically from the integration manifest
@@ -784,12 +784,10 @@ handling are documented in [docs/ecl110.md](docs/ecl110.md).
 
 ## Project status
 
-Backlog items 1–33 are all delivered; [docs/backlog.md](docs/backlog.md) keeps
-each one with the investigation behind it — the code that caused it, what was
-measured, and what a fix had to be careful of. The v4.0.0 feature program (36
-selected proposals, delivered as tranches T0 through T8 and recorded in
-[docs/plan-v4.0.0-program.md](docs/plan-v4.0.0-program.md)) followed, and every
-release since v4.0.0 has been an audit train on top of it: a full-codebase
+The v4.0.0 feature program — 36 selected proposals, delivered as tranches T0
+through T8 and recorded in
+[docs/plan-v4.0.0-program.md](docs/plan-v4.0.0-program.md) — is complete, and
+every release since has been an audit train on top of it: a full-codebase
 review (August 2026, [docs/audit-2026-08.md](docs/audit-2026-08.md)), then an
 per-dimension audit repeated round by round
 ([docs/audit-2026-09.md](docs/audit-2026-09.md)) alongside the open-issues

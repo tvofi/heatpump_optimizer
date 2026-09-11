@@ -1,0 +1,7 @@
+{
+  "package_percent_floor": 94.9,
+  "package_percent_ceiling": 96.0,
+  "pragmas": 10,
+  "recorded_at": "2026-09-11T21:01:56Z",
+  "reason": "W5-G7 tranche 6 (#195): coordinator.py 95.91 -> 96.13 % takes the package to 94.96 %, recorded down to the tenth it cleared"
+}

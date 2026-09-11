@@ -914,43 +914,68 @@ R.check(
 )
 # The Python half of the same declaration. Before #514 CI tested exactly one
 # interpreter and the README named none, so "supported Python" was an
-# inference from the HA floor that nothing could falsify. These two checks
-# make the README's claim and the versions CI actually runs the same fact:
-# the workflow is the machine-readable source, exactly as hacs.json is for
-# the Home Assistant floor above. Adding an interpreter to CI without saying
-# so in the README fails here, and so does claiming a floor CI never runs.
-# One line-wise pass reads both spellings: the six single-version pins
-# (`python-version: "3.13"`) and `fast`'s matrix list. The interpolated
-# `${{ matrix.python-version }}` carries no quoted literal and contributes
-# nothing, which is what keeps the matrix list the single source.
+# inference from the HA floor that nothing could falsify. These checks make
+# the README's claims and the versions CI actually runs the same fact: the
+# workflow is the machine-readable source, exactly as hacs.json is for the
+# Home Assistant floor above.
+#
+# TWO derivations, because the README makes two different claims and they
+# stopped being the same fact when `fast`'s 3.13 leg was retired. "Python X
+# or newer" is the FLOOR, and every job in this workflow still runs on it.
+# "The suite is tested on ..." is a claim about the SUITE, which only `fast`
+# runs -- so it derives from `fast`'s matrix alone. Read off the whole file,
+# as it was, the sentence would have kept passing while saying the suite ran
+# on an interpreter no longer in the matrix: a true-looking sentence no check
+# could falsify, which is the shape #514 exists to refuse.
+def _workflow_job(text: str, name: str) -> str:
+    """One job's YAML block, so a wiring check cannot match a sibling job."""
+    start = text.index(f"\n  {name}:\n") + 1
+    nxt = re.compile(r"^  [A-Za-z][\w-]*:", re.M).search(
+        text, text.index("\n", start) + 1)
+    return text[start:nxt.start()] if nxt else text[start:]
+
+
 _tests_workflow = Path(".github/workflows/tests.yml").read_text()
-_ci_pythons = sorted(
-    {
-        _version
-        for _line in _re.findall(r"python-version:.*", _tests_workflow)
-        for _version in _re.findall(r'"(\d+\.\d+)"', _line)
-    },
-    key=lambda v: tuple(int(p) for p in v.split(".")),
-)
+
+
+def _py_versions(text: str) -> list[str]:
+    """Every quoted `X.Y` on a `python-version:` line, oldest first.
+
+    The interpolated `${{ matrix.python-version }}` carries no quoted literal
+    and contributes nothing, which is what keeps the matrix list the single
+    source for the job that reads it.
+    """
+    return sorted(
+        {
+            _version
+            for _line in _re.findall(r"python-version:.*", text)
+            for _version in _re.findall(r'"(\d+\.\d+)"', _line)
+        },
+        key=lambda v: tuple(int(p) for p in v.split(".")),
+    )
+
+
+_ci_pythons = _py_versions(_tests_workflow)
+_suite_pythons = _py_versions(_workflow_job(_tests_workflow, "fast"))
 R.check(
-    "the README states the lowest Python version CI actually tests",
+    "the README states the lowest Python version CI actually runs on",
     bool(_ci_pythons) and f"Python {_ci_pythons[0]} or newer" in readme,
-    f".github/workflows/tests.yml tests {_ci_pythons}",
+    f".github/workflows/tests.yml runs on {_ci_pythons}",
 )
 # Bidirectional on purpose. "Every tested version is named" would catch a new
-# interpreter added to CI undocumented, but not the reverse -- dropping 3.14
+# interpreter added to CI undocumented, but not the reverse -- dropping one
 # from the matrix while the README still promises it re-opens the exact hole
 # #514 was filed for, an advertised version nothing runs. Comparing the whole
 # sentence catches both directions.
 _listed = (
-    " and ".join(_ci_pythons)
-    if len(_ci_pythons) < 3
-    else ", ".join(_ci_pythons[:-1]) + " and " + _ci_pythons[-1]
+    " and ".join(_suite_pythons)
+    if len(_suite_pythons) < 3
+    else ", ".join(_suite_pythons[:-1]) + " and " + _suite_pythons[-1]
 )
 R.check(
-    "the README names exactly the interpreters CI tests, neither more nor fewer",
-    f"The suite is tested on {_listed}." in readme,
-    f"CI tests {_ci_pythons}, so the README should read "
+    "the README names exactly the interpreters the SUITE runs on, neither more nor fewer",
+    bool(_suite_pythons) and f"The suite is tested on {_listed}." in readme,
+    f"`fast` is matrixed over {_suite_pythons}, so the README should read "
     f"'The suite is tested on {_listed}.'",
 )
 R.check(
@@ -11827,14 +11852,6 @@ _TESTS_YML = (pathlib.Path(__file__).resolve().parents[1]
               / ".github" / "workflows" / "tests.yml").read_text()
 
 
-def _workflow_job(text: str, name: str) -> str:
-    """One job's YAML block, so a wiring check cannot match a sibling job."""
-    start = text.index(f"\n  {name}:\n") + 1
-    nxt = re.compile(r"^  [A-Za-z][\w-]*:", re.M).search(
-        text, text.index("\n", start) + 1)
-    return text[start:nxt.start()] if nxt else text[start:]
-
-
 for _job in ("closures-autofix", "claims-autofix"):
     _blk = _workflow_job(_TESTS_YML, _job)
     _steps = _blk.split("\n      - ")
@@ -14864,9 +14881,15 @@ def _ns_job(name: str, conclusion: str | None) -> dict:
     return {"name": name, "conclusion": conclusion, "html_url": ""}
 
 
+# Every lane in REQUIRED_LANES has to appear here, or the ordinary nightly
+# reads ABSENT and all four states collapse -- which is how adding
+# `mutation-nightly` to the reporter announced itself, four checks at once.
+# `fast` is skipped on a schedule by design and is in the fixture for that.
 _NS_LIVE = [_ns_job("nightly-ha (stable)", "success"),
             _ns_job("nightly-ha (2025.2.0)", "success"),
-            _ns_job("slow", "success"), _ns_job("fast", "skipped")]
+            _ns_job("slow", "success"),
+            _ns_job("mutation-nightly", "success"),
+            _ns_job("fast", "skipped")]
 _NS_LAST_NIGHT = _ns_run(1, "2026-09-10T02:17:00Z")
 _NS_CASES = {
     "FAILED": (_NS_LAST_NIGHT, None,
@@ -15695,6 +15718,224 @@ R.check(
     "the disposition reporter is classified: NOT_A_TEST, and not on INERT",
     "record_status.py" in _closure.NOT_A_TEST
     and not _closure.is_inert("tests/record_status.py"),
+    "a file that is neither in a closure nor on a list forces the FULL suite",
+)
+
+# --- the two instruments beside the gate: coverage and mutation (#195) -------
+#
+# Coverage says a line RAN. It cannot say a check would fail if the line were
+# wrong, and the five W5-G7 tranches measured the gap: twenty-two checks
+# executed the line they were named for and pinned nothing. So there are two
+# instruments, and what is pinned here is what each CLAIMS -- the operators,
+# the kill rule, the scope rule -- plus the wiring, because a correct
+# instrument its workflow does not call is the silent-green shape this
+# repository keeps finding (`governance.yml`, `nightly_ha.py`, #533).
+import shutil as _mut_shutil  # noqa: E402
+import coverage_ratchet as _cov  # noqa: E402
+import mutation_table as _mut  # noqa: E402
+
+_MUT_JOB = _workflow_job(_TESTS_YML, "mutation")
+_MUTN_JOB = _workflow_job(_TESTS_YML, "mutation-nightly")
+_COV_JOB = _workflow_job(_TESTS_YML, "coverage")
+
+R.check(
+    "the coverage ratchet is wired into a job that runs on pull requests",
+    "github.event_name == 'pull_request'" in _COV_JOB
+    and "tests/coverage_ratchet.py" in _COV_JOB,
+    f"pull_request={'pull_request' in _COV_JOB}, "
+    f"invoked={'tests/coverage_ratchet.py' in _COV_JOB}",
+)
+# The null control for every ratchet in this repository. `--record` REWRITES
+# the budget to whatever was measured, so a job that passes it can never fail:
+# it is the always-green shape, and CI must never take that path.
+R.check(
+    "and no CI job passes either instrument --record",
+    not any("--record" in _j for _j in (_COV_JOB, _MUT_JOB, _MUTN_JOB)),
+    "--record rewrites the budget to the measurement, so a job that passes "
+    "it reports PASSED whatever the tree did",
+)
+# The user's ask, read back off the workflow: scoped beside `fast`, full on
+# the nightly. The two scopes are what make this affordable at all.
+R.check(
+    "the pull-request lane scopes to what the diff tested, the nightly does not",
+    "--scope changed" in _MUT_JOB and "--scope full" not in _MUT_JOB
+    and "--scope full" in _MUTN_JOB and "--scope changed" not in _MUTN_JOB,
+    f"mutation: changed={'--scope changed' in _MUT_JOB} "
+    f"full={'--scope full' in _MUT_JOB}; mutation-nightly: "
+    f"changed={'--scope changed' in _MUTN_JOB} full={'--scope full' in _MUTN_JOB}",
+)
+# --scope changed diffs three-dot against the merge base. A shallow clone has
+# no merge base, so the scope would silently come back empty -- and an empty
+# scope is a PASS.
+R.check(
+    "and the scoped lane checks out the history its own diff needs",
+    "fetch-depth: 0" in _MUT_JOB,
+    "without full history `git merge-base` prints nothing, scope_files "
+    "returns no file, and the run passes on an empty scope",
+)
+
+# The budget the ratchet enforces has to be a band, not a point: a floor above
+# its own ceiling can never be recorded down to and never stops tightening.
+_CB = json.loads(Path("tests/coverage_budgets.json").read_text())
+R.check(
+    "the coverage floor sits at or below its ceiling",
+    _CB["package_percent_floor"] <= _CB["package_percent_ceiling"],
+    f"floor={_CB['package_percent_floor']} ceiling={_CB['package_percent_ceiling']}",
+)
+# The pragma row is the reason the coverage floor is a floor at all: a
+# `# pragma: no cover` takes the statement out of the denominator, so without
+# a cap on the escape the floor is an invitation. Pinned as the PROPERTY --
+# the cap is not above what the tree carries -- rather than as the number,
+# which would be a literal this file re-measures every run.
+_PRAGMAS, _ = _cov.count_pragmas()
+R.check(
+    "the pragma cap is not slack: no exemption is pre-authorised",
+    _CB["pragmas"] <= _PRAGMAS,
+    f"cap={_CB['pragmas']} measured={_PRAGMAS}; a cap above the count is "
+    "headroom for an exemption nobody argued for",
+)
+
+# The mutation cap is a FRACTION and deliberately not the exact-count ratchet
+# tests/structure.py and tests/coverage_ratchet.py use: the pool is a seeded
+# sample over whichever files a diff put in scope, so two clean branches
+# touching different modules draw different pools and an exact count would go
+# red at random. What can still be pinned is that it is a fraction at all, and
+# that whatever was last measured is inside the cap it was recorded against --
+# a cap below its own measurement is a gate that fails on the tree it was
+# written from.
+_MB = json.loads(Path("tests/mutation_budgets.json").read_text())
+_MB_BAD = [
+    f"{_scope}={_v}" for _scope, _v in _MB["max_survivor_fraction"].items()
+    if not 0.0 <= _v <= 1.0
+]
+_MB_BAD += [
+    f"{_scope}: {_m['survivors']}/{_m['evaluated']} over the recorded "
+    f"{_MB['max_survivor_fraction'][_scope]}"
+    for _scope, _m in _MB["last_measured"].items()
+    if _m and _m["evaluated"]
+    and _m["survivors"] / _m["evaluated"] > _MB["max_survivor_fraction"][_scope]
+]
+R.check(
+    "both mutation caps are fractions, and each holds its own last measurement",
+    not _MB_BAD and set(_MB["max_survivor_fraction"]) == {"changed", "full"},
+    f"{_MB_BAD or 'in band'}; scopes recorded: "
+    f"{sorted(_MB['max_survivor_fraction'])}",
+)
+
+# The #805 defect, driven rather than described. Its pre-screen read the last
+# 1200 bytes of a script's output and scored seven real kills as survivors,
+# because two scripts print their summary line and then keep logging. The
+# kill rule must read the whole of stdout.
+_MUT_NOISE = "2 of 40 checks FAILED\n" + ("noise\n" * 400)
+R.check(
+    "the kill rule finds a failure count buried under trailing output",
+    [(m[0]) for m in _mut._FAILED.findall(_MUT_NOISE)] == ["2"],
+    f"a tail-only read of {len(_MUT_NOISE)} bytes sees none of it (#805)",
+)
+R.check(
+    "and reads no failure out of a clean run",
+    _mut._FAILED.findall("40 of 40 checks passed\n" + ("noise\n" * 400)) == [],
+    "the null control: a green script must not be read as a kill, or every "
+    "mutant dies and the table reports a suite that notices everything",
+)
+
+# The six operators, driven over a module written to carry one of each. A
+# generated mutant that does not PARSE cannot run, and a mutant that cannot
+# run reports as a survivor -- which reads as a finding about production.
+# W5-G7 tranche 5 measured two of those.
+_MUT_SRC = """
+THRESHOLD_C = 2.5
+ZERO_OFFSET = 0
+
+
+def clamp(value, ceiling):
+    out = min(value, ceiling)
+    if out < 0:
+        out = 0
+    return out
+
+
+def decide(a, b, flag):
+    if flag:
+        a = a + 1
+    if a > 0 and b > 0:
+        return a + b
+    if a < 0:
+        b = abs(b)
+        raise ValueError("negative")
+    return 0
+"""
+_MUT_DIR = Path(_tempfile.mkdtemp(prefix="mutation-operators-"))
+_MUT_FILE = _MUT_DIR / "sample.py"
+_MUT_FILE.write_text(_MUT_SRC)
+_MUT_GOT = list(_mut.candidates(_MUT_FILE))
+R.check(
+    "every operator fires on a module written to carry one of each",
+    {_m["kind"] for _m in _MUT_GOT} == {
+        "CLAMP_DROP", "GUARD_OFF", "RAISE_DEL", "RETURN_DEL", "BOOLOP", "CONST"},
+    f"kinds generated: {sorted({_m['kind'] for _m in _MUT_GOT})}",
+)
+_MUT_LINES = _MUT_SRC.splitlines(True)
+
+
+def _mut_apply(mutant: dict) -> str:
+    lines = list(_MUT_LINES)
+    lines[mutant["line"] - 1] = mutant["new"] + "\n"
+    return "".join(lines)
+
+
+_MUT_UNPARSEABLE = []
+for _m in _MUT_GOT:
+    try:
+        ast.parse(_mut_apply(_m))
+    except SyntaxError:
+        _MUT_UNPARSEABLE.append(f"{_m['kind']}:{_m['line']}")
+R.check(
+    "and every mutant it generates leaves the module parseable",
+    not _MUT_UNPARSEABLE,
+    f"unparseable: {_MUT_UNPARSEABLE}; a mutant that cannot run is reported "
+    "as a survivor, and a survivor reads as a finding about production",
+)
+# The operator that makes that non-trivial: deleting a `return` or a `raise`
+# that is the ONLY statement of its block strands the `if` above it. The
+# generator refuses those rather than the runner catching them.
+R.check(
+    "the sole statement of a block is never deleted",
+    not any(_m["kind"] in ("RETURN_DEL", "RAISE_DEL")
+            and _MUT_LINES[_m["line"] - 1].strip().startswith(("return", "raise"))
+            and _MUT_LINES[_m["line"] - 2].strip().endswith(":")
+            for _m in _MUT_GOT),
+    "a `raise` alone under its `if` cannot become `pass` without an "
+    "IndentationError -- the refusal is in candidates(), not in the runner",
+)
+_mut_shutil.rmtree(_MUT_DIR, ignore_errors=True)
+
+# Scope: a mutant is driven only by scripts whose MEASURED closure contains
+# its file. Driving one hand-picked script instead would let a mutant survive
+# because its driver never imports the module, and a survivor that says
+# nothing about the suite is worse than no survivor at all.
+_MUT_CLOSURES = {
+    "tests/a.py": ["custom_components/heatpump_optimizer/pv.py"],
+    "tests/b.py": ["custom_components/heatpump_optimizer/tariff.py"],
+}
+R.check(
+    "a mutant is driven only by the scripts whose closure reaches its file",
+    _mut.drivers_for("custom_components/heatpump_optimizer/pv.py",
+                     _MUT_CLOSURES, ["tests/a.py", "tests/b.py"]) == ["tests/a.py"]
+    and _mut.drivers_for("custom_components/heatpump_optimizer/nowhere.py",
+                         _MUT_CLOSURES, ["tests/a.py", "tests/b.py"]) == [],
+    "the closure recording answers 'which script could see this file', and a "
+    "file no recorded closure reaches is skipped rather than scored",
+)
+
+# The classification the ratchet demands of any new tracked file: not
+# selectable (each needs an instrument the gate does not run), not INERT
+# (this script imports both).
+R.check(
+    "both instruments are classified: NOT_A_TEST, and not on INERT",
+    {"coverage_ratchet.py", "mutation_table.py"} <= _closure.NOT_A_TEST
+    and not _closure.is_inert("tests/coverage_ratchet.py")
+    and not _closure.is_inert("tests/mutation_table.py"),
     "a file that is neither in a closure nor on a list forces the FULL suite",
 )
 
