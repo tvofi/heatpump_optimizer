@@ -32716,4 +32716,326 @@ R.check(
     "every price the plan sees",
 )
 
+
+# -- W5-G8 block F: the two subsystems W5-G9 and W5-G10 extracted ----------
+# `dhw_learning.py` and `legionella.py` left `coordinator.py` as classes in
+# #750 and #771, and they landed below the bar -- which is the partition
+# predicate working rather than a surprise: the bodies moved verbatim, and
+# the statements that were uncovered inside the coordinator are uncovered
+# outside it. Both holes are the same shape, and it is the shape of block A:
+# a store the checks never write, and an issue registry that can refuse.
+R.section("W5-G8 f: the extracted DHW learner and legionella guard (#195)")
+
+from heatpump_optimizer.dhw_learning import DhwProfileLearner as _G8Learner2  # noqa: E402
+from heatpump_optimizer.legionella import LegionellaGuard as _G8Guard  # noqa: E402
+from heatpump_optimizer.thermal_model import ThermalParameters as _G8Params  # noqa: E402
+from heatpump_optimizer import dhw_learning as _g8_dhwl  # noqa: E402
+from heatpump_optimizer import legionella as _g8_leg  # noqa: E402
+
+
+class _G8TwoStore:
+    """A two-key store: the learner opens a profile store and a draws store."""
+
+    payloads: dict = {}
+    raise_on: set = set()
+    saves: list = []
+
+    def __init__(self, hass, version, key, **kw):
+        self.key = str(key).rsplit("_", 1)[-1]
+
+    async def async_load(self):
+        if ("load", self.key) in _G8TwoStore.raise_on:
+            raise RuntimeError(f"{self.key} store unreadable")
+        return _G8TwoStore.payloads.get(self.key)
+
+    async def async_save(self, data):
+        _G8TwoStore.saves.append((self.key, data))
+        if ("save", self.key) in _G8TwoStore.raise_on:
+            raise RuntimeError(f"{self.key} store read-only")
+
+
+def _g8_learner(**kw):
+    return _G8Learner2(
+        FakeHass({}), "g8", _G8Params(),
+        frozen=kw.get("frozen", lambda _name: None),
+        heating_active=kw.get("heating_active", lambda: False),
+        external_heat_active=kw.get("external_heat_active", lambda: False),
+    )
+
+
+# -- normalize_profile: a 24-hour shape that budgets the same daily volume --
+_g8_np_base = _g8_learner()
+_g8_np_short = _g8_np_base.normalize_profile([1.0] * 10)
+_g8_np_text = _g8_np_base.normalize_profile(["x"] * 24)
+_g8_np_zero = _g8_np_base.normalize_profile([0.0] * 24)
+_g8_np_ok = _g8_np_base.normalize_profile([2.0] * 24)
+_g8_np_peaky = _g8_np_base.normalize_profile(
+    [4.0 if h in (7, 8, 19) else 0.5 for h in range(24)])
+R.check(
+    "a stored profile is normalised to average one, or refused whole",
+    _g8_np_short == _g8_np_base._params.dhw_hourly_draw_pattern
+    and _g8_np_text == _g8_np_base._params.dhw_hourly_draw_pattern
+    and all(abs(v - 1.0) < 1e-9 for v in _g8_np_zero)
+    and abs(sum(_g8_np_ok) / 24.0 - 1.0) < 1e-9
+    and 0.9 < sum(_g8_np_peaky) / 24.0 < 1.0
+    and max(_g8_np_peaky) > min(_g8_np_peaky),
+    f"10 hours -> the configured default; text -> the default; all zero -> the "
+    f"flat 1.0; a flat 2.0 -> mean {sum(_g8_np_ok) / 24.0:.4f}; a peaky day -> "
+    f"mean {sum(_g8_np_peaky) / 24.0:.4f}, span "
+    f"{min(_g8_np_peaky):.2f}-{max(_g8_np_peaky):.2f}. The profile decides "
+    "WHEN hot water is drawn and never HOW MUCH, so a shape whose mean is not "
+    "one silently rescales the day's whole volume. The ALL-ZERO arm is the "
+    "interesting one and it does not reach the default: every value is "
+    "clipped up to DHW_PROFILE_MIN_INTENSITY (0.2) BEFORE the mean is taken, "
+    "so the mean is 0.2, the `avg <= 0` guard below cannot fire, and each "
+    "hour normalises to 0.2/0.2 = 1.0 -- a flat profile, which is the right "
+    "answer for a day with no information in it. That guard is therefore "
+    "UNREACHABLE while the clamp floor is positive; it is reported in the "
+    "body rather than deleted here, because deleting production code is not "
+    "a test-only tranche's to do. The peaky day lands "
+    "BELOW one and deliberately so: the clamp runs after the division, so an "
+    "hour the normalisation would push past the intensity ceiling is cut back "
+    "and the day's volume falls a little short. Volume preservation is exact "
+    "only while nothing clamps, and where the two rules disagree the clamp "
+    "wins, because an hour drawing four times the mean is more likely a bad "
+    "reading than a real draw",
+)
+
+
+# -- the learner's two stores, in both directions --------------------------
+_g8_dhwl_real_store = _g8_dhwl.Store
+try:
+    _g8_dhwl.Store = _G8TwoStore
+
+    # A profile store that will not load leaves the seeded defaults.
+    _G8TwoStore.payloads, _G8TwoStore.saves = {}, []
+    _G8TwoStore.raise_on = {("load", "profile"), ("load", "draws")}
+    _g8_l_unread = _g8_learner()
+    _g8_l_unread_err = _t6_call(_asyncio.run, _g8_l_unread.async_load_profile())
+    _g8_l_unread_draws = _t6_call(_asyncio.run, _g8_l_unread.async_load_draws())
+    _G8TwoStore.raise_on = set()
+
+    # A well-formed payload, and one whose every field is the wrong shape.
+    _G8TwoStore.payloads = {"profile": {
+        "hourly_profile": [2.0] * 24,
+        "profile_weekday": [1.0] * 24,
+        "profile_weekend": "not a list",
+        "profile_weekday_samples": "many",
+        "profile_weekend_samples": 5,
+        "cooling_rate": 0.9, "cooling_samples": 12,
+    }}
+    _g8_l_mixed = _g8_learner()
+    _t6_call(_asyncio.run, _g8_l_mixed.async_load_profile())
+
+    _G8TwoStore.payloads = {"profile": {"cooling_rate": "chilly"}}
+    _g8_l_badrate = _g8_learner()
+    _t6_call(_asyncio.run, _g8_l_badrate.async_load_profile())
+
+    # Saves that the store refuses.
+    _G8TwoStore.payloads, _G8TwoStore.saves = {}, []
+    _G8TwoStore.raise_on = {("save", "profile"), ("save", "draws")}
+    _g8_l_save = _g8_learner()
+    _g8_l_save.draws_dirty = True
+    _g8_l_save_err = _t6_call(_asyncio.run, _g8_l_save.async_save_profile())
+    _g8_l_draws_err = _t6_call(_asyncio.run, _g8_l_save.async_save_draws())
+    _g8_l_save_attempts = [k for k, _ in _G8TwoStore.saves]
+    _G8TwoStore.raise_on = set()
+finally:
+    _g8_dhwl.Store = _g8_dhwl_real_store
+
+R.check(
+    "a learner whose stores will not load keeps the configured defaults",
+    _g8_l_unread_err is None and _g8_l_unread_draws is None
+    and _g8_l_unread.cooling_rate == _G8Params().dhw_cooling_rate
+    and _g8_l_unread.cooling_samples == 0
+    and _g8_l_unread.hourly_profile == _G8Params().dhw_hourly_draw_pattern,
+    f"escaped {_g8_l_unread_err!r}/{_g8_l_unread_draws!r}; cooling rate "
+    f"{_g8_l_unread.cooling_rate!r} at {_g8_l_unread.cooling_samples!r} "
+    "samples. Both loads run during setup, so a raise here is a config entry "
+    "that will not start because a learner could not read a file it is "
+    "allowed to have no opinion about",
+)
+R.check(
+    "a payload half of whose fields are the wrong shape loads the half that is not",
+    _g8_l_mixed.profile_weekday == [1.0] * 24
+    and _g8_l_mixed.profile_weekend == _g8_l_mixed.hourly_profile
+    and _g8_l_mixed.daytype_samples == [0, 5]
+    and abs(_g8_l_mixed.cooling_rate - 0.9) < 1e-9
+    and _g8_l_mixed.cooling_samples == 12
+    and _g8_l_badrate.cooling_rate == _G8Params().dhw_cooling_rate,
+    f"weekday kept; weekend fell back to the pooled profile "
+    f"({_g8_l_mixed.profile_weekend == _g8_l_mixed.hourly_profile}); samples "
+    f"{_g8_l_mixed.daytype_samples!r}; rate {_g8_l_mixed.cooling_rate!r} at "
+    f"{_g8_l_mixed.cooling_samples!r}; an unparseable rate -> "
+    f"{_g8_l_badrate.cooling_rate!r}. The weekend fallback is the POOLED "
+    "profile with a zero sample count, so the blend leans entirely on pooled "
+    "evidence -- falling back to the flat configured default instead would "
+    "throw away everything the weekday half had learned",
+)
+R.check(
+    "and neither save breaks the cycle that asked for it",
+    _g8_l_save_err is None and _g8_l_draws_err is None
+    and _g8_l_save_attempts == ["profile", "draws"]
+    and _g8_l_save.draws_dirty is True,
+    f"escaped {_g8_l_save_err!r}/{_g8_l_draws_err!r} after attempting "
+    f"{_g8_l_save_attempts!r}; draws_dirty is still "
+    f"{_g8_l_save.draws_dirty!r} -- the dirty flag is cleared only AFTER a "
+    "successful save, so a refused write leaves the learner knowing it still "
+    "owes one rather than forgetting the draws it just folded in",
+)
+_g8_l_payload = _g8_learner()
+_g8_l_payload.apply_payload({
+    "profile_weekday": [1.0] * 24, "profile_weekday_samples": "lots",
+    "profile_weekend": [3.0] * 24, "profile_weekend_samples": 7,
+    "cooling_rate": "not a rate",
+})
+R.check(
+    "a snapshot restore takes the same per-field care as the store loader",
+    _g8_l_payload.daytype_samples == [0, 7]
+    and _g8_l_payload.cooling_rate == _G8Params().dhw_cooling_rate
+    and _g8_l_payload.profile_weekday == [1.0] * 24,
+    f"samples {_g8_l_payload.daytype_samples!r}, rate "
+    f"{_g8_l_payload.cooling_rate!r} -- `apply_payload` restores from a "
+    "coordinator SNAPSHOT rather than from disk, and it is a second "
+    "declaration of the same rules; a snapshot written by a newer version is "
+    "exactly as able to carry a field this one cannot read",
+)
+
+
+# -- the legionella guard: its store, and four notices that can refuse -----
+class _G8LegIssues:
+    def __init__(self, refuse=False):
+        self.deleted, self.created, self.refuse = [], [], refuse
+
+    def async_delete_issue(self, hass, domain, issue_id):
+        self.deleted.append(issue_id)
+        if self.refuse:
+            raise RuntimeError("registry not ready")
+
+    def async_create_issue(self, hass, domain, issue_id, **kw):
+        self.created.append(issue_id)
+
+
+def _g8_guard(config=None, **params_kw):
+    params = _G8Params()
+    for k, v in params_kw.items():
+        setattr(params, k, v)
+    return _G8Guard(FakeHass({}), "g8", params, dict(config or {}),
+                    action=lambda: {})
+
+
+_g8_leg_real_store = _g8_leg.Store
+_g8_leg_real_del = _g8_leg.ir.async_delete_issue
+_g8_leg_real_new = _g8_leg.ir.async_create_issue
+try:
+    _g8_leg.Store = _G8TwoStore
+
+    # An unreadable store starts the clock now and writes it back, so a
+    # corrupt file cannot leave the countdown unknown for ever.
+    _G8TwoStore.payloads, _G8TwoStore.saves = {}, []
+    _G8TwoStore.raise_on = {("load", "legionella")}
+    _g8_g_unread = _g8_guard()
+    _g8_g_unread_err = _t6_call(_asyncio.run, _g8_g_unread.async_load())
+    _g8_g_unread_saves = [k for k, _ in _G8TwoStore.saves]
+    _G8TwoStore.raise_on = set()
+
+    # A stored attempt that fell short is restored alongside the cycle.
+    _G8TwoStore.payloads = {"legionella": {
+        "last_cycle": "2026-01-10T03:00:00+00:00",
+        "last_attempt": "2026-01-12T03:00:00+00:00",
+        "last_attempt_peak": 57.5,
+    }}
+    _G8TwoStore.saves = []
+    _g8_g_full = _g8_guard()
+    _t6_call(_asyncio.run, _g8_g_full.async_load())
+    _g8_g_full_saves = list(_G8TwoStore.saves)
+
+    # A payload whose timestamps are unreadable.
+    _G8TwoStore.payloads = {"legionella": {
+        "last_cycle": "whenever", "last_attempt": 12345, "last_attempt_peak": "hot"}}
+    _G8TwoStore.saves = []
+    _g8_g_junk = _g8_guard()
+    _t6_call(_asyncio.run, _g8_g_junk.async_load())
+
+    # A save the store refuses, and a guard with nothing to save.
+    _G8TwoStore.saves = []
+    _G8TwoStore.raise_on = {("save", "legionella")}
+    _g8_g_save_err = _t6_call(_asyncio.run, _g8_g_full.async_save())
+    _g8_g_save_attempts = list(_G8TwoStore.saves)
+    _G8TwoStore.raise_on = set()
+    _G8TwoStore.saves = []
+    _g8_g_empty = _g8_guard()
+    _t6_call(_asyncio.run, _g8_g_empty.async_save())
+    _g8_g_empty_saves = list(_G8TwoStore.saves)
+
+    # Every "clear the notice" path, against a registry that refuses.
+    _g8_leg_reg = _G8LegIssues(refuse=True)
+    _g8_leg.ir.async_delete_issue = _g8_leg_reg.async_delete_issue
+    _g8_leg.ir.async_create_issue = _g8_leg_reg.async_create_issue
+    _g8_leg_clears = [
+        _t6_call(_g8_g_full.clear_unreachable_issue),
+        _t6_call(_g8_g_full.clear_unverified_issue),
+    ]
+    _g8_g_ceiling = _g8_guard(dhw_legionella_enabled=True)
+    _g8_g_ceiling.ceiling_notice = (60.0, 55.0, 7.0)
+    _g8_leg_clears.append(_t6_call(_g8_g_ceiling.check_ceiling))
+    _g8_g_mode = _g8_guard()
+    _g8_g_mode.mode_block_notice = 3
+    _g8_leg_clears.append(_t6_call(_g8_g_mode.check_mode_block, False))
+finally:
+    _g8_leg.Store = _g8_leg_real_store
+    _g8_leg.ir.async_delete_issue = _g8_leg_real_del
+    _g8_leg.ir.async_create_issue = _g8_leg_real_new
+
+R.check(
+    "an unreadable legionella store starts the clock now, and writes it back",
+    _g8_g_unread_err is None
+    and _g8_g_unread.last_cycle is not None
+    and _g8_g_unread_saves == ["legionella"],
+    f"escaped {_g8_g_unread_err!r}; last_cycle "
+    f"{_g8_g_unread.last_cycle is not None}; saved {_g8_g_unread_saves!r}. "
+    "Starting the clock is the safe direction and the write is what makes it "
+    "stick: leaving it None would make the cycle overdue by an unknown "
+    "amount, which pins a disinfection boost on every plan from then on",
+)
+R.check(
+    "a stored attempt that fell short is restored beside the cycle it did not complete",
+    _g8_g_full.last_cycle is not None
+    and _g8_g_full.attempt is not None
+    and _g8_g_full.attempt_peak == 57.5
+    and _g8_g_full_saves == []
+    and _g8_g_junk.last_cycle is not None
+    and _g8_g_junk.attempt is None
+    and _g8_g_junk.attempt_peak is None,
+    f"a full payload -> cycle {_g8_g_full.last_cycle is not None}, attempt "
+    f"{_g8_g_full.attempt is not None}, peak {_g8_g_full.attempt_peak!r}, "
+    f"rewrites {len(_g8_g_full_saves)}; an unreadable one -> attempt "
+    f"{_g8_g_junk.attempt!r}, peak {_g8_g_junk.attempt_peak!r}. The attempt "
+    "is what spaces the RETRY: without it a cycle that tops out half a degree "
+    "short is neither credited nor recorded, and the guard re-commands it on "
+    "every single solve",
+)
+R.check(
+    "a store that refuses the save costs the record, not the cycle",
+    _g8_g_save_err is None
+    and [k for k, _ in _g8_g_save_attempts] == ["legionella"]
+    and _g8_g_empty_saves == [],
+    f"escaped {_g8_g_save_err!r} after attempting "
+    f"{[k for k, _ in _g8_g_save_attempts]!r}; a guard with no cycle to "
+    f"record wrote {_g8_g_empty_saves!r} -- the early return matters, because "
+    "persisting a None timestamp would read back as a cycle at the epoch",
+)
+R.check(
+    "all four legionella notices survive a registry that refuses to clear them",
+    all(c is None for c in _g8_leg_clears)
+    and sorted(set(_g8_leg_reg.deleted)) == [
+        "dhw_legionella_above_setpoint", "dhw_legionella_mode_blocked",
+        "dhw_legionella_unreachable", "dhw_legionella_unverified"],
+    f"returns {_g8_leg_clears!r}; attempted {sorted(set(_g8_leg_reg.deleted))!r} "
+    "-- four separate best-effort clears, each in its own try, and the "
+    "attempt is asserted as well as the swallow: a clear that never called "
+    "the registry would also return None and would leave a stale warning "
+    "about water safety on screen after the problem was fixed",
+)
+
 sys.exit(R.close("FEATURE CHECKS"))
