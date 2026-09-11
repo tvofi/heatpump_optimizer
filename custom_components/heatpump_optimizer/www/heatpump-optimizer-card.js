@@ -2770,7 +2770,9 @@ function cardStyleBlock() {
         .expand, .close, .viewctl button, .chip, .dlg-tab,
         .layout-bar button, .whatif button, .whatif input[type="time"],
         .whatif .wi-win-days, .whatif .wi-viewreset, .sp-actions button,
-        .slot-menu button {
+        .slot-menu button,
+        .away-strip label, .away-strip input[type="checkbox"],
+        .away-strip input[type="datetime-local"] {
           min-height: ${TARGET_MIN_PX}px;
           min-width: ${TARGET_MIN_PX}px;
           box-sizing: border-box;
@@ -2905,7 +2907,21 @@ function cardStyleBlock() {
         background: var(--card-background-color, #fff);
         text-decoration: line-through;
       }
-      .chip.nodata { cursor: not-allowed; opacity: 0.3; }
+      /* #822: this chip used to be cursor: not-allowed; opacity: 0.3, which
+         was wrong twice. The opacity put the label at 1.90:1 in the light
+         theme and 2.36:1 in dark, against a 4.5:1 floor -- the same defect
+         #261 fixed on .chip.off, and fixed there by expressing the state
+         with a colour and a line rather than with opacity. And the cursor
+         claimed the chip was inert while a click on it toggles
+         this.hidden[key] and persists, exactly like every other chip: all
+         seven chips are the card's only tab stops.
+         So the state is carried by the DOT, which is a graphic and answers to
+         WCAG 1.4.11's 3:1, and by italics -- never by fading the text. */
+      .chip.nodata {
+        font-style: italic;
+        border-style: dashed;
+      }
+      .chip.nodata .dot { opacity: 0.35; }
       /* The sentence a chip's title attribute used to be the only home for.
          Drawn in --primary-text-color rather than the --secondary-text-color
          the rest of the card's small print uses: that token's #888 fallback
@@ -3479,6 +3495,26 @@ function cardStyleBlock() {
       @media (pointer: coarse) {${coarseHtmlTargets}
       }
       ${_coarsePointer() ? coarseHtmlTargets : ""}
+      /* #823: .away-strip shipped with no rule matching it at all -- a 13px
+         checkbox, a 14px label and a 0px gap, so the two labels rendered as
+         "AwayReturn". Every other control block clears the card's own 24px
+         coarse-pointer floor; this one was simply never added to that rule
+         set (see coarseHtmlTargets below). */
+      .away-strip {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.75em;
+      }
+      .away-strip label {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4em;
+      }
+      .away-strip [data-away-status] {
+        flex: 1 1 100%;
+        color: var(--secondary-text-color);
+      }
       .whatif .wi-result {
         flex: 1 1 100%; min-height: 1.4em; line-height: 1.5em;
         color: var(--secondary-text-color);
