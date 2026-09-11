@@ -190,4 +190,3 @@
 # 4187 -> 4208 keys, every collapsed:false. Nothing else moved -- solver
 # fixtures and the card claim file are untouched by this branch.
 
-config_flow # user_sensors nests its fourteen pickers under section(); fingerprint moves once
