@@ -74,13 +74,9 @@ production lines. You work in your own worktree branched from `origin/main`.
    push regardless.
 6. Hand off to the adversarial fix reviewer. **After any rebase or merge,
    steps 2–8 are re-executed**: the evidence describes one tree, and either
-   makes a new one. 2–4 because the harness moved; **5–8 because the body is
-   evidence too.** Every figure that is a function of `origin/main`'s tip is
-   false the moment `main` moves, and re-taking only the figures a reviewer
-   named leaves the rest of the class standing — that is what one day's
-   measurement found behind seventeen of thirty-one blocked verdicts, none of
-   which was about a fix. Stamp such a figure with the tip it was taken at and
-   `date -u` rather than asserting it in the present tense.
+   makes a new one — **the body included**, because a figure that is a function
+   of `origin/main`'s tip is false the moment `main` moves. Stamp such a figure
+   with that tip and `date -u`.
 
    **The handoff freezes the branch.** Until then, update it from `origin/main`
    whenever you need to — `git merge origin/main`, never rebase. After it, the
@@ -92,15 +88,12 @@ production lines. You work in your own worktree branched from `origin/main`.
    may return against you — **Re-read the head before you post**, in
    `fix-review.md`.
 
-   Landing a PR is never yours in any case — that is the orchestrator's, or a
+   Landing a PR is never yours in any case — that is the **orchestrator's**, the
+   seat the Model-routing table gives control flow, merges and sequencing, or a
    merge-and-release seat it starts. `git merge origin/main` into your own
    branch and merging the pull request differ; only the first was ever yours,
-   and only before the handoff.
-
-   The seat is the **orchestrator** — the one the Model-routing table gives
-   control flow, merges and sequencing. In this repository "coordinator" is
-   `coordinator.py` and the `coordinator_loc` / `coordinator_attrs` budgets the
-   ratchet section below measures. It is never the name of a seat.
+   and only before the handoff. "Coordinator" here is `coordinator.py` and its
+   ratchet budgets, never a seat.
 7. The PR body closes its issues (`Closes #N`), names the head SHA measured,
    and carries every executed number, each in `## Figures` with its command.
 8. **A quoted number states the rule that produced it, not just its value.**
@@ -179,6 +172,28 @@ production lines. You work in your own worktree branched from `origin/main`.
     fidelity against upstream rather than shaping it to what your test needs —
     that shape is exactly the one that agrees with a wrong implementation.
 
+14. **An allow-list is keyed on something, and your entry silences everything
+    that key matches.** Before adding a case to a pin, a baseline or a
+    suppression list, name the key's fields, name the property that makes your
+    own occurrence legitimate, then key the occurrence the pin exists to catch
+    and compare the two. Equal keys mean the entry blinds the pin at the site
+    it watches, and the answer is to change the route until no entry is needed,
+    or to widen the key until the two separate — never to add it and note the
+    risk. #714 declined an entry in `tests/nightly_ha.py`'s `KNOWN_BLOCKING`,
+    keyed on (call, file, source snippet): its report was legitimate only
+    because the caller was `atexit`, running after the loop was gone, and no
+    field of that key carries a caller — so the entry would equally have
+    matched that line reached from a coroutine, #525's class at the one site
+    the pin exists to watch.
+
+    **A fix that changes the route leaves the reported text where it was, so
+    name the route.** #714 rerouted the caller and left `worker.wait(timeout=2)`
+    in place: grepping the report's own call, file and snippet finds them
+    unchanged and reads the defect as open, and grepping for their absence
+    finds nothing and reads the same. The line is no help either — not in the
+    key, and #714's own fix moved that call 24 lines. Anchor the claim to
+    what moved: branch, registration, frame count.
+
 **When a structural budget blocks the work.** A `tests/structure.py` failure is
 a decision point, not a wall, and it has three answers rather than two: pay for
 the lines elsewhere; re-record because the tree genuinely improved; or, for a
@@ -211,13 +226,12 @@ refuses until you re-record them, with the reason in the commit.
 A raise **requires the repository owner's explicit confirmation, obtained before
 you push.** It is not a judgement a fixer makes alone and it is not something a
 reviewer can wave through, so an agent that finds itself wanting one **stops and
-asks** rather than proceeding and explaining afterwards. This is not a route for
-accommodating sloppiness, an unexamined refactor, or a feature that has not been
-measured. But a metric sitting at zero headroom is not a veto on new
-functionality, and asking is an available move — #398 was refused in part
-because `coordinator_attrs` stood at 176/176 and a new attribute was read as
-costing the deletion of an existing one. No metric is exempt from this since
-2026-09-10: `cross_seam_edges` replaced the one tolerance-banded ratio.
+asks** rather than proceeding and explaining afterwards — not a route for
+sloppiness, an unexamined refactor, or an unmeasured feature. But a metric at
+zero headroom is not a veto on new functionality, and asking is an available
+move: #398 was refused in part because `coordinator_attrs` stood at 176/176 and
+a new attribute read as costing an existing one. **No metric is exempt since
+2026-09-10**, when `cross_seam_edges` replaced the one tolerance-banded ratio.
 
 ## Before you hand off: carry what you found forward
 
@@ -264,21 +278,8 @@ unanswered red check is `blocked <sha> root-cause-unanswered: <check> went red, 
 
 ## Past three rounds, re-cut rather than repair
 
-The owner's rule. At the **fourth** review round, stop repairing the body and
-replace it.
-
-- **Re-cut it.** Write a new body from the tree: the headings
-  `.github/PULL_REQUEST_TEMPLATE.md` requires, the arms that fire, and only
-  figures you re-take in that one pass, each stamped with the tip and `date -u`.
-  Delete every narrative paragraph, round history and account of what an earlier
-  version got wrong — none of it is load-bearing and all of it goes stale.
-- **A re-cut body blocked on `claims` again is a signal about the fix, not the
-  prose.** Split the branch or close it; a fifth repair push is not a strategy.
-- **The round count is the orchestrator's to act on** — it decides the split or
-  the close, as it decides every merge.
-
-Why a rule and not advice: the rounds it prevents were never about the fix. A
-body long enough to carry a dozen `origin/main`-dependent figures cannot survive
-one merge interval, so each repair round manufactures the next block. #715
-reached twelve rounds and #723 ten; neither was ever blocked on its code.
-
+The owner's rule. At the **fourth** round, replace the body instead of repairing
+it: the headings `.github/PULL_REQUEST_TEMPLATE.md` requires, the arms that
+fire, and only figures re-taken in that pass. Round history is deleted, not
+restated. **A re-cut body blocked on `claims` again is a signal about the fix**,
+so the orchestrator splits the branch or closes it.

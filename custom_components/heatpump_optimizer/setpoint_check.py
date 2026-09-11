@@ -103,7 +103,8 @@ def _read_setpoint(hass: Any, entity_id: str | None) -> float | None:
         pass
     attrs = getattr(state, "attributes", None) or {}
     try:
-        return float(attrs.get("temperature"))
+        attr_temp: Any = attrs.get("temperature")
+        return float(attr_temp)
     except (TypeError, ValueError):
         return None
 

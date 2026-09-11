@@ -1,6 +1,6 @@
 # Handover — the open-issues programme
 
-updated-for: a801d7c
+updated-for: 4da4ccec36254b57ec9c7b3f1f9eba37aeb579d0
 
 The rule that governs this file is `.claude/rules/writing-for-agents.md`, which
 the harness loads on this very path. Delivery status is
@@ -24,11 +24,10 @@ the harness loads on this very path. Delivery status is
 - **The decomposition stage criterion (Wave 4, S3–S8):** proceed only by cutting
   the stage's own cut by inside-extraction or `coordinator_loc` with nothing
   rising; halt otherwise, recording the cut's owned-versus-read-by-others split.
-- **A seam move was sequenced to S12, S12 halted (#637); W5-G9/W5-G10 own it now**
-  (owner, 2026-09-10): the dhw profile learner first, the only candidate a
-  `seam_metrics` simulation lowers on every budget row; the legionella guard after
-  #753 swaps `cross_seam_fraction` for the count `cross_seam_edges`, since a cohesive
-  extraction removes more intra- than cross-seam edges and a ratio cannot see that.
+- **A seam move was sequenced to S12, S12 halted (#637); W5-G9 and W5-G10 own it**
+  (owner, 2026-09-10). The learner went first because a `seam_metrics` simulation
+  lowered every budget row; the guard needed #753 first, since a cohesive
+  extraction removes more intra- than cross-seam edges and a ratio cannot see it.
 - **`_helper(self, ...)` is refused** — it erases moved references at zero cost, a
   measurement artefact, not a decomposition; a supplied-literal check pins nothing.
 - **A ratchet raise may be proposed, never worked around** (owner, 2026-09-06).
@@ -388,8 +387,9 @@ flagged it rather than claiming a carry it had not made.
   holds the producing pull request from merging until the carry is in the tree.
   Two branches owing a carry to the same contract therefore cannot both comply.
   Raised on #201; no seat may decide it.
-- **#680 (0008, #756): account, switch, a seat's verified login, then the rule —
-  never first (0005). #558's lane F is next after Wave 5 and #412 (owner).**
+- **#680 (0008, #756): account, switch, verified login, then the rule, never
+  first (0005). Lane F follows Wave 5. #303 at zero: stubs pinned, `max_cc`
+  48 → 50 bought a narrowing (owner, 2026-09-11).**
 
 ## The machine this runs on — measure it, do not read it
 

@@ -99,7 +99,7 @@ class DhwProfileLearner:
         self.cooling_rate: float = float(params.dhw_cooling_rate)
         self.cooling_samples: int = 0
         self.heating_since_sample: bool = False
-        self.profile_store: Store = Store(
+        self.profile_store: Store[dict[str, Any]] = Store(
             hass,
             DHW_PROFILE_STORE_VERSION,
             f"{DOMAIN}_{entry_id}_dhw_profile",
@@ -118,7 +118,7 @@ class DhwProfileLearner:
         self.daytype_last_day: list[str] = ["", ""]
         # #32/#20: per-window draw-occurrence statistics, own store.
         self.draw_stats = DrawStats()
-        self.draws_store: Store = Store(
+        self.draws_store: Store[dict[str, Any]] = Store(
             hass,
             DHW_PROFILE_STORE_VERSION,
             f"{DOMAIN}_{entry_id}_dhw_draws",

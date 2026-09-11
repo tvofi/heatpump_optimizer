@@ -118,7 +118,7 @@ jobs:
     outputs:
       recheck: ${{ steps.decide.outputs.recheck }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - id: decide
         run: |
           if [ "${{ github.event.inputs.recheck }}" = "true" ]; then
@@ -157,7 +157,7 @@ jobs:
     # step was cancelled mid-suite by its own timeout.
     timeout-minutes: 100
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           # env_drift needs the comparison ref's history to build its
           # baseline worktree.
@@ -169,11 +169,11 @@ jobs:
       # compute different keys and cannot restore each other's baseline.
       # A cross-interpreter baseline is exactly the false drift that would
       # otherwise make this matrix unreadable.
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: "22"
 
@@ -227,7 +227,7 @@ jobs:
         if: >-
           github.event_name == 'pull_request'
           || needs.recheck-gate.outputs.recheck == 'true'
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cache/heatpump_optimizer/drift-baseline
           key: drift-baseline-${{ steps.driftkey.outputs.key }}
@@ -296,7 +296,7 @@ jobs:
         if: >-
           (github.event_name == 'push' && github.ref == 'refs/heads/main')
           || github.event_name == 'schedule'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         with:
           path: ~/.cache/heatpump_optimizer/drift-baseline
           key: drift-baseline-${{ steps.warmkey.outputs.key }}
@@ -319,13 +319,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.13"
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: "22"
 
@@ -333,7 +333,7 @@ jobs:
         run: pip install -r tests/requirements-ci.txt
 
       - name: Cache the lane's Chromium
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cache/pw-browsers
           key: pw-chromium-1.49.0
@@ -385,7 +385,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           # Tags are not fetched by a plain checkout. Fetched here (rather
           # than skipped) so a tag-scoped citation gets verified for real in
@@ -394,7 +394,7 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: "22"
 
@@ -424,7 +424,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # Not matrixed over the interpreters `fast` uses. The pin is a PAIR and
       # the two halves constrain each other: homeassistant-stubs 2026.2.3
@@ -432,7 +432,7 @@ jobs:
       # requires 3.14.2, so exactly one interpreter line satisfies the pin
       # this ruler is defined by (#504). A second leg would either fail to
       # install or measure something else and call it the same number.
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.13"
 
@@ -459,7 +459,7 @@ jobs:
 
       # Kept on a failure too: the run that refuses because the census is not
       # yet recorded is exactly the run whose numbers are wanted.
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: always()
         with:
           name: typing-census
@@ -477,15 +477,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 150
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.13"
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: "22"
 
@@ -578,9 +578,9 @@ jobs:
         # The floor the integration supports (#514), and whatever is current.
         image: ["2025.2.0", "stable"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.13"
 
@@ -657,9 +657,9 @@ jobs:
       contents: read
       actions: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.13"
 
@@ -700,10 +700,10 @@ jobs:
       case: ${{ steps.decide.outputs.case }}
       scripts: ${{ steps.decide.outputs.scripts }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.13"
       - id: decide
@@ -753,7 +753,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 100
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -764,11 +764,11 @@ jobs:
       # the same script with no rule for choosing between them. The closure
       # table records which files a script reads, which is a property of the
       # code, not of the interpreter running it.
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.13"
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: "22"
 
@@ -837,7 +837,7 @@ jobs:
       - name: Upload closure recordings
         # Autofix needs the recordings even when the check above failed.
         if: always() && github.event_name == 'pull_request'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: closure-recordings
           path: ${{ runner.temp }}/closures
@@ -867,17 +867,17 @@ jobs:
       contents: write
       actions: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ github.head_ref }}
           token: ${{ secrets.CLOSURES_PUSH_TOKEN || github.token }}
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.13"
 
       - name: Download closure recordings
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: closure-recordings
           path: ${{ runner.temp }}/closures
@@ -971,13 +971,13 @@ jobs:
       contents: write
       actions: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ github.head_ref }}
           fetch-depth: 0
           token: ${{ secrets.CLOSURES_PUSH_TOKEN || github.token }}
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.13"
 

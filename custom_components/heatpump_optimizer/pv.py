@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from typing import Any
 
 import numpy as np
 
@@ -73,7 +74,8 @@ def forecast_production_kw(
     )
     # An array cannot exceed its nameplate no matter what the forecast says;
     # cloud-edge enhancement can push GHI above 1000 W/m² briefly.
-    return np.clip(production, 0.0, config.peak_kw)
+    capped: np.ndarray = np.clip(production, 0.0, config.peak_kw)
+    return capped
 
 
 def surplus_kw(
@@ -81,12 +83,13 @@ def surplus_kw(
     baseline_load_kw: np.ndarray,
 ) -> np.ndarray:
     """Production left over after the rest of the house has taken its share."""
-    return np.clip(
+    left_over: np.ndarray = np.clip(
         np.asarray(production_kw, dtype=float)
         - np.asarray(baseline_load_kw, dtype=float),
         0.0,
         None,
     )
+    return left_over
 
 
 def import_margin(
@@ -119,14 +122,17 @@ def blended_block_prices(
     covered_fraction = np.minimum(
         1.0, np.asarray(surplus, dtype=float) / max(float(block_kw), 1e-6)
     )
-    return prices - import_margin(prices, export_price) * covered_fraction
+    effective: np.ndarray = (
+        prices - import_margin(prices, export_price) * covered_fraction
+    )
+    return effective
 
 
 def summarize(
     production_kw: np.ndarray,
     surplus: np.ndarray,
     dt_hours: float,
-) -> dict:
+) -> dict[str, Any]:
     """Reporting figures for the PV sensor attributes."""
     production = np.asarray(production_kw, dtype=float)
     return {

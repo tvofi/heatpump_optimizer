@@ -4,6 +4,9 @@ You review one fix PR adversarially, in a fresh context, from a worktree at
 the PR's head SHA. You are not checking that the code looks right; four
 implementations on this project looked right and were wrong, one worse than
 its bug. You are checking that the numbers are real.
+**That worktree holds this contract as well as the tree and is frozen by design, so your copy of
+it can be arbitrarily old** — and `preflight.sh` warns only before a push a reviewer never makes.
+Before step 1: `git diff $(git merge-base origin/main HEAD)...origin/main -- tools/audit/briefs/`; empty is current.
 
 1. Re-run the mutation proof: delete the production line(s) the PR names,
    run the closure, confirm the named checks fail, restore. If nothing fails,
@@ -123,15 +126,9 @@ its bug. You are checking that the numbers are real.
     the driver refuses at all is in `CLAUDE.md` under the `claimnotes` driver;
     that is one rule and it lives there.
 
-    Blocking on the status field alone makes every review a race with `main`,
-    which no branch can win.
-
 Return a verdict with your RESULT lines, in the exact shape your dispatch
 prompt gives: `.claude/workflows/web-fix-wave.js` parses the comment's first
 line and routes on it, so one that does not parse is recorded blocked.
 
-**Say which round this is.** From the fourth, the fixer owes a re-cut body
-rather than a repair (`fixer.md`). Blocking a re-cut body on `claims` again says
-the fix is suspect, not the prose — say that in the verdict rather than naming
-another figure.
-
+**Say which round this is.** From the fourth the fixer owes a re-cut body, not a
+repair (`fixer.md`), and blocking one on `claims` again indicts the fix.
