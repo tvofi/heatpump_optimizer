@@ -677,6 +677,7 @@ inside it rather than after it.
 - [#811](https://github.com/tvofi/heatpump_optimizer/pull/811) — **row written before the merge, and it is this pull request**: leftover-row for #804 `ef0788f`. `node .claude/workflows/policy_lint.mjs --record --since v6.3.20` at `origin/main` `ef0788f` named #804. leaves #201 open.
 - [#791](https://github.com/tvofi/heatpump_optimizer/pull/791) — **merged `c7e2f81`, row written after the merge**: capacity-tariff billing mask walks UTC, not the wall clock. Closed #777. `node .claude/workflows/policy_lint.mjs --record --since v6.3.20` at `origin/main` `2684125` named this pull request. The squash subject ends `(#777)`, so a tokenless run names the issue instead. Not this leftover-row's implementation. #745's #759/#761/#764 stay #745's. leaves #201 open.
 - [#813](https://github.com/tvofi/heatpump_optimizer/pull/813) — **merged `e2dd1a6`, row written after the merge**: JSON-string nan in thermal_learning no longer wedges every cycle. Closed #773. Load `isfinite` plus tolerant `int()` in `_learning_view`. Same `--record` run at `2684125` named this pull request. leaves #201 open.
+- [#815](https://github.com/tvofi/heatpump_optimizer/pull/815) — **row written before the merge, and it is this pull request**: leftover-row for #813 `e2dd1a6`, #791 `c7e2f81`. `node .claude/workflows/policy_lint.mjs --record --since v6.3.20` at `origin/main` `2684125` named those two. #745's #759/#761/#764 stay #745's. leaves #201 open.
 
 ### The UX programme — 34 items, five lanes, tracking #558
 
