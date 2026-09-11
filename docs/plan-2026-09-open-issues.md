@@ -738,6 +738,7 @@ inside it rather than after it.
 - [#874](https://github.com/tvofi/heatpump_optimizer/pull/874) — **merged `f9f54cf`, row written before the merge**: leftover-row for #869 `4af7025` and #870 `e708f1b`. `node .claude/workflows/policy_lint.mjs --record --since v6.4.1` at `origin/main` `7e84856` named those two. Not #859. Not #867. leaves #860 open. leaves #201 open.
 - [#872](https://github.com/tvofi/heatpump_optimizer/pull/872) — **merged `a95556d`, row written after the merge**: Title Case on the six English entity display names. Closed #797. Theirs. `node .claude/workflows/policy_lint.mjs --record --since v6.4.1` at `origin/main` `e59ac74` named this pull request and #876. Not #859. Not #867. leaves #201 open.
 - [#876](https://github.com/tvofi/heatpump_optimizer/pull/876) — **merged `e59ac74`, row written after the merge**: quality-scale `strict-typing` is `done`. Closed #829. `py.typed` was not added. Typing budgets were not raised. Same `--record` run at `e59ac74` named this pull request. Not #859. Not #867. leaves #201 open.
+- [#879](https://github.com/tvofi/heatpump_optimizer/pull/879) — **row written before the merge, and it is this pull request**: leftover-row for #872 `a95556d`, #876 `e59ac74`. `node .claude/workflows/policy_lint.mjs --record --since v6.4.1` at `origin/main` `e59ac74` named those two. Not #859. Not #867. leaves #860 open. leaves #201 open.
 
 ### The UX programme — 34 items, five lanes, tracking #558
 
