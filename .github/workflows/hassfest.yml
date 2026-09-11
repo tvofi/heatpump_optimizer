@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       # The pinned action below is a *composite* action whose second step is a
       # bare `docker run ghcr.io/home-assistant/hassfest` in a bash step, so its
