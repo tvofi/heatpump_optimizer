@@ -32153,4 +32153,269 @@ R.check(
     "hours nobody asked for",
 )
 
+
+# -- W5-G8 block D: the wood-fuel arithmetic -------------------------------
+# 65 statements, the largest single holder in the residual, and almost all of
+# it is the path from a user-drawn (or auto-detected) burn SLOT to kilowatts
+# the solver can price. Nothing here is a store: it is arithmetic and shape
+# validation, and the reason it had never run is that every existing wood
+# check drives the solver end-to-end and takes the happy path through it.
+R.section("W5-G8 d: the wood-fuel arithmetic (#195)")
+
+from heatpump_optimizer import wood_fuel as _g8_wf  # noqa: E402
+from heatpump_optimizer.const import (  # noqa: E402
+    CONF_DHW_WOOD_COIL_ENABLED as _G8_W_COIL,
+    CONF_EXTERNAL_HEAT_ENABLED as _G8_W_EXT,
+    CONF_WOOD_FURNACE_EFFICIENCY as _G8_W_EFF,
+    CONF_WOOD_FURNACE_ENABLED as _G8_W_ON,
+    CONF_WOOD_PACKING as _G8_W_PACK,
+    CONF_WOOD_PRICE_SEK_M3 as _G8_W_PRICE,
+    CONF_WOOD_TANK_TOP_ENTITY as _G8_W_TOP,
+    CONF_WOOD_TYPE as _G8_W_TYPE,
+)
+
+_G8_W0 = datetime(2026, 1, 15, 18, 0, tzinfo=UTC)
+_G8_WSTAMPS = [_G8_W0 + timedelta(hours=i) for i in range(6)]
+
+
+# -- _optional_float: the difference between "not set" and "set to zero" ----
+_g8_wof = {
+    "None": _g8_wf._optional_float(None),
+    "empty string": _g8_wf._optional_float(""),
+    "zero": _g8_wf._optional_float(0),
+    "float": _g8_wf._optional_float(2.5),
+    "numeric string": _g8_wf._optional_float("2.5"),
+    "bool": _g8_wf._optional_float(True),
+    "text": _g8_wf._optional_float("lots"),
+    "list": _g8_wf._optional_float([2.5]),
+}
+R.check(
+    "an unset wood number is None and a zero one is 0.0, which are not the same",
+    _g8_wof["zero"] == 0.0
+    and _g8_wof["float"] == 2.5
+    and _g8_wof["numeric string"] == 2.5
+    and all(_g8_wof[k] is None for k in
+            ("None", "empty string", "bool", "text", "list")),
+    "; ".join(f"{k}={_g8_wof[k]!r}" for k in sorted(_g8_wof))
+    + " -- the whole point of the OPTIONAL form is that 0.0 and None mean "
+    "different things to the caller, and an empty string is what a cleared "
+    "config field reads as, so it must be the None one",
+)
+
+
+# -- wood_fuel_ready: five independent reasons the feature stays off --------
+_G8_W_OK = {
+    _G8_W_ON: True, _G8_W_TOP: "sensor.tank_top", _G8_W_EXT: True,
+    _G8_W_TYPE: "birch", _G8_W_PACK: "packed", _G8_W_PRICE: 1200.0,
+    _G8_W_EFF: 75.0,
+}
+_g8_wready = {
+    "fully configured": _g8_wf.wood_fuel_ready(dict(_G8_W_OK)),
+    "furnace off": _g8_wf.wood_fuel_ready(dict(_G8_W_OK, **{_G8_W_ON: False})),
+    "no tank probe": _g8_wf.wood_fuel_ready(
+        {k: v for k, v in _G8_W_OK.items() if k != _G8_W_TOP}),
+    "no heat path": _g8_wf.wood_fuel_ready(
+        dict(_G8_W_OK, **{_G8_W_EXT: False, _G8_W_COIL: False})),
+    "unknown wood": _g8_wf.wood_fuel_ready(dict(_G8_W_OK, **{_G8_W_TYPE: "oak"})),
+    "unknown packing": _g8_wf.wood_fuel_ready(
+        dict(_G8_W_OK, **{_G8_W_PACK: "stacked"})),
+    "no price": _g8_wf.wood_fuel_ready(dict(_G8_W_OK, **{_G8_W_PRICE: 0.0})),
+    "unparseable price": _g8_wf.wood_fuel_ready(
+        dict(_G8_W_OK, **{_G8_W_PRICE: "cheap"})),
+    "efficiency too low": _g8_wf.wood_fuel_ready(dict(_G8_W_OK, **{_G8_W_EFF: 5.0})),
+    "efficiency too high": _g8_wf.wood_fuel_ready(dict(_G8_W_OK, **{_G8_W_EFF: 99.0})),
+}
+R.check(
+    "wood pricing turns on only when all five of its inputs are there",
+    _g8_wready["fully configured"] is True
+    and all(_g8_wready[k] is False for k in _g8_wready if k != "fully configured"),
+    "; ".join(f"{k}={_g8_wready[k]!r}" for k in sorted(_g8_wready))
+    + " -- each refusal is its own return and they are NOT redundant: a tank "
+    "probe with no heat path is a thermometer, a heat path with no probe is "
+    "unmeasurable, and an efficiency outside 10-95 % is a typed-in number "
+    "rather than a furnace. A single combined guard would let one missing "
+    "input be masked by another that happens to be present",
+)
+
+
+# -- _as_dt and _iso: a slot's timestamps against the plan's own grid -------
+_g8_asdt = {
+    "datetime through": _g8_wf._as_dt(_G8_W0, _G8_WSTAMPS),
+    "iso string": _g8_wf._as_dt("2026-01-15T18:00:00+00:00", _G8_WSTAMPS),
+    "Z suffix": _g8_wf._as_dt("2026-01-15T18:00:00Z", _G8_WSTAMPS),
+    "naive against aware": _g8_wf._as_dt("2026-01-15T18:00:00", _G8_WSTAMPS),
+    "aware against no grid": _g8_wf._as_dt(_G8_W0, []),
+    "None": _g8_wf._as_dt(None, _G8_WSTAMPS),
+    "rubbish": _g8_wf._as_dt("half past six", _G8_WSTAMPS),
+}
+_g8_asdt_naive_grid = _g8_wf._as_dt(
+    _G8_W0, [_G8_W0.replace(tzinfo=None)]
+)
+R.check(
+    "a slot timestamp is coerced to the plan grid's own awareness, both ways",
+    _g8_asdt["datetime through"] == _G8_W0
+    and _g8_asdt["iso string"] == _G8_W0
+    and _g8_asdt["Z suffix"] == _G8_W0
+    and _g8_asdt["naive against aware"] == _G8_W0
+    and _g8_asdt_naive_grid.tzinfo is None
+    and _g8_asdt["None"] is None
+    and _g8_asdt["rubbish"] is None,
+    "; ".join(f"{k}={_g8_asdt[k]!r}" for k in sorted(_g8_asdt))
+    + f"; aware value against a naive grid -> {_g8_asdt_naive_grid!r}. Both "
+    "directions are needed because the slot comes from a user's browser and "
+    "the grid comes from the price feed: comparing the two raises TypeError "
+    "on the mix, and that comparison is what decides which steps burn",
+)
+R.check(
+    "and a timestamp is rendered by its own isoformat when it has one",
+    _g8_wf._iso(_G8_W0) == _G8_W0.isoformat() and _g8_wf._iso("already text") == "already text",
+    f"{_g8_wf._iso(_G8_W0)!r} and {_g8_wf._iso('already text')!r} -- the "
+    "string arm is what lets a detected slot be re-read by the same parser "
+    "that reads a drawn one",
+)
+
+
+# -- wood_slots_to_kw: liters over a window, spread across the steps --------
+_g8_kw_one = _g8_wf.wood_slots_to_kw(
+    [{"liters": 40.0, "start": _G8_WSTAMPS[1].isoformat(),
+      "end": _G8_WSTAMPS[3].isoformat()}],
+    _G8_WSTAMPS, 1.0, "birch", "packed", 75.0)
+_g8_kw_expect = _g8_wf.liters_to_kwh(40.0, "birch", "packed", 75.0) / 2.0
+_g8_kw_bad = _g8_wf.wood_slots_to_kw(
+    [{"liters": 0.0, "start": _G8_WSTAMPS[0].isoformat(),
+      "end": _G8_WSTAMPS[1].isoformat()},
+     {"liters": "lots", "start": _G8_WSTAMPS[0].isoformat(),
+      "end": _G8_WSTAMPS[1].isoformat()},
+     {"liters": 40.0, "start": _G8_WSTAMPS[3].isoformat(),
+      "end": _G8_WSTAMPS[1].isoformat()},
+     {"liters": 40.0, "start": None, "end": _G8_WSTAMPS[1].isoformat()}],
+    _G8_WSTAMPS, 1.0, "birch", "packed", 75.0)
+R.check(
+    "a burn slot's energy lands on the steps it covers, at a constant rate",
+    [round(v, 6) for v in _g8_kw_one]
+    == [0.0, round(_g8_kw_expect, 6), round(_g8_kw_expect, 6), 0.0, 0.0, 0.0]
+    and _g8_kw_bad == [0.0] * 6,
+    f"40 L of birch over two hours -> {[round(v, 1) for v in _g8_kw_one]!r} kW "
+    f"against an expected {_g8_kw_expect:.1f} on each covered step; four "
+    f"malformed slots -> {_g8_kw_bad!r}. The rate is energy over the slot's "
+    "own hours, not over the step: a slot spanning two steps must put HALF "
+    "its energy in each, or a three-hour fire reads as three full fires",
+)
+_g8_kw_err = {
+    "not a list": _g8_wf._wood_slots_error("slots", _G8_WSTAMPS),
+    "not dicts": _g8_wf._wood_slots_error(["a slot"], _G8_WSTAMPS),
+    "no liters": _g8_wf._wood_slots_error(
+        [{"liters": 0.0, "start": _G8_WSTAMPS[0], "end": _G8_WSTAMPS[1]}],
+        _G8_WSTAMPS),
+    "unparseable liters": _g8_wf._wood_slots_error(
+        [{"liters": "some", "start": _G8_WSTAMPS[0], "end": _G8_WSTAMPS[1]}],
+        _G8_WSTAMPS),
+    "backwards": _g8_wf._wood_slots_error(
+        [{"liters": 40.0, "start": _G8_WSTAMPS[3], "end": _G8_WSTAMPS[1]}],
+        _G8_WSTAMPS),
+    "empty list": _g8_wf._wood_slots_error([], _G8_WSTAMPS),
+    "one good slot": _g8_wf._wood_slots_error(
+        [{"liters": 40.0, "start": _G8_WSTAMPS[1], "end": _G8_WSTAMPS[3]}],
+        _G8_WSTAMPS),
+}
+R.check(
+    "a malformed slot list is REFUSED, while an empty one is simply no fires",
+    _g8_kw_err["empty list"] is None
+    and _g8_kw_err["one good slot"] is None
+    and all(_g8_kw_err[k] == "invalid_wood_slots" for k in
+            ("not a list", "not dicts", "no liters", "unparseable liters",
+             "backwards")),
+    "; ".join(f"{k}={_g8_kw_err[k]!r}" for k in sorted(_g8_kw_err))
+    + " -- the empty list is the one that matters: `wood_slots_to_kw` SKIPS a "
+    "bad slot silently, so without this refusal a user whose slots all failed "
+    "to parse would get a plan that quietly assumed no fire at all rather "
+    "than an error saying the drawing was rejected",
+)
+
+
+# -- detected_wood_slots: reading the fires back out of a forecast ----------
+_g8_det_none = _g8_wf.detected_wood_slots([], [1.0])
+_g8_det_mid = _g8_wf.detected_wood_slots(
+    _G8_WSTAMPS, [0.0, 3.0, 3.0, 0.0, 0.0, 0.0])
+_g8_det_tail = _g8_wf.detected_wood_slots(
+    _G8_WSTAMPS, [0.0, 0.0, 0.0, 0.0, 3.0, 3.0])
+_g8_det_two = _g8_wf.detected_wood_slots(
+    _G8_WSTAMPS, [3.0, 0.0, 3.0, 0.0, 0.0, 0.0])
+_g8_det_flat = _g8_wf.detected_wood_slots(_G8_WSTAMPS, [0.0] * 6)
+_g8_det_short = _g8_wf.detected_wood_slots(_G8_WSTAMPS, [3.0])
+_g8_det_one = _g8_wf.detected_wood_slots([_G8_WSTAMPS[0]], [3.0])
+R.check(
+    "consecutive burning steps merge into ONE slot, and a gap starts another",
+    [(s["start"], s["end"]) for s in _g8_det_mid]
+    == [(_G8_WSTAMPS[1].isoformat(), _G8_WSTAMPS[3].isoformat())]
+    and len(_g8_det_two) == 2
+    and _g8_det_flat == []
+    and _g8_det_none == [],
+    f"one run -> {[(s['start'][11:16], s['end'][11:16]) for s in _g8_det_mid]!r}; "
+    f"two runs -> {[(s['start'][11:16], s['end'][11:16]) for s in _g8_det_two]!r}; "
+    f"no burning -> {_g8_det_flat!r}; no grid -> {_g8_det_none!r}. The end is "
+    "the timestamp of the first NON-burning step, which is where the fire "
+    "stopped, not where the last burning step began",
+)
+R.check(
+    "a run still burning at the end of the grid is closed one step past it",
+    [(s["start"], s["end"]) for s in _g8_det_tail]
+    == [(_G8_WSTAMPS[4].isoformat(),
+         (_G8_WSTAMPS[5] + timedelta(hours=1)).isoformat())]
+    and [(s["start"], s["end"]) for s in _g8_det_one]
+    == [(_G8_WSTAMPS[0].isoformat(), _G8_WSTAMPS[0].isoformat())],
+    f"burning to the horizon -> "
+    f"{[(s['start'][11:16], s['end'][11:16]) for s in _g8_det_tail]!r}; a "
+    f"single-step grid -> "
+    f"{[(s['start'][11:16], s['end'][11:16]) for s in _g8_det_one]!r}. The "
+    "step width is inferred from the first two timestamps, so a grid with "
+    "only one has none to infer and closes the slot at the last stamp "
+    "instead -- a zero-length slot, which `_wood_slots_error` then refuses, "
+    "rather than a guess at how long the fire ran",
+)
+R.check(
+    "and a forecast shorter than the grid is read only as far as it goes",
+    [(s["start"], s["end"]) for s in _g8_det_short]
+    == [(_G8_WSTAMPS[0].isoformat(),
+         (_G8_WSTAMPS[0] + timedelta(hours=1)).isoformat())]
+    and all(s["source"] == "detected" for s in
+            _g8_det_mid + _g8_det_tail + _g8_det_two),
+    f"{[(s['start'][11:16], s['end'][11:16]) for s in _g8_det_short]!r}; every "
+    "slot carries source='detected'. The two sequences are zipped to the "
+    "SHORTER, so a forecast that arrives truncated reads as the fires it can "
+    "see rather than as an IndexError in the middle of a plan -- and the step "
+    "width still comes from the GRID, which is why the slot closes an hour "
+    "on rather than at its own start: the forecast ran out, the clock did not",
+)
+
+
+# -- _cops and wood_sek_per_kwh --------------------------------------------
+def _g8_cop_at(temp):
+    if temp < -10.0:
+        raise ValueError("below the curve")
+    return 3.0 + temp / 10.0
+
+
+_g8_cops = _g8_wf._cops([0.0, 5.0, None, -20.0, "warm"], _g8_cop_at)
+R.check(
+    "a COP the curve cannot produce becomes zero, per step, not per plan",
+    _g8_cops == [3.0, 3.5, 0.0, 0.0, 3.0],
+    f"{_g8_cops!r} from [0, 5, None, -20, 'warm'] -- the None step and the "
+    "step the curve raises on both read 0.0, which prices the heat pump out "
+    "of that hour rather than out of the whole plan; 'warm' coerces to 0 °C "
+    "through `_force_float`, which is the same choice one level down",
+)
+_g8_wsek = _g8_wf.wood_sek_per_kwh(1200.0, "birch", "packed", 75.0)
+_g8_wsek_zero = _t6_call(_g8_wf.wood_sek_per_kwh, 1200.0, "birch", "packed", 0.0)
+R.check(
+    "wood is priced per useful kWh, and a zero-efficiency furnace is refused",
+    abs(_g8_wsek - 1200.0 / (1900.0 * 0.75)) < 1e-9
+    and isinstance(_g8_wsek_zero, ValueError),
+    f"1200 SEK/m3 of packed birch at 75 % -> {_g8_wsek:.4f} SEK/kWh; at 0 % -> "
+    f"{_g8_wsek_zero!r}. The raise is right and the alternative is worse: a "
+    "zero denominator would make wood infinitely expensive and the solver "
+    "would simply never burn, which looks like a decision rather than a "
+    "misconfiguration",
+)
+
 sys.exit(R.close("FEATURE CHECKS"))
