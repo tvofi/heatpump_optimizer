@@ -28504,17 +28504,40 @@ class _T3FullStore:
         raise RuntimeError("no space left on device")
 
 
+# The claim is ONE save carrying every rider, and it is written as a
+# superset for a reason: an exact key list makes this check a second
+# declaration of the payload, so a branch adding a rider turns `main` red
+# without touching a line this file names. #840 did exactly that, adding
+# `fuse_advisor` and `fuse_advisor_at` while this assertion sat on `main`
+# naming five keys. The count is derived from the production dict rather
+# than restated, and the arm that matters -- a second store -- is pinned by
+# the call count instead.
+_T3_LEDGER_RIDERS = ("ledger", "starts", "month_reports", "score_day",
+                     "operation_score")
 _t3_sv = _t3_coord()
 _t3_sv._ledger_store = _T3SavingStore()
 _t3_drive(_t3_sv, "_async_save_ledger")
+_t3_sv_keys = set(_t3_sv._ledger_store.saved[0]) if _t3_sv._ledger_store.saved else set()
+_t3_sv_declared = {
+    node.value
+    for node in _ast_s5.walk(
+        _ast_s5.parse(
+            _textwrap_s5.dedent(inspect.getsource(_Coord._async_save_ledger))
+        )
+    )
+    if isinstance(node, _ast_s5.Constant) and isinstance(node.value, str)
+} & _t3_sv_keys
 R.check(
-    "one save carries all five riders, so no generation of money state is split",
-    sorted(_t3_sv._ledger_store.saved[0])
-    == ["ledger", "month_reports", "operation_score", "score_day", "starts"]
+    "one save carries every rider the method declares, so no generation of money state is split",
+    len(_t3_sv._ledger_store.saved) == 1
+    and _t3_sv_keys >= set(_T3_LEDGER_RIDERS)
+    and _t3_sv_keys == _t3_sv_declared
     and _t3_sv._t3_escaped is None,
-    f"{sorted(_t3_sv._ledger_store.saved[0])!r} -- two stores would let a "
-    "crash between them leave the ledger and its riders describing "
-    "different months",
+    f"{sorted(_t3_sv_keys)!r} in {len(_t3_sv._ledger_store.saved)} save(s); "
+    f"the money riders {sorted(_T3_LEDGER_RIDERS)!r} are all present and "
+    "every saved key is one the method's own source names -- two stores "
+    "would let a crash between them leave the ledger and its riders "
+    "describing different months",
 )
 _t3_sv_full = _t3_coord()
 _t3_sv_full._ledger_store = _T3FullStore()
