@@ -535,6 +535,11 @@ jobs:
       # this job judges is the JSON.
       - name: Measure the tree
         run: |
+          # EXPORTED, not merely set: coverage_tree.sh reads W5P_WORK from the
+          # environment and refuses without it, and the refusal is a one-line
+          # message the `|| true` below would otherwise swallow into an empty
+          # `out/` and a confusing "produced no coverage.json".
+          export W5P_WORK
           W5P_WORK=$(mktemp -d)
           echo "W5P_WORK=$W5P_WORK" >> "$GITHUB_ENV"
           tools/audit/w5-partition/coverage_tree.sh fast || true
