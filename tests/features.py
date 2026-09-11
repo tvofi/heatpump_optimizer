@@ -26576,18 +26576,21 @@ R.check(
     f"ratio {_t2_store_cop._lower_floor_loss_ratio!r}",
 )
 
+# Insertion order matters and is the point: the good bucket sits BETWEEN the
+# two corrupt ones. With it first, `continue` and `break` are
+# indistinguishable and the break mutation passed this check.
 _t2_store_base = _t2_load(
     dict(
         _T2_GOOD_STORE,
-        cop_baseline={"4": [3.0, 7], "nope": [1.0, 1], "6": "x"},
+        cop_baseline={"nope": [1.0, 1], "4": [3.0, 7], "6": "x"},
     )
 )
 R.check(
     "a corrupt COP baseline bucket is skipped one entry at a time",
     dict(_t2_store_base._cop_baseline) == {(4, False): [3.0, 7]},
-    f"{dict(_t2_store_base._cop_baseline)!r} -- an unparseable bucket key and "
-    "an unindexable entry are both dropped, and the good bucket survives "
-    "both of them",
+    f"{dict(_t2_store_base._cop_baseline)!r} -- an unparseable bucket key "
+    "precedes the good bucket and an unindexable entry follows it, so only "
+    "a per-entry skip keeps the middle one",
 )
 
 # Each of the next three arms WRITES a value, and each writes the value the
@@ -27068,9 +27071,13 @@ _t2_hl_light = _t2_house(two_zone=True, upper_floor_thermal_mass=3.0)
 _t2_drive(_t2_hl_light, "_async_learn_house_heat_loss")
 _t2_hl_heavy = _t2_house(two_zone=True, upper_floor_thermal_mass=9.0)
 _t2_drive(_t2_hl_heavy, "_async_learn_house_heat_loss")
-_t2_hl_rtm_small = _t2_house(two_zone=True, room_thermal_mass=5.0)
+_t2_hl_rtm_small = _t2_house(two_zone=True)
+_t2_hl_rtm_small._thermal_params.room_thermal_mass = 10.0
+_t2_hl_rtm_small._thermal_params.heat_loss_coefficient = 0.15
 _t2_drive(_t2_hl_rtm_small, "_async_learn_house_heat_loss")
-_t2_hl_rtm_big = _t2_house(two_zone=True, room_thermal_mass=50.0)
+_t2_hl_rtm_big = _t2_house(two_zone=True)
+_t2_hl_rtm_big._thermal_params.room_thermal_mass = 100.0
+_t2_hl_rtm_big._thermal_params.heat_loss_coefficient = 0.15
 _t2_drive(_t2_hl_rtm_big, "_async_learn_house_heat_loss")
 R.check(
     "the two-zone fit moves with the upper zone's mass and not the house's",
@@ -27082,12 +27089,13 @@ R.check(
         _t2_hl_rtm_small._house_heat_loss_scale
         - _t2_hl_rtm_big._house_heat_loss_scale
     )
-    < 1e-6,
+    < 1e-8,
     f"upper 3.0 -> {_t2_hl_light._house_heat_loss_scale!r}, upper 9.0 -> "
-    f"{_t2_hl_heavy._house_heat_loss_scale!r}; whole-house 5.0 -> "
-    f"{_t2_hl_rtm_small._house_heat_loss_scale!r}, 50.0 -> "
+    f"{_t2_hl_heavy._house_heat_loss_scale!r}; whole-house mass 10.0 -> "
+    f"{_t2_hl_rtm_small._house_heat_loss_scale!r}, 100.0 -> "
     f"{_t2_hl_rtm_big._house_heat_loss_scale!r} -- a tenfold whole-house "
-    "change must not reach a fit taken about the upper zone",
+    "change at a fixed whole-house UA must not reach a fit taken about the "
+    "upper zone, and the residual's own dependence on it is 2.3e-10",
 )
 
 _t2_hl_nopower = _t2_house()
