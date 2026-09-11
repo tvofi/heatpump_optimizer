@@ -708,6 +708,7 @@ inside it rather than after it.
 - [#854](https://github.com/tvofi/heatpump_optimizer/pull/854) — **merged `8640321`, row written after the merge**: the uninstall list names the away and boost stores. Closed #837. `node .claude/workflows/policy_lint.mjs --record --since v6.4.0` at `origin/main` `8640321` named this pull request. leaves #201 open.
 - [#844](https://github.com/tvofi/heatpump_optimizer/pull/844) — **merged `17d9405`, row written after the merge**: the reauth token field points at developer.tibber.com. Closed #828. `node .claude/workflows/policy_lint.mjs --record --since v6.4.0` at `origin/main` `17d9405` named this pull request. leaves #201 open.
 - [#855](https://github.com/tvofi/heatpump_optimizer/pull/855) — **row written before the merge, and it is this pull request**: leftover-row for #854 `8640321`, #844 `17d9405`. `node .claude/workflows/policy_lint.mjs --record --since v6.4.0` at `origin/main` `cfa60f6` named those two. #857 already holds #843, #849, #850, #851 and #852. #745's #759/#761/#764 stay #745's. leaves #201 open.
+- [#853](https://github.com/tvofi/heatpump_optimizer/pull/853) — **merged `9113db8`, row written after the merge**: two comments named something the tree does not have. Closed #836. `node .claude/workflows/policy_lint.mjs --record --since v6.4.0` at `origin/main` `9113db8` named this pull request. leaves #201 open.
 
 ### The UX programme — 34 items, five lanes, tracking #558
 
