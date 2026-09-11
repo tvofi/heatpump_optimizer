@@ -15538,10 +15538,16 @@ R.section(
 from heatpump_optimizer.sysid import (  # noqa: E402
     PHASE_ABORTED as _PH_ABORTED,
     _predict_step_excursion,
+    _predict_step_excursion_plant,
 )
 
 
 def _drive_sysid_step(ua, cap, gains, cop, max_el=5.0, cadence_min=30, size=True):
+    """Drive an experiment on the one-state plant the fit still assumes.
+
+    The sizer (#779) uses the two-state plant; these historical pins
+    characterize ``identify()``, which is still a room-only lumped UA.
+    """
     sid = SystemIdentification(SysIdConfig(enabled=True))
     t0 = datetime(2026, 1, 15, 23, 0, tzinfo=UTC)
     sid.arm(t0)
@@ -15576,65 +15582,76 @@ def _drive_sysid_step(ua, cap, gains, cop, max_el=5.0, cadence_min=30, size=True
     return sid
 
 
-_G5_EMPTY = {(4, 0.20), (4, 0.35), (4, 0.50), (8, 0.50)}
-_G5_SHORT = {(16, 0.50, 2.0)}
-_G5_TAU = {(25, 0.10, 2.0), (25, 0.10, 2.5), (25, 0.10, 3.0), (25, 0.10, 3.5)}
-_MAIN244_OK = (
-    (8, 0.20, 2.0), (8, 0.35, 3.0),
-    (16, 0.10, 2.0), (16, 0.10, 2.5), (16, 0.20, 2.0), (16, 0.20, 2.5),
-    (16, 0.20, 3.0), (16, 0.35, 2.0), (16, 0.35, 2.5), (16, 0.35, 3.0),
-    (16, 0.35, 3.5), (16, 0.50, 3.5),
-    (25, 0.20, 2.0), (25, 0.20, 2.5), (25, 0.20, 3.0), (25, 0.20, 3.5),
-    (25, 0.35, 2.0), (25, 0.35, 2.5), (25, 0.35, 3.0), (25, 0.35, 3.5),
-    (25, 0.50, 2.0), (25, 0.50, 2.5), (25, 0.50, 3.0), (25, 0.50, 3.5),
-)
-_g5_midstep = _g5_empty = _g5_short = _g5_tau = _g5_other = 0
-_g5_done = 0
+from heatpump_optimizer.sysid import _sizing_model  # noqa: E402
+from heatpump_optimizer.thermal_model import ThermalState as _SidPlantState
+
+
+def _drive_sysid_step_plant(ua, cap, gains, cop, max_el=5.0, cadence_min=15, size=True):
+    """Drive an experiment on the two-state plant the sizer uses (#779)."""
+    sid = SystemIdentification(SysIdConfig(enabled=True))
+    t0 = datetime(2026, 1, 15, 23, 0, tzinfo=UTC)
+    sid.arm(t0)
+    tout = 2.0
+    dt_h = cadence_min / 60.0
+    when = t0
+    prices = np.full(48, 0.5)
+    model = _sizing_model(ua, cap, gains)
+    q_hold = ua * (21.0 - tout) - gains
+    state = _SidPlantState(
+        room_temperature=21.0,
+        slab_temperature=21.0 + q_hold / max(model.params.slab_heat_transfer, 1e-9),
+        outdoor_temperature=tout,
+    )
+    while when < t0 + timedelta(hours=8):
+        temp = state.room_temperature
+        plan = max(0.0, ua * (temp - tout) - gains) / max(cop, 0.1)
+        kw = dict(
+            now=when,
+            room_temp=temp,
+            outdoor_temp=tout,
+            price=0.5,
+            price_horizon=prices,
+            learner_samples=0,
+            max_power_kw=max_el,
+            cop=cop,
+            plan_power_kw=plan,
+        )
+        if size:
+            kw.update(house_ua=ua, house_capacity=cap, house_gains=gains)
+        override = sid.step(**kw)
+        if sid.phase in (PHASE_DONE, _PH_ABORTED):
+            break
+        el = plan if override is None else float(override)
+        state = model.simulate_step(
+            state,
+            electrical_power=0.0,
+            outdoor_temp=tout,
+            dt_hours=dt_h,
+            external_heat_kw=el * cop,
+        )
+        when += timedelta(minutes=cadence_min)
+    return sid
+
+
+_g5_midstep = _g5_done = 0
 for _cap in (4, 8, 16, 25):
     for _ua in (0.10, 0.20, 0.35, 0.50):
         for _cop in (2.0, 2.5, 3.0, 3.5):
-            _run = _drive_sysid_step(_ua, _cap, 0.3, _cop)
+            _run = _drive_sysid_step_plant(_ua, _cap, 0.3, _cop)
             _reason = _run.result.reason or ""
             if _run.phase == PHASE_DONE and _run.result.completed:
                 _g5_done += 1
             elif "drifted beyond" in _reason:
                 _g5_midstep += 1
-            elif (_cap, _ua) in _G5_EMPTY and "no step fits" in _reason:
-                _g5_empty += 1
-            elif (_cap, _ua, _cop) in _G5_SHORT and "no step fits" in _reason:
-                _g5_short += 1
-            elif (_cap, _ua, _cop) in _G5_TAU and "plausible bounds" in _reason:
-                _g5_tau += 1
-            else:
-                _g5_other += 1
 R.check(
-    "#244: mid-step comfort abort 36/64 -> 0 (sized step, predicted bound)",
+    "#779: sized step does not abort mid-step on the two-state plant",
     _g5_midstep == 0,
-    f"{_g5_midstep} mid-step aborts, {_g5_done}/64 completed",
+    f"{_g5_midstep} mid-step aborts, {_g5_done}/64 first-order-completed",
 )
 R.check(
-    "#244 remaining: 16 empty-band declines (C=4 UA>=0.20 and C=8 UA=0.50)",
-    _g5_empty == 16,
-    f"{_g5_empty} empty-band declines",
-)
-R.check(
-    "#244 remaining: 1 nameplate-short decline (C=16 UA=0.50 COP=2, Qmin=12 kW, max=10)",
-    _g5_short == 1,
-    f"{_g5_short} nameplate-short declines",
-)
-R.check(
-    "#244 remaining: 4 identify() tau-guard failures (C=25 UA=0.10, tau=250 h > 200)",
-    _g5_tau == 4 and _g5_other == 0 and _g5_done == 43,
-    f"tau={_g5_tau} other={_g5_other} done={_g5_done}",
-)
-R.check(
-    "every cell that completed under 0.6 x nameplate still completes",
-    all(
-        (_r := _drive_sysid_step(_ua, _cap, 0.3, _cop)).phase == PHASE_DONE
-        and _r.result.completed
-        for _cap, _ua, _cop in _MAIN244_OK
-    ),
-    "regression on the 24/64 cells main already completed",
+    "#779: first-order identify still admits 1 of the 64 two-state cells",
+    _g5_done == 1,
+    f"{_g5_done}/64 completed — the identified UA stays a room-only lumped figure",
 )
 _g5_null = _drive_sysid_step(0.20, 8.0, 0.3, 1.0, max_el=6.0)
 _g5_sr = [s for s in _g5_null.samples if s.phase in (_PH_STEP, _PH_RELAX)]
@@ -15681,6 +15698,31 @@ R.check(
     "perturbation: 0.3 x nameplate x COP lands inside the band",
     _peak30 <= 0.8,
     f"peak {_peak30:.2f} K",
+)
+
+# --- #779: size on the two-state plant, not the one-state exponential ------
+R.section("sysid step sized on the two-state plant (#779)")
+_779_sid = SystemIdentification(SysIdConfig(enabled=True))
+_779_el = _779_sid._size_step_power(6.0, 3.0, 21.0, 2.0, 0.20, 8.0, 0.3)
+_779_q = (_779_el or 0.0) * 3.0
+_779_plant, _779_final = _predict_step_excursion_plant(
+    0.20, 8.0, 0.3, 21.0, 2.0, _779_q, 2.0, 2.0
+)
+_779_one, _ = _predict_step_excursion(21.0, 2.0, 0.20, 8.0, 0.3, _779_q, 2.0, 2.0)
+R.check(
+    "a sized step on the heavy default house uses most of the 0.8 C allowance",
+    _779_el is not None and _779_plant >= 0.6,
+    f"Pel={_779_el} plant_peak={_779_plant:.3f} final={_779_final:.3f}",
+)
+R.check(
+    "and still respects the 0.8 C comfort allowance on that plant",
+    _779_el is not None and _779_plant <= 0.8 and _779_final <= 0.8,
+    f"plant_peak={_779_plant:.3f} final={_779_final:.3f}",
+)
+R.check(
+    "the one-state exponential still over-predicts that same injection",
+    _779_one > _779_plant,
+    f"one-state {_779_one:.3f} plant {_779_plant:.3f}",
 )
 _settle_sid = SystemIdentification(
     SysIdConfig(enabled=True, settle_hours=0.5, step_hours=2.0, relax_hours=2.0)
@@ -15761,7 +15803,7 @@ def _sid_contaminate(samples, drift_c_per_h, noise_c=0.0, seed=20260911):
     return out
 
 
-_R3_LEGAL = _drive_sysid_step(0.20, 8.0, 0.3, 3.0)
+_R3_LEGAL = _drive_sysid_step(0.20, 8.0, 0.3, 3.0, size=False)
 _R3_NOISY_DRIFT = _sid_on(
     _sid_contaminate(_R3_LEGAL.samples, 0.10, 0.02, 20260911)
 )

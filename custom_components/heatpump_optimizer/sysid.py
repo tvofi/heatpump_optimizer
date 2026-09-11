@@ -33,6 +33,8 @@ from typing import Any
 
 import numpy as np
 
+from .thermal_model import ThermalModel, ThermalParameters, ThermalState
+
 _LOGGER = logging.getLogger(__name__)
 
 PHASE_IDLE = "idle"
@@ -71,6 +73,11 @@ def _predict_step_excursion(
 
     Each phase is one exponential with constant Q, so the extrema are at
     the phase endpoints (heating then cooling is monotonic in each).
+
+    Kept as the one-state control. Production sizing uses
+    :func:`_predict_step_excursion_plant` — heat lands in the slab
+    (:meth:`ThermalModel.simulate_step`), so this over-predicts the
+    room's move and undersizes the experiment (#779).
     """
     if ua <= 1e-9 or capacity <= 1e-9:
         return float("inf"), float("inf")
@@ -84,6 +91,83 @@ def _predict_step_excursion(
     after_relax = _end(after_step, 0.0, relax_hours)
     peak = max(abs(after_step - baseline), abs(after_relax - baseline))
     return peak, abs(after_relax - baseline)
+
+
+def _sizing_model(ua: float, capacity: float, gains: float):
+    """Single-zone plant whose UA / room mass / gains match the sizer inputs.
+
+    ``house_heat_loss_scale`` stays 1.0: the caller already folds the
+    learned scale into ``ua``. Slab mass and coupling stay the model
+    defaults — that is the two-state plant the experiment actually runs
+    on. The identified UA remains a room-only lumped figure; the sizer
+    does not pretend otherwise.
+    """
+    return ThermalModel(
+        ThermalParameters(
+            heat_loss_coefficient=ua,
+            house_heat_loss_scale=1.0,
+            room_thermal_mass=capacity,
+            internal_gains=gains,
+            two_zone_enabled=False,
+        )
+    )
+
+
+def _predict_step_excursion_plant(
+    ua: float,
+    capacity: float,
+    gains: float,
+    baseline: float,
+    outdoor: float,
+    step_thermal_kw: float,
+    step_hours: float,
+    relax_hours: float,
+    dt_hours: float = 0.25,
+    model: ThermalModel | None = None,
+) -> tuple[float, float]:
+    """Peak and final |T − baseline| on the two-state plant the model simulates.
+
+    Heat enters the slab. The room moves only through ``slab_heat_transfer``.
+    The one-state exponential treats the same Q as landing in the room, so
+    it cannot size this experiment (#779).
+    """
+    if ua <= 1e-9 or capacity <= 1e-9:
+        return float("inf"), float("inf")
+    if model is None:
+        model = _sizing_model(ua, capacity, gains)
+    k_slab = max(model.params.slab_heat_transfer, 1e-9)
+    q_hold = ua * (baseline - outdoor) - gains
+    state = ThermalState(
+        room_temperature=baseline,
+        slab_temperature=baseline + q_hold / k_slab,
+        outdoor_temperature=outdoor,
+    )
+    peak = 0.0
+    remaining = step_hours
+    while remaining > 1e-12:
+        dt = min(dt_hours, remaining)
+        state = model.simulate_step(
+            state,
+            electrical_power=0.0,
+            outdoor_temp=outdoor,
+            dt_hours=dt,
+            external_heat_kw=step_thermal_kw,
+        )
+        peak = max(peak, abs(state.room_temperature - baseline))
+        remaining -= dt
+    remaining = relax_hours
+    while remaining > 1e-12:
+        dt = min(dt_hours, remaining)
+        state = model.simulate_step(
+            state,
+            electrical_power=0.0,
+            outdoor_temp=outdoor,
+            dt_hours=dt,
+            external_heat_kw=0.0,
+        )
+        peak = max(peak, abs(state.room_temperature - baseline))
+        remaining -= dt
+    return peak, abs(state.room_temperature - baseline)
 
 
 @dataclass
@@ -302,22 +386,59 @@ class SystemIdentification:
         cop = max(cop, 0.1)
         q_max = max_power_kw * cop
         # 0.01 kW thermal: the C=8 UA=0.35 kW/K needle is ~0.05 kW wide.
-        steps = max(int(round(q_max / 0.01)), 1)
+        # Binary search: each trial is a two-state rollout, not a closed form.
+        lo = 0.0
+        hi = q_max
         best: float | None = None
-        for i in range(1, steps + 1):
-            q = q_max * i / steps
-            peak, final = _predict_step_excursion(
+        plant = _sizing_model(ua, capacity, gains)
+        peak_max, final_max = _predict_step_excursion_plant(
+            ua,
+            capacity,
+            gains,
+            baseline,
+            outdoor_temp,
+            q_max,
+            cfg.step_hours,
+            cfg.relax_hours,
+            model=plant,
+        )
+        if peak_max <= cfg.max_excursion_c and final_max <= cfg.max_excursion_c:
+            return max_power_kw
+        while hi - lo > 0.01:
+            q = (lo + hi) / 2.0
+            peak, final = _predict_step_excursion_plant(
+                ua,
+                capacity,
+                gains,
+                baseline,
+                outdoor_temp,
+                q,
+                cfg.step_hours,
+                cfg.relax_hours,
+                model=plant,
+            )
+            if peak <= cfg.max_excursion_c and final <= cfg.max_excursion_c:
+                best = q / cop
+                lo = q
+            else:
+                hi = q
+        if best is not None:
+            one_peak, _ = _predict_step_excursion(
                 baseline,
                 outdoor_temp,
                 ua,
                 capacity,
                 gains,
-                q,
+                best * cop,
                 cfg.step_hours,
                 cfg.relax_hours,
             )
-            if peak <= cfg.max_excursion_c and final <= cfg.max_excursion_c:
-                best = q / cop
+            _LOGGER.debug(
+                "System identification sizer: two-state step %.2f kW; "
+                "one-state exponential predicted %.2f K",
+                best,
+                one_peak,
+            )
         return best
 
     def _over_excursion(self, room_temp: float) -> bool:
