@@ -27603,6 +27603,28 @@ R.check(
     "against a learner that rejected everything",
 )
 
+# M03: `if self._house_heat_loss_samples % 10 == 0` -> `if False:` leaves a
+# learned scale in memory that a restart forgets. The ninth-sample arm is
+# the modulo's null: a fold that is not the persist cadence must not save.
+_t2_hl_tenth = _t2_house()
+_t2_hl_tenth._house_heat_loss_samples = 9
+_t2_drive(_t2_hl_tenth, "_async_learn_house_heat_loss")
+R.check(
+    "the tenth house-heat-loss sample is written to the store",
+    _t2_hl_tenth._house_heat_loss_samples == 10
+    and len(_t2_hl_tenth._t2_saves) >= 1,
+    f"samples {_t2_hl_tenth._house_heat_loss_samples} saves {_t2_hl_tenth._t2_saves!r}",
+)
+_t2_hl_ninth = _t2_house()
+_t2_hl_ninth._house_heat_loss_samples = 8
+_t2_drive(_t2_hl_ninth, "_async_learn_house_heat_loss")
+R.check(
+    "the ninth sample does not persist (the modulo is the gate)",
+    _t2_hl_ninth._house_heat_loss_samples == 9
+    and _t2_hl_ninth._t2_saves == [],
+    f"samples {_t2_hl_ninth._house_heat_loss_samples} saves {_t2_hl_ninth._t2_saves!r}",
+)
+
 # The two-zone fit takes its Newton step about the UPPER floor's UA and mass,
 # not the whole-house pair. Two facts follow and the SECOND is the one a
 # mutation can see: varying the upper mass must move the fit, and varying the
