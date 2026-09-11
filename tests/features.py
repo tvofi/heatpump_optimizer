@@ -28508,9 +28508,10 @@ _t3_sv = _t3_coord()
 _t3_sv._ledger_store = _T3SavingStore()
 _t3_drive(_t3_sv, "_async_save_ledger")
 R.check(
-    "one save carries all five riders, so no generation of money state is split",
+    "one save carries every rider, so no generation of money state is split",
     sorted(_t3_sv._ledger_store.saved[0])
-    == ["ledger", "month_reports", "operation_score", "score_day", "starts"]
+    == ["fuse_advisor", "fuse_advisor_at", "ledger", "month_reports",
+        "operation_score", "score_day", "starts"]
     and _t3_sv._t3_escaped is None,
     f"{sorted(_t3_sv._ledger_store.saved[0])!r} -- two stores would let a "
     "crash between them leave the ledger and its riders describing "
