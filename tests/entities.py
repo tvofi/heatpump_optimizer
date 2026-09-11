@@ -518,6 +518,22 @@ for _label, _platform, _heading in (
         f"table has {_rows} row(s), there are {_n}",
     )
 
+# #835: the notes used to say the sensor waits on "the wood tank" alone.
+# That is one of six gates; the billed price has no silent default, so a
+# user whose entity stays blank was sent to the wrong cause.
+_wc_notes = _re.search(
+    r"^\| Wood cheaper than heat pump \|[^|\n]*\|([^|\n]*)\|",
+    readme,
+    _re.M,
+)
+R.check(
+    "the README's wood_cheaper notes name the billed-price gate",
+    _wc_notes is not None
+    and "no silent default" in _wc_notes.group(1)
+    and "wood tank is usable" not in _wc_notes.group(1),
+    _wc_notes.group(1).strip() if _wc_notes else "row missing",
+)
+
 _total_claim = _re.search(r"All (\d+) entities", readme)
 R.check(
     "the README's total entity count covers every registered platform",
