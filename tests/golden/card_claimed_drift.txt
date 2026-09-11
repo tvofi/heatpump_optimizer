@@ -19,9 +19,9 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 6.4.0
+# claims-for: 6.4.1
 #
-# v6.4.0: Boost switches, tank editing on Setup, a typed mixing-valve setpoint, and the coordinator decomposition. The stamp empties the list; the
+# v6.4.1: leftover audit product, coverage, and governance. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 
