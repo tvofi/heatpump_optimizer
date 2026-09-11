@@ -2344,28 +2344,31 @@ function assertAcceptance(derived) {
     console.log(`\nFIXTURE VACUOUS: ${WORKFLOW} is unreadable, so the approval gate's wiring is unpinned`)
     return 1
   }
-  // On the INVOCATIONS, not on any occurrence: a first version of this asserted
-  // `wf.includes(flag)` and passed while the flag survived only in a comment
-  // eight lines above the command. A pin satisfied by prose about the thing is
-  // not a pin on the thing.
-  // Anchored to the step's own `run:` block, and that is the third attempt.
-  // The first asserted `wf.includes(flag)` and passed while the flag survived in
-  // a comment. The second selected lines matching a regex that CONTAINED the
-  // flag, so the flag text surviving in a trailing shell comment or in the
-  // step's `name:` defeated it -- a reviewer drove both. Selecting by what a
-  // line mentions cannot work when the needle is what is being looked for, so
-  // this cuts the block first and strips comments second.
+  // On the INVOCATIONS, not on any occurrence, and this is the third attempt.
+  // The first asserted `wf.includes(flag)` and passed while the flag survived
+  // only in a comment eight lines above the command. The second selected lines
+  // matching a regex that CONTAINED the flag, so the flag text surviving in a
+  // trailing shell comment or in the step's `name:` defeated it -- a reviewer
+  // drove both. Selecting by what a line mentions cannot work when the needle
+  // is what is being looked for, so this cuts the step's `run:` block by
+  // indentation first and strips comments second.
   //
-  // IT IS STILL NOT SOUND, and saying so is the point. A reviewer defeated this
-  // version five ways: `--paths-file` carried by a `:` shell no-op, by an echo
-  // string, or by a heredoc into /dev/null in the same run: block; the same
-  // shape on --no-renames; and a decoy second `run: |` block anywhere in the
-  // file. The flag is looked for in the union of every matching block's
-  // non-comment text, not in the command. What it does catch is the rot that
-  // actually occurs -- the flag deleted, or left behind in a comment -- which is
-  // three of the eight known carriers and all three seen in the wild. Anyone
-  // wanting soundness must parse the YAML and read the argv of the invocation,
-  // not grep text; string-matching moves the carrier, it does not close it.
+  // IT IS STILL NOT SOUND, and saying so is the point. Measured over eight
+  // carriers, it refuses five: the flag deleted, left in a trailing comment, or
+  // left in the step's `name:`, and the same two shapes on --no-renames. Three
+  // defeat it, all driven by a reviewer: `--paths-file` carried by a `:` shell
+  // no-op, by an echo string (a printf, a heredoc or a plain shell assignment
+  // are the same shape), or by a decoy second `run: |` block anywhere in the
+  // file -- and that last one means the subject is "some block mentions this
+  // text", so deleting the path-derivation step entirely passes as long as any
+  // decoy block names the flag. Pointing --paths-file at a path nothing writes
+  // passes too, because a filename is not a file.
+  //
+  // The class is exact: a command that MENTIONS the flag without passing it
+  // defeats any text match, so anyone wanting soundness must parse the YAML and
+  // read the argv of the invocation. String-matching moves the carrier, it does
+  // not close it. What is pinned here is the rot seen in the wild twice -- the
+  // flag deleted, and the flag left behind in a comment.
   const runBlocks = []
   {
     const lines = wf.split('\n')
