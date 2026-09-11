@@ -411,7 +411,7 @@ something that reads as complete while covering a fraction.
 | **#781** frequency map folded during reverse-cycle cooling | **held** — product hold still gates it. The map is inherited when a user switches to control mode. | leftover, after hold |
 | **#783** in-process solve fallback holds the GIL | **held** — product hold still gates it. Mutually exclusive with #784. | leftover, after hold |
 | **#784** solve worker released only at Home Assistant shutdown | **held** — product hold still gates it. Mutually exclusive with #783. | leftover, after hold |
-| **#796** one default-on sensor renders Unknown | **held** — product hold still gates it. Siblings render Unavailable. | leftover, after hold |
+| **#796** one default-on sensor renders Unknown | **done — closed completed.** Wood-burn advisor is Unavailable or none, not Unknown. [#878](https://github.com/tvofi/heatpump_optimizer/pull/878) `06c53f7`. | [#878](https://github.com/tvofi/heatpump_optimizer/pull/878) |
 | **#797** entity display names mix leading and trailing nouns | **done — closed completed.** Title Case on the six English entity display names. [#872](https://github.com/tvofi/heatpump_optimizer/pull/872) `a95556d`. | [#872](https://github.com/tvofi/heatpump_optimizer/pull/872) |
 | **#798** ruleset cannot require a review from any actor | **deferred — owner word on ruleset 22628467 still required.** Do not edit the ruleset. | owner |
 | **#799** record is a required context that cannot run on a pull request | **deferred — owner word on ruleset 22628467 still required.** Do not edit the ruleset. Do not build the pre-merge record arm. | owner |
@@ -739,6 +739,7 @@ inside it rather than after it.
 - [#872](https://github.com/tvofi/heatpump_optimizer/pull/872) — **merged `a95556d`, row written after the merge**: Title Case on the six English entity display names. Closed #797. Theirs. `node .claude/workflows/policy_lint.mjs --record --since v6.4.1` at `origin/main` `e59ac74` named this pull request and #876. Not #859. Not #867. leaves #201 open.
 - [#876](https://github.com/tvofi/heatpump_optimizer/pull/876) — **merged `e59ac74`, row written after the merge**: quality-scale `strict-typing` is `done`. Closed #829. `py.typed` was not added. Typing budgets were not raised. Same `--record` run at `e59ac74` named this pull request. Not #859. Not #867. leaves #201 open.
 - [#879](https://github.com/tvofi/heatpump_optimizer/pull/879) — **row written before the merge, and it is this pull request**: leftover-row for #872 `a95556d`, #876 `e59ac74`. `node .claude/workflows/policy_lint.mjs --record --since v6.4.1` at `origin/main` `e59ac74` named those two. Not #859. Not #867. leaves #860 open. leaves #201 open.
+- [#878](https://github.com/tvofi/heatpump_optimizer/pull/878) — **merged `06c53f7`, row written after the merge**: wood-burn advisor is Unavailable or none, not Unknown. Closed #796. `node .claude/workflows/policy_lint.mjs --record --since v6.4.1` at `origin/main` `06c53f7` named this pull request. Not #859. Not #867. leaves #201 open.
 
 ### The UX programme — 34 items, five lanes, tracking #558
 
