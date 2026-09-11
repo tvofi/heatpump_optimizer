@@ -2332,6 +2332,35 @@ function assertAcceptance(derived) {
     }
   }
 
+  // The wiring is the half a fixture cannot reach, and round two measured the
+  // cost of leaving it unpinned: dropping `--paths-file` from governance.yml
+  // restores R3-D11-03 exactly, and dropping `--no-renames` reopens the rename
+  // hole, and BOTH leave every instrument in this repository green. So the
+  // step's own text is read here. This asserts the flags are passed, not that
+  // GitHub runs the job -- no check in a repository can assert the second.
+  const WORKFLOW = '.github/workflows/governance.yml'
+  const wf = read(WORKFLOW)
+  if (wf == null) {
+    console.log(`\nFIXTURE VACUOUS: ${WORKFLOW} is unreadable, so the approval gate's wiring is unpinned`)
+    return 1
+  }
+  // On the INVOCATIONS, not on any occurrence: a first version of this asserted
+  // `wf.includes(flag)` and passed while the flag survived only in a comment
+  // eight lines above the command. A pin satisfied by prose about the thing is
+  // not a pin on the thing.
+  const runLines = wf.split('\n').filter((l) => !/^\s*#/.test(l))
+  const bodyCheck = runLines.filter((l) => /policy_lint\.mjs|--pr-body|--head|--title|--paths-file/.test(l)).join('\n')
+  const pathsDerive = runLines.filter((l) => /git diff .*--name-only/.test(l)).join('\n')
+  for (const [where, hay, flag, why] of [
+    ['the body-check invocation', bodyCheck, '--paths-file', 'the approval gate would fall back to the title alone, which is R3-D11-03 restored'],
+    ['the path derivation', pathsDerive, '--no-renames', 'a rename is reported by its destination only, so moving a policy file out of the glob set would not fire the gate'],
+  ]) {
+    if (!hay.includes(flag)) {
+      console.log(`\nFIXTURE VACUOUS: ${WORKFLOW} no longer passes ${flag} in ${where}; ${why}`)
+      return 1
+    }
+  }
+
   // The template and the parser's required set drift apart the moment either is
   // edited alone, and the seat that pays is one following a template that no
   // longer satisfies the job. Linting the template as if it were a body ties
