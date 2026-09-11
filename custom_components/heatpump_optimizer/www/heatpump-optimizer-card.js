@@ -9976,7 +9976,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
   _chartBlock(built, expanded) {
     const { svg: chart, plot, geom, viewH } = renderChart(built, {
       expanded,
-      // Recorded as it is read, so `_chartWidthDrifted` can compare what
+      // Recorded as it is read, so `_refitCharts` can compare what
       // this render assumed against what the browser then did (D4-01).
       measuredWidth: () => {
         const w = chartWidthPx(this, expanded);
