@@ -7065,14 +7065,57 @@ const setupBox = (card, place) =>
   awaySetup._onCardClick({});
   awaySetup.dialog.page = "setup";
   awaySetup._render();
-  check("setup page shows return datetime while the switch is on",
-    /data-away-return/.test(collect(awaySetup.shadowRoot).join("\n")));
-  check("collapsed card still has no away toggle after the setup-page strip",
+  check("setup page has no away strip",
+    !/data-away-toggle/.test(collect(awaySetup.shadowRoot).join("\n"))
+    && !/data-away-return/.test(collect(awaySetup.shadowRoot).join("\n")));
+  const awaySav = build(withAway(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), { sw: true }));
+  awaySav._onCardClick({});
+  awaySav.dialog.page = "savings";
+  awaySav._render();
+  check("savings page has no away strip",
+    !/data-away-toggle/.test(collect(awaySav.shadowRoot).join("\n"))
+    && !/data-away-return/.test(collect(awaySav.shadowRoot).join("\n")));
+  check("collapsed card still has no away toggle",
     !/data-away-toggle/.test(collect(build(withAway(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), { sw: true })).shadowRoot).join("\n")));
   const awayPerson = build(withAway(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), { resolved: true }));
   awayPerson._onCardClick({});
   check("person-away while the switch is off shows a status line",
     /data-away-status/.test(collect(awayPerson.shadowRoot).join("\n")));
+
+  // Ticking the box must expand the return-time field in this render, not
+  // wait for a later plan-sensor hass update. The switch entity is still
+  // "off" in hass -- that is the live bug: set_away is called and the
+  // signature ignores the switch, so the picker never appears.
+  const tick = build(withAway(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true)));
+  const tickCalls = [];
+  tick._hass.callService = async (domain, service, data) => {
+    tickCalls.push({ domain, service, data });
+  };
+  tick._onCardClick({});
+  const tickBox = tick.shadowRoot.querySelector(".away-strip input");
+  check("the plan page has a tick box to bind", tickBox != null);
+  if (tickBox) {
+    tickBox.checked = true;
+    tickBox.dispatchEvent({ type: "change", stopPropagation() {} });
+  }
+  check("ticking Away shows the return-time field before hass flips the switch",
+    /data-away-return/.test(collect(tick.shadowRoot).join("\n")));
+  check("and the tick calls set_away with active true",
+    tickCalls.length === 1
+    && tickCalls[0].domain === "heatpump_optimizer"
+    && tickCalls[0].service === "set_away"
+    && tickCalls[0].data.active === true,
+    JSON.stringify(tickCalls));
+
+  // A hass update of the switch alone -- no plan sensor moved -- must also
+  // redraw. Otherwise a phone that toggled the entity leaves this card stale.
+  const late = build(withAway(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true)));
+  late._onCardClick({});
+  check("(setup) return field absent before the switch entity turns on",
+    !/data-away-return/.test(collect(late.shadowRoot).join("\n")));
+  late.hass = { states: withAway(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), { sw: true }) };
+  check("a hass update of the away switch reveals the return-time field",
+    /data-away-return/.test(collect(late.shadowRoot).join("\n")));
 }
 
 // ---------------------------------------------------------------------------

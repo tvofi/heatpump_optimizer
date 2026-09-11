@@ -863,6 +863,16 @@ _store_suffixes = {
     for value in vars(holder).values()
     if isinstance(value, _Store) and value._key.startswith(_store_prefix)
 }
+# away and boost build their Store inside a function and bind it to no
+# attribute, so vars() over the coordinator cannot see them. Calling the
+# factories is what makes the census total, and what used to make this
+# check enforce the README's omission (#837).
+from heatpump_optimizer import away as _away_mod
+from heatpump_optimizer import boost as _boost_mod
+_store_suffixes |= {
+    _away_mod._away_store(_removal_coord)._key.removeprefix(_store_prefix),
+    _boost_mod._store(_removal_coord)._key.removeprefix(_store_prefix),
+}
 _listed_suffixes = set(
     _re.findall(r"heatpump_optimizer_<entry id>_(\w+)", _removal_text)
 )
@@ -870,6 +880,12 @@ R.check(
     "the store files it says are left under .storage are exactly the ones the coordinator keeps",
     _store_suffixes and _listed_suffixes == _store_suffixes,
     f"documented {sorted(_listed_suffixes)}, code keeps {sorted(_store_suffixes)}",
+)
+_store_count_word = {10: "ten", 12: "twelve"}.get(len(_store_suffixes), str(len(_store_suffixes)))
+R.check(
+    "the README's store-file count is the census, not a carried ten",
+    f"in {_store_count_word} files" in _removal_text,
+    f"census is {len(_store_suffixes)}, README does not say '{_store_count_word}'",
 )
 _hacs_floor = json.loads(Path("hacs.json").read_text())["homeassistant"]
 R.check(
@@ -5091,6 +5107,42 @@ for name, data in files.items():
         ", ".join(sorted(diff)[:6]),
     )
 
+# #828: the key-identity check only compares the three files to each
+# other, so a field missing a data_description from all three — which
+# renders with a label and no pointer — passed. reauth_confirm.tibber_token
+# was that field. A completeness walk over every labelled config/options
+# field is what makes the gap fail here rather than only in a review.
+_undescribed = sorted(
+    f"{flow}.step.{step}.{key}"
+    for flow in ("config", "options")
+    for step, body in strings.get(flow, {}).get("step", {}).items()
+    for key in body.get("data", {})
+    if key not in body.get("data_description", {})
+)
+R.check(
+    "every labelled flow field has a data_description",
+    not _undescribed,
+    ", ".join(_undescribed[:8]),
+)
+R.check(
+    "the reauth token field points at developer.tibber.com",
+    strings["config"]["step"]["reauth_confirm"]["data_description"][
+        "tibber_token"
+    ]
+    == "Create one at developer.tibber.com.",
+    "the setup step already carries that pointer; reauth is the screen that needs it",
+)
+R.check(
+    "and the Swedish reauth pointer is actually translated",
+    files["sv"]["config"]["step"]["reauth_confirm"]["data_description"][
+        "tibber_token"
+    ]
+    != files["en"]["config"]["step"]["reauth_confirm"]["data_description"][
+        "tibber_token"
+    ],
+    "English copied into sv.json passes the key check and fails the user",
+)
+
 # The stored-value warning is rendered on a form the user merely opened, so
 # an untranslated one is especially visible. It has to exist for both flows —
 # the widening applies to initial setup as well — and be a real translation.
@@ -7308,9 +7360,12 @@ finally:
 _user_form = asyncio.run(_fresh_flow().async_step_user(None))
 _user_fields = {str(getattr(k, "schema", k)) for k in _user_form["data_schema"].schema}
 _sensors_form = asyncio.run(_fresh_flow().async_step_user_sensors(None))
-_sensors_fields = {
-    str(getattr(k, "schema", k)) for k in _sensors_form["data_schema"].schema
-}
+# #824 grouped this page into indoor/solar/plant sections. A one-level walk of
+# schema.schema records the section markers and nothing underneath them, which
+# is the shape the comment on _WIDE_PAGES above describes; _schema_keys is the
+# helper that recurses, and using it here keeps this pin measuring the fields
+# rather than the wrapper.
+_sensors_fields = _schema_keys(_sensors_form["data_schema"])
 R.check(
     "the first screen no longer carries the ECL110 MQTT fields",
     not any(f.startswith("ecl110") for f in _user_fields),

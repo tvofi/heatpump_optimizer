@@ -176,3 +176,18 @@
 # the flow's steps and schemas, not entity.* translation keys -- so neither
 # fixture has a key path for any of it. Measured, not assumed:
 # card_drift reports "identical in all 34 states" at this head.
+
+# #824: the initial config flow's user_sensors page groups its fourteen entity
+# pickers into indoor/solar/plant, the registry's own group names, which the
+# options flow already uses for the same keys. config_flow is float-free
+# (carries_floats is False), so env_drift compares it exactly at level 1: the
+# committed fixture is re-recorded AND the drift against the merge base is
+# claimed. Same class as #653, which grouped the ten wide OPTIONS pages.
+#
+# The recorded move, read before accepting it: fourteen keys leave
+# _initial/user_sensors/<field> and reappear under
+# _initial/user_sensors/<group>/fields/<field>, plus three section wrappers,
+# 4187 -> 4208 keys, every collapsed:false. Nothing else moved -- solver
+# fixtures and the card claim file are untouched by this branch.
+
+config_flow # user_sensors nests its fourteen pickers under section(); fingerprint moves once
