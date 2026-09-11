@@ -26,7 +26,7 @@
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 30.1,
+   "seconds": 19.7,
    "rc": 0
   },
   "tests/env_drift.py": {
@@ -78,7 +78,7 @@
    "rc": 0
   },
   "tests/deployment_shape.py": {
-   "seconds": 2.3,
+   "seconds": 1.6,
    "rc": 0
   },
   "tests/ha_contract.py": {
@@ -357,6 +357,7 @@
   ],
   "tests/entities.py": [
    ".gitattributes",
+   ".github/workflows/governance.yml",
    ".github/workflows/tests.yml",
    "README.md",
    "RELEASE_NOTES.md",
@@ -392,6 +393,7 @@
    "custom_components/heatpump_optimizer/icons.json",
    "custom_components/heatpump_optimizer/inputs.py",
    "custom_components/heatpump_optimizer/ledger.py",
+   "custom_components/heatpump_optimizer/legionella.py",
    "custom_components/heatpump_optimizer/manifest.json",
    "custom_components/heatpump_optimizer/manual_plan.py",
    "custom_components/heatpump_optimizer/mixing_valve.py",
@@ -467,9 +469,8 @@
    "tests/hastub/homeassistant/util/dt.py",
    "tests/nightly_ha.py",
    "tests/nightly_status.py",
-   ".github/workflows/governance.yml",
-   "tests/record_status.py",
    "tests/profiles.py",
+   "tests/record_status.py",
    "tests/run.sh",
    "tests/structure.py",
    "tools/audit/preflight.sh",
@@ -1257,6 +1258,7 @@
    "custom_components/heatpump_optimizer/icons.json",
    "custom_components/heatpump_optimizer/inputs.py",
    "custom_components/heatpump_optimizer/ledger.py",
+   "custom_components/heatpump_optimizer/legionella.py",
    "custom_components/heatpump_optimizer/manifest.json",
    "custom_components/heatpump_optimizer/manual_plan.py",
    "custom_components/heatpump_optimizer/mixing_valve.py",
