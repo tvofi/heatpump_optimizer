@@ -962,6 +962,16 @@ R.check(
     not model.observe_day(datetime(2026, 1, 20), [1.0] * 12),
     "a day missing its cheap night hours would bias every hour upward",
 )
+_nan_hour = list(CHEAP_NIGHT)
+_nan_hour[3] = float("nan")
+_nan_model = PriceShapeModel()
+R.check(
+    "a day with one NaN hour is refused",
+    not _nan_model.observe_day(datetime(2026, 1, 5), _nan_hour)
+    and _nan_model.days[0] == 0
+    and bool(np.all(np.isfinite(_nan_model.shapes[0]))),
+    f"days={_nan_model.days} shape0={_nan_model.shapes[0][:4]}",
+)
 R.check(
     "the learned shape has a trough at night",
     model.predict(datetime(2026, 1, 20, 3), 1.0)
