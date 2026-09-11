@@ -33277,4 +33277,222 @@ R.check(
     "user's plan",
 )
 
+
+# -- W5-G8 block H: the repair flow, the away datetime, and two views ------
+# The short tail. `repairs.py` and `datetime.py` are Home Assistant surfaces
+# rather than logic -- a Fix button and a published instant -- and both were
+# uncovered end to end, which for the Fix button means the one control that
+# WRITES to the user's heat pump had never been driven.
+R.section("W5-G8 h: the repair flow and the away instant (#195)")
+
+from heatpump_optimizer import repairs as _g8_rep  # noqa: E402
+from heatpump_optimizer import datetime as _g8_dtmod  # noqa: E402
+from heatpump_optimizer import topology as _g8_topo  # noqa: E402
+from heatpump_optimizer.setpoint_check import ISSUE_DHW as _G8_I_DHW  # noqa: E402
+from heatpump_optimizer.setpoint_check import ISSUE_SPACE as _G8_I_SPACE  # noqa: E402
+
+
+class _G8Services:
+    def __init__(self):
+        self.calls = []
+
+    async def async_call(self, domain, service, data, blocking=False):
+        self.calls.append((domain, service, dict(data)))
+
+
+class _G8RepHass:
+    def __init__(self):
+        self.services = _G8Services()
+
+
+def _g8_fix(data, user_input=None, refuse_clear=False):
+    flow = _g8_rep.DhwSetpointRepairFlow()
+    flow.hass = _G8RepHass()
+    flow.data = data
+    reg = _G8LegIssues(refuse=refuse_clear)
+    real = _g8_rep.ir.async_delete_issue
+    try:
+        _g8_rep.ir.async_delete_issue = reg.async_delete_issue
+        result = _t6_call(_asyncio.run, flow.async_step_init(user_input))
+    finally:
+        _g8_rep.ir.async_delete_issue = real
+    return result, flow.hass.services.calls, reg
+
+
+_g8_fix_form, _g8_fix_form_calls, _ = _g8_fix(
+    {"entity_id": "number.pump_dhw", "target": 60.0})
+_g8_fix_num, _g8_fix_num_calls, _g8_fix_num_reg = _g8_fix(
+    {"entity_id": "number.pump_dhw", "target": 60.0}, user_input={})
+_g8_fix_climate, _g8_fix_climate_calls, _ = _g8_fix(
+    {"entity_id": "climate.pump", "target": 60.0}, user_input={})
+_g8_fix_switch, _g8_fix_switch_calls, _ = _g8_fix(
+    {"entity_id": "switch.pump", "target": 60.0}, user_input={})
+_g8_fix_nodata, _g8_fix_nodata_calls, _ = _g8_fix(None, user_input={})
+_g8_fix_refuse, _, _g8_fix_refuse_reg = _g8_fix(
+    {"entity_id": "number.pump_dhw", "target": 60.0}, user_input={},
+    refuse_clear=True)
+R.check(
+    "the DHW Fix shows a form first, then writes the floor to the pump",
+    _g8_fix_form["type"] == "form"
+    and _g8_fix_form["description_placeholders"]["target"] == "60"
+    and _g8_fix_form_calls == []
+    and _g8_fix_num["type"] == "create_entry"
+    and _g8_fix_num_calls == [
+        ("number", "set_value", {"entity_id": "number.pump_dhw", "value": 60.0})],
+    f"no input -> {_g8_fix_form['type']!r} with "
+    f"{_g8_fix_form['description_placeholders']!r} and "
+    f"{len(_g8_fix_form_calls)} service call(s); confirmed -> "
+    f"{_g8_fix_num_calls!r}. The form arm making NO call is the half that "
+    "matters: this is the one control in the integration that writes to the "
+    "user's heat pump, and a Fix that acted on being opened rather than on "
+    "being confirmed would change a set-point nobody agreed to",
+)
+R.check(
+    "and it speaks the right service for the entity's own domain",
+    _g8_fix_climate_calls == [
+        ("climate", "set_temperature",
+         {"entity_id": "climate.pump", "temperature": 60.0})]
+    and _g8_fix_switch_calls == []
+    and _g8_fix_nodata_calls == []
+    and _g8_fix_switch["type"] == "create_entry"
+    and _g8_fix_nodata["type"] == "create_entry",
+    f"climate -> {_g8_fix_climate_calls!r}; an unsupported domain -> "
+    f"{_g8_fix_switch_calls!r}; no data at all -> {_g8_fix_nodata_calls!r}. "
+    "The last two still CLOSE the flow rather than hanging: a repair whose "
+    "target cannot be written is still a repair the user has dismissed, and "
+    "leaving the dialog open would make the Fix button look broken",
+)
+R.check(
+    "a registry that refuses to clear the notice does not undo the write",
+    _g8_fix_refuse["type"] == "create_entry"
+    and _g8_fix_refuse_reg.deleted == [_G8_I_DHW]
+    and _g8_fix_num_reg.deleted == [_G8_I_DHW],
+    f"refusing registry -> {_g8_fix_refuse['type']!r} after attempting "
+    f"{_g8_fix_refuse_reg.deleted!r} -- the set-point has already been "
+    "written by then, so raising here would report a failed repair that in "
+    "fact succeeded, and the user would run it again",
+)
+_g8_fix_flows = {
+    "dhw": _asyncio.run(_g8_rep.async_create_fix_flow(None, _G8_I_DHW, None)),
+    "space": _asyncio.run(_g8_rep.async_create_fix_flow(None, _G8_I_SPACE, None)),
+    "unknown": _asyncio.run(
+        _g8_rep.async_create_fix_flow(None, "something_else", None)),
+}
+R.check(
+    "each issue id gets its own flow, and an unknown one still gets a usable dialog",
+    isinstance(_g8_fix_flows["dhw"], _g8_rep.DhwSetpointRepairFlow)
+    and type(_g8_fix_flows["space"]) is _g8_rep.ConfirmRepairFlow
+    and type(_g8_fix_flows["unknown"]) is _g8_rep.ConfirmRepairFlow,
+    "; ".join(f"{k}={type(v).__name__}" for k, v in _g8_fix_flows.items())
+    + " -- Home Assistant calls this by convention for ANY issue this "
+    "integration raised, including one a later version adds and this one has "
+    "never heard of, so the fallback is what stops the Fix button raising "
+    "instead of opening",
+)
+
+
+# -- datetime.AwayReturnDateTime: the published return instant --------------
+class _G8DtCoord:
+    def __init__(self, data=None):
+        self.data = data
+        self.away_calls = []
+        self.hass = FakeHass({})
+
+    async def async_set_away(self, **kw):
+        self.away_calls.append(kw)
+
+    # What HeatPumpOptimizerEntity reads off the coordinator.
+    last_update_success = True
+
+    def async_add_listener(self, *a, **k):
+        return lambda: None
+
+
+class _G8DtEntry:
+    entry_id = "g8"
+    options: dict = {}
+    data: dict = {}
+
+
+def _g8_dt(data):
+    ent = object.__new__(_g8_dtmod.AwayReturnDateTime)
+    ent.coordinator = _G8DtCoord(data)
+    return ent
+
+
+_g8_dt_set = _g8_dt({"away_override_return_time": "2026-07-12T18:00:00+00:00"})
+_g8_dt_none = _g8_dt(None)
+_g8_dt_blank = _g8_dt({})
+_g8_dt_junk = _g8_dt({"away_override_return_time": "unknown"})
+_g8_dt_write = _g8_dt({})
+_asyncio.run(_g8_dt_write.async_set_value(datetime(2026, 7, 12, 18, tzinfo=UTC)))
+R.check(
+    "the away return instant is published when there is one, and absent otherwise",
+    _g8_dt_set.native_value == datetime(2026, 7, 12, 18, tzinfo=UTC)
+    and _g8_dt_none.native_value is None
+    and _g8_dt_blank.native_value is None
+    and _g8_dt_junk.native_value is None,
+    f"stored -> {_g8_dt_set.native_value!r}; no coordinator data -> "
+    f"{_g8_dt_none.native_value!r}; no key -> {_g8_dt_blank.native_value!r}; "
+    f"'unknown' -> {_g8_dt_junk.native_value!r}. The `or {{}}` on the "
+    "coordinator's data is what keeps this readable during the first refresh, "
+    "when `data` is still None and every entity is being asked for its value",
+)
+R.check(
+    "and setting it goes to the away service rather than to the entity's own state",
+    _g8_dt_write.coordinator.away_calls
+    == [{"return_time": datetime(2026, 7, 12, 18, tzinfo=UTC)}],
+    f"{_g8_dt_write.coordinator.away_calls!r} -- the entity holds no state of "
+    "its own: the override lives on the coordinator and is persisted there, "
+    "so a setter that stored locally would show the new time and plan the old",
+)
+
+
+# -- topology: two views the setup page renders ----------------------------
+_g8_gap_none = _g8_topo._sensor_gap_lines({})
+_g8_gap_zero = _g8_topo._sensor_gap_lines(
+    {"sensor_gaps": [{"label": "Flow temperature", "sek_per_month": 0}]})
+_g8_gap_some = _g8_topo._sensor_gap_lines({"sensor_gaps": [
+    {"label": f"Gap {i}", "sek_per_month": 10.0 * (8 - i)} for i in range(7)]})
+R.check(
+    "the sensor-gap panel appears only when a gap is worth money, and shows five",
+    _g8_gap_none is None
+    and _g8_gap_zero is None
+    and _g8_gap_some is not None
+    and len(_g8_gap_some) == 6
+    and "Gap 0" in _g8_gap_some[1],
+    f"no gaps -> {_g8_gap_none!r}; a zero-value gap -> {_g8_gap_zero!r}; seven "
+    f"priced gaps -> {len(_g8_gap_some)} lines. None and an empty list are "
+    "different renderings: None omits the whole panel, where an empty list "
+    "would print a heading over nothing and read as a gap the page could not "
+    "name",
+)
+_g8_pulse = {
+    "pulse by name": _g8_topo.looks_like_pulse_power(
+        "sensor.tibber_pulse_power", device_class="power"),
+    "tibber power": _g8_topo.looks_like_pulse_power(
+        "sensor.home_power", name="Tibber power", device_class="power"),
+    "a price sensor": _g8_topo.looks_like_pulse_power(
+        "sensor.tibber_pulse_price", device_class="power"),
+    "wrong domain": _g8_topo.looks_like_pulse_power(
+        "binary_sensor.tibber_pulse", device_class="power"),
+    "wrong device class": _g8_topo.looks_like_pulse_power(
+        "sensor.tibber_pulse_power", device_class="energy"),
+    "unrelated": _g8_topo.looks_like_pulse_power(
+        "sensor.house_power", device_class="power"),
+}
+R.check(
+    "a Tibber Pulse power meter is recognised, and a price sensor is not",
+    _g8_pulse["pulse by name"] is True
+    and _g8_pulse["tibber power"] is True
+    and all(_g8_pulse[k] is False for k in
+            ("a price sensor", "wrong domain", "wrong device class",
+             "unrelated")),
+    "; ".join(f"{k}={_g8_pulse[k]!r}" for k in sorted(_g8_pulse))
+    + " -- the price exclusion is the one that earns its line: a Pulse "
+    "publishes a price sensor too, it is in the same integration with the "
+    "same words in its name, and suggesting it as the house power meter "
+    "would feed öre/kWh into the load model as if it were kilowatts",
+)
+
 sys.exit(R.close("FEATURE CHECKS"))
