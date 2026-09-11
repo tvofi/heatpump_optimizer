@@ -28684,4 +28684,699 @@ R.check(
     "rather than invents",
 )
 
+
+
+# ---------------------------------------------------------------------------
+# W5-G7 tranche 4 of 5 (#195): the core seam.
+#
+# FOUR WAS NOT ENOUGH, and this group's own map is what said so. At tranche
+# 3's head `coordinator.py` held 334 missed statements against 184 allowed at
+# the 95 % bar, and the core seam alone held 246 of them -- so the plan's
+# fourth-and-last tranche, scoped onto a twenty-statement hot-water
+# residual, could not have reached the bar by a factor of seven. This
+# tranche takes the tractable core and the learning tail; the five large
+# lifecycle methods (`_async_drive_pumps`, `_update_current_state`,
+# `async_run_optimization`, `async_simulate`, `_async_update_data`, 70
+# statements between them) are tranche 5.
+#
+# The three rules the earlier tables cost a round each to learn are applied
+# here rather than restated. An input must make the guard under test the
+# only arm that can reject. Anything that can raise goes through a catcher
+# and asserts nothing escaped. And a detail is sorted by `repr`, never by
+# natural order, because an f-string detail is evaluated eagerly and a
+# mutation can leave a set mixed.
+R.section("W5-G7 t4: the core seam and the learning tail (#195)")
+
+_T4_DATA = {"tibber_token": "x", "weather_entity": "weather.home"}
+# Two-zone is inferred from the presence of zone settings, not from a flag.
+_T4_TWO_ZONE = {
+    "upper_floor_thermal_mass": 3.0,
+    "lower_floor_thermal_mass": 8.0,
+    "lower_floor_temp_entity": "sensor.lower",
+}
+
+
+def _t4_coord(states=None, **config):
+    """A live coordinator over the fake bus, with states and config applied."""
+    return HeatPumpOptimizerCoordinator(
+        FakeHass(states or {}), FakeEntry(data=dict(_T4_DATA, **config))
+    )
+
+
+def _t4_call(fn, *args, **kwargs):
+    """Call one synchronous method, returning its value or the exception."""
+    try:
+        return fn(*args, **kwargs)
+    except Exception as err:  # noqa: BLE001
+        return err
+
+
+def _t4_drive(coord, method, *args, **kwargs):
+    """Await one coordinator method and capture anything that escapes it."""
+    coord._t4_escaped = None
+    try:
+        _asyncio.run(getattr(coord, method)(*args, **kwargs))
+    except Exception as err:  # noqa: BLE001
+        coord._t4_escaped = err
+    return coord
+
+
+def _t4_count_refresh(coord):
+    """Count refresh requests, which several service entry points end with."""
+    coord._t4_refreshes = 0
+
+    async def counted():
+        coord._t4_refreshes += 1
+
+    coord.async_request_refresh = counted
+
+
+# -- `_entity_state`: every reader in the class goes through here ----------
+# One helper behind every configured-entity read, so a wrong answer here is
+# wrong in the away resolver, the presence check and the frequency reader at
+# once. The attribute copy is the part worth pinning: handing a caller Home
+# Assistant's own live mapping lets one reader's edit reach every other.
+_T4_ENTITY_STATES = {
+    "sensor.present": FakeState(
+        "21.5", attributes={"unit_of_measurement": "C"}
+    )
+}
+_t4_es = _t4_coord(_T4_ENTITY_STATES)
+R.check(
+    "no entity and an empty entity id both read as absent, before any lookup",
+    _t4_call(_t4_es._entity_state, None) == (None, {})
+    and _t4_call(_t4_es._entity_state, "") == (None, {}),
+    f"None -> {_t4_call(_t4_es._entity_state, None)!r}, '' -> "
+    f"{_t4_call(_t4_es._entity_state, '')!r}",
+)
+R.check(
+    "an entity that is configured but absent from the bus reads as absent too",
+    _t4_call(_t4_es._entity_state, "sensor.gone") == (None, {}),
+    f"{_t4_call(_t4_es._entity_state, 'sensor.gone')!r} -- the empty mapping "
+    "is part of the contract: every caller unpacks two values",
+)
+R.check(
+    "a present entity yields its state and a COPY of its attributes",
+    _t4_call(_t4_es._entity_state, "sensor.present")
+    == ("21.5", {"unit_of_measurement": "C"})
+    and _t4_call(_t4_es._entity_state, "sensor.present")[1]
+    is not _T4_ENTITY_STATES["sensor.present"].attributes,
+    f"{_t4_call(_t4_es._entity_state, 'sensor.present')!r} -- the identity "
+    "test is the point: handing back the live mapping lets one reader's edit "
+    "reach every other reader of the same entity",
+)
+
+
+class _T4NoAttrs:
+    """A state whose attributes are absent, which some integrations publish."""
+
+    state = "7"
+    attributes = None
+
+
+_t4_es.hass.states.set("sensor.noattrs", _T4NoAttrs())
+R.check(
+    "a state with no attributes still yields its state and an empty mapping",
+    _t4_call(_t4_es._entity_state, "sensor.noattrs") == ("7", {}),
+    f"{_t4_call(_t4_es._entity_state, 'sensor.noattrs')!r}",
+)
+
+
+# -- `_adopt_system_identification`: one experiment against weeks of samples
+# A step-response experiment is a far better prior than ambiguous passive
+# samples, and the blend is what stops it being an overwrite. The arithmetic
+# is the check: confidence c takes the learned scale to
+# (1-c)*old + c*(sysid_UA / base_UA), and the sample floor to int(20c), so a
+# mediocre experiment cannot claim a well-sampled learner's authority.
+def _t4_adopt(*, two_zone=False, ua=None, upper=None, lower=None,
+              confidence=0.8, heat_loss=0.30, completed=True):
+    """Seed the passive learner from one completed experiment."""
+    c = _t4_coord(**(_T4_TWO_ZONE if two_zone else {}))
+    if ua is not None:
+        c._thermal_params.heat_loss_coefficient = ua
+    if upper is not None:
+        c._thermal_params.upper_floor_heat_loss = upper
+    if lower is not None:
+        c._thermal_params.lower_floor_heat_loss = lower
+    c._sysid.result = _dc_replace(
+        c._sysid.result,
+        completed=completed,
+        confidence=confidence,
+        heat_loss_kw_per_c=heat_loss,
+    )
+    c._t4_escaped = _t4_call(c._adopt_system_identification)
+    return c
+
+
+_t4_ad_ok = _t4_adopt(ua=0.15)
+R.check(
+    "a high-confidence experiment is BLENDED into the learned scale, not written over it",
+    _t4_ad_ok._house_heat_loss_scale == 1.8
+    and _t4_ad_ok._house_heat_loss_samples == 16
+    and not isinstance(_t4_ad_ok._t4_escaped, Exception),
+    f"scale {_t4_ad_ok._house_heat_loss_scale!r} samples "
+    f"{_t4_ad_ok._house_heat_loss_samples!r} -- a 0.30 kW/K fit against a "
+    "0.15 kW/K nameplate is a scale of 2.0, and at confidence 0.8 the blend "
+    "is 0.2*1.0 + 0.8*2.0; an overwrite would read 2.0",
+)
+_t4_ad_mid = _t4_adopt(ua=0.15, confidence=0.4)
+R.check(
+    "a mediocre experiment moves the scale less and claims fewer samples",
+    _t4_ad_mid._house_heat_loss_scale == 1.4
+    and _t4_ad_mid._house_heat_loss_samples == 8,
+    f"scale {_t4_ad_mid._house_heat_loss_scale!r} samples "
+    f"{_t4_ad_mid._house_heat_loss_samples!r} at confidence 0.4 against "
+    f"{_t4_ad_ok._house_heat_loss_scale!r} and "
+    f"{_t4_ad_ok._house_heat_loss_samples!r} at 0.8 -- both the weight and "
+    "the sample floor are linear in the confidence, which is what stops a "
+    "weak fit borrowing a well-sampled learner's authority",
+)
+_t4_ad_two = _t4_adopt(two_zone=True, ua=0.60, upper=0.05, lower=0.10)
+R.check(
+    "the two-zone base is the ZONES' sum, not the whole-house coefficient",
+    abs(_t4_ad_two._house_heat_loss_scale - 1.8) < 1e-9
+    and _t4_adopt(ua=0.60)._house_heat_loss_scale == 0.6,
+    "zones 0.05+0.10 against a whole-house 0.60 -> "
+    f"{_t4_ad_two._house_heat_loss_scale!r}, "
+    f"the same whole-house figure single-zone -> {_t4_adopt(ua=0.60)._house_heat_loss_scale!r} "
+    "-- reading the whole-house coefficient in two-zone mode divides the fit "
+    "by four times the right UA and the learner adopts a scale four times too "
+    "small",
+)
+_t4_ad_low = _t4_adopt(ua=0.15, confidence=0.2)
+_t4_ad_open = _t4_adopt(ua=0.15, completed=False, confidence=0.9)
+_t4_ad_nofit = _t4_adopt(ua=0.15, heat_loss=None)
+_t4_ad_zero = _t4_adopt(ua=0.0)
+R.check(
+    "a weak fit, an unfinished run, a fit with no UA and a zero nameplate all adopt nothing",
+    all(
+        c._house_heat_loss_scale == 1.0
+        and c._house_heat_loss_samples == 0
+        and not isinstance(c._t4_escaped, Exception)
+        for c in (_t4_ad_low, _t4_ad_open, _t4_ad_nofit, _t4_ad_zero)
+    ),
+    "confidence 0.2 -> "
+    f"{_t4_ad_low._house_heat_loss_scale!r}, not completed -> "
+    f"{_t4_ad_open._house_heat_loss_scale!r}, no fitted UA -> "
+    f"{_t4_ad_nofit._house_heat_loss_scale!r}, zero nameplate UA -> "
+    f"{_t4_ad_zero._house_heat_loss_scale!r} -- the zero nameplate is the one "
+    "that would otherwise divide by it",
+)
+R.check(
+    "an adopted result is marked adopted, so the next cycle cannot adopt it twice",
+    _t4_ad_ok._sysid.result.completed is False
+    and _t4_ad_ok._sysid.result.reason == "adopted",
+    f"completed {_t4_ad_ok._sysid.result.completed!r} reason "
+    f"{_t4_ad_ok._sysid.result.reason!r} -- leaving it completed re-blends "
+    "the same experiment on every update, walking the scale toward the fit "
+    "one cycle at a time",
+)
+
+
+# -- the three service entry points, and what each one costs ---------------
+_t4_force_busy = _t4_coord()
+_t4_count_refresh(_t4_force_busy)
+_t4_force_busy._optimization_running = True
+_t4_drive(_t4_force_busy, "async_force_optimization")
+_t4_force_idle = _t4_coord()
+_t4_count_refresh(_t4_force_idle)
+_t4_force_idle._optimization_running = False
+_t4_drive(_t4_force_idle, "async_force_optimization")
+R.check(
+    "forcing an optimization while one runs is dropped, not queued",
+    _t4_force_busy._t4_refreshes == 0
+    and _t4_force_idle._t4_refreshes == 1
+    and _t4_force_busy._t4_escaped is None,
+    f"running -> {_t4_force_busy._t4_refreshes} refreshes, idle -> "
+    f"{_t4_force_idle._t4_refreshes} -- the solve runs in a process pool, so "
+    "a queued second request is a second pool job for a plan the first is "
+    "already computing",
+)
+
+# The option is EDITED after construction, which is the only way to see the
+# push happen at all: built with the option already set, the experiment's
+# own config carries the right value whether this method reads it again or
+# not, and a version of this check that built it enabled survived the push
+# being deleted -- measured.
+_t4_arm_on = _t4_coord(system_identification_enabled=False)
+_t4_count_refresh(_t4_arm_on)
+_t4_arm_on_built = _t4_arm_on._sysid.config.enabled
+_t4_arm_on._config["system_identification_enabled"] = True
+_t4_drive(_t4_arm_on, "async_arm_system_identification")
+_t4_arm_off = _t4_coord(system_identification_enabled=True)
+_t4_count_refresh(_t4_arm_off)
+_t4_arm_off._config["system_identification_enabled"] = False
+_t4_drive(_t4_arm_off, "async_arm_system_identification")
+R.check(
+    "arming re-reads the option at call time, so an edit needs no reload",
+    _t4_arm_on_built is False
+    and _t4_arm_on._sysid.config.enabled is True
+    and _t4_arm_on._sysid.phase == "armed"
+    and _t4_arm_off._sysid.config.enabled is False
+    and _t4_arm_off._sysid.phase == "idle",
+    f"built {_t4_arm_on_built!r} then edited to True -> config "
+    f"{_t4_arm_on._sysid.config.enabled!r}, phase "
+    f"{_t4_arm_on._sysid.phase!r}; built True then edited to False -> config "
+    f"{_t4_arm_off._sysid.config.enabled!r}, phase "
+    f"{_t4_arm_off._sysid.phase!r} -- both directions, because the push is "
+    "invisible whenever the constructed value already agrees",
+)
+R.check(
+    "a refused arm still refreshes, which is what publishes the refusal",
+    _t4_arm_on._t4_refreshes == 1
+    and _t4_arm_off._t4_refreshes == 1
+    and _t4_arm_on._t4_escaped is None
+    and _t4_arm_off._t4_escaped is None,
+    f"armed -> {_t4_arm_on._t4_refreshes} refresh, refused -> "
+    f"{_t4_arm_off._t4_refreshes} -- returning early on a refusal leaves the "
+    "user's own button reporting nothing at all",
+)
+
+_t4_reset = _t4_coord(comfort_learning_enabled=True)
+_t4_count_refresh(_t4_reset)
+_t4_reset._t4_saves = 0
+
+
+async def _t4_reset_save():
+    _t4_reset._t4_saves += 1
+
+
+_t4_reset._async_save_accuracy = _t4_reset_save
+_t4_reset._comfort_learner.evidence = -1.9
+_t4_reset._comfort_learner.learned_weight = 3.0
+_t4_reset._apply_comfort_weight()
+_t4_reset_nudged = _t4_reset._opt_config.comfort_weight
+_t4_drive(_t4_reset, "async_reset_comfort_weight")
+R.check(
+    "resetting the comfort weight clears the evidence, republishes and persists",
+    _t4_reset_nudged == 3.0
+    and _t4_reset._opt_config.comfort_weight == 5.0
+    and _t4_reset._comfort_learner.evidence == 0.0
+    and _t4_reset._t4_saves == 1
+    and _t4_reset._t4_refreshes == 1,
+    f"learned 3.0 published as {_t4_reset_nudged!r}, reset to "
+    f"{_t4_reset._opt_config.comfort_weight!r}, evidence "
+    f"{_t4_reset._comfort_learner.evidence!r}, saves {_t4_reset._t4_saves}, "
+    f"refreshes {_t4_reset._t4_refreshes} -- the save is the part that makes "
+    "the reset survive a restart, and without it the learner reloads the "
+    "weight the user just rejected",
+)
+
+
+# -- `_on_defrost_event`: a transition is a report by definition ------------
+class _T4DefrostState:
+    """The one attribute the defrost listener reads off a state."""
+
+    def __init__(self, state):
+        self.state = state
+
+
+class _T4DefrostEvent:
+    """The one key the defrost listener reads off an event."""
+
+    def __init__(self, new_state):
+        self.data = {"new_state": new_state}
+
+
+def _t4_defrost(new_state):
+    """Deliver one defrost flag transition at a fixed instant."""
+    c = _t4_coord()
+    dt_util.freeze(_T4_NOW)
+    try:
+        c._t4_escaped = _t4_call(c._on_defrost_event, _T4DefrostEvent(new_state))
+    finally:
+        dt_util.freeze(None)
+    return c
+
+
+_T4_NOW = datetime(2026, 2, 1, 12, 0, 0, tzinfo=timezone.utc)
+_t4_df_on = _t4_defrost(_T4DefrostState("on"))
+_t4_df_off = _t4_defrost(_T4DefrostState("off"))
+_t4_df_unknown = _t4_defrost(_T4DefrostState("unknown"))
+_t4_df_unavail = _t4_defrost(_T4DefrostState("unavailable"))
+_t4_df_none = _t4_defrost(None)
+R.check(
+    "a defrost transition records on, off, and 'no reading' as three states",
+    _t4_df_on._defrost_window._state is True
+    and _t4_df_off._defrost_window._state is False
+    and _t4_df_unknown._defrost_window._state is None
+    and _t4_df_unavail._defrost_window._state is None
+    and _t4_df_none._defrost_window._state is None
+    and _t4_df_on._defrost_window._observed is True,
+    f"on -> {_t4_df_on._defrost_window._state!r}, off -> "
+    f"{_t4_df_off._defrost_window._state!r}, unknown -> "
+    f"{_t4_df_unknown._defrost_window._state!r}, unavailable -> "
+    f"{_t4_df_unavail._defrost_window._state!r}, no state -> "
+    f"{_t4_df_none._defrost_window._state!r} -- None is not False here: the "
+    "window accrues on-time, and a missing reading folded as 'not "
+    "defrosting' invents duty the pump never had",
+)
+R.check(
+    "the listener is arithmetic only and raises on nothing it is handed",
+    all(
+        not isinstance(c._t4_escaped, Exception)
+        for c in (_t4_df_on, _t4_df_off, _t4_df_unknown, _t4_df_unavail, _t4_df_none)
+    ),
+    "escapes: "
+    f"{[c._t4_escaped for c in (_t4_df_on, _t4_df_off, _t4_df_unknown, _t4_df_unavail, _t4_df_none)]!r} "
+    "-- this is a `@callback` on the event bus, where the helper swallows an "
+    "exception, so a refusal and a crash look identical from outside",
+)
+
+
+# -- `_freq_entity_reading`: a setpoint register that echoes itself ---------
+# The range comes from the number entity's own min/max because the hardware
+# integration knows its register limits. The reported value prefers a
+# separate sensor, because a setpoint register echoes the last written value
+# and feedback read from an echo can never diverge -- the watchdog would be
+# decorative and the learned map would train against a frozen number.
+_T4_FREQ_NUMBER = {
+    "number.freq": FakeState("55", attributes={"min": 25.0, "max": 90.0})
+}
+_T4_FREQ_BOTH = {"compressor_freq_entity": "number.freq",
+                 "compressor_freq_sensor": "sensor.freq"}
+R.check(
+    "with no frequency entity the reading and its range are all zero",
+    _t4_call(_t4_coord()._freq_entity_reading) == (None, 0.0, 0.0)
+    and _t4_call(
+        _t4_coord({}, compressor_freq_entity="number.gone")._freq_entity_reading
+    )
+    == (None, 0.0, 0.0),
+    f"unset -> {_t4_call(_t4_coord()._freq_entity_reading)!r}, configured but "
+    "absent -> "
+    f"{_t4_call(_t4_coord({}, compressor_freq_entity='number.gone')._freq_entity_reading)!r} "
+    "-- a zero range is what the caller reads as 'no clamp is knowable'",
+)
+R.check(
+    "the range comes from the entity's own min and max, with a documented default",
+    _t4_call(
+        _t4_coord(_T4_FREQ_NUMBER, compressor_freq_entity="number.freq")._freq_entity_reading
+    )
+    == (55.0, 25.0, 90.0)
+    and _t4_call(
+        _t4_coord(
+            {"number.freq": FakeState("55")},
+            compressor_freq_entity="number.freq",
+        )._freq_entity_reading
+    )
+    == (55.0, 20.0, 120.0),
+    "with min/max 25/90 -> "
+    f"{_t4_call(_t4_coord(_T4_FREQ_NUMBER, compressor_freq_entity='number.freq')._freq_entity_reading)!r}, "
+    "with no attributes -> "
+    f"{_t4_call(_t4_coord({'number.freq': FakeState('55')}, compressor_freq_entity='number.freq')._freq_entity_reading)!r} "
+    "-- guessing the range from the value would let a clamp write outside the "
+    "pump's register",
+)
+_t4_fr_absent = _t4_call(
+    _t4_coord(_T4_FREQ_NUMBER, **_T4_FREQ_BOTH)._freq_entity_reading
+)
+_t4_fr_sensor = _t4_call(
+    _t4_coord(
+        dict(_T4_FREQ_NUMBER, **{"sensor.freq": FakeState("61.5")}), **_T4_FREQ_BOTH
+    )._freq_entity_reading
+)
+R.check(
+    "a configured feedback sensor is preferred, and its absence is not a fallback",
+    _t4_fr_sensor == (61.5, 25.0, 90.0) and _t4_fr_absent == (None, 25.0, 90.0),
+    f"sensor present -> {_t4_fr_sensor!r}, sensor configured but absent -> "
+    f"{_t4_fr_absent!r} -- falling back to the number entity here would "
+    "re-decorate the watchdog at exactly the moment the real feedback "
+    "disappeared, and the range still comes through so the clamp survives",
+)
+_t4_fr_junk = _t4_call(
+    _t4_coord(
+        dict(_T4_FREQ_NUMBER, **{"sensor.freq": FakeState("lots")}), **_T4_FREQ_BOTH
+    )._freq_entity_reading
+)
+_t4_fr_nan = _t4_call(
+    _t4_coord(
+        dict(_T4_FREQ_NUMBER, **{"sensor.freq": FakeState("nan")}), **_T4_FREQ_BOTH
+    )._freq_entity_reading
+)
+R.check(
+    "a non-numeric and a NaN feedback reading are both dropped, range intact",
+    _t4_fr_junk == (None, 25.0, 90.0) and _t4_fr_nan == (None, 25.0, 90.0),
+    f"'lots' -> {_t4_fr_junk!r}, 'nan' -> {_t4_fr_nan!r} -- NaN parses, so "
+    "the finite test is a separate arm from the parse and both must drop the "
+    "reading while keeping the register limits",
+)
+
+
+# -- `_load_t4b_learners`: one parser for the store AND the snapshot -------
+# The store loader and the snapshot restore both come through here, so the
+# two paths cannot drift apart -- and every arm below is a corruption
+# barrier scoped to ONE entry, because the alternative is a payload written
+# by an older version losing every learner after its first bad key.
+#
+# Nothing here asserts a whole production dict. #851 went red on `main`
+# because an exact-equality assertion over a payload is a second
+# declaration of it, with no way to learn the original moved; these checks
+# name the keys they are about.
+def _t4_t4b(stored, **preset):
+    """Parse one T4b payload over a coordinator carrying `preset`."""
+    c = _t4_coord()
+    for name, value in preset.items():
+        setattr(c, name, value)
+    c._t4_escaped = _t4_call(c._load_t4b_learners, stored)
+    return c
+
+
+_t4_env = _t4_t4b(
+    {"capacity_envelope": {"nope": [1.0, 2], "5": [3.5, 7], "6": "x"}}
+)
+R.check(
+    "a corrupt capacity-envelope bucket is skipped one entry at a time",
+    dict(_t4_env._capacity_envelope) == {5: [3.5, 7]}
+    and not isinstance(_t4_env._t4_escaped, Exception),
+    f"{dict(_t4_env._capacity_envelope)!r} -- the good bucket sits BETWEEN "
+    "an unparseable key and an unindexable entry, which is the only "
+    "arrangement a per-entry skip and an abort disagree on",
+)
+
+_t4_ap = _t4_t4b({"solar_aperture": {"n": 5.0, "mx": "junk", "scale": 99.0}})
+R.check(
+    "one corrupt aperture field is skipped and the LATER fields still load",
+    _t4_ap._solar_aperture["n"] == 5.0
+    and _t4_ap._solar_aperture["mx"] == 0.0
+    and _t4_ap._solar_aperture["scale"] == 2.0,
+    f"n {_t4_ap._solar_aperture['n']!r}, mx {_t4_ap._solar_aperture['mx']!r}, "
+    f"scale {_t4_ap._solar_aperture['scale']!r} -- `mx` is parsed BEFORE "
+    "`scale`, so an abort would leave the scale at its default 1.0 instead "
+    "of the clipped 2.0, and the clip is the arm that proves the loop "
+    "carried on",
+)
+_t4_ap_nan = _t4_t4b({"solar_aperture": {"n": float("nan")}})
+R.check(
+    "a non-finite aperture field keeps the value it had, rather than becoming NaN",
+    _t4_ap_nan._solar_aperture["n"] == 0.0,
+    f"{_t4_ap_nan._solar_aperture['n']!r} -- NaN parses, so the finite test "
+    "is its own arm, and a NaN in the regression's accumulators poisons "
+    "every later solar sample",
+)
+
+_t4_gains_ok = _t4_t4b({"internal_gains_profile": [0.1] * 24})
+_t4_gains_junk = _t4_t4b(
+    {"internal_gains_profile": ["x"] * 24},
+    _internal_gains_profile=[9.0] * 24,
+)
+_t4_gains_short = _t4_t4b(
+    {"internal_gains_profile": [0.1] * 23},
+    _internal_gains_profile=[9.0] * 24,
+)
+R.check(
+    "a 24-hour gains profile loads; a corrupt one is CLEARED, a short one ignored",
+    _t4_gains_ok._internal_gains_profile == [0.1] * 24
+    and _t4_gains_junk._internal_gains_profile is None
+    and _t4_gains_short._internal_gains_profile == [9.0] * 24,
+    f"good -> 24 values, corrupt over a live profile -> "
+    f"{_t4_gains_junk._internal_gains_profile!r}, 23 values over a live "
+    f"profile -> {len(_t4_gains_short._internal_gains_profile)} values -- the "
+    "two refusals differ on purpose: a corrupt profile is cleared to None, "
+    "which the model reads as 'no learned profile', while a wrong-length one "
+    "never enters the `try` and leaves the live profile alone",
+)
+
+
+# -- `_async_save_thermal_learning`: a write that fails is not a crash -----
+class _T4FullStore:
+    """A store whose write fails, as a full or read-only disk does."""
+
+    async def async_save(self, data):
+        raise RuntimeError("no space left on device")
+
+
+_t4_sv = _t4_coord()
+_t4_sv._thermal_learning_store = _T4FullStore()
+_t4_drive(_t4_sv, "_async_save_thermal_learning")
+R.check(
+    "a failed thermal-learning write is swallowed, not raised into the learner",
+    _t4_sv._t4_escaped is None,
+    f"escaped {_t4_sv._t4_escaped!r} -- every learner in the seam ends by "
+    "calling this, so letting a full disk out here takes down the update "
+    "cycle over a value the integration can relearn",
+)
+
+
+# -- `_apply_learner_payloads`: a rollback is a restore, not a merge -------
+_t4_pl = _t4_coord()
+_t4_pl_rate_before = _t4_pl._buffer_cooling_rate
+_t4_pl._t4_escaped = _t4_call(
+    _t4_pl._apply_learner_payloads,
+    {
+        "thermal_learning": {
+            "buffer_cooling_rate": "junk",
+            "house_heat_loss_scale": 1.2,
+            "lower_floor_loss_ratio": 1.1,
+            "cop_scale": 1.05,
+        }
+    },
+)
+R.check(
+    "a corrupt value in a snapshot skips that setter and runs the three after it",
+    _t4_pl._buffer_cooling_rate == _t4_pl_rate_before
+    and _t4_pl._house_heat_loss_scale == 1.2
+    and _t4_pl._lower_floor_loss_ratio == 1.1
+    and _t4_pl._cop_scale == 1.05
+    and not isinstance(_t4_pl._t4_escaped, Exception),
+    f"rate {_t4_pl._buffer_cooling_rate!r} (unchanged), scale "
+    f"{_t4_pl._house_heat_loss_scale!r}, ratio "
+    f"{_t4_pl._lower_floor_loss_ratio!r}, cop {_t4_pl._cop_scale!r} -- the "
+    "corrupt key is FIRST in the setter list, so an abort would leave all "
+    "three later learners on the drifted state the rollback is meant to "
+    "replace",
+)
+
+
+# -- `_reanchor_house_heat_loss_scale`: a learned scale is UA-relative -----
+# The stored scale multiplies a nameplate UA. If the user edits that UA, the
+# same scale means a different coefficient, so the store records the UA it
+# was fitted against and this re-expresses the scale when the two disagree.
+# The return value gates the one persistence write, because `updated_at`
+# moves on every save and defeats the store's own content-hash skip.
+_t4_ra = _t4_coord()
+_T4_RA_CURRENT = _t4_ra._house_heat_loss_anchor()
+_t4_ra_refusals = {
+    "absent": _t4_call(_t4_ra._reanchor_house_heat_loss_scale, None),
+    "non-numeric": _t4_call(_t4_ra._reanchor_house_heat_loss_scale, "junk"),
+    "zero": _t4_call(_t4_ra._reanchor_house_heat_loss_scale, 0.0),
+    "non-finite": _t4_call(
+        _t4_ra._reanchor_house_heat_loss_scale, float("nan")
+    ),
+    "within the step": _t4_call(
+        _t4_ra._reanchor_house_heat_loss_scale, _T4_RA_CURRENT * 1.01
+    ),
+}
+R.check(
+    "five stored anchors re-express nothing, and each says so by returning False",
+    all(v is False for v in _t4_ra_refusals.values()),
+    f"{_t4_ra_refusals!r} against a live anchor of {_T4_RA_CURRENT!r} -- the "
+    "return value is what gates the persistence write, so a True here is a "
+    "store write on every startup",
+)
+_t4_ra_far = _t4_coord()
+_t4_ra_far_out = _t4_call(
+    _t4_ra_far._reanchor_house_heat_loss_scale, _T4_RA_CURRENT * 4.0
+)
+R.check(
+    "an anchor a factor of four out IS re-expressed, and reports that it was",
+    _t4_ra_far_out is True,
+    f"{_t4_ra_far_out!r} from a stored {_T4_RA_CURRENT * 4.0!r} against a "
+    f"live {_T4_RA_CURRENT!r} -- without this arm every refusal above would "
+    "be satisfied by a method that always returns False",
+)
+
+
+# -- `async_update_thermal_params`: the options dialog writing through -----
+# Every key here arrives from a service call or an options edit, so the
+# types are whatever the front end sent -- a checkbox as 0, a temperature as
+# an int. The coercions are the pin: an int reaching `dhw_legionella_temp`
+# makes every later comparison integer-typed, and a raw truthy string
+# reaching a flag is a checkbox that cannot be turned off.
+def _t4_update_params(params, **preset):
+    """Apply one options write, counting the persistence it triggers."""
+    c = _t4_coord()
+    c._t4_saves = 0
+    inner = c._async_save_thermal_learning
+
+    async def counted():
+        c._t4_saves += 1
+        return await inner()
+
+    c._async_save_thermal_learning = counted
+    for name, value in preset.items():
+        setattr(c, name, value)
+    return _t4_drive(c, "async_update_thermal_params", params)
+
+
+_t4_up_rate = _t4_update_params(
+    {"buffer_cooling_rate": 1.75}, _buffer_cooling_samples=7
+)
+_t4_up_none = _t4_update_params({}, _buffer_cooling_samples=7)
+R.check(
+    "an explicit buffer cooling rate replaces the learned one AND resets its samples",
+    _t4_up_rate._buffer_cooling_rate == 1.75
+    and _t4_up_rate._thermal_params.buffer_cooling_rate == 1.75
+    and _t4_up_rate._buffer_cooling_samples == 0
+    and _t4_up_rate._t4_saves == 1
+    and _t4_up_rate._t4_escaped is None,
+    f"rate {_t4_up_rate._buffer_cooling_rate!r}, samples "
+    f"{_t4_up_rate._buffer_cooling_samples!r}, saves "
+    f"{_t4_up_rate._t4_saves} -- keeping the seven samples would let the "
+    "learner outvote the number the user just typed, and the save is what "
+    "stops the old rate coming back on the next restart",
+)
+R.check(
+    "an options write that names no rate touches neither the rate nor its samples",
+    _t4_up_none._buffer_cooling_samples == 7
+    and _t4_up_none._t4_saves == 0
+    and _t4_up_none._buffer_cooling_rate
+    == _t4_coord()._buffer_cooling_rate,
+    f"samples {_t4_up_none._buffer_cooling_samples!r}, saves "
+    f"{_t4_up_none._t4_saves} -- the dialog posts the pages it has, so a "
+    "page the user never opened must not reset a learner",
+)
+
+_t4_up_falsy = _t4_update_params(
+    {"dhw_schedule_enabled": 0, "dhw_legionella_enabled": ""}
+)
+_t4_up_truthy = _t4_update_params({"dhw_schedule_enabled": "off"})
+R.check(
+    "the two hot-water flags are coerced with bool, in both directions",
+    _t4_up_falsy._thermal_params.dhw_schedule_enabled is False
+    and _t4_up_falsy._thermal_params.dhw_legionella_enabled is False
+    and _t4_up_truthy._thermal_params.dhw_schedule_enabled is True,
+    f"0 -> {_t4_up_falsy._thermal_params.dhw_schedule_enabled!r}, '' -> "
+    f"{_t4_up_falsy._thermal_params.dhw_legionella_enabled!r}, 'off' -> "
+    f"{_t4_up_truthy._thermal_params.dhw_schedule_enabled!r} -- both flags "
+    "default True, so only the falsy direction can show the coercion "
+    "happening at all; and 'off' being True is the front end's problem, not "
+    "this method's, which is why the check states it rather than fixing it",
+)
+_t4_up_ints = _t4_update_params(
+    {
+        "dhw_legionella_temperature": 65,
+        "dhw_legionella_interval_days": 5,
+        "dhw_idle_min_temperature": 33,
+    }
+)
+R.check(
+    "three hot-water numbers arrive as ints and are stored as floats",
+    _t4_up_ints._thermal_params.dhw_legionella_temp == 65.0
+    and _t4_up_ints._thermal_params.dhw_legionella_interval_days == 5.0
+    and _t4_up_ints._thermal_params.dhw_idle_min_temp == 33.0
+    and all(
+        isinstance(v, float)
+        for v in (
+            _t4_up_ints._thermal_params.dhw_legionella_temp,
+            _t4_up_ints._thermal_params.dhw_legionella_interval_days,
+            _t4_up_ints._thermal_params.dhw_idle_min_temp,
+        )
+    ),
+    "types: "
+    f"{[type(v).__name__ for v in (_t4_up_ints._thermal_params.dhw_legionella_temp, _t4_up_ints._thermal_params.dhw_legionella_interval_days, _t4_up_ints._thermal_params.dhw_idle_min_temp)]!r} "
+    "-- the type is the assertion, not the value: an int interval reaching "
+    "the disinfection countdown makes its arithmetic integer-typed, and the "
+    "value alone compares equal either way",
+)
+
 sys.exit(R.close("FEATURE CHECKS"))
