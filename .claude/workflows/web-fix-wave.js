@@ -6,14 +6,19 @@ export const meta = {
   description: 'Fix, adversarially review and merge PR groups from one fork SHA, honoring merge-gated dependencies',
   phases: [{ title: 'Reconcile', detail: 'check the committed roster against origin, fail closed' }, { title: 'Wave', detail: 'fixer, adversarial reviewer, then a serialized merge per group' }],
 }
-const GH = `No gh CLI exists in this environment. For every GitHub action run
+const GH_READ = `No gh CLI exists in this environment. For every GitHub read run
 ToolSearch with "select:<tool>" first, then call it (owner tvofi, repo
-heatpump_optimizer): issue_read (get / get_comments), add_issue_comment,
-issue_write (update: labels, state, state_reason), create_pull_request,
-update_pull_request, pull_request_read (get, get_check_runs, get_comments,
-get_files, get_diff), list_pull_requests, merge_pull_request (squash), actions_list
-(list_workflow_runs on tests.yml, branch main), actions_get, get_job_logs
-(failed_only).`
+heatpump_optimizer): issue_read (get / get_comments), pull_request_read
+(get, get_check_runs, get_comments, get_files, get_diff), list_pull_requests,
+actions_list (list_workflow_runs on tests.yml, branch main), actions_get,
+get_job_logs (failed_only). This grant is read-only.`
+
+const GH_WRITE = `Write grant, not merge: add_issue_comment, issue_write
+(update: labels, state, state_reason), create_pull_request, update_pull_request.
+Hold only in a phase that writes. Never together with the merge grant.`
+
+const GH_MERGE = `Merge grant: merge_pull_request (squash). Hold only in the
+merge phase. Do not hold the read grant here.`
 
 const GATE = `Gate rules on this 4-core box. The shell's working directory
 resets between calls: pin cd in every command. PYTHONPATH=tests/hastub for
@@ -95,7 +100,7 @@ const RANK = { haiku: 0, sonnet: 1, opus: 2 }
 const tierOk = (f, r) => RANK[f] !== undefined && RANK[r] !== undefined && RANK[r] >= RANK[f]
 
 const MERGE = { type: 'object', required: ['merged'] }
-const mergePrompt = (pr, head) => `${GH} Merge PR #${pr} only if ALL of:
+const mergePrompt = (pr, head) => `${GH_READ} ${GH_WRITE} ${GH_MERGE} Merge PR #${pr} only if ALL of:
 pull_request_read get shows mergeable_state clean and head sha ${head};
 get_check_runs shows every check success or skipped; the newest "Fix review:"
 comment says merge and post-dates that head; the diff touches neither VERSION
@@ -105,7 +110,7 @@ If mergeable_state is dirty, return {merged: false, reason: "needs repair"} --
 do not merge main into the branch yourself, the fixer must, because a rebase
 invalidates the evidence. Otherwise {merged: false, reason}.`
 
-const waitMainPrompt = (sha) => `${GH} Poll actions_list (workflow tests.yml,
+const waitMainPrompt = (sha) => `${GH_READ} Poll actions_list (workflow tests.yml,
 branch main) until the run for ${sha} completes; check every three minutes,
 give up after two hours. Require both fast and closures to be success. On a
 red run, fetch the failing job log (get_job_logs, failed_only) and return
@@ -233,7 +238,7 @@ for (const g of groups) {
 }
 
 const RESUMED = (g) => g.resume?.stage === 'fix' ? `THIS GROUP IS BEING RESUMED. An earlier fixer stopped after pushing ${g.resume.pushed_sha} to claude-web/${g.group.toLowerCase()}: ${g.resume.what}. That work is NOT lost and is NOT yours to redo -- the worktree command below re-attaches to that branch. Read the pushed diff first (git log origin/main..HEAD, git diff origin/main...HEAD) and continue from it. What is still missing: ${g.resume.missing}` : ''
-const fixerPrompt = (g, repair) => `You own fix group ${g.group} of the open-issues program: issues #${g.issues.join(', #')}. ${GH} ${WT('claude-web/' + g.group.toLowerCase(), fork)} ${(g.after ?? []).length ? 'Your dependencies have already merged, so your first action in the worktree is: git merge origin/main (never rebase). Resolve any claim-file or budget-table conflict by keeping ONLY your own lines -- your dependency already landed its own.' : ''} ${RESUMED(g)} ${DOC(session)}
+const fixerPrompt = (g, repair) => `You own fix group ${g.group} of the open-issues program: issues #${g.issues.join(', #')}. ${GH_READ} ${GH_WRITE} ${WT('claude-web/' + g.group.toLowerCase(), fork)} ${(g.after ?? []).length ? 'Your dependencies have already merged, so your first action in the worktree is: git merge origin/main (never rebase). Resolve any claim-file or budget-table conflict by keeping ONLY your own lines -- your dependency already landed its own.' : ''} ${RESUMED(g)} ${DOC(session)}
 Read tools/audit/briefs/fixer.md and tools/audit/README.md, then every issue's body AND its comments -- the comments carry corrections that override the body, and a fixer who reads only the body will implement the superseded plan. Your brief, which already applies those corrections:
 ${g.brief}
 Follow every step of the fixer contract: a failing test first that imports the production symbol; the mutation proof with the failing check names pasted; the finding's own harness re-run before and after at your head SHA (copy a harness into the tree under test before running it -- the harnesses disagree about how they find the repository root); a null control on any cost, gain or time claim; both ends of the range for a learner or guard change. ${GATE}
@@ -242,14 +247,14 @@ Never touch VERSION, the manifest version or the RELEASE_NOTES.md heading. Open 
 ${repair ? `A reviewer BLOCKED your previous head. Their comment: ${repair}\nRepair in the same worktree, re-execute fixer steps 2-8 (the evidence described the old tree, and the body is evidence too), push, and return the new head SHA.` : ''}
 Return {pr, head_sha, summary} where pr is the PR NUMBER as an integer. If you could not open a PR -- you ran out of budget, the gate never went green, anything -- return pr: null with the reason in summary, and post the contractual "state at stop:" comment on every issue first. NEVER put prose in the pr field: a sentence there satisfies the schema, is read as a PR number, and sends a reviewer to a PR that does not exist.`
 
-const reviewerPrompt = (g, fix, round) => `You are the adversarial fix reviewer for PR #${fix.pr} (group ${g.group}, head ${fix.head_sha}), in a fresh context. ${GH} ${WT_REVIEW(g.group + '-' + round, fix.head_sha)}
+const reviewerPrompt = (g, fix, round) => `You are the adversarial fix reviewer for PR #${fix.pr} (group ${g.group}, head ${fix.head_sha}), in a fresh context. ${GH_READ} ${GH_WRITE} ${WT_REVIEW(g.group + '-' + round, fix.head_sha)}
 Read tools/audit/briefs/fix-review.md and follow it. You are not checking that the code looks right; four implementations on this project looked right and were wrong, one worse than its bug. Check that the numbers are real: re-run the mutation proof the body names and confirm those checks fail; measure with the FINDER's harness rather than the fixer's, at ${fork} and at ${fix.head_sha}, printing your own RESULT lines; re-run every null control and both-ends check the body claims; run env_drift.py --all (and card_drift.mjs for card changes) against the merge base and confirm every moved fixture is claimed, every claim moved, and no may-drift fixture is claimed; run python3 tests/structure.py against origin/main's budgets and require any loosened metric to be named and argued in the body; confirm VERSION, the manifest and the notes heading are untouched; attack the fix at other topologies, other price profiles and the zero-evidence install; confirm the head SHA in the body is the head you measured. ${GATE}
 Post your verdict as a PR comment whose FIRST LINE is exactly "Fix review: merge ${fix.head_sha}" or "Fix review: blocked ${fix.head_sha} <class>: <why>", where <class> is one of ${VERDICT_CLASSES.join(', ')}; your RESULT lines follow it. The class is read by a script, so a blocked verdict without one is unreadable and is treated as blocked with no route to a repair. Use root-cause-unanswered when the fix itself is sound but the branch turned a check red and the body does not name the cheaper detector or record that none exists -- that dispatches the root-cause seat rather than another repair round. Return {verdict, comment} where comment's first line is that same line.`
 
 // The root-cause seat: its own context, beside the fix and never inside it, per
 // tools/audit/briefs/root-cause.md. Until now the contracts named it and no
 // script started one.
-const rootCausePrompt = (g, fix, v) => `You are the root-cause seat for PR #${fix.pr} (group ${g.group}, head ${fix.head_sha}), in a fresh context. ${GH} ${WT_REVIEW(g.group + '-rootcause', fix.head_sha)}
+const rootCausePrompt = (g, fix, v) => `You are the root-cause seat for PR #${fix.pr} (group ${g.group}, head ${fix.head_sha}), in a fresh context. ${GH_READ} ${GH_WRITE} ${WT_REVIEW(g.group + '-rootcause', fix.head_sha)}
 Read tools/audit/briefs/root-cause.md and .cursor/rules/defect-root-cause.mdc, then follow the contract. The reviewer blocked this PR as ${v.class}: ${v.why}
 You do not fix the defect and you do not review the fix. You owe: the named cause; which of the four process states it is in (the process did not exist, existed and was not followed, was followed and did not work, was sound and its preconditions changed); a cost test measuring the class's recurrence against the standing cost of the countermeasure; and either a countermeasure demonstrated failing on the defect it was written for, or a recorded refusal saying none pays for itself. A recorded refusal is a legitimate result.
 Post it as a PR comment beginning "Root cause:" and return {cause, state, countermeasure, comment}.`
@@ -268,7 +273,7 @@ Post it as a PR comment beginning "Root cause:" and return {cause, state, counte
 // under the lock.
 phase('Reconcile')
 const rosterNames = groups.map((g) => g.group)
-const recon = await agent(`${GH} You are the reconciler. Before a single fixer runs, check that a wave roster still describes the world. You change NOTHING -- no commits, no pushes, no comments, no merges. Read only.
+const recon = await agent(`${GH_READ} You are the reconciler. Before a single fixer runs, check that a wave roster still describes the world. You change NOTHING -- no commits, no pushes, no comments, no merges. Read only.
 
 In ${repo}: git fetch origin --prune.
 

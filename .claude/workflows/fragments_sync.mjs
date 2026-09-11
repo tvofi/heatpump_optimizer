@@ -131,6 +131,20 @@ function selfTest(canonDecls, files) {
     'a comment banner ends a declaration rather than being absorbed into it')
   ok(declarations([]).size === 0, 'an empty file declares nothing rather than throwing')
 
+  ok(grantSplit(canonDecls).length === 0, 'GH_READ and GH_MERGE are split (null control)')
+  const bentRead = new Map(canonDecls)
+  bentRead.set('GH_READ', `${canonDecls.get('GH_READ') || ''}\nmerge_pull_request`)
+  ok(grantSplit(bentRead).some((e) => /GH_READ holds/.test(e)),
+    'putting merge_pull_request in GH_READ is reported')
+  const bentMerge = new Map(canonDecls)
+  bentMerge.set('GH_MERGE', `${canonDecls.get('GH_MERGE') || ''}\nissue_read`)
+  ok(grantSplit(bentMerge).some((e) => /GH_MERGE holds/.test(e)),
+    'putting issue_read in GH_MERGE is reported')
+  const bentWrite = new Map(canonDecls)
+  bentWrite.set('GH_WRITE', `${canonDecls.get('GH_WRITE') || ''}\nmerge_pull_request`)
+  ok(grantSplit(bentWrite).some((e) => /GH_WRITE holds/.test(e)),
+    'putting merge_pull_request in GH_WRITE is reported')
+
   console.log(`\n${pass} passed, ${fail} failed`)
   return fail ? 2 : 0
 }
@@ -143,10 +157,31 @@ if (error) {
 const files = copyFiles()
 if (process.argv.includes('--self-test')) process.exit(selfTest(decls, files))
 
+function grantSplit(decls) {
+  const read = decls.get('GH_READ') || ''
+  const write = decls.get('GH_WRITE') || ''
+  const merge = decls.get('GH_MERGE') || ''
+  const errs = []
+  if (!read) errs.push('GH_READ is missing')
+  if (!write) errs.push('GH_WRITE is missing')
+  if (!merge) errs.push('GH_MERGE is missing')
+  if (read && /merge_pull_request/.test(read)) errs.push('GH_READ holds merge_pull_request')
+  if (write && /merge_pull_request/.test(write)) errs.push('GH_WRITE holds merge_pull_request')
+  if (write && /issue_read/.test(write)) errs.push('GH_WRITE holds issue_read')
+  if (merge && /issue_read/.test(merge)) errs.push('GH_MERGE holds issue_read')
+  return errs
+}
+
 const hits = findings(decls, files)
 for (const h of hits) console.log(`  DRIFT   ${h.file}: \`${h.name}\` ${h.detail}`)
 if (hits.length) {
   console.log(`\nFRAGMENTS: ${hits.length} copy(ies) differ from ${CANON}. That file is the canonical text; change it there and copy it out, never the other way, or the next script to be edited reinstates the drift.`)
+  process.exit(1)
+}
+const split = grantSplit(decls)
+for (const e of split) console.log(`  GRANT   ${e}`)
+if (split.length) {
+  console.log(`\nFRAGMENTS: write-grant split failed. issue_read and merge_pull_request must not share a grant.`)
   process.exit(1)
 }
 console.log(`FRAGMENTS ok: ${decls.size} canonical fragment(s) [${[...decls.keys()].join(', ')}] match every copy across ${files.length} script(s)`)
