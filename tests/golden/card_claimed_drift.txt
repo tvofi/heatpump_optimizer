@@ -202,14 +202,3 @@
 #   away strip layout     display:block, gap:normal -> display:flex, gap:12px
 #   visual gap between the two labels  0px -> 12px
 #   coarse_ruleset_min_px 24 at both ends (the control arm, undisturbed)
-
-# This change: the away strip is Plan-only. Setup markup drops the empty
-# interpolation that used to sit above the diagram, so these six states move.
-# Every other listed state is byte-identical and is not claimed.
-
-setup_single_buffer  # away strip removed from Setup; Plan page only
-setup_two_tank  # away strip removed from Setup; Plan page only
-setup_coil  # away strip removed from Setup; Plan page only
-layout_editing_dragged  # away strip removed from Setup; Plan page only
-layout_editing_tidy  # away strip removed from Setup; Plan page only
-picker_open_filtered  # away strip removed from Setup; Plan page only

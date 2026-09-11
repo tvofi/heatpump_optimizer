@@ -6514,9 +6514,10 @@ def optimize_in_process(
     positional: tuple[Any, ...],
     keywords: dict[str, Any],
 ) -> OptimizationResult:
-    """Picklable ``optimize`` entry for the process pool; lambdas are not.
+    """Picklable ``optimize`` entry for the worker process; lambdas are not.
 
-    ``ProcessPoolExecutor`` has to pickle the callable. The coordinator's
-    three executor lambdas could not cross that boundary (#199 #290).
+    ``subprocess.Popen`` (via ``process_worker.py``) has to pickle the
+    callable. The coordinator's three executor lambdas could not cross
+    that boundary (#199 #290).
     """
     return optimizer.optimize(state, *positional, **keywords)
