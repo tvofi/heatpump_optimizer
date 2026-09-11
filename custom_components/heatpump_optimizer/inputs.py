@@ -351,7 +351,12 @@ class InputReader:
             # Mixing naive and aware datetimes raises; without a comparable
             # pair the age is unknown, which is not the same as "fresh".
             return None
-        return max(0.0, (now - stamp).total_seconds() / 60.0)
+        age = (now - stamp).total_seconds() / 60.0
+        # A stamp ahead of now is not freshness. Clamping to 0.0 made a
+        # backward host-clock step report every input as brand new (#775).
+        if age < 0.0:
+            return None
+        return age
 
     def _begin(
         self,
@@ -408,6 +413,28 @@ class InputReader:
         age = self._age_minutes(state)
         reading.age_minutes = age
         limit = reading.max_age_minutes
+        # `age is None` is fresh only when there is no comparable stamp
+        # (untimestamped stubs). A future stamp is the #775 fail-open.
+        stamp = (
+            getattr(state, "last_reported", None)
+            or getattr(state, "last_updated", None)
+            or getattr(state, "last_changed", None)
+        )
+        future = (
+            isinstance(stamp, datetime)
+            and stamp.tzinfo is not None
+            and self._utcnow().tzinfo is not None
+            and age is None
+        )
+        if self.enabled and limit is not None and future:
+            reading.problem = "stale"
+            _LOGGER.warning(
+                "Input %s (%s) has a last-reported stamp ahead of the host "
+                "clock; treating as stale rather than age 0",
+                reading.key,
+                reading.entity_id,
+            )
+            return
         if self.enabled and limit is not None and age is not None and age > limit:
             # Keep the content populated so a caller that explicitly wants the
             # last known value can still degrade gracefully, but mark it so the
