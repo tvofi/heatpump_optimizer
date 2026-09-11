@@ -85,12 +85,12 @@ invalidates the head a reviewer measured and every checkout of it.
 
 ## S8 A red check owes an answer in the body
 
-IF your branch turned any check red, THEN name that check in the pull-request
-body and answer it: the cheaper detector that would have caught it and what it
-would cost to stand, or the finding that none exists. The reviewer reads the
-checks before returning a verdict, and an unanswered one is a blocked verdict.
+IF your branch turned any required check red, THEN name it in the body and
+answer it: the cheaper detector, or that none exists. An unanswered required
+check is a blocked verdict. Naming a trigger is not the analysis.
 
-Naming the trigger is not the analysis. The analysis runs in its own seat.
+`record-status` is not required. It reports `main`'s last concluded `record`
+job and can be stale while a newer run is in flight. Read the timestamps.
 
 ## S9 Never re-gate an unchanged head
 
