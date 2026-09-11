@@ -5060,10 +5060,10 @@ R.check(
 )
 R.check(
     "the reauth token field points at developer.tibber.com",
-    "developer.tibber.com"
-    in strings["config"]["step"]["reauth_confirm"]["data_description"][
+    strings["config"]["step"]["reauth_confirm"]["data_description"][
         "tibber_token"
-    ],
+    ]
+    == "Create one at developer.tibber.com.",
     "the setup step already carries that pointer; reauth is the screen that needs it",
 )
 R.check(
