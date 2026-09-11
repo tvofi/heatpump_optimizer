@@ -740,6 +740,7 @@ inside it rather than after it.
 - [#876](https://github.com/tvofi/heatpump_optimizer/pull/876) — **merged `e59ac74`, row written after the merge**: quality-scale `strict-typing` is `done`. Closed #829. `py.typed` was not added. Typing budgets were not raised. Same `--record` run at `e59ac74` named this pull request. Not #859. Not #867. leaves #201 open.
 - [#879](https://github.com/tvofi/heatpump_optimizer/pull/879) — **row written before the merge, and it is this pull request**: leftover-row for #872 `a95556d`, #876 `e59ac74`. `node .claude/workflows/policy_lint.mjs --record --since v6.4.1` at `origin/main` `e59ac74` named those two. Not #859. Not #867. leaves #860 open. leaves #201 open.
 - [#878](https://github.com/tvofi/heatpump_optimizer/pull/878) — **merged `06c53f7`, row written after the merge**: wood-burn advisor is Unavailable or none, not Unknown. Closed #796. `node .claude/workflows/policy_lint.mjs --record --since v6.4.1` at `origin/main` `06c53f7` named this pull request. Not #859. Not #867. leaves #201 open.
+- [#881](https://github.com/tvofi/heatpump_optimizer/pull/881) — **row written before the merge, and it is this pull request**: leftover-row for #878 `06c53f7`. `node .claude/workflows/policy_lint.mjs --record --since v6.4.1` at `origin/main` `06c53f7` named #878. Not #859. Not #867. leaves #860 open. leaves #201 open.
 
 ### The UX programme — 34 items, five lanes, tracking #558
 
