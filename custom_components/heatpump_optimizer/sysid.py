@@ -93,7 +93,7 @@ def _predict_step_excursion(
     return peak, abs(after_relax - baseline)
 
 
-def _sizing_model(ua: float, capacity: float, gains: float):
+def _sizing_model(ua: float, capacity: float, gains: float) -> ThermalModel:
     """Single-zone plant whose UA / room mass / gains match the sizer inputs.
 
     ``house_heat_loss_scale`` stays 1.0: the caller already folds the
