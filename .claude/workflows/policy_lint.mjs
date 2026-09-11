@@ -2355,6 +2355,17 @@ function assertAcceptance(derived) {
   // step's `name:` defeated it -- a reviewer drove both. Selecting by what a
   // line mentions cannot work when the needle is what is being looked for, so
   // this cuts the block first and strips comments second.
+  //
+  // IT IS STILL NOT SOUND, and saying so is the point. A reviewer defeated this
+  // version five ways: `--paths-file` carried by a `:` shell no-op, by an echo
+  // string, or by a heredoc into /dev/null in the same run: block; the same
+  // shape on --no-renames; and a decoy second `run: |` block anywhere in the
+  // file. The flag is looked for in the union of every matching block's
+  // non-comment text, not in the command. What it does catch is the rot that
+  // actually occurs -- the flag deleted, or left behind in a comment -- which is
+  // three of the eight known carriers and all three seen in the wild. Anyone
+  // wanting soundness must parse the YAML and read the argv of the invocation,
+  // not grep text; string-matching moves the carrier, it does not close it.
   const runBlocks = []
   {
     const lines = wf.split('\n')

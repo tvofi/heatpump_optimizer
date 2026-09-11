@@ -615,18 +615,21 @@ Both lanes appended their disposition rows to the end of one list, so every
 merge on `main` conflicted the other lane's open branch at that seam: this pull
 request was rebased five times for it and #639 three, each rebase costing a
 fresh review round at a head whose code had not changed. The rows above stay
-where they are; this section was opened so **this lane appends below and every
-other lane appends there**, putting the two insertion points 119 lines apart —
+where they are; this section was opened by **#644** (`3a29035`) so **that lane appends below
+and every other lane appends there**, putting the two insertion points 119 lines apart —
 far enough that git does not conflict on them. No pull-request number is named
 as the boundary: one was drafted into this sentence and taken by another lane
 four minutes later.
 
 **That separation never happened, and the sentence above is kept only as the
-statement of what was tried.** Measured on 2026-09-11: **of the twenty
-newest rows, twenty are in this section and none is in the upper list**, and
-the seam conflicted one lane's branches **twelve times in a night, never once
-about content** — every resolution the same union with `main`'s rows first, and
-`main`'s numbers lost `[]` every time. The geometry was right and the adoption
+statement of what was tried.** Measured on 2026-09-11: **every one of the 39 rows
+numbered above the upper list's highest (#767) is in this section**,
+and the seam conflicted one lane's branches **thirteen times in a night, never
+once about content** — every resolution the same union with `main`'s rows first, and
+`main`'s numbers lost `[]` every time. Derivation, because a census without one
+is not reproducible: for each two-parent commit on those branches run
+`git merge-tree --write-tree` on its parents and count the runs exiting non-zero
+that name this document. The geometry was right and the adoption
 was zero, because nothing routes a row anywhere and this paragraph is the only
 thing that asks.
 
@@ -717,7 +720,7 @@ inside it rather than after it.
 - [#847](https://github.com/tvofi/heatpump_optimizer/pull/847) — **merged `0018579`, row written after the merge**: the options dialog's 21 pages named by their real labels; away options are the four fields; circulation pump on building. Closed #834. `node .claude/workflows/policy_lint.mjs --record --since v6.4.0` at `origin/main` `0018579` named this pull request. leaves #201 open.
 - [#848](https://github.com/tvofi/heatpump_optimizer/pull/848) — **row written before the merge, and it is this pull request**: leftover-row for #840 `1cc2193`, #845 `ba4687a`, #846 `45de8f4`, #847 `0018579`. `node .claude/workflows/policy_lint.mjs --record --since v6.4.0` at `origin/main` `0018579` named #847; the earlier three were already on this branch. #843 is theirs (audit #822/#823). #745's #759/#761/#764 stay #745's. leaves #201 open.
 - [#818](https://github.com/tvofi/heatpump_optimizer/pull/818) — **row written before the merge**, and it is this pull request: **closes #800 (R3-D11-03)**. The `## Approval` section was required only when the pull request's title began with `policy:` — a string the constrained seat writes — so a one-word title change switched the owner-approval gate off. It is keyed on the **diff** now: required when the change touches a `POLICY_GLOBS` path, with the title arm kept as a second trigger, and refusing rather than passing when the path list cannot be derived. **Policy: needs the owner's approval under decision 0007**, because it changes when a seat must obtain approval. **Not taken and surfaced instead**: `POLICY_GLOBS` excludes the enforcement programs themselves, so a change to them still does not demand approval; widening it is the owner's call. leaves #201 open.
-- [#856](https://github.com/tvofi/heatpump_optimizer/pull/856) — **row written before the merge**, and it is this pull request: two residuals from merged work, measured before being touched. **#723's second insertion point is geometrically sound and never adopted** — the two points are 119 lines apart, and of the twenty newest rows twenty are in one section; the paragraph read as though the separation were in force, so it now carries the measurement and says plainly not to read it as a mechanism. **#818's wiring pin was defeatable twice** — a reviewer drove both without blocking — and is anchored to the step's own `run:` block, with five arms refusing including the reviewer's two. Not policy: the plan document is `CORPUS_EXCLUDED` and the other change is an acceptance check, not an obligation on a seat. leaves #201 open.
+- [#856](https://github.com/tvofi/heatpump_optimizer/pull/856) — **row written before the merge**, and it is this pull request: two residuals from merged work, measured before being touched and **twice corrected under review**. **The governance-queue split is #644's** (`3a29035`), not #723's — an earlier form of this row, of the paragraph it describes and of this pull request's title all named the wrong number; #723 added one line to this document, its own row. The split is **geometrically sound and unadopted**: the two insertion points are 119 lines apart, and every row numbered above the upper list's highest sits in the queue. The paragraph now carries that and says not to read the two points as a mechanism. **#818's wiring pin is improved and still defeatable**, five ways a reviewer drove; the body states exactly what it catches rather than claiming soundness. Not policy: this document is `CORPUS_EXCLUDED` and the other change is an acceptance check. leaves #201 open.
 
 ### The UX programme — 34 items, five lanes, tracking #558
 
