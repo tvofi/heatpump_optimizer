@@ -617,7 +617,9 @@ request was rebased five times for it and #639 three, each rebase costing a
 fresh review round at a head whose code had not changed. The rows above stay
 where they are; this section was opened by **#644** (`3a29035`) so **that lane appends below
 and every other lane appends there**, putting the two insertion points 119 lines apart —
-far enough that git does not conflict on them. No pull-request number is named
+far enough that git does not conflict on them. That figure is the distance
+between the last row of each list and moves as either grows, so re-derive it
+rather than carrying it: it was measured at `main` `b8731c3`. No pull-request number is named
 as the boundary: one was drafted into this sentence and taken by another lane
 four minutes later.
 
