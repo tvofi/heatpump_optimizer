@@ -13527,6 +13527,37 @@ R.check(
     f"result {_ra_out}, updates {_ra_updates}, reloads {_ra_reloads}",
 )
 
+# --- R3-D10-04: production must pass config_entry into the HA base ----------
+# The reauth block above assigns ``config_entry`` on the instance after
+# construction, which is the consumer's true arm and also why adding or
+# removing the keyword at ``super().__init__`` moved none of the named
+# checks. Wrap the base constructor instead: the keyword is the thing
+# Home Assistant's ``DataUpdateCoordinator`` actually reads.
+R.section("Coordinator config_entry (R3-D10-04)")
+
+from homeassistant.helpers import update_coordinator as _ce_uc  # noqa: E402
+
+_ce_calls: list[dict] = []
+_ce_orig = _ce_uc.DataUpdateCoordinator.__init__
+
+
+def _ce_spy(self, *args, **kwargs):
+    _ce_calls.append(dict(kwargs))
+    return _ce_orig(self, *args, **kwargs)
+
+
+_ce_uc.DataUpdateCoordinator.__init__ = _ce_spy
+try:
+    _ce_entry = FakeEntry(data=dict(_CRED_DATA))
+    integration.HeatPumpOptimizerCoordinator(FakeHass(), _ce_entry)
+finally:
+    _ce_uc.DataUpdateCoordinator.__init__ = _ce_orig
+R.check(
+    "super().__init__ is passed config_entry=entry",
+    bool(_ce_calls) and _ce_calls[0].get("config_entry") is _ce_entry,
+    f"kwargs={_ce_calls[0] if _ce_calls else None}",
+)
+
 # --- D10-14: the reconfigure flow (#196) ------------------------------------
 R.section("Reconfigure (D10-14)")
 

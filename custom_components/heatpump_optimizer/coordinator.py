@@ -1319,7 +1319,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         super().__init__(
             hass,
             _LOGGER,
-            name=DOMAIN,
+            name=DOMAIN, config_entry=entry,
             update_interval=timedelta(
                 minutes=config.get(
                     CONF_OPTIMIZATION_INTERVAL, DEFAULT_OPTIMIZATION_INTERVAL
