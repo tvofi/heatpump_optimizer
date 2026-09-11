@@ -7,11 +7,15 @@ drives the real ``_forecast_arrays`` (the five-series seam the optimizer
 reads; the ``_prepare_forecast_data`` back-compat slice over it was
 production-dead and removed, #226) with a synthetic irradiance series
 whose value encodes its own timestamp, making any offset immediately visible.
+A house with no pyranometer is a second arm: ``_update_current_state`` must
+land a stubbed ``current_irradiance`` on the current state and on the
+optimizer step that state belongs to (#808).
 
     PYTHONPATH=/tmp/hastub python tests/solar_alignment.py
 """
 from __future__ import annotations
 
+import asyncio
 import sys
 from datetime import datetime, timedelta, timezone
 
@@ -20,6 +24,7 @@ sys.path.insert(0, "custom_components")
 
 import numpy as np
 
+from harness import FakeEntry, FakeHass
 from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator as Coord
 from heatpump_optimizer.open_meteo import IrradianceSeries, OpenMeteoSolar
 from heatpump_optimizer.optimizer import OptimizationConfig
@@ -221,6 +226,52 @@ check(
 )
 
 check("irradiance is never negative", bool(np.all(solar >= 0.0)))
+
+
+print("\n== current-state fallback (no pyranometer) ==")
+
+# solar_alignment used to scope itself to ``_forecast_arrays``. Disabling the
+# live Open-Meteo fill-in in ``_update_current_state`` then moved no assertion
+# here (#808). A house without a pyranometer still has to get a known GHI onto
+# the current state and onto the optimizer step that state belongs to.
+
+KNOWN_GHI = 321.0
+
+
+class _CurrentIrradiance:
+    available = False
+
+    def current_irradiance(self, now):
+        return KNOWN_GHI
+
+
+coord_fb = Coord(
+    FakeHass({}),
+    FakeEntry(
+        data={
+            "tibber_token": "x",
+            "weather_entity": "weather.home",
+            "indoor_temp_entity": "sensor.indoor",
+            "outdoor_temp_entity": "sensor.outdoor",
+        }
+    ),
+)
+coord_fb._open_meteo = _CurrentIrradiance()
+coord_fb._prices = [{"total": 1.0} for _ in range(48)]
+coord_fb._weather_forecast = []
+asyncio.run(coord_fb._update_current_state())
+ctx_fb = getattr(coord_fb, "_ctx", coord_fb)
+check(
+    "Open-Meteo current irradiance reaches current_state when no pyranometer is configured",
+    abs(float(ctx_fb._current_state.solar_radiation) - KNOWN_GHI) < 1e-6,
+    f"got {ctx_fb._current_state.solar_radiation}",
+)
+_, _, _, _, solar_fb = coord_fb._forecast_arrays()[:5]
+check(
+    "that same irradiance is the optimizer's current-step solar",
+    abs(float(solar_fb[0]) - KNOWN_GHI) < 1e-6,
+    f"got {solar_fb[0]}",
+)
 
 print("\n" + ("%d CHECK(S) FAILED" % FAILS if FAILS else "ALL SOLAR ALIGNMENT CHECKS PASSED"))
 sys.exit(1 if FAILS else 0)
