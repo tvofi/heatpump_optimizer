@@ -1129,7 +1129,12 @@ def _house_power_candidates(hass: HomeAssistant) -> list[dict[str, Any]]:
 
 
 def _user_sensors_fields(hass: HomeAssistant) -> dict[Any, Any]:
-    """Optional telemetry pickers, separated from credentials (#198)."""
+    """Optional telemetry pickers, separated from credentials (#198).
+
+    Flat, and deliberately so: this is the reconfigure path's key source and
+    ``_first_screen_schema`` merges it, both of which want the bare markers.
+    ``_user_sensors_sections`` is what the setup page renders (#824).
+    """
     return {
         vol.Optional(CONF_INDOOR_TEMP_ENTITY): _entity_of("sensor", "temperature"),
         vol.Optional(CONF_OUTDOOR_TEMP_ENTITY): _entity_of("sensor", "temperature"),
@@ -1162,6 +1167,61 @@ def _user_sensors_fields(hass: HomeAssistant) -> dict[Any, Any]:
             list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_FAULT_ENTITY])
         ),
     }
+
+
+#: #824: setup rendered these fourteen pickers flat while the options flow
+#: split the very same keys into sections -- 0 groupings against 34 over the
+#: same ground. The groups here are the ones the registry already uses, so a
+#: user meets one vocabulary in both places: ``indoor`` and ``plant`` from the
+#: ``entities`` page, ``solar`` from ``entities_metering``.
+#:
+#: Nothing is collapsed. ``_page_schema`` collapses every section after the
+#: first, which is right for an options page a user navigates to on purpose
+#: and wrong for a setup screen, where a collapsed section is a field the user
+#: never sees. All fourteen are optional, so none of this is a gate -- but
+#: hiding an optional field behind a closed disclosure on the mandatory path
+#: is how a sensor goes unconfigured.
+_USER_SENSORS_GROUPS: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("indoor", (CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY)),
+    (
+        "solar",
+        (CONF_SOLAR_RADIATION_ENTITY, CONF_SOLAR_FORECAST_SOURCE, CONF_SOLAR_LOCATION),
+    ),
+    (
+        "plant",
+        (
+            CONF_HEAT_PUMP_SWITCH_ENTITY,
+            CONF_FLOOR_RETURN_TEMP_ENTITY,
+            CONF_LOWER_FLOOR_TEMP_ENTITY,
+            CONF_DHW_TEMP_ENTITY,
+            CONF_BUFFER_TANK_TEMP_ENTITY,
+            CONF_HEAT_PUMP_MODE_ENTITY,
+            CONF_HEAT_PUMP_DEFROST_ENTITY,
+            CONF_HEAT_PUMP_ONLINE_ENTITY,
+            CONF_HEAT_PUMP_FAULT_ENTITY,
+        ),
+    ),
+)
+
+
+def _user_sensors_sections(hass: HomeAssistant) -> dict[Any, Any]:
+    """The setup page's fourteen pickers, grouped as the options flow groups them."""
+    flat = _user_sensors_fields(hass)
+    by_key = {str(getattr(marker, "schema", marker)): marker for marker in flat}
+    placed: set[str] = set()
+    fields: dict[Any, Any] = {}
+    for group, keys in _USER_SENSORS_GROUPS:
+        bucket = {by_key[k]: flat[by_key[k]] for k in keys if k in by_key}
+        placed.update(k for k in keys if k in by_key)
+        if bucket:
+            fields[group] = section(vol.Schema(bucket), {"collapsed": False})
+    # Any field the table above forgot stays visible and flat rather than
+    # vanishing -- a grouping that silently drops a picker is worse than an
+    # ungrouped page, which is the defect this replaces.
+    for key, marker in by_key.items():
+        if key not in placed:
+            fields[marker] = flat[marker]
+    return fields
 
 
 def _first_screen_schema(hass: HomeAssistant) -> vol.Schema:
@@ -1804,11 +1864,19 @@ class HeatPumpOptimizerConfigFlow(
                 return await self._async_save_reconfigure(self._data)
             return await self.async_step_finish_setup()
 
-        schema = vol.Schema(_user_sensors_fields(self.hass))
+        # Grouped on a FRESH setup only. On reconfigure the page is prefilled
+        # through add_suggested_values_to_schema, which fills by top-level key:
+        # against a sectioned schema every sensor came back None, so a user
+        # reconfiguring would silently lose the pickers they had set. Measured,
+        # not feared -- tests/config_flow_steps.py's reconfigure-prefill check
+        # fails on the grouped schema and passes on the flat one (#824).
         if self._reconfigure_entry is not None:
             schema = self.add_suggested_values_to_schema(
-                schema, self._reconfigure_entry.data
+                vol.Schema(_user_sensors_fields(self.hass)),
+                self._reconfigure_entry.data,
             )
+        else:
+            schema = vol.Schema(_user_sensors_sections(self.hass))
         return self.async_show_form(
             step_id="user_sensors",
             data_schema=schema,

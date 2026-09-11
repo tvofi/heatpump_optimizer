@@ -3877,6 +3877,20 @@ class PlanSource {
     return this.host.config;
   }
 
+  awaySignature() {
+    return [
+      ["switch.heat_pump_optimizer_away", "switch.", "_away"],
+      ["datetime.heat_pump_optimizer_away_return", "datetime.", "_away_return"],
+      ["binary_sensor.heat_pump_optimizer_away_mode", "binary_sensor.", "_away_mode"],
+    ]
+      .map(([pinned, prefix, suffix]) => {
+        const id = this._findPinnedEntity(pinned, prefix, suffix);
+        const st = id && this.hass && this.hass.states[id];
+        return st ? `${id}:${st.state}:${st.last_updated || ""}` : `${id || "-"}:-`;
+      })
+      .join(",");
+  }
+
   _findPinnedEntity(pinnedId, domainPrefix, uniqueSuffix) {
     const states = (this.hass && this.hass.states) || {};
     if (states[pinnedId]) return pinnedId;
@@ -3890,17 +3904,21 @@ class PlanSource {
 
   awayStripHtml() {
     const page = this.host.dialog.activePage();
-    if (
-      !this.host.dialog.expanded ||
-      (page !== "plan" && page !== "setup")
-    ) {
+    if (!this.host.dialog.expanded || page !== "plan") {
       return "";
     }
     const swId = this._findPinnedEntity(
       "switch.heat_pump_optimizer_away", "switch.", "_away"
     );
     if (!swId) return "";
-    const swOn = String(this.hass.states[swId].state) === "on";
+    const entityOn = String(this.hass.states[swId].state) === "on";
+    if (this.host._awayOptimisticActive === entityOn) {
+      this.host._awayOptimisticActive = undefined;
+    }
+    const swOn =
+      this.host._awayOptimisticActive === undefined
+        ? entityOn
+        : this.host._awayOptimisticActive;
     const dtId = this._findPinnedEntity(
       "datetime.heat_pump_optimizer_away_return", "datetime.", "_away_return"
     );
@@ -3926,25 +3944,38 @@ class PlanSource {
 
   bindAwayStrip(root) {
     const hass = this.hass;
-    if (!hass || typeof hass.callService !== "function") return;
-    const toggle = root.querySelector("[data-away-toggle]");
+    const call =
+      hass && typeof hass.callService === "function"
+        ? hass.callService.bind(hass)
+        : null;
+    const toggle =
+      root.querySelector("[data-away-toggle]") ||
+      root.querySelector(".away-strip input[type=\"checkbox\"]");
     if (toggle) {
       toggle.addEventListener("click", (ev) => ev.stopPropagation());
       toggle.addEventListener("change", (ev) => {
         ev.stopPropagation();
-        hass.callService("heatpump_optimizer", "set_away", {
-          active: !!toggle.checked,
-        });
+        this.host._awayOptimisticActive = !!toggle.checked;
+        if (call) {
+          call("heatpump_optimizer", "set_away", {
+            active: !!toggle.checked,
+          });
+        }
+        this.host.renderForced();
       });
     }
-    const ret = root.querySelector("[data-away-return]");
+    const ret =
+      root.querySelector("[data-away-return]") ||
+      root.querySelector(".away-strip input[type=\"datetime-local\"]");
     if (ret) {
       ret.addEventListener("click", (ev) => ev.stopPropagation());
       ret.addEventListener("change", (ev) => {
         ev.stopPropagation();
-        hass.callService("heatpump_optimizer", "set_away", {
-          return_time: ret.value || "",
-        });
+        if (call) {
+          call("heatpump_optimizer", "set_away", {
+            return_time: ret.value || "",
+          });
+        }
       });
     }
   }
@@ -9524,6 +9555,10 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // Whether the score breakdown panel is open (#2). Instance state, not
     // DOM state, so it survives the shadow-root rebuild every refresh does.
     this._scoreOpen = false;
+    // Away tick the user just made, until hass confirms the switch entity.
+    // Undefined means follow the entity. Without this the picker waits on
+    // a plan-sensor hass update that may be half an hour away.
+    this._awayOptimisticActive = undefined;
     // The last build's series, and the chart's hover geometry.
     this._series = [];
     this._plot = null;
@@ -9746,6 +9781,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
       // the row at whatever the first render saw.
       headlineSignature(this.plan, this._config),
       JSON.stringify(this.plan.attrRaw("wood_fuel", null)),
+      this.plan.awaySignature(),
     ].join("|");
   }
 
@@ -10090,9 +10126,8 @@ class HeatpumpOptimizerCard extends HTMLElement {
 
   _setupPageHtml() {
     const topo = this.plan.attrRaw("setup_topology", null);
-    const away = this.plan.awayStripHtml();
     if (!topo || !Array.isArray(topo.slots)) {
-      return `<div class="setup-page">${away}<div class="empty">
+      return `<div class="setup-page"><div class="empty">
         ${L("setup.not_published")}</div></div>`;
     }
     const editing = this.layoutEditor.editing();
@@ -10103,7 +10138,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // to the wrapper, and a drag that replaced its own listeners mid-gesture
     // would drop the pointer.
     return `<div class="setup-page${editing ? " editing" : ""}">
-      ${away}
       ${this.layoutEditor.barHtml(topo)}
       ${this.setup.tankBarHtml(topo)}
       <div class="setup-canvas">${drawn.html}</div>

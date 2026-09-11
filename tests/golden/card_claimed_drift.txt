@@ -202,4 +202,3 @@
 #   away strip layout     display:block, gap:normal -> display:flex, gap:12px
 #   visual gap between the two labels  0px -> 12px
 #   coarse_ruleset_min_px 24 at both ends (the control arm, undisturbed)
-
