@@ -15581,6 +15581,61 @@ R.check(
     f"clean d={_D_CLEAN.sensor_drift_c_per_h} drift d={_D_DRIFT.sensor_drift_c_per_h}",
 )
 
+# --- R3-D2-03 / #778: shrunk drift column lands in UA ----------------------
+R.section("sysid refuses a shrunk drift that landed in UA (R3-D2-03 / #778)")
+
+
+def _sid_contaminate(samples, drift_c_per_h, noise_c=0.0, seed=20260911):
+    """Add a sensor ramp (and optional iid noise) after a legal experiment."""
+    rng = np.random.default_rng(seed)
+    t0 = samples[0].when
+    out = []
+    for s in samples:
+        t = (s.when - t0).total_seconds() / 3600.0
+        noise = float(rng.normal(0.0, noise_c)) if noise_c else 0.0
+        out.append(_SidSample(
+            s.when,
+            s.room_temp + drift_c_per_h * t + noise,
+            s.outdoor_temp,
+            s.power_kw,
+            s.phase,
+        ))
+    return out
+
+
+_R3_LEGAL = _drive_sysid_step(0.20, 8.0, 0.3, 3.0)
+_R3_NOISY_DRIFT = _sid_on(
+    _sid_contaminate(_R3_LEGAL.samples, 0.10, 0.02, 20260911)
+)
+R.check(
+    "0.02 C noise + 0.10 C/h drift is not adopted: the ridge had shrunk d into UA",
+    (not _R3_NOISY_DRIFT.completed)
+    and "drift" in (_R3_NOISY_DRIFT.reason or ""),
+    f"completed={_R3_NOISY_DRIFT.completed} ua={_R3_NOISY_DRIFT.heat_loss_kw_per_c} "
+    f"d={_R3_NOISY_DRIFT.sensor_drift_c_per_h} conf={_R3_NOISY_DRIFT.confidence} "
+    f"({_R3_NOISY_DRIFT.reason})",
+)
+_R3_NOISY_NULL = _sid_on(
+    _sid_contaminate(_R3_LEGAL.samples, 0.0, 0.02, 20260911)
+)
+R.check(
+    "the same 0.02 C noise with no drift stays adoptable (null)",
+    _R3_NOISY_NULL.completed and _R3_NOISY_NULL.confidence >= 0.3,
+    f"completed={_R3_NOISY_NULL.completed} ua={_R3_NOISY_NULL.heat_loss_kw_per_c} "
+    f"({_R3_NOISY_NULL.reason})",
+)
+_R3_CLEAN_DRIFT = _sid_on(
+    _sid_contaminate(_R3_LEGAL.samples, 0.10, 0.0, 20260911)
+)
+R.check(
+    "noise-free 0.10 C/h drift is still identified, not refused",
+    _R3_CLEAN_DRIFT.completed
+    and abs((_R3_CLEAN_DRIFT.sensor_drift_c_per_h or 0.0) - 0.10) < 0.01
+    and abs(_R3_CLEAN_DRIFT.heat_loss_kw_per_c / 0.20 - 1.0) < 0.02,
+    f"d={_R3_CLEAN_DRIFT.sensor_drift_c_per_h} ua={_R3_CLEAN_DRIFT.heat_loss_kw_per_c} "
+    f"({_R3_CLEAN_DRIFT.reason})",
+)
+
 # --- D7-05: detected free heat skips the accuracy sample, like a freeze ---
 R.section("Free heat skips the accuracy sample (D7-05)")
 
