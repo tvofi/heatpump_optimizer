@@ -573,6 +573,17 @@ PLAN_STALE_INTERVALS = 3
 PLAN_STALE_FLOOR_MINUTES = 90.0
 SOLVE_FAILURE_ISSUE_COUNT = 3
 
+
+def _republish_handover_ages(coord: Any, handover: dict[str, Any]) -> dict[str, Any]:
+    """Overwrite frozen plan_age_minutes / plan_stale on a reload handover."""
+    last = handover.get("last_optimization")
+    if isinstance(last, datetime):
+        coord._last_optimization = last
+    age = coord._plan_age_minutes()
+    handover["plan_age_minutes"] = round(age, 1) if age is not None else None
+    handover["plan_stale"] = coord._plan_is_stale()
+    return handover
+
 #: Which configured entity backs each published temperature -- the table
 #: `_thermal_view` builds its ``reading_ok`` map from. ``ThermalState`` has
 #: constructor defaults (55.0 tank, 40.0 buffer, 22.0 slab, 21.0 either
@@ -4224,7 +4235,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         ``_skip_solve_once``. Two cases:
 
         * After an in-process reload the unload handler passed the previous
-          plan through ``_reload_handover``; it is returned as-is, with no
+          plan through ``_reload_handover``; ages are recomputed, with no
           fetches at all — an options save must not wait on Tibber. The
           background refresh scheduled at the end of setup replaces it with
           a freshly solved plan within the first cycle.
@@ -4241,7 +4252,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 "First refresh republishes the pre-reload plan; the real "
                 "solve follows in the background"
             )
-            return handover
+            return _republish_handover_ages(self, handover)
 
         try:
             await self._update_current_state()
