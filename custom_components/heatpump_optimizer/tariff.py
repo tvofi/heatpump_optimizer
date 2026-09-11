@@ -442,19 +442,34 @@ def window_factors(
     # ``_window_slot``'s ``fold``, which is what picks the real pass to start
     # from, and ``astimezone`` honours it.
     #
-    # WHY THE DOCSTRING SAYS "divides the hour". Above an hour the plan and the
-    # meter are genuinely different PARTITIONS on a transition day, and no
-    # per-window label reconciles two partitions. The power array this labels is
-    # bucketed by STEP INDEX (``metering_windows``), so bucket i holds
-    # ``window`` minutes of REAL time; ``_window_slot`` deliberately keeps a
-    # window longer than an hour wall-anchored, which lets the autumn fold's
-    # repeated hour stretch one metered window to three real hours. Driving
-    # ``PeakTracker.observe`` over these instants disagrees once per transition
-    # day at 90 and at 120 minutes — measured, and not fixable from this side.
-    # Labelling bucket i by its real start is still the half that matches the
-    # power the bucket actually holds. No shipped install reaches it: the four
-    # catalog rows set 15 and the options selector offers 15 and 60, which is
-    # also the pair ``tests/dst_checks.py`` drives across both transitions.
+    # WHY THE DOCSTRING SAYS "divides the hour" — the condition is DIVISIBILITY,
+    # not size. A DST transition shifts the wall-clock offset by 60 minutes, so
+    # a window length that divides 60 falls on the same ``_window_slot`` wall
+    # grid on both sides of the shift and the walk reconciles the two ends
+    # exactly. A length that does not divide 60 lands off that grid afterwards,
+    # and 45 and 7 minutes are under the hour and still off it, so "above an
+    # hour" names a subset and not the rule. What the walk cannot repair there
+    # is that the two sides are different PARTITIONS of a transition day: the
+    # power array this labels is bucketed by STEP INDEX (``metering_windows``),
+    # so bucket i holds ``window`` minutes of REAL time, while ``_window_slot``
+    # deliberately keeps a window longer than an hour wall-anchored, which lets
+    # the autumn fold's repeated hour stretch one metered window to three real
+    # hours. No per-window label reconciles two partitions.
+    #
+    # So for an off-grid length this walk REDISTRIBUTES the disagreement rather
+    # than leaving a residual, and not only downwards. Both ends are driven at
+    # both transitions by ``tools/audit/round3/D2/window_size_sweep.py``, which
+    # prints a pre/post pair per day and size: summed over the two transition
+    # days, 90 minutes is one window WORSE after this change than before it (its
+    # spring arm alone accounts for two of sixteen), and 120 is unchanged. The
+    # #791 review measured the same both-ways shape past that sweep's set — one
+    # worse at 180, one better at 240. Labelling bucket i by its real start is
+    # what every divides-the-hour length needs and is still the half that
+    # matches the power the bucket holds; off the grid it is a trade, and the
+    # sweep is where its price is read rather than argued. No shipped install
+    # reaches it: the four catalog rows set 15 and the options selector offers
+    # 15 and 60, which is also the pair ``tests/dst_checks.py`` drives across
+    # both transitions.
     tz = slot0.tzinfo
     base = slot0 if tz is None else slot0.astimezone(timezone.utc)
     starts = [base + timedelta(minutes=window * i) for i in range(n_windows)]
