@@ -32418,4 +32418,302 @@ R.check(
     "misconfiguration",
 )
 
+
+# -- W5-G8 block E: the price feed's edges ---------------------------------
+# 45 statements, and they are the ways a price feed goes wrong rather than the
+# way it goes right: a token the API refuses, a quarter-hourly query the
+# contract does not carry, a third-party sensor whose rows are half-formed.
+# The happy path through all of this is exercised constantly; none of these
+# had run once.
+R.section("W5-G8 e: the price feed's edges (#195)")
+
+from heatpump_optimizer import price_model as _g8_pm  # noqa: E402
+from heatpump_optimizer.const import (  # noqa: E402
+    CONF_PRICE_ENTITY as _G8_P_ENT,
+    CONF_PRICE_SOURCE as _G8_P_SRC,
+    CONF_PRICE_SURCHARGE as _G8_P_ADD,
+    CONF_PRICE_VAT as _G8_P_VAT,
+    CONF_TIBBER_TOKEN as _G8_P_TOK,
+    PRICE_SOURCE_ENTITY as _G8_P_ENTITY_SRC,
+)
+
+
+# -- the third-party sensor: _raw_start, _raw_value, and the adjustments ----
+_g8_rs = {
+    "start": _g8_pm._raw_start({"start": "2026-01-15T18:00:00+00:00"}),
+    "starts_at": _g8_pm._raw_start({"starts_at": "2026-01-15T18:00:00+00:00"}),
+    "startsAt": _g8_pm._raw_start({"startsAt": "2026-01-15T18:00:00+00:00"}),
+    "datetime": _g8_pm._raw_start({"start": datetime(2026, 1, 15, 18, tzinfo=UTC)}),
+    "absent": _g8_pm._raw_start({}),
+    "blank": _g8_pm._raw_start({"start": "   "}),
+}
+R.check(
+    "a price row's start is read under any of the three spellings in the wild",
+    _g8_rs["start"] == _g8_rs["starts_at"] == _g8_rs["startsAt"]
+    == "2026-01-15T18:00:00+00:00"
+    and _g8_rs["datetime"] == "2026-01-15T18:00:00+00:00"
+    and _g8_rs["absent"] is None
+    and _g8_rs["blank"] is None,
+    "; ".join(f"{k}={_g8_rs[k]!r}" for k in sorted(_g8_rs))
+    + " -- Nord Pool, ENTSO-E and Tibber each spell it differently and a user "
+    "may point the integration at any of them; the blank arm matters because "
+    "a whitespace-only start would otherwise become a row with no time",
+)
+_g8_rv = {
+    "value": _g8_pm._raw_value({"value": 1.25}),
+    "total": _g8_pm._raw_value({"total": 1.25}),
+    "price": _g8_pm._raw_value({"price": 1.25}),
+    "precedence": _g8_pm._raw_value({"value": 1.0, "total": 2.0, "price": 3.0}),
+    "zero": _g8_pm._raw_value({"value": 0.0}),
+    "negative": _g8_pm._raw_value({"value": -0.4}),
+    "absent": _g8_pm._raw_value({}),
+    "text": _g8_pm._raw_value({"value": "cheap"}),
+    "infinite": _g8_pm._raw_value({"value": float("inf")}),
+    "nan": _g8_pm._raw_value({"value": float("nan")}),
+}
+R.check(
+    "a price reads through value, total then price, and refuses a non-finite one",
+    _g8_rv["value"] == _g8_rv["total"] == _g8_rv["price"] == 1.25
+    and _g8_rv["precedence"] == 1.0
+    and _g8_rv["zero"] == 0.0
+    and _g8_rv["negative"] == -0.4
+    and all(_g8_rv[k] is None for k in ("absent", "text", "infinite", "nan")),
+    "; ".join(f"{k}={_g8_rv[k]!r}" for k in sorted(_g8_rv))
+    + " -- zero and negative both survive on purpose: negative prices are a "
+    "real Nord Pool state the optimizer exists to exploit, so refusing them "
+    "as implausible would drop exactly the hours worth planning for",
+)
+_g8_adj = _g8_pm.apply_price_adjustments(
+    [{"total": 1.0, "starts_at": "a"}, {"total": "text", "starts_at": "b"},
+     {"total": float("inf"), "starts_at": "c"}, {"total": 2.0, "starts_at": "d"}],
+    1.25, 0.10)
+_g8_adj_nonfinite = _g8_pm.apply_price_adjustments(
+    [{"total": 1.0}], float("nan"), float("nan"))
+R.check(
+    "VAT and surcharge are applied per row, and a bad row is dropped not zeroed",
+    [round(r["total"], 6) for r in _g8_adj] == [1.35, 2.6]
+    and [r["starts_at"] for r in _g8_adj] == ["a", "d"]
+    and [round(r["total"], 6) for r in _g8_adj_nonfinite] == [1.0],
+    f"{[(r['starts_at'], round(r['total'], 3)) for r in _g8_adj]!r}; a "
+    f"non-finite VAT and surcharge -> {_g8_adj_nonfinite!r}. Dropping beats "
+    "zeroing: a 0.00 SEK hour is the cheapest hour there is, so a row that "
+    "failed to parse would become the one the plan rushes to heat in",
+)
+_g8_attrs_ok = _g8_pm.prices_from_entity_attributes(
+    {"raw_today": [{"start": "2026-01-15T18:00:00+00:00", "value": 1.0},
+                   {"start": "bad", "value": 2.0},
+                   "not a row",
+                   {"start": "2026-01-15T19:00:00+00:00", "value": "text"}],
+     "raw_tomorrow": "not a list"},
+    1.0, 0.0)
+_g8_attrs_none = _g8_pm.prices_from_entity_attributes(None)
+_g8_attrs_empty = _g8_pm.prices_from_entity_attributes({})
+_g8_attrs_norows = _g8_pm.prices_from_entity_attributes({"raw_today": []})
+R.check(
+    "a half-formed price series yields the rows it can and an error when it cannot",
+    [r["total"] for r in _g8_attrs_ok] == [1.0, 2.0]
+    and [r["starts_at"] for r in _g8_attrs_ok]
+    == ["2026-01-15T18:00:00+00:00", "bad"]
+    and isinstance(_g8_attrs_none, str)
+    and isinstance(_g8_attrs_empty, str)
+    and isinstance(_g8_attrs_norows, str),
+    f"four rows in, {len(_g8_attrs_ok)} out -> {_g8_attrs_ok!r}; None -> "
+    f"{_g8_attrs_none!r}; empty -> {_g8_attrs_empty!r}; a present but empty "
+    f"series -> {_g8_attrs_norows!r}. Two survive, not one: the non-dict row "
+    "and the one whose VALUE will not float are dropped here, but an "
+    "unparseable START is not -- `_raw_start` NORMALISES a timestamp and does "
+    "not validate it, and the rejection happens one stage later where the "
+    "rows are bucketed by day. Worth pinning as the division of labour it is, "
+    "because a reader of this function alone would expect both to be checked "
+    "in the same place. And the distinction that IS load-bearing here: rows "
+    "the parser dropped leave a shorter plan, while no rows at all is a "
+    "failed fetch the coordinator must report rather than plan around",
+)
+_g8_state_none = _g8_pm.prices_from_entity_state(None)
+_g8_state_unknown = _g8_pm.prices_from_entity_state(
+    _G8SpState("unknown", {}))
+_g8_state_attrs = _g8_pm.prices_from_entity_state(
+    _G8SpState("unavailable",
+               {"raw_today": [{"start": "2026-01-15T18:00:00+00:00",
+                               "value": 1.0}]}))
+R.check(
+    "an unavailable price sensor still counts if it carries the series anyway",
+    isinstance(_g8_state_none, str)
+    and isinstance(_g8_state_unknown, str)
+    and not isinstance(_g8_state_attrs, str)
+    and len(_g8_state_attrs) == 1,
+    f"no entity -> {_g8_state_none!r}; unknown with no attributes -> "
+    f"{_g8_state_unknown!r}; unavailable WITH a series -> "
+    f"{_g8_state_attrs!r}. Several price integrations publish the series on "
+    "the attributes and leave the state itself `unknown` outside market "
+    "hours, so refusing on the state alone would lose a whole day's prices "
+    "from a sensor that had them",
+)
+
+
+# -- the Tibber payload, and pull_prices' four outcomes ---------------------
+_g8_tp = {
+    "not a dict": _g8_pm.prices_from_tibber_payload(None),
+    "errors": _g8_pm.prices_from_tibber_payload({"errors": [{"message": "nope"}]}),
+    "no homes": _g8_pm.prices_from_tibber_payload({"data": {"viewer": {"homes": []}}}),
+    "no subscription": _g8_pm.prices_from_tibber_payload(
+        {"data": {"viewer": {"homes": [{"currentSubscription": None}]}}}),
+}
+_g8_tp_rows = _g8_pm.prices_from_tibber_payload({
+    "data": {"viewer": {"homes": [{"currentSubscription": {"priceInfo": {
+        "today": [{"total": 1.0, "startsAt": "2026-01-15T18:00:00+00:00"},
+                  "not a row"],
+        "tomorrow": [{"total": 2.0, "starts_at": "2026-01-16T18:00:00+00:00"}],
+    }}}]}}})
+R.check(
+    "each Tibber failure names itself, and today and tomorrow both land",
+    all(isinstance(_g8_tp[k], str)
+        for k in ("not a dict", "errors", "no homes"))
+    and len({_g8_tp[k] for k in ("not a dict", "errors", "no homes")}) == 3
+    and "nope" in _g8_tp["errors"]
+    and _g8_tp["no subscription"] == []
+    and [r["total"] for r in _g8_tp_rows] == [1.0, 2.0],
+    "; ".join(f"{k}={_g8_tp[k]!r}" for k in sorted(_g8_tp, key=repr))
+    + f"; a good payload -> {_g8_tp_rows!r}. Three distinct reason STRINGS, "
+    "and the fourth input is not a failure at all: a home with no current "
+    "subscription returns an empty row list, which the caller reports as a "
+    "successful fetch of nothing rather than as an API error. That is the "
+    "right shape -- the API answered, the account simply has no contract -- "
+    "and it is exactly the case a check asserting 'every bad payload gives a "
+    "reason' would have got wrong. The reason string reaches the user's "
+    "repair notice, so 'errors' carrying the API's own text is what makes a "
+    "revoked token diagnosable",
+)
+
+
+class _G8Tibber:
+    """A scripted `_tibber_post`: one (status, payload) per call."""
+
+    def __init__(self, *replies):
+        self.replies = list(replies)
+        self.calls = []
+
+    async def __call__(self, session, token, body):
+        self.calls.append(body)
+        return self.replies[min(len(self.calls) - 1, len(self.replies) - 1)]
+
+
+_G8_TIBBER_OK = {"data": {"viewer": {"homes": [{"currentSubscription": {
+    "priceInfo": {"today": [
+        {"total": 1.0, "startsAt": "2026-01-15T18:00:00+00:00"}]}}}]}}}
+
+
+def _g8_pull(config, *replies, entity_state=None):
+    scripted = _G8Tibber(*replies)
+    real = _g8_pm._tibber_post
+    try:
+        _g8_pm._tibber_post = scripted
+        out = _asyncio.run(_g8_pm.pull_prices(None, config, entity_state))
+    finally:
+        _g8_pm._tibber_post = real
+    return out, scripted
+
+
+_g8_pull_noent, _ = _g8_pull({_G8_P_SRC: _G8_P_ENTITY_SRC})
+_g8_pull_badvat, _ = _g8_pull(
+    {_G8_P_SRC: _G8_P_ENTITY_SRC, _G8_P_ENT: "sensor.p",
+     _G8_P_VAT: "much", _G8_P_ADD: "some"},
+    entity_state=_G8SpState(
+        "1.0", {"raw_today": [{"start": "2026-01-15T18:00:00+00:00",
+                               "value": 2.0}]}))
+_g8_pull_notok, _ = _g8_pull({})
+R.check(
+    "the entity source refuses without an entity, and survives an unparseable VAT",
+    _g8_pull_noent == ("fail", "Price entity is empty")
+    and _g8_pull_badvat[0] == "ok"
+    and [r["total"] for r in _g8_pull_badvat[1]] == [2.0]
+    and _g8_pull_notok == ("fail", "No Tibber token configured"),
+    f"no entity -> {_g8_pull_noent!r}; VAT 'much' -> {_g8_pull_badvat[0]!r} "
+    f"with {[r['total'] for r in _g8_pull_badvat[1]]!r}; no token -> "
+    f"{_g8_pull_notok!r}. The VAT fallback is 1.0 and NOT zero: a multiplier "
+    "that failed to parse becoming 0.0 would price every hour at the "
+    "surcharge alone and the plan would heat flat out",
+)
+_g8_pull_401, _ = _g8_pull({_G8_P_TOK: "t"}, (401, None))
+_g8_pull_403, _ = _g8_pull({_G8_P_TOK: "t"}, (403, None))
+_g8_pull_500, _ = _g8_pull({_G8_P_TOK: "t"}, (500, None))
+R.check(
+    "a refused token asks for REAUTH while a broken API is an ordinary failure",
+    _g8_pull_401[0] == "reauth" and "401" in _g8_pull_401[1]
+    and _g8_pull_403[0] == "reauth"
+    and _g8_pull_500[0] == "fail" and "500" in _g8_pull_500[1],
+    f"401 -> {_g8_pull_401!r}; 403 -> {_g8_pull_403[0]!r}; 500 -> "
+    f"{_g8_pull_500!r}. The two outcomes do different things to the user: "
+    "reauth opens a flow asking for a new token, and fail raises a transient "
+    "notice -- so a 500 treated as reauth would ask the user to re-enter a "
+    "token that was never the problem",
+)
+_g8_pull_retry, _g8_retry_calls = _g8_pull(
+    {_G8_P_TOK: "t"}, (200, {"errors": ["no quarters"]}), (200, _G8_TIBBER_OK))
+_g8_pull_both, _ = _g8_pull(
+    {_G8_P_TOK: "t"}, (200, {"errors": ["no quarters"]}), (200, {"errors": ["nor hours"]}))
+_g8_pull_retry_401, _ = _g8_pull(
+    {_G8_P_TOK: "t"}, (200, {"errors": ["no quarters"]}), (401, None))
+_g8_pull_retry_500, _ = _g8_pull(
+    {_G8_P_TOK: "t"}, (200, {"errors": ["no quarters"]}), (500, None))
+R.check(
+    "a contract with no quarter-hourly prices falls back to the hourly query",
+    _g8_pull_retry[0] == "ok"
+    and len(_g8_retry_calls.calls) == 2
+    and _g8_retry_calls.calls[0] != _g8_retry_calls.calls[1]
+    and _g8_pull_both[0] == "fail"
+    and _g8_pull_retry_401[0] == "reauth"
+    and _g8_pull_retry_500[0] == "fail"
+    and "no quarters" in _g8_pull_retry_500[1]
+    and "nor hours" in _g8_pull_both[1],
+    f"quarter fails then hourly succeeds -> {_g8_pull_retry[0]!r} after "
+    f"{len(_g8_retry_calls.calls)} distinct queries; both fail -> "
+    f"{_g8_pull_both!r}; hourly 401 -> {_g8_pull_retry_401[0]!r}; hourly 500 "
+    f"-> {_g8_pull_retry_500!r}. Two queries and not one retry of the same: "
+    "the 15-minute MTU is not on every contract, and a household still on "
+    "hourly settlement would otherwise get no prices at all rather than the "
+    "hourly ones it does have. The 500 arm reports the QUARTER query's "
+    "reason, which is the first thing that went wrong",
+)
+
+
+# -- PriceShapeModel.observe_day_quarters and the loader's three arms -------
+_g8_pmq = _g8_pm.PriceShapeModel()
+_g8_pmq_short = _g8_pmq.observe_day_quarters(_G8_W0, [1.0] * 10)
+_g8_pmq_nonfinite = _g8_pmq.observe_day_quarters(
+    _G8_W0, [float("nan")] * _g8_pm.QUARTERS_PER_DAY)
+_g8_pmq_zero = _g8_pmq.observe_day_quarters(_G8_W0, [0.0] * _g8_pm.QUARTERS_PER_DAY)
+_g8_pmq_ok = _g8_pmq.observe_day_quarters(
+    _G8_W0, [1.0 + (i % 4) * 0.1 for i in range(_g8_pm.QUARTERS_PER_DAY)])
+R.check(
+    "a quarter-price day is folded in only when it is whole, finite and priced",
+    _g8_pmq_short is False
+    and _g8_pmq_nonfinite is False
+    and _g8_pmq_zero is False
+    and _g8_pmq_ok is True,
+    f"10 values -> {_g8_pmq_short!r}; all NaN -> {_g8_pmq_nonfinite!r}; all "
+    f"zero -> {_g8_pmq_zero!r}; a real day -> {_g8_pmq_ok!r}. The zero "
+    "refusal is the subtle one: the quarter FACTORS are each quarter's price "
+    "over its hour's mean, so a day that averages zero divides by zero and "
+    "the shape prior fills with infinities that never wash out",
+)
+_g8_pm_loaded = _g8_pm.PriceShapeModel.from_dict({
+    "quarter_factors": [["x"] * _g8_pm.QUARTERS_PER_DAY,
+                        [1.0] * _g8_pm.QUARTERS_PER_DAY],
+    "quarter_days": ["many", 2],
+    "residual_var": [["x"] * _g8_pm.HOURS_PER_DAY, [0.0] * _g8_pm.HOURS_PER_DAY],
+})
+_g8_pm_fresh = _g8_pm.PriceShapeModel()
+R.check(
+    "an unparseable quarter payload loads as the model that has learned nothing",
+    _g8_pm_loaded.quarter_factors == _g8_pm_fresh.quarter_factors
+    and _g8_pm_loaded.quarter_days == _g8_pm_fresh.quarter_days
+    and _g8_pm_loaded.residual_var == _g8_pm_fresh.residual_var,
+    "each of the three blocks is shaped correctly and holds a value that will "
+    "not float; all three keep their defaults, which the loader's own comment "
+    "calls 'no effect' -- so an old or corrupt payload loads into exactly the "
+    "behaviour it had, rather than into a half-learned shape that biases "
+    "every price the plan sees",
+)
+
 sys.exit(R.close("FEATURE CHECKS"))
