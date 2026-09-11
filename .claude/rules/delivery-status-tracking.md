@@ -19,7 +19,7 @@ After each programme merge — wave group, tooling the plan tracks, or a closed 
 
 - An issue **delivered** is closed naming the PR and the release that carried it, with its residuals recorded rather than swept.
 - A PR's **body describes its current head**, not the head it was opened at. A stale body has blocked a review here for paperwork alone.
-- **Continuously means at each merge**, not at session end; batching to the end is how an abort loses it. **It costs a record pull request per merge, not zero** — the claim that it costs none was false, because `fixer.md`'s handoff freezes the branch at the head under review, so the pull request carrying the merge cannot write its own row.
+- **Continuously means at each merge**, not at session end; batching to the end is how an abort loses it. A pull request writes its **own** row before the handoff, once its number exists — `fixer.md`'s freeze forbids one added after, not before. A record pull request is for merges no branch rowed.
 
 Do **not** wait for a stamp to truth the table. Never touch `VERSION`, the manifest version, or the `RELEASE_NOTES.md` heading in a branch.
 
