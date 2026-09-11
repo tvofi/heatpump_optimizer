@@ -318,6 +318,9 @@ lane_units() {
   run_always "$PYTHON" tests/closure.py selftest
   run "$PYTHON" tests/features.py
   run "$PYTHON" tests/entities.py
+  # #796: default-on sensors must not render Unknown. Own script so the
+  # rule is not a fourteenth `_D801_IN_SCOPE` roster entry in entities.py.
+  run "$PYTHON" tests/wood_advisor.py
   # The initial config flow walked end to end (#194): every step's valid
   # and invalid submissions, the duplicate abort and the reauth round
   # trip, against the real validation code over the fake Tibber session.
