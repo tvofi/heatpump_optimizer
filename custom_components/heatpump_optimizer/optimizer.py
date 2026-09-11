@@ -38,6 +38,7 @@ itself.
 """
 from __future__ import annotations
 
+import importlib
 import logging
 import math
 import time as _time_mod
@@ -211,13 +212,19 @@ _MULTI_START_SOLVES = 4
 # more, but which wins outright when pre-heating less is the better plan.
 _LOW_ENERGY_START_FRACTION = 0.35
 
+# Resolved by name, not imported: threadpoolctl publishes no py.typed and no
+# stub distribution exists, so a static import is an `import-untyped` error
+# with no annotation that reaches it -- while the try/except below already
+# says this dependency is optional and looked up at runtime.
 try:  # pragma: no cover - present via the manifest requirement
-    from threadpoolctl import threadpool_limits as _threadpool_limits
-except ImportError:  # bare test imports without installed requirements
+    _threadpool_limits: Any = importlib.import_module(
+        "threadpoolctl"
+    ).threadpool_limits
+except (ImportError, AttributeError):  # bare test imports without the requirement
     _threadpool_limits = None
 
 
-def _scoped_minimize(*args, **kwargs):
+def _scoped_minimize(*args: Any, **kwargs: Any) -> Any:
     """``minimize`` with BLAS threads pinned to one for the call's duration.
 
     The arrays here are 96 steps, far below any threshold where BLAS
@@ -237,8 +244,8 @@ def _scoped_minimize(*args, **kwargs):
 
 
 def _batch_fd_gradient(
-    batch_objective,
-    args: tuple,
+    batch_objective: Callable[..., Any],
+    args: tuple[Any, ...],
     x0: np.ndarray,
     f0: float,
     eps: float,
@@ -363,14 +370,14 @@ def _bounds_supported_by_batch(bounds: list[tuple[float, float]]) -> bool:
 
 
 def _multi_start_minimize(
-    objective,
+    objective: Callable[..., float],
     candidates: list[np.ndarray],
     bounds: list[tuple[float, float]],
-    args: tuple = (),
+    args: tuple[Any, ...] = (),
     maxiter: int = 300,
-    batch_objective=None,
+    batch_objective: Callable[..., Any] | None = None,
     fd_eps: float = 1e-4,
-):
+) -> Any:
     """Run L-BFGS-B from several starting points and keep the best result.
 
     The space heating objective is not convex: the comfort penalty is only
@@ -395,7 +402,7 @@ def _multi_start_minimize(
     _memo_key = None
     _memo_val = None
 
-    def objective(x, *a):
+    def memoized(x: np.ndarray, *a: Any) -> float:
         nonlocal _memo_key, _memo_val
         key = np.asarray(x, dtype=float).tobytes()
         if key != _memo_key:
@@ -406,7 +413,7 @@ def _multi_start_minimize(
     scored = []
     for guess in candidates:
         try:
-            score = float(objective(guess, *args))
+            score = float(memoized(guess, *args))
         except Exception:
             continue
         if np.isfinite(score):
@@ -460,13 +467,13 @@ def _multi_start_minimize(
                 # same eps, same bounds rule -- so on bounds with no fixed
                 # variable the iterate path, and therefore the plan, does
                 # not move.
-                def jac(x, *a):
+                def jac(x: np.ndarray, *a: Any) -> np.ndarray:
                     return _batch_fd_gradient(
                         batch_objective, a, x,
-                        float(objective(x, *a)), fd_eps, bounds,
+                        float(memoized(x, *a)), fd_eps, bounds,
                     )
             res = _scoped_minimize(
-                objective,
+                memoized,
                 guess,
                 args=args,
                 jac=jac,
@@ -477,7 +484,7 @@ def _multi_start_minimize(
         except Exception as err:  # pragma: no cover - solver blow-up
             last_error = err
             continue
-        score = float(objective(res.x, *args))
+        score = float(memoized(res.x, *args))
         if np.isfinite(score) and score < best_score:
             best, best_score = res, score
     if best is None:
@@ -504,7 +511,8 @@ def _price_guess_weights(prices: np.ndarray) -> np.ndarray:
     the relative spacing the clip band then quantises.
     """
     if float(np.mean(prices)) > PRICE_MEAN_GUESS_EPS:
-        return np.clip(1.5 - prices / (np.mean(prices) + 1e-6), 0.2, 1.0)
+        smooth: np.ndarray = np.clip(1.5 - prices / (np.mean(prices) + 1e-6), 0.2, 1.0)
+        return smooth
     ranks = np.argsort(np.argsort(prices)).astype(float)
     return 1.0 - 0.8 * ranks / float(max(len(prices) - 1, 1))
 
@@ -525,7 +533,9 @@ def _cap_tighten_starts(
     return clipped, bang_bang
 
 
-def _better_objective(left, right):
+def _better_objective(
+    left: OptimizationResult, right: OptimizationResult
+) -> OptimizationResult:
     """The plan with the lower finite objective; ties keep ``left``."""
     lo = float(left.objective_value)
     ro = float(right.objective_value)
@@ -1138,7 +1148,9 @@ class OptimizationConfig:
         )
 
 
-def _solver_status(result, objective, initial_guess) -> str:
+def _solver_status(
+    result: Any, objective: Callable[..., float], initial_guess: np.ndarray
+) -> str:
     """Classify a SciPy result, tolerating benign line-search aborts.
 
     L-BFGS-B reports ABNORMAL_TERMINATION_IN_LNSRCH whenever the line search
@@ -1191,7 +1203,7 @@ class _Horizon:
     solar_gains: np.ndarray
     heat_loss_factors: np.ndarray
     #: Output of ``_analyze_forecast_trajectory``.
-    forecast: dict
+    forecast: dict[str, Any]
     #: ``time.monotonic()`` at the start of the solve, for the timing report.
     t_start: float
     #: Optional per-step manual pins, one array per channel, or ``None`` when
@@ -1258,7 +1270,10 @@ class _Horizon:
 
 
 def hold_demand_kw(
-    params, target: float, out_mean: float, solar_mean: float = 0.0
+    params: ThermalParameters,
+    target: float,
+    out_mean: float,
+    solar_mean: float = 0.0,
 ) -> float:
     """Net thermal power the house needs to hold target, kW, never negative.
 
@@ -1348,7 +1363,9 @@ def stored_heat_survival(
     return float(math.exp(-min(0.5 * ua * span / demand, 700.0)))
 
 
-def slab_settlement_cap(params, target: float, out_mean: float) -> float:
+def slab_settlement_cap(
+    params: ThermalParameters, target: float, out_mean: float
+) -> float:
     """The slab temperature above which stored heat is worth nothing.
 
     The slab has to run above the room to push heat into it, so its useful
@@ -1601,7 +1618,7 @@ class HeatPumpOptimizer:
         prices: np.ndarray,
         outdoor_temps: np.ndarray,
         solar_gains: np.ndarray | None = None,
-    ):
+    ) -> Callable[..., float]:
         """Price the heat the plan leaves unstored at the end of the horizon.
 
         Nothing beyond the horizon is scored, so without this the optimizer
@@ -1650,6 +1667,7 @@ class HeatPumpOptimizer:
         )
         params = self.model.params
 
+        stores: tuple[tuple[float, str, float, float], ...]
         if params.two_zone_enabled:
             stores = (
                 (params.upper_floor_thermal_mass, "upper", caps["room"], 1.0),
@@ -1679,7 +1697,11 @@ class HeatPumpOptimizer:
             )
 
         def cost(
-            room_temps, slab_temps, upper_temps, lower_temps, buffer_temps=None
+            room_temps: np.ndarray,
+            slab_temps: np.ndarray,
+            upper_temps: np.ndarray,
+            lower_temps: np.ndarray,
+            buffer_temps: np.ndarray | None = None,
         ) -> float:
             ends = {
                 "room": float(room_temps[-1]),
@@ -1750,7 +1772,7 @@ class HeatPumpOptimizer:
         h: _Horizon,
         *,
         space_power: np.ndarray,
-        trajectories: tuple,
+        trajectories: tuple[Any, ...],
         status: str,
         predicted_cost: float,
         baseline_cost: float,
@@ -1762,7 +1784,7 @@ class HeatPumpOptimizer:
         baseline_power: np.ndarray | None = None,
         buffer_temps: np.ndarray | None = None,
         wood_temps: np.ndarray | None = None,
-        predictive_info: dict | None = None,
+        predictive_info: dict[str, Any] | None = None,
         objective_value: float = float("nan"),
     ) -> OptimizationResult:
         """Assemble the result both solve paths return.
@@ -1877,7 +1899,7 @@ class HeatPumpOptimizer:
         dhw_power: np.ndarray,
         status: str,
         best_score: float,
-        solve_space,
+        solve_space: Callable[..., Any],
         p_max: float,
     ) -> tuple[np.ndarray, np.ndarray, str]:
         """Re-plan hot water against the space heating it competes with.
@@ -1941,7 +1963,9 @@ class HeatPumpOptimizer:
 
         return space_power, dhw_power, status
 
-    def _energy_cost_fn(self, prices: np.ndarray, dt: float):
+    def _energy_cost_fn(
+        self, prices: np.ndarray, dt: float
+    ) -> Callable[[np.ndarray], float]:
         """Closure pricing a total electrical draw against the grid, exactly.
 
         Piecewise in each step's PV surplus: energy up to it displaces an
@@ -1956,10 +1980,10 @@ class HeatPumpOptimizer:
         """
         surplus = self._pv_surplus
         if surplus is None or not np.any(surplus[: len(prices)] > 1e-6):
-            def energy_cost(total_power: np.ndarray) -> float:
+            def grid_only_cost(total_power: np.ndarray) -> float:
                 return float(np.sum(prices * total_power) * dt)
 
-            return energy_cost
+            return grid_only_cost
 
         surplus = surplus[: len(prices)]
         margin = pv.import_margin(prices, self.config.pv_export_price)
@@ -2009,7 +2033,13 @@ class HeatPumpOptimizer:
             return 0
         return max(0, int(round((window - phase) / max(dt * 60.0, 1e-6))))
 
-    def _grid_terms(self, n_steps: int, dt: float, start_time: datetime | None = None):
+    def _grid_terms(
+        self, n_steps: int, dt: float, start_time: datetime | None = None
+    ) -> tuple[
+        Callable[[np.ndarray], float],
+        Callable[[np.ndarray], float],
+        np.ndarray,
+    ]:
         """Closures for the cycling and capacity-tariff penalties.
 
         Both are shared between the space-only and DHW paths. Keeping them in
@@ -2439,12 +2469,22 @@ class HeatPumpOptimizer:
                 )
                 if not rel_s and not rel_d:
                     break
-                for i in rel_s:
-                    space_pins[i] = float("nan")
-                    released_space.add(i)
-                for i in rel_d:
-                    dhw_pins[i] = float("nan")
-                    released_dhw.add(i)
+                # PER CHANNEL, because the two are independent: a caller may
+                # pin space and leave hot water unpinned, which
+                # tests/manual_plan.py does -- an earlier form of this
+                # narrowing asserted both existed and that test failed on it.
+                # `rel_s` is empty whenever `release_space` is None, so the
+                # guard changes nothing it runs; it is what lets the writes
+                # below be checked rather than suppressed. Two decision
+                # points, the raise the owner granted on 2026-09-11.
+                if space_pins is not None:
+                    for i in rel_s:
+                        space_pins[i] = float("nan")
+                        released_space.add(i)
+                if dhw_pins is not None:
+                    for i in rel_d:
+                        dhw_pins[i] = float("nan")
+                        released_dhw.add(i)
                 result = _solve()
             else:
                 # Out of repair rounds. If anything is still breaching, abandon
@@ -2681,6 +2721,9 @@ class HeatPumpOptimizer:
             # pin — nothing in this function can relax it.
             power_caps = np.zeros(n_steps, dtype=float)
         if power_caps_extra is not None:
+            # The branch above ran for this same condition, so the ceiling
+            # exists; the minimum below is against a real array.
+            assert power_caps is not None
             extra = np.clip(
                 np.asarray(power_caps_extra, dtype=float), 0.0, None
             )
@@ -2764,11 +2807,11 @@ class HeatPumpOptimizer:
             # to prevent. Worst shortfall against the tank's own per-step
             # requirement, in °C; zero when the tank coasted through anyway.
             requirement = self._dhw_requirement
-            trajectory = result.dhw_temp_trajectory
+            dhw_trajectory = result.dhw_temp_trajectory
             shortfall = 0.0
-            if requirement is not None and trajectory:
+            if requirement is not None and dhw_trajectory:
                 req = np.asarray(requirement, dtype=float)
-                planned = np.asarray(trajectory, dtype=float)
+                planned = np.asarray(dhw_trajectory, dtype=float)
                 # Same convention as the space trajectory: index 0 is the
                 # initial tank temperature, not a planned one.
                 planned = planned[1:] if planned.size > req.size else planned
@@ -3092,7 +3135,7 @@ class HeatPumpOptimizer:
         external_heat_kw: np.ndarray | None,
         valve_targets: np.ndarray | None,
         humidity: np.ndarray | None,
-        solve,
+        solve: Callable[..., OptimizationResult],
     ) -> OptimizationResult:
         """Re-solve after lowering ceilings where the tank clamp refused heat."""
         p_max = self.model.params.max_electrical_power
@@ -3107,7 +3150,11 @@ class HeatPumpOptimizer:
             ):
                 break
             extras = _cap_tighten_starts(
-                result.power_schedule, power_caps, prices, dt, p_max,
+                np.asarray(result.power_schedule, dtype=float),
+                power_caps,
+                prices,
+                dt,
+                p_max,
             )
             # Extra seeds occupy two of `_MULTI_START_SOLVES` slots and can
             # displace a cheaper unseeded basin. Run both arms; seeds may
@@ -3271,7 +3318,7 @@ class HeatPumpOptimizer:
         )
         energy_cost_of = self._energy_cost_fn(prices, dt)
 
-        def _space_traj(power_schedule: np.ndarray):
+        def _space_traj(power_schedule: np.ndarray) -> Any:
             return self.model.simulate_trajectory(
                 initial_state=initial_state,
                 power_schedule=power_schedule,
@@ -3617,16 +3664,16 @@ class HeatPumpOptimizer:
     def _dhw_legionella_due(
         self,
         *,
-        params,
-        initial_state,
+        params: ThermalParameters,
+        initial_state: ThermalState,
         n_steps: int,
         dt: float,
-        hours_mod,
-        draw_rates,
-        ready_temps,
-        outdoor_temps,
+        hours_mod: np.ndarray,
+        draw_rates: np.ndarray,
+        ready_temps: np.ndarray,
+        outdoor_temps: np.ndarray,
         p_dhw_run: float,
-        dhw_prices,
+        dhw_prices: np.ndarray,
     ) -> tuple[bool, float | None, int | None]:
         """Whether the anti-legionella cycle is due, and which step it lands on.
 
@@ -3757,18 +3804,18 @@ class HeatPumpOptimizer:
     def _dhw_legionella_ceilings(
         self,
         *,
-        params,
+        params: ThermalParameters,
         n_steps: int,
         dt: float,
         c_dhw: float,
-        draw_rates,
-        floor_temps,
-        outdoor_temps,
+        draw_rates: np.ndarray,
+        floor_temps: np.ndarray,
+        outdoor_temps: np.ndarray,
         p_dhw_run: float,
         legionella_due: bool,
         legionella_hour: float | None,
         legionella_step: int | None,
-    ) -> tuple:
+    ) -> _DhwLegionellaPlan:
         """The tank ceilings and run-up floor the cycle needs, verbatim.
 
         ``max_temp`` is the everyday ceiling, ``lp_max_temp`` the one the LP
@@ -3863,18 +3910,18 @@ class HeatPumpOptimizer:
     def _dhw_legionella_plan(
         self,
         *,
-        params,
-        initial_state,
+        params: ThermalParameters,
+        initial_state: ThermalState,
         n_steps: int,
         dt: float,
         c_dhw: float,
-        hours_mod,
-        draw_rates,
-        ready_temps,
-        floor_temps,
-        outdoor_temps,
+        hours_mod: np.ndarray,
+        draw_rates: np.ndarray,
+        ready_temps: np.ndarray,
+        floor_temps: np.ndarray,
+        outdoor_temps: np.ndarray,
         p_dhw_run: float,
-        dhw_prices,
+        dhw_prices: np.ndarray,
     ) -> "_DhwLegionellaPlan":
         """The anti-legionella stage: when the cycle runs, and its ceilings.
 
@@ -4657,7 +4704,10 @@ class HeatPumpOptimizer:
                 )
                 return best
 
-            energy = np.asarray(result.x[:n_steps], dtype=float)
+            solution = result.x
+            if solution is None:  # pragma: no cover - success implies a vector
+                return best
+            energy = np.asarray(solution[:n_steps], dtype=float)
             best = np.clip(energy / (cop * dt), 0.0, p_dhw_max)
 
             # Refine the COP estimate against the tank temperatures this plan
@@ -5046,7 +5096,8 @@ class HeatPumpOptimizer:
         plan = np.array(plan, dtype=float)
         weak = np.where((plan > 1e-6) & (plan < min_run_power))[0]
         if weak.size == 0:
-            return np.clip(plan, 0.0, p_dhw_max)
+            unchanged: np.ndarray = np.clip(plan, 0.0, p_dhw_max)
+            return unchanged
 
         # temps[0] is the tank as found, which no plan can change, so it is
         # held to the first step's ceiling exactly as the flat test did.
@@ -5073,7 +5124,8 @@ class HeatPumpOptimizer:
             ceiling[: joint_temps.size], base[: joint_temps.size]
         )
         if bool(np.all(joint_temps <= joint_limit + 1e-9)):
-            return np.clip(joint, 0.0, p_dhw_max)
+            jointly_raised: np.ndarray = np.clip(joint, 0.0, p_dhw_max)
+            return jointly_raised
 
         for i in weak:
             raised = plan.copy()
@@ -5089,7 +5141,8 @@ class HeatPumpOptimizer:
                 # is refreshed rather than left describing a plan that no
                 # longer exists.
                 base = trajectory(plan)
-        return np.clip(plan, 0.0, p_dhw_max)
+        repaired: np.ndarray = np.clip(plan, 0.0, p_dhw_max)
+        return repaired
 
     def _plan_dhw_cheapest_first(
         self,
@@ -5182,7 +5235,7 @@ class HeatPumpOptimizer:
             def usable(j: int) -> bool:
                 if forced_off is not None and forced_off[j]:
                     return False
-                return (
+                return bool(
                     plan[j] < p_dhw_max - 1e-6
                     and temps[j + 1] < ceiling[j] - 0.1
                 )
@@ -5358,7 +5411,7 @@ class HeatPumpOptimizer:
         )
         energy_cost_of = self._energy_cost_fn(prices, dt)
 
-        def _space_traj(power_schedule: np.ndarray):
+        def _space_traj(power_schedule: np.ndarray) -> Any:
             return self.model.simulate_trajectory(
                 initial_state=initial_state,
                 power_schedule=power_schedule,
@@ -6298,7 +6351,8 @@ class HeatPumpOptimizer:
             if dhw_power_schedule is None
             else np.asarray(dhw_power_schedule, dtype=float)
         )
-        return (np.maximum(space, dhw) >= on_threshold).tolist()
+        on_steps: list[bool] = (np.maximum(space, dhw) >= on_threshold).tolist()
+        return on_steps
 
     def _idle_action(self) -> dict[str, Any]:
         """The do-nothing action: shared by the empty-plan branch and the
@@ -6451,7 +6505,12 @@ class HeatPumpOptimizer:
         return action
 
 
-def optimize_in_process(optimizer, state, positional, keywords):
+def optimize_in_process(
+    optimizer: "HeatPumpOptimizer",
+    state: ThermalState,
+    positional: tuple[Any, ...],
+    keywords: dict[str, Any],
+) -> OptimizationResult:
     """Picklable ``optimize`` entry for the process pool; lambdas are not.
 
     ``ProcessPoolExecutor`` has to pickle the callable. The coordinator's
