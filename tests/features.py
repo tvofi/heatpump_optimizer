@@ -26730,6 +26730,16 @@ R.check(
     f"qdays {sorted(_t2_price_q._price_qdays_seen)}",
 )
 
+_asyncio.run(_t2_price_q._async_learn_price_shape())
+R.check(
+    "the quarter seen-set has its own skip, checked separately from the hourly one",
+    _t2_price_q._price_qdays_seen == {"2026-02-03"}
+    and _t2_price_q._price_days_seen == {"2026-02-03"},
+    f"qdays {sorted(_t2_price_q._price_qdays_seen)} after a second pass -- two "
+    "sets, because a day can arrive hourly and be refined to quarters later, "
+    "and one set would then lock the refinement out",
+)
+
 _t2_price_part = _t2_prices(_t2_hourly("2026-02-04")[:23])
 R.check(
     "a 23-hour day trains neither shape and is not marked seen",
@@ -27088,6 +27098,17 @@ R.check(
     _t2_lf_long._lower_floor_loss_samples == 0,
     f"samples {_t2_lf_long._lower_floor_loss_samples} at 2.00 h -- the house "
     "learner splits the same test into two branches; both reject",
+)
+
+_t2_lf_mild = _t2_house(two_zone=True, lower=19.9, outdoor=16.0)
+_asyncio.run(_t2_lf_mild._async_learn_lower_floor_loss())
+R.check(
+    "the lower floor's own minimum difference is measured from the lower zone",
+    _t2_lf_mild._lower_floor_loss_samples == 0
+    and _t2_lf_mild._lower_floor_loss_ratio == 1.0,
+    f"samples {_t2_lf_mild._lower_floor_loss_samples} at a 4 K lower-zone "
+    "difference -- the house learner reads the driving zone for the same test, "
+    "so its check cannot reach this one",
 )
 
 _t2_lf_blown = _t2_raise_model(_t2_house(two_zone=True, lower=19.9))
