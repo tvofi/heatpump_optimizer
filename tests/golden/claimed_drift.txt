@@ -46,6 +46,11 @@
 # of the inherited-claims comparison.
 #
 # claims-for: 6.3.20
+coord_minimal            # coordinator captures record sensor native_value and extra_state_attributes (#806)
+coord_dhw                # coordinator captures record sensor native_value and extra_state_attributes (#806)
+coord_two_zone           # coordinator captures record sensor native_value and extra_state_attributes (#806)
+coord_grid_fee           # coordinator captures record sensor native_value and extra_state_attributes (#806)
+coord_all_features       # coordinator captures record sensor native_value and extra_state_attributes (#806)
 #
 # Overall is machine and operation only. Fresh coordinator captures have
 # neither, so insight.scores.overall is null instead of the house grade.
