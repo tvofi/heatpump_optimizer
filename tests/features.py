@@ -31084,4 +31084,591 @@ R.check(
     "mutation distinguishes this claim from the one above it",
 )
 
+
+# ---------------------------------------------------------------------------
+# W5-G8 (#195): the residual — every below-bar module that is not
+# coordinator.py, enumerated by tools/audit/w5-partition/partition.py at this
+# branch's merge base rather than read off a list (#505 is what a name list
+# costs).
+#
+# Block A is one region rather than five modules: the CORRUPTION BARRIER each
+# persisted learner puts between a store it does not control and the state it
+# hands the solver. Every statement here is an `except` arm or the early return
+# beside one, and none of them had ever run. That is the shape of a barrier
+# nobody has tested: it is the code that only executes on the day the store is
+# already wrong, so a defect in it is invisible until the one moment it matters.
+#
+# The five rules the W5-G7 tables cost are applied and not restated, and the
+# sixth as well: each check is narrow enough to have its own isolating mutation.
+R.section("W5-G8 a: the corruption barriers (#195)")
+
+from datetime import timezone as _g8_tz  # noqa: E402
+from heatpump_optimizer.wear import StartCounter as _G8Starts  # noqa: E402
+from heatpump_optimizer.drift import Cusum as _G8Cusum  # noqa: E402
+from heatpump_optimizer.snapshots import SnapshotRing as _G8Ring  # noqa: E402
+from heatpump_optimizer.comfort_learning import ComfortLearner as _G8Learner  # noqa: E402
+from heatpump_optimizer.dhw_draws import DrawStats as _G8Draws  # noqa: E402
+from heatpump_optimizer.dhw_draws import labels_for as _g8_labels  # noqa: E402
+from heatpump_optimizer.const import START_HYSTERESIS_SAMPLES as _G8_HYST  # noqa: E402
+
+_G8_T0 = datetime(2026, 3, 1, 8, 0, tzinfo=UTC)
+
+
+def _g8_call(fn, *args, **kwargs):
+    """Call one function, returning its value or the exception it raised."""
+    try:
+        return fn(*args, **kwargs)
+    except Exception as err:  # noqa: BLE001
+        return err
+
+
+# -- wear.StartCounter: a meter outage is not a state transition -----------
+# `observe` is a two-sample edge detector. The three uncovered lines are the
+# two refusals that reset the streak and the month eviction, and the first two
+# matter for the same reason: half an edge seen before a meter gap and half
+# seen after it are not two CONSECUTIVE samples, and counting them as one edge
+# invents a compressor start that never happened.
+def _g8_starts(samples, *, threshold=1.0):
+    """Feed `(kw, immersion)` samples in order; return (counter, starts)."""
+    counter = _G8Starts()
+    fired = []
+    for i, (kw, imm) in enumerate(samples):
+        fired.append(
+            counter.observe(_G8_T0 + timedelta(minutes=5 * i), kw, threshold, imm)
+        )
+    return counter, fired
+
+
+_g8_run = [(2.0, False)] * _G8_HYST
+_g8_clean, _g8_clean_fired = _g8_starts(_g8_run)
+_g8_gap, _g8_gap_fired = _g8_starts(
+    [(2.0, False), (None, False)] + _g8_run
+)
+_g8_imm, _g8_imm_fired = _g8_starts(
+    [(2.0, False), (2.0, True)] + _g8_run
+)
+R.check(
+    "a confirmed start needs consecutive samples, and a meter outage breaks the run",
+    any(_g8_clean_fired)
+    and _g8_clean.lifetime == 1
+    and _g8_gap.lifetime == 1
+    and _g8_gap_fired[0] is False
+    and _g8_gap_fired[1] is False,
+    f"clean {_g8_clean_fired!r} -> lifetime {_g8_clean.lifetime}; across a "
+    f"None reading {_g8_gap_fired!r} -> lifetime {_g8_gap.lifetime}. Without "
+    "the reset, the sample before the gap and the one after it combine into "
+    "an edge, and the wear counter bills a start the compressor never made",
+)
+R.check(
+    "and the immersion element freezes the detector rather than clamping it",
+    _g8_imm.lifetime == 1 and _g8_imm_fired[1] is False,
+    f"with the element active mid-run {_g8_imm_fired!r} -> lifetime "
+    f"{_g8_imm.lifetime} -- while it runs the meter reads compressor plus "
+    "resistive, so neither edge direction can be trusted and half an edge "
+    "observed on each side of it must not combine",
+)
+_g8_keep = _G8Starts()
+for _i in range(30):
+    _g8_keep.months[f"20{24 + _i // 12:02d}-{_i % 12 + 1:02d}"] = _i + 1
+_g8_keep_before = len(_g8_keep.months)
+for _i in range(_G8_HYST):
+    _g8_keep.observe(_G8_T0 + timedelta(minutes=5 * _i), 2.0, 1.0, False)
+R.check(
+    "the month map is evicted oldest-first when a start pushes it over the cap",
+    len(_g8_keep.months) <= 24
+    and _g8_keep_before > 24
+    and _G8_T0.strftime("%Y-%m") in _g8_keep.months
+    and min(_g8_keep.months) > "2024-01",
+    f"{_g8_keep_before} months in, {len(_g8_keep.months)} out, oldest now "
+    f"{min(_g8_keep.months)!r} -- eviction runs on the START path only, so a "
+    "counter that never sees another start keeps whatever it loaded, which is "
+    "why the check drives a start rather than calling the eviction",
+)
+_g8_wear_bad = _G8Starts.from_dict(
+    {"lifetime": "many", "months": {"2026-01": 3, "2026-02": "several"}, "running": 1}
+)
+R.check(
+    "an unparseable lifetime and one bad month leave the rest of the counter",
+    _g8_wear_bad.lifetime == 0
+    and _g8_wear_bad.months == {"2026-01": 3}
+    and _g8_wear_bad.running is True,
+    f"lifetime {_g8_wear_bad.lifetime!r}, months {_g8_wear_bad.months!r} -- the "
+    "month loop CONTINUES past a bad entry rather than abandoning the map, so "
+    "one corrupt key does not cost every other month's history",
+)
+
+
+# -- drift.Cusum: a detector that cannot parse its own timestamp ------------
+_g8_cusum = _G8Cusum(threshold=2.0, drift=0.1)
+_g8_cusum_nonfinite = _g8_cusum.update(_G8_T0, float("nan"))
+R.check(
+    "a non-finite residual is refused before it can touch the statistic",
+    _g8_cusum_nonfinite is False
+    and _g8_cusum.stat == 0.0
+    and _g8_cusum.last_fed is None,
+    f"returned {_g8_cusum_nonfinite!r}, stat {_g8_cusum.stat!r}, last_fed "
+    f"{_g8_cusum.last_fed!r} -- `last_fed` is the tell: it is set AFTER the "
+    "guard, so a detector fed only NaNs must still look starved rather than "
+    "freshly fed, or `release_if_starved` never releases it",
+)
+_g8_cusum_live = _G8Cusum(threshold=1.0, drift=0.0)
+for _i in range(6):
+    _g8_cusum_live.update(_G8_T0 + timedelta(hours=_i), 1.0)
+_g8_cusum_was = (_g8_cusum_live.stat, _g8_cusum_live.tripped)
+_g8_cusum_live.reset()
+R.check(
+    "reset clears the statistic and the latch, and nothing else",
+    _g8_cusum_was[0] > 0.0
+    and _g8_cusum_live.stat == 0.0
+    and _g8_cusum_live.tripped is False
+    and _g8_cusum_live.last_fed is not None
+    and _g8_cusum_live.evidence,
+    f"before {_g8_cusum_was!r}; after stat {_g8_cusum_live.stat!r} tripped "
+    f"{_g8_cusum_live.tripped!r}, last_fed kept "
+    f"{_g8_cusum_live.last_fed is not None}, evidence kept "
+    f"{len(_g8_cusum_live.evidence)} -- the evidence trail and the feed time "
+    "are the record of WHY it tripped, and a reset that erased them would "
+    "leave the next reader unable to say what happened",
+)
+_g8_cusum_load = _G8Cusum(threshold=2.0, drift=0.1)
+_g8_cusum_load.load(
+    {"stat": 1.0, "tripped": "yes", "evidence": ["a"], "last_fed": "not-a-time"}
+)
+_g8_cusum_naive = _G8Cusum(threshold=2.0, drift=0.1)
+_g8_cusum_naive.load({"last_fed": "2026-03-01T08:00:00"})
+R.check(
+    "an unparseable stored timestamp reads as never fed, not as a crash",
+    _g8_cusum_load.last_fed is None
+    and _g8_cusum_load.stat == 1.0
+    and _g8_cusum_load.tripped is False,
+    f"last_fed {_g8_cusum_load.last_fed!r}, stat {_g8_cusum_load.stat!r}, "
+    f"tripped {_g8_cusum_load.tripped!r} from a payload carrying "
+    "'not-a-time' and \"tripped\": \"yes\" -- the rest of the payload still "
+    "loads, and `is True` keeps a corrupt string from latching the detector",
+)
+R.check(
+    "and a naive stored timestamp is taken as UTC rather than left to raise later",
+    _g8_cusum_naive.last_fed is not None
+    and _g8_cusum_naive.last_fed.tzinfo is _g8_tz.utc,
+    f"{_g8_cusum_naive.last_fed!r} -- the null control for the check above: "
+    "one arm must still PRODUCE a timestamp, or 'unparseable reads as None' "
+    "would pass on a loader that discarded every stored time",
+)
+
+
+# -- snapshots.SnapshotRing: a ring whose newest entry is unreadable --------
+_g8_ring_bad = _G8Ring()
+_g8_ring_bad.snapshots = [{"taken_at": "yesterday-ish"}]
+_g8_ring_ok = _G8Ring()
+_g8_ring_ok.snapshots = [{"taken_at": _G8_T0.isoformat()}]
+R.check(
+    "a snapshot whose timestamp will not parse makes the next one DUE",
+    _g8_ring_bad.due(_G8_T0) is True
+    and _g8_ring_ok.due(_G8_T0 + timedelta(hours=1)) is False
+    and _g8_ring_ok.due(_G8_T0 + timedelta(days=8)) is True,
+    f"unparseable -> {_g8_ring_bad.due(_G8_T0)!r}; fresh -> "
+    f"{_g8_ring_ok.due(_G8_T0 + timedelta(hours=1))!r}; stale -> "
+    f"{_g8_ring_ok.due(_G8_T0 + timedelta(days=8))!r}. Failing OPEN is the "
+    "choice: a ring that cannot read its own newest entry has no usable "
+    "rollback point, and refusing to take one would leave it with none",
+)
+_g8_ring_alarm = _G8Ring()
+_g8_ring_alarm.alarmed = True
+_g8_ring_alarm._bias_days = 3
+_g8_ring_cleared = _g8_ring_alarm.observe_bias(_G8_T0, 0.0, True)
+_g8_ring_quiet = _G8Ring()
+_g8_ring_quiet_ret = _g8_ring_quiet.observe_bias(_G8_T0, 0.0, True)
+R.check(
+    "bias returning to band clears a raised alarm and reports the change",
+    _g8_ring_cleared is True
+    and _g8_ring_alarm.alarmed is False
+    and _g8_ring_alarm._bias_days == 0
+    and _g8_ring_quiet_ret is False,
+    f"latched -> returned {_g8_ring_cleared!r}, alarmed now "
+    f"{_g8_ring_alarm.alarmed!r}; never latched -> {_g8_ring_quiet_ret!r}. "
+    "Both arms are needed: the return value is 'the alarm STATE changed', so "
+    "a quiet ring seeing good bias must say False while a latched one says "
+    "True, and one arm alone passes on a method that always returns the same",
+)
+_g8_ring_load = _G8Ring.from_dict(
+    {"snapshots": [{"taken_at": "x"}, "not-a-snapshot"], "bias_days": "lots",
+     "alarmed": True}
+)
+_g8_ring_none = _G8Ring.from_dict(None)
+R.check(
+    "a malformed entry is quarantined and an unparseable day count reads zero",
+    _g8_ring_load.snapshots == [{"taken_at": "x"}]
+    and _g8_ring_load._bias_days == 0
+    and _g8_ring_load.alarmed is True
+    and _g8_ring_none.snapshots == [],
+    f"snapshots {_g8_ring_load.snapshots!r}, bias_days "
+    f"{_g8_ring_load._bias_days!r}; from None -> "
+    f"{_g8_ring_none.snapshots!r} -- the well-formed snapshot survives beside "
+    "the bad one, which is the whole point of quarantining rather than "
+    "discarding the ring",
+)
+
+
+# -- comfort_learning.ComfortLearner: decay, and what cannot move the weight --
+_g8_cl_fresh = _G8Learner(configured_weight=1.0, learned_weight=1.0)
+_g8_cl_fresh._decay(_G8_T0)
+_g8_cl_back = _G8Learner(configured_weight=1.0, learned_weight=1.0)
+_g8_cl_back.last_update = _G8_T0
+_g8_cl_back.evidence = 4.0
+_g8_cl_back._decay(_G8_T0 - timedelta(hours=6))
+R.check(
+    "the first decay only anchors the clock, and a backwards clock decays nothing",
+    _g8_cl_fresh.last_update == _G8_T0
+    and _g8_cl_fresh.evidence == 0.0
+    and _g8_cl_back.evidence == 4.0
+    and _g8_cl_back.last_update == _G8_T0,
+    f"first call -> last_update {_g8_cl_fresh.last_update!r}; backwards call "
+    f"-> evidence {_g8_cl_back.evidence!r}, last_update kept "
+    f"{_g8_cl_back.last_update!r}. A half-life raised to a NEGATIVE power is "
+    "growth: without the `days <= 0` refusal, one clock step backwards "
+    "amplifies the evidence instead of decaying it, and the anchor moves "
+    "backwards with it",
+)
+_g8_cl_noisy = _G8Learner(configured_weight=1.0, learned_weight=1.0)
+_g8_cl_noisy.last_update = _G8_T0
+_g8_cl_noisy.record_quiet_period(_G8_T0 + timedelta(days=1), 5.0, 1.0)
+_g8_cl_zero = _G8Learner(configured_weight=1.0, learned_weight=1.0)
+_g8_cl_zero.last_update = _G8_T0
+_g8_cl_zero.record_quiet_period(_G8_T0 + timedelta(days=1), 0.0, 0.0)
+_g8_cl_flat = _G8Learner(configured_weight=1.0, learned_weight=1.0)
+_g8_cl_flat.last_update = _G8_T0
+_g8_cl_flat.record_quiet_period(_G8_T0 + timedelta(days=1), 0.05, 1.0)
+R.check(
+    "only a genuinely FLAT stretch is evidence that comfort is over-weighted",
+    _g8_cl_noisy.evidence == 0.0
+    and _g8_cl_zero.evidence == 0.0
+    and _g8_cl_flat.evidence < 0.0,
+    f"span 5.0 in a 1.0 band -> {_g8_cl_noisy.evidence!r}; a zero band -> "
+    f"{_g8_cl_zero.evidence!r}; span 0.05 -> {_g8_cl_flat.evidence!r}. This is "
+    "the only half of the signal that can bring the weight DOWN, so a guard "
+    "that let a swinging profile through would read ordinary cycling as proof "
+    "the house is comfortable and quietly de-weight comfort forever",
+)
+_g8_cl_bad = _G8Learner.from_dict(
+    {"configured_weight": 1.0, "learned_weight": "heavy", "evidence": 1.0}, 1.0
+)
+_g8_cl_time = _G8Learner.from_dict(
+    {"configured_weight": 1.0, "learned_weight": 1.5, "last_update": "never"}, 1.0
+)
+R.check(
+    "an unparseable learned weight discards the learning rather than half-loading it",
+    _g8_cl_bad.learned_weight == 1.0
+    and _g8_cl_bad.evidence == 0.0
+    and _g8_cl_bad.overrides == 0,
+    f"learned {_g8_cl_bad.learned_weight!r}, evidence {_g8_cl_bad.evidence!r}, "
+    f"overrides {_g8_cl_bad.overrides!r} -- the three are assigned in ONE try "
+    "block because they are one fact; keeping the evidence count beside a "
+    "weight that failed to load would claim support for a weight nobody has",
+)
+R.check(
+    "and an unparseable last_update leaves the weight it has already loaded",
+    _g8_cl_time.learned_weight == 1.5 and _g8_cl_time.last_update is None,
+    f"learned {_g8_cl_time.learned_weight!r}, last_update "
+    f"{_g8_cl_time.last_update!r} -- the null control for the check above: a "
+    "loader that discarded everything on any bad field would pass that one "
+    "and fail this, and the two failures mean opposite things",
+)
+
+
+# -- dhw_draws.DrawStats and the whole-day label ----------------------------
+_g8_draws_none = _G8Draws.from_dict(None)
+_g8_draws_bad = _G8Draws.from_dict(
+    {"reservoirs": {"06:00-08:30": [1.0, "x", float("inf"), 2.0]},
+     "open_kwh": "lots", "open_label": "06:00-08:30"}
+)
+R.check(
+    "a draw reservoir keeps its finite numbers and drops the rest, event by event",
+    _g8_draws_none.reservoirs == {}
+    and _g8_draws_bad.reservoirs == {"06:00-08:30": [1.0, 2.0]}
+    and _g8_draws_bad._open_kwh == 0.0
+    and _g8_draws_bad._open_label == "06:00-08:30",
+    f"from None -> {_g8_draws_none.reservoirs!r}; from a mixed list -> "
+    f"{_g8_draws_bad.reservoirs!r}, open_kwh {_g8_draws_bad._open_kwh!r}. The "
+    "string and the infinity go and the two real draws stay: a reservoir is a "
+    "quantile estimate, so discarding the whole window over one bad event "
+    "throws away the history that makes the estimate worth anything",
+)
+R.check(
+    "a whole-day window is labelled 24:00 at its end, never 00:00",
+    _g8_labels([(0.0, 24.0)]) == ["00:00-24:00"]
+    and _g8_labels([(6.0, 8.5)]) == ["06:00-08:30"],
+    f"{_g8_labels([(0.0, 24.0)])!r} and {_g8_labels([(6.0, 8.5)])!r} -- folding "
+    "the end to 00:00 would label the whole-day reservoir '00:00-00:00', and "
+    "the label is the KEY the reservoir is stored under, so every whole-day "
+    "draw would land in a window that reads as empty",
+)
+
+
+# -- W5-G8 block B: the advisory surfaces, and one import-time guard --------
+# Five more below-bar modules. Unlike block A these are not persistence: they
+# are what the integration SAYS to the user -- a valve recommendation, a
+# configuration refusal, a diagnostics dump, a set-point consistency notice --
+# plus the worker's own `sys.path` surgery, which runs before anything else
+# and whose failure mode is an import that binds the wrong module.
+R.section("W5-G8 b: advisories and the worker bootstrap (#195)")
+
+import sys as _g8_sys  # noqa: E402
+from heatpump_optimizer import comfort_band as _g8_band  # noqa: E402
+from heatpump_optimizer import diagnostics as _g8_diag  # noqa: E402
+from heatpump_optimizer import process_worker as _g8_pw  # noqa: E402
+from heatpump_optimizer import setpoint_check as _g8_sp  # noqa: E402
+from heatpump_optimizer.mixing_valve import recommend_target as _g8_valve  # noqa: E402
+from heatpump_optimizer.const import (  # noqa: E402
+    CONF_COMFORT_TEMP_DAY_WEEKEND as _G8_WKD_DAY,
+    CONF_COMFORT_TEMP_NIGHT_WEEKEND as _G8_WKD_NIGHT,
+    CONF_DAY_START_HOUR_WEEKEND as _G8_WKD_START,
+    CONF_DAY_END_HOUR_WEEKEND as _G8_WKD_END,
+    CONF_DHW_SETPOINT_ENTITY as _G8_SP_DHW,
+    CONF_SPACE_SETPOINT_ENTITY as _G8_SP_SPACE,
+)
+
+
+# -- comfort_band: the weekend and holiday pairs are checked too ------------
+# `violations` re-runs the whole pair check for the weekend keys and again for
+# the holiday keys. Those three `found.append` calls had never run: every
+# existing check sets the WEEKDAY keys, so the pair function was entered and
+# left without finding anything, which reads identically to a pass.
+def _g8_weekend(**over):
+    return _g8_band.violations(dict(over), {})
+
+
+_g8_wkd_night = _g8_weekend(**{_G8_WKD_DAY: 20.0, _G8_WKD_NIGHT: 22.0})
+_g8_wkd_window = _g8_weekend(**{_G8_WKD_START: 20, _G8_WKD_END: 8})
+_g8_wkd_band = _g8_weekend(**{_G8_WKD_DAY: 40.0})
+_g8_wkd_quiet = _g8_weekend(**{_G8_WKD_DAY: 21.0, _G8_WKD_NIGHT: 19.0})
+R.check(
+    "a weekend comfort pair is refused on its own terms, not the weekday pair's",
+    [v.code for v in _g8_wkd_night] == ["night_above_day"]
+    and [v.code for v in _g8_wkd_window] == ["day_window_empty"]
+    and "comfort_outside_band" in [v.code for v in _g8_wkd_band]
+    and [v.field for v in _g8_wkd_night] == [_G8_WKD_NIGHT],
+    f"night>day -> {[(v.field, v.code) for v in _g8_wkd_night]!r}; empty window "
+    f"-> {[(v.field, v.code) for v in _g8_wkd_window]!r}; out of band -> "
+    f"{[(v.field, v.code) for v in _g8_wkd_band]!r}. The FIELD matters as much as "
+    "the code: the config flow puts the error on the field it names, so a "
+    "weekend violation reported against the weekday key marks a field the "
+    "user did not touch and leaves the one they did looking accepted",
+)
+R.check(
+    "and a consistent weekend pair is silent",
+    _g8_wkd_quiet == [],
+    f"{_g8_wkd_quiet!r} -- the null control: the pair function is ENTERED in "
+    "both arms (a weekend key is present either way), so this is what "
+    "separates 'the checks ran and found nothing' from 'the checks never ran'",
+)
+
+
+# -- mixing_valve: the two cases where the recommendation is not the default -
+_g8_valve_narrow = _g8_valve(comfort_min=20.5, comfort_max=21.0)
+_g8_valve_flat = _g8_valve(comfort_min=19.0, comfort_max=23.0, price_ratio=0.95)
+_g8_valve_wide = _g8_valve(comfort_min=19.0, comfort_max=23.0, price_ratio=0.2)
+R.check(
+    "a narrow band and a flat price both recommend the ceiling, for DIFFERENT reasons",
+    _g8_valve_narrow.target == 21.0
+    and _g8_valve_flat.target == 23.0
+    and _g8_valve_wide.target == 23.0
+    and len({_g8_valve_narrow.reason, _g8_valve_flat.reason,
+             _g8_valve_wide.reason}) == 3,
+    f"narrow -> {_g8_valve_narrow.target!r}; flat prices -> "
+    f"{_g8_valve_flat.target!r}; ordinary -> {_g8_valve_wide.target!r}; "
+    f"{len({_g8_valve_narrow.reason, _g8_valve_flat.reason, _g8_valve_wide.reason})} "
+    "distinct reasons. All three targets are the comfort ceiling, so the "
+    "TARGET cannot tell the three branches apart -- asserting it alone would "
+    "pass on a function with one branch, and the reason is the whole product "
+    "here: it is what the user reads to decide whether to trust the number",
+)
+R.check(
+    "and the recommendation never goes above the comfort ceiling",
+    all(r.target <= 23.0 for r in (_g8_valve_flat, _g8_valve_wide))
+    and _g8_valve_narrow.target <= 21.0,
+    "at the ceiling the valve has stopped preventing overshoot, and what "
+    "stands between a solver mistake and an overheated house is a SOFT "
+    "penalty that prices violations rather than refusing them",
+)
+
+
+# -- diagnostics: a learner whose summary raises must not cost the dump -----
+class _G8BadSummary:
+    def summary(self):
+        raise RuntimeError("learner is mid-migration")
+
+
+class _G8GoodSummary:
+    def summary(self):
+        return {"weight": 1.0}
+
+
+_g8_diag_coord = _t6_coord()
+_g8_diag_coord._comfort_learner = _G8BadSummary()
+_g8_diag_coord._accuracy = _G8GoodSummary()
+_g8_diag_snap = _t6_call(_g8_diag._coordinator_snapshot, _g8_diag_coord)
+R.check(
+    "one learner's raising summary is reported as unavailable, and the rest survive",
+    not isinstance(_g8_diag_snap, Exception)
+    and _g8_diag_snap.get("comfort_learner") == "summary unavailable"
+    and _g8_diag_snap.get("accuracy") == {"weight": 1.0},
+    f"comfort_learner -> {_g8_diag_snap.get('comfort_learner')!r}, accuracy -> "
+    f"{_g8_diag_snap.get('accuracy')!r} -- diagnostics is what a user is asked "
+    "to attach to a bug report, so the one object that is misbehaving is "
+    "exactly the one whose summary is most likely to raise, and losing the "
+    "whole dump to it loses the evidence about everything else",
+)
+
+
+# -- process_worker._bootstrap: the path entry that cannot be resolved ------
+# The worker strips its own directory from `sys.path` because that directory
+# IS the integration package: leave it and `import datetime` binds the HA
+# platform module instead of the stdlib, and the worker cannot unpickle. An
+# entry that raises on resolution is KEPT, because the one thing that must not
+# happen is silently dropping a path the parent process put there.
+class _G8Path:
+    """`Path`, except that one sentinel entry raises OSError on resolve()."""
+
+    SENTINEL = "\x00g8-unresolvable"
+
+    def __init__(self, raw):
+        self._raw = raw
+        self._real = _g8_pw.__dict__["_G8_REAL_PATH"](raw) if raw else None
+
+    def resolve(self):
+        if self._raw == self.SENTINEL:
+            raise OSError("cannot resolve")
+        return self._real.resolve()
+
+    @classmethod
+    def cwd(cls):
+        return _g8_pw.__dict__["_G8_REAL_PATH"].cwd()
+
+
+_g8_pw.__dict__["_G8_REAL_PATH"] = _g8_pw.Path
+_g8_pw_before = list(_g8_sys.path)
+_g8_pw_here = str(_g8_pw.Path(_g8_pw.__file__).resolve().parent)
+try:
+    _g8_sys.path[:] = [_G8Path.SENTINEL, _g8_pw_here, _g8_pw_before[0]]
+    _g8_pw.Path = _G8Path
+    _g8_pw_err = _t6_call(_g8_pw._bootstrap)
+    _g8_pw_after = list(_g8_sys.path)
+finally:
+    _g8_pw.Path = _g8_pw.__dict__["_G8_REAL_PATH"]
+    _g8_sys.path[:] = _g8_pw_before
+R.check(
+    "the worker drops its own package directory and KEEPS an unresolvable entry",
+    _g8_pw_err is None
+    and _G8Path.SENTINEL in _g8_pw_after
+    and _g8_pw_here not in _g8_pw_after,
+    f"path after bootstrap: {[p[:38] for p in _g8_pw_after]!r} -- the package "
+    "directory goes, because with it present `import datetime` binds the Home "
+    "Assistant platform module rather than the stdlib and the worker cannot "
+    "unpickle its job; the unresolvable entry STAYS, because the parent put "
+    "it there and dropping paths on an error is how a worker loses the "
+    "imports it was started with",
+)
+
+
+# -- setpoint_check: every way a set-point entity can be unreadable ---------
+class _G8SpState:
+    def __init__(self, state, attributes=None):
+        self.state = state
+        self.attributes = attributes or {}
+
+
+class _G8SpStates:
+    def __init__(self, mapping):
+        self._m = mapping
+
+    def get(self, entity_id):
+        return self._m.get(entity_id)
+
+
+class _G8SpHass:
+    def __init__(self, mapping=None):
+        self.states = _G8SpStates(mapping or {})
+
+
+_G8_SP_ID = "number.pump_dhw_setpoint"
+_g8_sp_reads = {
+    "absent entity": _g8_sp._read_setpoint(_G8SpHass(), _G8_SP_ID),
+    "unavailable": _g8_sp._read_setpoint(
+        _G8SpHass({_G8_SP_ID: _G8SpState("unavailable")}), _G8_SP_ID),
+    "no entity id": _g8_sp._read_setpoint(_G8SpHass(), None),
+    "text, no attribute": _g8_sp._read_setpoint(
+        _G8SpHass({_G8_SP_ID: _G8SpState("warm")}), _G8_SP_ID),
+    "text, bad attribute": _g8_sp._read_setpoint(
+        _G8SpHass({_G8_SP_ID: _G8SpState("warm", {"temperature": "warmer"})}),
+        _G8_SP_ID),
+    "plain float": _g8_sp._read_setpoint(
+        _G8SpHass({_G8_SP_ID: _G8SpState("52.5")}), _G8_SP_ID),
+    "float on the attribute": _g8_sp._read_setpoint(
+        _G8SpHass({_G8_SP_ID: _G8SpState("heat", {"temperature": 48.0})}),
+        _G8_SP_ID),
+}
+R.check(
+    "a set-point reads through the state, then the attribute, then gives up",
+    _g8_sp_reads["plain float"] == 52.5
+    and _g8_sp_reads["float on the attribute"] == 48.0
+    and all(_g8_sp_reads[k] is None for k in (
+        "absent entity", "unavailable", "no entity id", "text, no attribute",
+        "text, bad attribute")),
+    "; ".join(f"{k}={_g8_sp_reads[k]!r}" for k in sorted(_g8_sp_reads, key=repr))
+    + " -- a climate entity carries its set-point on `temperature` while a "
+    "number carries it in the state, and each None arm is a DIFFERENT return: "
+    "no id, no state, an invalid state string, and a value that is neither "
+    "the state nor the attribute. A reader that conflated them would raise "
+    "the unreadable-set-point notice for a pump that simply is not configured",
+)
+
+
+class _G8SpBoom:
+    """A coordinator whose config read raises, as a reload mid-solve can."""
+
+    hass = _G8SpHass()
+
+    @property
+    def _config(self):
+        raise RuntimeError("entry is being reloaded")
+
+
+_g8_sp_swallowed = _t6_call(_g8_sp.evaluate, _G8SpBoom())
+R.check(
+    "a balky entity skips the consistency check rather than breaking the solve",
+    _g8_sp_swallowed is None,
+    f"{_g8_sp_swallowed!r} -- this is a consistency ADVISORY: it is worth a "
+    "notice and it is not worth a failed update, so the one thing it must "
+    "never do is raise into the cycle that is trying to heat the house",
+)
+
+
+class _G8SpIssues:
+    """An issue registry whose delete raises, as it does before setup."""
+
+    def __init__(self):
+        self.deleted = []
+
+    def async_delete_issue(self, hass, domain, issue_id):
+        self.deleted.append(issue_id)
+        raise RuntimeError("registry not ready")
+
+
+_g8_sp_reg = _G8SpIssues()
+_g8_sp_real_delete = _g8_sp.ir.async_delete_issue
+try:
+    _g8_sp.ir.async_delete_issue = _g8_sp_reg.async_delete_issue
+    _g8_sp_clear = _t6_call(
+        _g8_sp._set_issue, _G8SpHass(), _g8_sp.ISSUE_SPACE, False)
+finally:
+    _g8_sp.ir.async_delete_issue = _g8_sp_real_delete
+R.check(
+    "a registry that refuses the clear is logged, not raised",
+    _g8_sp_clear is None and _g8_sp_reg.deleted == [_g8_sp.ISSUE_SPACE],
+    f"returned {_g8_sp_clear!r} after attempting {_g8_sp_reg.deleted!r} -- the "
+    "attempt is asserted as well as the swallow, because a `_set_issue` that "
+    "never called delete at all would also return None and would leave a "
+    "stale notice on screen for a problem that has been fixed",
+)
+
 sys.exit(R.close("FEATURE CHECKS"))
