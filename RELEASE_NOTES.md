@@ -1,5 +1,111 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.4.0
+
+The largest batch in this line — 80 commits since v6.3.20 — and the first release
+since v6.3.0 to carry enough new capability to earn a minor. Two of the
+coordinator's larger responsibilities also moved out into modules of their own.
+
+### New
+
+- **Two-hour boost switches**, `switch.heat_pump_optimizer_boost_dhw` and
+  `switch.heat_pump_optimizer_boost_space`, each applying maximum heat on that
+  channel for two hours. The two channels are independent and neither changes
+  the operating mode, so a boost does not disturb comfort or economy settings
+  (#733).
+- **Tanks can be added and removed on the Setup page.** Toggling either button
+  applies the topology change, and an explicit flag now wins over leftover
+  volume or probe entities — so a tank can be taken out of the picture without
+  deleting its sensors. Adding DHW with no stored volume seeds 200 L. When Away
+  is ticked, the return-time field appears on both Plan and Setup (#735).
+- **A mixing valve in manual mode can be given its indoor setpoint directly**,
+  with no target entity: Setup publishes the number, and the same 0–30 °C range
+  the options flow accepts is written through (#746).
+- The DHW profile and draws learner left the coordinator (#750), and the
+  legionella guard moved to `legionella.py` (#771).
+
+### Fixed
+
+- The capacity-tariff billing mask walked the wall clock while the plan walked
+  UTC, so the two disagreed across a DST boundary (#777).
+- The Carnot flow correction inverted COP as the outdoor temperature rose (#787, issue #776).
+- A sysid fit whose shrunk drift landed in UA is now refused (#785, issue #778).
+- A JSON-string `nan` in thermal learning wedged every cycle (#813, issue #773).
+- The wood night advisor now derives tank SOC from the probes rather than an
+  unwritten value (#804, issue #795).
+- Overall score is driving, not the house grade (#734).
+- A stamp ahead of the host clock reads as stale, not as age 0 (#792, issue #775).
+- The `last_*` side channel is pinned, and the unread `last_dhw_refused` is gone
+  (#786).
+- The nightly lane's abort was `async_shutdown` cancelling a task that had merely
+  driven a refresh (#731).
+
+### Test and gate repairs
+
+- Nightly-HA product and harness pins across A3(e)/A5/A8/A14 (#751), A5 seed
+  defaults and A14 import offload (#754), the leftover A6/A11/A12/A13 harness
+  (#755), A5 unstored computed defaults and A14's cached `__getattr__` (#761),
+  and A5 keeping a stored type when a select retypes `'60'` to `60` (#764).
+- The blocking call the nightly lane saw was the `atexit` backstop, not the
+  offload (#714, part of issue #533).
+- `card_drift` failed a branch for claims it did not author, where `env_drift`
+  already refuses to (#743).
+- The disposition check could not tell a row from a sentence about one (#762),
+  merges are enumerated from the commit-to-PR API (#720, issue #677), rendered
+  disposition structure is compared to source (#721, issue #682), and the #195 partition is a predicate
+  rather than a list of module names (#728, issue #505).
+
+### From the round-3 audit
+
+- A NaN hour no longer folds into the weekday price shape; the `isfinite` guard
+  is pinned (#816, issue #807).
+- The #525 reap null control waits for the child rather than a wall-clock floor,
+  which had been failing roughly 15% of `features.py` runs at random (#814,
+  issue #810).
+
+### Typing, closures and the ratchet
+
+- `#303` reached zero: the Home Assistant object boundary in eleven tail modules
+  (#758), the value-conversion boundary in eleven more (#765), `optimizer.py`
+  with scipy's stubs pinned (#769), and `coordinator.py` from 427 to 0 (#770),
+  on the batching rule landed earlier for the tail (#705).
+- Coordinator coverage 83.3% → 85.4% (#788) and the learning seam 85.4% → 88.0%
+  (#812).
+- `cross_seam_fraction` retired for the absolute `cross_seam_edges` (#753),
+  `.gitignore` was declared unread while a gate script read it (#749), the
+  inherited-claims guard is asked per file kind rather than per branch (#747),
+  and the gate refuses while main's full Tests run is in progress (#741, issue #681).
+
+### Governance and process
+
+- A required context that reports `skipped` guarantees nothing, so main's record
+  verdict is now told to every pull request (#738).
+- Decision 0008 and CODEOWNERS give the seat an identity distinct from the
+  owner's (#756, issue #680).
+- A comment poster that reads back what it posted, and the rule requiring it
+  (#759).
+- `push.sh`, so a body passes the contract before anything is pushed (#715).
+- The nightly's conclusion reached nobody for two nights (#713), its runner
+  installed nothing (#709), and the blocking probe's window never existed (#763)
+  — all three under the nightly-lane issue #533.
+- Policy repairs: a figure over a corpus the tree cannot see (#724), a figure's
+  command checked for resolving (#732), a carry with one shared destination that
+  two owing branches could not both satisfy (#722), an allow-list entry that
+  silenced everything its key matched (#736), a seat never told its policy corpus
+  had moved (#723), re-executing a body after a rebase (#793), and the rule that
+  said a pull request cannot write its own row while 43 of them did (#803).
+- Every action still declaring node20 moves to its lowest node24 major (#767).
+- The handover restated four Delivery-status destinations (#719), roster 3L-G6
+  said #457 stays open after the owner closed it (#757), and leftover detached
+  worktrees are collected (#716).
+
+### Record
+
+Delivery-status rows and leftover-row repairs, carrying no product change:
+(#711), (#717), (#718), (#725), (#726), (#727), (#729), (#730), (#737), (#739),
+(#740), (#742), (#744), (#745), (#748), (#760), (#766), (#772), (#789), (#790),
+(#794), (#811), (#815), (#820), including the W4 close-out under issue #193.
+
 ## v6.3.20
 
 **Seven leftover product features, the W5-G3 typing tranche, and the

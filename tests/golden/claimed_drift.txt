@@ -45,29 +45,11 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 6.3.20
-coord_minimal            # coordinator captures record sensor native_value and extra_state_attributes (#806)
-coord_dhw                # coordinator captures record sensor native_value and extra_state_attributes (#806)
-coord_two_zone           # coordinator captures record sensor native_value and extra_state_attributes (#806)
-coord_grid_fee           # coordinator captures record sensor native_value and extra_state_attributes (#806)
-coord_all_features       # coordinator captures record sensor native_value and extra_state_attributes (#806)
+# claims-for: 6.4.0
 #
-# Overall is machine and operation only. Fresh coordinator captures have
-# neither, so insight.scores.overall is null instead of the house grade.
-#
-# v6.3.20: Seven leftover product features, W5-G3 typing, and the disposition-before-merge record. The stamp empties the list; the
+# v6.4.0: Boost switches, tank editing on Setup, a typed mixing-valve setpoint, and the coordinator decomposition. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
-#
-# v6.3.19: the governance programme, three defects that were deleting work, and the interface changes that came with them. The stamp empties the list; the
-# next branch restates its own footprint, claims included.
-#
-# E3: setup_overview as the last CONFIG-flow step. Instrument:
-# GOLDEN_MODE=strict tests/golden.py --only config_flow. The only moved
-# path vs this merge-base is _initial.setup_overview (absent → {}).
-# Empty schema, same fingerprint as options setup_overview. Existing
-# form fingerprints are byte-identical. Solver fixtures and the card
-# claim file are untouched.
 
 #
 
@@ -158,6 +140,11 @@ coord_all_features       # coordinator captures record sensor native_value and e
 # module constant, not the schema): this branch claims NOTHING. tests/features.py
 # only -- no production file, no fixture input and no solver parameter is
 # touched, so every scenario is byte-identical by construction.
+coord_minimal            # coordinator captures record sensor native_value and extra_state_attributes (#806)
+coord_dhw                # coordinator captures record sensor native_value and extra_state_attributes (#806)
+coord_two_zone           # coordinator captures record sensor native_value and extra_state_attributes (#806)
+coord_grid_fee           # coordinator captures record sensor native_value and extra_state_attributes (#806)
+coord_all_features       # coordinator captures record sensor native_value and extra_state_attributes (#806)
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
