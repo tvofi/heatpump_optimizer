@@ -1,0 +1,18 @@
+{
+  "_comment": [
+    "Carry destination for issue #752, the by-mention hole in the record check.",
+    "Shape and required fields: .claude/rules/finding-propagation.md.",
+    "Linted by .claude/workflows/brief_lint.mjs (the `briefs` CI job)."
+  ],
+  "issue": 752,
+  "stage": "any later change to the record machinery, and any branch that measures a capped or counted file against main",
+  "carries": [
+    {
+      "from": "#745, which measured the record check on a simulated merge and got the simulation wrong first",
+      "effect": "narrows",
+      "control": "The perturbation that refutes the wrong method: put the merge BASE's own plan blob -- carrying none of the branch's rows -- on the same parent. Under `commit-tree <the head's own tree> -p origin/main` it produced the same figure as the real branch, because the delta came from a row that arrived through the merge base rather than from the branch. Under `merge-tree --write-tree` the arms separate: dropping the three rows the branch adds gives `3 without {#759,#761,#764}` and dropping the other two gives `0 without`. A method whose control cannot tell the branch's rows from their absence is measuring the base, not the branch.",
+      "remeasure": "Re-derive rather than reuse these numbers: compose the simulation both ways at your own head, print the set each names -- not the total -- and compare. The wrong method is recognisable without a reference figure: it reports rows undispositioned that are dispositioned on main. Here it named #758, #760 and #763, all of which main had recorded itself.",
+      "brief": "Simulate a merge with `git merge-tree --write-tree origin/main HEAD`, then `commit-tree` that tree with origin/main as parent, then repoint `refs/remotes/origin/main` and CHECK THE TREE OUT, in a standalone clone whose origin points at GitHub. Do not use `commit-tree <the head's own tree> -p origin/main`: that is not a squash. It replaces main's copy of every file wholesale, so every line main wrote after your merge base disappears and is then reported missing -- which for the record check means rows main itself recorded read as undispositioned. A squash applies the branch's diff against its OWN merge base onto main's current file, which is what merge-tree computes. Two further failures of this shape cost rounds here: a `--no-local` clone takes `origin/main` from the local repository's main branch, which can be commits behind, so assert the base against `repos/<owner>/<repo>/commits/main` before measuring; and a `commit-tree` that fails prints an EMPTY sha that flows through `update-ref` without complaint, leaving the check measuring unrepointed main and printing a plausible phantom, so length-assert every sha and print sim, parent and the checked-out tree. Give each mutated arm the real commit subject, or the subject enumerator's window shifts under the mutation and the totals lie while the sets stay right."
+    }
+  ]
+}

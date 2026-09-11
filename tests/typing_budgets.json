@@ -45,32 +45,15 @@
     "third_party": [
       "aiohttp",
       "numpy",
+      "scipy-stubs",
       "threadpoolctl",
       "voluptuous"
     ]
   },
   "type_ignores": 0,
   "census": {
-    "errors": 191,
-    "by_code": {
-      "arg-type": 15,
-      "assignment": 7,
-      "attr-defined": 1,
-      "call-overload": 1,
-      "import-untyped": 2,
-      "index": 3,
-      "misc": 1,
-      "name-defined": 1,
-      "no-any-return": 37,
-      "no-redef": 3,
-      "no-untyped-call": 7,
-      "no-untyped-def": 67,
-      "operator": 1,
-      "return-value": 2,
-      "type-arg": 41,
-      "type-var": 1,
-      "var-annotated": 1
-    },
+    "errors": 0,
+    "by_code": {},
     "environment": {
       "python": "3.13.15",
       "mypy": "2.3.1",
@@ -80,7 +63,7 @@
       "threadpoolctl": "3.6.0",
       "voluptuous": "0.15.2"
     },
-    "recorded_at": "e0711365fb40cd952240b0e731e535db591f62a6"
+    "recorded_at": "d8c47a7b02bed9c30d7fa561c89441b53dc35442"
   },
   "recorded_at": "52c83d1c98182979eb0d042173ed3ba4266afbe7"
 }

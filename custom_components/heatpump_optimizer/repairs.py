@@ -34,18 +34,18 @@ class DhwSetpointRepairFlow(RepairsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         data = self.data or {}
+        target = data.get("target")
         if user_input is None:
             return self.async_show_form(
                 step_id="confirm",
                 description_placeholders={
                     "entity": str(data.get("entity_id") or ""),
-                    "target": f"{float(data['target']):.0f}"
-                    if data.get("target") is not None
+                    "target": f"{float(target):.0f}"
+                    if target is not None
                     else "",
                 },
             )
         entity_id = data.get("entity_id")
-        target = data.get("target")
         if entity_id and target is not None:
             await _write_setpoint(self.hass, str(entity_id), float(target))
         try:

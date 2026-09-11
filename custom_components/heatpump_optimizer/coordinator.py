@@ -25,7 +25,8 @@ from bisect import bisect_right
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, NamedTuple
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any, NamedTuple
 
 import aiohttp
 import numpy as np
@@ -334,6 +335,7 @@ from .comfort_learning import ComfortLearner, OverrideEvent
 from .defrost import DefrostDerate, DefrostWindow, in_frost_band
 from . import pump_signals
 from . import setpoint_check
+from .pump_mode import ModeCapability
 from .pump_signals import PumpSignals
 from .manual_plan import (
     CHANNEL_DHW,
@@ -361,6 +363,7 @@ from .grid_fee import (
 )
 from .dhw_draws import labels_for
 from .dhw_learning import DHW_PROFILE_STORE_VERSION, DhwProfileLearner
+from .legionella import LegionellaGuard
 from .curve_learning import CurveLearner
 from .currency import resolve_currency
 from .drift import Cusum
@@ -413,6 +416,10 @@ from .optimizer import (
     optimize_in_process,
     slab_settlement_cap,
 )
+
+if TYPE_CHECKING:  # annotations only; tests/hastub carries neither name
+    from homeassistant.core import Event
+    from homeassistant.helpers.event import EventStateChangedData
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -511,7 +518,7 @@ def _comparable_ts(raw: Any, reference: datetime) -> datetime | None:
     return ts
 
 
-def forecast_outdoor_now(forecast: list[dict], now: datetime) -> float | None:
+def forecast_outdoor_now(forecast: list[dict[str, Any]], now: datetime) -> float | None:
     """The outdoor temperature the solve horizon starts on, °C.
 
     The plan is solved on the forecast, not on the outdoor thermometer, and
@@ -711,7 +718,7 @@ COP_LEARNING_MAX_STEP = 0.05
 
 
 _PROCESS_LOCK = threading.Lock()
-_PROCESS_WORKER: subprocess.Popen | None = None
+_PROCESS_WORKER: "subprocess.Popen[bytes] | None" = None
 _PROCESS_ATEXIT = False
 _WORKER_FALLBACK_CAUSE: str | None = None
 
@@ -749,7 +756,7 @@ def _worker_env() -> dict[str, str]:
     return env
 
 
-def _ensure_worker() -> subprocess.Popen:
+def _ensure_worker() -> "subprocess.Popen[bytes]":
     """Persistent child interpreter. Not multiprocessing: spawn reimports __main__."""
     global _PROCESS_WORKER, _PROCESS_ATEXIT
     worker = _PROCESS_WORKER
@@ -813,7 +820,7 @@ def _shutdown_process_pool(*, at_exit: bool = False) -> None:
 
 
 @callback
-def async_register_worker_shutdown(hass, entry) -> None:
+def async_register_worker_shutdown(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Reap the solve worker at Home Assistant's stop, on the executor (#525).
 
     ``Popen.wait`` polls with ``time.sleep``, and the ``atexit`` backstop
@@ -824,7 +831,7 @@ def async_register_worker_shutdown(hass, entry) -> None:
     up one-shot listeners.
     """
 
-    async def _stop(_event) -> None:
+    async def _stop(_event: Event) -> None:
         await hass.async_add_executor_job(_shutdown_process_pool)
 
     entry.async_on_unload(
@@ -832,7 +839,7 @@ def async_register_worker_shutdown(hass, entry) -> None:
     )
 
 
-def _run_in_process(fn, args):
+def _run_in_process(fn: Callable[..., Any], args: tuple[Any, ...]) -> Any:
     """Run ``fn(*args)`` in the process worker. ``fn`` must be picklable."""
     global _PROCESS_WORKER
     with _PROCESS_LOCK:
@@ -865,12 +872,12 @@ def _run_in_process(fn, args):
     return payload
 
 
-async def _await_process(hass, fn, *args):
+async def _await_process(hass: HomeAssistant, fn: Callable[..., Any], *args: Any) -> Any:
     """Park on HA's executor; the CPU work is in another interpreter."""
     return await hass.async_add_executor_job(_run_in_process, fn, args)
 
 
-def _note_worker_fallback(hass, err) -> None:
+def _note_worker_fallback(hass: HomeAssistant, err: BaseException) -> None:
     """Say that the plan came from the slow route, and why (#511).
 
     Silence here is what let a worker that could unpickle nothing ship in
@@ -902,7 +909,7 @@ def _note_worker_fallback(hass, err) -> None:
     )
 
 
-def _clear_worker_fallback(hass) -> None:
+def _clear_worker_fallback(hass: HomeAssistant) -> None:
     """The process route carried a solve again; withdraw the notice."""
     global _WORKER_FALLBACK_CAUSE
     if _WORKER_FALLBACK_CAUSE is None:
@@ -911,7 +918,13 @@ def _clear_worker_fallback(hass) -> None:
     ir.async_delete_issue(hass, DOMAIN, "solve_worker_fallback")
 
 
-async def _await_optimize(hass, optimizer, state, *positional, **keywords):
+async def _await_optimize(
+    hass: HomeAssistant,
+    optimizer: Any,
+    state: ThermalState,
+    *positional: Any,
+    **keywords: Any,
+) -> Any:
     """Submit ``optimizer.optimize`` through the process pool (#199 #290).
 
     A worker that cannot carry the job degrades to an in-process solve rather
@@ -932,7 +945,7 @@ async def _await_optimize(hass, optimizer, state, *positional, **keywords):
     return result
 
 
-def _diagnose_payload(coord) -> tuple:
+def _diagnose_payload(coord: "HeatPumpOptimizerCoordinator") -> tuple[Any, ...]:
     """Picklable diagnose args; the coordinator itself is not picklable."""
     record = coord._last_interval_record
     if record is None:
@@ -940,12 +953,12 @@ def _diagnose_payload(coord) -> tuple:
     return record, copy.deepcopy(coord._thermal_params)
 
 
-def _store_diagnosis(coord, report) -> None:
+def _store_diagnosis(coord: "HeatPumpOptimizerCoordinator", report: dict[str, Any] | None) -> None:
     if report is not None:
         coord._last_diagnosis = report
 
 
-def _sim_coldest(plan) -> float | None:
+def _sim_coldest(plan: OptimizationResult) -> float | None:
     """Lowest temperature the plan actually reaches, in either zone."""
     series = [
         s
@@ -959,7 +972,7 @@ def _sim_coldest(plan) -> float | None:
     return round(min(min(s) for s in series), 2) if series else None
 
 
-def _sim_dhw_low(plan) -> float | None:
+def _sim_dhw_low(plan: OptimizationResult) -> float | None:
     if not plan.dhw_temp_trajectory:
         return None
     return round(float(min(plan.dhw_temp_trajectory)), 2)
@@ -976,17 +989,17 @@ class CoordinatorContext:
     _opt_config: OptimizationConfig
 
 
-def _hub(name: str):
+def _hub(name: str) -> property:
     """Facade for a write-once hub. Tests that ``object.__new__`` a
     coordinator and duck-typed harnesses without ``_ctx`` still resolve."""
 
-    def get(self, n=name):
+    def get(self: Any, n: str = name) -> Any:
         ctx = self.__dict__.get("_ctx")
         if ctx is not None:
             return getattr(ctx, n)
         return self.__dict__[n]
 
-    def set(self, value, n=name):
+    def set(self: Any, value: Any, n: str = name) -> None:
         ctx = self.__dict__.get("_ctx")
         if ctx is not None:
             self.__dict__["_ctx"] = replace(ctx, **{n: value})
@@ -996,7 +1009,7 @@ def _hub(name: str):
     return property(get, set)
 
 
-def _grid_fee_entity_value(hass, config: dict[str, Any]) -> float | None:
+def _grid_fee_entity_value(hass: HomeAssistant, config: dict[str, Any]) -> float | None:
     """The live SEK/kWh fee entity's value, when one is configured."""
     entity_id = config.get(CONF_GRID_FEE_ENTITY)
     if not entity_id:
@@ -1212,7 +1225,7 @@ def _ecl110_legacy_payload(
 
 
 async def _publish_ecl110_topics(
-    hass,
+    hass: HomeAssistant,
     set_topic: str | None,
     command_topic: str | None,
     qos: Any,
@@ -1342,7 +1355,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         for load in (
             self._dhw_learner.async_load_profile,
             self._dhw_learner.async_load_draws,
-            self._async_load_dhw_legionella,
+            self._legionella.async_load,
             self._async_load_thermal_learning,
             self._async_load_price_model,
             self._async_load_accuracy,
@@ -1373,7 +1386,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             if unsub is not None:
                 unsub()
 
-    def _spawn(self, coro) -> Any:
+    def _spawn(self, coro: Any) -> Any:
         """Fire-and-forget a coroutine, but keep the task until it lands.
 
         Home Assistant tracks tasks itself; this set exists so
@@ -1412,7 +1425,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._immersion_events: list[str] = []
         # #42: the weekly ring of learner snapshots.
         self._snapshot_ring = SnapshotRing()
-        self._snapshot_store: Store = Store(
+        self._snapshot_store: Store[dict[str, Any]] = Store(
             hass, 1, f"{DOMAIN}_{entry.entry_id}_snapshots"
         )
         self._rollback_done_for_alarm: bool = False
@@ -1452,7 +1465,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
     # -- construction, one concern at a time ---------------------------------
 
-    def _init_model(self, config: dict[str, Any]):
+    def _init_model(self, config: dict[str, Any]) -> tuple[ThermalParameters, OptimizationConfig]:
         """The thermal model, the optimizer, and the configuration between."""
         thermal_params = ThermalParameters.from_config(config)
         self._thermal_model = ThermalModel(thermal_params)
@@ -1479,8 +1492,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # repair issue all key off it and off the last success time.
         self._solve_failures: int = 0
         self._next_optimization: datetime | None = None
-        self._prices: list[dict] = []
-        self._weather_forecast: list[dict] = []
+        self._prices: list[dict[str, Any]] = []
+        self._weather_forecast: list[dict[str, Any]] = []
         # Weather staleness (M2): a failed or empty fetch marks the forecast
         # stale from that moment; the payload publishes the age so a plan
         # built on stale weather can say so. None means fresh.
@@ -1495,7 +1508,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # The lifecycle seam (#236, #237): one latch for "this entry is gone",
         # and the refresh handle shutdown cancels -- HA cancels an entry's
         # BACKGROUND tasks, and the scheduled refresh may not be one.
-        self._entry_released: bool = False
+        self._entry_released = False
         self._refresh_task: Any = None
         self._tibber_outage_cycles: int = 0
         # One reauth flow per auth outage (D10-08): re-armed on recovery.
@@ -1544,33 +1557,17 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 )
             ),
         )
-        self._dhw_last_legionella: datetime | None = None
-        self._dhw_legionella_store: Store = Store(
+        # #193's W5-G10: the disinfection cycle, its ceilings and its three
+        # repair notices are their own subsystem. It reads the shared
+        # parameters and configuration, observes the planned action through a
+        # callable, and never holds the coordinator.
+        self._legionella = LegionellaGuard(
             hass,
-            DHW_PROFILE_STORE_VERSION,
-            f"{DOMAIN}_{entry.entry_id}_dhw_legionella",
+            entry.entry_id,
+            ctx._thermal_params,
+            ctx._config,
+            action=lambda: self._current_action or {},
         )
-
-        # #24: minutes the tank has HELD the disinfection temperature.
-        self._legionella_hold_minutes: float = 0.0
-        self._legionella_hold_last: datetime | None = None
-        # v5.1.10: the cycle the PLAN commanded, followed independently of
-        # whether the tank was ever seen at temperature. Without this the
-        # only way the timer could ever reset was an observation at
-        # ``legionella_temp - 1``, so a pump that cannot get there — or a
-        # tank with no probe at all — left the countdown running for ever.
-        self._legionella_boost_active: bool = False
-        self._legionella_boost_peak: float | None = None
-        self._legionella_boost_started: datetime | None = None
-        #: When a commanded cycle last FINISHED SHORT of the disinfection
-        #: temperature, and how far it got. This is not success and is never
-        #: reported as such; it exists so the retry happens once per
-        #: interval instead of on the first step of every single plan.
-        self._dhw_legionella_attempt: datetime | None = None
-        self._dhw_legionella_attempt_peak: float | None = None
-        #: The (disinfection temp, charge limit, interval) the ceiling notice
-        #: was last raised for, so it is only rewritten when the pair changes.
-        self._legionella_ceiling_notice: tuple[float, float, float] | None = None
 
     def _init_thermal_learning(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         """House, buffer and COP-health learned state (#193 S5, S8)."""
@@ -1602,7 +1599,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._lower_floor_loss_ratio: float = DEFAULT_LOWER_FLOOR_LOSS_RATIO
         self._lower_floor_loss_samples: int = 0
 
-        self._thermal_learning_store: Store = Store(
+        self._thermal_learning_store: Store[dict[str, Any]] = Store(
             hass,
             THERMAL_LEARNING_STORE_VERSION,
             f"{DOMAIN}_{entry.entry_id}_thermal_learning",
@@ -1663,7 +1660,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._price_model = PriceShapeModel()
         self._price_days_seen: set[str] = set()
         self._price_known_steps: int = 0
-        self._price_model_store: Store = Store(
+        self._price_model_store: Store[dict[str, Any]] = Store(
             hass,
             PRICE_MODEL_STORE_VERSION,
             f"{DOMAIN}_{entry.entry_id}_price_model",
@@ -1672,7 +1669,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._price_qdays_seen: set[str] = set()
 
         # --- Grid transfer fees and the monthly ledger (v4.0.0 T1) ---------
-        self._grid_fee_cache: tuple | None = None
+        self._grid_fee_cache: "tuple[Any, GridFeeSchedule] | None" = None
         # The fee magnitude the standing "grid_fee_magnitude" repair issue
         # was raised for; None = no issue. Re-raising every cycle would
         # refresh the issue's timestamp and bury when the bad value first
@@ -1688,7 +1685,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # was raised for; None = no issue.
         self._band_issue_problem: str | None = None
         self._ledger = MonthlyLedger()
-        self._ledger_store: Store = Store(
+        self._ledger_store: Store[dict[str, Any]] = Store(
             hass,
             1,
             f"{DOMAIN}_{entry.entry_id}_ledger",
@@ -1702,13 +1699,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # #40: receipts frozen at month rollover. Frozen rather than
         # recomputed on read, so a receipt never changes after the month it
         # describes has closed.
-        self._month_reports: dict[str, dict] = {}
+        self._month_reports: dict[str, dict[str, Any]] = {}
         # #65: the operation score's day book (today's settled kWh, SEK and
         # spot samples) plus the smoothed score, persisted with the ledger.
         self._score_day: dict[str, Any] = {}
         self._operation_score: float | None = None
         # #39: the price tiles, refreshed one per scheduled solve.
-        self._price_tiles: dict[str, dict] = {}
+        self._price_tiles: dict[str, dict[str, Any]] = {}
         self._price_tile_cursor = 0
         # #52: the last settled interval's (planned, realised, actual)
         # triple, and the latest attribution run over one. In memory only:
@@ -1721,7 +1718,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
         # --- Live peak guard, fuse and outage recovery (v4.0.0 T2) ---------
         self._peak_guard = GuardState()
-        self._unsub_peak_guard = None
+        self._unsub_peak_guard: Callable[[], None] | None = None
         self._guard_last_fold: datetime | None = None
         self._fuse_advisor: dict[str, Any] = {}
         self._fuse_advisor_at: datetime | None = None
@@ -1771,7 +1768,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # not the tank's.
         self._dhw_accuracy = AccuracyTracker()
         self._pending_prediction: dict[str, Any] | None = None
-        self._accuracy_store: Store = Store(
+        self._accuracy_store: Store[dict[str, Any]] = Store(
             hass,
             ACCURACY_STORE_VERSION,
             f"{DOMAIN}_{entry.entry_id}_accuracy",
@@ -1800,18 +1797,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # The last operating mode that was actually recognised, kept so a mode
         # entity that drops out falls back to what the pump last said rather
         # than to "it can do everything". None until one is seen.
-        self._pump_mode_last_good = None
+        self._pump_mode_last_good: ModeCapability | None = None
         # When that mode was actually read. The fallback is bounded by it:
         # see MODE_LAST_GOOD_MAX_AGE_MINUTES for why an unbounded one made
         # the mode entity's freshness horizon do nothing at all.
         self._pump_mode_last_good_at: datetime | None = None
         #: Whether the "your mode entity has gone quiet" notice is raised.
         self._pump_mode_expired_notice: bool = False
-        # Signature of the "disinfection is blocked by the pump's mode"
-        # notice currently raised, or None when none is. Coarsened to whole
-        # overdue days so a worsening situation updates the text without
-        # re-raising the issue every cycle.
-        self._legionella_mode_block_notice: int | None = None
         #: Whether the "flue probe has gone quiet" warning has been logged
         #: for the current outage. Cleared when the probe reports again.
         self._external_probe_stale_warned: bool = False
@@ -1831,7 +1823,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         #: The date the lifetime accumulators started, restored from the
         #: energy store; set on first publish when the store has none.
         self._energy_totals_since: str | None = None
-        self._energy_store: Store = Store(
+        self._energy_store: Store[dict[str, Any]] = Store(
             hass,
             ENERGY_STORE_VERSION,
             f"{DOMAIN}_{entry.entry_id}_energy",
@@ -1843,7 +1835,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # options reloads the whole entry) so a plan survives a restart within
         # the day it was set for.
         self._manual_override: ManualOverride | None = None
-        self._manual_plan_store: Store = Store(
+        self._manual_plan_store: Store[dict[str, Any]] = Store(
             hass,
             MANUAL_PLAN_STORE_VERSION,
             f"{DOMAIN}_{entry.entry_id}_manual_plan",
@@ -2003,12 +1995,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         flow rewrites the options dict on every page it leaves, so only a
         save that changes the effective config earns a reload.
         """
-        return getattr(self, "_ctx", self)._config
+        config: dict[str, Any] = getattr(self, "_ctx", self)._config
+        return config
 
     @property
     def target_temperature(self) -> float:
         """The comfort target the user configured."""
-        return getattr(self, "_ctx", self)._opt_config.target_temp
+        return float(getattr(self, "_ctx", self)._opt_config.target_temp)
 
     async def async_set_target_temperature(self, temperature: float) -> None:
         """Change the comfort target and persist it across restarts.
@@ -2044,7 +2037,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             options={**self.entry.options, CONF_TARGET_TEMP: temperature},
         )
     @property
-    def prices(self) -> list[dict]:
+    def prices(self) -> list[dict[str, Any]]:
         return self._prices
 
     @property
@@ -2133,10 +2126,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if (
             params.dhw_elastic_legionella_enabled
             and params.dhw_legionella_enabled
-            and self._dhw_last_legionella is not None
+            and self._legionella.last_cycle is not None
             and self._prices
         ):
-            deadline = self._dhw_last_legionella + timedelta(
+            deadline = self._legionella.last_cycle + timedelta(
                 days=float(params.dhw_legionella_interval_days)
             )
             day_types: list[int] = []
@@ -2521,7 +2514,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             )
         self._load_t4b_learners(stored)
 
-    def _load_t4b_learners(self, stored: dict) -> None:
+    def _load_t4b_learners(self, stored: dict[str, Any]) -> None:
         """Parse the T4b learners' additive keys (#17 #36 #53 #2).
 
         One parser for both the store loader and the snapshot restore, so
@@ -2776,7 +2769,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             hi.append(round(float(value) + sigma, 2))
         return lo, hi
 
-    def _build_plan_views(self, result) -> dict[str, Any]:
+    def _build_plan_views(self, result: OptimizationResult) -> dict[str, Any]:
         """Full-resolution space heating and DHW plans for the plan sensors.
 
         Same horizon as ``schedule`` / ``dhw_schedule`` (those keys used to
@@ -2790,7 +2783,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if not n:
             return {"space_plan": {}, "dhw_plan": {}}
 
-        def series(values, offset: int = 0, fill: float | None = None):
+        def series(values: Any, offset: int = 0, fill: float | None = None) -> list[float | None]:
             out: list[float | None] = []
             for i in range(n):
                 idx = i + offset
@@ -3083,7 +3076,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             capacity = params.buffer_tank_thermal_mass
         if capacity <= 1e-6:
             return None
-        return thermal_kw / capacity
+        return float(thermal_kw / capacity)
     def _external_heat_override(self, reader: InputReader) -> bool | None:
         """State of a user-provided stove/flue entity, if one is configured.
 
@@ -3165,13 +3158,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         params = ctx._thermal_params
         state = ctx._current_state
         if params.two_zone_enabled:
-            u = params.upper_floor_heat_loss + params.lower_floor_heat_loss
+            u = float(params.upper_floor_heat_loss + params.lower_floor_heat_loss)
         else:
-            u = params.heat_loss_coefficient
-        return max(
-            0.0,
-            u * (state.room_temperature - state.outdoor_temperature),
-        )
+            u = float(params.heat_loss_coefficient)
+        return max(0.0, float(u * (state.room_temperature - state.outdoor_temperature)))
     def _update_external_heat_detection(self) -> None:
         """Fold this interval's observation into the external-heat detector."""
         ctx = getattr(self, "_ctx", self)
@@ -3520,11 +3510,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         """
         p = getattr(self, "_ctx", self)._thermal_params
         if p.two_zone_enabled:
-            return (
+            return float(
                 p.upper_floor_heat_loss
                 + p.lower_floor_heat_loss * self._lower_floor_loss_ratio
             )
-        return p.heat_loss_coefficient
+        return float(p.heat_loss_coefficient)
 
     def _reanchor_house_heat_loss_scale(self, anchor: float | None) -> bool:
         """Re-express the learned scale against the UA now configured.
@@ -4014,440 +4004,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         )
         if self._lower_floor_loss_samples % 10 == 0:
             await self._async_save_thermal_learning()
-    async def _async_load_dhw_legionella(self) -> None:
-        """Load the timestamp of the last completed anti-legionella cycle.
 
-        A fresh install has no record. It is initialised to "now" rather than
-        "never" so a brand-new setup does not immediately blast the tank to the
-        legionella temperature.
-        """
-        try:
-            stored = await self._dhw_legionella_store.async_load()
-            raw = (stored or {}).get("last_cycle")
-            parsed = dt_util.parse_datetime(raw) if isinstance(raw, str) else None
-            # A cycle that ran but fell short is remembered separately, so a
-            # restart cannot turn a failed attempt back into an overdue timer
-            # that pins a boost on every plan.
-            attempt_raw = (stored or {}).get("last_attempt")
-            attempt = (
-                dt_util.parse_datetime(attempt_raw)
-                if isinstance(attempt_raw, str)
-                else None
-            )
-            if attempt is not None:
-                self._dhw_legionella_attempt = attempt
-                peak = (stored or {}).get("last_attempt_peak")
-                if isinstance(peak, (int, float)):
-                    self._dhw_legionella_attempt_peak = float(peak)
-            if parsed is not None:
-                self._dhw_last_legionella = parsed
-                return
-        except Exception as err:
-            _LOGGER.debug("Could not load DHW legionella timestamp: %s", err)
 
-        self._dhw_last_legionella = dt_util.now()
-        await self._async_save_dhw_legionella()
 
-    async def _async_save_dhw_legionella(self) -> None:
-        """Persist the timestamp of the last completed anti-legionella cycle."""
-        if self._dhw_last_legionella is None:
-            return
-        payload: dict[str, Any] = {
-            "last_cycle": self._dhw_last_legionella.isoformat()
-        }
-        if self._dhw_legionella_attempt is not None:
-            payload["last_attempt"] = self._dhw_legionella_attempt.isoformat()
-            if self._dhw_legionella_attempt_peak is not None:
-                payload["last_attempt_peak"] = round(
-                    float(self._dhw_legionella_attempt_peak), 2
-                )
-        try:
-            await self._dhw_legionella_store.async_save(payload)
-        except Exception as err:
-            _LOGGER.debug("Could not persist DHW legionella timestamp: %s", err)
 
-    async def _async_track_dhw_legionella(self, dhw_temp: float) -> None:
-        """Reset the anti-legionella timer whenever the tank actually gets hot.
 
-        Any reason for the tank reaching the disinfection temperature counts —
-        a planned cycle, a manual boost, a wood coil or an immersion heater.
 
-        With free disinfection (#24) switched on, the credit is
-        hold-verified: the tank must spend ``DHW_LEGIONELLA_HOLD_MINUTES``
-        at temperature, integrated across observations, before the
-        completion timestamp is written — exactly the timestamp a planned
-        cycle writes. A momentary blip at 60 °C kills nothing and credits
-        nothing. With the flag off the historical instant-credit rule is
-        untouched.
-        """
-        ctx = getattr(self, "_ctx", self)
-        target = float(ctx._thermal_params.dhw_legionella_temp)
-        now = dt_util.now()
 
-        if bool(
-            ctx._config.get(
-                CONF_DHW_FREE_DISINFECTION_ENABLED,
-                DEFAULT_DHW_FREE_DISINFECTION_ENABLED,
-            )
-        ):
-            if dhw_temp >= target - 0.5:
-                previous_obs = self._legionella_hold_last
-                # Accumulate only hot-to-hot gaps: an interval that STARTED
-                # cold proves nothing about the water in between. Capped so
-                # a long observation gap cannot claim more than was
-                # plausibly held.
-                if previous_obs is not None:
-                    gap_min = (now - previous_obs).total_seconds() / 60.0
-                    self._legionella_hold_minutes += min(gap_min, 90.0)
-                self._legionella_hold_last = now
-                if self._legionella_hold_minutes < DHW_LEGIONELLA_HOLD_MINUTES:
-                    return
-            else:
-                # Not at temperature: the accumulation chain breaks, and a
-                # clear fall below the band starts the hold over.
-                self._legionella_hold_last = None
-                if dhw_temp < target - 1.5:
-                    self._legionella_hold_minutes = 0.0
-                return
-        elif dhw_temp < target - 1.0:
-            return
 
-        previous = self._dhw_last_legionella
-        if previous is not None and (now - previous).total_seconds() < 3600:
-            return
-        self._legionella_hold_minutes = 0.0
-        self._dhw_last_legionella = now
-        # A real cycle clears any record of one that fell short, and takes the
-        # "cannot reach temperature" notice down with it.
-        self._dhw_legionella_attempt = None
-        self._dhw_legionella_attempt_peak = None
-        self._clear_legionella_unreachable_issue()
-        self._clear_legionella_unverified_issue()
-        _LOGGER.info(
-            "DHW anti-legionella cycle observed at %.1f°C, timer reset", dhw_temp
-        )
-        await self._async_save_dhw_legionella()
-    async def _async_track_dhw_legionella_cycle(
-        self, dhw_temp: float | None
-    ) -> None:
-        """Follow the disinfection boost the PLAN commanded, to its end.
-
-        The observer above resets the timer only on seeing the tank at
-        ``legionella_temp - 1``. That is the only reset path there is, and it
-        has two holes:
-
-        * a pump that cannot physically get the tank to 60 °C never triggers
-          it, so ``hours_since`` runs past the interval and never comes back;
-        * with no tank probe configured it cannot run at all, while the
-          countdown keeps advancing on the clock.
-
-        Either way the cycle is permanently overdue — and an overdue cycle
-        used to pin a 60 °C requirement on the first step of every plan, for
-        ever, while never actually disinfecting anything. Both the scheduling
-        half and the user-facing half of that are fixed here: the boost the
-        plan commanded is followed to its end, and what happened is recorded
-        honestly.
-
-        "Its end" has to be bounded, because a cycle the tank cannot finish
-        is re-commanded on every solve and its boost window never closes on
-        its own. After ``DHW_LEGIONELLA_BOOST_MAX_HOURS`` the window is
-        closed here and judged on what it managed — otherwise a pump heating
-        towards a temperature it will never reach would do so indefinitely,
-        and nothing would ever be recorded or reported.
-
-        Success is never inferred from the peak this saw. The observer above
-        owns that decision, and its rule differs with the free-disinfection
-        flag; asking "did the observer credit a cycle while this boost ran?"
-        is the same question on both sides of it. Reading the peak instead
-        left a cycle topping out in the half-degree between the two rules
-        neither credited nor recorded, with the countdown pinned at its
-        overdue value for ever.
-        """
-        ctx = getattr(self, "_ctx", self)
-        params = ctx._thermal_params
-        if not params.dhw_legionella_enabled:
-            self._legionella_boost_active = False
-            self._legionella_boost_peak = None
-            self._legionella_boost_started = None
-            return
-
-        now = dt_util.now()
-        commanded = (
-            str(self._current_action.get("dhw_reason") or "") == REASON_LEGIONELLA
-        )
-        if commanded:
-            if not self._legionella_boost_active:
-                self._legionella_boost_active = True
-                self._legionella_boost_started = now
-            if dhw_temp is not None:
-                self._legionella_boost_peak = max(
-                    self._legionella_boost_peak
-                    if self._legionella_boost_peak is not None
-                    else float(dhw_temp),
-                    float(dhw_temp),
-                )
-            started = self._legionella_boost_started
-            expired = (
-                started is not None
-                and (now - started).total_seconds()
-                >= DHW_LEGIONELLA_BOOST_MAX_HOURS * 3600.0
-            )
-            if not expired:
-                return
-            # Still commanded after half a day. A cycle the tank cannot
-            # finish is re-commanded on every solve, so waiting for the boost
-            # to end is waiting for something that never happens: the window
-            # is closed here instead and judged on what it managed, which is
-            # what lets the retry be spaced and the user be told.
-            _LOGGER.warning(
-                "DHW anti-legionella boost has been commanded for %.0f h "
-                "without completing; recording what it achieved",
-                DHW_LEGIONELLA_BOOST_MAX_HOURS,
-            )
-        elif not self._legionella_boost_active:
-            return
-
-        # The boost window closed — either the plan moved on, or it outlasted
-        # the bound above. Decide what it achieved.
-        started = self._legionella_boost_started
-        self._legionella_boost_active = False
-        self._legionella_boost_started = None
-        peak = self._legionella_boost_peak
-        self._legionella_boost_peak = None
-        target = float(params.dhw_legionella_temp)
-
-        # Did the observer credit a completed cycle while this boost ran? That
-        # is the only evidence of success there is, and it is the same test on
-        # both sides of the free-disinfection flag. Reading the peak instead
-        # (`peak >= target - 1.0`) disagreed with the observer's own rule
-        # (`target - 0.5`, held for DHW_LEGIONELLA_HOLD_MINUTES): a cycle
-        # peaking in [59.0, 59.5) was neither credited nor recorded, no notice
-        # was raised, and `hours_since` stayed pinned at its overdue value
-        # while the cycle was re-commanded on every single solve.
-        credited = (
-            self._dhw_last_legionella is not None
-            and started is not None
-            and self._dhw_last_legionella >= started
-        )
-        if credited:
-            return
-
-        has_probe = bool(ctx._config.get(CONF_DHW_TEMP_ENTITY))
-        if not has_probe:
-            # No way to verify, ever. What is recorded is an ATTEMPT, not a
-            # completion: nothing observed the tank, and this integration
-            # publishes a plan — the actuation may be an external automation
-            # that never ran. An attempt already drives `hours_since` from
-            # 192 h to 0 exactly as a completion would, because
-            # `_dhw_hours_since_legionella` counts attempts too, so claiming
-            # success bought no scheduling benefit at all and cost the ability
-            # to say the cycle is unverified. It is said instead.
-            self._legionella_hold_minutes = 0.0
-            self._dhw_legionella_attempt = now
-            self._dhw_legionella_attempt_peak = None
-            _LOGGER.warning(
-                "DHW anti-legionella cycle commanded but cannot be verified: "
-                "no tank temperature sensor is configured, so nothing confirms "
-                "the tank reached %.0f °C",
-                target,
-            )
-            self._raise_legionella_unverified_issue(target)
-            await self._async_save_dhw_legionella()
-            return
-
-        if peak is None:
-            # A probe exists but said nothing for the whole boost. Nothing was
-            # observed, so nothing is claimed — but the retry is still spaced
-            # by the interval rather than repeated on every solve.
-            self._dhw_legionella_attempt = now
-            self._dhw_legionella_attempt_peak = None
-            _LOGGER.warning(
-                "DHW anti-legionella cycle ran with no usable tank reading; "
-                "it cannot be confirmed and will be retried next interval"
-            )
-            await self._async_save_dhw_legionella()
-            return
-
-        self._dhw_legionella_attempt = now
-        self._dhw_legionella_attempt_peak = float(peak)
-        if peak >= target - 1.0:
-            # It got to temperature but the completion was never credited —
-            # under the free-disinfection flag that means the hold was not
-            # observed for long enough. The retry is spaced by the interval,
-            # and no "cannot reach temperature" notice is raised, because the
-            # tank plainly can.
-            _LOGGER.warning(
-                "DHW anti-legionella cycle reached %.1f °C but the completion "
-                "could not be confirmed; it will be retried next interval",
-                peak,
-            )
-        else:
-            # Commanded, run, and the tank topped out below the disinfection
-            # temperature. This is the achievable maximum for this pump and
-            # this tank, so repeating the same boost cannot do better.
-            _LOGGER.warning(
-                "DHW anti-legionella cycle reached only %.1f °C against a "
-                "%.0f °C target; the tank is not being disinfected",
-                peak,
-                target,
-            )
-            self._raise_legionella_unreachable_issue(float(peak), target)
-        await self._async_save_dhw_legionella()
-    def _check_dhw_legionella_ceiling(self) -> None:
-        """Say so when disinfection takes the tank above the charge limit.
-
-        A warning, not a block. Since v5.1.10 the charge limit really is the
-        highest temperature the plan charges to, and the disinfection
-        temperature applies only during a cycle — so a 52/60 pair is a valid
-        configuration with a consequence: once an interval the tank goes 8 °C
-        above the limit. Judged from the parameters actually in force, which
-        is what makes it cover the ``set_thermal_parameters`` service as well
-        as the two config-flow pages; the flow's own validator warns at save
-        time, but a service call never touches a form.
-        """
-        params = getattr(self, "_ctx", self)._thermal_params
-        legionella = float(params.dhw_legionella_temp)
-        setpoint = float(params.dhw_setpoint)
-        # The stock pair says nothing. `dhw_enabled=True` alone gives 55/60,
-        # both straight from DEFAULT_*, so raising a WARNING-severity,
-        # non-fixable Repairs card on it put a permanent card on every fresh
-        # install — one whose own text reads "That is allowed and nothing is
-        # wrong", which is not what a Repairs card is for. Nothing about the
-        # stock pair is a surprise the user needs telling; a pair they edited
-        # to differ still is. The config flow logs the same fact at save time
-        # for anyone who does set it up that way.
-        stock = (
-            legionella == float(DEFAULT_DHW_LEGIONELLA_TEMP)
-            and setpoint == float(DEFAULT_DHW_SETPOINT)
-        )
-        active = (
-            bool(params.dhw_enabled and params.dhw_legionella_enabled)
-            and legionella > setpoint
-            and not stock
-        )
-        signature = (
-            (
-                round(legionella, 1),
-                round(setpoint, 1),
-                round(float(params.dhw_legionella_interval_days), 1),
-            )
-            if active
-            else None
-        )
-        if signature == self._legionella_ceiling_notice:
-            return
-        self._legionella_ceiling_notice = signature
-        if signature is None:
-            try:
-                ir.async_delete_issue(
-                    self.hass, DOMAIN, "dhw_legionella_above_setpoint"
-                )
-            except Exception as err:  # noqa: BLE001 - clearing is best-effort
-                _LOGGER.debug("Could not clear legionella ceiling notice: %s", err)
-            return
-        legionella, setpoint, interval = signature
-        ir.async_create_issue(
-            self.hass,
-            DOMAIN,
-            "dhw_legionella_above_setpoint",
-            is_fixable=False,
-            # Not persistent: it is derived from configuration, so it is
-            # re-raised on the next cycle for as long as the pair stands.
-            severity=ir.IssueSeverity.WARNING,
-            translation_key="dhw_legionella_above_setpoint",
-            translation_placeholders={
-                "legionella_temp": f"{legionella:.0f}",
-                "setpoint": f"{setpoint:.0f}",
-                "interval_days": f"{interval:.0f}",
-            },
-        )
-
-    def _raise_legionella_unreachable_issue(
-        self, peak: float, target: float
-    ) -> None:
-        """Tell the user the disinfection cycle is not reaching temperature.
-
-        Silent failure is the worst outcome available here: the user believes
-        the tank is being disinfected weekly and it is not. Persistent, because
-        the fact survives a restart in the store.
-        """
-        ir.async_create_issue(
-            self.hass,
-            DOMAIN,
-            "dhw_legionella_unreachable",
-            is_fixable=False,
-            is_persistent=True,
-            severity=ir.IssueSeverity.WARNING,
-            translation_key="dhw_legionella_unreachable",
-            translation_placeholders={
-                "reached": f"{peak:.1f}",
-                "target": f"{target:.0f}",
-            },
-        )
-
-    def _clear_legionella_unreachable_issue(self) -> None:
-        """Take the notice down once a cycle actually reaches temperature."""
-        try:
-            ir.async_delete_issue(self.hass, DOMAIN, "dhw_legionella_unreachable")
-        except Exception as err:  # noqa: BLE001 - clearing is best-effort
-            _LOGGER.debug("Could not clear legionella issue: %s", err)
-
-    def _raise_legionella_unverified_issue(self, target: float) -> None:
-        """Say that the cycle was commanded but nothing confirmed it ran.
-
-        This integration publishes a plan; whether the pump obeyed it is
-        something only a tank temperature can answer. Without one, a
-        commanded cycle is a request, not a disinfection — and telling the
-        user their water is being disinfected weekly when nothing checked is
-        the one failure mode worth a notice all by itself. Persistent,
-        because the fact survives a restart.
-        """
-        ir.async_create_issue(
-            self.hass,
-            DOMAIN,
-            "dhw_legionella_unverified",
-            is_fixable=False,
-            is_persistent=True,
-            severity=ir.IssueSeverity.WARNING,
-            translation_key="dhw_legionella_unverified",
-            translation_placeholders={"target": f"{target:.0f}"},
-        )
-
-    def _clear_legionella_unverified_issue(self) -> None:
-        """Take it down once a cycle is actually observed at temperature."""
-        try:
-            ir.async_delete_issue(self.hass, DOMAIN, "dhw_legionella_unverified")
-        except Exception as err:  # noqa: BLE001 - clearing is best-effort
-            _LOGGER.debug("Could not clear legionella notice: %s", err)
-
-    def _dhw_hours_since_legionella(self) -> float | None:
-        """Hours since the last anti-legionella cycle, or None if unknown.
-
-        A cycle that RAN but fell short counts here too. It is not success —
-        nothing pretends it was — but it does bound the retry rate. Without
-        it, a pump that cannot reach the disinfection temperature leaves the
-        timer permanently overdue, and an overdue timer used to pin a 60 °C
-        requirement on the first step of every plan for ever: the boost was
-        re-commanded every quarter of an hour and never once completed.
-        """
-        last = self._dhw_last_legionella
-        attempt = self._dhw_legionella_attempt
-        if attempt is not None and (last is None or attempt > last):
-            last = attempt
-        if last is None:
-            return None
-        delta = (dt_util.now() - last).total_seconds() / 3600.0
-        return max(0.0, delta)
-
-    def _dhw_legionella_due_in_hours(self) -> float | None:
-        """Hours left before the next anti-legionella cycle is required."""
-        params = getattr(self, "_ctx", self)._thermal_params
-        if not params.dhw_legionella_enabled:
-            return None
-        since = self._dhw_hours_since_legionella()
-        if since is None:
-            return None
-        return round(params.dhw_legionella_interval_days * 24.0 - since, 1)
 
     def _check_pump_mode_expired(self) -> None:
         """Say so when the mode entity has gone quiet long enough to stop acting.
@@ -4499,71 +4063,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             },
         )
 
-    def _check_legionella_mode_block(self, dhw_blocked: bool) -> None:
-        """Say so when a mode block is holding disinfection past its deadline.
-
-        A hot-water channel the pump's mode has blocked is hard-zeroed for
-        the whole horizon, so the anti-legionella cycle simply never gets
-        placed: ``dhw_legionella_due_in_hours`` goes negative in an attribute
-        and nothing else happens. A pump left in a heating-only mode for a
-        fortnight therefore stops disinfecting the tank silently, which is
-        the same failure ``dhw_legionella_unreachable`` exists to prevent,
-        arriving by a different route — the cycle is not falling short of
-        temperature, it is not being scheduled at all.
-
-        Only ever a notice: the mode block is never released, here or
-        anywhere else. Putting hot water back into the plan would promise
-        water the hardware refuses to heat.
-        """
-        params = getattr(self, "_ctx", self)._thermal_params
-        due = self._dhw_legionella_due_in_hours()
-        overdue_days: int | None = None
-        if (
-            dhw_blocked
-            and bool(params.dhw_enabled)
-            and bool(params.dhw_legionella_enabled)
-            and due is not None
-            and due < 0.0
-        ):
-            overdue_days = max(1, int(-due // 24.0) + 1)
-        if overdue_days == self._legionella_mode_block_notice:
-            return
-        self._legionella_mode_block_notice = overdue_days
-        if overdue_days is None:
-            try:
-                ir.async_delete_issue(
-                    self.hass, DOMAIN, "dhw_legionella_mode_blocked"
-                )
-            except Exception as err:  # noqa: BLE001 - clearing is best-effort
-                _LOGGER.debug(
-                    "Could not clear legionella mode-block notice: %s", err
-                )
-            return
-        _LOGGER.warning(
-            "The anti-legionella cycle has been due for %d day(s) but the "
-            "heat pump's mode makes no hot water, so it cannot be planned",
-            overdue_days,
-        )
-        ir.async_create_issue(
-            self.hass,
-            DOMAIN,
-            "dhw_legionella_mode_blocked",
-            is_fixable=False,
-            # Not persistent: it is derived from the live mode reading, so it
-            # is re-raised on the next cycle for as long as the mode stands.
-            severity=ir.IssueSeverity.WARNING,
-            translation_key="dhw_legionella_mode_blocked",
-            translation_placeholders={
-                "overdue_days": f"{overdue_days:d}",
-                "interval_days": f"{float(params.dhw_legionella_interval_days):.0f}",
-            },
-        )
 
     def _dhw_current_hour(self) -> float:
         now = dt_util.now()
         return now.hour + now.minute / 60.0
 
-    def _dhw_effective_windows(self) -> list:
+    def _dhw_effective_windows(self) -> list[Any]:
         """Demand windows the optimizer is actually planning against."""
         result = self._optimization_result
         planned = (result.predictive_info or {}).get("dhw_windows") if result else None
@@ -4572,7 +4077,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 return parse_windows(planned)
             except DHWWindowError:
                 pass
-        return getattr(self, "_ctx", self)._thermal_params.dhw_demand_windows
+        windows: list[Any] = getattr(self, "_ctx", self)._thermal_params.dhw_demand_windows
+        return windows
 
     def _dhw_in_demand_window(self) -> bool:
         """Whether hot water is required right now."""
@@ -5016,7 +4522,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                         if blocked
                     ),
                 )
-            self._check_legionella_mode_block(mode_blocked_dhw)
+            self._legionella.check_mode_block(mode_blocked_dhw)
             # Taken here, after every pre-solve mutation above, so the copies
             # carry all of them into the process worker.
             solve_state, solve_optimizer = self._solve_snapshot()
@@ -5362,9 +4868,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._floor_return_temp = floor_return.value
             ctx._current_state.floor_return_temperature = self._floor_return_temp
             # Update slab temperature estimate from return temp
-            self._thermal_model.update_slab_from_return_temp(
-                ctx._current_state, self._floor_return_temp
-            )
+            if (floor_temp := self._floor_return_temp) is not None:
+                self._thermal_model.update_slab_from_return_temp(
+                    ctx._current_state, floor_temp
+                )
 
         # The lower zone's room temperature, best source first.
         #
@@ -5403,8 +4910,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # throttling -- and therefore whether surplus heat can reach the tank
         # at all -- so charging cannot be planned without it.
         valve_target = reader.read(CONF_MIXING_VALVE_TARGET_ENTITY)
-        if valve_target.ok:
-            ctx._thermal_params.mixing_valve_target = float(valve_target.value)
+        if valve_target.ok and (valve_value := valve_target.value) is not None:
+            ctx._thermal_params.mixing_valve_target = float(valve_value)
 
         # Measured electrical draw. Optional, and everything downstream has to
         # degrade cleanly without it, because most installs will not have one.
@@ -5425,9 +4932,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # configured or the sensor is not reporting.
         solar = reader.read(CONF_SOLAR_RADIATION_ENTITY)
         solar_from_sensor = False
-        if solar.ok:
-            self._solar_radiation = solar.value
-            ctx._current_state.solar_radiation = self._solar_radiation
+        if solar.ok and (solar_value := solar.value) is not None:
+            self._solar_radiation = solar_value
+            ctx._current_state.solar_radiation = solar_value
             solar_from_sensor = True
 
         if not solar_from_sensor and self._open_meteo is not None:
@@ -5518,11 +5025,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # need to know that rather than quietly absorbing it.
         self._update_external_heat_detection()
 
-        if dhw.ok:
-            frozen = await self._dhw_learner.async_learn_dynamics(dhw.value)
+        if dhw.ok and (dhw_value := dhw.value) is not None:
+            frozen = await self._dhw_learner.async_learn_dynamics(dhw_value)
             if frozen:
                 self._learner_freeze_reason = frozen
-            await self._async_track_dhw_legionella(dhw.value)
+            await self._legionella.async_track(dhw_value)
 
         # Deliberately NOT gated on `dhw.ok`: the observer above is the only
         # reset path there was, and it cannot run without a tank reading —
@@ -5530,17 +5037,17 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # asymmetry is the latch. This follows the boost the plan actually
         # commanded, so a cycle can complete even when the probe is absent
         # or the pump cannot reach the disinfection temperature.
-        await self._async_track_dhw_legionella_cycle(
+        await self._legionella.async_track_cycle(
             dhw.value if dhw.ok else None
         )
-        self._check_dhw_legionella_ceiling()
+        self._legionella.check_ceiling()
 
         ctx._current_state.dhw_hours_since_legionella = (
-            self._dhw_hours_since_legionella()
+            self._legionella.hours_since()
         )
 
-        if buffer_reading.ok:
-            await self._async_learn_buffer_cooling(buffer_reading.value)
+        if buffer_reading.ok and (buffer_value := buffer_reading.value) is not None:
+            await self._async_learn_buffer_cooling(buffer_value)
 
         # Refine the building fabric model from how the last interval actually
         # went. Runs last so it sees the fully populated state.
@@ -5874,8 +5381,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
     def _solar_forecast_source(self) -> str:
         """Configured irradiance source."""
-        return getattr(self, "_ctx", self)._config.get(
-            CONF_SOLAR_FORECAST_SOURCE, DEFAULT_SOLAR_FORECAST_SOURCE
+        return str(
+            getattr(self, "_ctx", self)._config.get(
+                CONF_SOLAR_FORECAST_SOURCE, DEFAULT_SOLAR_FORECAST_SOURCE
+            )
         )
 
     def _solar_location(self) -> tuple[float, float] | None:
@@ -6128,10 +5637,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             )
             parsed.append((ts, (temp, gust, rain, irradiance, rh)))
 
-        timed = sorted(
-            (item for item in parsed if item[0] is not None),
-            key=lambda item: item[0],
-        )
+        datable = [(ts, values) for ts, values in parsed if ts is not None]
+        timed = sorted(datable, key=lambda item: item[0])
         outdoor: list[float] = []
         wind: list[float] = []
         precipitation: list[float] = []
@@ -6361,7 +5868,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     if ts.tzinfo is None:
                         ts = ts.replace(tzinfo=timezone.utc)
                     if ts <= now < ts + timedelta(hours=1):
-                        return price_entry.get("total", 0)
+                        return float(price_entry.get("total", 0))
                 except (ValueError, TypeError):
                     continue
 
@@ -6381,11 +5888,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         )
         cache = self._grid_fee_cache
         if cache is None or cache[0] != key:
-            self._grid_fee_cache = (
-                key,
-                GridFeeSchedule.from_config(ctx._config),
-            )
-        return self._grid_fee_cache[1]
+            cache = (key, GridFeeSchedule.from_config(ctx._config))
+            self._grid_fee_cache = cache
+        return cache[1]
     def _fee_series(self, step_starts: list[datetime]) -> np.ndarray:
         schedule = self._grid_fee_schedule()
         entity_value = _grid_fee_entity_value(
@@ -6857,7 +6362,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             "dhw_next_window_in_hours": self._dhw_next_window_in_hours(),
             "dhw_idle_min_temperature": params.dhw_idle_min_temp,
             "dhw_legionella_enabled": params.dhw_legionella_enabled,
-            "dhw_legionella_due_in_hours": self._dhw_legionella_due_in_hours(),
+            "dhw_legionella_due_in_hours": self._legionella.due_in_hours(),
             # T3: the inlet actually in force, the tank in shower terms
             # (#28), the setpoint sweep (#9) and the learned heavy-day
             # statistics (#32/#20).
@@ -7248,17 +6753,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             # of the day. A day book is one day of evidence — dropping a
             # corrupt one costs one operation sample, never the loop.
             try:
-                cleaned = {
-                    "day": str(day.get("day") or ""),
-                    "kwh": float(day.get("kwh", 0.0)),
-                    "sek": float(day.get("sek", 0.0)),
-                    "spot_sum": float(day.get("spot_sum", 0.0)),
-                    "spot_h": float(day.get("spot_h", 0.0)),
+                numbers = {
+                    key: float(day.get(key, 0.0))
+                    for key in ("kwh", "sek", "spot_sum", "spot_h")
                 }
+                cleaned = {"day": str(day.get("day") or ""), **numbers}
                 if cleaned["day"] and all(
-                    np.isfinite(v)
-                    for k, v in cleaned.items()
-                    if k != "day"
+                    np.isfinite(v) for v in numbers.values()
                 ):
                     self._score_day = cleaned
             except (TypeError, ValueError, OverflowError):
@@ -7316,7 +6817,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         )
         self._apply_comfort_weight()
     async def _async_save_if_changed(
-        self, name: str, store: Store, payload: dict[str, Any]
+        self, name: str, store: Store[dict[str, Any]], payload: dict[str, Any]
     ) -> None:
         """Write ``payload`` unless the store already holds exactly it.
 
@@ -7682,7 +7183,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             return frozenset()
         return frozenset(months)
 
-    def _tariff_hours(self) -> tuple:
+    def _tariff_hours(self) -> tuple[Any, ...]:
         """The #13 peak-hour windows, empty (= every hour) when unset."""
         spec = str(
             getattr(self, "_ctx", self)._config.get(CONF_PEAK_TARIFF_HOURS, DEFAULT_PEAK_TARIFF_HOURS)
@@ -7746,7 +7247,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         _LOGGER.info("Defrost duty measured from %s", entity)
 
     @callback
-    def _on_defrost_event(self, event) -> None:
+    def _on_defrost_event(self, event: Event[EventStateChangedData]) -> None:
         """One defrost flag transition: accrue on-time. Arithmetic only.
 
         ``@callback`` for the same reason as ``_on_power_event``: without it
@@ -7794,7 +7295,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         )
         _LOGGER.info("Peak guard listening on %s", entity)
     @callback
-    def _on_power_event(self, event) -> None:
+    def _on_power_event(self, event: Event[EventStateChangedData]) -> None:
         """One meter reading: fold, project, and flip the flag on crossings.
 
         Never solves, never blocks: the only work here is arithmetic on the
@@ -7819,7 +7320,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if not tariff.enabled and fuse is None:
             return
         try:
-            raw = float(getattr(new_state, "state", None))
+            raw_state: Any = getattr(new_state, "state", None)
+            raw = float(raw_state)
         except (TypeError, ValueError):
             return
         attrs = getattr(new_state, "attributes", {}) or {}
@@ -8338,7 +7840,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 ctx._config.get(CONF_TARGET_TEMP), DEFAULT_TARGET_TEMP
             )
         )
-        return np.minimum(floors, cap)
+        return np.asarray(np.minimum(floors, cap))
     def _track_curve_comfort(self, now: datetime) -> None:
         """#2's evidence: the day's worst (zone − comfort floor) margin.
 
@@ -8701,7 +8203,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
     # -- #42: the weekly snapshots and the drift alarm ---------------------
 
-    def _learner_snapshot_payloads(self) -> dict[str, dict]:
+    def _learner_snapshot_payloads(self) -> dict[str, dict[str, Any]]:
         """Every learner's persisted shape, by the stores' own producers."""
         return {
             "thermal_learning": self._thermal_learning_payload(),
@@ -8715,7 +8217,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             # billed facts, not learned state — see _apply_learner_payloads.
         }
 
-    def _apply_learner_payloads(self, learners: dict) -> None:
+    def _apply_learner_payloads(self, learners: dict[str, Any]) -> None:
         """Restore learners from a snapshot, via the loaders' own parsing."""
         ctx = getattr(self, "_ctx", self)
         thermal = learners.get("thermal_learning")
@@ -9034,7 +8536,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     # Away / holiday mode (item 13)
     # ==================================================================
 
-    def _entity_state(self, entity_id: str | None) -> tuple[str | None, dict]:
+    def _entity_state(self, entity_id: str | None) -> tuple[str | None, dict[str, Any]]:
         if not entity_id:
             return None, {}
         state = self.hass.states.get(entity_id)
@@ -9423,7 +8925,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         return value
 
     def _file_dhw_lead_predictions(
-        self, result, solve_time: datetime, dt_h: float
+        self, result: OptimizationResult, solve_time: datetime, dt_h: float
     ) -> None:
         """v5.2.0: the plan's tank-temperature promises, per lead bucket.
 
@@ -9447,7 +8949,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     float(trajectory[idx]),
                 )
 
-    def _file_lead_predictions(self, result, solve_time: datetime) -> None:
+    def _file_lead_predictions(self, result: OptimizationResult, solve_time: datetime) -> None:
         """T5 #16: file the plan's room-temperature promises per lead bucket.
 
         Same mode gate and same trajectory convention as the one-step
@@ -9711,7 +9213,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             costs["fixed"] = fixed_cost
             out["fixed_sek"] = round(fixed_cost, 2)
         if kwh > 0 and len(costs) > 1:
-            out["cheapest"] = min(costs, key=costs.get)
+            out["cheapest"] = min(costs, key=lambda name: costs[name])
         return out
 
     # ==================================================================
