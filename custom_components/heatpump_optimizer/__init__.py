@@ -25,8 +25,14 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import entity_registry as er
 from homeassistant.loader import async_get_integration
+from homeassistant.util import dt as dt_util
 
-from .const import DOMAIN, CONFIG_ENTRY_VERSION
+from .const import (
+    CONF_OPTIMIZATION_INTERVAL,
+    CONFIG_ENTRY_VERSION,
+    DEFAULT_OPTIMIZATION_INTERVAL,
+    DOMAIN,
+)
 
 # Bound here, not via ``_lazy``. Home Assistant 2026 evaluates
 # ``async_setup_entry``'s annotations with ``get_type_hints``, which looks
@@ -120,15 +126,48 @@ PLATFORM_LIST = [
 # runtime data: the last published plan, carried across ONE reload. Written
 # by ``async_unload_entry`` -- after which Home Assistant discards the entry's
 # ``runtime_data`` -- and popped by the ``async_setup_entry`` that follows.
-# Never persisted. Everything else an entry needs while it is loaded lives on
-# ``entry.runtime_data`` (runtime-data, Bronze).
+# The payload stays the stash so identity pins keep holding; its stamp lives
+# under ``_PLAN_HANDOVER_STAMP_KEY``. A record older than one update interval
+# is dropped on pop. Never persisted. Everything else an entry needs while
+# it is loaded lives on ``entry.runtime_data`` (runtime-data, Bronze).
 _PLAN_HANDOVER_KEY = f"{DOMAIN}_plan_handover"
+_PLAN_HANDOVER_STAMP_KEY = f"{DOMAIN}_plan_handover_stamped_at"
 
 
 def _plan_handovers(hass: HomeAssistant) -> dict[str, Any]:
     """The reload handovers by entry id, created on first use."""
     handovers: dict[str, Any] = hass.data.setdefault(_PLAN_HANDOVER_KEY, {})
     return handovers
+
+
+def _handover_stamps(hass: HomeAssistant) -> dict[str, Any]:
+    """When each reload handover was stashed, by entry id."""
+    stamps: dict[str, Any] = hass.data.setdefault(_PLAN_HANDOVER_STAMP_KEY, {})
+    return stamps
+
+
+def _handover_interval_minutes(coordinator: Any) -> float:
+    config = getattr(coordinator, "_config", None) or {}
+    return float(
+        config.get(CONF_OPTIMIZATION_INTERVAL, DEFAULT_OPTIMIZATION_INTERVAL)
+    )
+
+
+def _take_fresh_handover(
+    hass: HomeAssistant, entry_id: str, interval_minutes: float
+) -> Any | None:
+    """Pop the stashed plan if it was stamped inside one update interval."""
+    payload = _plan_handovers(hass).pop(entry_id, None)
+    stamped_at = _handover_stamps(hass).pop(entry_id, None)
+    if payload is None or stamped_at is None:
+        return None
+    try:
+        age_min = (dt_util.now() - stamped_at).total_seconds() / 60.0
+    except TypeError:
+        return None
+    if age_min > interval_minutes:
+        return None
+    return payload
 
 
 async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -230,9 +269,12 @@ async def async_setup_entry(
 
     # If this setup is the second half of an in-process reload, the unload
     # handler stashed the previous plan. Always pop — a stale payload must
-    # never outlive the one reload it was made for — and hand it to the
-    # coordinator so the first refresh can republish it instantly.
-    handover = _plan_handovers(hass).pop(entry.entry_id, None)
+    # never outlive the one reload it was made for — and drop it when the
+    # stamp is older than one update interval. Otherwise hand it over so
+    # the first refresh can republish it instantly.
+    handover = _take_fresh_handover(
+        hass, entry.entry_id, _handover_interval_minutes(coordinator)
+    )
     if handover is not None:
         coordinator._reload_handover = handover
 
@@ -347,6 +389,13 @@ async def async_unload_entry(
         # this returns.
         if coordinator.data is not None:
             _plan_handovers(hass)[entry.entry_id] = coordinator.data
+            _handover_stamps(hass)[entry.entry_id] = dt_util.now()
         await coordinator.async_shutdown()
 
     return unload_ok
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Drop a leftover reload handover when the entry is deleted."""
+    _plan_handovers(hass).pop(entry.entry_id, None)
+    _handover_stamps(hass).pop(entry.entry_id, None)

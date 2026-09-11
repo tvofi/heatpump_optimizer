@@ -12,8 +12,8 @@
 # todo any more (#542 removed the last one), so the blocker is gone; whether to
 # declare the tier is #194's call and is not made here.
 #
-# Totals: 47 done (2 vacuous) · 4 exempt · 3 todo (#195 coverage, #218
-# examples, #829 strict-typing). Counted from this file, not carried:
+# Totals: 48 done (2 vacuous) · 4 exempt · 2 todo (#195 coverage, #218
+# examples). Counted from this file, not carried:
 #   python3 -c "import yaml,collections;r=yaml.safe_load(open(__import__('sys').argv[1]))['rules'];\
 #   print(collections.Counter(v if isinstance(v,str) else v['status'] for v in r.values()))" <this file>
 # The 45/5 this line carried before #542 was already two out in each direction.
@@ -126,5 +126,8 @@ rules:
   async-dependency: done
   inject-websession: done
   strict-typing:
-    status: todo
-    comment: "tracked in issue #829 (round 3, D10-03)"
+    status: done
+    comment: >-
+      #303 paid the pinned-ruler census to 0. py.typed is not owed — the
+      Platinum rule's marker-file half does not apply to a custom
+      integration. #829.
