@@ -1156,5 +1156,1331 @@
   3.0,
   3.0,
   3.0
- ]
+ ],
+ "sensors": {
+  "baseline_cost": {
+   "extra_state_attributes": null,
+   "native_value": null
+  },
+  "buffer_tank_temp": {
+   "extra_state_attributes": null,
+   "native_value": 40.0
+  },
+  "comfort_weight": {
+   "extra_state_attributes": {
+    "configured": 5.0,
+    "evidence": 0.0,
+    "learned": 5.0,
+    "overrides": 0,
+    "recent_overrides": []
+   },
+   "native_value": 5.0
+  },
+  "compressor_starts": {
+   "extra_state_attributes": {
+    "lifetime": 0,
+    "month": 0,
+    "wear_price_per_start": 0.0
+   },
+   "native_value": 0
+  },
+  "contract_comparison": {
+   "extra_state_attributes": {
+    "hourly_spot_sek": 0.0,
+    "kwh": 0.0,
+    "month": "2026-01",
+    "waiting_for": "settled_metered_month"
+   },
+   "native_value": null
+  },
+  "current_cop": {
+   "extra_state_attributes": null,
+   "native_value": 2.45
+  },
+  "current_power": {
+   "extra_state_attributes": null,
+   "native_value": null
+  },
+  "current_price": {
+   "extra_state_attributes": null,
+   "native_value": 0.6
+  },
+  "current_setpoint": {
+   "extra_state_attributes": {},
+   "native_value": null
+  },
+  "dhw_cost_total": {
+   "extra_state_attributes": {
+    "counting_since": "2026-01-15",
+    "measured": false,
+    "period": "lifetime accumulator; never reset. The state is the whole history, not today's or this month's figure; this_month_kwh / this_month_cost carry the current month.",
+    "split_method": "apportioned from the planned space/DHW power split; the total is measured when a power entity is configured",
+    "this_month_cost": 0.0,
+    "this_month_kwh": 0.0
+   },
+   "native_value": 0.0
+  },
+  "dhw_energy": {
+   "extra_state_attributes": {
+    "counting_since": "2026-01-15",
+    "measured": false,
+    "period": "lifetime accumulator; never reset. The state is the whole history, not today's or this month's figure; this_month_kwh / this_month_cost carry the current month.",
+    "split_method": "apportioned from the planned space/DHW power split; the total is measured when a power entity is configured",
+    "this_month_cost": 0.0,
+    "this_month_kwh": 0.0
+   },
+   "native_value": 0.0
+  },
+  "dhw_heating_cost": {
+   "extra_state_attributes": null,
+   "native_value": 0.0
+  },
+  "dhw_heating_plan": {
+   "extra_state_attributes": {
+    "currency": "SEK",
+    "dhw_windows_spec": "06:00-08:30, 17:00-22:00",
+    "horizon_hours": 24.0,
+    "manual_override": null,
+    "manual_plan_window_hours": 20,
+    "plan_kind": "dhw",
+    "projection": "planned for the optimization horizon ahead; recomputed on every replan. Not a measurement and not accumulated.",
+    "setup_topology": {
+     "buffer": {
+      "is_store": false,
+      "max_temp": 70.0,
+      "volume_l": 35.0
+     },
+     "catalog": [
+      {
+       "description": "Everything the pump makes reaches the emitters; the tank is a pass-through with a standing loss.",
+       "edges": [
+        [
+         "heat_pump",
+         "buffer_tank"
+        ],
+        [
+         "buffer_tank",
+         "upper_zone"
+        ],
+        [
+         "buffer_tank",
+         "lower_zone"
+        ]
+       ],
+       "key": "no_valve",
+       "label": "No mixing valve",
+       "requirement": "no throttling mixing valve configured",
+       "selectable": true,
+       "valid": true
+      },
+      {
+       "description": "The valve regulates one shared flow to every circuit; wood heat, if any, is folded into the heat-pump tank.",
+       "edges": [
+        [
+         "heat_pump",
+         "buffer_tank"
+        ],
+        [
+         "buffer_tank",
+         "mixing_valve"
+        ],
+        [
+         "mixing_valve",
+         "upper_zone"
+        ],
+        [
+         "mixing_valve",
+         "lower_zone"
+        ]
+       ],
+       "key": "single_tank_valve",
+       "label": "One tank behind a valve",
+       "requirement": "a throttling mixing valve",
+       "selectable": true,
+       "valid": false
+      },
+      {
+       "description": "A wood tank beside the heat-pump tank; the valve draws wood-first while usable and feeds both floors in parallel.",
+       "edges": [
+        [
+         "heat_pump",
+         "buffer_tank"
+        ],
+        [
+         "buffer_tank",
+         "mixing_valve"
+        ],
+        [
+         "wood_tank",
+         "mixing_valve"
+        ],
+        [
+         "mixing_valve",
+         "upper_zone"
+        ],
+        [
+         "mixing_valve",
+         "lower_zone"
+        ]
+       ],
+       "key": "two_tank_4way",
+       "label": "Two tanks, one 4-way valve",
+       "requirement": "a throttling valve, two zones and a wood-tank top probe",
+       "selectable": true,
+       "valid": false
+      },
+      {
+       "description": "Only the radiator circuit sits behind the valve; the slab drinks raw tank water.",
+       "edges": [
+        [
+         "heat_pump",
+         "buffer_tank"
+        ],
+        [
+         "buffer_tank",
+         "mixing_valve"
+        ],
+        [
+         "mixing_valve",
+         "upper_zone"
+        ],
+        [
+         "buffer_tank",
+         "lower_zone"
+        ]
+       ],
+       "key": "valve_upper_direct_slab",
+       "label": "Valve on the radiators, slab fed direct",
+       "requirement": "a throttling valve, two zones, and no wood-tank probe (no model exists for two tanks with a direct-fed slab)",
+       "selectable": true,
+       "valid": false
+      },
+      {
+       "description": "A second shunt on the slab circuit. Recorded as a known layout; not selectable until physics exists for it.",
+       "edges": [
+        [
+         "heat_pump",
+         "buffer_tank"
+        ],
+        [
+         "buffer_tank",
+         "mixing_valve"
+        ],
+        [
+         "mixing_valve",
+         "upper_zone"
+        ],
+        [
+         "buffer_tank",
+         "slab_shunt"
+        ],
+        [
+         "slab_shunt",
+         "lower_zone"
+        ]
+       ],
+       "key": "slab_shunt",
+       "label": "Separate slab shunt",
+       "requirement": "not selectable: no model variant exists yet",
+       "selectable": false,
+       "valid": false
+      }
+     ],
+     "dhw": false,
+     "dhw_wood_coil": false,
+     "edges": [
+      [
+       "heat_pump",
+       "buffer_tank"
+      ],
+      [
+       "buffer_tank",
+       "upper_zone"
+      ],
+      [
+       "buffer_tank",
+       "lower_zone"
+      ]
+     ],
+     "layout": "no_valve",
+     "positions": {},
+     "sensor_gaps": [
+      {
+       "empty": true,
+       "key": "house_power_entity",
+       "label": "Whole-house power",
+       "sek_per_month": 0.0
+      },
+      {
+       "empty": true,
+       "key": "outdoor_temp_entity",
+       "label": "Outdoor temperature",
+       "sek_per_month": 0.0
+      },
+      {
+       "empty": true,
+       "key": "dhw_temp_entity",
+       "label": "Hot water temperature",
+       "sek_per_month": 0.0
+      }
+     ],
+     "slots": [
+      {
+       "device_class": "temperature",
+       "domains": [
+        "sensor",
+        "number",
+        "input_number"
+       ],
+       "entity": null,
+       "key": "outdoor_temp_entity",
+       "label": "Outdoor temperature",
+       "place": "outdoor"
+      },
+      {
+       "device_class": "irradiance",
+       "domains": [
+        "sensor",
+        "number",
+        "input_number"
+       ],
+       "entity": null,
+       "key": "solar_radiation_entity",
+       "label": "Solar radiation",
+       "place": "outdoor"
+      },
+      {
+       "device_class": "power",
+       "domains": [
+        "sensor",
+        "number",
+        "input_number"
+       ],
+       "entity": null,
+       "key": "pv_production_entity",
+       "label": "PV production",
+       "place": "outdoor"
+      },
+      {
+       "device_class": "temperature",
+       "domains": [
+        "sensor",
+        "number",
+        "input_number"
+       ],
+       "entity": null,
+       "key": "indoor_temp_entity",
+       "label": "Indoor temperature",
+       "place": "upper_zone"
+      },
+      {
+       "device_class": "temperature",
+       "domains": [
+        "sensor",
+        "number",
+        "input_number"
+       ],
+       "entity": null,
+       "key": "lower_floor_temp_entity",
+       "label": "Lower floor temperature",
+       "place": "lower_zone"
+      },
+      {
+       "device_class": "temperature",
+       "domains": [
+        "sensor",
+        "number",
+        "input_number"
+       ],
+       "entity": null,
+       "key": "floor_return_temp_entity",
+       "label": "Floor loop return",
+       "place": "floor_loop"
+      },
+      {
+       "device_class": null,
+       "domains": [
+        "switch",
+        "input_boolean",
+        "climate"
+       ],
+       "entity": null,
+       "key": "heat_pump_switch_entity",
+       "label": "Heat pump switch",
+       "place": "heat_pump"
+      },
+      {
+       "device_class": "power",
+       "domains": [
+        "sensor",
+        "number",
+        "input_number"
+       ],
+       "entity": null,
+       "key": "heat_pump_power_entity",
+       "label": "Power meter",
+       "place": "heat_pump"
+      },
+      {
+       "device_class": "energy",
+       "domains": [
+        "sensor",
+        "number",
+        "input_number"
+       ],
+       "entity": null,
+       "key": "heat_pump_energy_entity",
+       "label": "Energy meter",
+       "place": "heat_pump"
+      },
+      {
+       "device_class": "power",
+       "domains": [
+        "sensor",
+        "number",
+        "input_number"
+       ],
+       "entity": null,
+       "key": "house_power_entity",
+       "label": "Whole-house power",
+       "place": "heat_pump"
+      },
+      {
+       "device_class": null,
+       "domains": [
+        "select",
+        "sensor",
+        "input_select"
+       ],
+       "entity": null,
+       "key": "heat_pump_mode_entity",
+       "label": "Operating mode",
+       "place": "heat_pump"
+      },
+      {
+       "device_class": null,
+       "domains": [
+        "binary_sensor",
+        "switch",
+        "input_boolean",
+        "sensor"
+       ],
+       "entity": null,
+       "key": "heat_pump_defrost_entity",
+       "label": "Defrosting",
+       "place": "heat_pump"
+      },
+      {
+       "device_class": null,
+       "domains": [
+        "binary_sensor",
+        "switch",
+        "input_boolean",
+        "sensor"
+       ],
+       "entity": null,
+       "key": "heat_pump_online_entity",
+       "label": "Online status",
+       "place": "heat_pump"
+      },
+      {
+       "device_class": null,
+       "domains": [
+        "binary_sensor",
+        "switch",
+        "input_boolean",
+        "sensor"
+       ],
+       "entity": null,
+       "key": "heat_pump_fault_entity",
+       "label": "Fault alarm",
+       "place": "heat_pump"
+      },
+      {
+       "device_class": "temperature",
+       "domains": [
+        "sensor",
+        "number",
+        "input_number"
+       ],
+       "entity": null,
+       "key": "buffer_tank_temp_entity",
+       "label": "Buffer tank temperature",
+       "place": "buffer_tank"
+      }
+     ],
+     "two_tank_modelled": false,
+     "two_zone": true,
+     "valve_mode": "none",
+     "wood": {
+      "present": false,
+      "volume_l": 500.0
+     }
+    },
+    "wood_fuel": {
+     "cheaper": false,
+     "cheaper_hour_count": 0,
+     "efficiency": null,
+     "packing": null,
+     "price_sek_m3": null,
+     "ready": false,
+     "sek_per_kwh": null,
+     "show_whatif": false,
+     "slots": [],
+     "type": null
+    }
+   },
+   "native_value": "no plan"
+  },
+  "dhw_heavy_day": {
+   "extra_state_attributes": {},
+   "native_value": null
+  },
+  "dhw_mixed_water": {
+   "extra_state_attributes": {},
+   "native_value": null
+  },
+  "dhw_schedule": {
+   "extra_state_attributes": {
+    "dhw_in_demand_window": false,
+    "dhw_legionella_due": null,
+    "dhw_legionella_due_in_hours": null,
+    "dhw_legionella_step_hour": null,
+    "dhw_next_window_in_hours": 6.0,
+    "dhw_planned_heating_hours": [],
+    "dhw_preheat_hours": null,
+    "dhw_schedule": [],
+    "dhw_schedule_enabled": true,
+    "dhw_windows": "06:00-08:30, 17:00-22:00"
+   },
+   "native_value": "no schedule"
+  },
+  "dhw_setpoint_advisor": {
+   "extra_state_attributes": {},
+   "native_value": null
+  },
+  "dhw_temperature": {
+   "extra_state_attributes": {
+    "dhw_cooling_rate": 0.3,
+    "dhw_cooling_rate_learned": false,
+    "dhw_cooling_samples": 0,
+    "dhw_enabled": false,
+    "dhw_heating_active": false,
+    "dhw_hold_hours": 28.0,
+    "dhw_idle_min_temperature": 20.0,
+    "dhw_in_demand_window": false,
+    "dhw_legionella_due_in_hours": null,
+    "dhw_min_temperature": 45.0,
+    "dhw_next_window_in_hours": 6.0,
+    "dhw_required_temperature": 45.0,
+    "dhw_setpoint": 55.0,
+    "dhw_windows": "06:00-08:30, 17:00-22:00"
+   },
+   "native_value": 55.0
+  },
+  "ecl110_displace": {
+   "extra_state_attributes": null,
+   "native_value": 0.0
+  },
+  "ecl110_effective_displace": {
+   "extra_state_attributes": {
+    "command_topic": "ecl110/command",
+    "state_topic": "ecl110/flow_temp_control/displace"
+   },
+   "native_value": 0.0
+  },
+  "floor_return_temp": {
+   "extra_state_attributes": null,
+   "native_value": null
+  },
+  "frequency_advisor": {
+   "extra_state_attributes": {
+    "commanded_hz": null,
+    "evidence_exhausted": false,
+    "fallback_active": false,
+    "map": {},
+    "mode": "unconfigured",
+    "range_hz": null,
+    "recommended_hz": null,
+    "reported_hz": null,
+    "waiting_for": "compressor_frequency_entity"
+   },
+   "native_value": null
+  },
+  "heat_pump_action": {
+   "extra_state_attributes": {
+    "ecl110_displace": null,
+    "heat_pump_on": null,
+    "power_kw": null,
+    "power_normalized": null,
+    "price": null,
+    "setpoint": null
+   },
+   "native_value": "unknown"
+  },
+  "indoor_temp": {
+   "extra_state_attributes": null,
+   "native_value": 21.0
+  },
+  "lower_floor_temp": {
+   "extra_state_attributes": null,
+   "native_value": 21.0
+  },
+  "measured_power": {
+   "extra_state_attributes": {
+    "energy_meter": null,
+    "house_power": null,
+    "recommended_power": null
+   },
+   "native_value": null
+  },
+  "mode": {
+   "extra_state_attributes": null,
+   "native_value": "auto"
+  },
+  "monthly_peak": {
+   "extra_state_attributes": {
+    "free_headroom_threshold_kw": null,
+    "month": "",
+    "projected_peak_cost": 0.0,
+    "projected_peak_kw": 0.0
+   },
+   "native_value": 0.0
+  },
+  "monthly_savings": {
+   "extra_state_attributes": {
+    "savings_months": [],
+    "waiting_for": "settled_savings_month"
+   },
+   "native_value": null
+  },
+  "observed_cop": {
+   "extra_state_attributes": {
+    "cop_samples": 0,
+    "cop_scale": 1.0,
+    "defrost_buckets": [],
+    "defrost_derate": 1.0,
+    "defrost_samples": 0,
+    "modelled_cop": 3.32,
+    "waiting_for": "measured_power_entity"
+   },
+   "native_value": null
+  },
+  "optimization_score": {
+   "extra_state_attributes": {
+    "envelope": 58.3,
+    "machine": null,
+    "operation": null,
+    "overall": null,
+    "price_tiles": {},
+    "stat_kind": "optimization_score"
+   },
+   "native_value": null
+  },
+  "optimization_status": {
+   "extra_state_attributes": {
+    "prices_available": 48,
+    "solve_time_ms": 0,
+    "two_zone_enabled": true,
+    "weather_forecast_available": 48
+   },
+   "native_value": "not_run"
+  },
+  "outdoor_temp": {
+   "extra_state_attributes": {
+    "source": "weather_forecast"
+   },
+   "native_value": -5.0
+  },
+  "plan_narrative": {
+   "extra_state_attributes": {
+    "items": [],
+    "language": "en",
+    "lines": [],
+    "stat_kind": "plan_narrative"
+   },
+   "native_value": null
+  },
+  "power_headroom": {
+   "extra_state_attributes": {},
+   "native_value": null
+  },
+  "predicted_cost": {
+   "extra_state_attributes": null,
+   "native_value": null
+  },
+  "predicted_savings": {
+   "extra_state_attributes": {
+    "stat_kind": "predicted_savings"
+   },
+   "native_value": null
+  },
+  "prediction_accuracy": {
+   "extra_state_attributes": {
+    "cost_error_percent": null,
+    "lead_sigma": {},
+    "power_ratio": null,
+    "predicted_cost": 0.0,
+    "realised_cost": 0.0,
+    "samples": 0,
+    "temperature_bias": null,
+    "temperature_mae": null,
+    "trust": 0.5,
+    "waiting_for": "first_scored_interval"
+   },
+   "native_value": null
+  },
+  "predictive_insight": {
+   "extra_state_attributes": {
+    "avg_future_precip_mmh": null,
+    "avg_future_wind_ms": null,
+    "dhw_idle_min_temperature": null,
+    "dhw_in_demand_window": null,
+    "dhw_legionella_due": null,
+    "dhw_min_temperature": null,
+    "dhw_next_window_in_hours": null,
+    "dhw_peak_usage_hours": null,
+    "dhw_planned_heating_hours": null,
+    "dhw_preheat_lead_hours": null,
+    "dhw_required_temperature_now": null,
+    "dhw_target_temperature": null,
+    "dhw_usage_profile": [
+     0.207792,
+     0.103896,
+     0.103896,
+     0.103896,
+     0.207792,
+     0.519481,
+     1.558442,
+     2.597403,
+     2.077922,
+     1.038961,
+     0.831169,
+     0.727273,
+     0.831169,
+     0.727273,
+     0.623377,
+     0.623377,
+     0.831169,
+     1.558442,
+     2.077922,
+     2.285714,
+     1.87013,
+     1.246753,
+     0.831169,
+     0.415584
+    ],
+    "dhw_windows": null,
+    "future_solar_6_12h_kwh": null,
+    "future_solar_energy_kwh": null,
+    "pre_heat_urgency": null,
+    "rain_anticipation_factor": null,
+    "solar_reduction_factor": null,
+    "wind_anticipation_factor": null
+   },
+   "native_value": "no forecast"
+  },
+  "pv_surplus": {
+   "extra_state_attributes": {
+    "self_consumed_kwh": 0.0
+   },
+   "native_value": null
+  },
+  "savings_percentage": {
+   "extra_state_attributes": {
+    "baseline_cost": null,
+    "deferred_energy_cost": null,
+    "predicted_cost": null,
+    "stat_kind": "savings_percentage"
+   },
+   "native_value": null
+  },
+  "schedule": {
+   "extra_state_attributes": {
+    "schedule": []
+   },
+   "native_value": "no schedule"
+  },
+  "schedule_steps": {
+   "extra_state_attributes": null,
+   "native_value": 0
+  },
+  "sensor_gap_advisor": {
+   "extra_state_attributes": {
+    "gaps": [
+     {
+      "empty": true,
+      "key": "house_power_entity",
+      "label": "Whole-house power",
+      "sek_per_month": 0.0
+     },
+     {
+      "empty": true,
+      "key": "outdoor_temp_entity",
+      "label": "Outdoor temperature",
+      "sek_per_month": 0.0
+     },
+     {
+      "empty": true,
+      "key": "dhw_temp_entity",
+      "label": "Hot water temperature",
+      "sek_per_month": 0.0
+     }
+    ],
+    "top_slot": null
+   },
+   "native_value": 0.0
+  },
+  "slab_temp": {
+   "extra_state_attributes": null,
+   "native_value": 22.0
+  },
+  "solar_heat_gain": {
+   "extra_state_attributes": {
+    "orientation_factor": 0.7,
+    "shgc": 0.7,
+    "solar_radiation_wm2": 0.0,
+    "window_area_m2": 10.0
+   },
+   "native_value": 0.0
+  },
+  "solar_irradiance": {
+   "extra_state_attributes": {
+    "forecast": [],
+    "plan_kind": "solar",
+    "solar_heat_gain_kw": 0.0,
+    "source": "weather"
+   },
+   "native_value": 0.0
+  },
+  "space_cost": {
+   "extra_state_attributes": {
+    "counting_since": "2026-01-15",
+    "measured": false,
+    "period": "lifetime accumulator; never reset. The state is the whole history, not today's or this month's figure; this_month_kwh / this_month_cost carry the current month.",
+    "split_method": "apportioned from the planned space/DHW power split; the total is measured when a power entity is configured",
+    "this_month_cost": 0.0,
+    "this_month_kwh": 0.0
+   },
+   "native_value": 0.0
+  },
+  "space_energy": {
+   "extra_state_attributes": {
+    "counting_since": "2026-01-15",
+    "measured": false,
+    "period": "lifetime accumulator; never reset. The state is the whole history, not today's or this month's figure; this_month_kwh / this_month_cost carry the current month.",
+    "split_method": "apportioned from the planned space/DHW power split; the total is measured when a power entity is configured",
+    "this_month_cost": 0.0,
+    "this_month_kwh": 0.0
+   },
+   "native_value": 0.0
+  },
+  "space_heating_plan": {
+   "extra_state_attributes": {
+    "currency": "SEK",
+    "dhw_windows_spec": "06:00-08:30, 17:00-22:00",
+    "horizon_hours": 24.0,
+    "manual_override": null,
+    "manual_plan_window_hours": 20,
+    "plan_kind": "space",
+    "projection": "planned for the optimization horizon ahead; recomputed on every replan. Not a measurement and not accumulated.",
+    "setup_topology": {
+     "buffer": {
+      "is_store": false,
+      "max_temp": 70.0,
+      "volume_l": 35.0
+     },
+     "catalog": [
+      {
+       "description": "Everything the pump makes reaches the emitters; the tank is a pass-through with a standing loss.",
+       "edges": [
+        [
+         "heat_pump",
+         "buffer_tank"
+        ],
+        [
+         "buffer_tank",
+         "upper_zone"
+        ],
+        [
+         "buffer_tank",
+         "lower_zone"
+        ]
+       ],
+       "key": "no_valve",
+       "label": "No mixing valve",
+       "requirement": "no throttling mixing valve configured",
+       "selectable": true,
+       "valid": true
+      },
+      {
+       "description": "The valve regulates one shared flow to every circuit; wood heat, if any, is folded into the heat-pump tank.",
+       "edges": [
+        [
+         "heat_pump",
+         "buffer_tank"
+        ],
+        [
+         "buffer_tank",
+         "mixing_valve"
+        ],
+        [
+         "mixing_valve",
+         "upper_zone"
+        ],
+        [
+         "mixing_valve",
+         "lower_zone"
+        ]
+       ],
+       "key": "single_tank_valve",
+       "label": "One tank behind a valve",
+       "requirement": "a throttling mixing valve",
+       "selectable": true,
+       "valid": false
+      },
+      {
+       "description": "A wood tank beside the heat-pump tank; the valve draws wood-first while usable and feeds both floors in parallel.",
+       "edges": [
+        [
+         "heat_pump",
+         "buffer_tank"
+        ],
+        [
+         "buffer_tank",
+         "mixing_valve"
+        ],
+        [
+         "wood_tank",
+         "mixing_valve"
+        ],
+        [
+         "mixing_valve",
+         "upper_zone"
+        ],
+        [
+         "mixing_valve",
+         "lower_zone"
+        ]
+       ],
+       "key": "two_tank_4way",
+       "label": "Two tanks, one 4-way valve",
+       "requirement": "a throttling valve, two zones and a wood-tank top probe",
+       "selectable": true,
+       "valid": false
+      },
+      {
+       "description": "Only the radiator circuit sits behind the valve; the slab drinks raw tank water.",
+       "edges": [
+        [
+         "heat_pump",
+         "buffer_tank"
+        ],
+        [
+         "buffer_tank",
+         "mixing_valve"
+        ],
+        [
+         "mixing_valve",
+         "upper_zone"
+        ],
+        [
+         "buffer_tank",
+         "lower_zone"
+        ]
+       ],
+       "key": "valve_upper_direct_slab",
+       "label": "Valve on the radiators, slab fed direct",
+       "requirement": "a throttling valve, two zones, and no wood-tank probe (no model exists for two tanks with a direct-fed slab)",
+       "selectable": true,
+       "valid": false
+      },
+      {
+       "description": "A second shunt on the slab circuit. Recorded as a known layout; not selectable until physics exists for it.",
+       "edges": [
+        [
+         "heat_pump",
+         "buffer_tank"
+        ],
+        [
+         "buffer_tank",
+         "mixing_valve"
+        ],
+        [
+         "mixing_valve",
+         "upper_zone"
+        ],
+        [
+         "buffer_tank",
+         "slab_shunt"
+        ],
+        [
+         "slab_shunt",
+         "lower_zone"
+        ]
+       ],
+       "key": "slab_shunt",
+       "label": "Separate slab shunt",
+       "requirement": "not selectable: no model variant exists yet",
+       "selectable": false,
+       "valid": false
+      }
+     ],
+     "dhw": false,
+     "dhw_wood_coil": false,
+     "edges": [
+      [
+       "heat_pump",
+       "buffer_tank"
+      ],
+      [
+       "buffer_tank",
+       "upper_zone"
+      ],
+      [
+       "buffer_tank",
+       "lower_zone"
+      ]
+     ],
+     "layout": "no_valve",
+     "positions": {},
+     "sensor_gaps": [
+      {
+       "empty": true,
+       "key": "house_power_entity",
+       "label": "Whole-house power",
+       "sek_per_month": 0.0
+      },
+      {
+       "empty": true,
+       "key": "outdoor_temp_entity",
+       "label": "Outdoor temperature",
+       "sek_per_month": 0.0
+      },
+      {
+       "empty": true,
+       "key": "dhw_temp_entity",
+       "label": "Hot water temperature",
+       "sek_per_month": 0.0
+      }
+     ],
+     "slots": [
+      {
+       "device_class": "temperature",
+       "domains": [
+        "sensor",
+        "number",
+        "input_number"
+       ],
+       "entity": null,
+       "key": "outdoor_temp_entity",
+       "label": "Outdoor temperature",
+       "place": "outdoor"
+      },
+      {
+       "device_class": "irradiance",
+       "domains": [
+        "sensor",
+        "number",
+        "input_number"
+       ],
+       "entity": null,
+       "key": "solar_radiation_entity",
+       "label": "Solar radiation",
+       "place": "outdoor"
+      },
+      {
+       "device_class": "power",
+       "domains": [
+        "sensor",
+        "number",
+        "input_number"
+       ],
+       "entity": null,
+       "key": "pv_production_entity",
+       "label": "PV production",
+       "place": "outdoor"
+      },
+      {
+       "device_class": "temperature",
+       "domains": [
+        "sensor",
+        "number",
+        "input_number"
+       ],
+       "entity": null,
+       "key": "indoor_temp_entity",
+       "label": "Indoor temperature",
+       "place": "upper_zone"
+      },
+      {
+       "device_class": "temperature",
+       "domains": [
+        "sensor",
+        "number",
+        "input_number"
+       ],
+       "entity": null,
+       "key": "lower_floor_temp_entity",
+       "label": "Lower floor temperature",
+       "place": "lower_zone"
+      },
+      {
+       "device_class": "temperature",
+       "domains": [
+        "sensor",
+        "number",
+        "input_number"
+       ],
+       "entity": null,
+       "key": "floor_return_temp_entity",
+       "label": "Floor loop return",
+       "place": "floor_loop"
+      },
+      {
+       "device_class": null,
+       "domains": [
+        "switch",
+        "input_boolean",
+        "climate"
+       ],
+       "entity": null,
+       "key": "heat_pump_switch_entity",
+       "label": "Heat pump switch",
+       "place": "heat_pump"
+      },
+      {
+       "device_class": "power",
+       "domains": [
+        "sensor",
+        "number",
+        "input_number"
+       ],
+       "entity": null,
+       "key": "heat_pump_power_entity",
+       "label": "Power meter",
+       "place": "heat_pump"
+      },
+      {
+       "device_class": "energy",
+       "domains": [
+        "sensor",
+        "number",
+        "input_number"
+       ],
+       "entity": null,
+       "key": "heat_pump_energy_entity",
+       "label": "Energy meter",
+       "place": "heat_pump"
+      },
+      {
+       "device_class": "power",
+       "domains": [
+        "sensor",
+        "number",
+        "input_number"
+       ],
+       "entity": null,
+       "key": "house_power_entity",
+       "label": "Whole-house power",
+       "place": "heat_pump"
+      },
+      {
+       "device_class": null,
+       "domains": [
+        "select",
+        "sensor",
+        "input_select"
+       ],
+       "entity": null,
+       "key": "heat_pump_mode_entity",
+       "label": "Operating mode",
+       "place": "heat_pump"
+      },
+      {
+       "device_class": null,
+       "domains": [
+        "binary_sensor",
+        "switch",
+        "input_boolean",
+        "sensor"
+       ],
+       "entity": null,
+       "key": "heat_pump_defrost_entity",
+       "label": "Defrosting",
+       "place": "heat_pump"
+      },
+      {
+       "device_class": null,
+       "domains": [
+        "binary_sensor",
+        "switch",
+        "input_boolean",
+        "sensor"
+       ],
+       "entity": null,
+       "key": "heat_pump_online_entity",
+       "label": "Online status",
+       "place": "heat_pump"
+      },
+      {
+       "device_class": null,
+       "domains": [
+        "binary_sensor",
+        "switch",
+        "input_boolean",
+        "sensor"
+       ],
+       "entity": null,
+       "key": "heat_pump_fault_entity",
+       "label": "Fault alarm",
+       "place": "heat_pump"
+      },
+      {
+       "device_class": "temperature",
+       "domains": [
+        "sensor",
+        "number",
+        "input_number"
+       ],
+       "entity": null,
+       "key": "buffer_tank_temp_entity",
+       "label": "Buffer tank temperature",
+       "place": "buffer_tank"
+      }
+     ],
+     "two_tank_modelled": false,
+     "two_zone": true,
+     "valve_mode": "none",
+     "wood": {
+      "present": false,
+      "volume_l": 500.0
+     }
+    },
+    "wood_fuel": {
+     "cheaper": false,
+     "cheaper_hour_count": 0,
+     "efficiency": null,
+     "packing": null,
+     "price_sek_m3": null,
+     "ready": false,
+     "sek_per_kwh": null,
+     "show_whatif": false,
+     "slots": [],
+     "type": null
+    }
+   },
+   "native_value": "no plan"
+  },
+  "thermal_battery": {
+   "extra_state_attributes": {
+    "charge_power_electrical_kw": 5.0,
+    "charge_rate_kw": 16.62,
+    "components": [
+     {
+      "measured": false,
+      "name": "upper_floor",
+      "soc_percent": 66.7,
+      "standing_loss_kw": 1.28,
+      "stored_kwh": 12.0,
+      "temperature": 21.0,
+      "usable_capacity_kwh": 18.0
+     },
+     {
+      "measured": false,
+      "name": "lower_floor",
+      "soc_percent": 66.7,
+      "standing_loss_kw": 1.12,
+      "stored_kwh": 32.0,
+      "temperature": 21.0,
+      "usable_capacity_kwh": 48.0
+     },
+     {
+      "measured": false,
+      "name": "slab",
+      "soc_percent": 95.9,
+      "standing_loss_kw": 0.0,
+      "stored_kwh": 25.0,
+      "temperature": 22.0,
+      "usable_capacity_kwh": 26.062
+     },
+     {
+      "measured": false,
+      "name": "buffer_tank",
+      "soc_percent": 43.4,
+      "standing_loss_kw": 0.0129,
+      "stored_kwh": 0.934,
+      "temperature": 40.0,
+      "usable_capacity_kwh": 2.152
+     }
+    ],
+    "discharge_rate_kw": 2.413,
+    "hours_of_autonomy": 28.98,
+    "measured_components": [],
+    "modelled_components": [
+     "upper_floor",
+     "lower_floor",
+     "slab",
+     "buffer_tank"
+    ],
+    "round_trip_efficiency_6h": 79.3,
+    "state_of_charge_percent": 74.2,
+    "stored_energy_kwh": 69.93,
+    "usable_capacity_kwh": 94.21
+   },
+   "native_value": 74.2
+  },
+  "thermal_battery_energy": {
+   "extra_state_attributes": {
+    "charge_rate_kw": 16.62,
+    "discharge_rate_kw": 2.413,
+    "hours_of_autonomy": 28.98,
+    "modelled_components": [
+     "upper_floor",
+     "lower_floor",
+     "slab",
+     "buffer_tank"
+    ],
+    "round_trip_efficiency_6h": 79.3,
+    "usable_capacity_kwh": 94.21
+   },
+   "native_value": 69.93
+  },
+  "total_cost": {
+   "extra_state_attributes": {
+    "counting_since": "2026-01-15",
+    "measured": false,
+    "period": "lifetime accumulator; never reset. The state is the whole history, not today's or this month's figure; this_month_kwh / this_month_cost carry the current month.",
+    "split_method": "apportioned from the planned space/DHW power split; the total is measured when a power entity is configured"
+   },
+   "native_value": 0.0
+  },
+  "total_energy": {
+   "extra_state_attributes": {
+    "counting_since": "2026-01-15",
+    "measured": false,
+    "period": "lifetime accumulator; never reset. The state is the whole history, not today's or this month's figure; this_month_kwh / this_month_cost carry the current month.",
+    "split_method": "apportioned from the planned space/DHW power split; the total is measured when a power entity is configured"
+   },
+   "native_value": 0.0
+  },
+  "upper_floor_temp": {
+   "extra_state_attributes": {
+    "source": "indoor_temperature"
+   },
+   "native_value": 21.0
+  },
+  "valve_target_recommendation": {
+   "extra_state_attributes": {},
+   "native_value": null
+  },
+  "wood_burn_advisor": {
+   "extra_state_attributes": {
+    "action": "none",
+    "reason": "",
+    "when": null
+   },
+   "native_value": null
+  }
+ }
 }
