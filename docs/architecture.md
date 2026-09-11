@@ -32,7 +32,7 @@ flowchart LR
     end
 
     subgraph out["Outputs"]
-        ent["65 entities<br/>55 sensors, 4 binary sensors,<br/>4 buttons, 1 switch, 1 climate"]
+        ent["74 entities<br/>59 sensors, 5 binary sensors,<br/>4 buttons, 4 switches,<br/>1 climate, 1 datetime"]
         card["Dashboard card<br/>plan chart, editor, setup page"]
         ctl["Actuation<br/>heat pump switch,<br/>ECL110 displace,<br/>compressor frequency"]
     end
@@ -116,7 +116,7 @@ custom_components/heatpump_optimizer/
 ├── narrative.py          # The plan told in sentences, grouped by reason
 │
 │   # Home Assistant entities and frontend
-├── sensor.py             # 55 sensors
+├── sensor.py             # 59 sensors
 ├── binary_sensor.py      # Input problem, open window, external heat, away mode
 ├── button.py             # Optimize now, run identification, reset comfort
 │                         #   weight, diagnose last interval
