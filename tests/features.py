@@ -11656,8 +11656,17 @@ R.check(
 
 
 def _mold_coord(rh_state=None, **cfg):
+    # Coordinator humidity uses age_of(..., dt_util.utcnow()), not the
+    # frozen InputReader clock. A missing stamp is unusable there; a
+    # stamp of NOW (Feb 2026) is months stale. Wall-clock recent is live.
     states = (
-        {"sensor.rh": FakeState(rh_state, unit="%")} if rh_state is not None else {}
+        {
+            "sensor.rh": FakeState(
+                rh_state, unit="%", last_updated=minutes_ago(5)
+            )
+        }
+        if rh_state is not None
+        else {}
     )
     c = _t2_coord(states=states, **cfg)
     c._current_state.room_temperature = 21.0
