@@ -407,6 +407,22 @@ something that reads as complete while covering a fraction.
 | **#683** mutate the record mode's three outputs | **CLOSED by [#695](https://github.com/tvofi/heatpump_optimizer/pull/695), merged `1684e62`.** A second enumeration is exported from production beside the first; the lane mutates the record-mode outputs and an emptied `CAP_RES`. | shipped |
 | **#684** a worktree collector | **CLOSED by [#716](https://github.com/tvofi/heatpump_optimizer/pull/716), merged `a1f148a`.** `tools/audit/worktree_gc.sh`, dry-run by default. Deletes only when the four predicates in the issue hold; a branch worktree is never touched. `--self-test` drives each keep criterion and the issue's null control. | shipped |
 | **#685** handover traps 16–18 render under different numbers than their source | **filed only because the owner asked for the whole list as issues.** A line-neutral reorder of three items in `docs/HANDOVER.md` — it sits at its cap, and a reorder adds no line — fixes every citation; a `counts`-class rule that an ordered list's source numbers run `1..n` keeps it fixed. Policy file, so decision 0007's per-PR approval | any seat |
+| **#774** reload plan handover has no expiry | **held** — product hold still gates it. A published payload can report a week-old plan as age zero. | leftover, after hold |
+| **#781** frequency map folded during reverse-cycle cooling | **held** — product hold still gates it. The map is inherited when a user switches to control mode. | leftover, after hold |
+| **#783** in-process solve fallback holds the GIL | **held** — product hold still gates it. Mutually exclusive with #784. | leftover, after hold |
+| **#784** solve worker released only at Home Assistant shutdown | **held** — product hold still gates it. Mutually exclusive with #783. | leftover, after hold |
+| **#796** one default-on sensor renders Unknown | **held** — product hold still gates it. Siblings render Unavailable. | leftover, after hold |
+| **#797** entity display names mix leading and trailing nouns | **held** — product hold still gates it. An alphabetical sort splits families. | leftover, after hold |
+| **#798** ruleset cannot require a review from any actor | **deferred — owner word on ruleset 22628467 still required.** Do not edit the ruleset. | owner |
+| **#799** record is a required context that cannot run on a pull request | **deferred — owner word on ruleset 22628467 still required.** Do not edit the ruleset. Do not build the pre-merge record arm. | owner |
+| **#802** dispatch prompts read GitHub free text while holding merge | **scheduled — write-grant half.** First half (free text is data) is on main as #863. The narrower grant in the MCP mapping file remains. | leftover |
+| **#805** single-line production mutants survive the fast and golden gates | **deferred — do not take** until the product queue is clear. | leftover, later |
+| **#817** the audit instrument's own defects | **deferred — last of all**, after every product issue merges. | after product |
+| **#826** L-BFGS-B stops at its own ftol and is never restarted | **held** — product hold still gates it. The cheap restart is the allowed arm; the seeding arm is refused. | leftover, after hold |
+| **#829** strict-typing is unmet under the repository's own ruler | **deferred.** Do not add a typing marker file. Do not raise typing budgets. | leftover, later |
+| **#830** coordinator is built without config_entry | **held** — product hold still gates it. One-keyword, no user-visible effect at any shipped version. | leftover, after hold |
+| **#860** six leftovers handed to the cursor lane | **in flight — items 1 and 6 this pull request.** Items 2 and 3 landed as #864 and #862. Item 4 is #865. Item 5 is #856, theirs. | this PR |
+| **#865** the pull-request body is one live object | **scheduled — root-cause seat.** Only the current head's contract result means anything. Do not skip to writing a check. | #865 |
 
 **Seven feature requests, #697-#703, are in the table above and none of them is this programme's work.** They were the
 repository owner's own backlog, filed 2026-09-09 while the governance lane was running. They appear here because

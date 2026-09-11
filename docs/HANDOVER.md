@@ -1,6 +1,6 @@
 # Handover — the open-issues programme
 
-updated-for: 7f385f298337f88b5f68e542f43d9fe3f5df7aea
+updated-for: 1e66bb7a2c879d56868223e6d8d3d3f8d4d72134
 
 The rule that governs this file is `.claude/rules/writing-for-agents.md`, which
 the harness loads on this very path. Delivery status is
@@ -10,17 +10,12 @@ the harness loads on this very path. Delivery status is
 
 - **Model routing is Claude seats.** Opus 5: orchestrator, architectural fixer
   and reviewer, survey, judge, production fixer. Sonnet 5: tests, tooling, docs,
-  records, read-only reporting, stamp drafting. **Fable 5.1 is routed on a rare,
-  exceptional basis — a very large, multi-layer refactoring where Opus 5 is
-  judged too risky** (the owner's rule, 2026-09-09). The roster tokens `opus` and
-  `sonnet` map literally and no `wave-*-groups.json` names a third.
-  **A Fable trailer on a merge or a release stamp is the session's own model, not
-  a routing event.** Those are different axes, and reading the trailer count as
-  routing manufactures a contradiction that is not there — an earlier form of this
-  bullet did exactly that. Scrape each with its own command rather than restating
-  a count: `git log --first-parent --format='%(trailers:key=Co-Authored-By,valueonly)'`
-  for the sessions, and the `fixerModel` / `reviewerModel` keys of the rosters for
-  the routing.
+  records, read-only reporting, stamp drafting. **Fable 5.1 is only for a very
+  large multi-layer refactoring where Opus 5 is judged too risky** (owner,
+  2026-09-09). Roster tokens `opus` and `sonnet` map literally.
+  **A Fable trailer on a merge or a stamp is the session's model, not a routing
+  event.** Scrape trailers and the roster `fixerModel` / `reviewerModel` keys
+  separately; do not restate a count.
 - **The decomposition stage criterion (Wave 4, S3–S8):** proceed only by cutting
   the stage's own cut by inside-extraction or `coordinator_loc` with nothing
   rising; halt otherwise, recording the cut's owned-versus-read-by-others split.
@@ -36,15 +31,11 @@ the harness loads on this very path. Delivery status is
   the gate evidence. Local runs exist for what CI structurally cannot produce:
   the mutation proof, the failing test at the merge base, and the finder's own
   harness at both ends.
-- **#387 was fixed with the `env_drift` shape**, not by growing `alt_basins` and
-  not by lowering the coverage floor. Solver work is captured twice in one run —
-  tree and merge base — and computed is compared against computed, so there is
-  no cross-machine assumption and no table to re-record. Two consequences were
-  ruled on separately: the WORK channel's stale-cheap rule is a printed report
-  rather than a failure, because that channel's baseline can no longer go stale
-  and the failure would turn a genuine optimisation red; and the coverage floor
-  is a literal, not an environment override, because an override could be
-  reached in CI without ever appearing in a pull-request body.
+- **#387 was fixed with the `env_drift` shape**, not by growing `alt_basins`
+  and not by lowering the coverage floor. Tree and merge base are captured in
+  one run and compared computed-to-computed. The WORK channel's stale-cheap
+  rule is a printed report, not a failure; the coverage floor is a literal,
+  not an environment override.
 - **Every sentence earns its place** (owner-directed, 2026-09-07). The rule, its
   scope and its controls are in `.claude/rules/writing-for-agents.md`; recorded
   here so that the decision to adopt it is not relitigated.
@@ -83,6 +74,14 @@ the harness loads on this very path. Delivery status is
   resolves a *file name* to an artefact; the looser one — any number near a file
   name — was built and **refused in review** for reading a date and a line count
   as caps, and `preflight.sh`'s figure advisory stays advisory for #581's reason.
+- **The pull-request body is one live object.** Every head's contract job reads
+  the current body, so only that head's result is a result. A red at a
+  superseded head is the instrument, not the commit. The root-cause seat is
+  the issue this property opened; do not skip to writing a check.
+- **A coverage ratio over an open set of mutation carriers is not a figure.**
+  The denominator is unbounded. State the class.
+- **A figure about the document it lives in is derived beside it, at the head.**
+  Carrying one is how it goes stale on every review of the artifact that states it.
 
 ### The UX programme
 
