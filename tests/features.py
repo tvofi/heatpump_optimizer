@@ -27527,6 +27527,20 @@ def _t3_coord(**config):
     )
 
 
+def _t3_call(fn, *args, **kwargs):
+    """Call one synchronous method, returning its value or the exception.
+
+    Tranche 2 measured seven mutations that ended the whole script rather
+    than failing the check named for the guard they removed. A comparison
+    against an exception object is False, so a check written against this
+    fails by NAME on the same mutation.
+    """
+    try:
+        return fn(*args, **kwargs)
+    except Exception as err:  # noqa: BLE001
+        return err
+
+
 def _t3_drive(coord, method, *args, **kwargs):
     """Await one coordinator method and capture anything that escapes it."""
     coord._t3_escaped = None
@@ -27570,10 +27584,12 @@ R.check(
     f"{_t3_coord(solar_location={'latitude': 10.5})._solar_location()!r} -- "
     "the longitude is absent, so neither value is taken",
 )
+_t3_loc_str = _t3_call(_t3_coord(solar_location="somewhere")._solar_location)
 R.check(
     "an option that is not a mapping at all is ignored, not indexed",
-    _t3_coord(solar_location="somewhere")._solar_location() == (59.33, 18.07),
-    f"{_t3_coord(solar_location='somewhere')._solar_location()!r}",
+    _t3_loc_str == (59.33, 18.07),
+    f"{_t3_loc_str!r} -- a bare string has no `.get`, so dropping the type "
+    "test raises rather than misreading",
 )
 _t3_loc_nolat = _t3_coord()
 _t3_loc_nolat.hass.config.latitude = None
@@ -27835,16 +27851,18 @@ R.check(
 )
 _t3_pv_arms = {}
 for _t3_pv_state in ("unknown", "unavailable", "", "lots"):
-    _t3_pv_arms[_t3_pv_state] = HeatPumpOptimizerCoordinator(
-        FakeHass({"sensor.export": FakeState(_t3_pv_state)}),
-        FakeEntry(
-            data=dict(
-                _T3_DATA,
-                pv_export_price_entity="sensor.export",
-                pv_export_price=0.44,
-            )
-        ),
-    )._pv_export_price()
+    _t3_pv_arms[_t3_pv_state] = _t3_call(
+        HeatPumpOptimizerCoordinator(
+            FakeHass({"sensor.export": FakeState(_t3_pv_state)}),
+            FakeEntry(
+                data=dict(
+                    _T3_DATA,
+                    pv_export_price_entity="sensor.export",
+                    pv_export_price=0.44,
+                )
+            ),
+        )._pv_export_price
+    )
 _t3_pv_gone = HeatPumpOptimizerCoordinator(
     FakeHass({}),
     FakeEntry(
@@ -27932,10 +27950,11 @@ _t3_kp_late._prices = [
         "total": 5.0,
     }
 ]
+_t3_kp_late_out = _t3_call(_t3_kp_late._known_prices_for, _T3_STEPS)
 R.check(
     "prices that begin after the grid does cover none of it, rather than the first",
-    _t3_kp_late._known_prices_for(_T3_STEPS) == [],
-    f"{_t3_kp_late._known_prices_for(_T3_STEPS)!r} from one entry three "
+    _t3_kp_late_out == [],
+    f"{_t3_kp_late_out!r} from one entry three "
     "hours ahead -- taking it for step 0 would price the next two hours from "
     "a tariff that has not started",
 )
@@ -27976,11 +27995,13 @@ R.check(
     f"Nov-Mar -> {sorted(_t3_coord(peak_tariff_months='Nov-Mar')._tariff_months())}, "
     f"Nov-Mar;Jul -> {sorted(_t3_coord(peak_tariff_months='Nov-Mar;Jul')._tariff_months())}",
 )
+_t3_tm_partial = _t3_call(
+    _t3_coord(peak_tariff_months="Nov-Mar,Smarch")._tariff_months
+)
 R.check(
     "a spec whose FIRST chunk is valid is still discarded whole, not narrowed",
-    _t3_coord(peak_tariff_months="Nov-Mar,Smarch")._tariff_months()
-    == frozenset(),
-    f"{sorted(_t3_coord(peak_tariff_months='Nov-Mar,Smarch')._tariff_months())} "
+    _t3_tm_partial == frozenset(),
+    f"{_t3_tm_partial!r} "
     "from 'Nov-Mar,Smarch' -- keeping the accumulated {1,2,3,11,12} would "
     "look exactly like a correct Nov-Mar mask, and the user asked for more "
     "than that",
@@ -27998,13 +28019,15 @@ R.check(
     == ((7.0, 9.0), (17.0, 20.0)),
     f"{_t3_coord(peak_tariff_hours='07:00-09:00,17:00-20:00')._tariff_hours()!r}",
 )
+_t3_th_arms = [
+    _t3_call(_t3_coord(peak_tariff_hours=spec)._tariff_hours)
+    for spec in ("breakfast", "25:00-26:00", "07:00-09:00,breakfast")
+]
 R.check(
     "a malformed hour spec, and a partly valid one, both read as every hour",
-    _t3_coord(peak_tariff_hours="breakfast")._tariff_hours() == ()
-    and _t3_coord(peak_tariff_hours="25:00-26:00")._tariff_hours() == ()
-    and _t3_coord(peak_tariff_hours="07:00-09:00,breakfast")._tariff_hours()
-    == (),
-    "'breakfast', '25:00-26:00' and '07:00-09:00,breakfast' all -> () -- "
+    _t3_th_arms == [(), (), ()],
+    f"{_t3_th_arms!r} for 'breakfast', '25:00-26:00' and "
+    "'07:00-09:00,breakfast' -- "
     "`parse_windows` takes the whole spec, so there is no partial result to "
     "keep here, and the check pins that the refusal is total",
 )
@@ -28360,7 +28383,8 @@ def _t3_headroom(plan, **config):
     c = _t3_coord(**dict(_T3_FUSE, **config))
     c._current_action = {"power": 1.0, "dhw_power": 0.5}
     c._optimization_result = plan
-    return c._power_headroom()
+    got = _t3_call(c._power_headroom)
+    return got if isinstance(got, dict) else {"escaped": repr(got)}
 
 
 _t3_hr_none = _t3_headroom(None)
