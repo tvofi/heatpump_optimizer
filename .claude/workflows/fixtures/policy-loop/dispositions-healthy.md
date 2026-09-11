@@ -29,7 +29,7 @@ capped `docs/HANDOVER.md` at #608, and that is an issue number, not a cap.
 #607 added 43 lines to `docs/HANDOVER.md` and merged 56 minutes later, a plain number off the cap word.
 `README.md` has a cap of 999, but that name resolves to two files, so it is nobody's claim.
 `docs/HANDOVER.md` at 999 lines exceeds its cap, and a length before the word lines is not a cap.
-#608 raised `docs/HANDOVER.md`'s cap from 273 to 406, which is true, because the claim is the number after "to".
+#608 raised `docs/HANDOVER.md`'s cap from 273 to 1000, which is true, because the claim is the number after "to".
 the #608-line cap on `docs/HANDOVER.md`, where the number-first form meets an issue number.
 #608 capped `docs/HANDOVER.md` on 2026-09-07, and a date after the file name is not a cap.
 the cap on `docs/HANDOVER.md` refused 24 lines, and a count after the file name is not a cap either.

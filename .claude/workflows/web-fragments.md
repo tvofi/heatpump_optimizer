@@ -11,14 +11,19 @@ between the `meta` literal and the first `phase()`.
 canonical text is here.
 
 ```js
-const GH = `No gh CLI exists in this environment. For every GitHub action run
+const GH_READ = `No gh CLI exists in this environment. For every GitHub read run
 ToolSearch with "select:<tool>" first, then call it (owner tvofi, repo
-heatpump_optimizer): issue_read (get / get_comments), add_issue_comment,
-issue_write (update: labels, state, state_reason), create_pull_request,
-update_pull_request, pull_request_read (get, get_check_runs, get_comments,
-get_files, get_diff), list_pull_requests, merge_pull_request (squash), actions_list
-(list_workflow_runs on tests.yml, branch main), actions_get, get_job_logs
-(failed_only).`
+heatpump_optimizer): issue_read (get / get_comments), pull_request_read
+(get, get_check_runs, get_comments, get_files, get_diff), list_pull_requests,
+actions_list (list_workflow_runs on tests.yml, branch main), actions_get,
+get_job_logs (failed_only). This grant is read-only.`
+
+const GH_WRITE = `Write grant, not merge: add_issue_comment, issue_write
+(update: labels, state, state_reason), create_pull_request, update_pull_request.
+Hold only in a phase that writes. Never together with the merge grant.`
+
+const GH_MERGE = `Merge grant: merge_pull_request (squash). Hold only in the
+merge phase. Do not hold the read grant here.`
 
 const GATE = `Gate rules on this 4-core box. The shell's working directory
 resets between calls: pin cd in every command. PYTHONPATH=tests/hastub for
@@ -100,7 +105,7 @@ const RANK = { haiku: 0, sonnet: 1, opus: 2 }
 const tierOk = (f, r) => RANK[f] !== undefined && RANK[r] !== undefined && RANK[r] >= RANK[f]
 
 const MERGE = { type: 'object', required: ['merged'] }
-const mergePrompt = (pr, head) => `${GH} Merge PR #${pr} only if ALL of:
+const mergePrompt = (pr, head) => `${GH_READ} ${GH_WRITE} ${GH_MERGE} Merge PR #${pr} only if ALL of:
 pull_request_read get shows mergeable_state clean and head sha ${head};
 get_check_runs shows every check success or skipped; the newest "Fix review:"
 comment says merge and post-dates that head; the diff touches neither VERSION
@@ -110,7 +115,7 @@ If mergeable_state is dirty, return {merged: false, reason: "needs repair"} --
 do not merge main into the branch yourself, the fixer must, because a rebase
 invalidates the evidence. Otherwise {merged: false, reason}.`
 
-const waitMainPrompt = (sha) => `${GH} Poll actions_list (workflow tests.yml,
+const waitMainPrompt = (sha) => `${GH_READ} Poll actions_list (workflow tests.yml,
 branch main) until the run for ${sha} completes; check every three minutes,
 give up after two hours. Require both fast and closures to be success. On a
 red run, fetch the failing job log (get_job_logs, failed_only) and return
@@ -133,20 +138,14 @@ true, version, tag_sha}.`
 
 ## Substitutions for a session running outside the original container
 
-The canonical `GH`/`GATE`/`WT` blocks above are left unedited on purpose — the
-five `web-*.js` scripts each carry their own copy by hand, and
-`check-wave-script.mjs`'s recorded fixtures pin those scripts' text, so editing
-the canonical copy here without editing all five would desynchronise them for
-no reason. A session running on the owner's own Mac instead of the original
-4-core container substitutes exactly two things, and the substitution does not
-change the control flow of any `web-*.js` script.
+The grant / gate / worktree blocks above are the canonical copies;
+`.claude/workflows/fragments_sync.mjs` refuses drift. A Mac session
+substitutes two things; no `web-*.js` control flow changes.
 
-**1. The `GH` block's premise is false here.** "No `gh` CLI exists in this
-environment" does not hold on the owner's machine, which has `gh` 2.98
-authenticated as `tvofi`. Use these equivalents in place of the named MCP
-tools:
+**1. The read-grant premise is false here.** This machine has `gh` 2.98
+as `tvofi`. Equivalents for the named MCP tools:
 
-| MCP tool (as `GH` names it) | `gh` CLI equivalent |
+| MCP tool | `gh` CLI equivalent |
 |---|---|
 | `issue_read` (get / get_comments) | `gh issue view N --comments` / `gh issue view N --json body,comments,labels` |
 | `add_issue_comment` | `gh issue comment N --body-file <file>` |
@@ -159,10 +158,6 @@ tools:
 | `actions_get` | `gh run view <id> --json jobs` |
 | `get_job_logs` (failed_only) | `gh run view <id> --log-failed` |
 
-**2. The `WT` block's worktree root is a parameter, not a constant.** It is
-`/home/user/wt/` in the original container and `/Users/timmalmstrom/wt/` on the
-owner's Mac. A brief names the root for its own run; an agent never hard-codes
-the other one.
-
-Keep this short and factual, and keep it in sync only with the two lines above
-— it does not need to grow every time a new machine runs this programme.
+**2. The worktree root is a parameter.** `/home/user/wt/` in the
+container; `/Users/timmalmstrom/wt/` on this Mac. A brief names the
+root; an agent never hard-codes the other.

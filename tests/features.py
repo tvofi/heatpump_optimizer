@@ -2632,6 +2632,96 @@ def _d903_jac_f0_reuses_fun():
 
 _d903_jac_f0_reuses_fun()
 
+
+def _d0_restart_from_returned_point():
+    """R3-D0-01/02: L-BFGS-B is restarted once from its own returned point."""
+    x0s: list = []
+    results: list = []
+    real = _grad_optmod._scoped_minimize
+
+    def spy(*a, **k):
+        x0 = np.asarray(k["x0"] if "x0" in k else a[1], dtype=float).copy()
+        x0s.append(x0)
+        out = real(*a, **k)
+        results.append(out)
+        return out
+
+    def obj(x, *_a):
+        d = np.asarray(x, dtype=float) - 1.0
+        return float(np.dot(d, d))
+
+    _grad_optmod._scoped_minimize = spy
+    try:
+        _grad_optmod._multi_start_minimize(
+            obj, [np.zeros(4)], [(-2.0, 2.0)] * 4, maxiter=20,
+        )
+    finally:
+        _grad_optmod._scoped_minimize = real
+    R.check(
+        "one production start is followed by one restart from the returned point",
+        len(x0s) == 2,
+        f"minimize calls={len(x0s)}",
+    )
+    R.check(
+        "the restart's x0 is the first run's returned point",
+        len(x0s) == 2 and bool(np.allclose(x0s[1], results[0].x)),
+        f"x0s={len(x0s)} first.x={getattr(results[0], 'x', None) if results else None}",
+    )
+
+
+_d0_restart_from_returned_point()
+
+
+def _d0_restart_keeps_only_a_real_drop():
+    """#826: an ftol tick is not a new plan; a 5e-2 relative drop is."""
+
+    class _Res:
+        def __init__(self, x: np.ndarray) -> None:
+            self.x = np.asarray(x, dtype=float)
+
+    def obj(x: np.ndarray, *_a: object) -> float:
+        x = np.asarray(x, dtype=float)
+        if np.allclose(x, 0.0):
+            return 100.0
+        if np.allclose(x, 1.0):
+            return 99.9999
+        if np.allclose(x, 2.0):
+            return 95.0
+        raise AssertionError(x)
+
+    real = _grad_optmod._scoped_minimize
+    chosen: dict[str, np.ndarray] = {"x": np.array([1.0, 1.0])}
+
+    def spy(*_a: object, **_k: object) -> _Res:
+        return _Res(chosen["x"])
+
+    _grad_optmod._scoped_minimize = spy
+    try:
+        best = _Res(np.zeros(2))
+        bounds = [(-10.0, 10.0)] * 2
+        tick = _grad_optmod._lbfgsb_restart(
+            best, obj, bounds, (), 20, None, 1e-4,
+        )
+        R.check(
+            "an ftol-tick restart is not adopted",
+            tick is best,
+            f"kept {getattr(tick, 'x', None)}",
+        )
+        chosen["x"] = np.array([2.0, 2.0])
+        drop = _grad_optmod._lbfgsb_restart(
+            best, obj, bounds, (), 20, None, 1e-4,
+        )
+        R.check(
+            "a 5e-2 relative drop is adopted",
+            drop is not best and bool(np.allclose(drop.x, 2.0)),
+            f"kept {getattr(drop, 'x', None)}",
+        )
+    finally:
+        _grad_optmod._scoped_minimize = real
+
+
+_d0_restart_keeps_only_a_real_drop()
+
 # Space-only, uniform bounds (the historical five, unchanged).
 _grad_parity(False, label="single-zone")
 _grad_parity(True, label="two-zone")

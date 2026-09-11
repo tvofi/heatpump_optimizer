@@ -522,7 +522,7 @@ for _label, _platform, _heading in (
 # That is one of six gates; the billed price has no silent default, so a
 # user whose entity stays blank was sent to the wrong cause.
 _wc_notes = _re.search(
-    r"^\| Wood cheaper than heat pump \|[^|\n]*\|([^|\n]*)\|",
+    r"^\| Wood Cheaper Than Heat Pump \|[^|\n]*\|([^|\n]*)\|",
     readme,
     _re.M,
 )
@@ -5802,12 +5802,12 @@ R.check(
 )
 R.check(
     "the DHW boost switch is named through its translation key",
-    display_name("switch", dhw_boost_sw) == "Boost hot water",
+    display_name("switch", dhw_boost_sw) == "Boost Hot Water",
     display_name("switch", dhw_boost_sw),
 )
 R.check(
     "the space boost switch is named through its translation key",
-    display_name("switch", space_boost_sw) == "Boost space heating",
+    display_name("switch", space_boost_sw) == "Boost Space Heating",
     display_name("switch", space_boost_sw),
 )
 R.check("both boost switches are off when no overlay is live",
@@ -6825,6 +6825,34 @@ R.check(
     "the Swedish entity names are actually translated",
     _untranslated < _total_names / 4,
     f"{_untranslated} of {_total_names} identical to English",
+)
+
+# #797: English entity names follow one house style. The D8-03 instrument
+# (tools/audit/round3/D8/d8_ordering.py `_sentence_case`) counts a name as
+# sentence-case when a content word after the first starts lower-case.
+# Stop-words and parentheticals are excluded because both conventions
+# lower-case them. Read the registered strings, not a roster we supply.
+_CASE_STOP = frozenset(
+    {
+        "of", "the", "a", "an", "in", "on", "for", "to", "and", "than",
+        "per", "vs", "h", "next", "lifetime", "estimated", "model",
+        "optimizer",
+    }
+)
+_sentence_case_names = []
+for _plat, _ents in _ENTITY_STRINGS.items():
+    for _key, _body in _ents.items():
+        _name = _body["name"]
+        _words = [
+            w for w in re.split(r"[\s\-()]+", _name) if w and w[0].isalpha()
+        ]
+        _tail = [w for w in _words[1:] if w.lower() not in _CASE_STOP]
+        if any(w[0].islower() for w in _tail):
+            _sentence_case_names.append(f"{_plat}.{_key}:{_name}")
+R.check(
+    "English entity display names are Title Case",
+    not _sentence_case_names,
+    ", ".join(_sentence_case_names),
 )
 
 # CRITICAL id stability: pre-assigning ``entity_id`` is the integration

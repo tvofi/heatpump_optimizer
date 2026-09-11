@@ -467,8 +467,8 @@ every sensor is created on every install regardless of which group it is in.
 | ECL110 Displace | °C | The parallel shift commanded to an ECL110 heat curve | Diagnostic; disabled by default; ECL110 hardware |
 | ECL110 Effective Displace | °C | The shift the controller has actually reached, after its own lag | Diagnostic; disabled by default; ECL110 hardware |
 | Valve Target Recommendation | °C | What to set a manual mixing valve to, and why | Diagnostic; disabled by default; needs a mixing-valve mode |
-| Sensor-gap euro advisor | CUR | Estimated extra €/month from the highest-value empty sensor slot | Diagnostic; outdoor, house meter, DHW probe |
-| Wood-burn night advisor | — | 48 h light/skip advice when the wood furnace is on | Diagnostic; advisory only — never lights the stove |
+| Sensor-Gap Euro Advisor | CUR | Estimated extra €/month from the highest-value empty sensor slot | Diagnostic; outdoor, house meter, DHW probe |
+| Wood-Burn Night Advisor | — | 48 h light/skip advice when the wood furnace is on | Diagnostic; advisory only — never lights the stove |
 
 Disabled by default: ECL110 Displace, ECL110 Effective Displace, Contract
 Comparison, DHW Heavy Day Demand, Valve Target Recommendation and Compressor
@@ -482,7 +482,7 @@ Frequency Advisor.
 | Open Window Detected | The house is losing heat as if a window were open | Diagnostic; learning pauses while it is on |
 | External Heat Source | Something other than the heat pump is heating the tanks | Evidence in attributes |
 | Away Mode | The away setback is active | Return time and recovery state in attributes |
-| Wood cheaper than heat pump | Burning wood costs less per kWh than running the heat pump | Unavailable until the furnace is on, a wood-tank probe is set, external-heat detection or the DHW wood coil is on, type and packing are set, the billed price per m³ is greater than 0 (no silent default), and furnace efficiency is 10–95 %. A usable wood tank alone is not enough. Price and cheaper-hour count in attributes |
+| Wood Cheaper Than Heat Pump | Burning wood costs less per kWh than running the heat pump | Unavailable until the furnace is on, a wood-tank probe is set, external-heat detection or the DHW wood coil is on, type and packing are set, the billed price per m³ is greater than 0 (no silent default), and furnace efficiency is 10–95 %. A usable wood tank alone is not enough. Price and cheaper-hour count in attributes |
 
 ### Buttons (4 total)
 
@@ -502,7 +502,7 @@ Frequency Advisor.
 entity holding when you expect to be back — the optimizer buys the recovery heat
 in the cheapest hours before it. Both are also driven by the `set_away` service.
 
-**Boost hot water** and **Boost space heating** each apply maximum heat on that
+**Boost Hot Water** and **Boost Space Heating** each apply maximum heat on that
 channel for two hours: the planner's DHW ceiling, or nameplate space heat with
 the comfort ceiling and full curve displace. They expire on their own and do
 not switch the optimizer into the global boost mode.
