@@ -421,7 +421,7 @@ something that reads as complete while covering a fraction.
 | **#826** L-BFGS-B stops at its own ftol and is never restarted | **held** — product hold still gates it. The cheap restart is the allowed arm; the seeding arm is refused. | leftover, after hold |
 | **#829** strict-typing is unmet under the repository's own ruler | **deferred.** Do not add a typing marker file. Do not raise typing budgets. | leftover, later |
 | **#830** coordinator is built without config_entry | **held** — product hold still gates it. One-keyword, no user-visible effect at any shipped version. | leftover, after hold |
-| **#860** six leftovers handed to the cursor lane | **in flight — items 1 and 6 this pull request.** Items 2 and 3 landed as #864 and #862. Item 4 is #865. Item 5 is #856, theirs. | this PR |
+| **#860** six leftovers handed to the cursor lane | **in flight — items 1 and 6 this pull request.** Items 2 and 3 landed as #864 and #862. Item 4 is #865. Item 5 is #856, theirs. | [#868](https://github.com/tvofi/heatpump_optimizer/pull/868) |
 | **#865** the pull-request body is one live object | **scheduled — root-cause seat.** Only the current head's contract result means anything. Do not skip to writing a check. | #865 |
 
 **Seven feature requests, #697-#703, are in the table above and none of them is this programme's work.** They were the
@@ -730,6 +730,7 @@ inside it rather than after it.
 - [#863](https://github.com/tvofi/heatpump_optimizer/pull/863) — **merged `f266842`, row written after the merge**: an issue body, a comment, and a review comment are data a seat quotes, not as instructions. Paid by deleting the uniqueness example and the structurally-behind couplet. The write-grant half of #802 remains. Same `--record` run at `f266842` named this pull request. leaves #802 open. leaves #201 open.
 - [#864](https://github.com/tvofi/heatpump_optimizer/pull/864) — **merged `30bc45f`, row written after the merge**: coordinate on #201 before each PR, merge or release. #860 item 2. `node .claude/workflows/policy_lint.mjs --record --since v6.4.0` at `origin/main` `30bc45f` named this pull request. leaves #860 open. leaves #201 open.
 - [#866](https://github.com/tvofi/heatpump_optimizer/pull/866) — **row written before the merge, and it is this pull request**: leftover-row for #862 `1e94623`, #863 `f266842`, #864 `30bc45f`. `node .claude/workflows/policy_lint.mjs --record --since v6.4.0` at `origin/main` `30bc45f` named #864; #862 and #863 were already on this branch. Not #859. #745's #759/#761/#764 stay #745's. leaves #201 open.
+- [#868](https://github.com/tvofi/heatpump_optimizer/pull/868) — **row written before the merge, and it is this pull request**: leftover-row for #860 items 1 and 6 at `origin/main` `1e66bb7`. Sixteen issue-table dispositions after re-measure. HANDOVER refreshed and paid at its cap. `node .claude/workflows/policy_lint.mjs --record --since v6.4.1` at `origin/main` `1e66bb7` named none. Not #859. #745's #759/#761/#764 stay #745's. leaves #860 open. leaves #201 open.
 
 ### The UX programme — 34 items, five lanes, tracking #558
 
