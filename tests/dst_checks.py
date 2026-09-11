@@ -513,4 +513,115 @@ R.check(
     f"max_gap_min={max(_autumn_plan_gaps)}",
 )
 
+# ===========================================================================
+# #777: the billing mask walked the wall clock while the plan walks UTC
+# ===========================================================================
+R.section("window_factors across a transition INSIDE the horizon (#777)")
+
+# The 120-minute case above starts at 13:30 on the fold day -- ten hours PAST
+# the 03:00 transition -- so not one of its windows crosses one, which is why
+# it could never have seen #777. These start the evening BEFORE, over the real
+# 24 h default horizon, so the transition falls inside the horizon and every
+# window after it is labelled by the walk under test.
+_M777 = dict(
+    enabled=True,
+    price_per_kw=60.0,
+    peak_hours=((7.0, 20.0),),
+    offpeak_factor=0.0,
+)
+_DAYS777 = (
+    ("autumn", datetime(2026, 10, 24, 21, 0, tzinfo=STHLM)),
+    ("spring", datetime(2026, 3, 28, 21, 0, tzinfo=STHLM)),
+    ("control", datetime(2026, 10, 17, 21, 0, tzinfo=STHLM)),
+)
+
+
+def _metered_factors(tariff: CapacityTariff, start: datetime, n: int) -> list[float]:
+    """The factor PRODUCTION assigns each window, over real UTC-walked instants.
+
+    Nothing here re-implements the mask: the instants come from the
+    optimizer's own step clock (``_utc_step_starts``) and the factor is read
+    back off ``PeakTracker`` after ``observe`` has attributed the window. That
+    is exactly the quantity ``window_factors``' docstring promises the plan's
+    cost term can never disagree with, so it is what the check compares to.
+    """
+    tracker = PeakTracker()
+    slot0 = _window_slot(start, tariff.window_minutes)
+    seen = []
+    for when in _opt_utc_step_starts(slot0, n, tariff.window_minutes / 60.0):
+        tracker.observe(when, 1.0, tariff)
+        seen.append(tracker._window_factor)
+    return seen
+
+
+_f777 = {}
+for _label, _start in _DAYS777:
+    for _wm in (60, 15):
+        _t777 = CapacityTariff(window_minutes=_wm, **_M777)
+        _n777 = int(round(24 * 60 / _wm))
+        _planned = window_factors(_t777, _start, _n777, _wm / 60.0)
+        _metered = _metered_factors(_t777, _start, _n777)
+        _f777[(_label, _wm)] = {
+            "produced": _planned is not None,
+            "bad": []
+            if _planned is None
+            else [i for i in range(_n777) if _planned[i] != _metered[i]],
+            "rates": sorted(set(_metered)),
+        }
+
+
+def _agree777(label: str) -> bool:
+    # `produced` guards the vacuous pass: a None return compares an empty
+    # mismatch list against itself and would look like agreement.
+    return all(
+        _f777[(label, wm)]["produced"] and not _f777[(label, wm)]["bad"]
+        for wm in (60, 15)
+    )
+
+
+def _detail777(label: str) -> str:
+    return "; ".join(
+        "%dmin produced=%s mismatched=%s"
+        % (wm, _f777[(label, wm)]["produced"], _f777[(label, wm)]["bad"])
+        for wm in (60, 15)
+    )
+
+
+# The guard against this case silently sliding off the transition again --
+# the exact way the 13:30 case above stopped covering anything.
+_offsets777 = {
+    label: len({s.utcoffset() for s in _opt_utc_step_starts(start, 24, 1.0)})
+    for label, start in _DAYS777
+}
+R.check(
+    "the transition really is inside the autumn and spring horizons",
+    _offsets777["autumn"] == 2
+    and _offsets777["spring"] == 2
+    and _offsets777["control"] == 1,
+    "distinct UTC offsets per 24 h horizon: %s" % (_offsets777,),
+)
+R.check(
+    "autumn fold: every window bills under the hour the meter keys it at",
+    _agree777("autumn"),
+    _detail777("autumn"),
+)
+R.check(
+    "spring gap: every window bills under the hour the meter keys it at",
+    _agree777("spring"),
+    _detail777("spring"),
+)
+R.check(
+    "NULL CONTROL: the ordinary Saturday a week earlier never disagreed",
+    _agree777("control"),
+    _detail777("control"),
+)
+R.check(
+    "and the comparison is not vacuous — both rates occur in every cell",
+    all(cell["rates"] == [0.0, 1.0] for cell in _f777.values()),
+    "; ".join(
+        "%s/%dmin rates=%s" % (label, wm, _f777[(label, wm)]["rates"])
+        for (label, wm) in _f777
+    ),
+)
+
 sys.exit(R.close("DST / QUARTER-GRID CHECKS"))

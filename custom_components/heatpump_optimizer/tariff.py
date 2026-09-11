@@ -29,7 +29,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import numpy as np
@@ -419,19 +419,34 @@ def window_factors(
 
     None when no mask is configured — the fast path, and the proof of
     inertness: ``peak_cost`` with ``None`` runs the exact pre-#13 arithmetic.
-    Windows are keyed by their aligned start instant, matching how
-    ``PeakTracker.observe`` attributes a live window, so the plan's cost term
-    and the realised tracker can never disagree about which hour a window
-    bills under.
+    Windows are keyed by the aligned start instant the horizon's *real* clock
+    reaches, matching how ``PeakTracker.observe`` attributes a live window, so
+    the plan's cost term and the realised tracker can never disagree about
+    which hour a window bills under. Sharing ``sample_factor`` is not what buys
+    that — until #777 this walked the wall clock instead, and on the two DST
+    days a year it disagreed from the transition onwards. The walk below is the
+    load-bearing part.
     """
     if start_time is None or n_windows <= 0 or not mask_active(tariff):
         return None
     window = max(1, int(tariff.window_minutes))
     slot0 = _window_slot(start_time, window)
+    # Walk the windows in UTC and convert back — ``optimizer._utc_step_starts``'
+    # rule, and for its reason (#243, #777). ``timedelta`` on an aware datetime
+    # is wall-clock arithmetic: across the autumn fold it emits the repeated
+    # hour once and across the spring gap the hour that never happens, so every
+    # window after a transition was labelled an hour away from the instant the
+    # step grid puts it at and ``PeakTracker.observe`` keys it at — the
+    # disagreement the docstring above says cannot occur. ``slot0`` carries
+    # ``_window_slot``'s ``fold``, which is what picks the real pass to start
+    # from, and ``astimezone`` honours it.
+    tz = slot0.tzinfo
+    base = slot0 if tz is None else slot0.astimezone(timezone.utc)
+    starts = [base + timedelta(minutes=window * i) for i in range(n_windows)]
     return np.asarray(
         [
-            tariff.sample_factor(slot0 + timedelta(minutes=window * i))
-            for i in range(n_windows)
+            tariff.sample_factor(s if tz is None else s.astimezone(tz))
+            for s in starts
         ],
         dtype=float,
     )
