@@ -2,9 +2,11 @@
 
 `dst_window_factors.py` beside this file is the finder's harness and is what
 `fix-review.md` step 2 means by "the finder's harness".  This one exists because
-the #777 fix has a boundary the finder's harness does not sweep: `window_minutes`
-larger than an hour.  A reviewer attacking the fix at other configurations
-(`fix-review.md` step 6) reaches that boundary immediately, and the honest answer
+the #777 fix has a boundary the finder's harness does not sweep: a
+`window_minutes` that does not DIVIDE the hour -- it drives 15, 30 and 60, and
+every one of those divides.  A reviewer attacking the fix at other
+configurations (`fix-review.md` step 6) reaches that boundary immediately,
+and the honest answer
 is a measurement rather than an argument, so it is committed rather than quoted.
 
 METRIC: `live_tracker_mismatch_<day>_<wm>min` = the number of horizon windows i
@@ -17,29 +19,46 @@ inline, as a DIAGNOSTIC only; nothing here asserts against it.
 COMMAND (from the repository root, < 5 s):
     PYTHONPATH=tests/hastub python3 tools/audit/round3/D2/window_size_sweep.py
 
-WHAT IT SHOWS, and why the >60 rows are not a regression.  For every window that
-DIVIDES the hour -- 15, 30, 60 -- the fix takes the mismatch to 0 on both 2026
-Stockholm transitions.  Above an hour it does not, and cannot: the power array
-`window_factors` labels is bucketed by STEP INDEX (`optimizer.metering_windows`),
-so bucket i holds `window` minutes of REAL time, while `tariff._window_slot`
-deliberately keeps a window longer than an hour WALL-anchored, which lets the
-autumn fold's repeated hour stretch one metered window to three real hours.
-Those are two different partitions of the day and no per-window label reconciles
-two partitions.  The reference this script reads is therefore NOT authoritative
-above 60 minutes -- it answers "which wall window does this instant fall in",
-which is a different question from "which bucket of the power array is this".
-Read the >60 rows as the size of that pre-existing partition mismatch, never as
-a verdict on the walk.
+WHAT IT SHOWS, and why the off-grid rows are not a regression.  The condition is
+DIVISIBILITY, not size.  A DST transition shifts the wall-clock offset by 60
+minutes, so a length that DIVIDES 60 -- 15, 30, 60 -- falls on the same
+`tariff._window_slot` wall grid on both sides of the shift, and the fix takes the
+mismatch to 0 there on both 2026 Stockholm transitions.  A length that does not
+divide 60 lands OFF that grid after the transition, and being under the hour does
+not save it: 45 and 7 minutes are both off it.  "Above an hour" named a subset
+and not the rule.  `WINDOWS` below samples each class rather than defining it --
+import this module and rebind `WINDOWS` to drive a size it omits.
+
+What the walk does not repair off the grid is that the two sides are different
+PARTITIONS of the day: the power array `window_factors` labels is bucketed by
+STEP INDEX (`optimizer.metering_windows`), so bucket i holds `window` minutes of
+REAL time, while `tariff._window_slot` deliberately keeps a window longer than an
+hour WALL-anchored, which lets the autumn fold's repeated hour stretch one
+metered window to three real hours.  No per-window label reconciles two
+partitions, so the reference this script reads is NOT authoritative off the grid
+-- it answers "which wall window does this instant fall in", which is a different
+question from "which bucket of the power array is this".  Read an off-grid row as
+the size of that pre-existing partition mismatch, never as a verdict on the walk.
+
+OFF-GRID AND NON-ZERO ARE DIFFERENT CLAIMS.  Off-grid holds everywhere a non-zero
+count does and at sizes where the count reads 0 as well, so it is the claim
+stated above.  The partitions differ at every off-grid length, including where
+THIS metric reads 0: 25 and 150 minutes are off the grid on both transitions and
+still reach `post777=0`, because this mask cannot resolve the displacement -- and
+150 is above the hour, which is the other half of why size was the wrong rule.
+A 0 in an off-grid row is not evidence of alignment, only that this mask did not
+expose it.
 
 NULL CONTROL: `control`, 2026-10-18 -- an ordinary Sunday one week before the
 fold, same masks, same horizon.  Every cell is 0 at both ends and at every
 window size, so a non-zero row anywhere is about the transition and not about
 this script.
 
-POPULATION: no shipped install reaches a window above an hour.  All four rows of
-`grid_fee.py`'s product catalog set `peak_tariff_window_minutes` to 15, and the
-options selector offers `['15', '60']`; both are printed below rather than
-asserted here, so a later edit that adds 90 shows up in this output.
+POPULATION: no shipped install reaches an OFF-GRID window at all -- not merely
+none above an hour.  All four rows of `grid_fee.py`'s product catalog set
+`peak_tariff_window_minutes` to 15, and the options selector offers
+`['15', '60']`; 15 and 60 both divide the hour.  Both are printed below rather
+than asserted here, so a later edit that adds 45 or 90 shows up in this output.
 
 BASELINE: da43c9da5fddfc0ded0f538edae4a41311cc4b01 (the #777 merge base).
 """
@@ -64,7 +83,8 @@ DAYS = (
     ("spring", datetime(2026, 3, 29, tzinfo=STHLM)),    # 23-hour day
     ("control", datetime(2026, 10, 18, tzinfo=STHLM)),  # ordinary Sunday
 )
-# 15/30/60 divide the hour; 90/120 do not, and are the boundary this exists for.
+# 15/30/60 divide the hour; 90/120 do not, and are the OFF-GRID class this
+# exists for. The class, not the size, is what the docstring above states.
 WINDOWS = (15, 30, 60, 90, 120)
 MASK = dict(peak_hours=((7.0, 20.0),), offpeak_factor=0.0)
 
