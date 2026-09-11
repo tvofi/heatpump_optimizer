@@ -1,6 +1,6 @@
 # Handover — the open-issues programme
 
-updated-for: d8c47a7b02bed9c30d7fa561c89441b53dc35442
+updated-for: 4da4ccec36254b57ec9c7b3f1f9eba37aeb579d0
 
 The rule that governs this file is `.claude/rules/writing-for-agents.md`, which
 the harness loads on this very path. Delivery status is

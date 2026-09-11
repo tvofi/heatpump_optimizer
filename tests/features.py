@@ -9251,16 +9251,16 @@ def _legionella_run(flag, observations):
     c = _t2_coord(dhw_free_disinfection_enabled=flag)
     c._thermal_params.dhw_legionella_temp = 60.0
     base = datetime(2026, 1, 15, 12, 0, tzinfo=UTC)
-    c._dhw_last_legionella = base - timedelta(days=3)
-    before = c._dhw_last_legionella
+    c._legionella.last_cycle = base - timedelta(days=3)
+    before = c._legionella.last_cycle
     real_now = _dt_mod.now
     try:
         for minutes, temp in observations:
             _dt_mod.now = lambda m=minutes: base + timedelta(minutes=m)
-            _asyncio.run(c._async_track_dhw_legionella(temp))
+            _asyncio.run(c._legionella.async_track(temp))
     finally:
         _dt_mod.now = real_now
-    return c._dhw_last_legionella != before
+    return c._legionella.last_cycle != before
 
 R.check(
     "58 °C for an hour credits nothing — warm is not disinfected",
@@ -9612,7 +9612,7 @@ _c47 = _t2_coord(dhw_tank_volume=300.0)
 _c47._thermal_params.dhw_enabled = True
 _c47._thermal_params.dhw_elastic_legionella_enabled = True
 _c47._thermal_params.dhw_legionella_enabled = True
-_c47._dhw_last_legionella = dt_util.now() - timedelta(days=5)
+_c47._legionella.last_cycle = dt_util.now() - timedelta(days=5)
 _c47._prices = [{"total": 1.0}] * 24
 _c47._prepare_dhw_inputs(dt_util.now())
 R.check(
@@ -19749,7 +19749,7 @@ def _lg_coord(*, days_since=20.0, enabled=True, dhw=True):
     c._thermal_params.dhw_enabled = dhw
     c._thermal_params.dhw_legionella_enabled = enabled
     c._thermal_params.dhw_legionella_interval_days = 7.0
-    c._dhw_last_legionella = dt_util.now() - timedelta(days=days_since)
+    c._legionella.last_cycle = dt_util.now() - timedelta(days=days_since)
     return c
 
 
@@ -19760,16 +19760,16 @@ def _lg_issues(c):
 _lg_blocked = _lg_coord()
 R.check(
     "the premise: the cycle really is overdue",
-    _lg_blocked._dhw_legionella_due_in_hours() < 0.0,
-    f"due in {_lg_blocked._dhw_legionella_due_in_hours()} h",
+    _lg_blocked._legionella.due_in_hours() < 0.0,
+    f"due in {_lg_blocked._legionella.due_in_hours()} h",
 )
-_lg_blocked._check_legionella_mode_block(False)
+_lg_blocked._legionella.check_mode_block(False)
 R.check(
     "an overdue cycle with hot water available raises nothing here",
     not _lg_issues(_lg_blocked),
     "that case is the disinfection timer's own business, not the mode's",
 )
-_lg_blocked._check_legionella_mode_block(True)
+_lg_blocked._legionella.check_mode_block(True)
 _lg_raised = _lg_issues(_lg_blocked)
 R.check(
     "an overdue cycle the pump's mode is blocking raises a repair issue",
@@ -19785,40 +19785,40 @@ R.check(
     f"{_lg_raised[0][2]['translation_placeholders']} — 20 days since the last "
     f"cycle on a 7-day interval is 13 days overdue",
 )
-_lg_blocked._check_legionella_mode_block(True)
+_lg_blocked._legionella.check_mode_block(True)
 R.check(
     "it is not re-raised every cycle while nothing has changed",
     len(_lg_issues(_lg_blocked)) == 1,
 )
-_lg_blocked._check_legionella_mode_block(False)
+_lg_blocked._legionella.check_mode_block(False)
 R.check(
     "a mode that can make hot water again clears it",
     not _lg_issues(_lg_blocked),
     "the notice describes a live condition, not a historical fact",
 )
 _lg_off = _lg_coord(enabled=False)
-_lg_off._check_legionella_mode_block(True)
+_lg_off._legionella.check_mode_block(True)
 R.check(
     "a user who turned disinfection off is not nagged about it",
     not _lg_issues(_lg_off),
 )
 _lg_no_dhw = _lg_coord(dhw=False)
-_lg_no_dhw._check_legionella_mode_block(True)
+_lg_no_dhw._legionella.check_mode_block(True)
 R.check(
     "nor is an install with no hot-water tank at all",
     not _lg_issues(_lg_no_dhw),
 )
 _lg_recent = _lg_coord(days_since=1.0)
-_lg_recent._check_legionella_mode_block(True)
+_lg_recent._legionella.check_mode_block(True)
 R.check(
     "and a block that has not yet outlived the deadline is not an alarm",
     not _lg_issues(_lg_recent),
-    f"due in {_lg_recent._dhw_legionella_due_in_hours()} h — a mode block is "
+    f"due in {_lg_recent._legionella.due_in_hours()} h — a mode block is "
     f"only news once the cycle it is holding up has actually come due",
 )
 _lg_unknown = _lg_coord()
-_lg_unknown._dhw_last_legionella = None
-_lg_unknown._check_legionella_mode_block(True)
+_lg_unknown._legionella.last_cycle = None
+_lg_unknown._legionella.check_mode_block(True)
 R.check(
     "an unknown history is not evidence of an overdue cycle",
     not _lg_issues(_lg_unknown),
@@ -21180,7 +21180,7 @@ _LG_CFG = {
 def _lg_coord(**over):
     cfg = {**_LG_CFG, **over}
     coord = _Coord(_FakeHass(), _FakeEntry(data=cfg))
-    coord._dhw_last_legionella = _G_START - timedelta(days=8)
+    coord._legionella.last_cycle = _G_START - timedelta(days=8)
     return coord
 
 
@@ -21188,18 +21188,18 @@ def _lg_cycle(coord, temps):
     """Command a boost, feed it `temps`, then let the plan move on."""
     for temp in temps:
         coord._current_action = {"dhw_reason": _LG_REASON}
-        _asyncio.run(coord._async_track_dhw_legionella_cycle(temp))
+        _asyncio.run(coord._legionella.async_track_cycle(temp))
     coord._current_action = {"dhw_reason": "idle"}
-    _asyncio.run(coord._async_track_dhw_legionella_cycle(temps[-1]))
+    _asyncio.run(coord._legionella.async_track_cycle(temps[-1]))
 
 
 # A pump that tops out at 54 °C never reaches `legionella_temp - 1`, so the
 # observer's reset can never fire. Before v5.1.10 that left `hours_since`
 # climbing for ever.
 _lg_short = _lg_coord()
-_lg_before = _lg_short._dhw_hours_since_legionella()
+_lg_before = _lg_short._legionella.hours_since()
 _lg_cycle(_lg_short, [50.0, 52.0, 53.5, 54.0])
-_lg_after = _lg_short._dhw_hours_since_legionella()
+_lg_after = _lg_short._legionella.hours_since()
 R.check(
     "a tank that never gets hot still completes its cycle rather than "
     "latching overdue",
@@ -21208,11 +21208,11 @@ R.check(
 )
 R.check(
     "…and it is recorded as an attempt, not as a successful cycle",
-    _lg_short._dhw_legionella_attempt is not None
-    and _lg_short._dhw_legionella_attempt_peak == 54.0
-    and _lg_short._dhw_last_legionella == _G_START - timedelta(days=8),
-    f"attempt {_lg_short._dhw_legionella_attempt!r}, "
-    f"success {_lg_short._dhw_last_legionella!r}",
+    _lg_short._legionella.attempt is not None
+    and _lg_short._legionella.attempt_peak == 54.0
+    and _lg_short._legionella.last_cycle == _G_START - timedelta(days=8),
+    f"attempt {_lg_short._legionella.attempt!r}, "
+    f"success {_lg_short._legionella.last_cycle!r}",
 )
 R.check(
     "…and the user is told the water is not being disinfected",
@@ -21225,10 +21225,10 @@ R.check(
 
 # A cycle that does reach temperature clears both the attempt and the notice.
 _lg_short._current_action = {"dhw_reason": "idle"}
-_asyncio.run(_lg_short._async_track_dhw_legionella(59.5))
+_asyncio.run(_lg_short._legionella.async_track(59.5))
 R.check(
     "a cycle that reaches temperature clears the notice and the attempt",
-    _lg_short._dhw_legionella_attempt is None
+    _lg_short._legionella.attempt is None
     and not any(
         i[1] == "dhw_legionella_unreachable"
         for i in getattr(_lg_short.hass, "issues", [])
@@ -21241,31 +21241,31 @@ R.check(
 # countdown and only one of them can also be honest about what happened.
 _lg_blind = _lg_coord()
 _lg_blind._config.pop("dhw_temp_entity", None)
-_lg_cycle_blind_before = _lg_blind._dhw_hours_since_legionella()
+_lg_cycle_blind_before = _lg_blind._legionella.hours_since()
 _lg_blind._current_action = {"dhw_reason": _LG_REASON}
-_asyncio.run(_lg_blind._async_track_dhw_legionella_cycle(None))
+_asyncio.run(_lg_blind._legionella.async_track_cycle(None))
 _lg_blind._current_action = {"dhw_reason": "idle"}
-_asyncio.run(_lg_blind._async_track_dhw_legionella_cycle(None))
-_lg_blind_since = _lg_blind._dhw_hours_since_legionella()
+_asyncio.run(_lg_blind._legionella.async_track_cycle(None))
+_lg_blind_since = _lg_blind._legionella.hours_since()
 R.check(
     "with no tank sensor a commanded cycle still resets the countdown "
     "rather than leaving it counting up for ever",
     _lg_cycle_blind_before > 168.0
     and _lg_blind_since is not None
     and _lg_blind_since < 1.0
-    and _lg_blind._dhw_legionella_attempt is not None,
+    and _lg_blind._legionella.attempt is not None,
     f"{_lg_blind_since} h since, attempt "
-    f"{_lg_blind._dhw_legionella_attempt!r}",
+    f"{_lg_blind._legionella.attempt!r}",
 )
 
 # A boost nobody commanded must not credit anything.
 _lg_idle = _lg_coord()
 _lg_idle._current_action = {"dhw_reason": "dhw_window"}
-_asyncio.run(_lg_idle._async_track_dhw_legionella_cycle(45.0))
+_asyncio.run(_lg_idle._legionella.async_track_cycle(45.0))
 R.check(
     "an ordinary hot-water step is not mistaken for a disinfection cycle",
-    (_lg_idle._dhw_hours_since_legionella() or 0.0) > 168.0,
-    f"{_lg_idle._dhw_hours_since_legionella()} h since",
+    (_lg_idle._legionella.hours_since() or 0.0) > 168.0,
+    f"{_lg_idle._legionella.hours_since()} h since",
 )
 
 
@@ -21307,7 +21307,7 @@ R.check(
 # actually in force, which is the only path that also covers the
 # set_thermal_parameters service.
 _lg_warn = _lg_coord()
-_lg_warn._check_dhw_legionella_ceiling()
+_lg_warn._legionella.check_ceiling()
 R.check(
     "the coordinator raises the notice for a live 52/60 pair",
     any(
@@ -21317,7 +21317,7 @@ R.check(
     f"issues {[i[1] for i in getattr(_lg_warn.hass, 'issues', [])]}",
 )
 _lg_warn._thermal_params.dhw_legionella_temp = 52.0
-_lg_warn._check_dhw_legionella_ceiling()
+_lg_warn._legionella.check_ceiling()
 R.check(
     "…and takes it down again once the pair no longer says anything",
     not any(
@@ -21746,9 +21746,9 @@ R.section("v5.1.10 — a commanded cycle is credited only when something saw it"
 # may be an automation that never ran.
 _lg_blind2 = _lg_coord()
 _lg_blind2._config.pop("dhw_temp_entity", None)
-_lg_blind_before = _lg_blind2._dhw_hours_since_legionella()
+_lg_blind_before = _lg_blind2._legionella.hours_since()
 _lg_cycle(_lg_blind2, [None, None])
-_lg_blind_after = _lg_blind2._dhw_hours_since_legionella()
+_lg_blind_after = _lg_blind2._legionella.hours_since()
 R.check(
     "the countdown still resets without a probe — the plan is not wedged",
     _lg_blind_before > 168.0
@@ -21758,10 +21758,10 @@ R.check(
 )
 R.check(
     "…but it is recorded as an attempt, not as a verified cycle",
-    _lg_blind2._dhw_legionella_attempt is not None
-    and _lg_blind2._dhw_last_legionella == _G_START - timedelta(days=8),
-    f"attempt {_lg_blind2._dhw_legionella_attempt!r}, "
-    f"completion {_lg_blind2._dhw_last_legionella!r}",
+    _lg_blind2._legionella.attempt is not None
+    and _lg_blind2._legionella.last_cycle == _G_START - timedelta(days=8),
+    f"attempt {_lg_blind2._legionella.attempt!r}, "
+    f"completion {_lg_blind2._legionella.last_cycle!r}",
 )
 R.check(
     "…and the user is told the cycle cannot be verified",
@@ -21776,19 +21776,19 @@ R.check(
 # writing it.
 _lg_claim = _lg_coord()
 _lg_claim._config.pop("dhw_temp_entity", None)
-_lg_claim._dhw_last_legionella = _lg_blind2._dhw_legionella_attempt
+_lg_claim._legionella.last_cycle = _lg_blind2._legionella.attempt
 R.check(
     "claiming success instead would give an identical countdown "
     "(mutation check)",
-    abs((_lg_claim._dhw_hours_since_legionella() or 0.0)
+    abs((_lg_claim._legionella.hours_since() or 0.0)
         - (_lg_blind_after or 0.0)) < 0.01,
     f"attempt {_lg_blind_after!r} vs completion "
-    f"{_lg_claim._dhw_hours_since_legionella()!r}",
+    f"{_lg_claim._legionella.hours_since()!r}",
 )
 # A probe that later observes a real cycle takes the notice down.
 _lg_blind2._config["dhw_temp_entity"] = "sensor.tank"
 _lg_blind2._current_action = {"dhw_reason": "idle"}
-_asyncio.run(_lg_blind2._async_track_dhw_legionella(60.5))
+_asyncio.run(_lg_blind2._legionella.async_track(60.5))
 R.check(
     "an observed cycle clears the cannot-verify notice",
     not any(
@@ -21811,17 +21811,17 @@ def _lg_cycle_obs(coord, temps):
     """A boost with the observer running alongside it, as the update does."""
     for temp in temps:
         coord._current_action = {"dhw_reason": _LG_REASON}
-        _asyncio.run(coord._async_track_dhw_legionella_cycle(temp))
-        _asyncio.run(coord._async_track_dhw_legionella(temp))
+        _asyncio.run(coord._legionella.async_track_cycle(temp))
+        _asyncio.run(coord._legionella.async_track(temp))
     coord._current_action = {"dhw_reason": "idle"}
-    _asyncio.run(coord._async_track_dhw_legionella_cycle(temps[-1]))
+    _asyncio.run(coord._legionella.async_track_cycle(temps[-1]))
 
 
 _lg_gap = _lg_coord(dhw_free_disinfection_enabled=True)
 _LG_GAP_PEAK = 59.2
-_lg_gap_before = _lg_gap._dhw_hours_since_legionella()
+_lg_gap_before = _lg_gap._legionella.hours_since()
 _lg_cycle_obs(_lg_gap, [55.0, 58.0, _LG_GAP_PEAK])
-_lg_gap_after = _lg_gap._dhw_hours_since_legionella()
+_lg_gap_after = _lg_gap._legionella.hours_since()
 R.check(
     "the peak sits in the gap the old early return covered "
     "(mutation check: any rule that returns on `peak >= target - 1.0` "
@@ -21831,8 +21831,8 @@ R.check(
 )
 R.check(
     "the observer demonstrably did not credit it under the hold rule",
-    _lg_gap._dhw_last_legionella == _G_START - timedelta(days=8),
-    f"completion {_lg_gap._dhw_last_legionella!r}",
+    _lg_gap._legionella.last_cycle == _G_START - timedelta(days=8),
+    f"completion {_lg_gap._legionella.last_cycle!r}",
 )
 R.check(
     "…and the timer moves anyway, instead of latching at 192 h",
@@ -21841,9 +21841,9 @@ R.check(
 )
 R.check(
     "…recorded as an attempt with its peak, so the retry is spaced",
-    _lg_gap._dhw_legionella_attempt is not None
-    and _lg_gap._dhw_legionella_attempt_peak == _LG_GAP_PEAK,
-    f"attempt peak {_lg_gap._dhw_legionella_attempt_peak!r}",
+    _lg_gap._legionella.attempt is not None
+    and _lg_gap._legionella.attempt_peak == _LG_GAP_PEAK,
+    f"attempt peak {_lg_gap._legionella.attempt_peak!r}",
 )
 R.check(
     "…and no 'cannot reach temperature' notice, because it plainly can",
@@ -21858,9 +21858,9 @@ _lg_gap_off = _lg_coord()
 _lg_cycle_obs(_lg_gap_off, [_LG_GAP_PEAK])
 R.check(
     "with the flag off the same peak is a real completion, not an attempt",
-    _lg_gap_off._dhw_last_legionella != _G_START - timedelta(days=8)
-    and _lg_gap_off._dhw_legionella_attempt is None,
-    f"completion {_lg_gap_off._dhw_last_legionella!r}",
+    _lg_gap_off._legionella.last_cycle != _G_START - timedelta(days=8)
+    and _lg_gap_off._legionella.attempt is None,
+    f"completion {_lg_gap_off._legionella.last_cycle!r}",
 )
 
 # A boost the plan re-commands for ever is closed out and judged, so a tank
@@ -21868,7 +21868,7 @@ R.check(
 import homeassistant.util.dt as _lg_dt_mod
 
 _lg_stuck = _lg_coord()
-_lg_stuck_before = _lg_stuck._dhw_hours_since_legionella()
+_lg_stuck_before = _lg_stuck._legionella.hours_since()
 _lg_real_now = _lg_dt_mod.now
 try:
     _lg_t0 = _lg_dt_mod.now()
@@ -21876,18 +21876,18 @@ try:
                    (DHW_LEGIONELLA_BOOST_MAX_HOURS + 0.1, 54.0)):
         _lg_dt_mod.now = lambda h=_h: _lg_t0 + timedelta(hours=h)
         _lg_stuck._current_action = {"dhw_reason": _LG_REASON}
-        _asyncio.run(_lg_stuck._async_track_dhw_legionella_cycle(_t))
+        _asyncio.run(_lg_stuck._legionella.async_track_cycle(_t))
 finally:
     _lg_dt_mod.now = _lg_real_now
-_lg_stuck_after = _lg_stuck._dhw_hours_since_legionella()
+_lg_stuck_after = _lg_stuck._legionella.hours_since()
 R.check(
     "a boost still commanded after the bound is judged rather than waited on",
     _lg_stuck_before > 168.0
     and _lg_stuck_after is not None
     and _lg_stuck_after < 1.0
-    and _lg_stuck._dhw_legionella_attempt_peak == 54.0,
+    and _lg_stuck._legionella.attempt_peak == 54.0,
     f"{_lg_stuck_before:.0f} h before, {_lg_stuck_after} h after, peak "
-    f"{_lg_stuck._dhw_legionella_attempt_peak!r}",
+    f"{_lg_stuck._legionella.attempt_peak!r}",
 )
 R.check(
     "…and the user is told the tank is not reaching temperature",
@@ -21920,7 +21920,7 @@ R.check(
     f"{_lg_stock._thermal_params.dhw_setpoint}/"
     f"{_lg_stock._thermal_params.dhw_legionella_temp}",
 )
-_lg_stock._check_dhw_legionella_ceiling()
+_lg_stock._legionella.check_ceiling()
 R.check(
     "…and it raises no Repairs card",
     not any(
@@ -21932,7 +21932,7 @@ R.check(
 # Mutation value: a pair the owner actually edited still gets the card, so
 # the check above is not passing because the notice was simply deleted.
 _lg_edited = _lg_coord()
-_lg_edited._check_dhw_legionella_ceiling()
+_lg_edited._legionella.check_ceiling()
 R.check(
     "a pair the owner edited to differ still gets it (mutation check)",
     any(
@@ -21942,7 +21942,7 @@ R.check(
     f"52/60: issues {[i[1] for i in getattr(_lg_edited.hass, 'issues', [])]}",
 )
 _lg_edited_leg = _lg_coord(dhw_setpoint=55.0, dhw_legionella_temperature=65.0)
-_lg_edited_leg._check_dhw_legionella_ceiling()
+_lg_edited_leg._legionella.check_ceiling()
 R.check(
     "…and so does a raised disinfection temperature on the default limit",
     any(
