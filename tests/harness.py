@@ -67,8 +67,13 @@ class FakeState:
         attributes: dict | None = None,
     ) -> None:
         self.state = state
-        self.last_updated = last_updated or datetime.now(UTC)
-        self.last_changed = self.last_updated
+        # Do not invent `datetime.now()`. Tests freeze InputReader at a
+        # `now=` far behind wall-clock; a default stamp of "right now" is
+        # then months ahead of that clock and #775's fail-closed gate
+        # treats every omitted timestamp as clock skew. No stamp means
+        # untimestamped, which the reader already accepts.
+        self.last_updated = last_updated
+        self.last_changed = last_updated
         # Home Assistant sets this on every state WRITE, including one that
         # rewrites an unchanged value, which is why InputReader prefers it.
         # The stub had no such attribute at all, so every freshness test in
@@ -76,7 +81,7 @@ class FakeState:
         # mechanism v5.3.0's cloud-gap argument rests on was never run.
         # Defaults to last_updated (an entity that has only ever changed),
         # and a test that wants a re-reporting sensor sets it explicitly.
-        self.last_reported = last_reported or self.last_updated
+        self.last_reported = last_reported if last_reported is not None else last_updated
         self.attributes = dict(attributes or {})
         if unit is not None:
             self.attributes["unit_of_measurement"] = unit
