@@ -29,6 +29,7 @@ file is that `--record` is an explicit decision rather than a reflex.
 from __future__ import annotations
 
 import argparse
+import asyncio
 import json
 import math
 import os
@@ -855,8 +856,11 @@ def capture(name: str, spec: dict) -> dict:
 # The optimizer captures above protect the plan. They say nothing about the
 # layer that assembles the optimizer's inputs and publishes its outputs — which
 # is where the config plumbing, the learners and the entity payloads live, and
-# which is just as easy to break silently. So the forecast assembly and the
-# published data dictionary get pinned too.
+# which is just as easy to break silently. So the forecast assembly, the
+# published data dictionary, and each sensor's ``native_value`` /
+# ``extra_state_attributes`` get pinned too. Without the entity half, a
+# sensor can return ``None`` for every state and the golden lane stays
+# green: it never evaluated a property (#806).
 
 
 def coordinator_scenarios() -> dict[str, dict]:
@@ -974,6 +978,9 @@ def _capture_coordinator(config: dict) -> dict:
 
     arrays = coord._forecast_arrays()
     data = coord._build_data_dict()
+    # Sensors read ``coordinator.data``. Leaving it unset is why a
+    # ``native_value`` mutant executed no line while these fixtures built.
+    coord.data = data
 
     # ``last_optimization``/``next_optimization`` are wall-clock and would make
     # every diff noise; the rest of the dictionary is a pure function of state.
@@ -987,7 +994,45 @@ def _capture_coordinator(config: dict) -> dict:
         "forecast_price_known": r(arrays[5]),
         "forecast_pv_surplus": r(arrays[6]),
         "data": r({k: v for k, v in data.items() if k not in volatile}),
+        "sensors": _capture_sensors(hass, entry, coord, volatile),
     }
+
+
+def _jsonable(value):
+    """``r()`` plus the datetimes sensors publish as ``native_value``."""
+    if isinstance(value, datetime):
+        return value.isoformat()
+    return r(value)
+
+
+def _capture_sensors(hass, entry, coord, volatile: set[str]) -> dict:
+    """Each sensor's published pair, keyed by the stable ``_key``.
+
+    Driven through the real ``async_setup_entry`` so a sensor that is
+    written but never registered still shows up as missing. Wall-clock
+    sensors are dropped for the same reason the data dict drops them.
+    """
+    from heatpump_optimizer import sensor as sensor_mod
+
+    entry.runtime_data = coord
+    added: list = []
+
+    def add_entities(entities):
+        added.extend(entities)
+
+    asyncio.run(sensor_mod.async_setup_entry(hass, entry, add_entities))
+    published = {}
+    for ent in added:
+        key = getattr(ent, "_key", None) or type(ent).__name__
+        if key in volatile:
+            continue
+        published[str(key)] = {
+            "native_value": _jsonable(ent.native_value),
+            "extra_state_attributes": _jsonable(
+                getattr(ent, "extra_state_attributes", None)
+            ),
+        }
+    return published
 
 
 def _nested_schema(value):
