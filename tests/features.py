@@ -29379,4 +29379,582 @@ R.check(
     "value alone compares equal either way",
 )
 
+
+
+# ---------------------------------------------------------------------------
+# W5-G7 tranche 5 of 5 (#195): the lifecycle methods, and the last of the bar.
+#
+# These five were left until last on purpose: each needs a whole update cycle
+# DRIVEN rather than a method called, which is why the four earlier tranches
+# took everything else first. The arithmetic this one closes: 271 missed
+# against 184 allowed needs 87 more statements, and these eight methods hold
+# 92 between them.
+#
+# The four rules the earlier tables cost a round each are applied rather than
+# restated. Every input makes the guard under test the only arm that can
+# reject. Anything that can raise goes through a catcher and asserts nothing
+# escaped. Details sort by `repr`. And nothing asserts exact equality against
+# a production data structure -- the rule #851 cost, when an exact key list
+# turned `main` red because it was a second declaration with no way to learn
+# the original had moved.
+R.section("W5-G7 t5: the lifecycle methods (#195)")
+
+_T5_DATA = {"tibber_token": "x", "weather_entity": "weather.home"}
+_T5_NOW = datetime(2026, 2, 1, 12, 0, 0)
+
+
+def _t5_coord(states=None, **config):
+    """A live coordinator over the fake bus, with states and config applied."""
+    return HeatPumpOptimizerCoordinator(
+        FakeHass(states or {}), FakeEntry(data=dict(_T5_DATA, **config))
+    )
+
+
+def _t5_drive(coord, method, *args, **kwargs):
+    """Await one coordinator method and capture anything that escapes it."""
+    coord._t5_escaped = None
+    try:
+        coord._t5_returned = _asyncio.run(getattr(coord, method)(*args, **kwargs))
+    except Exception as err:  # noqa: BLE001
+        coord._t5_escaped = err
+        coord._t5_returned = None
+    return coord
+
+
+# -- `_async_drive_pumps`: transitions only, and only what the user wired ---
+# Two circulation pumps, each commanded exactly once per state change. The
+# whole method is skipped unless an entity is configured, because touching
+# an entity the user never named is the one failure a heating integration
+# cannot take back.
+class _T5Plan:
+    """The two fields the pump driver reads off a solved plan."""
+
+    def __init__(self, power_schedule, timestamps=None):
+        self.power_schedule = power_schedule
+        self.timestamps = timestamps or []
+
+
+def _t5_pumps(*, plan=None, action=None, fail=False, **config):
+    """Run one pump tick at a fixed instant."""
+    c = _t5_coord(**config)
+    if plan is not None:
+        c._optimization_result = plan
+    if action is not None:
+        c._current_action = action
+    if fail:
+        async def refuse(domain, service, data):
+            raise RuntimeError("entity briefly unavailable")
+
+        c.hass.services.async_call = refuse
+    dt_util.freeze(_T5_NOW)
+    try:
+        _t5_drive(c, "_async_drive_pumps")
+    finally:
+        dt_util.freeze(None)
+    return c
+
+
+_t5_pump_none = _t5_pumps()
+R.check(
+    "with neither pump configured the driver commands nothing at all",
+    list(_t5_pump_none.hass.services.calls) == []
+    and _t5_pump_none._t5_escaped is None,
+    f"{list(_t5_pump_none.hass.services.calls)!r} -- the early return is the "
+    "arm that keeps this method from touching an entity the user never named",
+)
+_t5_pump_vvc = _t5_pumps(vvc_pump_entity="switch.vvc")
+_t5_pump_space = _t5_pumps(space_circulation_pump_entity="switch.space")
+R.check(
+    "each configured pump is commanded on its own, by entity id",
+    [c[2]["entity_id"] for c in _t5_pump_vvc.hass.services.calls]
+    == ["switch.vvc"]
+    and [c[2]["entity_id"] for c in _t5_pump_space.hass.services.calls]
+    == ["switch.space"],
+    f"vvc alone -> {list(_t5_pump_vvc.hass.services.calls)!r}; space alone -> "
+    f"{list(_t5_pump_space.hass.services.calls)!r} -- the two branches are "
+    "independent, so a house with one pump wired must not see the other "
+    "commanded",
+)
+
+_t5_pump_twice = _t5_coord(vvc_pump_entity="switch.vvc")
+dt_util.freeze(_T5_NOW)
+try:
+    _t5_drive(_t5_pump_twice, "_async_drive_pumps")
+    _t5_pump_first = len(_t5_pump_twice.hass.services.calls)
+    _t5_drive(_t5_pump_twice, "_async_drive_pumps")
+    _t5_pump_second = len(_t5_pump_twice.hass.services.calls)
+finally:
+    dt_util.freeze(None)
+R.check(
+    "a pump already in the commanded state is not commanded again",
+    _t5_pump_first == 1 and _t5_pump_second == 1,
+    f"{_t5_pump_first} call after one tick, {_t5_pump_second} after two -- "
+    "the driver runs every cycle, so without the transition test a pump "
+    "would take a service call every thirty seconds for as long as it runs",
+)
+_t5_pump_fail = _t5_pumps(vvc_pump_entity="switch.vvc", fail=True)
+R.check(
+    "a pump command that FAILED is not remembered as done",
+    dict(_t5_pump_fail._pump_commanded) == {}
+    and _t5_pump_fail._t5_escaped is None,
+    f"commanded {dict(_t5_pump_fail._pump_commanded)!r}, escaped "
+    f"{_t5_pump_fail._t5_escaped!r} -- recording before the call succeeds "
+    "leaves a briefly unavailable entity in the wrong state until the next "
+    "transition, which may be hours",
+)
+_t5_pump_plan = _t5_pumps(
+    space_circulation_pump_entity="switch.space",
+    plan=_T5Plan([3.0] * 8, [_T5_NOW]),
+    action={"heat_pump_on": True},
+)
+R.check(
+    "the space pump follows a solved plan, indexed from the plan's own clock",
+    dict(_t5_pump_plan._pump_commanded) == {"switch.space": True}
+    and _t5_pump_plan._t5_escaped is None,
+    f"{dict(_t5_pump_plan._pump_commanded)!r} from a plan heating at the "
+    "current step -- the index comes from the plan's first timestamp against "
+    "the clock, not from position, so a stale plan cannot read as step 0",
+)
+
+
+# -- `_async_update_data`: the cycle, and what may not break it ------------
+# Three sub-steps are wrapped so a failure cannot take the cycle down --
+# the frequency write, the pump tick and the snapshot heartbeat -- because
+# each is an accessory to the plan rather than the plan. Everything else
+# raising becomes `UpdateFailed`, which is the entity layer's own language
+# for "this poll failed", and the cycle's own latch has already logged it.
+def _t5_cycle(mode=None, *, raising=(), **config):
+    """Drive one whole update cycle with the fetches stubbed out."""
+    c = _t5_coord(**config)
+    if mode is not None:
+        c._mode = mode
+
+    async def _noop(*args, **kwargs):
+        return None
+
+    async def _boom(*args, **kwargs):
+        raise RuntimeError("sub-step exploded")
+
+    for name in (
+        "_fetch_tibber_prices",
+        "_fetch_weather_forecast",
+        "_fetch_solar_forecast",
+        "_async_learn_price_shape",
+        "_async_save_accuracy",
+        "_async_save_energy_totals",
+        "async_run_optimization",
+    ):
+        setattr(c, name, _boom if name in raising else _noop)
+    for name in raising:
+        setattr(c, name, _boom)
+    return _t5_drive(c, "_async_update_data")
+
+
+_t5_cy_comfort = _t5_cycle("comfort")
+_t5_cy_boost = _t5_cycle("boost")
+R.check(
+    "comfort and boost publish an action the optimizer never solved for",
+    (_t5_cy_comfort._current_action or {}).get("mode") == "comfort"
+    and (_t5_cy_comfort._current_action or {}).get("power_normalized") == 0.7
+    and (_t5_cy_boost._current_action or {}).get("mode") == "boost"
+    and (_t5_cy_boost._current_action or {}).get("power_normalized") == 1.0
+    and _t5_cy_comfort._t5_escaped is None
+    and _t5_cy_boost._t5_escaped is None,
+    f"comfort -> {(_t5_cy_comfort._current_action or {}).get('mode')!r} at "
+    f"{(_t5_cy_comfort._current_action or {}).get('power_normalized')!r}, "
+    f"boost -> {(_t5_cy_boost._current_action or {}).get('mode')!r} at "
+    f"{(_t5_cy_boost._current_action or {}).get('power_normalized')!r} -- "
+    "these two modes bypass the solver entirely, so the action they publish "
+    "is the only thing standing between the user's choice and the pump",
+)
+R.check(
+    "boost commands more power than comfort, which is the whole difference",
+    (_t5_cy_boost._current_action or {}).get("power")
+    > (_t5_cy_comfort._current_action or {}).get("power"),
+    f"boost {(_t5_cy_boost._current_action or {}).get('power')!r} against "
+    f"comfort {(_t5_cy_comfort._current_action or {}).get('power')!r} -- "
+    "0.7 of the nameplate against all of it",
+)
+
+_t5_cy_accessory = _t5_cycle(
+    "comfort",
+    raising=(
+        "_command_frequency",
+        "_async_drive_pumps",
+        "_async_watch_learning_drift",
+    ),
+)
+R.check(
+    "the cycle survives all three accessory sub-steps raising at once",
+    _t5_cy_accessory._t5_escaped is None
+    and _t5_cy_accessory._t5_returned is not None,
+    f"escaped {_t5_cy_accessory._t5_escaped!r}, returned a payload: "
+    f"{_t5_cy_accessory._t5_returned is not None} -- the frequency write, the "
+    "pump tick and the snapshot heartbeat are each an accessory to the plan, "
+    "and a house whose pump entity went missing must still get a plan",
+)
+_t5_cy_core = _t5_cycle("comfort", raising=("_fetch_tibber_prices",))
+R.check(
+    "a core step raising becomes UpdateFailed, in the entity layer's own language",
+    type(_t5_cy_core._t5_escaped).__name__ == "UpdateFailed"
+    and "sub-step exploded" in str(_t5_cy_core._t5_escaped),
+    f"{type(_t5_cy_core._t5_escaped).__name__}: "
+    f"{str(_t5_cy_core._t5_escaped)[:60]!r} -- the cause is carried into the "
+    "message rather than swallowed, which is what puts it in front of a user "
+    "instead of only in the log",
+)
+R.check(
+    "every cycle clears its own refresh task, on the failing path too",
+    _t5_cy_comfort._refresh_task is None
+    and _t5_cy_core._refresh_task is None,
+    f"after a good cycle {_t5_cy_comfort._refresh_task!r}, after a failed one "
+    f"{_t5_cy_core._refresh_task!r} -- the `finally` is what stops a raised "
+    "cycle from leaving a task nothing will ever await",
+)
+
+
+# -- `_update_current_state`: the readings the plan is built on ------------
+# Every optional sensor here has to degrade cleanly, because most installs
+# have none of them. The arms below are the ones where degrading wrongly is
+# silent: a valve target read as 0.0 says the valve never throttles, a solar
+# reading that never wins says the local pyranometer was wired for nothing,
+# and a wood tank that keeps its last value simulates a fire that went out.
+def _t5_state(states=None, *, prior_wood=None, **config):
+    """Run one state read, optionally over a coordinator holding a prior."""
+    c = _t5_coord(states, **config)
+    if prior_wood is not None:
+        c._current_state.wood_tank_temperature = prior_wood
+    return _t5_drive(c, "_update_current_state")
+
+
+R.check(
+    "a smart valve's target is read through, and its absence leaves the default",
+    _t5_state(
+        {"sensor.valve": FakeState("38.5")},
+        mixing_valve_target_entity="sensor.valve",
+    )._thermal_params.mixing_valve_target
+    == 38.5
+    and _t5_state()._thermal_params.mixing_valve_target == 0.0,
+    "configured -> "
+    f"{_t5_state({'sensor.valve': FakeState('38.5')}, mixing_valve_target_entity='sensor.valve')._thermal_params.mixing_valve_target!r}, "
+    f"unset -> {_t5_state()._thermal_params.mixing_valve_target!r} -- knowing "
+    "where the valve regulates to is what tells the model whether it is "
+    "throttling, and therefore whether surplus heat can reach the tank at all",
+)
+R.check(
+    "an unreadable valve target does not overwrite the default with a guess",
+    _t5_state(
+        {"sensor.valve": FakeState("unavailable")},
+        mixing_valve_target_entity="sensor.valve",
+    )._thermal_params.mixing_valve_target
+    == 0.0,
+    f"{_t5_state({'sensor.valve': FakeState('unavailable')}, mixing_valve_target_entity='sensor.valve')._thermal_params.mixing_valve_target!r} "
+    "-- the reader's `ok` is the arm, not the value, and a stale reading "
+    "carries a value",
+)
+
+_t5_solar = _t5_state(
+    {"sensor.ghi": FakeState("412.5")}, solar_radiation_entity="sensor.ghi"
+)
+R.check(
+    "a local pyranometer wins, and reaches BOTH the attribute and the state",
+    _t5_solar._solar_radiation == 412.5
+    and _t5_solar._current_state.solar_radiation == 412.5
+    and _t5_state()._solar_radiation == 0.0,
+    f"sensor -> attribute {_t5_solar._solar_radiation!r} and state "
+    f"{_t5_solar._current_state.solar_radiation!r}; no sensor -> "
+    f"{_t5_state()._solar_radiation!r} -- both writes matter, because the "
+    "solver reads the state while the published sensor reads the attribute",
+)
+
+# The two-tank model needs a throttling valve, two zones AND a wood probe;
+# anything less resolves to a single-tank layout, which is why the fixture
+# carries all three rather than the probe alone.
+_T5_TWO_TANK = {
+    "wood_tank_top_entity": "sensor.wood_top",
+    "wood_tank_bottom_entity": "sensor.wood_bottom",
+    "topology_layout": "two_tank_4way",
+    "mixing_valve_mode": "smart_read",
+    "upper_floor_thermal_mass": 3.0,
+    "lower_floor_thermal_mass": 8.0,
+    "lower_floor_temp_entity": "sensor.lower",
+}
+_T5_WOOD_LIVE = {
+    "sensor.wood_top": FakeState("70"),
+    "sensor.wood_bottom": FakeState("50"),
+}
+_T5_WOOD_STALE = {
+    "sensor.wood_top": FakeState("unavailable"),
+    "sensor.wood_bottom": FakeState("unavailable"),
+}
+_t5_wood_first = _t5_state(dict(_T5_WOOD_LIVE), **_T5_TWO_TANK)
+_t5_wood_gone = _t5_state(dict(_T5_WOOD_STALE), prior_wood=60.0, **_T5_TWO_TANK)
+_t5_wood_dropped = _t5_state(prior_wood=60.0)
+R.check(
+    "a live wood tank is modelled, a stale one is DROPPED rather than held",
+    _t5_wood_first._current_state.wood_tank_temperature == 60.0
+    and _t5_wood_gone._current_state.wood_tank_temperature is None
+    and _t5_wood_first._thermal_params.two_tank_modelled is True,
+    f"live probes -> {_t5_wood_first._current_state.wood_tank_temperature!r} "
+    f"(the 70/50 mean), stale probes over a live 60.0 -> "
+    f"{_t5_wood_gone._current_state.wood_tank_temperature!r} -- holding the "
+    "last value simulates a fire that went out, and the step would plan "
+    "against stored heat that is not there",
+)
+R.check(
+    "reconfiguring the two-tank model away drops the state it left behind",
+    _t5_wood_dropped._current_state.wood_tank_temperature is None
+    and _t5_wood_dropped._thermal_params.two_tank_modelled is False,
+    f"{_t5_wood_dropped._current_state.wood_tank_temperature!r} after the "
+    "layout no longer models a second tank -- otherwise nothing clears it "
+    "and the model keeps a tank the parameters stopped describing",
+)
+R.check(
+    "none of the optional-sensor arms raises on a house that has none of them",
+    _t5_state()._t5_escaped is None
+    and _t5_wood_first._t5_escaped is None
+    and _t5_wood_gone._t5_escaped is None,
+    "escapes: "
+    f"{[c._t5_escaped for c in (_t5_state(), _t5_wood_first, _t5_wood_gone)]!r} "
+    "-- this runs inside the update cycle, where an escape is an `UpdateFailed` "
+    "and every entity goes unavailable",
+)
+
+
+# -- `async_simulate`: a what-if that must never break operations ----------
+# The card drags a slider, so this is rate-limited and every override lands
+# on a DEEP COPY of the live configuration. The arms below are the ones a
+# user can reach from the card: an invalid window they typed, an empty one
+# they meant, and the ceiling that has to reach the model as well as the
+# solver.
+_T5_SIM_MIDNIGHT = _T5_NOW.replace(hour=0, minute=0, second=0, microsecond=0)
+
+
+def _t5_solved():
+    """A coordinator carrying a real solved plan, from a covering price list."""
+    c = _t5_coord()
+    c._prices = [
+        {
+            "total": 0.6 + 0.5 * (h % 12) / 12.0,
+            "starts_at": (_T5_SIM_MIDNIGHT + timedelta(hours=h)).isoformat(),
+            "level": "NORMAL",
+        }
+        for h in range(48)
+    ]
+    dt_util.freeze(_T5_NOW)
+    try:
+        _t5_drive(c, "async_run_optimization")
+    finally:
+        dt_util.freeze(None)
+    return c
+
+
+def _t5_sim(overrides, coord=None):
+    """One what-if against a solved plan, with the rate limiter cleared."""
+    c = coord if coord is not None else _t5_solved()
+    c._last_simulation = None
+    dt_util.freeze(_T5_NOW)
+    try:
+        _t5_drive(c, "async_simulate", overrides)
+    finally:
+        dt_util.freeze(None)
+    return c
+
+
+_t5_solve = _t5_solved()
+R.check(
+    "a covering price list solves, which is what every check below rests on",
+    _t5_solve._t5_returned is None
+    and _t5_solve._optimization_result is not None
+    and _t5_solve._t5_escaped is None,
+    f"returned {_t5_solve._t5_returned!r}, result present "
+    f"{_t5_solve._optimization_result is not None} -- `None` is this "
+    "method's success value, and the arms below would all read as 'no plan' "
+    "without it",
+)
+
+_t5_sim_noplan = _t5_sim({}, coord=_t5_coord())
+R.check(
+    "a what-if before the first solve answers no_plan rather than solving one",
+    _t5_sim_noplan._t5_returned.get("error") == "no_plan",
+    f"{_t5_sim_noplan._t5_returned!r} -- the card asks for this on load, and "
+    "solving here would put a second job in the pool behind the real one",
+)
+_t5_sim_limited = _t5_coord()
+_t5_sim_limited._last_simulation = _T5_NOW
+_t5_sim_limited._simulation_cache = {"monthly_cost_delta": 1.0}
+dt_util.freeze(_T5_NOW)
+try:
+    _t5_drive(_t5_sim_limited, "async_simulate", {})
+finally:
+    dt_util.freeze(None)
+R.check(
+    "a second what-if inside the window returns the CACHE, flagged rate-limited",
+    _t5_sim_limited._t5_returned.get("rate_limited") is True
+    and _t5_sim_limited._t5_returned.get("monthly_cost_delta") == 1.0,
+    f"{_t5_sim_limited._t5_returned!r} -- returning the previous answer "
+    "rather than nothing is what keeps a dragged slider showing a number, "
+    "and the flag is what stops the card believing it is fresh",
+)
+
+_t5_sim_bad = _t5_sim({"dhw_windows": "breakfast"})
+R.check(
+    "a window spec the user typed wrong is refused by name, not silently dropped",
+    str(_t5_sim_bad._t5_returned.get("error", "")).startswith("invalid_windows:")
+    and _t5_sim_bad._t5_returned.get("rate_limited") is False,
+    f"{_t5_sim_bad._t5_returned.get('error')!r} -- the parser's own message "
+    "is carried through, so the card can say which window is wrong instead "
+    "of 'simulation failed'",
+)
+_t5_sim_empty = _t5_sim({"dhw_windows": ""})
+R.check(
+    "an explicitly EMPTY window spec is a legitimate what-if, not an error",
+    "error" not in _t5_sim_empty._t5_returned
+    and _t5_sim_empty._t5_escaped is None,
+    f"keys {sorted(_t5_sim_empty._t5_returned)[:4]!r} -- 'no demand windows' "
+    "is what the plan looks like with hot water unconstrained, which is a "
+    "question worth asking and is not the same as a malformed spec",
+)
+_t5_sim_over = _t5_sim(
+    {
+        "max_temp": 23.5,
+        "dhw_setpoint": 52.0,
+        "dhw_min_temperature": 41.0,
+        "day_start_hour": 7,
+        "day_end_hour": 21,
+        "power_cap_kw": 4.0,
+    }
+)
+R.check(
+    "six overrides of three different types all apply without error",
+    "error" not in _t5_sim_over._t5_returned
+    and _t5_sim_over._t5_escaped is None,
+    f"keys {sorted(_t5_sim_over._t5_returned)[:5]!r} -- two floats onto the "
+    "scratch config, two ints because they index hours, two onto the scratch "
+    "PARAMS because the valve's default target is the comfort ceiling and a "
+    "simulated ceiling has to reach the model too",
+)
+R.check(
+    "the what-if leaves the live configuration untouched, which is the whole point",
+    _t5_sim_over._opt_config.max_temp != 23.5
+    and _t5_sim_over._thermal_params.dhw_setpoint != 52.0,
+    f"live max_temp {_t5_sim_over._opt_config.max_temp!r} against an override "
+    f"of 23.5, live dhw_setpoint "
+    f"{_t5_sim_over._thermal_params.dhw_setpoint!r} against 52.0 -- the deep "
+    "copy is what keeps a dragged slider from re-configuring the house",
+)
+
+
+# -- `async_run_optimization`: two comfort-floor widenings that must unwind -
+# Both the economy setback and the open-window relaxation lower `min_temp`
+# for ONE solve, inside a snapshot-and-unwind envelope. `min_temp` is
+# otherwise written only at `_init_model`, so a widening applied outside the
+# envelope persists into every later solve and outlives the mode that asked
+# for it. Observing the value only after the call therefore proves nothing:
+# the check reads it DURING the solve as well.
+def _t5_solve_spy(**config):
+    """A solvable coordinator that records `min_temp` at the solve itself."""
+    c = _t5_coord(**config)
+    c._prices = [
+        {
+            "total": 0.6 + 0.5 * (h % 12) / 12.0,
+            "starts_at": (_T5_SIM_MIDNIGHT + timedelta(hours=h)).isoformat(),
+            "level": "NORMAL",
+        }
+        for h in range(48)
+    ]
+    c._t5_floor_at_solve = []
+    inner = c._solve_snapshot
+
+    def spy(*args, **kwargs):
+        c._t5_floor_at_solve.append(c._opt_config.min_temp)
+        return inner(*args, **kwargs)
+
+    c._solve_snapshot = spy
+    return c
+
+
+def _t5_run(c):
+    """One solve at the fixed instant."""
+    dt_util.freeze(_T5_NOW)
+    try:
+        return _t5_drive(c, "async_run_optimization")
+    finally:
+        dt_util.freeze(None)
+
+
+_t5_opt_plain = _t5_run(_t5_solve_spy())
+_t5_opt_eco = _t5_solve_spy()
+_t5_opt_eco._mode = "economy"
+_t5_run(_t5_opt_eco)
+_t5_opt_window = _t5_solve_spy(open_window_relax_enabled=True)
+_t5_opt_window._vent_cusum.tripped = True
+_t5_run(_t5_opt_window)
+R.check(
+    "economy mode widens the comfort floor FOR THE SOLVE and unwinds it after",
+    _t5_opt_plain._t5_floor_at_solve == [19.0]
+    and _t5_opt_eco._t5_floor_at_solve == [17.5]
+    and _t5_opt_eco._opt_config.min_temp == 19.0,
+    f"plain {_t5_opt_plain._t5_floor_at_solve!r}, economy "
+    f"{_t5_opt_eco._t5_floor_at_solve!r} during the solve and "
+    f"{_t5_opt_eco._opt_config.min_temp!r} after -- reading it only after "
+    "the call cannot tell a widening that unwound from one that never "
+    "happened, which is why both ends are asserted",
+)
+R.check(
+    "a detected open window relaxes the floor by its own, smaller amount",
+    _t5_opt_window._t5_floor_at_solve == [18.0]
+    and _t5_opt_window._opt_config.min_temp == 19.0,
+    f"{_t5_opt_window._t5_floor_at_solve!r} during the solve against "
+    f"economy's {_t5_opt_eco._t5_floor_at_solve!r}, both back to "
+    f"{_t5_opt_window._opt_config.min_temp!r} -- 1.0 K against economy's "
+    "1.5 K, and holding the floor while a window is open heats the street",
+)
+R.check(
+    "every solve here succeeded, so the widenings are measured on real plans",
+    _t5_opt_plain._optimization_result is not None
+    and _t5_opt_eco._optimization_result is not None
+    and _t5_opt_window._optimization_result is not None
+    and _t5_opt_plain._t5_escaped is None,
+    f"results present: {[c._optimization_result is not None for c in (_t5_opt_plain, _t5_opt_eco, _t5_opt_window)]!r} "
+    "-- a failed solve would unwind the floor too, and the check above would "
+    "pass against a method that never widened at all",
+)
+
+_t5_opt_busy = _t5_solve_spy()
+_t5_opt_busy._optimization_running = True
+_t5_run(_t5_opt_busy)
+R.check(
+    "a solve already in flight is skipped rather than run a second time",
+    _t5_opt_busy._optimization_result is None
+    and _t5_opt_busy._t5_floor_at_solve == []
+    and _t5_opt_busy._t5_returned is None,
+    f"result {_t5_opt_busy._optimization_result!r}, solves reached "
+    f"{len(_t5_opt_busy._t5_floor_at_solve)} -- the flag is cleared in a "
+    "`finally`, so a skipped call must not clear a running solve's flag "
+    "either",
+)
+_t5_opt_fuse = _t5_solve_spy(main_fuse_amperes=20, main_fuse_phases=3)
+_t5_run(_t5_opt_fuse)
+R.check(
+    "a configured main fuse still solves, with the per-step ceiling applied",
+    _t5_opt_fuse._optimization_result is not None
+    and _t5_opt_fuse._t5_escaped is None,
+    f"result present {_t5_opt_fuse._optimization_result is not None}, escaped "
+    f"{_t5_opt_fuse._t5_escaped!r} -- the fuse branch builds a clipped "
+    "per-step cap array, and a shape error there fails the whole solve "
+    "rather than the cap",
+)
+_t5_opt_recover = _t5_solve_spy()
+_t5_opt_recover._solve_failures = 2
+_t5_run(_t5_opt_recover)
+R.check(
+    "a good solve clears the consecutive-failure count that raises the repair issue",
+    _t5_opt_recover._solve_failures == 0
+    and _t5_opt_recover._optimization_result is not None,
+    f"failures 2 -> {_t5_opt_recover._solve_failures!r} -- without the reset "
+    "the third failure of the month raises an issue the user cannot clear by "
+    "fixing the cause",
+)
+
 sys.exit(R.close("FEATURE CHECKS"))
