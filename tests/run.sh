@@ -318,6 +318,9 @@ lane_units() {
   run_always "$PYTHON" tests/closure.py selftest
   run "$PYTHON" tests/features.py
   run "$PYTHON" tests/entities.py
+  # #796: default-on sensors must not render Unknown. Own script so the
+  # rule is not a fourteenth `_D801_IN_SCOPE` roster entry in entities.py.
+  run "$PYTHON" tests/wood_advisor.py
   # The initial config flow walked end to end (#194): every step's valid
   # and invalid submissions, the duplicate abort and the reauth round
   # trip, against the real validation code over the fake Tibber session.
@@ -346,6 +349,8 @@ lane_units() {
   run "$PYTHON" tests/manual_plan.py
   run "$PYTHON" tests/open_meteo.py
   run "$PYTHON" tests/solar_alignment.py
+  # Four #805 survivors that are not in coordinator.py or optimizer.py.
+  run "$PYTHON" tests/guard_pins.py
   # The only lane that runs the shape an installation runs (#513): the tracked
   # package alone, no tests/ sibling, imported as
   # custom_components.heatpump_optimizer.*. Every other script in this
