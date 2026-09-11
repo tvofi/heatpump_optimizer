@@ -9,6 +9,7 @@ from __future__ import annotations
 import pickle
 import sys
 from pathlib import Path
+from typing import IO, Any
 
 
 def _bootstrap() -> None:
@@ -32,7 +33,7 @@ def _bootstrap() -> None:
         sys.path.insert(0, parent)
 
 
-def _describe(obj) -> str:
+def _describe(obj: object) -> str:
     """A description that cannot itself raise while reporting a failure."""
     try:
         return f"{type(obj).__name__}: {obj}"
@@ -40,7 +41,7 @@ def _describe(obj) -> str:
         return type(obj).__name__
 
 
-def _dump(stdout, payload) -> None:
+def _dump(stdout: IO[bytes], payload: tuple[str, Any]) -> None:
     """Write one reply, degrading an unpicklable error to its text (#511).
 
     Serialised before it is written: a ``dump`` that failed halfway would

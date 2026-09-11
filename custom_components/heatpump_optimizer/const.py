@@ -1017,7 +1017,7 @@ def buffer_tank_surface_area(volume_litres: float) -> float:
         volume_m3 = max(float(volume_litres), 1e-6) / 1000.0
     except (TypeError, ValueError):
         return 0.0
-    diameter = (volume_m3 / 1.963) ** (1.0 / 3.0)  # H = 2.5 D
+    diameter: float = (volume_m3 / 1.963) ** (1.0 / 3.0)  # H = 2.5 D
     return 9.42 * diameter * diameter  # side + both ends
 
 
