@@ -2671,6 +2671,57 @@ def _d0_restart_from_returned_point():
 
 _d0_restart_from_returned_point()
 
+
+def _d0_restart_keeps_only_a_real_drop():
+    """#826: an ftol tick is not a new plan; a 1e-2 relative drop is."""
+
+    class _Res:
+        def __init__(self, x: np.ndarray) -> None:
+            self.x = np.asarray(x, dtype=float)
+
+    def obj(x: np.ndarray, *_a: object) -> float:
+        x = np.asarray(x, dtype=float)
+        if np.allclose(x, 0.0):
+            return 100.0
+        if np.allclose(x, 1.0):
+            return 99.9999
+        if np.allclose(x, 2.0):
+            return 99.0
+        raise AssertionError(x)
+
+    real = _grad_optmod._scoped_minimize
+    chosen: dict[str, np.ndarray] = {"x": np.array([1.0, 1.0])}
+
+    def spy(*_a: object, **_k: object) -> _Res:
+        return _Res(chosen["x"])
+
+    _grad_optmod._scoped_minimize = spy
+    try:
+        best = _Res(np.zeros(2))
+        bounds = [(-10.0, 10.0)] * 2
+        tick = _grad_optmod._lbfgsb_restart(
+            best, obj, bounds, (), 20, None, 1e-4,
+        )
+        R.check(
+            "an ftol-tick restart is not adopted",
+            tick is best,
+            f"kept {getattr(tick, 'x', None)}",
+        )
+        chosen["x"] = np.array([2.0, 2.0])
+        drop = _grad_optmod._lbfgsb_restart(
+            best, obj, bounds, (), 20, None, 1e-4,
+        )
+        R.check(
+            "a 1e-2 relative drop is adopted",
+            drop is not best and bool(np.allclose(drop.x, 2.0)),
+            f"kept {getattr(drop, 'x', None)}",
+        )
+    finally:
+        _grad_optmod._scoped_minimize = real
+
+
+_d0_restart_keeps_only_a_real_drop()
+
 # Space-only, uniform bounds (the historical five, unchanged).
 _grad_parity(False, label="single-zone")
 _grad_parity(True, label="two-zone")

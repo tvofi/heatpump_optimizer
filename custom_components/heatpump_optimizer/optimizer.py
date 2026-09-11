@@ -369,6 +369,13 @@ def _bounds_supported_by_batch(bounds: list[tuple[float, float]]) -> bool:
     return True
 
 
+#: Adopt the restart only when it beats the prior by more than an ftol tick.
+#: L-BFGS-B's own ``ftol`` is 1e-6. Keeping every ``score < prior`` tick
+#: re-planned 15 of 51 stress scenarios and left the work check under its
+#: 40-of-51 floor. A 1e-4 relative drop is a real re-plan. No new seed.
+_LBFGSB_RESTART_KEEP_REL = 1e-4
+
+
 def _lbfgsb_restart(
     best: Any,
     objective: Callable[..., float],
@@ -401,7 +408,8 @@ def _lbfgsb_restart(
         return best
     score = float(objective(polished.x, *args))
     prior = float(objective(best.x, *args))
-    if np.isfinite(score) and score < prior:
+    scale = max(abs(prior), 1e-12)
+    if np.isfinite(score) and (prior - score) > _LBFGSB_RESTART_KEEP_REL * scale:
         return polished
     return best
 
