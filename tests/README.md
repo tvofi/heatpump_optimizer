@@ -274,7 +274,9 @@ test the extraction.
 The corollary for reviewers: "name a single-line production mutation that
 kills this assertion" is necessary but not sufficient. Also ask *which file*
 the mutation has to be made in. If the answer is the test file, the assertion
-is measuring itself.
+is measuring itself. Ask which **operator**: line deletion killed 0 of 8 on
+`validate.py` and `optimality.py`; arithmetic killed 2 of 2 on `optimality.py`.
+Sample arithmetic and off-by-one; delete nothing.
 
 ## The two guards
 
