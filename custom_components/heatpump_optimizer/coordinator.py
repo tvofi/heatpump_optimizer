@@ -572,6 +572,11 @@ def forecast_outdoor_now(forecast: list[dict[str, Any]], now: datetime) -> float
 PLAN_STALE_INTERVALS = 3
 PLAN_STALE_FLOOR_MINUTES = 90.0
 SOLVE_FAILURE_ISSUE_COUNT = 3
+# Consecutive in-process fallbacks on one hass before the GIL solve is
+# skipped and the last plan is kept (#783). The first N still degrade:
+# a slow plan beats none (#511). Counted on hass.data, not a process
+# global, so a later test's new hass is not charged for an earlier one.
+WORKER_FALLBACK_CAP = 3
 
 
 def _republish_handover_ages(coord: Any, handover: dict[str, Any]) -> dict[str, Any]:
@@ -740,6 +745,7 @@ _PROCESS_LOCK = threading.Lock()
 _PROCESS_WORKER: "subprocess.Popen[bytes] | None" = None
 _PROCESS_ATEXIT = False
 _WORKER_FALLBACK_CAUSE: str | None = None
+_WORKER_FALLBACK_STREAK = f"{DOMAIN}_worker_fallback_streak"
 
 
 class ProcessWorkerUnavailable(RuntimeError):
@@ -931,10 +937,37 @@ def _note_worker_fallback(hass: HomeAssistant, err: BaseException) -> None:
 def _clear_worker_fallback(hass: HomeAssistant) -> None:
     """The process route carried a solve again; withdraw the notice."""
     global _WORKER_FALLBACK_CAUSE
+    _reset_worker_fallback_streak(hass)
     if _WORKER_FALLBACK_CAUSE is None:
         return
     _WORKER_FALLBACK_CAUSE = None
     ir.async_delete_issue(hass, DOMAIN, "solve_worker_fallback")
+
+
+def _worker_fallback_streak(hass: HomeAssistant) -> int:
+    data = getattr(hass, "data", None)
+    if not isinstance(data, dict):
+        return 0
+    raw = data.get(_WORKER_FALLBACK_STREAK, 0)
+    try:
+        return int(raw or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _bump_worker_fallback(hass: HomeAssistant) -> int:
+    data = getattr(hass, "data", None)
+    if not isinstance(data, dict):
+        return 1
+    n = _worker_fallback_streak(hass) + 1
+    data[_WORKER_FALLBACK_STREAK] = n
+    return n
+
+
+def _reset_worker_fallback_streak(hass: HomeAssistant) -> None:
+    data = getattr(hass, "data", None)
+    if isinstance(data, dict):
+        data.pop(_WORKER_FALLBACK_STREAK, None)
 
 
 async def _await_optimize(
@@ -949,7 +982,9 @@ async def _await_optimize(
     A worker that cannot carry the job degrades to an in-process solve rather
     than to no plan (#511). That re-acquires the GIL the process route exists
     to escape, which is the accepted trade -- a slow plan beats none -- and it
-    is never silent, or this class of fault ships again.
+    is never silent, or this class of fault ships again. After
+    ``WORKER_FALLBACK_CAP`` consecutive fallbacks on the same hass the
+    in-process solve is skipped and the last plan stays published (#783).
     """
     try:
         result = await _await_process(
@@ -957,6 +992,12 @@ async def _await_optimize(
         )
     except ProcessWorkerUnavailable as err:
         _note_worker_fallback(hass, err)
+        n = _bump_worker_fallback(hass)
+        if n > WORKER_FALLBACK_CAP:
+            raise UpdateFailed(
+                f"process-solve worker unusable for {n} consecutive cycles; "
+                "keeping the last plan rather than holding the GIL (#783)"
+            ) from err
         return await hass.async_add_executor_job(
             optimize_in_process, optimizer, state, positional, keywords
         )
