@@ -24988,6 +24988,17 @@ from heatpump_optimizer.thermal_model import ThermalParameters as _WfTP
 from heatpump_optimizer.wood_fuel import (
     build_wood_fuel_view as _wf_view,
     wood_fuel_from_coordinator as _wf_from_coord,
+    wood_tank_soc_from_probes as _wf_soc,
+)
+
+R.check(
+    "probe span at 34.2 C is soc 0.2",
+    abs(_wf_soc(34.2, 19.0) - 0.2) < 1e-9,
+)
+R.check("no live tank temp is no soc", _wf_soc(None, 19.0) is None)
+R.check(
+    "a non-positive span is no soc",
+    _wf_soc(40.0, 95.0) is None,
 )
 
 _wf_off = {
@@ -25114,6 +25125,108 @@ R.check(
 R.check(
     "wood_fuel_from_coordinator is the publish helper",
     _wf_from_coord is not None,
+)
+
+_wf_soc_kwargs = dict(
+    prices=_wf_cheap_night,
+    outdoor=[0.0] * 48,
+    space_kw=[0.0] * 48,
+    dhw_kw=[0.0] * 48,
+    cop_at=lambda _t: 3.0,
+    timestamps=_wf_stamps,
+    forecast_kw=[],
+    suppressing=False,
+)
+_wf_light_view = _wf_view(
+    _wf_cfg,
+    wood_tank_temperature=34.2,
+    comfort_min=19.0,
+    **_wf_soc_kwargs,
+)
+R.check(
+    "cheap night and a 34.2 C tank advises light",
+    (_wf_light_view.get("night_advice") or {}).get("action") == "light",
+    repr(_wf_light_view.get("night_advice")),
+)
+_wf_default_floor = _wf_view(
+    _wf_cfg, wood_tank_temperature=34.2, **_wf_soc_kwargs
+)
+R.check(
+    "omitted comfort floor still lights at 34.2 C",
+    (_wf_default_floor.get("night_advice") or {}).get("action") == "light",
+    repr(_wf_default_floor.get("night_advice")),
+)
+_wf_no_temp = _wf_view(_wf_cfg, **_wf_soc_kwargs)
+R.check(
+    "no tank temperature attaches no night advice",
+    "night_advice" not in _wf_no_temp,
+    repr(_wf_no_temp.get("night_advice")),
+)
+_wf_wrong_src = _wf_view(
+    dict(_wf_cfg, wood_tank_soc=0.9),
+    wood_tank_temperature=34.2,
+    comfort_min=19.0,
+    **_wf_soc_kwargs,
+)
+R.check(
+    "config wood_tank_soc does not override the probes",
+    (_wf_wrong_src.get("night_advice") or {}).get("action") == "light",
+    repr(_wf_wrong_src.get("night_advice")),
+)
+_wf_config_only = _wf_view(dict(_wf_cfg, wood_tank_soc=0.2), **_wf_soc_kwargs)
+R.check(
+    "wood_tank_soc in config is not a source",
+    "night_advice" not in _wf_config_only,
+    repr(_wf_config_only.get("night_advice")),
+)
+_wf_skip_view = _wf_view(
+    _wf_cfg,
+    prices=_wf_skip_prices,
+    outdoor=[0.0] * 48,
+    space_kw=[0.0] * 48,
+    dhw_kw=[0.0] * 48,
+    cop_at=lambda _t: 3.0,
+    timestamps=_wf_stamps,
+    forecast_kw=[],
+    suppressing=False,
+    wood_tank_temperature=87.4,
+    comfort_min=19.0,
+)
+R.check(
+    "expensive next day and an 87.4 C tank advises skip",
+    (_wf_skip_view.get("night_advice") or {}).get("action") == "skip",
+    repr(_wf_skip_view.get("night_advice")),
+)
+
+from types import SimpleNamespace as _WfNS
+
+_wf_probe_coord = _WfNS(
+    _config=_wf_cfg,
+    _external_heat=_WfNS(suppressing=False),
+    _opt_config=_WfNS(min_temp=19.0, dt_hours=1.0),
+    _thermal_params=_WfNS(two_tank_modelled=False),
+    _thermal_model=_WfNS(compute_cop=lambda _t: 3.0),
+    _current_state=_WfNS(wood_tank_temperature=34.2),
+)
+_wf_probe_result = _WfNS(
+    timestamps=_wf_stamps,
+    prices=_wf_cheap_night,
+    outdoor_temps=[0.0] * 48,
+    power_schedule=[0.0] * 48,
+    dhw_power_schedule=[0.0] * 48,
+)
+_wf_from_probes = _wf_from_coord(_wf_probe_coord, _wf_probe_result)
+R.check(
+    "from_coordinator uses the live wood-tank temperature",
+    (_wf_from_probes.get("night_advice") or {}).get("action") == "light",
+    repr(_wf_from_probes.get("night_advice")),
+)
+_wf_probe_coord._current_state.wood_tank_temperature = None
+_wf_from_empty = _wf_from_coord(_wf_probe_coord, _wf_probe_result)
+R.check(
+    "from_coordinator without a tank temperature attaches nothing",
+    "night_advice" not in _wf_from_empty,
+    repr(_wf_from_empty.get("night_advice")),
 )
 
 R.section("3L-G9 — what-if wood slots")

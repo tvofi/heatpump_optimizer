@@ -16,6 +16,8 @@ from .const import (
     CONF_WOOD_TANK_BOTTOM_ENTITY,
     CONF_WOOD_TANK_TOP_ENTITY,
     CONF_WOOD_TYPE,
+    DEFAULT_MIN_TEMP,
+    WOOD_TANK_MAX_TEMP,
 )
 
 WOOD_KWH_M3 = {
@@ -42,6 +44,26 @@ def _optional_float(value: object) -> float | None:
 def _force_float(value: object, default: float = 0.0) -> float:
     got = _optional_float(value)
     return default if got is None else got
+
+
+def wood_tank_soc_from_probes(
+    tank_temp: float | None,
+    comfort_min: float,
+    tank_max: float = WOOD_TANK_MAX_TEMP,
+) -> float | None:
+    """Fraction of the wood-tank probe span that is above the comfort floor.
+
+    Same (T − T_min) / (T_max − T_min) clip as ``StorageComponent.soc``
+    in battery.py. Reimplemented here so this module does not import
+    battery. ``None`` when there is no live tank temperature, or when
+    the span is not a positive interval.
+    """
+    if tank_temp is None:
+        return None
+    span = float(tank_max) - float(comfort_min)
+    if span <= 1e-9:
+        return None
+    return min(1.0, max(0.0, float(tank_temp) - float(comfort_min)) / span)
 
 
 def useful_kwh_m3(wood_type: str, packing: str, efficiency: float) -> float:
@@ -406,6 +428,8 @@ def build_wood_fuel_view(
     timestamps: Sequence[datetime],
     forecast_kw: list[float],
     suppressing: bool,
+    wood_tank_temperature: float | None = None,
+    comfort_min: float | None = None,
 ) -> dict[str, Any]:
     """Ready/cheaper/slots. cheaper is False when not ready."""
     wtype = config.get(CONF_WOOD_TYPE)
@@ -445,7 +469,17 @@ def build_wood_fuel_view(
         "cheaper_hour_count": count,
         "slots": slots,
     }
-    _attach_night_advice(view, config, prices, timestamps, outdoor, cop_at, sek)
+    _attach_night_advice(
+        view,
+        config,
+        prices,
+        timestamps,
+        outdoor,
+        cop_at,
+        sek,
+        wood_tank_temperature,
+        comfort_min,
+    )
     return view
 
 
@@ -457,12 +491,15 @@ def _attach_night_advice(
     outdoor: list[float],
     cop_at: Callable[[float], object],
     sek: float | None,
+    wood_tank_temperature: float | None,
+    comfort_min: float | None,
 ) -> None:
     if not wood_furnace_on(config) or sek is None or not prices or not timestamps:
         return
-    soc = _optional_float(config.get("wood_tank_soc"))
+    floor = DEFAULT_MIN_TEMP if comfort_min is None else comfort_min
+    soc = wood_tank_soc_from_probes(wood_tank_temperature, floor)
     if soc is None:
-        soc = 0.5
+        return
     cops = _cops(outdoor, cop_at) if outdoor else [3.0] * len(prices)
     advice = night_advice(
         now=timestamps[0],
@@ -489,6 +526,8 @@ def wood_fuel_from_coordinator(coord: Any, result: Any) -> dict[str, Any]:
         )
     else:
         forecast_kw = []
+    state = getattr(coord, "_current_state", None)
+    opt = getattr(coord, "_opt_config", None)
     return build_wood_fuel_view(
         coord._config,
         prices=list(result.prices) if result is not None else [],
@@ -501,4 +540,6 @@ def wood_fuel_from_coordinator(coord: Any, result: Any) -> dict[str, Any]:
         timestamps=list(result.timestamps) if result is not None else [],
         forecast_kw=forecast_kw,
         suppressing=suppressing,
+        wood_tank_temperature=getattr(state, "wood_tank_temperature", None),
+        comfort_min=getattr(opt, "min_temp", None),
     )
