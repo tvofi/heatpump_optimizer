@@ -45,19 +45,19 @@
     "third_party": [
       "aiohttp",
       "numpy",
+      "scipy-stubs",
       "threadpoolctl",
       "voluptuous"
     ]
   },
   "type_ignores": 0,
   "census": {
-    "errors": 87,
+    "errors": 83,
     "by_code": {
       "arg-type": 9,
       "assignment": 3,
       "call-overload": 1,
-      "import-untyped": 2,
-      "index": 3,
+      "index": 1,
       "no-any-return": 12,
       "no-redef": 1,
       "no-untyped-call": 4,
@@ -72,10 +72,11 @@
       "homeassistant-stubs": "2026.2.3",
       "aiohttp": "3.13.3",
       "numpy": "2.5.3",
+      "scipy-stubs": "1.18.1.0",
       "threadpoolctl": "3.6.0",
       "voluptuous": "0.15.2"
     },
-    "recorded_at": "e7aa4a4f46c20665bc06352cb5a90b69629b7f17"
+    "recorded_at": "dfe3559f0d252ca5b52ae4d29e408ae46d670ec5"
   },
   "recorded_at": "52c83d1c98182979eb0d042173ed3ba4266afbe7"
 }

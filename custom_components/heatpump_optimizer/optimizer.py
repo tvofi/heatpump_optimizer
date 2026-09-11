@@ -38,6 +38,7 @@ itself.
 """
 from __future__ import annotations
 
+import importlib
 import logging
 import math
 import time as _time_mod
@@ -211,9 +212,15 @@ _MULTI_START_SOLVES = 4
 # more, but which wins outright when pre-heating less is the better plan.
 _LOW_ENERGY_START_FRACTION = 0.35
 
+# Resolved by name, not imported: threadpoolctl publishes no py.typed and no
+# stub distribution exists, so a static import is an `import-untyped` error
+# with no annotation that reaches it -- while the try/except below already
+# says this dependency is optional and looked up at runtime.
 try:  # pragma: no cover - present via the manifest requirement
-    from threadpoolctl import threadpool_limits as _threadpool_limits
-except ImportError:  # bare test imports without installed requirements
+    _threadpool_limits: Any = importlib.import_module(
+        "threadpoolctl"
+    ).threadpool_limits
+except (ImportError, AttributeError):  # bare test imports without the requirement
     _threadpool_limits = None
 
 
@@ -2462,6 +2469,11 @@ class HeatPumpOptimizer:
                 )
                 if not rel_s and not rel_d:
                     break
+                # Both pin arrays exist on this path: `_normalise_pins`
+                # returned them above and `rel_s`/`rel_d` index into
+                # them, so the release loop cannot run against None.
+                # Costs two max_cc points, raised for it on 2026-09-11.
+                assert space_pins is not None and dhw_pins is not None
                 for i in rel_s:
                     space_pins[i] = float("nan")
                     released_space.add(i)
@@ -4687,7 +4699,10 @@ class HeatPumpOptimizer:
                 )
                 return best
 
-            energy = np.asarray(result.x[:n_steps], dtype=float)
+            solution = result.x
+            if solution is None:  # pragma: no cover - success implies a vector
+                return best
+            energy = np.asarray(solution[:n_steps], dtype=float)
             best = np.clip(energy / (cop * dt), 0.0, p_dhw_max)
 
             # Refine the COP estimate against the tank temperatures this plan

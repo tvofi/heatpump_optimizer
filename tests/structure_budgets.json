@@ -18,10 +18,10 @@
  "functions_cc_over_25": 9,
  "internal_call_edges": 335,
  "local_imports": 7,
- "max_cc": 48,
+ "max_cc": 50,
  "max_class_loc": 9604,
  "max_method_loc": 393,
  "methods_over_150": 18,
  "methods_over_200": 11,
- "recorded_at": "697810764c1f314b1c376fe16d55feae96934771"
+ "recorded_at": "d737ab05b33d32db093b5d3d6f78a5a012a053db"
 }
