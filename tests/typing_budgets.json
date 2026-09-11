@@ -52,31 +52,18 @@
   },
   "type_ignores": 0,
   "census": {
-    "errors": 83,
-    "by_code": {
-      "arg-type": 9,
-      "assignment": 3,
-      "call-overload": 1,
-      "index": 1,
-      "no-any-return": 12,
-      "no-redef": 1,
-      "no-untyped-call": 4,
-      "no-untyped-def": 25,
-      "return-value": 1,
-      "type-arg": 25,
-      "type-var": 1
-    },
+    "errors": 0,
+    "by_code": {},
     "environment": {
       "python": "3.13.15",
       "mypy": "2.3.1",
       "homeassistant-stubs": "2026.2.3",
       "aiohttp": "3.13.3",
       "numpy": "2.5.3",
-      "scipy-stubs": "1.18.1.0",
       "threadpoolctl": "3.6.0",
       "voluptuous": "0.15.2"
     },
-    "recorded_at": "dfe3559f0d252ca5b52ae4d29e408ae46d670ec5"
+    "recorded_at": "d8c47a7b02bed9c30d7fa561c89441b53dc35442"
   },
   "recorded_at": "52c83d1c98182979eb0d042173ed3ba4266afbe7"
 }

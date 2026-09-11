@@ -96,7 +96,7 @@ def space_pump_should_run(
 
 
 def plan_commands_heat(
-    power_schedule: Sequence[float], step_index: int
+    power_schedule: Sequence[float] | None, step_index: int
 ) -> tuple[bool, bool]:
     """(heat now, heat next step) read from the plan's power schedule."""
     if not power_schedule:
