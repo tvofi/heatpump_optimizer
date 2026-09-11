@@ -27609,21 +27609,24 @@ _t3_loc_nolat = _t3_coord()
 _t3_loc_nolat.hass.config.latitude = None
 _t3_loc_nolon = _t3_coord()
 _t3_loc_nolon.hass.config.longitude = None
+_t3_loc_nolat_out = _t3_call(_t3_loc_nolat._solar_location)
+_t3_loc_nolon_out = _t3_call(_t3_loc_nolon._solar_location)
 R.check(
     "an incomplete home location reads as no coordinate, on either axis",
-    _t3_loc_nolat._solar_location() is None
-    and _t3_loc_nolon._solar_location() is None,
-    f"no latitude -> {_t3_loc_nolat._solar_location()!r}, no longitude -> "
-    f"{_t3_loc_nolon._solar_location()!r}",
+    _t3_loc_nolat_out is None and _t3_loc_nolon_out is None,
+    f"no latitude -> {_t3_loc_nolat_out!r}, no longitude -> "
+    f"{_t3_loc_nolon_out!r} -- taking one axis and calling `float` on the "
+    "other raises, so widening this guard is a crash rather than a guess",
 )
 _t3_loc_neither = _t3_coord(
     solar_location={"latitude": "north", "longitude": 1.0}
 )
 _t3_loc_neither.hass.config.latitude = None
+_t3_loc_neither_out = _t3_call(_t3_loc_neither._solar_location)
 R.check(
     "a junk option and no home location together read as no coordinate",
-    _t3_loc_neither._solar_location() is None,
-    f"{_t3_loc_neither._solar_location()!r} -- the warning path falls THROUGH "
+    _t3_loc_neither_out is None,
+    f"{_t3_loc_neither_out!r} -- the warning path falls THROUGH "
     "to the home location rather than returning, which is the only reason "
     "this case reaches None",
 )
@@ -27722,11 +27725,12 @@ R.check(
 
 
 # -- `_solar_forecast_view`: the window, the anchor and the rounding --------
-_t3_view_empty = _t3_coord()
+_t3_view_empty_out = _t3_call(_t3_coord()._solar_forecast_view)
 R.check(
     "with no Open-Meteo client the forecast view is empty, not an error",
-    _t3_view_empty._solar_forecast_view() == [],
-    f"{_t3_view_empty._solar_forecast_view()!r}",
+    _t3_view_empty_out == [],
+    f"{_t3_view_empty_out!r} -- there is no client to read a series off "
+    "before the first refresh, and the sensor asks for this every update",
 )
 
 _t3_view_now = dt_util.utcnow()
@@ -27806,8 +27810,9 @@ R.check(
     _t3_pm_good._price_days_seen == {"2026-01-01", "2"}
     and _t3_pm_good._price_qdays_seen == {"2026-01-02"}
     and _t3_pm_good._t3_escaped is None,
-    f"days {sorted(_t3_pm_good._price_days_seen)} "
-    f"qdays {sorted(_t3_pm_good._price_qdays_seen)} -- the integer 2 arrives "
+    f"days {sorted(_t3_pm_good._price_days_seen, key=repr)} "
+    f"qdays {sorted(_t3_pm_good._price_qdays_seen, key=repr)} -- the integer "
+    "2 arrives "
     "as '2', so a payload written by an older version cannot make the "
     "membership test in the learner miss and re-fold a day it already has",
 )
@@ -27818,8 +27823,9 @@ R.check(
     _t3_pm_bare._price_days_seen == set()
     and _t3_pm_bare._price_qdays_seen == set()
     and _t3_pm_str._price_days_seen == set(),
-    f"absent -> {sorted(_t3_pm_bare._price_days_seen)}, a bare string -> "
-    f"{sorted(_t3_pm_str._price_days_seen)} -- iterating the string would "
+    f"absent -> {sorted(_t3_pm_bare._price_days_seen, key=repr)}, a bare "
+    f"string -> {sorted(_t3_pm_str._price_days_seen, key=repr)} -- iterating "
+    "the string would "
     "seed the set with ten one-character days",
 )
 _t3_pm_none = _t3_load_price_model(None)
@@ -27827,7 +27833,7 @@ R.check(
     "a store that has never been written leaves an empty model, not an error",
     _t3_pm_none._price_days_seen == set()
     and _t3_pm_none._t3_escaped is None,
-    f"days {sorted(_t3_pm_none._price_days_seen)} escaped "
+    f"days {sorted(_t3_pm_none._price_days_seen, key=repr)} escaped "
     f"{_t3_pm_none._t3_escaped!r}",
 )
 _t3_pm_boom = _t3_coord()
@@ -27906,7 +27912,10 @@ _T3_WX_ENTRIES = [{"temperature": 1.0}, {"temperature": 9.0}]
 
 _t3_wx_pos = _t3_coord()
 _t3_wx_pos._weather_forecast = [dict(e) for e in _T3_WX_ENTRIES]
-_t3_wx_pos_out = _t3_wx_pos._weather_series(8, _T3_WX_MIDNIGHT, 0)[0]
+_t3_wx_pos_got = _t3_call(_t3_wx_pos._weather_series, 8, _T3_WX_MIDNIGHT, 0)
+_t3_wx_pos_out = (
+    _t3_wx_pos_got[0] if isinstance(_t3_wx_pos_got, tuple) else _t3_wx_pos_got
+)
 _t3_wx_bad = _t3_coord()
 _t3_wx_bad._weather_forecast = [
     dict(e, datetime="not-a-date") for e in _T3_WX_ENTRIES
@@ -28061,9 +28070,11 @@ def _t3_peak(house, measured, commanded, *, enabled=True):
     c._current_action = {"power": commanded}
     dt_util.freeze(_T3_PEAK_NOW)
     try:
-        c._track_realised_peak()
+        got = _t3_call(c._track_realised_peak)
     finally:
         dt_util.freeze(None)
+    if isinstance(got, Exception):
+        return got
     return c._peak_tracker.window_snapshot(_T3_PEAK_NOW, c._capacity_tariff())[1]
 
 
@@ -28153,42 +28164,65 @@ R.check(
     f"{_t3_pe_idle._guard_last_fold!r} -- there is no line to defend, so a "
     "chatty meter costs nothing",
 )
+# The second reading arrives five seconds after the first, inside the
+# ten-second window. At the SAME instant both arms leave `_guard_last_fold`
+# reading the same value, so that version of this check survived the
+# throttle being deleted -- measured.
 _t3_pe_throttle = _t3_coord(peak_tariff_enabled=True, peak_tariff_price=50.0)
 dt_util.freeze(_T3_PEAK_NOW)
 try:
     _t3_pe_throttle._on_power_event(_T3PowerEvent(_T3PowerState("4.5")))
     _t3_pe_throttle_first = _t3_pe_throttle._guard_last_fold
+    dt_util.freeze(_T3_PEAK_NOW + timedelta(seconds=5))
     _t3_pe_throttle._on_power_event(_T3PowerEvent(_T3PowerState("9.9")))
 finally:
     dt_util.freeze(None)
 R.check(
     "a second reading inside the spacing window is throttled, not folded",
-    _t3_pe_throttle._guard_last_fold == _t3_pe_throttle_first,
-    f"{_t3_pe_throttle._guard_last_fold!r} after a 9.9 kW reading at the same "
-    "instant as a 4.5 kW one -- a meter publishing every second would "
+    _t3_pe_throttle._guard_last_fold == _t3_pe_throttle_first == _T3_PEAK_NOW,
+    f"{_t3_pe_throttle._guard_last_fold!r} after a 9.9 kW reading five "
+    f"seconds past {_T3_PEAK_NOW!r} -- a meter publishing every second would "
     "otherwise run this arithmetic sixty times a minute",
 )
 
 
 # -- `_async_peak_guard_transition`: the arm with no plan to actuate -------
+# Counting listener refreshes alone is not enough: BOTH arms end by
+# refreshing, so a version of this check that asserted only the count
+# survived the guard being deleted. What separates them is whether anything
+# was PUBLISHED.
 _t3_gt_idle = _t3_coord()
 _t3_gt_idle._current_action = {}
 _t3_gt_idle._t3_updates = 0
+_t3_gt_idle._t3_published = []
 
 
 def _t3_gt_count():
     _t3_gt_idle._t3_updates += 1
 
 
+async def _t3_gt_ecl(**kwargs):
+    _t3_gt_idle._t3_published.append(("ecl110", kwargs))
+
+
+async def _t3_gt_action(**kwargs):
+    _t3_gt_idle._t3_published.append(("current_action", kwargs))
+
+
 _t3_gt_idle.async_update_listeners = _t3_gt_count
+_t3_gt_idle.async_publish_ecl110_command = _t3_gt_ecl
+_t3_gt_idle.async_publish_current_action = _t3_gt_action
 _t3_drive(_t3_gt_idle, "_async_peak_guard_transition")
 R.check(
     "a transition before the first plan refreshes listeners and publishes nothing",
-    _t3_gt_idle._t3_updates == 1 and _t3_gt_idle._t3_escaped is None,
-    f"listener refreshes {_t3_gt_idle._t3_updates} escaped "
-    f"{_t3_gt_idle._t3_escaped!r} -- the guard can engage before the first "
-    "solve, and publishing a displace derived from an empty action would "
-    "send a 0.0 setpoint to the controller",
+    _t3_gt_idle._t3_updates == 1
+    and _t3_gt_idle._t3_published == []
+    and _t3_gt_idle._t3_escaped is None,
+    f"listener refreshes {_t3_gt_idle._t3_updates} published "
+    f"{_t3_gt_idle._t3_published!r} escaped {_t3_gt_idle._t3_escaped!r} -- "
+    "the guard can engage before the first solve, and publishing a displace "
+    "derived from an empty action would send a 0.0 setpoint to the "
+    "controller",
 )
 
 
@@ -28201,7 +28235,7 @@ def _t3_outage(last_tick_iso, *, enabled=True):
     c = _t3_coord(outage_recovery_enabled=enabled)
     dt_util.freeze(_T3_OUTAGE_NOW)
     try:
-        c._detect_outage(last_tick_iso)
+        c._t3_escaped = _t3_call(c._detect_outage, last_tick_iso)
     finally:
         dt_util.freeze(None)
     return c
@@ -28226,6 +28260,7 @@ R.check(
     _t3_outage((_T3_OUTAGE_NOW - timedelta(minutes=1)).isoformat())._outage_recovery_until
     is None
     and _t3_outage("not-a-date")._outage_recovery_until is None
+    and not isinstance(_t3_outage("not-a-date")._t3_escaped, Exception)
     and _t3_outage(None)._outage_recovery_until is None,
     "a 1-minute gap, 'not-a-date' and None all leave the window closed, "
     "against a 90-minute bar",
@@ -28317,10 +28352,14 @@ R.check(
     "a stored score is clipped into 0-100, and a non-numeric one is dropped",
     _t3_lg_hi._operation_score == 100.0
     and _t3_lg_lo._operation_score == 0.0
-    and _t3_lg_txt._operation_score is None,
+    and _t3_lg_txt._operation_score is None
+    and _t3_lg_txt._t3_escaped is None,
     f"250 -> {_t3_lg_hi._operation_score!r}, -5 -> "
     f"{_t3_lg_lo._operation_score!r}, 'high' -> "
-    f"{_t3_lg_txt._operation_score!r} -- None is a publishable absence "
+    f"{_t3_lg_txt._operation_score!r} escaped {_t3_lg_txt._t3_escaped!r} -- "
+    "the escape is asserted too, because `np.clip` on a string raises and "
+    "the attribute is then left at None by the failure rather than by the "
+    "type test. None is a publishable absence "
     "where a clipped 0.0 would read as a real, terrible score",
 )
 _t3_lg_boom = _t3_coord()
