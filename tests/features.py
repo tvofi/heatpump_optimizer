@@ -2632,6 +2632,45 @@ def _d903_jac_f0_reuses_fun():
 
 _d903_jac_f0_reuses_fun()
 
+
+def _d0_restart_from_returned_point():
+    """R3-D0-01/02: L-BFGS-B is restarted once from its own returned point."""
+    x0s: list = []
+    results: list = []
+    real = _grad_optmod._scoped_minimize
+
+    def spy(*a, **k):
+        x0 = np.asarray(k["x0"] if "x0" in k else a[1], dtype=float).copy()
+        x0s.append(x0)
+        out = real(*a, **k)
+        results.append(out)
+        return out
+
+    def obj(x, *_a):
+        d = np.asarray(x, dtype=float) - 1.0
+        return float(np.dot(d, d))
+
+    _grad_optmod._scoped_minimize = spy
+    try:
+        _grad_optmod._multi_start_minimize(
+            obj, [np.zeros(4)], [(-2.0, 2.0)] * 4, maxiter=20,
+        )
+    finally:
+        _grad_optmod._scoped_minimize = real
+    R.check(
+        "one production start is followed by one restart from the returned point",
+        len(x0s) == 2,
+        f"minimize calls={len(x0s)}",
+    )
+    R.check(
+        "the restart's x0 is the first run's returned point",
+        len(x0s) == 2 and bool(np.allclose(x0s[1], results[0].x)),
+        f"x0s={len(x0s)} first.x={getattr(results[0], 'x', None) if results else None}",
+    )
+
+
+_d0_restart_from_returned_point()
+
 # Space-only, uniform bounds (the historical five, unchanged).
 _grad_parity(False, label="single-zone")
 _grad_parity(True, label="two-zone")
