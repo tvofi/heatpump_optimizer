@@ -9201,6 +9201,60 @@ R.check(
     f"got {_cad4._fuse_advisor}",
 )
 
+# --- #782 the weekly guard survives a store round-trip ----------------------
+_adv_calls.clear()
+_cad_persist = _advisor_coord()
+_asyncio.run(_cad_persist._maybe_run_fuse_advisor())
+_persist_payload = {}
+
+
+class _FuseStore:
+    async def async_save(self, data):
+        _persist_payload.clear()
+        _persist_payload.update(data)
+
+    async def async_load(self):
+        return dict(_persist_payload)
+
+
+_cad_persist._ledger_store = _FuseStore()
+_asyncio.run(_cad_persist._async_save_ledger())
+R.check(
+    "the ledger store carries the advisor timestamp and its month key",
+    isinstance(_persist_payload.get("fuse_advisor_at"), str)
+    and (_persist_payload.get("fuse_advisor") or {}).get("month"),
+    f"got at={_persist_payload.get('fuse_advisor_at')!r} "
+    f"adv={_persist_payload.get('fuse_advisor')!r}",
+)
+_cad_restore = _advisor_coord()
+_cad_restore._ledger_store = _FuseStore()
+_adv_calls.clear()
+_asyncio.run(_cad_restore._maybe_run_fuse_advisor())
+R.check(
+    "a restored advisor timestamp still skips a second run inside the week",
+    _cad_restore._fuse_advisor_at is not None
+    and _cad_restore._fuse_advisor.get("month")
+    and len(_adv_calls) == 0,
+    f"at={_cad_restore._fuse_advisor_at} adv={_cad_restore._fuse_advisor} "
+    f"calls={_adv_calls}",
+)
+
+
+class _OldLed:
+    async def async_load(self):
+        return {"ledger": {"months": {}}}
+
+
+_cad_old = _advisor_coord()
+_cad_old._ledger_store = _OldLed()
+_adv_before = list(_adv_calls)
+_asyncio.run(_cad_old._maybe_run_fuse_advisor())
+R.check(
+    "an older ledger store without advisor keys still runs the what-if",
+    _cad_old._fuse_advisor_at is not None and len(_adv_calls) == len(_adv_before) + 1,
+    f"at={_cad_old._fuse_advisor_at!r} calls={len(_adv_calls)}",
+)
+
 # ===========================================================================
 # T3 — hot water (#32 #18 #20 #24 #47 #9 #28 #6)
 # ===========================================================================

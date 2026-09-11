@@ -385,7 +385,6 @@ catalog below keys off.
 | Price per cubic metre | none | 0–10 000, 10 steps | What you pay per billed cubic metre. **Empty keeps the cheaper-than-pump sensor unavailable — there is no silent default.** |
 | Furnace efficiency | 75 % | 10–95 | Share of the wood's energy that reaches the tank. |
 | Heating circulation pump switch | none | `switch` / `input_boolean` | Paused only in slots that are provably idle and warm — it always runs when heat is planned, when it is freezing outside, or when any room is near its comfort floor. |
-
 The four fuel-price fields render only while **Wood furnace** is on. The
 *Wood cheaper than heat pump* sensor stays unavailable until the furnace is
 on, a wood-tank probe is set, external-heat detection or the DHW wood coil
