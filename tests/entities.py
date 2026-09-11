@@ -5107,6 +5107,42 @@ for name, data in files.items():
         ", ".join(sorted(diff)[:6]),
     )
 
+# #828: the key-identity check only compares the three files to each
+# other, so a field missing a data_description from all three — which
+# renders with a label and no pointer — passed. reauth_confirm.tibber_token
+# was that field. A completeness walk over every labelled config/options
+# field is what makes the gap fail here rather than only in a review.
+_undescribed = sorted(
+    f"{flow}.step.{step}.{key}"
+    for flow in ("config", "options")
+    for step, body in strings.get(flow, {}).get("step", {}).items()
+    for key in body.get("data", {})
+    if key not in body.get("data_description", {})
+)
+R.check(
+    "every labelled flow field has a data_description",
+    not _undescribed,
+    ", ".join(_undescribed[:8]),
+)
+R.check(
+    "the reauth token field points at developer.tibber.com",
+    strings["config"]["step"]["reauth_confirm"]["data_description"][
+        "tibber_token"
+    ]
+    == "Create one at developer.tibber.com.",
+    "the setup step already carries that pointer; reauth is the screen that needs it",
+)
+R.check(
+    "and the Swedish reauth pointer is actually translated",
+    files["sv"]["config"]["step"]["reauth_confirm"]["data_description"][
+        "tibber_token"
+    ]
+    != files["en"]["config"]["step"]["reauth_confirm"]["data_description"][
+        "tibber_token"
+    ],
+    "English copied into sv.json passes the key check and fails the user",
+)
+
 # The stored-value warning is rendered on a form the user merely opened, so
 # an untranslated one is especially visible. It has to exist for both flows —
 # the widening applies to initial setup as well — and be a real translation.

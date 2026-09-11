@@ -188,6 +188,9 @@
         "description": "Tibber refused the configured token. Enter a valid API token to restore price updates.",
         "data": {
           "tibber_token": "Tibber API token"
+        },
+        "data_description": {
+          "tibber_token": "Create one at developer.tibber.com."
         }
       },
       "user_sensors": {
