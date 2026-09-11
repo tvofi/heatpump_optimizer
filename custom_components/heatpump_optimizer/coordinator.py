@@ -2534,7 +2534,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if isinstance(raw_ap, dict):
             for key in ("n", "mx", "my", "cov", "var", "scale"):
                 try:
-                    self._solar_aperture[key] = float(raw_ap.get(key, self._solar_aperture[key]))
+                    self._solar_aperture[key] = v if np.isfinite(v := float(raw_ap.get(key, self._solar_aperture[key]))) else self._solar_aperture[key]
                 except (TypeError, ValueError, OverflowError):
                     continue
             self._solar_aperture["scale"] = float(
@@ -6446,7 +6446,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 "watched_buckets": sum(
                     1
                     for entry in self._cop_baseline.values()
-                    if int(entry[1]) >= COP_BASELINE_MIN_SAMPLES
+                    if np.isfinite(entry[1]) and int(entry[1]) >= COP_BASELINE_MIN_SAMPLES
                 ),
                 "alarm": self._cop_health_cusum.tripped,
                 "evidence": list(self._cop_health_cusum.evidence),
@@ -6456,13 +6456,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             # see what the learners would say.
             "capacity_envelope": {
                 "buckets": {
-                    str(k * 3): [round(float(v[0]), 2), int(v[1])]
+                    str(k * 3): [round(float(v[0]), 2), int(v[1]) if np.isfinite(v[1]) else 0]
                     for k, v in self._capacity_envelope.items()
                 },
             },
             "solar_aperture": {
                 "scale": round(float(self._solar_aperture["scale"]), 3),
-                "samples": int(self._solar_aperture["n"]),
+                "samples": int(self._solar_aperture["n"]) if np.isfinite(self._solar_aperture["n"]) else 0,
             },
             "internal_gains_profile": (
                 [round(float(g), 3) for g in self._internal_gains_profile]

@@ -3784,6 +3784,45 @@ R.check(
     _wrap_detail,
 )
 
+import json as _json773
+
+# #773: the JSON *string* "nan" is RFC 8259 / orjson-clean and reaches
+# float(); a bare NaN token does not. The finite sibling control is 0.
+_nan773 = _json773.loads(
+    '{"solar_aperture":{"n":"nan","mx":0.0,"my":0.0,"cov":0.0,"var":0.0,"scale":1.0}}'
+)
+_inf773 = _json773.loads(
+    '{"solar_aperture":{"n":"Infinity","mx":0.0,"my":0.0,"cov":0.0,"var":0.0,"scale":1.0}}'
+)
+_fin773 = _json773.loads(
+    '{"solar_aperture":{"n":"12","mx":0.0,"my":0.0,"cov":0.0,"var":0.0,"scale":1.0}}'
+)
+for _label773, _payload773, _want_n773 in (
+    ("JSON-string nan", _nan773, 0.0),
+    ("JSON-string Infinity", _inf773, 0.0),
+    ("JSON-string finite n", _fin773, 12.0),
+):
+    _store773 = _FakeLearnStore()
+    _store773.saved = _payload773
+    _holder773 = _LearnPersist(_store773)
+    try:
+        _aio.run(_holder773._async_load_thermal_learning())
+        _ok773 = True
+        _detail773 = ""
+    except Exception as _err773:  # noqa: BLE001
+        _ok773 = False
+        _detail773 = f"{type(_err773).__name__}: {_err773}"
+    R.check(
+        f"thermal_learning {_label773} does not raise",
+        _ok773,
+        _detail773,
+    )
+    R.check(
+        f"thermal_learning {_label773} leaves aperture n at {_want_n773}",
+        _holder773._solar_aperture["n"] == _want_n773,
+        repr(_holder773._solar_aperture),
+    )
+
 from harness import FakeEntry as _StoreFakeEntry, FakeHass as _StoreFakeHass
 from homeassistant.helpers.storage import _reset_store_disk as _reset_stores
 
@@ -3819,6 +3858,49 @@ def _store_coord():
             }
         ),
     )
+
+
+# #773: _learning_view's unguarded int() over learner state. The store
+# route is the JSON string; in-memory nan is what that load used to leave.
+_view773 = _store_coord()
+try:
+    _view773._solar_aperture["n"] = float(_json773.loads('"nan"'))
+    _view773._capacity_envelope[0] = [1.0, float(_json773.loads('"nan"'))]
+    _view773._cop_baseline[(0, False)] = [3.0, float(_json773.loads('"nan"'))]
+    _pub773 = _view773._learning_view()
+    _view773_ok = True
+    _view773_detail = ""
+except Exception as _err773:  # noqa: BLE001
+    _pub773 = {}
+    _view773_ok = False
+    _view773_detail = f"{type(_err773).__name__}: {_err773}"
+R.check(
+    "a non-finite aperture n does not wedge _learning_view",
+    _view773_ok and _pub773.get("solar_aperture", {}).get("samples") == 0,
+    _view773_detail or repr(_pub773.get("solar_aperture")),
+)
+_load773 = _store_coord()
+
+
+async def _fake_nan773(_p=_nan773):
+    return _p
+
+
+_load773._thermal_learning_store.async_load = _fake_nan773
+try:
+    _aio.run(_load773._async_load_thermal_learning())
+    _cycle773 = _load773._learning_view()
+    _cycle773_ok = True
+    _cycle773_detail = ""
+except Exception as _err773:  # noqa: BLE001
+    _cycle773 = {}
+    _cycle773_ok = False
+    _cycle773_detail = f"{type(_err773).__name__}: {_err773}"
+R.check(
+    "JSON-string nan in the thermal store does not wedge the learning view",
+    _cycle773_ok and _cycle773.get("solar_aperture", {}).get("samples") == 0,
+    _cycle773_detail or repr(_cycle773.get("solar_aperture")),
+)
 
 
 for _store_attr, _loader_name in _STORE_LOADERS:
