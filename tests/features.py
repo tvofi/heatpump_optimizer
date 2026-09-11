@@ -5113,6 +5113,32 @@ R.check(
     "a flow temperature must not change COP when the term is disabled",
 )
 
+# R3-D2-01: at fixed flow the lift shrinks as outdoor rises, so COP must
+# not fall. Calls compute_cop; does not re-implement the Carnot ratio.
+_mono_flows = (36.0, 40.0, 45.0, 50.0, 55.0, 60.0, 65.0)
+_mono_outs = [n / 2.0 for n in range(-40, 71)]
+_mono_m = ThermalModel(ThermalParameters(cop_flow_carnot=True))
+_mono_viol = 0
+for _mf in _mono_flows:
+    _mc = [_mono_m.compute_cop(_mo, flow_temp=_mf) for _mo in _mono_outs]
+    if any(_mc[i + 1] + 1e-12 < _mc[i] for i in range(len(_mc) - 1)):
+        _mono_viol += 1
+R.check(
+    "Carnot flow correction leaves COP non-decreasing in outdoor temperature",
+    _mono_viol == 0,
+    f"{_mono_viol} of {len(_mono_flows)} flow temps invert as outdoor rises",
+)
+_mono_off_viol = 0
+for _mf in _mono_flows:
+    _mc = [_off.compute_cop(_mo, flow_temp=_mf) for _mo in _mono_outs]
+    if any(_mc[i + 1] + 1e-12 < _mc[i] for i in range(len(_mc) - 1)):
+        _mono_off_viol += 1
+R.check(
+    "and the nameplate curve itself is already non-decreasing",
+    _mono_off_viol == 0,
+    f"carnot-off inverted {_mono_off_viol} of {len(_mono_flows)}",
+)
+
 # A dumb valve needs a number to set. The recommendation is the top of the
 # comfort band: the building stores at room temperature for no COP penalty, so
 # it should fill first and the tank should take only the surplus.
@@ -7411,6 +7437,24 @@ R.check(
     "an unsensed wood tank disables the coil byte-identically",
     all(np.array_equal(a, b) for a, b in zip(_out_flag, _out_ref2)),
     "no probe means no preheat claim, exactly the two-tank rule",
+)
+
+# R3-D7-02: last_buffer_trajectory is gone; last_dhw_refused was the same
+# class (written on the long-lived model, read by nobody). The pin is the
+# prefix, not one name — a last_room_trajectory annotation still fails.
+_side_named = [
+    n for n in getattr(ThermalModel, "__annotations__", {}) if n.startswith("last_")
+]
+_side_live = [n for n in vars(_m_on) if n.startswith("last_")]
+R.check(
+    "the thermal model retains no last_* simulation side-channels",
+    _side_named == [] and _side_live == [],
+    f"annotated {_side_named} live {_side_live}",
+)
+R.check(
+    "and a run of simulate_trajectory_with_dhw does not write last_dhw_refused",
+    not hasattr(_m_on, "last_dhw_refused"),
+    "refused heat stays on _step_dhw_refused for the step that booked it",
 )
 
 # #400: the planner must credit the coil, not only the reporting simulation.
@@ -15579,6 +15623,61 @@ R.check(
     and _D_DRIFT.completed
     and abs(_D_DRIFT.sensor_drift_c_per_h - 0.10) < 5e-5,
     f"clean d={_D_CLEAN.sensor_drift_c_per_h} drift d={_D_DRIFT.sensor_drift_c_per_h}",
+)
+
+# --- R3-D2-03 / #778: shrunk drift column lands in UA ----------------------
+R.section("sysid refuses a shrunk drift that landed in UA (R3-D2-03 / #778)")
+
+
+def _sid_contaminate(samples, drift_c_per_h, noise_c=0.0, seed=20260911):
+    """Add a sensor ramp (and optional iid noise) after a legal experiment."""
+    rng = np.random.default_rng(seed)
+    t0 = samples[0].when
+    out = []
+    for s in samples:
+        t = (s.when - t0).total_seconds() / 3600.0
+        noise = float(rng.normal(0.0, noise_c)) if noise_c else 0.0
+        out.append(_SidSample(
+            s.when,
+            s.room_temp + drift_c_per_h * t + noise,
+            s.outdoor_temp,
+            s.power_kw,
+            s.phase,
+        ))
+    return out
+
+
+_R3_LEGAL = _drive_sysid_step(0.20, 8.0, 0.3, 3.0)
+_R3_NOISY_DRIFT = _sid_on(
+    _sid_contaminate(_R3_LEGAL.samples, 0.10, 0.02, 20260911)
+)
+R.check(
+    "0.02 C noise + 0.10 C/h drift is not adopted: the ridge had shrunk d into UA",
+    (not _R3_NOISY_DRIFT.completed)
+    and "drift" in (_R3_NOISY_DRIFT.reason or ""),
+    f"completed={_R3_NOISY_DRIFT.completed} ua={_R3_NOISY_DRIFT.heat_loss_kw_per_c} "
+    f"d={_R3_NOISY_DRIFT.sensor_drift_c_per_h} conf={_R3_NOISY_DRIFT.confidence} "
+    f"({_R3_NOISY_DRIFT.reason})",
+)
+_R3_NOISY_NULL = _sid_on(
+    _sid_contaminate(_R3_LEGAL.samples, 0.0, 0.02, 20260911)
+)
+R.check(
+    "the same 0.02 C noise with no drift stays adoptable (null)",
+    _R3_NOISY_NULL.completed and _R3_NOISY_NULL.confidence >= 0.3,
+    f"completed={_R3_NOISY_NULL.completed} ua={_R3_NOISY_NULL.heat_loss_kw_per_c} "
+    f"({_R3_NOISY_NULL.reason})",
+)
+_R3_CLEAN_DRIFT = _sid_on(
+    _sid_contaminate(_R3_LEGAL.samples, 0.10, 0.0, 20260911)
+)
+R.check(
+    "noise-free 0.10 C/h drift is still identified, not refused",
+    _R3_CLEAN_DRIFT.completed
+    and abs((_R3_CLEAN_DRIFT.sensor_drift_c_per_h or 0.0) - 0.10) < 0.01
+    and abs(_R3_CLEAN_DRIFT.heat_loss_kw_per_c / 0.20 - 1.0) < 0.02,
+    f"d={_R3_CLEAN_DRIFT.sensor_drift_c_per_h} ua={_R3_CLEAN_DRIFT.heat_loss_kw_per_c} "
+    f"({_R3_CLEAN_DRIFT.reason})",
 )
 
 # --- D7-05: detected free heat skips the accuracy sample, like a freeze ---

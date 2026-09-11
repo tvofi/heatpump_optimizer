@@ -1324,8 +1324,6 @@ class ThermalModel:
     #: scaling. Recorded so energy accounting outside the model can balance
     #: the step exactly instead of assuming the nominal demand was met.
     _step_dhw_draw_kw: float = 0.0
-    #: Per-step refused DHW heat of the last `simulate_trajectory_with_dhw`.
-    last_dhw_refused: np.ndarray | None = None
 
     def __init__(self, params: ThermalParameters) -> None:
         """Initialize the thermal model."""
@@ -1379,7 +1377,11 @@ class ThermalModel:
         if flow_temp is not None and self.params.cop_flow_carnot:
             ref = self.params.cop_flow_reference_temp
             if flow_temp > ref:
-                t_out = outdoor_temp + 273.15
+                # The ratio of two Carnot COPs falls as outdoor rises.
+                # Past the nameplate reference that drop outruns the
+                # 2.5 %/K curve and inverts COP (#776). Cap the outdoor
+                # the ratio sees; colder than the reference is unchanged.
+                t_out = min(outdoor_temp, self.params.cop_reference_temp) + 273.15
                 # A minimum lift keeps this finite as outdoor approaches flow.
                 carnot_flow = (flow_temp + 273.15) / max(
                     flow_temp + 273.15 - t_out, 1.0
@@ -2553,7 +2555,7 @@ class ThermalModel:
                         cop = cop * derate.factor(out_i, hum_i)
                     if throttled and p.cop_flow_carnot:
                         ref = p.cop_flow_reference_temp
-                        t_out = out_i + 273.15
+                        t_out = min(out_i, p.cop_reference_temp) + 273.15
                         carnot_flow = (T_buf + 273.15) / np.maximum(
                             T_buf + 273.15 - t_out, 1.0
                         )
@@ -2830,7 +2832,6 @@ class ThermalModel:
         lower_temps = np.zeros(n_steps + 1)
         dhw_temps = np.zeros(n_steps + 1)
         buffer_temps = np.zeros(n_steps + 1)
-        dhw_refused = np.zeros(n_steps)
 
         room_temps[0] = initial_state.room_temperature
         slab_temps[0] = initial_state.slab_temperature
@@ -2922,7 +2923,6 @@ class ThermalModel:
                 draw_power=draw_i,
             )
             state.dhw_temperature = new_dhw
-            dhw_refused[i] = self._step_dhw_refused
 
             room_temps[i + 1] = state.room_temperature
             slab_temps[i + 1] = state.slab_temperature
@@ -2935,7 +2935,6 @@ class ThermalModel:
 
             current_hour += dt_hours
 
-        self.last_dhw_refused = dhw_refused
         return (
             room_temps,
             slab_temps,
