@@ -1,6 +1,6 @@
 # Handover — the open-issues programme
 
-updated-for: eb4d5b7ac6dfb87b9db2681abc43e8969aeba532
+updated-for: 2684125a56b8ed20e2559fd8a3c5d295bab29b69
 
 The rule that governs this file is `.claude/rules/writing-for-agents.md`, which
 the harness loads on this very path. Delivery status is
@@ -180,8 +180,8 @@ in its own pull request.
 5. **Six of this project's own instruments reported rather than measured** —
    #341, #347, #354, #350, #357, #510 — each found by someone chasing something
    else. The pattern is the finding, not the individual bugs.
-6. **A figure quoted from another artefact is not measured until you have run
-   the thing that produced it.**
+6. **A figure from another artefact is not measured until you run the thing
+   that produced it.**
 7. **A branch can be stale against main invisibly in its own diff**: a move
    reverting a fix that landed inside the moved lines, or a stale claim or
    budget table. Only a three-dot comparison against current main catches it.
@@ -204,16 +204,14 @@ in its own pull request.
     very class, catches **0 of 3**: a grep asks *is there a figure here* while
     the defect is *was the right thing measured*. The divider is **structural,
     not dispositional**: across every review-round body in the corpus at the
-    time — 161 rounds over 97 reviewed pull requests, the population both
-    percentages come from, and it grows, so re-derive rather than quote — the
-    class reached no seat's *production* fix. A production fix
+    time — 161 rounds over 97 reviewed pull requests, and it grows, so
+    re-derive — the class reached no seat's *production* fix. A production fix
     is accepted by standing property-quantified instruments (CI, the ratchet,
     closures, the mutation proof); a record or policy artifact has none.
 13. **"The pull request is open" is not a handoff.** The freeze starts at
-    handoff, and a seat that has opened its pull request may still be pushing
-    while it waits on CI. Six pull requests had a head moved under a live review
-    in one session — more events than that, since #531 alone was moved four
-    times.
+    handoff, and a seat that has opened one may still be pushing while it waits
+    on CI. Six pull requests had a head moved under a live review in one
+    session, #531 four times by itself.
 14. **A record pull request cannot converge while the merge queue runs.** #531
     stayed open 20 hours over 45 commits, 25 content edits and 11 blocked
     rounds, with 31 pull requests merging underneath it, each merge
@@ -245,12 +243,12 @@ in its own pull request.
     trailing bracket, so `--ours` would have dropped a whole block silently.
     Verify a merge by parsing the result and naming the checks that run.
 19. **A one-sided cap and a growing document collide across branches** — #608
-    capped this file, #607 added 43 lines 56 minutes later, `main` went red from
-    `5018e31`. Graduated: `policy-docs`'s `[budgets]`. Trap 17 on a budget.
+    capped this file, #607 added 43 lines 56 minutes later and `main` went red.
+    Graduated: `policy-docs`'s `[budgets]`. Trap 17 on a budget.
 20. **A comment bumps a pull request's `updated_at`, so it is not a body-edit
-    clock.** Read as one, it had me date a body edit to what was in fact a
-    reviewer's own comment timestamp. The clock is the `Governance` run list:
-    the job fires on `[edited]`, so a missing run means no edit happened.
+    clock.** Read as one, it dated a body edit to a reviewer's comment. The
+    clock is the `Governance` run list: the job fires on `[edited]`, so a
+    missing run means no edit happened.
 21. **Assert a mutation's occurrence count before applying it.** A control here
     reported a cap mutant NOT CAUGHT: the replacement hit the string's first
     occurrence, inside a comment, so the run was the unmutated one. "I could not
@@ -258,12 +256,12 @@ in its own pull request.
     unanchored `case` glob accepts `v1.2.3; rm -rf /`.
 22. **A subagent does not survive a session restart; its report does.** Read
     `tasks/<agentId>.output` before re-dispatching — `ListAgents` goes empty
-    with no notification, and an hour was nearly spent re-running finished work.
+    with no notification, and an hour nearly went on finished work.
 23. **Re-pointing a branch chain by POSITION after a rebase drops a commit.**
     Map by commit subject and verify the tip's pin count: by index once shifted
     eight branches by one, and only that count noticed.
 24. **A citation repointed to a commit that resolves but lacks the file is
-    worse than a dead one.** `git cat-file -e <sha>:<path>`, never per directory.
+    worse than a dead one.** `git cat-file -e <sha>:<path>`, not per directory.
 25. **A body's count of its own diff must come from the diff.** #621's body
     said five disposition rows; the diff added nine, because the author counted
     what they remembered writing. Derive a body's counts by mutating the
@@ -339,15 +337,17 @@ in its own pull request.
     protected by that last criterion; a root-cause or audit seat detached at
     `main` is not. **Claim it with `git worktree lock`**: `classify()` keeps
     `locked` ahead of every criterion, as it does `main`, `current` and
-    `missing`, none of which its header names — but no `--self-test` case pins
-    that. **Not an untracked marker at the root**: criterion 2 keeps it, and
+    `missing` — none named in its header, none pinned by a `--self-test` case.
+    **Not an untracked marker at the root**: criterion 2 keeps it, and
     `closure.py select` then turns `MODE: SCOPED` into `MODE: FULL` naming it.
-34. **A coverage check can run a guard's line and pin nothing, because an
-    EARLIER guard rejected the input.** Four W5-G7 t2 buffer-cooling checks used
-    round temperatures whose implied rate falls outside the volume bounds, so
-    deleting the guard under test failed no check while all four read green and
-    its line ran either way. **Choose the input so that guard is the only arm
-    which can reject, and say in the detail why the others cannot fire.**
+34. **A coverage check can run a guard's line and pin nothing.** Three shapes
+    found by mutation across W5-G7, none visible to an instrument that sees the
+    line run either way: an EARLIER guard rejected the input (eight checks); the
+    exception ESCAPES and ends the script instead of failing the check named for
+    it (eleven, worst on an event-bus `@callback` whose helper swallows it); the
+    f-string DETAIL is eager, so a `sorted` over a mixed set aborts in place of
+    the failure. **Make that guard the only arm that can reject, catch every
+    call and assert nothing escaped, sort a detail by `repr`.**
 
 ## Owed — post-hoc reviews
 

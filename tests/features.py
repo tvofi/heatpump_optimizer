@@ -27611,4 +27611,1054 @@ R.check(
     "trade this pins",
 )
 
+
+
+# ---------------------------------------------------------------------------
+# W5-G7 tranche 3 of 4 (#195): the fetch and grid seams.
+#
+# These are the boundaries where the integration meets somebody else's
+# service — a weather API, a price API, a power meter, a tariff string a
+# user typed — and every one of them fails in production. So the arms below
+# are mostly REFUSALS, and a refusal that stops refusing is invisible: the
+# optimizer solves on a stale number and the bills move.
+#
+# Tranche 2's table taught this section two rules, and both are applied
+# rather than restated. An input must make the guard under test the ONLY arm
+# that can reject, and the check's detail says why the others cannot fire.
+# And a guard whose removal lets an exception escape must fail a check by
+# NAME, not end the script — so anything that can raise is driven through a
+# catcher that asserts nothing escaped.
+R.section("W5-G7 t3: the fetch and grid seams (#195)")
+
+from typing import Any as _T3Any  # noqa: E402
+from heatpump_optimizer import coordinator as _t3_coord_module  # noqa: E402
+from heatpump_optimizer.open_meteo import IrradianceSeries  # noqa: E402
+
+_T3_DATA = {"tibber_token": "x", "weather_entity": "weather.home"}
+
+
+def _t3_coord(**config):
+    """A live coordinator over the fake bus, with config overrides applied."""
+    return HeatPumpOptimizerCoordinator(
+        FakeHass(), FakeEntry(data=dict(_T3_DATA, **config))
+    )
+
+
+def _t3_call(fn, *args, **kwargs):
+    """Call one synchronous method, returning its value or the exception.
+
+    Tranche 2 measured seven mutations that ended the whole script rather
+    than failing the check named for the guard they removed. A comparison
+    against an exception object is False, so a check written against this
+    fails by NAME on the same mutation.
+    """
+    try:
+        return fn(*args, **kwargs)
+    except Exception as err:  # noqa: BLE001
+        return err
+
+
+def _t3_drive(coord, method, *args, **kwargs):
+    """Await one coordinator method and capture anything that escapes it."""
+    coord._t3_escaped = None
+    try:
+        _asyncio.run(getattr(coord, method)(*args, **kwargs))
+    except Exception as err:  # noqa: BLE001
+        coord._t3_escaped = err
+    return coord
+
+
+# -- `_solar_location`: an option that may be absent, half-filled or junk --
+# The fallback exists so the Open-Meteo option works without picking a point
+# on a map, and the failure it prevents is silent: a coordinate that reads
+# as (0, 0) returns irradiance for the Gulf of Guinea and the solar gain
+# term goes quietly wrong all winter.
+R.check(
+    "with no option set the Home Assistant home location is used",
+    _t3_coord()._solar_location() == (59.33, 18.07),
+    f"{_t3_coord()._solar_location()!r}",
+)
+R.check(
+    "a configured coordinate wins over the home location",
+    _t3_coord(solar_location={"latitude": 10.5, "longitude": -3.25})
+    ._solar_location()
+    == (10.5, -3.25),
+    f"{_t3_coord(solar_location={'latitude': 10.5, 'longitude': -3.25})._solar_location()!r}",
+)
+R.check(
+    "a non-numeric coordinate falls back to home rather than to zero",
+    _t3_coord(solar_location={"latitude": "north", "longitude": 1.0})
+    ._solar_location()
+    == (59.33, 18.07),
+    f"{_t3_coord(solar_location={'latitude': 'north', 'longitude': 1.0})._solar_location()!r} "
+    "-- reading it as 0.0 would request irradiance for the Gulf of Guinea "
+    "and go wrong silently for a whole season",
+)
+R.check(
+    "a half-filled coordinate is not half-used",
+    _t3_coord(solar_location={"latitude": 10.5})._solar_location()
+    == (59.33, 18.07),
+    f"{_t3_coord(solar_location={'latitude': 10.5})._solar_location()!r} -- "
+    "the longitude is absent, so neither value is taken",
+)
+_t3_loc_str = _t3_call(_t3_coord(solar_location="somewhere")._solar_location)
+R.check(
+    "an option that is not a mapping at all is ignored, not indexed",
+    _t3_loc_str == (59.33, 18.07),
+    f"{_t3_loc_str!r} -- a bare string has no `.get`, so dropping the type "
+    "test raises rather than misreading",
+)
+_t3_loc_nolat = _t3_coord()
+_t3_loc_nolat.hass.config.latitude = None
+_t3_loc_nolon = _t3_coord()
+_t3_loc_nolon.hass.config.longitude = None
+_t3_loc_nolat_out = _t3_call(_t3_loc_nolat._solar_location)
+_t3_loc_nolon_out = _t3_call(_t3_loc_nolon._solar_location)
+R.check(
+    "an incomplete home location reads as no coordinate, on either axis",
+    _t3_loc_nolat_out is None and _t3_loc_nolon_out is None,
+    f"no latitude -> {_t3_loc_nolat_out!r}, no longitude -> "
+    f"{_t3_loc_nolon_out!r} -- taking one axis and calling `float` on the "
+    "other raises, so widening this guard is a crash rather than a guess",
+)
+_t3_loc_neither = _t3_coord(
+    solar_location={"latitude": "north", "longitude": 1.0}
+)
+_t3_loc_neither.hass.config.latitude = None
+_t3_loc_neither_out = _t3_call(_t3_loc_neither._solar_location)
+R.check(
+    "a junk option and no home location together read as no coordinate",
+    _t3_loc_neither_out is None,
+    f"{_t3_loc_neither_out!r} -- the warning path falls THROUGH "
+    "to the home location rather than returning, which is the only reason "
+    "this case reaches None",
+)
+
+
+# -- `_fetch_solar_forecast`: the client's lifetime, not the HTTP call ------
+# The client is replaced for these checks because what is under test is when
+# the coordinator builds one, reuses one and drops one -- an edited location
+# that kept serving cached irradiance for the previous place is the defect
+# the rebuild exists for, and it is invisible in any single refresh.
+class _T3StubSolar:
+    """Stands in for `OpenMeteoSolar`, recording construction and refresh."""
+
+    built: list[tuple[float, float]] = []
+
+    def __init__(self, hass, latitude, longitude):
+        self.latitude = float(latitude)
+        self.longitude = float(longitude)
+        self.refreshed: list[_T3Any] = []
+        _T3StubSolar.built.append((self.latitude, self.longitude))
+
+    def matches(self, latitude, longitude):
+        return (
+            abs(self.latitude - float(latitude)) < 1e-6
+            and abs(self.longitude - float(longitude)) < 1e-6
+        )
+
+    async def async_refresh(self, now, force=False):
+        self.refreshed.append(now)
+        return True
+
+
+_t3_real_solar = _t3_coord_module.OpenMeteoSolar
+_t3_coord_module.OpenMeteoSolar = _T3StubSolar
+try:
+    _t3_fs = _t3_coord(
+        solar_forecast_source="open_meteo",
+        solar_location={"latitude": 1.0, "longitude": 2.0},
+    )
+    _t3_drive(_t3_fs, "_fetch_solar_forecast")
+    _t3_fs_first = _t3_fs._open_meteo
+    _t3_drive(_t3_fs, "_fetch_solar_forecast")
+    _t3_fs_reused = _t3_fs._open_meteo is _t3_fs_first
+    _t3_fs_refreshes = len(_t3_fs_first.refreshed)
+    _t3_fs._config["solar_location"] = {"latitude": 9.0, "longitude": 8.0}
+    _t3_drive(_t3_fs, "_fetch_solar_forecast")
+    _t3_fs_rebuilt = _t3_fs._open_meteo
+    _t3_fs_built = list(_T3StubSolar.built)
+
+    _t3_fs_nocoord = _t3_coord(solar_forecast_source="open_meteo")
+    _t3_fs_nocoord.hass.config.latitude = None
+    _t3_fs_nocoord._open_meteo = _t3_fs_first
+    _t3_drive(_t3_fs_nocoord, "_fetch_solar_forecast")
+
+    _t3_fs_off = _t3_coord(solar_forecast_source="weather")
+    _t3_fs_off._open_meteo = _t3_fs_first
+    _t3_drive(_t3_fs_off, "_fetch_solar_forecast")
+finally:
+    _t3_coord_module.OpenMeteoSolar = _t3_real_solar
+
+R.check(
+    "the first refresh builds a client at the configured coordinate",
+    _t3_fs_built[0] == (1.0, 2.0)
+    and _t3_fs_first.matches(1.0, 2.0)
+    and _t3_fs._t3_escaped is None,
+    f"built {_t3_fs_built!r} escaped {_t3_fs._t3_escaped!r}",
+)
+R.check(
+    "a second refresh at the same coordinate reuses the client and refetches",
+    _t3_fs_reused and _t3_fs_refreshes == 2,
+    f"reused {_t3_fs_reused} refreshes {_t3_fs_refreshes} -- rebuilding every "
+    "cycle would throw away the client's own refresh interval",
+)
+R.check(
+    "an edited coordinate rebuilds the client rather than serving the old place",
+    _t3_fs_rebuilt is not _t3_fs_first
+    and _t3_fs_rebuilt.matches(9.0, 8.0)
+    and _t3_fs_built == [(1.0, 2.0), (9.0, 8.0)],
+    f"built {_t3_fs_built!r} -- a cached client for the previous coordinate "
+    "returns plausible irradiance for the wrong location, which no single "
+    "refresh can reveal",
+)
+R.check(
+    "selecting Open-Meteo with no coordinate available drops the client",
+    _t3_fs_nocoord._open_meteo is None
+    and _t3_fs_nocoord._t3_escaped is None,
+    f"{_t3_fs_nocoord._open_meteo!r} escaped {_t3_fs_nocoord._t3_escaped!r} -- "
+    "keeping a client here would keep serving the last good coordinate after "
+    "the option that named it was cleared",
+)
+R.check(
+    "selecting another irradiance source drops the client too",
+    _t3_fs_off._open_meteo is None,
+    f"{_t3_fs_off._open_meteo!r}",
+)
+
+
+# -- `_solar_forecast_view`: the window, the anchor and the rounding --------
+_t3_view_empty_out = _t3_call(_t3_coord()._solar_forecast_view)
+R.check(
+    "with no Open-Meteo client the forecast view is empty, not an error",
+    _t3_view_empty_out == [],
+    f"{_t3_view_empty_out!r} -- there is no client to read a series off "
+    "before the first refresh, and the sensor asks for this every update",
+)
+
+_t3_view_now = dt_util.utcnow()
+_t3_view_res = timedelta(hours=1)
+_t3_view_times = tuple(
+    _t3_view_now + timedelta(hours=h) for h in (-2, 1, 5, 200)
+)
+_t3_view_series = IrradianceSeries(
+    times=_t3_view_times,
+    values=(11.11, 22.26, 33.34, 44.0),
+    resolution=_t3_view_res,
+)
+
+
+class _T3StubForecast:
+    """A client holding one series, which is all the view reads."""
+
+    def __init__(self, series):
+        self.forecast = series
+
+
+_t3_view = _t3_coord()
+_t3_view._open_meteo = _T3StubForecast(_t3_view_series)
+_t3_view_points = _t3_view._solar_forecast_view(hours=48)
+R.check(
+    "the view drops the past and the beyond-horizon samples, keeping the rest",
+    len(_t3_view_points) == 2
+    and [p["ghi"] for p in _t3_view_points] == [22.3, 33.3],
+    f"{_t3_view_points!r} from four samples at -2 h, +1 h, +5 h and +200 h "
+    "against a 48 h horizon",
+)
+R.check(
+    "each point is anchored at the interval START, not its end",
+    _t3_view_points[0]["t"] == (_t3_view_times[1] - _t3_view_res).isoformat(),
+    f"{_t3_view_points[0]['t']!r} against a sample timestamped "
+    f"{_t3_view_times[1].isoformat()!r} -- the series marks interval ends, so "
+    "plotting the raw timestamp shifts every bar one resolution late",
+)
+R.check(
+    "the horizon argument is honoured, so a shorter one keeps fewer samples",
+    [p["ghi"] for p in _t3_view._solar_forecast_view(hours=2)] == [22.3],
+    f"{_t3_view._solar_forecast_view(hours=2)!r} at a 2 h horizon against "
+    f"{[p['ghi'] for p in _t3_view_points]!r} at 48 h",
+)
+
+
+# -- `_async_load_price_model`: a learned shape restored across a restart ---
+class _T3Store:
+    """A store holding one payload, which is all the loader reads."""
+
+    def __init__(self, payload):
+        self.payload = payload
+
+    async def async_load(self):
+        return self.payload
+
+
+class _T3RaisingStore:
+    """A store whose read fails, the shape a corrupt or missing file takes."""
+
+    async def async_load(self):
+        raise RuntimeError("price model store unreadable")
+
+
+def _t3_load_price_model(payload):
+    """Restore `payload` as the learned price shape."""
+    c = _t3_coord()
+    c._price_model_store = _T3Store(payload)
+    return _t3_drive(c, "_async_load_price_model")
+
+
+_t3_pm_good = _t3_load_price_model(
+    {"model": None, "days_seen": ["2026-01-01", 2], "quarter_days_seen": ["2026-01-02"]}
+)
+R.check(
+    "a stored price model restores both seen-sets, coercing each entry to text",
+    _t3_pm_good._price_days_seen == {"2026-01-01", "2"}
+    and _t3_pm_good._price_qdays_seen == {"2026-01-02"}
+    and _t3_pm_good._t3_escaped is None,
+    f"days {sorted(_t3_pm_good._price_days_seen, key=repr)} "
+    f"qdays {sorted(_t3_pm_good._price_qdays_seen, key=repr)} -- the integer "
+    "2 arrives "
+    "as '2', so a payload written by an older version cannot make the "
+    "membership test in the learner miss and re-fold a day it already has",
+)
+_t3_pm_bare = _t3_load_price_model({"model": None})
+_t3_pm_str = _t3_load_price_model({"model": None, "days_seen": "2026-01-01"})
+R.check(
+    "a payload with no lists, or a string where a list belongs, adds nothing",
+    _t3_pm_bare._price_days_seen == set()
+    and _t3_pm_bare._price_qdays_seen == set()
+    and _t3_pm_str._price_days_seen == set(),
+    f"absent -> {sorted(_t3_pm_bare._price_days_seen, key=repr)}, a bare "
+    f"string -> {sorted(_t3_pm_str._price_days_seen, key=repr)} -- iterating "
+    "the string would "
+    "seed the set with ten one-character days",
+)
+_t3_pm_none = _t3_load_price_model(None)
+R.check(
+    "a store that has never been written leaves an empty model, not an error",
+    _t3_pm_none._price_days_seen == set()
+    and _t3_pm_none._t3_escaped is None,
+    f"days {sorted(_t3_pm_none._price_days_seen, key=repr)} escaped "
+    f"{_t3_pm_none._t3_escaped!r}",
+)
+_t3_pm_boom = _t3_coord()
+_t3_pm_boom_before = _t3_pm_boom._price_model
+_t3_pm_boom._price_model_store = _T3RaisingStore()
+_t3_drive(_t3_pm_boom, "_async_load_price_model")
+R.check(
+    "a price model store that raises leaves the model it had and does not abort setup",
+    _t3_pm_boom._price_model is _t3_pm_boom_before
+    and _t3_pm_boom._price_days_seen == set()
+    and _t3_pm_boom._t3_escaped is None,
+    f"escaped {_t3_pm_boom._t3_escaped!r} -- letting this out would fail "
+    "setup over a learned shape the integration can relearn in a fortnight",
+)
+
+
+# -- `_pv_export_price`: a live tariff entity over a static number ----------
+R.check(
+    "with no entity the configured export price is used",
+    _t3_coord(pv_export_price=0.44)._pv_export_price() == 0.44,
+    f"{_t3_coord(pv_export_price=0.44)._pv_export_price()!r}",
+)
+_t3_pv_live = HeatPumpOptimizerCoordinator(
+    FakeHass({"sensor.export": FakeState("1.25")}),
+    FakeEntry(
+        data=dict(
+            _T3_DATA, pv_export_price_entity="sensor.export", pv_export_price=0.44
+        )
+    ),
+)
+R.check(
+    "a live export-price entity wins over the configured number",
+    _t3_pv_live._pv_export_price() == 1.25,
+    f"{_t3_pv_live._pv_export_price()!r} against a configured 0.44",
+)
+_t3_pv_arms = {}
+for _t3_pv_state in ("unknown", "unavailable", "", "lots"):
+    _t3_pv_arms[_t3_pv_state] = _t3_call(
+        HeatPumpOptimizerCoordinator(
+            FakeHass({"sensor.export": FakeState(_t3_pv_state)}),
+            FakeEntry(
+                data=dict(
+                    _T3_DATA,
+                    pv_export_price_entity="sensor.export",
+                    pv_export_price=0.44,
+                )
+            ),
+        )._pv_export_price
+    )
+_t3_pv_gone = HeatPumpOptimizerCoordinator(
+    FakeHass({}),
+    FakeEntry(
+        data=dict(
+            _T3_DATA, pv_export_price_entity="sensor.gone", pv_export_price=0.44
+        )
+    ),
+)._pv_export_price()
+R.check(
+    "the three non-values, a non-numeric state and a missing entity all fall back",
+    all(v == 0.44 for v in _t3_pv_arms.values()) and _t3_pv_gone == 0.44,
+    f"{_t3_pv_arms!r}, entity absent -> {_t3_pv_gone!r} -- reading any of "
+    "these as 0.0 would price export at nothing and stop the plan from ever "
+    "choosing to sell",
+)
+
+
+# -- `_weather_series`: the positional fallback is a DIFFERENT assumption ---
+# A forecast whose entries carry no usable timestamp is read positionally,
+# one hourly entry per four quarter-hour steps. The check that matters is
+# not that it returns something but that it returns something DIFFERENT from
+# the timestamped path, because the two agree on a forecast that happens to
+# start now and step hourly -- which is exactly the input that made the
+# positional assumption look safe for as long as it was the only path.
+_T3_WX_MIDNIGHT = datetime(2026, 2, 1, 0, 0, 0)
+_T3_WX_ENTRIES = [{"temperature": 1.0}, {"temperature": 9.0}]
+
+_t3_wx_pos = _t3_coord()
+_t3_wx_pos._weather_forecast = [dict(e) for e in _T3_WX_ENTRIES]
+_t3_wx_pos_got = _t3_call(_t3_wx_pos._weather_series, 8, _T3_WX_MIDNIGHT, 0)
+_t3_wx_pos_out = (
+    _t3_wx_pos_got[0] if isinstance(_t3_wx_pos_got, tuple) else _t3_wx_pos_got
+)
+_t3_wx_bad = _t3_coord()
+_t3_wx_bad._weather_forecast = [
+    dict(e, datetime="not-a-date") for e in _T3_WX_ENTRIES
+]
+_t3_wx_bad_out = _t3_wx_bad._weather_series(8, _T3_WX_MIDNIGHT, 0)[0]
+_t3_wx_timed = _t3_coord()
+_t3_wx_timed._weather_forecast = [
+    dict(_T3_WX_ENTRIES[0], datetime=_T3_WX_MIDNIGHT.isoformat()),
+    dict(
+        _T3_WX_ENTRIES[1],
+        datetime=(_T3_WX_MIDNIGHT + timedelta(hours=2)).isoformat(),
+    ),
+]
+_t3_wx_timed_out = _t3_wx_timed._weather_series(8, _T3_WX_MIDNIGHT, 0)[0]
+R.check(
+    "an untimestamped forecast is read positionally, four steps to the entry",
+    _t3_wx_pos_out == [1.0, 1.0, 1.0, 1.0, 9.0, 9.0, 9.0, 9.0],
+    f"{_t3_wx_pos_out!r} from two hourly entries over eight quarter-hour "
+    "steps -- the length is the pin as much as the boundary, because an "
+    "expansion of one returns two values and the caller pads the rest flat",
+)
+R.check(
+    "an unparseable timestamp takes the same positional path, not a crash",
+    _t3_wx_bad_out == _t3_wx_pos_out and len(_t3_wx_bad_out) == 8,
+    f"{_t3_wx_bad_out!r} against the untimestamped {_t3_wx_pos_out!r}",
+)
+R.check(
+    "and the positional read genuinely disagrees with the timestamped one",
+    _t3_wx_timed_out == [1.0] * 8 and _t3_wx_timed_out != _t3_wx_pos_out,
+    f"timestamped at 2 h spacing -> {_t3_wx_timed_out!r}, positional -> "
+    f"{_t3_wx_pos_out!r} -- the second entry governs step 4 under the "
+    "positional assumption and step 8 under its own timestamp, so a forecast "
+    "that does not step hourly reads hours out of phase",
+)
+
+
+# -- `_known_prices_for`: how far published prices actually cover -----------
+_T3_STEPS = [_T3_WX_MIDNIGHT + timedelta(minutes=15 * i) for i in range(8)]
+R.check(
+    "an empty step grid is covered by nothing, checked before any parsing",
+    _t3_coord()._known_prices_for([]) == [],
+    f"{_t3_coord()._known_prices_for([])!r}",
+)
+_t3_kp_pos = _t3_coord()
+_t3_kp_pos._prices = [{"total": 1.0}, {"total": 2.0}]
+R.check(
+    "untimestamped prices take the same hourly positional assumption",
+    _t3_kp_pos._known_prices_for(_T3_STEPS) == [1.0, 1.0, 1.0, 1.0, 2.0, 2.0, 2.0, 2.0],
+    f"{_t3_kp_pos._known_prices_for(_T3_STEPS)!r}",
+)
+_t3_kp_late = _t3_coord()
+_t3_kp_late._prices = [
+    {
+        "starts_at": (_T3_WX_MIDNIGHT + timedelta(hours=3)).isoformat(),
+        "total": 5.0,
+    }
+]
+_t3_kp_late_out = _t3_call(_t3_kp_late._known_prices_for, _T3_STEPS)
+R.check(
+    "prices that begin after the grid does cover none of it, rather than the first",
+    _t3_kp_late_out == [],
+    f"{_t3_kp_late_out!r} from one entry three "
+    "hours ahead -- taking it for step 0 would price the next two hours from "
+    "a tariff that has not started",
+)
+_t3_kp_one = _t3_coord()
+_t3_kp_one._prices = [
+    {"starts_at": _T3_WX_MIDNIGHT.isoformat(), "total": 5.0}
+]
+R.check(
+    "a single published entry covers exactly one hour, then the run stops",
+    _t3_kp_one._known_prices_for(_T3_STEPS) == [5.0, 5.0, 5.0, 5.0],
+    f"{_t3_kp_one._known_prices_for(_T3_STEPS)!r} over eight quarter-hour "
+    "steps -- with no successor and no predecessor there is no spacing to "
+    "infer, so the hour is assumed rather than extended to the horizon",
+)
+
+
+# -- the #13 tariff masks: a user-typed spec, and what a broken one means ---
+# An empty mask means EVERY month, so the fail-safe direction here is
+# counter-intuitive: discarding a broken spec applies the capacity tariff
+# always, which over-constrains the plan, while a silently NARROWED mask
+# would under-constrain it and bill the user for a peak the guard never
+# defended. That is why a partly valid spec is thrown away whole.
+R.check(
+    "an unset month mask is empty, which reads as every month",
+    _t3_coord()._tariff_months() == frozenset(),
+    f"{_t3_coord()._tariff_months()!r}",
+)
+R.check(
+    "a range, a list, a semicolon list and surrounding space all parse",
+    _t3_coord(peak_tariff_months="Nov-Mar")._tariff_months()
+    == frozenset({11, 12, 1, 2, 3})
+    and _t3_coord(peak_tariff_months="Jan,Feb")._tariff_months()
+    == frozenset({1, 2})
+    and _t3_coord(peak_tariff_months="Nov-Mar;Jul")._tariff_months()
+    == frozenset({11, 12, 1, 2, 3, 7})
+    and _t3_coord(peak_tariff_months=" nov - mar ")._tariff_months()
+    == frozenset({11, 12, 1, 2, 3}),
+    f"Nov-Mar -> {sorted(_t3_coord(peak_tariff_months='Nov-Mar')._tariff_months())}, "
+    f"Nov-Mar;Jul -> {sorted(_t3_coord(peak_tariff_months='Nov-Mar;Jul')._tariff_months())}",
+)
+_t3_tm_partial = _t3_call(
+    _t3_coord(peak_tariff_months="Nov-Mar,Smarch")._tariff_months
+)
+R.check(
+    "a spec whose FIRST chunk is valid is still discarded whole, not narrowed",
+    _t3_tm_partial == frozenset(),
+    f"{_t3_tm_partial!r} "
+    "from 'Nov-Mar,Smarch' -- keeping the accumulated {1,2,3,11,12} would "
+    "look exactly like a correct Nov-Mar mask, and the user asked for more "
+    "than that",
+)
+R.check(
+    "an unset hour mask is empty, which reads as every hour",
+    _t3_coord()._tariff_hours() == (),
+    f"{_t3_coord()._tariff_hours()!r}",
+)
+R.check(
+    "one window and two windows both parse into ordered pairs",
+    _t3_coord(peak_tariff_hours="07:00-19:00")._tariff_hours()
+    == ((7.0, 19.0),)
+    and _t3_coord(peak_tariff_hours="07:00-09:00,17:00-20:00")._tariff_hours()
+    == ((7.0, 9.0), (17.0, 20.0)),
+    f"{_t3_coord(peak_tariff_hours='07:00-09:00,17:00-20:00')._tariff_hours()!r}",
+)
+_t3_th_arms = [
+    _t3_call(_t3_coord(peak_tariff_hours=spec)._tariff_hours)
+    for spec in ("breakfast", "25:00-26:00", "07:00-09:00,breakfast")
+]
+R.check(
+    "a malformed hour spec, and a partly valid one, both read as every hour",
+    _t3_th_arms == [(), (), ()],
+    f"{_t3_th_arms!r} for 'breakfast', '25:00-26:00' and "
+    "'07:00-09:00,breakfast' -- "
+    "`parse_windows` takes the whole spec, so there is no partial result to "
+    "keep here, and the check pins that the refusal is total",
+)
+
+
+# -- `_track_realised_peak`: three sources, in a deliberate order ----------
+_T3_PEAK_NOW = datetime(2026, 2, 1, 12, 0, 0, tzinfo=timezone.utc)
+
+
+def _t3_peak(house, measured, commanded, *, enabled=True):
+    """Fold one reading into the month's peaks and report the window mean."""
+    c = _t3_coord(
+        peak_tariff_enabled=enabled, peak_tariff_price=50.0
+    )
+    c._measured_house_power = house
+    c._measured_power = measured
+    c._current_action = {"power": commanded}
+    dt_util.freeze(_T3_PEAK_NOW)
+    try:
+        got = _t3_call(c._track_realised_peak)
+    finally:
+        dt_util.freeze(None)
+    if isinstance(got, Exception):
+        return got
+    return c._peak_tracker.window_snapshot(_T3_PEAK_NOW, c._capacity_tariff())[1]
+
+
+R.check(
+    "the house meter is preferred, then the pump meter, then the commanded power",
+    _t3_peak(7.5, 2.0, 3.25) == 7.5
+    and _t3_peak(None, 2.0, 3.25) == 2.0
+    and _t3_peak(None, None, 3.25) == 3.25,
+    f"house -> {_t3_peak(7.5, 2.0, 3.25)!r}, pump only -> "
+    f"{_t3_peak(None, 2.0, 3.25)!r}, neither -> {_t3_peak(None, None, 3.25)!r} "
+    "-- each source under-states the whole-house peak more than the one "
+    "before it, so the order is the accuracy order",
+)
+R.check(
+    "with the capacity tariff off no reading is folded at all",
+    _t3_peak(7.5, 2.0, 3.25, enabled=False) is None,
+    f"{_t3_peak(7.5, 2.0, 3.25, enabled=False)!r} -- the tracker's month "
+    "history is only meaningful against a tariff that bills it",
+)
+
+
+# -- `_on_power_event`: five refusals, and the fold that marks acceptance ---
+# `_guard_last_fold` is written only once every guard has passed, so it is
+# the one observable that separates "processed" from "refused" without
+# reaching into the tracker.
+class _T3PowerState:
+    """The two attributes the power listener reads off a state object."""
+
+    def __init__(self, state, unit="kW"):
+        self.state = state
+        self.attributes = {"unit_of_measurement": unit}
+
+
+class _T3PowerEvent:
+    """The one key the power listener reads off an event."""
+
+    def __init__(self, new_state):
+        self.data = {"new_state": new_state}
+
+
+def _t3_power(new_state, **config):
+    """Deliver one meter reading to the listener at a fixed instant."""
+    c = _t3_coord(peak_tariff_enabled=True, peak_tariff_price=50.0, **config)
+    dt_util.freeze(_T3_PEAK_NOW)
+    try:
+        c._on_power_event(_T3PowerEvent(new_state))
+    except Exception as err:  # noqa: BLE001
+        c._t3_escaped = err
+    finally:
+        dt_util.freeze(None)
+    return c
+
+
+_t3_pe_ok = _t3_power(_T3PowerState("4.5"))
+R.check(
+    "a usable reading is folded, and the fold instant is recorded",
+    _t3_pe_ok._guard_last_fold == _T3_PEAK_NOW
+    and getattr(_t3_pe_ok, "_t3_escaped", None) is None,
+    f"{_t3_pe_ok._guard_last_fold!r} -- the next event measures its sample "
+    "spacing from here, which is what makes the fold time-weighted",
+)
+_t3_pe_none = _t3_power(None)
+_t3_pe_junk = _t3_power(_T3PowerState("lots"))
+_t3_pe_unit = _t3_power(_T3PowerState("4.5", "bananas"))
+_t3_pe_nan = _t3_power(_T3PowerState("nan"))
+R.check(
+    "no state, a non-numeric state, an unknown unit and NaN are each refused",
+    all(
+        c._guard_last_fold is None
+        and getattr(c, "_t3_escaped", None) is None
+        for c in (_t3_pe_none, _t3_pe_junk, _t3_pe_unit, _t3_pe_nan)
+    ),
+    "folds: "
+    f"none={_t3_pe_none._guard_last_fold!r} junk={_t3_pe_junk._guard_last_fold!r} "
+    f"unit={_t3_pe_unit._guard_last_fold!r} nan={_t3_pe_nan._guard_last_fold!r}; "
+    "escapes: "
+    f"{[getattr(c, '_t3_escaped', None) for c in (_t3_pe_none, _t3_pe_junk, _t3_pe_unit, _t3_pe_nan)]!r} "
+    "-- the escapes are asserted because this is a `@callback` on the event "
+    "bus, where an exception is swallowed by the helper and the refusal and "
+    "the crash look identical from here. An unrecognised unit is refused "
+    "rather than assumed to be kW, "
+    "because guessing reads a 4500 W meter as 4500 kW",
+)
+_t3_pe_idle = _t3_coord()
+dt_util.freeze(_T3_PEAK_NOW)
+try:
+    _t3_pe_idle._on_power_event(_T3PowerEvent(_T3PowerState("4.5")))
+finally:
+    dt_util.freeze(None)
+R.check(
+    "with neither a capacity tariff nor a fuse limit the listener does no work",
+    _t3_pe_idle._guard_last_fold is None,
+    f"{_t3_pe_idle._guard_last_fold!r} -- there is no line to defend, so a "
+    "chatty meter costs nothing",
+)
+# The second reading arrives five seconds after the first, inside the
+# ten-second window. At the SAME instant both arms leave `_guard_last_fold`
+# reading the same value, so that version of this check survived the
+# throttle being deleted -- measured.
+_t3_pe_throttle = _t3_coord(peak_tariff_enabled=True, peak_tariff_price=50.0)
+dt_util.freeze(_T3_PEAK_NOW)
+try:
+    _t3_pe_throttle._on_power_event(_T3PowerEvent(_T3PowerState("4.5")))
+    _t3_pe_throttle_first = _t3_pe_throttle._guard_last_fold
+    dt_util.freeze(_T3_PEAK_NOW + timedelta(seconds=5))
+    _t3_pe_throttle._on_power_event(_T3PowerEvent(_T3PowerState("9.9")))
+finally:
+    dt_util.freeze(None)
+R.check(
+    "a second reading inside the spacing window is throttled, not folded",
+    _t3_pe_throttle._guard_last_fold == _t3_pe_throttle_first == _T3_PEAK_NOW,
+    f"{_t3_pe_throttle._guard_last_fold!r} after a 9.9 kW reading five "
+    f"seconds past {_T3_PEAK_NOW!r} -- a meter publishing every second would "
+    "otherwise run this arithmetic sixty times a minute",
+)
+
+
+# -- `_async_peak_guard_transition`: the arm with no plan to actuate -------
+# Counting listener refreshes alone is not enough: BOTH arms end by
+# refreshing, so a version of this check that asserted only the count
+# survived the guard being deleted. What separates them is whether anything
+# was PUBLISHED.
+_t3_gt_idle = _t3_coord()
+_t3_gt_idle._current_action = {}
+_t3_gt_idle._t3_updates = 0
+_t3_gt_idle._t3_published = []
+
+
+def _t3_gt_count():
+    _t3_gt_idle._t3_updates += 1
+
+
+async def _t3_gt_ecl(**kwargs):
+    _t3_gt_idle._t3_published.append(("ecl110", kwargs))
+
+
+async def _t3_gt_action(**kwargs):
+    _t3_gt_idle._t3_published.append(("current_action", kwargs))
+
+
+_t3_gt_idle.async_update_listeners = _t3_gt_count
+_t3_gt_idle.async_publish_ecl110_command = _t3_gt_ecl
+_t3_gt_idle.async_publish_current_action = _t3_gt_action
+_t3_drive(_t3_gt_idle, "_async_peak_guard_transition")
+R.check(
+    "a transition before the first plan refreshes listeners and publishes nothing",
+    _t3_gt_idle._t3_updates == 1
+    and _t3_gt_idle._t3_published == []
+    and _t3_gt_idle._t3_escaped is None,
+    f"listener refreshes {_t3_gt_idle._t3_updates} published "
+    f"{_t3_gt_idle._t3_published!r} escaped {_t3_gt_idle._t3_escaped!r} -- "
+    "the guard can engage before the first solve, and publishing a displace "
+    "derived from an empty action would send a 0.0 setpoint to the "
+    "controller",
+)
+
+
+# -- `_detect_outage`: a stored clock that may be naive --------------------
+_T3_OUTAGE_NOW = datetime(2026, 2, 1, 12, 0, 0, tzinfo=timezone.utc)
+
+
+def _t3_outage(last_tick_iso, *, enabled=True):
+    """Open the recovery window, if a real gap is detected."""
+    c = _t3_coord(outage_recovery_enabled=enabled)
+    dt_util.freeze(_T3_OUTAGE_NOW)
+    try:
+        c._t3_escaped = _t3_call(c._detect_outage, last_tick_iso)
+    finally:
+        dt_util.freeze(None)
+    return c
+
+
+_t3_out_naive = _t3_outage(
+    (_T3_OUTAGE_NOW - timedelta(hours=5)).replace(tzinfo=None).isoformat()
+)
+_t3_out_aware = _t3_outage((_T3_OUTAGE_NOW - timedelta(hours=5)).isoformat())
+R.check(
+    "a naive stored tick adopts the clock's zone and detects the same gap",
+    _t3_out_naive._outage_recovery_until
+    == _t3_out_aware._outage_recovery_until
+    == _T3_OUTAGE_NOW + timedelta(hours=2),
+    f"naive -> {_t3_out_naive._outage_recovery_until!r}, aware -> "
+    f"{_t3_out_aware._outage_recovery_until!r} -- subtracting a naive "
+    "datetime from an aware one raises, so without the adoption a store "
+    "written by an older version takes the update loop down on every restart",
+)
+R.check(
+    "a recent tick, an unparseable one and an absent one open no window",
+    _t3_outage((_T3_OUTAGE_NOW - timedelta(minutes=1)).isoformat())._outage_recovery_until
+    is None
+    and _t3_outage("not-a-date")._outage_recovery_until is None
+    and not isinstance(_t3_outage("not-a-date")._t3_escaped, Exception)
+    and _t3_outage(None)._outage_recovery_until is None,
+    "a 1-minute gap, 'not-a-date' and None all leave the window closed, "
+    "against a 90-minute bar",
+)
+R.check(
+    "with staggered recovery disabled even a five-hour gap opens no window",
+    _t3_outage(
+        (_T3_OUTAGE_NOW - timedelta(hours=5)).isoformat(), enabled=False
+    )._outage_recovery_until
+    is None,
+    f"{_t3_outage((_T3_OUTAGE_NOW - timedelta(hours=5)).isoformat(), enabled=False)._outage_recovery_until!r}",
+)
+
+
+# -- `_async_load_ledger`: money state, and the one rider that may be junk --
+# The ledger is the only store here whose content is MONEY, and a corrupt
+# day book would raise inside every subsequent settlement and take the whole
+# update loop down for the rest of the day. So the day book is parsed behind
+# its own barrier: one corrupt day costs one operation sample, never the loop.
+_T3_LEDGER_GOOD = {
+    "ledger": None,
+    "starts": None,
+    "month_reports": [],
+    "score_day": {
+        "day": "2026-02-01",
+        "kwh": 10.0,
+        "sek": 20.0,
+        "spot_sum": 1.0,
+        "spot_h": 24.0,
+    },
+    "operation_score": 77.0,
+}
+
+
+def _t3_load_ledger(payload):
+    """Restore `payload` as the monthly ledger."""
+    c = _t3_coord()
+    c._ledger_store = _T3Store(payload)
+    return _t3_drive(c, "_async_load_ledger")
+
+
+_t3_lg_good = _t3_load_ledger(dict(_T3_LEDGER_GOOD))
+R.check(
+    "a well-formed ledger payload restores the day book and the score (null control)",
+    _t3_lg_good._score_day == _T3_LEDGER_GOOD["score_day"]
+    and _t3_lg_good._operation_score == 77.0
+    and _t3_lg_good._t3_escaped is None,
+    f"score_day {_t3_lg_good._score_day!r} score "
+    f"{_t3_lg_good._operation_score!r} -- the four refusals below each "
+    "assert an EMPTY day book, which is also the untouched default, so "
+    "without this control all four would pass against a loader that read "
+    "nothing",
+)
+_t3_lg_junk = _t3_load_ledger(
+    dict(
+        _T3_LEDGER_GOOD,
+        score_day=dict(_T3_LEDGER_GOOD["score_day"], kwh="lots"),
+    )
+)
+R.check(
+    "a non-numeric field drops the day book and keeps the rest of the payload",
+    _t3_lg_junk._score_day == {}
+    and _t3_lg_junk._operation_score == 77.0
+    and _t3_lg_junk._t3_escaped is None,
+    f"score_day {_t3_lg_junk._score_day!r} score "
+    f"{_t3_lg_junk._operation_score!r} -- the score survives, which is what "
+    "makes this a per-rider barrier rather than a payload-wide one",
+)
+_t3_lg_inf = _t3_load_ledger(
+    dict(
+        _T3_LEDGER_GOOD,
+        score_day=dict(_T3_LEDGER_GOOD["score_day"], kwh=float("inf")),
+    )
+)
+_t3_lg_noday = _t3_load_ledger(
+    dict(_T3_LEDGER_GOOD, score_day=dict(_T3_LEDGER_GOOD["score_day"], day=""))
+)
+R.check(
+    "a non-finite number and an unnamed day are both refused, not clipped",
+    _t3_lg_inf._score_day == {} and _t3_lg_noday._score_day == {},
+    f"infinite kwh -> {_t3_lg_inf._score_day!r}, empty day -> "
+    f"{_t3_lg_noday._score_day!r} -- `float('inf')` parses, so the finite "
+    "test is a separate arm from the parse",
+)
+_t3_lg_hi = _t3_load_ledger(dict(_T3_LEDGER_GOOD, operation_score=250.0))
+_t3_lg_lo = _t3_load_ledger(dict(_T3_LEDGER_GOOD, operation_score=-5.0))
+_t3_lg_txt = _t3_load_ledger(dict(_T3_LEDGER_GOOD, operation_score="high"))
+R.check(
+    "a stored score is clipped into 0-100, and a non-numeric one is dropped",
+    _t3_lg_hi._operation_score == 100.0
+    and _t3_lg_lo._operation_score == 0.0
+    and _t3_lg_txt._operation_score is None
+    and _t3_lg_txt._t3_escaped is None,
+    f"250 -> {_t3_lg_hi._operation_score!r}, -5 -> "
+    f"{_t3_lg_lo._operation_score!r}, 'high' -> "
+    f"{_t3_lg_txt._operation_score!r} escaped {_t3_lg_txt._t3_escaped!r} -- "
+    "the escape is asserted too, because `np.clip` on a string raises and "
+    "the attribute is then left at None by the failure rather than by the "
+    "type test. None is a publishable absence "
+    "where a clipped 0.0 would read as a real, terrible score",
+)
+_t3_lg_boom = _t3_coord()
+_t3_lg_boom._ledger_store = _T3RaisingStore()
+_t3_drive(_t3_lg_boom, "_async_load_ledger")
+R.check(
+    "a ledger store that cannot be read leaves the defaults and does not abort setup",
+    _t3_lg_boom._score_day == {}
+    and _t3_lg_boom._operation_score is None
+    and _t3_lg_boom._t3_escaped is None,
+    f"escaped {_t3_lg_boom._t3_escaped!r}",
+)
+
+
+# -- `_async_save_ledger`: one store, one generation of money state --------
+class _T3SavingStore:
+    """Records what the ledger writes, and nothing else."""
+
+    def __init__(self):
+        self.saved: list[dict] = []
+
+    async def async_load(self):
+        return None
+
+    async def async_save(self, data):
+        self.saved.append(data)
+
+
+class _T3FullStore:
+    """A store whose write fails, as a full or read-only disk does."""
+
+    async def async_save(self, data):
+        raise RuntimeError("no space left on device")
+
+
+_t3_sv = _t3_coord()
+_t3_sv._ledger_store = _T3SavingStore()
+_t3_drive(_t3_sv, "_async_save_ledger")
+R.check(
+    "one save carries all five riders, so no generation of money state is split",
+    sorted(_t3_sv._ledger_store.saved[0])
+    == ["ledger", "month_reports", "operation_score", "score_day", "starts"]
+    and _t3_sv._t3_escaped is None,
+    f"{sorted(_t3_sv._ledger_store.saved[0])!r} -- two stores would let a "
+    "crash between them leave the ledger and its riders describing "
+    "different months",
+)
+_t3_sv_full = _t3_coord()
+_t3_sv_full._ledger_store = _T3FullStore()
+_t3_drive(_t3_sv_full, "_async_save_ledger")
+R.check(
+    "a failed ledger write is swallowed rather than raised into the settlement",
+    _t3_sv_full._t3_escaped is None,
+    f"escaped {_t3_sv_full._t3_escaped!r} -- this runs from `_spawn` off the "
+    "settlement path, where an exception is logged by the loop and the "
+    "settlement it belonged to is already done",
+)
+
+
+# -- `_power_headroom`: the per-step horizon a charger automation follows ---
+class _T3Plan:
+    """The two schedules the headroom sensor reads off a solved plan."""
+
+    def __init__(self, power, dhw=None):
+        self.power_schedule = power
+        self.dhw_power_schedule = dhw or []
+
+
+_T3_FUSE = {"main_fuse_amperes": 20, "main_fuse_phases": 3}
+
+
+def _t3_headroom(plan, **config):
+    """The headroom payload for one solved plan."""
+    c = _t3_coord(**dict(_T3_FUSE, **config))
+    c._current_action = {"power": 1.0, "dhw_power": 0.5}
+    c._optimization_result = plan
+    got = _t3_call(c._power_headroom)
+    return got if isinstance(got, dict) else {"escaped": repr(got)}
+
+
+_t3_hr_none = _t3_headroom(None)
+_t3_hr_plan = _t3_headroom(_T3Plan([2.0] * 60, [1.0] * 60))
+R.check(
+    "the horizon list appears only once a plan exists, and is capped at 48 steps",
+    "horizon_headroom_kw" not in _t3_hr_none
+    and len(_t3_hr_plan["horizon_headroom_kw"]) == 48,
+    f"no plan -> {sorted(_t3_hr_none)!r}; a 60-step plan -> "
+    f"{len(_t3_hr_plan['horizon_headroom_kw'])} entries -- the instant "
+    "headroom is still published either way, which is what keeps the entity "
+    "from disappearing before the first solve",
+)
+_t3_hr_nodhw = _t3_headroom(_T3Plan([2.0] * 4))
+R.check(
+    "the plan's hot water is added to its space heating before the subtraction",
+    _t3_hr_plan["horizon_headroom_kw"][0] == 10.8
+    and _t3_hr_nodhw["horizon_headroom_kw"][0] == 11.8,
+    f"with 1.0 kW of planned hot water -> "
+    f"{_t3_hr_plan['horizon_headroom_kw'][0]!r}, without it -> "
+    f"{_t3_hr_nodhw['horizon_headroom_kw'][0]!r} against a 13.8 kW fuse -- "
+    "omitting the hot water offers a charger 1 kW that the plan has spent",
+)
+_t3_hr_over = _t3_headroom(_T3Plan([999.0] * 4))
+_t3_hr_empty = _t3_headroom(_T3Plan([]))
+R.check(
+    "a plan over the limit reports zero headroom, and an empty one reports none",
+    _t3_hr_over["horizon_headroom_kw"] == [0.0, 0.0, 0.0, 0.0]
+    and "horizon_headroom_kw" not in _t3_hr_empty,
+    f"over the limit -> {_t3_hr_over['horizon_headroom_kw']!r}, empty plan -> "
+    f"{sorted(_t3_hr_empty)!r} -- a negative headroom would read to an "
+    "automation as room to charge",
+)
+
+
+# -- `_maybe_refresh_price_tile`: one tile per solve, and the rotation ------
+def _t3_tile(answer, **config):
+    """Run one tile refresh against a stubbed simulation."""
+    c = _t3_coord(price_tiles_enabled=True, **config)
+
+    async def simulate(overrides):
+        if isinstance(answer, Exception):
+            raise answer
+        return answer
+
+    c.async_simulate = simulate
+    return _t3_drive(c, "_maybe_refresh_price_tile")
+
+
+_t3_tile_boom = _t3_tile(RuntimeError("spec exploded"))
+R.check(
+    "a spec that raises advances the cursor, so it cannot block the other tiles",
+    _t3_tile_boom._price_tile_cursor == 1
+    and dict(_t3_tile_boom._price_tiles) == {}
+    and _t3_tile_boom._t3_escaped is None,
+    f"cursor {_t3_tile_boom._price_tile_cursor} tiles "
+    f"{dict(_t3_tile_boom._price_tiles)!r} -- leaving the cursor put would "
+    "retry the same failing spec every solve and the other two would never "
+    "be computed again",
+)
+_t3_tile_limited = _t3_tile({"rate_limited": True})
+R.check(
+    "a rate-limited tile leaves the cursor put, so its turn is not consumed",
+    _t3_tile_limited._price_tile_cursor == 0
+    and dict(_t3_tile_limited._price_tiles) == {},
+    f"cursor {_t3_tile_limited._price_tile_cursor} -- the user dragging the "
+    "card wins the slot, and this tile simply waits for the next interval "
+    "rather than losing its place in the rotation",
+)
+_t3_tile_error = _t3_tile({"error": "no solution"})
+_t3_tile_good = _t3_tile(
+    {"monthly_cost_delta": -12.5, "min_room_temperature": 20.1}
+)
+R.check(
+    "an errored answer advances the cursor but publishes nothing; a good one publishes",
+    _t3_tile_error._price_tile_cursor == 1
+    and dict(_t3_tile_error._price_tiles) == {}
+    and _t3_tile_good._price_tile_cursor == 1
+    and sorted(_t3_tile_good._price_tiles) == ["target_minus_1"],
+    f"errored -> cursor {_t3_tile_error._price_tile_cursor}, tiles "
+    f"{sorted(_t3_tile_error._price_tiles)!r}; good -> cursor "
+    f"{_t3_tile_good._price_tile_cursor}, tiles "
+    f"{sorted(_t3_tile_good._price_tiles)!r}",
+)
+_t3_tile_off = _t3_coord(price_tiles_enabled=False)
+_t3_tile_off._price_tiles["target_minus_1"] = {"monthly_cost_delta": 1.0}
+_t3_drive(_t3_tile_off, "_maybe_refresh_price_tile")
+R.check(
+    "turning the tiles off clears what was published, rather than freezing it",
+    dict(_t3_tile_off._price_tiles) == {},
+    f"{dict(_t3_tile_off._price_tiles)!r} -- stale what-if money left on the "
+    "card would outlive the user's decision to stop paying for it",
+)
+
+
+# -- `_fetch_weather_forecast`: the arm with nothing to ask -----------------
+_t3_wx_noentity = HeatPumpOptimizerCoordinator(
+    FakeHass({}), FakeEntry(data={"tibber_token": "x"})
+)
+_t3_drive(_t3_wx_noentity, "_fetch_weather_forecast")
+R.check(
+    "with no weather entity the forecast is marked stale, not fabricated",
+    _t3_wx_noentity._weather_outage_cycles == 1
+    and _t3_wx_noentity._weather_stale_since is not None
+    and _t3_wx_noentity._weather_forecast == []
+    and _t3_wx_noentity._t3_escaped is None,
+    f"cycles {_t3_wx_noentity._weather_outage_cycles} stale_since set "
+    f"{_t3_wx_noentity._weather_stale_since is not None} forecast "
+    f"{_t3_wx_noentity._weather_forecast!r} -- a 48 h flat forecast "
+    "fabricated from the current temperature cost +41.9 % realized on the "
+    "verification panel's cold-front scenario, which is why this arm marks "
+    "rather than invents",
+)
+
 sys.exit(R.close("FEATURE CHECKS"))
