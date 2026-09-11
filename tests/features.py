@@ -24278,6 +24278,90 @@ R.check(
 )
 
 # ---------------------------------------------------------------------------
+R.section("#783 — in-process fallback is capped, not permanent")
+
+# #511 still returns a plan on the first fault (a slow plan beats none).
+# Nothing then bound how many cycles an install stayed on that GIL path.
+# After N consecutive fallbacks on the same hass, skip the in-process solve
+# and raise UpdateFailed so the last plan stays published. The streak lives
+# on hass.data: a process global would accumulate across this file, and
+# _g511_solve builds a new hass per call so those one-shots stay green.
+from homeassistant.helpers.update_coordinator import (  # noqa: E402
+    UpdateFailed as _G783Failed,
+)
+
+_g783_cap = getattr(_g511_coord, "WORKER_FALLBACK_CAP", 3)
+
+
+def _g783_once(coord, optimizer, hass):
+    sink = _G511LogSink()
+    logger = _g511_logging.getLogger(coord.__name__)
+    logger.addHandler(sink)
+    try:
+        try:
+            out = _asyncio.run(coord._await_optimize(hass, optimizer, "STATE"))
+            return None, out
+        except Exception as err:  # noqa: BLE001
+            return err, None
+    finally:
+        logger.removeHandler(sink)
+
+
+_g783_hass = _G511Hass()
+_g783_plans, _g783_errs = [], []
+for _ in range(_g783_cap + 1):
+    err, out = _g783_once(_g511_coord, _G511LocalOptimizer(), _g783_hass)
+    _g783_plans.append(out)
+    _g783_errs.append(err)
+R.check(
+    "the first WORKER_FALLBACK_CAP fallbacks still return a plan",
+    all(
+        e is None and isinstance(p, tuple) and p[0] == "in-process"
+        for p, e in zip(_g783_plans[:_g783_cap], _g783_errs[:_g783_cap], strict=True)
+    ),
+    f"plans={_g783_plans[:_g783_cap]!r} errs={[type(e).__name__ for e in _g783_errs[:_g783_cap]]!r}",
+)
+R.check(
+    "the next fallback raises UpdateFailed and skips the GIL solve",
+    isinstance(_g783_errs[_g783_cap], _G783Failed)
+    and _g783_plans[_g783_cap] is None
+    and _g783_hass.jobs.count(_g511_job) == _g783_cap
+    and _g783_hass.jobs.count(_g511_coord._run_in_process) == _g783_cap + 1,
+    f"err={_g783_errs[_g783_cap]!r} plan={_g783_plans[_g783_cap]!r} "
+    f"jobs={_g783_hass.jobs!r}",
+)
+
+_g783_other = _G511Hass()
+_g783_other_err, _g783_other_out = _g783_once(
+    _g511_coord, _G511LocalOptimizer(), _g783_other
+)
+R.check(
+    "a second hass is not charged for the first one's streak",
+    _g783_other_err is None
+    and isinstance(_g783_other_out, tuple)
+    and _g783_other_out[0] == "in-process",
+    f"err={_g783_other_err!r} out={_g783_other_out!r}",
+)
+
+_g783_reset = _G511Hass()
+for _ in range(_g783_cap):
+    _g783_once(_g511_coord, _G511LocalOptimizer(), _g783_reset)
+_g783_ok_err, _g783_ok_out = _g783_once(_g511_coord, _G511Probe(), _g783_reset)
+_g783_after_err, _g783_after_out = _g783_once(
+    _g511_coord, _G511LocalOptimizer(), _g783_reset
+)
+R.check(
+    "a healthy worker clears the streak so the next fallback is allowed",
+    _g783_ok_err is None
+    and isinstance(_g783_ok_out, tuple)
+    and _g783_ok_out[0] != _g3_parent
+    and _g783_after_err is None
+    and isinstance(_g783_after_out, tuple)
+    and _g783_after_out[0] == "in-process",
+    f"ok={_g783_ok_err!r}/{_g783_ok_out!r} after={_g783_after_err!r}/{_g783_after_out!r}",
+)
+
+# ---------------------------------------------------------------------------
 R.section("#524 — an unpicklable solve RESULT must raise, never become the plan")
 
 # #511 fixed the JOB side of this channel. The RESULT side still degraded on
