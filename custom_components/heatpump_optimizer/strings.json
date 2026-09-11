@@ -1449,7 +1449,7 @@
         "name": "Recommended Power"
       },
       "sensor_gap_advisor": {
-        "name": "Sensor-gap euro advisor"
+        "name": "Sensor-Gap Euro Advisor"
       },
       "savings_percentage": {
         "name": "Savings Percentage"
@@ -1494,7 +1494,7 @@
         "name": "Valve Target Recommendation"
       },
       "wood_burn_advisor": {
-        "name": "Wood-burn night advisor"
+        "name": "Wood-Burn Night Advisor"
       }
     },
     "binary_sensor": {
@@ -1511,7 +1511,7 @@
         "name": "Open Window Detected"
       },
       "wood_cheaper": {
-        "name": "Wood cheaper than heat pump"
+        "name": "Wood Cheaper Than Heat Pump"
       }
     },
     "button": {
@@ -1533,10 +1533,10 @@
         "name": "Away"
       },
       "boost_dhw": {
-        "name": "Boost hot water"
+        "name": "Boost Hot Water"
       },
       "boost_space": {
-        "name": "Boost space heating"
+        "name": "Boost Space Heating"
       },
       "optimizer_active": {
         "name": "Optimizer Active"
@@ -1544,7 +1544,7 @@
     },
     "datetime": {
       "away_return": {
-        "name": "Expected return"
+        "name": "Expected Return"
       }
     }
   },

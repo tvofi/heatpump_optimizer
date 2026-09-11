@@ -305,7 +305,7 @@ are on their own advanced pages.
 
 ### Away and holiday mode
 
-This page has four fields. The **Away** switch and the **Expected return**
+This page has four fields. The **Away** switch and the **Expected Return**
 datetime are their own entities, not options — they are on the integration's
 device page and on the card, not here.
 
@@ -386,7 +386,7 @@ catalog below keys off.
 | Furnace efficiency | 75 % | 10–95 | Share of the wood's energy that reaches the tank. |
 | Heating circulation pump switch | none | `switch` / `input_boolean` | Paused only in slots that are provably idle and warm — it always runs when heat is planned, when it is freezing outside, or when any room is near its comfort floor. |
 The four fuel-price fields render only while **Wood furnace** is on. The
-*Wood cheaper than heat pump* sensor stays unavailable until the furnace is
+*Wood Cheaper Than Heat Pump* sensor stays unavailable until the furnace is
 on, a wood-tank probe is set, external-heat detection or the DHW wood coil
 is on, type and packing are set, the billed price is greater than 0, and
 efficiency is between 10 and 95. A usable wood tank alone is not enough.
