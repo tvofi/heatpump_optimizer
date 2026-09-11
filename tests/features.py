@@ -148,17 +148,30 @@ scaled = reader(
 )
 R.check("the age limit can be relaxed", scaled.read("indoor_temp_entity").ok)
 
-# Clock skew: a hub whose clock runs behind the sensor's stamps a state in
-# the future. The age is published verbatim in `input_ages_minutes` and read
-# by the health summary, so it has to be an age, not a signed difference.
+# Clock skew: a hub whose clock runs behind the sensor stamps a state in
+# the future. Clamping that to age 0.0 is the #775 fail-open — a backward
+# host-clock step then reports every input as brand new. Not knowable is
+# stale, not fresh. Untimestamped stubs stay usable (the check below).
 future = reader(
     {"sensor.indoor": FakeState("21.4", last_updated=minutes_ago(-30, NOW))}
 )
 _future_reading = future.read("indoor_temp_entity")
 R.check(
-    "a future-stamped state reads as age 0, never as a negative age",
-    _future_reading.ok and _future_reading.age_minutes == 0.0,
-    f"age {_future_reading.age_minutes} minutes from a stamp 30 minutes ahead",
+    "a future-stamped state is stale, not age 0",
+    (not _future_reading.ok)
+    and _future_reading.stale
+    and _future_reading.age_minutes is None,
+    f"ok={_future_reading.ok} age={_future_reading.age_minutes} "
+    f"problem={_future_reading.problem}",
+)
+_back = reader(
+    {"sensor.indoor": FakeState("21.4", last_updated=minutes_ago(-240, NOW))}
+)
+_back_reading = _back.read("indoor_temp_entity")
+R.check(
+    "a 4 h backward host-clock step flags the reading stale",
+    _back_reading.stale and not _back_reading.ok,
+    f"problem={_back_reading.problem} age={_back_reading.age_minutes}",
 )
 
 unavailable = reader({"sensor.indoor": FakeState("unavailable")})
@@ -11643,8 +11656,17 @@ R.check(
 
 
 def _mold_coord(rh_state=None, **cfg):
+    # Coordinator humidity uses age_of(..., dt_util.utcnow()), not the
+    # frozen InputReader clock. A missing stamp is unusable there; a
+    # stamp of NOW (Feb 2026) is months stale. Wall-clock recent is live.
     states = (
-        {"sensor.rh": FakeState(rh_state, unit="%")} if rh_state is not None else {}
+        {
+            "sensor.rh": FakeState(
+                rh_state, unit="%", last_updated=minutes_ago(5)
+            )
+        }
+        if rh_state is not None
+        else {}
     )
     c = _t2_coord(states=states, **cfg)
     c._current_state.room_temperature = 21.0

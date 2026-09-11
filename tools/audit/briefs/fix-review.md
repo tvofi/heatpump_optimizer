@@ -129,3 +129,6 @@ Before step 1: `git diff $(git merge-base origin/main HEAD)...origin/main -- too
 Return a verdict with your RESULT lines, in the exact shape your dispatch
 prompt gives: `.claude/workflows/web-fix-wave.js` parses the comment's first
 line and routes on it, so one that does not parse is recorded blocked.
+
+**Say which round this is.** From the fourth the fixer owes a re-cut body, not a
+repair (`fixer.md`), and blocking one on `claims` again indicts the fix.

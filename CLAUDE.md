@@ -94,7 +94,7 @@ Under `tools/audit/briefs/`. Each says what its role owes and what blocks it.
 | contract | the role |
 |---|---|
 | `orchestrator.md` | dispatches seats, merges, holds the freeze, writes the record, stamps, reports to the owner |
-| `fixer.md` | owns one fix: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim; steps 2–4 re-execute after any rebase or merge, and the handoff to review freezes the branch |
+| `fixer.md` | owns one fix: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim; steps 2–8 re-execute after any rebase or merge, and the handoff to review freezes the branch |
 | `fix-review.md` | reviews one fix adversarially, from a detached worktree at the head SHA, with the **finder's** harness and never the fixer's; a head that moved under the review is a blocked verdict |
 | `root-cause.md` | runs beside a fix and never inside it; owes a named cause, a process state, a cost test and a countermeasure or a refusal |
 | `judge.md` | decides; a finding whose harness does not move under its own perturbation is **void**, whatever the votes said |
