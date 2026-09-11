@@ -9,7 +9,7 @@ After each programme merge — wave group, tooling the plan tracks, or a closed 
 
 1. **`docs/plan-2026-09-open-issues.md` Delivery-status table** — authoritative vs wave body; if they disagree, fix the table first.
 2. **`.claude/workflows/wave-*-groups.json` `resume` fields** — match measured `origin/main` (merged PR SHAs, open PR heads).
-3. **GitHub issue #201** — one comment per meaningful state change (merge, block, wave start); not a heartbeat.
+3. **GitHub issue #201** — before each PR, merge or release, coordinate here; not a heartbeat.
 4. **Every PR the programme has opened**, not only the ones a roster predicted. Wave stages and their records already have a home. Hotfixes, instrument repairs, harness lanes, policy, and anything found *while doing something else* have none — and they are often the most consequential work of a session. Give that kind **its own row and section**; do not force it into a wave it does not belong to.
 5. **Every open issue**, with a disposition: **scheduled** into a wave or group, **deferred** with a reason, or **refused** with a reason. **"Not mentioned" is not a disposition** — an issue absent from the plan is work nobody has scheduled, refused or deferred on the record. Re-check the whole list at each record, not only when this session filed something: list open issues, grep the plan for each number.
 
