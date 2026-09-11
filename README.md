@@ -191,7 +191,7 @@ Boundaries worth knowing before you pick a path:
   drew power while the house got colder "is not a noisy heating sample, it is
   a sign-inverted one".
 
-Each path in full: [Switch and climate entity](#switch-and-climate-entity),
+Each path in full: [Switch and climate entity](#switches-climate-and-datetime-entities),
 [Inverter frequency: observe first, control if you say
 so](#inverter-frequency-observe-first-control-if-you-say-so),
 [ECL110 heat-curve control](#ecl110-heat-curve-control); the setup fields for
@@ -480,7 +480,7 @@ Frequency Advisor.
 | Open Window Detected | The house is losing heat as if a window were open | Diagnostic; learning pauses while it is on |
 | External Heat Source | Something other than the heat pump is heating the tanks | Evidence in attributes |
 | Away Mode | The away setback is active | Return time and recovery state in attributes |
-| Wood cheaper than heat pump | Burning wood costs less per kWh than running the heat pump | Unavailable until the wood tank is usable; price and cheaper-hour count in attributes |
+| Wood cheaper than heat pump | Burning wood costs less per kWh than running the heat pump | Unavailable until the furnace is on, a wood-tank probe is set, external-heat detection or the DHW wood coil is on, type and packing are set, the billed price per m³ is greater than 0 (no silent default), and furnace efficiency is 10–95 %. A usable wood tank alone is not enough. Price and cheaper-hour count in attributes |
 
 ### Buttons (4 total)
 
@@ -658,7 +658,7 @@ Full theory, with every mechanism and its defaults:
 ## Changing settings after setup
 
 Open the integration and choose **Configure**. Instead of one long form you get a
-menu of 13 pages — 12 you can edit plus a read-only overview — and each can be
+menu of 21 pages — 20 you can edit plus a read-only overview — and each can be
 edited independently. The pages you revisit sit at the top; everything you
 typically set once lives one click further, under **Advanced settings**.
 
@@ -666,19 +666,27 @@ typically set once lives one click further, under **Advanced settings**.
 |---|---|
 | Your system, as configured | A read-only picture of what is set up and what is missing |
 | Comfort and temperatures | Target, minimum and maximum temperature, day/night hours, mould guard |
-| Hot water | Tank size, temperatures, demand time frames, anti-legionella, the cold-water inlet, heavy-day learning, circulation pumps |
+| Hot water | Demand time frames, the temperatures the tank is held to, anti-legionella |
 | Savings vs comfort | Price weight, comfort weight, recalculation interval, compressor start cost, caution with guessed prices |
-| Grid costs | Capacity tariff and its clock, transfer fees, main fuse and live peak guard, contract comparison |
-| Away and holiday mode | Presence source, return time, setback temperatures |
+| Grid peak tariff | The monthly capacity charge and the clock it is measured on |
+| Away and holiday mode | Occupancy source, holiday calendar, the two setback temperatures |
 
 | Advanced page | What it covers |
 |---|---|
-| Sensors and entities | Tibber token, weather entity, and every optional sensor including the power meters and the compressor frequency entities |
-| Heating system and heat storage | Mixing valve, buffer tank as a store, and the wood furnace tank with its probes |
+| Sensors and entities | Tibber token, weather entity, room and tank sensors, the on/off switch |
+| Power and solar sensors | Irradiance, the three power/energy meters, compressor frequency |
+| Heat pump telemetry | Mode, defrost, online, fault |
+| Heating system and heat storage | Mixing valve, buffer tank, wood furnace, the heating circulation pump |
 | Building type and emitters | Structure, era, foundation, area and emitters, plus windows and wind/rain sensitivity |
-| Thermal model (expert) | The raw model numbers — heat pump power and COP, masses, losses, the two-zone split |
+| Thermal model (expert) | The raw single-zone numbers — heat pump power and COP, masses, losses |
+| Two-zone model | The two-zone switch and the per-floor numbers |
+| Hot water tank and inlet | Volume, daily draw, inlet water, greywater, disinfection extras |
+| Hot water circulation | The DHW loop pump and its lead time |
 | Solar panels | Array size, efficiency, export compensation |
-| Self-learning and diagnostics | Staleness watchdog, external heat detection, comfort learning, identification, price prior, outage recovery |
+| Self-learning and diagnostics | Staleness watchdog, comfort learning, identification, price prior |
+| Advanced learning features | Outage recovery, weather/plant learners, curve learning |
+| Fuse and peak guards | Main fuse, the fuse cap, the live peak guard |
+| Transfer fees and contract | DSO product, per-kWh fees, the fixed-contract comparison |
 | Heat curve control (ECL110) | MQTT topics, displace limits and the controller time constant |
 
 Every sensor you picked during setup can be re-pointed here, and clearing a field
@@ -783,7 +791,9 @@ release since v4.0.0 has been an audit train on top of it: a full-codebase
 review (August 2026, [docs/audit-2026-08.md](docs/audit-2026-08.md)), then an
 per-dimension audit repeated round by round
 ([docs/audit-2026-09.md](docs/audit-2026-09.md)) alongside the open-issues
-program ([docs/plan-open-issues.md](docs/plan-open-issues.md)) and the card
+program ([docs/plan-2026-09-open-issues.md](docs/plan-2026-09-open-issues.md),
+which supersedes the complete [docs/plan-open-issues.md](docs/plan-open-issues.md))
+and the card
 decomposition program
 ([docs/plan-card-decomposition.md](docs/plan-card-decomposition.md)), each
 finding fixed and released one PR at a time under the standing gate protocol

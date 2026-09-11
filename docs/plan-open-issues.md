@@ -1,5 +1,10 @@
 # The open-issues and alert-fix program
 
+> **Superseded and complete.** This programme covered #86-#101 and is finished.
+> The live delivery plan is [docs/plan-2026-09-open-issues.md](plan-2026-09-open-issues.md);
+> the evidence register is [docs/audit-2026-09.md](audit-2026-09.md). This file is
+> kept as the record of what #86-#101 decided and why, not as a worklist.
+
 Written 2026-08-30 against `main` at `83b7ea0` (v5.5.0), covering every
 open issue at that moment (#86–#101) and all eleven open CodeQL alerts.
 This is the worklist for the releases that follow v5.5.0; each merge out

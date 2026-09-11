@@ -518,6 +518,56 @@ for _label, _platform, _heading in (
         f"table has {_rows} row(s), there are {_n}",
     )
 
+# #835: the notes used to say the sensor waits on "the wood tank" alone.
+# That is one of six gates; the billed price has no silent default, so a
+# user whose entity stays blank was sent to the wrong cause.
+_wc_notes = _re.search(
+    r"^\| Wood cheaper than heat pump \|[^|\n]*\|([^|\n]*)\|",
+    readme,
+    _re.M,
+)
+R.check(
+    "the README's wood_cheaper notes name the billed-price gate",
+    _wc_notes is not None
+    and "no silent default" in _wc_notes.group(1)
+    and "wood tank is usable" not in _wc_notes.group(1),
+    _wc_notes.group(1).strip() if _wc_notes else "row missing",
+)
+
+# #834: the options dialog offers 21 pages. The README used to say 13 and
+# named the Grid page "Grid costs". Drive the count off `_OPTION_PAGES`
+# and the labels off strings.json, so a page the menu gained cannot stay
+# undocumented in the one place a user checks before installing.
+_opt_strings = json.loads((ROOT / "strings.json").read_text())["options"]["step"]
+_page_labels = [
+    label
+    for step in ("init", "advanced")
+    for key, label in _opt_strings[step]["menu_options"].items()
+    if key != "advanced"
+]
+_pages_claim = _re.search(r"menu of (\d+) pages", readme)
+R.check(
+    "the README's options-page count matches _OPTION_PAGES",
+    _pages_claim is not None
+    and int(_pages_claim.group(1)) == len(config_flow._OPTION_PAGES)
+    and len(_page_labels) == len(config_flow._OPTION_PAGES),
+    f"README says {_pages_claim.group(1) if _pages_claim else '?'}, "
+    f"_OPTION_PAGES has {len(config_flow._OPTION_PAGES)}, "
+    f"strings name {len(_page_labels)}",
+)
+_missing_labels = [label for label in _page_labels if label not in readme]
+R.check(
+    "the README names every options page by its real menu label",
+    not _missing_labels,
+    ", ".join(_missing_labels[:8]),
+)
+R.check(
+    "the README does not list Enable away mode as an options-page field",
+    "| Enable away mode |" not in readme
+    and "| Expected return time |" not in readme,
+    "those are entities, not fields on Away and holiday mode",
+)
+
 _total_claim = _re.search(r"All (\d+) entities", readme)
 R.check(
     "the README's total entity count covers every registered platform",
