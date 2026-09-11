@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import logging
 import os
+from typing import Any
 
 from homeassistant.core import HomeAssistant
 
@@ -53,7 +54,11 @@ async def _register_static_path(hass: HomeAssistant, www_dir: str) -> None:
     except (ImportError, AttributeError):
         # Older Home Assistant: fall back to the deprecated sync call.
         try:
-            hass.http.register_static_path(URL_BASE, www_dir, False)
+            # Looked up by name: the current stubs no longer declare it,
+            # which is the same fact the AttributeError arm handles.
+            getattr(hass.http, "register_static_path")(
+                URL_BASE, www_dir, False
+            )
         except Exception:  # noqa: BLE001
             _LOGGER.warning(
                 "Could not register static path %s for the Heat Pump "
@@ -112,7 +117,7 @@ async def _register_lovelace_resource(hass: HomeAssistant, url: str) -> None:
         # after an upgrade, which looks exactly like the new version not
         # working.
         base = url.split("?")[0]
-        existing = []
+        existing: list[Any] = []
         if hasattr(resources, "async_items"):
             existing = resources.async_items() or []
         elif hasattr(resources, "data"):

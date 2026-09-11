@@ -15,6 +15,8 @@ from __future__ import annotations
 
 import importlib
 import logging
+import sys
+from types import ModuleType
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
@@ -55,30 +57,39 @@ _LAZY_ATTRS = {
 }
 
 
-def _lazy(module: str):
+def _lazy(module: str) -> ModuleType:
     """A sibling module, imported on first use. See ``_LAZY_ATTRS``."""
     return importlib.import_module(f".{module}", __package__)
 
 
-async def _async_lazy(hass: HomeAssistant, module: str):
-    """``_lazy`` off the event loop (#525).
+async def _async_lazy(hass: HomeAssistant, module: str) -> ModuleType:
+    """``import_module`` off the event loop (#525).
 
-    ``import_module`` reads and compiles files, so Home Assistant's own
-    detector reports every one of these against this integration and asks the
-    user to file a bug. Its answer is the import executor, and the laziness
-    above costs nothing to keep: the closure argument for ``_LAZY_ATTRS``
-    survives intact. ``__getattr__`` stays synchronous because PEP 562 has no
-    other shape; nothing on a setup path reaches the package through it.
+    The job target is ``import_module`` itself. Passing ``_lazy`` made
+    Home Assistant's import executor treat the callable as ordinary work
+    and run it on the loop -- the A14 report at ``_lazy``'s
+    ``import_module`` line, which then de-duplicated the #588 probe on
+    2025.2.0.
     """
-    return await hass.async_add_import_executor_job(_lazy, module)
+    return await hass.async_add_import_executor_job(
+        importlib.import_module, f".{module}", __package__
+    )
 
 
 def __getattr__(name: str) -> Any:
-    """Resolve a re-export from the package root (PEP 562)."""
+    """Resolve a re-export from the package root (PEP 562).
+
+    When the sibling is already in ``sys.modules`` (setup's ``_async_lazy``),
+    do not call ``import_module``. ``_lazy`` passes a relative name, which
+    is never a ``sys.modules`` key, so Home Assistant reports that call on
+    the loop even for a cached module and then de-duplicates the #588 probe.
+    """
     module = _LAZY_ATTRS.get(name)
     if module is None:
         raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
-    value = getattr(_lazy(module), name)
+    loaded = sys.modules.get(f"{__package__}.{module}")
+    source = loaded if loaded is not None else _lazy(module)
+    value = getattr(source, name)
     globals()[name] = value
     return value
 
@@ -116,7 +127,8 @@ _PLAN_HANDOVER_KEY = f"{DOMAIN}_plan_handover"
 
 def _plan_handovers(hass: HomeAssistant) -> dict[str, Any]:
     """The reload handovers by entry id, created on first use."""
-    return hass.data.setdefault(_PLAN_HANDOVER_KEY, {})
+    handovers: dict[str, Any] = hass.data.setdefault(_PLAN_HANDOVER_KEY, {})
+    return handovers
 
 
 async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -264,7 +276,13 @@ async def async_setup_entry(
     else:
         task = hass.async_create_task(coordinator.async_request_refresh())
         if task is not None and hasattr(task, "cancel"):
-            entry.async_on_unload(task.cancel)
+            # Named rather than the bound method: `async_on_unload` takes a
+            # zero-argument callable returning None, and `Task.cancel`
+            # takes an optional message and returns bool.
+            def _cancel_first_solve() -> None:
+                task.cancel()
+
+            entry.async_on_unload(_cancel_first_solve)
 
     return True
 

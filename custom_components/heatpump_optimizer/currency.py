@@ -9,10 +9,12 @@ statistics for the people the hard-coding happened to fit.
 """
 from __future__ import annotations
 
+from homeassistant.core import HomeAssistant
+
 FALLBACK_CURRENCY = "SEK"
 
 
-def resolve_currency(hass) -> str:
+def resolve_currency(hass: HomeAssistant) -> str:
     """The instance's configured currency, or the historical SEK fallback."""
     return getattr(getattr(hass, "config", None), "currency", None) or (
         FALLBACK_CURRENCY

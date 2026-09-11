@@ -68,6 +68,7 @@ and an orphan `.mdc`.
 | `brief-citations.md` | wave-brief citations must be resolvable by `brief_lint.mjs`; a literal metric or a stated count the tree answers is an error; extending the plan format extends the linter in the same pull request |
 | `ci-autofix.md` | `closures-autofix` and `claims-autofix` already repair `UNDER-SCOPED` and `INHERITED CLAIMS` — wait for the bot commit, do not duplicate; read the summary line, not the tick; add no third job |
 | `claim-files.md` | the `claimnotes` merge driver and its refusal; a branch that claims nothing leaves both claim files byte-identical; a `DIRTY` pull request does not go red, it cannot run |
+| `comment-readback.md` | post an issue or pull-request comment by running `gh_comment.py`, and read back what landed — a read-back leaves an artifact another seat reads, which a warning about the flag does not |
 | `defect-root-cause.md` | a defect that reached a release, or turned a PR red on a check a cheaper detector could have run, owes a cause, a process state and a countermeasure or a recorded refusal |
 | `delivery-status-tracking.md` | Delivery-status, roster `resume`, and one #201 comment per state change — at each merge, not at session end; the table outranks any wave body that disagrees |
 | `finding-propagation.md` | a finding that changes how a later stage must work goes into that stage's own brief before the producing pull request merges — a PR comment records it, it does not propagate it |

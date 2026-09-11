@@ -10126,7 +10126,11 @@ R.check(
     _a5_entities_err or "accepted",
 )
 
-_a5_before = _nightly.stored_effective_bytes(
+# The check takes the two effective CONFIGURATIONS now, not their bytes, so a
+# failure can name the keys that moved. Its verdict is still the canonical
+# bytes, which is what these two pins hold: the #542 wipe fails, and a newly
+# stored None on an empty optional does not.
+_a5_before = _nightly.stored_effective(
     {"external_heat_entity": "sensor.seed_external_heat_entity", "x": 1},
     {},
 )
@@ -10134,7 +10138,7 @@ _a5_ok_bytes = _nightly.Checks()
 _nightly.check_a5_byte_unchanged(
     _a5_ok_bytes,
     _a5_before,
-    _nightly.stored_effective_bytes(
+    _nightly.stored_effective(
         {"external_heat_entity": "sensor.seed_external_heat_entity", "x": 1},
         {"empty_optional": None},
     ),
@@ -10143,10 +10147,7 @@ _a5_wipe = _nightly.Checks()
 _nightly.check_a5_byte_unchanged(
     _a5_wipe,
     _a5_before,
-    _nightly.stored_effective_bytes(
-        {"x": 1},
-        {"external_heat_entity": None},
-    ),
+    _nightly.stored_effective({"x": 1}, {"external_heat_entity": None}),
 )
 R.check(
     "a5:byte_unchanged fails the #542 wipe and ignores a new None optional",
@@ -10154,6 +10155,61 @@ R.check(
     and "a5:byte_unchanged" not in _a5_ok_bytes.failures(),
     f"wipe={_a5_wipe.results.get('a5:byte_unchanged')} "
     f"ok={_a5_ok_bytes.results.get('a5:byte_unchanged')}",
+)
+# A DETECTOR THAT CANNOT LOCATE THE DEFECT IS HALF A DETECTOR. The first real
+# failure of the check above reported two sizes and nothing else, and the keys
+# behind those 281 bytes could not be named without a container. So the detail
+# is pinned, not just the verdict: every direction appears, by key name.
+_a5_named = _nightly.Checks()
+_nightly.check_a5_byte_unchanged(
+    _a5_named,
+    _nightly.stored_effective({"kept": 1, "moved": "before", "gone": True}, {}),
+    _nightly.stored_effective({"kept": 1, "moved": "after"}, {"fresh": 2}),
+)
+_a5_named_detail = str(_a5_named.results.get("a5:byte_unchanged", ["", ""])[1])
+R.check(
+    "a5:byte_unchanged names the keys that moved, in all three directions",
+    "a5:byte_unchanged" in _a5_named.failures()
+    and "added=['fresh']" in _a5_named_detail
+    and "changed=[\"moved: 'before'->'after'\"]" in _a5_named_detail
+    and "dropped=['gone']" in _a5_named_detail,
+    f"detail={_a5_named_detail!r}",
+)
+# THE PROBE MARKER GOES THROUGH THE LOG HANDLER, NEVER BEHIND ITS BACK. Home
+# Assistant owns `home-assistant.log` through a handler with its own file
+# offset, so bytes appended by a second handle are overwritten by its next
+# records: run 34537901814 dumped the log with neither marker in it, the window
+# did not exist, and `log:no_new_blocking_call` and
+# `log:blocking_positive_control` failed in opposite directions on the same
+# provoked report. Pinned at the source, because the failure mode is a write
+# that succeeds and is then lost -- nothing this suite can execute reproduces
+# it, and an assertion on the file would pass.
+# The docstring names the defect it replaced, so the pin reads the CODE: an
+# earlier form of this check failed on the word "fsynced" in the prose.
+import textwrap as _textwrap  # noqa: E402
+
+_probe_writer_ast = ast.parse(
+    _textwrap.dedent(_inspect.getsource(_nightly._write_probe_marker))
+).body[0]
+_probe_writer_body = ast.unparse(
+    ast.Module(
+        body=[
+            node
+            for node in _probe_writer_ast.body
+            if not (
+                isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant)
+            )
+        ],
+        type_ignores=[],
+    )
+)
+R.check(
+    "the probe marker is emitted as a log record, not appended to the log file",
+    "logging.getLogger" in _probe_writer_body
+    and ".warning(mark)" in _probe_writer_body
+    and "open(" not in _probe_writer_body
+    and "fsync" not in _probe_writer_body,
+    f"body={_probe_writer_body!r}",
 )
 
 _a5_schemas = {
@@ -10252,6 +10308,131 @@ R.check(
     "A8 surfaces InvalidData.schema_errors instead of the path-only message",
     "schema_errors" in _a8_check_src,
     "HA wraps the inner vol.Invalid; the path-only str hid why weather_entity failed",
+)
+_a8_sensor_posted = _nightly.a8_sensors_payload(
+    {
+        "weather_entity": "weather.ci_weather",
+        "indoor_temp_entity": "sensor.ci_indoor_temperature",
+        "tibber_token": "nightly-ha-local",
+    },
+    ("weather_entity", "indoor_temp_entity"),
+)
+R.check(
+    "A8 sensors payload omits weather_entity; that key belongs to step user",
+    _a8_sensor_posted == {"indoor_temp_entity": "sensor.ci_indoor_temperature"},
+    f"posted={_a8_sensor_posted!r}",
+)
+_a5_seed_opts = _nightly._seed_payload()["options"]
+_a5_seed_missing = [
+    row.key
+    for row in config_flow._OPTION_FIELDS
+    if row.default
+    not in (
+        config_flow._STORED,
+        config_flow._DYNAMIC,
+        config_flow._SUGGESTED,
+    )
+    and not isinstance(row.default, (config_flow._Computed, config_flow._Suggested))
+    and row.default is not None
+    and row.key not in _a5_seed_opts
+]
+R.check(
+    "the nightly seed stores every concrete option-field default",
+    not _a5_seed_missing,
+    f"missing={_a5_seed_missing[:8]}",
+)
+# A5's no-op walk posts the schema. ``section()`` fills ``_Computed``
+# defaults (weekend/holiday comfort, wood_furnace_enabled) that the seed
+# never stored -- 4135B → 4416B on dispatch 34537901814. Drop those on
+# save only when the key was absent and the value is the computed default;
+# a stored or edited value still persists.
+_a5_seed = _nightly._seed_payload()
+_a5_cur = {**_a5_seed["data"], **_a5_seed["options"]}
+_a5_grown = []
+for _a5_step in ("comfort", "building"):
+    _a5_schema = config_flow._page_schema(_a5_step, _a5_cur, FakeHass())
+    _a5_flat = config_flow._flatten_section_input(
+        _a5_schema(_nightly.option_resubmit(_a5_step, _a5_cur))
+    )
+    _a5_flat.pop(const.CONF_AFTER_SAVE, None)
+    _a5_saved = config_flow._omit_unstored_computed(_a5_flat, _a5_cur, FakeHass())
+    _a5_grown.extend(sorted(k for k in _a5_saved if k not in _a5_cur))
+R.check(
+    "a no-op options walk does not persist computed defaults the seed never stored",
+    not _a5_grown,
+    f"grown={_a5_grown}",
+)
+_a5_keep_cur = {**_a5_cur, const.CONF_COMFORT_TEMP_DAY_WEEKEND: 18.0}
+_a5_keep = config_flow._omit_unstored_computed(
+    {const.CONF_COMFORT_TEMP_DAY_WEEKEND: 18.0, const.CONF_COMFORT_TEMP_DAY: 21.0},
+    _a5_keep_cur,
+    FakeHass(),
+)
+_a5_edit = config_flow._omit_unstored_computed(
+    {const.CONF_COMFORT_TEMP_DAY_WEEKEND: 18.0},
+    _a5_cur,
+    FakeHass(),
+)
+R.check(
+    "an already-stored or edited computed value is not dropped on save",
+    _a5_keep.get(const.CONF_COMFORT_TEMP_DAY_WEEKEND) == 18.0
+    and _a5_keep.get(const.CONF_COMFORT_TEMP_DAY) == 21.0
+    and _a5_edit.get(const.CONF_COMFORT_TEMP_DAY_WEEKEND) == 18.0,
+    f"keep={_a5_keep!r} edit={_a5_edit!r}",
+)
+_a5_typed = config_flow._omit_unstored_computed(
+    {const.CONF_DAY_START_HOUR: 7.0},
+    {const.CONF_DAY_START_HOUR: 7},
+    FakeHass(),
+)
+R.check(
+    "a no-op write keeps the stored type so effective JSON does not move",
+    _a5_typed.get(const.CONF_DAY_START_HOUR) == 7
+    and type(_a5_typed[const.CONF_DAY_START_HOUR]) is int,
+    f"typed={_a5_typed!r}",
+)
+# Dispatch 34542155868: HA's select retyped the seed's ``'60'`` to ``60``.
+# ``'60' == 60`` is false, so the int/float arm above did not keep the
+# stored string and a5:byte_unchanged moved 4135B → 4133B.
+_a5_peak = config_flow._omit_unstored_computed(
+    {const.CONF_PEAK_TARIFF_WINDOW: 60},
+    {const.CONF_PEAK_TARIFF_WINDOW: "60"},
+    FakeHass(),
+)
+R.check(
+    "a select that retypes a stored digit string keeps the stored type",
+    _a5_peak.get(const.CONF_PEAK_TARIFF_WINDOW) == "60"
+    and type(_a5_peak[const.CONF_PEAK_TARIFF_WINDOW]) is str,
+    f"peak={_a5_peak!r}",
+)
+_a5_opts = dict(_a5_seed["options"])
+_a5_data = dict(_a5_seed["data"])
+_a5_walk = {**_a5_data, **_a5_opts}
+_a5_before_b = _nightly.stored_effective_bytes(_a5_data, _a5_opts)
+for _a5_step in _nightly.option_step_ids(config_flow._OPTION_PAGES):
+    if _a5_step in ("init", "advanced", "setup_overview"):
+        continue
+    _a5_flat = config_flow._flatten_section_input(
+        config_flow._page_schema(_a5_step, _a5_walk, FakeHass())(
+            _nightly.option_resubmit(_a5_step, _a5_walk)
+        )
+    )
+    _a5_flat.pop(const.CONF_AFTER_SAVE, None)
+    _a5_opts.update(
+        config_flow._omit_unstored_computed(_a5_flat, _a5_walk, FakeHass())
+    )
+    _a5_walk = {**_a5_data, **_a5_opts}
+_a5_after_b = _nightly.stored_effective_bytes(_a5_data, _a5_opts)
+R.check(
+    "a full no-op options walk leaves stored effective bytes unchanged",
+    _a5_before_b == _a5_after_b,
+    f"before={len(_a5_before_b)}B after={len(_a5_after_b)}B",
+)
+R.check(
+    "_save_or_menu omits unstored computed defaults before persist",
+    "_omit_unstored_computed"
+    in _inspect.getsource(config_flow.HeatPumpOptimizerOptionsFlow._save_or_menu),
+    "schema fill still writes the keys if the save path does not drop them",
 )
 
 _a9_states_ok = _nightly.Checks()
@@ -10567,6 +10748,41 @@ R.check(
     "HeatPumpOptimizerConfigEntry is bound on the package, not via _lazy",
     "HeatPumpOptimizerConfigEntry" in integration.__dict__,
     "HA 2026 get_type_hints looks the name up on the setup path and _lazy is a blocking import_module",
+)
+_async_lazy_src = _inspect.getsource(integration._async_lazy)
+R.check(
+    "_async_lazy offloads import_module itself, not the _lazy wrapper",
+    "import_module" in _async_lazy_src
+    and "async_add_import_executor_job(_lazy" not in _async_lazy_src,
+    "wrapping import_module in _lazy ran the import on the loop (A14)",
+)
+# Setup already imported coordinator via ``_async_lazy``. A later
+# ``__getattr__`` that still calls ``import_module(".coordinator")`` is
+# reported on the loop (relative name is never a ``sys.modules`` key) and
+# de-duplicates the #588 probe on 2025.2.0. The probe itself must keep
+# calling ``_lazy`` so a cached sibling still trips the detector.
+_a14_mod_names: list[str] = []
+_a14_import = integration.importlib.import_module
+
+def _a14_spy(name, package=None):
+    _a14_mod_names.append(name)
+    return _a14_import(name, package)
+
+integration.__dict__.pop("HeatPumpOptimizerCoordinator", None)
+integration.importlib.import_module = _a14_spy
+try:
+    getattr(integration, "HeatPumpOptimizerCoordinator")
+finally:
+    integration.importlib.import_module = _a14_import
+R.check(
+    "__getattr__ does not import_module a sibling already in sys.modules",
+    ".coordinator" not in _a14_mod_names,
+    f"import_module names={_a14_mod_names[:8]}",
+)
+R.check(
+    "the blocking probe calls _lazy so a cached sibling still trips the detector",
+    "_lazy(" in _inspect.getsource(_nightly._provoke_lazy_on_loop),
+    "getattr of a cached re-export is silent; the probe must call _lazy",
 )
 
 # tools/audit/preflight.sh refuses a closing keyword the orchestrator did not
