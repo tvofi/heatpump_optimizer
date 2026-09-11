@@ -6,14 +6,19 @@ export const meta = {
   description: 'Re-measure each measure-first issue at current main, then close it with the number or re-scope its body',
   phases: [{ title: 'Judge', detail: 'one judge per issue; timing judges run alone' }],
 }
-const GH = `No gh CLI exists in this environment. For every GitHub action run
+const GH_READ = `No gh CLI exists in this environment. For every GitHub read run
 ToolSearch with "select:<tool>" first, then call it (owner tvofi, repo
-heatpump_optimizer): issue_read (get / get_comments), add_issue_comment,
-issue_write (update: labels, state, state_reason), create_pull_request,
-update_pull_request, pull_request_read (get, get_check_runs, get_comments,
-get_files, get_diff), list_pull_requests, merge_pull_request (squash), actions_list
-(list_workflow_runs on tests.yml, branch main), actions_get, get_job_logs
-(failed_only).`
+heatpump_optimizer): issue_read (get / get_comments), pull_request_read
+(get, get_check_runs, get_comments, get_files, get_diff), list_pull_requests,
+actions_list (list_workflow_runs on tests.yml, branch main), actions_get,
+get_job_logs (failed_only). This grant is read-only.`
+
+const GH_WRITE = `Write grant, not merge: add_issue_comment, issue_write
+(update: labels, state, state_reason), create_pull_request, update_pull_request.
+Hold only in a phase that writes. Never together with the merge grant.`
+
+const GH_MERGE = `Merge grant: merge_pull_request (squash). Hold only in the
+merge phase. Do not hold the read grant here.`
 
 const GATE = `Gate rules on this 4-core box. The shell's working directory
 resets between calls: pin cd in every command. PYTHONPATH=tests/hastub for
@@ -95,7 +100,7 @@ const RANK = { haiku: 0, sonnet: 1, opus: 2 }
 const tierOk = (f, r) => RANK[f] !== undefined && RANK[r] !== undefined && RANK[r] >= RANK[f]
 
 const MERGE = { type: 'object', required: ['merged'] }
-const mergePrompt = (pr, head) => `${GH} Merge PR #${pr} only if ALL of:
+const mergePrompt = (pr, head) => `${GH_READ} ${GH_WRITE} ${GH_MERGE} Merge PR #${pr} only if ALL of:
 pull_request_read get shows mergeable_state clean and head sha ${head};
 get_check_runs shows every check success or skipped; the newest "Fix review:"
 comment says merge and post-dates that head; the diff touches neither VERSION
@@ -105,7 +110,7 @@ If mergeable_state is dirty, return {merged: false, reason: "needs repair"} --
 do not merge main into the branch yourself, the fixer must, because a rebase
 invalidates the evidence. Otherwise {merged: false, reason}.`
 
-const waitMainPrompt = (sha) => `${GH} Poll actions_list (workflow tests.yml,
+const waitMainPrompt = (sha) => `${GH_READ} Poll actions_list (workflow tests.yml,
 branch main) until the run for ${sha} completes; check every three minutes,
 give up after two hours. Require both fast and closures to be success. On a
 red run, fetch the failing job log (get_job_logs, failed_only) and return
@@ -144,7 +149,7 @@ true, version, tag_sha}.`
 const { issues = [], repo, session = 'claude-web' } = args ?? {}
 if (!issues.length || !repo) throw new Error('args.issues and args.repo are required')
 
-const judgePrompt = (it) => `You are the judge for issue #${it.issue} of the open-issues program, working from tools/audit/briefs/judge.md. You do not trust the finder or the verifiers; you re-measure. ${GH} ${WT_REVIEW('triage-' + it.issue, 'origin/main')}
+const judgePrompt = (it) => `You are the judge for issue #${it.issue} of the open-issues program, working from tools/audit/briefs/judge.md. You do not trust the finder or the verifiers; you re-measure. ${GH_READ} ${GH_WRITE} ${WT_REVIEW('triage-' + it.issue, 'origin/main')}
 Read the issue body AND every comment: the comments carry judge verdicts, corrections and claims that override the body.
 What the plan of record expects, which you may confirm or overturn with a number: ${it.expect}
 ${it.extra ?? ''}
