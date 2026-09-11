@@ -14,7 +14,7 @@
    "rc": 0
   },
   "tests/config_flow_steps.py": {
-   "seconds": 0.9,
+   "seconds": 0.6,
    "rc": 0
   },
   "tests/dst_checks.py": {
@@ -34,7 +34,7 @@
    "rc": 0
   },
   "tests/features.py": {
-   "seconds": 94.1,
+   "seconds": 69.8,
    "rc": 0
   },
   "tests/frontend.py": {
@@ -46,7 +46,7 @@
    "rc": 0
   },
   "tests/manual_plan.py": {
-   "seconds": 6.6,
+   "seconds": 4.8,
    "rc": 0
   },
   "tests/open_meteo.py": {
@@ -58,11 +58,11 @@
    "rc": 0
   },
   "tests/plan_view.py": {
-   "seconds": 1.2,
+   "seconds": 0.7,
    "rc": 0
   },
   "tests/solar_alignment.py": {
-   "seconds": 1.2,
+   "seconds": 0.5,
    "rc": 0
   },
   "tests/stress.py": {
@@ -70,7 +70,7 @@
    "rc": 0
   },
   "tests/structure.py": {
-   "seconds": 3.7,
+   "seconds": 1.1,
    "rc": 0
   },
   "tests/validate.py": {
@@ -138,6 +138,7 @@
    "custom_components/heatpump_optimizer/grid_fee.py",
    "custom_components/heatpump_optimizer/inputs.py",
    "custom_components/heatpump_optimizer/ledger.py",
+   "custom_components/heatpump_optimizer/legionella.py",
    "custom_components/heatpump_optimizer/manual_plan.py",
    "custom_components/heatpump_optimizer/mixing_valve.py",
    "custom_components/heatpump_optimizer/narrative.py",
@@ -210,6 +211,7 @@
    "custom_components/heatpump_optimizer/grid_fee.py",
    "custom_components/heatpump_optimizer/inputs.py",
    "custom_components/heatpump_optimizer/ledger.py",
+   "custom_components/heatpump_optimizer/legionella.py",
    "custom_components/heatpump_optimizer/manual_plan.py",
    "custom_components/heatpump_optimizer/mixing_valve.py",
    "custom_components/heatpump_optimizer/narrative.py",
@@ -282,6 +284,7 @@
    "custom_components/heatpump_optimizer/grid_fee.py",
    "custom_components/heatpump_optimizer/inputs.py",
    "custom_components/heatpump_optimizer/ledger.py",
+   "custom_components/heatpump_optimizer/legionella.py",
    "custom_components/heatpump_optimizer/manual_plan.py",
    "custom_components/heatpump_optimizer/mixing_valve.py",
    "custom_components/heatpump_optimizer/narrative.py",
@@ -507,6 +510,7 @@
    "custom_components/heatpump_optimizer/icons.json",
    "custom_components/heatpump_optimizer/inputs.py",
    "custom_components/heatpump_optimizer/ledger.py",
+   "custom_components/heatpump_optimizer/legionella.py",
    "custom_components/heatpump_optimizer/manifest.json",
    "custom_components/heatpump_optimizer/manual_plan.py",
    "custom_components/heatpump_optimizer/mixing_valve.py",
@@ -655,6 +659,7 @@
    "custom_components/heatpump_optimizer/grid_fee.py",
    "custom_components/heatpump_optimizer/inputs.py",
    "custom_components/heatpump_optimizer/ledger.py",
+   "custom_components/heatpump_optimizer/legionella.py",
    "custom_components/heatpump_optimizer/manual_plan.py",
    "custom_components/heatpump_optimizer/mixing_valve.py",
    "custom_components/heatpump_optimizer/narrative.py",
@@ -760,6 +765,7 @@
    "custom_components/heatpump_optimizer/icons.json",
    "custom_components/heatpump_optimizer/inputs.py",
    "custom_components/heatpump_optimizer/ledger.py",
+   "custom_components/heatpump_optimizer/legionella.py",
    "custom_components/heatpump_optimizer/manifest.json",
    "custom_components/heatpump_optimizer/manual_plan.py",
    "custom_components/heatpump_optimizer/mixing_valve.py",
@@ -906,6 +912,7 @@
    "custom_components/heatpump_optimizer/grid_fee.py",
    "custom_components/heatpump_optimizer/inputs.py",
    "custom_components/heatpump_optimizer/ledger.py",
+   "custom_components/heatpump_optimizer/legionella.py",
    "custom_components/heatpump_optimizer/manual_plan.py",
    "custom_components/heatpump_optimizer/mixing_valve.py",
    "custom_components/heatpump_optimizer/narrative.py",
@@ -1000,6 +1007,7 @@
    "custom_components/heatpump_optimizer/grid_fee.py",
    "custom_components/heatpump_optimizer/inputs.py",
    "custom_components/heatpump_optimizer/ledger.py",
+   "custom_components/heatpump_optimizer/legionella.py",
    "custom_components/heatpump_optimizer/manual_plan.py",
    "custom_components/heatpump_optimizer/mixing_valve.py",
    "custom_components/heatpump_optimizer/narrative.py",
@@ -1065,6 +1073,7 @@
    "custom_components/heatpump_optimizer/grid_fee.py",
    "custom_components/heatpump_optimizer/inputs.py",
    "custom_components/heatpump_optimizer/ledger.py",
+   "custom_components/heatpump_optimizer/legionella.py",
    "custom_components/heatpump_optimizer/manual_plan.py",
    "custom_components/heatpump_optimizer/mixing_valve.py",
    "custom_components/heatpump_optimizer/narrative.py",
@@ -1162,6 +1171,7 @@
    "custom_components/heatpump_optimizer/grid_fee.py",
    "custom_components/heatpump_optimizer/inputs.py",
    "custom_components/heatpump_optimizer/ledger.py",
+   "custom_components/heatpump_optimizer/legionella.py",
    "custom_components/heatpump_optimizer/manual_plan.py",
    "custom_components/heatpump_optimizer/mixing_valve.py",
    "custom_components/heatpump_optimizer/narrative.py",
@@ -1346,6 +1356,7 @@
    "custom_components/heatpump_optimizer/grid_fee.py",
    "custom_components/heatpump_optimizer/inputs.py",
    "custom_components/heatpump_optimizer/ledger.py",
+   "custom_components/heatpump_optimizer/legionella.py",
    "custom_components/heatpump_optimizer/manual_plan.py",
    "custom_components/heatpump_optimizer/mixing_valve.py",
    "custom_components/heatpump_optimizer/narrative.py",
