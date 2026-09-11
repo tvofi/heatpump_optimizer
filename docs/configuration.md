@@ -6,7 +6,7 @@ YAML — the integration is configured entirely through Home Assistant's UI, and
 this page follows the same order the UI does.
 
 - [Initial setup](#initial-setup) — the questions asked once, when you add the integration
-- [Changing settings later](#changing-settings-later) — the 13 options pages behind two menus
+- [Changing settings later](#changing-settings-later) — the 21 options pages behind two menus
 - [The hydronic layout catalog](#the-hydronic-layout-catalog) — which plumbing arrangements are modelled
 - [Services](#services) — every service and its fields
 
@@ -197,7 +197,7 @@ first plan is solved within one optimization interval.
 
 **Settings → Devices & services → Heat Pump Optimizer → Configure.**
 
-There are **13 pages**: six on the first menu, and seven more behind
+There are **21 pages**: six on the first menu, and fifteen more behind
 **Advanced settings**. One of the six — *Your system, as configured* — is
 read-only. Each page saves on its own, so changing one setting never touches
 another page's values.
@@ -205,20 +205,28 @@ another page's values.
 | First menu | What lives there |
 |---|---|
 | Your system, as configured | A read-only picture of your setup, drawn from the same description the card's setup tab uses |
-| Comfort and temperatures | The temperature band, the heating day, and the mold guard |
-| Hot water | Time frames, tank, anti-legionella, inlet water, circulation pumps |
+| Comfort and temperatures | The temperature band, the heating day, weekend and holiday profiles, and the mold guard |
+| Hot water | Time frames, the temperatures the tank is held to, and anti-legionella |
 | Savings vs comfort | The weights, the interval, and what a compressor start costs |
-| Grid costs | Capacity tariff, transfer fees, main fuse, live guards |
-| Away and holiday mode | Setback while the house is empty, and timed recovery |
+| Grid peak tariff | The monthly capacity charge and the clock it is measured on |
+| Away and holiday mode | An occupancy source, a holiday calendar, and the two setback temperatures |
 
 | Advanced settings | What lives there |
 |---|---|
-| Sensors and entities | Every entity the optimizer reads, and frequency control |
-| Heating system and heat storage | Mixing valve, buffer tank, wood furnace tank |
+| Sensors and entities | Price source, weather, room and tank sensors, the on/off switch |
+| Power and solar sensors | Irradiance, the three power/energy meters, compressor frequency |
+| Heat pump telemetry | Mode, defrost, online, fault |
+| Heating system and heat storage | Mixing valve, buffer tank, wood furnace, the heating circulation pump |
 | Building type and emitters | The questionnaire again, plus windows and weather sensitivity |
-| Thermal model (expert) | The raw model numbers and the two-zone switch |
+| Thermal model (expert) | The raw single-zone masses, losses, COP and power limits |
+| Two-zone model | The two-zone switch and the per-floor numbers |
+| Hot water tank and inlet | Volume, daily draw, inlet water, greywater, disinfection extras |
+| Hot water circulation | The DHW loop pump and its lead time |
 | Solar panels | Array size, efficiency, export compensation |
-| Self-learning and diagnostics | The watchdogs and every opt-in learner |
+| Self-learning and diagnostics | The staleness watchdog and the three core learners |
+| Advanced learning features | Outage recovery, weather/plant learners, curve learning |
+| Fuse and peak guards | Main fuse, the fuse cap, the live peak guard |
+| Transfer fees and contract | DSO product, per-kWh fees, the fixed-contract comparison |
 | Heat curve control (ECL110) | MQTT topics and displace limits |
 
 ### Your system, as configured
@@ -240,23 +248,22 @@ defaults, ranges and cross-checks. Three more live here:
 
 ### Hot water
 
-The eleven fields from setup step 4 reappear here unchanged. Twelve more
-refine the model and add hardware:
+The first-menu page is the schedule and the temperatures the tank is held
+to. Tank size, inlet water and the circulation pumps live on their own
+advanced pages.
 
 | Setting | Default | Range | What it means |
 |---|---|---|---|
-| Cold water inlet temperature | 10.0 °C | 2–25, 0.5 steps | Yearly average temperature of the water refilling the tank. Change it only if you have measured yours. |
-| Seasonal inlet swing | 0.0 °C | 0–8, 0.5 steps | How far the incoming water swings around that average over the year. 0 treats it as constant. |
-| Cold water inlet sensor | none | a temperature sensor | When set, its live reading replaces the model above. |
-| Greywater heat recovery effectiveness | 0.0 | 0–0.9, 0.05 steps | The fraction of drain heat a drain-water recovery unit returns. 0 means none installed. |
-| Learn heavy-day hot water targets | off | on/off | Makes the tank ready for a heavy day rather than an average one. Needs a tank sensor, configured time frames, and a couple of weeks of evidence. |
-| Credit disinfection from any heat source | off | on/off | If a wood boiler, solar coil or immersion heater already got the tank hot enough and held it there, count that as a completed cycle. |
-| Let the anti-legionella cycle pick a cheap day | off | on/off | Allows the cycle to run a day or two early when electricity is unusually cheap. The deadline is still always honoured. |
-| Earliest anti-legionella re-run | 5 days | 1–14 | A floor on how close together cycles may run, however cheap the day. |
-| Shower flow rate | 8.0 L/min | 4–20, 0.5 steps | Only used to translate the tank's contents into shower minutes on the DHW Mixed Water sensor (`sensor.heat_pump_optimizer_dhw_mixed_water`). |
-| Hot water circulation pump switch | none | `switch` / `input_boolean` | When set, the circulation loop pump runs only during your hot water time frames plus the lead time below. |
-| Start circulation before a time frame | 20 min | 0–120, 5 steps | So the loop is already hot when the time frame opens. |
-| Heating circulation pump switch | none | `switch` / `input_boolean` | Paused only in slots that are provably idle and warm — it always runs when heat is planned, when it is freezing outside, or when any room is near its comfort floor. |
+| Only guarantee hot water at set times | on | on/off | Off keeps the tank hot around the clock, which costs noticeably more. |
+| When you need hot water | `06:00-08:30, 17:00-22:00` | 24-hour times, comma separated | The tank is heated in the cheapest hours before each period. Each period must be at least 15 minutes. Leave empty to let the integration learn your habits from actual usage. |
+| Holiday hot-water windows | empty | same grammar | Used on days the holiday calendar is on, instead of weekday/weekend. Leave empty to keep the ordinary schedule. |
+| Hot water temperature you need | 45 °C | 35–55 | Guaranteed inside the time frames. Must be at least 5 °C below the charge limit, or the plan sits in permanent slight violation. |
+| Let the tank cool to | 20 °C | 10–55 | How cold the tank may get between periods. The default is roughly room temperature — nothing is spent at all. |
+| Highest tank temperature to charge to | 55 °C | 40–65 | An upper limit on charging, not a target. The tank is only filled this high when storing extra cheap heat pays. |
+| Heat pump DHW set-point entity | none | `number` / `input_number` / `climate` | Optional. The pump's own DHW set-point, used only to notice when it cannot be read. |
+| Run an anti-legionella cycle | on | on/off | Because the tank now spends long stretches cool, it is periodically heated hot enough to kill legionella. Strongly recommended. |
+| Anti-legionella temperature | 60 °C | 55–70 | The usual recommendation is 60 °C. Check what applies where you live. |
+| Anti-legionella interval | 7 days | 1–30 | Placed in the cheapest hour before each deadline. |
 
 ### Savings vs comfort
 
@@ -278,58 +285,43 @@ warmth.
 | Let realised wear tune the cycling cost | off | on/off | Makes the wear price a floor under the cycling cost above. The only insight feature that changes plans. |
 | Refresh price tiles after each solve | off | on/off | Prices one what-if tile after each scheduled optimization — one degree lower, one higher, power capped at 75 %, in rotation. Off by default because each tile is a full extra solve. |
 
-### Grid costs
+### Grid peak tariff
 
-Costs that are not simply the price per kWh. Many grid companies bill a monthly
-capacity charge on your highest hours, which means stacking hot water and space
-heating into the same cheap hour can cost more than it saves.
+The monthly capacity charge. Many grid companies bill on your highest hours,
+which means stacking hot water and space heating into the same cheap hour can
+cost more than it saves. Transfer fees, the main fuse and the live peak guard
+are on their own advanced pages.
 
 | Setting | Default | Range | What it means |
 |---|---|---|---|
 | My grid bill has a capacity charge | off | on/off | Adds the monthly power-peak fee to the objective, so flattening peaks is worth actual money. |
 | Capacity charge per kW per month | 45 | 0–500 | Take it from your grid invoice; it varies a lot between companies. |
 | Number of peak hours averaged | 3 | 1–10 | Most Swedish tariffs average the three highest hours of the month. |
-| Swedish DSO tariff | None | Ellevio / Vattenfall / E.ON / Göteborg Energi (2026) | Writes transfer-fee rules and the peak-tariff fields below. You can still edit the generated text. Dated Sweden-only table — verify against your bill. |
 | Measurement window | 1 hour | 15 minutes / 1 hour | Swedish DSOs move to 15-minute settlement through 2026–27. Pick 15 when your bill averages the highest 15-minute windows; 60 keeps the older hourly clock. Hourly prices are smeared evenly across the four quarters — a 15-minute sauna spike is billed in full only when the window is 15. |
 | Months the capacity tariff applies | empty | e.g. `Nov-Mar` | Empty means every month. Outside these months a peak contributes nothing, and the plan knows it. |
 | Peak hours | empty | e.g. `07:00-19:00` | Empty means every hour counts in full. Outside these hours a peak counts at the factor below. |
 | Weekends are off-peak | off | on/off | Many tariffs only bill weekday peaks. |
 | What off-peak hours count at | 1.0 | 0.0–1.0, 0.05 steps | 1.0 treats every hour alike. 0.5 is the common half-rate night; 0 makes off-peak peaks free. |
-| Main fuse size | 0 A | 0–125 | From your grid contract. **0 means unconfigured**, which keeps the fuse advisor, the fuse guard and the headroom sensor dormant — there is no safe default to guess. |
-| Phases | 3 | 1–3 | Nearly every Swedish house is 3-phase. |
-| Keep the plan under the main fuse | off | on/off | Caps planned power at what the fuse leaves after the rest of the house. If a cap would make the comfort floor unreachable, the plan says so instead of silently going cold. |
-| Live peak guard | off | on/off | Watches the power meter and, when the current metering window is projected to set a new billed peak, holds back electric hot water and nudges the heat curve down for the rest of that window. Needs a power meter. |
-| Peak guard margin | 0.5 kW | 0.0–3.0, 0.1 steps | How far below the billed threshold the guard starts acting. Larger catches more peaks and intervenes more often. |
-| Grid transfer fee | None | None / Time-of-use rules / Live sensor | The fee your grid company adds per kWh. Spot prices do not include it, so with it configured the plan finally sees the whole marginal price. |
-| Fixed transfer fee | 0.0 per kWh | 0–5, 0.01 steps | A flat fee added in every hour, on top of any rules. |
-| Time-of-use fee rules | empty | one rule per line | For example `Nov-Mar Mon-Fri 06:00-22:00 = 0.25`. Month, weekday and time parts are each optional; overlapping rules add together. A rate must be zero or above and at most 10 per kWh — a negative rate or one that size is refused when the page is saved, since the first is a sign slip and the second is öre typed where whole units were meant. |
-| Live fee sensor | none | a sensor | For grids with dynamic fees. Its value is added to every planned hour. |
-| Fixed contract price to compare | 0.0 per kWh | 0–10, 0.01 steps | If you could have a fixed-price contract, its price per kWh. The Contract Comparison sensor then shows what this month would have cost on it. 0 leaves that column out. |
-
-Fee amounts are in the same currency as your electricity prices; some labels
-still read SEK, which is the historical default rather than a constraint.
 
 ### Away and holiday mode
 
-A week away is the biggest single saving a heating system can offer. Tell it
-when you are coming back and the re-heat is bought in the cheapest hours
-beforehand instead of at whatever the price is when you walk in.
+This page has four fields. The **Away** switch and the **Expected return**
+datetime are their own entities, not options — they are on the integration's
+device page and on the card, not here.
 
 | Setting | Default | Range | What it means |
 |---|---|---|---|
-| Enable away mode | off | on/off | Deep setback while the house is empty, with recovery timed to your return. |
-| Away indicator | none | `input_boolean`, `person`, `device_tracker`, `calendar`, `binary_sensor` | Polarity is handled for you: a person being *not home* and a holiday toggle being *on* both mean away. |
+| Away indicator | none | `person`, `device_tracker`, `calendar`, `binary_sensor` | Polarity is handled for you: a person being *not home* still means away when the Plan-page toggle is off. |
 | Holiday-profile calendar | none | a `calendar` | When this calendar is on, holiday comfort and holiday hot-water windows replace the weekday/weekend pair for that day. Away setback still wins if away is active. |
-| Expected return time | none | `input_datetime` or a sensor | Without it the house stays at the setback until you switch back manually. |
 | Temperature while away | 16.0 °C | 5–21, 0.5 steps | Low enough to save, high enough to protect the house and its plumbing. |
 | Hot water minimum while away | 20.0 °C | 10–55 | The anti-legionella cycle still runs, timed to finish before you get back. |
 
 ### Sensors and entities
 
-Everything the optimizer reads — 22 fields in all. Clearing a field
-genuinely clears it. Sixteen of them are the same fields offered during setup
-step 1, with the same meanings; the remaining six are the meters and the
-compressor-frequency path.
+Price, weather, room and tank sensors, and the on/off switch. Clearing a
+field genuinely clears it. Meters, solar irradiance and compressor frequency
+are on **Power and solar sensors**; mode / defrost / online / fault are on
+**Heat pump telemetry**.
 
 | Setting | Default | Range | What it means |
 |---|---|---|---|
@@ -339,16 +331,31 @@ compressor-frequency path.
 | VAT multiplier / surcharge | 1.0 / 0 | 0–2 | Applied as value × VAT + surcharge. 1.0 and 0 leave the sensor values unchanged. |
 | Weather forecast | from setup | required | The forecast source. |
 | Indoor / outdoor temperature | from setup | temperature sensors | See setup step 1. |
-| Solar radiation sensor, source, location | from setup | — | See setup step 1. |
 | Hot water tank, buffer tank, floor return, lower floor sensors | from setup | temperature sensors | See setup step 1. |
 | Heat pump on/off switch | from setup | a `switch` | See setup step 1. |
-| Heat pump mode, defrost, online, fault | from setup | see setup step 1 | See setup step 1. |
+| Space-heating set-point entity | none | `number` / `input_number` / `climate` | Optional. Used only to notice when the entity cannot be read. The optimizer never writes a recommended space set-point. |
+| What that set-point entity expects | Indoor temperature | Indoor temperature / Flow temperature | A declaration, not a write. Pointing an indoor target at a flow entity would command roughly 21 °C to something expecting 35–45 °C. |
+
+### Power and solar sensors
+
+| Setting | Default | Range | What it means |
+|---|---|---|---|
+| Solar radiation sensor, source, location | from setup | — | See setup step 1. |
 | Heat pump power meter | none | a `power` sensor | Actual electrical draw. With it, efficiency becomes measurable, predicted cost gets a real counterpart, and a wood fire is detected reliably. Several sensors stay unavailable without it. |
 | Heat pump energy meter | none | an `energy` sensor | A cumulative kWh meter is more accurate than adding up power readings, which misses short runs. |
 | Whole-house power meter | none | a `power` sensor | A capacity tariff is billed on the whole house, so without this the peak being avoided is only part of the real one. |
 | Compressor frequency entity | none | a `number` entity | Typically from Modbus or ESPHome. With it the optimizer learns a kW-per-Hz map and recommends a frequency. |
 | Actual frequency sensor | none | a `frequency` sensor | Many number entities are setpoint registers that echo the last written value. Read from an echo, the watchdog can never see divergence. Leave empty only if the number entity genuinely tracks the machine. |
 | Frequency mode | Observe | Observe / Control | Observe learns and recommends but never writes. Switch to Control only after validating the entity against your hardware: writes go through `number.set_value`, at most one per five minutes, clamped to the entity's own range, and three ticks of divergence stand the controller back down to Observe. |
+
+### Heat pump telemetry
+
+| Setting | Default | Range | What it means |
+|---|---|---|---|
+| Heat pump operating mode | from setup | the pump's mode entity | Read only: the optimizer never changes it. Left empty, the optimizer assumes the pump can do everything. |
+| Defrosting | from setup | a binary sensor | On while the pump reverses to melt frost off the outdoor coil. |
+| Pump online | from setup | a binary sensor | On while the pump is actually reachable. |
+| Fault alarm | from setup | a binary sensor | On while the pump is reporting a fault. Only whether there is a fault is used. |
 
 ### Heating system and heat storage
 
@@ -377,6 +384,7 @@ catalog below keys off.
 | Packing | Packed (stacked) | Packed (stacked) · Loose (dumped) | Packed is stacked (travad); loose is dumped (stjälpt) and billed at 0.60 of packed. |
 | Price per cubic metre | none | 0–10 000, 10 steps | What you pay per billed cubic metre. **Empty keeps the cheaper-than-pump sensor unavailable — there is no silent default.** |
 | Furnace efficiency | 75 % | 10–95 | Share of the wood's energy that reaches the tank. |
+| Heating circulation pump switch | none | `switch` / `input_boolean` | Paused only in slots that are provably idle and warm — it always runs when heat is planned, when it is freezing outside, or when any room is near its comfort floor. |
 
 The four fuel-price fields render only while **Wood furnace** is on. The
 *Wood cheaper than heat pump* sensor stays unavailable until the furnace is
@@ -401,38 +409,71 @@ turning the preset on.
 
 ### Thermal model (expert)
 
-The raw numbers, otherwise only asked at setup. **A field left empty keeps its
-current value and is never saved** — that is what lets a single-zone house stay
-single-zone, and filling in the zone fields is how an existing install turns
-the two-zone model on.
+The seven raw single-zone numbers, otherwise only asked at setup. **A field
+left empty keeps its current value and is never saved.** Buffer tank size
+lives on *Heating system and heat storage*; window area and the glazing
+coefficient live on *Building type and emitters*; the two-zone switch and
+the per-floor numbers live on **Two-zone model**.
 
-The seven core fields, and the eight per-zone and solar-orientation fields, are
-the ones from the expert setup pages above with the same ranges. Buffer tank
-size lives on *Heating system and heat storage*; window area and the glazing
-coefficient live on *Building type and emitters*. One field exists only here:
+The seven fields are those from the expert setup page above, with the same
+ranges: house thermal mass, heat-loss coefficient, slab mass, slab-to-room
+transfer, nominal COP, max power, min power.
+
+**Changing a derived value turns the derivation off.** These fields are what
+*Building type and emitters* works out from the questionnaire. If that switch
+stayed on, the next save of that page would take your edit back — so changing
+any of them to a different value switches it off instead, and the page says so
+while it is still armed. Only a real change counts: pressing Submit without
+touching anything, re-typing a value that was already there, or editing a
+field the questionnaire does not own all leave it on.
+
+**A stored value outside a field's normal range widens that field rather than
+blocking the page.** The ranges cover the physics of a 40–400 m² building; a
+20 m² cabin or a 1000 m² block can derive something outside them. The one
+field holding such a value stretches to show it and is flagged with a
+warning; every other field keeps its normal limits.
+
+### Two-zone model
 
 | Setting | Default | Range | What it means |
 |---|---|---|---|
 | Two-zone model | Automatic | Automatic · On · Off | *Automatic* means two-zone as soon as any zone value has ever been saved — which can only ever turn it on. **Off is the only way back to single-zone**, because values written during setup live where the options flow cannot erase them. *On* forces two-zone using the values below or their defaults. |
+| Upper / lower floor thermal mass | 3.0 / 8.0 kWh/°C | 0.25–60 | Heat stored in each zone. |
+| Upper / lower floor heat loss | 0.08 / 0.07 kW/°C | 0.001–1.0 | Each zone's own loss coefficient. |
+| Inter-zone transfer | see setup | kW/°C | How fast heat moves between the two floors. |
+| Radiator power fraction | see setup | 0–1 | Share of heat delivered through radiators rather than the slab. |
+| Upper floor area ratio | see setup | 0.1–0.9 | Used to split solar gain. |
+| Solar orientation factor | 0.7 | 0.0–1.0 | How well the glazing faces the sun over a day. |
 
-Two things about this page that follow from where its numbers come from.
+### Hot water tank and inlet
 
-**Changing a derived value turns the derivation off.** Ten of these fields are
-what *Building type and emitters* works out from the questionnaire. If that
-switch stayed on, the next save of that page would take your edit back — so
-changing any of the ten to a different value switches it off instead, and the
-page says so while it is still armed. Only a real change counts: pressing
-Submit without touching anything, re-typing a value that was already there, or
-editing one of the fields the questionnaire does not own all leave it on.
+Tank size, daily draw, inlet water and the disinfection extras. The first-menu
+**Hot water** page is the schedule and the hold temperatures.
 
-**A stored value outside a field's normal range widens that field rather than
-blocking the page.** The ranges cover the physics of a 40–400 m² building; a
-20 m² cabin or a 1000 m² block can derive something outside them, and the
-`apply_schedule` service and the thermostat can store comfort values outside
-theirs. The one field holding such a value stretches to show it and is flagged
-with a warning, so the value can be seen, kept, or corrected; every other field
-keeps its normal limits. Before v5.1.6 the page simply refused to save, with no
-message.
+| Setting | Default | Range | What it means |
+|---|---|---|---|
+| Hot water tank size | 200 L | 50–1500, 10 steps | A larger tank stores more cheap electricity and can skip more expensive hours. |
+| Hot water used per day | 150 L/day | 50–1500 | Roughly your household's daily draw. Used to size what to store before each period. |
+| Tank heat loss | 0.3 °C/h | 0.05–3.0, 0.05 steps | Standby cooling at 45 °C in a 20 °C room. A starting point only: the real rate is measured and refined. |
+| Cold water inlet temperature | 10.0 °C | 2–25, 0.5 steps | Yearly average temperature of the water refilling the tank. Change it only if you have measured yours. |
+| Seasonal inlet swing | 0.0 °C | 0–8, 0.5 steps | How far the incoming water swings around that average over the year. 0 treats it as constant. |
+| Cold water inlet sensor | none | a temperature sensor | When set, its live reading replaces the model above. |
+| Greywater heat recovery effectiveness | 0.0 | 0–0.9, 0.05 steps | The fraction of drain heat a drain-water recovery unit returns. 0 means none installed. |
+| Learn heavy-day hot water targets | off | on/off | Makes the tank ready for a heavy day rather than an average one. Needs a tank sensor, configured time frames, and a couple of weeks of evidence. |
+| Credit disinfection from any heat source | off | on/off | If a wood boiler, solar coil or immersion heater already got the tank hot enough and held it there, count that as a completed cycle. |
+| Let the anti-legionella cycle pick a cheap day | off | on/off | Allows the cycle to run a day or two early when electricity is unusually cheap. The deadline is still always honoured. |
+| Earliest anti-legionella re-run | 5 days | 1–14 | A floor on how close together cycles may run, however cheap the day. |
+| Shower flow rate | 8.0 L/min | 4–20, 0.5 steps | Only used to translate the tank's contents into shower minutes on the DHW Mixed Water sensor (`sensor.heat_pump_optimizer_dhw_mixed_water`). |
+
+### Hot water circulation
+
+The DHW loop pump. The heating-circuit circulation pump lives on
+**Heating system and heat storage**.
+
+| Setting | Default | Range | What it means |
+|---|---|---|---|
+| Hot water circulation pump switch | none | `switch` / `input_boolean` | When set, the circulation loop pump runs only during your hot water time frames plus the lead time below. |
+| Start circulation before a time frame | 20 min | 0–120, 5 steps | So the loop is already hot when the time frame opens. |
 
 ### Solar panels
 
@@ -451,21 +492,23 @@ what consuming actually costs you.
 
 ### Self-learning and diagnostics
 
-The sensor watchdog is on by default and protects everything else. The rest are
-off until you turn them on; each one changes either what is learned or what is
-planned, and the descriptions say which.
+The sensor watchdog is on by default and protects everything else. The three
+core learners are off until you turn them on. External-heat detection lives
+on **Heating system and heat storage** with the wood group. The remaining
+opt-in learners are on **Advanced learning features**.
 
 | Setting | Default | Range | What it means |
 |---|---|---|---|
 | Ignore sensors that stop updating | on | on/off | A dead battery leaves a normal-looking value in place forever. With this on, an old value is treated as missing and learning pauses instead of learning the flatline. |
 | Allow this much extra age | 1.0 | 0.5–10.0, 0.5 steps | Raise it if sensors that deliberately report rarely are being flagged. |
-| Detect a wood furnace or other heat source | off | on/off | Spots the tanks warming while the pump is idle and holds back planned electric hot water. |
-| Stove or flue sensor | none | `binary_sensor`, `switch`, `input_boolean`, `sensor` | Trusted over the automatic detection, in both directions: it can say a fire is lit and it can say one is not. A switch or helper is trusted until you change it. A *numeric* flue probe is trusted for an hour after it last reported, because a probe stuck reading hot on a flat battery would otherwise hold heating back indefinitely. |
-| Temperature rise that counts as evidence | 1.5 °C/h | 0.5–10, 0.1 steps | Raise it if normal operation triggers it. Missing a fire costs one unnecessary cycle; wrongly assuming one can leave you without hot water. |
-| How long to keep assuming it after it stops | 90 min | 15–360, 15 steps | Longer holds the plan back further after a fire burns down. |
 | Learn my comfort preference from overrides | off | on/off | Every temperature override says the plan went too far one way. This adjusts the comfort weight from that, shows the result on its own sensor, and has a reset button. |
 | Allow a one-off measurement experiment | off | on/off | Lets the optimizer run a small deliberate heating step on a mild, cheap night to measure your house directly instead of inferring it over weeks. Kept too small to notice, and stopped if the temperature drifts. |
 | Estimate prices past the published horizon | on | on/off | Tomorrow's prices arrive around 13:00. Until then this uses your learned daily price shape instead of a flat repeat, and the plan marks which hours are estimated. |
+
+### Advanced learning features
+
+| Setting | Default | Range | What it means |
+|---|---|---|---|
 | Staggered recovery after a power cut | off | on/off | After an outage everything restarts at once, which is exactly when a new monthly peak gets set. This opens a two-hour recovery window where hot water queues 45 minutes behind space heating unless the tank is genuinely low. |
 | Ease heating while a window is open | off | on/off | The detector always pauses learning; this additionally lowers the target by 1 °C while a window appears open. Off by default because it moves real heat. |
 | Plan around immersion heater use | off | on/off | Repeated immersion use raises the hot-water planning margin so the heat pump gets there first, with the extra cost shown as its own line in the ledger. |
@@ -475,6 +518,30 @@ planned, and the descriptions say which.
 | Learn how much sun the windows really admit | off | on/off | Scales solar gain against sunny-hour prediction errors, clamped between 0.3× and 2× the configured value. |
 | Learn the household's daily heat rhythm | off | on/off | Learns a per-hour internal-gains profile from dark-hour prediction errors, tethered to the configured value. |
 | Learn a correction to the heat curve | off | on/off | Learns a standing correction from days that held comfort with room to spare — at most half a degree per week, snapping back to the installer's curve on any comfort miss. It can only cool an over-hot curve, never heat. |
+
+### Fuse and peak guards
+
+| Setting | Default | Range | What it means |
+|---|---|---|---|
+| Main fuse size | 0 A | 0–125 | From your grid contract. **0 means unconfigured**, which keeps the fuse advisor, the fuse guard and the headroom sensor dormant — there is no safe default to guess. |
+| Phases | 3 | 1–3 | Nearly every Swedish house is 3-phase. |
+| Keep the plan under the main fuse | off | on/off | Caps planned power at what the fuse leaves after the rest of the house. If a cap would make the comfort floor unreachable, the plan says so instead of silently going cold. |
+| Live peak guard | off | on/off | Watches the power meter and, when the current metering window is projected to set a new billed peak, holds back electric hot water and nudges the heat curve down for the rest of that window. Needs a power meter. |
+| Peak guard margin | 0.5 kW | 0.0–3.0, 0.1 steps | How far below the billed threshold the guard starts acting. Larger catches more peaks and intervenes more often. |
+
+### Transfer fees and contract
+
+Fee amounts are in the same currency as your electricity prices; some labels
+still read SEK, which is the historical default rather than a constraint.
+
+| Setting | Default | Range | What it means |
+|---|---|---|---|
+| Swedish DSO tariff | None | Ellevio / Vattenfall / E.ON / Göteborg Energi (2026) | Writes transfer-fee rules and the peak-tariff fields. You can still edit the generated text. Dated Sweden-only table — verify against your bill. |
+| Grid transfer fee | None | None / Time-of-use rules / Live sensor | The fee your grid company adds per kWh. Spot prices do not include it, so with it configured the plan finally sees the whole marginal price. |
+| Fixed transfer fee | 0.0 per kWh | 0–5, 0.01 steps | A flat fee added in every hour, on top of any rules. |
+| Time-of-use fee rules | empty | one rule per line | For example `Nov-Mar Mon-Fri 06:00-22:00 = 0.25`. Month, weekday and time parts are each optional; overlapping rules add together. A rate must be zero or above and at most 10 per kWh — a negative rate or one that size is refused when the page is saved, since the first is a sign slip and the second is öre typed where whole units were meant. |
+| Live fee sensor | none | a sensor | For grids with dynamic fees. Its value is added to every planned hour. |
+| Fixed contract price to compare | 0.0 per kWh | 0–10, 0.01 steps | If you could have a fixed-price contract, its price per kWh. The Contract Comparison sensor then shows what this month would have cost on it. 0 leaves that column out. |
 
 ### Heat curve control (ECL110)
 
