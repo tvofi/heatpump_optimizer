@@ -73,8 +73,10 @@ production lines. You work in your own worktree branched from `origin/main`.
    the detail. `python3 tests/structure.py` is seconds and runs before every
    push regardless.
 6. Hand off to the adversarial fix reviewer. **After any rebase or merge,
-   steps 2–4 are re-executed**: the evidence describes one tree, and either
-   makes a new one.
+   steps 2–8 are re-executed**: the evidence describes one tree, and either
+   makes a new one — **the body included**, because a figure that is a function
+   of `origin/main`'s tip is false the moment `main` moves. Stamp such a figure
+   with that tip and `date -u`.
 
    **The handoff freezes the branch.** Until then, update it from `origin/main`
    whenever you need to — `git merge origin/main`, never rebase. After it, the
@@ -86,15 +88,12 @@ production lines. You work in your own worktree branched from `origin/main`.
    may return against you — **Re-read the head before you post**, in
    `fix-review.md`.
 
-   Landing a PR is never yours in any case — that is the orchestrator's, or a
+   Landing a PR is never yours in any case — that is the **orchestrator's**, the
+   seat the Model-routing table gives control flow, merges and sequencing, or a
    merge-and-release seat it starts. `git merge origin/main` into your own
    branch and merging the pull request differ; only the first was ever yours,
-   and only before the handoff.
-
-   The seat is the **orchestrator** — the one the Model-routing table gives
-   control flow, merges and sequencing. In this repository "coordinator" is
-   `coordinator.py` and the `coordinator_loc` / `coordinator_attrs` budgets the
-   ratchet section below measures. It is never the name of a seat.
+   and only before the handoff. "Coordinator" here is `coordinator.py` and its
+   ratchet budgets, never a seat.
 7. The PR body closes its issues (`Closes #N`), names the head SHA measured,
    and carries every executed number, each in `## Figures` with its command.
 8. **A quoted number states the rule that produced it, not just its value.**
@@ -276,3 +275,11 @@ other than the one that tripped it.
 
 The reviewer reads your checks rather than your account of them, and an
 unanswered red check is `blocked <sha> root-cause-unanswered: <check> went red, unanswered`.
+
+## Past three rounds, re-cut rather than repair
+
+The owner's rule. At the **fourth** round, replace the body instead of repairing
+it: the headings `.github/PULL_REQUEST_TEMPLATE.md` requires, the arms that
+fire, and only figures re-taken in that pass. Round history is deleted, not
+restated. **A re-cut body blocked on `claims` again is a signal about the fix**,
+so the orchestrator splits the branch or closes it.
