@@ -28913,26 +28913,43 @@ R.check(
     "already computing",
 )
 
-_t4_arm_on = _t4_coord(system_identification_enabled=True)
+# The option is EDITED after construction, which is the only way to see the
+# push happen at all: built with the option already set, the experiment's
+# own config carries the right value whether this method reads it again or
+# not, and a version of this check that built it enabled survived the push
+# being deleted -- measured.
+_t4_arm_on = _t4_coord(system_identification_enabled=False)
 _t4_count_refresh(_t4_arm_on)
+_t4_arm_on_built = _t4_arm_on._sysid.config.enabled
+_t4_arm_on._config["system_identification_enabled"] = True
 _t4_drive(_t4_arm_on, "async_arm_system_identification")
-_t4_arm_off = _t4_coord(system_identification_enabled=False)
+_t4_arm_off = _t4_coord(system_identification_enabled=True)
 _t4_count_refresh(_t4_arm_off)
+_t4_arm_off._config["system_identification_enabled"] = False
 _t4_drive(_t4_arm_off, "async_arm_system_identification")
 R.check(
-    "arming reads the option through at call time and refreshes either way",
-    _t4_arm_on._sysid.config.enabled is True
+    "arming re-reads the option at call time, so an edit needs no reload",
+    _t4_arm_on_built is False
+    and _t4_arm_on._sysid.config.enabled is True
     and _t4_arm_on._sysid.phase == "armed"
     and _t4_arm_off._sysid.config.enabled is False
-    and _t4_arm_off._sysid.phase == "idle"
-    and _t4_arm_on._t4_refreshes == 1
-    and _t4_arm_off._t4_refreshes == 1,
-    f"enabled -> phase {_t4_arm_on._sysid.phase!r}, disabled -> phase "
-    f"{_t4_arm_off._sysid.phase!r}; refreshes {_t4_arm_on._t4_refreshes} and "
-    f"{_t4_arm_off._t4_refreshes} -- the option is pushed into the "
-    "experiment's own config here rather than read once at construction, so "
-    "turning it on does not need a reload; and the refused arm still "
-    "refreshes, which is what publishes the refusal to the user",
+    and _t4_arm_off._sysid.phase == "idle",
+    f"built {_t4_arm_on_built!r} then edited to True -> config "
+    f"{_t4_arm_on._sysid.config.enabled!r}, phase "
+    f"{_t4_arm_on._sysid.phase!r}; built True then edited to False -> config "
+    f"{_t4_arm_off._sysid.config.enabled!r}, phase "
+    f"{_t4_arm_off._sysid.phase!r} -- both directions, because the push is "
+    "invisible whenever the constructed value already agrees",
+)
+R.check(
+    "a refused arm still refreshes, which is what publishes the refusal",
+    _t4_arm_on._t4_refreshes == 1
+    and _t4_arm_off._t4_refreshes == 1
+    and _t4_arm_on._t4_escaped is None
+    and _t4_arm_off._t4_escaped is None,
+    f"armed -> {_t4_arm_on._t4_refreshes} refresh, refused -> "
+    f"{_t4_arm_off._t4_refreshes} -- returning early on a refusal leaves the "
+    "user's own button reporting nothing at all",
 )
 
 _t4_reset = _t4_coord(comfort_learning_enabled=True)
