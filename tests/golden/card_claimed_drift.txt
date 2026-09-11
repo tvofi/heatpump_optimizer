@@ -163,3 +163,76 @@
 # committed PNG is a screenshot of the card, not a change to the card;
 # no card source, template, style or payload key is touched, so every
 # rendered state is byte-identical by construction.
+
+# #822 and #823, both in the card's one stylesheet.
+#
+# #822: .chip.nodata was `cursor: not-allowed; opacity: 0.3`, which was wrong
+# twice. The opacity put the label at 1.90:1 light and 2.36:1 dark against a
+# 4.5:1 floor; the cursor claimed the chip was inert while a click on it
+# toggles and persists like every other chip -- and all seven chips are the
+# card's only tab stops, so that is the whole keyboard surface. The state now
+# rides on the dot (a graphic, 3:1 under WCAG 1.4.11) and italics, never on
+# fading the text. This is the fix #261 already applied to .chip.off.
+#
+#   chip_nodata_contrast_light   1.90 -> 16.10
+#   chip_nodata_contrast_dark    2.36 -> 13.03
+#   chip_nodata_opacity          0.3  -> 1
+#   chip_nodata_cursor           not-allowed -> pointer
+#
+# #823: .away-strip had no CSS rule matching it at all -- a 13px checkbox,
+# a 14px label and a 0px visual gap, so the two labels rendered as
+# "AwayReturn". This branch adds base .away-strip rules and adds the strip's
+# own controls to coarseHtmlTargets, the card's 24px coarse-pointer floor.
+#
+# 33 of the 34 states are claimed. That is not over-claiming: the card injects
+# one <style> block and card_drift captures the whole shadow root, so a rule
+# added anywhere moves every state's snapshot. Measured, not assumed --
+# card_drift reports exactly these as DRIFT, and it REFUSED an earlier version
+# of this list that claimed all 34: `editor_schema` renders the config editor's
+# schema and no card stylesheet, so it does not move and claiming it is stale.
+# The MARKUP is unchanged
+# in every state; only the stylesheet text differs, except in the states that
+# render the away strip, where its computed layout changes too.
+#
+# Measured at both ends with the finder's own harness,
+# tools/audit/round3/D4/card_ux_defects.mjs:
+#   away_checkbox_min_px  13   -> 24
+#   away_label_min_px     14   -> 24
+#   away_return_min_px    21.3 -> 24
+#   away strip layout     display:block, gap:normal -> display:flex, gap:12px
+#   visual gap between the two labels  0px -> 12px
+#   coarse_ruleset_min_px 24 at both ends (the control arm, undisturbed)
+
+no_plan
+no_plan_expanded
+plan_inline
+plan_inline_sv
+plan_short_window
+custom_title_currency
+hidden_series
+score_open
+expanded_plan
+what_if_off
+expanded_zoomed
+draft_dirty_menu_open
+draft_mid_drag
+whatif_edited
+whatif_weekly
+override_active
+shared_steps
+shared_steps_hover
+tooltip_hover
+coarse_pointer
+reduced_motion
+setup_single_buffer
+setup_two_tank
+setup_coil
+layout_editing_dragged
+layout_editing_tidy
+picker_open_filtered
+wood_alert
+wood_lane
+wood_whatif
+away_toggle
+away_return
+away_status
