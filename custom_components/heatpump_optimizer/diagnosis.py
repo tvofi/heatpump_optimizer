@@ -33,7 +33,7 @@ from typing import Any
 
 import numpy as np
 
-from .thermal_model import ThermalModel
+from .thermal_model import ThermalModel, ThermalParameters, ThermalState
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -48,7 +48,9 @@ SWAPPABLE = (
 )
 
 
-def _room_after(model, state, inputs: dict[str, Any]) -> float:
+def _room_after(
+    model: ThermalModel, state: ThermalState, inputs: dict[str, Any]
+) -> float:
     """The indoor temperature one step ahead under one input set."""
     after = model.simulate_step(
         replace(state),
@@ -70,8 +72,8 @@ def _room_after(model, state, inputs: dict[str, Any]) -> float:
 
 
 def attribute(
-    model,
-    state,
+    model: ThermalModel,
+    state: ThermalState,
     planned: dict[str, Any],
     realised: dict[str, Any],
     actual_temp: float,
@@ -125,7 +127,9 @@ def attribute(
     }
 
 
-def diagnose_record(record, params):
+def diagnose_record(
+    record: dict[str, Any] | None, params: ThermalParameters
+) -> dict[str, Any] | None:
     """Picklable diagnosis worker; the coordinator itself is not picklable.
 
     A scratch model, never the live one: ``simulate_step`` writes per-call

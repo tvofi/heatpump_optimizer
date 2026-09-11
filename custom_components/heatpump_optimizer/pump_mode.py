@@ -102,6 +102,9 @@ FULL_CAPABILITY = ModeCapability(
 
 
 #: Every mode the reference unit exposes, keyed by its device enum value.
+#: Every entry is built with a MODE_* constant, so the `is not None` guard
+#: closing this comprehension drops nothing: `key` is `str | None` for the
+#: sake of FULL_CAPABILITY alone, which is not in it.
 MODES: dict[str, ModeCapability] = {
     mode.key: mode
     for mode in (
@@ -145,6 +148,7 @@ MODES: dict[str, ModeCapability] = {
             options=("Heating + DHW",),
         ),
     )
+    if mode.key is not None
 }
 
 
