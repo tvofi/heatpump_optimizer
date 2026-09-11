@@ -2081,8 +2081,11 @@ class HeatPumpOptimizer:
         """Per-window billing factors for the #13 masks, or None unmasked.
 
         Composed from the same ``CapacityTariff.sample_factor`` the realised
-        tracker uses, so the plan's cost term and the live meter can never
-        disagree about which hour a window bills under.
+        tracker uses. That alone never settled which *instant* each window is
+        sampled at, which is where they actually diverged (#777); the agreement
+        rests on ``window_factors`` walking the windows in UTC, the same rule
+        ``_utc_step_starts`` applies to the step grid this power array is
+        indexed on.
         """
         cfg = self.config
         mask = CapacityTariff(

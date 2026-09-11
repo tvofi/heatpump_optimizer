@@ -29,7 +29,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import numpy as np
@@ -419,19 +419,64 @@ def window_factors(
 
     None when no mask is configured — the fast path, and the proof of
     inertness: ``peak_cost`` with ``None`` runs the exact pre-#13 arithmetic.
-    Windows are keyed by their aligned start instant, matching how
-    ``PeakTracker.observe`` attributes a live window, so the plan's cost term
-    and the realised tracker can never disagree about which hour a window
-    bills under.
+    Windows are keyed by the aligned start instant the horizon's *real* clock
+    reaches, matching how ``PeakTracker.observe`` attributes a live window, so
+    for every ``window_minutes`` that DIVIDES the hour the plan's cost term and
+    the realised tracker cannot disagree about which hour a window bills under.
+    Sharing ``sample_factor`` is not what buys that — until #777 this walked the
+    wall clock instead, and on the two DST days a year it disagreed from the
+    transition onwards. The walk below is the load-bearing part, and the
+    divides-the-hour qualifier on it is not decoration; see there.
     """
     if start_time is None or n_windows <= 0 or not mask_active(tariff):
         return None
     window = max(1, int(tariff.window_minutes))
     slot0 = _window_slot(start_time, window)
+    # Walk the windows in UTC and convert back — ``optimizer._utc_step_starts``'
+    # rule, and for its reason (#243, #777). ``timedelta`` on an aware datetime
+    # is wall-clock arithmetic: across the autumn fold it emits the repeated
+    # hour once and across the spring gap the hour that never happens, so every
+    # window after a transition was labelled an hour away from the instant the
+    # step grid puts it at and ``PeakTracker.observe`` keys it at — the
+    # disagreement the docstring above says cannot occur. ``slot0`` carries
+    # ``_window_slot``'s ``fold``, which is what picks the real pass to start
+    # from, and ``astimezone`` honours it.
+    #
+    # WHY THE DOCSTRING SAYS "divides the hour" — the condition is DIVISIBILITY,
+    # not size. A DST transition shifts the wall-clock offset by 60 minutes, so
+    # a window length that divides 60 falls on the same ``_window_slot`` wall
+    # grid on both sides of the shift and the walk reconciles the two ends
+    # exactly. A length that does not divide 60 lands off that grid afterwards,
+    # and 45 and 7 minutes are under the hour and still off it, so "above an
+    # hour" names a subset and not the rule. What the walk cannot repair there
+    # is that the two sides are different PARTITIONS of a transition day: the
+    # power array this labels is bucketed by STEP INDEX (``metering_windows``),
+    # so bucket i holds ``window`` minutes of REAL time, while ``_window_slot``
+    # deliberately keeps a window longer than an hour wall-anchored, which lets
+    # the autumn fold's repeated hour stretch one metered window to three real
+    # hours. No per-window label reconciles two partitions.
+    #
+    # So for an off-grid length this walk REDISTRIBUTES the disagreement rather
+    # than leaving a residual, and not only downwards. Both ends are driven at
+    # both transitions by ``tools/audit/round3/D2/window_size_sweep.py``, which
+    # prints a pre/post pair per day and size: summed over the two transition
+    # days, 90 minutes is one window WORSE after this change than before it (its
+    # spring arm alone accounts for two of sixteen), and 120 is unchanged. The
+    # #791 review measured the same both-ways shape past that sweep's set — one
+    # worse at 180, one better at 240. Labelling bucket i by its real start is
+    # what every divides-the-hour length needs and is still the half that
+    # matches the power the bucket holds; off the grid it is a trade, and the
+    # sweep is where its price is read rather than argued. No shipped install
+    # reaches it: the four catalog rows set 15 and the options selector offers
+    # 15 and 60, which is also the pair ``tests/dst_checks.py`` drives across
+    # both transitions.
+    tz = slot0.tzinfo
+    base = slot0 if tz is None else slot0.astimezone(timezone.utc)
+    starts = [base + timedelta(minutes=window * i) for i in range(n_windows)]
     return np.asarray(
         [
-            tariff.sample_factor(slot0 + timedelta(minutes=window * i))
-            for i in range(n_windows)
+            tariff.sample_factor(s if tz is None else s.astimezone(tz))
+            for s in starts
         ],
         dtype=float,
     )
