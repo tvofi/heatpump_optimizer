@@ -28144,12 +28144,18 @@ R.check(
     "no state, a non-numeric state, an unknown unit and NaN are each refused",
     all(
         c._guard_last_fold is None
+        and getattr(c, "_t3_escaped", None) is None
         for c in (_t3_pe_none, _t3_pe_junk, _t3_pe_unit, _t3_pe_nan)
     ),
     "folds: "
     f"none={_t3_pe_none._guard_last_fold!r} junk={_t3_pe_junk._guard_last_fold!r} "
-    f"unit={_t3_pe_unit._guard_last_fold!r} nan={_t3_pe_nan._guard_last_fold!r} "
-    "-- an unrecognised unit is refused rather than assumed to be kW, "
+    f"unit={_t3_pe_unit._guard_last_fold!r} nan={_t3_pe_nan._guard_last_fold!r}; "
+    "escapes: "
+    f"{[getattr(c, '_t3_escaped', None) for c in (_t3_pe_none, _t3_pe_junk, _t3_pe_unit, _t3_pe_nan)]!r} "
+    "-- the escapes are asserted because this is a `@callback` on the event "
+    "bus, where an exception is swallowed by the helper and the refusal and "
+    "the crash look identical from here. An unrecognised unit is refused "
+    "rather than assumed to be kW, "
     "because guessing reads a 4500 W meter as 4500 kW",
 )
 _t3_pe_idle = _t3_coord()
