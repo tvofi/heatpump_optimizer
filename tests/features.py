@@ -26388,36 +26388,52 @@ R.check(
     "would take rather than reject",
 )
 
-_t2_buf_short = _t2_buffer(50.0, 48.0, 0.1)
+# Each of the next four intervals is chosen so its implied rate lands
+# INSIDE the volume-derived bounds. Pick a rounder interval and the bounds
+# reject it first, the guard under test never runs, and its mutation passes
+# -- which is how a coverage check ends up pinning nothing.
+_t2_buf_short = _t2_buffer(50.0, 49.6, 0.14)
 R.check(
     "an interval under 0.15 h is too short to read a decay from",
     _t2_buf_short._buffer_cooling_samples == 0,
-    f"samples {_t2_buf_short._buffer_cooling_samples} at 0.10 h",
+    f"samples {_t2_buf_short._buffer_cooling_samples} at 0.14 h, whose "
+    "implied 2.40 C/h is inside this tank's bounds -- so the length guard "
+    "is the only arm that can reject it",
 )
 _t2_buf_long = _t2_buffer(50.0, 48.0, 3.5)
 R.check(
     "an interval over 3 h is too long to have stayed quiet throughout",
     _t2_buf_long._buffer_cooling_samples == 0,
-    f"samples {_t2_buf_long._buffer_cooling_samples} at 3.50 h",
+    f"samples {_t2_buf_long._buffer_cooling_samples} at 3.50 h, implying "
+    "0.49 C/h -- inside the bounds, so only the length guard rejects it",
 )
+# No interval makes this guard load-bearing: a tank that warmed implies a
+# NEGATIVE rate, and the floor is positive at every volume, so the bounds
+# reject every warming interval on their own. Deleting the guard fails no
+# check, which the pull request reports as a finding rather than dressing
+# up. The check stays because it pins the behaviour, not the branch.
 _t2_buf_warm = _t2_buffer(48.0, 50.0, 1.0)
 R.check(
     "a tank that got warmer is not a cooling sample",
     _t2_buf_warm._buffer_cooling_samples == 0,
-    f"samples {_t2_buf_warm._buffer_cooling_samples} over 48.0 -> 50.0",
+    f"samples {_t2_buf_warm._buffer_cooling_samples} over 48.0 -> 50.0, "
+    f"implying -1.72 C/h against a {_T2_LOW:.4f} C/h floor",
 )
-_t2_buf_start = _t2_buffer(23.0, 22.0, 1.0)
+_t2_buf_start = _t2_buffer(23.9, 23.5, 3.0)
 R.check(
-    "a tank within 4 K of ambient carries no signal at either end",
+    "a tank starting within 4 K of ambient carries too little signal",
     _t2_buf_start._buffer_cooling_samples == 0,
-    f"samples {_t2_buf_start._buffer_cooling_samples} from a 3 K start delta",
+    f"samples {_t2_buf_start._buffer_cooling_samples} from a 3.9 K start "
+    "delta implying 0.90 C/h -- inside the bounds, so the start guard is "
+    "the only arm that can reject it",
 )
-_t2_buf_end = _t2_buffer(30.0, 23.5, 1.0)
+_t2_buf_end = _t2_buffer(24.5, 23.9, 3.0)
 R.check(
     "a tank that ended within 4 K of ambient is rejected on the end delta",
     _t2_buf_end._buffer_cooling_samples == 0,
-    f"samples {_t2_buf_end._buffer_cooling_samples} -- the start delta was "
-    "10 K, so only the end guard can reject this one",
+    f"samples {_t2_buf_end._buffer_cooling_samples} -- a 4.5 K start delta "
+    "clears the start guard and the implied 1.19 C/h clears the bounds, so "
+    "the end guard is the only arm left",
 )
 
 # -- the volume-derived bounds, both arms ---------------------------------
