@@ -2462,10 +2462,6 @@ class HeatPumpOptimizer:
                 )
                 if not rel_s and not rel_d:
                     break
-                # Both pin arrays exist on this path: `_normalise_pins`
-                # returned them above and `rel_s`/`rel_d` are indices into
-                # them, so the release loop cannot run against None.
-                assert space_pins is not None and dhw_pins is not None
                 for i in rel_s:
                     space_pins[i] = float("nan")
                     released_space.add(i)
