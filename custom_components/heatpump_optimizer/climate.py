@@ -154,7 +154,8 @@ class HeatPumpOptimizerClimate(HeatPumpOptimizerEntity, ClimateEntity):
         card drift away from whatever the user had just dialled in. It stays
         available as the "Optimal Setpoint" sensor and the attribute below.
         """
-        return self.coordinator.target_temperature
+        target: float | None = self.coordinator.target_temperature
+        return target
 
     @property
     def hvac_mode(self) -> HVACMode:

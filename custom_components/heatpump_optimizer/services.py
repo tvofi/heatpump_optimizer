@@ -120,7 +120,7 @@ SERVICE_SCHEMA_SET_MODE = vol.Schema(
     }
 )
 
-def _set_away_requires_a_field(data: dict) -> dict:
+def _set_away_requires_a_field(data: dict[str, Any]) -> dict[str, Any]:
     if "active" not in data and "return_time" not in data:
         raise vol.Invalid("at least one of active or return_time is required")
     return data
@@ -843,7 +843,9 @@ async def handle_apply_schedule(hass: HomeAssistant, call: ServiceCall) -> dict[
     _LOGGER.info("Applied schedule to %d entry(ies): %s", len(updated), updates)
     return {"updated": updated}
 
-def _manual_targets(hass: HomeAssistant, target_entry: str | None):
+def _manual_targets(
+    hass: HomeAssistant, target_entry: str | None
+) -> list[tuple[str, HeatPumpOptimizerCoordinator]]:
     """Loaded coordinators the manual-plan services should act on."""
     return _loaded_coordinators(hass, target_entry)
 
@@ -870,8 +872,8 @@ async def handle_apply_manual_plan(hass: HomeAssistant, call: ServiceCall) -> di
         # or slots showed as pinned past the point `channel_pins` frees them.
         expires_at = now + timedelta(hours=MANUAL_PLAN_WINDOW_HOURS)
     else:
-        expires_at = dt_util.parse_datetime(raw_expires)
-        if expires_at is None:
+        parsed = dt_util.parse_datetime(raw_expires)
+        if parsed is None:
             raise ServiceValidationError(
                 f"Invalid expires_at {raw_expires!r}: "
                 f"not an ISO 8601 datetime",
@@ -879,6 +881,7 @@ async def handle_apply_manual_plan(hass: HomeAssistant, call: ServiceCall) -> di
                 translation_key="manual_plan_invalid_expires_at",
                 translation_placeholders={"expires_at": str(raw_expires)},
             )
+        expires_at = parsed
 
     # Validate once, up front. build_override raises for a past expiry, an
     # unparseable slot, an end at or before its start, or overlapping slots.

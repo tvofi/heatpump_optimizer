@@ -69,7 +69,9 @@ class _OptimizerButtonBase(HeatPumpOptimizerEntity, ButtonEntity):
 class ForceOptimizationButton(_OptimizerButtonBase):
     """Run the optimization now, without waiting for the next interval."""
 
-    def __init__(self, coordinator, entry) -> None:
+    def __init__(
+        self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry
+    ) -> None:
         super().__init__(coordinator, entry, "force_optimization", "optimize_now")
 
     @property
@@ -94,7 +96,9 @@ class SystemIdentificationButton(_OptimizerButtonBase):
 
     _attr_entity_category = None
 
-    def __init__(self, coordinator, entry) -> None:
+    def __init__(
+        self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry
+    ) -> None:
         super().__init__(
             coordinator, entry, "system_identification", "run_system_identification"
         )
@@ -116,7 +120,9 @@ class ResetComfortWeightButton(_OptimizerButtonBase):
     learned value is always both visible and revertible.
     """
 
-    def __init__(self, coordinator, entry) -> None:
+    def __init__(
+        self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry
+    ) -> None:
         super().__init__(
             coordinator, entry, "reset_comfort_weight", "reset_learned_comfort_weight"
         )
@@ -139,7 +145,9 @@ class DiagnoseIntervalButton(_OptimizerButtonBase):
 
     _attr_entity_category = None
 
-    def __init__(self, coordinator, entry) -> None:
+    def __init__(
+        self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry
+    ) -> None:
         super().__init__(
             coordinator, entry, "diagnose_interval", "diagnose_last_interval"
         )
