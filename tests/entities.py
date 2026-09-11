@@ -7324,9 +7324,12 @@ finally:
 _user_form = asyncio.run(_fresh_flow().async_step_user(None))
 _user_fields = {str(getattr(k, "schema", k)) for k in _user_form["data_schema"].schema}
 _sensors_form = asyncio.run(_fresh_flow().async_step_user_sensors(None))
-_sensors_fields = {
-    str(getattr(k, "schema", k)) for k in _sensors_form["data_schema"].schema
-}
+# #824 grouped this page into indoor/solar/plant sections. A one-level walk of
+# schema.schema records the section markers and nothing underneath them, which
+# is the shape the comment on _WIDE_PAGES above describes; _schema_keys is the
+# helper that recurses, and using it here keeps this pin measuring the fields
+# rather than the wrapper.
+_sensors_fields = _schema_keys(_sensors_form["data_schema"])
 R.check(
     "the first screen no longer carries the ECL110 MQTT fields",
     not any(f.startswith("ecl110") for f in _user_fields),
