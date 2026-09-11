@@ -666,6 +666,7 @@ inside it rather than after it.
 - [#785](https://github.com/tvofi/heatpump_optimizer/pull/785) — **merged `c4eefd3`, row written after the merge**: refuse a sysid fit whose shrunk drift landed in UA. Closed #778. `node .claude/workflows/policy_lint.mjs --record --since v6.3.20` at `origin/main` `4409e49` named this pull request among the three without a disposition. leaves #201 open.
 - [#786](https://github.com/tvofi/heatpump_optimizer/pull/786) — **merged `a31bce4`, row written after the merge**: last_* prefix pin; unread last_dhw_refused dropped. Closed #780. Same `--record` run at `4409e49` named it. Not this leftover-row's implementation. leaves #201 open.
 - [#787](https://github.com/tvofi/heatpump_optimizer/pull/787) — **merged `4409e49`, row written after the merge**: Carnot flow correction no longer inverts COP as outdoor rises. Closed #776. Same `--record` run at `4409e49` named it. Not this leftover-row's implementation. #745's #759/#761/#764 stay #745's. The Wave-5 table `[render]` at plan line 82 stays #768's. leaves #201 open.
+- [#789](https://github.com/tvofi/heatpump_optimizer/pull/789) — **row written before the merge, and it is this pull request**: leftover-row for #785 `c4eefd3`, #786 `a31bce4`, #787 `4409e49`. `node .claude/workflows/policy_lint.mjs --record --since v6.3.20` at `origin/main` `4409e49` named those three. #745's #759/#761/#764 stay #745's. Wave-5 table `[render]` at plan line 82 stays #768's. leaves #201 open.
 
 ### The UX programme — 34 items, five lanes, tracking #558
 
