@@ -88,6 +88,10 @@
   "tests/typing_ruler.py": {
    "seconds": 0.1,
    "rc": 0
+  },
+  "tests/guard_pins.py": {
+   "seconds": 0.2,
+   "rc": 0
   }
  },
  "closures": {
@@ -1393,6 +1397,32 @@
    "custom_components/heatpump_optimizer/wood_fuel.py",
    "tests/typing_budgets.json",
    "tests/typing_ruler.py"
+  ],
+  "tests/guard_pins.py": [
+   "custom_components/heatpump_optimizer/__init__.py",
+   "custom_components/heatpump_optimizer/const.py",
+   "custom_components/heatpump_optimizer/dhw_draws.py",
+   "custom_components/heatpump_optimizer/dhw_learning.py",
+   "custom_components/heatpump_optimizer/dhw_schedule.py",
+   "custom_components/heatpump_optimizer/mixing_valve.py",
+   "custom_components/heatpump_optimizer/price_model.py",
+   "custom_components/heatpump_optimizer/tariff.py",
+   "custom_components/heatpump_optimizer/thermal_model.py",
+   "custom_components/heatpump_optimizer/topology.py",
+   "custom_components/heatpump_optimizer/wood_fuel.py",
+   "tests/guard_pins.py",
+   "tests/harness.py",
+   "tests/hastub/homeassistant/__init__.py",
+   "tests/hastub/homeassistant/config_entries.py",
+   "tests/hastub/homeassistant/const.py",
+   "tests/hastub/homeassistant/core.py",
+   "tests/hastub/homeassistant/helpers/__init__.py",
+   "tests/hastub/homeassistant/helpers/config_validation.py",
+   "tests/hastub/homeassistant/helpers/entity_registry.py",
+   "tests/hastub/homeassistant/helpers/storage.py",
+   "tests/hastub/homeassistant/loader.py",
+   "tests/hastub/homeassistant/util/__init__.py",
+   "tests/hastub/homeassistant/util/dt.py"
   ]
  }
 }
