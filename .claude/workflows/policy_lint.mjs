@@ -43,7 +43,7 @@
 //   ... | node .claude/workflows/policy_lint.mjs --corpus-filter  # keep the policy paths
 //   node .claude/workflows/policy_lint.mjs <files...> # lint just these
 //   node .claude/workflows/policy_lint.mjs --record-known-bad   # reseed the ratchet
-//   node .claude/workflows/policy_lint.mjs --pr-body <file> --head <sha> [--title t] [--red names]
+//   node .claude/workflows/policy_lint.mjs --pr-body <file> --head <sha> [--title t] [--red names] [--paths-file f]
 //   node .claude/workflows/policy_lint.mjs --record --since <ref>   # dispositions
 //   node .claude/workflows/policy_lint.mjs --stats  --since <ref>   # histograms
 //   node .claude/workflows/policy_lint.mjs --sunset --since <ref>   # dead rules
@@ -2279,12 +2279,86 @@ function assertAcceptance(derived) {
   const ZERO = '0000000000000000000000000000000000000000'
   for (const f of fs.readdirSync(prepr).filter((x) => x.endsWith('.md')).sort()) {
     const rel = path.relative(ROOT, path.join(prepr, f))
+    if (f === 'needs-approval.md') continue
     const errs = checkPrBody(rel, { head: ZERO, red: f === 'unnamed-red.md' ? ['fast (3.14)'] : [] })
     if (f === 'good.md' && errs.length) {
       console.log(`\nFIXTURE VACUOUS: the pr-body null control ${rel} produced ${errs.length} error(s); it must produce none`)
       return 1
     }
     found.push(...errs)
+  }
+
+  // `## Approval` is keyed on the DIFF, so one fixture is driven twice and the
+  // pair is the check: the same body with a policy path in the diff must be
+  // refused, and with a non-policy path must be silent. One arm alone would pin
+  // a check that always fires or never does.
+  const needsApproval = path.join(prepr, 'needs-approval.md')
+  if (!fs.existsSync(needsApproval)) {
+    console.log('\nFIXTURE VACUOUS: fixtures/policy-rot/prepr/needs-approval.md is missing; the diff-keyed approval gate is deletable in silence')
+    return 1
+  }
+  {
+    const rel = path.relative(ROOT, needsApproval)
+    const onPolicy = checkPrBody(rel, { head: ZERO, paths: ['CLAUDE.md'] })
+    const offPolicy = checkPrBody(rel, { head: ZERO, paths: ['README.md'] })
+    if (!onPolicy.some((e) => /Approval/.test(e.message))) {
+      console.log('\nFIXTURE VACUOUS: the approval gate did not fire on a diff touching CLAUDE.md')
+      return 1
+    }
+    if (offPolicy.length) {
+      console.log(`\nFIXTURE VACUOUS: the approval gate fired on a diff touching no policy path (${offPolicy.length} error(s)); it would refuse every pull request`)
+      return 1
+    }
+    found.push(...onPolicy)
+
+    // The refusals are the headline property, so they are pinned rather than
+    // trusted: an unreadable list and an empty one must each produce an error,
+    // and a real list must produce none. Without these three, deleting either
+    // refusal leaves this acceptance green and the empty case fail-open.
+    const missing = pathsFromFile(path.join(prepr, 'no-such-list.txt'))
+    const empty = pathsFromFile(path.join(prepr, 'paths-empty.txt'))
+    const real = pathsFromFile(path.join(prepr, 'paths-real.txt'))
+    if (!missing.error || !/unreadable/.test(missing.error)) {
+      console.log('\nFIXTURE VACUOUS: an unreadable --paths-file did not refuse; the approval gate would read a failed derivation as an empty diff')
+      return 1
+    }
+    if (!empty.error || !/is empty/.test(empty.error)) {
+      console.log('\nFIXTURE VACUOUS: an empty --paths-file did not refuse; a pull request changes at least one file')
+      return 1
+    }
+    if (real.error || !real.paths.includes('CLAUDE.md')) {
+      console.log(`\nFIXTURE VACUOUS: a real --paths-file did not read back (${real.error ?? real.paths.join(',')}); a refusal that fires on everything pins nothing`)
+      return 1
+    }
+  }
+
+  // The wiring is the half a fixture cannot reach, and round two measured the
+  // cost of leaving it unpinned: dropping `--paths-file` from governance.yml
+  // restores R3-D11-03 exactly, and dropping `--no-renames` reopens the rename
+  // hole, and BOTH leave every instrument in this repository green. So the
+  // step's own text is read here. This asserts the flags are passed, not that
+  // GitHub runs the job -- no check in a repository can assert the second.
+  const WORKFLOW = '.github/workflows/governance.yml'
+  const wf = read(WORKFLOW)
+  if (wf == null) {
+    console.log(`\nFIXTURE VACUOUS: ${WORKFLOW} is unreadable, so the approval gate's wiring is unpinned`)
+    return 1
+  }
+  // On the INVOCATIONS, not on any occurrence: a first version of this asserted
+  // `wf.includes(flag)` and passed while the flag survived only in a comment
+  // eight lines above the command. A pin satisfied by prose about the thing is
+  // not a pin on the thing.
+  const runLines = wf.split('\n').filter((l) => !/^\s*#/.test(l))
+  const bodyCheck = runLines.filter((l) => /policy_lint\.mjs|--pr-body|--head|--title|--paths-file/.test(l)).join('\n')
+  const pathsDerive = runLines.filter((l) => /git diff .*--name-only/.test(l)).join('\n')
+  for (const [where, hay, flag, why] of [
+    ['the body-check invocation', bodyCheck, '--paths-file', 'the approval gate would fall back to the title alone, which is R3-D11-03 restored'],
+    ['the path derivation', pathsDerive, '--no-renames', 'a rename is reported by its destination only, so moving a policy file out of the glob set would not fire the gate'],
+  ]) {
+    if (!hay.includes(flag)) {
+      console.log(`\nFIXTURE VACUOUS: ${WORKFLOW} no longer passes ${flag} in ${where}; ${why}`)
+      return 1
+    }
   }
 
   // The template and the parser's required set drift apart the moment either is
@@ -3211,7 +3285,35 @@ function sections(body) {
   return out
 }
 
-function checkPrBody(bodyPath, { head = '', title = '', red = [] } = {}) {
+// Reading the path list is separated from using it so the REFUSALS can be
+// pinned. They are the fix's headline property -- a list that cannot be derived
+// must not read as "touches no policy file" -- and round one found them
+// unpinned: deleting the empty-list refusal left the acceptance green and turned
+// the empty case fail-open, which is the defect this keying exists to close.
+function pathsFromFile(pathsFile) {
+  let raw
+  try {
+    raw = fs.readFileSync(pathsFile, 'utf8')
+  } catch {
+    return { error: `--paths-file ${pathsFile}: unreadable. The approval gate reads the diff; a list that cannot be read is not an empty diff.` }
+  }
+  const paths = raw.split('\n').map((x) => x.trim()).filter(Boolean)
+  if (!paths.length) {
+    return { error: `--paths-file ${pathsFile} is empty. A pull request changes at least one file; an empty list means the derivation failed.` }
+  }
+  return { paths }
+}
+
+// `## Approval` is keyed on the DIFF, not on the title. It was keyed on
+// `/^policy:/` against `github.event.pull_request.title` -- a string written by
+// the same seat the section exists to constrain, so a one-word title change
+// switched the requirement off. R3-D11-03 measured the hole rather than arguing
+// it: one body, one head, only --title changed, exit 1 against exit 0.
+// The title arm is KEPT as well: a seat that calls its change policy is taken at
+// its word even when the diff touches no globbed path. Widening POLICY_GLOBS --
+// which does not contain this file, nor .github/workflows/ -- is a policy
+// question and the owner's, and is named in the body rather than taken here.
+function checkPrBody(bodyPath, { head = '', title = '', red = [], paths = [] } = {}) {
   const out = []
   let body
   try {
@@ -3220,13 +3322,20 @@ function checkPrBody(bodyPath, { head = '', title = '', red = [] } = {}) {
     return [{ severity: 'error', check: 'pr-body', where: bodyPath, message: 'unreadable' }]
   }
   const secs = sections(body)
-  const isPolicy = /^policy:/.test(title.trim())
+  const byTitle = /^policy:/.test(title.trim())
+  const policyPaths = paths.filter((f) => POLICY_GLOBS.some((re) => re.test(f)))
+  const isPolicy = byTitle || policyPaths.length > 0
+  const why = policyPaths.length
+    ? `this diff touches ${policyPaths.length === 1 ? '' : `${policyPaths.length} policy files, including `}\`${policyPaths[0]}\``
+    : 'the title declares this a policy change'
   const want = [...REQUIRED_H2, ...(isPolicy ? POLICY_H2 : [])]
 
   for (const h of want) {
     if (!secs.has(h)) {
       out.push({ severity: 'error', check: 'pr-body', where: bodyPath,
-        message: `no \`## ${h}\` section. Every one is content or an explicit "n/a: <reason>"; a missing heading is neither.` })
+        message: POLICY_H2.includes(h)
+          ? `no \`## ${h}\` section, and ${why}. The owner approves a policy change before it merges; the section is where that is recorded.`
+          : `no \`## ${h}\` section. Every one is content or an explicit "n/a: <reason>"; a missing heading is neither.` })
       continue
     }
     if (!secs.get(h)) {
@@ -3331,7 +3440,20 @@ function cmdPrBody(args) {
   }
   const bodyPath = val('--pr-body')
   const red = (val('--red') ?? '').split(',').map((x) => x.trim()).filter(Boolean)
-  const findings = checkPrBody(bodyPath, { head: val('--head') ?? '', title: val('--title') ?? '', red })
+  // The changed paths decide whether `## Approval` is owed, so a path list that
+  // could not be derived must REFUSE rather than pass: an empty list reads as
+  // "touches no policy file", which is the fail-open this check exists to close.
+  const pathsFile = val('--paths-file')
+  let paths = []
+  if (pathsFile != null) {
+    const got = pathsFromFile(pathsFile)
+    if (got.error) {
+      console.log(`  ERROR   [pr-body] ${got.error}`)
+      return 1
+    }
+    paths = got.paths
+  }
+  const findings = checkPrBody(bodyPath, { head: val('--head') ?? '', title: val('--title') ?? '', red, paths })
   printFindings(findings)
   console.log(`\nPR-BODY: ${findings.length} error(s) in ${bodyPath}`)
   return findings.length ? 1 : 0

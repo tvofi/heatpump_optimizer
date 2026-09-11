@@ -53,10 +53,13 @@
 //      stated literal reddens an honest body, and one reddening is enough for
 //      the check to be routed around. The share never was the argument.
 //   3. Load-bearing for the `git` arm and every merge-base figure.
-//      `pr-contract` runs `actions/checkout@v4` with no `fetch-depth`, so it
-//      has depth 1 and no `origin/main` ref, and every
-//      `git merge-base origin/main HEAD` figure would print a wrong value or
-//      none.
+//      WITHDRAWN by #818, which set `fetch-depth: 0` on `pr-contract` so the
+//      approval gate could derive the diff. It read: the job runs
+//      `actions/checkout` with no `fetch-depth`, so it has depth 1 and no
+//      `origin/main` ref, and every `git merge-base origin/main HEAD` figure
+//      would print a wrong value or none. That is no longer true. Recorded as
+//      withdrawn rather than deleted: a reason that stops holding is evidence
+//      about the refusal, and reason 4 below is decisive without it.
 //   4. Load-bearing, and decisive on its own. Even spawned as argv rather than
 //      through a shell, an allowlist of the tree's own instruments still hands
 //      the body `python3 tests/structure.py --record`, which rewrites the
