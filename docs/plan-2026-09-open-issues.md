@@ -618,7 +618,8 @@ fresh review round at a head whose code had not changed. The rows above stay
 where they are; this section was opened by **#644** (`3a29035`) so **that lane appends below
 and every other lane appends there**, putting the two insertion points far enough apart
 that git does not conflict on them: the distance between the last row of each
-list was 119 lines at `main` `b8731c3` and 128 at `30b8a88`, seven merges later.
+list was 119 lines at `main` `b8731c3` and 128 at `30b8a88`, two merges and
+nine rows later.
 It is a gap between two ends that both grow, so re-derive it rather than
 carrying it. No pull-request number is named
 as the boundary: one was drafted into this sentence and taken by another lane
@@ -627,8 +628,8 @@ four minutes later.
 **That separation never happened, and the sentence above is kept only as the
 statement of what was tried.** Measured on 2026-09-11: **every row numbered
 above the upper list's highest (#767) is in this section** — 39 of 39 at `main`
-`b8731c3` and 48 of 48 at `30b8a88`, so the count churns and the ratio does
-not —
+`b8731c3` and 48 of 48 two merges later at `30b8a88`, so the count churns and
+the ratio does not —
 and the seam conflicted one lane's branches **thirteen times in a night, never
 once about content** — every resolution the same union with `main`'s rows first, and
 `main`'s numbers lost `[]` every time. Derivation, and its limit: it was taken per

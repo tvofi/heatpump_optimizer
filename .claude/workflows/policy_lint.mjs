@@ -2353,16 +2353,20 @@ function assertAcceptance(derived) {
   // is what is being looked for, so this cuts the step's `run:` block by
   // indentation first and strips comments second.
   //
-  // IT IS STILL NOT SOUND, and saying so is the point. Measured over eight
-  // carriers, it refuses five: the flag deleted, left in a trailing comment, or
-  // left in the step's `name:`, and the same two shapes on --no-renames. Three
-  // defeat it, all driven by a reviewer: `--paths-file` carried by a `:` shell
-  // no-op, by an echo string (a printf, a heredoc or a plain shell assignment
-  // are the same shape), or by a decoy second `run: |` block anywhere in the
-  // file -- and that last one means the subject is "some block mentions this
-  // text", so deleting the path-derivation step entirely passes as long as any
-  // decoy block names the flag. Pointing --paths-file at a path nothing writes
-  // passes too, because a filename is not a file.
+  // IT IS STILL NOT SOUND, and saying so is the point. No ratio is stated here
+  // and that is deliberate: the set of carriers is open, every review round has
+  // added one, and a fraction over a set anyone can extend is not a coverage
+  // figure. What it refuses, stated as shapes: either flag deleted, or left
+  // behind in a trailing comment, or left in the step's `name:`.
+  //
+  // What defeats it is one class -- a command that MENTIONS the flag without
+  // passing it. A `:` no-op, an echo, a printf, a heredoc and a plain shell
+  // assignment are all that shape, and so is a decoy `run: |` block anywhere in
+  // the file. The decoy is the worst of them, because it means the subject is
+  // "some block mentions this text": with one in place, the path-derivation
+  // step or the body-check step can be deleted outright and this stays green.
+  // Pointing --paths-file at a path nothing writes passes too, because a
+  // filename is not a file.
   //
   // The class is exact: a command that MENTIONS the flag without passing it
   // defeats any text match, so anyone wanting soundness must parse the YAML and
