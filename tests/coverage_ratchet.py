@@ -11,8 +11,10 @@ protects last month's tree. At or above the ceiling the floor stays put and an
 improvement is free. The ceiling exists because the last few per cent are not
 worth what they cost -- see the pragma row, which is the reason.
 
-The floor is compared and recorded at the tenth, rounded DOWN, so a recorded
-floor is always a number the run that recorded it provably cleared.
+The floor is recorded a tenth of a point below the measurement and compared
+against the raw one, so it is always a number the recording run cleared with
+room to spare -- see ``TOLERANCE``, which is why this is not the exact-equality
+ratchet ``tests/structure.py`` uses.
 
 **The pragma count only falls.** A coverage floor creates exactly one cheap
 escape: mark the line ``# pragma: no cover`` and the statement leaves the
@@ -52,6 +54,26 @@ PRODUCTION = ROOT / "custom_components" / "heatpump_optimizer"
 #: decides whether the line actually leaves the denominator.
 PRAGMA = re.compile(r"#\s*pragma:\s*no\s?cover", re.IGNORECASE)
 
+#: Percentage points of headroom left below the measurement when recording,
+#: and the width of the dead band before an improvement must be re-recorded.
+#:
+#: `tests/structure.py` needs nothing like this: it counts an AST, so the same
+#: tree gives the same number on any machine and a two-sided ratchet at exact
+#: equality is fair. This number comes from RUNNING the suite under a tracer,
+#: and what a run executes can differ between a developer's box and the runner
+#: -- a platform branch, a script that fails early somewhere else, an
+#: interpreter's own fast path. The size of that difference is not measured
+#: here, and until it is, a floor recorded flush against its own measurement is
+#: a gate that goes red for the machine rather than for the change. The first
+#: record at the post-merge head measured 95.0016 %: a floor of 95.0 would have
+#: had a quarter of a statement of margin.
+#:
+#: Both uses are the same number on purpose. Recording leaves this much room
+#: below, so the next run has it; the improvement arm stays quiet until the
+#: measurement clears the floor by this much PLUS a recordable step, so the
+#: room it just left cannot immediately read as an unrecorded improvement.
+TOLERANCE = 0.1
+
 
 def count_pragmas() -> tuple[int, dict[str, int]]:
     """Every `no cover` pragma in the production package, and where."""
@@ -86,6 +108,13 @@ def main() -> int:
     ap.add_argument("--coverage", default="", help="coverage.json from the instrument")
     ap.add_argument("--record", action="store_true")
     ap.add_argument("--reason", default="")
+    ap.add_argument(
+        "--allow-regression", default="",
+        help="record a pragma count HIGHER than the recorded cap, or a floor "
+             "LOWER than the recorded one. Both are the ratchet running "
+             "backwards, so each needs its reason here and the same reason in "
+             "the commit message (`tests/structure.py`'s idiom).",
+    )
     args = ap.parse_args()
 
     budgets = load_budgets()
@@ -116,40 +145,63 @@ def main() -> int:
 
     if args.coverage:
         raw, statements, missed = read_coverage(Path(args.coverage))
-        # Rounded DOWN to the tenth the budget records, on both sides of the
-        # comparison. Two reasons, and the first was measured the hard way: a
-        # floor of 94.8 against a raw 94.7551 refuses the very tree it was
-        # recorded from, which is how a gate teaches seats to distrust it.
-        # Rounding to NEAREST fixes that case and leaves a second: 94.96 records
-        # as 95.0, and the same tree measured anywhere that differs by a
-        # hundredth of a point is then below its own floor. Rounding down makes
-        # the recorded floor a number the measurement provably cleared, and
-        # gives the next run the rest of the tenth as the tolerance a
-        # suite-execution measurement needs and an AST count does not.
-        pct = math.floor(raw * 10) / 10
+        # Compared against the RAW measurement, not a rounded one. An earlier
+        # version rounded to the recorded tenth and a floor of 94.8 refused the
+        # very tree it was recorded from at a raw 94.7551 -- which is how a gate
+        # teaches seats to distrust it. The headroom that makes this survive a
+        # re-measure elsewhere is left at RECORDING time instead, by TOLERANCE.
         band = "at or above the ceiling" if floor >= ceiling else "below the ceiling"
-        print(f"  {'ok  ' if pct >= floor else 'FAIL'} package coverage "
-              f"{pct:.1f} % >= {floor:.1f} % "
-              f"({statements - missed}/{statements} statements, "
-              f"{raw:.2f} % measured, {band})")
-        if pct < floor:
+        tighten_at = floor + TOLERANCE + 0.1
+        print(f"  {'ok  ' if raw >= floor else 'FAIL'} package coverage "
+              f"{raw:.2f} % >= {floor:.1f} % "
+              f"({statements - missed}/{statements} statements, {band})")
+        if raw < floor:
             failures.append(
-                f"package coverage {pct:.1f} % < {floor:.1f} %. "
+                f"package coverage {raw:.2f} % < {floor:.1f} %. "
                 f"{missed} of {statements} statements are uncovered."
             )
-        elif floor < ceiling and pct > floor:
+        elif floor < ceiling and raw >= tighten_at:
             improvements.append(
-                f"package coverage {pct:.1f} % > {floor:.1f} % and the floor is "
-                f"below its {ceiling:.1f} % ceiling, so it tightens: re-record."
+                f"package coverage {raw:.2f} % is {raw - floor:.2f} points over "
+                f"the {floor:.1f} % floor, past the {tighten_at:.1f} % at which "
+                f"a full step can be recorded below its {ceiling:.1f} % "
+                "ceiling: re-record."
             )
     else:
         print("  skip coverage -- no --coverage payload; the pragma row still ran")
 
     if args.record:
+        # A recorder that writes whatever it measured is not a ratchet, it is a
+        # transcript. Both rows may only move one way without a stated reason,
+        # and this refusal is the one that matters most: `--record` is what a
+        # seat reaches for after a merge, and the merge is exactly where a cap
+        # rises for somebody else's reason. Measured: this branch's own record
+        # took the pragma cap 10 -> 11 in silence, on a pragma #875 added to
+        # `optimizer.py` on `main`.
+        backwards: list[str] = []
+        new_floor = floor
         if args.coverage:
             raw, _stmts, _missed = read_coverage(Path(args.coverage))
-            budgets["package_percent_floor"] = min(
-                math.floor(raw * 10) / 10, ceiling)
+            new_floor = min(math.floor((raw - TOLERANCE) * 10) / 10, ceiling)
+            if new_floor < floor:
+                backwards.append(
+                    f"the floor would fall {floor:.1f} % -> {new_floor:.1f} %"
+                )
+        if measured_pragmas > pragma_cap:
+            backwards.append(
+                f"the pragma cap would rise {pragma_cap} -> {measured_pragmas}"
+            )
+        if backwards and not args.allow_regression:
+            print("\nREFUSED to record: " + "; and ".join(backwards) + ".")
+            print("  Both rows are one-sided. If this is deliberate, say why:")
+            print("    --allow-regression '<reason>', and the same reason in "
+                  "the commit message.")
+            return 1
+        if args.allow_regression:
+            budgets["allowed_regression"] = args.allow_regression
+        elif "allowed_regression" in budgets:
+            del budgets["allowed_regression"]
+        budgets["package_percent_floor"] = new_floor
         budgets["pragmas"] = measured_pragmas
         budgets["recorded_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         if args.reason:

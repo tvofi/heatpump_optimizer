@@ -1,7 +1,8 @@
 {
   "package_percent_floor": 94.9,
   "package_percent_ceiling": 96.0,
-  "pragmas": 10,
-  "recorded_at": "2026-09-11T21:01:56Z",
-  "reason": "W5-G7 tranche 6 (#195): coordinator.py 95.91 -> 96.13 % takes the package to 94.96 %, recorded down to the tenth it cleared"
+  "pragmas": 11,
+  "recorded_at": "2026-09-11T21:31:54Z",
+  "reason": "W5-G7 tranche 6 (#195): coordinator.py 94.1 -> 96.13 % takes the package to 95.00 %; the floor is recorded a tenth below it, per TOLERANCE",
+  "allowed_regression": "the pragma cap rises 10 -> 11 for a pragma this branch did not write: #875 (5cddbc9) added '# pragma: no cover - solver blow-up' to optimizer.py's L-BFGS-B restart on main, and this branch merged it. Recorded, not inherited in silence"
 }
