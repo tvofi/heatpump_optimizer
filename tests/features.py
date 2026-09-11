@@ -33685,4 +33685,126 @@ R.check(
     "it 30 % of the pump is the conservative guess that has to stand in",
 )
 
+
+# -- W5-G8 j: the wood night advisory, and the last module over the bar ----
+# `night_advice` is the one wood surface that talks to a person rather than to
+# the solver: it says "light the stove Thursday 19:00" or "skip tomorrow", and
+# it never lights anything itself. Both verdicts and the whole 48-hour scan
+# were uncovered, which for an advisory means the sentence the user actually
+# reads had never been produced by a test.
+R.section("W5-G8 j: the wood night advisory (#195)")
+
+_G8_N0 = datetime(2026, 1, 15, 12, 0, tzinfo=UTC)
+_G8_NSTAMPS = [_G8_N0 + timedelta(hours=i) for i in range(48)]
+
+
+def _g8_night(prices, *, cops=None, wood_sek=0.5, tank_soc=0.5, now=_G8_N0,
+              stamps=None):
+    st = _G8_NSTAMPS if stamps is None else stamps
+    return _g8_wf.night_advice(
+        now=now, prices=prices, timestamps=st,
+        cops=cops if cops is not None else [3.0] * len(st),
+        wood_sek=wood_sek, tank_soc=tank_soc)
+
+
+# A cheap-pump night (low price) and an expensive next day.
+_g8_n_cheap = [0.6] * 48
+_g8_n_cheap[8] = 6.0           # 20:00 tonight: pump at 2.00 SEK/kWh
+_g8_n_expensive_day = [0.6] * 48
+for _i in range(24, 40):
+    _g8_n_expensive_day[_i] = 0.3   # tomorrow: pump at 0.10, wood is dearer
+
+_g8_n_light = _g8_night(_g8_n_cheap, wood_sek=0.5, tank_soc=0.2)
+_g8_n_light_full = _g8_night(_g8_n_cheap, wood_sek=0.5, tank_soc=0.9)
+_g8_n_skip = _g8_night(_g8_n_expensive_day, wood_sek=0.5, tank_soc=0.9)
+_g8_n_skip_empty = _g8_night(_g8_n_expensive_day, wood_sek=0.5, tank_soc=0.2)
+R.check(
+    "a cheap night with a low tank says LIGHT, and names the hour",
+    _g8_n_light["action"] == "light"
+    and _g8_n_light["when"] == _G8_NSTAMPS[8].isoformat()
+    and "20:00" in _g8_n_light["text"]
+    and _g8_n_light["reason"] == "cheap night and a low tank"
+    and _g8_n_light_full["action"] != "light",
+    f"low tank -> {_g8_n_light!r}; the same night with a full tank -> "
+    f"{_g8_n_light_full['action']!r}. The hour is in the TEXT the user reads, "
+    "and the scan only ever nominates an hour between 18:00 and 06:00: a wood "
+    "stove is lit by a person who is at home and awake, so the cheapest hour "
+    "of the day is not advice if it falls at 03:00 in the afternoon sense -- "
+    "the window is what makes the sentence actionable",
+)
+R.check(
+    "and an expensive next day with a full tank says SKIP",
+    _g8_n_skip["action"] == "skip"
+    and _g8_n_skip["reason"] == "expensive next day and a full tank"
+    and _g8_n_skip["when"] == (_G8_N0 + timedelta(days=1)).date().isoformat()
+    and _g8_n_skip_empty["action"] != "skip",
+    f"full tank -> {_g8_n_skip!r}; the same prices with a low tank -> "
+    f"{_g8_n_skip_empty['action']!r}. Both conditions are required in each "
+    "direction: a full tank alone is not a reason to skip, and a cheap "
+    "heat-pump day alone is not either -- the advice is only worth printing "
+    "when the store can carry the house through it",
+)
+_g8_n_none = {
+    "free wood": _g8_night(_g8_n_cheap, wood_sek=0.0, tank_soc=0.2),
+    "no prices": _g8_night([], tank_soc=0.2),
+    "no stamps": _g8_night(_g8_n_cheap, tank_soc=0.2, stamps=[]),
+    "mid tank": _g8_night(_g8_n_cheap, wood_sek=0.5, tank_soc=0.5),
+    "wood never cheaper": _g8_night([0.1] * 48, wood_sek=5.0, tank_soc=0.2),
+    "no usable COP": _g8_night(_g8_n_cheap, cops=[0.0] * 48, tank_soc=0.2),
+}
+R.check(
+    "and it says nothing at all rather than guessing, six ways",
+    all(_g8_n_none[k]["action"] == "none" and _g8_n_none[k]["text"] == ""
+        and _g8_n_none[k]["when"] is None for k in _g8_n_none),
+    "; ".join(f"{k}={_g8_n_none[k]['action']!r}" for k in sorted(_g8_n_none))
+    + " -- every arm returns the same four-key shape, which is what lets the "
+    "sensor publish it unconditionally; a None or a short dict here would "
+    "be a KeyError in the attribute layer rather than an empty advisory. "
+    "'free wood' is the guard that matters most: a zero price is an "
+    "unconfigured furnace, and dividing by it would make wood infinitely "
+    "cheap and advise lighting the stove every single night",
+)
+_g8_n_past = _g8_night(_g8_n_cheap, wood_sek=0.5, tank_soc=0.2,
+                       now=_G8_N0 + timedelta(hours=30))
+_g8_n_beyond = _g8_night(
+    [0.6] * 60 + [6.0], wood_sek=0.5, tank_soc=0.2,
+    stamps=[_G8_N0 + timedelta(hours=i) for i in range(61)])
+R.check(
+    "the scan ignores hours already past and hours beyond its 48-hour horizon",
+    _g8_n_past["action"] == "none"
+    and _g8_n_beyond["action"] == "none",
+    f"asked 30 h later, the cheap 20:00 slot is behind us -> "
+    f"{_g8_n_past['action']!r}; a cheap hour at +60 h is past the horizon -> "
+    f"{_g8_n_beyond['action']!r}. Both bounds are read off the FIRST "
+    "timestamp rather than off `now`, so a price series that starts in the "
+    "past still gets a 48-hour window from where it starts -- and advising a "
+    "fire for an hour that has already gone is the failure the `when < now` "
+    "arm exists to stop",
+)
+_g8_n_override = {
+    "config only": _g8_wf._wood_override_fuel({}, dict(_G8_W_OK)),
+    "overridden": _g8_wf._wood_override_fuel(
+        {_G8_W_TYPE: "pine", _G8_W_PRICE: 900.0}, dict(_G8_W_OK)),
+    "bad override type": _g8_wf._wood_override_fuel(
+        {_G8_W_TYPE: "oak"}, dict(_G8_W_OK)),
+    "unparseable price": _g8_wf._wood_override_fuel(
+        {_G8_W_PRICE: "cheap"}, dict(_G8_W_OK)),
+    "efficiency out of band": _g8_wf._wood_override_fuel(
+        {_G8_W_EFF: 200.0}, dict(_G8_W_OK)),
+}
+R.check(
+    "a what-if override replaces the configured fuel field by field, or is refused",
+    _g8_n_override["config only"] == ("birch", "packed", 1200.0, 75.0)
+    and _g8_n_override["overridden"] == ("pine", "packed", 900.0, 75.0)
+    and all(_g8_n_override[k] is None for k in
+            ("bad override type", "unparseable price",
+             "efficiency out of band")),
+    "; ".join(f"{k}={_g8_n_override[k]!r}" for k in sorted(_g8_n_override))
+    + " -- the override is a per-field overlay and the packing and efficiency "
+    "survive the two fields the caller replaced; a refusal is None rather than "
+    "a fallback to the configured fuel, because a what-if that silently "
+    "answered about a DIFFERENT fuel than the one asked about is worse than "
+    "one that declines",
+)
+
 sys.exit(R.close("FEATURE CHECKS"))
