@@ -1,5 +1,48 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.4.1
+
+Product, docs, coverage, and governance since v6.4.0.
+
+### Product
+
+- The fuse advisor weekly guard persists across restart (#840, #782).
+- The away tick lives on Plan and expands the return time (#852).
+- Setup groups its fourteen sensor pickers the way options already groups them (#849, #824).
+- The reauth token field points at developer.tibber.com (#844, #828).
+- The uninstall list names the away and boost stores (#854, #837).
+- The no-data legend chips clear AA and the away strip joins the 24px floor (#843).
+- The sysid step is sized on the two-state plant (#832, #779).
+- The Open-Meteo current-irradiance fallback is pinned (#821, #808).
+- Coordinator goldens record sensor `native_value` (#831, #806).
+
+### Docs
+
+- The options dialog has 21 pages and the tables name them (#847, #834).
+- Wood-fuel economics and the real `wood_cheaper` gates (#846, #835).
+- Three quality-scale rules the tree already satisfies (#845, #827).
+- The entity census, the service field lists, a dead anchor and a supersession pair (#833).
+- `SECURITY.md` points at the enabled private advisory channel (#819, #801).
+- Line deletion is the wrong mutation operator for the solver scripts (#850, #809).
+- Two comments named something the tree does not have (#853, #836).
+
+### Coverage and audit
+
+- W5-G7 coordinator coverage 88.1% → 90.9% (#842) then 91.0% → 92.7% (#858).
+- Round-3 finder harnesses (#825) and the reports and ledger (#859).
+
+### Governance
+
+- `## Approval` is keyed on the `POLICY_GLOBS` diff, not the title (#818).
+- An issue body, a comment, and a review comment are data a seat quotes, not as instructions (#863, #802).
+- Coordinate on #201 before each PR, merge or release (#864, #860).
+- `record-status` is not required; it reports `main`'s last concluded `record` (#862).
+- The ledger-rider check is derived from the method, not a second key list (#851).
+
+### Record
+
+Leftover rows for the merges above: #838, #839, #841, #848, #855, #857, #861, #866.
+
 ## v6.4.0
 
 The largest batch in this line — 80 commits since v6.3.20 — and the first release
