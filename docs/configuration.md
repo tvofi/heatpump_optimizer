@@ -372,6 +372,17 @@ catalog below keys off.
 | Wood tank bottom sensor | none | a sensor | Both are needed for the remaining-energy estimate; one alone is read conservatively. |
 | Wood tank volume | 500 L | 50–3000, 50 steps | Bounds how much free heat a fire can still deliver. |
 | Hot water refilled through the wood tank | off | on/off | The hot water tank's cold inlet passes through a coil in the wood tank, so refill water arrives preheated. Only takes effect when the wood tank is modelled as its own store. |
+| Wood furnace | off, unless a wood tank, coil or flue sensor is already set | on/off | Off hides the wood probes, detection and the four fuel-price fields; stored values are kept. A lone 500 L tank volume does not turn this on. |
+| Wood type | Mixed | Birch · Pine · Mixed | The billed species. Used with packing and the price below to get a SEK/kWh figure for the cheaper-than-pump sensor. |
+| Packing | Packed (stacked) | Packed (stacked) · Loose (dumped) | Packed is stacked (travad); loose is dumped (stjälpt) and billed at 0.60 of packed. |
+| Price per cubic metre | none | 0–10 000, 10 steps | What you pay per billed cubic metre. **Empty keeps the cheaper-than-pump sensor unavailable — there is no silent default.** |
+| Furnace efficiency | 75 % | 10–95 | Share of the wood's energy that reaches the tank. |
+
+The four fuel-price fields render only while **Wood furnace** is on. The
+*Wood cheaper than heat pump* sensor stays unavailable until the furnace is
+on, a wood-tank probe is set, external-heat detection or the DHW wood coil
+is on, type and packing are set, the billed price is greater than 0, and
+efficiency is between 10 and 95. A usable wood tank alone is not enough.
 
 ### Building type and emitters
 

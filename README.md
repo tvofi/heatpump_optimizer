@@ -480,7 +480,7 @@ Frequency Advisor.
 | Open Window Detected | The house is losing heat as if a window were open | Diagnostic; learning pauses while it is on |
 | External Heat Source | Something other than the heat pump is heating the tanks | Evidence in attributes |
 | Away Mode | The away setback is active | Return time and recovery state in attributes |
-| Wood cheaper than heat pump | Burning wood costs less per kWh than running the heat pump | Unavailable until the wood tank is usable; price and cheaper-hour count in attributes |
+| Wood cheaper than heat pump | Burning wood costs less per kWh than running the heat pump | Unavailable until the furnace is on, a wood-tank probe is set, external-heat detection or the DHW wood coil is on, type and packing are set, the billed price per m³ is greater than 0 (no silent default), and furnace efficiency is 10–95 %. A usable wood tank alone is not enough. Price and cheaper-hour count in attributes |
 
 ### Buttons (4 total)
 
