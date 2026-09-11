@@ -5113,6 +5113,32 @@ R.check(
     "a flow temperature must not change COP when the term is disabled",
 )
 
+# R3-D2-01: at fixed flow the lift shrinks as outdoor rises, so COP must
+# not fall. Calls compute_cop; does not re-implement the Carnot ratio.
+_mono_flows = (36.0, 40.0, 45.0, 50.0, 55.0, 60.0, 65.0)
+_mono_outs = [n / 2.0 for n in range(-40, 71)]
+_mono_m = ThermalModel(ThermalParameters(cop_flow_carnot=True))
+_mono_viol = 0
+for _mf in _mono_flows:
+    _mc = [_mono_m.compute_cop(_mo, flow_temp=_mf) for _mo in _mono_outs]
+    if any(_mc[i + 1] + 1e-12 < _mc[i] for i in range(len(_mc) - 1)):
+        _mono_viol += 1
+R.check(
+    "Carnot flow correction leaves COP non-decreasing in outdoor temperature",
+    _mono_viol == 0,
+    f"{_mono_viol} of {len(_mono_flows)} flow temps invert as outdoor rises",
+)
+_mono_off_viol = 0
+for _mf in _mono_flows:
+    _mc = [_off.compute_cop(_mo, flow_temp=_mf) for _mo in _mono_outs]
+    if any(_mc[i + 1] + 1e-12 < _mc[i] for i in range(len(_mc) - 1)):
+        _mono_off_viol += 1
+R.check(
+    "and the nameplate curve itself is already non-decreasing",
+    _mono_off_viol == 0,
+    f"carnot-off inverted {_mono_off_viol} of {len(_mono_flows)}",
+)
+
 # A dumb valve needs a number to set. The recommendation is the top of the
 # comfort band: the building stores at room temperature for no COP penalty, so
 # it should fill first and the tank should take only the surplus.
