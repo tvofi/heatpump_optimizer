@@ -29825,6 +29825,21 @@ _t5_sim_over = _t5_sim(
         "power_cap_kw": 4.0,
     }
 )
+# The hour overrides are INTS because they index hours, and the check for
+# that is behavioural: 7.5 and 7 must give the same plan, because `int`
+# truncates while `float` would carry the half hour into the schedule.
+_t5_sim_half = _t5_sim({"day_start_hour": 7.5, "day_end_hour": 21})
+_t5_sim_whole = _t5_sim({"day_start_hour": 7, "day_end_hour": 21})
+R.check(
+    "an hour override is truncated to an int, so 7.5 and 7 plan identically",
+    _t5_sim_half._t5_returned.get("cost_delta")
+    == _t5_sim_whole._t5_returned.get("cost_delta")
+    and "error" not in _t5_sim_half._t5_returned,
+    f"7.5 -> {_t5_sim_half._t5_returned.get('cost_delta')!r}, 7 -> "
+    f"{_t5_sim_whole._t5_returned.get('cost_delta')!r} -- these index hours, "
+    "so a float carried through would put a schedule boundary half way "
+    "through one",
+)
 R.check(
     "six overrides of three different types all apply without error",
     "error" not in _t5_sim_over._t5_returned
