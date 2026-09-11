@@ -43,7 +43,7 @@
 //   ... | node .claude/workflows/policy_lint.mjs --corpus-filter  # keep the policy paths
 //   node .claude/workflows/policy_lint.mjs <files...> # lint just these
 //   node .claude/workflows/policy_lint.mjs --record-known-bad   # reseed the ratchet
-//   node .claude/workflows/policy_lint.mjs --pr-body <file> --head <sha> [--title t] [--red names]
+//   node .claude/workflows/policy_lint.mjs --pr-body <file> --head <sha> [--title t] [--red names] [--paths-file f]
 //   node .claude/workflows/policy_lint.mjs --record --since <ref>   # dispositions
 //   node .claude/workflows/policy_lint.mjs --stats  --since <ref>   # histograms
 //   node .claude/workflows/policy_lint.mjs --sunset --since <ref>   # dead rules
@@ -2279,12 +2279,37 @@ function assertAcceptance(derived) {
   const ZERO = '0000000000000000000000000000000000000000'
   for (const f of fs.readdirSync(prepr).filter((x) => x.endsWith('.md')).sort()) {
     const rel = path.relative(ROOT, path.join(prepr, f))
+    if (f === 'needs-approval.md') continue
     const errs = checkPrBody(rel, { head: ZERO, red: f === 'unnamed-red.md' ? ['fast (3.14)'] : [] })
     if (f === 'good.md' && errs.length) {
       console.log(`\nFIXTURE VACUOUS: the pr-body null control ${rel} produced ${errs.length} error(s); it must produce none`)
       return 1
     }
     found.push(...errs)
+  }
+
+  // `## Approval` is keyed on the DIFF, so one fixture is driven twice and the
+  // pair is the check: the same body with a policy path in the diff must be
+  // refused, and with a non-policy path must be silent. One arm alone would pin
+  // a check that always fires or never does.
+  const needsApproval = path.join(prepr, 'needs-approval.md')
+  if (!fs.existsSync(needsApproval)) {
+    console.log('\nFIXTURE VACUOUS: fixtures/policy-rot/prepr/needs-approval.md is missing; the diff-keyed approval gate is deletable in silence')
+    return 1
+  }
+  {
+    const rel = path.relative(ROOT, needsApproval)
+    const onPolicy = checkPrBody(rel, { head: ZERO, paths: ['CLAUDE.md'] })
+    const offPolicy = checkPrBody(rel, { head: ZERO, paths: ['README.md'] })
+    if (!onPolicy.some((e) => /Approval/.test(e.message))) {
+      console.log('\nFIXTURE VACUOUS: the approval gate did not fire on a diff touching CLAUDE.md')
+      return 1
+    }
+    if (offPolicy.length) {
+      console.log(`\nFIXTURE VACUOUS: the approval gate fired on a diff touching no policy path (${offPolicy.length} error(s)); it would refuse every pull request`)
+      return 1
+    }
+    found.push(...onPolicy)
   }
 
   // The template and the parser's required set drift apart the moment either is
@@ -3211,7 +3236,16 @@ function sections(body) {
   return out
 }
 
-function checkPrBody(bodyPath, { head = '', title = '', red = [] } = {}) {
+// `## Approval` is keyed on the DIFF, not on the title. It was keyed on
+// `/^policy:/` against `github.event.pull_request.title` -- a string written by
+// the same seat the section exists to constrain, so a one-word title change
+// switched the requirement off. R3-D11-03 measured the hole rather than arguing
+// it: one body, one head, only --title changed, exit 1 against exit 0.
+// The title arm is KEPT as well: a seat that calls its change policy is taken at
+// its word even when the diff touches no globbed path. Widening POLICY_GLOBS --
+// which does not contain this file, nor .github/workflows/ -- is a policy
+// question and the owner's, and is named in the body rather than taken here.
+function checkPrBody(bodyPath, { head = '', title = '', red = [], paths = [] } = {}) {
   const out = []
   let body
   try {
@@ -3220,13 +3254,20 @@ function checkPrBody(bodyPath, { head = '', title = '', red = [] } = {}) {
     return [{ severity: 'error', check: 'pr-body', where: bodyPath, message: 'unreadable' }]
   }
   const secs = sections(body)
-  const isPolicy = /^policy:/.test(title.trim())
+  const byTitle = /^policy:/.test(title.trim())
+  const policyPaths = paths.filter((f) => POLICY_GLOBS.some((re) => re.test(f)))
+  const isPolicy = byTitle || policyPaths.length > 0
+  const why = policyPaths.length
+    ? `this diff touches ${policyPaths.length === 1 ? '' : `${policyPaths.length} policy files, including `}\`${policyPaths[0]}\``
+    : 'the title declares this a policy change'
   const want = [...REQUIRED_H2, ...(isPolicy ? POLICY_H2 : [])]
 
   for (const h of want) {
     if (!secs.has(h)) {
       out.push({ severity: 'error', check: 'pr-body', where: bodyPath,
-        message: `no \`## ${h}\` section. Every one is content or an explicit "n/a: <reason>"; a missing heading is neither.` })
+        message: POLICY_H2.includes(h)
+          ? `no \`## ${h}\` section, and ${why}. The owner approves a policy change before it merges; the section is where that is recorded.`
+          : `no \`## ${h}\` section. Every one is content or an explicit "n/a: <reason>"; a missing heading is neither.` })
       continue
     }
     if (!secs.get(h)) {
@@ -3331,7 +3372,26 @@ function cmdPrBody(args) {
   }
   const bodyPath = val('--pr-body')
   const red = (val('--red') ?? '').split(',').map((x) => x.trim()).filter(Boolean)
-  const findings = checkPrBody(bodyPath, { head: val('--head') ?? '', title: val('--title') ?? '', red })
+  // The changed paths decide whether `## Approval` is owed, so a path list that
+  // could not be derived must REFUSE rather than pass: an empty list reads as
+  // "touches no policy file", which is the fail-open this check exists to close.
+  const pathsFile = val('--paths-file')
+  let paths = []
+  if (pathsFile != null) {
+    let raw
+    try {
+      raw = fs.readFileSync(pathsFile, 'utf8')
+    } catch {
+      console.log(`  ERROR   [pr-body] --paths-file ${pathsFile}: unreadable. The approval gate reads the diff; a list that cannot be read is not an empty diff.`)
+      return 1
+    }
+    paths = raw.split('\n').map((x) => x.trim()).filter(Boolean)
+    if (!paths.length) {
+      console.log(`  ERROR   [pr-body] --paths-file ${pathsFile} is empty. A pull request changes at least one file; an empty list means the derivation failed.`)
+      return 1
+    }
+  }
+  const findings = checkPrBody(bodyPath, { head: val('--head') ?? '', title: val('--title') ?? '', red, paths })
   printFindings(findings)
   console.log(`\nPR-BODY: ${findings.length} error(s) in ${bodyPath}`)
   return findings.length ? 1 : 0
