@@ -90,7 +90,7 @@
    "rc": 0
   },
   "tests/guard_pins.py": {
-   "seconds": 0.2,
+   "seconds": 1.0,
    "rc": 0
   },
   "tests/wood_advisor.py": {
@@ -1421,7 +1421,9 @@
    "custom_components/heatpump_optimizer/dhw_learning.py",
    "custom_components/heatpump_optimizer/dhw_schedule.py",
    "custom_components/heatpump_optimizer/mixing_valve.py",
+   "custom_components/heatpump_optimizer/optimizer.py",
    "custom_components/heatpump_optimizer/price_model.py",
+   "custom_components/heatpump_optimizer/pv.py",
    "custom_components/heatpump_optimizer/tariff.py",
    "custom_components/heatpump_optimizer/thermal_model.py",
    "custom_components/heatpump_optimizer/topology.py",
