@@ -490,119 +490,149 @@
    }
   },
   "user_sensors": {
-   "buffer_tank_temp_entity": {
+   "indoor": {
     "config": {
-     "filter": "[{'domain': ['sensor'], 'device_class': ['temperature']}]"
+     "collapsed": "False"
     },
     "default": null,
-    "required": "Optional",
-    "selector": "EntitySelector"
+    "fields": {
+     "indoor_temp_entity": {
+      "config": {
+       "filter": "[{'domain': ['sensor'], 'device_class': ['temperature']}]"
+      },
+      "default": null,
+      "required": "Optional",
+      "selector": "EntitySelector"
+     },
+     "outdoor_temp_entity": {
+      "config": {
+       "filter": "[{'domain': ['sensor'], 'device_class': ['temperature']}]"
+      },
+      "default": null,
+      "required": "Optional",
+      "selector": "EntitySelector"
+     }
+    },
+    "required": "str",
+    "selector": "section"
    },
-   "dhw_temp_entity": {
+   "plant": {
     "config": {
-     "filter": "[{'domain': ['sensor'], 'device_class': ['temperature']}]"
+     "collapsed": "False"
     },
     "default": null,
-    "required": "Optional",
-    "selector": "EntitySelector"
+    "fields": {
+     "buffer_tank_temp_entity": {
+      "config": {
+       "filter": "[{'domain': ['sensor'], 'device_class': ['temperature']}]"
+      },
+      "default": null,
+      "required": "Optional",
+      "selector": "EntitySelector"
+     },
+     "dhw_temp_entity": {
+      "config": {
+       "filter": "[{'domain': ['sensor'], 'device_class': ['temperature']}]"
+      },
+      "default": null,
+      "required": "Optional",
+      "selector": "EntitySelector"
+     },
+     "floor_return_temp_entity": {
+      "config": {
+       "filter": "[{'domain': ['sensor'], 'device_class': ['temperature']}]"
+      },
+      "default": null,
+      "required": "Optional",
+      "selector": "EntitySelector"
+     },
+     "heat_pump_defrost_entity": {
+      "config": {
+       "filter": "[{'domain': ['binary_sensor', 'switch', 'input_boolean', 'sensor']}]"
+      },
+      "default": null,
+      "required": "Optional",
+      "selector": "EntitySelector"
+     },
+     "heat_pump_fault_entity": {
+      "config": {
+       "filter": "[{'domain': ['binary_sensor', 'switch', 'input_boolean', 'sensor']}]"
+      },
+      "default": null,
+      "required": "Optional",
+      "selector": "EntitySelector"
+     },
+     "heat_pump_mode_entity": {
+      "config": {
+       "filter": "[{'domain': ['select', 'sensor', 'input_select']}]"
+      },
+      "default": null,
+      "required": "Optional",
+      "selector": "EntitySelector"
+     },
+     "heat_pump_online_entity": {
+      "config": {
+       "filter": "[{'domain': ['binary_sensor', 'switch', 'input_boolean', 'sensor']}]"
+      },
+      "default": null,
+      "required": "Optional",
+      "selector": "EntitySelector"
+     },
+     "heat_pump_switch_entity": {
+      "config": {
+       "filter": "[{'domain': ['switch']}]"
+      },
+      "default": null,
+      "required": "Optional",
+      "selector": "EntitySelector"
+     },
+     "lower_floor_temp_entity": {
+      "config": {
+       "filter": "[{'domain': ['sensor'], 'device_class': ['temperature']}]"
+      },
+      "default": null,
+      "required": "Optional",
+      "selector": "EntitySelector"
+     }
+    },
+    "required": "str",
+    "selector": "section"
    },
-   "floor_return_temp_entity": {
+   "solar": {
     "config": {
-     "filter": "[{'domain': ['sensor'], 'device_class': ['temperature']}]"
+     "collapsed": "False"
     },
     "default": null,
-    "required": "Optional",
-    "selector": "EntitySelector"
-   },
-   "heat_pump_defrost_entity": {
-    "config": {
-     "filter": "[{'domain': ['binary_sensor', 'switch', 'input_boolean', 'sensor']}]"
+    "fields": {
+     "solar_forecast_source": {
+      "config": {
+       "mode": "'dropdown'",
+       "options": "['weather', 'open_meteo']",
+       "translation_key": "'solar_forecast_source'"
+      },
+      "default": "'weather'",
+      "required": "Optional",
+      "selector": "SelectSelector"
+     },
+     "solar_location": {
+      "config": {
+       "radius": "False"
+      },
+      "default": "{'latitude': 59.33, 'longitude': 18.07}",
+      "required": "Optional",
+      "selector": "LocationSelector"
+     },
+     "solar_radiation_entity": {
+      "config": {
+       "filter": "[{'domain': ['sensor']}]"
+      },
+      "default": null,
+      "required": "Optional",
+      "selector": "EntitySelector"
+     }
     },
-    "default": null,
-    "required": "Optional",
-    "selector": "EntitySelector"
-   },
-   "heat_pump_fault_entity": {
-    "config": {
-     "filter": "[{'domain': ['binary_sensor', 'switch', 'input_boolean', 'sensor']}]"
-    },
-    "default": null,
-    "required": "Optional",
-    "selector": "EntitySelector"
-   },
-   "heat_pump_mode_entity": {
-    "config": {
-     "filter": "[{'domain': ['select', 'sensor', 'input_select']}]"
-    },
-    "default": null,
-    "required": "Optional",
-    "selector": "EntitySelector"
-   },
-   "heat_pump_online_entity": {
-    "config": {
-     "filter": "[{'domain': ['binary_sensor', 'switch', 'input_boolean', 'sensor']}]"
-    },
-    "default": null,
-    "required": "Optional",
-    "selector": "EntitySelector"
-   },
-   "heat_pump_switch_entity": {
-    "config": {
-     "filter": "[{'domain': ['switch']}]"
-    },
-    "default": null,
-    "required": "Optional",
-    "selector": "EntitySelector"
-   },
-   "indoor_temp_entity": {
-    "config": {
-     "filter": "[{'domain': ['sensor'], 'device_class': ['temperature']}]"
-    },
-    "default": null,
-    "required": "Optional",
-    "selector": "EntitySelector"
-   },
-   "lower_floor_temp_entity": {
-    "config": {
-     "filter": "[{'domain': ['sensor'], 'device_class': ['temperature']}]"
-    },
-    "default": null,
-    "required": "Optional",
-    "selector": "EntitySelector"
-   },
-   "outdoor_temp_entity": {
-    "config": {
-     "filter": "[{'domain': ['sensor'], 'device_class': ['temperature']}]"
-    },
-    "default": null,
-    "required": "Optional",
-    "selector": "EntitySelector"
-   },
-   "solar_forecast_source": {
-    "config": {
-     "mode": "'dropdown'",
-     "options": "['weather', 'open_meteo']",
-     "translation_key": "'solar_forecast_source'"
-    },
-    "default": "'weather'",
-    "required": "Optional",
-    "selector": "SelectSelector"
-   },
-   "solar_location": {
-    "config": {
-     "radius": "False"
-    },
-    "default": "{'latitude': 59.33, 'longitude': 18.07}",
-    "required": "Optional",
-    "selector": "LocationSelector"
-   },
-   "solar_radiation_entity": {
-    "config": {
-     "filter": "[{'domain': ['sensor']}]"
-    },
-    "default": null,
-    "required": "Optional",
-    "selector": "EntitySelector"
+    "required": "str",
+    "selector": "section"
    }
   },
   "weather_sensitivity": {
