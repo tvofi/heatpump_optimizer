@@ -863,6 +863,16 @@ _store_suffixes = {
     for value in vars(holder).values()
     if isinstance(value, _Store) and value._key.startswith(_store_prefix)
 }
+# away and boost build their Store inside a function and bind it to no
+# attribute, so vars() over the coordinator cannot see them. Calling the
+# factories is what makes the census total, and what used to make this
+# check enforce the README's omission (#837).
+from heatpump_optimizer import away as _away_mod
+from heatpump_optimizer import boost as _boost_mod
+_store_suffixes |= {
+    _away_mod._away_store(_removal_coord)._key.removeprefix(_store_prefix),
+    _boost_mod._store(_removal_coord)._key.removeprefix(_store_prefix),
+}
 _listed_suffixes = set(
     _re.findall(r"heatpump_optimizer_<entry id>_(\w+)", _removal_text)
 )
@@ -870,6 +880,12 @@ R.check(
     "the store files it says are left under .storage are exactly the ones the coordinator keeps",
     _store_suffixes and _listed_suffixes == _store_suffixes,
     f"documented {sorted(_listed_suffixes)}, code keeps {sorted(_store_suffixes)}",
+)
+_store_count_word = {10: "ten", 12: "twelve"}.get(len(_store_suffixes), str(len(_store_suffixes)))
+R.check(
+    "the README's store-file count is the census, not a carried ten",
+    f"in {_store_count_word} files" in _removal_text,
+    f"census is {len(_store_suffixes)}, README does not say '{_store_count_word}'",
 )
 _hacs_floor = json.loads(Path("hacs.json").read_text())["homeassistant"]
 R.check(
