@@ -45,6 +45,7 @@
     "third_party": [
       "aiohttp",
       "numpy",
+      "scipy-stubs",
       "threadpoolctl",
       "voluptuous"
     ]
