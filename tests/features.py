@@ -7413,6 +7413,24 @@ R.check(
     "no probe means no preheat claim, exactly the two-tank rule",
 )
 
+# R3-D7-02: last_buffer_trajectory is gone; last_dhw_refused was the same
+# class (written on the long-lived model, read by nobody). The pin is the
+# prefix, not one name — a last_room_trajectory annotation still fails.
+_side_named = [
+    n for n in getattr(ThermalModel, "__annotations__", {}) if n.startswith("last_")
+]
+_side_live = [n for n in vars(_m_on) if n.startswith("last_")]
+R.check(
+    "the thermal model retains no last_* simulation side-channels",
+    _side_named == [] and _side_live == [],
+    f"annotated {_side_named} live {_side_live}",
+)
+R.check(
+    "and a run of simulate_trajectory_with_dhw does not write last_dhw_refused",
+    not hasattr(_m_on, "last_dhw_refused"),
+    "refused heat stays on _step_dhw_refused for the step that booked it",
+)
+
 # #400: the planner must credit the coil, not only the reporting simulation.
 # optimize() is the witness — a re-implemented reduction would pin nothing.
 from golden import (

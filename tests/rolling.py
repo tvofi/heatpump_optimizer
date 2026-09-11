@@ -572,10 +572,21 @@ R.check(
     f"{len(_learner._sysid.samples)} sysid samples retained "
     "(arm() clears per run)",
 )
+_tm_side = sorted(
+    {
+        *(
+            n
+            for n in getattr(type(_learner._thermal_model), "__annotations__", {})
+            if n.startswith("last_")
+        ),
+        *(n for n in vars(_learner._thermal_model) if n.startswith("last_")),
+    }
+)
 R.check(
     "the thermal model retains no simulation side-channels",
-    not hasattr(_learner._thermal_model, "last_buffer_trajectory"),
-    "buffer trajectories travel in simulate_trajectory's return value",
+    _tm_side == [],
+    f"last_* on the long-lived model: {_tm_side}; "
+    "trajectories travel in simulate_trajectory's return value",
 )
 
 
