@@ -232,7 +232,7 @@ things are left behind on purpose, because deleting them is your call:
   wrote to your thermostat, or the last ECL110 displacement it published, stays
   in force until you set the pump's own controls back. Nothing is restored on
   removal.
-- **The learned state.** Every entry keeps its learners and ledgers in ten files
+- **The learned state.** Every entry keeps its learners and ledgers in twelve files
   under `.storage/` in your configuration directory, and Home Assistant does not
   delete an integration's store files with the entry:
   `heatpump_optimizer_<entry id>_thermal_learning`,
@@ -243,8 +243,10 @@ things are left behind on purpose, because deleting them is your call:
   `heatpump_optimizer_<entry id>_snapshots`,
   `heatpump_optimizer_<entry id>_dhw_profile`,
   `heatpump_optimizer_<entry id>_dhw_draws`,
-  `heatpump_optimizer_<entry id>_dhw_legionella` and
-  `heatpump_optimizer_<entry id>_manual_plan`. Delete them by hand for a clean
+  `heatpump_optimizer_<entry id>_dhw_legionella`,
+  `heatpump_optimizer_<entry id>_manual_plan`,
+  `heatpump_optimizer_<entry id>_away` and
+  `heatpump_optimizer_<entry id>_boost`. Delete them by hand for a clean
   slate; a re-added entry gets a new id and never reads them.
 - **The dashboard card.** The Lovelace resource the integration registered,
   `/heatpump_optimizer_static/heatpump-optimizer-card.js`, stays in
