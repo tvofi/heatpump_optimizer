@@ -83,6 +83,16 @@ jobs:
       - name: Refuse a hook that is missing, unwired, or fails its own self-test
         run: node .claude/workflows/policy_lint.mjs --hooks
 
+      # `gh api -f body=@FILE` posts the literal path, exits 0, and returns a
+      # well-formed comment object (#541 comment 5625671141). The countermeasure
+      # is a program seats call instead of a bit seats remember, and its own
+      # refusals are the thing that must not rot: a fail-closed check that goes
+      # green when it cannot look converts an open defect into a closed one.
+      # This step drives all thirty-five named arms offline on every
+      # pull request -- the same argument as the fragment self-test above.
+      - name: Show the comment poster refusing every body it cannot vouch for
+        run: python3 .claude/workflows/gh_comment.py self-test
+
       - name: Report what the linter found
         if: always()
         run: node .claude/workflows/policy_lint.mjs --report || true
