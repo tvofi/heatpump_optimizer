@@ -28,9 +28,10 @@ sys.path.insert(0, "custom_components")
 
 import numpy as np
 
-from harness import FakeEntry, FakeHass, Results
+from harness import FakeEntry, FakeHass, Results, ha_setup_entry
 from profiles import house, prices, weather
 
+import heatpump_optimizer as integ
 import homeassistant.util.dt as dt_util
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers.storage import _reset_store_disk
@@ -829,6 +830,108 @@ def test_coordinator(R: Results) -> None:
     )
 
 
+def test_reload_handover_expiry(R: Results) -> None:
+    """#774: a reload handover older than one update interval is dropped.
+
+    The published payload object stays the stash so the existing identity
+    pin in features.py still holds; the stamp lives beside it. Ages on a
+    fresh handover stay frozen until coordinator.py can republish them.
+    """
+    R.section("#774 — reload handover expiry")
+    payload = {"mode": "auto", "sentinel": "the pre-reload plan"}
+    interval = 30.0
+
+    class _StashCoord:
+        def __init__(self) -> None:
+            self.data = payload
+
+        async def async_shutdown(self) -> None:
+            return None
+
+    hass = FakeHass()
+    entry = FakeEntry(
+        data={"tibber_token": "x", "weather_entity": "weather.home"},
+        entry_id="ho_expire",
+    )
+    entry.runtime_data = _StashCoord()
+    asyncio.run(integ.async_unload_entry(hass, entry))
+    R.check(
+        "unload keeps the published payload object identity",
+        integ._plan_handovers(hass).get(entry.entry_id) is payload,
+    )
+    R.check(
+        "unload stamps the handover",
+        entry.entry_id in integ._handover_stamps(hass),
+    )
+
+    fresh = integ._take_fresh_handover(hass, entry.entry_id, interval)
+    R.check("a stamp inside one interval is handed over", fresh is payload)
+    R.check(
+        "take always pops the handover",
+        entry.entry_id not in integ._plan_handovers(hass)
+        and entry.entry_id not in integ._handover_stamps(hass),
+    )
+
+    integ._plan_handovers(hass)[entry.entry_id] = payload
+    integ._handover_stamps(hass)[entry.entry_id] = dt_util.now() - timedelta(days=7)
+    R.check(
+        "a seven-day stamp is dropped",
+        integ._take_fresh_handover(hass, entry.entry_id, interval) is None,
+    )
+
+    integ._plan_handovers(hass)[entry.entry_id] = payload
+    integ._handover_stamps(hass)[entry.entry_id] = dt_util.now() - timedelta(minutes=1)
+    R.check(
+        "a one-minute stamp is still handed over",
+        integ._take_fresh_handover(hass, entry.entry_id, interval) is payload,
+    )
+
+    integ._plan_handovers(hass)[entry.entry_id] = payload
+    R.check(
+        "an unstamped leftover is dropped",
+        integ._take_fresh_handover(hass, entry.entry_id, interval) is None,
+    )
+
+    integ._plan_handovers(hass)[entry.entry_id] = payload
+    integ._handover_stamps(hass)[entry.entry_id] = dt_util.now()
+    asyncio.run(integ.async_remove_entry(hass, entry))
+    R.check(
+        "async_remove_entry clears the leftover handover",
+        entry.entry_id not in integ._plan_handovers(hass)
+        and entry.entry_id not in integ._handover_stamps(hass),
+    )
+
+    expired_hass = FakeHass()
+    expired_entry = FakeEntry(
+        data={"tibber_token": "x", "weather_entity": "weather.home"},
+        entry_id="ho_setup_expired",
+    )
+    integ._plan_handovers(expired_hass)[expired_entry.entry_id] = payload
+    integ._handover_stamps(expired_hass)[expired_entry.entry_id] = (
+        dt_util.now() - timedelta(days=7)
+    )
+    asyncio.run(ha_setup_entry(integ, expired_hass, expired_entry))
+    R.check(
+        "setup does not hand an expired plan to the first refresh",
+        expired_entry.runtime_data._reload_handover is None,
+    )
+
+    fresh_hass = FakeHass()
+    fresh_entry = FakeEntry(
+        data={"tibber_token": "x", "weather_entity": "weather.home"},
+        entry_id="ho_setup_fresh",
+    )
+    integ._plan_handovers(fresh_hass)[fresh_entry.entry_id] = payload
+    integ._handover_stamps(fresh_hass)[fresh_entry.entry_id] = (
+        dt_util.now() - timedelta(minutes=1)
+    )
+    asyncio.run(ha_setup_entry(integ, fresh_hass, fresh_entry))
+    R.check(
+        "setup still hands a one-minute plan to the first refresh",
+        fresh_entry.runtime_data._reload_handover is payload,
+    )
+
+
 #: Overrides now expire a fixed number of hours from the moment they are
 #: applied, so the old reason for freezing the clock -- a midnight cap that
 #: silently truncated "two hours from now" when the suite ran at 22:30 -- no
@@ -858,6 +961,7 @@ def _run() -> int:
     test_release_always_resolves(R)
     test_no_override_identical(R)
     test_coordinator(R)
+    test_reload_handover_expiry(R)
     return R.close("manual plan checks")
 
 
