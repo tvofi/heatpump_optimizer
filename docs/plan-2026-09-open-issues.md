@@ -683,6 +683,7 @@ inside it rather than after it.
 - [#816](https://github.com/tvofi/heatpump_optimizer/pull/816) — **merged `c06250e`, row written after the merge**: a NaN hour is refused by `PriceShapeModel.observe_day`. Closed #807. Same `--record` run at `c06250e` named this pull request. leaves #201 open.
 - [#820](https://github.com/tvofi/heatpump_optimizer/pull/820) — **row written before the merge, and it is this pull request**: leftover-row for #814 `0bff000`, #816 `c06250e`. `node .claude/workflows/policy_lint.mjs --record --since v6.3.20` at `origin/main` `c06250e` named those two. #745's #759/#761/#764 stay #745's. leaves #201 open.
 - [#831](https://github.com/tvofi/heatpump_optimizer/pull/831) — **merged `cfed184`, row written after the merge**: coordinator goldens instantiate the sensor platform and record each sensor's `native_value` and `extra_state_attributes`. Closed #806. `node .claude/workflows/policy_lint.mjs --record --since v6.4.0` at `origin/main` `cfed184` named this pull request. leaves #201 open.
+- [#838](https://github.com/tvofi/heatpump_optimizer/pull/838) — **row written before the merge, and it is this pull request**: leftover-row for #831 `cfed184`. `node .claude/workflows/policy_lint.mjs --record --since v6.4.0` at `origin/main` `cfed184` named #831. #745's #759/#761/#764 stay #745's. leaves #201 open.
 
 ### The UX programme — 34 items, five lanes, tracking #558
 
