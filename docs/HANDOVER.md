@@ -1,6 +1,6 @@
 # Handover — the open-issues programme
 
-updated-for: 2684125a56b8ed20e2559fd8a3c5d295bab29b69
+updated-for: 7f385f298337f88b5f68e542f43d9fe3f5df7aea
 
 The rule that governs this file is `.claude/rules/writing-for-agents.md`, which
 the harness loads on this very path. Delivery status is
@@ -249,11 +249,11 @@ in its own pull request.
     clock.** Read as one, it dated a body edit to a reviewer's comment. The
     clock is the `Governance` run list: the job fires on `[edited]`, so a
     missing run means no edit happened.
-21. **Assert a mutation's occurrence count before applying it.** A control here
+21. **Assert a mutation's occurrence count before applying it.** A control
     reported a cap mutant NOT CAUGHT: the replacement hit the string's first
-    occurrence, inside a comment, so the run was the unmutated one. "I could not
-    find it" is a different result from "it is pinned". Same shape: an
-    unanchored `case` glob accepts `v1.2.3; rm -rf /`.
+    occurrence, inside a comment, so the run was unmutated. "I could not find
+    it" differs from "it is pinned". Same shape: an unanchored `case` glob
+    accepts `v1.2.3; rm -rf /`.
 22. **A subagent does not survive a session restart; its report does.** Read
     `tasks/<agentId>.output` before re-dispatching — `ListAgents` goes empty
     with no notification, and an hour nearly went on finished work.
@@ -279,13 +279,11 @@ in its own pull request.
     Partly graduated: `COUNT_RULES` in `.claude/workflows/counts.mjs` refuses
     prose disagreeing with a figure derived from the artefact that answers it,
     and `brief_lint.mjs` runs that set less `modules` over roster briefs (#672).
-    Quote neither count — #676 added a rule while this sentence still said
-    eight, which is this trap firing on itself. **The other half does not
-    graduate**, and #581 is the measurement that says so — a rule
+    Quote neither count — #676 added a rule while this said eight, the trap
+    firing on itself. **The other half does not graduate**, per #581 — a rule
     refusing a *bare figure* was built and driven, and reported 20 on the live
-    briefs of which five were the defect — three wrong reports for every right
-    one, on a corpus whose authors mostly did anchor. The remedy is the anchor:
-    write `58.6 % at 4b6e0765`, never `58.6 %`.
+    briefs of which five were the defect: three wrong reports per right one, on
+    a corpus whose authors mostly did anchor. Write `58.6 % at 4b6e0765`.
 27. **A blank line ends a markdown table, and every row below it renders as
     literal text while the source still looks like a table.** Not reduced to a
     pointer, although its detector exists: the check catches the defect, and
@@ -327,10 +325,9 @@ in its own pull request.
     field and a reader for the rest.
 32. **A worktree shares the repository's config and its refs with every other
     worktree.** A seat ran `git remote remove origin` inside one while building
-    a test fixture; the main checkout's `origin` was repointed at a local path
-    and every remote-tracking ref went with it. Restored, and the restoration
-    verified. A throwaway git experiment goes in a standalone clone under the
-    seat's own `mktemp -d`, never in a worktree of this repository.
+    a fixture; the main checkout's `origin` was repointed at a local path and
+    every remote-tracking ref went with it. A throwaway git experiment goes in a
+    standalone clone under the seat's own `mktemp -d`, never in a worktree here.
 33. **A detached worktree can be collected while a seat is still using it.**
     `tools/audit/worktree_gc.sh --apply` removes a detached, clean worktree over
     an hour old that is not an open pull request's head. A fix-review seat is
@@ -340,14 +337,17 @@ in its own pull request.
     `missing` — none named in its header, none pinned by a `--self-test` case.
     **Not an untracked marker at the root**: criterion 2 keeps it, and
     `closure.py select` then turns `MODE: SCOPED` into `MODE: FULL` naming it.
-34. **A coverage check can run a guard's line and pin nothing.** Three shapes
+34. **A coverage check can run a guard's line and pin nothing.** Four shapes
     found by mutation across W5-G7, none visible to an instrument that sees the
-    line run either way: an EARLIER guard rejected the input (eight checks); the
+    line run either way. An EARLIER guard rejected the input (eight checks). The
     exception ESCAPES and ends the script instead of failing the check named for
-    it (eleven, worst on an event-bus `@callback` whose helper swallows it); the
+    it (eleven; worst on an event-bus `@callback` whose helper swallows it). The
     f-string DETAIL is eager, so a `sorted` over a mixed set aborts in place of
-    the failure. **Make that guard the only arm that can reject, catch every
-    call and assert nothing escaped, sort a detail by `repr`.**
+    the failure. And the value the mutation leaves UNTOUCHED equals the asserted
+    one, so a push or a coercion is invisible when the constructed value already
+    agrees. **Only-arm inputs, a catcher on every call, details by `repr`, state
+    edited before the call.** And never assert EQUALITY against a production
+    structure: a second declaration cannot learn the original moved (#851).
 
 ## Owed — post-hoc reviews
 
