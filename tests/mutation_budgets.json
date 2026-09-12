@@ -5,8 +5,17 @@
     "full": 1.0
   },
   "last_measured": {
-    "changed": null,
+    "changed": {
+      "survivors": 2,
+      "evaluated": 10,
+      "at": "2026-09-11T23:51:31Z",
+      "run": "34658441338",
+      "survivor_lines": [
+        "custom_components/heatpump_optimizer/battery.py:320 BOOLOP",
+        "custom_components/heatpump_optimizer/defrost.py:154 CLAMP_DROP"
+      ]
+    },
     "full": null
   },
-  "reason": "opening record: both caps start open and are recorded from the first real run of each scope, so the first number is measured rather than assumed"
+  "reason": "Both caps stay OPEN at 1.0 and this is deliberate. The first real run of the changed scope (CI run 34658441338, on a runner rather than a laptop) killed 8 of 10 and is recorded in last_measured -- but 10 mutants is a sample, and a cap set at a sample's own rate reddens the next branch that happens to draw three survivors instead of two, which is the random failure this fraction exists to avoid. Set the cap from the NIGHTLY's full-package run, whose 40-mutant pool over every module is the first estimate worth gating on. That run cannot happen until mutation-nightly is on main."
 }
