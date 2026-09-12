@@ -1045,6 +1045,144 @@ R.check(
     abs(2.0 * 1.5 - 3.0) < 1e-9 and bool(_lvl_mask[3]) and not bool(_lvl_mask[4]),
 )
 
+# --- A corrupt persisted bin must not price the guessed tail at 0 (#922) ----
+#
+# from_dict coerced each bin with float() and checked no finiteness, while
+# observe_day -- the writer of the same field -- refuses a non-finite day.
+# The strictly-valid-JSON string "nan" survives the Store round-trip, so a
+# corrupted bin reached extend_price_series, where max(0.0, nan) == 0.0
+# prices that hour's quarters as free electricity, silently.
+import asyncio as _aio922  # noqa: E402
+import json as _json922  # noqa: E402
+import logging as _logging922  # noqa: E402
+
+from harness import FakeEntry as _Entry922  # noqa: E402
+from heatpump_optimizer import const as _const922  # noqa: E402
+
+_LEARNED922 = [
+    0.70, 0.65, 0.62, 0.60, 0.62, 0.75, 1.00, 1.35,
+    1.40, 1.20, 1.05, 1.00, 0.98, 0.95, 0.95, 1.00,
+    1.15, 1.35, 1.30, 1.15, 1.00, 0.90, 0.82, 0.75,
+]
+_CFG922 = {
+    _const922.CONF_INDOOR_TEMP_ENTITY: "sensor.indoor",
+    _const922.CONF_OUTDOOR_TEMP_ENTITY: "sensor.outdoor",
+    _const922.CONF_DHW_TANK_VOLUME: 180.0,
+}
+
+
+def _coord922(entry_id):
+    """A coordinator whose price-model store is the test's own disk key."""
+    return Coord(
+        FakeHass(),
+        _Entry922(data=dict(_CFG922), entry_id=entry_id),
+    )
+
+
+class _Collect922(_logging922.Handler):
+    def __init__(self):
+        super().__init__()
+        self.records = []
+
+    def emit(self, record):
+        self.records.append(record)
+
+
+_pm_logger922 = _logging922.getLogger("heatpump_optimizer.price_model")
+_sink922 = _Collect922()
+_pm_logger922.addHandler(_sink922)
+
+_corrupt922 = _coord922("entry922corrupt")
+_shape922 = list(_LEARNED922)
+_shape922[22] = _json922.loads('"nan"')  # strict JSON: the *string* "nan"
+_aio922.run(
+    _corrupt922._price_model_store.async_save(
+        {
+            "model": {"shapes": [_shape922, list(_LEARNED922)], "days": [30, 30]},
+            "days_seen": [],
+            "quarter_days_seen": [],
+        }
+    )
+)
+_aio922.run(_corrupt922._async_load_price_model())
+_warned922 = [
+    r for r in _sink922.records if r.levelno >= _logging922.WARNING
+]
+R.check(
+    "a non-finite persisted shape bin is refused at load, loudly",
+    bool(np.all(np.isfinite(_corrupt922._price_model.shapes[0])))
+    and bool(np.all(np.isfinite(_corrupt922._price_model.shapes[1])))
+    and bool(_warned922),
+    f"weekday[22]={_corrupt922._price_model.shapes[0][22]}, "
+    f"warnings={len(_warned922)}",
+)
+_steps922 = [
+    datetime(2026, 1, 20, 0) + timedelta(minutes=15 * i) for i in range(96)
+]  # a Tuesday: the horizon reads the weekday profile
+_prices922, _mask922, _ = extend_price_series(
+    [1.0] * 40, 96, _steps922, _corrupt922._price_model
+)
+R.check(
+    "the guessed tail holds no zero-priced step",
+    not bool(np.any(np.asarray(_prices922[40:], dtype=float) <= 1e-12)),
+    f"{int(np.count_nonzero(np.asarray(_prices922) <= 1e-12))} of 96 "
+    f"planning steps priced at 0.0 SEK/kWh",
+)
+
+_qf922 = _coord922("entry922quarters")
+_qf_bad922 = [1.0] * 96
+_qf_bad922[22 * 4 + 3] = _json922.loads('"nan"')
+_aio922.run(
+    _qf922._price_model_store.async_save(
+        {
+            "model": {
+                "shapes": [list(_LEARNED922), list(_LEARNED922)],
+                "days": [30, 30],
+                "quarter_factors": [_qf_bad922, [1.0] * 96],
+                "quarter_days": [30, 30],
+            },
+            "days_seen": [],
+            "quarter_days_seen": [],
+        }
+    )
+)
+_aio922.run(_qf922._async_load_price_model())
+R.check(
+    "a non-finite persisted quarter factor is refused at load too",
+    bool(np.all(np.isfinite(_qf922._price_model.quarter_factors[0])))
+    and bool(np.all(np.isfinite(_qf922._price_model.quarter_factors[1]))),
+    f"weekday q87={_qf922._price_model.quarter_factors[0][22 * 4 + 3]}",
+)
+
+# Null control: an undamaged store still loads into exactly the model it
+# holds, with no warning -- the gate must cost a healthy payload nothing.
+_finite922 = _coord922("entry922finite")
+_aio922.run(
+    _finite922._price_model_store.async_save(
+        {
+            "model": {
+                "shapes": [list(_LEARNED922), list(_LEARNED922)],
+                "days": [30, 30],
+            },
+            "days_seen": ["2026-01-19"],
+            "quarter_days_seen": [],
+        }
+    )
+)
+_before922 = len(_sink922.records)
+_aio922.run(_finite922._async_load_price_model())
+_direct922 = PriceShapeModel()
+_direct922.shapes = [list(_LEARNED922), list(_LEARNED922)]
+_direct922.days = [30, 30]
+R.check(
+    "a finite store round-trips to the identical model, warning-free",
+    _finite922._price_model.as_dict() == _direct922.as_dict()
+    and _finite922._price_days_seen == {"2026-01-19"}
+    and len(_sink922.records) == _before922,
+    f"warnings added={len(_sink922.records) - _before922}",
+)
+_pm_logger922.removeHandler(_sink922)
+
 # --- Prices align by their own timestamps, not by list position ------------
 #
 # Position assumed the first entry is *today's* midnight. A stale list — the
