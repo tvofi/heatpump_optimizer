@@ -950,7 +950,7 @@ claim("C109", "README.md + docs/how-it-works.md",
 _imgs = []
 for _f in _doc_files:
     _text = re.sub(r"^```.*?^```", "", (ROOT / _f).read_text(), flags=re.M | re.S)
-    for _m in re.finditer(r"!\[(?:[^\]]|\n)*?\]\(([^)\s]+)\)", _text):
+    for _m in re.finditer(r"!\[[^\]]*?\]\(([^)\s]+)\)", _text):
         if _m.group(1).startswith("http"):
             continue
         _imgs.append((_f, _m.group(1), (pathlib.Path(_f).parent / _m.group(1)).exists()))

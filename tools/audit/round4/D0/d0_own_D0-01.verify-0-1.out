@@ -1,0 +1,93 @@
+CELL winter_typical   winter_cold  tz=0 dhw=1  ms_calls=1  own_descent_gap=+0.0000%  J_result=68.81957
+CELL winter_typical   winter_cold  tz=0 dhw=0  ms_calls=1  own_descent_gap=+0.0000%  J_result=60.10428
+CELL winter_typical   winter_cold  tz=1 dhw=1  ms_calls=1  own_descent_gap=+0.3868%  J_result=87.27327
+CELL winter_typical   winter_cold  tz=1 dhw=0  ms_calls=1  own_descent_gap=+0.0000%  J_result=77.98846
+CELL winter_typical   summer_warm  tz=0 dhw=1  ms_calls=1  own_descent_gap=+0.0000%  J_result=6440.18815
+CELL winter_typical   summer_warm  tz=0 dhw=0  ms_calls=1  own_descent_gap=+0.0000%  J_result=6435.62017
+CELL winter_typical   summer_warm  tz=1 dhw=1  ms_calls=1  own_descent_gap=+0.0000%  J_result=10602.53553
+CELL winter_typical   summer_warm  tz=1 dhw=0  ms_calls=1  own_descent_gap=+0.0000%  J_result=10597.96756
+CELL winter_extreme   winter_cold  tz=0 dhw=1  ms_calls=1  own_descent_gap=+0.0000%  J_result=95.78439
+CELL winter_extreme   winter_cold  tz=0 dhw=0  ms_calls=1  own_descent_gap=+0.0000%  J_result=80.74056
+CELL winter_extreme   winter_cold  tz=1 dhw=1  ms_calls=1  own_descent_gap=+0.0001%  J_result=128.37548
+CELL winter_extreme   winter_cold  tz=1 dhw=0  ms_calls=1  own_descent_gap=+0.1307%  J_result=111.65716
+CELL winter_extreme   summer_warm  tz=0 dhw=1  ms_calls=1  own_descent_gap=+0.0000%  J_result=6444.33788
+CELL winter_extreme   summer_warm  tz=0 dhw=0  ms_calls=1  own_descent_gap=+0.0000%  J_result=6435.62017
+CELL winter_extreme   summer_warm  tz=1 dhw=1  ms_calls=1  own_descent_gap=+0.0000%  J_result=10606.68526
+CELL winter_extreme   summer_warm  tz=1 dhw=0  ms_calls=1  own_descent_gap=+0.0000%  J_result=10597.96756
+CELL summer_typical   winter_cold  tz=0 dhw=1  ms_calls=2  own_descent_gap=+0.0003%  J_result=22.19000
+CELL summer_typical   winter_cold  tz=0 dhw=0  ms_calls=1  own_descent_gap=+0.0000%  J_result=19.51079
+CELL summer_typical   winter_cold  tz=1 dhw=1  ms_calls=2  own_descent_gap=+0.0000%  J_result=28.03655
+CELL summer_typical   winter_cold  tz=1 dhw=0  ms_calls=1  own_descent_gap=+0.0000%  J_result=25.02422
+CELL summer_typical   summer_warm  tz=0 dhw=1  ms_calls=1  own_descent_gap=+0.0000%  J_result=6437.13227
+CELL summer_typical   summer_warm  tz=0 dhw=0  ms_calls=1  own_descent_gap=+0.0000%  J_result=6435.62017
+CELL summer_typical   summer_warm  tz=1 dhw=1  ms_calls=1  own_descent_gap=+0.0000%  J_result=10599.47965
+CELL summer_typical   summer_warm  tz=1 dhw=0  ms_calls=1  own_descent_gap=+0.0000%  J_result=10597.96756
+CELL summer_negative  winter_cold  tz=0 dhw=1  ms_calls=2  own_descent_gap=+0.5172%  J_result=15.17211
+CELL summer_negative  winter_cold  tz=0 dhw=0  ms_calls=1  own_descent_gap=+1.1703%  J_result=13.14352
+CELL summer_negative  winter_cold  tz=1 dhw=1  ms_calls=2  own_descent_gap=+0.0001%  J_result=19.33594
+CELL summer_negative  winter_cold  tz=1 dhw=0  ms_calls=1  own_descent_gap=+0.0000%  J_result=17.21383
+CELL summer_negative  summer_warm  tz=0 dhw=1  ms_calls=1  own_descent_gap=+0.0000%  J_result=6436.45361
+CELL summer_negative  summer_warm  tz=0 dhw=0  ms_calls=1  own_descent_gap=+0.0000%  J_result=6435.62017
+CELL summer_negative  summer_warm  tz=1 dhw=1  ms_calls=1  own_descent_gap=+0.0000%  J_result=10598.80100
+CELL summer_negative  summer_warm  tz=1 dhw=0  ms_calls=1  own_descent_gap=+0.0000%  J_result=10597.96756
+CELL shoulder         winter_cold  tz=0 dhw=1  ms_calls=2  own_descent_gap=+0.0000%  J_result=54.53902
+CELL shoulder         winter_cold  tz=0 dhw=0  ms_calls=1  own_descent_gap=+0.8865%  J_result=48.81373
+CELL shoulder         winter_cold  tz=1 dhw=1  ms_calls=2  own_descent_gap=+0.8940%  J_result=64.98693
+CELL shoulder         winter_cold  tz=1 dhw=0  ms_calls=1  own_descent_gap=+0.0168%  J_result=59.06004
+CELL shoulder         summer_warm  tz=0 dhw=1  ms_calls=1  own_descent_gap=+0.0000%  J_result=6438.54999
+CELL shoulder         summer_warm  tz=0 dhw=0  ms_calls=1  own_descent_gap=+0.0000%  J_result=6435.62017
+CELL shoulder         summer_warm  tz=1 dhw=1  ms_calls=1  own_descent_gap=+0.0000%  J_result=10600.89737
+CELL shoulder         summer_warm  tz=1 dhw=0  ms_calls=1  own_descent_gap=+0.0000%  J_result=10597.96756
+CELL winter_narrow    winter_cold  tz=0 dhw=1  ms_calls=2  own_descent_gap=+0.0000%  J_result=113.75171
+CELL winter_narrow    winter_cold  tz=0 dhw=0  ms_calls=1  own_descent_gap=+0.0000%  J_result=103.13623
+CELL winter_narrow    winter_cold  tz=1 dhw=1  ms_calls=1  own_descent_gap=+0.0242%  J_result=134.56296
+CELL winter_narrow    winter_cold  tz=1 dhw=0  ms_calls=1  own_descent_gap=+0.2390%  J_result=124.26294
+CELL winter_narrow    summer_warm  tz=0 dhw=1  ms_calls=1  own_descent_gap=+0.0000%  J_result=6440.85435
+CELL winter_narrow    summer_warm  tz=0 dhw=0  ms_calls=1  own_descent_gap=+0.0000%  J_result=6435.62017
+CELL winter_narrow    summer_warm  tz=1 dhw=1  ms_calls=1  own_descent_gap=+0.0000%  J_result=10603.20173
+CELL winter_narrow    summer_warm  tz=1 dhw=0  ms_calls=1  own_descent_gap=+0.0000%  J_result=10597.96756
+CELL winter_moderate  winter_cold  tz=0 dhw=1  ms_calls=1  own_descent_gap=+0.0000%  J_result=84.40599
+CELL winter_moderate  winter_cold  tz=0 dhw=0  ms_calls=1  own_descent_gap=+0.0000%  J_result=75.90508
+CELL winter_moderate  winter_cold  tz=1 dhw=1  ms_calls=1  own_descent_gap=+0.0000%  J_result=104.35158
+CELL winter_moderate  winter_cold  tz=1 dhw=0  ms_calls=1  own_descent_gap=+0.3814%  J_result=95.61108
+CELL winter_moderate  summer_warm  tz=0 dhw=1  ms_calls=1  own_descent_gap=+0.0000%  J_result=6439.98792
+CELL winter_moderate  summer_warm  tz=0 dhw=0  ms_calls=1  own_descent_gap=+0.0000%  J_result=6435.62017
+CELL winter_moderate  summer_warm  tz=1 dhw=1  ms_calls=1  own_descent_gap=+0.0000%  J_result=10602.33530
+CELL winter_moderate  summer_warm  tz=1 dhw=0  ms_calls=1  own_descent_gap=+0.0000%  J_result=10597.96756
+CELL flat             winter_cold  tz=0 dhw=1  ms_calls=1  own_descent_gap=+0.0000%  J_result=90.55169
+CELL flat             winter_cold  tz=0 dhw=0  ms_calls=1  own_descent_gap=+0.0001%  J_result=82.46331
+CELL flat             winter_cold  tz=1 dhw=1  ms_calls=1  own_descent_gap=+0.0233%  J_result=107.67103
+CELL flat             winter_cold  tz=1 dhw=0  ms_calls=1  own_descent_gap=+1.1233%  J_result=100.49951
+CELL flat             summer_warm  tz=0 dhw=1  ms_calls=1  own_descent_gap=+0.0000%  J_result=6439.57234
+CELL flat             summer_warm  tz=0 dhw=0  ms_calls=1  own_descent_gap=+0.0000%  J_result=6435.62017
+CELL flat             summer_warm  tz=1 dhw=1  ms_calls=1  own_descent_gap=+0.0000%  J_result=10601.91972
+CELL flat             summer_warm  tz=1 dhw=0  ms_calls=1  own_descent_gap=+0.0000%  J_result=10597.96756
+RESULT own_cells_total=64
+RESULT own_cells_priced=56
+RESULT own_cells_flat_null_control=8
+RESULT own_mean_descent_gap_priced_pct=0.0829919 %
+RESULT own_max_descent_gap_priced_pct=1.1703 %
+RESULT own_min_descent_gap_priced_pct=0 %
+RESULT own_loo_mean_descent_gap_priced_pct=0.0632226 %
+RESULT own_mean_descent_gap_flat_pct=0.143336 %
+RESULT own_max_descent_gap_flat_pct=1.12326 %
+RESULT own_cells_gap_above_0p01pct=10
+RESULT own_cells_gap_above_0p1pct=8
+RESULT own_cells_negative_gap=0
+RESULT own_mean_gap_dhw_path_priced_pct=0.0650978 %
+RESULT own_mean_gap_spaceonly_path_priced_pct=0.100886 %
+RESULT own_cells_dhw_path=28
+RESULT own_cells_spaceonly_path=28
+RESULT own_scipy_minimize_calls=334
+RESULT own_unexpected_scipy_paths=0
+CENSUS status=0 n=204 msg='CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL'
+CENSUS status=0 n=125 msg='CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH'
+CENSUS status=2 n=5 msg='ABNORMAL: '
+RESULT own_census_status1_maxiter=0
+RESULT own_census_max_nit=52
+RESULT own_census_median_nit=2
+RESULT own_census_maxiter_options_seen=[200, 300]
+RESULT thread_factor=1.0002
+RESULT load1=7.97
+RESULT swapins=42497575
+RESULT concurrent_python_procs=5

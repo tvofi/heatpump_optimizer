@@ -1,0 +1,857 @@
+{
+ "d401": [
+  {
+   "state": "plan_inline",
+   "vp": [
+    375,
+    812
+   ],
+   "tile": 359,
+   "theme": "stock_light",
+   "drive_ok": true,
+   "texts": 31,
+   "laneLabels": [
+    {
+     "text": "Hot water",
+     "x": 63.617774963378906,
+     "y": 271.99871826171875,
+     "w": 27.3604736328125,
+     "h": 6.999725341796875,
+     "specFill": "rgb(114, 114, 114)",
+     "onScreenPx": 6.4,
+     "glyphPx": 931,
+     "specWorst": 3.011,
+     "specBg": [
+      232,
+      199,
+      165
+     ],
+     "specMedian": 3.011
+    },
+    {
+     "text": "Heating",
+     "x": 63.617774963378906,
+     "y": 281.59796142578125,
+     "w": 22.032135009765625,
+     "h": 7.413116455078125,
+     "specFill": "rgb(114, 114, 114)",
+     "onScreenPx": 6.4,
+     "glyphPx": 724,
+     "specWorst": 3.011,
+     "specBg": [
+      232,
+      199,
+      165
+     ],
+     "specMedian": 3.011
+    }
+   ],
+   "sub8_nonlane": 0,
+   "sub8_lane": 2
+  },
+  {
+   "state": "plan_inline",
+   "vp": [
+    375,
+    812
+   ],
+   "tile": 359,
+   "theme": "stock_dark",
+   "drive_ok": true,
+   "texts": 31,
+   "laneLabels": [
+    {
+     "text": "Hot water",
+     "x": 63.617774963378906,
+     "y": 271.99871826171875,
+     "w": 27.3604736328125,
+     "h": 6.999725341796875,
+     "specFill": "rgb(155, 155, 155)",
+     "onScreenPx": 6.4,
+     "glyphPx": 939,
+     "specWorst": 3.607,
+     "specBg": [
+      92,
+      59,
+      25
+     ],
+     "specMedian": 3.607
+    },
+    {
+     "text": "Heating",
+     "x": 63.617774963378906,
+     "y": 281.59796142578125,
+     "w": 22.032135009765625,
+     "h": 7.413116455078125,
+     "specFill": "rgb(155, 155, 155)",
+     "onScreenPx": 6.4,
+     "glyphPx": 725,
+     "specWorst": 3.607,
+     "specBg": [
+      92,
+      59,
+      25
+     ],
+     "specMedian": 3.607
+    }
+   ],
+   "sub8_nonlane": 0,
+   "sub8_lane": 2
+  },
+  {
+   "state": "plan_inline",
+   "vp": [
+    768,
+    1024
+   ],
+   "tile": 736,
+   "theme": "stock_light",
+   "drive_ok": true,
+   "texts": 36,
+   "laneLabels": [
+    {
+     "text": "Hot water",
+     "x": 92.14666748046875,
+     "y": 377.5263671875,
+     "w": 28.203468322753906,
+     "h": 7.999908447265625,
+     "specFill": "rgb(114, 114, 114)",
+     "onScreenPx": 6.6,
+     "glyphPx": 887,
+     "specWorst": 3.011,
+     "specBg": [
+      232,
+      199,
+      165
+     ],
+     "specMedian": 3.011
+    },
+    {
+     "text": "Heating",
+     "x": 92.14666748046875,
+     "y": 392.3659973144531,
+     "w": 22.719024658203125,
+     "h": 7.999908447265625,
+     "specFill": "rgb(114, 114, 114)",
+     "onScreenPx": 6.6,
+     "glyphPx": 820,
+     "specWorst": 3.011,
+     "specBg": [
+      232,
+      199,
+      165
+     ],
+     "specMedian": 3.011
+    }
+   ],
+   "sub8_nonlane": 0,
+   "sub8_lane": 2
+  },
+  {
+   "state": "expanded_plan",
+   "vp": [
+    1280,
+    800
+   ],
+   "tile": 500,
+   "theme": "stock_light",
+   "drive_ok": true,
+   "texts": 68,
+   "laneLabels": [
+    {
+     "text": "Hot water",
+     "x": 146.760009765625,
+     "y": 525.42822265625,
+     "w": 47.6724853515625,
+     "h": 13.999755859375,
+     "specFill": "rgb(114, 114, 114)",
+     "onScreenPx": 11.15,
+     "error": "no glyph px"
+    },
+    {
+     "text": "Heating",
+     "x": 146.760009765625,
+     "y": 550.507568359375,
+     "w": 38.40673828125,
+     "h": 13.999755859375,
+     "specFill": "rgb(114, 114, 114)",
+     "onScreenPx": 11.15,
+     "glyphPx": 942,
+     "specWorst": 3.011,
+     "specBg": [
+      232,
+      199,
+      165
+     ],
+     "specMedian": 3.011
+    },
+    {
+     "text": "Hot water",
+     "x": 169.2520751953125,
+     "y": 543.7242431640625,
+     "w": 68.2657470703125,
+     "h": 18,
+     "specFill": "rgb(114, 114, 114)",
+     "onScreenPx": 15.96,
+     "glyphPx": 4579,
+     "specWorst": 3.011,
+     "specBg": [
+      232,
+      199,
+      165
+     ],
+     "specMedian": 3.011
+    },
+    {
+     "text": "Heating",
+     "x": 169.2520751953125,
+     "y": 572.21337890625,
+     "w": 54.98448181152344,
+     "h": 18,
+     "specFill": "rgb(114, 114, 114)",
+     "onScreenPx": 15.96,
+     "glyphPx": 3416,
+     "specWorst": 3.011,
+     "specBg": [
+      232,
+      199,
+      165
+     ],
+     "specMedian": 3.011
+    }
+   ],
+   "sub8_nonlane": 0,
+   "sub8_lane": 0
+  },
+  {
+   "state": "expanded_plan",
+   "vp": [
+    1280,
+    800
+   ],
+   "tile": 500,
+   "theme": "stock_dark",
+   "drive_ok": true,
+   "texts": 68,
+   "laneLabels": [
+    {
+     "text": "Hot water",
+     "x": 146.760009765625,
+     "y": 525.42822265625,
+     "w": 47.6724853515625,
+     "h": 13.999755859375,
+     "specFill": "rgb(155, 155, 155)",
+     "onScreenPx": 11.15,
+     "error": "no glyph px"
+    },
+    {
+     "text": "Heating",
+     "x": 146.760009765625,
+     "y": 550.507568359375,
+     "w": 38.40673828125,
+     "h": 13.999755859375,
+     "specFill": "rgb(155, 155, 155)",
+     "onScreenPx": 11.15,
+     "glyphPx": 943,
+     "specWorst": 3.608,
+     "specBg": [
+      92,
+      59,
+      24
+     ],
+     "specMedian": 3.608
+    },
+    {
+     "text": "Hot water",
+     "x": 169.2520751953125,
+     "y": 543.7242431640625,
+     "w": 68.2657470703125,
+     "h": 18,
+     "specFill": "rgb(155, 155, 155)",
+     "onScreenPx": 15.96,
+     "glyphPx": 4584,
+     "specWorst": 3.608,
+     "specBg": [
+      92,
+      59,
+      24
+     ],
+     "specMedian": 3.608
+    },
+    {
+     "text": "Heating",
+     "x": 169.2520751953125,
+     "y": 572.21337890625,
+     "w": 54.98448181152344,
+     "h": 18,
+     "specFill": "rgb(155, 155, 155)",
+     "onScreenPx": 15.96,
+     "glyphPx": 3426,
+     "specWorst": 3.608,
+     "specBg": [
+      92,
+      59,
+      24
+     ],
+     "specMedian": 3.608
+    }
+   ],
+   "sub8_nonlane": 0,
+   "sub8_lane": 0
+  },
+  {
+   "state": "wood_lane",
+   "vp": [
+    1280,
+    800
+   ],
+   "tile": 500,
+   "theme": "stock_light",
+   "drive_ok": true,
+   "texts": 37,
+   "laneLabels": [
+    {
+     "text": "Hot water",
+     "x": 146.760009765625,
+     "y": 500.34881591796875,
+     "w": 47.6724853515625,
+     "h": 13.99981689453125,
+     "specFill": "rgb(114, 114, 114)",
+     "onScreenPx": 11.15,
+     "glyphPx": 2303,
+     "specWorst": 3.011,
+     "specBg": [
+      232,
+      199,
+      165
+     ],
+     "specMedian": 3.011
+    },
+    {
+     "text": "Heating",
+     "x": 146.760009765625,
+     "y": 525.42822265625,
+     "w": 38.40673828125,
+     "h": 13.999755859375,
+     "specFill": "rgb(114, 114, 114)",
+     "onScreenPx": 11.15,
+     "glyphPx": 2088,
+     "specWorst": 3.011,
+     "specBg": [
+      232,
+      199,
+      165
+     ],
+     "specMedian": 3.011
+    },
+    {
+     "text": "Wood",
+     "x": 146.760009765625,
+     "y": 550.507568359375,
+     "w": 28.9066162109375,
+     "h": 13.999755859375,
+     "specFill": "rgb(114, 114, 114)",
+     "onScreenPx": 11.15,
+     "glyphPx": 1633,
+     "specWorst": 3.011,
+     "specBg": [
+      232,
+      199,
+      165
+     ],
+     "specMedian": 3.011
+    }
+   ],
+   "sub8_nonlane": 0,
+   "sub8_lane": 0
+  }
+ ],
+ "d402": [
+  {
+   "theme": "stock_light",
+   "drive_ok": true,
+   "arith": {
+    "label": "Save as my schedule",
+    "color": "rgb(255, 255, 255)",
+    "bg": "rgb(2, 106, 168)"
+   },
+   "arithRatio": 5.786,
+   "pixel": {
+    "glyphPx": 9908,
+    "worst": 5.786,
+    "bg": [
+     2,
+     106,
+     168
+    ]
+   }
+  },
+  {
+   "theme": "stock_dark",
+   "drive_ok": true,
+   "arith": {
+    "label": "Save as my schedule",
+    "color": "rgb(255, 255, 255)",
+    "bg": "rgb(2, 106, 168)"
+   },
+   "arithRatio": 5.786,
+   "pixel": {
+    "glyphPx": 9908,
+    "worst": 5.786,
+    "bg": [
+     2,
+     106,
+     168
+    ]
+   }
+  },
+  {
+   "theme": "custom_primary_light",
+   "drive_ok": true,
+   "arith": {
+    "label": "Save as my schedule",
+    "color": "rgb(33, 33, 33)",
+    "bg": "rgb(2, 106, 168)"
+   },
+   "arithRatio": 2.783,
+   "pixel": {
+    "glyphPx": 9724,
+    "worst": 2.783,
+    "bg": [
+     2,
+     106,
+     168
+    ]
+   }
+  },
+  {
+   "theme": "custom_primary_dark",
+   "drive_ok": true,
+   "arith": {
+    "label": "Save as my schedule",
+    "color": "rgb(33, 33, 33)",
+    "bg": "rgb(2, 106, 168)"
+   },
+   "arithRatio": 2.783,
+   "pixel": {
+    "glyphPx": 9724,
+    "worst": 2.783,
+    "bg": [
+     2,
+     106,
+     168
+    ]
+   }
+  }
+ ],
+ "d403": [
+  {
+   "state": "plan_inline",
+   "vp": [
+    1280,
+    800
+   ],
+   "tile": 500,
+   "pointer": "fine",
+   "drive_ok": true,
+   "buttons": [
+    {
+     "cls": "vc-out",
+     "disabled": false,
+     "w": 20.22,
+     "h": 20.22,
+     "cx": 617.78125,
+     "cy": 107.46875,
+     "under24": true,
+     "nearest": {
+      "d": 22.219,
+      "cls": "vc-in"
+     },
+     "fails_2_5_8": true
+    },
+    {
+     "cls": "vc-in",
+     "disabled": false,
+     "w": 20.22,
+     "h": 20.22,
+     "cx": 640,
+     "cy": 107.46875,
+     "under24": true,
+     "nearest": {
+      "d": 22.219,
+      "cls": "vc-out"
+     },
+     "fails_2_5_8": true
+    },
+    {
+     "cls": "vc-reset",
+     "disabled": true,
+     "w": 20.22,
+     "h": 20.22,
+     "cx": 662.21875,
+     "cy": 107.46875,
+     "under24": true,
+     "nearest": {
+      "d": 22.219,
+      "cls": "vc-in"
+     },
+     "fails_2_5_8": true
+    }
+   ]
+  },
+  {
+   "state": "plan_inline",
+   "vp": [
+    768,
+    1024
+   ],
+   "tile": 736,
+   "pointer": "fine",
+   "drive_ok": true,
+   "buttons": [
+    {
+     "cls": "vc-out",
+     "disabled": false,
+     "w": 20.22,
+     "h": 20.22,
+     "cx": 361.78125,
+     "cy": 135.46875,
+     "under24": true,
+     "nearest": {
+      "d": 22.219,
+      "cls": "vc-in"
+     },
+     "fails_2_5_8": true
+    },
+    {
+     "cls": "vc-in",
+     "disabled": false,
+     "w": 20.22,
+     "h": 20.22,
+     "cx": 384,
+     "cy": 135.46875,
+     "under24": true,
+     "nearest": {
+      "d": 22.219,
+      "cls": "vc-out"
+     },
+     "fails_2_5_8": true
+    },
+    {
+     "cls": "vc-reset",
+     "disabled": true,
+     "w": 20.22,
+     "h": 20.22,
+     "cx": 406.21875,
+     "cy": 135.46875,
+     "under24": true,
+     "nearest": {
+      "d": 22.219,
+      "cls": "vc-in"
+     },
+     "fails_2_5_8": true
+    }
+   ]
+  },
+  {
+   "state": "plan_inline",
+   "vp": [
+    375,
+    812
+   ],
+   "tile": 359,
+   "pointer": "fine",
+   "drive_ok": true,
+   "buttons": [
+    {
+     "cls": "vc-out",
+     "disabled": false,
+     "w": 20.22,
+     "h": 20.22,
+     "cx": 165.28125,
+     "cy": 177.828125,
+     "under24": true,
+     "nearest": {
+      "d": 22.219,
+      "cls": "vc-in"
+     },
+     "fails_2_5_8": true
+    },
+    {
+     "cls": "vc-in",
+     "disabled": false,
+     "w": 20.22,
+     "h": 20.22,
+     "cx": 187.5,
+     "cy": 177.828125,
+     "under24": true,
+     "nearest": {
+      "d": 22.219,
+      "cls": "vc-out"
+     },
+     "fails_2_5_8": true
+    },
+    {
+     "cls": "vc-reset",
+     "disabled": true,
+     "w": 20.22,
+     "h": 20.22,
+     "cx": 209.71875,
+     "cy": 177.828125,
+     "under24": true,
+     "nearest": {
+      "d": 22.219,
+      "cls": "vc-in"
+     },
+     "fails_2_5_8": true
+    }
+   ]
+  },
+  {
+   "state": "expanded_plan",
+   "vp": [
+    375,
+    812
+   ],
+   "tile": 359,
+   "pointer": "fine",
+   "drive_ok": true,
+   "buttons": [
+    {
+     "cls": "vc-out",
+     "disabled": false,
+     "w": 20.22,
+     "h": 20.22,
+     "cx": 165.28125,
+     "cy": 177.828125,
+     "under24": true,
+     "nearest": {
+      "d": 22.219,
+      "cls": "vc-in"
+     },
+     "fails_2_5_8": true
+    },
+    {
+     "cls": "vc-in",
+     "disabled": false,
+     "w": 20.22,
+     "h": 20.22,
+     "cx": 187.5,
+     "cy": 177.828125,
+     "under24": true,
+     "nearest": {
+      "d": 22.219,
+      "cls": "vc-out"
+     },
+     "fails_2_5_8": true
+    },
+    {
+     "cls": "vc-reset",
+     "disabled": true,
+     "w": 20.22,
+     "h": 20.22,
+     "cx": 209.71875,
+     "cy": 177.828125,
+     "under24": true,
+     "nearest": {
+      "d": 22.219,
+      "cls": "vc-in"
+     },
+     "fails_2_5_8": true
+    },
+    {
+     "cls": "vc-out",
+     "disabled": false,
+     "w": 17.33,
+     "h": 17.33,
+     "cx": 168.171875,
+     "cy": 294.5859375,
+     "under24": true,
+     "nearest": {
+      "d": 19.328,
+      "cls": "vc-in"
+     },
+     "fails_2_5_8": true
+    },
+    {
+     "cls": "vc-in",
+     "disabled": false,
+     "w": 17.33,
+     "h": 17.33,
+     "cx": 187.5,
+     "cy": 294.5859375,
+     "under24": true,
+     "nearest": {
+      "d": 19.328,
+      "cls": "vc-out"
+     },
+     "fails_2_5_8": true
+    },
+    {
+     "cls": "vc-reset",
+     "disabled": true,
+     "w": 17.33,
+     "h": 17.33,
+     "cx": 206.828125,
+     "cy": 294.5859375,
+     "under24": true,
+     "nearest": {
+      "d": 19.328,
+      "cls": "vc-in"
+     },
+     "fails_2_5_8": true
+    }
+   ]
+  },
+  {
+   "state": "plan_inline",
+   "vp": [
+    375,
+    812
+   ],
+   "tile": 359,
+   "pointer": "coarse",
+   "drive_ok": true,
+   "buttons": [
+    {
+     "cls": "vc-out",
+     "disabled": false,
+     "w": 24,
+     "h": 24,
+     "cx": 161.5,
+     "cy": 193.6875,
+     "under24": false,
+     "nearest": {
+      "d": 26,
+      "cls": "vc-in"
+     },
+     "fails_2_5_8": false
+    },
+    {
+     "cls": "vc-in",
+     "disabled": false,
+     "w": 24,
+     "h": 24,
+     "cx": 187.5,
+     "cy": 193.6875,
+     "under24": false,
+     "nearest": {
+      "d": 26,
+      "cls": "vc-out"
+     },
+     "fails_2_5_8": false
+    },
+    {
+     "cls": "vc-reset",
+     "disabled": true,
+     "w": 24,
+     "h": 24,
+     "cx": 213.5,
+     "cy": 193.6875,
+     "under24": false,
+     "nearest": {
+      "d": 26,
+      "cls": "vc-in"
+     },
+     "fails_2_5_8": false
+    }
+   ]
+  },
+  {
+   "state": "expanded_plan",
+   "vp": [
+    375,
+    812
+   ],
+   "tile": 359,
+   "pointer": "coarse",
+   "drive_ok": true,
+   "buttons": [
+    {
+     "cls": "vc-out",
+     "disabled": false,
+     "w": 24,
+     "h": 24,
+     "cx": 161.5,
+     "cy": 193.6875,
+     "under24": false,
+     "nearest": {
+      "d": 26,
+      "cls": "vc-in"
+     },
+     "fails_2_5_8": false
+    },
+    {
+     "cls": "vc-in",
+     "disabled": false,
+     "w": 24,
+     "h": 24,
+     "cx": 187.5,
+     "cy": 193.6875,
+     "under24": false,
+     "nearest": {
+      "d": 26,
+      "cls": "vc-out"
+     },
+     "fails_2_5_8": false
+    },
+    {
+     "cls": "vc-reset",
+     "disabled": true,
+     "w": 24,
+     "h": 24,
+     "cx": 213.5,
+     "cy": 193.6875,
+     "under24": false,
+     "nearest": {
+      "d": 26,
+      "cls": "vc-in"
+     },
+     "fails_2_5_8": false
+    },
+    {
+     "cls": "vc-out",
+     "disabled": false,
+     "w": 24,
+     "h": 24,
+     "cx": 161.5,
+     "cy": 322.828125,
+     "under24": false,
+     "nearest": {
+      "d": 26,
+      "cls": "vc-in"
+     },
+     "fails_2_5_8": false
+    },
+    {
+     "cls": "vc-in",
+     "disabled": false,
+     "w": 24,
+     "h": 24,
+     "cx": 187.5,
+     "cy": 322.828125,
+     "under24": false,
+     "nearest": {
+      "d": 26,
+      "cls": "vc-out"
+     },
+     "fails_2_5_8": false
+    },
+    {
+     "cls": "vc-reset",
+     "disabled": true,
+     "w": 24,
+     "h": 24,
+     "cx": 213.5,
+     "cy": 322.828125,
+     "under24": false,
+     "nearest": {
+      "d": 26,
+      "cls": "vc-in"
+     },
+     "fails_2_5_8": false
+    }
+   ]
+  }
+ ]
+}

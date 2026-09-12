@@ -1,0 +1,11 @@
+# verifier-own D9-INST harness; NO numpy imported
+# procs_at_start=1 load1=3.42
+RESULT own_idle_control_thread_factor=0.999995
+RESULT own_pure_python_thread_factor=1.29743
+RESULT own_span_process_cpu_s=1.27131 s
+RESULT own_span_thread_cpu_s=0.979862 s
+RESULT own_second_thread_cpu_s=0.291444 s
+RESULT own_expected_factor=1.29743
+RESULT thread_factor=1.29743
+RESULT load1=3.42041
+RESULT concurrent_gate_procs=1
