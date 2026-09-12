@@ -14,7 +14,7 @@
    "rc": 0
   },
   "tests/config_flow_steps.py": {
-   "seconds": 1.8,
+   "seconds": 0.6,
    "rc": 0
   },
   "tests/dst_checks.py": {
@@ -26,15 +26,15 @@
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 28.0,
+   "seconds": 50.8,
    "rc": 0
   },
   "tests/env_drift.py": {
-   "seconds": 0.5,
+   "seconds": 0.7,
    "rc": 0
   },
   "tests/features.py": {
-   "seconds": 149.7,
+   "seconds": 69.8,
    "rc": 0
   },
   "tests/frontend.py": {
@@ -42,7 +42,7 @@
    "rc": 0
   },
   "tests/golden.py": {
-   "seconds": 0.5,
+   "seconds": 0.4,
    "rc": 0
   },
   "tests/manual_plan.py": {
@@ -70,7 +70,7 @@
    "rc": 0
   },
   "tests/structure.py": {
-   "seconds": 1.9,
+   "seconds": 1.1,
    "rc": 0
   },
   "tests/validate.py": {
@@ -78,7 +78,7 @@
    "rc": 0
   },
   "tests/deployment_shape.py": {
-   "seconds": 1.8,
+   "seconds": 1.6,
    "rc": 0
   },
   "tests/ha_contract.py": {
@@ -450,6 +450,8 @@
    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
    "docs/HANDOVER.md",
    "hacs.json",
+   "tests/coverage_budgets.json",
+   "tests/coverage_ratchet.py",
    "tests/entities.py",
    "tests/env_drift.py",
    "tests/gate_lock.py",
@@ -490,6 +492,8 @@
    "tests/hastub/homeassistant/loader.py",
    "tests/hastub/homeassistant/util/__init__.py",
    "tests/hastub/homeassistant/util/dt.py",
+   "tests/mutation_budgets.json",
+   "tests/mutation_table.py",
    "tests/nightly_ha.py",
    "tests/nightly_status.py",
    "tests/profiles.py",

@@ -1,0 +1,12 @@
+{
+  "_comment": "A one-sided cap on the fraction of mutants that survive, NOT an exact-count ratchet. The pool is a seeded sample over whichever files a diff put in scope, so an exact count is not comparable between two clean branches; see the header of tests/mutation_table.py. Lower it with --record on a run whose survivors are all explained; raise it only as a deliberate, argued edit.",
+  "max_survivor_fraction": {
+    "changed": 1.0,
+    "full": 1.0
+  },
+  "last_measured": {
+    "changed": null,
+    "full": null
+  },
+  "reason": "opening record: both caps start open and are recorded from the first real run of each scope, so the first number is measured rather than assumed"
+}

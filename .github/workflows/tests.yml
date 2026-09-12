@@ -141,17 +141,32 @@ jobs:
             && needs.recheck-gate.outputs.recheck == 'true')
       )
     runs-on: ubuntu-latest
-    # The only job that runs the production suite, so it is the only one
-    # matrixed over interpreters (#514). 3.13 is the floor the README and
-    # hacs.json declare; 3.14 is what reported installations actually run,
-    # and before this it was tested by nothing. fail-fast is off because a
-    # 3.14 break must not cancel the 3.13 leg -- knowing which of the two
-    # broke is the entire signal. The other six jobs stay single-version:
-    # see the note above `closures`, which cannot be matrixed at all.
+    # The only job that runs the production suite. It was matrixed over both
+    # interpreters from #514 until the 3.13 leg was retired: 3.14 is what
+    # reported installations actually run, and two legs of a 100-minute
+    # instrumented suite is most of this workflow's wall clock for a second
+    # answer that had never differed from the first.
+    #
+    # WHAT THAT GIVES UP, said plainly rather than left to be discovered.
+    # 3.13 is still the floor the README and hacs.json declare -- it follows
+    # from the Home Assistant 2025.2.0 floor, whose own requires-python is
+    # >=3.13.0 -- and it is still the interpreter every other job in this
+    # workflow pins. What no longer runs on it is the SUITE. So a 3.13-only
+    # break in production code now reaches a user rather than this gate, which
+    # is a narrower version of the hole #514 was filed for. `tests/entities.py`
+    # keeps the README honest about it: the "suite is tested on" sentence is
+    # derived from this matrix alone, so retiring a leg without saying so in
+    # the README fails there.
+    #
+    # fail-fast is now on, which costs nothing while the matrix is one entry
+    # and is the right default if a second is ever added back: the reason it
+    # was off -- a 3.14 break must not cancel the 3.13 leg, because knowing
+    # which of the two broke was the whole signal -- is a reason that only
+    # exists while there are two.
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
-        python-version: ["3.13", "3.14"]
+        python-version: ["3.14"]
     # Drift mode captures all 53 scenarios twice (tree + merge-base); the
     # first main run proved 45 min is not enough on GitHub's runners — the
     # step was cancelled mid-suite by its own timeout.
@@ -464,6 +479,187 @@ jobs:
         with:
           name: typing-census
           path: ${{ runner.temp }}/typing-census.json
+          if-no-files-found: ignore
+
+  # Two numbers `fast` cannot produce, both running beside it rather than
+  # inside it: how much of the package the suite EXECUTES, and how much of it
+  # the suite would NOTICE being wrong. They are different questions and the
+  # second is the one that decides whether a check is worth its line -- five
+  # W5-G7 tranches found twenty-two checks that executed the line they were
+  # named for and pinned nothing, all of them green coverage.
+  #
+  # Neither is matrixed. Coverage of a statement does not depend on the
+  # interpreter that ran it, and a second leg would pay a whole instrumented
+  # suite to print the same floor.
+  coverage:
+    needs: [recheck-gate]
+    if: >-
+      always() && (
+        github.event_name == 'push'
+        || github.event_name == 'pull_request'
+        || (github.event_name == 'workflow_dispatch'
+            && needs.recheck-gate.outputs.recheck == 'true')
+      )
+    runs-on: ubuntu-latest
+    # The instrumented `fast` stage is the whole default gate minus the four
+    # end-to-end scripts, run under a tracer that costs roughly a third again.
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install pinned test dependencies
+        run: pip install -r tests/requirements-ci.txt
+
+      # Deliberately NOT added to tests/requirements-ci.txt. env_drift's cache
+      # key fingerprints the installed distribution set, so a package added
+      # there invalidates the drift baseline for every `fast` run in the
+      # repository -- a whole-repo cache miss to give one job a tracer. The pin
+      # is exact for the same reason the rest are: coverage.py's default pragma
+      # pattern is what decides whether an exempted line leaves the
+      # denominator, and tests/coverage_ratchet.py counts against that pattern.
+      - name: Install the tracer
+        run: pip install 'coverage==7.13.1'
+
+      # Writes nothing inside the worktree: W5P_OUT defaults under W5P_WORK, so
+      # the measurement leaves no untracked evidence tree behind.
+      #
+      # The exit status of the stage is NOT this job's verdict and is not read
+      # here. tests/features.py fails its #525 heartbeat pair under any tracer
+      # -- both arms read zero ticks, the null control included, because the
+      # tracer removes the stall the check exists to see -- and that pair is
+      # `fast`'s to judge, on an uninstrumented run, where it is honest. What
+      # this job judges is the JSON.
+      - name: Measure the tree
+        run: |
+          # EXPORTED, not merely set: coverage_tree.sh reads W5P_WORK from the
+          # environment and refuses without it, and the refusal is a one-line
+          # message the `|| true` below would otherwise swallow into an empty
+          # `out/` and a confusing "produced no coverage.json".
+          export W5P_WORK
+          W5P_WORK=$(mktemp -d)
+          echo "W5P_WORK=$W5P_WORK" >> "$GITHUB_ENV"
+          tools/audit/w5-partition/coverage_tree.sh fast || true
+          test -s "$W5P_WORK/out/coverage.json" || {
+            echo "The instrument produced no coverage.json. That is this job"
+            echo "failing, not the ratchet: there is no measurement to judge."
+            exit 1
+          }
+
+      - name: Ratchet the floor and the pragma count
+        run: |
+          python3 tests/coverage_ratchet.py \
+            --coverage "$W5P_WORK/out/coverage.json"
+
+      # Kept on a failure too: the run that refuses because the floor moved is
+      # exactly the run whose per-module numbers are wanted.
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: coverage-json
+          path: ${{ env.W5P_WORK }}/out/coverage.json
+          if-no-files-found: ignore
+
+  # The mutation table. Scope is the files that were actually tested: the
+  # production files a pull request changes, or -- for a test-only diff -- the
+  # production files in the MEASURED closure of each changed script, the same
+  # recording tests/closures.json gives the scoped gate.
+  #
+  # It does not mutate the checkout. Every worker copies the working tree
+  # first, so a cancelled job cannot leave a production file edited for a
+  # later step to read, which an in-place `try/finally` still can: a SIGKILL
+  # does not run `finally`.
+  mutation:
+    needs: [recheck-gate]
+    if: >-
+      always() && (
+        github.event_name == 'push'
+        || github.event_name == 'pull_request'
+        || (github.event_name == 'workflow_dispatch'
+            && needs.recheck-gate.outputs.recheck == 'true')
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # --scope changed diffs three-dot against the merge base, which a
+          # shallow clone does not have.
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install pinned test dependencies
+        run: pip install -r tests/requirements-ci.txt
+
+      # `--jobs` is sized to the runner, not to taste: the drivers are
+      # single-threaded, so more workers than cores only lengthens every
+      # mutant's wall clock. The pool is small on purpose -- its job is to
+      # catch a change that stops being noticed, not to estimate a rate, which
+      # is what the nightly below is for.
+      - name: Drive the table over what this diff tested
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          set -o pipefail
+          python3 tests/mutation_table.py \
+            --scope changed --base origin/main --max 10 --jobs 3 \
+            | tee "$RUNNER_TEMP/mutation-table.txt"
+
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: mutation-table
+          path: ${{ runner.temp }}/mutation-table.txt
+          if-no-files-found: ignore
+
+  # The same instrument over the whole package, which only the nightly can
+  # afford. A pull request cannot see this lane at all, so it is registered in
+  # `tests/nightly_status.py`'s REQUIRED_LANES and `tests/entities.py` derives
+  # that coupling from this job's own `if:` -- an unregistered schedule-only
+  # lane fails there rather than going dark the way #533's did.
+  #
+  # Deliberately one job and not split across several: the cap is a fraction
+  # of one pool, so two half-runs would each judge their own half against a
+  # cap measured over the whole.
+  mutation-nightly:
+    needs: [recheck-gate]
+    if: >-
+      always() && (
+        github.event_name == 'schedule'
+        || (github.event_name == 'workflow_dispatch'
+            && needs.recheck-gate.outputs.recheck != 'true')
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install pinned test dependencies
+        run: pip install -r tests/requirements-ci.txt
+
+      - name: Drive the table over the whole package
+        shell: bash
+        run: |
+          set -o pipefail
+          python3 tests/mutation_table.py \
+            --scope full --max 40 --jobs 3 \
+            | tee "$RUNNER_TEMP/mutation-table-full.txt"
+
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: mutation-table-full
+          path: ${{ runner.temp }}/mutation-table-full.txt
           if-no-files-found: ignore
 
   slow:
