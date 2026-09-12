@@ -1,9 +1,17 @@
 {
-  "verdict": "EMPTY",
+  "verdict": "OK",
   "stale_after_commits": 12,
-  "merges": [],
+  "merges": [
+    {
+      "number": 885,
+      "title": "test(#195 W5-G7 t6): the tail to 96 %, a coverage ratchet and a mutation table",
+      "merge_sha": "6be60558981123389d6aa484d144c51cd3e3e145",
+      "commits_after": 0,
+      "state": "rowed"
+    }
+  ],
   "counts": {
-    "rowed": 0,
+    "rowed": 1,
     "pending": 0,
     "overdue": 0
   }
