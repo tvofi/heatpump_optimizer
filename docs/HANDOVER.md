@@ -49,7 +49,9 @@ the harness loads on this very path. Delivery status is
 - **`main` is guarded, and this is the first thing about the merge boundary
   that is enforced rather than asserted.** Ruleset **`main-protect`, id
   `22628467`**, active on the default branch: deletion, non-fast-forward
-  and **18 required status checks**. GitHub refuses the merge rather than a
+  and a required-status-check set whose members the ruleset endpoint
+  `/repos/<owner>/<repo>/rulesets/22628467` returns — read it, never a count
+  from here, which goes stale the next time one moves. GitHub refuses the merge rather than a
   policy asking you not to. **It is not absolute, and do not read it as one**:
   the ruleset carries an admin-role bypass with `always` mode so
   `tools/release/stamp.py`'s direct push to `main` still lands, this session's
@@ -63,7 +65,11 @@ the harness loads on this very path. Delivery status is
   **Before adding a required context**, confirm it reports on a *pull-request
   head*, not merely on a push to `main`: the two shapes differ, `CodeQL`
   reports on one and not the other, and a context that never reports blocks
-  every merge permanently. A `skipped` or `neutral` required check satisfies
+  every merge permanently. **The same trap fires in reverse and cost a merge
+  here**: retiring `fast`'s 3.13 matrix leg stopped `fast (3.13)` reporting
+  while it was still in the required set, so every pull request went
+  `BLOCKED` on a context that no longer exists. Changing what a matrixed job
+  runs is changing the required set; check the ruleset in the same change. A `skipped` or `neutral` required check satisfies
   the rule; that was measured on an isolated probe, both arms. A **scheduled**
   context is the other half of the same trap: make a nightly required and one
   failing night blocks every merge, the merge that repairs the nightly included.
