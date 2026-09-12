@@ -93,14 +93,17 @@ NOT_A_TEST = {
     # is NOT_A_TEST and is NOT inert: `tests/entities.py` imports it and drives
     # its four states, so a change to how it classifies selects a script.
     "nightly_status.py",
-    # The disposition gate's reporter (#678, CM-2 of the #541 root cause):
-    # its own `record-status` job runs it on every pull request. Same shape as
-    # `nightly_status.py` above -- it needs the GitHub Checks API, which this
-    # suite has neither the network nor the token for, and its verdict is about
-    # `main`'s CI history rather than about this tree. NOT_A_TEST and NOT inert:
-    # `tests/entities.py` imports it and drives its states, so a change to how
-    # it classifies selects a script.
-    "record_status.py",
+    # The delivery ledger, which replaced `record_status.py` and its
+    # `record-status` job: that check reported main's `record` CONCLUSION, which
+    # was `failure` on 28 of main's last 40 commits because it asked whether
+    # every merge has a row RIGHT NOW while the protocol promises one SOON, in
+    # a batch. Its own `delivery-status` job runs this on every pull request; it
+    # walks `<last tag>..origin/main`, which this suite has neither the remote
+    # nor a reason to fetch, and its verdict is about the record rather than
+    # about this tree. NOT_A_TEST and NOT inert: `tests/entities.py` imports it
+    # and drives both sides of its threshold, so a change to how it classifies
+    # selects a script.
+    "delivery_status.py",
     # The shared DOM stub (#101) and the rig around it, imported by the three
     # Node harnesses (card.mjs, setup_qa_render.mjs, card_drift.mjs): libraries,
     # never run. dom_stub.mjs was missing from this set from v6.1.2 to v6.2.7,

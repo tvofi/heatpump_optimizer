@@ -1,0 +1,10 @@
+{
+  "verdict": "EMPTY",
+  "stale_after_commits": 12,
+  "merges": [],
+  "counts": {
+    "rowed": 0,
+    "pending": 0,
+    "overdue": 0
+  }
+}
