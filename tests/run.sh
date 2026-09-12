@@ -298,6 +298,14 @@ for f in tests/*.py tests/*.mjs; do
     # history rather than about this tree. tests/entities.py drives its
     # classifier instead.
     record_status.py) continue ;;
+    # The two instruments beside the gate rather than in it (#195). Each has
+    # its own CI job, which is never scoped and runs on every pull request.
+    # coverage_ratchet.py needs a coverage payload from
+    # tools/audit/w5-partition/coverage_tree.sh -- an instrumented re-run of
+    # this whole suite -- and mutation_table.py re-runs suite scripts against
+    # a mutated copy of the tree. Wiring either in would make the suite run
+    # itself, which is the closure.py argument four entries up.
+    coverage_ratchet.py|mutation_table.py) continue ;;
   esac
   if ! grep -Eq '^[[:space:]]*run .*tests/'"$base"'( |$)' tests/run.sh; then
     echo "UNWIRED TEST: tests/$base is not referenced by tests/run.sh"
@@ -489,7 +497,7 @@ done
 for f in tests/*.py tests/*.mjs; do
   base=$(basename "$f")
   case "$base" in
-    harness.py|profiles.py|dst_checks.py|closure.py|gate_lock.py|dom_stub.mjs|card_rig.mjs|card_browser.mjs|node_fs_trace.mjs|nightly_ha.py|nightly_status.py|record_status.py) continue ;;
+    harness.py|profiles.py|dst_checks.py|closure.py|gate_lock.py|dom_stub.mjs|card_rig.mjs|card_browser.mjs|node_fs_trace.mjs|nightly_ha.py|nightly_status.py|record_status.py|coverage_ratchet.py|mutation_table.py) continue ;;
   esac
   if ! cat "$WORKDIR"/*.manifest 2>/dev/null | grep -Fq "tests/$base"; then
     echo "TEST NEVER RAN: tests/$base is wired into tests/run.sh but no lane"
