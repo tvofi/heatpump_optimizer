@@ -247,7 +247,21 @@ def nights_ago(when: dt.datetime, now: dt.datetime) -> int:
     return max(0, int((now - when).total_seconds() // 86400))
 
 
-def phrase_age(nights: int) -> str:
+def run_kind(run: dict | None) -> str:
+    """`scheduled` or `dispatched`.
+
+    The report used to call every run it read `scheduled`, which was true while
+    only `schedule` runs counted. A verification dispatch read as "the scheduled
+    run failed last night" misdescribes its own evidence by a day and by a
+    trigger, to the reader the red is addressed to.
+    """
+    return "dispatched" if (run or {}).get("event") == "workflow_dispatch" else "scheduled"
+
+
+def phrase_age(nights: int, kind: str = "scheduled") -> str:
+    if kind == "dispatched":
+        return "in the last verification dispatch" if nights == 0 else (
+            f"in a verification dispatch {nights} night(s) ago")
     if nights == 0:
         return "last night"
     if nights == 1:
@@ -325,8 +339,9 @@ def verdict(
 
     started = parse_ts(concluded.get("created_at"))
     nights = nights_ago(started, now)
+    kind = run_kind(concluded)
     where = [
-        f"  scheduled run {concluded['id']}, {started.isoformat()}, "
+        f"  {kind} run {concluded['id']}, {started.isoformat()}, "
         f"head {str(concluded.get('head_sha', ''))[:7]}, "
         f"run conclusion {concluded.get('conclusion')!r}",
         f"  {concluded.get('html_url', '')}",
@@ -340,7 +355,7 @@ def verdict(
     if nights > max_age_nights:
         return ABSENT, EXIT_RED, [
             f"NIGHTLY {ABSENT}: the newest CONCLUDED scheduled run is "
-            f"{phrase_age(nights)}, older than the {max_age_nights}-night "
+            f"{phrase_age(nights, kind)}, older than the {max_age_nights}-night "
             "window. The cron is daily, so nights are being missed.",
             *where,
             "  Reported as absent rather than by its conclusion: a result this "
@@ -372,15 +387,15 @@ def verdict(
     if bad or run_failed:
         if bad:
             names = ", ".join(sorted(j.get("name", "?") for j in bad))
-            headline = f"NIGHTLY {FAILED}: {names} failed {phrase_age(nights)}."
+            headline = f"NIGHTLY {FAILED}: {names} failed {phrase_age(nights, kind)}."
         else:
             # "The nightly failed" trains blindness, so when the job list is
             # clean the report has to say what the evidence actually is --
             # otherwise a reader opens the run, sees every job green, and
             # concludes the check is broken.
             headline = (
-                f"NIGHTLY {FAILED}: the scheduled run itself concluded "
-                f"{run_conclusion!r} {phrase_age(nights)}, and no job of it "
+                f"NIGHTLY {FAILED}: the {kind} run itself concluded "
+                f"{run_conclusion!r} {phrase_age(nights, kind)}, and no job of it "
                 "reported a failure."
             )
         detail = ["  failing jobs:", *[
@@ -401,7 +416,7 @@ def verdict(
     if gone:
         return ABSENT, EXIT_RED, [
             f"NIGHTLY {ABSENT}: nothing failed, but {', '.join(gone)} did not "
-            f"run in that scheduled run ({phrase_age(nights)}).",
+            f"run in that {kind} run ({phrase_age(nights, kind)}).",
             *where,
             "  A lane that was skipped or renamed away reported nothing, and "
             "nothing is not a pass. Green here would mean this check had "
@@ -410,7 +425,7 @@ def verdict(
 
     return PASSED, EXIT_GREEN, [
         f"NIGHTLY {PASSED}: every job of the scheduled run below succeeded or "
-        f"was skipped, {phrase_age(nights)}.",
+        f"was skipped, {phrase_age(nights, kind)}.",
         *where,
         f"  {len(jobs)} job(s) in that run, "
         f"{sum(1 for j in jobs if j.get('conclusion') == 'success')} succeeded, "

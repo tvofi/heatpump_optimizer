@@ -170,15 +170,14 @@ had the lock and still did not have the box.
 The audit measures the integration with instruments that are themselves code:
 `tests/hastub`, the gate's checks and budgets, the harness contract, the lint
 lanes, this toolkit. A defect your dimension's method meets in one of those is a
-finding **of your dimension**, under the same bar as any other — executed number,
+finding **of your dimension**, under the same bar as any other: executed number,
 instrumented symbol, perturbation, metric definition, control.
 
-It travels the ordinary route: panel, judge, then an issue. **Filing waits for
+It travels the ordinary route: panel, judge, issue. **Filing waits for
 the judge**, as a product finding does, and the reason is not symmetry: the seat
 that finds an instrument defect is using the instrument it accuses, and the judge
 re-measures with that same instrument. A verifier who cannot make the accused
-check fire has not refuted the finding; say which of the two you could not
-separate.
+check fire has not refuted the finding.
 
 `CLAUDE.md`'s order still governs — fix it, verify it independently if you
 cannot, file it only then — so a one-line instrument repair is made in place and
