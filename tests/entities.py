@@ -9309,6 +9309,44 @@ R.check(
     "re-point it at the merge this handover reflects (a shallow clone cannot "
     "answer this; the gate jobs check out with fetch-depth: 0)",
 )
+# ...and reachable from `origin/main`, which is the half HEAD cannot answer.
+#
+# THIS COST A RED MAIN. #885 set `updated-for:` to a SHA from its OWN branch
+# history, which was an ancestor of HEAD on the branch and passed the check
+# above at every push. It was SQUASH-merged, every branch commit was rewritten
+# into one new SHA, and the named commit stopped existing -- so `main` went red
+# on the merge, on a file the branch had left correct by the only measure
+# anything applied to it.
+#
+# Ancestry of `origin/main` is the property that survives any merge method, and
+# it is the right one on its own terms: the line names the merge the text
+# reflects, and a merge that has happened is on `main` by definition. Every
+# value this file has carried before that one -- `fa3b1e0`, `a801d7c`,
+# `1e66bb7` -- is a `main` commit, so the tree already agreed; nothing checked
+# it.
+#
+# Skipped rather than failed when `origin/main` is not present, because a
+# detached export or a fresh clone with no remote cannot answer it and a check
+# that fails where it cannot look teaches seats to ignore it. The gate jobs
+# check out with `fetch-depth: 0` and a remote, so they can.
+_UF_HAS_MAIN = _subprocess.run(
+    ["git", "rev-parse", "--verify", "--quiet", "origin/main^{commit}"],
+    cwd=_closure.ROOT, capture_output=True,
+).returncode == 0
+_UF_ON_MAIN = _UF_HAS_MAIN and _uf is not None and _subprocess.run(
+    ["git", "merge-base", "--is-ancestor", _uf.group(1), "origin/main"],
+    cwd=_closure.ROOT, capture_output=True,
+).returncode == 0
+R.check(
+    "and reachable from origin/main, so a squash cannot orphan it",
+    (not _UF_HAS_MAIN) or _UF_ON_MAIN,
+    f"updated-for: {_uf.group(1) if _uf else '?'} is not an ancestor of "
+    "origin/main. It names the MERGE this handover reflects, and a merge that "
+    "has happened is on main -- so a SHA from this branch's own history is "
+    "wrong even while it passes the check above, and a squash then deletes it "
+    "and turns main red. Name the merge, not the commit that carries the edit."
+    if _UF_HAS_MAIN else "origin/main is absent; nothing to check against",
+)
 
 # --- the real-Home-Assistant lane's own reporting (#533) --------------------
 #
