@@ -131,6 +131,26 @@ seat's JSON has not been received here.
 
 ## Traps this round has already paid for
 
+- **Landing a finder's report trips `policy_lint`'s `named-docs`.** `COMMON.md`
+  prescribes `REPORT.md` and `fixer.md` names `BASELINE.md`, so a *tracked* file
+  of either name is one a policy document names with no cap. #859 met this with
+  `JUDGE.md` and **renamed rather than excluded**; `resume_row.py` now renames on
+  landing. Sweep every basename you add, not only the ones the linter reports:
+  `named-docs` is documents-only, so a `.py` or `.json` colliding with a file the
+  corpus names passes it silently. Two did — a harness named `structure.py` and an
+  output named `config_flow.json`, both renamed.
+- **One basename collision was judged and kept: `D6/claims.py`.**
+  `tools/audit/README.md:201` names it as round 2's harness with
+  `ROOT = Path(".")`, and round 4's D6 harness carries the same name *and the same
+  root rule*, so the README's warning is true of this file too. Nothing for a
+  reader to resolve. Do not rename it on a sweep hit; this is the record of that
+  decision.
+- **Evidence blobs are not landed.** D4 wrote 78 screenshots and two grid dumps
+  (7.6 MB) and the push failed HTTP 400. #859 settled the rule: documents and
+  instruments are committed, blobs are not, because a reader re-runs the harness.
+  Six cited `FINDING_*.png` frames were kept and
+  `D4/shots/blobs-not-landed.md` gives the regenerating command.
+
 - A finder's tree must not carry an earlier round's ledger. Fixed in the script; check it, do not assume it.
 - `tests/entities.py` reads `RELEASE_NOTES.md` unguarded at import. Any future export trimming must keep it.
 - The D3 worktree's HEAD is **not** the baseline: it commits mutants so `env_drift.py` has a ref that is not `HEAD`. Compare against `7dd68dd`, never against that worktree's HEAD.

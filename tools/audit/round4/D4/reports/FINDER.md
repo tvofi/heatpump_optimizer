@@ -328,7 +328,7 @@ own header, each writing only under its own directory and a private temp root.
 | `contrast_pixels.mjs` | pixel-truth contrast for a named selector in a named state, from two rasterisations of one frame → `out/contrast_pixels.json` |
 | `target_size.mjs` | WCAG 2.2 SC 2.5.8 with the spacing exception applied, fine and coarse arms, frozen clock → `out/target_size.json` |
 | `keyboard_tab.mjs` | the real Tab order, modal containment, accessible names, and focus visibility measured in changed pixels → `out/keyboard_tab.json` |
-| `config_flow_rubric.py` | both flows driven through the real handlers and scored against the rubric above → `out/config_flow.json` |
+| `config_flow_rubric.py` | both flows driven through the real handlers and scored against the rubric above → `out/config_flow_rubric.json` |
 | `lib/measure.js` | browser-side: composited backgrounds, contrast, overlaps, clipping, targets, focusables (loaded with `addScriptTag`) |
 | `lib/states.js` | `tests/card_drift.mjs`'s 34 states re-expressed against real DOM; every driver returns `{ok, note}` so a vacuous cell is visible |
 

@@ -305,7 +305,7 @@ def main():
         "untranslated_sv": untranslated_sv,
         "rubric": RUBRIC,
     }
-    (OUT / "config_flow.json").write_text(json.dumps(payload, indent=1, default=repr))
+    (OUT / "config_flow_rubric.json").write_text(json.dumps(payload, indent=1, default=repr))
 
     all_scores = {**{f"config.{k}": v for k, v in cfg_scores.items()},
                   **{f"options.{k}": v for k, v in opt_scores.items()}}
