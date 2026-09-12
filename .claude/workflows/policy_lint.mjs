@@ -230,6 +230,14 @@ function read(rel) {
 
 const POLICY_GLOBS = [
   /^CLAUDE\.md$/,
+  // The harness-neutral entry point: ZCode and Codex auto-load a root
+  // AGENTS.md where Claude Code loads CLAUDE.md. It defers to CLAUDE.md and
+  // states no policy of its own, but it is seat-facing text a harness loads
+  // before anything else, so it is measured and capped like the rest of the
+  // corpus rather than sitting outside every cap as a door prose can leave
+  // through. Widening this list is the owner's decision; this entry was made
+  // by the owner's instruction in the pull request that added it.
+  /^AGENTS\.md$/,
   // `.cursor/rules/*.mdc` is NOT here: it is generated from `.claude/rules/`
   // by rules_sync.mjs, whose --check byte-compares it. Linting a generated copy
   // reports every finding twice, doubles every ledger entry, and -- since the
