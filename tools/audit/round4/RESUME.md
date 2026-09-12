@@ -89,12 +89,12 @@ seat's JSON has not been received here.
 | D1 | robustness and stability | **landed** | 2 high — `price_model.from_dict` accepts a non-finite shape bin, pricing 4 of 96 planning steps at 0.0 SEK/kWh (control 0.6018, null control 0); one corrupt scalar in the accuracy store raises in `_async_load_accuracy` and the next cycle overwrites 3 of 3 learned fields with zero log lines |
 | D2 | mathematical and physical sanity | **landed** | 5 findings. 2 high — `tariff._smooth_topk_sum` bisects on a bracket not scaled by its own logistic temperature, charging up to 13.35x the top-k bill it approximates above 5.84 kW excess (null control: exact below the break point); `thermal_model.wood_share` is discontinuous at `hp_temp == flow_set` where its docstring claims continuity, 0.9985 of the emitter draw across 2e-6 degC, and one ulp of step-0 power moves 1.110 kWh. 2 medium — every DSO catalog row writes a peak-hours mask that discounts 0 of 672 windows because `apply_catalog` omits the off-peak factor; modelled COP goes below 1.0 in 51 of 328 cells and inverts with rising outdoor below -21 degC. 1 low — grid-fee decimal commas unreachable, `parse_rules` splits on the comma `_parse_rule` converts. sysid bias and DST not measured |
 | D3 | test-suite gaps | written — report on disk, JSON not returned | Report and 5 harnesses landed. Resource-use half is measured: `closures.json` recorded seconds are accounting rather than behaviour (0.4 s recorded for a script that costs 3.5 min), and `tests/golden.py` and `tests/env_drift.py --all` are the same measurement — 201.2 s and 152.0 s for one answer, which `run.sh` avoids but `tests/README.md` sends a developer to pay twice. **The mutation survivors are the part that needs the quiet window**: read `D3/reports/FINDER.md` and run the full gate for the top six, per step 3 of the next-session list |
-| D4 | UI/UX | not dispatched (wave 2) | — |
+| D4 | UI/UX | running (wave 2, dispatched) | evidence accumulates in its finder tree; collect with `resume_row.py D4` |
 | D5 | docs structure, flow, comments | **landed** | 2 hygiene — `docs/configuration.md`, the reference README promises documents *every* field, names 15 of 200 shipped options fields nowhere (34 occurrences); `tests/README.md:356` says 48 stress combinations, `sweep_combinations()` returns 51. Seven claims tagged `for D6`. Clean with positive controls: 0 broken links, 0 duplicated paragraphs over 433, 0 dead ends over 337 tokens |
 | D6 | documentation claim verification | **landed** | 125 claims extracted, 125 checked, 12 false, 1 unverifiable. 1 high — `docs/architecture.md` stale in ten claims including its HA boundary (21 modules import `homeassistant` at module level, 11 outside the ten it names). 1 medium — Sensor-Gap Euro Advisor documented `CUR`, publishes no unit. 1 low — `docs/automations.md` states a Power Headroom precondition the code does not enforce |
 | D7 | architecture and maintainability | **landed** | 3 findings. 1 high — `_learning_frozen` never consults `_pump_signals.defrosting`, so 3 of 4 learners fold a defrost interval (perturbation drives it to 0; three other contaminants read 0). 2 medium — the sysid experiment is adopted in 0 of 18 cells because the identifier fits one state to a two-state plant (null control on a collapsed plant: adopted at 0.940); `_sizing_model` uses default slab constants for every house, breaching `max_excursion_c` in 6 of 18. Brief item 5 (this years train) not done |
-| D8 | sensor verification and ordering | not dispatched (wave 2) | — |
-| D9 | CPU and memory efficiency | not dispatched (wave 2) | — |
+| D8 | sensor verification and ordering | running (wave 2, dispatched) | evidence accumulates in its finder tree; collect with `resume_row.py D8` |
+| D9 | CPU and memory efficiency | running (wave 2, dispatched) | evidence accumulates in its finder tree; collect with `resume_row.py D9` |
 | D10 | HA quality scale | **landed** | 3 low. `quality_scale.yaml` has drifted: 3 of 54 declared rows are contradicted when executed, including a config-flow coverage row claiming 100 %/0 missed against a measured 97.2 %/21 missed. `docs-known-limitations` declared done with 0 such headings across 4075 lines. The package root re-binds `HeatPumpOptimizerConfigEntry` to a bare `ConfigEntry`, so `runtime_data` reveals `Any` in the three entry points while mypy --strict still reports 0 errors. Measured: 47 done / 4 exempt / 3 todo of 54; package coverage 97.18 %, 0 of 56 modules below 95 % |
 | D11 | governance and policy | **landed** | 7 findings, 2 critical. `main-protect` (22628467) has no `pull_request` rule in ANY of its 5 versions, so a merge to main needs no review — 0 of 592 merged PRs carry an APPROVED review by a non-author, and RepositoryRole 5 holds `bypass_mode: always`, so required contexts do not bind the merging actor either. Second critical: 8 sites instruct a seat holding write and merge grants to act on issue/PR comment text on a public repo with issues open, against 0 sentences anywhere in the corpus naming untrusted input or prompt injection. 2 high — the red-check trigger CLAUDE.md calls enforced is inert in CI (`--red` is never passed; rc=1 with it, rc=0 without, on the same body), and 8 tree assertions contradict the live required-context set (18 to 17 to 16). 2 medium, 1 low. DORA: change failure rate 47.7 %, of which 44.1 pp is the `record` job |
 | D12 | generalization | **landed** | 108 cells enumerated, 0 failing on every plant-shape axis — the finding is on the unit axis. 1 high — `InputReader.read` is `float(state.state)` and consults no unit, so on a non-metric Home Assistant instance 10 of 13 guarded inputs are adopted in the entity own unit: indoor publishes 70.5 degC for a plant at 21.4, and the 96-step plan totals 0.0 kWh with no refusal, no repair and no unavailable entity. `read_power_kw` is the one read that does convert, and its own docstring states the principle. Null control (metric arm) 0; `--convert` drives 10 to 1; plant shrink drives 10 to 4 |
@@ -102,16 +102,16 @@ seat's JSON has not been received here.
 
 ## What the next session does, in order
 
-1. **Collect wave 1.** For every dimension marked `written`, read its
-   `REPORT.md` in this branch and record its findings in the table above. A
-   finder's JSON is preferable but a report is sufficient.
-2. **Dispatch wave 2 — D9, D4, D8.** `audit-find.js` puts them in their own wave
-   for a reason: D9 measures timing and D4 drives Chromium, and
-   `tools/audit/README.md` forbids the Chromium finder sitting beside the
-   compute-heavy ones. D9 works in `audit-r4-D9`, D4 and D8 in the export. The
-   dispatch prompt is `audit-find.js`'s `finder` template plus the tree, the
-   interpreter, and the two lines about `BASELINE.md` and the known export
-   artefacts above.
+1. **Collect wave 2**, which is dispatched and may have died with the session
+   that started it. Its evidence is in the finder trees, not in this branch:
+   run `python3 tools/audit/round4/resume_row.py D9 <status> '<note>'` (and D4,
+   D8), which copies the tree in, renames `REPORT.md` to `reports/FINDER.md` and
+   rewrites the row. A tree holding harnesses and no `REPORT.md` is a finder that
+   did not finish: re-dispatch that dimension rather than reporting it as dry.
+2. **D3 owes its JSON.** Its report and five harnesses are landed, but the seat
+   never returned the structured report, so the `prescreened` mutant list lives
+   only in `D3/reports/FINDER.md`. Read it before the quiet window; its survivors
+   are that window's input.
 3. **Quiet window.** Nothing else on the box. `python3 tests/gate_lock.py take
    --label quiet-r4`. Re-execute every harness behind a `provisional` finding
    exactly as its header says, print `load1` and `swapins` beside every RESULT,
