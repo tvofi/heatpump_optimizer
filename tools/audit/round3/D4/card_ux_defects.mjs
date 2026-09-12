@@ -36,8 +36,8 @@
 //   RESULT chip_nodata_is_disabled=0         (0 = an ACTIVE control)
 //   RESULT chip_nodata_tabbable=7            (all seven reachable by Tab)
 //   RESULT chip_nodata_click_persists=1      (a click writes localStorage)
-//   PERTURBATION opacity:1 -> chip_nodata_contrast_light=15.91  (up)
-//   NULL ARM     the same chips WITH plan data -> 15.91         (to_zero defect)
+//   PERTURBATION opacity:1 -> chip_nodata_contrast_light=16.10  (up)
+//   NULL ARM     the same chips WITH plan data -> 16.10         (to_zero defect)
 //   RESULT away_checkbox_min_px=13
 //   RESULT away_label_min_px=<see below>
 //   RESULT away_return_min_px=21.3
