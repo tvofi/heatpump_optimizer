@@ -2,19 +2,19 @@
  "_comment": "MEASURED, not written by hand. Regenerate with tests/derive_closures.sh; the post-merge gate on main re-records these and fails if this file misses anything a real run touched.",
  "recorded": {
   "tests/backtest.py": {
-   "seconds": 46.9,
+   "seconds": 27.4,
    "rc": 0
   },
   "tests/card.mjs": {
-   "seconds": 8.6,
+   "seconds": 8.1,
    "rc": 0
   },
   "tests/card_drift.mjs": {
-   "seconds": 3.3,
+   "seconds": 2.8,
    "rc": 0
   },
   "tests/config_flow_steps.py": {
-   "seconds": 0.8,
+   "seconds": 0.6,
    "rc": 0
   },
   "tests/dst_checks.py": {
@@ -22,19 +22,19 @@
    "rc": 0
   },
   "tests/edge.py": {
-   "seconds": 46.8,
+   "seconds": 28.9,
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 30.1,
+   "seconds": 50.8,
    "rc": 0
   },
   "tests/env_drift.py": {
-   "seconds": 0.5,
+   "seconds": 0.7,
    "rc": 0
   },
   "tests/features.py": {
-   "seconds": 164.8,
+   "seconds": 69.8,
    "rc": 0
   },
   "tests/frontend.py": {
@@ -42,11 +42,11 @@
    "rc": 0
   },
   "tests/golden.py": {
-   "seconds": 0.5,
+   "seconds": 0.4,
    "rc": 0
   },
   "tests/manual_plan.py": {
-   "seconds": 7.9,
+   "seconds": 5.9,
    "rc": 0
   },
   "tests/open_meteo.py": {
@@ -54,31 +54,31 @@
    "rc": 0
   },
   "tests/optimality.py": {
-   "seconds": 97.9,
+   "seconds": 51.6,
    "rc": 0
   },
   "tests/plan_view.py": {
-   "seconds": 1.0,
-   "rc": 0
-  },
-  "tests/solar_alignment.py": {
    "seconds": 0.7,
    "rc": 0
   },
+  "tests/solar_alignment.py": {
+   "seconds": 0.5,
+   "rc": 0
+  },
   "tests/stress.py": {
-   "seconds": 834.8,
+   "seconds": 576.8,
    "rc": 0
   },
   "tests/structure.py": {
-   "seconds": 1.9,
+   "seconds": 1.1,
    "rc": 0
   },
   "tests/validate.py": {
-   "seconds": 44.6,
+   "seconds": 24.7,
    "rc": 0
   },
   "tests/deployment_shape.py": {
-   "seconds": 1.7,
+   "seconds": 1.6,
    "rc": 0
   },
   "tests/ha_contract.py": {
@@ -90,15 +90,15 @@
    "rc": 0
   },
   "tests/guard_pins.py": {
-   "seconds": 0.6,
+   "seconds": 1.0,
    "rc": 0
   },
   "tests/wood_advisor.py": {
-   "seconds": 0.7,
+   "seconds": 2.9,
    "rc": 0
   },
   "tests/harness_headers.py": {
-   "seconds": 1.5,
+   "seconds": 1.7,
    "rc": 0
   }
  },
@@ -201,7 +201,6 @@
    "tests/profiles.py"
   ],
   "tests/card_drift.mjs": [
-   ".gitattributes",
    ".gitignore",
    "VERSION",
    "custom_components/heatpump_optimizer/__init__.py",
@@ -450,7 +449,8 @@
    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
    "docs/HANDOVER.md",
    "hacs.json",
-   "tests/delivery_status.py",
+   "tests/coverage_budgets.json",
+   "tests/coverage_ratchet.py",
    "tests/entities.py",
    "tests/env_drift.py",
    "tests/gate_lock.py",
@@ -491,6 +491,8 @@
    "tests/hastub/homeassistant/loader.py",
    "tests/hastub/homeassistant/util/__init__.py",
    "tests/hastub/homeassistant/util/dt.py",
+   "tests/mutation_budgets.json",
+   "tests/mutation_table.py",
    "tests/nightly_ha.py",
    "tests/nightly_status.py",
    "tests/profiles.py",

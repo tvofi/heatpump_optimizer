@@ -104,6 +104,17 @@ NOT_A_TEST = {
     # and drives both sides of its threshold, so a change to how it classifies
     # selects a script.
     "delivery_status.py",
+    # The two instruments beside the gate rather than in it (#195). Each has
+    # its own CI job, which is never scoped and runs on every pull request
+    # regardless of what this gate selects -- the `card_browser.mjs` argument,
+    # one directory over. `coverage_ratchet.py` needs a coverage payload from
+    # tools/audit/w5-partition/coverage_tree.sh, an instrumented re-run of the
+    # whole gate, and `mutation_table.py` re-runs gate scripts against a
+    # mutated copy of the tree; run.sh running either would have the suite run
+    # itself. NOT_A_TEST and NOT inert: `tests/entities.py` imports both and
+    # drives their operators and their kill rule, so a change to how either
+    # classifies selects a script instead of selecting nothing.
+    "coverage_ratchet.py", "mutation_table.py",
     # The shared DOM stub (#101) and the rig around it, imported by the three
     # Node harnesses (card.mjs, setup_qa_render.mjs, card_drift.mjs): libraries,
     # never run. dom_stub.mjs was missing from this set from v6.1.2 to v6.2.7,

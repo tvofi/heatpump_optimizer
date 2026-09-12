@@ -30229,4 +30229,1026 @@ R.check(
     "fixing the cause",
 )
 
+
+
+# ---------------------------------------------------------------------------
+# W5-G7 tranche 6 of 6 (#195): the tail, and the last of the owner's 98 % bar.
+#
+# 219 missed against 73 allowed at 98 % of 3,694, so 146 to cover -- spread
+# across 89 methods whose top twenty hold only 100. This is MANY SMALL
+# FIXTURES rather than a few deep ones, which is why it is last and why it
+# reads differently from the five before it.
+#
+# AT 98 PCT THERE IS NO ROOM FOR A RESIDUAL. Every statement this tranche
+# leaves is named in the pull request with the reason it is unreachable,
+# rather than deferred.
+#
+# The five rules the earlier tables cost, applied and not restated: an input
+# makes the guard under test the only arm that can reject; anything that can
+# raise goes through a catcher and asserts nothing escaped; details sort by
+# `repr`; nothing asserts exact equality against a production data
+# structure; and every mutant in the table is checked to leave parseable
+# code, because one that cannot run reports a pass and a pass here reads as
+# a finding about production.
+R.section("W5-G7 t6: the tail (#195)")
+
+import io as _io  # noqa: E402
+import pickle as _t6_pickle  # noqa: E402
+from heatpump_optimizer import coordinator as _t6_coord_module  # noqa: E402
+from heatpump_optimizer.accuracy import AccuracySample as _AccuracySample  # noqa: E402
+from heatpump_optimizer.coordinator import _as_float as _t6_as_float  # noqa: E402
+from heatpump_optimizer.coordinator import _comparable_ts as _t6_comparable_ts  # noqa: E402
+from heatpump_optimizer.coordinator import _diagnose_payload as _t6_diagnose_payload  # noqa: E402
+from heatpump_optimizer.coordinator import _plain_types as _t6_plain_types  # noqa: E402
+from heatpump_optimizer.coordinator import _store_diagnosis as _t6_store_diagnosis  # noqa: E402
+
+# The sentinel that lets a keyword distinguish "not given" from "given as
+# None", which several fixtures below turn on.
+_T6_UNSET = object()
+
+_T6_DATA = {"tibber_token": "x", "weather_entity": "weather.home"}
+
+
+def _t6_coord(states=None, **config):
+    """A live coordinator over the fake bus, with states and config applied."""
+    return HeatPumpOptimizerCoordinator(
+        FakeHass(states or {}), FakeEntry(data=dict(_T6_DATA, **config))
+    )
+
+
+def _t6_call(fn, *args, **kwargs):
+    """Call one synchronous method, returning its value or the exception."""
+    try:
+        return fn(*args, **kwargs)
+    except Exception as err:  # noqa: BLE001
+        return err
+
+
+def _t6_drive(coord, method, *args, **kwargs):
+    """Await one coordinator method and capture anything that escapes it."""
+    coord._t6_escaped = None
+    try:
+        coord._t6_returned = _asyncio.run(getattr(coord, method)(*args, **kwargs))
+    except Exception as err:  # noqa: BLE001
+        coord._t6_escaped = err
+        coord._t6_returned = None
+    return coord
+
+
+# -- the published properties: eleven one-line readers ---------------------
+# Each fronts one attribute for an entity or a service, and the check is
+# that the property reads THAT attribute rather than a neighbour. Asserting
+# the startup value alone would pass against any property returning the same
+# default, so each is read once at startup and once after the attribute it
+# fronts has been moved to a value nothing else holds.
+_T6_PROPERTY_PAIRS = (
+    ("mode", "_mode", "boost"),
+    ("last_optimization", "_last_optimization", datetime(2026, 2, 1, 1, 2, 3)),
+    ("next_optimization", "_next_optimization", datetime(2026, 2, 1, 4, 5, 6)),
+    ("current_action", "_current_action", {"mode": "sentinel"}),
+    ("prices", "_prices", [{"total": 9.99}]),
+    ("solar_radiation", "_solar_radiation", 412.5),
+    ("floor_return_temp", "_floor_return_temp", 31.25),
+    ("dhw_temperature", "_dhw_temperature", 53.75),
+    ("optimization_running", "_optimization_running", True),
+)
+_t6_prop_start = _t6_coord()
+_t6_prop_moved = _t6_coord()
+for _t6_pname, _t6_attr, _t6_value in _T6_PROPERTY_PAIRS:
+    setattr(_t6_prop_moved, _t6_attr, _t6_value)
+R.check(
+    "nine published properties each read the attribute they front, not a neighbour",
+    all(
+        getattr(_t6_prop_moved, name) == value
+        and getattr(_t6_prop_start, name) != value
+        for name, _attr, value in _T6_PROPERTY_PAIRS
+    ),
+    "moved: "
+    f"{[(n, getattr(_t6_prop_moved, n)) for n, _a, _v in _T6_PROPERTY_PAIRS]!r} -- "
+    "each value is one nothing else in the coordinator holds, so a property "
+    "wired to the wrong attribute reads its neighbour's default and fails",
+)
+R.check(
+    "the target temperature comes from the optimizer config, as a float",
+    _t6_prop_start.target_temperature
+    == float(_t6_prop_start._opt_config.target_temp)
+    and isinstance(_t6_prop_start.target_temperature, float),
+    f"{_t6_prop_start.target_temperature!r} against "
+    f"{_t6_prop_start._opt_config.target_temp!r} -- the climate entity reads "
+    "this every update, and an int here makes its own comparisons "
+    "integer-typed",
+)
+_t6_sysid_on = _t6_coord()
+_t6_sysid_on._sysid.config.enabled = True
+_t6_sysid_on._sysid.arm(datetime(2026, 2, 1, 12, 0, 0))
+R.check(
+    "the system-identification property follows the experiment, not a copy",
+    _t6_prop_start.system_identification_active is False
+    and _t6_sysid_on.system_identification_active
+    == _t6_sysid_on._sysid.active,
+    f"idle -> {_t6_prop_start.system_identification_active!r}, armed -> "
+    f"{_t6_sysid_on.system_identification_active!r} -- the switch entity "
+    "reads this, so a cached copy would leave the switch showing the state "
+    "the experiment had at setup",
+)
+
+
+# -- `_store_diagnosis`: absence must not overwrite the last real report ---
+_t6_diag_keep = _t6_coord()
+_t6_diag_keep._last_diagnosis = {"kept": True}
+_t6_call(_t6_store_diagnosis, _t6_diag_keep, None)
+_t6_diag_set = _t6_coord()
+_t6_call(_t6_store_diagnosis, _t6_diag_set, {"stored": 1})
+R.check(
+    "a diagnosis run that produced nothing leaves the last real one standing",
+    _t6_diag_keep._last_diagnosis == {"kept": True}
+    and _t6_diag_set._last_diagnosis == {"stored": 1},
+    f"None over a live report -> {_t6_diag_keep._last_diagnosis!r}, a report "
+    f"-> {_t6_diag_set._last_diagnosis!r} -- the interval diagnosis can "
+    "return None on a quiet interval, and overwriting with it would blank a "
+    "panel the user is reading",
+)
+
+
+# -- `_baseline_house_load`: what the house draws that is not the pump -----
+_t6_base_none = _t6_coord()
+_t6_base_both = _t6_coord()
+_t6_base_both._measured_house_power = 5.0
+_t6_base_both._measured_power = 2.0
+_t6_base_under = _t6_coord()
+_t6_base_under._measured_house_power = 5.0
+_t6_base_under._measured_power = 9.0
+R.check(
+    "without a house meter the baseline is zero, not a guess",
+    list(_t6_call(_t6_base_none._baseline_house_load, 4)) == [0.0] * 4,
+    f"{list(_t6_call(_t6_base_none._baseline_house_load, 4))!r} -- most "
+    "installs have no house meter, and inventing a baseline would spend the "
+    "fuse headroom the charger automation reads",
+)
+R.check(
+    "with both meters the baseline is the difference, floored at zero",
+    list(_t6_call(_t6_base_both._baseline_house_load, 4)) == [3.0] * 4
+    and list(_t6_call(_t6_base_under._baseline_house_load, 2)) == [0.0] * 2,
+    f"house 5.0 less pump 2.0 -> "
+    f"{list(_t6_call(_t6_base_both._baseline_house_load, 4))!r}; a pump "
+    f"reading ABOVE the house's -> "
+    f"{list(_t6_call(_t6_base_under._baseline_house_load, 2))!r} -- the two "
+    "meters can disagree across a sampling boundary, and a negative baseline "
+    "would hand the horizon more headroom than the fuse has",
+)
+
+
+# -- `_price_prior`: the learned shape, behind its own switch --------------
+_t6_prior_on = _t6_coord()
+_t6_prior_off = _t6_coord(price_prior_enabled=False)
+R.check(
+    "the learned price shape is offered only while its option is on",
+    _t6_call(_t6_prior_on._price_prior) is _t6_prior_on._price_model
+    and _t6_call(_t6_prior_off._price_prior) is None,
+    f"on -> the coordinator's own model ({_t6_call(_t6_prior_on._price_prior) is _t6_prior_on._price_model}), "
+    f"off -> {_t6_call(_t6_prior_off._price_prior)!r} -- identity rather than "
+    "type, because returning a fresh empty model would also be a "
+    "`PriceShapeModel` and would silently discard everything learned",
+)
+
+
+# -- `month_channel_totals`: an absent figure, never a measured zero -------
+_t6_month_empty = _t6_coord()
+R.check(
+    "an empty month reports its channel as zero rather than as absent",
+    _t6_call(_t6_month_empty.month_channel_totals, "space") == (0.0, 0.0),
+    f"{_t6_call(_t6_month_empty.month_channel_totals, 'space')!r} -- the "
+    "ledger opens the month's line at settlement, so a fresh month has an "
+    "entry reading zero; the None arm is for a channel the ledger has never "
+    "opened at all",
+)
+
+
+# -- `_weather_fetch_recovered`: the latch, cleared once ------------------
+_t6_wx_recovered = _t6_coord()
+_t6_wx_recovered._weather_outage_cycles = 3
+_t6_wx_recovered._weather_stale_since = datetime(2026, 2, 1, 9, 0, 0)
+_t6_call(_t6_wx_recovered._weather_fetch_recovered)
+_t6_wx_never = _t6_coord()
+_t6_call(_t6_wx_never._weather_fetch_recovered)
+R.check(
+    "a recovered forecast clears both the outage count and the staleness",
+    _t6_wx_recovered._weather_outage_cycles == 0
+    and _t6_wx_recovered._weather_stale_since is None
+    and _t6_wx_never._weather_outage_cycles == 0
+    and _t6_wx_never._weather_stale_since is None,
+    f"after three failed cycles -> count "
+    f"{_t6_wx_recovered._weather_outage_cycles!r}, stale_since "
+    f"{_t6_wx_recovered._weather_stale_since!r} -- both must clear, because "
+    "`weather_forecast_stale_hours` is published off the timestamp while the "
+    "log's once-per-outage behaviour keys on the count",
+)
+
+
+# -- `async_publish_current_action`: nothing to publish before the first plan
+_t6_pub_empty = _t6_coord()
+_t6_pub_empty._current_action = {}
+_t6_pub_empty._t6_published = []
+_t6_pub_live = _t6_coord()
+_t6_pub_live._current_action = {"displace_value": -2.0, "heat_pump_on": True}
+_t6_pub_live._t6_published = []
+
+
+async def _t6_pub_empty_cmd(**kwargs):
+    _t6_pub_empty._t6_published.append(kwargs)
+
+
+async def _t6_pub_live_cmd(**kwargs):
+    _t6_pub_live._t6_published.append(kwargs)
+
+
+_t6_pub_empty.async_publish_ecl110_command = _t6_pub_empty_cmd
+_t6_pub_live.async_publish_ecl110_command = _t6_pub_live_cmd
+_t6_drive(_t6_pub_empty, "async_publish_current_action")
+_t6_drive(_t6_pub_live, "async_publish_current_action")
+R.check(
+    "republishing before the first plan sends nothing, rather than a zero displace",
+    _t6_pub_empty._t6_published == []
+    and len(_t6_pub_live._t6_published) == 1
+    and _t6_pub_live._t6_published[0]["displace_value"] == -2.0
+    and _t6_pub_live._t6_published[0]["reason"] == "optimizer",
+    f"no action -> {_t6_pub_empty._t6_published!r}; a live action -> "
+    f"{_t6_pub_live._t6_published!r} -- the peak guard's release calls this, "
+    "and an empty action would publish a 0.0 displace to the controller as "
+    "though the plan had asked for it",
+)
+
+
+# -- the stores: four saves and three loads that must never raise ---------
+# Each of these runs inside the update cycle or off `_spawn`, so a full disk
+# or a corrupt file must cost the value and never the cycle. The seven are
+# checked together because the claim is identical across them and a check
+# per store would be seven copies of one sentence -- but each store is
+# driven separately, so a missing `try` in any one of them fails this.
+class _T6RaisingStore:
+    """A store whose read and write both fail, as a full or corrupt one does."""
+
+    async def async_load(self):
+        raise RuntimeError("store unreadable")
+
+    async def async_save(self, data):
+        raise RuntimeError("no space left on device")
+
+
+class _T6Store:
+    """A store holding one payload and recording what is written."""
+
+    def __init__(self, payload=None):
+        self.payload = payload
+        self.saved: list = []
+
+    async def async_load(self):
+        return self.payload
+
+    async def async_save(self, data):
+        self.saved.append(data)
+
+
+_T6_SAVES = (
+    ("_price_model_store", "_async_save_price_model"),
+    ("_manual_plan_store", "_async_save_manual_plan"),
+    ("_snapshot_store", "_async_save_snapshots"),
+    ("_energy_store", "_async_save_energy_totals"),
+)
+_T6_LOADS = (
+    ("_manual_plan_store", "_async_load_manual_plan"),
+    ("_snapshot_store", "_async_load_snapshots"),
+    ("_energy_store", "_async_load_energy_totals"),
+)
+_t6_save_escapes = {}
+for _t6_attr, _t6_method in _T6_SAVES:
+    _t6_store_c = _t6_coord()
+    setattr(_t6_store_c, _t6_attr, _T6RaisingStore())
+    _t6_drive(_t6_store_c, _t6_method)
+    _t6_save_escapes[_t6_method] = _t6_store_c._t6_escaped
+_t6_load_escapes = {}
+for _t6_attr, _t6_method in _T6_LOADS:
+    _t6_store_c = _t6_coord()
+    setattr(_t6_store_c, _t6_attr, _T6RaisingStore())
+    _t6_drive(_t6_store_c, _t6_method)
+    _t6_load_escapes[_t6_method] = _t6_store_c._t6_escaped
+R.check(
+    "four stores whose WRITE fails swallow it rather than breaking the cycle",
+    all(v is None for v in _t6_save_escapes.values()),
+    f"{ {k: repr(v) for k, v in sorted(_t6_save_escapes.items())} } -- each "
+    "runs inside the update cycle or off `_spawn`, where an escape is an "
+    "`UpdateFailed` and every entity goes unavailable over a value the "
+    "integration can rewrite next cycle",
+)
+R.check(
+    "three stores whose READ fails start from the defaults rather than aborting setup",
+    all(v is None for v in _t6_load_escapes.values()),
+    f"{ {k: repr(v) for k, v in sorted(_t6_load_escapes.items())} } -- these "
+    "run at setup, so an escape here is an integration that will not start "
+    "because one learned file went bad",
+)
+
+
+# -- `_async_load_energy_totals`: accumulators that may not go backwards ---
+# Home Assistant reads a drop in a total_increasing sensor as a meter reset
+# and draws a spurious spike, so a stored value LOWER than the live one is
+# refused rather than trusted.
+_T6_ENERGY_KEY = sorted(_t6_coord()._energy_totals)[0]
+
+
+def _t6_energy(payload, *, live=None):
+    """Load `payload` over a coordinator holding `live` on the first channel."""
+    c = _t6_coord()
+    if live is not None:
+        c._energy_totals[_T6_ENERGY_KEY] = live
+    c._energy_store = _T6Store(payload)
+    return _t6_drive(c, "_async_load_energy_totals")
+
+
+_t6_en_lower = _t6_energy(
+    {_T6_ENERGY_KEY: 4.0, "since": "2026-01-01T00:00:00"}, live=10.0
+)
+_t6_en_higher = _t6_energy({_T6_ENERGY_KEY: 7.5}, live=1.0)
+R.check(
+    "a stored total lower than the live one is refused; a higher one is adopted",
+    _t6_en_lower._energy_totals[_T6_ENERGY_KEY] == 10.0
+    and _t6_en_higher._energy_totals[_T6_ENERGY_KEY] == 7.5,
+    f"stored 4.0 over a live 10.0 -> "
+    f"{_t6_en_lower._energy_totals[_T6_ENERGY_KEY]!r}; stored 7.5 over a live "
+    f"1.0 -> {_t6_en_higher._energy_totals[_T6_ENERGY_KEY]!r} -- both "
+    "directions, because a `max` that always won would be indistinguishable "
+    "from a plain assignment on the second case alone",
+)
+_t6_en_inf = _t6_energy({_T6_ENERGY_KEY: float("inf")}, live=1.0)
+_t6_en_junk = _t6_energy("not a mapping", live=1.0)
+R.check(
+    "a non-finite total and a payload that is not a mapping are both refused",
+    _t6_en_inf._energy_totals[_T6_ENERGY_KEY] == 1.0
+    and _t6_en_junk._energy_totals[_T6_ENERGY_KEY] == 1.0
+    and _t6_en_inf._t6_escaped is None,
+    f"infinite -> {_t6_en_inf._energy_totals[_T6_ENERGY_KEY]!r}, a bare "
+    f"string -> {_t6_en_junk._energy_totals[_T6_ENERGY_KEY]!r} -- `inf` "
+    "parses and compares greater than everything, so the finite test is what "
+    "stops it becoming the accumulator's permanent floor",
+)
+R.check(
+    "the accumulator's start time is restored only when it is a non-empty string",
+    _t6_en_lower._energy_totals_since == "2026-01-01T00:00:00"
+    and _t6_en_higher._energy_totals_since is None,
+    f"a stored ISO string -> {_t6_en_lower._energy_totals_since!r}, absent -> "
+    f"{_t6_en_higher._energy_totals_since!r} -- the sensor publishes this as "
+    "its `last_reset`, and a non-string there is a broken attribute rather "
+    "than a missing one",
+)
+
+
+# -- `_current_humidity`: the entry covering NOW, not the first one -------
+# The last positional read the v3.8.0 audit left aligned. It feeds the
+# defrost bucket, which tolerates a stale-by-hours humidity but not a
+# wrong-by-a-day one, so the entry nearest the current time wins and a
+# forecast with no timestamps falls back to the old first-entry behaviour
+# rather than reading nothing.
+_T6_HUM_NOW = datetime(2026, 2, 1, 12, 0, 0)
+
+
+def _t6_humidity(entries):
+    """Read the outdoor humidity from `entries` at a fixed instant."""
+    c = _t6_coord()
+    c._weather_forecast = entries
+    dt_util.freeze(_T6_HUM_NOW)
+    try:
+        return _t6_call(c._current_humidity)
+    finally:
+        dt_util.freeze(None)
+
+
+R.check(
+    "the humidity entry nearest NOW wins, not the first in the list",
+    _t6_humidity(
+        [
+            {"humidity": 10, "datetime": (_T6_HUM_NOW + timedelta(hours=6)).isoformat()},
+            {"humidity": 80, "datetime": _T6_HUM_NOW.isoformat()},
+            {"humidity": 30, "datetime": (_T6_HUM_NOW - timedelta(hours=3)).isoformat()},
+        ]
+    )
+    == 80.0,
+    "three entries at +6 h, now and -3 h -> "
+    f"{_t6_humidity([{'humidity': 10, 'datetime': (_T6_HUM_NOW + timedelta(hours=6)).isoformat()}, {'humidity': 80, 'datetime': _T6_HUM_NOW.isoformat()}, {'humidity': 30, 'datetime': (_T6_HUM_NOW - timedelta(hours=3)).isoformat()}])!r} "
+    "-- the nearest is neither first nor last here, so a positional read "
+    "cannot pass by accident",
+)
+R.check(
+    "an untimestamped forecast falls back to the first entry carrying a humidity",
+    _t6_humidity([{"humidity": 55}, {"humidity": 77}]) == 55.0
+    and _t6_humidity([{"temperature": 5.0}, {"humidity": 77}]) == 77.0,
+    f"two untimestamped -> {_t6_humidity([{'humidity': 55}, {'humidity': 77}])!r}; "
+    f"one without the key -> {_t6_humidity([{'temperature': 5.0}, {'humidity': 77}])!r} "
+    "-- every distance is infinite, so the first is kept and an entry with no "
+    "humidity at all is skipped rather than counted",
+)
+R.check(
+    "no forecast and no humidity in it both read as absent",
+    _t6_humidity([]) is None and _t6_humidity([{"temperature": 5.0}]) is None,
+    f"empty -> {_t6_humidity([])!r}, no humidity key -> "
+    f"{_t6_humidity([{'temperature': 5.0}])!r} -- None sends the defrost "
+    "model to its ambient default, which is the documented fallback",
+)
+R.check(
+    "a non-numeric humidity, and one outside 0-100, are each refused",
+    _t6_humidity([{"humidity": "wet", "datetime": _T6_HUM_NOW.isoformat()}]) is None
+    and _t6_humidity([{"humidity": 140, "datetime": _T6_HUM_NOW.isoformat()}]) is None
+    and _t6_humidity([{"humidity": -5, "datetime": _T6_HUM_NOW.isoformat()}]) is None,
+    "'wet', 140 and -5 all -> None -- the range test is its own arm from the "
+    "parse, and a 140 % humidity selects a defrost bucket that does not "
+    "describe any weather",
+)
+
+
+# -- `_shutdown_process_pool`: a shutdown that must not raise -------------
+# Two exits, and they differ: at interpreter exit there is no loop left to
+# wait on a terminate, so the worker is killed outright. Both arms are
+# wrapped because the worker may already have been reaped by the OS, and a
+# raise here happens while Home Assistant is stopping.
+class _T6Worker:
+    """A stand-in for the solve worker, recording what shutdown did to it."""
+
+    def __init__(self, *, alive=True, stdin_raises=False, kill_raises=False):
+        self.alive = alive
+        self.kill_raises = kill_raises
+        self.events: list = []
+        outer = self
+
+        class _Stdin:
+            def close(self):
+                if stdin_raises:
+                    raise RuntimeError("pipe already gone")
+                outer.events.append("stdin-closed")
+
+        self.stdin = _Stdin()
+
+    def poll(self):
+        return None if self.alive else 0
+
+    def kill(self):
+        self.events.append("kill")
+        if self.kill_raises:
+            raise RuntimeError("already reaped")
+
+    def wait(self, timeout=None):
+        self.events.append(("wait", timeout))
+
+    def terminate(self):
+        self.events.append("terminate")
+
+
+def _t6_shutdown(worker, *, at_exit=False):
+    """Run the pool shutdown against `worker`, restoring the global after."""
+    previous = _t6_coord_module._PROCESS_WORKER
+    _t6_coord_module._PROCESS_WORKER = worker
+    try:
+        escaped = _t6_call(_t6_coord_module._shutdown_process_pool, at_exit=at_exit)
+    finally:
+        _t6_coord_module._PROCESS_WORKER = previous
+    return escaped, (worker.events if worker is not None else [])
+
+
+_t6_sd_none = _t6_shutdown(None)
+_t6_sd_stdin = _t6_shutdown(_T6Worker(stdin_raises=True))
+_t6_sd_exit = _t6_shutdown(_T6Worker(), at_exit=True)
+_t6_sd_exit_raise = _t6_shutdown(_T6Worker(kill_raises=True), at_exit=True)
+_t6_sd_normal = _t6_shutdown(_T6Worker())
+_t6_sd_dead = _t6_shutdown(_T6Worker(alive=False))
+R.check(
+    "shutdown raises on nothing, including a worker whose pipe and kill both fail",
+    all(
+        not isinstance(escaped, Exception)
+        for escaped, _events in (
+            _t6_sd_none,
+            _t6_sd_stdin,
+            _t6_sd_exit,
+            _t6_sd_exit_raise,
+            _t6_sd_normal,
+            _t6_sd_dead,
+        )
+    ),
+    "escapes: "
+    f"{[repr(e) for e, _ in (_t6_sd_none, _t6_sd_stdin, _t6_sd_exit, _t6_sd_exit_raise, _t6_sd_normal, _t6_sd_dead)]!r} "
+    "-- this runs while Home Assistant is stopping, where a raise is logged "
+    "as a failed shutdown the user cannot act on",
+)
+R.check(
+    "at interpreter exit the worker is KILLED; otherwise it is asked to terminate",
+    _t6_sd_exit[1] == ["stdin-closed", "kill", ("wait", None)]
+    and _t6_sd_normal[1] == ["stdin-closed", "terminate", ("wait", 2)],
+    f"at_exit -> {_t6_sd_exit[1]!r}; normal -> {_t6_sd_normal[1]!r} -- there "
+    "is no loop left at interpreter exit to wait out a polite terminate, and "
+    "the worker holds no file or lock a SIGTERM would let it flush",
+)
+R.check(
+    "a worker that already exited is left alone, and a closed pipe does not stop the rest",
+    _t6_sd_dead[1] == ["stdin-closed"]
+    and _t6_sd_stdin[1] == ["terminate", ("wait", 2)],
+    f"already exited -> {_t6_sd_dead[1]!r}; pipe close raised -> "
+    f"{_t6_sd_stdin[1]!r} -- the second is the one that matters: the "
+    "terminate still runs after the pipe failed, because the `except` is "
+    "scoped to the close and not to the shutdown",
+)
+
+
+
+
+# -- `_run_in_process`: the transport, and what is the CALLER's error -----
+# One distinction carries this whole function: a job that raised is the
+# caller's problem and its exception is re-raised unchanged, while anything
+# that went wrong with the PIPE is the worker being unusable and becomes
+# `ProcessWorkerUnavailable`. Confusing the two either hides a real solver
+# bug behind a transport error or retries a deterministic failure forever.
+class _T6Worker2:
+    """A worker whose pipes can be absent, truncated or carry one reply."""
+
+    def __init__(self, *, stdin=True, stdout=True, reply=_T6_UNSET, rc=None):
+        self.stdin = _io.BytesIO() if stdin else None
+        if not stdout:
+            self.stdout = None
+        elif reply is _T6_UNSET:
+            self.stdout = _io.BytesIO()
+        else:
+            self.stdout = _io.BytesIO(_t6_pickle.dumps(reply))
+        self._rc = rc
+        if self.stdin is not None:
+            self.stdin.flush = lambda: None
+
+    def poll(self):
+        return self._rc
+
+
+def _t6_in_process(worker, fn=len, args=((1, 2, 3),)):
+    """Run one job against `worker`, restoring the module globals after."""
+    previous_worker = _t6_coord_module._PROCESS_WORKER
+    previous_ensure = _t6_coord_module._ensure_worker
+    _t6_coord_module._PROCESS_WORKER = worker
+    _t6_coord_module._ensure_worker = lambda: worker
+    try:
+        return _t6_call(_t6_coord_module._run_in_process, fn, args)
+    finally:
+        _t6_coord_module._ensure_worker = previous_ensure
+        _t6_coord_module._PROCESS_WORKER = previous_worker
+
+
+_t6_ip_ok = _t6_in_process(_T6Worker2(reply=("ok", 42)))
+_t6_ip_err = _t6_in_process(_T6Worker2(reply=("err", ValueError("solver said no"))))
+R.check(
+    "a job that RAISED comes back as its own exception, not as a transport error",
+    _t6_ip_ok == 42
+    and isinstance(_t6_ip_err, ValueError)
+    and str(_t6_ip_err) == "solver said no",
+    f"a good job -> {_t6_ip_ok!r}; a raising job -> {_t6_ip_err!r} -- "
+    "wrapping this one would hide a real solver bug behind a worker restart, "
+    "and the caller retries a transport error where it must not retry a "
+    "deterministic failure",
+)
+_t6_ip_nopipe = _t6_in_process(_T6Worker2(stdin=False))
+_t6_ip_noout = _t6_in_process(_T6Worker2(stdout=False))
+_t6_ip_trunc = _t6_in_process(_T6Worker2())
+R.check(
+    "absent pipes and a truncated reply are all the WORKER being unusable",
+    all(
+        type(v).__name__ == "ProcessWorkerUnavailable"
+        for v in (_t6_ip_nopipe, _t6_ip_noout, _t6_ip_trunc)
+    )
+    and "pipes missing" in str(_t6_ip_nopipe)
+    and "exited rc=" in str(_t6_ip_trunc),
+    f"no stdin -> {str(_t6_ip_nopipe)[:46]!r}; no stdout -> "
+    f"{str(_t6_ip_noout)[:46]!r}; truncated -> {str(_t6_ip_trunc)[:52]!r} -- "
+    "the truncated arm carries the worker's return code, which is what tells "
+    "a reader whether the child died or merely lost the pipe",
+)
+_t6_ip_loaderr = _t6_in_process(
+    _T6Worker2(reply=("load-err", "No module named 'thing'"))
+)
+R.check(
+    "a job the child could not UNPICKLE is the worker's fault, and retires it",
+    type(_t6_ip_loaderr).__name__ == "ProcessWorkerUnavailable"
+    and "cannot load the job" in str(_t6_ip_loaderr)
+    and "No module named" in str(_t6_ip_loaderr),
+    f"{str(_t6_ip_loaderr)[:70]!r} -- the child has ended its loop, so "
+    "reusing it races the exit and reports 'rc=0: Ran out of input' instead "
+    "of the cause; the job never ran, which is why this is the worker being "
+    "unusable rather than the caller's error",
+)
+
+
+# -- `_diagnose_payload` and `_capture_diagnosis_inputs` ------------------
+# Both are best-effort evidence: a diagnosis that cannot be produced is an
+# absent panel, never a broken cycle.
+_t6_dp_none = _t6_coord()
+_t6_dp_live = _t6_coord()
+_t6_dp_live._last_interval_record = {"interval": 1}
+_t6_dp_none_out = _t6_call(_t6_diagnose_payload, _t6_dp_none)
+_t6_dp_live_out = _t6_call(_t6_diagnose_payload, _t6_dp_live)
+R.check(
+    "with no interval recorded the diagnosis payload is a pair of Nones",
+    _t6_dp_none_out == (None, None),
+    f"{_t6_dp_none_out!r} -- the caller unpacks two values either way, so a "
+    "bare None here is a TypeError at the call site",
+)
+R.check(
+    "the payload carries the record and a COPY of the parameters",
+    _t6_dp_live_out[0] == {"interval": 1}
+    and _t6_dp_live_out[1] is not _t6_dp_live._thermal_params,
+    f"record {_t6_dp_live_out[0]!r}, params copied "
+    f"{_t6_dp_live_out[1] is not _t6_dp_live._thermal_params} -- the "
+    "diagnosis runs in another process against the parameters the plan used, "
+    "and handing it the live object would diagnose whatever they became",
+)
+
+_T6_CAP_NOW = datetime(2026, 2, 1, 12, 0, 0)
+
+
+def _t6_capture(coord=None):
+    """Capture one interval's diagnosis inputs at a fixed instant."""
+    c = coord if coord is not None else _t6_coord()
+    dt_util.freeze(_T6_CAP_NOW)
+    try:
+        return _t6_call(c._capture_diagnosis_inputs)
+    finally:
+        dt_util.freeze(None)
+
+
+_t6_cap = _t6_capture()
+_t6_cap_windless = _t6_coord()
+
+
+def _t6_cap_boom():
+    raise RuntimeError("weather source gone")
+
+
+_t6_cap_windless._current_weather = _t6_cap_boom
+_t6_cap_nowind = _t6_capture(_t6_cap_windless)
+R.check(
+    "the captured inputs carry the state and the plan's own assumptions",
+    isinstance(_t6_cap, dict)
+    and set(_t6_cap) == {"state", "planned"}
+    and _t6_cap["planned"]["hour_of_day"] == 12.0,
+    f"{sorted(_t6_cap)!r}, hour {_t6_cap['planned']['hour_of_day']!r} -- "
+    "captured at prediction time beside the accuracy sample, because inputs "
+    "remembered any later would grade the residual against assumptions the "
+    "plan never made",
+)
+R.check(
+    "a weather source that raises costs the wind, not the whole capture",
+    isinstance(_t6_cap_nowind, dict)
+    and _t6_cap_nowind["planned"]["wind_speed"] == 0.0
+    and set(_t6_cap_nowind) == {"state", "planned"},
+    f"wind {_t6_cap_nowind['planned']['wind_speed']!r} with the rest intact "
+    f"({sorted(_t6_cap_nowind)!r}) -- wind is optional evidence and the "
+    "residual is still attributable without it",
+)
+R.check(
+    "the captured electrical power is the SPACE channel only",
+    _t6_cap["planned"]["electrical_power"] == 0.0
+    and "external_heat_kw" in _t6_cap["planned"],
+    f"{_t6_cap['planned']['electrical_power']!r} from an empty action -- "
+    "`simulate_step`'s electrical power heats the house, not the tank, so "
+    "handing it the commanded total would charge every hot-water charge to "
+    "room heating and the diagnosis would blame the building fabric",
+)
+
+
+
+
+# -- `_settle_defrost`: two estimators that must never fold the same interval
+# With a legible defrost flag the derate learns from MEASURED duty, in every
+# temperature bucket. Without one it infers from `delivered_ratio`, and only
+# inside the frosting band. The two estimate the same quantity from
+# different evidence, and averaging a measurement with an inference of it
+# produces a number that is neither -- the more so here, where the inference
+# is known to be biased optimistic and blind to the very event it stands in
+# for.
+class _T6DefrostWindow:
+    """The four fields the settler reads off a defrost window."""
+
+    def __init__(self, observed, *, seconds=1800.0, duty=0.2, events=3):
+        self.observed = observed
+        self.seconds = seconds
+        self.duty = duty
+        self.events = events
+
+
+def _t6_settle(sample, window, **config):
+    """Settle one interval, recording which estimator was fed."""
+    c = _t6_coord(**config)
+    c._t6_folds = []
+    c._defrost.observe_duty = lambda *args: c._t6_folds.append(("duty",) + args)
+    c._defrost.observe = lambda *args: c._t6_folds.append(("ratio",) + args)
+    c._t6_escaped = _t6_call(c._settle_defrost, sample, window)
+    return c
+
+
+_T6_FROST = _AccuracySample(
+    when=datetime(2026, 2, 1, 12, 0, 0),
+    outdoor_temp=2.0,
+    humidity=85.0,
+    predicted_power_kw=2.0,
+    actual_power_kw=2.5,
+    predicted_temp=21.0,
+    actual_temp=20.8,
+)
+_t6_df_duty = _t6_settle(_T6_FROST, _T6DefrostWindow(True))
+_t6_df_ratio = _t6_settle(_T6_FROST, _T6DefrostWindow(False))
+R.check(
+    "a legible flag feeds the MEASURED estimator and the inference not at all",
+    [f[0] for f in _t6_df_duty._t6_folds] == ["duty"]
+    and _t6_df_duty._t6_folds[0][1:] == (2.0, 85.0, 0.2, 3)
+    and [f[0] for f in _t6_df_ratio._t6_folds] == ["ratio"],
+    f"observed -> {[f[0] for f in _t6_df_duty._t6_folds]!r}, not observed -> "
+    f"{[f[0] for f in _t6_df_ratio._t6_folds]!r} -- exactly one fires in each "
+    "case, and feeding both would average a measurement with an inference of "
+    "it and produce a number that is neither",
+)
+_t6_df_short = _t6_settle(_T6_FROST, _T6DefrostWindow(True, seconds=100.0))
+_t6_df_long = _t6_settle(_T6_FROST, _T6DefrostWindow(True, seconds=9000.0))
+R.check(
+    "a window far from the interval length is a restart, not a measurement",
+    _t6_df_short._t6_folds == [] and _t6_df_long._t6_folds == [],
+    f"100 s -> {_t6_df_short._t6_folds!r}, 9000 s -> "
+    f"{_t6_df_long._t6_folds!r} against a 1800 s interval -- the duty's "
+    "denominator is the window, so a stall or a reload would divide the same "
+    "defrost seconds by the wrong number and teach a duty nothing measured",
+)
+R.check(
+    "a too-long window falls through to NEITHER estimator, not back to the inference",
+    _t6_df_long._t6_folds == [] and _t6_df_ratio._t6_folds != [],
+    f"observed but unusable -> {_t6_df_long._t6_folds!r}; no flag at all -> "
+    f"{[f[0] for f in _t6_df_ratio._t6_folds]!r} -- the `return` inside the "
+    "observed branch is what keeps an install WITH a sensor from silently "
+    "falling back to the estimator it was meant to replace",
+)
+_T6_MILD = _dc_replace(_T6_FROST, outdoor_temp=15.0)
+_t6_df_mild = _t6_settle(_T6_MILD, _T6DefrostWindow(False))
+_t6_df_noout = _t6_settle(
+    _AccuracySample(when=datetime(2026, 2, 1, 12, 0, 0)), _T6DefrostWindow(True)
+)
+R.check(
+    "outside the frosting band the inference does not fire, and no outdoor reading stops both",
+    _t6_df_mild._t6_folds == []
+    and _t6_df_noout._t6_folds == []
+    and not isinstance(_t6_df_noout._t6_escaped, Exception),
+    f"15 C with no flag -> {_t6_df_mild._t6_folds!r}; no outdoor temperature "
+    f"-> {_t6_df_noout._t6_folds!r} -- the inference is restricted to the "
+    "frosting band because outside it a power overshoot is not defrost, "
+    "while the measurement is not restricted at all: a bucket measuring zero "
+    "duty is learning something real",
+)
+
+
+
+
+# -- the module helpers every reader in the class goes through ------------
+# `_as_float`, `_comparable_ts`, `_plain_types` and `_wind_speed_scale` are
+# small, and that is exactly why they are worth pinning: a wrong answer in
+# any of them is wrong everywhere at once, and none of them has a caller
+# that would notice.
+R.check(
+    "a value that is not a finite number falls back to the default, four ways",
+    _t6_as_float(None, 5.0) == 5.0
+    and _t6_as_float("not a number", 5.0) == 5.0
+    and _t6_as_float(float("nan"), 5.0) == 5.0
+    and _t6_as_float(float("inf"), 5.0) == 5.0
+    and _t6_as_float("3.5", 5.0) == 3.5
+    and _t6_as_float(2, 5.0) == 2.0,
+    f"None -> {_t6_as_float(None, 5.0)!r}, junk -> "
+    f"{_t6_as_float('not a number', 5.0)!r}, NaN -> "
+    f"{_t6_as_float(float('nan'), 5.0)!r}, inf -> "
+    f"{_t6_as_float(float('inf'), 5.0)!r}; '3.5' -> "
+    f"{_t6_as_float('3.5', 5.0)!r} -- Home Assistant's own `Forecast` type "
+    "allows a None key, and NaN parses, so the finite test is a separate arm "
+    "from the parse and a NaN through here poisons the whole horizon",
+)
+
+_T6_TS_AWARE = datetime(2026, 2, 1, 12, 0, 0, tzinfo=timezone.utc)
+_T6_TS_NAIVE = datetime(2026, 2, 1, 12, 0, 0)
+R.check(
+    "a naive timestamp against an aware grid is taken as UTC, and the reverse keeps its wall clock",
+    _t6_comparable_ts("2026-02-01T10:00:00", _T6_TS_AWARE)
+    == datetime(2026, 2, 1, 10, 0, 0, tzinfo=timezone.utc)
+    and _t6_comparable_ts("2026-02-01T10:00:00+00:00", _T6_TS_NAIVE)
+    == datetime(2026, 2, 1, 10, 0, 0),
+    f"naive against aware -> "
+    f"{_t6_comparable_ts('2026-02-01T10:00:00', _T6_TS_AWARE)!r}; aware "
+    f"against naive -> "
+    f"{_t6_comparable_ts('2026-02-01T10:00:00+00:00', _T6_TS_NAIVE)!r} -- "
+    "both directions are needed because subtracting a naive datetime from an "
+    "aware one raises, and this helper is what every horizon alignment "
+    "compares through",
+)
+R.check(
+    "a matching pair passes through and an unparseable timestamp reads as absent",
+    _t6_comparable_ts("2026-02-01T10:00:00", _T6_TS_NAIVE)
+    == datetime(2026, 2, 1, 10, 0, 0)
+    and _t6_comparable_ts("not a timestamp", _T6_TS_NAIVE) is None
+    and _t6_comparable_ts(None, _T6_TS_NAIVE) is None,
+    f"matching -> {_t6_comparable_ts('2026-02-01T10:00:00', _T6_TS_NAIVE)!r}, "
+    f"junk -> {_t6_comparable_ts('not a timestamp', _T6_TS_NAIVE)!r}, None -> "
+    f"{_t6_comparable_ts(None, _T6_TS_NAIVE)!r} -- None is what the callers "
+    "read as 'this entry has no usable time', and they fall back positionally",
+)
+
+R.check(
+    "numpy scalars and arrays are flattened to plain Python, recursively",
+    _t6_plain_types(np.array([1.5, 2.5])) == [1.5, 2.5]
+    and isinstance(_t6_plain_types(np.float32(1.25)), float)
+    and _t6_plain_types({"a": np.array([1]), "b": (np.int64(2),)})
+    == {"a": [1], "b": [2]}
+    and all(
+        isinstance(v, int)
+        for v in _t6_plain_types({"b": (np.int64(2),)})["b"]
+    ),
+    f"array -> {_t6_plain_types(np.array([1.5, 2.5]))!r}, float32 -> "
+    f"{type(_t6_plain_types(np.float32(1.25))).__name__}, nested -> "
+    f"{_t6_plain_types({'a': np.array([1]), 'b': (np.int64(2),)})!r} -- "
+    "`orjson` rejects `float32`, `int64` and `ndarray`, so anything that "
+    "reaches an entity attribute unflattened makes the whole state "
+    "unserialisable and the entity disappears",
+)
+
+
+# -- `_wind_speed_scale`: the unit the weather entity actually reports ----
+def _t6_wind(unit=_T6_UNSET, *, entity=True):
+    """The wind scale for a weather entity reporting `unit`."""
+    if not entity:
+        return _t6_call(
+            HeatPumpOptimizerCoordinator(
+                FakeHass({}), FakeEntry(data={"tibber_token": "x"})
+            )._wind_speed_scale
+        )
+    attrs = {} if unit is _T6_UNSET else {"wind_speed_unit": unit}
+    states = {"weather.home": FakeState("sunny", attributes=attrs)}
+    return _t6_call(_t6_coord(states)._wind_speed_scale)
+
+
+R.check(
+    "a known wind unit is converted and an unknown one falls back to m/s",
+    abs(_t6_wind("km/h") - 1.0 / 3.6) < 1e-9
+    and _t6_wind("m/s") == 1.0
+    and _t6_wind("bananas") == 1.0
+    and _t6_wind() == 1.0,
+    f"km/h -> {_t6_wind('km/h')!r}, m/s -> {_t6_wind('m/s')!r}, unknown -> "
+    f"{_t6_wind('bananas')!r}, absent -> {_t6_wind()!r} -- guessing from the "
+    "magnitude instead reads a moderate 20 km/h breeze as a 20 m/s storm and "
+    "doubles the predicted heat loss",
+)
+R.check(
+    "no weather entity, and one missing from the bus, both read as m/s",
+    _t6_wind(entity=False) == 1.0
+    and _t6_call(_t6_coord({})._wind_speed_scale) == 1.0,
+    f"unconfigured -> {_t6_wind(entity=False)!r}, configured but absent -> "
+    f"{_t6_call(_t6_coord({})._wind_speed_scale)!r} -- 1.0 is Home "
+    "Assistant's own metric default, so an install with no weather entity is "
+    "not silently scaled",
+)
+
+
+# -- the last three regions under the 96 % bar -----------------------------
+# Chosen by the partition instrument rather than by eye: at 95.91 % these are
+# what stood between the file and the bar, and each one is a guard whose arm
+# had never been entered rather than a line that merely had not run.
+from heatpump_optimizer.dhw_schedule import DHWWindowError as _T6DHWWindowError  # noqa: E402
+from heatpump_optimizer.const import CONF_CONTRACT_FIXED_PRICE as _T6_FIXED  # noqa: E402
+
+
+class _T6Result:
+    """Just enough optimization result to carry a predictive payload."""
+
+    def __init__(self, predictive_info):
+        self.predictive_info = predictive_info
+
+
+def _t6_windows(planned):
+    """`_dhw_effective_windows` with `planned` as the solver's own answer."""
+    coord = _t6_coord()
+    coord._optimization_result = _T6Result({"dhw_windows": planned})
+    return coord, _t6_call(coord._dhw_effective_windows)
+
+
+_t6_w_conf = _t6_coord()._thermal_params.dhw_demand_windows
+_t6_w_good, _t6_w_good_out = _t6_windows("01:00-02:00")
+_t6_w_bad, _t6_w_bad_out = _t6_windows("25:00-26:00")
+_t6_w_none, _t6_w_none_out = _t6_windows(None)
+R.check(
+    "a planned window the solver produced is what the optimizer plans against",
+    not isinstance(_t6_w_good_out, Exception)
+    and [(float(a), float(b)) for a, b in _t6_w_good_out] == [(1.0, 2.0)]
+    and [(float(a), float(b)) for a, b in _t6_w_good_out] != [
+        (float(a), float(b)) for a, b in _t6_w_conf
+    ],
+    f"planned '01:00-02:00' -> {_t6_w_good_out!r} against a configured "
+    f"{_t6_w_conf!r} -- the two differ on purpose, so a reader of the next "
+    "check can tell a fallback from a planned window that happened to match",
+)
+R.check(
+    "a MALFORMED planned window falls back to the configured ones, and raises nothing",
+    not isinstance(_t6_w_bad_out, Exception)
+    and [(float(a), float(b)) for a, b in _t6_w_bad_out] == [
+        (float(a), float(b)) for a, b in _t6_w_conf
+    ],
+    f"planned '25:00-26:00' -> {_t6_w_bad_out!r} (configured {_t6_w_conf!r}) "
+    f"-- `parse_windows` raises {_T6DHWWindowError.__name__} on that spec, and "
+    "without the `except` the demand-window read is a crash on the cycle "
+    "after a predictive payload goes bad, in a method four callers read",
+)
+R.check(
+    "and an ABSENT plan takes the same configured path, by the falsiness guard",
+    not isinstance(_t6_w_none_out, Exception)
+    and [(float(a), float(b)) for a, b in _t6_w_none_out] == [
+        (float(a), float(b)) for a, b in _t6_w_conf
+    ],
+    f"planned None -> {_t6_w_none_out!r} -- the null control for the check "
+    "above: both arms end at the configured windows, so the `except` is what "
+    "the malformed arm proves and not the `if planned:` above it",
+)
+
+
+# -- `_contract_comparison`: the fixed-price arm, and what `cheapest` means --
+def _t6_contract(fixed, *, kwh=100.0, sek=150.0):
+    """One month of metered spot, settled under a contract priced `fixed`."""
+    coord = _t6_coord(**({} if fixed is None else {_T6_FIXED: fixed}))
+    coord._ledger.add(dt_util.now(), "spot", kwh=kwh, sek=sek)
+    return _t6_call(coord._contract_comparison)
+
+
+_t6_c_off = _t6_contract(None)
+_t6_c_cheap = _t6_contract(1.1)
+_t6_c_dear = _t6_contract(2.0)
+R.check(
+    "a configured fixed price is settled over the SAME metered kWh",
+    _t6_c_cheap.get("fixed_sek") == 110.0
+    and _t6_c_cheap.get("kwh") == 100.0
+    and "fixed_sek" not in _t6_c_off,
+    f"1.10 SEK/kWh over 100 kWh -> {_t6_c_cheap.get('fixed_sek')!r}; "
+    f"unconfigured -> {sorted(_t6_c_off)!r} -- the comparison is the answer "
+    "to 'would another contract have been cheaper for what I actually used', "
+    "so a fixed line priced over anything but the metered kWh answers a "
+    "question nobody asked",
+)
+R.check(
+    "`cheapest` is decided by cost and not by name",
+    _t6_c_cheap.get("cheapest") == "fixed"
+    and _t6_c_dear.get("cheapest") == "hourly_spot",
+    f"at 1.10 -> {_t6_c_cheap.get('cheapest')!r}; at 2.00 -> "
+    f"{_t6_c_dear.get('cheapest')!r} against a 150 SEK hourly bill. Both arms "
+    "are needed: `min` over the dict without its key picks alphabetically, "
+    "and 'fixed' sorts before 'hourly_spot', so a one-armed check would pass "
+    "on a comparison that always recommends switching",
+)
+R.check(
+    "and a lone contract is not reported as the cheapest of one",
+    "cheapest" not in _t6_c_off and "cheapest" in _t6_c_cheap,
+    f"unconfigured -> {sorted(_t6_c_off)!r} -- with one cost in the set there "
+    "is nothing to compare, and naming a winner there is a recommendation "
+    "made from a single data point",
+)
+
+
+# -- `async_clear_manual_plan`: the ORDER is the claim -----------------------
+_t6_mp = _t6_coord()
+_t6_mp_calls: list[tuple[str, object]] = []
+
+
+async def _t6_mp_save():
+    # What the override IS at save time is the whole point: a save that runs
+    # before the clear persists the override the user just deleted, and the
+    # next restart brings it back.
+    _t6_mp_calls.append(("save", _t6_mp._manual_override))
+
+
+async def _t6_mp_refresh():
+    _t6_mp_calls.append(("refresh", _t6_mp._manual_override))
+
+
+_t6_mp._async_save_manual_plan = _t6_mp_save
+_t6_mp.async_request_refresh = _t6_mp_refresh
+_t6_mp._manual_override = "an override the user pinned"
+_t6_drive(_t6_mp, "async_clear_manual_plan")
+R.check(
+    "clearing a manual plan persists the removal and then re-solves",
+    _t6_mp._t6_escaped is None
+    and [name for name, _ in _t6_mp_calls] == ["save", "refresh"]
+    and _t6_mp._manual_override is None,
+    f"calls {[n for n, _ in _t6_mp_calls]!r}, override now "
+    f"{_t6_mp._manual_override!r}, escaped {_t6_mp._t6_escaped!r} -- without "
+    "the refresh the plan the user just cleared keeps running until the next "
+    "scheduled cycle, which is the thing they were trying to stop",
+)
+R.check(
+    "and the override is already gone by the time the store is written",
+    bool(_t6_mp_calls) and _t6_mp_calls[0] == ("save", None),
+    f"the first call was {_t6_mp_calls[0] if _t6_mp_calls else None!r} -- the "
+    "save reads the live attribute, so clearing AFTER it writes the override "
+    "back to disk and the restart restores what was deleted; nothing in the "
+    "returned state would show it. Scoped to the SAVE alone on purpose: read "
+    "over both calls it also fails when the refresh is deleted, and then no "
+    "mutation distinguishes this claim from the one above it",
+)
+
 sys.exit(R.close("FEATURE CHECKS"))
