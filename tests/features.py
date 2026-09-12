@@ -4035,6 +4035,157 @@ R.check(
     _dhw_detail,
 )
 
+# #923 (R4-D1-02): one corrupt scalar inside the accuracy store -- a JSON
+# number where the ``samples`` list belongs -- raised straight out of
+# ``AccuracyTracker.from_dict`` (``for raw in data.get("samples", []) or []``
+# iterates whatever is there) and out of ``_async_load_accuracy``, the one
+# loader whose decode no barrier guards. The raise left the stored peaks,
+# defrost table and operation mode unloaded, and the next ordinary cycle's
+# save overwrote all three on disk with defaults -- silently, with
+# ``last_update_success`` still True. ``from_dict`` is that decode's
+# corruption barrier, like the sibling loaders': a non-list ``samples`` is
+# skipped with a warning, and every other learned field must still load.
+import logging as _d102_logging  # noqa: E402
+
+
+class _D102Capture(_d102_logging.Handler):
+    """Records (level, message) from the package logger, one arm's worth."""
+
+    def __init__(self):
+        super().__init__(level=_d102_logging.DEBUG)
+        self.records = []
+
+    def emit(self, record):
+        self.records.append((record.levelno, record.getMessage()))
+
+
+#: A month of learned state. Every value is money- or physics-bearing:
+#: ``peaks`` is what the capacity tariff is billed on, ``defrost`` is the
+#: learned output derate, ``mode`` is the user's own setting.
+_D102_LEARNED = {
+    "defrost": {
+        "version": 2,
+        "factors": [[0.80, 0.90]] * 6,
+        "counts": [[4, 5]] * 6,
+        "duty": [[0.10, 0.20]] * 6,
+    },
+    "peaks": {"month": "2026-09", "peaks": [7.4, 6.8, 5.9]},
+    "mode": "economy",
+}
+
+
+def _d102_seed(samples):
+    """A coordinator whose accuracy store 'disk' holds ``samples`` where the
+    list belongs, with the learned fields otherwise well-formed."""
+    coord = _store_coord()
+    coord.hass.states.set("sensor.indoor", FakeState("21.4"))
+    coord.hass.states.set("sensor.outdoor", FakeState("-3.0"))
+    _aio.run(
+        coord._accuracy_store.async_save(
+            {
+                "accuracy": {
+                    "samples": samples,
+                    "lead_sigma": {},
+                    "lead_counts": {},
+                    "lead_pending": [],
+                },
+                "dhw_accuracy": {
+                    "samples": [],
+                    "lead_sigma": {},
+                    "lead_counts": {},
+                    "lead_pending": [],
+                },
+                **_D102_LEARNED,
+            }
+        )
+    )
+    return coord
+
+
+def _d102_cycle(coord):
+    """One ordinary update cycle: read inputs, publish, persist -- exactly
+    what ``_async_update_data`` does every interval."""
+    _aio.run(coord._update_current_state())
+    coord.data = coord._build_data_dict()
+    _aio.run(coord._async_save_accuracy())
+    return _aio.run(coord._accuracy_store.async_load())
+
+
+def _d102_kept(store):
+    """Which of the three learned fields the cycle left intact, by name."""
+    kept = []
+    if (
+        store.get("peaks") or {}
+    ).get("peaks") == _D102_LEARNED["peaks"]["peaks"]:
+        kept.append("peaks")
+    if (
+        store.get("defrost") or {}
+    ).get("factors") == _D102_LEARNED["defrost"]["factors"]:
+        kept.append("defrost_factors")
+    if store.get("mode") == _D102_LEARNED["mode"]:
+        kept.append("mode")
+    return kept
+
+
+def _d102_run(samples):
+    """Load + one cycle under log capture; (raised, store, records)."""
+    coord = _d102_seed(samples)
+    capture = _D102Capture()
+    logger = _d102_logging.getLogger("heatpump_optimizer")
+    logger.addHandler(capture)
+    raised, store = "", {}
+    try:
+        try:
+            _aio.run(coord._async_load_accuracy())
+            store = _d102_cycle(coord)
+        except Exception as err:  # noqa: BLE001
+            raised = f"{type(err).__name__}: {err}"
+    finally:
+        logger.removeHandler(capture)
+    return raised, store, capture.records
+
+
+# Null control: a well-formed store round-trips its learned fields through
+# load + one cycle untouched, and logs nothing at WARNING or above.
+_d102_raised, _d102_store, _d102_records = _d102_run([])
+R.check(
+    "a healthy accuracy store round-trips its learned fields (control)",
+    not _d102_raised
+    and _d102_kept(_d102_store) == ["peaks", "defrost_factors", "mode"],
+    _d102_raised or f"kept {_d102_kept(_d102_store)}",
+)
+R.check(
+    "a healthy accuracy store loads without a warning (control)",
+    not [lvl for lvl, _ in _d102_records if lvl >= _d102_logging.WARNING],
+    f"{len(_d102_records)} records",
+)
+
+# The corrupt shapes: a JSON scalar where the samples list belongs. The
+# load must not raise, the three learned fields must survive the next
+# cycle's save, and the skip must be visible in the log.
+for _d102_bad in (1.0, True):
+    _d102_raised, _d102_store, _d102_records = _d102_run(_d102_bad)
+    _d102_shape = type(_d102_bad).__name__
+    R.check(
+        f"a non-list 'samples' ({_d102_shape}) loads without raising",
+        not _d102_raised,
+        _d102_raised,
+    )
+    R.check(
+        f"a non-list 'samples' ({_d102_shape}) keeps the learned peaks, "
+        "defrost factors and mode on disk",
+        _d102_kept(_d102_store) == ["peaks", "defrost_factors", "mode"],
+        f"kept {_d102_kept(_d102_store)}",
+    )
+    R.check(
+        f"a non-list 'samples' ({_d102_shape}) is skipped with a warning",
+        any(
+            lvl >= _d102_logging.WARNING and "samples" in msg
+            for lvl, msg in _d102_records
+        ),
+        f"{len(_d102_records)} records",
+    )
+
 from heatpump_optimizer.price_model import PriceShapeModel as _FuzzPSM
 from heatpump_optimizer.wear import StartCounter as _FuzzStarts
 from heatpump_optimizer.accuracy import AccuracyTracker as _FuzzAcc
