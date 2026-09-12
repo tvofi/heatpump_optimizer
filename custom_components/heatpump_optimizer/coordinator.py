@@ -422,6 +422,7 @@ if TYPE_CHECKING:  # annotations only; tests/hastub carries neither name
     from homeassistant.helpers.event import EventStateChangedData
 
 _LOGGER = logging.getLogger(__name__)
+_create_issue = setpoint_check.create_issue
 
 # Forecast wind speed arrives in whatever unit the user's Home Assistant is
 # configured for, so it has to be converted explicitly rather than guessed.
@@ -920,7 +921,7 @@ def _note_worker_fallback(hass: HomeAssistant, err: BaseException) -> None:
     if _WORKER_FALLBACK_CAUSE == cause:
         return
     _WORKER_FALLBACK_CAUSE = cause
-    ir.async_create_issue(
+    _create_issue(
         hass,
         DOMAIN,
         "solve_worker_fallback",
@@ -2041,10 +2042,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         return DeviceInfo(
             identifiers={(DOMAIN, self.entry.entry_id)},
             name="Heat Pump Optimizer",
-            manufacturer="Custom",
-            model="MPC Optimizer",
+            manufacturer="tvofi", model="MPC Optimizer",
             sw_version=self.integration_version,
             entry_type=DeviceEntryType.SERVICE,
+            configuration_url=f"homeassistant://config/config_entries/entry/{self.entry.entry_id}",
         )
 
     @property
@@ -4104,7 +4105,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             if self._pump_mode_last_good is not None
             else "unknown",
         )
-        ir.async_create_issue(
+        _create_issue(
             self.hass,
             DOMAIN,
             "pump_mode_unreadable",
@@ -4691,7 +4692,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 # Exactly-at, not at-or-above: the issue is idempotent to
                 # re-create, but re-raising it every cycle would refresh
                 # its timestamp and bury when the failures started.
-                ir.async_create_issue(
+                _create_issue(
                     self.hass,
                     DOMAIN,
                     "solve_failures",
@@ -5984,7 +5985,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         worst, source = grid_fee_max_abs_component(schedule, entity_value)
         if worst > IMPLAUSIBLE_FEE_SEK_PER_KWH:
             if self._grid_fee_issue_value != worst:
-                ir.async_create_issue(
+                _create_issue(
                     self.hass,
                     DOMAIN,
                     "grid_fee_magnitude",
@@ -6013,7 +6014,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         lowest, sign_source = grid_fee_min_component(schedule, entity_value)
         if lowest < 0.0:
             if self._grid_fee_sign_issue_value != lowest:
-                ir.async_create_issue(
+                _create_issue(
                     self.hass,
                     DOMAIN,
                     "grid_fee_sign",
@@ -6053,7 +6054,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         )
         if wanted:
             if not self._lower_floor_issue_raised:
-                ir.async_create_issue(
+                _create_issue(
                     self.hass,
                     DOMAIN,
                     "lower_floor_modelled",
@@ -6098,7 +6099,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if found:
             problem = comfort_band.describe(found)
             if self._band_issue_problem != problem:
-                ir.async_create_issue(
+                _create_issue(
                     self.hass,
                     DOMAIN,
                     "comfort_band_contradiction",
@@ -8233,7 +8234,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             cost_month,
             self.currency,
         )
-        ir.async_create_issue(
+        _create_issue(
             self.hass,
             DOMAIN,
             "cop_degradation",
@@ -8433,7 +8434,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 await self._dhw_learner.async_save_draws()
                 await self._async_save_price_model()
                 await self._async_save_accuracy()
-        ir.async_create_issue(
+        _create_issue(
             self.hass,
             DOMAIN,
             "accuracy_drift",
@@ -9864,7 +9865,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     self._freq_watchdog.commanded or 0.0,
                     self._freq_watchdog.strikes,
                 )
-                ir.async_create_issue(
+                _create_issue(
                     self.hass,
                     DOMAIN,
                     "freq_watchdog",

@@ -19,11 +19,20 @@ from .const import (
     MIXING_VALVE_WRITE_EPSILON,
 )
 
+# Manifest ``documentation`` — the URL every repair notice links to (#558 F2).
+DOCUMENTATION_URL = "https://github.com/tvofi/heatpump_optimizer"
+
 _LOGGER = logging.getLogger(__name__)
 
 ISSUE_DHW = "dhw_setpoint_below_disinfection"
 ISSUE_SPACE = "space_setpoint_unreadable"
 _INVALID = ("unknown", "unavailable", "none", "")
+
+
+def create_issue(hass: Any, domain: str, issue_id: str, **kwargs: Any) -> None:
+    """Raise a repair notice, defaulting the documentation link (#558 F2)."""
+    kwargs.setdefault("learn_more_url", DOCUMENTATION_URL)
+    ir.async_create_issue(hass, domain, issue_id, **kwargs)
 
 
 def evaluate(coord: Any) -> None:
@@ -132,4 +141,4 @@ def _set_issue(
     }
     if data is not None:
         kwargs["data"] = data
-    ir.async_create_issue(hass, DOMAIN, issue_id, **kwargs)
+    create_issue(hass, DOMAIN, issue_id, **kwargs)
