@@ -7,9 +7,12 @@ forbids a second. It is not #201 either — #201 carries volatile state and a
 pointer to this file, and nothing is written to both. This file carries what the
 round knows; #201 carries which seats are alive right now.
 
-**Where the round is.** Finder wave 1 has run. Wave 2 has not been dispatched.
-Nothing is verified, nothing is judged, no issue is filed, no register section is
-written.
+**Where the round is.** **Both finder waves have run and all 13 dimensions are
+collected into this branch.** Nothing is verified, nothing is judged, no issue is
+filed, and no Round 4 register section is written. Every finding below is
+*reported*, which is not established: the panel and the judge have not run, and
+`judge.md` voids any finding whose harness does not move under its own
+perturbation, whatever the votes said.
 
 ## The fixed facts
 
@@ -93,7 +96,7 @@ seat's JSON has not been received here.
 | D5 | docs structure, flow, comments | **landed** | 2 hygiene — `docs/configuration.md`, the reference README promises documents *every* field, names 15 of 200 shipped options fields nowhere (34 occurrences); `tests/README.md:356` says 48 stress combinations, `sweep_combinations()` returns 51. Seven claims tagged `for D6`. Clean with positive controls: 0 broken links, 0 duplicated paragraphs over 433, 0 dead ends over 337 tokens |
 | D6 | documentation claim verification | **landed** | 125 claims extracted, 125 checked, 12 false, 1 unverifiable. 1 high — `docs/architecture.md` stale in ten claims including its HA boundary (21 modules import `homeassistant` at module level, 11 outside the ten it names). 1 medium — Sensor-Gap Euro Advisor documented `CUR`, publishes no unit. 1 low — `docs/automations.md` states a Power Headroom precondition the code does not enforce |
 | D7 | architecture and maintainability | **landed** | 3 findings. 1 high — `_learning_frozen` never consults `_pump_signals.defrosting`, so 3 of 4 learners fold a defrost interval (perturbation drives it to 0; three other contaminants read 0). 2 medium — the sysid experiment is adopted in 0 of 18 cells because the identifier fits one state to a two-state plant (null control on a collapsed plant: adopted at 0.940); `_sizing_model` uses default slab constants for every house, breaching `max_excursion_c` in 6 of 18. Brief item 5 (this years train) not done |
-| D8 | sensor verification and ordering | running (wave 2, dispatched) | evidence accumulates in its finder tree; collect with `resume_row.py D8` |
+| D8 | sensor verification and ordering | **landed** | 75 cells x 74 entities = 5550 entity-cells, two cycles with changed inputs and a real solve each. **Zero** violations of every typed publication contract: 0 state-write raises, 0 enum states outside options, 0 non-numeric MEASUREMENT, 0 unit/device-class mismatches, 0 numpy or non-finite attributes under REAL orjson, 0 unknown-with-data, 0 stale-between-cycles, 0 recorded payloads over 16 KiB. 2 low hygiene — alphabetical order leaves 159 foreign entities inside the seven families spans (the two families that score 0 are the only two with a shared name prefix), and 4 entities are the only ones with no `icons.json` entry against a 31/0 control that kills the device-class defence. Its three killed leads are the value: the stub declares no `device_class`/`state_class`/`entity_category` property, so four checks read 0 VACUOUSLY until the harness read `_attr_*` instead |
 | D9 | CPU and memory efficiency | **landed** | 2 medium. The batched objective vectorizes the physics and then re-computes the cost in a Python loop over the batch rows: `_comfort_terms` is entered 97.02 times per gradient, 29591 times per solve, costing 33.3 % of solve wall — and the flat-price null control leaves it unchanged, so it is structural. Second: `tests/stress.py` declares `DETECTION_TARGET = 2.0` but its RSS rule needs 2.53x-2.64x the recorded peak before firing (the absolute 150 MiB floor always dominates), so all 51 scenarios pass a doubling on both memory axes, and check mode re-probes only 6 — 45 of 51 recorded memory budgets are never compared. Corrected its own brief: the batched gradient IS live at 194.83 step-equivalents, against 9316 with batching off. No stress sweep run (needs the lock and an exclusive box) |
 | D10 | HA quality scale | **landed** | 3 low. `quality_scale.yaml` has drifted: 3 of 54 declared rows are contradicted when executed, including a config-flow coverage row claiming 100 %/0 missed against a measured 97.2 %/21 missed. `docs-known-limitations` declared done with 0 such headings across 4075 lines. The package root re-binds `HeatPumpOptimizerConfigEntry` to a bare `ConfigEntry`, so `runtime_data` reveals `Any` in the three entry points while mypy --strict still reports 0 errors. Measured: 47 done / 4 exempt / 3 todo of 54; package coverage 97.18 %, 0 of 56 modules below 95 % |
 | D11 | governance and policy | **landed** | 7 findings, 2 critical. `main-protect` (22628467) has no `pull_request` rule in ANY of its 5 versions, so a merge to main needs no review — 0 of 592 merged PRs carry an APPROVED review by a non-author, and RepositoryRole 5 holds `bypass_mode: always`, so required contexts do not bind the merging actor either. Second critical: 8 sites instruct a seat holding write and merge grants to act on issue/PR comment text on a public repo with issues open, against 0 sentences anywhere in the corpus naming untrusted input or prompt injection. 2 high — the red-check trigger CLAUDE.md calls enforced is inert in CI (`--red` is never passed; rc=1 with it, rc=0 without, on the same body), and 8 tree assertions contradict the live required-context set (18 to 17 to 16). 2 medium, 1 low. DORA: change failure rate 47.7 %, of which 44.1 pp is the `record` job |
@@ -102,32 +105,29 @@ seat's JSON has not been received here.
 
 ## What the next session does, in order
 
-1. **Collect wave 2**, which is dispatched and may have died with the session
-   that started it. Its evidence is in the finder trees, not in this branch:
-   run `python3 tools/audit/round4/resume_row.py D9 <status> '<note>'` (and D4,
-   D8), which copies the tree in, renames `REPORT.md` to `reports/FINDER.md` and
-   rewrites the row. A tree holding harnesses and no `REPORT.md` is a finder that
-   did not finish: re-dispatch that dimension rather than reporting it as dry.
-2. **D3 owes its JSON.** Its report and five harnesses are landed, but the seat
-   never returned the structured report, so the `prescreened` mutant list lives
-   only in `D3/reports/FINDER.md`. Read it before the quiet window; its survivors
-   are that window's input.
-3. **Quiet window.** Nothing else on the box. `python3 tests/gate_lock.py take
-   --label quiet-r4`. Re-execute every harness behind a `provisional` finding
-   exactly as its header says, print `load1` and `swapins` beside every RESULT,
-   and run the full `GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=7dd68dd
-   GATE_JOBS=1 ./tests/run.sh` for at most six of D3's prescreened survivors.
-   Write `tools/audit/round4/QUIET.md`.
-4. **Dedup** into a Round 4 section of `docs/audit-2026-09.md` — the register
-   has Round 1 and Round 2 sections and **no Round 3 section**, which is itself
-   worth a row somewhere. Classify each finding new / corroborates open issue #N
-   / regression of a released D-id.
-5. **Verify** (`/audit-verify`: three verifiers per finding, majority-refute
-   kills) then the judge, who re-measures and voids any harness whose number
-   does not move under its own perturbation.
-6. **Only then** file. `CLAUDE.md`'s ruling binds every seat: fix it; if you
-   cannot, verify it independently; only then file it. An issue enters the
-   Delivery-status table and propagates further than a wrong pull request.
+1. **D3 owes its JSON.** Its report and five harnesses are landed, but the seat
+   never returned the structured report, so its `prescreened` mutant list lives
+   only in `D3/reports/FINDER.md`. Read it first: its survivors are the quiet
+   window's input.
+2. **Quiet window.** Nothing else on the box —
+   `python3 tests/gate_lock.py take --label quiet-r4`, renew between commands,
+   release at the end. Re-execute every harness behind a `provisional` finding
+   exactly as its header says, printing `load1` and `swapins` beside every
+   RESULT. D9's whole timing set and D11-06/D11-07 are the provisional ones; D9
+   also names the one run it could not do — inject a 2x allocation into one
+   scenario, run the full gate, and watch the memory section stay green. Then
+   `GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=7dd68dd GATE_JOBS=1 ./tests/run.sh`
+   for at most six of D3's survivors. Write `tools/audit/round4/QUIET.md`.
+3. **Dedup** into a Round 4 section of `docs/audit-2026-09.md`, classifying each
+   finding new / corroborates open issue #N / regression of a released D-id.
+   Note the register has a Round 1 and a Round 2 section and **no Round 3
+   section**, while `round3/ledger/filed.tsv` records 43 findings filed as
+   issues — that gap wants a disposition from whoever owns the record.
+4. **Verify** (three verifiers per finding, majority-refute kills), then the
+   **judge**, who re-measures and voids a harness whose number does not move.
+5. **Only then file** — and prefer not to. `CLAUDE.md`'s ruling binds every seat:
+   fix it; if you cannot, verify it independently; only then file it. Several of
+   these are one-line fixes with the fix already named by the finder.
 
 ## Traps this round has already paid for
 
