@@ -127,6 +127,8 @@ from heatpump_optimizer.presets import (  # noqa: E402
 from homeassistant.data_entry_flow import AbortFlow, section  # noqa: E402
 from homeassistant.helpers import selector  # noqa: E402
 
+import nightly_ha as _nightly  # noqa: E402
+
 R = Results("Initial config flow, walked end to end")
 
 # The first-screen answers both walks start from. Three required fields and
@@ -827,7 +829,9 @@ async def duplicate_and_null_control():
         sensors_schema(a8_flat)
     except (vol.Invalid, vol.MultipleInvalid):
         flat_invalid = True
-    nested = config_flow._nest_user_sensors_input(a8_flat)
+    nested = _nightly.nest_user_sensors_input(
+        a8_flat, config_flow._USER_SENSORS_GROUPS
+    )
     nested_ok = True
     try:
         sensors_schema(nested)
@@ -852,7 +856,9 @@ async def duplicate_and_null_control():
     nested_hass = FakeHass()
     nested_first = fresh_flow(nested_hass)
     nested_result = await submit_first_screen(
-        nested_first, FIRST_SCREEN, config_flow._nest_user_sensors_input(USER_SENSORS)
+        nested_first,
+        FIRST_SCREEN,
+        _nightly.nest_user_sensors_input(USER_SENSORS, config_flow._USER_SENSORS_GROUPS),
     )
     check(
         "user",
@@ -3618,8 +3624,8 @@ async def self_check():
         config_flow.HeatPumpOptimizerConfigFlow._abort_if_unique_id_configured = real_guard
 
     # Mutation 6: nest is a no-op -- the nightly A8 flat payload.
-    real_nest = config_flow._nest_user_sensors_input
-    config_flow._nest_user_sensors_input = lambda payload: dict(payload)
+    real_nest = _nightly.nest_user_sensors_input
+    _nightly.nest_user_sensors_input = lambda payload, groups=None: dict(payload)
     try:
         a8_flat = {
             const.CONF_WEATHER_ENTITY: FIRST_SCREEN[const.CONF_WEATHER_ENTITY],
@@ -3631,7 +3637,9 @@ async def self_check():
             ],
         }
         sensors_schema = vol.Schema(config_flow._user_sensors_sections(FakeHass()))
-        nested = config_flow._nest_user_sensors_input(a8_flat)
+        nested = _nightly.nest_user_sensors_input(
+            a8_flat, config_flow._USER_SENSORS_GROUPS
+        )
         nested_ok = True
         try:
             sensors_schema(nested)
@@ -3647,7 +3655,7 @@ async def self_check():
             )
         )
     finally:
-        config_flow._nest_user_sensors_input = real_nest
+        _nightly.nest_user_sensors_input = real_nest
 
     # Mutation 2: the token probe always says ok.
     real_validate = config_flow.validate_tibber_token
