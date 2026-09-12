@@ -167,6 +167,17 @@ Two more were **fixed rather than filed**, which the rule explicitly allows:
 the same script carrying 116 round-3 files into every finder tree. Both are in
 `ea8c14b` with their controls.
 
+### One finding has already moved under the baseline
+
+`main` deleted `tests/record_status.py` after this round's baseline was pinned.
+**D11-04 cites it twice** among the eight tree assertions it says contradict the
+live required-context set. Those two are gone; `.github/workflows/governance.yml`
+still asserts `main-protect`'s "18 required contexts" against a live 16, so the
+finding survives with a smaller count. Re-measure it at the merge base before the
+panel votes, and do not let a verifier refute it on the two lines that no longer
+exist. This is the general case, not a special one: a finding is measured against
+its own merge base, and this round's baseline is now behind `main`.
+
 ## Traps this round has already paid for
 
 - **Landing a finder's report trips `policy_lint`'s `named-docs`.** `COMMON.md`
