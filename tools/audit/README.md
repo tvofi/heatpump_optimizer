@@ -18,7 +18,7 @@ seat; this file does not repeat that list. The rest of the layout:
 tools/audit/
   finding.schema.json       what a finder must return; a finding without evidence cannot be returned
   briefs/COMMON.md          the contract every finder works under (read first)
-  briefs/D0.md … D11.md     one dimension each: method, what to reuse, what has fooled people before
+  briefs/D0.md … D12.md     one dimension each: method, what to reuse, what has fooled people before
   briefs/verifier.md        the adversarial panel's contract
   briefs/judge.md           the judge's contract: re-measure, void, classify
   briefs/fixer.md           the fix protocol as a checklist

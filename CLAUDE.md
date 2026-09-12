@@ -108,14 +108,13 @@ of a shared basename rather than the ambiguity documented, because a collision a
 reader must resolve is a defect and not a note.
 
 ### Dimension briefs — the audit rounds
-
 One per dimension, under `tools/audit/briefs/`, in the owner's own words. Named
 individually, because a range reads as complete while covering a fraction:
 
 | brief | dimension |
 |---|---|
 | `D0.md` | price optimality |
-| `D1.md` | robustness and stability — lifecycle, staleness, executor boundaries, store corruption, guards |
+| `D1.md` | robustness and stability — lifecycle, staleness, store, guards |
 | `D2.md` | mathematical and physical sanity |
 | `D3.md` | test-suite gaps |
 | `D4.md` | UI/UX |
@@ -125,7 +124,8 @@ individually, because a range reads as complete while covering a fraction:
 | `D8.md` | sensor verification and ordering |
 | `D9.md` | CPU and memory efficiency, Raspberry-Pi-class target |
 | `D10.md` | Home Assistant integration quality scale |
-| `D11.md` | governance mechanisms and policy, against public standards |
+| `D11.md` | governance mechanisms and policy |
+| `D12.md` | generalization |
 
 ### The suite, the register, the handover
 

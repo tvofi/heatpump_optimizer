@@ -18,10 +18,10 @@ const baseline = args?.baseline
 const repo = args?.repo
 if (!baseline || !repo) throw new Error('args.baseline (sha) and args.repo (absolute path of a checkout) are required')
 
-const DIMS = ['D0', 'D1', 'D2', 'D3', 'D4', 'D5', 'D6', 'D7', 'D8', 'D9', 'D10', 'D11']
+const DIMS = ['D0', 'D1', 'D2', 'D3', 'D4', 'D5', 'D6', 'D7', 'D8', 'D9', 'D10', 'D11', 'D12']
 // Compute-heavy finders share a box with everyone else; at most three of them
 // run together and the Chromium one never beside them (tools/audit/README.md).
-const WAVES = [['D0', 'D2', 'D3', 'D1', 'D5', 'D6', 'D7', 'D10', 'D11'], ['D9', 'D4', 'D8']]
+const WAVES = [['D0', 'D2', 'D3', 'D1', 'D5', 'D6', 'D7', 'D10', 'D11', 'D12'], ['D9', 'D4', 'D8']]
 // D11 audits the process itself, so it needs `.git` and the API: a worktree, not an export.
 const ISOLATED = new Set(['D0', 'D3', 'D9', 'D11'])
 
