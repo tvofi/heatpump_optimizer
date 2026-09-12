@@ -110,7 +110,7 @@ PYTHONPATH=tests/hastub python3 tools/audit/round4/D10/qs_rules.py
 | docs-installation-parameters | silver | done | done | grep `## Quick start` README.md | the first-30-minutes walkthrough covers every config-flow field |
 | entity-unavailable | silver | done | done | grep `def available(self) -> bool` | 10 overrides plus `CoordinatorEntity`'s default |
 | integration-owner | silver | done | done | json manifest codeowners | `["@tvofi"]` |
-| log-when-unavailable | silver | done | done | ast: outage-latch helpers in coordinator.py | `_tibber_fetch_failed`/`_tibber_fetch_recovered` + the weather pair: first failure ERROR, later DEBUG, recovery INFO |
+| log-when-unavailable | silver | done | done | `python3 tools/audit/round4/D10/log_when_unavailable.py` — 10 failed polls driven through a real coordinator | **1 ERROR, 9 DEBUG**, then **1 INFO** on recovery; latch resets |
 | parallel-updates | silver | done | done | grep `^PARALLEL_UPDATES` on the 6 platform modules | 6/6: sensor 0, binary_sensor 0, button 1, climate 1, switch 1, datetime 1 |
 | reauthentication-flow | silver | done | done | grep `async_step_reauth`; `async_start_reauth` | flow present **and reachable** — the coordinator starts it on a refused token |
 | test-coverage | silver | **done** | todo | coverage json → per-module | **97.2 % package (14945/15381); 0 of 56 modules below 95 %**; lowest `battery.py` 95.0 % |
@@ -415,7 +415,7 @@ Each is a claim that held, with the command and the number.
 | Every config/options field has a description | json over `strings.json` | 270 fields, **0** without `data_description` |
 | Exception translations are complete | json + grep | **21** strings.json entries = **21** `translation_domain=` = **21** raise sites |
 | Icon translations are complete and un-shadowed | json + grep | **69** entity icons, **0** `_attr_icon` pins |
-| `log-when-unavailable` latches rather than spamming | ast over coordinator.py | `_tibber_fetch_failed` / `_tibber_fetch_recovered` (+ weather pair): ERROR once, then DEBUG, INFO on recovery |
+| `log-when-unavailable` latches rather than spamming | `python3 tools/audit/round4/D10/log_when_unavailable.py` | 10 consecutive failed polls emit **1 ERROR and 9 DEBUG**; recovery emits **1 INFO**; the next 10 failures emit **1 ERROR** again (the latch resets) |
 | The reauth flow is reachable, not just present | grep both ends | `async_step_reauth` in config_flow.py **and** `entry.async_start_reauth` in coordinator.py |
 | No entity subscribes to events outside the lifecycle | ast over the 6 platform modules | **0** entity classes subscribe; the 4 subscriptions are the coordinator's |
 | `inject-websession` is honoured everywhere | grep | **6** `async_get_clientsession`, **0** own `ClientSession` |
@@ -451,6 +451,7 @@ floors: `ConfigEntry.runtime_data` (2024.6), `async_step_reconfigure` with
 | `tools/audit/round4/D10/qs_rules.py` | the 54-row tier table, the per-tier counts, `declared_mismatch` | `D10_COVERAGE_JSON=… D10_MYPY_JSON=… PYTHONPATH=tests/hastub python3 tools/audit/round4/D10/qs_rules.py` |
 | `tools/audit/round4/D10/coverage_measure.sh` | package and per-module statement coverage | `D10_WORK=$(mktemp -d) tools/audit/round4/D10/coverage_measure.sh fast` (then `e2e`) |
 | `tools/audit/round4/D10/mypy_arms.sh` | the two mypy censuses and the `reveal_type` probe | `tools/audit/round4/D10/mypy_arms.sh` |
+| `tools/audit/round4/D10/log_when_unavailable.py` | ERROR/DEBUG/INFO record counts over 10 failed polls and a recovery | `PYTHONPATH=tests/hastub python3 tools/audit/round4/D10/log_when_unavailable.py` |
 | `tools/audit/round4/D10/quality_scale.draft.yaml` | the executed register, 47 done / 4 exempt / 3 todo | (data, not executable) |
 
 `mypy_arms.sh` needs two scratch venvs it does not build; its header names
@@ -485,10 +486,27 @@ tree.
   well-known OSI-licensed projects; I did not fetch each project's CI
   configuration to confirm the "built and published from a public CI pipeline"
   clause package by package.
-- **No stub-driven runtime test of the unavailable-logging latch.** I read the
-  latch and counted its helpers by AST; I did not drive N consecutive failed
-  polls through a real coordinator and count log records. The `done` verdict
-  for `log-when-unavailable` rests on structure, not on an executed log count.
+- **Only the Tibber price path's latch is driven.** The executed log count
+  covers `_tibber_fetch_failed` / `_tibber_fetch_recovered`. The weather
+  forecast's pair beside it, and the MQTT pump-signal path in
+  `pump_signals.py`, were read rather than driven; a verifier wanting the rule
+  closed all the way should extend
+  `tools/audit/round4/D10/log_when_unavailable.py` with those two arms.
+
+## A trap this dimension hit, so the next reader does not
+
+`tests/harness.py` runs `sys.path.insert(0, "custom_components")` at import.
+Any harness that imports `harness` therefore loads the package **from the
+working directory**, and a `PYTHONPATH` pointing at a perturbed copy is
+silently ignored — the run reports the unperturbed tree's numbers, with no
+error. The first perturbation arm of `log_when_unavailable.py` came back
+identical to the baseline arm for exactly this reason, which reads as "the
+harness is dead" rather than "the override did not take". Run a perturbation
+by **copying the tree and running from its root**; the same run from the
+perturbed root moved 1 ERROR → 10 and 9 DEBUG → 0 as it should. This is
+`tools/audit/README.md`'s "a harness at the evidence tag may measure the tag"
+hazard in a second guise: there the root rule was `__file__` versus `.`, here
+it is a `sys.path` insert inside a shared helper.
 
 ## exposure
 

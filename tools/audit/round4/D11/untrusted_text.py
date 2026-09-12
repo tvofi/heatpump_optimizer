@@ -35,8 +35,9 @@ COMMAND (from the repository root):
 
 EXPECTED at baseline 7dd68dd (tolerance: exact; static counts over the tree plus
 three API fields):
-  shell_interpolations=0 env_interpolations=6 write_permission_jobs=3
-  seat_obey_sites=6 seat_guard_sites=0 writer_population=public api_failures=0
+  shell_interpolations=3 shell_interpolations_freetext=0 env_interpolations=12
+  write_permission_blocks=2 seat_obey_sites=8 seat_guard_sites=0
+  writer_population=public api_failures=0
 MACHINE: any.
 
 PERTURBATION. Add one sentence to `tools/audit/briefs/COMMON.md` of the form
@@ -95,11 +96,23 @@ OBEY = re.compile(
 )
 # The countermeasure: text naming untrusted input, prompt injection, or the
 # data/instruction boundary. D11.md is this audit's own brief and is excluded.
+# `not instructions` alone matched orchestrator.md's "are not instructions you
+# relay", which is about relaying a contract, not about untrusted input. The
+# phrase has to be anchored to the input to count as a countermeasure.
 GUARD = re.compile(
-    r"(prompt injection|untrusted (text|input|content)"
-    r"|data,? not instructions|not instructions[ ,]|treat .{0,30}as data)",
+    r"(prompt injection"
+    r"|untrusted (text|input|content|comment|body)"
+    r"|(body|comment|issue|text)[^.\n]{0,40}\bis data\b"
+    r"|data,? not instructions"
+    r"|treat [^.\n]{0,40}as data)",
     re.I,
 )
+
+# A value a non-maintainer can set to arbitrary text. A `type: boolean`
+# workflow_dispatch input and a 40-hex SHA are generated or constrained by
+# GitHub, so they match Scorecard's PATTERN without carrying its risk; the
+# harness reports both numbers rather than one.
+FREETEXT = re.compile(r"(\.body|\.title|head_ref|head\.ref|\.name|comment)")
 
 
 def main():
@@ -142,9 +155,11 @@ def main():
             if "write" in m.group(2):
                 write_jobs.append((name, m.group(0).strip().split("\n")[0]))
 
+    free = [h for h in shell_hits if FREETEXT.search(h[2])]
     print("UNTRUSTED CONTEXT REACHING A SHELL LINE (Scorecard Dangerous-Workflow):")
     for h in shell_hits:
-        print(f"  {h[0]}:{h[1]}  {h[2]}")
+        tag = "FREE-TEXT" if FREETEXT.search(h[2]) else "constrained (boolean input or 40-hex SHA)"
+        print(f"  {h[0]}:{h[1]}  [{tag}]  {h[2]}")
     if not shell_hits:
         print("  (none)")
     print("UNTRUSTED CONTEXT REACHING env: (the safe form):")
@@ -207,6 +222,7 @@ def main():
 
     print()
     L.result("shell_interpolations", len(shell_hits))
+    L.result("shell_interpolations_freetext", len(free))
     L.result("env_interpolations", len(env_hits))
     L.result("dangerous_triggers", len(dangerous))
     L.result("write_permission_blocks", len(write_jobs))

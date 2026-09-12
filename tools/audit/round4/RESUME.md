@@ -81,12 +81,12 @@ seat's JSON has not been received here.
 | dim | subject | status | findings |
 |---|---|---|---|
 | D0 | price optimality | running (wave 1) | — |
-| D1 | robustness and stability | landed | 2 high: price-prior NaN priced as free electricity; accuracy-store wipe |
+| D1 | robustness and stability | **landed** | 2 high — `price_model.from_dict` accepts a non-finite shape bin, pricing 4 of 96 planning steps at 0.0 SEK/kWh (control 0.6018, null control 0); one corrupt scalar in the accuracy store raises in `_async_load_accuracy` and the next cycle overwrites 3 of 3 learned fields with zero log lines |
 | D2 | mathematical and physical sanity | written | — |
 | D3 | test-suite gaps | written | — |
 | D4 | UI/UX | not dispatched (wave 2) | — |
 | D5 | docs structure, flow, comments | written | — |
-| D6 | documentation claim verification | written | — |
+| D6 | documentation claim verification | **landed** | 125 claims extracted, 125 checked, 12 false, 1 unverifiable. 1 high — `docs/architecture.md` stale in ten claims including its HA boundary (21 modules import `homeassistant` at module level, 11 outside the ten it names). 1 medium — Sensor-Gap Euro Advisor documented `CUR`, publishes no unit. 1 low — `docs/automations.md` states a Power Headroom precondition the code does not enforce |
 | D7 | architecture and maintainability | written | — |
 | D8 | sensor verification and ordering | not dispatched (wave 2) | — |
 | D9 | CPU and memory efficiency | not dispatched (wave 2) | — |
