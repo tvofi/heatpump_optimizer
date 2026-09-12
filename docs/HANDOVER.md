@@ -1,6 +1,6 @@
 # Handover — the open-issues programme
 
-updated-for: ed21703e41efa6b415fcc99f4320673d2cb70f43
+updated-for: 370298d7ddc4ccc019556698b1a0f4937981bd79
 
 The rule that governs this file is `.claude/rules/writing-for-agents.md`, which
 the harness loads on this very path. Delivery status is
@@ -91,14 +91,12 @@ of record. This file deliberately does **not** restate them — it once claimed 
 list was unrecoverable when it was one artifact call away. Per-unit stage,
 `after` edges and carried findings are in `.claude/workflows/wave-ux-groups.json` (#601).
 
-- **Coverage is ratcheted; what the suite would NOTICE is a second
-  instrument.** `tests/coverage_ratchet.py` holds a package floor tightening to
-  a 96 % ceiling, and caps `# pragma: no cover` downward — the pragma is the one
-  cheap way past a floor. `tests/mutation_table.py` answers the other question,
-  scoped to the files a diff tested and full-package nightly. Its cap is a
-  FRACTION, not an exact count: the pool is a seeded sample over the files the
-  diff scoped, so two clean branches would redden each other at random. The
-  owner set the #195 bar at 96 % on 2026-09-11, down from 98 %.
+- **Two instruments, two questions.** `tests/coverage_ratchet.py` floors package
+  coverage under a 96 % ceiling and caps `# pragma: no cover` downward — the
+  pragma is the one cheap way past a floor. `tests/mutation_table.py` asks
+  whether a check would FAIL, scoped to the files a diff tested, full-package
+  nightly; its cap is a FRACTION because the pool is a seeded sample, so an
+  exact count would redden clean branches at random. #195's bar: 96 %.
 
 ## Corrections to the record
 
@@ -356,10 +354,8 @@ in its own pull request.
     agrees. **Only-arm inputs, a catcher on every call, details by `repr`, state
     edited before the call.** And never assert EQUALITY against a production
     structure: a second declaration cannot learn the original moved (#851).
-    Fifth shape, t5: deleting a guard's body strands its `if`, and a mutant
-    that cannot parse reports a pass — which here reads as a finding about
-    production. **Assert it parses**; `tests/mutation_table.py` skips one that
-    does not, by name.
+    Fifth shape: a mutant that cannot PARSE reports a pass, which here reads as
+    a finding about production. Assert it parses.
 
 ## Owed — post-hoc reviews
 
