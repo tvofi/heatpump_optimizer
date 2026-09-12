@@ -11644,7 +11644,12 @@ R.check(
 # custom_components/, so a change to what a test READS was checked one merge
 # too late -- five times (#214, #320, #332, #340, #349), each a green pull
 # request, a red main, and a second pull request to repair it.
-_A_DOCS = _closure.affected(["docs/audit-2026-09.md", "LICENSE", "tests/README.md"])
+# tests/README.md left this example in #938, when this script began reading
+# its annotations above: it is a dependency of this script now, so an edit to
+# it selects this script rather than skipping. DISCLAIMER.md keeps the third
+# slot a genuinely inert document still fills.
+_A_DOCS = _closure.affected(
+    ["docs/audit-2026-09.md", "LICENSE", "DISCLAIMER.md"])
 R.check(
     "a docs-only change still costs the closures check nothing",
     _A_DOCS["case"] == "skip",
