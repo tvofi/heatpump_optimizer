@@ -51,9 +51,26 @@ record it, and check `corpus_tokens` and every `roles` cap stayed flat in the
 same diff. If the floor fell and the corpus did not, the saving is a
 reclassification and the body says so in those words.
 
-Raising any of the three is a deliberate edit visible in the diff, and the body
-carries the case. Raising one to make a change fit rather than cutting is the
-move `CLAUDE.md` rule 2 refuses, and this rule refuses it too.
+Raising one is a deliberate edit visible in the diff and it needs the
+**repository owner's explicit confirmation, obtained before the branch is
+pushed** — the same gate `CLAUDE.md` rule 2 puts on the structural ratchet, and
+it applies here whether the change is a production feature or governance prose.
+Name the cap, the measured number `--budgets` prints, and what the raise buys.
+
+**What is refused is raising one QUIETLY, or raising one to dodge a cut the seat
+could have made.** Raising one because the improvement is worth more than the
+prose it would displace is not refused — it is the case the owner's
+confirmation exists to decide. This corpus is finite and, at the time of
+writing, full: a rule that made deletion the only currency would ratchet the
+governance corpus toward nothing, one improvement at a time.
+
+An earlier version of this paragraph said that raising a cap "to make a change
+fit rather than cutting is the move `CLAUDE.md` rule 2 refuses". That misread
+rule 2, which refuses a quiet raise and permits an approved one, and it was
+taken literally: a seat shaved a report-wording fix, two table rows and one
+handover line through six rounds of measure-cut-remeasure — cutting prose from
+a rule merged an hour earlier — rather than asking for the raise it should have
+asked for.
 
 `node .claude/workflows/policy_lint.mjs --budgets` prints every file against its
 cap, the floor, the corpus and each role; write that, never a cap's value — one
