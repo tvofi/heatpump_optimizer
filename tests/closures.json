@@ -14,7 +14,7 @@
    "rc": 0
   },
   "tests/config_flow_steps.py": {
-   "seconds": 0.6,
+   "seconds": 1.8,
    "rc": 0
   },
   "tests/dst_checks.py": {
@@ -26,15 +26,15 @@
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 19.7,
+   "seconds": 28.0,
    "rc": 0
   },
   "tests/env_drift.py": {
-   "seconds": 0.7,
+   "seconds": 0.5,
    "rc": 0
   },
   "tests/features.py": {
-   "seconds": 69.8,
+   "seconds": 149.7,
    "rc": 0
   },
   "tests/frontend.py": {
@@ -42,7 +42,7 @@
    "rc": 0
   },
   "tests/golden.py": {
-   "seconds": 0.4,
+   "seconds": 0.5,
    "rc": 0
   },
   "tests/manual_plan.py": {
@@ -70,7 +70,7 @@
    "rc": 0
   },
   "tests/structure.py": {
-   "seconds": 1.1,
+   "seconds": 1.9,
    "rc": 0
   },
   "tests/validate.py": {
@@ -78,7 +78,7 @@
    "rc": 0
   },
   "tests/deployment_shape.py": {
-   "seconds": 1.6,
+   "seconds": 1.8,
    "rc": 0
   },
   "tests/ha_contract.py": {
@@ -345,6 +345,7 @@
    "tests/hastub/homeassistant/loader.py",
    "tests/hastub/homeassistant/util/__init__.py",
    "tests/hastub/homeassistant/util/dt.py",
+   "tests/nightly_ha.py",
    "tests/profiles.py"
   ],
   "tests/edge.py": [
