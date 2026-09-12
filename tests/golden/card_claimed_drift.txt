@@ -19,9 +19,9 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 6.4.2
+# claims-for: 6.4.3
 #
-# v6.4.2: product, audit instrument, coverage, and leftover record. The stamp empties the list; the
+# v6.4.3: W5-G7/G8 coverage, nightly A8, D12, and the delivery ledger. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 

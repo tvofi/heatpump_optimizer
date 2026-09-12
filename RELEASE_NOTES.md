@@ -1,5 +1,28 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.4.3
+
+Coverage, a nightly setup fix, a thirteenth audit dimension, and leftover record since v6.4.2.
+
+### Product
+
+- Nightly A8 posts the sectioned sensor payload after Setup grouping, and a sectioned submit is flattened so the unique-id abort still sees the plant (#895).
+
+### Coverage and audit
+
+- Coordinator coverage clears the 96 % bar; a package coverage ratchet and a mutation table sit beside `fast`, and `fast`'s 3.13 matrix leg is retired (#885).
+- Every below-bar module that is not the coordinator is covered; `modules_below_bar=0` and #195 closes (#889).
+
+### Governance
+
+- D12 generalization is a thirteenth audit dimension (#898).
+- The `record-status` tick is replaced by a delivery ledger that reports pending versus overdue rows (#896).
+- The governance-queue split is #644's and unadopted; #818's wiring pin refuses three rot shapes (#856).
+
+### Record
+
+Leftover rows for the merges above: #897 (#895).
+
 ## v6.4.2
 
 Product, the audit instrument, coverage, and leftover record since v6.4.1.
