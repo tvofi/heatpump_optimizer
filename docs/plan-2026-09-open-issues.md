@@ -285,6 +285,22 @@ and is not forced into that table beyond the summary row above.
 
 #510, #511, #513 and #518 are closed by the fixes above, not by wave work.
 
+### Audit round 4 and the nightly lane — 2026-09-12 (not a wave)
+
+The thirteen-dimension audit's fourth round and the two repairs it forced on
+the way. Round 4 is the first at thirteen dimensions: `7dd68dd` added D12.
+Its evidence is `tools/audit/round4/`; `RESUME.md` there is the durable state,
+and #201 carries the volatile half and points at it.
+
+| PR | what | issue | state |
+|---|---|---|---|
+| #900 | Round 4's finder evidence for all thirteen dimensions, plus the rule that **a defect in an instrument is a finding** — of the dimension that met it, under the same evidence bar, travelling panel → judge → issue, with filing waiting for the judge because the seat that finds one is using the instrument it accuses. Owner-approved. Also repairs `prepare_baseline.sh`, which deleted a file `tests/entities.py` reads unguarded (the export ran **0 of 1360** entity checks) and carried 116 round-3 files including 43 findings with their verdicts into every finder tree | — | merged `c68259b`, **unstamped** |
+| #901 | A red `nightly-status` could not be cleared by fixing the nightly: only a `schedule` run counted and the cron is daily. A concluded `workflow_dispatch` run **on the default branch** now counts, guarded by `REQUIRED_LANES` and a default-branch check, with `push` and `pull_request` still refused. And the cause of the red: `mutation-nightly` checked out at depth 1, so `tests/entities.py` could not answer `merge-base --is-ancestor` for the handover's `updated-for:`, failed at the **baseline**, and `mutation_table.py` refused having evaluated no mutant. `defect-root-cause.md` gains the obligation; `entities.py` gains the property check | — | merged `c247770`, **unstamped** |
+
+Neither carries a closing keyword: no tracked issue covers them. Round 4's
+findings are **reported, not established** — no panel, no judge, no issue — so
+nothing in `docs/audit-2026-09.md` claims them yet.
+
 **Every other open issue, with its disposition.** "Not mentioned" is not a
 disposition, so each open issue is scheduled, deferred with a reason, or
 refused with a reason — and the PR carrying it is named where one exists.

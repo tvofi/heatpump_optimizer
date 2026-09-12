@@ -1,6 +1,6 @@
 # Handover — the open-issues programme
 
-updated-for: 6be60558981123389d6aa484d144c51cd3e3e145
+updated-for: c247770fd9ba36e41ce660738d5bead74ca678d3
 
 The rule that governs this file is `.claude/rules/writing-for-agents.md`, which
 the harness loads on this very path. Delivery status is
@@ -198,6 +198,9 @@ in its own pull request.
 10. **A closing keyword in a commit message links an issue just as a pull-request
     body does.** #503 acquired a false link to #457 that way and had to be
     corrected before it could merge.
+11. **A shallow checkout fails a driver on the clone, not the tree.** Graduated:
+    `entities.py` refuses a history-reading driver at depth 1 (#901).
+
 11. **A shallow clone turns "commits ahead" into fiction**; four such figures
     once reached a handover. Graduated: `.claude/hooks/session-start.sh`.
 12. **A fix gets verified against the instance that was demonstrated, not the

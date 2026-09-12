@@ -171,7 +171,8 @@ The audit measures the integration with instruments that are themselves code:
 `tests/hastub`, the gate's checks and budgets, the harness contract, the lint
 lanes, this toolkit. A defect your dimension's method meets in one of those is a
 finding **of your dimension**, under the same bar as any other — executed number,
-instrumented symbol, perturbation, metric definition, control.
+instrumented symbol, perturbation, metric definition, control — and not a
+paragraph of prose in your report.
 
 It travels the ordinary route: panel, judge, then an issue. **Filing waits for
 the judge**, as a product finding does, and the reason is not symmetry: the seat

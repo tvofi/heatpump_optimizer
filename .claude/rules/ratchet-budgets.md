@@ -51,9 +51,29 @@ record it, and check `corpus_tokens` and every `roles` cap stayed flat in the
 same diff. If the floor fell and the corpus did not, the saving is a
 reclassification and the body says so in those words.
 
-Raising any of the three is a deliberate edit visible in the diff, and the body
-carries the case. Raising one to make a change fit rather than cutting is the
-move `CLAUDE.md` rule 2 refuses, and this rule refuses it too.
+**Raising a cap is the LAST RESORT, and it needs the repository owner's explicit
+confirmation, obtained before the branch is pushed** — the same gate
+`CLAUDE.md` rule 2 puts on the structural ratchet, and it binds here whether the
+change is a production feature or governance prose. The order is an order, not a
+preference:
+
+1. **Pay for it.** Cut prose that is spent, duplicated, or now carried by a
+   mechanical detector; `writing-for-agents.md`'s uniqueness test
+   decides most of it.
+2. **If paying would cost something load-bearing, stop and ask.** Name the cap,
+   the measured number `--budgets` prints, and what the raise buys. Ask before
+   the push, not after: a raise discovered in review is a raise made quietly.
+3. **Raise only on that confirmation, and only to the measured value.** A padded
+   cap is headroom nobody earned, and it spends the next seat's argument too.
+
+So three things are refused and one is allowed. Refused: a raise made quietly; a
+raise taken instead of a cut the seat could have made; a raise asked for after
+the push. Allowed, once approved: a raise where every honest cut has been made
+and the improvement is still worth more than what remains.
+
+This paragraph used to say a raise "to make a change fit rather than cutting is
+the move `CLAUDE.md` rule 2 refuses", naming no owner path at all. It was
+obeyed: a seat cut prose from a rule merged an hour earlier rather than ask.
 
 `node .claude/workflows/policy_lint.mjs --budgets` prints every file against its
 cap, the floor, the corpus and each role; write that, never a cap's value — one
