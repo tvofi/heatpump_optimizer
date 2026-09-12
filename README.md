@@ -171,31 +171,61 @@ act on" — pricing and planning without actuating anything.
 | **ECL110 heat curve** | a Danfoss ECL110-compatible weather-compensated controller, reachable over MQTT | a heat-pump on/off decision and an integer parallel shift (*displace*) onto the controller's own heat curve |
 | **Compressor frequency** | the compressor frequency exposed as a `number` entity (typically from Modbus or ESPHome) | the recommended frequency via `number.set_value` — but only once you switch the mode to Control |
 
-Boundaries worth knowing before you pick a path:
-
-- **On/off switch.** The broadest path: any on/off `switch` will do, and it is
-  the only one of the three that needs nothing from the pump's electronics.
-- **ECL110.** MQTT only — the ECL110 page is "only for installs that have such
-  a controller on MQTT", and publishing goes through Home Assistant's own
-  `mqtt.publish` service, "so the MQTT integration has to be set up". If you
-  have no ECL110, clear the two command topics on the options page. Details in
-  [ECL110 heat-curve control](#ecl110-heat-curve-control) and
-  [docs/ecl110.md](docs/ecl110.md).
-- **Compressor frequency.** This path exists only "if your heat pump's
-  compressor frequency is exposed as a `number` entity (Modbus, ESPHome)", and
-  it is deliberately two-stage: the default Observe mode "learns and
-  recommends but never writes"; writing starts only when you switch the mode
-  to Control yourself, at most one `number.set_value` per five minutes and
-  clamped to the entity's own limits.
-- **Heating, not cooling.** The whole model assumes heating; an interval that
-  drew power while the house got colder "is not a noisy heating sample, it is
-  a sign-inverted one".
+The boundaries of each path — what it can reach and what it cannot — are
+collected in [Known limitations](#known-limitations) below, along with the
+limitations that apply to the integration as a whole.
 
 Each path in full: [Switch and climate entity](#switches-climate-and-datetime-entities),
 [Inverter frequency: observe first, control if you say
 so](#inverter-frequency-observe-first-control-if-you-say-so),
 [ECL110 heat-curve control](#ecl110-heat-curve-control); the setup fields for
 all three live in [docs/configuration.md](docs/configuration.md).
+
+## Known limitations
+
+What this integration will not do, in one place, so you can read it before
+installing rather than discover it after:
+
+- **Heating, not cooling.** The whole model assumes heating; an interval that
+  drew power while the house got colder "is not a noisy heating sample, it is
+  a sign-inverted one". There is no cooling mode and no cooling plan.
+- **It plans on a cycle, not in real time.** The plan is re-solved once per
+  optimization interval — 30 minutes by default — and holds until the next
+  solve. A price spike or a weather change that lands between two solves
+  waits for the next one; this is a planner, not a real-time controller.
+- **The on/off path is exactly that.** A `switch` gives the optimizer two
+  states, and it may turn the pump off during expensive hours. It is the
+  broadest path — any on/off `switch` will do, and the only one of the three
+  that needs nothing from the pump's electronics — but any control finer than
+  on-and-off needs one of the other paths.
+- **ECL110 control is MQTT-only.** The ECL110 path is for installs that have
+  such a controller on MQTT, and publishing goes through Home Assistant's own
+  `mqtt.publish` service, "so the MQTT integration has to be set up". If you
+  have no ECL110, clear the two command topics on the options page. Details in
+  [ECL110 heat-curve control](#ecl110-heat-curve-control) and
+  [docs/ecl110.md](docs/ecl110.md).
+- **Frequency control needs a `number` entity and your explicit say-so.** The
+  path exists only if the compressor frequency is exposed as a `number`
+  entity (Modbus, ESPHome). The default Observe mode "learns and recommends
+  but never writes"; writing starts only when you switch the mode to Control
+  yourself, at most one `number.set_value` per five minutes and clamped to
+  the entity's own limits.
+- **Prices come from Tibber or a price entity — nothing else.** Either a
+  Tibber token, or a Home Assistant price sensor (Nord Pool, ENTSO-E,
+  similar) exposing `raw_today` / `raw_tomorrow`. There is no built-in way to
+  feed prices from any other source.
+- **One service device, statically.** The integration publishes exactly one
+  service device per config entry, every entity sits on it, and its lifetime
+  is the entry's: devices are never added or removed while it runs. Per-room
+  or per-pump devices are not this integration's shape.
+- **No discovery.** Nothing announces itself on your network and nothing is
+  discovered for you. You add the integration yourself and pick every entity
+  it reads.
+- **The tariff model is Swedish/Nordic in shape.** The monthly capacity
+  tariff models the *effekttariff* Swedish and increasingly Nordic DSOs bill
+  — the mean of the three highest hourly consumption peaks, priced per kW
+  (typically 30–90 SEK/kW). Other markets' tariff structures are not
+  modelled.
 
 ## Installation
 
