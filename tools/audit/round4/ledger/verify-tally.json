@@ -6,12 +6,19 @@
         "seat": 1,
         "vote": "verify",
         "severity": "low"
+      },
+      {
+        "seat": 2,
+        "vote": "verify",
+        "severity": "low"
+      },
+      {
+        "seat": 3,
+        "vote": "verify",
+        "severity": "low"
       }
     ],
-    "pending": [
-      2,
-      3
-    ]
+    "pending": []
   },
   "D0-02": {
     "votes": [
@@ -19,12 +26,20 @@
         "seat": 1,
         "vote": "verify",
         "severity": "low"
+      },
+      {
+        "seat": 2,
+        "vote": "verify",
+        "severity": "low"
+      },
+      {
+        "seat": 3,
+        "vote": "verify",
+        "severity": "low"
       }
     ],
-    "pending": [
-      2,
-      3
-    ]
+    "pending": [],
+    "judge_note": "gate asymmetry executed by two seats: ftol degraded 1000x-10000x passes optimality.py, maxiter->3 fails it"
   },
   "D1-01": {
     "votes": [
@@ -444,14 +459,11 @@
         "seat": 2,
         "vote": "verify",
         "severity": "medium"
-      },
-      {
-        "seat": 3,
-        "vote": "verify",
-        "severity": "medium"
       }
     ],
-    "pending": []
+    "pending": [
+      3
+    ]
   },
   "D7-02": {
     "votes": [
@@ -464,14 +476,11 @@
         "seat": 2,
         "vote": "verify",
         "severity": "medium"
-      },
-      {
-        "seat": 3,
-        "vote": "verify",
-        "severity": "medium"
       }
     ],
-    "pending": []
+    "pending": [
+      3
+    ]
   },
   "D7-03": {
     "votes": [
@@ -484,16 +493,11 @@
         "seat": 2,
         "vote": "verify",
         "severity": "high"
-      },
-      {
-        "seat": 3,
-        "vote": "weaken",
-        "severity": "medium",
-        "note": "measured the drift the finder left unmade: <=2.3% worst preset under MAXIMAL sustained defrost, ~0.2% typical; persisted one-directional bias, one-line fix"
       }
     ],
-    "pending": [],
-    "judge_note": "2-1 verify-high; seat 3's drift measurement is the decisive new evidence"
+    "pending": [
+      3
+    ]
   },
   "D8-01": {
     "votes": [
@@ -506,14 +510,11 @@
         "seat": 2,
         "vote": "verify",
         "severity": "low"
-      },
-      {
-        "seat": 3,
-        "vote": "verify",
-        "severity": "low"
       }
     ],
-    "pending": []
+    "pending": [
+      3
+    ]
   },
   "D8-02": {
     "votes": [
@@ -526,14 +527,11 @@
         "seat": 2,
         "vote": "verify",
         "severity": "low"
-      },
-      {
-        "seat": 3,
-        "vote": "verify",
-        "severity": "low"
       }
     ],
-    "pending": []
+    "pending": [
+      3
+    ]
   },
   "D8-INST": {
     "votes": [
@@ -545,16 +543,13 @@
       {
         "seat": 2,
         "vote": "verify",
-        "severity": "low"
-      },
-      {
-        "seat": 3,
-        "vote": "verify",
         "severity": "low",
-        "note": "public property read None for 74/74 on all three props; checks structurally zero"
+        "note": "six checks vacuous not four (strengthened)"
       }
     ],
-    "pending": []
+    "pending": [
+      3
+    ]
   },
   "D10-01": {
     "votes": [
