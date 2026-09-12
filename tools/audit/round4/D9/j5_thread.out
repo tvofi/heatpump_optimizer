@@ -1,0 +1,31 @@
+RESULT route=thread enum
+RESULT load1=5.50635 1
+RESULT py=3.11.5 semver
+-- idle (null, no solve)
+RESULT idle.starvation_share=0.0296247 1
+RESULT idle.longest_gil_hold_ms=7.65721 ms
+RESULT idle.gap_p50_ms=1.38421 ms
+RESULT idle.gap_p99_ms=4.0252 ms
+RESULT idle.wall_s=2.00018 s
+RESULT idle.ticks_per_second=668.44 1/s
+-- two_zone_dhw
+RESULT two_zone_dhw.starvation_share=0.975227 1
+RESULT two_zone_dhw.longest_gil_hold_ms=65.4776 ms
+RESULT two_zone_dhw.gap_p50_ms=21.0374 ms
+RESULT two_zone_dhw.gap_p99_ms=58.5088 ms
+RESULT two_zone_dhw.wall_s=3.04942 s
+RESULT two_zone_dhw.ticks_per_second=50.5014 1/s
+-- dhw_cap_zero_range (D9-01, 0.8*p_max)
+RESULT dhw_cap_zero_range.starvation_share=0.985668 1
+RESULT dhw_cap_zero_range.longest_gil_hold_ms=72.7218 ms
+RESULT dhw_cap_zero_range.gap_p50_ms=21.4296 ms
+RESULT dhw_cap_zero_range.gap_p99_ms=41.895 ms
+RESULT dhw_cap_zero_range.wall_s=2.79643 s
+RESULT dhw_cap_zero_range.ticks_per_second=48.9911 1/s
+-- perturbation switchinterval 5ms -> 0.5ms on two_zone_dhw
+RESULT switchinterval_0.5ms.starvation_share=0.532198 1
+RESULT switchinterval_0.5ms.longest_gil_hold_ms=14.2865 ms
+RESULT switchinterval_0.5ms.gap_p50_ms=4.98133 ms
+RESULT switchinterval_0.5ms.gap_p99_ms=6.03429 ms
+RESULT switchinterval_0.5ms.wall_s=2.9535 s
+RESULT switchinterval_0.5ms.ticks_per_second=212.29 1/s

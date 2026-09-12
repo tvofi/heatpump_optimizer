@@ -1,0 +1,67 @@
+{
+ "families": {
+  "accuracy": {
+   "breaks": 2,
+   "common_prefix": "",
+   "intruders": 29,
+   "n": 3,
+   "null_expect": 35.5,
+   "ui_section_intruders": 13
+  },
+  "card_headline": {
+   "breaks": 4,
+   "common_prefix": "",
+   "intruders": 18,
+   "n": 5,
+   "null_expect": 46.0,
+   "ui_section_intruders": 11
+  },
+  "dhw": {
+   "breaks": 1,
+   "common_prefix": "",
+   "intruders": 7,
+   "n": 10,
+   "null_expect": 52.4,
+   "ui_section_intruders": 3
+  },
+  "ecl110": {
+   "breaks": 0,
+   "common_prefix": "ECL110 ",
+   "intruders": 0,
+   "n": 2,
+   "null_expect": 24.0,
+   "ui_section_intruders": 0
+  },
+  "learning": {
+   "breaks": 3,
+   "common_prefix": "",
+   "intruders": 45,
+   "n": 5,
+   "null_expect": 46.0,
+   "ui_section_intruders": 20
+  },
+  "pv": {
+   "breaks": 0,
+   "common_prefix": "Solar ",
+   "intruders": 0,
+   "n": 3,
+   "null_expect": 35.5,
+   "ui_section_intruders": 0
+  },
+  "tariff": {
+   "breaks": 4,
+   "common_prefix": "",
+   "intruders": 60,
+   "n": 7,
+   "null_expect": 50.2,
+   "ui_section_intruders": 43
+  }
+ },
+ "icons": [
+  "sensor.optimal_setpoint",
+  "sensor.outdoor_temperature_optimizer",
+  "sensor.dhw_temperature",
+  "sensor.measured_power",
+  "sensor.compressor_frequency_advisor"
+ ]
+}

@@ -1,0 +1,1127 @@
+[
+ {
+  "id": "C1",
+  "source": "README.md:Entities",
+  "claim": "All 74 entities are created on every install",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=74 measured=74",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C2",
+  "source": "README.md:### Sensors",
+  "claim": "Sensors (59 total)",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=59 measured=59",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C3",
+  "source": "README.md:### Binary Sensors",
+  "claim": "Binary Sensors (5 total)",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=5 measured=5",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C4",
+  "source": "README.md:### Buttons",
+  "claim": "Buttons (4 total)",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=4 measured=4",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C5",
+  "source": "docs/architecture.md:mermaid",
+  "claim": "74 entities / 59 sensors / 5 binary sensors / 4 buttons / 4 switches / 1 climate / 1 datetime",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=(74, 59, 5, 4, 4, 1, 1) measured=(74, 59, 5, 4, 4, 1, 1)",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C6",
+  "source": "README.md:Entities",
+  "claim": "Six sensors are disabled by default, and these are they",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=['Compressor Frequency Advisor', 'Contract Comparison', 'DHW Heavy Day Demand', 'ECL110 Displace', 'ECL110 Effective Displace', 'Valve Target Recommendation'] measured=['Compressor Frequency Advisor', 'Contract Comparison', 'DHW Heavy Day Demand', 'ECL110 Displace', 'ECL110 Effective Displace', 'Valve Target Recommendation']",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C7",
+  "source": "README.md:Entities",
+  "claim": "exactly six sensors are disabled by default",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=6 measured=6",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C8",
+  "source": "README.md:### Sensors",
+  "claim": "the sensor table names exactly the sensors the platform constructs",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=['Baseline Cost', 'Buffer Tank Temperature (Model)', 'Comfort Weight', 'Compressor Frequency Advisor', 'Compressor Starts', 'Contract Comparison', 'Current Electricity Price', 'DHW Cost (lifetime)', 'DHW Energy (lifetime)', 'DHW Heating Cost (next 24 h)', 'DHW Heating Plan (next 24 h)', 'DHW Heating Schedule', 'DHW Heavy Day Demand', 'DHW Mixed Water', 'DHW Setpoint Advisor', 'DHW Temperature', 'ECL110 Displace', 'ECL110 Effective Displace', 'Estimated COP', 'Floor Heating Return Temperature', 'Heat Pump Action', 'Indoor Temperature (Optimizer)', 'Last Optimization', 'Lower Floor Temperature', 'Measured Power', 'Monthly Peak Power', 'Monthly Savings', 'Next Optimization', 'Observed COP', 'Optimal Setpoint', 'Optimization Mode', 'Optimization Schedule', 'Optimization Schedule Steps', 'Optimization Score', 'Optimization Status', 'Outdoor Temperature (Optimizer)', 'Plan Narrative', 'Power Headroom', 'Predicted Cost', 'Predicted Savings', 'Prediction Accuracy', 'Predictive Optimization Insight', 'Recommended Power', 'Savings Percentage', 'Sensor-Gap Euro Advisor', 'Slab Temperature (Estimated)', 'Solar Heat Gain', 'Solar Irradiance', 'Solar Surplus Forecast', 'Space Heating Cost (lifetime)', 'Space Heating Energy (lifetime)', 'Space Heating Plan (next 24 h)', 'Thermal Battery Charge', 'Thermal Battery Energy', 'Total Energy (lifetime)', 'Total Heating Cost (lifetime)', 'Upper Floor Temperature', 'Valve Target Recommendation', 'Wood-Burn Night Advisor'] measured=['Baseline Cost', 'Buffer Tank Temperature (Model)', 'Comfort Weight', 'Compressor Frequency Advisor', 'Compressor Starts', 'Contract Comparison', 'Current Electricity Price', 'DHW Cost (lifetime)', 'DHW Energy (lifetime)', 'DHW Heating Cost (next 24 h)', 'DHW Heating Plan (next 24 h)', 'DHW Heating Schedule', 'DHW Heavy Day Demand', 'DHW Mixed Water', 'DHW Setpoint Advisor', 'DHW Temperature', 'ECL110 Displace', 'ECL110 Effective Displace', 'Estimated COP', 'Floor Heating Return Temperature', 'Heat Pump Action', 'Indoor Temperature (Optimizer)', 'Last Optimization', 'Lower Floor Temperature', 'Measured Power', 'Monthly Peak Power', 'Monthly Savings', 'Next Optimization', 'Observed COP', 'Optimal Setpoint', 'Optimization Mode', 'Optimization Schedule', 'Optimization Schedule Steps', 'Optimization Score', 'Optimization Status', 'Outdoor Temperature (Optimizer)', 'Plan Narrative', 'Power Headroom', 'Predicted Cost', 'Predicted Savings', 'Prediction Accuracy', 'Predictive Optimization Insight', 'Recommended Power', 'Savings Percentage', 'Sensor-Gap Euro Advisor', 'Slab Temperature (Estimated)', 'Solar Heat Gain', 'Solar Irradiance', 'Solar Surplus Forecast', 'Space Heating Cost (lifetime)', 'Space Heating Energy (lifetime)', 'Space Heating Plan (next 24 h)', 'Thermal Battery Charge', 'Thermal Battery Energy', 'Total Energy (lifetime)', 'Total Heating Cost (lifetime)', 'Upper Floor Temperature', 'Valve Target Recommendation', 'Wood-Burn Night Advisor']",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C9",
+  "source": "README.md:### Sensors",
+  "claim": "every sensor row's Unit column is the unit the entity publishes (CUR = the instance currency)",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "59 rows checked, mismatches=[('Sensor-Gap Euro Advisor', 'CUR', None)]",
+  "verdict": "false",
+  "truth": "Sensor-Gap Euro Advisor declares no native_unit_of_measurement at all: it publishes a bare number, not a currency figure. Every other monetary sensor sets `self._attr_native_unit_of_measurement = coordinator.currency`."
+ },
+ {
+  "id": "C10",
+  "source": "README.md:### Sensors",
+  "claim": "every row whose Notes begin `Diagnostic` is EntityCategory.DIAGNOSTIC, and no other row is",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "mismatches=[]",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C11",
+  "source": "README.md:### Sensors",
+  "claim": "every row whose Notes say `disabled by default` has entity_registry_enabled_default False, and no other row does",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "mismatches=[]",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C12",
+  "source": "README.md:### Binary Sensors",
+  "claim": "the binary-sensor table names exactly the binary sensors the platform constructs",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=['Away Mode', 'External Heat Source', 'Input Problem', 'Open Window Detected', 'Wood Cheaper Than Heat Pump'] measured=['Away Mode', 'External Heat Source', 'Input Problem', 'Open Window Detected', 'Wood Cheaper Than Heat Pump']",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C13",
+  "source": "README.md:### Buttons",
+  "claim": "the button table names exactly the buttons the platform constructs",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=['Diagnose Last Interval', 'Optimize Now', 'Reset Learned Comfort Weight', 'Run System Identification'] measured=['Diagnose Last Interval', 'Optimize Now', 'Reset Learned Comfort Weight', 'Run System Identification']",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C14",
+  "source": "README.md:Switches",
+  "claim": "Optimizer Active, Away, Boost Hot Water and Boost Space Heating are the switches",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=['Away', 'Boost Hot Water', 'Boost Space Heating', 'Optimizer Active'] measured=['Away', 'Boost Hot Water', 'Boost Space Heating', 'Optimizer Active']",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C15",
+  "source": "README.md:## Services",
+  "claim": "12 services are registered under the heatpump_optimizer domain",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=12 measured=12",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C16",
+  "source": "docs/configuration.md:## Services",
+  "claim": "12 services are registered",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=12 measured=12",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C17",
+  "source": "README.md:## Services",
+  "claim": "the Services table names exactly services.yaml's keys",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=['apply_manual_plan', 'apply_schedule', 'apply_topology', 'assign_entity', 'clear_manual_plan', 'diagnose_interval', 'restore_learned_snapshot', 'run_optimization', 'set_away', 'set_mode', 'set_thermal_parameters', 'simulate_plan'] measured=['apply_manual_plan', 'apply_schedule', 'apply_topology', 'assign_entity', 'clear_manual_plan', 'diagnose_interval', 'restore_learned_snapshot', 'run_optimization', 'set_away', 'set_mode', 'set_thermal_parameters', 'simulate_plan']",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C18",
+  "source": "README.md + docs/configuration.md",
+  "claim": "set_thermal_parameters takes 28 fields",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=28 measured=28",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C19",
+  "source": "docs/configuration.md",
+  "claim": "simulate_plan takes 16 optional fields",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=16 measured=16",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C20",
+  "source": "docs/configuration.md",
+  "claim": "seven services accept an optional entry_id",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=7 measured=7",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C21",
+  "source": "services.yaml",
+  "claim": "services.yaml documents exactly the fields each voluptuous schema accepts",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "symmetric differences={}",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C22",
+  "source": "services.yaml",
+  "claim": "every services.yaml `example` payload passes its own service schema",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "services with examples=5, failures=[]",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C23",
+  "source": "README.md:## Services",
+  "claim": "the Returns column is each service's registered SupportsResponse (\u2014 = none, Always = ONLY, Optional = OPTIONAL)",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented={'run_optimization': '\u2014', 'set_away': '\u2014', 'set_mode': '\u2014', 'set_thermal_parameters': '\u2014', 'simulate_plan': 'Always', 'apply_schedule': 'Optional', 'apply_manual_plan': 'Optional', 'clear_manual_plan': 'Optional', 'restore_learned_snapshot': 'Optional', 'diagnose_interval': 'Optional', 'assign_entity': 'Optional', 'apply_topology': 'Optional'}, registered={'run_optimization': 'none', 'set_mode': 'none', 'set_away': 'none', 'set_thermal_parameters': 'none', 'simulate_plan': 'only', 'apply_schedule': 'optional', 'assign_entity': 'optional', 'apply_topology': 'optional', 'apply_manual_plan': 'optional', 'clear_manual_plan': 'optional', 'restore_learned_snapshot': 'optional', 'diagnose_interval': 'optional'}, mismatches=[]",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C24",
+  "source": "docs/configuration.md",
+  "claim": "assign_entity's `key` is one of 21 assignable configuration keys, listed",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=['buffer_tank_temp_entity', 'dhw_temp_entity', 'external_heat_entity', 'floor_return_temp_entity', 'heat_pump_defrost_entity', 'heat_pump_energy_entity', 'heat_pump_fault_entity', 'heat_pump_mode_entity', 'heat_pump_online_entity', 'heat_pump_power_entity', 'heat_pump_switch_entity', 'house_power_entity', 'indoor_temp_entity', 'lower_floor_temp_entity', 'mixing_valve_target_entity', 'outdoor_temp_entity', 'pv_production_entity', 'solar_radiation_entity', 'valve_outlet_temp_entity', 'wood_tank_bottom_entity', 'wood_tank_top_entity'] measured=['buffer_tank_temp_entity', 'dhw_temp_entity', 'external_heat_entity', 'floor_return_temp_entity', 'heat_pump_defrost_entity', 'heat_pump_energy_entity', 'heat_pump_fault_entity', 'heat_pump_mode_entity', 'heat_pump_online_entity', 'heat_pump_power_entity', 'heat_pump_switch_entity', 'house_power_entity', 'indoor_temp_entity', 'lower_floor_temp_entity', 'mixing_valve_target_entity', 'outdoor_temp_entity', 'pv_production_entity', 'solar_radiation_entity', 'valve_outlet_temp_entity', 'wood_tank_bottom_entity', 'wood_tank_top_entity']",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C25",
+  "source": "docs/configuration.md",
+  "claim": "the count in that sentence is 21",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=21 measured=21",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C26",
+  "source": "README.md",
+  "claim": "a menu of 21 pages",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=21 measured=21",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C27",
+  "source": "docs/configuration.md",
+  "claim": "There are 21 pages",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=21 measured=21",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C28",
+  "source": "docs/configuration.md",
+  "claim": "six on the first menu and fifteen more behind Advanced settings",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=(6, 15) measured=(6, 15)",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C29",
+  "source": "docs/architecture.md:module map",
+  "claim": "config_flow.py -- Setup flow plus 13 option pages behind two menus",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=13 measured=21",
+  "verdict": "false",
+  "truth": "config_flow._OPTION_PAGES holds 21 pages, and README.md/configuration.md both say 21"
+ },
+ {
+  "id": "C30",
+  "source": "docs/configuration.md",
+  "claim": "every documented Default (76 rows) is the default the rendered options page actually carries",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "76 compared, mismatches=[]",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C31",
+  "source": "docs/configuration.md",
+  "claim": "every documented Range (76 rows) is the NumberSelector min/max the rendered options page actually carries",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "76 compared, mismatches=[]",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C32",
+  "source": "docs/architecture.md",
+  "claim": "45 modules",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=45 measured=56",
+  "verdict": "false",
+  "truth": "the package holds 56 Python modules; the map lists 45 and omits 11"
+ },
+ {
+  "id": "C33",
+  "source": "docs/architecture.md",
+  "claim": "the module map is the package's module list",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "on disk=56, listed=45, missing=['boost.py', 'datetime.py', 'dhw_learning.py', 'diagnostics.py', 'entity.py', 'legionella.py', 'process_worker.py', 'repairs.py', 'services.py', 'setpoint_check.py', 'wood_fuel.py'], phantom=[]",
+  "verdict": "false",
+  "truth": "11 modules are absent from the map: boost.py, datetime.py, dhw_learning.py, diagnostics.py, entity.py, legionella.py, process_worker.py, repairs.py, services.py, setpoint_check.py, wood_fuel.py"
+ },
+ {
+  "id": "C34",
+  "source": "docs/architecture.md:The Home Assistant boundary",
+  "claim": "Exactly ten modules import `homeassistant` at module level",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=10 measured=21",
+  "verdict": "false",
+  "truth": "21 modules import homeassistant at module level"
+ },
+ {
+  "id": "C35",
+  "source": "docs/architecture.md:The Home Assistant boundary",
+  "claim": "the ten named modules are the complete set of module-level importers",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "named=['__init__.py', 'binary_sensor.py', 'button.py', 'climate.py', 'config_flow.py', 'coordinator.py', 'frontend.py', 'inputs.py', 'open_meteo.py', 'sensor.py', 'switch.py'], measured=['__init__.py', 'away.py', 'binary_sensor.py', 'boost.py', 'button.py', 'climate.py', 'config_flow.py', 'coordinator.py', 'currency.py', 'datetime.py', 'dhw_learning.py', 'diagnostics.py', 'entity.py', 'frontend.py', 'legionella.py', 'open_meteo.py', 'repairs.py', 'sensor.py', 'services.py', 'setpoint_check.py', 'switch.py'], unnamed=['away.py', 'boost.py', 'currency.py', 'datetime.py', 'dhw_learning.py', 'diagnostics.py', 'entity.py', 'legionella.py', 'repairs.py', 'services.py', 'setpoint_check.py']",
+  "verdict": "false",
+  "truth": "unnamed module-level importers: away.py, boost.py, currency.py, datetime.py, dhw_learning.py, diagnostics.py, entity.py, legionella.py, repairs.py, services.py, setpoint_check.py"
+ },
+ {
+  "id": "C36",
+  "source": "docs/architecture.md:The Home Assistant boundary",
+  "claim": "everything outside that set is free of homeassistant, so each module can be driven with no Home Assistant running",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "11 modules outside the named set import homeassistant at module level",
+  "verdict": "false",
+  "truth": "11 modules outside the named set import homeassistant at module level and cannot be imported without it"
+ },
+ {
+  "id": "C37",
+  "source": "docs/architecture.md:module map",
+  "claim": "__init__.py -- the 11 services",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=11 measured=12",
+  "verdict": "false",
+  "truth": "there are 12 services"
+ },
+ {
+  "id": "C38",
+  "source": "docs/architecture.md:module map",
+  "claim": "services.yaml -- The 11 service definitions",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=11 measured=12",
+  "verdict": "false",
+  "truth": "services.yaml defines 12 services"
+ },
+ {
+  "id": "C39",
+  "source": "docs/architecture.md:module map",
+  "claim": "sensor.py -- 59 sensors",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=59 measured=59",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C40",
+  "source": "docs/architecture.md:module map",
+  "claim": "switch.py -- Optimizer Active",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented='Optimizer Active', the platform constructs ['Away', 'Boost Hot Water', 'Boost Space Heating', 'Optimizer Active']",
+  "verdict": "false",
+  "truth": "switch.py constructs four switches: Away, Boost Hot Water, Boost Space Heating and Optimizer Active"
+ },
+ {
+  "id": "C41",
+  "source": "docs/architecture.md:module map",
+  "claim": "binary_sensor.py -- Input problem, open window, external heat, away mode",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented names 4, the platform constructs 5: ['Away Mode', 'External Heat Source', 'Input Problem', 'Open Window Detected', 'Wood Cheaper Than Heat Pump']",
+  "verdict": "false",
+  "truth": "the fifth binary sensor, Wood Cheaper Than Heat Pump, is not named"
+ },
+ {
+  "id": "C42",
+  "source": "manifest.json",
+  "claim": "manifest version equals VERSION",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented='6.4.2' measured='6.4.2'",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C43",
+  "source": "hacs.json",
+  "claim": "hacs.json requires Home Assistant 2025.2.0",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented='2025.2.0' measured='2025.2.0'",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C44",
+  "source": "README.md badge",
+  "claim": "Home Assistant 2025.2.0+ badge matches hacs.json",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented='2025.2.0' measured='2025.2.0'",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C45",
+  "source": "README.md Requirements",
+  "claim": "Home Assistant 2025.2.0 or newer",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented='2025.2.0' measured='2025.2.0'",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C46",
+  "source": "README.md Requirements",
+  "claim": "Python 3.13 or newer; the suite is tested on 3.14",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=('3.13', '3.14') measured=('3.13', '3.14')",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C47",
+  "source": ".github/workflows",
+  "claim": "the interpreters CI runs cover the documented floor and the tested version",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "CI python versions=['3.13', '3.14']",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C48",
+  "source": "manifest.json",
+  "claim": "numpy and scipy are installed automatically from the manifest",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=True measured=True",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C49",
+  "source": "README.md Quick start",
+  "claim": "target 21 \u00b0C",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=21.0 measured=21.0",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C50",
+  "source": "README.md Quick start",
+  "claim": "comfort day 21 \u00b0C",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=21.0 measured=21.0",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C51",
+  "source": "README.md Quick start",
+  "claim": "comfort night 19.5 \u00b0C",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=19.5 measured=19.5",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C52",
+  "source": "README.md Quick start",
+  "claim": "the day runs 07:00-22:00",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=(7, 22) measured=(7, 22)",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C53",
+  "source": "README.md Quick start",
+  "claim": "demand time frames 06:00-08:30, 17:00-22:00",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented='06:00-08:30, 17:00-22:00' measured='06:00-08:30, 17:00-22:00'",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C54",
+  "source": "README.md Quick start",
+  "claim": "anti-legionella on by default at 60 \u00b0C every 7 days",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=(True, 60.0, 7.0) measured=(True, 60.0, 7.0)",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C55",
+  "source": "README.md Quick start",
+  "claim": "3 % per m/s of wind, 15 % while raining",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=(0.03, 1.15) measured=(0.03, 1.15)",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C56",
+  "source": "README.md",
+  "claim": "comfort_weight default 5",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=5.0 measured=5.0",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C57",
+  "source": "README.md + how-it-works",
+  "claim": "optimization interval 30 minutes by default",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=30 measured=30",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C58",
+  "source": "README.md",
+  "claim": "the last eight weekly snapshots are kept",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=(8, 7.0) measured=(8, 7.0)",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C59",
+  "source": "README.md + ecl110.md",
+  "claim": "the heat-curve correction moves at most 0.5 K per week",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=0.5 measured=0.5",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C60",
+  "source": "README.md",
+  "claim": "hot-water heavy day is the 90th percentile",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=0.9 measured=0.9",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C61",
+  "source": "README.md",
+  "claim": "Boost applies maximum heat for two hours",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=2 measured=2",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C62",
+  "source": "README.md + configuration.md",
+  "claim": "manual pins last up to 20 hours",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=20 measured=20",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C63",
+  "source": "README.md",
+  "claim": "at most one number.set_value per five minutes",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=300.0 measured=300.0",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C64",
+  "source": "README.md",
+  "claim": "a frequency diverging for three active ticks stands control down",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=3 measured=3",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C65",
+  "source": "README.md",
+  "claim": "the peak guard needs two agreeing samples to engage and two to clear",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=2 measured=2",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C66",
+  "source": "configuration.md + automations.md",
+  "claim": "economy allows up to 1.5 \u00b0C below the comfort floor, never below 15 \u00b0C",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=(1.5, 15.0) measured=(1.5, 15.0)",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C67",
+  "source": "README.md",
+  "claim": "DHW Mixed Water is litres of 40 \u00b0C water",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=40.0 measured=40.0",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C68",
+  "source": "README.md",
+  "claim": "Wood Cheaper Than Heat Pump needs furnace efficiency 10-95 %",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=True measured=True",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C69",
+  "source": "docs/ecl110.md",
+  "claim": "ecl110_displace_set_topic default",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented='ecl110/flow_temp_control/displace/set' measured='ecl110/flow_temp_control/displace/set'",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C70",
+  "source": "docs/ecl110.md",
+  "claim": "ecl110_command_topic default",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented='ecl110/command' measured='ecl110/command'",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C71",
+  "source": "docs/ecl110.md",
+  "claim": "ecl110_state_topic default",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented='ecl110/flow_temp_control/displace' measured='ecl110/flow_temp_control/displace'",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C72",
+  "source": "docs/ecl110.md",
+  "claim": "ecl110_mqtt_qos default 1, retain off",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=(1, False) measured=(1, False)",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C73",
+  "source": "docs/ecl110.md",
+  "claim": "displace_min default -20, displace_max default +20",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=(-20.0, 20.0) measured=(-20.0, 20.0)",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C74",
+  "source": "docs/ecl110.md",
+  "claim": "ecl110_pid_time_constant_hours default 1.5 h",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=1.5 measured=1.5",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C75",
+  "source": "docs/ecl110.md",
+  "claim": "All eight settings live on the Heat curve control page",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=8 measured=8",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C76",
+  "source": "docs/ecl110.md",
+  "claim": "the peak guard publishes the plan's displace minus 2 \u00b0C",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=2.0 measured=2.0",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C77",
+  "source": "docs/ecl110.md",
+  "claim": "a step is ON when either circuit clears half the modulation floor, at least 0.1 kW",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=True measured=True",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C78",
+  "source": "docs/ecl110.md",
+  "claim": "the weather anticipation bias applies over the first eight hours",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=True measured=True",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C79",
+  "source": "docs/ecl110.md",
+  "claim": "the published displace is rounded to a whole number",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=True measured=True",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C80",
+  "source": "docs/ecl110.md",
+  "claim": "comfort commands +4 \u00b0C or your maximum if lower; boost your maximum; off your minimum",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=True measured=True",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C81",
+  "source": "docs/ecl110.md",
+  "claim": "both ECL110 sensors are disabled by default and diagnostic",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "[('ECL110 Displace', False, 'diagnostic'), ('ECL110 Effective Displace', False, 'diagnostic')]",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C82",
+  "source": "README.md:Removal",
+  "claim": "every entry keeps its learners and ledgers in twelve files under .storage/, named",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=['accuracy', 'away', 'boost', 'dhw_draws', 'dhw_legionella', 'dhw_profile', 'energy', 'ledger', 'manual_plan', 'price_model', 'snapshots', 'thermal_learning'] measured=['accuracy', 'away', 'boost', 'dhw_draws', 'dhw_legionella', 'dhw_profile', 'energy', 'ledger', 'manual_plan', 'price_model', 'snapshots', 'thermal_learning']",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C83",
+  "source": "README.md:Removal",
+  "claim": "the count in that sentence is twelve",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=12 measured=12",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C84",
+  "source": "README.md:Removal",
+  "claim": "the registered Lovelace resource is /heatpump_optimizer_static/heatpump-optimizer-card.js",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented='/heatpump_optimizer_static/heatpump-optimizer-card.js' measured='/heatpump_optimizer_static/heatpump-optimizer-card.js'",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C85",
+  "source": "docs/dashboard-card.md",
+  "claim": "series keys: price, dhw_slots, space_slots, outdoor, dhw_temp, house_temp, solar",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=['dhw_slots', 'dhw_temp', 'house_temp', 'outdoor', 'price', 'solar', 'space_slots'] measured=['dhw_slots', 'dhw_temp', 'house_temp', 'outdoor', 'price', 'solar', 'space_slots']",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C86",
+  "source": "docs/dashboard-card.md",
+  "claim": "hours defaults to 24, must be >0 and at most 168",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=(True, True, True) measured=(True, True, True)",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C87",
+  "source": "docs/dashboard-card.md",
+  "claim": "what_if and show_stats default true",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=(True, True) measured=(True, True)",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C88",
+  "source": "README.md + dashboard-card.md",
+  "claim": "the card is custom:heatpump-optimizer-card",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=True measured=True",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C89",
+  "source": "docs/dashboard-card.md",
+  "claim": "the chart is hand-written inline SVG with no Chart.js/ApexCharts/npm/CDN dependency",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=True measured=True",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C90",
+  "source": "docs/how-it-works.md:What the tests actually prove",
+  "claim": "over three days with a 25% model error",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "tests/rolling.py contains 'plant_error: float = 1.25': True",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C91",
+  "source": "docs/how-it-works.md:What the tests actually prove",
+  "claim": "the house never runs away (stays inside 5-35 \u00b0C)",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "tests/rolling.py contains 'float(h[\"room\"].min()) > 5.0 and float(h[\"room\"].max()) < 35.0': True",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C92",
+  "source": "docs/how-it-works.md:What the tests actually prove",
+  "claim": "comfort holds to under 3 degree-hours below the floor",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "tests/rolling.py contains 'violation < 3.0': True",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C93",
+  "source": "docs/how-it-works.md:What the tests actually prove",
+  "claim": "the last day-to-day step is under 0.5 K and no larger than the first, spread under 2 K",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "tests/rolling.py contains 'settle_step < 0.5 and settle_step <= first_step + 1e-9': True",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C94",
+  "source": "docs/how-it-works.md:What the tests actually prove",
+  "claim": "the worst day is under 1.6x the best",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "tests/rolling.py contains 'max(day_costs) / max(min(day_costs), 1e-6) < 1.6': True",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C95",
+  "source": "docs/how-it-works.md:What the tests actually prove",
+  "claim": "mean first-step swing under half the pump's rated power",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "tests/rolling.py contains 'float(np.mean(swings)) < p_max * 0.5': True",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C96",
+  "source": "docs/how-it-works.md:What the tests actually prove",
+  "claim": "the cheapest quartile gets more power than the most expensive quartile",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "tests/rolling.py contains 'np.percentile(h[\"price\"], 75)': True",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C97",
+  "source": "docs/how-it-works.md:What the tests actually prove",
+  "claim": "a house that loses 35% more heat than its configuration says",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "tests/rolling.py contains 'TRUE_ERROR = 1.35': True",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C98",
+  "source": "docs/how-it-works.md:What the tests actually prove",
+  "claim": "the learner takes samples (more than 10 over three days)",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "tests/rolling.py contains 'int(samples[-1]) > 10': True",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C99",
+  "source": "docs/how-it-works.md:What the tests actually prove",
+  "claim": "it never overshoots more than 0.15 past the true error",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "tests/rolling.py contains 'scale[-1] <= TRUE_ERROR + 0.15': True",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C100",
+  "source": "docs/how-it-works.md:What the tests actually prove",
+  "claim": "it converges rather than oscillating (last-quarter spread under 0.05)",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "tests/rolling.py contains '< 0.05': True",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C101",
+  "source": "docs/how-it-works.md:What the tests actually prove",
+  "claim": "a model that is already correct is left alone (drift under 0.12 over two days)",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "tests/rolling.py contains 'abs(float(drift[-1]) - 1.0) < 0.12': True",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C102",
+  "source": "docs/how-it-works.md:What the tests actually prove",
+  "claim": "a house tighter than configured: under 3 degree-hours above the maximum over two days",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "tests/rolling.py contains 'overshoot < 3.0': True",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C103",
+  "source": "README.md:Entities Notes",
+  "claim": "every `Unavailable ...` note holds on an install with only an indoor and an outdoor thermometer and a tank volume (12 notes)",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "12 notes checked, still available=[]",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C104",
+  "source": "README.md:Entities Notes",
+  "claim": "Thermal Battery Charge/Energy are unavailable when no store is sensed at all",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "with no thermometer configured: charge.available=False, energy.available=False",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C105",
+  "source": "docs/automations.md",
+  "claim": "the Power Headroom sensor stays unavailable until you set a main fuse size in the options",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "no fuse + capacity tariff enabled -> {'available': True, 'limit_kw': 0.0, 'headroom_kw': 0.0, 'baseline_source': 'planned power only (no meter)', 'limit_source': 'capacity tariff with no peak reference yet'}; fuse only -> available=True; neither -> available=False",
+  "verdict": "false",
+  "truth": "a capacity tariff alone makes it available (limit_source='capacity tariff with no peak reference yet', headroom_kw=0.0) with no fuse set; the fuse is one of two sufficient conditions, not a necessary one"
+ },
+ {
+  "id": "C106",
+  "source": "docs/automations.md",
+  "claim": "Power Headroom is min(main fuse, capacity threshold) - current house draw, clamped at zero, in kW",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "fuse 20 A 3-phase -> limit_kw=13.8, headroom_kw=13.8, limit_source='main fuse'",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C107",
+  "source": "README.md + docs/*.md + the card",
+  "claim": "every entity id quoted in the documentation is an entity the platforms construct",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "9 distinct ids cited, not constructed=[]",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C108",
+  "source": "README.md + docs/*.md",
+  "claim": "every relative link resolves (65 links)",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "65 links, broken=[('README.md', 'docs/audit-2026-08.md'), ('README.md', 'docs/audit-2026-09.md'), ('README.md', 'docs/backlog.md'), ('docs/how-it-works.md', 'backlog.md')], of which removed-by-the-export=[('README.md', 'docs/audit-2026-08.md'), ('README.md', 'docs/audit-2026-09.md'), ('README.md', 'docs/backlog.md'), ('docs/how-it-works.md', 'backlog.md')]",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C109",
+  "source": "README.md + docs/how-it-works.md",
+  "claim": "the links to docs/audit-2026-08.md, docs/audit-2026-09.md and docs/backlog.md resolve",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "those three files are removed from the round-4 export by tools/audit/prepare_baseline.sh; this tree cannot answer",
+  "verdict": "unverifiable",
+  "truth": "not checkable in the export -- COMMON.md's wall removes exactly these files"
+ },
+ {
+  "id": "C110",
+  "source": "README.md + docs/*.md",
+  "claim": "every image the documentation embeds exists (9 images)",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "9 images, missing=[]",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C111",
+  "source": "README.md + docs/*.md",
+  "claim": "every external link answers 200 to a HEAD request (10 links)",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py --links",
+  "result": "10 links, non-200=[]",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C112",
+  "source": "strings.json + translations/*.json",
+  "claim": "every translation file carries exactly the keys strings.json declares",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "languages=['en', 'sv'], missing={'en': 0, 'sv': 0}, extra={'en': 0, 'sv': 0}",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C113",
+  "source": "README.md",
+  "claim": "entity names are translated into English and Swedish",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=['en', 'sv'] measured=['en', 'sv']",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C114",
+  "source": "README.md",
+  "claim": "every entity's display name comes from the translation files",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "untranslated=[]",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C115",
+  "source": "README.md",
+  "claim": "the Swedish translation actually differs from the English entity names",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "0 of 73 entity names identical in sv and en",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C116",
+  "source": "README.md",
+  "claim": "the integration domain is heatpump_optimizer",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented='heatpump_optimizer' measured='heatpump_optimizer'",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C117",
+  "source": "manifest.json",
+  "claim": "config_flow is declared",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=True measured=True",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C118",
+  "source": "README.md",
+  "claim": "the documentation url in the manifest points at the project",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented='https://github.com/tvofi/heatpump_optimizer' measured='https://github.com/tvofi/heatpump_optimizer'",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C119",
+  "source": "docs/configuration.md",
+  "claim": "the layout catalog has four selectable keys and one recorded-but-unselectable",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=4 measured=4",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C120",
+  "source": "README.md",
+  "claim": "the climate entity has HVAC modes off, heat and auto",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented={'auto', 'off', 'heat'} measured={'auto', 'off', 'heat'}",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C121",
+  "source": "README.md",
+  "claim": "the climate entity has presets auto, comfort, economy and boost",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented={'auto', 'economy', 'boost', 'comfort'} measured={'auto', 'economy', 'boost', 'comfort'}",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C122",
+  "source": "docs/configuration.md",
+  "claim": "set_mode takes auto, comfort, economy, boost or off",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=['auto', 'boost', 'comfort', 'economy', 'off'] measured=['auto', 'boost', 'comfort', 'economy', 'off']",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C123",
+  "source": "DISCLAIMER.md",
+  "claim": "the licence is MIT",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "documented=True measured=True",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C124",
+  "source": "DISCLAIMER.md",
+  "claim": "the disclaimer states the software is not a safety device and carries no warranty",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "'not a safety device' present=True, 'no warranty' present=True",
+  "verdict": "true",
+  "truth": ""
+ },
+ {
+  "id": "C125",
+  "source": "strings.json:selector",
+  "claim": "every SelectSelector option on every options page has a translated label (35 selects)",
+  "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
+  "result": "35 selects, untranslated=[]",
+  "verdict": "true",
+  "truth": ""
+ }
+]

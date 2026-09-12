@@ -1,0 +1,15 @@
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+RESULT perturbation=fix arm
+RESULT entities=74 count
+RESULT keyed_entities=73 count
+RESULT no_icon_entities=0 entities
+RESULT dc_and_icon=35 entities
+RESULT dc_no_icon=0 entities
+RESULT no_dc_no_icon=0 entities
+RESULT no_dc_icon=38 entities
+RESULT file_only_missing=4 keys
+# detail written to tools/audit/round4/D8/d8_own_D8-02_detail.json
+RESULT thread_factor=1.00 ratio
+RESULT timing_results_reported=0 count
+RESULT swapins=0 count
+RESULT load1=5.75 load
