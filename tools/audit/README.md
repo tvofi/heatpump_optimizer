@@ -188,6 +188,13 @@ reference solve. Every wall, CPU or RSS number is re-taken in the quiet
 window before it enters the register. One local full gate at a time, through
 `tests/gate_lock.py`; `stress.py` alone is not alone across worktrees.
 
+**Fan-out concurrency is a judgement, not a measured capacity.** At most
+three compute-heavy finders share the box, and the Chromium finder (D4)
+does not sit beside them. The basis is the 8-core / 8 GB box and the
+stress-lock incident on 2026-09-03, not a measured exclusivity proof
+beyond that lock. `.claude/workflows/audit-find.js` schedules from this
+paragraph.
+
 ## A harness at the evidence tag may measure the tag, not your tree
 
 The harnesses under `audit-round2-evidence` do not agree on how they find the

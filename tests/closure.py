@@ -355,6 +355,11 @@ def is_handover(rel: str) -> bool:
 # INERT-and-recorded pair #357 exists to refuse, so the bot returns skip-still-fails.
 INERT_EXCEPT = (
     "tools/audit/preflight.sh",
+    # #817: tests/harness_headers.py read_text's these and spawns them.
+    # Declaring the prefix unread while the gate opens the files is #357.
+    "tools/audit/round3/D2/dst_window_factors.py",
+    "tools/audit/round3/D2/window_size_sweep.py",
+    "tools/audit/round3/D5/option_doc_coverage.py",
     ".gitignore",
     ".claude/workflows/policy_lint.mjs",
     ".claude/workflows/brief_lint.mjs",

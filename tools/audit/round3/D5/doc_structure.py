@@ -45,6 +45,7 @@ INSTRUMENTED: the markdown link graph rooted at README.md, i.e. the reader
     path the README's own navigation defines.
 """
 import os
+import time
 for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
            "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS"):
     os.environ.setdefault(_v, "1")
@@ -237,7 +238,8 @@ def main():
     print(f"RESULT docs_without_single_h1={len(bad_h1)} count")
     print(f"RESULT readme_h2_sections={len(h2s)} count")
     print(f"RESULT readme_h2_unlinked={len(missing)} count")
-    print("RESULT thread_factor=1.0")
+    _thr = time.thread_time()
+    print(f"RESULT thread_factor={time.process_time() / _thr if _thr else 0:.3f}")
     print(f"RESULT load1={os.getloadavg()[0]:.2f}")
     print("RESULT swapins=0")
 

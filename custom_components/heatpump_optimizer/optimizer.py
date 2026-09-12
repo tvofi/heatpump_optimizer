@@ -192,7 +192,7 @@ _COMFORT_PULL_TWO_ZONE = 0.0125
 
 # How many of the candidate starting points are actually optimized. Going from
 # one to two removes most of the local-optimum gap in the two-zone model
-# (2.2% cheaper in the validation scenarios). The audit's D0-02 finding then
+# (2.2% cheaper in the validation scenarios). The audit's R1-D0-02 finding then
 # measured the DISCARDED candidate refining below the shipped result in 5 of
 # 10 price profiles (marginal on flat days, up to ~0.1 SEK/day), so every
 # candidate is now refined: with v6.2.8's batched gradient a solve is ~7x
@@ -201,7 +201,7 @@ _COMFORT_PULL_TWO_ZONE = 0.0125
 # number four, so this is the whole list.
 _MULTI_START_SOLVES = 4
 
-# The low-energy bang-bang seed (D0-01): the historical candidates all
+# The low-energy bang-bang seed (R1-D0-01): the historical candidates all
 # anchored to the same TOTAL energy (the baseline's), and on
 # arbitrage-structured prices all three refined into one basin -- measured
 # by the audit at a 0.52-0.55 energy-fraction cluster, leaving strictly
@@ -2974,7 +2974,7 @@ class HeatPumpOptimizer:
         guess = self._seed_pinned_guess(guess, bounds)
         # A warm start is a genuinely good lead, so keep it first; the
         # extra structural candidates only matter on the initial solve.
-        # The low-energy seed rides along for the same D0-01 reason as
+        # The low-energy seed rides along for the same R1-D0-01 reason as
         # in the space-only path: without it every candidate anchors to
         # the same total energy and arbitrage days refine into one basin.
         starts = [guess]
@@ -3499,7 +3499,7 @@ class HeatPumpOptimizer:
 
         # Multiple starting points: the smooth price-weighted guess above, a
         # bang-bang schedule that buys the cheapest steps first, a flat
-        # schedule, and the low-energy bang-bang seed (D0-01 -- see
+        # schedule, and the low-energy bang-bang seed (R1-D0-01 -- see
         # _LOW_ENERGY_START_FRACTION for why the same-energy candidates all
         # refine into one basin on arbitrage prices). See
         # _multi_start_minimize for why one guess is not enough.

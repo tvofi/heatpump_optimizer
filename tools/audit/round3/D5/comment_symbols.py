@@ -31,6 +31,7 @@ INSTRUMENTED: the comment/docstring token stream of every module under
     custom_components/heatpump_optimizer/ (tokenize COMMENT + ast docstrings).
 """
 import os
+import time
 for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
            "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS"):
     os.environ.setdefault(_v, "1")
@@ -226,7 +227,8 @@ def main():
     card_private = [m for m in card_misses if JS_PRIVATE.match(m[2])]
     print(f"RESULT dangling_card_private_methods={len(card_private)} count")
     print(f"RESULT dangling_card_private_distinct={len({m[2] for m in card_private})} count")
-    print("RESULT thread_factor=1.0")
+    _thr = time.thread_time()
+    print(f"RESULT thread_factor={time.process_time() / _thr if _thr else 0:.3f}")
     print(f"RESULT load1={os.getloadavg()[0]:.2f}")
     print("RESULT swapins=0")
 

@@ -55,9 +55,9 @@ def strict_kill(script: str, r: dict) -> tuple[bool, str]:
     if r["rc"] != base_rc:
         return True, f"rc {base_rc} -> {r['rc']}"
     tail = r.get("tail", "") or ""
-    if "Traceback (most recent call last)" in tail:
+    if r.get("has_traceback") or "Traceback (most recent call last)" in tail:
         return True, "traceback"
-    n = summary_failed(tail)
+    n = summary_failed(r.get("summary_line") or tail)
     if n is not None and n != SLOT_BASELINE_FAILED.get(script, 0):
         return True, f"{n} check(s) failed (baseline {SLOT_BASELINE_FAILED.get(script,0)})"
     if script.startswith("tests/env_drift.py") and r["rc"] != 0:

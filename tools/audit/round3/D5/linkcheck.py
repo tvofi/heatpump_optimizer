@@ -212,7 +212,8 @@ def main():
     print(f"RESULT external_links_distinct={len(ext_urls)} count")
     if external_mode:
         print(f"RESULT external_head_failures={len(ext_broken)} count")
-    print(f"RESULT thread_factor=1.0")
+    _thr = time.thread_time()
+    print(f"RESULT thread_factor={time.process_time() / _thr if _thr else 0:.3f}")
     print(f"RESULT load1={os.getloadavg()[0]:.2f}")
     print(f"RESULT swapins=0")
     print(f"RESULT selfcheck_cpu={tf:.4f} s")
