@@ -14969,6 +14969,56 @@ R.check(
 # directly, because they are pure functions of data and need no network.
 import nightly_status as _nstatus  # noqa: E402
 
+# A job that drives a history-reading script must check out the history. This is
+# a PROPERTY over the workflow, not a pin on one job: `mutation-nightly` ran at
+# the default depth 1, so its baseline driver `tests/entities.py` could not ask
+# git whether the handover's `updated-for:` is an ancestor, failed there, and
+# `mutation_table.py` refused with "the baseline is already red" -- a red nightly
+# that had run no mutant at all. Its sibling `mutation` already carried
+# `fetch-depth: 0` for the same reason, which is what makes this a property
+# nobody had stated rather than a one-off.
+#
+# COMMENTS ARE STRIPPED BEFORE MATCHING, and that is not a detail: the first
+# version of this check matched the whole block and named `browser` and
+# `nightly-status`, which only MENTION a driver in a comment and are green at
+# depth 1. A predicate written from one failure will happily return confirming
+# evidence; what it must survive is "what would this refuse that should pass".
+#
+# The list is the four whose history need is EVIDENCED -- entities.py by the
+# reproduction above, run.sh and mutation_table.py because they drive it, and
+# env_drift.py by the `fast` job's own comment. `closure.py` is deliberately
+# absent: `closures-autofix` shells its `autofix-report` subcommand at depth 1
+# and is green, so requiring history there would be a refusal with no defect
+# behind it.
+_HISTORY_DRIVERS = ("tests/mutation_table.py", "tests/run.sh",
+                    "tests/entities.py", "tests/env_drift.py")
+
+
+def _job_shell(text: str, name: str) -> str:
+    """One job's block with comment tails removed, so a mention is not a use."""
+    return "\n".join(
+        line.split("#", 1)[0] for line in _workflow_job(text, name).splitlines()
+    )
+
+
+_DEPTH_JOBS = [
+    _name for _name in re.findall(r"^  ([a-z][\w-]*):$", _TESTS_YML, re.M)
+    if any(_d in _job_shell(_TESTS_YML, _name) for _d in _HISTORY_DRIVERS)
+]
+_DEPTH_SHALLOW = [
+    _name for _name in _DEPTH_JOBS
+    if "fetch-depth: 0" not in _workflow_job(_TESTS_YML, _name)
+]
+R.check(
+    "every job driving a history-reading script checks out the history",
+    bool(_DEPTH_JOBS) and not _DEPTH_SHALLOW,
+    f"{_DEPTH_SHALLOW or 'no job matched at all, so this check measured nothing'}"
+    f" against drivers {list(_HISTORY_DRIVERS)}. A shallow clone cannot answer "
+    "`merge-base --is-ancestor`, so the script fails on the CLONE rather than on "
+    "the tree and the job is red for a reason no diff explains. Add "
+    "`fetch-depth: 0`.",
+)
+
 _NS_JOB = _workflow_job(_TESTS_YML, "nightly-status")
 _NS_RUNS = [
     _l.strip() for _l in _NS_JOB.splitlines()
