@@ -85,7 +85,7 @@ seat's JSON has not been received here.
 | D2 | mathematical and physical sanity | written | — |
 | D3 | test-suite gaps | written | — |
 | D4 | UI/UX | not dispatched (wave 2) | — |
-| D5 | docs structure, flow, comments | written | — |
+| D5 | docs structure, flow, comments | **landed** | 2 hygiene — `docs/configuration.md`, the reference README promises documents *every* field, names 15 of 200 shipped options fields nowhere (34 occurrences); `tests/README.md:356` says 48 stress combinations, `sweep_combinations()` returns 51. Seven claims tagged `for D6`. Clean with positive controls: 0 broken links, 0 duplicated paragraphs over 433, 0 dead ends over 337 tokens |
 | D6 | documentation claim verification | **landed** | 125 claims extracted, 125 checked, 12 false, 1 unverifiable. 1 high — `docs/architecture.md` stale in ten claims including its HA boundary (21 modules import `homeassistant` at module level, 11 outside the ten it names). 1 medium — Sensor-Gap Euro Advisor documented `CUR`, publishes no unit. 1 low — `docs/automations.md` states a Power Headroom precondition the code does not enforce |
 | D7 | architecture and maintainability | written | — |
 | D8 | sensor verification and ordering | not dispatched (wave 2) | — |
