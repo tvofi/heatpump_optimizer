@@ -1,0 +1,32 @@
+{
+  "verdict": "OK",
+  "stale_after_commits": 12,
+  "merges": [
+    {
+      "number": 889,
+      "title": "test(#195 W5-G8): the residual \u2014 every below-bar module, and #195 closes",
+      "merge_sha": "c2ce1d0b592d0a22d93f324a2bae2c7d47bc7871",
+      "commits_after": 0,
+      "state": "rowed"
+    },
+    {
+      "number": 895,
+      "title": "fix: nightly A8 posts sectioned user_sensors after #849",
+      "merge_sha": "ce099471b9df6cf4f2aeae69701fe0a13f5da57b",
+      "commits_after": 1,
+      "state": "pending"
+    },
+    {
+      "number": 885,
+      "title": "test(#195 W5-G7 t6): the tail to 96 %, a coverage ratchet and a mutation table",
+      "merge_sha": "6be60558981123389d6aa484d144c51cd3e3e145",
+      "commits_after": 2,
+      "state": "rowed"
+    }
+  ],
+  "counts": {
+    "rowed": 2,
+    "pending": 1,
+    "overdue": 0
+  }
+}
