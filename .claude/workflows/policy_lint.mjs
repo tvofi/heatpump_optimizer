@@ -2346,13 +2346,53 @@ function assertAcceptance(derived) {
     console.log(`\nFIXTURE VACUOUS: ${WORKFLOW} is unreadable, so the approval gate's wiring is unpinned`)
     return 1
   }
-  // On the INVOCATIONS, not on any occurrence: a first version of this asserted
-  // `wf.includes(flag)` and passed while the flag survived only in a comment
-  // eight lines above the command. A pin satisfied by prose about the thing is
-  // not a pin on the thing.
-  const runLines = wf.split('\n').filter((l) => !/^\s*#/.test(l))
-  const bodyCheck = runLines.filter((l) => /policy_lint\.mjs|--pr-body|--head|--title|--paths-file/.test(l)).join('\n')
-  const pathsDerive = runLines.filter((l) => /git diff .*--name-only/.test(l)).join('\n')
+  // On the INVOCATIONS, not on any occurrence, and this is the third attempt.
+  // The first asserted `wf.includes(flag)` and passed while the flag survived
+  // only in a comment eight lines above the command. The second selected lines
+  // matching a regex that CONTAINED the flag, so the flag text surviving in a
+  // trailing shell comment or in the step's `name:` defeated it -- a reviewer
+  // drove both. Selecting by what a line mentions cannot work when the needle
+  // is what is being looked for, so this cuts the step's `run:` block by
+  // indentation first and strips comments second.
+  //
+  // IT IS STILL NOT SOUND, and saying so is the point. No ratio is stated here
+  // and that is deliberate: the set of carriers is open, every review round has
+  // added one, and a fraction over a set anyone can extend is not a coverage
+  // figure. What it refuses, stated as shapes: either flag deleted, or left
+  // behind in a trailing comment, or left in the step's `name:`.
+  //
+  // What defeats it is one class -- a command that MENTIONS the flag without
+  // passing it. A `:` no-op, an echo, a printf, a heredoc and a plain shell
+  // assignment are all that shape, and so is a decoy `run: |` block anywhere in
+  // the file. The decoy is the worst of them, because it means the subject is
+  // "some block mentions this text": with one in place, the path-derivation
+  // step or the body-check step can be deleted outright and this stays green.
+  // Pointing --paths-file at a path nothing writes passes too, because a
+  // filename is not a file.
+  //
+  // The class is exact: a command that MENTIONS the flag without passing it
+  // defeats any text match, so anyone wanting soundness must parse the YAML and
+  // read the argv of the invocation. String-matching moves the carrier, it does
+  // not close it. What is pinned here is the rot seen in the wild twice -- the
+  // flag deleted, and the flag left behind in a comment.
+  const runBlocks = []
+  {
+    const lines = wf.split('\n')
+    for (let i = 0; i < lines.length; i++) {
+      const m = /^(\s*)run:\s*\|?\s*$/.exec(lines[i])
+      if (!m) continue
+      const indent = m[1].length
+      const body = []
+      for (let j = i + 1; j < lines.length; j++) {
+        const l = lines[j]
+        if (l.trim() && (l.length - l.trimStart().length) <= indent) break
+        body.push(l.replace(/#.*$/, ''))
+      }
+      runBlocks.push(body.join('\n'))
+    }
+  }
+  const bodyCheck = runBlocks.filter((b) => /policy_lint\.mjs/.test(b) && /--pr-body/.test(b)).join('\n')
+  const pathsDerive = runBlocks.filter((b) => /git diff/.test(b) && /--name-only/.test(b)).join('\n')
   for (const [where, hay, flag, why] of [
     ['the body-check invocation', bodyCheck, '--paths-file', 'the approval gate would fall back to the title alone, which is R3-D11-03 restored'],
     ['the path derivation', pathsDerive, '--no-renames', 'a rename is reported by its destination only, so moving a policy file out of the glob set would not fire the gate'],

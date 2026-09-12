@@ -631,10 +631,41 @@ Both lanes appended their disposition rows to the end of one list, so every
 merge on `main` conflicted the other lane's open branch at that seam: this pull
 request was rebased five times for it and #639 three, each rebase costing a
 fresh review round at a head whose code had not changed. The rows above stay
-where they are; **from here this lane appends below and every other lane appends
-there**, so the two insertion points are never adjacent and neither lane waits
-on the other. No pull-request number is named as the boundary: one was drafted
-into this sentence and taken by another lane four minutes later. **What reads this row, stated as it is
+where they are; this section was opened by **#644** (`3a29035`) so **that lane appends below
+and every other lane appends there**, putting the two insertion points far enough apart
+that git does not conflict on them: the distance between the last row of each
+list was 119 lines at `main` `b8731c3` and 128 at `30b8a88`, two merges and
+nine rows later.
+It is a gap between two ends that both grow, so re-derive it rather than
+carrying it. No pull-request number is named
+as the boundary: one was drafted into this sentence and taken by another lane
+four minutes later.
+
+**That separation never happened, and the sentence above is kept only as the
+statement of what was tried.** Measured on 2026-09-11: **every row numbered
+above the upper list's highest (#767) is in this section** — 39 of 39 at `main`
+`b8731c3` and 48 of 48 two merges later at `30b8a88`, so the count churns and
+the ratio does not —
+and the seam conflicted one lane's branches **thirteen times in a night, never
+once about content** — every resolution the same union with `main`'s rows first, and
+`main`'s numbers lost `[]` every time. Derivation, and its limit: it was taken per
+branch, by running `git merge-tree --write-tree` on each rebase's two ends and
+counting the runs exiting non-zero that name this document. **A later reader
+cannot re-run it** — `main` squash-merges and every one of those branches was
+deleted on merge, so nothing two-parent survives to measure. Two independent
+counts agreed at thirteen while disagreeing on which branch owned which
+conflict; only the total is stated here. The geometry was right and the adoption
+was zero, because nothing routes a row anywhere and this paragraph is the only
+thing that asks.
+
+**So do not read the two insertion points as a mechanism.** There is no
+mechanical notion of a lane here to enforce one with — branch prefixes name
+sessions, not lanes, and one session uses several. **Append wherever the
+document reads best and expect to resolve the seam by hand**, per row against
+your merge base, `main`'s rows first, verified position-by-position as an
+ordered list of `(number, sha256(row))`: a byte-identical row that merely
+*moved* passes a comparison over row text, and that near-miss has happened
+here. **What reads this row, stated as it is
 today and not as it will be:** `checkRecord` tests `#<pr>` against the whole
 text of both disposition documents, so a row is read wherever it sits in either
 of them — driven by moving #648's row clean out of `## Delivery status` into
@@ -760,6 +791,7 @@ inside it rather than after it.
 - [#895](https://github.com/tvofi/heatpump_optimizer/pull/895) — **merged `ce09947`, row written after the merge**: nest the A8 payload in `tests/nightly_ha.py` after #849 sectioned user_sensors; flatten a sectioned submit in production so the unique-id abort still sees the plant; re-point `updated-for` at the #885 squash `6be6055`. `node .claude/workflows/policy_lint.mjs --record --since v6.4.2` at `origin/main` `c2ce1d0` named this pull request. #885 and #889 already carry their own rows. Not #856. Not #896. leaves #195 open. leaves #201 open.
 - [#897](https://github.com/tvofi/heatpump_optimizer/pull/897) — **row written before the merge, and it is this pull request**: leftover-row for #895 `ce09947`. Same `--record` run named #895. Not #856. Not #896. leaves #195 open. leaves #201 open.
 - [#898](https://github.com/tvofi/heatpump_optimizer/pull/898) — **row written before the merge, and it is this pull request**: **D12, a thirteenth audit dimension: generalization** — **policy, standing leftover grant on #201 comment 5640786330**: a dimension brief, `tools/audit/briefs/D12.md`, in the owner's words — the integration should be possible to use with a wide range of setups and heat pumps. An audit lens on the plant the tree already exposes, not a product request. Threaded through every site that enumerates dimensions: the `CLAUDE.md` table, the toolkit README, `finding.schema.json`, the dispatcher's lists (D12 in the export, not isolated), `prepare_baseline.sh`, and the budgets. `corpus_tokens` raised to what `--budgets` prints; the floor and role caps were not. Not #856. Not #895. leaves #201 open.
+- [#856](https://github.com/tvofi/heatpump_optimizer/pull/856) — **row written before the merge**, and it is this pull request: two residuals from merged work, measured before being touched and **corrected three times under review**: the attribution, the count, and a stated derivation that could not be re-run. **The governance-queue split is #644's** (`3a29035`), not #723's — an earlier form of this row, of the paragraph it describes and of this pull request's title all named the wrong number; #723 added one line to this document, its own row. The split is **geometrically sound and unadopted**: the two insertion points are over a hundred lines apart at every commit measured, and every row numbered above the upper list's highest sits in the queue — 39 of 39 at `b8731c3`, 48 of 48 at `30b8a88`. The paragraph now carries that and says not to read the two points as a mechanism. **#818's wiring pin is improved and still defeatable**, five ways a reviewer drove; the body states exactly what it catches rather than claiming soundness. Not policy: this document is `CORPUS_EXCLUDED` and the other change is an acceptance check. leaves #201 open.
 
 ### The UX programme — 34 items, five lanes, tracking #558
 
