@@ -16,7 +16,7 @@ METRIC: three structural properties of the documentation corpus.
 
 RUN (from the export root):
   PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 \
-      tools/audit/round4/D5/structure.py
+      tools/audit/round4/D5/d5_doc_structure.py
   ... --list      the orphan list and every level skip with its line
   ... --selftest  positive control: README.md is treated as having no outbound
                   links, so every other document must come back unreachable

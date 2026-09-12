@@ -80,7 +80,7 @@ rules:
       and is what the six platform modules and services.py import. __init__.py
       re-binds the same NAME to a bare `ConfigEntry`, so `entry.runtime_data`
       reveals `Any` in async_setup_entry, async_update_options and
-      async_unload_entry. See D10-r4-03; recorded here as `done` because the
+      async_unload_entry. See D10-03; recorded here as `done` because the
       rule's own subject — storing runtime data on the entry — is satisfied.
   test-before-configure: done
   test-before-setup: done
@@ -115,7 +115,7 @@ rules:
     status: done
     comment: >-
       CHANGED (was `todo`, tracked as issue #195). Executed at this baseline:
-      97.2% package statement coverage (14945 of 15381), 0 of 56 modules below
+      97.18% package statement coverage (14948 of 15381), 0 of 56 modules below
       the rule's 95% bar, lowest module battery.py at 95.0% — measured over
       the default-gate scripts with
       tools/audit/w5-partition/coverage_tree.sh, the same instrument

@@ -74,7 +74,12 @@ command in a real checkout passes 1360 of 1360.
 ## Per-dimension status
 
 `landed` = the finder returned its JSON and its report and harnesses are copied
-into this branch. `written` = a REPORT.md exists in the finder tree but the
+into this branch. **The landed copy of a report is `D<k>/reports/FINDER.md`, not
+`REPORT.md`** — `COMMON.md` prescribes `REPORT.md` for the finder's own tree, and
+a *tracked* file of that name is one a policy document names with no cap, which
+`policy_lint`'s `named-docs` refuses. #859 met the same collision with `JUDGE.md`
+and renamed rather than excluded; this follows its layout. `BASELINE.md` collides
+with `fixer.md` the same way and lands as `baseline-notes.md`. `written` = a REPORT.md exists in the finder tree but the
 seat's JSON has not been received here.
 
 <!-- STATUS TABLE START -->
@@ -90,7 +95,7 @@ seat's JSON has not been received here.
 | D7 | architecture and maintainability | **landed** | 3 findings. 1 high — `_learning_frozen` never consults `_pump_signals.defrosting`, so 3 of 4 learners fold a defrost interval (perturbation drives it to 0; three other contaminants read 0). 2 medium — the sysid experiment is adopted in 0 of 18 cells because the identifier fits one state to a two-state plant (null control on a collapsed plant: adopted at 0.940); `_sizing_model` uses default slab constants for every house, breaching `max_excursion_c` in 6 of 18. Brief item 5 (this years train) not done |
 | D8 | sensor verification and ordering | not dispatched (wave 2) | — |
 | D9 | CPU and memory efficiency | not dispatched (wave 2) | — |
-| D10 | HA quality scale | written | — |
+| D10 | HA quality scale | **landed** | 3 low. `quality_scale.yaml` has drifted: 3 of 54 declared rows are contradicted when executed, including a config-flow coverage row claiming 100 %/0 missed against a measured 97.2 %/21 missed. `docs-known-limitations` declared done with 0 such headings across 4075 lines. The package root re-binds `HeatPumpOptimizerConfigEntry` to a bare `ConfigEntry`, so `runtime_data` reveals `Any` in the three entry points while mypy --strict still reports 0 errors. Measured: 47 done / 4 exempt / 3 todo of 54; package coverage 97.18 %, 0 of 56 modules below 95 % |
 | D11 | governance and policy | running (wave 1) | — |
 | D12 | generalization | written | — |
 <!-- STATUS TABLE END -->

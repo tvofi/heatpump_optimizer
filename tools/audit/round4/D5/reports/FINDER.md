@@ -35,7 +35,7 @@ and "a broken link checker" print the same thing.
 | `comment_restates.py` | comments whose words are a subset of the line below | `--selftest` injects one restating pair: 20 -> 21 |
 | `reader_paths.py` | dead ends on the three reader paths | `--selftest` injects 3 tokens per path: 0 -> 9 |
 | `options_placement.py` | `docs/configuration.md` vs the shipped options UI | `--selftest` rotates the section->page map: 4 -> 139 misplaced, 63 -> 200 undocumented |
-| `structure.py` | orphan documents, heading-level skips, h1 count | `--selftest` blinds README's outbound links: 2 -> 14 orphans |
+| `d5_doc_structure.py` | orphan documents, heading-level skips, h1 count | `--selftest` blinds README's outbound links: 2 -> 14 orphans |
 | `versions.py` | version strings cited by docs vs `RELEASE_NOTES.md` | `--selftest` injects `v99.9.9`: 0 -> 1 unreleased, 0 -> 1 future |
 | `test_doc_counts.py` | counts `tests/README.md` states vs the code's own | two of the three counts agree — that is the control |
 
@@ -194,10 +194,10 @@ dimension dry.
 | No paragraph is repeated inside one document | `dup.py` | `intra_doc_repeated_paragraphs=0` |
 | No cross-document paragraph pair even *resembles* another | `dup.py` | `near_dup_para_pairs=0` at 5-gram Jaccard >= 0.60; **1** pair at >= 0.30 |
 | The three reader paths have no dead end: every entity id, service, UI label, settings-table row, storage-file name and test command they put in front of the reader resolves to a shipped artefact | `reader_paths.py` | `deadends_install=0` / `configure=0` / `develop=0` over `101 + 201 + 35 = 337` actionable tokens (control: 9 injected, 9 reported) |
-| Every reader document is reachable by a link walk from README.md | `structure.py` | `unreachable_reader_docs=0` of `reader_docs=6`, `documents_walked=18` |
-| No heading skips a level anywhere in README.md, the six reader docs or `tests/README.md` | `structure.py` | `level_skips=0`; `max_depth=h4` (README only; every `docs/*.md` stops at h3) |
-| Every one of those documents has exactly one `h1` | `structure.py` | `docs_without_single_h1=0` |
-| Only two documents are unlinked, both deliberately | `structure.py` | `orphans=2`: `SECURITY.md` (GitHub surfaces it natively) and `docs/HANDOVER.md` (internal by design; `CLAUDE.md` and `writing-for-agents.md` govern it) |
+| Every reader document is reachable by a link walk from README.md | `d5_doc_structure.py` | `unreachable_reader_docs=0` of `reader_docs=6`, `documents_walked=18` |
+| No heading skips a level anywhere in README.md, the six reader docs or `tests/README.md` | `d5_doc_structure.py` | `level_skips=0`; `max_depth=h4` (README only; every `docs/*.md` stops at h3) |
+| Every one of those documents has exactly one `h1` | `d5_doc_structure.py` | `docs_without_single_h1=0` |
+| Only two documents are unlinked, both deliberately | `d5_doc_structure.py` | `orphans=2`: `SECURITY.md` (GitHub surfaces it natively) and `docs/HANDOVER.md` (internal by design; `CLAUDE.md` and `writing-for-agents.md` govern it) |
 | No documentation cites a version that was never released, or one ahead of `VERSION` | `versions.py` | `refs_unreleased=0`, `refs_future=0` over `refs_total=9` distinct / `22` occurrences, against `released_total=122` |
 | Comments and docstrings in the production package do not name symbols that have vanished | `comment_symbols.py --list` | `dangling_refs=20` of `refs_extracted=995` over `comments_scanned=7292` — **all 20 triaged as prose, none a stale symbol** (see below) |
 | A number a comment cites agrees with the constant beside it | `comment_numbers.py --list` | `unit_matched_unreconciled=2` of `unit_matched_citations=4`; `loose_unreconciled=25` of `constants_with_commented_numbers=73` — **both unit-matched cases triaged as correct prose** (see below) |
@@ -311,7 +311,7 @@ list of things to re-find:
   the only use I made of them.
 - **`RELEASE_NOTES.md`** — heading set only (122 version headings), read by
   `versions.py`. I did not read release bodies.
-- **`docs/HANDOVER.md`** — heading/orphan status only, via `structure.py`'s link
+- **`docs/HANDOVER.md`** — heading/orphan status only, via `d5_doc_structure.py`'s link
   walk. Not read.
 - **GitHub**: none. No `gh`, no API. `links.py --external` issues six `curl`
   HEAD/GET requests to `hacs.xyz`, `home-assistant.io`, `python.org`,

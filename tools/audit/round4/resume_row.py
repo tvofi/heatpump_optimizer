@@ -31,6 +31,17 @@ dst = root / "tools" / "audit" / "round4" / dim
 if src.is_dir():
     shutil.rmtree(dst, ignore_errors=True)
     shutil.copytree(src, dst)
+    # REPORT.md is the basename COMMON.md prescribes, so a TRACKED one is a file
+    # a policy document names with no cap, and policy_lint's `named-docs` refuses
+    # it. #859 hit this with JUDGE.md and renamed rather than excluded, because a
+    # basename collision a reader must resolve is a defect and not a note. The
+    # landed archive therefore takes round 3's own layout, D<k>/reports/FINDER.md;
+    # the finder's working tree keeps writing REPORT.md, which is untracked.
+    report = dst / "REPORT.md"
+    if report.exists():
+        (dst / "reports").mkdir(exist_ok=True)
+        report.rename(dst / "reports" / "FINDER.md")
+        print(f"renamed REPORT.md -> {dim}/reports/FINDER.md (policy_lint named-docs)")
     n = sum(1 for _ in dst.rglob("*") if _.is_file())
     print(f"copied {n} file(s) from {src}")
 else:

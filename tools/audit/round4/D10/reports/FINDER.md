@@ -3,7 +3,7 @@
 - **Baseline**: `7dd68dd327fe3dbfb09f3bd0fe38910c58877697`
 - **Tree**: `/Users/timmalmstrom/heatpump_optimizer/.claude/worktrees/audit-r4-baseline` (export, no `.git`)
 - **Box**: 8-core Apple M1, 8 GB, macOS 25.6.0. Shared with the other round-4
-  finders throughout; `load1` at the measurements below ran 4.1 – 12.7. Every
+  finders throughout; `load1` at the measurements below ran 4.1 – 13.9. Every
   number in this report is a **count or a ratio** (rules, statements, error
   lines, percentages) — none is a wall, CPU or RSS figure, so none is
   contention-sensitive.
@@ -17,7 +17,7 @@
 
 The rule set was **fetched, not recalled**, on 2026-09-12 from
 `https://developers.home-assistant.io/docs/core/integration-quality-scale/checklist`
-and from ten per-rule pages under `rules/` whose exact wording decided a
+and from twelve per-rule pages under `rules/` whose exact wording decided a
 verdict (listed under *exposure*). The fetched checklist enumerates
 **20 Bronze + 10 Silver + 21 Gold + 3 Platinum = 54 rules**, matching `D10.md`
 exactly.
@@ -100,7 +100,7 @@ PYTHONPATH=tests/hastub python3 tools/audit/round4/D10/qs_rules.py
 | entity-event-setup | bronze | done | done | ast: entity classes subscribing to events | 0 of them; the 4 subscriptions are the coordinator's, released via `entry.async_on_unload` → vacuous |
 | entity-unique-id | bronze | done | done | grep `_attr_unique_id =` | 9 sites, every one `f"{entry.entry_id}_…"` |
 | has-entity-name | bronze | done | done | grep entity.py | set once on the shared base |
-| runtime-data | bronze | done | done | ast: `entry.runtime_data` sites and the two alias definitions | 1 write, 11 reads; **the root alias is a bare `ConfigEntry`** — finding D10-r4-03 |
+| runtime-data | bronze | done | done | ast: `entry.runtime_data` sites and the two alias definitions | 1 write, 11 reads; **the root alias is a bare `ConfigEntry`** — finding D10-03 |
 | test-before-configure | bronze | done | done | grep `validate_tibber_token` config_flow.py | credential validated before the entry is created |
 | test-before-setup | bronze | done | done | grep `async_config_entry_first_refresh`; `raise UpdateFailed` | first refresh in setup; 4 `UpdateFailed` raise sites |
 | unique-config-entry | bronze | done | done | grep `async_set_unique_id` + `_abort_if_unique_id_configured` | both present |
@@ -113,7 +113,7 @@ PYTHONPATH=tests/hastub python3 tools/audit/round4/D10/qs_rules.py
 | log-when-unavailable | silver | done | done | `python3 tools/audit/round4/D10/log_when_unavailable.py` — 10 failed polls driven through a real coordinator | **1 ERROR, 9 DEBUG**, then **1 INFO** on recovery; latch resets |
 | parallel-updates | silver | done | done | grep `^PARALLEL_UPDATES` on the 6 platform modules | 6/6: sensor 0, binary_sensor 0, button 1, climate 1, switch 1, datetime 1 |
 | reauthentication-flow | silver | done | done | grep `async_step_reauth`; `async_start_reauth` | flow present **and reachable** — the coordinator starts it on a refused token |
-| test-coverage | silver | **done** | todo | coverage json → per-module | **97.2 % package (14945/15381); 0 of 56 modules below 95 %**; lowest `battery.py` 95.0 % |
+| test-coverage | silver | **done** | todo | coverage json → per-module | **97.2 % package (14948/15381); 0 of 56 modules below 95 %**; lowest `battery.py` 95.0 % |
 | devices | gold | done | done | grep `DeviceInfo(` coordinator.py | one device per entry, served to every entity |
 | diagnostics | gold | done | done | grep `async_get_config_entry_diagnostics` | present; redacts token and solar location |
 | discovery | gold | exempt | exempt | grep discovery step handlers | 0 — cloud API + user-picked entities |
@@ -141,19 +141,25 @@ PYTHONPATH=tests/hastub python3 tools/audit/round4/D10/qs_rules.py
 
 ## `test-coverage`, measured
 
-`tools/audit/round4/D10/coverage_measure.sh fast` ran the 16 default-gate
-Python scripts of `tests/run.sh` (the `fast` stage — everything except the
-four end-to-end scripts and `stress.py`), one `coverage run` per script,
-combined:
+`tools/audit/round4/D10/coverage_measure.sh` ran the 20 default-gate Python
+scripts of `tests/run.sh` in two stages — `fast` (16 scripts) then `e2e`
+(`validate`, `edge`, `backtest`, `optimality`), accumulating into one data set
+— with one `coverage run` per script, combined:
 
 ```
-RESULT package_percent=97.17   (14945 covered / 15381 statements)
+RESULT package_percent=97.18   (14948 covered / 15381 statements)
 RESULT modules_total=56
 RESULT modules_below_95=0      lowest: battery.py 95.0, legionella.py 95.2,
                                inputs.py 95.3, dhw_learning.py 95.6,
                                accuracy.py 95.8, freq_control.py 95.8,
-                               optimizer.py 95.8
+                               button.py 96.0, optimizer.py 96.0
 ```
+
+The `fast` stage alone gave 97.17 % (14945/15381) and the same 0-below-95, so
+the four end-to-end scripts moved the package figure by **+0.01 points, 3
+statements**. That is worth stating rather than hiding: nearly all of this
+integration's coverage comes from the unit-style scripts, not from the
+end-to-end ones.
 
 The rule is *"Above 95 % test coverage for **all** integration modules"*, so
 the per-module row is the one that decides it, and it passes with the closest
@@ -251,10 +257,14 @@ to that effect is right.
 
 ## Findings
 
+Ids follow `tools/audit/finding.schema.json`'s `^D<k>-[0-9]{2}$`, which has no
+room for a round number; the round is carried by the directory
+(`tools/audit/round4/D10/`), not by the id.
+
 All three are `low`. Severities are deliberately not inflated: no user meets
 any of them.
 
-### D10-r4-01 — the shipped quality-scale register has drifted; 3 of 54 rows are wrong when executed
+### D10-01 — the shipped quality-scale register has drifted; 3 of 54 rows are wrong when executed
 
 `custom_components/heatpump_optimizer/quality_scale.yaml` is hand-maintained
 and, as its own header says, *"nothing here is machine-enforced today"*. Three
@@ -263,8 +273,8 @@ rows disagree with an executed check, in both directions:
 | row | declared | executed | the number |
 |---|---|---|---|
 | `config-flow-test-coverage` (Bronze) | `done`, "100 %, 661 statements, 0 missed" | `todo` | 97.2 %, 756 statements, **21 missed** |
-| `test-coverage` (Silver) | `todo` (#195) | `done` | **97.2 %** package, **0 of 56** modules below 95 % |
-| `docs-known-limitations` (Gold) | `done` | `todo` | **0** "Known limitations" sections (D10-r4-02) |
+| `test-coverage` (Silver) | `todo` (#195) | `done` | **97.18 %** package (14948/15381), **0 of 56** modules below 95 % |
+| `docs-known-limitations` (Gold) | `done` | `todo` | **0** "Known limitations" sections (D10-02) |
 
 Two further rows keep a correct status under a comment that is no longer
 true, and are reported here rather than as findings of their own:
@@ -295,7 +305,7 @@ that keeps changing under them.
   quoting them (the self-invalidating-figure shape: a row whose truth changes
   when the file it describes changes).
 
-### D10-r4-02 — `docs-known-limitations` (Gold) is declared `done` and the section does not exist
+### D10-02 — `docs-known-limitations` (Gold) is declared `done` and the section does not exist
 
 The rule: *"The documentation should include a 'Known limitations' section
 with descriptions of constraints"*, and *"There are no exceptions to this
@@ -310,15 +320,26 @@ headings matching ^#{1,4}.*known limitation   0
 occurrences of the word "limitation"          0
 ```
 
-Two paragraphs use the word *caveat* — `README.md:534` (a hardware note about
-setpoint-echo `number` entities) and `docs/how-it-works.md:1032` (the defrost
-derate's resolution) — but both are mechanism notes inside other sections, not
-a place a user looks to find out what the integration will not do. Real
-limitations a user would want listed are documented nowhere as limitations:
-the 30-minute planning granularity, the Tibber/price-entity dependency for
-prices, the single static device, the absence of discovery, the Swedish-market
-tariff model, and the fact that the defrost derate is only trustworthy under
-MQTT push.
+across 878 + 3197 lines of user documentation.
+
+**The counter-evidence, stated before anyone else finds it.** Limitation
+*content* does exist and is good; what does not exist is the section. Under
+`## Supported heat pumps and controls`, `README.md:176` opens a list headed
+*"Boundaries worth knowing before you pick a path"* with **4** bullets — one
+per control path, plus *"**Heating, not cooling.** The whole model assumes
+heating"*, which is a genuine integration-wide limitation. Two further
+paragraphs use the word *caveat*: `README.md:534` (setpoint-echo `number`
+entities) and `docs/how-it-works.md:1032` (the defrost derate is only
+trustworthy under MQTT push). And `## Project status` points at
+`docs/backlog.md` for "findings judged real and deliberately not built".
+
+So the gap is **placement and discoverability, not absence of knowledge**: a
+user asking "what will this not do?" has no section to open, and the four
+control-path boundaries are filed under a heading about which pumps are
+supported. Limitations that are nowhere at all, in any wording: the 30-minute
+planning granularity as a control limit, the Tibber-or-price-entity
+requirement for prices, the single static device, the absence of discovery,
+and the Swedish-market shape of the tariff model.
 
 - **metric**: count of headings matching `^#{1,4}.*known limitation`
   (case-insensitive) across `README.md` + the six user docs.
@@ -328,10 +349,14 @@ MQTT push.
 - **perturbation**: add a `## Known limitations` section to `README.md`; the
   count moves 0 → 1 and the rule's executed status moves `todo` → `done`
   (direction: **up**).
+- **fix scope**: small — promote the existing *"Boundaries worth knowing"*
+  bullets into a `## Known limitations` section of their own and add the five
+  limitations listed above. This is documentation only; no code moves.
 - **severity**: `low`. A user can install, configure and operate the
-  integration without this section; it changes expectations, not capability.
+  integration without this section; it changes expectations, not capability,
+  and most of the content is already written, just filed elsewhere.
 
-### D10-r4-03 — the package root re-binds `HeatPumpOptimizerConfigEntry` to a bare `ConfigEntry`, so `runtime_data` is `Any` in the three entry points
+### D10-03 — the package root re-binds `HeatPumpOptimizerConfigEntry` to a bare `ConfigEntry`, so `runtime_data` is `Any` in the three entry points
 
 The package defines the alias **twice**:
 
@@ -409,7 +434,7 @@ Each is a claim that held, with the command and the number.
 | 51 of 54 register rows agree with an executed check | `qs_rules.py` | `declared_mismatch=3` |
 | `strict-typing` holds under a real stub set | `mypy_arms.sh` arm B | **0** errors, mypy 2.3.1 `--strict`, stubs 2025.4.4, py3.13.1 |
 | The 542 `tests/hastub` errors are not the integration's | `mypy_arms.sh` arm A + by-code table | 176 `no-untyped-call`, 121 `attr-defined`, 114 `type-arg` — all complaints about the fake |
-| Package coverage clears the Silver bar | `coverage_measure.sh fast` | **97.17 %**, 14945/15381 |
+| Package coverage clears the Silver bar | `coverage_measure.sh fast` then `e2e` | **97.18 %**, 14948/15381 |
 | Every module clears the Silver bar | same, per module | **0 of 56** below 95 %; lowest `battery.py` 95.0 % |
 | `parallel-updates` is set in every platform | grep `^PARALLEL_UPDATES` | **6 of 6** |
 | Every config/options field has a description | json over `strings.json` | 270 fields, **0** without `data_description` |
@@ -454,6 +479,10 @@ floors: `ConfigEntry.runtime_data` (2024.6), `async_step_reconfigure` with
 | `tools/audit/round4/D10/log_when_unavailable.py` | ERROR/DEBUG/INFO record counts over 10 failed polls and a recovery | `PYTHONPATH=tests/hastub python3 tools/audit/round4/D10/log_when_unavailable.py` |
 | `tools/audit/round4/D10/quality_scale.draft.yaml` | the executed register, 47 done / 4 exempt / 3 todo | (data, not executable) |
 
+`tools/audit/round4/D10/qs_rules.out.txt` is that harness's full output at
+this baseline, committed beside it so a reader has the 54 rows with their
+commands without re-running anything.
+
 `mypy_arms.sh` needs two scratch venvs it does not build; its header names
 them and what goes in each. `coverage_measure.sh` wraps
 `tools/audit/w5-partition/coverage_tree.sh` and writes nothing inside the
@@ -468,14 +497,14 @@ tree.
   `errors: 0` with a different stub version rather than reproducing it. A
   judge on a 3.13.2+ box should re-run `mypy_arms.sh` after pointing arm B at
   the pinned pair.
-- **The coverage measurement is the `fast` stage only** at the time of
-  writing; the `e2e` stage (`validate`, `edge`, `backtest`, `optimality`) was
-  still running, and `stress.py` was not run at all because it requires the
-  gate lock and the box was shared with three other finders. Both omissions
-  are **conservative**: adding scripts can only raise coverage, so 97.17 % and
-  "0 modules below 95 %" are lower bounds, and the `config_flow.py` figure
-  cannot be raised by any of them — `validate`, `edge`, `backtest`,
-  `optimality` and `stress` name no config-flow step either.
+- **`stress.py` is not in the coverage measurement.** It requires the gate
+  lock and the box was shared with three other finders throughout, so I did
+  not take the lock for a 40-minute solve series whose only contribution would
+  be to `optimizer.py` and the models under it. The omission is
+  **conservative**: adding a script can only raise coverage, so 97.18 % and
+  "0 modules below 95 %" are lower bounds. It cannot touch the
+  `config_flow.py` figure — `grep -c "config_flow\|async_step"` returns **0**
+  for `stress.py` as it does for the four end-to-end scripts.
 - **`brands` is an adapted check.** The real rule is satisfied by a pull
   request to `home-assistant/brands`, which accepts core integrations only. I
   checked the in-repo assets exist and are the right shape; I could not check
@@ -539,7 +568,7 @@ Everything I read or fetched outside `custom_components/` and `tests/`:
 - **Not used**: `gh`, GitHub, any earlier round's findings. The `D10-nn`
   identifiers that appear in production comments were read as context for what
   the code does, never as a to-do list.
-- **Network**: the thirteen documentation fetches above, and `pip install` of
+- **Network**: the thirteen documentation fetches above (the checklist plus twelve rule pages), and `pip install` of
   `mypy==2.3.1`, `homeassistant-stubs`, `homeassistant`, `scipy`,
   `scipy-stubs`, `numpy`, `voluptuous`, `aiohttp`, `threadpoolctl` into two
   scratch venvs under `/private/tmp`. Nothing was installed into the tree and

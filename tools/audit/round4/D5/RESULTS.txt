@@ -67,7 +67,7 @@ RESULT labels_checked=200 count
 RESULT thread_factor=1.0
 RESULT load1=7.67
 RESULT swapins=0
-######## tools/audit/round4/D5/structure.py
+######## tools/audit/round4/D5/d5_doc_structure.py
 RESULT documents_walked=18 count
 RESULT corpus=14 count
 RESULT orphans=2 count
