@@ -752,6 +752,7 @@ inside it rather than after it.
 - [#890](https://github.com/tvofi/heatpump_optimizer/pull/890) — **merged `1b35c6c`, row written after the merge**: pin house-heat-loss persist on the tenth sample. Closed #805. Same trailing-`(#N)` gap as #888. leaves #201 open.
 - [#891](https://github.com/tvofi/heatpump_optimizer/pull/891) — **merged `67a61fb`, row written after the merge**: device configuration-URL field and repair-notice documentation links. Closed #558. Same `--record` run named this pull request. leaves #201 open.
 - [#883](https://github.com/tvofi/heatpump_optimizer/pull/883) — **merged `4a42eab`, row written after the merge, and not by this leftover-row**: pin two optimizer surviving guards. Theirs. Same `--record` run named this pull request. #805's coordinator residual is #890. leaves #201 open.
+- [#892](https://github.com/tvofi/heatpump_optimizer/pull/892) — **row written before the merge, and it is this pull request**: leftover-row for #871 `020e699`, #886 `7d142c0`, #887 `14a3833`, #888 `546b492`, #890 `1b35c6c`, #891 `67a61fb`, and #883 `4a42eab` (theirs). `node .claude/workflows/policy_lint.mjs --record --since v6.4.1` at `origin/main` `67a61fb` named #891 #887 #886 #871 #883; #888 and #890 are suffix-blind. F1/F2 resume is `done`. Not #889. Not #885. Not #882. leaves #195 open. leaves #860 open. leaves #817 open. leaves #798 open. leaves #201 open.
 
 ### The UX programme — 34 items, five lanes, tracking #558
 
