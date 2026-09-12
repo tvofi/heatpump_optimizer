@@ -292,12 +292,12 @@ for f in tests/*.py tests/*.mjs; do
     # network and no token for, and its verdict is about CI's history rather
     # than about this tree. tests/entities.py drives its classifier instead.
     nightly_status.py) continue ;;
-    # The disposition gate's reporter (#678): the `record-status` job runs it
-    # on every pull request. It reads the GitHub Checks API, which this suite
-    # has no network and no token for, and its verdict is about `main`'s CI
-    # history rather than about this tree. tests/entities.py drives its
-    # classifier instead.
-    record_status.py) continue ;;
+    # The delivery ledger (#678's CM-2, re-predicated): the `delivery-status`
+    # job runs it on every pull request. It walks `<last tag>..origin/main`,
+    # which this suite has no remote for, and its verdict is about the record
+    # rather than about this tree. tests/entities.py drives its classifier
+    # instead, from fixtures, on both sides of its threshold.
+    delivery_status.py) continue ;;
     # The two instruments beside the gate rather than in it (#195). Each has
     # its own CI job, which is never scoped and runs on every pull request.
     # coverage_ratchet.py needs a coverage payload from
@@ -497,7 +497,7 @@ done
 for f in tests/*.py tests/*.mjs; do
   base=$(basename "$f")
   case "$base" in
-    harness.py|profiles.py|dst_checks.py|closure.py|gate_lock.py|dom_stub.mjs|card_rig.mjs|card_browser.mjs|node_fs_trace.mjs|nightly_ha.py|nightly_status.py|record_status.py|coverage_ratchet.py|mutation_table.py) continue ;;
+    harness.py|profiles.py|dst_checks.py|closure.py|gate_lock.py|dom_stub.mjs|card_rig.mjs|card_browser.mjs|node_fs_trace.mjs|nightly_ha.py|nightly_status.py|delivery_status.py|coverage_ratchet.py|mutation_table.py) continue ;;
   esac
   if ! cat "$WORKDIR"/*.manifest 2>/dev/null | grep -Fq "tests/$base"; then
     echo "TEST NEVER RAN: tests/$base is wired into tests/run.sh but no lane"

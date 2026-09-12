@@ -371,33 +371,113 @@ jobs:
   # Pull requests only. A lane reporting on `main`'s own state must not be able
   # to turn `main` red: that would put the reporter inside the thing it reports
   # on, and one unfixed row would redden every subsequent push.
-  record-status:
+  # The delivery ledger, which replaced `record-status`'s predicate. See
+  # `tests/delivery_status.py` for the measurement that motivated it: `record`
+  # concluded `failure` on 28 of main's last 40 commits, in six streaks each
+  # ended by a `record:` leftover-row commit, because it asked whether every
+  # merge has a row RIGHT NOW while the protocol promises a row SOON, in a
+  # batch. This asks what the protocol actually promises.
+  #
+  # On a pull request it reports and does not gate: `--check` is passed so a
+  # genuinely stalled batch is red, and pending merges are printed by name,
+  # which is the part a seat can act on and which a tick never was.
+  #
+  # `--since` is deliberately not passed: the window is the last release tag,
+  # and a fixed one would report the same closed window for ever.
+  # `tests/entities.py` pins that absence, the way it pins `nightly_status.py`
+  # taking no `--run`.
+  delivery-status:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    # Check runs are Checks metadata, which this workflow's `contents: read`
-    # floor cannot see. This is a widening of that floor and is written down as
-    # one. It is read-only, and it is declared at JOB level: a job-level
-    # `permissions:` block REPLACES the workflow default for this job alone and
-    # is inherited by no other job, so `policy-docs`, `pr-contract` and `record`
-    # are untouched. `tests/entities.py` pins the whole set of jobs in this file
-    # that override the floor -- `record` and this one -- and that this one's
-    # block carries no `write` at all, so a third override has to be argued for
-    # rather than land.
-    permissions:
-      contents: read
-      checks: read
     steps:
       - uses: actions/checkout@v5
+        with:
+          # The window is `<last tag>..origin/main`, so the tags and main's
+          # history both have to be here. A shallow clone would silently
+          # report an empty window, which is the vacuous green this check
+          # names as its own failure mode.
+          fetch-depth: 0
 
       - uses: actions/setup-python@v6
         with:
           python-version: "3.13"
 
-      # No `pip install`, the same reason `nightly-status` has none: a check
-      # whose job is to notice that something went dark must not be breakable by
-      # the dependency set, and it costs seconds beside a forty-minute gate.
-      - name: Report main's current `record` conclusion
+      # No `pip install`, the same reason `record-status` had none: a reporter
+      # whose job is to notice that something went dark must not be breakable
+      # by the dependency set, and it costs seconds beside a forty-minute gate.
+      - name: Report what is pending and what is overdue a row
+        run: |
+          git fetch --no-tags --quiet origin main
+          python tests/delivery_status.py --check
+
+  # The committed ledger and #201's region, regenerated on every push to main.
+  # This is the half that makes the state findable WITHOUT credentials: any
+  # session reads `docs/delivery-status.json` with `cat`, and #201's body
+  # carries the same content in a delimited region so the issue's own tracking
+  # text survives each update.
+  delivery-status-publish:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # Writes the ledger back to `main` and edits #201. A third override of this
+    # workflow's `contents: read` floor, declared at JOB level so no other job
+    # inherits it, and argued rather than assumed: publishing the state is the
+    # whole point of this job, and it can write nothing else -- the commit it
+    # makes carries one generated path.
+    permissions:
+      contents: write
+      issues: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Regenerate the ledger
+        run: python tests/delivery_status.py --emit docs/delivery-status.json
+
+      # Commits only when the content moved, so a push that changes no
+      # disposition does not add an empty commit to `main` on every merge.
+      - name: Commit it when it moved
+        run: |
+          if git diff --quiet -- docs/delivery-status.json; then
+            echo "ledger unchanged; nothing to commit"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email \
+            "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/delivery-status.json
+          git commit -m "ci: regenerate the delivery ledger"
+          git push origin HEAD:main
+
+      - name: Put the same content in #201's region
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: python tests/record_status.py
+        run: |
+          python tests/delivery_status.py \
+            --from docs/delivery-status.json --markdown > "$RUNNER_TEMP/region.md"
+          python - <<'PY'
+          import os, pathlib, subprocess, sys
+          sys.path.insert(0, "tests")
+          import delivery_status as ds
+          body = subprocess.run(
+              ["gh", "issue", "view", "201", "--json", "body", "--jq", ".body"],
+              capture_output=True, text=True, check=True).stdout.rstrip("\n")
+          region = pathlib.Path(os.environ["RUNNER_TEMP"], "region.md").read_text()
+          updated = ds.splice(body, region.rstrip("\n"))
+          if updated == body:
+              print("#201's region is already current")
+          else:
+              pathlib.Path(os.environ["RUNNER_TEMP"], "body.md").write_text(updated)
+              subprocess.run(
+                  ["gh", "issue", "edit", "201", "--body-file",
+                   os.environ["RUNNER_TEMP"] + "/body.md"], check=True)
+              print("#201's region updated")
+          PY
+
