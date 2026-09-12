@@ -51,6 +51,15 @@
 # next branch restates its own footprint, claims included.
 #
 
+# #926 (R4-D2-02, DSO tariff transcription): this branch claims exactly one
+# fixture. The two unsourced catalog rows (Vattenfall Eldistribution, E.ON)
+# are dropped per the owner's sources-or-stop ruling, so the dso_product
+# dropdown loses two of its five ids and config_flow's two rendered options
+# lists move -- the fixture's only diffs, both under dso_product.config.
+# options. No solver input changes anywhere else: grid_fee.py's catalog is
+# config data, not arithmetic.
+config_flow # #926: dropped the two unsourced DSO rows; the selector's options go 5 ids to 3
+
 #
 
 # W4-G10 S9 (#224, DhwPlan 14-key return): this branch claims NOTHING.
