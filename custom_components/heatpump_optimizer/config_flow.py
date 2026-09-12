@@ -1625,9 +1625,11 @@ def _flatten_section_input(user_input: dict[str, Any]) -> dict[str, Any]:
     The form nests; stored options do not. A payload that is already flat
     (tests, and any page with no groups) is unchanged. Dict-valued option
     keys such as ``solar_location`` are not section names -- only registry
-    ``group`` values are lifted.
+    ``group`` values are lifted. Setup's ``_USER_SENSORS_GROUPS`` names are
+    included so a fresh ``user_sensors`` submit flattens the same way.
     """
     groups = {row.group for row in _OPTION_FIELDS if row.group}
+    groups.update(group for group, _keys in _USER_SENSORS_GROUPS)
     flat: dict[str, Any] = {}
     for key, value in user_input.items():
         if key in groups and isinstance(value, dict):
@@ -1635,6 +1637,40 @@ def _flatten_section_input(user_input: dict[str, Any]) -> dict[str, Any]:
         else:
             flat[key] = value
     return flat
+
+
+def _nest_user_sensors_input(user_input: Mapping[str, Any]) -> dict[str, Any]:
+    """Wrap flat first-screen entity answers in the setup sections (#824).
+
+    Real Home Assistant validates ``async_configure`` against the sectioned
+    schema before the step runs. A flat payload -- the shape stored on the
+    entry, and the one nightly A8 used to send -- raises InvalidData
+    (``not a valid option at indoor_temp_entity``) so ``already_configured``
+    never fires. Weather lives on the credentials screen and is omitted.
+    An already-nested payload is returned unchanged.
+    """
+    group_names = {group for group, _keys in _USER_SENSORS_GROUPS}
+    if any(
+        key in group_names and isinstance(user_input.get(key), dict)
+        for key in user_input
+    ):
+        return dict(user_input)
+    nested: dict[str, Any] = {}
+    placed: set[str] = set()
+    for group, keys in _USER_SENSORS_GROUPS:
+        bucket = {
+            key: user_input[key]
+            for key in keys
+            if user_input.get(key) not in (None, "")
+        }
+        if bucket:
+            nested[group] = bucket
+            placed.update(bucket)
+    for key, value in user_input.items():
+        if key in placed or key == CONF_WEATHER_ENTITY or key in group_names:
+            continue
+        nested[key] = value
+    return nested
 
 
 def _page_schema(
@@ -1853,7 +1889,7 @@ class HeatPumpOptimizerConfigFlow(
     ) -> ConfigFlowResult:
         """Optional entity pickers, after credentials (#198)."""
         if user_input is not None:
-            self._data.update(user_input)
+            self._data.update(_flatten_section_input(dict(user_input)))
             await self.async_set_unique_id(entry_identity(self._data))
             if (
                 self._reconfigure_entry is None

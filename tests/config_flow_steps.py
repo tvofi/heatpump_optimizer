@@ -806,6 +806,64 @@ async def duplicate_and_null_control():
     )
 
     LEDGER.rows["_dup"] = int(dup_aborted)
+
+    # Nightly A8 (2026-09-12, run 34680074952) posted the stored flat
+    # identity onto the grouped user_sensors schema. Real HA validates
+    # async_configure before the step; vol.Invalid became InvalidData
+    # "not a valid option at indoor_temp_entity" and already_configured
+    # never ran. The nest is the payload the form actually accepts.
+    a8_flat = {
+        const.CONF_WEATHER_ENTITY: FIRST_SCREEN[const.CONF_WEATHER_ENTITY],
+        const.CONF_INDOOR_TEMP_ENTITY: "sensor.indoor",
+        const.CONF_OUTDOOR_TEMP_ENTITY: "sensor.outdoor",
+        const.CONF_DHW_TEMP_ENTITY: "sensor.dhw",
+        const.CONF_HEAT_PUMP_SWITCH_ENTITY: USER_SENSORS[
+            const.CONF_HEAT_PUMP_SWITCH_ENTITY
+        ],
+    }
+    sensors_schema = vol.Schema(config_flow._user_sensors_sections(hass))
+    flat_invalid = False
+    try:
+        sensors_schema(a8_flat)
+    except (vol.Invalid, vol.MultipleInvalid):
+        flat_invalid = True
+    nested = config_flow._nest_user_sensors_input(a8_flat)
+    nested_ok = True
+    try:
+        sensors_schema(nested)
+    except (vol.Invalid, vol.MultipleInvalid):
+        nested_ok = False
+    lifted = config_flow._flatten_section_input(nested)
+    check(
+        "user",
+        "error",
+        "a flat identity payload is invalid on the grouped setup schema, the nested one is valid",
+        flat_invalid
+        and nested_ok
+        and const.CONF_WEATHER_ENTITY not in nested
+        and nested.get("indoor", {}).get(const.CONF_INDOOR_TEMP_ENTITY)
+        == "sensor.indoor"
+        and lifted.get(const.CONF_INDOOR_TEMP_ENTITY) == "sensor.indoor"
+        and lifted.get(const.CONF_HEAT_PUMP_SWITCH_ENTITY)
+        == USER_SENSORS[const.CONF_HEAT_PUMP_SWITCH_ENTITY],
+        f"flat_invalid={flat_invalid} nested_ok={nested_ok} nested={nested!r} "
+        f"lifted={lifted!r}",
+    )
+    nested_hass = FakeHass()
+    nested_first = fresh_flow(nested_hass)
+    nested_result = await submit_first_screen(
+        nested_first, FIRST_SCREEN, config_flow._nest_user_sensors_input(USER_SENSORS)
+    )
+    check(
+        "user",
+        "happy",
+        "a nested user_sensors submit still identifies the plant",
+        offers_finish_setup(nested_result)
+        and nested_first.unique_id == first.unique_id,
+        f"nested_uid={nested_first.unique_id!r} first_uid={first.unique_id!r} "
+        f"result={nested_result}",
+    )
+
     config_flow.async_get_clientsession = real
 
 
@@ -3559,6 +3617,38 @@ async def self_check():
     finally:
         config_flow.HeatPumpOptimizerConfigFlow._abort_if_unique_id_configured = real_guard
 
+    # Mutation 6: nest is a no-op -- the nightly A8 flat payload.
+    real_nest = config_flow._nest_user_sensors_input
+    config_flow._nest_user_sensors_input = lambda payload: dict(payload)
+    try:
+        a8_flat = {
+            const.CONF_WEATHER_ENTITY: FIRST_SCREEN[const.CONF_WEATHER_ENTITY],
+            const.CONF_INDOOR_TEMP_ENTITY: "sensor.indoor",
+            const.CONF_OUTDOOR_TEMP_ENTITY: "sensor.outdoor",
+            const.CONF_DHW_TEMP_ENTITY: "sensor.dhw",
+            const.CONF_HEAT_PUMP_SWITCH_ENTITY: USER_SENSORS[
+                const.CONF_HEAT_PUMP_SWITCH_ENTITY
+            ],
+        }
+        sensors_schema = vol.Schema(config_flow._user_sensors_sections(FakeHass()))
+        nested = config_flow._nest_user_sensors_input(a8_flat)
+        nested_ok = True
+        try:
+            sensors_schema(nested)
+        except (vol.Invalid, vol.MultipleInvalid):
+            nested_ok = False
+        caught = not (nested_ok and isinstance(nested.get("indoor"), dict))
+        outcomes.append(
+            (
+                "user_sensors nest is identity",
+                caught,
+                "a flat identity payload is invalid on the grouped setup schema, the nested one is valid",
+                f"nested={nested!r} nested_ok={nested_ok}",
+            )
+        )
+    finally:
+        config_flow._nest_user_sensors_input = real_nest
+
     # Mutation 2: the token probe always says ok.
     real_validate = config_flow.validate_tibber_token
 
@@ -3678,7 +3768,7 @@ async def self_check():
     if not ok:
         print("\na mutation survived: a check that cannot fail pins nothing")
         return 1
-    print("\nall five mutations caught by their named checks")
+    print("\nall six mutations caught by their named checks")
     return 0
 
 

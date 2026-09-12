@@ -1641,12 +1641,18 @@ def a8_sensors_payload(
     ``weather_entity`` is a user-step key. Posting it again on
     ``user_sensors`` is ``InvalidData`` (2025.2.0: extra keys; stable:
     not a valid option, did you mean a sensors-step key).
+
+    After #849 the form is sectioned (indoor / solar / plant). A flat
+    payload is the same InvalidData nightly 34680074952 saw:
+    ``not a valid option at indoor_temp_entity``.
     """
-    return {
+    cf = _prod_mod("config_flow")
+    flat = {
         key: data[key]
         for key in identity_keys
         if data.get(key) and key != "weather_entity"
     }
+    return cf._nest_user_sensors_input(flat)
 
 
 async def _async_duplicate_user_flow(hass, seed) -> str | None:
