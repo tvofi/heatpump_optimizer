@@ -14969,6 +14969,56 @@ R.check(
 # directly, because they are pure functions of data and need no network.
 import nightly_status as _nstatus  # noqa: E402
 
+# A job that drives a history-reading script must check out the history. This is
+# a PROPERTY over the workflow, not a pin on one job: `mutation-nightly` ran at
+# the default depth 1, so its baseline driver `tests/entities.py` could not ask
+# git whether the handover's `updated-for:` is an ancestor, failed there, and
+# `mutation_table.py` refused with "the baseline is already red" -- a red nightly
+# that had run no mutant at all. Its sibling `mutation` already carried
+# `fetch-depth: 0` for the same reason, which is what makes this a property
+# nobody had stated rather than a one-off.
+#
+# COMMENTS ARE STRIPPED BEFORE MATCHING, and that is not a detail: the first
+# version of this check matched the whole block and named `browser` and
+# `nightly-status`, which only MENTION a driver in a comment and are green at
+# depth 1. A predicate written from one failure will happily return confirming
+# evidence; what it must survive is "what would this refuse that should pass".
+#
+# The list is the four whose history need is EVIDENCED -- entities.py by the
+# reproduction above, run.sh and mutation_table.py because they drive it, and
+# env_drift.py by the `fast` job's own comment. `closure.py` is deliberately
+# absent: `closures-autofix` shells its `autofix-report` subcommand at depth 1
+# and is green, so requiring history there would be a refusal with no defect
+# behind it.
+_HISTORY_DRIVERS = ("tests/mutation_table.py", "tests/run.sh",
+                    "tests/entities.py", "tests/env_drift.py")
+
+
+def _job_shell(text: str, name: str) -> str:
+    """One job's block with comment tails removed, so a mention is not a use."""
+    return "\n".join(
+        line.split("#", 1)[0] for line in _workflow_job(text, name).splitlines()
+    )
+
+
+_DEPTH_JOBS = [
+    _name for _name in re.findall(r"^  ([a-z][\w-]*):$", _TESTS_YML, re.M)
+    if any(_d in _job_shell(_TESTS_YML, _name) for _d in _HISTORY_DRIVERS)
+]
+_DEPTH_SHALLOW = [
+    _name for _name in _DEPTH_JOBS
+    if "fetch-depth: 0" not in _workflow_job(_TESTS_YML, _name)
+]
+R.check(
+    "every job driving a history-reading script checks out the history",
+    bool(_DEPTH_JOBS) and not _DEPTH_SHALLOW,
+    f"{_DEPTH_SHALLOW or 'no job matched at all, so this check measured nothing'}"
+    f" against drivers {list(_HISTORY_DRIVERS)}. A shallow clone cannot answer "
+    "`merge-base --is-ancestor`, so the script fails on the CLONE rather than on "
+    "the tree and the job is red for a reason no diff explains. Add "
+    "`fetch-depth: 0`.",
+)
+
 _NS_JOB = _workflow_job(_TESTS_YML, "nightly-status")
 _NS_RUNS = [
     _l.strip() for _l in _NS_JOB.splitlines()
@@ -15385,547 +15435,174 @@ R.check(
 )
 
 
-# --- main's disposition gate, told to the pull request (#678, CM-2) ---------
+# --- the delivery ledger, and why it replaced a red tick --------------------
 #
-# `record` in governance.yml refuses a merged pull request with no
-# Delivery-status row. Its `if: github.event_name != 'pull_request'` is CORRECT
-# -- all three modes read `<ref>..origin/main` and a pull_request checkout is
-# not in main's history -- and the defect is one level out: `record` is one of
-# `main-protect`'s 18 required contexts while reporting `skipped` on the only
-# event a seat reads it at, so the rule is enforced only after a merge and the
-# red lands on whoever pushes next. `tests/record_status.py` is the telling,
-# and the `record-status` job runs it on every pull request.
+# `record` refuses a merged pull request with no disposition row, and it is
+# right. Reporting main's `record` CONCLUSION on every pull request was not:
+# measured over main's last 40 commits, `record` concluded `failure` on 28 of
+# them, in six streaks each ended by a `record:` leftover-row commit. The check
+# was firing on the protocol's own steady state, which is the shape its own
+# docstring warns about -- the first red one teaches everybody to ignore it.
 #
-# Two different things are pinned. The WIRING -- the job exists, runs on pull
-# requests, and passes no argument that could pin its answer -- is read out of
-# the YAML, because a correct classifier the workflow does not call is the
-# silent-green shape this whole class is about. The CLASSIFIER is driven
-# against REAL captured API payloads, which is the section after it.
-import record_status as _rstatus  # noqa: E402
+# `tests/delivery_status.py` changes the predicate rather than the reporting:
+# pending is ordinary, and only a batch that has stopped being drained is a
+# problem. What is pinned here is that BOTH sides of that threshold are
+# reachable, because a threshold that never fires is the always-green shape
+# this repository keeps catching.
+import delivery_status as _ds  # noqa: E402
 
-_RS_GOV_YML = (pathlib.Path(__file__).resolve().parents[1]
-               / ".github" / "workflows" / "governance.yml").read_text()
-_RS_JOB = _workflow_job(_RS_GOV_YML, "record-status")
-_RS_RUNS = [
-    _l.strip() for _l in _RS_JOB.splitlines()
-    if "tests/record_status.py" in _l and _l.strip().startswith("run:")
-]
+
+def _ds_merges(*specs):
+    """(number, commits_after) pairs as ledger entries."""
+    return [
+        {"number": n, "title": f"fix: thing {n}", "merge_sha": f"{n:07x}",
+         "commits_after": after}
+        for n, after in specs
+    ]
+
+
+_DS_ROWED = ["a row for [#101](https://github.com/o/r/pull/101) and #102"]
+_ds_all_rowed = _ds.classify(_ds_merges((101, 0), (102, 1)), _DS_ROWED)
+_ds_pending = _ds.classify(_ds_merges((101, 0), (103, 1)), _DS_ROWED)
+_ds_overdue = _ds.classify(
+    _ds_merges((101, 0), (103, _ds.STALE_AFTER_COMMITS)), _DS_ROWED)
+_ds_edge = _ds.classify(
+    _ds_merges((103, _ds.STALE_AFTER_COMMITS - 1)), _DS_ROWED)
+_ds_empty = _ds.classify([], _DS_ROWED)
 R.check(
-    "the disposition reporter is wired into a job that runs on pull requests",
-    "github.event_name == 'pull_request'" in _RS_JOB and len(_RS_RUNS) == 1,
-    f"if-line present={'pull_request' in _RS_JOB} run lines={_RS_RUNS}",
+    "a rowless merge is PENDING until the threshold, and OVERDUE at it",
+    _ds_all_rowed["verdict"] == _ds.OK
+    and _ds_all_rowed["counts"]["pending"] == 0
+    and _ds_pending["verdict"] == _ds.OK
+    and _ds_pending["counts"]["pending"] == 1
+    and _ds_edge["verdict"] == _ds.OK
+    and _ds_overdue["verdict"] == _ds.OVERDUE
+    and _ds_overdue["counts"]["overdue"] == 1,
+    f"all rowed -> {_ds_all_rowed['verdict']!r}; one rowless at 1 commit -> "
+    f"{_ds_pending['verdict']!r} with {_ds_pending['counts']['pending']} "
+    f"pending; at {_ds.STALE_AFTER_COMMITS - 1} -> {_ds_edge['verdict']!r}; at "
+    f"{_ds.STALE_AFTER_COMMITS} -> {_ds_overdue['verdict']!r}. BOTH sides are "
+    "driven and the boundary twice, one commit either way: a threshold that "
+    "only ever reports the green side is the always-green shape this "
+    "repository keeps catching, and the whole case for replacing the old check "
+    "was that it reported the other side 70 per cent of the time",
 )
-# The null control for the demonstration knob. `--sha` classifies one named
-# commit; pointed at a commit that passed it reports PASSED forever, which is
-# the always-green check this repository keeps catching. CI must never pass it.
 R.check(
-    "and passes it no argument that would pin its answer",
-    bool(_RS_RUNS) and _RS_RUNS[0] == "run: python tests/record_status.py",
-    f"the invocation is {_RS_RUNS[0] if _RS_RUNS else '(absent)'!r}",
+    "an EMPTY window is its own verdict and is not reported as a pass",
+    _ds_empty["verdict"] == _ds.EMPTY
+    and _ds_empty["verdict"] != _ds.OK
+    and "no merge" in _ds.render_markdown(_ds_empty),
+    f"an empty window -> {_ds_empty['verdict']!r}. 'we looked at forty merges "
+    "and every one had a row' and 'there was nothing to look at' are different "
+    "facts and only one is evidence -- right after a release stamp the window "
+    "is legitimately empty, and reporting OK there is the vacuous green this "
+    "repository refuses",
 )
-# The permission widening, as a PROPERTY rather than as its instance: the whole
-# set of jobs in governance.yml that override the workflow's `contents: read`
-# floor. A job-level block REPLACES the floor for that job and is inherited by
-# none, so the set IS the blast radius. `record` has needed `pull-requests:
-# read` since it was written; a third override should have to be argued for.
-_RS_OVERRIDES = sorted(
+R.check(
+    "a disposition is matched on the whole number, in both spellings",
+    _ds.mentions(88, ["a row for #885 and #8850"]) is False
+    and _ds.mentions(885, ["a row for #885"]) is True
+    and _ds.mentions(885, ["https://github.com/o/r/pull/885)"]) is True
+    and _ds.mentions(885, ["nothing here"]) is False,
+    "#88 against a text naming #885 and #8850 -> "
+    f"{_ds.mentions(88, ['a row for #885 and #8850'])!r}; the link form -> "
+    f"{_ds.mentions(885, ['https://github.com/o/r/pull/885)'])!r}. An "
+    "unbounded match would disposition every merge whose number is a prefix of "
+    "a later one, which is the direction that reports a missing row as written; "
+    "both spellings count because the Delivery-status rows use the link form "
+    "and the handover the bare one, so a matcher reading one would report half "
+    "the record missing",
+)
+_DS_BODY = "Tracking issue.\n\nPhases table here.\n"
+_ds_once = _ds.splice(_DS_BODY, _ds.render_markdown(_ds_pending))
+_ds_twice = _ds.splice(_ds_once, _ds.render_markdown(_ds_pending))
+_ds_changed = _ds.splice(_ds_once, _ds.render_markdown(_ds_all_rowed))
+R.check(
+    "the #201 region is replaced in place, and the issue's own text survives",
+    "Tracking issue." in _ds_once
+    and "Phases table here." in _ds_once
+    and _ds_twice == _ds_once
+    and _ds_once.count(_ds.REGION_BEGIN) == 1
+    and _ds_twice.count(_ds.REGION_BEGIN) == 1
+    and _ds_changed.count(_ds.REGION_BEGIN) == 1
+    and "Tracking issue." in _ds_changed
+    and _ds_changed != _ds_once,
+    f"one splice keeps the issue's own text and adds "
+    f"{_ds_once.count(_ds.REGION_BEGIN)} region; a second with the same "
+    f"content is byte-identical ({_ds_twice == _ds_once}); with different "
+    f"content it updates in place and still carries "
+    f"{_ds_changed.count(_ds.REGION_BEGIN)}. Idempotence is what makes this "
+    "safe to run on every push: an appending version grows the issue body "
+    "without bound, and a body-REPLACING version deletes the 2.6 kB of "
+    "tracking text that is the reason anyone opens #201 at all",
+)
+_DS_JOB = _workflow_job(
+    Path(".github/workflows/governance.yml").read_text(), "delivery-status")
+R.check(
+    "the ledger is wired into a job that runs on pull requests",
+    "github.event_name == 'pull_request'" in _DS_JOB
+    and "tests/delivery_status.py" in _DS_JOB,
+    f"pull_request={'pull_request' in _DS_JOB}, "
+    f"invoked={'tests/delivery_status.py' in _DS_JOB}",
+)
+R.check(
+    "and the pull-request lane passes no --since that would pin its answer",
+    "--since" not in _DS_JOB,
+    "`--since` names the window, so a job passing a fixed one would report the "
+    "same closed window for ever -- the always-green knob "
+    "`nightly_status.py`'s `--run` is pinned against",
+)
+# The permission widening, checked as a PROPERTY rather than as its instance:
+# the whole set of jobs in governance.yml that override the workflow's
+# `contents: read` floor. A job-level block REPLACES the floor for that job and
+# is inherited by none, so the set IS the blast radius.
+#
+# This pin was `record-status`'s and came out with it. It is restored here
+# UPDATED rather than dropped, and the reason is that this pull request makes
+# it matter more: `delivery-status-publish` carries `contents: write` and
+# `issues: write`, which is the widest grant in this file, and it was about to
+# land with nothing holding the set.
+_DS_GOV = Path(".github/workflows/governance.yml").read_text()
+_DS_OVERRIDES = sorted(
     _m.group(1) for _m in re.finditer(
         r"^  ([A-Za-z][\w-]*):\n(?:(?!^  [A-Za-z]).)*?^    permissions:",
-        _RS_GOV_YML, re.M | re.S)
+        _DS_GOV, re.M | re.S)
 )
 R.check(
     "exactly two governance jobs override the workflow's read-only floor",
-    _RS_OVERRIDES == ["record", "record-status"],
-    f"jobs with a permissions block: {_RS_OVERRIDES}",
+    _DS_OVERRIDES == ["delivery-status-publish", "record"],
+    f"jobs with a permissions block: {_DS_OVERRIDES}. A third has to be argued "
+    "for rather than land, and the reporting lane is deliberately NOT one: "
+    "`delivery-status` runs on pull requests with no widening at all, because "
+    "it only reads the tree it is already checked out in",
 )
-_RS_PERMS = re.search(r"^    permissions:\n((?:^      .*\n)+)", _RS_JOB, re.M)
+_DS_PUB_PERMS = re.search(
+    r"^    permissions:\n((?:^      .*\n)+)",
+    _workflow_job(_DS_GOV, "delivery-status-publish"), re.M)
 R.check(
-    "and the disposition reporter's own widening is read-only",
-    bool(_RS_PERMS)
-    and sorted(_RS_PERMS.group(1).split()) == sorted(
-        ["checks:", "read", "contents:", "read"]),
-    f"record-status permissions: {_RS_PERMS.group(1).split() if _RS_PERMS else None}",
-)
-# `WATCHED_JOB` is a coupling to one job name, so the coupling is DERIVED here
-# rather than restated: the reporter must watch a job of governance.yml that a
-# pull request cannot see for itself -- one whose `if:` excludes the
-# `pull_request` event. A rename, or a later decision to let `record` run on a
-# pull request, is refused on the pull request that makes it instead of turning
-# this reporter permanently ABSENT where nobody reads the reason.
-_RS_HEADS = {
-    _n: _workflow_job(_RS_GOV_YML, _n).split("\n    steps:")[0]
-    for _n in re.findall(r"^  ([A-Za-z][\w-]*):$", _RS_GOV_YML, re.M)
-    if f"\n  {_n}:\n    " in _RS_GOV_YML and "runs-on:" in _workflow_job(
-        _RS_GOV_YML, _n)
-}
-_RS_PR_BLIND = sorted(
-    _n for _n, _h in _RS_HEADS.items()
-    if "if:" in _h and "!= 'pull_request'" in _h
+    "and the publishing lane's grant is exactly the two writes it uses",
+    bool(_DS_PUB_PERMS)
+    and sorted(_DS_PUB_PERMS.group(1).split()) == sorted(
+        ["contents:", "write", "issues:", "write"]),
+    f"delivery-status-publish permissions: "
+    f"{_DS_PUB_PERMS.group(1).split() if _DS_PUB_PERMS else None} -- "
+    "`contents: write` commits one generated path and `issues: write` edits "
+    "#201's region; anything beyond those two is scope this job does not use "
+    "and should not hold",
 )
 R.check(
-    "the reporter watches a job a pull request structurally cannot see",
-    _rstatus.WATCHED_JOB in _RS_PR_BLIND
-    and _rstatus.WATCHED_WORKFLOW == ".github/workflows/governance.yml",
-    f"WATCHED_JOB={_rstatus.WATCHED_JOB!r} governance jobs gated off "
-    f"pull_request={_RS_PR_BLIND}",
-)
-
-# --- the three arms, from real captured payloads ----------------------------
-#
-# Every field below was read from the live Checks API at the SHA named, by the
-# root-cause seat on #541 and again on this branch:
-#
-#   gh api "repos/tvofi/heatpump_optimizer/commits/<sha>/check-runs\
-#           ?filter=all&per_page=100" -q '.check_runs[]|select(.name=="record")'
-#
-# ARM 1 is the defect present -- #734 merged with no row and `main` went red.
-# ARM 2 is the NULL CONTROL, `main` one merge earlier, where the same reader
-# must exit 0 or it is a check that refuses everything. ARM 3 is the one that
-# matters: `main` before the job existed, where a check that went green by
-# finding nothing would be worse than no check, and "green by skipping" is this
-# repository's signature failure. ARM 4 is that same failure one level down and
-# is why this file is not `nightly_status.py` with a different constant:
-# `record` reports `skipped` at a pull-request head BY DESIGN, so a reader that
-# accepted a skip as a pass would go green on exactly the vacuum it was built
-# to report.
-def _rs_run(cid, sha, conclusion, at, status="completed"):
-    return {"id": cid, "name": "record", "status": status,
-            "conclusion": conclusion, "completed_at": at,
-            "head_sha": sha,
-            "html_url": f"https://github.com/tvofi/heatpump_optimizer/"
-                        f"actions/runs/0/job/{cid}"}
-
-
-_RS_OTHER = [{"id": 1, "name": "pr-contract", "status": "completed",
-              "conclusion": "success", "completed_at": "2026-09-10T15:50:00Z",
-              "html_url": ""}]
-_RS_A1 = "a94bbaf1a2e875c8430fa3d3dca690998365d3a5"
-_RS_A2 = "36c649d5a5c4f2c985ff9441df2451b9d607e22e"
-_RS_A3 = "284437ec03b6db5d7620554dabd263fe578be3f9"
-_RS_A4 = "b63470bda78ba637042e6276d45bced2793b9a4d"
-_RS_ARMS = {
-    "ARM 1 defect present": (
-        [(_RS_A1, [*_RS_OTHER, _rs_run(102943398074, _RS_A1, "failure",
-                                       "2026-09-10T15:54:32Z")])],
-        "FAILED", _rstatus.EXIT_RED,
-        "RECORD FAILED on main a94bbaf: conclusion 'failure' at "
-        "2026-09-10T15:54:32Z"),
-    "ARM 2 null control": (
-        [(_RS_A2, [*_RS_OTHER, _rs_run(102917672591, _RS_A2, "success",
-                                       "2026-09-10T14:45:55Z")])],
-        "PASSED", _rstatus.EXIT_GREEN,
-        "RECORD PASSED on main 36c649d: conclusion 'success' at "
-        "2026-09-10T14:45:55Z"),
-    "ARM 3 before the job existed": (
-        [(_RS_A3, [])],
-        "ABSENT", _rstatus.EXIT_RED,
-        "RECORD ABSENT on main 284437e: no completed `record` run. Absence is "
-        "not a pass."),
-    "ARM 4 concluded and judged nothing": (
-        [(_RS_A4, [*_RS_OTHER, _rs_run(102938451768, _RS_A4, "skipped",
-                                       "2026-09-10T15:40:21Z")])],
-        "ABSENT", _rstatus.EXIT_RED,
-        "RECORD ABSENT on main b63470b: the `record` run concluded 'skipped' "
-        "at 2026-09-10T15:40:21Z, so it judged nothing. Absence is not a "
-        "pass."),
-}
-_rs_wrong = []
-for _arm, (_cands, _want, _code, _headline) in _RS_ARMS.items():
-    _got, _rc, _lines = _rstatus.verdict(_cands)
-    if (_got, _rc) != (_want, _code) or _lines[0] != _headline:
-        _rs_wrong.append(f"{_arm}: {_got} exit={_rc} / {_lines[0]!r}")
-R.check(
-    "the three demonstrated arms and the skipped one classify as they did "
-    "against the live API",
-    not _rs_wrong,
-    "; ".join(_rs_wrong) or "four arms, three headlines byte-for-byte from "
-    "the #541 root-cause report and one from this branch",
-)
-# The reader's own null control on the accepted set: it is a WHITELIST, so a
-# conclusion string GitHub has not invented yet arrives as FAILED and cannot
-# become a silent pass. Every value in GitHub's current vocabulary is driven,
-# not only the one CI has produced, plus a missing one and an invented one.
-_RS_NOT_PASSING = ("failure", "cancelled", "timed_out", "action_required",
-                   "stale", "startup_failure", None, "quantum_ambiguous")
-_rs_novel = {
-    _c: _rstatus.verdict([(_RS_A1, [_rs_run(9, _RS_A1, _c,
-                                            "2026-09-10T15:54:32Z")])])[:2]
-    for _c in _RS_NOT_PASSING
-}
-R.check(
-    "every conclusion outside the passing and vacuous sets is FAILED, "
-    "including ones GitHub has not invented",
-    all(_v == ("FAILED", _rstatus.EXIT_RED) for _v in _rs_novel.values()),
-    f"conclusion -> (state, exit): {_rs_novel}",
+    "the publishing lane runs on main alone, never on a pull request",
+    "github.event_name == 'push'" in _workflow_job(_DS_GOV, "delivery-status-publish")
+    and "refs/heads/main" in _workflow_job(_DS_GOV, "delivery-status-publish")
+    and "pull_request" not in _workflow_job(_DS_GOV, "delivery-status-publish"),
+    "a write-scoped job reachable from a pull request is a write-scoped job "
+    "reachable from a fork, and the ledger it publishes is about `main`'s "
+    "history rather than about any branch",
 )
 R.check(
-    "and `skipped` and `neutral` are refused as ABSENT rather than as a pass",
-    all(_rstatus.verdict(
-        [(_RS_A4, [_rs_run(9, _RS_A4, _c, "2026-09-10T15:40:21Z")])])[:2]
-        == ("ABSENT", _rstatus.EXIT_RED)
-        for _c in ("skipped", "neutral"))
-    # The two words are NAMED, not iterated out of the constant under test. A
-    # loop over `VACUOUS_CONCLUSIONS` alone passes on a mutant that empties the
-    # set and moves `skipped` into the passing one -- which is not a
-    # hypothetical mutation but the copy this file's own source made:
-    # `nightly_status.py`'s OK_CONCLUSIONS contains `skipped`, correctly for a
-    # nightly whose green jobs skip by design and fatally here.
-    and "skipped" not in _rstatus.PASSING_CONCLUSIONS
-    and "skipped" in _rstatus.VACUOUS_CONCLUSIONS,
-    f"PASSING={sorted(_rstatus.PASSING_CONCLUSIONS)} "
-    f"VACUOUS={sorted(_rstatus.VACUOUS_CONCLUSIONS)}; `record` reports "
-    "'skipped' at a pull-request head, so accepting one is this check going "
-    "green on the vacuum it exists to report",
-)
-# The window is in COMMITS, and it has two ends. A verdict one commit back is
-# main's current answer with the distance stated; a tip whose own run has not
-# concluded is not "no answer" until the whole window is exhausted; and a
-# window with a run still in flight and nothing concluded is RUNNING, which is
-# red, not a pass.
-_RS_PENDING = _rs_run(7, _RS_A1, None, None, status="in_progress")
-_RS_PASS = _rs_run(102917672591, _RS_A2, "success", "2026-09-10T14:45:55Z")
-_rs_behind = _rstatus.verdict([(_RS_A1, [_RS_PENDING]), (_RS_A2, [_RS_PASS])])
-_rs_running = _rstatus.verdict([(_RS_A1, [_RS_PENDING]), (_RS_A3, [])])
-_rs_empty = _rstatus.verdict([])
-R.check(
-    "an in-flight tip falls back to the newest CONCLUDED verdict and says how "
-    "far back it is",
-    _rs_behind[:2] == ("PASSED", _rstatus.EXIT_GREEN)
-    and any("moved 1 commit" in _l for _l in _rs_behind[2])
-    and any("still in_progress" in _l for _l in _rs_behind[2]),
-    f"state={_rs_behind[0]} lines={_rs_behind[2]}",
-)
-R.check(
-    "and a window with nothing concluded is RUNNING or ABSENT, never a pass",
-    _rs_running[:2] == ("RUNNING", _rstatus.EXIT_RED)
-    and _rs_empty[:2] == ("ABSENT", _rstatus.EXIT_RED),
-    f"in-flight-only={_rs_running[0]} empty-window={_rs_empty[0]}; a reader "
-    "whose only answer is 'ask again later' is a dark lane",
-)
-# A re-run leaves both attempts on the commit under `filter=all`. The newest
-# is the answer, and asserting the order is the point: the API's own order is
-# documented and not guaranteed, and a reader that took the first element would
-# report a stale PASS over a fresh failure. Driven in BOTH directions so the
-# check cannot pass on a reader that simply takes the last element.
-_RS_OLD_FAIL = _rs_run(1, _RS_A1, "failure", "2026-09-10T15:54:32Z")
-_RS_NEW_PASS = _rs_run(2, _RS_A1, "success", "2026-09-10T16:10:00Z")
-_rs_reruns = [
-    _rstatus.verdict([(_RS_A1, [_RS_OLD_FAIL, _RS_NEW_PASS])])[0],
-    _rstatus.verdict([(_RS_A1, [_RS_NEW_PASS, _RS_OLD_FAIL])])[0],
-    _rstatus.verdict([(_RS_A1, [_RS_NEW_PASS, _rs_run(
-        3, _RS_A1, "failure", "2026-09-10T16:20:00Z")])])[0],
-]
-R.check(
-    "a re-run is judged by its NEWEST attempt, whatever order the API listed "
-    "them in",
-    _rs_reruns == ["PASSED", "PASSED", "FAILED"],
-    f"[old-first, new-first, newest-is-a-failure] -> {_rs_reruns}",
-)
-# A completed check run with no clock cannot be ordered against another, so it
-# is UNREADABLE (2) -- not a KeyError, and not exit 1, which is this reporter's
-# word for "`record` is red".
-try:
-    _rstatus.verdict([(_RS_A1, [{"id": 5, "name": "record",
-                                 "status": "completed",
-                                 "conclusion": "success"}])])
-except _rstatus.Unreadable:
-    _rs_noclock = "Unreadable"
-except Exception as _exc:  # noqa: BLE001 -- the point is what class it is
-    _rs_noclock = type(_exc).__name__
-else:
-    _rs_noclock = "a verdict"
-R.check(
-    "a completed check run carrying no completed_at is UNREADABLE, not a "
-    "verdict and not a traceback",
-    _rs_noclock == "Unreadable",
-    f"a clockless completed run produced {_rs_noclock}; exit "
-    f"{_rstatus.EXIT_UNREADABLE} is 'could not look' and exit "
-    f"{_rstatus.EXIT_RED} is 'record is red'",
-)
-# `check_runs` requests per_page=100 and follows no `Link`. A dropped page is a
-# dropped check run, and a dropped `record` is an ABSENT -- or, if the dropped
-# one was the failing attempt, a PASS. `_get` is the one collaborator, stubbed;
-# `check_runs` itself is the production function under test.
-_rs_real_get = _rstatus._get
-try:
-    _rstatus._get = lambda _u, _t: {
-        "total_count": 140,
-        "check_runs": [_rs_run(_i, _RS_A1, "success", "2026-09-10T15:00:00Z")
-                       for _i in range(100)]}
-    try:
-        _rstatus.check_runs("o/r", _RS_A1, None)
-    except _rstatus.Unreadable as _exc:
-        _rs_truncated = "140" in str(_exc) and "100" in str(_exc)
-    else:
-        _rs_truncated = False
-    # The null control: a page that DOES carry every check run is read, not
-    # refused. Without it the check above passes on a reader that refuses
-    # everything.
-    _rstatus._get = lambda _u, _t: {"total_count": len(_RS_OTHER),
-                                    "check_runs": _RS_OTHER}
-    _rs_whole = _rstatus.check_runs("o/r", _RS_A1, None) == _RS_OTHER
-    # And the whole discovery path, composed: the commit listing plus one
-    # check-runs read per commit, driven with ARM 1's real payload. Pins that
-    # `collect` asks for the branch it was given and orders newest-first, which
-    # `verdict` relies on and which no arm above reaches.
-    _rs_seen = []
-
-    def _rs_stub(url, _t):
-        _rs_seen.append(url)
-        if "/check-runs" in url:
-            _sha = url.split("/commits/")[1].split("/")[0]
-            _runs = [*_RS_OTHER, _rs_run(102943398074, _RS_A1, "failure",
-                                         "2026-09-10T15:54:32Z")] \
-                if _sha == _RS_A1 else []
-            return {"total_count": len(_runs), "check_runs": _runs}
-        return [{"sha": _RS_A1}, {"sha": _RS_A3}]
-
-    _rstatus._get = _rs_stub
-    _rs_end_to_end = (
-        _rstatus.verdict(_rstatus.collect("o/r", "main", None, None, 2))[:2],
-        sum("/check-runs" in _u for _u in _rs_seen),
-        any("sha=main" in _u for _u in _rs_seen),
-    )
-    # The null control for the stop, and the half that stops it being a walk
-    # that never walks: with the tip's own run still in flight, the second
-    # commit IS fetched. The listing is reversed so ARM 1 is now the second
-    # commit and the tip carries no concluded run.
-    _rs_seen.clear()
-
-    def _rs_stub_pending(url, _t):
-        _rs_seen.append(url)
-        if "/check-runs" in url:
-            _sha = url.split("/commits/")[1].split("/")[0]
-            _runs = [*_RS_OTHER, _rs_run(102943398074, _RS_A1, "failure",
-                                         "2026-09-10T15:54:32Z")] \
-                if _sha == _RS_A1 else [_RS_PENDING]
-            return {"total_count": len(_runs), "check_runs": _runs}
-        return [{"sha": _RS_A3}, {"sha": _RS_A1}]
-
-    _rstatus._get = _rs_stub_pending
-    _rs_walked = (
-        _rstatus.verdict(_rstatus.collect("o/r", "main", None, None, 2))[:2],
-        sum("/check-runs" in _u for _u in _rs_seen),
-    )
-finally:
-    _rstatus._get = _rs_real_get
-R.check(
-    "a check-runs page that does not carry every run of the commit is "
-    "UNREADABLE, not a partial answer",
-    _rs_truncated and _rs_whole,
-    f"total_count 140 against a 100-run page refused={_rs_truncated}; "
-    f"complete page read={_rs_whole}",
-)
-R.check(
-    "the discovery path asks for the named branch, stops at the tip's own "
-    "answer, and walks on only when there is none",
-    _rs_end_to_end == (("FAILED", _rstatus.EXIT_RED), 1, True)
-    and _rs_walked == (("FAILED", _rstatus.EXIT_RED), 2),
-    f"tip answers: state/reads/branch-query={_rs_end_to_end}; tip in flight: "
-    f"state={_rs_walked[0]} check-runs reads={_rs_walked[1]}; the walk costs "
-    "a GET per commit, so one that never stops is a rate-limit exposure and "
-    "one that never walks is RUNNING after every merge",
-)
-# --- the binary, end to end: the one function CI actually executes ----------
-#
-# Everything above drives `verdict`, `check_runs`, `collect` and `parse_ts`.
-# `main` is what the workflow's `run:` line executes, and nothing drove it. The
-# docstring gives its behaviour its own heading -- ITS OWN FAILURE MODE, "the
-# check exits UNREADABLE (2) and says so. It does not pass" -- and the only
-# check that looked like it covered that compared two CONSTANTS,
-# `EXIT_UNREADABLE != EXIT_GREEN`. Editing the `except Unreadable` handler to
-# `EXIT_GREEN` leaves 2 != 0 true, so the binary printed "Failing closed on
-# purpose" and exited 0 with all 1271 checks green: the summary line and the
-# tick misleading in opposite directions. Four behaviours live only in `main`
-# and all four are driven here -- the Unreadable-to-exit-code mapping, the
-# report assembly that appends NOT_REQUIRED, the step summary (the only place
-# the state NAME is observable at all, since the report lines spell it from the
-# module constant), and the exit code, which is the only thing CI reads.
-def _rs_binary(get, sha):
-    """`main` with one stubbed GET. -> (exit code, stdout, step summary)."""
-    _real, _cap, _out = _rstatus._get, _io.StringIO(), sys.stdout
-    with _tempfile.TemporaryDirectory() as _td:
-        _sum = pathlib.Path(_td) / "step-summary.md"
-        _was = _os.environ.get("GITHUB_STEP_SUMMARY")
-        _os.environ["GITHUB_STEP_SUMMARY"] = str(_sum)
-        try:
-            _rstatus._get, sys.stdout = get, _cap
-            _rc = _rstatus.main(["--sha", sha])
-        finally:
-            _rstatus._get, sys.stdout = _real, _out
-            if _was is None:
-                _os.environ.pop("GITHUB_STEP_SUMMARY", None)
-            else:
-                _os.environ["GITHUB_STEP_SUMMARY"] = _was
-        return _rc, _cap.getvalue(), _sum.read_text(encoding="utf-8")
-
-
-def _rs_cannot_look(_u, _t):
-    raise _rstatus.Unreadable("HTTP 401 from https://api.github.com (stub)")
-
-
-_rs_dead = _rs_binary(_rs_cannot_look, _RS_A1)
-# The null control, on the SAME invocation: ARM 2's captured payload, where the
-# same binary must exit 0. Without it the check below passes on a `main` that
-# refuses everything, which is a check nobody can tell from a working one until
-# the day it matters.
-_rs_alive = _rs_binary(
-    lambda _u, _t: {"total_count": 2,
-                    "check_runs": _RS_ARMS["ARM 2 null control"][0][0][1]},
-    _RS_A2)
-R.check(
-    "the binary exits UNREADABLE (2) on an API it could not read, and GREEN "
-    "only on a real pass",
-    (_rs_dead[0], _rs_alive[0]) == (_rstatus.EXIT_UNREADABLE,
-                                    _rstatus.EXIT_GREEN)
-    and "### record-status: UNREADABLE" in _rs_dead[2]
-    and "### record-status: PASSED" in _rs_alive[2],
-    f"a transport that could not look -> exit {_rs_dead[0]}, state "
-    f"{[_l for _l in _rs_dead[2].splitlines() if _l.startswith('###')]}; "
-    f"ARM 2's payload -> exit {_rs_alive[0]}, state "
-    f"{[_l for _l in _rs_alive[2].splitlines() if _l.startswith('###')]}. "
-    f"Exit codes are the answer, not {_rstatus.EXIT_UNREADABLE} != "
-    f"{_rstatus.EXIT_GREEN}: a check that goes green when it could not look "
-    "converts an open defect into a closed one, and CI reads only the code",
-)
-
-
-def _rs_refuses(fn):
-    """Did this refuse with `Unreadable`, or produce something else?"""
-    try:
-        fn()
-    except _rstatus.Unreadable:
-        return "Unreadable"
-    except Exception as _exc:  # noqa: BLE001 -- the point is what class it is
-        return type(_exc).__name__
-    return "a value"
-
-
-# The same shape one function over. `main` was the only function nothing drove
-# at all, but the truncated page above was the only one of this module's nine
-# `raise Unreadable` sites that was EXECUTED; the rest were docstring promises
-# with nothing behind them, in the same way. One table rather than one check
-# each, because the property is identical at every site and a reader should see
-# the set. Their null controls already exist and are not duplicated: `_rs_whole`
-# reads a complete page, `_rs_end_to_end` walks a real listing, and the four
-# arms classify real timestamps -- so none of these can pass on a reader that
-# refuses everything.
-_rs_sites = {}
-_rs_real_get2 = _rstatus._get
-try:
-    for _rs_name, _rs_payload in (
-        ("a check-runs page that is not an object", ["not", "a", "dict"]),
-        ("a check-runs page carrying no array", {"total_count": 0}),
-    ):
-        _rstatus._get = lambda _u, _t, _p=_rs_payload: _p
-        _rs_sites[_rs_name] = _rs_refuses(
-            lambda: _rstatus.check_runs("o/r", _RS_A1, None))
-    for _rs_name, _rs_payload in (
-        ("an empty commit listing", []),
-        ("a commit listing that is not an array", {"message": "Not Found"}),
-        ("a commit in the listing carrying no sha", [{"commit": {}}]),
-    ):
-        _rstatus._get = lambda _u, _t, _p=_rs_payload: _p
-        _rs_sites[_rs_name] = _rs_refuses(
-            lambda: _rstatus.collect("o/r", "main", None, None, 5))
-finally:
-    _rstatus._get = _rs_real_get2
-# And the clock: `parse_ts` refuses a value it cannot PARSE as well as a
-# missing one, which the clockless check above does not reach.
-_rs_sites["a completed_at that is not a timestamp"] = _rs_refuses(
-    lambda: _rstatus.verdict(
-        [(_RS_A1, [_rs_run(6, _RS_A1, "success", "half past four")])]))
-R.check(
-    "every place this module says it could not look raises Unreadable, not a "
-    "verdict and not a traceback",
-    set(_rs_sites.values()) == {"Unreadable"},
-    "; ".join(f"{_k} -> {_v}" for _k, _v in sorted(_rs_sites.items()))
-    + f" ({len(_rs_sites)} refusal sites; exit "
-    f"{_rstatus.EXIT_RED} is this reporter's word for '`record` is red' and a "
-    "traceback must not be able to say that)",
-)
-
-
-class _RsResp:
-    """A urlopen response, for driving `_get`'s own handlers."""
-
-    def __init__(self, body):
-        self.body = body
-
-    def read(self):
-        return self.body
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *_a):
-        return False
-
-
-# `_get` is the other half of the same promise: it is what turns a transport
-# failure INTO the `Unreadable` that `main` maps to exit 2, and it is STUBBED at
-# every site above, so its three handlers had never run either. Here urlopen is
-# the collaborator and `_get` is the production function under test. A readable
-# page is the null control, in the same table.
-_rs_real_urlopen = _rstatus.urllib.request.urlopen
-_rs_transport = {}
-try:
-    for _rs_name, _rs_outcome in (
-        ("an HTTP error", _rstatus.urllib.error.HTTPError(
-            "https://api.github.com/x", 401, "Unauthorized", None, None)),
-        ("an unreachable host", _rstatus.urllib.error.URLError("no route")),
-        ("a body that is not JSON", _RsResp(b"<html>rate limited</html>")),
-        ("a page that IS JSON", _RsResp(b'{"total_count": 0, '
-                                        b'"check_runs": []}')),
-    ):
-        def _rs_urlopen(_req, timeout=0, _o=_rs_outcome):
-            if isinstance(_o, BaseException):
-                raise _o
-            return _o
-
-        _rstatus.urllib.request.urlopen = _rs_urlopen
-        _rs_transport[_rs_name] = _rs_refuses(
-            lambda: _rstatus._get("https://api.github.com/x", None))
-finally:
-    _rstatus.urllib.request.urlopen = _rs_real_urlopen
-R.check(
-    "and the transport turns every failure into Unreadable, while a page it "
-    "CAN read is still read",
-    all(_v == "Unreadable" for _k, _v in _rs_transport.items()
-        if _k != "a page that IS JSON")
-    and _rs_transport["a page that IS JSON"] == "a value",
-    "; ".join(f"{_k} -> {_v}" for _k, _v in _rs_transport.items())
-    + " -- the last is the null control, and without it this passes on a "
-    "transport that refuses everything",
-)
-# Every report says the check does not block, on green as well as on red, and
-# names the repair. A reader meeting the first red one must learn both from the
-# report rather than from a policy file they have not opened -- and the repair
-# for a red `record` is a Delivery-status row, never a re-run of this check.
-# Asserted against what the binary PRINTED on both arms above, not against the
-# constant: `main` is where the report is assembled, and a constant no report
-# carries is a promise the docstring makes alone.
-R.check(
-    "and every state says in the report that it blocks nothing, and what does "
-    "fix it",
-    all("does not block this merge" in _r and "Delivery-status row" in _r
-        and "never a re-run" in _r
-        for _r in (_rs_dead[1], _rs_alive[1]))
-    and "Failing closed on purpose" in _rs_dead[1]
-    and _rstatus.NOT_REQUIRED in _rs_dead[1],
-    f"NOT_REQUIRED in the report the binary PRINTED: unreadable arm="
-    f"{_rstatus.NOT_REQUIRED in _rs_dead[1]}, green arm="
-    f"{_rstatus.NOT_REQUIRED in _rs_alive[1]}; 'Failing closed on purpose' on "
-    f"the unreadable arm={'Failing closed on purpose' in _rs_dead[1]}. `main` "
-    "is where the report is assembled, so a constant that no report carries "
-    "is a promise the docstring makes alone",
-)
-# The classification the ratchet demands of any new tracked file: not
-# selectable (it needs the Checks API), not INERT (this script imports it).
-R.check(
-    "the disposition reporter is classified: NOT_A_TEST, and not on INERT",
-    "record_status.py" in _closure.NOT_A_TEST
-    and not _closure.is_inert("tests/record_status.py"),
+    "the ledger script is classified: NOT_A_TEST, and not on INERT",
+    "delivery_status.py" in _closure.NOT_A_TEST
+    and not _closure.is_inert("tests/delivery_status.py"),
     "a file that is neither in a closure nor on a list forces the FULL suite",
 )
 

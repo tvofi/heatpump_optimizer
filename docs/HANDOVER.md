@@ -1,6 +1,6 @@
 # Handover — the open-issues programme
 
-updated-for: 6be60558981123389d6aa484d144c51cd3e3e145
+updated-for: c247770fd9ba36e41ce660738d5bead74ca678d3
 
 The rule that governs this file is `.claude/rules/writing-for-agents.md`, which
 the harness loads on this very path. Delivery status is
@@ -49,21 +49,21 @@ the harness loads on this very path. Delivery status is
 - **`main` is guarded, and this is the first thing about the merge boundary
   that is enforced rather than asserted.** Ruleset **`main-protect`, id
   `22628467`**, active on the default branch: deletion, non-fast-forward
-  and **18 required status checks**. GitHub refuses the merge rather than a
+  and the required checks its endpoint returns, never a count from here.
+  GitHub refuses the merge rather than a
   policy asking you not to. **It is not absolute, and do not read it as one**:
   the ruleset carries an admin-role bypass with `always` mode so
   `tools/release/stamp.py`'s direct push to `main` still lands, this session's
   identity reports `admin: true`, and a two-armed probe confirmed the bypass
   applies to it. That bypass and the rollback below are the owner's levers, not
   a seat's, and a seat that reads the boundary as unbypassable will misdiagnose
-  the next release stamp. Deliberately absent: any required-approval or code-owner rule,
-  because one identity authors and approves here, so such a rule locks the
-  repository rather than protecting it (ADR 0005). One DELETE to
-  `/repos/<owner>/<repo>/rulesets/22628467` reverses the whole thing.
+  the next release stamp. Deliberately absent: any required-approval or
+  code-owner rule (ADR 0005). One DELETE to that ruleset reverses it all.
   **Before adding a required context**, confirm it reports on a *pull-request
   head*, not merely on a push to `main`: the two shapes differ, `CodeQL`
   reports on one and not the other, and a context that never reports blocks
-  every merge permanently. A `skipped` or `neutral` required check satisfies
+  every merge permanently — **in either direction**, as retiring `fast`'s 3.13
+  leg proved: a matrix change is a required-set change. A `skipped` or `neutral` required check satisfies
   the rule; that was measured on an isolated probe, both arms. A **scheduled**
   context is the other half of the same trap: make a nightly required and one
   failing night blocks every merge, the merge that repairs the nightly included.
@@ -198,6 +198,9 @@ in its own pull request.
 10. **A closing keyword in a commit message links an issue just as a pull-request
     body does.** #503 acquired a false link to #457 that way and had to be
     corrected before it could merge.
+11. **A shallow checkout fails a driver on the clone, not the tree.** Graduated:
+    `entities.py` refuses a history-reading driver at depth 1 (#901).
+
 11. **A shallow clone turns "commits ahead" into fiction**; four such figures
     once reached a handover. Graduated: `.claude/hooks/session-start.sh`.
 12. **A fix gets verified against the instance that was demonstrated, not the

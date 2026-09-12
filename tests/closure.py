@@ -93,14 +93,17 @@ NOT_A_TEST = {
     # is NOT_A_TEST and is NOT inert: `tests/entities.py` imports it and drives
     # its four states, so a change to how it classifies selects a script.
     "nightly_status.py",
-    # The disposition gate's reporter (#678, CM-2 of the #541 root cause):
-    # its own `record-status` job runs it on every pull request. Same shape as
-    # `nightly_status.py` above -- it needs the GitHub Checks API, which this
-    # suite has neither the network nor the token for, and its verdict is about
-    # `main`'s CI history rather than about this tree. NOT_A_TEST and NOT inert:
-    # `tests/entities.py` imports it and drives its states, so a change to how
-    # it classifies selects a script.
-    "record_status.py",
+    # The delivery ledger, which replaced `record_status.py` and its
+    # `record-status` job: that check reported main's `record` CONCLUSION, which
+    # was `failure` on 28 of main's last 40 commits because it asked whether
+    # every merge has a row RIGHT NOW while the protocol promises one SOON, in
+    # a batch. Its own `delivery-status` job runs this on every pull request; it
+    # walks `<last tag>..origin/main`, which this suite has neither the remote
+    # nor a reason to fetch, and its verdict is about the record rather than
+    # about this tree. NOT_A_TEST and NOT inert: `tests/entities.py` imports it
+    # and drives both sides of its threshold, so a change to how it classifies
+    # selects a script.
+    "delivery_status.py",
     # The two instruments beside the gate rather than in it (#195). Each has
     # its own CI job, which is never scoped and runs on every pull request
     # regardless of what this gate selects -- the `card_browser.mjs` argument,
@@ -217,6 +220,12 @@ INERT = (
     # README.md and RELEASE_NOTES.md above, which entities.py checks against the
     # code and which are therefore dependencies rather than inert.
     "CLAUDE.md",
+    # The harness-neutral twin of the entry above: ZCode and Codex auto-load a
+    # root AGENTS.md instead of CLAUDE.md. It defers to CLAUDE.md and states no
+    # policy of its own, and nothing under tests/ reads it either. It is still
+    # measured policy -- POLICY_GLOBS matches it and policy_budgets.json caps
+    # it -- only this gate has no dependency on it.
+    "AGENTS.md",
     "DISCLAIMER.md",
     # The quality-scale register (#229): a truthful rule-by-rule record in
     # home-assistant/core's own schema. No gate script reads it (hassfest

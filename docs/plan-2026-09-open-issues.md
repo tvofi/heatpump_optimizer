@@ -285,6 +285,22 @@ and is not forced into that table beyond the summary row above.
 
 #510, #511, #513 and #518 are closed by the fixes above, not by wave work.
 
+### Audit round 4 and the nightly lane — 2026-09-12 (not a wave)
+
+The thirteen-dimension audit's fourth round and the two repairs it forced on
+the way. Round 4 is the first at thirteen dimensions: `7dd68dd` added D12.
+Its evidence is `tools/audit/round4/`; `RESUME.md` there is the durable state,
+and #201 carries the volatile half and points at it.
+
+| PR | what | issue | state |
+|---|---|---|---|
+| #900 | Round 4's finder evidence for all thirteen dimensions, plus the rule that **a defect in an instrument is a finding** — of the dimension that met it, under the same evidence bar, travelling panel → judge → issue, with filing waiting for the judge because the seat that finds one is using the instrument it accuses. Owner-approved. Also repairs `prepare_baseline.sh`, which deleted a file `tests/entities.py` reads unguarded (the export ran **0 of 1360** entity checks) and carried 116 round-3 files including 43 findings with their verdicts into every finder tree | — | merged `c68259b`, **unstamped** |
+| #901 | A red `nightly-status` could not be cleared by fixing the nightly: only a `schedule` run counted and the cron is daily. A concluded `workflow_dispatch` run **on the default branch** now counts, guarded by `REQUIRED_LANES` and a default-branch check, with `push` and `pull_request` still refused. And the cause of the red: `mutation-nightly` checked out at depth 1, so `tests/entities.py` could not answer `merge-base --is-ancestor` for the handover's `updated-for:`, failed at the **baseline**, and `mutation_table.py` refused having evaluated no mutant. `defect-root-cause.md` gains the obligation; `entities.py` gains the property check | — | merged `c247770`, **unstamped** |
+
+Neither carries a closing keyword: no tracked issue covers them. Round 4's
+findings are **reported, not established** — no panel, no judge, no issue — so
+nothing in `docs/audit-2026-09.md` claims them yet.
+
 **Every other open issue, with its disposition.** "Not mentioned" is not a
 disposition, so each open issue is scheduled, deferred with a reason, or
 refused with a reason — and the PR carrying it is named where one exists.
@@ -631,10 +647,41 @@ Both lanes appended their disposition rows to the end of one list, so every
 merge on `main` conflicted the other lane's open branch at that seam: this pull
 request was rebased five times for it and #639 three, each rebase costing a
 fresh review round at a head whose code had not changed. The rows above stay
-where they are; **from here this lane appends below and every other lane appends
-there**, so the two insertion points are never adjacent and neither lane waits
-on the other. No pull-request number is named as the boundary: one was drafted
-into this sentence and taken by another lane four minutes later. **What reads this row, stated as it is
+where they are; this section was opened by **#644** (`3a29035`) so **that lane appends below
+and every other lane appends there**, putting the two insertion points far enough apart
+that git does not conflict on them: the distance between the last row of each
+list was 119 lines at `main` `b8731c3` and 128 at `30b8a88`, two merges and
+nine rows later.
+It is a gap between two ends that both grow, so re-derive it rather than
+carrying it. No pull-request number is named
+as the boundary: one was drafted into this sentence and taken by another lane
+four minutes later.
+
+**That separation never happened, and the sentence above is kept only as the
+statement of what was tried.** Measured on 2026-09-11: **every row numbered
+above the upper list's highest (#767) is in this section** — 39 of 39 at `main`
+`b8731c3` and 48 of 48 two merges later at `30b8a88`, so the count churns and
+the ratio does not —
+and the seam conflicted one lane's branches **thirteen times in a night, never
+once about content** — every resolution the same union with `main`'s rows first, and
+`main`'s numbers lost `[]` every time. Derivation, and its limit: it was taken per
+branch, by running `git merge-tree --write-tree` on each rebase's two ends and
+counting the runs exiting non-zero that name this document. **A later reader
+cannot re-run it** — `main` squash-merges and every one of those branches was
+deleted on merge, so nothing two-parent survives to measure. Two independent
+counts agreed at thirteen while disagreeing on which branch owned which
+conflict; only the total is stated here. The geometry was right and the adoption
+was zero, because nothing routes a row anywhere and this paragraph is the only
+thing that asks.
+
+**So do not read the two insertion points as a mechanism.** There is no
+mechanical notion of a lane here to enforce one with — branch prefixes name
+sessions, not lanes, and one session uses several. **Append wherever the
+document reads best and expect to resolve the seam by hand**, per row against
+your merge base, `main`'s rows first, verified position-by-position as an
+ordered list of `(number, sha256(row))`: a byte-identical row that merely
+*moved* passes a comparison over row text, and that near-miss has happened
+here. **What reads this row, stated as it is
 today and not as it will be:** `checkRecord` tests `#<pr>` against the whole
 text of both disposition documents, so a row is read wherever it sits in either
 of them — driven by moving #648's row clean out of `## Delivery status` into
@@ -760,6 +807,10 @@ inside it rather than after it.
 - [#895](https://github.com/tvofi/heatpump_optimizer/pull/895) — **merged `ce09947`, row written after the merge**: nest the A8 payload in `tests/nightly_ha.py` after #849 sectioned user_sensors; flatten a sectioned submit in production so the unique-id abort still sees the plant; re-point `updated-for` at the #885 squash `6be6055`. `node .claude/workflows/policy_lint.mjs --record --since v6.4.2` at `origin/main` `c2ce1d0` named this pull request. #885 and #889 already carry their own rows. Not #856. Not #896. leaves #195 open. leaves #201 open.
 - [#897](https://github.com/tvofi/heatpump_optimizer/pull/897) — **row written before the merge, and it is this pull request**: leftover-row for #895 `ce09947`. Same `--record` run named #895. Not #856. Not #896. leaves #195 open. leaves #201 open.
 - [#898](https://github.com/tvofi/heatpump_optimizer/pull/898) — **row written before the merge, and it is this pull request**: **D12, a thirteenth audit dimension: generalization** — **policy, standing leftover grant on #201 comment 5640786330**: a dimension brief, `tools/audit/briefs/D12.md`, in the owner's words — the integration should be possible to use with a wide range of setups and heat pumps. An audit lens on the plant the tree already exposes, not a product request. Threaded through every site that enumerates dimensions: the `CLAUDE.md` table, the toolkit README, `finding.schema.json`, the dispatcher's lists (D12 in the export, not isolated), `prepare_baseline.sh`, and the budgets. `corpus_tokens` raised to what `--budgets` prints; the floor and role caps were not. Not #856. Not #895. leaves #201 open.
+- [#856](https://github.com/tvofi/heatpump_optimizer/pull/856) — **row written before the merge**, and it is this pull request: two residuals from merged work, measured before being touched and **corrected three times under review**: the attribution, the count, and a stated derivation that could not be re-run. **The governance-queue split is #644's** (`3a29035`), not #723's — an earlier form of this row, of the paragraph it describes and of this pull request's title all named the wrong number; #723 added one line to this document, its own row. The split is **geometrically sound and unadopted**: the two insertion points are over a hundred lines apart at every commit measured, and every row numbered above the upper list's highest sits in the queue — 39 of 39 at `b8731c3`, 48 of 48 at `30b8a88`. The paragraph now carries that and says not to read the two points as a mechanism. **#818's wiring pin is improved and still defeatable**, five ways a reviewer drove; the body states exactly what it catches rather than claiming soundness. Not policy: this document is `CORPUS_EXCLUDED` and the other change is an acceptance check. leaves #201 open.
+- [#903](https://github.com/tvofi/heatpump_optimizer/pull/903) — **merged `0f2a6e0`, row written before the merge**: the harness-neutral entry point — a root `AGENTS.md`, deferring to `CLAUDE.md` and stating no policy of its own — measured into the corpus: a `POLICY_GLOBS` pattern, a line cap, `INERT` in `tests/closure.py` (nothing under `tests/` reads it), and a naming sentence in `CLAUDE.md`. **Policy, the owner's instruction in the session that opened the branch, given before the push**: `corpus_tokens`, `always_loaded_tokens` and the fixer and policy role caps re-recorded at what `--budgets` prints, zero headroom; the floor model is unchanged — it charges the Claude harness's entry file, and `AGENTS.md` rides the corpus, so no seat is charged twice for orientation. #901 and #902 merged beneath the branch while it was open and both are absorbed: the role-cap re-measure after #901's six-token rule growth, and #902's `ratchet-budgets.md` addition with its per-file cap preserved from `main`'s record, `corpus_tokens` 61378 at the merged head. The branch printed `MODE: FULL` — `tests/closure.py` is a gate file — and the full suite ran green on the pull request. Not #900. Not #856. leaves #201 open.
+- [#902](https://github.com/tvofi/heatpump_optimizer/pull/902) — **merged `ac5f649`, row written after the merge, and not by this leftover-row**: the raise rule said plainly. `ratchet-budgets.md` refused "raising one to make a change fit" while naming no owner-permission path and mis-citing `CLAUDE.md` rule 2, which permits a raise on the owner's explicit confirmation before the push; as written it refused the legitimate case, because "to make a change fit" describes every improvement there will ever be. Raising is now the last resort, on that confirmation, only to the measured value, with three refusals kept — a quiet raise, a raise instead of a cut the seat could have made, and a raise asked for after the push. Demonstrated on itself: four payments inside the file before any raise, then `ratchet-budgets.md` 62 → 82 and `corpus_tokens` 60800 → 61124, both approved before the push, which is what the rule now requires of everyone. Also carries #901's owed report fix — `nightly_status.py` called an hour-old dispatch "the scheduled run" that "failed last night"; `run_kind()` derives it from the run now, and `tests/entities.py` passing is the null control. leaves #201 open.
+- [#904](https://github.com/tvofi/heatpump_optimizer/pull/904) — **merged `a5f262b`, row written after the merge, and not by this leftover-row**: round 4's quiet-window record, which existed in one directory outside git until this merge — every provisional number re-taken on an exclusive box, D9-06's gate injection executed and confirmed worse than reported (a 2x allocation into `winter/pv` moved RSS 2.03x while the gate printed every memory check green — the "check that cannot fail" shape `defect-root-cause.md` names), and D3's six survivors put through the full gate, which killed two. The record is `tools/audit/round4/quiet-window.md`; the diff is INERT evidence only. leaves #201 open.
 
 ### The UX programme — 34 items, five lanes, tracking #558
 

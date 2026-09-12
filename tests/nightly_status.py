@@ -156,6 +156,25 @@ OK_CONCLUSIONS = frozenset({"success", "skipped", "neutral"})
 # there rather than watched by nobody.
 REQUIRED_LANES = ("mutation-nightly", "nightly-ha", "slow")
 
+# The events a run may carry and still be read as a nightly, and the branch it
+# must be on. `schedule` is the nightly proper. `workflow_dispatch` is the
+# VERIFICATION a red report now obliges: without it a seat who fixes the nightly
+# has no way to prove it before the next cron, so the check stays red on every
+# pull request for up to a day and teaches the blindness this file exists to
+# remove -- the failure mode it already names for a warning inside a green job.
+#
+# Widening the event set does NOT widen what counts, because the guard that
+# actually stops a green pull-request run being read as a nightly is
+# `REQUIRED_LANES`, not the event: a `pull_request` run SKIPS all three lanes,
+# so it is MISSING and therefore red. The event filter is the second lock, and
+# it stays shut on `push` and `pull_request`.
+#
+# A dispatch is only a verification of THIS repository's nightly when it ran on
+# the default branch. Dispatches on a feature branch already exist in this
+# repository's history, and one of them passing says nothing about `main`.
+VERIFYING_EVENTS = frozenset({"schedule", "workflow_dispatch"})
+DEFAULT_BRANCH = "main"
+
 FAILED = "FAILED"
 PASSED = "PASSED"
 RUNNING = "RUNNING"
@@ -174,6 +193,24 @@ NOT_REQUIRED = (
     "here does not block a merge. The nightly lanes can fail for reasons "
     "outside this repository (a registry outage, a Home Assistant release), "
     "which is why they are unrequired and why this must stay unrequired too."
+)
+
+# Printed only when red, and it is the half that was missing. Not blocking a
+# merge is not the same as being nobody's job: before this, a seat who FIXED the
+# nightly had no way to say so, because only a `schedule` run counted and the
+# cron is daily. So the red rode along on every pull request until the next
+# night, which is precisely how a check teaches people to ignore it -- the
+# failure this file was written to remove, reappearing one level up.
+OWED_WHEN_RED = (
+    "A red here is owed a fix and a PROOF, not an explanation. Fix the lane, "
+    "then verify it on the default branch:",
+    "    gh workflow run tests.yml --ref main",
+    "and name that run id under `## Red checks` in your pull-request body. A "
+    "concluded dispatch on the default branch is read as the nightly here, so "
+    "the check goes green on the fix rather than on the next cron.",
+    "If the cause is outside this repository, that is a legitimate answer and "
+    "it is recorded the same way: name the cause and who owns it, in the body. "
+    "What is refused is a red nobody answered.",
 )
 
 
@@ -210,7 +247,21 @@ def nights_ago(when: dt.datetime, now: dt.datetime) -> int:
     return max(0, int((now - when).total_seconds() // 86400))
 
 
-def phrase_age(nights: int) -> str:
+def run_kind(run: dict | None) -> str:
+    """`scheduled` or `dispatched`.
+
+    The report used to call every run it read `scheduled`, which was true while
+    only `schedule` runs counted. A verification dispatch read as "the scheduled
+    run failed last night" misdescribes its own evidence by a day and by a
+    trigger, to the reader the red is addressed to.
+    """
+    return "dispatched" if (run or {}).get("event") == "workflow_dispatch" else "scheduled"
+
+
+def phrase_age(nights: int, kind: str = "scheduled") -> str:
+    if kind == "dispatched":
+        return "in the last verification dispatch" if nights == 0 else (
+            f"in a verification dispatch {nights} night(s) ago")
     if nights == 0:
         return "last night"
     if nights == 1:
@@ -288,8 +339,9 @@ def verdict(
 
     started = parse_ts(concluded.get("created_at"))
     nights = nights_ago(started, now)
+    kind = run_kind(concluded)
     where = [
-        f"  scheduled run {concluded['id']}, {started.isoformat()}, "
+        f"  {kind} run {concluded['id']}, {started.isoformat()}, "
         f"head {str(concluded.get('head_sha', ''))[:7]}, "
         f"run conclusion {concluded.get('conclusion')!r}",
         f"  {concluded.get('html_url', '')}",
@@ -303,7 +355,7 @@ def verdict(
     if nights > max_age_nights:
         return ABSENT, EXIT_RED, [
             f"NIGHTLY {ABSENT}: the newest CONCLUDED scheduled run is "
-            f"{phrase_age(nights)}, older than the {max_age_nights}-night "
+            f"{phrase_age(nights, kind)}, older than the {max_age_nights}-night "
             "window. The cron is daily, so nights are being missed.",
             *where,
             "  Reported as absent rather than by its conclusion: a result this "
@@ -335,15 +387,15 @@ def verdict(
     if bad or run_failed:
         if bad:
             names = ", ".join(sorted(j.get("name", "?") for j in bad))
-            headline = f"NIGHTLY {FAILED}: {names} failed {phrase_age(nights)}."
+            headline = f"NIGHTLY {FAILED}: {names} failed {phrase_age(nights, kind)}."
         else:
             # "The nightly failed" trains blindness, so when the job list is
             # clean the report has to say what the evidence actually is --
             # otherwise a reader opens the run, sees every job green, and
             # concludes the check is broken.
             headline = (
-                f"NIGHTLY {FAILED}: the scheduled run itself concluded "
-                f"{run_conclusion!r} {phrase_age(nights)}, and no job of it "
+                f"NIGHTLY {FAILED}: the {kind} run itself concluded "
+                f"{run_conclusion!r} {phrase_age(nights, kind)}, and no job of it "
                 "reported a failure."
             )
         detail = ["  failing jobs:", *[
@@ -364,7 +416,7 @@ def verdict(
     if gone:
         return ABSENT, EXIT_RED, [
             f"NIGHTLY {ABSENT}: nothing failed, but {', '.join(gone)} did not "
-            f"run in that scheduled run ({phrase_age(nights)}).",
+            f"run in that {kind} run ({phrase_age(nights, kind)}).",
             *where,
             "  A lane that was skipped or renamed away reported nothing, and "
             "nothing is not a pass. Green here would mean this check had "
@@ -373,7 +425,7 @@ def verdict(
 
     return PASSED, EXIT_GREEN, [
         f"NIGHTLY {PASSED}: every job of the scheduled run below succeeded or "
-        f"was skipped, {phrase_age(nights)}.",
+        f"was skipped, {phrase_age(nights, kind)}.",
         *where,
         f"  {len(jobs)} job(s) in that run, "
         f"{sum(1 for j in jobs if j.get('conclusion') == 'success')} succeeded, "
@@ -438,24 +490,42 @@ def _jobs(repo: str, run_id: int, token: str | None) -> list[dict]:
 
 
 def collect(repo: str, workflow: str, token: str | None,
-            run_id: int | None) -> tuple[dict | None, dict | None, list[dict]]:
-    """Fetch what `verdict` classifies. Two GETs on the discovery path."""
+            run_id: int | None,
+            default_branch: str = DEFAULT_BRANCH,
+            ) -> tuple[dict | None, dict | None, list[dict]]:
+    """Fetch what `verdict` classifies. Three GETs on the discovery path."""
     if run_id is not None:
         run = _get(f"{API}/repos/{repo}/actions/runs/{run_id}", token)
-        if run.get("event") != "schedule":
+        if run.get("event") not in VERIFYING_EVENTS:
             raise Unreadable(
                 f"run {run_id} was triggered by {run.get('event')!r}, not "
-                "'schedule'; this reports on the nightly and refuses to call "
-                "any other run one"
+                f"one of {sorted(VERIFYING_EVENTS)}; this reports on the "
+                "nightly and refuses to call any other run one"
+            )
+        if (run.get("event") == "workflow_dispatch"
+                and run.get("head_branch") != default_branch):
+            raise Unreadable(
+                f"run {run_id} was dispatched on {run.get('head_branch')!r}, "
+                f"not {default_branch!r}; a dispatch verifies the nightly only "
+                "on the default branch"
             )
         concluded, in_flight = pick_runs([run])
     else:
-        payload = _get(
-            f"{API}/repos/{repo}/actions/workflows/{workflow}/runs"
-            "?event=schedule&per_page=10", token)
-        runs = payload.get("workflow_runs")
-        if not isinstance(runs, list):
-            raise Unreadable("the runs listing carried no 'workflow_runs' array")
+        runs = []
+        for event in sorted(VERIFYING_EVENTS):
+            payload = _get(
+                f"{API}/repos/{repo}/actions/workflows/{workflow}/runs"
+                f"?event={event}&per_page=10", token)
+            found = payload.get("workflow_runs")
+            if not isinstance(found, list):
+                raise Unreadable(
+                    f"the {event} runs listing carried no 'workflow_runs' array")
+            # A dispatch on a feature branch is somebody testing their own
+            # branch, not a statement about the nightly. Dropped here rather
+            # than in pick_runs so the age window still sees every candidate.
+            runs += [r for r in found
+                     if r.get("event") != "workflow_dispatch"
+                     or r.get("head_branch") == default_branch]
         concluded, in_flight = pick_runs(runs)
     jobs = _jobs(repo, concluded["id"], token) if concluded else []
     return concluded, in_flight, jobs
@@ -471,12 +541,16 @@ def main(argv: list[str] | None = None) -> int:
                          "the last one (operator affordance; the workflow "
                          "passes it never)")
     ap.add_argument("--max-age-nights", type=int, default=MAX_AGE_NIGHTS)
+    ap.add_argument("--default-branch", default=DEFAULT_BRANCH,
+                    help="the branch a workflow_dispatch must have run on "
+                         "before it counts as verifying the nightly")
     args = ap.parse_args(argv)
 
     now = dt.datetime.now(dt.timezone.utc)
     try:
         concluded, in_flight, jobs = collect(
-            args.repo, args.workflow, os.environ.get("GITHUB_TOKEN"), args.run)
+            args.repo, args.workflow, os.environ.get("GITHUB_TOKEN"), args.run,
+            args.default_branch)
         state, code, lines = verdict(
             concluded, in_flight, jobs, now, args.max_age_nights)
     except Unreadable as exc:
@@ -488,7 +562,11 @@ def main(argv: list[str] | None = None) -> int:
             "could not look converts an open defect into a closed one.",
         ]
 
-    report = "\n".join([*lines, "", NOT_REQUIRED])
+    # The obligation prints only on a red, where it is actionable. On a green
+    # run it would be noise, and noise beside a pass is the shape this file
+    # argues against.
+    owed = ["", *OWED_WHEN_RED] if code != 0 else []
+    report = "\n".join([*lines, "", NOT_REQUIRED, *owed])
     print(report)
     summary = os.environ.get("GITHUB_STEP_SUMMARY")
     if summary:
