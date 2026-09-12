@@ -1,5 +1,37 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.4.2
+
+Product, the audit instrument, coverage, and leftover record since v6.4.1.
+
+### Product
+
+- The device page Configuration URL and the repair-notice documentation links point at the docs (#891, #558).
+- Consecutive in-process solve fallbacks on the same Home Assistant instance are capped (#888, #783).
+- The compressor frequency map is not folded while reverse-cycle cooling is the freeze reason, or while the power pin is stale (#887, #781).
+- A reload handover older than one update interval expires, and a still-fresh handover recomputes its age when republished (#880, #886, #774).
+- The coordinator is constructed with the config entry (#871, #830).
+- L-BFGS-B is restarted once from its own returned point (#875, #826).
+- The wood-burn advisor is Unavailable or none, not Unknown (#878, #796).
+- The six English entity display names are Title Case (#872, #797).
+
+### Coverage and audit
+
+- House-heat-loss persist is pinned on the tenth sample (#890, #805); two optimizer surviving guards (#883) and four non-coordinator surviving guards (#877).
+- W5-G7 tranche 5 covers the five lifecycle methods (#867).
+- The audit instrument's fourteen defects, plus a header check on the EXECUTE scripts (#893, #817).
+
+### Governance
+
+- Quality-scale strict-typing is recorded done; a `py.typed` marker is not owed (#876, #829).
+- The handover cap is raised on the owner's grant (#870).
+- `issue_read` and `merge_pull_request` no longer share a grant (#869, #802).
+- `record` is dropped from the main-protect required contexts (#799).
+
+### Record
+
+Leftover rows for the merges above: #868 (#860), #873, #874, #879, #881, #892, #894.
+
 ## v6.4.1
 
 Product, docs, coverage, and governance since v6.4.0.
