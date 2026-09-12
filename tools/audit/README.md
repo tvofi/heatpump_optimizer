@@ -17,12 +17,7 @@ seat; this file does not repeat that list. The rest of the layout:
 ```
 tools/audit/
   finding.schema.json       what a finder must return; a finding without evidence cannot be returned
-  briefs/COMMON.md          the contract every finder works under (read first)
-  briefs/D0.md … D12.md     one dimension each: method, what to reuse, what has fooled people before
-  briefs/verifier.md        the adversarial panel's contract
-  briefs/judge.md           the judge's contract: re-measure, void, classify
-  briefs/fixer.md           the fix protocol as a checklist
-  briefs/fix-review.md      the adversarial fix reviewer's contract
+  briefs/                   every contract and dimension brief, tabled in CLAUDE.md; COMMON.md first
   harnesses/README.md       the instruments kept live, and where rounds 1-3 went
   preflight.sh              executed by tests/entities.py, so it is not INERT
 tools/release/stamp.py      the only way a version is assigned
@@ -43,9 +38,10 @@ without reading the finding, so it has to carry everything:
 - Its first lines, before any numpy import, copy `tests/stress.py`'s thread
   pin — `os.environ.setdefault` for `OMP_NUM_THREADS`, `OPENBLAS_NUM_THREADS`,
   `MKL_NUM_THREADS`, `NUMEXPR_NUM_THREADS`, `VECLIB_MAXIMUM_THREADS`, all `"1"`.
-  A threaded BLAS inflates `time.process_time()` by the thread factor
-  (measured 3.33× on this box) and the ratio does not cancel unless both sides
-  are pinned alike.
+  A threaded BLAS inflates `time.process_time()` by the thread factor and the
+  ratio does not cancel unless both sides are pinned alike. Print the factor;
+  the figure this line used to carry does not reproduce on numpy 2.4.6, where
+  `threadpool_info()` comes back empty.
 - It writes only under its own directory or a temp directory; it sets a
   private `HPO_PLANDATA` (under the temp root, `tests/plan_view.py` refuses
   anything else) before invoking any Node harness; if it uses `env_drift.py`
@@ -169,6 +165,26 @@ had the lock and still did not have the box.
   Say which kind each number is; do not discard sound ratios along with
   contaminated absolutes.
 
+## A defect in an instrument is a finding
+
+The audit measures the integration with instruments that are themselves code:
+`tests/hastub`, the gate's checks and budgets, the harness contract, the lint
+lanes, this toolkit. A defect your dimension's method meets in one of those is a
+finding **of your dimension**, under the same bar as any other — executed number,
+instrumented symbol, perturbation, metric definition, control.
+
+It travels the ordinary route: panel, judge, then an issue. **Filing waits for
+the judge**, as a product finding does, and the reason is not symmetry: the seat
+that finds an instrument defect is using the instrument it accuses, and the judge
+re-measures with that same instrument. A verifier who cannot make the accused
+check fire has not refuted the finding; say which of the two you could not
+separate.
+
+`CLAUDE.md`'s order still governs — fix it, verify it independently if you
+cannot, file it only then — so a one-line instrument repair is made in place and
+needs no issue. What this refuses is the third outcome: recorded in a report,
+carried by nobody, met again next round.
+
 ## Running the fix wave
 
 One group at a time is `/audit-fix`, many groups at once (honoring
@@ -213,10 +229,6 @@ archived at `de668be`, and are runnable at `757e164`, which is where
 `audit-round2-evidence` points today. A name-only citation stops meaning
 anything the next time it moves.
 
-Which harnesses at that commit still run, which do not, and by which of three
-rot classes, is recorded in `round2/HARNESSES.md` at `d5d8c4a`. It is no longer
-on `main`, so read that file rather than this paragraph and take its results as
-final at that commit. One caveat it cannot carry: `D9/d9lib.py`'s marker-cut
-fragility has already stopped and started reproducing once, coincidentally, as
-an unrelated file changed shape around it, so do not assume its recorded
-verdict against a current `main` tree without checking.
+Which harnesses at that commit still run, and by which of three rot classes, is
+recorded in `round2/HARNESSES.md` at `d5d8c4a`; its verdicts are final at that
+commit and not against a current `main` tree.

@@ -1,0 +1,17 @@
+RESULT specs_tested=6 count
+RESULT specs_rejected=6 count
+RESULT dotted_equivalents_ok=6 count
+RESULT first_spec_problem=invalid_grid_fee_rules
+RESULT error_key_is_invalid=1 bool
+RESULT unit_accepts_comma=1 bool
+RESULT unit_rate=0.45 SEK/kWh
+RESULT first_fragment_rate=0 SEK/kWh
+Invalid grid fee rules (Rule '27' has no '= rate' part); pricing with no ToU fees
+RESULT schedule_rules_after_reject=0 count
+RESULT schedule_fee_after_reject=0 SEK/kWh
+RESULT perturbed.specs_rejected=0 count
+RESULT perturbed.schedule_fee_after_reject=0.27 SEK/kWh
+RESULT thread_factor=1.003841422 ratio
+RESULT load1=13.80908203 load
+RESULT concurrent_processes=2 count
+RESULT swapins=475554714 count
