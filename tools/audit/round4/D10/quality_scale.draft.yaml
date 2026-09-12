@@ -1,0 +1,205 @@
+# DRAFT quality_scale.yaml for custom_components/heatpump_optimizer, produced
+# by executing one check per rule against baseline
+# 7dd68dd327fe3dbfb09f3bd0fe38910c58877697 (audit round 4, dimension D10).
+#
+# Every status below is the verdict of
+#     PYTHONPATH=tests/hastub \
+#     D10_COVERAGE_JSON=<out>/coverage.json \
+#     D10_MYPY_JSON=/private/tmp/hpo-d10-mypy/census.json \
+#     python3 tools/audit/round4/D10/qs_rules.py
+# and NOT a copy of the shipped file. Four rows differ from the shipped file;
+# each difference is marked `CHANGED:` with the executed number that decided it.
+#
+# Rule set fetched 2026-09-12 from
+# https://developers.home-assistant.io/docs/core/integration-quality-scale/checklist
+# (20 Bronze + 10 Silver + 21 Gold + 3 Platinum = 54 rules).
+#
+# Totals of this draft: 47 done · 4 exempt · 3 todo (the shipped file: 48 / 4 / 2).
+# Derived, not carried:
+#   python3 -c "import yaml,collections;r=yaml.safe_load(open('<this file>'))['rules'];\
+#   print(collections.Counter(v if isinstance(v,str) else v['status'] for v in r.values()))"
+rules:
+  # Bronze — 20 rules: 19 done, 1 todo
+  action-setup: done
+  appropriate-polling: done
+  brands:
+    status: done
+    comment: >-
+      adapted check for a custom integration — brand assets shipped in-repo
+      (brand/icon.png, brand/logo.png); home-assistant/brands takes core
+      integrations only.
+  common-modules: done
+  config-flow:
+    status: done
+    comment: >-
+      270 input fields across 36 config/options steps; 0 of them lack a
+      data_description entry in strings.json.
+  config-flow-test-coverage:
+    status: todo
+    comment: >-
+      CHANGED (was `done`, "100% statement coverage (661 statements, 0
+      missed)"). Executed at this baseline: config_flow.py is 756 statements
+      with 21 missed, 97.2%, over the whole default gate — a superset of the
+      five scripts the shipped comment names. The 21 are ordinary validation
+      and exception branches (options-flow grid/hot-water steps, the
+      stored-value comparison helpers), not statements only
+      tests/deployment_shape.py could reach: that script imports `coordinator`
+      alone and names `config_flow` nowhere.
+  dependency-transparency:
+    status: done
+    comment: >-
+      numpy, scipy, threadpoolctl — OSI-licensed, on PyPI, built and published
+      from public CI, each PyPI version a tagged release. Declared with `>=`
+      rather than `==`; the rule text requires a tagged release, not an exact
+      pin.
+  docs-actions: done
+  docs-triggers:
+    status: done
+    comment: vacuous — 0 trigger definitions in the package
+  docs-conditions:
+    status: done
+    comment: vacuous — 0 condition definitions in the package
+  docs-high-level-description: done
+  docs-installation-instructions: done
+  docs-removal-instructions: done
+  entity-event-setup:
+    status: done
+    comment: >-
+      vacuous for the entity lifecycle — 0 of the entity classes in the six
+      platform modules subscribe to events; the 4 package-wide subscriptions
+      are the coordinator's and are released through entry.async_on_unload.
+  entity-unique-id: done
+  has-entity-name: done
+  runtime-data:
+    status: done
+    comment: >-
+      The storage half is met (1 write, 11 reads, all through
+      entry.runtime_data). The typed-entry half is met only in
+      coordinator.py, which defines
+      `HeatPumpOptimizerConfigEntry = ConfigEntry[HeatPumpOptimizerCoordinator]`
+      and is what the six platform modules and services.py import. __init__.py
+      re-binds the same NAME to a bare `ConfigEntry`, so `entry.runtime_data`
+      reveals `Any` in async_setup_entry, async_update_options and
+      async_unload_entry. See D10-r4-03; recorded here as `done` because the
+      rule's own subject — storing runtime data on the entry — is satisfied.
+  test-before-configure: done
+  test-before-setup: done
+  unique-config-entry: done
+
+  # Silver — 10 rules: 10 done
+  action-exceptions:
+    status: done
+    comment: >-
+      14 ServiceValidationError raise sites in services.py (incorrect usage),
+      6 HomeAssistantError sites (failures in the action itself).
+  config-entry-unloading: done
+  docs-configuration-parameters: done
+  docs-installation-parameters: done
+  entity-unavailable: done
+  integration-owner: done
+  log-when-unavailable:
+    status: done
+    comment: >-
+      CHANGED COMMENT (the shipped comment says "one ERROR per failed poll",
+      which is what the rule forbids). The code latches: the first failed
+      fetch logs ERROR, every later one DEBUG, and recovery logs the outage's
+      length at INFO — `_tibber_fetch_failed` / `_tibber_fetch_recovered` and
+      the weather pair beside them.
+  parallel-updates:
+    status: done
+    comment: >-
+      set in 6 of 6 platform modules — sensor 0, binary_sensor 0, button 1,
+      climate 1, switch 1, datetime 1.
+  reauthentication-flow: done
+  test-coverage:
+    status: done
+    comment: >-
+      CHANGED (was `todo`, tracked as issue #195). Executed at this baseline:
+      97.2% package statement coverage (14945 of 15381), 0 of 56 modules below
+      the rule's 95% bar, lowest module battery.py at 95.0% — measured over
+      the default-gate scripts with
+      tools/audit/w5-partition/coverage_tree.sh, the same instrument
+      tests/coverage_ratchet.py consumes. tests/coverage_budgets.json already
+      records the same figure; only this register was left behind.
+
+  # Gold — 21 rules: 15 done, 4 exempt, 2 todo
+  devices: done
+  diagnostics: done
+  discovery:
+    status: exempt
+    comment: cloud API (Tibber) plus user-picked HA entities; 0 discovery-step handlers
+  discovery-update-info:
+    status: exempt
+    comment: no network address is stored, so there is nothing to update
+  docs-data-update: done
+  docs-examples:
+    status: todo
+    comment: >-
+      0 blueprint links in README.md or docs/. The rule asks for blueprints in
+      the home-assistant.io blueprints folder or the blueprint exchange, linked
+      from the integration page, and says a documentation page is not a
+      substitute — so the 3 worked YAML automations in docs/automations.md do
+      not close it. (The shipped comment's "0 automation examples" half is
+      stale; the blueprint half is what keeps this `todo`.)
+  docs-known-limitations:
+    status: todo
+    comment: >-
+      CHANGED (was `done`). Executed: 0 headings matching "known limitation"
+      and 0 occurrences of the word "limitation" across README.md and the six
+      user-facing documents under docs/. The rule asks for a "Known
+      limitations" section; the two incidental "caveat" paragraphs
+      (README.md:534, docs/how-it-works.md:1032) are mechanism notes buried in
+      other sections, not that section.
+  docs-supported-devices: done
+  docs-supported-functions: done
+  docs-troubleshooting: done
+  docs-use-cases: done
+  dynamic-devices:
+    status: exempt
+    comment: 0 device-registry create sites; one static device per config entry
+  entity-category: done
+  entity-device-class: done
+  entity-disabled-by-default: done
+  entity-translations: done
+  exception-translations:
+    status: done
+    comment: >-
+      21 strings.json exception entries, 21 translation_domain= sites and 21
+      `raise ServiceValidationError|HomeAssistantError` sites — the three
+      counts agree.
+  icon-translations:
+    status: done
+    comment: >-
+      69 entity icons in icons.json, 0 _attr_icon pins left. icons.json has no
+      `services` section; the rule page covers entity icons only.
+  reconfiguration-flow: done
+  repair-issues: done
+  stale-devices:
+    status: exempt
+    comment: >-
+      0 device removal sites; the single device's lifetime is the config
+      entry's, so Home Assistant removes it with the entry.
+
+  # Platinum — 3 rules: 3 done
+  async-dependency:
+    status: done
+    comment: >-
+      0 blocking HTTP call sites (no requests/urllib); aiohttp throughout. The
+      5 async_add_executor_job sites are the CPU-bound solve, not I/O.
+  inject-websession:
+    status: done
+    comment: 6 async_get_clientsession sites, 0 own aiohttp.ClientSession constructions
+  strict-typing:
+    status: done
+    comment: >-
+      mypy 2.3.1 --strict over the package reports 0 errors against real
+      homeassistant-stubs (2025.4.4, Python 3.13.1) — an independent
+      corroboration of tests/typing_budgets.json's recorded census, which was
+      taken with stubs 2026.2.3 on Python 3.13.15 and cannot be reproduced on
+      this box. The 542 errors mypy --strict reports with tests/hastub on
+      MYPYPATH are the stub's, not the integration's: 470 of them are LOCATED
+      inside the package but every sampled one is a call into, or an attribute
+      of, the unannotated fake (176 no-untyped-call, 121 attr-defined, 114
+      type-arg). Do not quote that number as an integration figure. py.typed
+      is not owed: the rule's PEP-561 half is about a published library, and
+      this integration publishes none.

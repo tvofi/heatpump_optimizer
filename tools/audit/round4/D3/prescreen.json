@@ -1,0 +1,89 @@
+{
+ "baseline": {
+  "tests/plan_view.py": {
+   "rc": 0,
+   "failed": 0,
+   "seconds": 0.9
+  },
+  "tests/card.mjs": {
+   "rc": 0,
+   "failed": 0,
+   "seconds": 6.8
+  },
+  "tests/config_flow_steps.py": {
+   "rc": 0,
+   "failed": 0,
+   "seconds": 0.7
+  },
+  "tests/deployment_shape.py": {
+   "rc": 0,
+   "failed": 0,
+   "seconds": 1.7
+  },
+  "tests/entities.py": {
+   "rc": 0,
+   "failed": 0,
+   "seconds": 29.3
+  },
+  "tests/features.py": {
+   "rc": 0,
+   "failed": 0,
+   "seconds": 89.8
+  },
+  "tests/golden.py": {
+   "rc": 0,
+   "failed": 0,
+   "seconds": 201.2
+  },
+  "tests/guard_pins.py": {
+   "rc": 0,
+   "failed": 0,
+   "seconds": 0.6
+  },
+  "tests/manual_plan.py": {
+   "rc": 0,
+   "failed": 0,
+   "seconds": 5.3
+  },
+  "tests/optimality.py": {
+   "rc": 0,
+   "failed": 0,
+   "seconds": 62.0
+  },
+  "tests/solar_alignment.py": {
+   "rc": 0,
+   "failed": 0,
+   "seconds": 1.1
+  },
+  "tests/structure.py": {
+   "rc": 0,
+   "failed": 0,
+   "seconds": 2.1
+  },
+  "tests/typing_ruler.py": {
+   "rc": 0,
+   "failed": 0,
+   "seconds": 0.2
+  },
+  "tests/validate.py": {
+   "rc": 0,
+   "failed": 0,
+   "seconds": 34.1
+  },
+  "tests/wood_advisor.py": {
+   "rc": 0,
+   "failed": 0,
+   "seconds": 0.9
+  },
+  "tests/env_drift.py --all": {
+   "rc": 0,
+   "failed": 0,
+   "seconds": 152.0
+  }
+ },
+ "mutants": {},
+ "load1": [
+  12.22
+ ],
+ "notes": []
+}
