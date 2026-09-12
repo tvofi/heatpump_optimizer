@@ -129,6 +129,17 @@ seat's JSON has not been received here.
    fix it; if you cannot, verify it independently; only then file it. Several of
    these are one-line fixes with the fix already named by the finder.
 
+- **`main` has moved under this branch, and that is correct for the finders but
+  not for the register.** The baseline is pinned at `7dd68dd` on purpose — every
+  number in this round is measured against it. But `main` is at `8a899cc`,
+  3 commit(s) ahead, and `prepr.sh`'s policy-corpus check reports policy files
+  it moved that this branch does not touch. Before the register step, merge
+  `origin/main` locally (the `claimnotes` driver runs only locally; GitHub flips
+  an open PR to `DIRTY` and its workflows then never fire) and re-read the policy
+  corpus, because the copy a seat here reads is not the current contract. Do
+  **not** re-measure the findings against the new tip: they are baseline numbers
+  and the register says so.
+
 ## Traps this round has already paid for
 
 - **Landing a finder's report trips `policy_lint`'s `named-docs`.** `COMMON.md`
