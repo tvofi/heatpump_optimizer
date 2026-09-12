@@ -1,0 +1,29 @@
+# baseline=7dd68dd  perturb=nolimits
+# procs_at_start=0 load1=4.47
+RESULT worker_thread_factor_pinned=0.999999
+RESULT worker_cpu_s_pinned_PROVISIONAL=1.95061 s
+RESULT worker_thread_cpu_s_pinned_PROVISIONAL=1.95061 s
+RESULT worker_wall_s_pinned_PROVISIONAL=2.00755 s
+RESULT worker_threadpoolctl_pinned=False
+RESULT worker_cpu_count_pinned=8 cores
+RESULT worker_env_pinned.OMP_NUM_THREADS=1
+RESULT worker_env_pinned.OPENBLAS_NUM_THREADS=1
+RESULT worker_env_pinned.MKL_NUM_THREADS=1
+RESULT worker_env_pinned.NUMEXPR_NUM_THREADS=1
+RESULT worker_env_pinned.VECLIB_MAXIMUM_THREADS=1
+RESULT worker_thread_factor_ha_like=0.999999
+RESULT worker_cpu_s_ha_like_PROVISIONAL=1.90921 s
+RESULT worker_thread_cpu_s_ha_like_PROVISIONAL=1.90922 s
+RESULT worker_wall_s_ha_like_PROVISIONAL=1.93483 s
+RESULT worker_threadpoolctl_ha_like=False
+RESULT worker_cpu_count_ha_like=8 cores
+RESULT worker_env_ha_like.OMP_NUM_THREADS=None
+RESULT worker_env_ha_like.OPENBLAS_NUM_THREADS=None
+RESULT worker_env_ha_like.MKL_NUM_THREADS=None
+RESULT worker_env_ha_like.NUMEXPR_NUM_THREADS=None
+RESULT worker_env_ha_like.VECLIB_MAXIMUM_THREADS=None
+RESULT cpu_ratio_ha_like_over_pinned=0.978776
+RESULT wall_ratio_ha_like_over_pinned_PROVISIONAL=0.963777
+RESULT load1=4.78369
+RESULT swapins=41653616
+RESULT concurrent_gate_procs=0
