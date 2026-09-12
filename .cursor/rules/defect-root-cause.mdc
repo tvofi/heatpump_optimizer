@@ -16,9 +16,8 @@ Either of:
 - the defect **turned a PR red on a check that a cheaper detector could have
   run.**
 
-The second trigger is a question, not a stopwatch. Most jobs here run for
-minutes, so elapsed time separates nothing; what separates is whether the same
-failure was reachable earlier and more cheaply than the gate that found it.
+The second trigger is a question, not a stopwatch: what separates is whether the
+same failure was reachable earlier and more cheaply than the gate that found it.
 
 Answer it by naming the cheaper detector and its standing cost, or by recording
 that none exists. A worked example of each:
@@ -26,10 +25,8 @@ that none exists. A worked example of each:
 - **Qualifies.** `closure.py no-copies` refused a test symbol that shared a name
   with a production symbol, after roughly fifteen minutes of CI. The same check
   runs locally in **under a second** and existed already — it was simply in no
-  local path. Cheaper detector: an edit-time hook. Countermeasure built. A cheaper
-  detector runs an existing check sooner; it does not repair the failure. That
-  distinction matters here: `no-copies` is on `ci-autofix.mdc`'s do-not-automate
-  list and stays there, and nothing in this rule licenses another autofix job.
+  local path. Cheaper detector: an edit-time hook. Countermeasure built. A cheaper detector runs an existing check
+  sooner; it does not repair the failure, and licenses no autofix job.
 - **Does not qualify.** A solver regression caught by the golden fixtures. The
   cheapest detector that would have caught it *is* the gate that caught it.
   Record the finding, build nothing.
@@ -128,14 +125,17 @@ cost, or the recorded finding that none exists. Both answers are legitimate —
 the worked examples above are one of each — so the cost of a check that does not
 qualify is one line, which is what keeps the obligation from being argued away.
 
-Naming the trigger is not performing the analysis. The analysis runs in its own
-seat (`tools/audit/briefs/root-cause.md`), never in the fixer's, for the same
-reason `fix-review.md` is not the fixer's. What the fixer owes is that the
-trigger is visible to someone other than the seat that tripped it.
-
 The reviewer reads the PR's checks rather than the body's account of them. A red
 check the body does not answer is
 **`blocked: root-cause trigger unanswered for <check>`**.
+
+**`nightly-status` is answered with a proof, not a sentence.** It reports a lane
+no pull request can run for itself, so an explanation leaves it red until the
+cron fires. Fix the lane, dispatch the Tests workflow on the default branch —
+its own red report carries the invocation, and `web-fragments.md` maps it for a
+seat with no shell — and name that run id in the body: a concluded dispatch
+there is read as the nightly, so the check clears. A cause outside
+this repository is a legitimate answer, named with its owner.
 
 The first trigger — the defect reached a released version — has no moment
 cheaper than the issue itself, so it is carried by the **Root cause** section

@@ -639,6 +639,14 @@ jobs:
     timeout-minutes: 330
     steps:
       - uses: actions/checkout@v5
+        with:
+          # Its driver set includes tests/entities.py, whose handover checks ask
+          # git whether `updated-for:` is an ancestor -- unanswerable at depth 1.
+          # The driver then fails at the BASELINE, mutation_table.py refuses with
+          # "the baseline is already red", and the nightly is red having run no
+          # mutant at all. Its sibling `mutation` above already carries this for
+          # the same reason; this job was the one that never got it.
+          fetch-depth: 0
 
       - uses: actions/setup-python@v6
         with:
