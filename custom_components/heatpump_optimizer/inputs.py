@@ -17,7 +17,11 @@ reported as *missing*, and the caller is expected to freeze rather than guess.
 
 **Units.** Power entities report W, kW or MW depending on the device, and the
 internal model works in kW throughout. Assuming kW reads a 3000 W draw as
-3000 kW, which would silently dominate every cost calculation.
+3000 kW, which would silently dominate every cost calculation. Temperature
+and energy states are the same story in another unit family: the state
+machine converts a device-class sensor to the instance unit system, so
+``read`` takes the number with the unit it arrived in and converts °F/Wh
+(and their spellings) to the degC/kWh the model works in (#961).
 
 **Not everything is a number.** An operating mode is a word, and a defrost or
 online flag is ``on``/``off``. ``read`` rejects those as ``not_numeric``, so
@@ -39,10 +43,12 @@ from collections.abc import Callable
 from typing import Any
 
 from .const import (
+    ENERGY_UNIT_TO_KWH,
     INPUT_MAX_AGE_MINUTES,
     POWER_UNIT_TO_KW,
     STALENESS_SCALE_MAX,
     STALENESS_SCALE_MIN,
+    TEMPERATURE_UNIT_TO_C,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -191,6 +197,74 @@ def normalize_power_kw(value: float, unit: Any) -> float | None:
     if factor is None:
         return None
     return value * factor
+
+
+def normalize_temperature_c(value: float, unit: Any) -> float | None:
+    """Convert a temperature reading to degC using the entity's declared unit.
+
+    The same principle as :func:`normalize_power_kw`, for the family `read`
+    itself must consult (#961): the state machine hands the integration the
+    instance unit system's own unit, so a US-customary Home Assistant reports
+    the same physical plant in °F, and reading that number as degC published
+    70.5 degC for a house at 21.4. Returns ``None`` for a unit outside the
+    temperature family rather than a guess; the degC row is the identity, so
+    a metric read passes through bit-for-bit.
+    """
+    spec = TEMPERATURE_UNIT_TO_C.get(str(unit).strip())
+    if spec is None:
+        return None
+    offset, factor = spec
+    return (value + offset) * factor
+
+
+def normalize_energy_kwh(value: float, unit: Any) -> float | None:
+    """Convert an energy reading to kWh using the entity's declared unit.
+
+    The energy sibling of :func:`normalize_temperature_c` (#961): a Wh meter
+    was adopted as that many kWh, three orders of magnitude, because nothing
+    consulted the unit.
+    """
+    factor = ENERGY_UNIT_TO_KWH.get(str(unit).strip())
+    if factor is None:
+        return None
+    return value * factor
+
+
+def _value_in_model_units(
+    state: Any, value: float, reading: InputReading
+) -> float:
+    """The state's numeric value in the degC/kWh the model works in (#961).
+
+    The state machine converts a device-class sensor to the instance unit
+    system, so the number means whatever its unit says it means. Only the
+    temperature and energy families are converted here; power stays with
+    :meth:`InputReader.read_power_kw`, whose unknown-unit refusal must not
+    start firing for slots it does not own. A unit outside every table is
+    adopted raw — ``read`` is the generic reader and most numeric states
+    carry no convertible unit at all — but noted at debug, because a
+    silently raw °F was exactly the defect.
+    """
+    attributes = getattr(state, "attributes", None)
+    unit = None
+    if attributes is not None:
+        try:
+            unit = attributes.get("unit_of_measurement")
+        except AttributeError:  # pragma: no cover - defensive
+            unit = None
+    converted = normalize_temperature_c(value, unit)
+    if converted is None:
+        converted = normalize_energy_kwh(value, unit)
+    if converted is not None:
+        return converted
+    if unit is not None and str(unit).strip() not in POWER_UNIT_TO_KW:
+        _LOGGER.debug(
+            "Input %s (%s) reports unit %r, which no reader converts; "
+            "adopting the raw state value",
+            reading.key,
+            reading.entity_id,
+            unit,
+        )
+    return value
 
 
 #: State strings that mean "yes". Deliberately wide: the same configuration
@@ -459,6 +533,7 @@ class InputReader:
         """Read one configured numeric entity.
 
         ``key`` is the configuration key, which also selects the age limit.
+        Temperature and energy values are converted to the model's units (#961).
         """
         reading, state = self._begin(key, max_age_minutes, entity_id)
         if state is None:
@@ -470,6 +545,8 @@ class InputReader:
         except (TypeError, ValueError):
             reading.problem = "not_numeric"
             return self.health.record(reading)
+
+        value = _value_in_model_units(state, value, reading)
 
         reading.value = value
         self._age_gate(reading, state)
