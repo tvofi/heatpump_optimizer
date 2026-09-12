@@ -63,6 +63,11 @@ is policy however small the diff.
 `node .claude/workflows/rules_sync.mjs`; never edit it — `--check` refuses drift
 and an orphan `.mdc`.
 
+`AGENTS.md`, at the root, is the entry point for a harness that auto-loads that
+name instead of this one (ZCode, Codex); it states no policy of its own and
+binds the seat to this file. It is measured policy: a `POLICY_GLOBS` pattern
+matches it, with a cap in `policy_budgets.json`.
+
 | rule | what it binds |
 |---|---|
 | `brief-citations.md` | wave-brief citations must be resolvable by `brief_lint.mjs`; a literal metric or a stated count the tree answers is an error; extending the plan format extends the linter in the same pull request |
