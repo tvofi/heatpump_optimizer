@@ -1197,10 +1197,8 @@
     "dso_product": {
       "options": {
         "none": "Ingen — behåll mina inskrivna regler",
-        "ellevio_villa_effekt_2026": "Ellevio — villa effekt (2026)",
-        "vattenfall_eldistribution_effekt_2026": "Vattenfall Eldistribution — effekt (2026)",
-        "eon_energidistribution_effekt_2026": "E.ON Energidistribution — effekt (2026)",
-        "goteborg_energi_effekt_2026": "Göteborg Energi — effekt (2026)"
+        "ellevio_villa_effekt_2026": "Ellevio — villa effekt (t.o.m. 2026-05-31)",
+        "goteborg_energi_effekt_2026": "Göteborg Energi — villa elnätsavgift (2026)"
       }
     }
   },

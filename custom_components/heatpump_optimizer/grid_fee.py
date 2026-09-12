@@ -41,9 +41,11 @@ from .const import (
     CONF_PEAK_TARIFF_ENABLED,
     CONF_PEAK_TARIFF_HOURS,
     CONF_PEAK_TARIFF_MONTHS,
+    CONF_PEAK_TARIFF_OFFPEAK_FACTOR,
     CONF_PEAK_TARIFF_PRICE,
     CONF_PEAK_TARIFF_WEEKDAYS_ONLY,
     CONF_PEAK_TARIFF_WINDOW,
+    DEFAULT_PEAK_TARIFF_OFFPEAK_FACTOR,
 )
 from .dhw_schedule import DHWWindowError, Window, hour_in_windows, parse_windows
 
@@ -382,52 +384,81 @@ def min_component(
 
 #: Static Sweden v1 catalog. Dated rows; verify against the bill.
 #: Unknown / unparseable product → ``apply_catalog`` returns None (no write).
+#:
+#: #926 research table (sources-or-stop, per row; every kept row cites the
+#: DSO's own price sheet or an authoritative aggregator; unsourced rows are
+#: DROPPED, not invented):
+#:
+#: Ellevio — villa effektabonnemang, HISTORICAL. 81.25 kr/kW incl. moms
+#: (example "6,8 kW × 81,25 kronor/kW = 553 kronor per månad",
+#: ellevio.se/abonnemang/elnatspriser/hus/), timmedeleffekt averaged over
+#: "de tre högsta effekttopparna under månaden, fördelade på tre olika
+#: dygn" with "mellan klockan 22 och 06 ... räknas bara halva
+#: effekttoppen" (ellevio.se/nyheter/energi-hemma/
+#: vinterns-energivanor-sa-undviker-du-effekttoppar/) — every month, any
+#: day, night 22:00-06:00 at half. ABOLISHED effective 2026-06-01: "Den 1
+#: juni 2026 återinförde vi en prismodell baserad på säkringsstorlek. Den
+#: ersätter prismodellen med effektavgifter" (ellevio.se/abonnemang/
+#: prismodell-utan-effektavgift/). The row stays for bills of that era and
+#: is labelled with its end date. Energy side of the same era: "fast
+#: avgift 395 kr/mån, överföringsavgift 7 öre/kWh" (ellevio.se/
+#: abonnemang/elnatspriser/hus/) — flat, so the rules are "= 0.07"; the
+#: monthly fixed fee has no config slot and no time dependence, so the
+#: catalog does not write it.
+#:
+#: Göteborg Energi — ordinarie villa elnätsavgift 2026, in force. "49 kr x
+#: snittet av månadens tre högsta timmedeleffekt i kW", "beräknas på
+#: medelvärdet av de tre högsta topparna fördelat på tre olika dygn",
+#: "Priser inkluderar 25% moms", rörlig avgift 23 öre/kWh flat
+#: (goteborgenergi.se/privat/elnat/elnatspriser, "Prislista ordinarie
+#: elnätsavgift 2026"). No hour or weekday division — peak hours are the
+#: whole day ("00:00-24:00") at factor 1.0, so the mask discounts nothing,
+#: truthfully. The tidsindelade variant (135 kr/kW högpris vardagar
+#: 07:00-20:00 Nov-Mar, 0 kr/kW off-peak) is a product customers must
+#: opt into ("Att byta till denna prismodell är frivilligt", same page),
+#: so it is NOT this default row.
+#:
+#: DROPPED, no sourceable terms (documented on #926):
+#: vattenfall_eldistribution_effekt_2026 — Vattenfall Eldistribution has an
+#: effektavgift only "för en mindre kundgrupp sedan oktober 2025" with no
+#: published SEK/kW, and the planned autumn-2026 introduction is paused
+#: (vattenfalleldistribution.se/abonnemang-och-avgifter/avtal-och-avgifter/
+#: effektguiden/). eon_energidistribution_effekt_2026 — E.ON never
+#: introduced one: "du kommer inte att få en ny elnätsavgift med
+#: effektavgift från och med den 1 september 2026" (eon.se/el/elnat/
+#: effekt; "Vi har sedan tidigare pausat vårt planerade införande och det
+#: gäller fortsatt", via.tt.se/4285048). The old rows' 59.0/64.0 kr/kW and
+#: their masks matched no price sheet; a stored product id that no longer
+#: resolves logs "Unknown DSO catalog product" and writes nothing.
+#: ``peak_tariff_offpeak_factor`` comes from the same transcription: a row
+#: without the key falls back to the default 1.0, which is byte-for-byte
+#: the behaviour its absent key already had.
 CATALOG_VERSION = 1
 DSO_PRODUCT_NONE = "none"
 SWEDEN_CATALOG: dict[str, dict[str, Any]] = {
     "ellevio_villa_effekt_2026": {
-        "label": "Ellevio — villa effekt (2026)",
-        "dated": "2026-01-01",
-        "grid_fee_rules": "= 0.18, Nov-Mar Mon-Fri 06:00-22:00 = 0.27",
-        "peak_tariff_months": "Nov-Mar",
-        "peak_tariff_hours": "07:00-19:00",
-        "peak_tariff_weekdays_only": True,
-        "peak_tariff_window_minutes": 15,
+        "label": "Ellevio — villa effekt (to 2026-05-31)",
+        "dated": "2026 (until 2026-05-31)",
+        "grid_fee_rules": "= 0.07",
+        "peak_tariff_months": "",
+        "peak_tariff_hours": "06:00-22:00",
+        "peak_tariff_weekdays_only": False,
+        "peak_tariff_window_minutes": 60,
         "peak_tariff_price_per_kw": 81.25,
         "peak_tariff_peaks_averaged": 3,
-    },
-    "vattenfall_eldistribution_effekt_2026": {
-        "label": "Vattenfall Eldistribution — effekt (2026)",
-        "dated": "2026-01-01",
-        "grid_fee_rules": "= 0.16, Nov-Mar Mon-Fri 06:00-22:00 = 0.31",
-        "peak_tariff_months": "Nov-Mar",
-        "peak_tariff_hours": "07:00-19:00",
-        "peak_tariff_weekdays_only": True,
-        "peak_tariff_window_minutes": 15,
-        "peak_tariff_price_per_kw": 59.0,
-        "peak_tariff_peaks_averaged": 3,
-    },
-    "eon_energidistribution_effekt_2026": {
-        "label": "E.ON Energidistribution — effekt (2026)",
-        "dated": "2026-01-01",
-        "grid_fee_rules": "= 0.17, Nov-Mar Mon-Fri 06:00-22:00 = 0.29",
-        "peak_tariff_months": "Nov-Mar",
-        "peak_tariff_hours": "07:00-20:00",
-        "peak_tariff_weekdays_only": True,
-        "peak_tariff_window_minutes": 15,
-        "peak_tariff_price_per_kw": 64.0,
-        "peak_tariff_peaks_averaged": 3,
+        "peak_tariff_offpeak_factor": 0.5,
     },
     "goteborg_energi_effekt_2026": {
-        "label": "Göteborg Energi — effekt (2026)",
-        "dated": "2026-01-01",
-        "grid_fee_rules": "= 0.19, Nov-Mar Mon-Fri 06:00-22:00 = 0.22",
-        "peak_tariff_months": "Jan-Dec",
-        "peak_tariff_hours": "07:00-19:00",
-        "peak_tariff_weekdays_only": True,
-        "peak_tariff_window_minutes": 15,
-        "peak_tariff_price_per_kw": 47.5,
+        "label": "Göteborg Energi — villa elnätsavgift (2026)",
+        "dated": "2026",
+        "grid_fee_rules": "= 0.23",
+        "peak_tariff_months": "",
+        "peak_tariff_hours": "00:00-24:00",
+        "peak_tariff_weekdays_only": False,
+        "peak_tariff_window_minutes": 60,
+        "peak_tariff_price_per_kw": 49.0,
         "peak_tariff_peaks_averaged": 3,
+        "peak_tariff_offpeak_factor": 1.0,
     },
 }
 
@@ -463,4 +494,11 @@ def apply_catalog(product_id: str | None) -> dict[str, Any] | None:
         CONF_PEAK_TARIFF_WINDOW: row["peak_tariff_window_minutes"],
         CONF_PEAK_TARIFF_PRICE: row["peak_tariff_price_per_kw"],
         CONF_PEAK_TARIFF_COUNT: row["peak_tariff_peaks_averaged"],
+        # #926: the mask without its factor discounted nothing. Sourced rows
+        # carry their published factor; an unsourced row falls back to the
+        # default 1.0, which is byte-for-byte the behaviour its absent key
+        # already had.
+        CONF_PEAK_TARIFF_OFFPEAK_FACTOR: row.get(
+            "peak_tariff_offpeak_factor", DEFAULT_PEAK_TARIFF_OFFPEAK_FACTOR
+        ),
     }
