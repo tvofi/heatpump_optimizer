@@ -1633,6 +1633,41 @@ async def _async_check_a9(checks: Checks, hass, entry):
     return entry
 
 
+def nest_user_sensors_input(user_input: dict, groups) -> dict:
+    """Wrap flat entity answers in the setup sections (#824 / #849).
+
+    Real Home Assistant validates ``async_configure`` against the sectioned
+    ``user_sensors`` schema before the step runs. A flat payload -- the
+    shape stored on the entry -- raises InvalidData
+    (``not a valid option at indoor_temp_entity``) so A8's
+    ``already_configured`` abort never fires. Weather lives on the
+    credentials screen and is omitted by the caller. An already-nested
+    payload is returned unchanged.
+    """
+    group_names = {group for group, _keys in groups}
+    if any(
+        key in group_names and isinstance(user_input.get(key), dict)
+        for key in user_input
+    ):
+        return dict(user_input)
+    nested: dict = {}
+    placed: set[str] = set()
+    for group, keys in groups:
+        bucket = {
+            key: user_input[key]
+            for key in keys
+            if user_input.get(key) not in (None, "")
+        }
+        if bucket:
+            nested[group] = bucket
+            placed.update(bucket)
+    for key, value in user_input.items():
+        if key in placed or key == "weather_entity" or key in group_names:
+            continue
+        nested[key] = value
+    return nested
+
+
 def a8_sensors_payload(
     data: dict, identity_keys: tuple[str, ...] | list[str] | frozenset[str]
 ) -> dict:
@@ -1641,12 +1676,16 @@ def a8_sensors_payload(
     ``weather_entity`` is a user-step key. Posting it again on
     ``user_sensors`` is ``InvalidData`` (2025.2.0: extra keys; stable:
     not a valid option, did you mean a sensors-step key).
+
+    After #849 the form is sectioned (indoor / solar / plant).
     """
-    return {
+    cf = _prod_mod("config_flow")
+    flat = {
         key: data[key]
         for key in identity_keys
         if data.get(key) and key != "weather_entity"
     }
+    return nest_user_sensors_input(flat, cf._USER_SENSORS_GROUPS)
 
 
 async def _async_duplicate_user_flow(hass, seed) -> str | None:
