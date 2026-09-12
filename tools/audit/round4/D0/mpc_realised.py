@@ -23,10 +23,17 @@ COMMAND (from the repository root):
 
 EXPECTED (baseline 7dd68dd, this machine, +/- 0.01 SEK/day per cell):
 
-    mean_realised_delta_priced_SEK_per_day   ~0.1   +/- 0.05
-    max_realised_delta_priced_SEK_per_day    ~0.6   +/- 0.05
-    mean_realised_delta_flat_SEK_per_day     (the null control)
-    cells_challenger_worse_comfort           0
+    mean_realised_delta_priced_SEK_per_day    0.320965  +/- 0.02
+    max_realised_delta_priced_SEK_per_day     1.53174   +/- 0.02
+    min_realised_delta_priced_SEK_per_day    -0.280198  +/- 0.02
+    loo_mean_realised_delta_priced_SEK_per_day 0.147996 +/- 0.02
+    mean_realised_delta_flat_SEK_per_day     -2.11318   +/- 0.02  (null control:
+        it moves the WRONG WAY and by more than the priced mean, which is what
+        refuses the money claim -- see REPORT.md D0-01)
+    cells_production_cheaper                  4  (of 8 priced)
+    cells_challenger_worse_comfort            1  (of 10; 0.0016 degree-steps)
+
+Runtime on this box, fully loaded: about 30 minutes.
 
 BASELINE SHA: 7dd68dd327fe3dbfb09f3bd0fe38910c58877697
 MACHINE: 8-core Apple M1, 8 GB, macOS 25.6.0, numpy/OpenBLAS, python 3.11

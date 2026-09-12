@@ -81,7 +81,599 @@
    "seconds": 152.0
   }
  },
- "mutants": {},
+ "mutants": {
+  "M01": {
+   "id": "M01",
+   "file": "custom_components/heatpump_optimizer/legionella.py",
+   "line": 521,
+   "op": "GUARD_OFF",
+   "weight": 4,
+   "old": "        if not params.dhw_legionella_enabled:",
+   "new": "        if False:",
+   "what": "delete the guarded block (condition never taken)",
+   "closure": [
+    "tests/card.mjs",
+    "tests/config_flow_steps.py",
+    "tests/entities.py",
+    "tests/features.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/deployment_shape.py",
+    "tests/typing_ruler.py",
+    "tests/wood_advisor.py"
+   ],
+   "scripts_run": [
+    {
+     "script": "tests/plan_view.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 0.9
+    },
+    {
+     "script": "tests/typing_ruler.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 0.1
+    },
+    {
+     "script": "tests/config_flow_steps.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 0.8
+    },
+    {
+     "script": "tests/wood_advisor.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 0.7
+    },
+    {
+     "script": "tests/solar_alignment.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 0.7
+    },
+    {
+     "script": "tests/deployment_shape.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 2.0
+    },
+    {
+     "script": "tests/structure.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 1.5
+    },
+    {
+     "script": "tests/manual_plan.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 6.5
+    },
+    {
+     "script": "tests/card.mjs",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 8.9
+    },
+    {
+     "script": "tests/entities.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 49.0
+    },
+    {
+     "script": "tests/features.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 154.5
+    },
+    {
+     "script": "tests/env_drift.py --all",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 123.4
+    }
+   ],
+   "killed_by": null,
+   "survived": true,
+   "load1_start": 10.39,
+   "restored": true,
+   "seconds": 349.0
+  },
+  "M02": {
+   "id": "M02",
+   "file": "custom_components/heatpump_optimizer/inputs.py",
+   "line": 438,
+   "op": "GUARD_OFF",
+   "weight": 3,
+   "old": "        if self.enabled and limit is not None and age is not None and age > limit:",
+   "new": "        if False:",
+   "what": "delete the guarded block (condition never taken)",
+   "closure": [
+    "tests/card.mjs",
+    "tests/config_flow_steps.py",
+    "tests/entities.py",
+    "tests/features.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/deployment_shape.py",
+    "tests/typing_ruler.py",
+    "tests/wood_advisor.py"
+   ],
+   "scripts_run": [
+    {
+     "script": "tests/plan_view.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 1.0
+    },
+    {
+     "script": "tests/typing_ruler.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 0.2
+    },
+    {
+     "script": "tests/config_flow_steps.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 0.9
+    },
+    {
+     "script": "tests/wood_advisor.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 0.7
+    },
+    {
+     "script": "tests/solar_alignment.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 0.7
+    },
+    {
+     "script": "tests/deployment_shape.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 1.9
+    },
+    {
+     "script": "tests/structure.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 1.4
+    },
+    {
+     "script": "tests/manual_plan.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 5.8
+    },
+    {
+     "script": "tests/card.mjs",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 12.7
+    },
+    {
+     "script": "tests/entities.py",
+     "rc": 1,
+     "failed": 5,
+     "seconds": 37.9
+    }
+   ],
+   "killed_by": "tests/entities.py",
+   "survived": false,
+   "load1_start": 6.57,
+   "restored": true,
+   "seconds": 63.1
+  },
+  "M03": {
+   "id": "M03",
+   "file": "custom_components/heatpump_optimizer/legionella.py",
+   "line": 290,
+   "op": "STMT_DEL",
+   "weight": 4,
+   "old": "        peak = self.boost_peak",
+   "new": "        pass",
+   "what": "delete the statement",
+   "closure": [
+    "tests/card.mjs",
+    "tests/config_flow_steps.py",
+    "tests/entities.py",
+    "tests/features.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/deployment_shape.py",
+    "tests/typing_ruler.py",
+    "tests/wood_advisor.py"
+   ],
+   "scripts_run": [
+    {
+     "script": "tests/plan_view.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 1.8
+    },
+    {
+     "script": "tests/typing_ruler.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 0.2
+    },
+    {
+     "script": "tests/config_flow_steps.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 0.9
+    },
+    {
+     "script": "tests/wood_advisor.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 0.7
+    },
+    {
+     "script": "tests/solar_alignment.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 0.7
+    },
+    {
+     "script": "tests/deployment_shape.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 1.8
+    },
+    {
+     "script": "tests/structure.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 1.6
+    },
+    {
+     "script": "tests/manual_plan.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 5.1
+    },
+    {
+     "script": "tests/card.mjs",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 7.4
+    },
+    {
+     "script": "tests/entities.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 29.0
+    },
+    {
+     "script": "tests/features.py",
+     "rc": 1,
+     "failed": 0,
+     "seconds": 73.5
+    }
+   ],
+   "killed_by": "tests/features.py",
+   "survived": false,
+   "load1_start": 8.79,
+   "restored": true,
+   "seconds": 122.6
+  },
+  "M04": {
+   "id": "M04",
+   "file": "custom_components/heatpump_optimizer/mixing_valve.py",
+   "line": 108,
+   "op": "STMT_DEL",
+   "weight": 4,
+   "old": "    q_hold = heat_loss_coefficient * max(0.0, target_temp - outdoor_temp)",
+   "new": "    pass",
+   "what": "delete the statement",
+   "closure": [
+    "tests/card.mjs",
+    "tests/config_flow_steps.py",
+    "tests/entities.py",
+    "tests/features.py",
+    "tests/manual_plan.py",
+    "tests/optimality.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/validate.py",
+    "tests/deployment_shape.py",
+    "tests/typing_ruler.py",
+    "tests/guard_pins.py",
+    "tests/wood_advisor.py"
+   ],
+   "scripts_run": [
+    {
+     "script": "tests/plan_view.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 1.0
+    },
+    {
+     "script": "tests/typing_ruler.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 0.1
+    },
+    {
+     "script": "tests/guard_pins.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 0.6
+    },
+    {
+     "script": "tests/config_flow_steps.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 0.7
+    },
+    {
+     "script": "tests/wood_advisor.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 0.6
+    },
+    {
+     "script": "tests/solar_alignment.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 0.6
+    },
+    {
+     "script": "tests/deployment_shape.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 1.7
+    },
+    {
+     "script": "tests/structure.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 1.4
+    },
+    {
+     "script": "tests/manual_plan.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 5.8
+    },
+    {
+     "script": "tests/card.mjs",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 6.7
+    },
+    {
+     "script": "tests/entities.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 33.3
+    },
+    {
+     "script": "tests/validate.py",
+     "rc": 1,
+     "failed": 0,
+     "seconds": 15.5
+    }
+   ],
+   "killed_by": "tests/validate.py",
+   "survived": false,
+   "load1_start": 6.35,
+   "restored": true,
+   "seconds": 68.1
+  },
+  "M05": {
+   "id": "M05",
+   "file": "custom_components/heatpump_optimizer/power_guard.py",
+   "line": 126,
+   "op": "GUARD_OFF",
+   "weight": 4,
+   "old": "            if self.suppressing:",
+   "new": "            if False:",
+   "what": "delete the guarded block (condition never taken)",
+   "closure": [
+    "tests/card.mjs",
+    "tests/config_flow_steps.py",
+    "tests/entities.py",
+    "tests/features.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/deployment_shape.py",
+    "tests/typing_ruler.py",
+    "tests/wood_advisor.py"
+   ],
+   "scripts_run": [
+    {
+     "script": "tests/plan_view.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 1.2
+    },
+    {
+     "script": "tests/typing_ruler.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 0.1
+    },
+    {
+     "script": "tests/config_flow_steps.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 0.7
+    },
+    {
+     "script": "tests/wood_advisor.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 0.6
+    },
+    {
+     "script": "tests/solar_alignment.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 0.6
+    },
+    {
+     "script": "tests/deployment_shape.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 1.7
+    },
+    {
+     "script": "tests/structure.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 1.2
+    },
+    {
+     "script": "tests/manual_plan.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 6.0
+    },
+    {
+     "script": "tests/card.mjs",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 7.8
+    },
+    {
+     "script": "tests/entities.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 30.2
+    },
+    {
+     "script": "tests/features.py",
+     "rc": 1,
+     "failed": 1,
+     "seconds": 79.7
+    }
+   ],
+   "killed_by": "tests/features.py",
+   "survived": false,
+   "load1_start": 6.92,
+   "restored": true,
+   "seconds": 129.9
+  },
+  "M06": {
+   "id": "M06",
+   "file": "custom_components/heatpump_optimizer/grid_fee.py",
+   "line": 106,
+   "op": "GUARD_OFF",
+   "weight": 5,
+   "old": "        if start <= end:",
+   "new": "        if False:",
+   "what": "delete the guarded block (condition never taken)",
+   "closure": [
+    "tests/card.mjs",
+    "tests/config_flow_steps.py",
+    "tests/entities.py",
+    "tests/features.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/deployment_shape.py",
+    "tests/typing_ruler.py",
+    "tests/wood_advisor.py"
+   ],
+   "scripts_run": [
+    {
+     "script": "tests/plan_view.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 0.7
+    },
+    {
+     "script": "tests/typing_ruler.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 0.1
+    },
+    {
+     "script": "tests/config_flow_steps.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 0.6
+    },
+    {
+     "script": "tests/wood_advisor.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 0.6
+    },
+    {
+     "script": "tests/solar_alignment.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 0.5
+    },
+    {
+     "script": "tests/deployment_shape.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 1.4
+    },
+    {
+     "script": "tests/structure.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 1.2
+    },
+    {
+     "script": "tests/manual_plan.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 4.5
+    },
+    {
+     "script": "tests/card.mjs",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 5.3
+    },
+    {
+     "script": "tests/entities.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 26.2
+    },
+    {
+     "script": "tests/features.py",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 87.5
+    },
+    {
+     "script": "tests/env_drift.py --all",
+     "rc": 0,
+     "failed": 0,
+     "seconds": 82.8
+    }
+   ],
+   "killed_by": null,
+   "survived": true,
+   "load1_start": 3.88,
+   "restored": true,
+   "seconds": 211.4
+  }
+ },
  "load1": [
   12.22
  ],

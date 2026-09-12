@@ -19,11 +19,17 @@ EXPECTED (baseline 7dd68dd, this machine, +/- 0.02 pp per cell; the arithmetic
 is deterministic given one BLAS build, so the tolerance is for a different
 BLAS, not for run-to-run noise):
 
-    mean_gap_priced_pct       0.16   +/- 0.02
-    max_gap_priced_pct        0.80   +/- 0.02
-    mean_gap_flat_pct         0.08   +/- 0.02   (the null control)
-    cells_with_gap            (of 80)
-    maxiter_binding_solves    0
+    mean_gap_priced_pct            0.117642  +/- 0.02   (70 priced cells)
+    max_gap_priced_pct             0.799815  +/- 0.02
+    loo_mean_gap_priced_pct        0.107755  +/- 0.02
+    mean_gap_flat_pct              0.104822  +/- 0.02   (the null control)
+    cells_gap_above_0p1pct         18        (of 70)
+    cells_challenger_worse_comfort 0         (of 80)
+    cells_step0_differs_gt_0p01kW  9         (of 70)
+    lbfgsb_solves_observed         420
+    maxiter_binding_solves         0         (exact)
+
+Runtime on this box, fully loaded (load1 13.5): about 35 minutes.
 
 BASELINE SHA: 7dd68dd327fe3dbfb09f3bd0fe38910c58877697
 MACHINE: 8-core Apple M1, 8 GB, macOS 25.6.0, numpy/OpenBLAS, python 3.11
