@@ -140,6 +140,33 @@ seat's JSON has not been received here.
   **not** re-measure the findings against the new tip: they are baseline numbers
   and the register says so.
 
+## The instrument findings, and why they need re-classifying
+
+`tools/audit/README.md` now says a defect in an instrument is a finding of the
+dimension that met it, travelling panel → judge → issue like any other. That
+rule landed **after** these finders ran, and most of them filed their instrument
+defects as `non_findings` with the gap named — which was correct under the
+contract they were given and is wrong under the one now in the tree.
+
+**The panel must receive these as findings.** They are not re-measured by this
+session and none is established; each is listed with where its evidence already
+is, so a verifier opens the report rather than re-deriving it.
+
+| what | where the evidence is | today's class |
+|---|---|---|
+| `tests/hastub`'s `SensorEntity` declares no `device_class` / `state_class` / `entity_category`, so four of D8's checks read zero **vacuously** for three runs; the tell that the corrected read is live is `entity_category_declared=1500` | `D8/reports/FINDER.md`, `entity_matrix.py` | non-finding |
+| `tests/hastub`'s `DataUpdateCoordinator.async_refresh` only increments a counter, so no test in the tree runs a cycle through the base class and `_skip_solve_once` is never consumed | `D1/reports/FINDER.md`, `real_loop.py` | non-finding |
+| `tests/stress.py`'s RSS rule needs 2.53x–2.64x the recorded peak against its own `DETECTION_TARGET = 2.0`, and check mode re-probes 6 of 51 | `D9/reports/FINDER.md`, `h7_memory_gate.py` | **D9-06, a finding** |
+| `tests/card_browser.mjs`'s 8 px font-floor check filters `lane-*` out of its own subject, so the floor never reached the labels D4-01 measures at 6.4 px | `D4/reports/FINDER.md` | inside D4-01 |
+| `governance.yml` never passes `--red`, so the one root-cause trigger `CLAUDE.md` calls enforced is inert in CI (rc=1 with it, rc=0 without, same body) | `D11/reports/FINDER.md`, `mechanism_inventory.py` | **D11-03, a finding** |
+| `policy_lint --stats` reports a class over its own threshold and opens nothing; both `--stats` and `--sunset` run under `\|\| true` | `D11/reports/FINDER.md` | **D11-06, provisional** |
+| `tests/closures.json`'s recorded seconds are accounting, not behaviour (0.4 s recorded for a script measured at 201.2 s), and `golden.py` and `env_drift.py --all` are the same measurement — 201.2 s + 152.0 s for one answer | `D3/reports/FINDER.md` | in the report, unclassified |
+
+Two more were **fixed rather than filed**, which the rule explicitly allows:
+`prepare_baseline.sh` deleting a file `tests/entities.py` reads unguarded, and
+the same script carrying 116 round-3 files into every finder tree. Both are in
+`ea8c14b` with their controls.
+
 ## Traps this round has already paid for
 
 - **Landing a finder's report trips `policy_lint`'s `named-docs`.** `COMMON.md`

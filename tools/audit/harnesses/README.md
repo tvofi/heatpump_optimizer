@@ -15,12 +15,9 @@ permanently on `main`'s first-parent history:
     git show d5d8c4a:tools/audit/round2/JUDGE.md
     git checkout d5d8c4a -- tools/audit/round2/D5/REPORT.md
 
-Every citation names that SHA rather than a tag: a SHA cannot move and needs
-nobody's permission to exist. Named tags there would be a convenience, and
-nothing here depends on one.
-`audit-round2-evidence` is the counter-example: a real tag on the remote that
-has already been moved once, which is why `tools/audit/README.md` tells you to
-cite the SHA you actually ran.
+Every citation names that SHA rather than a tag, because a SHA cannot move:
+`audit-round2-evidence` has already been moved once, which is why
+`tools/audit/README.md` tells you to cite the SHA you actually ran.
 
 Round 2's *executable* harnesses were archived earlier and separately, at
 `audit-round2-evidence` (`757e164`); `tools/audit/README.md` carries the rule
@@ -48,13 +45,3 @@ All three drive production symbols and print `RESULT` lines under the harness
 contract in `tools/audit/README.md`. `j5_gil.py` must never be run on
 `FakeHass`, whose executor runs inline and would measure nothing. Their run
 commands were updated to this directory when they moved; nothing else changed.
-
-## The five that did not
-
-`round1/B3/harness.py`, `round1/B4/entity_hygiene.py` and
-`round1/B5/harness.py` are fix-group harnesses for groups B3, B4 and B5, merged
-as #206, #205 and #207, every issue closed. `round3/closures-gate/mutations.py`
-and `replay.py` are #356's mutation proof and its five-incident replay, both
-spent once that change merged. All five are at `d5d8c4a`; copy
-one out if a later round needs it, rather than assuming it still runs — the rot
-classes in `round2/HARNESSES.md` apply to them too.
