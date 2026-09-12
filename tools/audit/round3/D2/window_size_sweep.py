@@ -61,6 +61,14 @@ none above an hour.  All four rows of `grid_fee.py`'s product catalog set
 than asserted here, so a later edit that adds 45 or 90 shows up in this output.
 
 BASELINE: da43c9da5fddfc0ded0f538edae4a41311cc4b01 (the #777 merge base).
+
+EXPECTED on this tree (divisibility, not size: 15/30/60 post777=0;
+    90/120 stay off-grid):
+    RESULT live_tracker_mismatch_autumn_15min=pre777=8
+    RESULT live_tracker_mismatch_autumn_90min=pre777=2
+    RESULT live_tracker_mismatch_control_15min=pre777=0
+    RESULT catalog_window_minutes=[15]
+    RESULT options_selector_choices=1_matching_line(s):
 """
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo

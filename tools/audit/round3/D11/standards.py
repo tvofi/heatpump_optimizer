@@ -184,6 +184,19 @@ def main():
     print(f"RESULT bp_vulnerability_report_process={int(sec)} bool  "
           "(bestpractices.dev repo_public/... `vulnerability_report_process`: "
           "\"The project MUST publish the process for reporting vulnerabilities on the project site.\")")
+    pvr = subprocess.run(
+        ["gh", "api", "repos/tvofi/heatpump_optimizer/private-vulnerability-reporting"],
+        capture_output=True, text=True,
+    )
+    enabled = False
+    if pvr.returncode == 0:
+        try:
+            enabled = bool(json.loads(pvr.stdout).get("enabled"))
+        except json.JSONDecodeError:
+            enabled = False
+    print(f"RESULT bp_private_vulnerability_reporting={int(enabled)} bool  "
+          f"(GET repos/tvofi/heatpump_optimizer/private-vulnerability-reporting "
+          f"rc={pvr.returncode})")
     print(f"RESULT bp_test_suite={int((ROOT / 'tests/run.sh').exists())} bool")
     tp = int(any("test" in (ROOT / p).read_text().lower()
                  for p in ("CLAUDE.md",) if (ROOT / p).exists()))

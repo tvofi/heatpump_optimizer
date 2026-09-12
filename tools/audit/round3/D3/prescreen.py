@@ -153,8 +153,17 @@ def run_script(slot: Path, script: str, tmp: Path, timeout: int) -> dict:
         rc, out = p.returncode, (p.stdout + p.stderr)
     except subprocess.TimeoutExpired:
         rc, out = 124, "TIMEOUT"
+    summary_line = None
+    for line in reversed(out.splitlines()):
+        if re.search(r"(\d+) of (\d+) [A-Z ]+ FAILED", line) or re.search(
+            r"ALL (\d+) [A-Z ]+ PASSED", line
+        ):
+            summary_line = line
+            break
     return {"script": script, "rc": rc, "seconds": round(time.time() - t0, 1),
-            "fails": sorted(fail_lines(out)), "tail": out[-1200:]}
+            "fails": sorted(fail_lines(out)), "tail": out[-1200:],
+            "summary_line": summary_line,
+            "has_traceback": "Traceback (most recent call last)" in out}
 
 
 def capture(slot: Path, out_path: Path, timeout: int = 1800) -> int:

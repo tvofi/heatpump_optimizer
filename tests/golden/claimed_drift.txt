@@ -45,9 +45,9 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 6.4.0
+# claims-for: 6.4.2
 #
-# v6.4.0: Boost switches, tank editing on Setup, a typed mixing-valve setpoint, and the coordinator decomposition. The stamp empties the list; the
+# v6.4.2: product, audit instrument, coverage, and leftover record. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 
@@ -190,4 +190,3 @@
 # 4187 -> 4208 keys, every collapsed:false. Nothing else moved -- solver
 # fixtures and the card claim file are untouched by this branch.
 
-config_flow # user_sensors nests its fourteen pickers under section(); fingerprint moves once

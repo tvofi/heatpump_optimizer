@@ -2601,7 +2601,7 @@ class SensorGapAdvisorSensor(HeatPumpOptimizerSensorBase):
         return {"gaps": gaps, "top_slot": None if top is None else top.get("key")}
 
 
-class WoodBurnAdvisorSensor(HeatPumpOptimizerSensorBase):
+class WoodBurnAdvisorSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase):
     """48 h light/skip advice when the wood furnace is on (#702)."""
 
     _attr_entity_category = EntityCategory.DIAGNOSTIC
@@ -2620,9 +2620,17 @@ class WoodBurnAdvisorSensor(HeatPumpOptimizerSensorBase):
         )
 
     @property
+    def _waiting_for(self) -> str | None:
+        fuel = (self.coordinator.data or {}).get("wood_fuel") or {}
+        if not fuel.get("ready"):
+            return "wood_furnace"
+        return None
+
+    @property
     def native_value(self) -> str | None:
-        text = self._advice().get("text")
-        return text if text else None
+        if not self.available:
+            return None
+        return self._advice().get("text") or "none"
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:

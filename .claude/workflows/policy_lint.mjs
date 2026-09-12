@@ -119,10 +119,12 @@ let _mcpTools = null
 function isMcpTool(symbol) {
   if (!_mcpTools) {
     const raw = read('.claude/workflows/web-fragments.md') ?? ''
-    const block = /const GH = `([\s\S]*?)`/.exec(raw)
-    _mcpTools = new Set(
-      block ? [...block[1].matchAll(/\b([a-z][a-z0-9]*(?:_[a-z0-9]+)+)\b/g)].map((m) => m[1]) : []
-    )
+    _mcpTools = new Set()
+    for (const block of raw.matchAll(/const GH(?:_[A-Z]+)? = `([\s\S]*?)`/g)) {
+      for (const m of block[1].matchAll(/\b([a-z][a-z0-9]*(?:_[a-z0-9]+)+)\b/g)) {
+        _mcpTools.add(m[1])
+      }
+    }
   }
   return _mcpTools.has(symbol)
 }

@@ -1625,9 +1625,11 @@ def _flatten_section_input(user_input: dict[str, Any]) -> dict[str, Any]:
     The form nests; stored options do not. A payload that is already flat
     (tests, and any page with no groups) is unchanged. Dict-valued option
     keys such as ``solar_location`` are not section names -- only registry
-    ``group`` values are lifted.
+    ``group`` values are lifted. Setup's ``_USER_SENSORS_GROUPS`` names are
+    included so a fresh ``user_sensors`` submit flattens the same way.
     """
     groups = {row.group for row in _OPTION_FIELDS if row.group}
+    groups.update(group for group, _keys in _USER_SENSORS_GROUPS)
     flat: dict[str, Any] = {}
     for key, value in user_input.items():
         if key in groups and isinstance(value, dict):
@@ -1853,7 +1855,7 @@ class HeatPumpOptimizerConfigFlow(
     ) -> ConfigFlowResult:
         """Optional entity pickers, after credentials (#198)."""
         if user_input is not None:
-            self._data.update(user_input)
+            self._data.update(_flatten_section_input(dict(user_input)))
             await self.async_set_unique_id(entry_identity(self._data))
             if (
                 self._reconfigure_entry is None

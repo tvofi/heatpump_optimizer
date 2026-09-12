@@ -298,6 +298,14 @@ for f in tests/*.py tests/*.mjs; do
     # history rather than about this tree. tests/entities.py drives its
     # classifier instead.
     record_status.py) continue ;;
+    # The two instruments beside the gate rather than in it (#195). Each has
+    # its own CI job, which is never scoped and runs on every pull request.
+    # coverage_ratchet.py needs a coverage payload from
+    # tools/audit/w5-partition/coverage_tree.sh -- an instrumented re-run of
+    # this whole suite -- and mutation_table.py re-runs suite scripts against
+    # a mutated copy of the tree. Wiring either in would make the suite run
+    # itself, which is the closure.py argument four entries up.
+    coverage_ratchet.py|mutation_table.py) continue ;;
   esac
   if ! grep -Eq '^[[:space:]]*run .*tests/'"$base"'( |$)' tests/run.sh; then
     echo "UNWIRED TEST: tests/$base is not referenced by tests/run.sh"
@@ -318,6 +326,9 @@ lane_units() {
   run_always "$PYTHON" tests/closure.py selftest
   run "$PYTHON" tests/features.py
   run "$PYTHON" tests/entities.py
+  # #796: default-on sensors must not render Unknown. Own script so the
+  # rule is not a fourteenth `_D801_IN_SCOPE` roster entry in entities.py.
+  run "$PYTHON" tests/wood_advisor.py
   # The initial config flow walked end to end (#194): every step's valid
   # and invalid submissions, the duplicate abort and the reauth round
   # trip, against the real validation code over the fake Tibber session.
@@ -346,6 +357,10 @@ lane_units() {
   run "$PYTHON" tests/manual_plan.py
   run "$PYTHON" tests/open_meteo.py
   run "$PYTHON" tests/solar_alignment.py
+  # Four #805 survivors that are not in coordinator.py or optimizer.py.
+  run "$PYTHON" tests/guard_pins.py
+  # #817: a harness header's EXPECTED RESULT lines must match what it prints.
+  run "$PYTHON" tests/harness_headers.py
   # The only lane that runs the shape an installation runs (#513): the tracked
   # package alone, no tests/ sibling, imported as
   # custom_components.heatpump_optimizer.*. Every other script in this
@@ -482,7 +497,7 @@ done
 for f in tests/*.py tests/*.mjs; do
   base=$(basename "$f")
   case "$base" in
-    harness.py|profiles.py|dst_checks.py|closure.py|gate_lock.py|dom_stub.mjs|card_rig.mjs|card_browser.mjs|node_fs_trace.mjs|nightly_ha.py|nightly_status.py|record_status.py) continue ;;
+    harness.py|profiles.py|dst_checks.py|closure.py|gate_lock.py|dom_stub.mjs|card_rig.mjs|card_browser.mjs|node_fs_trace.mjs|nightly_ha.py|nightly_status.py|record_status.py|coverage_ratchet.py|mutation_table.py) continue ;;
   esac
   if ! cat "$WORKDIR"/*.manifest 2>/dev/null | grep -Fq "tests/$base"; then
     echo "TEST NEVER RAN: tests/$base is wired into tests/run.sh but no lane"

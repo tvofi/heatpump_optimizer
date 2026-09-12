@@ -1,0 +1,21 @@
+{
+  "_comment": "A one-sided cap on the fraction of mutants that survive, NOT an exact-count ratchet. The pool is a seeded sample over whichever files a diff put in scope, so an exact count is not comparable between two clean branches; see the header of tests/mutation_table.py. Lower it with --record on a run whose survivors are all explained; raise it only as a deliberate, argued edit.",
+  "max_survivor_fraction": {
+    "changed": 1.0,
+    "full": 1.0
+  },
+  "last_measured": {
+    "changed": {
+      "survivors": 2,
+      "evaluated": 10,
+      "at": "2026-09-11T23:51:31Z",
+      "run": "34658441338",
+      "survivor_lines": [
+        "custom_components/heatpump_optimizer/battery.py:320 BOOLOP",
+        "custom_components/heatpump_optimizer/defrost.py:154 CLAMP_DROP"
+      ]
+    },
+    "full": null
+  },
+  "reason": "Both caps stay OPEN at 1.0 and this is deliberate. The first real run of the changed scope (CI run 34658441338, on a runner rather than a laptop) killed 8 of 10 and is recorded in last_measured -- but 10 mutants is a sample, and a cap set at a sample's own rate reddens the next branch that happens to draw three survivors instead of two, which is the random failure this fraction exists to avoid. Set the cap from the NIGHTLY's full-package run, whose 40-mutant pool over every module is the first estimate worth gating on. That run cannot happen until mutation-nightly is on main."
+}

@@ -2632,6 +2632,96 @@ def _d903_jac_f0_reuses_fun():
 
 _d903_jac_f0_reuses_fun()
 
+
+def _d0_restart_from_returned_point():
+    """R3-D0-01/02: L-BFGS-B is restarted once from its own returned point."""
+    x0s: list = []
+    results: list = []
+    real = _grad_optmod._scoped_minimize
+
+    def spy(*a, **k):
+        x0 = np.asarray(k["x0"] if "x0" in k else a[1], dtype=float).copy()
+        x0s.append(x0)
+        out = real(*a, **k)
+        results.append(out)
+        return out
+
+    def obj(x, *_a):
+        d = np.asarray(x, dtype=float) - 1.0
+        return float(np.dot(d, d))
+
+    _grad_optmod._scoped_minimize = spy
+    try:
+        _grad_optmod._multi_start_minimize(
+            obj, [np.zeros(4)], [(-2.0, 2.0)] * 4, maxiter=20,
+        )
+    finally:
+        _grad_optmod._scoped_minimize = real
+    R.check(
+        "one production start is followed by one restart from the returned point",
+        len(x0s) == 2,
+        f"minimize calls={len(x0s)}",
+    )
+    R.check(
+        "the restart's x0 is the first run's returned point",
+        len(x0s) == 2 and bool(np.allclose(x0s[1], results[0].x)),
+        f"x0s={len(x0s)} first.x={getattr(results[0], 'x', None) if results else None}",
+    )
+
+
+_d0_restart_from_returned_point()
+
+
+def _d0_restart_keeps_only_a_real_drop():
+    """#826: an ftol tick is not a new plan; a 5e-2 relative drop is."""
+
+    class _Res:
+        def __init__(self, x: np.ndarray) -> None:
+            self.x = np.asarray(x, dtype=float)
+
+    def obj(x: np.ndarray, *_a: object) -> float:
+        x = np.asarray(x, dtype=float)
+        if np.allclose(x, 0.0):
+            return 100.0
+        if np.allclose(x, 1.0):
+            return 99.9999
+        if np.allclose(x, 2.0):
+            return 95.0
+        raise AssertionError(x)
+
+    real = _grad_optmod._scoped_minimize
+    chosen: dict[str, np.ndarray] = {"x": np.array([1.0, 1.0])}
+
+    def spy(*_a: object, **_k: object) -> _Res:
+        return _Res(chosen["x"])
+
+    _grad_optmod._scoped_minimize = spy
+    try:
+        best = _Res(np.zeros(2))
+        bounds = [(-10.0, 10.0)] * 2
+        tick = _grad_optmod._lbfgsb_restart(
+            best, obj, bounds, (), 20, None, 1e-4,
+        )
+        R.check(
+            "an ftol-tick restart is not adopted",
+            tick is best,
+            f"kept {getattr(tick, 'x', None)}",
+        )
+        chosen["x"] = np.array([2.0, 2.0])
+        drop = _grad_optmod._lbfgsb_restart(
+            best, obj, bounds, (), 20, None, 1e-4,
+        )
+        R.check(
+            "a 5e-2 relative drop is adopted",
+            drop is not best and bool(np.allclose(drop.x, 2.0)),
+            f"kept {getattr(drop, 'x', None)}",
+        )
+    finally:
+        _grad_optmod._scoped_minimize = real
+
+
+_d0_restart_keeps_only_a_real_drop()
+
 # Space-only, uniform bounds (the historical five, unchanged).
 _grad_parity(False, label="single-zone")
 _grad_parity(True, label="two-zone")
@@ -13160,6 +13250,41 @@ R.check(
     "#11 owns resistive draw; folding it would teach the map that some "
     "frequency draws the element's kilowatts",
 )
+_ccool = _freq_coord()
+_ccool._pump_signals = PumpSignals(freeze_reason="pump_cooling")
+_ccool._observe_frequency(_T6)
+R.check(
+    "reverse-cycle cooling never teaches the frequency map",
+    not _ccool._freq_map.buckets,
+    "#781: the map is keyed by decile only; a cooling fold is inherited "
+    "when the user later switches to control",
+)
+_cflat = _freq_coord()
+_cflat._input_health = _NS(
+    readings={
+        "heat_pump_power_entity": InputReading(
+            key="heat_pump_power_entity",
+            entity_id="sensor.hp_power",
+            value=2.0,
+            problem="stale",
+        )
+    }
+)
+_cflat._observe_frequency(_T6)
+R.check(
+    "a pinned stale power reading never teaches the frequency map",
+    not _cflat._freq_map.buckets,
+    "#781: _update_current_state pins the last good kW, so the fold "
+    "would teach a wrong ratio in every bucket",
+)
+_cextf = _freq_coord()
+_cextf._external_heat_active = True
+_cextf._observe_frequency(_T6)
+R.check(
+    "external heat still folds: the map is a compressor curve, not a house learner",
+    bool(_cextf._freq_map.buckets),
+    "#781: do not gate the fold on _learning_frozen wholesale",
+)
 R.check(
     "without the entity the stage is unconfigured and the view says so",
     _t2_coord()._freq_view()["mode"] == "unconfigured"
@@ -21617,6 +21742,11 @@ R.check(
 # set_thermal_parameters service.
 _lg_warn = _lg_coord()
 _lg_warn._legionella.check_ceiling()
+_lg_ceiling = [
+    i
+    for i in getattr(_lg_warn.hass, "issues", [])
+    if i[1] == "dhw_legionella_above_setpoint"
+]
 R.check(
     "the coordinator raises the notice for a live 52/60 pair",
     any(
@@ -21624,6 +21754,13 @@ R.check(
         for i in getattr(_lg_warn.hass, "issues", [])
     ),
     f"issues {[i[1] for i in getattr(_lg_warn.hass, 'issues', [])]}",
+)
+R.check(
+    "and that legionella notice carries a documentation link",
+    _lg_ceiling
+    and _lg_ceiling[0][2].get("learn_more_url")
+    == "https://github.com/tvofi/heatpump_optimizer",
+    f"got {_lg_ceiling!r}",
 )
 _lg_warn._thermal_params.dhw_legionella_temp = 52.0
 _lg_warn._legionella.check_ceiling()
@@ -24117,6 +24254,13 @@ R.check(
     in _g511_notice[0][2].get("translation_placeholders", {}).get("cause", ""),
     f"got {_g511_notice!r}",
 )
+R.check(
+    "and that notice carries a documentation link",
+    _g511_notice
+    and _g511_notice[0][2].get("learn_more_url")
+    == "https://github.com/tvofi/heatpump_optimizer",
+    f"got {_g511_notice!r}",
+)
 
 # Null control: with a job the child CAN resolve, the process route must still
 # be the one that runs. A fallback that always engaged would silently undo
@@ -24150,6 +24294,90 @@ R.check(
     and _g511_quiet(_g511_harness_coord, _g511_h_hass, _g511_h_warned),
     f"parent={_g3_parent} got {_g511_h!r} jobs={_g511_h_hass.jobs!r} "
     f"warned={len(_g511_h_warned)} issues={_g511_h_hass.issues!r}",
+)
+
+# ---------------------------------------------------------------------------
+R.section("#783 — in-process fallback is capped, not permanent")
+
+# #511 still returns a plan on the first fault (a slow plan beats none).
+# Nothing then bound how many cycles an install stayed on that GIL path.
+# After N consecutive fallbacks on the same hass, skip the in-process solve
+# and raise UpdateFailed so the last plan stays published. The streak lives
+# on hass.data: a process global would accumulate across this file, and
+# _g511_solve builds a new hass per call so those one-shots stay green.
+from homeassistant.helpers.update_coordinator import (  # noqa: E402
+    UpdateFailed as _G783Failed,
+)
+
+_g783_cap = getattr(_g511_coord, "WORKER_FALLBACK_CAP", 3)
+
+
+def _g783_once(coord, optimizer, hass):
+    sink = _G511LogSink()
+    logger = _g511_logging.getLogger(coord.__name__)
+    logger.addHandler(sink)
+    try:
+        try:
+            out = _asyncio.run(coord._await_optimize(hass, optimizer, "STATE"))
+            return None, out
+        except Exception as err:  # noqa: BLE001
+            return err, None
+    finally:
+        logger.removeHandler(sink)
+
+
+_g783_hass = _G511Hass()
+_g783_plans, _g783_errs = [], []
+for _ in range(_g783_cap + 1):
+    err, out = _g783_once(_g511_coord, _G511LocalOptimizer(), _g783_hass)
+    _g783_plans.append(out)
+    _g783_errs.append(err)
+R.check(
+    "the first WORKER_FALLBACK_CAP fallbacks still return a plan",
+    all(
+        e is None and isinstance(p, tuple) and p[0] == "in-process"
+        for p, e in zip(_g783_plans[:_g783_cap], _g783_errs[:_g783_cap], strict=True)
+    ),
+    f"plans={_g783_plans[:_g783_cap]!r} errs={[type(e).__name__ for e in _g783_errs[:_g783_cap]]!r}",
+)
+R.check(
+    "the next fallback raises UpdateFailed and skips the GIL solve",
+    isinstance(_g783_errs[_g783_cap], _G783Failed)
+    and _g783_plans[_g783_cap] is None
+    and _g783_hass.jobs.count(_g511_job) == _g783_cap
+    and _g783_hass.jobs.count(_g511_coord._run_in_process) == _g783_cap + 1,
+    f"err={_g783_errs[_g783_cap]!r} plan={_g783_plans[_g783_cap]!r} "
+    f"jobs={_g783_hass.jobs!r}",
+)
+
+_g783_other = _G511Hass()
+_g783_other_err, _g783_other_out = _g783_once(
+    _g511_coord, _G511LocalOptimizer(), _g783_other
+)
+R.check(
+    "a second hass is not charged for the first one's streak",
+    _g783_other_err is None
+    and isinstance(_g783_other_out, tuple)
+    and _g783_other_out[0] == "in-process",
+    f"err={_g783_other_err!r} out={_g783_other_out!r}",
+)
+
+_g783_reset = _G511Hass()
+for _ in range(_g783_cap):
+    _g783_once(_g511_coord, _G511LocalOptimizer(), _g783_reset)
+_g783_ok_err, _g783_ok_out = _g783_once(_g511_coord, _G511Probe(), _g783_reset)
+_g783_after_err, _g783_after_out = _g783_once(
+    _g511_coord, _G511LocalOptimizer(), _g783_reset
+)
+R.check(
+    "a healthy worker clears the streak so the next fallback is allowed",
+    _g783_ok_err is None
+    and isinstance(_g783_ok_out, tuple)
+    and _g783_ok_out[0] != _g3_parent
+    and _g783_after_err is None
+    and isinstance(_g783_after_out, tuple)
+    and _g783_after_out[0] == "in-process",
+    f"ok={_g783_ok_err!r}/{_g783_ok_out!r} after={_g783_after_err!r}/{_g783_after_out!r}",
 )
 
 # ---------------------------------------------------------------------------
@@ -24620,6 +24848,13 @@ R.check(
     and _sp_raised[0][2].get("translation_placeholders", {}).get("target") == "60"
     and _sp_raised[0][2].get("data", {}).get("entity_id") == "number.dhw_sp"
     and _sp_raised[0][2].get("data", {}).get("target") == 60.0,
+    f"got {_sp_raised!r}",
+)
+R.check(
+    "and that set-point notice carries a documentation link",
+    _sp_raised
+    and _sp_raised[0][2].get("learn_more_url")
+    == "https://github.com/tvofi/heatpump_optimizer",
     f"got {_sp_raised!r}",
 )
 _sp_evaluate(_sp_below)
@@ -27394,6 +27629,28 @@ R.check(
     "against a learner that rejected everything",
 )
 
+# M03: `if self._house_heat_loss_samples % 10 == 0` -> `if False:` leaves a
+# learned scale in memory that a restart forgets. The ninth-sample arm is
+# the modulo's null: a fold that is not the persist cadence must not save.
+_t2_hl_tenth = _t2_house()
+_t2_hl_tenth._house_heat_loss_samples = 9
+_t2_drive(_t2_hl_tenth, "_async_learn_house_heat_loss")
+R.check(
+    "the tenth house-heat-loss sample is written to the store",
+    _t2_hl_tenth._house_heat_loss_samples == 10
+    and len(_t2_hl_tenth._t2_saves) >= 1,
+    f"samples {_t2_hl_tenth._house_heat_loss_samples} saves {_t2_hl_tenth._t2_saves!r}",
+)
+_t2_hl_ninth = _t2_house()
+_t2_hl_ninth._house_heat_loss_samples = 8
+_t2_drive(_t2_hl_ninth, "_async_learn_house_heat_loss")
+R.check(
+    "the ninth sample does not persist (the modulo is the gate)",
+    _t2_hl_ninth._house_heat_loss_samples == 9
+    and _t2_hl_ninth._t2_saves == [],
+    f"samples {_t2_hl_ninth._house_heat_loss_samples} saves {_t2_hl_ninth._t2_saves!r}",
+)
+
 # The two-zone fit takes its Newton step about the UPPER floor's UA and mass,
 # not the whole-house pair. Two facts follow and the SECOND is the one a
 # mutation can see: varying the upper mass must move the fit, and varying the
@@ -28682,6 +28939,5039 @@ R.check(
     "fabricated from the current temperature cost +41.9 % realized on the "
     "verification panel's cold-front scenario, which is why this arm marks "
     "rather than invents",
+)
+
+
+
+# ---------------------------------------------------------------------------
+# W5-G7 tranche 4 of 5 (#195): the core seam.
+#
+# FOUR WAS NOT ENOUGH, and this group's own map is what said so. At tranche
+# 3's head `coordinator.py` held 334 missed statements against 184 allowed at
+# the 95 % bar, and the core seam alone held 246 of them -- so the plan's
+# fourth-and-last tranche, scoped onto a twenty-statement hot-water
+# residual, could not have reached the bar by a factor of seven. This
+# tranche takes the tractable core and the learning tail; the five large
+# lifecycle methods (`_async_drive_pumps`, `_update_current_state`,
+# `async_run_optimization`, `async_simulate`, `_async_update_data`, 70
+# statements between them) are tranche 5.
+#
+# The three rules the earlier tables cost a round each to learn are applied
+# here rather than restated. An input must make the guard under test the
+# only arm that can reject. Anything that can raise goes through a catcher
+# and asserts nothing escaped. And a detail is sorted by `repr`, never by
+# natural order, because an f-string detail is evaluated eagerly and a
+# mutation can leave a set mixed.
+R.section("W5-G7 t4: the core seam and the learning tail (#195)")
+
+_T4_DATA = {"tibber_token": "x", "weather_entity": "weather.home"}
+# Two-zone is inferred from the presence of zone settings, not from a flag.
+_T4_TWO_ZONE = {
+    "upper_floor_thermal_mass": 3.0,
+    "lower_floor_thermal_mass": 8.0,
+    "lower_floor_temp_entity": "sensor.lower",
+}
+
+
+def _t4_coord(states=None, **config):
+    """A live coordinator over the fake bus, with states and config applied."""
+    return HeatPumpOptimizerCoordinator(
+        FakeHass(states or {}), FakeEntry(data=dict(_T4_DATA, **config))
+    )
+
+
+def _t4_call(fn, *args, **kwargs):
+    """Call one synchronous method, returning its value or the exception."""
+    try:
+        return fn(*args, **kwargs)
+    except Exception as err:  # noqa: BLE001
+        return err
+
+
+def _t4_drive(coord, method, *args, **kwargs):
+    """Await one coordinator method and capture anything that escapes it."""
+    coord._t4_escaped = None
+    try:
+        _asyncio.run(getattr(coord, method)(*args, **kwargs))
+    except Exception as err:  # noqa: BLE001
+        coord._t4_escaped = err
+    return coord
+
+
+def _t4_count_refresh(coord):
+    """Count refresh requests, which several service entry points end with."""
+    coord._t4_refreshes = 0
+
+    async def counted():
+        coord._t4_refreshes += 1
+
+    coord.async_request_refresh = counted
+
+
+# -- `_entity_state`: every reader in the class goes through here ----------
+# One helper behind every configured-entity read, so a wrong answer here is
+# wrong in the away resolver, the presence check and the frequency reader at
+# once. The attribute copy is the part worth pinning: handing a caller Home
+# Assistant's own live mapping lets one reader's edit reach every other.
+_T4_ENTITY_STATES = {
+    "sensor.present": FakeState(
+        "21.5", attributes={"unit_of_measurement": "C"}
+    )
+}
+_t4_es = _t4_coord(_T4_ENTITY_STATES)
+R.check(
+    "no entity and an empty entity id both read as absent, before any lookup",
+    _t4_call(_t4_es._entity_state, None) == (None, {})
+    and _t4_call(_t4_es._entity_state, "") == (None, {}),
+    f"None -> {_t4_call(_t4_es._entity_state, None)!r}, '' -> "
+    f"{_t4_call(_t4_es._entity_state, '')!r}",
+)
+R.check(
+    "an entity that is configured but absent from the bus reads as absent too",
+    _t4_call(_t4_es._entity_state, "sensor.gone") == (None, {}),
+    f"{_t4_call(_t4_es._entity_state, 'sensor.gone')!r} -- the empty mapping "
+    "is part of the contract: every caller unpacks two values",
+)
+R.check(
+    "a present entity yields its state and a COPY of its attributes",
+    _t4_call(_t4_es._entity_state, "sensor.present")
+    == ("21.5", {"unit_of_measurement": "C"})
+    and _t4_call(_t4_es._entity_state, "sensor.present")[1]
+    is not _T4_ENTITY_STATES["sensor.present"].attributes,
+    f"{_t4_call(_t4_es._entity_state, 'sensor.present')!r} -- the identity "
+    "test is the point: handing back the live mapping lets one reader's edit "
+    "reach every other reader of the same entity",
+)
+
+
+class _T4NoAttrs:
+    """A state whose attributes are absent, which some integrations publish."""
+
+    state = "7"
+    attributes = None
+
+
+_t4_es.hass.states.set("sensor.noattrs", _T4NoAttrs())
+R.check(
+    "a state with no attributes still yields its state and an empty mapping",
+    _t4_call(_t4_es._entity_state, "sensor.noattrs") == ("7", {}),
+    f"{_t4_call(_t4_es._entity_state, 'sensor.noattrs')!r}",
+)
+
+
+# -- `_adopt_system_identification`: one experiment against weeks of samples
+# A step-response experiment is a far better prior than ambiguous passive
+# samples, and the blend is what stops it being an overwrite. The arithmetic
+# is the check: confidence c takes the learned scale to
+# (1-c)*old + c*(sysid_UA / base_UA), and the sample floor to int(20c), so a
+# mediocre experiment cannot claim a well-sampled learner's authority.
+def _t4_adopt(*, two_zone=False, ua=None, upper=None, lower=None,
+              confidence=0.8, heat_loss=0.30, completed=True):
+    """Seed the passive learner from one completed experiment."""
+    c = _t4_coord(**(_T4_TWO_ZONE if two_zone else {}))
+    if ua is not None:
+        c._thermal_params.heat_loss_coefficient = ua
+    if upper is not None:
+        c._thermal_params.upper_floor_heat_loss = upper
+    if lower is not None:
+        c._thermal_params.lower_floor_heat_loss = lower
+    c._sysid.result = _dc_replace(
+        c._sysid.result,
+        completed=completed,
+        confidence=confidence,
+        heat_loss_kw_per_c=heat_loss,
+    )
+    c._t4_escaped = _t4_call(c._adopt_system_identification)
+    return c
+
+
+_t4_ad_ok = _t4_adopt(ua=0.15)
+R.check(
+    "a high-confidence experiment is BLENDED into the learned scale, not written over it",
+    _t4_ad_ok._house_heat_loss_scale == 1.8
+    and _t4_ad_ok._house_heat_loss_samples == 16
+    and not isinstance(_t4_ad_ok._t4_escaped, Exception),
+    f"scale {_t4_ad_ok._house_heat_loss_scale!r} samples "
+    f"{_t4_ad_ok._house_heat_loss_samples!r} -- a 0.30 kW/K fit against a "
+    "0.15 kW/K nameplate is a scale of 2.0, and at confidence 0.8 the blend "
+    "is 0.2*1.0 + 0.8*2.0; an overwrite would read 2.0",
+)
+_t4_ad_mid = _t4_adopt(ua=0.15, confidence=0.4)
+R.check(
+    "a mediocre experiment moves the scale less and claims fewer samples",
+    _t4_ad_mid._house_heat_loss_scale == 1.4
+    and _t4_ad_mid._house_heat_loss_samples == 8,
+    f"scale {_t4_ad_mid._house_heat_loss_scale!r} samples "
+    f"{_t4_ad_mid._house_heat_loss_samples!r} at confidence 0.4 against "
+    f"{_t4_ad_ok._house_heat_loss_scale!r} and "
+    f"{_t4_ad_ok._house_heat_loss_samples!r} at 0.8 -- both the weight and "
+    "the sample floor are linear in the confidence, which is what stops a "
+    "weak fit borrowing a well-sampled learner's authority",
+)
+_t4_ad_two = _t4_adopt(two_zone=True, ua=0.60, upper=0.05, lower=0.10)
+R.check(
+    "the two-zone base is the ZONES' sum, not the whole-house coefficient",
+    abs(_t4_ad_two._house_heat_loss_scale - 1.8) < 1e-9
+    and _t4_adopt(ua=0.60)._house_heat_loss_scale == 0.6,
+    "zones 0.05+0.10 against a whole-house 0.60 -> "
+    f"{_t4_ad_two._house_heat_loss_scale!r}, "
+    f"the same whole-house figure single-zone -> {_t4_adopt(ua=0.60)._house_heat_loss_scale!r} "
+    "-- reading the whole-house coefficient in two-zone mode divides the fit "
+    "by four times the right UA and the learner adopts a scale four times too "
+    "small",
+)
+_t4_ad_low = _t4_adopt(ua=0.15, confidence=0.2)
+_t4_ad_open = _t4_adopt(ua=0.15, completed=False, confidence=0.9)
+_t4_ad_nofit = _t4_adopt(ua=0.15, heat_loss=None)
+_t4_ad_zero = _t4_adopt(ua=0.0)
+R.check(
+    "a weak fit, an unfinished run, a fit with no UA and a zero nameplate all adopt nothing",
+    all(
+        c._house_heat_loss_scale == 1.0
+        and c._house_heat_loss_samples == 0
+        and not isinstance(c._t4_escaped, Exception)
+        for c in (_t4_ad_low, _t4_ad_open, _t4_ad_nofit, _t4_ad_zero)
+    ),
+    "confidence 0.2 -> "
+    f"{_t4_ad_low._house_heat_loss_scale!r}, not completed -> "
+    f"{_t4_ad_open._house_heat_loss_scale!r}, no fitted UA -> "
+    f"{_t4_ad_nofit._house_heat_loss_scale!r}, zero nameplate UA -> "
+    f"{_t4_ad_zero._house_heat_loss_scale!r} -- the zero nameplate is the one "
+    "that would otherwise divide by it",
+)
+R.check(
+    "an adopted result is marked adopted, so the next cycle cannot adopt it twice",
+    _t4_ad_ok._sysid.result.completed is False
+    and _t4_ad_ok._sysid.result.reason == "adopted",
+    f"completed {_t4_ad_ok._sysid.result.completed!r} reason "
+    f"{_t4_ad_ok._sysid.result.reason!r} -- leaving it completed re-blends "
+    "the same experiment on every update, walking the scale toward the fit "
+    "one cycle at a time",
+)
+
+
+# -- the three service entry points, and what each one costs ---------------
+_t4_force_busy = _t4_coord()
+_t4_count_refresh(_t4_force_busy)
+_t4_force_busy._optimization_running = True
+_t4_drive(_t4_force_busy, "async_force_optimization")
+_t4_force_idle = _t4_coord()
+_t4_count_refresh(_t4_force_idle)
+_t4_force_idle._optimization_running = False
+_t4_drive(_t4_force_idle, "async_force_optimization")
+R.check(
+    "forcing an optimization while one runs is dropped, not queued",
+    _t4_force_busy._t4_refreshes == 0
+    and _t4_force_idle._t4_refreshes == 1
+    and _t4_force_busy._t4_escaped is None,
+    f"running -> {_t4_force_busy._t4_refreshes} refreshes, idle -> "
+    f"{_t4_force_idle._t4_refreshes} -- the solve runs in a process pool, so "
+    "a queued second request is a second pool job for a plan the first is "
+    "already computing",
+)
+
+# The option is EDITED after construction, which is the only way to see the
+# push happen at all: built with the option already set, the experiment's
+# own config carries the right value whether this method reads it again or
+# not, and a version of this check that built it enabled survived the push
+# being deleted -- measured.
+_t4_arm_on = _t4_coord(system_identification_enabled=False)
+_t4_count_refresh(_t4_arm_on)
+_t4_arm_on_built = _t4_arm_on._sysid.config.enabled
+_t4_arm_on._config["system_identification_enabled"] = True
+_t4_drive(_t4_arm_on, "async_arm_system_identification")
+_t4_arm_off = _t4_coord(system_identification_enabled=True)
+_t4_count_refresh(_t4_arm_off)
+_t4_arm_off._config["system_identification_enabled"] = False
+_t4_drive(_t4_arm_off, "async_arm_system_identification")
+R.check(
+    "arming re-reads the option at call time, so an edit needs no reload",
+    _t4_arm_on_built is False
+    and _t4_arm_on._sysid.config.enabled is True
+    and _t4_arm_on._sysid.phase == "armed"
+    and _t4_arm_off._sysid.config.enabled is False
+    and _t4_arm_off._sysid.phase == "idle",
+    f"built {_t4_arm_on_built!r} then edited to True -> config "
+    f"{_t4_arm_on._sysid.config.enabled!r}, phase "
+    f"{_t4_arm_on._sysid.phase!r}; built True then edited to False -> config "
+    f"{_t4_arm_off._sysid.config.enabled!r}, phase "
+    f"{_t4_arm_off._sysid.phase!r} -- both directions, because the push is "
+    "invisible whenever the constructed value already agrees",
+)
+R.check(
+    "a refused arm still refreshes, which is what publishes the refusal",
+    _t4_arm_on._t4_refreshes == 1
+    and _t4_arm_off._t4_refreshes == 1
+    and _t4_arm_on._t4_escaped is None
+    and _t4_arm_off._t4_escaped is None,
+    f"armed -> {_t4_arm_on._t4_refreshes} refresh, refused -> "
+    f"{_t4_arm_off._t4_refreshes} -- returning early on a refusal leaves the "
+    "user's own button reporting nothing at all",
+)
+
+_t4_reset = _t4_coord(comfort_learning_enabled=True)
+_t4_count_refresh(_t4_reset)
+_t4_reset._t4_saves = 0
+
+
+async def _t4_reset_save():
+    _t4_reset._t4_saves += 1
+
+
+_t4_reset._async_save_accuracy = _t4_reset_save
+_t4_reset._comfort_learner.evidence = -1.9
+_t4_reset._comfort_learner.learned_weight = 3.0
+_t4_reset._apply_comfort_weight()
+_t4_reset_nudged = _t4_reset._opt_config.comfort_weight
+_t4_drive(_t4_reset, "async_reset_comfort_weight")
+R.check(
+    "resetting the comfort weight clears the evidence, republishes and persists",
+    _t4_reset_nudged == 3.0
+    and _t4_reset._opt_config.comfort_weight == 5.0
+    and _t4_reset._comfort_learner.evidence == 0.0
+    and _t4_reset._t4_saves == 1
+    and _t4_reset._t4_refreshes == 1,
+    f"learned 3.0 published as {_t4_reset_nudged!r}, reset to "
+    f"{_t4_reset._opt_config.comfort_weight!r}, evidence "
+    f"{_t4_reset._comfort_learner.evidence!r}, saves {_t4_reset._t4_saves}, "
+    f"refreshes {_t4_reset._t4_refreshes} -- the save is the part that makes "
+    "the reset survive a restart, and without it the learner reloads the "
+    "weight the user just rejected",
+)
+
+
+# -- `_on_defrost_event`: a transition is a report by definition ------------
+class _T4DefrostState:
+    """The one attribute the defrost listener reads off a state."""
+
+    def __init__(self, state):
+        self.state = state
+
+
+class _T4DefrostEvent:
+    """The one key the defrost listener reads off an event."""
+
+    def __init__(self, new_state):
+        self.data = {"new_state": new_state}
+
+
+def _t4_defrost(new_state):
+    """Deliver one defrost flag transition at a fixed instant."""
+    c = _t4_coord()
+    dt_util.freeze(_T4_NOW)
+    try:
+        c._t4_escaped = _t4_call(c._on_defrost_event, _T4DefrostEvent(new_state))
+    finally:
+        dt_util.freeze(None)
+    return c
+
+
+_T4_NOW = datetime(2026, 2, 1, 12, 0, 0, tzinfo=timezone.utc)
+_t4_df_on = _t4_defrost(_T4DefrostState("on"))
+_t4_df_off = _t4_defrost(_T4DefrostState("off"))
+_t4_df_unknown = _t4_defrost(_T4DefrostState("unknown"))
+_t4_df_unavail = _t4_defrost(_T4DefrostState("unavailable"))
+_t4_df_none = _t4_defrost(None)
+R.check(
+    "a defrost transition records on, off, and 'no reading' as three states",
+    _t4_df_on._defrost_window._state is True
+    and _t4_df_off._defrost_window._state is False
+    and _t4_df_unknown._defrost_window._state is None
+    and _t4_df_unavail._defrost_window._state is None
+    and _t4_df_none._defrost_window._state is None
+    and _t4_df_on._defrost_window._observed is True,
+    f"on -> {_t4_df_on._defrost_window._state!r}, off -> "
+    f"{_t4_df_off._defrost_window._state!r}, unknown -> "
+    f"{_t4_df_unknown._defrost_window._state!r}, unavailable -> "
+    f"{_t4_df_unavail._defrost_window._state!r}, no state -> "
+    f"{_t4_df_none._defrost_window._state!r} -- None is not False here: the "
+    "window accrues on-time, and a missing reading folded as 'not "
+    "defrosting' invents duty the pump never had",
+)
+R.check(
+    "the listener is arithmetic only and raises on nothing it is handed",
+    all(
+        not isinstance(c._t4_escaped, Exception)
+        for c in (_t4_df_on, _t4_df_off, _t4_df_unknown, _t4_df_unavail, _t4_df_none)
+    ),
+    "escapes: "
+    f"{[c._t4_escaped for c in (_t4_df_on, _t4_df_off, _t4_df_unknown, _t4_df_unavail, _t4_df_none)]!r} "
+    "-- this is a `@callback` on the event bus, where the helper swallows an "
+    "exception, so a refusal and a crash look identical from outside",
+)
+
+
+# -- `_freq_entity_reading`: a setpoint register that echoes itself ---------
+# The range comes from the number entity's own min/max because the hardware
+# integration knows its register limits. The reported value prefers a
+# separate sensor, because a setpoint register echoes the last written value
+# and feedback read from an echo can never diverge -- the watchdog would be
+# decorative and the learned map would train against a frozen number.
+_T4_FREQ_NUMBER = {
+    "number.freq": FakeState("55", attributes={"min": 25.0, "max": 90.0})
+}
+_T4_FREQ_BOTH = {"compressor_freq_entity": "number.freq",
+                 "compressor_freq_sensor": "sensor.freq"}
+R.check(
+    "with no frequency entity the reading and its range are all zero",
+    _t4_call(_t4_coord()._freq_entity_reading) == (None, 0.0, 0.0)
+    and _t4_call(
+        _t4_coord({}, compressor_freq_entity="number.gone")._freq_entity_reading
+    )
+    == (None, 0.0, 0.0),
+    f"unset -> {_t4_call(_t4_coord()._freq_entity_reading)!r}, configured but "
+    "absent -> "
+    f"{_t4_call(_t4_coord({}, compressor_freq_entity='number.gone')._freq_entity_reading)!r} "
+    "-- a zero range is what the caller reads as 'no clamp is knowable'",
+)
+R.check(
+    "the range comes from the entity's own min and max, with a documented default",
+    _t4_call(
+        _t4_coord(_T4_FREQ_NUMBER, compressor_freq_entity="number.freq")._freq_entity_reading
+    )
+    == (55.0, 25.0, 90.0)
+    and _t4_call(
+        _t4_coord(
+            {"number.freq": FakeState("55")},
+            compressor_freq_entity="number.freq",
+        )._freq_entity_reading
+    )
+    == (55.0, 20.0, 120.0),
+    "with min/max 25/90 -> "
+    f"{_t4_call(_t4_coord(_T4_FREQ_NUMBER, compressor_freq_entity='number.freq')._freq_entity_reading)!r}, "
+    "with no attributes -> "
+    f"{_t4_call(_t4_coord({'number.freq': FakeState('55')}, compressor_freq_entity='number.freq')._freq_entity_reading)!r} "
+    "-- guessing the range from the value would let a clamp write outside the "
+    "pump's register",
+)
+_t4_fr_absent = _t4_call(
+    _t4_coord(_T4_FREQ_NUMBER, **_T4_FREQ_BOTH)._freq_entity_reading
+)
+_t4_fr_sensor = _t4_call(
+    _t4_coord(
+        dict(_T4_FREQ_NUMBER, **{"sensor.freq": FakeState("61.5")}), **_T4_FREQ_BOTH
+    )._freq_entity_reading
+)
+R.check(
+    "a configured feedback sensor is preferred, and its absence is not a fallback",
+    _t4_fr_sensor == (61.5, 25.0, 90.0) and _t4_fr_absent == (None, 25.0, 90.0),
+    f"sensor present -> {_t4_fr_sensor!r}, sensor configured but absent -> "
+    f"{_t4_fr_absent!r} -- falling back to the number entity here would "
+    "re-decorate the watchdog at exactly the moment the real feedback "
+    "disappeared, and the range still comes through so the clamp survives",
+)
+_t4_fr_junk = _t4_call(
+    _t4_coord(
+        dict(_T4_FREQ_NUMBER, **{"sensor.freq": FakeState("lots")}), **_T4_FREQ_BOTH
+    )._freq_entity_reading
+)
+_t4_fr_nan = _t4_call(
+    _t4_coord(
+        dict(_T4_FREQ_NUMBER, **{"sensor.freq": FakeState("nan")}), **_T4_FREQ_BOTH
+    )._freq_entity_reading
+)
+R.check(
+    "a non-numeric and a NaN feedback reading are both dropped, range intact",
+    _t4_fr_junk == (None, 25.0, 90.0) and _t4_fr_nan == (None, 25.0, 90.0),
+    f"'lots' -> {_t4_fr_junk!r}, 'nan' -> {_t4_fr_nan!r} -- NaN parses, so "
+    "the finite test is a separate arm from the parse and both must drop the "
+    "reading while keeping the register limits",
+)
+
+
+# -- `_load_t4b_learners`: one parser for the store AND the snapshot -------
+# The store loader and the snapshot restore both come through here, so the
+# two paths cannot drift apart -- and every arm below is a corruption
+# barrier scoped to ONE entry, because the alternative is a payload written
+# by an older version losing every learner after its first bad key.
+#
+# Nothing here asserts a whole production dict. #851 went red on `main`
+# because an exact-equality assertion over a payload is a second
+# declaration of it, with no way to learn the original moved; these checks
+# name the keys they are about.
+def _t4_t4b(stored, **preset):
+    """Parse one T4b payload over a coordinator carrying `preset`."""
+    c = _t4_coord()
+    for name, value in preset.items():
+        setattr(c, name, value)
+    c._t4_escaped = _t4_call(c._load_t4b_learners, stored)
+    return c
+
+
+_t4_env = _t4_t4b(
+    {"capacity_envelope": {"nope": [1.0, 2], "5": [3.5, 7], "6": "x"}}
+)
+R.check(
+    "a corrupt capacity-envelope bucket is skipped one entry at a time",
+    dict(_t4_env._capacity_envelope) == {5: [3.5, 7]}
+    and not isinstance(_t4_env._t4_escaped, Exception),
+    f"{dict(_t4_env._capacity_envelope)!r} -- the good bucket sits BETWEEN "
+    "an unparseable key and an unindexable entry, which is the only "
+    "arrangement a per-entry skip and an abort disagree on",
+)
+
+_t4_ap = _t4_t4b({"solar_aperture": {"n": 5.0, "mx": "junk", "scale": 99.0}})
+R.check(
+    "one corrupt aperture field is skipped and the LATER fields still load",
+    _t4_ap._solar_aperture["n"] == 5.0
+    and _t4_ap._solar_aperture["mx"] == 0.0
+    and _t4_ap._solar_aperture["scale"] == 2.0,
+    f"n {_t4_ap._solar_aperture['n']!r}, mx {_t4_ap._solar_aperture['mx']!r}, "
+    f"scale {_t4_ap._solar_aperture['scale']!r} -- `mx` is parsed BEFORE "
+    "`scale`, so an abort would leave the scale at its default 1.0 instead "
+    "of the clipped 2.0, and the clip is the arm that proves the loop "
+    "carried on",
+)
+_t4_ap_nan = _t4_t4b({"solar_aperture": {"n": float("nan")}})
+R.check(
+    "a non-finite aperture field keeps the value it had, rather than becoming NaN",
+    _t4_ap_nan._solar_aperture["n"] == 0.0,
+    f"{_t4_ap_nan._solar_aperture['n']!r} -- NaN parses, so the finite test "
+    "is its own arm, and a NaN in the regression's accumulators poisons "
+    "every later solar sample",
+)
+
+_t4_gains_ok = _t4_t4b({"internal_gains_profile": [0.1] * 24})
+_t4_gains_junk = _t4_t4b(
+    {"internal_gains_profile": ["x"] * 24},
+    _internal_gains_profile=[9.0] * 24,
+)
+_t4_gains_short = _t4_t4b(
+    {"internal_gains_profile": [0.1] * 23},
+    _internal_gains_profile=[9.0] * 24,
+)
+R.check(
+    "a 24-hour gains profile loads; a corrupt one is CLEARED, a short one ignored",
+    _t4_gains_ok._internal_gains_profile == [0.1] * 24
+    and _t4_gains_junk._internal_gains_profile is None
+    and _t4_gains_short._internal_gains_profile == [9.0] * 24,
+    f"good -> 24 values, corrupt over a live profile -> "
+    f"{_t4_gains_junk._internal_gains_profile!r}, 23 values over a live "
+    f"profile -> {len(_t4_gains_short._internal_gains_profile)} values -- the "
+    "two refusals differ on purpose: a corrupt profile is cleared to None, "
+    "which the model reads as 'no learned profile', while a wrong-length one "
+    "never enters the `try` and leaves the live profile alone",
+)
+
+
+# -- `_async_save_thermal_learning`: a write that fails is not a crash -----
+class _T4FullStore:
+    """A store whose write fails, as a full or read-only disk does."""
+
+    async def async_save(self, data):
+        raise RuntimeError("no space left on device")
+
+
+_t4_sv = _t4_coord()
+_t4_sv._thermal_learning_store = _T4FullStore()
+_t4_drive(_t4_sv, "_async_save_thermal_learning")
+R.check(
+    "a failed thermal-learning write is swallowed, not raised into the learner",
+    _t4_sv._t4_escaped is None,
+    f"escaped {_t4_sv._t4_escaped!r} -- every learner in the seam ends by "
+    "calling this, so letting a full disk out here takes down the update "
+    "cycle over a value the integration can relearn",
+)
+
+
+# -- `_apply_learner_payloads`: a rollback is a restore, not a merge -------
+_t4_pl = _t4_coord()
+_t4_pl_rate_before = _t4_pl._buffer_cooling_rate
+_t4_pl._t4_escaped = _t4_call(
+    _t4_pl._apply_learner_payloads,
+    {
+        "thermal_learning": {
+            "buffer_cooling_rate": "junk",
+            "house_heat_loss_scale": 1.2,
+            "lower_floor_loss_ratio": 1.1,
+            "cop_scale": 1.05,
+        }
+    },
+)
+R.check(
+    "a corrupt value in a snapshot skips that setter and runs the three after it",
+    _t4_pl._buffer_cooling_rate == _t4_pl_rate_before
+    and _t4_pl._house_heat_loss_scale == 1.2
+    and _t4_pl._lower_floor_loss_ratio == 1.1
+    and _t4_pl._cop_scale == 1.05
+    and not isinstance(_t4_pl._t4_escaped, Exception),
+    f"rate {_t4_pl._buffer_cooling_rate!r} (unchanged), scale "
+    f"{_t4_pl._house_heat_loss_scale!r}, ratio "
+    f"{_t4_pl._lower_floor_loss_ratio!r}, cop {_t4_pl._cop_scale!r} -- the "
+    "corrupt key is FIRST in the setter list, so an abort would leave all "
+    "three later learners on the drifted state the rollback is meant to "
+    "replace",
+)
+
+
+# -- `_reanchor_house_heat_loss_scale`: a learned scale is UA-relative -----
+# The stored scale multiplies a nameplate UA. If the user edits that UA, the
+# same scale means a different coefficient, so the store records the UA it
+# was fitted against and this re-expresses the scale when the two disagree.
+# The return value gates the one persistence write, because `updated_at`
+# moves on every save and defeats the store's own content-hash skip.
+_t4_ra = _t4_coord()
+_T4_RA_CURRENT = _t4_ra._house_heat_loss_anchor()
+_t4_ra_refusals = {
+    "absent": _t4_call(_t4_ra._reanchor_house_heat_loss_scale, None),
+    "non-numeric": _t4_call(_t4_ra._reanchor_house_heat_loss_scale, "junk"),
+    "zero": _t4_call(_t4_ra._reanchor_house_heat_loss_scale, 0.0),
+    "non-finite": _t4_call(
+        _t4_ra._reanchor_house_heat_loss_scale, float("nan")
+    ),
+    "within the step": _t4_call(
+        _t4_ra._reanchor_house_heat_loss_scale, _T4_RA_CURRENT * 1.01
+    ),
+}
+R.check(
+    "five stored anchors re-express nothing, and each says so by returning False",
+    all(v is False for v in _t4_ra_refusals.values()),
+    f"{_t4_ra_refusals!r} against a live anchor of {_T4_RA_CURRENT!r} -- the "
+    "return value is what gates the persistence write, so a True here is a "
+    "store write on every startup",
+)
+_t4_ra_far = _t4_coord()
+_t4_ra_far_out = _t4_call(
+    _t4_ra_far._reanchor_house_heat_loss_scale, _T4_RA_CURRENT * 4.0
+)
+R.check(
+    "an anchor a factor of four out IS re-expressed, and reports that it was",
+    _t4_ra_far_out is True,
+    f"{_t4_ra_far_out!r} from a stored {_T4_RA_CURRENT * 4.0!r} against a "
+    f"live {_T4_RA_CURRENT!r} -- without this arm every refusal above would "
+    "be satisfied by a method that always returns False",
+)
+
+
+# -- `async_update_thermal_params`: the options dialog writing through -----
+# Every key here arrives from a service call or an options edit, so the
+# types are whatever the front end sent -- a checkbox as 0, a temperature as
+# an int. The coercions are the pin: an int reaching `dhw_legionella_temp`
+# makes every later comparison integer-typed, and a raw truthy string
+# reaching a flag is a checkbox that cannot be turned off.
+def _t4_update_params(params, **preset):
+    """Apply one options write, counting the persistence it triggers."""
+    c = _t4_coord()
+    c._t4_saves = 0
+    inner = c._async_save_thermal_learning
+
+    async def counted():
+        c._t4_saves += 1
+        return await inner()
+
+    c._async_save_thermal_learning = counted
+    for name, value in preset.items():
+        setattr(c, name, value)
+    return _t4_drive(c, "async_update_thermal_params", params)
+
+
+_t4_up_rate = _t4_update_params(
+    {"buffer_cooling_rate": 1.75}, _buffer_cooling_samples=7
+)
+_t4_up_none = _t4_update_params({}, _buffer_cooling_samples=7)
+R.check(
+    "an explicit buffer cooling rate replaces the learned one AND resets its samples",
+    _t4_up_rate._buffer_cooling_rate == 1.75
+    and _t4_up_rate._thermal_params.buffer_cooling_rate == 1.75
+    and _t4_up_rate._buffer_cooling_samples == 0
+    and _t4_up_rate._t4_saves == 1
+    and _t4_up_rate._t4_escaped is None,
+    f"rate {_t4_up_rate._buffer_cooling_rate!r}, samples "
+    f"{_t4_up_rate._buffer_cooling_samples!r}, saves "
+    f"{_t4_up_rate._t4_saves} -- keeping the seven samples would let the "
+    "learner outvote the number the user just typed, and the save is what "
+    "stops the old rate coming back on the next restart",
+)
+R.check(
+    "an options write that names no rate touches neither the rate nor its samples",
+    _t4_up_none._buffer_cooling_samples == 7
+    and _t4_up_none._t4_saves == 0
+    and _t4_up_none._buffer_cooling_rate
+    == _t4_coord()._buffer_cooling_rate,
+    f"samples {_t4_up_none._buffer_cooling_samples!r}, saves "
+    f"{_t4_up_none._t4_saves} -- the dialog posts the pages it has, so a "
+    "page the user never opened must not reset a learner",
+)
+
+_t4_up_falsy = _t4_update_params(
+    {"dhw_schedule_enabled": 0, "dhw_legionella_enabled": ""}
+)
+_t4_up_truthy = _t4_update_params({"dhw_schedule_enabled": "off"})
+R.check(
+    "the two hot-water flags are coerced with bool, in both directions",
+    _t4_up_falsy._thermal_params.dhw_schedule_enabled is False
+    and _t4_up_falsy._thermal_params.dhw_legionella_enabled is False
+    and _t4_up_truthy._thermal_params.dhw_schedule_enabled is True,
+    f"0 -> {_t4_up_falsy._thermal_params.dhw_schedule_enabled!r}, '' -> "
+    f"{_t4_up_falsy._thermal_params.dhw_legionella_enabled!r}, 'off' -> "
+    f"{_t4_up_truthy._thermal_params.dhw_schedule_enabled!r} -- both flags "
+    "default True, so only the falsy direction can show the coercion "
+    "happening at all; and 'off' being True is the front end's problem, not "
+    "this method's, which is why the check states it rather than fixing it",
+)
+_t4_up_ints = _t4_update_params(
+    {
+        "dhw_legionella_temperature": 65,
+        "dhw_legionella_interval_days": 5,
+        "dhw_idle_min_temperature": 33,
+    }
+)
+R.check(
+    "three hot-water numbers arrive as ints and are stored as floats",
+    _t4_up_ints._thermal_params.dhw_legionella_temp == 65.0
+    and _t4_up_ints._thermal_params.dhw_legionella_interval_days == 5.0
+    and _t4_up_ints._thermal_params.dhw_idle_min_temp == 33.0
+    and all(
+        isinstance(v, float)
+        for v in (
+            _t4_up_ints._thermal_params.dhw_legionella_temp,
+            _t4_up_ints._thermal_params.dhw_legionella_interval_days,
+            _t4_up_ints._thermal_params.dhw_idle_min_temp,
+        )
+    ),
+    "types: "
+    f"{[type(v).__name__ for v in (_t4_up_ints._thermal_params.dhw_legionella_temp, _t4_up_ints._thermal_params.dhw_legionella_interval_days, _t4_up_ints._thermal_params.dhw_idle_min_temp)]!r} "
+    "-- the type is the assertion, not the value: an int interval reaching "
+    "the disinfection countdown makes its arithmetic integer-typed, and the "
+    "value alone compares equal either way",
+)
+
+
+
+# ---------------------------------------------------------------------------
+# W5-G7 tranche 5 of 5 (#195): the lifecycle methods, and the last of the bar.
+#
+# These five were left until last on purpose: each needs a whole update cycle
+# DRIVEN rather than a method called, which is why the four earlier tranches
+# took everything else first. The arithmetic this one closes: 271 missed
+# against 184 allowed needs 87 more statements, and these eight methods hold
+# 92 between them.
+#
+# The four rules the earlier tables cost a round each are applied rather than
+# restated. Every input makes the guard under test the only arm that can
+# reject. Anything that can raise goes through a catcher and asserts nothing
+# escaped. Details sort by `repr`. And nothing asserts exact equality against
+# a production data structure -- the rule #851 cost, when an exact key list
+# turned `main` red because it was a second declaration with no way to learn
+# the original had moved.
+R.section("W5-G7 t5: the lifecycle methods (#195)")
+
+_T5_DATA = {"tibber_token": "x", "weather_entity": "weather.home"}
+_T5_NOW = datetime(2026, 2, 1, 12, 0, 0)
+
+
+def _t5_coord(states=None, **config):
+    """A live coordinator over the fake bus, with states and config applied."""
+    return HeatPumpOptimizerCoordinator(
+        FakeHass(states or {}), FakeEntry(data=dict(_T5_DATA, **config))
+    )
+
+
+def _t5_drive(coord, method, *args, **kwargs):
+    """Await one coordinator method and capture anything that escapes it."""
+    coord._t5_escaped = None
+    try:
+        coord._t5_returned = _asyncio.run(getattr(coord, method)(*args, **kwargs))
+    except Exception as err:  # noqa: BLE001
+        coord._t5_escaped = err
+        coord._t5_returned = None
+    return coord
+
+
+# -- `_async_drive_pumps`: transitions only, and only what the user wired ---
+# Two circulation pumps, each commanded exactly once per state change. The
+# whole method is skipped unless an entity is configured, because touching
+# an entity the user never named is the one failure a heating integration
+# cannot take back.
+class _T5Plan:
+    """The two fields the pump driver reads off a solved plan."""
+
+    def __init__(self, power_schedule, timestamps=None):
+        self.power_schedule = power_schedule
+        self.timestamps = timestamps or []
+
+
+def _t5_pumps(*, plan=None, action=None, fail=False, **config):
+    """Run one pump tick at a fixed instant."""
+    c = _t5_coord(**config)
+    if plan is not None:
+        c._optimization_result = plan
+    if action is not None:
+        c._current_action = action
+    if fail:
+        async def refuse(domain, service, data):
+            raise RuntimeError("entity briefly unavailable")
+
+        c.hass.services.async_call = refuse
+    dt_util.freeze(_T5_NOW)
+    try:
+        _t5_drive(c, "_async_drive_pumps")
+    finally:
+        dt_util.freeze(None)
+    return c
+
+
+_t5_pump_none = _t5_pumps()
+R.check(
+    "with neither pump configured the driver commands nothing at all",
+    list(_t5_pump_none.hass.services.calls) == []
+    and _t5_pump_none._t5_escaped is None,
+    f"{list(_t5_pump_none.hass.services.calls)!r} -- the early return is the "
+    "arm that keeps this method from touching an entity the user never named",
+)
+_t5_pump_vvc = _t5_pumps(vvc_pump_entity="switch.vvc")
+_t5_pump_space = _t5_pumps(space_circulation_pump_entity="switch.space")
+R.check(
+    "each configured pump is commanded on its own, by entity id",
+    [c[2]["entity_id"] for c in _t5_pump_vvc.hass.services.calls]
+    == ["switch.vvc"]
+    and [c[2]["entity_id"] for c in _t5_pump_space.hass.services.calls]
+    == ["switch.space"],
+    f"vvc alone -> {list(_t5_pump_vvc.hass.services.calls)!r}; space alone -> "
+    f"{list(_t5_pump_space.hass.services.calls)!r} -- the two branches are "
+    "independent, so a house with one pump wired must not see the other "
+    "commanded",
+)
+
+_t5_pump_twice = _t5_coord(vvc_pump_entity="switch.vvc")
+dt_util.freeze(_T5_NOW)
+try:
+    _t5_drive(_t5_pump_twice, "_async_drive_pumps")
+    _t5_pump_first = len(_t5_pump_twice.hass.services.calls)
+    _t5_drive(_t5_pump_twice, "_async_drive_pumps")
+    _t5_pump_second = len(_t5_pump_twice.hass.services.calls)
+finally:
+    dt_util.freeze(None)
+R.check(
+    "a pump already in the commanded state is not commanded again",
+    _t5_pump_first == 1 and _t5_pump_second == 1,
+    f"{_t5_pump_first} call after one tick, {_t5_pump_second} after two -- "
+    "the driver runs every cycle, so without the transition test a pump "
+    "would take a service call every thirty seconds for as long as it runs",
+)
+_t5_pump_fail = _t5_pumps(vvc_pump_entity="switch.vvc", fail=True)
+R.check(
+    "a pump command that FAILED is not remembered as done",
+    dict(_t5_pump_fail._pump_commanded) == {}
+    and _t5_pump_fail._t5_escaped is None,
+    f"commanded {dict(_t5_pump_fail._pump_commanded)!r}, escaped "
+    f"{_t5_pump_fail._t5_escaped!r} -- recording before the call succeeds "
+    "leaves a briefly unavailable entity in the wrong state until the next "
+    "transition, which may be hours",
+)
+_t5_pump_plan = _t5_pumps(
+    space_circulation_pump_entity="switch.space",
+    plan=_T5Plan([3.0] * 8, [_T5_NOW]),
+    action={"heat_pump_on": True},
+)
+R.check(
+    "the space pump follows a solved plan, indexed from the plan's own clock",
+    dict(_t5_pump_plan._pump_commanded) == {"switch.space": True}
+    and _t5_pump_plan._t5_escaped is None,
+    f"{dict(_t5_pump_plan._pump_commanded)!r} from a plan heating at the "
+    "current step -- the index comes from the plan's first timestamp against "
+    "the clock, not from position, so a stale plan cannot read as step 0",
+)
+
+
+# -- `_async_update_data`: the cycle, and what may not break it ------------
+# Three sub-steps are wrapped so a failure cannot take the cycle down --
+# the frequency write, the pump tick and the snapshot heartbeat -- because
+# each is an accessory to the plan rather than the plan. Everything else
+# raising becomes `UpdateFailed`, which is the entity layer's own language
+# for "this poll failed", and the cycle's own latch has already logged it.
+def _t5_cycle(mode=None, *, raising=(), **config):
+    """Drive one whole update cycle with the fetches stubbed out."""
+    c = _t5_coord(**config)
+    if mode is not None:
+        c._mode = mode
+
+    async def _noop(*args, **kwargs):
+        return None
+
+    async def _boom(*args, **kwargs):
+        raise RuntimeError("sub-step exploded")
+
+    for name in (
+        "_fetch_tibber_prices",
+        "_fetch_weather_forecast",
+        "_fetch_solar_forecast",
+        "_async_learn_price_shape",
+        "_async_save_accuracy",
+        "_async_save_energy_totals",
+        "async_run_optimization",
+    ):
+        setattr(c, name, _boom if name in raising else _noop)
+    for name in raising:
+        setattr(c, name, _boom)
+    return _t5_drive(c, "_async_update_data")
+
+
+_t5_cy_comfort = _t5_cycle("comfort")
+_t5_cy_boost = _t5_cycle("boost")
+R.check(
+    "comfort and boost publish an action the optimizer never solved for",
+    (_t5_cy_comfort._current_action or {}).get("mode") == "comfort"
+    and (_t5_cy_comfort._current_action or {}).get("power_normalized") == 0.7
+    and (_t5_cy_boost._current_action or {}).get("mode") == "boost"
+    and (_t5_cy_boost._current_action or {}).get("power_normalized") == 1.0
+    and _t5_cy_comfort._t5_escaped is None
+    and _t5_cy_boost._t5_escaped is None,
+    f"comfort -> {(_t5_cy_comfort._current_action or {}).get('mode')!r} at "
+    f"{(_t5_cy_comfort._current_action or {}).get('power_normalized')!r}, "
+    f"boost -> {(_t5_cy_boost._current_action or {}).get('mode')!r} at "
+    f"{(_t5_cy_boost._current_action or {}).get('power_normalized')!r} -- "
+    "these two modes bypass the solver entirely, so the action they publish "
+    "is the only thing standing between the user's choice and the pump",
+)
+R.check(
+    "boost commands more power than comfort, which is the whole difference",
+    (_t5_cy_boost._current_action or {}).get("power")
+    > (_t5_cy_comfort._current_action or {}).get("power"),
+    f"boost {(_t5_cy_boost._current_action or {}).get('power')!r} against "
+    f"comfort {(_t5_cy_comfort._current_action or {}).get('power')!r} -- "
+    "0.7 of the nameplate against all of it",
+)
+
+_t5_cy_accessory = _t5_cycle(
+    "comfort",
+    raising=(
+        "_command_frequency",
+        "_async_drive_pumps",
+        "_async_watch_learning_drift",
+    ),
+)
+R.check(
+    "the cycle survives all three accessory sub-steps raising at once",
+    _t5_cy_accessory._t5_escaped is None
+    and _t5_cy_accessory._t5_returned is not None,
+    f"escaped {_t5_cy_accessory._t5_escaped!r}, returned a payload: "
+    f"{_t5_cy_accessory._t5_returned is not None} -- the frequency write, the "
+    "pump tick and the snapshot heartbeat are each an accessory to the plan, "
+    "and a house whose pump entity went missing must still get a plan",
+)
+_t5_cy_core = _t5_cycle("comfort", raising=("_fetch_tibber_prices",))
+R.check(
+    "a core step raising becomes UpdateFailed, in the entity layer's own language",
+    type(_t5_cy_core._t5_escaped).__name__ == "UpdateFailed"
+    and "sub-step exploded" in str(_t5_cy_core._t5_escaped),
+    f"{type(_t5_cy_core._t5_escaped).__name__}: "
+    f"{str(_t5_cy_core._t5_escaped)[:60]!r} -- the cause is carried into the "
+    "message rather than swallowed, which is what puts it in front of a user "
+    "instead of only in the log",
+)
+R.check(
+    "every cycle clears its own refresh task, on the failing path too",
+    _t5_cy_comfort._refresh_task is None
+    and _t5_cy_core._refresh_task is None,
+    f"after a good cycle {_t5_cy_comfort._refresh_task!r}, after a failed one "
+    f"{_t5_cy_core._refresh_task!r} -- the `finally` is what stops a raised "
+    "cycle from leaving a task nothing will ever await",
+)
+
+
+# -- `_update_current_state`: the readings the plan is built on ------------
+# Every optional sensor here has to degrade cleanly, because most installs
+# have none of them. The arms below are the ones where degrading wrongly is
+# silent: a valve target read as 0.0 says the valve never throttles, a solar
+# reading that never wins says the local pyranometer was wired for nothing,
+# and a wood tank that keeps its last value simulates a fire that went out.
+def _t5_state(states=None, *, prior_wood=None, **config):
+    """Run one state read, optionally over a coordinator holding a prior."""
+    c = _t5_coord(states, **config)
+    if prior_wood is not None:
+        c._current_state.wood_tank_temperature = prior_wood
+    return _t5_drive(c, "_update_current_state")
+
+
+R.check(
+    "a smart valve's target is read through, and its absence leaves the default",
+    _t5_state(
+        {"sensor.valve": FakeState("38.5")},
+        mixing_valve_target_entity="sensor.valve",
+    )._thermal_params.mixing_valve_target
+    == 38.5
+    and _t5_state()._thermal_params.mixing_valve_target == 0.0,
+    "configured -> "
+    f"{_t5_state({'sensor.valve': FakeState('38.5')}, mixing_valve_target_entity='sensor.valve')._thermal_params.mixing_valve_target!r}, "
+    f"unset -> {_t5_state()._thermal_params.mixing_valve_target!r} -- knowing "
+    "where the valve regulates to is what tells the model whether it is "
+    "throttling, and therefore whether surplus heat can reach the tank at all",
+)
+R.check(
+    "an unreadable valve target does not overwrite the default with a guess",
+    _t5_state(
+        {"sensor.valve": FakeState("unavailable")},
+        mixing_valve_target_entity="sensor.valve",
+    )._thermal_params.mixing_valve_target
+    == 0.0,
+    f"{_t5_state({'sensor.valve': FakeState('unavailable')}, mixing_valve_target_entity='sensor.valve')._thermal_params.mixing_valve_target!r} "
+    "-- the reader's `ok` is the arm, not the value, and a stale reading "
+    "carries a value",
+)
+
+_t5_solar = _t5_state(
+    {"sensor.ghi": FakeState("412.5")}, solar_radiation_entity="sensor.ghi"
+)
+R.check(
+    "a local pyranometer wins, and reaches BOTH the attribute and the state",
+    _t5_solar._solar_radiation == 412.5
+    and _t5_solar._current_state.solar_radiation == 412.5
+    and _t5_state()._solar_radiation == 0.0,
+    f"sensor -> attribute {_t5_solar._solar_radiation!r} and state "
+    f"{_t5_solar._current_state.solar_radiation!r}; no sensor -> "
+    f"{_t5_state()._solar_radiation!r} -- both writes matter, because the "
+    "solver reads the state while the published sensor reads the attribute",
+)
+
+# The two-tank model needs a throttling valve, two zones AND a wood probe;
+# anything less resolves to a single-tank layout, which is why the fixture
+# carries all three rather than the probe alone.
+_T5_TWO_TANK = {
+    "wood_tank_top_entity": "sensor.wood_top",
+    "wood_tank_bottom_entity": "sensor.wood_bottom",
+    "topology_layout": "two_tank_4way",
+    "mixing_valve_mode": "smart_read",
+    "upper_floor_thermal_mass": 3.0,
+    "lower_floor_thermal_mass": 8.0,
+    "lower_floor_temp_entity": "sensor.lower",
+}
+_T5_WOOD_LIVE = {
+    "sensor.wood_top": FakeState("70"),
+    "sensor.wood_bottom": FakeState("50"),
+}
+_T5_WOOD_STALE = {
+    "sensor.wood_top": FakeState("unavailable"),
+    "sensor.wood_bottom": FakeState("unavailable"),
+}
+_t5_wood_first = _t5_state(dict(_T5_WOOD_LIVE), **_T5_TWO_TANK)
+_t5_wood_gone = _t5_state(dict(_T5_WOOD_STALE), prior_wood=60.0, **_T5_TWO_TANK)
+_t5_wood_dropped = _t5_state(prior_wood=60.0)
+R.check(
+    "a live wood tank is modelled, a stale one is DROPPED rather than held",
+    _t5_wood_first._current_state.wood_tank_temperature == 60.0
+    and _t5_wood_gone._current_state.wood_tank_temperature is None
+    and _t5_wood_first._thermal_params.two_tank_modelled is True,
+    f"live probes -> {_t5_wood_first._current_state.wood_tank_temperature!r} "
+    f"(the 70/50 mean), stale probes over a live 60.0 -> "
+    f"{_t5_wood_gone._current_state.wood_tank_temperature!r} -- holding the "
+    "last value simulates a fire that went out, and the step would plan "
+    "against stored heat that is not there",
+)
+R.check(
+    "reconfiguring the two-tank model away drops the state it left behind",
+    _t5_wood_dropped._current_state.wood_tank_temperature is None
+    and _t5_wood_dropped._thermal_params.two_tank_modelled is False,
+    f"{_t5_wood_dropped._current_state.wood_tank_temperature!r} after the "
+    "layout no longer models a second tank -- otherwise nothing clears it "
+    "and the model keeps a tank the parameters stopped describing",
+)
+R.check(
+    "none of the optional-sensor arms raises on a house that has none of them",
+    _t5_state()._t5_escaped is None
+    and _t5_wood_first._t5_escaped is None
+    and _t5_wood_gone._t5_escaped is None,
+    "escapes: "
+    f"{[c._t5_escaped for c in (_t5_state(), _t5_wood_first, _t5_wood_gone)]!r} "
+    "-- this runs inside the update cycle, where an escape is an `UpdateFailed` "
+    "and every entity goes unavailable",
+)
+
+
+# -- `async_simulate`: a what-if that must never break operations ----------
+# The card drags a slider, so this is rate-limited and every override lands
+# on a DEEP COPY of the live configuration. The arms below are the ones a
+# user can reach from the card: an invalid window they typed, an empty one
+# they meant, and the ceiling that has to reach the model as well as the
+# solver.
+_T5_SIM_MIDNIGHT = _T5_NOW.replace(hour=0, minute=0, second=0, microsecond=0)
+
+
+def _t5_solved():
+    """A coordinator carrying a real solved plan, from a covering price list."""
+    c = _t5_coord()
+    c._prices = [
+        {
+            "total": 0.6 + 0.5 * (h % 12) / 12.0,
+            "starts_at": (_T5_SIM_MIDNIGHT + timedelta(hours=h)).isoformat(),
+            "level": "NORMAL",
+        }
+        for h in range(48)
+    ]
+    dt_util.freeze(_T5_NOW)
+    try:
+        _t5_drive(c, "async_run_optimization")
+    finally:
+        dt_util.freeze(None)
+    return c
+
+
+def _t5_sim(overrides, coord=None):
+    """One what-if against a solved plan, with the rate limiter cleared."""
+    c = coord if coord is not None else _t5_solved()
+    c._last_simulation = None
+    dt_util.freeze(_T5_NOW)
+    try:
+        _t5_drive(c, "async_simulate", overrides)
+    finally:
+        dt_util.freeze(None)
+    return c
+
+
+_t5_solve = _t5_solved()
+R.check(
+    "a covering price list solves, which is what every check below rests on",
+    _t5_solve._t5_returned is None
+    and _t5_solve._optimization_result is not None
+    and _t5_solve._t5_escaped is None,
+    f"returned {_t5_solve._t5_returned!r}, result present "
+    f"{_t5_solve._optimization_result is not None} -- `None` is this "
+    "method's success value, and the arms below would all read as 'no plan' "
+    "without it",
+)
+
+_t5_sim_noplan = _t5_sim({}, coord=_t5_coord())
+R.check(
+    "a what-if before the first solve answers no_plan rather than solving one",
+    _t5_sim_noplan._t5_returned.get("error") == "no_plan",
+    f"{_t5_sim_noplan._t5_returned!r} -- the card asks for this on load, and "
+    "solving here would put a second job in the pool behind the real one",
+)
+_t5_sim_limited = _t5_coord()
+_t5_sim_limited._last_simulation = _T5_NOW
+_t5_sim_limited._simulation_cache = {"monthly_cost_delta": 1.0}
+dt_util.freeze(_T5_NOW)
+try:
+    _t5_drive(_t5_sim_limited, "async_simulate", {})
+finally:
+    dt_util.freeze(None)
+R.check(
+    "a second what-if inside the window returns the CACHE, flagged rate-limited",
+    _t5_sim_limited._t5_returned.get("rate_limited") is True
+    and _t5_sim_limited._t5_returned.get("monthly_cost_delta") == 1.0,
+    f"{_t5_sim_limited._t5_returned!r} -- returning the previous answer "
+    "rather than nothing is what keeps a dragged slider showing a number, "
+    "and the flag is what stops the card believing it is fresh",
+)
+
+_t5_sim_bad = _t5_sim({"dhw_windows": "breakfast"})
+R.check(
+    "a window spec the user typed wrong is refused by name, not silently dropped",
+    str(_t5_sim_bad._t5_returned.get("error", "")).startswith("invalid_windows:")
+    and _t5_sim_bad._t5_returned.get("rate_limited") is False,
+    f"{_t5_sim_bad._t5_returned.get('error')!r} -- the parser's own message "
+    "is carried through, so the card can say which window is wrong instead "
+    "of 'simulation failed'",
+)
+_t5_sim_empty = _t5_sim({"dhw_windows": ""})
+R.check(
+    "an explicitly EMPTY window spec is a legitimate what-if, not an error",
+    "error" not in _t5_sim_empty._t5_returned
+    and _t5_sim_empty._t5_escaped is None,
+    f"keys {sorted(_t5_sim_empty._t5_returned)[:4]!r} -- 'no demand windows' "
+    "is what the plan looks like with hot water unconstrained, which is a "
+    "question worth asking and is not the same as a malformed spec",
+)
+_t5_sim_over = _t5_sim(
+    {
+        "max_temp": 23.5,
+        "dhw_setpoint": 52.0,
+        "dhw_min_temperature": 41.0,
+        "day_start_hour": 7,
+        "day_end_hour": 21,
+        "power_cap_kw": 4.0,
+    }
+)
+# The hour overrides are INTS because they index hours, and the check for
+# that is behavioural: 7.5 and 7 must give the same plan, because `int`
+# truncates while `float` would carry the half hour into the schedule.
+_t5_sim_half = _t5_sim({"day_start_hour": 7.5, "day_end_hour": 21})
+_t5_sim_whole = _t5_sim({"day_start_hour": 7, "day_end_hour": 21})
+R.check(
+    "an hour override is truncated to an int, so 7.5 and 7 plan identically",
+    _t5_sim_half._t5_returned.get("cost_delta")
+    == _t5_sim_whole._t5_returned.get("cost_delta")
+    and "error" not in _t5_sim_half._t5_returned,
+    f"7.5 -> {_t5_sim_half._t5_returned.get('cost_delta')!r}, 7 -> "
+    f"{_t5_sim_whole._t5_returned.get('cost_delta')!r} -- these index hours, "
+    "so a float carried through would put a schedule boundary half way "
+    "through one",
+)
+R.check(
+    "six overrides of three different types all apply without error",
+    "error" not in _t5_sim_over._t5_returned
+    and _t5_sim_over._t5_escaped is None,
+    f"keys {sorted(_t5_sim_over._t5_returned)[:5]!r} -- two floats onto the "
+    "scratch config, two ints because they index hours, two onto the scratch "
+    "PARAMS because the valve's default target is the comfort ceiling and a "
+    "simulated ceiling has to reach the model too",
+)
+R.check(
+    "the what-if leaves the live configuration untouched, which is the whole point",
+    _t5_sim_over._opt_config.max_temp != 23.5
+    and _t5_sim_over._thermal_params.dhw_setpoint != 52.0,
+    f"live max_temp {_t5_sim_over._opt_config.max_temp!r} against an override "
+    f"of 23.5, live dhw_setpoint "
+    f"{_t5_sim_over._thermal_params.dhw_setpoint!r} against 52.0 -- the deep "
+    "copy is what keeps a dragged slider from re-configuring the house",
+)
+
+
+# -- `async_run_optimization`: two comfort-floor widenings that must unwind -
+# Both the economy setback and the open-window relaxation lower `min_temp`
+# for ONE solve, inside a snapshot-and-unwind envelope. `min_temp` is
+# otherwise written only at `_init_model`, so a widening applied outside the
+# envelope persists into every later solve and outlives the mode that asked
+# for it. Observing the value only after the call therefore proves nothing:
+# the check reads it DURING the solve as well.
+def _t5_solve_spy(**config):
+    """A solvable coordinator that records `min_temp` at the solve itself."""
+    c = _t5_coord(**config)
+    c._prices = [
+        {
+            "total": 0.6 + 0.5 * (h % 12) / 12.0,
+            "starts_at": (_T5_SIM_MIDNIGHT + timedelta(hours=h)).isoformat(),
+            "level": "NORMAL",
+        }
+        for h in range(48)
+    ]
+    c._t5_floor_at_solve = []
+    inner = c._solve_snapshot
+
+    def spy(*args, **kwargs):
+        c._t5_floor_at_solve.append(c._opt_config.min_temp)
+        return inner(*args, **kwargs)
+
+    c._solve_snapshot = spy
+    return c
+
+
+def _t5_run(c):
+    """One solve at the fixed instant."""
+    dt_util.freeze(_T5_NOW)
+    try:
+        return _t5_drive(c, "async_run_optimization")
+    finally:
+        dt_util.freeze(None)
+
+
+_t5_opt_plain = _t5_run(_t5_solve_spy())
+_t5_opt_eco = _t5_solve_spy()
+_t5_opt_eco._mode = "economy"
+_t5_run(_t5_opt_eco)
+_t5_opt_window = _t5_solve_spy(open_window_relax_enabled=True)
+_t5_opt_window._vent_cusum.tripped = True
+_t5_run(_t5_opt_window)
+R.check(
+    "economy mode widens the comfort floor FOR THE SOLVE and unwinds it after",
+    _t5_opt_plain._t5_floor_at_solve == [19.0]
+    and _t5_opt_eco._t5_floor_at_solve == [17.5]
+    and _t5_opt_eco._opt_config.min_temp == 19.0,
+    f"plain {_t5_opt_plain._t5_floor_at_solve!r}, economy "
+    f"{_t5_opt_eco._t5_floor_at_solve!r} during the solve and "
+    f"{_t5_opt_eco._opt_config.min_temp!r} after -- reading it only after "
+    "the call cannot tell a widening that unwound from one that never "
+    "happened, which is why both ends are asserted",
+)
+R.check(
+    "a detected open window relaxes the floor by its own, smaller amount",
+    _t5_opt_window._t5_floor_at_solve == [18.0]
+    and _t5_opt_window._opt_config.min_temp == 19.0,
+    f"{_t5_opt_window._t5_floor_at_solve!r} during the solve against "
+    f"economy's {_t5_opt_eco._t5_floor_at_solve!r}, both back to "
+    f"{_t5_opt_window._opt_config.min_temp!r} -- 1.0 K against economy's "
+    "1.5 K, and holding the floor while a window is open heats the street",
+)
+R.check(
+    "every solve here succeeded, so the widenings are measured on real plans",
+    _t5_opt_plain._optimization_result is not None
+    and _t5_opt_eco._optimization_result is not None
+    and _t5_opt_window._optimization_result is not None
+    and _t5_opt_plain._t5_escaped is None,
+    f"results present: {[c._optimization_result is not None for c in (_t5_opt_plain, _t5_opt_eco, _t5_opt_window)]!r} "
+    "-- a failed solve would unwind the floor too, and the check above would "
+    "pass against a method that never widened at all",
+)
+
+_t5_opt_busy = _t5_solve_spy()
+_t5_opt_busy._optimization_running = True
+_t5_run(_t5_opt_busy)
+R.check(
+    "a solve already in flight is skipped rather than run a second time",
+    _t5_opt_busy._optimization_result is None
+    and _t5_opt_busy._t5_floor_at_solve == []
+    and _t5_opt_busy._t5_returned is None,
+    f"result {_t5_opt_busy._optimization_result!r}, solves reached "
+    f"{len(_t5_opt_busy._t5_floor_at_solve)} -- the flag is cleared in a "
+    "`finally`, so a skipped call must not clear a running solve's flag "
+    "either",
+)
+_t5_opt_fuse = _t5_solve_spy(main_fuse_amperes=20, main_fuse_phases=3)
+_t5_run(_t5_opt_fuse)
+R.check(
+    "a configured main fuse still solves, with the per-step ceiling applied",
+    _t5_opt_fuse._optimization_result is not None
+    and _t5_opt_fuse._t5_escaped is None,
+    f"result present {_t5_opt_fuse._optimization_result is not None}, escaped "
+    f"{_t5_opt_fuse._t5_escaped!r} -- the fuse branch builds a clipped "
+    "per-step cap array, and a shape error there fails the whole solve "
+    "rather than the cap",
+)
+_t5_opt_recover = _t5_solve_spy()
+_t5_opt_recover._solve_failures = 2
+_t5_run(_t5_opt_recover)
+R.check(
+    "a good solve clears the consecutive-failure count that raises the repair issue",
+    _t5_opt_recover._solve_failures == 0
+    and _t5_opt_recover._optimization_result is not None,
+    f"failures 2 -> {_t5_opt_recover._solve_failures!r} -- without the reset "
+    "the third failure of the month raises an issue the user cannot clear by "
+    "fixing the cause",
+)
+
+
+
+# ---------------------------------------------------------------------------
+# W5-G7 tranche 6 of 6 (#195): the tail, and the last of the owner's 98 % bar.
+#
+# 219 missed against 73 allowed at 98 % of 3,694, so 146 to cover -- spread
+# across 89 methods whose top twenty hold only 100. This is MANY SMALL
+# FIXTURES rather than a few deep ones, which is why it is last and why it
+# reads differently from the five before it.
+#
+# AT 98 PCT THERE IS NO ROOM FOR A RESIDUAL. Every statement this tranche
+# leaves is named in the pull request with the reason it is unreachable,
+# rather than deferred.
+#
+# The five rules the earlier tables cost, applied and not restated: an input
+# makes the guard under test the only arm that can reject; anything that can
+# raise goes through a catcher and asserts nothing escaped; details sort by
+# `repr`; nothing asserts exact equality against a production data
+# structure; and every mutant in the table is checked to leave parseable
+# code, because one that cannot run reports a pass and a pass here reads as
+# a finding about production.
+R.section("W5-G7 t6: the tail (#195)")
+
+import io as _io  # noqa: E402
+import pickle as _t6_pickle  # noqa: E402
+from heatpump_optimizer import coordinator as _t6_coord_module  # noqa: E402
+from heatpump_optimizer.accuracy import AccuracySample as _AccuracySample  # noqa: E402
+from heatpump_optimizer.coordinator import _as_float as _t6_as_float  # noqa: E402
+from heatpump_optimizer.coordinator import _comparable_ts as _t6_comparable_ts  # noqa: E402
+from heatpump_optimizer.coordinator import _diagnose_payload as _t6_diagnose_payload  # noqa: E402
+from heatpump_optimizer.coordinator import _plain_types as _t6_plain_types  # noqa: E402
+from heatpump_optimizer.coordinator import _store_diagnosis as _t6_store_diagnosis  # noqa: E402
+
+# The sentinel that lets a keyword distinguish "not given" from "given as
+# None", which several fixtures below turn on.
+_T6_UNSET = object()
+
+_T6_DATA = {"tibber_token": "x", "weather_entity": "weather.home"}
+
+
+def _t6_coord(states=None, **config):
+    """A live coordinator over the fake bus, with states and config applied."""
+    return HeatPumpOptimizerCoordinator(
+        FakeHass(states or {}), FakeEntry(data=dict(_T6_DATA, **config))
+    )
+
+
+def _t6_call(fn, *args, **kwargs):
+    """Call one synchronous method, returning its value or the exception."""
+    try:
+        return fn(*args, **kwargs)
+    except Exception as err:  # noqa: BLE001
+        return err
+
+
+def _t6_drive(coord, method, *args, **kwargs):
+    """Await one coordinator method and capture anything that escapes it."""
+    coord._t6_escaped = None
+    try:
+        coord._t6_returned = _asyncio.run(getattr(coord, method)(*args, **kwargs))
+    except Exception as err:  # noqa: BLE001
+        coord._t6_escaped = err
+        coord._t6_returned = None
+    return coord
+
+
+# -- the published properties: eleven one-line readers ---------------------
+# Each fronts one attribute for an entity or a service, and the check is
+# that the property reads THAT attribute rather than a neighbour. Asserting
+# the startup value alone would pass against any property returning the same
+# default, so each is read once at startup and once after the attribute it
+# fronts has been moved to a value nothing else holds.
+_T6_PROPERTY_PAIRS = (
+    ("mode", "_mode", "boost"),
+    ("last_optimization", "_last_optimization", datetime(2026, 2, 1, 1, 2, 3)),
+    ("next_optimization", "_next_optimization", datetime(2026, 2, 1, 4, 5, 6)),
+    ("current_action", "_current_action", {"mode": "sentinel"}),
+    ("prices", "_prices", [{"total": 9.99}]),
+    ("solar_radiation", "_solar_radiation", 412.5),
+    ("floor_return_temp", "_floor_return_temp", 31.25),
+    ("dhw_temperature", "_dhw_temperature", 53.75),
+    ("optimization_running", "_optimization_running", True),
+)
+_t6_prop_start = _t6_coord()
+_t6_prop_moved = _t6_coord()
+for _t6_pname, _t6_attr, _t6_value in _T6_PROPERTY_PAIRS:
+    setattr(_t6_prop_moved, _t6_attr, _t6_value)
+R.check(
+    "nine published properties each read the attribute they front, not a neighbour",
+    all(
+        getattr(_t6_prop_moved, name) == value
+        and getattr(_t6_prop_start, name) != value
+        for name, _attr, value in _T6_PROPERTY_PAIRS
+    ),
+    "moved: "
+    f"{[(n, getattr(_t6_prop_moved, n)) for n, _a, _v in _T6_PROPERTY_PAIRS]!r} -- "
+    "each value is one nothing else in the coordinator holds, so a property "
+    "wired to the wrong attribute reads its neighbour's default and fails",
+)
+R.check(
+    "the target temperature comes from the optimizer config, as a float",
+    _t6_prop_start.target_temperature
+    == float(_t6_prop_start._opt_config.target_temp)
+    and isinstance(_t6_prop_start.target_temperature, float),
+    f"{_t6_prop_start.target_temperature!r} against "
+    f"{_t6_prop_start._opt_config.target_temp!r} -- the climate entity reads "
+    "this every update, and an int here makes its own comparisons "
+    "integer-typed",
+)
+_t6_sysid_on = _t6_coord()
+_t6_sysid_on._sysid.config.enabled = True
+_t6_sysid_on._sysid.arm(datetime(2026, 2, 1, 12, 0, 0))
+R.check(
+    "the system-identification property follows the experiment, not a copy",
+    _t6_prop_start.system_identification_active is False
+    and _t6_sysid_on.system_identification_active
+    == _t6_sysid_on._sysid.active,
+    f"idle -> {_t6_prop_start.system_identification_active!r}, armed -> "
+    f"{_t6_sysid_on.system_identification_active!r} -- the switch entity "
+    "reads this, so a cached copy would leave the switch showing the state "
+    "the experiment had at setup",
+)
+
+
+# -- `_store_diagnosis`: absence must not overwrite the last real report ---
+_t6_diag_keep = _t6_coord()
+_t6_diag_keep._last_diagnosis = {"kept": True}
+_t6_call(_t6_store_diagnosis, _t6_diag_keep, None)
+_t6_diag_set = _t6_coord()
+_t6_call(_t6_store_diagnosis, _t6_diag_set, {"stored": 1})
+R.check(
+    "a diagnosis run that produced nothing leaves the last real one standing",
+    _t6_diag_keep._last_diagnosis == {"kept": True}
+    and _t6_diag_set._last_diagnosis == {"stored": 1},
+    f"None over a live report -> {_t6_diag_keep._last_diagnosis!r}, a report "
+    f"-> {_t6_diag_set._last_diagnosis!r} -- the interval diagnosis can "
+    "return None on a quiet interval, and overwriting with it would blank a "
+    "panel the user is reading",
+)
+
+
+# -- `_baseline_house_load`: what the house draws that is not the pump -----
+_t6_base_none = _t6_coord()
+_t6_base_both = _t6_coord()
+_t6_base_both._measured_house_power = 5.0
+_t6_base_both._measured_power = 2.0
+_t6_base_under = _t6_coord()
+_t6_base_under._measured_house_power = 5.0
+_t6_base_under._measured_power = 9.0
+R.check(
+    "without a house meter the baseline is zero, not a guess",
+    list(_t6_call(_t6_base_none._baseline_house_load, 4)) == [0.0] * 4,
+    f"{list(_t6_call(_t6_base_none._baseline_house_load, 4))!r} -- most "
+    "installs have no house meter, and inventing a baseline would spend the "
+    "fuse headroom the charger automation reads",
+)
+R.check(
+    "with both meters the baseline is the difference, floored at zero",
+    list(_t6_call(_t6_base_both._baseline_house_load, 4)) == [3.0] * 4
+    and list(_t6_call(_t6_base_under._baseline_house_load, 2)) == [0.0] * 2,
+    f"house 5.0 less pump 2.0 -> "
+    f"{list(_t6_call(_t6_base_both._baseline_house_load, 4))!r}; a pump "
+    f"reading ABOVE the house's -> "
+    f"{list(_t6_call(_t6_base_under._baseline_house_load, 2))!r} -- the two "
+    "meters can disagree across a sampling boundary, and a negative baseline "
+    "would hand the horizon more headroom than the fuse has",
+)
+
+
+# -- `_price_prior`: the learned shape, behind its own switch --------------
+_t6_prior_on = _t6_coord()
+_t6_prior_off = _t6_coord(price_prior_enabled=False)
+R.check(
+    "the learned price shape is offered only while its option is on",
+    _t6_call(_t6_prior_on._price_prior) is _t6_prior_on._price_model
+    and _t6_call(_t6_prior_off._price_prior) is None,
+    f"on -> the coordinator's own model ({_t6_call(_t6_prior_on._price_prior) is _t6_prior_on._price_model}), "
+    f"off -> {_t6_call(_t6_prior_off._price_prior)!r} -- identity rather than "
+    "type, because returning a fresh empty model would also be a "
+    "`PriceShapeModel` and would silently discard everything learned",
+)
+
+
+# -- `month_channel_totals`: an absent figure, never a measured zero -------
+_t6_month_empty = _t6_coord()
+R.check(
+    "an empty month reports its channel as zero rather than as absent",
+    _t6_call(_t6_month_empty.month_channel_totals, "space") == (0.0, 0.0),
+    f"{_t6_call(_t6_month_empty.month_channel_totals, 'space')!r} -- the "
+    "ledger opens the month's line at settlement, so a fresh month has an "
+    "entry reading zero; the None arm is for a channel the ledger has never "
+    "opened at all",
+)
+
+
+# -- `_weather_fetch_recovered`: the latch, cleared once ------------------
+_t6_wx_recovered = _t6_coord()
+_t6_wx_recovered._weather_outage_cycles = 3
+_t6_wx_recovered._weather_stale_since = datetime(2026, 2, 1, 9, 0, 0)
+_t6_call(_t6_wx_recovered._weather_fetch_recovered)
+_t6_wx_never = _t6_coord()
+_t6_call(_t6_wx_never._weather_fetch_recovered)
+R.check(
+    "a recovered forecast clears both the outage count and the staleness",
+    _t6_wx_recovered._weather_outage_cycles == 0
+    and _t6_wx_recovered._weather_stale_since is None
+    and _t6_wx_never._weather_outage_cycles == 0
+    and _t6_wx_never._weather_stale_since is None,
+    f"after three failed cycles -> count "
+    f"{_t6_wx_recovered._weather_outage_cycles!r}, stale_since "
+    f"{_t6_wx_recovered._weather_stale_since!r} -- both must clear, because "
+    "`weather_forecast_stale_hours` is published off the timestamp while the "
+    "log's once-per-outage behaviour keys on the count",
+)
+
+
+# -- `async_publish_current_action`: nothing to publish before the first plan
+_t6_pub_empty = _t6_coord()
+_t6_pub_empty._current_action = {}
+_t6_pub_empty._t6_published = []
+_t6_pub_live = _t6_coord()
+_t6_pub_live._current_action = {"displace_value": -2.0, "heat_pump_on": True}
+_t6_pub_live._t6_published = []
+
+
+async def _t6_pub_empty_cmd(**kwargs):
+    _t6_pub_empty._t6_published.append(kwargs)
+
+
+async def _t6_pub_live_cmd(**kwargs):
+    _t6_pub_live._t6_published.append(kwargs)
+
+
+_t6_pub_empty.async_publish_ecl110_command = _t6_pub_empty_cmd
+_t6_pub_live.async_publish_ecl110_command = _t6_pub_live_cmd
+_t6_drive(_t6_pub_empty, "async_publish_current_action")
+_t6_drive(_t6_pub_live, "async_publish_current_action")
+R.check(
+    "republishing before the first plan sends nothing, rather than a zero displace",
+    _t6_pub_empty._t6_published == []
+    and len(_t6_pub_live._t6_published) == 1
+    and _t6_pub_live._t6_published[0]["displace_value"] == -2.0
+    and _t6_pub_live._t6_published[0]["reason"] == "optimizer",
+    f"no action -> {_t6_pub_empty._t6_published!r}; a live action -> "
+    f"{_t6_pub_live._t6_published!r} -- the peak guard's release calls this, "
+    "and an empty action would publish a 0.0 displace to the controller as "
+    "though the plan had asked for it",
+)
+
+
+# -- the stores: four saves and three loads that must never raise ---------
+# Each of these runs inside the update cycle or off `_spawn`, so a full disk
+# or a corrupt file must cost the value and never the cycle. The seven are
+# checked together because the claim is identical across them and a check
+# per store would be seven copies of one sentence -- but each store is
+# driven separately, so a missing `try` in any one of them fails this.
+class _T6RaisingStore:
+    """A store whose read and write both fail, as a full or corrupt one does."""
+
+    async def async_load(self):
+        raise RuntimeError("store unreadable")
+
+    async def async_save(self, data):
+        raise RuntimeError("no space left on device")
+
+
+class _T6Store:
+    """A store holding one payload and recording what is written."""
+
+    def __init__(self, payload=None):
+        self.payload = payload
+        self.saved: list = []
+
+    async def async_load(self):
+        return self.payload
+
+    async def async_save(self, data):
+        self.saved.append(data)
+
+
+_T6_SAVES = (
+    ("_price_model_store", "_async_save_price_model"),
+    ("_manual_plan_store", "_async_save_manual_plan"),
+    ("_snapshot_store", "_async_save_snapshots"),
+    ("_energy_store", "_async_save_energy_totals"),
+)
+_T6_LOADS = (
+    ("_manual_plan_store", "_async_load_manual_plan"),
+    ("_snapshot_store", "_async_load_snapshots"),
+    ("_energy_store", "_async_load_energy_totals"),
+)
+_t6_save_escapes = {}
+for _t6_attr, _t6_method in _T6_SAVES:
+    _t6_store_c = _t6_coord()
+    setattr(_t6_store_c, _t6_attr, _T6RaisingStore())
+    _t6_drive(_t6_store_c, _t6_method)
+    _t6_save_escapes[_t6_method] = _t6_store_c._t6_escaped
+_t6_load_escapes = {}
+for _t6_attr, _t6_method in _T6_LOADS:
+    _t6_store_c = _t6_coord()
+    setattr(_t6_store_c, _t6_attr, _T6RaisingStore())
+    _t6_drive(_t6_store_c, _t6_method)
+    _t6_load_escapes[_t6_method] = _t6_store_c._t6_escaped
+R.check(
+    "four stores whose WRITE fails swallow it rather than breaking the cycle",
+    all(v is None for v in _t6_save_escapes.values()),
+    f"{ {k: repr(v) for k, v in sorted(_t6_save_escapes.items())} } -- each "
+    "runs inside the update cycle or off `_spawn`, where an escape is an "
+    "`UpdateFailed` and every entity goes unavailable over a value the "
+    "integration can rewrite next cycle",
+)
+R.check(
+    "three stores whose READ fails start from the defaults rather than aborting setup",
+    all(v is None for v in _t6_load_escapes.values()),
+    f"{ {k: repr(v) for k, v in sorted(_t6_load_escapes.items())} } -- these "
+    "run at setup, so an escape here is an integration that will not start "
+    "because one learned file went bad",
+)
+
+
+# -- `_async_load_energy_totals`: accumulators that may not go backwards ---
+# Home Assistant reads a drop in a total_increasing sensor as a meter reset
+# and draws a spurious spike, so a stored value LOWER than the live one is
+# refused rather than trusted.
+_T6_ENERGY_KEY = sorted(_t6_coord()._energy_totals)[0]
+
+
+def _t6_energy(payload, *, live=None):
+    """Load `payload` over a coordinator holding `live` on the first channel."""
+    c = _t6_coord()
+    if live is not None:
+        c._energy_totals[_T6_ENERGY_KEY] = live
+    c._energy_store = _T6Store(payload)
+    return _t6_drive(c, "_async_load_energy_totals")
+
+
+_t6_en_lower = _t6_energy(
+    {_T6_ENERGY_KEY: 4.0, "since": "2026-01-01T00:00:00"}, live=10.0
+)
+_t6_en_higher = _t6_energy({_T6_ENERGY_KEY: 7.5}, live=1.0)
+R.check(
+    "a stored total lower than the live one is refused; a higher one is adopted",
+    _t6_en_lower._energy_totals[_T6_ENERGY_KEY] == 10.0
+    and _t6_en_higher._energy_totals[_T6_ENERGY_KEY] == 7.5,
+    f"stored 4.0 over a live 10.0 -> "
+    f"{_t6_en_lower._energy_totals[_T6_ENERGY_KEY]!r}; stored 7.5 over a live "
+    f"1.0 -> {_t6_en_higher._energy_totals[_T6_ENERGY_KEY]!r} -- both "
+    "directions, because a `max` that always won would be indistinguishable "
+    "from a plain assignment on the second case alone",
+)
+_t6_en_inf = _t6_energy({_T6_ENERGY_KEY: float("inf")}, live=1.0)
+_t6_en_junk = _t6_energy("not a mapping", live=1.0)
+R.check(
+    "a non-finite total and a payload that is not a mapping are both refused",
+    _t6_en_inf._energy_totals[_T6_ENERGY_KEY] == 1.0
+    and _t6_en_junk._energy_totals[_T6_ENERGY_KEY] == 1.0
+    and _t6_en_inf._t6_escaped is None,
+    f"infinite -> {_t6_en_inf._energy_totals[_T6_ENERGY_KEY]!r}, a bare "
+    f"string -> {_t6_en_junk._energy_totals[_T6_ENERGY_KEY]!r} -- `inf` "
+    "parses and compares greater than everything, so the finite test is what "
+    "stops it becoming the accumulator's permanent floor",
+)
+R.check(
+    "the accumulator's start time is restored only when it is a non-empty string",
+    _t6_en_lower._energy_totals_since == "2026-01-01T00:00:00"
+    and _t6_en_higher._energy_totals_since is None,
+    f"a stored ISO string -> {_t6_en_lower._energy_totals_since!r}, absent -> "
+    f"{_t6_en_higher._energy_totals_since!r} -- the sensor publishes this as "
+    "its `last_reset`, and a non-string there is a broken attribute rather "
+    "than a missing one",
+)
+
+
+# -- `_current_humidity`: the entry covering NOW, not the first one -------
+# The last positional read the v3.8.0 audit left aligned. It feeds the
+# defrost bucket, which tolerates a stale-by-hours humidity but not a
+# wrong-by-a-day one, so the entry nearest the current time wins and a
+# forecast with no timestamps falls back to the old first-entry behaviour
+# rather than reading nothing.
+_T6_HUM_NOW = datetime(2026, 2, 1, 12, 0, 0)
+
+
+def _t6_humidity(entries):
+    """Read the outdoor humidity from `entries` at a fixed instant."""
+    c = _t6_coord()
+    c._weather_forecast = entries
+    dt_util.freeze(_T6_HUM_NOW)
+    try:
+        return _t6_call(c._current_humidity)
+    finally:
+        dt_util.freeze(None)
+
+
+R.check(
+    "the humidity entry nearest NOW wins, not the first in the list",
+    _t6_humidity(
+        [
+            {"humidity": 10, "datetime": (_T6_HUM_NOW + timedelta(hours=6)).isoformat()},
+            {"humidity": 80, "datetime": _T6_HUM_NOW.isoformat()},
+            {"humidity": 30, "datetime": (_T6_HUM_NOW - timedelta(hours=3)).isoformat()},
+        ]
+    )
+    == 80.0,
+    "three entries at +6 h, now and -3 h -> "
+    f"{_t6_humidity([{'humidity': 10, 'datetime': (_T6_HUM_NOW + timedelta(hours=6)).isoformat()}, {'humidity': 80, 'datetime': _T6_HUM_NOW.isoformat()}, {'humidity': 30, 'datetime': (_T6_HUM_NOW - timedelta(hours=3)).isoformat()}])!r} "
+    "-- the nearest is neither first nor last here, so a positional read "
+    "cannot pass by accident",
+)
+R.check(
+    "an untimestamped forecast falls back to the first entry carrying a humidity",
+    _t6_humidity([{"humidity": 55}, {"humidity": 77}]) == 55.0
+    and _t6_humidity([{"temperature": 5.0}, {"humidity": 77}]) == 77.0,
+    f"two untimestamped -> {_t6_humidity([{'humidity': 55}, {'humidity': 77}])!r}; "
+    f"one without the key -> {_t6_humidity([{'temperature': 5.0}, {'humidity': 77}])!r} "
+    "-- every distance is infinite, so the first is kept and an entry with no "
+    "humidity at all is skipped rather than counted",
+)
+R.check(
+    "no forecast and no humidity in it both read as absent",
+    _t6_humidity([]) is None and _t6_humidity([{"temperature": 5.0}]) is None,
+    f"empty -> {_t6_humidity([])!r}, no humidity key -> "
+    f"{_t6_humidity([{'temperature': 5.0}])!r} -- None sends the defrost "
+    "model to its ambient default, which is the documented fallback",
+)
+R.check(
+    "a non-numeric humidity, and one outside 0-100, are each refused",
+    _t6_humidity([{"humidity": "wet", "datetime": _T6_HUM_NOW.isoformat()}]) is None
+    and _t6_humidity([{"humidity": 140, "datetime": _T6_HUM_NOW.isoformat()}]) is None
+    and _t6_humidity([{"humidity": -5, "datetime": _T6_HUM_NOW.isoformat()}]) is None,
+    "'wet', 140 and -5 all -> None -- the range test is its own arm from the "
+    "parse, and a 140 % humidity selects a defrost bucket that does not "
+    "describe any weather",
+)
+
+
+# -- `_shutdown_process_pool`: a shutdown that must not raise -------------
+# Two exits, and they differ: at interpreter exit there is no loop left to
+# wait on a terminate, so the worker is killed outright. Both arms are
+# wrapped because the worker may already have been reaped by the OS, and a
+# raise here happens while Home Assistant is stopping.
+class _T6Worker:
+    """A stand-in for the solve worker, recording what shutdown did to it."""
+
+    def __init__(self, *, alive=True, stdin_raises=False, kill_raises=False):
+        self.alive = alive
+        self.kill_raises = kill_raises
+        self.events: list = []
+        outer = self
+
+        class _Stdin:
+            def close(self):
+                if stdin_raises:
+                    raise RuntimeError("pipe already gone")
+                outer.events.append("stdin-closed")
+
+        self.stdin = _Stdin()
+
+    def poll(self):
+        return None if self.alive else 0
+
+    def kill(self):
+        self.events.append("kill")
+        if self.kill_raises:
+            raise RuntimeError("already reaped")
+
+    def wait(self, timeout=None):
+        self.events.append(("wait", timeout))
+
+    def terminate(self):
+        self.events.append("terminate")
+
+
+def _t6_shutdown(worker, *, at_exit=False):
+    """Run the pool shutdown against `worker`, restoring the global after."""
+    previous = _t6_coord_module._PROCESS_WORKER
+    _t6_coord_module._PROCESS_WORKER = worker
+    try:
+        escaped = _t6_call(_t6_coord_module._shutdown_process_pool, at_exit=at_exit)
+    finally:
+        _t6_coord_module._PROCESS_WORKER = previous
+    return escaped, (worker.events if worker is not None else [])
+
+
+_t6_sd_none = _t6_shutdown(None)
+_t6_sd_stdin = _t6_shutdown(_T6Worker(stdin_raises=True))
+_t6_sd_exit = _t6_shutdown(_T6Worker(), at_exit=True)
+_t6_sd_exit_raise = _t6_shutdown(_T6Worker(kill_raises=True), at_exit=True)
+_t6_sd_normal = _t6_shutdown(_T6Worker())
+_t6_sd_dead = _t6_shutdown(_T6Worker(alive=False))
+R.check(
+    "shutdown raises on nothing, including a worker whose pipe and kill both fail",
+    all(
+        not isinstance(escaped, Exception)
+        for escaped, _events in (
+            _t6_sd_none,
+            _t6_sd_stdin,
+            _t6_sd_exit,
+            _t6_sd_exit_raise,
+            _t6_sd_normal,
+            _t6_sd_dead,
+        )
+    ),
+    "escapes: "
+    f"{[repr(e) for e, _ in (_t6_sd_none, _t6_sd_stdin, _t6_sd_exit, _t6_sd_exit_raise, _t6_sd_normal, _t6_sd_dead)]!r} "
+    "-- this runs while Home Assistant is stopping, where a raise is logged "
+    "as a failed shutdown the user cannot act on",
+)
+R.check(
+    "at interpreter exit the worker is KILLED; otherwise it is asked to terminate",
+    _t6_sd_exit[1] == ["stdin-closed", "kill", ("wait", None)]
+    and _t6_sd_normal[1] == ["stdin-closed", "terminate", ("wait", 2)],
+    f"at_exit -> {_t6_sd_exit[1]!r}; normal -> {_t6_sd_normal[1]!r} -- there "
+    "is no loop left at interpreter exit to wait out a polite terminate, and "
+    "the worker holds no file or lock a SIGTERM would let it flush",
+)
+R.check(
+    "a worker that already exited is left alone, and a closed pipe does not stop the rest",
+    _t6_sd_dead[1] == ["stdin-closed"]
+    and _t6_sd_stdin[1] == ["terminate", ("wait", 2)],
+    f"already exited -> {_t6_sd_dead[1]!r}; pipe close raised -> "
+    f"{_t6_sd_stdin[1]!r} -- the second is the one that matters: the "
+    "terminate still runs after the pipe failed, because the `except` is "
+    "scoped to the close and not to the shutdown",
+)
+
+
+
+
+# -- `_run_in_process`: the transport, and what is the CALLER's error -----
+# One distinction carries this whole function: a job that raised is the
+# caller's problem and its exception is re-raised unchanged, while anything
+# that went wrong with the PIPE is the worker being unusable and becomes
+# `ProcessWorkerUnavailable`. Confusing the two either hides a real solver
+# bug behind a transport error or retries a deterministic failure forever.
+class _T6Worker2:
+    """A worker whose pipes can be absent, truncated or carry one reply."""
+
+    def __init__(self, *, stdin=True, stdout=True, reply=_T6_UNSET, rc=None):
+        self.stdin = _io.BytesIO() if stdin else None
+        if not stdout:
+            self.stdout = None
+        elif reply is _T6_UNSET:
+            self.stdout = _io.BytesIO()
+        else:
+            self.stdout = _io.BytesIO(_t6_pickle.dumps(reply))
+        self._rc = rc
+        if self.stdin is not None:
+            self.stdin.flush = lambda: None
+
+    def poll(self):
+        return self._rc
+
+
+def _t6_in_process(worker, fn=len, args=((1, 2, 3),)):
+    """Run one job against `worker`, restoring the module globals after."""
+    previous_worker = _t6_coord_module._PROCESS_WORKER
+    previous_ensure = _t6_coord_module._ensure_worker
+    _t6_coord_module._PROCESS_WORKER = worker
+    _t6_coord_module._ensure_worker = lambda: worker
+    try:
+        return _t6_call(_t6_coord_module._run_in_process, fn, args)
+    finally:
+        _t6_coord_module._ensure_worker = previous_ensure
+        _t6_coord_module._PROCESS_WORKER = previous_worker
+
+
+_t6_ip_ok = _t6_in_process(_T6Worker2(reply=("ok", 42)))
+_t6_ip_err = _t6_in_process(_T6Worker2(reply=("err", ValueError("solver said no"))))
+R.check(
+    "a job that RAISED comes back as its own exception, not as a transport error",
+    _t6_ip_ok == 42
+    and isinstance(_t6_ip_err, ValueError)
+    and str(_t6_ip_err) == "solver said no",
+    f"a good job -> {_t6_ip_ok!r}; a raising job -> {_t6_ip_err!r} -- "
+    "wrapping this one would hide a real solver bug behind a worker restart, "
+    "and the caller retries a transport error where it must not retry a "
+    "deterministic failure",
+)
+_t6_ip_nopipe = _t6_in_process(_T6Worker2(stdin=False))
+_t6_ip_noout = _t6_in_process(_T6Worker2(stdout=False))
+_t6_ip_trunc = _t6_in_process(_T6Worker2())
+R.check(
+    "absent pipes and a truncated reply are all the WORKER being unusable",
+    all(
+        type(v).__name__ == "ProcessWorkerUnavailable"
+        for v in (_t6_ip_nopipe, _t6_ip_noout, _t6_ip_trunc)
+    )
+    and "pipes missing" in str(_t6_ip_nopipe)
+    and "exited rc=" in str(_t6_ip_trunc),
+    f"no stdin -> {str(_t6_ip_nopipe)[:46]!r}; no stdout -> "
+    f"{str(_t6_ip_noout)[:46]!r}; truncated -> {str(_t6_ip_trunc)[:52]!r} -- "
+    "the truncated arm carries the worker's return code, which is what tells "
+    "a reader whether the child died or merely lost the pipe",
+)
+_t6_ip_loaderr = _t6_in_process(
+    _T6Worker2(reply=("load-err", "No module named 'thing'"))
+)
+R.check(
+    "a job the child could not UNPICKLE is the worker's fault, and retires it",
+    type(_t6_ip_loaderr).__name__ == "ProcessWorkerUnavailable"
+    and "cannot load the job" in str(_t6_ip_loaderr)
+    and "No module named" in str(_t6_ip_loaderr),
+    f"{str(_t6_ip_loaderr)[:70]!r} -- the child has ended its loop, so "
+    "reusing it races the exit and reports 'rc=0: Ran out of input' instead "
+    "of the cause; the job never ran, which is why this is the worker being "
+    "unusable rather than the caller's error",
+)
+
+
+# -- `_diagnose_payload` and `_capture_diagnosis_inputs` ------------------
+# Both are best-effort evidence: a diagnosis that cannot be produced is an
+# absent panel, never a broken cycle.
+_t6_dp_none = _t6_coord()
+_t6_dp_live = _t6_coord()
+_t6_dp_live._last_interval_record = {"interval": 1}
+_t6_dp_none_out = _t6_call(_t6_diagnose_payload, _t6_dp_none)
+_t6_dp_live_out = _t6_call(_t6_diagnose_payload, _t6_dp_live)
+R.check(
+    "with no interval recorded the diagnosis payload is a pair of Nones",
+    _t6_dp_none_out == (None, None),
+    f"{_t6_dp_none_out!r} -- the caller unpacks two values either way, so a "
+    "bare None here is a TypeError at the call site",
+)
+R.check(
+    "the payload carries the record and a COPY of the parameters",
+    _t6_dp_live_out[0] == {"interval": 1}
+    and _t6_dp_live_out[1] is not _t6_dp_live._thermal_params,
+    f"record {_t6_dp_live_out[0]!r}, params copied "
+    f"{_t6_dp_live_out[1] is not _t6_dp_live._thermal_params} -- the "
+    "diagnosis runs in another process against the parameters the plan used, "
+    "and handing it the live object would diagnose whatever they became",
+)
+
+_T6_CAP_NOW = datetime(2026, 2, 1, 12, 0, 0)
+
+
+def _t6_capture(coord=None):
+    """Capture one interval's diagnosis inputs at a fixed instant."""
+    c = coord if coord is not None else _t6_coord()
+    dt_util.freeze(_T6_CAP_NOW)
+    try:
+        return _t6_call(c._capture_diagnosis_inputs)
+    finally:
+        dt_util.freeze(None)
+
+
+_t6_cap = _t6_capture()
+_t6_cap_windless = _t6_coord()
+
+
+def _t6_cap_boom():
+    raise RuntimeError("weather source gone")
+
+
+_t6_cap_windless._current_weather = _t6_cap_boom
+_t6_cap_nowind = _t6_capture(_t6_cap_windless)
+R.check(
+    "the captured inputs carry the state and the plan's own assumptions",
+    isinstance(_t6_cap, dict)
+    and set(_t6_cap) == {"state", "planned"}
+    and _t6_cap["planned"]["hour_of_day"] == 12.0,
+    f"{sorted(_t6_cap)!r}, hour {_t6_cap['planned']['hour_of_day']!r} -- "
+    "captured at prediction time beside the accuracy sample, because inputs "
+    "remembered any later would grade the residual against assumptions the "
+    "plan never made",
+)
+R.check(
+    "a weather source that raises costs the wind, not the whole capture",
+    isinstance(_t6_cap_nowind, dict)
+    and _t6_cap_nowind["planned"]["wind_speed"] == 0.0
+    and set(_t6_cap_nowind) == {"state", "planned"},
+    f"wind {_t6_cap_nowind['planned']['wind_speed']!r} with the rest intact "
+    f"({sorted(_t6_cap_nowind)!r}) -- wind is optional evidence and the "
+    "residual is still attributable without it",
+)
+R.check(
+    "the captured electrical power is the SPACE channel only",
+    _t6_cap["planned"]["electrical_power"] == 0.0
+    and "external_heat_kw" in _t6_cap["planned"],
+    f"{_t6_cap['planned']['electrical_power']!r} from an empty action -- "
+    "`simulate_step`'s electrical power heats the house, not the tank, so "
+    "handing it the commanded total would charge every hot-water charge to "
+    "room heating and the diagnosis would blame the building fabric",
+)
+
+
+
+
+# -- `_settle_defrost`: two estimators that must never fold the same interval
+# With a legible defrost flag the derate learns from MEASURED duty, in every
+# temperature bucket. Without one it infers from `delivered_ratio`, and only
+# inside the frosting band. The two estimate the same quantity from
+# different evidence, and averaging a measurement with an inference of it
+# produces a number that is neither -- the more so here, where the inference
+# is known to be biased optimistic and blind to the very event it stands in
+# for.
+class _T6DefrostWindow:
+    """The four fields the settler reads off a defrost window."""
+
+    def __init__(self, observed, *, seconds=1800.0, duty=0.2, events=3):
+        self.observed = observed
+        self.seconds = seconds
+        self.duty = duty
+        self.events = events
+
+
+def _t6_settle(sample, window, **config):
+    """Settle one interval, recording which estimator was fed."""
+    c = _t6_coord(**config)
+    c._t6_folds = []
+    c._defrost.observe_duty = lambda *args: c._t6_folds.append(("duty",) + args)
+    c._defrost.observe = lambda *args: c._t6_folds.append(("ratio",) + args)
+    c._t6_escaped = _t6_call(c._settle_defrost, sample, window)
+    return c
+
+
+_T6_FROST = _AccuracySample(
+    when=datetime(2026, 2, 1, 12, 0, 0),
+    outdoor_temp=2.0,
+    humidity=85.0,
+    predicted_power_kw=2.0,
+    actual_power_kw=2.5,
+    predicted_temp=21.0,
+    actual_temp=20.8,
+)
+_t6_df_duty = _t6_settle(_T6_FROST, _T6DefrostWindow(True))
+_t6_df_ratio = _t6_settle(_T6_FROST, _T6DefrostWindow(False))
+R.check(
+    "a legible flag feeds the MEASURED estimator and the inference not at all",
+    [f[0] for f in _t6_df_duty._t6_folds] == ["duty"]
+    and _t6_df_duty._t6_folds[0][1:] == (2.0, 85.0, 0.2, 3)
+    and [f[0] for f in _t6_df_ratio._t6_folds] == ["ratio"],
+    f"observed -> {[f[0] for f in _t6_df_duty._t6_folds]!r}, not observed -> "
+    f"{[f[0] for f in _t6_df_ratio._t6_folds]!r} -- exactly one fires in each "
+    "case, and feeding both would average a measurement with an inference of "
+    "it and produce a number that is neither",
+)
+_t6_df_short = _t6_settle(_T6_FROST, _T6DefrostWindow(True, seconds=100.0))
+_t6_df_long = _t6_settle(_T6_FROST, _T6DefrostWindow(True, seconds=9000.0))
+R.check(
+    "a window far from the interval length is a restart, not a measurement",
+    _t6_df_short._t6_folds == [] and _t6_df_long._t6_folds == [],
+    f"100 s -> {_t6_df_short._t6_folds!r}, 9000 s -> "
+    f"{_t6_df_long._t6_folds!r} against a 1800 s interval -- the duty's "
+    "denominator is the window, so a stall or a reload would divide the same "
+    "defrost seconds by the wrong number and teach a duty nothing measured",
+)
+R.check(
+    "a too-long window falls through to NEITHER estimator, not back to the inference",
+    _t6_df_long._t6_folds == [] and _t6_df_ratio._t6_folds != [],
+    f"observed but unusable -> {_t6_df_long._t6_folds!r}; no flag at all -> "
+    f"{[f[0] for f in _t6_df_ratio._t6_folds]!r} -- the `return` inside the "
+    "observed branch is what keeps an install WITH a sensor from silently "
+    "falling back to the estimator it was meant to replace",
+)
+_T6_MILD = _dc_replace(_T6_FROST, outdoor_temp=15.0)
+_t6_df_mild = _t6_settle(_T6_MILD, _T6DefrostWindow(False))
+_t6_df_noout = _t6_settle(
+    _AccuracySample(when=datetime(2026, 2, 1, 12, 0, 0)), _T6DefrostWindow(True)
+)
+R.check(
+    "outside the frosting band the inference does not fire, and no outdoor reading stops both",
+    _t6_df_mild._t6_folds == []
+    and _t6_df_noout._t6_folds == []
+    and not isinstance(_t6_df_noout._t6_escaped, Exception),
+    f"15 C with no flag -> {_t6_df_mild._t6_folds!r}; no outdoor temperature "
+    f"-> {_t6_df_noout._t6_folds!r} -- the inference is restricted to the "
+    "frosting band because outside it a power overshoot is not defrost, "
+    "while the measurement is not restricted at all: a bucket measuring zero "
+    "duty is learning something real",
+)
+
+
+
+
+# -- the module helpers every reader in the class goes through ------------
+# `_as_float`, `_comparable_ts`, `_plain_types` and `_wind_speed_scale` are
+# small, and that is exactly why they are worth pinning: a wrong answer in
+# any of them is wrong everywhere at once, and none of them has a caller
+# that would notice.
+R.check(
+    "a value that is not a finite number falls back to the default, four ways",
+    _t6_as_float(None, 5.0) == 5.0
+    and _t6_as_float("not a number", 5.0) == 5.0
+    and _t6_as_float(float("nan"), 5.0) == 5.0
+    and _t6_as_float(float("inf"), 5.0) == 5.0
+    and _t6_as_float("3.5", 5.0) == 3.5
+    and _t6_as_float(2, 5.0) == 2.0,
+    f"None -> {_t6_as_float(None, 5.0)!r}, junk -> "
+    f"{_t6_as_float('not a number', 5.0)!r}, NaN -> "
+    f"{_t6_as_float(float('nan'), 5.0)!r}, inf -> "
+    f"{_t6_as_float(float('inf'), 5.0)!r}; '3.5' -> "
+    f"{_t6_as_float('3.5', 5.0)!r} -- Home Assistant's own `Forecast` type "
+    "allows a None key, and NaN parses, so the finite test is a separate arm "
+    "from the parse and a NaN through here poisons the whole horizon",
+)
+
+_T6_TS_AWARE = datetime(2026, 2, 1, 12, 0, 0, tzinfo=timezone.utc)
+_T6_TS_NAIVE = datetime(2026, 2, 1, 12, 0, 0)
+R.check(
+    "a naive timestamp against an aware grid is taken as UTC, and the reverse keeps its wall clock",
+    _t6_comparable_ts("2026-02-01T10:00:00", _T6_TS_AWARE)
+    == datetime(2026, 2, 1, 10, 0, 0, tzinfo=timezone.utc)
+    and _t6_comparable_ts("2026-02-01T10:00:00+00:00", _T6_TS_NAIVE)
+    == datetime(2026, 2, 1, 10, 0, 0),
+    f"naive against aware -> "
+    f"{_t6_comparable_ts('2026-02-01T10:00:00', _T6_TS_AWARE)!r}; aware "
+    f"against naive -> "
+    f"{_t6_comparable_ts('2026-02-01T10:00:00+00:00', _T6_TS_NAIVE)!r} -- "
+    "both directions are needed because subtracting a naive datetime from an "
+    "aware one raises, and this helper is what every horizon alignment "
+    "compares through",
+)
+R.check(
+    "a matching pair passes through and an unparseable timestamp reads as absent",
+    _t6_comparable_ts("2026-02-01T10:00:00", _T6_TS_NAIVE)
+    == datetime(2026, 2, 1, 10, 0, 0)
+    and _t6_comparable_ts("not a timestamp", _T6_TS_NAIVE) is None
+    and _t6_comparable_ts(None, _T6_TS_NAIVE) is None,
+    f"matching -> {_t6_comparable_ts('2026-02-01T10:00:00', _T6_TS_NAIVE)!r}, "
+    f"junk -> {_t6_comparable_ts('not a timestamp', _T6_TS_NAIVE)!r}, None -> "
+    f"{_t6_comparable_ts(None, _T6_TS_NAIVE)!r} -- None is what the callers "
+    "read as 'this entry has no usable time', and they fall back positionally",
+)
+
+R.check(
+    "numpy scalars and arrays are flattened to plain Python, recursively",
+    _t6_plain_types(np.array([1.5, 2.5])) == [1.5, 2.5]
+    and isinstance(_t6_plain_types(np.float32(1.25)), float)
+    and _t6_plain_types({"a": np.array([1]), "b": (np.int64(2),)})
+    == {"a": [1], "b": [2]}
+    and all(
+        isinstance(v, int)
+        for v in _t6_plain_types({"b": (np.int64(2),)})["b"]
+    ),
+    f"array -> {_t6_plain_types(np.array([1.5, 2.5]))!r}, float32 -> "
+    f"{type(_t6_plain_types(np.float32(1.25))).__name__}, nested -> "
+    f"{_t6_plain_types({'a': np.array([1]), 'b': (np.int64(2),)})!r} -- "
+    "`orjson` rejects `float32`, `int64` and `ndarray`, so anything that "
+    "reaches an entity attribute unflattened makes the whole state "
+    "unserialisable and the entity disappears",
+)
+
+
+# -- `_wind_speed_scale`: the unit the weather entity actually reports ----
+def _t6_wind(unit=_T6_UNSET, *, entity=True):
+    """The wind scale for a weather entity reporting `unit`."""
+    if not entity:
+        return _t6_call(
+            HeatPumpOptimizerCoordinator(
+                FakeHass({}), FakeEntry(data={"tibber_token": "x"})
+            )._wind_speed_scale
+        )
+    attrs = {} if unit is _T6_UNSET else {"wind_speed_unit": unit}
+    states = {"weather.home": FakeState("sunny", attributes=attrs)}
+    return _t6_call(_t6_coord(states)._wind_speed_scale)
+
+
+R.check(
+    "a known wind unit is converted and an unknown one falls back to m/s",
+    abs(_t6_wind("km/h") - 1.0 / 3.6) < 1e-9
+    and _t6_wind("m/s") == 1.0
+    and _t6_wind("bananas") == 1.0
+    and _t6_wind() == 1.0,
+    f"km/h -> {_t6_wind('km/h')!r}, m/s -> {_t6_wind('m/s')!r}, unknown -> "
+    f"{_t6_wind('bananas')!r}, absent -> {_t6_wind()!r} -- guessing from the "
+    "magnitude instead reads a moderate 20 km/h breeze as a 20 m/s storm and "
+    "doubles the predicted heat loss",
+)
+R.check(
+    "no weather entity, and one missing from the bus, both read as m/s",
+    _t6_wind(entity=False) == 1.0
+    and _t6_call(_t6_coord({})._wind_speed_scale) == 1.0,
+    f"unconfigured -> {_t6_wind(entity=False)!r}, configured but absent -> "
+    f"{_t6_call(_t6_coord({})._wind_speed_scale)!r} -- 1.0 is Home "
+    "Assistant's own metric default, so an install with no weather entity is "
+    "not silently scaled",
+)
+
+
+# -- the last three regions under the 96 % bar -----------------------------
+# Chosen by the partition instrument rather than by eye: at 95.91 % these are
+# what stood between the file and the bar, and each one is a guard whose arm
+# had never been entered rather than a line that merely had not run.
+from heatpump_optimizer.dhw_schedule import DHWWindowError as _T6DHWWindowError  # noqa: E402
+from heatpump_optimizer.const import CONF_CONTRACT_FIXED_PRICE as _T6_FIXED  # noqa: E402
+
+
+class _T6Result:
+    """Just enough optimization result to carry a predictive payload."""
+
+    def __init__(self, predictive_info):
+        self.predictive_info = predictive_info
+
+
+def _t6_windows(planned):
+    """`_dhw_effective_windows` with `planned` as the solver's own answer."""
+    coord = _t6_coord()
+    coord._optimization_result = _T6Result({"dhw_windows": planned})
+    return coord, _t6_call(coord._dhw_effective_windows)
+
+
+_t6_w_conf = _t6_coord()._thermal_params.dhw_demand_windows
+_t6_w_good, _t6_w_good_out = _t6_windows("01:00-02:00")
+_t6_w_bad, _t6_w_bad_out = _t6_windows("25:00-26:00")
+_t6_w_none, _t6_w_none_out = _t6_windows(None)
+R.check(
+    "a planned window the solver produced is what the optimizer plans against",
+    not isinstance(_t6_w_good_out, Exception)
+    and [(float(a), float(b)) for a, b in _t6_w_good_out] == [(1.0, 2.0)]
+    and [(float(a), float(b)) for a, b in _t6_w_good_out] != [
+        (float(a), float(b)) for a, b in _t6_w_conf
+    ],
+    f"planned '01:00-02:00' -> {_t6_w_good_out!r} against a configured "
+    f"{_t6_w_conf!r} -- the two differ on purpose, so a reader of the next "
+    "check can tell a fallback from a planned window that happened to match",
+)
+R.check(
+    "a MALFORMED planned window falls back to the configured ones, and raises nothing",
+    not isinstance(_t6_w_bad_out, Exception)
+    and [(float(a), float(b)) for a, b in _t6_w_bad_out] == [
+        (float(a), float(b)) for a, b in _t6_w_conf
+    ],
+    f"planned '25:00-26:00' -> {_t6_w_bad_out!r} (configured {_t6_w_conf!r}) "
+    f"-- `parse_windows` raises {_T6DHWWindowError.__name__} on that spec, and "
+    "without the `except` the demand-window read is a crash on the cycle "
+    "after a predictive payload goes bad, in a method four callers read",
+)
+R.check(
+    "and an ABSENT plan takes the same configured path, by the falsiness guard",
+    not isinstance(_t6_w_none_out, Exception)
+    and [(float(a), float(b)) for a, b in _t6_w_none_out] == [
+        (float(a), float(b)) for a, b in _t6_w_conf
+    ],
+    f"planned None -> {_t6_w_none_out!r} -- the null control for the check "
+    "above: both arms end at the configured windows, so the `except` is what "
+    "the malformed arm proves and not the `if planned:` above it",
+)
+
+
+# -- `_contract_comparison`: the fixed-price arm, and what `cheapest` means --
+def _t6_contract(fixed, *, kwh=100.0, sek=150.0):
+    """One month of metered spot, settled under a contract priced `fixed`."""
+    coord = _t6_coord(**({} if fixed is None else {_T6_FIXED: fixed}))
+    coord._ledger.add(dt_util.now(), "spot", kwh=kwh, sek=sek)
+    return _t6_call(coord._contract_comparison)
+
+
+_t6_c_off = _t6_contract(None)
+_t6_c_cheap = _t6_contract(1.1)
+_t6_c_dear = _t6_contract(2.0)
+R.check(
+    "a configured fixed price is settled over the SAME metered kWh",
+    _t6_c_cheap.get("fixed_sek") == 110.0
+    and _t6_c_cheap.get("kwh") == 100.0
+    and "fixed_sek" not in _t6_c_off,
+    f"1.10 SEK/kWh over 100 kWh -> {_t6_c_cheap.get('fixed_sek')!r}; "
+    f"unconfigured -> {sorted(_t6_c_off)!r} -- the comparison is the answer "
+    "to 'would another contract have been cheaper for what I actually used', "
+    "so a fixed line priced over anything but the metered kWh answers a "
+    "question nobody asked",
+)
+R.check(
+    "`cheapest` is decided by cost and not by name",
+    _t6_c_cheap.get("cheapest") == "fixed"
+    and _t6_c_dear.get("cheapest") == "hourly_spot",
+    f"at 1.10 -> {_t6_c_cheap.get('cheapest')!r}; at 2.00 -> "
+    f"{_t6_c_dear.get('cheapest')!r} against a 150 SEK hourly bill. Both arms "
+    "are needed: `min` over the dict without its key picks alphabetically, "
+    "and 'fixed' sorts before 'hourly_spot', so a one-armed check would pass "
+    "on a comparison that always recommends switching",
+)
+R.check(
+    "and a lone contract is not reported as the cheapest of one",
+    "cheapest" not in _t6_c_off and "cheapest" in _t6_c_cheap,
+    f"unconfigured -> {sorted(_t6_c_off)!r} -- with one cost in the set there "
+    "is nothing to compare, and naming a winner there is a recommendation "
+    "made from a single data point",
+)
+
+
+# -- `async_clear_manual_plan`: the ORDER is the claim -----------------------
+_t6_mp = _t6_coord()
+_t6_mp_calls: list[tuple[str, object]] = []
+
+
+async def _t6_mp_save():
+    # What the override IS at save time is the whole point: a save that runs
+    # before the clear persists the override the user just deleted, and the
+    # next restart brings it back.
+    _t6_mp_calls.append(("save", _t6_mp._manual_override))
+
+
+async def _t6_mp_refresh():
+    _t6_mp_calls.append(("refresh", _t6_mp._manual_override))
+
+
+_t6_mp._async_save_manual_plan = _t6_mp_save
+_t6_mp.async_request_refresh = _t6_mp_refresh
+_t6_mp._manual_override = "an override the user pinned"
+_t6_drive(_t6_mp, "async_clear_manual_plan")
+R.check(
+    "clearing a manual plan persists the removal and then re-solves",
+    _t6_mp._t6_escaped is None
+    and [name for name, _ in _t6_mp_calls] == ["save", "refresh"]
+    and _t6_mp._manual_override is None,
+    f"calls {[n for n, _ in _t6_mp_calls]!r}, override now "
+    f"{_t6_mp._manual_override!r}, escaped {_t6_mp._t6_escaped!r} -- without "
+    "the refresh the plan the user just cleared keeps running until the next "
+    "scheduled cycle, which is the thing they were trying to stop",
+)
+R.check(
+    "and the override is already gone by the time the store is written",
+    bool(_t6_mp_calls) and _t6_mp_calls[0] == ("save", None),
+    f"the first call was {_t6_mp_calls[0] if _t6_mp_calls else None!r} -- the "
+    "save reads the live attribute, so clearing AFTER it writes the override "
+    "back to disk and the restart restores what was deleted; nothing in the "
+    "returned state would show it. Scoped to the SAVE alone on purpose: read "
+    "over both calls it also fails when the refresh is deleted, and then no "
+    "mutation distinguishes this claim from the one above it",
+)
+
+
+# ---------------------------------------------------------------------------
+# W5-G8 (#195): the residual — every below-bar module that is not
+# coordinator.py, enumerated by tools/audit/w5-partition/partition.py at this
+# branch's merge base rather than read off a list (#505 is what a name list
+# costs).
+#
+# Block A is one region rather than five modules: the CORRUPTION BARRIER each
+# persisted learner puts between a store it does not control and the state it
+# hands the solver. Every statement here is an `except` arm or the early return
+# beside one, and none of them had ever run. That is the shape of a barrier
+# nobody has tested: it is the code that only executes on the day the store is
+# already wrong, so a defect in it is invisible until the one moment it matters.
+#
+# The five rules the W5-G7 tables cost are applied and not restated, and the
+# sixth as well: each check is narrow enough to have its own isolating mutation.
+R.section("W5-G8 a: the corruption barriers (#195)")
+
+from datetime import timezone as _g8_tz  # noqa: E402
+from heatpump_optimizer.wear import StartCounter as _G8Starts  # noqa: E402
+from heatpump_optimizer.drift import Cusum as _G8Cusum  # noqa: E402
+from heatpump_optimizer.snapshots import SnapshotRing as _G8Ring  # noqa: E402
+from heatpump_optimizer.comfort_learning import ComfortLearner as _G8Learner  # noqa: E402
+from heatpump_optimizer.dhw_draws import DrawStats as _G8Draws  # noqa: E402
+from heatpump_optimizer.dhw_draws import labels_for as _g8_labels  # noqa: E402
+from heatpump_optimizer.const import START_HYSTERESIS_SAMPLES as _G8_HYST  # noqa: E402
+
+_G8_T0 = datetime(2026, 3, 1, 8, 0, tzinfo=UTC)
+
+
+def _g8_call(fn, *args, **kwargs):
+    """Call one function, returning its value or the exception it raised."""
+    try:
+        return fn(*args, **kwargs)
+    except Exception as err:  # noqa: BLE001
+        return err
+
+
+# -- wear.StartCounter: a meter outage is not a state transition -----------
+# `observe` is a two-sample edge detector. The three uncovered lines are the
+# two refusals that reset the streak and the month eviction, and the first two
+# matter for the same reason: half an edge seen before a meter gap and half
+# seen after it are not two CONSECUTIVE samples, and counting them as one edge
+# invents a compressor start that never happened.
+def _g8_starts(samples, *, threshold=1.0):
+    """Feed `(kw, immersion)` samples in order; return (counter, starts)."""
+    counter = _G8Starts()
+    fired = []
+    for i, (kw, imm) in enumerate(samples):
+        fired.append(
+            counter.observe(_G8_T0 + timedelta(minutes=5 * i), kw, threshold, imm)
+        )
+    return counter, fired
+
+
+_g8_run = [(2.0, False)] * _G8_HYST
+_g8_clean, _g8_clean_fired = _g8_starts(_g8_run)
+_g8_gap, _g8_gap_fired = _g8_starts(
+    [(2.0, False), (None, False)] + _g8_run
+)
+_g8_imm, _g8_imm_fired = _g8_starts(
+    [(2.0, False), (2.0, True)] + _g8_run
+)
+R.check(
+    "a confirmed start needs consecutive samples, and a meter outage breaks the run",
+    any(_g8_clean_fired)
+    and _g8_clean.lifetime == 1
+    and _g8_gap.lifetime == 1
+    and _g8_gap_fired[0] is False
+    and _g8_gap_fired[1] is False,
+    f"clean {_g8_clean_fired!r} -> lifetime {_g8_clean.lifetime}; across a "
+    f"None reading {_g8_gap_fired!r} -> lifetime {_g8_gap.lifetime}. Without "
+    "the reset, the sample before the gap and the one after it combine into "
+    "an edge, and the wear counter bills a start the compressor never made",
+)
+R.check(
+    "and the immersion element freezes the detector rather than clamping it",
+    _g8_imm.lifetime == 1 and _g8_imm_fired[1] is False,
+    f"with the element active mid-run {_g8_imm_fired!r} -> lifetime "
+    f"{_g8_imm.lifetime} -- while it runs the meter reads compressor plus "
+    "resistive, so neither edge direction can be trusted and half an edge "
+    "observed on each side of it must not combine",
+)
+_g8_keep = _G8Starts()
+for _i in range(30):
+    _g8_keep.months[f"20{24 + _i // 12:02d}-{_i % 12 + 1:02d}"] = _i + 1
+_g8_keep_before = len(_g8_keep.months)
+for _i in range(_G8_HYST):
+    _g8_keep.observe(_G8_T0 + timedelta(minutes=5 * _i), 2.0, 1.0, False)
+R.check(
+    "the month map is evicted oldest-first when a start pushes it over the cap",
+    len(_g8_keep.months) <= 24
+    and _g8_keep_before > 24
+    and _G8_T0.strftime("%Y-%m") in _g8_keep.months
+    and min(_g8_keep.months) > "2024-01",
+    f"{_g8_keep_before} months in, {len(_g8_keep.months)} out, oldest now "
+    f"{min(_g8_keep.months)!r} -- eviction runs on the START path only, so a "
+    "counter that never sees another start keeps whatever it loaded, which is "
+    "why the check drives a start rather than calling the eviction",
+)
+_g8_wear_bad = _G8Starts.from_dict(
+    {"lifetime": "many", "months": {"2026-01": 3, "2026-02": "several"}, "running": 1}
+)
+R.check(
+    "an unparseable lifetime and one bad month leave the rest of the counter",
+    _g8_wear_bad.lifetime == 0
+    and _g8_wear_bad.months == {"2026-01": 3}
+    and _g8_wear_bad.running is True,
+    f"lifetime {_g8_wear_bad.lifetime!r}, months {_g8_wear_bad.months!r} -- the "
+    "month loop CONTINUES past a bad entry rather than abandoning the map, so "
+    "one corrupt key does not cost every other month's history",
+)
+
+
+# -- drift.Cusum: a detector that cannot parse its own timestamp ------------
+_g8_cusum = _G8Cusum(threshold=2.0, drift=0.1)
+_g8_cusum_nonfinite = _g8_cusum.update(_G8_T0, float("nan"))
+R.check(
+    "a non-finite residual is refused before it can touch the statistic",
+    _g8_cusum_nonfinite is False
+    and _g8_cusum.stat == 0.0
+    and _g8_cusum.last_fed is None,
+    f"returned {_g8_cusum_nonfinite!r}, stat {_g8_cusum.stat!r}, last_fed "
+    f"{_g8_cusum.last_fed!r} -- `last_fed` is the tell: it is set AFTER the "
+    "guard, so a detector fed only NaNs must still look starved rather than "
+    "freshly fed, or `release_if_starved` never releases it",
+)
+_g8_cusum_live = _G8Cusum(threshold=1.0, drift=0.0)
+for _i in range(6):
+    _g8_cusum_live.update(_G8_T0 + timedelta(hours=_i), 1.0)
+_g8_cusum_was = (_g8_cusum_live.stat, _g8_cusum_live.tripped)
+_g8_cusum_live.reset()
+R.check(
+    "reset clears the statistic and the latch, and nothing else",
+    _g8_cusum_was[0] > 0.0
+    and _g8_cusum_live.stat == 0.0
+    and _g8_cusum_live.tripped is False
+    and _g8_cusum_live.last_fed is not None
+    and _g8_cusum_live.evidence,
+    f"before {_g8_cusum_was!r}; after stat {_g8_cusum_live.stat!r} tripped "
+    f"{_g8_cusum_live.tripped!r}, last_fed kept "
+    f"{_g8_cusum_live.last_fed is not None}, evidence kept "
+    f"{len(_g8_cusum_live.evidence)} -- the evidence trail and the feed time "
+    "are the record of WHY it tripped, and a reset that erased them would "
+    "leave the next reader unable to say what happened",
+)
+_g8_cusum_load = _G8Cusum(threshold=2.0, drift=0.1)
+_g8_cusum_load.load(
+    {"stat": 1.0, "tripped": "yes", "evidence": ["a"], "last_fed": "not-a-time"}
+)
+_g8_cusum_naive = _G8Cusum(threshold=2.0, drift=0.1)
+_g8_cusum_naive.load({"last_fed": "2026-03-01T08:00:00"})
+R.check(
+    "an unparseable stored timestamp reads as never fed, not as a crash",
+    _g8_cusum_load.last_fed is None
+    and _g8_cusum_load.stat == 1.0
+    and _g8_cusum_load.tripped is False,
+    f"last_fed {_g8_cusum_load.last_fed!r}, stat {_g8_cusum_load.stat!r}, "
+    f"tripped {_g8_cusum_load.tripped!r} from a payload carrying "
+    "'not-a-time' and \"tripped\": \"yes\" -- the rest of the payload still "
+    "loads, and `is True` keeps a corrupt string from latching the detector",
+)
+R.check(
+    "and a naive stored timestamp is taken as UTC rather than left to raise later",
+    _g8_cusum_naive.last_fed is not None
+    and _g8_cusum_naive.last_fed.tzinfo is _g8_tz.utc,
+    f"{_g8_cusum_naive.last_fed!r} -- the null control for the check above: "
+    "one arm must still PRODUCE a timestamp, or 'unparseable reads as None' "
+    "would pass on a loader that discarded every stored time",
+)
+
+
+# -- snapshots.SnapshotRing: a ring whose newest entry is unreadable --------
+_g8_ring_bad = _G8Ring()
+_g8_ring_bad.snapshots = [{"taken_at": "yesterday-ish"}]
+_g8_ring_ok = _G8Ring()
+_g8_ring_ok.snapshots = [{"taken_at": _G8_T0.isoformat()}]
+R.check(
+    "a snapshot whose timestamp will not parse makes the next one DUE",
+    _g8_ring_bad.due(_G8_T0) is True
+    and _g8_ring_ok.due(_G8_T0 + timedelta(hours=1)) is False
+    and _g8_ring_ok.due(_G8_T0 + timedelta(days=8)) is True,
+    f"unparseable -> {_g8_ring_bad.due(_G8_T0)!r}; fresh -> "
+    f"{_g8_ring_ok.due(_G8_T0 + timedelta(hours=1))!r}; stale -> "
+    f"{_g8_ring_ok.due(_G8_T0 + timedelta(days=8))!r}. Failing OPEN is the "
+    "choice: a ring that cannot read its own newest entry has no usable "
+    "rollback point, and refusing to take one would leave it with none",
+)
+_g8_ring_alarm = _G8Ring()
+_g8_ring_alarm.alarmed = True
+_g8_ring_alarm._bias_days = 3
+_g8_ring_cleared = _g8_ring_alarm.observe_bias(_G8_T0, 0.0, True)
+_g8_ring_quiet = _G8Ring()
+_g8_ring_quiet_ret = _g8_ring_quiet.observe_bias(_G8_T0, 0.0, True)
+R.check(
+    "bias returning to band clears a raised alarm and reports the change",
+    _g8_ring_cleared is True
+    and _g8_ring_alarm.alarmed is False
+    and _g8_ring_alarm._bias_days == 0
+    and _g8_ring_quiet_ret is False,
+    f"latched -> returned {_g8_ring_cleared!r}, alarmed now "
+    f"{_g8_ring_alarm.alarmed!r}; never latched -> {_g8_ring_quiet_ret!r}. "
+    "Both arms are needed: the return value is 'the alarm STATE changed', so "
+    "a quiet ring seeing good bias must say False while a latched one says "
+    "True, and one arm alone passes on a method that always returns the same",
+)
+_g8_ring_load = _G8Ring.from_dict(
+    {"snapshots": [{"taken_at": "x"}, "not-a-snapshot"], "bias_days": "lots",
+     "alarmed": True}
+)
+_g8_ring_none = _G8Ring.from_dict(None)
+R.check(
+    "a malformed entry is quarantined and an unparseable day count reads zero",
+    _g8_ring_load.snapshots == [{"taken_at": "x"}]
+    and _g8_ring_load._bias_days == 0
+    and _g8_ring_load.alarmed is True
+    and _g8_ring_none.snapshots == [],
+    f"snapshots {_g8_ring_load.snapshots!r}, bias_days "
+    f"{_g8_ring_load._bias_days!r}; from None -> "
+    f"{_g8_ring_none.snapshots!r} -- the well-formed snapshot survives beside "
+    "the bad one, which is the whole point of quarantining rather than "
+    "discarding the ring",
+)
+
+
+# -- comfort_learning.ComfortLearner: decay, and what cannot move the weight --
+_g8_cl_fresh = _G8Learner(configured_weight=1.0, learned_weight=1.0)
+_g8_cl_fresh._decay(_G8_T0)
+_g8_cl_back = _G8Learner(configured_weight=1.0, learned_weight=1.0)
+_g8_cl_back.last_update = _G8_T0
+_g8_cl_back.evidence = 4.0
+_g8_cl_back._decay(_G8_T0 - timedelta(hours=6))
+R.check(
+    "the first decay only anchors the clock, and a backwards clock decays nothing",
+    _g8_cl_fresh.last_update == _G8_T0
+    and _g8_cl_fresh.evidence == 0.0
+    and _g8_cl_back.evidence == 4.0
+    and _g8_cl_back.last_update == _G8_T0,
+    f"first call -> last_update {_g8_cl_fresh.last_update!r}; backwards call "
+    f"-> evidence {_g8_cl_back.evidence!r}, last_update kept "
+    f"{_g8_cl_back.last_update!r}. A half-life raised to a NEGATIVE power is "
+    "growth: without the `days <= 0` refusal, one clock step backwards "
+    "amplifies the evidence instead of decaying it, and the anchor moves "
+    "backwards with it",
+)
+_g8_cl_noisy = _G8Learner(configured_weight=1.0, learned_weight=1.0)
+_g8_cl_noisy.last_update = _G8_T0
+_g8_cl_noisy.record_quiet_period(_G8_T0 + timedelta(days=1), 5.0, 1.0)
+_g8_cl_zero = _G8Learner(configured_weight=1.0, learned_weight=1.0)
+_g8_cl_zero.last_update = _G8_T0
+_g8_cl_zero.record_quiet_period(_G8_T0 + timedelta(days=1), 0.0, 0.0)
+_g8_cl_flat = _G8Learner(configured_weight=1.0, learned_weight=1.0)
+_g8_cl_flat.last_update = _G8_T0
+_g8_cl_flat.record_quiet_period(_G8_T0 + timedelta(days=1), 0.05, 1.0)
+R.check(
+    "only a genuinely FLAT stretch is evidence that comfort is over-weighted",
+    _g8_cl_noisy.evidence == 0.0
+    and _g8_cl_zero.evidence == 0.0
+    and _g8_cl_flat.evidence < 0.0,
+    f"span 5.0 in a 1.0 band -> {_g8_cl_noisy.evidence!r}; a zero band -> "
+    f"{_g8_cl_zero.evidence!r}; span 0.05 -> {_g8_cl_flat.evidence!r}. This is "
+    "the only half of the signal that can bring the weight DOWN, so a guard "
+    "that let a swinging profile through would read ordinary cycling as proof "
+    "the house is comfortable and quietly de-weight comfort forever",
+)
+_g8_cl_bad = _G8Learner.from_dict(
+    {"configured_weight": 1.0, "learned_weight": "heavy", "evidence": 1.0}, 1.0
+)
+_g8_cl_time = _G8Learner.from_dict(
+    {"configured_weight": 1.0, "learned_weight": 1.5, "last_update": "never"}, 1.0
+)
+R.check(
+    "an unparseable learned weight discards the learning rather than half-loading it",
+    _g8_cl_bad.learned_weight == 1.0
+    and _g8_cl_bad.evidence == 0.0
+    and _g8_cl_bad.overrides == 0,
+    f"learned {_g8_cl_bad.learned_weight!r}, evidence {_g8_cl_bad.evidence!r}, "
+    f"overrides {_g8_cl_bad.overrides!r} -- the three are assigned in ONE try "
+    "block because they are one fact; keeping the evidence count beside a "
+    "weight that failed to load would claim support for a weight nobody has",
+)
+R.check(
+    "and an unparseable last_update leaves the weight it has already loaded",
+    _g8_cl_time.learned_weight == 1.5 and _g8_cl_time.last_update is None,
+    f"learned {_g8_cl_time.learned_weight!r}, last_update "
+    f"{_g8_cl_time.last_update!r} -- the null control for the check above: a "
+    "loader that discarded everything on any bad field would pass that one "
+    "and fail this, and the two failures mean opposite things",
+)
+
+
+# -- dhw_draws.DrawStats and the whole-day label ----------------------------
+_g8_draws_none = _G8Draws.from_dict(None)
+_g8_draws_bad = _G8Draws.from_dict(
+    {"reservoirs": {"06:00-08:30": [1.0, "x", float("inf"), 2.0]},
+     "open_kwh": "lots", "open_label": "06:00-08:30"}
+)
+R.check(
+    "a draw reservoir keeps its finite numbers and drops the rest, event by event",
+    _g8_draws_none.reservoirs == {}
+    and _g8_draws_bad.reservoirs == {"06:00-08:30": [1.0, 2.0]}
+    and _g8_draws_bad._open_kwh == 0.0
+    and _g8_draws_bad._open_label == "06:00-08:30",
+    f"from None -> {_g8_draws_none.reservoirs!r}; from a mixed list -> "
+    f"{_g8_draws_bad.reservoirs!r}, open_kwh {_g8_draws_bad._open_kwh!r}. The "
+    "string and the infinity go and the two real draws stay: a reservoir is a "
+    "quantile estimate, so discarding the whole window over one bad event "
+    "throws away the history that makes the estimate worth anything",
+)
+R.check(
+    "a whole-day window is labelled 24:00 at its end, never 00:00",
+    _g8_labels([(0.0, 24.0)]) == ["00:00-24:00"]
+    and _g8_labels([(6.0, 8.5)]) == ["06:00-08:30"],
+    f"{_g8_labels([(0.0, 24.0)])!r} and {_g8_labels([(6.0, 8.5)])!r} -- folding "
+    "the end to 00:00 would label the whole-day reservoir '00:00-00:00', and "
+    "the label is the KEY the reservoir is stored under, so every whole-day "
+    "draw would land in a window that reads as empty",
+)
+
+
+# -- W5-G8 block B: the advisory surfaces, and one import-time guard --------
+# Five more below-bar modules. Unlike block A these are not persistence: they
+# are what the integration SAYS to the user -- a valve recommendation, a
+# configuration refusal, a diagnostics dump, a set-point consistency notice --
+# plus the worker's own `sys.path` surgery, which runs before anything else
+# and whose failure mode is an import that binds the wrong module.
+R.section("W5-G8 b: advisories and the worker bootstrap (#195)")
+
+import sys as _g8_sys  # noqa: E402
+from heatpump_optimizer import comfort_band as _g8_band  # noqa: E402
+from heatpump_optimizer import diagnostics as _g8_diag  # noqa: E402
+from heatpump_optimizer import process_worker as _g8_pw  # noqa: E402
+from heatpump_optimizer import setpoint_check as _g8_sp  # noqa: E402
+from heatpump_optimizer.mixing_valve import recommend_target as _g8_valve  # noqa: E402
+from heatpump_optimizer.const import (  # noqa: E402
+    CONF_COMFORT_TEMP_DAY_WEEKEND as _G8_WKD_DAY,
+    CONF_COMFORT_TEMP_NIGHT_WEEKEND as _G8_WKD_NIGHT,
+    CONF_DAY_START_HOUR_WEEKEND as _G8_WKD_START,
+    CONF_DAY_END_HOUR_WEEKEND as _G8_WKD_END,
+    CONF_DHW_SETPOINT_ENTITY as _G8_SP_DHW,
+    CONF_SPACE_SETPOINT_ENTITY as _G8_SP_SPACE,
+)
+
+
+# -- comfort_band: the weekend and holiday pairs are checked too ------------
+# `violations` re-runs the whole pair check for the weekend keys and again for
+# the holiday keys. Those three `found.append` calls had never run: every
+# existing check sets the WEEKDAY keys, so the pair function was entered and
+# left without finding anything, which reads identically to a pass.
+def _g8_weekend(**over):
+    return _g8_band.violations(dict(over), {})
+
+
+_g8_wkd_night = _g8_weekend(**{_G8_WKD_DAY: 20.0, _G8_WKD_NIGHT: 22.0})
+_g8_wkd_window = _g8_weekend(**{_G8_WKD_START: 20, _G8_WKD_END: 8})
+_g8_wkd_band = _g8_weekend(**{_G8_WKD_DAY: 40.0})
+_g8_wkd_quiet = _g8_weekend(**{_G8_WKD_DAY: 21.0, _G8_WKD_NIGHT: 19.0})
+R.check(
+    "a weekend comfort pair is refused on its own terms, not the weekday pair's",
+    [v.code for v in _g8_wkd_night] == ["night_above_day"]
+    and [v.code for v in _g8_wkd_window] == ["day_window_empty"]
+    and "comfort_outside_band" in [v.code for v in _g8_wkd_band]
+    and [v.field for v in _g8_wkd_night] == [_G8_WKD_NIGHT],
+    f"night>day -> {[(v.field, v.code) for v in _g8_wkd_night]!r}; empty window "
+    f"-> {[(v.field, v.code) for v in _g8_wkd_window]!r}; out of band -> "
+    f"{[(v.field, v.code) for v in _g8_wkd_band]!r}. The FIELD matters as much as "
+    "the code: the config flow puts the error on the field it names, so a "
+    "weekend violation reported against the weekday key marks a field the "
+    "user did not touch and leaves the one they did looking accepted",
+)
+R.check(
+    "and a consistent weekend pair is silent",
+    _g8_wkd_quiet == [],
+    f"{_g8_wkd_quiet!r} -- the null control: the pair function is ENTERED in "
+    "both arms (a weekend key is present either way), so this is what "
+    "separates 'the checks ran and found nothing' from 'the checks never ran'",
+)
+
+
+# -- mixing_valve: the two cases where the recommendation is not the default -
+_g8_valve_narrow = _g8_valve(comfort_min=20.5, comfort_max=21.0)
+_g8_valve_flat = _g8_valve(comfort_min=19.0, comfort_max=23.0, price_ratio=0.95)
+_g8_valve_wide = _g8_valve(comfort_min=19.0, comfort_max=23.0, price_ratio=0.2)
+R.check(
+    "a narrow band and a flat price both recommend the ceiling, for DIFFERENT reasons",
+    _g8_valve_narrow.target == 21.0
+    and _g8_valve_flat.target == 23.0
+    and _g8_valve_wide.target == 23.0
+    and len({_g8_valve_narrow.reason, _g8_valve_flat.reason,
+             _g8_valve_wide.reason}) == 3,
+    f"narrow -> {_g8_valve_narrow.target!r}; flat prices -> "
+    f"{_g8_valve_flat.target!r}; ordinary -> {_g8_valve_wide.target!r}; "
+    f"{len({_g8_valve_narrow.reason, _g8_valve_flat.reason, _g8_valve_wide.reason})} "
+    "distinct reasons. All three targets are the comfort ceiling, so the "
+    "TARGET cannot tell the three branches apart -- asserting it alone would "
+    "pass on a function with one branch, and the reason is the whole product "
+    "here: it is what the user reads to decide whether to trust the number",
+)
+R.check(
+    "and the recommendation never goes above the comfort ceiling",
+    all(r.target <= 23.0 for r in (_g8_valve_flat, _g8_valve_wide))
+    and _g8_valve_narrow.target <= 21.0,
+    "at the ceiling the valve has stopped preventing overshoot, and what "
+    "stands between a solver mistake and an overheated house is a SOFT "
+    "penalty that prices violations rather than refusing them",
+)
+
+
+# -- diagnostics: a learner whose summary raises must not cost the dump -----
+class _G8BadSummary:
+    def summary(self):
+        raise RuntimeError("learner is mid-migration")
+
+
+class _G8GoodSummary:
+    def summary(self):
+        return {"weight": 1.0}
+
+
+_g8_diag_coord = _t6_coord()
+_g8_diag_coord._comfort_learner = _G8BadSummary()
+_g8_diag_coord._accuracy = _G8GoodSummary()
+_g8_diag_snap = _t6_call(_g8_diag._coordinator_snapshot, _g8_diag_coord)
+R.check(
+    "one learner's raising summary is reported as unavailable, and the rest survive",
+    not isinstance(_g8_diag_snap, Exception)
+    and _g8_diag_snap.get("comfort_learner") == "summary unavailable"
+    and _g8_diag_snap.get("accuracy") == {"weight": 1.0},
+    f"comfort_learner -> {_g8_diag_snap.get('comfort_learner')!r}, accuracy -> "
+    f"{_g8_diag_snap.get('accuracy')!r} -- diagnostics is what a user is asked "
+    "to attach to a bug report, so the one object that is misbehaving is "
+    "exactly the one whose summary is most likely to raise, and losing the "
+    "whole dump to it loses the evidence about everything else",
+)
+
+
+# -- process_worker._bootstrap: the path entry that cannot be resolved ------
+# The worker strips its own directory from `sys.path` because that directory
+# IS the integration package: leave it and `import datetime` binds the HA
+# platform module instead of the stdlib, and the worker cannot unpickle. An
+# entry that raises on resolution is KEPT, because the one thing that must not
+# happen is silently dropping a path the parent process put there.
+class _G8Path:
+    """`Path`, except that one sentinel entry raises OSError on resolve()."""
+
+    SENTINEL = "\x00g8-unresolvable"
+
+    def __init__(self, raw):
+        self._raw = raw
+        self._real = _g8_pw.__dict__["_G8_REAL_PATH"](raw) if raw else None
+
+    def resolve(self):
+        if self._raw == self.SENTINEL:
+            raise OSError("cannot resolve")
+        return self._real.resolve()
+
+    @classmethod
+    def cwd(cls):
+        return _g8_pw.__dict__["_G8_REAL_PATH"].cwd()
+
+
+_g8_pw.__dict__["_G8_REAL_PATH"] = _g8_pw.Path
+_g8_pw_before = list(_g8_sys.path)
+_g8_pw_here = str(_g8_pw.Path(_g8_pw.__file__).resolve().parent)
+try:
+    _g8_sys.path[:] = [_G8Path.SENTINEL, _g8_pw_here, _g8_pw_before[0]]
+    _g8_pw.Path = _G8Path
+    _g8_pw_err = _t6_call(_g8_pw._bootstrap)
+    _g8_pw_after = list(_g8_sys.path)
+finally:
+    _g8_pw.Path = _g8_pw.__dict__["_G8_REAL_PATH"]
+    _g8_sys.path[:] = _g8_pw_before
+R.check(
+    "the worker drops its own package directory and KEEPS an unresolvable entry",
+    _g8_pw_err is None
+    and _G8Path.SENTINEL in _g8_pw_after
+    and _g8_pw_here not in _g8_pw_after,
+    f"path after bootstrap: {[p[:38] for p in _g8_pw_after]!r} -- the package "
+    "directory goes, because with it present `import datetime` binds the Home "
+    "Assistant platform module rather than the stdlib and the worker cannot "
+    "unpickle its job; the unresolvable entry STAYS, because the parent put "
+    "it there and dropping paths on an error is how a worker loses the "
+    "imports it was started with",
+)
+
+
+# -- setpoint_check: every way a set-point entity can be unreadable ---------
+class _G8SpState:
+    def __init__(self, state, attributes=None):
+        self.state = state
+        self.attributes = attributes or {}
+
+
+class _G8SpStates:
+    def __init__(self, mapping):
+        self._m = mapping
+
+    def get(self, entity_id):
+        return self._m.get(entity_id)
+
+
+class _G8SpHass:
+    def __init__(self, mapping=None):
+        self.states = _G8SpStates(mapping or {})
+
+
+_G8_SP_ID = "number.pump_dhw_setpoint"
+_g8_sp_reads = {
+    "absent entity": _g8_sp._read_setpoint(_G8SpHass(), _G8_SP_ID),
+    "unavailable": _g8_sp._read_setpoint(
+        _G8SpHass({_G8_SP_ID: _G8SpState("unavailable")}), _G8_SP_ID),
+    "no entity id": _g8_sp._read_setpoint(_G8SpHass(), None),
+    "text, no attribute": _g8_sp._read_setpoint(
+        _G8SpHass({_G8_SP_ID: _G8SpState("warm")}), _G8_SP_ID),
+    "text, bad attribute": _g8_sp._read_setpoint(
+        _G8SpHass({_G8_SP_ID: _G8SpState("warm", {"temperature": "warmer"})}),
+        _G8_SP_ID),
+    "plain float": _g8_sp._read_setpoint(
+        _G8SpHass({_G8_SP_ID: _G8SpState("52.5")}), _G8_SP_ID),
+    "float on the attribute": _g8_sp._read_setpoint(
+        _G8SpHass({_G8_SP_ID: _G8SpState("heat", {"temperature": 48.0})}),
+        _G8_SP_ID),
+}
+R.check(
+    "a set-point reads through the state, then the attribute, then gives up",
+    _g8_sp_reads["plain float"] == 52.5
+    and _g8_sp_reads["float on the attribute"] == 48.0
+    and all(_g8_sp_reads[k] is None for k in (
+        "absent entity", "unavailable", "no entity id", "text, no attribute",
+        "text, bad attribute")),
+    "; ".join(f"{k}={_g8_sp_reads[k]!r}" for k in sorted(_g8_sp_reads, key=repr))
+    + " -- a climate entity carries its set-point on `temperature` while a "
+    "number carries it in the state, and each None arm is a DIFFERENT return: "
+    "no id, no state, an invalid state string, and a value that is neither "
+    "the state nor the attribute. A reader that conflated them would raise "
+    "the unreadable-set-point notice for a pump that simply is not configured",
+)
+
+
+class _G8SpBoom:
+    """A coordinator whose config read raises, as a reload mid-solve can."""
+
+    hass = _G8SpHass()
+
+    @property
+    def _config(self):
+        raise RuntimeError("entry is being reloaded")
+
+
+_g8_sp_swallowed = _t6_call(_g8_sp.evaluate, _G8SpBoom())
+R.check(
+    "a balky entity skips the consistency check rather than breaking the solve",
+    _g8_sp_swallowed is None,
+    f"{_g8_sp_swallowed!r} -- this is a consistency ADVISORY: it is worth a "
+    "notice and it is not worth a failed update, so the one thing it must "
+    "never do is raise into the cycle that is trying to heat the house",
+)
+
+
+class _G8SpIssues:
+    """An issue registry whose delete raises, as it does before setup."""
+
+    def __init__(self):
+        self.deleted = []
+
+    def async_delete_issue(self, hass, domain, issue_id):
+        self.deleted.append(issue_id)
+        raise RuntimeError("registry not ready")
+
+
+_g8_sp_reg = _G8SpIssues()
+_g8_sp_real_delete = _g8_sp.ir.async_delete_issue
+try:
+    _g8_sp.ir.async_delete_issue = _g8_sp_reg.async_delete_issue
+    _g8_sp_clear = _t6_call(
+        _g8_sp._set_issue, _G8SpHass(), _g8_sp.ISSUE_SPACE, False)
+finally:
+    _g8_sp.ir.async_delete_issue = _g8_sp_real_delete
+R.check(
+    "a registry that refuses the clear is logged, not raised",
+    _g8_sp_clear is None and _g8_sp_reg.deleted == [_g8_sp.ISSUE_SPACE],
+    f"returned {_g8_sp_clear!r} after attempting {_g8_sp_reg.deleted!r} -- the "
+    "attempt is asserted as well as the swallow, because a `_set_issue` that "
+    "never called delete at all would also return None and would leave a "
+    "stale notice on screen for a problem that has been fixed",
+)
+
+
+# -- W5-G8 block C: away and boost, the two user-facing overrides -----------
+# The two largest holders in the residual, and they hold for the same reason:
+# both are mostly PERSISTENCE AND MIGRATION, and neither store is written by
+# any existing check. Between them, a dedicated holiday calendar, the one-shot
+# helper migration, the away set-back and both boost channels had never been
+# driven at all -- which for the migration means the code that runs exactly
+# once per installation, on upgrade, had never run anywhere.
+R.section("W5-G8 c: away and boost (#195)")
+
+from datetime import date as _g8_date  # noqa: E402
+from heatpump_optimizer import away as _g8_away  # noqa: E402
+from heatpump_optimizer import boost as _g8_boost  # noqa: E402
+from heatpump_optimizer.const import (  # noqa: E402
+    CONF_AWAY_ENABLED as _G8_AWAY_ON,
+    CONF_AWAY_PRESENCE_ENTITY as _G8_AWAY_PRES,
+    CONF_AWAY_RETURN_ENTITY as _G8_AWAY_RET,
+    DEFAULT_AWAY_TEMPERATURE as _G8_AWAY_T,
+    DEFAULT_AWAY_DHW_MIN_TEMP as _G8_AWAY_DHW,
+)
+
+_G8_NOW = datetime(2026, 7, 10, 9, 0, tzinfo=UTC)
+
+
+class _G8CalState:
+    def __init__(self, state, **attrs):
+        self.state = state
+        self.attributes = dict(attrs)
+
+
+class _G8CalHass:
+    def __init__(self, mapping=None):
+        self._m = mapping or {}
+        self.states = self
+
+    def get(self, entity_id):
+        return self._m.get(entity_id)
+
+
+# -- away.holiday_dates: a calendar that says which days are holiday --------
+_G8_CAL = "calendar.family_holiday"
+
+
+def _g8_holiday(state=None, **attrs):
+    hass = _G8CalHass({_G8_CAL: state} if state is not None else {})
+    return _g8_away.holiday_dates(hass, _G8_CAL, _G8_NOW)
+
+
+_g8_hol_span = _g8_holiday(
+    _G8CalState("on", start_time="2026-07-10T00:00:00+00:00",
+                end_time="2026-07-13T00:00:00+00:00")
+)
+_g8_hol_off = _g8_holiday(_G8CalState("off", start_time="2026-07-10T00:00:00+00:00"))
+_g8_hol_absent = _g8_holiday()
+_g8_hol_unset = _g8_away.holiday_dates(_G8CalHass(), None, _G8_NOW)
+_g8_hol_nohass = _g8_away.holiday_dates(None, _G8_CAL, _G8_NOW)
+R.check(
+    "a midnight end is the day the holiday ENDS, not a day it covers",
+    _g8_hol_span == frozenset({_g8_date(2026, 7, 10), _g8_date(2026, 7, 11),
+                               _g8_date(2026, 7, 12)}),
+    f"{sorted(_g8_hol_span)!r} from 10 Jul 00:00 to 13 Jul 00:00 -- a calendar "
+    "event that ends at midnight ends the night BEFORE, and counting the 13th "
+    "would hold the house at holiday setback through the day everybody came "
+    "home",
+)
+R.check(
+    "and the calendar has to be ON, present, and configured at all",
+    _g8_hol_off == frozenset()
+    and _g8_hol_absent == frozenset()
+    and _g8_hol_unset == frozenset()
+    and _g8_hol_nohass == frozenset(),
+    f"off -> {len(_g8_hol_off)}; missing from the bus -> {len(_g8_hol_absent)}; "
+    f"no entity configured -> {len(_g8_hol_unset)}; no bus -> "
+    f"{len(_g8_hol_nohass)}. Four separate refusals, each its own return: an "
+    "empty set is 'no holiday', and every one of these is a case where the "
+    "answer is unknown rather than no",
+)
+_g8_hol_long = _g8_holiday(
+    _G8CalState("on", start_time="2026-01-01T00:00:00+00:00",
+                end_time="2026-12-31T00:00:00+00:00")
+)
+_g8_hol_backwards = _g8_holiday(
+    _G8CalState("on", start_time="2026-07-10T00:00:00+00:00",
+                end_time="2026-07-01T00:00:00+00:00")
+)
+_g8_hol_nospan = _g8_holiday(_G8CalState("on"))
+R.check(
+    "a year-long event is capped, and a backwards one collapses to its start",
+    len(_g8_hol_long) == 32
+    and _g8_hol_backwards == frozenset({_g8_date(2026, 7, 10)})
+    and _g8_hol_nospan == frozenset({_G8_NOW.date()}),
+    f"a whole year -> {len(_g8_hol_long)} days; end before start -> "
+    f"{sorted(_g8_hol_backwards)!r}; no times at all -> "
+    f"{sorted(_g8_hol_nospan)!r}. The cap is what keeps a misconfigured "
+    "calendar from building a set per day forever, and the collapse is what "
+    "keeps a backwards span from producing an EMPTY set, which would read as "
+    "'not on holiday' rather than as the bad input it is",
+)
+
+
+# -- away.apply_setback: the comfort floor while the house is empty ---------
+class _G8Opt:
+    def __init__(self):
+        self.target_temp = 21.0
+        self.min_temp = 19.0
+        self.comfort_temp_day = 21.0
+        self.comfort_temp_night = 19.5
+
+
+class _G8Therm:
+    def __init__(self):
+        self.dhw_min_temp = 45.0
+        self.dhw_idle_min_temp = 42.0
+
+
+def _g8_setback(**state_kw):
+    st = _g8_away.AwayState(**state_kw)
+    opt, th = _G8Opt(), _G8Therm()
+    original = _g8_away.apply_setback(st, opt, th)
+    return original, opt, th
+
+
+_g8_sb_orig, _g8_sb_opt, _g8_sb_th = _g8_setback(active=True, target_temperature=16.0,
+                                                 dhw_min_temperature=35.0)
+_g8_sb_off_o, _g8_sb_off_c, _g8_sb_off_t = _g8_setback(active=False)
+_g8_sb_rec_o, _g8_sb_rec_c, _g8_sb_rec_t = _g8_setback(
+    active=True, recovery_active=True, target_temperature=16.0)
+_g8_sb_dflt_o, _g8_sb_dflt_c, _g8_sb_dflt_t = _g8_setback(active=True)
+R.check(
+    "the away set-back lowers all four comfort numbers and both DHW floors",
+    (_g8_sb_opt.target_temp, _g8_sb_opt.min_temp, _g8_sb_opt.comfort_temp_day,
+     _g8_sb_opt.comfort_temp_night) == (16.0, 16.0, 16.0, 16.0)
+    and (_g8_sb_th.dhw_min_temp, _g8_sb_th.dhw_idle_min_temp) == (35.0, 35.0)
+    and _g8_sb_orig["target_temp"] == 21.0
+    and _g8_sb_orig["dhw_idle_min_temp"] == 42.0,
+    f"config now target {_g8_sb_opt.target_temp!r} min {_g8_sb_opt.min_temp!r} "
+    f"day {_g8_sb_opt.comfort_temp_day!r} night "
+    f"{_g8_sb_opt.comfort_temp_night!r}, DHW {_g8_sb_th.dhw_min_temp!r}/"
+    f"{_g8_sb_th.dhw_idle_min_temp!r}; originals returned "
+    f"{_g8_sb_orig!r}. The originals are the whole contract: the caller "
+    "restores from this dict, so a key missing here is a set-back that never "
+    "comes back off",
+)
+R.check(
+    "and RECOVERY ends it, because recovery is the plan buying heat back",
+    (_g8_sb_rec_c.target_temp, _g8_sb_rec_c.comfort_temp_day) == (21.0, 21.0)
+    and (_g8_sb_off_c.target_temp, _g8_sb_off_c.comfort_temp_day) == (21.0, 21.0)
+    and _g8_sb_rec_o == _g8_sb_off_o,
+    f"recovering -> target {_g8_sb_rec_c.target_temp!r}; not away -> "
+    f"{_g8_sb_off_c.target_temp!r}. Both arms leave the config untouched and "
+    "both still return the originals, so a caller that restores "
+    "unconditionally is safe -- and holding the set-back through recovery "
+    "would fight the very warm-up it was scheduled for",
+)
+R.check(
+    "an away state with no temperatures of its own falls back to the defaults",
+    _g8_sb_dflt_c.comfort_temp_day == _G8_AWAY_T
+    and _g8_sb_dflt_t.dhw_min_temp == min(45.0, _G8_AWAY_DHW),
+    f"day {_g8_sb_dflt_c.comfort_temp_day!r} against the default "
+    f"{_G8_AWAY_T!r}; DHW {_g8_sb_dflt_t.dhw_min_temp!r} -- `or` on a float is "
+    "the tell here: a configured 0.0 would take the default too, which is "
+    "right for a temperature nobody sets to zero and worth pinning as the "
+    "behaviour rather than the accident",
+)
+
+
+# -- away._as_num and _parse_return_time -----------------------------------
+_g8_nums = {
+    "None": _g8_away._as_num(None, 7.0),
+    "int": _g8_away._as_num(3, 7.0),
+    "bool": _g8_away._as_num(True, 7.0),
+    "numeric string": _g8_away._as_num("3.5", 7.0),
+    "text": _g8_away._as_num("warm", 7.0),
+    "list": _g8_away._as_num([1], 7.0),
+}
+R.check(
+    "a configured number takes the default unless it really is one",
+    _g8_nums["int"] == 3.0
+    and _g8_nums["numeric string"] == 3.5
+    and all(_g8_nums[k] == 7.0 for k in ("None", "bool", "text", "list")),
+    "; ".join(f"{k}={_g8_nums[k]!r}" for k in sorted(_g8_nums))
+    + " -- True is excluded deliberately: `isinstance(True, int)` is true in "
+    "Python, so a checkbox left where a temperature belongs would otherwise "
+    "set the away target to 1 °C",
+)
+_g8_rt = {
+    "iso": _g8_away._parse_return_time("2026-07-12T18:00:00+00:00"),
+    "unknown": _g8_away._parse_return_time("unknown"),
+    "unavailable": _g8_away._parse_return_time("unavailable"),
+    "empty": _g8_away._parse_return_time(""),
+    "None": _g8_away._parse_return_time(None),
+    "rubbish": _g8_away._parse_return_time("next tuesday"),
+}
+R.check(
+    "a return time parses, or reads as absent -- never as a raise",
+    _g8_rt["iso"] == datetime(2026, 7, 12, 18, 0, tzinfo=UTC)
+    and all(_g8_rt[k] is None for k in
+            ("unknown", "unavailable", "empty", "None", "rubbish")),
+    "; ".join(f"{k}={_g8_rt[k]!r}" for k in sorted(_g8_rt))
+    + " -- `unknown` and `unavailable` are what a Home Assistant entity reads "
+    "between restarts, so they arrive on the happy path rather than as "
+    "corruption, and a raise here would break the update that reads them",
+)
+
+
+# -- away persistence and the one-shot helper migration --------------------
+class _G8AwayStore:
+    """A Store that can refuse either direction."""
+
+    payload: Any = None
+    raise_save = False
+    raise_load = False
+    saved: list = []
+
+    def __init__(self, *a, **k):
+        pass
+
+    async def async_save(self, data):
+        _G8AwayStore.saved.append(data)
+        if _G8AwayStore.raise_save:
+            raise RuntimeError("store is read-only")
+
+    async def async_load(self):
+        if _G8AwayStore.raise_load:
+            raise RuntimeError("store file is corrupt")
+        return _G8AwayStore.payload
+
+
+class _G8Entries:
+    def __init__(self):
+        self.updates = []
+
+    def async_update_entry(self, entry, **kw):
+        self.updates.append(kw)
+
+
+class _G8AwayHass:
+    def __init__(self):
+        self.config_entries = _G8Entries()
+
+
+class _G8AwayEntry:
+    entry_id = "g8"
+
+    def __init__(self, options=None):
+        self.options = dict(options or {})
+
+
+class _G8AwayCoord:
+    def __init__(self, config=None, options=None, entity_states=None):
+        self.hass = _G8AwayHass()
+        self.entry = _G8AwayEntry(options)
+        self._config = dict(config or {})
+        self._away_state = _g8_away.AwayState()
+        self._entity_states = entity_states or {}
+
+    def _entity_state(self, entity_id):
+        return self._entity_states.get(entity_id, (None, {}))
+
+
+_g8_away_real_store = _g8_away.Store
+try:
+    _g8_away.Store = _G8AwayStore
+
+    # A store that refuses to save must not break the service call.
+    _G8AwayStore.saved = []
+    _G8AwayStore.raise_save = True
+    _g8_save_coord = _G8AwayCoord()
+    _g8_save_coord._away_state.override_active = True
+    _g8_save_err = _t6_call(_asyncio.run, _g8_away.persist_override(_g8_save_coord))
+    _g8_save_attempted = list(_G8AwayStore.saved)
+    _G8AwayStore.raise_save = False
+
+    # A store that refuses to load restores an EMPTY override, and then the
+    # migration runs because nothing has recorded that it already did.
+    _G8AwayStore.saved = []
+    _G8AwayStore.raise_load = True
+    _g8_load_coord = _G8AwayCoord(config={_G8_AWAY_PRES: "input_boolean.away_mode"},
+                                  options={_G8_AWAY_ON: True, _G8_AWAY_RET: "x"},
+                                  entity_states={"input_boolean.away_mode": ("on", {})})
+    _g8_load_err = _t6_call(_asyncio.run, _g8_away.restore_override(_g8_load_coord))
+    _g8_load_saved = list(_G8AwayStore.saved)
+    _G8AwayStore.raise_load = False
+
+    # A payload that has ALREADY migrated is applied and migrates no further.
+    _G8AwayStore.saved = []
+    _G8AwayStore.payload = {
+        "active": True, "return_time": "2026-07-12T18:00:00+00:00",
+        "migrated_helpers": True,
+    }
+    _g8_done_coord = _G8AwayCoord(options={_G8_AWAY_ON: True})
+    _t6_call(_asyncio.run, _g8_away.restore_override(_g8_done_coord))
+    _g8_done_saved = list(_G8AwayStore.saved)
+    _G8AwayStore.payload = None
+finally:
+    _g8_away.Store = _g8_away_real_store
+
+R.check(
+    "a store that refuses the save is logged, and the save was attempted",
+    _g8_save_err is None and len(_g8_save_attempted) == 1
+    and _g8_save_attempted[0]["active"] is True,
+    f"returned {_g8_save_err!r} after attempting {_g8_save_attempted!r} -- "
+    "asserting the attempt as well as the swallow, because a persist that "
+    "never called the store would also return None and would lose the "
+    "override at the next restart with nothing in the log",
+)
+R.check(
+    "a store that refuses the LOAD still runs the one-shot helper migration",
+    _g8_load_err is None
+    and _g8_load_coord._away_state.migrated_helpers is True
+    and _g8_load_coord._away_state.override_active is True
+    and len(_g8_load_saved) == 1,
+    f"escaped {_g8_load_err!r}; migrated "
+    f"{_g8_load_coord._away_state.migrated_helpers!r}, active "
+    f"{_g8_load_coord._away_state.override_active!r}, saved "
+    f"{len(_g8_load_saved)} time(s). This is the code that runs ONCE per "
+    "installation, on upgrade: an unreadable store is exactly the state a "
+    "half-finished upgrade leaves, and skipping the migration there would "
+    "strand the user's old helper settings with nothing to read them again",
+)
+R.check(
+    "and the old helper options are dropped, once, in the same write",
+    _g8_load_coord.hass.config_entries.updates
+    and _G8_AWAY_ON not in _g8_load_coord.hass.config_entries.updates[0]["options"]
+    and _G8_AWAY_RET not in _g8_load_coord.hass.config_entries.updates[0]["options"]
+    and _G8_AWAY_PRES not in _g8_load_coord.hass.config_entries.updates[0]["options"],
+    f"entry options rewritten to "
+    f"{_g8_load_coord.hass.config_entries.updates!r} -- the presence entity "
+    "goes too because it was an `input_boolean.`, which the migration treats "
+    "as the user's own helper rather than as a real presence sensor",
+)
+R.check(
+    "an already-migrated payload is applied and writes nothing back",
+    _g8_done_coord._away_state.override_active is True
+    and _g8_done_coord._away_state.override_return_iso is not None
+    and _g8_done_saved == []
+    and _g8_done_coord.hass.config_entries.updates == [],
+    f"active {_g8_done_coord._away_state.override_active!r}, return "
+    f"{_g8_done_coord._away_state.override_return_iso!r}, saves "
+    f"{len(_g8_done_saved)}, entry writes "
+    f"{len(_g8_done_coord.hass.config_entries.updates)} -- the null control "
+    "for the two checks above: the migration flag is what makes this "
+    "one-shot, so a loader that ignored it would rewrite the user's options "
+    "on every single restart",
+)
+
+
+# -- boost: two channels, a two-hour expiry, and a store ---------------------
+_G8_B0 = datetime(2026, 7, 10, 9, 0, tzinfo=UTC)
+_g8_b_state = _g8_boost.BoostState()
+_g8_b_bad = _t6_call(_g8_b_state.set, "radiators", True, _G8_B0)
+_g8_b_state.set(_g8_boost.CHANNEL_DHW, True, _G8_B0)
+_g8_b_on = _g8_b_state.active(_g8_boost.CHANNEL_DHW, _G8_B0 + timedelta(hours=1))
+_g8_b_expired = _g8_b_state.active(
+    _g8_boost.CHANNEL_DHW, _G8_B0 + timedelta(hours=_g8_boost.BOOST_HOURS, minutes=1))
+_g8_b_state.set(_g8_boost.CHANNEL_DHW, False, _G8_B0)
+R.check(
+    "a boost runs for its two hours on the channel asked for, and no other",
+    isinstance(_g8_b_bad, ValueError)
+    and _g8_b_on is True
+    and _g8_b_expired is False
+    and _g8_b_state.until == {},
+    f"an unknown channel -> {_g8_b_bad!r}; within the window -> {_g8_b_on!r}; "
+    f"past it -> {_g8_b_expired!r}; after clearing -> {_g8_b_state.until!r}. "
+    "The unknown channel RAISES rather than silently doing nothing, because "
+    "the caller is a switch entity and a typo there would leave a control "
+    "that looks wired and does nothing",
+)
+_g8_b_pub = _g8_boost.BoostState()
+_g8_b_pub.until[_g8_boost.CHANNEL_SPACE] = dt_util.now() + timedelta(hours=1)
+_g8_b_pub.until[_g8_boost.CHANNEL_DHW] = dt_util.now() - timedelta(hours=1)
+_g8_b_view = _g8_b_pub.as_dict()
+R.check(
+    "the published view expires a stale channel rather than advertising it",
+    _g8_b_view["boost_space_active"] is True
+    and _g8_b_view["boost_space_until"] is not None
+    and _g8_b_view["boost_dhw_active"] is False
+    and _g8_b_view["boost_dhw_until"] is None,
+    f"{_g8_b_view!r} -- the expiry runs INSIDE the view, so a coordinator that "
+    "never called `expire` still publishes the truth; without it a boost that "
+    "ended an hour ago keeps its switch on screen until something else "
+    "happens to sweep it",
+)
+_g8_b_parsed = {
+    "datetime": _g8_boost._parse_until(_G8_B0),
+    "iso": _g8_boost._parse_until("2026-07-10T09:00:00+00:00"),
+    "rubbish": _g8_boost._parse_until("soon"),
+    "None": _g8_boost._parse_until(None),
+    "empty": _g8_boost._parse_until(""),
+}
+R.check(
+    "a stored boost end parses from either a datetime or its isoformat",
+    _g8_b_parsed["datetime"] is _G8_B0
+    and _g8_b_parsed["iso"] == _G8_B0
+    and all(_g8_b_parsed[k] is None for k in ("rubbish", "None", "empty")),
+    "; ".join(f"{k}={_g8_b_parsed[k]!r}" for k in sorted(_g8_b_parsed))
+    + " -- the datetime arm is identity, not equality: `restore` passes "
+    "whatever the store handed back, and a Store that already decoded the "
+    "timestamp must not be re-parsed through `str()`",
+)
+
+
+class _G8BoostStore:
+    payload: Any = None
+    raise_save = False
+    raise_load = False
+    saved: list = []
+
+    def __init__(self, *a, **k):
+        pass
+
+    async def async_save(self, data):
+        _G8BoostStore.saved.append(data)
+        if _G8BoostStore.raise_save:
+            raise RuntimeError("read-only")
+
+    async def async_load(self):
+        if _G8BoostStore.raise_load:
+            raise RuntimeError("corrupt")
+        return _G8BoostStore.payload
+
+
+class _G8BoostCoord:
+    def __init__(self):
+        self.hass = _G8AwayHass()
+        self.entry = _G8AwayEntry()
+
+
+_g8_boost_real_store = _g8_boost.Store
+try:
+    _g8_boost.Store = _G8BoostStore
+    _G8BoostStore.saved = []
+    _G8BoostStore.raise_save = True
+    _g8_bp_coord = _G8BoostCoord()
+    _g8_boost.held_for(_g8_bp_coord).until[_g8_boost.CHANNEL_DHW] = (
+        dt_util.now() + timedelta(hours=1))
+    _g8_bp_err = _t6_call(_asyncio.run, _g8_boost.persist(_g8_bp_coord))
+    _g8_bp_saved = list(_G8BoostStore.saved)
+    _G8BoostStore.raise_save = False
+
+    _G8BoostStore.raise_load = True
+    _g8_br_coord = _G8BoostCoord()
+    _g8_br_err = _t6_call(_asyncio.run, _g8_boost.restore(_g8_br_coord))
+    _g8_br_held = dict(_g8_boost.held_for(_g8_br_coord).until)
+    _G8BoostStore.raise_load = False
+
+    _G8BoostStore.payload = {
+        "dhw": {"until": (dt_util.now() + timedelta(hours=1)).isoformat()},
+        "space": {"until": (dt_util.now() - timedelta(hours=1)).isoformat()},
+        "bogus": "not a mapping",
+    }
+    _g8_bl_coord = _G8BoostCoord()
+    _t6_call(_asyncio.run, _g8_boost.restore(_g8_bl_coord))
+    _g8_bl_held = dict(_g8_boost.held_for(_g8_bl_coord).until)
+    _G8BoostStore.payload = "not a dict"
+    _g8_bn_coord = _G8BoostCoord()
+    _t6_call(_asyncio.run, _g8_boost.restore(_g8_bn_coord))
+    _g8_bn_held = dict(_g8_boost.held_for(_g8_bn_coord).until)
+    _G8BoostStore.payload = None
+finally:
+    _g8_boost.Store = _g8_boost_real_store
+
+R.check(
+    "a boost store that refuses either direction costs the boost, not the setup",
+    _g8_bp_err is None and len(_g8_bp_saved) == 1
+    and _g8_br_err is None and _g8_br_held == {},
+    f"persist escaped {_g8_bp_err!r} after attempting {len(_g8_bp_saved)} "
+    f"save(s); restore escaped {_g8_br_err!r} leaving {_g8_br_held!r} -- "
+    "restore runs during setup, so a raise here is a config entry that will "
+    "not start over a two-hour convenience switch",
+)
+R.check(
+    "restore keeps a live boost, drops an expired one and steps over a malformed entry",
+    set(_g8_bl_held) == {_g8_boost.CHANNEL_DHW}
+    and _g8_bn_held == {},
+    f"from a payload with one live, one expired and one malformed channel -> "
+    f"{sorted(_g8_bl_held)!r}; from a payload that is not a mapping at all -> "
+    f"{_g8_bn_held!r}. Restoring an EXPIRED boost is the failure that matters: "
+    "it would come back on across a restart and hold the tank hot for two "
+    "hours nobody asked for",
+)
+
+
+# -- W5-G8 block D: the wood-fuel arithmetic -------------------------------
+# 65 statements, the largest single holder in the residual, and almost all of
+# it is the path from a user-drawn (or auto-detected) burn SLOT to kilowatts
+# the solver can price. Nothing here is a store: it is arithmetic and shape
+# validation, and the reason it had never run is that every existing wood
+# check drives the solver end-to-end and takes the happy path through it.
+R.section("W5-G8 d: the wood-fuel arithmetic (#195)")
+
+from heatpump_optimizer import wood_fuel as _g8_wf  # noqa: E402
+from heatpump_optimizer.const import (  # noqa: E402
+    CONF_DHW_WOOD_COIL_ENABLED as _G8_W_COIL,
+    CONF_EXTERNAL_HEAT_ENABLED as _G8_W_EXT,
+    CONF_WOOD_FURNACE_EFFICIENCY as _G8_W_EFF,
+    CONF_WOOD_FURNACE_ENABLED as _G8_W_ON,
+    CONF_WOOD_PACKING as _G8_W_PACK,
+    CONF_WOOD_PRICE_SEK_M3 as _G8_W_PRICE,
+    CONF_WOOD_TANK_TOP_ENTITY as _G8_W_TOP,
+    CONF_WOOD_TYPE as _G8_W_TYPE,
+)
+
+_G8_W0 = datetime(2026, 1, 15, 18, 0, tzinfo=UTC)
+_G8_WSTAMPS = [_G8_W0 + timedelta(hours=i) for i in range(6)]
+
+
+# -- _optional_float: the difference between "not set" and "set to zero" ----
+_g8_wof = {
+    "None": _g8_wf._optional_float(None),
+    "empty string": _g8_wf._optional_float(""),
+    "zero": _g8_wf._optional_float(0),
+    "float": _g8_wf._optional_float(2.5),
+    "numeric string": _g8_wf._optional_float("2.5"),
+    "bool": _g8_wf._optional_float(True),
+    "text": _g8_wf._optional_float("lots"),
+    "list": _g8_wf._optional_float([2.5]),
+}
+R.check(
+    "an unset wood number is None and a zero one is 0.0, which are not the same",
+    _g8_wof["zero"] == 0.0
+    and _g8_wof["float"] == 2.5
+    and _g8_wof["numeric string"] == 2.5
+    and all(_g8_wof[k] is None for k in
+            ("None", "empty string", "bool", "text", "list")),
+    "; ".join(f"{k}={_g8_wof[k]!r}" for k in sorted(_g8_wof))
+    + " -- the whole point of the OPTIONAL form is that 0.0 and None mean "
+    "different things to the caller, and an empty string is what a cleared "
+    "config field reads as, so it must be the None one",
+)
+
+
+# -- wood_fuel_ready: five independent reasons the feature stays off --------
+_G8_W_OK = {
+    _G8_W_ON: True, _G8_W_TOP: "sensor.tank_top", _G8_W_EXT: True,
+    _G8_W_TYPE: "birch", _G8_W_PACK: "packed", _G8_W_PRICE: 1200.0,
+    _G8_W_EFF: 75.0,
+}
+_g8_wready = {
+    "fully configured": _g8_wf.wood_fuel_ready(dict(_G8_W_OK)),
+    "furnace off": _g8_wf.wood_fuel_ready(dict(_G8_W_OK, **{_G8_W_ON: False})),
+    "no tank probe": _g8_wf.wood_fuel_ready(
+        {k: v for k, v in _G8_W_OK.items() if k != _G8_W_TOP}),
+    "no heat path": _g8_wf.wood_fuel_ready(
+        dict(_G8_W_OK, **{_G8_W_EXT: False, _G8_W_COIL: False})),
+    "unknown wood": _g8_wf.wood_fuel_ready(dict(_G8_W_OK, **{_G8_W_TYPE: "oak"})),
+    "unknown packing": _g8_wf.wood_fuel_ready(
+        dict(_G8_W_OK, **{_G8_W_PACK: "stacked"})),
+    "no price": _g8_wf.wood_fuel_ready(dict(_G8_W_OK, **{_G8_W_PRICE: 0.0})),
+    "unparseable price": _g8_wf.wood_fuel_ready(
+        dict(_G8_W_OK, **{_G8_W_PRICE: "cheap"})),
+    "efficiency too low": _g8_wf.wood_fuel_ready(dict(_G8_W_OK, **{_G8_W_EFF: 5.0})),
+    "efficiency too high": _g8_wf.wood_fuel_ready(dict(_G8_W_OK, **{_G8_W_EFF: 99.0})),
+}
+R.check(
+    "wood pricing turns on only when all five of its inputs are there",
+    _g8_wready["fully configured"] is True
+    and all(_g8_wready[k] is False for k in _g8_wready if k != "fully configured"),
+    "; ".join(f"{k}={_g8_wready[k]!r}" for k in sorted(_g8_wready))
+    + " -- each refusal is its own return and they are NOT redundant: a tank "
+    "probe with no heat path is a thermometer, a heat path with no probe is "
+    "unmeasurable, and an efficiency outside 10-95 % is a typed-in number "
+    "rather than a furnace. A single combined guard would let one missing "
+    "input be masked by another that happens to be present",
+)
+
+
+# -- _as_dt and _iso: a slot's timestamps against the plan's own grid -------
+_g8_asdt = {
+    "datetime through": _g8_wf._as_dt(_G8_W0, _G8_WSTAMPS),
+    "iso string": _g8_wf._as_dt("2026-01-15T18:00:00+00:00", _G8_WSTAMPS),
+    "Z suffix": _g8_wf._as_dt("2026-01-15T18:00:00Z", _G8_WSTAMPS),
+    "naive against aware": _g8_wf._as_dt("2026-01-15T18:00:00", _G8_WSTAMPS),
+    "aware against no grid": _g8_wf._as_dt(_G8_W0, []),
+    "None": _g8_wf._as_dt(None, _G8_WSTAMPS),
+    "rubbish": _g8_wf._as_dt("half past six", _G8_WSTAMPS),
+}
+_g8_asdt_naive_grid = _g8_wf._as_dt(
+    _G8_W0, [_G8_W0.replace(tzinfo=None)]
+)
+R.check(
+    "a slot timestamp is coerced to the plan grid's own awareness, both ways",
+    _g8_asdt["datetime through"] == _G8_W0
+    and _g8_asdt["iso string"] == _G8_W0
+    and _g8_asdt["Z suffix"] == _G8_W0
+    and _g8_asdt["naive against aware"] == _G8_W0
+    and _g8_asdt_naive_grid.tzinfo is None
+    and _g8_asdt["None"] is None
+    and _g8_asdt["rubbish"] is None,
+    "; ".join(f"{k}={_g8_asdt[k]!r}" for k in sorted(_g8_asdt))
+    + f"; aware value against a naive grid -> {_g8_asdt_naive_grid!r}. Both "
+    "directions are needed because the slot comes from a user's browser and "
+    "the grid comes from the price feed: comparing the two raises TypeError "
+    "on the mix, and that comparison is what decides which steps burn",
+)
+R.check(
+    "and a timestamp is rendered by its own isoformat when it has one",
+    _g8_wf._iso(_G8_W0) == _G8_W0.isoformat() and _g8_wf._iso("already text") == "already text",
+    f"{_g8_wf._iso(_G8_W0)!r} and {_g8_wf._iso('already text')!r} -- the "
+    "string arm is what lets a detected slot be re-read by the same parser "
+    "that reads a drawn one",
+)
+
+
+# -- wood_slots_to_kw: liters over a window, spread across the steps --------
+_g8_kw_one = _g8_wf.wood_slots_to_kw(
+    [{"liters": 40.0, "start": _G8_WSTAMPS[1].isoformat(),
+      "end": _G8_WSTAMPS[3].isoformat()}],
+    _G8_WSTAMPS, 1.0, "birch", "packed", 75.0)
+_g8_kw_expect = _g8_wf.liters_to_kwh(40.0, "birch", "packed", 75.0) / 2.0
+_g8_kw_bad = _g8_wf.wood_slots_to_kw(
+    [{"liters": 0.0, "start": _G8_WSTAMPS[0].isoformat(),
+      "end": _G8_WSTAMPS[1].isoformat()},
+     {"liters": "lots", "start": _G8_WSTAMPS[0].isoformat(),
+      "end": _G8_WSTAMPS[1].isoformat()},
+     {"liters": 40.0, "start": _G8_WSTAMPS[3].isoformat(),
+      "end": _G8_WSTAMPS[1].isoformat()},
+     {"liters": 40.0, "start": None, "end": _G8_WSTAMPS[1].isoformat()}],
+    _G8_WSTAMPS, 1.0, "birch", "packed", 75.0)
+R.check(
+    "a burn slot's energy lands on the steps it covers, at a constant rate",
+    [round(v, 6) for v in _g8_kw_one]
+    == [0.0, round(_g8_kw_expect, 6), round(_g8_kw_expect, 6), 0.0, 0.0, 0.0]
+    and _g8_kw_bad == [0.0] * 6,
+    f"40 L of birch over two hours -> {[round(v, 1) for v in _g8_kw_one]!r} kW "
+    f"against an expected {_g8_kw_expect:.1f} on each covered step; four "
+    f"malformed slots -> {_g8_kw_bad!r}. The rate is energy over the slot's "
+    "own hours, not over the step: a slot spanning two steps must put HALF "
+    "its energy in each, or a three-hour fire reads as three full fires",
+)
+_g8_kw_err = {
+    "not a list": _g8_wf._wood_slots_error("slots", _G8_WSTAMPS),
+    "not dicts": _g8_wf._wood_slots_error(["a slot"], _G8_WSTAMPS),
+    "no liters": _g8_wf._wood_slots_error(
+        [{"liters": 0.0, "start": _G8_WSTAMPS[0], "end": _G8_WSTAMPS[1]}],
+        _G8_WSTAMPS),
+    "unparseable liters": _g8_wf._wood_slots_error(
+        [{"liters": "some", "start": _G8_WSTAMPS[0], "end": _G8_WSTAMPS[1]}],
+        _G8_WSTAMPS),
+    "backwards": _g8_wf._wood_slots_error(
+        [{"liters": 40.0, "start": _G8_WSTAMPS[3], "end": _G8_WSTAMPS[1]}],
+        _G8_WSTAMPS),
+    "empty list": _g8_wf._wood_slots_error([], _G8_WSTAMPS),
+    "one good slot": _g8_wf._wood_slots_error(
+        [{"liters": 40.0, "start": _G8_WSTAMPS[1], "end": _G8_WSTAMPS[3]}],
+        _G8_WSTAMPS),
+}
+R.check(
+    "a malformed slot list is REFUSED, while an empty one is simply no fires",
+    _g8_kw_err["empty list"] is None
+    and _g8_kw_err["one good slot"] is None
+    and all(_g8_kw_err[k] == "invalid_wood_slots" for k in
+            ("not a list", "not dicts", "no liters", "unparseable liters",
+             "backwards")),
+    "; ".join(f"{k}={_g8_kw_err[k]!r}" for k in sorted(_g8_kw_err))
+    + " -- the empty list is the one that matters: `wood_slots_to_kw` SKIPS a "
+    "bad slot silently, so without this refusal a user whose slots all failed "
+    "to parse would get a plan that quietly assumed no fire at all rather "
+    "than an error saying the drawing was rejected",
+)
+
+
+# -- detected_wood_slots: reading the fires back out of a forecast ----------
+_g8_det_none = _g8_wf.detected_wood_slots([], [1.0])
+_g8_det_mid = _g8_wf.detected_wood_slots(
+    _G8_WSTAMPS, [0.0, 3.0, 3.0, 0.0, 0.0, 0.0])
+_g8_det_tail = _g8_wf.detected_wood_slots(
+    _G8_WSTAMPS, [0.0, 0.0, 0.0, 0.0, 3.0, 3.0])
+_g8_det_two = _g8_wf.detected_wood_slots(
+    _G8_WSTAMPS, [3.0, 0.0, 3.0, 0.0, 0.0, 0.0])
+_g8_det_flat = _g8_wf.detected_wood_slots(_G8_WSTAMPS, [0.0] * 6)
+_g8_det_short = _g8_wf.detected_wood_slots(_G8_WSTAMPS, [3.0])
+_g8_det_one = _g8_wf.detected_wood_slots([_G8_WSTAMPS[0]], [3.0])
+R.check(
+    "consecutive burning steps merge into ONE slot, and a gap starts another",
+    [(s["start"], s["end"]) for s in _g8_det_mid]
+    == [(_G8_WSTAMPS[1].isoformat(), _G8_WSTAMPS[3].isoformat())]
+    and len(_g8_det_two) == 2
+    and _g8_det_flat == []
+    and _g8_det_none == [],
+    f"one run -> {[(s['start'][11:16], s['end'][11:16]) for s in _g8_det_mid]!r}; "
+    f"two runs -> {[(s['start'][11:16], s['end'][11:16]) for s in _g8_det_two]!r}; "
+    f"no burning -> {_g8_det_flat!r}; no grid -> {_g8_det_none!r}. The end is "
+    "the timestamp of the first NON-burning step, which is where the fire "
+    "stopped, not where the last burning step began",
+)
+R.check(
+    "a run still burning at the end of the grid is closed one step past it",
+    [(s["start"], s["end"]) for s in _g8_det_tail]
+    == [(_G8_WSTAMPS[4].isoformat(),
+         (_G8_WSTAMPS[5] + timedelta(hours=1)).isoformat())]
+    and [(s["start"], s["end"]) for s in _g8_det_one]
+    == [(_G8_WSTAMPS[0].isoformat(), _G8_WSTAMPS[0].isoformat())],
+    f"burning to the horizon -> "
+    f"{[(s['start'][11:16], s['end'][11:16]) for s in _g8_det_tail]!r}; a "
+    f"single-step grid -> "
+    f"{[(s['start'][11:16], s['end'][11:16]) for s in _g8_det_one]!r}. The "
+    "step width is inferred from the first two timestamps, so a grid with "
+    "only one has none to infer and closes the slot at the last stamp "
+    "instead -- a zero-length slot, which `_wood_slots_error` then refuses, "
+    "rather than a guess at how long the fire ran",
+)
+R.check(
+    "and a forecast shorter than the grid is read only as far as it goes",
+    [(s["start"], s["end"]) for s in _g8_det_short]
+    == [(_G8_WSTAMPS[0].isoformat(),
+         (_G8_WSTAMPS[0] + timedelta(hours=1)).isoformat())]
+    and all(s["source"] == "detected" for s in
+            _g8_det_mid + _g8_det_tail + _g8_det_two),
+    f"{[(s['start'][11:16], s['end'][11:16]) for s in _g8_det_short]!r}; every "
+    "slot carries source='detected'. The two sequences are zipped to the "
+    "SHORTER, so a forecast that arrives truncated reads as the fires it can "
+    "see rather than as an IndexError in the middle of a plan -- and the step "
+    "width still comes from the GRID, which is why the slot closes an hour "
+    "on rather than at its own start: the forecast ran out, the clock did not",
+)
+
+
+# -- _cops and wood_sek_per_kwh --------------------------------------------
+def _g8_cop_at(temp):
+    if temp < -10.0:
+        raise ValueError("below the curve")
+    return 3.0 + temp / 10.0
+
+
+_g8_cops = _g8_wf._cops([0.0, 5.0, None, -20.0, "warm"], _g8_cop_at)
+R.check(
+    "a COP the curve cannot produce becomes zero, per step, not per plan",
+    _g8_cops == [3.0, 3.5, 0.0, 0.0, 3.0],
+    f"{_g8_cops!r} from [0, 5, None, -20, 'warm'] -- the None step and the "
+    "step the curve raises on both read 0.0, which prices the heat pump out "
+    "of that hour rather than out of the whole plan; 'warm' coerces to 0 °C "
+    "through `_force_float`, which is the same choice one level down",
+)
+_g8_wsek = _g8_wf.wood_sek_per_kwh(1200.0, "birch", "packed", 75.0)
+_g8_wsek_zero = _t6_call(_g8_wf.wood_sek_per_kwh, 1200.0, "birch", "packed", 0.0)
+R.check(
+    "wood is priced per useful kWh, and a zero-efficiency furnace is refused",
+    abs(_g8_wsek - 1200.0 / (1900.0 * 0.75)) < 1e-9
+    and isinstance(_g8_wsek_zero, ValueError),
+    f"1200 SEK/m3 of packed birch at 75 % -> {_g8_wsek:.4f} SEK/kWh; at 0 % -> "
+    f"{_g8_wsek_zero!r}. The raise is right and the alternative is worse: a "
+    "zero denominator would make wood infinitely expensive and the solver "
+    "would simply never burn, which looks like a decision rather than a "
+    "misconfiguration",
+)
+
+
+# -- W5-G8 block E: the price feed's edges ---------------------------------
+# 45 statements, and they are the ways a price feed goes wrong rather than the
+# way it goes right: a token the API refuses, a quarter-hourly query the
+# contract does not carry, a third-party sensor whose rows are half-formed.
+# The happy path through all of this is exercised constantly; none of these
+# had run once.
+R.section("W5-G8 e: the price feed's edges (#195)")
+
+from heatpump_optimizer import price_model as _g8_pm  # noqa: E402
+from heatpump_optimizer.const import (  # noqa: E402
+    CONF_PRICE_ENTITY as _G8_P_ENT,
+    CONF_PRICE_SOURCE as _G8_P_SRC,
+    CONF_PRICE_SURCHARGE as _G8_P_ADD,
+    CONF_PRICE_VAT as _G8_P_VAT,
+    CONF_TIBBER_TOKEN as _G8_P_TOK,
+    PRICE_SOURCE_ENTITY as _G8_P_ENTITY_SRC,
+)
+
+
+# -- the third-party sensor: _raw_start, _raw_value, and the adjustments ----
+_g8_rs = {
+    "start": _g8_pm._raw_start({"start": "2026-01-15T18:00:00+00:00"}),
+    "starts_at": _g8_pm._raw_start({"starts_at": "2026-01-15T18:00:00+00:00"}),
+    "startsAt": _g8_pm._raw_start({"startsAt": "2026-01-15T18:00:00+00:00"}),
+    "datetime": _g8_pm._raw_start({"start": datetime(2026, 1, 15, 18, tzinfo=UTC)}),
+    "absent": _g8_pm._raw_start({}),
+    "blank": _g8_pm._raw_start({"start": "   "}),
+}
+R.check(
+    "a price row's start is read under any of the three spellings in the wild",
+    _g8_rs["start"] == _g8_rs["starts_at"] == _g8_rs["startsAt"]
+    == "2026-01-15T18:00:00+00:00"
+    and _g8_rs["datetime"] == "2026-01-15T18:00:00+00:00"
+    and _g8_rs["absent"] is None
+    and _g8_rs["blank"] is None,
+    "; ".join(f"{k}={_g8_rs[k]!r}" for k in sorted(_g8_rs))
+    + " -- Nord Pool, ENTSO-E and Tibber each spell it differently and a user "
+    "may point the integration at any of them; the blank arm matters because "
+    "a whitespace-only start would otherwise become a row with no time",
+)
+_g8_rv = {
+    "value": _g8_pm._raw_value({"value": 1.25}),
+    "total": _g8_pm._raw_value({"total": 1.25}),
+    "price": _g8_pm._raw_value({"price": 1.25}),
+    "precedence": _g8_pm._raw_value({"value": 1.0, "total": 2.0, "price": 3.0}),
+    "zero": _g8_pm._raw_value({"value": 0.0}),
+    "negative": _g8_pm._raw_value({"value": -0.4}),
+    "absent": _g8_pm._raw_value({}),
+    "text": _g8_pm._raw_value({"value": "cheap"}),
+    "infinite": _g8_pm._raw_value({"value": float("inf")}),
+    "nan": _g8_pm._raw_value({"value": float("nan")}),
+}
+R.check(
+    "a price reads through value, total then price, and refuses a non-finite one",
+    _g8_rv["value"] == _g8_rv["total"] == _g8_rv["price"] == 1.25
+    and _g8_rv["precedence"] == 1.0
+    and _g8_rv["zero"] == 0.0
+    and _g8_rv["negative"] == -0.4
+    and all(_g8_rv[k] is None for k in ("absent", "text", "infinite", "nan")),
+    "; ".join(f"{k}={_g8_rv[k]!r}" for k in sorted(_g8_rv))
+    + " -- zero and negative both survive on purpose: negative prices are a "
+    "real Nord Pool state the optimizer exists to exploit, so refusing them "
+    "as implausible would drop exactly the hours worth planning for",
+)
+_g8_adj = _g8_pm.apply_price_adjustments(
+    [{"total": 1.0, "starts_at": "a"}, {"total": "text", "starts_at": "b"},
+     {"total": float("inf"), "starts_at": "c"}, {"total": 2.0, "starts_at": "d"}],
+    1.25, 0.10)
+_g8_adj_nonfinite = _g8_pm.apply_price_adjustments(
+    [{"total": 1.0}], float("nan"), float("nan"))
+R.check(
+    "VAT and surcharge are applied per row, and a bad row is dropped not zeroed",
+    [round(r["total"], 6) for r in _g8_adj] == [1.35, 2.6]
+    and [r["starts_at"] for r in _g8_adj] == ["a", "d"]
+    and [round(r["total"], 6) for r in _g8_adj_nonfinite] == [1.0],
+    f"{[(r['starts_at'], round(r['total'], 3)) for r in _g8_adj]!r}; a "
+    f"non-finite VAT and surcharge -> {_g8_adj_nonfinite!r}. Dropping beats "
+    "zeroing: a 0.00 SEK hour is the cheapest hour there is, so a row that "
+    "failed to parse would become the one the plan rushes to heat in",
+)
+_g8_attrs_ok = _g8_pm.prices_from_entity_attributes(
+    {"raw_today": [{"start": "2026-01-15T18:00:00+00:00", "value": 1.0},
+                   {"start": "bad", "value": 2.0},
+                   "not a row",
+                   {"start": "2026-01-15T19:00:00+00:00", "value": "text"}],
+     "raw_tomorrow": "not a list"},
+    1.0, 0.0)
+_g8_attrs_none = _g8_pm.prices_from_entity_attributes(None)
+_g8_attrs_empty = _g8_pm.prices_from_entity_attributes({})
+_g8_attrs_norows = _g8_pm.prices_from_entity_attributes({"raw_today": []})
+R.check(
+    "a half-formed price series yields the rows it can and an error when it cannot",
+    [r["total"] for r in _g8_attrs_ok] == [1.0, 2.0]
+    and [r["starts_at"] for r in _g8_attrs_ok]
+    == ["2026-01-15T18:00:00+00:00", "bad"]
+    and isinstance(_g8_attrs_none, str)
+    and isinstance(_g8_attrs_empty, str)
+    and isinstance(_g8_attrs_norows, str),
+    f"four rows in, {len(_g8_attrs_ok)} out -> {_g8_attrs_ok!r}; None -> "
+    f"{_g8_attrs_none!r}; empty -> {_g8_attrs_empty!r}; a present but empty "
+    f"series -> {_g8_attrs_norows!r}. Two survive, not one: the non-dict row "
+    "and the one whose VALUE will not float are dropped here, but an "
+    "unparseable START is not -- `_raw_start` NORMALISES a timestamp and does "
+    "not validate it, and the rejection happens one stage later where the "
+    "rows are bucketed by day. Worth pinning as the division of labour it is, "
+    "because a reader of this function alone would expect both to be checked "
+    "in the same place. And the distinction that IS load-bearing here: rows "
+    "the parser dropped leave a shorter plan, while no rows at all is a "
+    "failed fetch the coordinator must report rather than plan around",
+)
+_g8_state_none = _g8_pm.prices_from_entity_state(None)
+_g8_state_unknown = _g8_pm.prices_from_entity_state(
+    _G8SpState("unknown", {}))
+_g8_state_attrs = _g8_pm.prices_from_entity_state(
+    _G8SpState("unavailable",
+               {"raw_today": [{"start": "2026-01-15T18:00:00+00:00",
+                               "value": 1.0}]}))
+R.check(
+    "an unavailable price sensor still counts if it carries the series anyway",
+    isinstance(_g8_state_none, str)
+    and isinstance(_g8_state_unknown, str)
+    and not isinstance(_g8_state_attrs, str)
+    and len(_g8_state_attrs) == 1,
+    f"no entity -> {_g8_state_none!r}; unknown with no attributes -> "
+    f"{_g8_state_unknown!r}; unavailable WITH a series -> "
+    f"{_g8_state_attrs!r}. Several price integrations publish the series on "
+    "the attributes and leave the state itself `unknown` outside market "
+    "hours, so refusing on the state alone would lose a whole day's prices "
+    "from a sensor that had them",
+)
+
+
+# -- the Tibber payload, and pull_prices' four outcomes ---------------------
+_g8_tp = {
+    "not a dict": _g8_pm.prices_from_tibber_payload(None),
+    "errors": _g8_pm.prices_from_tibber_payload({"errors": [{"message": "nope"}]}),
+    "no homes": _g8_pm.prices_from_tibber_payload({"data": {"viewer": {"homes": []}}}),
+    "no subscription": _g8_pm.prices_from_tibber_payload(
+        {"data": {"viewer": {"homes": [{"currentSubscription": None}]}}}),
+}
+_g8_tp_rows = _g8_pm.prices_from_tibber_payload({
+    "data": {"viewer": {"homes": [{"currentSubscription": {"priceInfo": {
+        "today": [{"total": 1.0, "startsAt": "2026-01-15T18:00:00+00:00"},
+                  "not a row"],
+        "tomorrow": [{"total": 2.0, "starts_at": "2026-01-16T18:00:00+00:00"}],
+    }}}]}}})
+R.check(
+    "each Tibber failure names itself, and today and tomorrow both land",
+    all(isinstance(_g8_tp[k], str)
+        for k in ("not a dict", "errors", "no homes"))
+    and len({_g8_tp[k] for k in ("not a dict", "errors", "no homes")}) == 3
+    and "nope" in _g8_tp["errors"]
+    and _g8_tp["no subscription"] == []
+    and [r["total"] for r in _g8_tp_rows] == [1.0, 2.0],
+    "; ".join(f"{k}={_g8_tp[k]!r}" for k in sorted(_g8_tp, key=repr))
+    + f"; a good payload -> {_g8_tp_rows!r}. Three distinct reason STRINGS, "
+    "and the fourth input is not a failure at all: a home with no current "
+    "subscription returns an empty row list, which the caller reports as a "
+    "successful fetch of nothing rather than as an API error. That is the "
+    "right shape -- the API answered, the account simply has no contract -- "
+    "and it is exactly the case a check asserting 'every bad payload gives a "
+    "reason' would have got wrong. The reason string reaches the user's "
+    "repair notice, so 'errors' carrying the API's own text is what makes a "
+    "revoked token diagnosable",
+)
+
+
+class _G8Tibber:
+    """A scripted `_tibber_post`: one (status, payload) per call."""
+
+    def __init__(self, *replies):
+        self.replies = list(replies)
+        self.calls = []
+
+    async def __call__(self, session, token, body):
+        self.calls.append(body)
+        return self.replies[min(len(self.calls) - 1, len(self.replies) - 1)]
+
+
+_G8_TIBBER_OK = {"data": {"viewer": {"homes": [{"currentSubscription": {
+    "priceInfo": {"today": [
+        {"total": 1.0, "startsAt": "2026-01-15T18:00:00+00:00"}]}}}]}}}
+
+
+def _g8_pull(config, *replies, entity_state=None):
+    scripted = _G8Tibber(*replies)
+    real = _g8_pm._tibber_post
+    try:
+        _g8_pm._tibber_post = scripted
+        out = _asyncio.run(_g8_pm.pull_prices(None, config, entity_state))
+    finally:
+        _g8_pm._tibber_post = real
+    return out, scripted
+
+
+_g8_pull_noent, _ = _g8_pull({_G8_P_SRC: _G8_P_ENTITY_SRC})
+_g8_pull_badvat, _ = _g8_pull(
+    {_G8_P_SRC: _G8_P_ENTITY_SRC, _G8_P_ENT: "sensor.p",
+     _G8_P_VAT: "much", _G8_P_ADD: "some"},
+    entity_state=_G8SpState(
+        "1.0", {"raw_today": [{"start": "2026-01-15T18:00:00+00:00",
+                               "value": 2.0}]}))
+_g8_pull_notok, _ = _g8_pull({})
+R.check(
+    "the entity source refuses without an entity, and survives an unparseable VAT",
+    _g8_pull_noent == ("fail", "Price entity is empty")
+    and _g8_pull_badvat[0] == "ok"
+    and [r["total"] for r in _g8_pull_badvat[1]] == [2.0]
+    and _g8_pull_notok == ("fail", "No Tibber token configured"),
+    f"no entity -> {_g8_pull_noent!r}; VAT 'much' -> {_g8_pull_badvat[0]!r} "
+    f"with {[r['total'] for r in _g8_pull_badvat[1]]!r}; no token -> "
+    f"{_g8_pull_notok!r}. The VAT fallback is 1.0 and NOT zero: a multiplier "
+    "that failed to parse becoming 0.0 would price every hour at the "
+    "surcharge alone and the plan would heat flat out",
+)
+_g8_pull_401, _ = _g8_pull({_G8_P_TOK: "t"}, (401, None))
+_g8_pull_403, _ = _g8_pull({_G8_P_TOK: "t"}, (403, None))
+_g8_pull_500, _ = _g8_pull({_G8_P_TOK: "t"}, (500, None))
+R.check(
+    "a refused token asks for REAUTH while a broken API is an ordinary failure",
+    _g8_pull_401[0] == "reauth" and "401" in _g8_pull_401[1]
+    and _g8_pull_403[0] == "reauth"
+    and _g8_pull_500[0] == "fail" and "500" in _g8_pull_500[1],
+    f"401 -> {_g8_pull_401!r}; 403 -> {_g8_pull_403[0]!r}; 500 -> "
+    f"{_g8_pull_500!r}. The two outcomes do different things to the user: "
+    "reauth opens a flow asking for a new token, and fail raises a transient "
+    "notice -- so a 500 treated as reauth would ask the user to re-enter a "
+    "token that was never the problem",
+)
+_g8_pull_retry, _g8_retry_calls = _g8_pull(
+    {_G8_P_TOK: "t"}, (200, {"errors": ["no quarters"]}), (200, _G8_TIBBER_OK))
+_g8_pull_both, _ = _g8_pull(
+    {_G8_P_TOK: "t"}, (200, {"errors": ["no quarters"]}), (200, {"errors": ["nor hours"]}))
+_g8_pull_retry_401, _ = _g8_pull(
+    {_G8_P_TOK: "t"}, (200, {"errors": ["no quarters"]}), (401, None))
+_g8_pull_retry_500, _ = _g8_pull(
+    {_G8_P_TOK: "t"}, (200, {"errors": ["no quarters"]}), (500, None))
+R.check(
+    "a contract with no quarter-hourly prices falls back to the hourly query",
+    _g8_pull_retry[0] == "ok"
+    and len(_g8_retry_calls.calls) == 2
+    and _g8_retry_calls.calls[0] != _g8_retry_calls.calls[1]
+    and _g8_pull_both[0] == "fail"
+    and _g8_pull_retry_401[0] == "reauth"
+    and _g8_pull_retry_500[0] == "fail"
+    and "no quarters" in _g8_pull_retry_500[1]
+    and "nor hours" in _g8_pull_both[1],
+    f"quarter fails then hourly succeeds -> {_g8_pull_retry[0]!r} after "
+    f"{len(_g8_retry_calls.calls)} distinct queries; both fail -> "
+    f"{_g8_pull_both!r}; hourly 401 -> {_g8_pull_retry_401[0]!r}; hourly 500 "
+    f"-> {_g8_pull_retry_500!r}. Two queries and not one retry of the same: "
+    "the 15-minute MTU is not on every contract, and a household still on "
+    "hourly settlement would otherwise get no prices at all rather than the "
+    "hourly ones it does have. The 500 arm reports the QUARTER query's "
+    "reason, which is the first thing that went wrong",
+)
+
+
+# -- PriceShapeModel.observe_day_quarters and the loader's three arms -------
+_g8_pmq = _g8_pm.PriceShapeModel()
+_g8_pmq_short = _g8_pmq.observe_day_quarters(_G8_W0, [1.0] * 10)
+_g8_pmq_nonfinite = _g8_pmq.observe_day_quarters(
+    _G8_W0, [float("nan")] * _g8_pm.QUARTERS_PER_DAY)
+_g8_pmq_zero = _g8_pmq.observe_day_quarters(_G8_W0, [0.0] * _g8_pm.QUARTERS_PER_DAY)
+_g8_pmq_ok = _g8_pmq.observe_day_quarters(
+    _G8_W0, [1.0 + (i % 4) * 0.1 for i in range(_g8_pm.QUARTERS_PER_DAY)])
+R.check(
+    "a quarter-price day is folded in only when it is whole, finite and priced",
+    _g8_pmq_short is False
+    and _g8_pmq_nonfinite is False
+    and _g8_pmq_zero is False
+    and _g8_pmq_ok is True,
+    f"10 values -> {_g8_pmq_short!r}; all NaN -> {_g8_pmq_nonfinite!r}; all "
+    f"zero -> {_g8_pmq_zero!r}; a real day -> {_g8_pmq_ok!r}. The zero "
+    "refusal is the subtle one: the quarter FACTORS are each quarter's price "
+    "over its hour's mean, so a day that averages zero divides by zero and "
+    "the shape prior fills with infinities that never wash out",
+)
+_g8_pm_loaded = _g8_pm.PriceShapeModel.from_dict({
+    "quarter_factors": [["x"] * _g8_pm.QUARTERS_PER_DAY,
+                        [1.0] * _g8_pm.QUARTERS_PER_DAY],
+    "quarter_days": ["many", 2],
+    "residual_var": [["x"] * _g8_pm.HOURS_PER_DAY, [0.0] * _g8_pm.HOURS_PER_DAY],
+})
+_g8_pm_fresh = _g8_pm.PriceShapeModel()
+R.check(
+    "an unparseable quarter payload loads as the model that has learned nothing",
+    _g8_pm_loaded.quarter_factors == _g8_pm_fresh.quarter_factors
+    and _g8_pm_loaded.quarter_days == _g8_pm_fresh.quarter_days
+    and _g8_pm_loaded.residual_var == _g8_pm_fresh.residual_var,
+    "each of the three blocks is shaped correctly and holds a value that will "
+    "not float; all three keep their defaults, which the loader's own comment "
+    "calls 'no effect' -- so an old or corrupt payload loads into exactly the "
+    "behaviour it had, rather than into a half-learned shape that biases "
+    "every price the plan sees",
+)
+
+
+# -- W5-G8 block F: the two subsystems W5-G9 and W5-G10 extracted ----------
+# `dhw_learning.py` and `legionella.py` left `coordinator.py` as classes in
+# #750 and #771, and they landed below the bar -- which is the partition
+# predicate working rather than a surprise: the bodies moved verbatim, and
+# the statements that were uncovered inside the coordinator are uncovered
+# outside it. Both holes are the same shape, and it is the shape of block A:
+# a store the checks never write, and an issue registry that can refuse.
+R.section("W5-G8 f: the extracted DHW learner and legionella guard (#195)")
+
+from heatpump_optimizer.dhw_learning import DhwProfileLearner as _G8Learner2  # noqa: E402
+from heatpump_optimizer.legionella import LegionellaGuard as _G8Guard  # noqa: E402
+from heatpump_optimizer.thermal_model import ThermalParameters as _G8Params  # noqa: E402
+from heatpump_optimizer import dhw_learning as _g8_dhwl  # noqa: E402
+from heatpump_optimizer import legionella as _g8_leg  # noqa: E402
+
+
+class _G8TwoStore:
+    """A two-key store: the learner opens a profile store and a draws store."""
+
+    payloads: dict = {}
+    raise_on: set = set()
+    saves: list = []
+
+    def __init__(self, hass, version, key, **kw):
+        self.key = str(key).rsplit("_", 1)[-1]
+
+    async def async_load(self):
+        if ("load", self.key) in _G8TwoStore.raise_on:
+            raise RuntimeError(f"{self.key} store unreadable")
+        return _G8TwoStore.payloads.get(self.key)
+
+    async def async_save(self, data):
+        _G8TwoStore.saves.append((self.key, data))
+        if ("save", self.key) in _G8TwoStore.raise_on:
+            raise RuntimeError(f"{self.key} store read-only")
+
+
+def _g8_learner(**kw):
+    return _G8Learner2(
+        FakeHass({}), "g8", _G8Params(),
+        frozen=kw.get("frozen", lambda _name: None),
+        heating_active=kw.get("heating_active", lambda: False),
+        external_heat_active=kw.get("external_heat_active", lambda: False),
+    )
+
+
+# -- normalize_profile: a 24-hour shape that budgets the same daily volume --
+_g8_np_base = _g8_learner()
+_g8_np_short = _g8_np_base.normalize_profile([1.0] * 10)
+_g8_np_text = _g8_np_base.normalize_profile(["x"] * 24)
+_g8_np_zero = _g8_np_base.normalize_profile([0.0] * 24)
+_g8_np_ok = _g8_np_base.normalize_profile([2.0] * 24)
+_g8_np_peaky = _g8_np_base.normalize_profile(
+    [4.0 if h in (7, 8, 19) else 0.5 for h in range(24)])
+R.check(
+    "a stored profile is normalised to average one, or refused whole",
+    _g8_np_short == _g8_np_base._params.dhw_hourly_draw_pattern
+    and _g8_np_text == _g8_np_base._params.dhw_hourly_draw_pattern
+    and all(abs(v - 1.0) < 1e-9 for v in _g8_np_zero)
+    and abs(sum(_g8_np_ok) / 24.0 - 1.0) < 1e-9
+    and 0.9 < sum(_g8_np_peaky) / 24.0 < 1.0
+    and max(_g8_np_peaky) > min(_g8_np_peaky),
+    f"10 hours -> the configured default; text -> the default; all zero -> the "
+    f"flat 1.0; a flat 2.0 -> mean {sum(_g8_np_ok) / 24.0:.4f}; a peaky day -> "
+    f"mean {sum(_g8_np_peaky) / 24.0:.4f}, span "
+    f"{min(_g8_np_peaky):.2f}-{max(_g8_np_peaky):.2f}. The profile decides "
+    "WHEN hot water is drawn and never HOW MUCH, so a shape whose mean is not "
+    "one silently rescales the day's whole volume. The ALL-ZERO arm is the "
+    "interesting one and it does not reach the default: every value is "
+    "clipped up to DHW_PROFILE_MIN_INTENSITY (0.2) BEFORE the mean is taken, "
+    "so the mean is 0.2, the `avg <= 0` guard below cannot fire, and each "
+    "hour normalises to 0.2/0.2 = 1.0 -- a flat profile, which is the right "
+    "answer for a day with no information in it. That guard is therefore "
+    "UNREACHABLE while the clamp floor is positive; it is reported in the "
+    "body rather than deleted here, because deleting production code is not "
+    "a test-only tranche's to do. The peaky day lands "
+    "BELOW one and deliberately so: the clamp runs after the division, so an "
+    "hour the normalisation would push past the intensity ceiling is cut back "
+    "and the day's volume falls a little short. Volume preservation is exact "
+    "only while nothing clamps, and where the two rules disagree the clamp "
+    "wins, because an hour drawing four times the mean is more likely a bad "
+    "reading than a real draw",
+)
+
+
+# -- the learner's two stores, in both directions --------------------------
+_g8_dhwl_real_store = _g8_dhwl.Store
+try:
+    _g8_dhwl.Store = _G8TwoStore
+
+    # A profile store that will not load leaves the seeded defaults.
+    _G8TwoStore.payloads, _G8TwoStore.saves = {}, []
+    _G8TwoStore.raise_on = {("load", "profile"), ("load", "draws")}
+    _g8_l_unread = _g8_learner()
+    _g8_l_unread_err = _t6_call(_asyncio.run, _g8_l_unread.async_load_profile())
+    _g8_l_unread_draws = _t6_call(_asyncio.run, _g8_l_unread.async_load_draws())
+    _G8TwoStore.raise_on = set()
+
+    # A well-formed payload, and one whose every field is the wrong shape.
+    _G8TwoStore.payloads = {"profile": {
+        "hourly_profile": [2.0] * 24,
+        "profile_weekday": [1.0] * 24,
+        "profile_weekend": "not a list",
+        "profile_weekday_samples": "many",
+        "profile_weekend_samples": 5,
+        "cooling_rate": 0.9, "cooling_samples": 12,
+    }}
+    _g8_l_mixed = _g8_learner()
+    _t6_call(_asyncio.run, _g8_l_mixed.async_load_profile())
+
+    _G8TwoStore.payloads = {"profile": {"cooling_rate": "chilly"}}
+    _g8_l_badrate = _g8_learner()
+    _t6_call(_asyncio.run, _g8_l_badrate.async_load_profile())
+
+    # Saves that the store refuses.
+    _G8TwoStore.payloads, _G8TwoStore.saves = {}, []
+    _G8TwoStore.raise_on = {("save", "profile"), ("save", "draws")}
+    _g8_l_save = _g8_learner()
+    _g8_l_save.draws_dirty = True
+    _g8_l_save_err = _t6_call(_asyncio.run, _g8_l_save.async_save_profile())
+    _g8_l_draws_err = _t6_call(_asyncio.run, _g8_l_save.async_save_draws())
+    _g8_l_save_attempts = [k for k, _ in _G8TwoStore.saves]
+    _G8TwoStore.raise_on = set()
+finally:
+    _g8_dhwl.Store = _g8_dhwl_real_store
+
+R.check(
+    "a learner whose stores will not load keeps the configured defaults",
+    _g8_l_unread_err is None and _g8_l_unread_draws is None
+    and _g8_l_unread.cooling_rate == _G8Params().dhw_cooling_rate
+    and _g8_l_unread.cooling_samples == 0
+    and _g8_l_unread.hourly_profile == _G8Params().dhw_hourly_draw_pattern,
+    f"escaped {_g8_l_unread_err!r}/{_g8_l_unread_draws!r}; cooling rate "
+    f"{_g8_l_unread.cooling_rate!r} at {_g8_l_unread.cooling_samples!r} "
+    "samples. Both loads run during setup, so a raise here is a config entry "
+    "that will not start because a learner could not read a file it is "
+    "allowed to have no opinion about",
+)
+R.check(
+    "a payload half of whose fields are the wrong shape loads the half that is not",
+    _g8_l_mixed.profile_weekday == [1.0] * 24
+    and _g8_l_mixed.profile_weekend == _g8_l_mixed.hourly_profile
+    and _g8_l_mixed.daytype_samples == [0, 5]
+    and abs(_g8_l_mixed.cooling_rate - 0.9) < 1e-9
+    and _g8_l_mixed.cooling_samples == 12
+    and _g8_l_badrate.cooling_rate == _G8Params().dhw_cooling_rate,
+    f"weekday kept; weekend fell back to the pooled profile "
+    f"({_g8_l_mixed.profile_weekend == _g8_l_mixed.hourly_profile}); samples "
+    f"{_g8_l_mixed.daytype_samples!r}; rate {_g8_l_mixed.cooling_rate!r} at "
+    f"{_g8_l_mixed.cooling_samples!r}; an unparseable rate -> "
+    f"{_g8_l_badrate.cooling_rate!r}. The weekend fallback is the POOLED "
+    "profile with a zero sample count, so the blend leans entirely on pooled "
+    "evidence -- falling back to the flat configured default instead would "
+    "throw away everything the weekday half had learned",
+)
+R.check(
+    "and neither save breaks the cycle that asked for it",
+    _g8_l_save_err is None and _g8_l_draws_err is None
+    and _g8_l_save_attempts == ["profile", "draws"]
+    and _g8_l_save.draws_dirty is True,
+    f"escaped {_g8_l_save_err!r}/{_g8_l_draws_err!r} after attempting "
+    f"{_g8_l_save_attempts!r}; draws_dirty is still "
+    f"{_g8_l_save.draws_dirty!r} -- the dirty flag is cleared only AFTER a "
+    "successful save, so a refused write leaves the learner knowing it still "
+    "owes one rather than forgetting the draws it just folded in",
+)
+_g8_l_payload = _g8_learner()
+_g8_l_payload.apply_payload({
+    "profile_weekday": [1.0] * 24, "profile_weekday_samples": "lots",
+    "profile_weekend": [3.0] * 24, "profile_weekend_samples": 7,
+    "cooling_rate": "not a rate",
+})
+R.check(
+    "a snapshot restore takes the same per-field care as the store loader",
+    _g8_l_payload.daytype_samples == [0, 7]
+    and _g8_l_payload.cooling_rate == _G8Params().dhw_cooling_rate
+    and _g8_l_payload.profile_weekday == [1.0] * 24,
+    f"samples {_g8_l_payload.daytype_samples!r}, rate "
+    f"{_g8_l_payload.cooling_rate!r} -- `apply_payload` restores from a "
+    "coordinator SNAPSHOT rather than from disk, and it is a second "
+    "declaration of the same rules; a snapshot written by a newer version is "
+    "exactly as able to carry a field this one cannot read",
+)
+
+
+# -- the legionella guard: its store, and four notices that can refuse -----
+class _G8LegIssues:
+    def __init__(self, refuse=False):
+        self.deleted, self.created, self.refuse = [], [], refuse
+
+    def async_delete_issue(self, hass, domain, issue_id):
+        self.deleted.append(issue_id)
+        if self.refuse:
+            raise RuntimeError("registry not ready")
+
+    def async_create_issue(self, hass, domain, issue_id, **kw):
+        self.created.append(issue_id)
+
+
+def _g8_guard(config=None, **params_kw):
+    params = _G8Params()
+    for k, v in params_kw.items():
+        setattr(params, k, v)
+    return _G8Guard(FakeHass({}), "g8", params, dict(config or {}),
+                    action=lambda: {})
+
+
+_g8_leg_real_store = _g8_leg.Store
+_g8_leg_real_del = _g8_leg.ir.async_delete_issue
+_g8_leg_real_new = _g8_leg.ir.async_create_issue
+try:
+    _g8_leg.Store = _G8TwoStore
+
+    # An unreadable store starts the clock now and writes it back, so a
+    # corrupt file cannot leave the countdown unknown for ever.
+    _G8TwoStore.payloads, _G8TwoStore.saves = {}, []
+    _G8TwoStore.raise_on = {("load", "legionella")}
+    _g8_g_unread = _g8_guard()
+    _g8_g_unread_err = _t6_call(_asyncio.run, _g8_g_unread.async_load())
+    _g8_g_unread_saves = [k for k, _ in _G8TwoStore.saves]
+    _G8TwoStore.raise_on = set()
+
+    # A stored attempt that fell short is restored alongside the cycle.
+    _G8TwoStore.payloads = {"legionella": {
+        "last_cycle": "2026-01-10T03:00:00+00:00",
+        "last_attempt": "2026-01-12T03:00:00+00:00",
+        "last_attempt_peak": 57.5,
+    }}
+    _G8TwoStore.saves = []
+    _g8_g_full = _g8_guard()
+    _t6_call(_asyncio.run, _g8_g_full.async_load())
+    _g8_g_full_saves = list(_G8TwoStore.saves)
+
+    # A payload whose timestamps are unreadable.
+    _G8TwoStore.payloads = {"legionella": {
+        "last_cycle": "whenever", "last_attempt": 12345, "last_attempt_peak": "hot"}}
+    _G8TwoStore.saves = []
+    _g8_g_junk = _g8_guard()
+    _t6_call(_asyncio.run, _g8_g_junk.async_load())
+
+    # A save the store refuses, and a guard with nothing to save.
+    _G8TwoStore.saves = []
+    _G8TwoStore.raise_on = {("save", "legionella")}
+    _g8_g_save_err = _t6_call(_asyncio.run, _g8_g_full.async_save())
+    _g8_g_save_attempts = list(_G8TwoStore.saves)
+    _G8TwoStore.raise_on = set()
+    _G8TwoStore.saves = []
+    _g8_g_empty = _g8_guard()
+    _t6_call(_asyncio.run, _g8_g_empty.async_save())
+    _g8_g_empty_saves = list(_G8TwoStore.saves)
+
+    # Every "clear the notice" path, against a registry that refuses.
+    _g8_leg_reg = _G8LegIssues(refuse=True)
+    _g8_leg.ir.async_delete_issue = _g8_leg_reg.async_delete_issue
+    _g8_leg.ir.async_create_issue = _g8_leg_reg.async_create_issue
+    _g8_leg_clears = [
+        _t6_call(_g8_g_full.clear_unreachable_issue),
+        _t6_call(_g8_g_full.clear_unverified_issue),
+    ]
+    _g8_g_ceiling = _g8_guard(dhw_legionella_enabled=True)
+    _g8_g_ceiling.ceiling_notice = (60.0, 55.0, 7.0)
+    _g8_leg_clears.append(_t6_call(_g8_g_ceiling.check_ceiling))
+    _g8_g_mode = _g8_guard()
+    _g8_g_mode.mode_block_notice = 3
+    _g8_leg_clears.append(_t6_call(_g8_g_mode.check_mode_block, False))
+finally:
+    _g8_leg.Store = _g8_leg_real_store
+    _g8_leg.ir.async_delete_issue = _g8_leg_real_del
+    _g8_leg.ir.async_create_issue = _g8_leg_real_new
+
+R.check(
+    "an unreadable legionella store starts the clock now, and writes it back",
+    _g8_g_unread_err is None
+    and _g8_g_unread.last_cycle is not None
+    and _g8_g_unread_saves == ["legionella"],
+    f"escaped {_g8_g_unread_err!r}; last_cycle "
+    f"{_g8_g_unread.last_cycle is not None}; saved {_g8_g_unread_saves!r}. "
+    "Starting the clock is the safe direction and the write is what makes it "
+    "stick: leaving it None would make the cycle overdue by an unknown "
+    "amount, which pins a disinfection boost on every plan from then on",
+)
+R.check(
+    "a stored attempt that fell short is restored beside the cycle it did not complete",
+    _g8_g_full.last_cycle is not None
+    and _g8_g_full.attempt is not None
+    and _g8_g_full.attempt_peak == 57.5
+    and _g8_g_full_saves == []
+    and _g8_g_junk.last_cycle is not None
+    and _g8_g_junk.attempt is None
+    and _g8_g_junk.attempt_peak is None,
+    f"a full payload -> cycle {_g8_g_full.last_cycle is not None}, attempt "
+    f"{_g8_g_full.attempt is not None}, peak {_g8_g_full.attempt_peak!r}, "
+    f"rewrites {len(_g8_g_full_saves)}; an unreadable one -> attempt "
+    f"{_g8_g_junk.attempt!r}, peak {_g8_g_junk.attempt_peak!r}. The attempt "
+    "is what spaces the RETRY: without it a cycle that tops out half a degree "
+    "short is neither credited nor recorded, and the guard re-commands it on "
+    "every single solve",
+)
+R.check(
+    "a store that refuses the save costs the record, not the cycle",
+    _g8_g_save_err is None
+    and [k for k, _ in _g8_g_save_attempts] == ["legionella"]
+    and _g8_g_empty_saves == [],
+    f"escaped {_g8_g_save_err!r} after attempting "
+    f"{[k for k, _ in _g8_g_save_attempts]!r}; a guard with no cycle to "
+    f"record wrote {_g8_g_empty_saves!r} -- the early return matters, because "
+    "persisting a None timestamp would read back as a cycle at the epoch",
+)
+R.check(
+    "all four legionella notices survive a registry that refuses to clear them",
+    all(c is None for c in _g8_leg_clears)
+    and sorted(set(_g8_leg_reg.deleted)) == [
+        "dhw_legionella_above_setpoint", "dhw_legionella_mode_blocked",
+        "dhw_legionella_unreachable", "dhw_legionella_unverified"],
+    f"returns {_g8_leg_clears!r}; attempted {sorted(set(_g8_leg_reg.deleted))!r} "
+    "-- four separate best-effort clears, each in its own try, and the "
+    "attempt is asserted as well as the swallow: a clear that never called "
+    "the registry would also return None and would leave a stale warning "
+    "about water safety on screen after the problem was fixed",
+)
+
+
+# -- W5-G8 block G: five more loaders, and the window arithmetic -----------
+# The tail of the residual, and it is the same two shapes one last time: a
+# `from_dict` that has to survive a payload an older or newer version wrote,
+# and the pure arithmetic that decides which hours a window covers. Nothing
+# here needs a coordinator.
+R.section("W5-G8 g: the last loaders and the window arithmetic (#195)")
+
+from heatpump_optimizer import dhw_schedule as _g8_sched  # noqa: E402
+from heatpump_optimizer.tariff import PeakTracker as _G8Peak  # noqa: E402
+from heatpump_optimizer.accuracy import AccuracySample as _G8Sample  # noqa: E402
+from heatpump_optimizer.freq_control import FrequencyMap as _G8Fmap  # noqa: E402
+from heatpump_optimizer import manual_plan as _g8_mp  # noqa: E402
+
+
+# -- dhw_schedule: a window spec of any accepted shape ---------------------
+_g8_spec = {
+    "plain string": _g8_sched._spec_text("06:00-08:30"),
+    "semicolons": _g8_sched._spec_text("06:00-08:30;17:00-22:00"),
+    "newlines": _g8_sched._spec_text("06:00-08:30\n17:00-22:00"),
+    "list of strings": _g8_sched._spec_text(["06:00-08:30", "17:00-22:00"]),
+    "list of pairs": _g8_sched._spec_text([("06:00", "08:30"), ["17:00", "22:00"]]),
+    "tuple": _g8_sched._spec_text(("06:00-08:30",)),
+    "padded": _g8_sched._spec_text("  06:00-08:30  "),
+}
+R.check(
+    "every accepted spelling of a window spec normalises to the same string",
+    len({_g8_spec[k] for k in
+         ("plain string", "tuple", "padded")}) == 1
+    and _g8_spec["semicolons"] == _g8_spec["newlines"]
+    == _g8_spec["list of strings"] == _g8_spec["list of pairs"]
+    == "06:00-08:30,17:00-22:00",
+    "; ".join(f"{k}={_g8_spec[k]!r}" for k in sorted(_g8_spec))
+    + " -- one normaliser shared by both parsers ON PURPOSE, so the two can "
+    "never be looking at a different string; the pair form is what the card's "
+    "editor posts and the semicolon form is what a YAML user writes",
+)
+_g8_days = {
+    "single": _g8_sched._parse_day_selector("mo"),
+    "list": _g8_sched._parse_day_selector("mo,we,fr"),
+    "range": _g8_sched._parse_day_selector("mo-we"),
+    "wrapping range": _g8_sched._parse_day_selector("sa-mo"),
+    "spaced": _g8_sched._parse_day_selector(" mo - we "),
+    "uppercase": _g8_sched._parse_day_selector("MO-WE"),
+    "named groups": (_g8_sched._parse_day_selector("weekdays"),
+                     _g8_sched._parse_day_selector("weekend"),
+                     _g8_sched._parse_day_selector("daily")),
+    "bad range end": _g8_sched._parse_day_selector("mo-xx"),
+    "bad member": _g8_sched._parse_day_selector("mo,xx"),
+}
+R.check(
+    "a weekday selector accepts a list or a range, and wraps the week",
+    _g8_days["single"] == [0]
+    and _g8_days["list"] == [0, 2, 4]
+    and _g8_days["range"] == [0, 1, 2]
+    and _g8_days["wrapping range"] == [0, 5, 6]
+    and _g8_days["spaced"] == [0, 1, 2]
+    and _g8_days["uppercase"] == [0, 1, 2]
+    and _g8_days["named groups"] == ([0, 1, 2, 3, 4], [5, 6], list(range(7)))
+    and _g8_days["bad range end"] == []
+    and _g8_days["bad member"] == [],
+    "; ".join(f"{k}={_g8_days[k]!r}" for k in sorted(_g8_days))
+    + " -- `sa-mo` wrapping to Saturday, Sunday and Monday is the case a "
+    "modulo-free implementation gets wrong, and an unknown token yields the "
+    "EMPTY set rather than the days it did recognise: a schedule that "
+    "silently applied to Monday alone because the user misspelled Wednesday "
+    "is worse than one that visibly applies to nothing",
+)
+_g8_win = _g8_sched.parse_windows("06:00-08:30,22:00-24:00")
+_g8_wrap = _g8_sched.parse_windows("22:00-02:00")
+R.check(
+    "a full-day window's 24:00 end includes the last hour, and a wrap includes both sides",
+    _g8_sched.hour_in_windows(7.0, _g8_win) is True
+    and _g8_sched.hour_in_windows(23.5, _g8_win) is True
+    and _g8_sched.hour_in_windows(12.0, _g8_win) is False
+    and _g8_sched.hour_in_windows(5.0, []) is False
+    and _g8_sched.hour_in_windows(23.0, _g8_wrap) is True
+    and _g8_sched.hour_in_windows(1.0, _g8_wrap) is True
+    and _g8_sched.hour_in_windows(12.0, _g8_wrap) is False,
+    f"in 06-08:30/22-24: 07:00={_g8_sched.hour_in_windows(7.0, _g8_win)}, "
+    f"23:30={_g8_sched.hour_in_windows(23.5, _g8_win)}, "
+    f"12:00={_g8_sched.hour_in_windows(12.0, _g8_win)}; across 22-02: "
+    f"23:00={_g8_sched.hour_in_windows(23.0, _g8_wrap)}, "
+    f"01:00={_g8_sched.hour_in_windows(1.0, _g8_wrap)}. The 24:00 guard is "
+    "separate from the ordinary comparison because `start <= h < end` with "
+    "end == 24.0 already covers it -- what it actually rescues is a window "
+    "normalised to end AT or past 24.0 while h is the wrapped hour",
+)
+_g8_ov = {
+    "wholly inside": _g8_sched.overlap_fraction(6.5, 7.5, _g8_win),
+    "wholly outside": _g8_sched.overlap_fraction(12.0, 13.0, _g8_win),
+    "half in": _g8_sched.overlap_fraction(8.0, 9.0, _g8_win),
+    "no windows": _g8_sched.overlap_fraction(6.0, 7.0, []),
+    "zero length": _g8_sched.overlap_fraction(6.0, 6.0, _g8_win),
+    "backwards": _g8_sched.overlap_fraction(7.0, 6.0, _g8_win),
+}
+R.check(
+    "the overlap of a step with the demand windows is a fraction of the step",
+    _g8_ov["wholly inside"] == 1.0
+    and _g8_ov["wholly outside"] == 0.0
+    and abs(_g8_ov["half in"] - 0.5) < 1e-9
+    and _g8_ov["no windows"] == 0.0
+    and _g8_ov["zero length"] == 0.0
+    and _g8_ov["backwards"] == 0.0,
+    "; ".join(f"{k}={_g8_ov[k]!r}" for k in sorted(_g8_ov))
+    + " -- the zero-length and backwards arms both return 0.0 rather than "
+    "dividing by a non-positive length; the solver calls this per step, so a "
+    "ZeroDivisionError here is a plan that does not exist rather than one "
+    "that is slightly wrong",
+)
+
+
+# -- tariff.PeakTracker.from_dict: a restart in the middle of a window -----
+_g8_pk_full = _G8Peak.from_dict({
+    "peaks": [3.0, "x", 5.0, 4.0], "window_key": "2026-01-15T09:00",
+    "window_sum": 6.0, "window_samples": 3, "window_factor": 0.5,
+    "window_wsum": 3.0, "window_weight": 2.0,
+})
+_g8_pk_junk = _G8Peak.from_dict({
+    "peaks": "not a list", "window_sum": "x", "window_samples": "x",
+    "window_factor": "x", "window_wsum": "x", "window_weight": "x",
+})
+_g8_pk_old = _G8Peak.from_dict({"peaks": [5.0]})
+R.check(
+    "a peak tracker reloads mid-window, and a pre-v4 payload loads unmasked",
+    _g8_pk_full.peaks == [5.0, 4.0, 3.0]
+    and _g8_pk_full._window_factor == 0.5
+    and (_g8_pk_full._window_wsum, _g8_pk_full._window_weight) == (3.0, 2.0)
+    and _g8_pk_junk.peaks == []
+    and _g8_pk_junk._window_factor == 1.0
+    and (_g8_pk_junk._window_wsum, _g8_pk_junk._window_weight) == (0.0, 0.0)
+    and _g8_pk_old._window_factor == 1.0,
+    f"a full payload -> peaks {_g8_pk_full.peaks!r} (sorted descending, the "
+    f"non-numeric one dropped), factor {_g8_pk_full._window_factor!r}, "
+    f"weighted ({_g8_pk_full._window_wsum!r}, {_g8_pk_full._window_weight!r}); "
+    f"an unreadable one -> {_g8_pk_junk.peaks!r} and factor "
+    f"{_g8_pk_junk._window_factor!r}; a pre-v4 one -> "
+    f"{_g8_pk_old._window_factor!r}. The weighted pair is the load-bearing "
+    "one: a restart mid-window that fell back to the unweighted mean would "
+    "close the window on exactly the phantom chatty-meter peak the weighted "
+    "fold exists to keep out, and 1.0 is 'unmasked', which is what an old "
+    "payload had",
+)
+
+
+# -- accuracy.AccuracySample.from_dict -------------------------------------
+_g8_as_ok = _G8Sample.from_dict({"t": "2026-01-15T09:00:00+00:00", "pc": 1.0})
+_g8_as_notime = _G8Sample.from_dict({"pc": 1.0})
+_g8_as_badtime = _G8Sample.from_dict({"t": "whenever"})
+_g8_as_nan = _G8Sample.from_dict({"t": "2026-01-15T09:00:00+00:00",
+                                  "pc": float("nan"), "ac": "text", "pk": None})
+R.check(
+    "an accuracy sample needs a readable instant, and each field falls back alone",
+    _g8_as_ok is not None
+    and _g8_as_notime is None
+    and _g8_as_badtime is None
+    and _g8_as_nan is not None
+    and _g8_as_nan.predicted_cost is None,
+    f"good -> {_g8_as_ok is not None}; no timestamp -> {_g8_as_notime!r}; "
+    f"unreadable timestamp -> {_g8_as_badtime!r}; NaN and text fields -> a "
+    f"sample with predicted_cost {_g8_as_nan.predicted_cost!r}. The whole "
+    "sample is refused only for the TIME, because a sample that cannot be "
+    "placed on the clock cannot be scored against anything; a single field "
+    "that will not float is simply one number nobody measured",
+)
+
+
+# -- freq_control.FrequencyMap.from_dict and its evidence test -------------
+_g8_fm = _G8Fmap.from_dict({
+    "0": [0.01, 12], "1": ["x", 5], "2": [0.02], "3": [-0.01, 4],
+    "4": [0.03, -1], "not-a-decile": [0.04, 9], "5": [float("nan"), 9],
+})
+_g8_fm_none = _G8Fmap.from_dict(None)
+R.check(
+    "a frequency map keeps the buckets that are whole and plausible, one by one",
+    _g8_fm.buckets == {0: [0.01, 12]}
+    and _g8_fm_none.buckets == {},
+    f"seven entries in, {sorted(_g8_fm.buckets)!r} out; from None -> "
+    f"{_g8_fm_none.buckets!r}. Six separate rejections -- a non-numeric "
+    "ratio, a one-element entry, a negative ratio, a negative count, a key "
+    "that is not a decile and a NaN -- and each `continue`s rather than "
+    "abandoning the map, because the map is what keeps the frequency advisor "
+    "from extrapolating and one bad bucket should not send it back to zero "
+    "evidence",
+)
+
+
+# -- manual_plan: parsing an override written by a browser ------------------
+_G8_MP_REF = datetime(2026, 1, 15, 9, 0, tzinfo=UTC)
+_g8_mp_naive_ref = _G8_MP_REF.replace(tzinfo=None)
+_g8_mp_coerce = {
+    "aware into naive": _g8_mp._coerce_awareness(_G8_MP_REF, _g8_mp_naive_ref),
+    "naive into aware": _g8_mp._coerce_awareness(_g8_mp_naive_ref, _G8_MP_REF),
+    "aware into aware": _g8_mp._coerce_awareness(_G8_MP_REF, _G8_MP_REF),
+    "naive into naive": _g8_mp._coerce_awareness(_g8_mp_naive_ref, _g8_mp_naive_ref),
+}
+R.check(
+    "a slot's awareness is matched to the reference before anything compares them",
+    _g8_mp_coerce["aware into naive"].tzinfo is None
+    and _g8_mp_coerce["naive into aware"].tzinfo is UTC
+    and _g8_mp_coerce["aware into aware"] is _G8_MP_REF
+    and _g8_mp_coerce["naive into naive"] is _g8_mp_naive_ref,
+    "; ".join(f"{k}={_g8_mp_coerce[k]!r}" for k in sorted(_g8_mp_coerce))
+    + " -- all four directions, because the reference is the override's own "
+    "expiry and the slots come from a browser: mixing the two raises "
+    "TypeError deep inside an ordering check, which is the failure this "
+    "function exists to move to the front door",
+)
+_g8_mp_parse = {
+    "datetime": _t6_call(_g8_mp._parse_dt, _G8_MP_REF, _G8_MP_REF),
+    "iso": _t6_call(_g8_mp._parse_dt, "2026-01-15T09:00:00+00:00", _G8_MP_REF),
+    "number": _t6_call(_g8_mp._parse_dt, 1736931600, _G8_MP_REF),
+    "rubbish": _t6_call(_g8_mp._parse_dt, "tomorrow", _G8_MP_REF),
+}
+_g8_mp_store = {
+    "no expiry": _t6_call(_g8_mp.ManualOverride.from_dict, {}),
+    "bad expiry": _t6_call(_g8_mp.ManualOverride.from_dict,
+                           {"expires_at": "whenever"}),
+    "bad created": _t6_call(
+        _g8_mp.ManualOverride.from_dict,
+        {"expires_at": "2026-01-15T12:00:00+00:00", "created_at": "whenever"}),
+}
+R.check(
+    "a stored override is refused on its expiry and forgiving about the rest",
+    isinstance(_g8_mp_parse["number"], _g8_mp.ManualPlanError)
+    and isinstance(_g8_mp_parse["rubbish"], _g8_mp.ManualPlanError)
+    and _g8_mp_parse["iso"] == _G8_MP_REF
+    and isinstance(_g8_mp_store["no expiry"], _g8_mp.ManualPlanError)
+    and isinstance(_g8_mp_store["bad expiry"], _g8_mp.ManualPlanError)
+    and not isinstance(_g8_mp_store["bad created"], Exception)
+    and _g8_mp_store["bad created"].created_at is None,
+    "; ".join(f"{k}={_g8_mp_parse[k]!r}" for k in sorted(_g8_mp_parse))
+    + f"; stored: {sorted((k, type(v).__name__) for k, v in _g8_mp_store.items())!r}"
+    + " -- the expiry is the one field an override cannot do without, since "
+    "`is_expired` is what stops a pinned plan running for ever; `created_at` "
+    "is provenance, so an unreadable one costs the timestamp and not the "
+    "user's plan",
+)
+
+
+# -- W5-G8 block H: the repair flow, the away datetime, and two views ------
+# The short tail. `repairs.py` and `datetime.py` are Home Assistant surfaces
+# rather than logic -- a Fix button and a published instant -- and both were
+# uncovered end to end, which for the Fix button means the one control that
+# WRITES to the user's heat pump had never been driven.
+R.section("W5-G8 h: the repair flow and the away instant (#195)")
+
+from heatpump_optimizer import repairs as _g8_rep  # noqa: E402
+from heatpump_optimizer import datetime as _g8_dtmod  # noqa: E402
+from heatpump_optimizer import topology as _g8_topo  # noqa: E402
+from heatpump_optimizer.setpoint_check import ISSUE_DHW as _G8_I_DHW  # noqa: E402
+from heatpump_optimizer.setpoint_check import ISSUE_SPACE as _G8_I_SPACE  # noqa: E402
+
+
+class _G8Services:
+    def __init__(self):
+        self.calls = []
+
+    async def async_call(self, domain, service, data, blocking=False):
+        self.calls.append((domain, service, dict(data)))
+
+
+class _G8RepHass:
+    def __init__(self):
+        self.services = _G8Services()
+
+
+def _g8_fix(data, user_input=None, refuse_clear=False):
+    flow = _g8_rep.DhwSetpointRepairFlow()
+    flow.hass = _G8RepHass()
+    flow.data = data
+    reg = _G8LegIssues(refuse=refuse_clear)
+    real = _g8_rep.ir.async_delete_issue
+    try:
+        _g8_rep.ir.async_delete_issue = reg.async_delete_issue
+        result = _t6_call(_asyncio.run, flow.async_step_init(user_input))
+    finally:
+        _g8_rep.ir.async_delete_issue = real
+    return result, flow.hass.services.calls, reg
+
+
+_g8_fix_form, _g8_fix_form_calls, _ = _g8_fix(
+    {"entity_id": "number.pump_dhw", "target": 60.0})
+_g8_fix_num, _g8_fix_num_calls, _g8_fix_num_reg = _g8_fix(
+    {"entity_id": "number.pump_dhw", "target": 60.0}, user_input={})
+_g8_fix_climate, _g8_fix_climate_calls, _ = _g8_fix(
+    {"entity_id": "climate.pump", "target": 60.0}, user_input={})
+_g8_fix_switch, _g8_fix_switch_calls, _ = _g8_fix(
+    {"entity_id": "switch.pump", "target": 60.0}, user_input={})
+_g8_fix_nodata, _g8_fix_nodata_calls, _ = _g8_fix(None, user_input={})
+_g8_fix_refuse, _, _g8_fix_refuse_reg = _g8_fix(
+    {"entity_id": "number.pump_dhw", "target": 60.0}, user_input={},
+    refuse_clear=True)
+R.check(
+    "the DHW Fix shows a form first, then writes the floor to the pump",
+    _g8_fix_form["type"] == "form"
+    and _g8_fix_form["description_placeholders"]["target"] == "60"
+    and _g8_fix_form_calls == []
+    and _g8_fix_num["type"] == "create_entry"
+    and _g8_fix_num_calls == [
+        ("number", "set_value", {"entity_id": "number.pump_dhw", "value": 60.0})],
+    f"no input -> {_g8_fix_form['type']!r} with "
+    f"{_g8_fix_form['description_placeholders']!r} and "
+    f"{len(_g8_fix_form_calls)} service call(s); confirmed -> "
+    f"{_g8_fix_num_calls!r}. The form arm making NO call is the half that "
+    "matters: this is the one control in the integration that writes to the "
+    "user's heat pump, and a Fix that acted on being opened rather than on "
+    "being confirmed would change a set-point nobody agreed to",
+)
+R.check(
+    "and it speaks the right service for the entity's own domain",
+    _g8_fix_climate_calls == [
+        ("climate", "set_temperature",
+         {"entity_id": "climate.pump", "temperature": 60.0})]
+    and _g8_fix_switch_calls == []
+    and _g8_fix_nodata_calls == []
+    and _g8_fix_switch["type"] == "create_entry"
+    and _g8_fix_nodata["type"] == "create_entry",
+    f"climate -> {_g8_fix_climate_calls!r}; an unsupported domain -> "
+    f"{_g8_fix_switch_calls!r}; no data at all -> {_g8_fix_nodata_calls!r}. "
+    "The last two still CLOSE the flow rather than hanging: a repair whose "
+    "target cannot be written is still a repair the user has dismissed, and "
+    "leaving the dialog open would make the Fix button look broken",
+)
+R.check(
+    "a registry that refuses to clear the notice does not undo the write",
+    _g8_fix_refuse["type"] == "create_entry"
+    and _g8_fix_refuse_reg.deleted == [_G8_I_DHW]
+    and _g8_fix_num_reg.deleted == [_G8_I_DHW],
+    f"refusing registry -> {_g8_fix_refuse['type']!r} after attempting "
+    f"{_g8_fix_refuse_reg.deleted!r} -- the set-point has already been "
+    "written by then, so raising here would report a failed repair that in "
+    "fact succeeded, and the user would run it again",
+)
+_g8_fix_flows = {
+    "dhw": _asyncio.run(_g8_rep.async_create_fix_flow(None, _G8_I_DHW, None)),
+    "space": _asyncio.run(_g8_rep.async_create_fix_flow(None, _G8_I_SPACE, None)),
+    "unknown": _asyncio.run(
+        _g8_rep.async_create_fix_flow(None, "something_else", None)),
+}
+R.check(
+    "each issue id gets its own flow, and an unknown one still gets a usable dialog",
+    isinstance(_g8_fix_flows["dhw"], _g8_rep.DhwSetpointRepairFlow)
+    and type(_g8_fix_flows["space"]) is _g8_rep.ConfirmRepairFlow
+    and type(_g8_fix_flows["unknown"]) is _g8_rep.ConfirmRepairFlow,
+    "; ".join(f"{k}={type(v).__name__}" for k, v in _g8_fix_flows.items())
+    + " -- Home Assistant calls this by convention for ANY issue this "
+    "integration raised, including one a later version adds and this one has "
+    "never heard of, so the fallback is what stops the Fix button raising "
+    "instead of opening",
+)
+
+
+# -- datetime.AwayReturnDateTime: the published return instant --------------
+class _G8DtCoord:
+    def __init__(self, data=None):
+        self.data = data
+        self.away_calls = []
+        self.hass = FakeHass({})
+
+    async def async_set_away(self, **kw):
+        self.away_calls.append(kw)
+
+    # What HeatPumpOptimizerEntity reads off the coordinator.
+    last_update_success = True
+
+    def async_add_listener(self, *a, **k):
+        return lambda: None
+
+
+class _G8DtEntry:
+    entry_id = "g8"
+    options: dict = {}
+    data: dict = {}
+
+
+def _g8_dt(data):
+    ent = object.__new__(_g8_dtmod.AwayReturnDateTime)
+    ent.coordinator = _G8DtCoord(data)
+    return ent
+
+
+_g8_dt_set = _g8_dt({"away_override_return_time": "2026-07-12T18:00:00+00:00"})
+_g8_dt_none = _g8_dt(None)
+_g8_dt_blank = _g8_dt({})
+_g8_dt_junk = _g8_dt({"away_override_return_time": "unknown"})
+_g8_dt_write = _g8_dt({})
+_asyncio.run(_g8_dt_write.async_set_value(datetime(2026, 7, 12, 18, tzinfo=UTC)))
+R.check(
+    "the away return instant is published when there is one, and absent otherwise",
+    _g8_dt_set.native_value == datetime(2026, 7, 12, 18, tzinfo=UTC)
+    and _g8_dt_none.native_value is None
+    and _g8_dt_blank.native_value is None
+    and _g8_dt_junk.native_value is None,
+    f"stored -> {_g8_dt_set.native_value!r}; no coordinator data -> "
+    f"{_g8_dt_none.native_value!r}; no key -> {_g8_dt_blank.native_value!r}; "
+    f"'unknown' -> {_g8_dt_junk.native_value!r}. The `or {{}}` on the "
+    "coordinator's data is what keeps this readable during the first refresh, "
+    "when `data` is still None and every entity is being asked for its value",
+)
+R.check(
+    "and setting it goes to the away service rather than to the entity's own state",
+    _g8_dt_write.coordinator.away_calls
+    == [{"return_time": datetime(2026, 7, 12, 18, tzinfo=UTC)}],
+    f"{_g8_dt_write.coordinator.away_calls!r} -- the entity holds no state of "
+    "its own: the override lives on the coordinator and is persisted there, "
+    "so a setter that stored locally would show the new time and plan the old",
+)
+
+
+# -- topology: two views the setup page renders ----------------------------
+_g8_gap_none = _g8_topo._sensor_gap_lines({})
+_g8_gap_zero = _g8_topo._sensor_gap_lines(
+    {"sensor_gaps": [{"label": "Flow temperature", "sek_per_month": 0}]})
+_g8_gap_some = _g8_topo._sensor_gap_lines({"sensor_gaps": [
+    {"label": f"Gap {i}", "sek_per_month": 10.0 * (8 - i)} for i in range(7)]})
+R.check(
+    "the sensor-gap panel appears only when a gap is worth money, and shows five",
+    _g8_gap_none is None
+    and _g8_gap_zero is None
+    and _g8_gap_some is not None
+    and len(_g8_gap_some) == 6
+    and "Gap 0" in _g8_gap_some[1],
+    f"no gaps -> {_g8_gap_none!r}; a zero-value gap -> {_g8_gap_zero!r}; seven "
+    f"priced gaps -> {len(_g8_gap_some)} lines. None and an empty list are "
+    "different renderings: None omits the whole panel, where an empty list "
+    "would print a heading over nothing and read as a gap the page could not "
+    "name",
+)
+_g8_pulse = {
+    "pulse by name": _g8_topo.looks_like_pulse_power(
+        "sensor.tibber_pulse_power", device_class="power"),
+    "tibber power": _g8_topo.looks_like_pulse_power(
+        "sensor.home_power", name="Tibber power", device_class="power"),
+    "a price sensor": _g8_topo.looks_like_pulse_power(
+        "sensor.tibber_pulse_price", device_class="power"),
+    "wrong domain": _g8_topo.looks_like_pulse_power(
+        "binary_sensor.tibber_pulse", device_class="power"),
+    "wrong device class": _g8_topo.looks_like_pulse_power(
+        "sensor.tibber_pulse_power", device_class="energy"),
+    "unrelated": _g8_topo.looks_like_pulse_power(
+        "sensor.house_power", device_class="power"),
+}
+R.check(
+    "a Tibber Pulse power meter is recognised, and a price sensor is not",
+    _g8_pulse["pulse by name"] is True
+    and _g8_pulse["tibber power"] is True
+    and all(_g8_pulse[k] is False for k in
+            ("a price sensor", "wrong domain", "wrong device class",
+             "unrelated")),
+    "; ".join(f"{k}={_g8_pulse[k]!r}" for k in sorted(_g8_pulse))
+    + " -- the price exclusion is the one that earns its line: a Pulse "
+    "publishes a price sensor too, it is in the same integration with the "
+    "same words in its name, and suggesting it as the house power meter "
+    "would feed öre/kWh into the load model as if it were kilowatts",
+)
+
+
+# -- W5-G8 i: the system-identification experiment -------------------------
+# The last module below the bar, and the only one in the residual that is a
+# STATE MACHINE rather than a loader. It runs a real experiment on a real
+# house -- it injects power overnight and watches the room move -- so what is
+# uncovered here is every way the experiment refuses to start, and every way
+# it stops once it has. Those are the paths that protect the occupant.
+R.section("W5-G8 i: the system-identification experiment (#195)")
+
+from heatpump_optimizer import sysid as _g8_sid  # noqa: E402
+from heatpump_optimizer.sysid import (  # noqa: E402
+    SysIdConfig as _G8SidCfg,
+    SystemIdentification as _G8Sid,
+)
+
+_G8_SID_T0 = datetime(2026, 1, 15, 23, 30, tzinfo=UTC)
+_G8_SID_FLAT = np.full(24, 1.0)
+
+
+def _g8_sid_new(**cfg):
+    return _G8Sid(_G8SidCfg(enabled=True, **cfg))
+
+
+def _g8_sid_step(sid, when, room=21.0, outdoor=0.0, **kw):
+    return sid.step(
+        when, room, outdoor, kw.pop("price", 0.5),
+        kw.pop("price_horizon", _G8_SID_FLAT), kw.pop("learner_samples", 0),
+        kw.pop("max_power_kw", 6.0), **kw)
+
+
+# -- the two sizing predictors, refusing a house with no physics ------------
+_g8_sid_one = _g8_sid._predict_step_excursion(
+    baseline=21.0, outdoor=0.0, ua=0.0, capacity=10.0, gains=0.3,
+    step_thermal_kw=3.0, step_hours=2.0, relax_hours=2.0)
+_g8_sid_plant = _g8_sid._predict_step_excursion_plant(
+    baseline=21.0, outdoor=0.0, ua=0.2, capacity=0.0, gains=0.3,
+    step_thermal_kw=3.0, step_hours=2.0, relax_hours=2.0)
+R.check(
+    "a house with no loss or no mass predicts an INFINITE excursion, not a small one",
+    _g8_sid_one == (float("inf"), float("inf"))
+    and _g8_sid_plant == (float("inf"), float("inf")),
+    f"one-state with ua=0 -> {_g8_sid_one!r}; plant with capacity=0 -> "
+    f"{_g8_sid_plant!r}. Infinity is the safe direction and zero would be the "
+    "dangerous one: the caller sizes the step so the predicted excursion "
+    "stays inside the comfort bound, so a degenerate house predicting 0.0 "
+    "would authorise the largest step there is and run it overnight",
+)
+
+
+# -- conditions_met: five independent reasons not to start tonight ----------
+_g8_sid_gate = {
+    "converged": _g8_sid_new().conditions_met(
+        _G8_SID_T0, 0.0, 0.5, _G8_SID_FLAT, 500),
+    "too cold": _g8_sid_new().conditions_met(
+        _G8_SID_T0, -30.0, 0.5, _G8_SID_FLAT, 0),
+    "too warm": _g8_sid_new().conditions_met(
+        _G8_SID_T0, 30.0, 0.5, _G8_SID_FLAT, 0),
+    "daytime": _g8_sid_new().conditions_met(
+        _G8_SID_T0.replace(hour=14), 0.0, 0.5, _G8_SID_FLAT, 0),
+    "in window": _g8_sid_new().conditions_met(
+        _G8_SID_T0, 0.0, 0.5, _G8_SID_FLAT, 0),
+}
+R.check(
+    "the experiment starts only in its own window, in a safe temperature band",
+    _g8_sid_gate["in window"][0] is True
+    and all(_g8_sid_gate[k][0] is False for k in
+            ("converged", "too cold", "too warm", "daytime"))
+    and len({_g8_sid_gate[k][1] for k in
+             ("converged", "too cold", "daytime")}) == 3,
+    "; ".join(f"{k}={_g8_sid_gate[k]!r}" for k in sorted(_g8_sid_gate))
+    + " -- the reason is returned beside the verdict and is not decoration: "
+    "`step` reads it, and a refusal whose reason contains 'converged' retires "
+    "the experiment for good rather than re-arming it tomorrow night. The "
+    "window wraps midnight, which is the normal case and the one an "
+    "unwrapped comparison gets wrong",
+)
+_g8_sid_conv = _g8_sid_new()
+_g8_sid_conv.arm(_G8_SID_T0)
+_g8_sid_conv_out = _g8_sid_step(_g8_sid_conv, _G8_SID_T0, learner_samples=500)
+_g8_sid_wait = _g8_sid_new()
+_g8_sid_wait.arm(_G8_SID_T0)
+_g8_sid_wait_out = _g8_sid_step(_g8_sid_wait, _G8_SID_T0, outdoor=-30.0)
+R.check(
+    "a converged house RETIRES the experiment; a cold night merely postpones it",
+    _g8_sid_conv_out is None
+    and _g8_sid_conv.phase == _g8_sid.PHASE_IDLE
+    and _g8_sid_conv.result.completed is False
+    and "converged" in _g8_sid_conv.result.reason
+    and _g8_sid_wait_out is None
+    and _g8_sid_wait.phase == _g8_sid.PHASE_ARMED
+    and _g8_sid_wait.result.reason == "",
+    f"converged -> phase {_g8_sid_conv.phase!r}, reason "
+    f"{_g8_sid_conv.result.reason!r}; too cold -> phase "
+    f"{_g8_sid_wait.phase!r}, reason {_g8_sid_wait.result.reason!r}. The "
+    "REASON is what separates them, not the presence of a result: a fresh "
+    "`SystemIdentification` already carries an empty one, so 'is not None' "
+    "would pass on both. Two refusals "
+    "that look the same from the return value and are not: the house that has "
+    "already learned enough should never be asked again, while the one that "
+    "is merely too cold tonight must stay armed for the next night that is "
+    "not",
+)
+
+
+# -- the run itself, and the excursion guard that stops it ------------------
+_g8_sid_run = _g8_sid_new(settle_hours=1.0, step_hours=2.0, relax_hours=1.0)
+_g8_sid_run.arm(_G8_SID_T0)
+_g8_sid_trace = []
+for _h in (0.0, 0.5, 1.0, 1.5, 2.5, 3.0, 3.5, 4.5):
+    _g8_sid_trace.append((
+        _h,
+        _g8_sid_step(_g8_sid_run, _G8_SID_T0 + timedelta(hours=_h),
+                     house_ua=0.25, house_capacity=12.0, house_gains=0.3),
+        _g8_sid_run.phase,
+    ))
+_g8_sid_phases = [p for _, _, p in _g8_sid_trace]
+_g8_sid_powers = [v for _, v, _ in _g8_sid_trace]
+R.check(
+    "the experiment settles, injects a sized step, relaxes and finishes",
+    _g8_sid_phases[0] == _g8_sid.PHASE_SETTLING
+    and _g8_sid.PHASE_STEP in _g8_sid_phases
+    and _g8_sid.PHASE_RELAX in _g8_sid_phases
+    and _g8_sid_phases[-1] == _g8_sid.PHASE_DONE
+    and any(v is not None and v > 0.0 for v in _g8_sid_powers)
+    and _g8_sid_powers[0] is None,
+    f"phases {_g8_sid_phases!r}; power overrides "
+    f"{[None if v is None else round(v, 2) for v in _g8_sid_powers]!r}. "
+    "`None` means the optimizer's own plan stands and a number overrides it, "
+    "so the settle phase returning None is what keeps the house on its "
+    "ordinary plan while the experiment waits for a steady baseline",
+)
+_g8_sid_drift = _g8_sid_new(max_excursion_c=0.5, settle_hours=1.0)
+_g8_sid_drift.arm(_G8_SID_T0)
+_g8_sid_step(_g8_sid_drift, _G8_SID_T0, room=21.0)
+_g8_sid_drift_out = _g8_sid_step(
+    _g8_sid_drift, _G8_SID_T0 + timedelta(minutes=30), room=25.0)
+_g8_sid_drift_later = _g8_sid_step(
+    _g8_sid_drift, _G8_SID_T0 + timedelta(hours=1), room=21.0)
+R.check(
+    "a room that drifts past the comfort bound aborts the run, and it stays aborted",
+    _g8_sid_drift_out is None
+    and _g8_sid_drift.phase == _g8_sid.PHASE_ABORTED
+    and _g8_sid_drift.result is not None
+    and _g8_sid_drift.result.completed is False
+    and "excursion" in _g8_sid_drift.result.reason
+    and _g8_sid_drift_later is None
+    and _g8_sid_drift.phase == _g8_sid.PHASE_ABORTED,
+    f"phase {_g8_sid_drift.phase!r}, reason "
+    f"{_g8_sid_drift.result.reason!r}; a later comfortable tick returned "
+    f"{_g8_sid_drift_later!r} and left the phase {_g8_sid_drift.phase!r}. "
+    "This is the guard that protects the occupant: the experiment is running "
+    "overnight in an occupied house, and the room recovering afterwards is "
+    "not a reason to resume a run whose measurements are already spoiled",
+)
+_g8_sid_abort_twice = _g8_sid_new()
+_g8_sid_abort_twice.abort("nothing is running")
+R.check(
+    "and aborting an experiment that was never armed records nothing",
+    _g8_sid_abort_twice.phase == _g8_sid.PHASE_IDLE
+    and _g8_sid_abort_twice.result.reason == "",
+    f"phase {_g8_sid_abort_twice.phase!r}, reason "
+    f"{_g8_sid_abort_twice.result.reason!r} -- the early return keeps a stray "
+    "abort from stamping a REASON onto the empty result the user's sensor "
+    "publishes, which would read as a run that was attempted and did not "
+    "work. The empty result itself is always there, which is why this asserts "
+    "the reason rather than the object",
+)
+_g8_sid_nofit = _g8_sid_new(max_excursion_c=0.001, settle_hours=0.0)
+_g8_sid_nofit.arm(_G8_SID_T0)
+_g8_sid_nofit_out = _g8_sid_step(
+    _g8_sid_nofit, _G8_SID_T0, house_ua=0.25, house_capacity=12.0,
+    house_gains=0.3)
+_g8_sid_blind = _g8_sid_new(settle_hours=0.0)
+_g8_sid_blind.arm(_G8_SID_T0)
+_g8_sid_blind_out = _g8_sid_step(_g8_sid_blind, _G8_SID_T0, max_power_kw=6.0)
+R.check(
+    "no step that fits the comfort bound aborts; no house physics falls back to 30 %",
+    _g8_sid_nofit.phase == _g8_sid.PHASE_ABORTED
+    and "no step fits" in _g8_sid_nofit.result.reason
+    and _g8_sid_nofit_out is None
+    and _g8_sid_blind.phase == _g8_sid.PHASE_STEP
+    and abs(_g8_sid_blind._step_power - 6.0 * 0.3) < 1e-9,
+    f"a 0.001 C bound -> {_g8_sid_nofit.phase!r} because "
+    f"{_g8_sid_nofit.result.reason!r}; no UA or capacity passed -> "
+    f"{_g8_sid_blind._step_power!r} kW of 6.0. The two are the sized and "
+    "unsized paths: with house physics the step is chosen so the PREDICTED "
+    "excursion stays inside the bound and refuses when none does, and without "
+    "it 30 % of the pump is the conservative guess that has to stand in",
+)
+
+
+# -- W5-G8 j: the wood night advisory, and the last module over the bar ----
+# `night_advice` is the one wood surface that talks to a person rather than to
+# the solver: it says "light the stove Thursday 19:00" or "skip tomorrow", and
+# it never lights anything itself. Both verdicts and the whole 48-hour scan
+# were uncovered, which for an advisory means the sentence the user actually
+# reads had never been produced by a test.
+R.section("W5-G8 j: the wood night advisory (#195)")
+
+_G8_N0 = datetime(2026, 1, 15, 12, 0, tzinfo=UTC)
+_G8_NSTAMPS = [_G8_N0 + timedelta(hours=i) for i in range(48)]
+
+
+def _g8_night(prices, *, cops=None, wood_sek=0.5, tank_soc=0.5, now=_G8_N0,
+              stamps=None):
+    st = _G8_NSTAMPS if stamps is None else stamps
+    return _g8_wf.night_advice(
+        now=now, prices=prices, timestamps=st,
+        cops=cops if cops is not None else [3.0] * len(st),
+        wood_sek=wood_sek, tank_soc=tank_soc)
+
+
+# A cheap-pump night (low price) and an expensive next day.
+_g8_n_cheap = [0.6] * 48
+_g8_n_cheap[8] = 6.0           # 20:00 tonight: pump at 2.00 SEK/kWh
+_g8_n_expensive_day = [0.6] * 48
+for _i in range(24, 40):
+    _g8_n_expensive_day[_i] = 0.3   # tomorrow: pump at 0.10, wood is dearer
+
+_g8_n_light = _g8_night(_g8_n_cheap, wood_sek=0.5, tank_soc=0.2)
+_g8_n_light_full = _g8_night(_g8_n_cheap, wood_sek=0.5, tank_soc=0.9)
+_g8_n_skip = _g8_night(_g8_n_expensive_day, wood_sek=0.5, tank_soc=0.9)
+_g8_n_skip_empty = _g8_night(_g8_n_expensive_day, wood_sek=0.5, tank_soc=0.2)
+R.check(
+    "a cheap night with a low tank says LIGHT, and names the hour",
+    _g8_n_light["action"] == "light"
+    and _g8_n_light["when"] == _G8_NSTAMPS[8].isoformat()
+    and "20:00" in _g8_n_light["text"]
+    and _g8_n_light["reason"] == "cheap night and a low tank"
+    and _g8_n_light_full["action"] != "light",
+    f"low tank -> {_g8_n_light!r}; the same night with a full tank -> "
+    f"{_g8_n_light_full['action']!r}. The hour is in the TEXT the user reads, "
+    "and the scan only ever nominates an hour between 18:00 and 06:00: a wood "
+    "stove is lit by a person who is at home and awake, so the cheapest hour "
+    "of the day is not advice if it falls at 03:00 in the afternoon sense -- "
+    "the window is what makes the sentence actionable",
+)
+R.check(
+    "and an expensive next day with a full tank says SKIP",
+    _g8_n_skip["action"] == "skip"
+    and _g8_n_skip["reason"] == "expensive next day and a full tank"
+    and _g8_n_skip["when"] == (_G8_N0 + timedelta(days=1)).date().isoformat()
+    and _g8_n_skip_empty["action"] != "skip",
+    f"full tank -> {_g8_n_skip!r}; the same prices with a low tank -> "
+    f"{_g8_n_skip_empty['action']!r}. Both conditions are required in each "
+    "direction: a full tank alone is not a reason to skip, and a cheap "
+    "heat-pump day alone is not either -- the advice is only worth printing "
+    "when the store can carry the house through it",
+)
+_g8_n_none = {
+    "free wood": _g8_night(_g8_n_cheap, wood_sek=0.0, tank_soc=0.2),
+    "no prices": _g8_night([], tank_soc=0.2),
+    "no stamps": _g8_night(_g8_n_cheap, tank_soc=0.2, stamps=[]),
+    "mid tank": _g8_night(_g8_n_cheap, wood_sek=0.5, tank_soc=0.5),
+    "wood never cheaper": _g8_night([0.1] * 48, wood_sek=5.0, tank_soc=0.2),
+    "no usable COP": _g8_night(_g8_n_cheap, cops=[0.0] * 48, tank_soc=0.2),
+}
+R.check(
+    "and it says nothing at all rather than guessing, six ways",
+    all(_g8_n_none[k]["action"] == "none" and _g8_n_none[k]["text"] == ""
+        and _g8_n_none[k]["when"] is None for k in _g8_n_none),
+    "; ".join(f"{k}={_g8_n_none[k]['action']!r}" for k in sorted(_g8_n_none))
+    + " -- every arm returns the same four-key shape, which is what lets the "
+    "sensor publish it unconditionally; a None or a short dict here would "
+    "be a KeyError in the attribute layer rather than an empty advisory. "
+    "'free wood' is the guard that matters most: a zero price is an "
+    "unconfigured furnace, and dividing by it would make wood infinitely "
+    "cheap and advise lighting the stove every single night",
+)
+_g8_n_past = _g8_night(_g8_n_cheap, wood_sek=0.5, tank_soc=0.2,
+                       now=_G8_N0 + timedelta(hours=30))
+_g8_n_beyond = _g8_night(
+    [0.6] * 60 + [6.0], wood_sek=0.5, tank_soc=0.2,
+    stamps=[_G8_N0 + timedelta(hours=i) for i in range(61)])
+R.check(
+    "the scan ignores hours already past and hours beyond its 48-hour horizon",
+    _g8_n_past["action"] == "none"
+    and _g8_n_beyond["action"] == "none",
+    f"asked 30 h later, the cheap 20:00 slot is behind us -> "
+    f"{_g8_n_past['action']!r}; a cheap hour at +60 h is past the horizon -> "
+    f"{_g8_n_beyond['action']!r}. Both bounds are read off the FIRST "
+    "timestamp rather than off `now`, so a price series that starts in the "
+    "past still gets a 48-hour window from where it starts -- and advising a "
+    "fire for an hour that has already gone is the failure the `when < now` "
+    "arm exists to stop",
+)
+_g8_n_override = {
+    "config only": _g8_wf._wood_override_fuel({}, dict(_G8_W_OK)),
+    "overridden": _g8_wf._wood_override_fuel(
+        {_G8_W_TYPE: "pine", _G8_W_PRICE: 900.0}, dict(_G8_W_OK)),
+    "bad override type": _g8_wf._wood_override_fuel(
+        {_G8_W_TYPE: "oak"}, dict(_G8_W_OK)),
+    "unparseable price": _g8_wf._wood_override_fuel(
+        {_G8_W_PRICE: "cheap"}, dict(_G8_W_OK)),
+    "efficiency out of band": _g8_wf._wood_override_fuel(
+        {_G8_W_EFF: 200.0}, dict(_G8_W_OK)),
+}
+R.check(
+    "a what-if override replaces the configured fuel field by field, or is refused",
+    _g8_n_override["config only"] == ("birch", "packed", 1200.0, 75.0)
+    and _g8_n_override["overridden"] == ("pine", "packed", 900.0, 75.0)
+    and all(_g8_n_override[k] is None for k in
+            ("bad override type", "unparseable price",
+             "efficiency out of band")),
+    "; ".join(f"{k}={_g8_n_override[k]!r}" for k in sorted(_g8_n_override))
+    + " -- the override is a per-field overlay and the packing and efficiency "
+    "survive the two fields the caller replaced; a refusal is None rather than "
+    "a fallback to the configured fuel, because a what-if that silently "
+    "answered about a DIFFERENT fuel than the one asked about is worse than "
+    "one that declines",
 )
 
 sys.exit(R.close("FEATURE CHECKS"))

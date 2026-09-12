@@ -522,7 +522,7 @@ for _label, _platform, _heading in (
 # That is one of six gates; the billed price has no silent default, so a
 # user whose entity stays blank was sent to the wrong cause.
 _wc_notes = _re.search(
-    r"^\| Wood cheaper than heat pump \|[^|\n]*\|([^|\n]*)\|",
+    r"^\| Wood Cheaper Than Heat Pump \|[^|\n]*\|([^|\n]*)\|",
     readme,
     _re.M,
 )
@@ -914,43 +914,68 @@ R.check(
 )
 # The Python half of the same declaration. Before #514 CI tested exactly one
 # interpreter and the README named none, so "supported Python" was an
-# inference from the HA floor that nothing could falsify. These two checks
-# make the README's claim and the versions CI actually runs the same fact:
-# the workflow is the machine-readable source, exactly as hacs.json is for
-# the Home Assistant floor above. Adding an interpreter to CI without saying
-# so in the README fails here, and so does claiming a floor CI never runs.
-# One line-wise pass reads both spellings: the six single-version pins
-# (`python-version: "3.13"`) and `fast`'s matrix list. The interpolated
-# `${{ matrix.python-version }}` carries no quoted literal and contributes
-# nothing, which is what keeps the matrix list the single source.
+# inference from the HA floor that nothing could falsify. These checks make
+# the README's claims and the versions CI actually runs the same fact: the
+# workflow is the machine-readable source, exactly as hacs.json is for the
+# Home Assistant floor above.
+#
+# TWO derivations, because the README makes two different claims and they
+# stopped being the same fact when `fast`'s 3.13 leg was retired. "Python X
+# or newer" is the FLOOR, and every job in this workflow still runs on it.
+# "The suite is tested on ..." is a claim about the SUITE, which only `fast`
+# runs -- so it derives from `fast`'s matrix alone. Read off the whole file,
+# as it was, the sentence would have kept passing while saying the suite ran
+# on an interpreter no longer in the matrix: a true-looking sentence no check
+# could falsify, which is the shape #514 exists to refuse.
+def _workflow_job(text: str, name: str) -> str:
+    """One job's YAML block, so a wiring check cannot match a sibling job."""
+    start = text.index(f"\n  {name}:\n") + 1
+    nxt = re.compile(r"^  [A-Za-z][\w-]*:", re.M).search(
+        text, text.index("\n", start) + 1)
+    return text[start:nxt.start()] if nxt else text[start:]
+
+
 _tests_workflow = Path(".github/workflows/tests.yml").read_text()
-_ci_pythons = sorted(
-    {
-        _version
-        for _line in _re.findall(r"python-version:.*", _tests_workflow)
-        for _version in _re.findall(r'"(\d+\.\d+)"', _line)
-    },
-    key=lambda v: tuple(int(p) for p in v.split(".")),
-)
+
+
+def _py_versions(text: str) -> list[str]:
+    """Every quoted `X.Y` on a `python-version:` line, oldest first.
+
+    The interpolated `${{ matrix.python-version }}` carries no quoted literal
+    and contributes nothing, which is what keeps the matrix list the single
+    source for the job that reads it.
+    """
+    return sorted(
+        {
+            _version
+            for _line in _re.findall(r"python-version:.*", text)
+            for _version in _re.findall(r'"(\d+\.\d+)"', _line)
+        },
+        key=lambda v: tuple(int(p) for p in v.split(".")),
+    )
+
+
+_ci_pythons = _py_versions(_tests_workflow)
+_suite_pythons = _py_versions(_workflow_job(_tests_workflow, "fast"))
 R.check(
-    "the README states the lowest Python version CI actually tests",
+    "the README states the lowest Python version CI actually runs on",
     bool(_ci_pythons) and f"Python {_ci_pythons[0]} or newer" in readme,
-    f".github/workflows/tests.yml tests {_ci_pythons}",
+    f".github/workflows/tests.yml runs on {_ci_pythons}",
 )
 # Bidirectional on purpose. "Every tested version is named" would catch a new
-# interpreter added to CI undocumented, but not the reverse -- dropping 3.14
+# interpreter added to CI undocumented, but not the reverse -- dropping one
 # from the matrix while the README still promises it re-opens the exact hole
 # #514 was filed for, an advertised version nothing runs. Comparing the whole
 # sentence catches both directions.
 _listed = (
-    " and ".join(_ci_pythons)
-    if len(_ci_pythons) < 3
-    else ", ".join(_ci_pythons[:-1]) + " and " + _ci_pythons[-1]
+    " and ".join(_suite_pythons)
+    if len(_suite_pythons) < 3
+    else ", ".join(_suite_pythons[:-1]) + " and " + _suite_pythons[-1]
 )
 R.check(
-    "the README names exactly the interpreters CI tests, neither more nor fewer",
-    f"The suite is tested on {_listed}." in readme,
-    f"CI tests {_ci_pythons}, so the README should read "
+    "the README names exactly the interpreters the SUITE runs on, neither more nor fewer",
+    bool(_suite_pythons) and f"The suite is tested on {_listed}." in readme,
+    f"`fast` is matrixed over {_suite_pythons}, so the README should read "
     f"'The suite is tested on {_listed}.'",
 )
 R.check(
@@ -3031,6 +3056,19 @@ R.check(
     _dev_coord.device_info.get("identifiers")
     == {(const.DOMAIN, "device_info_probe")},
     repr(_dev_coord.device_info.get("identifiers")),
+)
+# F1: the registry entry names the publisher and links to this entry's
+# configuration page. "Custom" is the cookiecutter placeholder (D10-15).
+R.check(
+    "the shared device names the publisher, not the placeholder",
+    _dev_coord.device_info.get("manufacturer") == "tvofi",
+    repr(_dev_coord.device_info.get("manufacturer")),
+)
+R.check(
+    "the shared device links to this entry's configuration page",
+    _dev_coord.device_info.get("configuration_url")
+    == "homeassistant://config/config_entries/entry/device_info_probe",
+    repr(_dev_coord.device_info.get("configuration_url")),
 )
 
 # The forwarding half of the same claim: driving each platform's real
@@ -5802,12 +5840,12 @@ R.check(
 )
 R.check(
     "the DHW boost switch is named through its translation key",
-    display_name("switch", dhw_boost_sw) == "Boost hot water",
+    display_name("switch", dhw_boost_sw) == "Boost Hot Water",
     display_name("switch", dhw_boost_sw),
 )
 R.check(
     "the space boost switch is named through its translation key",
-    display_name("switch", space_boost_sw) == "Boost space heating",
+    display_name("switch", space_boost_sw) == "Boost Space Heating",
     display_name("switch", space_boost_sw),
 )
 R.check("both boost switches are off when no overlay is live",
@@ -6825,6 +6863,34 @@ R.check(
     "the Swedish entity names are actually translated",
     _untranslated < _total_names / 4,
     f"{_untranslated} of {_total_names} identical to English",
+)
+
+# #797: English entity names follow one house style. The D8-03 instrument
+# (tools/audit/round3/D8/d8_ordering.py `_sentence_case`) counts a name as
+# sentence-case when a content word after the first starts lower-case.
+# Stop-words and parentheticals are excluded because both conventions
+# lower-case them. Read the registered strings, not a roster we supply.
+_CASE_STOP = frozenset(
+    {
+        "of", "the", "a", "an", "in", "on", "for", "to", "and", "than",
+        "per", "vs", "h", "next", "lifetime", "estimated", "model",
+        "optimizer",
+    }
+)
+_sentence_case_names = []
+for _plat, _ents in _ENTITY_STRINGS.items():
+    for _key, _body in _ents.items():
+        _name = _body["name"]
+        _words = [
+            w for w in re.split(r"[\s\-()]+", _name) if w and w[0].isalpha()
+        ]
+        _tail = [w for w in _words[1:] if w.lower() not in _CASE_STOP]
+        if any(w[0].islower() for w in _tail):
+            _sentence_case_names.append(f"{_plat}.{_key}:{_name}")
+R.check(
+    "English entity display names are Title Case",
+    not _sentence_case_names,
+    ", ".join(_sentence_case_names),
 )
 
 # CRITICAL id stability: pre-assigning ``entity_id`` is the integration
@@ -9243,6 +9309,44 @@ R.check(
     "re-point it at the merge this handover reflects (a shallow clone cannot "
     "answer this; the gate jobs check out with fetch-depth: 0)",
 )
+# ...and reachable from `origin/main`, which is the half HEAD cannot answer.
+#
+# THIS COST A RED MAIN. #885 set `updated-for:` to a SHA from its OWN branch
+# history, which was an ancestor of HEAD on the branch and passed the check
+# above at every push. It was SQUASH-merged, every branch commit was rewritten
+# into one new SHA, and the named commit stopped existing -- so `main` went red
+# on the merge, on a file the branch had left correct by the only measure
+# anything applied to it.
+#
+# Ancestry of `origin/main` is the property that survives any merge method, and
+# it is the right one on its own terms: the line names the merge the text
+# reflects, and a merge that has happened is on `main` by definition. Every
+# value this file has carried before that one -- `fa3b1e0`, `a801d7c`,
+# `1e66bb7` -- is a `main` commit, so the tree already agreed; nothing checked
+# it.
+#
+# Skipped rather than failed when `origin/main` is not present, because a
+# detached export or a fresh clone with no remote cannot answer it and a check
+# that fails where it cannot look teaches seats to ignore it. The gate jobs
+# check out with `fetch-depth: 0` and a remote, so they can.
+_UF_HAS_MAIN = _subprocess.run(
+    ["git", "rev-parse", "--verify", "--quiet", "origin/main^{commit}"],
+    cwd=_closure.ROOT, capture_output=True,
+).returncode == 0
+_UF_ON_MAIN = _UF_HAS_MAIN and _uf is not None and _subprocess.run(
+    ["git", "merge-base", "--is-ancestor", _uf.group(1), "origin/main"],
+    cwd=_closure.ROOT, capture_output=True,
+).returncode == 0
+R.check(
+    "and reachable from origin/main, so a squash cannot orphan it",
+    (not _UF_HAS_MAIN) or _UF_ON_MAIN,
+    f"updated-for: {_uf.group(1) if _uf else '?'} is not an ancestor of "
+    "origin/main. It names the MERGE this handover reflects, and a merge that "
+    "has happened is on main -- so a SHA from this branch's own history is "
+    "wrong even while it passes the check above, and a squash then deletes it "
+    "and turns main red. Name the merge, not the commit that carries the edit."
+    if _UF_HAS_MAIN else "origin/main is absent; nothing to check against",
+)
 
 # --- the real-Home-Assistant lane's own reporting (#533) --------------------
 #
@@ -10427,8 +10531,9 @@ _a8_sensor_posted = _nightly.a8_sensors_payload(
     ("weather_entity", "indoor_temp_entity"),
 )
 R.check(
-    "A8 sensors payload omits weather_entity; that key belongs to step user",
-    _a8_sensor_posted == {"indoor_temp_entity": "sensor.ci_indoor_temperature"},
+    "A8 sensors payload nests indoor under indoor; omits weather_entity",
+    _a8_sensor_posted
+    == {"indoor": {"indoor_temp_entity": "sensor.ci_indoor_temperature"}},
     f"posted={_a8_sensor_posted!r}",
 )
 _a5_seed_opts = _nightly._seed_payload()["options"]
@@ -11243,6 +11348,45 @@ R.check(
     "setpoint_check.evaluate is the consistency detector",
     callable(getattr(_setpoint_check_mod, "evaluate", None)),
 )
+# F2: the helper supplies the manifest documentation URL and does not
+# overwrite one the caller already set.
+_f2_docs = json.loads((ROOT / "manifest.json").read_text())["documentation"]
+R.check(
+    "the documentation link is the one the manifest publishes",
+    getattr(_setpoint_check_mod, "DOCUMENTATION_URL", None) == _f2_docs,
+    repr(getattr(_setpoint_check_mod, "DOCUMENTATION_URL", None)),
+)
+_f2_create = getattr(_setpoint_check_mod, "create_issue", None)
+_f2_hass = FakeHass()
+if callable(_f2_create):
+    _f2_create(_f2_hass, const.DOMAIN, "f2_default")
+    _f2_create(
+        _f2_hass,
+        const.DOMAIN,
+        "f2_explicit",
+        learn_more_url="https://example.invalid/doc",
+    )
+_f2_default = [
+    i for i in getattr(_f2_hass, "issues", []) if i[1] == "f2_default"
+]
+_f2_explicit = [
+    i for i in getattr(_f2_hass, "issues", []) if i[1] == "f2_explicit"
+]
+R.check(
+    "a repair notice raised through the helper carries the documentation link",
+    callable(_f2_create)
+    and _f2_default
+    and _f2_default[0][2].get("learn_more_url") == _f2_docs,
+    f"create_issue={_f2_create!r} issues={getattr(_f2_hass, 'issues', None)!r}",
+)
+R.check(
+    "an explicit documentation link is not overwritten",
+    callable(_f2_create)
+    and _f2_explicit
+    and _f2_explicit[0][2].get("learn_more_url")
+    == "https://example.invalid/doc",
+    f"got {_f2_explicit!r}",
+)
 R.check(
     "a hand-run QA script does not drag the whole suite in",
     "tests/setup_qa_render.mjs" not in _closure.select(
@@ -11825,14 +11969,6 @@ R.check(
 # whole finding is about, so the wiring is asserted against the YAML itself.
 _TESTS_YML = (pathlib.Path(__file__).resolve().parents[1]
               / ".github" / "workflows" / "tests.yml").read_text()
-
-
-def _workflow_job(text: str, name: str) -> str:
-    """One job's YAML block, so a wiring check cannot match a sibling job."""
-    start = text.index(f"\n  {name}:\n") + 1
-    nxt = re.compile(r"^  [A-Za-z][\w-]*:", re.M).search(
-        text, text.index("\n", start) + 1)
-    return text[start:nxt.start()] if nxt else text[start:]
 
 
 for _job in ("closures-autofix", "claims-autofix"):
@@ -13499,6 +13635,37 @@ R.check(
     f"result {_ra_out}, updates {_ra_updates}, reloads {_ra_reloads}",
 )
 
+# --- R3-D10-04: production must pass config_entry into the HA base ----------
+# The reauth block above assigns ``config_entry`` on the instance after
+# construction, which is the consumer's true arm and also why adding or
+# removing the keyword at ``super().__init__`` moved none of the named
+# checks. Wrap the base constructor instead: the keyword is the thing
+# Home Assistant's ``DataUpdateCoordinator`` actually reads.
+R.section("Coordinator config_entry (R3-D10-04)")
+
+from homeassistant.helpers import update_coordinator as _ce_uc  # noqa: E402
+
+_ce_calls: list[dict] = []
+_ce_orig = _ce_uc.DataUpdateCoordinator.__init__
+
+
+def _ce_spy(self, *args, **kwargs):
+    _ce_calls.append(dict(kwargs))
+    return _ce_orig(self, *args, **kwargs)
+
+
+_ce_uc.DataUpdateCoordinator.__init__ = _ce_spy
+try:
+    _ce_entry = FakeEntry(data=dict(_CRED_DATA))
+    integration.HeatPumpOptimizerCoordinator(FakeHass(), _ce_entry)
+finally:
+    _ce_uc.DataUpdateCoordinator.__init__ = _ce_orig
+R.check(
+    "super().__init__ is passed config_entry=entry",
+    bool(_ce_calls) and _ce_calls[0].get("config_entry") is _ce_entry,
+    f"kwargs={_ce_calls[0] if _ce_calls else None}",
+)
+
 # --- D10-14: the reconfigure flow (#196) ------------------------------------
 R.section("Reconfigure (D10-14)")
 
@@ -14401,6 +14568,31 @@ R.check(
 # reached function returns. The seed is the write, so a fifth writer cannot hide.
 _PKG_TREES = {_p.name: ast.parse(_p.read_text()) for _p in sorted(ROOT.glob("*.py"))}
 
+# F2: production may call the registry's create only from the helper that
+# supplies the documentation link. A direct call is a notice that ships
+# without one.
+_f2_direct = []
+for _fname, _tree in _PKG_TREES.items():
+    for _fn in ast.walk(_tree):
+        if not isinstance(_fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        if _fname == "setpoint_check.py" and _fn.name == "create_issue":
+            continue
+        for _node in ast.walk(_fn):
+            if not isinstance(_node, ast.Call):
+                continue
+            _func = _node.func
+            if (
+                isinstance(_func, ast.Attribute)
+                and _func.attr == "async_create_issue"
+            ):
+                _f2_direct.append(f"{_fname}:{_fn.name}:{_node.lineno}")
+R.check(
+    "production raises repair notices only through the helper that adds the docs link",
+    _f2_direct == [],
+    ", ".join(_f2_direct),
+)
+
 
 def _pkg_functions(name):
     return [
@@ -14864,9 +15056,15 @@ def _ns_job(name: str, conclusion: str | None) -> dict:
     return {"name": name, "conclusion": conclusion, "html_url": ""}
 
 
+# Every lane in REQUIRED_LANES has to appear here, or the ordinary nightly
+# reads ABSENT and all four states collapse -- which is how adding
+# `mutation-nightly` to the reporter announced itself, four checks at once.
+# `fast` is skipped on a schedule by design and is in the fixture for that.
 _NS_LIVE = [_ns_job("nightly-ha (stable)", "success"),
             _ns_job("nightly-ha (2025.2.0)", "success"),
-            _ns_job("slow", "success"), _ns_job("fast", "skipped")]
+            _ns_job("slow", "success"),
+            _ns_job("mutation-nightly", "success"),
+            _ns_job("fast", "skipped")]
 _NS_LAST_NIGHT = _ns_run(1, "2026-09-10T02:17:00Z")
 _NS_CASES = {
     "FAILED": (_NS_LAST_NIGHT, None,
@@ -14969,6 +15167,39 @@ R.check(
     _NS_RAN and _NS_RAN == _NS_WIRED,
     f"only in the ran-check: {sorted(_NS_RAN - _NS_WIRED)}; "
     f"only in the wired-check: {sorted(_NS_WIRED - _NS_RAN)}",
+)
+
+# That pin compares run.sh with ITSELF. The same question is asked a third time
+# one file over, as `tests/closure.py`'s `NOT_A_TEST`, and nothing compared the
+# two until this check -- which is how #195's two instruments went onto
+# `NOT_A_TEST` alone and cost four red lines on a runner, twenty minutes into a
+# full suite, for a fact both files already held locally.
+_NS_NOT_TESTS = _closure.NOT_A_TEST | set(_closure.DRIVEN_BY_OTHERS)
+R.check(
+    "every script run.sh skips is one closure.py already refuses to select",
+    _NS_WIRED <= _NS_NOT_TESTS,
+    f"skipped by run.sh but selectable by the gate: "
+    f"{sorted(_NS_WIRED - _NS_NOT_TESTS)} -- the scoped gate would choose a "
+    "script no lane runs, which reads as a green scope rather than as a "
+    "script that went missing",
+)
+# The other direction, and deliberately NOT equality: a NOT_A_TEST script may
+# be one run.sh runs anyway. setup_qa_render.mjs is wired into the card lane
+# while still being a thing no gate scopes, and closure.py says so in place.
+_NS_RUNSH_RUNS = {
+    _m.group(1) for _m in re.finditer(
+        r"^\s*run(?:_always)? .*tests/([\w.]+\.(?:py|mjs))(?: |$)",
+        _NS_RUNSH, re.M)
+}
+R.check(
+    "and a script closure.py will not select is either skipped by run.sh or run by it",
+    not (_NS_NOT_TESTS - _NS_WIRED - _NS_RUNSH_RUNS),
+    f"neither skipped nor run: "
+    f"{sorted(_NS_NOT_TESTS - _NS_WIRED - _NS_RUNSH_RUNS)}; the ones run.sh "
+    f"DOES run: {sorted(_NS_NOT_TESTS & _NS_RUNSH_RUNS)} -- a script in "
+    "neither set is one the suite has quietly stopped running and the gate "
+    "has quietly stopped scoping, which is how optimality.py sat dormant for "
+    "a year",
 )
 
 # --- the run's OWN conclusion, which is one level above its job list --------
@@ -15695,6 +15926,224 @@ R.check(
     "the disposition reporter is classified: NOT_A_TEST, and not on INERT",
     "record_status.py" in _closure.NOT_A_TEST
     and not _closure.is_inert("tests/record_status.py"),
+    "a file that is neither in a closure nor on a list forces the FULL suite",
+)
+
+# --- the two instruments beside the gate: coverage and mutation (#195) -------
+#
+# Coverage says a line RAN. It cannot say a check would fail if the line were
+# wrong, and the five W5-G7 tranches measured the gap: twenty-two checks
+# executed the line they were named for and pinned nothing. So there are two
+# instruments, and what is pinned here is what each CLAIMS -- the operators,
+# the kill rule, the scope rule -- plus the wiring, because a correct
+# instrument its workflow does not call is the silent-green shape this
+# repository keeps finding (`governance.yml`, `nightly_ha.py`, #533).
+import shutil as _mut_shutil  # noqa: E402
+import coverage_ratchet as _cov  # noqa: E402
+import mutation_table as _mut  # noqa: E402
+
+_MUT_JOB = _workflow_job(_TESTS_YML, "mutation")
+_MUTN_JOB = _workflow_job(_TESTS_YML, "mutation-nightly")
+_COV_JOB = _workflow_job(_TESTS_YML, "coverage")
+
+R.check(
+    "the coverage ratchet is wired into a job that runs on pull requests",
+    "github.event_name == 'pull_request'" in _COV_JOB
+    and "tests/coverage_ratchet.py" in _COV_JOB,
+    f"pull_request={'pull_request' in _COV_JOB}, "
+    f"invoked={'tests/coverage_ratchet.py' in _COV_JOB}",
+)
+# The null control for every ratchet in this repository. `--record` REWRITES
+# the budget to whatever was measured, so a job that passes it can never fail:
+# it is the always-green shape, and CI must never take that path.
+R.check(
+    "and no CI job passes either instrument --record",
+    not any("--record" in _j for _j in (_COV_JOB, _MUT_JOB, _MUTN_JOB)),
+    "--record rewrites the budget to the measurement, so a job that passes "
+    "it reports PASSED whatever the tree did",
+)
+# The user's ask, read back off the workflow: scoped beside `fast`, full on
+# the nightly. The two scopes are what make this affordable at all.
+R.check(
+    "the pull-request lane scopes to what the diff tested, the nightly does not",
+    "--scope changed" in _MUT_JOB and "--scope full" not in _MUT_JOB
+    and "--scope full" in _MUTN_JOB and "--scope changed" not in _MUTN_JOB,
+    f"mutation: changed={'--scope changed' in _MUT_JOB} "
+    f"full={'--scope full' in _MUT_JOB}; mutation-nightly: "
+    f"changed={'--scope changed' in _MUTN_JOB} full={'--scope full' in _MUTN_JOB}",
+)
+# --scope changed diffs three-dot against the merge base. A shallow clone has
+# no merge base, so the scope would silently come back empty -- and an empty
+# scope is a PASS.
+R.check(
+    "and the scoped lane checks out the history its own diff needs",
+    "fetch-depth: 0" in _MUT_JOB,
+    "without full history `git merge-base` prints nothing, scope_files "
+    "returns no file, and the run passes on an empty scope",
+)
+
+# The budget the ratchet enforces has to be a band, not a point: a floor above
+# its own ceiling can never be recorded down to and never stops tightening.
+_CB = json.loads(Path("tests/coverage_budgets.json").read_text())
+R.check(
+    "the coverage floor sits at or below its ceiling",
+    _CB["package_percent_floor"] <= _CB["package_percent_ceiling"],
+    f"floor={_CB['package_percent_floor']} ceiling={_CB['package_percent_ceiling']}",
+)
+# The pragma row is the reason the coverage floor is a floor at all: a
+# `# pragma: no cover` takes the statement out of the denominator, so without
+# a cap on the escape the floor is an invitation. Pinned as the PROPERTY --
+# the cap is not above what the tree carries -- rather than as the number,
+# which would be a literal this file re-measures every run.
+_PRAGMAS, _ = _cov.count_pragmas()
+R.check(
+    "the pragma cap is not slack: no exemption is pre-authorised",
+    _CB["pragmas"] <= _PRAGMAS,
+    f"cap={_CB['pragmas']} measured={_PRAGMAS}; a cap above the count is "
+    "headroom for an exemption nobody argued for",
+)
+
+# The mutation cap is a FRACTION and deliberately not the exact-count ratchet
+# tests/structure.py and tests/coverage_ratchet.py use: the pool is a seeded
+# sample over whichever files a diff put in scope, so two clean branches
+# touching different modules draw different pools and an exact count would go
+# red at random. What can still be pinned is that it is a fraction at all, and
+# that whatever was last measured is inside the cap it was recorded against --
+# a cap below its own measurement is a gate that fails on the tree it was
+# written from.
+_MB = json.loads(Path("tests/mutation_budgets.json").read_text())
+_MB_BAD = [
+    f"{_scope}={_v}" for _scope, _v in _MB["max_survivor_fraction"].items()
+    if not 0.0 <= _v <= 1.0
+]
+_MB_BAD += [
+    f"{_scope}: {_m['survivors']}/{_m['evaluated']} over the recorded "
+    f"{_MB['max_survivor_fraction'][_scope]}"
+    for _scope, _m in _MB["last_measured"].items()
+    if _m and _m["evaluated"]
+    and _m["survivors"] / _m["evaluated"] > _MB["max_survivor_fraction"][_scope]
+]
+R.check(
+    "both mutation caps are fractions, and each holds its own last measurement",
+    not _MB_BAD and set(_MB["max_survivor_fraction"]) == {"changed", "full"},
+    f"{_MB_BAD or 'in band'}; scopes recorded: "
+    f"{sorted(_MB['max_survivor_fraction'])}",
+)
+
+# The #805 defect, driven rather than described. Its pre-screen read the last
+# 1200 bytes of a script's output and scored seven real kills as survivors,
+# because two scripts print their summary line and then keep logging. The
+# kill rule must read the whole of stdout.
+_MUT_NOISE = "2 of 40 checks FAILED\n" + ("noise\n" * 400)
+R.check(
+    "the kill rule finds a failure count buried under trailing output",
+    [(m[0]) for m in _mut._FAILED.findall(_MUT_NOISE)] == ["2"],
+    f"a tail-only read of {len(_MUT_NOISE)} bytes sees none of it (#805)",
+)
+R.check(
+    "and reads no failure out of a clean run",
+    _mut._FAILED.findall("40 of 40 checks passed\n" + ("noise\n" * 400)) == [],
+    "the null control: a green script must not be read as a kill, or every "
+    "mutant dies and the table reports a suite that notices everything",
+)
+
+# The six operators, driven over a module written to carry one of each. A
+# generated mutant that does not PARSE cannot run, and a mutant that cannot
+# run reports as a survivor -- which reads as a finding about production.
+# W5-G7 tranche 5 measured two of those.
+_MUT_SRC = """
+THRESHOLD_C = 2.5
+ZERO_OFFSET = 0
+
+
+def clamp(value, ceiling):
+    out = min(value, ceiling)
+    if out < 0:
+        out = 0
+    return out
+
+
+def decide(a, b, flag):
+    if flag:
+        a = a + 1
+    if a > 0 and b > 0:
+        return a + b
+    if a < 0:
+        b = abs(b)
+        raise ValueError("negative")
+    return 0
+"""
+_MUT_DIR = Path(_tempfile.mkdtemp(prefix="mutation-operators-"))
+_MUT_FILE = _MUT_DIR / "sample.py"
+_MUT_FILE.write_text(_MUT_SRC)
+_MUT_GOT = list(_mut.candidates(_MUT_FILE))
+R.check(
+    "every operator fires on a module written to carry one of each",
+    {_m["kind"] for _m in _MUT_GOT} == {
+        "CLAMP_DROP", "GUARD_OFF", "RAISE_DEL", "RETURN_DEL", "BOOLOP", "CONST"},
+    f"kinds generated: {sorted({_m['kind'] for _m in _MUT_GOT})}",
+)
+_MUT_LINES = _MUT_SRC.splitlines(True)
+
+
+def _mut_apply(mutant: dict) -> str:
+    lines = list(_MUT_LINES)
+    lines[mutant["line"] - 1] = mutant["new"] + "\n"
+    return "".join(lines)
+
+
+_MUT_UNPARSEABLE = []
+for _m in _MUT_GOT:
+    try:
+        ast.parse(_mut_apply(_m))
+    except SyntaxError:
+        _MUT_UNPARSEABLE.append(f"{_m['kind']}:{_m['line']}")
+R.check(
+    "and every mutant it generates leaves the module parseable",
+    not _MUT_UNPARSEABLE,
+    f"unparseable: {_MUT_UNPARSEABLE}; a mutant that cannot run is reported "
+    "as a survivor, and a survivor reads as a finding about production",
+)
+# The operator that makes that non-trivial: deleting a `return` or a `raise`
+# that is the ONLY statement of its block strands the `if` above it. The
+# generator refuses those rather than the runner catching them.
+R.check(
+    "the sole statement of a block is never deleted",
+    not any(_m["kind"] in ("RETURN_DEL", "RAISE_DEL")
+            and _MUT_LINES[_m["line"] - 1].strip().startswith(("return", "raise"))
+            and _MUT_LINES[_m["line"] - 2].strip().endswith(":")
+            for _m in _MUT_GOT),
+    "a `raise` alone under its `if` cannot become `pass` without an "
+    "IndentationError -- the refusal is in candidates(), not in the runner",
+)
+_mut_shutil.rmtree(_MUT_DIR, ignore_errors=True)
+
+# Scope: a mutant is driven only by scripts whose MEASURED closure contains
+# its file. Driving one hand-picked script instead would let a mutant survive
+# because its driver never imports the module, and a survivor that says
+# nothing about the suite is worse than no survivor at all.
+_MUT_CLOSURES = {
+    "tests/a.py": ["custom_components/heatpump_optimizer/pv.py"],
+    "tests/b.py": ["custom_components/heatpump_optimizer/tariff.py"],
+}
+R.check(
+    "a mutant is driven only by the scripts whose closure reaches its file",
+    _mut.drivers_for("custom_components/heatpump_optimizer/pv.py",
+                     _MUT_CLOSURES, ["tests/a.py", "tests/b.py"]) == ["tests/a.py"]
+    and _mut.drivers_for("custom_components/heatpump_optimizer/nowhere.py",
+                         _MUT_CLOSURES, ["tests/a.py", "tests/b.py"]) == [],
+    "the closure recording answers 'which script could see this file', and a "
+    "file no recorded closure reaches is skipped rather than scored",
+)
+
+# The classification the ratchet demands of any new tracked file: not
+# selectable (each needs an instrument the gate does not run), not INERT
+# (this script imports both).
+R.check(
+    "both instruments are classified: NOT_A_TEST, and not on INERT",
+    {"coverage_ratchet.py", "mutation_table.py"} <= _closure.NOT_A_TEST
+    and not _closure.is_inert("tests/coverage_ratchet.py")
+    and not _closure.is_inert("tests/mutation_table.py"),
     "a file that is neither in a closure nor on a list forces the FULL suite",
 )
 

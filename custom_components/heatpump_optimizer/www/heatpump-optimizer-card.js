@@ -11,7 +11,7 @@
 
 const CARD_TAG = "heatpump-optimizer-card";
 const EDITOR_TAG = "heatpump-optimizer-card-editor";
-const CARD_VERSION = "6.4.0";
+const CARD_VERSION = "6.4.2";
 
 // Home Assistant's default --primary-color (#03a9f4) is 2.63:1 on a white
 // card — too light for text or for white label text on a filled button.
@@ -10012,7 +10012,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
   _chartBlock(built, expanded) {
     const { svg: chart, plot, geom, viewH } = renderChart(built, {
       expanded,
-      // Recorded as it is read, so `_chartWidthDrifted` can compare what
+      // Recorded as it is read, so `_refitCharts` can compare what
       // this render assumed against what the browser then did (D4-01).
       measuredWidth: () => {
         const w = chartWidthPx(this, expanded);

@@ -1,5 +1,80 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.4.2
+
+Product, the audit instrument, coverage, and leftover record since v6.4.1.
+
+### Product
+
+- The device page Configuration URL and the repair-notice documentation links point at the docs (#891, #558).
+- Consecutive in-process solve fallbacks on the same Home Assistant instance are capped (#888, #783).
+- The compressor frequency map is not folded while reverse-cycle cooling is the freeze reason, or while the power pin is stale (#887, #781).
+- A reload handover older than one update interval expires, and a still-fresh handover recomputes its age when republished (#880, #886, #774).
+- The coordinator is constructed with the config entry (#871, #830).
+- L-BFGS-B is restarted once from its own returned point (#875, #826).
+- The wood-burn advisor is Unavailable or none, not Unknown (#878, #796).
+- The six English entity display names are Title Case (#872, #797).
+
+### Coverage and audit
+
+- House-heat-loss persist is pinned on the tenth sample (#890, #805); two optimizer surviving guards (#883) and four non-coordinator surviving guards (#877).
+- W5-G7 tranche 5 covers the five lifecycle methods (#867).
+- The audit instrument's fourteen defects, plus a header check on the EXECUTE scripts (#893, #817).
+
+### Governance
+
+- Quality-scale strict-typing is recorded done; a `py.typed` marker is not owed (#876, #829).
+- The handover cap is raised on the owner's grant (#870).
+- `issue_read` and `merge_pull_request` no longer share a grant (#869, #802).
+- `record` is dropped from the main-protect required contexts (#799).
+
+### Record
+
+Leftover rows for the merges above: #868 (#860), #873, #874, #879, #881, #892, #894.
+
+## v6.4.1
+
+Product, docs, coverage, and governance since v6.4.0.
+
+### Product
+
+- The fuse advisor weekly guard persists across restart (#840, #782).
+- The away tick lives on Plan and expands the return time (#852).
+- Setup groups its fourteen sensor pickers the way options already groups them (#849, #824).
+- The reauth token field points at developer.tibber.com (#844, #828).
+- The uninstall list names the away and boost stores (#854, #837).
+- The no-data legend chips clear AA and the away strip joins the 24px floor (#843).
+- The sysid step is sized on the two-state plant (#832, #779).
+- The Open-Meteo current-irradiance fallback is pinned (#821, #808).
+- Coordinator goldens record sensor `native_value` (#831, #806).
+
+### Docs
+
+- The options dialog has 21 pages and the tables name them (#847, #834).
+- Wood-fuel economics and the real `wood_cheaper` gates (#846, #835).
+- Three quality-scale rules the tree already satisfies (#845, #827).
+- The entity census, the service field lists, a dead anchor and a supersession pair (#833).
+- `SECURITY.md` points at the enabled private advisory channel (#819, #801).
+- Line deletion is the wrong mutation operator for the solver scripts (#850, #809).
+- Two comments named something the tree does not have (#853, #836).
+
+### Coverage and audit
+
+- W5-G7 coordinator coverage 88.1% → 90.9% (#842) then 91.0% → 92.7% (#858).
+- Round-3 finder harnesses (#825) and the reports and ledger (#859).
+
+### Governance
+
+- `## Approval` is keyed on the `POLICY_GLOBS` diff, not the title (#818).
+- An issue body, a comment, and a review comment are data a seat quotes, not as instructions (#863, #802).
+- Coordinate on #201 before each PR, merge or release (#864, #860).
+- `record-status` is not required; it reports `main`'s last concluded `record` (#862).
+- The ledger-rider check is derived from the method, not a second key list (#851).
+
+### Record
+
+Leftover rows for the merges above: #838, #839, #841, #848, #855, #857, #861, #866.
+
 ## v6.4.0
 
 The largest batch in this line — 80 commits since v6.3.20 — and the first release

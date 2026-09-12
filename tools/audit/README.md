@@ -18,7 +18,7 @@ seat; this file does not repeat that list. The rest of the layout:
 tools/audit/
   finding.schema.json       what a finder must return; a finding without evidence cannot be returned
   briefs/COMMON.md          the contract every finder works under (read first)
-  briefs/D0.md … D11.md     one dimension each: method, what to reuse, what has fooled people before
+  briefs/D0.md … D12.md     one dimension each: method, what to reuse, what has fooled people before
   briefs/verifier.md        the adversarial panel's contract
   briefs/judge.md           the judge's contract: re-measure, void, classify
   briefs/fixer.md           the fix protocol as a checklist
@@ -187,6 +187,13 @@ evidence counts: call counts, bytes, and CPU-time ratios against the stress
 reference solve. Every wall, CPU or RSS number is re-taken in the quiet
 window before it enters the register. One local full gate at a time, through
 `tests/gate_lock.py`; `stress.py` alone is not alone across worktrees.
+
+**Fan-out concurrency is a judgement, not a measured capacity.** At most
+three compute-heavy finders share the box, and the Chromium finder (D4)
+does not sit beside them. The basis is the 8-core / 8 GB box and the
+stress-lock incident on 2026-09-03, not a measured exclusivity proof
+beyond that lock. `.claude/workflows/audit-find.js` schedules from this
+paragraph.
 
 ## A harness at the evidence tag may measure the tag, not your tree
 

@@ -149,9 +149,12 @@ OK_CONCLUSIONS = frozenset({"success", "skipped", "neutral"})
 # request cannot see for itself. A scheduled run in which one of these was
 # skipped -- or renamed out of existence -- told nobody anything about it, and
 # reporting that as a pass is the same error as reporting "no run found" as
-# one. This couples the reporter to two job names ON PURPOSE and it fails
+# one. This couples the reporter to three job names ON PURPOSE and it fails
 # closed: a rename makes the lane MISSING, which is red, not invisible.
-REQUIRED_LANES = ("nightly-ha", "slow")
+# `tests/entities.py` derives the same set from the workflow's own `if:`
+# conditions, so a lane added to the nightly and not added here is refused
+# there rather than watched by nobody.
+REQUIRED_LANES = ("mutation-nightly", "nightly-ha", "slow")
 
 FAILED = "FAILED"
 PASSED = "PASSED"

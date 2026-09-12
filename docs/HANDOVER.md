@@ -1,6 +1,6 @@
 # Handover — the open-issues programme
 
-updated-for: 2684125a56b8ed20e2559fd8a3c5d295bab29b69
+updated-for: 6be60558981123389d6aa484d144c51cd3e3e145
 
 The rule that governs this file is `.claude/rules/writing-for-agents.md`, which
 the harness loads on this very path. Delivery status is
@@ -10,17 +10,12 @@ the harness loads on this very path. Delivery status is
 
 - **Model routing is Claude seats.** Opus 5: orchestrator, architectural fixer
   and reviewer, survey, judge, production fixer. Sonnet 5: tests, tooling, docs,
-  records, read-only reporting, stamp drafting. **Fable 5.1 is routed on a rare,
-  exceptional basis — a very large, multi-layer refactoring where Opus 5 is
-  judged too risky** (the owner's rule, 2026-09-09). The roster tokens `opus` and
-  `sonnet` map literally and no `wave-*-groups.json` names a third.
-  **A Fable trailer on a merge or a release stamp is the session's own model, not
-  a routing event.** Those are different axes, and reading the trailer count as
-  routing manufactures a contradiction that is not there — an earlier form of this
-  bullet did exactly that. Scrape each with its own command rather than restating
-  a count: `git log --first-parent --format='%(trailers:key=Co-Authored-By,valueonly)'`
-  for the sessions, and the `fixerModel` / `reviewerModel` keys of the rosters for
-  the routing.
+  records, read-only reporting, stamp drafting. **Fable 5.1 is only for a very
+  large multi-layer refactoring where Opus 5 is judged too risky** (owner,
+  2026-09-09). Roster tokens `opus` and `sonnet` map literally.
+  **A Fable trailer on a merge or a stamp is the session's model, not a routing
+  event.** Scrape trailers and the roster `fixerModel` / `reviewerModel` keys
+  separately; do not restate a count.
 - **The decomposition stage criterion (Wave 4, S3–S8):** proceed only by cutting
   the stage's own cut by inside-extraction or `coordinator_loc` with nothing
   rising; halt otherwise, recording the cut's owned-versus-read-by-others split.
@@ -36,15 +31,11 @@ the harness loads on this very path. Delivery status is
   the gate evidence. Local runs exist for what CI structurally cannot produce:
   the mutation proof, the failing test at the merge base, and the finder's own
   harness at both ends.
-- **#387 was fixed with the `env_drift` shape**, not by growing `alt_basins` and
-  not by lowering the coverage floor. Solver work is captured twice in one run —
-  tree and merge base — and computed is compared against computed, so there is
-  no cross-machine assumption and no table to re-record. Two consequences were
-  ruled on separately: the WORK channel's stale-cheap rule is a printed report
-  rather than a failure, because that channel's baseline can no longer go stale
-  and the failure would turn a genuine optimisation red; and the coverage floor
-  is a literal, not an environment override, because an override could be
-  reached in CI without ever appearing in a pull-request body.
+- **#387 was fixed with the `env_drift` shape**, not by growing `alt_basins`
+  and not by lowering the coverage floor. Tree and merge base are captured in
+  one run and compared computed-to-computed. The WORK channel's stale-cheap
+  rule is a printed report, not a failure; the coverage floor is a literal,
+  not an environment override.
 - **Every sentence earns its place** (owner-directed, 2026-09-07). The rule, its
   scope and its controls are in `.claude/rules/writing-for-agents.md`; recorded
   here so that the decision to adopt it is not relitigated.
@@ -83,6 +74,14 @@ the harness loads on this very path. Delivery status is
   resolves a *file name* to an artefact; the looser one — any number near a file
   name — was built and **refused in review** for reading a date and a line count
   as caps, and `preflight.sh`'s figure advisory stays advisory for #581's reason.
+- **The pull-request body is one live object.** Every head's contract job reads
+  the current body, so only that head's result is a result. A red at a
+  superseded head is the instrument, not the commit. The root-cause seat is
+  the issue this property opened; do not skip to writing a check.
+- **A coverage ratio over an open set of mutation carriers is not a figure.**
+  The denominator is unbounded. State the class.
+- **A figure about the document it lives in is derived beside it, at the head.**
+  Carrying one is how it goes stale on every review of the artifact that states it.
 
 ### The UX programme
 
@@ -91,6 +90,13 @@ of record. This file deliberately does **not** restate them — it once claimed 
 "full accounting" it did not hold, which cost a session the conclusion that the
 list was unrecoverable when it was one artifact call away. Per-unit stage,
 `after` edges and carried findings are in `.claude/workflows/wave-ux-groups.json` (#601).
+
+- **Two instruments, two questions.** `tests/coverage_ratchet.py` floors package
+  coverage under a 96 % ceiling and caps `# pragma: no cover` downward — the
+  pragma is the one cheap way past a floor. `tests/mutation_table.py` asks
+  whether a check would FAIL, scoped to the files a diff tested, full-package
+  nightly; its cap is a FRACTION because the pool is a seeded sample, so an
+  exact count would redden clean branches at random. #195's bar: 96 %.
 
 ## Corrections to the record
 
@@ -249,11 +255,11 @@ in its own pull request.
     clock.** Read as one, it dated a body edit to a reviewer's comment. The
     clock is the `Governance` run list: the job fires on `[edited]`, so a
     missing run means no edit happened.
-21. **Assert a mutation's occurrence count before applying it.** A control here
+21. **Assert a mutation's occurrence count before applying it.** A control
     reported a cap mutant NOT CAUGHT: the replacement hit the string's first
-    occurrence, inside a comment, so the run was the unmutated one. "I could not
-    find it" is a different result from "it is pinned". Same shape: an
-    unanchored `case` glob accepts `v1.2.3; rm -rf /`.
+    occurrence, inside a comment, so the run was unmutated. "I could not find
+    it" differs from "it is pinned". Same shape: an unanchored `case` glob
+    accepts `v1.2.3; rm -rf /`.
 22. **A subagent does not survive a session restart; its report does.** Read
     `tasks/<agentId>.output` before re-dispatching — `ListAgents` goes empty
     with no notification, and an hour nearly went on finished work.
@@ -279,13 +285,11 @@ in its own pull request.
     Partly graduated: `COUNT_RULES` in `.claude/workflows/counts.mjs` refuses
     prose disagreeing with a figure derived from the artefact that answers it,
     and `brief_lint.mjs` runs that set less `modules` over roster briefs (#672).
-    Quote neither count — #676 added a rule while this sentence still said
-    eight, which is this trap firing on itself. **The other half does not
-    graduate**, and #581 is the measurement that says so — a rule
+    Quote neither count — #676 added a rule while this said eight, the trap
+    firing on itself. **The other half does not graduate**, per #581 — a rule
     refusing a *bare figure* was built and driven, and reported 20 on the live
-    briefs of which five were the defect — three wrong reports for every right
-    one, on a corpus whose authors mostly did anchor. The remedy is the anchor:
-    write `58.6 % at 4b6e0765`, never `58.6 %`.
+    briefs of which five were the defect: three wrong reports per right one, on
+    a corpus whose authors mostly did anchor. Write `58.6 % at 4b6e0765`.
 27. **A blank line ends a markdown table, and every row below it renders as
     literal text while the source still looks like a table.** Not reduced to a
     pointer, although its detector exists: the check catches the defect, and
@@ -327,10 +331,9 @@ in its own pull request.
     field and a reader for the rest.
 32. **A worktree shares the repository's config and its refs with every other
     worktree.** A seat ran `git remote remove origin` inside one while building
-    a test fixture; the main checkout's `origin` was repointed at a local path
-    and every remote-tracking ref went with it. Restored, and the restoration
-    verified. A throwaway git experiment goes in a standalone clone under the
-    seat's own `mktemp -d`, never in a worktree of this repository.
+    a fixture; the main checkout's `origin` was repointed at a local path and
+    every remote-tracking ref went with it. A throwaway git experiment goes in a
+    standalone clone under the seat's own `mktemp -d`, never in a worktree here.
 33. **A detached worktree can be collected while a seat is still using it.**
     `tools/audit/worktree_gc.sh --apply` removes a detached, clean worktree over
     an hour old that is not an open pull request's head. A fix-review seat is
@@ -340,14 +343,19 @@ in its own pull request.
     `missing` — none named in its header, none pinned by a `--self-test` case.
     **Not an untracked marker at the root**: criterion 2 keeps it, and
     `closure.py select` then turns `MODE: SCOPED` into `MODE: FULL` naming it.
-34. **A coverage check can run a guard's line and pin nothing.** Three shapes
+34. **A coverage check can run a guard's line and pin nothing.** Four shapes
     found by mutation across W5-G7, none visible to an instrument that sees the
-    line run either way: an EARLIER guard rejected the input (eight checks); the
+    line run either way. An EARLIER guard rejected the input (eight checks). The
     exception ESCAPES and ends the script instead of failing the check named for
-    it (eleven, worst on an event-bus `@callback` whose helper swallows it); the
+    it (eleven; worst on an event-bus `@callback` whose helper swallows it). The
     f-string DETAIL is eager, so a `sorted` over a mixed set aborts in place of
-    the failure. **Make that guard the only arm that can reject, catch every
-    call and assert nothing escaped, sort a detail by `repr`.**
+    the failure. And the value the mutation leaves UNTOUCHED equals the asserted
+    one, so a push or a coercion is invisible when the constructed value already
+    agrees. **Only-arm inputs, a catcher on every call, details by `repr`, state
+    edited before the call.** And never assert EQUALITY against a production
+    structure: a second declaration cannot learn the original moved (#851).
+    Fifth shape: a mutant that cannot PARSE reports a pass, which here reads as
+    a finding about production. Assert it parses.
 
 ## Owed — post-hoc reviews
 

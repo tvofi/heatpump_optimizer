@@ -18,10 +18,10 @@ const baseline = args?.baseline
 const repo = args?.repo
 if (!baseline || !repo) throw new Error('args.baseline (sha) and args.repo (absolute path of a checkout) are required')
 
-const DIMS = ['D0', 'D1', 'D2', 'D3', 'D4', 'D5', 'D6', 'D7', 'D8', 'D9', 'D10', 'D11']
+const DIMS = ['D0', 'D1', 'D2', 'D3', 'D4', 'D5', 'D6', 'D7', 'D8', 'D9', 'D10', 'D11', 'D12']
 // Compute-heavy finders share a box with everyone else; at most three of them
 // run together and the Chromium one never beside them (tools/audit/README.md).
-const WAVES = [['D0', 'D2', 'D3', 'D1', 'D5', 'D6', 'D7', 'D10', 'D11'], ['D9', 'D4', 'D8']]
+const WAVES = [['D0', 'D2', 'D3', 'D1', 'D5', 'D6', 'D7', 'D10', 'D11', 'D12'], ['D9', 'D4', 'D8']]
 // D11 audits the process itself, so it needs `.git` and the API: a worktree, not an export.
 const ISOLATED = new Set(['D0', 'D3', 'D9', 'D11'])
 
@@ -59,7 +59,7 @@ const reportSchema = {
 phase('Prepare the baseline')
 const prep = await agent(
   `Prepare the round ${round} audit baseline from the repository at ${repo} (do not modify that checkout).
-1. Export baseline ${baseline} with \`git archive\` into a sibling directory named audit-r${round}-baseline, then delete from the export: docs/audit-*.md, docs/backlog.md, RELEASE_NOTES.md. Copy tools/audit/ from ${repo} into the export (briefs, README, schema) so the finders have the current briefs even if the baseline predates them. Create tools/audit/round${round}/ in the export.
+1. Export baseline ${baseline} with \`git archive\` into a sibling directory named audit-r${round}-baseline, then delete from the export: docs/audit-*.md, docs/backlog.md. Keep RELEASE_NOTES.md (tests/entities.py and tests/closure.py read it unguarded). Copy tools/audit/ from ${repo} into the export (briefs, README, schema) so the finders have the current briefs even if the baseline predates them. Create tools/audit/round${round}/ in the export.
 2. For each of ${[...ISOLATED].join(', ')} run \`git worktree add ../audit-r${round}-<dim> ${baseline}\` from ${repo}; copy tools/audit/ in the same way.
 3. Warm the shared drift cache once: from ${repo}, PYTHONPATH=tests/hastub python tests/env_drift.py --all ${baseline} with GOLDEN_REF pointing at a different commit is not needed — instead run \`python tests/env_drift.py --cache-key ${baseline} --all\` and, if the cache misses, capture the baseline with \`--capture\` as tests/README.md describes so later runs hit.
 4. Record the absolute paths, the python interpreter to use (a venv with numpy/scipy; ${repo}/../tvofi-claude/.venv/bin/python exists on the audit box), node, and the Chromium path under ~/.cache/pw-browsers in tools/audit/round${round}/BASELINE.md inside the export.

@@ -7,14 +7,19 @@ export const meta = {
   description: 'Survey, move, adversarially review and merge one seam of the coordinator decomposition program',
   phases: [{ title: 'Measure' }, { title: 'Move' }, { title: 'Review' }, { title: 'Merge' }],
 }
-const GH = `No gh CLI exists in this environment. For every GitHub action run
+const GH_READ = `No gh CLI exists in this environment. For every GitHub read run
 ToolSearch with "select:<tool>" first, then call it (owner tvofi, repo
-heatpump_optimizer): issue_read (get / get_comments), add_issue_comment,
-issue_write (update: labels, state, state_reason), create_pull_request,
-update_pull_request, pull_request_read (get, get_check_runs, get_comments,
-get_files, get_diff), list_pull_requests, merge_pull_request (squash), actions_list
-(list_workflow_runs on tests.yml, branch main), actions_get, get_job_logs
-(failed_only).`
+heatpump_optimizer): issue_read (get / get_comments), pull_request_read
+(get, get_check_runs, get_comments, get_files, get_diff), list_pull_requests,
+actions_list (list_workflow_runs on tests.yml, branch main), actions_get,
+get_job_logs (failed_only). This grant is read-only.`
+
+const GH_WRITE = `Write grant, not merge: add_issue_comment, issue_write
+(update: labels, state, state_reason), create_pull_request, update_pull_request.
+Hold only in a phase that writes. Never together with the merge grant.`
+
+const GH_MERGE = `Merge grant: merge_pull_request (squash). Hold only in the
+merge phase. Do not hold the read grant here.`
 
 const GATE = `Gate rules on this 4-core box. The shell's working directory
 resets between calls: pin cd in every command. PYTHONPATH=tests/hastub for
@@ -96,7 +101,7 @@ const RANK = { haiku: 0, sonnet: 1, opus: 2 }
 const tierOk = (f, r) => RANK[f] !== undefined && RANK[r] !== undefined && RANK[r] >= RANK[f]
 
 const MERGE = { type: 'object', required: ['merged'] }
-const mergePrompt = (pr, head) => `${GH} Merge PR #${pr} only if ALL of:
+const mergePrompt = (pr, head) => `${GH_READ} ${GH_WRITE} ${GH_MERGE} Merge PR #${pr} only if ALL of:
 pull_request_read get shows mergeable_state clean and head sha ${head};
 get_check_runs shows every check success or skipped; the newest "Fix review:"
 comment says merge and post-dates that head; the diff touches neither VERSION
@@ -106,7 +111,7 @@ If mergeable_state is dirty, return {merged: false, reason: "needs repair"} --
 do not merge main into the branch yourself, the fixer must, because a rebase
 invalidates the evidence. Otherwise {merged: false, reason}.`
 
-const waitMainPrompt = (sha) => `${GH} Poll actions_list (workflow tests.yml,
+const waitMainPrompt = (sha) => `${GH_READ} Poll actions_list (workflow tests.yml,
 branch main) until the run for ${sha} completes; check every three minutes,
 give up after two hours. Require both fast and closures to be success. On a
 red run, fetch the failing job log (get_job_logs, failed_only) and return
@@ -144,7 +149,7 @@ if (!repo || !fork || !stage?.name || !stage?.brief) throw new Error('args.repo,
 const issues = stage.issues ?? []
 
 phase('Measure')
-const survey = await agent(`Before stage ${stage.name} of the coordinator decomposition program (#193) is cut, re-measure the seam table so the stage is still the cheapest remaining cut rather than the one the plan guessed months ago. ${GH} ${WT_REVIEW('survey-' + stage.name, fork)}
+const survey = await agent(`Before stage ${stage.name} of the coordinator decomposition program (#193) is cut, re-measure the seam table so the stage is still the cheapest remaining cut rather than the one the plan guessed months ago. ${GH_READ} ${WT_REVIEW('survey-' + stage.name, fork)}
 Run python3 tests/structure.py and record every cut_* metric and the class sizes. Then copy tools/audit/round2/D7/coordinator_clusters.py from tag audit-round2-evidence (757e164) into the tree under test and run it for the attribute co-usage graph, the hub attributes by fan-in and the minimum-cut search. ${GATE}
 Report: the measured cut cost of the seam this stage proposes; the three cheapest alternatives; the live-in variable count across the proposed boundary (this is what decides, not line count -- a seam whose extraction needs fifteen parameters is a monolith with an argument list in front of it, and two earlier stages were re-planned for exactly that); and whether any of these still hold: ${JSON.stringify(stage.holds ?? [])}.
 Return {proceed, cut_cost, live_ins, cheaper_alternatives, note} -- proceed false if the seam is no longer the right cut or a hold is unmet, with the reason in note.`,
@@ -154,7 +159,7 @@ if (!survey?.proceed) { log(`stage ${stage.name} not cut: ${survey?.note ?? 'sur
 if (survey.live_ins !== undefined && survey.live_ins > 8) log(`stage ${stage.name}: ${survey.live_ins} live-in variables across the boundary -- this wants a carrier object and its own design argument, not a verbatim move`)
 
 phase('Move')
-const fix = await agent(`You own stage ${stage.name} of the coordinator decomposition program (#193)${issues.length ? `, which advances issues #${issues.join(', #')}` : ''}. ${GH} ${WT('claude-web/decomp-' + stage.name.toLowerCase(), fork)} ${DOC(session)}
+const fix = await agent(`You own stage ${stage.name} of the coordinator decomposition program (#193)${issues.length ? `, which advances issues #${issues.join(', #')}` : ''}. ${GH_READ} ${GH_WRITE} ${WT('claude-web/decomp-' + stage.name.toLowerCase(), fork)} ${DOC(session)}
 The plan of record is #193's own comment as amended by the round-2 panel and the 2026-09-03 seam measurements; your stage:
 ${stage.brief}
 The survey just measured: cut cost ${survey.cut_cost ?? 'n/a'}, ${survey.live_ins ?? 'n/a'} live-in variables across the boundary. ${survey.note ?? ''}
@@ -174,7 +179,7 @@ Open the PR with the before/after class and method sizes, the byte-identity proo
 if (!fix?.pr) { log(`stage ${stage.name}: no PR`); return { survey, fix } }
 
 phase('Review')
-const review = await agent(`You are the adversarial reviewer for decomposition stage ${stage.name}, PR #${fix.pr} (head ${fix.head_sha}), in a fresh context. ${GH} ${WT_REVIEW('decomp-' + stage.name, fix.head_sha)}
+const review = await agent(`You are the adversarial reviewer for decomposition stage ${stage.name}, PR #${fix.pr} (head ${fix.head_sha}), in a fresh context. ${GH_READ} ${GH_WRITE} ${WT_REVIEW('decomp-' + stage.name, fix.head_sha)}
 Read tools/audit/briefs/fix-review.md, then check the four things that are specific to a move and that CI cannot see:
  1. Every moved block is byte-identical to the block on origin/main -- diff the moved range against ORIGIN/MAIN, not against the PR's own claim. This is the check that catches a silent revert: a fix that merged inside the relocated lines comes back reverted with no conflict and no failing test.
  2. Nothing merged since ${fork} lies inside a moved range. List what merged (git log ${fork}..origin/main) and intersect it with the moved line ranges.
