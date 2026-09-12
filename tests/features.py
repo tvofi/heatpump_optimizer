@@ -13250,6 +13250,41 @@ R.check(
     "#11 owns resistive draw; folding it would teach the map that some "
     "frequency draws the element's kilowatts",
 )
+_ccool = _freq_coord()
+_ccool._pump_signals = PumpSignals(freeze_reason="pump_cooling")
+_ccool._observe_frequency(_T6)
+R.check(
+    "reverse-cycle cooling never teaches the frequency map",
+    not _ccool._freq_map.buckets,
+    "#781: the map is keyed by decile only; a cooling fold is inherited "
+    "when the user later switches to control",
+)
+_cflat = _freq_coord()
+_cflat._input_health = _NS(
+    readings={
+        "heat_pump_power_entity": InputReading(
+            key="heat_pump_power_entity",
+            entity_id="sensor.hp_power",
+            value=2.0,
+            problem="stale",
+        )
+    }
+)
+_cflat._observe_frequency(_T6)
+R.check(
+    "a pinned stale power reading never teaches the frequency map",
+    not _cflat._freq_map.buckets,
+    "#781: _update_current_state pins the last good kW, so the fold "
+    "would teach a wrong ratio in every bucket",
+)
+_cextf = _freq_coord()
+_cextf._external_heat_active = True
+_cextf._observe_frequency(_T6)
+R.check(
+    "external heat still folds: the map is a compressor curve, not a house learner",
+    bool(_cextf._freq_map.buckets),
+    "#781: do not gate the fold on _learning_frozen wholesale",
+)
 R.check(
     "without the entity the stage is unconfigured and the view says so",
     _t2_coord()._freq_view()["mode"] == "unconfigured"
@@ -21707,6 +21742,11 @@ R.check(
 # set_thermal_parameters service.
 _lg_warn = _lg_coord()
 _lg_warn._legionella.check_ceiling()
+_lg_ceiling = [
+    i
+    for i in getattr(_lg_warn.hass, "issues", [])
+    if i[1] == "dhw_legionella_above_setpoint"
+]
 R.check(
     "the coordinator raises the notice for a live 52/60 pair",
     any(
@@ -21714,6 +21754,13 @@ R.check(
         for i in getattr(_lg_warn.hass, "issues", [])
     ),
     f"issues {[i[1] for i in getattr(_lg_warn.hass, 'issues', [])]}",
+)
+R.check(
+    "and that legionella notice carries a documentation link",
+    _lg_ceiling
+    and _lg_ceiling[0][2].get("learn_more_url")
+    == "https://github.com/tvofi/heatpump_optimizer",
+    f"got {_lg_ceiling!r}",
 )
 _lg_warn._thermal_params.dhw_legionella_temp = 52.0
 _lg_warn._legionella.check_ceiling()
@@ -24207,6 +24254,13 @@ R.check(
     in _g511_notice[0][2].get("translation_placeholders", {}).get("cause", ""),
     f"got {_g511_notice!r}",
 )
+R.check(
+    "and that notice carries a documentation link",
+    _g511_notice
+    and _g511_notice[0][2].get("learn_more_url")
+    == "https://github.com/tvofi/heatpump_optimizer",
+    f"got {_g511_notice!r}",
+)
 
 # Null control: with a job the child CAN resolve, the process route must still
 # be the one that runs. A fallback that always engaged would silently undo
@@ -24240,6 +24294,90 @@ R.check(
     and _g511_quiet(_g511_harness_coord, _g511_h_hass, _g511_h_warned),
     f"parent={_g3_parent} got {_g511_h!r} jobs={_g511_h_hass.jobs!r} "
     f"warned={len(_g511_h_warned)} issues={_g511_h_hass.issues!r}",
+)
+
+# ---------------------------------------------------------------------------
+R.section("#783 — in-process fallback is capped, not permanent")
+
+# #511 still returns a plan on the first fault (a slow plan beats none).
+# Nothing then bound how many cycles an install stayed on that GIL path.
+# After N consecutive fallbacks on the same hass, skip the in-process solve
+# and raise UpdateFailed so the last plan stays published. The streak lives
+# on hass.data: a process global would accumulate across this file, and
+# _g511_solve builds a new hass per call so those one-shots stay green.
+from homeassistant.helpers.update_coordinator import (  # noqa: E402
+    UpdateFailed as _G783Failed,
+)
+
+_g783_cap = getattr(_g511_coord, "WORKER_FALLBACK_CAP", 3)
+
+
+def _g783_once(coord, optimizer, hass):
+    sink = _G511LogSink()
+    logger = _g511_logging.getLogger(coord.__name__)
+    logger.addHandler(sink)
+    try:
+        try:
+            out = _asyncio.run(coord._await_optimize(hass, optimizer, "STATE"))
+            return None, out
+        except Exception as err:  # noqa: BLE001
+            return err, None
+    finally:
+        logger.removeHandler(sink)
+
+
+_g783_hass = _G511Hass()
+_g783_plans, _g783_errs = [], []
+for _ in range(_g783_cap + 1):
+    err, out = _g783_once(_g511_coord, _G511LocalOptimizer(), _g783_hass)
+    _g783_plans.append(out)
+    _g783_errs.append(err)
+R.check(
+    "the first WORKER_FALLBACK_CAP fallbacks still return a plan",
+    all(
+        e is None and isinstance(p, tuple) and p[0] == "in-process"
+        for p, e in zip(_g783_plans[:_g783_cap], _g783_errs[:_g783_cap], strict=True)
+    ),
+    f"plans={_g783_plans[:_g783_cap]!r} errs={[type(e).__name__ for e in _g783_errs[:_g783_cap]]!r}",
+)
+R.check(
+    "the next fallback raises UpdateFailed and skips the GIL solve",
+    isinstance(_g783_errs[_g783_cap], _G783Failed)
+    and _g783_plans[_g783_cap] is None
+    and _g783_hass.jobs.count(_g511_job) == _g783_cap
+    and _g783_hass.jobs.count(_g511_coord._run_in_process) == _g783_cap + 1,
+    f"err={_g783_errs[_g783_cap]!r} plan={_g783_plans[_g783_cap]!r} "
+    f"jobs={_g783_hass.jobs!r}",
+)
+
+_g783_other = _G511Hass()
+_g783_other_err, _g783_other_out = _g783_once(
+    _g511_coord, _G511LocalOptimizer(), _g783_other
+)
+R.check(
+    "a second hass is not charged for the first one's streak",
+    _g783_other_err is None
+    and isinstance(_g783_other_out, tuple)
+    and _g783_other_out[0] == "in-process",
+    f"err={_g783_other_err!r} out={_g783_other_out!r}",
+)
+
+_g783_reset = _G511Hass()
+for _ in range(_g783_cap):
+    _g783_once(_g511_coord, _G511LocalOptimizer(), _g783_reset)
+_g783_ok_err, _g783_ok_out = _g783_once(_g511_coord, _G511Probe(), _g783_reset)
+_g783_after_err, _g783_after_out = _g783_once(
+    _g511_coord, _G511LocalOptimizer(), _g783_reset
+)
+R.check(
+    "a healthy worker clears the streak so the next fallback is allowed",
+    _g783_ok_err is None
+    and isinstance(_g783_ok_out, tuple)
+    and _g783_ok_out[0] != _g3_parent
+    and _g783_after_err is None
+    and isinstance(_g783_after_out, tuple)
+    and _g783_after_out[0] == "in-process",
+    f"ok={_g783_ok_err!r}/{_g783_ok_out!r} after={_g783_after_err!r}/{_g783_after_out!r}",
 )
 
 # ---------------------------------------------------------------------------
@@ -24710,6 +24848,13 @@ R.check(
     and _sp_raised[0][2].get("translation_placeholders", {}).get("target") == "60"
     and _sp_raised[0][2].get("data", {}).get("entity_id") == "number.dhw_sp"
     and _sp_raised[0][2].get("data", {}).get("target") == 60.0,
+    f"got {_sp_raised!r}",
+)
+R.check(
+    "and that set-point notice carries a documentation link",
+    _sp_raised
+    and _sp_raised[0][2].get("learn_more_url")
+    == "https://github.com/tvofi/heatpump_optimizer",
     f"got {_sp_raised!r}",
 )
 _sp_evaluate(_sp_below)
@@ -27482,6 +27627,28 @@ R.check(
     f"{_t2_hl_ok._house_heat_loss_scale!r} -- the seven rejecting arms below "
     "all assert a count of zero, and without this one they would pass "
     "against a learner that rejected everything",
+)
+
+# M03: `if self._house_heat_loss_samples % 10 == 0` -> `if False:` leaves a
+# learned scale in memory that a restart forgets. The ninth-sample arm is
+# the modulo's null: a fold that is not the persist cadence must not save.
+_t2_hl_tenth = _t2_house()
+_t2_hl_tenth._house_heat_loss_samples = 9
+_t2_drive(_t2_hl_tenth, "_async_learn_house_heat_loss")
+R.check(
+    "the tenth house-heat-loss sample is written to the store",
+    _t2_hl_tenth._house_heat_loss_samples == 10
+    and len(_t2_hl_tenth._t2_saves) >= 1,
+    f"samples {_t2_hl_tenth._house_heat_loss_samples} saves {_t2_hl_tenth._t2_saves!r}",
+)
+_t2_hl_ninth = _t2_house()
+_t2_hl_ninth._house_heat_loss_samples = 8
+_t2_drive(_t2_hl_ninth, "_async_learn_house_heat_loss")
+R.check(
+    "the ninth sample does not persist (the modulo is the gate)",
+    _t2_hl_ninth._house_heat_loss_samples == 9
+    and _t2_hl_ninth._t2_saves == [],
+    f"samples {_t2_hl_ninth._house_heat_loss_samples} saves {_t2_hl_ninth._t2_saves!r}",
 )
 
 # The two-zone fit takes its Newton step about the UPPER floor's UA and mass,

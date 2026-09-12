@@ -1088,6 +1088,23 @@ def _issue_replaces():
 
 
 @contract(
+    "homeassistant.helpers.issue_registry.async_create_issue",
+    "stores the documentation-link kwarg so a notice can carry one",
+    cite="helpers/issue_registry.py -- async_create_issue(learn_more_url=...)",
+    expect="stub",
+)
+def _issue_stores_docs_link():
+    from homeassistant.helpers.issue_registry import async_create_issue
+
+    class _Hass:
+        pass
+
+    hass = _Hass()
+    async_create_issue(hass, "d", "i", learn_more_url="https://example.invalid/doc")
+    assert hass.issues[0][2]["learn_more_url"] == "https://example.invalid/doc"
+
+
+@contract(
     "homeassistant.helpers.issue_registry.async_delete_issue",
     "deletes by (domain, issue_id) and is a no-op when there is nothing to delete",
     cite="helpers/issue_registry.py -- async_delete_issue removes the issue if present",

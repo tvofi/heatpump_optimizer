@@ -422,6 +422,7 @@ if TYPE_CHECKING:  # annotations only; tests/hastub carries neither name
     from homeassistant.helpers.event import EventStateChangedData
 
 _LOGGER = logging.getLogger(__name__)
+_create_issue = setpoint_check.create_issue
 
 # Forecast wind speed arrives in whatever unit the user's Home Assistant is
 # configured for, so it has to be converted explicitly rather than guessed.
@@ -572,6 +573,30 @@ def forecast_outdoor_now(forecast: list[dict[str, Any]], now: datetime) -> float
 PLAN_STALE_INTERVALS = 3
 PLAN_STALE_FLOOR_MINUTES = 90.0
 SOLVE_FAILURE_ISSUE_COUNT = 3
+# Consecutive in-process fallbacks on one hass before the GIL solve is
+# skipped and the last plan is kept (#783). The first N still degrade:
+# a slow plan beats none (#511). Counted on hass.data, not a process
+# global, so a later test's new hass is not charged for an earlier one.
+WORKER_FALLBACK_CAP = 3
+
+
+def _republish_handover_ages(coord: Any, handover: dict[str, Any]) -> dict[str, Any]:
+    """Overwrite frozen plan_age_minutes / plan_stale on a reload handover."""
+    last = handover.get("last_optimization")
+    if isinstance(last, datetime):
+        coord._last_optimization = last
+    age = coord._plan_age_minutes()
+    handover["plan_age_minutes"] = round(age, 1) if age is not None else None
+    handover["plan_stale"] = coord._plan_is_stale()
+    return handover
+
+
+def _freq_fold_blocked(coord: Any) -> bool:
+    """Cooling or a pinned unusable power reading must not teach the map."""
+    if coord._pump_signals.freeze_reason == pump_signals.FREEZE_COOLING:
+        return True
+    frozen = coord._learning_frozen(CONF_POWER_ENTITY)
+    return bool(frozen and ":" in frozen)
 
 #: Which configured entity backs each published temperature -- the table
 #: `_thermal_view` builds its ``reading_ok`` map from. ``ThermalState`` has
@@ -721,6 +746,7 @@ _PROCESS_LOCK = threading.Lock()
 _PROCESS_WORKER: "subprocess.Popen[bytes] | None" = None
 _PROCESS_ATEXIT = False
 _WORKER_FALLBACK_CAUSE: str | None = None
+_WORKER_FALLBACK_STREAK = f"{DOMAIN}_worker_fallback_streak"
 
 
 class ProcessWorkerUnavailable(RuntimeError):
@@ -895,7 +921,7 @@ def _note_worker_fallback(hass: HomeAssistant, err: BaseException) -> None:
     if _WORKER_FALLBACK_CAUSE == cause:
         return
     _WORKER_FALLBACK_CAUSE = cause
-    ir.async_create_issue(
+    _create_issue(
         hass,
         DOMAIN,
         "solve_worker_fallback",
@@ -912,10 +938,37 @@ def _note_worker_fallback(hass: HomeAssistant, err: BaseException) -> None:
 def _clear_worker_fallback(hass: HomeAssistant) -> None:
     """The process route carried a solve again; withdraw the notice."""
     global _WORKER_FALLBACK_CAUSE
+    _reset_worker_fallback_streak(hass)
     if _WORKER_FALLBACK_CAUSE is None:
         return
     _WORKER_FALLBACK_CAUSE = None
     ir.async_delete_issue(hass, DOMAIN, "solve_worker_fallback")
+
+
+def _worker_fallback_streak(hass: HomeAssistant) -> int:
+    data = getattr(hass, "data", None)
+    if not isinstance(data, dict):
+        return 0
+    raw = data.get(_WORKER_FALLBACK_STREAK, 0)
+    try:
+        return int(raw or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _bump_worker_fallback(hass: HomeAssistant) -> int:
+    data = getattr(hass, "data", None)
+    if not isinstance(data, dict):
+        return 1
+    n = _worker_fallback_streak(hass) + 1
+    data[_WORKER_FALLBACK_STREAK] = n
+    return n
+
+
+def _reset_worker_fallback_streak(hass: HomeAssistant) -> None:
+    data = getattr(hass, "data", None)
+    if isinstance(data, dict):
+        data.pop(_WORKER_FALLBACK_STREAK, None)
 
 
 async def _await_optimize(
@@ -930,7 +983,9 @@ async def _await_optimize(
     A worker that cannot carry the job degrades to an in-process solve rather
     than to no plan (#511). That re-acquires the GIL the process route exists
     to escape, which is the accepted trade -- a slow plan beats none -- and it
-    is never silent, or this class of fault ships again.
+    is never silent, or this class of fault ships again. After
+    ``WORKER_FALLBACK_CAP`` consecutive fallbacks on the same hass the
+    in-process solve is skipped and the last plan stays published (#783).
     """
     try:
         result = await _await_process(
@@ -938,6 +993,12 @@ async def _await_optimize(
         )
     except ProcessWorkerUnavailable as err:
         _note_worker_fallback(hass, err)
+        n = _bump_worker_fallback(hass)
+        if n > WORKER_FALLBACK_CAP:
+            raise UpdateFailed(
+                f"process-solve worker unusable for {n} consecutive cycles; "
+                "keeping the last plan rather than holding the GIL (#783)"
+            ) from err
         return await hass.async_add_executor_job(
             optimize_in_process, optimizer, state, positional, keywords
         )
@@ -1319,7 +1380,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         super().__init__(
             hass,
             _LOGGER,
-            name=DOMAIN,
+            name=DOMAIN, config_entry=entry,
             update_interval=timedelta(
                 minutes=config.get(
                     CONF_OPTIMIZATION_INTERVAL, DEFAULT_OPTIMIZATION_INTERVAL
@@ -1981,10 +2042,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         return DeviceInfo(
             identifiers={(DOMAIN, self.entry.entry_id)},
             name="Heat Pump Optimizer",
-            manufacturer="Custom",
-            model="MPC Optimizer",
+            manufacturer="tvofi", model="MPC Optimizer",
             sw_version=self.integration_version,
             entry_type=DeviceEntryType.SERVICE,
+            configuration_url=f"homeassistant://config/config_entries/entry/{self.entry.entry_id}",
         )
 
     @property
@@ -4044,7 +4105,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             if self._pump_mode_last_good is not None
             else "unknown",
         )
-        ir.async_create_issue(
+        _create_issue(
             self.hass,
             DOMAIN,
             "pump_mode_unreadable",
@@ -4224,7 +4285,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         ``_skip_solve_once``. Two cases:
 
         * After an in-process reload the unload handler passed the previous
-          plan through ``_reload_handover``; it is returned as-is, with no
+          plan through ``_reload_handover``; ages are recomputed, with no
           fetches at all — an options save must not wait on Tibber. The
           background refresh scheduled at the end of setup replaces it with
           a freshly solved plan within the first cycle.
@@ -4241,7 +4302,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 "First refresh republishes the pre-reload plan; the real "
                 "solve follows in the background"
             )
-            return handover
+            return _republish_handover_ages(self, handover)
 
         try:
             await self._update_current_state()
@@ -4631,7 +4692,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 # Exactly-at, not at-or-above: the issue is idempotent to
                 # re-create, but re-raising it every cycle would refresh
                 # its timestamp and bury when the failures started.
-                ir.async_create_issue(
+                _create_issue(
                     self.hass,
                     DOMAIN,
                     "solve_failures",
@@ -5924,7 +5985,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         worst, source = grid_fee_max_abs_component(schedule, entity_value)
         if worst > IMPLAUSIBLE_FEE_SEK_PER_KWH:
             if self._grid_fee_issue_value != worst:
-                ir.async_create_issue(
+                _create_issue(
                     self.hass,
                     DOMAIN,
                     "grid_fee_magnitude",
@@ -5953,7 +6014,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         lowest, sign_source = grid_fee_min_component(schedule, entity_value)
         if lowest < 0.0:
             if self._grid_fee_sign_issue_value != lowest:
-                ir.async_create_issue(
+                _create_issue(
                     self.hass,
                     DOMAIN,
                     "grid_fee_sign",
@@ -5993,7 +6054,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         )
         if wanted:
             if not self._lower_floor_issue_raised:
-                ir.async_create_issue(
+                _create_issue(
                     self.hass,
                     DOMAIN,
                     "lower_floor_modelled",
@@ -6038,7 +6099,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if found:
             problem = comfort_band.describe(found)
             if self._band_issue_problem != problem:
-                ir.async_create_issue(
+                _create_issue(
                     self.hass,
                     DOMAIN,
                     "comfort_band_contradiction",
@@ -8173,7 +8234,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             cost_month,
             self.currency,
         )
-        ir.async_create_issue(
+        _create_issue(
             self.hass,
             DOMAIN,
             "cop_degradation",
@@ -8373,7 +8434,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 await self._dhw_learner.async_save_draws()
                 await self._async_save_price_model()
                 await self._async_save_accuracy()
-        ir.async_create_issue(
+        _create_issue(
             self.hass,
             DOMAIN,
             "accuracy_drift",
@@ -9804,7 +9865,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     self._freq_watchdog.commanded or 0.0,
                     self._freq_watchdog.strikes,
                 )
-                ir.async_create_issue(
+                _create_issue(
                     self.hass,
                     DOMAIN,
                     "freq_watchdog",
@@ -9814,7 +9875,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     translation_key="freq_watchdog",
                     translation_placeholders={"entity": entity_id},
                 )
-        if self._measured_power is None or self._immersion_active:
+        if self._measured_power is None or self._immersion_active or _freq_fold_blocked(self):
             return
         self._freq_map.observe(
             reported, float(self._measured_power), hz_min, hz_max

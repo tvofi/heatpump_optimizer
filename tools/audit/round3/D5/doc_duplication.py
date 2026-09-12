@@ -33,6 +33,7 @@ INSTRUMENTED: the rendered prose of README.md and docs/*.md, the documents a
     reader is sent to by README's own navigation block.
 """
 import os
+import time
 for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
            "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS"):
     os.environ.setdefault(_v, "1")
@@ -169,7 +170,8 @@ def main():
     print(f"RESULT sentences_scanned={sum(per_doc.values())} count")
     print(f"RESULT duplicated_sentences={len(dup)} count")
     print(f"RESULT duplicated_words={dup_words} count")
-    print("RESULT thread_factor=1.0")
+    _thr = time.thread_time()
+    print(f"RESULT thread_factor={time.process_time() / _thr if _thr else 0:.3f}")
     print(f"RESULT load1={os.getloadavg()[0]:.2f}")
     print("RESULT swapins=0")
 

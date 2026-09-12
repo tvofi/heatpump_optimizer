@@ -136,6 +136,7 @@ p1=$!
   rec tests/open_meteo.py
   rec tests/solar_alignment.py
   rec tests/guard_pins.py
+  rec tests/harness_headers.py
   # The deployment-shape lane (#513), in run.sh's lane order. It copies the
   # tracked package into a temporary tree and drives it from a child
   # interpreter, so the audit hook sees the package files it reads plus the

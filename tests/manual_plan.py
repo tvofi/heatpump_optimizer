@@ -835,7 +835,7 @@ def test_reload_handover_expiry(R: Results) -> None:
 
     The published payload object stays the stash so the existing identity
     pin in features.py still holds; the stamp lives beside it. Ages on a
-    fresh handover stay frozen until coordinator.py can republish them.
+    fresh handover are recomputed in ``_async_first_refresh_light``.
     """
     R.section("#774 — reload handover expiry")
     payload = {"mode": "auto", "sentinel": "the pre-reload plan"}
@@ -932,6 +932,60 @@ def test_reload_handover_expiry(R: Results) -> None:
     )
 
 
+def test_reload_handover_republish_ages(R: Results) -> None:
+    """#774 residual: a still-fresh handover must not republish frozen ages.
+
+    #880 expires a stash older than one update interval. A stamp inside that
+    window still handed the pre-unload payload back verbatim, so
+    ``plan_age_minutes`` / ``plan_stale`` stayed at the values frozen at
+    unload. The light refresh must recompute both from ``last_optimization``.
+    """
+    R.section("#774 — handover republish ages")
+    last = dt_util.now() - timedelta(minutes=120)
+    payload = {
+        "mode": "auto",
+        "sentinel": "frozen-age",
+        "last_optimization": last,
+        "plan_age_minutes": 0.0,
+        "plan_stale": False,
+    }
+    coord = _mk_coordinator()
+    coord._reload_handover = payload
+    out = asyncio.run(coord._async_first_refresh_light())
+    R.check(
+        "republish keeps the payload object so the features.py identity pin holds",
+        out is payload,
+    )
+    R.check(
+        "republish recomputes plan_age_minutes from last_optimization",
+        out.get("plan_age_minutes") == 120.0,
+        f"published {out.get('plan_age_minutes')}",
+    )
+    R.check(
+        "republish recomputes plan_stale from the live age",
+        out.get("plan_stale") is True,
+        f"published {out.get('plan_stale')}",
+    )
+
+    just_now = dt_util.now()
+    fresh_payload = {
+        "mode": "auto",
+        "last_optimization": just_now,
+        "plan_age_minutes": 0.0,
+        "plan_stale": False,
+    }
+    fresh = _mk_coordinator()
+    fresh._reload_handover = fresh_payload
+    fresh_out = asyncio.run(fresh._async_first_refresh_light())
+    R.check(
+        "a just-solved handover still publishes age 0.0 (null control)",
+        fresh_out.get("plan_age_minutes") == 0.0
+        and fresh_out.get("plan_stale") is False,
+        f"published age={fresh_out.get('plan_age_minutes')} "
+        f"stale={fresh_out.get('plan_stale')}",
+    )
+
+
 #: Overrides now expire a fixed number of hours from the moment they are
 #: applied, so the old reason for freezing the clock -- a midnight cap that
 #: silently truncated "two hours from now" when the suite ran at 22:30 -- no
@@ -962,6 +1016,7 @@ def _run() -> int:
     test_no_override_identical(R)
     test_coordinator(R)
     test_reload_handover_expiry(R)
+    test_reload_handover_republish_ages(R)
     return R.close("manual plan checks")
 
 

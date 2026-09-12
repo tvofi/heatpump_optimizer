@@ -35,6 +35,7 @@ from .const import (
 )
 from .dhw_learning import DHW_PROFILE_STORE_VERSION
 from .optimizer import REASON_LEGIONELLA
+from .setpoint_check import create_issue
 from .thermal_model import ThermalParameters
 
 _LOGGER = logging.getLogger(__name__)
@@ -421,7 +422,7 @@ class LegionellaGuard:
                 _LOGGER.debug("Could not clear legionella ceiling notice: %s", err)
             return
         legionella, setpoint, interval = signature
-        ir.async_create_issue(
+        create_issue(
             self.hass,
             DOMAIN,
             "dhw_legionella_above_setpoint",
@@ -446,7 +447,7 @@ class LegionellaGuard:
         the tank is being disinfected weekly and it is not. Persistent, because
         the fact survives a restart in the store.
         """
-        ir.async_create_issue(
+        create_issue(
             self.hass,
             DOMAIN,
             "dhw_legionella_unreachable",
@@ -477,7 +478,7 @@ class LegionellaGuard:
         the one failure mode worth a notice all by itself. Persistent,
         because the fact survives a restart.
         """
-        ir.async_create_issue(
+        create_issue(
             self.hass,
             DOMAIN,
             "dhw_legionella_unverified",
@@ -569,7 +570,7 @@ class LegionellaGuard:
             "heat pump's mode makes no hot water, so it cannot be planned",
             overdue_days,
         )
-        ir.async_create_issue(
+        create_issue(
             self.hass,
             DOMAIN,
             "dhw_legionella_mode_blocked",

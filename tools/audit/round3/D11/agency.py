@@ -62,20 +62,26 @@ WRITE = re.compile(r"merge_pull_request|create_pull_request|update_pull_request|
 BOUNDARY = re.compile(r"prompt[ -]?inject|untrusted|as data, not|not as instructions"
                       r"|data, not (a )?command", re.I)
 
-CORPUS = ["CLAUDE.md", ".claude/rules", "tools/audit/briefs", ".claude/skills",
-          "tools/audit/README.md", "tests/README.md", "docs/HANDOVER.md",
-          ".claude/workflows/web-fragments.md", ".github/PULL_REQUEST_TEMPLATE.md"]
+# Same globs policy_lint.mjs uses. A hand list omitted harnesses/README.md
+# and printed 1 of 35 where the derived corpus is 1 of 36.
+POLICY_GLOBS = [re.compile(g) for g in (
+    r"^CLAUDE\.md$", r"^\.claude/rules/[a-z0-9-]+\.md$",
+    r"^tools/audit/briefs/[A-Za-z0-9_.-]+\.md$", r"^tools/audit/README\.md$",
+    r"^tools/audit/harnesses/README\.md$", r"^tests/README\.md$",
+    r"^docs/HANDOVER\.md$", r"^\.claude/workflows/web-fragments\.md$",
+    r"^\.claude/skills/[a-z0-9-]+/SKILL\.md$", r"^\.github/PULL_REQUEST_TEMPLATE\.md$")]
+
+
+def corpus_relpaths():
+    tracked = subprocess.run(
+        ["git", "-C", str(ROOT), "ls-files"],
+        capture_output=True, text=True, check=True,
+    ).stdout.splitlines()
+    return [p for p in tracked if any(g.match(p) for g in POLICY_GLOBS)]
 
 
 def corpus_files(root):
-    out = []
-    for c in CORPUS:
-        p = root / c
-        if p.is_dir():
-            out += [f for f in sorted(p.rglob("*.md"))]
-        elif p.exists():
-            out.append(p)
-    return out
+    return [root / p for p in corpus_relpaths() if (root / p).is_file()]
 
 
 def main():
@@ -84,11 +90,11 @@ def main():
         with tempfile.TemporaryDirectory() as td:
             arm = Path(td) / "tree"
             arm.mkdir()
-            for c in CORPUS:
-                src = ROOT / c
-                dst = arm / c
+            for rel in corpus_relpaths():
+                src = ROOT / rel
+                dst = arm / rel
                 dst.parent.mkdir(parents=True, exist_ok=True)
-                (shutil.copytree if src.is_dir() else shutil.copy2)(src, dst)
+                shutil.copy2(src, dst)
             for label, root in (("A live corpus", ROOT), ("B +boundary sentence", arm)):
                 if root is arm:
                     f = arm / ".claude/rules/writing-for-agents.md"
