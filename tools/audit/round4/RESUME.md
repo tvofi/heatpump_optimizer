@@ -97,7 +97,7 @@ seat's JSON has not been received here.
 | D9 | CPU and memory efficiency | not dispatched (wave 2) | — |
 | D10 | HA quality scale | **landed** | 3 low. `quality_scale.yaml` has drifted: 3 of 54 declared rows are contradicted when executed, including a config-flow coverage row claiming 100 %/0 missed against a measured 97.2 %/21 missed. `docs-known-limitations` declared done with 0 such headings across 4075 lines. The package root re-binds `HeatPumpOptimizerConfigEntry` to a bare `ConfigEntry`, so `runtime_data` reveals `Any` in the three entry points while mypy --strict still reports 0 errors. Measured: 47 done / 4 exempt / 3 todo of 54; package coverage 97.18 %, 0 of 56 modules below 95 % |
 | D11 | governance and policy | running (wave 1) | — |
-| D12 | generalization | written | — |
+| D12 | generalization | **landed** | 108 cells enumerated, 0 failing on every plant-shape axis — the finding is on the unit axis. 1 high — `InputReader.read` is `float(state.state)` and consults no unit, so on a non-metric Home Assistant instance 10 of 13 guarded inputs are adopted in the entity own unit: indoor publishes 70.5 degC for a plant at 21.4, and the 96-step plan totals 0.0 kWh with no refusal, no repair and no unavailable entity. `read_power_kw` is the one read that does convert, and its own docstring states the principle. Null control (metric arm) 0; `--convert` drives 10 to 1; plant shrink drives 10 to 4 |
 <!-- STATUS TABLE END -->
 
 ## What the next session does, in order

@@ -6,7 +6,7 @@ Machine: MacBookAir10,1, 8-core Apple M1, 8 GB, macOS 25.6.0.
 Interpreter `/Library/Frameworks/Python.framework/Versions/3.11/bin/python3`,
 `PYTHONPATH=tests/hastub:tools/audit/round4/D12`, run from the export root.
 Every number below is a **count** or a **published value**; none is a timing,
-so none is contaminated by the shared box (`load1` 5.1–7.6 throughout, quoted
+so none is contaminated by the shared box (`load1` 5.1–12.9 throughout, quoted
 beside each RESULT block).
 
 `exposure`: one incidental grep hit. `docs/audit-*.md`, `docs/backlog.md` and
@@ -238,6 +238,7 @@ reference plant's entities on the matrix I share with it, all of which speak
 | currency is not hard-coded to SEK | `currency.py:resolve_currency`, 8 `_attr_native_unit_of_measurement` sites in `sensor.py` | instance currency with an SEK fallback — correct generalization |
 | power inputs ARE unit-normalised | `inputs.py:559` / `const.py:122` | W/kW/MW/mW, unknown unit → `unknown_unit`, never a guess |
 | omitting `compressor_freq_entity`, `pv_production_entity`, `dhw_inlet_entity`, `indoor_humidity_entity` or `heat_pump_energy_entity` from the fully mapped plant changes nothing that is published | `units.py`-style differential | zero entity-availability or value deltas — the "correctly unused" case the brief calls a non-finding |
+| every registered service, called on every `T`/`P`/`L`/`NULL` cell, either completes or refuses by name — none crashes on a plant that is not the reference plant | `python3 tools/audit/round4/D12/services_cells.py` | `service_cell_pairs=456`, `service_cell_crashes=0`, `service_named_refusals=173` (283 handler bodies ran to completion), `null_control_fully_mapped_crashes=0`, `load1=8.16` |
 
 ## 5. Harnesses
 
@@ -249,10 +250,20 @@ reference plant's entities on the matrix I share with it, all of which speak
 
 ## 6. What I could not finish
 
-- **`services_cells.py` (D12-H3) did not return inside the budget** under the
-  fan-out load. Its design is committed and it is runnable by the single
-  command in its header; no finding rests on it and none of the numbers above
-  came from it. It should be re-run in the quiet window.
+- **`services_cells.py` (D12-H3) is a non-finding with a caveat worth
+  recording.** Its first two runs reported `service_cell_crashes=0` off
+  `service_named_refusals=456` — every single call refused with "No loaded
+  Heat Pump Optimizer config entry matched this call", because the harness
+  put the entry in `hass.config_entries.entries` but left
+  `entry.state = ConfigEntryState.NOT_LOADED`. **Not one handler body
+  executed, and a harness that counts only crashes read a clean zero off it.**
+  Setting `ConfigEntryState.LOADED` moved the refusal count 456 → 173, which
+  is the control that says 283 handler bodies really ran; only that third run
+  is quoted above. The lesson generalises past this harness: a zero from a
+  crash-counting probe needs a companion count proving the code ran.
+- **12 services x 37 cells is not every service payload.** Each service is
+  called with one minimal schema-valid payload; a crash reachable only through
+  a different argument shape is out of reach.
 - **The config and options flows were enumerated but not *walked* per cell.**
   I read all 15 option pages to derive the axes; I did not submit each page on
   each plant. `tests/config_flow_steps.py` already walks them on the reference
