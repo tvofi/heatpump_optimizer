@@ -314,26 +314,41 @@
         "seat": 1,
         "vote": "verify",
         "severity": "high"
+      },
+      {
+        "seat": 2,
+        "vote": "verify",
+        "severity": "high"
+      },
+      {
+        "seat": 3,
+        "vote": "verify",
+        "severity": "high"
       }
     ],
-    "pending": [
-      2,
-      3
-    ]
+    "pending": []
   },
   "D4-02": {
     "votes": [
       {
         "seat": 1,
         "vote": "refute",
-        "severity": "low",
-        "note": "premise false: HA stock dark theme never sets --text-primary-color to #212121 (stays #ffffff = 5.786:1 pass), verified against HA frontend source at 2024.1/2026.8/dev; the 2.78 pairing existed only in the finder's hand-written dark table"
+        "severity": "low"
+      },
+      {
+        "seat": 2,
+        "vote": "refute",
+        "severity": "low"
+      },
+      {
+        "seat": 3,
+        "vote": "refute",
+        "severity": "low"
       }
     ],
-    "pending": [
-      2,
-      3
-    ]
+    "pending": [],
+    "killed": true,
+    "judge_note": "KILLED 3-of-3 refute: premise false at every supported HA version (--text-primary-color stays #ffffff in stock dark; hand-written harness table artefact); residual for the judge: 2.783:1 under user-customised primary colour (both modes) and the unfiled .delta.dearer 4.291/3.972 rider"
   },
   "D4-03": {
     "votes": [
@@ -341,12 +356,19 @@
         "seat": 1,
         "vote": "verify",
         "severity": "low"
+      },
+      {
+        "seat": 2,
+        "vote": "verify",
+        "severity": "low"
+      },
+      {
+        "seat": 3,
+        "vote": "verify",
+        "severity": "low"
       }
     ],
-    "pending": [
-      2,
-      3
-    ]
+    "pending": []
   },
   "D5-01": {
     "votes": [
