@@ -576,6 +576,64 @@ R.check(
     f"the platforms construct {_total_entities} ({_platform_counts})",
 )
 
+# The same claim discipline for the suite's own manual. `tests/README.md`'s
+# per-script list annotates each script with the sizes it runs, and #938
+# measured the stress line saying "48 combinations" while the sweep had
+# returned 51 since #286/#287's three zero-range-bounds scenarios -- the
+# kind of sentence that goes stale silently because nothing reads it. The
+# sweep count is derived by CALLING the symbol (exposed at module level
+# for exactly this, per its docstring), never by counting code; the edge
+# and seasonal counts are AST reads of the registered artifacts, because
+# the `edges` dict lives inside stress.py's `__main__` block and
+# validate.py executes its scenarios at import, so neither can be imported
+# just to be counted. Reading the file here is also what takes it out of
+# `tests/closure.py`'s INERT list: a document a gate script checks is a
+# dependency, not inert.
+import stress as _stress_mod
+
+_tests_readme = Path("tests/README.md").read_text()
+_stress_note = _re.search(
+    r"tests/stress\.py\s*#\s*(\d+)\s+combinations,\s*(\d+)\s+edge cases",
+    _tests_readme,
+)
+_validate_note = _re.search(
+    r"tests/validate\.py\s*#\s*(\d+)\s+seasonal scenarios", _tests_readme
+)
+_sweep_n = len(_stress_mod.sweep_combinations())
+R.check(
+    "tests/README.md's stress annotation states the sweep's real size",
+    _stress_note is not None and int(_stress_note.group(1)) == _sweep_n,
+    f"README says {_stress_note.group(1) if _stress_note else '?'}, "
+    f"sweep_combinations() returns {_sweep_n} (#938)",
+)
+_stress_tree = ast.parse(Path("tests/stress.py").read_text())
+_edges_n = next(
+    len(node.value.keys)
+    for node in ast.walk(_stress_tree)
+    if isinstance(node, ast.Assign)
+    and any(getattr(t, "id", None) == "edges" for t in node.targets)
+    and isinstance(node.value, ast.Dict)
+)
+R.check(
+    "the stress annotation's edge-case count is the dict's real size",
+    _stress_note is not None and int(_stress_note.group(2)) == _edges_n,
+    f"README says {_stress_note.group(2) if _stress_note else '?'}, "
+    f"the edges dict in stress.py has {_edges_n} entries",
+)
+_validate_tree = ast.parse(Path("tests/validate.py").read_text())
+_validate_n = sum(
+    isinstance(node, ast.Expr)
+    and isinstance(node.value, ast.Call)
+    and getattr(node.value.func, "id", None) == "run"
+    for node in _validate_tree.body
+)
+R.check(
+    "the validate annotation's scenario count is the module's real size",
+    _validate_note is not None and int(_validate_note.group(1)) == _validate_n,
+    f"README says {_validate_note.group(1) if _validate_note else '?'}, "
+    f"validate.py makes {_validate_n} module-level run(...) calls",
+)
+
 # HACS renders this README inside Home Assistant -- `hacs.json` asks for it,
 # and hacs/integration's `async_get_info_file_contents` reads README.md -- so
 # the README has a second renderer, and it is much weaker than GitHub's.
