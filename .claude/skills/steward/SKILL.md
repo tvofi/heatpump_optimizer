@@ -89,8 +89,7 @@ IF your branch turned any required check red, THEN name it in the body and
 answer it: the cheaper detector, or that none exists. An unanswered required
 check is a blocked verdict. Naming a trigger is not the analysis.
 
-`delivery-status` is not required. PENDING a row is the protocol working; only
-OVERDUE means the batch stopped. Read its list, or `docs/delivery-status.json`.
+`delivery-status` is not required. PENDING a row is ordinary; only OVERDUE is a stopped batch. Read its list or `docs/delivery-status.json`.
 
 ## S9 Never re-gate an unchanged head
 
