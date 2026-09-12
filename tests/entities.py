@@ -10493,8 +10493,9 @@ _a8_sensor_posted = _nightly.a8_sensors_payload(
     ("weather_entity", "indoor_temp_entity"),
 )
 R.check(
-    "A8 sensors payload omits weather_entity; that key belongs to step user",
-    _a8_sensor_posted == {"indoor_temp_entity": "sensor.ci_indoor_temperature"},
+    "A8 sensors payload nests indoor under indoor; omits weather_entity",
+    _a8_sensor_posted
+    == {"indoor": {"indoor_temp_entity": "sensor.ci_indoor_temperature"}},
     f"posted={_a8_sensor_posted!r}",
 )
 _a5_seed_opts = _nightly._seed_payload()["options"]
