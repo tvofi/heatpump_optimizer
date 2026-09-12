@@ -978,7 +978,7 @@
           "dso_product": "A dated Sweden-only table. Selecting a product writes transfer-fee rules and peak-tariff fields you can still edit. Verify against your bill. Unknown or stale products write nothing.",
           "grid_fee_mode": "The fee your grid company adds per kWh transferred. Tibber's price does not include it, so with it configured the plan finally sees the whole marginal price. \"Rules\" uses the schedule below; \"Live sensor\" follows an entity.",
           "grid_fee_fixed": "A flat fee added in every hour, on top of any rules. Take it from your grid invoice.",
-          "grid_fee_rules": "One rule per line, for example \"Nov-Mar Mon-Fri 06:00-22:00 = 0.25\". Month, weekday and time parts are each optional; overlapping rules add together, which matches a base fee plus a high-load surcharge.",
+          "grid_fee_rules": "One rule per line, for example \"Nov-Mar Mon-Fri 06:00-22:00 = 0.25\". Month, weekday and time parts are each optional; overlapping rules add together, which matches a base fee plus a high-load surcharge. A comma between digits is a decimal separator, so \"0,25\" reads as 0.25 and never splits a rule.",
           "grid_fee_entity": "A sensor reporting the current fee in {currency}/kWh, for grids with dynamic fees. Its value is added to every planned hour.",
           "contract_fixed_price": "If you could have a fixed-price contract, its {currency}/kWh. The Contract Comparison sensor then shows what this month would have cost on it. 0 leaves that column out.",
           "after_save": "Saving writes through immediately; this chooses where the dialog goes next."

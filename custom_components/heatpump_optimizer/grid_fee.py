@@ -12,6 +12,10 @@ Rules are configured as comma- or newline-separated lines of the form::
     Nov-Mar Mon-Fri 06:00-22:00 = 0.25
     Jul = 0.10
 
+A comma between digits is a decimal separator (``0,25`` is ``0.25`` — the
+form a Swedish keyboard writes), so it never splits a rule; every other
+comma, ``;`` and a newline separate rules from each other.
+
 Each part before the ``=`` is optional and narrows when the rate applies:
 a month or month range (wrapping allowed, ``Nov-Mar``), a weekday or weekday
 range (``Mon-Fri``), and a time-of-day range in the same ``HH:MM-HH:MM``
@@ -28,6 +32,7 @@ only decides what it means.
 from __future__ import annotations
 
 import logging
+import re
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
@@ -197,12 +202,17 @@ def _parse_rule(line: str) -> FeeRule:
 
 
 def parse_rules(spec: str | None) -> list[FeeRule]:
-    """Parse a whole rule specification. Empty input is an empty list."""
+    """Parse a whole rule specification. Empty input is an empty list.
+
+    A comma with a digit on both sides is a decimal comma — the rate form
+    ``_parse_rule`` already converts — and never a separator (#929); every
+    other comma, ``;`` and a newline separate rules from each other.
+    """
     if not spec:
         return []
     raw = str(spec).replace(";", ",").replace("\n", ",")
     rules = []
-    for line in raw.split(","):
+    for line in re.split(r"(?<!\d),|,(?!\d)", raw):
         line = line.strip()
         if line:
             rules.append(_parse_rule(line))
