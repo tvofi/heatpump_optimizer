@@ -8019,6 +8019,53 @@ R.check(
     _gf.is_valid_spec("Maj Mån-Fre 06:00-22:00 = 0.2")
     and _gf.is_valid_spec("Okt-Dec Lör-Sön = 0.1"),
 )
+# --- #929: a comma between digits is a decimal separator ----------------------
+# The rate grammar `_parse_rule` implements (`,` -> `.`) must be reachable:
+# `parse_rules` splits rule lists on commas, so it has to leave a comma with
+# a digit on both sides alone. These arms are red until it does.
+R.check(
+    "a decimal comma parses where the dotted form does",
+    _gf.is_valid_spec("= 0,45")
+    and _gf.is_valid_spec("Maj Mån-Fre 06:00-22:00 = 0,25"),
+    f"spec_problem('= 0,45') = {_gf.spec_problem('= 0,45')!r}, "
+    f"spec_problem('Maj Mån-Fre 06:00-22:00 = 0,25') = "
+    f"{_gf.spec_problem('Maj Mån-Fre 06:00-22:00 = 0,25')!r}",
+)
+_dec_spec = "= 0,18, Nov-Mar Mon-Fri 06:00-22:00 = 0,27"
+try:
+    _dec_list = _gf.parse_rules(_dec_spec)
+    _dec_detail = f"rates {[r.rate for r in _dec_list]}"
+except _gf.GridFeeError as _dec_err:
+    _dec_list = []
+    _dec_detail = f"parse_rules raised {_dec_err!r}"
+R.check(
+    "a comma list with decimal commas is two rules, not fragments",
+    len(_dec_list) == 2
+    and abs(_dec_list[0].rate - 0.18) < 1e-9
+    and abs(_dec_list[1].rate - 0.27) < 1e-9,
+    _dec_detail,
+)
+_dec_sched = _gf.GridFeeSchedule.from_config(
+    {
+        hp_const.CONF_GRID_FEE_MODE: _gf.MODE_RULES,
+        hp_const.CONF_GRID_FEE_RULES: "= 0,45",
+        hp_const.CONF_GRID_FEE_FIXED: 0.0,
+    }
+)
+R.check(
+    "from_config prices a decimal-comma rate, not a degraded zero",
+    abs(_dec_sched.current_fee(_winter_day) - 0.45) < 1e-9,
+    f"fee {_dec_sched.current_fee(_winter_day)}, rules {len(_dec_sched.rules)}",
+)
+for _dec_id, _dec_row in _gf.SWEDEN_CATALOG.items():
+    _dec_rules = _gf.parse_rules(_dec_row["grid_fee_rules"])
+    R.check(
+        f"{_dec_id} still parses as two rules and round-trips",
+        len(_dec_rules) == 2
+        and _gf.apply_catalog(_dec_id)[hp_const.CONF_GRID_FEE_RULES]
+        == _dec_row["grid_fee_rules"],
+        f"{len(_dec_rules)} rules: {[r.rate for r in _dec_rules]}",
+    )
 R.check(
     "a wrapping month range covers the wrap and not the middle",
     2 in _gf.parse_month_range("Nov-Mar") and 6 not in _gf.parse_month_range("Nov-Mar"),
