@@ -4,7 +4,7 @@
   "type": "object",
   "required": ["dimension", "baseline_sha", "findings", "non_findings", "harnesses"],
   "properties": {
-    "dimension": {"type": "string", "pattern": "^D(1[01]|[0-9])$"},
+    "dimension": {"type": "string", "pattern": "^D(1[0-2]|[0-9])$"},
     "baseline_sha": {"type": "string", "minLength": 7},
     "exposure": {"type": "string", "description": "Sources the finder had to read that carry earlier audit findings (D5/D6), or GitHub's own records (D11); empty otherwise"},
     "findings": {"type": "array", "items": {"$ref": "#/definitions/finding"}},
@@ -17,7 +17,7 @@
         "properties": {"claim": {"type": "string"}, "command": {"type": "string"}, "value": {"type": "string"}}
       }
     },
-    "harnesses": {"type": "array", "items": {"type": "string", "pattern": "^tools/audit/round[0-9]+/D(1[01]|[0-9])/"}}
+    "harnesses": {"type": "array", "items": {"type": "string", "pattern": "^tools/audit/round[0-9]+/D(1[0-2]|[0-9])/"}}
   },
   "definitions": {
     "evidence": {
@@ -25,7 +25,7 @@
       "required": ["command", "harness_path", "value", "unit", "baseline_sha", "machine", "cpu_or_wall", "contention_note", "tolerance", "load1", "thread_factor"],
       "properties": {
         "command": {"type": "string"},
-        "harness_path": {"type": "string", "pattern": "^tools/audit/round[0-9]+/D(1[01]|[0-9])/"},
+        "harness_path": {"type": "string", "pattern": "^tools/audit/round[0-9]+/D(1[0-2]|[0-9])/"},
         "value": {"type": ["number", "string"]},
         "unit": {"type": "string"},
         "baseline_sha": {"type": "string"},
@@ -41,7 +41,7 @@
       "type": "object",
       "required": ["id", "title", "severity", "claim", "evidence", "instrumented_symbol", "perturbation", "metric_definition", "stop_rule_class", "files", "proposed_fix_scope"],
       "properties": {
-        "id": {"type": "string", "pattern": "^D(1[01]|[0-9])-[0-9]{2}$"},
+        "id": {"type": "string", "pattern": "^D(1[0-2]|[0-9])-[0-9]{2}$"},
         "title": {"type": "string", "maxLength": 120},
         "severity": {"enum": ["critical", "high", "medium", "low"]},
         "claim": {"type": "string", "description": "One sentence, falsifiable"},
