@@ -1,17 +1,17 @@
 {
   "_comment": "One-sided caps on the governance corpus. A policy file may shrink freely; growing past its cap is refused. Deliberately NOT the two-sided ratchet tests/structure.py applies to code: an 'improved and not yet recorded' refusal on prose would punish deletion, which is the behaviour this corpus most needs. Raising a cap is a deliberate edit to this file, visible in the diff a reviewer reads.",
   "_measured": "Caps recorded at the values measured when policy_lint landed. Governance prose had added 6.8 lines for every line deleted, with no governance document ever getting shorter.",
-  "always_loaded_tokens": 3279,
+  "always_loaded_tokens": 3343,
   "_always_loaded_target": 6000,
   "_floor_is_not_the_cost": "always_loaded_tokens measures a session that opens nothing. Moving prose out of CLAUDE.md into a paths:-scoped rule lowers it without deleting a line: across the index split the floor fell by more than half while corpus_tokens moved a fraction of a percent. The two caps below are what stop that drop being recorded as headroom -- corpus_tokens does not move when prose moves, and roles charge a seat for what it loads once it opens a file. Policy: .claude/rules/ratchet-budgets.md.",
-  "corpus_tokens": 61124,
+  "corpus_tokens": 61378,
   "roles": {
     "fixer": {
       "opens": [
         "tests/entities.py",
         "custom_components/heatpump_optimizer/coordinator.py"
       ],
-      "cap": 5729
+      "cap": 5799
     },
     "record": {
       "opens": [
@@ -26,7 +26,7 @@
         "tools/audit/briefs/fixer.md",
         ".github/workflows/tests.yml"
       ],
-      "cap": 9476
+      "cap": 9487
     }
   },
   "_roles": "opens is a representative file per surface, not an exhaustive list. The cap ratchets a fixed sample; widening the sample is a visible edit here rather than a silent re-measurement.",
@@ -45,7 +45,8 @@
     ".claude/workflows/fixtures/policy-rot/budgets.md": 1,
     ".claude/workflows/web-fragments.md": 168,
     ".github/PULL_REQUEST_TEMPLATE.md": 38,
-    "CLAUDE.md": 199,
+    "AGENTS.md": 13,
+    "CLAUDE.md": 204,
     "docs/HANDOVER.md": 1000,
     "tests/README.md": 800,
     "tools/audit/README.md": 250,
