@@ -3032,6 +3032,19 @@ R.check(
     == {(const.DOMAIN, "device_info_probe")},
     repr(_dev_coord.device_info.get("identifiers")),
 )
+# F1: the registry entry names the publisher and links to this entry's
+# configuration page. "Custom" is the cookiecutter placeholder (D10-15).
+R.check(
+    "the shared device names the publisher, not the placeholder",
+    _dev_coord.device_info.get("manufacturer") == "tvofi",
+    repr(_dev_coord.device_info.get("manufacturer")),
+)
+R.check(
+    "the shared device links to this entry's configuration page",
+    _dev_coord.device_info.get("configuration_url")
+    == "homeassistant://config/config_entries/entry/device_info_probe",
+    repr(_dev_coord.device_info.get("configuration_url")),
+)
 
 # The forwarding half of the same claim: driving each platform's real
 # async_setup_entry with a real coordinator, the way HA would, every entity
@@ -11271,6 +11284,45 @@ R.check(
     "setpoint_check.evaluate is the consistency detector",
     callable(getattr(_setpoint_check_mod, "evaluate", None)),
 )
+# F2: the helper supplies the manifest documentation URL and does not
+# overwrite one the caller already set.
+_f2_docs = json.loads((ROOT / "manifest.json").read_text())["documentation"]
+R.check(
+    "the documentation link is the one the manifest publishes",
+    getattr(_setpoint_check_mod, "DOCUMENTATION_URL", None) == _f2_docs,
+    repr(getattr(_setpoint_check_mod, "DOCUMENTATION_URL", None)),
+)
+_f2_create = getattr(_setpoint_check_mod, "create_issue", None)
+_f2_hass = FakeHass()
+if callable(_f2_create):
+    _f2_create(_f2_hass, const.DOMAIN, "f2_default")
+    _f2_create(
+        _f2_hass,
+        const.DOMAIN,
+        "f2_explicit",
+        learn_more_url="https://example.invalid/doc",
+    )
+_f2_default = [
+    i for i in getattr(_f2_hass, "issues", []) if i[1] == "f2_default"
+]
+_f2_explicit = [
+    i for i in getattr(_f2_hass, "issues", []) if i[1] == "f2_explicit"
+]
+R.check(
+    "a repair notice raised through the helper carries the documentation link",
+    callable(_f2_create)
+    and _f2_default
+    and _f2_default[0][2].get("learn_more_url") == _f2_docs,
+    f"create_issue={_f2_create!r} issues={getattr(_f2_hass, 'issues', None)!r}",
+)
+R.check(
+    "an explicit documentation link is not overwritten",
+    callable(_f2_create)
+    and _f2_explicit
+    and _f2_explicit[0][2].get("learn_more_url")
+    == "https://example.invalid/doc",
+    f"got {_f2_explicit!r}",
+)
 R.check(
     "a hand-run QA script does not drag the whole suite in",
     "tests/setup_qa_render.mjs" not in _closure.select(
@@ -14459,6 +14511,31 @@ R.check(
 # _current_action, then follow the call that assignment stores, and any call a
 # reached function returns. The seed is the write, so a fifth writer cannot hide.
 _PKG_TREES = {_p.name: ast.parse(_p.read_text()) for _p in sorted(ROOT.glob("*.py"))}
+
+# F2: production may call the registry's create only from the helper that
+# supplies the documentation link. A direct call is a notice that ships
+# without one.
+_f2_direct = []
+for _fname, _tree in _PKG_TREES.items():
+    for _fn in ast.walk(_tree):
+        if not isinstance(_fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        if _fname == "setpoint_check.py" and _fn.name == "create_issue":
+            continue
+        for _node in ast.walk(_fn):
+            if not isinstance(_node, ast.Call):
+                continue
+            _func = _node.func
+            if (
+                isinstance(_func, ast.Attribute)
+                and _func.attr == "async_create_issue"
+            ):
+                _f2_direct.append(f"{_fname}:{_fn.name}:{_node.lineno}")
+R.check(
+    "production raises repair notices only through the helper that adds the docs link",
+    _f2_direct == [],
+    ", ".join(_f2_direct),
+)
 
 
 def _pkg_functions(name):

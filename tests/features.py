@@ -21742,6 +21742,11 @@ R.check(
 # set_thermal_parameters service.
 _lg_warn = _lg_coord()
 _lg_warn._legionella.check_ceiling()
+_lg_ceiling = [
+    i
+    for i in getattr(_lg_warn.hass, "issues", [])
+    if i[1] == "dhw_legionella_above_setpoint"
+]
 R.check(
     "the coordinator raises the notice for a live 52/60 pair",
     any(
@@ -21749,6 +21754,13 @@ R.check(
         for i in getattr(_lg_warn.hass, "issues", [])
     ),
     f"issues {[i[1] for i in getattr(_lg_warn.hass, 'issues', [])]}",
+)
+R.check(
+    "and that legionella notice carries a documentation link",
+    _lg_ceiling
+    and _lg_ceiling[0][2].get("learn_more_url")
+    == "https://github.com/tvofi/heatpump_optimizer",
+    f"got {_lg_ceiling!r}",
 )
 _lg_warn._thermal_params.dhw_legionella_temp = 52.0
 _lg_warn._legionella.check_ceiling()
@@ -24242,6 +24254,13 @@ R.check(
     in _g511_notice[0][2].get("translation_placeholders", {}).get("cause", ""),
     f"got {_g511_notice!r}",
 )
+R.check(
+    "and that notice carries a documentation link",
+    _g511_notice
+    and _g511_notice[0][2].get("learn_more_url")
+    == "https://github.com/tvofi/heatpump_optimizer",
+    f"got {_g511_notice!r}",
+)
 
 # Null control: with a job the child CAN resolve, the process route must still
 # be the one that runs. A fallback that always engaged would silently undo
@@ -24829,6 +24848,13 @@ R.check(
     and _sp_raised[0][2].get("translation_placeholders", {}).get("target") == "60"
     and _sp_raised[0][2].get("data", {}).get("entity_id") == "number.dhw_sp"
     and _sp_raised[0][2].get("data", {}).get("target") == 60.0,
+    f"got {_sp_raised!r}",
+)
+R.check(
+    "and that set-point notice carries a documentation link",
+    _sp_raised
+    and _sp_raised[0][2].get("learn_more_url")
+    == "https://github.com/tvofi/heatpump_optimizer",
     f"got {_sp_raised!r}",
 )
 _sp_evaluate(_sp_below)
