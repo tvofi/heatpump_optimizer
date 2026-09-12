@@ -40,6 +40,7 @@
  ],
  "entity_without_icon_entry": [
   "sensor.optimal_setpoint",
+  "sensor.indoor_temperature_optimizer",
   "sensor.outdoor_temperature_optimizer",
   "sensor.measured_power",
   "sensor.compressor_frequency_advisor"
