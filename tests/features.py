@@ -8302,6 +8302,152 @@ R.check(
     and _PT.from_dict({"month": "2026-01", "peaks": [5.0]})._window_factor == 1.0,
 )
 
+# --- R4-D2-02 (#926): the catalog's transcribed effekt tariffs ---------------
+# The shipped rows wrote a peak-hours mask but never the off-peak factor, so
+# the mask discounted nothing (finding D2-02: 0 of 672 windows discounted on
+# every row). The transcribed rows carry what their DSO actually publishes,
+# per the owner's sources-or-stop ruling: an unsourced row is dropped, not
+# invented. Ellevio's effektabonnemang -- HISTORICAL, abolished effective
+# 2026-06-01 ("Den 1 juni 2026 återinförde vi en prismodell baserad på
+# säkringsstorlek", ellevio.se/abonnemang/prismodell-utan-effektavgift/) --
+# billed 81.25 kr/kW incl. moms (ellevio.se/abonnemang/elnatspriser/hus/)
+# on "snittet av de tre högsta effekttopparna under månaden, fördelade på
+# tre olika dygn", with "mellan klockan 22 och 06 ... räknas bara halva
+# effekttoppen" (ellevio.se/nyheter/energi-hemma/
+# vinterns-energivanor-sa-undviker-du-effekttoppar/) -- every month, any
+# weekday, night at half. Göteborg Energi's ordinarie villa tariff has no
+# time division at all -- "49 kr x snittet av månadens tre högsta
+# timmedeleffekt i kW", "Priser inkluderar 25% moms" (goteborgenergi.se/
+# privat/elnat/elnatspriser, prislista 2026) -- so its truthful factor is
+# 1.0 and its peak hours are the whole day, written 00:00-24:00: the same
+# "every hour is peak" the empty default encodes, and -- unlike the empty
+# string -- a form the D2-02 finder harness's declared_offpeak parser can
+# read, so its instrument still runs against this tree. Vattenfall
+# Eldistribution and E.ON Energidistribution are DROPPED: neither publishes
+# a SEK/kW peak tariff for private customers (Vattenfall: "en mindre
+# kundgrupp sedan oktober 2025", no price, autumn-2026 introduction paused
+# -- vattenfalleldistribution.se/.../effektguiden/; E.ON: never introduced,
+# paused -- eon.se/el/elnat/effekt). Their old 59.0/64.0 kr/kW matched no
+# price sheet; the gap is documented on #926.
+R.section("R4-D2-02 — catalog effekt tariffs carry their off-peak factors (#926)")
+
+from heatpump_optimizer.const import (
+    CONF_PEAK_TARIFF_OFFPEAK_FACTOR as _PT_FACTOR,
+)
+from heatpump_optimizer.const import CONF_GRID_FEE_RULES as _GFR
+from heatpump_optimizer.tariff import mask_active as _mask_active
+
+
+def _catalog_tariff(product_id):
+    """``apply_catalog``'s written config, wired the way the config flow
+    stores it and the coordinator reads it -- so the probe covers the row,
+    the write, and the config-to-CapacityTariff parse, not just the dict."""
+    applied = _gf.apply_catalog(product_id)
+    coord = _Coord(
+        _FakeHass({}),
+        _FakeEntry(
+            data={
+                "tibber_token": "x",
+                "weather_entity": "weather.home",
+                **applied,
+            }
+        ),
+    )
+    return applied, coord._capacity_tariff()
+
+
+_elv_applied, _elv_ct = _catalog_tariff("ellevio_villa_effekt_2026")
+R.check(
+    "ellevio's row writes its published night factor 0.5",
+    _elv_applied.get(_PT_FACTOR) == 0.5,
+    f"applied factor {_elv_applied.get(_PT_FACTOR)!r}",
+)
+R.check(
+    "ellevio's night 22:00-06:00 counts half, on weekdays and weekends alike",
+    _elv_ct.sample_factor(datetime(2026, 1, 15, 23, 0)) == 0.5
+    and _elv_ct.sample_factor(datetime(2026, 1, 15, 3, 0)) == 0.5
+    and _elv_ct.sample_factor(datetime(2026, 1, 17, 23, 0)) == 0.5,
+    "Thursday 23:00/03:00 and Saturday 23:00 are Ellevio's half-price night",
+)
+R.check(
+    "ellevio's day 06:00-22:00 counts in full, weekends included",
+    _elv_ct.sample_factor(datetime(2026, 1, 15, 12, 0)) == 1.0
+    and _elv_ct.sample_factor(datetime(2026, 1, 17, 12, 0)) == 1.0,
+)
+R.check(
+    "ellevio's fee bills every month: a July noon counts in full, a July "
+    "night at the factor",
+    _elv_ct.sample_factor(datetime(2026, 7, 15, 12, 0)) == 1.0
+    and _elv_ct.sample_factor(datetime(2026, 7, 15, 23, 0)) == 0.5,
+)
+R.check(
+    "ellevio's transcribed basis: 81.25 kr/kW, three hourly peaks, no "
+    "weekday or month mask",
+    _elv_ct.price_per_kw == 81.25
+    and _elv_ct.peaks_averaged == 3
+    and _elv_ct.window_minutes == 60
+    and _elv_ct.weekdays_only is False
+    and _elv_ct.months == frozenset(),
+    f"price {_elv_ct.price_per_kw}, peaks {_elv_ct.peaks_averaged}, "
+    f"window {_elv_ct.window_minutes}, weekdays_only "
+    f"{_elv_ct.weekdays_only}, months {sorted(_elv_ct.months)}",
+)
+R.check(
+    "ellevio's energy side is the same era's flat 7 öre/kWh transfer fee",
+    _elv_applied[_GFR] == "= 0.07",
+    f"rules {_elv_applied[_GFR]!r}",
+)
+
+_ge_applied, _ge_ct = _catalog_tariff("goteborg_energi_effekt_2026")
+R.check(
+    "göteborg's row writes factor 1.0: the tariff has no hour-based cut",
+    _ge_applied.get(_PT_FACTOR) == 1.0,
+    f"applied factor {_ge_applied.get(_PT_FACTOR)!r}",
+)
+R.check(
+    "göteborg's peak counts in full at every probed hour, day and month",
+    _ge_ct.sample_factor(datetime(2026, 1, 15, 12, 0)) == 1.0
+    and _ge_ct.sample_factor(datetime(2026, 1, 15, 23, 0)) == 1.0
+    and _ge_ct.sample_factor(datetime(2026, 1, 17, 12, 0)) == 1.0
+    and _ge_ct.sample_factor(datetime(2026, 1, 17, 3, 0)) == 1.0
+    and _ge_ct.sample_factor(datetime(2026, 7, 15, 12, 0)) == 1.0,
+    "tim-medeleffekt in any hour, any day, every month - no off-peak window",
+)
+R.check(
+    "göteborg's transcribed basis: 49 kr/kW, three hourly peaks, whole-day "
+    "peak hours at factor 1.0",
+    _ge_ct.price_per_kw == 49.0
+    and _ge_ct.peaks_averaged == 3
+    and _ge_ct.window_minutes == 60
+    and _ge_ct.weekdays_only is False
+    and _ge_ct.peak_hours == ((0.0, 24.0),)
+    and _ge_ct.months == frozenset(),
+    f"price {_ge_ct.price_per_kw}, peaks {_ge_ct.peaks_averaged}, "
+    f"window {_ge_ct.window_minutes}, hours {_ge_ct.peak_hours!r}, "
+    f"months {sorted(_ge_ct.months)}",
+)
+R.check(
+    "göteborg's whole-day mask at factor 1.0 is the flat model bit for "
+    "bit: mask_active is False, so no window is ever discounted",
+    not _mask_active(_ge_ct),
+    "a full-day peak-hours window with offpeak_factor 1.0 changes nothing",
+)
+R.check(
+    "göteborg's energy side is the 2026 flat 23 öre/kWh transfer fee",
+    _ge_applied[_GFR] == "= 0.23",
+    f"rules {_ge_applied[_GFR]!r}",
+)
+
+R.check(
+    "the two unsourced rows are dropped, and a stored id resolves to nothing",
+    _gf.catalog_choices()
+    == [_gf.DSO_PRODUCT_NONE, "ellevio_villa_effekt_2026",
+        "goteborg_energi_effekt_2026"]
+    and _gf.apply_catalog("vattenfall_eldistribution_effekt_2026") is None
+    and _gf.apply_catalog("eon_energidistribution_effekt_2026") is None,
+    f"choices {_gf.catalog_choices()!r}",
+)
+
 # --- #697 15-minute billed clock ---------------------------------------------
 _sauna = np.array([2.0, 2.0, 2.0, 10.0], dtype=float)
 _w15 = _mwindows(_sauna, 15, 0.25)
