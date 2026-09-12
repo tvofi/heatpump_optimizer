@@ -24,22 +24,24 @@ RUN (from the repository root, no cd):
 
 Set D5_ROOT=<dir> to point the document side at a copy of the tree.
 
-EXPECTED at baseline ae36eff19d8e542bc351b1ab31ad4167ec8e4ea1:
-    RESULT option_fields_rendered=174 count
-    RESULT option_fields_undocumented=10 count
+EXPECTED on this tree (ae36eff printed option_fields_rendered=174 and
+    wood_economics_doc_lines=0; both moved on main before this check):
+    RESULT option_fields_rendered=180 count
+    RESULT option_fields_undocumented=7 count
     RESULT option_schema_keys_rendered=213 count
     RESULT wood_economics_fields_rendered=4 count
-    RESULT wood_economics_doc_lines=0 count      (tolerance: exact)
+    RESULT wood_economics_doc_lines=6 count      (tolerance: exact)
 MACHINE: 8-core Apple M1, 8 GB, python3 3.11.5.
 INSTRUMENTED SYMBOL: heatpump_optimizer.config_flow:_page_schema — the field
     list is produced by rendering every option page, not by reading a table.
 PERTURBATION: add the row
       `| Wood type | mixed | birch/pine/mixed | Which wood the furnace burns. |`
-    to docs/configuration.md -> option_fields_undocumented must go DOWN to 9
-    and wood_economics_doc_lines UP to 1. Deleting configuration.md's
+    to docs/configuration.md -> option_fields_undocumented must go DOWN by 1
+    and wood_economics_doc_lines UP by 1. Deleting configuration.md's
     "Wood tank volume" row moves option_fields_undocumented UP by 1.
 """
 import os
+import time
 for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
            "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS"):
     os.environ.setdefault(_v, "1")
@@ -190,7 +192,8 @@ def main():
     print(f"RESULT option_fields_undocumented={len(undocumented)} count")
     print(f"RESULT wood_economics_fields_rendered={len(wood_rendered)} count")
     print(f"RESULT wood_economics_doc_lines={len(wood_lines)} count")
-    print("RESULT thread_factor=1.0")
+    _thr = time.thread_time()
+    print(f"RESULT thread_factor={time.process_time() / _thr if _thr else 0:.3f}")
     print(f"RESULT load1={os.getloadavg()[0]:.2f}")
     print("RESULT swapins=0")
 

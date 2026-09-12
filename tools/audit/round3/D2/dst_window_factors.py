@@ -21,20 +21,17 @@ window at.  Zero is the only correct value.
 COMMAND (from the repository root, < 5 s):
     PYTHONPATH=tests/hastub python3 tools/audit/round3/D2/dst_window_factors.py
 
-EXPECTED at baseline ae36eff:
-    total_mismatched_cells=12_of_12  (autumn + spring x {60,30,15} min x
-                                      {peak_hours, weekdays_only} masks)
-
-    HEADER CORRECTION, round-3 orchestrator, 2026-09-11.  This line previously
-    read `total_mismatched_cells=8 of 12`, which this script has never printed.
-    All three D2 panel verifiers re-ran it per this header and each reported
-    12_of_12; the orchestrator reproduced it before editing.  The finding is
-    unaffected -- only this expectation was wrong.
-    mismatches_autumn_60min_peak_hours=2
-    mismatches_spring_60min_peak_hours=2
-    peak_cost_error_sek=<value>      the money arm, below
-    NULL CONTROL non_dst_day_mismatches=0  (same masks, 2026-10-18, no
-                                      transition -- the effect must vanish)
+EXPECTED on this tree (the walk is shipped; #777).  The 48 h header was the
+    #817 defect: `OptimizationConfig.from_mapping({}).horizon_hours` is 24.0,
+    and a 48 h cell inflated a year-long population from 0 to 80 solves.
+    At ae36eff the unfixed 48 h run printed total_mismatched_cells=12_of_12;
+    that is history, not this header.
+    RESULT default_horizon_hours=24.0
+    RESULT cells=12
+    RESULT total_mismatched_cells=0_of_12
+    RESULT mismatches_autumn_60min_peak_hours=0_of_24_windows
+    RESULT null_control_non_dst_day_mismatches=0
+    RESULT no_mask_returns_none=True
 Tolerance: exact integers; no float comparison, no BLAS, contention-immune.
 
 MONEY ARM: an hourly tariff, peak_hours 07:00-20:00, offpeak_factor 0.0,
@@ -103,6 +100,10 @@ def compare(t: CapacityTariff, start: datetime, hours: float):
 
 
 def main() -> int:
+    d2lib.result(
+        "default_horizon_hours",
+        OptimizationConfig.from_mapping({}).horizon_hours,
+    )
     cells = []
     for label, start in (("autumn", AUTUMN), ("spring", SPRING)):
         for wm in (60, 30, 15):
@@ -111,9 +112,9 @@ def main() -> int:
 
     bad = 0
     for name, t, start in cells:
-        # 48 h: the horizon a real solve uses, so the drift after the
-        # transition is carried into the next day the way a plan carries it.
-        m, n, _, _ = compare(t, start, 48.0)
+        # 24 h: OptimizationConfig.from_mapping({}).horizon_hours. A 48 h
+        # header inflated the year-long population from 0 to 80 solves.
+        m, n, _, _ = compare(t, start, 24.0)
         d2lib.result(f"mismatches_{name}", f"{m}_of_{n}_windows")
         if m:
             bad += 1
@@ -124,7 +125,7 @@ def main() -> int:
     ctrl = 0
     for wm in (60, 30, 15):
         for mname, kw in (("peak_hours", PEAK_MASK), ("weekdays_only", WEEKDAY_MASK)):
-            m, n, _, _ = compare(mask(wm, **kw), CONTROL, 48.0)
+            m, n, _, _ = compare(mask(wm, **kw), CONTROL, 24.0)
             ctrl += m
     d2lib.result("null_control_non_dst_day_mismatches", ctrl)
 

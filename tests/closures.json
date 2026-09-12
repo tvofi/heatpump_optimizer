@@ -96,6 +96,10 @@
   "tests/wood_advisor.py": {
    "seconds": 2.9,
    "rc": 0
+  },
+  "tests/harness_headers.py": {
+   "seconds": 1.7,
+   "rc": 0
   }
  },
  "closures": {
@@ -1511,6 +1515,15 @@
    "tests/hastub/homeassistant/util/__init__.py",
    "tests/hastub/homeassistant/util/dt.py",
    "tests/wood_advisor.py"
+  ],
+  "tests/harness_headers.py": [
+   "tests/harness.py",
+   "tests/harness_headers.py",
+   "tests/hastub/homeassistant/__init__.py",
+   "tests/hastub/homeassistant/config_entries.py",
+   "tools/audit/round3/D2/dst_window_factors.py",
+   "tools/audit/round3/D2/window_size_sweep.py",
+   "tools/audit/round3/D5/option_doc_coverage.py"
   ]
  }
 }

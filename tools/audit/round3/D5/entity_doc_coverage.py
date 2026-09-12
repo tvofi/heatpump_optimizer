@@ -31,6 +31,7 @@ PERTURBATION: delete the row naming one currently-documented entity from
     UP by 1. Adding a paragraph naming one reported entity moves it DOWN by 1.
 """
 import os
+import time
 for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
            "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS"):
     os.environ.setdefault(_v, "1")
@@ -118,7 +119,8 @@ def main():
     print(f"RESULT entities_created={len(rows)} count")
     print(f"RESULT undocumented_entities={len(undocumented)} count")
     print(f"RESULT documented_entities={len(rows) - len(undocumented)} count")
-    print("RESULT thread_factor=1.0")
+    _thr = time.thread_time()
+    print(f"RESULT thread_factor={time.process_time() / _thr if _thr else 0:.3f}")
     print(f"RESULT load1={os.getloadavg()[0]:.2f}")
     print("RESULT swapins=0")
 

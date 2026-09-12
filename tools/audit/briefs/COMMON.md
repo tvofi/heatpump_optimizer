@@ -11,10 +11,10 @@ not a finding.
 
 - Your tree is an export of the baseline SHA named in your task, under the
   directory named in your task. It has no `.git`, no `docs/audit-*.md`, no
-  `docs/backlog.md` and no `RELEASE_NOTES.md`. That is deliberate: earlier
-  audit rounds must not steer you. Do not run `gh`, do not read GitHub (D11
-  excepted, by its brief), do not look for earlier findings anywhere (a code
-  comment citing a `D<k>-nn` id is context, not a to-do list). If your brief
+  `docs/backlog.md`. Keep `RELEASE_NOTES.md` (`entities.py` reads it). That
+  is deliberate: earlier rounds must not steer you. Do not run `gh`, do not
+  read GitHub (D11 excepted), do not look for earlier findings anywhere (a
+  code comment citing a `D<k>-nn` id is context, not a to-do). If your brief
   makes you read `docs/` (D5, D6) or GitHub (D11), record it under `exposure`.
 - Run everything from the export root with `PYTHONPATH=tests/hastub`. Read
   `tools/audit/README.md` before writing a harness: it lists the builders to

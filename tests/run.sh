@@ -351,6 +351,8 @@ lane_units() {
   run "$PYTHON" tests/solar_alignment.py
   # Four #805 survivors that are not in coordinator.py or optimizer.py.
   run "$PYTHON" tests/guard_pins.py
+  # #817: a harness header's EXPECTED RESULT lines must match what it prints.
+  run "$PYTHON" tests/harness_headers.py
   # The only lane that runs the shape an installation runs (#513): the tracked
   # package alone, no tests/ sibling, imported as
   # custom_components.heatpump_optimizer.*. Every other script in this
