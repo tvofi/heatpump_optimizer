@@ -314,41 +314,26 @@
         "seat": 1,
         "vote": "verify",
         "severity": "high"
-      },
-      {
-        "seat": 2,
-        "vote": "verify",
-        "severity": "high"
-      },
-      {
-        "seat": 3,
-        "vote": "verify",
-        "severity": "high"
       }
     ],
-    "pending": []
+    "pending": [
+      2,
+      3
+    ]
   },
   "D4-02": {
     "votes": [
       {
         "seat": 1,
         "vote": "refute",
-        "severity": "low"
-      },
-      {
-        "seat": 2,
-        "vote": "refute",
-        "severity": "low"
-      },
-      {
-        "seat": 3,
-        "vote": "refute",
-        "severity": "low"
+        "severity": "low",
+        "note": "premise false: HA stock dark theme never sets --text-primary-color to #212121 (stays #ffffff = 5.786:1 pass), verified against HA frontend source at 2024.1/2026.8/dev; the 2.78 pairing existed only in the finder's hand-written dark table"
       }
     ],
-    "pending": [],
-    "killed": true,
-    "judge_note": "KILLED 3-of-3 refute: premise false at every supported HA version (--text-primary-color stays #ffffff in stock dark; hand-written harness table artefact); residual for the judge: 2.783:1 under user-customised primary colour (both modes) and the unfiled .delta.dearer 4.291/3.972 rider"
+    "pending": [
+      2,
+      3
+    ]
   },
   "D4-03": {
     "votes": [
@@ -356,19 +341,12 @@
         "seat": 1,
         "vote": "verify",
         "severity": "low"
-      },
-      {
-        "seat": 2,
-        "vote": "verify",
-        "severity": "low"
-      },
-      {
-        "seat": 3,
-        "vote": "verify",
-        "severity": "low"
       }
     ],
-    "pending": []
+    "pending": [
+      2,
+      3
+    ]
   },
   "D5-01": {
     "votes": [
@@ -797,28 +775,65 @@
     "judge_note": "seat 1: 9 distinct slots not 10 (double-count found), new instance dhw_inlet_entity; seat 2: executed switch.turn_off on minimal plant; seat 3: reachability via HA state-machine conversion semantics, Wh read widens to metric installs"
   },
   "D9-05": {
-    "votes": [],
-    "pending": [
-      1,
-      2,
-      3
-    ]
+    "votes": [
+      {
+        "seat": 1,
+        "vote": "verify",
+        "severity": "medium"
+      },
+      {
+        "seat": 2,
+        "vote": "verify",
+        "severity": "medium"
+      },
+      {
+        "seat": 3,
+        "vote": "verify",
+        "severity": "medium"
+      }
+    ],
+    "pending": []
   },
   "D9-06": {
-    "votes": [],
-    "pending": [
-      1,
-      2,
-      3
-    ]
+    "votes": [
+      {
+        "seat": 1,
+        "vote": "verify",
+        "severity": "medium"
+      },
+      {
+        "seat": 2,
+        "vote": "verify",
+        "severity": "medium"
+      },
+      {
+        "seat": 3,
+        "vote": "verify",
+        "severity": "medium"
+      }
+    ],
+    "pending": []
   },
   "D9-INST": {
-    "votes": [],
-    "pending": [
-      1,
-      2,
-      3
+    "votes": [
+      {
+        "seat": 1,
+        "vote": "verify",
+        "severity": "low"
+      },
+      {
+        "seat": 2,
+        "vote": "verify",
+        "severity": "low",
+        "note": "fifth offender found: h3_payload.py:243 also prints no thread_factor"
+      },
+      {
+        "seat": 3,
+        "vote": "verify",
+        "severity": "low"
+      }
     ],
-    "_what": "harness-contract gaps: h2_cycle thread_factor 1.29 by construction; h4/h5/h7/h8 print no thread_factor beside provisional RSS"
-  }
+    "pending": []
+  },
+  "_final": "Panel phase complete 2026-09-13: 117 votes over 39 findings - 108 verify, 6 weaken, 3 refute. Killed by majority refute: D4-02. Splits for the judge: D11-04 (2v-high/1w-medium), D7-03 (2v-high/1w-medium), D1-INST (1v-low/2w-low), D3-S3 (2w/1r)."
 }
