@@ -12,9 +12,23 @@ is compared against the verdicts afterwards.
 RUN (from the export root):
     PYTHONPATH=tests/hastub python3 tools/audit/round4/D10/qs_rules.py
 
-EXPECTED (baseline 7dd68dd327fe3dbfb09f3bd0fe38910c58877697):
+EXPECTED (re-recorded on this tree by #951, the #979/#984 style; the
+    baseline-7dd68dd header this replaces had already stopped matching any
+    executed mode -- it still named runtime-data, whose verdict this
+    harness re-scoped to its own EXTRA line, and docs-known-limitations,
+    which #973 re-truthed):
     RESULT rules_total=54  (+/- 0)
-    RESULT declared_mismatch=2 (+/- 0)  -- docs-known-limitations, runtime-data
+    RESULT declared_mismatch=0 (+/- 0)
+    That count is for the RUN line above (no D10_COVERAGE_JSON /
+    D10_MYPY_JSON): the three toolchain rows report unmeasured and are not
+    compared. With the coverage payload the same harness printed a
+    declared_mismatch of two at merge base 9ac2b6d -- config-flow-test-
+    coverage declared done against a measured todo, test-coverage declared
+    todo against a measured done -- and zero at the #951 head, which
+    re-truthed both rows. The two toolchain coverage rows are pinned
+    against tests/coverage_budgets.json by tests/entities.py instead,
+    which executes on every pull request alongside the
+    tests/harness_headers.py run that now compares this header.
     Every other RESULT is a count; tolerance 0 (they are AST/grep counts,
     contention-immune).
 MACHINE: 8-core Apple M1, 8 GB, macOS 25.6.0, Python 3.11.5.
