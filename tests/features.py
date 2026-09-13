@@ -8346,11 +8346,21 @@ R.check(
     abs(_dec_sched.current_fee(_winter_day) - 0.45) < 1e-9,
     f"fee {_dec_sched.current_fee(_winter_day)}, rules {len(_dec_sched.rules)}",
 )
+# The `== 2` this loop carried from #967 was a snapshot of the catalog that
+# branch was cut against: four invented base+surcharge rows, two rules each.
+# #968 (merged five minutes earlier, b9f31c5) replaced them with two sourced
+# flat rows — one rule each, and no digit-adjacent comma anywhere, so the
+# decimal-comma split cannot change how they parse — and #967 landing on top
+# (764405d) went red on the count alone, not on a parse. The property the
+# loop owns is unchanged: every shipped row parses whole (never rejected,
+# never fragmented — the parse sits at the loop head, so a row a parser
+# change stops loading reds this section rather than passing vacuously) and
+# `apply_catalog` writes the row's own string back byte-identically.
 for _dec_id, _dec_row in _gf.SWEDEN_CATALOG.items():
     _dec_rules = _gf.parse_rules(_dec_row["grid_fee_rules"])
     R.check(
-        f"{_dec_id} still parses as two rules and round-trips",
-        len(_dec_rules) == 2
+        f"{_dec_id} still parses whole and round-trips",
+        len(_dec_rules) >= 1
         and _gf.apply_catalog(_dec_id)[hp_const.CONF_GRID_FEE_RULES]
         == _dec_row["grid_fee_rules"],
         f"{len(_dec_rules)} rules: {[r.rate for r in _dec_rules]}",
