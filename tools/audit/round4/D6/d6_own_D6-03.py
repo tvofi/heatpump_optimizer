@@ -27,6 +27,13 @@ RUN (from the repository root):
 ROOT RULE: the working directory (`ROOT = pathlib.Path(".")`).
 
 EXPECTED if the finding is true: available_cells=3, available_without_a_fuse=1.
+That held at the finder baseline 7dd68dd and every tree whose docs/
+automations.md matched it, with doc_sentence_found=1. Fix #941 corrected
+the availability paragraph, so on fixed trees doc_sentence_found prints 0
+(the extracted sentence is gone) while the coordinator-measured cells stay
+available_cells=3, available_without_a_fuse=1 -- that one movement is the
+fix itself, not harness drift; every other RESULT this prints is
+code-derived and unaffected by the docs change.
 """
 from __future__ import annotations
 
