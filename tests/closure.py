@@ -186,7 +186,13 @@ INERT = (
     "NOTICE",
     "icon.png",
     "docs/",  # except the handover -- see HANDOVER_DIR below
-    "tests/README.md",
+    # tests/README.md was here until #938: entities.py now reads the
+    # manual's per-script size annotations and pins them against the
+    # code's own counts, and a file a gate script reads is a dependency,
+    # not inert -- the same correction governance.yml (#607 follow-up)
+    # and nightly_ha.py (#533) needed before it. It moves to entities.py's
+    # recorded closure, so an edit to the manual selects that script
+    # instead of skipping.
     ".gitignore",
     # Write-once round-2 audit evidence: harnesses and reports people run by
     # hand, outside the gate. Nothing under tests/ imports or opens them, and

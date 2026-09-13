@@ -26,8 +26,8 @@
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 21.7,
-   "rc": 0
+   "seconds": 25.2,
+   "rc": 1
   },
   "tests/env_drift.py": {
    "seconds": 0.4,
@@ -451,6 +451,7 @@
    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
    "docs/HANDOVER.md",
    "hacs.json",
+   "tests/README.md",
    "tests/coverage_budgets.json",
    "tests/coverage_ratchet.py",
    "tests/delivery_status.py",
@@ -501,7 +502,9 @@
    "tests/profiles.py",
    "tests/record_status.py",
    "tests/run.sh",
+   "tests/stress.py",
    "tests/structure.py",
+   "tests/validate.py",
    "tools/audit/preflight.sh",
    "tools/release/stamp.py"
   ],
