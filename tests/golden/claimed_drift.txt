@@ -212,5 +212,3 @@
 # 4187 -> 4208 keys, every collapsed:false. Nothing else moved -- solver
 # fixtures and the card claim file are untouched by this branch.
 
-# nameplate factor's floored band. The valve_storage_small_tank solve charges
-valve_storage_small_tank # #928: COP floored at the resistive bound lifts this solve's deep-cold charging; buffer trajectory moves up, judged keys untouched
