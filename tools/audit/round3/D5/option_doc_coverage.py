@@ -25,9 +25,12 @@ RUN (from the repository root, no cd):
 Set D5_ROOT=<dir> to point the document side at a copy of the tree.
 
 EXPECTED on this tree (ae36eff printed option_fields_rendered=174 and
-    wood_economics_doc_lines=0; both moved on main before this check):
+    wood_economics_doc_lines=0; both moved on main before this check;
+    option_fields_undocumented moved 7 -> 0 when #937's reference rows
+    named the last seven fields -- three schedule hours, the three
+    external-heat detection fields, and the split Surcharge per kWh row):
     RESULT option_fields_rendered=180 count
-    RESULT option_fields_undocumented=7 count
+    RESULT option_fields_undocumented=0 count
     RESULT option_schema_keys_rendered=213 count
     RESULT wood_economics_fields_rendered=4 count
     RESULT wood_economics_doc_lines=6 count      (tolerance: exact)
