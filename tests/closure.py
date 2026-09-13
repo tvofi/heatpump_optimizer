@@ -185,7 +185,10 @@ INERT = (
     "SECURITY.md",
     "NOTICE",
     "icon.png",
-    "docs/",  # except the handover -- see HANDOVER_DIR below
+    # docs/ except the handover (HANDOVER_DIR below) and the one page a gate
+    # script pins (INERT_EXCEPT below, #939) -- the same split README.md,
+    # RELEASE_NOTES.md and tests/README.md needed before it.
+    "docs/",
     # tests/README.md was here until #938: entities.py now reads the
     # manual's per-script size annotations and pins them against the
     # code's own counts, and a file a gate script reads is a dependency,
@@ -375,6 +378,12 @@ INERT_EXCEPT = (
     "tools/audit/round3/D2/dst_window_factors.py",
     "tools/audit/round3/D2/window_size_sweep.py",
     "tools/audit/round3/D5/option_doc_coverage.py",
+    # #939: tests/entities.py pins architecture.md's own numbers -- module
+    # counts, the module map, the HA boundary -- against the tree, so the
+    # document a contributor reads before changing the code is a dependency
+    # of a gate script, not inert prose. Left under the docs/ prefix it would
+    # be declared unread while being read, the #357 contradiction.
+    "docs/architecture.md",
     ".gitignore",
     ".claude/workflows/policy_lint.mjs",
     ".claude/workflows/brief_lint.mjs",

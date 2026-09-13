@@ -26,7 +26,7 @@
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 25.2,
+   "seconds": 30.7,
    "rc": 1
   },
   "tests/env_drift.py": {
@@ -450,6 +450,7 @@
    "custom_components/heatpump_optimizer/wood_fuel.py",
    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
    "docs/HANDOVER.md",
+   "docs/architecture.md",
    "hacs.json",
    "tests/README.md",
    "tests/coverage_budgets.json",

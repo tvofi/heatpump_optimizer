@@ -5,8 +5,9 @@ integration does rather than how it is built, start with
 [how-it-works.md](how-it-works.md).
 
 The shape is a thin Home Assistant layer wrapped around a much larger core that
-knows nothing about Home Assistant: 45 modules, of which ten touch the
-`homeassistant` package and the rest take numbers in and give numbers back.
+knows nothing about Home Assistant: 56 modules, of which 21 import the
+`homeassistant` package at module level, one more touches it inside a single
+function, and the rest take numbers in and give numbers back.
 
 ## How the pieces fit
 
@@ -58,12 +59,13 @@ flowchart LR
 
 ```text
 custom_components/heatpump_optimizer/
-├── __init__.py           # Setup and unload, the 11 services, registry migrations
+├── __init__.py           # Setup and unload, the 12 services, entry migrations
 ├── const.py              # Every config key, default and tuning constant
-├── config_flow.py        # Setup flow plus 13 option pages behind two menus
+├── config_flow.py        # Setup flow plus 21 option pages behind two menus
 ├── coordinator.py        # The update loop: read, fetch, solve, actuate, learn, publish
 ├── thermal_model.py      # Two-zone house + slab + buffer + DHW tank physics
 ├── optimizer.py          # The MPC solve: DHW by LP, space by L-BFGS-B, reason codes
+├── process_worker.py     # One-shot interpreter for GIL-bound solves
 ├── open_meteo.py         # Irradiance forecast and satellite observation client
 ├── inputs.py             # Guarded state reads with a staleness watchdog
 ├── comfort_band.py       # The band's cross-field rules, shared by the config
@@ -76,12 +78,15 @@ custom_components/heatpump_optimizer/
 ├── ledger.py             # Month-keyed ledger of settled energy and money
 ├── currency.py           # The one place the display currency is decided
 ├── wear.py               # Compressor start counting and the wear price it implies
+├── wood_fuel.py          # Firewood price and the cheaper-than-pump rule
 │
 │   # Weather, sun and hot water
 ├── pv.py                 # PV production model and marginal-cost pricing
 ├── defrost.py            # Learned COP and capacity derate in the frosting band
 ├── dhw_schedule.py       # Demand-window parsing, merging and evaluation
 ├── dhw_draws.py          # Learned per-window draw quantiles, including heavy days
+├── dhw_learning.py       # The hot-water learner: hourly draw profile, day types,
+│                         #   standby rate, and the stores that persist them
 │
 │   # Plumbing and layout
 ├── mixing_valve.py       # The valve that lets a buffer tank actually store heat
@@ -99,6 +104,7 @@ custom_components/heatpump_optimizer/
 ├── sysid.py              # Active step-response identification
 ├── presets.py            # Building archetypes to thermal parameters
 ├── external_heat.py      # Wood-furnace detection with hysteresis and decay
+├── setpoint_check.py     # Disinfection set-point consistency: configured vs live
 │
 │   # The pump's own account of itself
 ├── pump_mode.py          # Operating-mode vocabulary: can it heat, can it make
@@ -109,25 +115,33 @@ custom_components/heatpump_optimizer/
 │
 │   # People, safety and actuation
 ├── away.py               # Away state, return time and deadline-driven recovery
+├── boost.py              # Two-hour maximum-heat overlays, hot water or space
 ├── manual_plan.py        # Pinned run slots, and what safety may still release
 ├── power_guard.py        # Live peak protection inside the metering window
 ├── freq_control.py       # Inverter frequency: observe first, actuate only on opt-in
 ├── battery.py            # The thermal stores, published as a virtual battery
 ├── narrative.py          # The plan told in sentences, grouped by reason
+├── legionella.py         # The anti-legionella cycle: when it runs, what it refuses
 │
 │   # Home Assistant entities and frontend
+├── entity.py             # The shared entity base every platform builds on
 ├── sensor.py             # 59 sensors
-├── binary_sensor.py      # Input problem, open window, external heat, away mode
+├── binary_sensor.py      # Away Mode, External Heat Source, Input Problem,
+│                         #   Open Window Detected, Wood Cheaper Than Heat Pump
 ├── button.py             # Optimize now, run identification, reset comfort
 │                         #   weight, diagnose last interval
 ├── climate.py            # Virtual climate entity: modes, presets, DHW status
-├── switch.py             # Optimizer Active
+├── switch.py             # Away, Boost Hot Water, Boost Space Heating, Optimizer Active
+├── datetime.py           # The away-override return instant, as one datetime entity
 ├── frontend.py           # Serves and registers the Lovelace card
+├── services.py           # The domain's 12 services: schemas, handlers and registration
+├── diagnostics.py        # Redacted config-entry diagnostics for issue reports
+├── repairs.py            # Fix flows Home Assistant loads by name when the user clicks Fix
 │
 ├── www/                  # The dashboard card, one self-contained file
 ├── brand/                # Icon and logo
 ├── icon.png              # Integration icon
-├── services.yaml         # The 11 service definitions
+├── services.yaml         # The 12 service definitions
 ├── strings.json          # UI strings
 ├── translations/
 │   ├── en.json           # English
@@ -137,13 +151,16 @@ custom_components/heatpump_optimizer/
 
 ## The Home Assistant boundary
 
-Exactly ten modules import `homeassistant` at module level: `__init__`,
-`config_flow`, `coordinator`, `open_meteo`, `frontend`, and the five entity
-platforms `sensor`, `binary_sensor`, `button`, `climate`, `switch`. One module
-outside that set touches it at all: `inputs` reaches for `homeassistant.util.dt`
-inside a function, as the fallback when no clock function was injected.
+21 of the 56 modules import `homeassistant` at module level: `__init__`,
+`config_flow`, `coordinator`, `open_meteo`, `frontend`, the six entity
+platforms `sensor`, `binary_sensor`, `button`, `climate`, `switch`, `datetime`,
+and the supporting modules `away`, `boost`, `currency`, `dhw_learning`,
+`diagnostics`, `entity`, `legionella`, `repairs`, `services`, `setpoint_check`.
+One module outside that set touches it at all: `inputs` reaches for
+`homeassistant.util.dt` inside a function, as the fallback when no clock
+function was injected.
 
-Everything else is deliberately free of it, so each module can be driven
+The other 34 modules are deliberately free of it, so each can be driven
 directly by `tests/features.py` with no Home Assistant running. That matters
 because the failure mode of this integration is a *plausible* plan: a detector
 that never fires, or a watchdog that lets a flatline through, produces output
