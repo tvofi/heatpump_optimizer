@@ -3,30 +3,107 @@
   "stale_after_commits": 12,
   "merges": [
     {
-      "number": 889,
-      "title": "test(#195 W5-G8): the residual \u2014 every below-bar module, and #195 closes",
-      "merge_sha": "c2ce1d0b592d0a22d93f324a2bae2c7d47bc7871",
+      "number": 967,
+      "title": "fix(#929): a comma between digits is a decimal separator in grid-fee rules",
+      "merge_sha": "764405d20364bc74d08bfe68c059e093787bad13",
       "commits_after": 0,
       "state": "rowed"
     },
     {
-      "number": 895,
-      "title": "fix: nightly A8 posts sectioned user_sensors after #849",
-      "merge_sha": "ce099471b9df6cf4f2aeae69701fe0a13f5da57b",
+      "number": 968,
+      "title": "fix(#926): R4-D2-02 - transcribe the sourced DSO tariffs, drop the unsourced rows",
+      "merge_sha": "b9f31c5afa37c91523f383967e68cb5498c1a6f6",
       "commits_after": 1,
-      "state": "pending"
+      "state": "rowed"
     },
     {
-      "number": 885,
-      "title": "test(#195 W5-G7 t6): the tail to 96 %, a coverage ratchet and a mutation table",
-      "merge_sha": "6be60558981123389d6aa484d144c51cd3e3e145",
+      "number": 899,
+      "title": "record: leftover-row for #896 and Wave 5 closed on v6.4.3",
+      "merge_sha": "ae14b879ca5f8ec0a6e2b31250536fee1bd74adf",
       "commits_after": 2,
+      "state": "rowed"
+    },
+    {
+      "number": 965,
+      "title": "fix(#923): guard the accuracy store's samples decode",
+      "merge_sha": "d886de9b5a9e91ef1a8af8daea04e7a9c29d304c",
+      "commits_after": 3,
+      "state": "rowed"
+    },
+    {
+      "number": 964,
+      "title": "fix(#940): publish the currency unit on the Sensor-Gap Euro Advisor",
+      "merge_sha": "a97681b517bfbaa4a1be68e41836a2f8aaf7c79a",
+      "commits_after": 4,
+      "state": "rowed"
+    },
+    {
+      "number": 963,
+      "title": "audit(round 4): verification panels, judge verdicts, register, and the issue set",
+      "merge_sha": "dc4f69dde09946c49b94721f6ed3fb4d4ed82e42",
+      "commits_after": 5,
+      "state": "rowed"
+    },
+    {
+      "number": 907,
+      "title": "record: leftover rows for #905 and #906 - the register section and this lane's own record pull request",
+      "merge_sha": "5b3fb0249ea3945c190b88e0dedd377c23314214",
+      "commits_after": 6,
+      "state": "rowed"
+    },
+    {
+      "number": 906,
+      "title": "record: #903 merged 0f2a6e0, and the leftover-row #902's merge owed",
+      "merge_sha": "fc5f65da38c339d79fec89c6e05b65501189bbc2",
+      "commits_after": 7,
+      "state": "rowed"
+    },
+    {
+      "number": 905,
+      "title": "audit(round 4): the register section, derived from a ledger",
+      "merge_sha": "ea0e0454789980d9a82d76bbcbb5e28c9019a087",
+      "commits_after": 8,
+      "state": "rowed"
+    },
+    {
+      "number": 904,
+      "title": "audit(round 4): the quiet window's record, and what it changed",
+      "merge_sha": "a5f262b2fb42ba9d631227017e6ef300de5b1d7b",
+      "commits_after": 9,
+      "state": "rowed"
+    },
+    {
+      "number": 903,
+      "title": "policy: AGENTS.md joins the corpus as the harness-neutral entry point",
+      "merge_sha": "0f2a6e09d24b1376afd3abb5559b1fc69694aa81",
+      "commits_after": 10,
+      "state": "rowed"
+    },
+    {
+      "number": 902,
+      "title": "policy: a cap may be raised as a last resort, with the owner's confirmation",
+      "merge_sha": "ac5f649623cbd833959ccdfb293c646462578725",
+      "commits_after": 11,
+      "state": "rowed"
+    },
+    {
+      "number": 901,
+      "title": "fix: make a red nightly-status clearable, and clear it",
+      "merge_sha": "c247770fd9ba36e41ce660738d5bead74ca678d3",
+      "commits_after": 12,
+      "state": "rowed"
+    },
+    {
+      "number": 900,
+      "title": "audit: round 4, thirteen dimensions \u2014 and a defect in an instrument becomes a finding",
+      "merge_sha": "c68259b87f1a0d8957ee6793c7ae9d1794017a1d",
+      "commits_after": 13,
       "state": "rowed"
     }
   ],
   "counts": {
-    "rowed": 2,
-    "pending": 1,
+    "rowed": 14,
+    "pending": 0,
     "overdue": 0
   }
 }
