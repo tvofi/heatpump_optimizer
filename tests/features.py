@@ -20718,6 +20718,30 @@ R.check(
     "a user who turned disinfection off is not nagged about it",
     not _lg_issues(_lg_off),
 )
+# #931 (R4-D3-S2): the disabled guard in LegionellaGuard.due_in_hours was
+# deletable with the suite green — every assertion in this section ran with
+# the feature enabled, and the fixture above pinned only the notice, whose
+# own guard kept it silent. The method then returns a countdown for a
+# feature the user turned off, and _dhw_view publishes it as
+# dhw_legionella_due_in_hours.
+R.check(
+    "a disabled feature owes no countdown, in the method (#931)",
+    _lg_off._legionella.due_in_hours() is None,
+    f"{_lg_off._legionella.due_in_hours()!r} — the same 20 d unwashed tank "
+    "as _lg_blocked, so anything but None is a countdown the user turned off",
+)
+R.check(
+    "nor in the dhw_legionella_due_in_hours attribute it publishes (#931)",
+    _lg_off._dhw_view()["dhw_legionella_due_in_hours"] is None,
+    f"{_lg_off._dhw_view()['dhw_legionella_due_in_hours']!r}",
+)
+R.check(
+    "the enabled twin still counts down (#931 null control)",
+    isinstance(_lg_blocked._legionella.due_in_hours(), float)
+    and _lg_blocked._dhw_view()["dhw_legionella_due_in_hours"] is not None,
+    "only the enabled flag differs from _lg_off, so the None above is the "
+    "disabled guard and not a missing history",
+)
 _lg_no_dhw = _lg_coord(dhw=False)
 _lg_no_dhw._legionella.check_mode_block(True)
 R.check(
