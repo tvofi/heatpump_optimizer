@@ -7579,6 +7579,77 @@ R.check(
     _w2t_share_jump < 1e-6,
     f"max jump {_w2t_share_jump:.4f} at flow_set with hp inside the margin",
 )
+
+# Region 3 meets region 2 at the same curve, from the other side: with the
+# wood tank below flow_set, region 2's maximum-wood blend is all-HP exactly
+# at hp_temp == flow_set, so region 3 must arrive at 0 there too (round-4
+# D2-03, issue #927). The #245 probe above swept wood_temp; this one sweeps
+# the HEAT-PUMP tank, the variable the solver's own step-0 power moves.
+_w2t_hp_share_jump = 0.0
+for _w2t_off in np.linspace(0.05, 1.95, 9):
+    _w2t_below = _w2t_share(
+        _w2t_flow_set - _w2t_off,
+        _w2t_flow_set - 1e-6,
+        _w2t_flow_set,
+        _w2t_floor,
+    )
+    _w2t_above = _w2t_share(
+        _w2t_flow_set - _w2t_off,
+        _w2t_flow_set + 1e-6,
+        _w2t_flow_set,
+        _w2t_floor,
+    )
+    _w2t_hp_share_jump = max(
+        _w2t_hp_share_jump, abs(_w2t_below - _w2t_above)
+    )
+# Null arms: a wood tank a full margin below the curve, and one above it,
+# sit where the two regions already agree, so the same probe must read
+# ~0 there or it is measuring the sweep, not the discontinuity.
+for _w2t_w_null in (_w2t_flow_set - _W2T_MARGIN, _w2t_flow_set + 5.0):
+    _w2t_hp_share_jump = max(
+        _w2t_hp_share_jump,
+        abs(
+            _w2t_share(
+                _w2t_w_null, _w2t_flow_set - 1e-6,
+                _w2t_flow_set, _w2t_floor,
+            )
+            - _w2t_share(
+                _w2t_w_null, _w2t_flow_set + 1e-6,
+                _w2t_flow_set, _w2t_floor,
+            )
+        ),
+    )
+R.check(
+    "wood_share is continuous as hp_temp crosses the flow curve in region 3",
+    _w2t_hp_share_jump < 1e-4,
+    f"max jump {_w2t_hp_share_jump:.4f} at flow_set with wood inside the "
+    "margin below it",
+)
+_w2t_vec_hp_jump = abs(
+    float(
+        _w2t_share_vec(
+            np.array([_w2t_flow_set - 0.25]),
+            np.array([_w2t_flow_set - 1e-6]),
+            _w2t_flow_set,
+            np.array([_w2t_floor]),
+        )[0]
+    )
+    - float(
+        _w2t_share_vec(
+            np.array([_w2t_flow_set - 0.25]),
+            np.array([_w2t_flow_set + 1e-6]),
+            _w2t_flow_set,
+            np.array([_w2t_floor]),
+        )[0]
+    )
+)
+R.check(
+    "the batched twin carries the same hp-boundary continuity",
+    _w2t_vec_hp_jump < 1e-4,
+    f"vector law jumped {_w2t_vec_hp_jump:.4f} where the scalar law is "
+    "continuous, so the finite-difference gradient would see a step the "
+    "scalar law does not",
+)
 _w2t_grid_w = np.linspace(20.0, 70.0, 101)
 _w2t_grid_h = np.linspace(20.0, 70.0, 101)
 _w2t_W, _w2t_H = np.meshgrid(_w2t_grid_w, _w2t_grid_h)
