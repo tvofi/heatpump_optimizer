@@ -280,6 +280,12 @@ cheaper detector and its standing cost, or the finding that none exists.
 `UNDER-SCOPED` and `INHERITED CLAIMS` are answered by naming them; their
 countermeasure is the autofix job `ci-autofix.mdc` already describes.
 
+A harness the closure recorder cannot see — one that shells out to
+subprocesses, like `tests/harness_headers.py` — will not turn red on your PR
+at all; treat its headers' EXPECTED lines as production state and re-record
+them in the same pull request that changes what they print (#968 → #979:
+only main's forced-full run caught it).
+
 You are naming the trigger, not analysing it. The analysis runs in its own seat
 (`tools/audit/briefs/root-cause.md`), never in yours, for the same reason the
 fix review is not yours. What you owe is that the trigger is visible to a seat

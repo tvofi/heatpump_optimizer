@@ -509,7 +509,16 @@ def _smooth_topk_sum(values: np.ndarray, k: int, tau: float) -> float:
         return 0.0
     peak = float(np.max(x))
     scale = max(tau * peak, 1e-9)
-    lo, hi = float(np.min(x)) - 1.0, peak + 1.0
+    # The tie root sits at peak + scale*ln((n-k)/k), which moves with the
+    # peak's own magnitude: a bracket padded by a constant 1 kW stops
+    # containing it once the plateau is high enough, the bisection parks on
+    # the bracket end, and every tied window keeps weight sigmoid(-1/scale)
+    # -- charging a multiple of the billed top-k instead of approximating
+    # it (#925). Pad by the temperature itself; ln((n-k)/k) is under 5.25
+    # for any horizon this optimizer plans, so 40*scale holds the root with
+    # an order of magnitude to spare.
+    pad = 40.0 * scale
+    lo, hi = float(np.min(x)) - 1.0 - pad, peak + 1.0 + pad
     mid = 0.5 * (lo + hi)
     for _ in range(64):
         z = np.clip((x - mid) / scale, -60.0, 60.0)

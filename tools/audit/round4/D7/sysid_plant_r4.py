@@ -13,29 +13,43 @@ window that shows the plant is not first order.
 COMMAND (from the export root, which must be the working directory):
     PYTHONPATH=tests/hastub python3 tools/audit/round4/D7/sysid_plant_r4.py
 
-EXPECTED (baseline 7dd68dd327fe3dbfb09f3bd0fe38910c58877697, 8-core Apple M1,
-macOS 25.6, numpy on OpenBLAS, BLAS threads pinned to 1; every number a count
-or a ratio -- no timing number is claimed):
+EXPECTED (re-recorded at 0c20773 after #943 fixed the sizer to carry the
+configured slab pair; original baseline recording at 7dd68dd327fe3dbfb09f3bd0-
+fe38910c58877697 read: adopted_cells 0, comfort_breach_cells 6, peak_ratio
+0.486-1.329, honest_sizer_peak_ratio_max 1.000, honest_sizer_breach_cells 0,
+null_onestate_bias_pct 5.58. 8-core Apple M1, macOS 25.6, numpy on OpenBLAS,
+BLAS threads pinned to 1; every number a count or a ratio -- no timing number
+is claimed):
     grid_cells                = 18   (3 presets x 3 outdoor temps x 2 cadences)
-    adopted_cells             = 0    +- 0
-    comfort_breach_cells      = 6    +- 0
-    peak_ratio_min            = 0.486 +- 0.01
-    peak_ratio_max            = 1.329 +- 0.01
+    adopted_cells             = 0    +- 0  (unchanged by #943: the fit still
+                                      refuses on model-class grounds, #942)
+    comfort_breach_cells      = 3    +- 0  (was 6; the dt=0.25 light cells are
+                                      gone. The 3 survivors are the dt=0.5
+                                      light cells at 0.815-0.840 C: the 30-min
+                                      Euler plant grid lands ~0.02-0.04 C over
+                                      the sizer's dt=0.25 prediction, which is
+                                      0.798-0.800 C -- a sampling-grid effect,
+                                      not a mis-sized step; the same step rolled
+                                      at 1-min granularity peaks at 0.769 C)
+    peak_ratio_min            = 0.933 +- 0.01 (was 0.486)
+    peak_ratio_max            = 1.053 +- 0.01 (was 1.329)
     honest_sizer_breach_cells = 0    +- 0
     honest_sizer_peak_ratio_max = 1.000 +- 0.02
     null_onestate_adopted     = 1    (the instrument CAN adopt: the same
                                       protocol on a plant collapsed to one
-                                      state adopts at confidence 0.940)
-    null_onestate_bias_pct    = 5.58 +- 0.5
+                                      state adopts at confidence 0.985)
+    null_onestate_bias_pct    = 5.45 +- 0.5
 
 PERTURBATION (the judge runs either):
   * HPO_D7_SLABK=100 multiplies the plant's ``slab_heat_transfer`` by 100,
     collapsing the two-state plant towards the single state the identifier
     assumes: ``adopted_cells`` must RISE above 0.
   * the built-in ``honest_sizer`` arm replaces ``sysid._sizing_model`` (harness
-    side only) with one carrying the plant's OWN slab mass and coupling:
-    ``honest_sizer_peak_ratio_max`` must FALL to ~1.0 and
-    ``honest_sizer_breach_cells`` to 0, which is what it does.
+    side only) with one carrying the plant's OWN slab mass and coupling.
+    Since #943 the production sizer does exactly this, so the arm is now a
+    control that must AGREE with the main grid (its rows duplicate the
+    outdoor-0.0 cells): ``honest_sizer_peak_ratio_max`` ~1.0 and
+    ``honest_sizer_breach_cells`` 0, as before.
 
 NOTE on favourability: ``internal_gains`` is pinned to 0.3 kW, exactly
 ``SysIdConfig.gains_prior_kw``, so the fit's intercept prior is EXACTLY right.
@@ -122,7 +136,10 @@ def _run_experiment(model, outdoor, honest_sizer=False):
 
     ``honest_sizer`` is the counterfactual arm: ``sysid._sizing_model`` is
     replaced, in the harness only, by one that carries the plant's OWN slab
-    mass and slab coupling instead of ThermalParameters' defaults.
+    mass and slab coupling instead of ThermalParameters' defaults. #943
+    made production do exactly this, so the arm now measures production
+    behaviour; ``step()`` is driven with the plant's own slab pair, the
+    way ``coordinator._run_system_identification`` now drives it.
     """
     import heatpump_optimizer.sysid as sysid_mod
 
@@ -153,7 +170,10 @@ def _run_experiment(model, outdoor, honest_sizer=False):
 
     orig_sizing = sysid_mod._sizing_model
     if honest_sizer:
-        def _honest(u, c, g, _p=p):
+        # #943 fixed the sizer: production _sizing_model now takes the
+        # configured slab pair, so this counterfactual accepts and carries
+        # it (and remains equivalent to what production now does).
+        def _honest(u, c, g, sm=None, sk=None, _p=p):
             m = ThermalModel(
                 ThermalParameters(
                     heat_loss_coefficient=u,
@@ -161,8 +181,8 @@ def _run_experiment(model, outdoor, honest_sizer=False):
                     room_thermal_mass=c,
                     internal_gains=g,
                     two_zone_enabled=False,
-                    slab_thermal_mass=_p.slab_thermal_mass,
-                    slab_heat_transfer=_p.slab_heat_transfer,
+                    slab_thermal_mass=_p.slab_thermal_mass if sm is None else sm,
+                    slab_heat_transfer=_p.slab_heat_transfer if sk is None else sk,
                 )
             )
             return m
@@ -183,6 +203,8 @@ def _run_experiment(model, outdoor, honest_sizer=False):
                 house_ua=ua,
                 house_capacity=float(p.room_thermal_mass),
                 house_gains=gains,
+                house_slab_mass=float(p.slab_thermal_mass),
+                house_slab_transfer=float(p.slab_heat_transfer),
             )
             if before != "step" and sysid.phase == "step" and np.isnan(sized_kw):
                 sized_kw = float(sysid._step_power)
@@ -198,7 +220,8 @@ def _run_experiment(model, outdoor, honest_sizer=False):
                     sysid.config.step_hours,
                     sysid.config.relax_hours,
                     model=sysid_mod._sizing_model(
-                        ua, float(p.room_thermal_mass), gains
+                        ua, float(p.room_thermal_mass), gains,
+                        float(p.slab_thermal_mass), float(p.slab_heat_transfer),
                     ),
                 )
             if not sysid.active:

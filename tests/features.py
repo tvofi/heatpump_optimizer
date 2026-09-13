@@ -1480,6 +1480,57 @@ R.check(
     f"soft={_smooth_topk_sum(_tie_bill, 3, 0.05)} hard=60",
 )
 
+# Round 4 D2-01 (#925): the same contract at a *high* tie level. The
+# bisection's logistic temperature is scale = tau*peak, and the tie root
+# sits at peak + scale*ln((n-k)/k), which grows with the peak while the
+# bracket's pad was a constant 1 kW -- so above ~5.84 kW of excess (96
+# 15-minute windows, k=3) the root left the bracket, the bisection parked
+# on the bracket end, and every tied window kept weight sigmoid(-1/scale).
+# A flat 24 h plan at 12 kW -- the profile a capacity tariff exists to
+# produce -- was charged 3660.34 SEK against a 720.00 bill (5.08x); the
+# bracket must be scaled by its own temperature so the root stays inside
+# it at any excess a plan can reach.
+_d201_flat = np.full(96, 12.0)
+R.check(
+    "a flat plan is charged its billed top-k, not a multiple of it",
+    abs(peak_cost(_d201_flat, np.zeros(96), 0.0, 20.0, 15, 0.25, 3) - 720.0)
+    < 7.2,
+    f"charged {peak_cost(_d201_flat, np.zeros(96), 0.0, 20.0, 15, 0.25, 3):.2f}"
+    " SEK, bill 720.00 (1% of 3 x 12 kW at 20/kW)",
+)
+R.check(
+    "smooth top-k keeps the k x tie_level contract at a 12 kW plateau",
+    abs(_smooth_topk_sum(_d201_flat, 3, 0.05) - 36.0) < 0.36,
+    f"soft={_smooth_topk_sum(_d201_flat, 3, 0.05):.2f}, contract 36",
+)
+# The same defect at hourly metering: reachable on a 24 h horizon, where
+# the break point is ~10.3 kW (fewer windows, smaller ln((n-k)/k)).
+_d201_hourly = peak_cost(np.full(96, 14.0), np.zeros(96), 0.0, 20.0, 60, 0.25, 3)
+R.check(
+    "hourly metering keeps the flat-plateau charge at the bill",
+    abs(_d201_hourly - 840.0) < 8.4,
+    f"charged {_d201_hourly:.2f} SEK, bill 840.00 (1% of 3 x 14 kW at 20/kW)",
+)
+# Null controls. Below the bracket's old break point the approximation was
+# already exact and must stay exact -- the defect is the bracket, not the
+# top-k sum. And a plan with at most k windows at the peak never enters the
+# smooth branch at all, whatever the excess.
+_d201_null_flat = peak_cost(
+    np.full(96, 5.0), np.zeros(96), 0.0, 20.0, 15, 0.25, 3
+)
+R.check(
+    "below the tie-band break point the charge stays exact",
+    abs(_d201_null_flat - 300.0) < 0.003,
+    f"5 kW x 3 windows at 20/kW = 300, got {_d201_null_flat:.6f}",
+)
+_d201_spiky = np.full(96, 1.0)
+_d201_spiky[:3] = 12.0
+R.check(
+    "at most k windows at the peak stay on the exact hard sum",
+    peak_cost(_d201_spiky, np.zeros(96), 0.0, 20.0, 15, 0.25, 3) == 720.0,
+    "hard top-k path: 3 x 12 kW at 20/kW = 720 exactly",
+)
+
 # A one-window +eps probe always moves a hard top-k (that window becomes
 # the unique largest, FD ≈ price_per_kw). Smooth top-k shares weight k/n
 # across the tie, so the same probe is ≈ price * k/n (here 20 * 3/24 ≈ 2.5).
@@ -8720,6 +8771,30 @@ R.check(
     "a wrapping month range covers the wrap and not the middle",
     2 in _gf.parse_month_range("Nov-Mar") and 6 not in _gf.parse_month_range("Nov-Mar"),
 )
+# R4-D3-S1 (#930): every month-range value assertion here used the wrapping
+# case, so a parse_month_range that routed a NON-wrapping span through the
+# wrap (a Mar-Sep seasonal fee billing all year) survived the whole gate.
+# Pin the plain span exactly, through the symbol and through a priced rule
+# at both edge months and both neighbours.
+R.check(
+    "a non-wrapping month range is exactly its span, not the year",
+    _gf.parse_month_range("Mar-Sep") == frozenset({3, 4, 5, 6, 7, 8, 9}),
+    f"Mar-Sep -> {sorted(_gf.parse_month_range('Mar-Sep'))}",
+)
+_span_rule = _gf.GridFeeSchedule(
+    mode=_gf.MODE_RULES, rules=_gf.parse_rules("Mar-Sep = 0.25")
+)
+R.check(
+    "a non-wrapping rule bills both edge months and neither neighbour",
+    abs(_span_rule.current_fee(datetime(2026, 3, 14, 12, 0)) - 0.25) < 1e-9
+    and abs(_span_rule.current_fee(datetime(2026, 9, 14, 12, 0)) - 0.25) < 1e-9
+    and _span_rule.current_fee(datetime(2026, 2, 14, 12, 0)) == 0.0
+    and _span_rule.current_fee(datetime(2026, 10, 14, 12, 0)) == 0.0,
+    f"mar {_span_rule.current_fee(datetime(2026, 3, 14, 12, 0))}, "
+    f"sep {_span_rule.current_fee(datetime(2026, 9, 14, 12, 0))}, "
+    f"feb {_span_rule.current_fee(datetime(2026, 2, 14, 12, 0))}, "
+    f"oct {_span_rule.current_fee(datetime(2026, 10, 14, 12, 0))}",
+)
 R.check(
     "broken specs are rejected by validation, not stored",
     not _gf.is_valid_spec("Nov-Mar = banana")
@@ -15682,6 +15757,68 @@ R.check(
     f"weights {_zero_w}",
 )
 
+# #933 (R4-D3-S4): the horizon clamp in _anticipatory_weights —
+# ``end = min(i + lookahead, n_steps)`` — was deletable with the suite green
+# (judged an equivalent mutant through reachable inputs: ``optimize``
+# truncates every forecast array to ``n_steps`` first, and a slice whose
+# upper bound runs past the array's own end is clamped by the language, so
+# nothing the callers pass can tell the arms apart). The clamp still states
+# the method's contract — the warm-start nudge must not read forecast steps
+# outside the solve horizon — so it is pinned here at the only input class
+# that can see it: forecast arrays carrying more steps than the solve.
+from heatpump_optimizer.optimizer import (  # noqa: E402
+    HeatPumpOptimizer as _AwOpt,
+    OptimizationConfig as _AwCfg,
+)
+
+_aw_opt = _AwOpt(
+    ThermalModel(ThermalParameters()),
+    _AwCfg(
+        horizon_hours=1,
+        time_step_minutes=15,
+        target_temp=21.0,
+        min_temp=19.0,
+        max_temp=23.0,
+    ),
+)
+# A 4-step solve at 15-minute steps: lookahead = int(8/0.25) = 32 steps, so
+# every window wants to run far past the horizon. The forecast array is six
+# steps longer than the solve with all the sun in that out-of-horizon tail;
+# ordinary weather throughout (loss factor 1.0) so the solar channel is the
+# only thing that can move.
+_aw_solar = np.array([0.0, 0.0, 0.0, 0.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0])
+_aw_w = _aw_opt._anticipatory_weights(4, 0.25, _aw_solar, np.ones(10))
+R.check(
+    "sun entirely past the solve horizon moves no warm-start weight (#933)",
+    bool(np.all(_aw_w == 1.0)),
+    f"weights {_aw_w.tolist()} — the horizon clamp must keep the 8-hour "
+    "window inside the 4 steps being solved; without it the window reads "
+    "the forecast tail and discounts steps the plan will never take",
+)
+# Null control: the same sun inside an exact-horizon forecast, the input
+# class every production caller produces (the round-4 panel measured the
+# two arms bit-identical on it). Green under the clamp's deletion too, so
+# it attributes the all-ones above to the horizon cap, not to an inert
+# nudge.
+_aw_in = np.array([0.0, 0.0, 0.0, 3.0])
+_aw_win = _aw_opt._anticipatory_weights(4, 0.25, _aw_in, np.ones(4))
+R.check(
+    "the same sun inside the horizon does discount (#933 null control)",
+    float(np.max(_aw_win)) < 1.0 and float(np.min(_aw_win)) >= 0.6 - 1e-12,
+    f"weights {_aw_win.tolist()} — fierce in-horizon sun must pull the "
+    "warm start down toward its 0.6 floor",
+)
+# Zero end of the input range: at 16-hour steps the 8-hour lookahead is
+# zero steps, the ``if end <= i: continue`` guard skips every step, and
+# nothing moves however fierce the sun.
+_aw_zero = _aw_opt._anticipatory_weights(4, 16.0, np.full(4, 2.0), np.ones(4))
+R.check(
+    "a zero-step lookahead leaves every weight at one (#933)",
+    bool(np.all(_aw_zero == 1.0)),
+    f"weights {_aw_zero.tolist()} — int(8/dt) at dt=16 is 0, so the guard "
+    "skips every step",
+)
+
 # ---------------------------------------------------------------------------
 R.section("v4.0.4 — grid-fee magnitude repair issue")
 
@@ -21131,6 +21268,221 @@ R.check(
     _si_reason._sysid.result.reason
     and not _si_reason._sysid.result.completed,
     f"{_si_reason._sysid.result.reason!r}",
+)
+
+
+R.section("R4-D7-02 / #943 — the sizer sizes the configured house, not defaults")
+
+# _sizing_model rebuilt its plant from UA / room mass / gains alone and left
+# slab_thermal_mass / slab_heat_transfer at ThermalParameters' defaults
+# (5.0 kWh/C, 0.8 kW/C). The stress gate's shipped presets carry (0.24, 0.24),
+# (23.0, 2.0) and (16.5, 1.5), so the excursion prediction was about a
+# different building: on light_new the sized step drove the room past the
+# 0.8 C allowance (6 of 18 finder cells), and on heavy_old it gathered about
+# half the excitation allowed. The fix threads the configured slab pair
+# through _run_system_identification -> step -> _begin_step_phase ->
+# _size_step_power -> _sizing_model, so the plant sized against is the plant
+# heated. The adoption gate is NOT touched here (#942 is a separate finding).
+
+from profiles import house as _house943  # noqa: E402
+
+from heatpump_optimizer.const import (  # noqa: E402
+    DEFAULT_SLAB_HEAT_TRANSFER as _DSK943,
+    DEFAULT_SLAB_THERMAL_MASS as _DSM943,
+)
+
+
+def _943_preset_params(structure, era, area, emitter):
+    """A stress-gate preset house, through the production derive path."""
+    cfg = _house943(two_zone=False, dhw=False)
+    derived = presets.derive(
+        presets.BuildingPreset(
+            structure=structure,
+            era=era,
+            heated_area_m2=area,
+            lower_emitter=emitter,
+        )
+    )
+    derived.pop("heating_response_hours", None)
+    cfg.update(derived)
+    params = ThermalParameters.from_config(cfg)
+    params.two_zone_enabled = False
+    params.internal_gains = 0.3
+    return params
+
+
+def _943_host(params):
+    """A _SysIdHost whose plant is exactly the configured house."""
+    host = _SysIdHost(PumpSignals())
+    host._thermal_params = params
+    host._thermal_model = ThermalModel(params)
+    return host
+
+
+def _943_drive(host, hours=6.0):
+    """Run the production step protocol on the host's own configured plant.
+
+    One call per 15-min interval — the rollout grid the sizer itself
+    predicts on (``_predict_step_excursion_plant`` dt=0.25) — so an honest
+    sizer's achieved peak matches its prediction. (At the 30-min cadence
+    the plant's coarser Euler step lands ~0.0005 C over the prediction on
+    the light preset; the continuous peak of the same step, rolled at
+    1-min granularity, is 0.769 C.) The room advances on the host's
+    ThermalModel with the power the experiment — or the hold plan, while
+    settling — actually delivers. Returns the peak |T - 21| reached and
+    the electrical step the sizer chose.
+    """
+    t0 = datetime(2026, 1, 5, 2, 0, tzinfo=UTC)
+    p = host._thermal_params
+    cop = host._thermal_model.compute_cop(3.0)
+    q_hold = p.heat_loss_coefficient * (21.0 - 3.0) - p.internal_gains
+    state = ThermalState(
+        room_temperature=21.0,
+        slab_temperature=21.0 + q_hold / max(p.slab_heat_transfer, 1e-9),
+        outdoor_temperature=3.0,
+    )
+    peak = 0.0
+    sized = None
+    when = t0
+    try:
+        while when < t0 + timedelta(hours=hours):
+            dt_util.freeze(when)
+            host._current_state = state
+            host._current_action = {"power": 0.0, "heat_pump_on": False}
+            host._run_system_identification(np.full(48, 0.2))
+            peak = max(peak, abs(state.room_temperature - 21.0))
+            if host._sysid.phase == _SysIdModule.PHASE_STEP and sized is None:
+                sized = host._sysid._step_power
+            if not host._sysid.active:
+                # Done or aborted: the finder's metric counts the peak the
+                # experiment actually reached, not what the plan does after.
+                break
+            if host._current_action.get("mode") == "system_identification":
+                elec = float(host._current_action["power"])
+            else:
+                elec = max(q_hold, 0.0) / cop
+            state = host._thermal_model.simulate_step(
+                state,
+                electrical_power=0.0,
+                outdoor_temp=3.0,
+                dt_hours=0.25,
+                external_heat_kw=elec * cop,
+            )
+            peak = max(peak, abs(state.room_temperature - 21.0))
+            when += timedelta(minutes=15)
+    finally:
+        dt_util.freeze(None)
+    return peak, sized
+
+
+_943_light = _943_preset_params(
+    presets.STRUCTURE_TIMBER_CRAWLSPACE,
+    presets.ERA_POST_2005,
+    120,
+    presets.EMITTER_RADIATORS,
+)
+_943_heavy = _943_preset_params(
+    presets.STRUCTURE_MASONRY,
+    presets.ERA_PRE_1960,
+    200,
+    presets.EMITTER_FLOOR,
+)
+R.check(
+    "#943 precondition: the presets' slab pair differs from the sizer's"
+    " historical defaults",
+    (_943_light.slab_thermal_mass, _943_light.slab_heat_transfer)
+    != (_DSM943, _DSK943)
+    and (_943_heavy.slab_thermal_mass, _943_heavy.slab_heat_transfer)
+    != (_DSM943, _DSK943),
+    f"light=({_943_light.slab_thermal_mass}, {_943_light.slab_heat_transfer}) "
+    f"heavy=({_943_heavy.slab_thermal_mass}, {_943_heavy.slab_heat_transfer}) "
+    f"defaults=({_DSM943}, {_DSK943})",
+)
+
+# The wiring pin: the coordinator must hand the experiment the configured
+# slab pair, or the sizer below it rebuilds the default-slab plant.
+_943_kwargs = {}
+_943_orig_step = _SysIdModule.SystemIdentification.step
+
+
+def _943_spy(self, *a, **kw):
+    _943_kwargs.update(kw)
+    return _943_orig_step(self, *a, **kw)
+
+
+_SysIdModule.SystemIdentification.step = _943_spy
+try:
+    _943_wire_host = _943_host(_943_light)
+    _943_wire_host._run_system_identification(np.full(48, 0.2))
+finally:
+    _SysIdModule.SystemIdentification.step = _943_orig_step
+R.check(
+    "#943 wiring: _run_system_identification passes the configured slab pair",
+    _943_kwargs.get("house_slab_mass") == _943_light.slab_thermal_mass
+    and _943_kwargs.get("house_slab_transfer") == _943_light.slab_heat_transfer,
+    f"step() saw house_slab_mass={_943_kwargs.get('house_slab_mass')!r} "
+    f"house_slab_transfer={_943_kwargs.get('house_slab_transfer')!r}; "
+    f"configured=({_943_light.slab_thermal_mass}, "
+    f"{_943_light.slab_heat_transfer})",
+)
+
+# The consequence, at both ends of the slab range the presets ship.
+_943_light_peak, _943_light_kw = _943_drive(_943_host(_943_light))
+R.check(
+    "#943: the sized step respects the 0.8 C allowance on the light"
+    " slab-on-crawl preset",
+    _943_light_peak <= _SysIdModule.DEFAULT_MAX_EXCURSION_C + 1e-9,
+    f"achieved peak {_943_light_peak:.3f} C with sized step "
+    f"{_943_light_kw} kW el — the default-slab sizer drove this house "
+    f"1.022 C at the merge base",
+)
+_943_heavy_peak, _943_heavy_kw = _943_drive(_943_host(_943_heavy))
+R.check(
+    "#943: the honest sizer leaves a power-limited heavy house at the full"
+    " nameplate step, inside the allowance",
+    _943_heavy_kw is not None
+    and abs(_943_heavy_kw - _943_heavy.max_electrical_power) < 1e-9
+    and _943_heavy_peak <= _SysIdModule.DEFAULT_MAX_EXCURSION_C + 1e-9,
+    f"sized {_943_heavy_kw} kW el of max "
+    f"{_943_heavy.max_electrical_power}; peak {_943_heavy_peak:.3f} C — an "
+    f"over-conservative 'fix' that shrinks the step on the slow slab this "
+    f"house really has would starve its excitation",
+)
+
+# Null control: a house configured AT the defaults was always sized
+# honestly (configured plant == fallback plant), before and after the fix.
+_943_null_params = ThermalParameters.from_config(
+    _house943(two_zone=False, dhw=False)
+)
+_943_null_params.internal_gains = 0.3
+_943_null_peak, _943_null_kw = _943_drive(_943_host(_943_null_params))
+R.check(
+    "#943 null control: a defaults-slab house never breached, at either end",
+    _943_null_peak <= _SysIdModule.DEFAULT_MAX_EXCURSION_C + 1e-9,
+    f"achieved peak {_943_null_peak:.3f} C with sized step {_943_null_kw} kW",
+)
+
+# The artifact pin (#546 lesson): read the plant the sizer registers, not
+# the numbers it was handed.
+try:
+    _943_model = _sizing_model(
+        _943_light.heat_loss_coefficient,
+        _943_light.room_thermal_mass,
+        _943_light.internal_gains,
+        _943_light.slab_thermal_mass,
+        _943_light.slab_heat_transfer,
+    )
+    _943_type_err = None
+except TypeError as exc:
+    _943_model, _943_type_err = None, str(exc)
+R.check(
+    "#943: _sizing_model builds its plant from the configured slab pair",
+    _943_model is not None
+    and _943_model.params.slab_thermal_mass == _943_light.slab_thermal_mass
+    and _943_model.params.slab_heat_transfer == _943_light.slab_heat_transfer,
+    f"err={_943_type_err!r} built="
+    f"({getattr(getattr(_943_model, 'params', None), 'slab_thermal_mass', None)},"
+    f" {getattr(getattr(_943_model, 'params', None), 'slab_heat_transfer', None)})",
 )
 
 
@@ -29367,6 +29719,14 @@ R.check(
     == frozenset({11, 12, 1, 2, 3}),
     f"Nov-Mar -> {sorted(_t3_coord(peak_tariff_months='Nov-Mar')._tariff_months())}, "
     f"Nov-Mar;Jul -> {sorted(_t3_coord(peak_tariff_months='Nov-Mar;Jul')._tariff_months())}",
+)
+# R4-D3-S1 (#930): the mask shares parse_month_range, and every arm above
+# wraps or lists -- the non-wrapping span was unpinned here too.
+R.check(
+    "a non-wrapping month mask is its span, not the year",
+    _t3_coord(peak_tariff_months="Apr-Sep")._tariff_months()
+    == frozenset({4, 5, 6, 7, 8, 9}),
+    f"Apr-Sep -> {sorted(_t3_coord(peak_tariff_months='Apr-Sep')._tariff_months())}",
 )
 _t3_tm_partial = _t3_call(
     _t3_coord(peak_tariff_months="Nov-Mar,Smarch")._tariff_months
