@@ -669,20 +669,28 @@ def cycling_penalty_batch(
 ) -> np.ndarray:
     """``cycling_penalty`` for a [B, n] batch of plans, one entry per row (#948).
 
-    The batched objective used to call the scalar penalty once per row; here
-    the swing is one axis-1 reduction over the whole batch. ``np.diff``
-    along axis 1 subtracts each row's neighbours elementwise and the sum
-    reduces each row's contiguous run in the same pairwise order the 1-D
-    ``np.sum`` applies, so a row here is bit-for-bit ``cycling_penalty`` on
-    that row -- which is the contract the batched gradient's parity rests
-    on (see ``simulate_trajectory_batch``).
+    The batched objective used to call the scalar penalty once per row. The
+    elementwise half -- the step-to-step differences and their absolute
+    values -- runs over the whole batch; the swing SUM is a float
+    reduction, so it still runs through ``np.sum`` on each row's own
+    contiguous 1-D view, the scalar expression. That is what makes a row
+    here bit-for-bit ``cycling_penalty`` on that row on every numpy
+    backend: a batched ``axis=1`` reduce is not, because numpy may walk the
+    reduction vectorised across rows and reassociate each row's sum (the
+    ulp drift this produced on CI's x86_64 re-planned 19 of 51 stress
+    scenarios; it was silent on the arm64 seat). This is the contract the
+    batched gradient's parity rests on (see
+    ``simulate_trajectory_batch``).
     """
     shape = np.shape(power_matrix)
     if cost_per_cycle <= 0 or p_max <= 0 or shape[1] < 2:
         return np.zeros(shape[0])
-    swing = np.sum(
-        np.abs(np.diff(np.asarray(power_matrix, dtype=float), axis=1)), axis=1
+    abs_diff = np.abs(
+        np.diff(np.asarray(power_matrix, dtype=float), axis=1)
     )
+    swing = np.array([
+        float(np.sum(abs_diff[b])) for b in range(shape[0])
+    ])
     return cost_per_cycle * swing / (2.0 * p_max)
 
 
@@ -1665,20 +1673,27 @@ class HeatPumpOptimizer:
     ) -> tuple[np.ndarray, np.ndarray]:
         """``_comfort_terms`` for a [B, n+1] trajectory batch, per row (#948).
 
-        The same reductions as the scalar twin, one axis-1 call each instead
-        of B rows times nine over single trajectories: the per-row helper
-        was entered 97.02 times per gradient evaluation and cost a third of
-        the solve's wall (round 4, D9-05), 0.86x the entire batched
-        simulation it decorates. Each row's sums reduce that row's
-        contiguous run in the pairwise order the 1-D ``np.sum`` on the same
-        values applies, and the additions keep the scalar expression's
-        order, so a row here is bit-for-bit ``_comfort_terms`` on that row's
-        trajectories -- the parity that keeps the solver's iterate path,
-        the plans and the golden fixtures where they were. See
-        ``_comfort_terms`` for what the two terms mean and why the pull is
-        deliberately weak.
+        The per-row helper was entered 97.02 times per gradient evaluation
+        and cost a third of the solve's wall (round 4, D9-05), 0.86x the
+        entire batched simulation it decorates. The elementwise half --
+        bounds breaches, squares, the band-normalised deviations -- runs
+        over the whole batch; every float SUM still runs through ``np.sum``
+        on each row's own contiguous 1-D view, the scalar expression. That
+        split is what makes a row here bit-for-bit ``_comfort_terms`` on
+        that row's trajectories on EVERY numpy backend: a batched
+        ``axis=1`` reduce is not, because numpy may walk the reduction
+        vectorised across rows and reassociate each row's sum (the ulp
+        drift this produced on CI's x86_64 re-planned 19 of 51 stress
+        scenarios; it was silent on the arm64 seat that wrote the first
+        version of this twin). This parity is what keeps the solver's
+        iterate path, the plans and the golden fixtures where they were.
+        See ``_comfort_terms`` for what the two terms mean and why the pull
+        is deliberately weak.
         """
         weight = self.config.comfort_weight
+        n_rows = room_temps.shape[0]
+        penalty = np.empty(n_rows)
+        comfort_cost = np.empty(n_rows)
 
         if self.model.params.two_zone_enabled:
             upper_t = upper_temps[:, 1:]
@@ -1688,39 +1703,40 @@ class HeatPumpOptimizer:
             overshoot_u = np.maximum(0, upper_t - temp_max_bounds)
             undershoot_l = np.maximum(0, temp_min_bounds - lower_t)
             overshoot_l = np.maximum(0, lower_t - temp_max_bounds)
+            comfort_dev_u = (upper_t - comfort_targets) / comfort_band
+            comfort_dev_l = (lower_t - comfort_targets) / comfort_band
 
-            penalty = 0.5 * weight * (
-                np.sum(undershoot_u ** 2, axis=1) * 10.0
-                + np.sum(overshoot_u ** 2, axis=1) * 5.0
-                + np.sum(undershoot_l ** 2, axis=1) * 10.0
-                + np.sum(overshoot_l ** 2, axis=1) * 5.0
-                + (np.sum(undershoot_u, axis=1) + np.sum(undershoot_l, axis=1))
-                * _COMFORT_FLOOR_L1
-            )
-
-            comfort_dev_u = upper_t - comfort_targets
-            comfort_dev_l = lower_t - comfort_targets
-            comfort_cost = _COMFORT_PULL_TWO_ZONE * weight * (
-                np.sum((comfort_dev_u / comfort_band) ** 2, axis=1)
-                + np.sum((comfort_dev_l / comfort_band) ** 2, axis=1)
-            )
+            for b in range(n_rows):
+                penalty[b] = 0.5 * weight * (
+                    np.sum(undershoot_u[b] ** 2) * 10.0
+                    + np.sum(overshoot_u[b] ** 2) * 5.0
+                    + np.sum(undershoot_l[b] ** 2) * 10.0
+                    + np.sum(overshoot_l[b] ** 2) * 5.0
+                    + (np.sum(undershoot_u[b]) + np.sum(undershoot_l[b]))
+                    * _COMFORT_FLOOR_L1
+                )
+                comfort_cost[b] = _COMFORT_PULL_TWO_ZONE * weight * (
+                    np.sum(comfort_dev_u[b] ** 2)
+                    + np.sum(comfort_dev_l[b] ** 2)
+                )
             return penalty, comfort_cost
 
         room_t = room_temps[:, 1:]
         undershoot = np.maximum(0, temp_min_bounds - room_t)
         overshoot = np.maximum(0, room_t - temp_max_bounds)
+        deviation = (room_t - comfort_targets) / comfort_band
 
-        penalty = weight * (
-            np.sum(undershoot ** 2, axis=1) * 10.0
-            + np.sum(overshoot ** 2, axis=1) * 5.0
-            + np.sum(undershoot, axis=1) * _COMFORT_FLOOR_L1
-        )
-        deviation = room_t - comfort_targets
-        comfort_cost = (
-            _COMFORT_PULL_SINGLE_ZONE
-            * weight
-            * np.sum((deviation / comfort_band) ** 2, axis=1)
-        )
+        for b in range(n_rows):
+            penalty[b] = weight * (
+                np.sum(undershoot[b] ** 2) * 10.0
+                + np.sum(overshoot[b] ** 2) * 5.0
+                + np.sum(undershoot[b]) * _COMFORT_FLOOR_L1
+            )
+            comfort_cost[b] = (
+                _COMFORT_PULL_SINGLE_ZONE
+                * weight
+                * np.sum(deviation[b] ** 2)
+            )
         return penalty, comfort_cost
 
     def _cost_terms_batch(
@@ -1757,7 +1773,9 @@ class HeatPumpOptimizer:
             traj["room"], traj["upper"], traj["lower"],
             comfort_targets, temp_min_bounds, temp_max_bounds, comfort_band,
         )
-        return (
+        # ``np.asarray`` on the sum is a no-op view: it types the value
+        # without touching a bit of it.
+        return np.asarray(
             energy_cost_of(grid_power) * weight
             + penalty
             + comfort_cost
@@ -2208,7 +2226,7 @@ class HeatPumpOptimizer:
 
     def _energy_cost_fn(
         self, prices: np.ndarray, dt: float
-    ) -> Callable[[np.ndarray], "float | np.ndarray"]:
+    ) -> Callable[[np.ndarray], Any]:
         """Closure pricing a total electrical draw against the grid, exactly.
 
         Piecewise in each step's PV surplus: energy up to it displaces an
@@ -2221,29 +2239,38 @@ class HeatPumpOptimizer:
         Written inline (not as a `pv` helper) because this runs inside the
         objective, thousands of times per solve. One closure prices a 1-D
         schedule (returning a float) and a whole [B, n] batch at once
-        (returning one price per row, #948): the reductions are ``axis=-1``,
-        which on a 1-D array is the plain 1-D sum and on a 2-D one reduces
-        each row's contiguous run in the same pairwise order -- so each row
-        is bit-for-bit the scalar price of that row, the parity the batched
-        objective's row-for-row equality with the scalar objective rests
-        on.
+        (returning one price per row, #948). The elementwise half runs over
+        the whole batch; the two SUMS per row still run through ``np.sum``
+        on that row's own contiguous 1-D view -- the scalar expression --
+        because a batched ``axis=`` reduce may reassociate each row's sum
+        on some backends (see ``_comfort_terms_batch``), and each row must
+        be bit-for-bit the scalar price of that row.
         """
         surplus = self._pv_surplus
         if surplus is None or not np.any(surplus[: len(prices)] > 1e-6):
-            def grid_only_cost(total_power: np.ndarray) -> "float | np.ndarray":
-                return np.sum(prices * total_power, axis=-1) * dt
+            def grid_only_cost(total_power: np.ndarray) -> Any:
+                priced = prices * total_power
+                if np.ndim(total_power) == 1:
+                    return float(np.sum(priced) * dt)
+                return np.array([
+                    float(np.sum(priced[b]) * dt)
+                    for b in range(total_power.shape[0])
+                ])
 
             return grid_only_cost
 
         surplus = surplus[: len(prices)]
         margin = pv.import_margin(prices, self.config.pv_export_price)
 
-        def energy_cost(total_power: np.ndarray) -> "float | np.ndarray":
-            covered = np.minimum(total_power, surplus)
-            return (
-                np.sum(prices * total_power, axis=-1)
-                - np.sum(margin * covered, axis=-1)
-            ) * dt
+        def energy_cost(total_power: np.ndarray) -> Any:
+            covered = margin * np.minimum(total_power, surplus)
+            priced = prices * total_power
+            if np.ndim(total_power) == 1:
+                return float((np.sum(priced) - np.sum(covered)) * dt)
+            return np.array([
+                (np.sum(priced[b]) - np.sum(covered[b])) * dt
+                for b in range(total_power.shape[0])
+            ])
 
         return energy_cost
 
@@ -3101,7 +3128,7 @@ class HeatPumpOptimizer:
         outdoor_temps: np.ndarray,
         n_steps: int,
         dhw_setpoint: float,
-        energy_cost_of: Callable[[np.ndarray], float],
+        energy_cost_of: Callable[[np.ndarray], Any],
         baseline_power: np.ndarray,
         optimal_space: np.ndarray,
         optimal_dhw: np.ndarray,
@@ -3146,12 +3173,12 @@ class HeatPumpOptimizer:
         # All three figures are piecewise in the PV surplus, like the objective.
         # The baseline house would self-consume the same sun, so pricing only
         # the optimized plan that way would manufacture fictitious savings.
-        baseline_cost = energy_cost_of(baseline_power + baseline_dhw)
+        baseline_cost = float(energy_cost_of(baseline_power + baseline_dhw))
         total_optimal_power = optimal_space + optimal_dhw
-        predicted_cost = energy_cost_of(total_optimal_power)
+        predicted_cost = float(energy_cost_of(total_optimal_power))
         # Hot water's share is its marginal cost on top of space heating, so
         # the two attributions sum exactly to the total.
-        dhw_cost = predicted_cost - energy_cost_of(optimal_space)
+        dhw_cost = predicted_cost - float(energy_cost_of(optimal_space))
         return baseline_dhw, baseline_cost, predicted_cost, dhw_cost
 
     def _solve_space(
@@ -3612,8 +3639,11 @@ class HeatPumpOptimizer:
                 _space_traj(power_schedule)
             )
 
-            # Electricity cost, piecewise in PV surplus
-            energy_cost = energy_cost_of(power_schedule) * self.config.price_weight
+            # Electricity cost, piecewise in PV surplus. ``float()`` is
+            # identity on the 1-D branch's return and states it.
+            energy_cost = (
+                float(energy_cost_of(power_schedule)) * self.config.price_weight
+            )
 
             penalty, comfort_cost = self._comfort_terms(
                 room_temps, upper_temps, lower_temps,
@@ -3765,8 +3795,8 @@ class HeatPumpOptimizer:
         # schedules. One extra evaluation, robust on the failure path too.
         achieved_objective = float(objective(optimal_power))
 
-        baseline_cost = energy_cost_of(baseline_power)
-        predicted_cost = energy_cost_of(optimal_power)
+        baseline_cost = float(energy_cost_of(baseline_power))
+        predicted_cost = float(energy_cost_of(optimal_power))
 
         optimized_end = self._replay_end_state(
             initial_state, optimal_power, outdoor_temps, wind_speeds,
@@ -5712,7 +5742,9 @@ class HeatPumpOptimizer:
             )
 
             # --- Electricity cost (total: space + DHW), piecewise in PV ---
-            energy_cost = energy_cost_of(combined) * self.config.price_weight
+            energy_cost = (
+                float(energy_cost_of(combined)) * self.config.price_weight
+            )
 
             space_penalty, comfort_cost = self._comfort_terms(
                 room_temps, upper_temps, lower_temps,
@@ -5763,11 +5795,9 @@ class HeatPumpOptimizer:
                 humidity=h.humidity,
                 start_hour=float(h.step_hours[0]),
             )
-            # The grid sees the combined draw: space plus the fixed DHW
-            # plan, added for every row at once.
+            # The grid sees the combined draw: space plus the fixed DHW plan.
             grid_power = (
-                space_matrix
-                if dhw_plan_power is None
+                space_matrix if dhw_plan_power is None
                 else space_matrix + dhw_plan_power
             )
             return self._cost_terms_batch(

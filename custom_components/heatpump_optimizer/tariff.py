@@ -617,22 +617,23 @@ def peak_cost_batch(
     """``peak_cost`` for a [B, n] batch of plans, one entry per row (#948).
 
     The solver's batched objective used to call ``peak_cost`` once per batch
-    row; here the window means, billing factors, excesses and top-k sum are
-    one axis reduction each over the whole batch. The contract is bitwise,
-    row for row: an axis-1 reduction over a C-contiguous array sums each
-    row's run in the same pairwise order the 1-D ``np.sum`` on that row
-    applies, and ``np.sort`` along axis 1 sorts each row independently, so a
-    row here equals ``peak_cost`` on that row's plan to the last bit. That
-    is not tidiness -- the batched finite-difference gradient is built on
-    these rows and must reproduce the scalar objective's arithmetic or the
-    solver's iterate path, and with it every plan, moves.
+    row. Here the elementwise half -- house draw, billing factors, excesses,
+    the per-row sort -- runs over the whole batch, and every FLOAT REDUCTION
+    still goes through the scalar expression on that row's own contiguous
+    1-D data: the window means through ``metering_windows`` and the top-k
+    sum through a contiguous slice sum. That split is what makes a row here
+    bit-for-bit ``peak_cost`` on that row's plan on EVERY numpy backend: a
+    batched ``axis=`` reduce is not, because numpy may walk the reduction
+    axis vectorised across rows, which reassociates each row's sum (seen as
+    ulp drift re-planning 19 of 51 stress scenarios on CI's x86_64, silent
+    on the arm64 seat that wrote the first version of this twin). The
+    batched finite-difference gradient is built on these rows and must
+    reproduce the scalar objective's arithmetic or the solver's iterate
+    path -- and with it every plan -- moves.
 
     A plateau -- more windows tied at the peak than ``peaks_averaged`` -- is
-    the one arm with no exact vector counterpart, because
-    ``_smooth_topk_sum`` bisects per row and breaks early at its own
-    convergence. Those rows (rare; a plateau means a near-flat plan) are
-    routed through the scalar ``_smooth_topk_sum`` itself, so parity holds
-    by construction there too.
+    routed through the scalar ``_smooth_topk_sum`` itself, whose per-row
+    bisection has no exact vector counterpart.
     """
     matrix = np.asarray(total_power_kw, dtype=float)
     n_rows = matrix.shape[0]
@@ -645,29 +646,13 @@ def peak_cost_batch(
     if per_window <= 1:
         windows = house
     else:
-        head_steps = int(offset_steps) % per_window
-        n_steps = house.shape[1]
-        full = max(0, (n_steps - head_steps) // per_window)
-        pieces: list[np.ndarray] = []
-        if head_steps:
-            # The leading partial window is averaged over the steps it has,
-            # exactly as ``metering_windows`` averages it.
-            pieces.append(house[:, :head_steps].mean(axis=1, keepdims=True))
-        if full:
-            pieces.append(
-                house[:, head_steps : head_steps + full * per_window]
-                .reshape(n_rows, full, per_window)
-                .mean(axis=2)
-            )
-        tail = house[:, head_steps + full * per_window :]
-        if tail.shape[1]:
-            pieces.append(tail.mean(axis=1, keepdims=True))
-        if not pieces:
-            windows = house.mean(axis=1, keepdims=True)
-        else:
-            windows = (
-                pieces[0] if len(pieces) == 1 else np.concatenate(pieces, axis=1)
-            )
+        # The window means are reductions, so each row is averaged through
+        # the scalar ``metering_windows`` on that row -- one contiguous 1-D
+        # run per window, the same pairwise order everywhere.
+        windows = np.stack([
+            metering_windows(house[b], window_minutes, dt_hours, offset_steps)
+            for b in range(n_rows)
+        ])
     if window_factors is not None and window_factors.size:
         # Billed-equivalent kW (#13), on the same padded factor vector the
         # scalar call builds; see ``peak_cost``.
@@ -683,11 +668,16 @@ def peak_cost_batch(
     k = max(1, min(int(peaks_averaged), excess.shape[1]))
     peak = excess.max(axis=1)
     n_at_peak = (excess >= peak[:, None] - _PEAK_TIE_BAND).sum(axis=1)
-    # Separated peaks are the bill: the hard top-k is exact per row. Only
-    # the plateau rows pay for the smooth sum, through the scalar helper.
-    top_sum = np.sort(excess, axis=1)[:, -k:].sum(axis=1)
-    for row in np.nonzero(n_at_peak > k)[0]:
-        top_sum[row] = _smooth_topk_sum(excess[row], k, _PEAK_SMOOTH_TAU)
+    # A sort reassociates nothing: sorting each row of a batch is each
+    # row's own sort. The top-k SUM is a reduction, so it runs per row on
+    # the sorted row's contiguous tail slice -- the scalar expression.
+    sorted_excess = np.sort(excess, axis=1)
+    top_sum = np.array([
+        _smooth_topk_sum(excess[b], k, _PEAK_SMOOTH_TAU)
+        if n_at_peak[b] > k
+        else float(np.sum(sorted_excess[b][-k:]))
+        for b in range(n_rows)
+    ])
     return price_per_kw * top_sum
 
 
