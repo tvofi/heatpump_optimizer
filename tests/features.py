@@ -3488,6 +3488,65 @@ R.check(
     f"first={int(np.nanargmax(_gd948z))}",
 )
 
+# TEMPORARY #948 instrument round 4: the objective pair at B=96 (the
+# race's own batch width) and the simulation pair at B=96, two-zone,
+# state by state -- the only link not yet split.
+_cap948y = _capture_objectives_948(two_zone=True, dhw=False)
+_obj948y = _cap948y["objective"]
+_batch948y = _cap948y["batch"]
+_rng948y = np.random.default_rng(7)
+_x948y = _rng948y.uniform(0.0, 4.0, size=96)
+_m948y = _x948y + 1e-4 * np.eye(96)
+_vals948y = np.asarray(_batch948y(_m948y), dtype=float)
+_rows948y = [float(_obj948y(_m948y[b])) for b in range(96)]
+_bad948y = [
+    (b, _vals948y[b], _rows948y[b])
+    for b in range(96) if _vals948y[b] != _rows948y[b]
+]
+R.check(
+    "948 TEMP instrument: objective pair agrees at B=96",
+    not _bad948y,
+    f"first: {str(_bad948y[:2])[:300]}",
+)
+_cfg948y = _grad_house(two_zone=True)
+_p948y = ThermalParameters.from_config(_cfg948y)
+_p948y.dhw_enabled = False
+_m948s = _PvModel(_p948y)
+_st948y = _dt_grad(2026, 1, 15)
+_ot948y, _wi948y, _ra948y, _so948y = (
+    _fit948(_a, 96) for _a in _grad_weather("winter_cold", _st948y))
+_stx948y = ThermalState(
+    room_temperature=21.0, slab_temperature=22.0,
+    outdoor_temperature=float(_ot948y[0]),
+    upper_floor_temperature=21.0, lower_floor_temperature=21.0,
+    buffer_tank_temperature=40.0)
+_tr948y = _m948s.simulate_trajectory_batch(
+    _stx948y, _m948y, _ot948y, _wi948y, _ra948y, _so948y, 0.25,
+    None, None, None, 0.0)
+_simbad948y = []
+for _b948y in (0, 1, 37, 95):
+    _r948y, _s948y, _u948y, _l948y, _buf948y, _, _ = _m948s.simulate_trajectory(
+        _stx948y, _m948y[_b948y], _ot948y, _wi948y, _ra948y, _so948y, 0.25,
+        None, None, None, 0.0)
+    for _nm948y, _arr948y, _ref948y in (
+        ("room", _tr948y["room"][_b948y], _r948y),
+        ("slab", _tr948y["slab"][_b948y], _s948y),
+        ("upper", _tr948y["upper"][_b948y], _u948y),
+        ("lower", _tr948y["lower"][_b948y], _l948y),
+        ("buffer", _tr948y["buffer"][_b948y], _buf948y),
+    ):
+        if not np.array_equal(_arr948y, _ref948y):
+            _i948y = int(np.argmax(_arr948y != _ref948y))
+            _simbad948y.append(
+                f"{_nm948y}[{_b948y}]@{_i948y}: "
+                f"{_arr948y[_i948y]!r} vs {_ref948y[_i948y]!r}"
+            )
+R.check(
+    "948 TEMP instrument: simulate pair agrees at B=96 (rows 0,1,37,95)",
+    not _simbad948y,
+    f"first: {str(_simbad948y[:3])[:400]}",
+)
+
 # The batch twins under their own branch grids, one level below the
 # objective: every arm peak_cost and cycling_penalty branch on, priced per
 # row against the scalar function on the same plan. Rule: row b of the
