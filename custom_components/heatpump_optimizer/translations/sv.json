@@ -977,7 +977,7 @@
         "data_description": {
           "grid_fee_mode": "Avgiften ditt elnätsbolag lägger på varje överförd kWh. Tibbers pris innehåller den inte, så med den inställd ser planen äntligen hela marginalpriset. \"Tidsregler\" använder schemat nedan; \"Sensor\" följer en entitet.",
           "grid_fee_fixed": "En fast avgift som läggs på varje timme, utöver eventuella regler. Ta den från din elnätsfaktura.",
-          "grid_fee_rules": "En regel per rad, till exempel \"Nov-Mar Mån-Fre 06:00-22:00 = 0.25\". Månads-, veckodags- och tidsdelarna är valfria var för sig; överlappande regler adderas, vilket motsvarar grundavgift plus höglastpåslag.",
+          "grid_fee_rules": "En regel per rad, till exempel \"Nov-Mar Mån-Fre 06:00-22:00 = 0.25\". Månads-, veckodags- och tidsdelarna är valfria var för sig; överlappande regler adderas, vilket motsvarar grundavgift plus höglastpåslag. Ett komma mellan siffror är en decimalseparator, så \"0,25\" läses som 0,25 och delar aldrig en regel.",
           "grid_fee_entity": "En sensor som anger aktuell avgift i {currency}/kWh, för nät med dynamiska avgifter. Värdet läggs på varje planerad timme.",
           "contract_fixed_price": "Om du kunde ha ett fastprisavtal, dess {currency}/kWh. Sensorn Avtalsjämförelse visar då vad denna månad hade kostat med det. 0 utelämnar den kolumnen.",
           "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst.",

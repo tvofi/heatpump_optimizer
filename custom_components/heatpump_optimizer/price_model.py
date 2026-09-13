@@ -318,9 +318,13 @@ class PriceShapeModel:
             and all(isinstance(s, list) and len(s) == HOURS_PER_DAY for s in shapes)
         ):
             try:
-                model.shapes = [[float(v) for v in s] for s in shapes]
+                parsed = [[float(v) for v in s] for s in shapes]
+                # A nan bin prices that hour at max(0.0, nan) == 0.0 (#922).
+                if not np.all(np.isfinite(parsed)):
+                    raise ValueError("non-finite bin")
+                model.shapes = parsed
             except (TypeError, ValueError, OverflowError):
-                pass
+                _LOGGER.warning("Persisted price shape has a non-finite or unreadable bin; restarting flat")
         if isinstance(days, list) and len(days) == 2:
             try:
                 model.days = [int(v) for v in days]
@@ -339,9 +343,13 @@ class PriceShapeModel:
             )
         ):
             try:
-                model.quarter_factors = [[float(v) for v in s] for s in quarters]
+                parsed = [[float(v) for v in s] for s in quarters]
+                # Same gate as the shapes above (#922).
+                if not np.all(np.isfinite(parsed)):
+                    raise ValueError("non-finite factor")
+                model.quarter_factors = parsed
             except (TypeError, ValueError, OverflowError):
-                pass
+                _LOGGER.warning("Persisted quarter factors are non-finite or unreadable; restarting flat")
         qdays = data.get("quarter_days")
         if isinstance(qdays, list) and len(qdays) == 2:
             try:
