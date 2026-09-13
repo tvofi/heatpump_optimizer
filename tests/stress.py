@@ -472,7 +472,11 @@ SCENARIO_BUDGET_FLOOR_RATIO = float(
 #: so it must never run inside the timed sweep; the memory pass re-runs a
 #: fixed subset of scenarios afterwards, untimed, and reports the traced
 #: allocation peak and the process's RSS watermark growth. Peaks are
-#: budgeted against the same recorded table, at this factor.
+#: budgeted against the same recorded table, at this factor, over the
+#: SCENARIO-ATTRIBUTABLE component: probe watermark minus the empty-probe
+#: baseline measured in the same run (#949). The factor is held under
+#: DETECTION_TARGET by the detection check -- a 2x regression must fail,
+#: which no additive floor on either axis survives.
 MEMORY_BUDGET_FACTOR = float(os.environ.get("STRESS_MEMORY_FACTOR", "1.5"))
 #: How many scenarios the memory pass covers, split evenly between the two
 #: recorded axes: the biggest traced allocation peaks and the biggest RSS
@@ -484,12 +488,14 @@ MEMORY_TOP_N = int(os.environ.get("STRESS_MEMORY_TOP_N", "6"))
 
 #: The committed per-scenario budget table, read from the repo root (the
 #: suite always runs from there, per tests/run.sh). Contents: {"scenario":
-#: {"ratio": <clean-run work ratio>, "rss_peak_mb": ..., "traced_peak_mb":
-#: ...}}. Recorded by `stress.py --record-budgets`, which prints the table
-#: for shell capture (see print_budget_table); a missing or renamed
-#: scenario fails the check run loudly rather than falling back to the
-#: global budget, because a silent fallback is how the cheapest scenario
-#: regressed 2626x unnoticed in the first place.
+#: {"ratio": <clean-run work ratio>, "rss_peak_mb": ..., "rss_attrib_mb":
+#: <probe watermark minus the same run's empty-probe baseline>,
+#: "traced_peak_mb": ...}}. Recorded by `stress.py --record-budgets`, which
+#: prints the table for shell capture (see print_budget_table), or
+#: memory-only by `stress.py --record-memory` (see record_memory_table);
+#: a missing or renamed scenario fails the check run loudly rather than
+#: falling back to the global budget, because a silent fallback is how the
+#: cheapest scenario regressed 2626x unnoticed in the first place.
 BUDGET_TABLE_PATH = "tests/stress_budgets.json"
 
 #: How many reference samples the trailing median runs over. Wide enough
@@ -1176,6 +1182,139 @@ def print_budget_table(table: dict) -> None:
     print("END BUDGET TABLE")
 
 
+def _memory_probe_env() -> dict:
+    """The environment every memory probe launches with, builder-stub first."""
+    env = dict(os.environ)
+    tests_dir = os.path.dirname(os.path.abspath(__file__))
+    repo_root = os.path.dirname(tests_dir)
+    for part in (os.path.join(tests_dir, "hastub"),
+                 os.path.join(repo_root, "custom_components")):
+        env["PYTHONPATH"] = part + os.pathsep + env.get("PYTHONPATH", "")
+    return env
+
+
+def _run_memory_probe(mode_args: list[str], env: dict) -> dict:
+    """Launch one probe subprocess (--memory-probe / --memory-baseline).
+
+    The gate's own entry point, byte for byte: the same file, interpreter
+    and environment a gate run exercises, so what comes back is what the
+    memory pass would have measured itself. Raises on anything but a
+    parsable last line, with the child's tail in the message.
+    """
+    proc = subprocess.run(
+        [sys.executable, os.path.abspath(__file__)] + mode_args,
+        capture_output=True, text=True, env=env,
+    )
+    try:
+        return json.loads(proc.stdout.strip().splitlines()[-1])
+    except (ValueError, IndexError):
+        raise RuntimeError(
+            f"probe {' '.join(mode_args[:1])} produced no parsable output: "
+            f"{(proc.stderr or proc.stdout or 'nothing')[-400:]}"
+        ) from None
+
+
+def record_memory_table(combos: list[dict]) -> None:
+    """`--record-memory`: re-record ONLY the memory half of the budget table.
+
+    Probes every scenario plus the empty baseline in subprocesses and
+    prints the memory fields between markers, for the same deliberate
+    shell capture as print_budget_table --
+
+        python3 tests/stress.py --record-memory \\
+          | sed -n '/^BEGIN MEMORY TABLE$/,/^END MEMORY TABLE$/p' \\
+          | grep -v MEMORY TABLE > /tmp/memory-half.json
+
+    The block is then merged into tests/stress_budgets.json BY HAND, one
+    field per scenario (rss_peak_mb, rss_attrib_mb, traced_peak_mb); the
+    CPU `ratio` field is deliberately not re-measured here.
+
+    Why a separate mode (#949): `--record-budgets` re-records the CPU
+    ratios from the sweep it runs, which belongs beside a quiet, locked,
+    exclusive sweep -- while the memory fields are subprocess probes
+    whose values do not depend on any sweep this process ran first.
+
+    The attributable column is a MAXIMUM over probes, not a single
+    sample, and the scenarios CHECK MODE actually compares get three
+    passes where the rest get one: ru_maxrss is a max statistic whose
+    clean spread is solver-path dependent (the same basin bimodality the
+    CPU concession above SCENARIO_BUDGET_FACTOR documents -- nine
+    same-box probes of one scenario measured 6.7-14.1 MiB), so a single
+    low draw as the record would false-red the first high draw at any
+    factor under the spread. Recording the observed maximum is measuring
+    the statistic, not padding it; a later probe above record x
+    MEMORY_BUDGET_FACTOR still reds honestly, and the remedy is this
+    mode again.
+    """
+    combos_by_label = {
+        c["label"]: {k: v for k, v in c.items() if k != "label"}
+        for c in combos
+    }
+    env = _memory_probe_env()
+    print(f"  recording memory budgets for {len(combos_by_label)} scenarios "
+          f"(a full solve each, under tracemalloc)")
+    baseline = float(_run_memory_probe(["--memory-baseline"], env)["rss_mb"])
+    table: dict[str, dict] = {}
+    ordered = sorted(combos_by_label)
+
+    def _probe_attrib(label: str) -> tuple[float, float, float]:
+        probe = _run_memory_probe(
+            ["--memory-probe", json.dumps(combos_by_label[label])], env
+        )
+        rss_peak = float(probe["rss_mb"])
+        traced_peak = float(probe["traced_mb"])
+        return rss_peak, max(0.0, rss_peak - baseline), traced_peak
+
+    for i, label in enumerate(ordered, 1):
+        rss_peak, attrib, traced_peak = _probe_attrib(label)
+        table[label] = {
+            "rss_peak_mb": round(rss_peak, 1),
+            "rss_attrib_mb": round(attrib, 1),
+            "traced_peak_mb": round(traced_peak, 2),
+        }
+        print(f"  [{i:>2}/{len(ordered)}] {label:<34} "
+              f"RSS {rss_peak:7.1f} MiB, attributable {attrib:5.1f} MiB, "
+              f"traced {traced_peak:5.2f} MiB", flush=True)
+
+    # The check-exposed leaders (the same selection rule the memory pass
+    # applies to the COMMITTED table) get two more passes, and keep their
+    # maximum: theirs are the only recorded attributables a check run
+    # ever compares against a probe.
+    committed = load_budget_table()
+    selection_source = committed if committed else table
+    half = max(1, MEMORY_TOP_N // 2)
+    exposed: list[str] = []
+    for key in ("traced_peak_mb", "rss_peak_mb"):
+        ranked = sorted(
+            (-float(entry.get(key, 0.0)), label)
+            for label, entry in selection_source.items()
+            if isinstance(entry, dict) and float(entry.get(key, 0.0)) > 0.0
+        )
+        taken = 0
+        for _peak, label in ranked:
+            if taken >= half:
+                break
+            if label in exposed or label not in table:
+                continue
+            exposed.append(label)
+            taken += 1
+    for label in exposed:
+        best = table[label]["rss_attrib_mb"]
+        for extra in (2, 3):
+            _rss, attrib, _tr = _probe_attrib(label)
+            best = max(best, round(attrib, 1))
+            print(f"        extra pass {extra} for {label:<26} "
+                  f"attributable {attrib:5.1f} MiB "
+                  f"(recorded max now {best:.1f})", flush=True)
+        table[label]["rss_attrib_mb"] = best
+    print(f"  empty-probe baseline for that run: {baseline:.1f} MiB of RSS "
+          f"(same imports, no scenario); the attributable column above is "
+          f"each probe minus this")
+    print("BEGIN MEMORY TABLE")
+    print(json.dumps(table, indent=1, sort_keys=True))
+    print("END MEMORY TABLE")
+
+
 def scenario_budget(label: str, table: dict) -> float | None:
     """This scenario's allowed work ratio, or None when unrecorded.
 
@@ -1221,20 +1360,54 @@ def work_over_verdict(observed: int, recorded: int) -> bool:
     return observed > recorded * SCENARIO_WORK_FACTOR
 
 
-def rss_fail_threshold(recorded_rss: float) -> float:
-    """The RSS watermark (MiB) a probe may reach before the check fails.
+def rss_attrib_fail_threshold(recorded_attrib: float) -> float:
+    """The scenario-attributable RSS growth (MiB) a probe may show before
+    the check fails.
+
+    The input is the RECORDED attributable component (probe watermark
+    minus the same run's empty-probe baseline), never the absolute
+    watermark: the ~75-95 MiB of interpreter+numpy every probe carries is
+    platform-shaped, and budgeting it is what made the old 150-MiB floor
+    the whole rule -- a scenario had to reach 2.53-2.64x its record
+    before failing, against DETECTION_TARGET 2.0 (#949, round 4 D9-06).
+
+    One measured concession, the memory twin of the basin-bimodality
+    note above SCENARIO_BUDGET_FACTOR: the clean attributable watermark
+    is solver-path dependent -- nine same-box probes of winter/pv
+    measured 6.7-14.1 MiB, a 2.1x spread on an unchanged tree -- so the
+    recorded value is the observed MAXIMUM over the recorder's passes
+    (see record_memory_table), and this threshold keeps 50 % of margin
+    above that maximum. A sub-2x regression can therefore hide in the
+    clean spread on a single low draw, and the traced arm -- whose clean
+    spread is ~1 % -- is the precise detector for Python-side growth;
+    this arm is the one that sees what tracemalloc cannot, at the
+    multiples that make a genuine watermark move unmistakable (the #949
+    demonstration: a doubling of the recorded peak lands 8-9x over its
+    attributable record).
 
     Shared by the memory pass's comparison and the detection check below,
-    for the same reason work_over_verdict is: a budget the check cannot see
-    drifting is a budget nobody re-derives, and a rule that only exists at
-    its call site cannot be held to DETECTION_TARGET by anything.
+    for the same reason work_over_verdict is: a budget the check cannot
+    see drifting is a budget nobody re-derives, and a rule that only
+    exists at its call site cannot be held to DETECTION_TARGET by
+    anything. No additive floor on either axis, for the reason
+    SCENARIO_BUDGET_FLOOR_RATIO is 0.0: a floor that dominates the factor
+    blinds the smallest records, and the detection check refuses it.
     """
-    return recorded_rss + max(150.0, recorded_rss * (MEMORY_BUDGET_FACTOR - 1.0))
+    return recorded_attrib * MEMORY_BUDGET_FACTOR
 
 
 def traced_fail_threshold(recorded_traced: float) -> float:
-    """The traced peak (MiB) a probe may reach before the check fails."""
-    return recorded_traced * MEMORY_BUDGET_FACTOR + 2.0
+    """The traced peak (MiB) a probe may reach before the check fails.
+
+    The old `+ 2` additive went with the 150-MiB RSS floor: it put the
+    threshold at 2.59x on a 1.83 MiB record and 3.77x on the smallest
+    (0.88 MiB), blind to the target in both; the measured run-to-run
+    spread of the traced peak is a tenth of a MiB or so (3.46-3.47 over
+    five same-box repetitions, 3.4 on a Linux CI runner, against a 3.46
+    record), which a bare factor absorbs with an order of magnitude to
+    spare.
+    """
+    return recorded_traced * MEMORY_BUDGET_FACTOR
 
 
 #: The worker that captures one tree's solver work, run as a fresh
@@ -1530,9 +1703,16 @@ def _memory_probe_main(argv: list[str]) -> int:
     sweep traced ~1.8 MiB while actually holding tens of MiB of arrays),
     and ru_maxrss in the parent is a watermark every earlier scenario
     already raised. A fresh process gives each scenario an honest
-    high-water mark; the interpreter+numpy baseline it also contains is
-    the same constant in every probe, recorded and measured alike, so it
-    cancels in the comparison.
+    high-water mark.
+
+    The interpreter+numpy baseline a probe also contains does NOT cancel
+    in the comparison (#949, round 4 D9-06): the old rule compared the
+    absolute watermark against recorded-plus-a-150-MiB floor, and that
+    floor -- sized for a baseline that was supposed to cancel -- is what
+    let a 2x regression pass on all fifty-one scenarios. The baseline is
+    now MEASURED, by `--memory-baseline` in the same run, and subtracted:
+    what the memory pass budgets is the scenario-attributable growth, not
+    the watermark it rides on.
     """
     spec = json.loads(argv[argv.index("--memory-probe") + 1])
     tracemalloc.start()
@@ -1550,8 +1730,36 @@ def _memory_probe_main(argv: list[str]) -> int:
     return 0
 
 
+def _memory_baseline_main(argv: list[str]) -> int:
+    """`--memory-baseline`: the empty probe -- same imports, no scenario.
+
+    Everything `--memory-probe` pays before build_case runs: this file's
+    own module-level imports (numpy, scipy, the integration modules) and
+    nothing else. The parent launches it with the same interpreter and
+    environment as the real probes, in the same memory pass, and the
+    difference of the two watermarks is the scenario-attributable RSS the
+    budget judges. Measured per run rather than recorded, because the
+    baseline is exactly the part that does not travel between platforms.
+
+    One honest limit, stated where it is designed in: ru_maxrss is a
+    high-water mark, so on a platform whose import peak already exceeds a
+    scenario's build_case peak the attributable component reads as zero
+    and the RSS arm says nothing about that scenario below the import
+    peak. The traced arm is the one that sees Python-side growth there;
+    the RSS arm still sees any regression that pushes past the import
+    peak -- which every regression of the recorded peak's own size does,
+    the case DETECTION_TARGET is sized for.
+    """
+    del argv  # the flag alone selects this mode
+    print(json.dumps({"rss_mb": round(rss_mb(), 1)}))
+    return 0
+
+
 if "--memory-probe" in sys.argv:
     sys.exit(_memory_probe_main(sys.argv))
+
+if "--memory-baseline" in sys.argv:
+    sys.exit(_memory_baseline_main(sys.argv))
 
 
 def sweep_combinations() -> list[dict]:
@@ -1953,6 +2161,13 @@ if __name__ == "__main__":
 
     combinations = sweep_combinations()
     record_mode = "--record-budgets" in sys.argv
+
+    if "--record-memory" in sys.argv:
+        # Memory-only recording (#949): no sweep, no solver-work baseline,
+        # no economics -- just the probes and the empty baseline, exiting
+        # before anything timed starts.
+        record_memory_table(combinations)
+        sys.exit(0)
 
     # THE BASELINE HALF OF THE SOLVER-WORK COMPARISON (#387), captured
     # before this tree solves anything so that a broken ref or an
@@ -2376,10 +2591,12 @@ if __name__ == "__main__":
     # memory pass re-runs a subset of scenarios UNTIMED in SUBPROCESSES
     # after the sweep: each probe reports its own ru_maxrss (a real
     # high-water mark, numpy included) and its traced allocation peak.
-    # Both are budgeted from the same recorded table. The RSS budget's
-    # headroom is generous on purpose: the interpreter+numpy baseline
-    # differs by tens of MiB across platforms, and this check exists to
-    # catch retained-growth regressions, not interpreter noise.
+    # Both are budgeted from the same recorded table, at
+    # MEMORY_BUDGET_FACTOR over the SCENARIO-ATTRIBUTABLE component: the
+    # empty-probe baseline is measured in the same run and subtracted,
+    # because it does not cancel on its own -- budgeting the absolute
+    # watermark against a 150-MiB floor is what blinded the old rule to a
+    # 2x regression on all fifty-one scenarios (#949, round 4 D9-06).
     R.section("Memory (D9-04)")
     # Record mode probes ALL of them. Check mode probes the scenarios whose
     # RECORDED peaks are the largest -- half by traced allocation, half by
@@ -2396,8 +2613,10 @@ if __name__ == "__main__":
     # a box with no competing test process and load1 1.74-2.10, the memory
     # pass falls from 667.7 s of child CPU to 207.0 s, which is 60 % of this
     # whole script's cost. It is also the tighter test: the traced budget is
-    # recorded x1.5 + 2 MiB, which is 2.08x on a 3.47 MiB record and 2.59x
-    # on an 1.83 MiB one.
+    # recorded x1.5, which catches a 2x traced regression with the whole
+    # factor as margin (the old "+ 2 MiB" put the threshold at 2.59x on a
+    # 1.83 MiB record and 3.77x on the smallest, 0.88 MiB -- one of the
+    # two blind spots of #949).
     #
     # Selecting from the COMMITTED table rather than from this run's
     # measurements also makes the probe set machine-independent, which fixes
@@ -2441,62 +2660,79 @@ if __name__ == "__main__":
     rss_before_mb = rss_mb()
     mem_over: list[str] = []
     mem_unrecorded: list[str] = []
-    probe_env = dict(os.environ)
-    tests_dir = os.path.dirname(os.path.abspath(__file__))
-    repo_root = os.path.dirname(tests_dir)
-    for part in (os.path.join(tests_dir, "hastub"),
-                 os.path.join(repo_root, "custom_components")):
-        probe_env["PYTHONPATH"] = (
-            part + os.pathsep + probe_env.get("PYTHONPATH", "")
-        )
-    import subprocess as _sp
+    probe_env = _memory_probe_env()
+
+    # The empty probe, launched FIRST and in the SAME run as the probes it
+    # judges (#949): the interpreter+numpy baseline is the part of every
+    # watermark that is platform-shaped, so it is measured live and
+    # subtracted rather than recorded or absorbed into a floor.
+    baseline_rss = float(
+        _run_memory_probe(["--memory-baseline"], probe_env)["rss_mb"]
+    )
+    print(
+        f"  empty-probe baseline (same imports, no scenario): "
+        f"{baseline_rss:.1f} MiB of RSS, subtracted from every probe below"
+    )
 
     for label in mem_labels:
-        proc = _sp.run(
-            [sys.executable, os.path.abspath(__file__), "--memory-probe",
-             json.dumps(combos_by_label[label])],
-            capture_output=True, text=True, env=probe_env,
-        )
         try:
-            probe = json.loads(proc.stdout.strip().splitlines()[-1])
-        except (ValueError, IndexError):
+            probe = _run_memory_probe(
+                ["--memory-probe", json.dumps(combos_by_label[label])],
+                probe_env,
+            )
+        except RuntimeError as _probe_err:
             R.check(
                 f"the memory probe for {label} ran",
                 False,
-                (proc.stderr or proc.stdout or "no output")[-200:],
+                str(_probe_err)[-200:],
             )
             continue
         rss_peak = float(probe["rss_mb"])
         traced_peak = float(probe["traced_mb"])
+        rss_attrib = max(0.0, rss_peak - baseline_rss)
         entry = new_table.get(label) if record_mode else budget_table.get(label)
         recorded_rss = float(entry.get("rss_peak_mb", 0.0)) if entry else 0.0
         recorded_traced = (
             float(entry.get("traced_peak_mb", 0.0)) if entry else 0.0
         )
+        recorded_attrib = (
+            float(entry.get("rss_attrib_mb", 0.0)) if entry else 0.0
+        )
         if record_mode:
             new_table[label]["rss_peak_mb"] = round(rss_peak, 1)
+            new_table[label]["rss_attrib_mb"] = round(rss_attrib, 1)
             new_table[label]["traced_peak_mb"] = round(traced_peak, 2)
         else:
-            if recorded_rss <= 0.0 or recorded_traced <= 0.0:
+            if (
+                recorded_rss <= 0.0
+                or recorded_traced <= 0.0
+                or recorded_attrib <= 0.0
+            ):
+                # A scenario with no rss_attrib_mb is a table recorded
+                # before #949: refuse loudly rather than fall back to the
+                # absolute watermark, which is the rule this fix retired.
                 mem_unrecorded.append(label)
                 continue
-            if rss_peak > rss_fail_threshold(recorded_rss):
+            if rss_attrib > rss_attrib_fail_threshold(recorded_attrib):
                 mem_over.append(
-                    f"{label} RSS peak {rss_peak:.0f} MiB vs recorded "
-                    f"{recorded_rss:.0f} MiB (+150 MiB or "
-                    f"x{MEMORY_BUDGET_FACTOR:.1f} headroom)"
+                    f"{label} attributable RSS {rss_attrib:.1f} MiB vs "
+                    f"recorded {recorded_attrib:.1f} MiB "
+                    f"(x{MEMORY_BUDGET_FACTOR:.1f} headroom; probe "
+                    f"{rss_peak:.1f} MiB over a {baseline_rss:.1f} MiB "
+                    f"baseline)"
                 )
             if traced_peak > traced_fail_threshold(recorded_traced):
                 mem_over.append(
                     f"{label} traced peak {traced_peak:.1f} MiB vs recorded "
                     f"{recorded_traced:.1f} MiB "
-                    f"(x{MEMORY_BUDGET_FACTOR:.1f} + 2)"
+                    f"(x{MEMORY_BUDGET_FACTOR:.1f})"
                 )
         print(
-            f"  {label:<34} RSS peak {rss_peak:7.1f} MiB, traced "
-            f"{traced_peak:5.1f} MiB"
+            f"  {label:<34} RSS peak {rss_peak:7.1f} MiB, attributable "
+            f"{rss_attrib:5.1f} MiB, traced {traced_peak:5.1f} MiB"
             + (
-                f" (recorded {recorded_rss:.0f} / {recorded_traced:.1f})"
+                f" (recorded {recorded_rss:.0f} / {recorded_attrib:.0f} "
+                f"/ {recorded_traced:.1f})"
                 if recorded_rss > 0.0
                 else " (unrecorded)"
             )
@@ -2508,6 +2744,24 @@ if __name__ == "__main__":
         f"here means the pass itself retained memory)"
     )
     if not record_mode:
+        # Said rather than implied (#949): the memory pass compares
+        # MEMORY_TOP_N of the recorded scenarios; the rest are compared
+        # only when their budgets are recorded. A regression confined to
+        # an unprobed scenario is invisible here -- the recorded leaders
+        # on both axes are always probed (the check below), and probing
+        # all fifty-one would cost this pass five times over, which is a
+        # trade stated here rather than silently reversed.
+        _mem_recorded = sum(
+            1
+            for entry in budget_table.values()
+            if isinstance(entry, dict)
+            and float(entry.get("traced_peak_mb", 0.0)) > 0.0
+        )
+        print(
+            f"  coverage: this pass probed {len(mem_labels)} of "
+            f"{_mem_recorded} recorded memory budgets; the unprobed ones "
+            f"are compared only at recording time"
+        )
         # The pass is only worth its CPU if it probes the scenarios that
         # actually allocate. It used to probe six samples of one middling
         # profile and miss both extremes, so this states the requirement
@@ -2663,12 +2917,30 @@ if __name__ == "__main__":
     # are exact rationals of the committed table and the module constants,
     # so like the arms above this is machine-independent arithmetic judged
     # against the recording, never against this run's own probes.
-    _mem_rss_mult = {
-        label: rss_fail_threshold(float(entry["rss_peak_mb"]))
-        / float(entry["rss_peak_mb"])
+    _mem_have_attrib = [
+        label
         for label, entry in budget_table.items()
-        if isinstance(entry, dict) and float(entry.get("rss_peak_mb", 0.0)) > 0.0
+        if isinstance(entry, dict)
+        and float(entry.get("rss_peak_mb", 0.0)) > 0.0
+    ]
+    _mem_rss_mult = {
+        label: rss_attrib_fail_threshold(float(entry["rss_attrib_mb"]))
+        / float(entry["rss_attrib_mb"])
+        for label, entry in budget_table.items()
+        if isinstance(entry, dict)
+        and float(entry.get("rss_attrib_mb", 0.0)) > 0.0
     }
+    _mem_no_attrib = [
+        label for label in _mem_have_attrib if label not in _mem_rss_mult
+    ]
+    if _mem_no_attrib:
+        _blind.append(
+            f"{len(_mem_no_attrib)} recorded scenario(s) have an RSS peak "
+            f"but no rss_attrib_mb budget (first: "
+            f"{sorted(_mem_no_attrib)[0]}): the attributable rule cannot "
+            f"judge them -- re-record the memory half with "
+            f"`stress.py --record-memory`"
+        )
     _mem_traced_mult = {
         label: traced_fail_threshold(float(entry["traced_peak_mb"]))
         / float(entry["traced_peak_mb"])
@@ -2685,7 +2957,7 @@ if __name__ == "__main__":
             f"regression on {len(_mem_blind_rss)} of {len(_mem_rss_mult)} "
             f"recorded scenario(s): the tightest threshold sits at "
             f"{min(_mem_rss_mult[l] for l in _mem_blind_rss):.2f}x the "
-            f"recorded peak, so anything smaller passes green"
+            f"recorded attributable peak, so anything smaller passes green"
         )
     _mem_blind_traced = [
         label for label, m in _mem_traced_mult.items() if m >= DETECTION_TARGET
@@ -2701,11 +2973,12 @@ if __name__ == "__main__":
         )
     if _mem_rss_mult and _mem_traced_mult:
         print(
-            f"  detection for MEMORY: RSS budget "
+            f"  detection for MEMORY: attributable-RSS budget "
             f"{min(_mem_rss_mult.values()):.2f}x, traced budget "
-            f"{min(_mem_traced_mult.values()):.2f}x of the recorded peak -- "
-            f"a regression smaller than these multiples passes the memory "
-            f"section green on every probed scenario"
+            f"{min(_mem_traced_mult.values()):.2f}x of the recorded peak, "
+            f"over the {len(mem_labels)} scenario(s) this pass probes -- a "
+            f"regression smaller than these multiples passes the memory "
+            f"section green"
         )
     print(
         f"  detection on THIS machine: per-scenario ceiling "
