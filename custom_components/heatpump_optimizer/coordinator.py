@@ -3376,23 +3376,18 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             return
 
         # In the frosting band the shortfall belongs to the defrost derate,
-        # which learns from the same signal; letting both learners fold in the
-        # same interval corrects one shortfall twice. See defrost.in_frost_band.
-        #
-        # v5.3.0 narrows this from the whole band to the intervals that
-        # actually contain a defrost. The disjointness argument only ever
-        # justified excluding intervals the derate learns from — but without a
-        # flag there was no way to tell which those were, so the exclusion had
-        # to cover 0-5 °C entirely. In a Swedish shoulder season that is a
-        # large share of all heating hours, and ``cop_scale`` multiplies every
-        # cost the integration reports: the one learner whose error is in
-        # every number was blind in the conditions it spends most of its life
-        # in. With a real flag the attribution stays disjoint at much finer
-        # grain — a defrosting interval is still the derate's alone.
-        #
-        # ``observed`` is what keeps this honest. No flag, an unreadable flag,
-        # or a flag past its horizon all fall back to the whole-band
-        # exclusion, so nothing changes for an install without one.
+        # which learns from the same signal; letting both learners fold in
+        # the same interval corrects one shortfall twice. See
+        # defrost.in_frost_band. v5.3.0 narrowed this from the whole band to
+        # the intervals that actually contain a defrost — without a flag
+        # there was no way to tell which those were, and ``cop_scale``
+        # multiplies every cost the integration reports. Since #944 the
+        # shared gate refuses the intervals the flag marks live, so what is
+        # left here is the narrowing: a defrost that ended earlier in the
+        # window (the flag reads False now but the window remembers it),
+        # and the whole-band fallback when ``observed`` is false — no flag,
+        # an unreadable flag, or one past its horizon, so an install
+        # without one behaves exactly as it did.
         if in_frost_band(ctx._current_state.outdoor_temperature):
             window = self._defrost_window.peek(dt_util.now())
             if not window.observed or window.any_defrost:
@@ -5169,24 +5164,28 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if self._external_heat_active:
             return "external_heat_source"
         # v5.3.0: the plant-wide freezes, from the heat pump's own signals.
-        #
-        # These have a shape the loop below cannot express, which is why they
-        # are not folded into it. That loop asks "is the reading the caller
-        # named unusable" — it freezes on the *absence* of a measurement. The
-        # three conditions here freeze on the *presence* of one: the online
-        # flag says False, the fault flag says True, the mode says cooling.
-        # Every one of them is a perfectly healthy, perfectly fresh reading
-        # that happens to be bad news, and every one of them makes the whole
-        # interval misleading rather than one sensor unreadable — so they are
-        # not scoped to the caller's keys either. See ``pump_signals.py`` for
-        # why the absence of these signals never freezes anything.
-        #
-        # Ahead of the key loop because they are the root cause when both
-        # fire: a pump that has dropped off the network explains its own
-        # sensors going quiet, and reporting the symptom would send a user
-        # looking at the wrong thing.
-        if self._pump_signals.freeze_reason is not None:
-            return self._pump_signals.freeze_reason
+        # They have a shape the loop below cannot express: that loop asks
+        # "is the reading the caller named unusable" and freezes on the
+        # *absence* of a measurement, while these freeze on the *presence*
+        # of one — the online flag says False, the fault flag says True,
+        # the mode says cooling. Each is a healthy, fresh reading that
+        # happens to be bad news and makes the whole interval misleading
+        # rather than one sensor unreadable, so they are not scoped to the
+        # caller's keys either, and they sit ahead of the key loop as the
+        # root cause when both fire: reporting the symptom would send a
+        # user looking at the wrong thing. See ``pump_signals.py`` for why
+        # the absence of these signals never freezes anything.
+        signals = self._pump_signals
+        if signals.freeze_reason is not None:
+            return signals.freeze_reason
+        # #944 (round-4 D7-03): a fourth presence condition, kept out of
+        # ``freeze_reason`` because the derate still folds these intervals
+        # (the settlement exempts the reason it causes). A defrost reverses
+        # the cycle — the interval's heat is negative while the learners
+        # replay the commanded power as if it had flowed — and happens
+        # below the frost band too, where the COP learner's guard ends.
+        if signals.defrosting:
+            return "defrosting"
         # An unusable input outranks ventilation deliberately: the heat-loss
         # learner treats "ventilation" as a pass-through to keep feeding
         # the detector, and a flatline fed through that pass would
@@ -8898,9 +8897,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     }
 
                 # The defrost derate, from whichever estimator this install
-                # can support. Either way it is only meaningful while the
-                # learners are not frozen for some other reason.
-                if not self._learning_frozen(CONF_POWER_ENTITY):
+                # can support, while the learners are not frozen for some
+                # other reason — "defrosting" alone is exempted, because
+                # that interval is the derate's own evidence (#944).
+                if self._learning_frozen(CONF_POWER_ENTITY) in (None, "defrosting"):
                     self._settle_defrost(sample, defrost_window)
 
         self._pending_prediction = {
