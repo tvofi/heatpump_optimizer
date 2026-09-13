@@ -255,6 +255,70 @@ R.check(
     bad.value is None and bad.problem == "unknown_unit",
 )
 
+# Temperature and energy units (#961): Home Assistant converts a
+# device_class:temperature sensor to the instance unit system in the state
+# machine, so a US-customary install hands the integration the same physical
+# plant in °F -- and a device-class-less sensor can publish degF spellings.
+# `read` consults the entity's declared unit rather than adopting the raw
+# number as degC/kWh, the same principle `read_power_kw` applies to W. The
+# values are the finder's plant: indoor 21.4 °C reports as 70.5 °F, the DHW
+# tank 52.0 °C as 125.6 °F, the meter 1234.5 kWh as 1234500 Wh.
+us_reader = InputReader(
+    FakeHass(
+        {
+            "sensor.us_indoor": FakeState("70.5", unit="°F", last_updated=NOW),
+            "sensor.us_tank": FakeState("125.6", unit="°F", last_updated=NOW),
+            "sensor.us_meter": FakeState("1234500", unit="Wh", last_updated=NOW),
+            "sensor.us_inlet": FakeState("294.55", unit="K", last_updated=NOW),
+            "sensor.se_indoor": FakeState("21.4", unit="°C", last_updated=NOW),
+            "sensor.odd_tank": FakeState("21.4", unit="Réaumur", last_updated=NOW),
+        }
+    ),
+    {
+        "indoor_temp_entity": "sensor.us_indoor",
+        "dhw_temp_entity": "sensor.us_tank",
+        "heat_pump_energy_entity": "sensor.us_meter",
+        "floor_return_temp_entity": "sensor.us_inlet",
+        "outdoor_temp_entity": "sensor.se_indoor",
+        "buffer_tank_temp_entity": "sensor.odd_tank",
+    },
+    now=lambda: NOW,
+)
+us_indoor = us_reader.read("indoor_temp_entity")
+R.check(
+    "a °F temperature is converted to °C on read",
+    us_indoor.ok and abs(us_indoor.value - (70.5 - 32.0) * 5.0 / 9.0) < 1e-9,
+    f"got {us_indoor.value!r} for a plant at 21.4 °C reporting 70.5 °F",
+)
+us_dhw = us_reader.read("dhw_temp_entity")
+R.check(
+    "the DHW tank's °F reading converts exactly",
+    us_dhw.ok and abs(us_dhw.value - 52.0) < 1e-9,
+    f"got {us_dhw.value!r} for a tank at 52.0 °C reporting 125.6 °F",
+)
+us_meter = us_reader.read("heat_pump_energy_entity")
+R.check(
+    "a Wh energy meter is converted to kWh on read",
+    us_meter.ok and abs(us_meter.value - 1234.5) < 1e-9,
+    f"got {us_meter.value!r} for a meter at 1234.5 kWh reporting 1234500 Wh",
+)
+us_kelvin = us_reader.read("floor_return_temp_entity")
+R.check(
+    "a kelvin reading is converted to °C on read",
+    us_kelvin.ok and abs(us_kelvin.value - 21.4) < 1e-9,
+    f"got {us_kelvin.value!r} for 294.55 K",
+)
+R.check(
+    "a °C state still reads bit-for-bit",
+    us_reader.read("outdoor_temp_entity").value == 21.4,
+)
+odd_unit = us_reader.read("buffer_tank_temp_entity")
+R.check(
+    "an unrecognised unit keeps today's raw read instead of a guess",
+    odd_unit.ok and odd_unit.value == 21.4 and odd_unit.problem is None,
+    f"got {odd_unit.value!r} ({odd_unit.problem})",
+)
+
 
 # ===========================================================================
 # v5.3.0: strings and flags, guarded like numbers
@@ -1044,6 +1108,144 @@ R.check(
     "and reproduces the known window at its own hours",
     abs(2.0 * 1.5 - 3.0) < 1e-9 and bool(_lvl_mask[3]) and not bool(_lvl_mask[4]),
 )
+
+# --- A corrupt persisted bin must not price the guessed tail at 0 (#922) ----
+#
+# from_dict coerced each bin with float() and checked no finiteness, while
+# observe_day -- the writer of the same field -- refuses a non-finite day.
+# The strictly-valid-JSON string "nan" survives the Store round-trip, so a
+# corrupted bin reached extend_price_series, where max(0.0, nan) == 0.0
+# prices that hour's quarters as free electricity, silently.
+import asyncio as _aio922  # noqa: E402
+import json as _json922  # noqa: E402
+import logging as _logging922  # noqa: E402
+
+from harness import FakeEntry as _Entry922  # noqa: E402
+from heatpump_optimizer import const as _const922  # noqa: E402
+
+_LEARNED922 = [
+    0.70, 0.65, 0.62, 0.60, 0.62, 0.75, 1.00, 1.35,
+    1.40, 1.20, 1.05, 1.00, 0.98, 0.95, 0.95, 1.00,
+    1.15, 1.35, 1.30, 1.15, 1.00, 0.90, 0.82, 0.75,
+]
+_CFG922 = {
+    _const922.CONF_INDOOR_TEMP_ENTITY: "sensor.indoor",
+    _const922.CONF_OUTDOOR_TEMP_ENTITY: "sensor.outdoor",
+    _const922.CONF_DHW_TANK_VOLUME: 180.0,
+}
+
+
+def _coord922(entry_id):
+    """A coordinator whose price-model store is the test's own disk key."""
+    return Coord(
+        FakeHass(),
+        _Entry922(data=dict(_CFG922), entry_id=entry_id),
+    )
+
+
+class _Collect922(_logging922.Handler):
+    def __init__(self):
+        super().__init__()
+        self.records = []
+
+    def emit(self, record):
+        self.records.append(record)
+
+
+_pm_logger922 = _logging922.getLogger("heatpump_optimizer.price_model")
+_sink922 = _Collect922()
+_pm_logger922.addHandler(_sink922)
+
+_corrupt922 = _coord922("entry922corrupt")
+_shape922 = list(_LEARNED922)
+_shape922[22] = _json922.loads('"nan"')  # strict JSON: the *string* "nan"
+_aio922.run(
+    _corrupt922._price_model_store.async_save(
+        {
+            "model": {"shapes": [_shape922, list(_LEARNED922)], "days": [30, 30]},
+            "days_seen": [],
+            "quarter_days_seen": [],
+        }
+    )
+)
+_aio922.run(_corrupt922._async_load_price_model())
+_warned922 = [
+    r for r in _sink922.records if r.levelno >= _logging922.WARNING
+]
+R.check(
+    "a non-finite persisted shape bin is refused at load, loudly",
+    bool(np.all(np.isfinite(_corrupt922._price_model.shapes[0])))
+    and bool(np.all(np.isfinite(_corrupt922._price_model.shapes[1])))
+    and bool(_warned922),
+    f"weekday[22]={_corrupt922._price_model.shapes[0][22]}, "
+    f"warnings={len(_warned922)}",
+)
+_steps922 = [
+    datetime(2026, 1, 20, 0) + timedelta(minutes=15 * i) for i in range(96)
+]  # a Tuesday: the horizon reads the weekday profile
+_prices922, _mask922, _ = extend_price_series(
+    [1.0] * 40, 96, _steps922, _corrupt922._price_model
+)
+R.check(
+    "the guessed tail holds no zero-priced step",
+    not bool(np.any(np.asarray(_prices922[40:], dtype=float) <= 1e-12)),
+    f"{int(np.count_nonzero(np.asarray(_prices922) <= 1e-12))} of 96 "
+    f"planning steps priced at 0.0 SEK/kWh",
+)
+
+_qf922 = _coord922("entry922quarters")
+_qf_bad922 = [1.0] * 96
+_qf_bad922[22 * 4 + 3] = _json922.loads('"nan"')
+_aio922.run(
+    _qf922._price_model_store.async_save(
+        {
+            "model": {
+                "shapes": [list(_LEARNED922), list(_LEARNED922)],
+                "days": [30, 30],
+                "quarter_factors": [_qf_bad922, [1.0] * 96],
+                "quarter_days": [30, 30],
+            },
+            "days_seen": [],
+            "quarter_days_seen": [],
+        }
+    )
+)
+_aio922.run(_qf922._async_load_price_model())
+R.check(
+    "a non-finite persisted quarter factor is refused at load too",
+    bool(np.all(np.isfinite(_qf922._price_model.quarter_factors[0])))
+    and bool(np.all(np.isfinite(_qf922._price_model.quarter_factors[1]))),
+    f"weekday q87={_qf922._price_model.quarter_factors[0][22 * 4 + 3]}",
+)
+
+# Null control: an undamaged store still loads into exactly the model it
+# holds, with no warning -- the gate must cost a healthy payload nothing.
+_finite922 = _coord922("entry922finite")
+_aio922.run(
+    _finite922._price_model_store.async_save(
+        {
+            "model": {
+                "shapes": [list(_LEARNED922), list(_LEARNED922)],
+                "days": [30, 30],
+            },
+            "days_seen": ["2026-01-19"],
+            "quarter_days_seen": [],
+        }
+    )
+)
+_before922 = len(_sink922.records)
+_aio922.run(_finite922._async_load_price_model())
+_direct922 = PriceShapeModel()
+_direct922.shapes = [list(_LEARNED922), list(_LEARNED922)]
+_direct922.days = [30, 30]
+R.check(
+    "a finite store round-trips to the identical model, warning-free",
+    _finite922._price_model.as_dict() == _direct922.as_dict()
+    and _finite922._price_days_seen == {"2026-01-19"}
+    and len(_sink922.records) == _before922,
+    f"warnings added={len(_sink922.records) - _before922}",
+)
+_pm_logger922.removeHandler(_sink922)
 
 # --- Prices align by their own timestamps, not by list position ------------
 #
@@ -8170,6 +8372,63 @@ R.check(
     _gf.is_valid_spec("Maj Mån-Fre 06:00-22:00 = 0.2")
     and _gf.is_valid_spec("Okt-Dec Lör-Sön = 0.1"),
 )
+# --- #929: a comma between digits is a decimal separator ----------------------
+# The rate grammar `_parse_rule` implements (`,` -> `.`) must be reachable:
+# `parse_rules` splits rule lists on commas, so it has to leave a comma with
+# a digit on both sides alone. These arms are red until it does.
+R.check(
+    "a decimal comma parses where the dotted form does",
+    _gf.is_valid_spec("= 0,45")
+    and _gf.is_valid_spec("Maj Mån-Fre 06:00-22:00 = 0,25"),
+    f"spec_problem('= 0,45') = {_gf.spec_problem('= 0,45')!r}, "
+    f"spec_problem('Maj Mån-Fre 06:00-22:00 = 0,25') = "
+    f"{_gf.spec_problem('Maj Mån-Fre 06:00-22:00 = 0,25')!r}",
+)
+_dec_spec = "= 0,18, Nov-Mar Mon-Fri 06:00-22:00 = 0,27"
+try:
+    _dec_list = _gf.parse_rules(_dec_spec)
+    _dec_detail = f"rates {[r.rate for r in _dec_list]}"
+except _gf.GridFeeError as _dec_err:
+    _dec_list = []
+    _dec_detail = f"parse_rules raised {_dec_err!r}"
+R.check(
+    "a comma list with decimal commas is two rules, not fragments",
+    len(_dec_list) == 2
+    and abs(_dec_list[0].rate - 0.18) < 1e-9
+    and abs(_dec_list[1].rate - 0.27) < 1e-9,
+    _dec_detail,
+)
+_dec_sched = _gf.GridFeeSchedule.from_config(
+    {
+        hp_const.CONF_GRID_FEE_MODE: _gf.MODE_RULES,
+        hp_const.CONF_GRID_FEE_RULES: "= 0,45",
+        hp_const.CONF_GRID_FEE_FIXED: 0.0,
+    }
+)
+R.check(
+    "from_config prices a decimal-comma rate, not a degraded zero",
+    abs(_dec_sched.current_fee(_winter_day) - 0.45) < 1e-9,
+    f"fee {_dec_sched.current_fee(_winter_day)}, rules {len(_dec_sched.rules)}",
+)
+# The `== 2` this loop carried from #967 was a snapshot of the catalog that
+# branch was cut against: four invented base+surcharge rows, two rules each.
+# #968 (merged five minutes earlier, b9f31c5) replaced them with two sourced
+# flat rows — one rule each, and no digit-adjacent comma anywhere, so the
+# decimal-comma split cannot change how they parse — and #967 landing on top
+# (764405d) went red on the count alone, not on a parse. The property the
+# loop owns is unchanged: every shipped row parses whole (never rejected,
+# never fragmented — the parse sits at the loop head, so a row a parser
+# change stops loading reds this section rather than passing vacuously) and
+# `apply_catalog` writes the row's own string back byte-identically.
+for _dec_id, _dec_row in _gf.SWEDEN_CATALOG.items():
+    _dec_rules = _gf.parse_rules(_dec_row["grid_fee_rules"])
+    R.check(
+        f"{_dec_id} still parses whole and round-trips",
+        len(_dec_rules) >= 1
+        and _gf.apply_catalog(_dec_id)[hp_const.CONF_GRID_FEE_RULES]
+        == _dec_row["grid_fee_rules"],
+        f"{len(_dec_rules)} rules: {[r.rate for r in _dec_rules]}",
+    )
 R.check(
     "a wrapping month range covers the wrap and not the middle",
     2 in _gf.parse_month_range("Nov-Mar") and 6 not in _gf.parse_month_range("Nov-Mar"),
@@ -8451,6 +8710,152 @@ R.check(
     "default to 1.0",
     _pt_round._window_factor == _pt_night._window_factor
     and _PT.from_dict({"month": "2026-01", "peaks": [5.0]})._window_factor == 1.0,
+)
+
+# --- R4-D2-02 (#926): the catalog's transcribed effekt tariffs ---------------
+# The shipped rows wrote a peak-hours mask but never the off-peak factor, so
+# the mask discounted nothing (finding D2-02: 0 of 672 windows discounted on
+# every row). The transcribed rows carry what their DSO actually publishes,
+# per the owner's sources-or-stop ruling: an unsourced row is dropped, not
+# invented. Ellevio's effektabonnemang -- HISTORICAL, abolished effective
+# 2026-06-01 ("Den 1 juni 2026 återinförde vi en prismodell baserad på
+# säkringsstorlek", ellevio.se/abonnemang/prismodell-utan-effektavgift/) --
+# billed 81.25 kr/kW incl. moms (ellevio.se/abonnemang/elnatspriser/hus/)
+# on "snittet av de tre högsta effekttopparna under månaden, fördelade på
+# tre olika dygn", with "mellan klockan 22 och 06 ... räknas bara halva
+# effekttoppen" (ellevio.se/nyheter/energi-hemma/
+# vinterns-energivanor-sa-undviker-du-effekttoppar/) -- every month, any
+# weekday, night at half. Göteborg Energi's ordinarie villa tariff has no
+# time division at all -- "49 kr x snittet av månadens tre högsta
+# timmedeleffekt i kW", "Priser inkluderar 25% moms" (goteborgenergi.se/
+# privat/elnat/elnatspriser, prislista 2026) -- so its truthful factor is
+# 1.0 and its peak hours are the whole day, written 00:00-24:00: the same
+# "every hour is peak" the empty default encodes, and -- unlike the empty
+# string -- a form the D2-02 finder harness's declared_offpeak parser can
+# read, so its instrument still runs against this tree. Vattenfall
+# Eldistribution and E.ON Energidistribution are DROPPED: neither publishes
+# a SEK/kW peak tariff for private customers (Vattenfall: "en mindre
+# kundgrupp sedan oktober 2025", no price, autumn-2026 introduction paused
+# -- vattenfalleldistribution.se/.../effektguiden/; E.ON: never introduced,
+# paused -- eon.se/el/elnat/effekt). Their old 59.0/64.0 kr/kW matched no
+# price sheet; the gap is documented on #926.
+R.section("R4-D2-02 — catalog effekt tariffs carry their off-peak factors (#926)")
+
+from heatpump_optimizer.const import (
+    CONF_PEAK_TARIFF_OFFPEAK_FACTOR as _PT_FACTOR,
+)
+from heatpump_optimizer.const import CONF_GRID_FEE_RULES as _GFR
+from heatpump_optimizer.tariff import mask_active as _mask_active
+
+
+def _catalog_tariff(product_id):
+    """``apply_catalog``'s written config, wired the way the config flow
+    stores it and the coordinator reads it -- so the probe covers the row,
+    the write, and the config-to-CapacityTariff parse, not just the dict."""
+    applied = _gf.apply_catalog(product_id)
+    coord = _Coord(
+        _FakeHass({}),
+        _FakeEntry(
+            data={
+                "tibber_token": "x",
+                "weather_entity": "weather.home",
+                **applied,
+            }
+        ),
+    )
+    return applied, coord._capacity_tariff()
+
+
+_elv_applied, _elv_ct = _catalog_tariff("ellevio_villa_effekt_2026")
+R.check(
+    "ellevio's row writes its published night factor 0.5",
+    _elv_applied.get(_PT_FACTOR) == 0.5,
+    f"applied factor {_elv_applied.get(_PT_FACTOR)!r}",
+)
+R.check(
+    "ellevio's night 22:00-06:00 counts half, on weekdays and weekends alike",
+    _elv_ct.sample_factor(datetime(2026, 1, 15, 23, 0)) == 0.5
+    and _elv_ct.sample_factor(datetime(2026, 1, 15, 3, 0)) == 0.5
+    and _elv_ct.sample_factor(datetime(2026, 1, 17, 23, 0)) == 0.5,
+    "Thursday 23:00/03:00 and Saturday 23:00 are Ellevio's half-price night",
+)
+R.check(
+    "ellevio's day 06:00-22:00 counts in full, weekends included",
+    _elv_ct.sample_factor(datetime(2026, 1, 15, 12, 0)) == 1.0
+    and _elv_ct.sample_factor(datetime(2026, 1, 17, 12, 0)) == 1.0,
+)
+R.check(
+    "ellevio's fee bills every month: a July noon counts in full, a July "
+    "night at the factor",
+    _elv_ct.sample_factor(datetime(2026, 7, 15, 12, 0)) == 1.0
+    and _elv_ct.sample_factor(datetime(2026, 7, 15, 23, 0)) == 0.5,
+)
+R.check(
+    "ellevio's transcribed basis: 81.25 kr/kW, three hourly peaks, no "
+    "weekday or month mask",
+    _elv_ct.price_per_kw == 81.25
+    and _elv_ct.peaks_averaged == 3
+    and _elv_ct.window_minutes == 60
+    and _elv_ct.weekdays_only is False
+    and _elv_ct.months == frozenset(),
+    f"price {_elv_ct.price_per_kw}, peaks {_elv_ct.peaks_averaged}, "
+    f"window {_elv_ct.window_minutes}, weekdays_only "
+    f"{_elv_ct.weekdays_only}, months {sorted(_elv_ct.months)}",
+)
+R.check(
+    "ellevio's energy side is the same era's flat 7 öre/kWh transfer fee",
+    _elv_applied[_GFR] == "= 0.07",
+    f"rules {_elv_applied[_GFR]!r}",
+)
+
+_ge_applied, _ge_ct = _catalog_tariff("goteborg_energi_effekt_2026")
+R.check(
+    "göteborg's row writes factor 1.0: the tariff has no hour-based cut",
+    _ge_applied.get(_PT_FACTOR) == 1.0,
+    f"applied factor {_ge_applied.get(_PT_FACTOR)!r}",
+)
+R.check(
+    "göteborg's peak counts in full at every probed hour, day and month",
+    _ge_ct.sample_factor(datetime(2026, 1, 15, 12, 0)) == 1.0
+    and _ge_ct.sample_factor(datetime(2026, 1, 15, 23, 0)) == 1.0
+    and _ge_ct.sample_factor(datetime(2026, 1, 17, 12, 0)) == 1.0
+    and _ge_ct.sample_factor(datetime(2026, 1, 17, 3, 0)) == 1.0
+    and _ge_ct.sample_factor(datetime(2026, 7, 15, 12, 0)) == 1.0,
+    "tim-medeleffekt in any hour, any day, every month - no off-peak window",
+)
+R.check(
+    "göteborg's transcribed basis: 49 kr/kW, three hourly peaks, whole-day "
+    "peak hours at factor 1.0",
+    _ge_ct.price_per_kw == 49.0
+    and _ge_ct.peaks_averaged == 3
+    and _ge_ct.window_minutes == 60
+    and _ge_ct.weekdays_only is False
+    and _ge_ct.peak_hours == ((0.0, 24.0),)
+    and _ge_ct.months == frozenset(),
+    f"price {_ge_ct.price_per_kw}, peaks {_ge_ct.peaks_averaged}, "
+    f"window {_ge_ct.window_minutes}, hours {_ge_ct.peak_hours!r}, "
+    f"months {sorted(_ge_ct.months)}",
+)
+R.check(
+    "göteborg's whole-day mask at factor 1.0 is the flat model bit for "
+    "bit: mask_active is False, so no window is ever discounted",
+    not _mask_active(_ge_ct),
+    "a full-day peak-hours window with offpeak_factor 1.0 changes nothing",
+)
+R.check(
+    "göteborg's energy side is the 2026 flat 23 öre/kWh transfer fee",
+    _ge_applied[_GFR] == "= 0.23",
+    f"rules {_ge_applied[_GFR]!r}",
+)
+
+R.check(
+    "the two unsourced rows are dropped, and a stored id resolves to nothing",
+    _gf.catalog_choices()
+    == [_gf.DSO_PRODUCT_NONE, "ellevio_villa_effekt_2026",
+        "goteborg_energi_effekt_2026"]
+    and _gf.apply_catalog("vattenfall_eldistribution_effekt_2026") is None
+    and _gf.apply_catalog("eon_energidistribution_effekt_2026") is None,
+    f"choices {_gf.catalog_choices()!r}",
 )
 
 # --- #697 15-minute billed clock ---------------------------------------------
@@ -18204,6 +18609,129 @@ R.check(
     )[0].defrosting
     is None,
     "a latched on from yesterday must not keep excluding COP samples",
+)
+
+
+R.section("R4 D7-03 (#944) — the defrost flag freezes the shared learner gate")
+
+# ``freeze_reason`` deliberately does not carry the defrost flag: the derate
+# learner needs those intervals to count its duty. So the shared gate every
+# thermal learner consults has to read ``PumpSignals.defrosting`` itself. The
+# frost-band exclusion inside ``_learn_measured_cop`` cannot stand in for it —
+# defrosts happen below 0 °C too, where that band does not reach — and the
+# other three learners never had any guard at all. A defrost reverses the
+# cycle: the interval's delivered heat is negative while the learners replay
+# the commanded power as if it had flowed, so the residual is one-directional
+# and persists to disk.
+_df_gate = _t2_coord()
+_df_gate._pump_signals = PumpSignals(defrosting=True)
+R.check(
+    "a defrosting pump freezes the shared learner gate",
+    _df_gate._learning_frozen() == "defrosting",
+    f"got {_df_gate._learning_frozen()!r}: the interval's heat went backwards",
+)
+R.check(
+    "a false or absent defrost flag freezes nothing",
+    _t2_coord()._learning_frozen() is None
+    and _t2_coord()._pump_signals.defrosting is None,
+    "a value acts, its absence never does — most installs have no flag entity",
+)
+_df_prec = _t2_coord()
+_df_prec._pump_signals = PumpSignals(
+    freeze_reason=pump_signals.FREEZE_FAULT, defrosting=True
+)
+R.check(
+    "a plant-wide freeze still outranks the defrost flag",
+    _df_prec._learning_frozen() == pump_signals.FREEZE_FAULT,
+    "a faulted pump explains its own defrost flag; the symptom must not mask it",
+)
+
+# The finding's shape, through the real house heat-loss learner. The clean arm
+# is the control: the identical residual with no flag must still fold, or a
+# "frozen" reading below would only mean a dead setup.
+_df_clean = _vent_coord()
+_feed_residual(_df_clean, -0.5, 2, _T4)
+R.check(
+    "the identical clean interval still teaches the heat-loss learner",
+    _df_clean._house_heat_loss_scale != 1.0,
+    f"scale {_df_clean._house_heat_loss_scale:.4f}",
+)
+_df_house = _vent_coord()
+_df_house._pump_signals = PumpSignals(defrosting=True)
+_feed_residual(_df_house, -0.5, 2, _T4)
+R.check(
+    "a defrost interval teaches the heat-loss learner nothing",
+    _df_house._house_heat_loss_scale == 1.0
+    and _df_house._house_heat_loss_samples == 0
+    and _df_house._learner_freeze_reason == "defrosting",
+    f"scale {_df_house._house_heat_loss_scale:.4f}, "
+    f"{_df_house._house_heat_loss_samples} samples: a defrost pulls heat back "
+    "out of the circuit, so folding it walks the persisted scale one way",
+)
+
+# Below the frost band the bespoke COP exclusion does not reach — which is why
+# the shared gate, not the band, has to carry the flag.
+_df_cop = _t2_coord()
+_df_cop._current_state.outdoor_temperature = -3.0
+_df_cop._current_action = {"power": 3.0}
+_df_cop._measured_power = 2.6
+_df_cop._immersion_active = False
+_df_cop._pump_signals = PumpSignals(defrosting=True)
+_df_cop._learn_measured_cop()
+R.check(
+    "a defrost below the frost band reaches no COP sample either",
+    _df_cop._cop_samples == 0 and _df_cop._cop_scale == 1.0,
+    f"{_df_cop._cop_samples} samples, scale {_df_cop._cop_scale:.4f}",
+)
+_df_cop_ok = _t2_coord()
+_df_cop_ok._current_state.outdoor_temperature = -3.0
+_df_cop_ok._current_action = {"power": 3.0}
+_df_cop_ok._measured_power = 2.6
+_df_cop_ok._immersion_active = False
+_df_cop_ok._pump_signals = PumpSignals(defrosting=False)
+_df_cop_ok._learn_measured_cop()
+R.check(
+    "a legible not-defrosting flag at the same temperature still folds",
+    _df_cop_ok._cop_samples == 1 and _df_cop_ok._cop_scale > 1.0,
+    f"{_df_cop_ok._cop_samples} samples, scale {_df_cop_ok._cop_scale:.4f}",
+)
+
+# The derate keeps the interval: "defrosting" is its own evidence, not a
+# contaminant, so the settlement exempts it from the one freeze it causes.
+# DESIGN CHOICE, pinned here: a gate that refuses the flag without exempting
+# the derate starves the duty estimator of every interval it exists to count.
+_df_derate = _t2_coord()
+_df_derate._pump_signals = PumpSignals(defrosting=True)
+_df_derate._current_state.outdoor_temperature = 2.0
+_df_derate._current_state.room_temperature = 20.5
+_df_derate._current_action = {"power": 2.0}
+_df_derate._measured_power = 2.0
+_df_now = dt_util.now()
+_df_derate._defrost_window.observe(_df_now - timedelta(minutes=30), True)
+_df_derate._defrost_window.observe(_df_now, True)
+_df_derate._pending_prediction = {
+    "when": _df_now - timedelta(minutes=30),
+    "power": 2.0,
+    "space_power": 2.0,
+    "dhw_power": 0.0,
+    "predicted_temp": 20.5,
+    "outdoor": 2.0,
+    "humidity": 80.0,
+}
+_df_derate.hass.states.set("sensor.indoor", FakeState("20.1"))
+_df_derate._record_accuracy()
+R.check(
+    "the derate still counts the duty from the interval that defrosted",
+    _df_derate._defrost.measured_samples == 1
+    and _df_derate._defrost.duty_events[3][1] == 1,
+    f"{_df_derate._defrost.measured_samples} duty samples: the derate's "
+    "estimator lives on exactly these intervals",
+)
+R.check(
+    "while the accuracy record refuses the same interval, like any contaminant",
+    not _df_derate._accuracy.samples,
+    f"{len(_df_derate._accuracy.samples)} samples: a defrost interval's "
+    "temperature miss is the derate's to explain, not model error",
 )
 
 

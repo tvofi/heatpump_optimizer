@@ -1041,6 +1041,54 @@ R.check(
     bool(_ci_pythons) and f"Python-{_ci_pythons[0]}%2B" in readme,
 )
 
+# docs-known-limitations (Gold, #952): the quality-scale rule asks the
+# documentation to carry a "Known limitations" section describing the
+# integration's constraints, with no exceptions. Round-4 D10-02 measured the
+# section absent everywhere -- 0 headings matching the rule across README
+# and the six user docs -- while `quality_scale.yaml` declared the row
+# `done`, and nothing could notice: the register is INERT by measurement
+# (#357, see the widening check above) and no gate script read the docs for
+# this property at all. The finding's substance was placement, not
+# knowledge: the constraint content existed, filed under headings a user
+# asking "what will this not do?" would not open.
+#
+# This check pins the README, the one user document this lane already
+# measures -- HACS renders it as the integration's page, and README.md sits
+# in this script's recorded closure, so a README edit selects this script in
+# the scoped gate. The six docs/ pages stay outside it on purpose: `docs/`
+# is INERT, and a gate script opening one is the declared-unread-while-read
+# contradiction the closures `merge` refuses (#357).
+#
+# Two design choices, stated so they are not read as bugs. The heading is
+# pinned at level 2 and exactly "Known limitations" -- the name the rule
+# and a documentation search both key on; a `### Known limitations` buried
+# inside another section re-creates the discoverability failure. And the
+# body floor is five bullets, the count of integration-wide limitations the
+# finding named as "nowhere at all, in any wording" (planning granularity,
+# price source, single device, no discovery, tariff market shape): a
+# heading with a one-line body under it would satisfy a heading-only check
+# and re-open the finding invisibly.
+_kl_heading = _re.search(r"^## Known limitations$", readme, _re.M)
+_kl_block = _re.search(
+    r"^## Known limitations\n(.*?)(?=^## )", readme, _re.M | _re.S
+)
+_kl_bullets = [
+    line for line in (_kl_block.group(1).splitlines() if _kl_block else [])
+    if line.startswith("- ")
+]
+R.check(
+    "the README carries a level-2 'Known limitations' section (#952)",
+    _kl_heading is not None,
+    "0 headings match; the quality-scale rule admits no exception and the "
+    "register declares the row done",
+)
+R.check(
+    "the Known limitations section describes constraints, not a heading "
+    "with a caption",
+    len(_kl_bullets) >= 5,
+    f"{len(_kl_bullets)} bullet(s) in the section",
+)
+
 for name in (
     "Measured Power",
     "Observed COP",
@@ -7241,60 +7289,24 @@ R.check(
     ", ".join(_icon_pinned),
 )
 
-# The registry covers every translation key on every platform, with exactly
-# one exception pinned below: an entity whose icon is its device class's own
-# default renders that default anyway, and re-declaring it in the registry
-# would override the device class — the one thing the icon-translations rule
-# says never to do. (Defaults transcribed from Home Assistant's own
-# components/sensor/icons.json at 2026.9.)
-_DC_DEFAULT_KEYS = {
-    "sensor": {
-        "optimal_setpoint",  # temperature renders mdi:thermometer
-        "outdoor_temperature_optimizer",  # temperature renders mdi:thermometer
-        "measured_power",  # power renders mdi:flash
-        "compressor_frequency_advisor",  # frequency renders mdi:sine-wave
-    },
-}
+# The registry covers every translation key on every platform, with no
+# exceptions. The device-class defence — that an entity whose icon is its
+# device class's own default need not declare one — was refuted by the
+# round-4 D8 measurement (#946): 31 entities carried both a device class
+# and an explicit icons.json entry, and 0 entities without a device class
+# lacked one, so the convention this integration follows is "every entity
+# gets a chosen icon"; the four former exceptions rendered Home
+# Assistant's generic device-class glyph beside siblings that do not.
 for _plat in ("sensor", "binary_sensor", "button", "switch", "datetime"):
-    _expected_keys = (
-        {e._attr_translation_key for _p, e in _named_entities if _p == _plat}
-        - _DC_DEFAULT_KEYS.get(_plat, set())
-    )
+    _expected_keys = {
+        e._attr_translation_key for _p, e in _named_entities if _p == _plat
+    }
     _registry_keys = set(_entity_icons.get(_plat, {}))
     _icon_diff = _expected_keys ^ _registry_keys
     R.check(
         f"the {_plat} icon registry covers every translation key exactly",
         not _icon_diff,
         f"mismatch {sorted(_icon_diff)}",
-    )
-
-# The exceptions stay exceptions only while the device class actually still
-# provides the icon: drop the device class and the entity goes icon-less, so
-# each pinned key is checked against the class it leans on.
-_sensor_by_tk = {s._attr_translation_key: s for s in sensors}
-_dc_pinned_bad = sorted(
-    f"sensor:{_key} has no device class to render an icon from"
-    for _key in sorted(_DC_DEFAULT_KEYS["sensor"])
-    if not getattr(_sensor_by_tk.get(_key), "_attr_device_class", None)
-)
-R.check(
-    "every icon left out of the registry leans on a real device class",
-    not _dc_pinned_bad,
-    "; ".join(_dc_pinned_bad),
-)
-# And spot-pins, written out literally so a renamed translation key cannot
-# silently move which entities the roster check above excludes.
-for _key, _dc in (
-    ("optimal_setpoint", "temperature"),
-    ("outdoor_temperature_optimizer", "temperature"),
-    ("measured_power", "power"),
-    ("compressor_frequency_advisor", "frequency"),
-):
-    _entity = _sensor_by_tk[_key]
-    R.check(
-        f"sensor:{_key} keeps its {_dc} device class for the default icon",
-        getattr(_entity, "_attr_device_class", None) == _dc,
-        str(getattr(_entity, "_attr_device_class", None)),
     )
 
 
