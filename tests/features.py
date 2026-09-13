@@ -15395,6 +15395,68 @@ R.check(
     f"weights {_zero_w}",
 )
 
+# #933 (R4-D3-S4): the horizon clamp in _anticipatory_weights —
+# ``end = min(i + lookahead, n_steps)`` — was deletable with the suite green
+# (judged an equivalent mutant through reachable inputs: ``optimize``
+# truncates every forecast array to ``n_steps`` first, and a slice whose
+# upper bound runs past the array's own end is clamped by the language, so
+# nothing the callers pass can tell the arms apart). The clamp still states
+# the method's contract — the warm-start nudge must not read forecast steps
+# outside the solve horizon — so it is pinned here at the only input class
+# that can see it: forecast arrays carrying more steps than the solve.
+from heatpump_optimizer.optimizer import (  # noqa: E402
+    HeatPumpOptimizer as _AwOpt,
+    OptimizationConfig as _AwCfg,
+)
+
+_aw_opt = _AwOpt(
+    ThermalModel(ThermalParameters()),
+    _AwCfg(
+        horizon_hours=1,
+        time_step_minutes=15,
+        target_temp=21.0,
+        min_temp=19.0,
+        max_temp=23.0,
+    ),
+)
+# A 4-step solve at 15-minute steps: lookahead = int(8/0.25) = 32 steps, so
+# every window wants to run far past the horizon. The forecast array is six
+# steps longer than the solve with all the sun in that out-of-horizon tail;
+# ordinary weather throughout (loss factor 1.0) so the solar channel is the
+# only thing that can move.
+_aw_solar = np.array([0.0, 0.0, 0.0, 0.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0])
+_aw_w = _aw_opt._anticipatory_weights(4, 0.25, _aw_solar, np.ones(10))
+R.check(
+    "sun entirely past the solve horizon moves no warm-start weight (#933)",
+    bool(np.all(_aw_w == 1.0)),
+    f"weights {_aw_w.tolist()} — the horizon clamp must keep the 8-hour "
+    "window inside the 4 steps being solved; without it the window reads "
+    "the forecast tail and discounts steps the plan will never take",
+)
+# Null control: the same sun inside an exact-horizon forecast, the input
+# class every production caller produces (the round-4 panel measured the
+# two arms bit-identical on it). Green under the clamp's deletion too, so
+# it attributes the all-ones above to the horizon cap, not to an inert
+# nudge.
+_aw_in = np.array([0.0, 0.0, 0.0, 3.0])
+_aw_win = _aw_opt._anticipatory_weights(4, 0.25, _aw_in, np.ones(4))
+R.check(
+    "the same sun inside the horizon does discount (#933 null control)",
+    float(np.max(_aw_win)) < 1.0 and float(np.min(_aw_win)) >= 0.6 - 1e-12,
+    f"weights {_aw_win.tolist()} — fierce in-horizon sun must pull the "
+    "warm start down toward its 0.6 floor",
+)
+# Zero end of the input range: at 16-hour steps the 8-hour lookahead is
+# zero steps, the ``if end <= i: continue`` guard skips every step, and
+# nothing moves however fierce the sun.
+_aw_zero = _aw_opt._anticipatory_weights(4, 16.0, np.full(4, 2.0), np.ones(4))
+R.check(
+    "a zero-step lookahead leaves every weight at one (#933)",
+    bool(np.all(_aw_zero == 1.0)),
+    f"weights {_aw_zero.tolist()} — int(8/dt) at dt=16 is 0, so the guard "
+    "skips every step",
+)
+
 # ---------------------------------------------------------------------------
 R.section("v4.0.4 — grid-fee magnitude repair issue")
 
