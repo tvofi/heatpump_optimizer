@@ -3141,13 +3141,18 @@ def _capture_objectives_948(two_zone, dhw, valve=None, pv_surplus=None,
     opt = _PvOpt(
         ThermalModel(params),
         _PvOptCfg(
-            horizon_hours=12, time_step_minutes=15,
+            # 24 h: the production horizon, 96 steps. A first version of
+            # this grid ran at 48 steps and a 96-step-only ulp divergence
+            # between batched and scalar reductions on CI's x86_64 passed
+            # it unseen -- the checks below must cover the production
+            # width, not a cheaper one.
+            horizon_hours=24, time_step_minutes=15,
             target_temp=cfg["target_temperature"],
             min_temp=cfg["min_temperature"], max_temp=cfg["max_temperature"],
             **oc_kw,
         ),
     )
-    n = 48
+    n = 96
     start = _dt_grad(2026, 1, 15, 0, minute)
     pr = _fit948(_grad_prices("winter_typical", start), n)
     ot, wi, ra, so = (
@@ -3206,7 +3211,7 @@ def _count_entries_948(*targets):
 
 
 _rng948 = np.random.default_rng(41)
-_n948 = 48
+_n948 = 96
 # Six schedules spanning the shapes the cost terms branch on: random
 # profiles, a flat high plan (a plateau at the peak -- the smooth top-k arm
 # of the capacity term when it is enabled), a zero plan, and a bang-bang
