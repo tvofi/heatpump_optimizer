@@ -1221,6 +1221,22 @@ def work_over_verdict(observed: int, recorded: int) -> bool:
     return observed > recorded * SCENARIO_WORK_FACTOR
 
 
+def rss_fail_threshold(recorded_rss: float) -> float:
+    """The RSS watermark (MiB) a probe may reach before the check fails.
+
+    Shared by the memory pass's comparison and the detection check below,
+    for the same reason work_over_verdict is: a budget the check cannot see
+    drifting is a budget nobody re-derives, and a rule that only exists at
+    its call site cannot be held to DETECTION_TARGET by anything.
+    """
+    return recorded_rss + max(150.0, recorded_rss * (MEMORY_BUDGET_FACTOR - 1.0))
+
+
+def traced_fail_threshold(recorded_traced: float) -> float:
+    """The traced peak (MiB) a probe may reach before the check fails."""
+    return recorded_traced * MEMORY_BUDGET_FACTOR + 2.0
+
+
 #: The worker that captures one tree's solver work, run as a fresh
 #: interpreter against a repository root.
 #:
@@ -2464,15 +2480,13 @@ if __name__ == "__main__":
             if recorded_rss <= 0.0 or recorded_traced <= 0.0:
                 mem_unrecorded.append(label)
                 continue
-            if rss_peak > recorded_rss + max(
-                150.0, recorded_rss * (MEMORY_BUDGET_FACTOR - 1.0)
-            ):
+            if rss_peak > rss_fail_threshold(recorded_rss):
                 mem_over.append(
                     f"{label} RSS peak {rss_peak:.0f} MiB vs recorded "
                     f"{recorded_rss:.0f} MiB (+150 MiB or "
                     f"x{MEMORY_BUDGET_FACTOR:.1f} headroom)"
                 )
-            if traced_peak > recorded_traced * MEMORY_BUDGET_FACTOR + 2.0:
+            if traced_peak > traced_fail_threshold(recorded_traced):
                 mem_over.append(
                     f"{label} traced peak {traced_peak:.1f} MiB vs recorded "
                     f"{recorded_traced:.1f} MiB "
@@ -2641,6 +2655,58 @@ if __name__ == "__main__":
         f"{SCENARIO_WORK_FACTOR:.2f}x of that scenario's recorded solver "
         f"work instead, and in nothing denominated in CPU"
     )
+    # The memory rules owe the same answer (#949, round 4 D9-06): a 2x
+    # memory regression -- the DETECTION_TARGET -- passed all sixty-two
+    # checks on every one of the fifty-one scenarios while this very check
+    # printed green three lines below the silent memory section, because
+    # no arm here held the memory thresholds to the target. The multiples
+    # are exact rationals of the committed table and the module constants,
+    # so like the arms above this is machine-independent arithmetic judged
+    # against the recording, never against this run's own probes.
+    _mem_rss_mult = {
+        label: rss_fail_threshold(float(entry["rss_peak_mb"]))
+        / float(entry["rss_peak_mb"])
+        for label, entry in budget_table.items()
+        if isinstance(entry, dict) and float(entry.get("rss_peak_mb", 0.0)) > 0.0
+    }
+    _mem_traced_mult = {
+        label: traced_fail_threshold(float(entry["traced_peak_mb"]))
+        / float(entry["traced_peak_mb"])
+        for label, entry in budget_table.items()
+        if isinstance(entry, dict)
+        and float(entry.get("traced_peak_mb", 0.0)) > 0.0
+    }
+    _mem_blind_rss = [
+        label for label, m in _mem_rss_mult.items() if m >= DETECTION_TARGET
+    ]
+    if _mem_blind_rss:
+        _blind.append(
+            f"the memory RSS budget cannot see a {DETECTION_TARGET:.0f}x "
+            f"regression on {len(_mem_blind_rss)} of {len(_mem_rss_mult)} "
+            f"recorded scenario(s): the tightest threshold sits at "
+            f"{min(_mem_rss_mult[l] for l in _mem_blind_rss):.2f}x the "
+            f"recorded peak, so anything smaller passes green"
+        )
+    _mem_blind_traced = [
+        label for label, m in _mem_traced_mult.items() if m >= DETECTION_TARGET
+    ]
+    if _mem_blind_traced:
+        _blind.append(
+            f"the memory traced budget cannot see a "
+            f"{DETECTION_TARGET:.0f}x regression on "
+            f"{len(_mem_blind_traced)} of {len(_mem_traced_mult)} recorded "
+            f"scenario(s): the tightest threshold sits at "
+            f"{min(_mem_traced_mult[l] for l in _mem_blind_traced):.2f}x the "
+            f"recorded peak, so anything smaller passes green"
+        )
+    if _mem_rss_mult and _mem_traced_mult:
+        print(
+            f"  detection for MEMORY: RSS budget "
+            f"{min(_mem_rss_mult.values()):.2f}x, traced budget "
+            f"{min(_mem_traced_mult.values()):.2f}x of the recorded peak -- "
+            f"a regression smaller than these multiples passes the memory "
+            f"section green on every probed scenario"
+        )
     print(
         f"  detection on THIS machine: per-scenario ceiling "
         f"{live_solve_budget_ratio() / max(_worst[0], 1e-9):.2f}x "
