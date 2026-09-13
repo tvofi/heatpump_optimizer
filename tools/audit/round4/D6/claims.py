@@ -48,6 +48,8 @@ PERTURBATION (the judge runs it; the number must move):
     module map.  claims_false must rise 12 -> 13 (C30 flips true -> false) and
     claims_true fall 112 -> 111 (with --links); C33's diagnostic must gain
     `wear.py` under `missing` and `nosuch.py` under `phantom`.
+
+live-header: this header is maintained against the tree; harness_headers.py executes it.
 """
 from __future__ import annotations
 

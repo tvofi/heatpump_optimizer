@@ -76,9 +76,9 @@
   "source": "README.md:### Sensors",
   "claim": "every sensor row's Unit column is the unit the entity publishes (CUR = the instance currency)",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "59 rows checked, mismatches=[('Sensor-Gap Euro Advisor', 'CUR', None)]",
-  "verdict": "false",
-  "truth": "Sensor-Gap Euro Advisor declares no native_unit_of_measurement at all: it publishes a bare number, not a currency figure. Every other monetary sensor sets `self._attr_native_unit_of_measurement = coordinator.currency`."
+  "result": "59 rows checked, mismatches=[]",
+  "verdict": "true",
+  "truth": ""
  },
  {
   "id": "C10",
@@ -263,18 +263,18 @@
  {
   "id": "C30",
   "source": "docs/configuration.md",
-  "claim": "every documented Default (76 rows) is the default the rendered options page actually carries",
+  "claim": "every documented Default (82 rows) is the default the rendered options page actually carries",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "76 compared, mismatches=[]",
+  "result": "82 compared, mismatches=[]",
   "verdict": "true",
   "truth": ""
  },
  {
   "id": "C31",
   "source": "docs/configuration.md",
-  "claim": "every documented Range (76 rows) is the NumberSelector min/max the rendered options page actually carries",
+  "claim": "every documented Range (86 rows) is the NumberSelector min/max the rendered options page actually carries",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "76 compared, mismatches=[]",
+  "result": "86 compared, mismatches=[]",
   "verdict": "true",
   "truth": ""
  },
@@ -373,7 +373,7 @@
   "source": "manifest.json",
   "claim": "manifest version equals VERSION",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented='6.4.2' measured='6.4.2'",
+  "result": "documented='6.4.3' measured='6.4.3'",
   "verdict": "true",
   "truth": ""
  },
@@ -967,7 +967,7 @@
   "source": "README.md + docs/*.md",
   "claim": "every relative link resolves (65 links)",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "65 links, broken=[('README.md', 'docs/audit-2026-08.md'), ('README.md', 'docs/audit-2026-09.md'), ('README.md', 'docs/backlog.md'), ('docs/how-it-works.md', 'backlog.md')], of which removed-by-the-export=[('README.md', 'docs/audit-2026-08.md'), ('README.md', 'docs/audit-2026-09.md'), ('README.md', 'docs/backlog.md'), ('docs/how-it-works.md', 'backlog.md')]",
+  "result": "65 links, broken=[], of which removed-by-the-export=[]",
   "verdict": "true",
   "truth": ""
  },
@@ -994,9 +994,9 @@
   "source": "README.md + docs/*.md",
   "claim": "every external link answers 200 to a HEAD request (10 links)",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py --links",
-  "result": "10 links, non-200=[]",
-  "verdict": "true",
-  "truth": ""
+  "result": "not run: pass --links",
+  "verdict": "unverifiable",
+  "truth": "re-run with --links"
  },
  {
   "id": "C112",
@@ -1075,7 +1075,7 @@
   "source": "README.md",
   "claim": "the climate entity has HVAC modes off, heat and auto",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented={'auto', 'off', 'heat'} measured={'auto', 'off', 'heat'}",
+  "result": "documented={'heat', 'auto', 'off'} measured={'heat', 'auto', 'off'}",
   "verdict": "true",
   "truth": ""
  },
@@ -1084,7 +1084,7 @@
   "source": "README.md",
   "claim": "the climate entity has presets auto, comfort, economy and boost",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented={'auto', 'economy', 'boost', 'comfort'} measured={'auto', 'economy', 'boost', 'comfort'}",
+  "result": "documented={'comfort', 'auto', 'boost', 'economy'} measured={'comfort', 'auto', 'boost', 'economy'}",
   "verdict": "true",
   "truth": ""
  },
