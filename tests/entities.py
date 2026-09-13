@@ -757,6 +757,227 @@ R.check(
     f"validate.py makes {_validate_n} module-level run(...) calls",
 )
 
+# #939: architecture.md's own numbers. The file a contributor reads before
+# changing the code had rotted in ten places -- 45 modules where 56 stood, a
+# module map missing eleven files, ten HA importers where 21 import at module
+# level, 13 option pages where 21 render, eleven services where twelve
+# register, and platform comments naming one switch of four and four binary
+# sensors of five -- because `docs/` is INERT and no gate script read it. The
+# route #357 allows is taken here: a file this script opens is a dependency,
+# so architecture.md leaves INERT and enters this script's measured closure,
+# and every figure below is DERIVED -- the module list from the directory, the
+# boundary from an AST walk, the pages from `_OPTION_PAGES`, the services
+# from services.yaml, the entity names from the same platform census that
+# pins the README -- never carried, so the counts stay true when the tree
+# moves. That is the same correction tests/README.md needed (#938).
+import yaml as _yaml
+
+_arch = Path("docs/architecture.md").read_text()
+_arch_disk = sorted(p.name for p in ROOT.glob("*.py"))
+
+
+def _arch_ha_import(node):
+    """Is this statement an import of the homeassistant package?"""
+    if isinstance(node, ast.Import):
+        return any(a.name.split(".")[0] == "homeassistant" for a in node.names)
+    if isinstance(node, ast.ImportFrom):
+        return bool(node.module) and node.module.split(".")[0] == "homeassistant"
+    return False
+
+
+def _arch_toplevel(body):
+    """Module-scope statements, descending into top-level try/if bodies only.
+
+    An import inside a conditional or try at import time is still a
+    module-level import: the module cannot be imported without
+    homeassistant, which is what the boundary paragraph claims.
+    """
+    for node in body:
+        yield node
+        if isinstance(node, ast.Try):
+            for lst in (node.body, node.orelse, node.finalbody):
+                yield from _arch_toplevel(lst)
+            for handler in node.handlers:
+                yield from _arch_toplevel(handler.body)
+        elif isinstance(node, ast.If):
+            yield from _arch_toplevel(node.body)
+            yield from _arch_toplevel(node.orelse)
+
+
+_arch_modlevel = sorted(
+    p.stem for p in ROOT.glob("*.py")
+    if any(_arch_ha_import(n) for n in _arch_toplevel(ast.parse(p.read_text()).body))
+)
+_arch_anywhere = sorted(
+    p.stem for p in ROOT.glob("*.py")
+    if any(_arch_ha_import(n) for n in ast.walk(ast.parse(p.read_text())))
+)
+
+_arch_open = _re.search(r"(\d+) modules, of which\s+(\d+) import", _arch)
+R.check(
+    "architecture.md's opening counts name the package it describes",
+    _arch_open is not None
+    and int(_arch_open.group(1)) == len(_arch_disk)
+    and int(_arch_open.group(2)) == len(_arch_modlevel),
+    f"architecture.md says {_arch_open.groups() if _arch_open else '?'}; the "
+    f"package holds {len(_arch_disk)} modules, {len(_arch_modlevel)} of them "
+    f"importing homeassistant at module level",
+)
+
+_arch_map = _re.search(r"## The module map\n+```text\n(.*?)\n```", _arch, _re.S)
+_arch_listed = (
+    sorted(set(_re.findall(r"([a-z_0-9]+\.py)", _arch_map.group(1))))
+    if _arch_map is not None
+    else []
+)
+R.check(
+    "architecture.md's module map lists every module in the package",
+    _arch_map is not None and set(_arch_listed) == set(_arch_disk),
+    f"missing from the map: {sorted(set(_arch_disk) - set(_arch_listed))}; "
+    f"named but not on disk: {sorted(set(_arch_listed) - set(_arch_disk))}",
+)
+
+# The named list ends at its own full stop -- the `inputs` sentence that
+# follows is about a different claim (the one function-level toucher, pinned
+# below), and sweeping it in would make 22 names out of 21 importers.
+_arch_bound = _re.search(
+    r"(\d+) of the (\d+) modules\s+import `homeassistant` at module level:\s+(.*?)\.",
+    _arch, _re.S,
+)
+_arch_named = (
+    sorted(set(_re.findall(r"`([a-z_]+)`", _arch_bound.group(3))))
+    if _arch_bound is not None
+    else []
+)
+R.check(
+    "architecture.md's HA boundary names exactly the module-level importers",
+    _arch_bound is not None
+    and int(_arch_bound.group(1)) == len(_arch_modlevel)
+    and int(_arch_bound.group(2)) == len(_arch_disk)
+    and _arch_named == _arch_modlevel,
+    f"documented {_arch_bound.group(1) if _arch_bound else '?'} of "
+    f"{_arch_bound.group(2) if _arch_bound else '?'}, named {_arch_named}; "
+    f"the AST walk finds {len(_arch_modlevel)}: {_arch_modlevel}",
+)
+
+_arch_touch = _re.search(
+    r"One module outside that set touches it at all:\s+`([a-z_]+)`", _arch
+)
+_arch_touchers = sorted(set(_arch_anywhere) - set(_arch_modlevel))
+R.check(
+    "architecture.md's one function-level toucher is the only one",
+    _arch_touch is not None and _arch_touchers == [_arch_touch.group(1)],
+    f"documented {_arch_touch.group(1) if _arch_touch else '?'}; modules "
+    f"outside the module-level set that touch homeassistant anywhere: "
+    f"{_arch_touchers}",
+)
+
+_arch_free = _re.search(
+    r"The other (\d+) modules are deliberately free", _arch
+)
+R.check(
+    "architecture.md's HA-free count is the tree's",
+    _arch_free is not None
+    and int(_arch_free.group(1)) == len(_arch_disk) - len(_arch_anywhere),
+    f"architecture.md says {_arch_free.group(1) if _arch_free else '?'}; "
+    f"{len(_arch_disk)} modules less {len(_arch_anywhere)} that touch "
+    f"homeassistant anywhere leaves {len(_arch_disk) - len(_arch_anywhere)}",
+)
+
+_arch_pages = _re.search(
+    r"config_flow\.py\s+# Setup flow plus (\d+) option pages", _arch
+)
+R.check(
+    "architecture.md's option-page count matches _OPTION_PAGES",
+    _arch_pages is not None
+    and int(_arch_pages.group(1)) == len(config_flow._OPTION_PAGES),
+    f"architecture.md says {_arch_pages.group(1) if _arch_pages else '?'}, "
+    f"_OPTION_PAGES holds {len(config_flow._OPTION_PAGES)}",
+)
+
+_services_yaml_n = len(_yaml.safe_load((ROOT / "services.yaml").read_text()))
+for _arch_where, _arch_re in (
+    ("__init__.py", r"__init__\.py\s+# Setup and unload, the (\d+) services"),
+    ("services.py", r"services\.py\s+# The domain's (\d+) services"),
+    ("services.yaml", r"services\.yaml\s+# The (\d+) service definitions"),
+):
+    _m = _re.search(_arch_re, _arch)
+    R.check(
+        f"architecture.md's {_arch_where} service count matches services.yaml",
+        _m is not None and int(_m.group(1)) == _services_yaml_n,
+        f"architecture.md says {_m.group(1) if _m else '?'}, "
+        f"services.yaml defines {_services_yaml_n}",
+    )
+
+_arch_sensors = _re.search(r"sensor\.py\s+# (\d+) sensors", _arch)
+R.check(
+    "architecture.md's sensor count matches the platform census",
+    _arch_sensors is not None
+    and int(_arch_sensors.group(1)) == _platform_counts["sensor"],
+    f"architecture.md says {_arch_sensors.group(1) if _arch_sensors else '?'}, "
+    f"the platform constructs {_platform_counts['sensor']}",
+)
+
+
+def _arch_entry(module: str) -> str:
+    """One module-map entry's `#` comment, continuation lines joined.
+
+    The map wraps long comments onto `│ ...` lines (button.py already did);
+    the joined text is what a name list is read from.
+    """
+    if _arch_map is None:
+        return ""
+    m = _re.search(
+        rf"{_re.escape(module)}\.py[^\n]*?#[ \t]*([^\n]*)\n"
+        rf"((?:│[^\n]*#[ \t]*[^\n]*\n)*)",
+        _arch_map.group(1),
+    )
+    if m is None:
+        return ""
+    return " ".join(
+        [m.group(1).strip()]
+        + [c.strip() for c in _re.findall(r"#[ \t]*([^\n]*)", m.group(2))]
+    )
+
+
+def _arch_comment_names(comment: str) -> set[str]:
+    return {part.strip() for part in comment.split(",") if part.strip()}
+
+
+for _plat in ("switch", "binary_sensor"):
+    _arch_doc_names = _arch_comment_names(_arch_entry(_plat))
+    _arch_built = {
+        display_name(_plat, e)
+        for e in collect(_importlib.import_module(f"heatpump_optimizer.{_plat}"))
+    }
+    R.check(
+        f"architecture.md's {_plat}.py names every entity it constructs",
+        _arch_doc_names == _arch_built,
+        f"documented {sorted(_arch_doc_names)}, the platform constructs "
+        f"{sorted(_arch_built)}",
+    )
+
+_arch_diagram = _re.search(
+    r"(\d+) entities<br/>(\d+) sensors, (\d+) binary sensors,<br/>"
+    r"(\d+) buttons, (\d+) switches,<br/>(\d+) climate, (\d+) datetime",
+    _arch,
+)
+_arch_diagram_want = [
+    _total_entities,
+    *(
+        _platform_counts[p]
+        for p in ("sensor", "binary_sensor", "button", "switch", "climate", "datetime")
+    ),
+]
+R.check(
+    "architecture.md's entity diagram counts match the census",
+    _arch_diagram is not None
+    and [int(g) for g in _arch_diagram.groups()] == _arch_diagram_want,
+    f"diagram says "
+    f"{[int(g) for g in _arch_diagram.groups()] if _arch_diagram else '?'}; "
+    f"the census is {_arch_diagram_want}",
+)
+
 # HACS renders this README inside Home Assistant -- `hacs.json` asks for it,
 # and hacs/integration's `async_get_info_file_contents` reads README.md -- so
 # the README has a second renderer, and it is much weaker than GitHub's.
@@ -1178,9 +1399,11 @@ R.check(
 # This check pins the README, the one user document this lane already
 # measures -- HACS renders it as the integration's page, and README.md sits
 # in this script's recorded closure, so a README edit selects this script in
-# the scoped gate. The six docs/ pages stay outside it on purpose: `docs/`
-# is INERT, and a gate script opening one is the declared-unread-while-read
-# contradiction the closures `merge` refuses (#357).
+# the scoped gate. The docs/ pages stay outside it on purpose here: reading
+# one is sound only after it leaves `tests/closure.py`'s INERT list and
+# enters this script's measured closure (what the architecture.md checks
+# above did for one file, #939), and this check does not need that -- it
+# reads the README alone.
 #
 # Two design choices, stated so they are not read as bugs. The heading is
 # pinned at level 2 and exactly "Known limitations" -- the name the rule
@@ -1210,6 +1433,103 @@ R.check(
     "with a caption",
     len(_kl_bullets) >= 5,
     f"{len(_kl_bullets)} bullet(s) in the section",
+)
+
+# #951 (R4-D10-01): the register's two coverage-bearing rows are the ones
+# that rot, because they quote figures about a tree that keeps changing
+# under them. Round 4 executed one check per quality-scale rule and found
+# rows disagreeing with the tree in BOTH directions at once; #973
+# re-truthed docs-known-limitations above, and these checks pin the two
+# that remain:
+#
+#   config-flow-test-coverage  declared done, "100% statement coverage
+#                              (661 statements, 0 missed)" -- executed
+#                              todo, the residual being ordinary reachable
+#                              branches (options-grid price-entity/token
+#                              errors, the holiday DHW window validation,
+#                              the stored-values coercion comparison)
+#   test-coverage              declared todo (issue #195, since closed) --
+#                              executed done, every module over the rule's
+#                              bar
+#
+# The mechanism was that nothing executed against the register at all.
+# These checks read it, so a quality_scale.yaml edit selects this script
+# (the register leaves closure.py's INERT list in the same pull request),
+# and tools/audit/round4/D10/qs_rules.py -- wired into
+# tests/harness_headers.py, which runs on every pull request -- alarms on
+# drift in every row measurable without a toolchain. These two rows are
+# the toolchain rows; they are keyed to standing records, not to quoted
+# figures:
+#
+#   test-coverage must agree with tests/coverage_budgets.json's
+#   package_percent_floor -- the number the per-pull-request coverage job
+#   ratchets -- against the Silver rule's bar. That floor is the tree's
+#   standing executable statement of package coverage, so the row may not
+#   disagree with it in either direction. (The keying is encoded rather
+#   than the verdict: a future re-record of the floor below the bar must
+#   flip the row, not orphan the check.)
+#
+#   config-flow-test-coverage is pinned todo. The rule asks for FULL
+#   coverage of the config flow; no standing record shows it, and the
+#   round-4 measurement under tools/audit/w5-partition/coverage_tree.sh
+#   -- the instrument tests/coverage_ratchet.py consumes -- found
+#   reachable branches still missed. A deliberate ratchet-style pin, in
+#   the #952 shape: flipping the row to done requires re-measuring with
+#   that instrument and re-taking this pin, which is exactly the
+#   verification the register lacked when the row rotted.
+#
+# And neither row's comment may quote a coverage figure of its own -- a
+# percentage, a statement count or a missed count. All three figures in
+# the row that rotted were wrong at the next measurement; a comment that
+# names the instrument instead cannot rot. Issue and pull-request
+# references and SHAs stay legitimate: they are records, not measurements.
+import yaml as _qs_yaml
+
+_QS_FILE = ROOT / "quality_scale.yaml"
+_QS_RULES = (_qs_yaml.safe_load(_QS_FILE.read_text()) or {}).get("rules", {})
+
+
+def _qs_status(name: str) -> str:
+    v = _QS_RULES.get(name)
+    return v if isinstance(v, str) else (v or {}).get("status", "(absent)")
+
+
+def _qs_comment(name: str) -> str:
+    v = _QS_RULES.get(name)
+    return "" if isinstance(v, str) else (v or {}).get("comment") or ""
+
+
+_qs_floor = json.loads(Path("tests/coverage_budgets.json").read_text())[
+    "package_percent_floor"
+]
+R.check(
+    "the register's test-coverage row agrees with the recorded coverage floor",
+    _qs_status("test-coverage") == ("done" if _qs_floor >= 95.0 else "todo"),
+    f"register says {_qs_status('test-coverage')!r}; "
+    f"tests/coverage_budgets.json package_percent_floor={_qs_floor} "
+    "against the Silver rule's 95% bar (#195 closed; #951)",
+)
+R.check(
+    "the register's config-flow-test-coverage row is todo: the rule asks "
+    "for full config-flow coverage and no measurement shows it",
+    _qs_status("config-flow-test-coverage") == "todo",
+    "round 4 measured the config flow under the coverage instrument with "
+    "ordinary reachable branches still missed; flipping this row to done "
+    "requires re-measuring with that instrument and re-taking this pin "
+    "(#951)",
+)
+_QS_FIGURE = _re.compile(
+    r"\d+(?:\.\d+)?\s*%|\b\d+\s+statements?\b|\b\d+\s+missed\b", _re.I
+)
+R.check(
+    "neither coverage row quotes figures of its own",
+    not any(
+        _QS_FIGURE.search(_qs_comment(n))
+        for n in ("config-flow-test-coverage", "test-coverage")
+    ),
+    "a quoted percentage, statement count or missed count is exactly the "
+    "figure that rotted -- all three in the shipped row were wrong at the "
+    "next measurement; name the instrument instead (#951)",
 )
 
 for name in (
@@ -9447,8 +9767,10 @@ _QS = "custom_components/heatpump_optimizer/quality_scale.yaml"
 R.check(
     "the widening rule leaves the quality-scale register out too",
     _QS not in _widened[_ED] and _QS not in _widened["tests/golden.py"],
-    "hassfest skips it for custom repositories and nothing under "
-    "custom_components/ opens it; measured byte-identical captures say so",
+    "hassfest skips it for custom repositories and neither capture moves "
+    "when it changes; measured byte-identical captures say so. (#951 moved "
+    "the register into this script's RECORDED closure -- a direct read, "
+    "not a widened one, so the exclusion above still holds.)",
 )
 
 # The scoped gate refuses to skip anything when a changed file is in no
@@ -11795,14 +12117,21 @@ R.check(
 # the order is why. Until #357, quality_scale.yaml was on INERT and inside
 # env_drift's rule-widened closure at the same time -- the real, on-main
 # instance of exactly the shape this ordering rule exists to get right.
-# #357 fixed the recorder (NEVER_WIDENED, above), so that file is no longer
-# a live example: both checks below use it to confirm the fix landed clean.
+# #357 fixed the recorder (NEVER_WIDENED, above), and #951 turned the page
+# on the file's INERT listing itself: this script now reads the register
+# (the coverage-row pins above), so it left the INERT list and entered
+# this script's recorded closure. The live example of "INERT and in no
+# closure means skip" is the docs-only probe above; what this checks now
+# is the point of that move -- a register edit selects this script instead
+# of skipping, so the round-4 drift (rows contradicted by execution in a
+# file no gate script read) has a lane that sees it.
 _A_QS = _closure.affected([_QS])
 R.check(
-    "the (fixed) quality-scale contradiction is gone: INERT and in no "
-    "closure now means skip, not scoped",
-    _closure.is_inert(_QS) and _A_QS["case"] == "skip",
-    f"{_QS} is inert={_closure.is_inert(_QS)} and case={_A_QS['case']}",
+    "a quality_scale.yaml edit selects this script, not a skip (#951)",
+    not _closure.is_inert(_QS) and _A_QS["case"] == "scoped",
+    f"{_QS} is inert={_closure.is_inert(_QS)} and case={_A_QS['case']} -- "
+    "the register's rows were contradicted by execution for exactly as "
+    "long as no gate script read the file",
 )
 # The ORDER still has to be pinned even with no naturally occurring
 # contradiction left on disk, so this manufactures one: start from the real

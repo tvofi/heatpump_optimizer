@@ -1,19 +1,27 @@
 # Home Assistant integration quality scale — rule-by-rule register.
 # Source: audit round 2, dimension D10 (baseline b39fc6f, 2026-09-02; verified
 # by three refutation verifiers and a judge; register: docs/audit-2026-09.md,
-# harnesses: tools/audit/round2/D10/ at 757e164). Updated as fixes land.
+# harnesses: tools/audit/round2/D10/ at 757e164). Updated as fixes land;
+# re-truthed against execution by round 4 (harnesses under
+# tools/audit/round4/D10/, issue #951).
 #
 # hassfest skips this file for custom integrations (validate_iqs_file returns
-# early for non-core repos), so nothing here is machine-enforced today — it is
-# the truthful rule-by-rule record in the exact schema home-assistant/core
-# uses, ready if this integration ever migrates to core.
+# early for non-core repos), but it is not true that nothing machine-enforces
+# it: this repository's own gate does — tests/harness_headers.py executes the
+# round-4 harness on every pull request and alarms on any row its executed
+# check contradicts, and tests/entities.py pins the two coverage-bearing rows
+# (the ones a toolchain-free check cannot decide) to the standing records in
+# tests/coverage_budgets.json. It stays the truthful rule-by-rule record in
+# the exact schema home-assistant/core uses, ready if this integration ever
+# migrates to core.
 #
-# The manifest deliberately declares no `quality_scale` tier. No Bronze rule is
-# todo any more (#542 removed the last one), so the blocker is gone; whether to
-# declare the tier is #194's call and is not made here.
+# The manifest deliberately declares no `quality_scale` tier.
+# config-flow-test-coverage is todo (its full-coverage claim rotted; #951
+# re-truthed it), so a Bronze blocker exists again — #542 had removed the
+# last one; whether to declare the tier is #194's call and is not made here.
 #
-# Totals: 48 done (2 vacuous) · 4 exempt · 2 todo (#195 coverage, #218
-# examples). Counted from this file, not carried:
+# Totals: 48 done (2 vacuous) · 4 exempt · 2 todo (config-flow coverage,
+# #218 examples). Counted from this file, not carried:
 #   python3 -c "import yaml,collections;r=yaml.safe_load(open(__import__('sys').argv[1]))['rules'];\
 #   print(collections.Counter(v if isinstance(v,str) else v['status'] for v in r.values()))" <this file>
 # The 45/5 this line carried before #542 was already two out in each direction.
@@ -27,13 +35,21 @@ rules:
   common-modules: done
   config-flow: done
   config-flow-test-coverage:
-    status: done
+    status: todo
     comment: >-
-      config_flow.py at 100% statement coverage (661 statements, 0 missed) over
-      config_flow_steps, entities, golden, features and deployment_shape. The
-      residual was 5 unreachable statements, not uncovered ones; #542 removed
-      them and #543 covered the 21 reachable ones (#304). Control at the merge
-      base 059881e: 672 statements, 5 missed at the two sites #542 names, 99.26%.
+      re-truthed by #951 (R4-D10-01): the done this row carried quoted a
+      full-coverage figure that had rotted. The rule asks for FULL
+      statement coverage of the config flow; the measurement under
+      tools/audit/w5-partition/coverage_tree.sh (the instrument
+      tests/coverage_ratchet.py consumes) still finds ordinary reachable
+      branches missed — options-grid price-entity/token error paths, the
+      holiday DHW window validation, the stored-values coercion
+      comparison, the entry-identity price-entity branch. Flipping this
+      row requires that instrument to measure the config flow at full
+      coverage and the pin in tests/entities.py to be re-taken with it.
+      History: #542 removed the last unreachable statements, #543 covered
+      the reachable ones (#304), and the tree grew new branches under the
+      claim after that.
   dependency-transparency: done
   docs-actions: done
   docs-triggers:
@@ -64,12 +80,25 @@ rules:
     status: done
     comment: >-
       #216 (round 2, D10-16) landed: every raise site carries
-      translation_domain + translation_key; one ERROR per failed poll.
+      translation_domain + translation_key. Logging latches rather than
+      repeating an ERROR per failed poll (comment re-truthed by #951: this
+      comment described the spam the rule forbids): the first failed fetch
+      logs ERROR, later failures DEBUG, recovery INFO with the outage's
+      length — _tibber_fetch_failed / _tibber_fetch_recovered and the
+      weather pair beside them.
   parallel-updates: done
   reauthentication-flow: done
   test-coverage:
-    status: todo
-    comment: tracked in issue #195 (round 1, D10-11)
+    status: done
+    comment: >-
+      re-truthed by #951 (R4-D10-01): the todo this row carried tracked
+      issue #195, whose coverage tranches landed and the issue closed. The
+      Silver rule asks that every module clear its bar; the standing
+      record is tests/coverage_budgets.json — the floor the
+      per-pull-request coverage job ratchets, over the same instrument
+      the residual tranche measured with — and tests/entities.py pins this
+      row to that floor, so the row cannot again disagree with the
+      measurement in either direction.
 
   # Gold
   devices: done
@@ -83,7 +112,12 @@ rules:
   docs-data-update: done
   docs-examples:
     status: todo
-    comment: issue #218 (round 2, D10-18) — 0 automation examples, 0 blueprint links
+    comment: >-
+      issue #218 (round 2, D10-18) — the rule asks for blueprints in the
+      home-assistant.io blueprint exchange, linked from the docs, and says
+      a documentation page is not a substitute; the worked YAML
+      automations docs/automations.md carries do not close it (comment
+      re-truthed by #951: the automation-count this quoted had rotted).
   docs-known-limitations: done
   docs-supported-devices: done
   docs-supported-functions: done

@@ -14,21 +14,28 @@ ROOT RULE: the working directory.  ``ROOT = pathlib.Path(".")``.  This file
 never resolves anything from ``__file__`` -- see tools/audit/README.md, "A
 harness at the evidence tag may measure the tag, not your tree".
 
-EXPECTED (baseline 7dd68dd327fe3dbfb09f3bd0fe38910c58877697, 8-core Apple M1,
-macOS 25.6.0, Python 3.11.9, tolerance 0 -- every number here is a count or a
-set comparison and is exactly reproducible):
+EXPECTED (audit baseline 7dd68dd327fe3dbfb09f3bd0fe38910c58877697, 8-core Apple
+M1, macOS 25.6.0, Python 3.11.9, tolerance 0 -- every number here is a count or
+a set comparison and is exactly reproducible).  Re-recorded for #939, which
+re-truthed architecture.md's ten stale claims (45->56 modules, map 45->56
+listed, ten->21 boundary importers, 13->21 option pages, 11->12 services,
+both platform comments completed) and flipped the ten architecture rows to
+true.  At 7dd68dd the same run printed claims_true=112 and claims_false=12
+(111/12 without --links); claims_false at this tree is the one remaining
+non-architecture false claim (C105, Power Headroom availability -- a separate
+finding), C9 having been turned true by its own fix already:
     RESULT claims_extracted=125
     RESULT claims_checked=125
-    RESULT claims_true=112          (111 without --links)
-    RESULT claims_false=12
+    RESULT claims_true=123          (122 without --links)
+    RESULT claims_false=1
     RESULT claims_stale=0
     RESULT claims_unverifiable=1    (2 without --links)
-    RESULT config_defaults_compared=76
-    RESULT config_ranges_compared=76
-    RESULT arch_modules_on_disk=56       (architecture.md claims 45)
-    RESULT arch_map_listed=45
-    RESULT arch_map_missing=11
-    RESULT ha_module_level_importers=21  (architecture.md claims 10)
+    RESULT config_defaults_compared=82   (76 until #937's rows landed)
+    RESULT config_ranges_compared=86     (76 until #937's rows landed)
+    RESULT arch_modules_on_disk=56       (architecture.md said 45)
+    RESULT arch_map_listed=56            (was 45; 11 were missing)
+    RESULT arch_map_missing=0            (was 11)
+    RESULT ha_module_level_importers=21  (architecture.md said 10; now says 21)
 
 INSTRUMENTED SYMBOLS (driven, not read):
     heatpump_optimizer.{sensor,binary_sensor,button,climate,switch,datetime}
@@ -45,9 +52,12 @@ PERTURBATION (the judge runs it; the number must move):
     HPO_D6_PERTURB=1 rewrites, IN MEMORY ONLY (no file is touched), the
     documented default of "Target indoor temperature" in docs/configuration.md
     from 21.0 to 22.0 and renames wear.py to nosuch.py in architecture.md's
-    module map.  claims_false must rise 12 -> 13 (C30 flips true -> false) and
-    claims_true fall 112 -> 111 (with --links); C33's diagnostic must gain
-    `wear.py` under `missing` and `nosuch.py` under `phantom`.
+    module map.  claims_false must rise 1 -> 3 and claims_true fall 122 -> 120
+    (without --links): C30 flips on the default and C33 on the map -- at the
+    audit baseline C33 was already false, so the same perturbation rose
+    claims_false only 12 -> 13; #939 turned C33 true and the map arm now
+    bites.  C33's diagnostic must gain `wear.py` under `missing` and
+    `nosuch.py` under `phantom`.
 
 live-header: this header is maintained against the tree; harness_headers.py executes it.
 """
@@ -537,14 +547,15 @@ _listed = sorted(set(re.findall(r"([a-z_0-9]+\.py)", _map)))
 eq("C32", "docs/architecture.md", "45 modules", CMD,
    int(re.search(r"(\d+) modules, of which", DOCS["architecture.md"]).group(1)),
    len(_disk),
-   "the package holds {m} Python modules; the map lists 45 and omits 11")
+   "the package holds {m} Python modules")
 claim("C33", "docs/architecture.md",
       "the module map is the package's module list", CMD,
       f"on disk={len(_disk)}, listed={len(_listed)}, "
       f"missing={sorted(set(_disk) - set(_listed))}, "
       f"phantom={sorted(set(_listed) - set(_disk))}",
       "true" if set(_disk) == set(_listed) else "false",
-      "11 modules are absent from the map: " + ", ".join(sorted(set(_disk) - set(_listed))))
+      f"{len(set(_disk) - set(_listed))} modules are absent from the map: "
+      + ", ".join(sorted(set(_disk) - set(_listed))))
 
 
 def _toplevel(body):
@@ -571,28 +582,43 @@ for _p in sorted(PKG.glob("*.py")):
             _hit |= bool(_n.module) and _n.module.split(".")[0] == "homeassistant"
     if _hit:
         _ha_importers.append(_p.name)
-_doc_ten = re.search(r"Exactly ten modules import `homeassistant` at module level: (.*?)\n\n",
-                     DOCS["architecture.md"], re.S).group(1)
-_doc_named = sorted({f"{n}.py" for n in re.findall(r"`([a-z_]+)`", _doc_ten)})
+# #939 re-truthed the boundary sentence ("Exactly ten modules import ..." ->
+# "21 of the 56 modules import ..."), so C34 reads the count the document
+# now states instead of the carried 10 the old sentence spelled out, and
+# C35's named set ends at the list's own full stop -- the `inputs` sentence
+# that follows is a different claim (the one function-level toucher), and
+# sweeping it in counts 22 names against 21 importers. The METRIC is
+# unchanged: the set of modules that import homeassistant at module level.
+_doc_n = re.search(
+    r"(\d+) of the (\d+) modules\s+import `homeassistant` at module level",
+    DOCS["architecture.md"])
+_doc_span = re.search(
+    r"\d+ of the \d+ modules\s+import `homeassistant` at module level:\s+(.*?)\.",
+    DOCS["architecture.md"], re.S)
+_doc_named = sorted(
+    {f"{n}.py" for n in re.findall(r"`([a-z_]+)`", _doc_span.group(1))}
+)
 eq("C34", "docs/architecture.md:The Home Assistant boundary",
-   "Exactly ten modules import `homeassistant` at module level", CMD,
-   10, len(_ha_importers),
+   "the boundary sentence's count of modules importing `homeassistant` at "
+   "module level", CMD,
+   int(_doc_n.group(1)) if _doc_n else -1, len(_ha_importers),
    "{m} modules import homeassistant at module level")
 claim("C35", "docs/architecture.md:The Home Assistant boundary",
-      "the ten named modules are the complete set of module-level importers",
+      "the named modules are the complete set of module-level importers",
       CMD, f"named={_doc_named}, measured={_ha_importers}, "
       f"unnamed={sorted(set(_ha_importers) - set(_doc_named))}",
       "true" if set(_doc_named) == set(_ha_importers) else "false",
       "unnamed module-level importers: "
       + ", ".join(sorted(set(_ha_importers) - set(_doc_named))))
 claim("C36", "docs/architecture.md:The Home Assistant boundary",
-      "everything outside that set is free of homeassistant, so each module can be "
-      "driven with no Home Assistant running",
+      "everything outside the named set is free of homeassistant, so each "
+      "module can be driven with no Home Assistant running",
       CMD, f"{len(set(_ha_importers) - set(_doc_named))} modules outside the named "
       "set import homeassistant at module level",
       "true" if set(_ha_importers) <= set(_doc_named) else "false",
-      "11 modules outside the named set import homeassistant at module level and "
-      "cannot be imported without it")
+      "modules outside the named set import homeassistant at module level and "
+      "cannot be imported without it: "
+      + ", ".join(sorted(set(_ha_importers) - set(_doc_named))))
 eq("C37", "docs/architecture.md:module map", "__init__.py -- the 11 services", CMD,
    int(re.search(r"Setup and unload, the (\d+) services", DOCS["architecture.md"]).group(1)),
    len(SERVICES_YAML), "there are {m} services")
@@ -601,21 +627,44 @@ eq("C38", "docs/architecture.md:module map", "services.yaml -- The 11 service de
    len(SERVICES_YAML), "services.yaml defines {m} services")
 eq("C39", "docs/architecture.md:module map", "sensor.py -- 59 sensors", CMD,
    int(re.search(r"# (\d+) sensors", DOCS["architecture.md"]).group(1)), COUNTS["sensor"])
-_arch_switch = re.search(r"switch\.py\s+# (.*)", DOCS["architecture.md"]).group(1).strip()
+# #939: the map comments now name every constructed entity, and the long ones
+# wrap onto `│ ...` continuation lines (button.py's precedent), so an entry's
+# comment is joined before its comma-separated names are read. The verdict is
+# computed from the census the same harness drives, not hardcoded: at the
+# audit baseline the hardcoded "false" was right, and after #939 it would
+# have been a lie that no run could clear.
+def _map_entry(text, module):
+    m = re.search(rf"{module}\.py\s+#([^\n]*)\n((?:│[^\n]*#[^\n]*\n)*)", text)
+    if m is None:
+        return ""
+    return " ".join([m.group(1)] + re.findall(r"#([^\n]*)", m.group(2)))
+
+
+def _comment_names(comment):
+    return {p.strip() for p in comment.split(",") if p.strip()}
+
+
+_arch_switch = _map_entry(DOCS["architecture.md"], "switch")
+_sw_doc = _comment_names(_arch_switch)
+_sw_built = {display('switch', e) for e in CENSUS['switch']}
 claim("C40", "docs/architecture.md:module map",
-      "switch.py -- Optimizer Active", CMD,
-      f"documented={_arch_switch!r}, the platform constructs "
-      f"{sorted(display('switch', e) for e in CENSUS['switch'])}",
-      "false",
-      "switch.py constructs four switches: Away, Boost Hot Water, Boost Space "
-      "Heating and Optimizer Active")
-_arch_bs = re.search(r"binary_sensor\.py\s+# (.*)", DOCS["architecture.md"]).group(1).strip()
+      "switch.py -- the comment names every switch the platform constructs",
+      CMD, f"documented={sorted(_sw_doc)}, the platform constructs "
+      f"{sorted(_sw_built)}",
+      "true" if _sw_doc == _sw_built else "false",
+      "" if _sw_doc == _sw_built
+      else f"the platform constructs {sorted(_sw_built)}")
+_arch_bs = _map_entry(DOCS["architecture.md"], "binary_sensor")
+_bs_doc = _comment_names(_arch_bs)
+_bs_built = {display('binary_sensor', e) for e in CENSUS['binary_sensor']}
 claim("C41", "docs/architecture.md:module map",
-      "binary_sensor.py -- Input problem, open window, external heat, away mode",
-      CMD, f"documented names 4, the platform constructs {COUNTS['binary_sensor']}: "
-      f"{sorted(display('binary_sensor', e) for e in CENSUS['binary_sensor'])}",
-      "false",
-      "the fifth binary sensor, Wood Cheaper Than Heat Pump, is not named")
+      "binary_sensor.py -- the comment names every binary sensor the platform "
+      "constructs",
+      CMD, f"documented={sorted(_bs_doc)}, the platform constructs "
+      f"{sorted(_bs_built)}",
+      "true" if _bs_doc == _bs_built else "false",
+      "" if _bs_doc == _bs_built
+      else f"the platform constructs {sorted(_bs_built)}")
 
 # --- C42..C46 versions -----------------------------------------------------
 eq("C42", "manifest.json", "manifest version equals VERSION", CMD,

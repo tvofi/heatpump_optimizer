@@ -185,7 +185,10 @@ INERT = (
     "SECURITY.md",
     "NOTICE",
     "icon.png",
-    "docs/",  # except the handover -- see HANDOVER_DIR below
+    # docs/ except the handover (HANDOVER_DIR below) and the pages a gate
+    # script pins (INERT_EXCEPT below, #937 and #939) -- the same split
+    # README.md, RELEASE_NOTES.md and tests/README.md needed before it.
+    "docs/",
     # tests/README.md was here until #938: entities.py now reads the
     # manual's per-script size annotations and pins them against the
     # code's own counts, and a file a gate script reads is a dependency,
@@ -233,11 +236,15 @@ INERT = (
     # it -- only this gate has no dependency on it.
     "AGENTS.md",
     "DISCLAIMER.md",
-    # The quality-scale register (#229): a truthful rule-by-rule record in
-    # home-assistant/core's own schema. No gate script reads it (hassfest
-    # skips it for custom repos), and #229 shipped it without a
-    # classification, failing the orphan check on main until this line.
-    "custom_components/heatpump_optimizer/quality_scale.yaml",
+    # The quality-scale register (#229) sat here from #229 to #951: no gate
+    # script read it, so the INERT listing was honest. #951 ended that --
+    # tests/entities.py now reads the register to pin its coverage-bearing
+    # rows against the tree, and tests/harness_headers.py executes
+    # tools/audit/round4/D10/qs_rules.py, which reads it too -- so the file
+    # moved to entities.py's recorded closure, and this entry was removed
+    # rather than kept beside a read (the #357 contradiction). hassfest
+    # still skips it for custom repos; that is about the external checker,
+    # not this gate.
     # The pull-request template. GitHub renders it into a new body; no gate
     # script reads it. It is NOT under `.github/workflows/`, so the GATE_FILES
     # prefix above does not cover it, and an unclassified file forces the whole
@@ -381,6 +388,17 @@ INERT_EXCEPT = (
     # to entities.py's recorded closure, so an edit to it selects that
     # script instead of skipping.
     "docs/configuration.md",
+    # #951: tests/harness_headers.py now also spawns the round-4 quality-
+    # scale harness, whose declared_mismatch line is the register's drift
+    # alarm -- the finding's mechanism was that no check executed against
+    # quality_scale.yaml at all. Same #817 shape as the round-3 three: the
+    # gate opens the file, so the tools/audit/ prefix cannot cover it.
+    "tools/audit/round4/D10/qs_rules.py",
+    # #939: same route for architecture.md -- tests/entities.py pins its own
+    # numbers (module counts, the module map, the HA boundary) against the
+    # tree, so the document a contributor reads before changing the code is
+    # a dependency of a gate script, not inert prose.
+    "docs/architecture.md",
     # #941: tests/entities.py drives the real Power Headroom sensor over
     # the fuse x tariff grid and reads the automation examples to pin that
     # they name every state the sensor publishes. Same move as the
@@ -759,13 +777,16 @@ def _is_frontend_asset(rel: str) -> bool:
 #                     golden.capture() over the same five scenarios changes to
 #                     84bd6b951368845c5bdcaca6f420f2baafe9f37cd7880b6b4c64b6765dc69546
 #
-# hassfest skips the quality-scale register for custom repositories and
-# nothing under custom_components/ ever opens it -- unlike the bundled card,
-# there is not even a static-path registration to explain the absence, there
-# is simply no reader. It stays on INERT; the recorder was the one that was
-# wrong, matching the accepted over-approximation ground #251/D3-09 was
-# closed on. Re-measured at 48f4263, same caveat as above: the pair
-# (identical / different) is the claim, not the exact digits.
+# hassfest skips the quality-scale register for custom repositories, and
+# neither capture moves when it changes -- that is the measured basis this
+# exclusion keeps, and it survives #951: the register left the INERT list
+# when entities.py began reading it, but a DIRECT read recorded in that
+# script's closure is not a WIDENED one, and env_drift.py and golden.py
+# still have no reason to sit in every register-editing pull request. The
+# recorder was the one that was wrong in #357, matching the accepted
+# over-approximation ground #251/D3-09 was closed on. Re-measured at
+# 48f4263, same caveat as above: the pair (identical / different) is the
+# claim, not the exact digits.
 NEVER_WIDENED = ("custom_components/heatpump_optimizer/quality_scale.yaml",)
 
 
