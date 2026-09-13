@@ -26,7 +26,7 @@
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 26.2,
+   "seconds": 21.3,
    "rc": 1
   },
   "tests/env_drift.py": {
@@ -98,7 +98,7 @@
    "rc": 0
   },
   "tests/harness_headers.py": {
-   "seconds": 1.2,
+   "seconds": 1.6,
    "rc": 0
   }
  },
@@ -432,6 +432,7 @@
    "custom_components/heatpump_optimizer/pump_schedule.py",
    "custom_components/heatpump_optimizer/pump_signals.py",
    "custom_components/heatpump_optimizer/pv.py",
+   "custom_components/heatpump_optimizer/quality_scale.yaml",
    "custom_components/heatpump_optimizer/repairs.py",
    "custom_components/heatpump_optimizer/sensor.py",
    "custom_components/heatpump_optimizer/services.py",
@@ -1538,7 +1539,8 @@
    "tests/hastub/homeassistant/config_entries.py",
    "tools/audit/round3/D2/dst_window_factors.py",
    "tools/audit/round3/D2/window_size_sweep.py",
-   "tools/audit/round3/D5/option_doc_coverage.py"
+   "tools/audit/round3/D5/option_doc_coverage.py",
+   "tools/audit/round4/D10/qs_rules.py"
   ]
  }
 }
