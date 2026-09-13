@@ -3446,6 +3446,48 @@ for _tz948d in (False, True):
         _ok948d, _why948d,
     )
 
+# TEMPORARY #948 instrument round 3: is the two-zone objective PAIR
+# itself clean on this runner? Capture the production closures from the
+# exact challenger-4 scenario and compare batch rows against the scalar
+# objective, row by row, on perturbation-shaped rows.
+_cap948z = _capture_objectives_948(two_zone=True, dhw=False)
+_obj948z, _batch948z, _args948z = (
+    _cap948z["objective"], _cap948z["batch"], _cap948z["args"]
+)
+_rng948z = np.random.default_rng(99)
+_x948z = _rng948z.uniform(0.0, 4.0, size=96)
+_m948z = np.vstack([_x948z + 1e-4 * np.eye(96)[i] for i in range(12)] + [
+    _rng948z.uniform(0.0, 4.0, size=96) for _ in range(4)])
+_vals948z = np.asarray(_batch948z(_m948z, *_args948z), dtype=float)
+_rows948z = [float(_obj948z(_m948z[b], *_args948z)) for b in range(_m948z.shape[0])]
+_bad948z = [
+    (b, _vals948z[b], _rows948z[b])
+    for b in range(_m948z.shape[0]) if _vals948z[b] != _rows948z[b]
+]
+R.check(
+    "948 TEMP instrument: objective pair agrees on challenger-4 rows",
+    not _bad948z,
+    f"first: {str(_bad948z[:2])[:300]}",
+)
+# and the gradient pair at the same x
+from scipy.optimize._numdiff import approx_derivative as _ap948z
+_g948z = _grad_optmod._batch_fd_gradient(
+    _batch948z, tuple(_args948z), _x948z, float(_obj948z(_x948z, *_args948z)),
+    1e-4, [(0.0, 6.0)] * 96,
+)
+_gs948z = _ap948z(
+    lambda _x: _obj948z(_x, *_args948z), _x948z, method="2-point",
+    abs_step=1e-4, bounds=(np.zeros(96), np.full(96, 6.0)),
+)
+_gd948z = np.abs(_g948z - _gs948z)
+R.check(
+    "948 TEMP instrument: batched jac equals approx_derivative here",
+    bool(np.array_equal(_g948z, _gs948z, equal_nan=True)),
+    f"maxdiff={float(np.nanmax(_gd948z))!r} "
+    f"nexact={int((_g948z == _gs948z).sum())}/96 "
+    f"first={int(np.nanargmax(_gd948z))}",
+)
+
 # The batch twins under their own branch grids, one level below the
 # objective: every arm peak_cost and cycling_penalty branch on, priced per
 # row against the scalar function on the same plan. Rule: row b of the
