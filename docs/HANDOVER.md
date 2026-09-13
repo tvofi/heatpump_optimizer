@@ -201,9 +201,9 @@ in its own pull request.
 11. **A shallow checkout fails a driver on the clone, not the tree.** Graduated:
     `entities.py` refuses a history-reading driver at depth 1 (#901).
 
-11. **A shallow clone turns "commits ahead" into fiction**; four such figures
+12. **A shallow clone turns "commits ahead" into fiction**; four such figures
     once reached a handover. Graduated: `.claude/hooks/session-start.sh`.
-12. **A fix gets verified against the instance that was demonstrated, not the
+13. **A fix gets verified against the instance that was demonstrated, not the
     property that was stated.** The demonstration displaces the specification,
     the verification is built from the demonstrated instance's *form*, and any
     sibling carrying the property in a different form survives — including one
@@ -217,24 +217,24 @@ in its own pull request.
     re-derive — the class reached no seat's *production* fix. A production fix
     is accepted by standing property-quantified instruments (CI, the ratchet,
     closures, the mutation proof); a record or policy artifact has none.
-13. **"The pull request is open" is not a handoff.** The freeze starts at
+14. **"The pull request is open" is not a handoff.** The freeze starts at
     handoff, and a seat that has opened one may still be pushing while it waits
     on CI. Six pull requests had a head moved under a live review in one
     session, #531 four times by itself.
-14. **A record pull request cannot converge while the merge queue runs.** #531
+15. **A record pull request cannot converge while the merge queue runs.** #531
     stayed open 20 hours over 45 commits, 25 content edits and 11 blocked
     rounds, with 31 pull requests merging underneath it, each merge
     invalidating part of its content. One record per merge has a bounded truth
     condition and cannot be overtaken; live state belongs on #201, where no
     merge can stale it.
-15. **`date -jf '%Y-%m-%dT%H:%M:%SZ'` parses a UTC stamp as local time.** Every
+16. **`date -jf '%Y-%m-%dT%H:%M:%SZ'` parses a UTC stamp as local time.** Every
     age computed that way is wrong by the offset; it once made a queue aged
     8 minutes to 20 hours read as a flat "2h". Use Python's
     `datetime.fromisoformat` with an explicit UTC now.
-16. **Backticks inside a double-quoted shell string are command substitution.**
+17. **Backticks inside a double-quoted shell string are command substitution.**
     Three review comments were posted with their SHAs silently missing. Write
     the body to a file with a quoted heredoc and pass `-F body=@file`.
-17. **A citation and its referent can live on two branches, and the relation
+18. **A citation and its referent can live on two branches, and the relation
     between them is invisible to every branch-scoped check.** Two green branches
     merged to a red `main` with no conflict and no shared file: one landed a
     brief citing `configuration_url`, the other deleted the tracked tree's only
@@ -247,36 +247,36 @@ in its own pull request.
     the citation was anchored to one English sentence. Prose is not a pin** —
     restoring the sentence would have greened the gate and reproduced the
     defect, so the repair was to re-anchor.
-18. **A clean merge is evidence of no textual overlap and nothing else.** Twice
+19. **A clean merge is evidence of no textual overlap and nothing else.** Twice
     in one session two sides appended at the same insertion point and shared a
     trailing bracket, so `--ours` would have dropped a whole block silently.
     Verify a merge by parsing the result and naming the checks that run.
-19. **A one-sided cap and a growing document collide across branches** — #608
+20. **A one-sided cap and a growing document collide across branches** — #608
     capped this file, #607 added 43 lines 56 minutes later and `main` went red.
     Graduated: `policy-docs`'s `[budgets]`. Trap 17 on a budget.
-20. **A comment bumps a pull request's `updated_at`, so it is not a body-edit
+21. **A comment bumps a pull request's `updated_at`, so it is not a body-edit
     clock.** Read as one, it dated a body edit to a reviewer's comment. The
     clock is the `Governance` run list: the job fires on `[edited]`, so a
     missing run means no edit happened.
-21. **Assert a mutation's occurrence count before applying it.** A control
+22. **Assert a mutation's occurrence count before applying it.** A control
     reported a cap mutant NOT CAUGHT: the replacement hit the string's first
     occurrence, inside a comment, so the run was unmutated. "I could not find
     it" differs from "it is pinned". Same shape: an unanchored `case` glob
     accepts `v1.2.3; rm -rf /`.
-22. **A subagent does not survive a session restart; its report does.** Read
+23. **A subagent does not survive a session restart; its report does.** Read
     `tasks/<agentId>.output` before re-dispatching — `ListAgents` goes empty
     with no notification, and an hour nearly went on finished work.
-23. **Re-pointing a branch chain by POSITION after a rebase drops a commit.**
+24. **Re-pointing a branch chain by POSITION after a rebase drops a commit.**
     Map by commit subject and verify the tip's pin count: by index once shifted
     eight branches by one, and only that count noticed.
-24. **A citation repointed to a commit that resolves but lacks the file is
+25. **A citation repointed to a commit that resolves but lacks the file is
     worse than a dead one.** `git cat-file -e <sha>:<path>`, not per directory.
-25. **A body's count of its own diff must come from the diff.** #621's body
+26. **A body's count of its own diff must come from the diff.** #621's body
     said five disposition rows; the diff added nine, because the author counted
     what they remembered writing. Derive a body's counts by mutating the
     artefact and reading the detector: here, removing all nine rows and reading
     `--record`'s refusal.
-26. **A figure in prose whose referent is a function of `origin/main` is stale
+27. **A figure in prose whose referent is a function of `origin/main` is stale
     by construction, not by neglect.** It was the single largest source of
     blocked rounds under the 2026-09-09 grant, and `claims` outnumbered every
     other block class together. **No count is given here, and that is the trap
@@ -293,7 +293,7 @@ in its own pull request.
     refusing a *bare figure* was built and driven, and reported 20 on the live
     briefs of which five were the defect: three wrong reports per right one, on
     a corpus whose authors mostly did anchor. Write `58.6 % at 4b6e0765`.
-27. **A blank line ends a markdown table, and every row below it renders as
+28. **A blank line ends a markdown table, and every row below it renders as
     literal text while the source still looks like a table.** Not reduced to a
     pointer, although its detector exists: the check catches the defect, and
     what survives here is the method for settling a render question at all. 26 of the plan's
@@ -303,7 +303,7 @@ in its own pull request.
     question is GitHub's own `/markdown` endpoint, not the CommonMark spec —
     how #686 established that a row's *leading* pipe is optional in GFM, so
     deleting one is correctly not reported. The blank line is the defect.
-28. **A replacement that matches a prefix leaves both halves in one line, and
+29. **A replacement that matches a prefix leaves both halves in one line, and
     an anchor that matches the first occurrence lands your insertion in the
     wrong section.** Both happened in one pull request. The row became five
     cells wide in a three-column table with its old half still contradicting
@@ -312,7 +312,7 @@ in its own pull request.
     matches a number anywhere in its region and has no idea about placement.
     Assert the *whole* construct you meant to replace, and anchor on a string
     you have counted.
-29. **A verdict that does not parse loses its routing class, not just its text.**
+30. **A verdict that does not parse loses its routing class, not just its text.**
     `web-fix-wave.js`'s `VERDICT_RE` anchors on `^Fix review:`, reads only the
     first line, and takes `<class>` from the closed `VERDICT_CLASSES` list — so
     backticks around that line and an invented class both make the dispatcher
@@ -323,21 +323,21 @@ in its own pull request.
     `revise` — which is not a class — was written into every review brief and
     cost six verdicts before it was caught. Post the first line bare, and read
     the class list out of the file rather than from memory.
-30. **In zsh, assigning to a variable named `path` destroys `PATH`.** A
+31. **In zsh, assigning to a variable named `path` destroys `PATH`.** A
     `while read -r path branch` loop over `git worktree list` left the shell
     unable to find `basename`, `git` or `df`. Same reserved-variable family as
     `GID`. Rename the loop variable.
-31. **A record's own fields are checked by almost nothing** (#687). An
+32. **A record's own fields are checked by almost nothing** (#687). An
     unrecognised `resume.stage` is refused by `check-wave-script.mjs`, but a dead
     path in `resume.note` is invisible to `brief_lint.mjs` while the same path in
     `brief` is an error. A roster `resume` a record seat truths has one guarded
     field and a reader for the rest.
-32. **A worktree shares the repository's config and its refs with every other
+33. **A worktree shares the repository's config and its refs with every other
     worktree.** A seat ran `git remote remove origin` inside one while building
     a fixture; the main checkout's `origin` was repointed at a local path and
     every remote-tracking ref went with it. A throwaway git experiment goes in a
     standalone clone under the seat's own `mktemp -d`, never in a worktree here.
-33. **A detached worktree can be collected while a seat is still using it.**
+34. **A detached worktree can be collected while a seat is still using it.**
     `tools/audit/worktree_gc.sh --apply` removes a detached, clean worktree over
     an hour old that is not an open pull request's head. A fix-review seat is
     protected by that last criterion; a root-cause or audit seat detached at
@@ -346,7 +346,7 @@ in its own pull request.
     `missing` — none named in its header, none pinned by a `--self-test` case.
     **Not an untracked marker at the root**: criterion 2 keeps it, and
     `closure.py select` then turns `MODE: SCOPED` into `MODE: FULL` naming it.
-34. **A coverage check can run a guard's line and pin nothing.** Four shapes
+35. **A coverage check can run a guard's line and pin nothing.** Four shapes
     found by mutation across W5-G7, none visible to an instrument that sees the
     line run either way. An EARLIER guard rejected the input (eight checks). The
     exception ESCAPES and ends the script instead of failing the check named for
