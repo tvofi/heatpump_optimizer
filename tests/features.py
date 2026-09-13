@@ -8433,6 +8433,30 @@ R.check(
     "a wrapping month range covers the wrap and not the middle",
     2 in _gf.parse_month_range("Nov-Mar") and 6 not in _gf.parse_month_range("Nov-Mar"),
 )
+# R4-D3-S1 (#930): every month-range value assertion here used the wrapping
+# case, so a parse_month_range that routed a NON-wrapping span through the
+# wrap (a Mar-Sep seasonal fee billing all year) survived the whole gate.
+# Pin the plain span exactly, through the symbol and through a priced rule
+# at both edge months and both neighbours.
+R.check(
+    "a non-wrapping month range is exactly its span, not the year",
+    _gf.parse_month_range("Mar-Sep") == frozenset({3, 4, 5, 6, 7, 8, 9}),
+    f"Mar-Sep -> {sorted(_gf.parse_month_range('Mar-Sep'))}",
+)
+_span_rule = _gf.GridFeeSchedule(
+    mode=_gf.MODE_RULES, rules=_gf.parse_rules("Mar-Sep = 0.25")
+)
+R.check(
+    "a non-wrapping rule bills both edge months and neither neighbour",
+    abs(_span_rule.current_fee(datetime(2026, 3, 14, 12, 0)) - 0.25) < 1e-9
+    and abs(_span_rule.current_fee(datetime(2026, 9, 14, 12, 0)) - 0.25) < 1e-9
+    and _span_rule.current_fee(datetime(2026, 2, 14, 12, 0)) == 0.0
+    and _span_rule.current_fee(datetime(2026, 10, 14, 12, 0)) == 0.0,
+    f"mar {_span_rule.current_fee(datetime(2026, 3, 14, 12, 0))}, "
+    f"sep {_span_rule.current_fee(datetime(2026, 9, 14, 12, 0))}, "
+    f"feb {_span_rule.current_fee(datetime(2026, 2, 14, 12, 0))}, "
+    f"oct {_span_rule.current_fee(datetime(2026, 10, 14, 12, 0))}",
+)
 R.check(
     "broken specs are rejected by validation, not stored",
     not _gf.is_valid_spec("Nov-Mar = banana")
@@ -29080,6 +29104,14 @@ R.check(
     == frozenset({11, 12, 1, 2, 3}),
     f"Nov-Mar -> {sorted(_t3_coord(peak_tariff_months='Nov-Mar')._tariff_months())}, "
     f"Nov-Mar;Jul -> {sorted(_t3_coord(peak_tariff_months='Nov-Mar;Jul')._tariff_months())}",
+)
+# R4-D3-S1 (#930): the mask shares parse_month_range, and every arm above
+# wraps or lists -- the non-wrapping span was unpinned here too.
+R.check(
+    "a non-wrapping month mask is its span, not the year",
+    _t3_coord(peak_tariff_months="Apr-Sep")._tariff_months()
+    == frozenset({4, 5, 6, 7, 8, 9}),
+    f"Apr-Sep -> {sorted(_t3_coord(peak_tariff_months='Apr-Sep')._tariff_months())}",
 )
 _t3_tm_partial = _t3_call(
     _t3_coord(peak_tariff_months="Nov-Mar,Smarch")._tariff_months
