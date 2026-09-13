@@ -612,6 +612,85 @@ R.check(
     f"labels absent from docs/configuration.md: " + ", ".join(_unnamed_fields[:8]),
 )
 
+# #941: automations.md's Power Headroom paragraph stated an availability
+# precondition the sensor does not enforce -- "It stays unavailable until you
+# set a main fuse size in the options" -- while round 4 measured a capacity
+# tariff alone making it available at 0.0 kW with limit_source "capacity
+# tariff with no peak reference yet", and the fuse defaults to 0. The
+# paragraph must name every state the real sensor publishes over the
+# fuse x tariff grid, so an automation author can tell each availability
+# source apart; the grid is driven through the real coordinator's own
+# `_power_headroom` (via `_build_data_dict`) and the real entity constructed
+# by the platform's `async_setup_entry`, never restated here. Reading the
+# file is also what takes it off `tests/closure.py`'s INERT list: a document
+# a gate script checks is a dependency, not inert (#984 did the same for
+# docs/configuration.md).
+from heatpump_optimizer.coordinator import (
+    HeatPumpOptimizerCoordinator as _hra_coord,
+)
+
+_automations_hay = _fold_text(Path("docs/automations.md").read_text())
+_hra_tariff = {const.CONF_PEAK_TARIFF_ENABLED: True, const.CONF_PEAK_TARIFF_PRICE: 45.0}
+# The default tariff carries no masks (no months, no peak hours, every window
+# counts at 1.0), so `sample_factor` answers a billable window at any hour
+# and the grid needs no clock freeze to be deterministic.
+_hra_cells = {
+    "no fuse, no tariff": {},
+    "no fuse, capacity tariff": dict(_hra_tariff),
+    "fuse, no tariff": {const.CONF_MAIN_FUSE_A: 20},
+    "fuse, capacity tariff": {const.CONF_MAIN_FUSE_A: 20, **_hra_tariff},
+}
+
+
+def _hra_headroom_entity(extra_config):
+    """The real Power Headroom entity over a real coordinator's own publish."""
+    hass = FakeHass()
+    hass.states.set("sensor.indoor", FakeState("21.4"))
+    hass.states.set("sensor.outdoor", FakeState("-3.0"))
+    cfg = {
+        const.CONF_INDOOR_TEMP_ENTITY: "sensor.indoor",
+        const.CONF_OUTDOOR_TEMP_ENTITY: "sensor.outdoor",
+    }
+    cfg.update(extra_config)
+    coord = _hra_coord(hass, FakeEntry(data=cfg))
+    asyncio.run(coord._update_current_state())
+    return next(
+        e
+        for e in collect(sensor, data=coord._build_data_dict())
+        if getattr(e, "_attr_translation_key", None) == "power_headroom"
+    )
+
+
+_hra_available = {}
+_hra_sources = set()
+for _hra_label, _hra_extra in _hra_cells.items():
+    _hra_ent = _hra_headroom_entity(_hra_extra)
+    if _hra_ent.available:
+        _hra_available[_hra_label] = True
+        _hra_src = _hra_ent.extra_state_attributes.get("limit_source")
+        if _hra_src:
+            _hra_sources.add(_hra_src)
+
+R.check(
+    "only the unbounded cell keeps Power Headroom unavailable",
+    set(_hra_available)
+    == {
+        "no fuse, capacity tariff",
+        "fuse, no tariff",
+        "fuse, capacity tariff",
+    },
+    f"available cells: {sorted(_hra_available)} -- the no-fuse-no-tariff cell "
+    f"is the only one with nothing bounding the house (#941's rule; if this "
+    f"moves, docs/automations.md's paragraph must move with it)",
+)
+_hra_unnamed = sorted(s for s in _hra_sources if _fold_text(s) not in _automations_hay)
+R.check(
+    "automations.md names every state the Power Headroom sensor publishes",
+    not _hra_unnamed,
+    f"limit_source values absent from docs/automations.md: {_hra_unnamed} "
+    f"(published over the grid by: {sorted(_hra_available)})",
+)
+
 _total_claim = _re.search(r"All (\d+) entities", readme)
 R.check(
     "the README's total entity count covers every registered platform",

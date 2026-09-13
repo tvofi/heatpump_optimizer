@@ -389,6 +389,12 @@ INERT_EXCEPT = (
     # tree, so the document a contributor reads before changing the code is
     # a dependency of a gate script, not inert prose.
     "docs/architecture.md",
+    # #941: tests/entities.py drives the real Power Headroom sensor over
+    # the fuse x tariff grid and reads the automation examples to pin that
+    # they name every state the sensor publishes. Same move as the
+    # reference above: the docs/ prefix stays INERT, the file moves to
+    # entities.py's recorded closure.
+    "docs/automations.md",
     ".gitignore",
     ".claude/workflows/policy_lint.mjs",
     ".claude/workflows/brief_lint.mjs",
