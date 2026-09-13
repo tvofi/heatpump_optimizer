@@ -2443,7 +2443,9 @@ class ThermalModel:
         p = self.params
         delta = out_i - p.cop_reference_temp
         factor = max(0.3, 1.0 + 0.025 * delta)
-        cop = p.cop_nominal * min(factor, 1.5) * p.cop_scale
+        # float until the optional batch-mode factors (defrate, Carnot) make
+        # it an elementwise ndarray over the batch's tanks.
+        cop: float | np.ndarray = p.cop_nominal * min(factor, 1.5) * p.cop_scale
         derate = p.defrost_derate
         if derate is not None:
             # A forecast humidity series marks unknown steps as NaN (#21);
