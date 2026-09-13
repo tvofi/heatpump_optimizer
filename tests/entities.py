@@ -1435,6 +1435,103 @@ R.check(
     f"{len(_kl_bullets)} bullet(s) in the section",
 )
 
+# #951 (R4-D10-01): the register's two coverage-bearing rows are the ones
+# that rot, because they quote figures about a tree that keeps changing
+# under them. Round 4 executed one check per quality-scale rule and found
+# rows disagreeing with the tree in BOTH directions at once; #973
+# re-truthed docs-known-limitations above, and these checks pin the two
+# that remain:
+#
+#   config-flow-test-coverage  declared done, "100% statement coverage
+#                              (661 statements, 0 missed)" -- executed
+#                              todo, the residual being ordinary reachable
+#                              branches (options-grid price-entity/token
+#                              errors, the holiday DHW window validation,
+#                              the stored-values coercion comparison)
+#   test-coverage              declared todo (issue #195, since closed) --
+#                              executed done, every module over the rule's
+#                              bar
+#
+# The mechanism was that nothing executed against the register at all.
+# These checks read it, so a quality_scale.yaml edit selects this script
+# (the register leaves closure.py's INERT list in the same pull request),
+# and tools/audit/round4/D10/qs_rules.py -- wired into
+# tests/harness_headers.py, which runs on every pull request -- alarms on
+# drift in every row measurable without a toolchain. These two rows are
+# the toolchain rows; they are keyed to standing records, not to quoted
+# figures:
+#
+#   test-coverage must agree with tests/coverage_budgets.json's
+#   package_percent_floor -- the number the per-pull-request coverage job
+#   ratchets -- against the Silver rule's bar. That floor is the tree's
+#   standing executable statement of package coverage, so the row may not
+#   disagree with it in either direction. (The keying is encoded rather
+#   than the verdict: a future re-record of the floor below the bar must
+#   flip the row, not orphan the check.)
+#
+#   config-flow-test-coverage is pinned todo. The rule asks for FULL
+#   coverage of the config flow; no standing record shows it, and the
+#   round-4 measurement under tools/audit/w5-partition/coverage_tree.sh
+#   -- the instrument tests/coverage_ratchet.py consumes -- found
+#   reachable branches still missed. A deliberate ratchet-style pin, in
+#   the #952 shape: flipping the row to done requires re-measuring with
+#   that instrument and re-taking this pin, which is exactly the
+#   verification the register lacked when the row rotted.
+#
+# And neither row's comment may quote a coverage figure of its own -- a
+# percentage, a statement count or a missed count. All three figures in
+# the row that rotted were wrong at the next measurement; a comment that
+# names the instrument instead cannot rot. Issue and pull-request
+# references and SHAs stay legitimate: they are records, not measurements.
+import yaml as _qs_yaml
+
+_QS_FILE = ROOT / "quality_scale.yaml"
+_QS_RULES = (_qs_yaml.safe_load(_QS_FILE.read_text()) or {}).get("rules", {})
+
+
+def _qs_status(name: str) -> str:
+    v = _QS_RULES.get(name)
+    return v if isinstance(v, str) else (v or {}).get("status", "(absent)")
+
+
+def _qs_comment(name: str) -> str:
+    v = _QS_RULES.get(name)
+    return "" if isinstance(v, str) else (v or {}).get("comment") or ""
+
+
+_qs_floor = json.loads(Path("tests/coverage_budgets.json").read_text())[
+    "package_percent_floor"
+]
+R.check(
+    "the register's test-coverage row agrees with the recorded coverage floor",
+    _qs_status("test-coverage") == ("done" if _qs_floor >= 95.0 else "todo"),
+    f"register says {_qs_status('test-coverage')!r}; "
+    f"tests/coverage_budgets.json package_percent_floor={_qs_floor} "
+    "against the Silver rule's 95% bar (#195 closed; #951)",
+)
+R.check(
+    "the register's config-flow-test-coverage row is todo: the rule asks "
+    "for full config-flow coverage and no measurement shows it",
+    _qs_status("config-flow-test-coverage") == "todo",
+    "round 4 measured the config flow under the coverage instrument with "
+    "ordinary reachable branches still missed; flipping this row to done "
+    "requires re-measuring with that instrument and re-taking this pin "
+    "(#951)",
+)
+_QS_FIGURE = _re.compile(
+    r"\d+(?:\.\d+)?\s*%|\b\d+\s+statements?\b|\b\d+\s+missed\b", _re.I
+)
+R.check(
+    "neither coverage row quotes figures of its own",
+    not any(
+        _QS_FIGURE.search(_qs_comment(n))
+        for n in ("config-flow-test-coverage", "test-coverage")
+    ),
+    "a quoted percentage, statement count or missed count is exactly the "
+    "figure that rotted -- all three in the shipped row were wrong at the "
+    "next measurement; name the instrument instead (#951)",
+)
+
 for name in (
     "Measured Power",
     "Observed COP",
@@ -9670,8 +9767,10 @@ _QS = "custom_components/heatpump_optimizer/quality_scale.yaml"
 R.check(
     "the widening rule leaves the quality-scale register out too",
     _QS not in _widened[_ED] and _QS not in _widened["tests/golden.py"],
-    "hassfest skips it for custom repositories and nothing under "
-    "custom_components/ opens it; measured byte-identical captures say so",
+    "hassfest skips it for custom repositories and neither capture moves "
+    "when it changes; measured byte-identical captures say so. (#951 moved "
+    "the register into this script's RECORDED closure -- a direct read, "
+    "not a widened one, so the exclusion above still holds.)",
 )
 
 # The scoped gate refuses to skip anything when a changed file is in no
@@ -12018,14 +12117,21 @@ R.check(
 # the order is why. Until #357, quality_scale.yaml was on INERT and inside
 # env_drift's rule-widened closure at the same time -- the real, on-main
 # instance of exactly the shape this ordering rule exists to get right.
-# #357 fixed the recorder (NEVER_WIDENED, above), so that file is no longer
-# a live example: both checks below use it to confirm the fix landed clean.
+# #357 fixed the recorder (NEVER_WIDENED, above), and #951 turned the page
+# on the file's INERT listing itself: this script now reads the register
+# (the coverage-row pins above), so it left the INERT list and entered
+# this script's recorded closure. The live example of "INERT and in no
+# closure means skip" is the docs-only probe above; what this checks now
+# is the point of that move -- a register edit selects this script instead
+# of skipping, so the round-4 drift (rows contradicted by execution in a
+# file no gate script read) has a lane that sees it.
 _A_QS = _closure.affected([_QS])
 R.check(
-    "the (fixed) quality-scale contradiction is gone: INERT and in no "
-    "closure now means skip, not scoped",
-    _closure.is_inert(_QS) and _A_QS["case"] == "skip",
-    f"{_QS} is inert={_closure.is_inert(_QS)} and case={_A_QS['case']}",
+    "a quality_scale.yaml edit selects this script, not a skip (#951)",
+    not _closure.is_inert(_QS) and _A_QS["case"] == "scoped",
+    f"{_QS} is inert={_closure.is_inert(_QS)} and case={_A_QS['case']} -- "
+    "the register's rows were contradicted by execution for exactly as "
+    "long as no gate script read the file",
 )
 # The ORDER still has to be pinned even with no naturally occurring
 # contradiction left on disk, so this manufactures one: start from the real

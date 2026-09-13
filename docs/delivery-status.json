@@ -3,141 +3,239 @@
   "stale_after_commits": 12,
   "merges": [
     {
+      "number": 990,
+      "title": "fix(#943): size the sysid step on the configured house's slab",
+      "merge_sha": "51c2d2ccab74685d6caf58d2adac6e6788eef4d6",
+      "commits_after": 0,
+      "state": "rowed"
+    },
+    {
+      "number": 986,
+      "title": "fix(#939): re-truth the ten stale claims in docs/architecture.md (R4-D6-01)",
+      "merge_sha": "653a498e9f859ad11398a117cdc1c1374051053a",
+      "commits_after": 1,
+      "state": "rowed"
+    },
+    {
+      "number": 987,
+      "title": "fix(#941): state the real Power Headroom availability rule in automations.md",
+      "merge_sha": "5003cd9990fda51736847eab734920e4af8452b6",
+      "commits_after": 2,
+      "state": "rowed"
+    },
+    {
+      "number": 981,
+      "title": "test(#933): pin the horizon clamp in HeatPumpOptimizer._anticipatory_weights",
+      "merge_sha": "f8174e155b0c6374386894f30fb9685bfc5a442e",
+      "commits_after": 3,
+      "state": "rowed"
+    },
+    {
+      "number": 984,
+      "title": "fix(#937): document every shipped options field in the configuration reference",
+      "merge_sha": "9ac2b6d8e9d6ad93ed6ae0733ac44d81d1750122",
+      "commits_after": 4,
+      "state": "rowed"
+    },
+    {
+      "number": 983,
+      "title": "gate: harness_headers runs unscoped, and fixer.md carries the subprocess-blind-spot line \u2014 both owner-approved",
+      "merge_sha": "e7cbdaa576fc242e450e7d1e090700c04e282fe9",
+      "commits_after": 5,
+      "state": "rowed"
+    },
+    {
+      "number": 982,
+      "title": "test(#930): commit the fix seat's re-derivation harness for D3-S1",
+      "merge_sha": "99f1936f44955fa4b91b2f790f70567d6e24fe4b",
+      "commits_after": 6,
+      "state": "rowed"
+    },
+    {
+      "number": 980,
+      "title": "fix(#925): scale the smooth top-k bracket by its own logistic temperature (R4-D2-01)",
+      "merge_sha": "3ebc5a810da14132b02821162c068ebe8441d912",
+      "commits_after": 7,
+      "state": "rowed"
+    },
+    {
+      "number": 970,
+      "title": "fix(#938): state the sweep's real size in tests/README.md and pin the annotation counts",
+      "merge_sha": "1b9ed98fb3146b6f19ea8fc0f1bb8bee066206a3",
+      "commits_after": 8,
+      "state": "rowed"
+    },
+    {
+      "number": 979,
+      "title": "fix: re-record window_size_sweep's catalog probe for #968's hourly tariffs",
+      "merge_sha": "67499b11ac84803b603672ca1eb14dae69e4369d",
+      "commits_after": 9,
+      "state": "rowed"
+    },
+    {
+      "number": 975,
+      "title": "test(#931): pin the disabled-feature guard in LegionellaGuard.due_in_hours",
+      "merge_sha": "54d8634e42880ac530363117ae670edec9941ed9",
+      "commits_after": 10,
+      "state": "rowed"
+    },
+    {
+      "number": 974,
+      "title": "fix(#944): the shared learner gate refuses a defrosting interval",
+      "merge_sha": "ef104af7578d4dbb47e41565cb7dc7fe00fb03a1",
+      "commits_after": 11,
+      "state": "rowed"
+    },
+    {
+      "number": 978,
+      "title": "record: rows for #976 #973 #969, and the two-row erratum",
+      "merge_sha": "d045bf300fed1893e443db9616b304dfd678e3cb",
+      "commits_after": 12,
+      "state": "rowed"
+    },
+    {
+      "number": 971,
+      "title": "fix(#946): give the four device-class icon exceptions chosen icons",
+      "merge_sha": "ed75c0d91f3c29a5362963d77c51c31fde2a62a9",
+      "commits_after": 13,
+      "state": "rowed"
+    },
+    {
       "number": 969,
       "title": "fix(#961): consult the entity unit in InputReader.read for temperature and energy",
       "merge_sha": "c27cb8d90debb887582a2c19096169c801d64b8b",
-      "commits_after": 0,
+      "commits_after": 14,
       "state": "rowed"
     },
     {
       "number": 972,
       "title": "record: rows for #964 #965 #899 #968 #967, and the HANDOVER list renumbered after #899's duplicate 11",
       "merge_sha": "f593eeeb3b2363aeb7ff983e0dcb752b88f921fa",
-      "commits_after": 1,
+      "commits_after": 15,
       "state": "rowed"
     },
     {
       "number": 973,
       "title": "fix(#952): give the README a Known limitations section (R4-D10-02)",
       "merge_sha": "31ccb7f9112e10d176b9ba3c86ea36d92fbd5ba8",
-      "commits_after": 2,
+      "commits_after": 16,
       "state": "rowed"
     },
     {
       "number": 976,
       "title": "fix: repair #967 x #968 - the catalog loop pinned the pre-#968 row count",
       "merge_sha": "f0eabbd05f0ee09883a4ce7b87bdc75e1754038d",
-      "commits_after": 3,
+      "commits_after": 17,
       "state": "rowed"
     },
     {
       "number": 966,
       "title": "fix(#922): reject non-finite price-shape bins at load",
       "merge_sha": "dfa77f689d5e305099dff9cdb35d0760bf48bac0",
-      "commits_after": 4,
+      "commits_after": 18,
       "state": "rowed"
     },
     {
       "number": 967,
       "title": "fix(#929): a comma between digits is a decimal separator in grid-fee rules",
       "merge_sha": "764405d20364bc74d08bfe68c059e093787bad13",
-      "commits_after": 5,
+      "commits_after": 19,
       "state": "rowed"
     },
     {
       "number": 968,
       "title": "fix(#926): R4-D2-02 - transcribe the sourced DSO tariffs, drop the unsourced rows",
       "merge_sha": "b9f31c5afa37c91523f383967e68cb5498c1a6f6",
-      "commits_after": 6,
+      "commits_after": 20,
       "state": "rowed"
     },
     {
       "number": 899,
       "title": "record: leftover-row for #896 and Wave 5 closed on v6.4.3",
       "merge_sha": "ae14b879ca5f8ec0a6e2b31250536fee1bd74adf",
-      "commits_after": 7,
+      "commits_after": 21,
       "state": "rowed"
     },
     {
       "number": 965,
       "title": "fix(#923): guard the accuracy store's samples decode",
       "merge_sha": "d886de9b5a9e91ef1a8af8daea04e7a9c29d304c",
-      "commits_after": 8,
+      "commits_after": 22,
       "state": "rowed"
     },
     {
       "number": 964,
       "title": "fix(#940): publish the currency unit on the Sensor-Gap Euro Advisor",
       "merge_sha": "a97681b517bfbaa4a1be68e41836a2f8aaf7c79a",
-      "commits_after": 9,
+      "commits_after": 23,
       "state": "rowed"
     },
     {
       "number": 963,
       "title": "audit(round 4): verification panels, judge verdicts, register, and the issue set",
       "merge_sha": "dc4f69dde09946c49b94721f6ed3fb4d4ed82e42",
-      "commits_after": 10,
+      "commits_after": 24,
       "state": "rowed"
     },
     {
       "number": 907,
       "title": "record: leftover rows for #905 and #906 - the register section and this lane's own record pull request",
       "merge_sha": "5b3fb0249ea3945c190b88e0dedd377c23314214",
-      "commits_after": 11,
+      "commits_after": 25,
       "state": "rowed"
     },
     {
       "number": 906,
       "title": "record: #903 merged 0f2a6e0, and the leftover-row #902's merge owed",
       "merge_sha": "fc5f65da38c339d79fec89c6e05b65501189bbc2",
-      "commits_after": 12,
+      "commits_after": 26,
       "state": "rowed"
     },
     {
       "number": 905,
       "title": "audit(round 4): the register section, derived from a ledger",
       "merge_sha": "ea0e0454789980d9a82d76bbcbb5e28c9019a087",
-      "commits_after": 13,
+      "commits_after": 27,
       "state": "rowed"
     },
     {
       "number": 904,
       "title": "audit(round 4): the quiet window's record, and what it changed",
       "merge_sha": "a5f262b2fb42ba9d631227017e6ef300de5b1d7b",
-      "commits_after": 14,
+      "commits_after": 28,
       "state": "rowed"
     },
     {
       "number": 903,
       "title": "policy: AGENTS.md joins the corpus as the harness-neutral entry point",
       "merge_sha": "0f2a6e09d24b1376afd3abb5559b1fc69694aa81",
-      "commits_after": 15,
+      "commits_after": 29,
       "state": "rowed"
     },
     {
       "number": 902,
       "title": "policy: a cap may be raised as a last resort, with the owner's confirmation",
       "merge_sha": "ac5f649623cbd833959ccdfb293c646462578725",
-      "commits_after": 16,
+      "commits_after": 30,
       "state": "rowed"
     },
     {
       "number": 901,
       "title": "fix: make a red nightly-status clearable, and clear it",
       "merge_sha": "c247770fd9ba36e41ce660738d5bead74ca678d3",
-      "commits_after": 17,
+      "commits_after": 31,
       "state": "rowed"
     },
     {
       "number": 900,
       "title": "audit: round 4, thirteen dimensions \u2014 and a defect in an instrument becomes a finding",
       "merge_sha": "c68259b87f1a0d8957ee6793c7ae9d1794017a1d",
-      "commits_after": 18,
+      "commits_after": 32,
       "state": "rowed"
     }
   ],
   "counts": {
-    "rowed": 19,
+    "rowed": 33,
     "pending": 0,
     "overdue": 0
   }
