@@ -1235,7 +1235,7 @@ def record_memory_table(combos: list[dict]) -> None:
     whose values do not depend on any sweep this process ran first.
 
     The attributable column is a MAXIMUM over probes, not a single
-    sample, and the scenarios CHECK MODE actually compares get three
+    sample, and the scenarios CHECK MODE actually compares get five
     passes where the rest get one: ru_maxrss is a max statistic whose
     clean spread is solver-path dependent (the same basin bimodality the
     CPU concession above SCENARIO_BUDGET_FACTOR documents -- nine
@@ -1277,9 +1277,9 @@ def record_memory_table(combos: list[dict]) -> None:
               f"traced {traced_peak:5.2f} MiB", flush=True)
 
     # The check-exposed leaders (the same selection rule the memory pass
-    # applies to the COMMITTED table) get two more passes, and keep their
-    # maximum: theirs are the only recorded attributables a check run
-    # ever compares against a probe.
+    # applies to the COMMITTED table) get four more passes, and keep
+    # their maximum: theirs are the only recorded attributables a check
+    # run ever compares against a probe.
     committed = load_budget_table()
     selection_source = committed if committed else table
     half = max(1, MEMORY_TOP_N // 2)
@@ -1300,7 +1300,11 @@ def record_memory_table(combos: list[dict]) -> None:
             taken += 1
     for label in exposed:
         best = table[label]["rss_attrib_mb"]
-        for extra in (2, 3):
+        # Five passes, not three: the 2026-09-13 gate-context draw of
+        # winter/cycle (14.4) sat 53 % above its three-pass recording
+        # maximum (9.4), so three passes under-sample a statistic whose
+        # clean spread reaches 2.1x (see rss_attrib_fail_threshold).
+        for extra in (2, 3, 4, 5):
             _rss, attrib, _tr = _probe_attrib(label)
             best = max(best, round(attrib, 1))
             print(f"        extra pass {extra} for {label:<26} "
@@ -1384,6 +1388,17 @@ def rss_attrib_fail_threshold(recorded_attrib: float) -> float:
     multiples that make a genuine watermark move unmistakable (the #949
     demonstration: a doubling of the recorded peak lands 8-9x over its
     attributable record).
+
+    The maximum must be sampled DEEP, and across contexts, not merely
+    often: on 2026-09-13 winter/cycle's three recorder passes topped at
+    9.4 MiB and a clean gate-context draw the same day reached 14.4 --
+    a first quiet full run reds on a record taken only under one context,
+    which is a sampling defect, not a regression. The recorder now takes
+    five passes on the check-exposed leaders (below), and a clean gate
+    run's own probes are samples too: re-record with the gate draw
+    folded in when a red names a scenario whose record is thinner than
+    that. A red that survives a re-record on a deeper sample is the
+    regression this arm exists for.
 
     Shared by the memory pass's comparison and the detection check below,
     for the same reason work_over_verdict is: a budget the check cannot

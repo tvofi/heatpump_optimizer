@@ -217,7 +217,7 @@
  },
  "winter/cycle": {
   "ratio": 170.78,
-  "rss_attrib_mb": 9.4,
+  "rss_attrib_mb": 14.4,
   "rss_peak_mb": 95.8,
   "traced_peak_mb": 3.47
  },
@@ -229,7 +229,7 @@
  },
  "winter/pv+cycle": {
   "ratio": 170.95,
-  "rss_attrib_mb": 10.9,
+  "rss_attrib_mb": 13.7,
   "rss_peak_mb": 95.8,
   "traced_peak_mb": 3.47
  },
