@@ -198,3 +198,17 @@
 # 4187 -> 4208 keys, every collapsed:false. Nothing else moved -- solver
 # fixtures and the card claim file are untouched by this branch.
 
+
+# #928 (R4-D2-04, the COP resistive floor): this branch claims exactly one
+# fixture. compute_cop/compute_cop_dhw now return max(cop, 1.0) instead of
+# max(cop, 0.5), and the Carnot flow ratio's outdoor is frozen inside the
+# nameplate factor's floored band. The valve_storage_small_tank solve charges
+# its small buffer through winter_cold's -16..-8 C against a rising tank,
+# where the corrections' product sat just under 1.0 -- the floor lifts the
+# charging COP there, so the tank charges hotter and the trajectory moves
+# up monotonically (buffer_temp_trajectory[1] 44.39 -> 44.51, then likewise
+# through the horizon). Judged keys (prices, outdoor_temps, price_known,
+# baseline_cost) are untouched; every other scenario fixture is
+# byte-identical to the merge base in this environment.
+
+valve_storage_small_tank # #928: COP floored at the resistive bound lifts this solve's deep-cold charging; buffer trajectory moves up, judged keys untouched
