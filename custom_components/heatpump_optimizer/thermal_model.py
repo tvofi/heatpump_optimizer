@@ -1143,7 +1143,12 @@ def wood_share(
       *measures* at the valve outlet (external_heat.py), one law for both.
     * both at/below the curve — a smooth switch to the hotter source over
       ``margin`` (the same margin below which the estimator calls the mix
-      unidentifiable).
+      unidentifiable). The wood side's own usability ramp is scaled by the
+      HP tank's share of the two tanks' curve deficiency,
+      ``(flow_set - hp_temp) / ((flow_set - wood_temp) +
+      (flow_set - hp_temp))`` — 1 when the wood tank sits at the curve, 0
+      when the HP tank reaches it — so that region 3 arrives at 0 exactly
+      where region 2's all-HP limit meets it (round-4 D2-03, issue #927).
 
     Pure energy-priority ("drain the wood tank first, whatever its
     temperature") was considered and rejected: the Euler availability term
@@ -1160,14 +1165,19 @@ def wood_share(
         useful = max(0.0, wood_temp - floor_temp)
         span = max(flow_set - floor_temp, 1e-6)
         return min(1.0, max(0.0, f_w * useful / span))
-    return min(
-        1.0,
-        max(
-            0.0,
-            max(wood_temp - hp_temp, wood_temp - flow_set + margin)
-            / max(margin, 1e-6),
-        ),
+    # Region 3: two margin-wide ramps, and the usability one fades with the
+    # HP tank's share of the curve deficiency. Without that fade the ramp
+    # stayed up at hp_temp == flow_set and the law jumped by up to ~1 of
+    # the draw -- one ulp of step-0 power moved 1.110 kWh (issue #927).
+    m = max(margin, 1e-6)
+    hotter = min(1.0, max(0.0, (wood_temp - hp_temp) / m))
+    usable = min(1.0, max(0.0, (wood_temp - flow_set + margin) / m))
+    hp_deficiency = max(0.0, flow_set - hp_temp)
+    wood_deficiency = flow_set - wood_temp
+    hp_share_of_deficiency = hp_deficiency / max(
+        hp_deficiency + wood_deficiency, 1e-6
     )
+    return max(hotter, usable * hp_share_of_deficiency)
 
 
 def _wood_share_vec(
@@ -1195,15 +1205,21 @@ def _wood_share_vec(
     useful = np.maximum(0.0, wood_temp - floor_temp)
     span = np.maximum(flow_set - floor_temp, 1e-6)
     v2 = np.minimum(1.0, np.maximum(0.0, f_w * useful / span))
-    # Region 3: the smooth switch to the hotter source.
-    v3 = np.minimum(
-        1.0,
-        np.maximum(
-            0.0,
-            np.maximum(wood_temp - hp_temp, wood_temp - flow_set + margin)
-            / max(margin, 1e-6),
-        ),
+    # Region 3: the smooth switch to the hotter source, with the wood
+    # usability ramp faded by the HP tank's share of the curve deficiency
+    # (issue #927) -- same operations in the same order as the scalar law,
+    # so the two stay bitwise-identical per element.
+    m = max(margin, 1e-6)
+    hotter = np.minimum(1.0, np.maximum(0.0, (wood_temp - hp_temp) / m))
+    usable = np.minimum(
+        1.0, np.maximum(0.0, (wood_temp - flow_set + margin) / m)
     )
+    hp_deficiency = np.maximum(0.0, flow_set - hp_temp)
+    wood_deficiency = flow_set - wood_temp
+    hp_share_of_deficiency = hp_deficiency / np.maximum(
+        hp_deficiency + wood_deficiency, 1e-6
+    )
+    v3 = np.maximum(hotter, usable * hp_share_of_deficiency)
     return np.where(r1, 1.0, np.where(r2, v2, v3))
 
 
