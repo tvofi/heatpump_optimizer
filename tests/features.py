@@ -7564,14 +7564,27 @@ R.check(
 )
 
 # Region 3 meets region 1 at the flow curve: wood_share itself must not jump
-# when hp_temp sits inside the switch margin (issue #245).
+# when hp_temp sits inside the switch margin (issue #245). The sweep stops
+# 1e-3 short of hp_temp == flow_set and the probe sits 1e-12 below the
+# curve, because the corner wood_temp == hp_temp == flow_set is the one
+# point where no law can be continuous: region 1 is 1 there while region
+# 2's blend has no limit at all (0 along hp_temp down to the curve at fixed
+# wood, 1 along wood_temp up to it at fixed hp). The pre-#927 law glued
+# region 3 to region 1 AT that corner and jumped by up to the whole draw
+# everywhere else on the hp boundary; the fixed law is continuous along
+# both boundaries away from it, where this probe (and the hp-boundary probe
+# below) live. The jump a finite probe sees is bounded by the probe offset
+# over the distance to the corner, so 1e-12 against 1e-3 leaves three
+# orders of headroom under the 1e-6 tolerance.
 _w2t_flow_set = 45.0
 _w2t_floor = 21.0
 _w2t_share_jump = 0.0
 for _w2t_hp in np.linspace(
-    _w2t_flow_set - _W2T_MARGIN, _w2t_flow_set, 21
+    _w2t_flow_set - _W2T_MARGIN, _w2t_flow_set - 1e-3, 21
 ):
-    _w2t_a = _w2t_share(_w2t_flow_set - 1e-6, _w2t_hp, _w2t_flow_set, _w2t_floor)
+    _w2t_a = _w2t_share(
+        _w2t_flow_set - 1e-12, _w2t_hp, _w2t_flow_set, _w2t_floor
+    )
     _w2t_b = _w2t_share(_w2t_flow_set, _w2t_hp, _w2t_flow_set, _w2t_floor)
     _w2t_share_jump = max(_w2t_share_jump, abs(_w2t_b - _w2t_a))
 R.check(
@@ -7586,7 +7599,7 @@ R.check(
 # D2-03, issue #927). The #245 probe above swept wood_temp; this one sweeps
 # the HEAT-PUMP tank, the variable the solver's own step-0 power moves.
 _w2t_hp_share_jump = 0.0
-for _w2t_off in np.linspace(0.05, 1.95, 9):
+for _w2t_off in np.linspace(0.001, 1.95, 10):
     _w2t_below = _w2t_share(
         _w2t_flow_set - _w2t_off,
         _w2t_flow_set - 1e-6,
