@@ -3076,6 +3076,288 @@ R.check(
 
 
 # ===========================================================================
+# #948 (R4-D9-05): the batched objective prices the cost half per batch,
+# not per row
+# ===========================================================================
+R.section("The batched objective prices the cost half per batch (#948)")
+
+# ``objective_batch`` (both the space-only and the with-DHW twin) vectorized
+# the simulation in #97 and then re-computed every cost term in a Python
+# loop over the B batch rows: measured 97.02 ``_comfort_terms`` entries per
+# gradient evaluation, 33.3 % of the solve's wall, 0.86x the entire batched
+# simulation it decorates (round 4, D9-05). The property pinned here is the
+# recomputation itself, on the production closures lifted out of a real
+# solve: ONE ``objective_batch`` call must price every row without entering
+# a per-row cost helper, while the physics stays exactly one batched
+# simulation. The bitwise row-parity checks beside it are the null control
+# every performance change owes: each row must equal the scalar objective
+# on the same schedule to the last bit, or the solver's iterate path, the
+# plans and the golden fixtures move, and a behaviour change is wearing a
+# speedup's clothes.
+class _MsStub948:
+    """Stands in for the minimize result: the solve machinery after the
+    capture reads only .x/.success/.message, and no iteration is wanted."""
+
+    def __init__(self, x):
+        self.x = np.asarray(x, dtype=float)
+        self.success = True
+        self.message = "captured"
+
+
+_orig_msm_948 = _grad_optmod._multi_start_minimize
+
+
+def _fit948(arr, n):
+    """Tile a profiles series out to n steps (profiles are 96 long)."""
+    a = np.asarray(arr, dtype=float)
+    return a[:n] if len(a) >= n else np.tile(a, int(np.ceil(n / len(a))))[:n]
+
+
+def _capture_objectives_948(two_zone, dhw, valve=None, pv_surplus=None,
+                            peak=False, masked=False, minute=0):
+    """The production objective/objective_batch pair from one real solve.
+
+    ``_multi_start_minimize`` is the one place both twins meet a caller on
+    either solve path, so it is replaced for the duration of ``optimize``:
+    the pair it was handed is recorded and the first start is returned
+    unchanged. Everything before that call -- the horizon, the DHW planner,
+    every closure construction -- is the production solve's own machinery.
+    """
+    cfg = _grad_house(two_zone=two_zone)
+    extra = {"mixing_valve_mode": valve} if valve else {}
+    params = ThermalParameters.from_config({**cfg, **extra})
+    params.dhw_enabled = bool(dhw)
+    oc_kw = {}
+    if peak:
+        # A live capacity tariff with a reachable threshold, so the peak
+        # term is active on real rows (disabled, peak_cost's own guard
+        # returns 0 before any window arithmetic runs).
+        oc_kw.update(peak_price_per_kw=60.0, peak_threshold_kw=0.5)
+    if masked:
+        # #13 billing factors: peak_hours + offpeak_factor < 1 makes the
+        # mask active, so window_factors is non-None and the factors arm
+        # of the peak term is live.
+        oc_kw.update(peak_hours=((17.0, 20.0),), peak_offpeak_factor=0.5)
+    opt = _PvOpt(
+        ThermalModel(params),
+        _PvOptCfg(
+            horizon_hours=12, time_step_minutes=15,
+            target_temp=cfg["target_temperature"],
+            min_temp=cfg["min_temperature"], max_temp=cfg["max_temperature"],
+            **oc_kw,
+        ),
+    )
+    n = 48
+    start = _dt_grad(2026, 1, 15, 0, minute)
+    pr = _fit948(_grad_prices("winter_typical", start), n)
+    ot, wi, ra, so = (
+        _fit948(a, n) for a in _grad_weather("winter_cold", start)
+    )
+    st = ThermalState(
+        room_temperature=21.0, slab_temperature=22.0,
+        outdoor_temperature=float(ot[0]), upper_floor_temperature=21.0,
+        lower_floor_temperature=21.0, dhw_temperature=50.0,
+        dhw_hours_since_legionella=20.0, buffer_tank_temperature=40.0,
+    )
+    captured = {}
+
+    def _msm_948(objective, candidates, bounds, *a, **kw):
+        captured["objective"] = objective
+        captured["batch"] = kw.get("batch_objective")
+        captured["args"] = kw.get("args", a)
+        return _MsStub948(candidates[0])
+
+    _grad_optmod._multi_start_minimize = _msm_948
+    try:
+        opt.optimize(
+            st, pr, ot, wi, ra, so, start,
+            pv_surplus=None if pv_surplus is None else _fit948(pv_surplus, n),
+        )
+    finally:
+        _grad_optmod._multi_start_minimize = _orig_msm_948
+    return captured
+
+
+from contextlib import contextmanager as _cm948
+
+
+@_cm948
+def _count_entries_948(*targets):
+    """Count calls into each (holder, attribute) for the duration."""
+    counts = [0] * len(targets)
+    saved = []
+    for i, (holder, name) in enumerate(targets):
+        orig = getattr(holder, name)
+
+        def _wrap(fn, i=i):
+            def inner(*a, **kw):
+                counts[i] += 1
+                return fn(*a, **kw)
+
+            return inner
+
+        setattr(holder, name, _wrap(orig))
+        saved.append((holder, name, orig))
+    try:
+        yield counts
+    finally:
+        for holder, name, orig in saved:
+            setattr(holder, name, orig)
+
+
+_rng948 = np.random.default_rng(41)
+_n948 = 48
+# Six schedules spanning the shapes the cost terms branch on: random
+# profiles, a flat high plan (a plateau at the peak -- the smooth top-k arm
+# of the capacity term when it is enabled), a zero plan, and a bang-bang
+# plan (maximum cycling swing).
+_m948 = np.vstack([
+    _rng948.uniform(0.0, 4.5, size=_n948),
+    np.full(_n948, 5.0),
+    np.zeros(_n948),
+    np.where(np.arange(_n948) % 7 < 2, 5.5, 0.0),
+    _rng948.uniform(0.0, 2.5, size=_n948),
+    np.full(_n948, 2.0),
+])
+_B948 = _m948.shape[0]
+
+
+def _check_batch_cost_948(label, cap):
+    """The #948 pins on one captured objective/objective_batch pair."""
+    obj, batch, args = cap["objective"], cap["batch"], cap["args"]
+    # Rule: entries counted into each production symbol during exactly ONE
+    # objective_batch call on the 6-row matrix above.
+    with _count_entries_948(
+        (_PvOpt, "_comfort_terms"),
+        (_grad_optmod, "cycling_penalty"),
+        (_grad_optmod, "peak_cost"),
+        (_PvModel, "simulate_trajectory"),
+        (_PvModel, "simulate_trajectory_batch"),
+    ) as counts:
+        values = batch(_m948, *args)
+    comfort, cyc, peak, sim_scalar, sim_batch = counts
+    R.check(
+        f"one objective_batch call prices all {_B948} rows without the "
+        f"per-row comfort helper: {label}",
+        comfort == 0,
+        f"_comfort_terms was entered {comfort} times (round 4, D9-05: "
+        f"97.02 entries per gradient, a third of the solve's wall)",
+    )
+    R.check(
+        f"and without the per-row grid-term helpers: {label}",
+        cyc == 0 and peak == 0,
+        f"cycling_penalty entered {cyc} times, peak_cost {peak} times",
+    )
+    R.check(
+        f"the physics stays ONE batched simulation, scalar-free: {label}",
+        sim_batch == 1 and sim_scalar == 0,
+        f"simulate_trajectory_batch entered {sim_batch} times, "
+        f"simulate_trajectory {sim_scalar} times",
+    )
+    # Null control: row for row, the batch must be the scalar objective on
+    # the same schedule, to the last bit -- the parity that keeps the
+    # solver's iterate path (and every golden fixture) where it was.
+    scalar_rows = [float(obj(_m948[b], *args)) for b in range(_B948)]
+    R.check(
+        f"every row equals the scalar objective bit for bit: {label}",
+        [float(v) for v in values] == scalar_rows,
+        "first divergences: "
+        + str([i for i in range(_B948)
+               if float(values[i]) != scalar_rows[i]][:3]),
+    )
+
+
+# Three captures spanning both twins and every cost-term branch: the
+# space-only twin with two-zone comfort, grid-only energy and no tariff;
+# the with-DHW twin single-zone with PV surplus, a live capacity tariff and
+# an off-boundary start (the leading partial metering window); and the
+# with-DHW twin two-zone behind a manual valve (the terminal cost's split
+# buffer-COP arm) with #13-masked windows.
+_check_batch_cost_948(
+    "two-zone space-only",
+    _capture_objectives_948(two_zone=True, dhw=False),
+)
+_check_batch_cost_948(
+    "single-zone with-DHW, PV, capacity tariff, off-boundary start",
+    _capture_objectives_948(
+        two_zone=False, dhw=True, pv_surplus=np.clip(
+            _grad_weather("summer_warm", _dt_grad(2026, 7, 15))[3] / 400.0,
+            0.0, None,
+        ), peak=True, minute=45,
+    ),
+)
+_check_batch_cost_948(
+    "two-zone with-DHW, valve, masked windows",
+    _capture_objectives_948(
+        two_zone=True, dhw=True, valve="manual", peak=True, masked=True,
+    ),
+)
+
+# The batch twins under their own branch grids, one level below the
+# objective: every arm peak_cost and cycling_penalty branch on, priced per
+# row against the scalar function on the same plan. Rule: row b of the
+# batch result must equal the scalar function on row b's plan, exactly,
+# for every (offset, window length, factors) arm -- separated peaks, the
+# full-plateau row (every window tied at the peak, the smooth top-k), a
+# plan never above threshold, and a disabled tariff.
+from heatpump_optimizer.tariff import peak_cost_batch as _pcb948
+from heatpump_optimizer.optimizer import (
+    cycling_penalty as _cyc948,
+    cycling_penalty_batch as _cpb948,
+)
+
+_rows948 = np.vstack([
+    _rng948.uniform(0.0, 9.0, size=96),        # separated peaks
+    np.full(96, 7.0),                          # full plateau -> smooth top-k
+    np.full(96, 1.0),                          # under threshold everywhere
+    np.concatenate([np.full(48, 8.0), _rng948.uniform(0.0, 4.0, size=48)]),
+    _rng948.uniform(0.0, 2.5, size=96),        # never above threshold
+])
+_base948 = np.full(96, 1.5)
+_facs948 = np.tile(np.array([1.0, 0.0, 0.5, 1.0]), 24)
+_bad948 = []
+for _off948 in (0, 1, 3):
+    for _win948, _dt948 in ((60, 0.25), (15, 0.25), (45, 0.25)):
+        for _fac948 in (None, _facs948[: 96 // max(1, _win948 // 15)]):
+            _want948 = [
+                peak_cost(_rows948[_b948], _base948, 3.0, 20.0, _win948,
+                          _dt948, 3, _off948, window_factors=_fac948)
+                for _b948 in range(_rows948.shape[0])
+            ]
+            _got948 = _pcb948(
+                _rows948, _base948, 3.0, 20.0, _win948, _dt948, 3,
+                _off948, window_factors=_fac948,
+            )
+            for _b948 in range(_rows948.shape[0]):
+                if _got948[_b948] != _want948[_b948]:
+                    _bad948.append(
+                        f"off={_off948} win={_win948} fac={_fac948 is not None} "
+                        f"row={_b948}: {_got948[_b948]!r} != {_want948[_b948]!r}"
+                    )
+R.check(
+    "peak_cost_batch is peak_cost on every row, every branch, bit for bit",
+    not _bad948,
+    f"first divergences: {_bad948[:3]}",
+)
+R.check(
+    "a disabled tariff prices a whole batch as zeros, like the scalar guard",
+    bool(np.all(_pcb948(_rows948, _base948, 3.0, 0.0, 60, 0.25) == 0.0)),
+    "peak_price_per_kw <= 0 must short-circuit before any window arithmetic",
+)
+_cyc_bad948 = [
+    _b948
+    for _b948 in range(_rows948.shape[0])
+    if _cpb948(_rows948[_b948 : _b948 + 1], 2.0, 6.0)[0]
+    != _cyc948(_rows948[_b948], 2.0, 6.0)
+]
+R.check(
+    "cycling_penalty_batch is cycling_penalty on every row, bit for bit",
+    not _cyc_bad948,
+    f"divergent rows: {_cyc_bad948}",
+)
+
+
+# ===========================================================================
 # Item 17: building presets
 # ===========================================================================
 R.section("Building presets (item 17)")
@@ -5354,7 +5636,7 @@ R.check(
 #    `_terminal_cost` listed upper, lower and slab, and `simulate_trajectory`
 #    computed the buffer trajectory and then discarded it.
 _prices = np.full(96, 1.0)
-_term = _opt_valve._terminal_cost(_prices, _outdoor)
+_term, _ = _opt_valve._terminal_cost(_prices, _outdoor)
 _flat = lambda v: np.full(97, v)
 _cost_cold = _term(_flat(21.0), _flat(25.0), _flat(21.0), _flat(20.5), _flat(45.0))
 _cost_hot = _term(_flat(21.0), _flat(25.0), _flat(21.0), _flat(20.5), _flat(70.0))
@@ -5417,7 +5699,7 @@ R.check(
 # choosing, or the terminal term gains a second-order kink and the descent
 # path bends for no physical reason. Proof: the cost stays exactly linear in
 # the buffer end temperature, so its second difference is zero.
-_lin = _opt_valve._terminal_cost(_prices, _outdoor, np.zeros(96))
+_lin, _ = _opt_valve._terminal_cost(_prices, _outdoor, np.zeros(96))
 _at = lambda t: _lin(
     _flat(21.0), _flat(25.0), _flat(21.0), _flat(20.5), _flat(t)
 )
@@ -5470,7 +5752,7 @@ R.check(
 )
 
 # 6. Inert without a valve.
-_term_none = _opt_none._terminal_cost(_prices, _outdoor)
+_term_none, _ = _opt_none._terminal_cost(_prices, _outdoor)
 R.check(
     "without a valve the terminal cost ignores the tank",
     _term_none(_flat(21.0), _flat(25.0), _flat(21.0), _flat(20.5), _flat(45.0))
@@ -5497,7 +5779,7 @@ R.check(
     _caps_tiny["buffer"] == _caps_tiny["slab"],
     f"got {_caps_tiny['buffer']:.1f} C",
 )
-_term_tiny = _opt_tiny._terminal_cost(_prices, _outdoor)
+_term_tiny, _ = _opt_tiny._terminal_cost(_prices, _outdoor)
 R.check(
     "and the terminal cost ignores it",
     _term_tiny(_flat(21.0), _flat(25.0), _flat(21.0), _flat(20.5), _flat(45.0))
@@ -15661,7 +15943,7 @@ _opt5 = _Opt(_m5, _cfg5)
 _out5 = np.full(96, -5.0)
 _prices5 = np.full(96, 1.0)
 _caps5 = _opt5._settlement_caps(_out5)
-_term5 = _opt5._terminal_cost(_prices5, _out5)
+_term5, _ = _opt5._terminal_cost(_prices5, _out5)
 _f5 = lambda v: np.full(97, v)
 _mass_buf = _p5.buffer_tank_thermal_mass
 _t_lo = _term5(_f5(21.0), _f5(25.0), _f5(21.0), _f5(20.5),
@@ -15720,7 +16002,7 @@ R.check(
 # check and not a second implementation of the discount.
 _opt5_off = _Opt(_m5_off, _cfg5)
 _caps5_off = _opt5_off._settlement_caps(_out5)
-_term5_off = _opt5_off._terminal_cost(_prices5, _out5)
+_term5_off, _ = _opt5_off._terminal_cost(_prices5, _out5)
 _ends = {"room": 21.0, "slab": 25.0, "upper": 21.0, "lower": 20.5,
          "buffer": 45.0}
 _expected_off = (

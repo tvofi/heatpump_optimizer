@@ -97,6 +97,7 @@ from .tariff import (
     CapacityTariff,
     metering_windows,
     peak_cost,
+    peak_cost_batch,
     realised_peak,
     window_factors,
 )
@@ -660,6 +661,28 @@ def cycling_penalty(
     if cost_per_cycle <= 0 or p_max <= 0 or len(power) < 2:
         return 0.0
     swing = float(np.sum(np.abs(np.diff(np.asarray(power, dtype=float)))))
+    return cost_per_cycle * swing / (2.0 * p_max)
+
+
+def cycling_penalty_batch(
+    power_matrix: np.ndarray, cost_per_cycle: float, p_max: float
+) -> np.ndarray:
+    """``cycling_penalty`` for a [B, n] batch of plans, one entry per row (#948).
+
+    The batched objective used to call the scalar penalty once per row; here
+    the swing is one axis-1 reduction over the whole batch. ``np.diff``
+    along axis 1 subtracts each row's neighbours elementwise and the sum
+    reduces each row's contiguous run in the same pairwise order the 1-D
+    ``np.sum`` applies, so a row here is bit-for-bit ``cycling_penalty`` on
+    that row -- which is the contract the batched gradient's parity rests
+    on (see ``simulate_trajectory_batch``).
+    """
+    shape = np.shape(power_matrix)
+    if cost_per_cycle <= 0 or p_max <= 0 or shape[1] < 2:
+        return np.zeros(shape[0])
+    swing = np.sum(
+        np.abs(np.diff(np.asarray(power_matrix, dtype=float), axis=1)), axis=1
+    )
     return cost_per_cycle * swing / (2.0 * p_max)
 
 
@@ -1630,6 +1653,118 @@ class HeatPumpOptimizer:
         )
         return penalty, comfort_cost
 
+    def _comfort_terms_batch(
+        self,
+        room_temps: np.ndarray,
+        upper_temps: np.ndarray,
+        lower_temps: np.ndarray,
+        comfort_targets: np.ndarray,
+        temp_min_bounds: np.ndarray,
+        temp_max_bounds: np.ndarray,
+        comfort_band: np.ndarray,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """``_comfort_terms`` for a [B, n+1] trajectory batch, per row (#948).
+
+        The same reductions as the scalar twin, one axis-1 call each instead
+        of B rows times nine over single trajectories: the per-row helper
+        was entered 97.02 times per gradient evaluation and cost a third of
+        the solve's wall (round 4, D9-05), 0.86x the entire batched
+        simulation it decorates. Each row's sums reduce that row's
+        contiguous run in the pairwise order the 1-D ``np.sum`` on the same
+        values applies, and the additions keep the scalar expression's
+        order, so a row here is bit-for-bit ``_comfort_terms`` on that row's
+        trajectories -- the parity that keeps the solver's iterate path,
+        the plans and the golden fixtures where they were. See
+        ``_comfort_terms`` for what the two terms mean and why the pull is
+        deliberately weak.
+        """
+        weight = self.config.comfort_weight
+
+        if self.model.params.two_zone_enabled:
+            upper_t = upper_temps[:, 1:]
+            lower_t = lower_temps[:, 1:]
+
+            undershoot_u = np.maximum(0, temp_min_bounds - upper_t)
+            overshoot_u = np.maximum(0, upper_t - temp_max_bounds)
+            undershoot_l = np.maximum(0, temp_min_bounds - lower_t)
+            overshoot_l = np.maximum(0, lower_t - temp_max_bounds)
+
+            penalty = 0.5 * weight * (
+                np.sum(undershoot_u ** 2, axis=1) * 10.0
+                + np.sum(overshoot_u ** 2, axis=1) * 5.0
+                + np.sum(undershoot_l ** 2, axis=1) * 10.0
+                + np.sum(overshoot_l ** 2, axis=1) * 5.0
+                + (np.sum(undershoot_u, axis=1) + np.sum(undershoot_l, axis=1))
+                * _COMFORT_FLOOR_L1
+            )
+
+            comfort_dev_u = upper_t - comfort_targets
+            comfort_dev_l = lower_t - comfort_targets
+            comfort_cost = _COMFORT_PULL_TWO_ZONE * weight * (
+                np.sum((comfort_dev_u / comfort_band) ** 2, axis=1)
+                + np.sum((comfort_dev_l / comfort_band) ** 2, axis=1)
+            )
+            return penalty, comfort_cost
+
+        room_t = room_temps[:, 1:]
+        undershoot = np.maximum(0, temp_min_bounds - room_t)
+        overshoot = np.maximum(0, room_t - temp_max_bounds)
+
+        penalty = weight * (
+            np.sum(undershoot ** 2, axis=1) * 10.0
+            + np.sum(overshoot ** 2, axis=1) * 5.0
+            + np.sum(undershoot, axis=1) * _COMFORT_FLOOR_L1
+        )
+        deviation = room_t - comfort_targets
+        comfort_cost = (
+            _COMFORT_PULL_SINGLE_ZONE
+            * weight
+            * np.sum((deviation / comfort_band) ** 2, axis=1)
+        )
+        return penalty, comfort_cost
+
+    def _cost_terms_batch(
+        self,
+        traj: dict[str, np.ndarray],
+        grid_power: np.ndarray,
+        *,
+        energy_cost_of: Callable[[np.ndarray], Any],
+        cycling_batch: Callable[[np.ndarray], np.ndarray],
+        capacity_batch: Callable[[np.ndarray], np.ndarray],
+        terminal_cost_batch: Callable[[dict[str, np.ndarray]], np.ndarray],
+        comfort_targets: np.ndarray,
+        temp_min_bounds: np.ndarray,
+        temp_max_bounds: np.ndarray,
+        comfort_band: np.ndarray,
+    ) -> np.ndarray:
+        """The batched objective's cost half: every term, once per batch (#948).
+
+        ``objective_batch``'s two twins vectorized the simulation (#97) and
+        then re-computed these terms in a Python loop over the B rows; here
+        each term is one reduction over the whole batch, in the scalar
+        objective's own addition order, so every row equals ``objective``
+        on the same schedule bit for bit -- pinned on the production
+        closures by tests/features.py (#948 section).
+
+        ``grid_power`` is what the grid sees per row -- the space schedule
+        alone on the space-only path, space plus the DHW plan on the DHW
+        path -- because the energy, cycling and capacity terms are
+        properties of the combined draw, while the comfort and terminal
+        terms read ``traj``, which the space schedule alone produces.
+        """
+        weight = self.config.price_weight
+        penalty, comfort_cost = self._comfort_terms_batch(
+            traj["room"], traj["upper"], traj["lower"],
+            comfort_targets, temp_min_bounds, temp_max_bounds, comfort_band,
+        )
+        return (
+            energy_cost_of(grid_power) * weight
+            + penalty
+            + comfort_cost
+            + (cycling_batch(grid_power) + capacity_batch(grid_power)) * weight
+            + terminal_cost_batch(traj)
+        )
+
     def _buffer_survival(
         self,
         outdoor_temps: np.ndarray,
@@ -1667,7 +1802,7 @@ class HeatPumpOptimizer:
         prices: np.ndarray,
         outdoor_temps: np.ndarray,
         solar_gains: np.ndarray | None = None,
-    ) -> Callable[..., float]:
+    ) -> tuple[Callable[..., float], Callable[[dict[str, np.ndarray]], np.ndarray]]:
         """Price the heat the plan leaves unstored at the end of the horizon.
 
         Nothing beyond the horizon is scored, so without this the optimizer
@@ -1675,6 +1810,11 @@ class HeatPumpOptimizer:
         the resulting cold never appears in the objective. That both breaches
         the comfort floor at the tail of the plan and reports a saving that was
         really borrowed heat.
+
+        Returns the scalar closure and, beside it, its batch twin (#948):
+        both are built from one construction of the stores, so neither the
+        per-store constants nor their order can drift between the objective
+        and the batched objective it serves.
 
         The shortfall is priced against the same reference the savings
         settle-up uses — the 25th-percentile price and the mean-outdoor COP,
@@ -1790,7 +1930,61 @@ class HeatPumpOptimizer:
             )
             return refill_price * deficit / max(cop_end, 1e-6)
 
-        return cost
+        return cost, self._terminal_cost_batch(
+            refill_price, cop_end, cop_buffer, stores
+        )
+
+    @staticmethod
+    def _terminal_cost_batch(
+        refill_price: float,
+        cop_end: float,
+        cop_buffer: float,
+        stores: tuple[tuple[float, str, float, float], ...],
+    ) -> Callable[[dict[str, np.ndarray]], np.ndarray]:
+        """The terminal-cost closure's batch twin, per row of a batch (#948).
+
+        Built by ``_terminal_cost`` from the same per-solve constants and
+        the same ``stores`` tuple, so the twin cannot diverge from the
+        scalar closure by construction. Each row's stores are accumulated
+        in the scalar closure's order; ``np.where`` mirrors scalar
+        ``max(0.0, x)`` exactly, NaN semantics included (both yield 0.0
+        when the comparison is false). ``simulate_trajectory_batch`` always
+        fills ``buffer``, so the scalar closure's ``buffer_temps=None`` arm
+        has no counterpart to serve here.
+        """
+
+        def cost_batch(traj: dict[str, np.ndarray]) -> np.ndarray:
+            ends = {
+                "room": traj["room"][:, -1],
+                "slab": traj["slab"][:, -1],
+                "upper": traj["upper"][:, -1],
+                "lower": traj["lower"][:, -1],
+                "buffer": traj["buffer"][:, -1],
+            }
+            shortfall = {
+                name: np.where(cap - ends[name] > 0.0, cap - ends[name], 0.0)
+                for _, name, cap, _ in stores
+            }
+            if cop_buffer != cop_end:
+                n_rows = ends["room"].shape[0]
+                deficit = np.zeros(n_rows)
+                buffer_deficit = np.zeros(n_rows)
+                for mass, name, cap, survival in stores:
+                    term = mass * survival * shortfall[name]
+                    if name == "buffer":
+                        buffer_deficit = buffer_deficit + term
+                    else:
+                        deficit = deficit + term
+                return refill_price * (
+                    deficit / max(cop_end, 1e-6)
+                    + buffer_deficit / max(cop_buffer, 1e-6)
+                )
+            deficit = np.zeros(ends["room"].shape[0])
+            for mass, name, cap, survival in stores:
+                deficit = deficit + mass * survival * shortfall[name]
+            return refill_price * deficit / max(cop_end, 1e-6)
+
+        return cost_batch
 
     def _zone_setpoints(
         self, power: np.ndarray
@@ -2014,7 +2208,7 @@ class HeatPumpOptimizer:
 
     def _energy_cost_fn(
         self, prices: np.ndarray, dt: float
-    ) -> Callable[[np.ndarray], float]:
+    ) -> Callable[[np.ndarray], "float | np.ndarray"]:
         """Closure pricing a total electrical draw against the grid, exactly.
 
         Piecewise in each step's PV surplus: energy up to it displaces an
@@ -2025,23 +2219,31 @@ class HeatPumpOptimizer:
         the plan piled into steps with trivial surplus.
 
         Written inline (not as a `pv` helper) because this runs inside the
-        objective, thousands of times per solve.
+        objective, thousands of times per solve. One closure prices a 1-D
+        schedule (returning a float) and a whole [B, n] batch at once
+        (returning one price per row, #948): the reductions are ``axis=-1``,
+        which on a 1-D array is the plain 1-D sum and on a 2-D one reduces
+        each row's contiguous run in the same pairwise order -- so each row
+        is bit-for-bit the scalar price of that row, the parity the batched
+        objective's row-for-row equality with the scalar objective rests
+        on.
         """
         surplus = self._pv_surplus
         if surplus is None or not np.any(surplus[: len(prices)] > 1e-6):
-            def grid_only_cost(total_power: np.ndarray) -> float:
-                return float(np.sum(prices * total_power) * dt)
+            def grid_only_cost(total_power: np.ndarray) -> "float | np.ndarray":
+                return np.sum(prices * total_power, axis=-1) * dt
 
             return grid_only_cost
 
         surplus = surplus[: len(prices)]
         margin = pv.import_margin(prices, self.config.pv_export_price)
 
-        def energy_cost(total_power: np.ndarray) -> float:
+        def energy_cost(total_power: np.ndarray) -> "float | np.ndarray":
             covered = np.minimum(total_power, surplus)
-            return float(
-                (np.sum(prices * total_power) - np.sum(margin * covered)) * dt
-            )
+            return (
+                np.sum(prices * total_power, axis=-1)
+                - np.sum(margin * covered, axis=-1)
+            ) * dt
 
         return energy_cost
 
@@ -2088,6 +2290,8 @@ class HeatPumpOptimizer:
         Callable[[np.ndarray], float],
         Callable[[np.ndarray], float],
         np.ndarray,
+        Callable[[np.ndarray], np.ndarray],
+        Callable[[np.ndarray], np.ndarray],
     ]:
         """Closures for the cycling and capacity-tariff penalties.
 
@@ -2095,6 +2299,12 @@ class HeatPumpOptimizer:
         one place is not just tidiness: the previous divergence between the two
         objectives meant that simply enabling hot water changed the space
         heating objective, which is a class of bug worth designing out.
+
+        Each scalar closure comes with its batch twin (#948), the same
+        penalty over a [B, n] matrix of plans with one entry per row. The
+        twins close over exactly the arguments the scalar closures close
+        over -- one tariff, one offset, one factor walk -- so a twin cannot
+        diverge from its scalar by configuration.
         """
         cfg = self.config
         p_max = self.model.params.max_electrical_power
@@ -2105,20 +2315,31 @@ class HeatPumpOptimizer:
         def cycling(power: np.ndarray) -> float:
             return cycling_penalty(power, cfg.cycling_cost, p_max)
 
+        def cycling_batch(power_matrix: np.ndarray) -> np.ndarray:
+            return cycling_penalty_batch(power_matrix, cfg.cycling_cost, p_max)
+
+        # The argument list the capacity term prices a plan on, shared by
+        # the scalar closure and its batch twin so the two can never
+        # disagree about the tariff they are pricing.
+        peak_args = (
+            baseline,
+            cfg.peak_threshold_kw,
+            cfg.peak_price_per_kw,
+            cfg.peak_window_minutes,
+            dt,
+            cfg.peak_count,
+            offset_steps,
+        )
+
         def capacity(total_power: np.ndarray) -> float:
-            return peak_cost(
-                total_power,
-                baseline,
-                cfg.peak_threshold_kw,
-                cfg.peak_price_per_kw,
-                cfg.peak_window_minutes,
-                dt,
-                cfg.peak_count,
-                offset_steps,
-                window_factors=factors,
+            return peak_cost(total_power, *peak_args, window_factors=factors)
+
+        def capacity_batch(total_power_matrix: np.ndarray) -> np.ndarray:
+            return peak_cost_batch(
+                total_power_matrix, *peak_args, window_factors=factors
             )
 
-        return cycling, capacity, baseline
+        return cycling, capacity, baseline, cycling_batch, capacity_batch
 
     def _peak_window_factors(
         self,
@@ -3362,11 +3583,11 @@ class HeatPumpOptimizer:
         # band actually buys cheaper operation instead of being overwhelmed by
         # a fixed quadratic penalty.
         comfort_band = np.maximum(comfort_targets - temp_min_bounds, 1.0)
-        terminal_cost = self._terminal_cost(
+        terminal_cost, terminal_cost_batch = self._terminal_cost(
             prices, outdoor_temps, solar_gains_per_step
         )
-        cycling, capacity, baseline_load = self._grid_terms(
-            n_steps, dt, h.start_time
+        cycling, capacity, baseline_load, cycling_batch, capacity_batch = (
+            self._grid_terms(n_steps, dt, h.start_time)
         )
         energy_cost_of = self._energy_cost_fn(prices, dt)
 
@@ -3432,10 +3653,13 @@ class HeatPumpOptimizer:
         def objective_batch(power_matrix: np.ndarray) -> np.ndarray:
             """The same objective, for B schedules at once (issue #97).
 
-            One batched simulation replaces B scalar ones; the cost terms
-            run per row with expressions verbatim from ``objective`` --
-            the equivalence is asserted by test, not assumed, because a
-            divergence here would move plans silently.
+            One batched simulation replaces B scalar ones, and the cost
+            terms run as one reduction per term over the whole batch
+            through ``_cost_terms_batch`` (#948) -- they used to run as B
+            scalar calls each, which cost a third of the solve's wall
+            (round 4, D9-05). Row for row bit-identical to ``objective``,
+            asserted by test, because a divergence here would move plans
+            silently.
             """
             traj = self.model.simulate_trajectory_batch(
                 initial_state=initial_state,
@@ -3450,27 +3674,17 @@ class HeatPumpOptimizer:
                 humidity=h.humidity,
                 start_hour=float(h.step_hours[0]),
             )
-            values = np.empty(power_matrix.shape[0])
-            for b in range(power_matrix.shape[0]):
-                pw = power_matrix[b]
-                energy_cost = energy_cost_of(pw) * self.config.price_weight
-                penalty, comfort_cost = self._comfort_terms(
-                    traj["room"][b], traj["upper"][b], traj["lower"][b],
-                    comfort_targets, temp_min_bounds, temp_max_bounds,
-                    comfort_band,
-                )
-                values[b] = (
-                    energy_cost + penalty + comfort_cost
-                    + (cycling(pw) + capacity(pw)) * self.config.price_weight
-                    + terminal_cost(
-                        traj["room"][b],
-                        traj["slab"][b],
-                        traj["upper"][b],
-                        traj["lower"][b],
-                        traj["buffer"][b],
-                    )
-                )
-            return values
+            return self._cost_terms_batch(
+                traj, power_matrix,
+                energy_cost_of=energy_cost_of,
+                cycling_batch=cycling_batch,
+                capacity_batch=capacity_batch,
+                terminal_cost_batch=terminal_cost_batch,
+                comfort_targets=comfort_targets,
+                temp_min_bounds=temp_min_bounds,
+                temp_max_bounds=temp_max_bounds,
+                comfort_band=comfort_band,
+            )
 
         # Initial guess: smart initialization considering forecasts
         initial_power = p_max * _price_guess_weights(prices)
@@ -5455,11 +5669,11 @@ class HeatPumpOptimizer:
         # See ``_optimize_space_only`` for why the band normalises the
         # pull-to-target term.
         comfort_band = np.maximum(comfort_targets - temp_min_bounds, 1.0)
-        terminal_cost = self._terminal_cost(
+        terminal_cost, terminal_cost_batch = self._terminal_cost(
             prices, outdoor_temps, solar_gains_per_step
         )
-        cycling, capacity, baseline_load = self._grid_terms(
-            n_steps, dt, start_time
+        cycling, capacity, baseline_load, cycling_batch, capacity_batch = (
+            self._grid_terms(n_steps, dt, start_time)
         )
         energy_cost_of = self._energy_cost_fn(prices, dt)
 
@@ -5532,8 +5746,9 @@ class HeatPumpOptimizer:
             """The same objective, for B space schedules at once (#97).
 
             Same shape as ``objective``'s batch twin on the space-only
-            path: one batched simulation, cost terms verbatim per row,
-            equivalence asserted by test.
+            path: one batched simulation, cost terms batched per term
+            through ``_cost_terms_batch`` (#948), equivalence asserted by
+            test.
             """
             traj = self.model.simulate_trajectory_batch(
                 initial_state=initial_state,
@@ -5548,31 +5763,24 @@ class HeatPumpOptimizer:
                 humidity=h.humidity,
                 start_hour=float(h.step_hours[0]),
             )
-            values = np.empty(space_matrix.shape[0])
-            for b in range(space_matrix.shape[0]):
-                pw = space_matrix[b]
-                combined = (
-                    pw if dhw_plan_power is None else pw + dhw_plan_power
-                )
-                energy_cost = energy_cost_of(combined) * self.config.price_weight
-                space_penalty, comfort_cost = self._comfort_terms(
-                    traj["room"][b], traj["upper"][b], traj["lower"][b],
-                    comfort_targets, temp_min_bounds, temp_max_bounds,
-                    comfort_band,
-                )
-                values[b] = (
-                    energy_cost + space_penalty + comfort_cost
-                    + (cycling(combined) + capacity(combined))
-                    * self.config.price_weight
-                    + terminal_cost(
-                        traj["room"][b],
-                        traj["slab"][b],
-                        traj["upper"][b],
-                        traj["lower"][b],
-                        traj["buffer"][b],
-                    )
-                )
-            return values
+            # The grid sees the combined draw: space plus the fixed DHW
+            # plan, added for every row at once.
+            grid_power = (
+                space_matrix
+                if dhw_plan_power is None
+                else space_matrix + dhw_plan_power
+            )
+            return self._cost_terms_batch(
+                traj, grid_power,
+                energy_cost_of=energy_cost_of,
+                cycling_batch=cycling_batch,
+                capacity_batch=capacity_batch,
+                terminal_cost_batch=terminal_cost_batch,
+                comfort_targets=comfort_targets,
+                temp_min_bounds=temp_min_bounds,
+                temp_max_bounds=temp_max_bounds,
+                comfort_band=comfort_band,
+            )
 
         # Initial guess: space heating inversely proportional to price.
         init_base = p_max * 0.6 * _price_guess_weights(prices)
