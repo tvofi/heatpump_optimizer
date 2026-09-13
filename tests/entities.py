@@ -568,12 +568,414 @@ R.check(
     "those are entities, not fields on Away and holiday mode",
 )
 
+# #937: the README sends the reader to the reference with "Every field and its
+# range is documented in docs/configuration.md", and round 4 measured 15 of
+# the 200 shipped options fields whose label occurred nowhere in any reader
+# document -- the weekend and holiday schedule hours, the external-heat
+# detection group, the valve set-point declaration, the surcharge beside the
+# VAT multiplier, and the After saving navigation control on every page. The
+# page-level mapping was already perfect (21 sections, 21 steps); this is the
+# field-level promise, and it is checked against the reference itself rather
+# than the doc set, because the reference is the file the README names.
+# Reading the reference here is also what takes it off closure.py's INERT
+# list: a document a gate script checks is a dependency, not inert (#970 took
+# tests/README.md off for the same reason).
+def _fold_text(text: str) -> str:
+    """Markdown-stripped, case-folded, punctuation-collapsed -- the form a
+    document's prose and a UI label share when they name the same thing."""
+    text = _re.sub(r"`([^`]*)`", r"\1", text)
+    text = text.replace("**", "").replace("*", "")
+    text = _re.sub(r"[^a-z0-9]+", " ", text.lower())
+    return _re.sub(r"\s+", " ", text).strip()
+
+
+_cfgref_hay = _fold_text(Path("docs/configuration.md").read_text())
+
+
+def _field_name(label: str) -> str:
+    """A label folded for exact containment, one trailing parenthetical
+    stripped first -- "(optional)" is a UI convention, not part of the name
+    a document would repeat. The same rule the audit's harness used."""
+    return _fold_text(_re.sub(r"\s*\([^()]*\)\s*$", "", label))
+
+
+_unnamed_fields = sorted(
+    f"{_sid}.{_key}"
+    for _sid, _step in _opt_strings.items()
+    for _key, _label in (_step.get("data") or {}).items()
+    if _field_name(_label) and _field_name(_label) not in _cfgref_hay
+)
+R.check(
+    "the configuration reference names every shipped options field",
+    not _unnamed_fields,
+    f"{len(_unnamed_fields)} of {sum(len((s.get('data') or {})) for s in _opt_strings.values())} "
+    f"labels absent from docs/configuration.md: " + ", ".join(_unnamed_fields[:8]),
+)
+
+# #941: automations.md's Power Headroom paragraph stated an availability
+# precondition the sensor does not enforce -- "It stays unavailable until you
+# set a main fuse size in the options" -- while round 4 measured a capacity
+# tariff alone making it available at 0.0 kW with limit_source "capacity
+# tariff with no peak reference yet", and the fuse defaults to 0. The
+# paragraph must name every state the real sensor publishes over the
+# fuse x tariff grid, so an automation author can tell each availability
+# source apart; the grid is driven through the real coordinator's own
+# `_power_headroom` (via `_build_data_dict`) and the real entity constructed
+# by the platform's `async_setup_entry`, never restated here. Reading the
+# file is also what takes it off `tests/closure.py`'s INERT list: a document
+# a gate script checks is a dependency, not inert (#984 did the same for
+# docs/configuration.md).
+from heatpump_optimizer.coordinator import (
+    HeatPumpOptimizerCoordinator as _hra_coord,
+)
+
+_automations_hay = _fold_text(Path("docs/automations.md").read_text())
+_hra_tariff = {const.CONF_PEAK_TARIFF_ENABLED: True, const.CONF_PEAK_TARIFF_PRICE: 45.0}
+# The default tariff carries no masks (no months, no peak hours, every window
+# counts at 1.0), so `sample_factor` answers a billable window at any hour
+# and the grid needs no clock freeze to be deterministic.
+_hra_cells = {
+    "no fuse, no tariff": {},
+    "no fuse, capacity tariff": dict(_hra_tariff),
+    "fuse, no tariff": {const.CONF_MAIN_FUSE_A: 20},
+    "fuse, capacity tariff": {const.CONF_MAIN_FUSE_A: 20, **_hra_tariff},
+}
+
+
+def _hra_headroom_entity(extra_config):
+    """The real Power Headroom entity over a real coordinator's own publish."""
+    hass = FakeHass()
+    hass.states.set("sensor.indoor", FakeState("21.4"))
+    hass.states.set("sensor.outdoor", FakeState("-3.0"))
+    cfg = {
+        const.CONF_INDOOR_TEMP_ENTITY: "sensor.indoor",
+        const.CONF_OUTDOOR_TEMP_ENTITY: "sensor.outdoor",
+    }
+    cfg.update(extra_config)
+    coord = _hra_coord(hass, FakeEntry(data=cfg))
+    asyncio.run(coord._update_current_state())
+    return next(
+        e
+        for e in collect(sensor, data=coord._build_data_dict())
+        if getattr(e, "_attr_translation_key", None) == "power_headroom"
+    )
+
+
+_hra_available = {}
+_hra_sources = set()
+for _hra_label, _hra_extra in _hra_cells.items():
+    _hra_ent = _hra_headroom_entity(_hra_extra)
+    if _hra_ent.available:
+        _hra_available[_hra_label] = True
+        _hra_src = _hra_ent.extra_state_attributes.get("limit_source")
+        if _hra_src:
+            _hra_sources.add(_hra_src)
+
+R.check(
+    "only the unbounded cell keeps Power Headroom unavailable",
+    set(_hra_available)
+    == {
+        "no fuse, capacity tariff",
+        "fuse, no tariff",
+        "fuse, capacity tariff",
+    },
+    f"available cells: {sorted(_hra_available)} -- the no-fuse-no-tariff cell "
+    f"is the only one with nothing bounding the house (#941's rule; if this "
+    f"moves, docs/automations.md's paragraph must move with it)",
+)
+_hra_unnamed = sorted(s for s in _hra_sources if _fold_text(s) not in _automations_hay)
+R.check(
+    "automations.md names every state the Power Headroom sensor publishes",
+    not _hra_unnamed,
+    f"limit_source values absent from docs/automations.md: {_hra_unnamed} "
+    f"(published over the grid by: {sorted(_hra_available)})",
+)
+
 _total_claim = _re.search(r"All (\d+) entities", readme)
 R.check(
     "the README's total entity count covers every registered platform",
     _total_claim is not None and int(_total_claim.group(1)) == _total_entities,
     f"README says {_total_claim.group(1) if _total_claim else '?'}, "
     f"the platforms construct {_total_entities} ({_platform_counts})",
+)
+
+# The same claim discipline for the suite's own manual. `tests/README.md`'s
+# per-script list annotates each script with the sizes it runs, and #938
+# measured the stress line saying "48 combinations" while the sweep had
+# returned 51 since #286/#287's three zero-range-bounds scenarios -- the
+# kind of sentence that goes stale silently because nothing reads it. The
+# sweep count is derived by CALLING the symbol (exposed at module level
+# for exactly this, per its docstring), never by counting code; the edge
+# and seasonal counts are AST reads of the registered artifacts, because
+# the `edges` dict lives inside stress.py's `__main__` block and
+# validate.py executes its scenarios at import, so neither can be imported
+# just to be counted. Reading the file here is also what takes it out of
+# `tests/closure.py`'s INERT list: a document a gate script checks is a
+# dependency, not inert.
+import stress as _stress_mod
+
+_tests_readme = Path("tests/README.md").read_text()
+_stress_note = _re.search(
+    r"tests/stress\.py\s*#\s*(\d+)\s+combinations,\s*(\d+)\s+edge cases",
+    _tests_readme,
+)
+_validate_note = _re.search(
+    r"tests/validate\.py\s*#\s*(\d+)\s+seasonal scenarios", _tests_readme
+)
+_sweep_n = len(_stress_mod.sweep_combinations())
+R.check(
+    "tests/README.md's stress annotation states the sweep's real size",
+    _stress_note is not None and int(_stress_note.group(1)) == _sweep_n,
+    f"README says {_stress_note.group(1) if _stress_note else '?'}, "
+    f"sweep_combinations() returns {_sweep_n} (#938)",
+)
+_stress_tree = ast.parse(Path("tests/stress.py").read_text())
+_edges_n = next(
+    len(node.value.keys)
+    for node in ast.walk(_stress_tree)
+    if isinstance(node, ast.Assign)
+    and any(getattr(t, "id", None) == "edges" for t in node.targets)
+    and isinstance(node.value, ast.Dict)
+)
+R.check(
+    "the stress annotation's edge-case count is the dict's real size",
+    _stress_note is not None and int(_stress_note.group(2)) == _edges_n,
+    f"README says {_stress_note.group(2) if _stress_note else '?'}, "
+    f"the edges dict in stress.py has {_edges_n} entries",
+)
+_validate_tree = ast.parse(Path("tests/validate.py").read_text())
+_validate_n = sum(
+    isinstance(node, ast.Expr)
+    and isinstance(node.value, ast.Call)
+    and getattr(node.value.func, "id", None) == "run"
+    for node in _validate_tree.body
+)
+R.check(
+    "the validate annotation's scenario count is the module's real size",
+    _validate_note is not None and int(_validate_note.group(1)) == _validate_n,
+    f"README says {_validate_note.group(1) if _validate_note else '?'}, "
+    f"validate.py makes {_validate_n} module-level run(...) calls",
+)
+
+# #939: architecture.md's own numbers. The file a contributor reads before
+# changing the code had rotted in ten places -- 45 modules where 56 stood, a
+# module map missing eleven files, ten HA importers where 21 import at module
+# level, 13 option pages where 21 render, eleven services where twelve
+# register, and platform comments naming one switch of four and four binary
+# sensors of five -- because `docs/` is INERT and no gate script read it. The
+# route #357 allows is taken here: a file this script opens is a dependency,
+# so architecture.md leaves INERT and enters this script's measured closure,
+# and every figure below is DERIVED -- the module list from the directory, the
+# boundary from an AST walk, the pages from `_OPTION_PAGES`, the services
+# from services.yaml, the entity names from the same platform census that
+# pins the README -- never carried, so the counts stay true when the tree
+# moves. That is the same correction tests/README.md needed (#938).
+import yaml as _yaml
+
+_arch = Path("docs/architecture.md").read_text()
+_arch_disk = sorted(p.name for p in ROOT.glob("*.py"))
+
+
+def _arch_ha_import(node):
+    """Is this statement an import of the homeassistant package?"""
+    if isinstance(node, ast.Import):
+        return any(a.name.split(".")[0] == "homeassistant" for a in node.names)
+    if isinstance(node, ast.ImportFrom):
+        return bool(node.module) and node.module.split(".")[0] == "homeassistant"
+    return False
+
+
+def _arch_toplevel(body):
+    """Module-scope statements, descending into top-level try/if bodies only.
+
+    An import inside a conditional or try at import time is still a
+    module-level import: the module cannot be imported without
+    homeassistant, which is what the boundary paragraph claims.
+    """
+    for node in body:
+        yield node
+        if isinstance(node, ast.Try):
+            for lst in (node.body, node.orelse, node.finalbody):
+                yield from _arch_toplevel(lst)
+            for handler in node.handlers:
+                yield from _arch_toplevel(handler.body)
+        elif isinstance(node, ast.If):
+            yield from _arch_toplevel(node.body)
+            yield from _arch_toplevel(node.orelse)
+
+
+_arch_modlevel = sorted(
+    p.stem for p in ROOT.glob("*.py")
+    if any(_arch_ha_import(n) for n in _arch_toplevel(ast.parse(p.read_text()).body))
+)
+_arch_anywhere = sorted(
+    p.stem for p in ROOT.glob("*.py")
+    if any(_arch_ha_import(n) for n in ast.walk(ast.parse(p.read_text())))
+)
+
+_arch_open = _re.search(r"(\d+) modules, of which\s+(\d+) import", _arch)
+R.check(
+    "architecture.md's opening counts name the package it describes",
+    _arch_open is not None
+    and int(_arch_open.group(1)) == len(_arch_disk)
+    and int(_arch_open.group(2)) == len(_arch_modlevel),
+    f"architecture.md says {_arch_open.groups() if _arch_open else '?'}; the "
+    f"package holds {len(_arch_disk)} modules, {len(_arch_modlevel)} of them "
+    f"importing homeassistant at module level",
+)
+
+_arch_map = _re.search(r"## The module map\n+```text\n(.*?)\n```", _arch, _re.S)
+_arch_listed = (
+    sorted(set(_re.findall(r"([a-z_0-9]+\.py)", _arch_map.group(1))))
+    if _arch_map is not None
+    else []
+)
+R.check(
+    "architecture.md's module map lists every module in the package",
+    _arch_map is not None and set(_arch_listed) == set(_arch_disk),
+    f"missing from the map: {sorted(set(_arch_disk) - set(_arch_listed))}; "
+    f"named but not on disk: {sorted(set(_arch_listed) - set(_arch_disk))}",
+)
+
+# The named list ends at its own full stop -- the `inputs` sentence that
+# follows is about a different claim (the one function-level toucher, pinned
+# below), and sweeping it in would make 22 names out of 21 importers.
+_arch_bound = _re.search(
+    r"(\d+) of the (\d+) modules\s+import `homeassistant` at module level:\s+(.*?)\.",
+    _arch, _re.S,
+)
+_arch_named = (
+    sorted(set(_re.findall(r"`([a-z_]+)`", _arch_bound.group(3))))
+    if _arch_bound is not None
+    else []
+)
+R.check(
+    "architecture.md's HA boundary names exactly the module-level importers",
+    _arch_bound is not None
+    and int(_arch_bound.group(1)) == len(_arch_modlevel)
+    and int(_arch_bound.group(2)) == len(_arch_disk)
+    and _arch_named == _arch_modlevel,
+    f"documented {_arch_bound.group(1) if _arch_bound else '?'} of "
+    f"{_arch_bound.group(2) if _arch_bound else '?'}, named {_arch_named}; "
+    f"the AST walk finds {len(_arch_modlevel)}: {_arch_modlevel}",
+)
+
+_arch_touch = _re.search(
+    r"One module outside that set touches it at all:\s+`([a-z_]+)`", _arch
+)
+_arch_touchers = sorted(set(_arch_anywhere) - set(_arch_modlevel))
+R.check(
+    "architecture.md's one function-level toucher is the only one",
+    _arch_touch is not None and _arch_touchers == [_arch_touch.group(1)],
+    f"documented {_arch_touch.group(1) if _arch_touch else '?'}; modules "
+    f"outside the module-level set that touch homeassistant anywhere: "
+    f"{_arch_touchers}",
+)
+
+_arch_free = _re.search(
+    r"The other (\d+) modules are deliberately free", _arch
+)
+R.check(
+    "architecture.md's HA-free count is the tree's",
+    _arch_free is not None
+    and int(_arch_free.group(1)) == len(_arch_disk) - len(_arch_anywhere),
+    f"architecture.md says {_arch_free.group(1) if _arch_free else '?'}; "
+    f"{len(_arch_disk)} modules less {len(_arch_anywhere)} that touch "
+    f"homeassistant anywhere leaves {len(_arch_disk) - len(_arch_anywhere)}",
+)
+
+_arch_pages = _re.search(
+    r"config_flow\.py\s+# Setup flow plus (\d+) option pages", _arch
+)
+R.check(
+    "architecture.md's option-page count matches _OPTION_PAGES",
+    _arch_pages is not None
+    and int(_arch_pages.group(1)) == len(config_flow._OPTION_PAGES),
+    f"architecture.md says {_arch_pages.group(1) if _arch_pages else '?'}, "
+    f"_OPTION_PAGES holds {len(config_flow._OPTION_PAGES)}",
+)
+
+_services_yaml_n = len(_yaml.safe_load((ROOT / "services.yaml").read_text()))
+for _arch_where, _arch_re in (
+    ("__init__.py", r"__init__\.py\s+# Setup and unload, the (\d+) services"),
+    ("services.py", r"services\.py\s+# The domain's (\d+) services"),
+    ("services.yaml", r"services\.yaml\s+# The (\d+) service definitions"),
+):
+    _m = _re.search(_arch_re, _arch)
+    R.check(
+        f"architecture.md's {_arch_where} service count matches services.yaml",
+        _m is not None and int(_m.group(1)) == _services_yaml_n,
+        f"architecture.md says {_m.group(1) if _m else '?'}, "
+        f"services.yaml defines {_services_yaml_n}",
+    )
+
+_arch_sensors = _re.search(r"sensor\.py\s+# (\d+) sensors", _arch)
+R.check(
+    "architecture.md's sensor count matches the platform census",
+    _arch_sensors is not None
+    and int(_arch_sensors.group(1)) == _platform_counts["sensor"],
+    f"architecture.md says {_arch_sensors.group(1) if _arch_sensors else '?'}, "
+    f"the platform constructs {_platform_counts['sensor']}",
+)
+
+
+def _arch_entry(module: str) -> str:
+    """One module-map entry's `#` comment, continuation lines joined.
+
+    The map wraps long comments onto `│ ...` lines (button.py already did);
+    the joined text is what a name list is read from.
+    """
+    if _arch_map is None:
+        return ""
+    m = _re.search(
+        rf"{_re.escape(module)}\.py[^\n]*?#[ \t]*([^\n]*)\n"
+        rf"((?:│[^\n]*#[ \t]*[^\n]*\n)*)",
+        _arch_map.group(1),
+    )
+    if m is None:
+        return ""
+    return " ".join(
+        [m.group(1).strip()]
+        + [c.strip() for c in _re.findall(r"#[ \t]*([^\n]*)", m.group(2))]
+    )
+
+
+def _arch_comment_names(comment: str) -> set[str]:
+    return {part.strip() for part in comment.split(",") if part.strip()}
+
+
+for _plat in ("switch", "binary_sensor"):
+    _arch_doc_names = _arch_comment_names(_arch_entry(_plat))
+    _arch_built = {
+        display_name(_plat, e)
+        for e in collect(_importlib.import_module(f"heatpump_optimizer.{_plat}"))
+    }
+    R.check(
+        f"architecture.md's {_plat}.py names every entity it constructs",
+        _arch_doc_names == _arch_built,
+        f"documented {sorted(_arch_doc_names)}, the platform constructs "
+        f"{sorted(_arch_built)}",
+    )
+
+_arch_diagram = _re.search(
+    r"(\d+) entities<br/>(\d+) sensors, (\d+) binary sensors,<br/>"
+    r"(\d+) buttons, (\d+) switches,<br/>(\d+) climate, (\d+) datetime",
+    _arch,
+)
+_arch_diagram_want = [
+    _total_entities,
+    *(
+        _platform_counts[p]
+        for p in ("sensor", "binary_sensor", "button", "switch", "climate", "datetime")
+    ),
+]
+R.check(
+    "architecture.md's entity diagram counts match the census",
+    _arch_diagram is not None
+    and [int(g) for g in _arch_diagram.groups()] == _arch_diagram_want,
+    f"diagram says "
+    f"{[int(g) for g in _arch_diagram.groups()] if _arch_diagram else '?'}; "
+    f"the census is {_arch_diagram_want}",
 )
 
 # HACS renders this README inside Home Assistant -- `hacs.json` asks for it,
@@ -997,9 +1399,11 @@ R.check(
 # This check pins the README, the one user document this lane already
 # measures -- HACS renders it as the integration's page, and README.md sits
 # in this script's recorded closure, so a README edit selects this script in
-# the scoped gate. The six docs/ pages stay outside it on purpose: `docs/`
-# is INERT, and a gate script opening one is the declared-unread-while-read
-# contradiction the closures `merge` refuses (#357).
+# the scoped gate. The docs/ pages stay outside it on purpose here: reading
+# one is sound only after it leaves `tests/closure.py`'s INERT list and
+# enters this script's measured closure (what the architecture.md checks
+# above did for one file, #939), and this check does not need that -- it
+# reads the README alone.
 #
 # Two design choices, stated so they are not read as bugs. The heading is
 # pinned at level 2 and exactly "Known limitations" -- the name the rule
@@ -11598,7 +12002,12 @@ R.check(
 # custom_components/, so a change to what a test READS was checked one merge
 # too late -- five times (#214, #320, #332, #340, #349), each a green pull
 # request, a red main, and a second pull request to repair it.
-_A_DOCS = _closure.affected(["docs/audit-2026-09.md", "LICENSE", "tests/README.md"])
+# tests/README.md left this example in #938, when this script began reading
+# its annotations above: it is a dependency of this script now, so an edit to
+# it selects this script rather than skipping. DISCLAIMER.md keeps the third
+# slot a genuinely inert document still fills.
+_A_DOCS = _closure.affected(
+    ["docs/audit-2026-09.md", "LICENSE", "DISCLAIMER.md"])
 R.check(
     "a docs-only change still costs the closures check nothing",
     _A_DOCS["case"] == "skip",

@@ -307,7 +307,7 @@ for f in tests/*.py tests/*.mjs; do
     # itself, which is the closure.py argument four entries up.
     coverage_ratchet.py|mutation_table.py) continue ;;
   esac
-  if ! grep -Eq '^[[:space:]]*run .*tests/'"$base"'( |$)' tests/run.sh; then
+  if ! grep -Eq '^[[:space:]]*run(_always)? .*tests/'"$base"'( |$)' tests/run.sh; then
     echo "UNWIRED TEST: tests/$base is not referenced by tests/run.sh"
     failed=$((failed + 1))
   fi
@@ -360,7 +360,7 @@ lane_units() {
   # Four #805 survivors that are not in coordinator.py or optimizer.py.
   run "$PYTHON" tests/guard_pins.py
   # #817: a harness header's EXPECTED RESULT lines must match what it prints.
-  run "$PYTHON" tests/harness_headers.py
+  run_always "$PYTHON" tests/harness_headers.py
   # The only lane that runs the shape an installation runs (#513): the tracked
   # package alone, no tests/ sibling, imported as
   # custom_components.heatpump_optimizer.*. Every other script in this

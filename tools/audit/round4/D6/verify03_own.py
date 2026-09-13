@@ -131,10 +131,13 @@ if PERTURB:
 
 undocumented = sorted(set(importers) - DOC_NAMED_TEN)
 
-# The doc's own count sentence, read directly:
+# The doc's own count sentence, read directly. #939 re-truthed it ("45
+# modules, of which ten touch" -> "56 modules, of which 21 import"), so the
+# locator keys on the stable stem "modules, of which" and echoes whatever
+# the document now says:
 arch = (ROOT / "docs" / "architecture.md").read_text()
 doc_count_sentence = next(
-    ln for ln in arch.splitlines() if "modules, of which ten touch" in ln
+    ln for ln in arch.splitlines() if "modules, of which" in ln
 )
 
 from heatpump_optimizer import config_flow  # noqa: E402
