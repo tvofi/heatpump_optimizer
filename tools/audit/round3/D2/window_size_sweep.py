@@ -55,8 +55,9 @@ window size, so a non-zero row anywhere is about the transition and not about
 this script.
 
 POPULATION: no shipped install reaches an OFF-GRID window at all -- not merely
-none above an hour.  All four rows of `grid_fee.py`'s product catalog set
-`peak_tariff_window_minutes` to 15, and the options selector offers
+none above an hour.  Both rows of `grid_fee.py`'s product catalog -- the two
+sourced tariffs #968 kept, each of which prices hourly peaks -- set
+`peak_tariff_window_minutes` to 60, and the options selector offers
 `['15', '60']`; 15 and 60 both divide the hour.  Both are printed below rather
 than asserted here, so a later edit that adds 45 or 90 shows up in this output.
 
@@ -67,7 +68,7 @@ EXPECTED on this tree (divisibility, not size: 15/30/60 post777=0;
     RESULT live_tracker_mismatch_autumn_15min=pre777=8
     RESULT live_tracker_mismatch_autumn_90min=pre777=2
     RESULT live_tracker_mismatch_control_15min=pre777=0
-    RESULT catalog_window_minutes=[15]
+    RESULT catalog_window_minutes=[60]
     RESULT options_selector_choices=1_matching_line(s):
 """
 from datetime import datetime, timedelta
