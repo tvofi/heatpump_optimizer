@@ -24,15 +24,24 @@ at its production sites instead:
 RUN (from the worktree root):
     PYTHONPATH=tests/hastub python3 tools/audit/round4/D10/d10_own_D10-03.py
 
-EXPECTED (if the finding holds):
-    RESULT root_alias_rhs=ConfigEntry
+EXPECTED (at the #953 fix, 2026-09-13; the finding's baseline 7dd68dd values
+follow in parentheses where the fix moved them. Key names are the ones this
+harness prints. The alias binding moved under ``if TYPE_CHECKING:``, so the
+top-level-binding count -- which is what (1) measures -- is now 0 and the
+mypy probe in (4) is the metric that carries the property):
+    RESULT root_alias_bindings=0: []            (was 1: ['ConfigEntry'])
+    RESULT coordinator_alias_bindings=1: ['ConfigEntry[HeatPumpOptimizerCoordinator]']
     RESULT entry_points_annotated_with_root_alias=3 of 3
-    RESULT runtime_data_uses_in_entry_points=3
+    RESULT runtime_data_uses_in_entry_points=2 attribute_accesses
     RESULT stub_configentry_decl=class ConfigEntry[_DataT = Any]:
-    RESULT probe_root_runtime_data=Any
-    RESULT probe_root_effective_config=Any
+    RESULT probe_root_runtime_data=custom_components.heatpump_optimizer.coordinator.HeatPumpOptimizerCoordinator
+                                                (was Any)
+    RESULT probe_root_effective_config=dict[str, Any]
+                                                (was Any)
 BASELINE 7dd68dd; run at branch head 0855277 (custom_components unchanged
-between the two).
+between the two). The harness's printed VERDICT line flips to False once the
+finding is fixed: it was the finding-verdict expression ("bare and used by
+entry points"), not a pass condition for the harness.
 MACHINE: 8-core Apple M1, macOS 25.6.0. Counts/type names, not timings.
 """
 from __future__ import annotations

@@ -21,13 +21,17 @@
 #   Python is 3.13.1, so the pin will not install. Arm B is an INDEPENDENT
 #   corroboration of the recorded census, not a reproduction of it.
 #
-# EXPECTED (baseline 7dd68dd327fe3dbfb09f3bd0fe38910c58877697):
-#   RESULT mypy_armB_real_stub_errors=0        (tolerance 0)
-#   RESULT mypy_armA_hastub_total=542          (tolerance +/- 5: stub-shape dependent)
-#   RESULT mypy_armA_in_package=470            (tolerance +/- 5)
-#   RESULT mypy_armA_in_hastub=72              (tolerance +/- 5)
-#   RESULT runtime_data_revealed_root=Any
-#   RESULT runtime_data_revealed_coordinator=HeatPumpOptimizerCoordinator
+# EXPECTED (baseline 7dd68dd327fe3dbfb09f3bd0fe38910c58877697; re-recorded
+#   2026-09-13 for #953, which parametrised the package root's entry alias
+#   under TYPE_CHECKING -- the baseline value follows in parentheses where
+#   the fix moved it. Key names below are the ones this script prints):
+#   RESULT mypy_real_stub_errors=0 error_lines        (0; tolerance 0)
+#   RESULT mypy_hastub_total=539 error_lines          (was 542; tolerance +/- 5: stub-shape dependent)
+#   RESULT mypy_hastub_in_pkg=467 error_lines         (was 470; tolerance +/- 5)
+#   RESULT mypy_hastub_in_stub=72 error_lines         (72)
+#   RESULT runtime_data_revealed_root=custom_components.heatpump_optimizer.coordinator.HeatPumpOptimizerCoordinator
+#                                                     (was Any; both aliases now reveal the coordinator)
+#   RESULT runtime_data_revealed_coordinator=custom_components.heatpump_optimizer.coordinator.HeatPumpOptimizerCoordinator
 # MACHINE: 8-core Apple M1, 8 GB, macOS 25.6.0.
 set -u
 [ -f custom_components/heatpump_optimizer/manifest.json ] || { echo "run from the export root" >&2; exit 2; }

@@ -17,7 +17,7 @@ import importlib
 import logging
 import sys
 from types import ModuleType
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
@@ -40,7 +40,24 @@ from .const import (
 # of a relative name (never a ``sys.modules`` key), so that lookup was a
 # blocking call on the event loop and silenced the #588 probe by
 # de-duplicating at ``(integration, file, lineno)``.
-HeatPumpOptimizerConfigEntry = ConfigEntry
+#
+# Two bindings, one per reader (#953, R4-D10-03). The type checker takes
+# the ``TYPE_CHECKING`` branch and sees the alias parametrised over the
+# coordinator, so ``entry.runtime_data`` in the three entry points below is
+# the coordinator to ``mypy --strict`` rather than ``Any`` behind the PEP
+# 696 default a bare ``ConfigEntry`` carries. Home Assistant takes the
+# ``else`` binding: a parametrised runtime alias would put a forward
+# reference inside the very name ``get_type_hints`` resolves, and the
+# lookup the comment above documents would raise ``NameError`` at setup
+# (measured in round 4). The coordinator import stays inside
+# ``TYPE_CHECKING``, so importing the package still executes none of the
+# 40-module graph the closure note below forbids.
+if TYPE_CHECKING:
+    from .coordinator import HeatPumpOptimizerCoordinator
+
+    HeatPumpOptimizerConfigEntry = ConfigEntry[HeatPumpOptimizerCoordinator]
+else:
+    HeatPumpOptimizerConfigEntry = ConfigEntry
 
 # Importing this package must not execute the coordinator's module graph.
 # ``coordinator`` and ``services`` reach 40 of the integration's modules
