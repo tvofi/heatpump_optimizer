@@ -1480,6 +1480,57 @@ R.check(
     f"soft={_smooth_topk_sum(_tie_bill, 3, 0.05)} hard=60",
 )
 
+# Round 4 D2-01 (#925): the same contract at a *high* tie level. The
+# bisection's logistic temperature is scale = tau*peak, and the tie root
+# sits at peak + scale*ln((n-k)/k), which grows with the peak while the
+# bracket's pad was a constant 1 kW -- so above ~5.84 kW of excess (96
+# 15-minute windows, k=3) the root left the bracket, the bisection parked
+# on the bracket end, and every tied window kept weight sigmoid(-1/scale).
+# A flat 24 h plan at 12 kW -- the profile a capacity tariff exists to
+# produce -- was charged 3660.34 SEK against a 720.00 bill (5.08x); the
+# bracket must be scaled by its own temperature so the root stays inside
+# it at any excess a plan can reach.
+_d201_flat = np.full(96, 12.0)
+R.check(
+    "a flat plan is charged its billed top-k, not a multiple of it",
+    abs(peak_cost(_d201_flat, np.zeros(96), 0.0, 20.0, 15, 0.25, 3) - 720.0)
+    < 7.2,
+    f"charged {peak_cost(_d201_flat, np.zeros(96), 0.0, 20.0, 15, 0.25, 3):.2f}"
+    " SEK, bill 720.00 (1% of 3 x 12 kW at 20/kW)",
+)
+R.check(
+    "smooth top-k keeps the k x tie_level contract at a 12 kW plateau",
+    abs(_smooth_topk_sum(_d201_flat, 3, 0.05) - 36.0) < 0.36,
+    f"soft={_smooth_topk_sum(_d201_flat, 3, 0.05):.2f}, contract 36",
+)
+# The same defect at hourly metering: reachable on a 24 h horizon, where
+# the break point is ~10.3 kW (fewer windows, smaller ln((n-k)/k)).
+_d201_hourly = peak_cost(np.full(96, 14.0), np.zeros(96), 0.0, 20.0, 60, 0.25, 3)
+R.check(
+    "hourly metering keeps the flat-plateau charge at the bill",
+    abs(_d201_hourly - 840.0) < 8.4,
+    f"charged {_d201_hourly:.2f} SEK, bill 840.00 (1% of 3 x 14 kW at 20/kW)",
+)
+# Null controls. Below the bracket's old break point the approximation was
+# already exact and must stay exact -- the defect is the bracket, not the
+# top-k sum. And a plan with at most k windows at the peak never enters the
+# smooth branch at all, whatever the excess.
+_d201_null_flat = peak_cost(
+    np.full(96, 5.0), np.zeros(96), 0.0, 20.0, 15, 0.25, 3
+)
+R.check(
+    "below the tie-band break point the charge stays exact",
+    abs(_d201_null_flat - 300.0) < 0.003,
+    f"5 kW x 3 windows at 20/kW = 300, got {_d201_null_flat:.6f}",
+)
+_d201_spiky = np.full(96, 1.0)
+_d201_spiky[:3] = 12.0
+R.check(
+    "at most k windows at the peak stay on the exact hard sum",
+    peak_cost(_d201_spiky, np.zeros(96), 0.0, 20.0, 15, 0.25, 3) == 720.0,
+    "hard top-k path: 3 x 12 kW at 20/kW = 720 exactly",
+)
+
 # A one-window +eps probe always moves a hard top-k (that window becomes
 # the unique largest, FD ≈ price_per_kw). Smooth top-k shares weight k/n
 # across the tie, so the same probe is ≈ price * k/n (here 20 * 3/24 ≈ 2.5).
@@ -8432,6 +8483,30 @@ for _dec_id, _dec_row in _gf.SWEDEN_CATALOG.items():
 R.check(
     "a wrapping month range covers the wrap and not the middle",
     2 in _gf.parse_month_range("Nov-Mar") and 6 not in _gf.parse_month_range("Nov-Mar"),
+)
+# R4-D3-S1 (#930): every month-range value assertion here used the wrapping
+# case, so a parse_month_range that routed a NON-wrapping span through the
+# wrap (a Mar-Sep seasonal fee billing all year) survived the whole gate.
+# Pin the plain span exactly, through the symbol and through a priced rule
+# at both edge months and both neighbours.
+R.check(
+    "a non-wrapping month range is exactly its span, not the year",
+    _gf.parse_month_range("Mar-Sep") == frozenset({3, 4, 5, 6, 7, 8, 9}),
+    f"Mar-Sep -> {sorted(_gf.parse_month_range('Mar-Sep'))}",
+)
+_span_rule = _gf.GridFeeSchedule(
+    mode=_gf.MODE_RULES, rules=_gf.parse_rules("Mar-Sep = 0.25")
+)
+R.check(
+    "a non-wrapping rule bills both edge months and neither neighbour",
+    abs(_span_rule.current_fee(datetime(2026, 3, 14, 12, 0)) - 0.25) < 1e-9
+    and abs(_span_rule.current_fee(datetime(2026, 9, 14, 12, 0)) - 0.25) < 1e-9
+    and _span_rule.current_fee(datetime(2026, 2, 14, 12, 0)) == 0.0
+    and _span_rule.current_fee(datetime(2026, 10, 14, 12, 0)) == 0.0,
+    f"mar {_span_rule.current_fee(datetime(2026, 3, 14, 12, 0))}, "
+    f"sep {_span_rule.current_fee(datetime(2026, 9, 14, 12, 0))}, "
+    f"feb {_span_rule.current_fee(datetime(2026, 2, 14, 12, 0))}, "
+    f"oct {_span_rule.current_fee(datetime(2026, 10, 14, 12, 0))}",
 )
 R.check(
     "broken specs are rejected by validation, not stored",
@@ -29080,6 +29155,14 @@ R.check(
     == frozenset({11, 12, 1, 2, 3}),
     f"Nov-Mar -> {sorted(_t3_coord(peak_tariff_months='Nov-Mar')._tariff_months())}, "
     f"Nov-Mar;Jul -> {sorted(_t3_coord(peak_tariff_months='Nov-Mar;Jul')._tariff_months())}",
+)
+# R4-D3-S1 (#930): the mask shares parse_month_range, and every arm above
+# wraps or lists -- the non-wrapping span was unpinned here too.
+R.check(
+    "a non-wrapping month mask is its span, not the year",
+    _t3_coord(peak_tariff_months="Apr-Sep")._tariff_months()
+    == frozenset({4, 5, 6, 7, 8, 9}),
+    f"Apr-Sep -> {sorted(_t3_coord(peak_tariff_months='Apr-Sep')._tariff_months())}",
 )
 _t3_tm_partial = _t3_call(
     _t3_coord(peak_tariff_months="Nov-Mar,Smarch")._tariff_months

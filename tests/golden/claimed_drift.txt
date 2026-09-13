@@ -51,6 +51,24 @@
 # next branch restates its own footprint, claims included.
 #
 
+# #925 (R4-D2-01, the smooth top-k bracket): this branch claims the four
+# capacity-tariff fixtures and nothing else. The logistic bisection in
+# tariff._smooth_topk_sum pads its bracket by 40*scale instead of a constant
+# 1 kW, so tied plateaus stop being charged a multiple of the billed top-k
+# and the objective's capacity term changes value on every scenario that
+# plans under a peak tariff. Measured in one environment (branch capture vs
+# f0eabbd capture, drift mode): 46 of 55 scenarios byte-identical,
+# config_flow -- the inherited #926 claim this file carried -- among them,
+# so that claim is not restated here. Directions, same environment:
+# deferred_energy_cost falls 32.76 -> 27.51 (capacity_tariff), 29.00 ->
+# 26.78 (capacity_tariff_15min) and 13.49 -> 11.04 (everything_on), and
+# rises 6.03 -> 6.98 (tariff_plus_two_zone); the term no longer rewards a
+# spiky profile over the flat one, so the plans' own schedules move with it.
+capacity_tariff # #925: the scaled bracket ends the tied-plateau overcharge; 536 leaves move, deferred_energy_cost falls 32.76 -> 27.51 here
+capacity_tariff_15min # #925: the same fix at 15-minute metering, the old bracket's worst case; 623 leaves move, deferred_energy_cost falls 29.00 -> 26.78 here
+everything_on # #925: the capacity term feeds the all-features objective; 730 leaves move, deferred_energy_cost falls 13.49 -> 11.04 here
+tariff_plus_two_zone # #925: the capacity term feeds the two-zone tariff objective; 796 leaves move, deferred_energy_cost rises 6.03 -> 6.98 here
+
 # #926 (R4-D2-02, DSO tariff transcription): this branch claims exactly one
 # fixture. The two unsourced catalog rows (Vattenfall Eldistribution, E.ON)
 # are dropped per the owner's sources-or-stop ruling, so the dso_product

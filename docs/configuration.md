@@ -200,7 +200,12 @@ first plan is solved within one optimization interval.
 There are **21 pages**: six on the first menu, and fifteen more behind
 **Advanced settings**. One of the six — *Your system, as configured* — is
 read-only. Each page saves on its own, so changing one setting never touches
-another page's values.
+another page's values. Every page also ends with one shared navigation
+control, described once here rather than twenty-one times below:
+
+| Setting | Default | Choices | What it means |
+|---|---|---|---|
+| After saving | Menu | Menu / Close | Saving writes through immediately; this chooses where the dialog goes next. *Menu* returns to the section menu — the advanced menu on the advanced pages — so you can change settings on several pages without reopening the dialog. *Close* saves and closes. The choice itself is never stored. |
 
 | First menu | What lives there |
 |---|---|
@@ -237,8 +242,25 @@ slots are shown as empty on purpose — the point is to reveal what is missing.
 
 ### Comfort and temperatures
 
-The seven temperature fields are exactly those from setup step 2, with the same
-defaults, ranges and cross-checks. Three more live here:
+The seven weekday fields are exactly those from setup step 2 — the target,
+minimum and maximum, the two comfort temperatures and the two day hours —
+with the same defaults, ranges and cross-checks. The weekend and holiday
+schedules live here too, and each of their fields starts as a copy of the
+weekday value it mirrors; leave every one at that default and weekends and
+holidays simply follow the weekday plan.
+
+| Setting | Default | Range | What it means |
+|---|---|---|---|
+| Weekend daytime comfort | weekday daytime value | 16–26, 0.5 steps | Preferred temperature during weekend waking hours. |
+| Weekend night-time comfort | weekday night-time value | 15–24, 0.5 steps | Preferred temperature overnight on Saturday and Sunday. |
+| Weekend day starts at | weekday start (07) | 00–23 | Hour the weekend daytime temperature takes over. |
+| Weekend day ends at | weekday end (22) | 01–24 | Hour the weekend night temperature takes over. 24 keeps the daytime temperature until midnight. |
+| Holiday daytime comfort | weekday daytime value | 16–26, 0.5 steps | Daytime comfort on days the holiday-profile calendar is on. Away setback still wins if away is active. |
+| Holiday night-time comfort | weekday night-time value | 15–24, 0.5 steps | Overnight comfort on holiday-calendar days. |
+| Holiday day starts at | weekday start (07) | 00–23 | Hour the holiday daytime temperature takes over. |
+| Holiday day ends at | weekday end (22) | 01–24 | Hour the holiday night temperature takes over. |
+
+Three mold-guard fields complete the page:
 
 | Setting | Default | Range | What it means |
 |---|---|---|---|
@@ -328,7 +350,8 @@ are on **Power and solar sensors**; mode / defrost / online / fault are on
 | Electricity price source | Tibber | Tibber / Price entity | Tibber uses the API token. Entity reads a Home Assistant price sensor (Nord Pool, ENTSO-E, similar) with `raw_today` / `raw_tomorrow`. |
 | Tibber API token | from setup | required when source is Tibber | Re-validated against Tibber whenever you change it. Not required for an entity source. |
 | Price sensor | none | a price sensor | Required when the source is an entity. Typical attributes are `raw_today` and `raw_tomorrow`. |
-| VAT multiplier / surcharge | 1.0 / 0 | 0–2 | Applied as value × VAT + surcharge. 1.0 and 0 leave the sensor values unchanged. |
+| VAT multiplier | 1.0 | 0–2, 0.01 steps | Applied to entity-sourced prices as value × VAT + surcharge. 1.0 leaves the values unchanged; Tibber prices are used as delivered. |
+| Surcharge per kWh | 0 | 0–2, 0.01 steps | Added on top after the multiplier, in the same currency as your prices. 0 leaves the values unchanged. |
 | Weather forecast | from setup | required | The forecast source. |
 | Indoor / outdoor temperature | from setup | temperature sensors | See setup step 1. |
 | Hot water tank, buffer tank, floor return, lower floor sensors | from setup | temperature sensors | See setup step 1. |
@@ -372,6 +395,7 @@ catalog below keys off.
 | Valve target temperature | 0 °C | 0–30, 0.5 steps | The indoor temperature the valve holds. **0 means "use the top of your comfort band"**, which is the recommended setting: the building charges first at no efficiency cost, and the tank takes only the surplus. |
 | Valve target sensor | none | a temperature sensor | Reads the valve's target instead of using the fixed value above. |
 | Valve control entity | none | `number`, `input_number` or `climate` | Required for *Commanded by the optimizer*. Written after each planning cycle, and only when the answer changes. |
+| What the control entity expects | Indoor temperature | Indoor temperature / Flow temperature | A declaration, not a write. *Indoor temperature* — a room set-point — is what has always been written, and the safe default. *Flow temperature* is for a valve or heat-pump controller whose set-point is a water temperature, derived from the same flow curve the model already uses for a dumb valve. Pointing an indoor target at a flow entity would command roughly 21 °C to something expecting 35–45 °C. |
 | Buffer tank size | 35 L | 10–1500, 5 steps | The tank between pump and circuits. It is only planned around as a store when a throttling valve exists and the volume is at least 100 L; below that it holds less than one optimizer step of heat. |
 | Maximum buffer tank temperature | 70 °C | 40–90 | A hard ceiling. The tank is never charged above this, however cheap electricity is. |
 | Temperature after the wood/heat-pump mixing valve | none | a sensor | With the tank sensors, this says how much of the heating a fire is covering right now, so electric heat can stand down by that much instead of all-or-nothing. |
@@ -380,12 +404,17 @@ catalog below keys off.
 | Wood tank volume | 500 L | 50–3000, 50 steps | Bounds how much free heat a fire can still deliver. |
 | Hot water refilled through the wood tank | off | on/off | The hot water tank's cold inlet passes through a coil in the wood tank, so refill water arrives preheated. Only takes effect when the wood tank is modelled as its own store. |
 | Wood furnace | off, unless a wood tank, coil or flue sensor is already set | on/off | Off hides the wood probes, detection and the four fuel-price fields; stored values are kept. A lone 500 L tank volume does not turn this on. |
+| Detect a wood furnace or other heat source | off | on/off | Watches the hot-water and buffer tanks for warming the heat pump cannot explain: rising while the compressor is off, or faster than the pump could deliver. While a source is believed active, planned electric hot water is held back — paying to heat water already being heated for free is the most expensive mistake available. Two consecutive confirming samples are needed before it acts. |
+| Stove or flue sensor (optional) | none | a `sensor`, `binary_sensor`, `switch` or `input_boolean` | A flue thermostat or stove switch you already have. Trusted over the automatic detection in both directions — it can say a fire is lit, and it can say one is not. A switch stays trusted until you change it; a temperature probe is trusted for an hour after its last report, so one stuck reading hot on a flat battery cannot hold heating back forever. |
+| Temperature rise that counts as evidence | 1.5 °C/h | 0.5–10, 0.1 steps | The tank-warming rate above which something is judged to be heating the tank. Below it, sensor quantisation and thermosiphon drift dominate. Raise it if normal operation triggers detection. |
+| How long to keep assuming it after it stops | 90 min | 15–360, 15 steps | After the evidence fades, the assumption decays over this window rather than clearing — re-planning a full charge the instant a fire burns down is the wrong move. A sensed wood tank can shorten the window, never extend it. |
 | Wood type | Mixed | Birch · Pine · Mixed | The billed species. Used with packing and the price below to get a SEK/kWh figure for the cheaper-than-pump sensor. |
 | Packing | Packed (stacked) | Packed (stacked) · Loose (dumped) | Packed is stacked (travad); loose is dumped (stjälpt) and billed at 0.60 of packed. |
 | Price per cubic metre | none | 0–10 000, 10 steps | What you pay per billed cubic metre. **Empty keeps the cheaper-than-pump sensor unavailable — there is no silent default.** |
 | Furnace efficiency | 75 % | 10–95 | Share of the wood's energy that reaches the tank. |
 | Heating circulation pump switch | none | `switch` / `input_boolean` | Paused only in slots that are provably idle and warm — it always runs when heat is planned, when it is freezing outside, or when any room is near its comfort floor. |
-The four fuel-price fields render only while **Wood furnace** is on. The
+The four fuel-price fields and the external-heat detection group render only
+while **Wood furnace** is on. The
 *Wood Cheaper Than Heat Pump* sensor stays unavailable until the furnace is
 on, a wood-tank probe is set, external-heat detection or the DHW wood coil
 is on, type and packing are set, the billed price is greater than 0, and
