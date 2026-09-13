@@ -34,7 +34,7 @@
    "rc": 0
   },
   "tests/features.py": {
-   "seconds": 107.1,
+   "seconds": 101.7,
    "rc": 0
   },
   "tests/frontend.py": {
@@ -758,6 +758,7 @@
    "tests/hastub/homeassistant/util/dt.py",
    "tests/profiles.py",
    "tests/run.sh",
+   "tests/stress.py",
    "tests/structure.py"
   ],
   "tests/frontend.py": [
