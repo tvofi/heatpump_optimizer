@@ -1143,7 +1143,12 @@ def wood_share(
       *measures* at the valve outlet (external_heat.py), one law for both.
     * both at/below the curve — a smooth switch to the hotter source over
       ``margin`` (the same margin below which the estimator calls the mix
-      unidentifiable).
+      unidentifiable). The wood side's own usability ramp is scaled by the
+      HP tank's share of the two tanks' curve deficiency,
+      ``(flow_set - hp_temp) / ((flow_set - wood_temp) +
+      (flow_set - hp_temp))`` — 1 when the wood tank sits at the curve, 0
+      when the HP tank reaches it — so that region 3 arrives at 0 exactly
+      where region 2's all-HP limit meets it (round-4 D2-03, issue #927).
 
     Pure energy-priority ("drain the wood tank first, whatever its
     temperature") was considered and rejected: the Euler availability term
@@ -1160,14 +1165,19 @@ def wood_share(
         useful = max(0.0, wood_temp - floor_temp)
         span = max(flow_set - floor_temp, 1e-6)
         return min(1.0, max(0.0, f_w * useful / span))
-    return min(
-        1.0,
-        max(
-            0.0,
-            max(wood_temp - hp_temp, wood_temp - flow_set + margin)
-            / max(margin, 1e-6),
-        ),
+    # Region 3: two margin-wide ramps, and the usability one fades with the
+    # HP tank's share of the curve deficiency. Without that fade the ramp
+    # stayed up at hp_temp == flow_set and the law jumped by up to ~1 of
+    # the draw -- one ulp of step-0 power moved 1.110 kWh (issue #927).
+    m = max(margin, 1e-6)
+    hotter = min(1.0, max(0.0, (wood_temp - hp_temp) / m))
+    usable = min(1.0, max(0.0, (wood_temp - flow_set + margin) / m))
+    hp_deficiency = max(0.0, flow_set - hp_temp)
+    wood_deficiency = flow_set - wood_temp
+    hp_share_of_deficiency = hp_deficiency / max(
+        hp_deficiency + wood_deficiency, 1e-6
     )
+    return max(hotter, usable * hp_share_of_deficiency)
 
 
 def _wood_share_vec(
@@ -1195,15 +1205,21 @@ def _wood_share_vec(
     useful = np.maximum(0.0, wood_temp - floor_temp)
     span = np.maximum(flow_set - floor_temp, 1e-6)
     v2 = np.minimum(1.0, np.maximum(0.0, f_w * useful / span))
-    # Region 3: the smooth switch to the hotter source.
-    v3 = np.minimum(
-        1.0,
-        np.maximum(
-            0.0,
-            np.maximum(wood_temp - hp_temp, wood_temp - flow_set + margin)
-            / max(margin, 1e-6),
-        ),
+    # Region 3: the smooth switch to the hotter source, with the wood
+    # usability ramp faded by the HP tank's share of the curve deficiency
+    # (issue #927) -- same operations in the same order as the scalar law,
+    # so the two stay bitwise-identical per element.
+    m = max(margin, 1e-6)
+    hotter = np.minimum(1.0, np.maximum(0.0, (wood_temp - hp_temp) / m))
+    usable = np.minimum(
+        1.0, np.maximum(0.0, (wood_temp - flow_set + margin) / m)
     )
+    hp_deficiency = np.maximum(0.0, flow_set - hp_temp)
+    wood_deficiency = flow_set - wood_temp
+    hp_share_of_deficiency = hp_deficiency / np.maximum(
+        hp_deficiency + wood_deficiency, 1e-6
+    )
+    v3 = np.maximum(hotter, usable * hp_share_of_deficiency)
     return np.where(r1, 1.0, np.where(r2, v2, v3))
 
 
@@ -1381,7 +1397,22 @@ class ThermalModel:
                 # Past the nameplate reference that drop outruns the
                 # 2.5 %/K curve and inverts COP (#776). Cap the outdoor
                 # the ratio sees; colder than the reference is unchanged.
-                t_out = min(outdoor_temp, self.params.cop_reference_temp) + 273.15
+                # The factor's own 0.3 floor pins it below
+                # ref - (1.0 - 0.3) / 0.025, and a pinned factor cannot
+                # outrun the ratio's fall either -- so the same cap has a
+                # floor: inside the floored band the ratio is frozen at the
+                # band's edge (#928), which leaves the product flat there
+                # instead of falling as the weather warms. Edit this
+                # together with the factor line above if the floor or the
+                # slope ever changes.
+                t_ratio = min(
+                    max(
+                        outdoor_temp,
+                        self.params.cop_reference_temp - (1.0 - 0.3) / 0.025,
+                    ),
+                    self.params.cop_reference_temp,
+                )
+                t_out = t_ratio + 273.15
                 # A minimum lift keeps this finite as outdoor approaches flow.
                 carnot_flow = (flow_temp + 273.15) / max(
                     flow_temp + 273.15 - t_out, 1.0
@@ -1389,7 +1420,17 @@ class ThermalModel:
                 carnot_ref = (ref + 273.15) / max(ref + 273.15 - t_out, 1.0)
                 if carnot_ref > 1e-9:
                     cop *= max(0.25, carnot_flow / carnot_ref)
-        return max(cop, 0.5)
+        # The corrections above multiply in after the nameplate curve's own
+        # factor floor, so their product can cross 1.0 in deep cold (#928):
+        # each factor is individually bounded, the product is not. Floor the
+        # delivered COP at the resistive bound -- no vapour-compression
+        # cycle returns less heat than the electricity it is charged for,
+        # and the resistive backup every such system carries prices exactly
+        # 1.0. Below this floor the model would under-value heating and
+        # price stored heat back at a COP no machine has; the flat 1.0 it
+        # leaves in the floored band also stops the Carnot ratio's fall
+        # from inverting the curve as outdoor rises.
+        return max(cop, 1.0)
 
     def marginal_cop(
         self,
@@ -1445,7 +1486,11 @@ class ThermalModel:
         base_cop = self.compute_cop(outdoor_temp, humidity=humidity)
         # Higher DHW temp → lower COP (Carnot-like penalty)
         dhw_penalty = max(0.5, 1.0 - 0.008 * (dhw_temp - 35.0))
-        return base_cop * dhw_penalty
+        # The penalty is another factor multiplying in after the curve's
+        # own floor, so it needs the same resistive bound as compute_cop
+        # (#928) -- at the shipped hard max (60 °C against deep cold) the
+        # product lands near 0.84, and this method has no other clamp.
+        return max(base_cop * dhw_penalty, 1.0)
 
     def effective_heat_loss_coefficient(
         self, base_u: float, wind_speed: float = 0.0, precipitation: float = 0.0
@@ -2391,6 +2436,71 @@ class ThermalModel:
             wood_temps,
         )
 
+    def _batch_cop(
+        self,
+        out_i: float,
+        hum_i: float | None,
+        T_buf: np.ndarray,
+        flow_carnot_eligible: bool,
+    ) -> np.ndarray:
+        """The batch twins' COP, elementwise over the batch's tanks.
+
+        The scalar :meth:`compute_cop` law verbatim -- nameplate factor,
+        learned scale, defrost derate, the Carnot flow ratio with its
+        two-sided outdoor clip (#776 above the reference, #928 inside the
+        factor's own floored band), and the resistive floor -- because the
+        batch/scalar bitwise-parity contract pins this path to the scalar
+        one. Extracted from ``simulate_trajectory_batch`` to pay its LOC
+        and duplication budgets; the expressions moved unchanged.
+        ``flow_carnot_eligible`` is False on the single-zone twin, whose
+        scalar path passes no flow temperature, so the Carnot term is
+        skipped there exactly as it is in ``_simulate_step_single``.
+        """
+        p = self.params
+        delta = out_i - p.cop_reference_temp
+        factor = max(0.3, 1.0 + 0.025 * delta)
+        # float until the optional batch-mode factors (defrate, Carnot) make
+        # it an elementwise ndarray over the batch's tanks.
+        cop: float | np.ndarray = p.cop_nominal * min(factor, 1.5) * p.cop_scale
+        derate = p.defrost_derate
+        if derate is not None:
+            # A forecast humidity series marks unknown steps as NaN (#21);
+            # those fall back exactly like an absent argument.
+            if hum_i is not None and not np.isfinite(hum_i):
+                hum_i = None
+            if hum_i is None:
+                hum_i = p.ambient_humidity
+            cop = cop * derate.factor(out_i, hum_i)
+        if flow_carnot_eligible and p.cop_flow_carnot:
+            ref = p.cop_flow_reference_temp
+            t_out = min(
+                max(
+                    out_i,
+                    p.cop_reference_temp - (1.0 - 0.3) / 0.025,
+                ),
+                p.cop_reference_temp,
+            ) + 273.15
+            carnot_flow = (T_buf + 273.15) / np.maximum(
+                T_buf + 273.15 - t_out, 1.0
+            )
+            carnot_ref = (ref + 273.15) / max(ref + 273.15 - t_out, 1.0)
+            if carnot_ref > 1e-9:
+                # The scalar applies the lift cost only ABOVE the reference
+                # flow temperature; below it the term is skipped, not
+                # clipped -- a below-ref tank must not earn a COP boost it
+                # never gets.
+                carnot_mult = np.where(
+                    T_buf > ref,
+                    np.maximum(0.25, carnot_flow / carnot_ref),
+                    1.0,
+                )
+                cop = cop * carnot_mult
+        # The resistive floor the scalar returns (#928): the corrections
+        # multiply in after the curve's own factor floor and their product
+        # can cross 1.0 in deep cold. Bitwise parity with the scalar path
+        # requires the identical clamp here, not merely a compatible one.
+        return np.maximum(cop, 1.0)
+
     def simulate_trajectory_batch(
         self,
         initial_state: ThermalState,
@@ -2539,39 +2649,10 @@ class ThermalModel:
                     q_buf_loss = p.buffer_tank_heat_loss_coefficient * (
                         T_buf - 20.0
                     )
-                    # COP: only the flow-temp correction varies per element.
-                    # The scalar path computes cop = nameplate*factor*scale
-                    # [*derate] [*carnot]; replicate the exact order with the
-                    # per-element carnot factor applied where the scalar does.
-                    delta = out_i - p.cop_reference_temp
-                    factor = max(0.3, 1.0 + 0.025 * delta)
-                    cop = p.cop_nominal * min(factor, 1.5) * p.cop_scale
-                    derate = p.defrost_derate
-                    if derate is not None:
-                        if hum_i is not None and not np.isfinite(hum_i):
-                            hum_i = None
-                        if hum_i is None:
-                            hum_i = p.ambient_humidity
-                        cop = cop * derate.factor(out_i, hum_i)
-                    if throttled and p.cop_flow_carnot:
-                        ref = p.cop_flow_reference_temp
-                        t_out = min(out_i, p.cop_reference_temp) + 273.15
-                        carnot_flow = (T_buf + 273.15) / np.maximum(
-                            T_buf + 273.15 - t_out, 1.0
-                        )
-                        carnot_ref = (ref + 273.15) / max(ref + 273.15 - t_out, 1.0)
-                        if carnot_ref > 1e-9:
-                            # The scalar applies the lift cost only ABOVE the
-                            # reference flow temperature; below it the term is
-                            # skipped, not clipped -- a below-ref tank must not
-                            # earn a COP boost it never gets.
-                            carnot_mult = np.where(
-                                T_buf > ref,
-                                np.maximum(0.25, carnot_flow / carnot_ref),
-                                1.0,
-                            )
-                            cop = cop * carnot_mult
-                    cop = np.maximum(cop, 0.5)
+                    # COP: only the flow-temp correction varies per element;
+                    # the scalar law lives in _batch_cop so this method's
+                    # size stays paid for.
+                    cop = self._batch_cop(out_i, hum_i, T_buf, throttled)
                     thermal_power = (
                         cop * power_i + (0.0 if two_tank else ext)
                     )
@@ -2726,18 +2807,11 @@ class ThermalModel:
                     # starting it from the upper-floor field is the classic
                     # parity bug when the two differ in the initial state.
                     # T_room is seeded with the other states above the step
-                    # loop and carried across sub-steps from there.
-                    delta = out_i - p.cop_reference_temp
-                    factor = max(0.3, 1.0 + 0.025 * delta)
-                    cop = p.cop_nominal * min(factor, 1.5) * p.cop_scale
-                    derate = p.defrost_derate
-                    if derate is not None:
-                        if hum_i is not None and not np.isfinite(hum_i):
-                            hum_i = None
-                        if hum_i is None:
-                            hum_i = p.ambient_humidity
-                        cop = cop * derate.factor(out_i, hum_i)
-                    cop = np.maximum(cop, 0.5)
+                    # loop and carried across sub-steps from there. The COP
+                    # is the shared twin law, with the Carnot term
+                    # ineligible exactly as the scalar single-zone step
+                    # passes no flow temperature.
+                    cop = self._batch_cop(out_i, hum_i, T_buf, False)
                     thermal_power = cop * power_i + ext
                     u_eff = self.effective_heat_loss_coefficient(
                         p.heat_loss_coefficient, wind_i, rain_i

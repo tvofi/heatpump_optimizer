@@ -26,10 +26,18 @@ RESULT = re.compile(r"RESULT\s+([A-Za-z0-9_]+)=(\S+)")
 SKIP = {"thread_factor", "load1", "swapins", "concurrent_stress_procs"}
 
 # Cheap, contention-immune. The issue's header-drift set that can run here.
+# The round-4 entry (#951) is the quality-scale register's drift alarm: its
+# declared_mismatch line counts register rows the harness's executed checks
+# contradict, so a register that drifts from the tree turns this script red
+# on the pull request that drifted it -- the round-4 finding's mechanism was
+# exactly that nothing executed against that file. The two coverage-bearing
+# rows are unmeasured in this mode (they need a coverage payload) and are
+# pinned by tests/entities.py against tests/coverage_budgets.json instead.
 EXECUTE = (
     "tools/audit/round3/D2/dst_window_factors.py",
     "tools/audit/round3/D2/window_size_sweep.py",
     "tools/audit/round3/D5/option_doc_coverage.py",
+    "tools/audit/round4/D10/qs_rules.py",
 )
 
 

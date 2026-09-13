@@ -10104,24 +10104,24 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if self._pump_signals.freeze_reason is not None:
             self._sysid.abort(self._pump_signals.freeze_reason)
             return
+        params = ctx._thermal_params
+        state = ctx._current_state
         override = self._sysid.step(
             now=dt_util.now(),
-            room_temp=ctx._current_state.room_temperature,
-            outdoor_temp=ctx._current_state.outdoor_temperature,
+            room_temp=state.room_temperature,
+            outdoor_temp=state.outdoor_temperature,
             price=self._get_current_price(),
             price_horizon=prices,
             learner_samples=self._house_heat_loss_samples,
-            max_power_kw=ctx._thermal_params.max_electrical_power,
-            cop=self._thermal_model.compute_cop(
-                ctx._current_state.outdoor_temperature
-            ),
+            max_power_kw=params.max_electrical_power,
+            cop=self._thermal_model.compute_cop(state.outdoor_temperature),
             plan_power_kw=float(self._current_action.get("power", 0.0)),
-            house_ua=(
-                ctx._thermal_params.heat_loss_coefficient
-                * ctx._thermal_params.house_heat_loss_scale
-            ),
-            house_capacity=ctx._thermal_params.room_thermal_mass,
-            house_gains=ctx._thermal_params.internal_gains,
+            # The slab pair must be the configured house's own (#943).
+            house_ua=params.heat_loss_coefficient * params.house_heat_loss_scale,
+            house_capacity=params.room_thermal_mass,
+            house_gains=params.internal_gains,
+            house_slab_mass=params.slab_thermal_mass,
+            house_slab_transfer=params.slab_heat_transfer,
         )
         if override is None:
             return

@@ -33,6 +33,7 @@ from typing import Any
 
 import numpy as np
 
+from .const import DEFAULT_SLAB_HEAT_TRANSFER, DEFAULT_SLAB_THERMAL_MASS
 from .thermal_model import ThermalModel, ThermalParameters, ThermalState
 
 _LOGGER = logging.getLogger(__name__)
@@ -93,21 +94,36 @@ def _predict_step_excursion(
     return peak, abs(after_relax - baseline)
 
 
-def _sizing_model(ua: float, capacity: float, gains: float) -> ThermalModel:
+def _sizing_model(
+    ua: float,
+    capacity: float,
+    gains: float,
+    slab_thermal_mass: float | None = None,
+    slab_heat_transfer: float | None = None,
+) -> ThermalModel:
     """Single-zone plant whose UA / room mass / gains match the sizer inputs.
 
     ``house_heat_loss_scale`` stays 1.0: the caller already folds the
-    learned scale into ``ua``. Slab mass and coupling stay the model
-    defaults — that is the two-state plant the experiment actually runs
-    on. The identified UA remains a room-only lumped figure; the sizer
-    does not pretend otherwise.
+    learned scale into ``ua``. The slab pair is the configured house's own
+    (``None`` falls back to the ``ThermalParameters`` defaults): sizing on
+    any other slab predicts a different building than the one the step
+    heats — the shipped presets carry (0.24, 0.24) to (23.0, 2.0) against
+    the defaults (5.0, 0.8), which breached ``max_excursion_c`` on the
+    light end (#943). The identified UA remains a room-only lumped figure;
+    the sizer does not pretend otherwise.
     """
+    if slab_thermal_mass is None:
+        slab_thermal_mass = DEFAULT_SLAB_THERMAL_MASS
+    if slab_heat_transfer is None:
+        slab_heat_transfer = DEFAULT_SLAB_HEAT_TRANSFER
     return ThermalModel(
         ThermalParameters(
             heat_loss_coefficient=ua,
             house_heat_loss_scale=1.0,
             room_thermal_mass=capacity,
             internal_gains=gains,
+            slab_thermal_mass=slab_thermal_mass,
+            slab_heat_transfer=slab_heat_transfer,
             two_zone_enabled=False,
         )
     )
@@ -124,6 +140,8 @@ def _predict_step_excursion_plant(
     relax_hours: float,
     dt_hours: float = 0.25,
     model: ThermalModel | None = None,
+    slab_thermal_mass: float | None = None,
+    slab_heat_transfer: float | None = None,
 ) -> tuple[float, float]:
     """Peak and final |T − baseline| on the two-state plant the model simulates.
 
@@ -134,7 +152,9 @@ def _predict_step_excursion_plant(
     if ua <= 1e-9 or capacity <= 1e-9:
         return float("inf"), float("inf")
     if model is None:
-        model = _sizing_model(ua, capacity, gains)
+        model = _sizing_model(
+            ua, capacity, gains, slab_thermal_mass, slab_heat_transfer
+        )
     k_slab = max(model.params.slab_heat_transfer, 1e-9)
     q_hold = ua * (baseline - outdoor) - gains
     state = ThermalState(
@@ -444,6 +464,8 @@ class SystemIdentification:
         ua: float,
         capacity: float,
         gains: float,
+        slab_thermal_mass: float | None = None,
+        slab_heat_transfer: float | None = None,
     ) -> float | None:
         """Largest electrical step whose predicted excursion fits the bound."""
         cfg = self.config
@@ -454,7 +476,7 @@ class SystemIdentification:
         lo = 0.0
         hi = q_max
         best: float | None = None
-        plant = _sizing_model(ua, capacity, gains)
+        plant = _sizing_model(ua, capacity, gains, slab_thermal_mass, slab_heat_transfer)
         peak_max, final_max = _predict_step_excursion_plant(
             ua,
             capacity,
@@ -521,6 +543,8 @@ class SystemIdentification:
         house_ua: float | None,
         house_capacity: float | None,
         house_gains: float | None,
+        house_slab_mass: float | None = None,
+        house_slab_transfer: float | None = None,
     ) -> bool:
         """Enter PHASE_STEP with a comfort-bounded injection. False if none fits."""
         self.phase = PHASE_STEP
@@ -541,6 +565,8 @@ class SystemIdentification:
                 house_ua,
                 house_capacity,
                 house_gains,
+                house_slab_mass,
+                house_slab_transfer,
             )
             if sized is None:
                 self.abort("no step fits within the comfort bound")
@@ -568,6 +594,8 @@ class SystemIdentification:
         house_ua: float | None = None,
         house_capacity: float | None = None,
         house_gains: float | None = None,
+        house_slab_mass: float | None = None,
+        house_slab_transfer: float | None = None,
     ) -> float | None:
         """Advance the experiment; returns a power override, or ``None``.
 
@@ -576,6 +604,12 @@ class SystemIdentification:
         value is electrical power, because that is what the rest of the
         integration speaks; ``cop`` converts it to the thermal quantity the fit
         needs.
+
+        The ``house_*`` figures are the coordinator's configured thermal
+        parameters, the learned scale already folded into ``house_ua``. The
+        sizer builds its plant from them, so a caller that omits the slab
+        pair sizes on the ``ThermalParameters`` defaults instead of on the
+        house it heats (#943).
         """
         cfg = self.config
         if not self.active:
@@ -619,6 +653,8 @@ class SystemIdentification:
                 house_ua,
                 house_capacity,
                 house_gains,
+                house_slab_mass,
+                house_slab_transfer,
             ):
                 return None
             return None
