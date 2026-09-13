@@ -185,7 +185,10 @@ INERT = (
     "SECURITY.md",
     "NOTICE",
     "icon.png",
-    "docs/",  # except the handover -- see HANDOVER_DIR below
+    # docs/ except the handover (HANDOVER_DIR below) and the pages a gate
+    # script pins (INERT_EXCEPT below, #937 and #939) -- the same split
+    # README.md, RELEASE_NOTES.md and tests/README.md needed before it.
+    "docs/",
     # tests/README.md was here until #938: entities.py now reads the
     # manual's per-script size annotations and pins them against the
     # code's own counts, and a file a gate script reads is a dependency,
@@ -391,6 +394,17 @@ INERT_EXCEPT = (
     # quality_scale.yaml at all. Same #817 shape as the round-3 three: the
     # gate opens the file, so the tools/audit/ prefix cannot cover it.
     "tools/audit/round4/D10/qs_rules.py",
+    # #939: same route for architecture.md -- tests/entities.py pins its own
+    # numbers (module counts, the module map, the HA boundary) against the
+    # tree, so the document a contributor reads before changing the code is
+    # a dependency of a gate script, not inert prose.
+    "docs/architecture.md",
+    # #941: tests/entities.py drives the real Power Headroom sensor over
+    # the fuse x tariff grid and reads the automation examples to pin that
+    # they name every state the sensor publishes. Same move as the
+    # reference above: the docs/ prefix stays INERT, the file moves to
+    # entities.py's recorded closure.
+    "docs/automations.md",
     ".gitignore",
     ".claude/workflows/policy_lint.mjs",
     ".claude/workflows/brief_lint.mjs",

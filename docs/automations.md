@@ -14,9 +14,16 @@ yours differently.
 
 The Power Headroom sensor (`sensor.heat_pump_optimizer_power_headroom`) is
 `min(main fuse, capacity threshold) − current house draw`, clamped at zero, in
-kW — a number an EV charger can follow. It stays unavailable until you set a
-main fuse size in the options, and without a whole-house meter it only sees
-the heat pump itself, which the sensor's attributes say out loud.
+kW — a number an EV charger can follow. It stays unavailable only while
+nothing bounds the house: set a main fuse size in the options, or enable a
+capacity tariff, and it appears — the fuse is unset by default, so a
+tariff-only install has the sensor too. Until the month's first metering
+window closes there is no reference peak yet, so a tariff-only install then
+reads 0.0 kW — no kW is free while the month's peak is being set — and the
+`limit_source` attribute reads `capacity tariff with no peak reference yet`,
+which tells that state apart from a measured limit. With no fuse and no
+capacity tariff it stays unavailable, and without a whole-house meter it only
+sees the heat pump itself, which the sensor's attributes say out loud.
 
 This automation starts a simple charger whenever at least 5 kW of headroom
 opens up and stops it below 2 kW:
