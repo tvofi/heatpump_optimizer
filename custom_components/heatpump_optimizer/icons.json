@@ -41,6 +41,9 @@
       "comfort_weight": {
         "default": "mdi:scale-balance"
       },
+      "compressor_frequency_advisor": {
+        "default": "mdi:pump"
+      },
       "compressor_starts": {
         "default": "mdi:counter"
       },
@@ -112,6 +115,9 @@
       "lower_floor_temperature": {
         "default": "mdi:home-floor-0"
       },
+      "measured_power": {
+        "default": "mdi:meter-electric"
+      },
       "monthly_peak_power": {
         "default": "mdi:chart-bell-curve"
       },
@@ -123,6 +129,9 @@
       },
       "observed_cop": {
         "default": "mdi:gauge-full"
+      },
+      "optimal_setpoint": {
+        "default": "mdi:thermometer-lines"
       },
       "optimization_mode": {
         "default": "mdi:cog-outline",
@@ -146,6 +155,9 @@
       },
       "optimization_status": {
         "default": "mdi:check-circle-outline"
+      },
+      "outdoor_temperature_optimizer": {
+        "default": "mdi:sun-thermometer"
       },
       "plan_narrative": {
         "default": "mdi:text-long",
