@@ -3594,6 +3594,52 @@ R.check(
     f"b1-vs-fd {float(np.abs(_b1_948w - _fd948w).max())!r}",
 )
 
+# TEMPORARY #948 instrument round 6: both jacs at the race's own FIRST
+# start (a bounds-clipped point -- the one-sided-step regime a random
+# interior x0 never exercises).
+_cap948v = {}
+def _ms948v(objective, candidates, bounds, *a, **kw):
+    _cap948v["objective"] = objective
+    _cap948v["batch"] = kw.get("batch_objective")
+    _cap948v["args"] = kw.get("args", a)
+    _cap948v["starts"] = list(candidates)
+    _cap948v["bounds"] = list(bounds)
+    return _MsStub948(candidates[0])
+_grad_optmod._multi_start_minimize = _ms948v
+try:
+    _o948v = _PvOpt(_PvModel(_p948w), _PvOptCfg(
+        horizon_hours=24, time_step_minutes=15,
+        target_temp=21.0, min_temp=17.0, max_temp=23.0))
+    _o948v.optimize(_stx948w, _pr948w, _ot948w, _wi948w, _ra948w,
+                    _so948w, _st948w)
+finally:
+    _grad_optmod._multi_start_minimize = _orig_msm_948
+_x948v = np.asarray(_cap948v["starts"][0], dtype=float)
+_bd948v = _cap948v["bounds"]
+_g948v = _grad_optmod._batch_fd_gradient(
+    _cap948v["batch"], tuple(_cap948v["args"]), _x948v,
+    float(_cap948v["objective"](_x948v, *_cap948v["args"])), 1e-4, _bd948v,
+)
+_gs948v = _ap948z(
+    lambda _x: _cap948v["objective"](_x, *_cap948v["args"]), _x948v,
+    method="2-point", abs_step=1e-4,
+    f0=float(_cap948v["objective"](_x948v, *_cap948v["args"])),
+    bounds=(np.array([b[0] for b in _bd948v]),
+            np.array([b[1] for b in _bd948v])),
+)
+_eq948v = np.array_equal(_g948v, _gs948v, equal_nan=True)
+_dv948v = np.abs(_g948v - _gs948v)
+_at948v = int((np.asarray([b[0] for b in _bd948v]) >= _x948v - 0)
+              .sum())
+R.check(
+    "948 TEMP instrument: jacs agree at the solve's own first start",
+    bool(_eq948v),
+    f"maxdiff={float(np.nanmax(_dv948v))!r} "
+    f"nexact={int((_g948v == _gs948v).sum())}/96 "
+    f"first={int(np.nanargmax(_dv948v))} "
+    f"x_at_lb={int((_x948v <= np.array([b[0] for b in _bd948v]) + 1e-12).sum())}",
+)
+
 # The batch twins under their own branch grids, one level below the
 # objective: every arm peak_cost and cycling_penalty branch on, priced per
 # row against the scalar function on the same plan. Rule: row b of the
