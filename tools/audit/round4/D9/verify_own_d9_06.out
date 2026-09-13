@@ -1,0 +1,31 @@
+# verifier-own D9-06 harness; MBF=1.5 DT=2.0 TOPN=6 from stress.py source text
+# procs_at_start=0 load1=2.72
+RESULT v1_rule_text_present_in_source=True
+RESULT v1_memory_budget_factor=1.5
+RESULT v1_detection_target=2
+RESULT v1_memory_top_n=6
+RESULT v1_scenarios_recorded=51 scenarios
+RESULT v1_min_rss_multiple_required_to_fail=2.52905
+RESULT v1_max_rss_multiple_required_to_fail=2.64294
+RESULT v1_scenarios_2x_rss_passes=51 scenarios
+RESULT v1_min_traced_multiple_required_to_fail=2.07637
+RESULT v1_scenarios_2x_traced_passes=51 scenarios
+RESULT v1_scenarios_never_probed_in_check_mode=45 scenarios
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/.zcode/workspace/default/audit-r4-verify-D9-1/tools/audit/round4/D9/d9_own_d9_06.py", line 202, in <module>
+    main()
+  File "/Users/timmalmstrom/.zcode/workspace/default/audit-r4-verify-D9-1/tools/audit/round4/D9/d9_own_d9_06.py", line 174, in main
+    inj = probe(winter_pv, inject=True)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/timmalmstrom/.zcode/workspace/default/audit-r4-verify-D9-1/tools/audit/round4/D9/d9_own_d9_06.py", line 132, in probe
+    return json.loads(lines[-1])
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)

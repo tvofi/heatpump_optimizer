@@ -2571,6 +2571,7 @@ class SensorGapAdvisorSensor(HeatPumpOptimizerSensorBase):
         super().__init__(
             coordinator, entry, "sensor_gap_advisor", "sensor_gap_advisor"
         )
+        self._attr_native_unit_of_measurement = coordinator.currency
 
     def _gaps(self) -> list[dict[str, Any]]:
         config = getattr(self.coordinator, "_config", None) or {}

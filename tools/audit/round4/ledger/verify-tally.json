@@ -1,0 +1,839 @@
+{
+  "_what": "Round 4 verification panel tally as collected; the judge receives this with every seated vote. Kill rule (audit-verify.js): counted >= 3 and refutes*2 > counted. Seats marked pending died to the account usage limit at 2026-09-13T00:16Z and re-run after 01:22Z. D9's panel had not run when this was written.",
+  "D0-01": {
+    "votes": [
+      {
+        "seat": 1,
+        "vote": "verify",
+        "severity": "low"
+      },
+      {
+        "seat": 2,
+        "vote": "verify",
+        "severity": "low"
+      },
+      {
+        "seat": 3,
+        "vote": "verify",
+        "severity": "low"
+      }
+    ],
+    "pending": []
+  },
+  "D0-02": {
+    "votes": [
+      {
+        "seat": 1,
+        "vote": "verify",
+        "severity": "low"
+      },
+      {
+        "seat": 2,
+        "vote": "verify",
+        "severity": "low"
+      },
+      {
+        "seat": 3,
+        "vote": "verify",
+        "severity": "low"
+      }
+    ],
+    "pending": [],
+    "judge_note": "gate asymmetry executed by two seats: ftol degraded 1000x-10000x passes optimality.py, maxiter->3 fails it"
+  },
+  "D1-01": {
+    "votes": [
+      {
+        "seat": 1,
+        "vote": "verify",
+        "severity": "high"
+      },
+      {
+        "seat": 2,
+        "vote": "verify",
+        "severity": "high"
+      },
+      {
+        "seat": 3,
+        "vote": "verify",
+        "severity": "high"
+      }
+    ],
+    "pending": []
+  },
+  "D1-02": {
+    "votes": [
+      {
+        "seat": 1,
+        "vote": "verify",
+        "severity": "high"
+      },
+      {
+        "seat": 2,
+        "vote": "verify",
+        "severity": "high"
+      },
+      {
+        "seat": 3,
+        "vote": "verify",
+        "severity": "high"
+      }
+    ],
+    "pending": []
+  },
+  "D1-INST": {
+    "votes": [
+      {
+        "seat": 1,
+        "vote": "verify",
+        "severity": "low"
+      },
+      {
+        "seat": 2,
+        "vote": "weaken",
+        "severity": "low",
+        "note": "refuted: _skip_solve_once IS consumed by features.py:16284-16299 through real setup; nightly_ha.py runs the real base class (gate-excluded); residual: gate never exercises base-class reaction chain"
+      },
+      {
+        "seat": 3,
+        "vote": "weaken",
+        "severity": "low",
+        "note": "same two refutations, independently"
+      }
+    ],
+    "pending": []
+  },
+  "D2-01": {
+    "votes": [
+      {
+        "seat": 1,
+        "vote": "verify",
+        "severity": "high"
+      },
+      {
+        "seat": 2,
+        "vote": "verify",
+        "severity": "high"
+      },
+      {
+        "seat": 3,
+        "vote": "verify",
+        "severity": "high"
+      }
+    ],
+    "pending": [],
+    "judge_note": "all three seats: 13.35x headline cell needs 48h horizon, not options-settable; reachable max 5.08x@12kW / 6.68x@15kW / 8.61x@20kW"
+  },
+  "D2-02": {
+    "votes": [
+      {
+        "seat": 1,
+        "vote": "verify",
+        "severity": "medium"
+      },
+      {
+        "seat": 2,
+        "vote": "verify",
+        "severity": "medium"
+      },
+      {
+        "seat": 3,
+        "vote": "verify",
+        "severity": "medium"
+      }
+    ],
+    "pending": []
+  },
+  "D2-03": {
+    "votes": [
+      {
+        "seat": 1,
+        "vote": "verify",
+        "severity": "high"
+      },
+      {
+        "seat": 2,
+        "vote": "verify",
+        "severity": "high"
+      },
+      {
+        "seat": 3,
+        "vote": "verify",
+        "severity": "high"
+      }
+    ],
+    "pending": []
+  },
+  "D2-04": {
+    "votes": [
+      {
+        "seat": 1,
+        "vote": "verify",
+        "severity": "medium"
+      },
+      {
+        "seat": 2,
+        "vote": "verify",
+        "severity": "medium"
+      },
+      {
+        "seat": 3,
+        "vote": "verify",
+        "severity": "medium"
+      }
+    ],
+    "pending": []
+  },
+  "D2-05": {
+    "votes": [
+      {
+        "seat": 1,
+        "vote": "verify",
+        "severity": "low"
+      },
+      {
+        "seat": 2,
+        "vote": "verify",
+        "severity": "low"
+      },
+      {
+        "seat": 3,
+        "vote": "verify",
+        "severity": "low"
+      }
+    ],
+    "pending": []
+  },
+  "D3-S1": {
+    "votes": [
+      {
+        "seat": 1,
+        "vote": "verify",
+        "severity": "high"
+      },
+      {
+        "seat": 2,
+        "vote": "verify",
+        "severity": "bug weight-5"
+      },
+      {
+        "seat": 3,
+        "vote": "verify",
+        "severity": "high"
+      }
+    ],
+    "pending": []
+  },
+  "D3-S2": {
+    "votes": [
+      {
+        "seat": 1,
+        "vote": "verify",
+        "severity": "low"
+      },
+      {
+        "seat": 2,
+        "vote": "verify",
+        "severity": "minor bug"
+      },
+      {
+        "seat": 3,
+        "vote": "verify",
+        "severity": "medium"
+      }
+    ],
+    "pending": [],
+    "judge_note": "all three agree: wrong published attribute only; severity spread low-to-medium, nothing downstream acts"
+  },
+  "D3-S3": {
+    "votes": [
+      {
+        "seat": 1,
+        "vote": "weaken",
+        "severity": "hygiene"
+      },
+      {
+        "seat": 2,
+        "vote": "refute",
+        "note": "equivalence proven over 1251 adversarial cases and both call surfaces; finder never executed M22 (prescreen stops at M06)"
+      },
+      {
+        "seat": 3,
+        "vote": "weaken",
+        "severity": "low",
+        "note": "equivalent mutant: sole caller pre-clamps k with the identical expression; M22 absent from prescreen.json (provenance defect)"
+      }
+    ],
+    "pending": [],
+    "judge_note": "2 weaken + 1 refute, not majority-killed; all three seats agree the mutant is equivalent through every reachable input"
+  },
+  "D3-S4": {
+    "votes": [
+      {
+        "seat": 1,
+        "vote": "verify",
+        "severity": "hygiene"
+      },
+      {
+        "seat": 2,
+        "vote": "verify",
+        "severity": "hygiene"
+      },
+      {
+        "seat": 3,
+        "vote": "verify",
+        "severity": "low"
+      }
+    ],
+    "pending": []
+  },
+  "D3-INST": {
+    "votes": [
+      {
+        "seat": 1,
+        "vote": "verify",
+        "severity": "low"
+      },
+      {
+        "seat": 2,
+        "vote": "verify",
+        "severity": "minor hygiene"
+      },
+      {
+        "seat": 3,
+        "vote": "verify",
+        "severity": "low",
+        "note": "CI never pays the double cost (drift mode skips golden.py); cost lands on developers following README; heavy walls judge's to re-take"
+      }
+    ],
+    "pending": []
+  },
+  "D4-01": {
+    "votes": [
+      {
+        "seat": 1,
+        "vote": "verify",
+        "severity": "high"
+      }
+    ],
+    "pending": [
+      2,
+      3
+    ]
+  },
+  "D4-02": {
+    "votes": [
+      {
+        "seat": 1,
+        "vote": "refute",
+        "severity": "low",
+        "note": "premise false: HA stock dark theme never sets --text-primary-color to #212121 (stays #ffffff = 5.786:1 pass), verified against HA frontend source at 2024.1/2026.8/dev; the 2.78 pairing existed only in the finder's hand-written dark table"
+      }
+    ],
+    "pending": [
+      2,
+      3
+    ]
+  },
+  "D4-03": {
+    "votes": [
+      {
+        "seat": 1,
+        "vote": "verify",
+        "severity": "low"
+      }
+    ],
+    "pending": [
+      2,
+      3
+    ]
+  },
+  "D5-01": {
+    "votes": [
+      {
+        "seat": 1,
+        "vote": "verify",
+        "severity": "medium"
+      },
+      {
+        "seat": 2,
+        "vote": "verify",
+        "severity": "medium"
+      },
+      {
+        "seat": 3,
+        "vote": "verify",
+        "severity": "medium"
+      }
+    ],
+    "pending": []
+  },
+  "D5-02": {
+    "votes": [
+      {
+        "seat": 1,
+        "vote": "verify",
+        "severity": "low"
+      },
+      {
+        "seat": 2,
+        "vote": "verify",
+        "severity": "low"
+      },
+      {
+        "seat": 3,
+        "vote": "verify",
+        "severity": "low"
+      }
+    ],
+    "pending": []
+  },
+  "D6-01": {
+    "votes": [
+      {
+        "seat": 1,
+        "vote": "verify",
+        "severity": "high"
+      },
+      {
+        "seat": 2,
+        "vote": "verify",
+        "severity": "high"
+      },
+      {
+        "seat": 3,
+        "vote": "verify",
+        "severity": "high"
+      }
+    ],
+    "pending": []
+  },
+  "D6-02": {
+    "votes": [
+      {
+        "seat": 1,
+        "vote": "verify",
+        "severity": "medium"
+      },
+      {
+        "seat": 2,
+        "vote": "verify",
+        "severity": "medium"
+      },
+      {
+        "seat": 3,
+        "vote": "verify",
+        "severity": "medium"
+      }
+    ],
+    "pending": []
+  },
+  "D6-03": {
+    "votes": [
+      {
+        "seat": 1,
+        "vote": "verify",
+        "severity": "low"
+      },
+      {
+        "seat": 2,
+        "vote": "verify",
+        "severity": "low"
+      },
+      {
+        "seat": 3,
+        "vote": "verify",
+        "severity": "low"
+      }
+    ],
+    "pending": []
+  },
+  "D7-01": {
+    "votes": [
+      {
+        "seat": 1,
+        "vote": "verify",
+        "severity": "medium"
+      },
+      {
+        "seat": 2,
+        "vote": "verify",
+        "severity": "medium"
+      }
+    ],
+    "pending": [
+      3
+    ]
+  },
+  "D7-02": {
+    "votes": [
+      {
+        "seat": 1,
+        "vote": "verify",
+        "severity": "medium"
+      },
+      {
+        "seat": 2,
+        "vote": "verify",
+        "severity": "medium"
+      }
+    ],
+    "pending": [
+      3
+    ]
+  },
+  "D7-03": {
+    "votes": [
+      {
+        "seat": 1,
+        "vote": "verify",
+        "severity": "high"
+      },
+      {
+        "seat": 2,
+        "vote": "verify",
+        "severity": "high"
+      }
+    ],
+    "pending": [
+      3
+    ]
+  },
+  "D8-01": {
+    "votes": [
+      {
+        "seat": 1,
+        "vote": "verify",
+        "severity": "low"
+      },
+      {
+        "seat": 2,
+        "vote": "verify",
+        "severity": "low"
+      }
+    ],
+    "pending": [
+      3
+    ]
+  },
+  "D8-02": {
+    "votes": [
+      {
+        "seat": 1,
+        "vote": "verify",
+        "severity": "low"
+      },
+      {
+        "seat": 2,
+        "vote": "verify",
+        "severity": "low"
+      }
+    ],
+    "pending": [
+      3
+    ]
+  },
+  "D8-INST": {
+    "votes": [
+      {
+        "seat": 1,
+        "vote": "verify",
+        "severity": "low"
+      },
+      {
+        "seat": 2,
+        "vote": "verify",
+        "severity": "low",
+        "note": "six checks vacuous not four (strengthened)"
+      }
+    ],
+    "pending": [
+      3
+    ]
+  },
+  "D10-01": {
+    "votes": [
+      {
+        "seat": 1,
+        "vote": "verify",
+        "severity": "low"
+      },
+      {
+        "seat": 2,
+        "vote": "verify",
+        "severity": "low"
+      },
+      {
+        "seat": 3,
+        "vote": "verify",
+        "severity": "low"
+      }
+    ],
+    "pending": []
+  },
+  "D10-02": {
+    "votes": [
+      {
+        "seat": 1,
+        "vote": "verify",
+        "severity": "low"
+      },
+      {
+        "seat": 2,
+        "vote": "verify",
+        "severity": "low"
+      },
+      {
+        "seat": 3,
+        "vote": "verify",
+        "severity": "low"
+      }
+    ],
+    "pending": []
+  },
+  "D10-03": {
+    "votes": [
+      {
+        "seat": 1,
+        "vote": "verify",
+        "severity": "low"
+      },
+      {
+        "seat": 2,
+        "vote": "verify",
+        "severity": "low"
+      },
+      {
+        "seat": 3,
+        "vote": "verify",
+        "severity": "low"
+      }
+    ],
+    "pending": []
+  },
+  "D11-01": {
+    "votes": [
+      {
+        "seat": 1,
+        "vote": "verify",
+        "severity": "critical"
+      },
+      {
+        "seat": 2,
+        "vote": "verify",
+        "severity": "critical"
+      },
+      {
+        "seat": 3,
+        "vote": "verify",
+        "severity": "critical"
+      }
+    ],
+    "pending": []
+  },
+  "D11-02": {
+    "votes": [
+      {
+        "seat": 1,
+        "vote": "verify",
+        "severity": "critical"
+      },
+      {
+        "seat": 2,
+        "vote": "verify",
+        "severity": "critical"
+      },
+      {
+        "seat": 3,
+        "vote": "verify",
+        "severity": "critical"
+      }
+    ],
+    "pending": []
+  },
+  "D11-03": {
+    "votes": [
+      {
+        "seat": 1,
+        "vote": "verify",
+        "severity": "high"
+      },
+      {
+        "seat": 2,
+        "vote": "verify",
+        "severity": "high"
+      },
+      {
+        "seat": 3,
+        "vote": "verify",
+        "severity": "high"
+      }
+    ],
+    "pending": []
+  },
+  "D11-04": {
+    "votes": [
+      {
+        "seat": 1,
+        "vote": "verify",
+        "severity": "high"
+      },
+      {
+        "seat": 2,
+        "vote": "verify",
+        "severity": "high"
+      },
+      {
+        "seat": 3,
+        "vote": "weaken",
+        "severity": "medium",
+        "note": "count shrank 8 to 4/5 after main's deletions and self-repairs; documentation rot, not enforcement"
+      }
+    ],
+    "pending": [],
+    "judge_note": "2-1 verify-high; the load-bearing live contradiction is governance.yml:354"
+  },
+  "D11-05": {
+    "votes": [
+      {
+        "seat": 1,
+        "vote": "verify",
+        "severity": "medium"
+      },
+      {
+        "seat": 2,
+        "vote": "verify",
+        "severity": "medium"
+      },
+      {
+        "seat": 3,
+        "vote": "verify",
+        "severity": "medium"
+      }
+    ],
+    "pending": []
+  },
+  "D11-06": {
+    "votes": [
+      {
+        "seat": 1,
+        "vote": "verify",
+        "severity": "medium"
+      },
+      {
+        "seat": 2,
+        "vote": "verify",
+        "severity": "medium"
+      },
+      {
+        "seat": 3,
+        "vote": "verify",
+        "severity": "medium"
+      }
+    ],
+    "pending": []
+  },
+  "D11-07": {
+    "votes": [
+      {
+        "seat": 1,
+        "vote": "verify",
+        "severity": "low"
+      },
+      {
+        "seat": 2,
+        "vote": "verify",
+        "severity": "low"
+      },
+      {
+        "seat": 3,
+        "vote": "verify",
+        "severity": "low"
+      }
+    ],
+    "pending": []
+  },
+  "D12-01": {
+    "votes": [
+      {
+        "seat": 1,
+        "vote": "verify",
+        "severity": "high"
+      },
+      {
+        "seat": 2,
+        "vote": "verify",
+        "severity": "high"
+      },
+      {
+        "seat": 3,
+        "vote": "verify",
+        "severity": "high"
+      }
+    ],
+    "pending": [],
+    "judge_note": "seat 1: 9 distinct slots not 10 (double-count found), new instance dhw_inlet_entity; seat 2: executed switch.turn_off on minimal plant; seat 3: reachability via HA state-machine conversion semantics, Wh read widens to metric installs"
+  },
+  "D9-05": {
+    "votes": [
+      {
+        "seat": 1,
+        "vote": "verify",
+        "severity": "medium"
+      },
+      {
+        "seat": 2,
+        "vote": "verify",
+        "severity": "medium"
+      },
+      {
+        "seat": 3,
+        "vote": "verify",
+        "severity": "medium"
+      }
+    ],
+    "pending": []
+  },
+  "D9-06": {
+    "votes": [
+      {
+        "seat": 1,
+        "vote": "verify",
+        "severity": "medium"
+      },
+      {
+        "seat": 2,
+        "vote": "verify",
+        "severity": "medium"
+      },
+      {
+        "seat": 3,
+        "vote": "verify",
+        "severity": "medium"
+      }
+    ],
+    "pending": []
+  },
+  "D9-INST": {
+    "votes": [
+      {
+        "seat": 1,
+        "vote": "verify",
+        "severity": "low"
+      },
+      {
+        "seat": 2,
+        "vote": "verify",
+        "severity": "low",
+        "note": "fifth offender found: h3_payload.py:243 also prints no thread_factor"
+      },
+      {
+        "seat": 3,
+        "vote": "verify",
+        "severity": "low"
+      }
+    ],
+    "pending": []
+  },
+  "_final": "Panel phase complete 2026-09-13: 117 votes over 39 findings - 108 verify, 6 weaken, 3 refute. Killed by majority refute: D4-02. Splits for the judge: D11-04 (2v-high/1w-medium), D7-03 (2v-high/1w-medium), D1-INST (1v-low/2w-low), D3-S3 (2w/1r)."
+}

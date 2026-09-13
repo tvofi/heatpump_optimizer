@@ -360,12 +360,23 @@ class AccuracyTracker:
         tracker = cls()
         if not isinstance(data, dict):
             return tracker
-        for raw in data.get("samples", []) or []:
-            if not isinstance(raw, dict):
-                continue
-            sample = AccuracySample.from_dict(raw)
-            if sample is not None:
-                tracker.samples.append(sample)
+        raw_samples = data.get("samples")
+        if isinstance(raw_samples, list):
+            for raw in raw_samples:
+                if not isinstance(raw, dict):
+                    continue
+                sample = AccuracySample.from_dict(raw)
+                if sample is not None:
+                    tracker.samples.append(sample)
+        elif raw_samples is not None:
+            # The decode's corruption barrier, like the sibling loaders': a
+            # scalar "samples" once raised out of the loader and the next
+            # cycle saved defaults over every learned field (#923).
+            _LOGGER.warning(
+                "Accuracy store: ignoring non-list 'samples' field (%s); "
+                "the other learned fields are unaffected",
+                type(raw_samples).__name__,
+            )
         raw_sigma = data.get("lead_sigma")
         if isinstance(raw_sigma, dict):
             for key, value in raw_sigma.items():

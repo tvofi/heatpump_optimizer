@@ -7043,6 +7043,20 @@ R.check(
     and sensor.TotalCostSensor(_eur, ENTRY)._attr_native_unit_of_measurement
     == "EUR",
 )
+# The advisor's state is rank_sensor_gaps' sek_per_month -- money per month,
+# documented as CUR in the README's sensor table like the eight above. A
+# MEASUREMENT without a unit records that money unitless in the statistics
+# (#940), so it owes the same coordinator.currency line its siblings carry.
+R.check(
+    "the sensor-gap advisor publishes its money-per-month state in the currency (#940)",
+    getattr(
+        sensor.SensorGapAdvisorSensor(_eur, ENTRY),
+        "_attr_native_unit_of_measurement",
+        None,
+    )
+    == "EUR",
+    f"unit={getattr(sensor.SensorGapAdvisorSensor(_eur, ENTRY), '_attr_native_unit_of_measurement', None)!r}",
+)
 R.check(
     "unit prices follow it too",
     sensor.CurrentPriceSensor(_eur, ENTRY)._attr_native_unit_of_measurement
