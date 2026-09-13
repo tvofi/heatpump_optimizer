@@ -255,6 +255,70 @@ R.check(
     bad.value is None and bad.problem == "unknown_unit",
 )
 
+# Temperature and energy units (#961): Home Assistant converts a
+# device_class:temperature sensor to the instance unit system in the state
+# machine, so a US-customary install hands the integration the same physical
+# plant in °F -- and a device-class-less sensor can publish degF spellings.
+# `read` consults the entity's declared unit rather than adopting the raw
+# number as degC/kWh, the same principle `read_power_kw` applies to W. The
+# values are the finder's plant: indoor 21.4 °C reports as 70.5 °F, the DHW
+# tank 52.0 °C as 125.6 °F, the meter 1234.5 kWh as 1234500 Wh.
+us_reader = InputReader(
+    FakeHass(
+        {
+            "sensor.us_indoor": FakeState("70.5", unit="°F", last_updated=NOW),
+            "sensor.us_tank": FakeState("125.6", unit="°F", last_updated=NOW),
+            "sensor.us_meter": FakeState("1234500", unit="Wh", last_updated=NOW),
+            "sensor.us_inlet": FakeState("294.55", unit="K", last_updated=NOW),
+            "sensor.se_indoor": FakeState("21.4", unit="°C", last_updated=NOW),
+            "sensor.odd_tank": FakeState("21.4", unit="Réaumur", last_updated=NOW),
+        }
+    ),
+    {
+        "indoor_temp_entity": "sensor.us_indoor",
+        "dhw_temp_entity": "sensor.us_tank",
+        "heat_pump_energy_entity": "sensor.us_meter",
+        "floor_return_temp_entity": "sensor.us_inlet",
+        "outdoor_temp_entity": "sensor.se_indoor",
+        "buffer_tank_temp_entity": "sensor.odd_tank",
+    },
+    now=lambda: NOW,
+)
+us_indoor = us_reader.read("indoor_temp_entity")
+R.check(
+    "a °F temperature is converted to °C on read",
+    us_indoor.ok and abs(us_indoor.value - (70.5 - 32.0) * 5.0 / 9.0) < 1e-9,
+    f"got {us_indoor.value!r} for a plant at 21.4 °C reporting 70.5 °F",
+)
+us_dhw = us_reader.read("dhw_temp_entity")
+R.check(
+    "the DHW tank's °F reading converts exactly",
+    us_dhw.ok and abs(us_dhw.value - 52.0) < 1e-9,
+    f"got {us_dhw.value!r} for a tank at 52.0 °C reporting 125.6 °F",
+)
+us_meter = us_reader.read("heat_pump_energy_entity")
+R.check(
+    "a Wh energy meter is converted to kWh on read",
+    us_meter.ok and abs(us_meter.value - 1234.5) < 1e-9,
+    f"got {us_meter.value!r} for a meter at 1234.5 kWh reporting 1234500 Wh",
+)
+us_kelvin = us_reader.read("floor_return_temp_entity")
+R.check(
+    "a kelvin reading is converted to °C on read",
+    us_kelvin.ok and abs(us_kelvin.value - 21.4) < 1e-9,
+    f"got {us_kelvin.value!r} for 294.55 K",
+)
+R.check(
+    "a °C state still reads bit-for-bit",
+    us_reader.read("outdoor_temp_entity").value == 21.4,
+)
+odd_unit = us_reader.read("buffer_tank_temp_entity")
+R.check(
+    "an unrecognised unit keeps today's raw read instead of a guess",
+    odd_unit.ok and odd_unit.value == 21.4 and odd_unit.problem is None,
+    f"got {odd_unit.value!r} ({odd_unit.problem})",
+)
+
 
 # ===========================================================================
 # v5.3.0: strings and flags, guarded like numbers
