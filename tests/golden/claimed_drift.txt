@@ -69,6 +69,14 @@ capacity_tariff_15min # #925: the same fix at 15-minute metering, the old bracke
 everything_on # #925: the capacity term feeds the all-features objective; 730 leaves move, deferred_energy_cost falls 13.49 -> 11.04 here
 tariff_plus_two_zone # #925: the capacity term feeds the two-zone tariff objective; 796 leaves move, deferred_energy_cost rises 6.03 -> 6.98 here
 
+# #926 (R4-D2-02, DSO tariff transcription): this branch claims exactly one
+# fixture. The two unsourced catalog rows (Vattenfall Eldistribution, E.ON)
+# are dropped per the owner's sources-or-stop ruling, so the dso_product
+# dropdown loses two of its five ids and config_flow's two rendered options
+# lists move -- the fixture's only diffs, both under dso_product.config.
+# options. No solver input changes anywhere else: grid_fee.py's catalog is
+# config data, not arithmetic.
+
 #
 
 # W4-G10 S9 (#224, DhwPlan 14-key return): this branch claims NOTHING.
