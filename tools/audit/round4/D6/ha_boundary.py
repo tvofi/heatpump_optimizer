@@ -2,9 +2,10 @@
 
 METRIC: the number of modules under custom_components/heatpump_optimizer/ that
 FAIL to import when the `homeassistant` package is made unimportable.
-architecture.md says "Exactly ten modules import `homeassistant` at module
-level ... Everything else is deliberately free of it, so each module can be
-driven directly by tests/features.py with no Home Assistant running."
+architecture.md's boundary section ("N of the M modules import
+`homeassistant` at module level ... The other K modules are deliberately
+free of it, so each can be driven directly by tests/features.py with no Home
+Assistant running") states the importer set; this harness measures it.
 
 RUN (from the repository root):
     PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/ha_boundary.py
@@ -12,18 +13,24 @@ RUN (from the repository root):
 ROOT RULE: the working directory (`ROOT = Path(".")`). Nothing resolves from
 __file__.
 
-EXPECTED (baseline 7dd68dd327fe3dbfb09f3bd0fe38910c58877697, 8-core Apple M1,
-macOS 25.6.0, Python 3.11.9, tolerance 0 -- a count, exactly reproducible):
+EXPECTED (audit baseline 7dd68dd327fe3dbfb09f3bd0fe38910c58877697, 8-core Apple
+M1, macOS 25.6.0, Python 3.11.9, tolerance 0 -- a count, exactly
+reproducible).  Re-recorded for #939, which re-truthed architecture.md's
+boundary sentence from "Exactly ten modules import" to "21 of the 56
+modules import" and named all 21, so the conservative sweep below now
+counts 22 documented (21 importers plus `inputs`, still swept in from the
+sentence that follows the list) and the undocumented set is empty where
+the audit baseline measured 11:
     RESULT modules_total=56
-    RESULT documented_ha_modules=11
+    RESULT documented_ha_modules=22       [11 at 7dd68dd: 10 named + `inputs`]
     RESULT ha_free_import_failures=21
-    RESULT undocumented_ha_dependents=11
+    RESULT undocumented_ha_dependents=0   [11 at 7dd68dd]
 
-`documented_ha_modules` reads 11, not the 10 the sentence claims, because the
+`documented_ha_modules` reads one more than the sentence names, because the
 name regex also picks up `inputs` from the following sentence ("One module
 outside that set touches it at all: `inputs` ...").  That is deliberately
 CONSERVATIVE: counting `inputs` as documented can only shrink
-`undocumented_ha_dependents`, and it is still 11.
+`undocumented_ha_dependents`, and at the audit baseline it was 11 even so.
 
 INSTRUMENTED SYMBOL: importlib.import_module("heatpump_optimizer.<name>") with
 a meta-path finder that refuses `homeassistant` -- i.e. the real import of the
@@ -33,7 +40,8 @@ PERTURBATION (built in, no production file is touched):
     HPO_D6_PERTURB=1 inserts `import homeassistant.core` into the SCRATCH COPY
     of drift.py -- a module the document puts on the HA-free side.
     Measured: ha_free_import_failures 21 -> 22 and
-    undocumented_ha_dependents 11 -> 12.
+    undocumented_ha_dependents 0 -> 1 (11 -> 12 at the audit baseline,
+    before #939 documented the 21).
 """
 from __future__ import annotations
 
@@ -108,10 +116,19 @@ if os.environ.get("HPO_D6_PERTURB") == "1":
 modules = sorted(p.stem for p in PKG.glob("*.py") if p.stem != "__init__")
 
 arch = (ROOT / "docs" / "architecture.md").read_text()
+# #939 re-truthed the boundary sentence ("Exactly ten modules import ..." ->
+# "21 of the 56 modules import ..."), so the locator accepts the
+# count-stating shape. The METRIC is unchanged -- the backticked module names
+# the document puts on the module-level-importer side -- and the span still
+# runs to the paragraph's end, so `inputs` from the sentence that follows the
+# list stays swept in: the conservative overcount the EXPECTED block
+# documents.
+_boundary = re.search(
+    r"(?:Exactly ten|\d+ of the \d+) modules\s+import `homeassistant` at "
+    r"module level: (.*?)\n\n",
+    arch, re.S)
 doc_named = sorted(
-    {n for n in re.findall(r"`([a-z_]+)`", re.search(
-        r"Exactly ten modules import `homeassistant` at module level: (.*?)\n\n",
-        arch, re.S).group(1))}
+    {n for n in re.findall(r"`([a-z_]+)`", _boundary.group(1))}
 )
 
 failures = []
