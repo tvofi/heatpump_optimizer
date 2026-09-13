@@ -30,8 +30,8 @@ finding), C9 having been turned true by its own fix already:
     RESULT claims_false=1
     RESULT claims_stale=0
     RESULT claims_unverifiable=1    (2 without --links)
-    RESULT config_defaults_compared=76
-    RESULT config_ranges_compared=76
+    RESULT config_defaults_compared=82   (76 until #937's rows landed)
+    RESULT config_ranges_compared=86     (76 until #937's rows landed)
     RESULT arch_modules_on_disk=56       (architecture.md said 45)
     RESULT arch_map_listed=56            (was 45; 11 were missing)
     RESULT arch_map_missing=0            (was 11)
