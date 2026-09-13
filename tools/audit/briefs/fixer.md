@@ -194,6 +194,18 @@ production lines. You work in your own worktree branched from `origin/main`.
     key, and #714's own fix moved that call 24 lines. Anchor the claim to
     what moved: branch, registration, frame count.
 
+15. **A bitwise-parity claim over numpy reductions is per-architecture.**
+    `np.sum(matrix, axis=1)` is not `np.sum(matrix[b])`: numpy may walk the
+    reduction vectorised across rows, reassociating each row's sum, and
+    whether it does is a backend property — #948's first batched cost term
+    was bit-identical to the scalar objective on the arm64 seat that wrote
+    it and re-planned 19 of 51 stress scenarios on CI's x86_64, at the
+    96-step production width only, so a 48-step parity grid passed unseen.
+    Where the contract is bitwise, run the reduction through the scalar
+    expression on each row's own contiguous 1-D data — the elementwise half
+    may be batched freely, IEEE elementwise ops are exact — and drive the
+    parity grid at the production width.
+
 **When a structural budget blocks the work.** A `tests/structure.py` failure is
 a decision point, not a wall, and it has three answers rather than two: pay for
 the lines elsewhere; re-record because the tree genuinely improved; or, for a
