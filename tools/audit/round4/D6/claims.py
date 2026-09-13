@@ -26,10 +26,10 @@ non-architecture false claim (C105, Power Headroom availability -- a separate
 finding), C9 having been turned true by its own fix already:
     RESULT claims_extracted=125
     RESULT claims_checked=125
-    RESULT claims_true=123          (122 without --links)
+    RESULT claims_true=122          (123 with --links; the checker runs the default)
     RESULT claims_false=1
     RESULT claims_stale=0
-    RESULT claims_unverifiable=1    (2 without --links)
+    RESULT claims_unverifiable=2    (1 with --links; the checker runs the default)
     RESULT config_defaults_compared=82   (76 until #937's rows landed)
     RESULT config_ranges_compared=86     (76 until #937's rows landed)
     RESULT arch_modules_on_disk=56       (architecture.md said 45)

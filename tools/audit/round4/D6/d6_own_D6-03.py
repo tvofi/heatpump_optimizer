@@ -35,7 +35,6 @@ available_cells=3, available_without_a_fuse=1 -- that one movement is the
 fix itself, not harness drift; every other RESULT this prints is
 code-derived and unaffected by the docs change.
 
-live-header: this header is maintained against the tree; harness_headers.py executes it.
 """
 from __future__ import annotations
 
