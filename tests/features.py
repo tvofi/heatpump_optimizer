@@ -3547,6 +3547,53 @@ R.check(
     f"first: {str(_simbad948y[:3])[:400]}",
 )
 
+# TEMPORARY #948 instrument round 5: three solves -- batch, fd, batch
+# again -- on the same optimizer object, to separate the jac mode from
+# solve-order effects. If batch-2 == batch-1 but fd differs, the jac is
+# the axis; if batch-2 also differs from batch-1, state carries between
+# solves and the race itself conflates the two.
+_p948w = ThermalParameters.from_config(_grad_house(two_zone=True))
+_p948w.dhw_enabled = False
+_o948w = _PvOpt(_PvModel(_p948w), _PvOptCfg(
+    horizon_hours=24, time_step_minutes=15,
+    target_temp=21.0, min_temp=17.0, max_temp=23.0))
+_st948w = _dt_grad(2026, 1, 15)
+_pr948w = _fit948(_grad_prices("winter_typical", _st948w), 96)
+_ot948w, _wi948w, _ra948w, _so948w = (
+    _fit948(_a, 96) for _a in _grad_weather("winter_cold", _st948w))
+_stx948w = ThermalState(
+    room_temperature=21.0, slab_temperature=22.0,
+    outdoor_temperature=float(_ot948w[0]),
+    buffer_tank_temperature=40.0)
+
+
+def _solve948w():
+    return np.asarray(_o948w.optimize(
+        _stx948w, _pr948w, _ot948w, _wi948w, _ra948w, _so948w, _st948w
+    ).power_schedule)
+
+
+_b1_948w = _solve948w()
+_grad_optmod._multi_start_minimize = _ms948d
+try:
+    _fd948w = _solve948w()
+finally:
+    _grad_optmod._multi_start_minimize = _orig_msm_948
+_b2_948w = _solve948w()
+R.check(
+    "948 TEMP instrument: batch solve is repeatable (b2 == b1)",
+    np.array_equal(np.round(_b1_948w, 12), np.round(_b2_948w, 12)),
+    f"b1 vs b2 maxdiff "
+    f"{float(np.abs(_b1_948w - _b2_948w).max())!r}",
+)
+R.check(
+    "948 TEMP instrument: fd-vs-batch2 (fresh batch after fd)",
+    np.array_equal(np.round(_b2_948w, 12), np.round(_fd948w, 12)),
+    f"b2 vs fd maxdiff "
+    f"{float(np.abs(_b2_948w - _fd948w).max())!r} "
+    f"b1-vs-fd {float(np.abs(_b1_948w - _fd948w).max())!r}",
+)
+
 # The batch twins under their own branch grids, one level below the
 # objective: every arm peak_cost and cycling_penalty branch on, priced per
 # row against the scalar function on the same plan. Rule: row b of the
