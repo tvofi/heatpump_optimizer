@@ -1,8 +1,8 @@
 {
   "package_percent_floor": 96.0,
   "package_percent_ceiling": 96.0,
-  "pragmas": 11,
-  "recorded_at": "2026-09-11T23:26:52Z",
+  "pragmas": 12,
+  "recorded_at": "2026-09-13T00:05:08Z",
   "reason": "W5-G8 (#195): the residual takes the package to 97.2 %, so the floor reaches its 96.0 % ceiling and stops tightening. modules_below_bar=0 by tools/audit/w5-partition/partition.py",
-  "allowed_regression": "the pragma cap rises 10 -> 11 for a pragma this branch did not write: #875 (5cddbc9) added '# pragma: no cover - solver blow-up' to optimizer.py's L-BFGS-B restart on main, and this branch merged it. Recorded, not inherited in silence"
+  "allowed_regression": "the pragma cap rises 11 -> 12 for the defensive except AttributeError in _value_in_model_units (inputs.py): a real Home Assistant State.attributes is always a Mapping, so the branch is not reachable through the public seam, and it is the twin of the identical guard in read_power_kw at inputs.py:252 which carries the same pragma"
 }
