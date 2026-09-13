@@ -226,6 +226,16 @@ installing rather than discover it after:
   — the mean of the three highest hourly consumption peaks, priced per kW
   (typically 30–90 SEK/kW). Other markets' tariff structures are not
   modelled.
+- **The step-response experiment will not run on a typical slab house.** The
+  system-identification experiment fits a one-state model of the house, and
+  on a typical Nordic slab build the slab's own mode is too slow against the
+  experiment's five-hour window for that fit to be honest. The integration
+  refuses to arm the experiment on such a house and names the reason in the
+  log, rather than running a night of excitation whose result the fit's
+  guards would silently discard. A house whose floor coupling is fast enough
+  passes the same gate and adopts normally. A two-state estimator that can
+  use the slab's excitation is designed but deliberately not built yet
+  (#942).
 
 ## Installation
 

@@ -289,6 +289,55 @@ class SysIdResult:
         }
 
 
+#: How many time constants of the slab-room fast mode the protocol's own
+#: SHORTEST phase must hold before the plant looks single-state to the fit
+#: (3 tau is the conventional 95 % settling band). A DESIGN constant, like
+#: DEFAULT_MAX_EXCURSION_C: it prices the model class, not a tuning knob.
+FAST_MODE_SETTLE_TAUS = 3.0
+
+
+def slab_mode_identifiability(
+    params: ThermalParameters, config: SysIdConfig
+) -> tuple[bool, str]:
+    """Whether the one-state fit can see this plant at all (#942).
+
+    The plant the optimizer simulates is two-state: heat lands in the slab
+    and the room sees only ``k_s·(T_s − T_r)``. ``identify()`` fits ONE
+    state to it, which is honest exactly when the slab-room fast mode is
+    quick against the protocol's own phases. The fit pools settle, step and
+    relax rows, and every phase boundary re-excites the fast mode, so a
+    mode that cannot settle within the SHORTEST phase is still visibly
+    two-state everywhere the fit looks — the relax rows carry slab
+    discharge that a one-state model can only explain with a negative UA,
+    which is what the sign guards have been refusing, silently, on every
+    preset this integration ships (tau_fast = C_r·C_s/((C_r+C_s)·k_s) is
+    0.9–3.7 h against a shortest phase of 1 h). The gate names that at arm
+    time and at adoption instead of letting the night burn and the guards
+    stay mute; a plant whose slab coupling is fast enough (or a protocol
+    with phases long enough — the deferred two-state estimator's wave)
+    passes the same gate and adopts.
+    """
+    c_r = float(params.room_thermal_mass)
+    c_s = float(params.slab_thermal_mass)
+    k_s = float(params.slab_heat_transfer)
+    window = config.settle_hours + config.step_hours + config.relax_hours
+    settle_band = min(config.settle_hours, config.step_hours, config.relax_hours)
+    if not (c_r > 1e-9 and c_s > 1e-9 and k_s > 1e-9) or not settle_band > 1e-9:
+        return False, (
+            "slab constants not configured; the one-state fit cannot be "
+            "interpreted on this plant"
+        )
+    tau_fast = c_r * c_s / ((c_r + c_s) * k_s)
+    if FAST_MODE_SETTLE_TAUS * tau_fast <= settle_band:
+        return True, "ok"
+    return False, (
+        "slab mode too slow for the excitation window: tau_fast="
+        f"{tau_fast:.2f} h needs {FAST_MODE_SETTLE_TAUS * tau_fast:.1f} h to "
+        f"settle, but the shortest phase of the {window:.1f} h window is "
+        f"{settle_band:.1f} h"
+    )
+
+
 class SystemIdentification:
     """State machine driving a step-response experiment."""
 
@@ -308,13 +357,28 @@ class SystemIdentification:
     def active(self) -> bool:
         return self.phase in (PHASE_ARMED, PHASE_SETTLING, PHASE_STEP, PHASE_RELAX)
 
-    def arm(self, now: datetime) -> bool:
-        """Arm an experiment, to start when conditions allow."""
+    def arm(self, now: datetime, plant: ThermalParameters | None = None) -> bool:
+        """Arm an experiment, to start when conditions allow.
+
+        ``plant`` is the house the experiment would run on, when the caller
+        knows it. #942's identifiability gate then refuses to arm on a plant
+        whose slab mode is too slow for the excitation window — naming the
+        reason into the result, so it is published — instead of burning the
+        night to have the fit's guards refuse it silently. Callers that do
+        not declare a plant (a harness driving a synthetic one) are not
+        gated; production always declares it.
+        """
         if not self.config.enabled:
             _LOGGER.info("System identification is disabled in the configuration")
             return False
         if self.active:
             return False
+        if plant is not None:
+            identifiable, why = slab_mode_identifiability(plant, self.config)
+            if not identifiable:
+                _LOGGER.info("System identification not armed: %s", why)
+                self.result = SysIdResult(completed=False, reason=why)
+                return False
         if self.last_run is not None:
             days = (now - self.last_run).total_seconds() / 86400.0
             if days < self.config.min_days_between_runs:
