@@ -64,10 +64,6 @@
 # 26.78 (capacity_tariff_15min) and 13.49 -> 11.04 (everything_on), and
 # rises 6.03 -> 6.98 (tariff_plus_two_zone); the term no longer rewards a
 # spiky profile over the flat one, so the plans' own schedules move with it.
-capacity_tariff # #925: the scaled bracket ends the tied-plateau overcharge; 536 leaves move, deferred_energy_cost falls 32.76 -> 27.51 here
-capacity_tariff_15min # #925: the same fix at 15-minute metering, the old bracket's worst case; 623 leaves move, deferred_energy_cost falls 29.00 -> 26.78 here
-everything_on # #925: the capacity term feeds the all-features objective; 730 leaves move, deferred_energy_cost falls 13.49 -> 11.04 here
-tariff_plus_two_zone # #925: the capacity term feeds the two-zone tariff objective; 796 leaves move, deferred_energy_cost rises 6.03 -> 6.98 here
 
 # #926 (R4-D2-02, DSO tariff transcription): this branch claims exactly one
 # fixture. The two unsourced catalog rows (Vattenfall Eldistribution, E.ON)
