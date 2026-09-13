@@ -351,7 +351,7 @@ from .price_model import (
     pull_prices,
     quarters_from_entries,
 )
-from .sysid import SysIdConfig, SystemIdentification
+from .sysid import SysIdConfig, SystemIdentification, slab_mode_identifiability
 from .tariff import CapacityTariff, PeakTracker
 from .grid_fee import (
     GridFeeError,
@@ -2233,9 +2233,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         litres = (
             params.dhw_tank_volume * max(0.0, float(tank) - inlet) / (40.0 - inlet)
         )
-        flow = _as_float(
-            ctx._config.get(CONF_SHOWER_FLOW_LPM), DEFAULT_SHOWER_FLOW_LPM
-        )
+        flow = _as_float(ctx._config.get(CONF_SHOWER_FLOW_LPM), DEFAULT_SHOWER_FLOW_LPM)
         out = {"litres_40c": round(litres, 1), "tank_temperature": round(float(tank), 1)}
         if flow > 0:
             out["shower_minutes"] = round(litres / flow, 1)
@@ -2256,9 +2254,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             return {}
         c_dhw = max(params.dhw_tank_thermal_mass, 0.05)
         outdoor = float(ctx._current_state.outdoor_temperature)
-        mean_price = float(
-            np.mean([p.get("total", 0.0) for p in self._prices])
-        )
+        mean_price = float(np.mean([p.get("total", 0.0) for p in self._prices]))
         # The sweep ranks candidates by cost, and ranking needs a positive
         # price level: a negative mean flips every ``cost_day`` negative and
         # min-cost then crowns the candidate using the MOST energy. The
@@ -5063,9 +5059,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._check_pump_mode_expired()
         setpoint_check.evaluate(self)
         # Flag level once per cycle; the listener only sees transitions.
-        self._defrost_window.observe(
-            dt_util.now(), self._pump_signals.defrosting
-        )
+        self._defrost_window.observe(dt_util.now(), self._pump_signals.defrosting)
 
         # The health snapshot has to be complete before any learner runs, since
         # each one consults it to decide whether to freeze.
@@ -6864,9 +6858,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             return
         self._accuracy = AccuracyTracker.from_dict(stored.get("accuracy"))
         # Additive keys: an older store has none; an older build ignores extras.
-        self._dhw_accuracy = AccuracyTracker.from_dict(
-            stored.get("dhw_accuracy")
-        )
+        self._dhw_accuracy = AccuracyTracker.from_dict(stored.get("dhw_accuracy"))
         self._defrost = DefrostDerate.from_dict(stored.get("defrost"))
         ctx._thermal_params.defrost_derate = self._defrost
         self._peak_tracker = PeakTracker.from_dict(stored.get("peaks"))
@@ -7402,9 +7394,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         key, mean, elapsed, factor = self._peak_tracker.window_snapshot(
             now, tariff
         )
-        projection = project_window_mean(
-            mean, elapsed, kw, tariff.window_minutes
-        )
+        projection = project_window_mean(mean, elapsed, kw, tariff.window_minutes)
         margin = _as_float(
             ctx._config.get(CONF_PEAK_GUARD_MARGIN_KW),
             DEFAULT_PEAK_GUARD_MARGIN_KW,
@@ -10085,7 +10075,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._sysid.config.enabled = bool(
             getattr(self, "_ctx", self)._config.get(CONF_SYSID_ENABLED, DEFAULT_SYSID_ENABLED)
         )
-        if self._sysid.arm(dt_util.now()):
+        if self._sysid.arm(
+            dt_util.now(), plant=getattr(self, "_ctx", self)._thermal_params
+        ):
             _LOGGER.info(
                 "System identification armed; it will start at the next mild, "
                 "cheap night hour"
@@ -10154,6 +10146,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if not result.completed or result.confidence < 0.3:
             return
         params = getattr(self, "_ctx", self)._thermal_params
+        # #942: adoption is decided by identifiability -- a one-state fit of
+        # a slow-slab two-state plant is refused by name, not silently.
+        identifiable, why = slab_mode_identifiability(params, self._sysid.config)
+        if not identifiable:
+            self._sysid.result = replace(result, completed=False, reason=why)
+            _LOGGER.info("System identification not adopted: %s", why)
+            return
         if params.two_zone_enabled:
             base_u = params.upper_floor_heat_loss + params.lower_floor_heat_loss
         else:
