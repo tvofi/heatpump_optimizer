@@ -568,6 +568,50 @@ R.check(
     "those are entities, not fields on Away and holiday mode",
 )
 
+# #937: the README sends the reader to the reference with "Every field and its
+# range is documented in docs/configuration.md", and round 4 measured 15 of
+# the 200 shipped options fields whose label occurred nowhere in any reader
+# document -- the weekend and holiday schedule hours, the external-heat
+# detection group, the valve set-point declaration, the surcharge beside the
+# VAT multiplier, and the After saving navigation control on every page. The
+# page-level mapping was already perfect (21 sections, 21 steps); this is the
+# field-level promise, and it is checked against the reference itself rather
+# than the doc set, because the reference is the file the README names.
+# Reading the reference here is also what takes it off closure.py's INERT
+# list: a document a gate script checks is a dependency, not inert (#970 took
+# tests/README.md off for the same reason).
+def _fold_text(text: str) -> str:
+    """Markdown-stripped, case-folded, punctuation-collapsed -- the form a
+    document's prose and a UI label share when they name the same thing."""
+    text = _re.sub(r"`([^`]*)`", r"\1", text)
+    text = text.replace("**", "").replace("*", "")
+    text = _re.sub(r"[^a-z0-9]+", " ", text.lower())
+    return _re.sub(r"\s+", " ", text).strip()
+
+
+_cfgref_hay = _fold_text(Path("docs/configuration.md").read_text())
+
+
+def _field_name(label: str) -> str:
+    """A label folded for exact containment, one trailing parenthetical
+    stripped first -- "(optional)" is a UI convention, not part of the name
+    a document would repeat. The same rule the audit's harness used."""
+    return _fold_text(_re.sub(r"\s*\([^()]*\)\s*$", "", label))
+
+
+_unnamed_fields = sorted(
+    f"{_sid}.{_key}"
+    for _sid, _step in _opt_strings.items()
+    for _key, _label in (_step.get("data") or {}).items()
+    if _field_name(_label) and _field_name(_label) not in _cfgref_hay
+)
+R.check(
+    "the configuration reference names every shipped options field",
+    not _unnamed_fields,
+    f"{len(_unnamed_fields)} of {sum(len((s.get('data') or {})) for s in _opt_strings.values())} "
+    f"labels absent from docs/configuration.md: " + ", ".join(_unnamed_fields[:8]),
+)
+
 _total_claim = _re.search(r"All (\d+) entities", readme)
 R.check(
     "the README's total entity count covers every registered platform",

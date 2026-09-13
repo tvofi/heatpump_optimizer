@@ -375,6 +375,12 @@ INERT_EXCEPT = (
     "tools/audit/round3/D2/dst_window_factors.py",
     "tools/audit/round3/D2/window_size_sweep.py",
     "tools/audit/round3/D5/option_doc_coverage.py",
+    # #937: tests/entities.py reads the configuration reference to pin that
+    # it names every shipped options field -- the README's promise about
+    # exactly that file. The docs/ prefix stays INERT; the reference moves
+    # to entities.py's recorded closure, so an edit to it selects that
+    # script instead of skipping.
+    "docs/configuration.md",
     ".gitignore",
     ".claude/workflows/policy_lint.mjs",
     ".claude/workflows/brief_lint.mjs",
