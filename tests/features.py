@@ -255,6 +255,70 @@ R.check(
     bad.value is None and bad.problem == "unknown_unit",
 )
 
+# Temperature and energy units (#961): Home Assistant converts a
+# device_class:temperature sensor to the instance unit system in the state
+# machine, so a US-customary install hands the integration the same physical
+# plant in °F -- and a device-class-less sensor can publish degF spellings.
+# `read` consults the entity's declared unit rather than adopting the raw
+# number as degC/kWh, the same principle `read_power_kw` applies to W. The
+# values are the finder's plant: indoor 21.4 °C reports as 70.5 °F, the DHW
+# tank 52.0 °C as 125.6 °F, the meter 1234.5 kWh as 1234500 Wh.
+us_reader = InputReader(
+    FakeHass(
+        {
+            "sensor.us_indoor": FakeState("70.5", unit="°F", last_updated=NOW),
+            "sensor.us_tank": FakeState("125.6", unit="°F", last_updated=NOW),
+            "sensor.us_meter": FakeState("1234500", unit="Wh", last_updated=NOW),
+            "sensor.us_inlet": FakeState("294.55", unit="K", last_updated=NOW),
+            "sensor.se_indoor": FakeState("21.4", unit="°C", last_updated=NOW),
+            "sensor.odd_tank": FakeState("21.4", unit="Réaumur", last_updated=NOW),
+        }
+    ),
+    {
+        "indoor_temp_entity": "sensor.us_indoor",
+        "dhw_temp_entity": "sensor.us_tank",
+        "heat_pump_energy_entity": "sensor.us_meter",
+        "floor_return_temp_entity": "sensor.us_inlet",
+        "outdoor_temp_entity": "sensor.se_indoor",
+        "buffer_tank_temp_entity": "sensor.odd_tank",
+    },
+    now=lambda: NOW,
+)
+us_indoor = us_reader.read("indoor_temp_entity")
+R.check(
+    "a °F temperature is converted to °C on read",
+    us_indoor.ok and abs(us_indoor.value - (70.5 - 32.0) * 5.0 / 9.0) < 1e-9,
+    f"got {us_indoor.value!r} for a plant at 21.4 °C reporting 70.5 °F",
+)
+us_dhw = us_reader.read("dhw_temp_entity")
+R.check(
+    "the DHW tank's °F reading converts exactly",
+    us_dhw.ok and abs(us_dhw.value - 52.0) < 1e-9,
+    f"got {us_dhw.value!r} for a tank at 52.0 °C reporting 125.6 °F",
+)
+us_meter = us_reader.read("heat_pump_energy_entity")
+R.check(
+    "a Wh energy meter is converted to kWh on read",
+    us_meter.ok and abs(us_meter.value - 1234.5) < 1e-9,
+    f"got {us_meter.value!r} for a meter at 1234.5 kWh reporting 1234500 Wh",
+)
+us_kelvin = us_reader.read("floor_return_temp_entity")
+R.check(
+    "a kelvin reading is converted to °C on read",
+    us_kelvin.ok and abs(us_kelvin.value - 21.4) < 1e-9,
+    f"got {us_kelvin.value!r} for 294.55 K",
+)
+R.check(
+    "a °C state still reads bit-for-bit",
+    us_reader.read("outdoor_temp_entity").value == 21.4,
+)
+odd_unit = us_reader.read("buffer_tank_temp_entity")
+R.check(
+    "an unrecognised unit keeps today's raw read instead of a guess",
+    odd_unit.ok and odd_unit.value == 21.4 and odd_unit.problem is None,
+    f"got {odd_unit.value!r} ({odd_unit.problem})",
+)
+
 
 # ===========================================================================
 # v5.3.0: strings and flags, guarded like numbers
@@ -18545,6 +18609,129 @@ R.check(
     )[0].defrosting
     is None,
     "a latched on from yesterday must not keep excluding COP samples",
+)
+
+
+R.section("R4 D7-03 (#944) — the defrost flag freezes the shared learner gate")
+
+# ``freeze_reason`` deliberately does not carry the defrost flag: the derate
+# learner needs those intervals to count its duty. So the shared gate every
+# thermal learner consults has to read ``PumpSignals.defrosting`` itself. The
+# frost-band exclusion inside ``_learn_measured_cop`` cannot stand in for it —
+# defrosts happen below 0 °C too, where that band does not reach — and the
+# other three learners never had any guard at all. A defrost reverses the
+# cycle: the interval's delivered heat is negative while the learners replay
+# the commanded power as if it had flowed, so the residual is one-directional
+# and persists to disk.
+_df_gate = _t2_coord()
+_df_gate._pump_signals = PumpSignals(defrosting=True)
+R.check(
+    "a defrosting pump freezes the shared learner gate",
+    _df_gate._learning_frozen() == "defrosting",
+    f"got {_df_gate._learning_frozen()!r}: the interval's heat went backwards",
+)
+R.check(
+    "a false or absent defrost flag freezes nothing",
+    _t2_coord()._learning_frozen() is None
+    and _t2_coord()._pump_signals.defrosting is None,
+    "a value acts, its absence never does — most installs have no flag entity",
+)
+_df_prec = _t2_coord()
+_df_prec._pump_signals = PumpSignals(
+    freeze_reason=pump_signals.FREEZE_FAULT, defrosting=True
+)
+R.check(
+    "a plant-wide freeze still outranks the defrost flag",
+    _df_prec._learning_frozen() == pump_signals.FREEZE_FAULT,
+    "a faulted pump explains its own defrost flag; the symptom must not mask it",
+)
+
+# The finding's shape, through the real house heat-loss learner. The clean arm
+# is the control: the identical residual with no flag must still fold, or a
+# "frozen" reading below would only mean a dead setup.
+_df_clean = _vent_coord()
+_feed_residual(_df_clean, -0.5, 2, _T4)
+R.check(
+    "the identical clean interval still teaches the heat-loss learner",
+    _df_clean._house_heat_loss_scale != 1.0,
+    f"scale {_df_clean._house_heat_loss_scale:.4f}",
+)
+_df_house = _vent_coord()
+_df_house._pump_signals = PumpSignals(defrosting=True)
+_feed_residual(_df_house, -0.5, 2, _T4)
+R.check(
+    "a defrost interval teaches the heat-loss learner nothing",
+    _df_house._house_heat_loss_scale == 1.0
+    and _df_house._house_heat_loss_samples == 0
+    and _df_house._learner_freeze_reason == "defrosting",
+    f"scale {_df_house._house_heat_loss_scale:.4f}, "
+    f"{_df_house._house_heat_loss_samples} samples: a defrost pulls heat back "
+    "out of the circuit, so folding it walks the persisted scale one way",
+)
+
+# Below the frost band the bespoke COP exclusion does not reach — which is why
+# the shared gate, not the band, has to carry the flag.
+_df_cop = _t2_coord()
+_df_cop._current_state.outdoor_temperature = -3.0
+_df_cop._current_action = {"power": 3.0}
+_df_cop._measured_power = 2.6
+_df_cop._immersion_active = False
+_df_cop._pump_signals = PumpSignals(defrosting=True)
+_df_cop._learn_measured_cop()
+R.check(
+    "a defrost below the frost band reaches no COP sample either",
+    _df_cop._cop_samples == 0 and _df_cop._cop_scale == 1.0,
+    f"{_df_cop._cop_samples} samples, scale {_df_cop._cop_scale:.4f}",
+)
+_df_cop_ok = _t2_coord()
+_df_cop_ok._current_state.outdoor_temperature = -3.0
+_df_cop_ok._current_action = {"power": 3.0}
+_df_cop_ok._measured_power = 2.6
+_df_cop_ok._immersion_active = False
+_df_cop_ok._pump_signals = PumpSignals(defrosting=False)
+_df_cop_ok._learn_measured_cop()
+R.check(
+    "a legible not-defrosting flag at the same temperature still folds",
+    _df_cop_ok._cop_samples == 1 and _df_cop_ok._cop_scale > 1.0,
+    f"{_df_cop_ok._cop_samples} samples, scale {_df_cop_ok._cop_scale:.4f}",
+)
+
+# The derate keeps the interval: "defrosting" is its own evidence, not a
+# contaminant, so the settlement exempts it from the one freeze it causes.
+# DESIGN CHOICE, pinned here: a gate that refuses the flag without exempting
+# the derate starves the duty estimator of every interval it exists to count.
+_df_derate = _t2_coord()
+_df_derate._pump_signals = PumpSignals(defrosting=True)
+_df_derate._current_state.outdoor_temperature = 2.0
+_df_derate._current_state.room_temperature = 20.5
+_df_derate._current_action = {"power": 2.0}
+_df_derate._measured_power = 2.0
+_df_now = dt_util.now()
+_df_derate._defrost_window.observe(_df_now - timedelta(minutes=30), True)
+_df_derate._defrost_window.observe(_df_now, True)
+_df_derate._pending_prediction = {
+    "when": _df_now - timedelta(minutes=30),
+    "power": 2.0,
+    "space_power": 2.0,
+    "dhw_power": 0.0,
+    "predicted_temp": 20.5,
+    "outdoor": 2.0,
+    "humidity": 80.0,
+}
+_df_derate.hass.states.set("sensor.indoor", FakeState("20.1"))
+_df_derate._record_accuracy()
+R.check(
+    "the derate still counts the duty from the interval that defrosted",
+    _df_derate._defrost.measured_samples == 1
+    and _df_derate._defrost.duty_events[3][1] == 1,
+    f"{_df_derate._defrost.measured_samples} duty samples: the derate's "
+    "estimator lives on exactly these intervals",
+)
+R.check(
+    "while the accuracy record refuses the same interval, like any contaminant",
+    not _df_derate._accuracy.samples,
+    f"{len(_df_derate._accuracy.samples)} samples: a defrost interval's "
+    "temperature miss is the derate's to explain, not model error",
 )
 
 
