@@ -1,0 +1,19 @@
+{
+  "_comment": [
+    "Carry destination for issue #932, whose fixer and fix-review re-run the",
+    "round-4 D3 verifier harnesses. Shape and required fields:",
+    ".claude/rules/finding-propagation.md. Linted by",
+    ".claude/workflows/brief_lint.mjs (the `briefs` CI job)."
+  ],
+  "issue": 932,
+  "stage": "the fixer and the adversarial fix-review of the remaining round-4 D3 findings (S3 here; any later seat that re-runs tools/audit/round4/D3/d3_own_S*.py)",
+  "carries": [
+    {
+      "from": "#933's fix (test-only pin of the horizon clamp), which could not start the committed harness from a cold tree and then found the shared scratch at another seat's head",
+      "effect": "invalidates",
+      "control": "The assumption invalidated: that running a d3_own_* harness from a worktree measures that worktree. The shared runner derives its scratch as a sibling of the tree it runs from and reuses any scratch that already exists there without checking its SHA, and its baseline arm reads the scratch before ensure_scratch has created it. Measured twice from a cold tree: the harness dies with FileNotFoundError on the scratch's tests/features.py before any arm runs. Measured once hot: the shared scratch was registered at a different seat's head (git worktree list named it at a SHA that was not this branch's), which the harness would have silently measured instead. The null control: from a detached worktree under /tmp with the sibling scratch pre-created at the same head as the worktree, the identical command produced both arms on that head, and the fixer's and the base tree's numbers separated exactly as the finding predicted -- so the tree the scratch holds, not the command or the location, drives every RESULT line.",
+      "remeasure": "Before trusting any d3_own_* RESULT lines, list the sibling scratch (git worktree list) and compare its SHA with the head you are measuring; re-derive rather than reuse the SHA another seat's run left registered. Re-run the whole both-arms harness yourself after any rebase or merge, as the fixer contract already requires.",
+      "brief": "Re-running a round-4 D3 verifier harness: the runner in tools/audit/round4/D3/d3_own_common.py never creates its scratch before its baseline arm tries to read it, and reuses whatever sibling scratch exists without a SHA check. Run the harness from a detached worktree whose sibling scratch you control: git worktree add --detach /tmp/<your-seat>-harness <measured SHA>, then git worktree add --detach /tmp/audit-r4-verify-D3-1-scratch HEAD from inside it (the exact command ensure_scratch itself issues), then PYTHONPATH=tests/hastub python3 tools/audit/round4/D3/d3_own_S3.py. On this shared host the default/ sibling path is contended by every seat's harness, so the /tmp form is not a convenience but the only one that cannot hand you another branch's arms. The mutation inside the scratch is restored and SHA-256-verified by the runner itself; the tree you measured is not guaranteed by anything until you have checked the scratch's registration."
+    }
+  ]
+}
