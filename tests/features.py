@@ -3349,6 +3349,69 @@ _check_batch_cost_948(
     ),
 )
 
+# TEMPORARY #948 CI divergence instrument. tests/optimality.py's
+# batched-vs-scipy race fails its two jac checks on CI's linux runners
+# for this branch while arm64 and Rosetta-x86_64 numpy runs of the SAME
+# tree pass all of them. This copy of the race prints the divergence into
+# its failure message so the numbers are readable from the fast lane's
+# log. It is reverted as soon as the mechanism is named.
+_cap948d = _capture_objectives_948(two_zone=True, dhw=True)
+_o948d = _PvOpt(ThermalModel(ThermalParameters.from_config(
+    {**_grad_house(two_zone=True), "mixing_valve_mode": "manual"}
+)), _PvOptCfg(horizon_hours=24, time_step_minutes=15, target_temp=21.0,
+             min_temp=17.0, max_temp=23.0))
+_st948d = _dt_grad(2026, 1, 15)
+_pr948d = _fit948(_grad_prices("winter_typical", _st948d), 96)
+_ot948d, _wi948d, _ra948d, _so948d = (
+    _fit948(_a, 96) for _a in _grad_weather("winter_cold", _st948d)
+)
+_r948d = _o948d.optimize(
+    ThermalState(room_temperature=21.0, slab_temperature=22.0,
+                 outdoor_temperature=float(_ot948d[0]),
+                 upper_floor_temperature=21.0, lower_floor_temperature=21.0,
+                 buffer_tank_temperature=40.0, dhw_temperature=48.0),
+    _pr948d, _ot948d, _wi948d, _ra948d, _so948d, _st948d,
+)
+_b948d = np.asarray(_r948d.power_schedule)
+
+
+def _ms948d(objective, candidates, bounds, *a, **kw):
+    kw.pop("batch_objective", None)
+    return _orig_msm_948(objective, candidates, bounds, *a, **kw)
+
+
+_grad_optmod._multi_start_minimize = _ms948d
+try:
+    _r948e = _o948d.optimize(
+        ThermalState(room_temperature=21.0, slab_temperature=22.0,
+                     outdoor_temperature=float(_ot948d[0]),
+                     upper_floor_temperature=21.0, lower_floor_temperature=21.0,
+                     buffer_tank_temperature=40.0, dhw_temperature=48.0),
+        _pr948d, _ot948d, _wi948d, _ra948d, _so948d, _st948d,
+    )
+finally:
+    _grad_optmod._multi_start_minimize = _orig_msm_948
+_fd948d = np.asarray(_r948e.power_schedule)
+_ok948d = np.array_equal(np.round(_b948d, 12), np.round(_fd948d, 12))
+if _ok948d:
+    _why948d = "schedules agree"
+else:
+    _d948d = np.abs(_b948d - _fd948d)
+    _i948d = int(np.argmax(_d948d))
+    _why948d = (
+        f"first diff at step {_i948d}: batch={_b948d[_i948d]!r} "
+        f"fd={_fd948d[_i948d]!r} maxdiff={float(_d948d.max())!r} "
+        f"ndiff={(int((_d948d > 1e-12).sum()))!r} "
+        f"obj_batch={float(objective := 0) if False else ''}"
+        f"batch_cost={float(np.sum(_b948d)):.6f} "
+        f"fd_cost={float(np.sum(_fd948d)):.6f}"
+    )
+R.check(
+    "948 TEMPORARY instrument: batched-vs-scipy race on two-zone DHW",
+    _ok948d,
+    _why948d,
+)
+
 # The batch twins under their own branch grids, one level below the
 # objective: every arm peak_cost and cycling_penalty branch on, priced per
 # row against the scalar function on the same plan. Rule: row b of the
