@@ -669,28 +669,27 @@ def cycling_penalty_batch(
 ) -> np.ndarray:
     """``cycling_penalty`` for a [B, n] batch of plans, one entry per row (#948).
 
-    The batched objective used to call the scalar penalty once per row. The
-    elementwise half -- the step-to-step differences and their absolute
-    values -- runs over the whole batch; the swing SUM is a float
-    reduction, so it still runs through ``np.sum`` on each row's own
-    contiguous 1-D view, the scalar expression. That is what makes a row
-    here bit-for-bit ``cycling_penalty`` on that row on every numpy
-    backend: a batched ``axis=1`` reduce is not, because numpy may walk the
-    reduction vectorised across rows and reassociate each row's sum (the
-    ulp drift this produced on CI's x86_64 re-planned 19 of 51 stress
-    scenarios; it was silent on the arm64 seat). This is the contract the
-    batched gradient's parity rests on (see
-    ``simulate_trajectory_batch``).
+    The batched objective used to call the scalar penalty once per row; the
+    per-row re-entry -- not the arithmetic -- is the recomputation round 4
+    (D9-05) counted. Each row here runs the SCALAR expression verbatim on
+    its own row: ``np.diff``/``np.abs`` allocate fresh per-row arrays and
+    ``np.sum`` reduces them, exactly as ``cycling_penalty`` does on a 1-D
+    schedule. That is what makes a row bit-for-bit the scalar penalty on
+    every numpy backend, not by measurement on one: a reduction over a row
+    VIEW of a batched array is NOT the same code path as one over a fresh
+    array -- the view can carry an alignment or stride numpy's pairwise
+    loop treats differently, and on CI's x86_64 that ulp was enough to
+    re-plan 19 of 51 stress scenarios while every arm64 check stayed
+    green. See ``_comfort_terms_batch`` for the rule in full.
     """
     shape = np.shape(power_matrix)
     if cost_per_cycle <= 0 or p_max <= 0 or shape[1] < 2:
         return np.zeros(shape[0])
-    abs_diff = np.abs(
-        np.diff(np.asarray(power_matrix, dtype=float), axis=1)
-    )
-    swing = np.array([
-        float(np.sum(abs_diff[b])) for b in range(shape[0])
-    ])
+    swing = np.empty(shape[0])
+    for b in range(shape[0]):
+        swing[b] = float(
+            np.sum(np.abs(np.diff(np.asarray(power_matrix[b], dtype=float))))
+        )
     return cost_per_cycle * swing / (2.0 * p_max)
 
 
@@ -1675,20 +1674,21 @@ class HeatPumpOptimizer:
 
         The per-row helper was entered 97.02 times per gradient evaluation
         and cost a third of the solve's wall (round 4, D9-05), 0.86x the
-        entire batched simulation it decorates. The elementwise half --
-        bounds breaches, squares, the band-normalised deviations -- runs
-        over the whole batch; every float SUM still runs through ``np.sum``
-        on each row's own contiguous 1-D view, the scalar expression. That
-        split is what makes a row here bit-for-bit ``_comfort_terms`` on
-        that row's trajectories on EVERY numpy backend: a batched
-        ``axis=1`` reduce is not, because numpy may walk the reduction
-        vectorised across rows and reassociate each row's sum (the ulp
-        drift this produced on CI's x86_64 re-planned 19 of 51 stress
-        scenarios; it was silent on the arm64 seat that wrote the first
-        version of this twin). This parity is what keeps the solver's
-        iterate path, the plans and the golden fixtures where they were.
-        See ``_comfort_terms`` for what the two terms mean and why the pull
-        is deliberately weak.
+        entire batched simulation it decorates. The re-entry -- not the
+        arithmetic -- is the recomputation: each row here runs the scalar
+        twin's expressions verbatim on its own trajectories, so every
+        ``np.sum`` reduces a freshly allocated per-row array exactly as the
+        scalar twin reduces one. That is what makes a row bit-for-bit
+        ``_comfort_terms`` on that row on EVERY numpy backend, not by
+        measurement on one: a reduction over a row VIEW of a batched array
+        is not the same code path as one over a fresh array -- the view can
+        carry an alignment or stride numpy's pairwise loop treats
+        differently, and on CI's x86_64 such an ulp re-planned 19 of 51
+        stress scenarios while every arm64 check stayed green. The
+        per-element work (``np.maximum``, the squares) allocates those
+        fresh arrays as a by-product, so nothing is copied for its own
+        sake. See ``_comfort_terms`` for what the two terms mean and why
+        the pull is deliberately weak.
         """
         weight = self.config.comfort_weight
         n_rows = room_temps.shape[0]
@@ -1696,46 +1696,47 @@ class HeatPumpOptimizer:
         comfort_cost = np.empty(n_rows)
 
         if self.model.params.two_zone_enabled:
-            upper_t = upper_temps[:, 1:]
-            lower_t = lower_temps[:, 1:]
-
-            undershoot_u = np.maximum(0, temp_min_bounds - upper_t)
-            overshoot_u = np.maximum(0, upper_t - temp_max_bounds)
-            undershoot_l = np.maximum(0, temp_min_bounds - lower_t)
-            overshoot_l = np.maximum(0, lower_t - temp_max_bounds)
-            comfort_dev_u = (upper_t - comfort_targets) / comfort_band
-            comfort_dev_l = (lower_t - comfort_targets) / comfort_band
-
             for b in range(n_rows):
+                upper_t = upper_temps[b][1:]
+                lower_t = lower_temps[b][1:]
+
+                undershoot_u = np.maximum(0, temp_min_bounds - upper_t)
+                overshoot_u = np.maximum(0, upper_t - temp_max_bounds)
+                undershoot_l = np.maximum(0, temp_min_bounds - lower_t)
+                overshoot_l = np.maximum(0, lower_t - temp_max_bounds)
+
                 penalty[b] = 0.5 * weight * (
-                    np.sum(undershoot_u[b] ** 2) * 10.0
-                    + np.sum(overshoot_u[b] ** 2) * 5.0
-                    + np.sum(undershoot_l[b] ** 2) * 10.0
-                    + np.sum(overshoot_l[b] ** 2) * 5.0
-                    + (np.sum(undershoot_u[b]) + np.sum(undershoot_l[b]))
+                    np.sum(undershoot_u ** 2) * 10.0
+                    + np.sum(overshoot_u ** 2) * 5.0
+                    + np.sum(undershoot_l ** 2) * 10.0
+                    + np.sum(overshoot_l ** 2) * 5.0
+                    + (np.sum(undershoot_u) + np.sum(undershoot_l))
                     * _COMFORT_FLOOR_L1
                 )
+
+                comfort_dev_u = upper_t - comfort_targets
+                comfort_dev_l = lower_t - comfort_targets
                 comfort_cost[b] = _COMFORT_PULL_TWO_ZONE * weight * (
-                    np.sum(comfort_dev_u[b] ** 2)
-                    + np.sum(comfort_dev_l[b] ** 2)
+                    np.sum((comfort_dev_u / comfort_band) ** 2)
+                    + np.sum((comfort_dev_l / comfort_band) ** 2)
                 )
             return penalty, comfort_cost
 
-        room_t = room_temps[:, 1:]
-        undershoot = np.maximum(0, temp_min_bounds - room_t)
-        overshoot = np.maximum(0, room_t - temp_max_bounds)
-        deviation = (room_t - comfort_targets) / comfort_band
-
         for b in range(n_rows):
+            room_t = room_temps[b][1:]
+            undershoot = np.maximum(0, temp_min_bounds - room_t)
+            overshoot = np.maximum(0, room_t - temp_max_bounds)
+
             penalty[b] = weight * (
-                np.sum(undershoot[b] ** 2) * 10.0
-                + np.sum(overshoot[b] ** 2) * 5.0
-                + np.sum(undershoot[b]) * _COMFORT_FLOOR_L1
+                np.sum(undershoot ** 2) * 10.0
+                + np.sum(overshoot ** 2) * 5.0
+                + np.sum(undershoot) * _COMFORT_FLOOR_L1
             )
+            deviation = room_t - comfort_targets
             comfort_cost[b] = (
                 _COMFORT_PULL_SINGLE_ZONE
                 * weight
-                * np.sum(deviation[b] ** 2)
+                * np.sum((deviation / comfort_band) ** 2)
             )
         return penalty, comfort_cost
 
@@ -2249,11 +2250,10 @@ class HeatPumpOptimizer:
         surplus = self._pv_surplus
         if surplus is None or not np.any(surplus[: len(prices)] > 1e-6):
             def grid_only_cost(total_power: np.ndarray) -> Any:
-                priced = prices * total_power
                 if np.ndim(total_power) == 1:
-                    return float(np.sum(priced) * dt)
+                    return float(np.sum(prices * total_power) * dt)
                 return np.array([
-                    float(np.sum(priced[b]) * dt)
+                    float(np.sum(prices * total_power[b]) * dt)
                     for b in range(total_power.shape[0])
                 ])
 
@@ -2263,12 +2263,17 @@ class HeatPumpOptimizer:
         margin = pv.import_margin(prices, self.config.pv_export_price)
 
         def energy_cost(total_power: np.ndarray) -> Any:
-            covered = margin * np.minimum(total_power, surplus)
-            priced = prices * total_power
             if np.ndim(total_power) == 1:
-                return float((np.sum(priced) - np.sum(covered)) * dt)
+                covered = margin * np.minimum(total_power, surplus)
+                return float(
+                    (np.sum(prices * total_power) - np.sum(covered)) * dt
+                )
             return np.array([
-                (np.sum(priced[b]) - np.sum(covered[b])) * dt
+                (
+                    np.sum(prices * total_power[b])
+                    - np.sum(margin * np.minimum(total_power[b], surplus))
+                )
+                * dt
                 for b in range(total_power.shape[0])
             ])
 

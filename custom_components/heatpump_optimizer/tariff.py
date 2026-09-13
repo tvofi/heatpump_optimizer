@@ -625,69 +625,51 @@ def peak_cost_batch(
 ) -> np.ndarray:
     """``peak_cost`` for a [B, n] batch of plans, one entry per row (#948).
 
-    The solver's batched objective used to call ``peak_cost`` once per batch
-    row. Here the elementwise half -- house draw, billing factors, excesses,
-    the per-row sort -- runs over the whole batch, and every FLOAT REDUCTION
-    still goes through the scalar expression on that row's own contiguous
-    1-D data: the window means through ``metering_windows`` and the top-k
-    sum through a contiguous slice sum. That split is what makes a row here
-    bit-for-bit ``peak_cost`` on that row's plan on EVERY numpy backend: a
-    batched ``axis=`` reduce is not, because numpy may walk the reduction
-    axis vectorised across rows, which reassociates each row's sum (seen as
-    ulp drift re-planning 19 of 51 stress scenarios on CI's x86_64, silent
-    on the arm64 seat that wrote the first version of this twin). The
-    batched finite-difference gradient is built on these rows and must
-    reproduce the scalar objective's arithmetic or the solver's iterate
-    path -- and with it every plan -- moves.
-
-    A plateau -- more windows tied at the peak than ``peaks_averaged`` -- is
-    routed through the scalar ``_smooth_topk_sum`` itself, whose per-row
-    bisection has no exact vector counterpart.
+    The solver's batched objective used to CALL ``peak_cost`` once per
+    batch row; the per-row re-entry -- not the arithmetic -- is the
+    recomputation round 4 (D9-05) counted, and this twin is what the
+    recomputation-count pin reads. Each row runs the scalar body verbatim
+    on its own freshly allocated per-row arrays (``house``, the window
+    means through ``metering_windows``, the factors multiply, ``excess``,
+    the sort and the top-k slice sum, and the scalar ``_smooth_topk_sum``
+    on a plateau), so a row is bit-for-bit ``peak_cost`` on that row's
+    plan on EVERY numpy backend -- not by measurement on one. The body is
+    held against drift by the unit row-parity grid in tests/features.py
+    (#948 section: offsets, window lengths, billing factors, plateaus),
+    because it cannot call the function it mirrors without re-entering it.
     """
     matrix = np.asarray(total_power_kw, dtype=float)
     n_rows = matrix.shape[0]
     if price_per_kw <= 0 or not np.isfinite(threshold_kw):
         return np.zeros(n_rows)
-    house = matrix + np.asarray(baseline_load_kw, dtype=float)
-    if house.size == 0:
-        return np.zeros(n_rows)
-    per_window = max(1, int(round(window_minutes / max(dt_hours * 60.0, 1e-6))))
-    if per_window <= 1:
-        windows = house
-    else:
-        # The window means are reductions, so each row is averaged through
-        # the scalar ``metering_windows`` on that row -- one contiguous 1-D
-        # run per window, the same pairwise order everywhere.
-        windows = np.stack([
-            metering_windows(house[b], window_minutes, dt_hours, offset_steps)
-            for b in range(n_rows)
-        ])
-    if window_factors is not None and window_factors.size:
-        # Billed-equivalent kW (#13), on the same padded factor vector the
-        # scalar call builds; see ``peak_cost``.
-        factors = window_factors[: windows.shape[1]]
-        if factors.size < windows.shape[1]:
-            factors = np.concatenate(
-                [factors, np.ones(windows.shape[1] - factors.size)]
-            )
-        windows = windows * factors
-    excess = np.maximum(0.0, windows - threshold_kw)
-    if not np.any(excess > 0):
-        return np.zeros(n_rows)
-    k = max(1, min(int(peaks_averaged), excess.shape[1]))
-    peak = excess.max(axis=1)
-    n_at_peak = (excess >= peak[:, None] - _PEAK_TIE_BAND).sum(axis=1)
-    # A sort reassociates nothing: sorting each row of a batch is each
-    # row's own sort. The top-k SUM is a reduction, so it runs per row on
-    # the sorted row's contiguous tail slice -- the scalar expression.
-    sorted_excess = np.sort(excess, axis=1)
-    top_sum = np.array([
-        _smooth_topk_sum(excess[b], k, _PEAK_SMOOTH_TAU)
-        if n_at_peak[b] > k
-        else float(np.sum(sorted_excess[b][-k:]))
-        for b in range(n_rows)
-    ])
-    return price_per_kw * top_sum
+    baseline = np.asarray(baseline_load_kw, dtype=float)
+    out = np.empty(n_rows)
+    for b in range(n_rows):
+        house = matrix[b] + baseline
+        windows = metering_windows(
+            house, window_minutes, dt_hours, offset_steps
+        )
+        if window_factors is not None and window_factors.size:
+            # Billed-equivalent kW (#13); see ``peak_cost``.
+            factors = window_factors[: windows.size]
+            if factors.size < windows.size:
+                factors = np.concatenate(
+                    [factors, np.ones(windows.size - factors.size)]
+                )
+            windows = windows * factors
+        excess = np.maximum(0.0, windows - threshold_kw)
+        if not np.any(excess > 0):
+            out[b] = 0.0
+            continue
+        k = max(1, min(int(peaks_averaged), excess.size))
+        peak = float(np.max(excess))
+        n_at_peak = int(np.sum(excess >= peak - _PEAK_TIE_BAND))
+        if n_at_peak > k:
+            top_sum = _smooth_topk_sum(excess, k, _PEAK_SMOOTH_TAU)
+        else:
+            top_sum = float(np.sum(np.sort(excess)[-k:]))
+        out[b] = float(price_per_kw * top_sum)
+    return out
 
 
 def realised_peak(
