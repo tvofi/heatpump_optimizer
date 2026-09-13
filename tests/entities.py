@@ -12489,20 +12489,33 @@ R.check(
     _af4_status == "skip-merge-failed" and _af4_after == _af4_before,
     f"status={_af4_status}",
 )
+# A merge that SUCCEEDS and still leaves check failing must restore the file,
+# not push it. The fixture that used to occupy this slot made the under-scoped
+# cause an INERT file (LICENSE): the merge wrote the INERT-and-recorded pair
+# and the second check refused it. 45b5768 moved that refusal into merge
+# --single itself, so the INERT route now reports skip-merge-failed before
+# any write, and this check would pin the wrong status. The surviving route
+# to a successful merge with a still-failing check is non-INERT: a
+# DRIVEN_BY_OTHERS child recorded alone. merge --partial folds
+# dst_checks.py into features.py, grows that entry, and returns 0 -- the
+# push path -- while check --partial compares the raw record name, finds no
+# committed closure for it, and still fails. The merge wrote real bytes (the
+# fold grew features.py's list), so the restore below is undoing a change,
+# not confirming a no-op.
 with _tempfile.TemporaryDirectory() as _af5_td:
     _af5_root = Path(_af5_td)
-    _af5_script = "tests/open_meteo.py"
+    _af5_script = "tests/dst_checks.py"
     _af5_closures = _af5_root / "closures.json"
     _af5_before = json.dumps({
-        "closures": {_af5_script: [_af5_script]},
+        "closures": {"tests/features.py": ["tests/features.py"]},
         "recorded": {},
     })
     _af5_closures.write_text(_af5_before)
     _af5_rec = _af5_root / "rec"
     _af5_rec.mkdir()
-    (_af5_rec / "open_meteo.json").write_text(json.dumps({
+    (_af5_rec / "dst_checks.json").write_text(json.dumps({
         "script": _af5_script, "rc": 0,
-        "files": [_af5_script, "LICENSE"],
+        "files": [_af5_script, "tests/harness.py"],
     }))
     _af5_orig, _closure.CLOSURES = _closure.CLOSURES, _af5_closures
     try:

@@ -197,15 +197,19 @@ INERT = (
     # recorded closure, so an edit to the manual selects that script
     # instead of skipping.
     ".gitignore",
-    # Write-once round-2 audit evidence: harnesses and reports people run by
-    # hand, outside the gate. Nothing under tests/ imports or opens them, and
-    # the `merge` check below proves it every time the closures are
-    # re-derived. Narrowed from `tools/` (#372): that wider prefix also
-    # covered tools/release/stamp.py, live release-critical code that was
-    # exempt only by sharing a directory with the evidence. Narrowing to
+    # Write-once audit EVIDENCE: reports people run by hand, outside the
+    # gate. Nothing under tests/ imports or opens the prose, the .out runs,
+    # the .json tables or the .sh/.mjs harnesses nobody wired in, and the
+    # `merge` check below proves it every time the closures are re-derived.
+    # Narrowed from `tools/` (#372): that wider prefix also covered
+    # tools/release/stamp.py, live release-critical code that was exempt
+    # only by sharing a directory with the evidence. Narrowing to
     # tools/audit/ makes stamp.py an ordinary tracked file the recorder must
     # classify, so a test that imports it pulls its closure in on its own --
-    # no exemption, no hidden call site.
+    # no exemption, no hidden call site. The prefix no longer covers the
+    # round harness .py corpus itself (#995): harness_headers.py's discovery
+    # opens every tools/audit/round*/D*/*.py, so those files are read by
+    # the gate and `_is_header_corpus` below takes them out of this claim.
     "tools/audit/",
     # Everything below is here for one reason: a file that is neither in a
     # closure nor on this list forces the WHOLE suite, because an unmeasured
@@ -377,23 +381,19 @@ def is_handover(rel: str) -> bool:
 # INERT-and-recorded pair #357 exists to refuse, so the bot returns skip-still-fails.
 INERT_EXCEPT = (
     "tools/audit/preflight.sh",
-    # #817: tests/harness_headers.py read_text's these and spawns them.
-    # Declaring the prefix unread while the gate opens the files is #357.
-    "tools/audit/round3/D2/dst_window_factors.py",
-    "tools/audit/round3/D2/window_size_sweep.py",
-    "tools/audit/round3/D5/option_doc_coverage.py",
+    # The round-harness exceptions that used to sit here -- #817's three
+    # round-3 files and #951's qs_rules.py -- moved to `_is_header_corpus`
+    # below when #995's dynamic discovery made the read set the whole
+    # tools/audit/round*/D*/*.py corpus: exact-match entries cannot follow
+    # a glob, and 212 of them was the shape of a list nobody would keep
+    # honest. Same refusal either way: declaring the prefix unread while
+    # the gate opens the files is #357.
     # #937: tests/entities.py reads the configuration reference to pin that
     # it names every shipped options field -- the README's promise about
     # exactly that file. The docs/ prefix stays INERT; the reference moves
     # to entities.py's recorded closure, so an edit to it selects that
     # script instead of skipping.
     "docs/configuration.md",
-    # #951: tests/harness_headers.py now also spawns the round-4 quality-
-    # scale harness, whose declared_mismatch line is the register's drift
-    # alarm -- the finding's mechanism was that no check executed against
-    # quality_scale.yaml at all. Same #817 shape as the round-3 three: the
-    # gate opens the file, so the tools/audit/ prefix cannot cover it.
-    "tools/audit/round4/D10/qs_rules.py",
     # #939: same route for architecture.md -- tests/entities.py pins its own
     # numbers (module counts, the module map, the HA boundary) against the
     # tree, so the document a contributor reads before changing the code is
@@ -406,6 +406,19 @@ INERT_EXCEPT = (
     # entities.py's recorded closure.
     "docs/automations.md",
     ".gitignore",
+    # #995, the .gitignore story one lane later: the live-header harness check
+    # executes tools/audit/round4/D6/claims.py, whose re-run rewrites these two
+    # caches beside it (set-iteration order churn), and card_drift.mjs --
+    # recorded after it in the same lane -- answers `git diff --name-only HEAD`
+    # (threeDotFiles), so git hashes the now stat-dirty pair. strace -f records
+    # those opens and CI said so: "UNDER-SCOPED: tests/card_drift.mjs really
+    # reads 2 file(s) ... claims.json, claims.md". The claims harness is frozen
+    # evidence, so the churn is not suppressed; the pair leaves INERT the way
+    # .gitignore did and enters that script's closure. Over-approximate by
+    # content (a name in a diff list cannot move card_drift's verdict) and safe:
+    # over-scoping costs time, under-scoping skips scripts.
+    "tools/audit/round4/D6/claims.json",
+    "tools/audit/round4/D6/claims.md",
     ".claude/workflows/policy_lint.mjs",
     ".claude/workflows/brief_lint.mjs",
     ".claude/workflows/counts.mjs",
@@ -415,8 +428,38 @@ INERT_EXCEPT = (
 )
 
 
+def _is_header_corpus(rel: str) -> bool:
+    """The live-header harness corpus tests/harness_headers.py DISCOVERY opens.
+
+    ``_discover()`` globs ``tools/audit/round*/D*/*.py`` and reads the head of
+    every match looking for the ``live-header`` marker, so each of those files
+    is a read the recorder sees -- executed or not, marked or not: a change to
+    any of them can flip the executed set itself. #817 moved the first three
+    out of the ``tools/audit/`` INERT prefix one exact-match line at a time,
+    #951 a fourth, and #995's dynamic discovery turned the class into the
+    whole corpus (212 files at landing, one more with every harness). The
+    claim is the SHAPE of the read set, stated once, mirroring the glob --
+    including the ``__init__.py`` guard, which the discovery check applies
+    before the read, so such a file stays unopened and inside the prefix.
+
+    Both directions stay checked. A gate read OUTSIDE this shape (a harness
+    that starts reading evidence .md/.json, a directory the glob does not
+    cover) lands in a closure while still INERT, and `merge`/`check` refuse
+    the pair (#357). A file this predicate names that no closure covers
+    shows up in `orphan_files()` and forces the FULL suite -- so neither
+    widening nor narrowing this rule can rot silently.
+    """
+    parts = rel.split("/")
+    return (
+        len(parts) == 5
+        and parts[0] == "tools" and parts[1] == "audit"
+        and parts[2].startswith("round") and parts[3].startswith("D")
+        and parts[4].endswith(".py") and parts[4] != "__init__.py"
+    )
+
+
 def is_inert(rel: str) -> bool:
-    if is_handover(rel) or rel in INERT_EXCEPT:
+    if is_handover(rel) or rel in INERT_EXCEPT or _is_header_corpus(rel):
         return False
     return any(rel == p or (p.endswith("/") and rel.startswith(p)) for p in INERT)
 
@@ -970,6 +1013,26 @@ def merge(in_dir: Path, out: Path, allow_failures: bool = False,
                     "seconds": records[k].get("seconds", 0),
                     "rc": records[k]["rc"],
                 }
+        # The #357 refusal the full fold applies, scoped to the entries this
+        # overlay writes. Without it `--single` -- the sanctioned Darwin
+        # re-derivation path -- wrote an INERT-and-recorded pair the full
+        # merge and CI's `check` both refuse (#995: harness_headers.py's
+        # discovery closure grew to 216 files inside the tools/audit/ prefix,
+        # and only the selftest's full-merge pin caught it before push).
+        # Touched entries only, so a stale table elsewhere cannot veto an
+        # unrelated repair -- the cross-lane veto is what #527 removed.
+        bad = inert_closure_violations(
+            {k: closures[k] for k in sorted(touched) if k in closures})
+        if bad:
+            print("closure: files on the INERT list are actually read by tests:",
+                  file=sys.stderr)
+            for b in bad:
+                print(f"  {b}", file=sys.stderr)
+            print("  remove them from INERT in tests/closure.py, or except them,",
+                  file=sys.stderr)
+            print("  then re-run this merge -- check refuses this pair on CI.",
+                  file=sys.stderr)
+            return 1
         payload["closures"] = closures
         out.write_text(json.dumps(payload, indent=1) + "\n")
         print(f"closure: updated {len(touched)} closure(s) in {out}")
