@@ -126,6 +126,32 @@ POWER_UNIT_TO_KW: Final = {
     "mW": 1e-6,
 }
 
+# Temperature units a sensor may report in, as (offset, factor) pairs taking
+# the reading to the degC the model works in: (value + offset) * factor. Home
+# Assistant converts a device_class:temperature sensor to the instance unit
+# system in the state machine, so a US-customary install hands the integration
+# the same physical plant in °F (#961); a device-class-less sensor can carry
+# the bare spellings some hubs publish. degC is the identity row so a metric
+# read passes through unchanged, bit-for-bit.
+TEMPERATURE_UNIT_TO_C: Final = {
+    "°C": (0.0, 1.0),
+    "C": (0.0, 1.0),
+    "degC": (0.0, 1.0),
+    "°F": (-32.0, 5.0 / 9.0),
+    "F": (-32.0, 5.0 / 9.0),
+    "degF": (-32.0, 5.0 / 9.0),
+    "K": (-273.15, 1.0),
+}
+
+# Energy units likewise, as factors taking the reading to kWh. A meter
+# reporting Wh was adopted as that many kWh — three orders of magnitude —
+# because nothing consulted the unit (#961).
+ENERGY_UNIT_TO_KWH: Final = {
+    "kWh": 1.0,
+    "Wh": 0.001,
+    "MWh": 1000.0,
+}
+
 # Learned correction to the modelled COP, from measured electrical input
 # against modelled thermal output. 1.0 means the COP curve is taken at face
 # value. The bounds stop a mis-scaled power entity from destroying the model.

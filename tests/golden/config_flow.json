@@ -2187,7 +2187,7 @@
    "dso_product": {
     "config": {
      "mode": "'dropdown'",
-     "options": "['none', 'ellevio_villa_effekt_2026', 'vattenfall_eldistribution_effekt_2026', 'eon_energidistribution_effekt_2026', 'goteborg_energi_effekt_2026']",
+     "options": "['none', 'ellevio_villa_effekt_2026', 'goteborg_energi_effekt_2026']",
      "translation_key": "'dso_product'"
     },
     "default": "'none'",
@@ -4360,7 +4360,7 @@
   "dso_product": {
    "config": {
     "mode": "'dropdown'",
-    "options": "['none', 'ellevio_villa_effekt_2026', 'vattenfall_eldistribution_effekt_2026', 'eon_energidistribution_effekt_2026', 'goteborg_energi_effekt_2026']",
+    "options": "['none', 'ellevio_villa_effekt_2026', 'goteborg_energi_effekt_2026']",
     "translation_key": "'dso_product'"
    },
    "default": "'none'",
