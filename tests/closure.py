@@ -406,6 +406,19 @@ INERT_EXCEPT = (
     # entities.py's recorded closure.
     "docs/automations.md",
     ".gitignore",
+    # #995, the .gitignore story one lane later: the live-header harness check
+    # executes tools/audit/round4/D6/claims.py, whose re-run rewrites these two
+    # caches beside it (set-iteration order churn), and card_drift.mjs --
+    # recorded after it in the same lane -- answers `git diff --name-only HEAD`
+    # (threeDotFiles), so git hashes the now stat-dirty pair. strace -f records
+    # those opens and CI said so: "UNDER-SCOPED: tests/card_drift.mjs really
+    # reads 2 file(s) ... claims.json, claims.md". The claims harness is frozen
+    # evidence, so the churn is not suppressed; the pair leaves INERT the way
+    # .gitignore did and enters that script's closure. Over-approximate by
+    # content (a name in a diff list cannot move card_drift's verdict) and safe:
+    # over-scoping costs time, under-scoping skips scripts.
+    "tools/audit/round4/D6/claims.json",
+    "tools/audit/round4/D6/claims.md",
     ".claude/workflows/policy_lint.mjs",
     ".claude/workflows/brief_lint.mjs",
     ".claude/workflows/counts.mjs",
