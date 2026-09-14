@@ -1157,7 +1157,9 @@ class SystemIdentification:
             reason="ok",
         )
 
-    def _two_state_window(self) -> tuple[np.ndarray, ...] | tuple[None, str]:
+    def _two_state_window(
+        self,
+    ) -> str | tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """The recorded window as arrays, or a named refusal.
 
         The rollout needs an unbroken cadence: a dropped or duplicated
@@ -1170,7 +1172,7 @@ class SystemIdentification:
             if s.phase in (PHASE_SETTLING, PHASE_STEP, PHASE_RELAX)
         ]
         if len(usable) < 6:
-            return None, "not enough samples"
+            return "not enough samples"
         obs = np.asarray([s.room_temp for s in usable], dtype=float)
         outdoor = np.asarray([s.outdoor_temp for s in usable], dtype=float)
         power = np.asarray([s.power_kw for s in usable], dtype=float)
@@ -1182,7 +1184,7 @@ class SystemIdentification:
             dtype=float,
         )
         if np.any(dts <= 1e-3) or np.any(dts > 2.0):
-            return None, "sample cadence broken in the window"
+            return "sample cadence broken in the window"
         return obs, outdoor, power, dts
 
     def _identify_two_state(self) -> SysIdResult:
@@ -1206,12 +1208,17 @@ class SystemIdentification:
         """
         cfg = self.config
         plant = self._plant
+        if plant is None:
+            # Defense: the dispatch only calls here with a declared plant;
+            # a direct call without one has no config slab pair to fit
+            # against, so it is refused by name rather than crash.
+            return SysIdResult(completed=False, reason="no declared plant")
         identifiable, why = slab_mode_identifiability(plant, cfg)
         if not identifiable:
             return SysIdResult(completed=False, reason=why)
         window = self._two_state_window()
-        if window[0] is None:
-            return SysIdResult(completed=False, reason=window[1])
+        if isinstance(window, str):
+            return SysIdResult(completed=False, reason=window)
         obs, outdoor, power, dts = window
         width = float(cfg.gains_ridge_width_kw)
         c_s = float(plant.slab_thermal_mass)
