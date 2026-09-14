@@ -98,7 +98,7 @@
    "rc": 0
   },
   "tests/harness_headers.py": {
-   "seconds": 2.7,
+   "seconds": 2.5,
    "rc": 0
   }
  },
@@ -1752,6 +1752,7 @@
    "tools/audit/round4/D9/h7_memory_gate.py",
    "tools/audit/round4/D9/h8_leak_attrib.py",
    "tools/audit/round4/D9/h9_batch_cost_loop.py",
+   "tools/audit/round4/D9/h9_null_plans.py",
    "tools/audit/round4/D9/verify2_h9_sample.py",
    "tools/audit/round4/D9/verify3_h7_mmap.py",
    "tools/audit/round4/D9/verify3_h9_profile.py"

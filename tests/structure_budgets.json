@@ -20,7 +20,7 @@
  "local_imports": 7,
  "max_cc": 50,
  "max_class_loc": 9080,
- "max_method_loc": 393,
+ "max_method_loc": 387,
  "methods_over_150": 18,
  "methods_over_200": 11,
  "recorded_at": "c388e11cc7def8875857ce38b808d9054a90d733"
