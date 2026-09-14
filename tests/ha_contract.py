@@ -1106,8 +1106,8 @@ def _first_refresh_entry():
     ``breaks_in_ha_version="2026.8"``, which the kwarg-free 2026.9.2 call
     site still guards), whose
     first line raises ``RuntimeError: Frame helper not set up`` unless a
-    running hass set the frame helper up -- so against every real release
-    newer than the floor the nine entry-less constructions #1002 wrote died
+    running hass set the frame helper up -- so from 2025.8 on, every real
+    release newer than the floor makes the nine entry-less constructions
     in ``__init__`` before the chain they pinned even ran (#1009). The entry
     path is upstream's sanctioned one and exists at the floor unchanged, so
     the same construction runs against stub, floor and stable.
