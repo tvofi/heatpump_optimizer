@@ -200,6 +200,16 @@ jobs:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    # THE ONE GRANT THIS JOB ADDS IS A READ. The red-list step below reads the
+    # head's check runs through `/commits/<sha>/check-runs`, which the token
+    # refuses without `checks: read` (#956); `contents: read` restates the
+    # workflow floor a job-level block replaces, because the checkout needs
+    # it. A read-only widening on the one job that reads the API is the
+    # `nightly-status` precedent in tests.yml, and the override pin in
+    # tests/entities.py counts this block and carries this argument.
+    permissions:
+      contents: read
+      checks: read
     steps:
       # fetch-depth 0 because `## Approval` is keyed on the DIFF (R3-D11-03):
       # the base commit has to be in the clone for `git diff base...head` to
@@ -246,6 +256,51 @@ jobs:
           git diff --no-renames --name-only "$PR_BASE...$PR_HEAD" > /tmp/pr-files.txt
           wc -l < /tmp/pr-files.txt
 
+      # #956: the red-check trigger CLAUDE.md calls enforced, enforced. The
+      # head's check runs are listed FIRST, the red names are handed to the
+      # body check as `--red`, and the same body that exited 0 when CI passed
+      # no `--red` exits 1 now -- the only behaviour change of this wiring.
+      #
+      # THE EXCLUSION KEY IS THE CHECK-RUN NAME `pr-contract`, and nothing
+      # else. Every run this job ever produces carries that name -- GitHub
+      # Actions names a job's check run after the job, this job has no matrix,
+      # and re-runs keep the name -- so keying on it excludes this job's OWN
+      # prior runs at the head whatever produced them: the `synchronize` run,
+      # the `edited` run a body edit fires at the outgoing head (#1031's run
+      # 34896491442 sat exactly there), a manual re-run's new attempt. A key
+      # on any run or attempt IDENTIFIER is wrong twice over: a re-run gets a
+      # new id, and an event-driven re-run at the SAME head gets a new run id
+      # -- the #1031 shape -- so an id-keyed exclusion lets this job's own red
+      # back into the list and the deadlock the caveat names returns: a body
+      # refused for not naming a red caused by not naming it. The name key
+      # cannot exclude a FOREIGN red -- a red from another check the body must
+      # answer -- because the listing's other entries are runs other jobs
+      # produced and every foreign job carries a foreign name; `pr-contract`
+      # is the only job by that name in this repository. RED means the
+      # corpus's own predicate: conclusion `failure` at the head, so a
+      # skipped, cancelled, timed-out or still-running check is not red, and a
+      # check that failed and then succeeded still is (the listing, never
+      # `gh pr checks` -- the no-gh rule's own reason). One call, one page per
+      # hundred runs (`--paginate`): single-digit seconds inside a job that
+      # already runs about 75 s.
+      - name: List the red checks at this head
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          # Fail-closed, on the paths-file step's own principle: a derivation
+          # that fails must fail the step, because an empty red list read from
+          # a failed fetch is "no reds" -- the fail-open this wiring closes.
+          gh api --paginate \
+            "repos/${GITHUB_REPOSITORY}/commits/${PR_HEAD}/check-runs" \
+            --jq '.check_runs[]
+                   | select(.status == "completed" and .conclusion == "failure")
+                   | select(.name != "pr-contract")
+                   | .name' | sort -u > /tmp/pr-reds.txt
+          printf 'red checks the body must answer: %s\n' \
+            "$(paste -sd, /tmp/pr-reds.txt)"
+
       - name: Check the body against the contract
         env:
           # Interpolating a title into a shell line is script injection: the
@@ -255,9 +310,17 @@ jobs:
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_HEAD: ${{ github.event.pull_request.head.sha }}
         run: |
+          set -euo pipefail
+          # One --red flag per name, never one comma-joined value: a check
+          # name containing a comma would split into fragments neither the
+          # refusal nor `## Red checks` can match.
+          RED_ARGS=()
+          while IFS= read -r name; do
+            RED_ARGS+=(--red "$name")
+          done < /tmp/pr-reds.txt
           node .claude/workflows/policy_lint.mjs \
             --pr-body /tmp/pr-body.md --head "$PR_HEAD" --title "$PR_TITLE" \
-            --paths-file /tmp/pr-files.txt
+            --paths-file /tmp/pr-files.txt "${RED_ARGS[@]}"
 
       # #679: `## Figures` asks for the command that printed each figure, and
       # nothing looked at it. The section was a paste. #715 round seven is the

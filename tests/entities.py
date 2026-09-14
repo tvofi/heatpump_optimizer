@@ -16721,8 +16721,11 @@ R.check(
 # argument. #1011's owner decision (Option 2) made it three: the publishing
 # lane gave up `issues: write` when the #201 splice moved to the merge of the
 # ledger PR, and `delivery-status-splice` took that grant over -- a write
-# MOVED to the lane that uses it, which is what a fourth would have to argue
-# against.
+# MOVED to the lane that uses it. #956 made it four, and the fourth is the
+# first that adds no write at all: `pr-contract` reads the head's check runs
+# through `/commits/<sha>/check-runs`, which the token refuses without
+# `checks: read`, so its block is the `nightly-status` precedent in tests.yml
+# -- a read-only widening on the one job that reads the API.
 _DS_GOV = Path(".github/workflows/governance.yml").read_text()
 _DS_PUB_JOB = _workflow_job(_DS_GOV, "delivery-status-publish")
 _DS_SPLICE_JOB = (
@@ -16734,13 +16737,51 @@ _DS_OVERRIDES = sorted(
         _DS_GOV, re.M | re.S)
 )
 R.check(
-    "exactly three governance jobs override the workflow's read-only floor",
+    "exactly four governance jobs override the workflow's read-only floor",
     _DS_OVERRIDES
-    == ["delivery-status-publish", "delivery-status-splice", "record"],
-    f"jobs with a permissions block: {_DS_OVERRIDES}. A fourth has to be argued "
+    == ["delivery-status-publish", "delivery-status-splice", "pr-contract",
+        "record"],
+    f"jobs with a permissions block: {_DS_OVERRIDES}. A fifth has to be argued "
     "for rather than land, and the reporting lane is deliberately NOT one: "
     "`delivery-status` runs on pull requests with no widening at all, because "
     "it only reads the tree it is already checked out in",
+)
+_PC_PERMS = re.search(
+    r"^    permissions:\n((?:^      .*\n)+)",
+    _workflow_job(_DS_GOV, "pr-contract"), re.M)
+R.check(
+    "and the contract lane's widening is the one read it needs",
+    bool(_PC_PERMS)
+    and sorted(_PC_PERMS.group(1).split()) == sorted(
+        ["checks:", "contents:", "read", "read"]),
+    f"pr-contract permissions: "
+    f"{_PC_PERMS.group(1).split() if _PC_PERMS else None} -- `checks: read` "
+    "lists the head's check runs for the red-check arm (#956) and "
+    "`contents: read` restates the floor a job-level block replaces; the "
+    "nightly-status precedent, a read-only widening on the one job that "
+    "reads the API",
+)
+# #956: the red-check trigger CLAUDE.md calls enforced is enforced by THIS
+# wiring, and nothing else. Before it, the body-contract step invoked
+# policy_lint with no `--red` -- the same body exited 0 without it and 1 with
+# it, and only the advisory prepr.sh passed the flag -- so the one trigger the
+# index calls enforced was inert in the one place enforcement could live. The
+# three load-bearing strings of the wiring are pinned so it cannot go inert
+# again: the check-runs LISTING (never a summary, which hides red-then-green),
+# the exclusion of the job's own name (delete it and the deadlock returns: a
+# body refused for not naming a red caused by not naming it), and the flag
+# itself.
+_PC_JOB = _workflow_job(_DS_GOV, "pr-contract")
+_PC_EXCLUSION = '.name != "pr-contract"'
+R.check(
+    "the contract lane passes the head's red checks to the body check",
+    "check-runs" in _PC_JOB
+    and "--red" in _PC_JOB
+    and _PC_EXCLUSION in _PC_JOB,
+    f"listing={'check-runs' in _PC_JOB}, flag={'--red' in _PC_JOB}, "
+    f"exclusion={_PC_EXCLUSION in _PC_JOB}; without all three "
+    "the red-check trigger reads as enforced while the same unnamed red body "
+    "exits 0 -- the silent-green shape #533 is about, in this workflow",
 )
 _DS_PUB_PERMS = re.search(
     r"^    permissions:\n((?:^      .*\n)+)", _DS_PUB_JOB, re.M)

@@ -3656,7 +3656,19 @@ function cmdPrBody(args) {
     return i >= 0 ? args[i + 1] : null
   }
   const bodyPath = val('--pr-body')
-  const red = (val('--red') ?? '').split(',').map((x) => x.trim()).filter(Boolean)
+  // `--red` may be REPEATED, once per name. A LONE `--red` value is still
+  // split on commas -- the form `prepr.sh --self-test` drives -- but each
+  // value of a repeated `--red` is ONE name, verbatim: CI's pr-contract job
+  // passes one flag per check-run name it derived (#956), and the comma form
+  // cannot carry a name that itself contains a comma (a matrix job named over
+  // two dimensions splits into fragments neither the refusal nor
+  // `## Red checks` can match). Duplicated names collapse: a head that failed
+  // a check twice, or a caller passing both forms, asks the question once.
+  const redVals = args.flatMap((a, i) => (a === '--red' && i + 1 < args.length ? [args[i + 1]] : []))
+  const red = [...new Set(
+    (redVals.length > 1 ? redVals : (redVals[0] ?? '').split(','))
+      .map((x) => x.trim())
+      .filter(Boolean))]
   // The changed paths decide whether `## Approval` is owed, so a path list that
   // could not be derived must REFUSE rather than pass: an empty list reads as
   // "touches no policy file", which is the fail-open this check exists to close.
