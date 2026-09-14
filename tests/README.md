@@ -349,7 +349,7 @@ python tests/entities.py     # entities, platforms, options pages, translations
 python tests/manual_plan.py  # manual plan pinning: parsing, solver interaction, safety release
 python tests/open_meteo.py   # the irradiance client
 python tests/solar_alignment.py  # irradiance lands on the right optimizer steps
-python tests/golden.py       # behaviour, pinned; reads GOLDEN_MODE (default drift)
+python tests/golden.py       # behaviour, pinned; reads GOLDEN_MODE (default drift: execs env_drift.py --all origin/main, the same measurement as the env_drift.py line below -- run one, not both, #934)
 python tests/validate.py     # 22 seasonal scenarios, asserts invariants
 python tests/edge.py         # degenerate inputs and boundary conditions
 python tests/backtest.py     # replay against alternative strategies

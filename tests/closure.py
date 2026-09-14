@@ -68,6 +68,28 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 CLOSURES = ROOT / "tests" / "closures.json"
 
+# #934 (D3-INST): this file is the only per-script timing table in the tree,
+# and the two differential guards are recorded with deliberately cheap
+# arguments (derive_closures.sh: golden.py --only __no_such_scenario__,
+# env_drift.py --cache-key <ref> --all) whose wall time is sub-second, while
+# the standalone run a developer sizes off this table costs minutes (the
+# judge measured golden.py standalone at 160.9 s against a 0.4 s record).
+# The seconds are honest for what was run; the disclosure keeps a reader
+# from mistaking them for the cost of a real differential run. Both merge
+# paths stamp this text so a partial (--single) repair cannot leave a
+# pre-#934 comment alive in the committed file.
+CLOSURES_COMMENT = (
+    "MEASURED, not written by hand. Regenerate with "
+    "tests/derive_closures.sh; the post-merge gate on main re-records "
+    "these and fails if this file misses anything a real run touched. "
+    "recorded.seconds for the two differential guards (tests/golden.py, "
+    "tests/env_drift.py) time the deliberately cheap stub invocation "
+    "derive_closures.sh records with (golden.py --only "
+    "__no_such_scenario__, env_drift.py --cache-key <ref> --all), not a "
+    "real differential run: a real one costs minutes, the record says "
+    "under a second (#934)."
+)
+
 # Scripts that are shared plumbing or are driven by another script, and so are
 # never selected on their own. Mirrors the exclusions in tests/run.sh.
 # setup_qa_render.mjs is WIRED into the card lane (runs every gate, #101)
@@ -976,6 +998,11 @@ def merge(in_dir: Path, out: Path, allow_failures: bool = False,
                   file=sys.stderr)
             return 1
         payload = json.loads(out.read_text())
+        # Refresh the disclosure even though everything else in the payload
+        # is preserved: a partial merge is the sanctioned way this file is
+        # rewritten (#90's --single), so a stale pre-#934 comment would
+        # otherwise survive every repair (#934).
+        payload["_comment"] = CLOSURES_COMMENT
         closures = payload["closures"]
         recorded = payload.setdefault("recorded", {})
         # Overlay the fresh records on the committed closures and apply the
@@ -1052,11 +1079,7 @@ def merge(in_dir: Path, out: Path, allow_failures: bool = False,
         print("  remove them from INERT in tests/closure.py.", file=sys.stderr)
         return 1
     payload = {
-        "_comment": (
-            "MEASURED, not written by hand. Regenerate with "
-            "tests/derive_closures.sh; the post-merge gate on main re-records "
-            "these and fails if this file misses anything a real run touched."
-        ),
+        "_comment": CLOSURES_COMMENT,
         "recorded": {k: {"seconds": records[k]["seconds"], "rc": records[k]["rc"]}
                      for k in sorted(records)},
         "closures": closures,
@@ -1830,6 +1853,18 @@ def selftest() -> int:
     failed = 0
     n = 0
 
+    # #934 (D3-INST): `recorded[*].seconds` for the two differential guards
+    # time the cheap stub invocation derive_closures.sh records them with
+    # (golden.py --only __no_such_scenario__, env_drift.py --cache-key <ref>
+    # --all) -- the committed table said 0.5 s for a standalone golden.py
+    # run the judge measured at 160.9 s -- and closures.json is the only
+    # per-script timing table in the tree, so a reader sizing a gate run off
+    # it is misled ~300x unless the file's own comment discloses the stub.
+    # Both write paths are pinned: a partial merge that only preserved a
+    # stale comment would keep pre-#934 text alive through every --single
+    # repair of this file.
+    disclosure = ("cheap", "golden.py", "env_drift.py")
+
     def pin(name: str, cond: bool, detail: str = "") -> None:
         nonlocal failed, n
         n += 1
@@ -1886,6 +1921,12 @@ def selftest() -> int:
             f"rc={rc} after={len(after)} dropped={len(dropped)} "
             f"first={dropped[:4]!r}",
         )
+        full_comment = json.loads(out.read_text()).get("_comment", "")
+        pin(
+            "a full merge writes the _comment's stub-seconds disclosure",
+            all(w in full_comment for w in disclosure),
+            f"_comment={full_comment!r}",
+        )
 
     grower = "tests/open_meteo.py"
     grower_old = [grower]
@@ -1938,6 +1979,26 @@ def selftest() -> int:
             "a grow-only partial merge still grows (null control)",
             rc == 0 and payload[grower] == sorted(grower_new),
             f"rc={rc} files={payload.get(grower)!r}",
+        )
+
+    with tempfile.TemporaryDirectory() as td:
+        td_path = Path(td)
+        out = td_path / "closures.json"
+        out.write_text(json.dumps({
+            "_comment": "MEASURED, not written by hand.",
+            "closures": {grower: grower_old},
+            "recorded": {},
+        }))
+        rec = td_path / "rec"
+        _selftest_write_records(rec, {grower: grower_new})
+        with contextlib.redirect_stdout(io.StringIO()), \
+                contextlib.redirect_stderr(io.StringIO()):
+            rc = merge(rec, out, allow_failures=False, partial=True)
+        stale_comment = json.loads(out.read_text()).get("_comment", "")
+        pin(
+            "a partial merge refreshes a stale _comment",
+            rc == 0 and all(w in stale_comment for w in disclosure),
+            f"rc={rc} _comment={stale_comment!r}",
         )
 
     widened = {
