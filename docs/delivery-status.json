@@ -3,15 +3,29 @@
   "stale_after_commits": 12,
   "merges": [
     {
+      "number": 1012,
+      "title": "record: #1006 row erratum -- the D6 claims refresh was reverted before the merge",
+      "merge_sha": "8996b3fe346608b1b02831787e818210f37aea69",
+      "commits_after": 0,
+      "state": "rowed"
+    },
+    {
+      "number": 1007,
+      "title": "mark the re-recorded D9 harnesses live (h2/h7/h9) and size the header checker for h7",
+      "merge_sha": "b1123f2d9d3d68871bf86998f5177937c848b173",
+      "commits_after": 1,
+      "state": "rowed"
+    },
+    {
       "number": 1006,
       "title": "record: post-stamp rows for the twelve unrowed merges and the v6.4.4 stamp",
       "merge_sha": "5152bcefab64daa3b5d87a821fe79e6e3be53b9b",
-      "commits_after": 0,
+      "commits_after": 2,
       "state": "rowed"
     }
   ],
   "counts": {
-    "rowed": 1,
+    "rowed": 3,
     "pending": 0,
     "overdue": 0
   }
