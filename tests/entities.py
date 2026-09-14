@@ -280,7 +280,17 @@ DATA = {
     "defrost_samples": 40,
     "defrost_buckets": [{"derate": 0.92, "samples": 40}],
     "stale_inputs": ["indoor_temp_entity"],
-    "input_problems": [{"input": "indoor_temp_entity", "problem": "stale"}],
+    "input_problems": [
+        {
+            "input": "indoor_temp_entity",
+            "entity_id": "sensor.indoor",
+            "problem": "stale",
+            "age_minutes": 600.0,
+            "max_age_minutes": 60.0,
+        }
+    ],
+    "problem_inputs": ["sensor.indoor"],
+    "problem_messages": ["sensor.indoor: stale (last report 600 min)"],
     "input_health": "1 stale",
     "input_ages_minutes": {"indoor_temp_entity": 600.0},
     "learners_frozen": True,
@@ -3745,6 +3755,173 @@ R.check(
     ).is_on,
 )
 
+# The owner's ask (in-session 2026-09-14): the flag must say WHICH input
+# flipped it. Two attributes on the same diagnostic sensor -- the failing
+# entity ids and one short line per failure -- driven here through the real
+# coordinator's read cycle, one failure class at a time. The state and every
+# attribute pinned above are the null control: they must not move.
+def _sources_cycle(extra_config=None, states=None):
+    """One real input-read cycle carrying the given failures, published."""
+    _h, _c, _d = _honest_coordinator(extra_config, states)
+    return _d
+
+
+def _sources_entity(data):
+    return binary_sensor.InputHealthBinarySensor(FakeCoordinator(data), ENTRY)
+
+
+_healthy_cycle = _sources_cycle()
+R.check(
+    "a healthy cycle publishes no problem sources",
+    _sources_entity(_healthy_cycle).extra_state_attributes["problem_inputs"] == []
+    and _sources_entity(_healthy_cycle).extra_state_attributes["problem_messages"]
+    == [],
+    f"inputs={_sources_entity(_healthy_cycle).extra_state_attributes.get('problem_inputs')!r} "
+    f"messages={_sources_entity(_healthy_cycle).extra_state_attributes.get('problem_messages')!r}",
+)
+
+# One class at a time, each through the coordinator's own reader.
+_TANK_SLOT = const.CONF_DHW_TEMP_ENTITY
+_TANK_CLASSES = (
+    # (class, states, the one line the attribute must carry)
+    # _STALE_WHEN is anchored to the wall clock, so the stale minute count
+    # is pinned by shape below, not by number.
+    (
+        "stale",
+        {"sensor.tank": FakeState("48.2", last_updated=_STALE_WHEN)},
+        None,
+    ),
+    (
+        "unavailable",
+        {"sensor.tank": FakeState("unavailable")},
+        "sensor.tank: unavailable",
+    ),
+    (
+        "missing_entity",
+        None,  # configured, but no state exists at all
+        "sensor.tank: entity not found",
+    ),
+    (
+        "not_numeric",
+        {"sensor.tank": FakeState("warm")},
+        "sensor.tank: not a number",
+    ),
+)
+for _word, _states, _line in _TANK_CLASSES:
+    _tank_data = _sources_cycle({_TANK_SLOT: "sensor.tank"}, _states)
+    _tank_entity = _sources_entity(_tank_data)
+    _tank_messages = _tank_entity.extra_state_attributes["problem_messages"]
+    _tank_inputs = _tank_entity.extra_state_attributes["problem_inputs"]
+    if _line is None:  # the stale line carries the wall-clock age
+        _message_ok = (
+            len(_tank_messages) == 1
+            and _tank_messages[0].startswith("sensor.tank: stale (last report ")
+            and _tank_messages[0].endswith(" min)")
+        )
+    else:
+        _message_ok = _tank_messages == [_line]
+    R.check(
+        f"a {_word} tank sensor is the named source of the problem",
+        _tank_entity.is_on
+        and _tank_inputs == ["sensor.tank"]
+        and _message_ok,
+        f"is_on={_tank_entity.is_on} inputs={_tank_inputs!r} "
+        f"messages={_tank_messages!r}",
+    )
+
+for _slot, _entity, _state, _line in (
+    (
+        const.CONF_POWER_ENTITY,
+        "sensor.power",
+        FakeState("3000", unit="hp"),
+        "sensor.power: unknown unit",
+    ),
+    (
+        const.CONF_HEAT_PUMP_MODE_ENTITY,
+        "sensor.mode",
+        FakeState("banana"),
+        "sensor.mode: unrecognized state",
+    ),
+    (
+        const.CONF_HEAT_PUMP_DEFROST_ENTITY,
+        "sensor.defrost",
+        FakeState("maybe"),
+        "sensor.defrost: not a yes/no flag",
+    ),
+):
+    _class_data = _sources_cycle({_slot: _entity}, {_entity: _state})
+    _class_entity = _sources_entity(_class_data)
+    R.check(
+        f"a failing {_entity} slot names its entity and class",
+        _class_entity.is_on
+        and _class_entity.extra_state_attributes["problem_inputs"] == [_entity]
+        and _class_entity.extra_state_attributes["problem_messages"] == [_line],
+        f"inputs={_class_entity.extra_state_attributes.get('problem_inputs')!r} "
+        f"messages={_class_entity.extra_state_attributes.get('problem_messages')!r}",
+    )
+
+# Several failures at once: every source is named, one line each, and the
+# pre-existing attributes say exactly what they said before this feature.
+_multi_data = _sources_cycle(
+    {_TANK_SLOT: "sensor.tank"},
+    {
+        "sensor.indoor": FakeState("unavailable"),
+        "sensor.tank": FakeState("48.2", last_updated=_STALE_WHEN),
+    },
+)
+_multi_entity = _sources_entity(_multi_data)
+_multi_attrs = _multi_entity.extra_state_attributes
+R.check(
+    "two failures at once name both entities",
+    _multi_attrs["problem_inputs"] == ["sensor.indoor", "sensor.tank"],
+    f'{_multi_attrs.get("problem_inputs")!r}',
+)
+R.check(
+    "with one line per failure, in the evidence's own order",
+    len(_multi_attrs["problem_messages"]) == 2
+    and _multi_attrs["problem_messages"][0].startswith("sensor.tank: stale")
+    and _multi_attrs["problem_messages"][1] == "sensor.indoor: unavailable",
+    f'{_multi_attrs.get("problem_messages")!r}',
+)
+R.check(
+    "the older attributes are unchanged by the new ones",
+    _multi_attrs["stale_inputs"] == ["dhw_temp_entity"]
+    and len(_multi_attrs["problems"]) == 2,
+    f'stale_inputs={_multi_attrs.get("stale_inputs")!r} '
+    f'problems={_multi_attrs.get("problems")!r}',
+)
+
+# Recovery: the same coordinator that flagged the failure empties the
+# sources again once the sensor reports -- the lists are state, not a latch.
+_rec_hass, _rec_coord, _ = _honest_coordinator(
+    {_TANK_SLOT: "sensor.tank"}, {"sensor.tank": FakeState("48.2")}
+)
+asyncio.run(_rec_coord._update_current_state())
+_rec_data = _rec_coord._build_data_dict()
+R.check(
+    "a healthy tank publishes no sources",
+    not _sources_entity(_rec_data).is_on
+    and _sources_entity(_rec_data).extra_state_attributes["problem_inputs"] == [],
+)
+_rec_hass.states.set("sensor.tank", FakeState("48.2", last_updated=_STALE_WHEN))
+asyncio.run(_rec_coord._update_current_state())
+_rec_stale = _rec_coord._build_data_dict()
+R.check(
+    "the stale tank becomes the named source",
+    _sources_entity(_rec_stale).is_on
+    and _sources_entity(_rec_stale).extra_state_attributes["problem_inputs"]
+    == ["sensor.tank"],
+)
+_rec_hass.states.set("sensor.tank", FakeState("48.2"))
+asyncio.run(_rec_coord._update_current_state())
+_rec_ok = _rec_coord._build_data_dict()
+R.check(
+    "and recovery empties the sources again",
+    not _sources_entity(_rec_ok).is_on
+    and _sources_entity(_rec_ok).extra_state_attributes["problem_inputs"] == []
+    and _sources_entity(_rec_ok).extra_state_attributes["problem_messages"] == [],
+)
+
 heat = b_by_name["External Heat Source"]
 R.check("the external heat sensor reflects the detector", heat.is_on)
 R.check(
@@ -7118,7 +7295,8 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
     }),
     "InputHealthBinarySensor": frozenset({
         "input_ages_minutes", "learner_freeze_reason", "learners_frozen",
-        "problems", "stale_inputs", "summary"
+        "problem_inputs", "problem_messages", "problems", "stale_inputs",
+        "summary"
     }),
     "MeasuredPowerSensor": frozenset({
         "energy_meter", "house_power", "recommended_power"
@@ -16372,47 +16550,129 @@ R.check(
 # `contents: read` floor. A job-level block REPLACES the floor for that job and
 # is inherited by none, so the set IS the blast radius.
 #
-# This pin was `record-status`'s and came out with it. It is restored here
-# UPDATED rather than dropped, and the reason is that this pull request makes
-# it matter more: `delivery-status-publish` carries `contents: write` and
-# `issues: write`, which is the widest grant in this file, and it was about to
-# land with nothing holding the set.
+# This pin was `record-status`'s and came out with it, and it is UPDATED rather
+# than dropped each time the publishing lane moves, because the set is the
+# argument. #1011's owner decision (Option 2) made it three: the publishing
+# lane gave up `issues: write` when the #201 splice moved to the merge of the
+# ledger PR, and `delivery-status-splice` took that grant over -- a write
+# MOVED to the lane that uses it, which is what a fourth would have to argue
+# against.
 _DS_GOV = Path(".github/workflows/governance.yml").read_text()
+_DS_PUB_JOB = _workflow_job(_DS_GOV, "delivery-status-publish")
+_DS_SPLICE_JOB = (
+    _workflow_job(_DS_GOV, "delivery-status-splice")
+    if "\n  delivery-status-splice:\n" in _DS_GOV else "")
 _DS_OVERRIDES = sorted(
     _m.group(1) for _m in re.finditer(
         r"^  ([A-Za-z][\w-]*):\n(?:(?!^  [A-Za-z]).)*?^    permissions:",
         _DS_GOV, re.M | re.S)
 )
 R.check(
-    "exactly two governance jobs override the workflow's read-only floor",
-    _DS_OVERRIDES == ["delivery-status-publish", "record"],
-    f"jobs with a permissions block: {_DS_OVERRIDES}. A third has to be argued "
+    "exactly three governance jobs override the workflow's read-only floor",
+    _DS_OVERRIDES
+    == ["delivery-status-publish", "delivery-status-splice", "record"],
+    f"jobs with a permissions block: {_DS_OVERRIDES}. A fourth has to be argued "
     "for rather than land, and the reporting lane is deliberately NOT one: "
     "`delivery-status` runs on pull requests with no widening at all, because "
     "it only reads the tree it is already checked out in",
 )
 _DS_PUB_PERMS = re.search(
-    r"^    permissions:\n((?:^      .*\n)+)",
-    _workflow_job(_DS_GOV, "delivery-status-publish"), re.M)
+    r"^    permissions:\n((?:^      .*\n)+)", _DS_PUB_JOB, re.M)
 R.check(
     "and the publishing lane's grant is exactly the two writes it uses",
     bool(_DS_PUB_PERMS)
     and sorted(_DS_PUB_PERMS.group(1).split()) == sorted(
-        ["contents:", "write", "issues:", "write"]),
+        ["contents:", "pull-requests:", "write", "write"]),
     f"delivery-status-publish permissions: "
     f"{_DS_PUB_PERMS.group(1).split() if _DS_PUB_PERMS else None} -- "
-    "`contents: write` commits one generated path and `issues: write` edits "
-    "#201's region; anything beyond those two is scope this job does not use "
-    "and should not hold",
+    "`contents: write` commits one generated path to the bot-owned ledger "
+    "branch and `pull-requests: write` opens and updates that branch's PR; "
+    "anything beyond those two is scope this job does not use and should not "
+    "hold",
+)
+_DS_SPLICE_PERMS = re.search(
+    r"^    permissions:\n((?:^      .*\n)+)", _DS_SPLICE_JOB, re.M)
+R.check(
+    "the splice lane's grant is the one write it kept",
+    bool(_DS_SPLICE_PERMS)
+    and sorted(_DS_SPLICE_PERMS.group(1).split()) == sorted(
+        ["contents:", "read", "issues:", "write"]),
+    f"delivery-status-splice permissions: "
+    f"{_DS_SPLICE_PERMS.group(1).split() if _DS_SPLICE_PERMS else None} -- "
+    "`issues: write` edits #201's region and `contents: read` restates the "
+    "floor a job-level block replaces; it is the grant the publishing lane "
+    "held before #1011, moved to the only lane that still uses it",
 )
 R.check(
     "the publishing lane runs on main alone, never on a pull request",
-    "github.event_name == 'push'" in _workflow_job(_DS_GOV, "delivery-status-publish")
-    and "refs/heads/main" in _workflow_job(_DS_GOV, "delivery-status-publish")
-    and "pull_request" not in _workflow_job(_DS_GOV, "delivery-status-publish"),
+    "github.event_name == 'push'" in _DS_PUB_JOB
+    and "refs/heads/main" in _DS_PUB_JOB
+    and "pull_request" not in _DS_PUB_JOB,
     "a write-scoped job reachable from a pull request is a write-scoped job "
     "reachable from a fork, and the ledger it publishes is about `main`'s "
     "history rather than about any branch",
+)
+# #1011, the owner's Option 2. The direct bot push this job shipped with never
+# landed once: GH013 declined it on every push since the job arrived, because
+# a GITHUB_TOKEN push cannot satisfy main's required-checks rule, so no
+# `ci: regenerate the delivery ledger` commit exists anywhere in main's
+# history. The PR path is pinned on its two load-bearing strings -- the branch
+# it pushes and the command that opens the PR -- and on the ABSENCE of the
+# never-landed one, so the dead path cannot come back commented out, behind a
+# fallback branch, or as a "temporary" manual override.
+R.check(
+    "the publishing lane lands the ledger through a PR, never a bot push",
+    "HEAD:main" not in _DS_PUB_JOB
+    and "ci/delivery-ledger" in _DS_PUB_JOB
+    and "gh pr create" in _DS_PUB_JOB,
+    f"pushes ci/delivery-ledger={'ci/delivery-ledger' in _DS_PUB_JOB}, "
+    f"opens a PR={'gh pr create' in _DS_PUB_JOB}, "
+    f"direct push to main={'HEAD:main' in _DS_PUB_JOB} (must be False); "
+    "`git push origin HEAD:main` is the never-landed path #1011 deleted, not "
+    "disabled",
+)
+R.check(
+    "and an unchanged ledger still exits green without opening anything",
+    "ledger unchanged; nothing to commit" in _DS_PUB_JOB,
+    "the unchanged path is this job's ordinary success -- the only shape it "
+    "was ever green in -- and a re-run at the same window must not open a PR "
+    "any more than it must add an empty commit",
+)
+# The #201 splice sits on the MERGE of that PR, not on the push lane: it used
+# to run after the push step, so GH013's exit 1 meant it never ran at all and
+# #201's body carries no delivery-status region. Three facts decide whether it
+# runs, and each is a fact about the wiring rather than the tree -- the
+# env-matrix lesson: the workflow must hear `closed`, the job must demand
+# `merged` and the ledger branch (a declined PR or any other merge must not
+# edit #201), and it must read the merge commit, so the issue carries what
+# main carries rather than a branch's proposal.
+_DS_TYPES = re.search(r"^    types: \[([^\]]*)\]", _DS_GOV, re.M)
+R.check(
+    "the workflow hears `closed`, so the splice can run at all",
+    bool(_DS_TYPES)
+    and "closed" in [t.strip() for t in _DS_TYPES.group(1).split(",")],
+    f"pull_request types: {_DS_TYPES.group(1) if _DS_TYPES else None}; a job "
+    "keyed on a merge event fires only if its activity type is subscribed, "
+    "and without this the splice is green-skipped on every merge -- the "
+    "shape `policy_lint_envmatrix.mjs` exists to catch",
+)
+_DS_SPLICE_HEAD = _DS_SPLICE_JOB.split("\n    steps:")[0]
+R.check(
+    "the splice fires on the ledger PR's merge alone",
+    "github.event.pull_request.merged == true" in _DS_SPLICE_HEAD
+    and "'ci/delivery-ledger'" in _DS_SPLICE_HEAD,
+    f"merged-guard={'merged == true' in _DS_SPLICE_HEAD}, "
+    f"branch-guard={'ci/delivery-ledger' in _DS_SPLICE_HEAD}; a PR closed "
+    "unmerged, or any other merge, must not edit #201 -- the only body this "
+    "lane may rewrite is one the ledger PR landed",
+)
+R.check(
+    "and splices the landed ledger, not the branch's proposal",
+    "merge_commit_sha" in _DS_SPLICE_JOB,
+    "the checkout is the merge commit, where docs/delivery-status.json is "
+    "main's; reading a branch head instead would publish content a review "
+    "had not yet accepted, which is what moving the splice onto the merge "
+    "exists to prevent",
 )
 R.check(
     "the ledger script is classified: NOT_A_TEST, and not on INERT",

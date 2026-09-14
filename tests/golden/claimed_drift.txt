@@ -229,3 +229,14 @@ coord_two_zone # sysid as_dict gains slab_mode_tau_hours: null (add-only)
 # 4187 -> 4208 keys, every collapsed:false. Nothing else moved -- solver
 # fixtures and the card claim file are untouched by this branch.
 
+
+# Owner-requested feature (in-session 2026-09-14): the input_problem
+# binary sensor names its sources. The coordinator's _input_health_view
+# publishes two new keys beside the existing watchdog ones, so every
+# coordinator capture gains them; healthy scenarios carry empty lists.
+# Measured on this branch vs abb31e9 (drift mode): exactly 2 leaves per
+# fixture, problem_inputs and problem_messages, both empty lists, zero
+# float moves -- re-recording on this box reproduced every other leaf
+# byte-identically, which is why recording here is honest. (That diff is
+# this file's BASELINE since the merge that resolved this conflict: its
+# claims were consumed there and are not restated.)

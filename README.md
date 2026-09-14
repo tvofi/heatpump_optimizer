@@ -522,7 +522,7 @@ Compressor Frequency Advisor.
 
 | Binary sensor | On when | Notes |
 |---|---|---|
-| Input Problem | An optimizer input is stale or missing | Diagnostic; the evidence and which learners are frozen are in attributes |
+| Input Problem | An optimizer input is stale or missing | Diagnostic; `problem_inputs` names the failing entities and `problem_messages` carries one readable line per failure (e.g. `sensor.tank: stale (last report 600 min)`); the structured evidence and which learners are frozen are in attributes |
 | Open Window Detected | The house is losing heat as if a window were open | Diagnostic; learning pauses while it is on |
 | External Heat Source | Something other than the heat pump is heating the tanks | Evidence in attributes |
 | Away Mode | The away setback is active | Return time and recovery state in attributes |
@@ -812,8 +812,10 @@ sensor. Solar anticipation needs irradiance, and wind and rain anticipation need
 `wind_speed` and `precipitation` in the forecast.
 
 **Something looks wrong in the numbers.** Check **Input Problem** first — a stale
-sensor freezes the learners and is the usual cause. Then press **Diagnose Last
-Interval** and read the attribution on **Prediction Accuracy**.
+sensor freezes the learners and is the usual cause, and its `problem_messages`
+attribute says which entity and why (e.g. `sensor.tank: stale (last report 600
+min)`). Then press **Diagnose Last Interval** and read the attribution on
+**Prediction Accuracy**.
 
 ## ECL110 heat-curve control
 
