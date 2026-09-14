@@ -42,7 +42,12 @@ the point — but it must say so: `tests/golden/claimed_drift.txt` lists
 one scenario name per line (with a reason after `#`). Listed scenarios
 still print their diffs, but do not fail the gate. A claim that matched
 nothing is stale and fails too, but it is counted and reported apart
-from drift: nothing regressed, the list is simply out of date.
+from drift: nothing regressed, the list is simply out of date. A stale
+claim whose line the branch itself wrote additionally gets the named
+RUNNER-CONDITIONAL CANDIDATE message and its pre-agreed decision tree
+(#996) before the generic failure: the runner is the judge of record,
+and drift a dev box sees that the runner does not reproduce is a
+BLAS-build difference, not a property of the diff.
 
 A claim describes exactly ONE diff, and two rules keep it that way:
 
@@ -1786,6 +1791,72 @@ def stale_claims_judged(repo: str, ref: str) -> bool:
         return True
 
 
+#: The line an instance report on issue #996 opens with, at column 0. The
+#: fail-fast arm below tells a seat to post one per recorded instance, and
+#: tests/issue996_count.py counts exactly these lines to decide whether the
+#: third instance -- the trigger that re-opens the declined claim-grammar
+#: decision -- has landed. A quoted, indented or mid-line marker records
+#: nothing, so discussion around a report never inflates the tally; the
+#: message this module prints therefore shows the marker inside prose and
+#: never at column 0.
+RUNNER_CONDITIONAL_INSTANCE_MARKER = "996-instance:"
+
+#: How many recorded instances the 2026-09-13 decision priced before
+#: declining the grammar extension: v5.1.7's search-path chaos and #992's
+#: valve_storage_small_tank, both seeded into the #996 thread as marker
+#: lines. The thread is the ledger; this constant is only the threshold.
+RUNNER_CONDITIONAL_REOPEN_AT = 3
+
+
+def branch_authored_stale_claims(
+    stale: list[str], claims: dict[str, str], baseline_claims: dict[str, str]
+) -> list[str]:
+    """Which stale claims this branch itself wrote -- the #996 arm's input.
+
+    A stale claim is runner-conditional news only when the branch wrote the
+    line: the line exists because the branch's own evidence expected drift,
+    and this capture found none. A line the baseline already carries --
+    same name, same reason -- was written for another diff; that is
+    yesterday's staleness, it keeps the generic message, and an exactly
+    inherited list never gets this far (`inherited_claims_error` refuses it
+    first, in the modes that check). A rewritten reason is a rewritten
+    line, so it counts as authored; a baseline with no claim file at all
+    cannot have written any of them.
+    """
+    return [n for n in stale if baseline_claims.get(n) != claims.get(n)]
+
+
+def runner_conditional_error(name: str, ref: str) -> str:
+    """The fail-fast message for a branch-authored stale claim (#996).
+
+    PR #992's third review round established the protocol -- the runner is
+    the judge of record -- but nothing in the gate said so at the moment of
+    failure, so the fact arrived as a generic STALE CLAIM(S) red and seats
+    burned review rounds discovering it was runner-conditional chaos. This
+    message is the pre-agreed decision tree instead: name the class, name
+    the decision, and forbid the retry loop -- re-adding the claim cannot
+    make the drift real on the runner, it only re-fails the gate. Step 2
+    sends the instance to the #996 thread, whose marker-line count
+    re-opens the grammar decision at the third instance.
+    """
+    return (
+        f"RUNNER-CONDITIONAL CANDIDATE (#996 class): this branch's own\n"
+        f"claim for {name} matched nothing the capture found against {ref}.\n"
+        "If a dev box showed drift for it, that drift is BLAS-build-conditional,\n"
+        "not a property of the diff (issue #996). DECISION TREE, pre-agreed:\n"
+        "  1. remove the claim -- the runner is the judge of record;\n"
+        "  2. post the instance on issue #996 with BOTH captures' numbers\n"
+        "     (the dev box's and the runner's), one marker line per\n"
+        f"     instance, at column 0: {RUNNER_CONDITIONAL_INSTANCE_MARKER}\n"
+        "     <scenario> -- <numbers>;\n"
+        "  3. do NOT edit the claim file again -- re-adding this claim\n"
+        "     cannot make the drift real where it was absent, and only\n"
+        "     re-fails the gate. Count the recorded instances with\n"
+        "     `python3 tests/issue996_count.py`; the third re-opens the\n"
+        "     claim-grammar decision."
+    )
+
+
 def check_claims_hygiene(repo: str, ref: str) -> str | None:
     """Inherited lists and the record-PR empty rule, or None when both hold."""
     if _rev(repo, ref) is None:
@@ -2176,7 +2247,30 @@ def main() -> int:
             print("claimed in tests/golden/claimed_drift.txt and justified in")
             print("the PR. Never re-record the five sensitive fixtures on a")
             print("machine where golden.py already reports them as DIFF.")
+        # WHOSE STALE CLAIM IS IT? A branch whose three-dot moves nothing a
+        # claim excuses did not make this one stale and cannot make it fresh:
+        # the claim describes drift between two commits that are both behind
+        # it. Failing such a branch leaves it one remedy -- delete the line --
+        # and a squash then applies that deletion to the baseline, which is how
+        # #569's and #633's claims left `main`. So it is REPORTED here and
+        # judged on a branch that could have caused it, or by the deliberate
+        # act that removes it. An unanswerable three-dot keeps failing closed.
+        stale_is_ours = stale_claims_judged(repo, ref) if stale else True
         if stale:
+            # #996 fail-fast, BEFORE the generic paragraph: a stale claim
+            # whose line this branch wrote is the runner-conditional
+            # signature -- the branch's own evidence expected drift and this
+            # capture found none, which on a red runner is a BLAS-build
+            # difference and not a property of the diff. It gets the named
+            # message and the pre-agreed decision tree, so the seat stops
+            # instead of burning review rounds discovering the class. Only
+            # on a branch the staleness can belong to: elsewhere the NOT
+            # THIS BRANCH'S TO REMOVE arm below already owns the message.
+            if stale_is_ours:
+                for name in branch_authored_stale_claims(
+                    stale, claims, _claimed_at(repo, ref, CLAIM_FILE)
+                ):
+                    print("\n" + runner_conditional_error(name, ref))
             # A stale claim is not drift and must not be counted as one: the
             # three historical CI failures on main printed "N UNCLAIMED
             # DRIFT(S)" and a paragraph about regressions when nothing had
@@ -2189,16 +2283,6 @@ def main() -> int:
             print("A claim nothing uses would silently excuse the next")
             print("accidental drift, so it fails. Delete these lines; the")
             print("behaviour they describe is already gone or never came.")
-        # WHOSE STALE CLAIM IS IT? A branch whose three-dot moves nothing a
-        # claim excuses did not make this one stale and cannot make it fresh:
-        # the claim describes drift between two commits that are both behind
-        # it. Failing such a branch leaves it one remedy -- delete the line --
-        # and a squash then applies that deletion to the baseline, which is how
-        # #569's and #633's claims left `main`. So it is REPORTED here and
-        # judged on a branch that could have caused it, or by the deliberate
-        # act that removes it. An unanswerable three-dot keeps failing closed.
-        stale_is_ours = stale_claims_judged(repo, ref) if stale else True
-        if stale:
             if not stale_is_ours:
                 print("\nNOT THIS BRANCH'S TO REMOVE: the three-dot against")
                 print(f"{ref} touches neither card nor solver fixtures, so this")

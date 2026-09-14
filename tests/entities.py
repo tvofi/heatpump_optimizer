@@ -13069,6 +13069,172 @@ R.check(
     "neither is an inherited list",
 )
 
+# #996: the runner-conditional fail-fast. PR #992 round 3 established the
+# protocol -- the runner is the judge of record -- but the gate said so
+# nowhere: a claim the branch itself wrote that goes stale only on the
+# runner arrived as a generic STALE CLAIM(S) red, and the seats that hit it
+# burned review rounds discovering the class (the second instance of the
+# v5.1.7 dilemma). The owner's 2026-09-14 ruling replaces the passive
+# tripwire with an executable one: env_drift.py names the signature at the
+# moment of failure and hands over the pre-agreed decision tree, and
+# issue996_count.py counts the instances recorded on the #996 thread, where
+# the third re-opens the declined claim-grammar decision.
+import issue996_count as _i996
+
+_R996_STALE = ["wood_two_tank", "wood_coil"]
+_R996_CLAIMS = {"wood_two_tank": "r", "wood_coil": "this branch's reason"}
+_R996_BASE = {"wood_two_tank": "r"}  # the baseline carries the identical line
+R.check(
+    "the #996 arm separates a stale claim this branch wrote from one it "
+    "inherited line for line",
+    _env_drift.branch_authored_stale_claims(
+        _R996_STALE, _R996_CLAIMS, _R996_BASE
+    ) == ["wood_coil"],
+    "an identical baseline line is yesterday's staleness and keeps the "
+    "generic message; an absent or rewritten line is this branch's own "
+    "evidence of expected drift and gets the fail-fast arm",
+)
+R.check(
+    "a baseline with no claim file cannot have written any of them",
+    _env_drift.branch_authored_stale_claims(
+        _R996_STALE, _R996_CLAIMS, {}
+    ) == _R996_STALE,
+    "every claim in the tree was added by this branch's three-dot",
+)
+
+_R996_MSG = _env_drift.runner_conditional_error("wood_two_tank", "origin/main")
+R.check(
+    "the fail-fast message names the class, the judge of record, the "
+    "decision tree and the retry loop it forbids",
+    all(
+        part in _R996_MSG
+        for part in (
+            "RUNNER-CONDITIONAL CANDIDATE (#996 class)",
+            "wood_two_tank",
+            "BLAS-build-conditional",
+            "issue #996",
+            "runner is the judge of record",
+            "BOTH captures",
+            "do NOT edit the claim file again",
+        )
+    ),
+    "the pre-agreed decision tree is the payload; a restatement of the "
+    "generic stale-claim rule is what this arm replaced",
+)
+R.check(
+    "the fail-fast message says the third recorded instance re-opens the "
+    "grammar decision",
+    "third" in _R996_MSG.lower() and "re-opens" in _R996_MSG,
+    "the 2026-09-13 recorded decision priced two instances and deferred to "
+    "a third; the message must hand that trigger to the seat it fires on",
+)
+R.check(
+    "the fail-fast message shows the instance marker only inside prose, "
+    "never at column 0",
+    _env_drift.RUNNER_CONDITIONAL_INSTANCE_MARKER in _R996_MSG
+    and not any(
+        line.startswith(_env_drift.RUNNER_CONDITIONAL_INSTANCE_MARKER)
+        for line in _R996_MSG.splitlines()
+    ),
+    "a seat pasting the gate output into the #996 thread must not inflate "
+    "the instance count the counter reads",
+)
+
+# The arm must be WIRED into main()'s comparison path, not merely defined:
+# deleting the wiring reverts the live path to the generic message while
+# every unit pin above stays green. An AST read of the registered artifact
+# (fixer step 11), because executing main() here would cost a double
+# capture for one print.
+_R996_TREE = _ast_af.parse(Path("tests/env_drift.py").read_text())
+_R996_MAIN = next(
+    node
+    for node in _R996_TREE.body
+    if isinstance(node, _ast_af.FunctionDef) and node.name == "main"
+)
+
+
+def _r996_calls(node, name: str) -> bool:
+    return any(
+        isinstance(sub, _ast_af.Call)
+        and isinstance(sub.func, _ast_af.Name)
+        and sub.func.id == name
+        for sub in _ast_af.walk(node)
+    )
+
+
+R.check(
+    "main() wires the fail-fast arm: it asks the discriminator and prints "
+    "the named signature",
+    _r996_calls(_R996_MAIN, "branch_authored_stale_claims")
+    and _r996_calls(_R996_MAIN, "runner_conditional_error"),
+    "the live path, not the module namespace, is the product; this is the "
+    "pin that goes red when the wiring is deleted",
+)
+
+# The instance counter. The #996 thread is the ledger -- the two historical
+# instances the recorded decision priced (v5.1.7, #992) were seeded into it
+# as marker lines when this mechanism landed, so the counter holds no state
+# of its own and the count starts at two. Only a marker line at column 0
+# records an instance: quoted replies, indented pastes and mid-line
+# mentions are discussion, not records.
+_R996_THREAD = [
+    "Triage 2026-09-14 (old-era backlog seat): the recorded refusal stands.",
+    "Fix seat for #996 -- the thread-pinning countermeasure, executed and "
+    "refused: the divergence is build-inherent.",
+    "Owner decision (2026-09-14): #996 stays OPEN as a tripwire (superseded "
+    "by the fail-fast mechanism this counter serves).",
+    "996-instance: v5.1.7 -- search-path chaos; the dev box drifted, the "
+    "runner captured byte-identical (seeded from the 2026-09-13 decision)",
+    "996-instance: valve_storage_small_tank (#992) -- dev box 553 leaves "
+    "vs 69d2e22, runner byte-identical vs 69d2e22 (#992 comment 5655826675)",
+    "> 996-instance: a report quoted in discussion, not recorded here",
+    "the decision tree shows the form  996-instance: <scenario> -- inline",
+]
+R.check(
+    "the counter reads a fixture thread: two recorded instances, and "
+    "quotes, indented pastes or mid-line mentions record none",
+    _i996.count_instances(_R996_THREAD) == 2,
+    "the count is marker lines at column 0, nothing else",
+)
+R.check(
+    "the re-open verdict is silent below the threshold and fires the "
+    "owner's line at three and beyond",
+    _i996.reopen_verdict(2) is None
+    and (_i996.reopen_verdict(3) or "").startswith(
+        "THIRD INSTANCE — grammar decision reopens"
+    )
+    and (_i996.reopen_verdict(4) or "").startswith(
+        "THIRD INSTANCE — grammar decision reopens"
+    ),
+    "the 2026-09-14 owner decision set three as the re-open trigger",
+)
+with _tempfile.TemporaryDirectory() as _r996_dir:
+    _r996_two = Path(_r996_dir) / "two.json"
+    _r996_two.write_text(json.dumps([{"body": b} for b in _R996_THREAD]))
+    _r996_three = Path(_r996_dir) / "three.json"
+    _r996_three.write_text(json.dumps(
+        [{"body": b} for b in _R996_THREAD]
+        + [{"body": "996-instance: wood_two_tank -- dev box 799 leaves, "
+                    "runner byte-identical"}]
+    ))
+    with _contextlib.redirect_stdout(_io.StringIO()) as _r996_cap:
+        _r996_rc_two = _i996.main(["--from", str(_r996_two)])
+    _r996_said_two = _r996_cap.getvalue()
+    with _contextlib.redirect_stdout(_io.StringIO()) as _r996_cap3:
+        _r996_rc_three = _i996.main(["--from", str(_r996_three)])
+    _r996_said_three = _r996_cap3.getvalue()
+R.check(
+    "the counter's CLI reads a fixture thread: exit 0 with the count at "
+    "two, exit 2 and the re-open line at three",
+    _r996_rc_two == 0
+    and "THIRD INSTANCE" not in _r996_said_two
+    and "recorded runner-conditional instance" in _r996_said_two
+    and _r996_rc_three == 2
+    and "THIRD INSTANCE — grammar decision reopens" in _r996_said_three,
+    "the record seat runs this by hand; the crossing must be machine-"
+    "visible in both the text and the exit status",
+)
+
 # The guard is asked PER FILE KIND, never per branch (2026-09-10). `main`
 # legitimately carries card claims between a card merge and the next stamp,
 # so the first solver branch after one inherits a card list it did not write
