@@ -23,6 +23,16 @@
 // box (Apple M1, Chromium 131.0.6778.33, deviceScaleFactor 4): each RESULT
 // line is a ratio; tolerance +-0.05 (antialiasing only; the frame is frozen
 // and the payload fixed).
+//
+// RE-RECORDED at 82a5fac after #935 (same box, same payload, 2026-09-14):
+// every text.lane-label probe now reads spec_min=spec_max=4.81 light /
+// 6.13 dark (baseline: wood_lane 1.01-2.39, plan_inline 1.79-2.14,
+// expanded_plan 1.89-2.55) -- the specified fill over the label's own
+// opaque plate, which stays in the "off" raster because only the <text>
+// is hidden. The .wi-save rows are D4-02's and did not move; the
+// lane-more chevron did not move either (spec 4.018/5.414, median
+// 1.951/3.411, both ends). Re-verified unchanged at the merged tree
+// 8f5895a (after #998). Baseline recording preserved above.
 import { createRequire } from "node:module";
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import path from "node:path";

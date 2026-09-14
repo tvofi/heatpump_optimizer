@@ -204,12 +204,34 @@
 #
 # Measured at both ends with the finder's own harness,
 # tools/audit/round3/D4/card_ux_defects.mjs:
-#   away_checkbox_min_px  13   -> 24
-#   away_label_min_px     14   -> 24
-#   away_return_min_px    21.3 -> 24
+#   away_checkbox_min_px  13   ->24
+#   away_label_min_px     14   ->24
+#   away_return_min_px    21.3 ->24
 #   away strip layout     display:block, gap:normal -> display:flex, gap:12px
 #   visual gap between the two labels  0px -> 12px
 #   coarse_ruleset_min_px 24 at both ends (the control arm, undisturbed)
+
+# #935 (R4-D4-01), the lane strip's labels: 6.4 px over their own slots.
+# 30 of the 34 states move; the four that do not (no_plan, no_plan_expanded,
+# what_if_off, editor_schema) draw no lane strip at the stub's constant
+# 900-unit width -- no plan, the editor off, the config editor.
+#
+# Direction, one mechanism in every claimed state, all additive-or-moved and
+# never subtractive of another element's markup:
+#   each lane label   gains a <rect class="lane-label-plate"> painted
+#                     immediately before it -- an opaque rounded plate of
+#                     var(--card-background-color) so the label's ink is
+#                     measured against the card, not against whatever slot
+#                     ran beneath it (the wood lane's 1.01:1 instance)
+#   the label itself  moves into its own <g class="lane-labels"> emitted
+#                     after the series paths (it used to sit under the
+#                     lane-past tint, the slots and the series bars)
+#   the font          keeps its 0.8 em ratio through a chartFontUnits pass
+#                     of its own, so the rendered size is floored at 8 px
+#                     wherever the axis floor binds; at the 900-unit width
+#                     this gate renders, the font-size ATTRIBUTE is
+#                     unchanged (8 inline / 12 expanded) and only the plate
+#                     and the z-order move
 
 # #936 (audit round 4, D4-03): the 24 px HTML target floor was emitted only
 # inside @media (pointer: coarse) and its _coarsePointer() JS duplicate, so
