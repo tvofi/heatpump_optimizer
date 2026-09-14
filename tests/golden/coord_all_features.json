@@ -458,6 +458,8 @@
    ]
   },
   "prices_available": 48,
+  "problem_inputs": [],
+  "problem_messages": [],
   "projected_peak_cost": 0.0,
   "projected_peak_kw": 0.0,
   "pv": {
