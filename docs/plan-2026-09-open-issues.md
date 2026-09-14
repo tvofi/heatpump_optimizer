@@ -1258,13 +1258,14 @@ judge comments on each issue and summarised on #201.
 
 - **CLOSED. `main` is guarded, and this was the programme's last act.** Ruleset
   **`main-protect`, id `22628467`**, active on the default branch: deletion,
-  non-fast-forward, and **18 required status checks**. It replaces the two
+  non-fast-forward, and the required checks its endpoint returns, never a count
+  from here. It replaces the two
   `200 []` answers this entry used to report, under which every check here was
   advisory at the merge boundary.
   **The ordering was the whole argument, and it held.** A required context that
   never reports blocks every merge permanently, so the set could not be created
-  until `record` and `env-matrix` existed on `main`. Before creation all 18 were
-  confirmed present on **every open pull-request head**, not on one convenient
+  until `record` and `env-matrix` existed on `main`. Before creation every
+  required context was confirmed present on **every open pull-request head**, not on one convenient
   head: a required check is evaluated on the pull request's head, and that shape
   differs from a push — `CodeQL` reports on the first and not the second.
   **A skipped required check satisfies the rule**, which is why five jobs an

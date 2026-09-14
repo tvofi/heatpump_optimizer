@@ -59,7 +59,16 @@ jobs:
       - name: Refuse a Cursor rule that is not the generated form of its source
         run: node .claude/workflows/rules_sync.mjs --check
 
+      # GITHUB_TOKEN: the required-contexts class reads the live ruleset through
+      # `gh api` -- the branch endpoint and the ruleset objects -- and reddens
+      # when the corpus's literals or its recorded fixture drift from it. With
+      # no token the fetch fails and the class skips, loudly, which is its
+      # designed failure mode; CI is where the live set is meant to be checked,
+      # so the token is mapped here and costs the two API calls, about a
+      # second.
       - name: Lint the policy corpus
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node .claude/workflows/policy_lint.mjs
 
       # Three corpus checks shipped measuring nothing, each with an acceptance
@@ -352,10 +361,13 @@ jobs:
   # same shape: a conclusion that lands on a commit nobody re-reads.
   #
   # WHY IT IS NEEDED WHILE `record` ABOVE IS CORRECT. `record`'s `if:` is right
-  # and the job above says why. The defect is that `record` is one of
-  # `main-protect`'s 18 required contexts while reporting `skipped` on the only
-  # event a seat reads it at -- 17 `success` and `record` alone `skipped` at
-  # #734's head `b63470b`. So the disposition rule is enforced only after a
+  # and the job above says why. The defect, when this job shipped, was that
+  # `record` -- then one of the required contexts the `main-protect` ruleset's
+  # endpoint returned, and since dropped from them by #884 -- reported
+  # `skipped` on the only event a seat reads it at: every other required
+  # context `success` and `record` alone `skipped` at #734's head `b63470b`.
+  # The live set is the required checks that endpoint returns, never a count
+  # from here. So the disposition rule is enforced only after a
   # merge and the red lands on whoever pushes next: seven red-`main` events in
   # the five days to 2026-09-10, the last of them #734 merging with no row nine
   # hours after #708 landed the protocol saying the row precedes the merge.

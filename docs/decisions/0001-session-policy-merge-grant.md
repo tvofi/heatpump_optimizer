@@ -8,7 +8,8 @@ superseded-by: []
 
 > **Status note, 2026-09-09.** The two `200 []` answers below are spent. Ruleset
 > `main-protect` (`22628467`) has since been created and the merge boundary is
-> enforced: deletion, non-fast-forward and 18 required status checks. The grant
+> enforced: deletion, non-fast-forward and the required checks its endpoint
+> returns, never a count from here. The grant
 > this record describes has also lapsed with its session; ADR 0007 states what
 > replaced it. Nothing else here changes — the record stands as what was true
 > when the decision was taken.
