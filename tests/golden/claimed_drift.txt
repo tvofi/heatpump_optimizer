@@ -45,9 +45,9 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 6.4.4
+# claims-for: 6.5.0
 #
-# v6.4.4: v6.4.4: the round-4 fix waves. The stamp empties the list; the
+# v6.5.0: wave 3: the sysid-estimator wave, input_problem sources, and the #996 fail-fast. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 
@@ -62,11 +62,6 @@
 # changes -- the plan fixtures are untouched and unclaimed, and the
 # coordinator itself is not modified: the published dict is the only
 # surface the new field reaches.
-coord_all_features # sysid as_dict gains slab_mode_tau_hours: null (add-only)
-coord_dhw # sysid as_dict gains slab_mode_tau_hours: null (add-only)
-coord_grid_fee # sysid as_dict gains slab_mode_tau_hours: null (add-only)
-coord_minimal # sysid as_dict gains slab_mode_tau_hours: null (add-only)
-coord_two_zone # sysid as_dict gains slab_mode_tau_hours: null (add-only)
 
 # #925 (R4-D2-01, the smooth top-k bracket): this branch claims the four
 # capacity-tariff fixtures and nothing else. The logistic bisection in

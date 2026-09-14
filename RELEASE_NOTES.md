@@ -1,5 +1,34 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.5.0
+
+wave 3 of the round-4 audit programme: the sysid-estimator wave, input_problem sources, and the #996 fail-fast
+
+The sysid-estimator wave, the deferred half of #942: act 1 ports the D2-01
+intercept ridge to the two-state slab fit (#1013), act 2 adds the noise
+gate and tau_fast estimation behind the #991 identifiability gate (#1016)
+— the fitted arm refuses adoption when the input noise floor crosses the
+pre-study bar and publishes the fast time constant it measures.
+
+User-visible: the `input_problem` binary sensor names its sources (#1019)
+— `problem_inputs` and `problem_messages` attributes beside the evidence
+dict, so a flip says which input flipped it.
+
+Nightly and contract repairs: the refresh-chain contracts construct their
+coordinators with a config entry (#1015), root-causing the 09-14 nightly
+red on #1009; the closures table discloses its differential guards' stub
+seconds (#1010, closing #934); the top-k count clamp is kept and pinned (#1008, closing #932).
+
+Governance: the delivery ledger lands through a pull request with the #201
+splice on its merge (#1017, closing #1011) — the bot opens its own cycle
+PRs since the create-PR permission was enabled, and the first cycles
+landed through it (#1021, #1022); #996's runner-conditional chaos gets a
+fail-fast detector that names the signature at the moment of failure and
+counts instances on the thread (#1018).
+
+Record and ledger beats: (#1006), (#1007), (#1012), (#1014), (#1020),
+(#1021), (#1022), (#1023), (#1024), (#1025), (#1026).
+
 ## v6.4.4
 
 The round-4 fix waves: physics correctness, sourced tariffs, solver and
