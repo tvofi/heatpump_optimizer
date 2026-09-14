@@ -1480,6 +1480,46 @@ R.check(
     f"soft={_smooth_topk_sum(_tie_bill, 3, 0.05)} hard=60",
 )
 
+# Round 4 D3-S3 (#932): the clamp inside _smooth_topk_sum --
+# k = max(1, min(int(k), x.size)) -- was deletable with the suite green
+# (judged an equivalent mutant through reachable inputs: every production
+# caller pre-clamps k on the same array before the call). The clamp states
+# the billed contract -- the count is coerced onto [1, n] windows -- so it
+# is pinned here rather than removed: a count past the window count bills
+# the whole array exactly as the in-range count does, a fractional count
+# bills its floor, and a count under one bills the single largest window.
+# Each equality is call-vs-call on the same array, so it is exact: after
+# the clamp both sides run the identical computation.
+R.check(
+    "a top-k count past the window count bills the full array unchanged",
+    _smooth_topk_sum(_tie_bill, 8, 0.05) == _smooth_topk_sum(_tie_bill, 5, 0.05),
+    "k=8 over 5 windows must coerce onto k=5 (the clamp's min arm), "
+    f"got {_smooth_topk_sum(_tie_bill, 8, 0.05)} vs "
+    f"{_smooth_topk_sum(_tie_bill, 5, 0.05)}",
+)
+R.check(
+    "a fractional top-k count bills its floor (#932)",
+    _smooth_topk_sum(_tie_bill, 2.5, 0.05) == _smooth_topk_sum(_tie_bill, 2, 0.05),
+    "k=2.5 must coerce onto k=2 (the clamp's int arm), "
+    f"got {_smooth_topk_sum(_tie_bill, 2.5, 0.05)} vs "
+    f"{_smooth_topk_sum(_tie_bill, 2, 0.05)}",
+)
+R.check(
+    "a top-k count under one bills the single largest window (#932)",
+    _smooth_topk_sum(_tie_bill, 0.5, 0.05) == _smooth_topk_sum(_tie_bill, 1, 0.05),
+    "k=0.5 must coerce onto k=1 (the clamp's max arm), "
+    f"got {_smooth_topk_sum(_tie_bill, 0.5, 0.05)} vs "
+    f"{_smooth_topk_sum(_tie_bill, 1, 0.05)}",
+)
+# Null control: the smooth sum is not inert in k -- inside [1, n] the
+# billed count moves it -- so the equalities above pin the clamp's
+# coercion and not a constant function.
+R.check(
+    "an in-range top-k count still moves the billed sum (#932 null control)",
+    _smooth_topk_sum(_tie_bill, 1, 0.05) < _smooth_topk_sum(_tie_bill, 5, 0.05),
+    "k=1 bills one 20 kW window, k=5 bills all five",
+)
+
 # Round 4 D2-01 (#925): the same contract at a *high* tie level. The
 # bisection's logistic temperature is scale = tau*peak, and the tie root
 # sits at peak + scale*ln((n-k)/k), which grows with the peak while the
