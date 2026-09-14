@@ -289,6 +289,10 @@ INERT = (
     # GitHub reads it -- for review requests always, for the code-owner check
     # once decision 0008's rule is live; nothing in this gate opens it.
     ".github/CODEOWNERS",
+    # Home Assistant blueprint YAMLs, linked from README.md and
+    # docs/automations.md and imported by users through HA's blueprint
+    # importer -- shipped, read by users, read by no gate script.
+    "blueprints/",
     # Driven by the `browser` CI job, which is never scoped and runs on every
     # pull request regardless. It is a real test; it is simply not one of
     # THIS gate's scripts.
