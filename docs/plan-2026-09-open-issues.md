@@ -440,6 +440,7 @@ something that reads as complete while covering a fraction.
 | **#830** coordinator is built without config_entry | **CLOSED by [#871](https://github.com/tvofi/heatpump_optimizer/pull/871), merged `020e699`.** `config_entry=entry` on the coordinator `super().__init__`. No user-visible effect at any shipped version. | shipped |
 | **#860** six leftovers handed to the cursor lane | **CLOSED completed.** Items 1–4 and 6 shipped. Item 5 is [#856](https://github.com/tvofi/heatpump_optimizer/pull/856) (`207f39b`), merged 2026-09-12, released v6.4.3. | [#868](https://github.com/tvofi/heatpump_optimizer/pull/868) |
 | **#865** the pull-request body is one live object | **done — closed completed, no code PR.** Root-cause record was complete; steward S10 already states both orders leave one failed run. #860 item 4. | closed |
+| **#957** [R4-D11-04] tree assertions contradict the live required-check set | **in review — W4D-G1, [#1031](https://github.com/tvofi/heatpump_optimizer/pull/1031).** The live set is re-derived from both API surfaces (the branch-rules endpoint and each contributing ruleset object, required to agree — bypass-aware, the D11 brief's warning); the three live-claim sites (the governance.yml comment at the delivery-status premise, the plan's `main`-guarded CLOSED block, decision 0001's status note) now state the rule — the required checks the endpoint returns, never a count from here, the HANDOVER shape — and a counts-class instrument in `counts.mjs`/`policy_lint.mjs` checks the corpus's literals and a recorded-shape fixture against the live list name by name, so the next ruleset change reddens the tree within one push; an unreachable or rate-limited API is a printed skip, never a red, because `policy-docs` is itself a required context. Dated history rows stay as history, per the owner's decision (#201 comment 5670207248). | [#1031](https://github.com/tvofi/heatpump_optimizer/pull/1031) |
 
 **Seven feature requests, #697-#703, are in the table above and none of them is this programme's work.** They were the
 repository owner's own backlog, filed 2026-09-09 while the governance lane was running. They appear here because
@@ -1260,13 +1261,14 @@ judge comments on each issue and summarised on #201.
 
 - **CLOSED. `main` is guarded, and this was the programme's last act.** Ruleset
   **`main-protect`, id `22628467`**, active on the default branch: deletion,
-  non-fast-forward, and **18 required status checks**. It replaces the two
+  non-fast-forward, and the required checks its endpoint returns, never a count
+  from here. It replaces the two
   `200 []` answers this entry used to report, under which every check here was
   advisory at the merge boundary.
   **The ordering was the whole argument, and it held.** A required context that
   never reports blocks every merge permanently, so the set could not be created
-  until `record` and `env-matrix` existed on `main`. Before creation all 18 were
-  confirmed present on **every open pull-request head**, not on one convenient
+  until `record` and `env-matrix` existed on `main`. Before creation every
+  required context was confirmed present on **every open pull-request head**, not on one convenient
   head: a required check is evaluated on the pull request's head, and that shape
   differs from a push — `CodeQL` reports on the first and not the second.
   **A skipped required check satisfies the rule**, which is why five jobs an
