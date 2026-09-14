@@ -214,21 +214,29 @@ INVENTORY: dict[str, Entry] = {
         "string constants; every member is probed against the real enum"
     ),
     "homeassistant.components.binary_sensor.BinarySensorEntity": H(
-        "attribute defaults only; the real base's state machinery is unused here"
+        "attribute defaults only, plus the device_class pass-through and the "
+        "helpers Entity base whose entity_category reads (#947)"
     ),
     # -- components.button --------------------------------------------------
     "homeassistant.components.button.ButtonEntity": S(
         "async_press raises NotImplementedError as upstream does; nothing else "
-        "of the real base is modelled",
+        "of the real base is modelled beyond the helpers Entity base it now "
+        "inherits, whose entity_category reads (#947)",
         absent=("async_press_action", "async_added_to_hass"),
     ),
     # -- components.climate -------------------------------------------------
     "homeassistant.components.climate.ClimateEntityFeature": H("integer flags, probed"),
     "homeassistant.components.climate.HVACMode": H("string constants, probed"),
     "homeassistant.components.climate.HVACAction": H("string constants, probed"),
-    "homeassistant.components.climate.ClimateEntity": H("attribute defaults only"),
+    "homeassistant.components.climate.ClimateEntity": H(
+        "attribute defaults only; inherits helpers Entity so entity_category "
+        "reads (#947)"
+    ),
     # -- components.datetime ------------------------------------------------
-    "homeassistant.components.datetime.DateTimeEntity": H("attribute defaults only"),
+    "homeassistant.components.datetime.DateTimeEntity": H(
+        "attribute defaults only; inherits helpers Entity so entity_category "
+        "reads (#947)"
+    ),
     # -- components.diagnostics ---------------------------------------------
     "homeassistant.components.diagnostics.REDACTED": H("a constant, probed for equality"),
     "homeassistant.components.diagnostics.async_redact_data": F(
@@ -280,13 +288,19 @@ INVENTORY: dict[str, Entry] = {
         "PROMOTION PATH: nightly_ha.py boots a real hass, so a later seat can "
         "run the hass-dependent contracts after boot rather than before it, "
         "which would promote this and the five below in one move. Upstream's "
-        "numeric conversion and its state-class warning are still not modelled"
+        "numeric conversion and its state-class warning are still not modelled. "
+        "device_class and state_class pass through to _attr_* as upstream's "
+        "properties do (#947, expect=\"both\" contracts below); the base they "
+        "sit on is helpers Entity, whose entity_category is modelled there"
     ),
     "homeassistant.components.sensor.NON_NUMERIC_DEVICE_CLASSES": H(
         "a transcribed set; every member is probed against upstream's own"
     ),
     # -- components.switch --------------------------------------------------
-    "homeassistant.components.switch.SwitchEntity": H("attribute defaults only"),
+    "homeassistant.components.switch.SwitchEntity": H(
+        "attribute defaults only; inherits helpers Entity so entity_category "
+        "reads (#947)"
+    ),
     # -- config_entries -----------------------------------------------------
     "homeassistant.config_entries.SOURCE_RECONFIGURE": H("a constant, probed"),
     "homeassistant.config_entries.HANDLERS": S(
@@ -425,6 +439,14 @@ INVENTORY: dict[str, Entry] = {
     # -- helpers.entity -----------------------------------------------------
     "homeassistant.helpers.entity.DeviceInfo": H("a dict subclass, as upstream's TypedDict"),
     "homeassistant.helpers.entity.EntityCategory": H("string constants, probed"),
+    "homeassistant.helpers.entity.Entity": S(
+        "only entity_category is modelled -- the one property whose absence "
+        "made every platform's public read vacuously None (#947: six of D8 "
+        "round 4's instrument check classes read zero for a reason that had "
+        "nothing to do with the code under test). The real base's "
+        "name/available/state machinery stays unmodelled",
+        absent=("available", "name", "unique_id"),
+    ),
     # -- helpers.entity_platform --------------------------------------------
     "homeassistant.helpers.entity_platform.AddEntitiesCallback": H(
         "``object``; a type alias nothing calls"
@@ -1333,6 +1355,105 @@ def _sensor_enum_misdeclared():
         native_value = "idle"
 
     assert raises(lambda: _United().state)
+
+
+# -- the three public pass-throughs (#947) ------------------------------------
+# The stub's platform bases declared no device_class / state_class /
+# entity_category property, so getattr(ent, "device_class") was None for
+# EVERY entity regardless of what the tree declared, and any instrument check
+# keyed on the public property read zero vacuously -- six of D8 round 4's
+# check classes did, which is the #947 finding. These contracts pin the reads
+# to upstream's own semantics: _attr_* when the attribute exists, else None.
+# expect="both" because nothing here needs a running hass, so the nightly
+# real-Home-Assistant lane executes the same statement against upstream.
+
+@contract(
+    "homeassistant.components.sensor.SensorEntity",
+    "device_class reads _attr_device_class through the public property",
+    cite="components/sensor/__init__.py -- the device_class cached_property returns _attr_device_class when set",
+)
+def _sensor_device_class_read():
+    from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
+
+    class _D(SensorEntity):
+        _attr_device_class = SensorDeviceClass.POWER
+
+    assert _D().device_class == SensorDeviceClass.POWER
+    assert SensorEntity().device_class is None
+
+
+@contract(
+    "homeassistant.components.sensor.SensorEntity",
+    "state_class reads _attr_state_class through the public property",
+    cite="components/sensor/__init__.py -- the state_class cached_property returns _attr_state_class when set",
+)
+def _sensor_state_class_read():
+    from homeassistant.components.sensor import SensorEntity, SensorStateClass
+
+    class _M(SensorEntity):
+        _attr_state_class = SensorStateClass.MEASUREMENT
+
+    assert _M().state_class == SensorStateClass.MEASUREMENT
+    assert SensorEntity().state_class is None
+
+
+@contract(
+    "homeassistant.components.binary_sensor.BinarySensorEntity",
+    "device_class reads _attr_device_class through the public property",
+    cite="components/binary_sensor/__init__.py -- the device_class cached_property returns _attr_device_class when set",
+)
+def _binary_sensor_device_class_read():
+    from homeassistant.components.binary_sensor import (
+        BinarySensorDeviceClass,
+        BinarySensorEntity,
+    )
+
+    class _P(BinarySensorEntity):
+        _attr_device_class = BinarySensorDeviceClass.PROBLEM
+
+    assert _P().device_class == BinarySensorDeviceClass.PROBLEM
+    assert BinarySensorEntity().device_class is None
+
+
+@contract(
+    "homeassistant.helpers.entity.Entity",
+    "entity_category reads _attr_entity_category through the public property",
+    cite="helpers/entity.py -- the entity_category cached_property returns _attr_entity_category when set",
+)
+def _entity_category_read():
+    from homeassistant.helpers.entity import Entity, EntityCategory
+
+    class _E(Entity):
+        _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    assert _E().entity_category == EntityCategory.DIAGNOSTIC
+    assert Entity().entity_category is None
+
+
+@contract(
+    "homeassistant.helpers.entity.Entity",
+    "every platform entity base resolves entity_category",
+    cite="components/<domain>/__init__.py -- each platform entity derives from Entity",
+)
+def _entity_category_every_platform():
+    from homeassistant.components.binary_sensor import BinarySensorEntity
+    from homeassistant.components.button import ButtonEntity
+    from homeassistant.components.climate import ClimateEntity
+    from homeassistant.components.datetime import DateTimeEntity
+    from homeassistant.components.sensor import SensorEntity
+    from homeassistant.components.switch import SwitchEntity
+    from homeassistant.helpers.entity import EntityCategory
+
+    for base in (
+        SensorEntity,
+        BinarySensorEntity,
+        ButtonEntity,
+        ClimateEntity,
+        DateTimeEntity,
+        SwitchEntity,
+    ):
+        probe = type("P", (base,), {"_attr_entity_category": EntityCategory.CONFIG})
+        assert probe().entity_category == EntityCategory.CONFIG, base.__name__
 
 
 # ---------------------------------------------------------------------------

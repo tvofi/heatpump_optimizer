@@ -45,9 +45,16 @@ counts only, contention-immune):
        measured_power, compressor_frequency_advisor)
        own_dc_with_icon=31  own_nodc_without_icon=0
        --perturb drop-icon2: own_entity_without_icon=5
-    C: own_vacuous_dc_reads>0 own_vacuous_sc_reads>0 own_vacuous_cat_reads>0
+    C: D8-INST, at the audit head 0855277 (the finding's state, pre-#947):
+       own_vacuous_dc_reads>0 own_vacuous_sc_reads>0 own_vacuous_cat_reads>0
        prop-read checks: all four 0; corrected read: timestamp_naive>=1
        own_declared_entity_category=20 (=1500 over the finder's 75 cells)
+       After #947's stub repair (this branch): own_vacuous_*_reads=0 for all
+       three and the prop-read checks go live (naive=1), matching the
+       corrected read -- the vacuity is closed, not bypassed.
+    B's icons figures above are the audit-head 0855277 record; the icons fix
+    that landed after the audit moves entity_without_icon to 0 and
+    dc_with_icon to 35 on main.
 """
 from __future__ import annotations
 

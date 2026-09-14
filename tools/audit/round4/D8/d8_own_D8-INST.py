@@ -21,12 +21,23 @@ COMMAND (from a tree root):
       /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 \
       tools/audit/round4/D8/d8_own_D8-INST.py
 
-EXPECTED (baseline 7dd68dd and branch head 0855277; 8-core Apple M1):
+EXPECTED (baseline 7dd68dd and branch head 0855277 -- the pre-#947 defect:
+0 of the 3 properties existed and every property-path read None):
     stub_property_declarations=0 properties          (0 of the 3 exist)
     property_path_dc_nonnone=0 property_path_sc_nonnone=0
     property_path_ec_nonnone=0                       (the vacuity)
     attr_path_ec_declared_per_cell=20  x5 cells = 100 (finder: 20 x 75 = 1500)
+    ec_declared_5cells_prop=0
     injected x4: attr_path_fires=4 property_path_fires=0
+After #947's stub repair (SensorEntity.device_class/state_class,
+Entity.entity_category, BinarySensorEntity.device_class):
+    stub_property_declarations=2 properties          (device_class, state_class)
+    stub_anywhere_property_declarations=4 properties (+ binary_sensor + Entity)
+    stub_mro_property_declarations=3 properties
+    property_path_dc_nonnone=32 property_path_sc_nonnone=45
+    property_path_ec_nonnone=18                      (== the _attr_* path)
+    ec_declared_5cells_prop=90 == ec_declared_5cells_attr
+    injected x4: attr_path_fires=4 property_path_fires=4
 All integers, deterministic, contention-immune.
 """
 from __future__ import annotations
