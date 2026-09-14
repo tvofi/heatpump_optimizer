@@ -80,7 +80,10 @@ class InputHealthBinarySensor(_OptimizerBinarySensorBase):
 
     Reported as a problem rather than as a status so that a failure is visible
     instead of silent. A dead sensor otherwise degrades the plan and poisons
-    the learners with nothing at all to show for it.
+    the learners with nothing at all to show for it. The attributes name the
+    culprits: ``problem_inputs`` carries the failing entities and
+    ``problem_messages`` one readable line per failure, because a flag a user
+    cannot act on asks them to audit every configured sensor by hand.
     """
 
     _attr_device_class = BinarySensorDeviceClass.PROBLEM
@@ -102,6 +105,8 @@ class InputHealthBinarySensor(_OptimizerBinarySensorBase):
             "summary": data.get("input_health"),
             "stale_inputs": data.get("stale_inputs", []),
             "problems": data.get("input_problems", []),
+            "problem_inputs": data.get("problem_inputs", []),
+            "problem_messages": data.get("problem_messages", []),
             "input_ages_minutes": data.get("input_ages_minutes", {}),
             "learners_frozen": data.get("learners_frozen", False),
             "learner_freeze_reason": data.get("learner_freeze_reason"),

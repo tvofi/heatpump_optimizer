@@ -230,6 +230,24 @@ R.check(
     any(d["entity_id"] == "sensor.indoor" for d in health.details()),
 )
 
+# The owner's ask (2026-09-14): the input_problem flag must say WHICH
+# input flipped it. The health snapshot derives the two published shapes
+# from the same readings the flag itself reads: the failing entity ids,
+# and one short line per failure.
+R.check(
+    "the failing entity ids are listed",
+    health.problem_entity_ids == ["sensor.indoor", "sensor.tank"],
+)
+R.check(
+    "each failure reads as one line naming entity and class",
+    health.problem_messages()
+    == [
+        "sensor.tank: unavailable",
+        "sensor.indoor: stale (last report 600 min)",
+    ],
+    str(health.problem_messages()),
+)
+
 # Units: guessing kW would read 3000 W as 3000 kW.
 R.check("watts are converted to kW", normalize_power_kw(3000.0, "W") == 3.0)
 R.check("kilowatts pass through", normalize_power_kw(3.0, "kW") == 3.0)
@@ -253,6 +271,47 @@ bad = bad_unit.read_power_kw("heat_pump_power_entity")
 R.check(
     "a wrongly-united power entity yields nothing",
     bad.value is None and bad.problem == "unknown_unit",
+)
+R.check(
+    "an unknown unit reads as words, not a token",
+    bad_unit.health.problem_messages() == ["sensor.pump_power: unknown unit"],
+    str(bad_unit.health.problem_messages()),
+)
+
+# The word-valued classes reach the same list: an unrecognised mode word
+# (read_state with a valid set) and a free-text flag sensor that is not a
+# flag (read_bool, strict outside the flag domains).
+_wording_reader = InputReader(
+    FakeHass(
+        {
+            "sensor.mode": FakeState("banana"),
+            "sensor.flag": FakeState("maybe"),
+        }
+    ),
+    {
+        **CONFIG,
+        "heat_pump_mode_entity": "sensor.mode",
+        "heat_pump_defrost_entity": "sensor.flag",
+    },
+    now=lambda: NOW,
+)
+_wording_reader.read_state(
+    "heat_pump_mode_entity", valid=("heating", "idle", "dhw", "off")
+)
+_wording_reader.read_bool("heat_pump_defrost_entity")
+R.check(
+    "every word-valued failure class renders in words a user can read",
+    _wording_reader.health.problem_messages()
+    == [
+        "sensor.flag: not a yes/no flag",
+        "sensor.mode: unrecognized state",
+    ],
+    str(_wording_reader.health.problem_messages()),
+)
+R.check(
+    "an unconfigured slot contributes no source and no line",
+    _wording_reader.health.problem_entity_ids == ["sensor.flag", "sensor.mode"],
+    str(_wording_reader.health.problem_entity_ids),
 )
 
 # Temperature and energy units (#961): Home Assistant converts a
@@ -1478,6 +1537,46 @@ R.check(
     "smooth top-k on a k-wide tie recovers the billed sum",
     abs(_smooth_topk_sum(_tie_bill, 3, 0.05) - 60.0) < 0.05,
     f"soft={_smooth_topk_sum(_tie_bill, 3, 0.05)} hard=60",
+)
+
+# Round 4 D3-S3 (#932): the clamp inside _smooth_topk_sum --
+# k = max(1, min(int(k), x.size)) -- was deletable with the suite green
+# (judged an equivalent mutant through reachable inputs: every production
+# caller pre-clamps k on the same array before the call). The clamp states
+# the billed contract -- the count is coerced onto [1, n] windows -- so it
+# is pinned here rather than removed: a count past the window count bills
+# the whole array exactly as the in-range count does, a fractional count
+# bills its floor, and a count under one bills the single largest window.
+# Each equality is call-vs-call on the same array, so it is exact: after
+# the clamp both sides run the identical computation.
+R.check(
+    "a top-k count past the window count bills the full array unchanged",
+    _smooth_topk_sum(_tie_bill, 8, 0.05) == _smooth_topk_sum(_tie_bill, 5, 0.05),
+    "k=8 over 5 windows must coerce onto k=5 (the clamp's min arm), "
+    f"got {_smooth_topk_sum(_tie_bill, 8, 0.05)} vs "
+    f"{_smooth_topk_sum(_tie_bill, 5, 0.05)}",
+)
+R.check(
+    "a fractional top-k count bills its floor (#932)",
+    _smooth_topk_sum(_tie_bill, 2.5, 0.05) == _smooth_topk_sum(_tie_bill, 2, 0.05),
+    "k=2.5 must coerce onto k=2 (the clamp's int arm), "
+    f"got {_smooth_topk_sum(_tie_bill, 2.5, 0.05)} vs "
+    f"{_smooth_topk_sum(_tie_bill, 2, 0.05)}",
+)
+R.check(
+    "a top-k count under one bills the single largest window (#932)",
+    _smooth_topk_sum(_tie_bill, 0.5, 0.05) == _smooth_topk_sum(_tie_bill, 1, 0.05),
+    "k=0.5 must coerce onto k=1 (the clamp's max arm), "
+    f"got {_smooth_topk_sum(_tie_bill, 0.5, 0.05)} vs "
+    f"{_smooth_topk_sum(_tie_bill, 1, 0.05)}",
+)
+# Null control: the smooth sum is not inert in k -- inside [1, n] the
+# billed count moves it -- so the equalities above pin the clamp's
+# coercion and not a constant function.
+R.check(
+    "an in-range top-k count still moves the billed sum (#932 null control)",
+    _smooth_topk_sum(_tie_bill, 1, 0.05) < _smooth_topk_sum(_tie_bill, 5, 0.05),
+    "k=1 bills one 20 kW window, k=5 bills all five",
 )
 
 # Round 4 D2-01 (#925): the same contract at a *high* tie level. The
@@ -31077,6 +31176,169 @@ R.check(
     f"{_arm942_slow._t4_refreshes} -- arming a plant the fit cannot "
     "interpret burns a night to produce a guard refusal; the refresh is "
     "what publishes the refusal",
+)
+
+
+# -- the sysid-estimator wave, first act: the D2-01 intercept ridge ported --
+# to the two-state slab fit (#942: pre-study 5656402482, ratification
+# 5659441129). Blocker A of the pre-study's frontier: the 0.8 degC comfort
+# bound keeps dT within ~2% of its mean, so UA and G are collinear and the
+# unridged two-state simulation-error fit is noise-wrecked on the nightly
+# window at ANY sigma (light_new at 0.01 degC re-derived on this tree:
+# -98.5/+117.1 p5/p95, pre-study -91/+112); porting the D2-01 instrument's
+# intercept regularization -- one pseudo-observation G -> gains_prior_kw at
+# 0.1 kW width in the residual vector -- lands the band at single digits
+# (-4.0/+3.3 re-derived; pre-study -6.7/+4.2). The fit lands BEHIND the
+# #991 gate: it runs only where the arm-time identifiability gate passed on
+# a declared plant, and every gate-refused plant keeps the one-state path's
+# behavior (the null control below, plus the #942 block's own refusals).
+
+_RIDGE_SEED0 = 20260913
+_RIDGE_NOW = datetime(2026, 1, 15, 23, 0, tzinfo=UTC)
+_RIDGE_COP = 3.0
+#: The drive's electrical ceiling. A preset's own ceiling lets the sizer
+#: target the comfort bound exactly (peak ~0.78 of the 0.8 allowance), and
+#: the abort check reads the SAME bound -- so sensor noise alone aborts
+#: two thirds of draws at 0.01 degC (measured at base). That knife-edge is
+#: pre-existing production behavior this wave deliberately does not touch;
+#: the drive caps power so the step is a legal sub-maximal experiment with
+#: noise margin, peak ~0.65 C.
+_RIDGE_MAX_POWER_KW = 3.5
+
+
+def _ridge_drive(params, sigma_c, seed, declare_plant=True):
+    """The production protocol on a two-state plant, sensor at sigma_c.
+
+    The plant rolls on the production ``ThermalModel``; the recorder sees
+    the noisy room series a real sensor would publish. Returns
+    ``(recorder, SysIdResult, true UA)``. ``declare_plant=False`` drives
+    the harness style -- armed without a plant, so the #991 gate never ran.
+    """
+    rng = np.random.default_rng(seed)
+    model = ThermalModel(params)
+    ua_true = params.heat_loss_coefficient * params.house_heat_loss_scale
+    gains = float(params.internal_gains)
+    sid = SystemIdentification(
+        _SysIdModule.SysIdConfig(enabled=True, min_days_between_runs=0.0)
+    )
+    assert sid.arm(_RIDGE_NOW, plant=params if declare_plant else None)
+    outdoor = 0.0
+    ks = max(float(params.slab_heat_transfer), 1e-9)
+    hold_thermal = max(ua_true * (21.0 - outdoor) - gains, 0.0)
+    state = ThermalState(
+        room_temperature=21.0,
+        slab_temperature=21.0 + hold_thermal / ks,
+        outdoor_temperature=outdoor,
+    )
+    prices = np.full(48, 1.0)
+    when = _RIDGE_NOW
+    dt_h = 0.25
+    for _ in range(int(5.0 / dt_h) + 4):
+        reading = state.room_temperature + rng.normal(0.0, sigma_c)
+        override = sid.step(
+            now=when,
+            room_temp=reading,
+            outdoor_temp=outdoor,
+            price=0.1,
+            price_horizon=prices,
+            learner_samples=0,
+            max_power_kw=_RIDGE_MAX_POWER_KW,
+            cop=_RIDGE_COP,
+            plan_power_kw=hold_thermal / _RIDGE_COP,
+            house_ua=ua_true,
+            house_capacity=float(params.room_thermal_mass),
+            house_gains=gains,
+            house_slab_mass=float(params.slab_thermal_mass),
+            house_slab_transfer=float(params.slab_heat_transfer),
+        )
+        if not sid.active:
+            break
+        elec = hold_thermal / _RIDGE_COP if override is None else float(override)
+        state = model.simulate_step(
+            state,
+            electrical_power=0.0,
+            outdoor_temp=outdoor,
+            dt_hours=dt_h,
+            external_heat_kw=elec * _RIDGE_COP,
+        )
+        when += timedelta(hours=dt_h)
+    return sid, sid.result, ua_true
+
+
+def _ridge_ensemble(params, sigma_c):
+    """n=16 draws of the drive at sigma_c: (bias %, refusal reasons)."""
+    bias, refused = [], []
+    for _k in range(16):
+        _sid, _rr, _ru = _ridge_drive(params, sigma_c, _RIDGE_SEED0 + _k)
+        if _rr.completed and _rr.heat_loss_kw_per_c is not None:
+            bias.append((_rr.heat_loss_kw_per_c - _ru) / _ru * 100.0)
+        else:
+            refused.append(_rr.reason)
+    return bias, refused
+
+
+_ridge_sid0, _ridge_res0, _ridge_ua0 = _ridge_drive(
+    _p942("typical_slab", 100.0), 0.01, _RIDGE_SEED0
+)
+R.check(
+    "a gate-passing plant arms WITH its slab pair recorded for the two-state "
+    "fit, and the fit that ran is the slab fit (absent before the wave)",
+    getattr(_ridge_sid0, "_slab_pair", None) is not None
+    and callable(getattr(_ridge_sid0, "identify_slab", None))
+    and getattr(_ridge_sid0, "_slab_fit_used", False) is True,
+    f"pair {getattr(_ridge_sid0, '_slab_pair', None)!r} "
+    f"used {getattr(_ridge_sid0, '_slab_fit_used', None)!r} "
+    f"reason {_ridge_res0.reason!r} -- the pre-study's probe had to fit in "
+    "/tmp because no production two-state fit existed; this pins that the "
+    "wave landed one and routed the experiment through it",
+)
+
+_ridge_bias, _ridge_refused = _ridge_ensemble(_p942("typical_slab", 100.0), 0.01)
+R.check(
+    "the ported ridge lands the slab fit's UA bias inside the pre-study's "
+    "ported band (+-10% p5/p95) at 0.01 degC (pre-study ported -6.7/+4.2 "
+    "light_new, -6.5/+4.7 fast-slab; unridged -91/+112)",
+    len(_ridge_bias) >= 12
+    and float(np.percentile(_ridge_bias, 5)) >= -10.0
+    and float(np.percentile(_ridge_bias, 95)) <= 10.0,
+    f"n={len(_ridge_bias)} refused={[r[:40] for r in _ridge_refused]} "
+    f"p5={float(np.percentile(_ridge_bias, 5)):+.1f} "
+    f"p95={float(np.percentile(_ridge_bias, 95)):+.1f} "
+    f"mean={float(np.mean(_ridge_bias)):+.1f} -- the band the wave pinned as "
+    "the conditioning property; with the ridge's residual deleted the same "
+    "drive completes only 6 of 16 draws (guards refuse the unridged fits) "
+    "and the survivors' band opens to -14/+11",
+)
+_ridge_bias2, _ridge_refused2 = _ridge_ensemble(
+    _p942("typical_slab", 100.0), 0.02
+)
+R.check(
+    "the band holds at the ratification's noise ceiling 0.02 degC (+-15%; "
+    "pre-study ported -9.6/+6.9 on light_new, -8.6/+9.5 fitted-arm "
+    "fast-slab)",
+    len(_ridge_bias2) >= 12
+    and float(np.percentile(_ridge_bias2, 5)) >= -15.0
+    and float(np.percentile(_ridge_bias2, 95)) <= 15.0,
+    f"n={len(_ridge_bias2)} refused={[r[:40] for r in _ridge_refused2]} "
+    f"p5={float(np.percentile(_ridge_bias2, 5)):+.1f} "
+    f"p95={float(np.percentile(_ridge_bias2, 95)):+.1f}",
+)
+_ridge_sidn, _ridge_null, _ = _ridge_drive(
+    _p942("typical_slab"), 0.01, _RIDGE_SEED0, declare_plant=False
+)
+R.check(
+    "armed without a plant the fit is still the one-state regression (null "
+    "control: the slab fit does not run ungated, so gate-refused presets "
+    "keep the #942 refusals)",
+    not _ridge_null.completed
+    and _ridge_sidn.phase == "done"
+    and getattr(_ridge_sidn, "_slab_fit_used", False) is False,
+    f"phase {_ridge_sidn.phase!r} reason {_ridge_null.reason!r} -- the "
+    "experiment ran to completion and the ONE-STATE fit refused it on "
+    "model-class grounds ('fit gave implausible signs', the #942 finding's "
+    "own mechanism), exactly as before the wave: the harness caller that "
+    "declares no plant keeps the one-state behavior, and the gate-refused "
+    "presets' arm-time refusals are pinned in the #942 block above",
 )
 
 

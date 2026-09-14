@@ -172,6 +172,27 @@ class InputHealth:
             )
         return out
 
+    @property
+    def problem_entity_ids(self) -> list[str]:
+        """Entity ids of every failing input, so the flag names its sources.
+
+        The same readings :meth:`details` reports, reduced to the identity a
+        user configured. Sorted and deduplicated: one entity may fill two
+        slots, and the question this answers is "which sensor do I go and
+        fix", asked once per sensor.
+        """
+        return sorted(
+            {
+                reading.entity_id
+                for reading in self.readings.values()
+                if reading.entity_id and not reading.ok
+            }
+        )
+
+    def problem_messages(self) -> list[str]:
+        """One short line per failing input, in :meth:`details` order."""
+        return [describe_problem(entry) for entry in self.details()]
+
 
 def max_age_for(key: str, scale: float = 1.0) -> float | None:
     """Age limit in minutes for a configuration key, or ``None`` if unbounded."""
@@ -689,6 +710,36 @@ def stale_summary(health: InputHealth) -> str:
     if missing:
         parts.append(f"{len(missing)} missing")
     return ", ".join(parts)
+
+
+#: Human wording for each reading problem, for
+#: :func:`describe_problem`. Raw tokens read as codes; a user deciding
+#: which sensor to go and fix is owed words. A token not yet in this table
+#: renders as itself, so a future failure class cannot publish nothing.
+PROBLEM_WORDS: dict[str, str] = {
+    "missing_entity": "entity not found",
+    "not_boolean": "not a yes/no flag",
+    "not_numeric": "not a number",
+    "unavailable": "unavailable",
+    "unknown_unit": "unknown unit",
+    "unknown_value": "unrecognized state",
+}
+
+
+def describe_problem(entry: dict[str, Any]) -> str:
+    """One line for one :meth:`InputHealth.details` entry.
+
+    ``"sensor.indoor: stale (last report 47 min)"`` -- the entity a user
+    configured, the failure class in words, and the age when the class is
+    staleness and the reader could measure it. Staleness is the one class
+    where "how long ago" is the whole diagnosis, so it is the one class
+    that carries a number.
+    """
+    problem = str(entry.get("problem"))
+    word = PROBLEM_WORDS.get(problem, problem)
+    if problem == "stale" and (age := entry.get("age_minutes")) is not None:
+        return f'{entry["entity_id"]}: {word} (last report {age:.0f} min)'
+    return f'{entry["entity_id"]}: {word}'
 
 
 def age_of(state: Any, now: datetime) -> timedelta | None:

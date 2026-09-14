@@ -3,9 +3,13 @@
 
 FINDING: tariff.py:507 `k = max(1, min(int(k), x.size))` in
 _smooth_topk_sum replaced by `pass`. Claimed: a no-op on the one fixture that
-calls it directly (features.py:1277, k=3 over 5 values) and equivalent
-through the only production caller (tariff.py:600 inside peak_cost, which
-pre-clamps k with the same expression at tariff.py:598 before calling).
+calls it directly (features.py:1277 at the round's baseline, k=3 over 5
+values; at v6.4.4 7e3cc5a the direct calls are features.py:1479 and, from
+#925's checks, features.py:1503) and equivalent through the only production
+caller (tariff.py:600 inside peak_cost at the baseline; at v6.4.4 7e3cc5a
+the call is tariff.py:609 with the pre-clamp at tariff.py:602, and #985
+added a second caller, peak_cost_batch, clamping at :664 and calling at
+:668 — both pre-clamp k with the same expression before calling).
 
 METRIC: (a) direct probe on three inputs — the suite's own fixture shape
 (k=3, 5 values), a k>size call (k=8, 5 values) no test makes, and the
@@ -19,7 +23,10 @@ RUN (from this worktree's root; mutates ONLY ../audit-r4-verify-D3-1-scratch):
 
 EXPECTED: fixture-path diff 0.0, k>size diff > 0 (the clamp is live code the
 suite never calls), peak_cost-path diff 0.0; killed_by=none.
-BASELINE: measured against worktree HEAD 0855277 (finder used 7dd68dd)
+BASELINE: measured against worktree HEAD 0855277 (finder used 7dd68dd);
+re-derived 2026-09-14 at v6.4.4 7e3cc5a (the #925 bracket scaling moved the
+k>size arm off exact zero: S3_k_gt_size_diff=1.57731e-07 there, against
+0 at the round's trees) and at the fix/r4-932 head (see #932's PR body).
 MACHINE: 8-core Apple M1, macOS 25.6.0, python 3.11
 """
 from __future__ import annotations
