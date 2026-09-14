@@ -875,6 +875,11 @@ DEFAULT_PRICE_TILES_ENABLED: Final = False
 START_HYSTERESIS_SAMPLES: Final = 2
 #: #65 — smoothing for the daily operation-score samples (~3 weeks).
 SCORE_ALPHA: Final = 0.05
+#: #908 — consecutive free-price days (mean spot <= 0.01) after which the
+#: operation score resets to no-evidence instead of freezing: 1/SCORE_ALPHA,
+#: the EMA's own memory horizon. Past it a frozen value claims memory the
+#: score's arithmetic no longer has. Shorter runs still freeze.
+SCORE_FREE_SPAN_RESET: Final = 20
 
 # T7 — inverter frequency (#61). Observe is the default and actuates
 # nothing; control is an explicit per-install opt-in AFTER the user has

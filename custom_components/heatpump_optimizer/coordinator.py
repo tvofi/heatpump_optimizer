@@ -298,6 +298,7 @@ from .const import (
     CONF_PRICE_TILES_ENABLED,
     DEFAULT_PRICE_TILES_ENABLED,
     SCORE_ALPHA,
+    SCORE_FREE_SPAN_RESET,
     CONF_COMPRESSOR_FREQ_ENTITY,
     CONF_COMPRESSOR_FREQ_SENSOR,
     CONF_FREQ_CONTROL_MODE,
@@ -6802,14 +6803,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         day = stored.get("score_day")
         if isinstance(day, dict):
             # Same corruption barrier as the other riders: a book with a
-            # non-numeric field would raise inside every subsequent
-            # settlement and take the WHOLE update loop down for the rest
-            # of the day. A day book is one day of evidence — dropping a
-            # corrupt one costs one operation sample, never the loop.
+            # non-numeric field would take the WHOLE update loop down for
+            # the rest of the day; dropping a corrupt day book costs one
+            # operation sample, never the loop.
             try:
                 numbers = {
                     key: float(day.get(key, 0.0))
-                    for key in ("kwh", "sek", "spot_sum", "spot_h")
+                    for key in ("kwh", "sek", "spot_sum", "spot_h", "free_streak")
                 }
                 cleaned = {"day": str(day.get("day") or ""), **numbers}
                 if cleaned["day"] and all(
@@ -9327,10 +9327,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         ledger prunes itself and each month freezes exactly once.
         """
         current = month_key(when)
+        reports = self._month_reports
         closed = sorted(
-            key
-            for key in self._ledger.months
-            if key < current and key not in self._month_reports
+            k for k in self._ledger.months if k < current and k not in reports
         )
         for month in closed:
             # Defense in depth: MonthlyLedger.from_dict already quarantines
@@ -9340,7 +9339,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             # cycle forever (#D1-01) -- skip it and mark it closed with an
             # empty receipt so the cycle completes and it is not retried.
             try:
-                self._month_reports[month] = self._freeze_month_report(month)
+                reports[month] = self._freeze_month_report(month)
             except Exception:  # noqa: BLE001 -- must never wedge the coordinator
                 _LOGGER.warning(
                     "Skipping malformed ledger month %s while freezing "
@@ -9348,15 +9347,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     month,
                     exc_info=True,
                 )
-                self._month_reports[month] = {"month": month, "lines": {}}
+                reports[month] = {"month": month, "lines": {}}
         if closed:
             # Receipts follow the ledger's retention; a receipt for a month
             # the ledger no longer holds cannot be reconciled anyway.
-            extra = sorted(self._month_reports)[
-                : max(0, len(self._month_reports) - KEEP_MONTHS)
-            ]
+            extra = sorted(reports)[: max(0, len(reports) - KEEP_MONTHS)]
             for old in extra:
-                del self._month_reports[old]
+                del reports[old]
             self._schedule_ledger_save()
 
     def _freeze_month_report(self, month: str) -> dict[str, Any]:
@@ -9484,18 +9481,22 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             return
         mean_spot = _as_float(book.get("spot_sum"), 0.0) / hours
         if mean_spot <= 0.01:
-            # Free or negative-price days make the ratio meaningless; a
-            # score of "you saved nothing off zero" is not evidence.
-            return
-        paid_mean = _as_float(book.get("sek"), 0.0) / kwh
-        saved_fraction = 1.0 - paid_mean / mean_spot
-        sample = float(np.clip(saved_fraction / 0.2, 0.0, 1.0)) * 100.0
-        if self._operation_score is None:
-            self._operation_score = sample
+            # Free or negative-price days: the ratio is meaningless, no
+            # evidence. A short run freezes the EMA in place; past
+            # SCORE_FREE_SPAN_RESET closes (1/SCORE_ALPHA, the EMA's
+            # memory horizon) it resets (#908) -- no stale spring grade
+            # on a summer date, and the streak rides the day book.
+            streak = _as_float(book.get("free_streak"), 0.0) + 1.0
+            self._score_day = {"free_streak": streak}
+            if streak >= SCORE_FREE_SPAN_RESET:
+                self._operation_score = None
         else:
-            self._operation_score = (
-                (1.0 - SCORE_ALPHA) * self._operation_score + SCORE_ALPHA * sample
-            )
+            paid_mean = _as_float(book.get("sek"), 0.0) / kwh
+            saved_fraction = 1.0 - paid_mean / mean_spot
+            sample = float(np.clip(saved_fraction / 0.2, 0.0, 1.0)) * 100.0
+            if self._operation_score is not None:
+                sample = (1.0 - SCORE_ALPHA) * self._operation_score + SCORE_ALPHA * sample
+            self._operation_score = sample
         self._schedule_ledger_save()
 
     def _scores_view(self) -> dict[str, Any]:
@@ -9719,6 +9720,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
     def _insight_view(self) -> dict[str, Any]:
         """Everything T6 publishes, in one additive block."""
+        reports = self._month_reports
         return {
             "narrative": self._narrative_view(),
             "scores": self._scores_view(),
@@ -9730,9 +9732,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 "wear_price_per_start": round(self._wear_price(), 4),
             },
             "monthly_report": (
-                self._month_reports[max(self._month_reports)]
-                if self._month_reports
-                else None
+                reports[max(reports)] if reports else None
             ),
             "price_tiles": dict(self._price_tiles),
             "last_diagnosis": self._last_diagnosis,
