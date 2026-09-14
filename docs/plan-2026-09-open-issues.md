@@ -883,6 +883,36 @@ telemetry from option 1 available as the evaluation harness. #942 stays open and
 carries the design brief; the night-window finding (3) folds into the
 estimator's design rather than preceding it.
 
+**Wave act 1 landed (the ridge port, the pre-study's cheapest prerequisite):
+`sysid.identify_slab`** — the two-state simulation-error fit (UA, room
+capacity, free heat free; slab pair config-trusted) behind the #991 arm-time
+gate, with the D2-01 intercept ridge ported as one pseudo-observation
+`(G − gains_prior_kw) / 0.1 kW` in the residual vector. UA-bias p5/p95 on the
+nightly 5 h window at σ=0.01: −98.5/+117.1 % unridged against −4.0/+3.3 %
+ported (light_new, the pre-study's probe rebuilt; the pre-study measured
+−91/+112 and −6.7/+4.2); the production path (typical_slab k_s×100, the #991
+null plant) holds −3.6/+1.5 % at σ=0.01 and −7.1/+4.1 % at σ=0.02, pinned by
+the features ensemble both ends of its input range. Two constraints measured
+while landing it, binding every later act of this wave:
+
+- **The fit's solver must multi-start over the room-capacity decade.** The
+  cost surface has a competing local minimum along C_r: a 3×-off capacity
+  seed parks at −61 % UA noise-free (cost 3.9×10⁻²) where the true basin
+  sits at 0 % (cost 0), and a UA prior ±50 % wrong recovers truth exactly —
+  the fragility is the capacity direction alone. A later act that extends
+  `identify_slab` (fitting τ_fast per the ratification) must keep the
+  `for mult in (1/3, 1, 3)` start or re-measure that its parametrization
+  removed the basin, not assume it.
+- **The protocol redesign must separate the sizing target from the abort
+  bound.** `_size_step_power` targets `max_excursion_c` exactly (binary
+  search to the 0.01 kW granularity) and `_over_excursion` reads the same
+  bound, so at σ=0.01 sensor noise a ceiling-admitted, bound-targeted step
+  aborts 10 of 16 nightly draws ("room temperature drifted beyond the
+  allowed excursion") before any fit runs; the ridge's ensemble test caps
+  the drive at 3.5 kW (peak ≈0.65 °C of the 0.8 allowance) to keep the
+  experiment legal under noise. Lengthening the window alone leaves this
+  knife-edge exactly where it is.
+
 ### The UX programme — 34 items, five lanes, tracking #558
 
 Thirty-four graphics and interface changes the owner selected from a
