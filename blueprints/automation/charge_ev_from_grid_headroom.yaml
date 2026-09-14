@@ -1,0 +1,73 @@
+blueprint:
+  name: Heat Pump Optimizer - charge an EV from grid headroom
+  description: >-
+    Start a simple EV charger whenever the optimizer's Cost Power Headroom
+    sensor opens up enough room on the grid, and stop it again when the
+    headroom shrinks. The sensor is min(main fuse, capacity threshold)
+    minus the current house draw, clamped at zero, in kW. It stays
+    unavailable while nothing bounds the house: set a main fuse size in
+    the options, or enable a capacity tariff, and it appears.
+  domain: automation
+  author: tvofi
+  source_url: https://raw.githubusercontent.com/tvofi/heatpump_optimizer/main/blueprints/automation/charge_ev_from_grid_headroom.yaml
+  input:
+    headroom_sensor:
+      name: Cost Power Headroom sensor
+      description: >-
+        The optimizer's Cost Power Headroom sensor, in kW. The entity
+        prefix follows the name you gave the entry; the default assumes
+        "Heat Pump Optimizer".
+      default: sensor.heat_pump_optimizer_power_headroom
+      selector:
+        entity:
+          domain: sensor
+    start_above_kw:
+      name: Start charging above
+      description: >-
+        Start the charger when headroom rises above this many kW.
+      default: 5
+      selector:
+        number:
+          min: 0
+          max: 63
+          step: 0.1
+          unit_of_measurement: kW
+    stop_below_kw:
+      name: Stop charging below
+      description: >-
+        Stop the charger when headroom falls below this many kW. Keep it
+        below the start threshold so the two do not fight.
+      default: 2
+      selector:
+        number:
+          min: 0
+          max: 63
+          step: 0.1
+          unit_of_measurement: kW
+    charger_switch:
+      name: EV charger switch
+      description: The switch that starts and stops the charger.
+      selector:
+        entity:
+          domain: switch
+trigger:
+  - platform: numeric_state
+    entity_id: !input headroom_sensor
+    above: !input start_above_kw
+  - platform: numeric_state
+    entity_id: !input headroom_sensor
+    below: !input stop_below_kw
+action:
+  - choose:
+      - conditions:
+          - condition: numeric_state
+            entity_id: !input headroom_sensor
+            above: !input stop_below_kw
+        sequence:
+          - service: switch.turn_on
+            target:
+              entity_id: !input charger_switch
+    default:
+      - service: switch.turn_off
+        target:
+          entity_id: !input charger_switch

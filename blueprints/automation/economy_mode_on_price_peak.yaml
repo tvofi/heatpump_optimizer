@@ -1,0 +1,98 @@
+blueprint:
+  name: Heat Pump Optimizer - economy mode through the evening price peak
+  description: >-
+    Switch the optimizer's operating mode when the current electricity
+    price crosses your expensive threshold, and switch it back when the
+    price falls again. Economy lets the plan ride out expensive hours up
+    to 1.5 C below the comfort floor (never below 15 C); auto hands full
+    optimization back. set_mode acts on every loaded entry at once and
+    requests a fresh solve immediately, so the new mode shows up in the
+    plan straight away. Swap the thresholds for your market's prices.
+  domain: automation
+  author: tvofi
+  source_url: https://raw.githubusercontent.com/tvofi/heatpump_optimizer/main/blueprints/automation/economy_mode_on_price_peak.yaml
+  input:
+    price_sensor:
+      name: Cost Electricity Price (now) sensor
+      description: >-
+        The optimizer's current-price sensor, publishing the hourly spot
+        price in your currency per kWh. The entity prefix follows the name
+        you gave the entry; the default assumes "Heat Pump Optimizer".
+      default: sensor.heat_pump_optimizer_current_electricity_price
+      selector:
+        entity:
+          domain: sensor
+    price_high:
+      name: Expensive above
+      description: >-
+        Switch to the expensive-hours mode when the price rises above
+        this, in your currency per kWh.
+      default: 0.4
+      selector:
+        number:
+          min: 0
+          max: 10
+          step: 0.01
+    price_back_down:
+      name: Cheap again below
+      description: >-
+        Return to the normal mode when the price falls below this. Keep it
+        below the expensive threshold so the two do not fight.
+      default: 0.25
+      selector:
+        number:
+          min: 0
+          max: 10
+          step: 0.01
+    expensive_mode:
+      name: Mode while expensive
+      description: >-
+        The optimizer mode set while the price is above the expensive
+        threshold. Economy rides out expensive hours below the comfort
+        floor.
+      default: economy
+      selector:
+        select:
+          options:
+            - auto
+            - comfort
+            - economy
+            - boost
+            - "off"
+    normal_mode:
+      name: Mode otherwise
+      description: The optimizer mode set when the price falls back below.
+      default: auto
+      selector:
+        select:
+          options:
+            - auto
+            - comfort
+            - economy
+            - boost
+            - "off"
+trigger:
+  - platform: numeric_state
+    entity_id: !input price_sensor
+    above: !input price_high
+    id: price_high
+  - platform: numeric_state
+    entity_id: !input price_sensor
+    below: !input price_back_down
+    id: price_back_down
+action:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: price_high
+        sequence:
+          - service: heatpump_optimizer.set_mode
+            data:
+              mode: !input expensive_mode
+      - conditions:
+          - condition: trigger
+            id: price_back_down
+        sequence:
+          - service: heatpump_optimizer.set_mode
+            data:
+              mode: !input normal_mode

@@ -130,3 +130,14 @@ automation:
 The pins constrain timing only — safety still releases any slot the tank
 minimum, the legionella clock or the comfort floor cannot honour, and released
 slots are reported in the same `manual_override` attribute.
+
+## Blueprints
+
+Each example above is also shipped as an importable Home Assistant blueprint,
+one per example, taking the sensor and thresholds as inputs instead of the
+hard-coded entity ids. Import them from Settings → Automations & Scenes →
+Blueprints → Import Blueprint:
+
+- [Charge an EV from grid headroom](https://raw.githubusercontent.com/tvofi/heatpump_optimizer/main/blueprints/automation/charge_ev_from_grid_headroom.yaml) — from the first example above.
+- [Economy mode through the evening price peak](https://raw.githubusercontent.com/tvofi/heatpump_optimizer/main/blueprints/automation/economy_mode_on_price_peak.yaml) — from the second example above.
+- [Notify when a manual plan takes over](https://raw.githubusercontent.com/tvofi/heatpump_optimizer/main/blueprints/automation/notify_on_manual_plan.yaml) — from the third example above.
