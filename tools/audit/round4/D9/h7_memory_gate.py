@@ -55,6 +55,36 @@ finding's frozen record and history now):
 Tolerance: the multiples are exact rationals of committed numbers (+/- 0);
 the probe MiB are PROVISIONAL.
 
+live-header: this header is maintained against the tree; harness_headers.py executes it.
+
+FINAL RESULT (exact; #1005 review follow-up -- the marker above puts
+this harness in tests/harness_headers.py's executed set, which compares
+these lines to the run):
+    RESULT scenarios_recorded=51
+    RESULT memory_top_n=6
+    RESULT memory_budget_factor=1.5
+    RESULT detection_target=2
+    RESULT min_attrib_rss_multiple_required_to_fail=1.5
+    RESULT max_attrib_rss_multiple_required_to_fail=1.5
+    RESULT scenarios_where_2x_attrib_rss_fails=51
+    RESULT min_traced_multiple_required_to_fail=1.5
+    RESULT max_traced_multiple_required_to_fail=1.5
+    RESULT scenarios_where_2x_traced_fails=51
+    RESULT scenarios_memory_probed=6
+    RESULT scenarios_never_memory_probed=45
+    RESULT attrib_leader_label=winter_extreme/2z/dhw
+    RESULT attrib_fail_threshold_mb=26.55
+    RESULT traced_fail_threshold_mb=5.175
+    RESULT clean_attrib_rule_fires=False
+    RESULT inject2x_attrib_rule_fires=True
+Every pinned value derives from tests/stress_budgets.json or the stress
+module's constants -- exact rationals, no timing, no BLAS -- except the
+two rule-fires booleans, whose PROVISIONAL inputs sat 3.4-3.6x from the
+threshold at the re-record (clean 7.4 MiB vs 26.55, inject2x 90.1 vs
+26.55); the probe MiB themselves stay unpinned. A landing that re-records
+stress_budgets.json or moves the rule owes this block the same
+re-record -- that drift alarm is the marker's purpose.
+
 PERTURBATION: ``H7_PERTURB=factor`` sets ``STRESS_MEMORY_FACTOR=1.05``
 before importing stress, and ``min_attrib_rss_multiple_required_to_fail``
 must FALL to 1.05 -- the direction the finding's perturbation could not
