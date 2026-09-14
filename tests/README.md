@@ -17,7 +17,7 @@ then `stress.py` runs **alone** on an otherwise idle box, because its
 solve-time guard measures this machine while it solves and the rest of the
 suite must not be part of what it measures. `plan_view.py` writes the payload
 `card.mjs` reads, so those two stay in one lane in that order. A script that is
-wired into `run.sh` but that no lane actually executes fails the run, which the
+wired into `run.sh` but that no lane executes fails the run, which the
 older "is it mentioned?" grep could not see. Output is captured per script and
 replayed whole, one script at a time, once the lanes finish; `GATE_JOBS=1` puts
 it back to one script at a time with streaming output, which is what to reach
@@ -36,7 +36,7 @@ dispatch.
 A full run is about forty minutes. A change to the dashboard card genuinely
 needs `card.mjs`, `plan_view.py` and `frontend.py` — about five seconds of
 those forty minutes. On **pull requests only**, the gate runs just the scripts
-the change can actually reach:
+the change can reach:
 
 ```bash
 GATE_SCOPE=full ./tests/run.sh                       # the default, everywhere
@@ -349,7 +349,7 @@ python tests/entities.py     # entities, platforms, options pages, translations
 python tests/manual_plan.py  # manual plan pinning: parsing, solver interaction, safety release
 python tests/open_meteo.py   # the irradiance client
 python tests/solar_alignment.py  # irradiance lands on the right optimizer steps
-python tests/golden.py       # behaviour, pinned; reads GOLDEN_MODE (default drift: execs env_drift.py --all origin/main, the same measurement as the env_drift.py line below -- run one, not both, #934)
+python tests/golden.py       # default drift: env_drift.py --all, the same measurement as below (#934)
 python tests/validate.py     # 22 seasonal scenarios, asserts invariants
 python tests/edge.py         # degenerate inputs and boundary conditions
 python tests/backtest.py     # replay against alternative strategies
@@ -357,7 +357,7 @@ python tests/stress.py       # 51 combinations, 17 edge cases, economics
 python tests/rolling.py      # days of re-planning against a mismatched house
 python tests/optimality.py   # solution-quality floor against cheap challengers
 python tests/env_drift.py    # sensitive fixtures vs origin/main, same machine
-python tests/env_drift.py --fixtures  # are the COMMITTED fixtures still current?
+python tests/env_drift.py --fixtures  # are the COMMITTED fixtures current?
 python tests/plan_view.py    # plan sensor payloads, writes HPO_PLANDATA (default /tmp/plandata-<hash>.json)
 node   tests/card.mjs        # renders the dashboard card against that payload
 node   tests/setup_qa_render.mjs  # setup-page SVGs off the same payload, for designer review
