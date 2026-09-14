@@ -4,8 +4,10 @@ D1-INST (#924): these entry points used to be counters that never ran
 ``_async_update_data``, so no gate-suite lane ever exercised the base class's
 reaction chain -- ``UpdateFailed -> last_update_success False -> entities
 unavailable``, the debouncer, the listener fan-out. They now run the chain as
-upstream 2025.2.0 does, and ``tests/ha_contract.py`` pins each observable
-against both this stub and the real package (nightly lane).
+upstream 2025.2.0 does -- including ``always_update=True`` as the constructor
+default, so listeners fan out on every successful refresh, not only when data
+or success moved -- and ``tests/ha_contract.py`` pins each observable against
+both this stub and the real package (nightly lane).
 
 What is deliberately still absent (the inventory entry in ha_contract.py is
 the authority): the loop-driven interval scheduler -- the fakes carry no
@@ -126,11 +128,17 @@ class Debouncer:
 
 class DataUpdateCoordinator:
     def __init__(self, hass, logger=None, *, name=None, update_interval=None,
-                 config_entry=None, **_ignored):
+                 config_entry=None, always_update=True, **_ignored):
         self.hass = hass
         self.logger = logger
         self.name = name
         self.config_entry = config_entry
+        # Upstream's default (:75, :92) is True, and the integration's
+        # coordinator constructs with no override, so listeners are fanned
+        # out on EVERY successful refresh, not only when data or success
+        # moved (#924 round 2: the stub had pinned the change-only arm as
+        # if it were the whole condition).
+        self.always_update = always_update
         self.data = None
         # Stub telemetry: how many debounced refreshes were REQUESTED. The
         # audit instruments read it; it counts requests, never cycles.
@@ -180,10 +188,21 @@ class DataUpdateCoordinator:
             self.last_exception = err
             if self.last_update_success:
                 if log_failures:
-                    self._log(
-                        "error", "Error fetching %s data: %s", self.name, err
-                    )
+                    if isinstance(err, TimeoutError):
+                        # Upstream's TimeoutError clause logs the name alone
+                        # (:380-384); the %s-err form is UpdateFailed's.
+                        self._log("error", "Timeout fetching %s data", self.name)
+                    else:
+                        self._log(
+                            "error", "Error fetching %s data: %s", self.name, err
+                        )
                 self.last_update_success = False
+        except NotImplementedError as err:
+            # Upstream records and re-raises (:444-446): an unimplemented
+            # update method is a programming error, not a failed fetch, so
+            # it must not be latched into the unavailable-entities chain.
+            self.last_exception = err
+            raise
         except Exception as err:  # noqa: BLE001 - upstream latches, never raises
             self.last_exception = err
             self.last_update_success = False
@@ -197,7 +216,8 @@ class DataUpdateCoordinator:
         if not self.last_update_success and not previous_update_success:
             return
         if (
-            self.last_update_success != previous_update_success
+            self.always_update
+            or self.last_update_success != previous_update_success
             or previous_data != self.data
         ):
             self.async_update_listeners()
@@ -230,6 +250,12 @@ class DataUpdateCoordinator:
 
         def _remove_listener():
             self._listeners.pop(listener_id, None)
+            if not self._listeners:
+                # Upstream's __async_remove_listener_internal (:167-172)
+                # unschedules the interval AND cancels the debouncer when the
+                # last listener goes; the interval half is the declared
+                # scheduler absence, the debouncer cancel is modelled.
+                self._debounced_refresh.async_cancel()
 
         return _remove_listener
 

@@ -399,8 +399,10 @@ INVENTORY: dict[str, Entry] = {
         "subclasses HomeAssistantError, which is what lets a caller catch the "
         "base rather than a bare ValueError"
     ),
-    "homeassistant.exceptions.IntegrationError": H(
-        "the shared base of the config-entry errors, as upstream"
+    "homeassistant.exceptions.IntegrationError": F(
+        "the shared base of the config-entry errors, carrying upstream's "
+        "__str__ fallback to the cause (exceptions.py:198-203), which is "
+        "what a ConfigEntryNotReady raised from a fetch failure reports"
     ),
     "homeassistant.exceptions.ConfigEntryNotReady": F(
         "carries IntegrationError -> HomeAssistantError, which is what the "
@@ -566,10 +568,18 @@ INVENTORY: dict[str, Entry] = {
         "runs the refresh chain (#924): every entry point awaits "
         "_async_update_data, UpdateFailed flips last_update_success False "
         "without escaping, a later success flips it back, listeners are "
-        "fanned out through async_add_listener, and a failed first refresh "
-        "raises ConfigEntryNotReady. Still deliberately absent: the "
-        "loop-driven interval scheduler (no hass.loop behind the fakes), "
-        "update_method/setup_method, and the manual-push setters",
+        "fanned out through async_add_listener -- on EVERY successful "
+        "refresh, because always_update is upstream's True default (:75) "
+        "and the integration's coordinator constructs with no override -- "
+        "and a failed first refresh raises ConfigEntryNotReady. Removing "
+        "the last listener cancels the debouncer (upstream :167-172); a "
+        "NotImplementedError from the update method is recorded and "
+        "re-raised (:444-446), not latched as a failed fetch. Still "
+        "deliberately absent: the loop-driven interval scheduler (no "
+        "hass.loop behind the fakes), update_method/setup_method, the "
+        "manual-push setters, and the wrong-state report_usage warning "
+        "first refresh logs upstream (at the 2025.2.0 floor it only warns "
+        "and continues, so skipping it changes nothing)",
         absent=(
             "_schedule_refresh",
             "_handle_refresh_interval",
@@ -1337,6 +1347,168 @@ def _first_refresh_success():
 
 
 @contract(
+    "homeassistant.helpers.update_coordinator.DataUpdateCoordinator",
+    "an identical second refresh still fans out by default",
+    cite="helpers/update_coordinator.py -- `always_update: bool = True` (:75) "
+    "and the fan-out predicate `self.always_update or ...` (:474-479); the "
+    "integration's coordinator constructs with no override",
+)
+def _refresh_fans_out_when_unchanged():
+    import asyncio
+    import logging
+
+    from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+
+    async def main():
+        payload = {"v": 1}
+
+        class C(DataUpdateCoordinator):
+            def __init__(self):
+                super().__init__(
+                    _refresh_hass(), logging.getLogger("contract"), name="contract"
+                )
+
+            async def _async_update_data(self):
+                return payload  # the SAME object: nothing moves
+
+        c = C()
+        calls = []
+        c.async_add_listener(lambda: calls.append(1))
+        await c.async_refresh()
+        first = len(calls)
+        await c.async_refresh()
+        return first, len(calls)
+
+    first, total = asyncio.run(main())
+    assert first == 1, f"{first} listener calls after the first refresh"
+    assert total == 2, (
+        f"{total} listener calls after an identical second refresh -- "
+        "always_update defaults True, so the fan-out does not wait for the "
+        "data to move"
+    )
+
+
+@contract(
+    "homeassistant.helpers.update_coordinator.DataUpdateCoordinator",
+    "always_update=False holds the fan-out back until data or success moves",
+    cite="helpers/update_coordinator.py -- the same predicate (:474-479): "
+    "with always_update False, only a data or success change reaches the "
+    "listeners",
+)
+def _refresh_false_update_waits_for_change():
+    import asyncio
+    import logging
+
+    from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+
+    async def main():
+        class C(DataUpdateCoordinator):
+            def __init__(self):
+                super().__init__(
+                    _refresh_hass(),
+                    logging.getLogger("contract"),
+                    name="contract",
+                    always_update=False,
+                )
+                self.payload = {"v": 1}
+
+            async def _async_update_data(self):
+                return self.payload
+
+        c = C()
+        calls = []
+        c.async_add_listener(lambda: calls.append(1))
+        await c.async_refresh()  # None -> payload: the data moved
+        first = len(calls)
+        await c.async_refresh()  # identical payload: nothing moved
+        second = len(calls)
+        c.payload = {"v": 2}
+        await c.async_refresh()  # moved again
+        third = len(calls)
+        return first, second, third
+
+    counts = asyncio.run(main())
+    assert counts == (1, 1, 2), (
+        f"{counts} listener calls across moved/identical/moved refreshes "
+        "with always_update=False"
+    )
+
+
+@contract(
+    "homeassistant.helpers.update_coordinator.DataUpdateCoordinator",
+    "removing the last listener cancels the pending debounced refresh",
+    cite="helpers/update_coordinator.py -- __async_remove_listener_internal "
+    "(:167-172): with no listeners left, the debouncer's async_cancel runs",
+)
+def _last_listener_removal_cancels_debounce():
+    import asyncio
+    import logging
+
+    from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+
+    async def main():
+        class C(DataUpdateCoordinator):
+            def __init__(self):
+                super().__init__(
+                    _refresh_hass(), logging.getLogger("contract"), name="contract"
+                )
+                self.calls = 0
+
+            async def _async_update_data(self):
+                self.calls += 1
+                return {}
+
+        c = C()
+        remove = c.async_add_listener(lambda: None)
+        await c.async_request_refresh()  # immediate: runs now, arms cooldown
+        ran_now = c.calls
+        armed = c._debounced_refresh._timer_task
+        remove()  # the last listener goes
+        return ran_now, armed, c._debounced_refresh._timer_task
+
+    ran_now, armed, after = asyncio.run(main())
+    assert ran_now == 1
+    assert armed is not None, "the cooldown timer was never armed"
+    assert after is None, "the armed cooldown survived the last listener's removal"
+
+
+@contract(
+    "homeassistant.helpers.update_coordinator.DataUpdateCoordinator",
+    "a NotImplementedError from the update method escapes the refresh, recorded as last_exception",
+    cite="helpers/update_coordinator.py -- `except NotImplementedError as "
+    "err: self.last_exception = err; raise` (:444-446)",
+)
+def _refresh_notimplemented_escapes():
+    import asyncio
+    import logging
+
+    from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+
+    async def main():
+        class C(DataUpdateCoordinator):
+            def __init__(self):
+                super().__init__(
+                    _refresh_hass(), logging.getLogger("contract"), name="contract"
+                )
+
+            async def _async_update_data(self):
+                raise NotImplementedError("Update method not implemented")
+
+        c = C()
+        try:
+            await c.async_refresh()
+            raised = None
+        except Exception as err:  # noqa: BLE001 - the type is asserted below
+            raised = err
+        return c.last_update_success, c.last_exception, raised
+
+    ok, err, raised = asyncio.run(main())
+    assert isinstance(raised, NotImplementedError), f"raised {raised!r}"
+    assert err is raised, "last_exception is not the re-raised error"
+    assert ok is True, "a programming error was latched as a failed fetch"
+
+
+@contract(
     "homeassistant.exceptions.ConfigEntryNotReady",
     "a ConfigEntryNotReady is a HomeAssistantError",
     cite="exceptions.py -- `class ConfigEntryNotReady(IntegrationError)` on "
@@ -1346,6 +1518,21 @@ def _not_ready_is_ha_error():
     from homeassistant.exceptions import ConfigEntryNotReady, HomeAssistantError
 
     assert issubclass(ConfigEntryNotReady, HomeAssistantError)
+
+
+@contract(
+    "homeassistant.exceptions.IntegrationError",
+    "the message falls back to the cause when the error carries none",
+    cite="exceptions.py -- `def __str__: return super().__str__() or "
+    "str(self.__cause__)` (:198-203)",
+)
+def _integration_error_str_fallback():
+    from homeassistant.exceptions import IntegrationError
+
+    bare = IntegrationError()
+    bare.__cause__ = ValueError("boom")
+    assert str(bare) == "boom"
+    assert str(IntegrationError("direct")) == "direct"
 
 
 # -- helpers.entity_registry -------------------------------------------------

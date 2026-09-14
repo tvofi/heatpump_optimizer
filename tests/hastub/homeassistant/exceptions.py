@@ -33,9 +33,17 @@ class ServiceValidationError(HomeAssistantError):
 class IntegrationError(HomeAssistantError):
     """Base class for errors raised during integration setup.
 
-    Faithful to upstream's empty base: it exists so a caller can catch every
-    config-entry setup error at once, and the classes below hang off it.
+    It exists so a caller can catch every config-entry setup error at once,
+    and the classes below hang off it. Not empty upstream: the real base's
+    ``__str__`` falls back to the cause (``exceptions.py:198-203``), so an
+    integration error raised ``from`` an underlying exception reports that
+    exception when it carries no message of its own -- the shape
+    ``async_config_entry_first_refresh`` produces (#924).
     """
+
+    def __str__(self) -> str:
+        """Return a human readable error, the cause's when there is none."""
+        return super().__str__() or str(self.__cause__)
 
 
 class ConfigEntryNotReady(IntegrationError):

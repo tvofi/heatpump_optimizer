@@ -14398,6 +14398,8 @@ from harness import (
 # harness.py is a capture source, and a diff touching it makes every
 # inherited claim list this branch's to rewrite -- the corner card_drift
 # reports and the claims bot refuses to repair (#743/#747).
+# The light first refresh CONSUMES ``_skip_solve_once`` at setup -- arm it
+# after setup if a test wants it.
 _OFFLINE_PRICES = {
     "price_source": "entity",
     "price_entity": "sensor.prices",
