@@ -1,34 +1,43 @@
 """D9 round 4 / H7 -- what the stress gate's memory budget can and cannot see.
 
-``tests/stress.py`` records ``rss_peak_mb`` and ``traced_peak_mb`` for all
-fifty-one sweep scenarios and, in check mode, re-probes ``MEMORY_TOP_N``
-of them in subprocesses and compares each against the committed table:
+HISTORY (#950 D9-INST re-record, 2026-09-14): at the 7dd68dd baseline this
+harness measured the pre-#949 rule -- RSS failed at
+``probe_rss > recorded_rss + max(150.0, recorded_rss*(factor-1))`` and the
+traced arm at ``recorded*factor + 2`` -- and found it blind: the 150 MiB
+floor dominated every record, a scenario had to reach 2.53-2.64x its
+record before failing, and all fifty-one passed a doubling (D9-06,
+verified). PR #989 (2026-09-14) replaced the rule: the check budgets the
+SCENARIO-ATTRIBUTABLE component -- probe watermark minus a same-run
+empty-probe baseline -- under a pure multiplicative
+``MEMORY_BUDGET_FACTOR``, with no additive floor on either axis. This
+harness now reads the rule from the module itself
+(``stress.rss_attrib_fail_threshold`` / ``stress.traced_fail_threshold``)
+and probes through the gate's own entry point
+(``stress._run_memory_probe``, the exact interpreter/env the memory pass
+uses), so it cannot re-transcribe a rule that has moved; only the
+injection arm keeps a local probe child, because the shipped entry has no
+injection hook, and that child is the shipped body plus the allocation.
 
-    rss fails   when  probe_rss  > recorded_rss + max(150.0,
-                                    recorded_rss * (MEMORY_BUDGET_FACTOR - 1))
-    traced fails when probe_traced > recorded_traced * MEMORY_BUDGET_FACTOR + 2
+METRIC: ``attrib_multiple_required_to_fail(label)`` =
+``stress.rss_attrib_fail_threshold(recorded rss_attrib_mb) /
+recorded rss_attrib_mb``, computed from the EXECUTED module functions and
+the committed ``tests/stress_budgets.json``; ``scenarios_where_2x_fails``
+= how many of the fifty-one would fail if their attributable component
+doubled (multiple <= DETECTION_TARGET).
 
-The same file states a detection target, ``DETECTION_TARGET`` (2.0), which
-the CPU rules are sized against. This harness asks whether the memory
-rules meet it.
+It is not left as arithmetic. Three arms are EXECUTED on the recorded
+attributable-RSS leader, through the shipped entry points:
 
-METRIC: ``rss_multiple_required_to_fail(label)`` = the shipped threshold
-above divided by the recorded peak, computed from the EXECUTED module
-constants ``stress.MEMORY_BUDGET_FACTOR`` / ``stress.DETECTION_TARGET`` /
-``stress.MEMORY_TOP_N`` and the committed ``tests/stress_budgets.json``;
-``scenarios_where_2x_rss_passes`` = how many of the fifty-one would still
-pass with their RSS peak doubled.
+  baseline  the empty probe (``--memory-baseline``): interpreter+numpy,
+            subtracted from every probe below
+  clean     the scenario as shipped (``--memory-probe``)
+  inject2x  the shipped probe body plus a numpy allocation sized to double
+            the probe's RSS WATERMARK -- the round-4 demonstration's own
+            synthetic regression, kept verbatim (see the sizing note at
+            INJECT_SRC); against the attributable rule it lands the
+            component several times over its clean draw
 
-It is not left as arithmetic. Two arms are EXECUTED through the shipped
-probe body (``stress.build_case`` under ``tracemalloc`` plus
-``stress.rss_mb``, which is exactly what ``--memory-probe`` runs), in a
-fresh subprocess each, on the recorded RSS leader:
-
-  clean     the scenario as shipped
-  inject2x  the same scenario, then a numpy allocation sized to double the
-            process RSS watermark -- the synthetic 2x memory regression
-
-and the shipped rule is then applied to both probes' outputs.
+and the module's own rule is then applied to all three.
 
 COMMAND (from the repository root):
 
@@ -36,19 +45,21 @@ COMMAND (from the repository root):
       MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 \
       python3 tools/audit/round4/D9/h7_memory_gate.py
 
-EXPECTED (baseline 7dd68dd, table recorded_at in tests/stress_budgets.json):
-  scenarios_recorded = 51, memory_top_n = 6, scenarios_probed = 6,
-  min_rss_multiple_required_to_fail = 2.5 - 2.7,
-  scenarios_where_2x_rss_passes = 51,
-  inject2x_rss_rule_fires = False.
+EXPECTED (re-recorded at ad7bcdf 2026-09-14, post-#989; the 7dd68dd
+expectations -- 2.5 - 2.7x to fail, a doubling passing all 51 -- are the
+finding's frozen record and history now):
+  scenarios_recorded = 51, memory_top_n = 6,
+  min/max_attrib_rss_multiple_required_to_fail = 1.5 (+/- 0),
+  scenarios_where_2x_attrib_rss_fails = 51,
+  inject2x_attrib_rule_fires = True.
 Tolerance: the multiples are exact rationals of committed numbers (+/- 0);
 the probe MiB are PROVISIONAL.
 
 PERTURBATION: ``H7_PERTURB=factor`` sets ``STRESS_MEMORY_FACTOR=1.05``
-before importing stress. ``min_rss_multiple_required_to_fail`` must NOT
-move (the 150 MiB floor dominates), which is itself the finding;
-``H7_PERTURB=nofloor`` additionally evaluates the rule with the 150.0
-floor removed, and then the multiple must fall to MEMORY_BUDGET_FACTOR.
+before importing stress, and ``min_attrib_rss_multiple_required_to_fail``
+must FALL to 1.05 -- the direction the finding's perturbation could not
+move, because the retired 150 MiB floor pinned it at 2.53. The old
+``nofloor`` arm is gone with the floor it removed.
 
 COUNTS AND RATIOS ARE FINAL; probe MiB are PROVISIONAL.
 """
@@ -74,14 +85,24 @@ sys.path.insert(0, os.path.join(os.getcwd(), "tools", "audit", "round4", "D9"))
 import d9common as C  # noqa: E402
 
 PERTURB = os.environ.get("H7_PERTURB", "")
-if PERTURB in ("factor", "nofloor"):
+if PERTURB == "factor":
     os.environ["STRESS_MEMORY_FACTOR"] = "1.05"
 
 import stress  # noqa: E402  (module-level __main__ guard: importing runs no sweep)
 
 TABLE_PATH = "tests/stress_budgets.json"
 
-PROBE_SRC = r'''
+# The shipped probe body plus the injection: identical imports, the same
+# ``stress.build_case`` / ``stress.rss_mb`` calls ``--memory-probe`` makes,
+# then a numpy allocation sized to double the probe's RSS WATERMARK -- the
+# round-4 demonstration's own construction, kept verbatim. The sizing is
+# on the watermark, not the attributable component, because ru_maxrss is
+# a high-water mark: an allocation smaller than the headroom under the
+# build_case peak is absorbed and moves nothing (measured: a
+# recorded-component-sized injection landed the attributable draw at 0.37x
+# clean). Doubling the watermark lands the attributable component several
+# times over its clean draw, which is what the rule must catch.
+INJECT_SRC = r'''
 import json, os, sys, tracemalloc
 sys.path.insert(0, os.path.join(os.getcwd(), "tests"))
 sys.path.insert(0, os.path.join(os.getcwd(), "tests", "hastub"))
@@ -89,13 +110,11 @@ sys.path.insert(0, os.path.join(os.getcwd(), "custom_components"))
 import numpy as np
 import stress
 spec = json.loads(sys.argv[1])
-inject = sys.argv[2] == "1"
 tracemalloc.start()
 stress.build_case(**spec)
-if inject:
-    base = stress.rss_mb()
-    hold = np.zeros(int(base * 1024 * 1024 / 8), dtype=np.float64)
-    hold[:] = 1.0
+base = stress.rss_mb()
+hold = np.zeros(int(base * 1024 * 1024 / 8), dtype=np.float64)
+hold[:] = 1.0
 _cur, traced = tracemalloc.get_traced_memory()
 tracemalloc.stop()
 print(json.dumps({"rss_mb": round(stress.rss_mb(), 1),
@@ -103,18 +122,15 @@ print(json.dumps({"rss_mb": round(stress.rss_mb(), 1),
 '''
 
 
-def rss_threshold(recorded_rss, floor=150.0):
-    return recorded_rss + max(floor, recorded_rss * (stress.MEMORY_BUDGET_FACTOR - 1.0))
+def probe_env() -> dict:
+    """The env the memory pass itself launches probes under."""
+    return stress._memory_probe_env()
 
 
-def traced_threshold(recorded_traced):
-    return recorded_traced * stress.MEMORY_BUDGET_FACTOR + 2.0
-
-
-def probe(spec, inject):
+def inject_probe(spec: dict) -> dict:
     out = subprocess.run(
-        [sys.executable, "-c", PROBE_SRC, json.dumps(spec), "1" if inject else "0"],
-        capture_output=True, text=True,
+        [sys.executable, "-c", INJECT_SRC, json.dumps(spec)],
+        capture_output=True, text=True, env=probe_env(),
     )
     line = (out.stdout or "").strip().splitlines()
     if not line:
@@ -122,68 +138,106 @@ def probe(spec, inject):
     return json.loads(line[-1])
 
 
+def memory_probe_labels(table: dict) -> list[str]:
+    """Mirror of stress.py's nested ``_memory_probe_labels``: half the
+    check-exposed set by traced peak, half by RSS watermark, from the
+    committed table, stable order, deduped. Transcribed because the
+    original is nested inside the check flow and not importable; the
+    threshold rules above are NOT transcribed -- they are the module's."""
+    half = max(1, stress.MEMORY_TOP_N // 2)
+    chosen: list[str] = []
+    for key in ("traced_peak_mb", "rss_peak_mb"):
+        ranked = sorted(
+            (-float(entry[key]), label)
+            for label, entry in table.items()
+            if isinstance(entry, dict) and float(entry.get(key, 0.0)) > 0.0
+        )
+        taken = 0
+        for _peak, label in ranked:
+            if taken >= half:
+                break
+            if label in chosen:
+                continue
+            chosen.append(label)
+            taken += 1
+    return chosen
+
+
 def main():
-    print(f"# baseline=7dd68dd  perturb={PERTURB or 'none'}")
+    t0 = C.span_start()
+    print(f"# baseline=7dd68dd  perturb={PERTURB or 'none'}  "
+          f"# re-recorded 2026-09-14 at ad7bcdf, post-#989")
     print(f"# procs_at_start={C.concurrent_procs()} load1={C.load1():.2f}")
     table = json.load(open(TABLE_PATH))
     scenarios = {k: v for k, v in table.items()
-                 if isinstance(v, dict) and "rss_peak_mb" in v}
+                 if isinstance(v, dict) and "rss_attrib_mb" in v}
     C.result("scenarios_recorded", len(scenarios), "scenarios")
     C.result("memory_top_n", stress.MEMORY_TOP_N, "scenarios")
     C.result("memory_budget_factor", float(stress.MEMORY_BUDGET_FACTOR))
     C.result("detection_target", float(stress.DETECTION_TARGET))
+    probed = memory_probe_labels(scenarios)
+    C.result("scenarios_memory_probed", len(probed), "scenarios")
     C.result("scenarios_never_memory_probed",
-             len(scenarios) - stress.MEMORY_TOP_N, "scenarios")
+             len(scenarios) - len(probed), "scenarios")
 
     mults = {}
     tmults = {}
     for label, entry in scenarios.items():
-        r = float(entry["rss_peak_mb"])
-        t = float(entry["traced_peak_mb"])
-        mults[label] = rss_threshold(r) / r
-        tmults[label] = traced_threshold(t) / t
-    lo = min(mults.values())
-    hi = max(mults.values())
-    C.result("min_rss_multiple_required_to_fail", float(lo))
-    C.result("max_rss_multiple_required_to_fail", float(hi))
-    C.result("scenarios_where_2x_rss_passes",
-             sum(1 for m in mults.values() if m > stress.DETECTION_TARGET),
+        rec_attrib = float(entry["rss_attrib_mb"])
+        rec_traced = float(entry["traced_peak_mb"])
+        mults[label] = stress.rss_attrib_fail_threshold(rec_attrib) / rec_attrib
+        tmults[label] = stress.traced_fail_threshold(rec_traced) / rec_traced
+    C.result("min_attrib_rss_multiple_required_to_fail", float(min(mults.values())))
+    C.result("max_attrib_rss_multiple_required_to_fail", float(max(mults.values())))
+    C.result("scenarios_where_2x_attrib_rss_fails",
+             sum(1 for m in mults.values() if m <= stress.DETECTION_TARGET),
              "scenarios")
     C.result("min_traced_multiple_required_to_fail", float(min(tmults.values())))
     C.result("max_traced_multiple_required_to_fail", float(max(tmults.values())))
-    C.result("scenarios_where_2x_traced_passes",
-             sum(1 for m in tmults.values() if m > stress.DETECTION_TARGET),
+    C.result("scenarios_where_2x_traced_fails",
+             sum(1 for m in tmults.values() if m <= stress.DETECTION_TARGET),
              "scenarios")
-    if PERTURB == "nofloor":
-        nf = {l: rss_threshold(float(e["rss_peak_mb"]), floor=0.0)
-              / float(e["rss_peak_mb"]) for l, e in scenarios.items()}
-        C.result("nofloor_min_rss_multiple_required_to_fail", float(min(nf.values())))
 
-    # the recorded RSS leader, probed for real through the shipped body
-    leader = max(scenarios, key=lambda k: float(scenarios[k]["rss_peak_mb"]))
-    C.result("rss_leader_label", leader)
+    # the recorded attributable-RSS leader, probed for real through the
+    # gate's own entry points
+    leader = max(scenarios, key=lambda k: float(scenarios[k]["rss_attrib_mb"]))
+    rec_attrib = float(scenarios[leader]["rss_attrib_mb"])
+    rec_traced = float(scenarios[leader]["traced_peak_mb"])
+    C.result("attrib_leader_label", leader)
     combos = {c["label"]: {k: v for k, v in c.items() if k != "label"}
               for c in stress.sweep_combinations()}
     spec = combos[leader]
-    clean = probe(spec, inject=False)
-    inj = probe(spec, inject=True)
-    rec_rss = float(scenarios[leader]["rss_peak_mb"])
-    rec_tr = float(scenarios[leader]["traced_peak_mb"])
+    env = probe_env()
+    baseline = stress._run_memory_probe(["--memory-baseline"], env)
+    clean = stress._run_memory_probe(["--memory-probe", json.dumps(spec)], env)
+    inj = inject_probe(spec)
+    C.result("empty_probe_baseline_rss_mb_PROVISIONAL",
+             float(baseline["rss_mb"]), "MiB")
+    clean_attrib = max(0.0, clean["rss_mb"] - baseline["rss_mb"])
+    inj_attrib = max(0.0, inj["rss_mb"] - baseline["rss_mb"])
     C.result("clean_probe_rss_mb_PROVISIONAL", float(clean["rss_mb"]), "MiB")
-    C.result("clean_probe_traced_mb", float(clean["traced_mb"]), "MiB")
+    C.result("clean_attrib_rss_mb_PROVISIONAL", float(clean_attrib), "MiB")
     C.result("inject2x_probe_rss_mb_PROVISIONAL", float(inj["rss_mb"]), "MiB")
-    C.result("inject2x_rss_over_clean",
-             float(inj["rss_mb"] / clean["rss_mb"]) if clean["rss_mb"] else
-             float("nan"))
-    C.result("rss_fail_threshold_mb", float(rss_threshold(rec_rss)), "MiB")
-    C.result("clean_rss_rule_fires", clean["rss_mb"] > rss_threshold(rec_rss))
-    C.result("inject2x_rss_rule_fires", inj["rss_mb"] > rss_threshold(rec_rss))
-    C.result("traced_fail_threshold_mb", float(traced_threshold(rec_tr)), "MiB")
+    C.result("inject2x_attrib_rss_mb_PROVISIONAL", float(inj_attrib), "MiB")
+    C.result("inject2x_attrib_over_clean",
+             float(inj_attrib / clean_attrib) if clean_attrib
+             else float("nan"))
+    C.result("attrib_fail_threshold_mb",
+             float(stress.rss_attrib_fail_threshold(rec_attrib)), "MiB")
+    C.result("clean_attrib_rule_fires",
+             clean_attrib > stress.rss_attrib_fail_threshold(rec_attrib))
+    C.result("inject2x_attrib_rule_fires",
+             inj_attrib > stress.rss_attrib_fail_threshold(rec_attrib))
+    C.result("traced_fail_threshold_mb",
+             float(stress.traced_fail_threshold(rec_traced)), "MiB")
     C.result("clean_traced_rule_fires",
-             clean["traced_mb"] > traced_threshold(rec_tr))
+             clean["traced_mb"] > stress.traced_fail_threshold(rec_traced))
     C.result("inject2x_traced_rule_fires",
-             inj["traced_mb"] > traced_threshold(rec_tr))
-    C.telemetry()
+             inj["traced_mb"] > stress.traced_fail_threshold(rec_traced))
+    # #950 D9-INST: the whole-span factor, parent-side; every probe is a
+    # separate process launched under the pinned env this harness set in
+    # its own first lines, so the parent's ratio is the signal.
+    C.telemetry(C.span_factor(t0))
 
 
 if __name__ == "__main__":

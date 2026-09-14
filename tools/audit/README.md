@@ -39,9 +39,7 @@ without reading the finding, so it has to carry everything:
   pin — `os.environ.setdefault` for `OMP_NUM_THREADS`, `OPENBLAS_NUM_THREADS`,
   `MKL_NUM_THREADS`, `NUMEXPR_NUM_THREADS`, `VECLIB_MAXIMUM_THREADS`, all `"1"`.
   A threaded BLAS inflates `time.process_time()` by the thread factor and the
-  ratio does not cancel unless both sides are pinned alike. Print the factor;
-  the figure this line used to carry does not reproduce on numpy 2.4.6, where
-  `threadpool_info()` comes back empty.
+  ratio does not cancel unless both sides are pinned alike. Print the factor.
 - It writes only under its own directory or a temp directory; it sets a
   private `HPO_PLANDATA` (under the temp root, `tests/plan_view.py` refuses
   anything else) before invoking any Node harness; if it uses `env_drift.py`
@@ -49,20 +47,28 @@ without reading the finding, so it has to carry everything:
   a private `DRIFT_CACHE_DIR` only when it modifies `env_drift.py` itself.
 - It prints one `RESULT <name>=<value> <unit>` line per number, plus
   `RESULT thread_factor=<process_cpu/thread_cpu>`, `RESULT load1=<1-min load>`
-  and `RESULT swapins=<count>` taken at the end of the measurement. A timing or
-  memory RESULT whose `thread_factor` exceeds 1.05 is rejected and re-taken.
-  **`load1` is quoted, not gated.** The round-2 judge measured this box's
-  ambient floor at 1.86 with zero audit workload, and its best reading over ten
-  60-second retries at 1.55, so a `load1 <= 1.5` bar is a stall rather than a
-  safeguard. What protects a timing number here is a *ratio* metric and a null
-  control taken under the same load in the same session — which is how the D9
-  numbers were taken, and why they are trustworthy at a `load1` of 2.2–3.7.
-  Quote the real `load1` and the control; do not wait for 1.5.
+  and `RESULT swapins=<count>` at the end of the measurement, the
+  `thread_factor` beside every timing and memory RESULT — a block that
+  carries none is defective however quiet the box (#950, round 4 D9-INST).
+  A RESULT whose `thread_factor` exceeds 1.05 is
+  rejected and re-taken; the factor is a BLAS signal, not a tax on real
+  threads. A harness that deliberately runs work on a second thread (the
+  real `ThreadPoolExecutor` the FakeHass trap below mandates) can never
+  satisfy the bare ratio — that thread's honest CPU lands in
+  `process_time` and not in `thread_time` (`h2_cycle.py`: 1.27–1.30 over
+  four re-takes, structural) — so it subtracts that thread's CPU, prints
+  the residual `(process_cpu - deliberate_thread_cpu)/thread_cpu` as the
+  `thread_factor` with the subtracted CPU as its own RESULT.
+  **`load1` is quoted, not gated**: the round-2 judge measured this box's
+  ambient floor at 1.86 (best of ten retries: 1.55), so a
+  `load1 <= 1.5` bar is a stall, not a safeguard. What protects a timing
+  number is a *ratio* metric and a null control under the same load in
+  the same session. Quote the real `load1`; do not wait for 1.5.
 - It hooks a named production symbol (`instrumented_symbol` in the finding)
   and moves under a named `perturbation`: a config change or a one-line
   production edit under which the number must change in a stated direction.
-  A RESULT computed from constants — `2·n+1` from the bounds shape, say,
-  without ever hooking `simulate_step` — is voided by the judge.
+  A RESULT computed from constants — `2·n+1` from the bounds shape,
+  without hooking `simulate_step` — is voided by the judge.
 
 ## What to reuse, and what will trip you
 
@@ -76,15 +82,15 @@ moves.
 | A realistic coordinator payload | `tests/golden.py:_capture_coordinator(config)` and `coordinator_scenarios()` | 5 topologies (`coord_minimal`, `coord_dhw`, `coord_two_zone`, `coord_grid_fee`, `coord_all_features`); freezes the clock at `START`; injects 48 h of prices and forecasts; `_build_data_dict()` gives ~156 keys |
 | A plan scenario | `tests/golden.py:make(...)` and `SCENARIOS` (49) | `capture(name, spec)` records everything; `assert_invariants` runs on record and check |
 | Every entity through the real setup | `tests/entities.py:collect(module, data, coordinator)` | drives `async_setup_entry`; `_honest_coordinator(extra_config, states, dhw)` builds a coordinator with one input cycle done |
-| A coordinator in feature tests | `tests/features.py:_t2_coord(states, **extra)` (133 call sites), `_zone_coord`, `_write_coord` | `features.py` cannot be imported — copy the two-liner `HeatPumpOptimizerCoordinator(FakeHass(states), FakeEntry(data=cfg))` |
+| A coordinator in feature tests | `tests/features.py:_t2_coord(states, **extra)`, `_zone_coord`, `_write_coord` | `features.py` cannot be imported — copy the two-liner `HeatPumpOptimizerCoordinator(FakeHass(states), FakeEntry(data=cfg))` |
 | The CPU-time ruler | `tests/stress.py:reference_solve()` and `Calibration` | fixed L-BFGS-B over a seeded vector; never "improve" it |
-| The 51-combination sweep (`sweep_combinations()`; was 48 before #286/#287's 3 zero-range-bounds scenarios) | `tests/stress.py:build_case(...)`, `SEASONS`, `BUILDINGS` | thread pin (the `os.environ.setdefault` loop) must precede the `numpy` import; it does, a few lines above it |
+| The 51-combination sweep (`sweep_combinations()`) | `tests/stress.py:build_case(...)`, `SEASONS`, `BUILDINGS` | thread pin (the `os.environ.setdefault` loop) must precede the `numpy` import; it does, a few lines above it |
 | Closed-loop days | `tests/rolling.py:run_rolling(...)` | `learn=True` drives the real coordinator's learner; `SLOW=1` only |
 | Challengers and null control | `tests/optimality.py` (`setup`, `evaluate`, `mock.patch.object`), `tests/backtest.py:score`, `tests/profiles.py` | price profiles `winter_typical`, `winter_extreme`, `summer_typical`, `summer_negative`, `shoulder`, `winter_narrow`, `winter_moderate`, `flat`; weather `winter_cold`, `winter_mild`, `summer_warm`, `summer_cool`, `shoulder` |
 | The card in Node | `tests/card_rig.mjs:buildCard`, `planStates`, `makeCardContext`, `qaTopologies` | the DOM stub returns a constant 900×400 rectangle: no geometry |
 | The card's drift states | `tests/card_drift.mjs:STATES` — run it with `--list` rather than carrying a count | drive both a working-tree card and a `git show` card |
 | Real geometry | `tests/card_browser.mjs` | Playwright resolved from `NODE_PATH`; Chromium under `PLAYWRIGHT_BROWSERS_PATH` |
-| Mutation-proof idioms | `tests/features.py` (search `_fl_orig = _FlOpt`: class-attribute swap, `try/finally`), `tests/features.py` (search `rail: {name}`: input-mutation rail over a `_SAFE` baseline dict), `tests/optimality.py` (`mock.patch.object`) | the third is the only `unittest.mock` use in the suite; the first two are cited by search text, not line number -- `features.py` is ~19,600 lines and grows every wave |
+| Mutation-proof idioms | `tests/features.py` (search `_fl_orig = _FlOpt`: class-attribute swap, `try/finally`), `tests/features.py` (search `rail: {name}`: input-mutation rail over a `_SAFE` baseline dict), `tests/optimality.py` (`mock.patch.object`) | the third is the only `unittest.mock` use in the suite; the first two are cited by search text, not line number -- `features.py` grows every wave |
 
 **Traps**
 
@@ -118,13 +124,12 @@ moves.
 
 ## Running the gate on the audit box
 
-The committed golden fixtures were recorded on another machine and the strict
-comparison does not reproduce here, so run the gate the way CI runs it, against
-the merge base. Take the lock only when `tests/closure.py select` reports
-`MODE: FULL` or names `tests/stress.py`, and take it with `tests/gate_lock.py`
-— never `mkdir` and a shell pid. `tests/README.md` ("The gate lock on a shared
-box") is the reference for the lease, the flock and what may be stolen without
-forensics.
+Run the gate the way CI runs it — drift mode against the merge base; the
+strict comparison does not reproduce on this box. Take the lock only when
+`tests/closure.py select` reports `MODE: FULL` or names `tests/stress.py`,
+and take it with `tests/gate_lock.py` — never `mkdir` and a shell pid.
+`tests/README.md` ("The gate lock on a shared box") is the reference for the
+lease, the flock and what may be stolen without forensics.
 
 ```
 BASE=$(git merge-base origin/main HEAD)
@@ -139,13 +144,11 @@ python3 tests/gate_lock.py release --label <your-label>
 ### `stress.py` always takes the lock, even run on its own
 
 The rule above — take the lock only when the selection is `MODE: FULL` or names
-`tests/stress.py` — reads easily as "no lock when I run a script by hand". That
-reading is wrong for exactly one script, and following it cost a whole
-measurement: on 2026-09-03 three `stress.py` processes ran concurrently at load
-6.5, one of them recording the budget table that is the gate's entire
-reference, because three agents had each been told to run their selected
-scripts directly and all three selections included `stress.py`. The lock holder
-had the lock and still did not have the box.
+`tests/stress.py` — reads easily as "no lock when I run a script by hand". Wrong
+for exactly one script; following it cost a whole measurement: on 2026-09-03
+three `stress.py` processes ran concurrently at load 6.5, one recording the
+budget table that is the gate's entire reference. The lock holder had the lock
+and still did not have the box.
 
 - **Taking the lock is required for `stress.py`**, whether you run it through
   `run.sh` or on its own.
@@ -225,10 +228,9 @@ under review -- with plausible numbers and no error.
 report which root rule it used. Three reviewers have been caught by this.
 
 **Cite the SHA you actually ran, not the tag name.** The tag has moved once
-already, by name only: the round-2 numbers were recorded at `c398fc84`,
-archived at `de668be`, and are runnable at `757e164`, which is where
-`audit-round2-evidence` points today. A name-only citation stops meaning
-anything the next time it moves.
+already, by name only: the round-2 numbers were recorded at `c398fc84`;
+`audit-round2-evidence` points at `757e164` today. A name-only citation
+stops meaning anything the next time it moves.
 
 Which harnesses at that commit still run, and by which of three rot classes, is
 recorded in `round2/HARNESSES.md` at `d5d8c4a`; its verdicts are final at that

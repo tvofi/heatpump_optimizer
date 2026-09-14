@@ -149,6 +149,7 @@ def collect(module, entry, coord):
 
 
 def main():
+    t0 = C.span_start()
     print(f"# baseline=7dd68dd  perturb={PERTURB or 'none'}")
     dt_util.freeze(C.START)
     try:
@@ -240,7 +241,9 @@ def main():
             C.result(f"entity.top.{cls}", f"recorded={rec} excluded={exc} uid={uid}")
     finally:
         dt_util.freeze(None)
-    C.telemetry()
+    # #950 D9-INST: the whole-span factor, parent-side; the solve child is
+    # a separate process and its CPU is not in this ratio.
+    C.telemetry(C.span_factor(t0))
 
 
 if __name__ == "__main__":

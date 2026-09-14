@@ -100,6 +100,7 @@ def rss_kb(pid):
 
 
 def main():
+    span0 = C.span_start()
     print("# baseline=7dd68dd")
     print(f"# procs_at_start={C.concurrent_procs()} load1={C.load1():.2f}")
 
@@ -162,7 +163,9 @@ def main():
     C.result("module_overhead", info["modules"] - ctl_modules, "modules")
     ctl.kill()
     CO._shutdown_process_pool()
-    C.telemetry()
+    # #950 D9-INST: the whole-span factor, parent-side; the worker and the
+    # control child are separate processes and their CPU is not in it.
+    C.telemetry(C.span_factor(span0))
 
 
 if __name__ == "__main__":

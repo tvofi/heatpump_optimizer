@@ -61,6 +61,7 @@ PROD = os.path.join("custom_components", "heatpump_optimizer")
 
 
 def main():
+    t0 = C.span_start()
     print(f"# baseline=7dd68dd  perturb={PERTURB or 'none'}  cycles={CYCLES}")
     dt_util.freeze(C.START)
     tracemalloc.start(1)
@@ -105,7 +106,9 @@ def main():
         C.result(f"production.top.{where}", delta, "bytes")
     tracemalloc.stop()
     CO._shutdown_process_pool()
-    C.telemetry()
+    # #950 D9-INST: the whole-span factor, parent-side; the solve child is
+    # a separate process and its CPU is not in this ratio.
+    C.telemetry(C.span_factor(t0))
 
 
 if __name__ == "__main__":
