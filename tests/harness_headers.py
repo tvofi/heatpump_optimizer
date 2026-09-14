@@ -109,6 +109,17 @@ def printed_from(stdout: str) -> dict[str, str]:
 def run_harness(rel: str) -> str:
     env = dict(os.environ)
     env["PYTHONPATH"] = "tests/hastub:custom_components:tests"
+    # 240 s, raised from 120 with h7_memory_gate.py's live-header marker
+    # (#1005's review follow-up): the constant exists for hang detection,
+    # not runtime policing, and 120 was set when the slowest executed
+    # harness declared "< 5 s". h7 probes through the stress gate's own
+    # subprocess entry points, two of its three arms being full
+    # build_case runs of the recorded attributable-RSS leader -- 59.8 s
+    # total, CPU-bound (user 58.9), on the seat that measured at load1
+    # 2.1 -- so 120 sat at ~2x the measured runtime and a 1.5-2.5x-slower
+    # CI core crosses it: a spurious red on every pull request. 240
+    # restores the margin for the runner class without weakening hang
+    # detection anywhere else.
     p = subprocess.run(
         [sys.executable, rel],
         cwd=ROOT,
@@ -116,7 +127,7 @@ def run_harness(rel: str) -> str:
         shell=False,
         capture_output=True,
         text=True,
-        timeout=120,
+        timeout=240,
     )
     R.check(
         f"{rel} exits 0",

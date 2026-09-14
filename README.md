@@ -236,9 +236,9 @@ installing rather than discover it after:
   passes the same gate, and there a two-state estimator now exists behind
   it (#942): a grey-box fit of the heat-loss coefficient and the slab mode's
   own time constant — never the slab-mass/coupling split, which no window
-  length can identify — further gated on the ported intercept ridge and on
-  the window's own residual noise staying under ~0.02 °C, refusing by name
-  anywhere those do not hold. The slab constants themselves are always
+  length can identify — carrying the ported intercept ridge and further
+  gated on the window's own residual noise staying under ~0.02 °C, refusing
+  by name where it does not. The slab constants themselves are always
   trusted from configuration.
 
 ## Installation
