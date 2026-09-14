@@ -49,7 +49,7 @@
   "source": "README.md:Entities",
   "claim": "Six sensors are disabled by default, and these are they",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented=['Compressor Frequency Advisor', 'Cost Contract Comparison', 'DHW Heavy Day Demand', 'ECL110 Displace', 'ECL110 Effective Displace', 'Valve Target Recommendation'] measured=['Compressor Frequency Advisor', 'Cost Contract Comparison', 'DHW Heavy Day Demand', 'ECL110 Displace', 'ECL110 Effective Displace', 'Valve Target Recommendation']",
+  "result": "documented=['Compressor Frequency Advisor', 'Contract Comparison', 'DHW Heavy Day Demand', 'ECL110 Displace', 'ECL110 Effective Displace', 'Valve Target Recommendation'] measured=['Compressor Frequency Advisor', 'Contract Comparison', 'DHW Heavy Day Demand', 'ECL110 Displace', 'ECL110 Effective Displace', 'Valve Target Recommendation']",
   "verdict": "true",
   "truth": ""
  },
@@ -67,7 +67,7 @@
   "source": "README.md:### Sensors",
   "claim": "the sensor table names exactly the sensors the platform constructs",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented=['Buffer Tank Temperature (Model)', 'Compressor Frequency Advisor', 'Compressor Starts', 'Cost Baseline', 'Cost Contract Comparison', 'Cost Electricity Price (now)', 'Cost Monthly Peak Power', 'Cost Power Headroom', 'Cost Predicted', 'Cost Total Heating (lifetime)', 'DHW Cost (lifetime)', 'DHW Energy (lifetime)', 'DHW Heating Cost (next 24 h)', 'DHW Heating Plan (next 24 h)', 'DHW Heating Schedule', 'DHW Heavy Day Demand', 'DHW Mixed Water', 'DHW Setpoint Advisor', 'DHW Temperature', 'ECL110 Displace', 'ECL110 Effective Displace', 'Floor Heating Return Temperature', 'Heat Pump Action', 'Indoor Temperature (Optimizer)', 'Last Optimization', 'Learning Comfort Weight', 'Learning Estimated COP', 'Learning Observed COP', 'Lower Floor Temperature', 'Measured Power', 'Next Optimization', 'Optimal Setpoint', 'Optimization Mode', 'Optimization Schedule', 'Optimization Schedule Steps', 'Optimization Status', 'Outdoor Temperature (Optimizer)', 'Plan Monthly Savings', 'Plan Narrative', 'Plan Optimization Score', 'Plan Predicted Savings', 'Plan Savings Percentage', 'Prediction Accuracy', 'Predictive Optimization Insight', 'Recommended Power', 'Sensor-Gap Euro Advisor', 'Slab Temperature (Estimated)', 'Solar Heat Gain', 'Solar Irradiance', 'Solar Surplus Forecast', 'Space Heating Cost (lifetime)', 'Space Heating Energy (lifetime)', 'Space Heating Plan (next 24 h)', 'Thermal Battery Charge', 'Thermal Battery Energy', 'Total Energy (lifetime)', 'Upper Floor Temperature', 'Valve Target Recommendation', 'Wood-Burn Night Advisor'] measured=['Buffer Tank Temperature (Model)', 'Compressor Frequency Advisor', 'Compressor Starts', 'Cost Baseline', 'Cost Contract Comparison', 'Cost Electricity Price (now)', 'Cost Monthly Peak Power', 'Cost Power Headroom', 'Cost Predicted', 'Cost Total Heating (lifetime)', 'DHW Cost (lifetime)', 'DHW Energy (lifetime)', 'DHW Heating Cost (next 24 h)', 'DHW Heating Plan (next 24 h)', 'DHW Heating Schedule', 'DHW Heavy Day Demand', 'DHW Mixed Water', 'DHW Setpoint Advisor', 'DHW Temperature', 'ECL110 Displace', 'ECL110 Effective Displace', 'Floor Heating Return Temperature', 'Heat Pump Action', 'Indoor Temperature (Optimizer)', 'Last Optimization', 'Learning Comfort Weight', 'Learning Estimated COP', 'Learning Observed COP', 'Lower Floor Temperature', 'Measured Power', 'Next Optimization', 'Optimal Setpoint', 'Optimization Mode', 'Optimization Schedule', 'Optimization Schedule Steps', 'Optimization Status', 'Outdoor Temperature (Optimizer)', 'Plan Monthly Savings', 'Plan Narrative', 'Plan Optimization Score', 'Plan Predicted Savings', 'Plan Savings Percentage', 'Prediction Accuracy', 'Predictive Optimization Insight', 'Recommended Power', 'Sensor-Gap Euro Advisor', 'Slab Temperature (Estimated)', 'Solar Heat Gain', 'Solar Irradiance', 'Solar Surplus Forecast', 'Space Heating Cost (lifetime)', 'Space Heating Energy (lifetime)', 'Space Heating Plan (next 24 h)', 'Thermal Battery Charge', 'Thermal Battery Energy', 'Total Energy (lifetime)', 'Upper Floor Temperature', 'Valve Target Recommendation', 'Wood-Burn Night Advisor']",
+  "result": "documented=['Baseline Cost', 'Buffer Tank Temperature (Model)', 'Comfort Weight', 'Compressor Frequency Advisor', 'Compressor Starts', 'Contract Comparison', 'Current Electricity Price', 'DHW Cost (lifetime)', 'DHW Energy (lifetime)', 'DHW Heating Cost (next 24 h)', 'DHW Heating Plan (next 24 h)', 'DHW Heating Schedule', 'DHW Heavy Day Demand', 'DHW Mixed Water', 'DHW Setpoint Advisor', 'DHW Temperature', 'ECL110 Displace', 'ECL110 Effective Displace', 'Estimated COP', 'Floor Heating Return Temperature', 'Heat Pump Action', 'Indoor Temperature (Optimizer)', 'Last Optimization', 'Lower Floor Temperature', 'Measured Power', 'Monthly Peak Power', 'Monthly Savings', 'Next Optimization', 'Observed COP', 'Optimal Setpoint', 'Optimization Mode', 'Optimization Schedule', 'Optimization Schedule Steps', 'Optimization Score', 'Optimization Status', 'Outdoor Temperature (Optimizer)', 'Plan Narrative', 'Power Headroom', 'Predicted Cost', 'Predicted Savings', 'Prediction Accuracy', 'Predictive Optimization Insight', 'Recommended Power', 'Savings Percentage', 'Sensor-Gap Euro Advisor', 'Slab Temperature (Estimated)', 'Solar Heat Gain', 'Solar Irradiance', 'Solar Surplus Forecast', 'Space Heating Cost (lifetime)', 'Space Heating Energy (lifetime)', 'Space Heating Plan (next 24 h)', 'Thermal Battery Charge', 'Thermal Battery Energy', 'Total Energy (lifetime)', 'Total Heating Cost (lifetime)', 'Upper Floor Temperature', 'Valve Target Recommendation', 'Wood-Burn Night Advisor'] measured=['Baseline Cost', 'Buffer Tank Temperature (Model)', 'Comfort Weight', 'Compressor Frequency Advisor', 'Compressor Starts', 'Contract Comparison', 'Current Electricity Price', 'DHW Cost (lifetime)', 'DHW Energy (lifetime)', 'DHW Heating Cost (next 24 h)', 'DHW Heating Plan (next 24 h)', 'DHW Heating Schedule', 'DHW Heavy Day Demand', 'DHW Mixed Water', 'DHW Setpoint Advisor', 'DHW Temperature', 'ECL110 Displace', 'ECL110 Effective Displace', 'Estimated COP', 'Floor Heating Return Temperature', 'Heat Pump Action', 'Indoor Temperature (Optimizer)', 'Last Optimization', 'Lower Floor Temperature', 'Measured Power', 'Monthly Peak Power', 'Monthly Savings', 'Next Optimization', 'Observed COP', 'Optimal Setpoint', 'Optimization Mode', 'Optimization Schedule', 'Optimization Schedule Steps', 'Optimization Score', 'Optimization Status', 'Outdoor Temperature (Optimizer)', 'Plan Narrative', 'Power Headroom', 'Predicted Cost', 'Predicted Savings', 'Prediction Accuracy', 'Predictive Optimization Insight', 'Recommended Power', 'Savings Percentage', 'Sensor-Gap Euro Advisor', 'Slab Temperature (Estimated)', 'Solar Heat Gain', 'Solar Irradiance', 'Solar Surplus Forecast', 'Space Heating Cost (lifetime)', 'Space Heating Energy (lifetime)', 'Space Heating Plan (next 24 h)', 'Thermal Battery Charge', 'Thermal Battery Energy', 'Total Energy (lifetime)', 'Total Heating Cost (lifetime)', 'Upper Floor Temperature', 'Valve Target Recommendation', 'Wood-Burn Night Advisor']",
   "verdict": "true",
   "truth": ""
  },
@@ -112,16 +112,16 @@
   "source": "README.md:### Buttons",
   "claim": "the button table names exactly the buttons the platform constructs",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented=['Diagnose Last Interval', 'Learning Reset Comfort Weight', 'Learning Run System Identification', 'Optimize Now'] measured=['Diagnose Last Interval', 'Learning Reset Comfort Weight', 'Learning Run System Identification', 'Optimize Now']",
+  "result": "documented=['Diagnose Last Interval', 'Optimize Now', 'Reset Learned Comfort Weight', 'Run System Identification'] measured=['Diagnose Last Interval', 'Optimize Now', 'Reset Learned Comfort Weight', 'Run System Identification']",
   "verdict": "true",
   "truth": ""
  },
  {
   "id": "C14",
   "source": "README.md:Switches",
-  "claim": "Optimizer Active, Away, DHW Boost and Boost Space Heating are the switches",
+  "claim": "Optimizer Active, Away, Boost Hot Water and Boost Space Heating are the switches",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented=['Away', 'Boost Space Heating', 'DHW Boost', 'Optimizer Active'] measured=['Away', 'Boost Space Heating', 'DHW Boost', 'Optimizer Active']",
+  "result": "documented=['Away', 'Boost Hot Water', 'Boost Space Heating', 'Optimizer Active'] measured=['Away', 'Boost Hot Water', 'Boost Space Heating', 'Optimizer Active']",
   "verdict": "true",
   "truth": ""
  },
@@ -355,7 +355,7 @@
   "source": "docs/architecture.md:module map",
   "claim": "switch.py -- the comment names every switch the platform constructs",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented=['Away', 'Boost Space Heating', 'DHW Boost', 'Optimizer Active'], the platform constructs ['Away', 'Boost Space Heating', 'DHW Boost', 'Optimizer Active']",
+  "result": "documented=['Away', 'Boost Hot Water', 'Boost Space Heating', 'Optimizer Active'], the platform constructs ['Away', 'Boost Hot Water', 'Boost Space Heating', 'Optimizer Active']",
   "verdict": "true",
   "truth": ""
  },
@@ -373,7 +373,7 @@
   "source": "manifest.json",
   "claim": "manifest version equals VERSION",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented='6.4.4' measured='6.4.4'",
+  "result": "documented='6.4.3' measured='6.4.3'",
   "verdict": "true",
   "truth": ""
  },
@@ -1075,7 +1075,7 @@
   "source": "README.md",
   "claim": "the climate entity has HVAC modes off, heat and auto",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented={'off', 'heat', 'auto'} measured={'auto', 'heat', 'off'}",
+  "result": "documented={'auto', 'off', 'heat'} measured={'auto', 'heat', 'off'}",
   "verdict": "true",
   "truth": ""
  },
@@ -1084,7 +1084,7 @@
   "source": "README.md",
   "claim": "the climate entity has presets auto, comfort, economy and boost",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented={'comfort', 'economy', 'boost', 'auto'} measured={'comfort', 'economy', 'boost', 'auto'}",
+  "result": "documented={'boost', 'auto', 'economy', 'comfort'} measured={'boost', 'auto', 'economy', 'comfort'}",
   "verdict": "true",
   "truth": ""
  },
