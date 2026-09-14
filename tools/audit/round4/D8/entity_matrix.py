@@ -673,12 +673,14 @@ def probe(ent, platform: str, data: TrackingDict) -> dict:
         "attrs": attrs,
         "available": available,
         "cls": type(ent).__name__,
-        # HARNESS TRAP, and the reason these are read from ``_attr_*`` and not
-        # from the public property: ``tests/hastub``'s SensorEntity declares
-        # NO ``device_class``, ``state_class`` or ``entity_category``
-        # property.  ``getattr(ent, "device_class")`` therefore returns None
-        # for every entity in the tree, and a check keyed on it counts zero
-        # for a reason that has nothing to do with the code under test.
+        # HARNESS TRAP, and the reason these reads keep an ``_attr_*``
+        # fallback: until #947, ``tests/hastub``'s SensorEntity declared NO
+        # ``device_class``, ``state_class`` or ``entity_category``
+        # property.  ``getattr(ent, "device_class")`` therefore returned
+        # None for every entity in the tree, and a check keyed on it
+        # counted zero for a reason that had nothing to do with the code
+        # under test. The stub carries the pass-throughs since #947, so the
+        # property read below is live and the fallback agrees with it.
         "device_class": _str(
             getattr(ent, "device_class", None)
             if getattr(ent, "device_class", None) is not None

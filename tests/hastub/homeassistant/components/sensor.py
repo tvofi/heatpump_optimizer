@@ -1,5 +1,7 @@
 """Minimal stand-in for the sensor platform's entity API."""
 
+from homeassistant.helpers.entity import Entity
+
 
 class SensorDeviceClass(str):
     TEMPERATURE = "temperature"
@@ -54,10 +56,38 @@ NON_NUMERIC_DEVICE_CLASSES = {
 }
 
 
-class SensorEntity:
+class SensorEntity(Entity):
     _attr_has_entity_name = False
     _attr_name = None
     _attr_unique_id = None
+
+    @property
+    def device_class(self) -> SensorDeviceClass | None:
+        """``components/sensor/__init__.py`` SensorEntity.device_class.
+
+        Upstream's cached_property returns ``_attr_device_class`` when the
+        attribute exists, then consults ``entity_description``, then
+        ``None``; this copy drops the description branch (the stub does not
+        model descriptions) and uses a plain property, since a cached one
+        would hide an in-place swap from the instrument harnesses that
+        perform them. Without this property ``getattr(ent, "device_class")``
+        was ``None`` for every entity in the tree, and a check keyed on the
+        public read counted zero for a reason that had nothing to do with
+        the code under test (#947).
+        """
+        if hasattr(self, "_attr_device_class"):
+            return self._attr_device_class
+        return None
+
+    @property
+    def state_class(self) -> SensorStateClass | None:
+        """``components/sensor/__init__.py`` SensorEntity.state_class.
+
+        Same shape and same reasoning as ``device_class`` above: #947.
+        """
+        if hasattr(self, "_attr_state_class"):
+            return self._attr_state_class
+        return None
 
     @property
     def options(self) -> list[str] | None:
