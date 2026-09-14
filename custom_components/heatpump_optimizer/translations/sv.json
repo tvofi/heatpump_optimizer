@@ -1283,13 +1283,13 @@
   "entity": {
     "sensor": {
       "baseline_cost": {
-        "name": "Referenskostnad"
+        "name": "Kostnad referens"
       },
       "buffer_tank_temperature_model": {
         "name": "Ackumulatortankens temperatur (modell)"
       },
       "comfort_weight": {
-        "name": "Komfortvikt"
+        "name": "Inlärning komfortvikt"
       },
       "compressor_frequency_advisor": {
         "name": "Rådgivare för kompressorfrekvens"
@@ -1298,10 +1298,10 @@
         "name": "Kompressorstarter"
       },
       "contract_comparison": {
-        "name": "Avtalsjämförelse"
+        "name": "Kostnad avtalsjämförelse"
       },
       "current_electricity_price": {
-        "name": "Aktuellt elpris"
+        "name": "Kostnad elpris (nu)"
       },
       "dhw_cost": {
         "name": "Varmvattenkostnad (totalt)"
@@ -1316,16 +1316,16 @@
         "name": "Varmvattenplan (nästa 24 h)"
       },
       "dhw_heating_schedule": {
-        "name": "Schema för varmvatten"
+        "name": "Varmvattenschema"
       },
       "dhw_heavy_day_demand": {
         "name": "Varmvattenbehov tunga dagar"
       },
       "dhw_mixed_water": {
-        "name": "Blandat varmvatten"
+        "name": "Varmvatten blandat"
       },
       "dhw_setpoint_advisor": {
-        "name": "Rådgivare för varmvattenbörvärde"
+        "name": "Varmvatten börvärdesrådgivare"
       },
       "dhw_temperature": {
         "name": "Varmvattentemperatur"
@@ -1337,7 +1337,7 @@
         "name": "ECL110 effektiv förskjutning"
       },
       "estimated_cop": {
-        "name": "Beräknad COP"
+        "name": "Inlärning beräknad COP"
       },
       "floor_heating_return_temperature": {
         "name": "Golvvärmens returtemperatur"
@@ -1369,16 +1369,16 @@
         "name": "Uppmätt effekt"
       },
       "monthly_peak_power": {
-        "name": "Månadens effekttopp"
+        "name": "Kostnad månadens effekttopp"
       },
       "monthly_savings": {
-        "name": "Månatligt sparande"
+        "name": "Plan månatligt sparande"
       },
       "next_optimization": {
         "name": "Nästa optimering"
       },
       "observed_cop": {
-        "name": "Observerad COP"
+        "name": "Inlärning observerad COP"
       },
       "optimal_setpoint": {
         "name": "Optimalt börvärde"
@@ -1401,7 +1401,7 @@
         "name": "Optimeringsschema, antal steg"
       },
       "optimization_score": {
-        "name": "Optimeringsbetyg"
+        "name": "Plan optimeringsbetyg"
       },
       "optimization_status": {
         "name": "Optimeringsstatus"
@@ -1429,13 +1429,13 @@
         }
       },
       "power_headroom": {
-        "name": "Effektmarginal"
+        "name": "Kostnad effektmarginal"
       },
       "predicted_cost": {
-        "name": "Beräknad kostnad"
+        "name": "Kostnad prognos"
       },
       "predicted_savings": {
-        "name": "Beräknad besparing"
+        "name": "Plan beräknad besparing"
       },
       "prediction_accuracy": {
         "name": "Prognosnoggrannhet"
@@ -1447,7 +1447,7 @@
         "name": "Rekommenderad effekt"
       },
       "savings_percentage": {
-        "name": "Besparing i procent"
+        "name": "Plan besparing i procent"
       },
       "slab_temperature_estimated": {
         "name": "Golvplattans temperatur (uppskattad)"
@@ -1480,7 +1480,7 @@
         "name": "Total energi (totalt)"
       },
       "total_heating_cost": {
-        "name": "Total kostnad (totalt)"
+        "name": "Kostnad total uppvärmning (totalt)"
       },
       "upper_floor_temperature": {
         "name": "Temperatur övervåning"
@@ -1520,10 +1520,10 @@
         "name": "Optimera nu"
       },
       "reset_learned_comfort_weight": {
-        "name": "Återställ inlärd komfortvikt"
+        "name": "Inlärning återställ komfortvikt"
       },
       "run_system_identification": {
-        "name": "Kör systemidentifiering"
+        "name": "Inlärning kör systemidentifiering"
       }
     },
     "switch": {
@@ -1531,7 +1531,7 @@
         "name": "Borta"
       },
       "boost_dhw": {
-        "name": "Forcera varmvatten"
+        "name": "Varmvattenboost"
       },
       "boost_space": {
         "name": "Forcera rumsvärme"
@@ -1710,7 +1710,7 @@
           "description": "Den högsta godtagbara temperaturen att prova, i °C."
         },
         "comfort_weight": {
-          "name": "Komfortvikt",
+          "name": "Inlärning komfortvikt",
           "description": "Hur hårt priset ska jagas jämfört med att hålla temperaturen."
         },
         "comfort_temp_day": {
