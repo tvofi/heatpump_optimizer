@@ -681,7 +681,7 @@ _hra_cells = {
 
 
 def _hra_headroom_entity(extra_config):
-    """The real Power Headroom entity over a real coordinator's own publish."""
+    """The real Cost Power Headroom entity over a real coordinator's own publish."""
     hass = FakeHass()
     hass.states.set("sensor.indoor", FakeState("21.4"))
     hass.states.set("sensor.outdoor", FakeState("-3.0"))
@@ -710,7 +710,7 @@ for _hra_label, _hra_extra in _hra_cells.items():
             _hra_sources.add(_hra_src)
 
 R.check(
-    "only the unbounded cell keeps Power Headroom unavailable",
+    "only the unbounded cell keeps Cost Power Headroom unavailable",
     set(_hra_available)
     == {
         "no fuse, capacity tariff",
@@ -723,7 +723,7 @@ R.check(
 )
 _hra_unnamed = sorted(s for s in _hra_sources if _fold_text(s) not in _automations_hay)
 R.check(
-    "automations.md names every state the Power Headroom sensor publishes",
+    "automations.md names every state the Cost Power Headroom sensor publishes",
     not _hra_unnamed,
     f"limit_source values absent from docs/automations.md: {_hra_unnamed} "
     f"(published over the grid by: {sorted(_hra_available)})",
@@ -1572,19 +1572,19 @@ R.check(
 
 for name in (
     "Measured Power",
-    "Observed COP",
+    "Learning Observed COP",
     "Space Heating Energy (lifetime)",
     "DHW Energy (lifetime)",
     "Total Energy (lifetime)",
     "Space Heating Cost (lifetime)",
     "DHW Cost (lifetime)",
-    "Total Heating Cost (lifetime)",
+    "Cost Total Heating (lifetime)",
     "Prediction Accuracy",
-    "Monthly Peak Power",
+    "Cost Monthly Peak Power",
     "Solar Surplus Forecast",
     "Thermal Battery Charge",
     "Thermal Battery Energy",
-    "Comfort Weight",
+    "Learning Comfort Weight",
 ):
     R.check(f"the {name} sensor exists", name in by_name)
 
@@ -1598,7 +1598,7 @@ R.check(
     "measured power keeps the commanded value alongside",
     by_name["Measured Power"].extra_state_attributes["recommended_power"] == 2.5,
 )
-R.check("observed COP is published", by_name["Observed COP"].native_value == 3.1)
+R.check("observed COP is published", by_name["Learning Observed COP"].native_value == 3.1)
 
 # The Energy dashboard only picks up TOTAL_INCREASING. A MEASUREMENT here would
 # silently keep every one of these out of it, with no error anywhere.
@@ -1617,7 +1617,7 @@ for name in (
 for name in (
     "Space Heating Cost (lifetime)",
     "DHW Cost (lifetime)",
-    "Total Heating Cost (lifetime)",
+    "Cost Total Heating (lifetime)",
 ):
     R.check(
         f"{name} is a TOTAL in a currency",
@@ -1672,17 +1672,17 @@ R.check(
     "the accuracy bias is published alongside the magnitude",
     by_name["Prediction Accuracy"].extra_state_attributes["temperature_bias"] == -0.1,
 )
-R.check("the billed peak is published", by_name["Monthly Peak Power"].native_value == 7.2)
+R.check("the billed peak is published", by_name["Cost Monthly Peak Power"].native_value == 7.2)
 R.check(
     "the free headroom threshold is explained",
-    by_name["Monthly Peak Power"].extra_state_attributes[
+    by_name["Cost Monthly Peak Power"].extra_state_attributes[
         "free_headroom_threshold_kw"
     ]
     == 6.5,
 )
 # v4.0.0 T2: the fuse advisor's answer and the outage flag ride the peak
 # sensor rather than adding two more diagnostic entities.
-_peak_attrs = by_name["Monthly Peak Power"].extra_state_attributes
+_peak_attrs = by_name["Cost Monthly Peak Power"].extra_state_attributes
 R.check(
     "the fuse advisor's monthly answer is published",
     _peak_attrs.get("fuse_advisor", {}).get("candidate_fuse_a") == 16,
@@ -1691,17 +1691,17 @@ R.check(
     "outage recovery is visible while it is active",
     _peak_attrs.get("outage_recovery_active") is True,
 )
-R.check("the Power Headroom sensor exists", "Power Headroom" in by_name)
+R.check("the Cost Power Headroom sensor exists", "Cost Power Headroom" in by_name)
 R.check(
     "headroom is the state, in kW, ready for a charger automation",
-    by_name["Power Headroom"].native_value == 7.3
-    and by_name["Power Headroom"]._attr_native_unit_of_measurement == "kW",
+    by_name["Cost Power Headroom"].native_value == 7.3
+    and by_name["Cost Power Headroom"]._attr_native_unit_of_measurement == "kW",
 )
 R.check(
     "the headroom sensor is available exactly when a limit exists",
-    by_name["Power Headroom"].available is True,
+    by_name["Cost Power Headroom"].available is True,
 )
-_hr_attrs = by_name["Power Headroom"].extra_state_attributes
+_hr_attrs = by_name["Cost Power Headroom"].extra_state_attributes
 R.check(
     "the headroom attributes carry the limit, source and horizon",
     _hr_attrs.get("limit_kw") == 13.8
@@ -1739,8 +1739,8 @@ R.check(
 )
 R.check(
     "the learned comfort weight is visible",
-    by_name["Comfort Weight"].native_value == 6.4
-    and by_name["Comfort Weight"].extra_state_attributes["configured"] == 5.0,
+    by_name["Learning Comfort Weight"].native_value == 6.4
+    and by_name["Learning Comfort Weight"].extra_state_attributes["configured"] == 5.0,
     "an invisible self-adjusting objective would be alarming",
 )
 
@@ -3003,7 +3003,7 @@ R.check(
 )
 _d801_cop = sensor.CurrentCOPSensor(_d801_blind, ENTRY)
 R.check(
-    "Estimated COP is the COP at that forecast, not at the 5.0 default",
+    "Learning Estimated COP is the COP at that forecast, not at the 5.0 default",
     _d801_cop.native_value
     == round(
         _d801_blind._thermal_model.compute_cop(
@@ -3431,7 +3431,7 @@ R.check(
 )
 R.check(
     "and a real threshold still comes through untouched",
-    by_name["Monthly Peak Power"].extra_state_attributes[
+    by_name["Cost Monthly Peak Power"].extra_state_attributes[
         "free_headroom_threshold_kw"
     ]
     == 6.5,
@@ -3832,8 +3832,8 @@ btn_by_name = {display_name("button", b): b for b in buttons}
 R.check("four buttons are added", len(buttons) == 4, str(len(buttons)))
 for name in (
     "Optimize Now",
-    "Run System Identification",
-    "Reset Learned Comfort Weight",
+    "Learning Run System Identification",
+    "Learning Reset Comfort Weight",
     "Diagnose Last Interval",
 ):
     R.check(f"the {name} button exists", name in btn_by_name)
@@ -6427,7 +6427,7 @@ R.check(
 )
 R.check(
     "the DHW boost switch is named through its translation key",
-    display_name("switch", dhw_boost_sw) == "Boost Hot Water",
+    display_name("switch", dhw_boost_sw) == "DHW Boost",
     display_name("switch", dhw_boost_sw),
 )
 R.check(
@@ -6574,7 +6574,7 @@ _np_data["schedule"] = [
         "heat_pump_on": _np.bool_(True),
     }
 ]
-# The real model and parameters ride along: Estimated COP and Solar Heat
+# The real model and parameters ride along: Learning Estimated COP and Solar Heat
 # Gain read them off the coordinator, and every sensor is swept here.
 _np_coordinator = FakeCoordinator(
     _np_data,
@@ -7457,10 +7457,12 @@ R.check(
 # sentence-case when a content word after the first starts lower-case.
 # Stop-words and parentheticals are excluded because both conventions
 # lower-case them. Read the registered strings, not a roster we supply.
+# "now" joined "next"/"lifetime" as a parenthetical time qualifier when
+# #945 named the spot price "Cost Electricity Price (now)".
 _CASE_STOP = frozenset(
     {
         "of", "the", "a", "an", "in", "on", "for", "to", "and", "than",
-        "per", "vs", "h", "next", "lifetime", "estimated", "model",
+        "per", "vs", "h", "next", "now", "lifetime", "estimated", "model",
         "optimizer",
     }
 )
@@ -7479,6 +7481,64 @@ R.check(
     not _sentence_case_names,
     ", ".join(_sentence_case_names),
 )
+
+# #945 (R4-D8-01, owner decision 2026-09-14: Option E).  Home Assistant
+# sorts entities by display name, so four families cluster by sharing a
+# name prefix: tariff under "Cost ", dhw's one deviant switch as
+# "DHW Boost", learning under "Learning ", and the card's headline row
+# under "Plan ".  ``accuracy`` stays split BY DESIGN: ``optimization_score``
+# is a member of both accuracy and card_headline, one entity cannot carry
+# two prefixes, and the measured floor (option E: name_order_intruders
+# 159 -> 30) prefixes the headline family and leaves the accuracy trio
+# unprefixed.  Pin the PREFIX, not the full wording, so a reworded
+# descriptor cannot silently break the clustering; pin accuracy's
+# non-membership for the same reason in reverse.  Read the registered
+# strings.json (via _ENTITY_STRINGS), the table the frontend resolves
+# names from -- not a roster this test supplies.
+_CLUSTER_PREFIXES: dict[str, dict[str, str]] = {
+    "sensor": {
+        "baseline_cost": "Cost ",
+        "predicted_cost": "Cost ",
+        "total_heating_cost": "Cost ",
+        "current_electricity_price": "Cost ",
+        "contract_comparison": "Cost ",
+        "monthly_peak_power": "Cost ",
+        "power_headroom": "Cost ",
+        "comfort_weight": "Learning ",
+        "estimated_cop": "Learning ",
+        "observed_cop": "Learning ",
+        "predicted_savings": "Plan ",
+        "savings_percentage": "Plan ",
+        "monthly_savings": "Plan ",
+        "optimization_score": "Plan ",
+        "plan_narrative": "Plan ",
+    },
+    "button": {
+        "run_system_identification": "Learning ",
+        "reset_learned_comfort_weight": "Learning ",
+    },
+    "switch": {"boost_dhw": "DHW "},
+}
+for _plat, _pins in _CLUSTER_PREFIXES.items():
+    for _key, _prefix in sorted(_pins.items()):
+        _clustered_name = _ENTITY_STRINGS[_plat][_key]["name"]
+        R.check(
+            f"{_plat}.{_key} clusters under the {_prefix!r} prefix (#945)",
+            _clustered_name.startswith(_prefix),
+            _clustered_name,
+        )
+for _plat, _key in (
+    ("sensor", "prediction_accuracy"),
+    ("button", "diagnose_last_interval"),
+):
+    _split_name = _ENTITY_STRINGS[_plat][_key]["name"]
+    R.check(
+        f"accuracy stays split: {_plat}.{_key} takes no cluster prefix (#945)",
+        not _split_name.startswith(
+            ("Cost ", "Learning ", "Plan ", "DHW ")
+        ),
+        _split_name,
+    )
 
 # CRITICAL id stability: pre-assigning ``entity_id`` is the integration
 # suggested-object-id mechanism, used verbatim at first registration only.
@@ -7502,10 +7562,10 @@ for _display, _expected_id in (
     ("Solar Irradiance", "sensor.heat_pump_optimizer_solar_irradiance"),
     ("Space Heating Plan (next 24 h)", "sensor.heat_pump_optimizer_space_heating_plan"),
     ("DHW Heating Plan (next 24 h)", "sensor.heat_pump_optimizer_dhw_heating_plan"),
-    ("Predicted Savings", "sensor.heat_pump_optimizer_predicted_savings"),
-    ("Monthly Savings", "sensor.heat_pump_optimizer_monthly_savings"),
-    ("Savings Percentage", "sensor.heat_pump_optimizer_savings_percentage"),
-    ("Optimization Score", "sensor.heat_pump_optimizer_optimization_score"),
+    ("Plan Predicted Savings", "sensor.heat_pump_optimizer_predicted_savings"),
+    ("Plan Monthly Savings", "sensor.heat_pump_optimizer_monthly_savings"),
+    ("Plan Savings Percentage", "sensor.heat_pump_optimizer_savings_percentage"),
+    ("Plan Optimization Score", "sensor.heat_pump_optimizer_optimization_score"),
     ("Plan Narrative", "sensor.heat_pump_optimizer_plan_narrative"),
     ("Optimal Setpoint", "sensor.heat_pump_optimizer_optimal_setpoint"),
     ("Recommended Power", "sensor.heat_pump_optimizer_recommended_power"),
@@ -7539,9 +7599,9 @@ for _stat_suffix in (
 # Belt-and-braces for the future: the four headline sensors advertise a
 # stable stat_kind attribute, same contract as plan_kind on the plan sensors.
 for _display, _kind in (
-    ("Predicted Savings", "predicted_savings"),
-    ("Savings Percentage", "savings_percentage"),
-    ("Optimization Score", "optimization_score"),
+    ("Plan Predicted Savings", "predicted_savings"),
+    ("Plan Savings Percentage", "savings_percentage"),
+    ("Plan Optimization Score", "optimization_score"),
     ("Plan Narrative", "plan_narrative"),
 ):
     R.check(
@@ -7665,7 +7725,7 @@ R.check(
 # Money that HA can only accept as TOTAL statistics is the settled kind; the
 # horizon predictions stay MEASUREMENT without MONETARY, or HA rejects their
 # long-term statistics (documented on PredictedSavingsSensor).
-for name in ("Predicted Savings", "Predicted Cost", "Baseline Cost", "DHW Heating Cost (next 24 h)"):
+for name in ("Plan Predicted Savings", "Cost Predicted", "Cost Baseline", "DHW Heating Cost (next 24 h)"):
     entity = by_name[name]
     R.check(
         f"{name} stays MEASUREMENT without a MONETARY device class",

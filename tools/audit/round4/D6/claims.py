@@ -321,9 +321,9 @@ eq("C13", "README.md:### Buttons", "the button table names exactly the buttons t
    "platform constructs", CMD, sorted(r[0] for r in _bt_rows),
    sorted(display("button", e) for e in CENSUS["button"]))
 
-eq("C14", "README.md:Switches", "Optimizer Active, Away, Boost Hot Water and Boost "
+eq("C14", "README.md:Switches", "Optimizer Active, Away, DHW Boost and Boost "
    "Space Heating are the switches", CMD,
-   ["Away", "Boost Hot Water", "Boost Space Heating", "Optimizer Active"],
+   ["Away", "Boost Space Heating", "DHW Boost", "Optimizer Active"],
    sorted(display("switch", e) for e in CENSUS["switch"]))
 
 # --- C15..C22 services -----------------------------------------------------

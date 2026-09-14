@@ -10,9 +10,9 @@ prefix follows the name you gave the entry: these examples assume the default
 `sensor.heat_pump_optimizer_power_headroom` — change the prefix if you named
 yours differently.
 
-## Automation example: charge an EV from the Power Headroom sensor
+## Automation example: charge an EV from the Cost Power Headroom sensor
 
-The Power Headroom sensor (`sensor.heat_pump_optimizer_power_headroom`) is
+The Cost Power Headroom sensor (`sensor.heat_pump_optimizer_power_headroom`) is
 `min(main fuse, capacity threshold) − current house draw`, clamped at zero, in
 kW — a number an EV charger can follow. It stays unavailable only while
 nothing bounds the house: set a main fuse size in the options, or enable a
@@ -59,7 +59,7 @@ writing it to the charger's current entity with `number.set_value`.
 
 ## Automation example: economy mode when electricity is expensive
 
-The Current Electricity Price sensor
+The Cost Electricity Price (now) sensor
 (`sensor.heat_pump_optimizer_current_electricity_price`) publishes the hourly
 spot price in your currency per kWh. `set_mode` accepts `auto`, `comfort`,
 `economy`, `boost` and `off`: economy lets the plan ride out expensive hours up

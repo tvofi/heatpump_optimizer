@@ -419,9 +419,9 @@ every sensor is created on every install regardless of which group it is in.
 | Heat Pump Action | — | What the plan is doing now: `off`, `eco`, `normal`, `pre_heat` or `boost`, and `comfort` while comfort mode holds | |
 | Optimal Setpoint | °C | The setpoint the current plan step asks for | |
 | Recommended Power | kW | The electrical power the current plan step asks for | |
-| Current Electricity Price | CUR/kWh | The price the plan is being made against right now | |
+| Cost Electricity Price (now) | CUR/kWh | The price the plan is being made against right now | |
 | Plan Narrative | — | The plan told in sentences, grouped by reason | Card headline |
-| Optimization Score | — | Envelope, machine and operation graded 0–100 | Card headline; unavailable until the scores have evidence |
+| Plan Optimization Score | — | Envelope, machine and operation graded 0–100 | Card headline; unavailable until the scores have evidence |
 | Predictive Optimization Insight | — | What the forecast is making the plan do | Diagnostic |
 | Optimization Status | — | Solver result for the current plan | Diagnostic |
 
@@ -441,16 +441,16 @@ every sensor is created on every install regardless of which group it is in.
 
 | Sensor | Unit | What it tells you | Notes |
 |---|---|---|---|
-| Predicted Savings | CUR | Saving over 24 h against a simulated conventional thermostat following the same comfort schedule | Only the hot-water half of the baseline is always-on |
-| Savings Percentage | % | The same saving as a percentage | |
-| Predicted Cost | CUR | Cost of the optimized 24 h plan | |
-| Baseline Cost | CUR | Cost of the baseline over the same 24 h | |
+| Plan Predicted Savings | CUR | Saving over 24 h against a simulated conventional thermostat following the same comfort schedule | Only the hot-water half of the baseline is always-on |
+| Plan Savings Percentage | % | The same saving as a percentage | |
+| Cost Predicted | CUR | Cost of the optimized 24 h plan | |
+| Cost Baseline | CUR | Cost of the baseline over the same 24 h | |
 | DHW Heating Cost (next 24 h) | CUR | Estimated cost of the planned hot water | |
-| Monthly Savings | CUR | Estimated savings for the open month, with the settled and in-progress months in attributes | Unavailable until at least one month row exists |
-| Contract Comparison | CUR/kWh | How far below the month's flat-consumer average the shifting landed; the three settled totals — hourly spot, monthly-average spot, fixed price — ride in attributes | Diagnostic; disabled by default; needs a configured contract comparison |
+| Plan Monthly Savings | CUR | Estimated savings for the open month, with the settled and in-progress months in attributes | Unavailable until at least one month row exists |
+| Cost Contract Comparison | CUR/kWh | How far below the month's flat-consumer average the shifting landed; the three settled totals — hourly spot, monthly-average spot, fixed price — ride in attributes | Diagnostic; disabled by default; needs a configured contract comparison |
 | Space Heating Cost (lifetime) | CUR | Accumulating cost | |
 | DHW Cost (lifetime) | CUR | Accumulating cost | Renamed from Hot Water Cost by #174; existing installs keep their entity id |
-| Total Heating Cost (lifetime) | CUR | Accumulating cost | |
+| Cost Total Heating (lifetime) | CUR | Accumulating cost | |
 
 #### The temperatures the optimizer works in
 
@@ -469,14 +469,14 @@ every sensor is created on every install regardless of which group it is in.
 
 | Sensor | Unit | What it tells you | Notes |
 |---|---|---|---|
-| Estimated COP | — | Modelled COP at the current outdoor temperature | Follows the Outdoor Temperature sensor below, forecast fallback included |
-| Observed COP | — | Efficiency from measurement rather than the nameplate curve | Needs measured power |
+| Learning Estimated COP | — | Modelled COP at the current outdoor temperature | Follows the Outdoor Temperature sensor below, forecast fallback included |
+| Learning Observed COP | — | Efficiency from measurement rather than the nameplate curve | Needs measured power |
 | Measured Power | kW | Real electrical draw, with the commanded power alongside | Unavailable until a power or energy entity is configured |
 | Space Heating Energy (lifetime) | kWh | Accumulating, for the Energy dashboard | |
 | DHW Energy (lifetime) | kWh | Accumulating, for the Energy dashboard | Renamed from Hot Water Energy by #174; existing installs keep their entity id |
 | Total Energy (lifetime) | kWh | Accumulating, for the Energy dashboard | |
-| Monthly Peak Power | kW | The peak the capacity tariff is billed on, and the headroom left | Unavailable unless the capacity tariff is enabled |
-| Power Headroom | kW | What the house can draw right now without new cost — a number an EV charger's dynamic limit can follow | Unavailable until it can be computed |
+| Cost Monthly Peak Power | kW | The peak the capacity tariff is billed on, and the headroom left | Unavailable unless the capacity tariff is enabled |
+| Cost Power Headroom | kW | What the house can draw right now without new cost — a number an EV charger's dynamic limit can follow | Unavailable until it can be computed |
 | Compressor Starts | — | Realised starts counted from the meter, immersion events excluded | Diagnostic; needs measured power |
 | Compressor Frequency Advisor | Hz | The frequency the plan's power asks for, from the learned kW-per-Hz map | Diagnostic; disabled by default; needs a compressor frequency entity |
 
@@ -503,16 +503,16 @@ every sensor is created on every install regardless of which group it is in.
 | Sensor | Unit | What it tells you | Notes |
 |---|---|---|---|
 | Prediction Accuracy | °C | Mean indoor-temperature error, with the signed bias and the last diagnosis in attributes | Diagnostic; unavailable until an interval has been scored |
-| Comfort Weight | — | The comfort weight in force, learned or configured | Diagnostic |
+| Learning Comfort Weight | — | The comfort weight in force, learned or configured | Diagnostic |
 | ECL110 Displace | °C | The parallel shift commanded to an ECL110 heat curve | Diagnostic; disabled by default; ECL110 hardware |
 | ECL110 Effective Displace | °C | The shift the controller has actually reached, after its own lag | Diagnostic; disabled by default; ECL110 hardware |
 | Valve Target Recommendation | °C | What to set a manual mixing valve to, and why | Diagnostic; disabled by default; needs a mixing-valve mode |
 | Sensor-Gap Euro Advisor | CUR | Estimated extra €/month from the highest-value empty sensor slot | Diagnostic; outdoor, house meter, DHW probe |
 | Wood-Burn Night Advisor | — | 48 h light/skip advice when the wood furnace is on | Diagnostic; advisory only — never lights the stove |
 
-Disabled by default: ECL110 Displace, ECL110 Effective Displace, Contract
-Comparison, DHW Heavy Day Demand, Valve Target Recommendation and Compressor
-Frequency Advisor.
+Disabled by default: ECL110 Displace, ECL110 Effective Displace, Cost
+Contract Comparison, DHW Heavy Day Demand, Valve Target Recommendation and
+Compressor Frequency Advisor.
 
 ### Binary Sensors (5 total)
 
@@ -529,8 +529,8 @@ Frequency Advisor.
 | Button | What it does |
 |---|---|
 | Optimize Now | Force an optimization run. Unavailable while one is in flight |
-| Run System Identification | Arm the commissioning step test for the next mild, cheap night. Inert until *Allow a one-off measurement experiment* is enabled on Advanced settings → Self-learning and diagnostics, which is off by default |
-| Reset Learned Comfort Weight | Undo the revealed-preference tuning |
+| Learning Run System Identification | Arm the commissioning step test for the next mild, cheap night. Inert until *Allow a one-off measurement experiment* is enabled on Advanced settings → Self-learning and diagnostics, which is off by default |
+| Learning Reset Comfort Weight | Undo the revealed-preference tuning |
 | Diagnose Last Interval | Explain the last interval's temperature error input by input, on the Prediction Accuracy sensor |
 
 ### Switches, climate and datetime entities
@@ -542,7 +542,7 @@ Frequency Advisor.
 entity holding when you expect to be back — the optimizer buys the recovery heat
 in the cheapest hours before it. Both are also driven by the `set_away` service.
 
-**Boost Hot Water** and **Boost Space Heating** each apply maximum heat on that
+**DHW Boost** and **Boost Space Heating** each apply maximum heat on that
 channel for two hours: the planner's DHW ceiling, or nameplate space heat with
 the comfort ceiling and full curve displace. They expire on their own and do
 not switch the optimizer into the global boost mode.
@@ -587,7 +587,7 @@ that deliver them.
 12 services are registered under the `heatpump_optimizer` domain. Field-level
 detail for each — including all 28 fields of `set_thermal_parameters` — is in
 [docs/configuration.md](docs/configuration.md). Worked automation examples — an
-EV charger following the Power Headroom sensor, mode switching on price — are in
+EV charger following the Cost Power Headroom sensor, mode switching on price — are in
 [docs/automations.md](docs/automations.md).
 
 | Service | What it does | Returns |
