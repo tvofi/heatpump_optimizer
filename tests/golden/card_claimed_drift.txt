@@ -202,3 +202,63 @@
 #   away strip layout     display:block, gap:normal -> display:flex, gap:12px
 #   visual gap between the two labels  0px -> 12px
 #   coarse_ruleset_min_px 24 at both ends (the control arm, undisturbed)
+
+# #936 (audit round 4, D4-03): the 24 px HTML target floor was emitted only
+# inside @media (pointer: coarse) and its _coarsePointer() JS duplicate, so
+# under a mouse the zoom pair laid out at 20.22x20.22 px with 22.22 px
+# between centres -- under SC 2.5.8's 24 px minimum and inside the spacing
+# exception's 24 px circle at once. The floor (renamed htmlTargetFloor) is
+# now emitted once, unconditionally; the media wrapper and the JS duplicate
+# are gone. The card's touch EXTRA stays coarse-only (_targetMinPx()'s 44 px
+# for SVG-drawn targets), exactly as before.
+#
+# 33 of the 34 states are claimed, for the same measured reason as #822/#823
+# above: the card injects one <style> block and card_drift captures the whole
+# shadow root, and editor_schema renders the config editor's schema and no
+# card stylesheet, so it does not move. Every one of the 33 diffs is
+# STYLESTHEET TEXT ONLY -- no markup element is added, removed or reordered
+# in any state (checked line by line: every changed line is the shadow root's
+# own html= dump, and it changes only inside the <style> block).
+#
+# Measured at both ends with the finder's own harness,
+# tools/audit/round4/D4/target_size.mjs (2 arms x 3 viewports x 34 states,
+# frozen clock): fine-pointer targets failing SC 2.5.8 364 -> 11 (the 11
+# that remain are SVG-drawn rects -- setup-hit and the 15-minute slot-hit --
+# sized by different code, and slot-hit is the same residue the coarse arm
+# has always carried); coarse arm 2 -> 2, the control, undisturbed. The
+# zoom pair itself, tools/audit/round4/D4/d4_own_D4-03.mjs, both ends on
+# this box: 20.22x20.22 at 22.22 px centres -> 24.00x24.00 at 26.00 px at
+# all three tiles, fine and coarse arms alike.
+away_return # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
+away_status # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
+away_toggle # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
+coarse_pointer # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
+custom_title_currency # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
+draft_dirty_menu_open # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
+draft_mid_drag # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
+expanded_plan # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
+expanded_zoomed # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
+hidden_series # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
+layout_editing_dragged # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
+layout_editing_tidy # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
+no_plan # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
+no_plan_expanded # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
+override_active # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
+picker_open_filtered # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
+plan_inline # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
+plan_inline_sv # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
+plan_short_window # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
+reduced_motion # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
+score_open # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
+setup_coil # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
+setup_single_buffer # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
+setup_two_tank # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
+shared_steps # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
+shared_steps_hover # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
+tooltip_hover # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
+what_if_off # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
+whatif_edited # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
+whatif_weekly # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
+wood_alert # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
+wood_lane # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
+wood_whatif # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
