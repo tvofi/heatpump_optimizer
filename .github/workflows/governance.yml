@@ -296,7 +296,6 @@ jobs:
             "repos/${GITHUB_REPOSITORY}/commits/${PR_HEAD}/check-runs" \
             --jq '.check_runs[]
                    | select(.status == "completed" and .conclusion == "failure")
-                   | select(.name != "pr-contract")
                    | .name' | sort -u > /tmp/pr-reds.txt
           printf 'red checks the body must answer: %s\n' \
             "$(paste -sd, /tmp/pr-reds.txt)"
