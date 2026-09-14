@@ -805,6 +805,49 @@ R.check(
     f"validate.py makes {_validate_n} module-level run(...) calls",
 )
 
+# #934 (D3-INST): two claims the suite makes about its own cost. First,
+# closures.json is the only per-script timing table in the tree, and the
+# two differential guards' `recorded` seconds are the cheap stub
+# invocations derive_closures.sh records with (golden.py --only
+# __no_such_scenario__, env_drift.py --cache-key <ref> --all) -- 0.5 s
+# recorded against a standalone golden.py run the judge measured at
+# 160.9 s -- so the file's own comment must say so or a reader sizing a
+# gate run off the table is misled ~300x. Second, the one-script list
+# above double-charged that same differential: golden.py's default drift
+# mode does not run a second measurement, it execs env_drift.py --all
+# (the run the env_drift.py line below it names), so a developer
+# following the list paid ~3 minutes twice for one answer. The default
+# is DERIVED from golden.py's source (DEFAULT_MODE / DRIFT_SCRIPT /
+# "--all" in drift_command), never asserted from prose, so the note
+# fails if golden.py's default ever stops being the env_drift run.
+_golden_src = Path("tests/golden.py").read_text()
+_golden_defaults_to_drift = (
+    _re.search(r'DEFAULT_MODE = "drift"', _golden_src) is not None
+    and _re.search(r'DRIFT_SCRIPT = "tests/env_drift\.py"', _golden_src)
+    is not None
+    and _re.search(r'"--all", ref', _golden_src) is not None
+)
+_golden_note = _re.search(r"(python\s+tests/golden\.py\s*#[^\n]*)", _tests_readme)
+R.check(
+    "tests/README.md's golden.py line names the run its default mode makes",
+    _golden_note is not None
+    and _golden_defaults_to_drift
+    and "env_drift.py --all" in _golden_note.group(1)
+    and "same measurement" in _golden_note.group(1),
+    f"line={_golden_note.group(1).strip() if _golden_note else '!'}, "
+    f"golden.py defaults to drift={_golden_defaults_to_drift} (#934)",
+)
+_closures_comment = json.loads(
+    Path("tests/closures.json").read_text())["_comment"]
+R.check(
+    "closures.json's comment discloses the differential guards' stub seconds",
+    all(
+        w in _closures_comment
+        for w in ("cheap", "golden.py", "env_drift.py", "seconds")
+    ),
+    f"_comment={_closures_comment!r} (#934)",
+)
+
 # #939: architecture.md's own numbers. The file a contributor reads before
 # changing the code had rotted in ten places -- 45 modules where 56 stood, a
 # module map missing eleven files, ten HA importers where 21 import at module
