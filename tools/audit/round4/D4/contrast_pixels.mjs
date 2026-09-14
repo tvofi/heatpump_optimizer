@@ -30,8 +30,9 @@
 // expanded_plan 1.89-2.55) -- the specified fill over the label's own
 // opaque plate, which stays in the "off" raster because only the <text>
 // is hidden. The .wi-save rows are D4-02's and did not move; the
-// lane-more chevron did not move either. Baseline recording preserved
-// above.
+// lane-more chevron did not move either (spec 4.018/5.414, median
+// 1.951/3.411, both ends). Re-verified unchanged at the merged tree
+// 8f5895a (after #998). Baseline recording preserved above.
 import { createRequire } from "node:module";
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import path from "node:path";

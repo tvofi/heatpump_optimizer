@@ -46,8 +46,10 @@
 // histogram counts as a "background" cluster; at the baseline's 6.4 px
 // over varied backdrops no pixel was pure fill, so the baseline's worst
 // cluster was a real backdrop (1.045-1.5). The worst NON-ink cluster at
-// head is the plate, 4.81 light / 6.13 dark. wi-save and targets rows
-// are D4-02/D4-03's and did not move.
+// head is the plate, 4.81 light / 6.13 dark. wi-save is D4-02's and did
+// not move; the targets rows are #936's (R4-D4-03), and after #998's 24
+// px HTML target floor landed they read differently again at the merged
+// tree -- #935's re-record does not speak for them.
 import { createRequire } from "node:module";
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import path from "node:path";

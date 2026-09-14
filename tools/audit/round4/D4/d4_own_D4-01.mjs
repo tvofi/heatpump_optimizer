@@ -35,7 +35,8 @@
 // 375x812 (was 6.4), 11.15 at 1280x800; glyphH_min=9 at 375 (was 7), 14
 // at 1280; ratio_median_min=ratio_specWorst_min=4.811 light / 6.132 dark
 // at every tile (was 2.648-3.175 / 2.493-3.608) -- the label's ink over
-// its own plate, both above the 4.5 AA bar. Baseline recording above is
+// its own plate, both above the 4.5 AA bar. Re-verified unchanged at the
+// merged tree 8f5895a (after #998). Baseline recording above is
 // preserved. The .wi-save rows this harness does not measure are D4-02's,
 // untouched by #935.
 import { createRequire } from "node:module";

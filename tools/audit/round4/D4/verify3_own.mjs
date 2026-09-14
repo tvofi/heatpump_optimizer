@@ -40,8 +40,11 @@
 // V3_D4_01 font_min 6.4/6.6/11.15 px -> 8.00/8.00/11.15 at 375/768/1280,
 // spec_worst 1.01-2.55 -> 4.811 stock_light / 6.132 stock_dark at every
 // cell, sub8_lane -> 0 in every cell (baseline: 2 per plan_inline cell,
-// 3 in the wood lane). V3_D4_02 and V3_D4_03 are other findings' and did
-// not move.
+// 3 in the wood lane). V3_D4_02 is D4-02's and did not move. V3_D4_03 is
+// #936's (R4-D4-03), not #935's: at the merged tree 8f5895a, after #998
+// fixed the 24 px HTML target floor, its rows read failing=0 in every
+// cell (baseline failing 3/6) -- moved by #998, re-verified unchanged in
+// kind by #935's merge.
 import { createRequire } from "node:module";
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import path from "node:path";
