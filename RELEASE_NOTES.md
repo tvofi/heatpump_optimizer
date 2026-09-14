@@ -1,5 +1,75 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.4.4
+
+The round-4 fix waves: physics correctness, sourced tariffs, solver and
+instrument hardening, documentation re-truths, and four gate countermeasures
+since v6.4.3.
+
+### Product
+
+- The modelled COP never falls below the resistive floor and no longer
+  inverts in deep cold; marginal COP prices stored heat honestly (#928).
+- The smooth top-k tariff bracket scales by its own logistic temperature;
+  phantom peak costs are gone (#925).
+- Sweden's DSO tariffs are transcribed from sources: Ellevio kept as
+  historical (the 2026-06-01 effektavgift abolition recorded), Göteborg
+  Energi in force, Vattenfall and E.ON dropped as unpublished (#926).
+- A comma between digits is a decimal separator in grid-fee rules; the
+  catalog's list role is preserved (#929).
+- wood_share fades continuously across the all-HP boundary instead of
+  jumping (#927).
+- Temperature inputs consult the entity's unit; non-metric instances stop
+  misreading 10 of 13 inputs (#961).
+- The accuracy store's samples decode is guarded; corrupt stores stop
+  wiping accumulated fields (#923).
+- Non-finite price-shape bins are rejected at load; corrupt price stores
+  restart flat (#922).
+- The Sensor-Gap Euro Advisor publishes its currency (#940); the four
+  device-class icon exceptions are chosen icons (#946).
+- Lane labels clear an 8 px floor on an opaque plate (#935); the 24 px
+  target floor applies to every pointer (#936).
+- Entities cluster under family prefixes in English and Swedish;
+  accuracy stays split (#945).
+- Summer scores reset after one EMA horizon of free days; winter
+  behaviour is untouched (#908).
+- The README documents known limitations (#952), every shipped options
+  field (#937), architecture is re-truthed (#939), automations state the
+  real Power Headroom rule (#941), and the quality scale matches
+  execution (#951).
+- The sysid sizer uses the configured slab constants (#943), and adoption
+  is decided by identifiability with named refusals (#942).
+- The README's test-sweep annotation counts state the real size (#938);
+  the shared learner gate refuses a defrosting interval (#944); the
+  package root's ConfigEntry is parametrised for type checkers (#953).
+
+### Solver and instruments
+
+- The batched objective is vectorized with bit-identity to scipy's
+  finite-difference path restored across interpreters (#948).
+- Stress budgets the scenario-attributable memory component and detects a
+  2x regression on both axes (#949).
+- The coordinator stub runs upstream's refresh chain, not a counter
+  (#924); the hastub models the entity pass-throughs (#947); the D9
+  instruments satisfy the harness contract they are judged by (#950);
+  the round-3 non-wrapping month-range coverage gap is closed (#930);
+  the horizon clamp is pinned (#933); the disabled-state guard is pinned
+  (#931); optimality races the stop rule (#921).
+
+### Governance
+
+- A red nightly is cleared by a concluded dispatch on main, not by
+  waiting for cron (#901, #976).
+- Harness headers execute every live-marked instrument (#983, #995).
+- The delivery ledger and its record batches (#963, #972, #978, #993,
+  #997); leftover rows and the HANDOVER renumber (#899, #900, #902,
+  #903, #904, #905, #906, #907).
+- The fixes above are the review-passed waves' own pull requests:
+  #964, #965, #966, #967, #968, #969, #970, #971, #973, #974, #975,
+  #976, #977, #979, #980, #981, #982, #983, #984, #985, #986, #987,
+  #988, #989, #990, #991, #992, #994, #995, #998, #999, #1000, #1001,
+  #1002, #1003, #1004, #1005.
+
 ## v6.4.3
 
 Coverage, a nightly setup fix, a thirteenth audit dimension, and leftover record since v6.4.2.
