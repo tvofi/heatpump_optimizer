@@ -318,6 +318,9 @@ INERT = (
     ".github/workflows/hassfest.yml",
     ".github/workflows/release.yml",
     ".github/workflows/validate.yml",
+    # Same class as the three above (ledger finding (e), #201): its own jobs,
+    # run on every pull request regardless; no test script reads it.
+    ".github/workflows/codeql.yml",
     # A manual QA render (writes ../setup-qa/). No gate script reads it.
     "tests/setup_qa_render.mjs",
     # tests/nightly_ha.py was here, on the argument that a lane needing Docker
