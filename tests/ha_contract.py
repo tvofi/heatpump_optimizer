@@ -1101,8 +1101,10 @@ def _first_refresh_entry():
     """A config entry in the one state first refresh is legal in.
 
     Every refresh-chain contract passes one, not only the first-refresh
-    pair: since 2025.5 an ENTRY-LESS ``DataUpdateCoordinator`` construction
-    calls ``frame.report_usage`` (``breaks_in_ha_version="2026.8"``), whose
+    pair: since 2025.8 an ENTRY-LESS ``DataUpdateCoordinator`` construction
+    calls ``frame.report_usage`` (introduced with
+    ``breaks_in_ha_version="2026.8"``, which the kwarg-free 2026.9.2 call
+    site still guards), whose
     first line raises ``RuntimeError: Frame helper not set up`` unless a
     running hass set the frame helper up -- so against every real release
     newer than the floor the nine entry-less constructions #1002 wrote died
