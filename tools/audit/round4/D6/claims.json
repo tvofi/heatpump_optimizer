@@ -1075,7 +1075,7 @@
   "source": "README.md",
   "claim": "the climate entity has HVAC modes off, heat and auto",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented={'off', 'heat', 'auto'} measured={'off', 'heat', 'auto'}",
+  "result": "documented={'auto', 'off', 'heat'} measured={'auto', 'heat', 'off'}",
   "verdict": "true",
   "truth": ""
  },
@@ -1084,7 +1084,7 @@
   "source": "README.md",
   "claim": "the climate entity has presets auto, comfort, economy and boost",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented={'economy', 'auto', 'boost', 'comfort'} measured={'economy', 'auto', 'boost', 'comfort'}",
+  "result": "documented={'boost', 'auto', 'economy', 'comfort'} measured={'boost', 'auto', 'economy', 'comfort'}",
   "verdict": "true",
   "truth": ""
  },
