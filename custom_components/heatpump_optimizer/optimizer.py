@@ -1525,6 +1525,53 @@ class DhwPlan:
     max_lead_hours: float
 
 
+def _terminal_row_cost(
+    refill_price: float,
+    cop_end: float,
+    cop_buffer: float,
+    stores: tuple[tuple[float, str, float, float], ...],
+) -> Callable[[dict[str, float]], float]:
+    """The terminal cost of ONE plan, from its end-of-horizon temperatures.
+
+    This is the scalar closure's body, extracted so the scalar closure and
+    ``_terminal_cost_batch`` can run the SAME function per plan (#948):
+    sharing it is what keeps the objective and the batched objective it
+    serves from differing by a single floating-point operation -- including
+    builtin ``sum``'s compensated (Neumaier) summation on CPython 3.12+,
+    which no vectorized accumulation reproduces and which is exactly the
+    ulp that diverged this branch's jac races on CI's 3.14 runner while
+    every 3.11 seat stayed green (3.11's ``sum`` is plain accumulation).
+    """
+
+    def row_cost(ends: dict[str, float]) -> float:
+        # The buffer's deficit converts at its own (flow-derated) COP;
+        # everything else at the plain curve. Split only when the two
+        # actually differ, so every unthrottled configuration keeps the
+        # single-sum arithmetic -- and therefore the solver's descent
+        # path -- bit for bit.
+        if cop_buffer != cop_end:
+            deficit = 0.0
+            buffer_deficit = 0.0
+            for mass, name, cap, survival in stores:
+                if name == "buffer":
+                    buffer_deficit += (
+                        mass * survival * max(0.0, cap - ends[name])
+                    )
+                else:
+                    deficit += mass * survival * max(0.0, cap - ends[name])
+            return refill_price * (
+                deficit / max(cop_end, 1e-6)
+                + buffer_deficit / max(cop_buffer, 1e-6)
+            )
+        deficit = sum(
+            mass * survival * max(0.0, cap - ends[name])
+            for mass, name, cap, survival in stores
+        )
+        return refill_price * deficit / max(cop_end, 1e-6)
+
+    return row_cost
+
+
 class HeatPumpOptimizer:
     """MPC-based heat pump cost optimizer with predictive weather anticipation and DHW."""
 
@@ -1831,9 +1878,18 @@ class HeatPumpOptimizer:
         really borrowed heat.
 
         Returns the scalar closure and, beside it, its batch twin (#948):
-        both are built from one construction of the stores, so neither the
-        per-store constants nor their order can drift between the objective
-        and the batched objective it serves.
+        both run ONE shared per-row function — the scalar closure's own
+        body — so neither the per-store constants, nor their order, nor a
+        single floating-point operation can drift between the objective
+        and the batched objective it serves. The per-row construction is
+        not a style choice: the store accumulation is a REDUCTION whose
+        scalar form is Python's builtin ``sum``, which on CPython 3.12+
+        is Neumaier-compensated — a different float, by design, from the
+        plain left-to-right accumulation a vectorized twin would compute,
+        on exactly the ulp the solver's iterate path amplifies (round 7
+        of this branch: the race diverged on CI's 3.14 runner and on no
+        3.11 seat, because 3.11's ``sum`` is plain accumulation). See
+        ``_terminal_cost_batch`` for the twin's side of that contract.
 
         The shortfall is priced against the same reference the savings
         settle-up uses — the 25th-percentile price and the mean-outdoor COP,
@@ -1904,6 +1960,10 @@ class HeatPumpOptimizer:
                 (params.slab_thermal_mass, "slab", caps["slab"], 1.0),
             )
 
+        row_cost = _terminal_row_cost(
+            refill_price, cop_end, cop_buffer, stores
+        )
+
         def cost(
             room_temps: np.ndarray,
             slab_temps: np.ndarray,
@@ -1924,84 +1984,45 @@ class HeatPumpOptimizer:
                     float(buffer_temps[-1]) if buffer_temps is not None else 0.0
                 ),
             }
-            # The buffer's deficit converts at its own (flow-derated) COP;
-            # everything else at the plain curve. Split only when the two
-            # actually differ, so every unthrottled configuration keeps the
-            # single-sum arithmetic — and therefore the solver's descent
-            # path — bit for bit.
-            if cop_buffer != cop_end:
-                deficit = 0.0
-                buffer_deficit = 0.0
-                for mass, name, cap, survival in stores:
-                    if name == "buffer":
-                        buffer_deficit += (
-                            mass * survival * max(0.0, cap - ends[name])
-                        )
-                    else:
-                        deficit += mass * survival * max(0.0, cap - ends[name])
-                return refill_price * (
-                    deficit / max(cop_end, 1e-6)
-                    + buffer_deficit / max(cop_buffer, 1e-6)
-                )
-            deficit = sum(
-                mass * survival * max(0.0, cap - ends[name])
-                for mass, name, cap, survival in stores
-            )
-            return refill_price * deficit / max(cop_end, 1e-6)
+            return row_cost(ends)
 
-        return cost, self._terminal_cost_batch(
-            refill_price, cop_end, cop_buffer, stores
-        )
+        return cost, self._terminal_cost_batch(row_cost)
 
     @staticmethod
     def _terminal_cost_batch(
-        refill_price: float,
-        cop_end: float,
-        cop_buffer: float,
-        stores: tuple[tuple[float, str, float, float], ...],
+        row_cost: Callable[[dict[str, float]], float],
     ) -> Callable[[dict[str, np.ndarray]], np.ndarray]:
         """The terminal-cost closure's batch twin, per row of a batch (#948).
 
-        Built by ``_terminal_cost`` from the same per-solve constants and
-        the same ``stores`` tuple, so the twin cannot diverge from the
-        scalar closure by construction. Each row's stores are accumulated
-        in the scalar closure's order; ``np.where`` mirrors scalar
-        ``max(0.0, x)`` exactly, NaN semantics included (both yield 0.0
-        when the comparison is false). ``simulate_trajectory_batch`` always
-        fills ``buffer``, so the scalar closure's ``buffer_temps=None`` arm
-        has no counterpart to serve here.
+        ``row_cost`` IS the scalar closure's body — the one function both
+        twins run, per row — so the twin cannot diverge from the scalar
+        closure by configuration or by arithmetic. The per-row loop is the
+        contract, not a leftover: the store accumulation's scalar form is
+        Python's builtin ``sum``, Neumaier-compensated on CPython 3.12+,
+        and a vectorized accumulation computed plain left-to-right adds —
+        the twin this method had before #948 round 7 — differed from it by
+        1-2 ulp on CI's 3.14 runner at interior iterates (every other term
+        bit-identical, trajectories bit-identical), which was enough to
+        re-plan the solve from step 35 on. That is the ``fixer.md`` step-15
+        rule applied one level up: a reduction whose scalar form is a
+        Python builtin is not elementwise end to end, however few terms it
+        has. The cost is B dict builds and at most four float terms per
+        row — noise against the batched simulation the rows ride on.
+        ``simulate_trajectory_batch`` always fills ``buffer``, so the
+        scalar closure's ``buffer_temps=None`` arm has no counterpart
+        here.
         """
 
         def cost_batch(traj: dict[str, np.ndarray]) -> np.ndarray:
-            ends = {
-                "room": traj["room"][:, -1],
-                "slab": traj["slab"][:, -1],
-                "upper": traj["upper"][:, -1],
-                "lower": traj["lower"][:, -1],
-                "buffer": traj["buffer"][:, -1],
-            }
-            shortfall = {
-                name: np.where(cap - ends[name] > 0.0, cap - ends[name], 0.0)
-                for _, name, cap, _ in stores
-            }
-            if cop_buffer != cop_end:
-                n_rows = ends["room"].shape[0]
-                deficit = np.zeros(n_rows)
-                buffer_deficit = np.zeros(n_rows)
-                for mass, name, cap, survival in stores:
-                    term = mass * survival * shortfall[name]
-                    if name == "buffer":
-                        buffer_deficit = buffer_deficit + term
-                    else:
-                        deficit = deficit + term
-                return refill_price * (
-                    deficit / max(cop_end, 1e-6)
-                    + buffer_deficit / max(cop_buffer, 1e-6)
-                )
-            deficit = np.zeros(ends["room"].shape[0])
-            for mass, name, cap, survival in stores:
-                deficit = deficit + mass * survival * shortfall[name]
-            return refill_price * deficit / max(cop_end, 1e-6)
+            n_rows = traj["room"].shape[0]
+            out = np.empty(n_rows)
+            for b in range(n_rows):
+                out[b] = row_cost({
+                    name: float(traj[name][b, -1])
+                    for name in ("room", "slab", "upper", "lower", "buffer")
+                })
+            return out
+        return cost_batch
 
         return cost_batch
 

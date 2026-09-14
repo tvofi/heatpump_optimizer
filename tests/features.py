@@ -3277,6 +3277,25 @@ _m948 = np.vstack([
 ])
 _B948 = _m948.shape[0]
 
+# The #948 round-7 detector grid. The six schedules above can pass a
+# ulp-level divergence by luck, and once did: the terminal accumulation's
+# scalar form is Python's builtin sum(), Neumaier-compensated on CPython
+# 3.12+, and the batch twin this branch first shipped accumulated plain
+# left-to-right vector adds -- 1-2 ulp apart in the terminal term at
+# interior solve iterates. Every check on this box was green because its
+# interpreter is 3.11, whose sum() is plain accumulation and cannot see
+# the class; CI's fast lane (3.14) diverged in both optimality jac races.
+# These 25 rows are chosen to hit the compensated-vs-plain difference
+# (rng(9): 2 of them diverged under 3.13 pre-fix, 0 post-fix), so the
+# row-parity checks below fire on any 3.12+ interpreter. On 3.11 they
+# agree either way -- that interpreter is blind to the class, and the
+# honest detector for it is the 3.14 lane, not this box.
+_rng948t = np.random.default_rng(9)
+_m948t = np.vstack(
+    [_rng948t.uniform(0.0, 5.5, size=_n948) for _ in range(24)]
+    + [np.full(_n948, 5.5)]
+)
+
 
 def _check_batch_cost_948(label, cap):
     """The #948 pins on one captured objective/objective_batch pair."""
@@ -3321,6 +3340,24 @@ def _check_batch_cost_948(label, cap):
         + str([i for i in range(_B948)
                if float(values[i]) != scalar_rows[i]][:3]),
     )
+    # The same parity on the round-7 detector grid (see _m948t's comment):
+    # rows chosen to separate builtin sum()'s compensated accumulation
+    # (CPython 3.12+) from any plain left-to-right one, which is the ulp
+    # class that diverged CI's 3.14 jac races while this box's 3.11 stayed
+    # green. On 3.11 this grid agrees either way; on 3.12+ a twin that
+    # accumulates differently than the scalar expression fails here.
+    values_t = np.asarray(batch(_m948t, *args), dtype=float)
+    scalar_rows_t = [
+        float(obj(_m948t[b], *args)) for b in range(_m948t.shape[0])
+    ]
+    R.check(
+        f"every row equals the scalar objective bit for bit on the "
+        f"Neumaier grid: {label}",
+        [float(v) for v in values_t] == scalar_rows_t,
+        "first divergences: "
+        + str([i for i in range(_m948t.shape[0])
+               if float(values_t[i]) != scalar_rows_t[i]][:3]),
+    )
 
 
 # Three captures spanning both twins and every cost-term branch: the
@@ -3348,341 +3385,6 @@ _check_batch_cost_948(
         two_zone=True, dhw=True, valve="manual", peak=True, masked=True,
     ),
 )
-
-# TEMPORARY #948 instrument round 7: the pointwise jac control over a
-# WHOLE solve (the #920 seat's method). At EVERY ``_batch_fd_gradient``
-# call during the challenger-4 and challenger-5 two-zone batch solves,
-# scipy's own ``approx_derivative`` is computed at the same (x0, f0, eps,
-# bounds) and compared bit for bit; the first mismatch is dumped with a
-# sim-vs-cost split and a term-level split executed on this runner in
-# this run. Reverted once the mechanism is named.
-from scipy.optimize._numdiff import (  # noqa: E402
-    approx_derivative as _ap948r,
-    _adjust_scheme_to_bounds as _asb948r,
-    _eps_for_method as _epm948r,
-)
-
-
-def _hx948r(v):
-    return float(v).hex()
-
-
-_S948R = {
-    "objective": None, "args": (), "batch": None, "calls": 0,
-    "mismatch": None, "msm": 0, "mode": "", "model": None, "state": None,
-    "env": None, "rec": None,
-}
-_REAL_MSM_948R = _grad_optmod._multi_start_minimize
-_REAL_BFD_948R = _grad_optmod._batch_fd_gradient
-
-
-def _msm948r(objective, candidates, bounds, *a, **kw):
-    _S948R["objective"] = objective
-    _S948R["args"] = kw.get("args", a)
-    _S948R["msm"] += 1
-    return _REAL_MSM_948R(objective, candidates, bounds, *a, **kw)
-
-
-def _mine948r(x0, eps, bounds):
-    """Replicate ``_batch_fd_gradient``'s h rule (for the dump)."""
-    n = x0.size
-    lb = np.array([b[0] for b in bounds], dtype=float)
-    ub = np.array([b[1] for b in bounds], dtype=float)
-    h = np.full(n, eps, dtype=float)
-    sign_x0 = (x0 >= 0).astype(float) * 2 - 1
-    dx_probe = (x0 + h) - x0
-    h = np.where(
-        dx_probe == 0,
-        np.finfo(np.float64).eps ** 0.5 * sign_x0
-        * np.maximum(1.0, np.abs(x0)),
-        h,
-    )
-    lower_dist = x0 - lb
-    upper_dist = ub - x0
-    x = x0 + h
-    violated = (x < lb) | (x > ub)
-    fitting = np.abs(h) <= np.maximum(lower_dist, upper_dist)
-    h[violated & fitting] *= -1
-    forward = (upper_dist >= lower_dist) & ~fitting
-    h[forward] = upper_dist[forward]
-    backward = (upper_dist < lower_dist) & ~fitting
-    h[backward] = -lower_dist[backward]
-    return h, lb, ub
-
-
-def _scipy948r(x0, eps, f0, lb, ub):
-    """Replicate ``approx_derivative``'s h rule (abs_step, 2-point)."""
-    h = np.full(x0.size, eps, dtype=float)
-    sign_x0 = (x0 >= 0).astype(float) * 2 - 1
-    dx = (x0 + h) - x0
-    h = np.where(
-        dx == 0,
-        _epm948r(x0.dtype, np.asarray(f0, dtype=float).dtype, "2-point")
-        * sign_x0 * np.maximum(1.0, np.abs(x0)),
-        h,
-    )
-    h, _ = _asb948r(x0, h, 1, "1-sided", lb, ub)
-    return h
-
-
-def _install948r():
-    """Recorders on the term producers, BEFORE the solve builds closures."""
-    rec = {"s": {}, "b": {}}
-    _S948R["rec"] = rec
-    saved = {}
-
-    def wrap(name, wrapper):
-        saved[name] = getattr(_PvOpt, name)
-        setattr(_PvOpt, name, wrapper(saved[name]))
-
-    def w_energy(orig):
-        def inner(self, prices, dt):
-            closure = orig(self, prices, dt)
-
-            def logged(total_power, *ca):
-                out = closure(total_power, *ca)
-                if np.ndim(total_power) == 1:
-                    rec["s"]["energy"] = float(out)
-                else:
-                    rec["b"]["energy"] = np.array(out, dtype=float)
-                return out
-            return logged
-        return inner
-
-    def w_comfort(orig):
-        def inner(self, *aa, **kk):
-            out = orig(self, *aa, **kk)
-            rec["s"]["comfort"] = (float(out[0]), float(out[1]))
-            return out
-        return inner
-
-    def w_comfort_b(orig):
-        def inner(self, *aa, **kk):
-            out = orig(self, *aa, **kk)
-            rec["b"]["comfort"] = (np.array(out[0], dtype=float),
-                                   np.array(out[1], dtype=float))
-            return out
-        return inner
-
-    def w_grid(orig):
-        def inner(self, *aa, **kk):
-            cyc, cap, base, cycb, capb = orig(self, *aa, **kk)
-
-            def lcyc(p, *ca):
-                out = cyc(p, *ca)
-                rec["s"]["cycling"] = float(out)
-                return out
-
-            def lcap(p, *ca):
-                out = cap(p, *ca)
-                rec["s"]["capacity"] = float(out)
-                return out
-
-            def lcycb(p, *ca):
-                out = cycb(p, *ca)
-                rec["b"]["cycling"] = np.array(out, dtype=float)
-                return out
-
-            def lcapb(p, *ca):
-                out = capb(p, *ca)
-                rec["b"]["capacity"] = np.array(out, dtype=float)
-                return out
-            return lcyc, lcap, base, lcycb, lcapb
-        return inner
-
-    def w_terminal(orig):
-        def inner(self, *aa, **kk):
-            cost, cost_b = orig(self, *aa, **kk)
-
-            def lcost(*ca):
-                out = cost(*ca)
-                rec["s"]["terminal"] = float(out)
-                return out
-
-            def lcostb(*ca):
-                out = cost_b(*ca)
-                rec["b"]["terminal"] = np.array(out, dtype=float)
-                return out
-            return lcost, lcostb
-        return inner
-
-    wrap("_energy_cost_fn", w_energy)
-    wrap("_comfort_terms", w_comfort)
-    wrap("_comfort_terms_batch", w_comfort_b)
-    wrap("_grid_terms", w_grid)
-    wrap("_terminal_cost", w_terminal)
-    return saved
-
-
-def _split_sim948r(xs, perturbed, j):
-    m = _S948R["model"]
-    tb = m.simulate_trajectory_batch(_S948R["state"], perturbed,
-                                     *_S948R["env"])
-    rs, ss, us, ls, bufs, _, _ = m.simulate_trajectory(
-        _S948R["state"], xs, *_S948R["env"])
-    bad = []
-    for name, arr, ref in (
-        ("room", tb["room"][j], rs), ("slab", tb["slab"][j], ss),
-        ("upper", tb["upper"][j], us), ("lower", tb["lower"][j], ls),
-        ("buffer", tb["buffer"][j], bufs),
-    ):
-        if not np.array_equal(arr, ref):
-            i = int(np.argmax(arr != ref))
-            bad.append(f"{name}[{j}]@{i}: {_hx948r(arr[i])} vs "
-                       f"{_hx948r(ref[i])}")
-    return ["SIM PAIR: " + ("; ".join(bad[:6]) if bad else "identical"),
-            "x_row_j[:4]=" + str([_hx948r(v) for v in xs[:4]])]
-
-
-def _split_terms948r(perturbed, j, a):
-    rec = _S948R["rec"]
-    fs = float(_S948R["objective"](perturbed[j].copy(), *a))
-    fb = float(np.asarray(_S948R["batch"](perturbed, *a))[j])
-    lines = [f"TERM SPLIT (re-evaluated): fs={_hx948r(fs)} "
-             f"fb={_hx948r(fb)}"]
-    for term in ("energy", "comfort", "cycling", "capacity", "terminal"):
-        s = rec["s"].get(term)
-        b = rec["b"].get(term)
-        if term == "comfort":
-            same = (s is not None and b is not None
-                    and s[0] == float(b[0][j]) and s[1] == float(b[1][j]))
-            lines.append(f"  {term}: scalar="
-                         f"{tuple(_hx948r(v) for v in s)} batch_j="
-                         f"{tuple(_hx948r(float(v[j])) for v in b)} "
-                         f"same={same}")
-        else:
-            same = (s is not None and b is not None
-                    and float(s) == float(b[j]))
-            lines.append(f"  {term}: scalar={_hx948r(s)} batch_j="
-                         f"{_hx948r(float(b[j]))} same={same}")
-    return lines
-
-
-def _dump948r(batch_objective, args, x0, f0, eps, bounds, g, gf, j):
-    x0 = np.asarray(x0, dtype=float)
-    h_mine, lb, ub = _mine948r(x0, eps, bounds)
-    h_scipy = _scipy948r(x0, eps, f0, lb, ub)
-    dx = (x0 + h_mine) - x0
-    out = [
-        f"mode={_S948R['mode']} msm_call={_S948R['msm']} "
-        f"jac_call={_S948R['calls']}",
-        f"j={j} x0[j]={_hx948r(x0[j])} lb={_hx948r(lb[j])} "
-        f"ub={_hx948r(ub[j])}",
-        f"h_mine={_hx948r(h_mine[j])} h_scipy={_hx948r(h_scipy[j])} "
-        f"dx={_hx948r(dx[j])}",
-        f"g_mine={_hx948r(g[j])} g_scipy={_hx948r(gf[j])} "
-        f"f0={_hx948r(f0)}",
-        f"x_mine_j={_hx948r((x0 + h_mine)[j])} "
-        f"x_scipy_j={_hx948r((x0 + h_scipy)[j])}",
-    ]
-    if (x0 + h_mine)[j] != (x0 + h_scipy)[j]:
-        out.append("STEP RULE DIVERGES at this component -- the perturbed "
-                   "points differ; f never got a chance to matter")
-        return "\n".join(out)
-    n = x0.size
-    perturbed = np.tile(x0, (n, 1))
-    perturbed[np.arange(n), np.arange(n)] = x0 + h_mine
-    xs = perturbed[j].copy()
-    a = tuple(args)
-    fb = float(np.asarray(batch_objective(perturbed, *a))[j])
-    fs = float(_S948R["objective"](xs, *a))
-    out.append(f"fb={_hx948r(fb)} fs={_hx948r(fs)} same={fb == fs}")
-    if fb != fs:
-        out.append("OBJECTIVE PAIR DIVERGES at this row; splitting sim vs "
-                   "cost on this runner")
-        out.extend(_split_sim948r(xs, perturbed, j))
-        out.extend(_split_terms948r(perturbed, j, a))
-    else:
-        num = (fb - float(f0)) / float(dx[j])
-        out.append(
-            f"scalar recompute (fb-f0)/dx={_hx948r(num)}; ==g_mine="
-            f"{num == g[j]}, ==g_scipy={num == gf[j]} -- f values agree, "
-            f"so a differing g means the divided difference or f0 differs"
-        )
-    return "\n".join(out)
-
-
-def _bfd948r(batch_objective, args, x0, f0, eps, bounds):
-    g = _REAL_BFD_948R(batch_objective, args, x0, f0, eps, bounds)
-    _S948R["calls"] += 1
-    if _S948R["mismatch"] is None and _S948R["objective"] is not None:
-        obj = _S948R["objective"]
-        a = tuple(args)
-        lb = np.array([b[0] for b in bounds], dtype=float)
-        ub = np.array([b[1] for b in bounds], dtype=float)
-        x0f = np.asarray(x0, dtype=float)
-        gf = _ap948r(
-            lambda x: float(obj(x, *a)), x0f,
-            method="2-point", abs_step=float(eps), f0=float(f0),
-            bounds=(lb, ub),
-        )
-        free = lb < ub
-        eq = (g[free] == gf[free]) | (
-            np.isnan(g[free]) & np.isnan(gf[free]))
-        if not bool(np.all(eq)):
-            jj = int(np.where(free)[0][~eq][0])
-            _S948R["batch"] = batch_objective
-            _S948R["mismatch"] = _dump948r(
-                batch_objective, args, x0f, f0, float(eps), bounds,
-                g, gf, jj)
-    return g
-
-
-def _run948r(dhw):
-    _p948r = ThermalParameters.from_config(_grad_house(two_zone=True))
-    _p948r.dhw_enabled = bool(dhw)
-    _m948r = _PvModel(_p948r)
-    _o948r = _PvOpt(_m948r, _PvOptCfg(
-        horizon_hours=24, time_step_minutes=15,
-        target_temp=21.0, min_temp=17.0, max_temp=23.0))
-    _st948r = _dt_grad(2026, 1, 15)
-    _pr948r = _fit948(_grad_prices("winter_typical", _st948r), 96)
-    _ot948r, _wi948r, _ra948r, _so948r = (
-        _fit948(_a, 96) for _a in _grad_weather("winter_cold", _st948r))
-    _kw948r = dict(
-        room_temperature=21.0, slab_temperature=22.0,
-        outdoor_temperature=float(_ot948r[0]),
-        upper_floor_temperature=21.0, lower_floor_temperature=21.0,
-        buffer_tank_temperature=40.0,
-    )
-    if dhw:
-        _kw948r["dhw_temperature"] = 48.0
-    _stx948r = ThermalState(**_kw948r)
-    _S948R["model"] = _m948r
-    _S948R["state"] = _stx948r
-    _S948R["env"] = (_ot948r, _wi948r, _ra948r, _so948r,
-                     0.25, None, None, None, 0.0)
-    _S948R["mode"] = "challenger5-dhw-tz" if dhw else "challenger4-space-tz"
-    _S948R["mismatch"] = None
-    _S948R["calls"] = 0
-    _S948R["msm"] = 0
-    _o948r.optimize(_stx948r, _pr948r, _ot948r, _wi948r, _ra948r,
-                    _so948r, _st948r)
-    _mode948r = _S948R["mode"]
-    R.check(
-        f"948 TEMP instrument round 7: every batched jac equals scipy's FD "
-        f"across the whole solve ({'DHW' if dhw else 'space'} two-zone)",
-        _S948R["mismatch"] is None,
-        f"{_S948R['calls']} jac calls controlled over "
-        f"{_S948R['msm']} minimize call(s); first mismatch:\n"
-        + (_S948R["mismatch"] or "none"),
-    )
-    print(f"948 round7 [{_mode948r}] jac_calls={_S948R['calls']} "
-          f"msm_calls={_S948R['msm']} mismatch="
-          f"{_S948R['mismatch'] is not None}")
-
-
-_saved948r = _install948r()
-_grad_optmod._multi_start_minimize = _msm948r
-_grad_optmod._batch_fd_gradient = _bfd948r
-try:
-    _run948r(dhw=False)
-    _run948r(dhw=True)
-finally:
-    _grad_optmod._multi_start_minimize = _REAL_MSM_948R
-    _grad_optmod._batch_fd_gradient = _REAL_BFD_948R
-    for _nm948r, _orig948r in _saved948r.items():
-        setattr(_PvOpt, _nm948r, _orig948r)
 
 # The batch twins under their own branch grids, one level below the
 # objective: every arm peak_cost and cycling_penalty branch on, priced per
