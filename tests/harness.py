@@ -23,47 +23,6 @@ from homeassistant.config_entries import ConfigEntryState
 
 UTC = timezone.utc
 
-# An offline price source for entry setups (#924): the fixed first refresh
-# really fetches, and a Tibber token has no HTTP under the stub -- that
-# config only ever worked because the counter stub ran nothing. The entity
-# source is a real production source that works without a network, so a
-# setup succeeds for the same reason it would on an install with a working
-# feed. Merge into the entry's data dict and call ``seed_price_entity`` on
-# the hass that entry is set up against (the keys are const.CONF_PRICE_SOURCE
-# / const.CONF_PRICE_ENTITY; literals here so harness.py stays
-# integration-agnostic). Two more consequences of the live refresh chain,
-# both encountered in this fix's fallout: the light first refresh CONSUMES
-# ``_skip_solve_once`` at setup (arm it after setup if a test wants it), and
-# a block whose documented driven state is a dead feed clears ``_prices``
-# by hand after setup -- the fetch will otherwise have repopulated it.
-OFFLINE_PRICE_DATA = {
-    "price_source": "entity",
-    "price_entity": "sensor.prices",
-}
-
-
-def seed_price_entity(hass, entity_id="sensor.prices", hours=48, base=0.5):
-    """Publish a Nord-Pool-style price sensor with ``hours`` hourly rows.
-
-    The rows start at the current hour so every parser path (``_raw_start``,
-    horizon extension, the learner) sees a fresh, fully parseable feed --
-    the shape a healthy install publishes.
-    """
-    from homeassistant.util import dt as dt_util
-
-    now = dt_util.now().replace(minute=0, second=0, microsecond=0)
-    rows = [
-        {
-            "start": (now + timedelta(hours=h)).isoformat(),
-            "value": round(base + 0.1 * (h % 4), 3),
-        }
-        for h in range(hours)
-    ]
-    hass.states.set(
-        entity_id,
-        FakeState(str(base), attributes={"raw_today": rows}),
-    )
-
 
 class Results:
     """A tiny pass/fail recorder shared by the test scripts."""

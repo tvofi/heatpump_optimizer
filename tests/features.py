@@ -14389,14 +14389,48 @@ from harness import (
     ha_setup_component as _ha_setup_component,
     ha_setup_entry as _ha_setup_entry,
     ha_unload_entry as _ha_unload_entry,
-    seed_price_entity as _seed_prices,
 )
+
+
+# #924: the fixed first refresh fetches through the base class, and a token
+# config has no HTTP under the stub. The entity feed is a real production
+# source that works offline. Local rather than shared through harness.py:
+# harness.py is a capture source, and a diff touching it makes every
+# inherited claim list this branch's to rewrite -- the corner card_drift
+# reports and the claims bot refuses to repair (#743/#747).
+_OFFLINE_PRICES = {
+    "price_source": "entity",
+    "price_entity": "sensor.prices",
+}
+
+
+def _seed_prices(hass, entity_id="sensor.prices", hours=48, base=0.5):
+    """A Nord-Pool-style sensor with ``hours`` fresh hourly rows."""
+    from datetime import timedelta
+
+    from homeassistant.util import dt as dt_util
+
+    now = dt_util.now().replace(minute=0, second=0, microsecond=0)
+    hass.states.set(
+        entity_id,
+        FakeState(
+            str(base),
+            attributes={
+                "raw_today": [
+                    {
+                        "start": (now + timedelta(hours=h)).isoformat(),
+                        "value": round(base + 0.1 * (h % 4), 3),
+                    }
+                    for h in range(hours)
+                ]
+            },
+        ),
+    )
 
 # #924: the fixed first refresh really fetches, and a Tibber token has no
 # HTTP under the stub -- the token config only ever worked because the
-# counter stub ran nothing at setup. The entity source is a real production
-# source that works offline; every hass an entry is set up against gets the
-# matching sensor seeded via _seed_prices (harness.OFFLINE_PRICE_DATA).
+# counter stub ran nothing at setup. Every hass an entry is set up against
+# gets the matching sensor seeded via _seed_prices.
 _LC_DATA = {
     "price_source": "entity",
     "price_entity": "sensor.prices",

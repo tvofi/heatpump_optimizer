@@ -39,13 +39,47 @@ from harness import (
     FakeEntry,
     FakeHass,
     FakeState,
-    OFFLINE_PRICE_DATA,
     Results,
     ha_setup_component,
     ha_setup_entry,
     ha_unload_entry,
-    seed_price_entity,
 )
+
+# #924: the fixed first refresh fetches through the base class, and a token
+# config has no HTTP under the stub. The entity feed is a real production
+# source that works offline. Local rather than shared through harness.py:
+# harness.py is a capture source, and a diff touching it makes every
+# inherited claim list this branch's to rewrite -- the corner card_drift
+# reports and the claims bot refuses to repair (#743/#747).
+_OFFLINE_PRICES = {
+    "price_source": "entity",
+    "price_entity": "sensor.prices",
+}
+
+
+def _seed_prices(hass, entity_id="sensor.prices", hours=48, base=0.5):
+    """A Nord-Pool-style sensor with ``hours`` fresh hourly rows."""
+    from datetime import timedelta
+
+    from homeassistant.util import dt as dt_util
+
+    now = dt_util.now().replace(minute=0, second=0, microsecond=0)
+    hass.states.set(
+        entity_id,
+        FakeState(
+            str(base),
+            attributes={
+                "raw_today": [
+                    {
+                        "start": (now + timedelta(hours=h)).isoformat(),
+                        "value": round(base + 0.1 * (h % 4), 3),
+                    }
+                    for h in range(hours)
+                ]
+            },
+        ),
+    )
+
 
 from homeassistant.components.sensor import SensorStateClass
 
@@ -7542,9 +7576,9 @@ R.check(
 from homeassistant.helpers import entity_registry as er_stub
 
 _clean_hass = FakeHass()
-seed_price_entity(_clean_hass)  # #924: the fixed first refresh fetches
+_seed_prices(_clean_hass)  # #924: the fixed first refresh fetches
 _clean_entry = FakeEntry(
-    data={**OFFLINE_PRICE_DATA, const.CONF_WEATHER_ENTITY: "weather.home"}
+    data={**_OFFLINE_PRICES, const.CONF_WEATHER_ENTITY: "weather.home"}
 )
 _clean_hass.config_entries.entries.append(_clean_entry)
 _clean_reg = er_stub.async_get(_clean_hass)
@@ -8898,9 +8932,9 @@ R.check(
     f"registered {sorted(_reg_after_setup)}, documented {sorted(services)}",
 )
 _reg_entry = FakeEntry(
-    data={**OFFLINE_PRICE_DATA, const.CONF_WEATHER_ENTITY: "weather.home"}
+    data={**_OFFLINE_PRICES, const.CONF_WEATHER_ENTITY: "weather.home"}
 )
-seed_price_entity(_reg_hass)  # #924
+_seed_prices(_reg_hass)  # #924
 asyncio.run(ha_setup_entry(integration, _reg_hass, _reg_entry))
 R.check(
     "an entry's setup hands its coordinator to the entry as runtime_data",
@@ -8939,9 +8973,9 @@ R.section("Service handlers")
 from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator
 
 _svc_hass = FakeHass()
-seed_price_entity(_svc_hass)  # #924
+_seed_prices(_svc_hass)  # #924
 _svc_entry = FakeEntry(
-    data={**OFFLINE_PRICE_DATA, const.CONF_WEATHER_ENTITY: "weather.home"}
+    data={**_OFFLINE_PRICES, const.CONF_WEATHER_ENTITY: "weather.home"}
 )
 asyncio.run(ha_setup_entry(integration, _svc_hass, _svc_entry))
 _svc_coord = _svc_entry.runtime_data
@@ -9061,7 +9095,7 @@ R.check(
 # be loaded. A second entry is set up alongside the first, then unloaded
 # again so the single-entry checks below see exactly one.
 _svc_entry2 = FakeEntry(
-    data={**OFFLINE_PRICE_DATA, const.CONF_WEATHER_ENTITY: "weather.home"},
+    data={**_OFFLINE_PRICES, const.CONF_WEATHER_ENTITY: "weather.home"},
     entry_id="second_pump",
 )
 asyncio.run(ha_setup_entry(integration, _svc_hass, _svc_entry2))
@@ -9311,9 +9345,9 @@ R.check(
 # unchecked. A nightly `dhw_windows` automation would then have started
 # failing at 03:00 about a ceiling it never mentioned.
 _pre_hass = FakeHass()
-seed_price_entity(_pre_hass)  # #924
+_seed_prices(_pre_hass)  # #924
 _pre_entry = FakeEntry(
-    data={**OFFLINE_PRICE_DATA, const.CONF_WEATHER_ENTITY: "weather.home"}
+    data={**_OFFLINE_PRICES, const.CONF_WEATHER_ENTITY: "weather.home"}
 )
 _pre_entry.options = {const.CONF_TARGET_TEMP: 24.0}   # max stays at 23.0
 asyncio.run(ha_setup_entry(integration, _pre_hass, _pre_entry))
