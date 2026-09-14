@@ -137,6 +137,13 @@ NOT_A_TEST = {
     # drives their operators and their kill rule, so a change to how either
     # classifies selects a script instead of selecting nothing.
     "coverage_ratchet.py", "mutation_table.py",
+    # The #996 instance counter: the record seat runs it by hand against
+    # the issue thread via `gh`, which this suite has neither the network
+    # nor the token for, and its verdict is about the record rather than
+    # about this tree. NOT_A_TEST and NOT inert: `tests/entities.py`
+    # imports it and drives its counting rule, its threshold and its CLI
+    # on a fixture thread, so a change to how it counts selects a script.
+    "issue996_count.py",
     # The shared DOM stub (#101) and the rig around it, imported by the three
     # Node harnesses (card.mjs, setup_qa_render.mjs, card_drift.mjs): libraries,
     # never run. dom_stub.mjs was missing from this set from v6.1.2 to v6.2.7,
