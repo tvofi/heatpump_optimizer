@@ -347,7 +347,6 @@ jobs:
       # red step, ERROR lines in this log -- and the job no longer does.
       - name: Every merged pull request has a disposition
         id: refusal
-        continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
