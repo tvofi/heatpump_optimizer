@@ -1,0 +1,93 @@
+name: CodeQL
+
+# Workflow-based CodeQL analysis, migrating off default setup (ledger finding
+# (e), part of #201). Default setup is not a workflow, so a pull request whose
+# runs need approval -- every bot pull request -- never gets analyzed by it:
+# the required contexts report the configuration-not-found shape until someone
+# looks, and no analysis ever runs. A workflow carries a real queued run
+# instead: once the approval is granted the run executes like any other
+# pull_request workflow, and the analyses land.
+#
+# Everything the analysis covers was RE-DERIVED at the branch's merge base
+# from `gh api /repos/tvofi/heatpump_optimizer/code-scanning/default-setup`
+# (state=configured), never carried over from an issue or card:
+#
+#   languages: [actions, javascript, javascript-typescript, python, typescript]
+#     The three workflow languages below are that list collapsed: CodeQL has
+#     exactly one workflow language covering JavaScript and TypeScript
+#     (`javascript-typescript`), so the javascript/typescript entries are the
+#     same analysis the matrix already runs, and the code-scanning analyses
+#     default setup ever produced are exactly the three categories below --
+#     /language:actions, /language:javascript-typescript, /language:python --
+#     measured over the recorded analyses list, with no fourth category.
+#   query_suite: extended
+#     Default setup's "extended" suite is the `security-extended` suite in
+#     workflow terms (github.blog/changelog/2023-03-20), so `queries:` below
+#     adds it to the default queries. Omitting it would silently narrow the
+#     finding set.
+#   threat_model: remote
+#     Workflow-based analysis already defaults to the remote threat model, so
+#     nothing is configured here; the two run the same model.
+#   schedule: weekly
+#     Re-derived as the weekly cron below. Default setup exposes the cadence
+#     only, not its slot, so the day and hour are this workflow's own choice.
+#
+# No paths-ignore or exclude: the default-setup configuration carried none
+# (the API response has no such fields -- it analyzed the whole repository),
+# and no other workflow in this repository filters paths, so adding one here
+# would silently narrow the finding set the other direction.
+#
+# Default setup analyzed the default branch only, so `push` fires on main and
+# not on master, unlike hassfest/validate.
+#
+# When this lands the repository owner disables default setup (Settings >
+# Code security > Code scanning > Default setup). That is a settings action,
+# not a tree change: this workflow claims nothing about the toggle itself.
+# The branch-protection required contexts then lose default setup's `CodeQL`
+# umbrella context and keep the three `Analyze (language)` ones this file
+# produces -- a settings cleanup that follows the same toggle.
+#
+# Actions are referenced by tag, the existing convention in this repository
+# (actions/checkout@v5 in every workflow here); SHA-pinning of the codeql
+# actions lands in the later W4D-G7 group and will cover this file.
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  schedule:
+    - cron: "41 2 * * 1"
+
+# Minimal for the task: reading the tree and uploading the SARIF.
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # One language failing must not cancel the others: each leg is its own
+    # analysis and its own evidence.
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [actions, javascript-typescript, python]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      # build-mode is left at its default: none of the three languages above
+      # is compiled, so no build step runs between init and analyze.
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-extended
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: "/language:${{ matrix.language }}"
