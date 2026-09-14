@@ -61,6 +61,23 @@ fix removed and are history, not the expectation):
                                      replaced was 43.28 % by cProfile,
                                      against a solve wall 38 % longer)
 
+live-header: this header is maintained against the tree; harness_headers.py executes it.
+
+FINAL RESULT (exact; #1005 review follow-up -- the marker above puts
+this harness in tests/harness_headers.py's executed set, which compares
+these lines to the run. The arm-scoped names further down carry a dot
+the checker's RESULT pattern cannot read, so main() also restates the
+winter arm's structural per-gradient facts under plain names):
+    RESULT cost_terms_batch_calls_per_gradient=1
+    RESULT batch_rows_per_gradient=96
+    RESULT null_control_batched_calls_per_gradient_delta=0
+Per-gradient ratios, not absolute counts: every gradient evaluation is
+exactly one batched-twin call (jac -> _batch_fd_gradient ->
+objective_batch) of n_steps rows, so they hold on any backend where the
+iteration count itself does not reproduce. The absolute per-solve
+counts (njev 305 winter / 300 flat on the recording seat) stay unpinned
+deliberately -- they are solver-path numbers.
+
 PERTURBATION: ``H9_HORIZON=12`` halves the horizon, so the batch has ~49
 rows instead of ~97; ``batch_rows_per_gradient`` must fall to ~48. That
 is the direction proving the batch width drives the work and not a
@@ -187,7 +204,8 @@ def arm(name, price_profile):
     C.result(f"{name}.solve_cpu_s_PROVISIONAL", float(proc), "s")
     C.result(f"{name}.thread_factor", float(proc / thr) if thr else float("nan"))
     return dict(wall=wall, proc=proc, ct=S["ct_time"], batch=S["batch_time"],
-                ctb=S["ctb_time"], calls=S["ct_calls"], njev=S["njev"])
+                ctb=S["ctb_time"], calls=S["ct_calls"], njev=S["njev"],
+                ctb_calls=S["ctb_calls"], batch_rows=S["batch_rows"])
 
 
 def main():
@@ -204,6 +222,20 @@ def main():
              float(ref_proc / ref_thr) if ref_thr else float("nan"))
     a = arm("winter_typical", C.SEASON_PRICES)
     b = arm("flat_NULL", C.FLAT_PRICES)
+    # #1005 review follow-up: checker-readable FINAL summaries. The
+    # arm-scoped names carry a dot, which tests/harness_headers.py's
+    # RESULT pattern ([A-Za-z0-9_]+=) cannot read; these restate the
+    # winter arm's structural per-gradient facts under plain names, with
+    # the flat null's delta beside them. Ratios, not counts: one
+    # batched-twin call per gradient evaluation, of n_steps rows each,
+    # independent of how many iterations the solver took.
+    C.result("cost_terms_batch_calls_per_gradient",
+             float(a["ctb_calls"] / max(a["njev"], 1)), "calls/grad")
+    C.result("batch_rows_per_gradient",
+             float(a["batch_rows"] / max(a["njev"], 1)), "rows/grad")
+    C.result("null_control_batched_calls_per_gradient_delta",
+             float(b["ctb_calls"] / max(b["njev"], 1)
+                   - a["ctb_calls"] / max(a["njev"], 1)), "calls/grad")
     C.result("cpu_ratio_vs_reference", float(a["proc"] / ref_proc))
     C.result("null_control_comfort_share_delta_pp",
              float(100.0 * (b["ct"] / b["wall"] - a["ct"] / a["wall"])), "pp")

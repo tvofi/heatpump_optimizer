@@ -39,6 +39,16 @@ kept below as the finding's frozen record):
   whole_run_process_over_thread_ratio 1.1 - 1.5, ABOVE the contract's
   1.05 bar by construction -- see the telemetry note.
 
+FINAL RESULT (exact; #1005 review follow-up -- with the live-header
+marker below, tests/harness_headers.py executes this harness and
+compares this line to the run):
+    RESULT msm_entries_per_cycle=0
+That count is the only FINAL number under a checker-readable name: the
+CPU milliseconds are PROVISIONAL and thread_factor is in the checker's
+SKIP set, both by design.
+
+live-header: this header is maintained against the tree; harness_headers.py executes it.
+
 TELEMETRY NOTE (#950, round 4 D9-INST): this harness deliberately pushes
 real work through a REAL ``ThreadPoolExecutor`` (the FakeHass trap in
 tools/audit/README.md demands it), so ``process_time/thread_time`` over
