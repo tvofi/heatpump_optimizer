@@ -818,14 +818,9 @@ let requiredContextsFixtureSource = null
 let requiredContextsSitesSource = null
 
 function requiredContextsOverTree() {
-  const live = requiredContextsSource ? requiredContextsSource() : liveRequiredContexts()
-  if (live == null) {
-    // `policy-docs` is itself a required context: an unreachable or
-    // rate-limited API must not block every merge. UNCHECKED, said out loud --
-    // a check that skips without saying so reads exactly like one that passed.
-    console.log(`  skip     required-contexts     the GitHub API is unreachable (${liveRequiredContextsWhy()}); the live required-context set is UNCHECKED this run, not confirmed`)
-    return []
-  }
+  // The fixture FIRST, unconditionally: a missing or unparseable baseline is a
+  // tree defect regardless of whether the API answered, and ordering the fetch
+  // first would hide it behind the skip whenever both fail at once.
   const fixtureRaw = requiredContextsFixtureSource ? requiredContextsFixtureSource() : read(REQUIRED_CONTEXT_FIXTURE)
   if (fixtureRaw == null) {
     return [{
@@ -845,6 +840,14 @@ function requiredContextsOverTree() {
       where: REQUIRED_CONTEXT_FIXTURE,
       message: 'does not parse. The recorded shape of the required-context set is this check\'s baseline; re-record it from the API (branch endpoint and ruleset objects, agreeing).',
     }]
+  }
+  const live = requiredContextsSource ? requiredContextsSource() : liveRequiredContexts()
+  if (live == null) {
+    // `policy-docs` is itself a required context: an unreachable or
+    // rate-limited API must not block every merge. UNCHECKED, said out loud --
+    // a check that skips without saying so reads exactly like one that passed.
+    console.log(`  skip     required-contexts     the GitHub API is unreachable (${liveRequiredContextsWhy()}); the live required-context set is UNCHECKED this run, not confirmed`)
+    return []
   }
   const sites = requiredContextsSitesSource ? requiredContextsSitesSource() : trackedFiles().list.filter((f) => REQUIRED_CONTEXT_SITE.test(f)).sort()
   return [

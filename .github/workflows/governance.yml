@@ -162,7 +162,16 @@ jobs:
       - name: Put origin/main where the matrix looks for it
         run: git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
 
+      # GITHUB_TOKEN: the `pr` shape below asserts NOTHING skips in a full
+      # clone, and the required-contexts class needs credentials to look at the
+      # live ruleset -- a real pull-request run has them (the token is mapped on
+      # the policy-docs lint step), so the shape that models that run needs them
+      # too. Without it the fetch fails and the class skips, which the zero-skip
+      # row refuses: correctly, because that is not the environment a real run
+      # is in. First measured the other way -- this job's own run at 23cc6e0.
       - name: Require each declared environment shape to produce its declared outcome
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node .claude/workflows/policy_lint_envmatrix.mjs "$PWD" "${RUNNER_TEMP}/envmatrix" "$(git rev-parse HEAD)"
 
   wave-script:

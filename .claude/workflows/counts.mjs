@@ -196,17 +196,22 @@ export function liveRequiredContextsWhy() {
   return _liveRequiredContextsWhy
 }
 
+// WHERE TO ASK is the fixture's `branch_endpoint`, never the clone's own
+// remote: the environment matrix builds synthetic clones whose origin is a
+// LOCAL PATH, and a fork's origin names a different repository than the one
+// the corpus's claims are about. The recorded shape names the repository the
+// assertions cite; the ANSWER still comes from the API, never from the
+// fixture -- recording where to ask is not recording what it said.
 export function liveRequiredContexts() {
   if (_liveRequiredContexts !== undefined) return _liveRequiredContexts
   _liveRequiredContexts = null
   try {
-    const url = execFileSync('git', ['config', '--get', 'remote.origin.url'], { encoding: 'utf8' }).trim()
-    const m = url.match(/[/:]([^/:]+)\/([^/.]+?)(?:\.git)?$/)
-    if (!m) {
-      _liveRequiredContextsWhy = `origin (${url.slice(0, 60)}) names no owner/repo the API could be asked for`
+    const fixture = JSON.parse(read('.claude/workflows/fixtures/required-contexts.json'))
+    const base = (fixture && fixture.branch_endpoint || '').replace(/\/rules\/branches\/main$/, '')
+    if (!/^repos\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(base)) {
+      _liveRequiredContextsWhy = 'the recorded shape names no branch_endpoint to ask'
       return null
     }
-    const base = `repos/${m[1]}/${m[2]}`
     // Surface 1: the merged branch view.
     const branch = JSON.parse(execFileSync('gh', ['api', `${base}/rules/branches/main`], { encoding: 'utf8' }))
     const ids = new Set()
@@ -234,7 +239,7 @@ export function liveRequiredContexts() {
     _liveRequiredContextsWhy = ''
     return { contexts: a, count: a.length, rulesets: [...ids].sort((x, y) => x - y) }
   } catch (e) {
-    _liveRequiredContextsWhy = `gh or git failed: ${String((e && e.status) || (e && e.message) || e).split('\n')[0].slice(0, 100)}`
+    _liveRequiredContextsWhy = `the fixture or the API failed: ${String((e && e.status) || (e && e.message) || e).split('\n')[0].slice(0, 100)}`
     return null
   }
 }
