@@ -2767,14 +2767,18 @@ function setupSvgHtml(topo, ctx) {
 // so the largest pure member of a 7,900-line god class is a visible
 // seam instead of one method among one hundred and eighty.
 function cardStyleBlock() {
-  /* D4-02 (#262): legend chips in dialog.expanded beat the coarse block's
-     .chip padding via (0,2,0) specificity; at the dialog's 12 px font floor
-     0.32em vertical padding + normal line-height lands at 23 px while
-     min-height never engages on inline-flex buttons without an explicit
-     line-height. Duplicated outside @media when _coarsePointer() so the
-     browser witness's matchMedia stub still sizes HTML targets in headless
-     Chromium, where CDP pointer emulation does not re-evaluate shadow styles. */
-  const coarseHtmlTargets = `
+  /* #936 (D4-03): SC 2.5.8's 24 px target minimum is owed to every pointer,
+     not only to touch -- under a mouse this floor used to be emitted solely
+     inside @media (pointer: coarse), so the zoom pair laid out at 20.22 px
+     with 22.22 px between centres, undersized and unrescued by the spacing
+     exception. Emitted once, unconditionally: the card's touch EXTRA (the
+     44 px _targetMinPx() gives SVG-drawn targets) stays coarse-only; this
+     floor is the every-pointer minimum. D4-02 (#262) still applies beneath
+     it: legend chips in dialog.expanded beat this block's .chip padding via
+     (0,2,0) specificity; at the dialog's 12 px font floor 0.32em vertical
+     padding + normal line-height lands at 23 px while min-height never
+     engages on inline-flex buttons without an explicit line-height. */
+  const htmlTargetFloor = `
         .expand, .close, .viewctl button, .chip, .dlg-tab,
         .layout-bar button, .whatif button, .whatif input[type="time"],
         .whatif .wi-win-days, .whatif .wi-viewreset, .sp-actions button,
@@ -3500,14 +3504,12 @@ function cardStyleBlock() {
         background: var(--error-color, #e0544e);
       }
       .whatif .wi-save[disabled] { opacity: 0.6; cursor: default; }
-      @media (pointer: coarse) {${coarseHtmlTargets}
-      }
-      ${_coarsePointer() ? coarseHtmlTargets : ""}
+      ${htmlTargetFloor}
       /* #823: .away-strip shipped with no rule matching it at all -- a 13px
          checkbox, a 14px label and a 0px gap, so the two labels rendered as
          "AwayReturn". Every other control block clears the card's own 24px
-         coarse-pointer floor; this one was simply never added to that rule
-         set (see coarseHtmlTargets below). */
+         target floor; this one was simply never added to that rule
+         set (see htmlTargetFloor above). */
       .away-strip {
         display: flex;
         flex-wrap: wrap;

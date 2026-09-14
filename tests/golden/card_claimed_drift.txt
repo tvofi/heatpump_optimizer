@@ -215,8 +215,9 @@
 #                     var(--card-background-color) so the label's ink is
 #                     measured against the card, not against whatever slot
 #                     ran beneath it (the wood lane's 1.01:1 instance)
-#   the label itself  moves after that lane's slot rects (it used to sit
-#                     under the lane-past tint and the slots)
+#   the label itself  moves into its own <g class="lane-labels"> emitted
+#                     after the series paths (it used to sit under the
+#                     lane-past tint, the slots and the series bars)
 #   the font          keeps its 0.8 em ratio through a chartFontUnits pass
 #                     of its own, so the rendered size is floored at 8 px
 #                     wherever the axis floor binds; at the 900-unit width
@@ -253,3 +254,30 @@ wood_whatif # same plate/z-order move, wood lane with what-if slots (#935)
 away_toggle # the tile chart behind the away strip carries the same lane strip change (#935)
 away_return # the tile chart behind the away strip carries the same lane strip change (#935)
 away_status # the tile chart behind the away strip carries the same lane strip change (#935)
+
+# #936 (audit round 4, D4-03): the 24 px HTML target floor was emitted only
+# inside @media (pointer: coarse) and its _coarsePointer() JS duplicate, so
+# under a mouse the zoom pair laid out at 20.22x20.22 px with 22.22 px
+# between centres -- under SC 2.5.8's 24 px minimum and inside the spacing
+# exception's 24 px circle at once. The floor (renamed htmlTargetFloor) is
+# now emitted once, unconditionally; the media wrapper and the JS duplicate
+# are gone. The card's touch EXTRA stays coarse-only (_targetMinPx()'s 44 px
+# for SVG-drawn targets), exactly as before.
+#
+# 33 of the 34 states are claimed, for the same measured reason as #822/#823
+# above: the card injects one <style> block and card_drift captures the whole
+# shadow root, and editor_schema renders the config editor's schema and no
+# card stylesheet, so it does not move. Every one of the 33 diffs is
+# STYLESTHEET TEXT ONLY -- no markup element is added, removed or reordered
+# in any state (checked line by line: every changed line is the shadow root's
+# own html= dump, and it changes only inside the <style> block).
+#
+# Measured at both ends with the finder's own harness,
+# tools/audit/round4/D4/target_size.mjs (2 arms x 3 viewports x 34 states,
+# frozen clock): fine-pointer targets failing SC 2.5.8 364 -> 11 (the 11
+# that remain are SVG-drawn rects -- setup-hit and the 15-minute slot-hit --
+# sized by different code, and slot-hit is the same residue the coarse arm
+# has always carried); coarse arm 2 -> 2, the control, undisturbed. The
+# zoom pair itself, tools/audit/round4/D4/d4_own_D4-03.mjs, both ends on
+# this box: 20.22x20.22 at 22.22 px centres -> 24.00x24.00 at 26.00 px at
+# all three tiles, fine and coarse arms alike.

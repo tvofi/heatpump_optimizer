@@ -1590,6 +1590,84 @@ check("the hand-scheduled reason has a label",
 }
 
 // ---------------------------------------------------------------------------
+// #936 (D4-03): the 24 px HTML target floor is not a touch-only courtesy.
+//
+// The floor (min-width/min-height 24 px on the zoom pair, the chips, the
+// dialog tabs, ...) was emitted only inside `@media (pointer: coarse)` and
+// its `_coarsePointer()` JS duplicate, so under a mouse -- the pointer a
+// dashboard tile usually has -- the zoom pair laid out at 20.22x20.22 px
+// with 22.22 px between centres: under SC 2.5.8's 24 px minimum AND inside
+// the spacing exception's 24 px circle, so the exception rescued nothing.
+// The audit's grid counted 364 fine-pointer targets failing the criterion
+// against 2 on the coarse arm -- the floor worked exactly where it was
+// applied. The card already floors its SVG-drawn targets at TARGET_MIN_PX
+// for every pointer (`_targetMinPx()` adds the touch extra only under a
+// coarse pointer); the HTML floor must not be coarse-gated either.
+//
+// STRUCTURAL PIN, not a rendered-size test: this stub has no layout
+// engine, so what it can pin is the emission -- the floor must reach the
+// stylesheet through a path a fine pointer applies, i.e. outside any
+// `@media (pointer: coarse)` wrapper, in BOTH stub arms (the coarse arm
+// guards against a later "fine-only" rewrite the way the fine arm guards
+// against this defect). Real rendered geometry is card_browser.mjs's to
+// measure.
+// ---------------------------------------------------------------------------
+{
+  // 24, read from the card's own realm rather than restated here (#136).
+  const FLOOR = fn("TARGET_MIN_PX");
+  // Remove every `@media (...) { ... }` block whose query matches. Balanced
+  // braces by hand: the wrapped rules nest one brace deep, so a flat regex
+  // cannot tell "inside the wrapper" from "after it closed".
+  const stripMedia = (css, query) => {
+    let out = "";
+    let i = 0;
+    while (i < css.length) {
+      const at = css.indexOf("@media", i);
+      if (at < 0) { out += css.slice(i); break; }
+      const open = css.indexOf("{", at);
+      const head = css.slice(at, open);
+      let depth = 1;
+      let j = open + 1;
+      while (j < css.length && depth > 0) {
+        if (css[j] === "{") depth += 1;
+        else if (css[j] === "}") depth -= 1;
+        j += 1;
+      }
+      out += css.slice(i, at);
+      if (!query.test(head)) out += css.slice(at, j);
+      i = j;
+    }
+    return out;
+  };
+  // Executes the production symbol in the card's own realm: the stylesheet
+  // exactly as a render injects it, in the stub arm named.
+  const styleIn = (coarse) => {
+    coarseTouch.on = coarse;
+    try { return fn("cardStyleBlock")(); } finally { coarseTouch.on = false; }
+  };
+  const fineCss = stripMedia(styleIn(false), /pointer:\s*coarse/);
+  const coarseCss = stripMedia(styleIn(true), /pointer:\s*coarse/);
+  // A selector is floored when some rule names it as a whole selector token
+  // (a group counts) and that rule's body sets both min-width and
+  // min-height to the card's own floor.
+  const floored = (css, sel) =>
+    [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].some((m) =>
+      m[1].split(",").some((s) => s.trim() === sel) &&
+      new RegExp(`min-width:\\s*${FLOOR}px`).test(m[2]) &&
+      new RegExp(`min-height:\\s*${FLOOR}px`).test(m[2]));
+
+  check("under a mouse, the zoom pair's 24 px floor is emitted outside the coarse media query",
+    floored(fineCss, ".viewctl button"),
+    "the .viewctl button floor appears only inside @media (pointer: coarse) in the fine-pointer arm");
+  check("under a mouse, the chips share that floor",
+    floored(fineCss, ".chip"),
+    "no .chip rule outside @media (pointer: coarse) carries min-width/min-height 24 in the fine-pointer arm");
+  check("under touch, the floor is still emitted (not traded for the fix)",
+    floored(coarseCss, ".viewctl button") && floored(coarseCss, ".chip"),
+    "the coarse-pointer arm lost the floor the media query used to carry");
+}
+
+// ---------------------------------------------------------------------------
 // Zoom-limited editing: the ceiling names its cause, and dragging pans it
 // away (user report on v4.0.0: "slots can only be edited until midnight" —
 // a forgotten zoom had clamped the edit ceiling to the visible window).
