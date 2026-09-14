@@ -7,6 +7,15 @@ construction, and this record is a plan with its checks written down. 0005's
 order is the part of that record this one keeps; its reason is restated below
 because it is the whole safety argument.
 
+> **Status note, 2026-09-14.** The owner revised this record's staged shape in
+> session (#201 comment 5670207248; decision `0009` carries the revision).
+> Step 2's code owner is the approver identity 0009 creates, not `@tvofi`, and
+> step 4's deferred third identity is promoted into the plan's first move —
+> the approver exists before the rule does. The order and the rollback shape
+> are kept. This record's effective-when condition — and 0005's supersession —
+> now track 0009's checklist rather than step 3(c) alone. No step of either
+> record has been executed; the GitHub-side actions remain the owner's.
+
 ## Context
 
 #680 re-put O1 — a second GitHub identity — to the owner with the live ruleset

@@ -373,7 +373,7 @@
   "source": "manifest.json",
   "claim": "manifest version equals VERSION",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented='6.4.4' measured='6.4.4'",
+  "result": "documented='6.5.0' measured='6.5.0'",
   "verdict": "true",
   "truth": ""
  },
@@ -965,9 +965,9 @@
  {
   "id": "C108",
   "source": "README.md + docs/*.md",
-  "claim": "every relative link resolves (65 links)",
+  "claim": "every relative link resolves (66 links)",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "65 links, broken=[], of which removed-by-the-export=[]",
+  "result": "66 links, broken=[], of which removed-by-the-export=[]",
   "verdict": "true",
   "truth": ""
  },
@@ -992,7 +992,7 @@
  {
   "id": "C111",
   "source": "README.md + docs/*.md",
-  "claim": "every external link answers 200 to a HEAD request (10 links)",
+  "claim": "every external link answers 200 to a HEAD request (13 links)",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py --links",
   "result": "not run: pass --links",
   "verdict": "unverifiable",
@@ -1075,7 +1075,7 @@
   "source": "README.md",
   "claim": "the climate entity has HVAC modes off, heat and auto",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented={'heat', 'auto', 'off'} measured={'heat', 'off', 'auto'}",
+  "result": "documented={'off', 'heat', 'auto'} measured={'off', 'heat', 'auto'}",
   "verdict": "true",
   "truth": ""
  },
@@ -1084,7 +1084,7 @@
   "source": "README.md",
   "claim": "the climate entity has presets auto, comfort, economy and boost",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented={'economy', 'boost', 'auto', 'comfort'} measured={'economy', 'boost', 'auto', 'comfort'}",
+  "result": "documented={'comfort', 'auto', 'economy', 'boost'} measured={'comfort', 'auto', 'economy', 'boost'}",
   "verdict": "true",
   "truth": ""
  },

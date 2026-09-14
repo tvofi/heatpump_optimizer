@@ -620,6 +620,19 @@ pinned window. The pins constrain *timing only*: tank minimums, the legionella
 clock and the house comfort floor still override them, and any slot that had to
 be released is reported in the `manual_override` attribute of the plan sensors.
 
+### Blueprints
+
+The worked examples in [docs/automations.md](docs/automations.md) are also
+shipped as importable Home Assistant blueprints, one per example. Import them
+from Settings → Automations & Scenes → Blueprints → Import Blueprint:
+
+- [Charge an EV from grid headroom](https://raw.githubusercontent.com/tvofi/heatpump_optimizer/main/blueprints/automation/charge_ev_from_grid_headroom.yaml) — starts a charger switch while the Cost Power Headroom sensor sits above your start threshold and stops it below your stop threshold.
+- [Economy mode through the evening price peak](https://raw.githubusercontent.com/tvofi/heatpump_optimizer/main/blueprints/automation/economy_mode_on_price_peak.yaml) — switches the optimizer's mode when the current electricity price crosses your expensive threshold, and back when it falls.
+- [Notify when a manual plan takes over](https://raw.githubusercontent.com/tvofi/heatpump_optimizer/main/blueprints/automation/notify_on_manual_plan.yaml) — raises a persistent notification while an `apply_manual_plan` override pins the heating slots.
+
+Each blueprint takes the sensor and thresholds as inputs, so nothing is
+hard-coded to the entity ids the examples assume.
+
 ## How it works
 
 <details open>

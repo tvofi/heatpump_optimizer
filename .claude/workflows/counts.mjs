@@ -162,6 +162,159 @@ export const COUNT_RULES = [
 // as history is a record of what was once measured, not a live claim.
 export const HISTORY_LINE = /^\s*(?:>|\|?\s*BORN:|EXAMPLE|#{1,6}\s|.*\b(?:once|used to|at the time|was then|historical|superseded)\b)/i
 
+// ---------------------------------------------------------------------------
+// The live required-context set (#957). Three assertion sites -- a governance.yml
+// comment, the plan's CLOSED block, a decision-record status note -- each stated
+// a required-context count the live ruleset no longer returned, and nothing in
+// the tree could notice: the counts above derive from TREE artifacts, and the
+// ruleset lives on the other side of an API call. This instrument derives the
+// live set instead and polices two things against it: the corpus's literals
+// (a stated count must equal the live count) and a recorded-shape FIXTURE (the
+// committed list must equal the live list, name by name, so the next ruleset
+// change reddens the tree within one push).
+//
+// THE DERIVATION READS BOTH SURFACES, never the branch endpoint alone: the
+// D11 brief's warning is that `rules/branches/main` is not bypass-aware -- it
+// merges the applicable view but says nothing about who the rule does not bind.
+// The ruleset OBJECT is the authoritative definition. The two are required to
+// AGREE on the context list; a disagreement is a topology this instrument
+// refuses to interpret, and it skips (loudly) rather than guessing which view
+// is the truth. Two `gh api` calls, memoized per process: about a second.
+//
+// WHY A FETCH FAILURE IS A SKIP AND NOT A RED. `policy-docs` -- the job this
+// runs in -- is itself a required context, so an unreachable or rate-limited
+// API reddening this class would block every merge in the repository on a
+// transient outage nobody's change caused. The failure mode is recorded here
+// so the next reader does not "fix" it into fail-closed: unreachable means
+// UNCHECKED, and the skip line says so, which is the difference between an
+// open defect and a closed one. The acceptance pins the skip both ways: a
+// null fetch produces no finding AND the line that says why.
+
+let _liveRequiredContexts
+let _liveRequiredContextsWhy = 'not asked yet'
+export function liveRequiredContextsWhy() {
+  return _liveRequiredContextsWhy
+}
+
+// WHERE TO ASK is the fixture's `branch_endpoint`, never the clone's own
+// remote: the environment matrix builds synthetic clones whose origin is a
+// LOCAL PATH, and a fork's origin names a different repository than the one
+// the corpus's claims are about. The recorded shape names the repository the
+// assertions cite; the ANSWER still comes from the API, never from the
+// fixture -- recording where to ask is not recording what it said.
+export function liveRequiredContexts() {
+  if (_liveRequiredContexts !== undefined) return _liveRequiredContexts
+  _liveRequiredContexts = null
+  try {
+    const fixture = JSON.parse(read('.claude/workflows/fixtures/required-contexts.json'))
+    const base = (fixture && fixture.branch_endpoint || '').replace(/\/rules\/branches\/main$/, '')
+    if (!/^repos\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(base)) {
+      _liveRequiredContextsWhy = 'the recorded shape names no branch_endpoint to ask'
+      return null
+    }
+    // Surface 1: the merged branch view.
+    const branch = JSON.parse(execFileSync('gh', ['api', `${base}/rules/branches/main`], { encoding: 'utf8' }))
+    const ids = new Set()
+    const viaBranch = new Set()
+    for (const r of branch) {
+      if (r.type !== 'required_status_checks') continue
+      if (r.ruleset_id != null) ids.add(r.ruleset_id)
+      for (const c of (r.parameters && r.parameters.required_status_checks) || []) viaBranch.add(c.context)
+    }
+    // Surface 2: each contributing ruleset object, read itself.
+    const viaRulesets = new Set()
+    for (const id of ids) {
+      const rs = JSON.parse(execFileSync('gh', ['api', `${base}/rulesets/${id}`], { encoding: 'utf8' }))
+      for (const rule of rs.rules || []) {
+        if (rule.type !== 'required_status_checks') continue
+        for (const c of (rule.parameters && rule.parameters.required_status_checks) || []) viaRulesets.add(c.context)
+      }
+    }
+    const a = [...viaBranch].sort()
+    const b = [...viaRulesets].sort()
+    if (a.join('\n') !== b.join('\n')) {
+      _liveRequiredContextsWhy = 'the branch endpoint and the ruleset objects disagree on the context list'
+      return null
+    }
+    _liveRequiredContextsWhy = ''
+    return { contexts: a, count: a.length, rulesets: [...ids].sort((x, y) => x - y) }
+  } catch (e) {
+    _liveRequiredContextsWhy = `the fixture or the API failed: ${String((e && e.status) || (e && e.message) || e).split('\n')[0].slice(0, 100)}`
+    return null
+  }
+}
+
+// The literal shapes the assertion sites use. Deliberately narrower than "N
+// required checks": "#656 read BLOCKED on two required checks still running"
+// counts CHECKS AT A MOMENT, not the set's size, and would be a false refusal.
+// "16-of-16 required checks" (a dated row) is not matched by any shape here --
+// the number sits behind "of-", and no shape admits it.
+export const REQUIRED_CONTEXT_RES = [
+  new RegExp(`${NUM}\\s+required\\s+status\\s+checks\\b`, 'gi'),
+  new RegExp(`${NUM}\\s+required\\s+contexts\\b`, 'gi'),
+  new RegExp(`${NUM}-context\\s+required\\s+set\\b`, 'gi'),
+]
+
+// History guard for the SITE scan -- deliberately not counts.mjs's
+// HISTORY_LINE: a decision record's status note is a blockquote (`>`) and is
+// exactly the live claim this class exists to read. What IS history here is
+// the plan's per-merge record furniture: Delivery-status TABLE rows (`| ...`)
+// and per-PR rows (`- [#NNN] ...`), each dated by construction.
+export const REQUIRED_CONTEXT_HISTORY = /^\s*(?:\||-\s*\[#\d+\])/
+
+export function checkRequiredContexts(rel, text, live) {
+  if (text == null || live == null) return []
+  const out = []
+  text.split('\n').forEach((line, i) => {
+    if (REQUIRED_CONTEXT_HISTORY.test(line)) return
+    for (const re of REQUIRED_CONTEXT_RES) {
+      re.lastIndex = 0
+      let m
+      while ((m = re.exec(line))) {
+        const got = toNum(m[1])
+        if (got == null || got === live.count) continue
+        out.push({
+          severity: 'error',
+          check: 'required-contexts',
+          where: `${rel}:${i + 1}`,
+          message: `states ${m[1]} for the required-context set; the live ruleset returns ${live.count}. State the rule, never a count -- "the required checks its endpoint returns" needs no number and cannot go stale.`,
+        })
+      }
+    }
+  })
+  return out
+}
+
+// The recorded-shape fixture against the live list, name by name: a COUNT
+// alone would pass a ruleset change that swapped one context for another, and
+// the two reds below are what make the next ruleset change visible within one
+// push. Red here means re-record the fixture BY HAND from the API (both
+// surfaces, as above) and re-read every assertion site against the new list.
+export function requiredContextsDrift(fixtureRel, fixture, live) {
+  if (fixture == null || live == null) return []
+  const out = []
+  const recorded = new Set(fixture.contexts || [])
+  for (const c of live.contexts) {
+    if (recorded.has(c)) continue
+    out.push({
+      severity: 'error',
+      check: 'required-contexts',
+      where: fixtureRel,
+      message: `the live required-context set has \`${c}\`, which the recorded shape lacks. The ruleset changed: re-record ${fixtureRel} from the API and re-read every assertion site against the new list.`,
+    })
+  }
+  for (const c of recorded) {
+    if (live.contexts.includes(c)) continue
+    out.push({
+      severity: 'error',
+      check: 'required-contexts',
+      where: fixtureRel,
+      message: `\`${c}\` is recorded as a required context but the live set no longer returns it. The ruleset changed: re-record ${fixtureRel} and re-read every assertion site against the new list.`,
+    })
+  }
+  return out
+}
+
 export function checkCounts(rel, text, derived) {
   const out = []
   const lines = text.split('\n')

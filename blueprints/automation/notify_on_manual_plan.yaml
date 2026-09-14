@@ -1,0 +1,46 @@
+blueprint:
+  name: Heat Pump Optimizer - notify when a manual plan takes over
+  description: >-
+    Raise a notification while an apply_manual_plan override is active.
+    The optimizer's plan sensors carry a manual_override attribute with
+    the expiry time while the override is in force; the attribute is
+    absent otherwise. The pins constrain timing only: safety still
+    releases any slot the tank minimum, the legionella clock or the
+    comfort floor cannot honour, and released slots are reported in the
+    same manual_override attribute.
+  domain: automation
+  author: tvofi
+  source_url: https://raw.githubusercontent.com/tvofi/heatpump_optimizer/main/blueprints/automation/notify_on_manual_plan.yaml
+  input:
+    plan_sensor:
+      name: Space Heating Plan sensor
+      description: >-
+        The optimizer's space heating plan sensor, whose manual_override
+        attribute appears while a manual plan is pinned. The entity prefix
+        follows the name you gave the entry; the default assumes
+        "Heat Pump Optimizer".
+      default: sensor.heat_pump_optimizer_space_heating_plan
+      selector:
+        entity:
+          domain: sensor
+    notification_title:
+      name: Notification title
+      description: The title of the notification.
+      default: "Manual plan active"
+      selector:
+        text: {}
+variables:
+  plan_sensor: !input plan_sensor
+trigger:
+  - platform: state
+    entity_id: !input plan_sensor
+    attribute: manual_override
+condition:
+  - "{{ trigger.to_state.attributes.get('manual_override') is not none }}"
+action:
+  - service: notify.persistent_notification
+    data:
+      title: !input notification_title
+      message: >-
+        Heating slots are pinned until
+        {{ state_attr(plan_sensor, 'manual_override').expires_at }}.

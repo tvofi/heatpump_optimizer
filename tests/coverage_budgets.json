@@ -2,7 +2,7 @@
   "package_percent_floor": 96.0,
   "package_percent_ceiling": 96.0,
   "pragmas": 12,
-  "recorded_at": "2026-09-13T00:05:08Z",
-  "reason": "W5-G8 (#195): the residual takes the package to 97.2 %, so the floor reaches its 96.0 % ceiling and stops tightening. modules_below_bar=0 by tools/audit/w5-partition/partition.py",
-  "allowed_regression": "the pragma cap rises 11 -> 12 for the defensive except AttributeError in _value_in_model_units (inputs.py): a real Home Assistant State.attributes is always a Mapping, so the branch is not reachable through the public seam, and it is the twin of the identical guard in read_power_kw at inputs.py:252 which carries the same pragma"
+  "recorded_at": "2026-09-14T21:27:07Z",
+  "reason": "W5-G8 (#195): the residual takes the package to 97.2 %, so the floor reaches its 96.0 % ceiling and stops tightening. modules_below_bar=0 by tools/audit/w5-partition/partition.py. config_flow_percent_floor recorded at the register flip (config-flow-test-coverage, Bronze): the instrument measured the config flow at full statement coverage over the default-gate scripts, and the row is keyed to this record by tests/entities.py so the done cannot rot silently (#951's pin re-take).",
+  "config_flow_percent_floor": 100.0
 }

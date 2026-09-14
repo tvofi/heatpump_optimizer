@@ -29,6 +29,14 @@ EXPECTED (re-recorded on this tree by #951, the #979/#984 style; the
     against tests/coverage_budgets.json by tests/entities.py instead,
     which executes on every pull request alongside the
     tests/harness_headers.py run that now compares this header.
+    docs-examples joined them as a fourth unmeasured row when the tree
+    began shipping blueprints/automation/ linked from the docs (#218's
+    wave): its done-bar is a listing in the home-assistant.io blueprint
+    exchange, which no tree-local walk can see, and the docs grep this
+    harness used could no longer tell listed from in-repo-only -- so it
+    would have read done against an honestly-todo register and fired the
+    drift alarm on a fixed tree. The row is pinned todo by entities.py,
+    which is where the flip re-records.
     Every other RESULT is a count; tolerance 0 (they are AST/grep counts,
     contention-immune).
 MACHINE: 8-core Apple M1, 8 GB, macOS 25.6.0, Python 3.11.5.
@@ -405,11 +413,15 @@ def gold() -> None:
 
     blueprints = len(re.findall(r"blueprint", doc, re.I))
     yaml_examples = len(re.findall(r"```yaml", src(ROOT / "docs" / "automations.md")))
-    rule("docs-examples", "gold", "done" if blueprints else "todo",
+    rule("docs-examples", "gold", "unmeasured",
          "grep -ci 'blueprint' README.md docs/*.md; grep -c '```yaml' docs/automations.md",
-         f"blueprint links={blueprints} (the rule asks for blueprints, not "
-         f"inline YAML); automation YAML examples in docs/automations.md="
-         f"{yaml_examples}")
+         f"blueprint links={blueprints}; automation YAML examples in "
+         f"docs/automations.md={yaml_examples}; unmeasured since the tree "
+         f"began shipping blueprints/automation/ linked from the docs "
+         f"(#218): the rule's bar is a listing in the home-assistant.io "
+         f"blueprint exchange, no tree-local walk can see it, and a docs "
+         f"grep cannot tell listed from in-repo-only -- the register row is "
+         f"pinned todo by tests/entities.py, the #951 coverage-row split")
 
     kl = len(re.findall(r"^#{1,4}\s*.*known limitation", doc, re.I | re.M))
     kl_word = len(re.findall(r"limitation", doc, re.I))
