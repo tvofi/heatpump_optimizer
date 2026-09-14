@@ -1609,6 +1609,18 @@ R.check(
     "requires re-measuring with that instrument and re-taking this pin "
     "(#951)",
 )
+R.check(
+    "the register's docs-examples row is todo: the rule asks for "
+    "blueprints in the home-assistant.io blueprint exchange and that "
+    "listing is an owner-side forum action",
+    _qs_status("docs-examples") == "todo",
+    "importable blueprints exist in-tree (blueprints/automation/) and are "
+    "linked from README.md and docs/automations.md; the flip needs the "
+    "exchange listing, which no tree-local instrument can see "
+    "(qs_rules.py reports the row unmeasured for that reason, the #951 "
+    "coverage-row split) -- flip only alongside the listing and re-take "
+    "this pin (#218)",
+)
 _QS_FIGURE = _re.compile(
     r"\d+(?:\.\d+)?\s*%|\b\d+\s+statements?\b|\b\d+\s+missed\b", _re.I
 )

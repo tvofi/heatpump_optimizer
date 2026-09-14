@@ -115,9 +115,11 @@ rules:
     comment: >-
       issue #218 (round 2, D10-18) — the rule asks for blueprints in the
       home-assistant.io blueprint exchange, linked from the docs, and says
-      a documentation page is not a substitute; the worked YAML
-      automations docs/automations.md carries do not close it (comment
-      re-truthed by #951: the automation-count this quoted had rotted).
+      a documentation page is not a substitute. Importable blueprints now
+      exist in-tree — 3 files under blueprints/automation/, linked from
+      README.md and docs/automations.md — but the row stays todo: the
+      exchange listing itself is an owner-side forum action that does not
+      exist yet, and it is the flip's precondition.
   docs-known-limitations: done
   docs-supported-devices: done
   docs-supported-functions: done
