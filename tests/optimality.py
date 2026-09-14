@@ -194,6 +194,76 @@ for _tz in (False, True):
         "DHW schedules differ -- the batched jac diverges from scipy's FD "
         "on non-uniform (DHW-pinned) bounds")
 
+# Challenger 7 (DHW two-zone only): the solver's own STOP RULE, raced
+# against itself the way challenger 3 races the budget. R4-D0-02 (#921)
+# measured the asymmetry this closes: the iteration budget challenger 3
+# polices is never binding (0 of 488 observed L-BFGS-B calls reached the
+# cap, worst nit 52 against 200/300), while ftol decides every plan and
+# until now no check in this file saw it -- production ftol loosened
+# 1000x-10000x (1e-6 -> 1e-3 / 1e-2 in optimizer.py's two options dicts)
+# passed all 14 checks at the round-4 baseline while degrading the plan
+# on the production objective. The arm loosens ftol to 1e-3 on the
+# multi-start's own refinement solves only (the optimizer.py:529 options
+# dict) and leaves the restart's (:407) at 1e-6, so it is exactly the
+# single-site mutation class the round demonstrated -- a both-sites arm
+# would also pass the single-site cut, because the tight restart
+# repairs most of a loosened multi-start on the dhw-off scenario above.
+# Measured on this scenario (winter_typical / winter_cold / two-zone /
+# dhw on, at e069caf): the 1e-3 arm costs 2.6% more energy (61.23 vs
+# 59.69 SEK) and 0.5% more objective; 1e-2 costs 10.2% / 1.6%; 1e-4
+# moves nothing (5e-5 relative). The bound demands 1%, roughly the same
+# ~2.5x headroom over the measured gap challenger 3 keeps, so
+# BLAS-to-BLAS noise cannot trip it. Single-zone is insensitive to ftol
+# on this scenario (identical cost and objective at 1e-4..1e-2) and the
+# dhw-off two-zone cell is non-monotone under loosening (a 1e-2
+# multi-start can land in a different basin the restart then repairs),
+# which is why the check lives here and only here. Like challenger 3,
+# the bound is not a hardcoded objective: if production's ftol is ever
+# loosened toward the arm, the two solves converge and the check fails
+# by construction.
+R.section("stop rule (ftol) on a DHW-enabled two-zone solve (#921)")
+_o7, _m7, _pr7, _ot7, _wi7, _ra7, _so7, _st7, _start7 = _dhw_setup(True)
+_r7 = _o7.optimize(_st7, _pr7, _ot7, _wi7, _ra7, _so7, _start7)
+_c70, _v70, _, _ = score_plan(_m7, np.asarray(_r7.power_schedule),
+                              _st7, _ot7, _wi7, _ra7, _so7, _pr7)
+_full_scoped_7 = _optm_dhw._scoped_minimize
+_full_ms_7 = _optm_dhw._multi_start_minimize
+_full_restart_7 = _optm_dhw._lbfgsb_restart
+
+
+def _loose_ftol_7(*a, **kw):
+    kw = dict(kw)
+    _opts = dict(kw.get("options") or {})
+    _opts["ftol"] = 1e-3
+    kw["options"] = _opts
+    return _full_scoped_7(*a, **kw)
+
+
+def _restart_tight_7(*a, **kw):
+    with _mock_dhw.patch.object(_optm_dhw, "_scoped_minimize",
+                                _full_scoped_7):
+        return _full_restart_7(*a, **kw)
+
+
+def _loose_ms_7(objective, starts, bounds, *a, **kw):
+    with _mock_dhw.patch.object(_optm_dhw, "_lbfgsb_restart",
+                                _restart_tight_7):
+        with _mock_dhw.patch.object(_optm_dhw, "_scoped_minimize",
+                                    _loose_ftol_7):
+            return _full_ms_7(objective, starts, bounds, *a, **kw)
+
+
+with _mock_dhw.patch.object(_optm_dhw, "_multi_start_minimize", _loose_ms_7):
+    _r7l = _o7.optimize(_st7, _pr7, _ot7, _wi7, _ra7, _so7, _start7)
+_c7l, _v7l, _, _ = score_plan(_m7, np.asarray(_r7l.power_schedule),
+                              _st7, _ot7, _wi7, _ra7, _so7, _pr7)
+print(f" stop-prod : cost {_c70:7.2f}  viol {_v70:.3f}")
+print(f" stop-rule: cost {_c7l:7.2f}  viol {_v7l:.3f}")
+R.check("the production stop rule (ftol) buys a materially better plan",
+        _v7l <= 1e-6 and _c70 <= _c7l * 0.99,
+        f"ftol 1e-6 {_c70:.2f} vs loosened 1e-3 {_c7l:.2f} "
+        f"({100.0*(_c7l-_c70)/_c7l:.1f}% gap)")
+
 # Challenger 6: the ZERO-RANGE-BOUND path (#286/#287). Every solve above
 # leaves each variable a strictly positive range. One forced-off manual pin
 # is one (0, 0) bound out of 96, and until this section neither this file nor
