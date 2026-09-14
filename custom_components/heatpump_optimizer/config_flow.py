@@ -1667,8 +1667,6 @@ def _page_schema(
     emitted_group = False
     for group in order:
         bucket = buckets[group]
-        if not bucket:
-            continue
         if group is None:
             fields.update(bucket)
             continue

@@ -16,12 +16,13 @@
 # migrates to core.
 #
 # The manifest deliberately declares no `quality_scale` tier.
-# config-flow-test-coverage is todo (its full-coverage claim rotted; #951
-# re-truthed it), so a Bronze blocker exists again — #542 had removed the
-# last one; whether to declare the tier is #194's call and is not made here.
+# config-flow-test-coverage is done again — re-measured at full coverage
+# under the register's own instrument — so no Bronze blocker exists:
+# every Bronze rule reads done. Whether to declare the tier remains
+# #194's call and is not made here.
 #
-# Totals: 48 done (2 vacuous) · 4 exempt · 2 todo (config-flow coverage,
-# #218 examples). Counted from this file, not carried:
+# Totals: 49 done (2 vacuous) · 4 exempt · 1 todo (#218 examples). Counted
+# from this file, not carried:
 #   python3 -c "import yaml,collections;r=yaml.safe_load(open(__import__('sys').argv[1]))['rules'];\
 #   print(collections.Counter(v if isinstance(v,str) else v['status'] for v in r.values()))" <this file>
 # The 45/5 this line carried before #542 was already two out in each direction.
@@ -35,21 +36,27 @@ rules:
   common-modules: done
   config-flow: done
   config-flow-test-coverage:
-    status: todo
+    status: done
     comment: >-
-      re-truthed by #951 (R4-D10-01): the done this row carried quoted a
-      full-coverage figure that had rotted. The rule asks for FULL
-      statement coverage of the config flow; the measurement under
-      tools/audit/w5-partition/coverage_tree.sh (the instrument
-      tests/coverage_ratchet.py consumes) still finds ordinary reachable
-      branches missed — options-grid price-entity/token error paths, the
-      holiday DHW window validation, the stored-values coercion
-      comparison, the entry-identity price-entity branch. Flipping this
-      row requires that instrument to measure the config flow at full
-      coverage and the pin in tests/entities.py to be re-taken with it.
-      History: #542 removed the last unreachable statements, #543 covered
-      the reachable ones (#304), and the tree grew new branches under the
-      claim after that.
+      measured at full statement coverage by tools/audit/w5-partition/
+      coverage_tree.sh over the default-gate scripts — the instrument
+      tests/coverage_ratchet.py consumes. The residual branches that
+      instrument still found missed at the merge base of this flip
+      (#951, R4-D10-01, re-derived rather than carried: the tree had
+      grown under that finding) are covered by the residual section of
+      tests/config_flow_steps.py; the one branch no input can reach,
+      _page_schema's empty-group guard, was removed as dead code with
+      the reason recorded in that pull request (#542 precedent) rather
+      than pragma'd. The claim is keyed, not quoted:
+      tests/coverage_budgets.json holds the module's recorded percentage
+      as config_flow_percent_floor, the per-pull-request coverage job
+      ratchets it through tests/coverage_ratchet.py, and tests/entities.py
+      refuses this row disagreeing with that record in either direction
+      — so the done cannot rot the way the previous one did. History:
+      #542 removed the last unreachable statements, #543 covered the
+      reachable ones (#304), the tree then grew new branches under the
+      claim, and this row re-took the measurement with the instrument
+      named above.
   dependency-transparency: done
   docs-actions: done
   docs-triggers:

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """A one-sided ratchet on package statement coverage and on `# pragma: no cover`.
 
-Two numbers, both recorded in ``tests/coverage_budgets.json``, both moving in
+Three numbers, all recorded in ``tests/coverage_budgets.json``, all moving in
 one direction only.
 
 **Coverage tightens until it reaches its ceiling, then stops.** Below the
@@ -21,6 +21,19 @@ escape: mark the line ``# pragma: no cover`` and the statement leaves the
 denominator. So the escape is itself ratcheted, and downward: a new exemption
 fails this check, and removing one must be re-recorded. Without this row the
 coverage floor is not a floor at all, it is an invitation.
+
+**The config flow is pinned at full coverage, exactly.** The quality-scale
+rule (register row ``config-flow-test-coverage``, Bronze) asks for FULL
+statement coverage of the config flow -- not a bar to sit above but a
+property to hold -- so this row records the raw module percentage with no
+tolerance subtracted and no headroom: anything below the record refuses,
+and the record cannot exceed the property. This is the standing record
+``tests/entities.py`` keys that register row to (the #951 pin shape), which
+is why it lives here rather than as a figure in a comment: the register's
+row rotted once exactly because nothing executed against it. The escapes
+are the ones the register's history already legitimises -- cover the branch
+(``tests/config_flow_steps.py``), remove it as dead code (#542), or pragma
+it under the cap above.
 
 Measurement comes from the partition instrument rather than from a second
 implementation::
@@ -99,6 +112,27 @@ def read_coverage(path: Path) -> tuple[float, int, int]:
     return 100.0 * (statements - missed) / statements, statements, missed
 
 
+#: The module the quality-scale register's ``config-flow-test-coverage`` row
+#: is about, keyed by filename inside the payload the instrument writes.
+CONFIG_FLOW = "config_flow.py"
+
+
+def read_module_percent(path: Path, filename: str) -> float:
+    """The RAW statement percentage of one module in the payload."""
+    data = json.loads(path.read_text())
+    for name, entry in data.get("files", {}).items():
+        if name.endswith(f"/{filename}") or name == filename:
+            summary = entry["summary"]
+            return 100.0 * (
+                summary["covered_lines"] / summary["num_statements"]
+            )
+    raise SystemExit(
+        f"coverage payload reports nothing for {filename}; the instrument "
+        "measured no such module and a floor over an absent denominator is "
+        "not a floor"
+    )
+
+
 def load_budgets() -> dict:
     return json.loads(BUDGETS.read_text())
 
@@ -167,12 +201,39 @@ def main() -> int:
                 f"a full step can be recorded below its {ceiling:.1f} % "
                 "ceiling: re-record."
             )
+        # The config-flow row: the quality-scale rule asks for FULL coverage,
+        # so this is an exact property rather than a bar with headroom -- the
+        # record holds the raw module percentage and anything below refuses.
+        # No TOLERANCE is subtracted and no improvement arm exists: the record
+        # cannot exceed the property and cannot tighten past it.
+        cf_recorded = budgets.get("config_flow_percent_floor")
+        raw_cf = read_module_percent(Path(args.coverage), CONFIG_FLOW)
+        if cf_recorded is None:
+            failures.append(
+                "no config_flow_percent_floor recorded: the register's "
+                "config-flow-test-coverage row is keyed to this standing "
+                "record and the record is absent"
+            )
+        else:
+            cf_recorded = float(cf_recorded)
+            print(f"  {'ok  ' if raw_cf >= cf_recorded else 'FAIL'} "
+                  f"{CONFIG_FLOW} coverage {raw_cf:.2f} % >= {cf_recorded:.1f} %")
+            if raw_cf < cf_recorded:
+                failures.append(
+                    f"{CONFIG_FLOW} coverage {raw_cf:.2f} % < {cf_recorded:.1f} %: "
+                    "the register's config-flow-test-coverage row claims full "
+                    "coverage of the config flow and the instrument no longer "
+                    "shows it. Cover the missed branches in "
+                    "tests/config_flow_steps.py, or remove a genuinely "
+                    "unreachable branch (#542) -- do not lower this record "
+                    "quietly."
+                )
     else:
         print("  skip coverage -- no --coverage payload; the pragma row still ran")
 
     if args.record:
         # A recorder that writes whatever it measured is not a ratchet, it is a
-        # transcript. Both rows may only move one way without a stated reason,
+        # transcript. Every row may only move one way without a stated reason,
         # and this refusal is the one that matters most: `--record` is what a
         # seat reaches for after a merge, and the merge is exactly where a cap
         # rises for somebody else's reason. Measured: this branch's own record
@@ -180,6 +241,7 @@ def main() -> int:
         # `optimizer.py` on `main`.
         backwards: list[str] = []
         new_floor = floor
+        new_cf_floor = budgets.get("config_flow_percent_floor")
         if args.coverage:
             raw, _stmts, _missed = read_coverage(Path(args.coverage))
             new_floor = min(math.floor((raw - TOLERANCE) * 10) / 10, ceiling)
@@ -187,13 +249,30 @@ def main() -> int:
                 backwards.append(
                     f"the floor would fall {floor:.1f} % -> {new_floor:.1f} %"
                 )
+            # Recorded as the RAW module percentage, capped at the property:
+            # full coverage is the only value this row may hold at its top,
+            # and no tolerance is left below it on purpose (see the module
+            # docstring).
+            new_cf_floor = min(
+                round(read_module_percent(Path(args.coverage), CONFIG_FLOW), 2),
+                100.0,
+            )
+            if (
+                budgets.get("config_flow_percent_floor") is not None
+                and new_cf_floor < float(budgets["config_flow_percent_floor"])
+            ):
+                backwards.append(
+                    "the config-flow floor would fall "
+                    f"{float(budgets['config_flow_percent_floor']):.2f} % -> "
+                    f"{new_cf_floor:.2f} %"
+                )
         if measured_pragmas > pragma_cap:
             backwards.append(
                 f"the pragma cap would rise {pragma_cap} -> {measured_pragmas}"
             )
         if backwards and not args.allow_regression:
             print("\nREFUSED to record: " + "; and ".join(backwards) + ".")
-            print("  Both rows are one-sided. If this is deliberate, say why:")
+            print("  Every row is one-sided. If this is deliberate, say why:")
             print("    --allow-regression '<reason>', and the same reason in "
                   "the commit message.")
             return 1
@@ -204,11 +283,14 @@ def main() -> int:
         budgets["package_percent_floor"] = new_floor
         budgets["pragmas"] = measured_pragmas
         budgets["recorded_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        if new_cf_floor is not None:
+            budgets["config_flow_percent_floor"] = new_cf_floor
         if args.reason:
             budgets["reason"] = args.reason
         BUDGETS.write_text(json.dumps(budgets, indent=2) + "\n")
         print(f"\nRECORDED floor={budgets['package_percent_floor']} "
-              f"pragmas={budgets['pragmas']}")
+              f"pragmas={budgets['pragmas']} "
+              f"config_flow={budgets.get('config_flow_percent_floor')}")
         return 0
 
     if failures:

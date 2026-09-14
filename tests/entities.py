@@ -1560,14 +1560,19 @@ R.check(
 #   than the verdict: a future re-record of the floor below the bar must
 #   flip the row, not orphan the check.)
 #
-#   config-flow-test-coverage is pinned todo. The rule asks for FULL
-#   coverage of the config flow; no standing record shows it, and the
-#   round-4 measurement under tools/audit/w5-partition/coverage_tree.sh
-#   -- the instrument tests/coverage_ratchet.py consumes -- found
-#   reachable branches still missed. A deliberate ratchet-style pin, in
-#   the #952 shape: flipping the row to done requires re-measuring with
-#   that instrument and re-taking this pin, which is exactly the
-#   verification the register lacked when the row rotted.
+#   config-flow-test-coverage must agree with tests/coverage_budgets.json's
+#   config_flow_percent_floor -- the raw module percentage the same
+#   instrument measured (tools/audit/w5-partition/coverage_tree.sh over the
+#   default-gate scripts), recorded by tests/coverage_ratchet.py and
+#   refused by the per-pull-request coverage job whenever the config flow
+#   drops below it. The Bronze rule asks for FULL coverage, so the record
+#   the flip measured is the property's top and the keying is encoded like
+#   the Silver row's: a future record below the bar must flip the row back
+#   to todo, not orphan the check. The pin this replaces (#951: the row
+#   pinned todo, the flip requiring a re-measurement under that instrument)
+#   was taken at the flip itself; this one makes the done it measured
+#   answerable to the same instrument on every pull request after it,
+#   which is the verification the register lacked when the row rotted.
 #
 # And neither row's comment may quote a coverage figure of its own -- a
 # percentage, a statement count or a missed count. All three figures in
@@ -1590,9 +1595,9 @@ def _qs_comment(name: str) -> str:
     return "" if isinstance(v, str) else (v or {}).get("comment") or ""
 
 
-_qs_floor = json.loads(Path("tests/coverage_budgets.json").read_text())[
-    "package_percent_floor"
-]
+_qs_budgets = json.loads(Path("tests/coverage_budgets.json").read_text())
+_qs_floor = _qs_budgets["package_percent_floor"]
+_qs_cf_floor = _qs_budgets.get("config_flow_percent_floor")
 R.check(
     "the register's test-coverage row agrees with the recorded coverage floor",
     _qs_status("test-coverage") == ("done" if _qs_floor >= 95.0 else "todo"),
@@ -1601,13 +1606,19 @@ R.check(
     "against the Silver rule's 95% bar (#195 closed; #951)",
 )
 R.check(
-    "the register's config-flow-test-coverage row is todo: the rule asks "
-    "for full config-flow coverage and no measurement shows it",
-    _qs_status("config-flow-test-coverage") == "todo",
-    "round 4 measured the config flow under the coverage instrument with "
-    "ordinary reachable branches still missed; flipping this row to done "
-    "requires re-measuring with that instrument and re-taking this pin "
-    "(#951)",
+    "the register's config-flow-test-coverage row agrees with the recorded "
+    "config-flow floor",
+    _qs_status("config-flow-test-coverage")
+    == (
+        "done"
+        if _qs_cf_floor is not None and float(_qs_cf_floor) >= 100.0
+        else "todo"
+    ),
+    f"register says {_qs_status('config-flow-test-coverage')!r}; "
+    f"tests/coverage_budgets.json config_flow_percent_floor={_qs_cf_floor!r} "
+    "against the Bronze rule's full-coverage bar, measured under "
+    "tools/audit/w5-partition/coverage_tree.sh and ratcheted per pull "
+    "request by tests/coverage_ratchet.py (#951 pin re-taken at the flip)",
 )
 R.check(
     "the register's docs-examples row is todo: the rule asks for "

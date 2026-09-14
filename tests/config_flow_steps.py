@@ -64,7 +64,7 @@ pass on an unmodified tree; the self-check must fail on the broken one.
 
 Expected (tolerance 0): every RESULT line reads full coverage --
 ``flow_checks_covered=<checks>`` with no failures, every step
-``happy=P/P error_branches=P/P``, ``options_steps_covered=15/15``,
+``happy=P/P error_branches=P/P``, ``options_steps_covered=23/23``,
 ``reauth_round_trips=1``, ``reconfigure_round_trips=1``,
 ``duplicate_aborts=1``.  Baseline measured: 87645f8, re-verified
 identical at 6d83f0b (tranche 1; ``config_flow.py`` byte-identical
@@ -104,7 +104,7 @@ sys.path.insert(
 
 import voluptuous as vol  # noqa: E402
 
-from harness import FakeEntry, FakeHass, Results  # noqa: E402
+from harness import FakeEntry, FakeHass, FakeState, Results  # noqa: E402
 
 # The capture itself, imported rather than re-implemented: a fingerprint
 # copied into this file would pin this file's opinion of the golden, not the
@@ -529,7 +529,7 @@ class Ledger:
             print(f"RESULT step_{step} happy={happy} error_branches={errors}")
             if row["happy"]:
                 covered += 1
-        print(f"RESULT options_steps_covered={covered}/23 pages")
+        print(f"RESULT options_steps_covered={covered}/{len(options_steps)} pages")
         row = self.rows.get("reconfigure", {"happy": [], "error": [], "happy_ok": 0, "error_ok": 0})
         print(
             f"RESULT step_reconfigure happy={row['happy_ok']}/{len(row['happy'])} "
@@ -2659,6 +2659,406 @@ async def options_error_branches():
 
 
 # ---------------------------------------------------------------------------
+# The residual statement branches (register row config-flow-test-coverage).
+# Every branch below was found missed by the coverage instrument
+# (tools/audit/w5-partition/coverage_tree.sh) at the merge base this section
+# landed against; each block covers one named production statement through
+# the handler or helper that really runs, with the assertion that dies when
+# that statement is mutated beside it. One branch here is NOT covered:
+# ``_page_schema``'s empty-group guard, which no input can reach (every group
+# that enters the emit order holds at least the row that put it there) and
+# which this branch's pull request removes instead of pragma-ing.
+# ---------------------------------------------------------------------------
+def suggested_value(result, key):
+    """The ``suggested_value`` one rendered field carries, or ``None``.
+
+    ``schema_default`` reads ``marker.default``; a suggested value rides in
+    ``description`` instead, so a field offered only a suggestion reads as
+    undefaulted there. This reader is the distinction between the two.
+    """
+    for marker, _value in _presented_fields(result.get("data_schema")):
+        if str(getattr(marker, "schema", marker)) != key:
+            continue
+        return (getattr(marker, "description", None) or {}).get("suggested_value")
+    return None
+
+
+def options_over(entry, hass):
+    """An options flow over a caller-built entry and hass (no seeding)."""
+    flow = config_flow.HeatPumpOptimizerOptionsFlow(entry)
+    flow.hass = hass
+    return flow
+
+
+class _ConfigWithoutLocation:
+    """A hass config whose location cannot be read.
+
+    ``_default_location`` reads ``hass.config.latitude``; a config without
+    one is what makes a ``_Computed`` default's recompute raise, which is
+    the arm of ``_omit_unstored_computed`` that must keep the posted value.
+    Everything else the options flow touches on a save stays FakeHass-shaped.
+    """
+
+    language = "en"
+    longitude = 18.07
+    currency = "SEK"
+
+    @property
+    def latitude(self):
+        raise AttributeError("no location configured")
+
+
+PULSE_POWER_ID = "sensor.tibber_pulse_power"
+
+
+def pulse_power_state():
+    """The live state a Pulse live-power suggestion is drawn from (#703)."""
+    return FakeState(
+        "1200",
+        attributes={
+            "device_class": "power",
+            "friendly_name": "Tibber Pulse live power",
+        },
+    )
+
+
+async def residual_statement_branches():
+    """The branches the coverage instrument still found missed, each pinned."""
+    R.section("residual: identity, house power, coercion, holiday windows")
+
+    # entry_identity's price-entity arm (config_flow.py ``entry_identity``):
+    # an entity price source identifies the plant by its price sensor, so two
+    # entries over one account with different price sensors are two plants.
+    # Drop the arm and the two identities collide: the duplicate guard would
+    # refuse the second installation as already_configured.
+    with_price_sensor = {
+        **FIRST_SCREEN,
+        const.CONF_PRICE_SOURCE: const.PRICE_SOURCE_ENTITY,
+        const.CONF_PRICE_ENTITY: "sensor.nordpool",
+    }
+    check(
+        "user",
+        "happy",
+        "a different price sensor is a different plant",
+        config_flow.entry_identity(with_price_sensor)
+        != config_flow.entry_identity(
+            {**with_price_sensor, const.CONF_PRICE_ENTITY: "sensor.awa"}
+        ),
+        "the two identities are equal",
+    )
+    check(
+        "user",
+        "happy",
+        "the same price sensor under another name is the same plant",
+        config_flow.entry_identity(with_price_sensor)
+        == config_flow.entry_identity({**with_price_sensor, "name": "Annex"}),
+        "the name is configuration, not identity",
+    )
+
+    # _house_power_candidates' two refusal arms: a hass with no state machine
+    # at all, and an entity id whose state is gone. Neither may break the
+    # page, and neither may yield a suggestion -- the suggestion may come
+    # only from a state that exists and looks like Pulse live power.
+    no_states = options_over(FakeEntry(data={}), FakeHass())
+    no_states.hass.states = None
+    form = await no_states.async_step_entities_metering(None)
+    check(
+        "opt_entities_metering",
+        "happy",
+        "a hass without a state machine renders the page and suggests nothing",
+        shows(form, "entities_metering")
+        and suggested_value(form, const.CONF_HOUSE_POWER_ENTITY) is None,
+        f"{form.get('type')}/{form.get('step_id')} "
+        f"suggested={suggested_value(form, const.CONF_HOUSE_POWER_ENTITY)!r}",
+    )
+    dead_state = options_over(
+        FakeEntry(data={}), FakeHass(states={PULSE_POWER_ID: None})
+    )
+    form = await dead_state.async_step_entities_metering(None)
+    check(
+        "opt_entities_metering",
+        "happy",
+        "an entity id holding no state is skipped, suggesting nothing",
+        shows(form, "entities_metering")
+        and suggested_value(form, const.CONF_HOUSE_POWER_ENTITY) is None,
+        f"suggested={suggested_value(form, const.CONF_HOUSE_POWER_ENTITY)!r}",
+    )
+    live_state = options_over(
+        FakeEntry(data={}), FakeHass(states={PULSE_POWER_ID: pulse_power_state()})
+    )
+    form = await live_state.async_step_entities_metering(None)
+    check(
+        "opt_entities_metering",
+        "happy",
+        "a live Pulse power state is offered as the house power suggestion",
+        suggested_value(form, const.CONF_HOUSE_POWER_ENTITY) == PULSE_POWER_ID,
+        f"suggested={suggested_value(form, const.CONF_HOUSE_POWER_ENTITY)!r}",
+    )
+
+    # _user_sensors_sections' forgotten-field fallback: a picker the grouping
+    # table does not name stays visible and flat rather than vanishing from
+    # the setup page. The grouping table is rebound for this one check -- it
+    # is the only seam the function reads -- and restored immediately; the
+    # intact-table control beside it is what makes the fallback's firing
+    # specific to a forgotten field rather than unconditional.
+    real_groups = config_flow._USER_SENSORS_GROUPS
+    try:
+        config_flow._USER_SENSORS_GROUPS = (
+            (
+                "indoor",
+                (const.CONF_INDOOR_TEMP_ENTITY, const.CONF_OUTDOOR_TEMP_ENTITY),
+            ),
+        )
+        forgotten = config_flow._user_sensors_sections(FakeHass())
+    finally:
+        config_flow._USER_SENSORS_GROUPS = real_groups
+    forgotten_keys = {str(getattr(k, "schema", k)) for k in forgotten}
+    intact_keys = {
+        str(getattr(k, "schema", k))
+        for k in config_flow._user_sensors_sections(FakeHass())
+    }
+    check(
+        "user_sensors",
+        "happy",
+        "a picker the grouping table forgot stays on the page, flat",
+        const.CONF_SOLAR_RADIATION_ENTITY in forgotten_keys
+        and const.CONF_HEAT_PUMP_MODE_ENTITY in forgotten_keys,
+        f"flat top-level keys={sorted(forgotten_keys)}",
+    )
+    check(
+        "user_sensors",
+        "happy",
+        "the intact grouping table hides nothing: only the three sections",
+        intact_keys == {"indoor", "solar", "plant"},
+        f"keys={sorted(intact_keys)}",
+    )
+
+    # _omit_unstored_computed's recompute-failure arm: a value whose computed
+    # default cannot be reproduced is kept verbatim, not dropped. The same
+    # payload runs both arms -- equal to the computable default it is dropped
+    # (the standing behaviour), equal to nothing computable it survives.
+    posted_home = {
+        "latitude": FakeHass().config.latitude,
+        "longitude": FakeHass().config.longitude,
+    }
+    kept_entry = FakeEntry(data={})
+    broken = options_over(kept_entry, FakeHass())
+    broken.hass.config = _ConfigWithoutLocation()
+    result = await submit(
+        broken, "entities_metering", {const.CONF_SOLAR_LOCATION: dict(posted_home)}
+    )
+    check(
+        "opt_entities_metering",
+        "happy",
+        "a location whose default cannot be recomputed is kept, not dropped",
+        shows_menu(result, "init")
+        and kept_entry.options.get(const.CONF_SOLAR_LOCATION) == posted_home,
+        f"{result.get('type')}/{result.get('step_id')} "
+        f"kept={kept_entry.options.get(const.CONF_SOLAR_LOCATION)!r}",
+    )
+    dropped_entry = FakeEntry(data={})
+    working = options_over(dropped_entry, FakeHass())
+    result = await submit(
+        working, "entities_metering", {const.CONF_SOLAR_LOCATION: dict(posted_home)}
+    )
+    check(
+        "opt_entities_metering",
+        "happy",
+        "the same location over a working hass is dropped as the computed default",
+        shows_menu(result, "init")
+        and const.CONF_SOLAR_LOCATION not in dropped_entry.options,
+        f"stored={dropped_entry.options.get(const.CONF_SOLAR_LOCATION)!r}",
+    )
+
+    # _same_setting's coercion arms, str against number in both directions
+    # and each way round the try: a form rewrite that changed only the
+    # value's TYPE keeps the stored type; one that cannot be the stored
+    # setting at all keeps the posted value.
+    flow, entry, _ = fresh_options(pre_options={const.CONF_PEAK_TARIFF_WINDOW: "60"})
+    await flow.async_step_grid(None)
+    result = await submit(flow, "grid", GRID_PEAK_ANSWERS)
+    stored_window = entry.options.get(const.CONF_PEAK_TARIFF_WINDOW)
+    check(
+        "opt_grid",
+        "happy",
+        "a window coerced over a stored string keeps the stored string type",
+        shows_menu(result, "init")
+        and stored_window == "60"
+        and isinstance(stored_window, str),
+        f"stored={stored_window!r}",
+    )
+    flow, entry, _ = fresh_options(
+        pre_options={const.CONF_PRICE_SOURCE: const.PRICE_SOURCE_TIBBER}
+    )
+    await flow.async_step_entities(None)
+    result = await submit(flow, "entities", {const.CONF_PRICE_SOURCE: 5})
+    check(
+        "opt_entities",
+        "happy",
+        "a posted number that is not the stored string's value keeps the posted value",
+        shows_menu(result, "advanced")
+        and entry.options.get(const.CONF_PRICE_SOURCE) == 5,
+        f"stored={entry.options.get(const.CONF_PRICE_SOURCE)!r}",
+    )
+    flow, entry, _ = fresh_options(pre_options={const.CONF_PRICE_VAT: 0.25})
+    await flow.async_step_entities(None)
+    result = await submit(flow, "entities", {const.CONF_PRICE_VAT: "0.25"})
+    stored_vat = entry.options.get(const.CONF_PRICE_VAT)
+    check(
+        "opt_entities",
+        "happy",
+        "a posted '0.25' over a stored 0.25 keeps the stored float",
+        shows_menu(result, "advanced")
+        and stored_vat == 0.25
+        and isinstance(stored_vat, float),
+        f"stored={stored_vat!r}",
+    )
+    flow, entry, _ = fresh_options(pre_options={const.CONF_PRICE_VAT: 0.25})
+    await flow.async_step_entities(None)
+    result = await submit(flow, "entities", {const.CONF_PRICE_VAT: "not-a-number"})
+    check(
+        "opt_entities",
+        "happy",
+        "a posted string the stored number cannot parse keeps the posted string",
+        shows_menu(result, "advanced")
+        and entry.options.get(const.CONF_PRICE_VAT) == "not-a-number",
+        f"stored={entry.options.get(const.CONF_PRICE_VAT)!r}",
+    )
+
+    # The options entities page's own credential guards, over an entry that
+    # holds none at all -- the walk's entry always has a token, so both
+    # required-errors and the stored-half of each lookup had never run.
+    tokenless_entry = FakeEntry(data={})
+    tokenless = options_over(tokenless_entry, FakeHass())
+    await tokenless.async_step_entities(None)
+    result = await submit(
+        tokenless, "entities", {const.CONF_WEATHER_ENTITY: "weather.home"}
+    )
+    check(
+        "opt_entities",
+        "error",
+        "an options save with no token anywhere is tibber_token_required",
+        shows(result, "entities")
+        and result.get("errors", {}).get(const.CONF_TIBBER_TOKEN)
+        == "tibber_token_required"
+        and not tokenless_entry.options,
+        f"errors={result.get('errors')} options={sorted(tokenless_entry.options)}",
+    )
+    entityless_entry = FakeEntry(data={})
+    entityless = options_over(entityless_entry, FakeHass())
+    await entityless.async_step_entities(None)
+    result = await submit(
+        entityless,
+        "entities",
+        {
+            const.CONF_PRICE_SOURCE: const.PRICE_SOURCE_ENTITY,
+            const.CONF_WEATHER_ENTITY: "weather.home",
+        },
+    )
+    check(
+        "opt_entities",
+        "error",
+        "an entity price source with no price sensor is price_entity_required",
+        shows(result, "entities")
+        and result.get("errors", {}).get(const.CONF_PRICE_ENTITY)
+        == "price_entity_required"
+        and not entityless_entry.options,
+        f"errors={result.get('errors')} options={sorted(entityless_entry.options)}",
+    )
+    stored_price_entry = FakeEntry(
+        data={},
+        options={
+            const.CONF_PRICE_SOURCE: const.PRICE_SOURCE_ENTITY,
+            const.CONF_PRICE_ENTITY: "sensor.stored_price",
+        },
+    )
+    stored_price = options_over(stored_price_entry, FakeHass())
+    await stored_price.async_step_entities(None)
+    result = await submit(
+        stored_price,
+        "entities",
+        {
+            const.CONF_PRICE_SOURCE: const.PRICE_SOURCE_ENTITY,
+            const.CONF_WEATHER_ENTITY: "weather.home",
+        },
+    )
+    check(
+        "opt_entities",
+        "happy",
+        "a stored price sensor satisfies the entity source without being re-submitted",
+        shows_menu(result, "advanced")
+        and not result.get("errors")
+        and stored_price_entry.options.get(const.CONF_PRICE_ENTITY) is None,
+        f"errors={result.get('errors')} "
+        f"cleared={stored_price_entry.options.get(const.CONF_PRICE_ENTITY)!r}",
+    )
+
+    # The hot_water page's holiday-window validation: the holiday field gets
+    # the same grammar as the weekday field, on its own error key, and a
+    # valid holiday spec saves onto its own key.
+    flow, entry, _ = fresh_options()
+    await flow.async_step_hot_water(None)
+    result = await submit(
+        flow,
+        "hot_water",
+        {**HOT_WATER_PAGE_ANSWERS, const.CONF_HOLIDAY_DHW_WINDOWS: "garbage"},
+    )
+    check(
+        "opt_hot_water",
+        "error",
+        "an unparseable HOLIDAY window spec is invalid_dhw_windows on its own field",
+        shows(result, "hot_water")
+        and result.get("errors", {}).get(const.CONF_HOLIDAY_DHW_WINDOWS)
+        == "invalid_dhw_windows"
+        and not entry.options,
+        f"errors={result.get('errors')}",
+    )
+    flow, entry, _ = fresh_options()
+    await flow.async_step_hot_water(None)
+    result = await submit(
+        flow,
+        "hot_water",
+        {
+            **HOT_WATER_PAGE_ANSWERS,
+            const.CONF_HOLIDAY_DHW_WINDOWS: "weekends 08:00-09:00",
+        },
+    )
+    check(
+        "opt_hot_water",
+        "happy",
+        "a valid holiday window spec saves onto its own field",
+        shows_menu(result, "init")
+        and entry.options.get(const.CONF_HOLIDAY_DHW_WINDOWS)
+        == "weekends 08:00-09:00",
+        f"stored={entry.options.get(const.CONF_HOLIDAY_DHW_WINDOWS)!r}",
+    )
+
+    # The grid_fees page's catalog application: choosing a DSO product
+    # writes that product's rules and mode over whatever the page carried.
+    dso_product = "ellevio_villa_effekt_2026"
+    catalog_row = config_flow.grid_fee.SWEDEN_CATALOG[dso_product]
+    flow, entry, _ = fresh_options()
+    await flow.async_step_grid_fees(None)
+    result = await submit(
+        flow,
+        "grid_fees",
+        {**GRID_FEES_ANSWERS, const.CONF_DSO_PRODUCT: dso_product},
+    )
+    check(
+        "opt_grid_fees",
+        "happy",
+        "a catalog DSO product writes its own rules and mode over the page",
+        shows_menu(result, "advanced")
+        and entry.options.get(const.CONF_GRID_FEE_RULES)
+        == catalog_row["grid_fee_rules"]
+        and entry.options.get(const.CONF_GRID_FEE_MODE)
+        == config_flow.grid_fee.MODE_RULES,
+        f"rules={entry.options.get(const.CONF_GRID_FEE_RULES)!r} "
+        f"mode={entry.options.get(const.CONF_GRID_FEE_MODE)!r}",
+    )
+
+
+# ---------------------------------------------------------------------------
 # #304: the pages re-rendered over configuration that is already stored.
 #
 # Every options page builds its entity fields through a local ``_entity``
@@ -4060,6 +4460,7 @@ async def main() -> int:
     await options_stored_entity_arm()
     await section_nesting_is_captured()
     await options_error_branches()
+    await residual_statement_branches()
     await options_seeded_prefill()
     await options_cross_page_save_scope()
     await registry_drives_every_page()
