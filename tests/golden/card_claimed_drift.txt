@@ -25,14 +25,6 @@
 # next branch restates its own footprint, claims included.
 #
 
-# #948 (R4-D9-05): the batched objective's cost terms now run as batch
-# twins whose rows are the scalar expressions verbatim, and both terminal
-# twins run one shared per-row function; the plans are byte-identical to
-# the merge base (18 of 18 output arrays compared by .tobytes(),
-# tools/audit/round4/D9/h9_null_plans.py), so no card state can move and
-# this branch's list is empty.
-#
-
 #
 
 #
@@ -232,6 +224,36 @@
 #                     this gate renders, the font-size ATTRIBUTE is
 #                     unchanged (8 inline / 12 expanded) and only the plate
 #                     and the z-order move
+plan_inline # lane labels gain their card-background plate and move above the slots (#935)
+plan_inline_sv # same plate/z-order move, Swedish labels (#935)
+plan_short_window # same plate/z-order move (#935)
+custom_title_currency # same plate/z-order move (#935)
+hidden_series # same plate/z-order move (#935)
+score_open # same plate/z-order move (#935)
+expanded_plan # same plate/z-order move in the dialog chart (#935)
+expanded_zoomed # same plate/z-order move in the dialog chart (#935)
+draft_dirty_menu_open # same plate/z-order move, draft lanes redrawn mid-menu (#935)
+draft_mid_drag # same plate/z-order move, the drag redraw path uses the recorded laneLabelFont (#935)
+whatif_edited # same plate/z-order move (#935)
+whatif_weekly # same plate/z-order move (#935)
+override_active # same plate/z-order move (#935)
+shared_steps # same plate/z-order move (#935)
+shared_steps_hover # same plate/z-order move (#935)
+tooltip_hover # same plate/z-order move (#935)
+coarse_pointer # same plate/z-order move (#935)
+reduced_motion # same plate/z-order move (#935)
+setup_single_buffer # the tile chart behind the setup page carries the same lane strip change (#935)
+setup_two_tank # the tile chart behind the setup page carries the same lane strip change (#935)
+setup_coil # the tile chart behind the setup page carries the same lane strip change (#935)
+layout_editing_dragged # the tile chart behind the setup editor carries the same lane strip change (#935)
+layout_editing_tidy # the tile chart behind the setup editor carries the same lane strip change (#935)
+picker_open_filtered # the tile chart behind the entity picker carries the same lane strip change (#935)
+wood_alert # the tile chart behind the wood alert carries the same lane strip change (#935)
+wood_lane # the wood label gains its plate over the wood blocks -- the measured 1.01:1 instance (#935)
+wood_whatif # same plate/z-order move, wood lane with what-if slots (#935)
+away_toggle # the tile chart behind the away strip carries the same lane strip change (#935)
+away_return # the tile chart behind the away strip carries the same lane strip change (#935)
+away_status # the tile chart behind the away strip carries the same lane strip change (#935)
 
 # #936 (audit round 4, D4-03): the 24 px HTML target floor was emitted only
 # inside @media (pointer: coarse) and its _coarsePointer() JS duplicate, so

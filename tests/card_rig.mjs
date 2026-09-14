@@ -460,10 +460,20 @@ export function threeDotFiles(runGit, ref) {
  *
  * env_drift.py's `stale_claims_judged`, including its fail-closed tail: an
  * unanswerable three-dot judges, because a gate that cannot read the diff
- * must not quietly stop failing. */
-export function claimsAreThisBranchs(runGit, ref) {
+ * must not quietly stop failing.
+ *
+ * `justifies` asks the question PER FILE KIND (#747), never per branch:
+ * pass `justifiesCardClaim` when the claim file at stake is the card's --
+ * a solver diff can move a card STATE through the payload the card
+ * renders, but the card claim LIST is not the solver branch's to rewrite,
+ * exactly as env_drift.py's `claim_kinds` refuses on its side. The
+ * default remains the shared any-claimable form so existing callers keep
+ * their behavior. */
+export function claimsAreThisBranchs(
+  runGit, ref, justifies = (p) => justifiesSolverClaim(p) || justifiesCardClaim(p)
+) {
   try {
-    return movesClaimable(threeDotFiles(runGit, ref));
+    return threeDotFiles(runGit, ref).some(justifies);
   } catch (e) {
     return true;
   }
