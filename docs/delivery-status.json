@@ -3,30 +3,58 @@
   "stale_after_commits": 12,
   "merges": [
     {
+      "number": 1010,
+      "title": "fix(#934): disclose the differential guards' stub seconds; un-double-charge the README one-script list",
+      "merge_sha": "2e9a4d89669c83fbcb99abb1203bff48b56a2795",
+      "commits_after": 0,
+      "state": "pending"
+    },
+    {
+      "number": 1013,
+      "title": "fix(#942): port the D2-01 intercept ridge to the two-state slab fit (sysid-estimator wave, act 1)",
+      "merge_sha": "b2478d479b136c3e9782968005d893b955e85078",
+      "commits_after": 1,
+      "state": "pending"
+    },
+    {
+      "number": 1008,
+      "title": "test(#932): pin the top-k count clamp in _smooth_topk_sum",
+      "merge_sha": "abb31e9ee7cd7947a2c8d1aa45923af17101190b",
+      "commits_after": 2,
+      "state": "pending"
+    },
+    {
+      "number": 1014,
+      "title": "record: row for #1007, the D9 live-marker follow-up",
+      "merge_sha": "7ddfe721f77845cf4e6575a993fb4f322c8f2041",
+      "commits_after": 3,
+      "state": "rowed"
+    },
+    {
       "number": 1012,
       "title": "record: #1006 row erratum -- the D6 claims refresh was reverted before the merge",
       "merge_sha": "8996b3fe346608b1b02831787e818210f37aea69",
-      "commits_after": 0,
+      "commits_after": 4,
       "state": "rowed"
     },
     {
       "number": 1007,
       "title": "mark the re-recorded D9 harnesses live (h2/h7/h9) and size the header checker for h7",
       "merge_sha": "b1123f2d9d3d68871bf86998f5177937c848b173",
-      "commits_after": 1,
+      "commits_after": 5,
       "state": "rowed"
     },
     {
       "number": 1006,
       "title": "record: post-stamp rows for the twelve unrowed merges and the v6.4.4 stamp",
       "merge_sha": "5152bcefab64daa3b5d87a821fe79e6e3be53b9b",
-      "commits_after": 2,
+      "commits_after": 6,
       "state": "rowed"
     }
   ],
   "counts": {
-    "rowed": 3,
-    "pending": 0,
+    "rowed": 4,
+    "pending": 3,
     "overdue": 0
   }
 }
