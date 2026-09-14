@@ -3495,6 +3495,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 "input_health": "unknown",
                 "stale_inputs": [],
                 "input_problems": [],
+                "problem_inputs": [],
+                "problem_messages": [],
                 "input_ages_minutes": {},
                 "learners_frozen": False,
                 "learner_freeze_reason": None,
@@ -3504,6 +3506,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             "input_health": stale_summary(health),
             "stale_inputs": health.stale_keys,
             "input_problems": health.details(),
+            "problem_inputs": health.problem_entity_ids,
+            "problem_messages": health.problem_messages(),
             "input_ages_minutes": health.ages(),
             "learners_frozen": reason is not None,
             "learner_freeze_reason": reason,
@@ -4057,10 +4061,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         )
         if self._lower_floor_loss_samples % 10 == 0:
             await self._async_save_thermal_learning()
-
-
-
-
 
 
 

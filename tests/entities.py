@@ -280,7 +280,17 @@ DATA = {
     "defrost_samples": 40,
     "defrost_buckets": [{"derate": 0.92, "samples": 40}],
     "stale_inputs": ["indoor_temp_entity"],
-    "input_problems": [{"input": "indoor_temp_entity", "problem": "stale"}],
+    "input_problems": [
+        {
+            "input": "indoor_temp_entity",
+            "entity_id": "sensor.indoor",
+            "problem": "stale",
+            "age_minutes": 600.0,
+            "max_age_minutes": 60.0,
+        }
+    ],
+    "problem_inputs": ["sensor.indoor"],
+    "problem_messages": ["sensor.indoor: stale (last report 600 min)"],
     "input_health": "1 stale",
     "input_ages_minutes": {"indoor_temp_entity": 600.0},
     "learners_frozen": True,
@@ -3702,6 +3712,173 @@ R.check(
     ).is_on,
 )
 
+# The owner's ask (in-session 2026-09-14): the flag must say WHICH input
+# flipped it. Two attributes on the same diagnostic sensor -- the failing
+# entity ids and one short line per failure -- driven here through the real
+# coordinator's read cycle, one failure class at a time. The state and every
+# attribute pinned above are the null control: they must not move.
+def _sources_cycle(extra_config=None, states=None):
+    """One real input-read cycle carrying the given failures, published."""
+    _h, _c, _d = _honest_coordinator(extra_config, states)
+    return _d
+
+
+def _sources_entity(data):
+    return binary_sensor.InputHealthBinarySensor(FakeCoordinator(data), ENTRY)
+
+
+_healthy_cycle = _sources_cycle()
+R.check(
+    "a healthy cycle publishes no problem sources",
+    _sources_entity(_healthy_cycle).extra_state_attributes["problem_inputs"] == []
+    and _sources_entity(_healthy_cycle).extra_state_attributes["problem_messages"]
+    == [],
+    f"inputs={_sources_entity(_healthy_cycle).extra_state_attributes.get('problem_inputs')!r} "
+    f"messages={_sources_entity(_healthy_cycle).extra_state_attributes.get('problem_messages')!r}",
+)
+
+# One class at a time, each through the coordinator's own reader.
+_TANK_SLOT = const.CONF_DHW_TEMP_ENTITY
+_TANK_CLASSES = (
+    # (class, states, the one line the attribute must carry)
+    # _STALE_WHEN is anchored to the wall clock, so the stale minute count
+    # is pinned by shape below, not by number.
+    (
+        "stale",
+        {"sensor.tank": FakeState("48.2", last_updated=_STALE_WHEN)},
+        None,
+    ),
+    (
+        "unavailable",
+        {"sensor.tank": FakeState("unavailable")},
+        "sensor.tank: unavailable",
+    ),
+    (
+        "missing_entity",
+        None,  # configured, but no state exists at all
+        "sensor.tank: entity not found",
+    ),
+    (
+        "not_numeric",
+        {"sensor.tank": FakeState("warm")},
+        "sensor.tank: not a number",
+    ),
+)
+for _word, _states, _line in _TANK_CLASSES:
+    _tank_data = _sources_cycle({_TANK_SLOT: "sensor.tank"}, _states)
+    _tank_entity = _sources_entity(_tank_data)
+    _tank_messages = _tank_entity.extra_state_attributes["problem_messages"]
+    _tank_inputs = _tank_entity.extra_state_attributes["problem_inputs"]
+    if _line is None:  # the stale line carries the wall-clock age
+        _message_ok = (
+            len(_tank_messages) == 1
+            and _tank_messages[0].startswith("sensor.tank: stale (last report ")
+            and _tank_messages[0].endswith(" min)")
+        )
+    else:
+        _message_ok = _tank_messages == [_line]
+    R.check(
+        f"a {_word} tank sensor is the named source of the problem",
+        _tank_entity.is_on
+        and _tank_inputs == ["sensor.tank"]
+        and _message_ok,
+        f"is_on={_tank_entity.is_on} inputs={_tank_inputs!r} "
+        f"messages={_tank_messages!r}",
+    )
+
+for _slot, _entity, _state, _line in (
+    (
+        const.CONF_POWER_ENTITY,
+        "sensor.power",
+        FakeState("3000", unit="hp"),
+        "sensor.power: unknown unit",
+    ),
+    (
+        const.CONF_HEAT_PUMP_MODE_ENTITY,
+        "sensor.mode",
+        FakeState("banana"),
+        "sensor.mode: unrecognized state",
+    ),
+    (
+        const.CONF_HEAT_PUMP_DEFROST_ENTITY,
+        "sensor.defrost",
+        FakeState("maybe"),
+        "sensor.defrost: not a yes/no flag",
+    ),
+):
+    _class_data = _sources_cycle({_slot: _entity}, {_entity: _state})
+    _class_entity = _sources_entity(_class_data)
+    R.check(
+        f"a failing {_entity} slot names its entity and class",
+        _class_entity.is_on
+        and _class_entity.extra_state_attributes["problem_inputs"] == [_entity]
+        and _class_entity.extra_state_attributes["problem_messages"] == [_line],
+        f"inputs={_class_entity.extra_state_attributes.get('problem_inputs')!r} "
+        f"messages={_class_entity.extra_state_attributes.get('problem_messages')!r}",
+    )
+
+# Several failures at once: every source is named, one line each, and the
+# pre-existing attributes say exactly what they said before this feature.
+_multi_data = _sources_cycle(
+    {_TANK_SLOT: "sensor.tank"},
+    {
+        "sensor.indoor": FakeState("unavailable"),
+        "sensor.tank": FakeState("48.2", last_updated=_STALE_WHEN),
+    },
+)
+_multi_entity = _sources_entity(_multi_data)
+_multi_attrs = _multi_entity.extra_state_attributes
+R.check(
+    "two failures at once name both entities",
+    _multi_attrs["problem_inputs"] == ["sensor.indoor", "sensor.tank"],
+    f'{_multi_attrs.get("problem_inputs")!r}',
+)
+R.check(
+    "with one line per failure, in the evidence's own order",
+    len(_multi_attrs["problem_messages"]) == 2
+    and _multi_attrs["problem_messages"][0].startswith("sensor.tank: stale")
+    and _multi_attrs["problem_messages"][1] == "sensor.indoor: unavailable",
+    f'{_multi_attrs.get("problem_messages")!r}',
+)
+R.check(
+    "the older attributes are unchanged by the new ones",
+    _multi_attrs["stale_inputs"] == ["dhw_temp_entity"]
+    and len(_multi_attrs["problems"]) == 2,
+    f'stale_inputs={_multi_attrs.get("stale_inputs")!r} '
+    f'problems={_multi_attrs.get("problems")!r}',
+)
+
+# Recovery: the same coordinator that flagged the failure empties the
+# sources again once the sensor reports -- the lists are state, not a latch.
+_rec_hass, _rec_coord, _ = _honest_coordinator(
+    {_TANK_SLOT: "sensor.tank"}, {"sensor.tank": FakeState("48.2")}
+)
+asyncio.run(_rec_coord._update_current_state())
+_rec_data = _rec_coord._build_data_dict()
+R.check(
+    "a healthy tank publishes no sources",
+    not _sources_entity(_rec_data).is_on
+    and _sources_entity(_rec_data).extra_state_attributes["problem_inputs"] == [],
+)
+_rec_hass.states.set("sensor.tank", FakeState("48.2", last_updated=_STALE_WHEN))
+asyncio.run(_rec_coord._update_current_state())
+_rec_stale = _rec_coord._build_data_dict()
+R.check(
+    "the stale tank becomes the named source",
+    _sources_entity(_rec_stale).is_on
+    and _sources_entity(_rec_stale).extra_state_attributes["problem_inputs"]
+    == ["sensor.tank"],
+)
+_rec_hass.states.set("sensor.tank", FakeState("48.2"))
+asyncio.run(_rec_coord._update_current_state())
+_rec_ok = _rec_coord._build_data_dict()
+R.check(
+    "and recovery empties the sources again",
+    not _sources_entity(_rec_ok).is_on
+    and _sources_entity(_rec_ok).extra_state_attributes["problem_inputs"] == []
+    and _sources_entity(_rec_ok).extra_state_attributes["problem_messages"] == [],
+)
+
 heat = b_by_name["External Heat Source"]
 R.check("the external heat sensor reflects the detector", heat.is_on)
 R.check(
@@ -7075,7 +7252,8 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
     }),
     "InputHealthBinarySensor": frozenset({
         "input_ages_minutes", "learner_freeze_reason", "learners_frozen",
-        "problems", "stale_inputs", "summary"
+        "problem_inputs", "problem_messages", "problems", "stale_inputs",
+        "summary"
     }),
     "MeasuredPowerSensor": frozenset({
         "energy_meter", "house_power", "recommended_power"

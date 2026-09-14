@@ -230,6 +230,24 @@ R.check(
     any(d["entity_id"] == "sensor.indoor" for d in health.details()),
 )
 
+# The owner's ask (2026-09-14): the input_problem flag must say WHICH
+# input flipped it. The health snapshot derives the two published shapes
+# from the same readings the flag itself reads: the failing entity ids,
+# and one short line per failure.
+R.check(
+    "the failing entity ids are listed",
+    health.problem_entity_ids == ["sensor.indoor", "sensor.tank"],
+)
+R.check(
+    "each failure reads as one line naming entity and class",
+    health.problem_messages()
+    == [
+        "sensor.tank: unavailable",
+        "sensor.indoor: stale (last report 600 min)",
+    ],
+    str(health.problem_messages()),
+)
+
 # Units: guessing kW would read 3000 W as 3000 kW.
 R.check("watts are converted to kW", normalize_power_kw(3000.0, "W") == 3.0)
 R.check("kilowatts pass through", normalize_power_kw(3.0, "kW") == 3.0)
@@ -253,6 +271,47 @@ bad = bad_unit.read_power_kw("heat_pump_power_entity")
 R.check(
     "a wrongly-united power entity yields nothing",
     bad.value is None and bad.problem == "unknown_unit",
+)
+R.check(
+    "an unknown unit reads as words, not a token",
+    bad_unit.health.problem_messages() == ["sensor.pump_power: unknown unit"],
+    str(bad_unit.health.problem_messages()),
+)
+
+# The word-valued classes reach the same list: an unrecognised mode word
+# (read_state with a valid set) and a free-text flag sensor that is not a
+# flag (read_bool, strict outside the flag domains).
+_wording_reader = InputReader(
+    FakeHass(
+        {
+            "sensor.mode": FakeState("banana"),
+            "sensor.flag": FakeState("maybe"),
+        }
+    ),
+    {
+        **CONFIG,
+        "heat_pump_mode_entity": "sensor.mode",
+        "heat_pump_defrost_entity": "sensor.flag",
+    },
+    now=lambda: NOW,
+)
+_wording_reader.read_state(
+    "heat_pump_mode_entity", valid=("heating", "idle", "dhw", "off")
+)
+_wording_reader.read_bool("heat_pump_defrost_entity")
+R.check(
+    "every word-valued failure class renders in words a user can read",
+    _wording_reader.health.problem_messages()
+    == [
+        "sensor.flag: not a yes/no flag",
+        "sensor.mode: unrecognized state",
+    ],
+    str(_wording_reader.health.problem_messages()),
+)
+R.check(
+    "an unconfigured slot contributes no source and no line",
+    _wording_reader.health.problem_entity_ids == ["sensor.flag", "sensor.mode"],
+    str(_wording_reader.health.problem_entity_ids),
 )
 
 # Temperature and energy units (#961): Home Assistant converts a
