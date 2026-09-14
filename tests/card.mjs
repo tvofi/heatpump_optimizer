@@ -1694,6 +1694,87 @@ check("the hand-scheduled reason has a label",
 }
 
 // ---------------------------------------------------------------------------
+// R4-D4-01 (#935): the lane strip's own labels -- the words that name which
+// lane is which, on the surface the what-if editor asks a user to drag --
+// were the one chart text the 8 px floor never reached: they drew at 0.8 em
+// of the axis font (6.4 px exactly where that floor binds, on a phone) and
+// took their contrast from whatever slot happened to be painted beneath
+// them (1.01:1 over the wood lane's blocks, where AA asks 4.5:1). Two pins
+// at a phone-narrow chart: every label's own rendered size clears the same
+// floor the axis text gets, and every label is backed by an opaque plate of
+// the card's own background, painted after that lane's slots and inert to
+// pointers, so the pixels behind the glyphs are the card's, never a slot's.
+// ---------------------------------------------------------------------------
+{
+  const MIN_PX = fn("MIN_AXIS_FONT_PX");
+  const VW = fn("VIEW_W");
+  const CHAR_W = fn("CHAR_WIDTH_EM");
+  // A phone tile's chart: 359 px host less ha-card's 26 px chrome. The stub
+  // hands every element the same constant rect, so the narrow width has to
+  // go on the prototype -- an override on one svg instance is measured by
+  // the first render but not by `_refitCharts`' corrective pass, which then
+  // re-renders back at the stub's 900. With the prototype patched, every
+  // measurement in the card agrees and the corrective pass finds no drift.
+  const W = 333;
+  const realRect = Node.prototype.getBoundingClientRect;
+  Node.prototype.getBoundingClientRect = function () {
+    return { width: W, height: 148, left: 0, top: 0 };
+  };
+  let markup = "";
+  try {
+    const narrow = build(slotStates, { what_if: true });
+    narrow._hass = mkHass(narrow._hass.states);
+    markup = collect(narrow.shadowRoot).join("\n");
+  } finally {
+    Node.prototype.getBoundingClientRect = realRect;
+  }
+  const labels = [...markup.matchAll(
+    /<text class="lane-label" x="([\d.]+)" y="([\d.]+)" font-size="([\d.]+)"[^>]*>([^<]*)<\/text>/g
+  )].map((m) => ({ x: +m[1], y: +m[2], f: +m[3], text: m[4] }));
+  check("a phone-narrow chart still draws its lane labels", labels.length >= 2,
+    `${labels.length} label(s): ${labels.map((l) => l.text).join(", ")}`);
+  if (labels.length) {
+    const px = labels.map((l) => l.f * (W / VW));
+    check("every lane label clears the 8 px rendered floor",
+      px.every((v) => v >= MIN_PX - 0.05),
+      `rendered ${px.map((v) => v.toFixed(2)).join(", ")} px (floor ${MIN_PX} px)`);
+    const plates = [...markup.matchAll(/<rect class="lane-label-plate"[^>]*>/g)]
+      .map((m) => m[0]);
+    check("every lane label carries a backing plate of the card's background",
+      plates.length === labels.length &&
+        plates.every((p) =>
+          p.includes('fill="var(--card-background-color,#fff)"') &&
+          p.includes('pointer-events="none"')),
+      `${plates.length} plate(s) for ${labels.length} label(s)`);
+    if (plates.length === labels.length) {
+      const num = (p, k) => +p.match(new RegExp(` ${k}="([\\d.]+)"`))[1];
+      const covered = labels.map((l, i) => {
+        const p = plates[i];
+        const [px0, py0, pw, ph] = ["x", "y", "width", "height"].map((k) => num(p, k));
+        // The label's ink extent from the card's own per-em width constant:
+        // the plate must span it horizontally, and the font's ascent and
+        // descent vertically.
+        return px0 <= l.x && px0 + pw >= l.x + l.text.length * l.f * CHAR_W &&
+          py0 <= l.y - 0.75 * l.f && py0 + ph >= l.y + 0.25 * l.f;
+      });
+      check("each plate spans the whole of the label it backs",
+        covered.every(Boolean),
+        labels.map((l, i) => `${l.text}:${covered[i] ? "ok" : "gap"}`).join(" "));
+      // The plate has to be painted ABOVE the series: the chart draws the
+      // lanes' group before the series paths, so a label drawn there sat
+      // under whatever bar ran through the strip, whatever plate it carried.
+      // The labels therefore live in their own group the chart emits after
+      // the last series path.
+      const lastSeries = markup.lastIndexOf('<path class="series');
+      const labelGroup = markup.lastIndexOf('<g class="lane-labels">');
+      check("the labels' layer is painted after the series paths",
+        lastSeries < 0 ? labelGroup >= 0 : lastSeries < labelGroup,
+        `last series path at ${lastSeries}, lane-labels group at ${labelGroup}`);
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Item 23: pan and zoom the plan window
 // ---------------------------------------------------------------------------
 {
@@ -6619,7 +6700,9 @@ const setupBox = (card, place) =>
   check("and the one the event's chart gets is its own",
     geomOfChart(c, svgs[0]) === c.geomAt(0) && geomOfChart(c, svgs[1]) === c.geomAt(1) &&
     c.geomAt() === c.geomAt(1));
-  const labelFont = (svg) => (svg.querySelector(".lanes").innerHTML.match(/class="lane-label"[^>]*font-size="([\d.]+)"/) || [])[1];
+  // The labels live in their own layer above the series since #935, and the
+  // redraw refreshes it from the same per-copy geometry as the lanes' group.
+  const labelFont = (svg) => ((svg.querySelector(".lane-labels") || { innerHTML: "" }).innerHTML.match(/class="lane-label"[^>]*font-size="([\d.]+)"/) || [])[1];
   c.lanes.refreshLanes();
   check("a redraw draws the inline lanes at the inline font and the dialog's at the dialog's",
     labelFont(svgs[0]) === "8" && labelFont(svgs[1]) === "12",

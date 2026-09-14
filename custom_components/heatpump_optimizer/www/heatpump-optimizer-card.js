@@ -1197,6 +1197,14 @@ const LANE_H = 15;
 const LANE_GAP = 3;
 const LANE_BOTTOM_INSET = 3;
 const WOOD_LANE_COLOR = "#7a4510";
+// R4-D4-01 (#935): the lane labels are authored at 0.8 em of the chart font
+// -- secondary text beside the axis -- but a ratio of the axis font rides the
+// axis floor down: wherever that floor bound, the labels rendered at 0.8 of
+// it (6.4 px on a phone). `renderChart` therefore floors them through the
+// same `chartFontUnits` pass with this em-fraction as their base, so the
+// authored ratio survives where there is room and the 8 px floor takes over
+// where there is not.
+const LANE_LABEL_EM = 0.8;
 // D4-02 (#257): a lane and a slot are targets a finger or a mouse has to
 // land on, and a viewBox unit is not a pixel -- 15 units came out 5.5 px
 // tall on a phone. The editor therefore sizes its targets in PIXELS, from
@@ -4707,7 +4715,7 @@ function renderChart(frame, opts) {
   const { windowStart, windowEnd, series } = frame;
   const {
     expanded, measuredWidth, priceUnit, estimatedFrom, editing, title, now,
-    overlay, nextPatternId, laneCount,
+    overlay, nextPatternId, laneCount, overlayLabels,
   } = opts;
   const visible = series.filter((s) => s.visible && s.hasData);
   // D4-01: BOTH charts floor their rendered font (see chartFontUnits), each
@@ -4718,6 +4726,17 @@ function renderChart(frame, opts) {
   const drawnWidth = measuredWidth();
   const font = chartFontUnits(drawnWidth, expanded ? FONT_EXPANDED : FONT_BASE);
   const marginScale = Math.max(1, font / FONT_EXPANDED);
+  // R4-D4-01 (#935): the lane labels' own floor pass. At 0.8 of the axis
+  // font they rode that floor down to 6.4 px on a phone -- unreadable, on
+  // the strip that both names the lanes and carries the drag targets. The
+  // same `chartFontUnits` with the 0.8 em base floors them at the same
+  // MIN_AXIS_FONT_PX rendered and leaves the authored ratio alone on wide
+  // charts. The lane band scales with `marginScale`, which scales with the
+  // axis font, so a label floored up to the axis font still fits the band.
+  const laneLabelFont = chartFontUnits(
+    drawnWidth,
+    (expanded ? FONT_EXPANDED : FONT_BASE) * LANE_LABEL_EM
+  );
 
   // Axis domains from visible series grouped by axis.
   const groups = { temp: [], power: [], price: [], solar: [] };
@@ -4963,6 +4982,10 @@ function renderChart(frame, opts) {
     geom = {
       windowStart, windowEnd, plotL, plotW, plotR, plotB, font,
       laneH, laneGap, laneInset, laneTop, viewH,
+      // The lane labels' own floored font (R4-D4-01, #935): recorded with
+      // the rest so a drag redraw rebuilds the strip at the size the chart
+      // drew it, not at a ratio recomputed from stale locals.
+      laneLabelFont,
       // The compact tile's lanes are presentational; the dialog's are the
       // editor. `laneGroupInner` reads this to decide what carries a
       // tabindex and a hit target, and what is just ink.
@@ -4990,6 +5013,17 @@ function renderChart(frame, opts) {
       if (s.style !== st) continue;
       parts.push(seriesPath(s, scaleX, scaleY, plotB));
     }
+  }
+
+  // The lane labels go on AFTER the series (R4-D4-01, #935): the lanes'
+  // own group is painted before them, so a label drawn there sat under
+  // whatever bar the plot drew through the strip and took its contrast
+  // from the bar, not from anything of the card's. The labels' plates are
+  // opaque, so only this layer above the series can guarantee what is
+  // behind the glyphs. The schedule ink and the hit targets stay in the
+  // lanes' group, where they have always been.
+  if (editing && overlayLabels && geom) {
+    parts.push(`<g class="lane-labels">${overlayLabels(geom)}</g>`);
   }
 
   // Crosshair placeholder (updated on hover)
@@ -6551,6 +6585,50 @@ class ManualPlan {
 // gestures read `host.geom` and `host.view`; a drag redraws through
 // `host.render()`. PR 5b of #136. The gesture closures inside `attach` are
 // as they were: promoting them to methods is a later cleanup, not a move.
+
+/** A lane's label on its own opaque plate, as SVG (R4-D4-01, #935).
+ *
+ * A lane label used to be painted straight over its lane's slot blocks and
+ * whatever series bar the plot drew through the strip, and took its
+ * contrast from whatever happened to be behind it -- 1.01:1 where the wood
+ * lane's own brown ran under the word "Wood", against AA's 4.5:1. No text
+ * colour fixes that: the backdrop has to change. The plate is a rounded
+ * rect of the card's own background, so the pixels under the glyphs are the
+ * ones `--secondary-text-color` was measured against (4.8:1 on HA's light
+ * card, 6.1:1 on its dark one), and it is `pointer-events="none"` so the
+ * label's strip stays a drag surface. Width is the card's own per-em
+ * estimate with margin, because the label is laid out before any glyph
+ * exists to measure; height is the full ascent-plus-descent of the font
+ * around the label's baseline -- where the 8 px floor has lifted the label
+ * to nearly the band's own height that pokes a rounding into the lane gap
+ * above, which is empty by construction and cheaper than clipping the
+ * backing off the tops of the letters.
+ */
+function laneLabelMarkup(label, laneX, y, laneH, font) {
+  const pad = font * 0.7;
+  const width = Math.max(font, label.length * font * 0.62 + pad);
+  const baseline = y + laneH - 4 * (laneH / LANE_H);
+  return (
+    `<rect class="lane-label-plate" pointer-events="none" x="${laneX + 2}" y="${baseline - 0.8 * font}" width="${width}"` +
+    ` height="${1.05 * font}" rx="1.5" fill="var(--card-background-color,#fff)"/>` +
+    `<text class="lane-label" x="${laneX + 4}" y="${baseline}" font-size="${font}"` +
+    ` fill="var(--secondary-text-color,#888)">${esc(label)}</text>`
+  );
+}
+
+/** The strip's top edge: `renderChart` decides where the strip sits -- inside
+ * the plot, or in its own band below the axis when the pixel floor needs more
+ * room than the plot can spare -- and a redraw must land in the same place,
+ * so both the lanes and their labels read it off the recorded geometry. */
+function laneStripTop(geom, lanes) {
+  const { plotB, laneH = LANE_H, laneGap = LANE_GAP, laneInset = LANE_BOTTOM_INSET } =
+    geom || {};
+  if (!geom) return 0;
+  return geom.laneTop === undefined
+    ? plotB - laneInset - lanes * (laneH + laneGap)
+    : geom.laneTop;
+}
+
 class LaneEditor {
   constructor(host) {
     this.host = host;
@@ -6646,13 +6724,6 @@ class LaneEditor {
         `<rect class="lane"${laneKbd} x="${plotL}" y="${y}" width="${
           plotR - plotL
         }" height="${laneH}" rx="2" fill="var(--secondary-text-color,#888)" fill-opacity="0.07"/>`
-      );
-      out.push(
-        `<text class="lane-label" x="${plotL + 4}" y="${
-          y + laneH - 4 * (laneH / LANE_H)
-        }" font-size="${font * 0.8}" fill="var(--secondary-text-color,#888)">${esc(
-          spec.label
-        )}</text>`
       );
       // The parts of the lane that cannot be changed: what has already run,
       // and what lies beyond the point where the override expires.
@@ -6784,13 +6855,6 @@ class LaneEditor {
           plotR - plotL
         }" height="${laneH}" rx="2" fill="var(--secondary-text-color,#888)" fill-opacity="0.07"/>`
       );
-      out.push(
-        `<text class="lane-label" x="${plotL + 4}" y="${
-          y + laneH - 4 * (laneH / LANE_H)
-        }" font-size="${font * 0.8}" fill="var(--secondary-text-color,#888)">${esc(
-          label
-        )}</text>`
-      );
       for (const run of this.woodRuns()) {
         if (run.end <= windowStart || run.start >= windowEnd) continue;
         const x1 = clampX(run.start);
@@ -6804,6 +6868,51 @@ class LaneEditor {
           }"/>`
         );
       }
+    }
+    return out.join("");
+  }
+
+  /** The lane labels on their plates, as SVG -- the strip's own top layer
+   * (R4-D4-01, #935).
+   *
+   * `renderChart` paints the series AFTER the lanes' group, so anything the
+   * lanes draw -- the labels included, before this existed -- ends up under
+   * the bars wherever the strip sits inside the plot. The labels are
+   * therefore emitted into their own `<g class="lane-labels">` that the
+   * chart places after the series: the label names the lane a user is about
+   * to drag on, and the plate under it, not the bar behind it, is what its
+   * colour is measured against. Redraws go through `refreshLanes`, which
+   * rebuilds this group from the same recorded geometry as the lanes'.
+   */
+  laneLabelGroupInner(geom) {
+    if (!geom) return "";
+    const { plotL, font, laneH = LANE_H, laneGap = LANE_GAP, laneLabelFont = font * 0.8 } =
+      geom;
+    const specs = this.host.manual.laneSpecs();
+    const out = [];
+    const laneTop = laneStripTop(geom, specs.length);
+    specs.forEach((spec, row) => {
+      out.push(
+        laneLabelMarkup(
+          spec.label,
+          plotL,
+          laneTop + row * (laneH + laneGap),
+          laneH,
+          laneLabelFont
+        )
+      );
+    });
+    if (this.host.plan.showWoodLane()) {
+      const label = L("slots.lane_wood");
+      out.push(
+        laneLabelMarkup(
+          label,
+          plotL,
+          laneTop + specs.length * (laneH + laneGap),
+          laneH,
+          laneLabelFont
+        )
+      );
     }
     return out.join("");
   }
@@ -6835,11 +6944,15 @@ class LaneEditor {
     const root = this.host.shadowRoot;
     if (!root) return;
     // Each chart copy's lanes, in that copy's own geometry: the inline
-    // chart's font floor and margins are not the dialog's (#138).
+    // chart's font floor and margins are not the dialog's (#138). The
+    // labels ride in their own group above the series and are refreshed
+    // with the same geometry (#935).
     chartSvgs(root).forEach((svg, index) => {
       const geom = this.host.geomAt(index);
       const group = svg.querySelector(".lanes");
       if (geom && group) group.innerHTML = this.laneGroupInner(geom);
+      const labels = svg.querySelector(".lane-labels");
+      if (geom && labels) labels.innerHTML = this.laneLabelGroupInner(geom);
     });
     this.host.manual.updateDelta();
   }
@@ -10035,6 +10148,9 @@ class HeatpumpOptimizerCard extends HTMLElement {
         this._geoms[expanded ? 1 : 0] = g;
         return this.lanes.laneGroupInner(g);
       },
+      // The labels' own layer, above the series (#935) -- same recorded
+      // geometry, same ordering contract as `overlay`.
+      overlayLabels: (g) => this.lanes.laneLabelGroupInner(g),
       // Unique per chart within this render: with the dialog open two charts
       // render into one shadow root, and ids resolve within the shadow tree,
       // so a per-card, per-render sequence is all that is needed (#141).

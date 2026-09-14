@@ -196,9 +196,60 @@
 #
 # Measured at both ends with the finder's own harness,
 # tools/audit/round3/D4/card_ux_defects.mjs:
-#   away_checkbox_min_px  13   -> 24
-#   away_label_min_px     14   -> 24
-#   away_return_min_px    21.3 -> 24
+#   away_checkbox_min_px  13   ->24
+#   away_label_min_px     14   ->24
+#   away_return_min_px    21.3 ->24
 #   away strip layout     display:block, gap:normal -> display:flex, gap:12px
 #   visual gap between the two labels  0px -> 12px
 #   coarse_ruleset_min_px 24 at both ends (the control arm, undisturbed)
+
+# #935 (R4-D4-01), the lane strip's labels: 6.4 px over their own slots.
+# 30 of the 34 states move; the four that do not (no_plan, no_plan_expanded,
+# what_if_off, editor_schema) draw no lane strip at the stub's constant
+# 900-unit width -- no plan, the editor off, the config editor.
+#
+# Direction, one mechanism in every claimed state, all additive-or-moved and
+# never subtractive of another element's markup:
+#   each lane label   gains a <rect class="lane-label-plate"> painted
+#                     immediately before it -- an opaque rounded plate of
+#                     var(--card-background-color) so the label's ink is
+#                     measured against the card, not against whatever slot
+#                     ran beneath it (the wood lane's 1.01:1 instance)
+#   the label itself  moves after that lane's slot rects (it used to sit
+#                     under the lane-past tint and the slots)
+#   the font          keeps its 0.8 em ratio through a chartFontUnits pass
+#                     of its own, so the rendered size is floored at 8 px
+#                     wherever the axis floor binds; at the 900-unit width
+#                     this gate renders, the font-size ATTRIBUTE is
+#                     unchanged (8 inline / 12 expanded) and only the plate
+#                     and the z-order move
+plan_inline # lane labels gain their card-background plate and move above the slots (#935)
+plan_inline_sv # same plate/z-order move, Swedish labels (#935)
+plan_short_window # same plate/z-order move (#935)
+custom_title_currency # same plate/z-order move (#935)
+hidden_series # same plate/z-order move (#935)
+score_open # same plate/z-order move (#935)
+expanded_plan # same plate/z-order move in the dialog chart (#935)
+expanded_zoomed # same plate/z-order move in the dialog chart (#935)
+draft_dirty_menu_open # same plate/z-order move, draft lanes redrawn mid-menu (#935)
+draft_mid_drag # same plate/z-order move, the drag redraw path uses the recorded laneLabelFont (#935)
+whatif_edited # same plate/z-order move (#935)
+whatif_weekly # same plate/z-order move (#935)
+override_active # same plate/z-order move (#935)
+shared_steps # same plate/z-order move (#935)
+shared_steps_hover # same plate/z-order move (#935)
+tooltip_hover # same plate/z-order move (#935)
+coarse_pointer # same plate/z-order move (#935)
+reduced_motion # same plate/z-order move (#935)
+setup_single_buffer # the tile chart behind the setup page carries the same lane strip change (#935)
+setup_two_tank # the tile chart behind the setup page carries the same lane strip change (#935)
+setup_coil # the tile chart behind the setup page carries the same lane strip change (#935)
+layout_editing_dragged # the tile chart behind the setup editor carries the same lane strip change (#935)
+layout_editing_tidy # the tile chart behind the setup editor carries the same lane strip change (#935)
+picker_open_filtered # the tile chart behind the entity picker carries the same lane strip change (#935)
+wood_alert # the tile chart behind the wood alert carries the same lane strip change (#935)
+wood_lane # the wood label gains its plate over the wood blocks -- the measured 1.01:1 instance (#935)
+wood_whatif # same plate/z-order move, wood lane with what-if slots (#935)
+away_toggle # the tile chart behind the away strip carries the same lane strip change (#935)
+away_return # the tile chart behind the away strip carries the same lane strip change (#935)
+away_status # the tile chart behind the away strip carries the same lane strip change (#935)
