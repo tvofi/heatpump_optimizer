@@ -51,6 +51,23 @@
 # next branch restates its own footprint, claims included.
 #
 
+# The sysid-estimator wave (#942 options 2+3, fitted arm): this branch
+# claims the five coordinator captures and NOTHING ELSE; the direction is
+# ADD-ONLY. SysIdResult.as_dict() publishes the re-derived slab-mode tau
+# ("slab_mode_tau_hours": null on every idle capture -- no experiment has
+# run in any fixture), so each capture's data.system_identification.result
+# gains exactly one null key: 5 insertions, 0 deletions across the five,
+# re-recorded in the environment whose capture already matched every
+# pre-existing leaf byte for byte. No solver input, output or intermediate
+# changes -- the plan fixtures are untouched and unclaimed, and the
+# coordinator itself is not modified: the published dict is the only
+# surface the new field reaches.
+coord_all_features # sysid as_dict gains slab_mode_tau_hours: null (add-only)
+coord_dhw # sysid as_dict gains slab_mode_tau_hours: null (add-only)
+coord_grid_fee # sysid as_dict gains slab_mode_tau_hours: null (add-only)
+coord_minimal # sysid as_dict gains slab_mode_tau_hours: null (add-only)
+coord_two_zone # sysid as_dict gains slab_mode_tau_hours: null (add-only)
+
 # #925 (R4-D2-01, the smooth top-k bracket): this branch claims the four
 # capacity-tariff fixtures and nothing else. The logistic bisection in
 # tariff._smooth_topk_sum pads its bracket by 40*scale instead of a constant

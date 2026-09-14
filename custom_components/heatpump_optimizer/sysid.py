@@ -33,6 +33,8 @@ from typing import Any
 
 import numpy as np
 
+from scipy.optimize import least_squares
+
 from .const import DEFAULT_SLAB_HEAT_TRANSFER, DEFAULT_SLAB_THERMAL_MASS
 from .thermal_model import ThermalModel, ThermalParameters, ThermalState
 
@@ -235,6 +237,20 @@ class SysIdConfig:
     #: Do not repeat on a house that has already converged.
     min_days_between_runs: float = 30.0
     converged_samples: int = 200
+    #: Width of the D2-01 intercept ridge's port to the two-state fit, kW.
+    #: THE SIBLING SEAM (branch fix/sysid-ridge owns the port): the
+    #: comfort-bounded excursion keeps ΔT nearly constant, so UA and the
+    #: intercept G are collinear and an unridged two-state fit is
+    #: noise-wrecked on gate-passing plants too (measured −36/+45 % UA at
+    #: σ=0.01 — the pre-study's frontier, re-derived at this branch's base),
+    #: while the same window with the ridge lands inside ±10 %. The fit
+    #: adds ONE pseudo-observation ``(G − gains_prior_kw)/width`` to its
+    #: residual vector, exactly the one-state fit's D2-01 prior in
+    #: nonlinear form. ``None`` — the default — means the port has NOT
+    #: landed: the fitted arm is not dispatched at all and every plant
+    #: keeps #991's one-state behaviour, so the conjunct is a wiring fact
+    #: rather than a threshold anyone tunes.
+    gains_ridge_width_kw: float | None = None
 
 
 @dataclass
@@ -279,6 +295,17 @@ class SysIdResult:
     sensor_drift_c_per_h: float | None = None
     #: 0-1; how much the result should be trusted as a prior.
     confidence: float = 0.0
+    #: The slab-room fast mode's time constant as RE-DERIVED by the
+    #: two-state fitted arm, hours; ``None`` on every one-state result. The
+    #: ratified hybrid (#942, 2026-09-14) fits UA and tau_fast only — the
+    #: C_s/k_s split rides a tau-preserving ridge no window length removes
+    #: — so the capacity this result reports is C_r solved back out of the
+    #: fitted tau against the CONFIG slab pair, and the pair itself is
+    #: never adopted. An adopted change to a slab-mode parameter is a
+    #: config-class change (#996): the claim-grammar treatment is the
+    #: owner's decision, recorded on #996, and until it lands the published
+    #: tau is diagnostic, not an adopted value.
+    slab_mode_tau_hours: float | None = None
     reason: str = ""
 
     def as_dict(self) -> dict[str, Any]:
@@ -305,6 +332,11 @@ class SysIdResult:
                 else None
             ),
             "confidence": round(self.confidence, 2),
+            "slab_mode_tau_hours": (
+                round(self.slab_mode_tau_hours, 4)
+                if self.slab_mode_tau_hours is not None
+                else None
+            ),
             "reason": self.reason,
         }
 
@@ -314,6 +346,67 @@ class SysIdResult:
 #: (3 tau is the conventional 95 % settling band). A DESIGN constant, like
 #: DEFAULT_MAX_EXCURSION_C: it prices the model class, not a tuning knob.
 FAST_MODE_SETTLE_TAUS = 3.0
+
+#: The noise gate on the two-state fitted arm: the fit's own residual
+#: scatter on the arm window, °C, above which the fitted values are refused
+#: by name instead of adopted. The ratified hybrid (owner decision on #942,
+#: 2026-09-14) prices fitted adoption at "residual noise <= ~0.02 °C": the
+#: pre-study's frontier measured the same gate-passing cell at ±10 % UA
+#: (p5–p95) with σ=0.01–0.02 room noise and PAST that bar at σ=0.05, so the
+#: gate must separate those regimes, not the exact σ. The measured scatter
+#: of a σ=0.02 window (dof-adjusted, n≈21) lands 0.017–0.027 and a σ=0.05
+#: window 0.033–0.066, so 0.03 sits between the distributions with margin
+#: on both sides — a gate at exactly 0.02 would refuse half the windows the
+#: ratification priced as adoptable, and the "~" is that slack. A DESIGN
+#: constant: it prices the fitted arm's noise ceiling, not a tuning knob.
+MAX_FIT_RESIDUAL_SCATTER_C = 0.03
+
+
+def slab_mode_tau_fast(params: ThermalParameters) -> float:
+    """The slab-room fast mode's time constant, hours.
+
+    Extracted from ``slab_mode_identifiability`` so the gate, the two-state
+    fit's initial guess, and the tests all read ONE expression for the
+    quantity both the gate and the optimizer consume. Zero when the slab
+    constants are not configured — the gate refuses that plant separately.
+    """
+    c_r = float(params.room_thermal_mass)
+    c_s = float(params.slab_thermal_mass)
+    k_s = float(params.slab_heat_transfer)
+    if not (c_r > 1e-9 and c_s > 1e-9 and k_s > 1e-9):
+        return 0.0
+    return c_r * c_s / ((c_r + c_s) * k_s)
+
+
+def _two_state_capacity(tau: float, c_s: float, k_s: float) -> float:
+    """C_r solved back out of the fitted tau against the config slab pair.
+
+    Inverting tau_fast = C_r·C_s/((C_r+C_s)·k_s): the C_s/k_s SPLIT is the
+    unidentifiable ridge, tau is not, so the capacity is derived, never
+    independently fitted. tau < C_s/k_s keeps it positive (the fit's bounds
+    enforce that; see ``_identify_two_state``).
+    """
+    return tau * c_s * k_s / (c_s - tau * k_s)
+
+
+def _two_state_confidence(
+    obs: np.ndarray, scatter: float, ss_res: float, n_data: int
+) -> float:
+    """The existing confidence machinery's components, on the fitted series.
+
+    Same shape as the one-state fit's: explained fraction of the room
+    series, tempered by data volume, by the achieved excursion against the
+    DESIGN allowance (DEFAULT_MAX_EXCURSION_C, not the configured bound —
+    the D7-02 rule), and by the SNR the measured scatter leaves.
+    """
+    ss_tot = float(np.sum((obs - np.mean(obs)) ** 2))
+    r2 = 1.0 - ss_res / ss_tot if ss_tot > 1e-9 else 0.0
+    confidence = float(np.clip(r2, 0.0, 1.0)) * min(1.0, n_data / 12.0)
+    excursion = float(np.max(obs) - np.min(obs))
+    confidence *= float(np.clip(excursion / DEFAULT_MAX_EXCURSION_C, 0.3, 1.0))
+    signal_spread = float(np.percentile(obs, 90) - np.percentile(obs, 10))
+    snr = signal_spread / max(scatter, 1e-9)
+    return confidence * float(np.clip((snr - 1.0) / 3.0, 0.0, 1.0))
 
 
 def slab_mode_identifiability(
@@ -370,6 +463,11 @@ class SystemIdentification:
         self.result: SysIdResult = SysIdResult()
         self._baseline_temp: float | None = None
         self._step_power: float = 0.0
+        # The plant declared at arm(), when the caller knew one. The
+        # two-state fitted arm fits against its CONFIG slab pair; an
+        # instance armed without a plant (a harness driving a synthetic
+        # one) keeps the one-state fit #942's instrument pins.
+        self._plant: ThermalParameters | None = None
 
     # -- control ------------------------------------------------------------
 
@@ -412,6 +510,7 @@ class SystemIdentification:
         self.phase = PHASE_ARMED
         self.phase_started = now
         self.samples = []
+        self._plant = plant
         return True
 
     def abort(self, reason: str) -> None:
@@ -715,6 +814,14 @@ class SystemIdentification:
         to the historical two-column form rather than failing outright,
         and reports no gains figure.
         """
+        # The sysid-estimator wave (#942 options 2+3): a plant declared at
+        # arm() AND a ported intercept ridge dispatch the TWO-STATE fitted
+        # arm below — the ratified hybrid's fitted path. Every other case
+        # (no plant declared, or the ridge not ported yet) runs this
+        # one-state fit exactly as before, so #991's behaviour and its
+        # null control stand word for word until fix/sysid-ridge lands.
+        if self._plant is not None and self.config.gains_ridge_width_kw is not None:
+            return self._identify_two_state()
         usable = [
             s
             for s in self.samples
@@ -1049,6 +1156,179 @@ class SystemIdentification:
             confidence=confidence,
             reason="ok",
         )
+
+    def _two_state_window(self) -> tuple[np.ndarray, ...] | tuple[None, str]:
+        """The recorded window as arrays, or a named refusal.
+
+        The rollout needs an unbroken cadence: a dropped or duplicated
+        sample inside the window breaks the state continuity the
+        simulation error is computed on. Production cadence is uniform.
+        """
+        usable = [
+            s
+            for s in self.samples
+            if s.phase in (PHASE_SETTLING, PHASE_STEP, PHASE_RELAX)
+        ]
+        if len(usable) < 6:
+            return None, "not enough samples"
+        obs = np.asarray([s.room_temp for s in usable], dtype=float)
+        outdoor = np.asarray([s.outdoor_temp for s in usable], dtype=float)
+        power = np.asarray([s.power_kw for s in usable], dtype=float)
+        dts = np.asarray(
+            [
+                (b.when - a.when).total_seconds() / 3600.0
+                for a, b in zip(usable, usable[1:])
+            ],
+            dtype=float,
+        )
+        if np.any(dts <= 1e-3) or np.any(dts > 2.0):
+            return None, "sample cadence broken in the window"
+        return obs, outdoor, power, dts
+
+    def _identify_two_state(self) -> SysIdResult:
+        """Fit (UA, tau_fast, G) to the recorded window: the fitted arm.
+
+        The ratified hybrid (#942, owner decision 2026-09-14) fits UA and
+        tau_fast ONLY, never the C_s/k_s split, where the #991 gate passes,
+        the D2-01 intercept ridge is ported (``gains_ridge_width_kw``), and
+        the fit's own residual scatter clears the noise gate. The split is
+        structurally unidentifiable — the pair rides a tau-preserving ridge
+        (pre-study: heavy_old's k_s −35 % off noise-free with tau within
+        ×1.07) — while tau_fast is what both the gate and the optimizer
+        consume, so the fit parameterizes the plant through tau and solves
+        the capacity back out against the CONFIG slab pair
+        (``_two_state_capacity``).
+
+        Method: the candidate ``ThermalModel`` rolled forward over the
+        recorded thermal Q, ``scipy.optimize.least_squares`` over
+        (log UA, log tau, G) — the pre-study's probe B verbatim, now a
+        production arm behind the same gate that dispatched it.
+        """
+        cfg = self.config
+        plant = self._plant
+        identifiable, why = slab_mode_identifiability(plant, cfg)
+        if not identifiable:
+            return SysIdResult(completed=False, reason=why)
+        window = self._two_state_window()
+        if window[0] is None:
+            return SysIdResult(completed=False, reason=window[1])
+        obs, outdoor, power, dts = window
+        width = float(cfg.gains_ridge_width_kw)
+        c_s = float(plant.slab_thermal_mass)
+        k_s = float(plant.slab_heat_transfer)
+        # tau < C_s/k_s keeps the derived capacity positive; 0.98 keeps the
+        # solver off the pole where C_r diverges.
+        tau_cap = 0.98 * c_s / max(k_s, 1e-12)
+        tau0 = float(np.clip(slab_mode_tau_fast(plant), 1e-5, tau_cap))
+        ua0 = float(plant.heat_loss_coefficient * plant.house_heat_loss_scale)
+        params = ThermalParameters(
+            heat_loss_coefficient=ua0,
+            house_heat_loss_scale=1.0,
+            room_thermal_mass=1.0,
+            internal_gains=cfg.gains_prior_kw,
+            two_zone_enabled=False,
+            slab_thermal_mass=c_s,
+            slab_heat_transfer=k_s,
+            wind_sensitivity=0.0,
+        )
+        model = ThermalModel(params)
+        t_zero = float(obs[0])
+        out_zero = float(outdoor[0])
+
+        def rollout(x: np.ndarray) -> np.ndarray:
+            ua = float(np.exp(x[0]))
+            tau = float(np.exp(x[1]))
+            gains = float(x[2])
+            params.heat_loss_coefficient = ua
+            params.room_thermal_mass = _two_state_capacity(tau, c_s, k_s)
+            params.internal_gains = gains
+            state = ThermalState(
+                room_temperature=t_zero,
+                slab_temperature=t_zero
+                + (ua * (t_zero - out_zero) - gains) / max(k_s, 1e-9),
+                outdoor_temperature=out_zero,
+            )
+            rooms = [state.room_temperature]
+            for q, o, h in zip(power, outdoor, dts):
+                state = model.simulate_step(
+                    state,
+                    electrical_power=0.0,
+                    outdoor_temp=o,
+                    dt_hours=float(h),
+                    external_heat_kw=float(q),
+                )
+                rooms.append(state.room_temperature)
+            return np.asarray(rooms)
+
+        def residuals(x: np.ndarray) -> np.ndarray:
+            # The ported D2-01 ridge: ONE pseudo-observation pulling the
+            # collinear intercept toward the CONFIGURED gains. The sibling
+            # seam — fix/sysid-ridge owns this term's production form.
+            return np.append(
+                rollout(x) - obs, (float(x[2]) - cfg.gains_prior_kw) / width
+            )
+
+        x0 = np.array([np.log(ua0), np.log(tau0), cfg.gains_prior_kw])
+        try:
+            fit = least_squares(
+                residuals,
+                x0,
+                bounds=(
+                    np.array([np.log(0.01), np.log(1e-5), -0.5]),
+                    np.array([np.log(5.0), np.log(tau_cap), 2.0]),
+                ),
+                xtol=1e-12,
+                ftol=1e-12,
+                gtol=1e-12,
+            )
+        except (ValueError, np.linalg.LinAlgError):
+            return SysIdResult(completed=False, reason="two-state fit failed")
+        if not np.all(np.isfinite(fit.x)):
+            return SysIdResult(completed=False, reason="two-state fit failed")
+        return self._two_state_result(fit, obs, c_s, k_s)
+
+    def _two_state_result(
+        self, fit: Any, obs: np.ndarray, c_s: float, k_s: float
+    ) -> SysIdResult:
+        """Gates and packages the converged fit: noise, plausibility, result."""
+        ua = float(np.exp(fit.x[0]))
+        tau = float(np.exp(fit.x[1]))
+        gains = float(np.clip(fit.x[2], 0.0, 2.0))
+        capacity = _two_state_capacity(tau, c_s, k_s)
+        # The noise gate: the fitted values are adoptable only where the
+        # window's own residual scatter clears the ratified ceiling. The
+        # scatter is dof-adjusted (three fitted parameters) so it estimates
+        # the sensor noise rather than the fit's degrees of freedom.
+        data_residuals = fit.fun[:-1]
+        n_data = len(data_residuals)
+        scatter = float(np.sqrt(np.sum(data_residuals**2) / max(n_data - 3, 1)))
+        if scatter > MAX_FIT_RESIDUAL_SCATTER_C:
+            return SysIdResult(
+                completed=False,
+                reason=(
+                    f"residual scatter {scatter:.3f} C exceeds the "
+                    f"{MAX_FIT_RESIDUAL_SCATTER_C:.2f} C noise gate for "
+                    "fitted adoption; config-trusted"
+                ),
+            )
+        if not (0.01 <= ua <= 5.0) or not (0.05 <= capacity <= 1000.0):
+            return SysIdResult(
+                completed=False, reason="fitted parameters outside plausible bounds"
+            )
+        ss_res = float(np.sum(data_residuals**2))
+        confidence = _two_state_confidence(obs, scatter, ss_res, n_data)
+        return SysIdResult(
+            completed=True,
+            time_constant_hours=capacity / ua,
+            heat_loss_kw_per_c=ua,
+            thermal_mass_kwh_per_c=capacity,
+            internal_gains_kw=gains,
+            sensor_drift_c_per_h=None,
+            slab_mode_tau_hours=tau,
+            confidence=confidence,
+            reason="ok",
+        )
+
 
     def as_dict(self) -> dict[str, Any]:
         return {

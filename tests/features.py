@@ -31080,6 +31080,141 @@ R.check(
 )
 
 
+# -- the sysid-estimator wave (#942 options 2+3): the two-state fitted arm --
+# The ratified hybrid (owner decision on #942, 2026-09-14): config-trusted
+# today; fitted -- UA and tau_fast ONLY, never the C_s/k_s split -- where
+# the #991 gate passes AND the D2-01 intercept ridge is ported AND the fit's
+# own residual scatter is <= ~0.02 C; refused everywhere else, by name. The
+# C_s/k_s split is structurally unidentifiable (a tau-preserving ridge), so
+# the fit parameterizes the plant through tau_fast and re-derives C_r from
+# it with the CONFIG slab pair -- prior error on the split cannot enter.
+# The ridge width is the sibling seam: gains_ridge_width_kw=None means the
+# port has not landed (fix/sysid-ridge owns it), and the fitted arm is not
+# dispatched at all -- #991's one-state behaviour stands word for word.
+_EST942_START = datetime(2026, 1, 15, 23, 0, 0)
+_EST942_COP = 3.0
+
+
+def _est942_drive(name, sigma, ridge_width=0.1, seed=20260914, outdoor=0.0):
+    """The production protocol and fit against the production plant.
+
+    The plant is the #991 null-control construction (slab_heat_transfer
+    x100: the one gate-passing class); the plant itself rolls noise-free
+    and the protocol runs on the TRUE room temperature; N(0, sigma) noise
+    is on the room OBSERVATIONS the fit consumes -- the pre-study's arm-E
+    method (sizing and the comfort guard price the EXCITATION, the noise
+    prices the ESTIMATION, and conflating them aborts every 0.8 C-bound
+    window at sigma >= 0.02). The plant is DECLARED at arm(), the way
+    production arms, and the fitted result comes from production
+    identify() on the noised samples.
+    """
+    p = _p942(name, 100.0)
+    model = ThermalModel(p)
+    ua = p.heat_loss_coefficient * p.house_heat_loss_scale
+    gains = float(p.internal_gains)
+    cfg = _SysIdModule.SysIdConfig(enabled=True, min_days_between_runs=0.0)
+    if ridge_width is not None:
+        cfg.gains_ridge_width_kw = ridge_width
+    sy = _SysIdModule.SystemIdentification(cfg)
+    assert sy.arm(_EST942_START, plant=p)
+    qh = ua * (21.0 - outdoor) - gains
+    ks = max(p.slab_heat_transfer, 1e-9)
+    st = ThermalState(room_temperature=21.0, slab_temperature=21.0 + qh / ks,
+                      outdoor_temperature=outdoor)
+    hold = max(qh, 0.0) / _EST942_COP
+    prices = np.full(48, 1.0)
+    now = _EST942_START
+    for _ in range(int(5.0 / 0.25) + 4):
+        ov = sy.step(now=now, room_temp=st.room_temperature,
+                     outdoor_temp=outdoor, price=0.1,
+                     price_horizon=prices, learner_samples=0,
+                     max_power_kw=float(p.max_electrical_power),
+                     cop=_EST942_COP, plan_power_kw=hold, house_ua=ua,
+                     house_capacity=float(p.room_thermal_mass),
+                     house_gains=gains,
+                     house_slab_mass=float(p.slab_thermal_mass),
+                     house_slab_transfer=float(p.slab_heat_transfer))
+        if not sy.active:
+            break
+        elec = hold if ov is None else float(ov)
+        st = model.simulate_step(st, electrical_power=0.0,
+                                 outdoor_temp=outdoor, dt_hours=0.25,
+                                 external_heat_kw=elec * _EST942_COP)
+        now = now + timedelta(hours=0.25)
+    rng = np.random.default_rng(seed)
+    sy.samples = [
+        _dc_replace(s, room_temp=s.room_temp + float(rng.normal(0.0, sigma)))
+        for s in sy.samples
+    ]
+    return sy.identify(), ua
+
+
+_r942e01, _ua942e01 = _est942_drive("typical_slab", 0.01)
+_tau942e01 = _SysIdModule.slab_mode_tau_fast(_p942("typical_slab", 100.0))
+_f942e01 = getattr(_r942e01, "slab_mode_tau_hours", None)
+R.check(
+    "estimator: the fitted arm completes on a gate-passing plant at 0.01 C noise",
+    _r942e01.completed
+    and _r942e01.reason == "ok"
+    and _r942e01.heat_loss_kw_per_c is not None
+    and abs(_r942e01.heat_loss_kw_per_c / _ua942e01 - 1.0) <= 0.10
+    and _f942e01 is not None
+    and abs(_f942e01 / _tau942e01 - 1.0) <= 0.40
+    and _r942e01.confidence >= 0.3,
+    f"completed {_r942e01.completed} reason "
+    f"{_r942e01.reason!r} UAfit {_r942e01.heat_loss_kw_per_c} "
+    f"vs true {_ua942e01} tau_fit {_f942e01} vs true {_tau942e01} conf "
+    f"{_r942e01.confidence} -- the pre-study's gate-passing cell "
+    "(k_s x100 + ridge, sigma 0.01) measured UA bias inside +-10 % with "
+    "tau_fast recovered to a few tens of percent; the frontier these "
+    "numbers re-derive is issue #942 comment 5656402482",
+)
+R.check(
+    "estimator: the fitted arm publishes the re-derived slab mode for the config-class decision",
+    isinstance(_r942e01.as_dict().get("slab_mode_tau_hours"), float),
+    f"as_dict {_r942e01.as_dict()!r} -- tau_fast re-derives from the "
+    "fit and C_s/k_s stay config, so the published tau is the quantity the "
+    "#996 config-class decision prices; a fit that changed the slab pair "
+    "itself would be adopting the unidentifiable split",
+)
+_r942e05, _ua942e05 = _est942_drive("typical_slab", 0.05, seed=20260915)
+R.check(
+    "estimator: 0.05 C noise is refused BY NAME at the residual-scatter gate, not adopted degraded",
+    not _r942e05.completed
+    and "residual scatter" in _r942e05.reason
+    and _r942e05.heat_loss_kw_per_c is None,
+    f"completed {_r942e05.completed} reason "
+    f"{_r942e05.reason!r} UAfit "
+    f"{_r942e05.heat_loss_kw_per_c} -- at sigma 0.05 the same cell "
+    "degrades past the +-10 % bar (fitted -23/+15, pre-study table), so the "
+    "ratified precondition (residual scatter <= ~0.02 C on the arm window) "
+    "refuses the window instead of adopting it",
+)
+_r942nr, _ua942nr = _est942_drive("typical_slab", 0.01, ridge_width=None)
+R.check(
+    "estimator: without the ported ridge the fitted arm is not dispatched -- #991 stands",
+    getattr(_r942nr, "slab_mode_tau_hours", None) is None,
+    f"reason {_r942nr.reason!r} tau "
+    f"{getattr(_r942nr, 'slab_mode_tau_hours', None)!r} completed "
+    f"{_r942nr.completed} -- the plain two-state fit is noise-wrecked on "
+    "the collinear intercept (-36/+45 at sigma 0.01, re-derived at this "
+    "branch's base), so the ridge is a precondition of fitting, not a "
+    "tuning knob; None keeps the one-state fit #991 shipped",
+)
+_cfg942nr = _SysIdModule.SysIdConfig(enabled=True)
+_p942nr = _p942("typical_slab", 100.0)
+_ok942nr, _why942nr = _SysIdModule.slab_mode_identifiability(_p942nr, _cfg942nr)
+R.check(
+    "estimator: the shipped default config leaves the ridge unported (the sibling seam)",
+    _ok942nr and _why942nr == "ok"
+    and getattr(_cfg942nr, "gains_ridge_width_kw", "absent") is None,
+    f"gate ({_ok942nr}, {_why942nr!r}) width "
+    f"{getattr(_cfg942nr, 'gains_ridge_width_kw', 'absent')!r} -- "
+    "fix/sysid-ridge owns setting the production width; until it lands the "
+    "fitted arm is inert and every preset keeps #991's behaviour",
+)
+
+
 # -- the three service entry points, and what each one costs ---------------
 _t4_force_busy = _t4_coord()
 _t4_count_refresh(_t4_force_busy)
