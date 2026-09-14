@@ -25,6 +25,26 @@
 //   every other RESULT is a defect count and is printed with its own
 //   tolerance line in out/summary.json.
 //
+// RE-RECORDED at 82a5fac after #935, and again at the merged tree 8f5895a
+// after #998 (issue #936) landed the 24 px HTML target floor between the
+// two (same box, same axes, 2026-09-14):
+//   cells=1224 unchanged; drive_failures 72 -> 72, page_errors 0 -> 0,
+//     both equal to the committed baseline out/summary.json.
+//   tiny_text_instances   1884 -> 0    (every sub-8 px instance was a
+//     text.lane-label; the labels now share the 8 px floor) -- #935's.
+//   low_contrast_instances 4729 -> 1420, low_contrast_cells 1080 -> 540
+//     (the lane-label rows are gone; the remainder is D4-02's wi-save and
+//     the other below-AA pairs that finding owns) -- #935's.
+//   small_target_instances 22060 -> 10012, small_target_cells 1188 -> 496
+//     -- #998's, not #935's (the 24 px HTML target floor); quoted here
+//     because this re-record states the merged tree.
+//   overlap_instances 27266 -> 27638 (+372 on 27k: boxes grew from both
+//     fixes -- the labels' boxes with the 6.4 -> 8 px floor, the HTML
+//     targets with #998's 24 px floor; overlap_cells unchanged at 1188).
+//   clipped / svg_escape unchanged.
+// Baseline recording preserved above; the committed out/summary.json is
+// the baseline's.
+//
 // This harness measures GEOMETRY, so it never uses tests/card_rig.mjs: that
 // rig's DOM stub returns a constant 900x400 rect for everything.
 import { createRequire } from "node:module";
