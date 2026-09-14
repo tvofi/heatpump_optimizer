@@ -470,6 +470,16 @@ const CORPUS_EXCLUDED = new Set([
   'docs/decisions/0006-policy-merge-grant-regranted-to-the-local-session.md',
   'docs/decisions/0007-after-this-session-owner-approval-per-pull-request.md',
   'docs/decisions/0008-a-seat-identity-distinct-from-the-owner.md',
+  // The W4D-G9 decision record (#954): agent identities for author and
+  // approver, no separate human approval, the approver created before the
+  // rule. Named one by one per the rule above, under the 2026-09-14 session
+  // grant (#201 comment 5670246622), which covers the policy change. An
+  // uncited ADR needs no line -- measured again on this branch: the file
+  // added and cited by nothing keeps TOTAL at 0 -- but the line is owed the
+  // moment a capped file names it, and the first will be the handover
+  // recording that merge, so it is paid here rather than left to redden the
+  // record seat that writes it.
+  'docs/decisions/0009-agent-identities-for-author-and-approver.md',
 ])
 
 // Widening the scan past `.md` brought in every `.txt` a policy file cites, and
