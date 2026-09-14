@@ -288,6 +288,21 @@ jobs:
   # are not in main's history, so the window would describe a history the branch
   # is not part of: the job would refuse merges it did not cause and miss the one
   # under review, which does not exist as a merge yet.
+  #
+  # THE SPLIT (#958, D11-05): the disposition check still runs, still refuses,
+  # and still prints its refusal -- but its exit code no longer reddens this
+  # run. A merge is rowless for the whole batch interval the record protocol
+  # promises, so a red that only the next `record:` beat can clear is a
+  # treadmill rather than a detector: at `132bebc` this run went red refusing
+  # #1027's merge, and the very next push (`2a480b6`, the beat writing its
+  # row) was green again. The pre-merge alternative stays refused on #541's
+  # measured five false refusals per true one. The refusal is carried instead,
+  # on the `delivery-status` reporter shape: the step below keeps failing
+  # visibly inside this job while the job concludes success, and the reporting
+  # step after it puts the refusal on the run's summary page, where a seat
+  # reads it. Neither surface is a required context and neither may become
+  # one -- requiring a refusal only the next beat can clear would block every
+  # unrelated merge, the `nightly-status` precedent.
   record:
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
@@ -322,14 +337,53 @@ jobs:
           echo "since=$SINCE" >> "$GITHUB_OUTPUT"
           echo "window: $SINCE..origin/main"
 
-      # THE ONLY STEP THAT MAY FAIL THIS JOB. A merged pull request with no
-      # disposition in the plan of record or the living handover is a refusal:
-      # the Delivery-status table is what a resuming seat reads, and a merge
-      # missing from it is work no later session can find.
+      # THE REFUSAL, kept whole. A merged pull request with no disposition in
+      # the plan of record or the living handover is a refusal: the
+      # Delivery-status table is what a resuming seat reads, and a merge
+      # missing from it is work no later session can find. The command is the
+      # one this step has always run; `pipefail` keeps the pipeline's exit code
+      # the check's own, and `tee` captures its output for the report below.
+      # `continue-on-error` is the whole of the split: the step still fails --
+      # red step, ERROR lines in this log -- and the job no longer does.
       - name: Every merged pull request has a disposition
+        id: refusal
+        continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: node .claude/workflows/policy_lint.mjs --record --since "${{ steps.window.outputs.since }}"
+        run: |
+          set -o pipefail
+          node .claude/workflows/policy_lint.mjs --record \
+            --since "${{ steps.window.outputs.since }}" \
+            2>&1 | tee "$RUNNER_TEMP/record.txt"
+
+      # The reported surface, on the `delivery-status` reporter shape: the
+      # verdict, the refusal itself, and a footer stating what the verdict
+      # gates -- nothing. Written to the run's summary page, which is the
+      # first thing a seat opening this run reads, and echoed to this log so
+      # it is greppable without the UI. Both arms report, the way
+      # `delivery_status.py` prints OK and not only OVERDUE.
+      - name: Report the refusal on the run summary
+        if: always()
+        env:
+          REFUSAL_OUTCOME: ${{ steps.refusal.outcome }}
+        run: |
+          if [ "$REFUSAL_OUTCOME" = "failure" ]; then
+            VERDICT="REFUSED -- merged pull request(s) with no disposition"
+          else
+            VERDICT="clean -- every merged pull request in the window has a disposition"
+          fi
+          {
+            echo "### record: $VERDICT"
+            echo
+            echo '```text'
+            cat "$RUNNER_TEMP/record.txt" 2>/dev/null \
+              || echo "(the disposition check produced no output)"
+            echo '```'
+            echo
+            echo "Reported, not gated (#958): a rowless merge is the batch interval the"
+            echo "record protocol promises, cleared by the next \`record:\` beat writing"
+            echo "the row. This surface is not a required context and must not become one."
+          } | tee /dev/stderr >> "$GITHUB_STEP_SUMMARY"
 
       # Reporting only, and deliberately unable to fail the job: a histogram and
       # a sunset list are inputs to a judgement a seat makes, not a gate. Both
