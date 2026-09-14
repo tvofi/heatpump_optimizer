@@ -25,6 +25,14 @@
 # next branch restates its own footprint, claims included.
 #
 
+# #948 (R4-D9-05): the batched objective's cost terms now run as batch
+# twins whose rows are the scalar expressions verbatim, and both terminal
+# twins run one shared per-row function; the plans are byte-identical to
+# the merge base (18 of 18 output arrays compared by .tobytes(),
+# tools/audit/round4/D9/h9_null_plans.py), so no card state can move and
+# this branch's list is empty.
+#
+
 #
 
 #
@@ -229,36 +237,3 @@
 # zoom pair itself, tools/audit/round4/D4/d4_own_D4-03.mjs, both ends on
 # this box: 20.22x20.22 at 22.22 px centres -> 24.00x24.00 at 26.00 px at
 # all three tiles, fine and coarse arms alike.
-away_return # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
-away_status # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
-away_toggle # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
-coarse_pointer # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
-custom_title_currency # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
-draft_dirty_menu_open # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
-draft_mid_drag # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
-expanded_plan # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
-expanded_zoomed # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
-hidden_series # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
-layout_editing_dragged # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
-layout_editing_tidy # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
-no_plan # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
-no_plan_expanded # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
-override_active # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
-picker_open_filtered # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
-plan_inline # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
-plan_inline_sv # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
-plan_short_window # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
-reduced_motion # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
-score_open # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
-setup_coil # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
-setup_single_buffer # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
-setup_two_tank # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
-shared_steps # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
-shared_steps_hover # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
-tooltip_hover # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
-what_if_off # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
-whatif_edited # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
-whatif_weekly # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
-wood_alert # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
-wood_lane # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
-wood_whatif # 936: stylesheet only - the 24 px HTML target floor leaves @media (pointer: coarse)
