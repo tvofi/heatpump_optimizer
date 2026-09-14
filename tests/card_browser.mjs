@@ -455,12 +455,15 @@ try {
       if (!r.width) continue;
       const vb = (svg.getAttribute("viewBox") || "0 0 900 380").split(/\s+/);
       const scale = r.width / (Number(vb[2]) || 900);
-      // The axis and its annotations. The lane strip's own labels are drawn
-      // at 0.8x deliberately and are D4-06's subject, not this floor's.
+      // The axis and its annotations -- and, since #935 (R4-D4-01), the
+      // lane strip's own labels: they used to be filtered out here because
+      // they were drawn at 0.8x with no floor of their own, which put them
+      // at 6.4 px wherever this floor bound. The card now floors them
+      // through the same chartFontUnits pass (0.8 em base), so this check
+      // reads them like every other chart text.
       const sizes = [...svg.querySelectorAll("text")]
         .filter((t) => (t.getAttribute("font-size") || "").length > 0)
         .filter((t) => (t.textContent || "").trim().length > 0)
-        .filter((t) => !/lane-/.test(t.getAttribute("class") || ""))
         .map((t) => Number(t.getAttribute("font-size")) * scale);
       if (sizes.length) {
         out.push({ svgW: r.width, min: Math.min(...sizes), n: sizes.length });
@@ -497,7 +500,6 @@ try {
     const sizes = [...svg.querySelectorAll("text")]
       .filter((t) => (t.getAttribute("font-size") || "").length > 0)
       .filter((t) => (t.textContent || "").trim().length > 0)
-      .filter((t) => !/lane-/.test(t.getAttribute("class") || ""))
       .map((t) => Number(t.getAttribute("font-size")) * scale);
     return { renders, svgW: rect.width, min: Math.min(...sizes) };
   });
