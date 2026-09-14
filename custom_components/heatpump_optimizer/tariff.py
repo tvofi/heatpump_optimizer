@@ -612,6 +612,66 @@ def peak_cost(
     return float(price_per_kw * top_sum)
 
 
+def peak_cost_batch(
+    total_power_kw: np.ndarray,
+    baseline_load_kw: np.ndarray,
+    threshold_kw: float,
+    price_per_kw: float,
+    window_minutes: int,
+    dt_hours: float,
+    peaks_averaged: int = 3,
+    offset_steps: int = 0,
+    window_factors: np.ndarray | None = None,
+) -> np.ndarray:
+    """``peak_cost`` for a [B, n] batch of plans, one entry per row (#948).
+
+    The solver's batched objective used to CALL ``peak_cost`` once per
+    batch row; the per-row re-entry -- not the arithmetic -- is the
+    recomputation round 4 (D9-05) counted, and this twin is what the
+    recomputation-count pin reads. Each row runs the scalar body verbatim
+    on its own freshly allocated per-row arrays (``house``, the window
+    means through ``metering_windows``, the factors multiply, ``excess``,
+    the sort and the top-k slice sum, and the scalar ``_smooth_topk_sum``
+    on a plateau), so a row is bit-for-bit ``peak_cost`` on that row's
+    plan on EVERY numpy backend -- not by measurement on one. The body is
+    held against drift by the unit row-parity grid in tests/features.py
+    (#948 section: offsets, window lengths, billing factors, plateaus),
+    because it cannot call the function it mirrors without re-entering it.
+    """
+    matrix = np.asarray(total_power_kw, dtype=float)
+    n_rows = matrix.shape[0]
+    if price_per_kw <= 0 or not np.isfinite(threshold_kw):
+        return np.zeros(n_rows)
+    baseline = np.asarray(baseline_load_kw, dtype=float)
+    out = np.empty(n_rows)
+    for b in range(n_rows):
+        house = matrix[b] + baseline
+        windows = metering_windows(
+            house, window_minutes, dt_hours, offset_steps
+        )
+        if window_factors is not None and window_factors.size:
+            # Billed-equivalent kW (#13); see ``peak_cost``.
+            factors = window_factors[: windows.size]
+            if factors.size < windows.size:
+                factors = np.concatenate(
+                    [factors, np.ones(windows.size - factors.size)]
+                )
+            windows = windows * factors
+        excess = np.maximum(0.0, windows - threshold_kw)
+        if not np.any(excess > 0):
+            out[b] = 0.0
+            continue
+        k = max(1, min(int(peaks_averaged), excess.size))
+        peak = float(np.max(excess))
+        n_at_peak = int(np.sum(excess >= peak - _PEAK_TIE_BAND))
+        if n_at_peak > k:
+            top_sum = _smooth_topk_sum(excess, k, _PEAK_SMOOTH_TAU)
+        else:
+            top_sum = float(np.sum(np.sort(excess)[-k:]))
+        out[b] = float(price_per_kw * top_sum)
+    return out
+
+
 def realised_peak(
     total_power_kw: np.ndarray,
     baseline_load_kw: np.ndarray,
