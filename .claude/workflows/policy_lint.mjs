@@ -72,7 +72,7 @@ import {
   METRIC_LITERAL_RE,
   NEGATION_RE,
 } from './brief_lint.mjs'
-import { checkCounts, derivations } from './counts.mjs'
+import { checkCounts, derivations, liveRequiredContexts, liveRequiredContextsWhy, checkRequiredContexts, requiredContextsDrift } from './counts.mjs'
 import { inspectRender } from './render_md.mjs'
 
 // brief_lint's CODE_EXTS has no `mdc`, because a wave roster never cites one.
@@ -332,7 +332,7 @@ function uncoveredPolicyFiles(files = null) {
 // an earlier version of this comment openly invited, and it silently voids the
 // check, because the loop passes the POLICY FILE list and every policy file is
 // covered by definition. Hence the name, and hence asserting names.
-const CORPUS_CHECK_NAMES = ['checkIndex', 'checkDuplicates', 'checkBudgets', 'coverageOverTree', 'namedDocsOverTree', 'orphanCapsOverTree', 'checkProvenance']
+const CORPUS_CHECK_NAMES = ['checkIndex', 'checkDuplicates', 'checkBudgets', 'coverageOverTree', 'namedDocsOverTree', 'orphanCapsOverTree', 'requiredContextsOverTree', 'checkProvenance']
 
 // THE RECORD MODE'S CHECKS, enumerated HERE beside the corpus list rather than
 // in the mutation lane, for the reason the corpus list gives about itself: a
@@ -470,6 +470,16 @@ const CORPUS_EXCLUDED = new Set([
   'docs/decisions/0006-policy-merge-grant-regranted-to-the-local-session.md',
   'docs/decisions/0007-after-this-session-owner-approval-per-pull-request.md',
   'docs/decisions/0008-a-seat-identity-distinct-from-the-owner.md',
+  // The W4D-G9 decision record (#954): agent identities for author and
+  // approver, no separate human approval, the approver created before the
+  // rule. Named one by one per the rule above, under the 2026-09-14 session
+  // grant (#201 comment 5670246622), which covers the policy change. An
+  // uncited ADR needs no line -- measured again on this branch: the file
+  // added and cited by nothing keeps TOTAL at 0 -- but the line is owed the
+  // moment a capped file names it, and the first will be the handover
+  // recording that merge, so it is paid here rather than left to redden the
+  // record seat that writes it.
+  'docs/decisions/0009-agent-identities-for-author-and-approver.md',
 ])
 
 // Widening the scan past `.md` brought in every `.txt` a policy file cites, and
@@ -796,6 +806,64 @@ let orphanCapBudgetSource = () => undefined
 
 function orphanCapsOverTree() {
   return checkOrphanCaps(orphanCapBudgetSource())
+}
+
+// The live required-context set (#957), in the counts class: the derivation is
+// an API away rather than a tree artifact, so it is fetched here (memoized in
+// counts.mjs) and two things are policed against it -- the corpus's literals
+// and the recorded-shape fixture. See counts.mjs for why a fetch failure is a
+// printed skip and never a finding, and why the derivation reads the branch
+// endpoint AND the ruleset objects.
+//
+// THE SITE LIST is the files that assert the merge boundary's state: the
+// workflow comments, the plan of record, the decision records, the handover.
+// It is a list and not a registry -- a file nobody lists here is unmeasured by
+// this check, the same residual the corpus list above carries, and for the
+// same reason: nothing inside a program can pin its own coverage.
+const REQUIRED_CONTEXT_FIXTURE = '.claude/workflows/fixtures/required-contexts.json'
+const REQUIRED_CONTEXT_SITE = /^(?:\.github\/workflows\/[A-Za-z0-9_.-]+\.yml|docs\/plan-[A-Za-z0-9-]+\.md|docs\/decisions\/[0-9]{4}-[A-Za-z0-9-]+\.md|docs\/HANDOVER\.md)$/
+
+let requiredContextsSource = null
+let requiredContextsFixtureSource = null
+let requiredContextsSitesSource = null
+
+function requiredContextsOverTree() {
+  // The fixture FIRST, unconditionally: a missing or unparseable baseline is a
+  // tree defect regardless of whether the API answered, and ordering the fetch
+  // first would hide it behind the skip whenever both fail at once.
+  const fixtureRaw = requiredContextsFixtureSource ? requiredContextsFixtureSource() : read(REQUIRED_CONTEXT_FIXTURE)
+  if (fixtureRaw == null) {
+    return [{
+      severity: 'error',
+      check: 'required-contexts',
+      where: REQUIRED_CONTEXT_FIXTURE,
+      message: 'is missing. The recorded shape of the required-context set is this check\'s baseline; deleting it deletes the comparison, and a check whose baseline vanished reading exactly like one that passed is the shape this refuses.',
+    }]
+  }
+  let fixture = null
+  try {
+    fixture = JSON.parse(fixtureRaw)
+  } catch {
+    return [{
+      severity: 'error',
+      check: 'required-contexts',
+      where: REQUIRED_CONTEXT_FIXTURE,
+      message: 'does not parse. The recorded shape of the required-context set is this check\'s baseline; re-record it from the API (branch endpoint and ruleset objects, agreeing).',
+    }]
+  }
+  const live = requiredContextsSource ? requiredContextsSource() : liveRequiredContexts()
+  if (live == null) {
+    // `policy-docs` is itself a required context: an unreachable or
+    // rate-limited API must not block every merge. UNCHECKED, said out loud --
+    // a check that skips without saying so reads exactly like one that passed.
+    console.log(`  skip     required-contexts     the GitHub API is unreachable (${liveRequiredContextsWhy()}); the live required-context set is UNCHECKED this run, not confirmed`)
+    return []
+  }
+  const sites = requiredContextsSitesSource ? requiredContextsSitesSource() : trackedFiles().list.filter((f) => REQUIRED_CONTEXT_SITE.test(f)).sort()
+  return [
+    ...requiredContextsDrift(REQUIRED_CONTEXT_FIXTURE, fixture, live),
+    ...sites.flatMap((rel) => checkRequiredContexts(rel, read(rel), live)),
+  ]
 }
 
 function checkOrphanCaps(budget) {
@@ -2117,6 +2185,7 @@ const CHECKS = [
   { name: 'named-docs', what: 'a document the corpus names but no cap measures', fixture: '(driven in assertAcceptance)' },
   { name: 'coverage', what: 'every file in a policy directory is matched by a glob', fixture: '(a probe file, see assertAcceptance)' },
   { name: 'provenance', what: "the known-bad ledger's recorded_at resolves from origin/main", fixture: '(driven in assertAcceptance)' },
+  { name: 'required-contexts', what: 'the corpus\'s required-context literals and recorded shape match the live ruleset', fixture: '(driven in assertAcceptance; live state, never fixtures, in production)' },
   { name: 'record', what: 'every merged pull request has a disposition (refuses)', fixture: 'fixtures/policy-loop/merged-subjects.txt' },
   { name: 'render', what: 'disposition documents render with the same structure as their source', fixture: 'fixtures/policy-loop/render-cells-rotten.md' },
   { name: 'stats', what: 'verdict and friction histograms, and what they would open', fixture: 'fixtures/policy-loop/pr-payloads.json' },
@@ -2246,7 +2315,7 @@ const REQUIRED_ROT = {
   },
 }
 
-CORPUS_CHECKS.push(checkIndex, checkDuplicates, checkBudgets, coverageOverTree, namedDocsOverTree, orphanCapsOverTree, checkProvenance)
+CORPUS_CHECKS.push(checkIndex, checkDuplicates, checkBudgets, coverageOverTree, namedDocsOverTree, orphanCapsOverTree, requiredContextsOverTree, checkProvenance)
 
 // SILENT ON A HEALTHY INPUT. A count-and-substring pin proves a check can still
 // refuse; it cannot prove the check is not refusing everything. Each loop mode
@@ -2779,6 +2848,104 @@ function assertAcceptance(derived) {
   const ocOk = driveOC({ files: Object.fromEntries(policyFiles().map((f) => [f, 1])) })
   if (ocOk.length) {
     console.log(`\nFIXTURE OVER-FIRES: checkOrphanCaps reported ${ocOk.length} finding(s) with every cap on a measured file, e.g. ${JSON.stringify(ocOk[0].where)}`)
+    return 1
+  }
+
+  // Required contexts (#957). On a healthy tree the live set EQUALS the recorded
+  // shape and the corpus states no literal, so every property here is false and
+  // witnessless -- the exact shape all three deletable checks at the top of
+  // policy_lint_mutants.mjs had. Driven, through the wired wrapper with swapped
+  // sources, and BOTH ways where the sign matters. The drives are synthetic on
+  // purpose: the acceptance runs offline (the mutants lane imports it per
+  // mutant), so the live API can be one of its inputs only by injection.
+  //
+  // The null arm is the FAILURE-MODE CONTROL the class owes for asserting live
+  // state: a fetch that cannot look must produce no finding AND the line that
+  // says so -- a skip without its line reads exactly like a pass, and a red on
+  // an outage would block every merge through `policy-docs` itself.
+  const driveRC = (source, fixtureText, sites) => {
+    const prevS = requiredContextsSource
+    const prevF = requiredContextsFixtureSource
+    const prevSites = requiredContextsSitesSource
+    const said = []
+    const real = console.log
+    console.log = (...a) => said.push(a.join(' '))
+    try {
+      // A VALUE, wrapped here -- `null` means "the fetch returned nothing",
+      // which the wrapper must be able to hand the check without falling back
+      // to the production fetch the way its own null default does.
+      requiredContextsSource = () => source
+      requiredContextsFixtureSource = fixtureText === undefined ? null : () => fixtureText
+      requiredContextsSitesSource = sites === undefined ? null : () => sites
+      return { found: requiredContextsOverTree(), said }
+    } finally {
+      requiredContextsSource = prevS
+      requiredContextsFixtureSource = prevF
+      requiredContextsSitesSource = prevSites
+      console.log = real
+    }
+  }
+  if (requiredContextsSource !== null || requiredContextsFixtureSource !== null || requiredContextsSitesSource !== null) {
+    console.log('\nFIXTURE VACUOUS: a required-contexts source is not back at its production default; the wired check would read an injected state, not the tree and the API')
+    return 1
+  }
+  const RC_THREE = { contexts: ['policy-docs', 'probe-a', 'probe-b'], count: 3, rulesets: [1] }
+  const rcFixture = (contexts) => JSON.stringify({ contexts })
+  const rcRot = '.claude/workflows/fixtures/policy-rot/required-contexts.md'
+  const rcRotText = read(rcRot)
+  if (rcRotText == null) {
+    console.log(`\nFIXTURE VACUOUS: ${rcRot} is missing; the literal shapes of the required-contexts check are deletable in silence`)
+    return 1
+  }
+  // One pin per literal SHAPE (three regexes, one finding each from the rot
+  // fixture's three unguarded lines), plus the message substring that says
+  // what the literal was checked against.
+  pins += 4
+  const lit = driveRC(RC_THREE, rcFixture(RC_THREE.contexts), [rcRot])
+  if (lit.found.length !== 3 || !lit.found.every((f) => f.check === 'required-contexts')) {
+    console.log(`\nFIXTURE VACUOUS: the required-contexts literal scan produced ${lit.found.length} finding(s) on the rot fixture, 3 required (one per literal shape). A deleted regex in REQUIRED_CONTEXT_RES survives here in silence.`)
+    return 1
+  }
+  if (!lit.found.some((f) => f.message.includes('the live ruleset returns 3'))) {
+    console.log('\nFIXTURE VACUOUS: no required-contexts finding names the live count it checked against, so a comparison against a constant would pass this pin')
+    return 1
+  }
+  // The history guard: the rot fixture's two guarded lines carry the same
+  // stale literal (a table row and a per-PR row) and must produce nothing --
+  // over-firing on dated records is what would get this class bypassed.
+  const litLines = lit.found.map((f) => rcRotText.split('\n')[Number(f.where.split(':')[1]) - 1] || '')
+  if (litLines.some((l) => /^\s*(?:\||-\s*\[#\d+\])/.test(l))) {
+    console.log('\nFIXTURE OVER-FIRES: a required-contexts finding landed on a table or per-PR row, which is a dated record, not a live claim')
+    return 1
+  }
+  // Drift, both directions: the next ruleset change reddens within one push,
+  // NAME by name -- a count alone would pass a swap.
+  pins += 2
+  const grew = driveRC({ ...RC_THREE, contexts: [...RC_THREE.contexts, 'probe-new'], count: 4 }, rcFixture(RC_THREE.contexts), [])
+  if (grew.found.length !== 1 || !grew.found[0].message.includes('which the recorded shape lacks') || !grew.found[0].message.includes('probe-new')) {
+    console.log('\nFIXTURE VACUOUS: a context the live set gained over the recorded shape was not reported by name; the next ruleset change would not redden the tree')
+    return 1
+  }
+  const shrank = driveRC({ contexts: RC_THREE.contexts.slice(0, 2), count: 2, rulesets: [1] }, rcFixture(RC_THREE.contexts), [])
+  if (shrank.found.length !== 1 || !shrank.found[0].message.includes('no longer returns it') || !shrank.found[0].message.includes('probe-b')) {
+    console.log('\nFIXTURE VACUOUS: a context the live set dropped was not reported by name; a retired required context would read as still recorded')
+    return 1
+  }
+  // Silent on equality (over-fire control) and SKIPPING on a dead fetch, line
+  // included -- the recorded failure mode, pinned so it cannot become a red.
+  pins += 3
+  const equal = driveRC(RC_THREE, rcFixture(RC_THREE.contexts), [])
+  if (equal.found.length) {
+    console.log(`\nFIXTURE OVER-FIRES: the required-contexts check reported ${equal.found.length} finding(s) with the live set equal to the recorded shape, e.g. ${JSON.stringify(equal.found[0].message.slice(0, 120))}`)
+    return 1
+  }
+  const dead = driveRC(null, rcFixture(RC_THREE.contexts), [rcRot])
+  if (dead.found.length) {
+    console.log(`\nFIXTURE OVER-FIRES: an unreachable API produced ${dead.found.length} required-contexts finding(s); policy-docs is itself a required context, and a transient outage must not block every merge`)
+    return 1
+  }
+  if (!dead.said.some((l) => l.includes('skip') && l.includes('required-contexts') && l.includes('UNCHECKED'))) {
+    console.log('\nFIXTURE VACUOUS: a dead fetch skipped without saying so in its own words; a skip that is not said reads exactly like a pass')
     return 1
   }
 
