@@ -5,23 +5,31 @@ MY METRIC: two counts.
       ``DataUpdateCoordinator`` base class runs when its three refresh
       entry points are awaited -- instrumented by subclassing the stub with
       a counting ``_async_update_data`` (the method real Home Assistant's
-      base class calls; the stub never does).
+      base class calls; the counter stub at the baseline never did, giving
+      0 -- the defect; after fix #924 each awaited entry point runs one
+      cycle, giving 3).
   (b) setup_consumes_flag: after a full production setup
       (``ha_setup_entry`` -> ``__init__.py``'s
       ``coordinator._skip_solve_once = True`` +
       ``await coordinator.async_config_entry_first_refresh()``), whether
-      the flag production latched has been consumed (0 = still latched).
+      the flag production latched has been consumed (baseline: 0, still
+      latched, the stub ran nothing; after the fix: 1, the base-class
+      first refresh ran the light refresh, which consumes it first).
       ``_async_update_data`` is spied at class level, so ANY path through
-      the base class that ran a cycle would be counted. Control: driving
-      ``_async_update_data()`` directly consumes the flag (must be 1),
-      proving the production consumption code works and only the
-      base-class wiring is untested.
+      the base class that ran a cycle would be counted. Control: re-arm
+      the flag and drive ``_async_update_data()`` directly -- it must be
+      consumed again (1), proving the production consumption code works
+      and only the base-class wiring was untested at the baseline.
 
 COMMAND (from this worktree root):
   PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 \
     tools/audit/round4/D1/d1_own_D1-INST.py
-EXPECTED: stub_refresh_runs_update_cycles=0, setup_spied_update_cycles=0,
-  setup_flag_still_latched=1, direct_cycle_consumes_flag=1.
+EXPECTED: stub_refresh_runs_update_cycles=3, setup_spied_update_cycles=1,
+  setup_flag_still_latched=0, direct_cycle_consumes_flag=1.
+  (Re-recorded for #924: was 0/0/1/1 against the counter stub. The config
+  now carries a price ENTITY with a seeded state -- a real offline source
+  -- because the fixed first refresh raises ConfigEntryNotReady out of
+  setup on a token config with no HTTP under the stub.)
 BASELINE: 7dd68dd327fe3dbfb09f3bd0fe38910c58877697 (tree verified identical
   for custom_components/heatpump_optimizer/*.py at 0855277).
 MACHINE: 8-core Apple M1, macOS 25.6.0, CPython 3.11. Counts only.
@@ -62,7 +70,25 @@ CONFIG = {
     const.CONF_INDOOR_TEMP_ENTITY: "sensor.indoor",
     const.CONF_OUTDOOR_TEMP_ENTITY: "sensor.outdoor",
     const.CONF_DHW_TANK_VOLUME: 180.0,
+    # #924: a real offline price source -- the fixed first refresh fetches,
+    # and a token config has no HTTP under the stub.
+    const.CONF_PRICE_SOURCE: "entity",
+    const.CONF_PRICE_ENTITY: "sensor.prices",
 }
+
+
+def _price_state():
+    """A seeded Nord-Pool-style sensor: 48 h of parseable rows."""
+    from datetime import timedelta
+
+    from homeassistant.util import dt as dt_util
+
+    now = dt_util.now().replace(minute=0, second=0, microsecond=0)
+    rows = [
+        {"start": (now + timedelta(hours=h)).isoformat(), "value": 0.5 + 0.1 * (h % 4)}
+        for h in range(48)
+    ]
+    return FakeState("0.5", attributes={"raw_today": rows, "raw_tomorrow": []})
 
 
 async def stub_cycles() -> int:
@@ -103,6 +129,7 @@ async def setup_arm() -> dict:
         hass = FakeHass()
         hass.states.set("sensor.indoor", FakeState("21.0"))
         hass.states.set("sensor.outdoor", FakeState("-2.0"))
+        hass.states.set("sensor.prices", _price_state())
         entry = FakeEntry(data=dict(CONFIG), entry_id="d1inst_entry")
         ok = await ha_setup_entry(integration, hass, entry)
         coord = getattr(entry, "runtime_data", None)
@@ -112,14 +139,17 @@ async def setup_arm() -> dict:
         out["refresh_requests"] = getattr(coord, "refresh_requests", -1)
         # Control: the production consumption code itself works when the
         # cycle is driven directly, the way real_loop.py and features.py
-        # must drive it. The three network fetches are noop'd per instance
-        # (real_loop.py's own workaround for the same stub limits).
+        # must drive it. The flag is re-armed first -- the fixed first
+        # refresh consumed it at setup, which is arm (b)'s own answer.
+        # The three network fetches are noop'd per instance (real_loop.py's
+        # own workaround for the same stub limits).
         async def _noop() -> None:
             return None
 
         coord._fetch_tibber_prices = _noop
         coord._fetch_weather_forecast = _noop
         coord._fetch_solar_forecast = _noop
+        coord._skip_solve_once = True
         await coord._async_update_data()
         out["flag_after_direct"] = bool(coord._skip_solve_once)
         out["spied_cycles_after_direct"] = calls["n"]

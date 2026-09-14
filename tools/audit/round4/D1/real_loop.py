@@ -24,6 +24,10 @@ COMMAND (from the export root):
 
 EXPECTED: RESULT leaked_tasks=0, leaked_listeners=0, leaked_futures=0,
   handover_keys_retained=0 (exact, counts only -- contention-immune).
+  (Re-recorded for #924: the fixed stub's first refresh really fetches, so
+  the config carries a price ENTITY with a seeded state -- a real offline
+  source -- instead of relying on the counter stub never fetching. The
+  leak metrics themselves are unchanged: 0/0/0/0, verified at both ends.)
 BASELINE: 7dd68dd327fe3dbfb09f3bd0fe38910c58877697
 MACHINE:  8-core Apple M1, 8 GB, macOS 25.6.0, CPython 3.11
 INSTRUMENTS: heatpump_optimizer:async_setup_entry / async_unload_entry,
@@ -72,6 +76,9 @@ CONFIG = {
     const.CONF_INDOOR_TEMP_ENTITY: "sensor.indoor",
     const.CONF_OUTDOOR_TEMP_ENTITY: "sensor.outdoor",
     const.CONF_DHW_TANK_VOLUME: 180.0,
+    # #924: see the price sensor seeded above.
+    const.CONF_PRICE_SOURCE: "entity",
+    const.CONF_PRICE_ENTITY: "sensor.prices",
     # Both hass-level state subscriptions ON, or `_release_registrations`
     # has nothing to release and the leak metric cannot move.
     const.CONF_PEAK_GUARD_ENABLED: True,
@@ -181,6 +188,28 @@ def _make_hass() -> RealHass:
     hass.states.set("sensor.outdoor", FakeState("-3.0"))
     hass.states.set("sensor.house_power", FakeState("2.4"))
     hass.states.set("binary_sensor.defrost", FakeState("off"))
+    # #924: the fixed first refresh fetches through the base class; the
+    # entity source works offline, a token does not.
+    from datetime import timedelta
+
+    from homeassistant.util import dt as dt_util
+
+    _now = dt_util.now().replace(minute=0, second=0, microsecond=0)
+    hass.states.set(
+        "sensor.prices",
+        FakeState(
+            "0.5",
+            attributes={
+                "raw_today": [
+                    {
+                        "start": (_now + timedelta(hours=h)).isoformat(),
+                        "value": 0.5 + 0.1 * (h % 4),
+                    }
+                    for h in range(48)
+                ]
+            },
+        ),
+    )
     return hass
 
 
