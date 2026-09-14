@@ -98,7 +98,7 @@
    "rc": 0
   },
   "tests/harness_headers.py": {
-   "seconds": 2.5,
+   "seconds": 5.0,
    "rc": 0
   }
  },
@@ -1726,6 +1726,7 @@
    "tools/audit/round4/D7/dead_methods_r4.py",
    "tools/audit/round4/D7/learner_freeze_r4.py",
    "tools/audit/round4/D7/objective_statefulness_r4.py",
+   "tools/audit/round4/D7/sysid_estimator_frontier.py",
    "tools/audit/round4/D7/sysid_plant_r4.py",
    "tools/audit/round4/D7/verify2_independent_r4.py",
    "tools/audit/round4/D7/verify3_own_D7-01.py",
