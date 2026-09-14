@@ -41,6 +41,15 @@ permissions:
   contents: read
 
 jobs:
+  deliberately-red:
+    # DEMONSTRATION LANE for the #956 wiring demonstrations: deliberately fails
+    # so this head carries a red check FOREIGN to pr-contract. Throwaway branch
+    # only -- never merged.
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deliberately fail
+        run: exit 1
+
   policy-docs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
