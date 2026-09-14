@@ -37,6 +37,17 @@
 // (Apple M1, Chromium 131.0.6778.33): sizes exact +-0.05 px, counts exact
 // +-0, contrast ratios +-0.1. load1 quoted, not gated: every number here is
 // a length, a count or a colour ratio.
+//
+// RE-RECORDED at 82a5fac after #935 (same box, same payload, 2026-09-14):
+// lane_font min 6.4/6.6/11.15 px at 375/768/1280 -> 8.00/8.00/11.15 (the
+// labels' own floor). lane_contrast min_cluster_ratio is now 1 at every
+// cell with worst_bg EQUAL to the fill: at 8 px over the flat plate the
+// glyph cores form a >=1 % exact-colour cluster of their own, which this
+// histogram counts as a "background" cluster; at the baseline's 6.4 px
+// over varied backdrops no pixel was pure fill, so the baseline's worst
+// cluster was a real backdrop (1.045-1.5). The worst NON-ink cluster at
+// head is the plate, 4.81 light / 6.13 dark. wi-save and targets rows
+// are D4-02/D4-03's and did not move.
 import { createRequire } from "node:module";
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import path from "node:path";

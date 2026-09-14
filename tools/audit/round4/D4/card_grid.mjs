@@ -25,6 +25,20 @@
 //   every other RESULT is a defect count and is printed with its own
 //   tolerance line in out/summary.json.
 //
+// RE-RECORDED at 82a5fac after #935 (same box, same axes, 2026-09-14):
+//   cells=1224 unchanged; drive_failures 72 -> 72, page_errors 0 -> 0,
+//     both equal to the committed baseline out/summary.json.
+//   tiny_text_instances   1884 -> 0    (every sub-8 px instance was a
+//     text.lane-label; the labels now share the 8 px floor)
+//   low_contrast_instances 4729 -> 1420, low_contrast_cells 1080 -> 540
+//     (the lane-label rows are gone; the remainder is D4-02's wi-save and
+//     the other below-AA pairs that finding owns)
+//   overlap_instances 27266 -> 27306 (+40 on 27k: the labels' boxes grew
+//     with the floor from 6.4 to 8 px; overlap_cells unchanged at 1188)
+//   clipped / svg_escape / small_target unchanged.
+// Baseline recording preserved above; the committed out/summary.json is
+// the baseline's.
+//
 // This harness measures GEOMETRY, so it never uses tests/card_rig.mjs: that
 // rig's DOM stub returns a constant 900x400 rect for everything.
 import { createRequire } from "node:module";

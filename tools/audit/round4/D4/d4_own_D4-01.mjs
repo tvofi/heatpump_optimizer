@@ -29,6 +29,15 @@
 // 1.01-2.55:1): lane-label glyph height < 8 px at every tile, ratio_min
 // under 4.5 in both themes. Tolerance: this is a different metric
 // definition, so agreement is qualitative; both numbers are reported.
+//
+// RE-RECORDED at 82a5fac after #935 floored the lane labels and plated
+// them above the series (same box, 2026-09-14): fontAttrPx_min=8 at
+// 375x812 (was 6.4), 11.15 at 1280x800; glyphH_min=9 at 375 (was 7), 14
+// at 1280; ratio_median_min=ratio_specWorst_min=4.811 light / 6.132 dark
+// at every tile (was 2.648-3.175 / 2.493-3.608) -- the label's ink over
+// its own plate, both above the 4.5 AA bar. Baseline recording above is
+// preserved. The .wi-save rows this harness does not measure are D4-02's,
+// untouched by #935.
 import { createRequire } from "node:module";
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import path from "node:path";
