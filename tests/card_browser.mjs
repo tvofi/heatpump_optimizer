@@ -247,6 +247,53 @@ try {
       measured >= 2 && overflows.length === 0, overflows.join("; "));
   }
 
+  // --- #936 (D4-03): the zoom pair clears SC 2.5.8 under a fine pointer ----
+  // The shipped defect, measured by the audit in this same Chromium: the
+  // HTML target floor lived only inside @media (pointer: coarse), so under
+  // this page's own default fine pointer the zoom pair rendered at
+  // 20.22x20.22 px with 22.22 px between centres -- under the 24 px minimum
+  // and inside the spacing exception's 24 px circle at once, which is why
+  // the exception rescued nothing. The floor is pointer-independent now
+  // (card.mjs pins its emission); this lane is the one that can prove the
+  // real rendered geometry, at both ends of the tile range the card ships
+  // for. The buttons sit at opacity 0 until .chartwrap:hover, which hides
+  // nothing here: opacity never removed hit-testing, and getBoundingClientRect
+  // measures an invisible box as exactly as a visible one.
+  const zoomAt = async (width) => page.evaluate(async (w) => {
+    const card = window.__card;
+    card.style.width = w;
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    card._render();
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    return [...card.shadowRoot.querySelectorAll(".viewctl button")].map((b) => {
+      const r = b.getBoundingClientRect();
+      return { cls: b.className, w: r.width, h: r.height,
+               cx: r.left + r.width / 2, cy: r.top + r.height / 2 };
+    });
+  }, width);
+  for (const [label, width] of [["dashboard tile", "900px"], ["phone tile", "287px"]]) {
+    const btns = await zoomAt(width);
+    check(`the zoom controls render under a fine pointer (${label})`,
+      btns.length >= 2, `${btns.length} button(s)`);
+    if (btns.length) {
+      const under = btns.filter((b) => Math.min(b.w, b.h) < 24 - 0.05);
+      check(`every zoom button clears 24 px on both sides (${label})`,
+        under.length === 0,
+        under.map((b) => `${b.cls} ${b.w.toFixed(2)}x${b.h.toFixed(2)}`).join(", "));
+      const tight = [];
+      for (let i = 0; i < btns.length; i++) {
+        for (let j = i + 1; j < btns.length; j++) {
+          const d = Math.hypot(btns[i].cx - btns[j].cx, btns[i].cy - btns[j].cy);
+          if (d < 24 - 0.05) tight.push(`${btns[i].cls}~${btns[j].cls} ${d.toFixed(2)}px`);
+        }
+      }
+      check(`and the 24 px spacing circle fits between neighbours (${label})`,
+        tight.length === 0, tight.join(", "));
+    }
+  }
+  // Leave the card as the later sections found it.
+  await zoomAt("900px");
+
   // --- 4. The setup editor: hit targets a pointer can actually hit -------
   // The zoom-limited editing trap (v4.0.5): at real rendered sizes the
   // draggable hit rects must be big enough to click, and inside the svg
