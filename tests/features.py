@@ -13279,6 +13279,122 @@ R.check(
     and abs(_cdhw._operation_score - 100.0) < 1e-6,
     "0.8 kWh at 0.40 against a 1.20 flat-consumer mean is >= 20% below",
 )
+
+# --- #908 the summer free-span reset ----------------------------------------------
+# The free-price skip has two jobs and the boundary between them is the
+# EMA's own memory horizon, 1/SCORE_ALPHA = 20 consecutive free closes: a
+# short run (a stray winter free day) freezes the score in place -- one
+# meaningless ratio must not wipe a season of good evidence -- while a run
+# past the horizon must reset to no-evidence, because a spring EMA worn
+# over a whole summer of free days is a stale grade with a current date.
+# Any close on another branch (a scored day, a day with too little energy,
+# a day without price hours) breaks the run; that is deliberate and pinned
+# below. 20 is pinned as the literal boundary, not derived in the test.
+_jun908 = datetime(2026, 6, 1, tzinfo=UTC)
+_free908 = {h: 0.008 for h in range(24)}
+_priced908 = {h: (0.24 if h in (2, 3, 4) else 0.30) for h in range(24)}
+_spring908 = {h: (0.342 if h in (2, 3, 4) else 0.35) for h in range(24)}
+_deep908 = {h: (0.05 if h in (2, 3, 4) else 0.30) for h in range(24)}
+
+
+def _day908(coord, d, spots, kwh=3.0):
+    for h in range(24):
+        k = (kwh / 3.0) if (kwh and h in (2, 3, 4)) else 0.0
+        coord._fold_score_sample(
+            _jun908 + timedelta(days=d, hours=h), k, k * spots[h], spots[h], 1.0, True
+        )
+
+
+_w908a = _t2_coord()
+for _d in range(15):
+    _day908(_w908a, _d, _priced908)
+_day908(_w908a, 15, _free908)  # one stray free day in a priced season
+for _d in range(16, 30):
+    _day908(_w908a, _d, _priced908)
+_w908a._close_score_day()  # the last day's close never fires on its own
+_w908b = _t2_coord()
+for _d in range(29):
+    _day908(_w908b, _d, _priced908)
+_w908b._close_score_day()
+R.check(
+    "a stray free-price day freezes the winter EMA in place, never wipes it",
+    _w908a._operation_score is not None
+    and _w908a._operation_score == _w908b._operation_score,
+    "with the free day the fold sequence is the same 29 priced folds, so "
+    "the scores must match exactly -- an immediate reset on every free day "
+    "is the shape this pin refuses",
+)
+_f908 = _t2_coord()
+_day908(_f908, 0, _spring908)  # seeds the EMA at the spring day's ~10
+for _d in range(1, 20):
+    _day908(_f908, _d, _free908)
+_f908._close_score_day()  # the 19th consecutive free close
+R.check(
+    "19 consecutive free days still freeze the EMA",
+    _f908._operation_score is not None and _f908._operation_score > 0.0,
+    "the skip's short-run job: inside one memory horizon the value is "
+    "still the score of something recent",
+)
+_day908(_f908, 20, _free908)
+_f908._close_score_day()  # the 20th consecutive free close
+R.check(
+    "the 20th consecutive free day resets the stale EMA to no evidence",
+    _f908._operation_score is None,
+    "past 1/SCORE_ALPHA free closes the frozen value claims memory the "
+    "EMA's own arithmetic no longer has (#908)",
+)
+_day908(_f908, 21, _deep908)
+_f908._close_score_day()
+R.check(
+    "after the span reset the next priced day seeds fresh",
+    _f908._operation_score is not None
+    and abs(_f908._operation_score - 100.0) < 1e-6,
+    "the None branch of the fold seeds with the day's own sample instead "
+    "of dragging the deleted spring value into autumn",
+)
+_m908 = _t2_coord()
+_day908(_m908, 0, _spring908)
+for _d in range(1, 15):
+    _day908(_m908, _d, _free908)
+_day908(_m908, 15, _free908, kwh=0.0)  # too little energy: another branch
+for _d in range(16, 31):
+    _day908(_m908, _d, _free908)
+_m908._close_score_day()
+R.check(
+    "a low-energy day breaks the free run and keeps the freeze",
+    _m908._operation_score is not None,
+    "the run counts consecutive free-price closes only; this pin records "
+    "the boundary as deliberate, not an oversight",
+)
+_q908 = _t2_coord()
+
+
+async def _fake_led_908(
+    _p={
+        "ledger": {"months": {}},
+        "score_day": {
+            "day": "2026-07-31",
+            "kwh": 3.0,
+            "sek": 0.024,
+            "spot_sum": 0.192,
+            "spot_h": 24.0,
+            "free_streak": 19.0,
+        },
+        "operation_score": 55.0,
+    }
+):
+    return _p
+
+
+_q908._ledger_store.async_load = _fake_led_908
+_asyncio.run(_q908._async_load_ledger())
+_q908._close_score_day()
+R.check(
+    "the free run rides the persisted day book across a restart",
+    _q908._operation_score is None,
+    "a restart mid-summer must not re-present the stale value for another "
+    "memory horizon: this restored streak is one free close from the reset",
+)
 _fresh6 = _t2_coord()._scores_view()
 R.check(
     "a fresh install does not publish the house grade as overall",
@@ -29940,6 +30056,7 @@ _T3_LEDGER_GOOD = {
         "sek": 20.0,
         "spot_sum": 1.0,
         "spot_h": 24.0,
+        "free_streak": 0.0,
     },
     "operation_score": 77.0,
 }
