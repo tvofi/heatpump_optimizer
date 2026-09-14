@@ -279,6 +279,17 @@ class SysIdResult:
     sensor_drift_c_per_h: float | None = None
     #: 0-1; how much the result should be trusted as a prior.
     confidence: float = 0.0
+    #: The slab-room fast mode's time constant as RE-DERIVED by the
+    #: two-state fitted arm, hours; ``None`` on every one-state result.
+    #: The ratified hybrid (#942, 2026-09-14) fits UA and tau_fast only —
+    #: the C_s/k_s split rides a tau-preserving ridge no window length
+    #: removes — so this is computed from the FITTED room capacity against
+    #: the CONFIG slab pair, and the pair itself is never adopted. An
+    #: adopted change to a slab-mode parameter is a config-class change
+    #: (#996): the claim-grammar treatment is the owner's decision,
+    #: recorded on #996 (comment 5663831849), and until it lands the
+    #: published tau is diagnostic, not an adopted value.
+    slab_mode_tau_hours: float | None = None
     reason: str = ""
 
     def as_dict(self) -> dict[str, Any]:
@@ -305,6 +316,11 @@ class SysIdResult:
                 else None
             ),
             "confidence": round(self.confidence, 2),
+            "slab_mode_tau_hours": (
+                round(self.slab_mode_tau_hours, 4)
+                if self.slab_mode_tau_hours is not None
+                else None
+            ),
             "reason": self.reason,
         }
 
@@ -327,6 +343,35 @@ FAST_MODE_SETTLE_TAUS = 3.0
 #: both. A DESIGN constant like the prior it ports: it prices the prior's
 #: own uncertainty (±0.1 kW on a 0.3 kW prior), not a tuning knob.
 SLAB_INTERCEPT_PRIOR_SD_KW = 0.1
+
+#: The noise gate on the two-state fitted arm (#942's wave, act 2): the
+#: fit's own residual scatter on the arm window, °C, above which the
+#: fitted values are refused by name instead of adopted. The ratified
+#: hybrid (owner decision on #942, 2026-09-14, comment 5659441129) prices
+#: fitted adoption at "residual noise <= ~0.02 °C": the pre-study's
+#: frontier measured the same gate-passing cell inside the ±10 % UA bar at
+#: σ=0.01–0.02 room noise and PAST it at σ=0.05, so the gate must separate
+#: those noise regimes, not pin the exact σ. The measured dof-adjusted
+#: scatter of a σ=0.02 window (n≈21) lands 0.017–0.027 and a σ=0.05 window
+#: 0.033–0.066, so 0.03 sits between the distributions with margin on both
+#: sides — a gate at exactly 0.02 would refuse half the windows the
+#: ratification priced as adoptable, and the "~" is that slack. A DESIGN
+#: constant: it prices the fitted arm's noise ceiling, not a tuning knob.
+MAX_FIT_RESIDUAL_SCATTER_C = 0.03
+
+
+def slab_mode_tau_fast(c_r: float, c_s: float, k_s: float) -> float:
+    """The slab-room fast mode's time constant, hours.
+
+    One expression for the quantity the #991 gate, the two-state fit's
+    published result and the tests all consume: the gate computes it from
+    the CONFIG plant at arm time, the fitted arm re-derives it from the
+    FITTED room capacity against the config slab pair. Zero when the
+    constants are unset — the gate refuses that plant separately.
+    """
+    if not (c_r > 1e-9 and c_s > 1e-9 and k_s > 1e-9):
+        return 0.0
+    return c_r * c_s / ((c_r + c_s) * k_s)
 
 
 def slab_mode_identifiability(
@@ -360,7 +405,7 @@ def slab_mode_identifiability(
             "slab constants not configured; the one-state fit cannot be "
             "interpreted on this plant"
         )
-    tau_fast = c_r * c_s / ((c_r + c_s) * k_s)
+    tau_fast = slab_mode_tau_fast(c_r, c_s, k_s)
     if FAST_MODE_SETTLE_TAUS * tau_fast <= settle_band:
         return True, "ok"
     return False, (
@@ -1295,12 +1340,19 @@ class SystemIdentification:
         The outcome guards and the confidence ingredients mirror
         :meth:`identify` (R², sample count, achieved excursion, residual
         SNR) so the adoption surface — completed, confidence ≥ 0.3 and
-        the #991 gate — is the same surface; a noisy window is discounted
-        through the SNR term rather than refused.
+        the #991 gate — is the same surface; and the wave's act 2 adds the
+        ratified residual-scatter gate on top: a window whose own noise
+        exceeds ``MAX_FIT_RESIDUAL_SCATTER_C`` is refused by name rather
+        than discounted, because past that ceiling the same cell degrades
+        outside the ±10 % bar the blend exists to beat.
 
         Reports the lumped equivalents a one-state consumer expects: UA
         (room-side), total capacity ``C_r + C_s`` and its time constant;
-        no sensor-drift figure exists in this form.
+        no sensor-drift figure exists in this form. The slab mode's own
+        time constant re-derives from the fitted capacity against the
+        config pair and is published as ``slab_mode_tau_hours`` — the
+        quantity the #996 config-class decision prices, never an adopted
+        constant.
         """
         self._slab_fit_used = True
         if self._slab_pair is None or self._slab_prior is None:
@@ -1371,6 +1423,27 @@ class SystemIdentification:
                 best_x, best_cost = x, cost
         if best_x is None or not bool(np.all(np.isfinite(best_x))):
             return SysIdResult(completed=False, reason="fit failed")
+        return self._slab_outcome(
+            best_x, rooms, outdoors, powers, dts, slab_mass, slab_transfer
+        )
+
+    def _slab_outcome(
+        self,
+        best_x: np.ndarray,
+        rooms: np.ndarray,
+        outdoors: np.ndarray,
+        powers: np.ndarray,
+        dts: np.ndarray,
+        slab_mass: float,
+        slab_transfer: float,
+    ) -> SysIdResult:
+        """Guard and package the converged two-state fit (the wave's act 2).
+
+        Two things happen between the solver and the result, and both are
+        the ratified hybrid's (#942, comment 5659441129) adoption
+        preconditions rather than tuning: the residual-scatter noise gate,
+        and the tau_fast re-derivation.
+        """
         ua = float(np.exp(best_x[0]))
         room_cap = float(np.exp(best_x[1]))
         gains_kw = float(best_x[2])
@@ -1390,6 +1463,31 @@ class SystemIdentification:
             powers[:-1],
             dts,
         )
+        error = predicted[1:] - rooms[1:]
+        # The noise gate: the fitted values are adoptable only where the
+        # window's own residual scatter clears the ratified ceiling — the
+        # pre-study's frontier measured this same cell PAST the +-10 % UA
+        # bar at sigma 0.05, so a window that noisy is refused BY NAME
+        # instead of adopted at whatever confidence the SNR term leaves.
+        # The scatter is dof-adjusted (three fitted parameters) so it
+        # estimates the sensor noise rather than the fit's degrees of
+        # freedom.
+        n_error = int(error.size)
+        scatter = float(
+            np.sqrt(np.sum(np.square(error)) / max(n_error - 3, 1))
+        )
+        if scatter > MAX_FIT_RESIDUAL_SCATTER_C:
+            return SysIdResult(
+                completed=False,
+                reason=(
+                    f"residual scatter {scatter:.3f} C exceeds the "
+                    f"{MAX_FIT_RESIDUAL_SCATTER_C:.2f} C noise gate for "
+                    "fitted adoption; config-trusted"
+                ),
+            )
+        # tau_fast re-derives from the fit. The split itself is never
+        # adopted — see SysIdResult.slab_mode_tau_hours and the #996
+        # decision it points at.
         return SysIdResult(
             completed=True,
             time_constant_hours=capacity / ua,
@@ -1397,7 +1495,10 @@ class SystemIdentification:
             thermal_mass_kwh_per_c=capacity,
             internal_gains_kw=gains_kw,
             sensor_drift_c_per_h=None,
-            confidence=_slab_confidence(rooms, predicted[1:] - rooms[1:]),
+            slab_mode_tau_hours=slab_mode_tau_fast(
+                room_cap, slab_mass, slab_transfer
+            ),
+            confidence=_slab_confidence(rooms, error),
             reason="ok",
         )
 

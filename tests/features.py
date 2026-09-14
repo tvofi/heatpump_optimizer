@@ -31339,6 +31339,66 @@ R.check(
     "own mechanism), exactly as before the wave: the harness caller that "
     "declares no plant keeps the one-state behavior, and the gate-refused "
     "presets' arm-time refusals are pinned in the #942 block above",
+
+
+)
+
+
+# -- the sysid-estimator wave, act 2: the fitted arm's noise gate and the --
+# re-derived slab mode (#942 options 2+3; ratification 5659441129). Where
+# act 1 above landed the ported intercept ridge behind the #991 gate, this
+# act lands the ratified adoption preconditions that sit AROUND the fit:
+# the residual-scatter noise gate (fitted values are adoptable only where
+# the window's own measured noise clears MAX_FIT_RESIDUAL_SCATTER_C --
+# the frontier's same cell degrades past the +-10% bar at 0.05 C, so the
+# window is refused BY NAME, not adopted at a discounted confidence), and
+# the tau_fast re-derivation (published as result.slab_mode_tau_hours,
+# computed from the FITTED room capacity against the CONFIG slab pair --
+# never the C_s/k_s split, which is unidentifiable; an adopted slab-mode
+# change is a config-class change whose claim grammar is the owner's
+# #996 decision, posted as comment 5663831849, and nothing here adopts
+# one).
+
+_est2_tau_true = _SysIdModule.slab_mode_tau_fast(
+    float(_p942("typical_slab", 100.0).room_thermal_mass),
+    float(_p942("typical_slab", 100.0).slab_thermal_mass),
+    float(_p942("typical_slab", 100.0).slab_heat_transfer),
+)
+_f942e01 = getattr(_ridge_res0, "slab_mode_tau_hours", None)
+R.check(
+    "estimator act 2: a completed fitted result publishes the re-derived "
+    "slab mode for the config-class decision",
+    _f942e01 is not None
+    and abs(_f942e01 / _est2_tau_true - 1.0) <= 0.40
+    and isinstance(_ridge_res0.as_dict().get("slab_mode_tau_hours"), float),
+    f"tau_fit {_f942e01} vs config-plant tau {_est2_tau_true} as_dict "
+    f"{_ridge_res0.as_dict()!r} -- tau_fast re-derives from the fit and "
+    "C_s/k_s stay config, so the published tau is the quantity the #996 "
+    "config-class decision prices; a fit that changed the slab pair "
+    "itself would be adopting the unidentifiable split",
+)
+_est2_bias05, _est2_refused05 = _ridge_ensemble(
+    _p942("typical_slab", 100.0), 0.05
+)
+R.check(
+    "estimator act 2: 0.05 C noise is refused BY NAME at the residual-"
+    "scatter gate, never adopted degraded",
+    not _est2_bias05
+    and _est2_refused05
+    and all(
+        "residual scatter" in r or "drifted beyond" in r
+        for r in _est2_refused05
+    )
+    and any("residual scatter" in r for r in _est2_refused05),
+    f"adopted {len(_est2_bias05)} reasons "
+    f"{[r[:44] for r in _est2_refused05]} -- at sigma 0.05 the same cell "
+    "degrades past the +-10 % bar (fitted -23/+15, pre-study table), so "
+    "the ratified precondition (residual scatter <= ~0.02 C on the arm "
+    "window) refuses the window instead of adopting it; a draw may "
+    "instead abort on the comfort bound (act 1's documented sizing "
+    "knife-edge -- 1 of 16 at this sigma, measured), which adopts "
+    "nothing either, but every OTHER refusal reason would mean the gate "
+    "leaked",
 )
 
 

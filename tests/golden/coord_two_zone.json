@@ -447,6 +447,7 @@
     "heat_loss_kw_per_c": null,
     "internal_gains_kw": null,
     "reason": "",
+    "slab_mode_tau_hours": null,
     "thermal_mass_kwh_per_c": null,
     "time_constant_hours": null
    },

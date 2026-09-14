@@ -233,9 +233,13 @@ installing rather than discover it after:
   refuses to arm the experiment on such a house and names the reason in the
   log, rather than running a night of excitation whose result the fit's
   guards would silently discard. A house whose floor coupling is fast enough
-  passes the same gate and adopts normally. A two-state estimator that can
-  use the slab's excitation is designed but deliberately not built yet
-  (#942).
+  passes the same gate, and there a two-state estimator now exists behind
+  it (#942): a grey-box fit of the heat-loss coefficient and the slab mode's
+  own time constant — never the slab-mass/coupling split, which no window
+  length can identify — carrying the ported intercept ridge and further
+  gated on the window's own residual noise staying under ~0.02 °C, refusing
+  by name where it does not. The slab constants themselves are always
+  trusted from configuration.
 
 ## Installation
 
