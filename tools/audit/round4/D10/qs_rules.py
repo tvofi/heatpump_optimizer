@@ -37,6 +37,8 @@ Two rules are NOT decided here because they need a toolchain run:
 ``test-coverage`` (tools/audit/round4/D10/coverage_measure.sh) and
 ``strict-typing`` (tools/audit/round4/D10/mypy_arms.sh); this file reads the
 number each of those wrote, or reports the rule as `unmeasured` if absent.
+
+live-header: this header is maintained against the tree; harness_headers.py executes it.
 """
 from __future__ import annotations
 

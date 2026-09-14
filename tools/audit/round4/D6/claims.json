@@ -76,9 +76,9 @@
   "source": "README.md:### Sensors",
   "claim": "every sensor row's Unit column is the unit the entity publishes (CUR = the instance currency)",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "59 rows checked, mismatches=[('Sensor-Gap Euro Advisor', 'CUR', None)]",
-  "verdict": "false",
-  "truth": "Sensor-Gap Euro Advisor declares no native_unit_of_measurement at all: it publishes a bare number, not a currency figure. Every other monetary sensor sets `self._attr_native_unit_of_measurement = coordinator.currency`."
+  "result": "59 rows checked, mismatches=[]",
+  "verdict": "true",
+  "truth": ""
  },
  {
   "id": "C10",
@@ -256,25 +256,25 @@
   "source": "docs/architecture.md:module map",
   "claim": "config_flow.py -- Setup flow plus 13 option pages behind two menus",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented=13 measured=21",
-  "verdict": "false",
-  "truth": "config_flow._OPTION_PAGES holds 21 pages, and README.md/configuration.md both say 21"
+  "result": "documented=21 measured=21",
+  "verdict": "true",
+  "truth": ""
  },
  {
   "id": "C30",
   "source": "docs/configuration.md",
-  "claim": "every documented Default (76 rows) is the default the rendered options page actually carries",
+  "claim": "every documented Default (82 rows) is the default the rendered options page actually carries",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "76 compared, mismatches=[]",
+  "result": "82 compared, mismatches=[]",
   "verdict": "true",
   "truth": ""
  },
  {
   "id": "C31",
   "source": "docs/configuration.md",
-  "claim": "every documented Range (76 rows) is the NumberSelector min/max the rendered options page actually carries",
+  "claim": "every documented Range (86 rows) is the NumberSelector min/max the rendered options page actually carries",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "76 compared, mismatches=[]",
+  "result": "86 compared, mismatches=[]",
   "verdict": "true",
   "truth": ""
  },
@@ -283,63 +283,63 @@
   "source": "docs/architecture.md",
   "claim": "45 modules",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented=45 measured=56",
-  "verdict": "false",
-  "truth": "the package holds 56 Python modules; the map lists 45 and omits 11"
+  "result": "documented=56 measured=56",
+  "verdict": "true",
+  "truth": ""
  },
  {
   "id": "C33",
   "source": "docs/architecture.md",
   "claim": "the module map is the package's module list",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "on disk=56, listed=45, missing=['boost.py', 'datetime.py', 'dhw_learning.py', 'diagnostics.py', 'entity.py', 'legionella.py', 'process_worker.py', 'repairs.py', 'services.py', 'setpoint_check.py', 'wood_fuel.py'], phantom=[]",
-  "verdict": "false",
-  "truth": "11 modules are absent from the map: boost.py, datetime.py, dhw_learning.py, diagnostics.py, entity.py, legionella.py, process_worker.py, repairs.py, services.py, setpoint_check.py, wood_fuel.py"
+  "result": "on disk=56, listed=56, missing=[], phantom=[]",
+  "verdict": "true",
+  "truth": "0 modules are absent from the map: "
  },
  {
   "id": "C34",
   "source": "docs/architecture.md:The Home Assistant boundary",
-  "claim": "Exactly ten modules import `homeassistant` at module level",
+  "claim": "the boundary sentence's count of modules importing `homeassistant` at module level",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented=10 measured=21",
-  "verdict": "false",
-  "truth": "21 modules import homeassistant at module level"
+  "result": "documented=21 measured=21",
+  "verdict": "true",
+  "truth": ""
  },
  {
   "id": "C35",
   "source": "docs/architecture.md:The Home Assistant boundary",
-  "claim": "the ten named modules are the complete set of module-level importers",
+  "claim": "the named modules are the complete set of module-level importers",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "named=['__init__.py', 'binary_sensor.py', 'button.py', 'climate.py', 'config_flow.py', 'coordinator.py', 'frontend.py', 'inputs.py', 'open_meteo.py', 'sensor.py', 'switch.py'], measured=['__init__.py', 'away.py', 'binary_sensor.py', 'boost.py', 'button.py', 'climate.py', 'config_flow.py', 'coordinator.py', 'currency.py', 'datetime.py', 'dhw_learning.py', 'diagnostics.py', 'entity.py', 'frontend.py', 'legionella.py', 'open_meteo.py', 'repairs.py', 'sensor.py', 'services.py', 'setpoint_check.py', 'switch.py'], unnamed=['away.py', 'boost.py', 'currency.py', 'datetime.py', 'dhw_learning.py', 'diagnostics.py', 'entity.py', 'legionella.py', 'repairs.py', 'services.py', 'setpoint_check.py']",
-  "verdict": "false",
-  "truth": "unnamed module-level importers: away.py, boost.py, currency.py, datetime.py, dhw_learning.py, diagnostics.py, entity.py, legionella.py, repairs.py, services.py, setpoint_check.py"
+  "result": "named=['__init__.py', 'away.py', 'binary_sensor.py', 'boost.py', 'button.py', 'climate.py', 'config_flow.py', 'coordinator.py', 'currency.py', 'datetime.py', 'dhw_learning.py', 'diagnostics.py', 'entity.py', 'frontend.py', 'legionella.py', 'open_meteo.py', 'repairs.py', 'sensor.py', 'services.py', 'setpoint_check.py', 'switch.py'], measured=['__init__.py', 'away.py', 'binary_sensor.py', 'boost.py', 'button.py', 'climate.py', 'config_flow.py', 'coordinator.py', 'currency.py', 'datetime.py', 'dhw_learning.py', 'diagnostics.py', 'entity.py', 'frontend.py', 'legionella.py', 'open_meteo.py', 'repairs.py', 'sensor.py', 'services.py', 'setpoint_check.py', 'switch.py'], unnamed=[]",
+  "verdict": "true",
+  "truth": "unnamed module-level importers: "
  },
  {
   "id": "C36",
   "source": "docs/architecture.md:The Home Assistant boundary",
-  "claim": "everything outside that set is free of homeassistant, so each module can be driven with no Home Assistant running",
+  "claim": "everything outside the named set is free of homeassistant, so each module can be driven with no Home Assistant running",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "11 modules outside the named set import homeassistant at module level",
-  "verdict": "false",
-  "truth": "11 modules outside the named set import homeassistant at module level and cannot be imported without it"
+  "result": "0 modules outside the named set import homeassistant at module level",
+  "verdict": "true",
+  "truth": "modules outside the named set import homeassistant at module level and cannot be imported without it: "
  },
  {
   "id": "C37",
   "source": "docs/architecture.md:module map",
   "claim": "__init__.py -- the 11 services",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented=11 measured=12",
-  "verdict": "false",
-  "truth": "there are 12 services"
+  "result": "documented=12 measured=12",
+  "verdict": "true",
+  "truth": ""
  },
  {
   "id": "C38",
   "source": "docs/architecture.md:module map",
   "claim": "services.yaml -- The 11 service definitions",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented=11 measured=12",
-  "verdict": "false",
-  "truth": "services.yaml defines 12 services"
+  "result": "documented=12 measured=12",
+  "verdict": "true",
+  "truth": ""
  },
  {
   "id": "C39",
@@ -353,27 +353,27 @@
  {
   "id": "C40",
   "source": "docs/architecture.md:module map",
-  "claim": "switch.py -- Optimizer Active",
+  "claim": "switch.py -- the comment names every switch the platform constructs",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented='Optimizer Active', the platform constructs ['Away', 'Boost Hot Water', 'Boost Space Heating', 'Optimizer Active']",
-  "verdict": "false",
-  "truth": "switch.py constructs four switches: Away, Boost Hot Water, Boost Space Heating and Optimizer Active"
+  "result": "documented=['Away', 'Boost Hot Water', 'Boost Space Heating', 'Optimizer Active'], the platform constructs ['Away', 'Boost Hot Water', 'Boost Space Heating', 'Optimizer Active']",
+  "verdict": "true",
+  "truth": ""
  },
  {
   "id": "C41",
   "source": "docs/architecture.md:module map",
-  "claim": "binary_sensor.py -- Input problem, open window, external heat, away mode",
+  "claim": "binary_sensor.py -- the comment names every binary sensor the platform constructs",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented names 4, the platform constructs 5: ['Away Mode', 'External Heat Source', 'Input Problem', 'Open Window Detected', 'Wood Cheaper Than Heat Pump']",
-  "verdict": "false",
-  "truth": "the fifth binary sensor, Wood Cheaper Than Heat Pump, is not named"
+  "result": "documented=['Away Mode', 'External Heat Source', 'Input Problem', 'Open Window Detected', 'Wood Cheaper Than Heat Pump'], the platform constructs ['Away Mode', 'External Heat Source', 'Input Problem', 'Open Window Detected', 'Wood Cheaper Than Heat Pump']",
+  "verdict": "true",
+  "truth": ""
  },
  {
   "id": "C42",
   "source": "manifest.json",
   "claim": "manifest version equals VERSION",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented='6.4.2' measured='6.4.2'",
+  "result": "documented='6.4.3' measured='6.4.3'",
   "verdict": "true",
   "truth": ""
  },
@@ -967,7 +967,7 @@
   "source": "README.md + docs/*.md",
   "claim": "every relative link resolves (65 links)",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "65 links, broken=[('README.md', 'docs/audit-2026-08.md'), ('README.md', 'docs/audit-2026-09.md'), ('README.md', 'docs/backlog.md'), ('docs/how-it-works.md', 'backlog.md')], of which removed-by-the-export=[('README.md', 'docs/audit-2026-08.md'), ('README.md', 'docs/audit-2026-09.md'), ('README.md', 'docs/backlog.md'), ('docs/how-it-works.md', 'backlog.md')]",
+  "result": "65 links, broken=[], of which removed-by-the-export=[]",
   "verdict": "true",
   "truth": ""
  },
@@ -994,9 +994,9 @@
   "source": "README.md + docs/*.md",
   "claim": "every external link answers 200 to a HEAD request (10 links)",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py --links",
-  "result": "10 links, non-200=[]",
-  "verdict": "true",
-  "truth": ""
+  "result": "not run: pass --links",
+  "verdict": "unverifiable",
+  "truth": "re-run with --links"
  },
  {
   "id": "C112",
@@ -1075,7 +1075,7 @@
   "source": "README.md",
   "claim": "the climate entity has HVAC modes off, heat and auto",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented={'auto', 'off', 'heat'} measured={'auto', 'off', 'heat'}",
+  "result": "documented={'off', 'heat', 'auto'} measured={'off', 'heat', 'auto'}",
   "verdict": "true",
   "truth": ""
  },
@@ -1084,7 +1084,7 @@
   "source": "README.md",
   "claim": "the climate entity has presets auto, comfort, economy and boost",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented={'auto', 'economy', 'boost', 'comfort'} measured={'auto', 'economy', 'boost', 'comfort'}",
+  "result": "documented={'economy', 'auto', 'boost', 'comfort'} measured={'economy', 'auto', 'boost', 'comfort'}",
   "verdict": "true",
   "truth": ""
  },

@@ -25,20 +25,16 @@ ROOT = Path(__file__).resolve().parents[1]
 RESULT = re.compile(r"RESULT\s+([A-Za-z0-9_]+)=(\S+)")
 SKIP = {"thread_factor", "load1", "swapins", "concurrent_stress_procs"}
 
-# Cheap, contention-immune. The issue's header-drift set that can run here.
-# The round-4 entry (#951) is the quality-scale register's drift alarm: its
-# declared_mismatch line counts register rows the harness's executed checks
-# contradict, so a register that drifts from the tree turns this script red
-# on the pull request that drifted it -- the round-4 finding's mechanism was
-# exactly that nothing executed against that file. The two coverage-bearing
-# rows are unmeasured in this mode (they need a coverage payload) and are
-# pinned by tests/entities.py against tests/coverage_budgets.json instead.
-EXECUTE = (
-    "tools/audit/round3/D2/dst_window_factors.py",
-    "tools/audit/round3/D2/window_size_sweep.py",
-    "tools/audit/round3/D5/option_doc_coverage.py",
-    "tools/audit/round4/D10/qs_rules.py",
-)
+# Every harness whose header carries EXPECTED RESULT lines is executed and
+# its printed numbers compared against the header. The static tuple this
+# replaced named three files, and a fourth harness drifted on main for a day
+# behind that limit (#987's review of the claims.py header): a header nobody
+# executes is a header nobody re-records. Discovery is dynamic so a harness
+# with a RESULT header joins the check the moment it lands. Populated after
+# expected_from below. #951's qs_rules.py joins via its live-header marker;
+# its declared_mismatch line is the quality-scale register's drift alarm, and
+# its two coverage-bearing rows are pinned by tests/entities.py against
+# tests/coverage_budgets.json instead (they need a coverage payload).
 
 
 def expected_from(path: Path) -> dict[str, str]:
@@ -68,6 +64,39 @@ def expected_from(path: Path) -> dict[str, str]:
     return found
 
 
+def _discover() -> tuple[str, ...]:
+    # A harness header is executed only when the harness declares itself a
+    # live instrument: a `live-header` line in the header. The corpus holds
+    # two kinds of harness and executing both was measured wrong (#987's
+    # review found the drift; extending execution to every header found
+    # 30-of-145 red on round 4 alone): finder harnesses are FROZEN EVIDENCE
+    # -- their headers record the finding's baseline, so on a fixed main
+    # they print the fixed numbers and a forced comparison reds on success
+    # -- while a few instruments are MAINTAINED (their keepers re-record
+    # the header as the tree moves: claims.py, the D6-03 doc probe). The
+    # marker makes that convention executable: a seat that re-records a
+    # header as part of a fix marks the harness live, and from then on the
+    # gate notices the next drift itself.
+    live = {
+        "tools/audit/round3/D2/dst_window_factors.py",
+        "tools/audit/round3/D2/window_size_sweep.py",
+        "tools/audit/round3/D5/option_doc_coverage.py",
+    }
+    marked = tuple(
+        sorted(
+            str(p.relative_to(ROOT))
+            for p in (ROOT / "tools" / "audit").glob("round*/D*/*.py")
+            if p.name != "__init__.py"
+            and "live-header" in p.read_text()[:4000]
+            and p.relative_to(ROOT).as_posix() not in live
+        )
+    )
+    return tuple(sorted(live)) + marked
+
+
+EXECUTE = _discover()
+
+
 def printed_from(stdout: str) -> dict[str, str]:
     found = {}
     for line in stdout.splitlines():
@@ -84,6 +113,7 @@ def run_harness(rel: str) -> str:
         [sys.executable, rel],
         cwd=ROOT,
         env=env,
+        shell=False,
         capture_output=True,
         text=True,
         timeout=120,

@@ -11492,6 +11492,122 @@ R.check(
     "HeatPumpOptimizerConfigEntry" in integration.__dict__,
     "HA 2026 get_type_hints looks the name up on the setup path and _lazy is a blocking import_module",
 )
+# #953 (R4-D10-03): that eager binding is only the RUNTIME half of the
+# alias. The checker's half must be parametrised over the coordinator: under
+# the real stubs ``ConfigEntry`` is generic with a PEP 696 ``Any`` default,
+# so a bare binding types ``entry.runtime_data`` as ``Any`` in exactly the
+# three functions Home Assistant calls, while the strict census reports 0.
+# It must be parametrised for the checker ONLY: ``get_type_hints`` resolves
+# the annotation on the setup path, and a forward reference inside the
+# runtime binding raises NameError there (measured in round 4). Both halves
+# are pinned from the artifact that reads them -- the source for mypy, the
+# imported module for Home Assistant -- so each mutation of the binding
+# fails exactly one side and the two cannot be collapsed into one check.
+_rd_alias_tree = ast.parse(
+    pathlib.Path(integration.__file__).read_text(encoding="utf-8")
+)
+
+
+def _rd_alias_bindings(stmts):
+    """Module-level ``HeatPumpOptimizerConfigEntry`` bindings in ``stmts``.
+
+    Returns the RHS text of every plain or annotated assignment to the
+    alias name, so an ``if TYPE_CHECKING:`` body and the module statements
+    around it can be read separately.
+    """
+    out = []
+    for node in stmts:
+        assigns = []
+        if isinstance(node, ast.Assign):
+            assigns = node.targets
+        elif isinstance(node, ast.AnnAssign) and node.value is not None:
+            assigns = [node.target]
+        for target in assigns:
+            if isinstance(target, ast.Name) and target.id == "HeatPumpOptimizerConfigEntry":
+                out.append(ast.unparse(node.value))
+    return out
+
+
+_rd_tc_block = next(
+    (
+        node
+        for node in _rd_alias_tree.body
+        if isinstance(node, ast.If) and ast.unparse(node.test) == "TYPE_CHECKING"
+    ),
+    None,
+)
+_rd_static_rhs = (
+    _rd_alias_bindings(_rd_tc_block.body)[0]
+    if _rd_tc_block is not None and _rd_alias_bindings(_rd_tc_block.body)
+    else "(absent)"
+)
+_rd_runtime_stmts = [
+    node for node in _rd_alias_tree.body if node is not _rd_tc_block
+] + (_rd_tc_block.orelse if _rd_tc_block is not None else [])
+_rd_runtime_rhs = (
+    _rd_alias_bindings(_rd_runtime_stmts)[0]
+    if _rd_alias_bindings(_rd_runtime_stmts)
+    else "(absent)"
+)
+R.check(
+    "the entry alias is parametrised over the coordinator for the checker",
+    _rd_static_rhs
+    in (
+        "ConfigEntry[HeatPumpOptimizerCoordinator]",
+        "ConfigEntry['HeatPumpOptimizerCoordinator']",
+    ),
+    f"TYPE_CHECKING binding={_rd_static_rhs!r} (runtime binding={_rd_runtime_rhs!r});"
+    " a bare binding types runtime_data as Any in the three entry points",
+)
+R.check(
+    "the runtime entry alias stays bare, so get_type_hints resolves it",
+    _rd_runtime_rhs == "ConfigEntry",
+    f"runtime binding={_rd_runtime_rhs!r}; a parametrised runtime binding puts a"
+    " forward reference inside the name the setup path resolves (NameError)",
+)
+# The parametrised alias needs the coordinator name, but that import must
+# not execute at package import: the closure note above ``_LAZY_ATTRS``
+# records what a plain ``from .coordinator import ...`` at module level
+# costs. Any coordinator import outside the TYPE_CHECKING body does.
+_rd_coord_import_runtime = [
+    ast.unparse(node)
+    for node in ast.walk(ast.Module(body=_rd_runtime_stmts, type_ignores=[]))
+    if isinstance(node, ast.ImportFrom) and node.module == "coordinator"
+]
+R.check(
+    "no coordinator import executes at package import",
+    not _rd_coord_import_runtime,
+    f"module-level coordinator imports={_rd_coord_import_runtime}",
+)
+# The runtime half, executed against the imported module the way setup
+# reads it: the bound name must be the bare ConfigEntry class, and the
+# three entry points' annotations must resolve without a NameError.
+from homeassistant.config_entries import (  # noqa: E402
+    ConfigEntry as _rd_config_entry_cls,
+)
+
+R.check(
+    "the imported package binds the alias to the ConfigEntry class",
+    integration.__dict__["HeatPumpOptimizerConfigEntry"] is _rd_config_entry_cls,
+    "the runtime alias is not the ConfigEntry class annotations resolve to",
+)
+import typing as _rd_typing  # noqa: E402
+
+_rd_hint_failures = []
+for _rd_entry_point in (
+    integration.async_setup_entry,
+    integration.async_update_options,
+    integration.async_unload_entry,
+):
+    try:
+        _rd_typing.get_type_hints(_rd_entry_point)
+    except Exception as exc:  # noqa: BLE001 - the failure text is the point
+        _rd_hint_failures.append(f"{_rd_entry_point.__name__}: {exc!r}")
+R.check(
+    "get_type_hints resolves all three entry points' annotations",
+    not _rd_hint_failures,
+    "; ".join(_rd_hint_failures),
+)
 _async_lazy_src = _inspect.getsource(integration._async_lazy)
 R.check(
     "_async_lazy offloads import_module itself, not the _lazy wrapper",
@@ -12373,20 +12489,33 @@ R.check(
     _af4_status == "skip-merge-failed" and _af4_after == _af4_before,
     f"status={_af4_status}",
 )
+# A merge that SUCCEEDS and still leaves check failing must restore the file,
+# not push it. The fixture that used to occupy this slot made the under-scoped
+# cause an INERT file (LICENSE): the merge wrote the INERT-and-recorded pair
+# and the second check refused it. 45b5768 moved that refusal into merge
+# --single itself, so the INERT route now reports skip-merge-failed before
+# any write, and this check would pin the wrong status. The surviving route
+# to a successful merge with a still-failing check is non-INERT: a
+# DRIVEN_BY_OTHERS child recorded alone. merge --partial folds
+# dst_checks.py into features.py, grows that entry, and returns 0 -- the
+# push path -- while check --partial compares the raw record name, finds no
+# committed closure for it, and still fails. The merge wrote real bytes (the
+# fold grew features.py's list), so the restore below is undoing a change,
+# not confirming a no-op.
 with _tempfile.TemporaryDirectory() as _af5_td:
     _af5_root = Path(_af5_td)
-    _af5_script = "tests/open_meteo.py"
+    _af5_script = "tests/dst_checks.py"
     _af5_closures = _af5_root / "closures.json"
     _af5_before = json.dumps({
-        "closures": {_af5_script: [_af5_script]},
+        "closures": {"tests/features.py": ["tests/features.py"]},
         "recorded": {},
     })
     _af5_closures.write_text(_af5_before)
     _af5_rec = _af5_root / "rec"
     _af5_rec.mkdir()
-    (_af5_rec / "open_meteo.json").write_text(json.dumps({
+    (_af5_rec / "dst_checks.json").write_text(json.dumps({
         "script": _af5_script, "rc": 0,
-        "files": [_af5_script, "LICENSE"],
+        "files": [_af5_script, "tests/harness.py"],
     }))
     _af5_orig, _closure.CLOSURES = _closure.CLOSURES, _af5_closures
     try:

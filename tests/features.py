@@ -6025,6 +6025,143 @@ R.check(
     f"carnot-off inverted {_mono_off_viol} of {len(_mono_flows)}",
 )
 
+# R4-D2-04 (#928): the Carnot flow term and the DHW setpoint penalty
+# multiply in AFTER that nameplate curve's own 0.3 factor floor, and their
+# product crosses 1.0 in deep cold -- the model then delivers less heat
+# than the electricity it is charged for, under the resistive backup every
+# such system carries and under the Carnot bound of any vapour-compression
+# cycle. In the band where the factor is pinned (outdoor below -21 C) the
+# same mechanism inverts COP: the falling Carnot ratio outruns a curve that
+# cannot rise, so the pump models worse as the weather warms. The sweep
+# above stops at -20 C, which is exactly why the floored band escaped it.
+# Envelope from the configuration's own caps (buffer_max_temp,
+# dhw_hard_max_temp), and the learner's cop_scale is swept at both ends of
+# its range -- no evidence, and pinned to its floor -- because it too
+# multiplies in before the clamp.
+_r4f_outs = np.arange(-40.0, 15.0 + 1e-9, 0.5)
+for _r4f_tag, _r4f_m in (
+    ("shipped scale", ThermalModel(ThermalParameters(
+        two_zone_enabled=True, cop_flow_carnot=True))),
+    ("cop_scale on its floor", ThermalModel(ThermalParameters(
+        two_zone_enabled=True, cop_flow_carnot=True,
+        cop_scale=COP_SCALE_MIN))),
+):
+    _r4f_flows = np.arange(35.0, _r4f_m.params.buffer_max_temp + 1e-9, 5.0)
+    _r4f_tanks = np.arange(40.0, _r4f_m.params.dhw_hard_max_temp + 1e-9, 5.0)
+    _r4f_space = np.array(
+        [[_r4f_m.compute_cop(float(o), flow_temp=float(f)) for o in _r4f_outs]
+         for f in _r4f_flows]
+    )
+    _r4f_worst = int(np.argmin(_r4f_space))
+    R.check(
+        f"space COP never models below the resistive floor ({_r4f_tag})",
+        float(_r4f_space.min()) >= 1.0,
+        f"min {_r4f_space.min():.5f} at outdoor="
+        f"{_r4f_outs[_r4f_worst % _r4f_space.shape[1]]:.1f} C, flow="
+        f"{_r4f_flows[_r4f_worst // _r4f_space.shape[1]]:.1f} C",
+    )
+    _r4f_dhw = np.array(
+        [[_r4f_m.compute_cop_dhw(float(o), float(t)) for o in _r4f_outs]
+         for t in _r4f_tanks]
+    )
+    R.check(
+        f"DHW COP never models below the resistive floor ({_r4f_tag})",
+        float(_r4f_dhw.min()) >= 1.0,
+        f"min {_r4f_dhw.min():.5f} over "
+        f"{_r4f_dhw.size} outdoor x tank cells",
+    )
+    _r4f_inv = sum(
+        1 for _row in _r4f_space
+        if any(_row[i + 1] + 1e-12 < _row[i] for i in range(len(_row) - 1))
+    )
+    R.check(
+        f"COP is non-decreasing in outdoor through the floored band "
+        f"({_r4f_tag})",
+        _r4f_inv == 0,
+        f"{_r4f_inv} of {len(_r4f_flows)} flow temperatures invert as "
+        "outdoor rises",
+    )
+R.check(
+    "the settlement price rides the same floor",
+    ThermalModel(ThermalParameters(
+        two_zone_enabled=True, cop_flow_carnot=True)
+    ).marginal_cop(-25.0, "buffer", store_temp=70.0) >= 1.0
+    and ThermalModel(ThermalParameters(
+        two_zone_enabled=True, cop_flow_carnot=True)
+    ).marginal_cop(-25.0, "dhw", store_temp=60.0) >= 1.0,
+    "marginal_cop returned a sub-unity price for stored heat",
+)
+
+# The batched twins inline the same COP law (they exist so the solver's
+# finite-difference gradient evaluates its perturbations in one vectorised
+# pass), so the floor must hold on the gradient's path too. Pin it as
+# bitwise parity with the scalar path through cells whose raw product sits
+# far below unity: at -25 C against a 70 C buffer the corrections multiply
+# out near 0.74, and with cop_scale on its floor the single-zone curve
+# itself lands at 0.525 -- a twin still clamped at 0.5 diverges from the
+# scalar path on the very first step.
+_r4f_deep = np.full(8, -25.0)
+_r4f_calm = np.zeros(8)
+_r4f_pow = np.vstack([np.zeros(8), np.full(8, 1.5), np.full(8, 3.0)])
+
+def _r4f_parity(m, st, label):
+    batch = m.simulate_trajectory_batch(
+        st, _r4f_pow, _r4f_deep, _r4f_calm, _r4f_calm, _r4f_calm, 0.25)
+    mism = []
+    for b in range(_r4f_pow.shape[0]):
+        r, s, u, l, buf, _, _ = m.simulate_trajectory(
+            st, _r4f_pow[b], _r4f_deep, _r4f_calm, _r4f_calm, _r4f_calm,
+            0.25)
+        for name, arr, ref in (
+            ("room", batch["room"][b], r), ("slab", batch["slab"][b], s),
+            ("upper", batch["upper"][b], u), ("lower", batch["lower"][b], l),
+            ("buffer", batch["buffer"][b], buf),
+        ):
+            if not np.array_equal(arr, ref):
+                mism.append(f"{name}[{b}]@{int(np.argmax(arr != ref))}")
+    R.check(
+        f"the batched twin carries the COP floor: {label}",
+        not mism,
+        f"first divergences: {mism[:4]}",
+    )
+
+_r4f_parity(
+    ThermalModel(ThermalParameters(
+        two_zone_enabled=True, cop_flow_carnot=True,
+        mixing_valve_mode=_mv.MODE_MANUAL)),
+    ThermalState(
+        room_temperature=20.5, slab_temperature=22.0,
+        outdoor_temperature=-25.0, upper_floor_temperature=21.2,
+        lower_floor_temperature=20.1, buffer_tank_temperature=70.0,
+    ),
+    "two-zone throttled, tank on its cap",
+)
+# A tank just above the Carnot reference with enough mass to stay there
+# leaves the raw product above 1.0 across the run (1.02-1.03 here), so the
+# resistive clamp cannot mask a twin whose floored-band freeze drifted
+# from the scalar's -- this cell sees the raw values, where the 70 C cell
+# above sees only the clamp.
+_r4f_parity(
+    ThermalModel(ThermalParameters(
+        two_zone_enabled=True, cop_flow_carnot=True,
+        mixing_valve_mode=_mv.MODE_MANUAL, buffer_tank_volume=5000.0)),
+    ThermalState(
+        room_temperature=20.5, slab_temperature=22.0,
+        outdoor_temperature=-25.0, upper_floor_temperature=21.2,
+        lower_floor_temperature=20.1, buffer_tank_temperature=37.0,
+    ),
+    "two-zone throttled, tank just above the Carnot reference",
+)
+_r4f_parity(
+    ThermalModel(ThermalParameters(cop_scale=COP_SCALE_MIN)),
+    ThermalState(
+        room_temperature=20.5, slab_temperature=22.0,
+        outdoor_temperature=-25.0, upper_floor_temperature=21.2,
+        lower_floor_temperature=20.1, buffer_tank_temperature=45.0,
+    ),
+    "single-zone, learned scale on its floor",
+)
+
 # A dumb valve needs a number to set. The recommendation is the top of the
 # comfort band: the building stores at room temperature for no COP penalty, so
 # it should fill first and the tank should take only the surplus.
@@ -30501,8 +30638,13 @@ R.check(
 # mediocre experiment cannot claim a well-sampled learner's authority.
 def _t4_adopt(*, two_zone=False, ua=None, upper=None, lower=None,
               confidence=0.8, heat_loss=0.30, completed=True):
-    """Seed the passive learner from one completed experiment."""
+    """Seed the passive learner from one completed experiment.
+
+    Runs on an identifiable (fast-slab) plant: the #942 gate refuses the
+    default one, and these checks pin the blend arithmetic, not the gate.
+    """
     c = _t4_coord(**(_T4_TWO_ZONE if two_zone else {}))
+    c._thermal_params.slab_heat_transfer *= 100.0
     if ua is not None:
         c._thermal_params.heat_loss_coefficient = ua
     if upper is not None:
@@ -30584,6 +30726,121 @@ R.check(
 )
 
 
+# -- #942: adoption is decided by identifiability, not by silent guards -----
+# The plant is two-state (heat lands in the slab, the room sees only
+# k_s(T_s - T_r)); identify() fits ONE state to it. On every preset the
+# integration ships, the slab's fast mode cannot settle within the
+# protocol's shortest phase, so the one-state fit reads a two-state plant
+# and its guards refuse -- silently, every night, forever. The named gate
+# decides at arm time and at adoption; the audit's null control (the
+# judge's HPO_D7_SLABK=100 perturbation, slab_heat_transfer x100) must
+# still adopt THROUGH the same gate: it passes identifiable slabs, it does
+# not merely refuse everything.
+from stress import BUILDINGS as _b942  # noqa: E402
+
+
+def _p942(name, slab_mult=1.0):
+    """The audit harness's own plant: preset constants via presets.derive."""
+    cfg = _grad_house(two_zone=False, dhw=False)
+    derived = presets.derive(_b942[name])
+    derived.pop("heating_response_hours", None)
+    cfg.update(derived)
+    p = ThermalParameters.from_config(cfg)
+    p.two_zone_enabled = False
+    p.slab_heat_transfer *= slab_mult
+    return p
+
+
+_g942 = {
+    name: _SysIdModule.slab_mode_identifiability(
+        _p942(name), _SysIdModule.SysIdConfig()
+    )
+    for name in _b942
+}
+R.check(
+    "#942: the named gate refuses every preset the integration ships, and names the slab mode",
+    all(
+        not ok and "slab mode too slow" in why and "tau_fast" in why
+        for ok, why in _g942.values()
+    ),
+    f"{ {n: w for n, (_, w) in _g942.items()} } -- tau_fast = C_r*C_s/"
+    "((C_r+C_s)*k_s) is 0.94/3.72/2.66 h for light_new/heavy_old/"
+    "typical_slab against a shortest phase of 1 h, so the one-state fit "
+    "would be reading a two-state plant",
+)
+_g942_fast = {
+    name: _SysIdModule.slab_mode_identifiability(
+        _p942(name, 100.0), _SysIdModule.SysIdConfig()
+    )
+    for name in _b942
+}
+R.check(
+    "#942: the judge's k_s x100 perturbation passes through the same gate (null control)",
+    all(ok and why == "ok" for ok, why in _g942_fast.values()),
+    f"{ {n: (o, w) for n, (o, w) in _g942_fast.items()} } -- the gate passes "
+    "identifiable slabs (tau_fast under 0.04 h at k_s x100); a gate that "
+    "merely refused everything would pass the refusal check above and this "
+    "one would catch it",
+)
+
+
+def _adopt942(*, slab_mult=1.0, ua=None):
+    """Offer one completed confidence-0.8 fit to the adoption path."""
+    c = _t4_coord()
+    c._thermal_params.slab_heat_transfer *= slab_mult
+    if ua is not None:
+        c._thermal_params.heat_loss_coefficient = ua
+    c._sysid.result = _dc_replace(
+        c._sysid.result, completed=True, confidence=0.8, heat_loss_kw_per_c=0.30
+    )
+    c._t4_escaped = _t4_call(c._adopt_system_identification)
+    return c
+
+
+_ad942_slow = _adopt942()
+R.check(
+    "#942: a finished, high-confidence fit on the DEFAULT plant is refused BY NAME, not silently",
+    _ad942_slow._house_heat_loss_scale == 1.0
+    and _ad942_slow._house_heat_loss_samples == 0
+    and _ad942_slow._sysid.result.completed is False
+    and "slab mode too slow" in _ad942_slow._sysid.result.reason
+    and not isinstance(_ad942_slow._t4_escaped, Exception),
+    f"scale {_ad942_slow._house_heat_loss_scale!r} reason "
+    f"{_ad942_slow._sysid.result.reason!r} -- the default plant's tau_fast is "
+    "4.17 h; before the gate this returned without a word and the reason "
+    "slot kept whatever the fit last said",
+)
+_ad942_fast = _adopt942(slab_mult=100.0, ua=0.15)
+R.check(
+    "#942: the same fit on the fast-slab plant adopts THROUGH the gate",
+    _ad942_fast._house_heat_loss_scale == 1.8
+    and _ad942_fast._house_heat_loss_samples == 16
+    and _ad942_fast._sysid.result.reason == "adopted",
+    f"scale {_ad942_fast._house_heat_loss_scale!r} samples "
+    f"{_ad942_fast._house_heat_loss_samples!r} reason "
+    f"{_ad942_fast._sysid.result.reason!r} -- the perturbation arm of the "
+    "finding, now at the adoption path: identifiable slabs adopt",
+)
+
+_arm942_slow = _t4_coord()
+_t4_count_refresh(_arm942_slow)
+_arm942_slow._config["system_identification_enabled"] = True
+_t4_drive(_arm942_slow, "async_arm_system_identification")
+R.check(
+    "#942: arming is refused before the night is burned, and the refusal is named",
+    _arm942_slow._sysid.phase == "idle"
+    and not _arm942_slow._sysid.active
+    and "slab mode too slow" in _arm942_slow._sysid.result.reason
+    and _arm942_slow._t4_refreshes == 1
+    and _arm942_slow._t4_escaped is None,
+    f"phase {_arm942_slow._sysid.phase!r} reason "
+    f"{_arm942_slow._sysid.result.reason!r} refreshes "
+    f"{_arm942_slow._t4_refreshes} -- arming a plant the fit cannot "
+    "interpret burns a night to produce a guard refusal; the refresh is "
+    "what publishes the refusal",
+)
+
+
 # -- the three service entry points, and what each one costs ---------------
 _t4_force_busy = _t4_coord()
 _t4_count_refresh(_t4_force_busy)
@@ -30610,6 +30867,10 @@ R.check(
 # not, and a version of this check that built it enabled survived the push
 # being deleted -- measured.
 _t4_arm_on = _t4_coord(system_identification_enabled=False)
+# #942: arming passes the identifiability gate, and the DEFAULT plant is a
+# slow slab the gate refuses (see the #942 block above) -- give this one
+# the fast slab, because this check pins the option re-read and the arm.
+_t4_arm_on._thermal_params.slab_heat_transfer *= 100.0
 _t4_count_refresh(_t4_arm_on)
 _t4_arm_on_built = _t4_arm_on._sysid.config.enabled
 _t4_arm_on._config["system_identification_enabled"] = True
