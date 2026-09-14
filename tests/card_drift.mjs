@@ -48,6 +48,7 @@ import { fileURLToPath } from "url";
 import {
   CARD_PATH, EDITOR_TAG, DEFAULT_SPACE, DEFAULT_DHW, HOUR,
   CLAIM_FILE, parseClaims, claimVersionError, claimsAreThisBranchs,
+  justifiesCardClaim,
   makeCardContext, loadCard, collect, frozenDateClass, buildCard,
   planStates, setupSensorStates, qaTopologies, layoutCatalogTopo,
 } from "./card_rig.mjs";
@@ -568,12 +569,18 @@ const treeClaims = parseClaims(fs.existsSync(claimPath) ? fs.readFileSync(claimP
 const baseClaims = parseClaims(showAt(sha, CLAIM_FILE) || "");
 
 // WHOSE CLAIM IS IT? tests/env_drift.py's `stale_claims_judged`, ported in
-// card_rig.mjs. False when this branch's three-dot moves nothing a claim
-// excuses: it neither wrote the list nor can cure it, and its only remedy --
-// delete the line -- lands on the baseline at squash-merge. The stamp check
-// above is NOT gated on it; `claims-for:` is about the release the file is
-// stamped for, not about who wrote which line, and stamp.py owns that line.
-const claimsAreOurs = claimsAreThisBranchs(git, refName);
+// card_rig.mjs -- and asked PER FILE KIND, never per branch (#747): the
+// card claim file is this branch's to rewrite only when this diff moves a
+// card source. A solver diff can move a card STATE through the payload the
+// card renders, but the claim LIST is still not the solver branch's to
+// empty: env_drift.py's `claim_kinds` refuses exactly that (its record-PR
+// guard restores the baseline's list, #735/#662), so judging the list as
+// a solver branch's own here demanded the one rewrite the other gate
+// refuses -- #948 sat in that deadlock for one CI round. The stamp check
+// above is NOT gated on it; `claims-for:` is about the release the file
+// is stamped for, not about who wrote which line, and stamp.py owns that
+// line.
+const claimsAreOurs = claimsAreThisBranchs(git, refName, justifiesCardClaim);
 
 let fails = 0;
 const stampError = claimVersionError(treeClaims.declared, version);
@@ -602,8 +609,8 @@ if (sameClaims && claimsAreOurs) {
   console.log(
     `NOT THIS BRANCH'S LIST: ${CLAIM_FILE} is byte-for-byte the list ${refName} ` +
     `already claims (${treeClaims.claims.size} state(s)), but this branch's three-dot ` +
-    `against ${refName} touches neither the card source nor a solver fixture, so it ` +
-    "did not write that list. Failing it here leaves one remedy -- empty the file -- " +
+    `against ${refName} moves no card source, so it did not write that list. Failing ` +
+    "it here leaves one remedy -- empty the file -- " +
     "and a squash-merge applies that deletion to the baseline (#569, #633). Reported, " +
     "not judged; rewrite it in a change that moves a claimed state."
   );

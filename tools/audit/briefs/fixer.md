@@ -194,6 +194,33 @@ production lines. You work in your own worktree branched from `origin/main`.
     key, and #714's own fix moved that call 24 lines. Anchor the claim to
     what moved: branch, registration, frame count.
 
+15. **A bitwise-parity claim over numpy reductions is per-architecture.**
+    `np.sum(matrix, axis=1)` is not `np.sum(matrix[b])`, and neither is a
+    reduction over a row VIEW of a batched array one over the fresh array
+    the scalar expression builds: numpy's pairwise loop treats alignment
+    and stride as inputs, and which paths it takes is a backend property —
+    #948's batched cost terms were bit-identical to the scalar objective
+    on the arm64 seat that wrote them (twice, under two designs) and
+    re-planned 19 of 51 stress scenarios on CI's x86_64, at the 96-step
+    production width only, so a 48-step parity grid passed unseen. Where
+    the contract is bitwise, run the SCALAR EXPRESSION per row, on the
+    fresh per-row arrays that expression's own elementwise ops allocate —
+    batch only what is elementwise end to end — and drive the parity grid
+    at the production width.
+
+    The same rule holds one level up and across interpreter versions: a
+    reduction whose scalar form is a PYTHON BUILTIN is compensated
+    arithmetic on CPython 3.12+ — builtin `sum` is Neumaier — and no
+    vectorized accumulation reproduces it. #948's terminal twin
+    accumulated plain vector adds against the scalar closure's `sum`:
+    1-2 ulp apart, which diverged both of optimality's jac races on CI's
+    3.14 runner while every 3.11 seat was green, because 3.11's `sum` is
+    plain accumulation — the seat was structurally blind, not unlucky.
+    Make the twin call the scalar closure's own function per row, and put
+    detector rows on the parity grid that separate the two summations
+    (measured: ~12% of random three-term sums), so the interpreter class
+    that diverges — CI's — runs the detector.
+
 **When a structural budget blocks the work.** A `tests/structure.py` failure is
 a decision point, not a wall, and it has three answers rather than two: pay for
 the lines elsewhere; re-record because the tree genuinely improved; or, for a

@@ -7744,6 +7744,18 @@ const STOCK_THEMES = {
         a[0] === "ls-files" ? CLAIMED_CARD_PATH + "\n" : "", "REF") === true);
     check("a docs-only three-dot is NOT this branch's claim to judge",
       claimsAreThisBranchs(() => "docs/HANDOVER.md\n", "REF") === false);
+    // Per file kind, never per branch (#747): a solver diff can move a card
+    // STATE through the payload, but the card claim LIST is not the solver
+    // branch's to rewrite -- env_drift.py's claim_kinds refuses the rewrite,
+    // so judging the list here demands the one action the other gate vetoes
+    // (#948 sat one CI round in that deadlock).
+    check("a solver-only three-dot is NOT this branch's CARD list to judge",
+      claimsAreThisBranchs(
+        () => "custom_components/heatpump_optimizer/optimizer.py\n",
+        "REF", justifiesCardClaim) === false);
+    check("a card diff IS this branch's card list to judge",
+      claimsAreThisBranchs(() => CLAIMED_CARD_PATH + "\n", "REF",
+        justifiesCardClaim) === true);
   }
 
   // Fail closed. A git command that did not answer must judge: a guard that
