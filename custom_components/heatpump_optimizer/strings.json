@@ -1283,13 +1283,13 @@
   "entity": {
     "sensor": {
       "baseline_cost": {
-        "name": "Baseline Cost"
+        "name": "Cost Baseline"
       },
       "buffer_tank_temperature_model": {
         "name": "Buffer Tank Temperature (Model)"
       },
       "comfort_weight": {
-        "name": "Comfort Weight"
+        "name": "Learning Comfort Weight"
       },
       "compressor_frequency_advisor": {
         "name": "Compressor Frequency Advisor"
@@ -1298,10 +1298,10 @@
         "name": "Compressor Starts"
       },
       "contract_comparison": {
-        "name": "Contract Comparison"
+        "name": "Cost Contract Comparison"
       },
       "current_electricity_price": {
-        "name": "Current Electricity Price"
+        "name": "Cost Electricity Price (now)"
       },
       "dhw_cost": {
         "name": "DHW Cost (lifetime)"
@@ -1337,7 +1337,7 @@
         "name": "ECL110 Effective Displace"
       },
       "estimated_cop": {
-        "name": "Estimated COP"
+        "name": "Learning Estimated COP"
       },
       "floor_heating_return_temperature": {
         "name": "Floor Heating Return Temperature"
@@ -1369,16 +1369,16 @@
         "name": "Measured Power"
       },
       "monthly_peak_power": {
-        "name": "Monthly Peak Power"
+        "name": "Cost Monthly Peak Power"
       },
       "monthly_savings": {
-        "name": "Monthly Savings"
+        "name": "Plan Monthly Savings"
       },
       "next_optimization": {
         "name": "Next Optimization"
       },
       "observed_cop": {
-        "name": "Observed COP"
+        "name": "Learning Observed COP"
       },
       "optimal_setpoint": {
         "name": "Optimal Setpoint"
@@ -1401,7 +1401,7 @@
         "name": "Optimization Schedule Steps"
       },
       "optimization_score": {
-        "name": "Optimization Score"
+        "name": "Plan Optimization Score"
       },
       "optimization_status": {
         "name": "Optimization Status"
@@ -1429,13 +1429,13 @@
         }
       },
       "power_headroom": {
-        "name": "Power Headroom"
+        "name": "Cost Power Headroom"
       },
       "predicted_cost": {
-        "name": "Predicted Cost"
+        "name": "Cost Predicted"
       },
       "predicted_savings": {
-        "name": "Predicted Savings"
+        "name": "Plan Predicted Savings"
       },
       "prediction_accuracy": {
         "name": "Prediction Accuracy"
@@ -1450,7 +1450,7 @@
         "name": "Sensor-Gap Euro Advisor"
       },
       "savings_percentage": {
-        "name": "Savings Percentage"
+        "name": "Plan Savings Percentage"
       },
       "slab_temperature_estimated": {
         "name": "Slab Temperature (Estimated)"
@@ -1483,7 +1483,7 @@
         "name": "Total Energy (lifetime)"
       },
       "total_heating_cost": {
-        "name": "Total Heating Cost (lifetime)"
+        "name": "Cost Total Heating (lifetime)"
       },
       "upper_floor_temperature": {
         "name": "Upper Floor Temperature"
@@ -1520,10 +1520,10 @@
         "name": "Optimize Now"
       },
       "reset_learned_comfort_weight": {
-        "name": "Reset Learned Comfort Weight"
+        "name": "Learning Reset Comfort Weight"
       },
       "run_system_identification": {
-        "name": "Run System Identification"
+        "name": "Learning Run System Identification"
       }
     },
     "switch": {
@@ -1531,7 +1531,7 @@
         "name": "Away"
       },
       "boost_dhw": {
-        "name": "Boost Hot Water"
+        "name": "DHW Boost"
       },
       "boost_space": {
         "name": "Boost Space Heating"

@@ -782,7 +782,7 @@ Four features act on power rather than energy, all inert until configured:
   a breached comfort floor always outranks it.
 - **The main fuse** (amperes and phases) becomes a hard per-step ceiling on
   planned space heating *plus* hot water together.
-- **Power Headroom** publishes `min(fuse, billed threshold) − current draw` as a
+- **Cost Power Headroom** publishes `min(fuse, billed threshold) − current draw` as a
   sensor an EV charger's dynamic circuit limit can follow.
 - **The fuse advisor** answers, monthly, whether this house — with its peaks
   flattened — would run under the next-smaller main fuse, and what that would do
@@ -1216,8 +1216,8 @@ forecast. Everything below is built on those codes:
 | Where to look | What it explains |
 |---|---|
 | **Plan Narrative** sensor | The current plan grouped by reason and told in prose, in English or Swedish |
-| **Contract Comparison** sensor | The closed month as an itemised receipt, reason by reason, with the reason lines summing to the metered spot line by construction |
-| **Optimization Score** sensor | Envelope, machine and operation graded separately — how good is the house, how healthy is the machine, how well is it driven — with the operation grade replaying each day's kWh against that day's prices |
+| **Cost Contract Comparison** sensor | The closed month as an itemised receipt, reason by reason, with the reason lines summing to the metered spot line by construction |
+| **Plan Optimization Score** sensor | Envelope, machine and operation graded separately — how good is the house, how healthy is the machine, how well is it driven — with the operation grade replaying each day's kWh against that day's prices |
 | **Diagnose Last Interval** button | The last interval's temperature error attributed input by input: the interval is re-run swapping realised inputs in one at a time, each charged the share of the error it explains |
 | **Prediction Accuracy** sensor | How far off the model is right now, including the signed bias |
 | **Thermal Battery** sensors | The house as a store: state of charge, capacity and rates, for other automations to use |

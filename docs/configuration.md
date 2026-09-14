@@ -569,7 +569,7 @@ still read SEK, which is the historical default rather than a constraint.
 | Fixed transfer fee | 0.0 per kWh | 0–5, 0.01 steps | A flat fee added in every hour, on top of any rules. |
 | Time-of-use fee rules | empty | one rule per line | For example `Nov-Mar Mon-Fri 06:00-22:00 = 0.25`. Month, weekday and time parts are each optional; overlapping rules add together. A rate must be zero or above and at most 10 per kWh — a negative rate or one that size is refused when the page is saved, since the first is a sign slip and the second is öre typed where whole units were meant. |
 | Live fee sensor | none | a sensor | For grids with dynamic fees. Its value is added to every planned hour. |
-| Fixed contract price to compare | 0.0 per kWh | 0–10, 0.01 steps | If you could have a fixed-price contract, its price per kWh. The Contract Comparison sensor then shows what this month would have cost on it. 0 leaves that column out. |
+| Fixed contract price to compare | 0.0 per kWh | 0–10, 0.01 steps | If you could have a fixed-price contract, its price per kWh. The Cost Contract Comparison sensor then shows what this month would have cost on it. 0 leaves that column out. |
 
 ### Heat curve control (ECL110)
 

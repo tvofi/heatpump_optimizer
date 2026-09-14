@@ -131,7 +131,7 @@ custom_components/heatpump_optimizer/
 ├── button.py             # Optimize now, run identification, reset comfort
 │                         #   weight, diagnose last interval
 ├── climate.py            # Virtual climate entity: modes, presets, DHW status
-├── switch.py             # Away, Boost Hot Water, Boost Space Heating, Optimizer Active
+├── switch.py             # Away, DHW Boost, Boost Space Heating, Optimizer Active
 ├── datetime.py           # The away-override return instant, as one datetime entity
 ├── frontend.py           # Serves and registers the Lovelace card
 ├── services.py           # The domain's 12 services: schemas, handlers and registration
