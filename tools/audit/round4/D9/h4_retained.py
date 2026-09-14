@@ -198,6 +198,7 @@ def build_coordinator():
 
 
 def main():
+    t0 = C.span_start()
     print(f"# baseline=7dd68dd  perturb={PERTURB or 'none'}  cycles={CYCLES}")
     print(f"# procs_at_start={C.concurrent_procs()} load1={C.load1():.2f}")
     install_pipe_probe()
@@ -269,7 +270,9 @@ def main():
                      for k, v in cols.items()), reverse=True)
     for size, name, n in ranked[:12]:
         C.result(f"collection.{name}", f"{size} bytes len={n}")
-    C.telemetry()
+    # #950 D9-INST: the whole-span factor, parent-side; the worker child's
+    # CPU is a separate process and is not in this ratio.
+    C.telemetry(C.span_factor(t0))
     CO._shutdown_process_pool()
 
 

@@ -24,10 +24,33 @@ COMMAND (from the repository root):
       MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 \
       python3 tools/audit/round4/D9/h2_cycle.py
 
-EXPECTED (baseline 7dd68dd, 8-core Apple M1 / 8 GB, python 3.11):
-  msm_entries_per_cycle = 1 (+/- 0), loop_thread_cpu_ms_per_cycle
-  20 - 120 ms (provisional, +/- 30 %), executor_cpu_ms 1200 - 2500 ms
-  (provisional), loop_share_pct = loop/(loop+executor).
+EXPECTED (re-recorded at ad7bcdf 2026-09-14, #950; the 7dd68dd bands are
+kept below as the finding's frozen record):
+  msm_entries_per_cycle = 0 (+/- 0) -- the shipped route is entirely
+  out-of-process (#199/#290), so the parent never enters
+  ``_multi_start_minimize`` (round 4's own non-finding 3; the old band of
+  1 was a draft expectation the runs never printed);
+  loop_thread_cpu_ms_per_cycle 2 - 6 ms (provisional, +/- 30 %);
+  executor_cpu_ms per cycle 0.1 - 1 ms (provisional) -- the old band of
+  1200 - 2500 ms conflated the solve WALL with executor CPU: the parent's
+  executor only ferries the pickled job to the child interpreter, and the
+  finder's own report measured 0.28 ms/cycle at 7dd68dd;
+  thread_factor (the residual defined below) <= 1.05;
+  whole_run_process_over_thread_ratio 1.1 - 1.5, ABOVE the contract's
+  1.05 bar by construction -- see the telemetry note.
+
+TELEMETRY NOTE (#950, round 4 D9-INST): this harness deliberately pushes
+real work through a REAL ``ThreadPoolExecutor`` (the FakeHass trap in
+tools/audit/README.md demands it), so ``process_time/thread_time`` over
+the whole run can never come under 1.05: the executor thread's honest CPU
+-- the job ferry plus the futures plumbing around it, measured 3.3 ms
+against 0.19 ms inside the wrapped jobs themselves -- lands in
+``process_time`` and not in ``thread_time`` by construction. The printed
+``thread_factor`` is therefore the RESIDUAL ``(process_cpu -
+executor_thread_cpu)/thread_cpu`` the contract's bar actually scopes to,
+with ``main_thread_cpu_s`` and ``executor_thread_cpu_s`` printed beside it
+so the decomposition is auditable; the bare whole-run ratio is kept under
+its own name.
 
 PERTURBATION: ``H2_CYCLES=3`` changes nothing per cycle (idempotence
 control); ``H2_PERTURB=nosolve`` sets mode OFF so no solve runs -- the
@@ -76,6 +99,12 @@ PERTURB = os.environ.get("H2_PERTURB", "")
 STATE = {"msm": 0, "scalar": 0, "batch_rows": 0}
 PATHS = {}
 EXEC_CPU = {"total": 0.0}
+# The executor thread's own thread_time at its first job entry and its
+# last job exit: the span covers the futures plumbing around the wrapped
+# jobs too, which the per-job wrapper above deliberately does not count.
+# That span -- not the per-job total -- is what the residual thread_factor
+# subtracts (see the telemetry note in the header, #950 D9-INST).
+EXEC_SPAN = {"first": None, "last": None}
 
 
 class RealExecHass(FakeHass):
@@ -91,9 +120,12 @@ class RealExecHass(FakeHass):
 
         def timed():
             t0 = time.thread_time()
+            if EXEC_SPAN["first"] is None:
+                EXEC_SPAN["first"] = t0
             try:
                 return func(*args)
             finally:
+                EXEC_SPAN["last"] = time.thread_time()
                 EXEC_CPU["total"] += time.thread_time() - t0
 
         return await loop.run_in_executor(self.pool, timed)
@@ -255,7 +287,16 @@ def main():
              float(sum(r["loop_ms"] for r in steady) / len(steady)), "ms")
     C.result("executor_cpu_ms_per_cycle_PROVISIONAL",
              float(sum(r["exec_ms"] for r in steady) / len(steady)), "ms")
-    C.telemetry(proc / thr if thr > 0 else float("nan"))
+    # The decomposition the contract's bar needs on an executor-crossing
+    # harness (#950 D9-INST): whole-run ratio kept under its own name, the
+    # deliberate thread's CPU printed beside the residual factor.
+    exec_total = ((EXEC_SPAN["last"] - EXEC_SPAN["first"])
+                  if EXEC_SPAN["first"] is not None else 0.0)
+    C.result("main_thread_cpu_s_PROVISIONAL", float(thr), "s")
+    C.result("executor_thread_cpu_s_PROVISIONAL", float(exec_total), "s")
+    C.result("whole_run_process_over_thread_ratio",
+             float(proc / thr) if thr > 0 else float("nan"))
+    C.telemetry((proc - exec_total) / thr if thr > 0 else float("nan"))
 
 
 if __name__ == "__main__":

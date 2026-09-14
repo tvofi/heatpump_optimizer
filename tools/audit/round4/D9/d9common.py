@@ -112,6 +112,30 @@ def telemetry(tf=None):
     result("concurrent_gate_procs", concurrent_procs())
 
 
+def span_start() -> tuple[float, float]:
+    """``(process_time, thread_time)`` at the start of a harness's main span."""
+    return time.process_time(), time.thread_time()
+
+
+def span_factor(start: tuple[float, float], subtract: float = 0.0) -> float:
+    """The contract's ``thread_factor`` over a span opened by ``span_start``.
+
+    ``tools/audit/README.md`` scopes the 1.05 rejection bar to a
+    BLAS-threading signal: process CPU an unplanned thread pool added over
+    the calling thread's own. ``subtract`` is CPU the harness knowingly
+    spent on a second thread it itself created -- h2's real executor, the
+    one harness whose design crosses that boundary, because the FakeHass
+    trap demands it -- so the residual again measures only threads nobody
+    deliberately started. The bare ratio cannot serve there: a real second
+    thread's honest CPU lands in ``process_time`` and not in
+    ``thread_time`` by construction, and re-taking changes nothing (round 4
+    D9-INST: 1.27-1.30 across four re-takes of ``h2_cycle.py``, structural).
+    """
+    proc = time.process_time() - start[0]
+    thr = time.thread_time() - start[1]
+    return ((proc - subtract) / thr) if thr > 0 else float("nan")
+
+
 # --------------------------------------------------------------------------
 # solve arms
 # --------------------------------------------------------------------------

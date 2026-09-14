@@ -1,32 +1,45 @@
-"""D9 round 4 / H9 -- the batched objective vectorizes the SIMULATION but
-not the COST: a Python loop over the batch rows.
+"""D9 round 4 / H9 -- the batched objective's cost half: a Python row loop
+at the 7dd68dd baseline, vectorized since (#948, PR #985, 2026-09-14).
 
-``optimizer.py:objective_batch`` (both the space-only and the with-DHW
-twin) calls ``ThermalModel.simulate_trajectory_batch`` once for all B
-perturbed schedules -- that is #97's win -- and then runs
-``for b in range(B)``, calling ``HeatPumpOptimizer._comfort_terms``,
-``energy_cost_of``, ``cycling``, ``capacity`` and ``terminal_cost`` once
-per row on 96-element slices. B is the variable count + the base row, so
-the loop runs ~97 times per gradient evaluation.
+HISTORY (#950, D9-INST re-record): this header used to promise a
+``row_loop_share_pct`` RESULT (25 - 55 +/- 8 pp) that the script never
+printed -- grep found the name only in these header lines, and a judge
+re-running per header looked for a RESULT that could not exist. What the
+band described was real at the baseline: ``objective_batch`` (both twins)
+vectorized the simulation (#97) and then re-computed the cost terms in a
+Python loop over the B batch rows, ``_comfort_terms`` entering 97.02 times
+per gradient at 33.3 % of the solve's wall (verify-0-3 measured the loop
+itself at 43.28 % by cProfile). PR #985 replaced the loop with
+``_cost_terms_batch``, called once per batch; the metrics and bands below
+are re-recorded against that reality at ad7bcdf.
 
 METRICS (all hooking production symbols):
   comfort_terms_calls_per_solve      count, FINAL
   comfort_terms_calls_per_gradient   count / njev, FINAL
   batch_rows_per_solve               count, FINAL
+  cost_terms_batch_calls_per_solve   count, FINAL -- the batched twin's
+                                     entries; the residual per-row
+                                     ``_comfort_terms`` entries are the
+                                     scalar trajectory scipy evaluates at
+                                     each iterate, not the removed loop
   comfort_terms_cpu_share_pct        accumulated ``time.perf_counter``
                                      inside ``_comfort_terms`` / solve wall
+  cost_terms_family_share_pct        (``_comfort_terms`` + the batched
+                                     ``_cost_terms_batch``) / solve wall --
+                                     this IS the metric the never-printed
+                                     ``row_loop_share_pct`` stood for, now
+                                     printed under a name that says what it
+                                     measures
   simulate_batch_cpu_share_pct       the same for
                                      ``simulate_trajectory_batch``
-  row_loop_share_pct                 (objective_batch total minus the
-                                     batched simulation) / solve wall
   cpu_ratio_vs_reference             solve CPU / stress.reference_solve CPU
 
 Shares are wall fractions of the SAME solve, so they are ratios and
 survive contention; the absolute seconds are PROVISIONAL. A null control
-at the flat price profile is measured for every number -- the loop is a
-property of the batch shape, not of the prices, so the shares must NOT
-move at flat prices, which is what distinguishes a structural cost from a
-price-driven one.
+at the flat price profile is measured for every number -- the cost family
+is a property of the batch shape, not of the prices, so the shares must
+NOT move at flat prices, which is what distinguishes a structural cost
+from a price-driven one.
 
 COMMAND (from the repository root):
 
@@ -34,15 +47,24 @@ COMMAND (from the repository root):
       MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 \
       python3 tools/audit/round4/D9/h9_batch_cost_loop.py
 
-EXPECTED (baseline 7dd68dd, 8-core Apple M1 / 8 GB, python 3.11):
-  comfort_terms_calls_per_gradient 96 - 99 (+/- 1)
-  comfort_terms_cpu_share_pct      15 - 35 (+/- 5 pp)
-  row_loop_share_pct               25 - 55 (+/- 8 pp)
+EXPECTED (re-recorded at ad7bcdf 2026-09-14, post-#985; the 7dd68dd bands
+-- 96 - 99 calls/grad, 15 - 35 % comfort share -- were the row loop the
+fix removed and are history, not the expectation):
+  comfort_terms_calls_per_gradient ~1.0 (+/- 0.1)
+  cost_terms_batch_calls_per_gradient ~1.0 (+/- 0.1)
+  comfort_terms_cpu_share_pct      <= 2
+  cost_terms_family_share_pct      30 - 50 (+/- 5 pp)  -- the family is
+                                     batched now, one call per gradient,
+                                     but still the wall's largest Python
+                                     item beside the simulation (~40 %
+                                     measured; the row-loop wall share it
+                                     replaced was 43.28 % by cProfile,
+                                     against a solve wall 38 % longer)
 
 PERTURBATION: ``H9_HORIZON=12`` halves the horizon, so the batch has ~49
-rows instead of ~97; ``comfort_terms_calls_per_gradient`` must fall to
-about half. That is the direction proving the count is the batch width
-and not a constant.
+rows instead of ~97; ``batch_rows_per_gradient`` must fall to ~48. That
+is the direction proving the batch width drives the work and not a
+constant.
 
 COUNTS ARE FINAL; shares are ratios; seconds are PROVISIONAL.
 """
@@ -79,6 +101,7 @@ def reset():
     S.clear()
     S.update({
         "ct_calls": 0, "ct_time": 0.0,
+        "ctb_calls": 0, "ctb_time": 0.0,
         "batch_calls": 0, "batch_rows": 0, "batch_time": 0.0,
         "njev": 0,
     })
@@ -86,6 +109,7 @@ def reset():
 
 def install():
     orig_ct = OPT.HeatPumpOptimizer._comfort_terms
+    orig_ctb = OPT.HeatPumpOptimizer._cost_terms_batch
     orig_batch = TM.ThermalModel.simulate_trajectory_batch
     orig_min = OPT._scoped_minimize
 
@@ -96,6 +120,17 @@ def install():
         finally:
             S["ct_time"] += time.perf_counter() - t0
             S["ct_calls"] += 1
+
+    def ctb(self, *a, **kw):
+        # The batched cost half (#985). Only the outer twin is timed:
+        # ``_cost_terms_batch`` calls ``_comfort_terms_batch`` itself, so
+        # hooking both would double-count the nested span.
+        t0 = time.perf_counter()
+        try:
+            return orig_ctb(self, *a, **kw)
+        finally:
+            S["ctb_time"] += time.perf_counter() - t0
+            S["ctb_calls"] += 1
 
     def batch(self, initial_state, power_matrix, *a, **kw):
         m = np.asarray(power_matrix)
@@ -113,6 +148,7 @@ def install():
         return res
 
     OPT.HeatPumpOptimizer._comfort_terms = ct
+    OPT.HeatPumpOptimizer._cost_terms_batch = ctb
     TM.ThermalModel.simulate_trajectory_batch = batch
     OPT._scoped_minimize = smin
 
@@ -130,12 +166,18 @@ def arm(name, price_profile):
     C.result(f"{name}.comfort_terms_calls_per_solve", S["ct_calls"], "calls")
     C.result(f"{name}.comfort_terms_calls_per_gradient",
              float(S["ct_calls"] / njev), "calls/grad")
+    C.result(f"{name}.cost_terms_batch_calls_per_solve",
+             S["ctb_calls"], "calls")
+    C.result(f"{name}.cost_terms_batch_calls_per_gradient",
+             float(S["ctb_calls"] / njev), "calls/grad")
     C.result(f"{name}.batch_rows_per_solve", S["batch_rows"], "rows")
     C.result(f"{name}.batch_rows_per_gradient",
              float(S["batch_rows"] / njev), "rows/grad")
     C.result(f"{name}.njev", S["njev"], "grads")
     C.result(f"{name}.comfort_terms_cpu_share_pct",
              float(100.0 * S["ct_time"] / wall), "pct")
+    C.result(f"{name}.cost_terms_family_share_pct",
+             float(100.0 * (S["ct_time"] + S["ctb_time"]) / wall), "pct")
     C.result(f"{name}.simulate_batch_cpu_share_pct",
              float(100.0 * S["batch_time"] / wall), "pct")
     C.result(f"{name}.comfort_over_simulate_batch",
@@ -145,10 +187,11 @@ def arm(name, price_profile):
     C.result(f"{name}.solve_cpu_s_PROVISIONAL", float(proc), "s")
     C.result(f"{name}.thread_factor", float(proc / thr) if thr else float("nan"))
     return dict(wall=wall, proc=proc, ct=S["ct_time"], batch=S["batch_time"],
-                calls=S["ct_calls"], njev=S["njev"])
+                ctb=S["ctb_time"], calls=S["ct_calls"], njev=S["njev"])
 
 
 def main():
+    t0 = C.span_start()
     print(f"# baseline=7dd68dd  horizon={HORIZON}h")
     print(f"# procs_at_start={C.concurrent_procs()} load1={C.load1():.2f}")
     install()
@@ -167,7 +210,13 @@ def main():
     C.result("null_control_calls_per_gradient_delta",
              float(b["calls"] / max(b["njev"], 1)
                    - a["calls"] / max(a["njev"], 1)), "calls/grad")
-    C.telemetry()
+    C.result("null_control_family_share_delta_pp",
+             float(100.0 * ((b["ct"] + b["ctb"]) / b["wall"]
+                            - (a["ct"] + a["ctb"]) / a["wall"])), "pp")
+    # #950 D9-INST: the whole-span factor in the trailing block as well as
+    # per arm -- the arms solve on the calling thread under the pinned
+    # BLAS, so the plain ratio is the signal.
+    C.telemetry(C.span_factor(t0))
 
 
 if __name__ == "__main__":

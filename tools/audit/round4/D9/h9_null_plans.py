@@ -52,6 +52,7 @@ SCENARIOS = {
 
 
 def main() -> None:
+    t0 = C.span_start()
     print(f"# procs_at_start={C.concurrent_procs()} load1={C.load1():.2f}")
     out: dict[str, np.ndarray] = {}
     for name, kw in SCENARIOS.items():
@@ -76,7 +77,11 @@ def main() -> None:
         # two invocations this harness exists to compare.
         digest = hashlib.sha256(value.tobytes()).hexdigest()[:16]
         C.result(f"{key}.sha256_16", digest)
-    C.telemetry()
+    # #950 D9-INST: the whole-span factor beside the block -- this harness
+    # landed with #985 after the round-4 panel sat, carrying the same gap
+    # the issue names in its four siblings; the solves run on the calling
+    # thread under the pinned BLAS, so the plain ratio is the signal.
+    C.telemetry(C.span_factor(t0))
 
 
 if __name__ == "__main__":
