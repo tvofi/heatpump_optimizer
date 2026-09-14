@@ -65,8 +65,8 @@ UPSTREAM = "2025.2.0"
 
 # Contracts that state FLOOR behaviour Home Assistant has since changed, keyed
 # by (symbol, contract name) and citing the change. The nightly lane runs two
-# images -- the floor and current stable -- and these three passed at 2025.2.0
-# and failed at stable on the run that discovered them.
+# images -- the floor and current stable -- and each entry passed at 2025.2.0
+# and failed at stable on the run that discovered it.
 #
 # The discipline is the same as expect="real", one axis over: against a real
 # provider NEWER than the floor, a contract listed here MUST fail, and one that
@@ -101,6 +101,17 @@ UPSTREAM_DRIFT = {
     ): "the `# Exclude advanced field` branch is GONE from "
        "add_suggested_values_to_schema, which now walks nested sections instead; "
        "an advanced marker is no longer dropped",
+    (
+        "homeassistant.helpers.update_coordinator.DataUpdateCoordinator",
+        "a NotImplementedError from the update method escapes the refresh, recorded as last_exception",
+    ): "2026.1 added `self.last_update_success = False` to the except "
+       "NotImplementedError arm before the re-raise, so a programming error "
+       "now also latches the coordinator failed; at the floor the arm "
+       "re-raised with last_update_success still True. The change reaches no "
+       "production path: this integration overrides _async_update_data "
+       "(coordinator.py), and the arm fires only for a coordinator that does "
+       "not. Found by the 09-14 nightly after #1002 made the contract "
+       "runnable past the floor again (#1009)",
 }
 
 
@@ -1087,7 +1098,18 @@ def _refresh_hass():
 
 
 def _first_refresh_entry():
-    """A config entry in the one state first refresh is legal in."""
+    """A config entry in the one state first refresh is legal in.
+
+    Every refresh-chain contract passes one, not only the first-refresh
+    pair: since 2025.5 an ENTRY-LESS ``DataUpdateCoordinator`` construction
+    calls ``frame.report_usage`` (``breaks_in_ha_version="2026.8"``), whose
+    first line raises ``RuntimeError: Frame helper not set up`` unless a
+    running hass set the frame helper up -- so against every real release
+    newer than the floor the nine entry-less constructions #1002 wrote died
+    in ``__init__`` before the chain they pinned even ran (#1009). The entry
+    path is upstream's sanctioned one and exists at the floor unchanged, so
+    the same construction runs against stub, floor and stable.
+    """
     from homeassistant.config_entries import ConfigEntryState
 
     class _Entry:
@@ -1114,7 +1136,10 @@ def _refresh_runs_update():
         class C(DataUpdateCoordinator):
             def __init__(self):
                 super().__init__(
-                    _refresh_hass(), logging.getLogger("contract"), name="contract"
+                    _refresh_hass(),
+                    logging.getLogger("contract"),
+                    name="contract",
+                    config_entry=_first_refresh_entry(),
                 )
                 self.calls = 0
 
@@ -1151,7 +1176,10 @@ def _refresh_update_failed_latched():
         class C(DataUpdateCoordinator):
             def __init__(self):
                 super().__init__(
-                    _refresh_hass(), logging.getLogger("contract"), name="contract"
+                    _refresh_hass(),
+                    logging.getLogger("contract"),
+                    name="contract",
+                    config_entry=_first_refresh_entry(),
                 )
 
             async def _async_update_data(self):
@@ -1185,7 +1213,10 @@ def _refresh_recovers():
         class C(DataUpdateCoordinator):
             def __init__(self):
                 super().__init__(
-                    _refresh_hass(), logging.getLogger("contract"), name="contract"
+                    _refresh_hass(),
+                    logging.getLogger("contract"),
+                    name="contract",
+                    config_entry=_first_refresh_entry(),
                 )
                 self.fail = True
 
@@ -1219,7 +1250,10 @@ def _refresh_notifies_listeners():
         class C(DataUpdateCoordinator):
             def __init__(self):
                 super().__init__(
-                    _refresh_hass(), logging.getLogger("contract"), name="contract"
+                    _refresh_hass(),
+                    logging.getLogger("contract"),
+                    name="contract",
+                    config_entry=_first_refresh_entry(),
                 )
 
             async def _async_update_data(self):
@@ -1251,7 +1285,10 @@ def _request_refresh_debounced():
         class C(DataUpdateCoordinator):
             def __init__(self):
                 super().__init__(
-                    _refresh_hass(), logging.getLogger("contract"), name="contract"
+                    _refresh_hass(),
+                    logging.getLogger("contract"),
+                    name="contract",
+                    config_entry=_first_refresh_entry(),
                 )
                 self.calls = 0
 
@@ -1365,7 +1402,10 @@ def _refresh_fans_out_when_unchanged():
         class C(DataUpdateCoordinator):
             def __init__(self):
                 super().__init__(
-                    _refresh_hass(), logging.getLogger("contract"), name="contract"
+                    _refresh_hass(),
+                    logging.getLogger("contract"),
+                    name="contract",
+                    config_entry=_first_refresh_entry(),
                 )
 
             async def _async_update_data(self):
@@ -1409,6 +1449,7 @@ def _refresh_false_update_waits_for_change():
                     logging.getLogger("contract"),
                     name="contract",
                     always_update=False,
+                    config_entry=_first_refresh_entry(),
                 )
                 self.payload = {"v": 1}
 
@@ -1450,7 +1491,10 @@ def _last_listener_removal_cancels_debounce():
         class C(DataUpdateCoordinator):
             def __init__(self):
                 super().__init__(
-                    _refresh_hass(), logging.getLogger("contract"), name="contract"
+                    _refresh_hass(),
+                    logging.getLogger("contract"),
+                    name="contract",
+                    config_entry=_first_refresh_entry(),
                 )
                 self.calls = 0
 
@@ -1488,7 +1532,10 @@ def _refresh_notimplemented_escapes():
         class C(DataUpdateCoordinator):
             def __init__(self):
                 super().__init__(
-                    _refresh_hass(), logging.getLogger("contract"), name="contract"
+                    _refresh_hass(),
+                    logging.getLogger("contract"),
+                    name="contract",
+                    config_entry=_first_refresh_entry(),
                 )
 
             async def _async_update_data(self):
