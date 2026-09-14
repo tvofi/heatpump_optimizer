@@ -29,7 +29,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any
+from typing import Any, Callable
 
 import numpy as np
 
@@ -315,6 +315,19 @@ class SysIdResult:
 #: DEFAULT_MAX_EXCURSION_C: it prices the model class, not a tuning knob.
 FAST_MODE_SETTLE_TAUS = 3.0
 
+#: Width of the intercept ridge ported to the two-state slab fit, kW — the
+#: D2-01 instrument's regularization (the one-state fit pulls its intercept
+#: toward ``gains_prior_kw``), expressed in the nonlinear form as ONE
+#: pseudo-observation ``(G − gains_prior_kw) / width`` appended to the
+#: residual vector. The sysid-estimator wave's pre-study (#942, comment
+#: 5656402482) measured this port on the nightly 5 h window: UA bias
+#: p5/p95 −91/+112 % unridged at 0.01 °C noise against −6.7/+4.2 % ported
+#: on light_new — the comfort bound keeps ΔT within ~2 % of its mean, so UA
+#: and G are collinear and the unridged fit hands the intercept's noise to
+#: both. A DESIGN constant like the prior it ports: it prices the prior's
+#: own uncertainty (±0.1 kW on a 0.3 kW prior), not a tuning knob.
+SLAB_INTERCEPT_PRIOR_SD_KW = 0.1
+
 
 def slab_mode_identifiability(
     params: ThermalParameters, config: SysIdConfig
@@ -358,6 +371,178 @@ def slab_mode_identifiability(
     )
 
 
+def _simulate_slab_path(
+    ua: float,
+    room_cap: float,
+    gains: float,
+    slab_mass: float,
+    slab_transfer: float,
+    first_room_c: float,
+    outdoor_c: np.ndarray,
+    thermal_kw: np.ndarray,
+    dt_hours: np.ndarray,
+) -> np.ndarray:
+    """Roll a candidate two-state plant over the recorded thermal power.
+
+    The candidate is the production ``ThermalModel`` itself — the same
+    object the optimizer simulates — with UA, room capacity and free heat
+    free and the slab pair trusted from configuration. The slab's initial
+    temperature is its steady offset under the candidate's own heat
+    balance (the house held temperature before the experiment), and the
+    room starts at the first recorded reading. Returns the predicted room
+    series, one entry per recorded sample.
+    """
+    model = ThermalModel(
+        ThermalParameters(
+            heat_loss_coefficient=ua,
+            house_heat_loss_scale=1.0,
+            room_thermal_mass=room_cap,
+            internal_gains=gains,
+            slab_thermal_mass=slab_mass,
+            slab_heat_transfer=slab_transfer,
+            two_zone_enabled=False,
+            wind_sensitivity=0.0,
+        )
+    )
+    k_slab = max(slab_transfer, 1e-9)
+    state = ThermalState(
+        room_temperature=first_room_c,
+        slab_temperature=first_room_c
+        + (ua * (first_room_c - float(outdoor_c[0])) - gains) / k_slab,
+        outdoor_temperature=float(outdoor_c[0]),
+    )
+    rooms = [state.room_temperature]
+    for q, out, dt in zip(thermal_kw, outdoor_c, dt_hours):
+        state = model.simulate_step(
+            state,
+            electrical_power=0.0,
+            outdoor_temp=float(out),
+            dt_hours=float(dt),
+            external_heat_kw=float(q),
+        )
+        rooms.append(state.room_temperature)
+    return np.asarray(rooms)
+
+
+def _lm_solve(
+    residual: Callable[[np.ndarray], np.ndarray],
+    x0: np.ndarray,
+    max_iter: int = 60,
+) -> tuple[np.ndarray, float]:
+    """Levenberg–Marquardt on a least-squares residual, in plain numpy.
+
+    The integration runs on Home Assistant installs that do not ship
+    scipy, so the two-state fit solves its own small (three-parameter)
+    problem: forward-difference Jacobian, diagonal Marquardt damping,
+    projection of the linear parameter into its loose band. Returns the
+    best point found and its cost; convergence quality is pinned by the
+    ensemble test, not by this function's iteration count.
+    """
+    x = np.asarray(x0, dtype=float).copy()
+    value = residual(x)
+    cost = float(value @ value)
+    damping = 1e-2
+    for _ in range(max_iter):
+        jac = np.empty((value.size, x.size))
+        for i in range(x.size):
+            step = 1e-6 * max(abs(float(x[i])), 1.0)
+            bumped = x.copy()
+            bumped[i] += step
+            jac[:, i] = (residual(bumped) - value) / step
+        gram = jac.T @ jac
+        gradient = jac.T @ value
+        accepted = False
+        for _attempt in range(10):
+            try:
+                delta = np.linalg.solve(
+                    gram + damping * np.diag(np.diag(gram) + 1e-12), -gradient
+                )
+            except np.linalg.LinAlgError:
+                damping *= 10.0
+                continue
+            candidate = x + delta
+            candidate[2] = float(np.clip(candidate[2], -5.0, 10.0))
+            next_value = residual(candidate)
+            next_cost = float(next_value @ next_value)
+            if np.isfinite(next_cost) and next_cost < cost:
+                x, value, cost = candidate, next_value, next_cost
+                damping = max(damping * 0.3, 1e-12)
+                accepted = True
+                break
+            damping *= 10.0
+        if not accepted or float(np.max(np.abs(delta))) < 1e-10:
+            break
+    return x, cost
+
+
+def _slab_series(
+    usable: list[SysIdSample],
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray] | None:
+    """The recorded series the two-state rollout needs, or None.
+
+    ``None`` means fewer than five usable intervals — the one-state fit's
+    own floor, so both fits refuse the same starvation.
+    """
+    rooms = np.asarray([s.room_temp for s in usable], dtype=float)
+    outdoors = np.asarray([s.outdoor_temp for s in usable], dtype=float)
+    powers = np.asarray([s.power_kw for s in usable], dtype=float)
+    dts = np.asarray(
+        [
+            (b.when - a.when).total_seconds() / 3600.0
+            for a, b in zip(usable, usable[1:])
+        ],
+        dtype=float,
+    )
+    if len(dts) < 5:
+        return None
+    return rooms, outdoors, powers, dts
+
+
+def _slab_refusal(
+    ua: float, room_cap: float, gains_kw: float, slab_mass: float
+) -> SysIdResult | None:
+    """The outcome guards the two-state fit shares with the one-state fit.
+
+    Same bands, same reason strings as :meth:`SystemIdentification.identify`
+    — the adoption surface must not move because the model class did.
+    Returns the refusal, or ``None`` when the triple is acceptable (with
+    the gains CLIPPED into their band, exactly as identify() clips).
+    """
+    if ua <= 1e-6 or room_cap <= 1e-6:
+        return SysIdResult(completed=False, reason="fit gave implausible signs")
+    if not (-0.5 <= gains_kw <= 2.0):
+        return SysIdResult(
+            completed=False, reason="fitted gains outside plausible bounds"
+        )
+    tau = (room_cap + slab_mass) / ua
+    if not (0.1 <= tau <= 200.0) or not (0.01 <= ua <= 5.0):
+        return SysIdResult(
+            completed=False, reason="fitted parameters outside plausible bounds"
+        )
+    return None
+
+
+def _slab_confidence(rooms: np.ndarray, error: np.ndarray) -> float:
+    """Confidence for the two-state fit, mirroring identify()'s ingredients.
+
+    R² of the room series, tempered by sample count, by the achieved
+    excursion against the design allowance, and by the residual SNR — the
+    nonlinear form's stand-in for the one-state noise gate until the wave
+    rebuilds that program (a noisy window is discounted, not refused).
+    """
+    ss_res = float(np.sum(np.square(error)))
+    tail = rooms[1:]
+    ss_tot = float(np.sum(np.square(tail - np.mean(tail))))
+    r2 = 1.0 - ss_res / ss_tot if ss_tot > 1e-9 else 0.0
+    confidence = float(np.clip(r2, 0.0, 1.0)) * min(1.0, len(error) / 12.0)
+    excursion = float(np.max(rooms) - np.min(rooms))
+    confidence *= float(np.clip(excursion / DEFAULT_MAX_EXCURSION_C, 0.3, 1.0))
+    signal = float(np.percentile(rooms, 90) - np.percentile(rooms, 10))
+    noise = float(np.sqrt(ss_res / max(len(error), 1)))
+    snr = signal / max(noise, 1e-9)
+    return confidence * float(np.clip((snr - 1.0) / 3.0, 0.0, 1.0))
+
+
 class SystemIdentification:
     """State machine driving a step-response experiment."""
 
@@ -370,6 +555,17 @@ class SystemIdentification:
         self.result: SysIdResult = SysIdResult()
         self._baseline_temp: float | None = None
         self._step_power: float = 0.0
+        #: Slab pair (C_s, k_s) and initial-guess room pair (UA, C_r) from
+        #: the plant declared at arm time, recorded ONLY when the #991
+        #: identifiability gate passed on it. ``_finish`` routes the
+        #: experiment to the two-state slab fit exactly when the pair is
+        #: present, so the gate's refusals stay in front of the fit and a
+        #: harness that declares no plant keeps the one-state regression.
+        self._slab_pair: tuple[float, float] | None = None
+        self._slab_prior: tuple[float, float] | None = None
+        #: Whether the finished experiment's result came from
+        #: :meth:`identify_slab` — the routing pin the wave's test reads.
+        self._slab_fit_used: bool = False
 
     # -- control ------------------------------------------------------------
 
@@ -393,12 +589,26 @@ class SystemIdentification:
             return False
         if self.active:
             return False
+        self._slab_pair = None
+        self._slab_prior = None
+        self._slab_fit_used = False
         if plant is not None:
             identifiable, why = slab_mode_identifiability(plant, self.config)
             if not identifiable:
                 _LOGGER.info("System identification not armed: %s", why)
                 self.result = SysIdResult(completed=False, reason=why)
                 return False
+            # The gate passed: the experiment this plant runs may be fitted
+            # in the two-state form, seeded from the plant's own figures.
+            self._slab_pair = (
+                float(plant.slab_thermal_mass),
+                float(plant.slab_heat_transfer),
+            )
+            self._slab_prior = (
+                float(plant.heat_loss_coefficient)
+                * float(plant.house_heat_loss_scale),
+                float(plant.room_thermal_mass),
+            )
         if self.last_run is not None:
             days = (now - self.last_run).total_seconds() / 86400.0
             if days < self.config.min_days_between_runs:
@@ -680,7 +890,15 @@ class SystemIdentification:
     def _finish(self, now: datetime) -> None:
         self.phase = PHASE_DONE
         self.last_run = now
-        self.result = self.identify()
+        # #942's wave: an experiment the arm-time gate admitted on a declared
+        # plant is fitted in the two-state form (with the ported intercept
+        # ridge); everything else — a harness that declared no plant — keeps
+        # the one-state regression. The gate's refusals never reach here.
+        if self._slab_pair is not None:
+            self.result = self.identify_slab()
+        else:
+            self._slab_fit_used = False
+            self.result = self.identify()
         if self.result.completed:
             _LOGGER.info(
                 "System identification complete: tau=%.2f h, UA=%.4f kW/°C, "
@@ -1047,6 +1265,139 @@ class SystemIdentification:
             internal_gains_kw=gains_kw,
             sensor_drift_c_per_h=drift_c_per_h,
             confidence=confidence,
+            reason="ok",
+        )
+
+    def identify_slab(self) -> SysIdResult:
+        """Fit the two-state plant the optimizer simulates (#942's wave).
+
+        This is the fit that runs where the arm-time identifiability gate
+        passed on a declared plant (see :meth:`_finish`): a candidate
+        ``ThermalModel`` is rolled forward over the recorded thermal power
+        (:func:`_simulate_slab_path`) and UA, the room capacity and the
+        free heat are fitted by simulation-error least squares, with the
+        slab pair TRUSTED from the declared plant — the ratified arm
+        (#942 comment 5659441129: config-trusted today; the C_s/k_s split
+        is structurally unidentifiable and is not this act's work).
+
+        The D2-01 intercept ridge, ported: the comfort bound keeps the
+        excursion — and so ΔT — within ~2 % of its mean, which leaves UA
+        and G collinear; the unridged two-state fit is noise-wrecked at
+        any σ (pre-study, comment 5656402482: −91/+112 % UA-bias p5/p95
+        at σ=0.01 on the nightly window). ONE pseudo-observation
+        ``(G − gains_prior_kw) / SLAB_INTERCEPT_PRIOR_SD_KW`` appended to
+        the residual vector holds the intercept to its configured prior
+        and lands the band at single digits (−6.7/+4.2 % ported).
+
+        Deliberately absent, until the wave rebuilds them for the
+        nonlinear form: the one-state program's D2-01 errors-in-variables
+        correction, D2-07 drift column and R3-D2-03 settle cross-check.
+        The outcome guards and the confidence ingredients mirror
+        :meth:`identify` (R², sample count, achieved excursion, residual
+        SNR) so the adoption surface — completed, confidence ≥ 0.3 and
+        the #991 gate — is the same surface; a noisy window is discounted
+        through the SNR term rather than refused.
+
+        Reports the lumped equivalents a one-state consumer expects: UA
+        (room-side), total capacity ``C_r + C_s`` and its time constant;
+        no sensor-drift figure exists in this form.
+        """
+        self._slab_fit_used = True
+        if self._slab_pair is None or self._slab_prior is None:
+            # Called without an arm-time plant (a harness replaying samples
+            # directly): the one-state regression is what the pre-wave tree
+            # ran on that path, and it stays what runs there.
+            self._slab_fit_used = False
+            return self.identify()
+        usable = [
+            s
+            for s in self.samples
+            if s.phase in (PHASE_SETTLING, PHASE_STEP, PHASE_RELAX)
+        ]
+        if len(usable) < 6:
+            return SysIdResult(completed=False, reason="not enough samples")
+        series = _slab_series(usable)
+        if series is None:
+            return SysIdResult(
+                completed=False, reason="not enough usable intervals"
+            )
+        rooms, outdoors, powers, dts = series
+        if bool(np.any((dts <= 1e-3) | (dts > 2.0))):
+            # A cadence gap breaks the rollout's state chain; the one-state
+            # regression tolerates gaps by skipping the interval, so the
+            # experiment falls back to it rather than being discarded.
+            self._slab_fit_used = False
+            return self.identify()
+        slab_mass, slab_transfer = self._slab_pair
+        ua0, cr0 = self._slab_prior
+        prior_g = self.config.gains_prior_kw
+
+        def residual(x: np.ndarray) -> np.ndarray:
+            predicted = _simulate_slab_path(
+                float(np.exp(x[0])),
+                float(np.exp(x[1])),
+                float(x[2]),
+                slab_mass,
+                slab_transfer,
+                float(rooms[0]),
+                outdoors[:-1],
+                powers[:-1],
+                dts,
+            )
+            # The ported ridge itself: one pseudo-observation on G, weighed
+            # against the whole room series through its width. Deleting
+            # this append is the mutation the ensemble test flips on.
+            return np.append(
+                predicted[1:] - rooms[1:],
+                (float(x[2]) - prior_g) / SLAB_INTERCEPT_PRIOR_SD_KW,
+            )
+
+        # Multi-start over the room-capacity decade: the cost surface has a
+        # competing local minimum along C_r (measured while porting: a 3x
+        # seed parked at −61 % UA noise-free where the true basin sits at
+        # 0), and the declared plant's figures seed only one point of it.
+        best_x: np.ndarray | None = None
+        best_cost = float("inf")
+        for mult in (1.0 / 3.0, 1.0, 3.0):
+            x0 = np.array(
+                [
+                    np.log(max(ua0, 1e-3)),
+                    np.log(max(cr0 * mult, 1e-2)),
+                    prior_g,
+                ]
+            )
+            x, cost = _lm_solve(residual, x0)
+            if cost < best_cost:
+                best_x, best_cost = x, cost
+        if best_x is None or not bool(np.all(np.isfinite(best_x))):
+            return SysIdResult(completed=False, reason="fit failed")
+        ua = float(np.exp(best_x[0]))
+        room_cap = float(np.exp(best_x[1]))
+        gains_kw = float(best_x[2])
+        refusal = _slab_refusal(ua, room_cap, gains_kw, slab_mass)
+        if refusal is not None:
+            return refusal
+        gains_kw = float(np.clip(gains_kw, 0.0, 2.0))
+        capacity = room_cap + slab_mass
+        predicted = _simulate_slab_path(
+            ua,
+            room_cap,
+            gains_kw,
+            slab_mass,
+            slab_transfer,
+            float(rooms[0]),
+            outdoors[:-1],
+            powers[:-1],
+            dts,
+        )
+        return SysIdResult(
+            completed=True,
+            time_constant_hours=capacity / ua,
+            heat_loss_kw_per_c=ua,
+            thermal_mass_kwh_per_c=capacity,
+            internal_gains_kw=gains_kw,
+            sensor_drift_c_per_h=None,
+            confidence=_slab_confidence(rooms, predicted[1:] - rooms[1:]),
             reason="ok",
         )
 
