@@ -14389,10 +14389,17 @@ from harness import (
     ha_setup_component as _ha_setup_component,
     ha_setup_entry as _ha_setup_entry,
     ha_unload_entry as _ha_unload_entry,
+    seed_price_entity as _seed_prices,
 )
 
+# #924: the fixed first refresh really fetches, and a Tibber token has no
+# HTTP under the stub -- the token config only ever worked because the
+# counter stub ran nothing at setup. The entity source is a real production
+# source that works offline; every hass an entry is set up against gets the
+# matching sensor seeded via _seed_prices (harness.OFFLINE_PRICE_DATA).
 _LC_DATA = {
-    "tibber_token": "x",
+    "price_source": "entity",
+    "price_entity": "sensor.prices",
     "weather_entity": "weather.home",
 }
 
@@ -14409,6 +14416,7 @@ _LC_DATA = {
 # because a hand-written removal tuple drifted; with nothing to remove,
 # that class of leak has nowhere to live.)
 _lc_hass = FakeHass()
+_seed_prices(_lc_hass)  # #924
 _lc_entry = FakeEntry(data=_LC_DATA)
 _asyncio.run(_ha_setup_component(_integ, _lc_hass))
 _lc_registered = dict(_lc_hass.services.async_services().get(_DOMAIN, {}))
@@ -14608,10 +14616,15 @@ def _svc_check(name, outcome, key):
 # plan and no snapshot -- what a fresh install (or a dead price feed) looks
 # like from a service call.
 _svc_hass = FakeHass()
+_seed_prices(_svc_hass)  # #924
 _svc_entry = FakeEntry(data=_LC_DATA)
 _asyncio.run(_ha_setup_component(_integ, _svc_hass))
 _asyncio.run(_ha_setup_entry(_integ, _svc_hass, _svc_entry))
 _svc_coord = _svc_entry.runtime_data
+# #924: the fixed first refresh fetches the seeded sensor, so the dead feed
+# this block documents is restored by hand -- the state under test is a
+# coordinator whose feed went away after a healthy setup.
+_svc_coord._prices = []
 R.check(
     "the driven coordinator really has no prices, plan or snapshot",
     not _svc_coord._prices and _svc_coord._optimization_result is None,
@@ -14635,6 +14648,7 @@ from homeassistant.util import dt as _stale_dt  # noqa: E402
 _STALE_NOW = datetime(2026, 1, 15, 12, 0, tzinfo=timezone.utc)
 _stale_dt.freeze(_STALE_NOW)
 _stale_hass = FakeHass()
+_seed_prices(_stale_hass)  # #924
 _stale_entry = FakeEntry(data=_LC_DATA, entry_id="stuck_prices")
 _asyncio.run(_ha_setup_entry(_integ, _stale_hass, _stale_entry))
 _stale_coord = _stale_entry.runtime_data
@@ -14677,6 +14691,7 @@ _svc_check(
 )
 
 _cover_hass = FakeHass()
+_seed_prices(_cover_hass)  # #924
 _cover_entry = FakeEntry(data=_LC_DATA, entry_id="covering_prices")
 _asyncio.run(_ha_setup_entry(_integ, _cover_hass, _cover_entry))
 _cover_coord = _cover_entry.runtime_data
@@ -14736,6 +14751,7 @@ _svc_check(
 # write half can be asserted, and the pre-check's refusal is still pinned
 # below on a spec that is genuinely malformed.
 _svc_corner_hass = FakeHass()
+_seed_prices(_svc_corner_hass)  # #924
 _svc_corner_entry = FakeEntry(data=_LC_DATA, entry_id="corner_windows")
 _asyncio.run(_ha_setup_entry(_integ, _svc_corner_hass, _svc_corner_entry))
 _svc_corner_coord = _svc_corner_entry.runtime_data
@@ -14804,6 +14820,7 @@ R.check(
 # coordinator's status rather than an exception; and simulate_plan's
 # no_prices / invalid_windows arms are separate returns inside async_simulate.
 _svc_crash_hass = FakeHass()
+_seed_prices(_svc_crash_hass)  # #924
 _svc_crash_entry = FakeEntry(data=_LC_DATA, entry_id="crash_pump")
 _asyncio.run(_ha_setup_entry(_integ, _svc_crash_hass, _svc_crash_entry))
 _svc_crash_coord = _svc_crash_entry.runtime_data
@@ -14835,10 +14852,13 @@ R.check(
 )
 
 _svc_sim_hass = FakeHass()
+_seed_prices(_svc_sim_hass)  # #924
 _svc_sim_entry = FakeEntry(data=_LC_DATA, entry_id="sim_pump")
 _asyncio.run(_ha_setup_entry(_integ, _svc_sim_hass, _svc_sim_entry))
 _svc_sim_coord = _svc_sim_entry.runtime_data
 _svc_sim_coord._optimization_result = object()  # non-None: "a plan exists"
+_svc_sim_coord._prices = []  # #924: setup fetched the seeded feed; the
+# no-prices arm under test needs the feed gone again
 _svc_check(
     "simulate_plan with a plan but no prices raises the no-prices error",
     _svc_call(_svc_sim_hass, "simulate_plan", {"target_temp": 21.0}),
@@ -14896,6 +14916,7 @@ R.check(
     f"{_svc_out}",
 )
 _svc_valid_hass = FakeHass()
+_seed_prices(_svc_valid_hass)  # #924
 _svc_valid_entry = FakeEntry(data=_LC_DATA, entry_id="valid_windows")
 _asyncio.run(_ha_setup_entry(_integ, _svc_valid_hass, _svc_valid_entry))
 _svc_out = _svc_call(
@@ -17229,13 +17250,20 @@ R.check(
 # --- D10-06 / D10-07 / D10-09: unload lifecycle and Tibber failure --------
 R.section("Unload lifecycle and Tibber failure semantics (D10-06/07/09)")
 
-from heatpump_optimizer.const import CONF_TIBBER_TOKEN as _CONF_TIBBER_TOKEN  # noqa: E402
+from heatpump_optimizer.const import (  # noqa: E402
+    CONF_PRICE_SOURCE as _CONF_PRICE_SOURCE,
+    CONF_TIBBER_TOKEN as _CONF_TIBBER_TOKEN,
+    PRICE_SOURCE_TIBBER as _PRICE_SOURCE_TIBBER,
+)
 
 # D10-07: a failed price fetch must FAIL the update. Every failure path used
 # to return silently, so last_update_success never moved and the entities
 # stayed available forever behind stale prices. The stub's session getter
 # raises, which is exactly one such failure.
 _tib = Coord(_FakeHass(), _FakeEntry(data=_LC_DATA))
+# #924: _LC_DATA now carries the offline entity source, so the tibber arms
+# here opt back into the scripted-session source explicitly.
+_tib._config[_CONF_PRICE_SOURCE] = _PRICE_SOURCE_TIBBER
 _tib._config[_CONF_TIBBER_TOKEN] = "stub-token"
 _tib_raised = None
 try:
@@ -17368,6 +17396,7 @@ def _outage_cycle_coord():
     wrapper, nothing else: every later step patched to a no-op on the
     instance (the round-2 D10-B harness pattern)."""
     coord = Coord(_FakeHass(), _FakeEntry(data=_LC_DATA))
+    coord._config[_CONF_PRICE_SOURCE] = _PRICE_SOURCE_TIBBER  # #924
     coord._config[_CONF_TIBBER_TOKEN] = "stub-token"
 
     async def _noop(*_a, **_k):
@@ -17505,6 +17534,7 @@ R.check(
 # was built from (runtime_data) is what tells them apart, and the
 # FakeConfigEntries reload ledger is the honest witness.
 _nr_hass = _FakeHass()
+_seed_prices(_nr_hass)  # #924
 _nr_entry = _FakeEntry(data=dict(_LC_DATA), options={"target_temp": 21.0})
 _asyncio.run(_ha_setup_entry(_integ, _nr_hass, _nr_entry))
 _asyncio.run(_integ.async_update_options(_nr_hass, _nr_entry))
@@ -17514,8 +17544,10 @@ R.check(
     f"reloads: {_nr_hass.config_entries.reloaded}",
 )
 # The live bug's exact shape: the flow's page-merge copies effective-config
-# keys into options. Options differ, the effective config does not.
-_nr_entry.options = {**_nr_entry.options, "tibber_token": "x"}
+# keys into options. Options differ, the effective config does not -- the
+# copied key must be one entry.data already carries with the same value,
+# which for the offline _LC_DATA (#924) is the price entity, not a token.
+_nr_entry.options = {**_nr_entry.options, "price_entity": "sensor.prices"}
 _asyncio.run(_integ.async_update_options(_nr_hass, _nr_entry))
 R.check(
     "the page-merge no-op (options rewritten, config identical) skips too",
@@ -17562,6 +17594,7 @@ _asyncio.run(_ha_unload_entry(_integ, _nr_hass, _nr_entry))
 # the entry's runtime_data (Home Assistant deletes that on unload), so it
 # lives under the integration's own hass.data key, never on the entry.
 _ho_hass = _FakeHass()
+_seed_prices(_ho_hass)  # #924
 _ho_entry = _FakeEntry(data=dict(_LC_DATA))
 _asyncio.run(_ha_setup_entry(_integ, _ho_hass, _ho_entry))
 _ho_old = _ho_entry.runtime_data
@@ -17576,39 +17609,49 @@ R.check(
     "and the unloaded entry carries no coordinator any more",
     not hasattr(_ho_entry, "runtime_data"),
 )
-_asyncio.run(_ha_setup_entry(_integ, _ho_hass, _ho_entry))
+# #924 re-cut: the first refresh now RUNS through the base class, so the
+# handover is consumed by setup itself rather than left armed for a later
+# direct call. The fetch-free proof therefore has to watch the coordinator
+# CLASS during the second setup -- the five methods raising is still the
+# proof, patched the way the #236 block patches first refresh, and the
+# stronger property is asserted instead: the base-class refresh PUBLISHED
+# the handed-over plan, by identity.
+async def _ho_untouchable(*args, **kwargs) -> None:
+    raise AssertionError("the handover path touched a fetch")
+
+
+_ho_saved = {
+    name: getattr(Coord, name)
+    for name in (
+        "_update_current_state",
+        "_fetch_tibber_prices",
+        "_fetch_weather_forecast",
+        "_fetch_solar_forecast",
+        "_async_learn_price_shape",
+        "async_run_optimization",
+    )
+}
+for _ho_name, _ho_fn in _ho_saved.items():
+    setattr(Coord, _ho_name, _ho_untouchable)
+try:
+    _asyncio.run(_ha_setup_entry(_integ, _ho_hass, _ho_entry))
+finally:
+    for _ho_name, _ho_fn in _ho_saved.items():
+        setattr(Coord, _ho_name, _ho_fn)
 _ho_new = _ho_entry.runtime_data
 R.check(
     "setup always pops the handover — it never outlives one reload",
     _ho_entry.entry_id not in _integ._plan_handovers(_ho_hass)
     and _ho_new is not _ho_old,
 )
-
-
-async def _ho_untouchable(*args, **kwargs) -> None:
-    raise AssertionError("the handover path touched a fetch")
-
-
-for _ho_name in (
-    "_update_current_state",
-    "_fetch_tibber_prices",
-    "_fetch_weather_forecast",
-    "_fetch_solar_forecast",
-    "_async_learn_price_shape",
-    "async_run_optimization",
-):
-    setattr(_ho_new, _ho_name, _ho_untouchable)
 R.check(
-    "the reloaded coordinator arrives with the skip-solve flag armed",
-    _ho_new._skip_solve_once,
-)
-_ho_out = _asyncio.run(_ho_new._async_update_data())
-R.check(
-    "the light refresh returns the handed-over plan itself, fetch-free",
-    _ho_out is _ho_payload,
+    "the base-class first refresh publishes the handed-over plan itself, "
+    "fetch-free (#924)",
+    _ho_new.data is _ho_payload,
+    f"published by identity: {_ho_new.data is _ho_payload}",
 )
 R.check(
-    "the handover is single-use on the coordinator too",
+    "and the handover is single-use on the coordinator",
     _ho_new._reload_handover is None and not _ho_new._skip_solve_once,
 )
 _asyncio.run(_ha_unload_entry(_integ, _ho_hass, _ho_entry))
@@ -17634,12 +17677,14 @@ from homeassistant.exceptions import HomeAssistantError as _HAError
 import heatpump_optimizer.coordinator as _coord_mod
 
 
-class _NotReady(_HAError):
-    """Stands in for ConfigEntryNotReady, which the stub does not carry."""
+# #924: the stub carries the real ConfigEntryNotReady now, so the retry
+# harness raises the same class the fixed first refresh does.
+from homeassistant.exceptions import ConfigEntryNotReady as _NotReady
 
 
 _GUARDED_DATA = {
-    "tibber_token": "x",
+    "price_source": "entity",
+    "price_entity": "sensor.prices",
     "weather_entity": "weather.home",
     "house_power_entity": "sensor.house_power",
     "heat_pump_defrost_entity": "binary_sensor.defrost",
@@ -17774,6 +17819,7 @@ try:
     # still runs on a meter event, and the unload still removes them.
     async def _healthy_lifecycle() -> dict:
         hass = _BusHass(_lc_bus_states(), eager=True)
+        _seed_prices(hass)  # #924: this arm's setup must actually succeed
         entry = _FakeEntry(data=dict(_GUARDED_DATA), entry_id="healthy")
         ok = await _ha_setup_entry(_integ, hass, entry)
         for _ in range(6):
@@ -23897,6 +23943,7 @@ _et_check(
 
 # A loaded entry, so the handlers that resolve targets get a coordinator.
 _et_hass = FakeHass()
+_seed_prices(_et_hass)  # #924
 _et_entry = FakeEntry(data=_LC_DATA)
 _asyncio.run(_ha_setup_entry(_integ, _et_hass, _et_entry))
 
@@ -25794,6 +25841,7 @@ class _G525Hass(FakeHass):
 
 def _g525_setup_imports(hass):
     """Drive HA's real setup path; return (import threads, the loop's thread)."""
+    _seed_prices(hass)  # #924
     spy = _G525ImportSpy(_g525_importlib)
     loop_thread = []
 
@@ -27353,6 +27401,7 @@ R.check(
 # section does not have to be rewritten for. `tests/entities.py` reads
 # service schemas the same way and for the same stated reason.
 _t546_hass = FakeHass()
+_seed_prices(_t546_hass)  # #924
 _t546_entry = FakeEntry(data=_LC_DATA)
 _asyncio.run(_ha_setup_entry(_integ, _t546_hass, _t546_entry))
 _t546_registered = _t546_hass.services._schemas[

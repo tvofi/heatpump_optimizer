@@ -3,19 +3,26 @@
 METRIC (mine): (a) ``stub_refresh_cycles_run`` -- how many times
 ``_async_update_data`` actually executes when the coordinator's
 ``async_refresh`` and ``async_config_entry_first_refresh`` are awaited
-under ``tests/hastub`` (the stub's answer must be 0, while
-``refresh_requests`` increments); (b) ``skip_flag_after_setup`` -- whether
-``_skip_solve_once`` is still armed after a full real ``async_setup_entry``
-under the stub (1 = armed, i.e. the stubbed first refresh did not consume
-it); (c) ``skip_flag_after_direct_call`` -- 0, consumed by the direct
+under ``tests/hastub`` (at the baseline the stub's answer was 0, while
+``refresh_requests`` incremented -- the defect; after fix #924 the stub
+runs the chain, so the answer is 2, one cycle per awaited entry point);
+(b) ``skip_flag_after_setup`` -- whether ``_skip_solve_once`` is still
+armed after a full real ``async_setup_entry`` under the stub (1 = armed,
+i.e. the stubbed first refresh did not consume it; 0 after the fix -- the
+base-class first refresh runs the light refresh, which consumes it);
+(c) ``skip_flag_after_direct_call`` -- 0, consumed by the direct
 ``_async_update_data`` call the suite makes in features.py:16288/16690.
 
 COMMAND (from the worktree root):
   PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 \
     tools/audit/round4/D1/verify2_d1inst.py
 
-EXPECTED: stub_refresh_cycles_run=0, refresh_requests=2,
-  skip_flag_after_setup=1, skip_flag_after_direct_call=0.
+EXPECTED: stub_refresh_cycles_run=2, refresh_requests=0,
+  skip_flag_after_setup=0, skip_flag_after_direct_call=0.
+  (Re-recorded for #924: was 0/3/1/0 against the counter stub. The config
+  now carries a price ENTITY with a seeded state -- a real offline source,
+  not a bypass -- because the fixed first refresh fails the fetch, and
+  raises ConfigEntryNotReady out of setup, on a token config with no HTTP.)
 BASELINE: branch head 0855277
 MACHINE:  8-core Apple M1, macOS 25.6.0, CPython 3.11
 INSTRUMENTS: tests/hastub/homeassistant/helpers/update_coordinator.py
@@ -50,13 +57,34 @@ CONFIG = {
     const.CONF_INDOOR_TEMP_ENTITY: "sensor.indoor",
     const.CONF_OUTDOOR_TEMP_ENTITY: "sensor.outdoor",
     const.CONF_DHW_TANK_VOLUME: 180.0,
+    # #924: the fixed first refresh actually fetches, and a token config
+    # has no HTTP under the stub. The entity source is a real production
+    # source that works offline, so setup succeeds for the same reason it
+    # would on an install with a working feed.
+    const.CONF_PRICE_SOURCE: "entity",
+    const.CONF_PRICE_ENTITY: "sensor.prices",
 }
+
+
+def _price_state():
+    """A seeded Nord-Pool-style sensor: 48 h of parseable rows."""
+    from datetime import timedelta
+
+    from homeassistant.util import dt as dt_util
+
+    now = dt_util.now().replace(minute=0, second=0, microsecond=0)
+    rows = [
+        {"start": (now + timedelta(hours=h)).isoformat(), "value": 0.5 + 0.1 * (h % 4)}
+        for h in range(48)
+    ]
+    return FakeState("0.5", attributes={"raw_today": rows, "raw_tomorrow": []})
 
 
 async def main() -> int:
     hass = FakeHass()
     hass.states.set("sensor.indoor", FakeState("21.4"))
     hass.states.set("sensor.outdoor", FakeState("-3.0"))
+    hass.states.set("sensor.prices", _price_state())
     entry = FakeEntry(data=dict(CONFIG))
     entry.entry_id = "inst_probe"
     ok = await ha_setup_entry(integration, hass, entry)

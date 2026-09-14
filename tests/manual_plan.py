@@ -28,7 +28,14 @@ sys.path.insert(0, "custom_components")
 
 import numpy as np
 
-from harness import FakeEntry, FakeHass, Results, ha_setup_entry
+from harness import (
+    FakeEntry,
+    FakeHass,
+    OFFLINE_PRICE_DATA,
+    Results,
+    ha_setup_entry,
+    seed_price_entity,
+)
 from profiles import house, prices, weather
 
 import heatpump_optimizer as integ
@@ -902,8 +909,10 @@ def test_reload_handover_expiry(R: Results) -> None:
     )
 
     expired_hass = FakeHass()
+    seed_price_entity(expired_hass)  # #924: no handover means the first
+    # refresh runs the fetch path, which needs a working offline source
     expired_entry = FakeEntry(
-        data={"tibber_token": "x", "weather_entity": "weather.home"},
+        data={**OFFLINE_PRICE_DATA, "weather_entity": "weather.home"},
         entry_id="ho_setup_expired",
     )
     integ._plan_handovers(expired_hass)[expired_entry.entry_id] = payload
@@ -917,8 +926,9 @@ def test_reload_handover_expiry(R: Results) -> None:
     )
 
     fresh_hass = FakeHass()
+    seed_price_entity(fresh_hass)  # #924
     fresh_entry = FakeEntry(
-        data={"tibber_token": "x", "weather_entity": "weather.home"},
+        data={**OFFLINE_PRICE_DATA, "weather_entity": "weather.home"},
         entry_id="ho_setup_fresh",
     )
     integ._plan_handovers(fresh_hass)[fresh_entry.entry_id] = payload
@@ -926,9 +936,17 @@ def test_reload_handover_expiry(R: Results) -> None:
         dt_util.now() - timedelta(minutes=1)
     )
     asyncio.run(ha_setup_entry(integ, fresh_hass, fresh_entry))
+    # #924 re-cut: the first refresh now RUNS through the base class, so it
+    # does not leave the handover latched -- it publishes it. The payload
+    # dict is handed through by identity, which is the stronger form of the
+    # property this check always pinned: the fresh plan reached the entities.
     R.check(
-        "setup still hands a one-minute plan to the first refresh",
-        fresh_entry.runtime_data._reload_handover is payload,
+        "setup's first refresh publishes the one-minute plan, by identity",
+        fresh_entry.runtime_data.data is payload
+        and fresh_entry.runtime_data._reload_handover is None,
+        f"data is payload: {fresh_entry.runtime_data.data is payload}, "
+        f"handover consumed: "
+        f"{fresh_entry.runtime_data._reload_handover is None}",
     )
 
 
