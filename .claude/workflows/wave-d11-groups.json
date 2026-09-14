@@ -26,8 +26,10 @@
       "blocked_on": null,
       "after": [],
       "resume": {
-        "stage": "pending",
-        "note": "First PR of the wave; lands the roster file itself. Flips to in-review with open_pr and head_sha in the record commit once the PR number exists."
+        "stage": "in-review",
+        "open_pr": 1031,
+        "head_sha": "23cc6e0381ce1a5134b79eaa72c4a397973e8d46",
+        "note": "First PR of the wave; landed the roster file itself. head_sha is the code head the PR body's evidence was measured at; the record commit (row, ledger, this resume) is bookkeeping that follows it, and the review measures the PR head."
       },
       "brief": "#957 / D11-04, option C. Re-derive the live required-context set from the GitHub API at your merge base (the branch rules endpoint plus the ruleset object, bypass-aware per the D11 brief's warning) — never carry a count from a card, a comment or this roster. Fix every assertion site the fresh derivation contradicts: the comment near the delivery-status premise in governance.yml, the CLOSED block in docs/plan-2026-09-open-issues.md, and the status-context count in docs/decisions/0001-session-policy-merge-grant.md; a dated history row in the plan stays as history. Then land the derivation itself as a counts-class input in .claude/workflows/policy_lint.mjs so the next ruleset change reddens the tree: one instrument fetches the context list, and literals the corpus states are checked against it. The instrument asserts live state, so it needs a recorded-shape fixture control such that an unreachable or rate-limited API cannot redden a required context — record which failure mode the control covers and demonstrate it by disconnect simulation or an injected fetch failure. Failing-first: at base the instrument flags the stale sites; mutation: flip one context name inside the recorded shape and the class reddens; restore and it passes. This pull request also adds .claude/workflows/wave-d11-groups.json (this roster) with its resume fields updated to the head that carries it. Empty claims, claim files byte-identical. No VERSION touches, no stamp. Closes #957. Part of #201."
     },
