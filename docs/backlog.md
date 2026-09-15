@@ -2975,3 +2975,5 @@ hand-writes inline SVG with no build step and no dependencies; keep it that way.
 - After pushing a rebase, GitHub needs a moment to recompute mergeability and
   reports `UNKNOWN` until it does; `gh pr merge` fails misleadingly with
   "the merge commit cannot be cleanly created" in that window.
+
+<!-- demo mutation: docs-only over the condition-reverted fast lane; the skip must return -->
