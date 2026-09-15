@@ -59,12 +59,17 @@ name: Tests
 #
 #   On a push, nightly or dispatch it re-records EVERYTHING. On a pull
 #   request `closure-scope` decides, from the diff and the same table:
-#   skip when every changed file is INERT, full when a gate file or a
-#   file in no recorded closure is touched, and otherwise re-derive only
-#   the closures the diff intersects. Before that the job ran on a pull
-#   request only when one ADDED a file under custom_components/, so a
-#   change to what a test reads was checked one merge too late -- five
-#   times (#354).
+#   full when a gate file or a file in no recorded closure is touched,
+#   and otherwise re-derive only the closures the diff intersects. The
+#   old third case -- skip when every changed file is INERT -- is now the
+#   docs-only FAST ARM inside the job rather than a skip (#201 item 8):
+#   `closures` is a required context on `main-protect`, and a required
+#   context that reports `skipped` can never satisfy the ruleset, which
+#   is how the bot's docs-only cycle PRs came to be merged `--admin`
+#   three times in one wave. Before `closure-scope` existed the job ran
+#   on a pull request only when one ADDED a file under
+#   custom_components/, so a change to what a test reads was checked one
+#   merge too late -- five times (#354).
 #
 # * slow — nightly and on demand. Same suite plus SLOW=1, which adds
 #   tests/rolling.py (the closed-loop learner simulation, ~15 minutes).
@@ -945,17 +950,37 @@ jobs:
     # main, which is the one place it has always run: a far worse bug than the
     # one it is here to prevent.
     #
-    # `!= 'skip'` rather than `== 'full' || == 'scoped'` for the same reason:
-    # if `closure-scope` fails outright its outputs are empty, and an empty
-    # case must run the check, not silence it. This condition fails closed in
-    # every direction except the one case that was measured to be safe.
-    if: >-
-      always() && (
-        github.event_name == 'push' || github.event_name == 'schedule'
-        || needs.closure-scope.outputs.case != 'skip'
-      )
+    # THE DOCS-ONLY FAST LANE (#201 item 8, ledger finding (c)). This job no
+    # longer has a skip case at all, so its `if` is bare `always()`: the only
+    # diff that ever skipped here is the one `closure-scope` derives as
+    # `skip` -- every changed file INERT and absent from every recorded
+    # closure -- which is exactly the diff the bot's ci/delivery-ledger cycle
+    # pull requests carry. `closures` is one of the `main-protect` ruleset's
+    # required contexts, and a required context that reports `skipped` is one
+    # the ruleset can never satisfy: #1022, #1025 and #1027 were each merged
+    # with `--admin` for that reason alone, three in one wave. The ruleset
+    # carve-out was refused (not expressible without weakening everyone), so
+    # the lane reports SUCCESS instead: on the `skip` case the job runs the
+    # cheap arm below -- it re-derives the case itself, from the same
+    # `tests/closure.py affected` the gate's own scoping uses, and fails
+    # unless the answer is `skip` again -- while every code-touching diff
+    # takes the full arm, whose steps are unchanged. The old condition's
+    # fail-closed reading survives the move: an empty case (a failed
+    # `closure-scope`), an unknown event, a dispatch, the nightly and every
+    # push all take the full arm, exactly as they did when `!= 'skip'` was
+    # the last line of the `if`.
+    if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 100
+    # 'true' exactly when this run is a `pull_request` whose diff the gate's
+    # own closure scoping derives as touching nothing measured. That is
+    # `closure-scope`'s output, computed by `tests/closure.py affected` -- the
+    # same rule `GATE_SCOPE=auto` uses in `fast` -- and NOT a paths filter of
+    # this workflow's own: a second rule for "docs-only" would drift from the
+    # gate's the first time either learned a new inert prefix.
+    env:
+      DOCS_ONLY_FAST: ${{ github.event_name == 'pull_request'
+                         && needs.closure-scope.outputs.case == 'skip' }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -972,19 +997,67 @@ jobs:
         with:
           python-version: "3.13"
 
+      # Everything from here to the under-approximation check is the full arm
+      # and is gated off the docs-only fast lane: the fast arm derives its
+      # answer with stdlib-only `tests/closure.py` calls and needs neither
+      # node, the pinned dependencies, nor strace. On any diff the gate can
+      # scope -- full or scoped -- every one of these steps runs exactly as it
+      # did before the fast lane existed.
       - uses: actions/setup-node@v5
+        if: env.DOCS_ONLY_FAST != 'true'
         with:
           node-version: "22"
 
       - name: Install pinned test dependencies
+        if: env.DOCS_ONLY_FAST != 'true'
         run: pip install -r tests/requirements-ci.txt
 
       - name: Install strace
         # node has no audit hook, so tests/card.mjs is recorded by tracing
         # its opens instead.
+        if: env.DOCS_ONLY_FAST != 'true'
         run: sudo apt-get update && sudo apt-get install -y strace
 
+      # THE FAST ARM. `closure-scope` already derived `skip` for this diff;
+      # this step re-derives it HERE, from the same table and the same
+      # three-dot diff, so the job's success is its own measurement rather
+      # than a parrot of an upstream job's output -- and it FAILS CLOSED if
+      # the two derivations ever disagree: a diff this job cannot derive as
+      # `skip` is a diff the full arm must judge, on the next event if not
+      # this one. Seconds, stdlib only, and it is the whole difference
+      # between this check reporting `success` and reporting `skipped` on a
+      # docs-only pull request.
+      - name: Fast arm -- re-derive the skip case and refuse anything else
+        if: env.DOCS_ONLY_FAST == 'true'
+        timeout-minutes: 5
+        run: |
+          set -euo pipefail
+          BASE="${{ github.event.pull_request.base.sha }}"
+          HEAD="${{ github.event.pull_request.head.sha }}"
+          # The same three-dot, --files-from derivation closure-scope ran:
+          # base.sha is the base branch tip, not the merge base, so two dots
+          # would charge this job with files merged elsewhere while it was
+          # open. A disagreement here is not retried or waved through; the
+          # step fails and the full arm runs on the next event.
+          git diff --name-only "$BASE"..."$HEAD" > "$RUNNER_TEMP/changed.txt"
+          echo "changed files (three-dot $BASE...$HEAD):"
+          cat "$RUNNER_TEMP/changed.txt"
+          python tests/closure.py affected \
+            --files-from "$RUNNER_TEMP/changed.txt" \
+            --workdir "$RUNNER_TEMP/affected"
+          CASE=$(cat "$RUNNER_TEMP/affected/affected.case")
+          echo "re-derived case: $CASE (closure-scope said: ${{ needs.closure-scope.outputs.case }})"
+          if [ "$CASE" != "skip" ]; then
+            echo "::error::closure-scope derived 'skip' but this job's own"
+            echo "re-derivation says '$CASE'. The fast arm may not pass a diff"
+            echo "it cannot scope; failing closed so the full arm judges it."
+            exit 1
+          fi
+
       - name: Re-record the closures
+        # Full arm only: the fast arm has no recording to make. Unchanged
+        # from before the fast lane on every diff that reaches it.
+        if: env.DOCS_ONLY_FAST != 'true'
         env:
           OMP_NUM_THREADS: "1"
           OPENBLAS_NUM_THREADS: "1"
@@ -1014,6 +1087,8 @@ jobs:
           fi
 
       - name: Fail if tests/closures.json under-approximates
+        # Full arm only, with the recordings the re-record step above made.
+        if: env.DOCS_ONLY_FAST != 'true'
         env:
           PYTHONPATH: tests/hastub
           SCOPE_CASE: ${{ needs.closure-scope.outputs.case }}
@@ -1033,14 +1108,20 @@ jobs:
         # defining its own copy of a production constant or helper asserts
         # against its own arithmetic, and its mutation proofs prove the
         # copy. Cheap by design -- a name collision -- but the accident
-        # this exists for was a name collision.
+        # this exists for was a name collision. Runs on BOTH arms: it is a
+        # pure AST scan with no dependencies, so the fast arm carries it
+        # and the full arm keeps it.
         env:
           PYTHONPATH: tests/hastub
         run: python tests/closure.py no-copies
 
       - name: Upload closure recordings
         # Autofix needs the recordings even when the check above failed.
-        if: always() && github.event_name == 'pull_request'
+        # Full arm only: the fast arm makes no recordings, and a failure it
+        # could report is one no recording exists to repair.
+        if: >-
+          always() && github.event_name == 'pull_request'
+          && env.DOCS_ONLY_FAST != 'true'
         uses: actions/upload-artifact@v6
         with:
           name: closure-recordings
