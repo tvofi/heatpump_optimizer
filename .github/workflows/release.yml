@@ -23,11 +23,39 @@ on:
 permissions:
   contents: write
 
+# Build provenance (#960, D11-07 option B, owner-approved this wave): every
+# release gains a signed attestation of the tag's tree. The subject is honest
+# about what this repository ships -- no artefact exists and none is built
+# (option C declined: HACS installs from the ref), so the attested subject is
+# the tag's tree itself, serialised deterministically as the `git archive`
+# tar of the tag and digested with sha256. A verifier reproduces the digest
+# with `git archive --format=tar <tag> | sha256sum` and compares it against
+# the attestation; nothing in the statement claims a downloadable asset, and
+# the Signed-Releases scorecard row stays an honest PARTIAL for exactly that
+# reason.
 jobs:
   release:
     runs-on: ubuntu-latest
+    # THE ONE GRANT THIS JOB ADDS BEYOND THE WORKFLOW FLOOR is the
+    # owner-approved attestation grant (#201 comment 5670207248, item 5:
+    # "job-scoped id-token: write"). `contents: write` restates the floor a
+    # job-level block replaces, because `gh release create` still needs it.
+    # `id-token: write` mints the OIDC token the Sigstore certificate is
+    # requested with; it is the grant the owner signed off. `attestations:
+    # write` is the one permission beyond that grant's letter, recorded as a
+    # delta rather than smuggled: the action's persistence call (POST
+    # /repos/{repo}/attestations) is refused without it -- the action's own
+    # README names it beside id-token -- so the approved feature cannot
+    # exist without this second, data-plane write. Both writes live on this
+    # job alone, and tests/entities.py pins the set so neither can grow past
+    # the approval in silence (the #959 precedent on `record`'s
+    # `issues: write`).
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
 
       - name: Resolve the tag
         env:
@@ -93,3 +121,28 @@ jobs:
             --target "${GITHUB_SHA}" \
             --title "${TAG}" \
             --notes-file /tmp/notes.md
+
+      - name: Digest the tag's tree
+        run: |
+          # The attested subject is the TAG as it exists on the remote,
+          # not the local checkout: on dispatch the previous step created
+          # the tag through the API, so the local clone does not have it
+          # yet. Fetch the ref explicitly, then serialise the tree it
+          # points at. `git archive` output is deterministic for a given
+          # commit (mtime from the commit, uid/gid zeroed, no pax
+          # headers), so the same tag always digests to the same sha256.
+          git fetch --no-tags origin "refs/tags/${TAG}:refs/tags/${TAG}"
+          TREE_SHA256=$(git archive --format=tar "${TAG}" | sha256sum | cut -d' ' -f1)
+          echo "tag ${TAG} -> tree digest sha256:${TREE_SHA256}"
+          echo "TREE_SHA256=${TREE_SHA256}" >> "$GITHUB_ENV"
+
+      - name: Attest the tag's tree
+        # Pinned by commit, like every uses: ref in this repository (#960).
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          # The subject NAME is the honest claim: the tag's source tree,
+          # git-archive serialised -- not an artefact, not a zip, nothing
+          # downloadable. `subject-digest` is the sha256 the previous step
+          # computed over exactly that serialisation.
+          subject-name: "tvofi/heatpump_optimizer ${{ env.TAG }} source tree (git archive tar)"
+          subject-digest: "sha256:${{ env.TREE_SHA256 }}"

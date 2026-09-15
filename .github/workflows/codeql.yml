@@ -47,9 +47,11 @@ name: CodeQL
 # umbrella context and keep the three `Analyze (language)` ones this file
 # produces -- a settings cleanup that follows the same toggle.
 #
-# Actions are referenced by tag, the existing convention in this repository
-# (actions/checkout@v5 in every workflow here); SHA-pinning of the codeql
-# actions lands in the later W4D-G7 group and will cover this file.
+# Actions are SHA-pinned with the frozen tag in a trailing comment (#960,
+# D11-07): this file's two codeql-action refs were that group's own
+# forward-carry from #1034, and the pins landed with it. A later deliberate
+# bump is a one-line diff a reviewer can read; no lane sweeps the pins for
+# staleness, which is owed work recorded in docs/HANDOVER.md.
 
 on:
   push:
@@ -77,17 +79,17 @@ jobs:
         language: [actions, javascript-typescript, python]
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
 
       # build-mode is left at its default: none of the three languages above
       # is compiled, so no build step runs between init and analyze.
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v4
+        uses: github/codeql-action/init@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4
         with:
           languages: ${{ matrix.language }}
           queries: security-extended
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v4
+        uses: github/codeql-action/analyze@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4
         with:
           category: "/language:${{ matrix.language }}"

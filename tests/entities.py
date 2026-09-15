@@ -12490,7 +12490,6 @@ R.check(
 # could not simply gain a member.
 _NON_GATE_WORKFLOWS = [
     ".github/workflows/hassfest.yml",
-    ".github/workflows/release.yml",
     ".github/workflows/validate.yml",
 ]
 for _wf in _NON_GATE_WORKFLOWS:
@@ -12524,6 +12523,27 @@ R.check(
     "so an edit to that job must select this script and must not force FULL",
 )
 
+# The fourth classification move, on the same precedent: `release.yml` was
+# inert until #960 put an owner-approved permission grant on its one job, and
+# a grant nothing pins is a grant that can grow past its approval in silence.
+# This script reads it to pin the grant (checks beside the governance grant
+# pins below), so it leaves `INERT` and enters this script's recorded closure.
+_REL_WF = ".github/workflows/release.yml"
+_REL_CASE = _closure.affected([_REL_WF])
+R.check(
+    "release.yml is read by the gate, so it is scoped rather than inert or "
+    "full",
+    (not _closure.is_gate_file(_REL_WF))
+    and (not _closure.is_inert(_REL_WF))
+    and _REL_CASE["case"] == "scoped"
+    and _REL_WF in json.loads(
+        _closure.CLOSURES.read_text())["closures"]["tests/entities.py"],
+    f"gate={_closure.is_gate_file(_REL_WF)} inert={_closure.is_inert(_REL_WF)} "
+    f"case={_REL_CASE['case']}; this script reads it to pin the release job's "
+    "attestation grant, so an edit to that job must select this script and "
+    "must not force FULL",
+)
+
 R.check(
     "no directory prefix in GATE_FILES can swallow a non-gate workflow",
     not any(
@@ -12539,9 +12559,10 @@ R.check(
 # rather than skipped, and its own case is checked above. The PROPERTY this
 # check was written for is unchanged and is the one that matters -- a non-gate
 # workflow must never print `full`, which is what ran `tests/stress.py` on a
-# comment edit. So the property is asserted over ALL FOUR non-gate workflows
-# rather than over the one that happened to be the example, and the `skip` arm
-# keeps an instance that is still inert.
+# comment edit. So the property is asserted over EVERY non-gate workflow --
+# the inert set above and the two this script reads (`governance.yml`,
+# `release.yml`) -- rather than over the one that happened to be the example,
+# and the `skip` arm keeps an instance that is still inert.
 R.check(
     "a change to a non-gate workflow costs the closures check nothing",
     _closure.affected([".github/workflows/hassfest.yml"])["case"] == "skip",
@@ -12550,9 +12571,9 @@ R.check(
 R.check(
     "and no non-gate workflow forces the FULL suite, whatever else it does",
     all(_closure.affected([_wf])["case"] != "full"
-        for _wf in [*_NON_GATE_WORKFLOWS, _GOV_WF]),
+        for _wf in [*_NON_GATE_WORKFLOWS, _GOV_WF, _REL_WF]),
     str({_wf: _closure.affected([_wf])["case"]
-         for _wf in [*_NON_GATE_WORKFLOWS, _GOV_WF]}),
+         for _wf in [*_NON_GATE_WORKFLOWS, _GOV_WF, _REL_WF]}),
 )
 
 # --- when the closures CHECK itself runs (#354) -----------------------------
@@ -16966,6 +16987,64 @@ R.check(
     "delivery_status.py" in _closure.NOT_A_TEST
     and not _closure.is_inert("tests/delivery_status.py"),
     "a file that is neither in a closure nor on a list forces the FULL suite",
+)
+
+# --- the release lane's attestation grant and subject (#960, D11-07) ---------
+#
+# Option B, owner-approved this wave (#201 comment 5670207248, item 5: "add
+# build provenance with job-scoped id-token: write"). The same pin discipline
+# as the governance grants above, for the same reason: `id-token: write` is
+# the one identity grant the owner signed off, so the set it lives in is the
+# blast radius and is pinned rather than trusted to a YAML comment.
+_REL_JOB = _workflow_job(Path(_REL_WF).read_text(), "release")
+_REL_PERMS = re.search(r"^    permissions:\n((?:^      .*\n)+)", _REL_JOB, re.M)
+# Comment lines inside the block carry the argument; the GRANT is what
+# remains once they are stripped -- the record-lane pin's own split.
+_REL_GRANT = sorted(
+    _l.strip()
+    for _l in (_REL_PERMS.group(1).splitlines() if _REL_PERMS else [])
+    if (_l.strip() and not _l.strip().startswith("#"))
+)
+R.check(
+    "the release lane's grant is the owner-approved attestation grant and "
+    "nothing more",
+    _REL_PERMS is not None
+    and _REL_GRANT == sorted(
+        ["attestations: write", "contents: write", "id-token: write"]),
+    f"release permissions: {_REL_GRANT} -- `id-token: write` is the grant the "
+    "owner signed off (#201 comment 5670207248, item 5: job-scoped, "
+    "attestation only); `attestations: write` is the data-plane write the "
+    "same feature's persistence call needs -- the action's own README names "
+    "it beside id-token, and the POST it guards is refused without it, so the "
+    "approved feature cannot exist without this one delta from the grant's "
+    "letter; `contents: write` restates the workflow floor a job-level block "
+    "replaces, because `gh release create` uses it. Anything beyond these "
+    "three is scope this job does not use and should not hold",
+)
+# The subject honesty is the other half of the approval: option C (build an
+# artefact) is declined because HACS installs from the ref, so the attested
+# subject must be the tag's tree itself -- a digest recomputable by anyone
+# from the tag -- and never a zip, an upload, or an asset the release does
+# not carry. The pins are the wiring that makes that claim checkable: the
+# digest step serialises the tag with `git archive`, and the attestation
+# carries that digest under `subject-digest`, pinned by its own SHA.
+_REL_ATTEST_PIN = re.search(
+    r"attest-build-provenance@([0-9a-f]{40})", _REL_JOB)
+R.check(
+    "the attested subject is the tag's tree, not an artefact that does not "
+    "exist",
+    _REL_ATTEST_PIN is not None
+    and "subject-digest:" in _REL_JOB
+    and "git archive --format=tar" in _REL_JOB
+    and "subject-path:" not in _REL_JOB,
+    f"attest action pinned={_REL_ATTEST_PIN is not None}, "
+    f"digest carries subject-digest={'subject-digest:' in _REL_JOB}, "
+    f"digest step archives the tag={'git archive --format=tar' in _REL_JOB}, "
+    f"subject-path present={'subject-path:' in _REL_JOB} (must be False); the "
+    "digest step serialises the tag's tree and the attestation carries that "
+    "sha256 -- `subject-path` would bind the statement to a built file, which "
+    "is the overclaim #960 exists to remove while the artefact build stays "
+    "declined",
 )
 
 # --- the two instruments beside the gate: coverage and mutation (#195) -------
