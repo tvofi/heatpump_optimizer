@@ -123,6 +123,14 @@ def claim(cid, source, text, command, result, verdict, truth=""):
     )
 
 
+def _disp(v):
+    # repr with sets rendered sorted: raw set repr orders by PYTHONHASHSEED, so
+    # the emitted bytes were a function of the run, not of the tree (#1041).
+    if isinstance(v, (set, frozenset)):
+        return "{" + ", ".join(repr(x) for x in sorted(v)) + "}" if v else "set()"
+    return repr(v)
+
+
 def eq(cid, source, text, command, documented, measured, truth_fmt="the true value is {m}"):
     same = documented == measured
     claim(
@@ -130,9 +138,11 @@ def eq(cid, source, text, command, documented, measured, truth_fmt="the true val
         source,
         text,
         command,
-        f"documented={documented!r} measured={measured!r}",
+        f"documented={_disp(documented)} measured={_disp(measured)}",
         "true" if same else "false",
-        "" if same else truth_fmt.format(m=measured, d=documented),
+        "" if same else truth_fmt.format(
+            m=measured if not isinstance(measured, (set, frozenset)) else _disp(measured),
+            d=documented if not isinstance(documented, (set, frozenset)) else _disp(documented)),
     )
 
 
