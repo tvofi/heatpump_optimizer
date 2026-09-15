@@ -16833,6 +16833,63 @@ R.check(
     "floor a job-level block replaces; it is the grant the publishing lane "
     "held before #1011, moved to the only lane that still uses it",
 )
+# #959 (option B): the `record` job -- already one of the three overrides for
+# its read grant -- WIDENED that grant with `issues: write` so its filing step
+# can open and edit the recurring-friction issues its own histogram names. Not
+# a fourth override: the job was already in the set above, which is why the
+# count pin does not move. The write itself is owner-approved (#201 comment
+# 5670207248, item 4), and it is pinned to exactly what the step uses so it
+# cannot grow past the approval in silence -- the same property the two
+# publishing-lane pins above assert for their jobs.
+_REC_JOB = _workflow_job(_DS_GOV, "record")
+_REC_PERMS = re.search(r"^    permissions:\n((?:^      .*\n)+)", _REC_JOB, re.M)
+# Comment lines inside the block carry the argument; the GRANT is what remains
+# once they are stripped, and that is what is pinned -- the two publishing-lane
+# pins above tokenize comment-free blocks, so their regexes need no strip.
+_REC_GRANT = sorted(
+    tok
+    for _l in (_REC_PERMS.group(1).splitlines() if _REC_PERMS else [])
+    if (_l.strip() and not _l.strip().startswith("#"))
+    for tok in [_l.strip()]
+)
+R.check(
+    "the cron lane's grant is its two reads plus the one owner-approved write",
+    _REC_GRANT == sorted(
+        ["contents: read", "pull-requests: read", "issues: write"]),
+    f"record permissions: {_REC_GRANT} -- "
+    "`pull-requests: read` feeds the stats/record API reads, `contents: read` "
+    "restates the floor a job-level block replaces, and `issues: write` files "
+    "and updates the `[policy] recurring friction:` issues (#959 option B, "
+    "#201 comment 5670207248 item 4) and nothing else",
+)
+# THE SPLIT OF THE LANE, pinned as a property: after #959 exactly one path in
+# `record` can redden the job by acting deliberately -- the filing step, which
+# runs unsuppressed -- while the informational lanes keep their `|| true` and
+# the disposition refusal keeps its #958 `continue-on-error`. A `|| true`
+# pasted onto the filing step would turn a mechanism that stopped filing into
+# a green tick, which is the #959 defect one lane later, so the suppression is
+# keyed per step here rather than left to the YAML's reader.
+_REC_RUNS = dict.fromkeys(
+    _re.findall(r"run: (.+)", _REC_JOB), None)
+_REC_FILE_LINE = next(
+    (l for l in _REC_RUNS if "friction_issues.mjs --stats-file" in l), None)
+_REC_STATS_LINE = next(
+    (l for l in _REC_RUNS if "--stats " in l and "policy_lint.mjs" in l), None)
+_REC_SUNSET_LINE = next(
+    (l for l in _REC_RUNS if "--sunset" in l), None)
+R.check(
+    "the friction filer is the record lane's one deliberate arm and the "
+    "informational lanes stay suppressed",
+    _REC_FILE_LINE is not None
+    and "|| true" not in _REC_FILE_LINE
+    and _REC_STATS_LINE is not None and "|| true" in _REC_STATS_LINE
+    and _REC_SUNSET_LINE is not None and "|| true" in _REC_SUNSET_LINE,
+    f"filing: {_REC_FILE_LINE!r}; stats: {_REC_STATS_LINE!r}; "
+    f"sunset: {_REC_SUNSET_LINE!r} -- the filing step reddens this job when "
+    "its mechanism fails, because a filing lane that fails green stopped "
+    "filing; the histogram and sunset printings never redden it, and the "
+    "disposition refusal reports without reddening (#958)",
+)
 R.check(
     "the publishing lane runs on main alone, never on a pull request",
     "github.event_name == 'push'" in _DS_PUB_JOB
