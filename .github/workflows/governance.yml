@@ -623,6 +623,23 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+    # Ledger finding (b) (#201, W4D-G6): every push to main starts one of
+    # these jobs, and a wave close pushes to main in bursts -- the ledger
+    # PR's own merge is one -- so two can be in flight at once with nothing
+    # to order them: run A's force-push to ci/delivery-ledger can land
+    # between run B's force-push and B's body edit, leaving the PR body
+    # naming a head the branch no longer carries. The group is JOB-scoped
+    # and named for this lane alone, so no other job or workflow shares it.
+    # cancel-in-progress rather than a queue: every arm of this job is a
+    # wholesale regeneration -- the ledger is re-derived from the newer
+    # push, the branch push is `--force`, the body edit rewrites the whole
+    # body -- so the newer run supersedes the older run's output outright,
+    # and a run cancelled mid-force-push leaves a half-updated cycle branch
+    # that the cancelling run rebuilds in full (the branch is bot-owned and
+    # lands only through the PR below).
+    concurrency:
+      group: delivery-status-publish
+      cancel-in-progress: true
     steps:
       - uses: actions/checkout@v5
         with:
