@@ -329,6 +329,15 @@ jobs:
       contents: read
       # --stats reads pull-request bodies and review comments through the API.
       pull-requests: read
+      # The friction-filing step below opens and edits the recurring-friction
+      # issues its histogram names (#959, option B). This is the owner's grant,
+      # not this file's judgement: #201 comment 5670207248 item 4 approves
+      # `issues: write` on this one job. It is declared on the job that uses it
+      # rather than the workflow floor precisely so no other lane inherits it:
+      # `policy-docs`, `env-matrix`, `wave-script` and `delivery-status` keep
+      # the read-only floor, `pr-contract` keeps whatever it holds, and the set
+      # of overriding jobs is pinned in tests/entities.py as the blast radius.
+      issues: write
     steps:
       - uses: actions/checkout@v5
         with:
@@ -405,12 +414,44 @@ jobs:
 
       # Reporting only, and deliberately unable to fail the job: a histogram and
       # a sunset list are inputs to a judgement a seat makes, not a gate. Both
-      # print what they would open and open nothing.
+      # print what they would open; since #959 (option B) the histogram's
+      # would-open verdicts are ACTED ON by the filing step below, but the
+      # printing itself stays informational -- a histogram that cannot be
+      # produced must never redden this lane, because the disposition check
+      # above already owns this job's deliberate failures. `tee` captures the
+      # histogram for that step without changing this step's exit behaviour.
       - name: Friction and verdict histograms
         if: always()
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: node .claude/workflows/policy_lint.mjs --stats --since "${{ steps.window.outputs.since }}" || true
+        run: node .claude/workflows/policy_lint.mjs --stats --since "${{ steps.window.outputs.since }}" 2>&1 | tee "$RUNNER_TEMP/stats.txt" || true
+
+      # THE SPLIT OF THE LANE (#959). The step below is the one path in this
+      # job allowed to ACT, and it runs WITHOUT `|| true`: a filing mechanism
+      # that fails silently is a mechanism that stopped filing, and nobody
+      # would notice. Exactly which lanes can redden this job after #959:
+      # THIS step and the checkout/setup steps above it can; the histogram and
+      # sunset steps never can (both `|| true`), and the disposition refusal
+      # reports without reddening (#958's split, `continue-on-error` above).
+      # The self-test beside it keeps the filer's own refusals from rotting
+      # the way an unexecuted enumerator's does -- driven offline, no network,
+      # the same pattern as `gh_comment.py self-test` in `policy-docs`.
+      - name: Show the friction filer refusing its own fixtures
+        run: node .claude/workflows/friction_issues.mjs --self-test
+
+      # The trigger text is the histogram's own line: this step parses the
+      # would-open verdicts out of the captured output and files one issue per
+      # friction key per window -- search before create, scoped to the exact
+      # title, update in place, never a duplicate. The verdict classifier,
+      # the threshold and the merge-is-not-rework exclusion stay in
+      # policy_lint.mjs; an excluded class prints `not opened:` and is not a
+      # trigger, so this step cannot fire on the passing grammar. A filed
+      # issue's body carries the histogram line, the window and the derivation
+      # command, and states that a seat -- never the bot -- disposes it.
+      - name: File the recurring-friction issues the histogram named
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node .claude/workflows/friction_issues.mjs --stats-file "$RUNNER_TEMP/stats.txt" --since "${{ steps.window.outputs.since }}"
 
       - name: Rules that have outlived their reason
         if: always()
