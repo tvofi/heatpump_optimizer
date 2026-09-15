@@ -369,6 +369,11 @@ const LOOP_CHECK_NAMES = [
   { name: 'checkRecord', file: 'policy_lint.mjs', kind: 'return' },
   { name: 'checkTableSplit', file: 'policy_lint.mjs', kind: 'return' },
   { name: 'checkRender', file: 'policy_lint.mjs', kind: 'return' },
+  // The fifth loop output: the conditional fetch-failure skip line, printed by
+  // both `--record` and `--stats` (enumSkipLine). It produces no findings, so
+  // the acceptance drives its SHAPE directly -- the one output whose deletion
+  // leaves every count green and only the marker's own pin red.
+  { name: 'enumSkipLine', file: 'policy_lint.mjs', kind: 'return' },
   { name: 'checkCounts', file: 'counts.mjs', kind: 'return' },
   { name: 'CAP_RES', file: 'counts.mjs', kind: 'array' },
 ]
@@ -1487,6 +1492,28 @@ function mergedPRsFromWindow(since) {
   return { ...enumerateMerges(commits, null), why: fetched.why }
 }
 
+// THE LOUD HALF OF THE ENUMERATION GUARD (#957's dead-fetch discipline; the
+// in-file precedent is `required-contexts`' skip line). `mergedPRsFromWindow`
+// falls back to subject mode when `/commits/<sha>/pulls` will not answer, and
+// on this repository's merge commits the fallback's end-anchored `(#N)` matches
+// NOTHING -- every subject is `Merge pull request #N from ...`, which ends in a
+// branch name. The fallback's zero therefore means "no data", not "no merges":
+// measured at fdd30fa over v6.5.0..origin/main, 12 merged pull requests all
+// printed as `STATS: 0 merged pull request(s)` with no fetch-failure marker,
+// and friction_issues.mjs -- which refuses a histogram whose WINDOW fetch
+// failed but had no marker for an enumeration that never produced a window --
+// filed nothing, green (#1043 review, comment 5673472536, residual 2).
+//
+// rc=0 STAYS acceptable on this path -- the record job reports rather than
+// gates (#958) and the stats step is deliberately `|| true` -- so the line is
+// the whole guard: unmissable, `UNCHECKED this run, not confirmed`, the same
+// words the required-contexts skip uses. Pure over its `why` so the acceptance
+// drives it offline, and listed in LOOP_CHECK_NAMES so emptying it is a
+// mutation the mutants lane refuses rather than a silent string change.
+export function enumSkipLine(why) {
+  return `  skip     merge-enumeration     the commit-to-PR map could not be fetched (${why}); the window's merged pull requests are UNCHECKED this run, not confirmed empty -- the subject fallback's zero over merge-commit subjects means "no data", not "no merges"`
+}
+
 // The record's SEARCH REGION, and the reason it is not the whole file.
 //
 // `#<pr>` tested against the whole plan plus the handover is satisfied by
@@ -2565,6 +2592,22 @@ function assertAcceptance(derived) {
   }
   let rc = 0
   let pins = 0
+
+  // The enumeration guard's loud half, pinned on SHAPE because it produces no
+  // findings for any count above to see. The subject fallback is a SILENT zero
+  // on merge-commit subjects (#1043 review, residual 2), and this line is the
+  // only thing standing between that zero and a green that measured nothing --
+  // so the pin asserts the three properties the discipline owes: the `skip`
+  // lead, the `UNCHECKED this run, not confirmed` claim, and that the `why`
+  // actually reached the line. Emptying enumSkipLine (the LOOP_CHECK_NAMES
+  // mutation) fails here.
+  pins += 1
+  const enumSkip = enumSkipLine('fixture: GITHUB_TOKEN is not set')
+  if (!/^\s*skip\s+merge-enumeration\b/.test(enumSkip) || !enumSkip.includes('UNCHECKED this run, not confirmed') || !enumSkip.includes('fixture: GITHUB_TOKEN is not set')) {
+    console.log('\nFIXTURE VACUOUS: the merge-enumeration fetch-failure marker lost its skip/UNCHECKED shape; a dead fetch would then keep rc=0 with `0 merged pull request(s)` reading as a measured window rather than an unchecked one')
+    rc = 1
+  }
+
 
   // coverage: a probe rather than a committed fixture, because the check's whole
   // subject is a file the globs do not match -- committing one would make every
@@ -3853,6 +3896,13 @@ function cmdRecordDispositions(since) {
   const enumerated = mergedPRsFromWindow(since)
   const prs = enumerated.prs
   console.log(`RECORD_ENUM: ${enumerated.mode}${enumerated.why ? ` (${enumerated.why})` : ''}`)
+  // The enumeration guard's loud half (#957 discipline -- see enumSkipLine).
+  // RECORD_ENUM alone states the MODE, not the confidence: a reader who stops
+  // at `TOTAL: 0 error(s)` sees a measured window, and the fallback's zero over
+  // merge commits measured nothing. The skip line says UNCHECKED out loud; the
+  // verdict lines below keep their semantics, so what a seat reads beside them
+  // is the marker, not a silent green.
+  if (enumerated.why) console.log(enumSkipLine(enumerated.why))
   const { region, sectionFound } = recordRegion(read(DISPOSITION_FILES[0]) ?? '', read(DISPOSITION_FILES[1]) ?? '')
   const all = sectionFound
     ? checkRecord(prs, region)
@@ -3900,13 +3950,26 @@ function cmdRecordDispositions(since) {
 }
 
 function cmdStats(since) {
-  const prs = mergedPRsFromWindow(since).prs
+  const enumerated = mergedPRsFromWindow(since)
+  const prs = enumerated.prs
   const classes = verdictClasses()
   if (!classes) {
     console.log(`STATS: could not read the verdict grammar from ${WAVE_SCRIPT}; classifying nothing rather than against a list typed here.`)
     process.exit(0)
   }
-  const { fetched, fetchError } = fetchWindow(prs)
+  // The enumeration guard: the loud half first (enumSkipLine), then the failure
+  // rides the SAME fetchError channel a window-fetch failure rides, so
+  // statsFindings prints its opposite-claims finding ("Printing no histogram
+  // rather than a histogram of zeroes") and carries the `could not fetch
+  // pull-request bodies and comments` phrase friction_issues.mjs refuses on --
+  // the filer, unchanged, then refuses a marked output instead of filing
+  // nothing in silence. fetchWindow is skipped entirely: a histogram over a
+  // window that could not be enumerated is a partial-window claim, the exact
+  // shape fetchWindow's own any-failure abort exists to prevent.
+  if (enumerated.why) console.log(enumSkipLine(enumerated.why))
+  const { fetched, fetchError } = enumerated.why
+    ? { fetched: new Map(), fetchError: enumerated.why }
+    : fetchWindow(prs)
   console.log(`STATS: ${prs.length} merged pull request(s) in ${since}..${mainRef()}; verdict grammar ${JSON.stringify(classes)} read from ${WAVE_SCRIPT}`)
   if (!fetchError) {
     const { verdicts, friction } = statsHistogram(prs, fetched, classes)
