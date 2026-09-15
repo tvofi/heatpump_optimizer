@@ -969,7 +969,11 @@ jobs:
     # `closure-scope`), an unknown event, a dispatch, the nightly and every
     # push all take the full arm, exactly as they did when `!= 'skip'` was
     # the last line of the `if`.
-    if: always()
+    if: >-
+      always() && (
+        github.event_name == 'push' || github.event_name == 'schedule'
+        || needs.closure-scope.outputs.case != 'skip'
+      )
     runs-on: ubuntu-latest
     timeout-minutes: 100
     # 'true' exactly when this run is a `pull_request` whose diff the gate's
