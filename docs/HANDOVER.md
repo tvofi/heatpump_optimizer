@@ -402,6 +402,14 @@ flagged it rather than claiming a carry it had not made.
   first (0005). Lane F follows Wave 5. #303 at zero: stubs pinned, `max_cc`
   48 → 50 bought a narrowing (owner, 2026-09-11).**
 
+**Owed from 2026-09-14: a stale-pin sweep.** #960 SHA-pinned every mutable
+`uses:` in `.github/workflows/` (the frozen tag rides each pin as a trailing
+comment). No lane sweeps refs for staleness -- `--sunset` reads policy
+markers, and nothing under `.claude/workflows/` or `tests/` reads a workflow
+ref (grep at merge base `c62210e`) -- so until the weekly `record` beat
+(#959) grows one, an upstream fix reaches this repository only when a seat
+re-pins deliberately.
+
 ## The machine this runs on — measure it, do not read it
 
 A seat's box is not the owner's, and a container seat reading a description of

@@ -297,7 +297,7 @@ INERT = (
     # pull request regardless. It is a real test; it is simply not one of
     # THIS gate's scripts.
     "tests/card_browser.mjs",
-    # The four workflows that are not the gate. Each defines its own jobs,
+    # The three workflows that are not the gate. Each defines its own jobs,
     # which run on every pull request regardless of what this gate selects --
     # the same argument as `tests/card_browser.mjs` above, one directory over.
     # No test script reads any of them, so a change to one needs no script
@@ -315,10 +315,14 @@ INERT = (
     # selects that script instead of skipping. A file cannot be both INERT
     # and inside a recorded closure; `closure.py` refuses that pair, which is
     # what turned this from a judgement into a check.
+    # `.github/workflows/release.yml` made the same move for #960 (D11-07):
+    # an owner-approved `id-token: write` landed on its release job, and
+    # `tests/entities.py` pins that grant the same way it pins the
+    # governance ones -- a file a gate script reads is a dependency, not
+    # inert, whatever directory it lives in.
     ".github/workflows/hassfest.yml",
-    ".github/workflows/release.yml",
     ".github/workflows/validate.yml",
-    # Same class as the three above (ledger finding (e), #201): its own jobs,
+    # Same class as the two above (ledger finding (e), #201): its own jobs,
     # run on every pull request regardless; no test script reads it.
     ".github/workflows/codeql.yml",
     # A manual QA render (writes ../setup-qa/). No gate script reads it.

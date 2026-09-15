@@ -27,7 +27,7 @@
   },
   "tests/entities.py": {
    "seconds": 21.2,
-   "rc": 0
+   "rc": 1
   },
   "tests/env_drift.py": {
    "seconds": 0.5,
@@ -384,6 +384,7 @@
    ".claude/workflows/vendor/markdown-it.min.js",
    ".gitattributes",
    ".github/workflows/governance.yml",
+   ".github/workflows/release.yml",
    ".github/workflows/tests.yml",
    "README.md",
    "RELEASE_NOTES.md",
