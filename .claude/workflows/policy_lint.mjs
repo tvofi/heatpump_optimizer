@@ -383,6 +383,16 @@ const LOOP_CHECK_NAMES = [
   { name: 'badRefLine', file: 'policy_lint.mjs', kind: 'return' },
   { name: 'checkCounts', file: 'counts.mjs', kind: 'return' },
   { name: 'CAP_RES', file: 'counts.mjs', kind: 'array' },
+  // The pr-body contract and the one friction grammar it shares with `--stats`.
+  // Neither is a record-mode check; both are driven inside the same acceptance
+  // and were in the position the corpus checks were in before this lane
+  // existed -- an emptied `checkPrBody` was refused by eight fixture pins and
+  // nothing asked whether the drive that holds those pins is the drive that
+  // runs. Emptying `frictionEntries` leaves the contract accepting every
+  // `## Friction` section and the histogram keying nothing, which is the
+  // silent shape the shared parser replaced.
+  { name: 'checkPrBody', file: 'policy_lint.mjs', kind: 'return' },
+  { name: 'frictionEntries', file: 'policy_lint.mjs', kind: 'return' },
 ]
 
 // WHAT THIS PIN DOES NOT COVER, stated rather than implied. It compares the
@@ -1744,25 +1754,30 @@ function verdictClasses(text = read(WAVE_SCRIPT)) {
   return set.size ? [...set].sort() : null
 }
 
-// A `## Friction` section names, per bullet, the rule id that cost the seat
-// time. A bullet with no backticked id is counted under a single bucket rather
-// than dropped: an unparsed bullet is friction that happened, and silently
-// discarding it biases the histogram toward "no friction".
+// A `## Friction` section names, per entry, the rule id that cost the seat
+// time. The key is the `<rule_id>` of the template's grammar, read by the SAME
+// parser `checkPrBody` refuses with (`frictionEntries`), so a body the contract
+// accepted is a body this histogram can classify. It was not: this read the
+// first backticked span of 2-80 characters on a LIST-MARKED line and called
+// any other marked line unlabelled, while the contract read `<rule_id>:
+// <class>: <evidence>`, marker optional, backticks tolerated. Over the 156
+// pull requests merged in v6.4.0..cb30d98 the contract had passed 54 entries;
+// this saw the 21 that carried a marker and none of the 33 that did not,
+// keyed 6 of the 21 on their rule id, 7 on a fragment (a command quoted in
+// the evidence, or the entry's own prefix cut at an inner backtick), and
+// bucketed 8 as unlabelled because the whole entry sat inside one backtick
+// pair longer than 80 characters or wrapped onto a second line. The one key
+// the cron then filed on was that bucket. An entry that parses under no
+// grammar is still counted under one bucket rather than dropped: an unparsed
+// entry is friction that happened, and discarding it biases the histogram
+// toward "no friction". Merged bodies are never re-checked by the contract,
+// so this bucket is where a body that predates a refusal, or was edited after
+// it ran, still shows.
 const FRICTION_UNLABELLED = '(unlabelled friction bullet)'
 
 function frictionIds(body) {
-  const ids = []
-  let inSection = false
-  for (const line of String(body ?? '').split('\n')) {
-    if (/^##\s/.test(line)) {
-      inSection = /^##\s+Friction\b/i.test(line)
-      continue
-    }
-    if (!inSection || !/^\s*[-*]\s/.test(line)) continue
-    const m = line.match(/`([^`\n]{2,80})`/)
-    ids.push(m ? m[1] : FRICTION_UNLABELLED)
-  }
-  return ids
+  const section = sections(String(body ?? '')).get('Friction') ?? ''
+  return frictionEntries(section).map((e) => e.id ?? FRICTION_UNLABELLED)
 }
 
 // The plan's threshold: three or more of one key inside the window opens a
@@ -2306,7 +2321,7 @@ const REQUIRED_ROT = {
     ],
   },
   'pr-body': {
-    count: 7,
+    count: 8,
     must: [
       'section. Every one is content',   // a heading that is missing outright
       'no `## Figures` section',         // the figures section specifically, pinned by name
@@ -2314,6 +2329,8 @@ const REQUIRED_ROT = {
       'does not name',                   // the body's head is not the head CI ran
       'is not in the tree. A carry',     // a forward-carry destination that is gone
       'does not parse',                  // an unreadable friction line
+      'does not parse: "- a second bullet',  // a bullet after a labelled entry opens an entry; it is not folded
+      'does not parse: "`budgets`: `annoying`',  // a class outside the five is refused, not read as an id
       'is red and',                      // a red check the body never names
     ],
   },
@@ -3578,6 +3595,55 @@ const isBareNa = (text) => {
   return after.length < 3
 }
 
+// THE ONE FRICTION GRAMMAR. `.github/PULL_REQUEST_TEMPLATE.md` prescribes
+// `none`, or one line per event: `<rule_id>: <unclear|contradiction|unenforced|
+// stale|cost>: <evidence>`. `checkPrBody` refuses against this and the `--stats`
+// histogram keys against it, through this one function, because two readings
+// of the same section disagreed in silence (the measurement is at
+// `frictionIds`).
+//
+// Tokenising: an entry OPENS on a list marker, on an `id: event:` shape, or on
+// a near-miss `word:` shape; any other line CONTINUES the entry above it. The
+// continuation rule is load-bearing -- this corpus wraps at eighty columns, so
+// evidence longer than a few words spans lines, and treating each physical
+// line as an entry refused the first well-formed body this check ever saw.
+// The near-miss rule refuses `index: Cost:` and `index: unenforced but no
+// second colon` instead of folding them into the entry above, where a
+// malformed second entry cost nothing. The list-marker rule is the newest: a
+// line that starts with `- ` or `* ` is a second event by the template's own
+// words, whatever follows the marker, and before it existed an unlabelled
+// bullet after a labelled entry folded into that entry's evidence -- accepted
+// by the contract, counted as unlabelled by the histogram, visible to nobody.
+//
+// The id charset admits `#` and `/`, so `CLAUDE.md#budgets` and a brief's path
+// parse as ids: the template constrains the class, not the id, and the class
+// is the half that carries meaning. Backticks around the id and the class are
+// tolerated because every other policy file writes an identifier that way.
+// A section that is `none` has no entries; that is the contract's accept path
+// and the histogram's zero, and it is decided here so neither caller can read
+// `none` as one unparseable entry.
+const FRICTION_ID = '[A-Za-z][A-Za-z0-9_.#/-]*'
+const FRICTION_ENTRY_RE = new RegExp(`^[-*]?\\s*\`?(${FRICTION_ID})\`?\\s*:\\s*\`?([a-z-]+)\`?\\s*:\\s*(.+)$`)
+const FRICTION_OPENS_RE = new RegExp(`^[-*]?\\s*\`?${FRICTION_ID}\`?\\s*:\\s*\`?[a-z-]+\`?\\s*:`)
+const FRICTION_NEAR_MISS_RE = new RegExp(`^[-*]?\\s*\`?${FRICTION_ID}\`?\\s*:`)
+const FRICTION_BULLET_RE = /^[-*]\s/
+
+function frictionEntries(text) {
+  const section = String(text ?? '').trim()
+  if (!section || isNone(section)) return []
+  const lines = []
+  for (const raw of section.split('\n').map((l) => l.trim()).filter(Boolean)) {
+    const opens = FRICTION_BULLET_RE.test(raw) || FRICTION_OPENS_RE.test(raw) || FRICTION_NEAR_MISS_RE.test(raw)
+    if (opens || !lines.length) lines.push(raw)
+    else lines[lines.length - 1] += ' ' + raw
+  }
+  return lines.map((line) => {
+    const m = FRICTION_ENTRY_RE.exec(line)
+    if (!m || !FRICTION_EVENTS.includes(m[2])) return { line, id: null, event: null, evidence: null }
+    return { line, id: m[1], event: m[2], evidence: m[3] }
+  })
+}
+
 function sections(body) {
   const out = new Map()
   let cur = null
@@ -3689,46 +3755,19 @@ function checkPrBody(bodyPath, { head = '', title = '', red = [], paths = [] } =
     }
   }
 
-  // Friction is the input to the policy-evolution loop. An unparseable line is a
-  // signal nobody can count, so the histogram would silently under-report.
-  const friction = (secs.get('Friction') ?? '').trim()
-  if (friction && !isNone(friction)) {
-    // An entry may WRAP. This corpus wraps its prose at eighty columns, so any
-    // evidence sentence longer than a few words spans two lines -- and treating
-    // each physical line as its own entry refused the continuation, which is
-    // the second false refusal this parser produced on the first well-formed
-    // body it ever saw. A line that starts a new `id: event:` opens an entry;
-    // anything else continues the one above it. The first non-empty line must
-    // still open an entry, so a block of free prose is refused exactly as before.
-    const entryStart = /^[-*]?\s*`?[A-Za-z][A-Za-z0-9_.-]*`?\s*:\s*`?[a-z-]+`?\s*:/
-    const entries = []
-    for (const raw of friction.split('\n').map((l) => l.trim()).filter(Boolean)) {
-      // A continuation is prose. A line shaped like `word: word:` is TRYING to
-      // be an entry and failing -- `index: Cost:` (capitalised) and
-      // `index: unenforced but no second colon` both folded silently into the
-      // entry above, so a malformed second entry cost nothing and the histogram
-      // under-reported exactly as an unparseable first entry would. Fold real
-      // prose; refuse a near-miss.
-      const nearMiss = /^[-*]?\s*`?[A-Za-z][A-Za-z0-9_.-]*`?\s*:/.test(raw)
-      if (entryStart.test(raw) || !entries.length) entries.push(raw)
-      else if (nearMiss) entries.push(raw)
-      else entries[entries.length - 1] += ' ' + raw
-    }
-    for (const line of entries) {
-      // Backticks around the id and the event are tolerated because every other
-      // policy file in this repository writes an identifier that way, so a seat
-      // reaching for `## Friction` writes `budgets`, not budgets. The first real
-      // body this check ever saw was refused for exactly that, and the refusal
-      // was the check's, not the body's: no fixture exercised a WELL-FORMED
-      // friction line, so the accept path had never run. Tolerating the marks
-      // removes a false refusal and no true one -- the event must still be in
-      // the closed vocabulary below, which is the half that carries meaning.
-      const m = /^[-*]?\s*`?([A-Za-z][A-Za-z0-9_.-]*)`?\s*:\s*`?([a-z-]+)`?\s*:\s*(.+)$/.exec(line)
-      if (!m || !FRICTION_EVENTS.includes(m[2])) {
-        out.push({ severity: 'error', check: 'pr-body', where: bodyPath,
-          message: `\`## Friction\` line does not parse: ${JSON.stringify(line.slice(0, 50))}. Write \`none\`, or \`<rule_id>: <${FRICTION_EVENTS.join('|')}>: <evidence>\`.` })
-      }
-    }
+  // Friction is the input to the policy-evolution loop. An entry the grammar
+  // does not parse is a signal the histogram can only bucket, never classify,
+  // so it is refused here, where the seat that wrote it can still fix it --
+  // and by the same parser the histogram keys with (`frictionEntries`), so the
+  // contract cannot accept what the histogram cannot read. Free prose after a
+  // parsed entry is its wrapped evidence and passes; a first line of free
+  // prose, a bullet that names no rule and no class, and a near-miss are each
+  // an entry that does not parse. Merged bodies are never re-read: this runs
+  // on `pull_request` events only.
+  for (const e of frictionEntries(secs.get('Friction'))) {
+    if (e.id) continue
+    out.push({ severity: 'error', check: 'pr-body', where: bodyPath,
+      message: `\`## Friction\` line does not parse: ${JSON.stringify(e.line.slice(0, 50))}. Write \`none\`, or \`<rule_id>: <${FRICTION_EVENTS.join('|')}>: <evidence>\`.` })
   }
 
   // A red check the body does not name is a red check nobody answered. The
@@ -4197,7 +4236,7 @@ function main() {
 // `LOOP_CHECK_NAMES` are the two enumerations -- the corpus checks and the
 // record mode's -- `assertAcceptance` is the thing under test, and
 // `derivations` is its only argument.
-export { CORPUS_CHECK_NAMES, LOOP_CHECK_NAMES, assertAcceptance, derivations }
+export { CORPUS_CHECK_NAMES, LOOP_CHECK_NAMES, assertAcceptance, derivations, frictionEntries }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   main()

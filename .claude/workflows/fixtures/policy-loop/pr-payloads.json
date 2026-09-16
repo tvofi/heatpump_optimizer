@@ -1,16 +1,16 @@
 {
   "_healthy": ["9003"],
   "_healthy_comment": "The healthy window is a SUBSET of the same payloads rather than a second file: healthy here means nothing reached the threshold and no verdict fell outside the grammar, which is a property of the window and not of a document. #9003 alone has one friction bullet, two in-grammar verdicts and no unlabelled bullet -- every key below the threshold of three and nothing off-grammar -- so every stats finding must be absent.",
-  "_comment": "Shaped exactly as fetchWindow builds it: pr -> {body, comments:[{body}]}. Held as a fixture rather than fetched so the stats histogram is pinned without a network, a token, or a repository that happens to have the right history. Three `Fix review: blocked` verdicts and three `CLAUDE.md#budgets` friction bullets put one key of each kind at the threshold; one verdict is deliberately outside the grammar in web-fix-wave.js so the drift report is pinned too.",
+  "_comment": "Shaped exactly as fetchWindow builds it: pr -> {body, comments:[{body}]}. Held as a fixture rather than fetched so the stats histogram is pinned without a network, a token, or a repository that happens to have the right history. Three `Fix review: blocked` verdicts and three `CLAUDE.md#budgets` friction entries put one key of each kind at the threshold; one verdict is deliberately outside the grammar in web-fix-wave.js so the drift report is pinned too. The friction entries are written in the template's grammar, `<rule_id>: <class>: <evidence>`, in the three spellings a body uses -- backticked id and class, bare, and unmarked by a list bullet -- so the histogram keys on the rule id the grammar names and not on whichever backticked span comes first; #9002's second bullet parses under no grammar and is the unlabelled bucket's one witness.",
   "9001": {
-    "body": "Closes #9101. Part of #201.\n\n## Friction\n\n- `CLAUDE.md#budgets` cost twenty minutes: the cap was measured at the wrong merge base.\n- `tests/README.md#scoped-gate` read as if MODE: SCOPED and MODE: FULL were comparable.\n\n## Evidence\n\nNothing in this section is friction.\n",
+    "body": "Closes #9101. Part of #201.\n\n## Friction\n\n- `CLAUDE.md#budgets`: `cost`: twenty minutes, because the cap was measured at the wrong merge base.\n- `tests/README.md#scoped-gate`: `unclear`: read as if MODE: SCOPED and MODE: FULL were comparable.\n\n## Evidence\n\nNothing in this section is friction.\n",
     "comments": [
       { "body": "Fix review: blocked — the mutation proof names checks that pass at this head.\n\nRESULT ..." },
       { "body": "Fix review: merge\n\nRESULT re-measured with the finder's harness." }
     ]
   },
   "9002": {
-    "body": "Closes #9102.\n\n## Friction\n\n- `CLAUDE.md#budgets` again: two seats paid the same read.\n- a bullet with no backticked rule id at all\n",
+    "body": "Closes #9102.\n\n## Friction\n\n- CLAUDE.md#budgets: cost: two seats paid the same read, and `tests/README.md` names the rule\n  without the cap, which is the line this entry wraps onto.\n- a bullet with no rule id and no class at all\n",
     "comments": [
       { "body": "Fix review: blocked \u2014 head moved under review, measured 0000000." },
       { "body": "Fix review: merge\n\nRe-measured at the repaired head." },
@@ -18,7 +18,7 @@
     ]
   },
   "9003": {
-    "body": "Closes #9103.\n\n## Friction\n\n- `CLAUDE.md#budgets` a third time in this window.\n\n## Notes\n\n- `tools/audit/briefs/fixer.md` is named outside the Friction section and must not be counted.\n",
+    "body": "Closes #9103.\n\n## Friction\n\nCLAUDE.md#budgets: cost: a third time in this window, written with no list marker.\n\n## Notes\n\n- `tools/audit/briefs/fixer.md` is named outside the Friction section and must not be counted.\n- fixer.md: cost: an entry-shaped line outside the section must not be counted either.\n",
     "comments": [
       { "body": "Fix review: blocked — the null control is missing for the time claim." },
       { "body": "Fix review: merge\n\nThird passing verdict in this window, so the passing class clears the threshold too." },
