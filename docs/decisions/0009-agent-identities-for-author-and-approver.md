@@ -2,7 +2,8 @@
 
 Status: recorded 2026-09-14 from the repository owner's in-session instruction
 (#201 comment 5670207248, the D11 wave's decision on #954). **Every GitHub-side
-step in this record is the owner's and none has happened**: no machine account
+step in this record is the owner's and none had happened then**, and the status
+notes below supersede this paragraph: no machine account
 exists, the seats still authorize as the owner, and ruleset `main-protect`
 (`22628467`) still carries no `pull_request` rule with `bypass_actors` =
 `[{RepositoryRole 5, always}]` (re-verified 2026-09-14 at `2e9a4d8` by the
@@ -21,7 +22,8 @@ record is a plan with its checks written down — the shape 0008 landed in — a
 > token, so the seat recording this note could not re-read it. Step 3b landed
 > with #1071 (`059f047`): the `delivery-status-publish` lane pushes as
 > `tvofi-seat-author` (#1065's force-push at 19:37:11Z, #201 comment
-> 5703429662). **Not landed:** the rest of step 3 — seats still authenticate as
+> 5703429662). **Not landed** at that note (steps 3 and 5 since, in the next
+> note): the rest of step 3 — seats still authenticate as
 > `tvofi` (`gh api user --jq .login`), so the author half of step 4 is
 > unverified, and the App has not yet approved a pull request the machine
 > account authored (its APPROVED review 5227837364 on #1065, authored by
