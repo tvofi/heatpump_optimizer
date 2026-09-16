@@ -1720,19 +1720,20 @@ R.check(
 # The scale is CUMULATIVE -- a tier is met only when it and every tier below
 # it have every rule done or exempt -- which is why the derivation walks the
 # tiers in order and stops at the first incomplete one, rather than asking
-# whether the named tier's own rules pass. The two readings disagreed when
-# this check was written, at merge base cb30d98: Gold was incomplete on
-# docs-examples alone while Platinum's own three rules were all done, so a
-# per-tier reading returned platinum and the cumulative one silver. The same
-# pull request then flipped docs-examples on the Blueprints Exchange listing
-# (the pin just above), which completed Gold and Platinum in one edit, and the
-# manifest moved to platinum beside it -- the register and the claim moving
-# together, instead of the manifest being left behind the way the two coverage
-# rows above were left behind by the tree. Every tier is complete now and the
-# two readings agree, which is exactly when the cumulative rule is easiest to
-# drop and still needed: a row that regresses below Platinum leaves
-# Platinum's own three rules done, so only the cumulative walk sees it --
-# driven, a Silver row set to todo derives bronze and this check goes red.
+# whether the named tier's own rules pass. On this tree the register is
+# complete -- every rule in all four tiers done or exempt, docs-examples done
+# on the Blueprints Exchange listing pinned just above -- so both readings
+# return platinum, and the manifest declares platinum. That agreement is
+# exactly when the cumulative rule is easiest to drop and still needed: a row
+# that regresses below Platinum leaves Platinum's own three rules done, so a
+# per-tier reading would go on returning platinum while only the cumulative
+# walk sees the regression -- driven, a Silver row set to todo derives bronze
+# and this check goes red. The two readings last disagreed at merge base
+# cb30d98, before the listing existed, and the pull request that added this
+# check flipped docs-examples and moved the manifest to platinum in the same
+# change -- the register and the claim moving together, instead of the
+# manifest being left behind the way the two coverage rows above were left
+# behind by the tree.
 #
 # Two design choices, stated so they are not read as bugs. The tier
 # membership below is the published checklist's own partition -- 20 Bronze,
