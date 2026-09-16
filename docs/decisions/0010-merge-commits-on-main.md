@@ -87,22 +87,36 @@ in which the assumption was actually written down somewhere in this tree.
    subject is `Merge pull request #N …`, compare `git log -1 --format=%b` on
    that commit against that pull request's `.title` and against the first line
    of its `.body`, and print the API failure count beside the result. Measured
-   over `v6.5.0..a462c50`, **16 of 19** merge bodies equalled the title and
-   **0 of 19** contained the body's first line, 0 API refusals.
+   over `v6.5.0..c662274`, **16 of 20** merge bodies equalled the title and
+   **0 of 20** contained the body's first line, 0 API refusals — and the
+   `0` is the durable half: it was 0 at every base this was taken at, while
+   the `16 of n` grows its denominator with every merge.
 
    **"By default" is load-bearing, not hedging.** A merger may supply the body
-   at merge time, and three have in one window — #1053, #1055 and #1057, each
-   hand-written. So the title is the surface to check, and it is not the only
-   one.
+   at merge time, and **four** had by `c662274` — #1053, #1055, #1056 and
+   #1057, each hand-written, one more than a day earlier. So the title is the
+   surface to check, and it is not the only one; re-run the enumerator rather
+   than reading either number off this page.
 
    **Why the grep form of this measurement is no longer sound**, which is
    point 2 biting its own evidence: searching `main`'s *concatenated* commit
    messages for a pull-request body's first line now finds branch commit
-   messages too, because those land on `main`. It read 0 of 16 when this
-   record was drafted and 1 of 19 two days later — #1055, whose seat wrote the
-   same sentence in its commit message `a8ea8e4` and in its pull-request body.
-   The merge commit's own body still did not carry it. Compare the merge
-   commit, not the history.
+   messages too, because those land on `main`. The clearest case is **#1055**,
+   whose seat wrote the same sentence in its commit message `a8ea8e4` and in
+   its pull-request body; `a8ea8e4` is not first-parent, and the merge commit's
+   own body does not carry that sentence.
+
+   **This record states no count for the grep form, because it has none.** How
+   many pull requests it "finds" is a function of how many leading characters
+   of the body the search happens to compare, and nothing else. Over
+   `v6.5.0..c662274`, comparing the first *n* characters of each body's first
+   line against `git log --format=%B` for that window gives **6** hits at
+   *n*=20, **2** at 30 and 40, **1** at 55, and **0** at 80, 120 and for the
+   whole first line. The first draft of this record reported the *n*=55 answer
+   as though it were the answer; a reviewer using a different prefix got 2 and
+   could not reproduce it, which is how the defect surfaced. **Compare the
+   merge commit's own body, not the history** — that measurement has no free
+   parameter.
 
    So a closing keyword in a pull-request **title** now reaches `main` as a
    commit message, and a seat that writes `tools/audit/briefs/orchestrator.md`
@@ -143,22 +157,49 @@ in which the assumption was actually written down somewhere in this tree.
   for it, per point 2 and the first bullet above.
 - **Residual sites, named here rather than filed as an issue**, because a
   later seat reading this record is where they will be looked for. Each states
-  the old mechanic in a place this pull request judged out of its scope:
-  `.claude/workflows/policy_lint.mjs` lines 2013, 2021, 2089, 2094, 2755 and
-  3052 (the `recorded_at` provenance messages — the check is right, the
-  sentence beside it is the squash one); `tests/features.py:15729` (the same
-  sentence); `tests/entities.py` lines 10216 and 10221 (a check **name** and
-  its failure message, a pinned surface, with the method-independent statement
-  already in the comment above them); and `.claude/workflows/carry-752.json`,
-  whose brief uses "a squash" as the name for what `git merge-tree`
-  simulates — the simulation it prescribes is right under either method, and
-  the file is another seat's carry; and `docs/decisions/0003`'s closing
-  sentence — "none of the branch SHAs survives its squash, which is why this
-  file cites none of them" — which is a true account of why 0003 cites no
-  SHA and a misleading rule to carry forward, since a branch SHA does now
-  survive. Amending another decision record is its own act and is not done
-  here. None is a defect: each describes a check or a procedure whose
-  behaviour is unchanged. All are wrong as prose.
+  the old mechanic in a place the pull request that landed this record judged
+  out of its scope. **Cited by the sentence, never by the line**, for the
+  reason point 3 gives about counts: a line number in a file under active edit
+  is the same self-invalidating figure in a different shape, and these were
+  written as line numbers first — six of them, correct at `d1a531b` and wrong
+  the moment this branch's own 15 added lines to that file displaced them, in
+  the commit that added this record. The enumerator that finds all of them
+  wherever they have moved to, and which is the citation:
+
+      git grep -nF -f - <<'PATTERNS'
+      deleted by the squash that lands it
+      branch is open and stays on it after the squash
+      A ledger stamped from a branch head names a SHA the squash deletes
+      a suffix-less squash is invisible
+      A ledger stamped from HEAD names a SHA the squash deletes
+      by the next --amend and deleted by the squash-merge that lands it
+      and reachable from origin/main, so a squash cannot orphan it
+      wrong even while it passes the check above, and a squash then deletes it
+      PATTERNS
+
+  **Run as given it returns ten hits, and two of them are not residual sites**:
+  this bullet itself, which is unavoidable and harmless, and
+  `docs/plan-2026-09-open-issues.md`'s `#616` row, which the first pattern also
+  matches and which is *history* — a record of a merged pull request, correctly
+  left alone under this record's own three-way rule. Stated rather than tuned
+  away: a pattern narrowed until it matches exactly the set someone had in mind
+  is the shape that later matches nothing and reports a confident zero.
+
+  The first five hits are in `.claude/workflows/policy_lint.mjs` — the
+  `recorded_at`
+  provenance messages and two fixture-vacuous strings; the sixth is the same
+  sentence in `tests/features.py`; the last two are in `tests/entities.py`, a
+  check **name** and its failure message, a pinned surface with the
+  method-independent statement already in the comment above them. Two more have
+  no sentence worth grepping and are named by file: `.claude/workflows/carry-752.json`,
+  whose brief uses "a squash" as the name for what `git merge-tree` simulates —
+  the simulation it prescribes is right under either method, and the file is
+  another seat's carry — and `docs/decisions/0003`'s closing sentence, *"none of
+  the branch SHAs survives its squash, which is why this file cites none of
+  them"*, a true account of why 0003 cites no SHA and a misleading rule read
+  forward, since a branch SHA does now survive. Amending another decision record
+  is its own act and is not done here. **None is a defect**: each describes a
+  check or a procedure whose behaviour is unchanged. All are wrong as prose.
 - **This list is a human reading, and nothing in the tree keeps it honest.**
   The pull request that landed this record sorted every tracked line matching
   `/squash/i` into live instruction, standing assertion, or historical record,
