@@ -111,7 +111,7 @@ issues' own measure-first discipline, honoured.
 
 ## Standing rules for every item
 
-- One PR per issue (or one tightly themed group), squash-merged, closing
+- One PR per issue (or one tightly themed group), merged, closing
   its issue in the body.
 - Tests **import** production symbols. A test that re-implements a
   production formula and asserts against its own copy pins nothing

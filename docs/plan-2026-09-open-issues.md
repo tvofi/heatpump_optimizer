@@ -1261,8 +1261,8 @@ judge comments on each issue and summarised on #201.
   forbids paying for an addition by cutting evidence, so at its cap it can
   take nothing new. That is a real constraint on the living handover and is
   itself owed work — see `## Standing rules`.
-- **A pull request cannot name its own squash-merge SHA.** GitHub creates the
-  squash commit at merge time, so a row saying **merged `<sha>`** written in its
+- **A pull request cannot name its own merge SHA.** GitHub creates the
+  merge commit at merge time, so a row saying **merged `<sha>`** written in its
   own branch is either back-filled later or false: #612's row, which reads *"Its
   own row is this one"*, was in fact written by **#621** at `07ae2d8`, nine
   merges later. Rows for merges that have already happened carry their SHA; a

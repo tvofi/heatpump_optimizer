@@ -128,9 +128,11 @@ in which the assumption was actually written down somewhere in this tree.
   sentence beside it is the squash one); `tests/features.py:15729` (the same
   sentence); `tests/entities.py` lines 10216 and 10221 (a check **name** and
   its failure message, a pinned surface, with the method-independent statement
-  already in the comment above them); `docs/plan-card-decomposition.md` lines
-  85 and 262 ("one PR per issue, squash-merged"). None is a defect: each
-  describes a check whose behaviour is unchanged. All are wrong as prose.
+  already in the comment above them); and `.claude/workflows/carry-752.json`,
+  whose brief uses "a squash" as the name for what `git merge-tree`
+  simulates — the simulation it prescribes is right under either method, and
+  the file is another seat's carry. None is a defect: each describes a check
+  or a procedure whose behaviour is unchanged. All are wrong as prose.
 - This record is excluded from the policy corpus by name in
   `.claude/workflows/policy_lint.mjs`'s `CORPUS_EXCLUDED`, which is the line an
   ADR owes the moment a capped file cites it — and a capped file cites this

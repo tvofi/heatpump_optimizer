@@ -82,7 +82,7 @@ anchors, not gospel.
    force a full PR run (safe); the `closures` job on main goes red until
    closures are re-derived.
 7. **Program conventions** (`docs/plan-open-issues.md`, "Standing rules"):
-   one PR per issue, squash-merged; tests import production symbols; claim
+   one PR per issue; tests import production symbols; claim
    files rewritten deliberately with the drift explained.
 
 ## Render model today (what every collaborator must respect)
@@ -259,7 +259,7 @@ and rules as `claimed_drift.txt`; `card.mjs` also checks the stamp).
 
 ## PR sequence
 
-Each PR is one issue, squash-merged, byte-identical, gated as above.
+Each PR is one issue, byte-identical, gated as above.
 
 **PR 0 — Safety net and scaffolding (this PR).** `card_drift.mjs`,
 `card_rig.mjs` (the vm context, states and topologies `card.mjs` and
