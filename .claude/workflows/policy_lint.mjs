@@ -1441,10 +1441,17 @@ const DISPOSITION_FILES = ['docs/plan-2026-09-open-issues.md', 'docs/HANDOVER.md
 // number shares no seam with any other. A file speaks for <N> only through a
 // line anchoring <N> itself (`rowAnchor`), so a misnamed file dispositions nobody.
 const ROW_DIR = 'docs/delivery'
+// The listing is swappable, as `rowFreezeSource` is, so the acceptance drives
+// `rowFiles` and `recordRegionOverTree` themselves: emptying either, or dropping
+// `rowFiles()` from the region, refuses every row file and survived #1081's review.
+let rowFileSource = () => {
+  try { return fs.readdirSync(path.join(ROOT, ROW_DIR)).map((n) => [n, () => read(`${ROW_DIR}/${n}`) ?? '']) } catch { return [] }
+}
 function rowFiles() {
-  let names = []
-  try { names = fs.readdirSync(path.join(ROOT, ROW_DIR)) } catch { return {} }
-  return Object.fromEntries(names.flatMap((n) => (/^\d+\.md$/.test(n) ? [[n.slice(0, -3), read(`${ROW_DIR}/${n}`) ?? '']] : [])))
+  return Object.fromEntries(rowFileSource().flatMap(([n, text]) => (/^\d+\.md$/.test(n) ? [[n.slice(0, -3), text()]] : [])))
+}
+function recordRegionOverTree() {
+  return recordRegion(read(DISPOSITION_FILES[0]) ?? '', read(DISPOSITION_FILES[1]) ?? '', rowFiles())
 }
 
 // The table stops growing. What it held when the files began stays a valid
@@ -2838,7 +2845,7 @@ function assertAcceptance(derived) {
   // misnamed file, or another number in its prose, is refused; and files alone
   // never stand in for a missing section. Then the freeze, both counts, at the
   // cap and one over, with a second table and a later section as null controls.
-  pins += 11
+  pins += 12
   const rowIn = recordRegion('## other\n', '', { 9115: '- [#9115](x/pull/9115) merged\n' })
   const rowBad = recordRegion(`## ${RECORD_SECTION}\n`, '', { 9116: '- [#9117](x/pull/9117) misnamed. #9118 too.\n' })
   if (checkRecord([{ pr: '9115', subject: 's' }], rowIn.region).length !== 0) regFail.push('a row file did not disposition its own pull request')
@@ -2856,6 +2863,10 @@ function assertAcceptance(derived) {
   rowFreezeSource = () => frz(ROW_FREEZE.rows, 0)
   if (rowFreezeOverPlan().length !== 1) regFail.push('the wired freeze check does not read its source, or reads it against no freeze')
   rowFreezeSource = liveSource
+  const liveRows = rowFileSource
+  rowFileSource = () => [['9125.md', () => '- [#9125](x/pull/9125) r\n'], ['9126.txt', () => '- [#9126](x/pull/9126) r\n']]
+  if (checkRecord([{ pr: '9125', subject: 's' }, { pr: '9126', subject: 's' }], recordRegionOverTree().region).length !== 1) regFail.push('the wired record region does not read the row files')
+  rowFileSource = liveRows
   if (regFail.length) {
     console.log(`\nFIXTURE VACUOUS: recordRegion ${JSON.stringify(regFail)}. The record's region is what makes a mention a disposition; unpinned, it can be widened back to the whole file with every other count unchanged.`)
     return 1
@@ -4111,7 +4122,7 @@ function cmdRecordDispositions(since) {
   // verdict lines below keep their semantics, so what a seat reads beside them
   // is the marker, not a silent green.
   if (enumerated.why) console.log(enumSkipLine(enumerated.why))
-  const { region, sectionFound } = recordRegion(read(DISPOSITION_FILES[0]) ?? '', read(DISPOSITION_FILES[1]) ?? '', rowFiles())
+  const { region, sectionFound } = recordRegionOverTree()
   const all = sectionFound
     ? checkRecord(prs, region)
     : [{ severity: 'error', check: 'record', where: DISPOSITION_FILES[0],
@@ -4272,7 +4283,7 @@ function main() {
     // the record class over a window it could not derive would write `0` into
     // the known-bad file as a MEASUREMENT. `requireSince` only refuses a ref
     // that was given, so the no-window reseed below is unaffected.
-    if (since) findings.push(...checkRecord(mergedPRsFromWindow(requireSince(since, '--record-known-bad')).prs, recordRegion(read(DISPOSITION_FILES[0]) ?? '', read(DISPOSITION_FILES[1]) ?? '', rowFiles()).region))
+    if (since) findings.push(...checkRecord(mergedPRsFromWindow(requireSince(since, '--record-known-bad')).prs, recordRegionOverTree().region))
     return cmdRecord(findings, { measuredRecord: !!since }), process.exit(0)
   }
 
