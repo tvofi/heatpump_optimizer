@@ -45,6 +45,23 @@ A threshold that never fires is the always-green shape this repository keeps
 catching, so `tests/entities.py` drives BOTH sides from fixtures: a window whose
 oldest rowless merge is past the threshold is OVERDUE, and one inside it is not.
 
+A RUN THAT COULD NOT LOOK IS NOT A RUN THAT FOUND NOTHING
+---------------------------------------------------------
+The window is collected from `git log --first-parent` subjects, and a subject
+convention is a PRECONDITION rather than a design choice: this file was written
+when every merge arrived squashed as ``<title> (#N)``, the repository moved to
+merge commits, and the collector went to zero over a full window while
+reporting the same EMPTY it reports right after a stamp. Two things follow, and
+both are in the code below rather than in this paragraph.
+
+Both subject shapes are read (`SQUASH_SUBJECT`, `MERGE_SUBJECT`). And a merge
+commit the rules cannot attribute is reported, loudly, as ``UNCHECKED`` --
+`policy_lint.mjs`'s `enumSkipLine` words for the same defect one file over
+(#1050) -- because widening a pattern fixes the instance and only a guard fixes
+the class. The guard keys on the PARENT COUNT, not on the subject text, so the
+release stamp and the `record:` commits that reach `main` as direct pushes do
+not trip it.
+
 WHAT IT DOES NOT DO
 -------------------
 It does not prevent a merge with no row, and `record` on main is unchanged --
@@ -112,7 +129,38 @@ OVERDUE = "OVERDUE"
 #: different facts and only one of them is evidence. It is not a failure --
 #: right after a stamp the window is legitimately empty.
 EMPTY = "EMPTY"
+#: The window holds merge commits this file could not attribute to a pull
+#: request. Its own verdict, and the whole point of the distinction: EMPTY
+#: claims the window was read and held nothing, and a collection rule that has
+#: gone blind produces a byte-identical EMPTY over a window full of merges.
+#: That is not a hypothetical -- see `SQUASH_SUBJECT` below for the window it
+#: happened over.
+UNCHECKED = "UNCHECKED"
 UNREADABLE = "UNREADABLE"
+
+#: The two shapes a first-parent subject on `main` carries a pull-request
+#: number in, and why there are two rather than one. GitHub writes
+#: ``<title> (#N)`` when a pull request is SQUASHED and
+#: ``Merge pull request #N from <branch>`` when it is MERGED, and this
+#: repository has done both -- but chronologically, not mixed. Derive the split
+#: at your own head rather than carrying one; the enumerators are
+#:
+#:     git log --first-parent --format=%s origin/main | grep -cE '\(#[0-9]+\)$'
+#:     git log --first-parent --format=%s origin/main \
+#:       | grep -cE '^Merge pull request #[0-9]+'
+#:
+#: and what matters is not either count but that the newest squash-shaped
+#: subject is old: every first-parent commit after it is a merge commit or a
+#: release stamp pushed straight to `main`. A rule taking only the squash shape
+#: therefore collected the whole of history and nothing since that date, which
+#: is exactly what this file did -- ``DELIVERY STATUS EMPTY -- 0 rowed`` over a
+#: window whose merges every one named its pull request in the subject.
+SQUASH_SUBJECT = re.compile(r"\(#(\d+)\)\s*$")
+#: Anchored at the start and bounded after the number, so a subject merely
+#: MENTIONING a pull request ("Record #424 W1-G14 merge in delivery-status")
+#: is not taken as being that merge. `\b` rather than ` from ` because the
+#: oldest merge subjects here are ``Merge pull request #13: Broaden ...``.
+MERGE_SUBJECT = re.compile(r"^Merge pull request #(\d+)\b")
 
 
 # --------------------------------------------------------------- classifier
@@ -132,14 +180,122 @@ def mentions(number: int, texts: list[str]) -> bool:
     return any(pattern.search(t) for t in texts)
 
 
+def subject_number(subject: str) -> int | None:
+    """The pull-request number a first-parent subject names, or None.
+
+    The merge shape is tried first: a squash subject cannot also be a merge
+    subject, but a merge subject whose branch name happened to end in `(#N)`
+    could be read as one, and the number GitHub wrote at the front is the
+    authoritative one.
+    """
+    for pattern in (MERGE_SUBJECT, SQUASH_SUBJECT):
+        found = pattern.search(subject)
+        if found:
+            return int(found.group(1))
+    return None
+
+
+def subject_title(subject: str, body: str) -> str:
+    """The human title of a merge, which is not always in its subject.
+
+    A squash subject IS the title with `(#N)` appended. A merge commit's
+    subject names a BRANCH and not the work, and GitHub puts the pull
+    request's title on the first non-blank line of the commit body -- which is
+    what the pending list has to print, because a seat reading
+    `pending #1049 fix/d11-publish-concurrency` learns less than nothing about
+    what is waiting on it.
+    """
+    if MERGE_SUBJECT.search(subject):
+        for line in body.splitlines():
+            if line.strip():
+                return line.strip()
+        return subject.strip()
+    return subject[: subject.rfind("(#")].strip()
+
+
+def collect(commits: list[dict]) -> tuple[list[dict], list[dict]]:
+    """Merges in the window, and the merge commits nothing could attribute.
+
+    `commits` is the first-parent log, newest first, each entry carrying
+    `sha`, `parents` (how many), `subject` and `body`.
+
+    THE SECOND RETURN IS THE HONEST HALF, and it is keyed on the PARENT COUNT
+    rather than on the subject text. A direct push to `main` -- a release
+    stamp, a `record:` leftover-row commit -- has one parent and legitimately
+    names no pull request, so a guard asking "does this subject mention a
+    number" fires on every stamp and is worthless. A first-parent commit with
+    two parents is a pull-request merge by construction: nothing else reaches
+    `main` with two parents under the ruleset. So one the subject rules cannot
+    attribute is this file going blind, and is not anything else.
+
+    Measure the guard's false-positive surface at your own head rather than
+    trusting this sentence; the enumerator is
+
+        git log --first-parent --format='%H%x1f%P%x1f%s' <range>
+
+    filtered to entries whose parent field holds more than one sha, then to
+    those `subject_number` returns None for. At the head this was written
+    against every such residual predated `v6.2.12` -- hand-written local merge
+    subjects from the W1/W2 waves -- so none is reachable from a window a
+    release tag opens, and no single-parent commit anywhere in main's history
+    was taken by `MERGE_SUBJECT`.
+    """
+    merges: list[dict] = []
+    unattributed: list[dict] = []
+    for depth, commit in enumerate(commits):
+        number = subject_number(commit["subject"])
+        if number is None:
+            if int(commit.get("parents", 1)) > 1:
+                unattributed.append({"sha": commit["sha"],
+                                     "subject": commit["subject"]})
+            continue
+        merges.append({
+            "number": number,
+            "title": subject_title(commit["subject"], commit.get("body", "")),
+            "merge_sha": commit["sha"],
+            "commits_after": depth,
+        })
+    return merges, unattributed
+
+
+def unchecked_line(unattributed: list[dict]) -> str:
+    """The loud half of the collection guard.
+
+    Deliberately `policy_lint.mjs`'s `enumSkipLine` shape and its words --
+    `UNCHECKED this run, not confirmed empty` -- because that guard was landed
+    (#1050) for this same defect one file over: an end-anchored `(#N)` falling
+    through to a zero that means "no data" and reads as "no merges". A second
+    vocabulary for the same fact would cost a reader a translation and buy
+    nothing. Pure over its argument so the acceptance drives it with no repo.
+    """
+    example = unattributed[0] if unattributed else {}
+    return (
+        f"  skip     merge-collection      "
+        f"{len(unattributed)} merge commit(s) in the window name no pull "
+        f"request that `subject_number` recognises (e.g. "
+        f"{str(example.get('sha', ''))[:7]} "
+        f"{example.get('subject', '')!r}); the window's merged pull requests "
+        f"are UNCHECKED this run, not confirmed empty -- a merge-subject "
+        f"convention that moves out from under these rules reports every "
+        f"merge in the window as absent, which is how this file printed "
+        f"EMPTY over a window that held nothing but merges"
+    )
+
+
 def classify(merges: list[dict], texts: list[str],
-             stale_after: int = STALE_AFTER_COMMITS) -> dict:
+             stale_after: int = STALE_AFTER_COMMITS,
+             unattributed: list[dict] | tuple = ()) -> dict:
     """The ledger for one window of merges, newest first.
 
     `merges` carries, per entry, the pull-request `number`, its `title`, its
     `merge_sha`, `merged_at`, and `commits_after` -- how many commits landed on
     main after it. Everything below is derived from those and from the
     disposition files; nothing is carried.
+
+    `unattributed` is `collect`'s second return. OVERDUE outranks UNCHECKED
+    because OVERDUE is the state a seat can act on today and is what `--check`
+    exists to raise; the list is emitted and its line printed under EITHER
+    verdict, so the stronger one never hides the guard.
     """
     rows = []
     for m in merges:
@@ -150,10 +306,13 @@ def classify(merges: list[dict], texts: list[str],
         rows.append({**m, "state": state})
     overdue = [r for r in rows if r["state"] == "overdue"]
     pending = [r for r in rows if r["state"] == "pending"]
+    blind = list(unattributed)
     return {
-        "verdict": OVERDUE if overdue else (OK if rows else EMPTY),
+        "verdict": OVERDUE if overdue else (
+            UNCHECKED if blind else (OK if rows else EMPTY)),
         "stale_after_commits": stale_after,
         "merges": rows,
+        "unattributed": blind,
         "counts": {
             "rowed": sum(1 for r in rows if r["state"] == "rowed"),
             "pending": len(pending),
@@ -198,11 +357,26 @@ def render_markdown(ledger: dict) -> str:
                 f"({r.get('commits_after', 0)} commit(s) since)"
             )
         lines.append("")
+    blind = ledger.get("unattributed", [])
+    if blind:
+        lines.append("**The collection could not read the whole window.**")
+        lines.append("")
+        lines.append("```")
+        lines.append(unchecked_line(blind))
+        lines.append("```")
+        lines.append("")
+        for b in blind:
+            lines.append(f"- `{str(b.get('sha', ''))[:7]}` "
+                         f"{b.get('subject', '')}")
+        lines.append("")
     if ledger["verdict"] == EMPTY:
         lines.append("The window since the last release tag holds no merge — "
-                     "which is not evidence that rows are being written.")
+                     "which is not evidence that rows are being written, but "
+                     "IS evidence that the window was read: a run that could "
+                     "not read it reports **UNCHECKED**, above, and never "
+                     "this.")
         lines.append("")
-    elif not counts["pending"] and not counts["overdue"]:
+    elif not blind and not counts["pending"] and not counts["overdue"]:
         lines.append("Every merge in the window carries a row.")
         lines.append("")
     lines.append(
@@ -230,35 +404,72 @@ def _gh(args: list[str]) -> str:
                           text=True, check=True).stdout
 
 
-def gather(repo: str, since_tag: str | None = None) -> list[dict]:
-    """Merged pull requests in the current window, newest first.
+#: How the window's start is found, as a CONSTANT so the acceptance reads the
+#: argv this code runs rather than a copy of it.
+#:
+#: `--match 'v*'` is not decoration. `git describe --tags --abbrev=0` answers
+#: the newest tag of ANY shape, and this repository creates non-release tags:
+#: `governance.yml`'s own "Choose the window" step carries this flag and says
+#: why in a comment -- `archive-rosters-2026-09` was newer than the release tag
+#: and yielded an empty window. That is the SAME failure this file is being
+#: repaired for, reached by a different route, and the guard below cannot see
+#: it: a wrong tag produces an empty LOG, so there are no merge commits to be
+#: unattributable and the run reports a truthful EMPTY about the wrong window.
+#: Two lanes reporting on "the window" must also agree on which one it is.
+DESCRIBE_ARGV = ("git", "describe", "--tags", "--abbrev=0", "--match", "v*")
+
+#: The first-parent log format. Unit separator between the fields and record
+#: separator between commits, because `%b` is multi-line: a line-oriented
+#: format silently truncates every title to the branch name it is trying not
+#: to print.
+LOG_FORMAT = "%H%x1f%P%x1f%s%x1f%b%x1e"
+
+
+def parse_log(text: str) -> list[dict]:
+    """`LOG_FORMAT` output into commit dicts, newest first. Pure."""
+    commits: list[dict] = []
+    for record in text.split("\x1e"):
+        record = record.lstrip("\n")
+        if not record.strip():
+            continue
+        fields = (record.split("\x1f") + ["", "", ""])[:4]
+        sha, parents, subject, body = fields
+        commits.append({
+            "sha": sha.strip(),
+            "parents": len(parents.split()),
+            "subject": subject,
+            "body": body,
+        })
+    return commits
+
+
+def gather(repo: str,
+           since_tag: str | None = None) -> tuple[list[dict], list[dict]]:
+    """Merged pull requests in the current window, newest first, and the
+    merge commits in it that could not be attributed to one.
 
     The window starts at the last release tag, because that is the unit the
     record protocol itself works in -- `policy_lint --record --since <tag>` is
     what a seat runs -- and because an unbounded window would re-report every
     merge this repository has ever made.
+
+    No token and no network: the subject and the parent count are both in the
+    log, so this answers the same on a cloud seat, in a cursor lane and behind
+    a secondary rate limit, which is the property the original had and the one
+    worth keeping. `policy_lint --record`'s API enumerator asks GitHub for the
+    commit-to-pull-request map instead and is correct over this same window;
+    the two agreeing is a cross-check, and a token-dependent collector here
+    would have turned a rate limit into an EMPTY.
     """
     if since_tag is None:
         since_tag = subprocess.run(
-            ["git", "describe", "--tags", "--abbrev=0"], cwd=ROOT,
+            list(DESCRIBE_ARGV), cwd=ROOT,
             capture_output=True, text=True).stdout.strip()
     span = f"{since_tag}..origin/main" if since_tag else "origin/main"
     log = subprocess.run(
-        ["git", "log", "--first-parent", "--format=%H%x09%s", span], cwd=ROOT,
-        capture_output=True, text=True).stdout.splitlines()
-    out: list[dict] = []
-    for depth, line in enumerate(log):
-        sha, _, subject = line.partition("\t")
-        m = re.search(r"\(#(\d+)\)\s*$", subject)
-        if not m:
-            continue
-        out.append({
-            "number": int(m.group(1)),
-            "title": subject[: subject.rfind("(#")].strip(),
-            "merge_sha": sha,
-            "commits_after": depth,
-        })
-    return out
+        ["git", "log", "--first-parent", f"--format={LOG_FORMAT}", span],
+        cwd=ROOT, capture_output=True, text=True).stdout
+    return collect(parse_log(log))
 
 
 def read_texts() -> list[str]:
@@ -278,7 +489,8 @@ def main() -> int:
     ap.add_argument("--markdown", action="store_true",
                     help="print the #201 region instead of the ledger")
     ap.add_argument("--check", action="store_true",
-                    help="exit 1 when a merge is OVERDUE a row")
+                    help="exit 1 when a merge is OVERDUE a row, or when the "
+                         "window could not be read (UNCHECKED)")
     ap.add_argument("--repo", default="tvofi/heatpump_optimizer")
     ap.add_argument("--since", default="")
     args = ap.parse_args()
@@ -287,14 +499,14 @@ def main() -> int:
         ledger = json.loads(Path(args.source).read_text())
     else:
         try:
-            merges = gather(args.repo, args.since or None)
+            merges, unattributed = gather(args.repo, args.since or None)
         except Exception as err:  # noqa: BLE001
             # Fails CLOSED, like every reporter here: a ledger that could not
             # be built must not read as a ledger with nothing in it.
             print(f"DELIVERY STATUS {UNREADABLE}: could not build the "
                   f"ledger: {err}")
             return 2
-        ledger = classify(merges, read_texts())
+        ledger = classify(merges, read_texts(), unattributed=unattributed)
 
     if args.emit:
         Path(args.emit).write_text(json.dumps(ledger, indent=2) + "\n")
@@ -314,16 +526,33 @@ def main() -> int:
                   f"{str(r.get('merge_sha', ''))[:7]} "
                   f"{r.get('commits_after', 0)} commit(s) since — "
                   f"{r.get('title', '')[:56]}")
+    blind = ledger.get("unattributed", [])
+    if blind:
+        print(unchecked_line(blind))
+        for b in blind:
+            print(f"  unread   {str(b.get('sha', ''))[:7]} "
+                  f"{b.get('subject', '')[:64]}")
     if ledger["verdict"] == EMPTY:
         print("  the window since the last release tag holds no merge; this "
-              "is not evidence that rows are being written")
-    elif not counts["pending"] and not counts["overdue"]:
+              "is not evidence that rows are being written, but it IS "
+              "evidence that the window was read -- a run that could not read "
+              "it reports UNCHECKED and never EMPTY")
+    elif not blind and not counts["pending"] and not counts["overdue"]:
         print("  every merge in the window carries a row")
     print()
     print("This check is NOT a required context and a red here blocks no "
           "merge. Pending is the ordinary state: the protocol writes rows in "
           "batches, and only OVERDUE means a batch has stopped being drained.")
-    if args.check and ledger["verdict"] == OVERDUE:
+    # `--check` raises UNCHECKED as well as OVERDUE, and that is a DELIBERATE
+    # widening of this flag's exit semantics rather than a side effect. The
+    # argument: this job's whole subject is noticing that something went dark,
+    # and the one state in which it cannot see is the one state it must not
+    # report as a pass -- the vacuous green this file's own docstring refuses.
+    # It costs nothing that gates: `delivery-status` is not a required
+    # context and a red here blocks no merge, which the report says on every
+    # run. The `delivery-status-publish` lane passes `--emit` and not
+    # `--check`, so it is unaffected either way.
+    if args.check and ledger["verdict"] in (OVERDUE, UNCHECKED):
         return 1
     return 0
 
