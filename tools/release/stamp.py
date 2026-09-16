@@ -106,6 +106,9 @@ GATE_TIMEOUT_S = 30.0
 # key reaches ssh through the subprocess environment only.
 KEY_PUSH_URL = f"git@github.com:{REPO}.git"
 DEFAULT_KNOWN_HOSTS = "~/.zcode/github_known_hosts"
+# A key push that cannot reach port 22 fails instead of hanging after the stamp
+# commit and tag exist locally.
+SSH_CONNECT_TIMEOUT_S = 30
 
 
 class Refuse(SystemExit):
@@ -126,9 +129,16 @@ def push_key_problem(key: str, known_hosts: str) -> str | None:
     The key must be a file of mode exactly 600: ssh refuses a looser one at
     push time, which is after the stamp commit and tag exist locally. The
     pinned host file must exist and be writable by its owner only, because a
-    host file anyone can rewrite pins nothing.
+    host file anyone can rewrite pins nothing. Neither path may be empty or
+    carry whitespace or a quote: ssh re-parses `-o UserKnownHostsFile=` on its
+    own, so such a path fails at push time even though the shell quoting holds.
     """
+    if not key or not known_hosts:
+        return "the deploy key and the known_hosts path must both be non-empty"
     key_path, hosts_path = Path(key).expanduser(), Path(known_hosts).expanduser()
+    for label, path in (("deploy key", key_path), ("known_hosts file", hosts_path)):
+        if any(ch.isspace() or ch in "'\"" for ch in str(path)):
+            return f"{label} path {str(path)!r} carries whitespace or a quote, which ssh re-splits"
     if not key_path.is_file():
         return f"deploy key {key_path} does not exist or is not a file"
     if not hosts_path.is_file():
@@ -146,7 +156,7 @@ def key_ssh_command(key: str, known_hosts: str) -> str:
     """The GIT_SSH_COMMAND the deploy-key push runs under, as measured on #201."""
     return (f"ssh -i {shlex.quote(str(Path(key).expanduser()))} -o IdentitiesOnly=yes "
             f"-o UserKnownHostsFile={shlex.quote(str(Path(known_hosts).expanduser()))} "
-            f"-o StrictHostKeyChecking=yes")
+            f"-o StrictHostKeyChecking=yes -o ConnectTimeout={SSH_CONNECT_TIMEOUT_S}")
 
 
 def push_via(refspec: str, key: str | None = None, known_hosts: str | None = None,
@@ -685,6 +695,14 @@ def self_test() -> int:
           all(part in _ssh for part in ("-i /k/stamp.key", "IdentitiesOnly=yes",
                                          "UserKnownHostsFile=/k/hosts",
                                          "StrictHostKeyChecking=yes")))
+    # ssh keeps the FIRST value of an option, so a substring check passes an
+    # earlier `=no`; every value given is read instead.
+    _words = shlex.split(_ssh)
+    _opts = [_words[i + 1] for i, w in enumerate(_words) if w == "-o" and i + 1 < len(_words)]
+    check("push: strict host checking is the only value given",
+          [o for o in _opts if o.startswith("StrictHostKeyChecking=")] == ["StrictHostKeyChecking=yes"])
+    check("push: the ssh connect is bounded",
+          f"ConnectTimeout={SSH_CONNECT_TIMEOUT_S}" in _opts and SSH_CONNECT_TIMEOUT_S > 0)
     check("push: a path with a space is quoted, not split",
           "-i '/k/my key'" in key_ssh_command("/k/my key", "/k/hosts"))
     calls.clear()
@@ -730,6 +748,17 @@ def self_test() -> int:
         _hosts.chmod(0o666)
         check("key: a host file others can rewrite refuses",
               "666" in (push_key_problem(str(_key), str(_hosts)) or ""))
+        _hosts.chmod(0o644)
+        check("key: an empty key path refuses",
+              "non-empty" in (push_key_problem("", str(_hosts)) or ""))
+        for _bad in ("sp ace", "quo'te", 'dq"te', "tab\tbed"):
+            _odd = Path(_d) / _bad
+            _odd.write_text("h")
+            _odd.chmod(0o600)
+            check(f"key: a known_hosts path with {_bad!r} refuses before push time",
+                  "whitespace or a quote" in (push_key_problem(str(_key), str(_odd)) or ""))
+            check(f"key: a key path with {_bad!r} refuses before push time",
+                  "whitespace or a quote" in (push_key_problem(str(_odd), str(_hosts)) or ""))
 
     # Where main() pushes from. Every pure piece above is correct while the
     # call site still builds its own `git push origin` -- so the region is read.
@@ -747,6 +776,10 @@ def self_test() -> int:
     check("push: the key is checked before rule 1, and a problem refuses",
           "problem = push_key_problem(args.push_key, args.known_hosts)" in _pre
           and "if problem:" in _pre and 'raise Refuse("push-key"' in _pre)
+    check("push: an empty --push-key is checked, not skipped as falsy",
+          "    if args.push_key is not None:\n        problem = push_key_problem" in _pre)
+    check("push: main refreshes origin after a key push",
+          "        if args.push_key is not None:\n            warning = refresh_origin()" in _pr)
     print(f"RESULT stamp_self_test={'pass' if ok else 'fail'}")
     return 0 if ok else 1
 
@@ -800,9 +833,9 @@ def main() -> int:
         return self_test()
     if not args.bump or not args.title:
         ap.error("--bump and --title are required (or --self-test)")
-    if args.push_key and not args.push:
+    if args.push_key is not None and not args.push:
         ap.error("--push-key only means something with --push")
-    if args.push_key:
+    if args.push_key is not None:
         problem = push_key_problem(args.push_key, args.known_hosts)
         if problem:
             raise Refuse("push-key", problem + "; nothing was written, and origin is not a fallback")
@@ -906,7 +939,7 @@ def main() -> int:
                             "refused); the stamp commit and tag were "
                             "discarded -- fetch, rewrite the notes for the new HEAD, run again: "
                             + exc.stderr.strip().splitlines()[-1]) from exc
-        if args.push_key:
+        if args.push_key is not None:
             warning = refresh_origin()
             if warning:
                 print(f"WARNING: {warning}", file=sys.stderr)
