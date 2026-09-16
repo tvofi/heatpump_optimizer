@@ -1,6 +1,6 @@
 // One fix PR group: a fixer in its own worktree under tools/audit/briefs/fixer.md,
 // then an adversarial fix reviewer under fix-review.md. The merge is a separate
-// /audit-merge invocation so that a sign-off can sit between them. The fixer
+// invocation so that a sign-off can sit between them. The fixer
 // and reviewer each carry their own model tier and a shared effort; a
 // reviewer weaker than its fixer is refused before either agent runs.
 //

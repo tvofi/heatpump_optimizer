@@ -191,13 +191,11 @@ carried by nobody, met again next round.
 
 ## Running the fix wave
 
-One group at a time is `/audit-fix`, many groups at once (honoring
-`after`-dependencies) is `/audit-wave`, and a reviewed PR is merged with its own
-`/audit-merge` — merges are never batched. The argument schema and defaults for
-each are in `.claude/workflows/audit-fix.js` and its siblings; a reviewer whose
-tier ranks below its fixer's is refused before either agent runs. A session with
-no Workflow tool available runs the same fixer and reviewer prompts from those
-files through the Agent tool instead, passing the model explicitly per call.
+`/web-fix-wave` fixes, reviews and merges groups, honoring `after`-dependencies,
+one merge at a time; a reviewer whose tier ranks below its fixer's is refused
+before either agent runs. `/web-stamp` stamps only where the deploy key is. A
+session with no Workflow tool runs the same prompts through the Agent tool,
+passing the model explicitly per call.
 
 ## Resource rules on the audit box
 
