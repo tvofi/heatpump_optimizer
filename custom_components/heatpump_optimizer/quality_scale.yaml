@@ -15,21 +15,21 @@
 # the exact schema home-assistant/core uses, ready if this integration ever
 # migrates to core.
 #
-# The manifest declares the tier this register supports cumulatively.
-# config-flow-test-coverage is done again — re-measured at full coverage
-# under the register's own instrument — so no Bronze blocker exists:
-# every Bronze rule reads done, and every Silver rule with it. Gold is short
-# of docs-examples alone, and because the scale is cumulative, Platinum's own
-# three done rows do not raise the declaration above Silver. The tier is not
-# transcribed from here by hand: tests/entities.py derives it from the rows
-# below — walking the tiers in order and stopping at the first incomplete
-# one — and refuses a manifest.json that disagrees in either direction, so
-# the row that flips docs-examples is the same pull request that moves the
-# manifest. hassfest cannot do that job: validate_iqs_file returns before it
-# reads this file for a custom integration, and the manifest key is checked
-# against the list of legal tier names and nothing else.
+# The manifest declares the tier this register supports cumulatively, and
+# every row below is now done or exempt, so that tier is the top of the
+# scale: platinum. docs-examples was the last row short of it, and it flipped
+# with the owner's Blueprints Exchange listing (cited on the row itself).
+# The tier is not transcribed from here by hand: tests/entities.py derives it
+# from the rows below — walking bronze, silver, gold, platinum in order and
+# stopping at the first tier with a row short of done or exempt — and
+# refuses a manifest.json that disagrees in either direction, so a row that
+# regresses cannot leave the manifest over-claiming. hassfest cannot do that
+# job: validate_iqs_file returns before it reads this file for a custom
+# integration, so the manifest key is checked against the list of legal tier
+# names and nothing else — measured, not assumed: the real hassfest exits 0
+# on a tier this register does not support.
 #
-# Totals: 49 done (2 vacuous) · 4 exempt · 1 todo (#218 examples). Counted
+# Totals: 50 done (2 vacuous) · 4 exempt · 0 todo. Counted
 # from this file, not carried:
 #   python3 -c "import yaml,collections;r=yaml.safe_load(open(__import__('sys').argv[1]))['rules'];\
 #   print(collections.Counter(v if isinstance(v,str) else v['status'] for v in r.values()))" <this file>
@@ -126,15 +126,24 @@ rules:
     comment: no network addresses to update; same basis as discovery
   docs-data-update: done
   docs-examples:
-    status: todo
+    status: done
     comment: >-
       issue #218 (round 2, D10-18) — the rule asks for blueprints in the
       home-assistant.io blueprint exchange, linked from the docs, and says
-      a documentation page is not a substitute. Importable blueprints now
-      exist in-tree — 3 files under blueprints/automation/, linked from
-      README.md and docs/automations.md — but the row stays todo: the
-      exchange listing itself is an owner-side forum action that does not
-      exist yet, and it is the flip's precondition.
+      a documentation page is not a substitute. Both halves now hold. The
+      in-tree half: importable blueprints under blueprints/automation/,
+      linked from README.md and docs/automations.md. The exchange half, the
+      precondition this row waited on, is the owner's listing in the
+      Blueprints Exchange category, and it links every one of those
+      blueprints by its raw import URL:
+      https://community.home-assistant.io/t/heat-pump-optimizer-blueprints/1025351
+      — the resolving `/t/<slug>/<id>` form, verified 2026-09-16 by
+      fetching it and the Discourse topic JSON beside it. Note the shape:
+      the same URL without the `/t/` segment is a 404, so a citation that
+      drops it cites nothing. No gate script can see the listing — this
+      suite runs offline, which is why run.sh excludes nightly_status.py
+      — so tests/entities.py pins this row against the URL above as a
+      literal rather than fetching it, and says so.
   docs-known-limitations: done
   docs-supported-devices: done
   docs-supported-functions: done

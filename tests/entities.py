@@ -1620,17 +1620,73 @@ R.check(
     "tools/audit/w5-partition/coverage_tree.sh and ratcheted per pull "
     "request by tests/coverage_ratchet.py (#951 pin re-taken at the flip)",
 )
+# docs-examples (#218): this pin is re-taken at the flip. The rule has two
+# halves -- importable blueprints, and a listing for them in the
+# home-assistant.io Blueprints Exchange, linked from the documentation -- and
+# the row waited on the second. The owner's listing now exists and links every
+# in-tree blueprint by its raw import URL; it was verified 2026-09-16 by
+# fetching the topic and the Discourse JSON beside it (HTTP 200, category 53
+# "Blueprints Exchange", visible, authored by the codeowner), and the three
+# raw URLs it links resolve and are set-equal to blueprints/automation/.
+#
+# The gate cannot re-take that half for itself, and this check does not
+# pretend otherwise. This suite runs offline -- it is why run.sh excludes
+# nightly_status.py, whose verdict is about a remote server rather than about
+# this tree -- so a live fetch here would put every pull request behind a
+# forum's availability and fail closed on an offline runner. The listing is
+# therefore pinned as a LITERAL URL, and what the tree can still check is
+# checked by execution:
+#
+#   - the row reads done;
+#   - the row cites the canonical URL in its resolving `/t/<slug>/<id>` form.
+#     That is not pedantry: the same URL without the `/t/` segment is a 404,
+#     and the first citation offered for this row was that form, so a pin on
+#     the bare id would have blessed a link nobody could open;
+#   - the documentation half stays true -- README.md and docs/automations.md
+#     link the same non-empty set of blueprint import URLs. Both files are
+#     already in this script's recorded closure. The blueprint FILES are not
+#     read: blueprints/automation/ is INERT, and opening one would make it a
+#     file declared unread and recorded as read, the #357 contradiction.
+#
+# So the design choice, stated: liveness of the listing is unobservable to
+# this gate and is carried by the dated verification above, exactly as the
+# old pin carried "the listing does not exist yet". If the post is ever
+# unlisted, no check here goes red -- re-verify at the next audit round.
+_QS_EXCHANGE_URL = (
+    "https://community.home-assistant.io/t/"
+    "heat-pump-optimizer-blueprints/1025351"
+)
+_qs_ex_comment = _qs_comment("docs-examples")
+_qs_bp_re = _re.compile(
+    r"https://raw\.githubusercontent\.com/tvofi/heatpump_optimizer/main/"
+    r"blueprints/automation/([A-Za-z0-9_]+\.yaml)"
+)
+_qs_bp_readme = set(_qs_bp_re.findall(readme))
+_qs_bp_docs = set(
+    _qs_bp_re.findall((Path("docs/automations.md")).read_text(encoding="utf-8"))
+)
 R.check(
-    "the register's docs-examples row is todo: the rule asks for "
-    "blueprints in the home-assistant.io blueprint exchange and that "
-    "listing is an owner-side forum action",
-    _qs_status("docs-examples") == "todo",
-    "importable blueprints exist in-tree (blueprints/automation/) and are "
-    "linked from README.md and docs/automations.md; the flip needs the "
-    "exchange listing, which no tree-local instrument can see "
-    "(qs_rules.py reports the row unmeasured for that reason, the #951 "
-    "coverage-row split) -- flip only alongside the listing and re-take "
-    "this pin (#218)",
+    "the register's docs-examples row is done: the blueprints are listed in "
+    "the home-assistant.io Blueprints Exchange",
+    _qs_status("docs-examples") == "done",
+    f"register says {_qs_status('docs-examples')!r}; the listing is "
+    f"{_QS_EXCHANGE_URL} (qs_rules.py still reports the row unmeasured, "
+    "because no tree-local walk can see a forum -- the #951 coverage-row "
+    "split) (#218)",
+)
+R.check(
+    "the docs-examples row cites the listing in its resolving /t/ form",
+    _QS_EXCHANGE_URL in _qs_ex_comment,
+    "the row's comment must carry the exact URL "
+    f"{_QS_EXCHANGE_URL}; the same address without the `/t/` segment is a "
+    "404, so a citation missing it points at nothing",
+)
+R.check(
+    "README.md and docs/automations.md link the same blueprints",
+    bool(_qs_bp_readme) and _qs_bp_readme == _qs_bp_docs,
+    f"README.md links {sorted(_qs_bp_readme)}; docs/automations.md links "
+    f"{sorted(_qs_bp_docs)} -- the rule asks for blueprints linked from the "
+    "documentation, and the exchange listing links this same set",
 )
 _QS_FIGURE = _re.compile(
     r"\d+(?:\.\d+)?\s*%|\b\d+\s+statements?\b|\b\d+\s+missed\b", _re.I
