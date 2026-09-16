@@ -870,6 +870,9 @@
           "heat_pump_defrost_entity": "Defrosting",
           "heat_pump_online_entity": "Pump online",
           "heat_pump_fault_entity": "Fault alarm",
+          "heat_pump_backup_heater_entity": "Space backup heater",
+          "heat_pump_dhw_booster_entity": "Hot water tank booster",
+          "heat_pump_capacity_limited_entity": "Capacity limited (night mode)",
           "after_save": "After saving"
         },
         "data_description": {
@@ -877,6 +880,9 @@
           "heat_pump_defrost_entity": "Optional. On while the pump reverses to melt frost off the outdoor coil. The electricity bought during a defrost goes into the coil rather than into the house. Note that many pumps are only polled every few minutes, so short defrosts are missed entirely: this is a sample of defrost activity, not a stopwatch.",
           "heat_pump_online_entity": "Optional, and strongly recommended for a cloud-connected pump. On while the pump is actually reachable. A cloud integration can keep republishing its last known readings while the pump itself has dropped off the network, which leaves every other sensor looking perfectly fresh; this is the one signal that says otherwise. On a local (LAN) connection the sensors go unavailable by themselves and this adds little.",
           "heat_pump_fault_entity": "Optional. On while the pump is reporting a fault. Only whether there is a fault is used, never the code itself.",
+          "heat_pump_backup_heater_entity": "Optional. On while the pump's own electric backup heater is running in the space heating circuit. Resistive kilowatts on the meter are not the compressor being inefficient, so while this is on the optimizer stops reading the meter as an efficiency measurement. The heat still counts: it is real heat into the house, and the house learners keep running. Useful mainly if your pump publishes no power meter, where there is otherwise no way to notice the element at all.",
+          "heat_pump_dhw_booster_entity": "Optional. On while the electric heater in the hot water tank is running. Treated the same way as the backup heater above, and each time it switches on it is also recorded as a hot water rescue - if those keep recurring, and you have turned on the immersion feedback option, the plan starts heating the tank a little earlier instead of paying resistive prices for the difference.",
+          "heat_pump_capacity_limited_entity": "Optional. On while the pump is running at a reduced compressor speed, which most units call night mode or silent mode. What the pump draws and delivers then is not what it would do unconstrained, so the optimizer stops learning efficiency and capacity from those intervals. It keeps using the measured power for cost and heat accounting, because a speed-capped compressor still draws exactly what the meter says.",
           "after_save": "Saving writes through immediately; this chooses where the dialog goes next."
         }
       },

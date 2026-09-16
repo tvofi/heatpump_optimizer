@@ -55,6 +55,9 @@ from .const import (
     CONF_HEAT_PUMP_DEFROST_ENTITY,
     CONF_HEAT_PUMP_ONLINE_ENTITY,
     CONF_HEAT_PUMP_FAULT_ENTITY,
+    CONF_HEAT_PUMP_BACKUP_HEATER_ENTITY,
+    CONF_HEAT_PUMP_DHW_BOOSTER_ENTITY,
+    CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY,
     CONF_SOLAR_RADIATION_ENTITY,
     CONF_SOLAR_FORECAST_SOURCE,
     CONF_SOLAR_LOCATION,
@@ -1393,6 +1396,16 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("entities_pump", CONF_HEAT_PUMP_DEFROST_ENTITY, _STORED, _entity_of(list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_DEFROST_ENTITY]))),
     _F("entities_pump", CONF_HEAT_PUMP_ONLINE_ENTITY, _STORED, _entity_of(list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_ONLINE_ENTITY]))),
     _F("entities_pump", CONF_HEAT_PUMP_FAULT_ENTITY, _STORED, _entity_of(list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_FAULT_ENTITY]))),
+    # The pump's own electric heat and its night mode. Options-only, with no
+    # row in ``topology._SLOTS`` -- the precedent is the compressor-frequency
+    # pair above, which is options-only for the same reason: they are not
+    # places on the plant diagram, and adding them would change the 21
+    # assignable keys `assign_entity` and docs/configuration.md both name.
+    # So the domain list comes from ``topology.FLAG_DOMAINS`` directly, which
+    # is the same tuple the card slots' flags are built from.
+    _F("entities_pump", CONF_HEAT_PUMP_BACKUP_HEATER_ENTITY, _STORED, _entity_of(list(topology.FLAG_DOMAINS))),
+    _F("entities_pump", CONF_HEAT_PUMP_DHW_BOOSTER_ENTITY, _STORED, _entity_of(list(topology.FLAG_DOMAINS))),
+    _F("entities_pump", CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY, _STORED, _entity_of(list(topology.FLAG_DOMAINS))),
     # -- comfort
     _F("comfort", CONF_TARGET_TEMP, DEFAULT_TARGET_TEMP, _number(15, 28, 0.5, '°C', slider=True), required=True, group="band"),
     _F("comfort", CONF_MIN_TEMP, DEFAULT_MIN_TEMP, _number(14, 25, 0.5, '°C', slider=True), required=True, group="band"),

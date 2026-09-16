@@ -909,7 +909,10 @@
   "floor_return_temp_entity": "sensor.seed_floor_return_temp_entity",
   "fuse_guard_enabled": true,
   "grid_fee_entity": "sensor.seed_grid_fee_entity",
+  "heat_pump_backup_heater_entity": "sensor.seed_heat_pump_backup_heater_entity",
+  "heat_pump_capacity_limited_entity": "sensor.seed_heat_pump_capacity_limited_entity",
   "heat_pump_defrost_entity": "sensor.seed_heat_pump_defrost_entity",
+  "heat_pump_dhw_booster_entity": "sensor.seed_heat_pump_dhw_booster_entity",
   "heat_pump_energy_entity": "sensor.seed_heat_pump_energy_entity",
   "heat_pump_fault_entity": "sensor.seed_heat_pump_fault_entity",
   "heat_pump_mode_entity": "sensor.seed_heat_pump_mode_entity",
@@ -1986,11 +1989,35 @@
     "required": "Optional",
     "selector": "SelectSelector"
    },
+   "heat_pump_backup_heater_entity": {
+    "config": {
+     "filter": "[{'domain': ['binary_sensor', 'switch', 'input_boolean', 'sensor']}]"
+    },
+    "default": "'sensor.seed_heat_pump_backup_heater_entity'",
+    "required": "Optional",
+    "selector": "EntitySelector"
+   },
+   "heat_pump_capacity_limited_entity": {
+    "config": {
+     "filter": "[{'domain': ['binary_sensor', 'switch', 'input_boolean', 'sensor']}]"
+    },
+    "default": "'sensor.seed_heat_pump_capacity_limited_entity'",
+    "required": "Optional",
+    "selector": "EntitySelector"
+   },
    "heat_pump_defrost_entity": {
     "config": {
      "filter": "[{'domain': ['binary_sensor', 'switch', 'input_boolean', 'sensor']}]"
     },
     "default": "'sensor.seed_heat_pump_defrost_entity'",
+    "required": "Optional",
+    "selector": "EntitySelector"
+   },
+   "heat_pump_dhw_booster_entity": {
+    "config": {
+     "filter": "[{'domain': ['binary_sensor', 'switch', 'input_boolean', 'sensor']}]"
+    },
+    "default": "'sensor.seed_heat_pump_dhw_booster_entity'",
     "required": "Optional",
     "selector": "EntitySelector"
    },
@@ -4159,7 +4186,31 @@
    "required": "Optional",
    "selector": "SelectSelector"
   },
+  "heat_pump_backup_heater_entity": {
+   "config": {
+    "filter": "[{'domain': ['binary_sensor', 'switch', 'input_boolean', 'sensor']}]"
+   },
+   "default": null,
+   "required": "Optional",
+   "selector": "EntitySelector"
+  },
+  "heat_pump_capacity_limited_entity": {
+   "config": {
+    "filter": "[{'domain': ['binary_sensor', 'switch', 'input_boolean', 'sensor']}]"
+   },
+   "default": null,
+   "required": "Optional",
+   "selector": "EntitySelector"
+  },
   "heat_pump_defrost_entity": {
+   "config": {
+    "filter": "[{'domain': ['binary_sensor', 'switch', 'input_boolean', 'sensor']}]"
+   },
+   "default": null,
+   "required": "Optional",
+   "selector": "EntitySelector"
+  },
+  "heat_pump_dhw_booster_entity": {
    "config": {
     "filter": "[{'domain': ['binary_sensor', 'switch', 'input_boolean', 'sensor']}]"
    },

@@ -19889,6 +19889,370 @@ R.check(
     f"cop {_cop_pair._last_measured_cop} dhw={_cop_pair._last_cop_curve_dhw}",
 )
 
+R.section("#1067 — the pump's own electric heat and its night mode")
+
+# Three more optional slots, read by ``pump_signals.read_electric_heat``. They
+# exist because ``_detect_immersion`` infers a resistive element from a power
+# meter reading above nameplate x IMMERSION_FACTOR, and the pump this was
+# built against publishes no power meter at all — its Tuya POWER datapoint is
+# a unit-less demand level, which ``inputs.normalize_power_kw`` refuses — so
+# on such an install that latch can never fire while the pump's own two
+# heaters are exactly the "different appliance on the same meter" it models.
+#
+# DESIGN CHOICE, pinned below: they extend the immersion latch's reach and
+# are deliberately NOT a freeze reason. A freeze is plant-wide, and a backup
+# heater runs for hours in exactly the cold snaps that carry the most
+# heat-loss information; the heat it delivers is real heat into the house and
+# only the electrical attribution is wrong.
+
+_EH_CFG = {
+    "heat_pump_backup_heater_entity": "switch.pump_backup_heater",
+    "heat_pump_dhw_booster_entity": "switch.pump_dhw_booster",
+    "heat_pump_capacity_limited_entity": "switch.pump_night_mode",
+}
+
+
+def _eh_read(states, *, previous=None, config=None, age=2):
+    """One cycle of the three electric-heat slots, through the real reader."""
+    stamped = {
+        entity: (
+            state
+            if state is None or isinstance(state, FakeState)
+            else _ps_state(entity, state, age)
+        )
+        for entity, state in states.items()
+    }
+    reader = InputReader(
+        FakeHass({k: v for k, v in stamped.items() if v is not None}),
+        _EH_CFG if config is None else config,
+        now=lambda: _PS_NOW,
+    )
+    return pump_signals.read_electric_heat(reader, previous), reader
+
+
+# -- the null case: three empty slots must change nothing --------------------
+_eh_none, _ = _eh_read({}, config={})
+R.check(
+    "with no electric-heat slot configured every flag is None",
+    _eh_none.backup_heater is None
+    and _eh_none.dhw_booster is None
+    and _eh_none.capacity_limited is None,
+    f"{_eh_none.as_dict()} — absence must never act",
+)
+R.check(
+    "and nothing derived from them acts either",
+    not _eh_none.resistive_heat
+    and not _eh_none.compressor_draw_distorted
+    and not _eh_none.dhw_booster_started,
+    f"{_eh_none.as_dict()}",
+)
+R.check(
+    "which is exactly what an unconfigured PumpSignals carries",
+    pump_signals.PumpSignals().electric_heat == _eh_none,
+    "the default_factory is what makes every pre-#1067 install bit-identical",
+)
+
+# -- a value acts ------------------------------------------------------------
+_eh_backup, _ = _eh_read({"switch.pump_backup_heater": "on"})
+R.check(
+    "the space backup heater reads true and is resistive heat",
+    _eh_backup.backup_heater is True
+    and _eh_backup.resistive_heat
+    and _eh_backup.compressor_draw_distorted,
+    f"{_eh_backup.as_dict()}",
+)
+_eh_boost, _ = _eh_read({"switch.pump_dhw_booster": "on"})
+R.check(
+    "so does the DHW tank booster, on its own",
+    _eh_boost.dhw_booster is True and _eh_boost.resistive_heat,
+    f"{_eh_boost.as_dict()}",
+)
+_eh_night, _ = _eh_read({"switch.pump_night_mode": "on"})
+R.check(
+    "night mode distorts the compressor reading without being resistive heat",
+    _eh_night.capacity_limited is True
+    and not _eh_night.resistive_heat
+    and _eh_night.compressor_draw_distorted,
+    f"{_eh_night.as_dict()} — a capped compressor is still the compressor, "
+    "so the two derived answers must differ here",
+)
+_eh_off, _ = _eh_read(
+    {
+        "switch.pump_backup_heater": "off",
+        "switch.pump_dhw_booster": "off",
+        "switch.pump_night_mode": "off",
+    }
+)
+R.check(
+    "a legible off is False, not None, and acts on nothing",
+    _eh_off.backup_heater is False
+    and _eh_off.dhw_booster is False
+    and _eh_off.capacity_limited is False
+    and not _eh_off.resistive_heat
+    and not _eh_off.compressor_draw_distorted,
+    f"{_eh_off.as_dict()}",
+)
+
+# -- and its absence never does ---------------------------------------------
+_eh_unavail, _eh_unavail_reader = _eh_read(
+    {"switch.pump_backup_heater": "unavailable"}
+)
+R.check(
+    "an unavailable heater flag is no evidence, not 'the heater is off'",
+    _eh_unavail.backup_heater is None and not _eh_unavail.resistive_heat,
+    f"{_eh_unavail.as_dict()}",
+)
+R.check(
+    "but it is visible in the diagnostics rather than silent",
+    _eh_unavail_reader.health.readings[
+        "heat_pump_backup_heater_entity"
+    ].problem
+    == "unavailable",
+    "a slot nobody can read must be reportable, it just must not act",
+)
+_eh_stale, _ = _eh_read(
+    {
+        "switch.pump_dhw_booster": FakeState(
+            "on", last_updated=minutes_ago(90, _PS_NOW)
+        )
+    }
+)
+R.check(
+    "staleness demotes a heater flag to silence, never to bad news",
+    _eh_stale.dhw_booster is None and not _eh_stale.resistive_heat,
+    "a booster that latched on yesterday must not still be excluding today's "
+    "COP samples — the horizon expires evidence, it never manufactures any",
+)
+
+# -- the rising edge fires exactly once -------------------------------------
+_edge1, _ = _eh_read({"switch.pump_dhw_booster": "off"})
+R.check(
+    "cycle 1, booster off: no edge",
+    not _edge1.dhw_booster_started,
+)
+_edge2, _ = _eh_read(
+    {"switch.pump_dhw_booster": "on"},
+    previous=pump_signals.PumpSignals(electric_heat=_edge1),
+)
+R.check(
+    "cycle 2, booster on after a legible off: the edge fires",
+    _edge2.dhw_booster_started and _edge2.dhw_booster is True,
+)
+_edge3, _ = _eh_read(
+    {"switch.pump_dhw_booster": "on"},
+    previous=pump_signals.PumpSignals(electric_heat=_edge2),
+)
+R.check(
+    "cycle 3, still on: it does NOT fire again",
+    not _edge3.dhw_booster_started and _edge3.dhw_booster is True,
+    "a booster left on all day is one event, which is what the meter-driven "
+    "latch books per latch — level would book one per cycle",
+)
+_edge_cold, _ = _eh_read({"switch.pump_dhw_booster": "on"}, previous=None)
+R.check(
+    "and no previous cycle cannot manufacture an edge",
+    not _edge_cold.dhw_booster_started,
+    "a restart, or a booster already running before Home Assistant started, "
+    "books nothing rather than a phantom event",
+)
+_edge_from_stale, _ = _eh_read(
+    {"switch.pump_dhw_booster": "on"},
+    previous=pump_signals.PumpSignals(electric_heat=_eh_stale),
+)
+R.check(
+    "nor can a previous cycle whose reading was stale",
+    not _edge_from_stale.dhw_booster_started,
+    "None is not a falling edge, so it cannot make a rising one",
+)
+
+# -- through read(), where the coordinator calls it -------------------------
+_eh_via_read, _ = _ps_read({}, config={})
+R.check(
+    "read() hangs an all-None PumpElectricHeat on an unconfigured install",
+    _eh_via_read.electric_heat == pump_signals.PumpElectricHeat(),
+    f"{_eh_via_read.as_dict()}",
+)
+R.check(
+    "and the diagnostics carry all five electric-heat answers",
+    {
+        "backup_heater",
+        "dhw_booster",
+        "capacity_limited",
+        "dhw_booster_started",
+        "resistive_heat",
+    }
+    <= set(_eh_via_read.as_dict()),
+    f"{sorted(_eh_via_read.as_dict())} — a user must be able to see what the "
+    "integration read",
+)
+
+# -- the coordinator seams ---------------------------------------------------
+# The COP learner, and everything hanging off its tail. `_CopGate` is the
+# fixture the v5.3.0 COP tests use; the positive control comes first so a
+# guard that refused everything could not pass these.
+_EH_BOOSTER_SIG = pump_signals.PumpSignals(
+    electric_heat=pump_signals.PumpElectricHeat(dhw_booster=True)
+)
+_EH_BACKUP_SIG = pump_signals.PumpSignals(
+    electric_heat=pump_signals.PumpElectricHeat(backup_heater=True)
+)
+_EH_NIGHT_SIG = pump_signals.PumpSignals(
+    electric_heat=pump_signals.PumpElectricHeat(capacity_limited=True)
+)
+
+_eh_cop_ok = _CopGate(outdoor=8.0)
+_eh_cop_ok._learn_measured_cop()
+R.check(
+    "the control: the same interval with no electric-heat evidence folds",
+    _eh_cop_ok._cop_samples == 1 and _eh_cop_ok.cop_health_calls,
+    f"{_eh_cop_ok._cop_samples} samples",
+)
+for _eh_name, _eh_sig in (
+    ("the DHW booster", _EH_BOOSTER_SIG),
+    ("the backup heater", _EH_BACKUP_SIG),
+    ("night mode", _EH_NIGHT_SIG),
+):
+    _eh_cop = _CopGate(outdoor=8.0, signals=_eh_sig)
+    _eh_cop._learn_measured_cop()
+    R.check(
+        f"with {_eh_name} on, no COP sample and no health observation",
+        _eh_cop._cop_samples == 0
+        and _eh_cop._cop_scale == 1.0
+        and not _eh_cop.cop_health_calls,
+        f"{_eh_cop._cop_samples} samples, scale {_eh_cop._cop_scale:.4f}, "
+        f"{len(_eh_cop.cop_health_calls)} health calls",
+    )
+
+
+def _eh_envelope_coord(signals):
+    """A real coordinator whose interval would fold the capacity envelope."""
+    c = _t2_coord(capacity_curve_enabled=True, heat_pump_power_entity="sensor.hp_power")
+    c._current_state.outdoor_temperature = 8.0
+    # Near nameplate (5.0 kW), which is what the envelope accepts as evidence.
+    c._current_action = {"power": 4.9}
+    c._measured_power = 4.6
+    c._immersion_active = False
+    c._pump_signals = signals
+    c._learn_measured_cop()
+    return c
+
+
+_eh_env_ok = _eh_envelope_coord(PumpSignals())
+R.check(
+    "the control: a near-nameplate interval folds the capacity envelope",
+    bool(_eh_env_ok._capacity_envelope) and _eh_env_ok._cop_samples == 1,
+    f"envelope {_eh_env_ok._capacity_envelope}, "
+    f"{_eh_env_ok._cop_samples} COP samples",
+)
+_eh_env_boost = _eh_envelope_coord(_EH_BOOSTER_SIG)
+R.check(
+    "with the DHW booster on the envelope does not move either",
+    not _eh_env_boost._capacity_envelope and _eh_env_boost._cop_samples == 0,
+    f"envelope {_eh_env_boost._capacity_envelope} — it is fed from "
+    "_learn_measured_cop's vetted tail, so it inherits the guard for free",
+)
+_eh_env_night = _eh_envelope_coord(_EH_NIGHT_SIG)
+R.check(
+    "and night mode keeps it still too",
+    not _eh_env_night._capacity_envelope and _eh_env_night._cop_samples == 0,
+    f"envelope {_eh_env_night._capacity_envelope} — a capped compressor's "
+    "delivery is the cap's ceiling, not the machine's",
+)
+
+# The frequency map.
+_eh_freq_ok = _freq_coord()
+_eh_freq_ok._observe_frequency(_T6)
+R.check(
+    "the control: an ordinary cycle still folds the frequency map",
+    bool(_eh_freq_ok._freq_map.buckets),
+)
+for _eh_name, _eh_sig in (
+    ("resistive heat", _EH_BACKUP_SIG),
+    ("night mode", _EH_NIGHT_SIG),
+):
+    _eh_freq = _freq_coord()
+    _eh_freq._pump_signals = _eh_sig
+    _eh_freq._observe_frequency(_T6)
+    R.check(
+        f"{_eh_name} never teaches the kW-per-Hz map",
+        not _eh_freq._freq_map.buckets,
+        "the map is a compressor curve: resistive kilowatts are a different "
+        "appliance's, and a capped compressor draws less at the same Hz",
+    )
+
+# The asymmetry that is the whole point of this group: capacity_limited stops
+# the EFFICIENCY reads above and must NOT stop the space-power attribution.
+_EH_HEAT_NIGHT = pump_signals.PumpSignals(
+    mode=pump_mode.capability("HEAT"),
+    mode_observed=True,
+    mode_source=pump_signals.MODE_SOURCE_LIVE,
+    electric_heat=pump_signals.PumpElectricHeat(capacity_limited=True),
+)
+_EH_HEAT_BOOST = pump_signals.PumpSignals(
+    mode=pump_mode.capability("HEAT"),
+    mode_observed=True,
+    mode_source=pump_signals.MODE_SOURCE_LIVE,
+    electric_heat=pump_signals.PumpElectricHeat(dhw_booster=True),
+)
+R.check(
+    "the control: in `heat` with no electric-heat evidence the meter is the "
+    "space figure",
+    _Split(_HEAT_ONLY)._interval_space_power() == 2.0,
+)
+R.check(
+    "under night mode the measured figure is STILL the space figure",
+    _Split(_EH_HEAT_NIGHT)._interval_space_power() == 2.0,
+    "a frequency-capped compressor draws exactly what the meter says, so the "
+    "interval replay's input is unchanged; skipping it would starve the "
+    "house heat-loss learner of every night for nothing",
+)
+R.check(
+    "while resistive heat does skip the sample",
+    _Split(_EH_HEAT_BOOST)._interval_space_power() is None,
+    "those kilowatts are a different appliance's on the same meter, which is "
+    "the immersion latch's contract",
+)
+
+# The booster's rising edge books one immersion event per run.
+_eh_ev = _t2_coord()
+_eh_ev._measured_power = 0.0
+_eh_ev._current_action = {"power": 0.0}
+for _eh_cycle in range(3):
+    _eh_ev._pump_signals = pump_signals.PumpSignals(
+        electric_heat=pump_signals.PumpElectricHeat(
+            dhw_booster=True, dhw_booster_started=_eh_cycle == 0
+        )
+    )
+    _eh_ev._detect_immersion()
+R.check(
+    "three consecutive booster-on cycles book exactly one immersion event",
+    len(_eh_ev._immersion_events) == 1,
+    f"{_eh_ev._immersion_events} — one per run, matching what the "
+    "meter-driven detector books per latch",
+)
+R.check(
+    "and the meter's own latch is untouched by the flag",
+    not _eh_ev._immersion_active,
+    "that latch is the meter's, released by the meter; a flag cannot set or "
+    "release it",
+)
+_eh_no_ev = _t2_coord()
+_eh_no_ev._measured_power = 0.0
+_eh_no_ev._current_action = {"power": 0.0}
+_eh_no_ev._detect_immersion()
+R.check(
+    "the null control: an install with no booster slot books nothing",
+    _eh_no_ev._immersion_events == [],
+    f"{_eh_no_ev._immersion_events}",
+)
+R.check(
+    "and the feedback margin is off by default, so the event is inert",
+    _eh_ev._immersion_dhw_margin(dt_util.now()) == 0.0,
+    "CONF_IMMERSION_FEEDBACK_ENABLED defaults off; the events only count for "
+    "a user who opted in",
+)
+
+
 R.section("v5.3.0 — defrost: duty is measured, the derate is physics")
 
 # Establish the premise first, because it inverts what the flag looks like it

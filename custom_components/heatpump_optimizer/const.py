@@ -117,6 +117,33 @@ CONF_HEAT_PUMP_DEFROST_ENTITY: Final = "heat_pump_defrost_entity"
 CONF_HEAT_PUMP_ONLINE_ENTITY: Final = "heat_pump_online_entity"
 CONF_HEAT_PUMP_FAULT_ENTITY: Final = "heat_pump_fault_entity"
 
+# --- What the pump's own electric heat and its night mode are doing --------
+#
+# Three more optional read-only slots, in the same spirit and read through the
+# same reader. They exist because `_detect_immersion` infers a resistive
+# element from a power meter reading above nameplate x IMMERSION_FACTOR, and
+# some pumps publish no power meter at all -- the Rotenso Windmi's Tuya
+# surface carries a unit-less demand level, which `inputs.normalize_power_kw`
+# correctly refuses -- so that latch can never fire on such an install while
+# the pump's own two heaters are exactly the "different appliance on the same
+# meter" it models. Nothing here is Tuya-specific: any integration publishing
+# the same three ideas fits, and each slot is filled independently.
+#
+#   * Space backup heater. A resistive element in the space-heating circuit.
+#     Its kilowatts are real heat into the house, so the plant-wide learners
+#     keep running; what is wrong is the ELECTRICAL attribution, which is
+#     precisely the immersion latch's contract.
+#   * DHW tank booster. The same element on the hot-water side, and the one
+#     whose starts say the tank keeps arriving late.
+#   * Capacity limited. Night/silent mode: the unit runs at a reduced
+#     compressor frequency, so the efficiency and capacity it shows are not
+#     the ones it would show unconstrained.
+CONF_HEAT_PUMP_BACKUP_HEATER_ENTITY: Final = "heat_pump_backup_heater_entity"
+CONF_HEAT_PUMP_DHW_BOOSTER_ENTITY: Final = "heat_pump_dhw_booster_entity"
+CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY: Final = (
+    "heat_pump_capacity_limited_entity"
+)
+
 # Power units the optional entities may report in, normalised to kW. Assuming
 # kW because the internal model uses kW misreads a 3000 W draw as 3000 kW.
 POWER_UNIT_TO_KW: Final = {
@@ -1310,4 +1337,13 @@ INPUT_MAX_AGE_MINUTES[CONF_HEAT_PUMP_DEFROST_ENTITY] = 30.0
 # by its age; the horizon only catches the source integration itself going
 # silent.
 INPUT_MAX_AGE_MINUTES[CONF_HEAT_PUMP_ONLINE_ENTITY] = 30.0
+# The pump's own electric heat and its night mode are fast signals about what
+# the machine is doing RIGHT NOW, not slow-moving state: a booster that ran an
+# hour ago says nothing about this interval's meter reading, and a night-mode
+# flag read this morning must not still be skipping folds this afternoon.
+# Matched to the defrost horizon for that reason -- same kind of signal, read
+# on the same cycle -- rather than to mode and fault's hour.
+INPUT_MAX_AGE_MINUTES[CONF_HEAT_PUMP_BACKUP_HEATER_ENTITY] = 30.0
+INPUT_MAX_AGE_MINUTES[CONF_HEAT_PUMP_DHW_BOOSTER_ENTITY] = 30.0
+INPUT_MAX_AGE_MINUTES[CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY] = 30.0
 

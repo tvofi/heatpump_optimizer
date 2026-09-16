@@ -1,4 +1,4 @@
-"""One cycle's reading of the four heat-pump signals, resolved to decisions.
+"""One cycle's reading of the heat-pump's own signals, resolved to decisions.
 
 The four optional slots added in v5.3.0 — operating mode, defrosting, online
 status and fault alarm — are read here, together, once per update cycle, and
@@ -38,6 +38,18 @@ mode read six hours ago must not still be freezing the learners, and a defrost
 flag that latched on yesterday must not still be excluding COP samples. The
 horizon expires the evidence; it never manufactures any.
 
+Three more slots, and why they are not a fourth freeze reason
+-------------------------------------------------------------
+
+#1067 adds the pump's own electric heat -- a space backup heater, a hot-water
+tank booster -- and its night (silent) mode, resolved in
+:func:`read_electric_heat` into :class:`PumpElectricHeat`. They obey the two
+rules above unchanged. What they deliberately do NOT do is set a freeze
+reason: that is plant-wide, and a backup heater runs for hours in exactly the
+cold snaps that carry the most heat-loss information. The heat is real heat
+into the house; only the electrical attribution is wrong, which is the
+immersion latch's contract rather than a freeze's.
+
 What closes the cloud gap
 -------------------------
 
@@ -60,12 +72,15 @@ additive there, not a second mechanism fighting the first.
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from . import pump_mode
 from .const import (
+    CONF_HEAT_PUMP_BACKUP_HEATER_ENTITY,
+    CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY,
     CONF_HEAT_PUMP_DEFROST_ENTITY,
+    CONF_HEAT_PUMP_DHW_BOOSTER_ENTITY,
     CONF_HEAT_PUMP_FAULT_ENTITY,
     CONF_HEAT_PUMP_MODE_ENTITY,
     CONF_HEAT_PUMP_ONLINE_ENTITY,
@@ -119,8 +134,84 @@ _UNREADABLE_PROBLEMS = frozenset(
 
 
 @dataclass(frozen=True)
+class PumpElectricHeat:
+    """What the pump's own electric heat and its night mode say this cycle.
+
+    Three optional flags, read under exactly the two rules the rest of this
+    module keeps: a value acts and its absence never does, so ``None`` means
+    "no evidence" and is what an unconfigured install gets for all three;
+    and staleness demotes a reading to ``None`` rather than promoting it to
+    "the heater is on".
+
+    Why these are NOT a :attr:`PumpSignals.freeze_reason`. A freeze reason is
+    plant-wide -- ``_learning_frozen`` gates every learner, the house
+    heat-loss learner included -- and a backup heater runs for hours in
+    exactly the cold snaps that carry the most heat-loss information. The
+    heat it delivers is real heat into the house; only the electrical
+    attribution is wrong, and that is the immersion latch's contract, not a
+    freeze's. So these flags extend that latch's reach and nothing else.
+    """
+
+    #: The space-heating circuit's resistive element (Tuya dp 15 on the pump
+    #: this was built against). ``None`` when there is no evidence.
+    backup_heater: bool | None = None
+    #: The hot-water tank's resistive element (dp 7).
+    dhw_booster: bool | None = None
+    #: Night/silent mode: the unit is running at a reduced compressor
+    #: frequency (dp 110), so what it draws is not what it would draw
+    #: unconstrained.
+    capacity_limited: bool | None = None
+    #: True on the cycle :attr:`dhw_booster` went from a legible False to
+    #: True. A rising edge, not a level: a booster left on all day books one
+    #: event, which is what the meter-driven detector does per latch.
+    dhw_booster_started: bool = False
+
+    @property
+    def resistive_heat(self) -> bool:
+        """Whether either element is putting resistive kilowatts on the meter.
+
+        True only on evidence: two ``None`` flags are False, which is the
+        pre-existing behaviour of every install that configures neither slot.
+        """
+        return self.backup_heater is True or self.dhw_booster is True
+
+    @property
+    def compressor_draw_distorted(self) -> bool:
+        """Whether this interval's draw misdescribes the compressor.
+
+        True on resistive heat -- a different appliance's kilowatts on the
+        same meter -- and on night mode, where the compressor is held below
+        the speed it would otherwise run at, so the efficiency and the
+        capacity on show are the cap's rather than the machine's. Both
+        learners that read the meter AS a compressor measurement (the COP
+        scale with everything hanging off its tail, and the kW-per-Hz map)
+        consult this one property, so the two can never drift apart.
+
+        Note what it is NOT for: energy and cost accounting, where a capped
+        compressor still drew exactly what the meter says.
+        """
+        return self.resistive_heat or self.capacity_limited is True
+
+    def as_dict(self) -> dict[str, Any]:
+        """The diagnostics view, so a user can see what was read."""
+        return {
+            "backup_heater": self.backup_heater,
+            "dhw_booster": self.dhw_booster,
+            "capacity_limited": self.capacity_limited,
+            "dhw_booster_started": self.dhw_booster_started,
+            "resistive_heat": self.resistive_heat,
+            "compressor_draw_distorted": self.compressor_draw_distorted,
+        }
+
+
+@dataclass(frozen=True)
 class PumpSignals:
-    """What the four slots say this cycle, already resolved to decisions."""
+    """What the pump's slots say this cycle, already resolved to decisions.
+
+    The four v5.3.0 signals are fields here; the three #1067 electric-heat
+    slots are grouped on :attr:`electric_heat` rather than flattened, so the
+    rules that apply to them can be read in one place.
+    """
 
     #: What the pump can deliver. Never ``None``: an absent or unusable mode
     #: resolves to :data:`pump_mode.FULL_CAPABILITY`, which fails safe toward
@@ -146,6 +237,10 @@ class PumpSignals:
     defrosting: bool | None = None
     online: bool | None = None
     fault: bool | None = None
+    #: What the pump's own electric heat and its night mode say. A field
+    #: with a default factory, so an unconfigured install gets all-``None``
+    #: and :attr:`PumpElectricHeat.resistive_heat` reads False.
+    electric_heat: PumpElectricHeat = field(default_factory=PumpElectricHeat)
     #: Why the learners must stand down, or ``None``. Plant-wide: it does not
     #: name a configuration key, because it is not about one sensor being
     #: unreadable — it is about the machine being in a state where every
@@ -194,7 +289,55 @@ class PumpSignals:
             "online": self.online,
             "fault": self.fault,
             "freeze_reason": self.freeze_reason,
+            **self.electric_heat.as_dict(),
         }
+
+
+def read_electric_heat(
+    reader: Any, previous: PumpSignals | None = None
+) -> PumpElectricHeat:
+    """Read the three electric-heat slots and resolve the rising edge.
+
+    A module-level helper rather than part of :func:`read` on purpose:
+    ``read`` already carries the mode resolution's whole decision tree, and
+    ``functions_cc_over_25`` sits at zero headroom, so the branching that
+    resolves these three belongs in its own function where it can grow
+    without pricing the mode ladder.
+
+    Each flag is read with :meth:`~.inputs.InputReader.read_bool`, exactly as
+    the four v5.3.0 signals are, so an unconfigured, unavailable or stale
+    slot lands in this cycle's :class:`~.inputs.InputHealth` with its entity
+    id and problem and resolves to ``None``. ``None`` acts on nothing.
+
+    ``previous`` is last cycle's :class:`PumpSignals`, which is all the
+    rising edge needs: the edge fires when the booster reads True now and
+    read a legible False last cycle. ``None`` last cycle -- unconfigured, a
+    restart, an unreadable or stale slot -- is not a falling edge and so
+    cannot manufacture a rising one; a booster that was already on before
+    Home Assistant started books nothing, which is the same silence the
+    meter-driven detector keeps until it has two agreeing samples.
+    """
+    backup_reading = reader.read_bool(CONF_HEAT_PUMP_BACKUP_HEATER_ENTITY)
+    booster_reading = reader.read_bool(CONF_HEAT_PUMP_DHW_BOOSTER_ENTITY)
+    limited_reading = reader.read_bool(CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY)
+
+    backup = backup_reading.flag if backup_reading.ok else None
+    booster = booster_reading.flag if booster_reading.ok else None
+    limited = limited_reading.flag if limited_reading.ok else None
+
+    was = previous.electric_heat.dhw_booster if previous is not None else None
+    started = booster is True and was is False
+    if started:
+        _LOGGER.debug(
+            "DHW tank booster started (%s); booking one immersion event",
+            booster_reading.entity_id,
+        )
+    return PumpElectricHeat(
+        backup_heater=backup,
+        dhw_booster=booster,
+        capacity_limited=limited,
+        dhw_booster_started=started,
+    )
 
 
 def read(
@@ -202,13 +345,15 @@ def read(
     *,
     last_good: ModeCapability | None = None,
     last_good_age_minutes: float | None = None,
+    previous: PumpSignals | None = None,
 ) -> PumpSignals:
-    """Read all four slots through ``reader`` and resolve them.
+    """Read every pump slot through ``reader`` and resolve them.
 
     ``reader`` is the cycle's :class:`~.inputs.InputReader`, so every one of
-    the four lands in that cycle's :class:`~.inputs.InputHealth` and shows up
+    them lands in that cycle's :class:`~.inputs.InputHealth` and shows up
     in the diagnostics with its entity id and problem — a mode entity nobody
-    can read is *visible*, it just does not act.
+    can read is *visible*, it just does not act. The three electric-heat
+    slots go through :func:`read_electric_heat`; the rest resolve below.
 
     ``last_good`` is the last recognised mode, if one has ever been seen. A
     configured mode entity that goes unreadable falls back to it rather than
@@ -227,6 +372,11 @@ def read(
     seen cooling left space heating suppressed and the learners frozen with
     no recovery path a user could find. ``None`` means "not known", which is
     treated as unbounded for callers that do not track it.
+
+    ``previous`` is last cycle's result, and only the electric-heat rising
+    edge uses it -- see :func:`read_electric_heat`. Keyword-only and
+    defaulting to ``None`` so every existing caller and every test fixture
+    keeps its current meaning: no previous cycle, so no edge.
     """
     # An entity that declares its own state among its options -- a select, or
     # an input_select somebody built to list the pump's modes -- can be taken
@@ -313,6 +463,7 @@ def read(
         freeze = FREEZE_COOLING
 
     signals = PumpSignals(
+        electric_heat=read_electric_heat(reader, previous),
         mode=capability,
         mode_observed=observed,
         mode_source=source,

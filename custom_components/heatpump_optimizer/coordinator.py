@@ -592,8 +592,42 @@ def _republish_handover_ages(coord: Any, handover: dict[str, Any]) -> dict[str, 
     return handover
 
 
+def _cop_fold_blocked(coord: Any) -> bool:
+    """#1067: whether this interval's meter reading describes the compressor.
+
+    The immersion latch (#11) already said "a resistive kW in the ratio is a
+    different appliance on the same meter". Two things it cannot see join it
+    here. The pump's OWN backup heater and tank booster are that same
+    appliance, and on a pump publishing no power meter at all -- the Rotenso
+    Windmi's Tuya surface carries a unit-less demand level, which
+    ``inputs.normalize_power_kw`` correctly refuses -- the draw-based latch
+    can never fire, so the flags are the only evidence there is. Night mode
+    is the second: a frequency-capped compressor shows an efficiency and a
+    capacity that are the cap's, not the machine's.
+
+    A module-level predicate rather than three clauses inside the learner:
+    everything hanging off ``_learn_measured_cop``'s tail -- the COP health
+    watch and the capacity envelope -- inherits whatever this returns, so it
+    is one question asked once, and the learner's own complexity is unmoved.
+    """
+    return (
+        coord._immersion_active
+        or coord._pump_signals.electric_heat.compressor_draw_distorted
+    )
+
+
 def _freq_fold_blocked(coord: Any) -> bool:
-    """Cooling or a pinned unusable power reading must not teach the map."""
+    """Cooling, distorted draw or a pinned unusable power reading.
+
+    The map is a kW-per-Hz curve for the compressor, so it asks the same
+    question :func:`_cop_fold_blocked` does about the draw -- through the
+    same property, so the two can never drift apart -- plus its own two.
+    #781 records why a bad fold matters here specifically: the map is keyed
+    by decile only, so it is inherited when the user later switches to
+    control.
+    """
+    if coord._pump_signals.electric_heat.compressor_draw_distorted:
+        return True
     if coord._pump_signals.freeze_reason == pump_signals.FREEZE_COOLING:
         return True
     frozen = coord._learning_frozen(CONF_POWER_ENTITY)
@@ -3053,7 +3087,17 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         commanded_space, dhw_share = self._commanded_split()
         if not getattr(self, "_ctx", self)._config.get(CONF_POWER_ENTITY):
             return commanded_space
-        if self._measured_power is None or self._immersion_active:
+        # #1067: the pump's own heaters join the immersion latch, for the
+        # reason the latch exists. ``capacity_limited`` deliberately does
+        # NOT — a frequency-capped compressor draws exactly what the meter
+        # says, so the measured figure is still the right input here, and
+        # skipping those intervals would starve the heat-loss learner of
+        # every night for nothing.
+        if (
+            self._measured_power is None
+            or self._immersion_active
+            or self._pump_signals.electric_heat.resistive_heat
+        ):
             return None
         if self._pump_signals.mode_observed and not self._pump_signals.space_heat:
             # v5.3.0: the pump is in a mode that heats no rooms, so whatever
@@ -3390,9 +3434,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             if not window.observed or window.any_defrost:
                 return
 
-        # #11: a resistive kW in the reading is not the compressor being
-        # inefficient, it is a different appliance on the same meter.
-        if self._immersion_active:
+        # #11, extended by #1067: a resistive kW is not the compressor
+        # being inefficient, and neither is a capped one. One predicate
+        # (``_cop_fold_blocked``), inherited by everything on this tail.
+        if _cop_fold_blocked(self):
             return
 
         # v4.0.5: delivered heat is not measured, so this ratio can only be
@@ -5049,10 +5094,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             if self._pump_mode_last_good_at is not None
             else None
         )
+        # ``previous``: this attribute still holds last cycle's result
+        # until the assignment lands, which is all the rising edge needs.
         self._pump_signals = pump_signals.read(
             reader,
             last_good=self._pump_mode_last_good,
             last_good_age_minutes=_last_good_age,
+            previous=self._pump_signals,
         )
         if self._pump_signals.mode_source == pump_signals.MODE_SOURCE_LIVE:
             self._pump_mode_last_good = self._pump_signals.mode
@@ -7733,6 +7781,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         While latched the COP learner skips (a resistive kW in the ratio
         reads as catastrophic efficiency) and the settlement books the
         excess as its own ledger line.
+
+        #1067: a configured DHW booster books an event too, on its RISING
+        EDGE only — one per run, matching what the latch above books per
+        latch, so ``_immersion_dhw_margin`` can add the two. It never
+        touches ``_immersion_active``: that latch is the meter's, and a flag
+        cannot release it. Events are read only behind
+        ``CONF_IMMERSION_FEEDBACK_ENABLED``, off by default.
         """
         measured = self._measured_power
         nameplate = float(getattr(self, "_ctx", self)._thermal_params.max_electrical_power)
@@ -7772,6 +7827,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     "nameplate; released"
                 )
                 del self._immersion_evidence[:-6]
+        if self._pump_signals.electric_heat.dhw_booster_started:
+            self._immersion_events.append(now.isoformat())
+            del self._immersion_events[:-20]
 
     # -- T5 comfort floors (#16 #54), both gated ---------------------------
 
@@ -9078,6 +9136,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         The DHW/space split cannot be measured — one meter, two circuits — so
         it is apportioned by what the plan asked each circuit to draw. That is
         stated in the sensor attributes rather than presented as measured.
+
+        The immersion carve-out stays METER-DRIVEN, deliberately: #1067's
+        heater flags say an element is running, never how many kilowatts it
+        took, and these lines must sum to the metered energy.
         """
         price = pending.get("price") or 0.0
         planned_space = float(pending.get("space_power") or 0.0)
@@ -9302,6 +9364,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         pump's minimum electrical power), so the counter and the plan agree
         about what "running" means. Immersion intervals are the #11
         classifier's, never the compressor's.
+
+        Meter-driven too, deliberately (#1067): this counts COMPRESSOR
+        starts for wear, and a heater flag is no evidence about whether the
+        compressor crossed the threshold — folding it in would book wear
+        against starts that never happened.
         """
         started = self._start_counter.observe(
             now,
