@@ -472,11 +472,24 @@ def gather(repo: str,
     return collect(parse_log(log))
 
 
+#: One file per pull request, `docs/delivery/<N>.md`: a row there is read only
+#: through a line anchoring <N> itself, as `policy_lint.mjs`'s `recordRegion`
+#: reads it, so a misnamed file rows nobody and the two cannot disagree.
+ROW_DIR = "docs/delivery"
+ROW_ANCHOR = re.compile(r"^\s*[-*]\s+\[#(\d+)\]\((?:[^()\s]*/pull/)(\d+)\)")
+
+
 def read_texts() -> list[str]:
+    rows = [
+        line
+        for path in sorted((ROOT / ROW_DIR).glob("*.md")) if path.stem.isdigit()
+        for line in path.read_text().splitlines()
+        if (m := ROW_ANCHOR.match(line)) and m[1] == m[2] == path.stem
+    ]
     return [
         (ROOT / name).read_text() for name in DISPOSITION_FILES
         if (ROOT / name).exists()
-    ]
+    ] + ["\n".join(rows)]
 
 
 # ----------------------------------------------------------------------- main

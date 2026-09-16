@@ -16879,6 +16879,27 @@ R.check(
     "is legitimately empty, and reporting OK there is the vacuous green this "
     "repository refuses",
 )
+# One file per pull request: `docs/delivery/<N>.md` rows <N> through a line
+# anchoring <N> itself, and nothing else -- a misnamed file, or another number in
+# its prose, rows nobody. The same predicate `policy_lint.mjs --record` pins.
+import tempfile as _ds_tf  # noqa: E402
+with _ds_tf.TemporaryDirectory() as _ds_tmp:
+    _ds_root, _ds.ROOT = _ds.ROOT, Path(_ds_tmp)
+    (Path(_ds_tmp) / _ds.ROW_DIR).mkdir(parents=True)
+    (Path(_ds_tmp) / _ds.ROW_DIR / "201.md").write_text(
+        "- [#201](https://github.com/o/r/pull/201) merged\n")
+    (Path(_ds_tmp) / _ds.ROW_DIR / "202.md").write_text(
+        "- [#203](https://github.com/o/r/pull/203) misnamed; #204 too\n")
+    _ds_files = _ds.classify(
+        _ds_merges((201, 0), (202, 0), (203, 0), (204, 0)), _ds.read_texts())
+    _ds.ROOT = _ds_root
+R.check(
+    "a row file rows its own pull request and no other",
+    [r["state"] for r in _ds_files["merges"]]
+    == ["rowed", "pending", "pending", "pending"],
+    f"states {[r['state'] for r in _ds_files['merges']]}; the ledger and "
+    "`record` read the same files the same way, or a seat is told two things",
+)
 # THE COLLECTOR, AND THE PRECONDITION THAT MOVED UNDER IT.
 #
 # `classify` above was driven from fixtures from the first day and is right.
