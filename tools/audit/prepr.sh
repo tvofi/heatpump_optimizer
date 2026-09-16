@@ -124,14 +124,27 @@ figures_check() { # body file
 # rename is reported by its DESTINATION only, so `--no-renames` is what keeps
 # moving `CLAUDE.md` to `RENAMED.md` inside the gate rather than outside it.
 #
-# FAIL CLOSED. A range that does not resolve makes this return non-zero rather
-# than write an empty file, and the caller refuses instead of running the check:
-# `policy_lint.mjs` refuses an empty `--paths-file` for the same reason, because
-# an empty list reads as "touches no policy file", which is the fail-open the
-# keying exists to close. A seat in a shallow clone must not be told its body is
-# clean when nothing looked.
+# FAIL CLOSED, AND THE LOAD-BEARING KEY IS THE RETURN CODE. A range that does
+# not resolve makes this return non-zero and the caller refuses instead of
+# running the check: `policy_lint.mjs` refuses an empty `--paths-file` for the
+# same reason, because an empty list reads as "touches no policy file", which is
+# the fail-open the keying exists to close. A seat in a shallow clone must not be
+# told its body is clean when nothing looked.
+#
+# THE ABSENCE OF THE FILE IS THE SECOND KEY, and it is deliberate rather than
+# incidental. Writing straight to `$2` would truncate it before `git` ran, so a
+# failed derivation left a 0-BYTE FILE behind -- measured at rc=128 with the file
+# present, by the #1054 review. Nothing in this script keyed on the file, so that
+# was harmless the day it was written and exactly the shape that stops being
+# harmless later: a caller added afterwards, reading the list because it is
+# there, would satisfy every assertion below while reading an empty diff as
+# "touches no policy file". Writing through `.part` and renaming only on success
+# makes both keys agree. If a later edit drops the rename, the return code is
+# still the one a caller must read.
 diff_paths() { # merge base, out file
-  git diff --no-renames --name-only "$1"...HEAD > "$2" 2>/dev/null
+  git diff --no-renames --name-only "$1"...HEAD > "$2.part" 2>/dev/null \
+    || { rm -f "$2.part"; return 1; }
+  mv -f "$2.part" "$2"
 }
 
 body_check() { # body file, head sha, title, paths file
@@ -256,13 +269,19 @@ if [ "${1:-}" = "--self-test" ]; then
   st $? 1 "a path list that derived nothing is refused, not read as \"touches no policy file\""
   rm -f /tmp/prepr-bodyst.$$
 
-  # The degraded arm. A range that does not resolve must make the DERIVATION
-  # fail, so the step refuses rather than handing the check a list nothing
-  # wrote. `git diff` exits 128 on an unknown revision, not 1, so the assertion
-  # is on the branch taken rather than on the number.
+  # The degraded arm, asserted on BOTH keys because the first version of it
+  # asserted a property the code did not have. A range that does not resolve must
+  # make the DERIVATION fail, so the step refuses rather than handing the check a
+  # list nothing wrote -- and it must leave no list behind either, so a caller
+  # added later that reads the file rather than the status fails closed as well.
+  # `git diff` exits 128 on an unknown revision, not 1, so the first assertion is
+  # on the branch taken rather than on the number.
+  rm -f /tmp/prepr-bodyst.$$ /tmp/prepr-bodyst.$$.part
   if diff_paths "$ZERO" /tmp/prepr-bodyst.$$ >/dev/null 2>&1; then dp=0; else dp=1; fi
-  st "$dp" 1 "a base that does not resolve makes the path derivation fail, not write an empty list"
-  rm -f /tmp/prepr-bodyst.$$
+  st "$dp" 1 "a base that does not resolve makes the path derivation fail"
+  if [ -e /tmp/prepr-bodyst.$$ ] || [ -e /tmp/prepr-bodyst.$$.part ]; then fp=1; else fp=0; fi
+  st "$fp" 0 "and leaves no list behind, not even an empty one, so the file key fails closed too"
+  rm -f /tmp/prepr-bodyst.$$ /tmp/prepr-bodyst.$$.part
 
   printf 'Closes #999\n' | bash tools/audit/preflight.sh >/dev/null 2>&1
   st $? 1 "preflight refuses an unintended closing keyword"
