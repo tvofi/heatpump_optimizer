@@ -17,8 +17,9 @@ done, what is owed and the traps the session hit; read
 #1067 itself, claim that judging the efficiency reference against a measured
 supply temperature stops the learned scale absorbing the weather curve. It
 cannot, and that was measured rather than argued: the scale's own expression
-does not contain the reference curve. What the learner half delivers is a
-correct credited COP, a correct degradation baseline and the bias itself.
+does not contain the reference curve. What the learner half ships is the
+supply and return slots, the flow-bias learner and the bias itself; the
+credited COP and the degradation baseline are unchanged from main.
 Only pricing the lift, group G3, can stop the walk. Do not repeat the
 original claim.
 
