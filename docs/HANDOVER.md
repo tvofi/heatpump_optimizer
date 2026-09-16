@@ -1,6 +1,6 @@
 # Handover — the open-issues programme
 
-updated-for: c247770fd9ba36e41ce660738d5bead74ca678d3
+updated-for: d1a531beefac5fe0c96d3ef63266dc0e5e4d27dd
 
 The rule that governs this file is `.claude/rules/writing-for-agents.md`, which
 the harness loads on this very path. Delivery status is
@@ -133,27 +133,23 @@ list was unrecoverable when it was one artifact call away. Per-unit stage,
   which returns every run. `web-fragments.md` carries the invocation; every
   file that instructs a seat, that table included, is refused for naming the
   lossy form — which is why this bullet describes it instead.
-- **The record check's enumerator misses merges AND invents them, and the two
-  errors hide each other.** `policy_lint`'s merge-subject regex is the
-  enumerator behind every "pull requests merged in this window" figure, and it
-  reads only a trailing `(#N)`. Over `a9d117c..8f754c9` it counts 24 where
-  GitHub's `/commits/<sha>/pulls` answers 25 — and **that gap of one is a net,
-  not a miss.** Three set differences, derived by comparing the two lists rather
-  than by trusting the totals:
-  **invisible** — #640, whose squash subject carries no suffix at all; and #655,
-  whose subject ends `(#587)`, so the enumerator records 587 and never 655.
-  **Phantom** — #587, which is not a pull request. The check demands a
-  disposition for a merge that never happened, and is satisfied by writing one.
-  So `24 = 25 - 2 + 1`, and a first reading of this defect blamed #640 alone
-  because the arithmetic looked confirmed. **Compare the sets, never the
-  totals**, and treat a suffix as a claim about a number rather than a fact.
-- **The red-check refusal has never once fired.** `policy_lint`'s `checkPrBody`
-  refuses a body whose `## Red checks` does not name a red check by iterating
-  the `--red` list, and `governance.yml`'s body-contract step passes
-  `--pr-body`, `--head` and `--title` and no `--red` — so that list is empty on
-  every pull request this repository has run. `CLAUDE.md`'s "only the red-check
-  trigger is enforced" states an intent, not a measurement: it is honour-only,
-  enforced by whichever reviewer looks.
+- **The subject enumerator misses merges AND invents them, and the two errors
+  hide each other.** It reads a trailing `(#N)`; over `a9d117c..8f754c9` it
+  counted 24 where `/commits/<sha>/pulls` answers 25, and **that gap of one is a
+  net, not a miss**: #640 carries no suffix and #655 ends `(#587)`, so both are
+  invisible, while #587 is a phantom the check then demands a disposition for.
+  `24 = 25 - 2 + 1`, and the first reading blamed #640 alone because the
+  arithmetic looked confirmed. **Compare the sets, never the totals**, and treat
+  a suffix as a claim about a number rather than a fact. The API enumerator is
+  the default now and this regex is its fallback — a marked one since #1050, so
+  what survives here is the method, not a live defect.
+- **The red-check refusal fired for the first time on 2026-09-15.** The entry
+  that stood here — that `governance.yml` passed no `--red`, so `checkPrBody`
+  iterated an empty list on every pull request this repository had run — was
+  true when written and is not now. #1040 (`f605da4`) wires it, and
+  `CLAUDE.md`'s "only the red-check trigger is enforced" is a measurement from
+  that merge onward. Its two design choices, and why an id key re-deadlocks the
+  job, are on that pull request's Delivery-status row.
 - **`GET /repos/.../rules/branches/<branch>` is not bypass-aware.** It lists
   the rules configured for the branch, not the rules that would apply to you:
   emptying the bypass-actors list and re-reading returns an identical list. Reading it
@@ -359,6 +355,16 @@ in its own pull request.
     structure: a second declaration cannot learn the original moved (#851).
     Fifth shape: a mutant that cannot PARSE reports a pass, which here reads as
     a finding about production. Assert it parses.
+36. **The leftover sweep reads a row's LEADING bold; a stale row can put its
+    state in a later one.** #690's rule — read the row's own verdict, exclude
+    quoted prose — applied literally reads the first `**…**` span. #678's row
+    opens on its root-cause verdict and carries `**IN REVIEW as #715**` further
+    along the same cell; #715 merged `015fdbd` on 2026-09-10 and shut #678 a
+    second later, and the row still said in review five days and several record
+    beats on. **Scan every bold span in the status cell**, and check each PR
+    number it names against that pull request's own `state` field, fetched by
+    the mapping in `web-fragments.md`. The miss was the parser's, not the
+    reader's, so a firmer instruction changes nothing.
 
 ## Owed — post-hoc reviews
 
@@ -400,7 +406,11 @@ flagged it rather than claiming a carry it had not made.
   Raised on #201; no seat may decide it.
 - **#680 (0008, #756): account, switch, verified login, then the rule, never
   first (0005). Lane F follows Wave 5. #303 at zero: stubs pinned, `max_cc`
-  48 → 50 bought a narrowing (owner, 2026-09-11).**
+  48 → 50 bought a narrowing (owner, 2026-09-11).** **0008's approver design was
+  revised on 2026-09-14 and `docs/decisions/0009-*` is the live one; 0008 alone
+  reads as its opposite** — agent identities author and approve, no human in
+  the loop. Order unchanged, and it is the point: identities verified first,
+  then the rule. #954 closes at that verification and not before.
 
 **Owed from 2026-09-14: a stale-pin sweep.** #960 SHA-pinned every mutable
 `uses:` in `.github/workflows/` (the frozen tag rides each pin as a trailing
@@ -409,6 +419,34 @@ markers, and nothing under `.claude/workflows/` or `tests/` reads a workflow
 ref (grep at merge base `c62210e`) -- so until the weekly `record` beat
 (#959) grows one, an upstream fix reaches this repository only when a seat
 re-pins deliberately.
+
+**Owed from 2026-09-15: the delivery ledger is blind to the merge method this
+repository now uses.** `tests/delivery_status.py`'s `gather` walks
+`git log --first-parent` and keeps only subjects ending `(#N)` — the squash
+shape. `main`'s first-parent subjects are `Merge pull request #N from …`, which
+that pattern cannot match, so the ledger collects nothing, the verdict is
+permanently `EMPTY`, and **the OVERDUE detector cannot fire**: a rowless merge
+never enters the set that would age into an alarm. **Process state (d)** — the
+process was sound and its precondition, the merge method, changed underneath
+it. The changeover is datable: the newest first-parent subject the pattern
+matches is `0e3da75` (#1019, 2026-09-14T16:30:20+02:00), and
+`git log --first-parent --format='%s' 0e3da75..origin/main | grep -cE
+'\(#[0-9]+\)$'` prints how many have matched since. `policy_lint --record`'s
+API enumerator counts the same window correctly, so the disposition obligation
+is unaffected and nothing went red — the check is not a required context. What
+is owed is the alarm. Origin: PR #1050's third residual, carried here because a
+pull-request body is not a destination a later seat reads.
+
+**Owed from 2026-09-15: an unresolvable `--since` ref prints a vacuous zero.**
+`VERSION` holds `6.5.0` and the tag is `v6.5.0`, so `--since $(cat VERSION)` —
+the composition a dispatch brief reaches for — names no revision. `git` writes
+one `fatal:` line to stderr and both consumers carry on at **rc=0**: `--record`
+prints `0 merged pull request(s)` and `--stats` prints `WOULD OPEN: 0`, over a
+window that is not empty. The `UNCHECKED` marker #1050 landed covers a dead
+*fetch*, not a bad *ref*, so this arm is marker-less by construction. Pass
+`v$(cat VERSION)`, and check the window against `git rev-list <tag>..origin/main`
+rather than against an exit code. #1050's second residual; this is its
+destination in the tree.
 
 ## The machine this runs on — measure it, do not read it
 
