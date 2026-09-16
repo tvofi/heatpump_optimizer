@@ -103,8 +103,8 @@ in which the assumption was actually written down somewhere in this tree.
   was the reason given.
 - **A commit that lands on `main` is a closing surface**, and GitHub discards
   the negation in it. The demonstration is `8bc4c661`, whose message says
-  "Does **not** close #224" and which closed #224 anyway — the `closed` event
-  on that issue carries `commit_id` `8bc4c661…`. That commit is itself a
+  it does not shut #224 and which shut it anyway — the `closed` event on that
+  issue carries `commit_id` `8bc4c661…`. That commit is itself a
   squash, so the mechanism was never about the method.
 - **Ancestry of `origin/main` is the property that survives any merge method.**
   `tests/entities.py` already says so in as many words, above the
