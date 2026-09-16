@@ -1090,13 +1090,14 @@ def recorded_at_sha() -> str:
 
     ``HEAD`` is the wrong answer and was the old one (#361). A re-record only
     ever happens on a branch, and a branch commit is rewritten by the next
-    ``--amend`` and deleted by the squash-merge that lands it -- so the field
-    named a SHA that resolves to nothing, and the value in the committed table
-    was right only when somebody noticed and fixed it by hand.
+    ``--amend``; under the squash merges `main` took until 2026-09-14 it was
+    deleted outright (decisions/0010) -- so the field named a SHA that resolves
+    to nothing, and the value in the committed table was right only when
+    somebody noticed and fixed it by hand.
 
     The merge base against the upstream default branch is the commit the
-    measurement actually describes: it exists on ``main``, and it survives both
-    the amend and the squash. ``HEAD`` remains the fallback for a run with no
+    measurement actually describes: it exists on ``main``, and it survives the
+    amend and any merge method. ``HEAD`` remains the fallback for a run with no
     upstream configured, where it is the only thing there is.
     """
     for ref in ("origin/main", "main"):
@@ -1115,9 +1116,11 @@ def recorded_at_unreachable(recorded: str) -> str | None:
     Reported as a FAILURE, not a note, wherever the comparison can be made at
     all: ``recorded_at_sha`` returns ``git merge-base HEAD <upstream>``, which
     is an ancestor of that upstream by construction, so a value that is *not*
-    an ancestor can only have come from the pre-#361 code (a branch SHA the
-    squash deleted) or from a hand edit. There is no legitimate workflow that
-    produces one, so refusing is safe.
+    an ancestor can only have come from the pre-#361 code (a branch SHA, which
+    is not on ``main`` when this check runs -- a squash deleted it outright,
+    and a merge commit only puts it there afterwards; decisions/0010) or from
+    a hand edit. There is no legitimate workflow that produces one, so
+    refusing is safe.
 
     Returns None -- checks nothing -- when no upstream ref exists, which is the
     fresh-clone case ``recorded_at_sha``'s own HEAD fallback exists to serve.
@@ -1245,7 +1248,7 @@ def report_improvements(rows: list[tuple[str, float, float]], breached: bool) ->
     print("      python3 tests/structure.py --record")
     print()
     print("  Then say in the COMMIT message which rows moved and why -- the")
-    print("  squash-merge keeps the commit and discards the branch.")
+    print("  history of main keeps a commit message, never a PR body.")
 
 
 def record_budgets(result: dict, allow_regression: str | None = None) -> int:
@@ -1262,8 +1265,8 @@ def record_budgets(result: dict, allow_regression: str | None = None) -> int:
     prints the exact command, the author runs it, and a metric that worsened
     in the same diff is written silently with the gate's own authority behind
     it. So the refusal is the default and the reason goes in the COMMIT, where
-    a squash-merge keeps it, rather than in a PR body that the history does
-    not carry.
+    ``main``'s history keeps it, rather than in a PR body that history does
+    not carry (decisions/0010).
     """
     # Only the integration matters: a budget table describes its structure,
     # and this script itself being untracked is exactly the first-record
@@ -1300,12 +1303,12 @@ def record_budgets(result: dict, allow_regression: str | None = None) -> int:
             print('      --allow-regression="<why this budget must grow>"')
             print()
             print("and put that same reason in the COMMIT message, not the PR body:")
-            print("the squash-merge keeps the commit and discards the branch.")
+            print("main's history keeps a commit message, never a PR body.")
             return 1
         print()
         print("ALLOWED: %s" % allow_regression.strip())
-        print("Repeat this reason in the commit message -- the squash-merge keeps")
-        print("the commit and discards the branch.")
+        print("Repeat this reason in the commit message -- main's history")
+        print("keeps a commit message and never a pull-request body.")
 
     payload["recorded_at"] = recorded_at_sha()
     BUDGET_FILE.write_text(json.dumps(payload, indent=1, sort_keys=True) + "\n")
@@ -1341,7 +1344,7 @@ def ratchet(result: dict) -> int:
         print(f"FAIL {why};")
         print("  the numbers cannot be traced to a tree anyone can check out.")
         print("  Re-record with tests/structure.py --record, which stamps the")
-        print("  merge base -- a branch SHA does not survive the squash (#361).")
+        print("  merge base -- a branch SHA is not on main yet (#361).")
         failures += 1
     budget_keys = {k: v for k, v in budgets.items() if k != "recorded_at"}
     improvements = improvement_rows(budget_keys, metrics)
@@ -1387,7 +1390,7 @@ def ratchet(result: dict) -> int:
         print("with the reason in the COMMIT -- never to make a failure go away.")
         print("--record refuses any row that moves the wrong way unless you pass")
         print('--allow-regression="<reason>", and that reason belongs in the commit')
-        print("message because the squash-merge keeps it and drops the branch.")
+        print("message: main's history keeps it and never a pull-request body.")
         return 1
     if improvements:
         # Deliberately not counted with the breaches above and deliberately not

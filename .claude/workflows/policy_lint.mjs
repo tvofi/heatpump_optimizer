@@ -492,6 +492,15 @@ const CORPUS_EXCLUDED = new Set([
   // recording that merge, so it is paid here rather than left to redden the
   // record seat that writes it.
   'docs/decisions/0009-agent-identities-for-author-and-approver.md',
+  // The merge-method record (#1041): `main` takes a pull request as a merge
+  // commit, the owner's ruling of 2026-09-16. Named one by one per the rule
+  // above, and owed rather than optional -- `.claude/workflows/web-fragments.md`,
+  // `tools/audit/briefs/orchestrator.md` and `tools/audit/briefs/fixer.md` all
+  // cite it, and each is capped, so `checkNamedDocs` reports it without this
+  // line. That is the whole enforcement a decision citation has here: the cited
+  // path must resolve (`checkCitations`) and must be classified (this list).
+  // Nothing detects the citation being REMOVED again.
+  'docs/decisions/0010-merge-commits-on-main.md',
 ])
 
 // Widening the scan past `.md` brought in every `.txt` a policy file cites, and
@@ -1383,7 +1392,11 @@ function checkDuplicates(files) {
 // commit does not exist yet, so `<ref>..origin/main` measured from one describes
 // a history the branch is not in.
 
-// A squash merge's subject ends `(#N)`. tools/release/stamp.py has a PR_RE for
+// A squash merge's subject ends `(#N)`. `main` no longer produces one -- it
+// takes a pull request as a merge commit, subject `Merge pull request #N from
+// <branch>`, per docs/decisions/0010-merge-commits-on-main.md -- so this
+// pattern's zero over a live window means COULD NOT ENUMERATE, not no merges.
+// tools/release/stamp.py has a PR_RE for
 // the same job -- `\(#(\d+)\)`, unanchored -- and it is deliberately NOT reused
 // here. Measured over v6.3.18..origin/main, it collects two numbers from two of
 // the fifteen subjects, e.g.
@@ -1431,7 +1444,9 @@ function mergedPRs(subjects) {
 // First-parent commits in the record window. `--first-parent` is load-bearing
 // on a history that is not squash-only: a merge commit's second parent is
 // another pull request's branch, and asking the API for that SHA would
-// double-count. Squash-only `main` is the same set either way.
+// double-count. It WAS the same set either way while `main` was squash-only;
+// it is not since 2026-09-14 (docs/decisions/0010-merge-commits-on-main.md),
+// so this flag is now load-bearing in fact and not only in principle.
 function firstParentCommits(since) {
   const out = git(
     ['log', '--first-parent', '--format=%H%x09%s', `${since}..${mainRef()}`],
