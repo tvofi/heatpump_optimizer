@@ -119,11 +119,15 @@ pr_arm() { # pr_from_listing's answer -> the arm's name
   esac
 }
 
-# `policy_lint --pr-body` requires a `## Approval` section when the TITLE begins
-# `policy:`. Locally `prepr.sh` lints against the last commit's subject; CI lints
-# against the pull request's title. When those two disagree about that prefix,
-# the local pass is not evidence about the CI run -- the same class of gap #678
-# is about, one artifact over.
+# `policy_lint --pr-body` requires a `## Approval` section on EITHER of two
+# keys, and this warning is about one of them. The DIFF touching a
+# `POLICY_GLOBS` path is the first, and since `prepr.sh` was given
+# `--paths-file` both sides derive it the same way from the same merge base, so
+# there is nothing left to disagree about there. The TITLE beginning `policy:`
+# is the second, and it is still asymmetric: locally `prepr.sh` lints against
+# the last commit's SUBJECT, CI against the pull request's TITLE. When those two
+# disagree about that prefix, the local pass is not evidence about the CI run --
+# the same class of gap #678 is about, one artifact over.
 #
 # WARN RATHER THAN REFUSE, on `prepr.sh`'s own push-order precedent. The two
 # disagree for an ordinary and correct reason as well as a wrong one: `git merge
@@ -467,7 +471,7 @@ SUBJECT=$(git log -1 --format=%s)
 [ -n "$TITLE" ] || TITLE="$SUBJECT"
 
 if ! approval_prefix_agrees "$TITLE" "$SUBJECT"; then
-  say WARN "title" "the title and the last commit's subject disagree about the \`policy:\` prefix, which is what decides whether \`## Approval\` is required -- locally against the subject, in CI against the title. THE LOCAL PASS BELOW IS NOT EVIDENCE ABOUT THAT SECTION: either carry the section anyway, or make the subject the title the pull request will have."
+  say WARN "title" "the title and the last commit's subject disagree about the \`policy:\` prefix, which is one of the two keys that require \`## Approval\` -- locally read off the subject, in CI off the title. The other key, the diff, is derived identically on both sides and the check below does cover it. THE LOCAL PASS BELOW IS NOT EVIDENCE ABOUT THE TITLE ARM: either carry the section anyway, or make the subject the title the pull request will have."
 fi
 
 # --- 1. the head the body names ----------------------------------------------
