@@ -22,6 +22,19 @@ correct credited COP, a correct degradation baseline and the bias itself.
 Only pricing the lift, group G3, can stop the walk. Do not repeat the
 original claim.
 
+**The G2 brief's lift-aware reference was built, measured wrong, and reverted.**
+Judging the efficiency reference at the measured supply double-counts the lift:
+`_learn_measured_cop` credits `modelled_cop * commanded / measured`, so the
+reference must be the COP the plan priced, and a harder lift already shows as a
+larger measured power. Review round 1 of #1068 measured the credited COP 24 to
+38 % low at a 55 °C supply; the owner chose to revert the reference (option 1).
+What G2 ships is the two slots and the bias learner. It does not change the COP
+learner, and it ships no lift arithmetic in `thermal_model.py`. The degradation
+watch keeps its base behaviour on a supply change, and making it lift-aware is
+carried to G3 in `.claude/workflows/carry-1067.json` with the measured traps.
+The G2 brief below is kept as written; this block overrides its reference,
+extraction, test and mutation bullets.
+
 Two further deviations from the plan as written. The wave ran as sequential
 commits on one branch with one pull request per repository, because the
 executing session was pinned to a single branch, so the per-group branches
@@ -64,7 +77,7 @@ Executed by an Opus 5 orchestrator with Opus/Sonnet/Haiku seats under the reposi
 |---|---|---|---|---|---|---|
 | W1067-G0 | tuya_heat_pump: Modbus generator slug fix | — | sonnet / sonnet | medium | n/a | ~15 |
 | W1067-G1 | C2 + C3 flag slots, learner stand-downs, booster → immersion events | — | opus / opus | high | false | ~180 |
-| W1067-G2 | C1(a) supply/return slots, flow-lift learner, COP reference at actual lift | — | opus / opus | high | false | ~260 |
+| W1067-G2 | C1(a) supply/return slots and the flow-lift bias learner; the COP reference stays the plan's curve (see status) | — | opus / opus | high | false | ~260 |
 | W1067-G3 | C1(b) solver term, new golden | G2 | opus / opus | high | true (new fixture only) | ~120 |
 | W1067-G4 | C3 plan half: silent-mode window + derate through `power_caps_extra` | G1 | opus / opus | medium | false | ~160 |
 | W1067-G5 | D: disinfection switch, guard injection, mode selector | — | opus / opus | high | false | ~200 |
