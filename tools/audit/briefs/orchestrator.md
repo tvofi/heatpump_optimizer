@@ -32,7 +32,7 @@ replace the source rules.
 **`fixer.md` step 8: a quoted number states its rule, not just its value** —
 #373's census is the evidence there. Say what you counted, not only how many.
 
-Generalised, because every one of those failures was a form of it:
+Generalised:
 
 **Nothing is asserted that has not been measured, and the measurement is the
 command, not the impression it left.** Before writing a claim, ask what exactly
@@ -110,11 +110,9 @@ will paraphrase into its own body — a third-hand path to the same outcome, and
 has occurred.
 
 **Run `tools/audit/preflight.sh` over the merge body before you merge — as a
-filter, not as proof**, its own header's word: it is *"never as a gate that
-proves the body is clean"*. It checks **four** reference forms, and **four is
-not all of them** — it names seven further shapes that still pass, and it is
-line-oriented, so a keyword and a number split across a newline are invisible
-to it.
+filter, not as proof.** It checks **four** reference forms, and **four is not
+all of them** — it names seven further shapes that still pass, and it is
+line-oriented, so a keyword and a number split across a newline are invisible to it.
 
 It reads the body on **stdin** and takes the issues you *intend* to close as
 **arguments**:
@@ -144,13 +142,14 @@ intended number* reports clean through exactly that.
 
 - **Establish the work is not already done or in flight.** One
   `list_pull_requests` over the open set, and the issue's comments. A seat
-  was dispatched to fix what an open pull request already fixed; it cost a full
-  seat to discover.
+  was dispatched to fix what an open pull request already fixed.
 - **Give it the constraints that already exist** rather than letting it
   re-derive them: findings carried into its stage, the numbers it must
   re-measure rather than trust, and the destination its own carry must reach.
 - **Name the null control you expect**, where one is knowable. A seat told what
   must *not* fire returns better evidence than one told only what must.
+- **Dispatch a fix's reviewer when the fixer pushes**, not when CI settles; until
+  the handoff it prepares against the merge base only (`fix-review.md`).
 
 ## 6. A conflict resolution is verified by reading the merged artifact
 
@@ -279,8 +278,7 @@ before merging — so open the pull request and surface it.
   and `judge.md`'s void rule applies to it: *a finding whose harness does not
   move under its own perturbation is void, whatever the votes said.* Tools you
   run are encouraged — `tools/audit/preflight.sh` exists because intentions did
-  not bind and a script bound immediately — but the reviewer stays
-  the authority.
+  not bind and a script bound immediately — but the reviewer stays the authority.
 - **Do not re-implement what CI already repairs** (`ci-autofix.md`): wait for
   the bot commit, never open a second pull request, never hand-empty the claim
   files.
