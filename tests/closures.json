@@ -26,7 +26,7 @@
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 27.2,
+   "seconds": 33.9,
    "rc": 0
   },
   "tests/env_drift.py": {
@@ -34,7 +34,7 @@
    "rc": 0
   },
   "tests/features.py": {
-   "seconds": 100.8,
+   "seconds": 116.6,
    "rc": 0
   },
   "tests/frontend.py": {
