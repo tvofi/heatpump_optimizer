@@ -79,9 +79,10 @@ The owner approved this in session (#201 comments 5702359298, *"Approved"*, and
 
 "What this does not decide" set aside the mechanical form — CODEOWNERS with a
 required review — because `0005` measured that it could not bind while one
-identity authored and approved. `0009`'s identities remove that premise: seats
-author as a write collaborator that is not the owner, so the owner's review is
-no longer a self-approval GitHub refuses, and the form can bind.
+identity authored and approved. `0009`'s identities remove that premise once
+seats author as a write collaborator that is not the owner (`0009` step 3): the
+owner's review is then no longer a self-approval GitHub refuses, and the form
+can bind.
 
 So the decision above stands and its form changes. **Once `main-protect`
 carries the code-owner rule (`0009` step 6, as amended the same day), the

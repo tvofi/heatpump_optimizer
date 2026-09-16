@@ -18,9 +18,12 @@ record is a plan with its checks written down — the shape 0008 landed in — a
 > branches and rulesets (#201 comments 5701766255 and 5701850207). The approver
 > is the GitHub App `hpo-approver` (id 4968222), reported installed with
 > pull-request write on 2026-09-16; `GET .../installation` needs the App's own
-> token, so the seat recording this note could not re-read it. **Not landed:** step 3 — seats still
-> authenticate as `tvofi` (`gh api user --jq .login`), so the author half of
-> step 4 is unverified and no approving review from the App exists yet; step 5,
+> token, so the seat recording this note could not re-read it. Step 3b landed
+> with #1071 (`059f047`): the `delivery-status-publish` lane pushes as
+> `tvofi-seat-author` (#1065's force-push at 19:37:11Z, #201 comment
+> 5703429662). **Not landed:** the rest of step 3 — seats still authenticate as
+> `tvofi` (`gh api user --jq .login`), so the author half of step 4 is
+> unverified and no approving review from the App exists yet; step 5,
 > `main-protect`'s `bypass_actors` still `[{RepositoryRole 5, always}]`; and
 > step 6, no `pull_request` rule. The code-owner half is amended below.
 

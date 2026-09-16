@@ -12,7 +12,8 @@
 #
 # The owner is @tvofi and not the approver App: GitHub's docs list users and
 # teams with explicit write access as code owners and name no App form. Every
-# other path has no code owner; the App's approving review serves those.
+# other path has no code owner; once step 6 lands, the App's approving review
+# serves those.
 # docs/HANDOVER.md is deliberately absent: it carries state, not rules.
 #
 # Nothing in the test gate opens this file (tests/closure.py lists it INERT).
