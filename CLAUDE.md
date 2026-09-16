@@ -51,11 +51,12 @@ with *"these force the FULL suite when touched"*.
 
 ## Where the policy is — the whole set, and who each part binds
 
-Everything named here is **policy**, and so is this file. The owner's approval is
-required before **merging** a change to any of it, not before drafting one — so
-open the pull request and surface it. Every rewrite looks like a correction from
-the inside; if the honest description is *"this changes what a seat must do"*, it
-is policy however small the diff.
+Everything named here but `docs/HANDOVER.md` is **policy**, and so is this file.
+The owner approves a change to any of it by an approving review on the pull
+request, which `.github/CODEOWNERS` requires before **merging**, not drafting —
+so open the pull request and surface it. Every rewrite looks like a correction
+from the inside; if the honest description is *"this changes what a seat must
+do"*, it is policy however small the diff.
 
 ### The project policies, loaded when they bind
 
@@ -65,8 +66,8 @@ and an orphan `.mdc`.
 
 `AGENTS.md`, at the root, is the entry point for a harness that auto-loads that
 name instead of this one (ZCode, Codex); it states no policy of its own and
-binds the seat to this file. It is measured policy: a `POLICY_GLOBS` pattern
-matches it, with a cap in `policy_budgets.json`.
+binds the seat to this file. It is measured policy: `POLICY_GLOBS` matches it
+and `policy_budgets.json` caps it.
 
 | rule | what it binds |
 |---|---|
@@ -138,9 +139,8 @@ individually, because a range reads as complete while covering a fraction:
 - `tests/README.md` — what each script pins, how the scoped gate selects, why a
   test that re-implements a production formula pins nothing.
 - `tools/audit/README.md` — how a round is run and where its evidence lands.
-- `docs/HANDOVER.md` — the single durable handover; its rules and the split
-  against #201 that keeps it non-redundant are in `writing-for-agents.md`, and
-  `tests/entities.py` refuses a second one anywhere under `docs/`.
+- `docs/HANDOVER.md` — state, not policy: the one durable handover, ruled by
+  `writing-for-agents.md`; `tests/entities.py` refuses a second under `docs/`.
 
 ## Fix it; if you cannot, verify it independently; only then file it
 
