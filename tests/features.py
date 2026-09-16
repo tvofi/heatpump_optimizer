@@ -29306,13 +29306,15 @@ R.check(
 # -- ECL110 state payloads that parse but are not a measurement ---------------
 # json.loads accepts NaN/Infinity and overflows 1e999 to inf; float() accepts
 # "nan"/"inf" strings. Each of those used to be stored as the measured
-# displace. The design choice pinned: a non-finite field rejects the WHOLE
+# displace. A 400-digit integer is the one payload whose float() raises
+# OverflowError, so it pins that arm of the narrowed except. The design choice pinned: a non-finite field rejects the WHOLE
 # message, as a malformed field already did, so a half-applied payload never
 # lands (the mixed row below).
 _T1_ECL_NONFINITE = (
     '{"displace": NaN}', '{"displace": "nan"}', '{"displace": "inf"}',
     '{"command": {"displace": "-Infinity"}}', "Infinity", b"-Infinity", "1e999",
     '{"effective_displace": NaN}', '{"displace": 2.0, "effective_displace": "inf"}',
+    "1" + "0" * 400,
 )
 _t1_ecl_nf_kept = []
 for _t1_nf_payload in _T1_ECL_NONFINITE:
@@ -29320,14 +29322,18 @@ for _t1_nf_payload in _T1_ECL_NONFINITE:
     _t1_nf._ecl110_current_displace = 7.0
     _t1_nf._current_state.ecl110_displace_command = 7.0
     _t1_nf._current_state.ecl110_effective_displace = -1.5
-    _t1_nf._async_handle_ecl110_state_message(_T1Msg(_t1_nf_payload))
+    try:
+        _t1_nf._async_handle_ecl110_state_message(_T1Msg(_t1_nf_payload))
+    except Exception as _t1_exc:  # noqa: BLE001 - fail by name, not the lane
+        _t1_ecl_nf_kept.append(f"{_t1_nf_payload[:12]!r}: {type(_t1_exc).__name__}")
+        continue
     _t1_nf_seen = (
         _t1_nf._ecl110_current_displace,
         _t1_nf._current_state.ecl110_displace_command,
         _t1_nf._current_state.ecl110_effective_displace,
     )
     if _t1_nf_seen != (7.0, 7.0, -1.5):
-        _t1_ecl_nf_kept.append(f"{_t1_nf_payload!r} -> {_t1_nf_seen!r}")
+        _t1_ecl_nf_kept.append(f"{_t1_nf_payload[:40]!r} -> {_t1_nf_seen!r}")
 R.check(
     "a NaN/inf ECL110 payload is not stored; the last good values stand",
     not _t1_ecl_nf_kept,
