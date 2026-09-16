@@ -12649,10 +12649,9 @@ R.check(
 # could not simply gain a member.
 #
 # The last three inert workflows made the same move for decision 0009 step 3b
-# (#954): the seat-author pins below count `secrets.SEAT_AUTHOR_TOKEN` across
-# EVERY workflow file, because a reference in any job that runs on
-# `pull_request` breaks the property they pin, and all three of these run on
-# `pull_request`. So none is inert any more; each is read by this script and
+# (#954), and the reason outlived it: the ledger-lane pin below requires
+# `SEAT_AUTHOR_TOKEN` in NO workflow file (#1086 removed its one use), so an
+# edit to any of these three must select this script. So none is inert any more; each is read by this script and
 # classified the way `governance.yml` and `release.yml` are below.
 _NON_GATE_WORKFLOWS = [
     ".github/workflows/hassfest.yml",
