@@ -69,7 +69,7 @@ UNTRUSTED = re.compile(
 
 SEAT_CORPUS = [
     ".claude/workflows/audit-fix.js", ".claude/workflows/audit-wave.js",
-    ".claude/workflows/audit-verify.js", ".claude/workflows/audit-merge.js",
+    ".claude/workflows/audit-verify.js",
     ".claude/workflows/audit-find.js", ".claude/workflows/web-triage.js",
     ".claude/workflows/web-fix-wave.js", ".claude/workflows/web-stamp.js",
     ".claude/workflows/web-decomp-stage.js", ".claude/workflows/web-fragments.md",

@@ -1758,7 +1758,7 @@ to reach for. The rest still stands and is why it is kept.
 
 The programme has been in this state, so it gets a written answer rather than a
 judgement call each time. `web-fix-wave.js` logs `MAIN IS RED after <group>` and
-stops merging; `audit-merge.js` returns `{green:false}`. What follows:
+stops merging. What follows:
 
 1. **A behaviour change in the merged diff → revert first, diagnose after.** The
    revert is cheap and main being trustworthy is what every later merge is judged

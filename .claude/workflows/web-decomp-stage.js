@@ -117,19 +117,22 @@ give up after two hours. Require both fast and closures to be success. On a
 red run, fetch the failing job log (get_job_logs, failed_only) and return
 {green: false, log_excerpt}. Return {green, run_id}.`
 
-const stampPrompt = (repo, bump, title) => `In ${repo}: git fetch origin
---tags; git worktree add --detach /home/user/wt/stamp origin/main (if the
-path exists, reuse it and git reset --hard origin/main). If git tag
---points-at HEAD is non-empty, return {stamped: false, reason: "already
-stamped"} and change nothing. Otherwise write the RELEASE_NOTES.md section
-"## v<next ${bump}>" at the top of the file: a "### <subsection>" per PR
-merged since the last tag, written from its body (git log <last-tag>..HEAD
---format=%s lists them; read each body with pull_request_read), so every
-"(#N)" is named -- stamp.py rule 4 refuses notes that omit one. Run python3
-tools/release/stamp.py --bump ${bump} --title "${title}" --dry-run, then the
-same command with --push. It refuses on its own rules; if it refuses, change
-nothing and return {stamped: false, reason: <its message>}. Return {stamped:
-true, version, tag_sha}.`
+const stampPrompt = (repo, bump, title) => `In ${repo}: if test -f
+~/.zcode/stamp-deploy.key fails, return {stamped: false, reason: "no deploy
+key in this runtime; hand the stamp to a local orchestrator"} and change
+nothing. Else git fetch origin --tags; git worktree add --detach
+/home/user/wt/stamp origin/main (if the path exists, reuse it and git reset
+--hard origin/main). If git tag --points-at HEAD is non-empty, return
+{stamped: false, reason: "already stamped"} and change nothing. Otherwise
+write the RELEASE_NOTES.md section "## v<next ${bump}>" at the top of the
+file: a "### <subsection>" per PR merged since the last tag, written from its
+body (git log <last-tag>..HEAD --format=%s lists them; read each body with
+pull_request_read), so every "(#N)" is named -- stamp.py rule 4 refuses notes
+that omit one. Run python3 tools/release/stamp.py --bump ${bump} --title
+"${title}" --dry-run, then the same command with --push --push-key
+~/.zcode/stamp-deploy.key --known-hosts ~/.zcode/github_known_hosts. It
+refuses on its own rules; if it refuses, change nothing and return {stamped:
+false, reason: <its message>}. Return {stamped: true, version, tag_sha}.`
 
 // ---------------------------------------------------------------------------
 // One stage of the #193 decomposition program. Move, don't rewrite: bodies

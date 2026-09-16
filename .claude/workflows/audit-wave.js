@@ -5,7 +5,7 @@
 //
 // The fixer and reviewer prompts below are hand-mirrored from audit-fix.js,
 // not imported from a shared module: the four scripts this repo already
-// ships (audit-find.js, audit-fix.js, audit-merge.js, audit-verify.js) carry
+// shipped (audit-find.js, audit-fix.js, audit-verify.js, and a deleted merge script) carry
 // no `import` of a sibling file anywhere, and every one of them (this file
 // included) is written with a top-level `return`, which is only legal
 // syntax inside a function body — this workflow runtime evidently evaluates
@@ -17,14 +17,14 @@
 // pointing back at this file with the same note.
 //
 // Merges are not run here. Each entry this returns with a `pr` still goes
-// through its own separate /audit-merge, exactly as after a solo
+// through its own separate merge, exactly as after a solo
 // /audit-fix — a wave only parallelizes fix-and-review; the merge queue
 // stays one PR at a time (tools/audit/README.md, docs/audit-2026-09.md).
 //
 //   /audit-wave with args {groups: [{group: "B3", issues: [168, 169], fixerModel: "opus", reviewerModel: "opus", after: []}, {group: "B4", issues: [170], fixerModel: "sonnet", reviewerModel: "opus", after: ["B3"]}], repo: "<abs path>", baseline: "<sha>"}
 export const meta = {
   name: 'audit-wave',
-  description: 'RETIRED: Fix and adversarially review many PR groups in parallel, honoring after-dependencies; merges stay a separate /audit-merge per PR',
+  description: 'RETIRED: Fix and adversarially review many PR groups in parallel, honoring after-dependencies; merges stay one separate merge per PR',
   phases: ['Fix and review'],
 }
 

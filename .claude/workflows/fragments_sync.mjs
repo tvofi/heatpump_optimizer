@@ -24,6 +24,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { execFileSync } from 'node:child_process'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(HERE, '..', '..')
@@ -93,6 +94,32 @@ function findings(canonDecls, files) {
   return out
 }
 
+// Decision 0009 step 5 leaves the deploy key as main's only direct-push bypass,
+// so a stamp `--push` with no `--push-key` beside it is refused at the push.
+// Scanned: every tracked file under .claude/workflows/ and tools/, not only the
+// fragments -- a retired script carried one. stamp.py and this file are skipped:
+// their usage line and self-tests name `--push` alone. A `--push` is a stamp push
+// when `stamp.py` precedes it by at most 400 characters with no sentence end
+// between, and is keyed when `--push-key` follows within 40 characters.
+const STAMP_EXEMPT = new Set(['tools/release/stamp.py', '.claude/workflows/fragments_sync.mjs'])
+function keylessStampPushes(texts) {
+  const out = []
+  for (const [rel, raw] of texts) {
+    if (STAMP_EXEMPT.has(rel)) continue
+    for (const m of raw.matchAll(/--push(?![\w-])/g)) {
+      const before = raw.slice(Math.max(0, m.index - 400), m.index)
+      const at = before.lastIndexOf('stamp.py')
+      if (at < 0 || /[.!?]\s/.test(before.slice(at + 8))) continue
+      if (raw.slice(m.index + 6, m.index + 46).includes('--push-key')) continue
+      out.push(`${rel}:${raw.slice(0, m.index).split('\n').length}`)
+    }
+  }
+  return out
+}
+const trackedTexts = () =>
+  execFileSync('git', ['ls-files', '-z', '.claude/workflows', 'tools'], { cwd: ROOT, encoding: 'utf8' })
+    .split('\0').filter(Boolean).map((rel) => [rel, read(rel) ?? ''])
+
 const copyFiles = () =>
   fs.readdirSync(path.join(ROOT, '.claude', 'workflows'))
     .filter((f) => COPIES.test(f))
@@ -145,6 +172,23 @@ function selfTest(canonDecls, files) {
   ok(grantSplit(bentWrite).some((e) => /GH_WRITE holds/.test(e)),
     'putting merge_pull_request in GH_WRITE is reported')
 
+  const texts = trackedTexts()
+  ok(keylessStampPushes(texts).length === 0, 'no tracked stamp --push lacks --push-key (null control)')
+  for (const ex of STAMP_EXEMPT) {
+    ok(keylessStampPushes(texts.filter(([r]) => r === ex).map(([, t]) => ['x', t])).length > 0,
+      `${ex} would be reported unexempted, so its exemption is load-bearing`)
+  }
+  const bentStamp = [['a.js', 'run tools/release/stamp.py --bump patch, then the same command with --push. Done']]
+  ok(keylessStampPushes(bentStamp).length === 1, 'a keyless stamp --push is reported')
+  ok(keylessStampPushes([['a.js', bentStamp[0][1].replace('--push.', '--push --push-key k.')]]).length === 0,
+    'the same text with --push-key is not')
+  ok(keylessStampPushes([['a.js', 'git push --push-option=ci.skip; git push --push']]).length === 0,
+    'a --push with no stamp.py before it is not')
+  ok(keylessStampPushes([['a.js', 'Run stamp.py. The keyless --push sites']]).length === 0,
+    'nor one a sentence end separates from stamp.py')
+  ok(keylessStampPushes([[STAMP_EXEMPT.values().next().value, bentStamp[0][1]]]).length === 0,
+    'an exempt path is skipped')
+
   console.log(`\n${pass} passed, ${fail} failed`)
   return fail ? 2 : 0
 }
@@ -182,6 +226,12 @@ const split = grantSplit(decls)
 for (const e of split) console.log(`  GRANT   ${e}`)
 if (split.length) {
   console.log(`\nFRAGMENTS: write-grant split failed. issue_read and merge_pull_request must not share a grant.`)
+  process.exit(1)
+}
+const keyless = keylessStampPushes(trackedTexts())
+for (const k of keyless) console.log(`  KEYLESS ${k}: stamp.py --push without --push-key`)
+if (keyless.length) {
+  console.log(`\nFRAGMENTS: ${keyless.length} stamp push(es) without the deploy key. After decision 0009 step 5 main refuses them; pass --push-key ~/.zcode/stamp-deploy.key --known-hosts ~/.zcode/github_known_hosts, or stop before pushing where no key exists.`)
   process.exit(1)
 }
 console.log(`FRAGMENTS ok: ${decls.size} canonical fragment(s) [${[...decls.keys()].join(', ')}] match every copy across ${files.length} script(s)`)
