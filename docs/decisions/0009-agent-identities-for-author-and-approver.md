@@ -22,7 +22,7 @@ record is a plan with its checks written down — the shape 0008 landed in — a
 > token, so the seat recording this note could not re-read it. Step 3b landed
 > with #1071 (`059f047`): the `delivery-status-publish` lane pushes as
 > `tvofi-seat-author` (#1065's force-push at 19:37:11Z, #201 comment
-> 5703429662). **Not landed** at that note (steps 3 and 5 since, in the next
+> 5703429662). **Not landed** at that note (steps 3 to 5 since, in the next
 > note): the rest of step 3 — seats still authenticate as
 > `tvofi` (`gh api user --jq .login`), so the author half of step 4 is
 > unverified, and the App has not yet approved a pull request the machine
@@ -31,8 +31,8 @@ record is a plan with its checks written down — the shape 0008 landed in — a
 > `main-protect`'s `bypass_actors` still `[{RepositoryRole 5, always}]`; and
 > step 6, no `pull_request` rule. The code-owner half is amended below.
 
-> **Status note, 2026-09-16 22:00Z.** Supersedes the "not landed" list above
-> for steps 3 and 5.
+> **Status note, 2026-09-16 22:30Z.** Supersedes the "not landed" list above
+> for steps 3, 4 and 5.
 >
 > - **Step 5 landed at 21:18Z** (#201 comment 5704665628), after #1077 merged
 >   (`698041b`). One `PUT` on `rulesets/22628467` changed `bypass_actors` from
@@ -46,15 +46,17 @@ record is a plan with its checks written down — the shape 0008 landed in — a
 >   5704702814). A stamp now pushes only over the deploy key. Pull requests
 >   merge under the new bypass: #1080 (21:30Z), #1082 and #1081 were merged by
 >   `tvofi` after it, and the ruleset's `updated_at` still reads 21:18:10Z.
-> - **Step 3: this record's own pull request is authored by
->   `tvofi-seat-author`**, a seat and not the ledger lane. Before it was
+> - **Step 3 is demonstrated.** GitHub shows `tvofi-seat-author` as the
+>   author of #1083, a ledger cycle, and of #1084, this record's own pull
+>   request, which a seat opened and not the ledger lane. Before #1084 was
 >   opened, with the seat's token:
 >   `gh api user --jq .login` printed `tvofi-seat-author`, and
 >   `gh api repos/tvofi/heatpump_optimizer/collaborators/tvofi-seat-author/permission --jq .permission`
 >   printed `write`.
-> - **Step 4:** the App's approval of that pull request follows its review. It
->   has not happened as this note is written; its result is recorded on #201 or
->   in a later record pull request.
+> - **Step 4 is demonstrated.** `hpo-approver[bot]` posted APPROVED review
+>   5228959633 on #1083 at head `a149cb4` (22:23:03Z), a pull request the
+>   machine account authored; #1083 merged as `9b462d7` at 22:23:06Z (#201
+>   comment 5705424893).
 > - **Step 6** is pre-authorised for one session (comment 5704795223): a
 >   `pull_request` rule with the code-owner review, and `bypass_actors` reduced
 >   to the DeployKey alone. It has **not** landed.
