@@ -359,12 +359,12 @@ in its own pull request.
     the rest.** #690's rule — the row's own verdict, quoted prose excluded —
     applied literally reads the first `**…**` span. #678's row opened on its
     root-cause verdict, carried `**IN REVIEW as #715**` later in that cell, and
-    ended `governance, in review` unbolded; #715 merged `015fdbd` and the row
-    stood five days of record beats on. **The rule that holds both ends: in a
-    table row every cell, in a bullet the leading verdict, both with quoted
-    and backticked text dropped first.** Here: 12 rows before the repair, 0
-    after, no bullet either way; **drop the exclusion and the bullets alone
-    give 14 false positives**, all about rows already repaired.
+    ended `governance, in review` unbolded; it stood five days of record beats
+    after #715 merged. **The rule that holds both ends: in a table
+    row every cell, in a bullet the leading verdict, both dropping quoted and
+    backticked text first** — 12 table rows here before the repair, 0 after.
+    Without it the bullet arm fires on already-repaired prose, and #582's row
+    on its own leftover; **count those with your own vocabulary.**
 
 ## Owed — post-hoc reviews
 
