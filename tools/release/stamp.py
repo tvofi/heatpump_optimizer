@@ -168,12 +168,25 @@ def window_log_args(last_tag: str, head: str = "HEAD") -> list[str]:
 
 
 def parse_window(raw: str) -> list[tuple[str, int, str]]:
-    """(abbreviated sha, parent count, subject) per first-parent commit."""
+    """(abbreviated sha, parent count, subject) per first-parent commit.
+
+    A non-empty line that does not carry WINDOW_FORMAT's three fields is
+    REFUSED, not skipped. Skipping it returns the same empty list a clean
+    empty window returns, and that is the failure path this whole change
+    exists to close (#1041 comment 5693093076): the derivation that produces
+    the population a check quantifies over must not answer "nothing merged"
+    when it means "I could not read this". The first version of this function
+    had the bare `continue`, written by a seat that had just read that
+    analysis, which is how durable the shape is.
+    """
     rows = []
     for line in raw.splitlines():
-        parts = line.split("\x1f")
-        if len(parts) != 3:
+        if not line:
             continue
+        parts = line.split("\x1f", 2)
+        if len(parts) != 3:
+            raise Refuse(4, f"git log --first-parent returned a line rule 4 cannot read: "
+                            f"{line!r}. A window that cannot be read is not an empty one.")
         sha, parents, subject = parts
         rows.append((sha, len(parents.split()), subject))
     return rows
@@ -390,11 +403,27 @@ def self_test() -> int:
           f"--format={WINDOW_FORMAT}" in window_log_args("v6.5.0")
           and WINDOW_FORMAT.count("%x1f") == 2)
     parsed = parse_window("abc1234\x1fdef5678 9012345\x1fMerge pull request #7 from x/y\n"
-                          "bbb2222\x1faaa1111\x1ffix: a thing (#8)\n"
-                          "junk-with-no-separators\n")
+                          "bbb2222\x1faaa1111\x1ffix: a thing (#8)\n")
     check("window: a merge is recognised by its parent count",
           parsed == [("abc1234", 2, "Merge pull request #7 from x/y"),
                      ("bbb2222", 1, "fix: a thing (#8)")])
+    check("window: a subject carrying the separator keeps it",
+          parse_window("abc1234\x1faaa1111\x1ffix: a\x1fb") == [("abc1234", 1, "fix: a\x1fb")])
+    check("window: an empty log is an empty window", parse_window("") == [])
+    try:
+        parse_window("abc1234\x1fdef5678 9012345\x1fMerge pull request #7 from x/y\n"
+                     "a-line-with-no-separators\n")
+        check("window: an unreadable line refuses, it is not dropped", False)
+    except Refuse as _pw:
+        # Dropping it would return the list a clean run returns, minus a
+        # commit -- the silent-zero shape this change exists to close.
+        check("window: an unreadable line refuses, it is not dropped",
+              "cannot read" in str(_pw) and "rule 4" in str(_pw))
+    try:
+        parse_window("every-line-unreadable\nand-this-one-too\n")
+        check("window: an all-unreadable log refuses rather than reading empty", False)
+    except Refuse:
+        check("window: an all-unreadable log refuses rather than reading empty", True)
 
     # The blindness alarm. Its own null control is the healthy window: a rule
     # whose alarm never fires is the failure it exists to catch.
