@@ -5,9 +5,9 @@ production lines. You work in your own worktree branched from `origin/main`.
 
 1. **Never touch `VERSION`, the manifest version or the `RELEASE_NOTES.md`
    heading.** Versions are assigned by `tools/release/stamp.py` after the
-   merge. The rule is keyed on the manifest's `version` field, not on the
-   file: an edit that leaves that field unchanged is allowed, and
-   `tools/audit/prepr.sh` carries the command. Compare three-dot, never
+   merge. The rule is keyed on the manifest's `version` field, not the file:
+   an edit leaving it unchanged is allowed; the command is `prepr.sh` step 5's,
+   file-keyed until #1063 narrows it to the field. Compare three-dot, never
    two-dot: a two-dot `git diff origin/main <branch>` during a PR #399
    pre-merge check reported `tests/closures.json` as changed by the branch,
    when the difference was `main`'s own newer commits the branch had not
