@@ -174,6 +174,26 @@ push_order() { # own remote branch's sha ('' or '-' for none), behind, ahead
   return 0                                  # 0 it is at this head
 }
 
+stamp_paths() { # name-only diff over VERSION, unified diff of manifest.json
+  # Step 5's predicate, a pure function of its two inputs so --self-test can
+  # drive it. Prints the stamp-shaped paths it finds, space-separated; empty
+  # means the branch touched no version.
+  #
+  # KEYED ON THE FIELD, NOT THE FILE. CLAUDE.md rule 4 forbids touching
+  # "VERSION, the manifest VERSION, or the RELEASE_NOTES.md heading"; the
+  # first form of this step diffed manifest.json by NAME and so refused every
+  # manifest edit, including the one that adds `quality_scale` -- a predicate
+  # wider than the rule it enforced, found by the first branch that made a
+  # legitimate non-version manifest edit. The manifest's other keys are
+  # ordinary production state; only its `version` line is the stamp's.
+  local out=""
+  if [ -n "${1// /}" ]; then out="VERSION"; fi
+  if printf '%s\n' "$2" | grep -qE '^[-+][[:space:]]*"version"[[:space:]]*:'; then
+    out="${out:+$out }custom_components/heatpump_optimizer/manifest.json(version)"
+  fi
+  printf '%s' "$out"
+}
+
 # --- self-test ---------------------------------------------------------------
 # A check that cannot be shown failing does not merge. This drives the two steps
 # that are pure functions of their input -- the body checks -- against the rot
@@ -334,6 +354,23 @@ if [ "${1:-}" = "--self-test" ]; then
   st "$fp" 0 "and cleans up after itself, so a failing \`mv\` leaks no \`.part\`"
   rm -rf "$MVD"
 
+  # Step 5, driven through `stamp_paths` -- the function the step calls. The
+  # over-fire control is the arm that matters: the step shipped keyed on the
+  # manifest's file name and refused every manifest edit, so the arm that pins
+  # "a non-version manifest edit passes" is the one the old predicate fails.
+  # The other three are the stamp's own shapes, each of which must still refuse.
+  got=$(stamp_paths '' '+  "quality_scale": "platinum",')
+  st "$got" '' "a manifest edit that is not the version field passes (over-fire control)"
+  got=$(stamp_paths '' '-  "version": "6.5.1",
++  "version": "6.5.2",')
+  st "$got" 'custom_components/heatpump_optimizer/manifest.json(version)' "a manifest version bump is refused, and named by field"
+  got=$(stamp_paths 'VERSION' '')
+  st "$got" 'VERSION' "a VERSION edit is refused"
+  got=$(stamp_paths 'VERSION' '-  "version": "6.5.0",
++  "version": "6.5.1",
++  "quality_scale": "platinum",')
+  st "$got" 'VERSION custom_components/heatpump_optimizer/manifest.json(version)' "a stamp-shaped diff is refused on both, and the added key does not mask it"
+
   printf 'Closes #999\n' | bash tools/audit/preflight.sh >/dev/null 2>&1
   st $? 1 "preflight refuses an unintended closing keyword"
   printf 'Closes #999\n' | bash tools/audit/preflight.sh 999 >/dev/null 2>&1
@@ -426,11 +463,12 @@ fi
 # --- 5. VERSION, the manifest and the notes heading are untouched.
 # Versions are assigned after the merge by tools/release/stamp.py. A branch that
 # moves one is refused by the stamp, which is a slow way to find out.
-STAMPED=$(git diff --name-only "$BASE"...HEAD -- VERSION \
-  custom_components/heatpump_optimizer/manifest.json | tr '\n' ' ')
+STAMPED=$(stamp_paths \
+  "$(git diff --name-only "$BASE"...HEAD -- VERSION)" \
+  "$(git diff "$BASE"...HEAD -- custom_components/heatpump_optimizer/manifest.json)")
 NOTES=$(git diff "$BASE"...HEAD -- RELEASE_NOTES.md | grep -cE '^[-+]## ' || true)
-if [ -n "${STAMPED// /}" ] || [ "$NOTES" -gt 0 ]; then
-  step "no version edit" 1 "${STAMPED}${NOTES:+notes heading x$NOTES}"
+if [ -n "$STAMPED" ] || [ "$NOTES" -gt 0 ]; then
+  step "no version edit" 1 "${STAMPED:+$STAMPED }${NOTES:+notes heading x$NOTES}"
 else
   step "no version edit" 0
 fi
