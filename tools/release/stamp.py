@@ -32,6 +32,12 @@ claim file turned main red. So every rule below is a refusal, not a warning:
   5. manifest.json's version equals VERSION before the stamp (a botched
      earlier stamp is fixed by hand, not papered over here).
 
+--push-key PATH pushes the commit and the tag over a deploy key to the SSH URL
+instead of to origin (#954): once main-protect's admin bypass covers pull
+requests only, a direct push to main lands over that key and nothing else. The
+key and its pinned host file are checked before rule 1, and a key push that is
+refused is never retried as origin.
+
 What it writes: VERSION, the manifest version, CARD_VERSION in the bundled
 card (console banner only -- card_drift.mjs is unchanged), both claim files
 (the `claims-for:` stamp moves to the new version, the reason block is
@@ -46,7 +52,9 @@ import json
 import os
 import pathlib
 import re
+import shlex
 import shutil
+import stat
 import subprocess
 import sys
 import urllib.request
@@ -92,15 +100,91 @@ TESTS_WORKFLOW = "Tests"
 TESTS_WORKFLOW_FILE = "tests.yml"
 GATE_RUN_LIMIT = 5
 GATE_TIMEOUT_S = 30.0
+# The deploy-key push. The URL is derived from REPO, never read off or written
+# to `origin`: worktrees share one repository config, so `git remote set-url`
+# or a `-c` override there would re-point every sibling checkout's push. The
+# key reaches ssh through the subprocess environment only.
+KEY_PUSH_URL = f"git@github.com:{REPO}.git"
+DEFAULT_KNOWN_HOSTS = "~/.zcode/github_known_hosts"
+# A key push that cannot reach port 22 fails instead of hanging after the stamp
+# commit and tag exist locally.
+SSH_CONNECT_TIMEOUT_S = 30
 
 
 class Refuse(SystemExit):
-    def __init__(self, rule: int, why: str) -> None:
+    def __init__(self, rule: int | str, why: str) -> None:
         super().__init__(f"stamp refused (rule {rule}): {why}")
 
 
-def sh(*args: str, check: bool = True) -> str:
-    return subprocess.run(args, cwd=ROOT, text=True, capture_output=True, check=check).stdout
+def sh(*args: str, check: bool = True, env: dict | None = None) -> str:
+    return subprocess.run(args, cwd=ROOT, text=True, capture_output=True, check=check,
+                          env=env).stdout
+
+
+# --- the push, to origin or over the deploy key -------------------------------
+
+def push_key_problem(key: str, known_hosts: str) -> str | None:
+    """Why the deploy key cannot be used, or None.
+
+    The key must be a file of mode exactly 600: ssh refuses a looser one at
+    push time, which is after the stamp commit and tag exist locally. The
+    pinned host file must exist and be writable by its owner only, because a
+    host file anyone can rewrite pins nothing. Neither path may be empty or
+    carry whitespace, a quote or `%`: ssh re-parses `-o UserKnownHostsFile=` on
+    its own and expands `%` tokens in both paths, so such a path fails at push
+    time even though the shell quoting holds.
+    """
+    if not key or not known_hosts:
+        return "the deploy key and the known_hosts path must both be non-empty"
+    key_path, hosts_path = Path(key).expanduser(), Path(known_hosts).expanduser()
+    for label, path in (("deploy key", key_path), ("known_hosts file", hosts_path)):
+        if any(ch.isspace() or ch in "'\"%" for ch in str(path)):
+            return (f"{label} path {str(path)!r} carries whitespace, a quote or %, "
+                    "which ssh re-splits or expands")
+    if not key_path.is_file():
+        return f"deploy key {key_path} does not exist or is not a file"
+    if not hosts_path.is_file():
+        return f"known_hosts file {hosts_path} does not exist or is not a file"
+    key_mode = stat.S_IMODE(key_path.stat().st_mode)
+    if key_mode != 0o600:
+        return f"deploy key {key_path} is mode {key_mode:o}, not 600"
+    hosts_mode = stat.S_IMODE(hosts_path.stat().st_mode)
+    if hosts_mode & 0o022:
+        return f"known_hosts file {hosts_path} is mode {hosts_mode:o}; group or others can rewrite it"
+    return None
+
+
+def key_ssh_command(key: str, known_hosts: str) -> str:
+    """The GIT_SSH_COMMAND the deploy-key push runs under, as measured on #201."""
+    return (f"ssh -i {shlex.quote(str(Path(key).expanduser()))} -o IdentitiesOnly=yes "
+            f"-o UserKnownHostsFile={shlex.quote(str(Path(known_hosts).expanduser()))} "
+            f"-o StrictHostKeyChecking=yes -o ConnectTimeout={SSH_CONNECT_TIMEOUT_S}")
+
+
+def push_via(refspec: str, key: str | None = None, known_hosts: str | None = None,
+             runner=None, environ=None) -> str:
+    """Push one refspec: to origin with no key, exactly as before; over the key
+    to KEY_PUSH_URL otherwise. There is no fallback between the two -- after
+    the bypass narrows, an origin retry is a refused push mid-release."""
+    runner = runner or sh
+    if key is None:
+        return runner("git", "push", "origin", refspec)
+    env = dict(os.environ if environ is None else environ)
+    env["GIT_SSH_COMMAND"] = key_ssh_command(key, known_hosts or DEFAULT_KNOWN_HOSTS)
+    return runner("git", "push", KEY_PUSH_URL, refspec, env=env)
+
+
+def refresh_origin(runner=None) -> str | None:
+    """Fetch origin after a key push. A push to origin updates origin/main as it
+    goes; a push to a URL does not, so without this the checkout still reads
+    main as the pre-stamp commit. Returns a warning rather than raising: the
+    stamp is already public when this runs."""
+    try:
+        (runner or sh)("git", "fetch", "origin", "--quiet")
+    except subprocess.CalledProcessError as exc:
+        why = (exc.stderr or "").strip().splitlines()
+        return "could not refresh origin after the key push: " + (why[-1] if why else "git fetch failed")
+    return None
 
 
 # --- pure pieces (covered by --self-test) -----------------------------------
@@ -572,7 +656,7 @@ def self_test() -> int:
     # nothing -- the exact failure tests/README.md describes as a test
     # asserting against its own copy. The last occurrence is the real one.
     src = pathlib.Path(__file__).read_text()
-    tail = src[src.rindex('push", "origin", f"v{nxt}"'):]
+    tail = src[src.rindex('push_via(f"v{nxt}"'):]
     guarded = tail[:tail.index("RESULT stamped=")]
     check("tag push: the failure is caught, not raised",
           "except subprocess.CalledProcessError" in guarded)
@@ -581,6 +665,124 @@ def self_test() -> int:
     check("tag push: the caller can tell it apart from success", "return 3" in tail)
     check("tag push: the recovery names the Release workflow",
           "Dispatch the Release" in tail and "creates the tag" in tail)
+    # The deploy-key push (#954, decision 0009 step 5). Once main-protect's
+    # admin bypass is narrowed to pull requests, a direct push to main lands
+    # only over the deploy key, so these pin the three things that failure
+    # would be silent about: the key reaches ssh through the subprocess
+    # environment and nowhere else, the push targets the SSH URL rather than
+    # origin, and a refused key push is never retried as origin.
+    calls: list[tuple[tuple, dict]] = []
+
+    def _record(*a, **kw):
+        calls.append((a, kw))
+        return ""
+
+    push_via("HEAD:main", runner=_record)
+    check("push: --push alone is today's command, unchanged",
+          calls == [(("git", "push", "origin", "HEAD:main"), {})])
+    calls.clear()
+    push_via("HEAD:main", "/k/stamp.key", "/k/hosts", runner=_record, environ={"PATH": "/bin"})
+    (_argv, _kw), = calls
+    check("push: over the key, the target is the SSH URL",
+          _argv == ("git", "push", "git@github.com:tvofi/heatpump_optimizer.git", "HEAD:main"))
+    check("push: over the key, origin is never named", "origin" not in _argv)
+    check("push: over the key, no config is written or overridden",
+          not any(a in ("-c", "config", "remote") for a in _argv))
+    _env = _kw.get("env") or {}
+    check("push: the ssh command reaches the subprocess environment",
+          _env.get("GIT_SSH_COMMAND") == key_ssh_command("/k/stamp.key", "/k/hosts"))
+    check("push: the caller's environment is kept beside it", _env.get("PATH") == "/bin")
+    _ssh = key_ssh_command("/k/stamp.key", "/k/hosts")
+    check("push: the ssh command pins the key, the host file and strict checking",
+          all(part in _ssh for part in ("-i /k/stamp.key", "IdentitiesOnly=yes",
+                                         "UserKnownHostsFile=/k/hosts",
+                                         "StrictHostKeyChecking=yes")))
+    # ssh keeps the FIRST value of an option, in any of its spellings (`-oKey=v`,
+    # `-o 'Key v'`), so no parse of the options pins them: the whole string is.
+    check("push: the ssh command is exactly the measured one, options in order",
+          _ssh == "ssh -i /k/stamp.key -o IdentitiesOnly=yes -o UserKnownHostsFile=/k/hosts "
+                  "-o StrictHostKeyChecking=yes -o ConnectTimeout=30")
+    check("push: a path with a space is quoted, not split",
+          "-i '/k/my key'" in key_ssh_command("/k/my key", "/k/hosts"))
+    calls.clear()
+
+    def _refused(*a, **kw):
+        calls.append((a, kw))
+        raise subprocess.CalledProcessError(1, a, "", "remote: Cannot update this protected ref")
+
+    try:
+        push_via("HEAD:main", "/k/stamp.key", "/k/hosts", runner=_refused, environ={})
+        check("push: a refused key push raises", False)
+    except subprocess.CalledProcessError:
+        check("push: a refused key push raises", True)
+    check("push: a refused key push is never retried as origin",
+          len(calls) == 1 and all("origin" not in a for a, _ in calls))
+    calls.clear()
+    check("push: after a key push, origin is fetched so origin/main shows the stamp",
+          refresh_origin(runner=_record) is None
+          and calls == [(("git", "fetch", "origin", "--quiet"), {})])
+    check("push: a failed refresh is reported, not raised",
+          "could not refresh" in (refresh_origin(runner=_refused) or ""))
+
+    import tempfile
+    with tempfile.TemporaryDirectory() as _d:
+        _key, _hosts = Path(_d) / "stamp.key", Path(_d) / "hosts"
+        _key.write_text("k")
+        _hosts.write_text("h")
+        _key.chmod(0o600)
+        _hosts.chmod(0o644)
+        check("key: a 600 key and a pinned host file pass",
+              push_key_problem(str(_key), str(_hosts)) is None)
+        check("key: a missing key refuses, naming it",
+              "does not exist" in (push_key_problem(str(Path(_d) / "nope"), str(_hosts)) or ""))
+        check("key: a missing known_hosts refuses, naming it",
+              "known_hosts" in (push_key_problem(str(_key), str(Path(_d) / "nope")) or ""))
+        _key.chmod(0o644)
+        check("key: a key readable by others refuses, naming the mode",
+              "644" in (push_key_problem(str(_key), str(_hosts)) or ""))
+        _key.chmod(0o400)
+        check("key: a key that is not exactly 600 refuses",
+              "400" in (push_key_problem(str(_key), str(_hosts)) or ""))
+        _key.chmod(0o600)
+        _hosts.chmod(0o666)
+        check("key: a host file others can rewrite refuses",
+              "666" in (push_key_problem(str(_key), str(_hosts)) or ""))
+        _hosts.chmod(0o644)
+        check("key: an empty key path refuses",
+              "non-empty" in (push_key_problem("", str(_hosts)) or ""))
+        for _bad in ("sp ace", "quo'te", 'dq"te', "tab\tbed", "pct%h"):
+            _odd = Path(_d) / _bad
+            _odd.write_text("h")
+            _odd.chmod(0o600)
+            check(f"key: a known_hosts path with {_bad!r} refuses before push time",
+                  "whitespace, a quote or %" in (push_key_problem(str(_key), str(_odd)) or ""))
+            check(f"key: a key path with {_bad!r} refuses before push time",
+                  "whitespace, a quote or %" in (push_key_problem(str(_odd), str(_hosts)) or ""))
+
+    # Where main() pushes from. Every pure piece above is correct while the
+    # call site still builds its own `git push origin` -- so the region is read.
+    _push_src = pathlib.Path(__file__).read_text()
+    _pr = _push_src[_push_src.rindex("    if args.push:"):]
+    _pr = _pr[:_pr.index("RESULT stamped=v{nxt} tag_pushed={")]
+    check("push: main pushes the branch and the tag only through push_via",
+          _pr.count("push_via(") == 2 and '"git", "push"' not in _pr)
+    check("push: both pushes carry the key arguments",
+          _pr.count("args.push_key, args.known_hosts") == 2)
+    # rindex: main() is the last function, and these literals also occur in
+    # this check's own source above it.
+    _pre = _push_src[_push_src.rindex("    args = ap.parse_args()"):]
+    _pre = _pre[:_pre.index("    # Rule 1: a fetched, clean checkout")]
+    check("push: the key is checked before rule 1, and a problem refuses",
+          "problem = push_key_problem(args.push_key, args.known_hosts)" in _pre
+          and "if problem:" in _pre and 'raise Refuse("push-key"' in _pre)
+    check("push: an empty --push-key is checked, not skipped as falsy",
+          "    if args.push_key is not None:\n        problem = push_key_problem" in _pre)
+    check("push: main refreshes origin after a key push",
+          "        if args.push_key is not None:\n            warning = refresh_origin()" in _pr)
+    # Before the tag push: that push may fail and `return 3`, and origin/main
+    # must show the stamp commit either way.
+    check("push: the refresh runs before the tag push",
+          -1 < _pr.find("warning = refresh_origin()") < _pr.find('push_via(f"v{nxt}"'))
     print(f"RESULT stamp_self_test={'pass' if ok else 'fail'}")
     return 0 if ok else 1
 
@@ -622,6 +824,10 @@ def main() -> int:
     ap.add_argument("--bump", choices=("patch", "minor"))
     ap.add_argument("--title", help="what shipped, for the commit subject and the claim files")
     ap.add_argument("--push", action="store_true", help="push the commit and the tag to origin")
+    ap.add_argument("--push-key", metavar="PATH",
+                    help="with --push: push over this deploy key to the SSH URL, never to origin")
+    ap.add_argument("--known-hosts", metavar="PATH", default=DEFAULT_KNOWN_HOSTS,
+                    help="the pinned GitHub host key file for --push-key (default: %(default)s)")
     ap.add_argument("--dry-run", action="store_true", help="run every check, write nothing")
     ap.add_argument("--allow-red", action="store_true", help="stamp even though HEAD's gate is not green")
     ap.add_argument("--self-test", action="store_true")
@@ -630,6 +836,12 @@ def main() -> int:
         return self_test()
     if not args.bump or not args.title:
         ap.error("--bump and --title are required (or --self-test)")
+    if args.push_key is not None and not args.push:
+        ap.error("--push-key only means something with --push")
+    if args.push_key is not None:
+        problem = push_key_problem(args.push_key, args.known_hosts)
+        if problem:
+            raise Refuse("push-key", problem + "; nothing was written, and origin is not a fallback")
 
     # Rule 1: a fetched, clean checkout of origin/main.
     sh("git", "fetch", "origin", "--quiet", "--tags")
@@ -722,13 +934,18 @@ def main() -> int:
         # A rejected push must leave nothing behind: no local tag that would
         # make the retry refuse under rule 3, no stamp commit off main.
         try:
-            sh("git", "push", "origin", "HEAD:main")
+            push_via("HEAD:main", args.push_key, args.known_hosts)
         except subprocess.CalledProcessError as exc:
             sh("git", "tag", "-d", f"v{nxt}")
             sh("git", "reset", "--hard", "origin/main")
-            raise Refuse(1, "push to main was rejected (main moved); the stamp commit and tag were "
+            raise Refuse(1, "push to main was rejected (main moved, or the pushing identity was "
+                            "refused); the stamp commit and tag were "
                             "discarded -- fetch, rewrite the notes for the new HEAD, run again: "
                             + exc.stderr.strip().splitlines()[-1]) from exc
+        if args.push_key is not None:
+            warning = refresh_origin()
+            if warning:
+                print(f"WARNING: {warning}", file=sys.stderr)
         # The tag push is the one step that can fail AFTER the commit is
         # already public, and in some environments it always does: push
         # credentials scoped to branches get 403 on refs/tags while
@@ -745,7 +962,7 @@ def main() -> int:
         # commit belongs on main either way, and rule 3 refuses a second
         # stamp of a version that is already there.
         try:
-            sh("git", "push", "origin", f"v{nxt}")
+            push_via(f"v{nxt}", args.push_key, args.known_hosts)
         except subprocess.CalledProcessError as exc:
             why = (exc.stderr or "").strip().splitlines()
             print(f"RESULT stamped=v{nxt} tag_pushed=false")
