@@ -12488,17 +12488,31 @@ R.check(
 # than skipping. Its own check is below, and it is the third classification a
 # workflow file can have -- neither gate nor inert -- which is why the loop
 # could not simply gain a member.
+#
+# The last three inert workflows made the same move for decision 0009 step 3b
+# (#954): the seat-author pins below count `secrets.SEAT_AUTHOR_TOKEN` across
+# EVERY workflow file, because a reference in any job that runs on
+# `pull_request` breaks the property they pin, and all three of these run on
+# `pull_request`. So none is inert any more; each is read by this script and
+# classified the way `governance.yml` and `release.yml` are below.
 _NON_GATE_WORKFLOWS = [
     ".github/workflows/hassfest.yml",
     ".github/workflows/validate.yml",
+    ".github/workflows/codeql.yml",
 ]
 for _wf in _NON_GATE_WORKFLOWS:
     R.check(
         f"{_wf.split('/')[-1]} is not a gate file, and is classified",
-        (not _closure.is_gate_file(_wf)) and _closure.is_inert(_wf),
-        f"gate={_closure.is_gate_file(_wf)} inert={_closure.is_inert(_wf)}; "
-        "no recorded closure reads it, it sets no gate variable and runs no "
-        "gate script, so it neither forces FULL nor orphans",
+        (not _closure.is_gate_file(_wf))
+        and (not _closure.is_inert(_wf))
+        and _closure.affected([_wf])["case"] == "scoped"
+        and _wf in json.loads(
+            _closure.CLOSURES.read_text())["closures"]["tests/entities.py"],
+        f"gate={_closure.is_gate_file(_wf)} inert={_closure.is_inert(_wf)} "
+        f"case={_closure.affected([_wf])['case']}; this script reads it to "
+        "count the seat author's token references, so an edit to it must "
+        "select this script, and it sets no gate variable and runs no gate "
+        "script, so it must not force FULL",
     )
 
 # The third classification, and the one that has to be checked rather than
@@ -12559,14 +12573,19 @@ R.check(
 # rather than skipped, and its own case is checked above. The PROPERTY this
 # check was written for is unchanged and is the one that matters -- a non-gate
 # workflow must never print `full`, which is what ran `tests/stress.py` on a
-# comment edit. So the property is asserted over EVERY non-gate workflow --
-# the inert set above and the two this script reads (`governance.yml`,
-# `release.yml`) -- rather than over the one that happened to be the example,
-# and the `skip` arm keeps an instance that is still inert.
+# comment edit. So the property is asserted over EVERY non-gate workflow
+# rather than over the one that happened to be the example. The `skip` arm
+# lost its last inert instance with 0009 step 3b, which moved every non-gate
+# workflow into this script's closure; what a change to one now costs is
+# the scripts that read it, and that is what is pinned in its place.
+_HF_CASE = _closure.affected([".github/workflows/hassfest.yml"])
+_HF_PLAN = _closure.select([".github/workflows/hassfest.yml"])
 R.check(
-    "a change to a non-gate workflow costs the closures check nothing",
-    _closure.affected([".github/workflows/hassfest.yml"])["case"] == "skip",
-    str(_closure.affected([".github/workflows/hassfest.yml"])),
+    "a change to a non-gate workflow costs the gate its readers, never FULL",
+    _HF_CASE["case"] == "scoped"
+    and _HF_PLAN["mode"] == "scoped"
+    and "tests/entities.py" in _HF_PLAN["run"],
+    f"{_HF_CASE}; select mode={_HF_PLAN['mode']} run={_HF_PLAN['run']}",
 )
 R.check(
     "and no non-gate workflow forces the FULL suite, whatever else it does",
