@@ -101,6 +101,69 @@ figures_check() { # body file
   node .claude/workflows/figure_lint.mjs --pr-body "$1"
 }
 
+# Step 7's body check, and the path list the `## Approval` gate is keyed on.
+# Same argument as `figures_check` above: the step calls these, so `--self-test`
+# drives the code the step runs rather than a second copy of the command.
+#
+# WHY THE PATHS ARE PASSED AT ALL. `checkPrBody` requires a `## Approval`
+# heading when the change is a policy change, and since R3-D11-03 that is keyed
+# on the DIFF, not on the title -- a title is written by the same seat the
+# section exists to constrain, so a one-word title change switched the
+# requirement off. `pr-contract` passes `--paths-file`; this script passed
+# `--pr-body`, `--head` and `--title` and nothing else, so `policyPaths` was
+# empty on every branch and the requirement could not fire here at all. That is
+# not a check that disagreed with CI: it is a check that reported `ok` on the
+# one question it had no input for. #1053 is the cost -- the body passed this
+# script, the push went out, and `pr-contract` refused it with "no `## Approval`
+# section, and this diff touches `docs/HANDOVER.md`".
+#
+# THREE-DOT, AND `--no-renames`, FOR CI'S OWN TWO REASONS. `$BASE` is the merge
+# base, so `"$BASE"...HEAD` names what the BRANCH changed; a two-dot diff
+# against `origin/main` attributes main's own newer commits to the branch and
+# would demand `## Approval` for a policy file the branch never touched. And a
+# rename is reported by its DESTINATION only, so `--no-renames` is what keeps
+# moving `CLAUDE.md` to `RENAMED.md` inside the gate rather than outside it.
+#
+# FAIL CLOSED, AND THE LOAD-BEARING KEY IS THE RETURN CODE. A range that does
+# not resolve makes this return non-zero and the caller refuses instead of
+# running the check: `policy_lint.mjs` refuses an empty `--paths-file` for the
+# same reason, because an empty list reads as "touches no policy file", which is
+# the fail-open the keying exists to close. A seat in a shallow clone must not be
+# told its body is clean when nothing looked.
+#
+# THE ABSENCE OF THE FILE IS THE SECOND KEY, and it is deliberate rather than
+# incidental. Writing straight to `$2` would truncate it before `git` ran, so a
+# failed derivation left a 0-BYTE FILE behind -- measured at rc=128 with the file
+# present, by the #1054 review. Nothing in this script keyed on the file, so that
+# was harmless the day it was written and exactly the shape that stops being
+# harmless later: a caller added afterwards, reading the list because it is
+# there, would satisfy every assertion below while reading an empty diff as
+# "touches no policy file". Writing through `.part` and renaming only on success
+# makes both keys agree. If a later edit drops the rename, the return code is
+# still the one a caller must read.
+#
+# THE CLEANUP IS UNCONDITIONAL, AND THAT IS THE #1054 REVIEW'S FINDING. The
+# first form cleaned up only on the redirect's failure, so a failing `mv` left
+# `.part` behind -- and the caller's cleanup names `$2`, not `$2.part`, so
+# nothing removed it. 138 bytes, on a path that needs `mv` to fail. Removing it
+# here rather than adding a word to the caller is the point: the function owns
+# the temp file it invents, under every outcome, and no caller has to know the
+# name exists. `rm` runs after `$?` is captured so it cannot overwrite the
+# status being returned.
+diff_paths() { # merge base, out file
+  local rc
+  git diff --no-renames --name-only "$1"...HEAD > "$2.part" 2>/dev/null \
+    && mv -f "$2.part" "$2"
+  rc=$?
+  rm -f "$2.part"
+  return "$rc"
+}
+
+body_check() { # body file, head sha, title, paths file
+  node .claude/workflows/policy_lint.mjs --pr-body "$1" --head "$2" \
+    --title "$3" --paths-file "$4"
+}
+
 push_order() { # own remote branch's sha ('' or '-' for none), behind, ahead
   case "${1:-}" in ''|-) return 3 ;; esac   # 3 no remote branch: nothing to compare
   if [ "${2:-0}" -gt 0 ]; then
@@ -120,6 +183,9 @@ push_order() { # own remote branch's sha ('' or '-' for none), behind, ahead
 if [ "${1:-}" = "--self-test" ]; then
   D=.claude/workflows/fixtures/policy-rot/prepr
   ZERO=0000000000000000000000000000000000000000
+  # A base that DOES resolve, for the success arm below. HEAD always resolves
+  # and needs no remote, so this arm runs in a clone with no `origin` too.
+  BASE_ST=HEAD
   st_pass=0; st_fail=0
   # `$1` is a return code for most assertions and a ref NAME for the push-order
   # fixtures' first one, so the failure line says `got`, not `rc`.
@@ -192,6 +258,81 @@ if [ "${1:-}" = "--self-test" ]; then
   grep -q '0 refused' /tmp/prepr-figst.$$
   st $? 0 "and it reached a verdict rather than examining nothing (null control)"
   rm -f /tmp/prepr-figst.$$
+
+  # Step 7's body check, driven through `body_check` -- the function the step
+  # calls -- over ONE body and three path lists. One arm alone would pin a check
+  # that always fires or never does, and "never does" is the state this script
+  # shipped in: with no `--paths-file`, `policyPaths` was empty, `## Approval`
+  # could not be required, and every branch read `ok pr-body`.
+  #
+  # `needs-approval.md` is the fixture for both directions because it differs
+  # from the healthy body in exactly one thing -- no `## Approval` -- so the
+  # only variable across these arms is the diff.
+  #
+  # THE NON-POLICY ARM IS THE CONTROL THAT MATTERS MORE. Over-firing here would
+  # refuse every ordinary pull request in this repository, and a refusal that
+  # fires on everything pins nothing. The exit status alone does not pin WHICH
+  # refusal fired -- this body is refusable on other grounds by other flags -- so
+  # the policy arm also reads the approval gate's own sentence.
+  body_check "$D/needs-approval.md" "$ZERO" '' "$D/paths-real.txt" >/tmp/prepr-bodyst.$$ 2>&1
+  st $? 1 "a body with no \`## Approval\` is refused when the diff touches a policy path"
+  grep -q 'no `## Approval` section' /tmp/prepr-bodyst.$$
+  st $? 0 "and the refusal is the approval gate's own, so the paths reached the check"
+  body_check "$D/needs-approval.md" "$ZERO" '' "$D/paths-nonpolicy.txt" >/dev/null 2>&1
+  st $? 0 "the same body is silent when the diff touches no policy path (null control)"
+  body_check "$D/needs-approval.md" "$ZERO" '' "$D/paths-empty.txt" >/dev/null 2>&1
+  st $? 1 "a path list that derived nothing is refused, not read as \"touches no policy file\""
+  rm -f /tmp/prepr-bodyst.$$
+
+  # The degraded arm, asserted on BOTH keys because the first version of it
+  # asserted a property the code did not have. A range that does not resolve must
+  # make the DERIVATION fail, so the step refuses rather than handing the check a
+  # list nothing wrote -- and it must leave no list behind either, so a caller
+  # added later that reads the file rather than the status fails closed as well.
+  # `git diff` exits 128 on an unknown revision, not 1, so the first assertion is
+  # on the branch taken rather than on the number.
+  rm -f /tmp/prepr-bodyst.$$ /tmp/prepr-bodyst.$$.part
+  if diff_paths "$ZERO" /tmp/prepr-bodyst.$$ >/dev/null 2>&1; then dp=0; else dp=1; fi
+  st "$dp" 1 "a base that does not resolve makes the path derivation fail"
+  if [ -e /tmp/prepr-bodyst.$$ ] || [ -e /tmp/prepr-bodyst.$$.part ]; then fp=1; else fp=0; fi
+  st "$fp" 0 "and leaves no list behind, not even an empty one, so the file key fails closed too"
+  rm -f /tmp/prepr-bodyst.$$ /tmp/prepr-bodyst.$$.part
+  # The SUCCESS path's own temp-file assertion, which nothing pinned before: a
+  # derivation that works must also leave no `.part` behind.
+  #
+  # WHAT IT DOES NOT PIN, measured rather than assumed. A first version of this
+  # comment claimed the arm would catch a later edit replacing `mv` with `cp`.
+  # It does not: driven, `cp -f` leaves `--self-test` at 48/0, because the
+  # unconditional cleanup above removes the copy's leftover too. That is the
+  # fix working rather than a hole -- under either verb no `.part` survives --
+  # but the arm's reach is the PROPERTY, not the verb, and saying otherwise
+  # would be a claim stronger than the check that backs it.
+  diff_paths "$BASE_ST" /tmp/prepr-bodyst.$$ >/dev/null 2>&1; dp=$?
+  if [ -e /tmp/prepr-bodyst.$$.part ]; then fp=1; else fp=0; fi
+  st "$dp" 0 "a base that resolves makes the path derivation succeed (null control)"
+  st "$fp" 0 "and leaves no \`.part\` behind either, so the temp file is the function's own"
+  rm -f /tmp/prepr-bodyst.$$ /tmp/prepr-bodyst.$$.part
+
+  # THE `mv`-FAILURE ARM, and it exists because the #1054 review measured the
+  # leak rather than reasoning about it: the first form cleaned up only on the
+  # redirect's failure, so a failing `mv` left 138 bytes of `.part` behind and
+  # the caller's `rm -f "$PATHS"` did not name it.
+  #
+  # The shape is buildable, which is the only reason this is an arm rather than
+  # a disclosure. `$2` is an existing DIRECTORY holding a non-empty directory
+  # called `<basename>.part`, so the redirect succeeds -- `$2.part` is an
+  # ordinary file beside it -- and `mv` then refuses, because moving that file
+  # into `$2` would have to replace a directory that is not empty. Source and
+  # destination share a parent by construction, so every permission-based way of
+  # failing `mv` fails the redirect first and never reaches this path; this is
+  # the one route that separates them.
+  MVD=$(mktemp -d)
+  mkdir -p "$MVD/d/d.part/occupied"
+  diff_paths "$BASE_ST" "$MVD/d" >/dev/null 2>&1; dp=$?
+  if [ -e "$MVD/d.part" ]; then fp=1; else fp=0; fi
+  st "$dp" 1 "a derivation whose rename fails is refused"
+  st "$fp" 0 "and cleans up after itself, so a failing \`mv\` leaks no \`.part\`"
+  rm -rf "$MVD"
 
   printf 'Closes #999\n' | bash tools/audit/preflight.sh >/dev/null 2>&1
   st $? 1 "preflight refuses an unintended closing keyword"
@@ -319,10 +460,22 @@ if [ -n "$BODY" ] && [ "$BODY" != "--self-test" ]; then
   shift
   bash tools/audit/preflight.sh "$@" < "$BODY"
   step "preflight" $?
-  node .claude/workflows/policy_lint.mjs --pr-body "$BODY" --head "$(git rev-parse HEAD)" \
-    --title "$(git log -1 --format=%s)" >/tmp/prepr-body.$$ 2>&1
-  step "pr-body" $? "$(tail -1 /tmp/prepr-body.$$)"
-  rm -f /tmp/prepr-body.$$
+  # THE PATHS ARE THE SECOND INPUT, and until #1053 this step had only the
+  # first. `diff_paths` above carries why they are derived three-dot and with
+  # `--no-renames`, and why a derivation that fails refuses here rather than
+  # letting the check run against a list nothing wrote. `pr-contract` runs the
+  # same node script with the same two inputs, so this stays the cheaper
+  # detector rather than a second opinion.
+  PATHS=/tmp/prepr-paths.$$
+  if diff_paths "$BASE" "$PATHS"; then
+    body_check "$BODY" "$(git rev-parse HEAD)" "$(git log -1 --format=%s)" "$PATHS" \
+      >/tmp/prepr-body.$$ 2>&1
+    step "pr-body" $? "$(tail -1 /tmp/prepr-body.$$)"
+    rm -f /tmp/prepr-body.$$
+  else
+    step "pr-body" 1 "the changed-path list did not derive from $BASE...HEAD, so the \`## Approval\` gate was not run -- an empty list reads as \"touches no policy file\", which is the fail-open it exists to close"
+  fi
+  rm -f "$PATHS"
 
   # --- 7a. every figure's command resolves. `pr-contract` runs the same script,
   # so this is the cheaper detector rather than a second opinion: the #715
