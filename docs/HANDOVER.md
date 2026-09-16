@@ -64,11 +64,6 @@ request (#1081), linked from here and never restated.
   `hpo-stamp` bypasses `always`. That bypass and the rollback below are the
   owner's levers, not a seat's. Required-approval and code-owner rules are
   absent until 0009 step 6 lands. One DELETE to that ruleset reverses it all.
-- **A stamp pushes to `main` only over the deploy key**, and only from the
-  local box: `tools/release/stamp.py --push --push-key ~/.zcode/stamp-deploy.key
-  --known-hosts ~/.zcode/github_known_hosts`. The admin token that used to push
-  was revoked and returns 401 (#201 comment 5704702814). A session without the
-  key file cannot stamp: a push to `main` as `tvofi` was refused in step 5's probe.
   **Before adding a required context**, confirm it reports on a *pull-request
   head*, not merely on a push to `main`: the two shapes differ, `CodeQL`
   reports on one and not the other, and a context that never reports blocks
@@ -77,6 +72,13 @@ request (#1081), linked from here and never restated.
   the rule; that was measured on an isolated probe, both arms. A **scheduled**
   context is the other half of the same trap: make a nightly required and one
   failing night blocks every merge, the merge that repairs the nightly included.
+- **A stamp pushes to `main` only over the deploy key**, and only from the
+  local box: `tools/release/stamp.py --push --push-key ~/.zcode/stamp-deploy.key
+  --known-hosts ~/.zcode/github_known_hosts`. The admin token that used to push
+  was revoked and returns 401 (#201 comment 5704702814). Step 5's probe, on a
+  throwaway branch under a throwaway ruleset with an `update` rule and the same
+  bypass list (comment 5704665628), refused an API ref update as `tvofi` and as
+  `tvofi-seat-author`, and landed a push over the deploy key.
 - **A pull-request body carries `## Figures`** (#676). Its companion rule left
   this file for `writing-for-agents.md` at #724; the measurement it was written
   from stays, since that file lacks it: twenty-one out-of-tree briefs held a
