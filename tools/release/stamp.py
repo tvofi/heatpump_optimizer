@@ -22,8 +22,13 @@ claim file turned main red. So every rule below is a refusal, not a warning:
   3. The next version is greater than VERSION and than every existing tag, and
      its tag exists neither locally nor on origin.
   4. RELEASE_NOTES.md opens with a '## v<next>' section whose body mentions
-     every PR merged since the last tag ('(#N)' in the merge subjects) -- a
-     stamp covers everything unstamped, whoever merged it.
+     every PR merged since the last tag -- a stamp covers everything
+     unstamped, whoever merged it. The merges are read off main's own
+     --first-parent line, in both subject shapes main has produced
+     ('Merge pull request #N from ...' and a trailing '(#N)'), and a window
+     the rule could not attribute refuses instead of enumerating empty: an
+     enumerator that silently finds nothing cannot reject notes that omit
+     everything.
   5. manifest.json's version equals VERSION before the stamp (a botched
      earlier stamp is fixed by hand, not papered over here).
 
@@ -60,7 +65,22 @@ CLAIM_FILES = (
     ROOT / "tests" / "golden" / "card_claimed_drift.txt",
 )
 TAG_RE = re.compile(r"^v(\d+)\.(\d+)\.(\d+)$")
-PR_RE = re.compile(r"\(#(\d+)\)")
+# Rule 4's population: the pull requests merged into main since the last tag.
+# It is read off main's OWN first-parent line (window_log_args below), and a
+# subject there has taken two shapes, so both are matched. The squash form is
+# END-ANCHORED on purpose: `fix(#960): ...` is a branch commit naming an
+# ISSUE, and an unanchored search over branch commits read seven of those as
+# merged pull requests, one of them still open.
+PR_RE = re.compile(r"\(#(\d+)\)\s*$")
+MERGE_SUBJECT_RE = re.compile(r"^Merge pull request #(\d+)\b")
+# The stamper's own commit. It carries no pull request by construction, and it
+# lands inside a later window whenever a tag push failed (the rc=3 fallback
+# leaves the commit behind), so it is excluded before the blindness alarm
+# below counts what it could not attribute.
+STAMP_SUBJECT_RE = re.compile(r"^v\d+\.\d+\.\d+: stamp\b")
+# %h/%p/%s, unit-separated. The parent count is how a merge is recognised as
+# one -- git says so, where a subject regex only guesses.
+WINDOW_FORMAT = "%h%x1f%p%x1f%s"
 # Rule 2's gate. gh answers it when gh is installed; when it is not, the same
 # question goes straight to the REST API, which needs the repository spelled
 # out: a stamp is taken from a checkout of this repository by definition, and
@@ -115,8 +135,118 @@ def notes_section(text: str, version: str) -> str | None:
     return None
 
 
+def pr_from_subject(subject: str) -> str | None:
+    """The pull request a first-parent commit on main carries, or None.
+
+    Two shapes, because main has produced both: GitHub's merge commit
+    (`Merge pull request #N from ...`) and the squash subject (`... (#N)`).
+    Which one is in force is a per-merge choice nothing in this repository
+    pins, so rule 4 reads both rather than the one that was current when it
+    was written.
+    """
+    merge = MERGE_SUBJECT_RE.match(subject)
+    if merge:
+        return merge.group(1)
+    squash = PR_RE.search(subject)
+    return squash.group(1) if squash else None
+
+
 def merged_prs(subjects: list[str]) -> set[str]:
-    return {m.group(1) for s in subjects for m in PR_RE.finditer(s)}
+    return {pr for pr in (pr_from_subject(s) for s in subjects) if pr}
+
+
+def window_log_args(last_tag: str, head: str = "HEAD") -> list[str]:
+    """Rule 4's window: main's own commits, never the merged branches'.
+
+    Without --first-parent the log walks into every merged branch, so the
+    subjects read are the branch author's rather than main's merges -- which
+    both loses the merges (a merge subject is not in the branch) and invents
+    pull requests out of issue references in branch commit messages.
+    """
+    return ["git", "log", f"{last_tag}..{head}", "--first-parent",
+            f"--format={WINDOW_FORMAT}"]
+
+
+def parse_window(raw: str) -> list[tuple[str, int, str]]:
+    """(abbreviated sha, parent count, subject) per first-parent commit.
+
+    A non-empty line that does not carry WINDOW_FORMAT's three fields is
+    REFUSED, not skipped. Skipping it returns the same empty list a clean
+    empty window returns, and that is the failure path this whole change
+    exists to close (#1041 comment 5693093076): the derivation that produces
+    the population a check quantifies over must not answer "nothing merged"
+    when it means "I could not read this". The first version of this function
+    had the bare `continue`, written by a seat that had just read that
+    analysis, which is how durable the shape is.
+    """
+    rows = []
+    for line in raw.splitlines():
+        if not line:
+            continue
+        parts = line.split("\x1f", 2)
+        if len(parts) != 3:
+            raise Refuse(4, f"git log --first-parent returned a line rule 4 cannot read: "
+                            f"{line!r}. A window that cannot be read is not an empty one.")
+        sha, parents, subject = parts
+        rows.append((sha, len(parents.split()), subject))
+    return rows
+
+
+def blind_merges(window: list[tuple[str, int, str]]) -> list[tuple[str, str]]:
+    """(sha, subject) for window merges no pull request could be read from.
+
+    A commit with two or more parents on main's first-parent line is a merge
+    by git's own account, so one whose subject yields no number is a merge
+    this rule cannot quantify over. It is named and refused rather than
+    dropped from the population, which is how the enumerator went blind in
+    the first place.
+    """
+    return [(sha, subject) for sha, parents, subject in window
+            if parents >= 2 and pr_from_subject(subject) is None]
+
+
+def enumeration_went_blind(window: list[tuple[str, int, str]],
+                           prs: set[str], blind: list[tuple[str, str]]) -> bool:
+    """True when the window holds commits and the rule attributed nothing.
+
+    Zero pull requests means either `nothing merged` or `the subject shapes
+    above no longer describe main`, and a rule that cannot tell those apart
+    passes notes that omit everything. Stamp commits are excluded because
+    they carry no pull request by construction; `blind` is excluded because
+    those are already refused by name, with their own message.
+
+    The one shape that fires this honestly-but-unhelpfully is a window whose
+    every commit was pushed to main directly with no pull request at all.
+    That is a release worth a human look, so it refuses rather than guessing.
+    """
+    unstamped = [row for row in window if not STAMP_SUBJECT_RE.match(row[2])]
+    return bool(unstamped) and not prs and not blind
+
+
+def rule4_problem(window: list[tuple[str, int, str]], body: str,
+                  last_tag: str, nxt: str) -> str | None:
+    """Rule 4's whole verdict on one window and one notes body.
+
+    Returns the refusal's reason, or None. It is a function rather than a run
+    of statements inside main() because rule 4 had no way to be exercised
+    without taking a release: the enumerator underneath it read the wrong
+    commits for twenty-five merges and nothing could run it to find out.
+    """
+    prs = merged_prs([subject for _, _, subject in window])
+    blind = blind_merges(window)
+    if enumeration_went_blind(window, prs, blind):
+        return (f"read no merged pull request from any of the {len(window)} commit(s) on main "
+                f"since {last_tag}; rule 4 cannot reject notes that omit a merge it never saw, "
+                f"so it refuses rather than pass. Newest subject: {window[0][2]!r}")
+    unnamed = [(sha, subject) for sha, subject in blind if sha not in body]
+    if unnamed:
+        return (f"merged into main since {last_tag} with no pull request in the subject, and not "
+                f"named by sha in the v{nxt} notes: "
+                + "; ".join(f"{sha} {subject!r}" for sha, subject in unnamed))
+    missing = sorted((pr for pr in prs if not re.search(rf"#{pr}(?!\d)", body)), key=int)
+    if missing:
+        return f"merged since {last_tag} but not mentioned in the v{nxt} notes: #{', #'.join(missing)}"
+    return None
 
 
 def rewrite_card_version(text: str, new_version: str) -> tuple[str, str | None]:
@@ -237,6 +367,128 @@ def self_test() -> int:
     check("notes: first section found", notes_section(notes, "6.2.13") == "### T\n\nB (#170) and (#171).")
     check("notes: wrong version is None", notes_section(notes, "6.2.14") is None)
     check("merged prs", merged_prs(["A (#170)", "B (#171)", "stamp"]) == {"170", "171"})
+
+    # Rule 4's enumeration. Both halves of the defect it replaces are pinned:
+    # the merges it did not see, and the issue numbers it invented. A window
+    # in the shape main produces today -- GitHub merge commits -- plus one
+    # squash subject, one branch-style subject naming an issue, and the
+    # stamper's own commit.
+    check("subjects: a merge commit names its pull request",
+          pr_from_subject("Merge pull request #1052 from tvofi/fix/d11-pins") == "1052")
+    check("subjects: a squash subject names its pull request",
+          pr_from_subject("fix: read the entity unit (#969)") == "969")
+    check("subjects: an issue reference is not a merged pull request",
+          pr_from_subject("fix(#960): cap the fallback") is None)
+    check("subjects: a trailing issue list is not read as one number",
+          pr_from_subject("W1-G15: judge may-drift keys (#254, W1-G15)") is None)
+    check("subjects: the stamper's own commit carries none",
+          pr_from_subject("v6.5.0: stamp the wave-4 close") is None)
+    check("subjects: #16 is not read out of (#165)",
+          pr_from_subject("something (#165)") == "165")
+    mixed = ["Merge pull request #1052 from tvofi/fix/d11-pins",
+             "fix: read the entity unit (#969)",
+             "fix(#960): cap the fallback",
+             "v6.4.4: stamp the round"]
+    check("merged prs: both shapes, and nothing invented",
+          merged_prs(mixed) == {"1052", "969"})
+
+    # The window is main's own first-parent line. Reading every commit of
+    # every merged branch is what produced both halves of the defect, so the
+    # flag is pinned here rather than left to the call site's spelling.
+    check("window: the log is first-parent",
+          "--first-parent" in window_log_args("v6.5.0"))
+    check("window: the log spans last tag to head",
+          "v6.5.0..HEAD" in window_log_args("v6.5.0"))
+    check("window: the format carries sha, parents and subject",
+          f"--format={WINDOW_FORMAT}" in window_log_args("v6.5.0")
+          and WINDOW_FORMAT.count("%x1f") == 2)
+    parsed = parse_window("abc1234\x1fdef5678 9012345\x1fMerge pull request #7 from x/y\n"
+                          "bbb2222\x1faaa1111\x1ffix: a thing (#8)\n")
+    check("window: a merge is recognised by its parent count",
+          parsed == [("abc1234", 2, "Merge pull request #7 from x/y"),
+                     ("bbb2222", 1, "fix: a thing (#8)")])
+    check("window: a subject carrying the separator keeps it",
+          parse_window("abc1234\x1faaa1111\x1ffix: a\x1fb") == [("abc1234", 1, "fix: a\x1fb")])
+    check("window: an empty log is an empty window", parse_window("") == [])
+    try:
+        parse_window("abc1234\x1fdef5678 9012345\x1fMerge pull request #7 from x/y\n"
+                     "a-line-with-no-separators\n")
+        check("window: an unreadable line refuses, it is not dropped", False)
+    except Refuse as _pw:
+        # Dropping it would return the list a clean run returns, minus a
+        # commit -- the silent-zero shape this change exists to close.
+        check("window: an unreadable line refuses, it is not dropped",
+              "cannot read" in str(_pw) and "rule 4" in str(_pw))
+    try:
+        parse_window("every-line-unreadable\nand-this-one-too\n")
+        check("window: an all-unreadable log refuses rather than reading empty", False)
+    except Refuse:
+        check("window: an all-unreadable log refuses rather than reading empty", True)
+
+    # The blindness alarm. Its own null control is the healthy window: a rule
+    # whose alarm never fires is the failure it exists to catch.
+    healthy = [("aaa1111", 2, "Merge pull request #1052 from tvofi/a"),
+               ("bbb2222", 2, "Merge pull request #1051 from tvofi/b")]
+    blind_window = [("aaa1111", 2, "Landed the D11 pins"),
+                    ("bbb2222", 2, "Landed the ledger fix")]
+    check("blind: a healthy window raises no alarm",
+          not enumeration_went_blind(healthy, merged_prs([s for _, _, s in healthy]),
+                                     blind_merges(healthy)))
+    check("blind: a healthy window names no unattributable merge",
+          blind_merges(healthy) == [])
+    check("blind: a merge with no number in its subject is named, not dropped",
+          blind_merges(blind_window) == [("aaa1111", "Landed the D11 pins"),
+                                         ("bbb2222", "Landed the ledger fix")])
+    check("blind: a named merge is refused by name, not by the empty-set alarm",
+          not enumeration_went_blind(blind_window, set(), blind_merges(blind_window)))
+    squashed_away = [("aaa1111", 1, "landed the D11 pins"),
+                     ("bbb2222", 1, "landed the ledger fix")]
+    check("blind: a window that attributed nothing at all refuses",
+          enumeration_went_blind(squashed_away,
+                                 merged_prs([s for _, _, s in squashed_away]),
+                                 blind_merges(squashed_away)))
+    check("blind: an empty window is not blind, it is empty",
+          not enumeration_went_blind([], set(), []))
+    stamp_only = [("aaa1111", 1, "v6.5.0: stamp the wave-4 close")]
+    check("blind: a window holding only the stamper's own commit is not blind",
+          not enumeration_went_blind(stamp_only, set(), []))
+
+    # Rule 4's verdict itself, on one window, both ways round. These are the
+    # arms the defect had backwards: notes that omit a real merge passed, and
+    # honest notes were refused until they mentioned issue numbers that never
+    # merged.
+    _w = [("aaa1111", 2, "Merge pull request #1052 from tvofi/fix/d11-pins"),
+          ("bbb2222", 2, "Merge pull request #1051 from tvofi/record"),
+          ("ccc3333", 1, "fix(#960): a branch commit that never merged alone")]
+    check("rule 4: complete notes pass",
+          rule4_problem(_w, "Shipped #1052 and #1051.", "v6.5.0", "6.5.1") is None)
+    check("rule 4: notes omitting a merge are refused, naming it",
+          "#1051" in (rule4_problem(_w, "Shipped #1052.", "v6.5.0", "6.5.1") or ""))
+    check("rule 4: an issue number is never demanded of the notes",
+          "#960" not in (rule4_problem(_w, "Shipped #1052 and #1051.", "v6.5.0", "6.5.1") or ""))
+    _blindw = [("aaa1111", 2, "Landed the D11 pins")]
+    check("rule 4: an unattributable merge refuses, naming its sha",
+          "aaa1111" in (rule4_problem(_blindw, "Shipped things.", "v6.5.0", "6.5.1") or ""))
+    check("rule 4: naming that sha in the notes clears it",
+          rule4_problem(_blindw, "Shipped aaa1111, a merge with no pull request.",
+                        "v6.5.0", "6.5.1") is None)
+    check("rule 4: a window it could attribute nothing in refuses",
+          "no merged pull request" in
+          (rule4_problem([("aaa1111", 1, "landed the pins")], "anything", "v6.5.0", "6.5.1") or ""))
+    check("rule 4: an empty window passes, as it did before",
+          rule4_problem([], "anything", "v6.5.0", "6.5.1") is None)
+
+    # Where the window comes from. Every pure piece above is correct while the
+    # caller still hand-rolls its own `git log` without the flag -- which is
+    # exactly the tree this replaced -- so rule 4's region is read.
+    # rindex for the same reason the tag-push contract below uses it: the
+    # literal occurs in this check's own source, earlier in the file.
+    _r4_src = pathlib.Path(__file__).read_text()
+    _r4 = _r4_src[_r4_src.rindex("# Rule 4: the notes section"):]
+    _r4 = _r4[:_r4.index("# Rule 5:")]
+    check("rule 4: the window comes from window_log_args", "window_log_args(" in _r4)
+    check("rule 4: the call site builds no log of its own", '"git", "log"' not in _r4)
+    check("rule 4: the verdict comes from rule4_problem", "rule4_problem(" in _r4)
     claims = (
         "# header\n#\n# claims-for: 6.2.12\n#\n# The old reason.\n#\n\n"
         "# may-drift: wood_coil -- machine-sensitive\n"
@@ -414,10 +666,10 @@ def main() -> int:
     body = notes_section(NOTES.read_text(), nxt)
     if not body:
         raise Refuse(4, f"RELEASE_NOTES.md must open with a non-empty '## v{nxt}' section")
-    subjects = sh("git", "log", f"{last_tag}..HEAD", "--format=%s").splitlines() if last_tag else []
-    missing = sorted(pr for pr in merged_prs(subjects) if not re.search(rf"#{pr}(?!\d)", body))
-    if missing:
-        raise Refuse(4, f"merged since {last_tag} but not mentioned in the v{nxt} notes: #{', #'.join(missing)}")
+    window = parse_window(sh(*window_log_args(last_tag))) if last_tag else []
+    why = rule4_problem(window, body, last_tag or "the first commit", nxt)
+    if why:
+        raise Refuse(4, why)
 
     # Rule 5: the manifest agrees with VERSION before we move both.
     manifest = json.loads(MANIFEST.read_text())
