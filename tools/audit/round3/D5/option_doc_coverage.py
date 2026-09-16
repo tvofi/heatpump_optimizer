@@ -28,10 +28,15 @@ EXPECTED on this tree (ae36eff printed option_fields_rendered=174 and
     wood_economics_doc_lines=0; both moved on main before this check;
     option_fields_undocumented moved 7 -> 0 when #937's reference rows
     named the last seven fields -- three schedule hours, the three
-    external-heat detection fields, and the split Surcharge per kWh row):
-    RESULT option_fields_rendered=180 count
+    external-heat detection fields, and the split Surcharge per kWh row.
+    #1067 moved the two rendered counts 180 -> 183 and 213 -> 216: three
+    new optional entities_pump pickers -- the space backup heater, the DHW
+    tank booster and the capacity-limited flag. `option_fields_undocumented`
+    stayed 0 because docs/configuration.md gained a row for each in the same
+    commit; had it not, this harness would have printed 3):
+    RESULT option_fields_rendered=183 count
     RESULT option_fields_undocumented=0 count
-    RESULT option_schema_keys_rendered=213 count
+    RESULT option_schema_keys_rendered=216 count
     RESULT wood_economics_fields_rendered=4 count
     RESULT wood_economics_doc_lines=6 count      (tolerance: exact)
 MACHINE: 8-core Apple M1, 8 GB, python3 3.11.5.
