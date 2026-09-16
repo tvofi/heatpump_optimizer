@@ -17078,16 +17078,91 @@ R.check(
 _DS_PUB_PERMS = re.search(
     r"^    permissions:\n((?:^      .*\n)+)", _DS_PUB_JOB, re.M)
 R.check(
-    "and the publishing lane's grant is exactly the two writes it uses",
+    "and the publishing lane's GITHUB_TOKEN grant is the one read it uses",
     bool(_DS_PUB_PERMS)
     and sorted(_DS_PUB_PERMS.group(1).split()) == sorted(
-        ["contents:", "pull-requests:", "write", "write"]),
+        ["contents:", "read"]),
     f"delivery-status-publish permissions: "
     f"{_DS_PUB_PERMS.group(1).split() if _DS_PUB_PERMS else None} -- "
-    "`contents: write` commits one generated path to the bot-owned ledger "
-    "branch and `pull-requests: write` opens and updates that branch's PR; "
-    "anything beyond those two is scope this job does not use and should not "
-    "hold",
+    "the branch push and the PR write go through SEAT_AUTHOR_TOKEN (decision "
+    "0009 step 3b), so GITHUB_TOKEN only checks the tree out; a write grant "
+    "left behind is scope the job holds and no step uses",
+)
+# Decision 0009 step 3b (#954, owner-approved 2026-09-16): the ledger lane
+# pushes `ci/delivery-ledger` and opens or edits its PR as the machine account
+# `tvofi-seat-author`, because GitHub gates a workflow run on its ACTOR and a
+# GITHUB_TOKEN actor put every run on every cycle PR at `action_required`.
+# Three properties, each keyed on the wiring rather than on a sentence about
+# it, and each over the NON-COMMENT lines so the comments may name what they
+# replaced:
+#   1. the secret is referenced exactly once across every workflow file, in
+#      one step of this job, and that step is the one that pushes and writes
+#      the PR -- so it never reaches a `pull_request` path, where a fork
+#      could reach it, and never a step that does not need it;
+#   2. no GITHUB_TOKEN credential is left in the job and the checkout
+#      persists none, so no step can push or write the PR as the bot, and a
+#      fallback to it cannot be wired in silently;
+#   3. an absent secret fails the step loudly, naming the secret, before any
+#      push or API write: a silent fallback would reintroduce the approval
+#      gate with nothing reporting it.
+def _code_lines(text: str) -> str:
+    return "\n".join(
+        _l for _l in text.split("\n") if not _l.lstrip().startswith("#"))
+
+
+_SA_REF = "secrets.SEAT_AUTHOR_TOKEN"
+_SA_FILES = {
+    _f.name: _code_lines(_f.read_text()).count(_SA_REF)
+    for _f in sorted(Path(".github/workflows").glob("*.y*ml"))}
+_DS_PUB_CODE = _code_lines(_DS_PUB_JOB)
+_DS_PUB_STEPS = _DS_PUB_CODE.split("\n      - ")[1:]
+_SA_STEPS = [_st for _st in _DS_PUB_STEPS if _SA_REF in _st]
+_SA_STEP = _SA_STEPS[0] if len(_SA_STEPS) == 1 else ""
+R.check(
+    "the seat author's token is held by one step, the ledger push and PR write",
+    sum(_SA_FILES.values()) == 1
+    and _DS_PUB_CODE.count(_SA_REF) == 1
+    and len(_SA_STEPS) == 1
+    and "HEAD:refs/heads/ci/delivery-ledger" in _SA_STEP
+    and "/pulls" in _SA_STEP
+    and "GH_TOKEN: ${{ secrets.SEAT_AUTHOR_TOKEN }}" in _SA_STEP,
+    f"references per workflow file: "
+    f"{ {k: v for k, v in _SA_FILES.items() if v} }; in the publishing job: "
+    f"{_DS_PUB_CODE.count(_SA_REF)} across {len(_SA_STEPS)} step(s); that "
+    f"step pushes the branch="
+    f"{'HEAD:refs/heads/ci/delivery-ledger' in _SA_STEP}, writes the PR="
+    f"{'/pulls' in _SA_STEP}. Any other reference is a surface the secret "
+    "does not need -- and on a `pull_request` path, one a fork can reach",
+)
+_DS_PUB_BOT_CREDS = [
+    _t for _t in ("secrets.GITHUB_TOKEN", "github.token")
+    if _t in _DS_PUB_CODE]
+_DS_PUB_CHECKOUT = next(
+    (_st for _st in _DS_PUB_STEPS if "actions/checkout@" in _st), "")
+R.check(
+    "and no step of the publishing lane can push or write the PR as the bot",
+    not _DS_PUB_BOT_CREDS
+    and "persist-credentials: false" in _DS_PUB_CHECKOUT,
+    f"GITHUB_TOKEN references left in the job: {_DS_PUB_BOT_CREDS}; checkout "
+    f"persists no credential="
+    f"{'persist-credentials: false' in _DS_PUB_CHECKOUT}. A persisted checkout "
+    "token is what `git push origin` used before 3b, and a GH_TOKEN of "
+    "GITHUB_TOKEN is the bot actor whose runs wait on approval",
+)
+_SA_GUARD = re.search(
+    r'if \[ -z "\$GH_TOKEN" \]; then\n\s*echo "::error::[^"\n]*'
+    r'SEAT_AUTHOR_TOKEN[^"\n]*"\n\s*exit 1\n', _SA_STEP)
+_SA_FIRST_USE = min(
+    (_i for _i in (_SA_STEP.find("git "), _SA_STEP.find("gh api")) if _i >= 0),
+    default=-1)
+R.check(
+    "and an absent seat-author secret fails the lane loudly, before any write",
+    bool(_SA_GUARD) and _SA_FIRST_USE > _SA_GUARD.start(),
+    f"guard={bool(_SA_GUARD)}, precedes the first git/gh call="
+    f"{bool(_SA_GUARD) and _SA_FIRST_USE > _SA_GUARD.start()}; on a fork, or "
+    "after the owner rotates or deletes the secret, the step must go red "
+    "naming SEAT_AUTHOR_TOKEN -- a fallback to GITHUB_TOKEN would put the "
+    "cycle PR's runs back behind approval with nothing reporting it",
 )
 _DS_SPLICE_PERMS = re.search(
     r"^    permissions:\n((?:^      .*\n)+)", _DS_SPLICE_JOB, re.M)
@@ -17180,9 +17255,9 @@ R.check(
     "the publishing lane lands the ledger through a PR, never a bot push",
     "HEAD:main" not in _DS_PUB_JOB
     and "ci/delivery-ledger" in _DS_PUB_JOB
-    and "gh pr create" in _DS_PUB_JOB,
+    and '-X POST "repos/${GITHUB_REPOSITORY}/pulls"' in _DS_PUB_JOB,
     f"pushes ci/delivery-ledger={'ci/delivery-ledger' in _DS_PUB_JOB}, "
-    f"opens a PR={'gh pr create' in _DS_PUB_JOB}, "
+    f"opens a PR={'-X POST' in _DS_PUB_JOB and '/pulls' in _DS_PUB_JOB}, "
     f"direct push to main={'HEAD:main' in _DS_PUB_JOB} (must be False); "
     "`git push origin HEAD:main` is the never-landed path #1011 deleted, not "
     "disabled",
