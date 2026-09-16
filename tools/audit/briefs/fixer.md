@@ -226,9 +226,9 @@ a decision point, not a wall, and it has three answers rather than two: pay for
 the lines elsewhere; re-record because the tree genuinely improved; or, for a
 genuine new production feature, **raise** the budget because the capability is
 worth the structure it costs (`--record --allow-regression="<reason>"`, with
-that reason in the **commit** message, because the squash-merge keeps the commit
-and discards the branch). Paying for the lines is still the first question, and
-a raise is only for the case where the honest answer is that you cannot.
+that reason in the **commit** message: `main`'s history keeps a commit message
+and never a pull-request body — decision 0010, true under either merge method).
+Paying for the lines is the first question; a raise is for when you cannot.
 
 **Ask which class the budget you fear is even measured on.** Some rows come from
 the single class named by `COORDINATOR_CLASS_NAME`; the rest from every parsed

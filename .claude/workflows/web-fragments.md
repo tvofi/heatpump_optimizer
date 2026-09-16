@@ -3,7 +3,7 @@
 Workflow scripts cannot import each other — every script this repository
 ships is evaluated as a function body handed `args`/`agent()`/`phase()`, with
 a top-level `return`, so a static `import` would not be legal
-(`.claude/workflows/audit-wave.js` records the same finding). The five
+(`.claude/workflows/audit-wave.js` records the same finding). The four
 `web-*.js` scripts therefore each carry their own copy of the block below,
 between the `meta` literal and the first `phase()`.
 
@@ -22,8 +22,8 @@ const GH_WRITE = `Write grant, not merge: add_issue_comment, issue_write
 (update: labels, state, state_reason), create_pull_request, update_pull_request.
 Hold only in a phase that writes. Never together with the merge grant.`
 
-const GH_MERGE = `Merge grant: merge_pull_request (squash). Hold only in the
-merge phase. Do not hold the read grant here.`
+const GH_MERGE = `Merge grant: merge_pull_request (merge commit, never squash).
+Hold only in the merge phase. Do not hold the read grant here.`
 
 const GATE = `Gate rules on this 4-core box. The shell's working directory
 resets between calls: pin cd in every command. PYTHONPATH=tests/hastub for
@@ -110,7 +110,7 @@ pull_request_read get shows mergeable_state clean and head sha ${head};
 get_check_runs shows every check success or skipped; the newest "Fix review:"
 comment says merge and post-dates that head; the diff touches neither VERSION
 nor manifest.json nor the RELEASE_NOTES.md heading. Then, so the owner label means IN-FLIGHT rather than ever-touched, remove owner:${session} from every issue this PR closes (issue_write update, keeping the other labels) -- a label that is only ever added cannot answer the question a resuming session actually asks. Then merge_pull_request
-with merge_method squash and return {merged: true, sha: <merge commit sha>}.
+with merge_method merge and return {merged: true, sha: <merge commit sha>}.
 If mergeable_state is dirty, return {merged: false, reason: "needs repair"} --
 do not merge main into the branch yourself, the fixer must, because a rebase
 invalidates the evidence. Otherwise {merged: false, reason}.`
@@ -153,7 +153,7 @@ as `tvofi`. Equivalents for the named MCP tools:
 | `create_pull_request` | `gh pr create --base main --head <branch> --title ... --body-file <file>` |
 | `update_pull_request` | `gh pr edit N --body-file <file>` |
 | `pull_request_read` (get, get_check_runs, get_comments, get_files, get_diff) | `gh pr view N --json number,state,headRefOid,mergeable,mergeStateStatus,body,comments,files`; `gh pr diff N`; `gh api /repos/<owner>/<repo>/commits/<sha>/check-runs` |
-| `merge_pull_request` (squash) | `gh pr merge N --squash --delete-branch` |
+| `merge_pull_request` (merge) | `gh pr merge N --merge --delete-branch` |
 | `actions_list` (list_workflow_runs) | `gh run list --branch <branch> --workflow tests.yml --json databaseId,headSha,status,conclusion,createdAt` |
 | `actions_get` | `gh run view <id> --json jobs` |
 | `get_job_logs` (failed_only) | `gh run view <id> --log-failed` |

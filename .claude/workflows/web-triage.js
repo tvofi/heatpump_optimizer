@@ -17,8 +17,8 @@ const GH_WRITE = `Write grant, not merge: add_issue_comment, issue_write
 (update: labels, state, state_reason), create_pull_request, update_pull_request.
 Hold only in a phase that writes. Never together with the merge grant.`
 
-const GH_MERGE = `Merge grant: merge_pull_request (squash). Hold only in the
-merge phase. Do not hold the read grant here.`
+const GH_MERGE = `Merge grant: merge_pull_request (merge commit, never squash).
+Hold only in the merge phase. Do not hold the read grant here.`
 
 const GATE = `Gate rules on this 4-core box. The shell's working directory
 resets between calls: pin cd in every command. PYTHONPATH=tests/hastub for
@@ -105,7 +105,7 @@ pull_request_read get shows mergeable_state clean and head sha ${head};
 get_check_runs shows every check success or skipped; the newest "Fix review:"
 comment says merge and post-dates that head; the diff touches neither VERSION
 nor manifest.json nor the RELEASE_NOTES.md heading. Then, so the owner label means IN-FLIGHT rather than ever-touched, remove owner:${session} from every issue this PR closes (issue_write update, keeping the other labels) -- a label that is only ever added cannot answer the question a resuming session actually asks. Then merge_pull_request
-with merge_method squash and return {merged: true, sha: <merge commit sha>}.
+with merge_method merge and return {merged: true, sha: <merge commit sha>}.
 If mergeable_state is dirty, return {merged: false, reason: "needs repair"} --
 do not merge main into the branch yourself, the fixer must, because a rebase
 invalidates the evidence. Otherwise {merged: false, reason}.`

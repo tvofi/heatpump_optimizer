@@ -123,23 +123,21 @@ failing on the defect it was written for.
 ## 4. The merge message is a second closing surface
 
 A pull request's closing references describe its **body**, and no method on
-the GitHub tool surface here exposes them at all. The squash-merge message is a separate artifact, written by you at merge
-time, and GitHub parses it too. A pull request can show `[]` forever while its
-merge commit shuts an issue — which is how #557's merge shut #224 while its text
-said the opposite. **GitHub discards the negation**; only the keyword and the
-number matter.
+the GitHub tool surface here exposes them at all. The merge message is a separate artifact, written by you at merge
+time, and GitHub parses it too; since `main` took to merge commits (`docs/decisions/0010-merge-commits-on-main.md`) its default body is the pull request's **title**, so a keyword in a title reaches `main` too. A pull request can show `[]` forever while its
+merge commit shuts an issue. **GitHub discards the negation**; only the keyword
+and the number matter.
 
 Check both surfaces, and write so the construction cannot arise: "**leaves #N
 open**", never the negated form. The same applies to roster text, which a seat
 will paraphrase into its own body — a third-hand path to the same outcome, and it
 has occurred.
 
-**Run `tools/audit/preflight.sh` over the squash body before you merge — as a
-filter, not as proof.** Its own header says so: it catches the common cases and
-is *"never as a gate that proves the body is clean"*. Four reference forms are more
-than the one a hand-written grep usually reaches, and **four is not all of them**
-— the script names seven further shapes that still pass, and it is line-oriented,
-so a keyword and a number split across a newline are invisible to it.
+**Run `tools/audit/preflight.sh` over the merge body before you merge — as a
+filter, not as proof**, which is its own header's word: it catches the common
+cases and is *"never as a gate that proves the body is clean"*. It checks **four** reference
+forms and names **seven** further shapes that still pass; it is line-oriented, so
+a keyword and a number split across a newline are invisible to it.
 
 It reads the body on **stdin** and takes the issues you *intend* to close as
 **arguments**:
@@ -154,14 +152,14 @@ you pass a filename as an argument. **Held-open stdin blocks silently** and
 reports 143 when killed. Neither looks like a failure. And the declared-argument
 escape is **per number, not per occurrence**: declare a number once and every
 armed keyword bound to it passes, including in a body that also quotes the
-incident — which §4 above encourages you to do.
+incident, which this section encourages.
 
 **So the load-bearing check is after the merge, not before it.** Read which
 issues the merge actually closed. No pull-request-scoped field shows it
 beforehand, and on 2026-09-07 two issues were shut by merge commits and had to
-be reopened — `8bc4c661` shut #224 at 10:56:35 while its own text denied doing
-so, reopened 23 minutes later; `e072b2d` shut #195 at 04:25:54, reopened after
-six and a half hours. The gap is whatever it takes someone to notice. A pre-merge
+be reopened — `8bc4c661` (#557) shut #224 at 10:56:35 while its own text denied
+doing so, reopened 23 minutes later; `e072b2d` shut #195 at 04:25:54, reopened after
+six and a half hours. A pre-merge
 scan that asks *which form was used* rather than *whether every keyword binds an
 intended number* reports clean through exactly that.
 
