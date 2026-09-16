@@ -131,6 +131,7 @@ individually, because a range reads as complete while covering a fraction:
 | `D10.md` | Home Assistant integration quality scale |
 | `D11.md` | governance mechanisms and policy |
 | `D12.md` | generalization |
+| `D13.md` | process yield and cost |
 
 ### The suite, the register, the handover
 
