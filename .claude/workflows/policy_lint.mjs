@@ -2833,7 +2833,7 @@ function assertAcceptance(derived) {
   // misnamed file, or another number in its prose, is refused; and files alone
   // never stand in for a missing section. Then the freeze, both counts, at the
   // cap and one over, with a second table and a later section as null controls.
-  pins += 10
+  pins += 11
   const rowIn = recordRegion('## other\n', '', { 9115: '- [#9115](x/pull/9115) merged\n' })
   const rowBad = recordRegion(`## ${RECORD_SECTION}\n`, '', { 9116: '- [#9117](x/pull/9117) misnamed. #9118 too.\n' })
   if (checkRecord([{ pr: '9115', subject: 's' }], rowIn.region).length !== 0) regFail.push('a row file did not disposition its own pull request')
@@ -2846,6 +2846,7 @@ function assertAcceptance(derived) {
   if (checkRowFreeze(frz(2, 3), cap).length !== 1) regFail.push('one anchored row over the freeze was not refused')
   if (checkRowFreeze(frz(3, 3), cap).length !== 2) regFail.push('the two freeze counts are not independent')
   if (checkRowFreeze(`# plan\n${'| r |\n'.repeat(50)}`, cap).length !== 0) regFail.push('rows outside the section were counted')
+  if (checkRowFreeze(`## ${RECORD_SECTION}\n- [#9122](x/issues/9122) an issue's row\n- [#9123](x/pull/9124) r\n`, { anchors: 0 }).length !== 0) regFail.push('the freeze counted an issue-anchored or cross-linked item as a pull-request row')
   const liveSource = rowFreezeSource
   rowFreezeSource = () => frz(ROW_FREEZE.rows, 0)
   if (rowFreezeOverPlan().length !== 1) regFail.push('the wired freeze check does not read its source, or reads it against no freeze')
