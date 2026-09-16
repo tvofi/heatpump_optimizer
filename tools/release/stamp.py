@@ -740,9 +740,13 @@ def self_test() -> int:
           _pr.count("push_via(") == 2 and '"git", "push"' not in _pr)
     check("push: both pushes carry the key arguments",
           _pr.count("args.push_key, args.known_hosts") == 2)
-    check("push: the key is checked before anything is written",
-          _push_src.rindex("push_key_problem(args.push_key")
-          < _push_src.rindex("# Rule 1: a fetched, clean checkout"))
+    # rindex: main() is the last function, and these literals also occur in
+    # this check's own source above it.
+    _pre = _push_src[_push_src.rindex("    args = ap.parse_args()"):]
+    _pre = _pre[:_pre.index("    # Rule 1: a fetched, clean checkout")]
+    check("push: the key is checked before rule 1, and a problem refuses",
+          "problem = push_key_problem(args.push_key, args.known_hosts)" in _pre
+          and "if problem:" in _pre and 'raise Refuse("push-key"' in _pre)
     print(f"RESULT stamp_self_test={'pass' if ok else 'fail'}")
     return 0 if ok else 1
 
