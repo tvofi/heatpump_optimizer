@@ -45,9 +45,9 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 6.5.0
+# claims-for: 6.5.1
 #
-# v6.5.0: wave 3: the sysid-estimator wave, input_problem sources, and the #996 fail-fast. The stamp empties the list; the
+# v6.5.1: wave 4: the D11 governance wave, its close record, and four instrument repairs. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 
