@@ -1705,7 +1705,7 @@ function checkRecord(prs, dispositionText) {
       severity: 'error',
       check: 'record',
       where: DISPOSITION_FILES[0],
-      message: `no disposition in the plan of record or the living handover for merged pull request #${pr} (${subject.slice(0, 90)}). A merge nobody recorded is a merge no later seat can resume from.`,
+      message: `no disposition in the plan of record or the living handover for merged pull request #${pr} (${subject.slice(0, 90)}). Write its row as ${ROW_DIR}/${pr}.md. A merge nobody recorded is a merge no later seat can resume from.`,
     })
   }
   return out
@@ -4140,7 +4140,7 @@ function cmdRecordDispositions(since) {
     acc.items += s.items
     return acc
   }, { tables: 0, rows: 0, lists: 0, items: 0 })
-  console.log(`RECORD: ${prs.length} merged pull request(s) in ${since}..${mainRef()}; ${all.length} without a disposition in ${DISPOSITION_FILES.join(' or ')}`)
+  console.log(`RECORD: ${prs.length} merged pull request(s) in ${since}..${mainRef()}; ${all.length} without a disposition in ${DISPOSITION_FILES.join(', ')} or ${ROW_DIR}/`)
   console.log(`TABLES: ${split.length} split table(s) across ${DISPOSITION_FILES.length} disposition document(s)`)
   console.log(`CAPS: ${caps.length} stated cap(s) disagreeing with policy_budgets.json across ${DISPOSITION_FILES.length} disposition document(s)`)
   console.log(`RENDER: ${rCounts.tables} table(s), ${rCounts.rows} row(s), ${rCounts.lists} list(s), ${rCounts.items} item(s) across ${DISPOSITION_FILES.length} disposition document(s)`)
