@@ -679,8 +679,10 @@ once about content** — every resolution the same union with `main`'s rows firs
 `main`'s numbers lost `[]` every time. Derivation, and its limit: it was taken per
 branch, by running `git merge-tree --write-tree` on each rebase's two ends and
 counting the runs exiting non-zero that name this document. **A later reader
-cannot re-run it** — `main` squash-merges and every one of those branches was
-deleted on merge, so nothing two-parent survives to measure. Two independent
+cannot re-run it** — `main` squash-merged then (it takes merge commits since
+2026-09-14, `docs/decisions/0010-merge-commits-on-main.md`) and every one of
+those branches was deleted on merge, so nothing two-parent survives to
+measure. Two independent
 counts agreed at thirteen while disagreeing on which branch owned which
 conflict; only the total is stated here. The geometry was right and the adoption
 was zero, because nothing routes a row anywhere and this paragraph is the only
@@ -1527,7 +1529,7 @@ judge comments on each issue and summarised on #201.
   measures every fixture tree-vs-merge-base, so a claimed fixture that does not
   move on this branch is a claim the branch is *carrying*, not *asserting*.
   Such a branch should keep `main`'s list **unchanged** rather than empty it —
-  then the squash's three-way merge sees no change to the file and `main`'s
+  then the merge's three-way file merge sees no change to the file and `main`'s
   claims survive — and the check should refuse only a claim the branch asserts
   for a fixture its own diff moves. "Excuses nothing" and "excuses by accident"
   are separable by drift; they are not separable by `git diff`. Three

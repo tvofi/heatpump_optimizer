@@ -78,11 +78,19 @@ in which the assumption was actually written down somewhere in this tree.
    it was not under squash either. Measured at `d1a531b`:
    `gh api repos/tvofi/heatpump_optimizer --jq '{merge_commit_title,merge_commit_message}'`
    returns `MERGE_MESSAGE` and `PR_TITLE` — the subject is
-   `Merge pull request #N from <branch>` and the body is the **pull-request
-   title**. Over the 16 merges in `v6.5.0..origin/main`, the first line of the
-   pull-request body appears in `main`'s commit messages **0 times**, and the
-   pull-request title **16 times** (0 API refusals). The title arm is that
-   measurement's own control: it shows the search finds what is there.
+   `Merge pull request #N from <branch>` and the body is **by default** the
+   **pull-request title**. Over the 16 merges in `v6.5.0..origin/main`, the
+   first line of the pull-request body appears in `main`'s commit messages
+   **0 times**, and the pull-request title **16 times** (0 API refusals). The
+   title arm is that measurement's own control: it shows the search finds
+   what is there.
+
+   **"By default" is load-bearing, not hedging.** A merger may supply the
+   body at merge time, and one has: the round-1 review of this record's own
+   pull request compared each merge message against its pull request's title
+   one by one and found **16 of 17** equal over the same window, the
+   exception being **#1053**, merged with a hand-written message. So the
+   title is the surface to check, and it is not the only one.
 
    So a closing keyword in a pull-request **title** now reaches `main` as a
    commit message, and a seat that writes `tools/audit/briefs/orchestrator.md`
@@ -113,8 +121,9 @@ in which the assumption was actually written down somewhere in this tree.
 ## Consequences
 
 - The seat instructions that said to squash are repaired in the pull request
-  that lands this record: `.claude/workflows/web-fragments.md` and its five
-  `web-*.js` copies (`fragments_sync.mjs` refuses drift between them),
+  that lands this record: `.claude/workflows/web-fragments.md` and its four
+  `web-*.js` copies (`fragments_sync.mjs` refuses drift between them, and prints
+  the count itself: `across 4 script(s)`),
   `.claude/workflows/audit-merge.js`, and
   `tools/audit/briefs/orchestrator.md` section 4.
 - `tools/audit/briefs/fixer.md` and `tests/structure.py` keep the instruction
@@ -133,6 +142,19 @@ in which the assumption was actually written down somewhere in this tree.
   simulates — the simulation it prescribes is right under either method, and
   the file is another seat's carry. None is a defect: each describes a check
   or a procedure whose behaviour is unchanged. All are wrong as prose.
+- **This list is a human reading, and nothing in the tree keeps it honest.**
+  The pull request that landed this record sorted every tracked line matching
+  `/squash/i` into live instruction, standing assertion, or historical record,
+  and its enumerator's two assertions — that the three buckets sum to the
+  population, and that every named line is in it — **cannot detect a
+  mis-bucketing**, because the historical bucket is the residue and the sum is
+  therefore true by construction. Its round-1 review proved that by dropping a
+  live instruction out of the table and watching both assertions stay green,
+  and then found two lines that had fallen through it (`main` squash-merges,
+  and a prescription resting on the squash's three-way merge — both in
+  `docs/plan-2026-09-open-issues.md`, both repaired in that pull request's
+  round 2). A later seat re-running the enumerator gets the population and
+  the buckets it is handed; the reading is what it must redo.
 - This record is excluded from the policy corpus by name in
   `.claude/workflows/policy_lint.mjs`'s `CORPUS_EXCLUDED`, which is the line an
   ADR owes the moment a capped file cites it — and a capped file cites this

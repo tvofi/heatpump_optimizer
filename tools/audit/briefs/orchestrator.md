@@ -134,10 +134,11 @@ will paraphrase into its own body — a third-hand path to the same outcome, and
 has occurred.
 
 **Run `tools/audit/preflight.sh` over the merge body before you merge — as a
-filter, not as proof**, which is its own header's word: it catches the common
-cases and is *"never as a gate that proves the body is clean"*. It checks **four** reference
-forms and names **seven** further shapes that still pass; it is line-oriented, so
-a keyword and a number split across a newline are invisible to it.
+filter, not as proof**, its own header's word: it is *"never as a gate that
+proves the body is clean"*. It checks **four** reference forms, and **four is
+not all of them** — it names seven further shapes that still pass, and it is
+line-oriented, so a keyword and a number split across a newline are invisible
+to it.
 
 It reads the body on **stdin** and takes the issues you *intend* to close as
 **arguments**:
@@ -146,7 +147,7 @@ It reads the body on **stdin** and takes the issues you *intend* to close as
 printf '%s\n' "$BODY" | tools/audit/preflight.sh <intended-numbers>
 ```
 
-Two ways it misleads, both worth knowing before you trust an exit code. **Empty
+Two ways it misleads. **Empty
 stdin prints `clean` and exits 0 having read nothing** — which is what happens if
 you pass a filename as an argument. **Held-open stdin blocks silently** and
 reports 143 when killed. Neither looks like a failure. And the declared-argument
@@ -159,7 +160,7 @@ issues the merge actually closed. No pull-request-scoped field shows it
 beforehand, and on 2026-09-07 two issues were shut by merge commits and had to
 be reopened — `8bc4c661` (#557) shut #224 at 10:56:35 while its own text denied
 doing so, reopened 23 minutes later; `e072b2d` shut #195 at 04:25:54, reopened after
-six and a half hours. A pre-merge
+six and a half hours; the window is whatever it takes someone to notice. A pre-merge
 scan that asks *which form was used* rather than *whether every keyword binds an
 intended number* reports clean through exactly that.
 
