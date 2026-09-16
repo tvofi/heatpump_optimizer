@@ -6,12 +6,11 @@ production lines. You work in your own worktree branched from `origin/main`.
 1. **Never touch `VERSION`, the manifest version or the `RELEASE_NOTES.md`
    heading.** Versions are assigned by `tools/release/stamp.py` after the
    merge. The rule is keyed on the manifest's `version` field, not the file:
-   an edit leaving it unchanged is allowed; the command is `prepr.sh` step 5's,
-   file-keyed until #1063 narrows it to the field. Compare three-dot, never
-   two-dot: a two-dot `git diff origin/main <branch>` during a PR #399
-   pre-merge check reported `tests/closures.json` as changed by the branch,
-   when the difference was `main`'s own newer commits the branch had not
-   merged.
+   an edit leaving it unchanged is allowed; the command is `prepr.sh` step 5's.
+   Compare three-dot, never two-dot: a two-dot `git diff origin/main <branch>`
+   during a PR #399 pre-merge check reported `tests/closures.json` as changed
+   by the branch, when the difference was `main`'s own newer commits the
+   branch had not merged.
 2. **Failing test first**, importing the production symbol (a test that
    re-implements a formula pins nothing; `tests/README.md`). Record the
    mutation proof in the PR body: delete the fix's production line(s), run
