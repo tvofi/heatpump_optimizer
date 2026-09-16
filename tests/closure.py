@@ -297,14 +297,13 @@ INERT = (
     # pull request regardless. It is a real test; it is simply not one of
     # THIS gate's scripts.
     "tests/card_browser.mjs",
-    # The three workflows that are not the gate. Each defines its own jobs,
-    # which run on every pull request regardless of what this gate selects --
-    # the same argument as `tests/card_browser.mjs` above, one directory over.
-    # No test script reads any of them, so a change to one needs no script
-    # selected; `tests.yml` is the exception and is a GATE_FILE below.
-    # Listed individually rather than as a `.github/workflows/` prefix,
-    # because that prefix would also swallow `tests.yml` and silently undo
-    # the forced-full rule that is this gate's safety argument.
+    # The workflows that are not the gate were listed here, individually
+    # rather than as a `.github/workflows/` prefix, because that prefix would
+    # also swallow `tests.yml` and silently undo the forced-full rule that is
+    # this gate's safety argument. Each defines its own jobs, which run on
+    # every pull request regardless of what this gate selects -- the same
+    # argument as `tests/card_browser.mjs` above, one directory over. None is
+    # left: every one is now read by `tests/entities.py`.
     # `.github/workflows/governance.yml` was here, on the claim that nothing
     # in the gate reads it. That stopped being true when `tests/entities.py`
     # began reading it to pin the `record-status` job's wiring and its
@@ -320,11 +319,12 @@ INERT = (
     # `tests/entities.py` pins that grant the same way it pins the
     # governance ones -- a file a gate script reads is a dependency, not
     # inert, whatever directory it lives in.
-    ".github/workflows/hassfest.yml",
-    ".github/workflows/validate.yml",
-    # Same class as the two above (ledger finding (e), #201): its own jobs,
-    # run on every pull request regardless; no test script reads it.
-    ".github/workflows/codeql.yml",
+    # `hassfest.yml`, `validate.yml` and `codeql.yml` (the last added for
+    # ledger finding (e), #201) made the same move for decision 0009 step 3b
+    # (#954): `tests/entities.py` counts `secrets.SEAT_AUTHOR_TOKEN` across
+    # EVERY workflow file, because the property it pins -- the seat author's
+    # token reaches no `pull_request` path -- is violated by a reference in
+    # any of them, and each of these three runs on `pull_request`.
     # A manual QA render (writes ../setup-qa/). No gate script reads it.
     "tests/setup_qa_render.mjs",
     # tests/nightly_ha.py was here, on the argument that a lane needing Docker
@@ -350,9 +350,10 @@ GATE_FILES = (
     # matrix, the interpreter versions, the installed dependencies and the
     # GATE_SCOPE the gate runs under, so a change to it can alter how every
     # script behaves in a way no recorded closure can capture -- which is what
-    # a gate file means. The other four workflows cannot: none appears in any
-    # recorded closure (`tests/entities.py` reads this one and no other), none
-    # sets a gate variable, and none runs a gate script. Under the old
+    # a gate file means. The other workflows cannot: none sets a gate
+    # variable and none runs a gate script, and `tests/entities.py` reads
+    # every one of them, so an edit to one selects that script through its
+    # recorded closure rather than forcing every closure. Under the old
     # directory prefix a documentation-only change to `governance.yml` printed
     # "changes the gate itself, so every closure is suspect" and ran the full
     # suite, `tests/stress.py` included -- about twenty-three minutes to

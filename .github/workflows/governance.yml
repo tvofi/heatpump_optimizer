@@ -247,7 +247,8 @@ jobs:
       # with "`## Head` does not name a93a43b" while `GET /pulls/1059` showed
       # the corrected body; a close/reopen -- a fresh event at the same head,
       # no tree change -- passed as run 35098726083. The ledger lane below
-      # edits its PR's body with GITHUB_TOKEN, whose edits fire no
+      # edited its PR's body with GITHUB_TOKEN until decision 0009 step 3b
+      # moved that write to the seat author; those edits fired no
       # `pull_request` event, so a manual re-run was the only route to green
       # there and the one route that could not work. The `if:` on this job
       # keeps the read off the `schedule` and `push` paths, which carry no
@@ -640,28 +641,33 @@ jobs:
   # main, and the #201 step after the push never ran either. The commit now
   # goes to the bot-owned `ci/delivery-ledger` branch, this job opens (or
   # updates) that branch's PR, and `delivery-status-splice` below puts the
-  # content in #201 when that PR merges. A PR opened by GITHUB_TOKEN starts
-  # its checks in the approval-required state; that is the review path the
-  # decision chose, not an obstacle to it: a seat approves the workflows, the
-  # required contexts run, and a seat merges.
+  # content in #201 when that PR merges.
+  #
+  # Decision 0009 step 3b (#954, owner-approved 2026-09-16): the branch push
+  # and the PR write go through the machine account `tvofi-seat-author`
+  # (write collaborator, not admin) via the Actions secret SEAT_AUTHOR_TOKEN.
+  # GitHub gates a workflow run on its ACTOR, so while this job pushed and
+  # opened the PR as GITHUB_TOKEN every run on every cycle PR landed
+  # `action_required` until a seat approved it; a write collaborator's runs
+  # are not gated. GITHUB_TOKEN keeps only the checkout.
   delivery-status-publish:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    # Commits one generated path to the bot branch and opens that branch's PR.
-    # A third override of this workflow's `contents: read` floor, declared at
-    # JOB level so no other job inherits it, and argued rather than assumed:
-    # publishing the state is the whole point of this job, and it can write
-    # nothing else. The `issues: write` this job once held moved with the #201
-    # splice to `delivery-status-splice`.
+    # A job-level block replacing this workflow's `contents: read` floor with
+    # the same read, kept as a block so the override set pinned in
+    # tests/entities.py stays the argued one. The writes this lane once held
+    # (`contents: write`, `pull-requests: write`) went with 3b: the push and
+    # the PR write are the seat author's, so GITHUB_TOKEN writes nothing. The
+    # `issues: write` it held before that moved with the #201 splice to
+    # `delivery-status-splice`.
     permissions:
-      contents: write
-      pull-requests: write
+      contents: read
     # Ledger finding (b) (#201, W4D-G6): every push to main starts one of
     # these jobs, and a wave close pushes to main in bursts -- the ledger
     # PR's own merge is one -- so two can be in flight at once with nothing
     # to order them: run A's force-push to ci/delivery-ledger can land
-    # between run B's force-push and B's body edit, leaving the PR body
+    # between run B's body edit and B's force-push, leaving the PR body
     # naming a head the branch no longer carries. The group is JOB-scoped
     # and named for this lane alone, so no other job or workflow shares it.
     # cancel-in-progress rather than a queue: every arm of this job is a
@@ -678,7 +684,11 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          # No credential is left in .git/config: the only push is the seat
+          # author's, authenticated inside the one step that holds its token.
+          # A persisted GITHUB_TOKEN would let a bare `git push origin` land
+          # as the bot actor again, whose runs wait on approval.
+          persist-credentials: false
 
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
@@ -689,7 +699,9 @@ jobs:
 
       # Commits only when the content moved, so a re-run at the same window
       # opens nothing: `ledger unchanged; nothing to commit` is this job's
-      # ordinary green, the only shape it was ever green in.
+      # ordinary green, the only shape it was ever green in. The commit keeps
+      # the bot's identity: GitHub gates runs on the actor who pushes, not on
+      # a commit's author, and nothing in the tree keys on this author.
       - name: Commit it when it moved
         id: ledger
         run: |
@@ -704,22 +716,12 @@ jobs:
           git commit -m "ci: regenerate the delivery ledger"
           echo "moved=true" >> "$GITHUB_OUTPUT"
 
-      # The branch is rebuilt from this push's main every time, so the push is
-      # a force: a fast-forward would be refused against the previous cycle's
-      # commit. It is bot-owned, lands only through the PR below, and no
-      # ruleset governs it.
-      - name: Push the ledger branch
-        if: steps.ledger.outputs.moved == 'true'
-        run: git push --force origin HEAD:refs/heads/ci/delivery-ledger
-
       # The body is rewritten on every cycle, because `## Head` must name the
       # head the checks run at: a body describing an older head is exactly
       # what `pr-contract` exists to refuse, and it refuses it on this PR like
-      # any other.
-      - name: Open or update the ledger PR
+      # any other. Written here, in a step that holds no secret.
+      - name: Write the ledger PR body
         if: steps.ledger.outputs.moved == 'true'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           SHA=$(git rev-parse HEAD)
           cat > "$RUNNER_TEMP/body.md" <<'EOF'
@@ -761,16 +763,66 @@ jobs:
           none
           EOF
           sed -i "s/@SHA@/$SHA/" "$RUNNER_TEMP/body.md"
+
+      # THE ONE STEP THAT HOLDS SEAT_AUTHOR_TOKEN (decision 0009 step 3b).
+      #
+      # Fail-loud when the secret is absent -- on a fork, or after the owner
+      # rotates or deletes it -- and never a fallback to GITHUB_TOKEN: the
+      # fallback would publish green while every run on the cycle PR waits
+      # on approval again, which is the defect 3b removes, with nothing
+      # reporting that it came back.
+      #
+      # The token reaches git through a credential helper that reads it from
+      # the environment when git asks, so it is on no command line, in no URL
+      # and in no git config value; the empty `credential.helper=` first
+      # clears any helper the runner image configures. The PR is written
+      # through the REST pulls endpoint rather than `gh pr create/edit`,
+      # whose GraphQL reads can ask a classic `public_repo` token for scopes
+      # it does not carry, and its JSON is built by `jq --rawfile` and sent
+      # with `--input`, so no `body=@FILE` field flag is anywhere near it
+      # (the one-letter trap the comment-poster self-test above exists for).
+      #
+      # ORDER (the steward skill's S10): the push now fires `synchronize`
+      # runs that execute rather than wait, and `pr-contract` reads the body
+      # at run time, so an open PR's body is rewritten to name the new head
+      # BEFORE the push. A PR that does not exist yet can only be opened
+      # after its branch is pushed; its `opened` event carries the body.
+      - name: Publish the ledger branch and its PR as the seat author
+        if: steps.ledger.outputs.moved == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.SEAT_AUTHOR_TOKEN }}
+          GIT_TERMINAL_PROMPT: "0"
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::SEAT_AUTHOR_TOKEN is not set: the ledger lane publishes only as tvofi-seat-author (decision 0009 step 3b), never as GITHUB_TOKEN"
+            exit 1
+          fi
+          SHA=$(git rev-parse HEAD)
           TITLE="ci: regenerate the delivery ledger"
-          if gh pr view ci/delivery-ledger --json state --jq .state \
-              2>/dev/null | grep -qx OPEN; then
-            gh pr edit ci/delivery-ledger \
-              --title "$TITLE" --body-file "$RUNNER_TEMP/body.md"
-            echo "LEDGER: open PR updated at $SHA"
+          push_ledger() {
+            git -c credential.helper= \
+              -c 'credential.helper=!f() { test "$1" = get || exit 0; echo username=tvofi-seat-author; echo "password=$GH_TOKEN"; }; f' \
+              push --force "https://github.com/${GITHUB_REPOSITORY}.git" \
+              HEAD:refs/heads/ci/delivery-ledger
+          }
+          NUMBER=$(gh api \
+            "repos/${GITHUB_REPOSITORY}/pulls?head=${GITHUB_REPOSITORY_OWNER}:ci/delivery-ledger&state=open" \
+            --jq '.[0].number // empty')
+          if [ -n "$NUMBER" ]; then
+            jq -n --arg title "$TITLE" --rawfile body "$RUNNER_TEMP/body.md" \
+              '{title: $title, body: $body}' \
+              | gh api -X PATCH "repos/${GITHUB_REPOSITORY}/pulls/${NUMBER}" \
+                --input - --silent
+            push_ledger
+            echo "LEDGER: open PR #${NUMBER} updated at $SHA"
           else
-            gh pr create --base main --head ci/delivery-ledger \
-              --title "$TITLE" --body-file "$RUNNER_TEMP/body.md"
-            echo "LEDGER: PR opened at $SHA"
+            push_ledger
+            NUMBER=$(jq -n --arg title "$TITLE" \
+              --rawfile body "$RUNNER_TEMP/body.md" \
+              '{base: "main", head: "ci/delivery-ledger", title: $title, body: $body}' \
+              | gh api -X POST "repos/${GITHUB_REPOSITORY}/pulls" \
+                --input - --jq .number)
+            echo "LEDGER: PR #${NUMBER} opened at $SHA"
           fi
 
   # The #201 half of #1011's Option 2. The splice used to sit in the publish
