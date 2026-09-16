@@ -1,6 +1,6 @@
 ---
 description: Keep programme Delivery-status and #201 current after each merge
-globs: docs/plan*.md,.claude/workflows/*-groups.json,docs/HANDOVER.md
+globs: docs/plan*.md,.claude/workflows/*-groups.json,docs/HANDOVER.md,docs/delivery/**
 alwaysApply: true
 ---
 # Programme tracking discipline
@@ -19,6 +19,4 @@ After each programme merge — wave group, tooling the plan tracks, or a closed 
 - A PR's **body describes its current head**, not the head it was opened at.
 - **Continuously means at each merge**, not at session end; batching to the end is how an abort loses it. A pull request writes its **own** row before the handoff, once its number exists, as `docs/delivery/<N>.md`: a line `- [#N](…/pull/N)` and its state. Never at the table's end: it conflicts every open branch, and past the freeze `policy_lint` refuses it. `fixer.md`'s freeze forbids a row added after, not before. A record pull request is for merges no branch rowed.
 
-Do **not** wait for a stamp to truth the record. Never touch `VERSION`, the manifest version, or the `RELEASE_NOTES.md` heading in a branch.
-
-Measure with `git fetch origin main`, `git log origin/main`, the merged pull requests and closed issues — do not invent.
+Do **not** wait for a stamp to truth the record. Never touch `VERSION`, the manifest version, or the `RELEASE_NOTES.md` heading in a branch. Measure from `origin/main`, merged pull requests and closed issues; never invent.

@@ -29,6 +29,34 @@ record is a plan with its checks written down — the shape 0008 landed in — a
 > `main-protect`'s `bypass_actors` still `[{RepositoryRole 5, always}]`; and
 > step 6, no `pull_request` rule. The code-owner half is amended below.
 
+> **Status note, 2026-09-16 22:00Z.** Supersedes the "not landed" list above
+> for steps 3 and 5.
+>
+> - **Step 5 landed at 21:18Z** (#201 comment 5704665628), after #1077 merged
+>   (`698041b`). One `PUT` on `rulesets/22628467` changed `bypass_actors` from
+>   `[{RepositoryRole 5, always}]` to `[{RepositoryRole 5, pull_request},
+>   {DeployKey, always}]`; every rule read back identical to the saved rollback
+>   body. The probe, on a throwaway branch under a throwaway ruleset with the
+>   same bypass list: an API ref update as `tvofi` (admin) was refused, the
+>   same as `tvofi-seat-author` (write) was refused, and a push over the deploy
+>   key landed. Both throwaways were deleted. The owner then revoked the PAT
+>   behind `~/.zcode/stamp.token`; `GET /user` with it returns 401 (comment
+>   5704702814). A stamp now pushes only over the deploy key. Pull requests
+>   merge under the new bypass: #1080 (21:30Z), #1082 and #1081 were merged by
+>   `tvofi` after it, and the ruleset's `updated_at` still reads 21:18:10Z.
+> - **Step 3: this record's own pull request is authored by
+>   `tvofi-seat-author`**, a seat and not the ledger lane. Before it was
+>   opened, with the seat's token:
+>   `gh api user --jq .login` printed `tvofi-seat-author`, and
+>   `gh api repos/tvofi/heatpump_optimizer/collaborators/tvofi-seat-author/permission --jq .permission`
+>   printed `write`.
+> - **Step 4:** the App's approval of that pull request follows its review. It
+>   has not happened as this note is written; its result is recorded on #201 or
+>   in a later record pull request.
+> - **Step 6** is pre-authorised for one session (comment 5704795223): a
+>   `pull_request` rule with the code-owner review, and `bypass_actors` reduced
+>   to the DeployKey alone. It has **not** landed.
+
 ## Context
 
 0008 accepted the two-identity design in principle, in the order that cannot

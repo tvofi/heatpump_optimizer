@@ -3,8 +3,9 @@
 updated-for: cb30d98bfb677d2bd4f73054ee716a9359e3adfa
 
 The rule that governs this file is `.claude/rules/writing-for-agents.md`, which
-the harness loads on this very path. Delivery status is
-`docs/plan-2026-09-open-issues.md`'s table, linked from here and never restated.
+the harness loads on this very path. Delivery status is the frozen table in
+`docs/plan-2026-09-open-issues.md` plus one `docs/delivery/<N>.md` per pull
+request (#1081), linked from here and never restated.
 
 ## Decisions taken — do not relitigate
 
@@ -58,13 +59,16 @@ the harness loads on this very path. Delivery status is
   and the required checks its endpoint returns, never a count from here.
   GitHub refuses the merge rather than a
   policy asking you not to. **It is not absolute, and do not read it as one**:
-  the ruleset carries an admin-role bypass with `always` mode so
-  `tools/release/stamp.py`'s direct push to `main` still lands, this session's
-  identity reports `admin: true`, and a two-armed probe confirmed the bypass
-  applies to it. That bypass and the rollback below are the owner's levers, not
-  a seat's, and a seat that reads the boundary as unbypassable will misdiagnose
-  the next release stamp. Deliberately absent: any required-approval or
-  code-owner rule (ADR 0005). One DELETE to that ruleset reverses it all.
+  since 0009 step 5 (2026-09-16 21:18Z) the admin role bypasses in
+  `pull_request` mode, which covers merging a pull request, and the deploy key
+  `hpo-stamp` bypasses `always`. That bypass and the rollback below are the
+  owner's levers, not a seat's. Required-approval and code-owner rules are
+  absent until 0009 step 6 lands. One DELETE to that ruleset reverses it all.
+- **A stamp pushes to `main` only over the deploy key**, and only from the
+  local box: `tools/release/stamp.py --push --push-key ~/.zcode/stamp-deploy.key
+  --known-hosts ~/.zcode/github_known_hosts`. The admin token that used to push
+  was revoked and returns 401 (#201 comment 5704702814). A session without the
+  key file cannot stamp: a push to `main` as `tvofi` was refused in step 5's probe.
   **Before adding a required context**, confirm it reports on a *pull-request
   head*, not merely on a push to `main`: the two shapes differ, `CodeQL`
   reports on one and not the other, and a context that never reports blocks
