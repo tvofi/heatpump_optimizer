@@ -126,9 +126,9 @@ that is the whole content of "no separate human approval is required".
 ## Why the approver is the first move
 
 The order is not stylistic. **Enabling the rule before the approver identity
-exists deadlocks every open pull request**, including the standing
-`ci/delivery-ledger` cycle pull request the #1017 delivery-ledger design keeps
-open by design and which must be approved and merged every cycle. With one
+exists deadlocks every open pull request**, including, until #1086 retired
+it, the `ci/delivery-ledger` cycle pull request the #1017 delivery-ledger design
+kept open and which had to be approved and merged every cycle. With one
 identity, GitHub refuses the only approval available — the author's own — so
 the lock is total; that is the measurement behind 0005's original refusal and
 #954's deferral (0 approving reviews in the repository's entire merge history,

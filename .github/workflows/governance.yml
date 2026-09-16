@@ -20,13 +20,10 @@ on:
     branches:
       - main
   pull_request:
-    # `edited` and `closed` are the point of this workflow being separate from
-    # tests.yml: a body edit must re-check the contract, the ledger branch's
-    # merge must fire the #201 splice (`delivery-status-splice`), and neither
-    # must re-run the forty-minute gate. The other jobs here take about ten
-    # seconds, so re-running them on either event -- including the closes that
-    # do not merge -- costs nothing worth optimising.
-    types: [opened, edited, synchronize, reopened, closed]
+    # `edited` is the point of this workflow being separate from tests.yml: a
+    # body edit must re-check the contract without re-running the
+    # forty-minute gate. `closed` left with the ledger PR's #201 splice.
+    types: [opened, edited, synchronize, reopened]
   # 07:00 UTC on Mondays. The `record` job below is the only one that needs a
   # clock: a merge with no disposition is not detectable from any one pull
   # request, so nothing on the `pull_request` path can ever find it, and a
@@ -627,56 +624,36 @@ jobs:
           git fetch --no-tags --quiet origin main
           python tests/delivery_status.py --check
 
-  # The committed ledger and #201's region, regenerated on every push to main.
-  # This is the half that makes the state findable WITHOUT credentials: any
-  # session reads `docs/delivery-status.json` with `cat`, and #201's body
-  # carries the same content in a delimited region so the issue's own tracking
-  # text survives each update.
+  # #201's region, regenerated on every push to main. The ledger itself needs
+  # no publishing to be findable WITHOUT credentials: `tests/delivery_status.py`
+  # builds it from git alone, so any clone answers
+  # `python3 tests/delivery_status.py --emit <path>`, and #201's body carries
+  # the same content in a delimited region so the issue's own text survives.
   #
-  # #1011 (owner decision, Option 2): the ledger lands through a pull request,
-  # the autofix bots' shape. The direct bot push this job shipped with was
-  # declined by the ruleset on every run since the job landed -- GH013, because
-  # a GITHUB_TOKEN push can never satisfy main's PR-context required-checks
-  # rule -- so no `ci: regenerate the delivery ledger` commit ever reached
-  # main, and the #201 step after the push never ran either. The commit now
-  # goes to the bot-owned `ci/delivery-ledger` branch, this job opens (or
-  # updates) that branch's PR, and `delivery-status-splice` below puts the
-  # content in #201 when that PR merges.
-  #
-  # Decision 0009 step 3b (#954, owner-approved 2026-09-16): the branch push
-  # and the PR write go through the machine account `tvofi-seat-author`
-  # (write collaborator, not admin) via the Actions secret SEAT_AUTHOR_TOKEN.
-  # GitHub gates a workflow run on its ACTOR, so while this job pushed and
-  # opened the PR as GITHUB_TOKEN every run on every cycle PR landed
-  # `action_required` until a seat approved it; a write collaborator's runs
-  # are not gated. GITHUB_TOKEN keeps only the checkout.
+  # THE LANE WRITES NOTHING THAT LANDS ON MAIN, and that is its fixed point.
+  # The ledger lists every merge in the window with `commits_after`, so it
+  # moves on EVERY push to main. #1011's Option 2 landed it through a
+  # `ci/delivery-ledger` PR, and merging that PR was itself a push to main
+  # that moved the ledger again: nine of the eleven ledger PRs were opened
+  # 14-22 s after the previous one merged, each a merge with no row, main
+  # churn, and an open PR that decision 0009 step 6's quiet moment never got
+  # (#201 root cause of 2026-09-17). An issue-body edit fires no workflow in
+  # this repository, so one push yields at most one edit and nothing else.
+  # The JSON goes to the job summary; `tests/entities.py` pins that no step
+  # pushes, opens a PR or holds SEAT_AUTHOR_TOKEN.
   delivery-status-publish:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    # A job-level block replacing this workflow's `contents: read` floor with
-    # the same read, kept as a block so the override set pinned in
-    # tests/entities.py stays the argued one. The writes this lane once held
-    # (`contents: write`, `pull-requests: write`) went with 3b: the push and
-    # the PR write are the seat author's, so GITHUB_TOKEN writes nothing. The
-    # `issues: write` it held before that moved with the #201 splice to
-    # `delivery-status-splice`.
+    # `issues: write` edits #201's region; `contents: read` restates the
+    # workflow floor a job-level block replaces, for the checkout.
     permissions:
       contents: read
-    # Ledger finding (b) (#201, W4D-G6): every push to main starts one of
-    # these jobs, and a wave close pushes to main in bursts -- the ledger
-    # PR's own merge is one -- so two can be in flight at once with nothing
-    # to order them: run A's force-push to ci/delivery-ledger can land
-    # between run B's body edit and B's force-push, leaving the PR body
-    # naming a head the branch no longer carries. The group is JOB-scoped
-    # and named for this lane alone, so no other job or workflow shares it.
-    # cancel-in-progress rather than a queue: every arm of this job is a
-    # wholesale regeneration -- the ledger is re-derived from the newer
-    # push, the branch push is `--force`, the body edit rewrites the whole
-    # body -- so the newer run supersedes the older run's output outright,
-    # and a run cancelled mid-force-push leaves a half-updated cycle branch
-    # that the cancelling run rebuilds in full (the branch is bot-owned and
-    # lands only through the PR below).
+      issues: write
+    # Ledger finding (b) (#201, W4D-G6): pushes to main arrive in bursts, and
+    # two runs' read-modify-write of #201's body must not interleave. Each run
+    # regenerates wholesale from its own push, so the newer supersedes the
+    # older outright and cancel-in-progress loses nothing.
     concurrency:
       group: delivery-status-publish
       cancel-in-progress: true
@@ -684,189 +661,21 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           fetch-depth: 0
-          # No credential is left in .git/config: the only push is the seat
-          # author's, authenticated inside the one step that holds its token.
-          # A persisted GITHUB_TOKEN would let a bare `git push origin` land
-          # as the bot actor again, whose runs wait on approval.
           persist-credentials: false
 
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.13"
 
-      - name: Regenerate the ledger
-        run: python tests/delivery_status.py --emit docs/delivery-status.json
-
-      # Commits only when the content moved, so a re-run at the same window
-      # opens nothing: `ledger unchanged; nothing to commit` is this job's
-      # ordinary green, the only shape it was ever green in. The commit keeps
-      # the bot's identity: GitHub gates runs on the actor who pushes, not on
-      # a commit's author, and nothing in the tree keys on this author.
-      - name: Commit it when it moved
-        id: ledger
-        run: |
-          if git diff --quiet -- docs/delivery-status.json; then
-            echo "ledger unchanged; nothing to commit"
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email \
-            "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/delivery-status.json
-          git commit -m "ci: regenerate the delivery ledger"
-          echo "moved=true" >> "$GITHUB_OUTPUT"
-
-      # The body is rewritten on every cycle, because `## Head` must name the
-      # head the checks run at: a body describing an older head is exactly
-      # what `pr-contract` exists to refuse, and it refuses it on this PR like
-      # any other. Written here, in a step that holds no secret.
-      - name: Write the ledger PR body
-        if: steps.ledger.outputs.moved == 'true'
-        run: |
-          SHA=$(git rev-parse HEAD)
-          cat > "$RUNNER_TEMP/body.md" <<'EOF'
-          The delivery ledger, regenerated by `tests/delivery_status.py` from
-          the window ending at the push that opened this PR. Landed through
-          review (#1011, owner Option 2) rather than a bot push the ruleset
-          declines; #201's region is spliced when this PR merges.
-
-          ## Head
-
-          @SHA@ -- the branch head; generated content, measured by nothing.
-
-          ## Mutation proof
-
-          n/a: generated artifact. The diff is the generator's own output;
-          the generator and the job that opens this PR are pinned in
-          tests/entities.py.
-
-          ## Null control
-
-          The job regenerates against the committed ledger and opens nothing
-          when the content already matches: `ledger unchanged; nothing to
-          commit` exits 0.
-
-          ## Figures
-
-          none
-
-          ## Red checks
-
-          none
-
-          ## Forward-carry
-
-          none
-
-          ## Friction
-
-          none
-          EOF
-          sed -i "s/@SHA@/$SHA/" "$RUNNER_TEMP/body.md"
-
-      # THE ONE STEP THAT HOLDS SEAT_AUTHOR_TOKEN (decision 0009 step 3b).
-      #
-      # Fail-loud when the secret is absent -- on a fork, or after the owner
-      # rotates or deletes it -- and never a fallback to GITHUB_TOKEN: the
-      # fallback would publish green while every run on the cycle PR waits
-      # on approval again, which is the defect 3b removes, with nothing
-      # reporting that it came back.
-      #
-      # The token reaches git through a credential helper that reads it from
-      # the environment when git asks, so it is on no command line, in no URL
-      # and in no git config value; the empty `credential.helper=` first
-      # clears any helper the runner image configures. The PR is written
-      # through the REST pulls endpoint rather than `gh pr create/edit`,
-      # whose GraphQL reads can ask a classic `public_repo` token for scopes
-      # it does not carry, and its JSON is built by `jq --rawfile` and sent
-      # with `--input`, so no `body=@FILE` field flag is anywhere near it
-      # (the one-letter trap the comment-poster self-test above exists for).
-      #
-      # ORDER (the steward skill's S10): the push now fires `synchronize`
-      # runs that execute rather than wait, and `pr-contract` reads the body
-      # at run time, so an open PR's body is rewritten to name the new head
-      # BEFORE the push. A PR that does not exist yet can only be opened
-      # after its branch is pushed; its `opened` event carries the body.
-      - name: Publish the ledger branch and its PR as the seat author
-        if: steps.ledger.outputs.moved == 'true'
-        env:
-          GH_TOKEN: ${{ secrets.SEAT_AUTHOR_TOKEN }}
-          GIT_TERMINAL_PROMPT: "0"
-        run: |
-          if [ -z "$GH_TOKEN" ]; then
-            echo "::error::SEAT_AUTHOR_TOKEN is not set: the ledger lane publishes only as tvofi-seat-author (decision 0009 step 3b), never as GITHUB_TOKEN"
-            exit 1
-          fi
-          SHA=$(git rev-parse HEAD)
-          TITLE="ci: regenerate the delivery ledger"
-          push_ledger() {
-            git -c credential.helper= \
-              -c 'credential.helper=!f() { test "$1" = get || exit 0; echo username=tvofi-seat-author; echo "password=$GH_TOKEN"; }; f' \
-              push --force "https://github.com/${GITHUB_REPOSITORY}.git" \
-              HEAD:refs/heads/ci/delivery-ledger
-          }
-          NUMBER=$(gh api \
-            "repos/${GITHUB_REPOSITORY}/pulls?head=${GITHUB_REPOSITORY_OWNER}:ci/delivery-ledger&state=open" \
-            --jq '.[0].number // empty')
-          if [ -n "$NUMBER" ]; then
-            jq -n --arg title "$TITLE" --rawfile body "$RUNNER_TEMP/body.md" \
-              '{title: $title, body: $body}' \
-              | gh api -X PATCH "repos/${GITHUB_REPOSITORY}/pulls/${NUMBER}" \
-                --input - --silent
-            push_ledger
-            echo "LEDGER: open PR #${NUMBER} updated at $SHA"
-          else
-            push_ledger
-            NUMBER=$(jq -n --arg title "$TITLE" \
-              --rawfile body "$RUNNER_TEMP/body.md" \
-              '{base: "main", head: "ci/delivery-ledger", title: $title, body: $body}' \
-              | gh api -X POST "repos/${GITHUB_REPOSITORY}/pulls" \
-                --input - --jq .number)
-            echo "LEDGER: PR #${NUMBER} opened at $SHA"
-          fi
-
-  # The #201 half of #1011's Option 2. The splice used to sit in the publish
-  # job AFTER the push step, so the ruleset's GH013 refusal meant it never
-  # ran: #201's body carries no delivery-status region at all, and the
-  # ledger's designed publication surface never existed. It now fires on the
-  # merge of the ledger PR itself -- an event a SEAT causes by merging, not a
-  # GITHUB_TOKEN side effect, so it needs no approval gate -- and reads the
-  # LANDED ledger off the merge commit, so the issue carries what main
-  # carries rather than a branch's proposal.
-  delivery-status-splice:
-    if: >-
-      github.event_name == 'pull_request'
-      && github.event.action == 'closed'
-      && github.event.pull_request.merged == true
-      && github.event.pull_request.head.ref == 'ci/delivery-ledger'
-      && github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    # `issues: write` edits #201's region; `contents: read` restates the
-    # workflow floor a job-level block replaces, for the checkout below. This
-    # is the grant the publishing lane held before #1011 moved the splice
-    # here -- moved, not added, which is what the floor's pinned set is for.
-    permissions:
-      contents: read
-      issues: write
-    steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
-        with:
-          # The merge commit, where docs/delivery-status.json is main's; a
-          # shallow checkout answers, because the splice reads one file and
-          # the issue body and walks no history.
-          ref: ${{ github.event.pull_request.merge_commit_sha }}
-
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
-        with:
-          python-version: "3.13"
-
-      - name: Put the landed ledger in #201's region
+      - name: Regenerate the ledger and put it in #201's region
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          python tests/delivery_status.py --emit "$RUNNER_TEMP/ledger.json"
+          { echo '```json'; cat "$RUNNER_TEMP/ledger.json"; echo '```'; } \
+            >> "$GITHUB_STEP_SUMMARY"
           python tests/delivery_status.py \
-            --from docs/delivery-status.json --markdown > "$RUNNER_TEMP/region.md"
+            --from "$RUNNER_TEMP/ledger.json" --markdown > "$RUNNER_TEMP/region.md"
           python - <<'PY'
           import os, pathlib, subprocess, sys
           sys.path.insert(0, "tests")
@@ -885,4 +694,3 @@ jobs:
                    os.environ["RUNNER_TEMP"] + "/body.md"], check=True)
               print("#201's region updated")
           PY
-
