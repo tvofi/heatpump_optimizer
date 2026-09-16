@@ -141,10 +141,22 @@ figures_check() { # body file
 # "touches no policy file". Writing through `.part` and renaming only on success
 # makes both keys agree. If a later edit drops the rename, the return code is
 # still the one a caller must read.
+#
+# THE CLEANUP IS UNCONDITIONAL, AND THAT IS THE #1054 REVIEW'S FINDING. The
+# first form cleaned up only on the redirect's failure, so a failing `mv` left
+# `.part` behind -- and the caller's cleanup names `$2`, not `$2.part`, so
+# nothing removed it. 138 bytes, on a path that needs `mv` to fail. Removing it
+# here rather than adding a word to the caller is the point: the function owns
+# the temp file it invents, under every outcome, and no caller has to know the
+# name exists. `rm` runs after `$?` is captured so it cannot overwrite the
+# status being returned.
 diff_paths() { # merge base, out file
+  local rc
   git diff --no-renames --name-only "$1"...HEAD > "$2.part" 2>/dev/null \
-    || { rm -f "$2.part"; return 1; }
-  mv -f "$2.part" "$2"
+    && mv -f "$2.part" "$2"
+  rc=$?
+  rm -f "$2.part"
+  return "$rc"
 }
 
 body_check() { # body file, head sha, title, paths file
@@ -171,6 +183,9 @@ push_order() { # own remote branch's sha ('' or '-' for none), behind, ahead
 if [ "${1:-}" = "--self-test" ]; then
   D=.claude/workflows/fixtures/policy-rot/prepr
   ZERO=0000000000000000000000000000000000000000
+  # A base that DOES resolve, for the success arm below. HEAD always resolves
+  # and needs no remote, so this arm runs in a clone with no `origin` too.
+  BASE_ST=HEAD
   st_pass=0; st_fail=0
   # `$1` is a return code for most assertions and a ref NAME for the push-order
   # fixtures' first one, so the failure line says `got`, not `rc`.
@@ -282,6 +297,42 @@ if [ "${1:-}" = "--self-test" ]; then
   if [ -e /tmp/prepr-bodyst.$$ ] || [ -e /tmp/prepr-bodyst.$$.part ]; then fp=1; else fp=0; fi
   st "$fp" 0 "and leaves no list behind, not even an empty one, so the file key fails closed too"
   rm -f /tmp/prepr-bodyst.$$ /tmp/prepr-bodyst.$$.part
+  # The SUCCESS path's own temp-file assertion, which nothing pinned before: a
+  # derivation that works must also leave no `.part` behind.
+  #
+  # WHAT IT DOES NOT PIN, measured rather than assumed. A first version of this
+  # comment claimed the arm would catch a later edit replacing `mv` with `cp`.
+  # It does not: driven, `cp -f` leaves `--self-test` at 48/0, because the
+  # unconditional cleanup above removes the copy's leftover too. That is the
+  # fix working rather than a hole -- under either verb no `.part` survives --
+  # but the arm's reach is the PROPERTY, not the verb, and saying otherwise
+  # would be a claim stronger than the check that backs it.
+  diff_paths "$BASE_ST" /tmp/prepr-bodyst.$$ >/dev/null 2>&1; dp=$?
+  if [ -e /tmp/prepr-bodyst.$$.part ]; then fp=1; else fp=0; fi
+  st "$dp" 0 "a base that resolves makes the path derivation succeed (null control)"
+  st "$fp" 0 "and leaves no \`.part\` behind either, so the temp file is the function's own"
+  rm -f /tmp/prepr-bodyst.$$ /tmp/prepr-bodyst.$$.part
+
+  # THE `mv`-FAILURE ARM, and it exists because the #1054 review measured the
+  # leak rather than reasoning about it: the first form cleaned up only on the
+  # redirect's failure, so a failing `mv` left 138 bytes of `.part` behind and
+  # the caller's `rm -f "$PATHS"` did not name it.
+  #
+  # The shape is buildable, which is the only reason this is an arm rather than
+  # a disclosure. `$2` is an existing DIRECTORY holding a non-empty directory
+  # called `<basename>.part`, so the redirect succeeds -- `$2.part` is an
+  # ordinary file beside it -- and `mv` then refuses, because moving that file
+  # into `$2` would have to replace a directory that is not empty. Source and
+  # destination share a parent by construction, so every permission-based way of
+  # failing `mv` fails the redirect first and never reaches this path; this is
+  # the one route that separates them.
+  MVD=$(mktemp -d)
+  mkdir -p "$MVD/d/d.part/occupied"
+  diff_paths "$BASE_ST" "$MVD/d" >/dev/null 2>&1; dp=$?
+  if [ -e "$MVD/d.part" ]; then fp=1; else fp=0; fi
+  st "$dp" 1 "a derivation whose rename fails is refused"
+  st "$fp" 0 "and cleans up after itself, so a failing \`mv\` leaks no \`.part\`"
+  rm -rf "$MVD"
 
   printf 'Closes #999\n' | bash tools/audit/preflight.sh >/dev/null 2>&1
   st $? 1 "preflight refuses an unintended closing keyword"
