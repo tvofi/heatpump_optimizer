@@ -265,8 +265,8 @@ run at once.
 
 ## 13. Stamps, budgets, and the two things you may not decide alone
 
-You stamp at your own discretion, with `tools/release/stamp.py --push`, never by
-hand and never in a branch; rule 4 binds you as it binds every seat.
+You stamp at your discretion, with `stamp.py --push --push-key ~/.zcode/stamp-deploy.key`,
+never by hand or in a branch; rule 4 binds you.
 
 Two things are the owner's, and both are `CLAUDE.md`'s: a **structural budget
 raise**, confirmed before the push; and **policy**, this file included, approved
