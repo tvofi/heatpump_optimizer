@@ -29,11 +29,8 @@ replace the source rules.
 
 ## 1. Verify before claiming. This is the foundational rule and it already exists
 
-**`fixer.md` step 8: a quoted number states the rule that produced it, not just
-its value.** Three agents counting "the same" published-attribute census (#373)
-returned 59, 50, and 124/147/50, because each asked a subtly different question.
-Only a count whose rule is written down is re-derivable by whoever reads it next.
-Say what you counted, not only how many.
+**`fixer.md` step 8: a quoted number states its rule, not just its value** —
+#373's census is the evidence there. Say what you counted, not only how many.
 
 Generalised, because every one of those failures was a form of it:
 
@@ -51,22 +48,18 @@ cannot answer the second, you have not measured — you have expected.
   boundary paragraph asserted that earlier work "is recorded" in three named
   documents. It is not, in the great majority of cases, and none of the three was
   opened before the sentence was written.
-- **Never print a conclusion beside a command.** `diff a b && echo IDENTICAL`
-  earns it; `diff a b; echo "(empty means identical)"` prints either way, and
-  shipped a commit message asserting untouched files that carried fourteen
-  changed lines.
+- **Never print a conclusion beside a command** (`fixer.md` step 3): the
+  `(empty means identical)` form shipped a commit message asserting untouched
+  files that carried fourteen changed lines.
 - **Never chain past a check with `;`.** `check; publish` publishes whether or
   not the check refused. Committed one line after the clause above was written:
   the pre-flight refused a body carrying a closing keyword, printed `REFUSE`, and
   the pull request was opened anyway, arming it to close the issue a merge
   message had closed that morning. Use `check && publish` — and for the body
   and the push, that `&&` is already wired as `tools/audit/push.sh` (#678).
-- **A scripted edit that matches nothing reports success.** `str.replace` and
-  `sed` both do. Read the destination back.
 
-`fixer.md` step 9 governs a claim that turns out wrong: correct it, anchored to a
-lane, function, marker or SHA and **never a bare line number**; delete only when
-no such correction exists.
+A claim that turns out wrong is corrected under `fixer.md` step 9, never to a
+bare line number.
 
 ## 2. Delegate what a seat can do; do only what only you can do
 
@@ -96,29 +89,12 @@ stands on one agent's word.
 
 ## 3. Repeated errors go to the root-cause seat, not into another issue
 
-`CLAUDE.md` and `.cursor/rules/defect-root-cause.mdc` set the trigger for a
-*defect*: it reached a release, or it turned a PR red on a check a cheaper
-detector could have run. **This adds the trigger for a pattern.**
-
-**When the same kind of error occurs a third time — by any seat, or by you —
-open `root-cause.md` rather than filing a third issue or writing a firmer
-instruction.** Three symptoms recorded separately are worth less than one
-analysis of why they were possible.
-
-Its product is fixed and all four parts are owed: a **named cause**, a **named
-process state**, a **cost test with numbers**, and a **countermeasure or a
-recorded decision not to build one**. Recording that none is worth building is a
-legitimate result.
-
-The process state is one of four — the process did not exist, existed and was not
-followed, was followed and did not work, or was sound and its preconditions
-changed. **The most common error is recording (c) or (d) as (b)**, which produces
-a firmer instruction for something that was obeyed and wrong. *If your proposed
-countermeasure is "tell the worker harder", suspect your state.*
-
-It runs in **its own seat**, never inside the fix, for the same independence
-reason as section 2. Any countermeasure that is a check must be demonstrated
-failing on the defect it was written for.
+`CLAUDE.md`'s *recurring error* rule binds you as it binds a seat, and an
+instance by you counts toward the third: three symptoms recorded separately are
+worth less than one analysis of why they were possible. The product, the four
+process states and the demonstration a check owes are `root-cause.md`'s and
+`defect-root-cause.md`'s; it runs in **its own seat**, never inside the fix, for
+the same independence reason as section 2.
 
 ## 4. The merge message is a second closing surface
 
@@ -227,21 +203,9 @@ is not one.
 `delivery-status-tracking.mdc`, at **each merge** and not at session end, and
 batching to the end is how an abort loses it. A merge whose own pull request is
 frozen by the handoff costs a record pull request; that is the price, not zero.
-
-- The **Delivery-status table**, authoritative where it and a wave body disagree.
-- The roster **`resume` fields**, matched against measured `origin/main`.
-- **One #201 comment per meaningful state change**, not a heartbeat.
-- **Every open issue and every pull request the programme opened**, with a
-  disposition: scheduled, deferred with a reason, or refused with a reason.
-  *"Not mentioned" is not a disposition.* Re-check the whole list each time by
-  listing and grepping per number, never by remembering what you filed.
-
-**The handover is one file and it is not optional.** `CLAUDE.md`: durable state
-goes in exactly one `docs/HANDOVER.md`, **updated in the same pull request as the
-merge it records**, with `updated-for:` naming that merge. Volatile state —
-which seats are running, which branches are unpushed, what a resumer does next —
-goes on #201. **Nothing goes in both.** `tests/entities.py` enforces the single
-file and the reachable `updated-for:`.
+**The handover is one file and it is not optional**: `writing-for-agents.md`
+states the split against #201, and `tests/entities.py` enforces the single file
+and the reachable `updated-for:`.
 
 Three failure shapes already produced, all yours:
 
@@ -262,45 +226,20 @@ additionally, because you write the rosters and you decide the merge order.
 
 - **A comment is not propagation** — including yours on #201, which is where you
   are most tempted to put things.
-- **A stage's brief lives in two places** and both must receive it: the roster
-  string in `.claude/workflows/wave-*-groups.json`, which is what the linter and
-  the next session read, and any out-of-tree brief a running session hands its
-  seats. The tree is what survives the session.
-- **Constrains every seat** → the role contract under `tools/audit/briefs/`,
-  **once**. Duplication into each stage goes stale unevenly.
 - **The destination must exist**, and creating it is part of the carry. A whole
   programme lane had no roster, so two seats that tried to comply had nowhere
   in-tree to write.
-- **Carry the control, not only the claim**, and give every carried figure a
-  re-measurement instruction.
-- **While two copies disagree the newer is right**; say which is which in the
-  carry itself.
 
 ## 10b. You edit the rosters, so `brief-citations.mdc` binds you
 
-`node .claude/workflows/brief_lint.mjs` lints every group's `brief` in
-`.claude/workflows/wave-*-groups.json`. It does **not** read `docs/plan-*.md`,
-`docs/HANDOVER.md`, or `tools/audit/briefs/` — so a load-bearing citation left
-only in markdown is unchecked, and putting one there is not carrying it.
-
-- **A backticked identifier is a symbol citation** and must exist in the tracked
-  tree or at a cited tag. This has bitten three times in one session, each time
-  on a symbol a *planned* item exists to add. **The remedies are in
-  `brief-citations.mdc` and that rule is authoritative** — do not reach for a tag
-  citation by reflex: measurement shows the symbols that bit here exist at no
-  tag, so a tag citation does not rescue them. Do not backtick a symbol that does
-  not exist yet, or cite the artifact that does. Weakening the linter is not a
-  remedy.
-- **A literal metric value is always an error** (`coordinator_loc 10394 <= 10394`);
-  the fixer re-measures at their own merge base. That is the same rule as
-  section 1, enforced.
-- **`VERSION x.y.z` must match the live file.** Do not pin a version a later
-  stamp will invalidate.
-- **Extending the plan format means extending the linter in the same pull
-  request**, and never weakening the linter to fit a citation.
-- Read the **exit code and the error lines**. `FIXTURE ok: N error(s)` is
-  designed to print beside a clean exit, which is exactly the shape that lets a
-  real error be waved through.
+`brief_lint.mjs` reads the roster and the carry files and never
+`docs/plan-*.md`, `docs/HANDOVER.md` or `tools/audit/briefs/`, so a load-bearing
+citation left only in markdown is unchecked, and putting one there is not
+carrying it. The remedies for a symbol that does not exist yet are that rule's;
+do not reach for a tag citation by reflex, because measurement shows the
+symbols that bit here exist at no tag. Read the **exit code and the error
+lines**: `FIXTURE ok: N error(s)` is designed to print beside a clean exit,
+which is exactly the shape that lets a real error be waved through.
 
 ## 11. Before you merge
 
@@ -309,10 +248,8 @@ only in markdown is unchecked, and putting one there is not carrying it.
 - A `merge` verdict from a reviewer that measured **this** head, or a recorded
   reason why an older verdict carries — the authored diff proved byte-identical,
   not assumed.
-- **Any red check on the branch is answered in the body** — the cheaper detector
-  and its standing cost, or the finding that none exists. `CLAUDE.md` makes this
-  the one enforced root-cause trigger, and an unanswered one is the reviewer's
-  `blocked <sha> root-cause-unanswered: <check> went red, unanswered`.
+- **Any red check on the branch is answered in the body**, or the reviewer
+  returns `blocked <sha> root-cause-unanswered` (`defect-root-cause.md`).
 - The merge message passes section 4.
 - Then `main` is green after it. If a merge reddens main: a behaviour change in
   the merged diff → revert first and diagnose after; a failure the diff cannot
@@ -320,30 +257,19 @@ only in markdown is unchecked, and putting one there is not carrying it.
 
 ## 12. The gate lease
 
-Take it only when `MODE: FULL` or `scope.run` names `tests/stress.py`, the one
-script the lock exists for. Use `tests/gate_lock.py take` / `renew` / `release`
-with a label — never `mkdir` and a shell pid, which #404 replaced. **Never clear
-a live lease**: an expired lease or an abandoned hold may be taken, a live one
-may not, and several seats run at once.
+Take it only when `MODE: FULL` or `scope.run` names `tests/stress.py`
+(`gate-scoping.md` has the commands). **Never clear a live lease**: an expired
+lease or an abandoned hold may be taken, a live one may not, and several seats
+run at once.
 
 ## 13. Stamps, budgets, and the two things you may not decide alone
 
 You stamp at your own discretion, with `tools/release/stamp.py --push`, never by
-hand and never in a branch. **Never touch `VERSION`, the manifest version or the
-`RELEASE_NOTES.md` heading in a branch** — that is rule 4 and it binds you as it
-binds every seat.
+hand and never in a branch; rule 4 binds you as it binds every seat.
 
-Two things are the owner's:
-
-- **A structural budget raise.** Confirmation obtained **before** the branch is
-  pushed; you do not push and explain. Pay for the lines first; a raise is what
-  you ask for when the honest answer is that you cannot.
-- **Policy.** `CLAUDE.md`, `.cursor/rules/*.mdc`, and everything under
-  `tools/audit/briefs/` — including this file. Approval is required before
-  **merging**, not before drafting, so open the pull request and surface it.
-  Every rewrite looks like a correction from the inside; if the honest
-  description is "this changes what a seat must do", it is policy however small
-  the diff.
+Two things are the owner's, and both are `CLAUDE.md`'s: a **structural budget
+raise**, confirmed before the push; and **policy**, this file included, approved
+before merging — so open the pull request and surface it.
 
 ## 14. What you may not do
 
@@ -354,16 +280,11 @@ Two things are the owner's:
   run are encouraged — `tools/audit/preflight.sh` exists because intentions did
   not bind and a script bound immediately — but the reviewer stays
   the authority.
-- **Do not re-implement what CI already repairs** (`.cursor/rules/ci-autofix.mdc`). `closures-autofix` and
-  `claims-autofix` handle `UNDER-SCOPED` and `INHERITED CLAIMS` on same-repo
-  pull requests. Wait for the bot commit and the dispatched recheck; never open a
-  second pull request, never hand-empty those claim files, and never Darwin
-  `--single` a CI `UNDER-SCOPED` while the autofix job is green and says
-  `changed`.
+- **Do not re-implement what CI already repairs** (`ci-autofix.md`): wait for
+  the bot commit, never open a second pull request, never hand-empty the claim
+  files.
 - **Do not delete working functionality to fit a budget**, and do not loosen a
-  budget quietly. The ratchet is every key in `tests/structure_budgets.json`
-  less `recorded_at` — **derive that count, never carry one**; it has been
+  budget quietly. The metric count is derived, never carried — it has been
   stated as 22, 24 and 29 in three places on one day, and only one was right.
-  `cross_seam_edges` replaced the tolerance-banded ratio (2026-09-10) and ratchets like every other row.
 - **Do not let a fix ship whose complexity exceeds what the fix is worth.** That
   judgement is yours to make and to state, not to skip.

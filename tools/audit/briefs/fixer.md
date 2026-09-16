@@ -5,13 +5,13 @@ production lines. You work in your own worktree branched from `origin/main`.
 
 1. **Never touch `VERSION`, the manifest version or the `RELEASE_NOTES.md`
    heading.** Versions are assigned by `tools/release/stamp.py` after the
-   merge. The reviewer checks
-   `git diff origin/main...HEAD -- VERSION custom_components/heatpump_optimizer/manifest.json`
-   is empty — three-dot, never two-dot: a two-dot `git diff origin/main
-   <branch>` during a PR #399 pre-merge check reported `tests/closures.json`
-   as changed by the branch, when the difference was `main`'s own newer
-   commits the branch had not merged. Every branch-vs-main comparison is
-   three-dot for that reason.
+   merge. The rule is keyed on the manifest's `version` field, not on the
+   file: an edit that leaves that field unchanged is allowed, and
+   `tools/audit/prepr.sh` carries the command. Compare three-dot, never
+   two-dot: a two-dot `git diff origin/main <branch>` during a PR #399
+   pre-merge check reported `tests/closures.json` as changed by the branch,
+   when the difference was `main`'s own newer commits the branch had not
+   merged.
 2. **Failing test first**, importing the production symbol (a test that
    re-implements a formula pins nothing; `tests/README.md`). Record the
    mutation proof in the PR body: delete the fix's production line(s), run
@@ -56,16 +56,8 @@ production lines. You work in your own worktree branched from `origin/main`.
    `fix-review.md` step 11 reads those rather than the body's account of them.
 
    **Take the gate lease only when `MODE: FULL` or `scope.run` names
-   `tests/stress.py`**, the one script the lock exists for (`CLAUDE.md`
-   "Running it"; `tests/README.md`). Never `mkdir` and a shell pid, which #404
-   replaced: that lock carries no lease, `run.sh` will not renew it, and a
-   waiter cannot reclaim it after a crash.
-
-       python3 tests/gate_lock.py take --label <your-label>
-       HPO_GATE_LOCK_LABEL=<your-label> GATE_SCOPE=auto GOLDEN_MODE=drift \
-         GOLDEN_REF=$(git merge-base origin/main HEAD) ./tests/run.sh
-       python3 tests/gate_lock.py renew --label <your-label>   # between commands
-       python3 tests/gate_lock.py release --label <your-label>
+   `tests/stress.py`**, the one script the lock exists for; the commands, and
+   why `mkdir` and a shell pid is not a lease, are `gate-scoping.md`'s.
 
    `GOLDEN_MODE=drift` against the merge base always: strict mode compares
    solver floats that do not reproduce across BLAS builds, so it is honest
@@ -250,64 +242,34 @@ tree-wide: enough attributes on a class in any other module move it.
 coordinator class a split usually moves the maxima *down* -- which the gate still
 refuses until you re-record them, with the reason in the commit.
 
-A raise **requires the repository owner's explicit confirmation, obtained before
-you push.** It is not a judgement a fixer makes alone and it is not something a
-reviewer can wave through, so an agent that finds itself wanting one **stops and
-asks** rather than proceeding and explaining afterwards — not a route for
-sloppiness, an unexamined refactor, or an unmeasured feature. But a metric at
-zero headroom is not a veto on new functionality, and asking is an available
-move: #398 was refused in part because `coordinator_attrs` stood at 176/176 and
-a new attribute read as costing an existing one. **No metric is exempt since
-2026-09-10**, when `cross_seam_edges` replaced the one tolerance-banded ratio.
+A raise is the owner's, confirmed before the push (`CLAUDE.md` rule 2), and not
+something a reviewer can wave through. But a metric at zero headroom is not a
+veto on new functionality, and asking is an available move: #398 was refused in
+part because `coordinator_attrs` stood at 176/176 and a new attribute read as
+costing an existing one.
 
 ## Before you hand off: carry what you found forward
 
 Your PR does not merge until any finding that **changes how a later stage must
-work** is written into that stage's own brief. It qualifies when you established
-it by measurement, with the null control, and it narrows what a later stage may
-do, invalidates an assumption it rests on, or removes an option it was expected
-to have — a technique refused, a figure that no longer holds, a dependency that
-will not install, a budget already spent.
-
-**Putting it in this PR's comments does not discharge it.** The next seat reads
-its own brief, its roster entry, `CLAUDE.md` and this contract; it does not
-read the comments of a PR that merged before it started. Carry the **control**
-as well as the claim, and state the **precondition** rather than the opportunity
-— "this gained N points" invites the next seat to reach for it, "this is
-legitimate only when X, demonstrated per case" is what keeps them honest.
-
-A finding that constrains every seat goes in the role contract it belongs to
-under `tools/audit/briefs/` once, not
-into each brief. If the stage that needs it has no brief yet, it goes in the
-plan row that will become one, and creating that row is part of the finding.
-
-Name the destination in your PR body — which brief, block or plan row received
-it — so the reviewer checks the destination rather than takes your word.
-
-See `.cursor/rules/finding-propagation.mdc`.
+work** is in that stage's own brief — `finding-propagation.md` states the test,
+what to write and where it goes, and a comment on this PR discharges none of it.
+Name the destination in your PR body — which brief, contract, carry file or
+roster received it — so the reviewer checks the destination rather than takes
+your word.
 
 ## Before you hand off: answer any check your branch turned red
 
-`.cursor/rules/defect-root-cause.mdc` has two triggers, and one of them fires on
-your own PR: a defect that **turned a check red where a cheaper detector could
-have run**. Name that check in your PR body and answer the question there — the
-cheaper detector and its standing cost, or the finding that none exists.
-`UNDER-SCOPED` and `INHERITED CLAIMS` are answered by naming them; their
-countermeasure is the autofix job `ci-autofix.mdc` already describes.
+`defect-root-cause.md`'s second trigger fires on your own PR: name each check
+that went red in the body and answer it there — the cheaper detector and its
+standing cost, or the finding that none exists. `UNDER-SCOPED` and `INHERITED
+CLAIMS` are answered by naming them (`ci-autofix.md`). You are naming the
+trigger, not analysing it; the analysis is `root-cause.md`'s seat.
 
 A harness the closure recorder cannot see — one that shells out to
 subprocesses, like `tests/harness_headers.py` — will not turn red on your PR
 at all; treat its headers' EXPECTED lines as production state and re-record
 them in the same pull request that changes what they print (#968 → #979:
 only main's forced-full run caught it).
-
-You are naming the trigger, not analysing it. The analysis runs in its own seat
-(`tools/audit/briefs/root-cause.md`), never in yours, for the same reason the
-fix review is not yours. What you owe is that the trigger is visible to a seat
-other than the one that tripped it.
-
-The reviewer reads your checks rather than your account of them, and an
-unanswered red check is `blocked <sha> root-cause-unanswered: <check> went red, unanswered`.
 
 ## Past three rounds, re-cut rather than repair
 
