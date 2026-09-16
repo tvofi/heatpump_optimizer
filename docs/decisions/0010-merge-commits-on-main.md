@@ -75,22 +75,34 @@ in which the assumption was actually written down somewhere in this tree.
      separate commits.
 
 3. **That the merge commit's message is the pull-request body.** It is not, and
-   it was not under squash either. Measured at `d1a531b`:
+   it was not under squash either.
    `gh api repos/tvofi/heatpump_optimizer --jq '{merge_commit_title,merge_commit_message}'`
    returns `MERGE_MESSAGE` and `PR_TITLE` — the subject is
    `Merge pull request #N from <branch>` and the body is **by default** the
-   **pull-request title**. Over the 16 merges in `v6.5.0..origin/main`, the
-   first line of the pull-request body appears in `main`'s commit messages
-   **0 times**, and the pull-request title **16 times** (0 API refusals). The
-   title arm is that measurement's own control: it shows the search finds
-   what is there.
+   **pull-request title**.
 
-   **"By default" is load-bearing, not hedging.** A merger may supply the
-   body at merge time, and one has: the round-1 review of this record's own
-   pull request compared each merge message against its pull request's title
-   one by one and found **16 of 17** equal over the same window, the
-   exception being **#1053**, merged with a hand-written message. So the
-   title is the surface to check, and it is not the only one.
+   **Measure it per merge commit, not by grepping the history**, and do not
+   read a count off this page — the window slides and this record is
+   permanent. The enumerator: for each first-parent commit in a window whose
+   subject is `Merge pull request #N …`, compare `git log -1 --format=%b` on
+   that commit against that pull request's `.title` and against the first line
+   of its `.body`, and print the API failure count beside the result. Measured
+   over `v6.5.0..a462c50`, **16 of 19** merge bodies equalled the title and
+   **0 of 19** contained the body's first line, 0 API refusals.
+
+   **"By default" is load-bearing, not hedging.** A merger may supply the body
+   at merge time, and three have in one window — #1053, #1055 and #1057, each
+   hand-written. So the title is the surface to check, and it is not the only
+   one.
+
+   **Why the grep form of this measurement is no longer sound**, which is
+   point 2 biting its own evidence: searching `main`'s *concatenated* commit
+   messages for a pull-request body's first line now finds branch commit
+   messages too, because those land on `main`. It read 0 of 16 when this
+   record was drafted and 1 of 19 two days later — #1055, whose seat wrote the
+   same sentence in its commit message `a8ea8e4` and in its pull-request body.
+   The merge commit's own body still did not carry it. Compare the merge
+   commit, not the history.
 
    So a closing keyword in a pull-request **title** now reaches `main` as a
    commit message, and a seat that writes `tools/audit/briefs/orchestrator.md`
@@ -140,8 +152,13 @@ in which the assumption was actually written down somewhere in this tree.
   already in the comment above them); and `.claude/workflows/carry-752.json`,
   whose brief uses "a squash" as the name for what `git merge-tree`
   simulates — the simulation it prescribes is right under either method, and
-  the file is another seat's carry. None is a defect: each describes a check
-  or a procedure whose behaviour is unchanged. All are wrong as prose.
+  the file is another seat's carry; and `docs/decisions/0003`'s closing
+  sentence — "none of the branch SHAs survives its squash, which is why this
+  file cites none of them" — which is a true account of why 0003 cites no
+  SHA and a misleading rule to carry forward, since a branch SHA does now
+  survive. Amending another decision record is its own act and is not done
+  here. None is a defect: each describes a check or a procedure whose
+  behaviour is unchanged. All are wrong as prose.
 - **This list is a human reading, and nothing in the tree keeps it honest.**
   The pull request that landed this record sorted every tracked line matching
   `/squash/i` into live instruction, standing assertion, or historical record,
