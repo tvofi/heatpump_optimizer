@@ -143,13 +143,13 @@ list was unrecoverable when it was one artifact call away. Per-unit stage,
   a suffix as a claim about a number rather than a fact. The API enumerator is
   the default now and this regex is its fallback — a marked one since #1050, so
   what survives here is the method, not a live defect.
-- **The red-check refusal fired for the first time on 2026-09-15.** The entry
-  that stood here — that `governance.yml` passed no `--red`, so `checkPrBody`
-  iterated an empty list on every pull request this repository had run — was
-  true when written and is not now. #1040 (`f605da4`) wires it, and
-  `CLAUDE.md`'s "only the red-check trigger is enforced" is a measurement from
-  that merge onward. Its two design choices, and why an id key re-deadlocks the
-  job, are on that pull request's Delivery-status row.
+- **The red-check refusal fires; it never had until #1040 (`f605da4`).** The
+  entry that stood here — that the list `checkPrBody` iterates was empty on
+  every pull request this repository had run — was true when written and is
+  not. **Date it by the SHA, not by a day**: run `34903020012` on throwaway
+  branch `demo/d11-956-a` concluded `failure` at 2026-09-14T22:15:44Z, two
+  hours BEFORE that merge, being #1040's own demonstration. `CLAUDE.md`'s
+  "only the red-check trigger is enforced" is a measurement from `f605da4` on.
 - **`GET /repos/.../rules/branches/<branch>` is not bypass-aware.** It lists
   the rules configured for the branch, not the rules that would apply to you:
   emptying the bypass-actors list and re-reading returns an identical list. Reading it
@@ -355,16 +355,16 @@ in its own pull request.
     structure: a second declaration cannot learn the original moved (#851).
     Fifth shape: a mutant that cannot PARSE reports a pass, which here reads as
     a finding about production. Assert it parses.
-36. **The leftover sweep reads a row's LEADING bold; a stale row can put its
-    state in a later one.** #690's rule — read the row's own verdict, exclude
-    quoted prose — applied literally reads the first `**…**` span. #678's row
-    opens on its root-cause verdict and carries `**IN REVIEW as #715**` further
-    along the same cell; #715 merged `015fdbd` on 2026-09-10 and shut #678 a
-    second later, and the row still said in review five days and several record
-    beats on. **Scan every bold span in the status cell**, and check each PR
-    number it names against that pull request's own `state` field, fetched by
-    the mapping in `web-fragments.md`. The miss was the parser's, not the
-    reader's, so a firmer instruction changes nothing.
+36. **The leftover sweep reads part of a row, and a stale row hides its state
+    in the rest.** #690's rule — read the row's own verdict, exclude quoted
+    prose — applied literally reads the first `**…**` span. #678's row opened
+    on its root-cause verdict, carried `**IN REVIEW as #715**` further along the
+    same cell, and ended `governance, in review` in plain unbolded text that no
+    bold-span rule reaches either; #715 merged `015fdbd` on 2026-09-10 and shut
+    #678 a second later, and the row stood five days and several record beats
+    on. **Scan the whole row**, and check every PR number in it against that
+    pull request's own `state` field, by the `web-fragments.md` mapping. The
+    miss was the parser's; a firmer instruction changes nothing.
 
 ## Owed — post-hoc reviews
 
@@ -409,8 +409,7 @@ flagged it rather than claiming a carry it had not made.
   48 → 50 bought a narrowing (owner, 2026-09-11).** **0008's approver design was
   revised on 2026-09-14 and `docs/decisions/0009-*` is the live one; 0008 alone
   reads as its opposite** — agent identities author and approve, no human in
-  the loop. Order unchanged, and it is the point: identities verified first,
-  then the rule. #954 closes at that verification and not before.
+  the loop; the order above is unchanged. #954 closes at that verification.
 
 **Owed from 2026-09-14: a stale-pin sweep.** #960 SHA-pinned every mutable
 `uses:` in `.github/workflows/` (the frozen tag rides each pin as a trailing
@@ -424,29 +423,29 @@ re-pins deliberately.
 repository now uses.** `tests/delivery_status.py`'s `gather` walks
 `git log --first-parent` and keeps only subjects ending `(#N)` — the squash
 shape. `main`'s first-parent subjects are `Merge pull request #N from …`, which
-that pattern cannot match, so the ledger collects nothing, the verdict is
-permanently `EMPTY`, and **the OVERDUE detector cannot fire**: a rowless merge
-never enters the set that would age into an alarm. **Process state (d)** — the
+that pattern cannot match, so the ledger collects nothing and **the OVERDUE
+detector cannot fire**: overdue is a subset of rows, so an empty gather forces
+`EMPTY` by construction. **While the repository merges this way, not
+permanently** — squash merging is still enabled on it, so one squash-merged
+pull request repopulates the pattern, and the blindness is a function of merge
+convention rather than of the code alone. **Process state (d)** — the
 process was sound and its precondition, the merge method, changed underneath
 it. The changeover is datable: the newest first-parent subject the pattern
 matches is `0e3da75` (#1019, 2026-09-14T16:30:20+02:00), and
 `git log --first-parent --format='%s' 0e3da75..origin/main | grep -cE
 '\(#[0-9]+\)$'` prints how many have matched since. `policy_lint --record`'s
 API enumerator counts the same window correctly, so the disposition obligation
-is unaffected and nothing went red — the check is not a required context. What
-is owed is the alarm. Origin: PR #1050's third residual, carried here because a
-pull-request body is not a destination a later seat reads.
+is unaffected; the check is not required and nothing went red. What is owed is
+the alarm. Origin: #1050's third residual.
 
 **Owed from 2026-09-15: an unresolvable `--since` ref prints a vacuous zero.**
 `VERSION` holds `6.5.0` and the tag is `v6.5.0`, so `--since $(cat VERSION)` —
 the composition a dispatch brief reaches for — names no revision. `git` writes
-one `fatal:` line to stderr and both consumers carry on at **rc=0**: `--record`
-prints `0 merged pull request(s)` and `--stats` prints `WOULD OPEN: 0`, over a
-window that is not empty. The `UNCHECKED` marker #1050 landed covers a dead
+one `fatal:` to stderr and both consumers carry on at **rc=0** over a window
+that is not empty: `RECORD: 0` and `WOULD OPEN: 0`. The `UNCHECKED` marker #1050 landed covers a dead
 *fetch*, not a bad *ref*, so this arm is marker-less by construction. Pass
 `v$(cat VERSION)`, and check the window against `git rev-list <tag>..origin/main`
-rather than against an exit code. #1050's second residual; this is its
-destination in the tree.
+rather than against an exit code. Origin: #1050's second residual.
 
 ## The machine this runs on — measure it, do not read it
 
