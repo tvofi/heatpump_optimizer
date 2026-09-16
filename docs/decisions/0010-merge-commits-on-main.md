@@ -177,21 +177,32 @@ in which the assumption was actually written down somewhere in this tree.
       wrong even while it passes the check above, and a squash then deletes it
       PATTERNS
 
-  **Run as given it returns ten hits, and two of them are not residual sites**:
-  this bullet itself, which is unavoidable and harmless, and
+  **What it prints, by three different questions, because they have three
+  different answers and a sentence that does not say which it is answering is
+  the defect this bullet exists to avoid.** At the head of **#1058**, the pull
+  request that landed this record — a SHA this file cannot name, because the
+  commit containing the sentence is the one that would have to be named — the
+  command prints **18** lines. **8** of those are the pattern block above,
+  which this file is matching against itself — unavoidable, harmless, and the
+  reason the raw count is not the useful one. Excluding this file leaves
+  **10** lines, of which **9** are residual sites and **1** is not:
   `docs/plan-2026-09-open-issues.md`'s `#616` row, which the first pattern also
   matches and which is *history* — a record of a merged pull request, correctly
-  left alone under this record's own three-way rule. Stated rather than tuned
-  away: a pattern narrowed until it matches exactly the set someone had in mind
-  is the shape that later matches nothing and reports a confident zero.
+  left alone under this record's own three-way rule. Note that 8 patterns yield
+  9 site lines: the first matches **two** sites, and it is also what reaches
+  `#616`. **Re-ask the three questions rather than reading these four numbers**
+  — they are a property of the tree the command runs in, which is the whole
+  reason this bullet stopped naming line numbers. Stated rather than tuned
+  away: a pattern set narrowed until it matched exactly the nine site lines
+  would be tuned on today's text, so the next edit drops a site with no marker
+  — the same failure rebuilt inside the countermeasure.
 
-  The first five hits are in `.claude/workflows/policy_lint.mjs` — the
-  `recorded_at`
-  provenance messages and two fixture-vacuous strings; the sixth is the same
-  sentence in `tests/features.py`; the last two are in `tests/entities.py`, a
-  check **name** and its failure message, a pinned surface with the
-  method-independent statement already in the comment above them. Two more have
-  no sentence worth grepping and are named by file: `.claude/workflows/carry-752.json`,
+  Of the 9 site lines, **six** are in `.claude/workflows/policy_lint.mjs` — four
+  `recorded_at` provenance messages and two fixture-vacuous strings; **one** is
+  the same sentence in `tests/features.py`; and **two** are in
+  `tests/entities.py`, a check **name** and its failure message, a pinned
+  surface with the method-independent statement already in the comment above
+  them. Two more have no sentence worth grepping and are named by file: `.claude/workflows/carry-752.json`,
   whose brief uses "a squash" as the name for what `git merge-tree` simulates —
   the simulation it prescribes is right under either method, and the file is
   another seat's carry — and `docs/decisions/0003`'s closing sentence, *"none of
