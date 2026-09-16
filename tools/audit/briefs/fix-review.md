@@ -7,6 +7,7 @@ its bug. You are checking that the numbers are real.
 **That worktree holds this contract as well as the tree and is frozen by design, so your copy of
 it can be arbitrarily old** — and `preflight.sh` warns only before a push a reviewer never makes.
 Before step 1: `git diff $(git merge-base origin/main HEAD)...origin/main -- tools/audit/briefs/`; empty is current.
+Before the fixer's handoff message, prepare against the merge base only; take no measurement of the head.
 
 1. Re-run the mutation proof: delete the production line(s) the PR names,
    run the closure, confirm the named checks fail, restore. If nothing fails,
@@ -93,7 +94,7 @@ Before step 1: `git diff $(git merge-base origin/main HEAD)...origin/main -- too
     is yours to block on, because you cannot know the merged result is correct.
 
     **The driver's verdict is in that command's stderr. Read it; do not infer it
-    from the paths, and do not classify the conflict by line shape.** Unlike
+    from the paths.** Unlike
     GitHub, `merge-tree` *does* invoke the `claimnotes` driver — measured, one
     invocation per conflicting claim file — but only if you installed it:
 
@@ -115,9 +116,8 @@ Before step 1: `git diff $(git merge-base origin/main HEAD)...origin/main -- too
     `may-drift` line **is** a `#` comment, and `merge_claim_defect` refuses
     when one is lost. A rule of the form "a conflict confined to the `#`
     comment notes is merge-prep" therefore waves through a real refusal, on a
-    file with no bare claim lines on any side. Read the marker instead. Why
-    the driver refuses at all is `claim-files.md`'s; that is one rule and it
-    lives there.
+    file with no bare claim lines on any side. Why the driver refuses at all is
+    `claim-files.md`'s.
 
 Return a verdict with your RESULT lines, in the exact shape your dispatch
 prompt gives: `.claude/workflows/web-fix-wave.js` parses the comment's first
