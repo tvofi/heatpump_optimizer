@@ -15,11 +15,19 @@
 # the exact schema home-assistant/core uses, ready if this integration ever
 # migrates to core.
 #
-# The manifest deliberately declares no `quality_scale` tier.
+# The manifest declares the tier this register supports cumulatively.
 # config-flow-test-coverage is done again — re-measured at full coverage
 # under the register's own instrument — so no Bronze blocker exists:
-# every Bronze rule reads done. Whether to declare the tier remains
-# #194's call and is not made here.
+# every Bronze rule reads done, and every Silver rule with it. Gold is short
+# of docs-examples alone, and because the scale is cumulative, Platinum's own
+# three done rows do not raise the declaration above Silver. The tier is not
+# transcribed from here by hand: tests/entities.py derives it from the rows
+# below — walking the tiers in order and stopping at the first incomplete
+# one — and refuses a manifest.json that disagrees in either direction, so
+# the row that flips docs-examples is the same pull request that moves the
+# manifest. hassfest cannot do that job: validate_iqs_file returns before it
+# reads this file for a custom integration, and the manifest key is checked
+# against the list of legal tier names and nothing else.
 #
 # Totals: 49 done (2 vacuous) · 4 exempt · 1 todo (#218 examples). Counted
 # from this file, not carried:

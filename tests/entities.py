@@ -1646,6 +1646,105 @@ R.check(
     "next measurement; name the instrument instead (#951)",
 )
 
+# The manifest's declared quality-scale tier is a user-facing claim whose
+# truth condition lives in a file that moves. `quality_scale` ships in
+# custom_components/heatpump_optimizer/manifest.json -- Home Assistant and
+# HACS both surface it -- while what makes it true is the rule-by-rule
+# register beside it, which every fix wave edits. Nothing upstream closes
+# that gap: hassfest's validate_iqs_file returns on `if not integration.core`
+# before it compares a declared tier against quality_scale.yaml, so for a
+# custom integration the key is checked against the list of legal tier names
+# and nothing else. Measured rather than assumed, against the real hassfest
+# (home-assistant/core 2026.9.2, `python3 -m script.hassfest --action
+# validate --integration-path <pkg>`): it exits 0 on `gold`, a tier this
+# register does not support, and exits 1 only on a value outside the enum
+# ("value must be one of [...] Got 'titanium'"). The over-claim is invisible
+# to the one upstream instrument that reads the key, so it is refused here.
+#
+# The scale is CUMULATIVE -- a tier is met only when it and every tier below
+# it have every rule done or exempt -- which is why the derivation walks the
+# tiers in order and stops at the first incomplete one, rather than asking
+# whether the named tier's own rules pass. The difference is load-bearing on
+# this tree right now: Gold is incomplete on docs-examples alone (pinned todo
+# just above, because the blueprint-exchange listing is an owner-side forum
+# action no tree-local instrument can see) while Platinum's own three rules
+# are all done, so a per-tier reading returns platinum and the cumulative one
+# returns silver. When that row flips alongside the listing, Gold and
+# Platinum complete in the same edit and this check stays red until the
+# manifest says platinum -- which is the point: the register and the claim
+# move together, in one pull request, instead of the manifest being left
+# behind the way the two coverage rows above were left behind by the tree.
+#
+# Two design choices, stated so they are not read as bugs. The tier
+# membership below is the published checklist's own partition -- 20 Bronze,
+# 10 Silver, 21 Gold, 3 Platinum, the checklist fetched 2026-09-10 that this
+# register was built from -- carried rather than derived, because it is a
+# fact about the upstream scale and not about this tree. The check
+# immediately below pins it against the register's own key set, so a row
+# this repository adds, drops or renames fails loudly instead of leaving the
+# derivation quietly reading a partition that no longer covers the file. And
+# the manifest is required to carry the DERIVED tier and nothing else:
+# hassfest equally accepts `custom`, `no_score`, `internal` and `legacy`, and
+# this check refuses all four, because the only tier claim this repository
+# can answer for is the one its own register produces.
+_QS_TIERS = (
+    ("bronze", (
+        "action-setup", "appropriate-polling", "brands", "common-modules",
+        "config-flow", "config-flow-test-coverage", "dependency-transparency",
+        "docs-actions", "docs-triggers", "docs-conditions",
+        "docs-high-level-description", "docs-installation-instructions",
+        "docs-removal-instructions", "entity-event-setup", "entity-unique-id",
+        "has-entity-name", "runtime-data", "test-before-configure",
+        "test-before-setup", "unique-config-entry",
+    )),
+    ("silver", (
+        "action-exceptions", "config-entry-unloading",
+        "docs-configuration-parameters", "docs-installation-parameters",
+        "entity-unavailable", "integration-owner", "log-when-unavailable",
+        "parallel-updates", "reauthentication-flow", "test-coverage",
+    )),
+    ("gold", (
+        "devices", "diagnostics", "discovery", "discovery-update-info",
+        "docs-data-update", "docs-examples", "docs-known-limitations",
+        "docs-supported-devices", "docs-supported-functions",
+        "docs-troubleshooting", "docs-use-cases", "dynamic-devices",
+        "entity-category", "entity-device-class", "entity-disabled-by-default",
+        "entity-translations", "exception-translations", "icon-translations",
+        "reconfiguration-flow", "repair-issues", "stale-devices",
+    )),
+    ("platinum", ("async-dependency", "inject-websession", "strict-typing")),
+)
+_qs_partition = [rule for _tier, _rules in _QS_TIERS for rule in _rules]
+R.check(
+    "the carried tier partition covers the register's rows exactly, once each",
+    len(_qs_partition) == len(set(_qs_partition))
+    and set(_qs_partition) == set(_QS_RULES),
+    f"{len(_qs_partition)} rule(s) in the partition, {len(_QS_RULES)} row(s) "
+    f"in quality_scale.yaml; only in the partition: "
+    f"{sorted(set(_qs_partition) - set(_QS_RULES))}; only in the register: "
+    f"{sorted(set(_QS_RULES) - set(_qs_partition))}",
+)
+
+_qs_blocking = {
+    tier: [r for r in rules if _qs_status(r) not in ("done", "exempt")]
+    for tier, rules in _QS_TIERS
+}
+_qs_derived = None
+for _tier, _rules in _QS_TIERS:
+    if _qs_blocking[_tier]:
+        break
+    _qs_derived = _tier
+_qs_declared = json.loads((ROOT / "manifest.json").read_text()).get("quality_scale")
+R.check(
+    "the manifest declares the tier the register supports cumulatively",
+    _qs_declared == _qs_derived,
+    f"manifest.json quality_scale={_qs_declared!r}; the register supports "
+    f"{_qs_derived!r} cumulatively; rows short of done/exempt, by tier: "
+    + ", ".join(f"{t}: {rs}" for t, rs in _qs_blocking.items() if rs)
+    + " -- edit custom_components/heatpump_optimizer/manifest.json, or the "
+    "register row that moved, in the same pull request",
+)
+
 for name in (
     "Measured Power",
     "Learning Observed COP",
