@@ -374,6 +374,13 @@ const LOOP_CHECK_NAMES = [
   // the acceptance drives its SHAPE directly -- the one output whose deletion
   // leaves every count green and only the marker's own pin red.
   { name: 'enumSkipLine', file: 'policy_lint.mjs', kind: 'return' },
+  // The sixth: the window guard's OTHER half (badRefLine), printed by every
+  // mode that takes `--since`. Same reason as the fifth -- it produces no
+  // findings, so the acceptance drives its shape directly -- and a different
+  // arm: `enumSkipLine` covers a fetch that died, this one a ref that never
+  // resolved, which reaches an empty window one step earlier and with no
+  // marker of its own until this existed.
+  { name: 'badRefLine', file: 'policy_lint.mjs', kind: 'return' },
   { name: 'checkCounts', file: 'counts.mjs', kind: 'return' },
   { name: 'CAP_RES', file: 'counts.mjs', kind: 'array' },
 ]
@@ -2623,6 +2630,35 @@ function assertAcceptance(derived) {
     rc = 1
   }
 
+  // The window guard's OTHER half, pinned on SHAPE for the same reason: it
+  // produces no findings either. The three properties this one owes are the
+  // `refuse` lead, the `could not be DERIVED` claim that separates it from an
+  // empty window, and that BOTH the ref and the range reached the line -- a
+  // marker that names neither cannot be acted on by the seat reading it.
+  pins += 1
+  const badRef = badRefLine('6.5.0', '--record', '6.5.0..origin/main')
+  if (!/^\s*refuse\s+since-ref\b/.test(badRef) || !badRef.includes('could not be DERIVED') || !badRef.includes('6.5.0') || !badRef.includes('6.5.0..origin/main')) {
+    console.log('\nFIXTURE VACUOUS: the since-ref marker lost its refuse/DERIVED shape; an unresolvable --since would then print `0 merged pull request(s)` at rc=0, which is what `--since $(cat VERSION)` did at d1a531b while `--since v$(cat VERSION)` reported 16')
+    rc = 1
+  }
+
+  // ITS NULL CONTROL, and the half the shape pin cannot reach: a marker with a
+  // perfect shape is worthless if the predicate that reaches it fires on
+  // everything, or on nothing. `HEAD` resolves in any checkout this acceptance
+  // can run in at all; the second name cannot resolve anywhere, and is not a
+  // path in the tree either, so `^{commit}` is the only thing being asked.
+  // Both directions, because a guard asserted in one direction is the
+  // over-firing shape this file keeps refusing elsewhere.
+  pins += 2
+  if (!resolvesToCommit('HEAD')) {
+    console.log('\nFIXTURE VACUOUS: the since-ref predicate refuses HEAD, so it would refuse every window and the guard is an outage rather than a check')
+    rc = 1
+  }
+  if (resolvesToCommit('no-such-ref-6f2a1c9e-policy-lint-acceptance')) {
+    console.log('\nFIXTURE VACUOUS: the since-ref predicate accepts a name that resolves to nothing, so an unresolvable --since reaches the enumerator and the marker above is unreachable')
+    rc = 1
+  }
+
 
   // coverage: a probe rather than a committed fixture, because the check's whole
   // subject is a file the globs do not match -- committing one would make every
@@ -3901,8 +3937,54 @@ function parseArgs(argv) {
 // The loop-mode drivers. Each prints and then exits: none of them lints the
 // corpus, and none of them runs the acceptance, which belongs to the CI path.
 
+// THE OTHER HALF OF THE WINDOW GUARD, and the sibling of `enumSkipLine` above.
+// That marker covers a dead FETCH -- git listed the window's commits and the
+// commit-to-PR map would not answer. This one covers a bad REF, which is the
+// arm BEFORE it: `git log <ref>..origin/main` is fatal, `firstParentCommits`
+// returns [], `fetchPullsBySha` over zero commits succeeds trivially, and the
+// enumeration reports `api` mode with an empty window and no marker of any
+// kind. The bad-ref arm is marker-less by construction, which is why it needed
+// its own.
+//
+// Measured at d1a531b: `--since 6.5.0` (the contents of VERSION -- the release
+// TAG is `v6.5.0`, so the composition the dispatch briefs prescribe names no
+// revision) printed `RECORD: 0 merged pull request(s)` and `TOTAL: 0 error(s)`
+// at rc=0, byte-identical in shape to `--since origin/main`, a ref that DOES
+// resolve over a genuinely empty window. Two opposite claims, one output.
+//
+// Pure over its three arguments so the acceptance drives it without a
+// repository, and listed in LOOP_CHECK_NAMES so emptying it is a mutation the
+// mutants lane refuses rather than a silent string change.
+export function badRefLine(ref, mode, range) {
+  return `  refuse   since-ref             ${mode} was given --since ${ref}, which names no revision here, so \`git log ${range}\` is fatal and the window could not be DERIVED; measuring nothing rather than printing a zero -- a zero over a window that was never derived and a zero over a window derived and found empty are opposite claims, and only one of them is a reason to stop looking`
+}
+
+// `^{commit}` rather than a bare `--verify`: it peels an annotated tag to the
+// commit `git log` will actually walk, and refuses a name that resolves to a
+// tree or a blob -- which `git log <ref>..` would also reject. What this asks
+// is exactly what the range needs, not a weaker proxy for it.
+function resolvesToCommit(ref) {
+  return !!git(['rev-parse', '--verify', '--quiet', `${ref}^{commit}`], { allowFail: true }).trim()
+}
+
+// A window that was not given and a window that cannot be derived are the same
+// CALLER error -- "there is no window to measure" -- so they share this seat and
+// they share rc=2. Deliberately not rc=1 on `--record`, whose rc IS its error
+// count: a bad ref found no undispositioned merge, and returning 1 would report
+// a corpus defect that nothing measured. Deliberately not rc=0 with a marker
+// either, which is #957's discipline for an UNREACHABLE API -- a transient,
+// external condition on a required context, where reddening would gate every
+// pull request on GitHub's availability. A bad ref is none of that: it is
+// deterministic, local, reproducible, and fixed by typing a different argument.
+// Nothing has to recover for the next run to succeed, so the outage precedent
+// does not transfer and the `requireSince` precedent -- caller error, exit 2 --
+// does.
 function requireSince(since, mode) {
-  if (since) return since
+  if (since) {
+    if (resolvesToCommit(since)) return since
+    console.log(badRefLine(since, mode, `${since}..${mainRef()}`))
+    process.exit(2)
+  }
   console.log(`${mode} needs a window: pass --since <ref>. It measures pull requests merged in <ref>..origin/main, and without a ref there is no window to measure.`)
   process.exit(2)
 }
@@ -4003,7 +4085,18 @@ function cmdStats(since) {
 }
 
 function cmdSunset(since) {
-  const prs = mergedPRsFromWindow(since).prs
+  // #1050's residual 1, taken here rather than left: this line dropped
+  // `.why` on the floor, so `--sunset` was the one loop mode that stayed silent
+  // on a dead fetch while its two siblings printed the marker. #1050 classed it
+  // informational-lane-only and that was defensible then. It stopped being
+  // defensible in THIS pull request, which makes `--sunset` refuse a bad ref
+  // loudly through `requireSince`: a mode that shouts about an underivable
+  // window and says nothing about an unenumerable one teaches the reader that
+  // silence here means measured. The marker is `enumSkipLine` unchanged -- the
+  // same words on the same lane, not a second vocabulary.
+  const enumerated = mergedPRsFromWindow(since)
+  const prs = enumerated.prs
+  if (enumerated.why) console.log(enumSkipLine(enumerated.why))
   const classes = verdictClasses()
   const { fetched, fetchError } = fetchWindow(prs)
   const friction = fetchError || !classes ? null : statsHistogram(prs, fetched, classes).friction
@@ -4063,7 +4156,12 @@ function main() {
   if (has('--record-known-bad')) {
     // A reseed may also re-measure the record class, but only when it was given
     // a window: `--record-known-bad --since <ref>`.
-    if (since) findings.push(...checkRecord(mergedPRsFromWindow(since).prs, recordRegion(read(DISPOSITION_FILES[0]) ?? '', read(DISPOSITION_FILES[1]) ?? '').region))
+    // Through `requireSince` like the three loop modes, not around it: this is
+    // the fourth consumer of a caller-supplied ref, and a reseed that re-measured
+    // the record class over a window it could not derive would write `0` into
+    // the known-bad file as a MEASUREMENT. `requireSince` only refuses a ref
+    // that was given, so the no-window reseed below is unaffected.
+    if (since) findings.push(...checkRecord(mergedPRsFromWindow(requireSince(since, '--record-known-bad')).prs, recordRegion(read(DISPOSITION_FILES[0]) ?? '', read(DISPOSITION_FILES[1]) ?? '').region))
     return cmdRecord(findings, { measuredRecord: !!since }), process.exit(0)
   }
 

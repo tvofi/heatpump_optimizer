@@ -1,5 +1,52 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.5.1
+
+wave 4 of the round-4 audit programme: the D11 governance wave, its close record, and four instrument repairs
+
+No user-visible behaviour changes. This release is governance and tooling:
+the mechanisms that decide what merges, what a check can see, and what a
+release note must say.
+
+The D11 wave delivered every decided mechanism. The red-check trigger
+`CLAUDE.md` calls enforced is now wired in CI from the head's check-runs
+listing, excluding the job's own prior runs by name (#1040, closing #956) —
+it had iterated an empty list on every pull request this repository had
+ever run. The live required-context set is derived from both API surfaces
+and policed against the tree, so the next ruleset change reddens within one
+push (#1031, closing #957). The record job reports a missing disposition
+without reddening Governance (#1032, closing #958), and the record cron
+files the recurring-friction issues its own histogram names (#1043, closing
+#959). Repository text is data, not instructions (#1029, closing #955).
+Every mutable `uses:` ref in `.github/workflows/` is SHA-pinned with its
+frozen tag as a trailing comment, and the release job attests the tag's
+tree (#1052, closing #960). Decision 0009 records agent identities for
+author and approver (#1030); #954 stays open until those identities exist.
+
+CI flow: a docs-only fast lane so the required contexts whose lanes skip on
+docs-only diffs report success there (#1048); a concurrency group on the
+delivery-status publish lane (#1049); CodeQL moved from default setup to
+workflow-based analysis (#1034); config flow at full statement coverage,
+clearing the Bronze blocker (#1035); importable blueprints for the worked
+automation examples (#1033, register row still todo pending the listing).
+
+Four instruments were reporting answers they could not have computed. The
+D6 claims generator rendered set-valued results with raw `repr`, so its
+committed records were a function of `PYTHONHASHSEED` rather than of the
+tree (#1051). `--stats` and `--record` printed a confident zero when the
+merge-enumeration fetch died (#1050). And rule 4 — the check that refuses a
+release whose notes omit a merged pull request — read an unanchored `(#N)`
+over a log with no `--first-parent`: over this very window it saw 13 of 17,
+missing eleven real merges and inventing seven issue numbers, one of them
+still open (#1057). Review of that fix found a second silent skip in it: a
+window whose lines all failed to parse returned zero rows and passed any
+notes at all, invisible to the blindness alarm because that fires only on a
+non-empty window. Both refuse now.
+
+Record and close: the wave's close record truths the Delivery-status table,
+takes the roster to done and repoints the handover (#1053); ledger beats
+(#1027), (#1028).
+
 ## v6.5.0
 
 wave 3 of the round-4 audit programme: the sysid-estimator wave, input_problem sources, and the #996 fail-fast
