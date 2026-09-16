@@ -14,6 +14,7 @@ import argparse
 import contextlib
 import fcntl
 import os
+import signal
 import subprocess
 import sys
 import time
@@ -23,7 +24,8 @@ from pathlib import Path
 
 # Above 735 s full gate / 560 s stress on the owner's box (#404).
 LEASE_SECONDS = 1800
-DEFAULT_LOCK_DIR = Path("/tmp/hpo-gate.lock")
+# The env override lets a demonstration run tests/run.sh against its own lock.
+DEFAULT_LOCK_DIR = Path(os.environ.get("HPO_GATE_LOCK_DIR") or "/tmp/hpo-gate.lock")
 OWNER_NAME = "owner"
 FLOCK_NAME = "flock"
 HOLDING_NAME = "holding"
@@ -143,6 +145,7 @@ def take(
     wait: bool = True,
 ) -> Owner:
     """Acquire the gate lease for ``label``; wait while a live holder renews."""
+    said = False
     while True:
         owner = read_owner(lock_dir)
         if owner is None:
@@ -163,6 +166,9 @@ def take(
             continue
         if not wait:
             raise BlockingIOError(f"gate held by {owner.label} until {owner.expires_at}")
+        if not said:
+            print(f"gate_lock: waiting for the lease held by {owner.label}", file=sys.stderr)
+            said = True
         time.sleep(WAIT_POLL_SECS)
 
 
@@ -213,6 +219,28 @@ def flock_wrap(label: str, argv: list[str], *, lock_dir: Path = DEFAULT_LOCK_DIR
         return subprocess.call(argv)
 
 
+def needs_lease(scope_run: str) -> bool:
+    """run.sh's derived mode decides, not a seat's prediction of it.
+
+    ``scope_run`` is run.sh's SCOPE_RUN: empty means MODE: FULL.
+    """
+    if not scope_run:
+        return True
+    return "tests/stress.py" in Path(scope_run).read_text().split()
+
+
+def auto_lease(label: str, argv: list[str], *, lock_dir: Path = DEFAULT_LOCK_DIR) -> int:
+    """Take the lease (waiting), hold flock for ``argv``, release on any exit."""
+    take(label, lock_dir=lock_dir)
+    env = {**os.environ, "HPO_GATE_LOCK_LABEL": label, "HPO_GATE_FLOCK_CHILD": "1"}
+    try:
+        with flock_context(lock_dir, blocking=True):
+            return subprocess.call(argv, env=env)
+    finally:
+        with contextlib.suppress(RuntimeError):
+            release(label, lock_dir=lock_dir)
+
+
 def _cmd_take(args: argparse.Namespace) -> int:
     owner = take(
         args.label,
@@ -260,6 +288,12 @@ def _cmd_flock_wrap(args: argparse.Namespace) -> int:
     return flock_wrap(args.label, args.argv, lock_dir=args.lock_dir)
 
 
+def _cmd_auto_lease(args: argparse.Namespace) -> int:
+    argv = args.argv[1:] if args.argv[:1] == ["--"] else args.argv
+    signal.signal(signal.SIGTERM, lambda *_: sys.exit(143))  # so finally releases
+    return auto_lease(args.label, argv, lock_dir=args.lock_dir)
+
+
 def _parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument(
@@ -296,6 +330,15 @@ def _parser() -> argparse.ArgumentParser:
     wrap_p.add_argument("--label", required=True)
     wrap_p.add_argument("argv", nargs=argparse.REMAINDER, help="command after --")
     wrap_p.set_defaults(func=_cmd_flock_wrap)
+
+    nl_p = sub.add_parser("needs-lease", help="exit 0 if run.sh's scope needs the lease")
+    nl_p.add_argument("scope_run", help="run.sh's SCOPE_RUN; empty means MODE: FULL")
+    nl_p.set_defaults(func=lambda a: 0 if needs_lease(a.scope_run) else 1)
+
+    auto_p = sub.add_parser("auto-lease", help="take, hold flock for a command, release")
+    auto_p.add_argument("--label", required=True)
+    auto_p.add_argument("argv", nargs=argparse.REMAINDER, help="command after --")
+    auto_p.set_defaults(func=_cmd_auto_lease)
 
     return p
 

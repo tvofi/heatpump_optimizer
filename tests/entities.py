@@ -10203,6 +10203,47 @@ R.check(
 )
 
 
+def _gl_auto_lease() -> tuple[bool, str]:
+    """run.sh leases a FULL or stress run itself; a second one waits."""
+    import threading
+    with _tempfile.TemporaryDirectory() as td:
+        d, seen = Path(td) / "lock", Path(td) / "seen"
+        scoped, stress = Path(td) / "a.run", Path(td) / "b.run"
+        scoped.write_text("tests/entities.py\n")
+        stress.write_text("tests/entities.py\ntests/stress.py\n")
+        need = [_gate_lock.needs_lease(s) for s in ("", str(stress), str(scoped))]
+        _gate_lock.take("other", lock_dir=d, lease_seconds=60, wait=False)
+        child = ("import os, sys; from pathlib import Path; "
+                 "Path(sys.argv[1]).write_text(open(sys.argv[2] + '/owner').read()"
+                 " + os.environ['HPO_GATE_LOCK_LABEL']); sys.exit(3)")
+        poll, _gate_lock.WAIT_POLL_SECS = _gate_lock.WAIT_POLL_SECS, 0.05
+        out: list[int] = []
+        t = threading.Thread(target=lambda: out.append(_gate_lock.auto_lease(
+            "auto", [sys.executable, "-c", child, str(seen), str(d)], lock_dir=d)))
+        try:
+            t.start()
+            _time.sleep(0.5)
+            waited = not seen.exists()
+            _gate_lock.release("other", lock_dir=d)
+            t.join(timeout=10)
+        finally:
+            _gate_lock.WAIT_POLL_SECS = poll
+        text = seen.read_text() if seen.exists() else ""
+        ok = (need == [True, True, False] and waited and out == [3]
+              and "label=auto" in text and text.endswith("auto")
+              and _gate_lock.read_owner(d) is None)
+        return ok, f"need={need} waited={waited} rc={out} released={_gate_lock.read_owner(d) is None}"
+
+
+_gl_ok, _gl_detail = _gl_auto_lease()
+_run_sh = (_closure.ROOT / "tests/run.sh").read_text()
+R.check(
+    "run.sh leases a FULL or stress run itself, and a second one waits",
+    _gl_ok and -1 < _run_sh.find("gate_lock.py needs-lease") < _run_sh.find("lane_units() {"),
+    _gl_detail,
+)
+
+
 def _gl_same_label_expired_take() -> bool:
     """Same-label take on an expired lease rewrites the owner (#479 residual)."""
     past = datetime.now(UTC) - timedelta(seconds=10)
