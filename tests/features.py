@@ -20631,27 +20631,29 @@ def _fl_coord(supply=55.0, returned=47.0, action=None, **extra):
 
 
 _fl_fold_ok = _fl_coord()
-_fold_flow_lift(_fl_fold_ok, _T6)
 _fl_expected_curve = flow_lift.curve_supply_temp(
     _fl_fold_ok._thermal_model, -5.0, _fl_fold_ok.target_temperature
 )
+# The supply sits 6 K above THAT curve, inside the clamp. At a fixed 55 degC
+# the residual passed the clamp, the expected value was clipped as well, and
+# the check below held with the curve read at the wrong outdoor temperature:
+# a residual pinned at the clamp cannot say which curve produced it.
+_fl_fold_supply = _fl_expected_curve + 6.0
+_fl_fold_ok._flow_bias.observe_temps(_fl_fold_supply, 47.0)
+_fold_flow_lift(_fl_fold_ok, _T6)
 R.check(
     "the control: a space-dominant interval with a fresh supply reading folds",
     _fl_fold_ok._flow_bias.samples == 1,
     f"{_fl_fold_ok._flow_bias.as_dict()}",
 )
-_fl_expected_bias = float(
-    np.clip(
-        55.0 - _fl_expected_curve,
-        -flow_lift.FLOW_BIAS_CLAMP_K,
-        flow_lift.FLOW_BIAS_CLAMP_K,
-    )
-)
+_fl_expected_bias = _fl_fold_supply - _fl_expected_curve
 R.check(
     "and what it folded is the measured supply against THAT curve",
-    _fl_fold_ok._flow_bias.bias_k == _fl_expected_bias,
+    _fl_fold_ok._flow_bias.bias_k == _fl_expected_bias
+    and abs(_fl_expected_bias) < flow_lift.FLOW_BIAS_CLAMP_K,
     f"bias {_fl_fold_ok._flow_bias.bias_k} against a curve of "
-    f"{_fl_expected_curve:.3f} °C, expected {_fl_expected_bias}",
+    f"{_fl_expected_curve:.3f} °C, expected {_fl_expected_bias} — inside "
+    "the clamp, so a fold against any other curve reads a different number",
 )
 R.check(
     "the return reading is held but is not what the bias is learned from",
