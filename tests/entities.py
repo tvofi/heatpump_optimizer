@@ -1720,16 +1720,19 @@ R.check(
 # The scale is CUMULATIVE -- a tier is met only when it and every tier below
 # it have every rule done or exempt -- which is why the derivation walks the
 # tiers in order and stops at the first incomplete one, rather than asking
-# whether the named tier's own rules pass. The difference is load-bearing on
-# this tree right now: Gold is incomplete on docs-examples alone (pinned todo
-# just above, because the blueprint-exchange listing is an owner-side forum
-# action no tree-local instrument can see) while Platinum's own three rules
-# are all done, so a per-tier reading returns platinum and the cumulative one
-# returns silver. When that row flips alongside the listing, Gold and
-# Platinum complete in the same edit and this check stays red until the
-# manifest says platinum -- which is the point: the register and the claim
-# move together, in one pull request, instead of the manifest being left
-# behind the way the two coverage rows above were left behind by the tree.
+# whether the named tier's own rules pass. The two readings disagreed when
+# this check was written, at merge base cb30d98: Gold was incomplete on
+# docs-examples alone while Platinum's own three rules were all done, so a
+# per-tier reading returned platinum and the cumulative one silver. The same
+# pull request then flipped docs-examples on the Blueprints Exchange listing
+# (the pin just above), which completed Gold and Platinum in one edit, and the
+# manifest moved to platinum beside it -- the register and the claim moving
+# together, instead of the manifest being left behind the way the two coverage
+# rows above were left behind by the tree. Every tier is complete now and the
+# two readings agree, which is exactly when the cumulative rule is easiest to
+# drop and still needed: a row that regresses below Platinum leaves
+# Platinum's own three rules done, so only the cumulative walk sees it --
+# driven, a Silver row set to todo derives bronze and this check goes red.
 #
 # Two design choices, stated so they are not read as bugs. The tier
 # membership below is the published checklist's own partition -- 20 Bronze,
