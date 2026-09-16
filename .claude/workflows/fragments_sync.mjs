@@ -180,6 +180,8 @@ function selfTest(canonDecls, files) {
   }
   const bentStamp = [['a.js', 'run tools/release/stamp.py --bump patch, then the same command with --push. Done']]
   ok(keylessStampPushes(bentStamp).length === 1, 'a keyless stamp --push is reported')
+  ok(keylessStampPushes([['a.js', 'Run python3\ntools/release/stamp.py --bump x --dry-run, then the\nsame command with --push. It']]).length === 1,
+    'so is one wrapped across lines, as the fragments wrap it')
   ok(keylessStampPushes([['a.js', bentStamp[0][1].replace('--push.', '--push --push-key k.')]]).length === 0,
     'the same text with --push-key is not')
   ok(keylessStampPushes([['a.js', 'git push --push-option=ci.skip; git push --push']]).length === 0,

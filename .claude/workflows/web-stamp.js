@@ -117,9 +117,9 @@ red run, fetch the failing job log (get_job_logs, failed_only) and return
 {green: false, log_excerpt}. Return {green, run_id}.`
 
 const stampPrompt = (repo, bump, title) => `In ${repo}: if test -f
-~/.zcode/stamp-deploy.key fails, return {stamped: false, reason: "no deploy
-key in this runtime; hand the stamp to a local orchestrator"} and change
-nothing. Else git fetch origin --tags; git worktree add --detach
+~/.zcode/stamp-deploy.key fails, return {stamped: false, reason:
+"no deploy key in this runtime; hand the stamp to a local orchestrator"}
+and change nothing. Else git fetch origin --tags; git worktree add --detach
 /home/user/wt/stamp origin/main (if the path exists, reuse it and git reset
 --hard origin/main). If git tag --points-at HEAD is non-empty, return
 {stamped: false, reason: "already stamped"} and change nothing. Otherwise
@@ -129,9 +129,9 @@ body (git log <last-tag>..HEAD --format=%s lists them; read each body with
 pull_request_read), so every "(#N)" is named -- stamp.py rule 4 refuses notes
 that omit one. Run python3 tools/release/stamp.py --bump ${bump} --title
 "${title}" --dry-run, then the same command with --push --push-key
-~/.zcode/stamp-deploy.key --known-hosts ~/.zcode/github_known_hosts. It
-refuses on its own rules; if it refuses, change nothing and return {stamped:
-false, reason: <its message>}. Return {stamped: true, version, tag_sha}.`
+~/.zcode/stamp-deploy.key --known-hosts ~/.zcode/github_known_hosts, never
+without the key. If it refuses, change nothing and return {stamped: false,
+reason: <its message>}. Return {stamped: true, version, tag_sha}.`
 
 // ---------------------------------------------------------------------------
 // One stamp for everything merged since the last tag, then the wave's record.
